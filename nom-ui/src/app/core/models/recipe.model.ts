@@ -17,6 +17,8 @@ export interface RecipeDietMatchModel {
   restrictionType?: string;
   severity?: number;
   ingredientName: string;
+  /** Why the hit fired, from the category criterion ("high oxalate"). */
+  notes?: string;
 }
 
 export interface RecipeModel {

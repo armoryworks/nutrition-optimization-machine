@@ -431,12 +431,17 @@ namespace Nom.Orch.Services
         public async Task<List<RecipeDietMatchModel>> GetDietMatchesAsync(long recipeId, long personId)
         {
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
-            return await _context.Set<Nom.Data.Plan.RestrictionEntity>()
+            var activeRestrictions = _context.Set<Nom.Data.Plan.RestrictionEntity>()
                 .AsNoTracking()
-                .Where(r => r.PersonId == personId && r.IngredientId != null
+                .Where(r => r.PersonId == personId
                     && (r.BeginDate == null || r.BeginDate <= today)
-                    && (r.EndDate == null || r.EndDate >= today))
-                .Join(_context.RecipeIngredients.Where(ri => ri.RecipeId == recipeId),
+                    && (r.EndDate == null || r.EndDate >= today));
+            var recipeIngredients = _context.RecipeIngredients.Where(ri => ri.RecipeId == recipeId);
+
+            // 1) Restrictions that name a specific ingredient directly.
+            var direct = await activeRestrictions
+                .Where(r => r.IngredientId != null)
+                .Join(recipeIngredients,
                     r => r.IngredientId,
                     ri => ri.IngredientId,
                     (r, ri) => new RecipeDietMatchModel
@@ -447,6 +452,36 @@ namespace Nom.Orch.Services
                         IngredientName = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty
                     })
                 .ToListAsync();
+
+            // 2) Restrictions that reference a category (e.g. "Gout"): the
+            //    category's curated criteria supply the ingredient filters —
+            //    exact id or ILIKE name pattern.
+            var viaCriteria = await activeRestrictions
+                .Where(r => r.RestrictionTypeId != null)
+                .Join(_context.Set<Nom.Data.Plan.RestrictionCriterionEntity>(),
+                    r => r.RestrictionTypeId,
+                    c => c.RestrictionTypeId,
+                    (r, c) => new { r, c })
+                .SelectMany(
+                    rc => recipeIngredients.Where(ri =>
+                        (rc.c.IngredientId != null && ri.IngredientId == rc.c.IngredientId)
+                        || (rc.c.IngredientPattern != null && ri.Ingredient != null
+                            && EF.Functions.ILike(ri.Ingredient.Name, rc.c.IngredientPattern))),
+                    (rc, ri) => new RecipeDietMatchModel
+                    {
+                        RestrictionName = rc.r.Name,
+                        RestrictionType = rc.r.RestrictionType != null ? rc.r.RestrictionType.Name : null,
+                        Severity = rc.c.Severity,
+                        IngredientName = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty,
+                        Notes = rc.c.Notes
+                    })
+                .ToListAsync();
+
+            return direct.Concat(viaCriteria)
+                .GroupBy(m => new { m.RestrictionName, m.IngredientName })
+                .Select(g => g.OrderByDescending(m => m.Severity ?? 0).First())
+                .OrderByDescending(m => m.Severity ?? 0)
+                .ToList();
         }
 
         public async Task<RecipeResponseModel?> UpdateRecipeAsync(long id, UpdateRecipeRequest model)

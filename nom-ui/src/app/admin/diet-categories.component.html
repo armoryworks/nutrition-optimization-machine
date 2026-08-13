@@ -1,0 +1,118 @@
+<div class="nom-diet-cats" data-testid="diet-categories">
+  @if (errorMessage()) {
+    <nom-error-banner [message]="errorMessage()" data-testid="diet-categories-error" />
+  }
+
+  @if (loading()) {
+    <div class="nom-diet-cats__loading">
+      <mat-spinner diameter="32" />
+      <p>Loading diet categories&hellip;</p>
+    </div>
+  } @else {
+    @for (group of groups(); track group.id) {
+      <section class="nom-diet-cats__group" [attr.data-testid]="'diet-group-' + group.id">
+        <header class="nom-diet-cats__group-head">
+          <div>
+            <h2>{{ group.name }}</h2>
+            @if (group.description) { <p>{{ group.description }}</p> }
+          </div>
+          <button mat-stroked-button (click)="startAdd(group)"
+                  [attr.data-testid]="'diet-group-add-btn'">
+            <mat-icon>add</mat-icon>
+            New category
+          </button>
+        </header>
+
+        @if (addingToGroupId() === group.id) {
+          <form class="nom-diet-cats__form" [formGroup]="categoryForm"
+                (ngSubmit)="createCategory(group)" data-testid="diet-category-form">
+            <input class="nom-diet-cats__input" formControlName="name"
+                   placeholder="Category name (e.g. Kidney Stones)"
+                   data-testid="diet-category-name-input">
+            <input class="nom-diet-cats__input nom-diet-cats__input--wide" formControlName="description"
+                   placeholder="Description shown to users"
+                   data-testid="diet-category-desc-input">
+            <button mat-flat-button color="primary" type="submit"
+                    [disabled]="categoryForm.invalid || processing()"
+                    data-testid="diet-category-submit-btn">Create</button>
+            <button mat-button type="button" (click)="cancelAdd()">Cancel</button>
+          </form>
+        }
+
+        <ul class="nom-diet-cats__list" data-testid="diet-categories-list">
+          @for (category of group.categories; track category.id) {
+            <li class="nom-diet-cats__item" data-testid="diet-category-item">
+              <div class="nom-diet-cats__item-row">
+                <div class="nom-diet-cats__item-main">
+                  <span class="nom-diet-cats__item-name">{{ category.name }}</span>
+                  @if (category.description) {
+                    <span class="nom-diet-cats__item-desc">{{ category.description }}</span>
+                  }
+                </div>
+                <button class="nom-diet-cats__chip"
+                        (click)="toggleCriteria(category)"
+                        [attr.data-testid]="'diet-category-criteria-btn'">
+                  <mat-icon>filter_alt</mat-icon>
+                  {{ category.criteriaCount }} criteria
+                </button>
+                <button mat-icon-button (click)="deleteCategory(category)"
+                        [disabled]="processing()"
+                        aria-label="Delete category"
+                        data-testid="diet-category-delete-btn">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+
+              @if (expandedCategoryId() === category.id) {
+                <div class="nom-diet-cats__criteria" data-testid="diet-criteria-panel">
+                  @if (criteriaLoading()) {
+                    <mat-spinner diameter="24" />
+                  } @else {
+                    @if (criteria().length === 0) {
+                      <p class="nom-diet-cats__empty" data-testid="diet-criteria-empty">
+                        No criteria yet — this category won't flag anything until it has some.
+                      </p>
+                    } @else {
+                      <ul class="nom-diet-cats__criteria-list">
+                        @for (criterion of criteria(); track criterion.id) {
+                          <li class="nom-diet-cats__criterion" data-testid="diet-criterion-item">
+                            <span class="nom-diet-cats__sev nom-diet-cats__sev--{{ criterion.severity }}">S{{ criterion.severity }}</span>
+                            <code>{{ criterion.ingredientName || criterion.ingredientPattern || criterion.nutrientName }}</code>
+                            @if (criterion.notes) { <span class="nom-diet-cats__note">{{ criterion.notes }}</span> }
+                            <button mat-icon-button (click)="deleteCriterion(criterion)"
+                                    [disabled]="processing()"
+                                    aria-label="Delete criterion"
+                                    data-testid="diet-criterion-delete-btn">
+                              <mat-icon>close</mat-icon>
+                            </button>
+                          </li>
+                        }
+                      </ul>
+                    }
+                    <form class="nom-diet-cats__form" [formGroup]="criterionForm"
+                          (ngSubmit)="addCriterion()" data-testid="diet-criterion-form">
+                      <input class="nom-diet-cats__input" formControlName="ingredientPattern"
+                             placeholder="Ingredient pattern, e.g. %anchov%"
+                             data-testid="diet-criterion-pattern-input">
+                      <input class="nom-diet-cats__input nom-diet-cats__input--narrow" formControlName="severity"
+                             type="number" min="1" max="5" aria-label="Severity 1-5"
+                             data-testid="diet-criterion-severity-input">
+                      <input class="nom-diet-cats__input nom-diet-cats__input--wide" formControlName="notes"
+                             placeholder="Why it's flagged (shown to users)"
+                             data-testid="diet-criterion-notes-input">
+                      <button mat-flat-button color="primary" type="submit"
+                              [disabled]="processing()"
+                              data-testid="diet-criterion-submit-btn">Add</button>
+                    </form>
+                  }
+                </div>
+              }
+            </li>
+          } @empty {
+            <li class="nom-diet-cats__empty" data-testid="diet-categories-empty">No categories in this group.</li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</div>
