@@ -4,6 +4,14 @@ namespace Nom.Orch.Models.Recipe
 {
     public class RecipeSearchModel
     {
+        /// <summary>
+        /// The authenticated requester, set by the controller — never bound
+        /// from the request body (visibility filtering must not be spoofable).
+        /// Null = anonymous (public+approved pool only).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public long? RequesterPersonId { get; set; }
+
         [StringLength(255, ErrorMessage = "Search query cannot exceed 255 characters.")]
         public string? Query { get; set; }
         
