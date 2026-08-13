@@ -26,6 +26,12 @@ namespace Nom.Orch.Services
             _context = context;
         }
 
+        public async Task<bool> CanAccessListByIdAsync(long listId, long personId)
+        {
+            var list = await _context.ShoppingLists.FindAsync(listId);
+            return list != null && await CanAccessListAsync(list, personId);
+        }
+
         /// <summary>Lists are visible to their author and to members of their household.</summary>
         private async Task<bool> CanAccessListAsync(ShoppingListEntity shoppingList, long personId)
         {

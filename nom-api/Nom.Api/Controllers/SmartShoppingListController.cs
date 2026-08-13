@@ -11,17 +11,25 @@ namespace Nom.Api.Controllers
     public class SmartShoppingListController : BaseApiController
     {
         private readonly ISmartShoppingListService _smartShoppingListService;
+        private readonly IShoppingListOrchestrationService _shoppingListService;
 
         public SmartShoppingListController(
-            ISmartShoppingListService smartShoppingListService)
+            ISmartShoppingListService smartShoppingListService,
+            IShoppingListOrchestrationService shoppingListService)
         {
             _smartShoppingListService = smartShoppingListService;
+            _shoppingListService = shoppingListService;
         }
+
+        /// <summary>403 unless the caller may access shopping list <paramref name="listId"/>.</summary>
+        private async Task<bool> CanAccessListAsync(long listId) =>
+            await _shoppingListService.CanAccessListByIdAsync(listId, GetCurrentPersonIdRequired());
 
         [HttpPost("generate")]
         [ProducesResponseType(typeof(SmartShoppingListResponseModel), StatusCodes.Status200OK)]
         public async Task<IActionResult> GenerateSmartShoppingList([FromBody] SmartShoppingListRequestModel request)
         {
+            if (!IsHouseholdMember(request.HouseholdId)) return Forbid();
             var result = await _smartShoppingListService.GenerateSmartShoppingListAsync(request);
             return Ok(result);
         }
@@ -38,6 +46,7 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(typeof(SmartShoppingListResponseModel), StatusCodes.Status200OK)]
         public async Task<IActionResult> OptimizeShoppingList([FromBody] ShoppingListOptimizationModel request)
         {
+            if (!await CanAccessListAsync(request.ShoppingListId)) return Forbid();
             var result = await _smartShoppingListService.OptimizeShoppingListAsync(request);
             return Ok(result);
         }
@@ -46,6 +55,7 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(typeof(List<ShoppingListSuggestionModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetSuggestions(long id)
         {
+            if (!await CanAccessListAsync(id)) return Forbid();
             var result = await _smartShoppingListService.GetShoppingListSuggestionsAsync(id);
             return Ok(result);
         }
@@ -54,6 +64,7 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(typeof(ShoppingListAnalyticsModel), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAnalytics(long id)
         {
+            if (!await CanAccessListAsync(id)) return Forbid();
             var result = await _smartShoppingListService.GetShoppingListAnalyticsAsync(id);
             return Ok(result);
         }
@@ -78,6 +89,7 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(typeof(List<ShoppingListGenerationHistoryModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetGenerationHistory(long id)
         {
+            if (!await CanAccessListAsync(id)) return Forbid();
             var result = await _smartShoppingListService.GetGenerationHistoryAsync(id);
             return Ok(result);
         }

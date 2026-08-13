@@ -602,6 +602,13 @@ namespace Nom.Orch.Services
 
         public async Task<List<RecipeCommentResponseModel>> GetCommentsAsync(long recipeId)
         {
+            // Don't expose comments on recipes the caller can't see.
+            var visible = await _context.Recipes
+                .Where(r => r.Id == recipeId)
+                .VisibleTo(_context, GetCurrentPersonId())
+                .AnyAsync();
+            if (!visible) return new List<RecipeCommentResponseModel>();
+
             var comments = await _context.RecipeComments
                 .Include(c => c.Author)
                 .Where(c => c.RecipeId == recipeId)
@@ -623,7 +630,9 @@ namespace Nom.Orch.Services
         public async Task<bool> DeleteCommentAsync(long commentId)
         {
             var comment = await _context.RecipeComments.FindAsync(commentId);
-            if (comment == null)
+            // Only the author may delete their comment. Deny reads as "not
+            // found" so a non-author can't probe which comment ids exist.
+            if (comment == null || comment.AuthorId != GetCurrentPersonId())
                 return false;
 
             _context.RecipeComments.Remove(comment);
@@ -680,7 +689,8 @@ namespace Nom.Orch.Services
         public async Task<RecipeRatingResponseModel?> UpdateRatingAsync(long ratingId, RecipeRatingUpdateModel model)
         {
             var rating = await _context.RecipeRatings.FindAsync(ratingId);
-            if (rating == null)
+            // Only the rater may change their rating.
+            if (rating == null || rating.RaterId != GetCurrentPersonId())
                 return null;
 
             rating.Rating = model.Rating;
@@ -703,7 +713,8 @@ namespace Nom.Orch.Services
         public async Task<bool> DeleteRatingAsync(long ratingId)
         {
             var rating = await _context.RecipeRatings.FindAsync(ratingId);
-            if (rating == null)
+            // Only the rater may delete their rating.
+            if (rating == null || rating.RaterId != GetCurrentPersonId())
                 return false;
 
             _context.RecipeRatings.Remove(rating);

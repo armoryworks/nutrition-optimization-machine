@@ -132,6 +132,7 @@ namespace Nom.Api.Controllers.Measurement
         /// <summary>
         /// Creates a new measurement.
         /// </summary>
+        [Authorize(Policy = "CanManageCuration")]
         [HttpPost]
         [ProducesResponseType(typeof(MeasurementModel), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -166,6 +167,7 @@ namespace Nom.Api.Controllers.Measurement
         /// <summary>
         /// Updates an existing measurement.
         /// </summary>
+        [Authorize(Policy = "CanManageCuration")]
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(MeasurementModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -183,6 +185,7 @@ namespace Nom.Api.Controllers.Measurement
         /// <summary>
         /// Deletes a measurement.
         /// </summary>
+        [Authorize(Policy = "CanManageCuration")]
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

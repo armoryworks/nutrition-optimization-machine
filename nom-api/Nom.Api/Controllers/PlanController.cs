@@ -35,6 +35,10 @@ namespace Nom.Api.Controllers
         public async Task<IActionResult> GetPlanById(long id)
         {
             var plan = await _planOrch.GetPlanByIdAsync(id);
+            if (plan == null) return NotFound();
+            // Visible to its author, or to anyone if it's a curated (public) plan.
+            if (plan.AuthorId != GetCurrentPersonIdRequired() && plan.CurationStatus != "Curated")
+                return Forbid();
             return Ok(plan);
         }
 

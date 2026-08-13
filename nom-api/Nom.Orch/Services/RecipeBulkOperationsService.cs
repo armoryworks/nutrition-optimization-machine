@@ -254,8 +254,29 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Assign categories to recipes
         /// </summary>
+        /// <summary>
+        /// Restrict a bulk request's RecipeIds to recipes the caller authors,
+        /// so bulk mutations can't touch other people's recipes. Fails closed
+        /// (empties the set) when no requester is set.
+        /// </summary>
+        private async Task ScopeToAuthoredAsync(Nom.Orch.Models.Recipe.RecipeBulkBaseModel request)
+        {
+            if (request.RequesterPersonId is long rp)
+            {
+                request.RecipeIds = await _dbContext.Recipes
+                    .Where(r => request.RecipeIds.Contains(r.Id) && r.AuthorId == rp)
+                    .Select(r => r.Id)
+                    .ToListAsync();
+            }
+            else
+            {
+                request.RecipeIds = new List<long>();
+            }
+        }
+
         public async Task<RecipeBulkOperationResponseModel> AssignCategoriesAsync(RecipeBulkAssignCategoriesModel request)
         {
+            await ScopeToAuthoredAsync(request);
             try
             {
                 _logger.LogInformation("Assigning {CategoryCount} categories to {RecipeCount} recipes",
@@ -344,6 +365,7 @@ namespace Nom.Orch.Services
         /// </summary>
         public async Task<RecipeBulkOperationResponseModel> AssignTagsAsync(RecipeBulkAssignTagsModel request)
         {
+            await ScopeToAuthoredAsync(request);
             try
             {
                 _logger.LogInformation("Assigning {TagCount} tags to {RecipeCount} recipes",
@@ -432,6 +454,7 @@ namespace Nom.Orch.Services
         /// </summary>
         public async Task<RecipeBulkOperationResponseModel> UpdateSettingsAsync(RecipeBulkUpdateSettingsModel request)
         {
+            await ScopeToAuthoredAsync(request);
             try
             {
                 _logger.LogInformation("Updating settings for {RecipeCount} recipes", request.RecipeIds.Count);
@@ -506,6 +529,7 @@ namespace Nom.Orch.Services
         /// </summary>
         public async Task<RecipeBulkOperationResponseModel> DeleteRecipesAsync(RecipeBulkDeleteModel request)
         {
+            await ScopeToAuthoredAsync(request);
             try
             {
                 _logger.LogInformation("Deleting {RecipeCount} recipes (Permanent={Permanent})",

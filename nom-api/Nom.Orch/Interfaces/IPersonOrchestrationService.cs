@@ -48,7 +48,11 @@ namespace Nom.Orch.Interfaces
         /// </summary>
         long GetCurrentPersonIdRequired();
 
-        Task<List<PersonModel>> SearchPersonsAsync(string query, int limit = 20);
+        /// <summary>
+        /// Searches persons the caller may see: themselves and anyone sharing
+        /// one of <paramref name="callerHouseholdIds"/>. Never the full directory.
+        /// </summary>
+        Task<List<PersonModel>> SearchPersonsAsync(string query, IReadOnlyList<long> callerHouseholdIds, long? callerPersonId, int limit = 20);
 
         /// <summary>
         /// Checks if a person is an active member of any of the specified households.

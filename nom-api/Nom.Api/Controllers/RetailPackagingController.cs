@@ -33,6 +33,7 @@ namespace Nom.Api.Controllers
             return Ok(item);
         }
 
+        [Authorize(Policy = "CanManageCuration")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] RetailPackagingCreateModel model)
         {
@@ -40,6 +41,7 @@ namespace Nom.Api.Controllers
             return CreatedAtAction(nameof(GetById), new { id = item.Id }, item);
         }
 
+        [Authorize(Policy = "CanManageCuration")]
         [HttpPut("{id:long}")]
         public async Task<IActionResult> Update(long id, [FromBody] RetailPackagingUpdateModel model)
         {
@@ -62,6 +64,7 @@ namespace Nom.Api.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = "CanManageCuration")]
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> Delete(long id)
         {

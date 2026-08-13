@@ -592,10 +592,22 @@ namespace Nom.Orch.Services
                 .AnyAsync(hm => hm.PersonId == personId && hm.IsActive && householdIds.Contains(hm.HouseholdId));
         }
 
-        public async Task<List<PersonModel>> SearchPersonsAsync(string query, int limit = 20)
+        public async Task<List<PersonModel>> SearchPersonsAsync(
+            string query, IReadOnlyList<long> callerHouseholdIds, long? callerPersonId, int limit = 20)
         {
+            // Only persons the caller shares a household with (plus themselves)
+            // are visible — never the whole Persons table.
+            var visiblePersonIds = await _dbContext.HouseholdMembers
+                .Where(hm => callerHouseholdIds.Contains(hm.HouseholdId))
+                .Select(hm => hm.PersonId)
+                .Distinct()
+                .ToListAsync();
+            if (callerPersonId.HasValue) visiblePersonIds.Add(callerPersonId.Value);
+
+            if (visiblePersonIds.Count == 0) return new List<PersonModel>();
+
             var persons = await _dbContext.Persons
-                .Where(p => EF.Functions.ILike(p.Name, $"%{query}%"))
+                .Where(p => visiblePersonIds.Contains(p.Id) && EF.Functions.ILike(p.Name, $"%{query}%"))
                 .OrderBy(p => p.Name)
                 .Take(limit)
                 .ToListAsync();

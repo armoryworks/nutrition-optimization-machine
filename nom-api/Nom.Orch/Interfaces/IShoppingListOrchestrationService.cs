@@ -8,6 +8,8 @@ namespace Nom.Orch.Interfaces
 {
     public interface IShoppingListOrchestrationService
     {
+        /// <summary>True if the person may access the list (author or a member of its household).</summary>
+        Task<bool> CanAccessListByIdAsync(long listId, long personId);
         Task<List<ShoppingListResponseModel>> GetAllShoppingListsAsync(long personId);
         Task<ShoppingListCreateResponseModel> CreateShoppingListAsync(ShoppingListCreateModel model, long authorId);
         Task<ShoppingListResponseModel?> GetShoppingListAsync(long id, long personId);
