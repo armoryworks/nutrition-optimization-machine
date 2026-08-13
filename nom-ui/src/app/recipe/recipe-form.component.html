@@ -163,7 +163,9 @@
         <span class="nom-recipe-form__spacer"></span>
         <button mat-button type="button" routerLink="/recipes/mine">Cancel</button>
         <button mat-flat-button type="submit"
-                [disabled]="saving()"
+                [disabledInteractive]="saveGated()"
+                [matTooltip]="saveGatedTooltip()"
+                [disabled]="saving() || saveGated()"
                 data-testid="recipe-submit-btn">
           {{ submitLabel() }}
         </button>

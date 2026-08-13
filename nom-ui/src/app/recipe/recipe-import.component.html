@@ -9,6 +9,12 @@
     </div>
 
     <div class="nom-form__card-content">
+      @if (importGated()) {
+        <div class="nom-form__error" data-testid="recipe-import-gated-notice">
+          <mat-icon>lock</mat-icon>
+          Recipe import is disabled by your household policy.
+        </div>
+      }
       @if (error()) {
         <div class="nom-form__error">
           <mat-icon>error</mat-icon>
@@ -37,7 +43,11 @@
           }
           Preview
         </button>
-        <button mat-flat-button [disabled]="!(url.value ?? '').trim() || importing()" (click)="onImport()" data-testid="recipe-import-submit-btn">
+        <button mat-flat-button
+                [disabled]="!(url.value ?? '').trim() || importing() || importGated()"
+                [disabledInteractive]="importGated()"
+                [matTooltip]="importGated() ? 'Disabled by your household policy' : ''"
+                (click)="onImport()" data-testid="recipe-import-submit-btn">
           @if (importing()) {
             <mat-spinner diameter="18"></mat-spinner>
           } @else {

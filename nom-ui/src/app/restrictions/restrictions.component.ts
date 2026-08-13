@@ -8,8 +8,11 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ReferenceService } from '../core/services/reference.service';
 import { LoadingService } from '../core/services/loading.service';
+import { AuthService } from '../core/services/auth.service';
+import { PersonService } from '../core/services/person.service';
 import { ReferenceItem } from '../core/models/reference-item.model';
 import { ReferenceDiscriminator } from '../core/models/reference-discriminator.model';
 import { RestrictionRequest } from '../core/models/restriction-request.model';
@@ -41,6 +44,7 @@ const SECTION_CONFIG: { groupId: number; icon: string }[] = [
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
   ],
   templateUrl: './restrictions.component.html',
   styleUrl: './restrictions.component.scss',
@@ -56,31 +60,73 @@ export class Restrictions implements OnInit {
 
   private referenceService = inject(ReferenceService);
   private loadingService = inject(LoadingService);
+  private authService = inject(AuthService);
+  private personService = inject(PersonService);
   private destroyRef = inject(DestroyRef);
 
   sections = signal<RestrictionSection[]>([]);
   selectedIds = signal<Set<number>>(new Set());
   itemLookup = signal<Map<number, ReferenceItem>>(new Map());
+  /** Restrictions locked by a steward or provider: read-only, never resubmitted. */
+  lockedRestrictions = signal<RestrictionRequest[]>([]);
   errorMessage = signal('');
   successMessage = signal('');
+  saving = signal(false);
 
   isStandalone = computed(() => this.mode() !== 'wizard');
+
+  /** Restriction type ids covered by locked restrictions (not re-addable). */
+  private lockedTypeIds = computed(
+    () => new Set(this.lockedRestrictions().map(r => r.restrictionTypeId)));
 
   ngOnInit(): void {
     this.loadRestrictionGroups();
 
-    const initial = this.initialRestrictions() ?? [];
-    if (initial.length > 0) {
-      this.selectedIds.set(new Set(initial.map(r => r.restrictionTypeId)));
+    this.applyRestrictions(this.initialRestrictions() ?? []);
+    if (this.isStandalone()) {
+      this.loadExistingRestrictions();
     }
+  }
+
+  /** Text for a locked restriction's badge, based on who locked it. */
+  lockedByLabel(restriction: RestrictionRequest): string {
+    const lockedBy = restriction.lockedBy ?? '';
+    return lockedBy && !lockedBy.startsWith('person:')
+      ? 'Locked by your provider'
+      : 'Locked by your household steward';
+  }
+
+  /** Split incoming restrictions into locked (read-only) and editable selection. */
+  private applyRestrictions(restrictions: RestrictionRequest[]): void {
+    const locked = restrictions.filter(r => r.locked);
+    const editable = restrictions.filter(r => !r.locked);
+    this.lockedRestrictions.set(locked);
+    if (restrictions.length > 0) {
+      this.selectedIds.set(new Set(editable.map(r => r.restrictionTypeId)));
+    }
+  }
+
+  private loadExistingRestrictions(): void {
+    const personId = this.authService.personId();
+    if (!personId) return;
+
+    this.personService.getOnboardingState(personId).pipe(
+      this.loadingService.loading('Loading your restrictions...'),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (state) => this.applyRestrictions(state.restrictions ?? []),
+      error: () => {},
+    });
   }
 
   filteredItems(section: RestrictionSection): ReferenceItem[] {
     const search = section.searchControl.value?.toLowerCase() ?? '';
     if (!search) return [];
     const selected = this.selectedIds();
+    const locked = this.lockedTypeIds();
     return section.allItems.filter(
       item => !selected.has(item.referenceId) &&
+        !locked.has(item.referenceId) &&
         (item.referenceName.toLowerCase().includes(search) ||
          (item.referenceDescription?.toLowerCase().includes(search) ?? false))
     );
@@ -121,13 +167,41 @@ export class Restrictions implements OnInit {
   }
 
   onSubmit(): void {
+    // Locked restrictions are never resubmitted — the selection only ever
+    // contains editable restrictions, and the server preserves locked ones.
     const restrictions = this.buildRestrictions();
     if (this.isStandalone()) {
-      this.successMessage.set('Dietary preferences saved.');
-      this.saved.emit(restrictions);
+      this.saveRestrictions(restrictions);
     } else {
       this.stepComplete.emit(restrictions);
     }
+  }
+
+  private saveRestrictions(restrictions: RestrictionRequest[]): void {
+    const personId = this.authService.personId();
+    if (!personId) {
+      this.errorMessage.set('Unable to identify your account. Please try logging in again.');
+      return;
+    }
+
+    this.saving.set(true);
+    this.errorMessage.set('');
+    this.successMessage.set('');
+
+    this.personService.saveRestrictions(personId, restrictions).pipe(
+      this.loadingService.loading('Saving dietary preferences...'),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.successMessage.set('Dietary preferences saved.');
+        this.saved.emit(restrictions);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.errorMessage.set('Unable to save your dietary preferences. Please try again.');
+      },
+    });
   }
 
   private loadRestrictionGroups(): void {

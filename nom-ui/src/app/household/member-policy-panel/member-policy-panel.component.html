@@ -1,0 +1,161 @@
+<div class="nom-policy-panel" data-testid="member-policy-panel">
+  @if (errorMessage()) {
+    <div class="nom-form__error" data-testid="member-policy-error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (successMessage()) {
+    <div class="nom-policy-panel__success" data-testid="member-policy-success">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ successMessage() }}</span>
+    </div>
+  }
+
+  <mat-form-field appearance="outline" class="nom-policy-panel__member-select">
+    <mat-label>Member</mat-label>
+    <mat-select
+      [value]="selectedPersonId()"
+      (valueChange)="onMemberChange($event)"
+      data-testid="member-policy-member-select">
+      @for (member of members(); track member.personId) {
+        <mat-option [value]="member.personId">{{ member.personName }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  @if (selectedPersonId() != null) {
+    @if (loading()) {
+      <div class="nom-policy-panel__loading">
+        <mat-spinner diameter="28"></mat-spinner>
+      </div>
+    } @else {
+      <!-- Feature gates -->
+      <div class="nom-policy-panel__group">
+        <h3 class="nom-policy-panel__group-title">Feature access</h3>
+        <div class="nom-policy-panel__gates" data-testid="member-policy-gates">
+          @for (gate of gateRows; track gate.key) {
+            <div class="nom-policy-panel__gate-row">
+              <mat-slide-toggle
+                [checked]="isAllowed(gate.key)"
+                (change)="onGateToggle(gate.key, $event.checked)"
+                [attr.data-testid]="'member-policy-gate-' + gate.key">
+                {{ gate.label }}
+              </mat-slide-toggle>
+              <span class="nom-policy-panel__gate-desc">{{ gate.description }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Curated only -->
+      <div class="nom-policy-panel__group">
+        <mat-slide-toggle
+          [checked]="curatedOnly()"
+          (change)="curatedOnly.set($event.checked)"
+          data-testid="member-policy-curated-only-toggle">
+          Curated recipes only
+        </mat-slide-toggle>
+        <span class="nom-policy-panel__gate-desc">
+          Limit this member to curated recipes when planning meals
+        </span>
+      </div>
+
+      <!-- Frequency caps -->
+      <div class="nom-policy-panel__group">
+        <h3 class="nom-policy-panel__group-title">Frequency caps</h3>
+        <p class="nom-policy-panel__hint">
+          Limit how often tagged recipes appear in the weekly plan (shuffle honors these;
+          manual edits warn).
+        </p>
+        <div class="nom-policy-panel__caps" data-testid="member-policy-caps-list">
+          @for (cap of frequencyCaps(); track $index) {
+            <div class="nom-policy-panel__cap-row" data-testid="member-policy-cap-row">
+              <mat-form-field appearance="outline" class="nom-policy-panel__cap-tag">
+                <mat-label>Tag</mat-label>
+                <input matInput [(ngModel)]="cap.tag" placeholder="e.g. pizza"
+                       data-testid="member-policy-cap-tag-input" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="nom-policy-panel__cap-max">
+                <mat-label>Max / week</mat-label>
+                <input matInput type="number" min="0" [(ngModel)]="cap.maxPerWeek"
+                       data-testid="member-policy-cap-max-input" />
+              </mat-form-field>
+              <button mat-icon-button type="button" (click)="removeCap($index)"
+                      aria-label="Remove frequency cap"
+                      data-testid="member-policy-cap-remove-btn">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          } @empty {
+            <p class="nom-policy-panel__hint" data-testid="member-policy-caps-empty">No frequency caps.</p>
+          }
+        </div>
+        <button mat-stroked-button type="button" (click)="addCap()" data-testid="member-policy-add-cap-btn">
+          <mat-icon>add</mat-icon>
+          Add cap
+        </button>
+      </div>
+
+      <div class="nom-policy-panel__actions">
+        <button mat-flat-button type="button" (click)="savePolicy()" [disabled]="saving()"
+                data-testid="member-policy-save-btn">
+          @if (saving()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            Save Policy
+          }
+        </button>
+      </div>
+
+      <!-- Restriction locks -->
+      <div class="nom-policy-panel__group">
+        <h3 class="nom-policy-panel__group-title">Dietary restrictions</h3>
+        <p class="nom-policy-panel__hint">
+          Locked restrictions cannot be removed by the member, and NOM rejects recipes and
+          plan changes that conflict with them.
+        </p>
+        <div class="nom-policy-panel__restrictions" data-testid="member-policy-restrictions-list">
+          @for (restriction of restrictions(); track restriction.id ?? restriction.restrictionTypeId) {
+            <div class="nom-policy-panel__restriction-row" data-testid="member-policy-restriction-item">
+              <mat-icon class="nom-policy-panel__restriction-icon">
+                {{ restriction.locked ? 'lock' : 'lock_open' }}
+              </mat-icon>
+              <div class="nom-policy-panel__restriction-info">
+                <span class="nom-policy-panel__restriction-name">{{ restriction.name }}</span>
+                @if (isProviderLocked(restriction)) {
+                  <span class="nom-policy-panel__restriction-badge">Locked by provider</span>
+                } @else if (restriction.locked) {
+                  <span class="nom-policy-panel__restriction-badge">Locked</span>
+                }
+              </div>
+              @if (isProviderLocked(restriction)) {
+                <button mat-stroked-button type="button" disabled disabledInteractive
+                        matTooltip="This restriction is locked by an external manager and cannot be unlocked here"
+                        data-testid="member-policy-unlock-btn">
+                  Unlock
+                </button>
+              } @else {
+                <button mat-stroked-button type="button"
+                        (click)="toggleLock(restriction)"
+                        [disabled]="restriction.id == null || restrictionBusyId() != null"
+                        [attr.data-testid]="restriction.locked ? 'member-policy-unlock-btn' : 'member-policy-lock-btn'">
+                  @if (restrictionBusyId() === restriction.id) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    {{ restriction.locked ? 'Unlock' : 'Lock' }}
+                  }
+                </button>
+              }
+            </div>
+          } @empty {
+            <p class="nom-policy-panel__hint" data-testid="member-policy-restrictions-empty">
+              This member has no dietary restrictions.
+            </p>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>

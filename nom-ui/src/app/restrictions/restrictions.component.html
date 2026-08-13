@@ -20,6 +20,32 @@
     </div>
   }
 
+  @if (lockedRestrictions().length > 0) {
+    <div class="nom-form__section" data-testid="restrictions-locked-section">
+      <h2 class="nom-form__section-title">
+        <mat-icon class="nom-restrictions__section-icon">lock</mat-icon>
+        Locked Restrictions
+      </h2>
+      <p class="nom-form__section-description">
+        These restrictions are managed for you and cannot be removed here.
+      </p>
+      <div class="nom-restrictions__locked-list" data-testid="restrictions-locked-list">
+        @for (restriction of lockedRestrictions(); track restriction.id ?? restriction.restrictionTypeId) {
+          <div class="nom-restrictions__locked-item" data-testid="restrictions-locked-item">
+            <mat-icon class="nom-restrictions__locked-icon">lock</mat-icon>
+            <div class="nom-restrictions__locked-info">
+              <span class="nom-restrictions__locked-name">{{ restriction.name }}</span>
+              @if (restriction.description) {
+                <span class="nom-restrictions__locked-desc">{{ restriction.description }}</span>
+              }
+            </div>
+            <span class="nom-restrictions__locked-badge">{{ lockedByLabel(restriction) }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
   @for (section of sections(); track section.groupId) {
     <div class="nom-form__section">
       <h2 class="nom-form__section-title">
@@ -69,7 +95,7 @@
 
   @if (!hideActions()) {
     <div class="nom-form__actions">
-      <button mat-flat-button type="button" data-testid="restrictions-submit-btn" (click)="onSubmit()">
+      <button mat-flat-button type="button" data-testid="restrictions-submit-btn" [disabled]="saving()" (click)="onSubmit()">
         {{ isStandalone() ? 'Save Preferences' : 'Continue' }}
       </button>
     </div>

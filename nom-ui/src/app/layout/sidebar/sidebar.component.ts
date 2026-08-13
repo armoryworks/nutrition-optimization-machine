@@ -5,8 +5,10 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, startWith, map, switchMap, of } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MealPlanService } from '../../core/services/meal-plan.service';
 import { HouseholdStore } from '../../core/services/household-store';
+import { PolicyService } from '../../core/services/policy.service';
 import { MealPlanWeekResponse } from '../../core/models/meal-plan-week-response.model';
 import { MealPlanEntry } from '../../core/models/meal-plan-entry.model';
 
@@ -18,7 +20,7 @@ interface UpcomingMeal {
 
 @Component({
   selector: 'nom-sidebar',
-  imports: [RouterLink, MatIconModule, MatButtonModule],
+  imports: [RouterLink, MatIconModule, MatButtonModule, MatTooltipModule],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -27,6 +29,14 @@ export class Sidebar {
   private router = inject(Router);
   private mealPlanService = inject(MealPlanService);
   private householdStore = inject(HouseholdStore);
+  private policyService = inject(PolicyService);
+
+  constructor() {
+    this.policyService.loadOwnPolicyForPrimaryHousehold();
+  }
+
+  createGated = computed(() => this.policyService.isGatedPrimary('recipe_create'));
+  importGated = computed(() => this.policyService.isGatedPrimary('recipe_import'));
 
   private navEnd = toSignal(
     this.router.events.pipe(

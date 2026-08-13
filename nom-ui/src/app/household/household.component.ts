@@ -17,6 +17,7 @@ import { HouseholdResponseModel } from '../core/models/household-response.model'
 import { HouseholdCreateResponseModel } from '../core/models/household-create-response.model';
 import { HouseholdMemberResponseModel } from '../core/models/household-member-response.model';
 import { AddMemberDialog, AddMemberDialogData } from './add-member-dialog/add-member-dialog.component';
+import { MemberPolicyPanel } from './member-policy-panel/member-policy-panel.component';
 import { MacroGoalForm } from '../shared/components/macro-goal-form/macro-goal-form.component';
 
 export interface HouseholdFormData {
@@ -37,6 +38,7 @@ export interface HouseholdFormData {
     MatProgressSpinnerModule,
     MatSlideToggleModule,
     MatDialogModule,
+    MemberPolicyPanel,
     MacroGoalForm,
   ],
   templateUrl: './household.component.html',
@@ -77,6 +79,18 @@ export class Household implements OnInit {
     const personId = this.currentPersonId();
     return this.members().filter(m => m.personId !== personId);
   });
+
+  /** True when the current user is a steward of the active household. */
+  isSteward = computed(() => {
+    const personId = this.currentPersonId();
+    return this.members().find(m => m.personId === personId)?.isSteward ?? false;
+  });
+
+  activeHousehold = computed(() =>
+    this.households().find(h => h.id === this.activeHouseholdId()) ?? null);
+
+  /** True when the active household is enrolled with an external management tool. */
+  isManaged = computed(() => !!this.activeHousehold()?.managedBy);
 
   createForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(255)]],

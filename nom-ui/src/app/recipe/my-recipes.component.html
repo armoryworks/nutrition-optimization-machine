@@ -4,11 +4,17 @@
       <h1 class="nom-dashboard__title">My Recipes</h1>
     </div>
     <div class="nom-dashboard__header-right">
-      <a mat-stroked-button routerLink="/recipe/import" data-testid="my-recipes-import-btn">
+      <a mat-stroked-button routerLink="/recipe/import" data-testid="my-recipes-import-btn"
+         [disabled]="importGated()"
+         [disabledInteractive]="importGated()"
+         [matTooltip]="importGated() ? 'Disabled by your household policy' : ''">
         <mat-icon>link</mat-icon>
         Import from URL
       </a>
-      <a mat-flat-button routerLink="/recipe/new" data-testid="my-recipes-new-btn">
+      <a mat-flat-button routerLink="/recipe/new" data-testid="my-recipes-new-btn"
+         [disabled]="createGated()"
+         [disabledInteractive]="createGated()"
+         [matTooltip]="createGated() ? 'Disabled by your household policy' : ''">
         <mat-icon>add</mat-icon>
         New Recipe
       </a>

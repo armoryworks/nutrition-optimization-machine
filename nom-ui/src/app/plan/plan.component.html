@@ -33,8 +33,9 @@
         <button mat-stroked-button
                 data-testid="plan-shuffle-btn"
                 (click)="shuffleEmptySlots()"
-                [disabled]="!weekData() || shuffling()"
-                matTooltip="Fill empty slots with random recipes">
+                [disabled]="!weekData() || shuffling() || shuffleGated()"
+                [disabledInteractive]="shuffleGated()"
+                [matTooltip]="shuffleTooltip()">
           @if (shuffling()) {
             <mat-spinner diameter="18"></mat-spinner>
           } @else {

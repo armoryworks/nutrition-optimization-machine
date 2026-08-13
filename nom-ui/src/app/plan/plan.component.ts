@@ -20,6 +20,7 @@ import { PlanService } from '../core/services/plan.service';
 import { MealPlanService } from '../core/services/meal-plan.service';
 import { HouseholdStore } from '../core/services/household-store';
 import { LoadingService } from '../core/services/loading.service';
+import { PolicyService } from '../core/services/policy.service';
 import { PlanModel } from '../core/models/plan.model';
 import { HouseholdResponseModel } from '../core/models/household-response.model';
 import { HouseholdMemberResponseModel } from '../core/models/household-member-response.model';
@@ -75,6 +76,7 @@ export class Plan implements OnInit {
   private shuffleFlow = inject(ShuffleFlowService);
   private householdStore = inject(HouseholdStore);
   private loadingService = inject(LoadingService);
+  private policyService = inject(PolicyService);
   private dialog = inject(MatDialog);
   private destroyRef = inject(DestroyRef);
 
@@ -110,6 +112,12 @@ export class Plan implements OnInit {
   isCurrentWeek = computed(() => {
     return this.currentWeekStart() === Plan.getMonday(new Date());
   });
+
+  /** True when the caller's household policy gates the shuffle feature. */
+  shuffleGated = computed(() => this.policyService.isGated(this.activeHouseholdId(), 'shuffle'));
+
+  shuffleTooltip = computed(() =>
+    this.shuffleGated() ? 'Disabled by your household policy' : 'Fill empty slots with random recipes');
 
   // Wizard mode forms
   createForm = this.fb.group({
@@ -152,6 +160,7 @@ export class Plan implements OnInit {
 
   onHouseholdChange(householdId: number): void {
     this.activeHouseholdId.set(householdId);
+    this.policyService.loadOwnPolicy(householdId);
     const household = this.households().find(h => h.id === householdId);
     this.members.set(household?.members ?? []);
     this.loadWeek();
@@ -180,7 +189,7 @@ export class Plan implements OnInit {
   shuffleEmptySlots(): void {
     const householdId = this.activeHouseholdId();
     const data = this.weekData();
-    if (!householdId || !data) return;
+    if (!householdId || !data || this.shuffleGated()) return;
 
     const today = Plan.toDateString(new Date());
     const futureDays = data.days.filter(d => d.date >= today);
@@ -330,6 +339,7 @@ export class Plan implements OnInit {
         this.households.set(list);
         if (list.length > 0) {
           this.activeHouseholdId.set(list[0].id);
+          this.policyService.loadOwnPolicy(list[0].id);
           this.members.set(list[0].members ?? []);
           this.loadWeek();
         }

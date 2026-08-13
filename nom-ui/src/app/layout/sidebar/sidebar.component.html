@@ -73,6 +73,9 @@
           class="nom-sidebar-panel__action-btn"
           routerLink="/recipe/new"
           data-testid="quick-action-new-recipe-btn"
+          [disabled]="createGated()"
+          [disabledInteractive]="createGated()"
+          [matTooltip]="createGated() ? 'Disabled by your household policy' : ''"
         >
           <mat-icon>restaurant_menu</mat-icon>
           <span>New Recipe</span>
@@ -82,6 +85,9 @@
           class="nom-sidebar-panel__action-btn"
           routerLink="/recipe/import"
           data-testid="quick-action-import-btn"
+          [disabled]="importGated()"
+          [disabledInteractive]="importGated()"
+          [matTooltip]="importGated() ? 'Disabled by your household policy' : ''"
         >
           <mat-icon>link</mat-icon>
           <span>Import</span>

@@ -1,0 +1,122 @@
+@use 'variables' as vars;
+
+.nom-policy-panel {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-4;
+}
+
+.nom-policy-panel__success {
+  background: var(--mat-sys-primary-container);
+  border: 1px solid var(--mat-sys-primary);
+  border-left: 4px solid var(--mat-sys-primary);
+  border-radius: vars.$nom-border-radius-lg;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  color: var(--mat-sys-on-primary-container);
+  font-size: vars.$font-size-sm;
+}
+
+.nom-policy-panel__member-select {
+  max-width: 320px;
+}
+
+.nom-policy-panel__loading {
+  display: flex;
+  justify-content: center;
+  padding: vars.$spacing-6;
+}
+
+.nom-policy-panel__group {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-policy-panel__group-title {
+  font-size: vars.$font-size-sm;
+  font-weight: 600;
+  margin: 0;
+}
+
+.nom-policy-panel__hint {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+}
+
+.nom-policy-panel__gates {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
+.nom-policy-panel__gate-row {
+  display: flex;
+  align-items: baseline;
+  gap: vars.$spacing-3;
+  flex-wrap: wrap;
+}
+
+.nom-policy-panel__gate-desc {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-policy-panel__cap-row {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+}
+
+.nom-policy-panel__cap-tag {
+  flex: 1;
+  max-width: 280px;
+}
+
+.nom-policy-panel__cap-max {
+  width: 130px;
+}
+
+.nom-policy-panel__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.nom-policy-panel__restrictions {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-policy-panel__restriction-row {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+}
+
+.nom-policy-panel__restriction-icon {
+  color: var(--mat-sys-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.nom-policy-panel__restriction-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.nom-policy-panel__restriction-name {
+  font-weight: 500;
+}
+
+.nom-policy-panel__restriction-badge {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}

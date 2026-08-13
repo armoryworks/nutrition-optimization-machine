@@ -9,4 +9,6 @@ export interface HouseholdMemberResponseModel {
   isActive: boolean;
   hasProfile: boolean;
   hasRestrictions: boolean;
+  /** True when this member may perform steward actions (policies, restriction locks). */
+  isSteward?: boolean;
 }

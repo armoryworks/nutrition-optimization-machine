@@ -14,5 +14,11 @@ namespace Nom.Orch.Models.Household
         public bool IsActive { get; set; } = true;
         public bool HasProfile { get; set; }
         public bool HasRestrictions { get; set; }
+
+        /// <summary>
+        /// True when this member may perform steward actions (member policies,
+        /// restriction locks, membership). Mirrors IsAdmin || CanManage.
+        /// </summary>
+        public bool IsSteward { get; set; }
     }
 } 
