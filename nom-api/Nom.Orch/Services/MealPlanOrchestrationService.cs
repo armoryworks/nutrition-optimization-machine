@@ -10,6 +10,7 @@ using Nom.Data.Person;
 using Nom.Data.Plan;
 using Nom.Data.Recipe;
 using Nom.Data.Reference;
+using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.MealPlan;
 
@@ -18,10 +19,12 @@ namespace Nom.Orch.Services
     public class MealPlanOrchestrationService : IMealPlanOrchestrationService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IPolicyEnforcementService _policy;
 
-        public MealPlanOrchestrationService(ApplicationDbContext context)
+        public MealPlanOrchestrationService(ApplicationDbContext context, IPolicyEnforcementService policy)
         {
             _context = context;
+            _policy = policy;
         }
 
         public async Task<List<MealPlanResponseModel>> GetAllMealPlansAsync(DateTime? startDate = null, DateTime? endDate = null, List<long>? householdIds = null)
@@ -59,6 +62,8 @@ namespace Nom.Orch.Services
 
         public async Task<MealPlanCreateResponseModel> CreateMealPlanAsync(MealPlanCreateModel model, long authorId)
         {
+            await ValidateSlotAssignmentAsync(model.HouseholdId, authorId, model.RecipeId);
+
             var mealPlan = new MealPlanEntity
             {
                 HouseholdId = model.HouseholdId,
@@ -124,6 +129,8 @@ namespace Nom.Orch.Services
                 .FirstOrDefaultAsync(mp => mp.Id == id);
             if (mealPlan == null)
                 return null;
+
+            await ValidateSlotAssignmentAsync(mealPlan.HouseholdId, mealPlan.AuthorId, model.RecipeId);
 
             mealPlan.Date = model.Date;
             mealPlan.MealTypeId = model.MealTypeId;
@@ -251,8 +258,57 @@ namespace Nom.Orch.Services
             [1103] = new[] { (3104L, "Snack") },                                    // Snacks: 1
         };
 
+        /// <summary>
+        /// Slot assignments must reference a recipe the author can SEE and that
+        /// does not violate any LOCKED restriction of an active household
+        /// member (design doc §2: plan-slot assignment of non-compliant
+        /// recipes is rejected; hard-block is reserved for locks).
+        /// Previously these writes had no validation at all.
+        /// </summary>
+        private async Task ValidateSlotAssignmentAsync(long householdId, long authorId, long? recipeId)
+        {
+            var isMember = await _context.HouseholdMembers
+                .AnyAsync(hm => hm.HouseholdId == householdId && hm.PersonId == authorId && hm.IsActive);
+            if (!isMember)
+            {
+                throw new UnauthorizedAccessException("You are not an active member of this household.");
+            }
+
+            if (!recipeId.HasValue)
+            {
+                return;
+            }
+
+            var visible = await _context.Recipes
+                .VisibleTo(_context, authorId)
+                .AnyAsync(r => r.Id == recipeId.Value);
+            if (!visible)
+            {
+                throw new InvalidOperationException("restriction_violation:recipe_not_visible");
+            }
+
+            var lockedIngredientIds = await _policy.GetLockedIngredientIdsAsync(householdId);
+            if (lockedIngredientIds.Count > 0)
+            {
+                var violates = await _context.Recipes
+                    .Where(r => r.Id == recipeId.Value)
+                    .AnyAsync(r => r.RecipeIngredients!.Any(ri => lockedIngredientIds.Contains(ri.IngredientId)));
+                if (violates)
+                {
+                    // Machine-readable reason for the UI ("locked by your steward/provider").
+                    throw new InvalidOperationException("restriction_violation:locked_restriction");
+                }
+            }
+        }
+
         public async Task<MealPlanShuffleResponseModel> ShuffleMealPlansAsync(MealPlanShuffleModel model, long authorId)
         {
+            // Feature gate: a member whose policy gates "shuffle" cannot run it.
+            if (await _policy.IsFeatureGatedAsync(authorId, model.HouseholdId, FeatureGateKeys.Shuffle))
+            {
+                throw new UnauthorizedAccessException("feature_gated:shuffle");
+            }
+
             int deletedCount = 0;
 
             // 1. If replacing, delete existing entries in the date range
@@ -333,8 +389,17 @@ namespace Nom.Orch.Services
             var recipePools = new Dictionary<(long RecipeTypeId, long MealTypeId), List<RecipeEntity>>();
             foreach (var ((recipeTypeId, mealTypeId), count) in countByTypeAndMeal)
             {
-                var query = _context.Recipes
-                    .Where(r => r.CurationStatus!.Name == "Approved");
+                // Pool = recipes the shuffling member can SEE (public pool +
+                // household + audience tiers). curated_only members draw only
+                // from audience-scoped recipes and household cookbooks.
+                var query = _context.Recipes.VisibleTo(_context, authorId);
+                if (await _policy.IsCuratedOnlyAsync(authorId, model.HouseholdId))
+                {
+                    query = query.Where(r =>
+                        r.Visibility == RecipeVisibilityEnum.Audience
+                        || _context.Set<Nom.Data.Plan.HouseholdCookbookRecipeEntity>().Any(cr =>
+                            cr.RecipeId == r.Id && cr.HouseholdCookbook!.HouseholdId == model.HouseholdId));
+                }
 
                 if (restrictedIngredientIds.Count > 0)
                 {
