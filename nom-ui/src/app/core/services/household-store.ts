@@ -1,5 +1,6 @@
-import { Injectable, effect, inject } from '@angular/core';
-import { Observable, catchError, shareReplay, tap, throwError } from 'rxjs';
+import { Injectable, Signal, effect, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { BehaviorSubject, Observable, catchError, of, shareReplay, switchMap, tap } from 'rxjs';
 import { HouseholdService } from './household.service';
 import { AuthService } from './auth.service';
 import { HouseholdResponseModel } from '../models/household-response.model';
@@ -17,7 +18,22 @@ import { HouseholdMemberResponseModel } from '../models/household-member-respons
 export class HouseholdStore {
   private householdService = inject(HouseholdService);
   private authService = inject(AuthService);
-  private households$: Observable<HouseholdResponseModel[]> | null = null;
+
+  // Emitting on this re-runs the fetch; all subscribers (imperative and the
+  // reactive `households` signal below) receive the fresh list. Errors are
+  // swallowed to [] so one transient failure can't permanently break the
+  // shared stream — the empty list falls back to the no-household CTA, which
+  // self-heals on the next mutation.
+  private reload$ = new BehaviorSubject<void>(undefined);
+  private households$: Observable<HouseholdResponseModel[]> = this.reload$.pipe(
+    switchMap(() => this.householdService.getHouseholds().pipe(catchError(() => of([])))),
+    shareReplay({ bufferSize: 1, refCount: false }),
+  );
+
+  /** Reactive household list — re-emits automatically after any invalidate(). */
+  readonly households: Signal<HouseholdResponseModel[]> = toSignal(this.households$, {
+    initialValue: [] as HouseholdResponseModel[],
+  });
 
   constructor() {
     // A different user must never see a cached household list.
@@ -28,21 +44,11 @@ export class HouseholdStore {
   }
 
   getHouseholds(): Observable<HouseholdResponseModel[]> {
-    if (!this.households$) {
-      this.households$ = this.householdService.getHouseholds().pipe(
-        catchError((err) => {
-          // Do not cache failures; the next call retries.
-          this.invalidate();
-          return throwError(() => err);
-        }),
-        shareReplay({ bufferSize: 1, refCount: false }),
-      );
-    }
     return this.households$;
   }
 
   invalidate(): void {
-    this.households$ = null;
+    this.reload$.next();
   }
 
   createHousehold(model: HouseholdCreateModel): Observable<HouseholdCreateResponseModel> {
