@@ -211,6 +211,7 @@
                     </button>
                     @if (subsOpenFor() === row.ingredient.ingredientId) {
                       <div class="nom-recipe__subs-popover" (click)="$event.stopPropagation()"
+                           (keydown)="$event.stopPropagation()" tabindex="-1"
                            data-testid="ingredient-subs-popover">
                         <div class="nom-recipe__subs-title">Swap for</div>
                         @for (sub of row.ingredient.substitutions ?? []; track sub.ingredientId) {
