@@ -34,6 +34,9 @@ public class RecipeEntityConfiguration : IEntityTypeConfiguration<RecipeEntity>
         builder.Property(e => e.OrgUrl).HasMaxLength(255);
         builder.Property(e => e.NameNormalized).HasMaxLength(511);
         builder.Property(e => e.DescriptionNormalized).HasMaxLength(2047);
+        // DB default so inserts that omit the column (seed SQL, manual rows)
+        // get the safe value: only the scraping path ever sets this true.
+        builder.Property(e => e.ContainsSourceProse).HasDefaultValue(false);
 
         // Relationships
         builder.HasOne(r => r.ServingQuantityMeasurement)
