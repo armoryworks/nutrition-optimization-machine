@@ -561,9 +561,10 @@ describe('Screenshot Walkthrough', () => {
     cy.get('[data-testid="pantry"]').should('exist');
     cy.screenshot('21-pantry', { capture: 'fullPage' });
 
-    // Open add form
+    // Open add form (skip when the button is disabled — a user without a
+    // household sees the setup CTA instead of an enabled add control).
     cy.get('body').then(($b) => {
-      if ($b.find('[data-testid="pantry-add-toggle-btn"]').length) {
+      if ($b.find('[data-testid="pantry-add-toggle-btn"]:not([disabled])').length) {
         cy.get('[data-testid="pantry-add-toggle-btn"]').click();
         settle();
         cy.get('[data-testid="pantry-add-form"]').should('exist');
