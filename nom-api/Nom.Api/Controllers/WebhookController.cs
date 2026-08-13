@@ -23,6 +23,8 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(typeof(List<WebhookResponseModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetWebhooks([FromQuery, Required] long householdId)
         {
+            if (!IsHouseholdMember(householdId)) return Forbid();
+
             var result = await _webhookService.GetWebhooksAsync(householdId);
             return Ok(result);
         }
@@ -34,6 +36,7 @@ namespace Nom.Api.Controllers
         {
             var result = await _webhookService.GetWebhookAsync(id);
             if (result == null) return NotFound();
+            if (!IsHouseholdMember(result.HouseholdId)) return Forbid();
             return Ok(result);
         }
 
@@ -43,9 +46,18 @@ namespace Nom.Api.Controllers
         public async Task<IActionResult> CreateWebhook([FromBody] WebhookCreateModel model)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+            // Webhooks trigger outbound requests — creation is a management action.
+            if (!CanManageHousehold(model.HouseholdId)) return Forbid();
 
-            var id = await _webhookService.CreateWebhookAsync(model);
-            return CreatedAtAction(nameof(GetWebhook), new { id }, id);
+            try
+            {
+                var id = await _webhookService.CreateWebhookAsync(model);
+                return CreatedAtAction(nameof(GetWebhook), new { id }, id);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
@@ -55,9 +67,20 @@ namespace Nom.Api.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var result = await _webhookService.UpdateWebhookAsync(id, model);
-            if (result == null) return NotFound();
-            return Ok(result);
+            var existing = await _webhookService.GetWebhookAsync(id);
+            if (existing == null) return NotFound();
+            if (!CanManageHousehold(existing.HouseholdId)) return Forbid();
+
+            try
+            {
+                var result = await _webhookService.UpdateWebhookAsync(id, model);
+                if (result == null) return NotFound();
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
@@ -65,6 +88,10 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteWebhook(long id)
         {
+            var existing = await _webhookService.GetWebhookAsync(id);
+            if (existing == null) return NotFound();
+            if (!CanManageHousehold(existing.HouseholdId)) return Forbid();
+
             var success = await _webhookService.DeleteWebhookAsync(id);
             if (!success) return NotFound();
             return Ok(new { Message = "Webhook deleted successfully." });
@@ -74,6 +101,11 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> TestWebhook(long id)
         {
+            var existing = await _webhookService.GetWebhookAsync(id);
+            if (existing == null) return NotFound();
+            // Triggers a server-side outbound request — require management rights.
+            if (!CanManageHousehold(existing.HouseholdId)) return Forbid();
+
             var success = await _webhookService.TestWebhookAsync(id);
             return Ok(new { Success = success, Message = success ? "Webhook test succeeded." : "Webhook test failed." });
         }
