@@ -28,6 +28,7 @@ namespace Nom.Api.Controllers
         public async Task<ActionResult<RecipeBulkOperationResponseModel>> ExportRecipes([FromBody] RecipeBulkExportModel request)
         {
             _logger.LogInformation("Starting bulk export for {Count} recipes", request.RecipeIds.Count);
+            request.RequesterPersonId = GetCurrentPersonId();
             var result = await _bulkOperationsService.ExportRecipesAsync(request);
 
             if (result.Success)

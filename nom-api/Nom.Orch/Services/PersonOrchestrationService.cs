@@ -748,17 +748,33 @@ namespace Nom.Orch.Services
             var person = await _dbContext.Persons.FindAsync(personId)
                 ?? throw new KeyNotFoundException($"Person with ID {personId} not found.");
 
-            // Remove existing person-level restrictions (those without a plan)
+            // Remove existing person-level restrictions (those without a plan) —
+            // EXCEPT locked ones. A locked restriction (set by a household
+            // steward or an external manager) survives profile saves and can
+            // only be changed through the steward/manager path. Silently
+            // preserving (rather than erroring) keeps the profile page usable:
+            // the UI renders locked rows read-only alongside editable ones.
             var oldRestrictions = await _dbContext.Restrictions
-                .Where(r => r.PersonId == person.Id && r.PlanId == null)
+                .Where(r => r.PersonId == person.Id && r.PlanId == null && !r.Locked)
                 .ToListAsync();
             _dbContext.Restrictions.RemoveRange(oldRestrictions);
+
+            var lockedNames = await _dbContext.Restrictions
+                .Where(r => r.PersonId == person.Id && r.PlanId == null && r.Locked)
+                .Select(r => r.Name)
+                .ToListAsync();
 
             // Add new restrictions at the person level (no plan yet)
             if (restrictions != null)
             {
                 foreach (var restriction in restrictions)
                 {
+                    // Don't duplicate a locked restriction the member re-submits.
+                    if (lockedNames.Contains(restriction.Name, StringComparer.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
                     _dbContext.Restrictions.Add(new RestrictionEntity
                     {
                         PersonId = person.Id,

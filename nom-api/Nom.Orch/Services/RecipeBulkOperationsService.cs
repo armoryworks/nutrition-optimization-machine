@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Nom.Orch.Extensions;
 using Nom.Data;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
@@ -52,8 +53,14 @@ namespace Nom.Orch.Services
             {
                 _logger.LogInformation("Starting bulk export for {Count} recipes", request.RecipeIds.Count);
 
+                // Export only what the requester may SEE, and never
+                // audience-scoped recipes (no-export is part of scoped
+                // visibility; design doc §4). Previously there was no check
+                // at all — any id list exported any recipe.
                 var recipes = await _dbContext.Recipes
-                    .Where(r => request.RecipeIds.Contains(r.Id))
+                    .VisibleTo(_dbContext, request.RequesterPersonId)
+                    .Where(r => request.RecipeIds.Contains(r.Id)
+                        && r.Visibility != Nom.Data.Recipe.RecipeVisibilityEnum.Audience)
                     .Include(r => r.RecipeIngredients)
                     .Include(r => r.RecipeSteps)
                     .ToListAsync();

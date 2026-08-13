@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Nom.Data;
 using Nom.Data.Recipe;
 using Nom.Data.Nutrient;
+using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using SixLabors.ImageSharp;
@@ -132,8 +133,8 @@ namespace Nom.Orch.Services
                 .Include(r => r.CurationStatus)
                 .AsQueryable();
 
-            if (currentPersonId.HasValue)
-                query = query.Where(r => r.CurationStatus!.Name == "Approved" || r.AuthorId == currentPersonId.Value);
+            // Central visibility rule (household/audience tiers + grandfather grant).
+            query = query.VisibleTo(_context, currentPersonId);
 
             var recipes = await query.ToListAsync();
 
@@ -248,7 +249,10 @@ namespace Nom.Orch.Services
 
         public async Task<RecipeResponseModel?> GetRecipeAsync(long id, long? personId = null)
         {
+            // Visibility enforced here, not in callers: not-visible == not-found
+            // (existence of private/audience recipes is not disclosed).
             var recipe = await _context.Recipes
+                .VisibleTo(_context, personId)
                 .Include(r => r.Author)
                 .Include(r => r.Comments)
                 .Include(r => r.Ratings)
@@ -960,15 +964,13 @@ namespace Nom.Orch.Services
 
         public async Task<(byte[] FileData, string ContentType)?> GetImageAsync(long recipeId, long? requestingPersonId)
         {
-            // Images follow the recipe's visibility: non-authors may only fetch
-            // images of approved (public) recipes.
-            var recipe = await _context.Recipes
+            // Images follow the recipe's visibility (central rule — includes
+            // household/audience tiers and the departure-grace grant).
+            var visible = await _context.Recipes
                 .AsNoTracking()
-                .Include(r => r.CurationStatus)
-                .FirstOrDefaultAsync(r => r.Id == recipeId);
-            if (recipe == null)
-                return null;
-            if (recipe.AuthorId != requestingPersonId && recipe.CurationStatus?.Name != "Approved")
+                .VisibleTo(_context, requestingPersonId)
+                .AnyAsync(r => r.Id == recipeId);
+            if (!visible)
                 return null;
 
             var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" };
@@ -1020,8 +1022,16 @@ namespace Nom.Orch.Services
             return true;
         }
 
-        public async Task<List<RecipeAssetResponseModel>> GetAssetsAsync(long recipeId)
+        public async Task<List<RecipeAssetResponseModel>> GetAssetsAsync(long recipeId, long? requestingPersonId = null)
         {
+            // Assets follow the recipe's visibility, same as the image endpoint.
+            var visible = await _context.Recipes
+                .AsNoTracking()
+                .VisibleTo(_context, requestingPersonId)
+                .AnyAsync(r => r.Id == recipeId);
+            if (!visible)
+                return new List<RecipeAssetResponseModel>();
+
             var assets = await _context.Set<RecipeAssetEntity>()
                 .Where(a => a.RecipeId == recipeId)
                 .OrderByDescending(a => a.CreatedDate)
