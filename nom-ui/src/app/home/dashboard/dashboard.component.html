@@ -159,6 +159,12 @@
               <mat-icon class="nom-db-macro__icon">local_fire_department</mat-icon>
               <span class="nom-db-macro__value">{{ todayCalories() | number:'1.0-0' }}</span>
               <span class="nom-db-macro__label">Calories</span>
+              @if (goalCalories(); as goal) {
+                <span class="nom-db-macro__goal" data-testid="dashboard-goal-calories">of {{ goal | number:'1.0-0' }}</span>
+                <div class="nom-db-macro__bar" aria-hidden="true">
+                  <div class="nom-db-macro__bar-fill" [style.width.%]="goalPct(todayCalories(), goal)"></div>
+                </div>
+              }
             </div>
           </div>
           <div class="nom-dashboard__card nom-dashboard__card--flat">
@@ -166,6 +172,12 @@
               <mat-icon class="nom-db-macro__icon">fitness_center</mat-icon>
               <span class="nom-db-macro__value">{{ todayProtein() | number:'1.0-0' }}g</span>
               <span class="nom-db-macro__label">Protein</span>
+              @if (goalProtein(); as goal) {
+                <span class="nom-db-macro__goal" data-testid="dashboard-goal-protein">of {{ goal | number:'1.0-0' }}g</span>
+                <div class="nom-db-macro__bar" aria-hidden="true">
+                  <div class="nom-db-macro__bar-fill" [style.width.%]="goalPct(todayProtein(), goal)"></div>
+                </div>
+              }
             </div>
           </div>
           <div class="nom-dashboard__card nom-dashboard__card--flat">
@@ -173,6 +185,12 @@
               <mat-icon class="nom-db-macro__icon">grain</mat-icon>
               <span class="nom-db-macro__value">{{ todayCarbs() | number:'1.0-0' }}g</span>
               <span class="nom-db-macro__label">Carbs</span>
+              @if (goalCarbs(); as goal) {
+                <span class="nom-db-macro__goal" data-testid="dashboard-goal-carbs">of {{ goal | number:'1.0-0' }}g</span>
+                <div class="nom-db-macro__bar" aria-hidden="true">
+                  <div class="nom-db-macro__bar-fill" [style.width.%]="goalPct(todayCarbs(), goal)"></div>
+                </div>
+              }
             </div>
           </div>
           <div class="nom-dashboard__card nom-dashboard__card--flat">
@@ -180,6 +198,12 @@
               <mat-icon class="nom-db-macro__icon">water_drop</mat-icon>
               <span class="nom-db-macro__value">{{ todayFat() | number:'1.0-0' }}g</span>
               <span class="nom-db-macro__label">Fat</span>
+              @if (goalFat(); as goal) {
+                <span class="nom-db-macro__goal" data-testid="dashboard-goal-fat">of {{ goal | number:'1.0-0' }}g</span>
+                <div class="nom-db-macro__bar" aria-hidden="true">
+                  <div class="nom-db-macro__bar-fill" [style.width.%]="goalPct(todayFat(), goal)"></div>
+                </div>
+              }
             </div>
           </div>
         </div>
