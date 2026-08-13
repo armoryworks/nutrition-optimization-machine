@@ -16,6 +16,7 @@ public class HouseholdEntityConfiguration : IEntityTypeConfiguration<HouseholdEn
         builder.Property(e => e.Description).HasMaxLength(2047);
         builder.Property(e => e.ManagedBy).HasMaxLength(100);
         builder.HasIndex(e => e.ManagedBy);
+        builder.Property(e => e.IsPersonal).HasDefaultValue(false);
 
         // Relationships
         builder.Property(e => e.HouseholdGroupId).IsRequired();

@@ -24,10 +24,10 @@
     </a>
 
     <a routerLink="/household" class="nom-settings__card">
-      <mat-icon class="nom-settings__card-icon">family_restroom</mat-icon>
+      <mat-icon class="nom-settings__card-icon">{{ isPersonalKitchen() ? 'person' : 'family_restroom' }}</mat-icon>
       <div class="nom-settings__card-content">
-        <h3 class="nom-settings__card-title">Household</h3>
-        <p class="nom-settings__card-desc">Manage household members and invitations</p>
+        <h3 class="nom-settings__card-title">{{ isPersonalKitchen() ? 'My Kitchen' : 'Household' }}</h3>
+        <p class="nom-settings__card-desc">{{ isPersonalKitchen() ? 'Your personal kitchen — invite someone to make it a household' : 'Manage household members and invitations' }}</p>
       </div>
       <mat-icon class="nom-settings__card-arrow">chevron_right</mat-icon>
     </a>

@@ -255,9 +255,9 @@
 
         <a class="nom-dashboard__card nom-dashboard__card--clickable" routerLink="/household">
           <div class="nom-dashboard__card-content">
-            <mat-icon class="nom-db-nav__icon">group</mat-icon>
-            <span class="nom-dashboard__card-title">Household</span>
-            <span class="nom-dashboard__card-subtitle">Manage members and settings</span>
+            <mat-icon class="nom-db-nav__icon">{{ isPersonalKitchen() ? 'person' : 'group' }}</mat-icon>
+            <span class="nom-dashboard__card-title">{{ isPersonalKitchen() ? 'My Kitchen' : 'Household' }}</span>
+            <span class="nom-dashboard__card-subtitle">{{ isPersonalKitchen() ? 'Your personal kitchen' : 'Manage members and settings' }}</span>
           </div>
         </a>
 

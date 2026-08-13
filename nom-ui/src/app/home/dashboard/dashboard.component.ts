@@ -48,6 +48,9 @@ export class Dashboard implements OnInit {
 
   hasHousehold = computed(() => this.households().length > 0);
 
+  /** A solo user's personal kitchen is labeled "My Kitchen", not "Household". */
+  isPersonalKitchen = computed(() => !!this.households()[0]?.isPersonal);
+
   /** True when the caller's household policy gates the shuffle feature. */
   shuffleGated = computed(() =>
     this.policyService.isGated(this.households()[0]?.id ?? null, 'shuffle'));

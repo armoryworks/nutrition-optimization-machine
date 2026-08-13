@@ -48,10 +48,55 @@
           (stepComplete)="onRestrictionsComplete($event)" />
       }
       @case (2) {
-        <nom-household
-          mode="wizard"
-          (stepComplete)="onHouseholdComplete($event)"
-          (skipped)="skipStep()" />
+        @if (householdMode() !== 'household') {
+          <!-- The solo/household fork -->
+          <div class="nom-form--full" data-testid="onboarding-household-fork">
+            <div class="nom-form__header">
+              <h1 class="nom-form__title">Who are you cooking for?</h1>
+              <p class="nom-form__subtitle">You can always change this later</p>
+            </div>
+
+            <div class="nom-onboarding__fork">
+              <button type="button"
+                      class="nom-onboarding__fork-card"
+                      (click)="chooseSolo()"
+                      data-testid="onboarding-solo-option">
+                <mat-icon class="nom-onboarding__fork-icon">person</mat-icon>
+                <span class="nom-onboarding__fork-title">Just me</span>
+                <span class="nom-onboarding__fork-subtitle">Plan and cook for yourself</span>
+                <span class="nom-onboarding__fork-note">
+                  You can turn this into a household anytime by inviting someone.
+                </span>
+              </button>
+
+              <button type="button"
+                      class="nom-onboarding__fork-card"
+                      (click)="chooseHousehold()"
+                      data-testid="onboarding-household-option">
+                <mat-icon class="nom-onboarding__fork-icon">group</mat-icon>
+                <span class="nom-onboarding__fork-title">My household</span>
+                <span class="nom-onboarding__fork-subtitle">Plan together — family, partners, roommates</span>
+                <span class="nom-onboarding__fork-note" data-testid="household-benefits-note">
+                  A household unlocks: one shared meal plan and shopping list &bull;
+                  per-person dietary restrictions the plan respects &bull;
+                  a shared pantry so you never double-buy.
+                </span>
+              </button>
+            </div>
+          </div>
+        } @else {
+          <button mat-button type="button"
+                  class="nom-onboarding__fork-back"
+                  (click)="backToHouseholdChoice()"
+                  data-testid="onboarding-household-mode-back-btn">
+            <mat-icon>arrow_back</mat-icon>
+            Just me instead
+          </button>
+          <nom-household
+            mode="wizard"
+            (stepComplete)="onHouseholdComplete($event)"
+            (skipped)="skipStep()" />
+        }
       }
       @case (3) {
         <nom-plan

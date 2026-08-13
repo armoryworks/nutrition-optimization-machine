@@ -56,6 +56,31 @@
   color: var(--mat-sys-on-surface);
 }
 
+.nom-household__benefits {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0 0 vars.$spacing-4;
+}
+
+.nom-household__personal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  margin-right: vars.$spacing-2;
+  padding: 2px vars.$spacing-2;
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
 .nom-household__managed-badge {
   display: inline-flex;
   align-items: center;
@@ -213,5 +238,6 @@
 .nom-household__add-member {
   display: flex;
   justify-content: center;
+  gap: vars.$spacing-3;
   margin-top: vars.$spacing-4;
 }

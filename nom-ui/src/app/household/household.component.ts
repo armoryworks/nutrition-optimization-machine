@@ -17,6 +17,8 @@ import { HouseholdResponseModel } from '../core/models/household-response.model'
 import { HouseholdCreateResponseModel } from '../core/models/household-create-response.model';
 import { HouseholdMemberResponseModel } from '../core/models/household-member-response.model';
 import { AddMemberDialog, AddMemberDialogData } from './add-member-dialog/add-member-dialog.component';
+import { InviteDialog, InviteDialogData } from './invite-dialog/invite-dialog.component';
+import { ConvertHouseholdDialog, ConvertHouseholdDialogData, ConvertHouseholdDialogResult } from './convert-household-dialog/convert-household-dialog.component';
 import { MemberPolicyPanel } from './member-policy-panel/member-policy-panel.component';
 import { MacroGoalForm } from '../shared/components/macro-goal-form/macro-goal-form.component';
 import { EnrollmentConsentBanner } from '../shared/components/enrollment-consent-banner/enrollment-consent-banner.component';
@@ -93,6 +95,9 @@ export class Household implements OnInit {
 
   /** True when the active household is enrolled with an external management tool. */
   isManaged = computed(() => !!this.activeHousehold()?.managedBy);
+
+  /** True when the active household is a solo user's personal kitchen. */
+  isPersonalKitchen = computed(() => !!this.activeHousehold()?.isPersonal);
 
   createForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(255)]],
@@ -224,6 +229,38 @@ export class Household implements OnInit {
       if (result) {
         this.loadMembersForHousehold(householdId);
       }
+    });
+  }
+
+  /**
+   * The persistent "Invite someone" action. For a personal kitchen this first
+   * runs the conversion interstitial (rename + clear the personal flag), then
+   * continues into the normal invite flow.
+   */
+  openInviteFlow(): void {
+    const household = this.activeHousehold();
+    if (!household) return;
+
+    if (household.isPersonal) {
+      const convertRef = this.dialog.open(ConvertHouseholdDialog, {
+        width: '480px',
+        data: { householdId: household.id } as ConvertHouseholdDialogData,
+      });
+      convertRef.afterClosed().subscribe((converted: ConvertHouseholdDialogResult) => {
+        if (converted) {
+          this.loadHouseholds();
+          this.openInviteDialog(household.id);
+        }
+      });
+    } else {
+      this.openInviteDialog(household.id);
+    }
+  }
+
+  private openInviteDialog(householdId: number): void {
+    this.dialog.open(InviteDialog, {
+      width: '480px',
+      data: { householdId } as InviteDialogData,
     });
   }
 

@@ -16,6 +16,13 @@ namespace Nom.Orch.Models.Household
         [Required(ErrorMessage = "Household group ID is required.")]
         public long HouseholdGroupId { get; set; }
 
+        /// <summary>
+        /// True for a solo user's auto-created "personal kitchen" (no member
+        /// management, no invites until converted). Set by the onboarding
+        /// solo path — not exposed as a user choice on the create screen.
+        /// </summary>
+        public bool IsPersonal { get; set; }
+
         // public long AuthorId { get; set; } // REMOVED - Will be set from claims
     }
 } 

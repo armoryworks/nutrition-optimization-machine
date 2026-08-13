@@ -24,6 +24,17 @@ namespace Nom.Api.Controllers
         }
 
         /// <summary>
+        /// 400 body when a membership-growth action hits a personal kitchen —
+        /// the client should run the convert-to-shared flow first.
+        /// </summary>
+        private ObjectResult PersonalHousehold() =>
+            BadRequest(new
+            {
+                message = "This is a personal kitchen. Convert it into a shared household before inviting or adding members.",
+                reason = "personal_household"
+            });
+
+        /// <summary>
         /// Gets the household's default daily macro goals. Null targets mean unset.
         /// </summary>
         [HttpGet("{id:long}/macro-goals")]
@@ -133,8 +144,15 @@ namespace Nom.Api.Controllers
             if (!CanInviteToHousehold(request.HouseholdId))
                 return Forbid();
 
-            var response = await _householdService.CreateInviteTokenAsync(request);
-            return Ok(response);
+            try
+            {
+                var response = await _householdService.CreateInviteTokenAsync(request);
+                return Ok(response);
+            }
+            catch (InvalidOperationException ex) when (ex.Message == "personal_household")
+            {
+                return PersonalHousehold();
+            }
         }
 
         [HttpPost("member")]
@@ -143,8 +161,15 @@ namespace Nom.Api.Controllers
             if (!CanManageHousehold(request.HouseholdId))
                 return Forbid();
 
-            var response = await _householdService.AddMemberAsync(request);
-            return Ok(response);
+            try
+            {
+                var response = await _householdService.AddMemberAsync(request);
+                return Ok(response);
+            }
+            catch (InvalidOperationException ex) when (ex.Message == "personal_household")
+            {
+                return PersonalHousehold();
+            }
         }
 
         [HttpDelete("{householdId}/member/{memberId}")]
@@ -167,8 +192,44 @@ namespace Nom.Api.Controllers
             // Get the current authenticated user's person ID from claims
             var personId = GetCurrentPersonIdRequired();
 
-            var response = await _householdService.JoinHouseholdAsync(request.Token, personId);
-            return Ok(response);
+            try
+            {
+                var response = await _householdService.JoinHouseholdAsync(request.Token, personId);
+                return Ok(response);
+            }
+            catch (InvalidOperationException ex) when (ex.Message == "personal_household")
+            {
+                return PersonalHousehold();
+            }
+        }
+
+        /// <summary>
+        /// Converts a personal kitchen into a shared household (invoked by the
+        /// first-invite interstitial): renames it and clears the personal flag.
+        /// Steward-only; 400 when the household is not personal.
+        /// </summary>
+        [HttpPost("{id:long}/convert")]
+        public async Task<ActionResult<HouseholdResponseModel>> ConvertToShared(long id, [FromBody] HouseholdConvertModel request)
+        {
+            var personId = GetCurrentPersonIdRequired();
+
+            try
+            {
+                var response = await _householdService.ConvertToSharedAsync(id, request.Name, personId);
+                if (response == null)
+                {
+                    return NotFound(new { message = "Household not found" });
+                }
+                return Ok(response);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message, reason = "steward_required" });
+            }
+            catch (InvalidOperationException ex) when (ex.Message == "not_personal")
+            {
+                return BadRequest(new { message = "This household is already shared.", reason = "not_personal" });
+            }
         }
     }
 }

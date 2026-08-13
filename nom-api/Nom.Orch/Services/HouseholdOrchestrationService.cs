@@ -20,10 +20,12 @@ namespace Nom.Orch.Services
     public class HouseholdOrchestrationService : IHouseholdOrchestrationService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IPolicyEnforcementService _policy;
 
-        public HouseholdOrchestrationService(ApplicationDbContext context)
+        public HouseholdOrchestrationService(ApplicationDbContext context, IPolicyEnforcementService policy)
         {
             _context = context;
+            _policy = policy;
         }
 
         public async Task<List<HouseholdResponseModel>> GetAllHouseholdsAsync()
@@ -66,6 +68,7 @@ namespace Nom.Orch.Services
                 CreatedDate = h.CreatedDate,
                 ModifiedDate = h.LastModifiedDate,
                 ManagedBy = h.ManagedBy,
+                IsPersonal = h.IsPersonal,
                 MemberCount = memberCounts.GetValueOrDefault(h.Id, 0),
                 PlanCount = planCounts.GetValueOrDefault(h.Id, 0)
             }).ToList();
@@ -78,6 +81,7 @@ namespace Nom.Orch.Services
                 Name = model.Name,
                 Description = model.Description,
                 HouseholdGroupId = model.HouseholdGroupId,
+                IsPersonal = model.IsPersonal,
                 CreatedDate = DateTime.UtcNow,
                 LastModifiedDate = DateTime.UtcNow
             };
@@ -166,6 +170,7 @@ namespace Nom.Orch.Services
                 CreatedDate = household.CreatedDate,
                 ModifiedDate = household.LastModifiedDate,
                 ManagedBy = household.ManagedBy,
+                IsPersonal = household.IsPersonal,
                 Members = members,
                 MemberCount = members.Count,
                 RecipeCount = recipeCount,
@@ -214,8 +219,60 @@ namespace Nom.Orch.Services
                 HouseholdGroupId = household.HouseholdGroupId,
                 CreatedDate = household.CreatedDate,
                 ModifiedDate = household.LastModifiedDate,
-                ManagedBy = household.ManagedBy
+                ManagedBy = household.ManagedBy,
+                IsPersonal = household.IsPersonal
             };
+        }
+
+        /// <summary>
+        /// Converts a personal kitchen into a shared household: renames it and
+        /// clears the personal flag. Conversion is the side effect of the first
+        /// invite — there is no standalone "convert" affordance in the UI.
+        /// </summary>
+        public async Task<HouseholdResponseModel?> ConvertToSharedAsync(long id, string name, long requesterPersonId)
+        {
+            if (!await _policy.IsStewardAsync(requesterPersonId, id))
+            {
+                throw new UnauthorizedAccessException("Only a household steward may convert a personal kitchen.");
+            }
+
+            var household = await _context.Households.FindAsync(id);
+            if (household == null)
+                return null;
+
+            if (!household.IsPersonal)
+            {
+                throw new InvalidOperationException("not_personal");
+            }
+
+            household.Name = name;
+            household.IsPersonal = false;
+            household.LastModifiedDate = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return new HouseholdResponseModel
+            {
+                Id = household.Id,
+                Name = household.Name,
+                Description = household.Description,
+                HouseholdGroupId = household.HouseholdGroupId,
+                CreatedDate = household.CreatedDate,
+                ModifiedDate = household.LastModifiedDate,
+                ManagedBy = household.ManagedBy,
+                IsPersonal = household.IsPersonal
+            };
+        }
+
+        /// <summary>
+        /// Personal kitchens refuse membership growth (invites, adds, joins)
+        /// until converted into a shared household.
+        /// </summary>
+        private async Task EnsureNotPersonalHouseholdAsync(long householdId)
+        {
+            if (await _context.Households.AnyAsync(h => h.Id == householdId && h.IsPersonal))
+            {
+                throw new InvalidOperationException("personal_household");
+            }
         }
 
         public async Task<bool> DeleteHouseholdAsync(long id)
@@ -231,6 +288,8 @@ namespace Nom.Orch.Services
 
         public async Task<HouseholdInviteTokenResponseModel> CreateInviteTokenAsync(HouseholdInviteTokenCreateModel model)
         {
+            await EnsureNotPersonalHouseholdAsync(model.HouseholdId);
+
             var token = new HouseholdInviteTokenEntity
             {
                 HouseholdId = model.HouseholdId,
@@ -253,6 +312,9 @@ namespace Nom.Orch.Services
 
         public async Task<HouseholdMemberResponseModel> AddMemberAsync(HouseholdMemberCreateModel model)
         {
+            // Before the wrapping try: the catch below re-wraps messages.
+            await EnsureNotPersonalHouseholdAsync(model.HouseholdId);
+
             try
             {
                 // Verify the household exists
@@ -363,6 +425,23 @@ namespace Nom.Orch.Services
 
         public async Task<HouseholdMemberResponseModel> JoinHouseholdAsync(string token, long personId)
         {
+            // Personal kitchens refuse household_join redemptions, but the
+            // MANAGED-ENROLLMENT path stays open: a solo client enrolling
+            // with a provider keeps their personal kitchen (no conversion).
+            // Before the wrapping try: the catch below re-wraps messages.
+            var guardInfo = await _context.HouseholdInviteTokens
+                .Where(t => t.Token == token)
+                .Select(t => new
+                {
+                    t.Kind,
+                    IsPersonal = t.Household != null && t.Household.IsPersonal,
+                })
+                .FirstOrDefaultAsync();
+            if (guardInfo != null && guardInfo.IsPersonal && guardInfo.Kind != InviteTokenKinds.ManagedEnrollment)
+            {
+                throw new InvalidOperationException("personal_household");
+            }
+
             try
             {
                 // Find and validate the invite token

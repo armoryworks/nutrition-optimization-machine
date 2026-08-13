@@ -1,8 +1,17 @@
 <div class="nom-form--full" data-testid="household">
   @if (isStandalone()) {
     <div class="nom-form__header">
-      <h1 class="nom-form__title">Household</h1>
-      <p class="nom-form__subtitle">Manage your household for shared meal planning</p>
+      <h1 class="nom-form__title">{{ isPersonalKitchen() ? 'My Kitchen' : 'Household' }}</h1>
+      @if (isPersonalKitchen()) {
+        <p class="nom-form__subtitle">
+          <span class="nom-household__personal-badge" data-testid="household-personal-badge">
+            <mat-icon>person</mat-icon> Personal kitchen
+          </span>
+          Cooking for yourself — invite someone to make it a household
+        </p>
+      } @else {
+        <p class="nom-form__subtitle">Manage your household for shared meal planning</p>
+      }
     </div>
   }
 
@@ -46,7 +55,11 @@
               }
             </div>
             <div class="nom-household__item-stats">
-              <span>{{ h.memberCount }} members</span>
+              @if (h.isPersonal) {
+                <span data-testid="household-item-personal">Personal kitchen</span>
+              } @else {
+                <span>{{ h.memberCount }} members</span>
+              }
             </div>
           </div>
         }
@@ -54,8 +67,23 @@
     </div>
   }
 
-  <!-- Member grid (visible when a household exists) -->
+  <!-- Member grid (visible when a shared household exists; a personal
+       kitchen has no member management until converted by the first invite) -->
+  @if (hasHousehold() && isPersonalKitchen()) {
+    <div class="nom-form__section" data-testid="household-personal-section">
+      <p class="nom-form__section-description">
+        Your meal plans, shopping lists, and pantry are all set up for one.
+        Want to plan with someone else? Inviting them turns your personal
+        kitchen into a shared household.
+      </p>
+      <button mat-flat-button (click)="openInviteFlow()" data-testid="household-invite-btn">
+        <mat-icon>person_add</mat-icon>
+        Invite someone
+      </button>
+    </div>
+  }
   @if (hasHousehold()) {
+    @if (!isPersonalKitchen()) {
     <div class="nom-form__section">
       <h2 class="nom-form__section-title">Household Members</h2>
 
@@ -130,11 +158,16 @@
           <mat-icon>person_add</mat-icon>
           Add Person
         </button>
+        <button mat-stroked-button (click)="openInviteFlow()" data-testid="household-invite-btn">
+          <mat-icon>send</mat-icon>
+          Invite someone
+        </button>
       </div>
     </div>
+    }
 
-    <!-- Member policies (stewards only) -->
-    @if (isSteward() && activeHouseholdId() != null) {
+    <!-- Member policies (stewards only; meaningless for a kitchen of one) -->
+    @if (!isPersonalKitchen() && isSteward() && activeHouseholdId() != null) {
       <div class="nom-form__section" data-testid="household-member-policies">
         <h2 class="nom-form__section-title">Member Policies</h2>
         <p class="nom-form__section-description">
@@ -187,6 +220,11 @@
       <div class="nom-form__section">
         <h2 class="nom-form__section-title">Create a New Household</h2>
         <p class="nom-form__section-description">Set up a household to plan meals together with family or roommates</p>
+        <p class="nom-household__benefits" data-testid="household-benefits-note">
+          A household unlocks: one shared meal plan and shopping list &bull;
+          per-person dietary restrictions the plan respects &bull;
+          a shared pantry so you never double-buy.
+        </p>
 
         <form [formGroup]="createForm" (ngSubmit)="onCreateSubmit()" data-testid="household-create-form">
           <div class="nom-form__fields">

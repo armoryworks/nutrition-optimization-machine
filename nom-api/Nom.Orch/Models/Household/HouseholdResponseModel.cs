@@ -17,6 +17,12 @@ namespace Nom.Orch.Models.Household
         /// </summary>
         public string? ManagedBy { get; set; }
 
+        /// <summary>
+        /// True for a solo user's "personal kitchen" — no member management
+        /// or invites until it is converted into a shared household.
+        /// </summary>
+        public bool IsPersonal { get; set; }
+
         // Members
         public List<HouseholdMemberResponseModel>? Members { get; set; }
 

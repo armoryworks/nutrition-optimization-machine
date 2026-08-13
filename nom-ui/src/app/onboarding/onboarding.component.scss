@@ -118,3 +118,57 @@
 .nom-onboarding__spacer {
   flex: 1;
 }
+
+// Solo / household fork
+.nom-onboarding__fork {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: vars.$spacing-4;
+}
+
+.nom-onboarding__fork-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-5;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 150ms vars.$transition-timing, background-color 150ms vars.$transition-timing;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--mat-sys-primary);
+    background: var(--mat-sys-surface-container-low);
+  }
+}
+
+.nom-onboarding__fork-icon {
+  color: var(--mat-sys-primary);
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+}
+
+.nom-onboarding__fork-title {
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+}
+
+.nom-onboarding__fork-subtitle {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-onboarding__fork-note {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-onboarding__fork-back {
+  margin-bottom: vars.$spacing-3;
+}

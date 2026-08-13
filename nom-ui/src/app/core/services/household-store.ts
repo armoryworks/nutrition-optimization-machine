@@ -52,4 +52,8 @@ export class HouseholdStore {
   joinHousehold(token: string): Observable<HouseholdMemberResponseModel> {
     return this.householdService.joinHousehold(token).pipe(tap(() => this.invalidate()));
   }
+
+  convertToShared(householdId: number, name: string): Observable<HouseholdResponseModel> {
+    return this.householdService.convertToShared(householdId, name).pipe(tap(() => this.invalidate()));
+  }
 }

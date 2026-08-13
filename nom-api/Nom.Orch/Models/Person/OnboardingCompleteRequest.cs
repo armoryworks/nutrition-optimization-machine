@@ -20,5 +20,12 @@ namespace Nom.Orch.Models.Person
         public int NumberOfAdditionalParticipants { get; set; }
         public List<PersonDetailsRequest> AdditionalParticipantDetails { get; set; } = new();
         public bool ApplyIndividualPreferencesToEachPerson { get; set; }
+
+        /// <summary>
+        /// The "Just me" onboarding fork: silently auto-create a personal
+        /// kitchen ("&lt;FirstName&gt;'s Kitchen") containing only this person.
+        /// Ignored when the person already belongs to a household.
+        /// </summary>
+        public bool CreateSoloHousehold { get; set; }
     }
 }
