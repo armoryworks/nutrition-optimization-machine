@@ -52,6 +52,8 @@ namespace Nom.Api.Controllers
         [HttpGet("inviter/{inviterPersonId}")]
         public async Task<ActionResult<List<InvitationModel>>> GetInvitationsByInviter(long inviterPersonId)
         {
+            // You may only list your own sent invitations.
+            if (GetCurrentPersonId() != inviterPersonId) return Forbid();
             var invitations = await _invitationOrchestrationService.GetInvitationsByInviterAsync(inviterPersonId);
             return Ok(invitations);
         }
@@ -59,6 +61,8 @@ namespace Nom.Api.Controllers
         [HttpGet("invitee/{inviteePersonId}")]
         public async Task<ActionResult<List<InvitationModel>>> GetInvitationsByInvitee(long inviteePersonId)
         {
+            // You may only list your own received invitations.
+            if (GetCurrentPersonId() != inviteePersonId) return Forbid();
             var invitations = await _invitationOrchestrationService.GetInvitationsByInviteeAsync(inviteePersonId);
             return Ok(invitations);
         }

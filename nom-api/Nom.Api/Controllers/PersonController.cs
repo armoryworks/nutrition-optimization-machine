@@ -175,7 +175,8 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(typeof(List<PersonModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> SearchPersons([FromQuery] string query, [FromQuery] int limit = 10)
         {
-            var results = await _personOrchestrationService.SearchPersonsAsync(query, Math.Min(limit, 10));
+            var results = await _personOrchestrationService.SearchPersonsAsync(
+                query, GetUserHouseholdIds(), GetCurrentPersonId(), Math.Min(limit, 10));
             return Ok(results);
         }
 

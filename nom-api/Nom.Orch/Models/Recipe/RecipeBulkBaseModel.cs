@@ -10,5 +10,9 @@ namespace Nom.Orch.Models.Recipe
     {
         [Required]
         public List<long> RecipeIds { get; set; } = new();
+
+        /// <summary>Set server-side from the caller's identity; scopes the operation to recipes they author. Never body-bound.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public long? RequesterPersonId { get; set; }
     }
 } 

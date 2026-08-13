@@ -53,6 +53,7 @@ namespace Nom.Api.Controllers.Measurement
         /// <summary>
         /// Creates a new measurement category.
         /// </summary>
+        [Authorize(Policy = "CanManageCuration")]
         [HttpPost]
         [ProducesResponseType(typeof(MeasurementCategoryModel), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -70,6 +71,7 @@ namespace Nom.Api.Controllers.Measurement
         /// <summary>
         /// Updates an existing measurement category.
         /// </summary>
+        [Authorize(Policy = "CanManageCuration")]
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -98,6 +100,7 @@ namespace Nom.Api.Controllers.Measurement
         /// <summary>
         /// Deletes a measurement category.
         /// </summary>
+        [Authorize(Policy = "CanManageCuration")]
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -126,6 +129,7 @@ namespace Nom.Api.Controllers.Measurement
         /// <summary>
         /// Sets the base unit for a category.
         /// </summary>
+        [Authorize(Policy = "CanManageCuration")]
         [HttpPut("{id}/base-unit/{measurementId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

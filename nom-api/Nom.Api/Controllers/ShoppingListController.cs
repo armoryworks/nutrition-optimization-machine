@@ -161,6 +161,9 @@ namespace Nom.Api.Controllers
         [HttpPost("{id}/share")]
         public async Task<IActionResult> ShareShoppingList(long id, [FromBody] ShoppingListShareRequest request)
         {
+            if (!await _shoppingListOrchestrationService.CanAccessListByIdAsync(id, GetCurrentPersonIdRequired()))
+                return Forbid();
+
             var exists = await _db.ShoppingListShares
                 .AnyAsync(s => s.ShoppingListId == id && s.PersonId == request.PersonId);
 
@@ -179,6 +182,9 @@ namespace Nom.Api.Controllers
         [HttpDelete("{id}/share/{personId}")]
         public async Task<IActionResult> UnshareShoppingList(long id, long personId)
         {
+            if (!await _shoppingListOrchestrationService.CanAccessListByIdAsync(id, GetCurrentPersonIdRequired()))
+                return Forbid();
+
             var share = await _db.ShoppingListShares
                 .FirstOrDefaultAsync(s => s.ShoppingListId == id && s.PersonId == personId);
 

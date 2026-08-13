@@ -68,6 +68,7 @@ namespace Nom.Api.Controllers
         {
             _logger.LogInformation("Assigning {CategoryCount} categories to {RecipeCount} recipes",
                 request.Categories.Count, request.RecipeIds.Count);
+            request.RequesterPersonId = GetCurrentPersonId();
             var result = await _bulkOperationsService.AssignCategoriesAsync(request);
 
             if (result.Success)
@@ -88,6 +89,7 @@ namespace Nom.Api.Controllers
         {
             _logger.LogInformation("Assigning {TagCount} tags to {RecipeCount} recipes",
                 request.Tags.Count, request.RecipeIds.Count);
+            request.RequesterPersonId = GetCurrentPersonId();
             var result = await _bulkOperationsService.AssignTagsAsync(request);
 
             if (result.Success)
@@ -107,6 +109,7 @@ namespace Nom.Api.Controllers
         public async Task<ActionResult<RecipeBulkOperationResponseModel>> UpdateSettings([FromBody] RecipeBulkUpdateSettingsModel request)
         {
             _logger.LogInformation("Updating settings for {RecipeCount} recipes", request.RecipeIds.Count);
+            request.RequesterPersonId = GetCurrentPersonId();
             var result = await _bulkOperationsService.UpdateSettingsAsync(request);
 
             if (result.Success)
@@ -127,6 +130,7 @@ namespace Nom.Api.Controllers
         {
             _logger.LogInformation("Deleting {RecipeCount} recipes (Permanent={Permanent})",
                 request.RecipeIds.Count, request.Permanent);
+            request.RequesterPersonId = GetCurrentPersonId();
             var result = await _bulkOperationsService.DeleteRecipesAsync(request);
 
             if (result.Success)
