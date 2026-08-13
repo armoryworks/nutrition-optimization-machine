@@ -205,6 +205,11 @@ builder.Services.AddScoped<Nom.Orch.Interfaces.IPriceSource>(sp =>
         sp.GetRequiredService<Nom.Orch.Services.Commerce.DbPriceSource>(),
     }));
 builder.Services.AddScoped<Nom.Orch.Interfaces.ICouponSource, Nom.Orch.Services.Commerce.DbCouponSource>();
+
+// Payment processors (scaffold, no live charges until D-060c clears): Stripe
+// Connect as the split-payout rail, Braintree/PayPal for consumer checkout.
+builder.Services.AddScoped<Nom.Orch.Interfaces.IPaymentProcessor, Nom.Orch.Services.Commerce.StripePaymentProcessor>();
+builder.Services.AddScoped<Nom.Orch.Services.Commerce.BraintreePaymentProcessor>();
 builder.Services.AddScoped<Nom.Orch.Interfaces.IReceiptParser, Nom.Orch.Services.Commerce.ManualReceiptParser>();
 builder.Services.AddScoped<Nom.Orch.Interfaces.IShopAdvisor, Nom.Orch.Services.Commerce.HeuristicShopAdvisor>();
 

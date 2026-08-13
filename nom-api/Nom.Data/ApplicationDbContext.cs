@@ -75,6 +75,8 @@ namespace Nom.Data
         public DbSet<Commerce.StorePriceEntity> StorePrices { get; set; } = default!;
         public DbSet<Commerce.PriceObservationEntity> PriceObservations { get; set; } = default!;
         public DbSet<Commerce.CouponEntity> Coupons { get; set; } = default!;
+        public DbSet<Commerce.ServiceOfferingEntity> ServiceOfferings { get; set; } = default!;
+        public DbSet<Commerce.ServiceOrderEntity> ServiceOrders { get; set; } = default!;
         public DbSet<MealEntity> Meals { get; set; } = default!;
         public DbSet<PlanEntity> Plans { get; set; } = default!;
         public DbSet<PlanParticipantEntity> PlanParticipants { get; set; } = default!;

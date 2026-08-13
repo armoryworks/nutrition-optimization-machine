@@ -347,6 +347,19 @@ namespace Nom.Orch.Services
                 .Distinct()
                 .ToListAsync();
 
+            // 2b. Safety gate: does any active member carry a SEVERE restriction
+            //     (severity >= 4 — allergy/medical)? If so, recipes are limited
+            //     to those built entirely from curated ingredients (below),
+            //     because a non-curated ingredient's allergen/alias data can't
+            //     be trusted and a restricted item could hide behind it.
+            var todaySevere = DateOnly.FromDateTime(DateTime.UtcNow);
+            var hasSevereRestriction = await _context.HouseholdMembers
+                .Where(hm => hm.HouseholdId == model.HouseholdId && hm.IsActive)
+                .SelectMany(hm => hm.Person.Restrictions)
+                .AnyAsync(r => (r.Severity ?? 0) >= 4
+                    && (r.EndDate == null || r.EndDate >= todaySevere)
+                    && (r.BeginDate == null || r.BeginDate <= todaySevere));
+
             // 3. Determine which cells need filling
             var existingEntries = model.ReplaceExisting
                 ? new List<MealPlanEntity>()
@@ -414,6 +427,14 @@ namespace Nom.Orch.Services
                 {
                     query = query.Where(r => !r.RecipeIngredients!
                         .Any(ri => restrictedIngredientIds.Contains(ri.IngredientId)));
+                }
+
+                if (hasSevereRestriction)
+                {
+                    // Conservative: every ingredient must be curated, so nothing
+                    // with unverified allergen data reaches a severe-restriction household.
+                    query = query.Where(r => r.RecipeIngredients!
+                        .All(ri => ri.Ingredient.CurationStatusId == (long)CurationStatusEnum.Curated));
                 }
 
                 if (recipeTypeId != 0)
