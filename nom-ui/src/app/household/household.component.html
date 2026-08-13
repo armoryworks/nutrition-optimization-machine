@@ -20,6 +20,10 @@
     </div>
   }
 
+  @if (isStandalone()) {
+    <nom-enrollment-consent-banner [household]="activeHousehold()" />
+  }
+
   <!-- Existing Households (standalone only) -->
   @if (isStandalone() && households().length > 0) {
     <div class="nom-form__section">

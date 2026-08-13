@@ -106,6 +106,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'household/:id/consent',
+    loadComponent: () =>
+      import('./household/enrollment-consent/enrollment-consent.component').then(
+        (m) => m.EnrollmentConsent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'plan/curated',
     loadComponent: () => import('./plan/curated-plans.component').then((m) => m.CuratedPlans),
     canActivate: [authGuard],

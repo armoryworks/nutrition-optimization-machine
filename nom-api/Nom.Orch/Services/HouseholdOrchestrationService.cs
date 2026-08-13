@@ -174,6 +174,25 @@ namespace Nom.Orch.Services
             };
         }
 
+        public async Task<HouseholdEnrollmentInfoModel?> GetEnrollmentInfoAsync(long id)
+        {
+            var household = await _context.Households
+                .Where(h => h.Id == id)
+                .Select(h => new { h.ManagedBy })
+                .FirstOrDefaultAsync();
+
+            if (household == null)
+                return null;
+
+            return new HouseholdEnrollmentInfoModel
+            {
+                ManagedBy = household.ManagedBy,
+                // TODO: Brigade owns provider identity — populate the display
+                // name once a provider directory lookup exists.
+                ProviderDisplayName = null
+            };
+        }
+
         public async Task<HouseholdResponseModel?> UpdateHouseholdAsync(long id, HouseholdUpdateModel model)
         {
             var household = await _context.Households.FindAsync(id);

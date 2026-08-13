@@ -1,0 +1,41 @@
+@use 'variables' as vars;
+
+.nom-consent-banner {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  margin-bottom: vars.$spacing-4;
+  border: 1px solid var(--mat-sys-primary);
+  border-left: 4px solid var(--mat-sys-primary);
+  border-radius: vars.$nom-border-radius-lg;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+}
+
+.nom-consent-banner__icon {
+  flex-shrink: 0;
+  color: var(--mat-sys-primary);
+}
+
+.nom-consent-banner__text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.nom-consent-banner__title {
+  font-weight: vars.$font-weight-semibold;
+}
+
+.nom-consent-banner__subtitle {
+  font-size: vars.$font-size-sm;
+}
+
+.nom-consent-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  flex-shrink: 0;
+}

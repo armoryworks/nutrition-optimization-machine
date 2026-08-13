@@ -19,6 +19,7 @@ import { HouseholdMemberResponseModel } from '../core/models/household-member-re
 import { AddMemberDialog, AddMemberDialogData } from './add-member-dialog/add-member-dialog.component';
 import { MemberPolicyPanel } from './member-policy-panel/member-policy-panel.component';
 import { MacroGoalForm } from '../shared/components/macro-goal-form/macro-goal-form.component';
+import { EnrollmentConsentBanner } from '../shared/components/enrollment-consent-banner/enrollment-consent-banner.component';
 
 export interface HouseholdFormData {
   household: HouseholdCreateResponseModel | null;
@@ -40,6 +41,7 @@ export interface HouseholdFormData {
     MatDialogModule,
     MemberPolicyPanel,
     MacroGoalForm,
+    EnrollmentConsentBanner,
   ],
   templateUrl: './household.component.html',
   styleUrl: './household.component.scss',
