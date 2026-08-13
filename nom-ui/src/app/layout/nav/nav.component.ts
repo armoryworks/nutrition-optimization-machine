@@ -7,7 +7,7 @@ import {
   DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -44,7 +44,7 @@ export class Nav {
   collapsed = signal(localStorage.getItem('nom-nav-collapsed') === 'true');
 
   /** Reactive — re-emits when a household/kitchen is created, so the label updates live. */
-  private households = this.householdStore.households;
+  private households = toSignal(this.householdStore.households$reactive, { initialValue: [] });
 
   /** A solo user's personal kitchen is labeled "My Kitchen", not "Household". */
   private isPersonalKitchen = computed(() => !!this.households()[0]?.isPersonal);
