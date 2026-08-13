@@ -14,6 +14,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { ReactiveFormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -26,6 +27,7 @@ import { RecipeService } from '../core/services/recipe.service';
 import { PantryService } from '../core/services/pantry.service';
 import { RetailPackagingService } from '../core/services/retail-packaging.service';
 import { MeasurementService } from '../core/services/measurement.service';
+import { PortionService } from '../core/services/portion.service';
 import { MealPlanWeekResponse } from '../core/models/meal-plan-week-response.model';
 import { RecipeModel } from '../core/models/recipe.model';
 import { PantryItemResponse } from '../core/models/pantry-item-response.model';
@@ -90,6 +92,18 @@ export class ShoppingComponent implements OnInit {
   private pantryService = inject(PantryService);
   private retailPackagingService = inject(RetailPackagingService);
   private measurementService = inject(MeasurementService);
+  private portionService = inject(PortionService);
+
+  /** Per-planned-recipe cook factors keyed `date|mealTypeId|recipeId` (portion scaling). */
+  private cookFactors = signal<Map<string, number>>(new Map());
+
+  /** True when any planned recipe is scaled away from 1× (note shown in header). */
+  scalingActive = computed(() => {
+    for (const f of this.cookFactors().values()) {
+      if (Math.abs(f - 1) > 0.05) return true;
+    }
+    return false;
+  });
   private snackBar = inject(MatSnackBar);
   private destroyRef = inject(DestroyRef);
 
@@ -138,10 +152,15 @@ export class ShoppingComponent implements OnInit {
             const recipe = cache.get(entry.recipeId);
             if (!recipe?.ingredients?.length) continue;
 
+            // Scale to household portions when a cook factor exists for this
+            // planned recipe (macro goals + meal split); 1× otherwise.
+            const cookFactor =
+              this.cookFactors().get(`${day.date}|${cell.mealTypeId}|${entry.recipeId}`) ?? 1;
+
             for (const ing of recipe.ingredients) {
               const info = getUnitInfo(ing.measurement ?? '');
               const key = `${ing.ingredientId}-${info.category}`;
-              const baseQty = ing.quantity * info.toBase;
+              const baseQty = ing.quantity * info.toBase * cookFactor;
 
               const existing = accMap.get(key);
               if (existing) {
@@ -785,14 +804,25 @@ export class ShoppingComponent implements OnInit {
         this.measurements().length > 0
           ? of(this.measurements())
           : this.measurementService.loadMeasurements(),
+      // Portion cook factors are an enhancement — a failure must not block the list.
+      factors: this.portionService
+        .getRangeCookFactors(
+          this.householdId(),
+          ShoppingComponent.toDateString(today),
+          ShoppingComponent.toDateString(ShoppingComponent.addDays(today, this.daysAhead() - 1)),
+        )
+        .pipe(catchError(() => of([]))),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ weeks, pantry, packaging, measurements }) => {
+        next: ({ weeks, pantry, packaging, measurements, factors }) => {
           this.weekDataList.set(weeks);
           this.pantryItems.set(pantry);
           this.retailPackages.set(packaging);
           this.measurements.set(measurements);
+          this.cookFactors.set(
+            new Map(factors.map((f) => [`${f.date}|${f.mealTypeId}|${f.recipeId}`, f.cookFactor])),
+          );
           this.loadRecipes(weeks);
         },
         error: () => {

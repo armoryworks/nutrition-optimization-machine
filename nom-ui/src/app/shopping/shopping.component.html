@@ -36,6 +36,13 @@
                aria-label="Number of days ahead">
         <span class="nom-shopping__days-label">days</span>
       </div>
+      @if (scalingActive()) {
+        <span class="nom-shopping__scaled-note" data-testid="shopping-scaled-note"
+              matTooltip="Ingredient quantities are multiplied by each recipe's cook factor, computed from member macro goals and the household meal split.">
+          <mat-icon>pie_chart</mat-icon>
+          Scaled to household portions
+        </span>
+      }
       <button mat-icon-button (click)="refresh()" aria-label="Refresh">
         <mat-icon>refresh</mat-icon>
       </button>

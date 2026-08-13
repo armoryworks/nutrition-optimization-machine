@@ -2,9 +2,9 @@
 -- PostgreSQL database dump
 --
 
-\restrict 01mp3jMb5VAbHfqVjnuLrnm2aYAzMQtQBkZ4K9Sdg3FAs3I9cg55PFYymyXAbwN
+\restrict iKxCxlFWmipEEoK90kyC4Pultfvr98wsgPhItSPymCK6Dx6hdPcfM0bSuCiLSJq
 
--- Dumped from database version 16.14
+-- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
@@ -4849,10 +4849,10 @@ CREATE INDEX "IX_HouseholdMember_PersonId" ON plan."HouseholdMember" USING btree
 
 
 --
--- Name: IX_HouseholdPreference_HouseholdId; Type: INDEX; Schema: plan; Owner: -
+-- Name: IX_HouseholdPreference_HouseholdId_PreferenceKey; Type: INDEX; Schema: plan; Owner: -
 --
 
-CREATE INDEX "IX_HouseholdPreference_HouseholdId" ON plan."HouseholdPreference" USING btree ("HouseholdId");
+CREATE UNIQUE INDEX "IX_HouseholdPreference_HouseholdId_PreferenceKey" ON plan."HouseholdPreference" USING btree ("HouseholdId", "PreferenceKey");
 
 
 --
@@ -7472,5 +7472,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 01mp3jMb5VAbHfqVjnuLrnm2aYAzMQtQBkZ4K9Sdg3FAs3I9cg55PFYymyXAbwN
+\unrestrict iKxCxlFWmipEEoK90kyC4Pultfvr98wsgPhItSPymCK6Dx6hdPcfM0bSuCiLSJq
 

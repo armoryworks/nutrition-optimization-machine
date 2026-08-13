@@ -43,6 +43,23 @@
           }
           Shuffle
         </button>
+        <button mat-icon-button
+                data-testid="plan-shuffle-timeframe-btn"
+                [matMenuTriggerFor]="shuffleMenu"
+                [disabled]="!weekData() || shuffling() || shuffleGated()"
+                matTooltip="Shuffle a different time frame"
+                aria-label="Shuffle time frame options">
+          <mat-icon>expand_more</mat-icon>
+        </button>
+        <mat-menu #shuffleMenu="matMenu">
+          @for (tf of shuffleTimeframes; track tf.days) {
+            <button mat-menu-item
+                    [attr.data-testid]="'plan-shuffle-days-' + tf.days"
+                    (click)="shuffleTimeframe(tf.days)">
+              {{ tf.label }}
+            </button>
+          }
+        </mat-menu>
         <div class="nom-plan__nav" data-testid="plan-nav">
           <button mat-icon-button (click)="navigateWeek(-1)" matTooltip="Previous week" aria-label="Previous week">
             <mat-icon>chevron_left</mat-icon>
@@ -136,6 +153,13 @@
                     }
                   </div>
                 }
+                <button class="nom-plan__cell-portions"
+                        data-testid="plan-portions-btn"
+                        (click)="openPortions($event, day, day.cells[mealIdx])"
+                        matTooltip="Portion breakdown"
+                        aria-label="Portion breakdown">
+                  <mat-icon>pie_chart</mat-icon>
+                </button>
               } @else {
                 <mat-icon class="nom-plan__cell-add">add</mat-icon>
               }

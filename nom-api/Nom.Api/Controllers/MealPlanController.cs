@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.MealPlan;
 using Nom.Orch.Models.Pantry;
+using Nom.Orch.Models.Plan;
 using System.ComponentModel.DataAnnotations;
 
 namespace Nom.Api.Controllers
@@ -14,13 +15,49 @@ namespace Nom.Api.Controllers
     {
         private readonly IMealPlanOrchestrationService _mealPlanOrchestrationService;
         private readonly IPantryOrchestrationService _pantryService;
+        private readonly IPortionOrchestrationService _portionService;
 
         public MealPlanController(
             IMealPlanOrchestrationService mealPlanOrchestrationService,
-            IPantryOrchestrationService pantryService)
+            IPantryOrchestrationService pantryService,
+            IPortionOrchestrationService portionService)
         {
             _mealPlanOrchestrationService = mealPlanOrchestrationService;
             _pantryService = pantryService;
+            _portionService = portionService;
+        }
+
+        /// <summary>
+        /// Per-member portion breakdown for one planned meal cell: cook factor
+        /// per recipe and plates per member, from macro-goal calorie targets
+        /// and the household meal split.
+        /// </summary>
+        [HttpGet("portions")]
+        public async Task<ActionResult<PortionBreakdownModel>> GetPortions(
+            [Required] long householdId, [Required] DateOnly date, [Required] long mealTypeId)
+        {
+            if (!IsHouseholdMember(householdId))
+                return Forbid();
+
+            var breakdown = await _portionService.ComputePortionsAsync(householdId, date, mealTypeId);
+            if (breakdown == null)
+                return NotFound(new { message = "No planned recipes in that meal slot" });
+            return Ok(breakdown);
+        }
+
+        /// <summary>
+        /// Cook factors for every planned recipe in a date range — used by the
+        /// shopping list to scale ingredient quantities to household portions.
+        /// </summary>
+        [HttpGet("portions/range")]
+        public async Task<ActionResult<List<RangeCookFactorModel>>> GetPortionRange(
+            [Required] long householdId, [Required] DateOnly startDate, [Required] DateOnly endDate)
+        {
+            if (!IsHouseholdMember(householdId))
+                return Forbid();
+
+            var factors = await _portionService.ComputeRangeCookFactorsAsync(householdId, startDate, endDate);
+            return Ok(factors);
         }
 
         /// <summary>

@@ -1,0 +1,32 @@
+@use 'variables' as vars;
+
+.nom-meal-split-form__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: vars.$spacing-3;
+}
+
+.nom-meal-split-form__total {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0 0 vars.$spacing-2;
+
+  &--invalid { color: var(--mat-sys-error); }
+}
+
+.nom-meal-split-form__error {
+  color: var(--mat-sys-error);
+  font-size: vars.$font-size-sm;
+  margin: 0 0 vars.$spacing-2;
+}
+
+.nom-meal-split-form__success {
+  color: var(--mat-sys-primary);
+  font-size: vars.$font-size-sm;
+  margin: 0 0 vars.$spacing-2;
+}
+
+.nom-meal-split-form__actions {
+  display: flex;
+  justify-content: flex-end;
+}
