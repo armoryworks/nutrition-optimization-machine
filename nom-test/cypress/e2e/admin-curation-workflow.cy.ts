@@ -283,9 +283,12 @@ describe('Admin Curation Workflow', () => {
 
     cy.contains('Administration').should('be.visible');
 
-    // Verify admin cards are visible (stable testids — labels changed in the tabbed shell)
-    cy.get('[data-testid="admin-card-curation"]').should('be.visible');
-    cy.get('[data-testid="admin-card-webhooks"]').should('be.visible');
+    // Verify admin cards are visible (stable testids — labels changed in the
+    // tabbed shell). The overview grid outgrew the viewport when the
+    // scraping-sources and diet-categories cards landed, so scroll each card
+    // into view first — should('be.visible') never scrolls on its own.
+    cy.get('[data-testid="admin-card-curation"]').scrollIntoView().should('be.visible');
+    cy.get('[data-testid="admin-card-webhooks"]').scrollIntoView().should('be.visible');
 
     // Navigate to webhooks
     cy.contains('Webhooks').click();
