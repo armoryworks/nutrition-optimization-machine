@@ -479,17 +479,23 @@ namespace Nom.Orch.Services
                     throw new InvalidOperationException($"Person with ID {personId} not found");
                 }
 
-                // Check if person is already a member
+                // Check if person is already a member. For managed_enrollment
+                // tokens this is the NORMAL case, not an error: a steward
+                // redeeming a provider's token for their EXISTING household
+                // (design doc §5, join move 3) is already a member — skip the
+                // member insert but still run the enrollment stamping below.
                 var existingMember = await _context.HouseholdMembers
                     .FirstOrDefaultAsync(hm => hm.HouseholdId == inviteToken.HouseholdId && hm.PersonId == personId);
 
-                if (existingMember != null)
+                var alreadyMember = existingMember != null;
+                if (alreadyMember && inviteToken.Kind != InviteTokenKinds.ManagedEnrollment)
                 {
                     throw new InvalidOperationException($"Person is already a member of this household");
                 }
 
-                // Create the household member
-                var householdMember = new HouseholdMemberEntity
+                // Create the household member (skipped when an enrollment
+                // redemption comes from an existing member — see above).
+                var householdMember = existingMember ?? new HouseholdMemberEntity
                 {
                     HouseholdId = inviteToken.HouseholdId,
                     PersonId = personId,
@@ -500,7 +506,10 @@ namespace Nom.Orch.Services
                     IsActive = true
                 };
 
-                _context.HouseholdMembers.Add(householdMember);
+                if (!alreadyMember)
+                {
+                    _context.HouseholdMembers.Add(householdMember);
+                }
 
                 // Decrement uses left if limited
                 if (inviteToken.UsesLeft.HasValue)
