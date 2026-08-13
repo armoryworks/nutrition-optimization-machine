@@ -94,6 +94,14 @@ namespace Nom.Data.Recipe
         public string? VettingIssues { get; set; }
 
         // Social features (from Mealie)
+        /// <summary>
+        /// Visibility tier (see _RecipeVisibilityEnum). Public preserves the
+        /// pre-visibility behavior: publicly listed once curation approves.
+        /// </summary>
+        public RecipeVisibilityEnum Visibility { get; set; } = RecipeVisibilityEnum.Public;
+
+        public virtual System.Collections.Generic.ICollection<RecipeAudienceEntity> Audiences { get; set; } = new System.Collections.Generic.List<RecipeAudienceEntity>();
+
         public decimal? Rating { get; set; }
 
         public DateTime? LastMade { get; set; }

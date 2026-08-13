@@ -78,6 +78,9 @@ namespace Nom.Data
         public DbSet<HouseholdEntity> Households { get; set; } = default!;
         public DbSet<HouseholdPreferenceEntity> HouseholdPreferences { get; set; } = default!;
         public DbSet<HouseholdInviteTokenEntity> HouseholdInviteTokens { get; set; } = default!;
+        public DbSet<MemberPolicyEntity> MemberPolicies { get; set; } = default!;
+        public DbSet<EnrollmentEventEntity> EnrollmentEvents { get; set; } = default!;
+        public DbSet<PolicyContractVersionEntity> PolicyContractVersions { get; set; } = default!;
         public DbSet<HouseholdWebhookEntity> HouseholdWebhooks { get; set; } = default!;
         public DbSet<HouseholdEventNotifierEntity> HouseholdEventNotifiers { get; set; } = default!;
         public DbSet<HouseholdRecipeActionEntity> HouseholdRecipeActions { get; set; } = default!;
@@ -103,6 +106,9 @@ namespace Nom.Data
         public DbSet<IngredientAliasEntity> IngredientAliases { get; set; } = default!;
         public DbSet<IngredientEntity> Ingredients { get; set; } = default!;
         public DbSet<RecipeEntity> Recipes { get; set; } = default!;
+        public DbSet<AudienceEntity> Audiences { get; set; } = default!;
+        public DbSet<AudienceMemberEntity> AudienceMembers { get; set; } = default!;
+        public DbSet<RecipeAudienceEntity> RecipeAudiences { get; set; } = default!;
         public DbSet<RecipeIngredientEntity> RecipeIngredients { get; set; } = default!;
         public DbSet<RecipeStepEntity> RecipeSteps { get; set; } = default!;
 

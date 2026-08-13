@@ -42,5 +42,19 @@ namespace Nom.Data.Plan
         public DateOnly? BeginDate { get; set; }
 
         public DateOnly? EndDate { get; set; }
+
+        /// <summary>
+        /// A locked restriction cannot be removed or violated by the member it
+        /// applies to — only a household steward (or the external manager that
+        /// set it) may change it. Enforced in the orchestration layer.
+        /// </summary>
+        public bool Locked { get; set; }
+
+        /// <summary>
+        /// Opaque marker of who locked it: a steward person id ("person:123")
+        /// or an external management tool ("brigade:456"). Informational to
+        /// NOM; structural to the manager.
+        /// </summary>
+        public string? LockedBy { get; set; }
     }
 }
