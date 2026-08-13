@@ -99,6 +99,29 @@ namespace Nom.Api.Controllers
                 return StatusCode(403, new { message = "Recipe editing is disabled by your household policy.", reason = "feature_gated:recipe_edit" });
             }
 
+            // Locked-restriction integrity: an edit may not introduce a locked
+            // ingredient into a recipe that sits in any household's future meal
+            // plan (a member "editing nuts into" a planned recipe is the attack
+            // the design doc names; design doc §2).
+            var incomingIngredientIds = request.Ingredients?.Where(i => i.IngredientId > 0)
+                .Select(i => i.IngredientId).Distinct().ToList() ?? new List<long>();
+            if (incomingIngredientIds.Count > 0)
+            {
+                var planningHouseholdIds = await _policyService.GetHouseholdsPlanningRecipeAsync(id);
+                foreach (var householdId in planningHouseholdIds)
+                {
+                    var locked = await _policyService.GetLockedIngredientIdsAsync(householdId);
+                    if (locked.Intersect(incomingIngredientIds).Any())
+                    {
+                        return StatusCode(409, new
+                        {
+                            message = "This edit would add an ingredient that is locked out by a dietary restriction in a household currently planning this recipe.",
+                            reason = "restriction_violation:locked_restriction"
+                        });
+                    }
+                }
+            }
+
             var currentPersonId = GetCurrentPersonId();
             if (!currentPersonId.HasValue)
                 return Unauthorized("User not authenticated");

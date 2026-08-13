@@ -406,6 +406,47 @@ namespace Nom.Orch.Services
                     inviteToken.UsesLeft = inviteToken.UsesLeft.Value - 1;
                 }
 
+                // Managed-enrollment tokens place the household under an
+                // external manager on redemption (design doc §5): stamp the
+                // marker and emit the handshake event the manager completes.
+                // Per-adult consent: policies bind this person only after
+                // their own acceptance — recorded manager-side; NOM just
+                // reports the join.
+                if (inviteToken.Kind == InviteTokenKinds.ManagedEnrollment)
+                {
+                    if (inviteToken.Household != null && string.IsNullOrEmpty(inviteToken.Household.ManagedBy))
+                    {
+                        inviteToken.Household.ManagedBy = inviteToken.ManagedBy;
+                    }
+                    _context.EnrollmentEvents.Add(new EnrollmentEventEntity
+                    {
+                        HouseholdId = inviteToken.HouseholdId,
+                        PersonId = personId,
+                        InviteTokenId = inviteToken.Id,
+                        EventType = "enrollment_redeemed",
+                        ManagedBy = inviteToken.ManagedBy,
+                        TemplateRef = inviteToken.TemplateRef,
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedByPersonId = personId,
+                    });
+                }
+                else if (!string.IsNullOrEmpty(inviteToken.Household?.ManagedBy))
+                {
+                    // A plain family join into an ALREADY-MANAGED household —
+                    // the manager must know, and this adult's consent screen
+                    // is triggered manager-side ("invited, not consented").
+                    _context.EnrollmentEvents.Add(new EnrollmentEventEntity
+                    {
+                        HouseholdId = inviteToken.HouseholdId,
+                        PersonId = personId,
+                        InviteTokenId = inviteToken.Id,
+                        EventType = "member_joined_managed",
+                        ManagedBy = inviteToken.Household.ManagedBy,
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedByPersonId = personId,
+                    });
+                }
+
                 await _context.SaveChangesAsync();
 
                 return new HouseholdMemberResponseModel

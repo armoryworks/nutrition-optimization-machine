@@ -87,6 +87,16 @@ namespace Nom.Orch.Services
                 .Select(p => p.CuratedOnly)
                 .FirstOrDefaultAsync();
 
+        public Task<List<long>> GetHouseholdsPlanningRecipeAsync(long recipeId)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            return _context.MealPlans
+                .Where(mp => mp.RecipeId == recipeId && mp.Date >= today)
+                .Select(mp => mp.HouseholdId)
+                .Distinct()
+                .ToListAsync();
+        }
+
         public Task<List<long>> GetLockedIngredientIdsAsync(long householdId)
         {
             var today = DateOnly.FromDateTime(DateTime.UtcNow);

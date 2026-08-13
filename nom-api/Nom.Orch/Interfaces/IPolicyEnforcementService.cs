@@ -22,6 +22,9 @@ namespace Nom.Orch.Interfaces
         /// <summary>True when the member is in curated-only mode for the household.</summary>
         Task<bool> IsCuratedOnlyAsync(long personId, long householdId);
 
+        /// <summary>Households that have the recipe in a future (or today's) meal-plan slot.</summary>
+        Task<List<long>> GetHouseholdsPlanningRecipeAsync(long recipeId);
+
         /// <summary>
         /// Ingredient ids that appear in LOCKED restrictions of active members
         /// of the household — recipes containing them are hard-blocked.
