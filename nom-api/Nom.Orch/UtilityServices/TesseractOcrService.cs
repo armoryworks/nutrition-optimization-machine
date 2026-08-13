@@ -75,6 +75,13 @@ namespace Nom.Orch.UtilityServices
             }
         }
 
+        public async Task<string> ExtractRawTextAsync(byte[] imageData)
+        {
+            using var imageStream = new MemoryStream(imageData);
+            using var image = await Image.LoadAsync(imageStream);
+            return await ExtractTextFromImageAsync(image);
+        }
+
         /// <summary>
         /// Extracts text from image using Tesseract OCR engine.
         /// Requires eng.traineddata in the tessdata directory.
