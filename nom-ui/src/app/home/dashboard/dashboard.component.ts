@@ -20,6 +20,7 @@ import { ShuffleFlowService } from '../../plan/shuffle-flow.service';
 import { AuthService } from '../../core/services/auth.service';
 import { MacroGoalService } from '../../core/services/macro-goal.service';
 import { EffectiveMacroGoal } from '../../core/models/macro-goal.model';
+import { PolicyService } from '../../core/services/policy.service';
 
 @Component({
   selector: 'nom-dashboard',
@@ -36,6 +37,7 @@ export class Dashboard implements OnInit {
   private destroyRef = inject(DestroyRef);
   private authService = inject(AuthService);
   private macroGoalService = inject(MacroGoalService);
+  private policyService = inject(PolicyService);
 
   households = signal<HouseholdResponseModel[]>([]);
   weekData = signal<MealPlanWeekResponse | null>(null);
@@ -44,6 +46,13 @@ export class Dashboard implements OnInit {
   shufflingToday = signal(false);
 
   hasHousehold = computed(() => this.households().length > 0);
+
+  /** True when the caller's household policy gates the shuffle feature. */
+  shuffleGated = computed(() =>
+    this.policyService.isGated(this.households()[0]?.id ?? null, 'shuffle'));
+
+  shuffleTooltip = computed(() =>
+    this.shuffleGated() ? 'Disabled by your household policy' : 'Fill meal slots with random recipes');
 
   effectiveGoal = signal<EffectiveMacroGoal | null>(null);
   goalCalories = computed(() => this.effectiveGoal()?.caloriesTarget ?? null);
@@ -177,7 +186,7 @@ export class Dashboard implements OnInit {
   shuffleTodayEmpty(): void {
     const householdId = this.households()[0]?.id;
     const day = this.today();
-    if (!householdId || !day) return;
+    if (!householdId || !day || this.shuffleGated()) return;
 
     this.shuffleFlow.run({
       householdId,
@@ -200,6 +209,7 @@ export class Dashboard implements OnInit {
       next: (list) => {
         this.households.set(list);
         if (list.length > 0) {
+          this.policyService.loadOwnPolicy(list[0].id);
           this.loadWeek(list[0].id);
         } else {
           this.loading.set(false);

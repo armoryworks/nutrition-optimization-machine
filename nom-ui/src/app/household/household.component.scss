@@ -56,6 +56,25 @@
   color: var(--mat-sys-on-surface);
 }
 
+.nom-household__managed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  margin-left: vars.$spacing-2;
+  padding: 2px vars.$spacing-2;
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
 .nom-household__item-desc {
   font-size: vars.$font-size-sm;
   color: var(--mat-sys-on-surface-variant);

@@ -425,11 +425,14 @@ namespace Nom.Orch.Services
 
             response.Restrictions = existingRestrictions.Select(r => new RestrictionRequest
             {
+                Id = r.Id,
                 Name = r.Name ?? string.Empty,
                 Description = r.Description,
                 RestrictionTypeId = r.RestrictionTypeId ?? 0,
                 AppliesToEntirePlan = false,
-                AffectedPersonIds = new List<long>()
+                AffectedPersonIds = new List<long>(),
+                Locked = r.Locked,
+                LockedBy = r.LockedBy
             }).ToList();
 
             // Check household membership

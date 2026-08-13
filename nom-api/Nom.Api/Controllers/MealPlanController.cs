@@ -23,6 +23,27 @@ namespace Nom.Api.Controllers
             _pantryService = pantryService;
         }
 
+        /// <summary>
+        /// 403 body for policy feature gates, matching the {message, reason}
+        /// contract used by RecipeController/HouseholdPolicyController.
+        /// Without this the orchestration's UnauthorizedAccessException would
+        /// surface as a 401 ProblemDetails and be mistaken for session expiry.
+        /// </summary>
+        private ObjectResult FeatureGated(string reason) =>
+            StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                message = "This feature is disabled by your household policy.",
+                reason
+            });
+
+        /// <summary>409 body for locked-restriction (and visibility) conflicts.</summary>
+        private ObjectResult RestrictionViolation(string reason) =>
+            Conflict(new
+            {
+                message = "This recipe conflicts with a locked dietary restriction in your household.",
+                reason
+            });
+
         [HttpGet]
         public async Task<ActionResult<List<MealPlanResponseModel>>> GetMealPlans(
             [FromQuery] DateTime? startDate = null,
@@ -47,8 +68,15 @@ namespace Nom.Api.Controllers
                 return Forbid();
 
             var authorId = GetCurrentPersonIdRequired();
-            var response = await _mealPlanOrchestrationService.CreateMealPlanAsync(model, authorId);
-            return CreatedAtAction(nameof(GetMealPlan), new { id = response.Id }, response);
+            try
+            {
+                var response = await _mealPlanOrchestrationService.CreateMealPlanAsync(model, authorId);
+                return CreatedAtAction(nameof(GetMealPlan), new { id = response.Id }, response);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.StartsWith("restriction_violation"))
+            {
+                return RestrictionViolation(ex.Message);
+            }
         }
 
         [HttpGet("{id:long}")]
@@ -84,8 +112,15 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdMember(existing.HouseholdId))
                 return Forbid();
 
-            var response = await _mealPlanOrchestrationService.UpdateMealPlanAsync(id, model);
-            return Ok(response);
+            try
+            {
+                var response = await _mealPlanOrchestrationService.UpdateMealPlanAsync(id, model);
+                return Ok(response);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.StartsWith("restriction_violation"))
+            {
+                return RestrictionViolation(ex.Message);
+            }
         }
 
         [HttpDelete("{id:long}")]
@@ -118,8 +153,19 @@ namespace Nom.Api.Controllers
                 return Forbid();
 
             var authorId = GetCurrentPersonIdRequired();
-            var response = await _mealPlanOrchestrationService.ShuffleMealPlansAsync(model, authorId);
-            return Ok(response);
+            try
+            {
+                var response = await _mealPlanOrchestrationService.ShuffleMealPlansAsync(model, authorId);
+                return Ok(response);
+            }
+            catch (UnauthorizedAccessException ex) when (ex.Message.StartsWith("feature_gated"))
+            {
+                return FeatureGated(ex.Message);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.StartsWith("restriction_violation"))
+            {
+                return RestrictionViolation(ex.Message);
+            }
         }
 
         [HttpPost("rule")]

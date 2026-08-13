@@ -10,12 +10,14 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { CdkDropList, CdkDrag, CdkDragHandle, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { RecipeService } from '../core/services/recipe.service';
 import { IngredientService } from '../core/services/ingredient.service';
 import { MeasurementService } from '../core/services/measurement.service';
 import { LoadingService } from '../core/services/loading.service';
+import { PolicyService } from '../core/services/policy.service';
 import { IngredientSearchResult } from '../core/models/ingredient-search-result.model';
 import { MeasurementOption } from '../core/models/measurement.model';
 import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-delete-dialog/confirm-delete-dialog.component';
@@ -32,6 +34,7 @@ import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
     CdkDropList,
     CdkDrag,
     CdkDragHandle,
@@ -50,6 +53,7 @@ export class RecipeForm implements OnInit {
   private ingredientService = inject(IngredientService);
   private measurementService = inject(MeasurementService);
   private loadingService = inject(LoadingService);
+  private policyService = inject(PolicyService);
 
   // Mode
   isEditMode = signal(false);
@@ -93,7 +97,15 @@ export class RecipeForm implements OnInit {
   pageSubtitle = computed(() => this.isEditMode() ? 'Update your recipe details' : 'Create a new recipe');
   submitLabel = computed(() => this.isEditMode() ? 'Save Changes' : 'Create Recipe');
 
+  /** True when the applicable feature gate (create vs. edit) blocks saving. */
+  saveGated = computed(() =>
+    this.policyService.isGatedPrimary(this.isEditMode() ? 'recipe_edit' : 'recipe_create'));
+
+  saveGatedTooltip = computed(() =>
+    this.saveGated() ? 'Disabled by your household policy' : '');
+
   ngOnInit(): void {
+    this.policyService.loadOwnPolicyForPrimaryHousehold();
     this.measurementService.loadMeasurements().pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
@@ -215,7 +227,7 @@ export class RecipeForm implements OnInit {
       this.recipeForm.markAllAsTouched();
       return;
     }
-    if (this.saving()) return;
+    if (this.saving() || this.saveGated()) return;
     this.saving.set(true);
     this.errorMessage.set('');
 
@@ -247,9 +259,15 @@ export class RecipeForm implements OnInit {
           this.saving.set(false);
           this.router.navigate(['/recipe', id]);
         },
-        error: () => {
+        error: (err) => {
           this.saving.set(false);
-          this.errorMessage.set('Failed to save recipe. Please try again.');
+          const reason: unknown = err?.error?.reason ?? err?.error?.detail;
+          if (typeof reason === 'string' && reason.startsWith('restriction_violation')) {
+            this.errorMessage.set(
+              'This recipe conflicts with a locked dietary restriction in your household.');
+          } else {
+            this.errorMessage.set('Failed to save recipe. Please try again.');
+          }
         },
       });
     } else {

@@ -28,7 +28,15 @@
         @for (h of households(); track h.id) {
           <div class="nom-household__item">
             <div class="nom-household__item-info">
-              <span class="nom-household__item-name">{{ h.name }}</span>
+              <span class="nom-household__item-name">
+                {{ h.name }}
+                @if (h.managedBy) {
+                  <span class="nom-household__managed-badge" data-testid="household-managed-badge">
+                    <mat-icon>verified_user</mat-icon>
+                    Externally managed
+                  </span>
+                }
+              </span>
               @if (h.description) {
                 <span class="nom-household__item-desc">{{ h.description }}</span>
               }
@@ -120,6 +128,18 @@
         </button>
       </div>
     </div>
+
+    <!-- Member policies (stewards only) -->
+    @if (isSteward() && activeHouseholdId() != null) {
+      <div class="nom-form__section" data-testid="household-member-policies">
+        <h2 class="nom-form__section-title">Member Policies</h2>
+        <p class="nom-form__section-description">
+          Control which features each member can use, limit how often tagged recipes
+          appear, and lock dietary restrictions so they cannot be removed.
+        </p>
+        <nom-member-policy-panel [householdId]="activeHouseholdId()!" [members]="members()" />
+      </div>
+    }
 
     <!-- Household macro goals -->
     <div class="nom-form__section" data-testid="household-macro-goals">

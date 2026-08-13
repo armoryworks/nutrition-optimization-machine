@@ -37,9 +37,11 @@
             {{ filledMealsToday() }}/{{ totalMealSlots() }} planned
           </span>
           <button mat-stroked-button
+                  data-testid="dashboard-shuffle-btn"
                   (click)="shuffleTodayEmpty()"
-                  [disabled]="!today() || shufflingToday()"
-                  matTooltip="Fill meal slots with random recipes">
+                  [disabled]="!today() || shufflingToday() || shuffleGated()"
+                  [disabledInteractive]="shuffleGated()"
+                  [matTooltip]="shuffleTooltip()">
             @if (shufflingToday()) {
               <mat-spinner diameter="18"></mat-spinner>
             } @else {

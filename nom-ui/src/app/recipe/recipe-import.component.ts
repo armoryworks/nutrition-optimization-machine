@@ -1,4 +1,4 @@
-import { Component, inject, signal, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -8,13 +8,15 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RecipeScrapingService } from '../core/services/recipe-scraping.service';
 import { LoadingService } from '../core/services/loading.service';
+import { PolicyService } from '../core/services/policy.service';
 import { ScrapedRecipeModel } from '../core/models/scraped-recipe.model';
 
 @Component({
   selector: 'nom-recipe-import',
-  imports: [ReactiveFormsModule, RouterLink, MatIconModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatCheckboxModule, MatProgressSpinnerModule],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatCheckboxModule, MatProgressSpinnerModule, MatTooltipModule],
   templateUrl: './recipe-import.component.html',
   styleUrl: './recipe-import.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,8 +24,15 @@ import { ScrapedRecipeModel } from '../core/models/scraped-recipe.model';
 export class RecipeImport {
   private scrapingService = inject(RecipeScrapingService);
   private loadingService = inject(LoadingService);
+  private policyService = inject(PolicyService);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
+
+  constructor() {
+    this.policyService.loadOwnPolicyForPrimaryHousehold();
+  }
+
+  importGated = computed(() => this.policyService.isGatedPrimary('recipe_import'));
 
   url = new FormControl('');
   importKeywordsAsTags = new FormControl(true);
@@ -51,7 +60,7 @@ export class RecipeImport {
   }
 
   onImport(): void {
-    if (!(this.url.value ?? '').trim() || this.importing()) return;
+    if (!(this.url.value ?? '').trim() || this.importing() || this.importGated()) return;
     this.error.set('');
     this.importing.set(true);
 

@@ -65,6 +65,7 @@ namespace Nom.Orch.Services
                 HouseholdGroupId = h.HouseholdGroupId,
                 CreatedDate = h.CreatedDate,
                 ModifiedDate = h.LastModifiedDate,
+                ManagedBy = h.ManagedBy,
                 MemberCount = memberCounts.GetValueOrDefault(h.Id, 0),
                 PlanCount = planCounts.GetValueOrDefault(h.Id, 0)
             }).ToList();
@@ -140,6 +141,7 @@ namespace Nom.Orch.Services
                                     IsActive = hm.IsActive,
                                     HasProfile = _context.PersonAttributes.Any(pa => pa.PersonId == p.Id),
                                     HasRestrictions = _context.Restrictions.Any(r => r.PersonId == p.Id && r.PlanId == null),
+                                    IsSteward = hm.IsAdmin || hm.CanManage,
                                 }).ToListAsync();
 
             // Get statistics
@@ -163,6 +165,7 @@ namespace Nom.Orch.Services
                 HouseholdGroupId = household.HouseholdGroupId,
                 CreatedDate = household.CreatedDate,
                 ModifiedDate = household.LastModifiedDate,
+                ManagedBy = household.ManagedBy,
                 Members = members,
                 MemberCount = members.Count,
                 RecipeCount = recipeCount,
@@ -191,7 +194,8 @@ namespace Nom.Orch.Services
                 Description = household.Description,
                 HouseholdGroupId = household.HouseholdGroupId,
                 CreatedDate = household.CreatedDate,
-                ModifiedDate = household.LastModifiedDate
+                ModifiedDate = household.LastModifiedDate,
+                ManagedBy = household.ManagedBy
             };
         }
 

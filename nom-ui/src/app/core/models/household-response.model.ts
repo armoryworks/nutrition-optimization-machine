@@ -7,6 +7,8 @@ export interface HouseholdResponseModel {
   householdGroupId: number;
   createdDate: string;
   modifiedDate: string | null;
+  /** Opaque external-management marker (e.g. "brigade:123"), or null when self-managed. */
+  managedBy?: string | null;
   members: HouseholdMemberResponseModel[] | null;
   memberCount: number;
   recipeCount: number;
