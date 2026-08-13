@@ -249,6 +249,12 @@ namespace Nom.Orch.Services
         // Default goal type name for nutrient guidelines (loaded dynamically by name)
         private const string DefaultGoalTypeName = "Adults and Children 4+ years";
 
+        /// <summary>
+        /// A per-nutrient scoring target for shuffle selection: USDA guideline
+        /// values by default, overridden/extended by household macro goals.
+        /// </summary>
+        private sealed record GuidelineTarget(long NutrientId, string NutrientName, decimal Target, decimal? UpperLimit);
+
         // Meal composition templates: defines how many recipes of each type compose a meal
         private static readonly Dictionary<long, (long RecipeTypeId, string Label)[]> MealComposition = new()
         {
@@ -300,6 +306,9 @@ namespace Nom.Orch.Services
                 }
             }
         }
+
+        private static DateOnly WeekStartOf(DateOnly date) =>
+            date.AddDays(-(((int)date.DayOfWeek + 6) % 7)); // Monday-start weeks
 
         public async Task<MealPlanShuffleResponseModel> ShuffleMealPlansAsync(MealPlanShuffleModel model, long authorId)
         {
@@ -435,7 +444,7 @@ namespace Nom.Orch.Services
             }
 
             // 5b. Load all nutrient guidelines for the default goal type (fully dynamic)
-            var guidelines = await _context.NutrientGuidelines
+            var guidelines = (await _context.NutrientGuidelines
                 .Where(ng => ng.GoalType.Name == DefaultGoalTypeName
                     && ng.RecommendedAmount != null)
                 .Include(ng => ng.Nutrient)
@@ -446,7 +455,49 @@ namespace Nom.Orch.Services
                     Target = ng.RecommendedAmount!.Value,
                     UpperLimit = ng.MaxAmount,
                 })
-                .ToListAsync();
+                .ToListAsync())
+                .Select(g => new GuidelineTarget(g.NutrientId, g.NutrientName, g.Target, g.UpperLimit))
+                .ToList();
+
+            // 5b'. Household macro goals override the USDA defaults so shuffle
+            // scoring steers toward the goals users actually set. A goal for a
+            // macro with no guideline row (e.g. Calories has none in seed data)
+            // is appended as a new scoring target rather than ignored.
+            var macroGoal = await _context.MacroGoals
+                .AsNoTracking()
+                .FirstOrDefaultAsync(g => g.HouseholdId == model.HouseholdId);
+            if (macroGoal != null)
+            {
+                var goalTargets = new (string NutrientName, decimal? Target)[]
+                {
+                    ("Calories", macroGoal.CaloriesTarget),
+                    ("Protein", macroGoal.ProteinGramsTarget),
+                    ("Total Carbohydrates", macroGoal.CarbGramsTarget),
+                    ("Fat", macroGoal.FatGramsTarget),
+                };
+
+                foreach (var (nutrientName, target) in goalTargets)
+                {
+                    if (!target.HasValue) continue;
+
+                    var idx = guidelines.FindIndex(g => g.NutrientName == nutrientName);
+                    if (idx >= 0)
+                    {
+                        guidelines[idx] = guidelines[idx] with { Target = target.Value };
+                    }
+                    else
+                    {
+                        var nutrientId = await _context.Nutrients
+                            .Where(n => n.Name == nutrientName)
+                            .Select(n => (long?)n.Id)
+                            .FirstOrDefaultAsync();
+                        if (nutrientId.HasValue)
+                        {
+                            guidelines.Add(new GuidelineTarget(nutrientId.Value, nutrientName, target.Value, null));
+                        }
+                    }
+                }
+            }
 
             var guidelinesByNutrient = guidelines.ToDictionary(g => g.NutrientId);
             var trackedNutrientIds = guidelines.Select(g => g.NutrientId).ToList();
@@ -474,6 +525,74 @@ namespace Nom.Orch.Services
             //    Dynamically tracks all nutrients that have guidelines in NutrientGuidelines.
             //    Uses MaxAmount (when set) as a hard ceiling with heavier overshoot penalty.
             //    Uses RecommendedAmount as the target for all nutrients.
+            // Frequency caps (member policies): strictest cap per tag across
+            // the household's members shapes placement — a capped tag stops
+            // being placed once its week bucket is full. Manual edits only
+            // warn (UI); shuffle hard-skips.
+            var capPerTag = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var capsJson in await _context.MemberPolicies
+                .Where(mp => mp.HouseholdId == model.HouseholdId)
+                .Select(mp => mp.FrequencyCaps)
+                .ToListAsync())
+            {
+                if (string.IsNullOrWhiteSpace(capsJson)) continue;
+                try
+                {
+                    var caps = System.Text.Json.JsonSerializer.Deserialize<List<Nom.Orch.Models.Policy.FrequencyCapModel>>(
+                        capsJson, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+                    foreach (var cap in caps ?? new List<Nom.Orch.Models.Policy.FrequencyCapModel>())
+                    {
+                        if (string.IsNullOrWhiteSpace(cap.Tag) || cap.MaxPerWeek < 0) continue;
+                        capPerTag[cap.Tag] = capPerTag.TryGetValue(cap.Tag, out var existingCap)
+                            ? Math.Min(existingCap, cap.MaxPerWeek)
+                            : cap.MaxPerWeek;
+                    }
+                }
+                catch (System.Text.Json.JsonException) { /* malformed caps never break shuffle */ }
+            }
+
+            var recipeTagNames = new Dictionary<long, List<string>>();
+            var weekTagCounts = new Dictionary<(DateOnly WeekStart, string Tag), int>();
+            if (capPerTag.Count > 0)
+            {
+                var candidateIds = recipePools.Values.SelectMany(pool => pool.Select(r => r.Id)).Distinct().ToList();
+                var tagRows = await _context.Set<RecipeTagEntity>()
+                    .Where(rt => candidateIds.Contains(rt.RecipeId) && rt.Tag != null)
+                    .Select(rt => new { rt.RecipeId, TagName = rt.Tag!.Name })
+                    .ToListAsync();
+                foreach (var row in tagRows)
+                {
+                    if (!recipeTagNames.TryGetValue(row.RecipeId, out var list))
+                    {
+                        recipeTagNames[row.RecipeId] = list = new List<string>();
+                    }
+                    list.Add(row.TagName);
+                }
+
+                // Seed week buckets from surviving existing entries in range.
+                var existingWithRecipes = await _context.MealPlans
+                    .Where(mp => mp.HouseholdId == model.HouseholdId
+                        && mp.Date >= model.StartDate && mp.Date <= model.EndDate && mp.RecipeId != null)
+                    .Select(mp => new { mp.Date, RecipeId = mp.RecipeId!.Value })
+                    .ToListAsync();
+                var existingRecipeIds = existingWithRecipes.Select(e => e.RecipeId).Distinct().ToList();
+                var existingTags = await _context.Set<RecipeTagEntity>()
+                    .Where(rt => existingRecipeIds.Contains(rt.RecipeId) && rt.Tag != null)
+                    .Select(rt => new { rt.RecipeId, TagName = rt.Tag!.Name })
+                    .ToListAsync();
+                var existingTagLookup = existingTags.GroupBy(t => t.RecipeId)
+                    .ToDictionary(g => g.Key, g => g.Select(t => t.TagName).ToList());
+                foreach (var entry in existingWithRecipes)
+                {
+                    foreach (var tag in existingTagLookup.GetValueOrDefault(entry.RecipeId) ?? new List<string>())
+                    {
+                        if (!capPerTag.ContainsKey(tag)) continue;
+                        var key = (WeekStartOf(entry.Date), tag);
+                        weekTagCounts[key] = weekTagCounts.GetValueOrDefault(key) + 1;
+                    }
+                }
+            }
+
             var usedIds = new HashSet<long>();
             var poolCounters = new Dictionary<(long, long), int>();
             var newEntities = new List<MealPlanEntity>();
@@ -497,6 +616,16 @@ namespace Nom.Orch.Services
 
                 foreach (var candidate in pool)
                 {
+                    // Frequency caps: hard-skip a candidate whose capped tag is
+                    // already at its weekly limit for this slot's week.
+                    if (capPerTag.Count > 0
+                        && recipeTagNames.TryGetValue(candidate.Id, out var candidateTags)
+                        && candidateTags.Any(t => capPerTag.TryGetValue(t, out var cap)
+                            && weekTagCounts.GetValueOrDefault((WeekStartOf(slot.Date), t)) >= cap))
+                    {
+                        continue;
+                    }
+
                     var isUnused = !usedIds.Contains(candidate.Id);
                     recipeNutrients.TryGetValue(candidate.Id, out var nutrients);
 
@@ -557,6 +686,17 @@ namespace Nom.Orch.Services
                     poolCounters.TryGetValue(poolKey, out var idx);
                     bestRecipe = pool[idx % pool.Count];
                     poolCounters[poolKey] = idx + 1;
+                }
+
+                if (capPerTag.Count > 0
+                    && recipeTagNames.TryGetValue(bestRecipe.Id, out var placedTags))
+                {
+                    foreach (var tag in placedTags)
+                    {
+                        if (!capPerTag.ContainsKey(tag)) continue;
+                        var key = (WeekStartOf(slot.Date), tag);
+                        weekTagCounts[key] = weekTagCounts.GetValueOrDefault(key) + 1;
+                    }
                 }
 
                 usedIds.Add(bestRecipe.Id);

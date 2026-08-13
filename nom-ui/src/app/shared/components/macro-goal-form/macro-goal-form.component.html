@@ -1,0 +1,49 @@
+<form
+  [formGroup]="goalForm"
+  (ngSubmit)="onSave()"
+  class="nom-macro-goal-form"
+  data-testid="macro-goal-form"
+>
+  <div class="nom-macro-goal-form__grid">
+    @for (field of fields; track field.control) {
+      <mat-form-field appearance="outline" class="nom-macro-goal-form__field">
+        <mat-label>{{ field.label }} ({{ field.unit }}/day)</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          [formControlName]="field.control"
+          [attr.data-testid]="field.testid"
+        />
+        <mat-icon matPrefix>{{ field.icon }}</mat-icon>
+      </mat-form-field>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <p class="nom-macro-goal-form__error" data-testid="macro-goal-error">{{ errorMessage() }}</p>
+  }
+  @if (successMessage()) {
+    <p class="nom-macro-goal-form__success" data-testid="macro-goal-success">{{ successMessage() }}</p>
+  }
+
+  <div class="nom-macro-goal-form__actions">
+    <button
+      mat-stroked-button
+      type="button"
+      (click)="onClear()"
+      data-testid="macro-goal-clear-btn"
+    >
+      Clear
+    </button>
+    <button
+      mat-flat-button
+      color="primary"
+      type="submit"
+      [disabled]="saving() || loading()"
+      data-testid="macro-goal-save-btn"
+    >
+      {{ saving() ? 'Saving…' : 'Save Goals' }}
+    </button>
+  </div>
+</form>
