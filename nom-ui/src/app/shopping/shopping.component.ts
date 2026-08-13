@@ -11,7 +11,6 @@ import { ErrorBanner } from '../shared/components/error-banner/error-banner.comp
 import { NoHouseholdCta } from '../shared/components/no-household-cta/no-household-cta.component';
 import { toLocalDateString } from '../core/utils/local-date';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CurrencyPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ReactiveFormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
@@ -29,8 +28,6 @@ import { PantryService } from '../core/services/pantry.service';
 import { RetailPackagingService } from '../core/services/retail-packaging.service';
 import { MeasurementService } from '../core/services/measurement.service';
 import { PortionService } from '../core/services/portion.service';
-import { ShoppingAdviceService } from '../core/services/shopping-advice.service';
-import { ShopRecommendation, BasketItem } from '../core/models/shop-recommendation.model';
 import { MealPlanWeekResponse } from '../core/models/meal-plan-week-response.model';
 import { RecipeModel } from '../core/models/recipe.model';
 import { PantryItemResponse } from '../core/models/pantry-item-response.model';
@@ -76,7 +73,6 @@ interface RawAccumulator {
 @Component({
   selector: 'nom-shopping',
   imports: [
-    CurrencyPipe,
     RouterLink,
     ReactiveFormsModule,
     MatButtonModule,
@@ -97,57 +93,6 @@ export class ShoppingComponent implements OnInit {
   private retailPackagingService = inject(RetailPackagingService);
   private measurementService = inject(MeasurementService);
   private portionService = inject(PortionService);
-  private shoppingAdviceService = inject(ShoppingAdviceService);
-
-  // "Where should I shop?" — postal code, in-flight state, and result.
-  postalCode = signal(localStorage.getItem('nom-postal-code') ?? '');
-  findingStore = signal(false);
-  recommendation = signal<ShopRecommendation | null>(null);
-
-  /** Retail packages the current list needs, as a store-pricing basket. */
-  private basket = computed<BasketItem[]>(() => {
-    const byPackage = new Map<number, number>();
-    for (const dept of this.departments()) {
-      for (const item of dept.items) {
-        if (item.retailPackage && item.retailPackageCount > 0) {
-          byPackage.set(
-            item.retailPackage.id,
-            (byPackage.get(item.retailPackage.id) ?? 0) + item.retailPackageCount,
-          );
-        }
-      }
-    }
-    return [...byPackage].map(([retailPackagingId, quantity]) => ({ retailPackagingId, quantity }));
-  });
-
-  onPostalCodeChange(value: string): void {
-    this.postalCode.set(value);
-    localStorage.setItem('nom-postal-code', value);
-  }
-
-  whereToShop(): void {
-    const zip = this.postalCode().trim();
-    if (!zip || this.findingStore()) return;
-    this.findingStore.set(true);
-    this.recommendation.set(null);
-    this.shoppingAdviceService
-      .whereToShop(this.householdId(), zip, this.basket())
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (rec) => {
-          this.recommendation.set(rec);
-          this.findingStore.set(false);
-        },
-        error: () => {
-          this.recommendation.set({
-            stores: [],
-            explanation: 'Unable to check store prices right now.',
-            insufficientData: true,
-          });
-          this.findingStore.set(false);
-        },
-      });
-  }
 
   /** Per-planned-recipe cook factors keyed `date|mealTypeId|recipeId` (portion scaling). */
   private cookFactors = signal<Map<string, number>>(new Map());

@@ -191,45 +191,10 @@ builder.Services.AddHttpClient();
 builder.Services.AddHttpClient("webhook")
     .ConfigurePrimaryHttpMessageHandler(Nom.Orch.UtilityServices.SsrfGuard.BuildGuardedHandler);
 
-// Commerce sources (swappable seams — DB-backed / heuristic defaults ship now;
-// licensed pricing APIs, partner feeds, scrapers, and vision OCR replace these
-// without touching consumers — see epic #23 / D-060). Not auto-registered:
-// their interfaces don't follow the I*Service convention.
-// Price sources compose (D-060 "all of the above"): register each leaf, then
-// expose IPriceSource as the composite that merges them. Add API/partner/scrape
-// leaves to the array as they're built — nothing downstream changes.
-builder.Services.AddScoped<Nom.Orch.Services.Commerce.DbPriceSource>();
-builder.Services.AddScoped<Nom.Orch.Interfaces.IPriceSource>(sp =>
-    new Nom.Orch.Services.Commerce.CompositePriceSource(new Nom.Orch.Interfaces.IPriceSource[]
-    {
-        sp.GetRequiredService<Nom.Orch.Services.Commerce.DbPriceSource>(),
-    }));
-builder.Services.AddScoped<Nom.Orch.Interfaces.ICouponSource, Nom.Orch.Services.Commerce.DbCouponSource>();
-
-// Payment processors (scaffold, no live charges until D-060c clears): Stripe
-// Connect as the split-payout rail, Braintree/PayPal for consumer checkout.
-builder.Services.AddScoped<Nom.Orch.Interfaces.IPaymentProcessor, Nom.Orch.Services.Commerce.StripePaymentProcessor>();
-builder.Services.AddScoped<Nom.Orch.Services.Commerce.BraintreePaymentProcessor>();
-// Local AI (D-061, self-hosted Ollama): when Ai:OllamaUrl is set, use the
-// two-stage receipt parser (Tesseract OCR -> Ollama structuring) and the
-// AI-narrated shop advisor; otherwise fall back to manual/heuristic. The
-// Ollama provisioning/model setup lives in the private nom-ai repo.
-builder.Services.AddHttpClient<Nom.Orch.UtilityInterfaces.IOllamaClient, Nom.Orch.UtilityServices.OllamaClient>(
-    client => client.Timeout = TimeSpan.FromSeconds(120));
+// Tesseract OCR for recipe photo import (open-core). The self-hosted Ollama
+// client and the commercial commerce layer (pricing/budgets/marketplace/
+// receipts) live in the private nom-commerce overlay, not this open-core repo.
 builder.Services.AddScoped<Nom.Orch.UtilityInterfaces.ITesseractOcrService, Nom.Orch.UtilityServices.TesseractOcrService>();
-builder.Services.AddScoped<Nom.Orch.Services.Commerce.HeuristicShopAdvisor>();
-
-var aiEnabled = !string.IsNullOrEmpty(builder.Configuration["Ai:OllamaUrl"]);
-if (aiEnabled)
-{
-    builder.Services.AddScoped<Nom.Orch.Interfaces.IReceiptParser, Nom.Orch.Services.Commerce.LocalAiReceiptParser>();
-    builder.Services.AddScoped<Nom.Orch.Interfaces.IShopAdvisor, Nom.Orch.Services.Commerce.LocalAiShopAdvisor>();
-}
-else
-{
-    builder.Services.AddScoped<Nom.Orch.Interfaces.IReceiptParser, Nom.Orch.Services.Commerce.ManualReceiptParser>();
-    builder.Services.AddScoped<Nom.Orch.Interfaces.IShopAdvisor, Nom.Orch.Services.Commerce.HeuristicShopAdvisor>();
-}
 
 // General-purpose system email (admin notifications) — mirrors the Identity sender selection
 if (!string.IsNullOrEmpty(builder.Configuration["Email:SmtpHost"]))

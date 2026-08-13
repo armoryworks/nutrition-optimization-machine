@@ -19,16 +19,13 @@ namespace Nom.Api.Controllers
     {
         private readonly IPersonOrchestrationService _personOrchestrationService;
         private readonly IMacroGoalOrchestrationService _macroGoalService;
-        private readonly IBudgetOrchestrationService _budgetService;
 
         public PersonController(
             IPersonOrchestrationService personOrchestrationService,
-            IMacroGoalOrchestrationService macroGoalService,
-            IBudgetOrchestrationService budgetService)
+            IMacroGoalOrchestrationService macroGoalService)
         {
             _personOrchestrationService = personOrchestrationService;
             _macroGoalService = macroGoalService;
-            _budgetService = budgetService;
         }
 
         /// <summary>
@@ -271,37 +268,6 @@ namespace Nom.Api.Controllers
 
             var effective = await _macroGoalService.GetEffectiveForPersonAsync(id);
             return Ok(effective);
-        }
-
-        /// <summary>Gets the person's grocery budget (null amount when unset).</summary>
-        [HttpGet("{id:long}/budget")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<BudgetModel>> GetBudget(long id)
-        {
-            if (!await CanAccessPersonAsync(id)) return Forbid();
-            var budget = await _budgetService.GetPersonBudgetAsync(id);
-            return Ok(budget ?? new BudgetModel { Amount = 0 });
-        }
-
-        /// <summary>Creates or replaces the person's grocery budget.</summary>
-        [HttpPut("{id:long}/budget")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<BudgetModel>> SaveBudget(long id, [FromBody] BudgetModel request)
-        {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            if (!await CanAccessPersonAsync(id)) return Forbid();
-            try { return Ok(await _budgetService.SavePersonBudgetAsync(id, request)); }
-            catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
-        }
-
-        /// <summary>Gets the budget that effectively applies to this person (own, else household).</summary>
-        [HttpGet("{id:long}/budget/effective")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<EffectiveBudgetModel>> GetEffectiveBudget(long id)
-        {
-            if (!await CanAccessPersonAsync(id)) return Forbid();
-            return Ok(await _budgetService.GetEffectiveForPersonAsync(id));
         }
 
         /// <summary>
