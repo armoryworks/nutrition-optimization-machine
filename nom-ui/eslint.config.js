@@ -33,5 +33,10 @@ module.exports = tseslint.config(
       ...angular.configs.templateRecommended,
       ...angular.configs.templateAccessibility,
     ],
+    rules: {
+      // `x != null` is the idiomatic null-or-undefined check and is what the
+      // template type-checker narrows on; strict !== breaks that narrowing.
+      "@angular-eslint/template/eqeqeq": ["error", { allowNullOrUndefined: true }],
+    },
   }
 );
