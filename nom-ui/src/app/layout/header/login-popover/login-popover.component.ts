@@ -1,6 +1,7 @@
 import {
   Component,
   inject,
+  input,
   output,
   signal,
   DestroyRef,
@@ -34,6 +35,10 @@ import { PersonService } from '../../../core/services/person.service';
 })
 export class LoginPopover {
   closed = output<void>();
+  /** Emitted after a successful login when the host handles navigation itself. */
+  loggedIn = output<void>();
+  /** When true, skip the built-in post-login onboarding redirect and emit loggedIn instead. */
+  deferNavigation = input(false);
 
   private authService = inject(AuthService);
   private personService = inject(PersonService);
@@ -66,6 +71,10 @@ export class LoginPopover {
       .subscribe({
         next: () => {
           this.loading.set(false);
+          if (this.deferNavigation()) {
+            this.loggedIn.emit();
+            return;
+          }
           this.closed.emit();
           this.checkOnboardingState();
         },

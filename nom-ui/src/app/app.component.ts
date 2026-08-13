@@ -51,6 +51,8 @@ export class App {
   isLoading = computed(() => this.loadingService.isLoading());
   sidebarOpen = signal(false);
   navOpen = signal(false);
+  // /login renders without app chrome (it is also iframed by the marketing site).
+  chromeless = signal(false);
 
   private navLoadingKey: string | null = null;
 
@@ -77,6 +79,7 @@ export class App {
         // Move focus to the content region on navigation so keyboard and
         // screen-reader users land on the new page, not stale chrome.
         if (e instanceof NavigationEnd) {
+          this.chromeless.set(e.urlAfterRedirects.startsWith('/login'));
           if (this.firstNavigationDone) {
             this.document.getElementById('main-content')?.focus({ preventScroll: true });
           }

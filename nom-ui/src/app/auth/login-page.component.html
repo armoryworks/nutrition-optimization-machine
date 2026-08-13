@@ -1,0 +1,12 @@
+<div class="nom-login-page" [class.nom-login-page--embedded]="embedded">
+  @if (!embedded) {
+    <div class="nom-login-page__brand" aria-hidden="true">
+      <span class="nom-login-page__brand-name">Nutrition Optimization</span>
+      <span class="nom-login-page__brand-rule"></span>
+      <span class="nom-login-page__brand-sub">Armory Works Technology</span>
+    </div>
+  }
+  <div class="nom-login-page__card">
+    <nom-login-popover [deferNavigation]="true" (loggedIn)="onLoggedIn()" />
+  </div>
+</div>
