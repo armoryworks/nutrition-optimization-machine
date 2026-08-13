@@ -7,10 +7,11 @@ import { CurationQueue } from './curation-queue.component';
 import { ScrapingSources } from './scraping-sources.component';
 import { Webhooks } from './webhooks.component';
 import { UsersAdmin } from './users-admin.component';
+import { DietCategories } from './diet-categories.component';
 
 // URL-driven tabbed shell (the forge-ui admin idiom): /admin/:tab selects the
 // panel; unknown tabs fall back to the overview launchpad.
-const VALID_TABS = ['overview', 'users', 'curation', 'scraping-sources', 'webhooks'] as const;
+const VALID_TABS = ['overview', 'users', 'curation', 'scraping-sources', 'diet-categories', 'webhooks'] as const;
 type AdminTab = (typeof VALID_TABS)[number];
 
 interface AdminTabDef {
@@ -24,7 +25,7 @@ interface AdminTabDef {
 
 @Component({
   selector: 'nom-admin',
-  imports: [RouterLink, MatIconModule, CurationQueue, ScrapingSources, Webhooks, UsersAdmin],
+  imports: [RouterLink, MatIconModule, CurationQueue, ScrapingSources, Webhooks, UsersAdmin, DietCategories],
   templateUrl: './admin.component.html',
   styleUrls: ['../settings/settings.component.scss', './admin.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,6 +57,13 @@ export class Admin {
       icon: 'travel_explore',
       description: 'Approve domains recipes may be imported from',
       navTestId: 'nav-scraping-sources',
+    },
+    {
+      id: 'diet-categories',
+      label: 'Diet Categories',
+      icon: 'health_and_safety',
+      description: 'Health conditions, diets, and the filter criteria behind them',
+      navTestId: 'nav-diet-categories',
     },
     {
       id: 'webhooks',

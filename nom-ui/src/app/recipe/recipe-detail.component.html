@@ -130,7 +130,7 @@
                     <div>
                       <strong>{{ match.restrictionName }}</strong>
                       @if (match.restrictionType) { <span class="nom-recipe__diet-type">{{ match.restrictionType }}</span> }
-                      <div class="nom-recipe__diet-ingredient">contains {{ match.ingredientName }}</div>
+                      <div class="nom-recipe__diet-ingredient">contains {{ match.ingredientName }}@if (match.notes) { &mdash; {{ match.notes }}}</div>
                     </div>
                   </li>
                 }

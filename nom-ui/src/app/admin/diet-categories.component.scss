@@ -1,0 +1,175 @@
+@use 'variables' as vars;
+
+.nom-diet-cats__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-8;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-diet-cats__group {
+  margin-bottom: vars.$spacing-6;
+}
+
+.nom-diet-cats__group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: vars.$spacing-3;
+  margin-bottom: vars.$spacing-3;
+
+  h2 {
+    font-size: vars.$font-size-lg;
+    font-weight: vars.$font-weight-semibold;
+    margin: 0;
+  }
+
+  p {
+    margin: 0;
+    font-size: vars.$font-size-xs;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+.nom-diet-cats__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.nom-diet-cats__item {
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  &:last-child { border-bottom: none; }
+}
+
+.nom-diet-cats__item-row {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-2 vars.$spacing-3;
+}
+
+.nom-diet-cats__item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: vars.$spacing-2;
+  flex-wrap: wrap;
+}
+
+.nom-diet-cats__item-name {
+  font-weight: vars.$font-weight-medium;
+}
+
+.nom-diet-cats__item-desc {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-diet-cats__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  padding: 2px vars.$spacing-2;
+  font-family: inherit;
+  font-size: vars.$font-size-xs;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-pill;
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface-variant);
+  cursor: pointer;
+  white-space: nowrap;
+
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+  &:hover { background: var(--mat-sys-surface-container-high); color: var(--mat-sys-on-surface); }
+}
+
+.nom-diet-cats__criteria {
+  padding: vars.$spacing-3;
+  border-top: 1px dashed var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface-container);
+}
+
+.nom-diet-cats__criteria-list {
+  list-style: none;
+  margin: 0 0 vars.$spacing-3;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+}
+
+.nom-diet-cats__criterion {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  font-size: vars.$font-size-sm;
+
+  code {
+    background: var(--mat-sys-surface-container-highest);
+    padding: 1px vars.$spacing-1;
+    border-radius: vars.$nom-border-radius;
+  }
+}
+
+.nom-diet-cats__sev {
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-semibold;
+  padding: 0 vars.$spacing-1;
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+
+  &--4, &--5 {
+    background: var(--mat-sys-error-container);
+    color: var(--mat-sys-on-error-container);
+  }
+}
+
+.nom-diet-cats__note {
+  flex: 1;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-diet-cats__form {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  flex-wrap: wrap;
+  margin-bottom: vars.$spacing-3;
+}
+
+.nom-diet-cats__input {
+  flex: 1;
+  min-width: 160px;
+  padding: vars.$spacing-2;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font-family: inherit;
+  font-size: vars.$font-size-sm;
+
+  &--wide { flex: 2; }
+  &--narrow { flex: 0 0 64px; min-width: 64px; }
+
+  &:focus {
+    outline: none;
+    border-color: var(--mat-sys-primary);
+  }
+}
+
+.nom-diet-cats__empty {
+  padding: vars.$spacing-3;
+  margin: 0;
+  font-size: vars.$font-size-sm;
+  font-style: italic;
+  color: var(--mat-sys-on-surface-variant);
+}
