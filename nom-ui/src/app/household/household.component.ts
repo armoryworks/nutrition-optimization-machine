@@ -17,6 +17,7 @@ import { HouseholdResponseModel } from '../core/models/household-response.model'
 import { HouseholdCreateResponseModel } from '../core/models/household-create-response.model';
 import { HouseholdMemberResponseModel } from '../core/models/household-member-response.model';
 import { AddMemberDialog, AddMemberDialogData } from './add-member-dialog/add-member-dialog.component';
+import { MacroGoalForm } from '../shared/components/macro-goal-form/macro-goal-form.component';
 
 export interface HouseholdFormData {
   household: HouseholdCreateResponseModel | null;
@@ -36,6 +37,7 @@ export interface HouseholdFormData {
     MatProgressSpinnerModule,
     MatSlideToggleModule,
     MatDialogModule,
+    MacroGoalForm,
   ],
   templateUrl: './household.component.html',
   styleUrl: './household.component.scss',

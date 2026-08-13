@@ -113,6 +113,18 @@
       </div>
     </div>
 
+    <!-- Macro Goals -->
+    @if (mode() === 'standalone' && currentPersonId()) {
+      <div class="nom-form__section" data-testid="profile-macro-goals">
+        <h2 class="nom-form__section-title">Macro Goals</h2>
+        <p class="nom-form__section-description">
+          Daily targets for calories and macronutrients. Your personal goals
+          override your household's defaults and steer meal planning.
+        </p>
+        <nom-macro-goal-form [personId]="currentPersonId()" />
+      </div>
+    }
+
     <!-- Lifestyle -->
     <div class="nom-form__section">
       <h2 class="nom-form__section-title">Lifestyle</h2>

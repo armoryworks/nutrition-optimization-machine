@@ -17,6 +17,9 @@ import { MealPlanCell } from '../../core/models/meal-plan-cell.model';
 import { HouseholdResponseModel } from '../../core/models/household-response.model';
 import { RecipeSearchDialog, RecipeSearchDialogData, RecipeSearchDialogResult } from '../../plan/recipe-search-dialog/recipe-search-dialog.component';
 import { ShuffleFlowService } from '../../plan/shuffle-flow.service';
+import { AuthService } from '../../core/services/auth.service';
+import { MacroGoalService } from '../../core/services/macro-goal.service';
+import { EffectiveMacroGoal } from '../../core/models/macro-goal.model';
 
 @Component({
   selector: 'nom-dashboard',
@@ -31,6 +34,8 @@ export class Dashboard implements OnInit {
   private householdStore = inject(HouseholdStore);
   private dialog = inject(MatDialog);
   private destroyRef = inject(DestroyRef);
+  private authService = inject(AuthService);
+  private macroGoalService = inject(MacroGoalService);
 
   households = signal<HouseholdResponseModel[]>([]);
   weekData = signal<MealPlanWeekResponse | null>(null);
@@ -39,6 +44,18 @@ export class Dashboard implements OnInit {
   shufflingToday = signal(false);
 
   hasHousehold = computed(() => this.households().length > 0);
+
+  effectiveGoal = signal<EffectiveMacroGoal | null>(null);
+  goalCalories = computed(() => this.effectiveGoal()?.caloriesTarget ?? null);
+  goalProtein = computed(() => this.effectiveGoal()?.proteinGramsTarget ?? null);
+  goalCarbs = computed(() => this.effectiveGoal()?.carbGramsTarget ?? null);
+  goalFat = computed(() => this.effectiveGoal()?.fatGramsTarget ?? null);
+
+  /** Percent toward a daily goal, capped at 100 for the progress bar. */
+  goalPct(actual: number, goal: number): number {
+    if (goal <= 0) return 0;
+    return Math.min(100, Math.round((actual / goal) * 100));
+  }
 
   today = computed(() => {
     const data = this.weekData();
@@ -93,6 +110,19 @@ export class Dashboard implements OnInit {
 
   ngOnInit(): void {
     this.loadDashboardData();
+    this.loadEffectiveGoal();
+  }
+
+  private loadEffectiveGoal(): void {
+    const personId = this.authService.personId();
+    if (!personId) return;
+    this.macroGoalService
+      .getEffectiveForPerson(personId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (goal) => this.effectiveGoal.set(goal.source === 'none' ? null : goal),
+        error: () => this.effectiveGoal.set(null),
+      });
   }
 
   isToday(dateStr: string): boolean {

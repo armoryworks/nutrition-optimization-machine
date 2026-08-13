@@ -121,6 +121,16 @@
       </div>
     </div>
 
+    <!-- Household macro goals -->
+    <div class="nom-form__section" data-testid="household-macro-goals">
+      <h2 class="nom-form__section-title">Household Macro Goals</h2>
+      <p class="nom-form__section-description">
+        Default daily targets for the whole household. Members without personal
+        goals inherit these, and meal-plan shuffling steers toward them.
+      </p>
+      <nom-macro-goal-form [householdId]="households()[0].id" />
+    </div>
+
     @if (!isStandalone()) {
       <div class="nom-form__actions">
         <button mat-flat-button (click)="onContinue()">

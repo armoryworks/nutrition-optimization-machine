@@ -239,3 +239,24 @@
   color: var(--mat-sys-primary);
   margin-bottom: vars.$spacing-2;
 }
+
+.nom-db-macro__goal {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-db-macro__bar {
+  width: 100%;
+  max-width: 120px;
+  height: 4px;
+  margin-top: 4px;
+  background: var(--mat-sys-surface-container-highest);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.nom-db-macro__bar-fill {
+  height: 100%;
+  background: var(--mat-sys-primary);
+  transition: width 0.3s ease;
+}

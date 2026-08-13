@@ -11,6 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MacroGoalForm } from '../shared/components/macro-goal-form/macro-goal-form.component';
 import { AuthService } from '../core/services/auth.service';
 import { ReferenceService } from '../core/services/reference.service';
 import { PersonService } from '../core/services/person.service';
@@ -40,6 +41,7 @@ export interface ProfileFormData {
     MatDatepickerModule,
     MatNativeDateModule,
     MatProgressSpinnerModule,
+    MacroGoalForm,
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss',
@@ -64,6 +66,7 @@ export class Profile implements OnInit {
   private loadingService = inject(LoadingService);
   private destroyRef = inject(DestroyRef);
 
+  currentPersonId = computed(() => this.authService.personId());
   activityLevels = signal<ReferenceItem[]>([]);
   healthGoals = signal<ReferenceItem[]>([]);
   attributeTypes = signal<ReferenceItem[]>([]);
