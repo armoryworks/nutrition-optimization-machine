@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Recipe;
+using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using System.Linq;
@@ -61,7 +62,7 @@ namespace Nom.Orch.Services
                 return new List<string>();
 
             var suggestions = await _context.Recipes
-                .Where(r => r.CurationStatus!.Name == "Approved") // Only suggest from public/approved recipes
+                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved") // Only suggest from public/approved recipes
                 .Where(r => r.Name.Contains(query) || r.Description!.Contains(query))
                 .Select(r => r.Name)
                 .Distinct()
@@ -82,7 +83,7 @@ namespace Nom.Orch.Services
                 .Include(r => r.Author)
                 .AsNoTracking()
                 .AsSplitQuery()
-                .Where(r => r.CurationStatus!.Name == "Approved")
+                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved")
                 .OrderByDescending(r => r.Ratings!.Count)
                 .ThenByDescending(r => r.Ratings!.Average(rating => rating.Rating))
                 .Take(count)
@@ -111,7 +112,7 @@ namespace Nom.Orch.Services
                 .Include(r => r.Author)
                 .AsNoTracking()
                 .AsSplitQuery()
-                .Where(r => r.CurationStatus!.Name == "Approved")
+                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved")
                 .OrderByDescending(r => r.CreatedDate)
                 .Take(count)
                 .ToListAsync();
@@ -139,7 +140,7 @@ namespace Nom.Orch.Services
                 .Include(r => r.Author)
                 .AsNoTracking()
                 .AsSplitQuery()
-                .Where(r => r.CurationStatus!.Name == "Approved");
+                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved");
 
             // Exclude recipes that contain restricted ingredients for household members
             if (householdId.HasValue)
@@ -206,7 +207,7 @@ namespace Nom.Orch.Services
             var recipes = await _context.Recipes
                 .Include(r => r.RecipeIngredients)
                 .ThenInclude(ri => ri.Ingredient)
-                .Where(r => r.CurationStatus!.Name == "Approved")
+                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved")
                 .Where(r => r.RecipeIngredients!.Any(ri => ingredientIds.Contains(ri.IngredientId)))
                 .OrderByDescending(r => r.RecipeIngredients!.Count(ri => ingredientIds.Contains(ri.IngredientId)))
                 .Take(count)
@@ -277,7 +278,7 @@ namespace Nom.Orch.Services
                 .ThenInclude(rc => rc.Category)
                 .Include(r => r.RecipeTags)
                 .ThenInclude(rt => rt.Tag)
-                .Where(r => r.CurationStatus!.Name == "Approved");
+                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved");
 
             // Apply filters
             if (!string.IsNullOrWhiteSpace(suggestionModel.Query))
@@ -420,15 +421,17 @@ namespace Nom.Orch.Services
                 query = query.Where(r => (r.PrepTimeMinutes + r.CookTimeMinutes) <= searchModel.MaxTotalTime.Value);
             }
 
-            // Public/Approved filters
-            if (searchModel.IsPublic.HasValue)
-            {
-                query = query.Where(r => r.CurationStatus!.Name == "Approved");
-            }
+            // Visibility is ALWAYS applied — the requester (or anonymous) sees
+            // only what the central rule allows. Previously, authenticated
+            // callers omitting IsPublic/IsApproved got an unfiltered query.
+            query = query.VisibleTo(_context, searchModel.RequesterPersonId);
 
-            if (searchModel.IsApproved.HasValue)
+            // Explicit public-pool narrowing (also forced for anonymous callers).
+            if (searchModel.IsPublic.HasValue || searchModel.IsApproved.HasValue)
             {
-                query = query.Where(r => r.CurationStatus!.Name == "Approved");
+                query = query.Where(r =>
+                    r.Visibility == RecipeVisibilityEnum.Public
+                    && r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved");
             }
 
             return query;

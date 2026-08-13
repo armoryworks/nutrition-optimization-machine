@@ -41,6 +41,9 @@ namespace Nom.Api.Controllers
                 searchModel.IsApproved = true;
             }
 
+            // Visibility filtering keys off the requester, never the body.
+            searchModel.RequesterPersonId = GetCurrentPersonId();
+
             var results = await _searchOrchestrationService.SearchRecipesAsync(searchModel);
             return Ok(results);
         }
