@@ -16,12 +16,16 @@ namespace Nom.Api.Controllers
         private readonly IRecipeOrchestrationService _recipeService;
         private readonly IRecipeEnhancementService _enhancementService;
 
+        private readonly IPolicyEnforcementService _policyService;
+
         public RecipeController(
             IRecipeOrchestrationService recipeService,
-            IRecipeEnhancementService enhancementService)
+            IRecipeEnhancementService enhancementService,
+            IPolicyEnforcementService policyService)
         {
             _recipeService = recipeService;
             _enhancementService = enhancementService;
+            _policyService = policyService;
         }
 
         private bool CanManageCuration() => User.HasClaim("CanManageCuration", "true");
@@ -56,6 +60,11 @@ namespace Nom.Api.Controllers
                 return Unauthorized("User not authenticated");
             }
 
+            if (await _policyService.IsFeatureGatedAnywhereAsync(currentPersonId.Value, Nom.Orch.Services.FeatureGateKeys.RecipeCreate))
+            {
+                return StatusCode(403, new { message = "Recipe creation is disabled by your household policy.", reason = "feature_gated:recipe_create" });
+            }
+
             var response = await _recipeService.CreateRecipeAsync(request, currentPersonId.Value);
             return CreatedAtAction(nameof(GetRecipe), new { id = response.Id }, response);
         }
@@ -83,6 +92,13 @@ namespace Nom.Api.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<RecipeResponseModel>> UpdateRecipe(long id, [FromBody] UpdateRecipeRequest request)
         {
+            var editorPersonId = GetCurrentPersonId();
+            if (editorPersonId.HasValue
+                && await _policyService.IsFeatureGatedAnywhereAsync(editorPersonId.Value, Nom.Orch.Services.FeatureGateKeys.RecipeEdit))
+            {
+                return StatusCode(403, new { message = "Recipe editing is disabled by your household policy.", reason = "feature_gated:recipe_edit" });
+            }
+
             var currentPersonId = GetCurrentPersonId();
             if (!currentPersonId.HasValue)
                 return Unauthorized("User not authenticated");
