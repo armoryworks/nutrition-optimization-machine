@@ -1,5 +1,6 @@
 import {
   Component,
+  booleanAttribute,
   inject,
   input,
   output,
@@ -39,6 +40,12 @@ export class LoginPopover {
   loggedIn = output<void>();
   /** When true, skip the built-in post-login onboarding redirect and emit loggedIn instead. */
   deferNavigation = input(false);
+  /**
+   * Renders a close button inside the card (top-right). The button only emits
+   * `closed` — the host owns the dismissal behavior. Off by default: the
+   * header popover and /login page have their own dismissal affordances.
+   */
+  showClose = input(false, { transform: booleanAttribute });
 
   private authService = inject(AuthService);
   private personService = inject(PersonService);
