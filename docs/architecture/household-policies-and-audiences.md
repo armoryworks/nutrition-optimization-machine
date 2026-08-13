@@ -78,14 +78,34 @@ their cook history and notes are their own data and always survive. Plan
 history referencing recipes that are no longer visible renders a tombstone
 (name preserved) instead of breaking.
 
-## 5. Contract stability
+## 5. Invite tokens (generalized)
+
+NOM's household invite code generalizes into a token with a `kind`:
+
+- `household_join` — today's family invite.
+- `managed_enrollment` — places a household under an external management tool
+  (sets `managed_by`): either at signup (token creates the household) or for an
+  **existing household** (the steward redeems; enrollment is a state change,
+  not a signup — no migration, no new accounts).
+
+Redemption records consent and emits an enrollment event for the external tool
+to complete (an opaque `template_ref` travels with the token; NOM never
+interprets it).
+
+**Per-adult consent:** a steward's redemption covers the household act and
+minors. Management binds an adult member only after that adult's own recorded
+acceptance — adults in an enrolling household are prompted individually, and
+an adult later joining a managed household is prompted at join time. Until
+then they are in the household but outside management.
+
+## 6. Contract stability
 
 These tables are an integration surface for external management tools. A
 single-row `policy_contract_version` is bumped on breaking changes to the
 shapes above; additive changes (new gate keys, defaulted columns) don't bump.
 External tools should refuse to run against an unknown version.
 
-## 6. Non-goals
+## 7. Non-goals
 
 - DRM. A readable recipe is a copyable recipe; visibility scoping is access
   control, not copy protection.
