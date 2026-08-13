@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nom.Orch.Models.Person;
+using Nom.Orch.Models.Plan;
 using Nom.Orch.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -17,11 +18,14 @@ namespace Nom.Api.Controllers
     public class PersonController : BaseApiController
     {
         private readonly IPersonOrchestrationService _personOrchestrationService;
+        private readonly IMacroGoalOrchestrationService _macroGoalService;
 
         public PersonController(
-            IPersonOrchestrationService personOrchestrationService)
+            IPersonOrchestrationService personOrchestrationService,
+            IMacroGoalOrchestrationService macroGoalService)
         {
             _personOrchestrationService = personOrchestrationService;
+            _macroGoalService = macroGoalService;
         }
 
         /// <summary>
@@ -214,6 +218,55 @@ namespace Nom.Api.Controllers
 
             await _personOrchestrationService.SaveRestrictionsAsync(id, restrictions);
             return NoContent();
+        }
+
+        /// <summary>
+        /// Gets the person's own daily macro goals. Null targets mean unset.
+        /// </summary>
+        [HttpGet("{id:long}/macro-goals")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<MacroGoalModel>> GetMacroGoals(long id)
+        {
+            if (!await CanAccessPersonAsync(id))
+                return Forbid();
+
+            var goal = await _macroGoalService.GetPersonGoalAsync(id);
+            return Ok(goal ?? new MacroGoalModel());
+        }
+
+        /// <summary>
+        /// Creates or replaces the person's daily macro goals.
+        /// </summary>
+        [HttpPut("{id:long}/macro-goals")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<MacroGoalModel>> SaveMacroGoals(long id, [FromBody] MacroGoalModel request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (!await CanAccessPersonAsync(id))
+                return Forbid();
+
+            var saved = await _macroGoalService.SavePersonGoalAsync(id, request);
+            return Ok(saved);
+        }
+
+        /// <summary>
+        /// Gets the macro goals that effectively apply to this person:
+        /// their own goal when set, otherwise their household's default.
+        /// </summary>
+        [HttpGet("{id:long}/macro-goals/effective")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<EffectiveMacroGoalModel>> GetEffectiveMacroGoals(long id)
+        {
+            if (!await CanAccessPersonAsync(id))
+                return Forbid();
+
+            var effective = await _macroGoalService.GetEffectiveForPersonAsync(id);
+            return Ok(effective);
         }
 
         /// <summary>

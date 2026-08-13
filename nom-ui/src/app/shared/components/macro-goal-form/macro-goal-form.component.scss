@@ -1,0 +1,25 @@
+@use 'variables' as vars;
+
+.nom-macro-goal-form__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: vars.$spacing-3;
+}
+
+.nom-macro-goal-form__error {
+  color: var(--mat-sys-error);
+  font-size: vars.$font-size-sm;
+  margin: 0 0 vars.$spacing-2;
+}
+
+.nom-macro-goal-form__success {
+  color: var(--mat-sys-primary);
+  font-size: vars.$font-size-sm;
+  margin: 0 0 vars.$spacing-2;
+}
+
+.nom-macro-goal-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: vars.$spacing-2;
+}

@@ -69,6 +69,7 @@ namespace Nom.Data
         #region Plan
         public DbSet<GoalEntity> Goals { get; set; } = default!;
         public DbSet<GoalItemEntity> GoalItems { get; set; } = default!;
+        public DbSet<MacroGoalEntity> MacroGoals { get; set; } = default!;
         public DbSet<MealEntity> Meals { get; set; } = default!;
         public DbSet<PlanEntity> Plans { get; set; } = default!;
         public DbSet<PlanParticipantEntity> PlanParticipants { get; set; } = default!;

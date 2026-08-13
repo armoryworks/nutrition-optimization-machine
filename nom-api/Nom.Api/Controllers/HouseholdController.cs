@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Household;
+using Nom.Orch.Models.Plan;
 using System.ComponentModel.DataAnnotations;
 
 namespace Nom.Api.Controllers
@@ -12,10 +13,42 @@ namespace Nom.Api.Controllers
     public class HouseholdController : BaseApiController
     {
         private readonly IHouseholdOrchestrationService _householdService;
+        private readonly IMacroGoalOrchestrationService _macroGoalService;
 
-        public HouseholdController(IHouseholdOrchestrationService householdService)
+        public HouseholdController(
+            IHouseholdOrchestrationService householdService,
+            IMacroGoalOrchestrationService macroGoalService)
         {
             _householdService = householdService;
+            _macroGoalService = macroGoalService;
+        }
+
+        /// <summary>
+        /// Gets the household's default daily macro goals. Null targets mean unset.
+        /// </summary>
+        [HttpGet("{id:long}/macro-goals")]
+        public async Task<ActionResult<MacroGoalModel>> GetMacroGoals(long id)
+        {
+            if (!IsHouseholdMember(id))
+                return Forbid();
+
+            var goal = await _macroGoalService.GetHouseholdGoalAsync(id);
+            return Ok(goal ?? new MacroGoalModel());
+        }
+
+        /// <summary>
+        /// Creates or replaces the household's default daily macro goals.
+        /// These apply to members without a personal goal and steer meal-plan
+        /// shuffle selection for the household.
+        /// </summary>
+        [HttpPut("{id:long}/macro-goals")]
+        public async Task<ActionResult<MacroGoalModel>> SaveMacroGoals(long id, [FromBody] MacroGoalModel request)
+        {
+            if (!CanManageHousehold(id))
+                return Forbid();
+
+            var saved = await _macroGoalService.SaveHouseholdGoalAsync(id, request);
+            return Ok(saved);
         }
 
         [HttpGet]
