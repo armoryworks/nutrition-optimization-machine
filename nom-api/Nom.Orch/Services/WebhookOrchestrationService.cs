@@ -5,6 +5,7 @@ using Nom.Data;
 using Nom.Data.Plan;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Webhook;
+using Nom.Orch.UtilityServices;
 
 namespace Nom.Orch.Services
 {
@@ -41,6 +42,9 @@ namespace Nom.Orch.Services
 
         public async Task<long> CreateWebhookAsync(WebhookCreateModel model)
         {
+            if (!SsrfGuard.TryValidateUrl(model.Url, out var error))
+                throw new ArgumentException(error);
+
             var entity = new HouseholdWebhookEntity
             {
                 HouseholdId = model.HouseholdId,
@@ -61,6 +65,9 @@ namespace Nom.Orch.Services
         {
             var entity = await _db.HouseholdWebhooks.FindAsync(id);
             if (entity == null) return null;
+
+            if (model.Url != null && !SsrfGuard.TryValidateUrl(model.Url, out var error))
+                throw new ArgumentException(error);
 
             if (model.Name != null) entity.Name = model.Name;
             if (model.Url != null) entity.Url = model.Url;
@@ -86,9 +93,15 @@ namespace Nom.Orch.Services
             var entity = await _db.HouseholdWebhooks.FindAsync(id);
             if (entity == null) return false;
 
+            // Re-validate structurally, then send through the SSRF-guarded client
+            // (which re-checks the resolved IP at connect time — defeats rebinding).
+            if (!SsrfGuard.TryValidateUrl(entity.Url, out _))
+                return false;
+
             try
             {
-                var client = _httpClientFactory.CreateClient();
+                var client = _httpClientFactory.CreateClient("webhook");
+                client.Timeout = TimeSpan.FromSeconds(10);
                 var payload = new { @event = "test", webhookId = entity.Id, timestamp = DateTime.UtcNow };
                 var response = await client.PostAsJsonAsync(entity.Url, payload);
                 return response.IsSuccessStatusCode;

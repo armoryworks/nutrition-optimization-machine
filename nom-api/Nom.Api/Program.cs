@@ -186,6 +186,11 @@ else
 // Add HttpClient
 builder.Services.AddHttpClient();
 
+// SSRF-guarded client for outbound calls to user-supplied URLs (webhooks):
+// re-validates the resolved IP at connect time and refuses non-public targets.
+builder.Services.AddHttpClient("webhook")
+    .ConfigurePrimaryHttpMessageHandler(Nom.Orch.UtilityServices.SsrfGuard.BuildGuardedHandler);
+
 // General-purpose system email (admin notifications) — mirrors the Identity sender selection
 if (!string.IsNullOrEmpty(builder.Configuration["Email:SmtpHost"]))
 {
