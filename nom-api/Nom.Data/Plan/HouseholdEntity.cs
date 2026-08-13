@@ -15,6 +15,13 @@ namespace Nom.Data.Plan
 
         public string? Description { get; set; }
 
+        /// <summary>
+        /// Opaque marker of an external management tool this household is
+        /// enrolled with (e.g. "brigade:456"); NULL = self-managed. Set only
+        /// via consented enrollment (see household-policies design doc).
+        /// </summary>
+        public string? ManagedBy { get; set; }
+
         // Household group association
         public long HouseholdGroupId { get; set; }
         public virtual HouseholdGroupEntity? HouseholdGroup { get; set; }

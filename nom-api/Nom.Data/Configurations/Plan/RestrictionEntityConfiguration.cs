@@ -19,6 +19,8 @@ public class RestrictionEntityConfiguration : IEntityTypeConfiguration<Restricti
         builder.Property(e => e.Description).HasMaxLength(2047);
         builder.Property(e => e.BeginDate).HasColumnType("date");
         builder.Property(e => e.EndDate).HasColumnType("date");
+        builder.Property(e => e.Locked).HasDefaultValue(false);
+        builder.Property(e => e.LockedBy).HasMaxLength(100);
 
         // Relationships
         builder.HasOne(e => e.Plan)

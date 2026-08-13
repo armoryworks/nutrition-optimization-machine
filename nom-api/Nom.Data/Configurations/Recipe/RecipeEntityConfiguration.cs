@@ -12,6 +12,11 @@ public class RecipeEntityConfiguration : IEntityTypeConfiguration<RecipeEntity>
     {
         builder.ToTable("Recipe", schema: "recipe");
 
+        builder.Property(e => e.Visibility)
+            .HasConversion<int>()
+            .HasDefaultValue(RecipeVisibilityEnum.Public);
+        builder.HasIndex(e => e.Visibility);
+
         // Properties
         builder.Property(e => e.Name).IsRequired().HasMaxLength(511);
         builder.Property(e => e.Description).HasMaxLength(2047);

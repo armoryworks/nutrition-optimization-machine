@@ -3912,3 +3912,6 @@ BEGIN
   END LOOP;
 END $$;
 COMMIT;
+
+-- Policy contract version (household-policies design doc §6) — single row.
+INSERT INTO plan."PolicyContractVersion" ("Id", "Version", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId") VALUES (1, 1, '2026-08-13 00:00:00-06', 1, NULL, NULL, false, NULL, NULL) ON CONFLICT DO NOTHING;
