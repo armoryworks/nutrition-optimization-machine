@@ -7,6 +7,13 @@
 #   latest        floating
 #   <git tag>     on v* tag pushes (e.g. v1.2.0)
 #   sha-<sha>     immutable, what deploys should pin
+#
+# Detached builds: each image only REBUILDS when its directory changed since
+# the previous v* tag (or when this workflow changed); otherwise the previous
+# tag's image is retagged in the registry (manifest-only, seconds). Every v*
+# tag therefore still carries both images — deploy the same tag to the nom-ui
+# (web box) and nom-api (api box) components — but a UI-only fix no longer
+# rebuilds the API, and vice versa.
 
 name: Build and Package
 
@@ -24,11 +31,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-api:
     runs-on: ubuntu-latest
-
+    env:
+      IMAGE: ghcr.io/armoryworks/nom-api
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags + diff against the previous release
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -40,7 +50,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Decide build vs retag
+        id: mode
+        run: |
+          PREV=$(git describe --tags --match 'v*' --abbrev=0 HEAD^ 2>/dev/null || true)
+          MODE=build
+          if [ -n "$PREV" ] \
+             && git diff --quiet "$PREV" HEAD -- nom-api .github/workflows/build-package.yml \
+             && docker buildx imagetools inspect "$IMAGE:$PREV" >/dev/null 2>&1; then
+            MODE=retag
+          fi
+          echo "prev=$PREV" >> "$GITHUB_OUTPUT"
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "nom-api: $MODE (previous release: ${PREV:-<none>})"
+
       - name: Build and push API image
+        if: steps.mode.outputs.mode == 'build'
         uses: docker/build-push-action@v6
         with:
           context: ./nom-api
@@ -52,7 +77,50 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Retag unchanged API image
+        if: steps.mode.outputs.mode == 'retag'
+        run: |
+          docker buildx imagetools create \
+            -t "$IMAGE:latest" \
+            -t "$IMAGE:${{ github.ref_name }}" \
+            -t "$IMAGE:sha-${{ github.sha }}" \
+            "$IMAGE:${{ steps.mode.outputs.prev }}"
+
+  build-ui:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ghcr.io/armoryworks/nom-ui
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags + diff against the previous release
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Decide build vs retag
+        id: mode
+        run: |
+          PREV=$(git describe --tags --match 'v*' --abbrev=0 HEAD^ 2>/dev/null || true)
+          MODE=build
+          if [ -n "$PREV" ] \
+             && git diff --quiet "$PREV" HEAD -- nom-ui .github/workflows/build-package.yml \
+             && docker buildx imagetools inspect "$IMAGE:$PREV" >/dev/null 2>&1; then
+            MODE=retag
+          fi
+          echo "prev=$PREV" >> "$GITHUB_OUTPUT"
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "nom-ui: $MODE (previous release: ${PREV:-<none>})"
+
       - name: Build and push UI image
+        if: steps.mode.outputs.mode == 'build'
         uses: docker/build-push-action@v6
         with:
           context: ./nom-ui
@@ -63,3 +131,12 @@ jobs:
             ghcr.io/armoryworks/nom-ui:sha-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Retag unchanged UI image
+        if: steps.mode.outputs.mode == 'retag'
+        run: |
+          docker buildx imagetools create \
+            -t "$IMAGE:latest" \
+            -t "$IMAGE:${{ github.ref_name }}" \
+            -t "$IMAGE:sha-${{ github.sha }}" \
+            "$IMAGE:${{ steps.mode.outputs.prev }}"
