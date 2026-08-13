@@ -10,6 +10,9 @@ public class HouseholdPreferenceEntityConfiguration : IEntityTypeConfiguration<H
     {
         builder.ToTable("HouseholdPreference", schema: "plan");
 
+        // One row per (household, key) — preferences are upserted by key.
+        builder.HasIndex(e => new { e.HouseholdId, e.PreferenceKey }).IsUnique();
+
         // Properties
         builder.Property(e => e.HouseholdId).IsRequired();
         builder.Property(e => e.PreferenceKey).IsRequired().HasMaxLength(255);

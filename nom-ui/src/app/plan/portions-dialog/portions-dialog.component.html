@@ -1,0 +1,63 @@
+<h2 mat-dialog-title data-testid="portions-dialog">
+  <mat-icon>pie_chart</mat-icon>
+  Portions — {{ data.mealType }}
+</h2>
+
+<mat-dialog-content>
+  @if (loading()) {
+    <div class="nom-portions__loading"><mat-spinner diameter="28"></mat-spinner></div>
+  } @else if (errorMessage()) {
+    <p class="nom-portions__error" data-testid="portions-error">{{ errorMessage() }}</p>
+  } @else if (breakdown(); as b) {
+    @if (b.noNutritionData) {
+      <p class="nom-portions__error">
+        The recipes in this meal have no calorie data, so portions can't be computed.
+      </p>
+    } @else {
+      <p class="nom-portions__summary">
+        Meal budget <strong>{{ b.budgetCalories | number:'1.0-0' }} kcal</strong>
+        · one plate ≈ {{ b.plateCalories | number:'1.0-0' }} kcal
+        · make <strong>{{ b.totalPlates | number:'1.1-2' }} plates</strong>
+      </p>
+
+      <h3 class="nom-portions__heading">How much to cook</h3>
+      <ul class="nom-portions__recipes" data-testid="portions-recipes">
+        @for (r of b.recipes; track r.recipeId) {
+          <li>
+            <span class="nom-portions__recipe-name">{{ r.name }}</span>
+            <span class="nom-portions__factor">×{{ r.cookFactor | number:'1.1-2' }}</span>
+            <span class="nom-portions__hint">
+              ({{ r.recipeServings | number:'1.0-1' }} servings @ {{ r.perServingCalories | number:'1.0-0' }} kcal)
+            </span>
+          </li>
+        }
+      </ul>
+
+      <h3 class="nom-portions__heading">Who gets how much</h3>
+      <table class="nom-portions__table" data-testid="portions-members">
+        <thead>
+          <tr><th>Member</th><th>Daily target</th><th>Plates</th><th>This meal</th></tr>
+        </thead>
+        <tbody>
+          @for (m of b.members; track m.personId) {
+            <tr>
+              <td>
+                {{ m.name }}
+                @if (m.targetSource !== 'person') {
+                  <span class="nom-portions__source">({{ m.targetSource }})</span>
+                }
+              </td>
+              <td>{{ m.targetCalories | number:'1.0-0' }} kcal</td>
+              <td>{{ m.plates | number:'1.1-2' }}</td>
+              <td>{{ m.calories | number:'1.0-0' }} kcal</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close data-testid="portions-close-btn">Close</button>
+</mat-dialog-actions>

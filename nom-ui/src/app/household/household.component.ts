@@ -21,6 +21,7 @@ import { InviteDialog, InviteDialogData } from './invite-dialog/invite-dialog.co
 import { ConvertHouseholdDialog, ConvertHouseholdDialogData, ConvertHouseholdDialogResult } from './convert-household-dialog/convert-household-dialog.component';
 import { MemberPolicyPanel } from './member-policy-panel/member-policy-panel.component';
 import { MacroGoalForm } from '../shared/components/macro-goal-form/macro-goal-form.component';
+import { MealSplitForm } from '../shared/components/meal-split-form/meal-split-form.component';
 import { NoHouseholdCta } from '../shared/components/no-household-cta/no-household-cta.component';
 import { EnrollmentConsentBanner } from '../shared/components/enrollment-consent-banner/enrollment-consent-banner.component';
 
@@ -44,6 +45,7 @@ export interface HouseholdFormData {
     MatDialogModule,
     MemberPolicyPanel,
     MacroGoalForm,
+    MealSplitForm,
     EnrollmentConsentBanner,
     NoHouseholdCta,
   ],

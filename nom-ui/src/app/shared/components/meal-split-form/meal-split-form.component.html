@@ -1,0 +1,50 @@
+<form
+  [formGroup]="splitForm"
+  (ngSubmit)="onSave()"
+  class="nom-meal-split-form"
+  data-testid="meal-split-form"
+>
+  <div class="nom-meal-split-form__grid">
+    @for (field of fields; track field.control) {
+      <mat-form-field appearance="outline" class="nom-meal-split-form__field">
+        <mat-label>{{ field.label }} (%)</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          max="100"
+          [formControlName]="field.control"
+          [attr.data-testid]="field.testid"
+        />
+        <mat-icon matPrefix>{{ field.icon }}</mat-icon>
+      </mat-form-field>
+    }
+  </div>
+
+  <p
+    class="nom-meal-split-form__total"
+    [class.nom-meal-split-form__total--invalid]="total() !== 100"
+    data-testid="meal-split-total"
+  >
+    Total: {{ total() }}% @if (total() !== 100) { — must equal 100% }
+  </p>
+
+  @if (errorMessage()) {
+    <p class="nom-meal-split-form__error" data-testid="meal-split-error">{{ errorMessage() }}</p>
+  }
+  @if (successMessage()) {
+    <p class="nom-meal-split-form__success" data-testid="meal-split-success">{{ successMessage() }}</p>
+  }
+
+  <div class="nom-meal-split-form__actions">
+    <button
+      mat-flat-button
+      color="primary"
+      type="submit"
+      [disabled]="saving() || total() !== 100"
+      data-testid="meal-split-save-btn"
+    >
+      {{ saving() ? 'Saving…' : 'Save Meal Split' }}
+    </button>
+  </div>
+</form>

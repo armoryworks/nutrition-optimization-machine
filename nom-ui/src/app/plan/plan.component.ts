@@ -17,6 +17,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
+import { PortionsDialog, PortionsDialogData } from './portions-dialog/portions-dialog.component';
 import { PlanService } from '../core/services/plan.service';
 import { MealPlanService } from '../core/services/meal-plan.service';
 import { HouseholdStore } from '../core/services/household-store';
@@ -58,7 +60,7 @@ export interface PlanFormData {
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatSelectModule,
-    MatTooltipModule, ErrorBanner, NoHouseholdCta],
+    MatTooltipModule, MatMenuModule, ErrorBanner, NoHouseholdCta],
   templateUrl: './plan.component.html',
   styleUrl: './plan.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -189,6 +191,61 @@ export class Plan implements OnInit {
 
     dialogRef.afterClosed().subscribe((result: RecipeSearchDialogResult) => {
       if (result?.changed) this.loadWeek();
+    });
+  }
+
+  /** Timeframe presets for the shuffle menu (days counted from today). */
+  readonly shuffleTimeframes = [
+    { label: 'Today only', days: 1 },
+    { label: 'Next 3 days', days: 3 },
+    { label: 'Next 7 days', days: 7 },
+    { label: 'Next 14 days', days: 14 },
+  ] as const;
+
+  /** Shuffle an arbitrary window starting today (the API takes any range). */
+  shuffleTimeframe(days: number): void {
+    const householdId = this.activeHouseholdId();
+    const data = this.weekData();
+    if (!householdId || !data || this.shuffleGated()) return;
+
+    const now = new Date();
+    const startDate = Plan.toDateString(now);
+    const endDate = Plan.toDateString(
+      new Date(now.getFullYear(), now.getMonth(), now.getDate() + days - 1),
+    );
+    // Unshopped-warning check only sees days in the loaded week; longer
+    // windows are still shuffled fully server-side.
+    const daysInRange = data.days.filter(d => d.date >= startDate && d.date <= endDate);
+
+    this.shuffleFlow.run({
+      householdId,
+      days: daysInRange,
+      startDate,
+      endDate,
+      onShuffleStart: () => this.shuffling.set(true),
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (response) => {
+        this.weekData.set(response.week);
+        this.shuffling.set(false);
+      },
+      error: () => { this.shuffling.set(false); },
+    });
+  }
+
+  /** Open the per-member portion breakdown for a filled meal cell. */
+  openPortions(event: Event, day: MealPlanDay, cell: MealPlanCell): void {
+    event.stopPropagation();
+    const householdId = this.activeHouseholdId();
+    if (!householdId) return;
+
+    this.dialog.open(PortionsDialog, {
+      width: '520px',
+      data: {
+        householdId,
+        date: day.date,
+        mealTypeId: cell.mealTypeId,
+        mealType: cell.mealType,
+      } as PortionsDialogData,
     });
   }
 

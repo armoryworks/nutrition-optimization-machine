@@ -188,6 +188,16 @@
       <nom-macro-goal-form [householdId]="households()[0].id" />
     </div>
 
+    <!-- Meal split -->
+    <div class="nom-form__section" data-testid="household-meal-split">
+      <h2 class="nom-form__section-title">Meal Split</h2>
+      <p class="nom-form__section-description">
+        How the household's daily calorie budget divides across meals. Portion
+        breakdowns and shopping quantities follow this split.
+      </p>
+      <nom-meal-split-form [householdId]="households()[0].id" />
+    </div>
+
     @if (!isStandalone()) {
       <div class="nom-form__actions">
         <button mat-flat-button (click)="onContinue()">

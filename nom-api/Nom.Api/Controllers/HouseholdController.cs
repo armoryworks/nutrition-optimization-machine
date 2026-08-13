@@ -14,13 +14,16 @@ namespace Nom.Api.Controllers
     {
         private readonly IHouseholdOrchestrationService _householdService;
         private readonly IMacroGoalOrchestrationService _macroGoalService;
+        private readonly IPortionOrchestrationService _portionService;
 
         public HouseholdController(
             IHouseholdOrchestrationService householdService,
-            IMacroGoalOrchestrationService macroGoalService)
+            IMacroGoalOrchestrationService macroGoalService,
+            IPortionOrchestrationService portionService)
         {
             _householdService = householdService;
             _macroGoalService = macroGoalService;
+            _portionService = portionService;
         }
 
         /// <summary>
@@ -33,6 +36,39 @@ namespace Nom.Api.Controllers
                 message = "This is a personal kitchen. Convert it into a shared household before inviting or adding members.",
                 reason = "personal_household"
             });
+
+        /// <summary>
+        /// Gets the household's meal-split percentages (daily calorie budget by
+        /// meal type). Returns defaults (25/30/35/10) when unset.
+        /// </summary>
+        [HttpGet("{id:long}/meal-split")]
+        public async Task<ActionResult<MealSplitModel>> GetMealSplit(long id)
+        {
+            if (!IsHouseholdMember(id))
+                return Forbid();
+
+            return Ok(await _portionService.GetMealSplitAsync(id));
+        }
+
+        /// <summary>
+        /// Creates or replaces the household's meal-split percentages.
+        /// Percentages must sum to 100.
+        /// </summary>
+        [HttpPut("{id:long}/meal-split")]
+        public async Task<ActionResult<MealSplitModel>> SaveMealSplit(long id, [FromBody] MealSplitModel request)
+        {
+            if (!CanManageHousehold(id))
+                return Forbid();
+
+            try
+            {
+                return Ok(await _portionService.SaveMealSplitAsync(id, request));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
 
         /// <summary>
         /// Gets the household's default daily macro goals. Null targets mean unset.
