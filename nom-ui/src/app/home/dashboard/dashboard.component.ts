@@ -21,10 +21,11 @@ import { AuthService } from '../../core/services/auth.service';
 import { MacroGoalService } from '../../core/services/macro-goal.service';
 import { EffectiveMacroGoal } from '../../core/models/macro-goal.model';
 import { PolicyService } from '../../core/services/policy.service';
+import { EnrollmentConsentBanner } from '../../shared/components/enrollment-consent-banner/enrollment-consent-banner.component';
 
 @Component({
   selector: 'nom-dashboard',
-  imports: [DecimalPipe, RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule, MatTooltipModule, ErrorBanner],
+  imports: [DecimalPipe, RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule, MatTooltipModule, ErrorBanner, EnrollmentConsentBanner],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,0 +1,21 @@
+@if (visible()) {
+  <div class="nom-consent-banner" data-testid="enrollment-consent-banner">
+    <mat-icon class="nom-consent-banner__icon">verified_user</mat-icon>
+    <div class="nom-consent-banner__text">
+      <span class="nom-consent-banner__title">This household is managed by a provider.</span>
+      <span class="nom-consent-banner__subtitle">Review and accept the program terms.</span>
+    </div>
+    <div class="nom-consent-banner__actions">
+      <a mat-flat-button
+         [routerLink]="['/household', household()!.id, 'consent']"
+         data-testid="enrollment-consent-banner-review-btn">
+        Review &amp; Accept
+      </a>
+      <button mat-icon-button type="button" (click)="dismiss()"
+              aria-label="Dismiss consent reminder"
+              data-testid="enrollment-consent-banner-dismiss-btn">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </div>
+}

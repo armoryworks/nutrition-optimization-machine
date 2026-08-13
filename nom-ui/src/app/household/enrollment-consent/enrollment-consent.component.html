@@ -1,0 +1,95 @@
+<div class="nom-form--full" data-testid="enrollment-consent">
+  <div class="nom-form__header">
+    <h1 class="nom-form__title">Program Enrollment</h1>
+    <p class="nom-form__subtitle">Review what {{ providerLabel() }} can do before accepting</p>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="nom-form__error" data-testid="enrollment-consent-error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (!featureEnabled) {
+    <div class="nom-form__section" data-testid="enrollment-consent-unavailable">
+      <p>Provider enrollment is not available on this NOM instance.</p>
+    </div>
+  } @else if (loading()) {
+    <div class="nom-consent__loading">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (!isManaged()) {
+    <div class="nom-form__section" data-testid="enrollment-consent-unmanaged">
+      <p>This household is not enrolled with a provider.</p>
+      <a mat-stroked-button routerLink="/household" data-testid="enrollment-consent-back-btn">
+        Back to Household
+      </a>
+    </div>
+  } @else if (alreadyAccepted()) {
+    <div class="nom-consent__success" data-testid="enrollment-consent-success">
+      <mat-icon>check_circle</mat-icon>
+      <div>
+        <p class="nom-consent__success-title">You have accepted the program terms.</p>
+        <p class="nom-consent__success-detail">
+          {{ providerLabel() }} can now apply program policies to your profile.
+          You can leave the program at any time from your household settings.
+        </p>
+      </div>
+      <a mat-flat-button routerLink="/household" data-testid="enrollment-consent-done-btn">Done</a>
+    </div>
+  } @else {
+    <div class="nom-form__section">
+      <p class="nom-consent__intro">
+        Your household is enrolled with <strong>{{ providerLabel() }}</strong>.
+        Program policies apply to you personally only after you accept below.
+      </p>
+
+      <div class="nom-consent__legal-note" data-testid="enrollment-consent-legal-note">
+        <mat-icon>gavel</mat-icon>
+        <span>Placeholder — final consent language pending counsel.</span>
+      </div>
+
+      <h2 class="nom-form__section-title">What the provider can do</h2>
+      <ul class="nom-consent__list" data-testid="enrollment-consent-grants">
+        @for (grant of grants; track grant) {
+          <li class="nom-consent__list-item">
+            <mat-icon class="nom-consent__list-icon nom-consent__list-icon--can">check</mat-icon>
+            {{ grant }}
+          </li>
+        }
+      </ul>
+
+      <h2 class="nom-form__section-title">What the provider cannot see</h2>
+      <ul class="nom-consent__list" data-testid="enrollment-consent-limits">
+        @for (limit of limits; track limit) {
+          <li class="nom-consent__list-item">
+            <mat-icon class="nom-consent__list-icon nom-consent__list-icon--cannot">block</mat-icon>
+            {{ limit }}
+          </li>
+        }
+      </ul>
+
+      <p class="nom-consent__leaving" data-testid="enrollment-consent-leaving-note">
+        Leaving is always possible: you or your household steward can end the enrollment
+        at any time, and recipes you have cooked or favorited remain readable afterwards.
+      </p>
+
+      <div class="nom-form__actions">
+        <a mat-stroked-button routerLink="/household" data-testid="enrollment-consent-back-btn">
+          Not now
+        </a>
+        <button mat-flat-button type="button"
+                (click)="accept()"
+                [disabled]="accepting()"
+                data-testid="enrollment-consent-accept-btn">
+          @if (accepting()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            Accept Program Terms
+          }
+        </button>
+      </div>
+    </div>
+  }
+</div>

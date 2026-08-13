@@ -27,6 +27,8 @@
       </a>
     </div>
   } @else {
+    <nom-enrollment-consent-banner [household]="households()[0] ?? null" />
+
     <!-- ══ Section 1: Today's Meals ══ -->
     <section class="nom-dashboard__section">
       <div class="nom-dashboard__section-header">

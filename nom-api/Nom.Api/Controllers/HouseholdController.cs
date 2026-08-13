@@ -81,6 +81,24 @@ namespace Nom.Api.Controllers
             return Ok(household);
         }
 
+        /// <summary>
+        /// External-management enrollment info for the household (design doc §5):
+        /// the consent UI checks managedBy before offering per-adult consent.
+        /// </summary>
+        [HttpGet("{id:long}/enrollment-info")]
+        public async Task<ActionResult<HouseholdEnrollmentInfoModel>> GetEnrollmentInfo(long id)
+        {
+            if (!IsHouseholdMember(id))
+                return Forbid();
+
+            var info = await _householdService.GetEnrollmentInfoAsync(id);
+            if (info == null)
+            {
+                return NotFound(new { message = "Household not found" });
+            }
+            return Ok(info);
+        }
+
         [HttpPut("{id}")]
         public async Task<ActionResult<HouseholdResponseModel>> UpdateHousehold(long id, [FromBody] HouseholdUpdateModel request)
         {

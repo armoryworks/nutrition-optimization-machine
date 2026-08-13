@@ -12,6 +12,7 @@ namespace Nom.Orch.Interfaces
         Task<List<HouseholdResponseModel>> GetHouseholdsForMemberAsync(List<long>? householdIds);
         Task<HouseholdCreateResponseModel> CreateHouseholdAsync(HouseholdCreateModel model, long? createdByPersonId = null);
         Task<HouseholdResponseModel?> GetHouseholdAsync(long id);
+        Task<HouseholdEnrollmentInfoModel?> GetEnrollmentInfoAsync(long id);
         Task<HouseholdResponseModel?> UpdateHouseholdAsync(long id, HouseholdUpdateModel model);
         Task<bool> DeleteHouseholdAsync(long id);
         Task<HouseholdInviteTokenResponseModel> CreateInviteTokenAsync(HouseholdInviteTokenCreateModel model);
