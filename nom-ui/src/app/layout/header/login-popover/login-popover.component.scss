@@ -5,11 +5,27 @@
   top: calc(100% + vars.$spacing-2);
   right: 0;
   z-index: vars.$z-dropdown;
+
+  // Phones: anchor to the viewport, not the actions cluster — a fixed 320px
+  // card hanging off `right: 0` runs past the left edge on narrow screens.
+  @media (max-width: 440px) {
+    position: fixed;
+    top: calc(#{vars.$header-height} + #{vars.$spacing-2});
+    left: vars.$spacing-3;
+    right: vars.$spacing-3;
+  }
 }
 
 .nom-login-popover {
   position: relative;
   width: 320px;
+  max-width: 100%;
+
+  @media (max-width: 440px) {
+    width: auto;
+    max-height: calc(100dvh - #{vars.$header-height} - #{vars.$spacing-6});
+    overflow-y: auto;
+  }
   padding: vars.$spacing-5;
   background: var(--mat-sys-surface-container-low);
   border: 1px solid var(--mat-sys-outline-variant);

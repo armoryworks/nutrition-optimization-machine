@@ -611,12 +611,43 @@
     grid-template-columns: 1fr;
   }
 
+  // Tabs become a full-width upright segmented bar — the rotated rail is a
+  // desktop treatment; sideways labels are unreadable on a phone.
   .nom-recipe__tab-nav {
     flex-direction: row;
+    align-self: stretch;
     border-right: none;
-    border-bottom: 1px solid var(--mat-sys-outline-variant);
     padding-right: 0;
-    padding-bottom: vars.$spacing-2;
+    margin-bottom: vars.$spacing-3;
+  }
+
+  .nom-recipe__tab-btn {
+    writing-mode: horizontal-tb;
+    transform: none;
+    flex: 1 1 0;
+    justify-content: center;
+    min-height: 44px;
+    padding: vars.$spacing-2 vars.$spacing-1;
+    margin-bottom: 0;
+    margin-right: -1px; // collapse borders between adjacent segments
+    border-radius: 0;
+
+    &:first-child {
+      border-radius: vars.$nom-border-radius 0 0 vars.$nom-border-radius;
+    }
+
+    &:last-child {
+      margin-right: 0;
+      border-radius: 0 vars.$nom-border-radius vars.$nom-border-radius 0;
+    }
+
+    mat-icon {
+      transform: none;
+    }
+  }
+
+  .nom-recipe__tab-num {
+    transform: none;
   }
 
   .nom-recipe__hero-img {

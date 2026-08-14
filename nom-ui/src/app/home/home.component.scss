@@ -55,8 +55,11 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
+  // Two-up reads better than one panoramic card per row on phones; the
+  // cards were designed around ~180-280px widths.
   @media (max-width: vars.$breakpoint-mobile) {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: vars.$spacing-3;
   }
 }
 

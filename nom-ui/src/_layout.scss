@@ -18,6 +18,10 @@
   height: 100%;
   padding: 0 vars.$spacing-6;
 
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: 0 vars.$spacing-3;
+  }
+
   &--with-sidebar {
     grid-template-columns: 1fr vars.$layout-sidebar-width;
     gap: vars.$spacing-6;

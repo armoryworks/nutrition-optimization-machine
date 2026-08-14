@@ -10,13 +10,20 @@
   border-bottom: 2px solid var(--mat-sys-outline);
   box-shadow: vars.$elevation-2;
   flex-shrink: 0;
+  position: relative; // anchors the mobile search flyout
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: 0 vars.$spacing-3;
+    gap: vars.$spacing-2;
+  }
 }
 
 .nom-header__brand {
   display: flex;
   align-items: center;
   gap: vars.$spacing-2;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0; // the lockup shrinks (and finally ellipsizes) before anything overflows
   text-decoration: none;
   color: inherit;
 }
@@ -39,9 +46,14 @@
   flex-direction: column;
   gap: 2px;
   line-height: 1.1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .nom-header__brand-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   // Sizes are computed from real font metrics so both lockup lines have the
   // same natural width (~11.22em/px top vs ~14.95em/px bottom): 14px top =
   // 10.5px bottom at 0.05em tracking. Keep the pairs in sync with
@@ -51,6 +63,16 @@
   font-weight: vars.$font-weight-semibold;
   color: var(--mat-sys-tertiary);
   letter-spacing: 0.02em;
+
+  // Narrow phones: the full lockup + search/theme toggles + Sign In must
+  // share ~360px; 12px keeps the name whole instead of ellipsizing.
+  @media (max-width: 440px) {
+    font-size: 13px;
+  }
+
+  @media (max-width: 400px) {
+    font-size: 12px;
+  }
 }
 
 .nom-header__brand-rule {
@@ -171,6 +193,23 @@
 
 .nom-header__login-btn {
   margin-left: vars.$spacing-2;
+  white-space: nowrap;
+
+  @media (max-width: 440px) {
+    margin-left: 0;
+
+    &.mdc-button {
+      min-width: 0;
+      padding: 0 vars.$spacing-3;
+    }
+  }
+
+  // Tightest screens: the label alone is clearer than a clipped lockup.
+  @media (max-width: 400px) {
+    mat-icon {
+      display: none;
+    }
+  }
 }
 
 .nom-header__nav-toggle {
@@ -178,5 +217,56 @@
 
   @media (max-width: vars.$breakpoint-mobile) {
     display: inline-flex;
+  }
+}
+
+// Mobile search: the inline bar is hidden below the tablet breakpoint, so a
+// toggle in the actions cluster opens a full-width flyout under the header.
+.nom-header__search-toggle {
+  display: none;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    display: inline-flex;
+  }
+}
+
+.nom-header__mobile-search {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: vars.$z-dropdown;
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-3;
+  background: var(--mat-sys-surface-container);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  box-shadow: vars.$elevation-2;
+
+  @media (min-width: vars.$breakpoint-mobile) {
+    display: none;
+  }
+}
+
+.nom-header__mobile-search-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font-family: inherit;
+  font-size: 16px; // 16px floor keeps iOS from zooming the page on focus
+  outline: none;
+
+  &:focus {
+    border-color: var(--mat-sys-primary);
+  }
+
+  &::placeholder {
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.78;
   }
 }
