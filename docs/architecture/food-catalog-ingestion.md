@@ -86,16 +86,23 @@ to include the branded tables; add a C# post-pass that runs
 `FoodDataQualityValidator` (computing per-100g + serving from the staged nutrient
 rows) and sets curation status.
 
-### AI enrichment (food group + IsWholeFood) — BLOCKED (runtime + decision)
-`Nom.Import` already has `IAiService` + `OllamaService`. An enrichment pass would
-batch ingredient names to the local model for food-group + whole-food + name
-normalization.
-- **Runtime blocker:** requires the self-hosted Ollama box (Server-2) running;
-  config-gated so absence falls back to the heuristic classifier.
-- **Decision blocker:** the Ollama client was extracted to the private
-  `nom-commerce` overlay. Whether catalog AI enrichment gets a thin open-core
-  client or lives in the overlay is an unresolved architecture call and should be
-  decided deliberately, not guessed.
+### AI enrichment (food group + IsWholeFood) — BUILT ✅ (runtime pending)
+`Nom.Import/Services/FoodGroupEnrichmentService.cs` — a batch job that classifies
+ingredients: deterministic keyword classification always runs
+(`FoodGroupHeuristics`, shared with nom-api), and when an `IAiService` is provided
+the local model refines the food group and supplies the whole-food flag. AI output
+is validated against the known vocabulary (`FoodGroupCatalog`), so a hallucinated
+group is discarded (`FoodEnrichmentParser`, unit-tested).
+
+**Placement decided:** it lives in `Nom.Import`, NOT open-core nom-api and NOT the
+`nom-commerce` overlay — Nom.Import already owns the AI-enhancement infrastructure
+(`IAiService`/`OllamaService`/`AiEnhancementSettings`) and enrichment is inherently
+batch. nom-api keeps only the deterministic heuristic; no Ollama client is
+re-introduced into open-core and nothing entangles with the overlay.
+
+**Remaining (runtime only):** DI wiring in Nom.Import's `ServiceCollectionExtensions`
+(register `OllamaService` as `IAiService` when the Ollama URL is configured) and a
+run against the Server-2 Ollama box. Config-gated: absent AI → heuristic-only.
 
 ### Gated manufacturer gap-fill — BLOCKED (source selection + ToS)
 Reads schema.org `NutritionInformation` JSON-LD from admin-approved domains via
