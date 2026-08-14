@@ -1,0 +1,64 @@
+<div class="nom-dialog__title-bar" data-testid="merge-dish-group-dialog">
+  <h2 mat-dialog-title>Merge Dish Group</h2>
+  <button class="nom-dialog__close" (click)="cancel()" aria-label="Close dialog">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content>
+  @if (errorMessage()) {
+    <div class="nom-form__error" data-testid="merge-dish-group-error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <p class="nom-merge__intro">
+    Move every recipe in
+    <strong class="nom-merge__group-name">{{ data.source.name }}</strong>
+    ({{ data.source.recipeCount }} {{ data.source.recipeCount === 1 ? 'recipe' : 'recipes' }})
+    into another group and retire it.
+  </p>
+
+  <mat-form-field appearance="outline" class="nom-merge__target-field">
+    <mat-label>Merge into</mat-label>
+    <input matInput
+           [formControl]="searchControl"
+           [matAutocomplete]="targetAuto"
+           (input)="onSearchInput()"
+           placeholder="Search dish groups..."
+           data-testid="merge-dish-group-target-input">
+    <mat-icon matSuffix>search</mat-icon>
+    <mat-autocomplete #targetAuto="matAutocomplete"
+                      [displayWith]="displayFn"
+                      (optionSelected)="onTargetSelected($event)">
+      @for (group of filteredCandidates(); track group.id) {
+        <mat-option [value]="group">
+          <span class="nom-merge__option-name">{{ group.name }}</span>
+          <span class="nom-merge__option-count">
+            {{ group.recipeCount }} {{ group.recipeCount === 1 ? 'recipe' : 'recipes' }}
+          </span>
+        </mat-option>
+      } @empty {
+        <mat-option disabled>No matching groups</mat-option>
+      }
+    </mat-autocomplete>
+    <mat-hint>Pick the group that should absorb these recipes</mat-hint>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()" data-testid="merge-dish-group-cancel-btn">
+    Cancel
+  </button>
+  <button mat-flat-button type="button"
+          (click)="confirm()"
+          [disabled]="!target() || merging()"
+          data-testid="merge-dish-group-confirm-btn">
+    @if (merging()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    } @else {
+      Merge
+    }
+  </button>
+</mat-dialog-actions>

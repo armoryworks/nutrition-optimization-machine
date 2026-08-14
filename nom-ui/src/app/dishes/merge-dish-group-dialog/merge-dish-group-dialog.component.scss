@@ -1,0 +1,24 @@
+@use 'variables' as vars;
+
+.nom-merge__intro {
+  margin: 0 0 vars.$spacing-4;
+}
+
+.nom-merge__group-name {
+  text-transform: capitalize;
+}
+
+.nom-merge__target-field {
+  width: 100%;
+  min-width: 320px;
+}
+
+.nom-merge__option-name {
+  text-transform: capitalize;
+}
+
+.nom-merge__option-count {
+  margin-left: vars.$spacing-2;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}

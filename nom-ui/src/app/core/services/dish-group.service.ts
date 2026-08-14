@@ -20,6 +20,11 @@ export class DishGroupService {
     return this.http.get<DishGroupDetailModel>(`${this.apiUrl}/${encodeURIComponent(slug)}`);
   }
 
+  /** Merge one group's recipes into another and retire the source (curation admins). */
+  merge(sourceId: number, targetId: number): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${sourceId}/merge-into/${targetId}`, {});
+  }
+
   /**
    * Reassign a recipe's dish group (curation admins): by id, by name
    * (creating the group when new), or clear with both null.
