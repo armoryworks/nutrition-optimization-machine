@@ -36,5 +36,14 @@ namespace Nom.Orch.Interfaces
         /// Get all scraping reports for the current user
         /// </summary>
         Task<List<RecipeBulkScrapingResponseModel>> GetScrapingReportsAsync();
+
+        /// <summary>
+        /// Promote a batch of already-parsed recipes from the operator's
+        /// staging lane. Dedup by normalized source URL (or name+attribution
+        /// when the source has no URL); public-domain batches skip the
+        /// copyright quarantine. Every import still runs vetting and lands in
+        /// the normal curation queue.
+        /// </summary>
+        Task<StagedImportResultModel> ImportStagedAsync(StagedImportRequestModel request);
     }
 } 
