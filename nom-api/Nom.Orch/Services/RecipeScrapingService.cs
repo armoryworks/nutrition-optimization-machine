@@ -332,6 +332,69 @@ namespace Nom.Orch.Services
                 UriFormat.UriEscaped);
         }
 
+        public async Task<StagedImportResultModel> ImportStagedAsync(StagedImportRequestModel request)
+        {
+            var result = new StagedImportResultModel();
+
+            foreach (var scraped in request.Recipes)
+            {
+                try
+                {
+                    var normalizedUrl = string.IsNullOrWhiteSpace(scraped.SourceUrl)
+                        ? null
+                        : NormalizeUrl(scraped.SourceUrl);
+
+                    // Dedup: by normalized URL, or by name+attribution for
+                    // URL-less sources (cookbook extractions) — reruns of the
+                    // same staging files must be idempotent.
+                    var duplicate = normalizedUrl != null
+                        ? await _dbContext.Recipes.AsNoTracking()
+                            .AnyAsync(r => r.SourceUrl == normalizedUrl && !r.IsDeleted)
+                        : await _dbContext.Recipes.AsNoTracking()
+                            .AnyAsync(r => r.Name == scraped.Name
+                                && r.SourceAttribution == request.SourceAttribution && !r.IsDeleted);
+                    if (duplicate)
+                    {
+                        result.SkippedDuplicates++;
+                        continue;
+                    }
+
+                    var recipe = await CreateRecipeFromScrapedDataAsync(
+                        scraped, normalizedUrl, request.ImportKeywordsAsTags);
+
+                    if (!string.IsNullOrWhiteSpace(request.SourceAttribution))
+                    {
+                        recipe.SourceAttribution = request.SourceAttribution;
+                    }
+
+                    if (request.PublicDomain)
+                    {
+                        // Public domain: the prose is publishable as-is — no
+                        // copyright quarantine; curation still gates publish.
+                        recipe.ContainsSourceProse = false;
+                        recipe.LicenseStatus = RecipeLicenseStatus.PublicDomain;
+                    }
+
+                    await _dbContext.SaveChangesAsync();
+                    result.Imported++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Staged import failed for '{Name}'", scraped.Name);
+                    result.Failures.Add(new StagedImportFailureModel
+                    {
+                        Name = scraped.Name,
+                        Error = ex.Message,
+                    });
+                }
+            }
+
+            _logger.LogInformation(
+                "Staged import: {Imported} imported, {Skipped} duplicates skipped, {Failed} failed (publicDomain={PublicDomain})",
+                result.Imported, result.SkippedDuplicates, result.Failures.Count, request.PublicDomain);
+            return result;
+        }
+
         private async Task<RecipeEntity> CreateRecipeFromScrapedDataAsync(
             ScraperRecipe scraped, string? sourceUrl, bool importKeywordsAsTags)
         {
