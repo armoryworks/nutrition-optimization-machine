@@ -395,6 +395,14 @@ namespace Nom.Orch.Services
             return result;
         }
 
+        /// <summary>
+        /// Trims scraped text to what its column holds. Sources we don't control
+        /// (cookbook prose especially) routinely exceed these widths, and one
+        /// long line must not fail the whole recipe.
+        /// </summary>
+        private static string? Clamp(string? value, int maxLength) =>
+            value == null || value.Length <= maxLength ? value : value[..maxLength].TrimEnd();
+
         private async Task<RecipeEntity> CreateRecipeFromScrapedDataAsync(
             ScraperRecipe scraped, string? sourceUrl, bool importKeywordsAsTags)
         {
@@ -403,16 +411,16 @@ namespace Nom.Orch.Services
 
             var recipe = new RecipeEntity
             {
-                Name = string.IsNullOrEmpty(scraped.Name) ? "Untitled Recipe" : scraped.Name,
-                Description = scraped.Description,
-                SourceUrl = sourceUrl ?? scraped.SourceUrl,
-                SourceSite = scraped.SourceSite,
-                PrepTime = scraped.PrepTime,
-                CookTime = scraped.CookTime,
-                TotalTime = scraped.TotalTime,
+                Name = Clamp(string.IsNullOrEmpty(scraped.Name) ? "Untitled Recipe" : scraped.Name, 511)!,
+                Description = Clamp(scraped.Description, 2047),
+                SourceUrl = Clamp(sourceUrl ?? scraped.SourceUrl, 2047),
+                SourceSite = Clamp(scraped.SourceSite, 255),
+                PrepTime = Clamp(scraped.PrepTime, 100),
+                CookTime = Clamp(scraped.CookTime, 100),
+                TotalTime = Clamp(scraped.TotalTime, 100),
                 PrepTimeMinutes = scraped.PrepTimeMinutes,
                 CookTimeMinutes = scraped.CookTimeMinutes,
-                RecipeYield = scraped.RecipeYield,
+                RecipeYield = Clamp(scraped.RecipeYield, 100),
                 RecipeServings = scraped.RecipeServings,
 
                 // Copyright posture: the source's image is review-only; the
@@ -454,7 +462,7 @@ namespace Nom.Orch.Services
 
             foreach (var ingredient in scraped.Ingredients)
             {
-                var ingredientEntity = await FindOrCreateIngredientAsync(ingredient.Name, personId);
+                var ingredientEntity = await FindOrCreateIngredientAsync(Clamp(ingredient.Name, 2047)!, personId);
                 var measurementId = await ResolveMeasurementIdAsync(ingredient.Unit);
 
                 _dbContext.RecipeIngredients.Add(new RecipeIngredientEntity
@@ -465,7 +473,7 @@ namespace Nom.Orch.Services
                     // to a plausible-looking 1 — vetting flags these for review.
                     Quantity = ingredient.Quantity ?? 0m,
                     MeasurementId = measurementId,
-                    RawLine = ingredient.RawLine,
+                    RawLine = Clamp(ingredient.RawLine, 2047)!,
                 });
             }
 
@@ -479,8 +487,10 @@ namespace Nom.Orch.Services
                 _dbContext.RecipeSteps.Add(new RecipeStepEntity
                 {
                     RecipeId = recipe.Id,
-                    Summary = step.Instruction,
-                    Description = description,
+                    // Summary is a short label (255); the full text lives in
+                    // Description. Cookbook prose routinely exceeds both.
+                    Summary = Clamp(step.Instruction, 255)!,
+                    Description = Clamp(description, 2047)!,
                     StepNumber = stepNumber++,
                 });
             }
