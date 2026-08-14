@@ -1,0 +1,10 @@
+@use 'variables' as vars;
+
+.nom-dishes__card-icon {
+  color: var(--mat-sys-primary);
+  margin-bottom: vars.$spacing-2;
+}
+
+.nom-dishes__name {
+  text-transform: capitalize;
+}

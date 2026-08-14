@@ -87,6 +87,12 @@ export class Nav {
           testId: 'nav-cookbooks',
         },
         {
+          label: 'Dishes',
+          icon: 'category',
+          route: '/dishes',
+          testId: 'nav-dishes',
+        },
+        {
           label: 'Ingredients',
           icon: 'egg',
           route: '/ingredients/mine',

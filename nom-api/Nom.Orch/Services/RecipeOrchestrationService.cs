@@ -263,6 +263,7 @@ namespace Nom.Orch.Services
                 .Include(r => r.Ratings)
                 .Include(r => r.CurationStatus)
                 .Include(r => r.ServingQuantityMeasurement)
+                .Include(r => r.DishGroup)
                 .Include(r => r.RecipeIngredients)
                     .ThenInclude(ri => ri.Ingredient)
                         .ThenInclude(i => i!.Components)
@@ -322,6 +323,12 @@ namespace Nom.Orch.Services
                 CreatedDate = recipe.CreatedDate,
                 ModifiedDate = recipe.LastModifiedDate,
                 CurationStatus = recipe.CurationStatus?.Name ?? "Draft",
+                DishGroup = recipe.DishGroup == null ? null : new RecipeDishGroupModel
+                {
+                    Id = recipe.DishGroup.Id,
+                    Name = recipe.DishGroup.Name,
+                    Slug = recipe.DishGroup.Slug,
+                },
                 Ingredients = recipe.RecipeIngredients?.Select(ri => new RecipeIngredientModel
                 {
                     IngredientId = ri.IngredientId,
