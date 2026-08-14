@@ -42,5 +42,13 @@ public class IngredientEntityConfiguration : IEntityTypeConfiguration<Ingredient
             .HasForeignKey(i => i.LabelId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(i => i.FoodGroup)
+            .WithMany()
+            .HasForeignKey(i => i.FoodGroupId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(e => e.FoodGroupId).HasFilter("\"FoodGroupId\" IS NOT NULL");
     }
 }

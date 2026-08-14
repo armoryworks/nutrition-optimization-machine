@@ -198,6 +198,17 @@
       <nom-meal-split-form [householdId]="households()[0].id" />
     </div>
 
+    <!-- Food-group requirements -->
+    <div class="nom-form__section" data-testid="household-food-group-rules">
+      <h2 class="nom-form__section-title">Food-Group Requirements</h2>
+      <p class="nom-form__section-description">
+        Require a minimum amount of a food group — e.g. "at least 3 servings of
+        vegetables per day." Meal-plan shuffle guarantees it, filling the gap with
+        recipes or whole foods.
+      </p>
+      <nom-food-group-rules [householdId]="households()[0].id" />
+    </div>
+
 
     @if (!isStandalone()) {
       <div class="nom-form__actions">

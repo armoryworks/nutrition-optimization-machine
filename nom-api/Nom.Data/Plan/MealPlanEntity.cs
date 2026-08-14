@@ -25,6 +25,22 @@ namespace Nom.Data.Plan
         public long? RecipeId { get; set; }
         public virtual RecipeEntity? Recipe { get; set; }
 
+        /// <summary>
+        /// A whole/standalone food scheduled directly into this slot without a recipe —
+        /// an apple, a protein bar, a frozen dinner. Mutually exclusive with <see cref="RecipeId"/>
+        /// (enforced by a check constraint). NULL when the slot holds a recipe or is free-text.
+        /// Nutrition for the slot is derived from the ingredient's nutrients scaled by
+        /// <see cref="Quantity"/> in <see cref="MeasurementId"/>.
+        /// </summary>
+        public long? IngredientId { get; set; }
+        public virtual IngredientEntity? Ingredient { get; set; }
+
+        /// <summary>Amount of the standalone <see cref="Ingredient"/> in this slot (e.g. 1, 2). Defaults to 1 serving.</summary>
+        public decimal? Quantity { get; set; }
+
+        public long? MeasurementId { get; set; }
+        public virtual Nom.Data.Measurement.MeasurementEntity? Measurement { get; set; }
+
         public string? Note { get; set; }
 
         public string? Title { get; set; }

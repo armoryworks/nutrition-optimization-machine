@@ -1,0 +1,80 @@
+<div class="nom-food-group-rules" data-testid="food-group-rules">
+  @if (errorMessage()) {
+    <div class="nom-form__error" data-testid="food-group-rules-error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (rules().length > 0) {
+    <div class="nom-food-group-rules__list" data-testid="food-group-rules-list">
+      @for (rule of rules(); track rule.id) {
+        <div class="nom-food-group-rules__item" data-testid="food-group-rules-item">
+          <mat-icon class="nom-food-group-rules__item-icon">nutrition</mat-icon>
+          <span class="nom-food-group-rules__item-text">
+            At least <strong>{{ rule.minServings }}</strong>
+            {{ rule.minServings === 1 ? 'serving' : 'servings' }} of
+            <strong>{{ rule.foodGroupName }}</strong>
+            <span class="nom-food-group-rules__item-scope">{{ timeframeLabel(rule) }}</span>
+          </span>
+          <button mat-icon-button
+                  type="button"
+                  class="nom-food-group-rules__item-remove"
+                  (click)="onDelete(rule)"
+                  data-testid="food-group-rules-remove-btn"
+                  aria-label="Remove requirement">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+  } @else if (!loading()) {
+    <p class="nom-food-group-rules__empty" data-testid="food-group-rules-empty">
+      No food-group requirements yet. Add one below to make sure your meal plans
+      always include enough of a food group — filled by recipes or whole foods.
+    </p>
+  }
+
+  <form [formGroup]="addForm" (ngSubmit)="onAdd()" class="nom-food-group-rules__add" data-testid="food-group-rules-form">
+    <div class="nom-food-group-rules__add-row">
+      <mat-form-field appearance="outline" class="nom-food-group-rules__servings">
+        <mat-label>Min servings</mat-label>
+        <input matInput type="number" formControlName="minServings" min="0.5" step="0.5"
+               data-testid="food-group-rules-servings" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="nom-food-group-rules__group">
+        <mat-label>Food group</mat-label>
+        <mat-select formControlName="foodGroupId" data-testid="food-group-rules-group">
+          @for (fg of foodGroups(); track fg.id) {
+            <mat-option [value]="fg.id">{{ fg.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="nom-food-group-rules__add-row">
+      <mat-button-toggle-group formControlName="timeframe" hideSingleSelectionIndicator
+                               data-testid="food-group-rules-timeframe">
+        <mat-button-toggle value="PerDay">Per day</mat-button-toggle>
+        <mat-button-toggle value="PerMeal">Per meal</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <mat-form-field appearance="outline" class="nom-food-group-rules__meal">
+        <mat-label>At meal (optional)</mat-label>
+        <mat-select formControlName="mealTypeId" data-testid="food-group-rules-meal">
+          <mat-option [value]="null">Any meal</mat-option>
+          @for (mt of mealTypes; track mt.id) {
+            <mat-option [value]="mt.id">{{ mt.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-flat-button type="submit" [disabled]="saving()"
+              class="nom-food-group-rules__add-btn" data-testid="food-group-rules-add-btn">
+        <mat-icon>add</mat-icon>
+        Add requirement
+      </button>
+    </div>
+  </form>
+</div>

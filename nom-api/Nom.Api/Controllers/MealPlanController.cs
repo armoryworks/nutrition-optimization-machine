@@ -205,6 +205,56 @@ namespace Nom.Api.Controllers
             }
         }
 
+        /// <summary>Lists the available nutritional food groups (Vegetables, Fruits, …).</summary>
+        [HttpGet("food-groups")]
+        [ProducesResponseType(typeof(List<FoodGroupModel>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetFoodGroups()
+        {
+            return Ok(await _mealPlanOrchestrationService.GetFoodGroupsAsync());
+        }
+
+        /// <summary>Gets a household's food-group requirements (min servings per day/meal).</summary>
+        [HttpGet("household/{householdId:long}/food-group-rules")]
+        [ProducesResponseType(typeof(List<FoodGroupRuleModel>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetFoodGroupRules([Required] long householdId)
+        {
+            if (!IsHouseholdMember(householdId))
+                return Forbid();
+            return Ok(await _mealPlanOrchestrationService.GetFoodGroupRulesAsync(householdId));
+        }
+
+        /// <summary>Creates or updates a household food-group requirement (steward/manager only).</summary>
+        [HttpPut("food-group-rule")]
+        [ProducesResponseType(typeof(FoodGroupRuleModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UpsertFoodGroupRule([FromBody] FoodGroupRuleUpsertModel model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            if (!CanManageHousehold(model.HouseholdId))
+                return Forbid();
+            try
+            {
+                return Ok(await _mealPlanOrchestrationService.UpsertFoodGroupRuleAsync(model));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>Deletes a household food-group requirement (steward/manager only).</summary>
+        [HttpDelete("food-group-rule/{id:long}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteFoodGroupRule([Required] long id, [FromQuery, Required] long householdId)
+        {
+            if (!CanManageHousehold(householdId))
+                return Forbid();
+            var ok = await _mealPlanOrchestrationService.DeleteFoodGroupRuleAsync(id);
+            return ok ? Ok() : NotFound();
+        }
+
         [HttpPost("rule")]
         [ProducesResponseType(typeof(MealPlanRuleCreateResponseModel), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
