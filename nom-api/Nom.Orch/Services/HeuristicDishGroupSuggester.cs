@@ -25,6 +25,7 @@ namespace Nom.Orch.Services
             "chewy", "crispy", "creamy", "fluffy", "healthy", "skinny", "light",
             "one-pot", "one-pan", "30-minute", "20-minute", "15-minute", "5-ingredient",
             "no-bake", "make-ahead", "weeknight", "grandma", "grandmas", "mom", "moms",
+            "recipe", "recipes",
         };
 
         public Task<List<string?>> SuggestAsync(List<DishGroupCandidate> candidates, CancellationToken cancellationToken = default)
