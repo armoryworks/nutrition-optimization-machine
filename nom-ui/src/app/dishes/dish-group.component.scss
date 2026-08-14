@@ -1,0 +1,44 @@
+@use 'variables' as vars;
+
+.nom-dishes__name {
+  text-transform: capitalize;
+}
+
+.nom-dishes__recipe-card {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-dishes__recipe-image {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: vars.$nom-border-radius;
+}
+
+.nom-dishes__recipe-image-placeholder {
+  width: 100%;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-dishes__recipe-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--mat-sys-primary);
+  }
+}

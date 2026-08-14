@@ -1,10 +1,13 @@
 import { Component, DestroyRef, effect, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { DecimalPipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { RecipeService } from '../core/services/recipe.service';
 import { AuthService } from '../core/services/auth.service';
+import { DishGroupService } from '../core/services/dish-group.service';
+import { DishGroupRecipeModel } from '../core/models/dish-group.model';
 import { RecipeModel, RecipeDietMatchModel } from '../core/models/recipe.model';
 import {
   IngredientSubstitutionModel,
@@ -43,7 +46,7 @@ export interface DisplayIngredientRowModel {
 
 @Component({
   selector: 'nom-recipe-detail',
-  imports: [MatIconModule, MatButtonModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating],
+  imports: [DecimalPipe, MatIconModule, MatButtonModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating],
   templateUrl: './recipe-detail.component.html',
   styleUrl: './recipe-detail.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -54,8 +57,12 @@ export interface DisplayIngredientRowModel {
 export class RecipeDetail {
   private route = inject(ActivatedRoute);
   private recipeService = inject(RecipeService);
+  private dishGroupService = inject(DishGroupService);
   private destroyRef = inject(DestroyRef);
   authService = inject(AuthService);
+
+  /** Other visible takes on the same dish (excludes this recipe). */
+  variations = signal<DishGroupRecipeModel[]>([]);
 
   private routeParams = toSignal(this.route.params);
 
@@ -236,6 +243,22 @@ export class RecipeDetail {
     });
   }
 
+  /** "More takes on {dish}": the recipe's dish-group siblings, when classified. */
+  private loadVariationsRail(recipe: RecipeModel): void {
+    this.variations.set([]);
+    const slug = recipe.dishGroup?.slug;
+    if (!slug) return;
+
+    this.dishGroupService.getBySlug(slug).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (group) => {
+        this.variations.set(group.recipes.filter((r) => r.id !== recipe.id));
+      },
+      error: () => this.variations.set([]),
+    });
+  }
+
   loadRecipe(id: number): void {
     this.loading.set(true);
     this.error.set('');
@@ -256,6 +279,7 @@ export class RecipeDetail {
         this.applySavedVariation(recipe);
         this.loading.set(false);
         this.loadEnhancements(id);
+        this.loadVariationsRail(recipe);
         if (this.loggedIn()) {
           this.recipeService.getDietMatches(id).pipe(
             takeUntilDestroyed(this.destroyRef),

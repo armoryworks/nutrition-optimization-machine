@@ -1,0 +1,40 @@
+<div class="nom-dashboard" data-testid="dish-groups">
+  <div class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <h1 class="nom-dashboard__title">Dishes</h1>
+      <p class="nom-dashboard__subtitle">Every take on a dish, gathered in one place</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="nom-dashboard__empty">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <nom-error-banner [message]="error()" />
+  } @else if (groups().length === 0) {
+    <div class="nom-dashboard__empty" data-testid="dish-groups-empty">
+      <mat-icon class="nom-dashboard__empty-icon">category</mat-icon>
+      <h2 class="nom-dashboard__empty-title">No dishes classified yet</h2>
+      <p class="nom-dashboard__empty-message">
+        Recipes are grouped into dishes automatically — check back soon.
+      </p>
+    </div>
+  } @else {
+    <div class="nom-dashboard__grid" data-testid="dish-groups-list">
+      @for (group of groups(); track group.id) {
+        <a class="nom-dashboard__card nom-dashboard__card--clickable"
+           [routerLink]="['/dishes', group.slug]"
+           data-testid="dish-group-card">
+          <div class="nom-dashboard__card-content">
+            <mat-icon class="nom-dishes__card-icon">restaurant_menu</mat-icon>
+            <span class="nom-dashboard__card-title nom-dishes__name">{{ group.name }}</span>
+            <span class="nom-dashboard__card-subtitle">
+              {{ group.recipeCount }} {{ group.recipeCount === 1 ? 'recipe' : 'recipes' }}
+            </span>
+          </div>
+        </a>
+      }
+    </div>
+  }
+</div>

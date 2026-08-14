@@ -74,6 +74,36 @@
                 <figcaption>Source image (review only)</figcaption>
               </figure>
             }
+            @if (item.entityType === 'Recipe') {
+              <div class="nom-curation__dish-group">
+                <mat-form-field appearance="outline" class="nom-curation__dish-group-field">
+                  <mat-label>Dish group</mat-label>
+                  <input matInput
+                         [formControl]="dishGroupControl"
+                         [matAutocomplete]="dishGroupAuto"
+                         placeholder="e.g. chocolate chip cookies"
+                         data-testid="recipe-dish-group-input">
+                  <mat-icon matSuffix>category</mat-icon>
+                  <mat-autocomplete #dishGroupAuto="matAutocomplete">
+                    @for (group of filteredDishGroups(); track group.id) {
+                      <mat-option [value]="group.name">{{ group.name }} ({{ group.recipeCount }})</mat-option>
+                    }
+                  </mat-autocomplete>
+                  <mat-hint>Pick an existing dish or type a new one; leave empty to clear</mat-hint>
+                </mat-form-field>
+                <button mat-stroked-button type="button"
+                        (click)="saveDishGroup(item)"
+                        [disabled]="dishGroupSaving()"
+                        data-testid="recipe-dish-group-save-btn">
+                  @if (dishGroupSaved()) {
+                    <mat-icon>check</mat-icon>
+                  } @else {
+                    <mat-icon>save</mat-icon>
+                  }
+                  Save group
+                </button>
+              </div>
+            }
             <div class="nom-curation__item-actions">
               <mat-form-field appearance="outline" class="nom-curation__notes-field">
                 <mat-label>Feedback Notes</mat-label>
@@ -97,7 +127,7 @@
               </div>
             </div>
           } @else {
-            <button mat-stroked-button (click)="expandedId.set(item.id)" class="nom-curation__review-btn" data-testid="curation-review-btn">
+            <button mat-stroked-button (click)="expand(item)" class="nom-curation__review-btn" data-testid="curation-review-btn">
               Review
             </button>
           }
