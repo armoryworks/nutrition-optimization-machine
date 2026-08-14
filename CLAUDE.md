@@ -4,6 +4,17 @@
 
 NOM contains no web-scraping code. URL import is delegated to an external, operator-provided scraper service (reference implementation: private repo `armoryworks/nom-scraper`); the contract and setup live in `docs/scraper-integration.md`. Scraping is whitelist-only — domains must be admin-approved in `recipe.ScrapingSource` — and scraped images/prose are quarantined (`SourceImageUrl`, `ContainsSourceProse`) until curated. Never add code that fetches third-party recipe sites directly from nom-api.
 
+## Grocery Export
+
+NOM contains no retailer-integration code. Sending a shopping list to a store or
+share sheet is delegated to an external, operator-provided grocery service
+(reference implementation: private repo `armoryworks/nom-grocery`); the contract
+lives in `docs/grocery-integration.md`. Retailer OAuth tokens are stored
+encrypted in `shopping.GroceryConnection` and never returned to the client.
+Never add code that calls a retailer API directly from nom-api, and never
+hardcode provider names in nom-ui — the UI renders whatever the service
+advertises.
+
 ## Database Setup
 
 The database uses a declarative (DACPAC-style) workflow — `db/schema.sql` is the source of truth; there are no EF migrations. See `db/README.md`.

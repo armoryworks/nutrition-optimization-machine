@@ -213,6 +213,13 @@ builder.Services.Configure<Nom.Orch.Settings.RecipeScraperSettings>(
     builder.Configuration.GetSection(Nom.Orch.Settings.RecipeScraperSettings.SectionName));
 builder.Services.AddHttpClient<Nom.Orch.UtilityInterfaces.IRecipeScraperClient, Nom.Orch.UtilityServices.RecipeScraperClient>();
 
+// External grocery-export service (operator-provided; shopping-list export is
+// disabled when GroceryExport:BaseUrl is not configured).
+// See docs/grocery-integration.md.
+builder.Services.Configure<Nom.Orch.Settings.GroceryExportSettings>(
+    builder.Configuration.GetSection(Nom.Orch.Settings.GroceryExportSettings.SectionName));
+builder.Services.AddHttpClient<Nom.Orch.UtilityInterfaces.IGroceryExportClient, Nom.Orch.UtilityServices.GroceryExportClient>();
+
 // Automatic source discovery (off by default; whitelist-gated — discovered
 // sites become Pending sources for admin approval, never direct imports).
 builder.Services.AddHostedService<Nom.Api.Services.SourceDiscoveryHostedService>();

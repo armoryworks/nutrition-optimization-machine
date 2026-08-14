@@ -11,11 +11,12 @@ import { ErrorBanner } from '../shared/components/error-banner/error-banner.comp
 import { NoHouseholdCta } from '../shared/components/no-household-cta/no-household-cta.component';
 import { toLocalDateString } from '../core/utils/local-date';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -28,6 +29,14 @@ import { PantryService } from '../core/services/pantry.service';
 import { RetailPackagingService } from '../core/services/retail-packaging.service';
 import { MeasurementService } from '../core/services/measurement.service';
 import { PortionService } from '../core/services/portion.service';
+import { GroceryExportService } from '../core/services/grocery-export.service';
+import { ShoppingListService } from '../core/services/shopping-list.service';
+import { GroceryProviderInfo } from '../core/models/grocery-export.model';
+import { ShoppingListResponse } from '../core/models/shopping-list-response.model';
+import {
+  GroceryExportDialog,
+  GroceryExportDialogData,
+} from './grocery-export-dialog.component';
 import { MealPlanWeekResponse } from '../core/models/meal-plan-week-response.model';
 import { RecipeModel } from '../core/models/recipe.model';
 import { PantryItemResponse } from '../core/models/pantry-item-response.model';
@@ -93,6 +102,11 @@ export class ShoppingComponent implements OnInit {
   private retailPackagingService = inject(RetailPackagingService);
   private measurementService = inject(MeasurementService);
   private portionService = inject(PortionService);
+  private groceryExportService = inject(GroceryExportService);
+  private shoppingListService = inject(ShoppingListService);
+  private dialog = inject(MatDialog);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   /** Per-planned-recipe cook factors keyed `date|mealTypeId|recipeId` (portion scaling). */
   private cookFactors = signal<Map<string, number>>(new Map());
@@ -364,6 +378,37 @@ export class ShoppingComponent implements OnInit {
 
   checkedCount = computed(() => this.checkedItems().size);
 
+  // --- Grocery export ("Send to…") ---
+
+  /**
+   * Destinations the operator's grocery service advertises. An empty array is
+   * the normal, expected state on a server with no grocery integration — the
+   * whole feature stays out of the DOM in that case.
+   */
+  providers = signal<GroceryProviderInfo[]>([]);
+
+  /** Saved shopping lists, loaded only when there is somewhere to send them. */
+  private savedLists = signal<ShoppingListResponse[]>([]);
+
+  /** Notice shown after returning from a retailer's consent screen. */
+  connectNotice = signal<{ ok: boolean; message: string } | null>(null);
+
+  /**
+   * The saved list a "Send to…" targets: the current household's most recently
+   * touched one. The export API works on persisted lists, not on the meal-plan
+   * projection rendered above.
+   */
+  exportTarget = computed<ShoppingListResponse | null>(() => {
+    const lists = this.savedLists();
+    if (lists.length === 0) return null;
+    const householdId = this.householdId();
+    const scoped = lists.filter((l) => l.householdId === householdId);
+    const candidates = scoped.length > 0 ? scoped : lists;
+    return [...candidates].sort((a, b) =>
+      (b.modifiedDate ?? b.createdDate).localeCompare(a.modifiedDate ?? a.createdDate),
+    )[0];
+  });
+
   // --- Inline quantity editing ---
 
   startEditing(checkKey: string, currentText: string): void {
@@ -471,6 +516,85 @@ export class ShoppingComponent implements OnInit {
 
   hasOverride(checkKey: string): boolean {
     return this.quantityOverrides().has(checkKey);
+  }
+
+  // --- Grocery export ("Send to…") ---
+
+  /**
+   * An unconfigured server answers with an empty list, and a failure is treated
+   * the same way: no destinations means no button, no menu, nothing rendered.
+   */
+  private loadGroceryProviders(): void {
+    this.groceryExportService
+      .getProviders()
+      .pipe(
+        catchError(() => of([] as GroceryProviderInfo[])),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((providers) => {
+        this.providers.set(providers);
+        if (providers.length > 0) {
+          this.loadSavedLists();
+        }
+      });
+  }
+
+  private loadSavedLists(): void {
+    this.shoppingListService
+      .getAll()
+      .pipe(
+        catchError(() => of([] as ShoppingListResponse[])),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((lists) => this.savedLists.set(lists));
+  }
+
+  openSendTo(): void {
+    const providers = this.providers();
+    if (providers.length === 0) return;
+
+    const target = this.exportTarget();
+    this.dialog.open(GroceryExportDialog, {
+      data: {
+        providers,
+        shoppingListId: target?.id ?? null,
+        listName: target?.name ?? 'Shopping List',
+        // Where the retailer consent flow lands the browser again.
+        returnUrl: this.router.url.split('?')[0],
+      } satisfies GroceryExportDialogData,
+      autoFocus: false,
+    });
+  }
+
+  /**
+   * The API bounces the browser back here after a retailer consent screen with
+   * `?connected=ok|failed&provider=…`. Report it once, then scrub the params so
+   * a refresh doesn't replay the notice.
+   */
+  private readConnectResult(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const connected = params.get('connected');
+    if (connected !== 'ok' && connected !== 'failed') return;
+
+    const provider = params.get('provider');
+    const ok = connected === 'ok';
+    this.connectNotice.set({
+      ok,
+      message: ok
+        ? `${provider ?? 'Your grocery account'} is connected — you can send lists to it now.`
+        : `${provider ?? 'That grocery account'} could not be connected. Please try again.`,
+    });
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { connected: null, provider: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  dismissConnectNotice(): void {
+    this.connectNotice.set(null);
   }
 
   // --- Complete Shopping Trip ---
@@ -709,6 +833,9 @@ export class ShoppingComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.readConnectResult();
+    this.loadGroceryProviders();
+
     this.householdStore
       .getHouseholds()
       .pipe(takeUntilDestroyed(this.destroyRef))

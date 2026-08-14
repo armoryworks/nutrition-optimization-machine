@@ -1,0 +1,273 @@
+@use 'variables' as vars;
+
+.nom-grocery-export {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-4;
+  min-width: 380px;
+  max-width: 520px;
+  padding-top: vars.$spacing-2;
+}
+
+.nom-grocery-export__hint {
+  margin: 0;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-grocery-export__notice {
+  margin: 0;
+  padding: vars.$spacing-4;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+}
+
+.nom-grocery-export__error {
+  margin: 0;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-error-container);
+  background: var(--mat-sys-error-container);
+  border-radius: vars.$nom-border-radius;
+}
+
+// --- Provider list ---
+
+.nom-grocery-export__providers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-grocery-export__provider-item {
+  display: block;
+}
+
+.nom-grocery-export__provider {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+  width: 100%;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  color: var(--mat-sys-on-surface);
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+
+  &:hover:not(:disabled) {
+    background: var(--mat-sys-surface-container);
+  }
+}
+
+.nom-grocery-export__provider--selected {
+  border-color: var(--mat-sys-primary);
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+}
+
+.nom-grocery-export__provider--disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.nom-grocery-export__provider-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: vars.$spacing-2;
+}
+
+.nom-grocery-export__provider-name {
+  font-weight: vars.$font-weight-semibold;
+}
+
+.nom-grocery-export__provider-desc,
+.nom-grocery-export__provider-hint {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-grocery-export__provider-hint {
+  font-style: italic;
+}
+
+.nom-grocery-export__badge {
+  font-size: vars.$font-size-xs;
+  padding: vars.$spacing-1 vars.$spacing-2;
+  color: var(--mat-sys-on-surface-variant);
+  background: var(--mat-sys-surface-container-highest);
+  border-radius: vars.$nom-border-radius-pill;
+}
+
+.nom-grocery-export__badge--on {
+  color: var(--mat-sys-on-tertiary-container);
+  background: var(--mat-sys-tertiary-container);
+}
+
+.nom-grocery-export__toggle {
+  align-self: flex-start;
+}
+
+.nom-grocery-export__field {
+  width: 100%;
+}
+
+.nom-grocery-export__connect,
+.nom-grocery-export__cart-actions {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+  align-items: flex-start;
+}
+
+.nom-grocery-export__cart-actions {
+  flex-direction: row;
+  align-items: center;
+}
+
+// --- Result ---
+
+.nom-grocery-export__result {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-grocery-export__preview {
+  width: 100%;
+  resize: vertical;
+  font-family: monospace;
+  font-size: vars.$font-size-sm;
+  line-height: 1.5;
+  padding: vars.$spacing-3;
+  color: var(--mat-sys-on-surface);
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+}
+
+.nom-grocery-export__result-actions {
+  display: flex;
+  gap: vars.$spacing-2;
+}
+
+.nom-grocery-export__link {
+  word-break: break-all;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-primary);
+}
+
+.nom-grocery-export__added {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  margin: 0;
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-on-surface);
+}
+
+// --- Unmatched items: always visible, never collapsed ---
+
+.nom-grocery-export__unmatched {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  background: var(--mat-sys-surface-container);
+  border-left: 3px solid var(--mat-sys-error);
+  border-radius: vars.$nom-border-radius;
+}
+
+.nom-grocery-export__unmatched-title {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  margin: 0;
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-grocery-export__unmatched-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+}
+
+.nom-grocery-export__unmatched-item {
+  display: flex;
+  flex-direction: column;
+  font-size: vars.$font-size-sm;
+}
+
+.nom-grocery-export__unmatched-name {
+  color: var(--mat-sys-on-surface);
+  font-weight: vars.$font-weight-medium;
+}
+
+.nom-grocery-export__unmatched-reason {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// --- Store picker ---
+
+.nom-grocery-export__store-search {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-2;
+
+  .nom-grocery-export__field {
+    flex: 1;
+  }
+}
+
+.nom-grocery-export__stores {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.nom-grocery-export__store-btn {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+  width: 100%;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  color: var(--mat-sys-on-surface);
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+
+  &:hover:not(:disabled) {
+    background: var(--mat-sys-surface-container);
+  }
+}
+
+.nom-grocery-export__store-name {
+  font-weight: vars.$font-weight-semibold;
+}
+
+.nom-grocery-export__store-address {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
