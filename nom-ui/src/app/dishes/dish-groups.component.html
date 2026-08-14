@@ -27,6 +27,16 @@
            [routerLink]="['/dishes', group.slug]"
            data-testid="dish-group-card">
           <div class="nom-dashboard__card-content">
+            @if (isAdmin()) {
+              <button mat-icon-button type="button"
+                      class="nom-dishes__merge-btn"
+                      (click)="openMergeDialog($event, group)"
+                      matTooltip="Merge into another group"
+                      aria-label="Merge {{ group.name }} into another group"
+                      data-testid="dish-group-merge-btn">
+                <mat-icon>merge</mat-icon>
+              </button>
+            }
             <mat-icon class="nom-dishes__card-icon">restaurant_menu</mat-icon>
             <span class="nom-dashboard__card-title nom-dishes__name">{{ group.name }}</span>
             <span class="nom-dashboard__card-subtitle">
