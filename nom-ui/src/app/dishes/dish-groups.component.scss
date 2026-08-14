@@ -5,6 +5,18 @@
   margin-bottom: vars.$spacing-2;
 }
 
+// Anchor for the absolutely-positioned merge affordance.
+a[data-testid='dish-group-card'] {
+  position: relative;
+}
+
+.nom-dishes__merge-btn {
+  position: absolute;
+  top: vars.$spacing-2;
+  right: vars.$spacing-2;
+  color: var(--mat-sys-on-surface-variant);
+}
+
 .nom-dishes__name {
   text-transform: capitalize;
 }
