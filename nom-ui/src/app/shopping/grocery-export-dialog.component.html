@@ -1,0 +1,257 @@
+<h2 mat-dialog-title>Send to&hellip;</h2>
+
+<mat-dialog-content class="nom-grocery-export" data-testid="grocery-export-dialog">
+  @if (data.shoppingListId === null) {
+    <p class="nom-grocery-export__notice" data-testid="grocery-export-no-list">
+      There's no saved shopping list to send yet. Save this trip as a shopping list first.
+    </p>
+  } @else if (step() === 'store') {
+    <!-- ===== Step: choose the store this cart is filled at ===== -->
+    <p class="nom-grocery-export__hint">
+      Pick the store {{ selected()?.displayName }} should fill your cart at.
+    </p>
+
+    <div class="nom-grocery-export__store-search">
+      <mat-form-field appearance="outline" class="nom-grocery-export__field">
+        <mat-label>Postal code</mat-label>
+        <input matInput
+               [ngModel]="postalCode()"
+               (ngModelChange)="postalCode.set($event)"
+               (keydown.enter)="findStores()"
+               autocomplete="postal-code"
+               data-testid="grocery-export-postal-input">
+      </mat-form-field>
+      <button mat-flat-button
+              (click)="findStores()"
+              [disabled]="!postalCode().trim() || searchingStores()"
+              data-testid="grocery-export-find-stores-btn">
+        @if (searchingStores()) {
+          <mat-spinner diameter="18"></mat-spinner>
+        } @else {
+          <mat-icon>search</mat-icon>
+        }
+        Find stores
+      </button>
+    </div>
+
+    @if (storeError()) {
+      <p class="nom-grocery-export__error" data-testid="grocery-export-store-error">
+        {{ storeError() }}
+      </p>
+    }
+
+    @if (stores().length > 0) {
+      <ul class="nom-grocery-export__stores" data-testid="grocery-export-stores">
+        @for (store of stores(); track store.id) {
+          <li class="nom-grocery-export__store">
+            <button type="button"
+                    class="nom-grocery-export__store-btn"
+                    (click)="chooseStore(store)"
+                    [disabled]="savingStore()"
+                    data-testid="grocery-export-store-option">
+              <span class="nom-grocery-export__store-name">{{ store.name }}</span>
+              <span class="nom-grocery-export__store-address">{{ store.address }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    } @else if (storeSearched() && !searchingStores()) {
+      <p class="nom-grocery-export__notice" data-testid="grocery-export-stores-empty">
+        No stores found near that postal code.
+      </p>
+    }
+  } @else {
+    <!-- ===== Step: pick a destination ===== -->
+    <p class="nom-grocery-export__hint">
+      Sending <strong>{{ data.listName }}</strong>.
+    </p>
+
+    <ul class="nom-grocery-export__providers" data-testid="grocery-export-providers">
+      @for (provider of providers(); track provider.key) {
+        <li class="nom-grocery-export__provider-item">
+          <button type="button"
+                  class="nom-grocery-export__provider"
+                  [class.nom-grocery-export__provider--selected]="selectedKey() === provider.key"
+                  [class.nom-grocery-export__provider--disabled]="!provider.configured"
+                  [disabled]="!provider.configured"
+                  (click)="selectProvider(provider)"
+                  data-testid="grocery-export-provider">
+            <span class="nom-grocery-export__provider-head">
+              <span class="nom-grocery-export__provider-name">{{ provider.displayName }}</span>
+              @if (provider.requiresConnection && provider.configured) {
+                <span class="nom-grocery-export__badge"
+                      [class.nom-grocery-export__badge--on]="provider.connected">
+                  {{ provider.connected ? 'Connected' : 'Not connected' }}
+                </span>
+              }
+            </span>
+            <span class="nom-grocery-export__provider-desc">{{ provider.description }}</span>
+            @if (!provider.configured) {
+              <span class="nom-grocery-export__provider-hint"
+                    data-testid="grocery-export-provider-unconfigured">
+                Unavailable — your administrator hasn't set this destination up.
+              </span>
+            }
+          </button>
+        </li>
+      }
+    </ul>
+
+    <mat-slide-toggle class="nom-grocery-export__toggle"
+                      [checked]="excludeChecked()"
+                      (change)="excludeChecked.set($event.checked)"
+                      data-testid="grocery-export-exclude-checked">
+      Leave checked-off items out
+    </mat-slide-toggle>
+
+    @if (selected(); as provider) {
+      @if (provider.kind === 'Text') {
+        <mat-form-field appearance="outline" class="nom-grocery-export__field">
+          <mat-label>Format</mat-label>
+          <mat-select [value]="format()"
+                      (valueChange)="setFormat($event)"
+                      data-testid="grocery-export-format-select">
+            @for (option of formats; track option.value) {
+              <mat-option [value]="option.value">{{ option.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+
+      @if (needsConnection()) {
+        <div class="nom-grocery-export__connect">
+          <p class="nom-grocery-export__hint">
+            Connect your {{ provider.displayName }} account to fill a cart. You'll come
+            straight back here.
+          </p>
+          <button mat-flat-button
+                  (click)="connect()"
+                  [disabled]="connecting()"
+                  data-testid="grocery-export-connect-btn">
+            @if (connecting()) {
+              <mat-spinner diameter="18"></mat-spinner>
+            } @else {
+              <mat-icon>link</mat-icon>
+            }
+            Connect {{ provider.displayName }}
+          </button>
+        </div>
+      } @else if (provider.kind === 'Cart') {
+        <div class="nom-grocery-export__cart-actions">
+          <button mat-stroked-button
+                  (click)="openStorePicker()"
+                  data-testid="grocery-export-choose-store-btn">
+            <mat-icon>storefront</mat-icon>
+            Choose store
+          </button>
+          <button mat-button
+                  (click)="disconnect()"
+                  data-testid="grocery-export-disconnect-btn">
+            Disconnect
+          </button>
+        </div>
+      }
+    }
+
+    <!-- ===== Result ===== -->
+    @if (error()) {
+      <p class="nom-grocery-export__error" data-testid="grocery-export-error">{{ error() }}</p>
+    }
+
+    @if (result(); as res) {
+      @if (res.success) {
+        @if (res.kind === 'Text' && res.text) {
+          <div class="nom-grocery-export__result" data-testid="grocery-export-result">
+            <textarea class="nom-grocery-export__preview"
+                      readonly
+                      rows="10"
+                      aria-label="Shopping list preview"
+                      data-testid="grocery-export-preview">{{ res.text }}</textarea>
+            <div class="nom-grocery-export__result-actions">
+              @if (canShare) {
+                <button mat-flat-button (click)="share()" data-testid="grocery-export-share-btn">
+                  <mat-icon>ios_share</mat-icon>
+                  Share
+                </button>
+              }
+              @if (canCopy) {
+                <button mat-stroked-button (click)="copy()" data-testid="grocery-export-copy-btn">
+                  <mat-icon>content_copy</mat-icon>
+                  Copy
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        @if (res.kind === 'Link' && res.url) {
+          <div class="nom-grocery-export__result" data-testid="grocery-export-result">
+            <p class="nom-grocery-export__hint">
+              Your list opened in a new tab. If nothing happened, use this link:
+            </p>
+            <a class="nom-grocery-export__link"
+               [href]="res.url"
+               target="_blank"
+               rel="noopener"
+               data-testid="grocery-export-link">{{ res.url }}</a>
+          </div>
+        }
+
+        @if (res.kind === 'Cart') {
+          <div class="nom-grocery-export__result" data-testid="grocery-export-result">
+            <p class="nom-grocery-export__added" data-testid="grocery-export-added-count">
+              <mat-icon>shopping_cart</mat-icon>
+              {{ res.addedCount ?? 0 }} item{{ res.addedCount === 1 ? '' : 's' }} added to your cart.
+            </p>
+            @if (res.url) {
+              <a class="nom-grocery-export__link"
+                 [href]="res.url"
+                 target="_blank"
+                 rel="noopener"
+                 data-testid="grocery-export-cart-link">Open your cart</a>
+            }
+          </div>
+        }
+      }
+
+      <!-- Unmatched items stay visible on success and failure alike. -->
+      @if (unmatched().length > 0) {
+        <div class="nom-grocery-export__unmatched" data-testid="grocery-export-unmatched">
+          <h3 class="nom-grocery-export__unmatched-title">
+            <mat-icon>report_problem</mat-icon>
+            {{ unmatched().length }} item{{ unmatched().length === 1 ? '' : 's' }} couldn't be matched
+          </h3>
+          <ul class="nom-grocery-export__unmatched-list">
+            @for (item of unmatched(); track item.name) {
+              <li class="nom-grocery-export__unmatched-item"
+                  data-testid="grocery-export-unmatched-item">
+                <span class="nom-grocery-export__unmatched-name">{{ item.name }}</span>
+                <span class="nom-grocery-export__unmatched-reason">{{ item.reason }}</span>
+              </li>
+            }
+          </ul>
+          <p class="nom-grocery-export__hint">Add these by hand when you shop.</p>
+        </div>
+      }
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (step() === 'store') {
+    <button mat-button (click)="backToPick()" data-testid="grocery-export-store-back-btn">
+      Back
+    </button>
+  } @else {
+    <button mat-button mat-dialog-close data-testid="grocery-export-close-btn">Close</button>
+    <button mat-flat-button
+            (click)="send()"
+            [disabled]="!canSend()"
+            data-testid="grocery-export-send-btn">
+      @if (sending()) {
+        <mat-spinner diameter="18"></mat-spinner>
+      }
+      {{ step() === 'result' ? 'Send again' : 'Send' }}
+    </button>
+  }
+</mat-dialog-actions>

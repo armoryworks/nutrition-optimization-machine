@@ -55,8 +55,34 @@
       <button mat-icon-button (click)="shareList()" [disabled]="departments().length === 0" matTooltip="Share list" aria-label="Share list" data-testid="shopping-share-btn">
         <mat-icon>share</mat-icon>
       </button>
+      <!-- Grocery export exists only when the operator configured a destination. -->
+      @if (providers().length > 0) {
+        <button mat-stroked-button
+                class="nom-shopping__send-btn"
+                (click)="openSendTo()"
+                matTooltip="Send this list to a grocery destination"
+                data-testid="shopping-list-send-btn">
+          <mat-icon>send</mat-icon>
+          Send to&hellip;
+        </button>
+      }
     </div>
   </div>
+
+  @if (connectNotice(); as notice) {
+    <div class="nom-shopping__connect-notice"
+         [class.nom-shopping__connect-notice--failed]="!notice.ok"
+         data-testid="shopping-connect-notice">
+      <mat-icon>{{ notice.ok ? 'check_circle' : 'error_outline' }}</mat-icon>
+      <span>{{ notice.message }}</span>
+      <button mat-icon-button
+              (click)="dismissConnectNotice()"
+              aria-label="Dismiss"
+              data-testid="shopping-connect-notice-dismiss-btn">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
 
   @if (loading()) {
     <div class="nom-shopping__loading">

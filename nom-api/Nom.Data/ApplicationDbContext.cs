@@ -177,6 +177,7 @@ namespace Nom.Data
         public DbSet<ShoppingListGroupEntity> ShoppingListGroups { get; set; } = default!;
         public DbSet<ShoppingListEntity> ShoppingLists { get; set; } = default!;
         public DbSet<ShoppingListItemEntity> ShoppingListItems { get; set; } = default!;
+        public DbSet<GroceryConnectionEntity> GroceryConnections { get; set; } = default!;
         public DbSet<ShoppingListLabelEntity> ShoppingListLabels { get; set; } = default!;
         public DbSet<ShoppingListCategoryEntity> ShoppingListCategories { get; set; } = default!;
         public DbSet<ShoppingListGenerationHistoryEntity> ShoppingListGenerationHistory { get; set; } = default!;
