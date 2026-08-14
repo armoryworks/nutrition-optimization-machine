@@ -49,6 +49,18 @@ namespace Nom.Api.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Send lines the client is displaying. The shopping view is a live
+        /// projection over the meal plan, so there is usually no saved list to
+        /// reference — the client sends what the user sees.
+        /// </summary>
+        [HttpPost("items")]
+        public async Task<ActionResult<GroceryExportResult>> ExportItems([FromBody] GroceryExportItemsModel model)
+        {
+            var personId = GetCurrentPersonIdRequired();
+            return Ok(await _grocery.ExportItemsAsync(personId, model));
+        }
+
         /// <summary>Begin connecting a retailer account; returns the URL to send the user to.</summary>
         [HttpPost("connect/{provider}")]
         public async Task<ActionResult<object>> StartConnection(string provider, [FromQuery] string? returnUrl)

@@ -110,10 +110,50 @@ namespace Nom.Orch.Services
                 Items = await BuildExportItemsAsync(items),
             };
 
-            // Cart providers shop a specific store on the user's behalf.
+            return await SendAsync(request, personId);
+        }
+
+        public async Task<GroceryExportResult> ExportItemsAsync(long personId, GroceryExportItemsModel model)
+        {
+            var items = (model.Items ?? new List<GroceryExportLineModel>())
+                .Where(i => !string.IsNullOrWhiteSpace(i.Name))
+                .ToList();
+
+            if (items.Count == 0)
+            {
+                return new GroceryExportResult { Success = false, Error = "There is nothing to send." };
+            }
+
+            var request = new GroceryExportRequest
+            {
+                Provider = model.Provider,
+                Title = string.IsNullOrWhiteSpace(model.Title)
+                    ? $"NOM shopping list — {DateTime.Now:MMM d}"
+                    : model.Title,
+                Format = model.Format,
+                Items = items.Select(i => new GroceryExportItem
+                {
+                    Name = i.Name.Trim(),
+                    Quantity = i.Quantity,
+                    Unit = i.Unit,
+                    PackageHint = i.PackageHint,
+                    Category = i.Category,
+                    Note = i.Note,
+                }).ToList(),
+            };
+
+            return await SendAsync(request, personId);
+        }
+
+        /// <summary>
+        /// Attaches the caller's retailer connection (cart providers need one)
+        /// and hands the request to the grocery service.
+        /// </summary>
+        private async Task<GroceryExportResult> SendAsync(GroceryExportRequest request, long personId)
+        {
             var connection = await _db.GroceryConnections
                 .FirstOrDefaultAsync(c => c.PersonId == personId &&
-                                          c.Provider == options.Provider &&
+                                          c.Provider == request.Provider &&
                                           !c.IsDeleted);
             if (connection != null)
             {
@@ -123,7 +163,7 @@ namespace Nom.Orch.Services
                     return new GroceryExportResult
                     {
                         Success = false,
-                        Error = $"Your {options.Provider} connection expired — reconnect and try again.",
+                        Error = $"Your {request.Provider} connection expired — reconnect and try again.",
                     };
                 }
 

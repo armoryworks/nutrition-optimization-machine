@@ -119,6 +119,7 @@ encrypted, and rejects any callback whose state doesn't match.
 
 ```
 GET    /api/GroceryExport/providers
+POST   /api/GroceryExport/items                   { provider, format?, title?, items[] }
 POST   /api/GroceryExport/list/{shoppingListId}   { provider, format?, excludeChecked? }
 POST   /api/GroceryExport/connect/{provider}?returnUrl=…
 GET    /api/GroceryExport/callback/{provider}      (retailer redirect target)
@@ -126,6 +127,14 @@ GET    /api/GroceryExport/stores/{provider}?postalCode=…
 PUT    /api/GroceryExport/stores/{provider}        { locationId, locationName }
 DELETE /api/GroceryExport/connect/{provider}
 ```
+
+### Which export endpoint to use
+
+`/items` takes the lines the client is displaying and is what the shopping view
+uses: that view is a live projection over the meal plan, pantry, and retail
+packaging, so there is usually no `ShoppingList` row behind it. `/list/{id}`
+exports a persisted list and applies NOM's own package-hint lookup server-side;
+use it when a saved list genuinely exists.
 
 ## Running the reference service
 
