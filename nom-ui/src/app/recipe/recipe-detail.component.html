@@ -64,6 +64,14 @@
               </div>
             }
             <h1 class="nom-recipe__title">{{ recipe()!.name }}</h1>
+            @if (recipe()!.dishGroup; as dishGroup) {
+              <a class="nom-recipe__dish-group-chip"
+                 [routerLink]="['/dishes', dishGroup.slug]"
+                 data-testid="recipe-dish-group-chip">
+                <mat-icon>category</mat-icon>
+                {{ dishGroup.name }}
+              </a>
+            }
             @if (recipe()!.description) {
               <p class="nom-recipe__description">{{ recipe()!.description }}</p>
             }
@@ -328,6 +336,36 @@
       }
     </div>
   </div>
+
+  @if (recipe()!.dishGroup && variations().length > 0) {
+    <section class="nom-recipe__variations" data-testid="recipe-variations-rail">
+      <h2 class="nom-recipe__variations-title">
+        More takes on <span class="nom-recipe__variations-dish">{{ recipe()!.dishGroup!.name }}</span>
+      </h2>
+      <div class="nom-recipe__variations-rail">
+        @for (variation of variations(); track variation.id) {
+          <a class="nom-recipe__variation-card"
+             [routerLink]="'/recipe/' + variation.id"
+             data-testid="recipe-variations-item">
+            @if (variation.image) {
+              <img class="nom-recipe__variation-image" [src]="variation.image" [alt]="variation.name" loading="lazy" />
+            } @else {
+              <div class="nom-recipe__variation-placeholder">
+                <mat-icon>restaurant</mat-icon>
+              </div>
+            }
+            <span class="nom-recipe__variation-name">{{ variation.name }}</span>
+            @if (variation.rating && variation.rating > 0) {
+              <span class="nom-recipe__variation-rating">
+                <mat-icon>star</mat-icon>
+                {{ variation.rating | number:'1.1-1' }}
+              </span>
+            }
+          </a>
+        }
+      </div>
+    </section>
+  }
 } @else {
   <div class="nom-recipe__not-found" data-testid="recipe-not-found">
     <mat-icon class="nom-recipe__not-found-icon">search_off</mat-icon>

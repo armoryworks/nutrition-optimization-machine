@@ -623,3 +623,89 @@
     height: 160px;
   }
 }
+
+// Dish group chip + variations rail
+.nom-recipe__dish-group-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  margin-bottom: vars.$spacing-3;
+  padding: 2px vars.$spacing-3;
+  border-radius: vars.$nom-border-radius-lg;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font-size: vars.$font-size-xs;
+  text-decoration: none;
+  text-transform: capitalize;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.nom-recipe__variations {
+  margin-top: vars.$spacing-6;
+}
+
+.nom-recipe__variations-title {
+  font-size: vars.$font-size-lg;
+  margin: 0 0 vars.$spacing-3;
+}
+
+.nom-recipe__variations-dish {
+  text-transform: capitalize;
+}
+
+.nom-recipe__variations-rail {
+  display: flex;
+  gap: vars.$spacing-3;
+  overflow-x: auto;
+  padding-bottom: vars.$spacing-2;
+}
+
+.nom-recipe__variation-card {
+  flex: 0 0 180px;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+  text-decoration: none;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-recipe__variation-image,
+.nom-recipe__variation-placeholder {
+  width: 180px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: vars.$nom-border-radius;
+}
+
+.nom-recipe__variation-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-recipe__variation-name {
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-medium;
+}
+
+.nom-recipe__variation-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--mat-sys-primary);
+  }
+}

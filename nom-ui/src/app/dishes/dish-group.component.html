@@ -1,0 +1,59 @@
+<div class="nom-dashboard" data-testid="dish-group">
+  <div class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <a routerLink="/dishes" class="nom-dashboard__back" data-testid="dish-group-back-link">
+        <mat-icon>arrow_back</mat-icon>
+        All dishes
+      </a>
+      @if (group(); as g) {
+        <h1 class="nom-dashboard__title nom-dishes__name">{{ g.name }}</h1>
+        <p class="nom-dashboard__subtitle">
+          {{ g.recipeCount }} {{ g.recipeCount === 1 ? 'take' : 'takes' }} on this dish
+        </p>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="nom-dashboard__empty">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <nom-error-banner [message]="error()" />
+  } @else if (group(); as g) {
+    @if (g.recipes.length === 0) {
+      <div class="nom-dashboard__empty" data-testid="dish-group-empty">
+        <mat-icon class="nom-dashboard__empty-icon">restaurant_menu</mat-icon>
+        <h2 class="nom-dashboard__empty-title">No recipes visible</h2>
+        <p class="nom-dashboard__empty-message">
+          No recipes in this dish group are visible to you yet.
+        </p>
+      </div>
+    } @else {
+      <div class="nom-dashboard__grid" data-testid="dish-group-list">
+        @for (recipe of g.recipes; track recipe.id) {
+          <a class="nom-dashboard__card nom-dashboard__card--clickable"
+             [routerLink]="'/recipe/' + recipe.id"
+             data-testid="dish-group-recipe-card">
+            <div class="nom-dashboard__card-content nom-dishes__recipe-card">
+              @if (recipe.image) {
+                <img class="nom-dishes__recipe-image" [src]="recipe.image" [alt]="recipe.name" loading="lazy" />
+              } @else {
+                <div class="nom-dishes__recipe-image-placeholder">
+                  <mat-icon>restaurant</mat-icon>
+                </div>
+              }
+              <span class="nom-dashboard__card-title">{{ recipe.name }}</span>
+              @if (recipe.rating && recipe.rating > 0) {
+                <span class="nom-dishes__recipe-rating">
+                  <mat-icon>star</mat-icon>
+                  {{ recipe.rating | number:'1.1-1' }}
+                </span>
+              }
+            </div>
+          </a>
+        }
+      </div>
+    }
+  }
+</div>

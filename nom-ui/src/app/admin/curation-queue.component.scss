@@ -149,3 +149,19 @@
 .nom-curation__spacer {
   flex: 1;
 }
+
+.nom-curation__dish-group {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-3;
+  margin-top: vars.$spacing-3;
+
+  button {
+    margin-top: vars.$spacing-2;
+  }
+}
+
+.nom-curation__dish-group-field {
+  flex: 1;
+  max-width: 420px;
+}

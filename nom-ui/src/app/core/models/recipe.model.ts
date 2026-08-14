@@ -1,6 +1,7 @@
 import { RecipeIngredientModel } from './recipe-ingredient.model';
 import { RecipeStepModel } from './recipe-step.model';
 import { RecipeNutritionModel } from './recipe-nutrition.model';
+import { RecipeDishGroupRef } from './dish-group.model';
 
 export interface RecipeVariationItemModel {
   /** The recipe's original ingredient id being replaced. */
@@ -40,6 +41,8 @@ export interface RecipeModel {
   createdDate: string;
   modifiedDate?: string;
   curationStatus: string;
+  /** The canonical dish this recipe is a take on, when classified. */
+  dishGroup?: RecipeDishGroupRef | null;
   ingredients?: RecipeIngredientModel[];
   steps?: RecipeStepModel[];
   nutrition?: RecipeNutritionModel[];
