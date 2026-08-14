@@ -29,6 +29,27 @@ namespace Nom.Import
                 return;
             }
 
+            // Roll back an FDC import batch: soft-delete FDC-sourced ingredients that no authored
+            // recipe references. `dotnet run -- --purge-fdc`. Safety valve for a bad import.
+            if (args.Contains("--purge-fdc"))
+            {
+                using var purgeScope = host.Services.CreateScope();
+                var db = purgeScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var referenced = db.RecipeIngredients.Select(ri => ri.IngredientId);
+                var toPurge = await db.Ingredients
+                    .Where(i => i.FdcId != null && !i.IsDeleted && !referenced.Contains(i.Id))
+                    .ToListAsync();
+                foreach (var i in toPurge)
+                {
+                    i.IsDeleted = true;
+                    i.DeletedAt = DateTime.UtcNow;
+                    i.LastModifiedDate = DateTime.UtcNow;
+                }
+                await db.SaveChangesAsync();
+                Console.WriteLine($"Purged {toPurge.Count} unreferenced FDC-sourced ingredients (soft delete).");
+                return;
+            }
+
             using (var scope = host.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;

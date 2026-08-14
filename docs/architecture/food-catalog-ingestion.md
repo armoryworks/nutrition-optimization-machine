@@ -57,11 +57,24 @@ Rejects physically implausible records so noisy FDC branded data doesn't pollute
 the catalog:
 
 - Energy ≤ 900 kcal/100g; each macro ≤ 100 g/100g; macro sum ≤ 105 g/100g.
-- Required: name (alphabetic, ≤ 200 chars), calories, macros, plausible serving
-  (0.5–2000 g).
+- Required: name (alphabetic, ≤ 200 chars), calories, macros.
 - **Atwater cross-check**: 4·protein + 4·carb + 9·fat must land within ±30% of
   stated calories (skipped below 20 kcal so low-calorie foods don't trip it) —
   catches mis-scaled units.
+
+**Serving size is NOT validated.** Per-100g nutrition is the stable, person-
+independent fact. The amount a person actually eats is derived per-person from
+their caloric need / metabolic rate (the same way portions scale recipes), not
+stored as a fixed per-food value. So the catalog stores per-100g facts; serving
+is a downstream, per-person computation.
+
+## Provenance & re-runnability
+
+Every FDC-sourced ingredient already carries `FdcId` (+ `FdcDataType`), so FDC
+records are identifiable for a clean purge-and-rerun (`WHERE "FdcId" IS NOT NULL`).
+`Nom.Import --purge-fdc` soft-deletes FDC-sourced ingredients (skipping any still
+referenced by a recipe) so a bad import batch can be rolled back without touching
+authored data. **Gauge quality in staging first; never import straight into prod.**
 
 Both the FDC import and the gated fetch call this before persisting.
 
