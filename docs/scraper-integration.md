@@ -102,7 +102,7 @@ Contract rules an implementation must honor:
 With a scraper configured, NOM can look for new public recipe sources automatically:
 
 ```json
-"SourceDiscovery": { "Enabled": true, "IntervalHours": 168, "MaxCandidatesPerRun": 10 }
+"SourceDiscovery": { "Enabled": true, "IntervalHours": 168, "MaxCandidatesPerRun": 10, "AutoApprove": false }
 ```
 
 On each run, NOM sends its **approved** domains to the scraper's `/api/discover`;
@@ -114,6 +114,17 @@ domains. Domains an admin has rejected are never re-proposed.
 
 Discovery needs at least one approved source to seed from, so approve a first
 site by importing from it (or inserting a row) before enabling this.
+
+With `AutoApprove: true` (off by default), candidates that pass a **clean-probe
+gate** skip the queue entirely: NOM scrapes the candidate's evidence URL through
+the scraper service (robots-aware, one page) and auto-whitelists the domain only
+when the probe returns a complete structured recipe — https, schema.org JSON-LD
+present, at least one ingredient and step, and zero vetting issues. Anything
+less stays Pending for human review. Admins are still notified of every
+auto-approval, with a pointer to Admin → Scraping Sources to revoke it; a
+rejected domain is never auto-approved or re-proposed. Enabling this widens the
+set of sites scraped without a human in the loop — the operator-responsibility
+posture above applies to that choice.
 
 ## Media storage (optional)
 
