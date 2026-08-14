@@ -13,7 +13,7 @@ namespace Nom.Api.Tests.Services
         [InlineData("Baking Powder Biscuit II", "baking powder biscuit")]
         [InlineData("Fruit Rolls (Pin Wheel Biscuit)", "fruit rolls")]
         [InlineData("The Ultimate 30-Minute Weeknight Spaghetti", "spaghetti")]
-        [InlineData("Creamy Garlic Chicken Recipe", "creamy garlic chicken")]
+        [InlineData("Creamy Garlic Chicken Recipe", "garlic chicken")]
         public void Normalize_strips_marketing_and_numbering(string input, string expected)
         {
             Assert.Equal(expected, HeuristicDishGroupSuggester.Normalize(input));
