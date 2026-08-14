@@ -24,6 +24,9 @@ namespace Nom.Orch.Models.Recipe
         public DateTime CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
         public string? CurationStatus { get; set; }
+
+        /// <summary>The canonical dish this recipe is a take on, when classified.</summary>
+        public RecipeDishGroupModel? DishGroup { get; set; }
         public List<RecipeIngredientModel> Ingredients { get; set; } = new();
 
         /// <summary>The caller's saved default variation, when authenticated and one exists.</summary>
@@ -31,4 +34,12 @@ namespace Nom.Orch.Models.Recipe
         public List<RecipeStepModel> Steps { get; set; } = new();
         public List<RecipeNutritionSearchModel> Nutrition { get; set; } = new();
     }
-} 
+
+    /// <summary>Compact dish-group reference on the recipe detail response.</summary>
+    public class RecipeDishGroupModel
+    {
+        public long Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Slug { get; set; } = string.Empty;
+    }
+}

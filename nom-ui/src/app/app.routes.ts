@@ -53,6 +53,14 @@ export const routes: Routes = [
     loadComponent: () => import('./search/search.component').then((m) => m.Search),
   },
   {
+    path: 'dishes',
+    loadComponent: () => import('./dishes/dish-groups.component').then((m) => m.DishGroups),
+  },
+  {
+    path: 'dishes/:slug',
+    loadComponent: () => import('./dishes/dish-group.component').then((m) => m.DishGroup),
+  },
+  {
     path: 'register',
     loadComponent: () => import('./auth/register.component').then((m) => m.Register),
     canActivate: [guestGuard],
