@@ -21,6 +21,16 @@ namespace Nom.Orch.Interfaces
         /// </summary>
         Task<ScrapingSourceModel> RequestSourceAsync(string url, long? requestedByPersonId, string? note = null);
 
+        /// <summary>
+        /// Registers the URL's domain as an already-Approved source with automated
+        /// (system) provenance — used by source discovery when a candidate passes
+        /// the clean-probe gate. Idempotent: an existing row for the domain is
+        /// returned untouched, so a human decision (including Rejected) is never
+        /// overridden. Admins are notified that the domain was auto-whitelisted
+        /// and where to revoke it.
+        /// </summary>
+        Task<ScrapingSourceModel> RegisterAutoApprovedSourceAsync(string url, string reason);
+
         Task<List<ScrapingSourceModel>> ListAsync(ScrapingSourceStatusEnum? status);
 
         Task<ScrapingSourceModel?> ApproveAsync(long id, long reviewerPersonId, string? notes);
