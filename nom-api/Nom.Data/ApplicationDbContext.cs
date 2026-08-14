@@ -114,6 +114,7 @@ namespace Nom.Data
         public DbSet<IngredientAliasEntity> IngredientAliases { get; set; } = default!;
         public DbSet<IngredientEntity> Ingredients { get; set; } = default!;
         public DbSet<RecipeEntity> Recipes { get; set; } = default!;
+        public DbSet<DishGroupEntity> DishGroups { get; set; } = default!;
         public DbSet<AudienceEntity> Audiences { get; set; } = default!;
         public DbSet<AudienceMemberEntity> AudienceMembers { get; set; } = default!;
         public DbSet<RecipeAudienceEntity> RecipeAudiences { get; set; } = default!;

@@ -93,6 +93,13 @@ namespace Nom.Data.Recipe
         /// </summary>
         public string? VettingIssues { get; set; }
 
+        /// <summary>
+        /// The canonical dish this recipe is a take on ("chocolate chip
+        /// cookies"). Null = not yet classified. See <see cref="DishGroupEntity"/>.
+        /// </summary>
+        public long? DishGroupId { get; set; }
+        public virtual DishGroupEntity? DishGroup { get; set; }
+
         // Social features (from Mealie)
         /// <summary>
         /// Visibility tier (see _RecipeVisibilityEnum). Public preserves the
