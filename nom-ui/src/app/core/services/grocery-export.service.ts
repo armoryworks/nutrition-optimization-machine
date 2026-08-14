@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   GroceryConnectStart,
+  GroceryExportItemsRequest,
   GroceryExportOptions,
   GroceryExportResult,
   GroceryProviderInfo,
@@ -37,6 +38,15 @@ export class GroceryExportService {
    */
   exportList(shoppingListId: number, options: GroceryExportOptions): Observable<GroceryExportResult> {
     return this.http.post<GroceryExportResult>(`${this.apiUrl}/list/${shoppingListId}`, options);
+  }
+
+  /**
+   * Send a list the client is holding — the shopping page's projection is
+   * computed from the meal plan and has no persisted row behind it. Same
+   * result shape and same 200-on-logical-failure contract as `exportList`.
+   */
+  exportItems(request: GroceryExportItemsRequest): Observable<GroceryExportResult> {
+    return this.http.post<GroceryExportResult>(`${this.apiUrl}/items`, request);
   }
 
   /**

@@ -30,9 +30,7 @@ import { RetailPackagingService } from '../core/services/retail-packaging.servic
 import { MeasurementService } from '../core/services/measurement.service';
 import { PortionService } from '../core/services/portion.service';
 import { GroceryExportService } from '../core/services/grocery-export.service';
-import { ShoppingListService } from '../core/services/shopping-list.service';
-import { GroceryProviderInfo } from '../core/models/grocery-export.model';
-import { ShoppingListResponse } from '../core/models/shopping-list-response.model';
+import { GroceryExportItem, GroceryProviderInfo } from '../core/models/grocery-export.model';
 import {
   GroceryExportDialog,
   GroceryExportDialogData,
@@ -103,7 +101,6 @@ export class ShoppingComponent implements OnInit {
   private measurementService = inject(MeasurementService);
   private portionService = inject(PortionService);
   private groceryExportService = inject(GroceryExportService);
-  private shoppingListService = inject(ShoppingListService);
   private dialog = inject(MatDialog);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -387,26 +384,15 @@ export class ShoppingComponent implements OnInit {
    */
   providers = signal<GroceryProviderInfo[]>([]);
 
-  /** Saved shopping lists, loaded only when there is somewhere to send them. */
-  private savedLists = signal<ShoppingListResponse[]>([]);
-
   /** Notice shown after returning from a retailer's consent screen. */
   connectNotice = signal<{ ok: boolean; message: string } | null>(null);
 
-  /**
-   * The saved list a "Send to…" targets: the current household's most recently
-   * touched one. The export API works on persisted lists, not on the meal-plan
-   * projection rendered above.
-   */
-  exportTarget = computed<ShoppingListResponse | null>(() => {
-    const lists = this.savedLists();
-    if (lists.length === 0) return null;
-    const householdId = this.householdId();
-    const scoped = lists.filter((l) => l.householdId === householdId);
-    const candidates = scoped.length > 0 ? scoped : lists;
-    return [...candidates].sort((a, b) =>
-      (b.modifiedDate ?? b.createdDate).localeCompare(a.modifiedDate ?? a.createdDate),
-    )[0];
+  /** The stretch of meals being shopped, used as the export title. */
+  exportTitle = computed(() => {
+    const today = new Date();
+    const last = ShoppingComponent.addDays(today, this.daysAhead() - 1);
+    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    return `Shopping List — ${today.toLocaleDateString(undefined, opts)} – ${last.toLocaleDateString(undefined, opts)}`;
   });
 
   // --- Inline quantity editing ---
@@ -531,39 +517,60 @@ export class ShoppingComponent implements OnInit {
         catchError(() => of([] as GroceryProviderInfo[])),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe((providers) => {
-        this.providers.set(providers);
-        if (providers.length > 0) {
-          this.loadSavedLists();
-        }
-      });
-  }
-
-  private loadSavedLists(): void {
-    this.shoppingListService
-      .getAll()
-      .pipe(
-        catchError(() => of([] as ShoppingListResponse[])),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((lists) => this.savedLists.set(lists));
+      .subscribe((providers) => this.providers.set(providers));
   }
 
   openSendTo(): void {
     const providers = this.providers();
     if (providers.length === 0) return;
 
-    const target = this.exportTarget();
     this.dialog.open(GroceryExportDialog, {
       data: {
         providers,
-        shoppingListId: target?.id ?? null,
-        listName: target?.name ?? 'Shopping List',
+        // Evaluated when the user sends, so the toggle sees current check state.
+        buildItems: (excludeChecked: boolean) => this.buildExportItems(excludeChecked),
+        title: this.exportTitle(),
         // Where the retailer consent flow lands the browser again.
         returnUrl: this.router.url.split('?')[0],
       } satisfies GroceryExportDialogData,
       autoFocus: false,
     });
+  }
+
+  /**
+   * Flatten the rendered projection into export lines. The projection carries
+   * amounts as display portions (and honours the user's inline overrides), not
+   * as a single number+unit, so that text rides along in `note` and
+   * `quantity`/`unit` stay unset rather than being guessed at.
+   */
+  private buildExportItems(excludeChecked: boolean): GroceryExportItem[] {
+    const checked = this.checkedItems();
+    const items: GroceryExportItem[] = [];
+
+    for (const dept of this.departments()) {
+      for (const item of dept.items) {
+        if (excludeChecked && checked.has(item.checkKey)) continue;
+
+        const note = this.getDisplayText(item).trim();
+        items.push({
+          name: item.name,
+          category: dept.name,
+          packageHint: this.packageHint(item),
+          note: note || undefined,
+        });
+      }
+    }
+
+    return items;
+  }
+
+  /** e.g. "2 × 5 lb bag" — helps the retailer land on a sane package size. */
+  private packageHint(item: ShoppingItem): string | undefined {
+    const pkg = item.retailPackage;
+    if (!pkg) return undefined;
+
+    const size = `${formatQuantity(pkg.packageSize)} ${pkg.packageSizeUnit} ${pkg.packageName}`.trim();
+    return item.retailPackageCount > 1 ? `${item.retailPackageCount} × ${size}` : size;
   }
 
   /**

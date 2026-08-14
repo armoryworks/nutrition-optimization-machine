@@ -14,6 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { GroceryExportService } from '../core/services/grocery-export.service';
 import {
   GroceryExportFormat,
+  GroceryExportItem,
   GroceryExportResult,
   GroceryProviderInfo,
   GroceryStore,
@@ -22,9 +23,13 @@ import {
 export interface GroceryExportDialogData {
   /** Destinations the API reported — never empty; the caller hides the entry point otherwise. */
   providers: GroceryProviderInfo[];
-  /** The saved list being sent. Null when the household has none yet. */
-  shoppingListId: number | null;
-  listName: string;
+  /**
+   * Builds the lines to send. Called at send time, not open time, so the
+   * exclude-checked toggle reflects whatever is checked off right now.
+   */
+  buildItems: (excludeChecked: boolean) => GroceryExportItem[];
+  /** Title for the export; omitted from the request when blank. */
+  title: string;
   /** App path the retailer consent flow returns to, e.g. `/shopping`. */
   returnUrl: string;
 }
@@ -105,7 +110,6 @@ export class GroceryExportDialog {
   canSend = computed(() => {
     const provider = this.selected();
     if (!provider || !provider.configured || this.sending()) return false;
-    if (this.data.shoppingListId === null) return false;
     return !this.needsConnection();
   });
 
@@ -128,17 +132,21 @@ export class GroceryExportDialog {
 
   send(): void {
     const provider = this.selected();
-    const listId = this.data.shoppingListId;
-    if (!provider || listId === null || this.sending()) return;
+    if (!provider || this.sending()) return;
 
     this.sending.set(true);
     this.error.set('');
 
+    const items: GroceryExportItem[] = this.data.buildItems(this.excludeChecked());
+    const title = this.data.title.trim();
+
     this.groceryExport
-      .exportList(listId, {
+      .exportItems({
         provider: provider.key,
         format: provider.kind === 'Text' ? this.format() : undefined,
-        excludeChecked: this.excludeChecked(),
+        // Blank falls through to the server's dated default.
+        title: title || undefined,
+        items,
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -212,7 +220,7 @@ export class GroceryExportDialog {
   share(): void {
     const text = this.result()?.text;
     if (!text) return;
-    navigator.share({ title: this.data.listName, text }).catch(() => {
+    navigator.share({ title: this.data.title || 'Shopping List', text }).catch(() => {
       /* the user dismissed the share sheet */
     });
   }

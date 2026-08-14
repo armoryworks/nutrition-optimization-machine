@@ -51,6 +51,36 @@ export interface GroceryExportOptions {
   excludeChecked?: boolean;
 }
 
+/**
+ * One line of an ad-hoc export. `quantity`/`unit` stay unset when the caller
+ * only has display text for the amount — `note` carries that instead, and
+ * inventing a number would mislead the retailer's matcher.
+ */
+export interface GroceryExportItem {
+  name: string;
+  quantity?: number;
+  unit?: string;
+  /** Retail package the amount rounds up to, e.g. "2 × 5 lb bag". */
+  packageHint?: string;
+  /** Store department / aisle grouping. */
+  category?: string;
+  note?: string;
+}
+
+/**
+ * Body of `POST /GroceryExport/items` — exports a list the client is holding
+ * rather than a persisted one. Blank-name lines are dropped server-side, and
+ * an empty payload comes back `success: false` without contacting the retailer.
+ */
+export interface GroceryExportItemsRequest {
+  provider: string;
+  /** Text providers only; defaults to `plain` server-side. */
+  format?: GroceryExportFormat;
+  /** Omit to accept the server's dated default title. */
+  title?: string;
+  items: GroceryExportItem[];
+}
+
 /** Response of `POST /GroceryExport/connect/{provider}` — where to send the browser. */
 export interface GroceryConnectStart {
   url: string;
