@@ -18,6 +18,17 @@ namespace Nom.Import
         {
             var host = CreateHostBuilder(args).Build();
 
+            // Standalone command: classify the ingredient catalog into food groups + whole-food
+            // flags. `dotnet run -- --enrich-food-groups [--overwrite]`. Runs and exits.
+            if (args.Contains("--enrich-food-groups"))
+            {
+                using var enrichScope = host.Services.CreateScope();
+                var enrich = enrichScope.ServiceProvider.GetRequiredService<FoodGroupEnrichmentService>();
+                var updated = await enrich.EnrichAsync(overwrite: args.Contains("--overwrite"));
+                Console.WriteLine($"Food-group enrichment complete: {updated} ingredients updated.");
+                return;
+            }
+
             using (var scope = host.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
@@ -83,9 +94,32 @@ namespace Nom.Import
 
                     // Add logging
                     services.AddLogging();
+                    services.AddHttpClient();
 
                     // Register measurement data import service
                     services.AddScoped<MeasurementDataImportService>();
+
+                    // Food-group / whole-food enrichment. AI (Ollama) is optional and
+                    // config-gated on AiEnhancement:OllamaUrl; absent = heuristic only.
+                    var aiSettings = new Nom.Import.Settings.AiEnhancementSettings();
+                    hostContext.Configuration.GetSection("ImportSettings:AiEnhancement").Bind(aiSettings);
+                    services.AddSingleton(aiSettings);
+
+                    if (aiSettings.EnableAiEnhancement
+                        && aiSettings.AiProvider.Equals("Ollama", StringComparison.OrdinalIgnoreCase)
+                        && !string.IsNullOrWhiteSpace(aiSettings.OllamaUrl))
+                    {
+                        services.AddScoped<Nom.Import.Services.IAiService>(sp =>
+                            new Nom.Import.Services.AiServices.OllamaService(
+                                sp.GetRequiredService<IHttpClientFactory>().CreateClient(),
+                                aiSettings.OllamaModel, aiSettings.OllamaUrl));
+                    }
+
+                    services.AddScoped<FoodGroupEnrichmentService>(sp => new FoodGroupEnrichmentService(
+                        sp.GetRequiredService<ApplicationDbContext>(),
+                        sp.GetRequiredService<ILogger<FoodGroupEnrichmentService>>(),
+                        sp.GetService<Nom.Import.Services.IAiService>(),
+                        aiSettings.BatchSize > 0 ? aiSettings.BatchSize : 50));
                 });
     }
 }

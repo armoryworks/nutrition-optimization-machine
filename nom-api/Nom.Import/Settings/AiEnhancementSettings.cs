@@ -17,6 +17,12 @@ namespace Nom.Import.Settings
         /// </summary>
         public string AiProvider { get; set; } = "OpenAI";
 
+        /// <summary>Ollama base URL (self-hosted local model). Empty/unset = AI off, heuristic only.</summary>
+        public string OllamaUrl { get; set; } = "";
+
+        /// <summary>Ollama model tag for classification.</summary>
+        public string OllamaModel { get; set; } = "qwen2.5:3b";
+
         /// <summary>
         /// Number of ingredients to process in each batch.
         /// </summary>
