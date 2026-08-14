@@ -47,10 +47,12 @@ namespace Nom.Orch.Services
             var ingredients = await _context.Ingredients
                 .Include(i => i.CurationStatus)
                 .Include(i => i.Aliases)
+                .Include(i => i.FoodGroup)
                 .Where(i => i.Name.ToLower().Contains(searchTerm) ||
                             (i.NameNormalized != null && i.NameNormalized.ToLower().Contains(searchTerm)) ||
                             i.Aliases.Any(a => a.AliasName.ToLower().Contains(searchTerm)))
-                .OrderBy(i => i.Name.Length) // Prioritize shorter names (exact matches)
+                .OrderByDescending(i => i.IsWholeFood == true) // Surface directly-edible whole foods first
+                .ThenBy(i => i.Name.Length) // then shorter names (exact matches)
                 .ThenBy(i => i.Name)
                 .Take(20) // Limit results for performance
                 .ToListAsync();
@@ -60,7 +62,10 @@ namespace Nom.Orch.Services
                 Id = i.Id,
                 Name = i.Name,
                 FdcId = i.FdcId,
-                MatchedAlias = i.Aliases.FirstOrDefault(a => a.AliasName.ToLower().Contains(searchTerm))?.AliasName
+                MatchedAlias = i.Aliases.FirstOrDefault(a => a.AliasName.ToLower().Contains(searchTerm))?.AliasName,
+                FoodGroupId = i.FoodGroupId,
+                FoodGroupName = i.FoodGroup != null ? i.FoodGroup.Name : null,
+                IsWholeFood = i.IsWholeFood
             }).ToList();
         }
 

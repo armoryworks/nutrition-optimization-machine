@@ -10,6 +10,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
 import { RecipeSearchService } from '../../core/services/recipe-search.service';
 import { MealPlanService } from '../../core/services/meal-plan.service';
+import { IngredientLookupService } from '../../core/services/ingredient-lookup.service';
+import { IngredientLookupResult } from '../../core/models/ingredient-lookup-result.model';
 import { RecipeSearchResult } from '../../core/models/recipe-search-result.model';
 import { MealPlanEntry } from '../../core/models/meal-plan-entry.model';
 
@@ -43,6 +45,7 @@ export class RecipeSearchDialog implements OnInit {
   data: RecipeSearchDialogData = inject(MAT_DIALOG_DATA);
   private recipeSearchService = inject(RecipeSearchService);
   private mealPlanService = inject(MealPlanService);
+  private ingredientLookup = inject(IngredientLookupService);
   private destroyRef = inject(DestroyRef);
 
   entries = signal<MealPlanEntry[]>([]);
@@ -57,6 +60,12 @@ export class RecipeSearchDialog implements OnInit {
 
   noteTitle = signal('');
   noteText = signal('');
+
+  // Whole-food (standalone item) search
+  wholeFoodQuery = signal('');
+  wholeFoodResults = signal<IngredientLookupResult[]>([]);
+  wholeFoodSearching = signal(false);
+  private wholeFoodSubject = new Subject<string>();
 
   private searchSubject = new Subject<string>();
 
@@ -91,11 +100,83 @@ export class RecipeSearchDialog implements OnInit {
         this.results.set([]);
       },
     });
+
+    this.wholeFoodSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(query => {
+        if (!query || query.length < 2) {
+          return of([] as IngredientLookupResult[]);
+        }
+        this.wholeFoodSearching.set(true);
+        return this.ingredientLookup.search(query);
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (results) => {
+        this.wholeFoodSearching.set(false);
+        this.wholeFoodResults.set(results ?? []);
+      },
+      error: () => {
+        this.wholeFoodSearching.set(false);
+        this.wholeFoodResults.set([]);
+      },
+    });
   }
 
   onSearchInput(query: string): void {
     this.searchQuery.set(query);
     this.searchSubject.next(query);
+  }
+
+  onWholeFoodInput(query: string): void {
+    this.wholeFoodQuery.set(query);
+    this.wholeFoodSubject.next(query);
+  }
+
+  addWholeFood(ingredient: IngredientLookupResult): void {
+    this.busy.set(true);
+    this.mealPlanService.createMealPlan({
+      householdId: this.data.householdId,
+      date: this.data.date,
+      mealTypeId: this.data.mealTypeId,
+      title: ingredient.name,
+      notes: null,
+      recipeId: null,
+      ingredientId: ingredient.id,
+      quantity: 1,
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (response) => {
+        this.entries.update(list => [...list, {
+          id: response.id,
+          recipeId: null,
+          recipeName: null,
+          recipeImage: null,
+          ingredientId: ingredient.id,
+          ingredientName: ingredient.name,
+          quantity: 1,
+          foodGroupId: ingredient.foodGroupId,
+          foodGroupName: ingredient.foodGroupName,
+          title: response.title,
+          notes: response.notes,
+          calories: null,
+          proteinGrams: null,
+          carbGrams: null,
+          fatGrams: null,
+          completedDate: null,
+          shoppingCompletedAt: null,
+        }]);
+        this.changed.set(true);
+        this.busy.set(false);
+        this.wholeFoodQuery.set('');
+        this.wholeFoodResults.set([]);
+      },
+      error: () => {
+        this.busy.set(false);
+      },
+    });
   }
 
   surpriseMe(): void {

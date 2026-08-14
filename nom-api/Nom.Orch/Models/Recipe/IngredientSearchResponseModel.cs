@@ -7,5 +7,8 @@ namespace Nom.Orch.Models.Recipe
         public string Name { get; set; } = string.Empty;
         public string? FdcId { get; set; }
         public string? MatchedAlias { get; set; } // The alias that matched the search term, if any
+        public long? FoodGroupId { get; set; }
+        public string? FoodGroupName { get; set; }
+        public bool? IsWholeFood { get; set; }
     }
 }
