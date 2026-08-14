@@ -1,11 +1,7 @@
 <h2 mat-dialog-title>Send to&hellip;</h2>
 
 <mat-dialog-content class="nom-grocery-export" data-testid="grocery-export-dialog">
-  @if (data.shoppingListId === null) {
-    <p class="nom-grocery-export__notice" data-testid="grocery-export-no-list">
-      There's no saved shopping list to send yet. Save this trip as a shopping list first.
-    </p>
-  } @else if (step() === 'store') {
+  @if (step() === 'store') {
     <!-- ===== Step: choose the store this cart is filled at ===== -->
     <p class="nom-grocery-export__hint">
       Pick the store {{ selected()?.displayName }} should fill your cart at.
@@ -63,7 +59,7 @@
   } @else {
     <!-- ===== Step: pick a destination ===== -->
     <p class="nom-grocery-export__hint">
-      Sending <strong>{{ data.listName }}</strong>.
+      Sending <strong>{{ data.title }}</strong>.
     </p>
 
     <ul class="nom-grocery-export__providers" data-testid="grocery-export-providers">
