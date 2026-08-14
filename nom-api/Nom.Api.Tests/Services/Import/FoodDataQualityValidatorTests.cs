@@ -12,12 +12,12 @@ namespace Nom.Api.Tests.Services.Import
     {
         private readonly FoodDataQualityValidator _v = new();
 
-        // A realistic banana per 100g: 89 kcal, 1.1 protein, 23 carb, 0.3 fat, 118g serving.
+        // A realistic banana per 100g: 89 kcal, 1.1 protein, 23 carb, 0.3 fat.
         private static FoodQualityInput Banana(
             string? name = "Banana, raw",
             decimal? kcal = 89m, decimal? protein = 1.1m, decimal? carb = 23m,
-            decimal? fat = 0.3m, decimal? serving = 118m) =>
-            new(name, kcal, protein, carb, fat, serving);
+            decimal? fat = 0.3m) =>
+            new(name, kcal, protein, carb, fat);
 
         [Fact]
         public void Accepts_PlausibleWholeFood()
@@ -29,7 +29,7 @@ namespace Nom.Api.Tests.Services.Import
         public void Accepts_PureFat_AtEnergyCeiling()
         {
             // Oil: ~884 kcal, 0/0/100 — extreme but real; must pass.
-            var oil = new FoodQualityInput("Olive Oil", 884m, 0m, 0m, 100m, 14m);
+            var oil = new FoodQualityInput("Olive Oil", 884m, 0m, 0m, 100m);
             _v.Validate(oil).Accepted.Should().BeTrue();
         }
 
@@ -64,11 +64,11 @@ namespace Nom.Api.Tests.Services.Import
         [Fact]
         public void Rejects_MissingCaloriesAndMacros()
         {
-            var r = _v.Validate(new FoodQualityInput("Mystery", null, null, null, null, null));
+            var r = _v.Validate(new FoodQualityInput("Mystery", null, null, null, null));
             r.Accepted.Should().BeFalse();
             r.Reasons.Should().Contain(new[]
             {
-                "calories_missing", "protein_missing", "carb_missing", "fat_missing", "serving_missing",
+                "calories_missing", "protein_missing", "carb_missing", "fat_missing",
             });
         }
 
@@ -77,13 +77,6 @@ namespace Nom.Api.Tests.Services.Import
         {
             _v.Validate(Banana(name: "")).Reasons.Should().Contain("name_missing");
             _v.Validate(Banana(name: "12345 %%%")).Reasons.Should().Contain("name_not_alphabetic");
-        }
-
-        [Fact]
-        public void Rejects_ImplausibleServing()
-        {
-            _v.Validate(Banana(serving: 0m)).Reasons.Should().Contain("serving_implausible");
-            _v.Validate(Banana(serving: 9000m)).Reasons.Should().Contain("serving_implausible");
         }
 
         [Fact]
@@ -99,7 +92,7 @@ namespace Nom.Api.Tests.Services.Import
         public void SkipsAtwater_ForVeryLowCalorieFoods()
         {
             // Lettuce-ish: tiny calories where the Atwater ratio is too noisy to judge.
-            var r = _v.Validate(new FoodQualityInput("Iceberg Lettuce", 14m, 0.9m, 3m, 0.1m, 72m));
+            var r = _v.Validate(new FoodQualityInput("Iceberg Lettuce", 14m, 0.9m, 3m, 0.1m));
             r.Reasons.Should().NotContain("atwater_mismatch");
             r.Accepted.Should().BeTrue();
         }

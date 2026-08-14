@@ -3,14 +3,17 @@ using System.Collections.Generic;
 
 namespace Nom.Data.Nutrition
 {
-    /// <summary>Per-100g nutrition + serving facts for one candidate food, pre-validation.</summary>
+    /// <summary>
+    /// Per-100g nutrition facts for one candidate food, pre-validation. Per-100g is the stable,
+    /// person-independent fact; the actual serving a person eats is derived per-person from their
+    /// caloric need (like portions), so it is intentionally NOT part of quality validation.
+    /// </summary>
     public sealed record FoodQualityInput(
         string? Name,
         decimal? KcalPer100g,
         decimal? ProteinGramsPer100g,
         decimal? CarbGramsPer100g,
-        decimal? FatGramsPer100g,
-        decimal? ServingGrams);
+        decimal? FatGramsPer100g);
 
     /// <summary>Outcome of quality validation; <see cref="Reasons"/> lists every failed check.</summary>
     public sealed record FoodQualityResult(bool Accepted, IReadOnlyList<string> Reasons)
@@ -38,8 +41,6 @@ namespace Nom.Data.Nutrition
         /// <summary>Protein+carb+fat can't meaningfully exceed 100 g/100g (small slack for rounding).</summary>
         public decimal MaxMacroSumPer100g { get; init; } = 105m;
 
-        public decimal MinServingGrams { get; init; } = 0.5m;
-        public decimal MaxServingGrams { get; init; } = 2000m;
         public int MaxNameLength { get; init; } = 200;
 
         /// <summary>
@@ -84,12 +85,6 @@ namespace Nom.Data.Nutrition
             if (f.ProteinGramsPer100g is { } p && f.CarbGramsPer100g is { } c && f.FatGramsPer100g is { } fat
                 && p >= 0 && c >= 0 && fat >= 0 && (p + c + fat) > MaxMacroSumPer100g)
                 reasons.Add("macro_sum_impossible");
-
-            // Serving size
-            if (f.ServingGrams is not { } serving)
-                reasons.Add("serving_missing");
-            else if (serving < MinServingGrams || serving > MaxServingGrams)
-                reasons.Add("serving_implausible");
 
             // Atwater cross-check (only when we have all macros + a usable calorie figure)
             if (f.KcalPer100g is { } k && k >= AtwaterMinKcal
