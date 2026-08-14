@@ -300,8 +300,20 @@ export class RecipeDetail {
     });
   }
 
+  /** A dead hero image URL just drops the hero — title carries the page. */
+  onHeroImageError(): void {
+    this.recipe.update((r) => (r ? { ...r, imageUrl: undefined } : r));
+  }
+
   /** Recipe-scoped substitutions + augmentations load alongside the recipe; failures just mean none show. */
   private loadEnhancements(id: number): void {
+    // Both endpoints require auth — anonymous readers get none, so don't
+    // burn two guaranteed-401 requests per recipe view.
+    if (!this.loggedIn()) {
+      this.recipeSubs.set([]);
+      this.augmentations.set([]);
+      return;
+    }
     this.recipeService.getSubstitutions(id).pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({

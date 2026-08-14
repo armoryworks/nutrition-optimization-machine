@@ -36,7 +36,8 @@
                     [src]="recipe.imageUrl"
                     [alt]="recipe.name"
                     class="nom-home__recipe-img"
-                    loading="lazy">
+                    loading="lazy"
+                    (error)="onImageError(recipe)">
                 } @else {
                   <div class="nom-home__recipe-img nom-home__recipe-img--placeholder">
                     <mat-icon>restaurant</mat-icon>

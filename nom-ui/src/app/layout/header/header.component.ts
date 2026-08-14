@@ -38,6 +38,7 @@ export class Header {
 
   loginPopoverOpen = signal(false);
   userMenuOpen = signal(false);
+  mobileSearchOpen = signal(false);
 
   /** Marketing site fronting this instance (NOM_UI_CONFIG, admin-controlled). */
   marketingSite: string =
@@ -56,6 +57,18 @@ export class Header {
     this.loginPopoverOpen.update((v) => !v);
   }
 
+  toggleMobileSearch(): void {
+    this.mobileSearchOpen.update((v) => !v);
+    if (this.mobileSearchOpen()) {
+      // The flyout renders after this tick; focus once it exists.
+      queueMicrotask(() =>
+        this.elementRef.nativeElement
+          .querySelector<HTMLInputElement>('[data-testid="header-mobile-search-input"]')
+          ?.focus(),
+      );
+    }
+  }
+
   toggleUserMenu(): void {
     this.userMenuOpen.update((v) => !v);
   }
@@ -63,6 +76,7 @@ export class Header {
   onEscape(): void {
     if (this.userMenuOpen()) this.closeUserMenu();
     if (this.loginPopoverOpen()) this.loginPopoverOpen.set(false);
+    if (this.mobileSearchOpen()) this.mobileSearchOpen.set(false);
   }
 
   /** Close the user menu and return focus to the avatar trigger. */
@@ -77,6 +91,7 @@ export class Header {
     const input = event.target as HTMLInputElement;
     const query = input.value.trim();
     if (query) {
+      this.mobileSearchOpen.set(false);
       this.router.navigate(['/search'], { queryParams: { q: query } });
     }
   }

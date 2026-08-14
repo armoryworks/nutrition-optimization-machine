@@ -60,6 +60,11 @@ export class Home implements OnInit {
     }
   }
 
+  /** A dead image URL falls back to the placeholder card art. */
+  onImageError(recipe: RecipeSearchResult): void {
+    recipe.imageUrl = undefined;
+  }
+
   private groupByCategory(recipes: RecipeSearchResult[]): RecipeCategory[] {
     const categoryConfig: { label: string; icon: string }[] = [
       { label: 'Breakfast', icon: 'egg_alt' },

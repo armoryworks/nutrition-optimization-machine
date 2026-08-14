@@ -60,7 +60,7 @@
           @case (0) {
             @if (recipe()!.imageUrl) {
               <div class="nom-recipe__hero">
-                <img [src]="recipe()!.imageUrl" [alt]="recipe()!.name" class="nom-recipe__hero-img">
+                <img [src]="recipe()!.imageUrl" [alt]="recipe()!.name" class="nom-recipe__hero-img" (error)="onHeroImageError()">
               </div>
             }
             <h1 class="nom-recipe__title">{{ recipe()!.name }}</h1>

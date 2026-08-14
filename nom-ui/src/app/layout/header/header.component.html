@@ -43,6 +43,16 @@
   <div class="nom-header__actions">
     <button
       mat-icon-button
+      class="nom-header__action-btn nom-header__search-toggle"
+      data-testid="header-search-toggle-btn"
+      aria-label="Search"
+      [attr.aria-expanded]="mobileSearchOpen()"
+      (click)="toggleMobileSearch()"
+    >
+      <mat-icon>{{ mobileSearchOpen() ? 'close' : 'search' }}</mat-icon>
+    </button>
+    <button
+      mat-icon-button
       class="nom-header__action-btn"
       data-testid="header-theme-toggle-btn"
       (click)="themeToggle.emit()"
@@ -103,4 +113,17 @@
       }
     }
   </div>
+
+  @if (mobileSearchOpen()) {
+    <div class="nom-header__mobile-search">
+      <input
+        type="text"
+        class="nom-header__mobile-search-input"
+        data-testid="header-mobile-search-input"
+        [placeholder]="isLoggedIn() ? 'Search recipes, ingredients, plans...' : 'Search recipes...'"
+        aria-label="Search"
+        (keydown.enter)="onSearch($event)"
+      />
+    </div>
+  }
 </header>

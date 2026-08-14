@@ -25,6 +25,9 @@
   color: var(--mat-sys-primary);
   text-decoration: none;
   font-weight: vars.$font-weight-medium;
+  // Pad the small text out to a usable tap target without moving the row.
+  padding: vars.$spacing-3 vars.$spacing-1;
+  margin: (-(vars.$spacing-3)) (-(vars.$spacing-1));
 
   &:hover {
     text-decoration: underline;
