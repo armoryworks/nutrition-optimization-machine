@@ -406,22 +406,6 @@ namespace Nom.Orch.Services
             return true;
         }
 
-        // Ordered most-specific-first so "peanut butter" → Nuts/Seeds before Dairy, "chickpea" → Legumes
-        // before Vegetables, etc. Heuristic and admin-overridable; not a substitute for curated data.
-        private static readonly (long GroupId, string[] Keywords)[] FoodGroupKeywords = new[]
-        {
-            ((long)FoodGroupEnum.NutsSeeds, new[] { "almond", "walnut", "peanut", "cashew", "pistachio", "pecan", "hazelnut", "macadamia", "sesame", "sunflower seed", "pumpkin seed", "chia", "flax", " seed" }),
-            ((long)FoodGroupEnum.Legumes, new[] { "lentil", "chickpea", "garbanzo", "black bean", "kidney bean", "pinto", "soybean", "soy ", "tofu", "edamame", "hummus", "split pea" }),
-            ((long)FoodGroupEnum.Beverages, new[] { "juice", "soda", "cola", "coffee", "tea", "lemonade", "beer", "wine", "smoothie", " drink" }),
-            ((long)FoodGroupEnum.SweetsSnacks, new[] { "candy", "chocolate", "cookie", "cake", "brownie", "donut", "doughnut", "chip", "pretzel", "sugar", "syrup", "honey", "jam", "jelly", "ice cream", "protein bar", "granola bar", "candy bar" }),
-            ((long)FoodGroupEnum.Dairy, new[] { "milk", "cheese", "yogurt", "cheddar", "mozzarella", "parmesan", "cream ", "sour cream", "butter" }),
-            ((long)FoodGroupEnum.ProteinFoods, new[] { "chicken", "beef", "pork", "turkey", "salmon", "tuna", "shrimp", "steak", "bacon", "sausage", " ham", "lamb", "cod", "tilapia", "sardine", " fish", "egg" }),
-            ((long)FoodGroupEnum.Fruits, new[] { "apple", "banana", "berry", "strawberr", "blueberr", "raspberr", "orange", "grape", "melon", "mango", "peach", "pear", "pineapple", "plum", "cherry", "kiwi", "watermelon", "lemon", "lime", "apricot", " fig", "raisin", "cranberr", "pomegranate", "avocado" }),
-            ((long)FoodGroupEnum.Vegetables, new[] { "lettuce", "spinach", "kale", "broccoli", "carrot", "tomato", "cucumber", "pepper", "onion", "garlic", "potato", "celery", "cabbage", "cauliflower", "zucchini", "squash", "asparagus", "mushroom", " corn", "eggplant", "beet", "radish", "brussels", "green bean" }),
-            ((long)FoodGroupEnum.Grains, new[] { " rice", "bread", "pasta", " oat", "wheat", "flour", "cereal", "quinoa", "barley", "tortilla", "cracker", "bagel", "noodle", "couscous", "bulgur" }),
-            ((long)FoodGroupEnum.FatsOils, new[] { " oil", "olive oil", "canola", "margarine", "lard", "shortening" }),
-        };
-
         public async Task<int> AutoClassifyFoodGroupsAsync(bool overwrite)
         {
             var query = _db.Ingredients.AsQueryable();
@@ -432,17 +416,7 @@ namespace Nom.Orch.Services
             int updated = 0;
             foreach (var ing in ingredients)
             {
-                var name = (ing.NameNormalized ?? ing.Name ?? string.Empty).ToLowerInvariant();
-                if (name.Length == 0) continue;
-                long? match = null;
-                foreach (var (groupId, keywords) in FoodGroupKeywords)
-                {
-                    if (keywords.Any(k => name.Contains(k)))
-                    {
-                        match = groupId;
-                        break;
-                    }
-                }
+                var match = Nom.Data.Nutrition.FoodGroupHeuristics.ClassifyFoodGroup(ing.NameNormalized ?? ing.Name);
                 if (match.HasValue && ing.FoodGroupId != match)
                 {
                     ing.FoodGroupId = match;
