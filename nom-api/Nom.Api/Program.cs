@@ -217,6 +217,15 @@ builder.Services.AddHttpClient<Nom.Orch.UtilityInterfaces.IRecipeScraperClient, 
 // sites become Pending sources for admin approval, never direct imports).
 builder.Services.AddHostedService<Nom.Api.Services.SourceDiscoveryHostedService>();
 
+// Canonical dish groups ("chocolate chip cookies"): browse/merge API plus a
+// background sweep that classifies unclassified recipes — heuristic name
+// normalization by default, AI-backed when Ai:OllamaUrl is configured. All
+// assignments stay admin-correctable.
+builder.Services.AddScoped<Nom.Orch.Interfaces.IDishGroupService, Nom.Orch.Services.DishGroupService>();
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IDishGroupSuggester, Nom.Orch.Services.OllamaDishGroupSuggester>(
+    client => client.Timeout = TimeSpan.FromSeconds(300));
+builder.Services.AddHostedService<Nom.Api.Services.DishGroupingHostedService>();
+
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();
 
