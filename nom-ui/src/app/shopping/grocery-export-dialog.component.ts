@@ -196,8 +196,9 @@ export class GroceryExportDialog {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          provider.connected = false;
-          this.selectedKey.set(provider.key);
+          this.providers.update((list) =>
+            list.map((p) => (p.key === provider.key ? { ...p, connected: false } : p)),
+          );
           this.result.set(null);
           this.step.set('pick');
           this.snackBar.open(`Disconnected from ${provider.displayName}.`, 'OK', {

@@ -383,6 +383,68 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task Items_export_sends_client_supplied_lines_with_a_default_title()
+        {
+            using var db = NewDb();
+            var client = new FakeGroceryClient();
+
+            var result = await Build(db, client).ExportItemsAsync(personId: 1, new GroceryExportItemsModel
+            {
+                Provider = "text",
+                Items =
+                {
+                    new GroceryExportLineModel { Name = "  flour  ", Quantity = 5, Unit = "lb", PackageHint = "5 lb bag", Category = "Baking" },
+                    new GroceryExportLineModel { Name = "   " },   // blank lines are dropped
+                },
+            });
+
+            Assert.True(result.Success);
+            var sent = client.LastRequest!;
+            Assert.Single(sent.Items);
+            Assert.Equal("flour", sent.Items[0].Name);              // trimmed
+            Assert.Equal("5 lb bag", sent.Items[0].PackageHint);    // hint passes through
+            Assert.False(string.IsNullOrWhiteSpace(sent.Title));    // defaulted
+        }
+
+        [Fact]
+        public async Task Items_export_rejects_an_empty_payload_without_calling_out()
+        {
+            using var db = NewDb();
+            var client = new FakeGroceryClient();
+
+            var result = await Build(db, client).ExportItemsAsync(1, new GroceryExportItemsModel { Provider = "text" });
+
+            Assert.False(result.Success);
+            Assert.Null(client.LastRequest);
+        }
+
+        [Fact]
+        public async Task Items_export_uses_the_callers_retailer_connection()
+        {
+            using var db = NewDb();
+            db.GroceryConnections.Add(new GroceryConnectionEntity
+            {
+                PersonId = 4,
+                Provider = "kroger",
+                AccessToken = "enc:live-token",
+                LocationId = "70100001",
+                ExpiresAtUtc = DateTime.UtcNow.AddHours(1),
+                CreatedDate = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync();
+
+            var client = new FakeGroceryClient();
+            await Build(db, client).ExportItemsAsync(4, new GroceryExportItemsModel
+            {
+                Provider = "kroger",
+                Items = { new GroceryExportLineModel { Name = "milk" } },
+            });
+
+            Assert.Equal("live-token", client.LastRequest!.Connection!.AccessToken);
+            Assert.Equal("70100001", client.LastRequest.Connection.LocationId);
+        }
+
+        [Fact]
         public async Task Disconnect_removes_the_row_rather_than_soft_deleting_the_tokens()
         {
             using var db = NewDb();

@@ -21,6 +21,12 @@ namespace Nom.Orch.Interfaces
 
         Task<GroceryExportResult> ExportListAsync(long shoppingListId, long personId, GroceryExportOptionsModel options);
 
+        /// <summary>
+        /// Exports lines the client supplies — used by the shopping view, which
+        /// is a live projection with no persisted list behind it.
+        /// </summary>
+        Task<GroceryExportResult> ExportItemsAsync(long personId, GroceryExportItemsModel model);
+
         Task<string?> StartConnectionAsync(string provider, long personId, string redirectUri);
 
         /// <summary>Completes the OAuth handshake; returns false when state/code don't check out.</summary>
