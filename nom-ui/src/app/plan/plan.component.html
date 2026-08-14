@@ -138,8 +138,17 @@
                            [src]="entry.recipeImage"
                            [alt]="entry.recipeName ?? entry.title ?? ''"
                            loading="lazy" />
+                    } @else if (entry.ingredientId) {
+                      <mat-icon class="nom-plan__cell-fooditem-icon"
+                                matTooltip="Whole food{{ entry.foodGroupName ? ' · ' + entry.foodGroupName : '' }}">nutrition</mat-icon>
                     }
-                    <span class="nom-plan__cell-recipe">{{ entry.recipeName ?? entry.title }}</span>
+                    <span class="nom-plan__cell-recipe"
+                          [class.nom-plan__cell-recipe--fooditem]="entry.ingredientId">
+                      {{ entry.recipeName ?? entry.ingredientName ?? entry.title }}
+                      @if (entry.ingredientId && entry.quantity && entry.quantity !== 1) {
+                        <span class="nom-plan__cell-qty">×{{ entry.quantity }}</span>
+                      }
+                    </span>
                     @if (entry.recipeId && !entry.completedDate) {
                       <button class="nom-plan__cell-complete"
                               (click)="completeMeal($event, entry)"

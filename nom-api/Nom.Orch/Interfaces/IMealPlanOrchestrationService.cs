@@ -26,6 +26,12 @@ namespace Nom.Orch.Interfaces
         // Shuffle
         Task<MealPlanShuffleResponseModel> ShuffleMealPlansAsync(MealPlanShuffleModel model, long authorId);
 
+        // Food-group requirements (household meal-composition rules)
+        Task<List<FoodGroupModel>> GetFoodGroupsAsync();
+        Task<List<FoodGroupRuleModel>> GetFoodGroupRulesAsync(long householdId);
+        Task<FoodGroupRuleModel> UpsertFoodGroupRuleAsync(FoodGroupRuleUpsertModel model);
+        Task<bool> DeleteFoodGroupRuleAsync(long id);
+
         // Shopping completion
         Task<bool> MarkShoppingCompletedAsync(long mealPlanId);
 

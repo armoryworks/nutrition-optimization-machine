@@ -31,6 +31,7 @@ namespace Nom.Data.Reference
         // Nutritional & Ingredient Reference Groups (3000-3999)
         NutrientType = 3000,
         CuisineType = 3001,
+        FoodGroupType = 3002,           // Nutritional food groups (Vegetables, Fruits, Grains, etc.)
 
         // Plan Management & User Roles (4000-4999)
         PlanInvitationRole = 4000,

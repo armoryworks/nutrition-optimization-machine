@@ -3915,3 +3915,27 @@ COMMIT;
 
 -- Policy contract version (household-policies design doc §6) — single row.
 INSERT INTO plan."PolicyContractVersion" ("Id", "Version", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId") VALUES (1, 1, '2026-08-13 00:00:00-06', 1, NULL, NULL, false, NULL, NULL) ON CONFLICT DO NOTHING;
+
+-- Food Group Types (reference group 3002) — nutritional food groups for standalone meal
+-- items and household food-group requirements. USDA MyPlate five plus common extensions.
+INSERT INTO reference."Group" ("Id", "Name", "Description", "Slug", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId") VALUES (3002, 'Food Group Types', 'Nutritional food groups (Vegetables, Fruits, Grains, Protein Foods, Dairy, and extensions).', NULL, '2026-08-13 00:00:00-06', 1, NULL, NULL, false, NULL, NULL) ON CONFLICT DO NOTHING;
+INSERT INTO reference."Reference" ("Id", "Name", "Description", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId") VALUES (3200, 'Vegetables', 'Vegetables and vegetable products.', '2026-08-13 00:00:00-06', 1, NULL, NULL, false, NULL, NULL) ON CONFLICT DO NOTHING;
+INSERT INTO reference."Reference" ("Id", "Name", "Description", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId") VALUES (3201, 'Fruits', 'Fruits and fruit products.', '2026-08-13 00:00:00-06', 1, NULL, NULL, false, NULL, NULL) ON CONFLICT DO NOTHING;
+INSERT INTO reference."Reference" ("Id", "Name", "Description", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId") VALUES (3202, 'Grains', 'Breads, cereals, rice, pasta and other grains.', '2026-08-13 00:00:00-06', 1, NULL, NULL, false, NULL, NULL) ON CONFLICT DO NOTHING;
+INSERT INTO reference."Reference" ("Id", "Name", "Description", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId") VALUES (3203, 'Protein Foods', 'Meat, poultry, seafood, eggs and other proteins.', '2026-08-13 00:00:00-06', 1, NULL, NULL, false, NULL, NULL) ON CONFLICT DO NOTHING;
+INSERT INTO reference."Reference" ("Id", "Name", "Description", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId") VALUES (3204, 'Dairy', 'Milk, cheese, yogurt and other dairy.', '2026-08-13 00:00:00-06', 1, NULL, NULL, false, NULL, NULL) ON CONFLICT DO NOTHING;
+INSERT INTO reference."Reference" ("Id", "Name", "Description", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId") VALUES (3205, 'Fats/Oils', 'Cooking oils, butter and added fats.', '2026-08-13 00:00:00-06', 1, NULL, NULL, false, NULL, NULL) ON CONFLICT DO NOTHING;
+INSERT INTO reference."Reference" ("Id", "Name", "Description", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId") VALUES (3206, 'Legumes', 'Beans, peas, lentils and other legumes.', '2026-08-13 00:00:00-06', 1, NULL, NULL, false, NULL, NULL) ON CONFLICT DO NOTHING;
+INSERT INTO reference."Reference" ("Id", "Name", "Description", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId") VALUES (3207, 'Nuts/Seeds', 'Nuts, seeds and their butters.', '2026-08-13 00:00:00-06', 1, NULL, NULL, false, NULL, NULL) ON CONFLICT DO NOTHING;
+INSERT INTO reference."Reference" ("Id", "Name", "Description", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId") VALUES (3208, 'Sweets/Snacks', 'Candy, desserts, chips and snack foods.', '2026-08-13 00:00:00-06', 1, NULL, NULL, false, NULL, NULL) ON CONFLICT DO NOTHING;
+INSERT INTO reference."Reference" ("Id", "Name", "Description", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId") VALUES (3209, 'Beverages', 'Drinks other than plain water.', '2026-08-13 00:00:00-06', 1, NULL, NULL, false, NULL, NULL) ON CONFLICT DO NOTHING;
+INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (3200, 3002) ON CONFLICT DO NOTHING;
+INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (3201, 3002) ON CONFLICT DO NOTHING;
+INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (3202, 3002) ON CONFLICT DO NOTHING;
+INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (3203, 3002) ON CONFLICT DO NOTHING;
+INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (3204, 3002) ON CONFLICT DO NOTHING;
+INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (3205, 3002) ON CONFLICT DO NOTHING;
+INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (3206, 3002) ON CONFLICT DO NOTHING;
+INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (3207, 3002) ON CONFLICT DO NOTHING;
+INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (3208, 3002) ON CONFLICT DO NOTHING;
+INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (3209, 3002) ON CONFLICT DO NOTHING;

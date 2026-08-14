@@ -70,6 +70,7 @@ namespace Nom.Data
         public DbSet<GoalEntity> Goals { get; set; } = default!;
         public DbSet<GoalItemEntity> GoalItems { get; set; } = default!;
         public DbSet<MacroGoalEntity> MacroGoals { get; set; } = default!;
+        public DbSet<FoodGroupRuleEntity> FoodGroupRules { get; set; } = default!;
         public DbSet<MealEntity> Meals { get; set; } = default!;
         public DbSet<PlanEntity> Plans { get; set; } = default!;
         public DbSet<PlanParticipantEntity> PlanParticipants { get; set; } = default!;
@@ -150,6 +151,7 @@ namespace Nom.Data
         public DbSet<GoalTypeViewEntity> GoalTypes { get; set; } = default!;
         public DbSet<NutrientTypeViewEntity> NutrientTypes { get; set; } = default!;
         public DbSet<CuisineTypeViewEntity> CuisineTypes { get; set; } = default!;
+        public DbSet<FoodGroupTypeViewEntity> FoodGroupTypes { get; set; } = default!;
         public DbSet<PlanInvitationRoleViewEntity> PlanInvitationRoles { get; set; } = default!;
         public DbSet<PrivacyConsentTypeViewEntity> PrivacyConsentTypes { get; set; } = default!;
         public DbSet<CurationStatusTypeViewEntity> CurationStatusTypes { get; set; } = default!; // NEW

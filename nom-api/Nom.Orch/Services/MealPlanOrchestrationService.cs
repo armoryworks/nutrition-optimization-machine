@@ -62,7 +62,7 @@ namespace Nom.Orch.Services
 
         public async Task<MealPlanCreateResponseModel> CreateMealPlanAsync(MealPlanCreateModel model, long authorId)
         {
-            await ValidateSlotAssignmentAsync(model.HouseholdId, authorId, model.RecipeId);
+            await ValidateSlotAssignmentAsync(model.HouseholdId, authorId, model.RecipeId, model.IngredientId);
 
             var mealPlan = new MealPlanEntity
             {
@@ -73,6 +73,9 @@ namespace Nom.Orch.Services
                 Title = model.Title,
                 Note = model.Notes,
                 RecipeId = model.RecipeId,
+                IngredientId = model.IngredientId,
+                Quantity = model.IngredientId.HasValue ? (model.Quantity ?? 1m) : null,
+                MeasurementId = model.IngredientId.HasValue ? model.MeasurementId : null,
                 CreatedDate = DateTime.UtcNow,
                 LastModifiedDate = DateTime.UtcNow
             };
@@ -130,13 +133,16 @@ namespace Nom.Orch.Services
             if (mealPlan == null)
                 return null;
 
-            await ValidateSlotAssignmentAsync(mealPlan.HouseholdId, mealPlan.AuthorId, model.RecipeId);
+            await ValidateSlotAssignmentAsync(mealPlan.HouseholdId, mealPlan.AuthorId, model.RecipeId, model.IngredientId);
 
             mealPlan.Date = model.Date;
             mealPlan.MealTypeId = model.MealTypeId;
             mealPlan.Title = model.Title;
             mealPlan.Note = model.Notes;
             mealPlan.RecipeId = model.RecipeId;
+            mealPlan.IngredientId = model.IngredientId;
+            mealPlan.Quantity = model.IngredientId.HasValue ? (model.Quantity ?? 1m) : null;
+            mealPlan.MeasurementId = model.IngredientId.HasValue ? model.MeasurementId : null;
             mealPlan.LastModifiedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -182,6 +188,101 @@ namespace Nom.Orch.Services
                 return false;
 
             mealPlan.ShoppingCompletedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<List<FoodGroupModel>> GetFoodGroupsAsync()
+        {
+            return await _context.FoodGroupTypes
+                .OrderBy(fg => fg.ReferenceId)
+                .Select(fg => new FoodGroupModel
+                {
+                    Id = fg.ReferenceId,
+                    Name = fg.ReferenceName,
+                    Description = fg.ReferenceDescription
+                })
+                .ToListAsync();
+        }
+
+        public async Task<List<FoodGroupRuleModel>> GetFoodGroupRulesAsync(long householdId)
+        {
+            return await _context.FoodGroupRules
+                .Include(r => r.FoodGroup)
+                .Include(r => r.MealType)
+                .Where(r => r.HouseholdId == householdId)
+                .OrderBy(r => r.FoodGroupId)
+                .Select(r => new FoodGroupRuleModel
+                {
+                    Id = r.Id,
+                    HouseholdId = r.HouseholdId,
+                    FoodGroupId = r.FoodGroupId,
+                    FoodGroupName = r.FoodGroup != null ? r.FoodGroup.Name : null,
+                    MinServings = r.MinServings,
+                    Timeframe = r.Timeframe.ToString(),
+                    MealTypeId = r.MealTypeId,
+                    MealTypeName = r.MealType != null ? r.MealType.Name : null,
+                    IsActive = r.IsActive
+                })
+                .ToListAsync();
+        }
+
+        public async Task<FoodGroupRuleModel> UpsertFoodGroupRuleAsync(FoodGroupRuleUpsertModel model)
+        {
+            if (model.MinServings <= 0)
+                throw new ArgumentException("MinServings must be greater than zero.");
+
+            var timeframe = Enum.TryParse<FoodGroupRuleTimeframe>(model.Timeframe, true, out var tf)
+                ? tf : FoodGroupRuleTimeframe.PerDay;
+
+            // One rule per (household, food group, timeframe, meal-type scope) — update in place if it exists.
+            var rule = await _context.FoodGroupRules.FirstOrDefaultAsync(r =>
+                r.HouseholdId == model.HouseholdId
+                && r.FoodGroupId == model.FoodGroupId
+                && r.Timeframe == timeframe
+                && r.MealTypeId == model.MealTypeId);
+
+            if (rule == null)
+            {
+                rule = new FoodGroupRuleEntity
+                {
+                    HouseholdId = model.HouseholdId,
+                    FoodGroupId = model.FoodGroupId,
+                    Timeframe = timeframe,
+                    MealTypeId = model.MealTypeId,
+                    CreatedDate = DateTime.UtcNow,
+                };
+                _context.FoodGroupRules.Add(rule);
+            }
+
+            rule.MinServings = model.MinServings;
+            rule.IsActive = model.IsActive;
+            rule.LastModifiedDate = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            await _context.Entry(rule).Reference(r => r.FoodGroup).LoadAsync();
+            if (rule.MealTypeId.HasValue)
+                await _context.Entry(rule).Reference(r => r.MealType).LoadAsync();
+
+            return new FoodGroupRuleModel
+            {
+                Id = rule.Id,
+                HouseholdId = rule.HouseholdId,
+                FoodGroupId = rule.FoodGroupId,
+                FoodGroupName = rule.FoodGroup?.Name,
+                MinServings = rule.MinServings,
+                Timeframe = rule.Timeframe.ToString(),
+                MealTypeId = rule.MealTypeId,
+                MealTypeName = rule.MealType?.Name,
+                IsActive = rule.IsActive
+            };
+        }
+
+        public async Task<bool> DeleteFoodGroupRuleAsync(long id)
+        {
+            var rule = await _context.FoodGroupRules.FindAsync(id);
+            if (rule == null) return false;
+            _context.FoodGroupRules.Remove(rule);
             await _context.SaveChangesAsync();
             return true;
         }
@@ -271,13 +372,36 @@ namespace Nom.Orch.Services
         /// recipes is rejected; hard-block is reserved for locks).
         /// Previously these writes had no validation at all.
         /// </summary>
-        private async Task ValidateSlotAssignmentAsync(long householdId, long authorId, long? recipeId)
+        private async Task ValidateSlotAssignmentAsync(
+            long householdId, long authorId, long? recipeId, long? ingredientId = null)
         {
             var isMember = await _context.HouseholdMembers
                 .AnyAsync(hm => hm.HouseholdId == householdId && hm.PersonId == authorId && hm.IsActive);
             if (!isMember)
             {
                 throw new UnauthorizedAccessException("You are not an active member of this household.");
+            }
+
+            if (recipeId.HasValue && ingredientId.HasValue)
+            {
+                throw new InvalidOperationException("A slot holds a recipe or a standalone food, not both.");
+            }
+
+            if (ingredientId.HasValue)
+            {
+                var ingredientExists = await _context.Ingredients.AnyAsync(i => i.Id == ingredientId.Value);
+                if (!ingredientExists)
+                {
+                    throw new InvalidOperationException("restriction_violation:ingredient_not_found");
+                }
+
+                // A standalone food may not itself be a steward/provider-locked restriction.
+                var lockedIds = await _policy.GetLockedIngredientIdsAsync(householdId);
+                if (lockedIds.Contains(ingredientId.Value))
+                {
+                    throw new InvalidOperationException("restriction_violation:locked_restriction");
+                }
+                return;
             }
 
             if (!recipeId.HasValue)
@@ -744,6 +868,14 @@ namespace Nom.Orch.Services
                 });
             }
 
+            // 6b. Food-group requirements: guarantee each active household rule's minimum
+            // by counting servings already supplied by placed recipes + standalone items,
+            // then topping up with standalone whole foods.
+            var topUps = await ApplyFoodGroupRulesAsync(
+                model.HouseholdId, authorId, model.StartDate, model.EndDate,
+                newEntities, restrictedIngredientIds, now);
+            newEntities.AddRange(topUps);
+
             // 7. Bulk insert
             _context.MealPlans.AddRange(newEntities);
             await _context.SaveChangesAsync();
@@ -763,6 +895,140 @@ namespace Nom.Orch.Services
                 Deleted = deletedCount,
                 Week = week,
             };
+        }
+
+        /// <summary>
+        /// Guarantees each active household <see cref="FoodGroupRuleEntity"/> minimum over the shuffled
+        /// range. A serving of a food group is supplied by any placed recipe that contains an ingredient of
+        /// that group, or by a standalone whole food of that group. Shortfalls are topped up by scheduling
+        /// standalone curated whole foods (respecting restrictions and steward/provider locks). Returns the
+        /// standalone entries to add; never mutates <paramref name="placed"/>.
+        /// </summary>
+        internal async Task<List<MealPlanEntity>> ApplyFoodGroupRulesAsync(
+            long householdId, long authorId, DateOnly startDate, DateOnly endDate,
+            List<MealPlanEntity> placed, List<long> restrictedIngredientIds, DateTime now)
+        {
+            const int MaxTopUpsPerBucket = 12; // safety cap against pathological rules
+
+            var rules = await _context.FoodGroupRules
+                .Where(r => r.HouseholdId == householdId && r.IsActive)
+                .ToListAsync();
+            if (rules.Count == 0) return new List<MealPlanEntity>();
+
+            var lockedIds = await _policy.GetLockedIngredientIdsAsync(householdId);
+            var groupIds = rules.Select(r => r.FoodGroupId).Distinct().ToList();
+
+            // Recipe -> the food groups it supplies (contains an ingredient of that group).
+            var placedRecipeIds = placed.Where(p => p.RecipeId.HasValue)
+                .Select(p => p.RecipeId!.Value).Distinct().ToList();
+            var recipeGroups = new Dictionary<long, HashSet<long>>();
+            if (placedRecipeIds.Count > 0)
+            {
+                var rows = await _context.Recipes
+                    .Where(r => placedRecipeIds.Contains(r.Id))
+                    .Select(r => new
+                    {
+                        r.Id,
+                        Groups = r.RecipeIngredients!
+                            .Where(ri => ri.Ingredient!.FoodGroupId != null
+                                && groupIds.Contains(ri.Ingredient.FoodGroupId!.Value))
+                            .Select(ri => ri.Ingredient!.FoodGroupId!.Value)
+                            .Distinct().ToList()
+                    })
+                    .ToListAsync();
+                foreach (var row in rows)
+                    recipeGroups[row.Id] = row.Groups.ToHashSet();
+            }
+
+            // Candidate standalone whole foods per group (curated, not restricted, not locked).
+            var candidatesByGroup = new Dictionary<long, List<(long Id, string Name)>>();
+            var candidateGroupOf = new Dictionary<long, long>();
+            foreach (var gid in groupIds)
+            {
+                var cands = await _context.Ingredients
+                    .Where(i => i.FoodGroupId == gid
+                        && i.CurationStatusId == (long)CurationStatusEnum.Curated
+                        && !restrictedIngredientIds.Contains(i.Id)
+                        && !lockedIds.Contains(i.Id))
+                    .OrderBy(i => i.Id)
+                    .Select(i => new { i.Id, i.Name })
+                    .Take(10)
+                    .ToListAsync();
+                candidatesByGroup[gid] = cands.Select(c => (c.Id, c.Name)).ToList();
+                foreach (var c in cands) candidateGroupOf[c.Id] = gid;
+            }
+
+            var additions = new List<MealPlanEntity>();
+            var rr = new Dictionary<long, int>(); // round-robin cursor per group
+
+            decimal CountGroup(IEnumerable<long> countMeals, long groupId, DateOnly date)
+            {
+                decimal total = 0m;
+                var meals = countMeals.ToHashSet();
+                foreach (var e in placed.Concat(additions))
+                {
+                    if (e.Date != date || !meals.Contains(e.MealTypeId)) continue;
+                    if (e.RecipeId.HasValue
+                        && recipeGroups.TryGetValue(e.RecipeId.Value, out var gs) && gs.Contains(groupId))
+                        total += 1m;
+                    else if (e.IngredientId.HasValue
+                        && candidateGroupOf.TryGetValue(e.IngredientId.Value, out var sg) && sg == groupId)
+                        total += e.Quantity ?? 1m;
+                }
+                return total;
+            }
+
+            for (var date = startDate; date <= endDate; date = date.AddDays(1))
+            {
+                foreach (var rule in rules)
+                {
+                    // Determine the counting/placement buckets for this rule.
+                    var buckets = new List<(List<long> CountMeals, long PlaceMeal)>();
+                    if (rule.MealTypeId.HasValue)
+                    {
+                        buckets.Add((new List<long> { rule.MealTypeId.Value }, rule.MealTypeId.Value));
+                    }
+                    else if (rule.Timeframe == FoodGroupRuleTimeframe.PerMeal)
+                    {
+                        foreach (var mt in MealTypes)
+                            buckets.Add((new List<long> { mt.Id }, mt.Id));
+                    }
+                    else // PerDay, all meals
+                    {
+                        buckets.Add((MealTypes.Select(m => m.Id).ToList(), 1103L /* Snacks */));
+                    }
+
+                    var cands = candidatesByGroup.GetValueOrDefault(rule.FoodGroupId);
+                    foreach (var (countMeals, placeMeal) in buckets)
+                    {
+                        int added = 0;
+                        while (CountGroup(countMeals, rule.FoodGroupId, date) < rule.MinServings
+                            && added < MaxTopUpsPerBucket)
+                        {
+                            if (cands == null || cands.Count == 0) break; // nothing classified to add
+                            var cursor = rr.GetValueOrDefault(rule.FoodGroupId);
+                            var pick = cands[cursor % cands.Count];
+                            rr[rule.FoodGroupId] = cursor + 1;
+
+                            additions.Add(new MealPlanEntity
+                            {
+                                HouseholdId = householdId,
+                                AuthorId = authorId,
+                                Date = date,
+                                MealTypeId = placeMeal,
+                                IngredientId = pick.Id,
+                                Quantity = 1m,
+                                Title = pick.Name,
+                                CreatedDate = now,
+                                LastModifiedDate = now,
+                            });
+                            added++;
+                        }
+                    }
+                }
+            }
+
+            return additions;
         }
 
         // Meal type IDs from reference data seed
@@ -789,6 +1055,12 @@ namespace Nom.Orch.Services
                     .ThenInclude(r => r!.Nutrition!)
                         .ThenInclude(n => n.Nutrient)
                 .Include(mp => mp.MealType)
+                .Include(mp => mp.Ingredient)
+                    .ThenInclude(i => i!.FoodGroup)
+                .Include(mp => mp.Ingredient)
+                    .ThenInclude(i => i!.IngredientNutrients)
+                        .ThenInclude(inut => inut.Nutrient)
+                .Include(mp => mp.Measurement)
                 .Where(mp => mp.HouseholdId == householdId && mp.Date >= weekStart && mp.Date <= weekEnd)
                 .ToListAsync();
 
@@ -816,6 +1088,13 @@ namespace Nom.Orch.Services
                             RecipeId = e.RecipeId,
                             RecipeName = e.Recipe?.Name,
                             RecipeImage = e.Recipe?.Image,
+                            IngredientId = e.IngredientId,
+                            IngredientName = e.Ingredient?.Name,
+                            Quantity = e.Quantity,
+                            MeasurementId = e.MeasurementId,
+                            MeasurementName = e.Measurement?.Name,
+                            FoodGroupId = e.Ingredient?.FoodGroupId,
+                            FoodGroupName = e.Ingredient?.FoodGroup?.Name,
                             Title = e.Title,
                             Notes = e.Note,
                             CompletedDate = e.CompletedDate,
@@ -828,6 +1107,15 @@ namespace Nom.Orch.Services
                             entryModel.ProteinGrams = FindNutrientAmount(e.Recipe.Nutrition, ProteinNames);
                             entryModel.CarbGrams = FindNutrientAmount(e.Recipe.Nutrition, CarbNames);
                             entryModel.FatGrams = FindNutrientAmount(e.Recipe.Nutrition, FatNames);
+                        }
+                        else if (e.Ingredient?.IngredientNutrients is { Count: > 0 })
+                        {
+                            // Standalone whole food: per-serving nutrient amounts scaled by quantity (servings).
+                            var qty = e.Quantity ?? 1m;
+                            entryModel.Calories = FindIngredientNutrient(e.Ingredient.IngredientNutrients, CalorieNames) * qty;
+                            entryModel.ProteinGrams = FindIngredientNutrient(e.Ingredient.IngredientNutrients, ProteinNames) * qty;
+                            entryModel.CarbGrams = FindIngredientNutrient(e.Ingredient.IngredientNutrients, CarbNames) * qty;
+                            entryModel.FatGrams = FindIngredientNutrient(e.Ingredient.IngredientNutrients, FatNames) * qty;
                         }
 
                         return entryModel;
@@ -958,6 +1246,15 @@ namespace Nom.Orch.Services
         private static decimal? FindNutrientAmount(ICollection<RecipeNutritionEntity> nutrition, string[] namePatterns)
         {
             var match = nutrition.FirstOrDefault(n =>
+                n.Nutrient != null && namePatterns.Any(p =>
+                    n.Nutrient.Name.Contains(p, StringComparison.OrdinalIgnoreCase)));
+            return match?.Amount;
+        }
+
+        private static decimal? FindIngredientNutrient(
+            ICollection<Nom.Data.Nutrient.IngredientNutrientEntity> nutrients, string[] namePatterns)
+        {
+            var match = nutrients.FirstOrDefault(n =>
                 n.Nutrient != null && namePatterns.Any(p =>
                     n.Nutrient.Name.Contains(p, StringComparison.OrdinalIgnoreCase)));
             return match?.Amount;

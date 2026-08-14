@@ -11,5 +11,15 @@ namespace Nom.Orch.Interfaces
         Task RequestRevisionAsync(CurationDecisionRequest request, long adminId);
         Task RejectAsync(CurationDecisionRequest request, long adminId);
         Task<List<CurationQueueItemModel>> GetCurationQueueAsync();
+
+        /// <summary>Sets or clears (null) an ingredient's nutritional food group. Returns true if the ingredient exists.</summary>
+        Task<bool> SetIngredientFoodGroupAsync(long ingredientId, long? foodGroupId);
+
+        /// <summary>
+        /// Heuristically classifies unclassified ingredients into food groups by name keywords.
+        /// When <paramref name="overwrite"/> is true, re-classifies already-classified ingredients too.
+        /// Returns the number of ingredients updated.
+        /// </summary>
+        Task<int> AutoClassifyFoodGroupsAsync(bool overwrite);
     }
 }

@@ -24,6 +24,7 @@ public class GroupedReferenceViewEntityConfiguration : IEntityTypeConfiguration<
             .HasValue<GoalTypeViewEntity>((long)ReferenceDiscriminatorEnum.GoalType)
             .HasValue<NutrientTypeViewEntity>((long)ReferenceDiscriminatorEnum.NutrientType)
             .HasValue<CuisineTypeViewEntity>((long)ReferenceDiscriminatorEnum.CuisineType)
+            .HasValue<FoodGroupTypeViewEntity>((long)ReferenceDiscriminatorEnum.FoodGroupType)
             .HasValue<PlanInvitationRoleViewEntity>((long)ReferenceDiscriminatorEnum.PlanInvitationRole)
             .HasValue<PrivacyConsentTypeViewEntity>((long)ReferenceDiscriminatorEnum.PrivacyConsentType)
             .HasValue<CurationStatusTypeViewEntity>((long)ReferenceDiscriminatorEnum.CurationStatusType)

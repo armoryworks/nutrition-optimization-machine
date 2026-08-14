@@ -61,5 +61,28 @@ namespace Nom.Api.Controllers
             await _curationOrch.RejectAsync(request, adminPersonId);
             return Ok();
         }
+
+        /// <summary>Sets or clears (foodGroupId = null) an ingredient's nutritional food group.</summary>
+        [HttpPut("ingredient/{ingredientId:long}/food-group")]
+        [Authorize(Policy = "CanManageCuration")]
+        public async Task<IActionResult> SetIngredientFoodGroup(long ingredientId, [FromBody] SetFoodGroupRequest request)
+        {
+            var ok = await _curationOrch.SetIngredientFoodGroupAsync(ingredientId, request.FoodGroupId);
+            return ok ? Ok() : NotFound();
+        }
+
+        /// <summary>Heuristically classifies ingredients into food groups by name keywords.</summary>
+        [HttpPost("ingredients/auto-classify-food-groups")]
+        [Authorize(Policy = "CanManageCuration")]
+        public async Task<IActionResult> AutoClassifyFoodGroups([FromQuery] bool overwrite = false)
+        {
+            var count = await _curationOrch.AutoClassifyFoodGroupsAsync(overwrite);
+            return Ok(new { classified = count });
+        }
+    }
+
+    public class SetFoodGroupRequest
+    {
+        public long? FoodGroupId { get; set; }
     }
 }

@@ -12,6 +12,7 @@ import { MealPlanShuffleRequest } from '../models/meal-plan-shuffle-request.mode
 import { MealPlanShuffleResponse } from '../models/meal-plan-shuffle-response.model';
 import { MealPlanRule } from '../models/meal-plan-rule.model';
 import { MealPlanRuleCreateRequest } from '../models/meal-plan-rule-create-request.model';
+import { FoodGroup, FoodGroupRule, FoodGroupRuleUpsert } from '../models/food-group.model';
 
 @Injectable({ providedIn: 'root' })
 export class MealPlanService {
@@ -71,6 +72,22 @@ export class MealPlanService {
 
   createRule(request: MealPlanRuleCreateRequest): Observable<MealPlanRule> {
     return this.http.post<MealPlanRule>(`${this.apiUrl}/rule`, request);
+  }
+
+  getFoodGroups(): Observable<FoodGroup[]> {
+    return this.http.get<FoodGroup[]>(`${this.apiUrl}/food-groups`);
+  }
+
+  getFoodGroupRules(householdId: number): Observable<FoodGroupRule[]> {
+    return this.http.get<FoodGroupRule[]>(`${this.apiUrl}/household/${householdId}/food-group-rules`);
+  }
+
+  upsertFoodGroupRule(request: FoodGroupRuleUpsert): Observable<FoodGroupRule> {
+    return this.http.put<FoodGroupRule>(`${this.apiUrl}/food-group-rule`, request);
+  }
+
+  deleteFoodGroupRule(id: number, householdId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/food-group-rule/${id}`, { params: { householdId } });
   }
 
   deleteRule(id: number): Observable<void> {

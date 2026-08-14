@@ -8,7 +8,11 @@ public class MealPlanEntityConfiguration : IEntityTypeConfiguration<MealPlanEnti
 {
     public void Configure(EntityTypeBuilder<MealPlanEntity> builder)
     {
-        builder.ToTable("MealPlan", schema: "plan");
+        builder.ToTable("MealPlan", schema: "plan", t =>
+            // A slot targets a recipe XOR a standalone ingredient (or neither, for free-text).
+            t.HasCheckConstraint(
+                "CK_MealPlan_recipe_xor_ingredient",
+                "NOT (\"RecipeId\" IS NOT NULL AND \"IngredientId\" IS NOT NULL)"));
 
         // Properties
         builder.Property(e => e.HouseholdId).IsRequired();
@@ -18,6 +22,7 @@ public class MealPlanEntityConfiguration : IEntityTypeConfiguration<MealPlanEnti
         builder.Property(e => e.Note).HasMaxLength(2047);
         builder.Property(e => e.Title).HasMaxLength(255);
         builder.Property(e => e.CompletedDate).HasColumnType("date");
+        builder.Property(e => e.Quantity).HasColumnType("decimal(9,2)");
 
         // Relationships
         builder.HasOne(e => e.Household)
@@ -41,6 +46,18 @@ public class MealPlanEntityConfiguration : IEntityTypeConfiguration<MealPlanEnti
         builder.HasOne(e => e.Recipe)
             .WithMany()
             .HasForeignKey(e => e.RecipeId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(e => e.Ingredient)
+            .WithMany()
+            .HasForeignKey(e => e.IngredientId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(e => e.Measurement)
+            .WithMany()
+            .HasForeignKey(e => e.MeasurementId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
     }
