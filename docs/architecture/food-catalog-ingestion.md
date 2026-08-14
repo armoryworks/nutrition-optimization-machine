@@ -87,17 +87,28 @@ Both the FDC import and the gated fetch call this before persisting.
 
 ## Remaining work & blockers
 
-### FDC branded bulk import — BLOCKED (execution)
-The existing importer (`Nom.Import/Services/FdcFoodImporterService.cs`) is a
-SQL-staging pipeline (`DataImportScripts/01_create_staging*.sql`,
-`03_transform_from_staging.sql`) with settings-driven quality filtering
-(`QualityFilterSettings`). Extending it for Branded Foods + a validator post-pass
-that lands records as `PendingCuration` **cannot be verified here**: it needs the
-multi-GB FDC bulk download and a Postgres instance to stage into.
-**To unblock:** run against a real DB with the FDC dataset; extend the transform
-to include the branded tables; add a C# post-pass that runs
-`FoodDataQualityValidator` (computing per-100g + serving from the staged nutrient
-rows) and sets curation status.
+### FDC Foundation import — BUILT ✅ + gauged in staging
+`Nom.Import/Services/FdcFoundationImportService.cs` — a focused CSV loader (not the
+old SQL-staging path): reads `food.csv` + `food_nutrient.csv`, applies
+`FoodDataQualityValidator` to the per-100g macros, classifies by **FDC food
+category** (authoritative — 99% classified, far better than name keywords), and
+lands accepted foods as `PendingCuration` ingredients (idempotent by `FdcId`,
+name-deduped). Run: `dotnet run -- --import-fdc <csv-dir>`.
+
+**Gauged against the real 2025-12-18 Foundation dataset in a staging DB:** 436
+foundation foods → **317 accepted** (99% classified, all quarantined), 70 rejected
+(mostly incomplete records missing a macro), 49 name-dupes skipped. Spot-checks all
+correct (Beef→Protein, Almond butter→Nuts/Seeds, Kiwi→Fruits, Khorasan→Grains).
+
+**Finding from the run:** many Foundation foods report energy only under the
+Atwater-factor nutrient ids (2048 specific / 2047 general), not general Energy
+(1008) — the loader now accepts any, preferring the most specific. Fixing this
+took acceptance from 107 → 317.
+
+**Remaining:** persist per-100g `IngredientNutrient` rows (deferred until
+measurement seeding is confirmed in the target DB — needed for standalone-food
+nutrition display); extend to **Branded Foods** (same shape, but ~1.5M rows and
+far noisier — the quality gate matters most there; import a gate-filtered subset).
 
 ### AI enrichment (food group + IsWholeFood) — BUILT ✅ (runtime pending)
 `Nom.Import/Services/FoodGroupEnrichmentService.cs` — a batch job that classifies

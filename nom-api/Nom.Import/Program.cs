@@ -29,6 +29,25 @@ namespace Nom.Import
                 return;
             }
 
+            // Import USDA FDC Foundation Foods from a CSV directory, gauging quality.
+            // `dotnet run -- --import-fdc <csv-dir>`.
+            var fdcFlag = Array.IndexOf(args, "--import-fdc");
+            if (fdcFlag >= 0 && fdcFlag + 1 < args.Length)
+            {
+                using var importScope = host.Services.CreateScope();
+                var importer = importScope.ServiceProvider.GetRequiredService<FdcFoundationImportService>();
+                var report = await importer.ImportAsync(args[fdcFlag + 1]);
+                Console.WriteLine($"\n=== FDC Foundation import report ===");
+                Console.WriteLine($"Foundation foods:  {report.TotalFoundation}");
+                Console.WriteLine($"Accepted:          {report.Accepted} ({report.Classified} classified into a food group)");
+                Console.WriteLine($"Rejected:          {report.Rejected}");
+                Console.WriteLine($"Skipped (existing):{report.SkippedExisting}");
+                Console.WriteLine($"Skipped (dup name):{report.SkippedDuplicateName}");
+                foreach (var (reason, n) in report.RejectedByReason.OrderByDescending(r => r.Value))
+                    Console.WriteLine($"  reject: {reason} × {n}");
+                return;
+            }
+
             // Roll back an FDC import batch: soft-delete FDC-sourced ingredients that no authored
             // recipe references. `dotnet run -- --purge-fdc`. Safety valve for a bad import.
             if (args.Contains("--purge-fdc"))
@@ -135,6 +154,8 @@ namespace Nom.Import
                                 sp.GetRequiredService<IHttpClientFactory>().CreateClient(),
                                 aiSettings.OllamaModel, aiSettings.OllamaUrl));
                     }
+
+                    services.AddScoped<FdcFoundationImportService>();
 
                     services.AddScoped<FoodGroupEnrichmentService>(sp => new FoodGroupEnrichmentService(
                         sp.GetRequiredService<ApplicationDbContext>(),
