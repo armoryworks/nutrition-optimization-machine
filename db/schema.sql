@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict U9v75Uo2xcJw0T7qPDGRoaLsdPaqdezSenvItzCxh7HJmFZ0W4vj4U4liZORGwb
+\restrict NZBmg3cz9kLkhno6mfkrIEV780RDyU0YcPvaaqdM7tAXlNc6fh2IOeIJwIJ6aIu
 
 -- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
@@ -2015,6 +2015,7 @@ CREATE TABLE recipe."Ingredient" (
     "AuthorId" bigint,
     "LabelId" bigint,
     "FoodGroupId" bigint,
+    "IsWholeFood" boolean,
     "OnHand" boolean,
     "CreatedDate" timestamp with time zone NOT NULL,
     "CreatedByPersonId" bigint,
@@ -5346,6 +5347,13 @@ CREATE INDEX "IX_Ingredient_FoodGroupId" ON recipe."Ingredient" USING btree ("Fo
 
 
 --
+-- Name: IX_Ingredient_IsWholeFood; Type: INDEX; Schema: recipe; Owner: -
+--
+
+CREATE INDEX "IX_Ingredient_IsWholeFood" ON recipe."Ingredient" USING btree ("IsWholeFood") WHERE ("IsWholeFood" = true);
+
+
+--
 -- Name: IX_Ingredient_LabelId; Type: INDEX; Schema: recipe; Owner: -
 --
 
@@ -7611,5 +7619,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict U9v75Uo2xcJw0T7qPDGRoaLsdPaqdezSenvItzCxh7HJmFZ0W4vj4U4liZORGwb
+\unrestrict NZBmg3cz9kLkhno6mfkrIEV780RDyU0YcPvaaqdM7tAXlNc6fh2IOeIJwIJ6aIu
 

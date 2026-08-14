@@ -50,5 +50,6 @@ public class IngredientEntityConfiguration : IEntityTypeConfiguration<Ingredient
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(e => e.FoodGroupId).HasFilter("\"FoodGroupId\" IS NOT NULL");
+        builder.HasIndex(e => e.IsWholeFood).HasFilter("\"IsWholeFood\" = true");
     }
 }

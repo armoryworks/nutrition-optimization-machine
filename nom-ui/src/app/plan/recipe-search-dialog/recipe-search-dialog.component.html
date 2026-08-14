@@ -20,10 +20,10 @@
                    [alt]="entry.recipeName ?? ''" />
             } @else {
               <mat-icon class="nom-recipe-dialog__entry-icon">
-                {{ entry.recipeId ? 'restaurant' : 'sticky_note_2' }}
+                {{ entry.recipeId ? 'restaurant' : (entry.ingredientId ? 'nutrition' : 'sticky_note_2') }}
               </mat-icon>
             }
-            <span class="nom-recipe-dialog__entry-name">{{ entry.recipeName ?? entry.title }}</span>
+            <span class="nom-recipe-dialog__entry-name">{{ entry.recipeName ?? entry.ingredientName ?? entry.title }}</span>
             @if (entry.notes) {
               <span class="nom-recipe-dialog__entry-notes">{{ entry.notes }}</span>
             }
@@ -96,6 +96,50 @@
   } @else if (searchQuery().length >= 2 && !searching()) {
     <p class="nom-recipe-dialog__no-results">No recipes found</p>
   }
+
+  <!-- Whole food (standalone item) -->
+  <details class="nom-recipe-dialog__note-section">
+    <summary>Add a whole food (apple, protein bar, …)</summary>
+    <mat-form-field appearance="outline" class="nom-recipe-dialog__search">
+      <mat-label>Search foods to add</mat-label>
+      <mat-icon matPrefix>nutrition</mat-icon>
+      <input
+        matInput
+        data-testid="whole-food-search-input"
+        [value]="wholeFoodQuery()"
+        (input)="onWholeFoodInput($any($event.target).value)"
+        placeholder="Type a food name..."
+        [disabled]="busy()" />
+    </mat-form-field>
+
+    @if (wholeFoodSearching()) {
+      <div class="nom-recipe-dialog__loading">
+        <mat-spinner diameter="24"></mat-spinner>
+      </div>
+    }
+
+    @if (wholeFoodResults().length > 0) {
+      <div class="nom-recipe-dialog__results" data-testid="whole-food-results">
+        @for (food of wholeFoodResults(); track food.id) {
+          <button
+            class="nom-recipe-dialog__result"
+            (click)="addWholeFood(food)"
+            [disabled]="busy()">
+            <div class="nom-recipe-dialog__result-info">
+              <span class="nom-recipe-dialog__result-name">{{ food.name }}</span>
+            </div>
+            <div class="nom-recipe-dialog__result-meta">
+              @if (food.foodGroupName) {
+                <span>{{ food.foodGroupName }}</span>
+              }
+            </div>
+          </button>
+        }
+      </div>
+    } @else if (wholeFoodQuery().length >= 2 && !wholeFoodSearching()) {
+      <p class="nom-recipe-dialog__no-results">No foods found</p>
+    }
+  </details>
 
   <!-- Quick note -->
   <details class="nom-recipe-dialog__note-section">

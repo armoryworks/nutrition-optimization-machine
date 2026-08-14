@@ -46,6 +46,14 @@ namespace Nom.Data.Recipe
         public long? FoodGroupId { get; set; }
         public virtual ReferenceEntity? FoodGroup { get; set; }
 
+        /// <summary>
+        /// True when this is a directly-edible whole food (apple, protein bar, frozen dinner) —
+        /// something a person can schedule as a standalone meal item — vs. a recipe-only
+        /// ingredient (flour, baking soda). NULL = unknown/unclassified. Set by the FDC import /
+        /// AI enrichment; drives the standalone-food picker. Does not restrict scheduling.
+        /// </summary>
+        public bool? IsWholeFood { get; set; }
+
         // Legacy field (from Mealie)
         public bool? OnHand { get; set; } = false;
 
