@@ -49,6 +49,31 @@ namespace Nom.Import
                 return;
             }
 
+            // Import USDA FDC Branded Foods (bounded sample).
+            // `dotnet run -- --import-fdc-branded <csv-dir> [--limit N]`.
+            var brandedFlag = Array.IndexOf(args, "--import-fdc-branded");
+            if (brandedFlag >= 0 && brandedFlag + 1 < args.Length)
+            {
+                var limitFlag = Array.IndexOf(args, "--limit");
+                var limit = (limitFlag >= 0 && limitFlag + 1 < args.Length && int.TryParse(args[limitFlag + 1], out var l))
+                    ? l : 5000;
+                using var bScope = host.Services.CreateScope();
+                var bImporter = bScope.ServiceProvider.GetRequiredService<FdcBrandedImportService>();
+                var r = await bImporter.ImportAsync(args[brandedFlag + 1], limit);
+                Console.WriteLine("\n=== FDC Branded import report ===");
+                Console.WriteLine($"Scanned rows:       {r.Scanned} (limit {r.Limit})");
+                Console.WriteLine($"Skipped non-US:     {r.SkippedNonUs}");
+                Console.WriteLine($"Skipped discontinued:{r.SkippedDiscontinued}");
+                Console.WriteLine($"Accepted:           {r.Accepted} ({r.Classified} classified, {r.MarkedWholeFood} whole-food, {r.WithReferenceServing} with reference serving)");
+                Console.WriteLine($"Rejected:           {r.Rejected}");
+                Console.WriteLine($"Skipped (existing): {r.SkippedExisting}");
+                Console.WriteLine($"Skipped (dup name): {r.SkippedDuplicateName}");
+                Console.WriteLine($"Nutrient rows:      {r.NutrientRows}");
+                foreach (var (reason, n) in r.RejectedByReason.OrderByDescending(x => x.Value))
+                    Console.WriteLine($"  reject: {reason} x {n}");
+                return;
+            }
+
             // Roll back an FDC import batch: soft-delete FDC-sourced ingredients that no authored
             // recipe references. `dotnet run -- --purge-fdc`. Safety valve for a bad import.
             if (args.Contains("--purge-fdc"))
@@ -157,6 +182,7 @@ namespace Nom.Import
                     }
 
                     services.AddScoped<FdcFoundationImportService>();
+                    services.AddScoped<FdcBrandedImportService>();
 
                     services.AddScoped<FoodGroupEnrichmentService>(sp => new FoodGroupEnrichmentService(
                         sp.GetRequiredService<ApplicationDbContext>(),
