@@ -53,6 +53,10 @@ export const routes: Routes = [
     loadComponent: () => import('./search/search.component').then((m) => m.Search),
   },
   {
+    path: 'terms',
+    loadComponent: () => import('./shared/terms/terms.component').then((m) => m.Terms),
+  },
+  {
     path: 'dishes',
     loadComponent: () => import('./dishes/dish-groups.component').then((m) => m.DishGroups),
   },

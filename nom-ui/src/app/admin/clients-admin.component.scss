@@ -1,0 +1,194 @@
+@use 'variables' as vars;
+
+.nom-clients-admin {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-4;
+}
+
+.nom-clients-admin__toolbar {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  flex-wrap: wrap;
+}
+
+.nom-clients-admin__search {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  flex: 1;
+  min-width: 220px;
+  max-width: 420px;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+
+  &:focus-within {
+    border-color: var(--mat-sys-primary);
+  }
+
+  mat-icon {
+    color: var(--mat-sys-on-surface-variant);
+    font-size: vars.$icon-size-md;
+    width: vars.$icon-size-md;
+    height: vars.$icon-size-md;
+  }
+}
+
+.nom-clients-admin__search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: var(--mat-sys-on-surface);
+  font-family: inherit;
+  font-size: 16px; // 16px floor keeps iOS from zooming on focus
+
+  &::placeholder {
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.78;
+  }
+}
+
+.nom-clients-admin__count {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+
+.nom-clients-admin__loading {
+  display: grid;
+  place-items: center;
+  padding: vars.$spacing-8;
+}
+
+.nom-clients-admin__empty {
+  color: var(--mat-sys-on-surface-variant);
+  padding: vars.$spacing-4 0;
+  margin: 0;
+}
+
+.nom-clients-admin__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-clients-admin__item {
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+}
+
+.nom-clients-admin__row {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  width: 100%;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  background: none;
+  border: none;
+  color: var(--mat-sys-on-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--mat-sys-surface-container-high);
+  }
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-wrap: wrap;
+    row-gap: vars.$spacing-1;
+  }
+}
+
+.nom-clients-admin__chevron {
+  color: var(--mat-sys-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.nom-clients-admin__name {
+  font-weight: vars.$font-weight-semibold;
+}
+
+.nom-clients-admin__badge {
+  font-size: vars.$font-size-xs;
+  padding: 1px vars.$spacing-2;
+  border-radius: vars.$nom-border-radius-pill;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+
+  &--managed {
+    background: var(--mat-sys-tertiary-container);
+    color: var(--mat-sys-on-tertiary-container);
+  }
+}
+
+.nom-clients-admin__meta {
+  margin-left: auto;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: right;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    margin-left: 0;
+    width: 100%;
+    text-align: left;
+    padding-left: calc(#{vars.$icon-size-md} + #{vars.$spacing-3});
+  }
+}
+
+.nom-clients-admin__detail {
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  padding: vars.$spacing-3 vars.$spacing-4;
+}
+
+.nom-clients-admin__members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-clients-admin__member {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  flex-wrap: wrap;
+}
+
+.nom-clients-admin__member-icon {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$icon-size-md;
+  width: vars.$icon-size-md;
+  height: vars.$icon-size-md;
+}
+
+.nom-clients-admin__member-name {
+  font-weight: vars.$font-weight-medium;
+}
+
+.nom-clients-admin__member-email {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+
+  &--none {
+    font-style: italic;
+  }
+}
+
+.nom-clients-admin__member-role {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

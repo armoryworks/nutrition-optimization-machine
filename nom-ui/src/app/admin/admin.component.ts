@@ -7,11 +7,12 @@ import { CurationQueue } from './curation-queue.component';
 import { ScrapingSources } from './scraping-sources.component';
 import { Webhooks } from './webhooks.component';
 import { UsersAdmin } from './users-admin.component';
+import { ClientsAdmin } from './clients-admin.component';
 import { DietCategories } from './diet-categories.component';
 
 // URL-driven tabbed shell (the forge-ui admin idiom): /admin/:tab selects the
 // panel; unknown tabs fall back to the overview launchpad.
-const VALID_TABS = ['overview', 'users', 'curation', 'scraping-sources', 'diet-categories', 'webhooks'] as const;
+const VALID_TABS = ['overview', 'users', 'clients', 'curation', 'scraping-sources', 'diet-categories', 'webhooks'] as const;
 type AdminTab = (typeof VALID_TABS)[number];
 
 interface AdminTabDef {
@@ -25,7 +26,7 @@ interface AdminTabDef {
 
 @Component({
   selector: 'nom-admin',
-  imports: [RouterLink, MatIconModule, CurationQueue, ScrapingSources, Webhooks, UsersAdmin, DietCategories],
+  imports: [RouterLink, MatIconModule, CurationQueue, ScrapingSources, Webhooks, UsersAdmin, ClientsAdmin, DietCategories],
   templateUrl: './admin.component.html',
   styleUrls: ['../settings/settings.component.scss', './admin.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,6 +46,12 @@ export class Admin {
   readonly tabs: AdminTabDef[] = [
     { id: 'overview', label: 'Overview', icon: 'dashboard', description: 'Admin launchpad' },
     { id: 'users', label: 'Users', icon: 'group', description: 'Accounts and admin claims' },
+    {
+      id: 'clients',
+      label: 'Clients',
+      icon: 'diversity_3',
+      description: 'Households on this instance and who is in them',
+    },
     {
       id: 'curation',
       label: 'Curation',
