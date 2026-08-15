@@ -51,5 +51,6 @@ public class IngredientEntityConfiguration : IEntityTypeConfiguration<Ingredient
 
         builder.HasIndex(e => e.FoodGroupId).HasFilter("\"FoodGroupId\" IS NOT NULL");
         builder.HasIndex(e => e.IsWholeFood).HasFilter("\"IsWholeFood\" = true");
+        builder.Property(e => e.ReferenceServingGrams).HasColumnType("decimal(9,2)");
     }
 }

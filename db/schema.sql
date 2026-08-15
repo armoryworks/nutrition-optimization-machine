@@ -2,9 +2,9 @@
 -- PostgreSQL database dump
 --
 
-\restrict V01fcEasRLhqTqXBeDytPvLWwcbYBYKRaSrMotyFc3ReuvUqHAW7KGz9SsJcqnu
+\restrict y4G9T31TIemv8xz3VSyDr0etjNRAe1VN5Hc1AwYWwOR80idH33n30hPQwaghZhD
 
--- Dumped from database version 16.14
+-- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
@@ -2048,6 +2048,7 @@ CREATE TABLE recipe."Ingredient" (
     "LabelId" bigint,
     "FoodGroupId" bigint,
     "IsWholeFood" boolean,
+    "ReferenceServingGrams" numeric(9,2),
     "OnHand" boolean,
     "CreatedDate" timestamp with time zone NOT NULL,
     "CreatedByPersonId" bigint,
@@ -7743,5 +7744,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict V01fcEasRLhqTqXBeDytPvLWwcbYBYKRaSrMotyFc3ReuvUqHAW7KGz9SsJcqnu
+\unrestrict y4G9T31TIemv8xz3VSyDr0etjNRAe1VN5Hc1AwYWwOR80idH33n30hPQwaghZhD
 

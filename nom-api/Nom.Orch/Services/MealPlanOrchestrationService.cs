@@ -1110,12 +1110,20 @@ namespace Nom.Orch.Services
                         }
                         else if (e.Ingredient?.IngredientNutrients is { Count: > 0 })
                         {
-                            // Standalone whole food: per-serving nutrient amounts scaled by quantity (servings).
-                            var qty = e.Quantity ?? 1m;
-                            entryModel.Calories = FindIngredientNutrient(e.Ingredient.IngredientNutrients, CalorieNames) * qty;
-                            entryModel.ProteinGrams = FindIngredientNutrient(e.Ingredient.IngredientNutrients, ProteinNames) * qty;
-                            entryModel.CarbGrams = FindIngredientNutrient(e.Ingredient.IngredientNutrients, CarbNames) * qty;
-                            entryModel.FatGrams = FindIngredientNutrient(e.Ingredient.IngredientNutrients, FatNames) * qty;
+                            // Standalone whole food. Stored amounts are per 100 g; one unit of
+                            // Quantity means one reference serving (the source's standard portion),
+                            // falling back to the 100 g basis when the food has no reference portion.
+                            // Per-person scaling from caloric need happens downstream (portions).
+                            // Guard the > 0 case: a zero/negative reference would zero out nutrition.
+                            var basisGrams = e.Ingredient.ReferenceServingGrams is > 0
+                                ? e.Ingredient.ReferenceServingGrams.Value
+                                : 100m;
+                            var factor = (basisGrams / 100m) * (e.Quantity ?? 1m);
+                            entryModel.Calories = FindIngredientNutrient(e.Ingredient.IngredientNutrients, CalorieNames) * factor;
+                            entryModel.ProteinGrams = FindIngredientNutrient(e.Ingredient.IngredientNutrients, ProteinNames) * factor;
+                            entryModel.CarbGrams = FindIngredientNutrient(e.Ingredient.IngredientNutrients, CarbNames) * factor;
+                            entryModel.FatGrams = FindIngredientNutrient(e.Ingredient.IngredientNutrients, FatNames) * factor;
+                            entryModel.ReferenceServingGrams = e.Ingredient.ReferenceServingGrams;
                         }
 
                         return entryModel;
