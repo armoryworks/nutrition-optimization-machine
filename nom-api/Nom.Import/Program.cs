@@ -36,9 +36,10 @@ namespace Nom.Import
             {
                 using var importScope = host.Services.CreateScope();
                 var importer = importScope.ServiceProvider.GetRequiredService<FdcFoundationImportService>();
-                var report = await importer.ImportAsync(args[fdcFlag + 1]);
+                var report = await importer.ImportAsync(args[fdcFlag + 1], curated: args.Contains("--curated"));
                 Console.WriteLine($"\n=== FDC Foundation import report ===");
                 Console.WriteLine($"Foundation foods:  {report.TotalFoundation}");
+                Console.WriteLine($"Curation status:   {(args.Contains("--curated") ? "Curated (usable by meal planning)" : "PendingCuration (invisible to planning until reviewed)")}");
                 Console.WriteLine($"Accepted:          {report.Accepted} ({report.Classified} classified into a food group)");
                 Console.WriteLine($"Rejected:          {report.Rejected}");
                 Console.WriteLine($"Skipped (existing):{report.SkippedExisting}");

@@ -47,8 +47,18 @@ gap-fill (gated JSON-LD) ─▶ QUALITY GATE ─▶ classify ──────�
 ```
 
 Imported records land **non-curated / pending review** — the severe-restriction
-"curated-only" meal-plan gate keeps trusting only reviewed data. Clean,
-high-confidence records may auto-promote; borderline ones queue for an admin.
+"curated-only" meal-plan gate keeps trusting only reviewed data.
+
+> **Operational gotcha:** meal-plan food-group top-up draws candidates only from
+> **Curated** ingredients. Foods imported with the default status are therefore
+> *invisible to planning* until someone reviews them — an import alone does not
+> make food-group rules start filling plans.
+>
+> `--import-fdc <dir> --curated` lands Foundation Foods as Curated instead. That
+> is defensible for Foundation specifically (USDA-authored reference data with
+> validated nutrition) and is what makes the feature work out of the box. The
+> **Branded** catalog should stay pending — it is manufacturer-submitted and
+> unverified, which is precisely why the quality gate rejects ~4% of it.
 
 ## Quality gate — DONE ✅
 

@@ -25,6 +25,7 @@ namespace Nom.Import.Services
     public class FdcFoundationImportService
     {
         private const long PendingCuration = 9001; // CurationStatusEnum.PendingCuration
+        private const long Curated = 9003;         // CurationStatusEnum.Curated
         // Energy: many Foundation foods report only the Atwater-factor energies (2048 specific,
         // 2047 general), not the general Energy (1008) — accept any, preferring the most specific.
         private const long NutEnergy = 1008, NutEnergyAtwaterSpecific = 2048, NutEnergyAtwaterGeneral = 2047;
@@ -64,7 +65,14 @@ namespace Nom.Import.Services
             [28] = (long)FoodGroupEnum.Beverages,      // Alcoholic Beverages
         };
 
-        public async Task<ImportReport> ImportAsync(string csvDir, CancellationToken ct = default)
+        /// <param name="curated">
+        /// Land accepted foods as Curated rather than PendingCuration. Meal-plan food-group
+        /// top-up and the severe-restriction safety gate only draw from Curated ingredients, so
+        /// foods imported with the default (false) stay invisible to planning until reviewed.
+        /// Defensible for Foundation Foods specifically: they are USDA-authored reference data
+        /// with validated nutrition, unlike the manufacturer-submitted Branded catalog.
+        /// </param>
+        public async Task<ImportReport> ImportAsync(string csvDir, bool curated = false, CancellationToken ct = default)
         {
             var foodCsv = FindFile(csvDir, "food.csv");
             var nutrientCsv = FindFile(csvDir, "food_nutrient.csv");
@@ -113,7 +121,7 @@ namespace Nom.Import.Services
                     Name = name,
                     FdcId = fdcId,
                     FdcDataType = "foundation_food",
-                    CurationStatusId = PendingCuration,
+                    CurationStatusId = curated ? Curated : PendingCuration,
                     FoodGroupId = group,
                     // NOTE: must be TryGetValue — GetValueOrDefault on a decimal dictionary yields
                     // 0, which would silently zero out the food's nutrition.
