@@ -386,6 +386,11 @@ namespace Nom.Orch.Services
                         Name = scraped.Name,
                         Error = ex.Message,
                     });
+
+                    // One bad recipe must not poison the rest of the batch: the
+                    // failed entities stay tracked otherwise and every later
+                    // SaveChanges replays them.
+                    _dbContext.ChangeTracker.Clear();
                 }
             }
 
@@ -594,63 +599,81 @@ namespace Nom.Orch.Services
             return measurement?.Id ?? DefaultMeasurementId;
         }
 
+        /// <summary>
+        /// Links scraped keywords and categories to the CURATED reference
+        /// vocabulary (recipe.RecipeTag.TagId and RecipeCategory.CategoryId both
+        /// point at reference.Reference). Terms with no matching reference are
+        /// skipped rather than invented — a scraped keyword must not mint a new
+        /// vocabulary entry. Never throws: tagging is enrichment, and a failure
+        /// here must not cost the recipe.
+        /// </summary>
         private async Task AddTagsAndCategoriesAsync(long recipeId, List<string>? tags, List<string>? categories)
         {
             try
             {
                 var personId = _currentUser.PersonId;
+                var terms = (tags ?? new List<string>())
+                    .Select(t => t.Trim().ToLowerInvariant())
+                    .Where(t => t.Length > 0)
+                    .Distinct()
+                    .ToList();
+                var categoryTerms = (categories ?? new List<string>())
+                    .Select(c => c.Trim().ToLowerInvariant())
+                    .Where(c => c.Length > 0)
+                    .Distinct()
+                    .ToList();
 
-                foreach (var tagName in tags ?? new List<string>())
+                var wanted = terms.Concat(categoryTerms).Distinct().ToList();
+                if (wanted.Count == 0)
                 {
-                    var lowered = tagName.Trim().ToLowerInvariant();
-                    var tag = await _dbContext.Tags
-                        .FirstOrDefaultAsync(t => t.Name.ToLower() == lowered && !t.IsDeleted);
+                    return;
+                }
 
-                    if (tag == null)
+                var references = await _dbContext.References
+                    .Where(r => wanted.Contains(r.Name.ToLower()) && !r.IsDeleted)
+                    .Select(r => new { r.Id, Lowered = r.Name.ToLower() })
+                    .ToListAsync();
+                if (references.Count == 0)
+                {
+                    return;
+                }
+
+                var existingTagIds = await _dbContext.RecipeTags
+                    .Where(rt => rt.RecipeId == recipeId)
+                    .Select(rt => rt.TagId)
+                    .ToListAsync();
+                var existingCategoryIds = await _dbContext.RecipeCategories
+                    .Where(rc => rc.RecipeId == recipeId)
+                    .Select(rc => rc.CategoryId)
+                    .ToListAsync();
+
+                foreach (var reference in references.Where(r => terms.Contains(r.Lowered)))
+                {
+                    if (!existingTagIds.Contains(reference.Id))
                     {
-                        tag = new TagEntity
+                        _dbContext.RecipeTags.Add(new RecipeTagEntity
                         {
-                            Name = tagName.Trim(),
-                            CurationStatusId = (long)CurationStatusEnum.NonCurated,
+                            RecipeId = recipeId,
+                            TagId = reference.Id,
                             CreatedDate = DateTime.UtcNow,
                             CreatedByPersonId = personId,
-                        };
-                        _dbContext.Tags.Add(tag);
-                        await _dbContext.SaveChangesAsync();
-                    }
-
-                    var alreadyLinked = await _dbContext.RecipeTags
-                        .AnyAsync(rt => rt.RecipeId == recipeId && rt.TagId == tag.Id);
-                    if (!alreadyLinked)
-                    {
-                        _dbContext.RecipeTags.Add(new RecipeTagEntity { RecipeId = recipeId, TagId = tag.Id });
+                        });
+                        existingTagIds.Add(reference.Id);
                     }
                 }
 
-                foreach (var categoryName in categories ?? new List<string>())
+                foreach (var reference in references.Where(r => categoryTerms.Contains(r.Lowered)))
                 {
-                    var lowered = categoryName.Trim().ToLowerInvariant();
-                    var category = await _dbContext.Categories
-                        .FirstOrDefaultAsync(c => c.Name.ToLower() == lowered && !c.IsDeleted);
-
-                    if (category == null)
+                    if (!existingCategoryIds.Contains(reference.Id))
                     {
-                        category = new CategoryEntity
+                        _dbContext.RecipeCategories.Add(new RecipeCategoryEntity
                         {
-                            Name = categoryName.Trim(),
-                            CurationStatusId = (long)CurationStatusEnum.NonCurated,
+                            RecipeId = recipeId,
+                            CategoryId = reference.Id,
                             CreatedDate = DateTime.UtcNow,
                             CreatedByPersonId = personId,
-                        };
-                        _dbContext.Categories.Add(category);
-                        await _dbContext.SaveChangesAsync();
-                    }
-
-                    var alreadyLinked = await _dbContext.RecipeCategories
-                        .AnyAsync(rc => rc.RecipeId == recipeId && rc.CategoryId == category.Id);
-                    if (!alreadyLinked)
-                    {
-                        _dbContext.RecipeCategories.Add(new RecipeCategoryEntity { RecipeId = recipeId, CategoryId = category.Id });
+                        });
+                        existingCategoryIds.Add(reference.Id);
                     }
                 }
 
