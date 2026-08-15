@@ -54,6 +54,15 @@ namespace Nom.Data.Recipe
         /// </summary>
         public bool? IsWholeFood { get; set; }
 
+        /// <summary>
+        /// Standard reference portion in grams (e.g. one medium apple ≈ 182 g), when the source
+        /// publishes one. NULL = unknown, in which case the 100 g basis of the stored nutrient
+        /// amounts is used. This is a *reference baseline only* — the amount an individual should
+        /// actually eat is scaled from their caloric need / metabolic rate on top of this, the same
+        /// way portions scale recipes. Never treat it as a per-person serving.
+        /// </summary>
+        public decimal? ReferenceServingGrams { get; set; }
+
         // Legacy field (from Mealie)
         public bool? OnHand { get; set; } = false;
 

@@ -43,6 +43,7 @@ namespace Nom.Import
                 Console.WriteLine($"Rejected:          {report.Rejected}");
                 Console.WriteLine($"Skipped (existing):{report.SkippedExisting}");
                 Console.WriteLine($"Skipped (dup name):{report.SkippedDuplicateName}");
+                Console.WriteLine($"Nutrient rows:     {report.NutrientRows} ({report.WithReferenceServing} foods with a reference serving)");
                 foreach (var (reason, n) in report.RejectedByReason.OrderByDescending(r => r.Value))
                     Console.WriteLine($"  reject: {reason} × {n}");
                 return;

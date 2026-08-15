@@ -11,6 +11,8 @@ export interface MealPlanEntry {
   measurementName?: string | null;
   foodGroupId?: number | null;
   foodGroupName?: string | null;
+  /** Grams in one reference serving; null means the shown nutrition uses the 100 g basis. */
+  referenceServingGrams?: number | null;
   title: string | null;
   notes: string | null;
   calories: number | null;

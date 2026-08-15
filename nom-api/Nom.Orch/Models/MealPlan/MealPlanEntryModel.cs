@@ -18,6 +18,13 @@ namespace Nom.Orch.Models.MealPlan
         public long? FoodGroupId { get; set; }
         public string? FoodGroupName { get; set; }
 
+        /// <summary>
+        /// Grams in one reference serving of the standalone food, when the source publishes one.
+        /// Null means the nutrition shown uses the 100 g basis. Reference baseline only — an
+        /// individual's actual amount scales from their caloric need.
+        /// </summary>
+        public decimal? ReferenceServingGrams { get; set; }
+
         public string? Title { get; set; }
         public string? Notes { get; set; }
         public decimal? Calories { get; set; }
