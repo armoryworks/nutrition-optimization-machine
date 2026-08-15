@@ -220,7 +220,7 @@ namespace Nom.Import.Services
             string? line;
             while ((line = reader.ReadLine()) != null)
             {
-                var f = SplitCsv(line);
+                var f = CsvLine.Split(line);
                 if (f.Length < 8) continue;
                 if (!fdcIds.Contains(f[1])) continue;
                 if (!decimal.TryParse(f[7], System.Globalization.CultureInfo.InvariantCulture, out var grams) || grams <= 0) continue;
@@ -250,7 +250,7 @@ namespace Nom.Import.Services
             string? line;
             while ((line = reader.ReadLine()) != null)
             {
-                var f = SplitCsv(line);
+                var f = CsvLine.Split(line);
                 if (f.Length < 4 || f[1] != "foundation_food") continue;
                 int? cat = int.TryParse(f[3], out var c) ? c : (int?)null;
                 result[f[0]] = new FoodRow(f[2], cat);
@@ -267,7 +267,7 @@ namespace Nom.Import.Services
             string? line;
             while ((line = reader.ReadLine()) != null)
             {
-                var f = SplitCsv(line);
+                var f = CsvLine.Split(line);
                 if (f.Length < 4) continue;
                 var fdc = f[1];
                 if (!fdcIds.Contains(fdc)) continue;
@@ -304,34 +304,6 @@ namespace Nom.Import.Services
 
         private static string Truncate(string s, int max) => s.Length <= max ? s : s.Substring(0, max);
 
-        /// <summary>Minimal RFC-4180 CSV field splitter (FDC quotes every field; "" escapes a quote).</summary>
-        private static string[] SplitCsv(string line)
-        {
-            var fields = new List<string>();
-            var sb = new System.Text.StringBuilder();
-            bool inQuotes = false;
-            for (int i = 0; i < line.Length; i++)
-            {
-                var ch = line[i];
-                if (inQuotes)
-                {
-                    if (ch == '"')
-                    {
-                        if (i + 1 < line.Length && line[i + 1] == '"') { sb.Append('"'); i++; }
-                        else inQuotes = false;
-                    }
-                    else sb.Append(ch);
-                }
-                else
-                {
-                    if (ch == '"') inQuotes = true;
-                    else if (ch == ',') { fields.Add(sb.ToString()); sb.Clear(); }
-                    else sb.Append(ch);
-                }
-            }
-            fields.Add(sb.ToString());
-            return fields.ToArray();
-        }
 
         public sealed class ImportReport
         {

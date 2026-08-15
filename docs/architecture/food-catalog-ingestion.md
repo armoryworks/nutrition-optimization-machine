@@ -105,10 +105,35 @@ Atwater-factor nutrient ids (2048 specific / 2047 general), not general Energy
 (1008) — the loader now accepts any, preferring the most specific. Fixing this
 took acceptance from 107 → 317.
 
-**Remaining:** persist per-100g `IngredientNutrient` rows (deferred until
-measurement seeding is confirmed in the target DB — needed for standalone-food
-nutrition display); extend to **Branded Foods** (same shape, but ~1.5M rows and
-far noisier — the quality gate matters most there; import a gate-filtered subset).
+Per-100g `IngredientNutrient` rows are persisted against the seeded Nutrient rows
+(resolved by name), along with `ReferenceServingGrams` from `food_portion.csv`
+(median of single-unit portions).
+
+### FDC Branded import — BUILT ✅ + gauged in staging
+`Nom.Import/Services/FdcBrandedImportService.cs` —
+`dotnet run -- --import-fdc-branded <csv-dir> [--limit N]`. This is the catalog
+with the packaged products people schedule as standalone items (protein bars,
+frozen dinners, yogurts) — i.e. the "big producers" case. The dataset is ~2M rows
+across ~2.7 GB of CSV, so all three files are **streamed** and the candidate set is
+**bounded by `--limit`**; US-market, non-discontinued rows are preferred.
+
+**Gauged on the real 2025-12-18 branded dataset (3 000-row sample):** 2 677
+accepted (89%), 93% classified, ~94% flagged directly-edible, **100% with a
+reference serving** (branded records nearly always publish `serving_size` — this
+is where the reference-gram basis pays off). 131 rejected, **109 of them Atwater
+mismatches** — exactly the manufacturer-submitted noise the gate exists for.
+
+**Precision fix found by spot-checking the run:** the compound retail category
+`"Ketchup, Mustard, BBQ & Cheese Sauce"` matched the `cheese` → Dairy keyword, so
+BBQ and duck sauce were classified Dairy — which would have let a condiment
+satisfy a household *dairy* minimum. Condiment/sauce categories are now
+deliberately left **unclassified** (precision over recall); nut/seed butters are
+checked first so they stay Nuts/Seeds. Covered by regression tests.
+
+**Recommended rollout:** do **not** bulk-load all ~2M branded rows — it would
+swamp ingredient search and the catalog for little gain. Import a bounded, curated
+subset (`--limit`), review the pending-curation queue, and grow it as real demand
+appears (a UPC lookup path would later fetch specific products on demand).
 
 ### AI enrichment (food group + IsWholeFood) — BUILT ✅ (runtime pending)
 `Nom.Import/Services/FoodGroupEnrichmentService.cs` — a batch job that classifies
