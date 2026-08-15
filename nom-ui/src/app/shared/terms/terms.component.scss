@@ -1,0 +1,41 @@
+@use 'variables' as vars;
+
+.nom-terms {
+  max-width: 68ch;
+  margin: 0 auto;
+  padding: vars.$spacing-6 0 vars.$spacing-10;
+}
+
+.nom-terms__title {
+  font-size: vars.$font-size-xl;
+  margin: 0 0 vars.$spacing-3;
+}
+
+.nom-terms__lead {
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0 0 vars.$spacing-6;
+}
+
+.nom-terms__section {
+  margin-bottom: vars.$spacing-6;
+
+  h2 {
+    font-size: vars.$font-size-lg;
+    margin: 0 0 vars.$spacing-2;
+  }
+
+  p,
+  li {
+    color: var(--mat-sys-on-surface-variant);
+    line-height: 1.6;
+  }
+
+  p {
+    margin: 0 0 vars.$spacing-3;
+  }
+
+  ul {
+    margin: 0 0 vars.$spacing-3;
+    padding-left: vars.$spacing-5;
+  }
+}

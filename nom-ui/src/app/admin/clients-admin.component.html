@@ -1,0 +1,101 @@
+<div class="nom-clients-admin" data-testid="clients-admin">
+  <nom-error-banner [message]="errorMessage()" />
+
+  <div class="nom-clients-admin__toolbar">
+    <div class="nom-clients-admin__search">
+      <mat-icon>search</mat-icon>
+      <input
+        type="text"
+        class="nom-clients-admin__search-input"
+        data-testid="clients-admin-search-input"
+        placeholder="Filter by household name..."
+        aria-label="Filter clients"
+        (input)="onFilterInput($event)"
+      />
+    </div>
+    <span class="nom-clients-admin__count" data-testid="clients-admin-count">
+      {{ filtered().length }} of {{ households().length }} households
+    </span>
+  </div>
+
+  @if (loading()) {
+    <div class="nom-clients-admin__loading">
+      <mat-spinner diameter="36" />
+    </div>
+  } @else if (filtered().length === 0) {
+    <p class="nom-clients-admin__empty" data-testid="clients-admin-empty">
+      @if (households().length === 0) {
+        No households on this instance yet.
+      } @else {
+        No households match "{{ filter() }}".
+      }
+    </p>
+  } @else {
+    <ul class="nom-clients-admin__list" data-testid="clients-admin-list">
+      @for (household of filtered(); track household.id) {
+        <li class="nom-clients-admin__item" data-testid="clients-admin-item">
+          <button
+            type="button"
+            class="nom-clients-admin__row"
+            data-testid="clients-admin-expand-btn"
+            (click)="toggleExpand(household)"
+            [attr.aria-expanded]="expandedId() === household.id"
+          >
+            <mat-icon class="nom-clients-admin__chevron">
+              {{ expandedId() === household.id ? 'expand_more' : 'chevron_right' }}
+            </mat-icon>
+            <span class="nom-clients-admin__name">{{ household.name }}</span>
+            <span
+              class="nom-clients-admin__badge"
+              [class.nom-clients-admin__badge--managed]="household.managedBy"
+            >{{ kind(household) }}</span>
+            <span class="nom-clients-admin__meta">
+              {{ household.activeMemberCount }}/{{ household.memberCount }} active members
+              &middot; since {{ household.createdDate | date: 'mediumDate' }}
+              @if (household.lastPlanDate) {
+                &middot; last plan {{ household.lastPlanDate | date: 'mediumDate' }}
+              } @else {
+                &middot; never planned
+              }
+            </span>
+          </button>
+
+          @if (expandedId() === household.id) {
+            <div class="nom-clients-admin__detail">
+              @if (membersLoading()) {
+                <mat-spinner diameter="24" />
+              } @else if (members().length === 0) {
+                <p class="nom-clients-admin__empty">No members.</p>
+              } @else {
+                <ul class="nom-clients-admin__members" data-testid="clients-admin-members">
+                  @for (member of members(); track member.personId) {
+                    <li class="nom-clients-admin__member" data-testid="clients-admin-member">
+                      <mat-icon class="nom-clients-admin__member-icon">
+                        {{ member.userId ? 'person' : 'person_outline' }}
+                      </mat-icon>
+                      <span class="nom-clients-admin__member-name">{{ member.name }}</span>
+                      @if (member.email) {
+                        <span class="nom-clients-admin__member-email">{{ member.email }}</span>
+                      } @else {
+                        <span class="nom-clients-admin__member-email nom-clients-admin__member-email--none">
+                          profile only — no login
+                        </span>
+                      }
+                      <span class="nom-clients-admin__member-role">{{ member.role }}</span>
+                      @if (member.isAdmin) {
+                        <span class="nom-clients-admin__badge nom-clients-admin__badge--managed">admin</span>
+                      }
+                      @if (!member.isActive) {
+                        <span class="nom-clients-admin__badge">inactive</span>
+                      }
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</div>

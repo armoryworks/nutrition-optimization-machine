@@ -9,6 +9,11 @@
     </a>
   </div>
   <div class="nom-footer__right">
+    @if (termsUrl) {
+      <a [href]="termsUrl" class="nom-footer__link" data-testid="footer-terms-link">Terms</a>
+    } @else {
+      <a routerLink="/terms" class="nom-footer__link" data-testid="footer-terms-link">Terms</a>
+    }
     <span class="nom-footer__text">&copy; {{ currentYear }} NOM</span>
     <a href="https://github.com/danielhampikian/nutrition-optimization-machine"
        target="_blank"

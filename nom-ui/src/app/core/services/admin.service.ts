@@ -6,6 +6,7 @@ import { CurationQueueItem } from '../models/curation-queue-item.model';
 import { CurationDecisionRequest } from '../models/curation-decision-request.model';
 import { UpdateUserClaimsRequest } from '../models/update-user-claims-request.model';
 import { AdminUser, UserClaims } from '../models/user-management.model';
+import { AdminHousehold, AdminHouseholdMember } from '../models/client-admin.model';
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
@@ -43,5 +44,16 @@ export class AdminService {
 
   deleteUser(userId: string): Observable<void> {
     return this.http.delete<void>(`${environment.apiUrl}/UserManagement/users/${userId}`);
+  }
+
+  // Clients (households)
+  getHouseholds(): Observable<AdminHousehold[]> {
+    return this.http.get<AdminHousehold[]>(`${environment.apiUrl}/ClientAdmin/households`);
+  }
+
+  getHouseholdMembers(householdId: number): Observable<AdminHouseholdMember[]> {
+    return this.http.get<AdminHouseholdMember[]>(
+      `${environment.apiUrl}/ClientAdmin/households/${householdId}/members`,
+    );
   }
 }
