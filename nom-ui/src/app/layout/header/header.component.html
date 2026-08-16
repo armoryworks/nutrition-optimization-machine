@@ -19,11 +19,11 @@
     </div>
   </ng-template>
   @if (brandExternal()) {
-    <a class="nom-header__brand" [href]="marketingSite" aria-label="Back to the site">
+    <a class="nom-header__brand" [href]="marketingSite" aria-label="Back to the site" data-testid="header-brand-link">
       <ng-container [ngTemplateOutlet]="brandLockup"></ng-container>
     </a>
   } @else {
-    <a class="nom-header__brand" routerLink="/home" aria-label="NOM — home">
+    <a class="nom-header__brand" routerLink="/home" aria-label="NOM — home" data-testid="header-brand-link">
       <ng-container [ngTemplateOutlet]="brandLockup"></ng-container>
     </a>
   }
@@ -84,6 +84,7 @@
       @if (userMenuOpen()) {
         <div
           class="nom-header__popover-backdrop"
+          data-testid="header-user-menu-backdrop"
           (click)="closeUserMenu()"
           aria-hidden="true"
         ></div>
@@ -106,6 +107,7 @@
       @if (loginPopoverOpen()) {
         <div
           class="nom-header__popover-backdrop"
+          data-testid="header-login-popover-backdrop"
           (click)="loginPopoverOpen.set(false)"
           aria-hidden="true"
         ></div>

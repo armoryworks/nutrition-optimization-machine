@@ -32,6 +32,15 @@ jobs:
           cd nom-ui
           npm run lint
 
+      - name: Lint data-testid coverage
+        # CLAUDE.md requires data-testid on every interactive element. Per-file ratchet
+        # against nom-ui/scripts/testid-baseline.json: new templates must be 100% covered,
+        # baselined ones can't get worse; record improvements with
+        # NOM_TESTID_UPDATE_BASELINE=1. See scripts/lint-testids.mjs.
+        run: |
+          cd nom-ui
+          npm run lint:testids
+
       - name: Run unit tests
         run: |
           cd nom-ui

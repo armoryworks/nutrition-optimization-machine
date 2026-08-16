@@ -69,6 +69,8 @@ Full design in `docs/architecture/food-catalog-ingestion.md`; host determination
 
 All interactive and testable elements in Angular templates **must** have `data-testid` attributes for Cypress E2E test stability. Test IDs use kebab-case and follow this convention:
 
+> **Enforced since 2026-08-16 by `npm run lint:testids`** (`nom-ui/scripts/lint-testids.mjs`, runs in the Test Frontend workflow). This rule had been prose-only since March and was measured at 50% coverage — and *lower* on templates written after the rule than before it. It is now a per-file ratchet against `nom-ui/scripts/testid-baseline.json`: a template **not** in the baseline must be 100% covered (new work follows the rule); a baselined template may not lose coverage; a template that improved fails with `RATCHET DOWN` until you rerun `NOM_TESTID_UPDATE_BASELINE=1 npm run lint:testids` and commit the rewritten baseline **in the same commit**. It only tightens — never hand-edit a number upward. When you touch a baselined template for other reasons, add the missing test IDs while you're there; that's how the 48-file register drains.
+
 | Element | Pattern | Example |
 |---------|---------|---------|
 | Page wrapper | `{page-name}` | `data-testid="register"` |
