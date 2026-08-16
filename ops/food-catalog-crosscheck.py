@@ -114,10 +114,25 @@ class PoliteFetcher:
             return False, "robots_disallow"
         return True, ""
 
-    def _throttle(self, host: str) -> None:
+    def delay_for(self, url: str) -> float:
+        """
+        Effective politeness delay: never faster than the host's declared crawl-delay.
+        Campbell's, for example, asks for 10 s — honouring that is the difference between
+        a polite client and an abusive one.
+        """
+        parser = self._robots_for(url)
+        declared = None
+        if parser is not None:
+            try:
+                declared = parser.crawl_delay(USER_AGENT) or parser.crawl_delay("*")
+            except Exception:
+                declared = None
+        return max(self.delay, float(declared)) if declared else self.delay
+
+    def _throttle(self, host: str, delay: float) -> None:
         last = self._last_hit.get(host)
         if last is not None:
-            wait = self.delay - (time.monotonic() - last)
+            wait = delay - (time.monotonic() - last)
             if wait > 0:
                 time.sleep(wait)
         self._last_hit[host] = time.monotonic()
@@ -127,7 +142,7 @@ class PoliteFetcher:
         if not ok:
             print(f"    skip {url}: {why}", file=sys.stderr)
             return None
-        self._throttle(self._host_of(url))
+        self._throttle(self._host_of(url), self.delay_for(url))
         req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
