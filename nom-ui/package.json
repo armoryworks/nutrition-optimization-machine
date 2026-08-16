@@ -9,7 +9,8 @@
     "watch": "ng build nom-ui --watch --configuration development",
     "test": "ng test nom-ui",
     "test:ci": "ng test nom-ui --watch=false",
-    "lint": "ng lint nom-ui"
+    "lint": "ng lint nom-ui",
+    "lint:testids": "node scripts/lint-testids.mjs"
   },
   "prettier": {
     "printWidth": 100,
