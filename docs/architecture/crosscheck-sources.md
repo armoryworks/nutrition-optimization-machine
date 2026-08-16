@@ -115,9 +115,30 @@ with the Open Food Facts export.
 | `ops/food-catalog-off-compare.py` | OFF nightly bulk export | **No** — flags only. OFF values never appear in `proposed_value` and never enter the catalog; disagreements are expressed as a percentage gap so no OFF datum is copied. |
 | `ops/food-catalog-crosscheck.py` | allow-listed manufacturer pages | Only with **≥ 2 independent hosts agreeing** (`label:` source); otherwise flags. |
 
-Verified end to end against the staging catalog: the FDC diff matched 317/317 Foundation
-rows with zero differences (expected — same release), and with values deliberately
-perturbed it proposed the correct USDA numbers and flagged a withdrawn `FdcId`.
+Both verified end to end against real data and the staging catalog.
+
+**FDC diff:** matched 317/317 Foundation rows with zero differences (expected — same
+release); with values deliberately perturbed it proposed the correct USDA numbers and
+flagged a withdrawn `FdcId`.
+
+**OFF comparison** (2,677 branded products vs the full 4.5M-row export):
+
+| | |
+|---|---|
+| Matched by barcode | **2,624 / 2,677 (98%)** |
+| Agreed with our values | 2,456 (**94% of matches**) |
+| Disagreed | 168 → 269 flags |
+| Disagreements by nutrient | calories 77, carbs 74, fat 61, protein 57 |
+
+Every output was a `flag`, none carried a `proposed_value`, none targeted a nutrient
+field, and the only source was `review:off/<date>` — the ODbL posture held in practice,
+not just in tests.
+
+**Reading the 94% agreement:** it is a genuine cross-source corroboration of the FDC
+branded data we imported, which is reassuring given how noisy that dataset is in the
+raw. The 168 disagreements are the queue worth a human's time — they are *not* proof
+our value is wrong, since OFF is crowd-sourced; they are the shortlist to check
+against the manufacturer's published label.
 
 ## Open items
 

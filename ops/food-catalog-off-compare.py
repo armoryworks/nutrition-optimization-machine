@@ -71,6 +71,21 @@ def normalize_barcode(code: str | None) -> str | None:
     return digits.lstrip("0") or "0"
 
 
+def _raise_csv_field_limit() -> None:
+    """
+    OFF rows carry very long free-text fields (full ingredient lists, allergen prose)
+    that blow past Python's 128 KB default and abort the scan mid-file. Raise the limit
+    to the largest value the platform accepts.
+    """
+    limit = sys.maxsize
+    while True:
+        try:
+            csv.field_size_limit(limit)
+            return
+        except OverflowError:
+            limit //= 2
+
+
 def open_maybe_gzip(path: str):
     if path.endswith(".gz"):
         return io.TextIOWrapper(gzip.open(path, "rb"), encoding="utf-8", errors="replace")
@@ -82,6 +97,7 @@ def read_off(path: str, wanted: set[str], progress_every: int = 500_000) -> dict
     Stream the OFF export, keeping only barcodes we actually hold. The export is ~9 GB
     uncompressed, so it is never loaded into memory as a whole.
     """
+    _raise_csv_field_limit()
     found: dict[str, dict] = {}
     with open_maybe_gzip(path) as fh:
         reader = csv.DictReader(fh, delimiter="\t")
