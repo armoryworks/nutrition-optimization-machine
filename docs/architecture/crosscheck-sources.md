@@ -107,12 +107,28 @@ single source at best, which can only ever raise a **flag**. A numeric proposal 
 two independent hosts agreeing — which in practice means pairing a manufacturer page
 with the Open Food Facts export.
 
+## Built checkers
+
+| Tool | Source | Can it change a number? |
+|---|---|---|
+| `ops/food-catalog-fdc-diff.py` | current USDA release | **Yes** — proposes `update` with an `fdc:` source (USDA is the origin of the record; a difference means our copy is stale). Withdrawn records are flagged, never auto-deleted. |
+| `ops/food-catalog-off-compare.py` | OFF nightly bulk export | **No** — flags only. OFF values never appear in `proposed_value` and never enter the catalog; disagreements are expressed as a percentage gap so no OFF datum is copied. |
+| `ops/food-catalog-crosscheck.py` | allow-listed manufacturer pages | Only with **≥ 2 independent hosts agreeing** (`label:` source); otherwise flags. |
+
+Verified end to end against the staging catalog: the FDC diff matched 317/317 Foundation
+rows with zero differences (expected — same release), and with values deliberately
+perturbed it proposed the correct USDA numbers and flagged a withdrawn `FdcId`.
+
 ## Open items
 
-- **OFF bulk-export ingestion** is not built yet; it is the highest-value next step for
-  coverage, and it needs the ODbL posture above confirmed by an attorney.
+- **Attorney confirmation of the ODbL posture** before the OFF comparator is used on
+  anything that ships. The code is built to need only a signal, but the call is legal.
 - **Licensed search API key** (Brave or Google PSE) is not configured, so candidate-page
   discovery currently requires a URL column in the export.
+- **OFF export download is unreliable from this environment** — three attempts at the
+  1.2 GB file truncated (632 MB / 1017 MB / 463 MB), and `-C -` resume corrupted it.
+  Fetch it on a host with a stable connection (`wget -c`) and verify with `gzip -t`
+  before running the comparator.
 - Manufacturer product pages rarely expose schema.org `NutritionInformation`; expect the
   local reader (with verbatim verification) to do most of the work, and expect partial
   yield.

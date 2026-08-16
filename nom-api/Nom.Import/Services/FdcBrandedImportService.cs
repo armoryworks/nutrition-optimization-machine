@@ -102,6 +102,7 @@ namespace Nom.Import.Services
                         : FoodGroupHeuristics.ClassifyByCategory(b.Category)
                             ?? FoodGroupHeuristics.ClassifyFoodGroup(description),
                     ReferenceServingGrams = b.ServingGrams,
+                    GtinUpc = b.Gtin,
                     IsWholeFood = FoodGroupHeuristics.IsDirectlyEdibleCategory(b.Category),
                     CreatedDate = DateTime.UtcNow,
                 };
@@ -112,6 +113,7 @@ namespace Nom.Import.Services
                 if (ingredient.FoodGroupId.HasValue) report.Classified++;
                 if (ingredient.ReferenceServingGrams.HasValue) report.WithReferenceServing++;
                 if (ingredient.IsWholeFood == true) report.MarkedWholeFood++;
+                if (ingredient.GtinUpc != null) report.WithGtin++;
             }
 
             await _db.SaveChangesAsync(ct);
@@ -151,7 +153,7 @@ namespace Nom.Import.Services
 
 
 
-        private sealed record Branded(string? BrandOwner, string? Category, decimal? ServingGrams);
+        private sealed record Branded(string? BrandOwner, string? Category, decimal? ServingGrams, string? Gtin);
         private sealed record Macros(decimal? Kcal, decimal? Protein, decimal? Carb, decimal? Fat);
 
         /// <summary>
@@ -165,6 +167,7 @@ namespace Nom.Import.Services
             var header = CsvLine.Split(reader.ReadLine() ?? string.Empty);
             int Col(string name) => Array.FindIndex(header, h => h.Equals(name, StringComparison.OrdinalIgnoreCase));
             int iFdc = Col("fdc_id"), iBrand = Col("brand_owner"), iServing = Col("serving_size"),
+                iGtin = Col("gtin_upc"),
                 iUnit = Col("serving_size_unit"), iCategory = Col("branded_food_category"),
                 iCountry = Col("market_country"), iDiscontinued = Col("discontinued_date");
 
@@ -191,10 +194,14 @@ namespace Nom.Import.Services
                     if (unit is "g" or "grm" or "gram" or "ml" or "mlt") servingGrams = ss;
                 }
 
+                var gtin = iGtin >= 0 && f.Length > iGtin ? f[iGtin].Trim() : null;
+                if (!string.IsNullOrEmpty(gtin) && !gtin.All(char.IsDigit)) gtin = null;
+
                 result[f[iFdc]] = new Branded(
                     iBrand >= 0 && f.Length > iBrand ? f[iBrand] : null,
                     iCategory >= 0 && f.Length > iCategory ? f[iCategory] : null,
-                    servingGrams);
+                    servingGrams,
+                    string.IsNullOrEmpty(gtin) ? null : gtin);
             }
             return result;
         }
@@ -303,6 +310,7 @@ namespace Nom.Import.Services
             public int Classified { get; set; }
             public int MarkedWholeFood { get; set; }
             public int WithReferenceServing { get; set; }
+            public int WithGtin { get; set; }
             public int Rejected { get; set; }
             public int SkippedExisting { get; set; }
             public int SkippedDuplicateName { get; set; }
