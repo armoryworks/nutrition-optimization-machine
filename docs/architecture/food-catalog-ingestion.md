@@ -163,6 +163,38 @@ re-introduced into open-core and nothing entangles with the overlay.
 (register `OllamaService` as `IAiService` when the Ollama URL is configured) and a
 run against the Server-2 Ollama box. Config-gated: absent AI → heuristic-only.
 
+### Label cross-check — BUILT ✅ (`ops/food-catalog-crosscheck.py`)
+
+Verifies catalog nutrition against publicly published labels. Lives in `ops/`
+because nom-api never fetches third-party sites (see CLAUDE.md).
+
+**Mass normalization is the crux.** Labels publish *per serving*; the catalog
+stores *per 100 g*. A 55 g bar at 240 kcal is **436 kcal/100 g** — compare the raw
+numbers and essentially every product looks wrong. `ops/nutrition_normalize.py`
+parses the serving mass (`"1 bar (55 g)"` → 55 g, parenthesised mass beats the
+count), converts oz/lb/ml, rescales every nutrient by `100/serving_grams`, and
+**refuses** rather than guesses when no serving mass is published. Volume servings
+are converted at an assumed 1 g/ml and marked, so they can never drive a numeric
+change on their own. 30 unit tests.
+
+**The model cannot supply numbers:**
+- schema.org `NutritionInformation` is parsed **deterministically — no model**.
+- For unstructured pages the local Ollama model is a *transcriber*, prompted to
+  copy values exactly; then every number it returns must appear **verbatim in the
+  fetched text** or it is discarded. That check, not the prompt, is what prevents
+  remembered values leaking in.
+
+**Corroboration gate:** a numeric change requires **≥ 2 independent hosts** agreeing
+within tolerance; it is then emitted with a `label:` source (authoritative under
+`ProposalPolicy`) and still needs admin approval. One source, disagreeing sources,
+or an assumed density produces a **`flag`** with a `review:` source, which the
+policy forbids from changing any nutrient value.
+
+**Crawling posture:** allow-list required (the script refuses to run without
+`--allow-host`), robots.txt honoured per host (unreadable robots = disallowed),
+per-host rate limiting, contact UA. Search engine result pages are **not** scraped;
+use a licensed API via `--search-api brave|google`.
+
 ### Gated manufacturer gap-fill — BLOCKED (source selection + ToS)
 Reads schema.org `NutritionInformation` JSON-LD from admin-approved domains via
 the operator-scraper contract. A `ScrapingSource`-style whitelist row must carry
