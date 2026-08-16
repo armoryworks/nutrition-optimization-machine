@@ -1,0 +1,214 @@
+<div class="nom-food-catalog" data-testid="food-catalog">
+  <h2 class="nom-admin__panel-title">Food Catalog</h2>
+  <p class="nom-admin__panel-description">
+    Review imported foods before meal planning can use them. Only <strong>Curated</strong> foods are
+    offered as standalone meal items or used to satisfy household food-group requirements — imported
+    foods stay pending until you approve them here.
+  </p>
+
+  @if (errorMessage()) {
+    <div class="nom-form__error" data-testid="food-catalog-error">
+      <mat-icon>error_outline</mat-icon><span>{{ errorMessage() }}</span>
+    </div>
+  }
+  @if (successMessage()) {
+    <div class="nom-food-catalog__success" data-testid="food-catalog-success">
+      <mat-icon>check_circle</mat-icon><span>{{ successMessage() }}</span>
+    </div>
+  }
+
+  <!-- Filters -->
+  <div class="nom-food-catalog__filters">
+    <mat-form-field appearance="outline">
+      <mat-label>Source</mat-label>
+      <mat-select [ngModel]="source()" (ngModelChange)="source.set($event); onFilterChange()"
+                  data-testid="food-catalog-source">
+        @for (s of sources; track s.label) { <mat-option [value]="s.value">{{ s.label }}</mat-option> }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Status</mat-label>
+      <mat-select [ngModel]="status()" (ngModelChange)="status.set($event); onFilterChange()"
+                  data-testid="food-catalog-status">
+        @for (s of statuses; track s.label) { <mat-option [value]="s.value">{{ s.label }}</mat-option> }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Food group</mat-label>
+      <mat-select [ngModel]="foodGroupId()" (ngModelChange)="foodGroupId.set($event); onFilterChange()"
+                  data-testid="food-catalog-group">
+        <mat-option [value]="null">Any group</mat-option>
+        <mat-option [value]="0">Unclassified</mat-option>
+        @for (g of foodGroups(); track g.id) { <mat-option [value]="g.id">{{ g.name }}</mat-option> }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="nom-food-catalog__search">
+      <mat-label>Search</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)"
+             (keyup.enter)="onFilterChange()" placeholder="Name contains…"
+             data-testid="food-catalog-search" />
+    </mat-form-field>
+
+    <button mat-stroked-button (click)="runAudit()" [disabled]="auditRunning()"
+            matTooltip="Deterministic quality check — no AI, no network"
+            data-testid="food-catalog-audit-btn">
+      @if (auditRunning()) { <mat-spinner diameter="18" /> } @else { <mat-icon>rule</mat-icon> }
+      Run audit
+    </button>
+
+    <a mat-stroked-button [href]="exportUrl()" data-testid="food-catalog-export-btn">
+      <mat-icon>download</mat-icon> Export CSV
+    </a>
+  </div>
+
+  @if (findings().length > 0) {
+    <div class="nom-food-catalog__audit-summary" data-testid="food-catalog-audit-summary">
+      <mat-icon>rule</mat-icon>
+      <span>
+        Audit examined {{ auditExamined() }} foods and raised
+        <strong>{{ findings().length }}</strong> finding(s). Flagged rows are marked below.
+      </span>
+    </div>
+  }
+
+  <!-- Bulk actions -->
+  @if (selectedCount() > 0) {
+    <div class="nom-food-catalog__bulk" data-testid="food-catalog-bulk">
+      <span>{{ selectedCount() }} selected</span>
+      <button mat-flat-button (click)="promoteSelected(CurationStatus.Curated)"
+              data-testid="food-catalog-approve-btn">
+        <mat-icon>check</mat-icon> Approve for planning
+      </button>
+      <button mat-stroked-button (click)="promoteSelected(CurationStatus.Rejected)"
+              data-testid="food-catalog-reject-btn">
+        <mat-icon>block</mat-icon> Reject
+      </button>
+    </div>
+  }
+
+  <!-- Catalog table -->
+  @if (loading()) {
+    <div class="nom-food-catalog__loading"><mat-spinner diameter="32" /></div>
+  } @else if (items().length === 0) {
+    <p class="nom-food-catalog__empty" data-testid="food-catalog-empty">
+      No foods match these filters.
+    </p>
+  } @else {
+    <div class="nom-food-catalog__table-wrap">
+      <table class="nom-food-catalog__table" data-testid="food-catalog-list">
+        <thead>
+          <tr>
+            <th><mat-checkbox (change)="toggleAll($event.checked)" aria-label="Select all" /></th>
+            <th>Food</th>
+            <th>Group</th>
+            <th>Eaten as-is</th>
+            <th class="num">kcal/100g</th>
+            <th class="num">P</th>
+            <th class="num">C</th>
+            <th class="num">F</th>
+            <th class="num">Ref (g)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items(); track item.id) {
+            <tr data-testid="food-catalog-item" [class.nom-food-catalog__row--flagged]="flagsFor(item.id).length > 0">
+              <td><mat-checkbox [checked]="selected().has(item.id)" (change)="toggle(item.id)"
+                                [attr.aria-label]="'Select ' + item.name" /></td>
+              <td class="nom-food-catalog__name">
+                <span>{{ item.name }}</span>
+                @if (flagsFor(item.id).length > 0) {
+                  <mat-icon class="nom-food-catalog__flag"
+                            [matTooltip]="flagsFor(item.id)[0].detail">warning</mat-icon>
+                }
+                @if (item.fdcId) { <span class="nom-food-catalog__fdc">FDC {{ item.fdcId }}</span> }
+              </td>
+              <td>
+                <mat-select class="nom-food-catalog__inline-select"
+                            [ngModel]="item.foodGroupId"
+                            (ngModelChange)="setGroup(item, $event)"
+                            [attr.aria-label]="'Food group for ' + item.name">
+                  <mat-option [value]="null">Unclassified</mat-option>
+                  @for (g of foodGroups(); track g.id) { <mat-option [value]="g.id">{{ g.name }}</mat-option> }
+                </mat-select>
+              </td>
+              <td>
+                <mat-checkbox [checked]="item.isWholeFood === true"
+                              [indeterminate]="item.isWholeFood === null"
+                              (change)="setWholeFood(item, $event.checked)"
+                              [attr.aria-label]="'Eaten as-is: ' + item.name" />
+              </td>
+              <td class="num">{{ item.caloriesPer100g | number: '1.0-0' }}</td>
+              <td class="num">{{ item.proteinPer100g | number: '1.0-1' }}</td>
+              <td class="num">{{ item.carbPer100g | number: '1.0-1' }}</td>
+              <td class="num">{{ item.fatPer100g | number: '1.0-1' }}</td>
+              <td class="num">{{ item.referenceServingGrams | number: '1.0-0' }}</td>
+              <td>
+                <span class="nom-food-catalog__status"
+                      [class.nom-food-catalog__status--curated]="item.curationStatusId === CurationStatus.Curated">
+                  {{ item.curationStatus ?? '—' }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nom-food-catalog__pager">
+      <button mat-icon-button (click)="goToPage(-1)" [disabled]="page() === 1" aria-label="Previous page">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <span>Page {{ page() }} of {{ totalPages() }} · {{ total() }} foods</span>
+      <button mat-icon-button (click)="goToPage(1)" [disabled]="page() >= totalPages()" aria-label="Next page">
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+    </div>
+  }
+
+  <!-- Reviewer proposals -->
+  <h3 class="nom-food-catalog__section-title">Reviewer proposals</h3>
+  <p class="nom-admin__panel-description">
+    Suggestions from the audit or an automated reviewer. Nothing here has changed the catalog —
+    approving a proposal is what applies it. Reviewers may propose names, groups and flags;
+    changing a nutrient value requires an authoritative source.
+  </p>
+
+  @if (proposalsLoading()) {
+    <div class="nom-food-catalog__loading"><mat-spinner diameter="24" /></div>
+  } @else if (proposals().length === 0) {
+    <p class="nom-food-catalog__empty" data-testid="food-catalog-proposals-empty">
+      No proposals awaiting review.
+    </p>
+  } @else {
+    <div class="nom-food-catalog__proposals" data-testid="food-catalog-proposals">
+      @for (p of proposals(); track p.id) {
+        <div class="nom-food-catalog__proposal">
+          <div class="nom-food-catalog__proposal-body">
+            <span class="nom-food-catalog__proposal-action">{{ p.action }}</span>
+            <strong>{{ p.ingredientName ?? p.fdcId ?? '—' }}</strong>
+            @if (p.field) {
+              <span>{{ p.field }}: <em>{{ p.currentValue || '—' }}</em> → <em>{{ p.proposedValue }}</em></span>
+            }
+            @if (p.reason) { <span class="nom-food-catalog__proposal-reason">{{ p.reason }}</span> }
+            <span class="nom-food-catalog__proposal-source">
+              {{ p.source }}@if (p.confidence != null) { · confidence {{ p.confidence | number: '1.0-2' }} }
+            </span>
+          </div>
+          <div class="nom-food-catalog__proposal-actions">
+            <button mat-stroked-button (click)="applyProposal(p)" data-testid="food-catalog-proposal-apply-btn">
+              Apply
+            </button>
+            <button mat-button (click)="rejectProposal(p)" data-testid="food-catalog-proposal-reject-btn">
+              Dismiss
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
