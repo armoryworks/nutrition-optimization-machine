@@ -1,0 +1,130 @@
+.nom-food-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  &__filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  &__search { min-width: 16rem; }
+
+  &__success {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--mat-sys-primary, #2e7d32) 12%, transparent);
+  }
+
+  &__audit-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    background: color-mix(in srgb, #f9a825 18%, transparent);
+  }
+
+  &__bulk {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--mat-sys-primary, #2e7d32) 8%, transparent);
+  }
+
+  &__loading { display: flex; justify-content: center; padding: 2rem; }
+
+  &__empty { margin: 0; opacity: 0.7; }
+
+  // Wide table scrolls inside its own container; the page never scrolls sideways.
+  &__table-wrap { overflow-x: auto; }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+
+    th, td {
+      padding: 0.4rem 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+      white-space: nowrap;
+    }
+
+    th { font-weight: 600; }
+    .num { text-align: right; }
+  }
+
+  &__row--flagged { background: color-mix(in srgb, #f9a825 10%, transparent); }
+
+  &__name {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    max-width: 28rem;
+    white-space: normal;
+  }
+
+  &__flag { color: #f9a825; font-size: 1.1rem; height: 1.1rem; width: 1.1rem; }
+
+  &__fdc { opacity: 0.55; font-size: 0.75rem; }
+
+  &__inline-select { min-width: 9rem; font-size: 0.85rem; }
+
+  &__status {
+    font-size: 0.8rem;
+    opacity: 0.75;
+
+    &--curated {
+      color: var(--mat-sys-primary, #2e7d32);
+      font-weight: 600;
+      opacity: 1;
+    }
+  }
+
+  &__pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+
+  &__section-title { margin: 1.5rem 0 0; }
+
+  &__proposals { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  &__proposal {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+    border-radius: 8px;
+  }
+
+  &__proposal-body { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+
+  &__proposal-action {
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--mat-sys-primary, #2e7d32) 15%, transparent);
+  }
+
+  &__proposal-reason { opacity: 0.75; font-size: 0.85rem; }
+
+  &__proposal-source { opacity: 0.55; font-size: 0.75rem; }
+
+  &__proposal-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+}
