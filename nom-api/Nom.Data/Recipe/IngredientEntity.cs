@@ -63,6 +63,13 @@ namespace Nom.Data.Recipe
         /// </summary>
         public decimal? ReferenceServingGrams { get; set; }
 
+        /// <summary>
+        /// Retail barcode (GTIN-8/12/13/14, digits only, leading zeros preserved) for packaged
+        /// products. The join key for cross-checking a product against other published catalogs,
+        /// and the lookup key for a future scan-to-add flow. NULL for anything unpackaged.
+        /// </summary>
+        public string? GtinUpc { get; set; }
+
         // Legacy field (from Mealie)
         public bool? OnHand { get; set; } = false;
 

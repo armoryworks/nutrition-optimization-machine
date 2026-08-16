@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict MYbqEtHaHIZmB2RYVZWGnjbFxVcm6AGbMnUWf7stC2fRi7eUJrPPzahbVI9FdxJ
+\restrict P649we3Hj3w9phYOMF3SRba4KdYl8gWV2894w6REjU4Br9BHC9wrD1qseWEpatc
 
 -- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
@@ -2092,6 +2092,7 @@ CREATE TABLE recipe."Ingredient" (
     "FoodGroupId" bigint,
     "IsWholeFood" boolean,
     "ReferenceServingGrams" numeric(9,2),
+    "GtinUpc" character varying(32),
     "OnHand" boolean,
     "CreatedDate" timestamp with time zone NOT NULL,
     "CreatedByPersonId" bigint,
@@ -5507,6 +5508,13 @@ CREATE INDEX "IX_Ingredient_FoodGroupId" ON recipe."Ingredient" USING btree ("Fo
 
 
 --
+-- Name: IX_Ingredient_GtinUpc; Type: INDEX; Schema: recipe; Owner: -
+--
+
+CREATE INDEX "IX_Ingredient_GtinUpc" ON recipe."Ingredient" USING btree ("GtinUpc") WHERE ("GtinUpc" IS NOT NULL);
+
+
+--
 -- Name: IX_Ingredient_IsWholeFood; Type: INDEX; Schema: recipe; Owner: -
 --
 
@@ -7817,5 +7825,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict MYbqEtHaHIZmB2RYVZWGnjbFxVcm6AGbMnUWf7stC2fRi7eUJrPPzahbVI9FdxJ
+\unrestrict P649we3Hj3w9phYOMF3SRba4KdYl8gWV2894w6REjU4Br9BHC9wrD1qseWEpatc
 

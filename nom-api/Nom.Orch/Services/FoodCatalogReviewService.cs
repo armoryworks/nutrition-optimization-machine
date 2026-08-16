@@ -162,12 +162,13 @@ namespace Nom.Orch.Services
                 .ToListAsync();
 
             var sb = new StringBuilder();
-            sb.AppendLine("ingredient_id,fdc_id,source,name,food_group,is_whole_food,reference_serving_grams,kcal_per_100g,protein_per_100g,carb_per_100g,fat_per_100g");
+            sb.AppendLine("ingredient_id,fdc_id,gtin_upc,source,name,food_group,is_whole_food,reference_serving_grams,kcal_per_100g,protein_per_100g,carb_per_100g,fat_per_100g");
             foreach (var i in rows)
             {
                 sb.AppendLine(string.Join(',',
                     i.Id,
                     Csv(i.FdcId),
+                    Csv(i.GtinUpc),
                     Csv(string.IsNullOrEmpty(i.FdcDataType) ? "authored" : i.FdcDataType),
                     Csv(i.Name),
                     Csv(i.FoodGroup?.Name),
