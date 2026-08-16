@@ -125,10 +125,18 @@ perturbed it proposed the correct USDA numbers and flagged a withdrawn `FdcId`.
   anything that ships. The code is built to need only a signal, but the call is legal.
 - **Licensed search API key** (Brave or Google PSE) is not configured, so candidate-page
   discovery currently requires a URL column in the export.
-- **OFF export download is unreliable from this environment** — three attempts at the
-  1.2 GB file truncated (632 MB / 1017 MB / 463 MB), and `-C -` resume corrupted it.
-  Fetch it on a host with a stable connection (`wget -c`) and verify with `gzip -t`
-  before running the comparator.
+- **Fetching the OFF export: use `wget`, not `curl`.** Three `curl` attempts from the
+  dev box truncated (632 MB / 1017 MB / 463 MB) and still exited 0 — the stream ends
+  early and curl reports success, so *always* verify with `gzip -t`. `wget -c` on
+  Server-2 pulled the full 1,275,171,186 bytes cleanly:
+
+  ```bash
+  ssh daniel@192.168.1.56 'cd ~/off && nohup wget -c --tries=20 --waitretry=10 \
+      --read-timeout=60 -O off-products.csv.gz \
+      "https://static.openfoodfacts.org/data/en.openfoodfacts.org.products.csv.gz" \
+      > wget.log 2>&1 < /dev/null &'
+  gzip -t off-products.csv.gz   # must pass before the comparator is trusted
+  ```
 - Manufacturer product pages rarely expose schema.org `NutritionInformation`; expect the
   local reader (with verbatim verification) to do most of the work, and expect partial
   yield.
