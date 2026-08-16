@@ -246,8 +246,11 @@ describe('Anonymous Browsing', () => {
     cy.visit('/home');
     cy.wait(1000);
 
-    // Find the theme toggle button in the header
-    cy.get('.nom-header__action-btn').first().then(($btn) => {
+    // Find the theme toggle button in the header by its test id — NOT by
+    // class + .first(): the header's action cluster gained a mobile search
+    // toggle (display:none on desktop) ahead of it, which made .first()
+    // resolve to an invisible button and fail the click.
+    cy.get('[data-testid="header-theme-toggle-btn"]').then(($btn) => {
       // Check the current icon
       const iconText = $btn.find('mat-icon').text().trim();
       const isDark = iconText === 'light_mode';
