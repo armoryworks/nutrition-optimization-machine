@@ -69,7 +69,32 @@ namespace Nom.Api.Authentication
 
         private async Task SendEmailAsync(string toEmail, string subject, string htmlBody)
         {
-            _logger.LogInformation("Sending email to {Email}: {Subject}", toEmail, subject);
+            // Non-production instances redirect every message to one mailbox so a
+            // snapshot-loaded environment cannot mail real users. The intended recipient is
+            // preserved in the subject and body so the mail is still testable.
+            var intendedRecipient = toEmail;
+            var redirected = !string.IsNullOrWhiteSpace(_settings.OverrideRecipient);
+            if (redirected)
+            {
+                toEmail = _settings.OverrideRecipient.Trim();
+                subject = $"[staging → {intendedRecipient}] {subject}";
+                htmlBody =
+                    $"<p style=\"font:13px sans-serif;background:#fff3cd;border:1px solid #ffe08a;" +
+                    $"padding:8px;border-radius:4px\"><strong>Non-production message.</strong> " +
+                    $"Intended recipient: <code>{WebUtility.HtmlEncode(intendedRecipient)}</code>. " +
+                    $"Redirected here by Email:OverrideRecipient.</p>{htmlBody}";
+            }
+
+            if (redirected)
+            {
+                _logger.LogInformation(
+                    "Redirecting email intended for {Intended} to {Override}: {Subject}",
+                    intendedRecipient, toEmail, subject);
+            }
+            else
+            {
+                _logger.LogInformation("Sending email to {Email}: {Subject}", toEmail, subject);
+            }
 
             using var message = new MailMessage();
             message.From = new MailAddress(_settings.FromAddress, _settings.FromName);
