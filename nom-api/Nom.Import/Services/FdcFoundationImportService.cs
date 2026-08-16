@@ -65,6 +65,38 @@ namespace Nom.Import.Services
             [28] = (long)FoodGroupEnum.Beverages,      // Alcoholic Beverages
         };
 
+        /// <summary>
+        /// Whether a Foundation food in this FDC category is eaten as-is. Foundation is largely raw
+        /// commodities, so this is not "is it food" but "would someone put it in a meal slot without
+        /// cooking it": an apple yes, raw chicken and dry pasta no. Unlisted categories stay null.
+        /// </summary>
+        private static readonly Dictionary<int, bool> CategoryDirectlyEdible = new()
+        {
+            [1] = true,    // Dairy and Egg Products
+            [2] = false,   // Spices and Herbs
+            [3] = true,    // Baby Foods
+            [4] = false,   // Fats and Oils
+            [5] = false,   // Poultry — raw
+            [7] = true,    // Sausages and Luncheon Meats — ready to eat
+            [8] = true,    // Breakfast Cereals
+            [9] = true,    // Fruits and Fruit Juices
+            [10] = false,  // Pork — raw
+            [11] = true,   // Vegetables
+            [12] = true,   // Nut and Seed Products
+            [13] = false,  // Beef — raw
+            [14] = true,   // Beverages
+            [15] = false,  // Finfish and Shellfish — raw
+            // 16 Legumes is deliberately absent: it mixes dry commodities that need cooking with
+            // ready-to-eat products (hummus, peanut butter), so the category cannot decide. Leaving
+            // it unknown is better than asserting the wrong answer for half the category.
+            [17] = false,  // Lamb, Veal, Game — raw
+            [18] = true,   // Baked Products
+            [19] = true,   // Sweets
+            [20] = false,  // Cereal Grains and Pasta — needs cooking
+            [23] = true,   // Snacks
+            [28] = true,   // Alcoholic Beverages
+        };
+
         /// <param name="curated">
         /// Land accepted foods as Curated rather than PendingCuration. Meal-plan food-group
         /// top-up and the severe-restriction safety gate only draw from Curated ingredients, so
@@ -123,6 +155,8 @@ namespace Nom.Import.Services
                     FdcDataType = "foundation_food",
                     CurationStatusId = curated ? Curated : PendingCuration,
                     FoodGroupId = group,
+                    IsWholeFood = food.CategoryId is int ec && CategoryDirectlyEdible.TryGetValue(ec, out var edible)
+                        ? edible : null,
                     // NOTE: must be TryGetValue — GetValueOrDefault on a decimal dictionary yields
                     // 0, which would silently zero out the food's nutrition.
                     ReferenceServingGrams = portions.TryGetValue(fdcId, out var refGrams) ? refGrams : null,
