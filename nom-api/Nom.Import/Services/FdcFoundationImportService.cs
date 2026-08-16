@@ -244,7 +244,19 @@ namespace Nom.Import.Services
                 .OrderBy(m => m.Name.Length)
                 .Select(m => m.Id)
                 .FirstOrDefault();
-            return (Pick("gram"), Pick("kilocalorie", "calorie"));
+            var gram = Pick("gram");
+            var kcal = Pick("kilocalorie", "calorie");
+            // FirstOrDefault yields 0 when nothing matches, which would either violate the
+            // Measurement FK or silently attach nutrients to a non-existent unit. Fail loudly
+            // instead: the target database is missing its measurement seed.
+            if (gram == 0 || kcal == 0)
+            {
+                throw new InvalidOperationException(
+                    "Cannot resolve the 'Gram' and 'Kilocalorie' measurement rows in the target " +
+                    "database — run the measurement seed before importing, or nutrient amounts " +
+                    "would be written against an invalid unit.");
+            }
+            return (gram, kcal);
         }
 
         /// <summary>
