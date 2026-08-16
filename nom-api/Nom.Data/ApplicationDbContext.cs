@@ -51,6 +51,7 @@ namespace Nom.Data
 
         #region Curation
         public DbSet<CurationFeedbackEntity> CurationFeedbacks { get; set; } = default!;
+        public DbSet<FoodCatalogProposalEntity> FoodCatalogProposals { get; set; } = default!;
         #endregion
 
         #region Nutrient
