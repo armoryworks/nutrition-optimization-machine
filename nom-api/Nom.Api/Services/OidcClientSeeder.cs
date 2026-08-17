@@ -65,6 +65,38 @@ namespace Nom.Api.Services
                 return;
             }
 
+            // Scope entities carry the RESOURCE the scope maps to; without them
+            // no `aud` is stamped on the access token and every resource server
+            // validating an audience rejects it.
+            var scopeManager = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
+            foreach (var scopeName in clients.SelectMany(c => c.Scopes).Distinct())
+            {
+                try
+                {
+                    var descriptor = new OpenIddictScopeDescriptor
+                    {
+                        Name = scopeName,
+                        DisplayName = scopeName,
+                        Resources = { scopeName },
+                    };
+
+                    var existingScope = await scopeManager.FindByNameAsync(scopeName, cancellationToken);
+                    if (existingScope is null)
+                    {
+                        await scopeManager.CreateAsync(descriptor, cancellationToken);
+                        _logger.LogInformation("Registered OIDC scope {Scope}", scopeName);
+                    }
+                    else
+                    {
+                        await scopeManager.UpdateAsync(existingScope, descriptor, cancellationToken);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to seed OIDC scope {Scope}", scopeName);
+                }
+            }
+
             var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
 
             foreach (var client in clients)
@@ -106,6 +138,9 @@ namespace Nom.Api.Services
                         OpenIddictConstants.Permissions.ResponseTypes.Code,
                         OpenIddictConstants.Permissions.Scopes.Email,
                         OpenIddictConstants.Permissions.Scopes.Profile,
+                        // Silent renewal fails with invalid_scope without this.
+                        OpenIddictConstants.Permissions.Prefixes.Scope +
+                            OpenIddictConstants.Scopes.OfflineAccess,
                     })
                     {
                         descriptor.Permissions.Add(permission);

@@ -268,10 +268,15 @@ namespace Nom.Api.Controllers
                     }
                     yield break;
 
+                // These also travel in the identity token so a browser client can
+                // read them from userData instead of decoding the access token —
+                // which it must not do, and could not if access tokens were
+                // encrypted.
                 case "PersonId":
                 case "CanManageCuration":
                 case "CanManageUserRoles":
                     yield return OpenIddictConstants.Destinations.AccessToken;
+                    yield return OpenIddictConstants.Destinations.IdentityToken;
                     yield break;
 
                 // Never leak the security stamp into a token.
