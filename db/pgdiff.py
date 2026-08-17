@@ -176,12 +176,17 @@ def main():
     ap.add_argument("--password", default=os.environ.get("DB_PASSWORD", "dev_password"))
     ap.add_argument("--exclude-table", action="append", default=[],
                     help="schema.table to ignore entirely (repeatable)")
+    ap.add_argument("--exclude-schema", action="append", default=[],
+                    help="whole schema to ignore entirely (repeatable). Use for schemas owned "
+                         "by an overlay service rather than by this model, so the diff never "
+                         "proposes dropping their tables.")
     args = ap.parse_args()
 
     excluded = {tuple(x.split(".", 1)) for x in args.exclude_table}
+    excluded_schemas = set(args.exclude_schema)
 
     def keep(st):
-        return st not in excluded
+        return st not in excluded and st[0] not in excluded_schemas
 
     t_schemas, d_schemas = get_schemas(args.target, args), get_schemas(args.desired, args)
     t_tables = {t for t in get_tables(args.target, args) if keep(t)}

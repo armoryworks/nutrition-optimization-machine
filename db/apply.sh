@@ -75,9 +75,22 @@ cleanup() {
 trap cleanup EXIT
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DESIRED_DB" -v ON_ERROR_STOP=1 -q -f schema.sql
 
+# Overlay-owned objects are deliberately invisible to this diff. Private overlay
+# services (nom-commerce, brigade) add their own schemas to the SAME database and
+# manage them with their own apply step. Without these exclusions every run here
+# would propose DROPping their tables — and the destructive guard below would make
+# --allow-destructive look like the way to "fix" it, deleting the overlay's data.
+# Add to OVERLAY_SCHEMAS/OVERLAY_TABLES when an overlay introduces new objects.
+OVERLAY_SCHEMAS="${OVERLAY_SCHEMAS:-commerce brigade}"
+OVERLAY_TABLES="${OVERLAY_TABLES:-plan.Budget}"
+
+EXCLUDES=(--exclude-table 'public.__EFMigrationsHistory')
+for s in $OVERLAY_SCHEMAS; do EXCLUDES+=(--exclude-schema "$s"); done
+for t in $OVERLAY_TABLES; do EXCLUDES+=(--exclude-table "$t"); done
+
 DIFF=$(python3 pgdiff.py --target "$DB_NAME" --desired "$DESIRED_DB" \
   --host "$DB_HOST" --port "$DB_PORT" --user "$DB_USER" --password "$DB_PASSWORD" \
-  --exclude-table 'public.__EFMigrationsHistory')
+  "${EXCLUDES[@]}")
 
 if [ -z "$(echo "$DIFF" | grep -v '^--' | tr -d '[:space:]')" ]; then
   echo "'$DB_NAME' already matches schema.sql. Nothing to do."
