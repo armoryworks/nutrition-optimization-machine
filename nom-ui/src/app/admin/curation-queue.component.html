@@ -38,9 +38,9 @@
               {{ item.entityType === 'Recipe' ? 'restaurant_menu' : 'egg' }}
             </mat-icon>
             <div class="nom-curation__item-info">
-              <span class="nom-curation__item-name">{{ item.entityName }}</span>
+              <span class="nom-curation__item-name">{{ item.name }}</span>
               <span class="nom-curation__item-meta">
-                {{ item.entityType }} by {{ item.authorName }} · {{ item.submittedDate | date:'mediumDate' }}
+                {{ item.entityType }} by {{ item.authorName || 'System' }} · {{ item.dateSubmitted | date:'mediumDate' }}
               </span>
             </div>
             @if (item.containsSourceProse) {
@@ -70,7 +70,7 @@
             }
             @if (item.entityType === 'Recipe' && item.sourceImageUrl) {
               <figure class="nom-curation__source-image" data-testid="curation-source-image">
-                <img [src]="item.sourceImageUrl" alt="Source image for {{ item.entityName }}" />
+                <img [src]="item.sourceImageUrl" alt="Source image for {{ item.name }}" />
                 <figcaption>Source image (review only)</figcaption>
               </figure>
             }
