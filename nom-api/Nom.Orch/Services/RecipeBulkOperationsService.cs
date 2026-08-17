@@ -284,20 +284,21 @@ namespace Nom.Orch.Services
 
                 var personId = GetCurrentPersonId();
 
-                // Resolve category names to IDs in one query, creating missing categories in one save
-                var existingCategories = await _dbContext.Categories
-                    .Where(c => request.Categories.Contains(c.Name))
-                    .ToListAsync();
-                var newCategories = request.Categories
-                    .Except(existingCategories.Select(c => c.Name))
-                    .Select(name => new CategoryEntity { Name = name, CreatedDate = DateTime.UtcNow, CreatedByPersonId = personId })
+                // RecipeCategory.CategoryId FKs to reference.Reference — the curated
+                // vocabulary (Dinner, Lunch, ...). Resolve requested names against it;
+                // unknown names are reported, never minted. Creating recipe.Category
+                // rows here and linking their ids violates that foreign key.
+                var wantedCategories = request.Categories
+                    .Select(c => c.Trim().ToLowerInvariant())
+                    .Where(c => c.Length > 0)
+                    .Distinct()
                     .ToList();
-                if (newCategories.Count > 0)
-                {
-                    _dbContext.Categories.AddRange(newCategories);
-                    await _dbContext.SaveChangesAsync();
-                }
-                var categoryIds = existingCategories.Concat(newCategories).Select(c => c.Id).ToList();
+                var categoryRefs = await _dbContext.References
+                    .Where(r => wantedCategories.Contains(r.Name.ToLower()) && !r.IsDeleted)
+                    .Select(r => new { r.Id, Lowered = r.Name.ToLower() })
+                    .ToListAsync();
+                var categoryIds = categoryRefs.Select(r => r.Id).ToList();
+                var unknownCategories = wantedCategories.Except(categoryRefs.Select(r => r.Lowered)).ToList();
 
                 // Load existing assignments to avoid duplicates
                 var existing = await _dbContext.RecipeCategories
@@ -307,6 +308,7 @@ namespace Nom.Orch.Services
 
                 var successCount = 0;
                 var errors = new List<string>();
+                errors.AddRange(unknownCategories.Select(c => $"Unknown category '{c}' — not in the curated vocabulary; skipped."));
 
                 foreach (var recipeId in request.RecipeIds)
                 {
@@ -373,20 +375,21 @@ namespace Nom.Orch.Services
 
                 var personId = GetCurrentPersonId();
 
-                // Resolve tag names to IDs in one query, creating missing tags in one save
-                var existingTags = await _dbContext.Tags
-                    .Where(t => request.Tags.Contains(t.Name))
-                    .ToListAsync();
-                var newTags = request.Tags
-                    .Except(existingTags.Select(t => t.Name))
-                    .Select(name => new TagEntity { Name = name, CreatedDate = DateTime.UtcNow, CreatedByPersonId = personId })
+                // RecipeTag.TagId FKs to reference.Reference — the curated vocabulary.
+                // Resolve requested names against it; unknown names are reported, never
+                // minted. Creating recipe.Tag rows here and linking their ids violates
+                // that foreign key.
+                var wantedTags = request.Tags
+                    .Select(t => t.Trim().ToLowerInvariant())
+                    .Where(t => t.Length > 0)
+                    .Distinct()
                     .ToList();
-                if (newTags.Count > 0)
-                {
-                    _dbContext.Tags.AddRange(newTags);
-                    await _dbContext.SaveChangesAsync();
-                }
-                var tagIds = existingTags.Concat(newTags).Select(t => t.Id).ToList();
+                var tagRefs = await _dbContext.References
+                    .Where(r => wantedTags.Contains(r.Name.ToLower()) && !r.IsDeleted)
+                    .Select(r => new { r.Id, Lowered = r.Name.ToLower() })
+                    .ToListAsync();
+                var tagIds = tagRefs.Select(r => r.Id).ToList();
+                var unknownTags = wantedTags.Except(tagRefs.Select(r => r.Lowered)).ToList();
 
                 // Load existing assignments to avoid duplicates
                 var existing = await _dbContext.RecipeTags
@@ -396,6 +399,7 @@ namespace Nom.Orch.Services
 
                 var successCount = 0;
                 var errors = new List<string>();
+                errors.AddRange(unknownTags.Select(t => $"Unknown tag '{t}' — not in the curated vocabulary; skipped."));
 
                 foreach (var recipeId in request.RecipeIds)
                 {
