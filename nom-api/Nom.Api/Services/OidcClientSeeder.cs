@@ -30,6 +30,18 @@ namespace Nom.Api.Services
             _logger = logger;
         }
 
+        /// <summary>
+        /// A scope and the resource servers it grants access to. The resource
+        /// names become the token's `aud`, and OpenIddict only lets a client
+        /// introspect a token that lists it as an audience — so these must be
+        /// the resource servers' client ids.
+        /// </summary>
+        public sealed class ScopeDescriptor
+        {
+            public string Name { get; set; } = string.Empty;
+            public string[] Resources { get; set; } = [];
+        }
+
         public sealed class ClientDescriptor
         {
             public string ClientId { get; set; } = string.Empty;
@@ -69,7 +81,13 @@ namespace Nom.Api.Services
             // no `aud` is stamped on the access token and every resource server
             // validating an audience rejects it.
             var scopeManager = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
-            foreach (var scopeName in clients.SelectMany(c => c.Scopes).Distinct())
+            var configuredScopes = _configuration.GetSection("Oidc:Scopes").Get<ScopeDescriptor[]>() ?? [];
+            var scopeNames = clients.SelectMany(c => c.Scopes)
+                .Concat(configuredScopes.Select(s => s.Name))
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Distinct();
+
+            foreach (var scopeName in scopeNames)
             {
                 try
                 {
@@ -77,8 +95,17 @@ namespace Nom.Api.Services
                     {
                         Name = scopeName,
                         DisplayName = scopeName,
-                        Resources = { scopeName },
                     };
+
+                    // Default the resource to the scope name when nothing is
+                    // configured, so a scope always stamps some audience.
+                    var resources = configuredScopes
+                        .FirstOrDefault(s => string.Equals(s.Name, scopeName, StringComparison.OrdinalIgnoreCase))
+                        ?.Resources;
+                    foreach (var resource in resources is { Length: > 0 } ? resources : [scopeName])
+                    {
+                        descriptor.Resources.Add(resource);
+                    }
 
                     var existingScope = await scopeManager.FindByNameAsync(scopeName, cancellationToken);
                     if (existingScope is null)
