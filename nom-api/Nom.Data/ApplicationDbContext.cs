@@ -191,6 +191,11 @@ namespace Nom.Data
             modelBuilder.HasDefaultSchema("auth");
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
+            // OpenIddict's application/authorization/scope/token stores. NOM is the
+            // OIDC authority for its own apps (Brigade's console today), so these
+            // tables live beside Identity's in the auth schema.
+            modelBuilder.UseOpenIddict();
+
             // Apply soft-delete configuration to all BaseEntity types:
             // - Default IsDeleted to false so seed SQL INSERTs don't need to specify it
             // - Query filter only on root entity types (EF Core TPH restriction)

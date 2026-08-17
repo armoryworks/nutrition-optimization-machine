@@ -2,9 +2,9 @@
 -- PostgreSQL database dump
 --
 
-\restrict P649we3Hj3w9phYOMF3SRba4KdYl8gWV2894w6REjU4Br9BHC9wrD1qseWEpatc
+\restrict 3NEIpjJZzGMicMstLzc5yCwUr3gxAyooMaOSazsZlxk5YyOmMbTmdxy6gOymjvP
 
--- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
+-- Dumped from database version 16.14
 -- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
@@ -275,6 +275,85 @@ CREATE TABLE auth."HouseholdEntityPersonEntity" (
 CREATE TABLE auth."HouseholdEntityRecipeEntity" (
     "HouseholdEntityId" bigint NOT NULL,
     "MadeRecipesId" bigint NOT NULL
+);
+
+
+--
+-- Name: OpenIddictApplications; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth."OpenIddictApplications" (
+    "Id" text NOT NULL,
+    "ApplicationType" character varying(50),
+    "ClientId" character varying(100),
+    "ClientSecret" text,
+    "ClientType" character varying(50),
+    "ConcurrencyToken" character varying(50),
+    "ConsentType" character varying(50),
+    "DisplayName" text,
+    "DisplayNames" text,
+    "JsonWebKeySet" text,
+    "Permissions" text,
+    "PostLogoutRedirectUris" text,
+    "Properties" text,
+    "RedirectUris" text,
+    "Requirements" text,
+    "Settings" text
+);
+
+
+--
+-- Name: OpenIddictAuthorizations; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth."OpenIddictAuthorizations" (
+    "Id" text NOT NULL,
+    "ApplicationId" text,
+    "ConcurrencyToken" character varying(50),
+    "CreationDate" timestamp with time zone,
+    "Properties" text,
+    "Scopes" text,
+    "Status" character varying(50),
+    "Subject" character varying(400),
+    "Type" character varying(50)
+);
+
+
+--
+-- Name: OpenIddictScopes; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth."OpenIddictScopes" (
+    "Id" text NOT NULL,
+    "ConcurrencyToken" character varying(50),
+    "Description" text,
+    "Descriptions" text,
+    "DisplayName" text,
+    "DisplayNames" text,
+    "Name" character varying(200),
+    "Properties" text,
+    "Resources" text
+);
+
+
+--
+-- Name: OpenIddictTokens; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth."OpenIddictTokens" (
+    "Id" text NOT NULL,
+    "ApplicationId" text,
+    "AuthorizationId" text,
+    "ConcurrencyToken" character varying(50),
+    "CreationDate" timestamp with time zone,
+    "ExpirationDate" timestamp with time zone,
+    "Payload" text,
+    "Properties" text,
+    "RedemptionDate" timestamp with time zone,
+    "ReferenceId" character varying(100),
+    "Status" character varying(50),
+    "Subject" character varying(400),
+    "Type" character varying(150)
 );
 
 
@@ -3757,6 +3836,38 @@ ALTER TABLE ONLY auth."HouseholdEntityRecipeEntity"
 
 
 --
+-- Name: OpenIddictApplications PK_OpenIddictApplications; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth."OpenIddictApplications"
+    ADD CONSTRAINT "PK_OpenIddictApplications" PRIMARY KEY ("Id");
+
+
+--
+-- Name: OpenIddictAuthorizations PK_OpenIddictAuthorizations; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth."OpenIddictAuthorizations"
+    ADD CONSTRAINT "PK_OpenIddictAuthorizations" PRIMARY KEY ("Id");
+
+
+--
+-- Name: OpenIddictScopes PK_OpenIddictScopes; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth."OpenIddictScopes"
+    ADD CONSTRAINT "PK_OpenIddictScopes" PRIMARY KEY ("Id");
+
+
+--
+-- Name: OpenIddictTokens PK_OpenIddictTokens; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth."OpenIddictTokens"
+    ADD CONSTRAINT "PK_OpenIddictTokens" PRIMARY KEY ("Id");
+
+
+--
 -- Name: Message PK_Message; Type: CONSTRAINT; Schema: communication; Owner: -
 --
 
@@ -4602,6 +4713,48 @@ CREATE INDEX "IX_HouseholdEntityPersonEntity_MembersId" ON auth."HouseholdEntity
 --
 
 CREATE INDEX "IX_HouseholdEntityRecipeEntity_MadeRecipesId" ON auth."HouseholdEntityRecipeEntity" USING btree ("MadeRecipesId");
+
+
+--
+-- Name: IX_OpenIddictApplications_ClientId; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_OpenIddictApplications_ClientId" ON auth."OpenIddictApplications" USING btree ("ClientId");
+
+
+--
+-- Name: IX_OpenIddictAuthorizations_ApplicationId_Status_Subject_Type; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX "IX_OpenIddictAuthorizations_ApplicationId_Status_Subject_Type" ON auth."OpenIddictAuthorizations" USING btree ("ApplicationId", "Status", "Subject", "Type");
+
+
+--
+-- Name: IX_OpenIddictScopes_Name; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_OpenIddictScopes_Name" ON auth."OpenIddictScopes" USING btree ("Name");
+
+
+--
+-- Name: IX_OpenIddictTokens_ApplicationId_Status_Subject_Type; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX "IX_OpenIddictTokens_ApplicationId_Status_Subject_Type" ON auth."OpenIddictTokens" USING btree ("ApplicationId", "Status", "Subject", "Type");
+
+
+--
+-- Name: IX_OpenIddictTokens_AuthorizationId; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX "IX_OpenIddictTokens_AuthorizationId" ON auth."OpenIddictTokens" USING btree ("AuthorizationId");
+
+
+--
+-- Name: IX_OpenIddictTokens_ReferenceId; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_OpenIddictTokens_ReferenceId" ON auth."OpenIddictTokens" USING btree ("ReferenceId");
 
 
 --
@@ -6195,6 +6348,30 @@ ALTER TABLE ONLY auth."HouseholdEntityRecipeEntity"
 
 ALTER TABLE ONLY auth."HouseholdEntityRecipeEntity"
     ADD CONSTRAINT "FK_HouseholdEntityRecipeEntity_Recipe_MadeRecipesId" FOREIGN KEY ("MadeRecipesId") REFERENCES recipe."Recipe"("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: OpenIddictAuthorizations FK_OpenIddictAuthorizations_OpenIddictApplications_Application~; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth."OpenIddictAuthorizations"
+    ADD CONSTRAINT "FK_OpenIddictAuthorizations_OpenIddictApplications_Application~" FOREIGN KEY ("ApplicationId") REFERENCES auth."OpenIddictApplications"("Id");
+
+
+--
+-- Name: OpenIddictTokens FK_OpenIddictTokens_OpenIddictApplications_ApplicationId; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth."OpenIddictTokens"
+    ADD CONSTRAINT "FK_OpenIddictTokens_OpenIddictApplications_ApplicationId" FOREIGN KEY ("ApplicationId") REFERENCES auth."OpenIddictApplications"("Id");
+
+
+--
+-- Name: OpenIddictTokens FK_OpenIddictTokens_OpenIddictAuthorizations_AuthorizationId; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth."OpenIddictTokens"
+    ADD CONSTRAINT "FK_OpenIddictTokens_OpenIddictAuthorizations_AuthorizationId" FOREIGN KEY ("AuthorizationId") REFERENCES auth."OpenIddictAuthorizations"("Id");
 
 
 --
@@ -7825,5 +8002,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict P649we3Hj3w9phYOMF3SRba4KdYl8gWV2894w6REjU4Br9BHC9wrD1qseWEpatc
+\unrestrict 3NEIpjJZzGMicMstLzc5yCwUr3gxAyooMaOSazsZlxk5YyOmMbTmdxy6gOymjvP
 
