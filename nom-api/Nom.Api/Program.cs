@@ -387,15 +387,26 @@ var app = builder.Build();
 // plain HTTP. Without this the app believes every request is insecure, and
 // OpenIddict — correctly — refuses to serve OIDC over http and would advertise
 // http:// URLs in its discovery document.
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+var forwardedHeaderOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
                      | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor,
-    // nginx is the only hop and it overwrites these headers on every request,
-    // so no proxy allow-list is needed (and the container has no stable one).
-    KnownNetworks = { },
-    KnownProxies = { },
-});
+};
+
+// An EMPTY known-proxy list means "trust nothing", not "trust everything", so
+// the trusted hops must be named: the container network the proxy reaches us
+// over, and the LAN it lives on. The API is never exposed publicly.
+foreach (var network in new[]
+{
+    new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("10.0.0.0"), 8),
+    new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("172.16.0.0"), 12),
+    new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("192.168.0.0"), 16),
+})
+{
+    forwardedHeaderOptions.KnownNetworks.Add(network);
+}
+
+app.UseForwardedHeaders(forwardedHeaderOptions);
 
 if (app.Environment.IsDevelopment())
 {
