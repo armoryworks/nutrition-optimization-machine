@@ -10,8 +10,9 @@ namespace Nom.Api.Services
     /// only needs its redirect URIs set — and re-running is safe: an existing
     /// client is updated in place, never duplicated.
     ///
-    /// Every client here is public (a browser app that cannot keep a secret) and
-    /// therefore required to use PKCE.
+    /// Browser clients are public — no secret, PKCE required. A descriptor with
+    /// a ClientSecret describes a RESOURCE SERVER instead: confidential, allowed
+    /// only to call introspection, never to start an interactive flow.
     /// </summary>
     public class OidcClientSeeder : IHostedService
     {
@@ -36,6 +37,13 @@ namespace Nom.Api.Services
             public string[] RedirectUris { get; set; } = [];
             public string[] PostLogoutRedirectUris { get; set; } = [];
             public string[] Scopes { get; set; } = [];
+
+            /// <summary>
+            /// Set for RESOURCE SERVERS (e.g. brigade-api) that call the
+            /// introspection endpoint. A client with a secret is confidential and
+            /// gets no interactive flow — it can ask about tokens, never mint them.
+            /// </summary>
+            public string? ClientSecret { get; set; }
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -61,7 +69,10 @@ namespace Nom.Api.Services
 
             foreach (var client in clients)
             {
-                if (string.IsNullOrWhiteSpace(client.ClientId) || client.RedirectUris.Length == 0)
+                var isResourceServer = !string.IsNullOrWhiteSpace(client.ClientSecret);
+
+                if (string.IsNullOrWhiteSpace(client.ClientId) ||
+                    (!isResourceServer && client.RedirectUris.Length == 0))
                 {
                     _logger.LogWarning("Skipping OIDC client with no id or no redirect URIs");
                     continue;
@@ -71,9 +82,20 @@ namespace Nom.Api.Services
                 {
                     ClientId = client.ClientId,
                     DisplayName = string.IsNullOrWhiteSpace(client.DisplayName) ? client.ClientId : client.DisplayName,
-                    ClientType = OpenIddictConstants.ClientTypes.Public,
-                    ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
-                    Permissions =
+                };
+
+                if (isResourceServer)
+                {
+                    // Introspection only: no interactive flow, no redirect URIs.
+                    descriptor.ClientSecret = client.ClientSecret;
+                    descriptor.ClientType = OpenIddictConstants.ClientTypes.Confidential;
+                    descriptor.Permissions.Add(OpenIddictConstants.Permissions.Endpoints.Introspection);
+                }
+                else
+                {
+                    descriptor.ClientType = OpenIddictConstants.ClientTypes.Public;
+                    descriptor.ConsentType = OpenIddictConstants.ConsentTypes.Implicit;
+                    foreach (var permission in new[]
                     {
                         OpenIddictConstants.Permissions.Endpoints.Authorization,
                         OpenIddictConstants.Permissions.Endpoints.Token,
@@ -84,12 +106,13 @@ namespace Nom.Api.Services
                         OpenIddictConstants.Permissions.ResponseTypes.Code,
                         OpenIddictConstants.Permissions.Scopes.Email,
                         OpenIddictConstants.Permissions.Scopes.Profile,
-                    },
-                    Requirements =
+                    })
                     {
-                        OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange,
-                    },
-                };
+                        descriptor.Permissions.Add(permission);
+                    }
+
+                    descriptor.Requirements.Add(OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange);
+                }
 
                 foreach (var uri in client.RedirectUris)
                 {
