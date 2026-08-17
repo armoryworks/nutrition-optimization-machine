@@ -81,7 +81,7 @@ export class CurationQueue implements OnInit {
 
     this.dishGroupSaving.set(true);
     this.dishGroupSaved.set(false);
-    this.dishGroupService.assignRecipe(item.entityId, match
+    this.dishGroupService.assignRecipe(item.id, match
       ? { dishGroupId: match.id }
       : { dishGroupName: value || null },
     ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -125,7 +125,7 @@ export class CurationQueue implements OnInit {
   approve(item: CurationQueueItem): void {
     this.processing.set(true);
     this.adminService.approveCuration({
-      entityId: item.entityId,
+      entityId: item.id,
       entityType: item.entityType,
       feedbackNotes: this.feedbackNotes.value ?? '',
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -145,7 +145,7 @@ export class CurationQueue implements OnInit {
   requestRevision(item: CurationQueueItem): void {
     this.processing.set(true);
     this.adminService.requestRevision({
-      entityId: item.entityId,
+      entityId: item.id,
       entityType: item.entityType,
       feedbackNotes: this.feedbackNotes.value ?? '',
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -165,7 +165,7 @@ export class CurationQueue implements OnInit {
   reject(item: CurationQueueItem): void {
     this.processing.set(true);
     this.adminService.rejectCuration({
-      entityId: item.entityId,
+      entityId: item.id,
       entityType: item.entityType,
       feedbackNotes: this.feedbackNotes.value ?? '',
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
