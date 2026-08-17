@@ -1,0 +1,35 @@
+<div class="nom-dialog__title-bar" data-testid="platform-feature-confirm-dialog">
+  <h2 mat-dialog-title>
+    {{ data.enabling ? 'Turn on' : 'Turn off' }} {{ featureLabel }}?
+  </h2>
+  <button class="nom-dialog__close" mat-dialog-close aria-label="Close dialog"
+          data-testid="platform-feature-confirm-close-btn">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content>
+  <p class="nom-platform-feature__consequence" data-testid="platform-feature-confirm-consequence">
+    {{ consequence }}
+  </p>
+
+  @if (data.feature.description) {
+    <p class="nom-platform-feature__dialog-desc" data-testid="platform-feature-confirm-description">
+      {{ data.feature.description }}
+    </p>
+  }
+
+  <p class="nom-platform-feature__scope" data-testid="platform-feature-confirm-scope">
+    This applies platform-wide, for every user of this instance.
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close data-testid="platform-feature-confirm-cancel-btn">
+    Cancel
+  </button>
+  <button mat-flat-button [mat-dialog-close]="true"
+          data-testid="platform-feature-confirm-btn">
+    {{ data.enabling ? 'Turn on' : 'Turn off' }} {{ featureLabel }}
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,94 @@
+@use 'variables' as vars;
+
+// Platform-wide blast radius: say so before anything is flipped.
+.nom-platform-features__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-2;
+  margin: 0 0 vars.$spacing-4;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  border: 1px solid var(--mat-sys-tertiary);
+  border-radius: vars.$nom-border-radius-lg;
+  background: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-medium;
+  line-height: 1.5;
+
+  mat-icon {
+    flex-shrink: 0;
+    color: var(--mat-sys-on-tertiary-container);
+  }
+}
+
+.nom-platform-features__loading {
+  display: flex;
+  justify-content: center;
+  padding: vars.$spacing-6;
+}
+
+.nom-platform-features__list {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
+.nom-platform-features__item {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  background: var(--mat-sys-surface);
+}
+
+.nom-platform-features__info {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+  flex: 1;
+  min-width: 0;
+}
+
+.nom-platform-features__key-row {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+}
+
+.nom-platform-features__key {
+  font-weight: vars.$font-weight-semibold;
+}
+
+.nom-platform-features__state {
+  padding: 1px vars.$spacing-2;
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+
+  &--on {
+    background: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+  }
+}
+
+.nom-platform-features__desc {
+  margin: 0;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-platform-features__meta {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-platform-features__control {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  flex-shrink: 0;
+}
