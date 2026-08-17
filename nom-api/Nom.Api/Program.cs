@@ -207,6 +207,19 @@ builder.Services.AddOpenIddict()
             OpenIddictConstants.Scopes.OfflineAccess,
             "brigade");
 
+        // Refresh-token rotation is OpenIddict's default (the opt-out is
+        // DisableRollingRefreshTokens) — a redeemed refresh token is invalidated,
+        // so a stolen one works at most once. Deliberately not disabled.
+
+        // The issuer must be the PUBLIC url, stated rather than inferred: behind
+        // a TLS-terminating proxy an inferred issuer can advertise http:// and
+        // fail every client's issuer check.
+        var issuer = builder.Configuration["Oidc:Issuer"];
+        if (!string.IsNullOrWhiteSpace(issuer))
+        {
+            options.SetIssuer(issuer);
+        }
+
         options.SetAccessTokenLifetime(TimeSpan.FromMinutes(15))
                .SetRefreshTokenLifetime(TimeSpan.FromDays(14))
                .SetIdentityTokenLifetime(TimeSpan.FromMinutes(15));
@@ -369,6 +382,20 @@ if (!string.IsNullOrEmpty(redisConnectionString))
 var app = builder.Build();
 
 // --- Configure the HTTP request pipeline. ---
+
+// The API always runs behind nginx, which terminates TLS and forwards over
+// plain HTTP. Without this the app believes every request is insecure, and
+// OpenIddict — correctly — refuses to serve OIDC over http and would advertise
+// http:// URLs in its discovery document.
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+                     | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor,
+    // nginx is the only hop and it overwrites these headers on every request,
+    // so no proxy allow-list is needed (and the container has no stable one).
+    KnownNetworks = { },
+    KnownProxies = { },
+});
 
 if (app.Environment.IsDevelopment())
 {
