@@ -1,0 +1,84 @@
+<div class="nom-dashboard" data-testid="platform-features">
+  <div class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <a routerLink="/admin" class="nom-dashboard__back" data-testid="platform-features-back-link">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Admin
+      </a>
+      <h1 class="nom-dashboard__title">Platform Features</h1>
+      <span class="nom-dashboard__subtitle">
+        Switches that turn whole subsystems on or off for this instance
+      </span>
+    </div>
+    <div class="nom-dashboard__header-right">
+      <button mat-icon-button (click)="loadFeatures()" aria-label="Refresh"
+              data-testid="platform-features-refresh-btn">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <p class="nom-platform-features__warning" data-testid="platform-features-warning">
+    <mat-icon>power_settings_new</mat-icon>
+    These switches apply platform-wide. Turning one on makes the subsystem available to
+    every user of this instance; turning one off withdraws it from everyone but platform
+    admins.
+  </p>
+
+  @if (errorMessage()) {
+    <nom-error-banner [message]="errorMessage()" data-testid="platform-features-error" />
+  }
+
+  @if (loading()) {
+    <div class="nom-platform-features__loading" data-testid="platform-features-loading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (features().length === 0) {
+    <div class="nom-dashboard__empty" data-testid="platform-features-empty">
+      <mat-icon class="nom-dashboard__empty-icon">toggle_off</mat-icon>
+      <h2 class="nom-dashboard__empty-title">No platform features</h2>
+      <p class="nom-dashboard__empty-message">
+        Nothing on this instance is behind a platform switch right now.
+      </p>
+    </div>
+  } @else {
+    <div class="nom-platform-features__list" data-testid="platform-features-list">
+      @for (feature of features(); track feature.key + ':' + renderToken()) {
+        <div class="nom-platform-features__item" data-testid="platform-feature-item">
+          <div class="nom-platform-features__info">
+            <div class="nom-platform-features__key-row">
+              <code class="nom-platform-features__key">{{ feature.key }}</code>
+              <span class="nom-platform-features__state"
+                    [class.nom-platform-features__state--on]="feature.isEnabled"
+                    [attr.data-testid]="'platform-feature-state-' + feature.key">
+                {{ feature.isEnabled ? 'On' : 'Off' }}
+              </span>
+            </div>
+            @if (feature.description) {
+              <p class="nom-platform-features__desc">{{ feature.description }}</p>
+            }
+            @if (feature.lastModifiedDate) {
+              <span class="nom-platform-features__meta">
+                Last changed {{ feature.lastModifiedDate | date:'medium' }}
+              </span>
+            } @else {
+              <span class="nom-platform-features__meta">Never changed</span>
+            }
+          </div>
+          <div class="nom-platform-features__control">
+            @if (savingKey() === feature.key) {
+              <mat-spinner diameter="20"></mat-spinner>
+            }
+            <mat-slide-toggle
+              [checked]="feature.isEnabled"
+              [disabled]="savingKey() != null"
+              (change)="onToggle(feature, $event.checked)"
+              [attr.aria-label]="'Toggle ' + feature.key"
+              data-testid="platform-feature-toggle">
+            </mat-slide-toggle>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,13 @@
+@use 'variables' as vars;
+
+.nom-platform-feature__consequence {
+  margin: 0 0 vars.$spacing-3;
+  font-weight: vars.$font-weight-medium;
+}
+
+.nom-platform-feature__dialog-desc,
+.nom-platform-feature__scope {
+  margin: 0 0 vars.$spacing-2;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
