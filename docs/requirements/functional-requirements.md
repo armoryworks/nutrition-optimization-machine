@@ -1,5 +1,12 @@
 # Functional Requirements
 
+> **⚠️ ARCHIVED — DO NOT FOLLOW (marked 2026-08-17)**
+>
+> Written 2026-02 and never revised. Many requirements marked NOT IMPLEMENTED
+> have since shipped (unified `/plan`, shuffle + roulette, meal-plan exclusions,
+> recipe substitutions, pantry). Treat the status column as historical only;
+> verify against the code before relying on anything here.
+
 ## Overview
 
 This document outlines the functional requirements for the Nutritional Optimization Machine (NOM) platform, organized by domain and implementation status. Requirements are categorized as COMPLETE, IMPLEMENTED, PARTIAL, or NOT IMPLEMENTED based on current development status.

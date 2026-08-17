@@ -1,5 +1,11 @@
 # In-Process Tasks & Migrations
 
+> **⚠️ ARCHIVED — DO NOT FOLLOW (marked 2026-08-17)**
+>
+> A task tracker last updated 2026-02, referencing the pre-rewrite codebase.
+> Its "IN PROGRESS"/"PLANNED" percentages describe work that has since shipped
+> or been abandoned. Current work lives in GitHub issues, not here.
+
 This document tracks all ongoing migrations, tasks, and development work in the NOM project. It serves as a central location for monitoring progress and coordinating work between AI tools and manual development.
 
 ## **Purpose**
