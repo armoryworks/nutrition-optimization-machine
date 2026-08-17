@@ -1,6 +1,10 @@
-# Household Policies & Audience-Scoped Recipes (design)
+# Household Policies & Audience-Scoped Recipes
 
-Status: **design — not yet implemented.** Feedback welcome.
+Status: **implemented and live.** Member policies, stewardship, feature gates,
+locked restrictions and audience-scoped recipe visibility all ship in nom-api
+(`PolicyEnforcementService`, `HouseholdPolicyController`, `AudienceController`,
+`RecipeVisibilityExtensions.VisibleTo`) with steward UI in nom-ui. This document
+now describes the design as built; behavioural changes belong in a new entry.
 
 NOM households currently treat every adult member as equal, and recipes as
 either private or public. Two real-world situations need more:
