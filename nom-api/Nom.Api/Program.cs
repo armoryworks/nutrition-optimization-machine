@@ -27,6 +27,7 @@ using Nom.Api.Settings;
 using Nom.Orch.Settings;
 using Serilog;
 using Nom.Orch.Services.Measurement;
+using OpenIddict.Abstractions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -131,6 +132,17 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
     .AddDefaultTokenProviders()
     .AddClaimsPrincipalFactory<CustomClaimsPrincipalFactory>(); // Register our custom claims factory
 
+// The Identity cookie is used ONLY by the OIDC authorization flow (the SPA uses
+// bearer tokens), so its challenge lands on the authority's own sign-in page.
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/connect/login";
+    options.LogoutPath = "/connect/logout";
+    options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    options.SlidingExpiration = true;
+    options.Cookie.SameSite = SameSiteMode.Lax; // the flow is a top-level redirect
+});
+
 
 
 // Default scheme routes to the API-token handler when X-Api-Key is present,
@@ -158,6 +170,93 @@ builder.Services.AddAuthentication(options =>
     options.BearerTokenExpiration = TimeSpan.FromHours(24);
 });
 // --- END OF UPDATED CONFIGURATION ---
+
+// ---------------------------------------------------------------------------
+// OIDC authority (OpenIddict). NOM owns the identities, so it issues the tokens
+// its sibling apps consume — today the Brigade provider console, tomorrow
+// anything else that needs to sign a user in without a second user store.
+//
+// Access tokens are UNENCRYPTED JWTs so resource servers can validate them, but
+// the resource servers are configured to introspect instead, which is what makes
+// a suspension or logout take effect immediately rather than at token expiry.
+// ---------------------------------------------------------------------------
+builder.Services.AddOpenIddict()
+    .AddCore(options =>
+    {
+        options.UseEntityFrameworkCore().UseDbContext<ApplicationDbContext>();
+    })
+    .AddServer(options =>
+    {
+        options.SetAuthorizationEndpointUris("connect/authorize")
+               .SetTokenEndpointUris("connect/token")
+               .SetUserInfoEndpointUris("connect/userinfo")
+               .SetIntrospectionEndpointUris("connect/introspect")
+               .SetRevocationEndpointUris("connect/revoke")
+               .SetEndSessionEndpointUris("connect/logout");
+
+        // Authorization code + PKCE for interactive clients; refresh for renewal.
+        // No implicit, no password grant — both are retired for good reasons.
+        options.AllowAuthorizationCodeFlow()
+               .RequireProofKeyForCodeExchange()
+               .AllowRefreshTokenFlow();
+
+        options.RegisterScopes(
+            OpenIddictConstants.Scopes.OpenId,
+            OpenIddictConstants.Scopes.Email,
+            OpenIddictConstants.Scopes.Profile,
+            OpenIddictConstants.Scopes.OfflineAccess,
+            "brigade");
+
+        options.SetAccessTokenLifetime(TimeSpan.FromMinutes(15))
+               .SetRefreshTokenLifetime(TimeSpan.FromDays(14))
+               .SetIdentityTokenLifetime(TimeSpan.FromMinutes(15));
+
+        // Signing/encryption material. In production these are PEM files mounted
+        // into the container (Oidc:SigningCertificatePath); development falls
+        // back to ephemeral keys so a fresh clone just runs.
+        var signingCert = builder.Configuration["Oidc:SigningCertificatePath"];
+        var encryptionCert = builder.Configuration["Oidc:EncryptionCertificatePath"];
+        if (!string.IsNullOrWhiteSpace(signingCert) && File.Exists(signingCert))
+        {
+            options.AddSigningCertificate(
+                System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadPkcs12FromFile(
+                    signingCert, builder.Configuration["Oidc:CertificatePassword"]));
+        }
+        else
+        {
+            options.AddDevelopmentSigningCertificate();
+        }
+
+        if (!string.IsNullOrWhiteSpace(encryptionCert) && File.Exists(encryptionCert))
+        {
+            options.AddEncryptionCertificate(
+                System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadPkcs12FromFile(
+                    encryptionCert, builder.Configuration["Oidc:CertificatePassword"]));
+        }
+        else
+        {
+            options.AddDevelopmentEncryptionCertificate();
+        }
+
+        // Resource servers validate by introspection, which requires the access
+        // token to be readable by this server — not by them — so encryption of
+        // the access token is disabled while the identity token stays protected.
+        options.DisableAccessTokenEncryption();
+
+        options.UseAspNetCore()
+               .EnableAuthorizationEndpointPassthrough()
+               .EnableTokenEndpointPassthrough()
+               .EnableUserInfoEndpointPassthrough()
+               .EnableEndSessionEndpointPassthrough();
+    })
+    .AddValidation(options =>
+    {
+        options.UseLocalServer();
+        options.UseAspNetCore();
+    });
+
+// Registers the clients described in Oidc:Clients (idempotent).
+builder.Services.AddHostedService<Nom.Api.Services.OidcClientSeeder>();
 
 builder.Services.AddAuthorization(options =>
 {
