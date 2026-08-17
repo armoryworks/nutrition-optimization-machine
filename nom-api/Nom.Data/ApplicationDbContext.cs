@@ -99,6 +99,10 @@ namespace Nom.Data
         public DbSet<MealPlanExclusionEntity> MealPlanExclusions { get; set; } = default!;
         #endregion
 
+        #region Platform
+        public DbSet<Nom.Data.Platform.PlatformFeatureEntity> PlatformFeatures { get; set; } = default!;
+        #endregion
+
         #region Privacy
         public DbSet<UserConsentEntity> UserConsents { get; set; } = default!;
         public DbSet<DataProcessingLogEntity> DataProcessingLogs { get; set; } = default!;

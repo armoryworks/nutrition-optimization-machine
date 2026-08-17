@@ -16,14 +16,18 @@ namespace Nom.Api.Controllers
         private readonly IMacroGoalOrchestrationService _macroGoalService;
         private readonly IPortionOrchestrationService _portionService;
 
+        private readonly IPlatformFeatureService _platformFeatures;
+
         public HouseholdController(
             IHouseholdOrchestrationService householdService,
             IMacroGoalOrchestrationService macroGoalService,
-            IPortionOrchestrationService portionService)
+            IPortionOrchestrationService portionService,
+            IPlatformFeatureService platformFeatures)
         {
             _householdService = householdService;
             _macroGoalService = macroGoalService;
             _portionService = portionService;
+            _platformFeatures = platformFeatures;
         }
 
         /// <summary>
@@ -159,6 +163,14 @@ namespace Nom.Api.Controllers
         [HttpGet("{id:long}/enrollment-info")]
         public async Task<ActionResult<HouseholdEnrollmentInfoModel>> GetEnrollmentInfo(long id)
         {
+            // Provider management is Brigade's surface: while the platform
+            // feature is off, this reports nothing rather than 404ing, so the
+            // consent UI simply sees an unmanaged household.
+            if (!await _platformFeatures.IsEnabledAsync(IPlatformFeatureService.Keys.Brigade))
+            {
+                return Ok(new HouseholdEnrollmentInfoModel());
+            }
+
             if (!IsHouseholdMember(id))
                 return Forbid();
 

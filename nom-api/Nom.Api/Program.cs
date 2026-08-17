@@ -200,6 +200,11 @@ builder.Services.AddOpenIddict()
                .RequireProofKeyForCodeExchange()
                .AllowRefreshTokenFlow();
 
+        // S256 only. Advertising `plain` lets a client downgrade to a challenge
+        // that is the verifier in clear text, which defeats PKCE entirely.
+        options.Configure(o => o.CodeChallengeMethods.Remove(
+            OpenIddictConstants.CodeChallengeMethods.Plain));
+
         options.RegisterScopes(
             OpenIddictConstants.Scopes.OpenId,
             OpenIddictConstants.Scopes.Email,
@@ -227,13 +232,28 @@ builder.Services.AddOpenIddict()
         // Signing/encryption material. In production these are PEM files mounted
         // into the container (Oidc:SigningCertificatePath); development falls
         // back to ephemeral keys so a fresh clone just runs.
+        // Rotation: every certificate listed is registered, and OpenIddict signs
+        // with the newest while still publishing the others in the JWKS. To roll
+        // a key you add the new one, deploy, wait out the old tokens' lifetime,
+        // then drop the retired path — no coordinated restart, no outage.
+        // Oidc:SigningCertificatePath is the single-key form of the same thing.
+        var signingCerts = builder.Configuration.GetSection("Oidc:SigningCertificatePaths").Get<string[]>() ?? [];
         var signingCert = builder.Configuration["Oidc:SigningCertificatePath"];
-        var encryptionCert = builder.Configuration["Oidc:EncryptionCertificatePath"];
-        if (!string.IsNullOrWhiteSpace(signingCert) && File.Exists(signingCert))
+        if (!string.IsNullOrWhiteSpace(signingCert))
         {
-            options.AddSigningCertificate(
-                System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadPkcs12FromFile(
-                    signingCert, builder.Configuration["Oidc:CertificatePassword"]));
+            signingCerts = [.. signingCerts, signingCert];
+        }
+
+        var encryptionCert = builder.Configuration["Oidc:EncryptionCertificatePath"];
+        var loadedSigningCerts = signingCerts.Where(File.Exists).ToArray();
+        if (loadedSigningCerts.Length > 0)
+        {
+            foreach (var path in loadedSigningCerts)
+            {
+                options.AddSigningCertificate(
+                    System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadPkcs12FromFile(
+                        path, builder.Configuration["Oidc:CertificatePassword"]));
+            }
         }
         else
         {
@@ -341,6 +361,10 @@ builder.Services.AddHostedService<Nom.Api.Services.SourceDiscoveryHostedService>
 // normalization by default, AI-backed when Ai:OllamaUrl is configured. All
 // assignments stay admin-correctable.
 builder.Services.AddScoped<Nom.Orch.Interfaces.IDishGroupService, Nom.Orch.Services.DishGroupService>();
+
+// Platform feature switches — lets a subsystem ship dark and be turned on from
+// the admin UI rather than by a release landing.
+builder.Services.AddScoped<Nom.Orch.Interfaces.IPlatformFeatureService, Nom.Orch.Services.PlatformFeatureService>();
 builder.Services.AddHttpClient<Nom.Orch.Interfaces.IDishGroupSuggester, Nom.Orch.Services.OllamaDishGroupSuggester>(
     client => client.Timeout = TimeSpan.FromSeconds(300));
 builder.Services.AddHostedService<Nom.Api.Services.DishGroupingHostedService>();
