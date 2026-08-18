@@ -34,6 +34,34 @@
   }
 }
 
+// Publish status chip (author-only, in the banner next to Edit)
+.nom-recipe__publish-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-medium;
+  vertical-align: middle;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &--public {
+    color: var(--mat-sys-on-tertiary-container);
+    background: var(--mat-sys-tertiary-container);
+  }
+
+  &--pending {
+    color: var(--mat-sys-on-secondary-container);
+    background: var(--mat-sys-secondary-container);
+  }
+}
+
 // Hero image (inside Overview tab panel)
 .nom-recipe__hero {
   border-radius: vars.$nom-border-radius-lg;

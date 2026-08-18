@@ -23,6 +23,19 @@ export class RecipeService {
     return this.http.get<RecipeModel>(`${this.apiUrl}/${id}`);
   }
 
+  /** Author-only: set the recipe's visibility tier (private | household | audience | public). */
+  setVisibility(id: number, visibility: 'private' | 'household' | 'audience' | 'public'): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${id}/visibility`, { visibility });
+  }
+
+  /** Author-only: submit the recipe into the curation queue for an admin to approve. */
+  submitForCuration(recipeId: number): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/Curation/submit`, {
+      entityType: 'Recipe',
+      entityId: recipeId,
+    });
+  }
+
   saveVariation(recipeId: number, items: { ingredientId: number; substituteIngredientId: number }[]): Observable<RecipeVariationItemModel[]> {
     return this.http.put<RecipeVariationItemModel[]>(`${this.apiUrl}/${recipeId}/variation`, items);
   }

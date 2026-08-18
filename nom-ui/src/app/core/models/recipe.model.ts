@@ -41,6 +41,8 @@ export interface RecipeModel {
   createdDate: string;
   modifiedDate?: string;
   curationStatus: string;
+  /** Visibility tier name ("Private" | "Household" | "Audience" | "Public"), when the API projects it. */
+  visibility?: string;
   /** The canonical dish this recipe is a take on, when classified. */
   dishGroup?: RecipeDishGroupRef | null;
   ingredients?: RecipeIngredientModel[];

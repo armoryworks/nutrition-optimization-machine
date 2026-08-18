@@ -21,6 +21,32 @@
         <mat-icon>edit</mat-icon>
         Edit
       </a>
+      @switch (publishState()) {
+        @case ('approved') {
+          <span class="nom-recipe__publish-chip nom-recipe__publish-chip--public" data-testid="recipe-public-badge">
+            <mat-icon>public</mat-icon>
+            Public
+          </span>
+        }
+        @case ('pending') {
+          <span class="nom-recipe__publish-chip nom-recipe__publish-chip--pending" data-testid="recipe-pending-badge">
+            <mat-icon>hourglass_top</mat-icon>
+            Pending review
+          </span>
+        }
+        @default {
+          <button
+            mat-flat-button
+            color="primary"
+            (click)="makePublic()"
+            [disabled]="publishing()"
+            data-testid="recipe-make-public-btn"
+          >
+            <mat-icon>public</mat-icon>
+            {{ publishing() ? 'Publishing…' : 'Make public' }}
+          </button>
+        }
+      }
     }
   </div>
 
