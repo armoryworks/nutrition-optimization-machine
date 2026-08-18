@@ -17,6 +17,10 @@ Last updated: 2026-08-18.
 | N-2 | Navigation | Low (UX) | "Search" duplicated (nav item + header search bar) | Open |
 | N-3 | Navigation | Low (UX) | Near-duplicate / abstract icons; collapsed rail loses grouping | Open |
 | N-4 | Branding | Med | "Powered by Mealie" footer + GitHub icon on every page (upstream leak) | Open |
+| N-5 | Data / UI gap | High | No UI to author ingredient nutrition → recipes built from the catalog show **empty** nutrition labels | Open |
+| N-6 | Workflow dead-end | High | Recipe approval requires every ingredient curated, but there is **no UI to curate an ingredient** → any recipe using a user-added ingredient can never be approved | Open |
+| N-7 | Error handling | Med | The "ingredients not curated" guard throws `InvalidOperationException` → **HTTP 500**; curation UI shows a generic "Failed to approve item," hiding the real cause | Open |
+| N-8 | Missing UI (built) | — | Recipes had **no author control to publish/make-public** — built + shipped this session (v0.3.22) | Resolved |
 
 _The UI walkthrough was otherwise clean — all ~30 pages render, zero API failures, no real JS errors (the per-page `ERR_CONNECTION_REFUSED` is Cloudflare's own analytics beacon, a sandbox-only false positive). Backend/functional findings from the earlier deep audit are summarized under "Backend" below._
 
@@ -47,6 +51,18 @@ _(Note: NOM's nav is a "too many overlapping doors" problem — everything is on
 ## N-4 — Branding leak
 
 Every page shows a **"Powered by Mealie"** footer and a GitHub icon — NOM's upstream origin (it's Mealie-derived) showing through. For a white-label product these should be removed / rebranded.
+
+## N-5 / N-6 / N-7 / N-8 — Recipe publish & curation (found driving the UI-only nutritionist pass, 2026-08-18)
+
+Drove the full "nutritionist sets up recipes → make public → visible to my user" flow **UI-only** on `nomtest`. Created 3 recipes (321 Mediterranean Salmon Quinoa Bowl, 322 Overnight Oats w/ Banana & Almond, 323 Tofu & Kale Stir-Fry), adding 3 missing ingredients through the UI (Firm Tofu, Kale, Brown Rice). Outcome: **321 and 322 are now Public + Approved (visible); 323 is stuck Pending** — and the gaps below are why.
+
+- **N-8 (resolved) — the missing publish control.** A recipe author had **no UI path to make a recipe public**. The recipe-detail page only offered Edit; visibility + curation-submit endpoints existed (`PUT /Recipe/{id}/visibility`, `POST /Curation/submit`) but nothing called them. Built an author-only "Make public" control on the recipe-detail banner (sets Visibility=Public **and** submits for curation in one click, with a Pending/Public status chip and snackbar). Shipped as **v0.3.22** and deployed to `nomtest`. Verified end-to-end: click → recipe goes Pending → shows "Pending review" chip; after admin approval → "Public" chip.
+
+- **N-5 — nutrition is invisible for anything built in the app.** The ingredient catalog on a fresh tenant has **0 `IngredientNutrient` rows** (90 ingredients, 36 nutrient *types* defined, no values — the FDC import is an ops step never run on a tenant, and `CLAUDE.md` forbids authoring nutrition by non-authoritative means). The ingredient form shows nutrients **read-only** (display list, edit mode only) — there is **no field to enter them**. Net effect: every recipe a user builds from the catalog renders an **empty nutrition label** (confirmed on 321/322/323). Seeded demo recipes look fine only because `RecipeNutrition` was seeded directly. **UI-only, there is no way to give an ingredient nutrition** → the app's central value prop (nutrition-aware planning) is unreachable for user content on a fresh tenant. Fix needs either an FDC-backed catalog seed per tenant or an authoritative-source nutrition entry UI.
+
+- **N-6 — user-added ingredients make a recipe permanently un-approvable.** `CurationOrchestrationService.ApproveAsync` (line 199) refuses approval if any ingredient is not curated: `Cannot approve recipe: The following ingredients are not curated: Firm Tofu, Kale, Brown Rice`. Ingredients created via `/ingredient/new` land **NonCurated** (CurationStatusId 9000), and **there is no UI to curate an ingredient** — no `Admin → Food Catalog` route exists in `app.routes.ts`, despite `CLAUDE.md` referencing one. So recipe 323 (built with the three ingredients I added through the UI) can never go public UI-only. The design assumes an ingredient-curation surface that isn't built.
+
+- **N-7 — that guard surfaces as a raw 500.** The un-curated-ingredient check throws `InvalidOperationException`, which the pipeline returns as **HTTP 500** (`POST /api/Curation/approve`). The curation queue UI catches it as a generic "Failed to approve item" — the admin never sees *which* ingredients are the problem. Should be a 400/422 carrying the ingredient list so the UI can show it.
 
 ## Backend / functional (load-bearing — see the deep audit)
 
