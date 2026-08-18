@@ -4,6 +4,8 @@ import { DecimalPipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { switchMap } from 'rxjs/operators';
 import { RecipeService } from '../core/services/recipe.service';
 import { AuthService } from '../core/services/auth.service';
 import { DishGroupService } from '../core/services/dish-group.service';
@@ -59,7 +61,11 @@ export class RecipeDetail {
   private recipeService = inject(RecipeService);
   private dishGroupService = inject(DishGroupService);
   private destroyRef = inject(DestroyRef);
+  private snackBar = inject(MatSnackBar);
   authService = inject(AuthService);
+
+  /** True while a make-public request is in flight. */
+  publishing = signal(false);
 
   /** Other visible takes on the same dish (excludes this recipe). */
   variations = signal<DishGroupRecipeModel[]>([]);
@@ -422,5 +428,52 @@ export class RecipeDetail {
       },
       error: () => this.savingVariation.set(false),
     });
+  }
+
+  /**
+   * Publish state derived from the recipe's curation status:
+   * 'approved' = live & public, 'pending' = awaiting an admin, 'none' = private/unsubmitted.
+   */
+  publishState = computed<'approved' | 'pending' | 'none'>(() => {
+    const status = (this.recipe()?.curationStatus ?? '').replace(/\s+/g, '').toLowerCase();
+    if (status === 'approved') return 'approved';
+    if (status === 'pendingcuration') return 'pending';
+    return 'none';
+  });
+
+  /**
+   * Author action: set the recipe Public and submit it for curation in one step.
+   * A recipe only becomes visible to other users once an admin approves it
+   * (Admin → Curation), so we do both here and tell the author what's next.
+   */
+  makePublic(): void {
+    const r = this.recipe();
+    if (!r || this.publishing()) return;
+    this.publishing.set(true);
+    this.recipeService
+      .setVisibility(r.id, 'public')
+      .pipe(
+        switchMap(() => this.recipeService.submitForCuration(r.id)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.publishing.set(false);
+          this.recipe.update((cur) =>
+            cur ? { ...cur, visibility: 'Public', curationStatus: 'PendingCuration' } : cur,
+          );
+          this.snackBar.open(
+            'Submitted for review — an admin can approve it in Admin → Curation to make it public.',
+            'Dismiss',
+            { duration: 6000 },
+          );
+        },
+        error: () => {
+          this.publishing.set(false);
+          this.snackBar.open('Could not publish this recipe. Please try again.', 'Dismiss', {
+            duration: 5000,
+          });
+        },
+      });
   }
 }
