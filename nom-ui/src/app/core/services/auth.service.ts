@@ -34,8 +34,20 @@ export class AuthService {
     this.checkLoginStatus();
   }
 
-  login(email: string, password: string): Observable<AuthTokenResponse> {
-    return this.http.post<AuthTokenResponse>('/api/auth/login', { email, password }).pipe(
+  /**
+   * Password sign-in. When the account has two-factor enabled Identity answers
+   * 401 + detail "RequiresTwoFactor" until a `twoFactorCode` (authenticator) or
+   * `twoFactorRecoveryCode` accompanies the same credentials.
+   */
+  login(
+    email: string,
+    password: string,
+    twoFactor?: { code?: string; recoveryCode?: string },
+  ): Observable<AuthTokenResponse> {
+    const body: Record<string, string> = { email, password };
+    if (twoFactor?.code) body['twoFactorCode'] = twoFactor.code.replace(/\s+/g, '');
+    if (twoFactor?.recoveryCode) body['twoFactorRecoveryCode'] = twoFactor.recoveryCode.trim();
+    return this.http.post<AuthTokenResponse>('/api/auth/login', body).pipe(
       tap((response) => this.storeTokens(response)),
       switchMap((response) =>
         this.fetchAndStoreUserInfo().pipe(
