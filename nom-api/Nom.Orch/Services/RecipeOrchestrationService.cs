@@ -739,6 +739,7 @@ namespace Nom.Orch.Services
         {
             var ingredient = await _context.Ingredients
                 .Include(i => i.CurationStatus)
+                .Include(i => i.Aliases)
                 .FirstOrDefaultAsync(i => i.Id == ingredientId);
 
             if (ingredient == null)
@@ -751,6 +752,7 @@ namespace Nom.Orch.Services
                 Description = ingredient.Description,
                 AuthorId = ingredient.CreatedByPersonId ?? 0L,
                 CurationStatus = ingredient.CurationStatus?.Name ?? "Draft",
+                Aliases = MapAliases(ingredient),
                 Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
             };
         }
@@ -897,6 +899,7 @@ namespace Nom.Orch.Services
             var ingredients = await _context.Ingredients
                 .Where(i => i.AuthorId == personId)
                 .Include(i => i.CurationStatus)
+                .Include(i => i.Aliases)
                 .OrderBy(i => i.Name)
                 .ToListAsync();
 
@@ -910,12 +913,20 @@ namespace Nom.Orch.Services
                     Description = ingredient.Description,
                     AuthorId = ingredient.AuthorId ?? 0L,
                     CurationStatus = ingredient.CurationStatus?.Name ?? "Draft",
+                    Aliases = MapAliases(ingredient),
                     Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
                 });
             }
 
             return result;
         }
+
+        private static List<IngredientAliasModel> MapAliases(IngredientEntity ingredient) =>
+            ingredient.Aliases
+                .Where(a => !a.IsDeleted)
+                .OrderBy(a => a.AliasName)
+                .Select(a => new IngredientAliasModel { Id = a.Id, AliasName = a.AliasName, SourceContext = a.SourceContext, CreatedDate = a.CreatedDate })
+                .ToList();
 
         // Recipe Image/Assets Implementation
         public async Task<RecipeAssetResponseModel> UploadImageAsync(long recipeId, long personId, string fileName, string contentType, byte[] fileData)
