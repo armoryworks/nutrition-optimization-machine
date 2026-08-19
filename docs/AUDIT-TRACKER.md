@@ -14,8 +14,8 @@ Last updated: 2026-08-18 (mobile pass added; N-9..N-18 fixed in v0.3.23; N-7/N-1
 | # | Area | Sev | Finding | Status |
 |---|------|-----|---------|--------|
 | N-1 | Navigation | Med (UX) | The "COOK" cluster is 5 overlapping recipe destinations → "which door?" friction | Open |
-| N-2 | Navigation | Low (UX) | "Search" duplicated (nav item + header search bar) | Open |
-| N-3 | Navigation | Low (UX) | Near-duplicate / abstract icons; collapsed rail loses grouping | Open |
+| N-2 | Navigation | Low (UX) | "Search" duplicated (nav item + header search bar) | Fixed (v0.3.26 — Search nav item removed; header search remains) |
+| N-3 | Navigation | Low (UX) | Near-duplicate / abstract icons; collapsed rail loses grouping | Fixed (v0.3.26 — plate/carrot icons; hairline group dividers in the collapsed rail) |
 | N-4 | Branding | Med | "Powered by Mealie" footer + GitHub icon on every page (upstream leak) | Fixed (v0.3.25) |
 | N-5 | Data / UI gap | High | No UI to author ingredient nutrition → recipes built from the catalog show **empty** nutrition labels | Fixed (v0.3.25) |
 | N-6 | Workflow dead-end | High | Recipe approval requires every ingredient curated, but there is **no UI to curate an ingredient** → any recipe using a user-added ingredient can never be approved | Fixed (v0.3.25) |
@@ -33,6 +33,7 @@ Last updated: 2026-08-18 (mobile pass added; N-9..N-18 fixed in v0.3.23; N-7/N-1
 | N-14 | Data | Low | Recipe detail lists ingredients in reverse of authored order (Garlic before Chicken on recipe 324) | Fixed (v0.3.24 — ordered by insertion Id; no sort column yet) |
 | N-20 | Security (backend) | High | `PUT /api/Ingredients/{id}` had **no ownership check** — any signed-in user could rewrite any catalog ingredient (including FDC rows); and any save wiped the ingredient's nutrition because the request's `Nutrients` defaulted to an empty list | Fixed (v0.3.25) |
 | N-21 | Bug (data model) | High | `IngredientNutrient.Ingredient` was mapped `WithMany()` with no inverse, so `Ingredient.IngredientNutrients` rode a shadow FK (`IngredientEntityId`) and was **always empty** — meal-plan whole-food nutrition and any code reading that navigation saw nothing | Fixed (v0.3.25; schema.sql drops the orphan column — run `db/apply.sh` when convenient, harmless until then) |
+| N-22 | CI | Med | E2E workflow red since v0.3.15: `nom_api_test` unhealthy — the container's `nom` user had no home, so OpenIddict's development certificate could not be persisted and the API crashed at startup; the workflow also tore the stack down *before* printing logs | Fixed (v0.3.26 — Dockerfile home dir; logs before teardown) |
 | N-19 | Desktop layout | Low | Meal Plan week grid is also cramped at ~1400 px with nav + context panel open (day columns ≈45 px) — same one-letter wrapping as N-16, desktop variant | Fixed (v0.3.24 — container query drops thumbnails under 900px) |
 
 _The UI walkthrough was otherwise clean — all ~30 pages render, zero API failures, no real JS errors (the per-page `ERR_CONNECTION_REFUSED` is Cloudflare's own analytics beacon, a sandbox-only false positive). Backend/functional findings from the earlier deep audit are summarized under "Backend" below._

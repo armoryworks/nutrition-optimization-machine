@@ -40,9 +40,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl tesseract-
 # Copy published application
 COPY --from=build /app/publish .
 
-# Create non-root user
-RUN groupadd -r nom && useradd -r -g nom nom
+# Create non-root user WITH a writable home: without mounted OIDC certificates
+# (dev/test compose) OpenIddict's development certificate is persisted under
+# $HOME/.dotnet, and a homeless system user crashed at startup (E2E "nom_api_test
+# is unhealthy" since v0.3.15). Production mounts real certs and never writes there.
+RUN groupadd -r nom && useradd -r -g nom -m -d /home/nom nom
 RUN chown -R nom:nom /app
+ENV HOME=/home/nom
 USER nom
 
 # Expose port

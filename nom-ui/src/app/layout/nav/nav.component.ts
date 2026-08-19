@@ -88,17 +88,18 @@ export class Nav {
         },
         {
           label: 'Dishes',
-          icon: 'category',
+          icon: 'restaurant', // a plate — food-literal, distinct from the two book icons (audit N-3)
           route: '/dishes',
           testId: 'nav-dishes',
         },
         {
           label: 'Ingredients',
-          icon: 'egg',
+          icon: 'nutrition', // a carrot
           route: '/ingredients/mine',
           testId: 'nav-ingredients',
         },
-        { label: 'Search', icon: 'search', route: '/search', testId: 'nav-search' },
+        // "Search" lives in the header search bar (and its phone toggle); a nav
+        // item for it duplicated that and cost a slot (audit N-2).
       ],
     },
     {
