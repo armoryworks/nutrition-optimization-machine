@@ -193,12 +193,18 @@ export class Restrictions implements OnInit {
   }
 
   private saveRestrictions(restrictions: RestrictionRequest[]): void {
-    const personId = this.authService.personId();
-    if (!personId) {
-      this.errorMessage.set('Unable to identify your account. Please try logging in again.');
-      return;
-    }
+    this.authService.ensurePersonId()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((personId) => {
+        if (!personId) {
+          this.errorMessage.set('Unable to identify your account. Please try logging in again.');
+          return;
+        }
+        this.saveRestrictionsAs(personId, restrictions);
+      });
+  }
 
+  private saveRestrictionsAs(personId: number, restrictions: RestrictionRequest[]): void {
     this.saving.set(true);
     this.errorMessage.set('');
     this.successMessage.set('');
