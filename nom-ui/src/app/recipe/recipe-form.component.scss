@@ -37,6 +37,36 @@
   margin-left: vars.$spacing-1;
 }
 
+// Phones: name on its own line, qty / unit / remove beneath. In one flex row a
+// 412px viewport left the name field 62px wide (audit N-9).
+@media (max-width: vars.$breakpoint-mobile) {
+  .nom-recipe-form__ingredient-row {
+    flex-wrap: wrap;
+    padding-bottom: vars.$spacing-2;
+    margin-bottom: vars.$spacing-2;
+    border-bottom: 1px dashed var(--mat-sys-outline-variant);
+
+    &:last-of-type { border-bottom: none; }
+  }
+
+  .nom-recipe-form__ing-name {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .nom-recipe-form__ing-qty {
+    flex: 1 1 96px;
+    min-width: 96px;
+    max-width: none;
+  }
+
+  .nom-recipe-form__ing-measure {
+    flex: 2 1 140px;
+    min-width: 120px;
+    max-width: none;
+  }
+}
+
 // ── Step rows ──
 
 .nom-recipe-form__step-row {
@@ -68,6 +98,12 @@
 .nom-recipe-form__step-input {
   flex: 1;
   min-width: 0;
+}
+
+@media (max-width: vars.$breakpoint-mobile) {
+  // Drag handle + step number share one 40px gutter instead of two.
+  .nom-recipe-form__step-row { gap: vars.$spacing-1; }
+  .nom-recipe-form__step-number { min-width: 20px; }
 }
 
 // ── Actions ──

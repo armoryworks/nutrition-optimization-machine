@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, inject, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormArray, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -44,6 +44,7 @@ import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecipeForm implements OnInit {
+  private host = inject<ElementRef<HTMLElement>>(ElementRef);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
@@ -168,7 +169,9 @@ export class RecipeForm implements OnInit {
     group.patchValue({ ingredientId: item.id, name: item.name, searchText: item.name });
   }
 
-  displayIngredient(item: IngredientSearchResult): string {
+  /** The control holds a string after selection (patchValue) but the option value is an object. */
+  displayIngredient(item: IngredientSearchResult | string | null): string {
+    if (typeof item === 'string') return item;
     return item?.name ?? '';
   }
 
@@ -223,8 +226,13 @@ export class RecipeForm implements OnInit {
   // ── Submit ──
 
   onSubmit(): void {
+    // A trailing blank row (the seed row a user tapped "Add" past, or one they
+    // added and abandoned) shouldn't block saving — drop rows nobody touched.
+    this.pruneBlankRows();
     if (this.recipeForm.invalid) {
       this.recipeForm.markAllAsTouched();
+      this.errorMessage.set('Please complete the highlighted fields before saving.');
+      this.scrollToFirstInvalid();
       return;
     }
     if (this.saving() || this.saveGated()) return;
@@ -290,6 +298,31 @@ export class RecipeForm implements OnInit {
         },
       });
     }
+  }
+
+  /** Remove ingredient/step rows that are entirely empty, keeping at least one of each. */
+  private pruneBlankRows(): void {
+    for (let i = this.ingredientsArray.length - 1; i >= 0 && this.ingredientsArray.length > 1; i--) {
+      const g = this.ingredientsArray.at(i);
+      const blank = !(g.get('ingredientId')?.value) && !(g.get('searchText')?.value?.trim())
+        && (g.get('quantity')?.value == null) && !(g.get('measurementId')?.value);
+      if (blank) this.removeIngredient(i);
+    }
+    for (let i = this.stepsArray.length - 1; i >= 0 && this.stepsArray.length > 1; i--) {
+      if (!this.stepsArray.at(i).get('description')?.value?.trim()) this.removeStep(i);
+    }
+  }
+
+  /** Bring the first invalid control on screen — on a phone it is usually above the sticky action bar. */
+  private scrollToFirstInvalid(): void {
+    setTimeout(() => {
+      const el = this.host.nativeElement.querySelector<HTMLElement>(
+        '.mat-mdc-form-field.ng-invalid, .ng-invalid input, .ng-invalid textarea, .ng-invalid mat-select');
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const focusable = el.matches('input, textarea, mat-select') ? el : el.querySelector<HTMLElement>('input, textarea, mat-select');
+      focusable?.focus({ preventScroll: true });
+    });
   }
 
   // ── Delete ──
