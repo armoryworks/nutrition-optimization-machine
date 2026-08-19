@@ -189,9 +189,23 @@
 }
 
 @media (max-width: vars.$breakpoint-mobile) {
+  // Seven equal columns must fit a 360px phone: 4 meal dots (6px) + gaps + 2px
+  // padding = ~36px per day. minmax(48px) + overflow-x clipped Sunday.
   .nom-db-week {
-    grid-template-columns: repeat(7, minmax(48px, 1fr));
-    overflow-x: auto;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: vars.$spacing-1;
+  }
+
+  .nom-db-week__day {
+    padding: vars.$spacing-2 2px;
+    min-width: 0;
+  }
+
+  .nom-db-week__meals { gap: 2px; }
+
+  .nom-db-week__dot {
+    width: 6px;
+    height: 6px;
   }
 }
 

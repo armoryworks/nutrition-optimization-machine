@@ -13,6 +13,12 @@
   position: relative; // anchors the mobile search flyout
 
   @media (max-width: vars.$breakpoint-mobile) {
+    position: sticky;
+    top: 0;
+    z-index: vars.$z-sticky;
+  }
+
+  @media (max-width: vars.$breakpoint-mobile) {
     padding: 0 vars.$spacing-3;
     gap: vars.$spacing-2;
   }
@@ -212,7 +218,8 @@
   }
 }
 
-.nom-header__nav-toggle {
+.nom-header__nav-toggle,
+.nom-header__panel-toggle {
   display: none;
 
   @media (max-width: vars.$breakpoint-mobile) {

@@ -35,6 +35,8 @@ export class Header {
   isDarkTheme = input(true);
   themeToggle = output<void>();
   navToggle = output<void>();
+  /** Phones only: opens the context sidebar (replaces the floating PANEL tab). */
+  sidebarToggle = output<void>();
 
   loginPopoverOpen = signal(false);
   userMenuOpen = signal(false);

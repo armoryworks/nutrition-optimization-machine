@@ -87,7 +87,9 @@
   margin: 0 auto;
   padding: vars.$spacing-6;
 
-  @media (max-width: vars.$breakpoint-mobile) { padding: vars.$spacing-4; }
+  // The shell already pads the content column on phones; a second level here
+  // plus the section's own padding left a 412px phone with a 306px row.
+  @media (max-width: vars.$breakpoint-mobile) { padding: vars.$spacing-2 0; }
 }
 
 .nom-form__back { @include mixins.nom-back-link; }
@@ -114,6 +116,11 @@
   padding: vars.$spacing-6;
   margin-bottom: vars.$spacing-6;
   &:last-child { margin-bottom: 0; }
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-4 vars.$spacing-3;
+    margin-bottom: vars.$spacing-4;
+  }
 }
 
 .nom-form__section-title {
@@ -156,9 +163,19 @@
   background: var(--mat-sys-surface);
   z-index: 1;
 
+  // Phones: keep the bar sticky but on ONE row (stacked full-width buttons
+  // made it ~140px tall and hid whatever row was being edited).
   @media (max-width: vars.$breakpoint-mobile) {
-    flex-direction: column-reverse;
-    button { width: 100%; }
+    flex-wrap: wrap;
+    gap: vars.$spacing-2;
+    margin-top: vars.$spacing-4;
+    padding-top: vars.$spacing-3;
+    padding-bottom: vars.$spacing-3;
+
+    button, a { flex: 1 1 auto; min-width: 0; }
+    // Primary CTA gets the room; the spacer is meaningless in a wrapped row.
+    [mat-flat-button], .mat-mdc-unelevated-button { flex: 2 1 auto; }
+    .nom-recipe-form__spacer { display: none; }
   }
 }
 

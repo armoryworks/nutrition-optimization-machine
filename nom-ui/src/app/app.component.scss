@@ -7,4 +7,11 @@
   overflow: hidden;
   max-width: vars.$layout-max-width;
   margin: 0 auto;
+
+  // Phones: let the document scroll (see _layout.scss); keep the header pinned.
+  @media (max-width: vars.$breakpoint-mobile) {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
 }

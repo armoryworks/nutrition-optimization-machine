@@ -164,6 +164,8 @@
 .nom-household__member-name {
   font-weight: vars.$font-weight-semibold;
   color: var(--mat-sys-on-surface);
+  min-width: 0;
+  overflow-wrap: anywhere; // a member with no display name shows their email
 }
 
 .nom-household__member-email {

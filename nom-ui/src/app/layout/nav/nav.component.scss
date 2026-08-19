@@ -20,6 +20,10 @@
 
     .nom-nav__item,
     .nom-nav__collapse-btn {
+  // Collapsing to an icon rail is a desktop affordance; on phones the nav is
+  // an off-canvas drawer and this item is just noise.
+  @media (max-width: vars.$breakpoint-mobile) { display: none !important; }
+
       justify-content: center;
       padding: vars.$spacing-2;
     }
