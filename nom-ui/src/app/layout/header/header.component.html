@@ -64,6 +64,15 @@
     @if (isLoggedIn()) {
       <button
         mat-icon-button
+        class="nom-header__action-btn nom-header__panel-toggle"
+        data-testid="header-panel-toggle-btn"
+        aria-label="Open panel"
+        (click)="sidebarToggle.emit()"
+      >
+        <mat-icon>widgets</mat-icon>
+      </button>
+      <button
+        mat-icon-button
         class="nom-header__action-btn"
         data-testid="header-notifications-btn"
         aria-label="Notifications"

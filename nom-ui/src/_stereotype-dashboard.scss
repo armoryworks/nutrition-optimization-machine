@@ -50,6 +50,14 @@
   align-items: center;
   gap: vars.$spacing-3;
   flex-shrink: 0;
+
+  // Toolbars (e.g. Meal Plan's print/rules/shuffle/week nav) ran off the right
+  // edge on phones; let them wrap.
+  @include mixins.breakpoint(mobile) {
+    flex-wrap: wrap;
+    gap: vars.$spacing-2;
+    min-width: 0;
+  }
 }
 
 .nom-dashboard__title {

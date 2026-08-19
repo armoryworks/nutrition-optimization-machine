@@ -50,8 +50,11 @@ $font-size-sm: 0.875rem;  // 14px
 $font-size-md: 1rem;      // 16px
 $font-size-lg: 1.25rem;   // 20px
 $font-size-xl: 1.5rem;    // 24px
-$font-size-2xl: 2rem;     // 32px
-$font-size-3xl: 2.5rem;   // 40px
+// Display sizes are fluid: they hit their nominal size from ~1000px up and
+// step down to ~24/28px on a phone, where a 32-40px page title dominated the
+// viewport (mobile audit N-9..N-18). Body/label sizes stay fixed.
+$font-size-2xl: clamp(1.5rem, 1.1rem + 1.6vw, 2rem);      // 24px → 32px
+$font-size-3xl: clamp(1.75rem, 1.2rem + 2.2vw, 2.5rem);   // 28px → 40px
 
 // Line Heights
 $line-height-tight: 1.25;

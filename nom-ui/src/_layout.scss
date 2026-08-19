@@ -46,6 +46,7 @@
 .nom-layout__content {
   overflow-y: auto;
   min-height: 0;
+  min-width: 0; // grid child: a nowrap line inside must not widen the column past the viewport
   padding: vars.$spacing-4 0;
   display: flex;
   flex-direction: column;
@@ -82,17 +83,42 @@
     background: var(--mat-sys-surface);
     box-shadow: vars.$elevation-3;
     transform: translateX(100%);
-    transition: transform 0.25s ease;
+    // Closed: also invisible, so it neither widens the document (phones scroll
+    // the page — an off-screen fixed panel otherwise adds horizontal scroll)
+    // nor receives focus. Visibility flips after the slide-out finishes.
+    visibility: hidden;
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
     padding: vars.$spacing-5;
 
     &--open {
       transform: translateX(0);
+      visibility: visible;
+      transition: transform 0.25s ease, visibility 0s;
     }
   }
 }
 
 // Responsive: nav rail becomes an off-canvas drawer on small screens
 @media (max-width: vars.$breakpoint-mobile) {
+  // Phones scroll the whole page: the desktop shell (fixed-height main with an
+  // inner scroll column) pinned the footer to the viewport and cost ~50px of
+  // every screen. Sticky action bars still work — they stick to the viewport.
+  .nom-main {
+    overflow: visible;
+    overflow-x: clip; // never let a wide grid/table become page-level horizontal scroll
+    min-height: calc(100dvh - vars.$header-height);
+  }
+
+  .nom-layout {
+    height: auto;
+    min-height: 100%;
+  }
+
+  .nom-layout__content {
+    overflow: visible;
+    min-height: 0;
+  }
+
   .nom-layout--with-nav,
   .nom-layout--with-nav.nom-layout--with-sidebar {
     grid-template-columns: 1fr;
@@ -108,10 +134,13 @@
     box-shadow: vars.$elevation-3;
     border-right: none;
     transform: translateX(-100%);
-    transition: transform 0.25s ease;
+    visibility: hidden;
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
 
     &--open {
       transform: translateX(0);
+      visibility: visible;
+      transition: transform 0.25s ease, visibility 0s;
     }
   }
 }
@@ -149,6 +178,12 @@
     flex-direction: column;
     align-items: center;
     gap: vars.$spacing-1;
+  }
+
+  // Phones: the tab sat over content (clipped shopping quantities, plan
+  // cells). The header carries a Panel button instead.
+  @media (max-width: vars.$breakpoint-mobile) {
+    display: none;
   }
 }
 
