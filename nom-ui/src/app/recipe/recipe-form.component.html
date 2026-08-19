@@ -78,6 +78,7 @@
                        (input)="onIngredientInput(i, $event)"
                        [attr.aria-label]="'Search ingredient ' + (i + 1)" />
                 <mat-autocomplete #ingAuto="matAutocomplete"
+                                  panelWidth="auto"
                                   [displayWith]="displayIngredient"
                                   (optionSelected)="onIngredientSelected(i, $event.option.value)">
                   @for (option of getIngredientOptions(i); track option.id) {
