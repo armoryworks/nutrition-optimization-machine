@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
+using System;
 using System.Threading.Tasks;
 
 namespace Nom.Api.Controllers
@@ -40,8 +41,16 @@ namespace Nom.Api.Controllers
         public async Task<IActionResult> Approve([FromBody] CurationDecisionRequest request)
         {
             var adminPersonId = GetCurrentPersonIdRequired();
-            await _curationOrch.ApproveAsync(request, adminPersonId);
-            return Ok();
+            try
+            {
+                await _curationOrch.ApproveAsync(request, adminPersonId);
+                return Ok();
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Business-rule refusal (e.g. uncurated ingredients) — tell the admin why, not 500.
+                return Conflict(new { message = ex.Message });
+            }
         }
 
         [HttpPost("request-revision")]

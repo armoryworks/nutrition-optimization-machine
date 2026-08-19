@@ -101,6 +101,7 @@
   border-radius: vars.$card-border-radius;
   overflow: hidden;
   background: var(--mat-sys-surface-container-low);
+  container-type: inline-size; // cells adapt to the calendar's width, not the viewport's
 
   // Phones: meal label + ONE day column (chosen in the day strip). Seven 47px
   // columns wrapped titles one letter per line and hid Fri–Sun (audit N-16).
@@ -194,6 +195,23 @@
   background: var(--mat-sys-surface-container);
   border-right: 1px solid var(--mat-sys-outline-variant);
   border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+// Narrow calendar (desktop with nav + context panel open leaves ~650px for
+// seven days — audit N-19): drop the thumbnails, let titles take three short
+// lines. Below ~560px the phone layout applies instead.
+@media (min-width: (vars.$breakpoint-mobile + 1px)) {
+  @container (max-width: 900px) {
+    .nom-plan__cell-thumb,
+    .nom-plan__cell-fooditem-icon { display: none; }
+
+    .nom-plan__cell-recipe {
+      font-size: vars.$font-size-xs;
+      -webkit-line-clamp: 3;
+    }
+
+    .nom-plan__cell { padding: vars.$spacing-1; }
+  }
 }
 
 // --- Cells ---
@@ -299,7 +317,9 @@
   font-weight: vars.$font-weight-medium;
   color: var(--mat-sys-on-surface);
   text-align: left;
-  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  flex: 1 1 auto;
   line-height: vars.$line-height-tight;
   overflow: hidden;
   text-overflow: ellipsis;

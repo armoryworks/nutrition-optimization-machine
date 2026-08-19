@@ -135,8 +135,9 @@ export class CurationQueue implements OnInit {
         this.feedbackNotes.setValue('');
         this.processing.set(false);
       },
-      error: () => {
-        this.errorMessage.set('Failed to approve item.');
+      error: (err: unknown) => {
+        const apiMessage = (err as { error?: { message?: string } } | undefined)?.error?.message;
+        this.errorMessage.set(apiMessage ?? 'Failed to approve item.');
         this.processing.set(false);
       },
     });
