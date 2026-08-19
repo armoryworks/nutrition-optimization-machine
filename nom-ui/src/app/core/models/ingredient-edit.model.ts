@@ -13,6 +13,7 @@ export interface IngredientEditModel {
   authorId: number | null;
   labelId: number | null;
   onHand: boolean;
-  aliases: IngredientAlias[];
-  nutrients: IngredientNutrient[];
+  /** Optional: older API builds omit these; treat missing as empty. */
+  aliases?: IngredientAlias[];
+  nutrients?: IngredientNutrient[];
 }

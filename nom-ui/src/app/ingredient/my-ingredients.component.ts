@@ -24,7 +24,7 @@ export class MyIngredients implements OnInit {
   loading = signal(true);
 
   aliasNames(ing: IngredientEditModel): string {
-    return ing.aliases.map(a => a.name).join(', ');
+    return (ing.aliases ?? []).map(a => a.name).join(', ');
   }
 
   ngOnInit(): void {

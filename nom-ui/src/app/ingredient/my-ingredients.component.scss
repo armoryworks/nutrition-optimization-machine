@@ -9,6 +9,7 @@
 .nom-ingredients__item {
   display: flex;
   align-items: center;
+  min-width: 0; // grid child: without this a long description widens the row past the viewport
   gap: vars.$spacing-3;
   padding: vars.$spacing-3 vars.$spacing-4;
   border: 1px solid var(--mat-sys-outline-variant);
@@ -35,6 +36,7 @@
 .nom-ingredients__item-name {
   font-weight: vars.$font-weight-medium;
   color: var(--mat-sys-on-surface);
+  overflow-wrap: anywhere;
 }
 
 .nom-ingredients__item-desc {
