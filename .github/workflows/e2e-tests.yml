@@ -90,10 +90,10 @@ jobs:
         path: nom-test/cypress/screenshots
         retention-days: 7
 
+    - name: Display logs on failure
+      if: failure()
+      run: docker compose -f docker-compose.test.yml logs
     - name: Stop test environment
       if: always()
       run: docker compose -f docker-compose.test.yml down -v
 
-    - name: Display logs on failure
-      if: failure()
-      run: docker compose -f docker-compose.test.yml logs
