@@ -145,15 +145,8 @@ namespace Nom.Orch.Services
             // Exclude recipes that contain restricted ingredients for household members
             if (householdId.HasValue)
             {
-                var restrictedIngredientIds = await _context.HouseholdMembers
-                    .Where(hm => hm.HouseholdId == householdId.Value && hm.IsActive)
-                    .SelectMany(hm => hm.Person.Restrictions)
-                    .Where(r => r.IngredientId.HasValue
-                        && (r.EndDate == null || r.EndDate >= DateOnly.FromDateTime(DateTime.UtcNow))
-                        && (r.BeginDate == null || r.BeginDate <= DateOnly.FromDateTime(DateTime.UtcNow)))
-                    .Select(r => r.IngredientId!.Value)
-                    .Distinct()
-                    .ToListAsync();
+                var restrictedIngredientIds = (await new Support.HouseholdRestrictionResolver(_context)
+                    .ResolveAsync(householdId.Value)).IngredientIds.ToList();
 
                 if (restrictedIngredientIds.Count > 0)
                 {

@@ -278,9 +278,11 @@ namespace Nom.Orch.Services
             };
         }
 
-        public async Task<bool> DeleteFoodGroupRuleAsync(long id)
+        public async Task<bool> DeleteFoodGroupRuleAsync(long id, long householdId)
         {
-            var rule = await _context.FoodGroupRules.FindAsync(id);
+            // Bind the delete to the household the caller was authorized for — the id
+            // alone would let a manager of household A delete household B's rule.
+            var rule = await _context.FoodGroupRules.FirstOrDefaultAsync(r => r.Id == id && r.HouseholdId == householdId);
             if (rule == null) return false;
             _context.FoodGroupRules.Remove(rule);
             await _context.SaveChangesAsync();
@@ -444,6 +446,13 @@ namespace Nom.Orch.Services
 
             int deletedCount = 0;
 
+            // The delete below used to commit on its own; a failure anywhere in the
+            // rebuild then left the household with an emptied week. Delete + rebuild
+            // now share one transaction (relational stores only — the in-memory test
+            // provider has no transactions).
+            var useTransaction = _context.Database.IsRelational();
+            await using var transaction = useTransaction ? await _context.Database.BeginTransactionAsync() : null;
+
             // 1. If replacing, delete existing entries in the date range
             //    but preserve entries where shopping has already been completed
             if (model.ReplaceExisting)
@@ -460,29 +469,18 @@ namespace Nom.Orch.Services
                 await _context.SaveChangesAsync();
             }
 
-            // 2. Get restricted ingredient IDs for this household
-            var restrictedIngredientIds = await _context.HouseholdMembers
-                .Where(hm => hm.HouseholdId == model.HouseholdId && hm.IsActive)
-                .SelectMany(hm => hm.Person.Restrictions)
-                .Where(r => r.IngredientId.HasValue
-                    && (r.EndDate == null || r.EndDate >= DateOnly.FromDateTime(DateTime.UtcNow))
-                    && (r.BeginDate == null || r.BeginDate <= DateOnly.FromDateTime(DateTime.UtcNow)))
-                .Select(r => r.IngredientId!.Value)
-                .Distinct()
-                .ToListAsync();
+            // 2. What the household's restrictions forbid, resolved through the
+            //    restriction categories' criteria (a UI-saved "Nut Allergy" carries
+            //    no IngredientId of its own — the criteria supply the ingredients).
+            var restrictedSet = await new Support.HouseholdRestrictionResolver(_context).ResolveAsync(model.HouseholdId);
+            var restrictedIngredientIds = restrictedSet.IngredientIds.ToList();
 
             // 2b. Safety gate: does any active member carry a SEVERE restriction
             //     (severity >= 4 — allergy/medical)? If so, recipes are limited
             //     to those built entirely from curated ingredients (below),
             //     because a non-curated ingredient's allergen/alias data can't
             //     be trusted and a restricted item could hide behind it.
-            var todaySevere = DateOnly.FromDateTime(DateTime.UtcNow);
-            var hasSevereRestriction = await _context.HouseholdMembers
-                .Where(hm => hm.HouseholdId == model.HouseholdId && hm.IsActive)
-                .SelectMany(hm => hm.Person.Restrictions)
-                .AnyAsync(r => (r.Severity ?? 0) >= 4
-                    && (r.EndDate == null || r.EndDate >= todaySevere)
-                    && (r.BeginDate == null || r.BeginDate <= todaySevere));
+            var hasSevereRestriction = restrictedSet.HasSevere;
 
             // 3. Determine which cells need filling
             var existingEntries = model.ReplaceExisting
@@ -879,6 +877,7 @@ namespace Nom.Orch.Services
             // 7. Bulk insert
             _context.MealPlans.AddRange(newEntities);
             await _context.SaveChangesAsync();
+            if (transaction != null) await transaction.CommitAsync();
 
             // 8. Return the week view for the date range
             var weekStart = model.StartDate;

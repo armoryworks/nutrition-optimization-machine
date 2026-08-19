@@ -25,6 +25,12 @@ namespace Nom.Orch.Services
         {
             _logger.LogInformation("Sending message from {SenderPersonId} to thread {ThreadId}", senderPersonId, request.ThreadId);
 
+            // The thread id is client-supplied: only a participant may post into it.
+            var isParticipant = await _db.MessageThreadParticipants
+                .AnyAsync(p => p.MessageThreadId == request.ThreadId && p.PersonId == senderPersonId);
+            if (!isParticipant)
+                throw new UnauthorizedAccessException("You are not a participant in this conversation.");
+
             var message = new MessageEntity
             {
                 MessageThreadId = request.ThreadId,

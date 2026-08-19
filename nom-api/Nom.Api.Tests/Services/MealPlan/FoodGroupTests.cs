@@ -200,7 +200,8 @@ namespace Nom.Api.Tests.Services.MealPlan
                 HouseholdId = HouseholdId, FoodGroupId = Vegetables, MinServings = 2, Timeframe = "PerDay",
             });
 
-            (await svc.DeleteFoodGroupRuleAsync(rule.Id)).Should().BeTrue();
+            (await svc.DeleteFoodGroupRuleAsync(rule.Id, HouseholdId + 1)).Should().BeFalse("another household's id must not delete it");
+            (await svc.DeleteFoodGroupRuleAsync(rule.Id, HouseholdId)).Should().BeTrue();
             (await ctx.FoodGroupRules.CountAsync()).Should().Be(0);
         }
 

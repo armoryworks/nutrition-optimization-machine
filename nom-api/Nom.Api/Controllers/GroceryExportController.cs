@@ -90,7 +90,7 @@ namespace Nom.Api.Controllers
             [FromQuery] string? error,
             [FromQuery] string? returnUrl)
         {
-            var appReturn = string.IsNullOrWhiteSpace(returnUrl) ? "/shopping" : returnUrl!;
+            var appReturn = SafeAppReturn(returnUrl);
 
             if (!string.IsNullOrWhiteSpace(error) || string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(state))
             {
@@ -146,6 +146,20 @@ namespace Nom.Api.Controllers
         /// Absolute callback URL for this deployment. Must match byte-for-byte
         /// between the authorize call and the exchange, so both go through here.
         /// </summary>
+        /// <summary>
+        /// The post-connect return target is client-supplied and this endpoint is anonymous,
+        /// so only a same-origin, path-only value is honoured — anything absolute or
+        /// protocol-relative (an open-redirect vector) falls back to /shopping.
+        /// </summary>
+        private static string SafeAppReturn(string? returnUrl)
+        {
+            if (string.IsNullOrWhiteSpace(returnUrl)) return "/shopping";
+            var r = returnUrl.Trim();
+            if (!r.StartsWith('/') || r.StartsWith("//") || r.StartsWith("/\\") || r.Contains("://") || r.Contains('\n') || r.Contains('\r'))
+                return "/shopping";
+            return r;
+        }
+
         private string BuildRedirectUri(string provider, string? returnUrl)
         {
             var baseUri = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";

@@ -2,7 +2,7 @@
 
 _Living document. Maintained during the ongoing audit of NOM. Companion tracker for Forge lives at `forge/docs/AUDIT-TRACKER.md` — keep the two separate._
 
-Last updated: 2026-08-18 (mobile pass added; N-9..N-18 fixed in v0.3.23; N-7/N-14/N-19 in v0.3.24; N-4/N-5/N-6/N-20/N-21 in v0.3.25).
+Last updated: 2026-08-18 (mobile pass added; N-9..N-18 fixed in v0.3.23; N-7/N-14/N-19 in v0.3.24; N-4/N-5/N-6/N-20/N-21 in v0.3.25; N-2/N-3/N-22 in v0.3.26; deep-audit backend items in v0.3.27).
 
 ## Audit access
 
@@ -140,15 +140,15 @@ _Screenshots from the run (viewport + full-page) are in the session scratchpad `
 
 ## Backend / functional (load-bearing — see the deep audit)
 
-Most user-impactful items from the earlier deep audit:
+Most user-impactful items from the earlier deep audit — **all addressed in v0.3.27** (2026-08-19):
 
-- **Dietary restrictions set through the UI never affect meal planning or search** — the UI `RestrictionRequest` DTO carries neither `IngredientId` nor `Severity`, the only fields shuffle/search enforce; the severe-allergy Curated-only gate is unreachable, yet the recipe-detail page still warns about the very recipe shuffle just planned. Looks safe, isn't. **(Highest priority.)**
-- **Meal-plan shuffle can destroy a week** — the delete's `SaveChanges` commits ~420 lines before the rebuild, no transaction.
-- **Message-injection IDOR** — `SendMessageAsync` inserts into a client-supplied `threadId` with no participant check.
-- **Cross-tenant delete of food-group rules** — authz checks the query-string household, delete operates on an unbound rule id.
-- **SmartShoppingList serves fabricated prices/nutrition** from live endpoints, with a latent `InvalidCastException`.
-- **Open redirect** in the grocery OAuth callback; **email confirmation not enforced** at login.
-- **~150 orphan API endpoints (~40%)** with no UI consumer — an older superseded layer worth quarantining.
+- ~~**Dietary restrictions set through the UI never affect meal planning or search**~~ — **Fixed.** UI restrictions reference a *category* (RestrictionTypeId); planning only honoured `Restriction.IngredientId`. A shared `HouseholdRestrictionResolver` now expands each member's (and plan-wide) restrictions through the category's `RestrictionCriterion` rows (exact ingredient or ILIKE pattern on names **and aliases**, with severity) and is used by shuffle, food-group top-up and recipe search — the same source the recipe-detail warning already used, so the two agree. Only medical conditions had criteria; `DefaultRestrictionCriteria` seeds name-keyed baselines (allergies 5, intolerances 4, diets/religious 3) at API startup for any restriction type that has none, so every tenant gets Nut/Egg/Soy/Fish/Shellfish/Sesame/… allergies, Gluten-/Dairy-Free, Vegan/Vegetarian/Pescatarian, Kosher/Halal, Low-FODMAP, etc. enforced. Admin → Diet Categories edits win (types with any criteria are untouched).
+- ~~**Meal-plan shuffle can destroy a week**~~ — **Fixed.** Delete + rebuild run in one transaction (relational stores).
+- ~~**Message-injection IDOR**~~ — **Fixed.** `SendMessageAsync` requires the sender to be a thread participant (401 otherwise).
+- ~~**Cross-tenant delete of food-group rules**~~ — **Fixed.** Delete is bound to the authorized household id.
+- ~~**SmartShoppingList serves fabricated prices/nutrition**~~ — **Quarantined.** The controller is behind `Features:SmartShoppingList` (default off → 404, hidden from Swagger); no UI consumer existed. The latent `InvalidCastException` in its nutritional analysis is fixed for when it is enabled.
+- ~~**Open redirect** in the grocery OAuth callback~~ — **Fixed** (only same-origin path returns are honoured). ~~**Email confirmation not enforced** at login~~ — **Fixed**: `SignIn.RequireConfirmedEmail` is on whenever SMTP is configured (override `Auth:RequireConfirmedEmail`); the sign-in popover recognises the 401 `NotAllowed` and offers "Resend confirmation email".
+- **~150 orphan API endpoints (~40%)** with no UI consumer — still open; `FeatureGateAttribute` is the quarantine tool for them.
 
 ## Tenant-provisioning note (fixed)
 

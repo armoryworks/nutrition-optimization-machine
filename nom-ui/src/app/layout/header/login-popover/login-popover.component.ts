@@ -61,6 +61,21 @@ export class LoginPopover {
   loading = signal(false);
   errorMessage = signal('');
   showPassword = signal(false);
+  /** True after a 401 NotAllowed — offers to resend the confirmation email. */
+  needsConfirmation = signal(false);
+  resendState = signal<'idle' | 'sending' | 'sent'>('idle');
+
+  resendConfirmation(): void {
+    const email = this.loginForm.getRawValue().email;
+    if (!email || this.resendState() === 'sending') return;
+    this.resendState.set('sending');
+    this.authService.resendConfirmation(email)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.resendState.set('sent'),
+        error: () => this.resendState.set('sent'), // endpoint is deliberately opaque; treat as sent
+      });
+  }
 
   onSubmit(): void {
     if (this.loginForm.invalid) {
@@ -87,6 +102,15 @@ export class LoginPopover {
         },
         error: (err) => {
           this.loading.set(false);
+          // Identity's login endpoint answers 401 + detail "NotAllowed" for an
+          // account whose email is not yet confirmed (RequireConfirmedEmail).
+          const detail: unknown = err?.error?.detail;
+          if (err.status === 401 && detail === 'NotAllowed') {
+            this.needsConfirmation.set(true);
+            this.errorMessage.set('Please confirm your email address before signing in.');
+            return;
+          }
+          this.needsConfirmation.set(false);
           this.errorMessage.set(
             err.status === 401
               ? 'Invalid email or password.'

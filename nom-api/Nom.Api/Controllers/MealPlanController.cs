@@ -251,7 +251,7 @@ namespace Nom.Api.Controllers
         {
             if (!CanManageHousehold(householdId))
                 return Forbid();
-            var ok = await _mealPlanOrchestrationService.DeleteFoodGroupRuleAsync(id);
+            var ok = await _mealPlanOrchestrationService.DeleteFoodGroupRuleAsync(id, householdId);
             return ok ? Ok() : NotFound();
         }
 

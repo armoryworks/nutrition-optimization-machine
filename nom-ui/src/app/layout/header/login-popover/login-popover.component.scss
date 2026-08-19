@@ -58,6 +58,12 @@
   margin: 0 0 vars.$spacing-3;
 }
 
+.nom-login-popover__resend {
+  margin: 0 0 vars.$spacing-3;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
 .nom-login-popover__forgot-row {
   text-align: right;
   margin-bottom: vars.$spacing-2;
