@@ -56,25 +56,7 @@ namespace Nom.Orch.Services
 
         public async Task<PantryItemResponseModel> AddPantryItemAsync(PantryItemCreateModel model)
         {
-            // Look up the household's first plan to satisfy the PlanId FK
-            var plan = await _context.Set<Nom.Data.Plan.PlanEntity>()
-                .Where(p => _context.Set<Nom.Data.Plan.HouseholdEntity>()
-                    .Any(h => h.Id == model.HouseholdId && h.Plans.Any(hp => hp.Id == p.Id)))
-                .FirstOrDefaultAsync();
-
-            if (plan == null)
-            {
-                // If no plan exists yet, we need to find any plan associated with this household
-                // via the Household → Plans navigation
-                var household = await _context.Set<Nom.Data.Plan.HouseholdEntity>()
-                    .Include(h => h.Plans)
-                    .FirstOrDefaultAsync(h => h.Id == model.HouseholdId);
-
-                if (household?.Plans.Any() != true)
-                    throw new InvalidOperationException($"Household {model.HouseholdId} has no associated plans. Create a plan first.");
-
-                plan = household.Plans.First();
-            }
+            var plan = await ResolvePlanForHouseholdAsync(model.HouseholdId);
 
             var entity = new PantryItemEntity
             {
@@ -105,21 +87,73 @@ namespace Nom.Orch.Services
             return MapToResponse(created, DateOnly.FromDateTime(DateTime.UtcNow));
         }
 
+        /// <summary>
+        /// PantryItem.PlanId is a required FK, but nothing in the app populates the
+        /// household ↔ plan link, so a household usually has no plan of its own.
+        /// Resolve one instead of failing: the household's linked plan, else a plan
+        /// any active member participates in (their registration default plan), else
+        /// a lightweight pantry plan created here. Whatever is found is linked to the
+        /// household so the next lookup is a single query.
+        /// </summary>
+        private async Task<Nom.Data.Plan.PlanEntity> ResolvePlanForHouseholdAsync(long householdId)
+        {
+            var household = await _context.Set<Nom.Data.Plan.HouseholdEntity>()
+                .Include(h => h.Plans)
+                .FirstOrDefaultAsync(h => h.Id == householdId)
+                ?? throw new InvalidOperationException($"Household {householdId} was not found.");
+
+            var linked = household.Plans.FirstOrDefault(p => !p.IsDeleted);
+            if (linked != null)
+                return linked;
+
+            var memberPersonIds = await _context.HouseholdMembers
+                .Where(m => m.HouseholdId == householdId && m.IsActive)
+                .OrderByDescending(m => m.IsAdmin)
+                .ThenBy(m => m.JoinedDate)
+                .Select(m => m.PersonId)
+                .ToListAsync();
+
+            var plan = await _context.PlanParticipants
+                .Where(pp => memberPersonIds.Contains(pp.PersonId) && !pp.Plan.IsDeleted)
+                .OrderByDescending(pp => pp.IsAdmin)
+                .ThenBy(pp => pp.PlanId)
+                .Select(pp => pp.Plan)
+                .FirstOrDefaultAsync();
+
+            if (plan == null)
+            {
+                if (memberPersonIds.Count == 0)
+                    throw new InvalidOperationException($"Household {householdId} has no active members, so no plan can be created for its pantry.");
+
+                var now = DateTime.UtcNow;
+                plan = new Nom.Data.Plan.PlanEntity
+                {
+                    Name = $"{household.Name} pantry",
+                    Description = "Created automatically so pantry items could be recorded before a meal plan existed.",
+                    StartDate = DateOnly.FromDateTime(now),
+                    AuthorId = memberPersonIds[0],
+                    CurationStatusId = 9000L, // NonCurated
+                    Version = 1,
+                    CreatedDate = now,
+                    LastModifiedDate = now
+                };
+                _context.Plans.Add(plan);
+                _logger.LogInformation("Household {HouseholdId} had no plan; created pantry plan for person {PersonId}", householdId, memberPersonIds[0]);
+            }
+
+            household.Plans.Add(plan);
+            await _context.SaveChangesAsync();
+            return plan;
+        }
+
         public async Task<List<PantryItemResponseModel>> AddPantryItemsBatchAsync(List<PantryItemCreateModel> items)
         {
             if (items == null || items.Count == 0)
                 return new List<PantryItemResponseModel>();
 
-            // Look up the household's plan once (all items belong to same household)
+            // All items belong to the same household; resolve its plan once.
             var householdId = items[0].HouseholdId;
-            var household = await _context.Set<Nom.Data.Plan.HouseholdEntity>()
-                .Include(h => h.Plans)
-                .FirstOrDefaultAsync(h => h.Id == householdId);
-
-            if (household?.Plans.Any() != true)
-                throw new InvalidOperationException($"Household {householdId} has no associated plans. Create a plan first.");
-
-            var plan = household.Plans.First();
+            var plan = await ResolvePlanForHouseholdAsync(householdId);
             var now = DateTime.UtcNow;
             var entities = new List<PantryItemEntity>();
 

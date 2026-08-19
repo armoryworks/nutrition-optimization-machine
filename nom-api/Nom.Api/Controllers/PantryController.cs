@@ -50,8 +50,16 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdMember(model.HouseholdId))
                 return Forbid();
 
-            var item = await _pantryService.AddPantryItemAsync(model);
-            return CreatedAtAction(nameof(GetPantryItem), new { id = item.Id }, item);
+            try
+            {
+                var item = await _pantryService.AddPantryItemAsync(model);
+                return CreatedAtAction(nameof(GetPantryItem), new { id = item.Id }, item);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Business-rule rejection (no household plan could be resolved, etc.) — not a server fault.
+                return Conflict(new { message = ex.Message });
+            }
         }
 
         [HttpPost("batch")]
@@ -67,8 +75,15 @@ namespace Nom.Api.Controllers
             if (householdIds.Any(hId => !IsHouseholdMember(hId)))
                 return Forbid();
 
-            var created = await _pantryService.AddPantryItemsBatchAsync(items);
-            return Created("api/pantry", created);
+            try
+            {
+                var created = await _pantryService.AddPantryItemsBatchAsync(items);
+                return Created("api/pantry", created);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
