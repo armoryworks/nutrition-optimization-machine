@@ -329,7 +329,9 @@ namespace Nom.Orch.Services
                     Name = recipe.DishGroup.Name,
                     Slug = recipe.DishGroup.Slug,
                 },
-                Ingredients = recipe.RecipeIngredients?.Select(ri => new RecipeIngredientModel
+                // No sort column yet; rows are inserted (and re-inserted on edit) in authored
+                // order, so Id order is authored order. (Audit N-14)
+                Ingredients = recipe.RecipeIngredients?.OrderBy(ri => ri.Id).Select(ri => new RecipeIngredientModel
                 {
                     IngredientId = ri.IngredientId,
                     Quantity = ri.Quantity,

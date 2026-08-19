@@ -2,7 +2,7 @@
 
 _Living document. Maintained during the ongoing audit of NOM. Companion tracker for Forge lives at `forge/docs/AUDIT-TRACKER.md` — keep the two separate._
 
-Last updated: 2026-08-18 (mobile pass added; N-9..N-18 fixed in v0.3.23).
+Last updated: 2026-08-18 (mobile pass added; N-9..N-18 fixed in v0.3.23; N-7/N-14/N-19 in v0.3.24).
 
 ## Audit access
 
@@ -19,7 +19,7 @@ Last updated: 2026-08-18 (mobile pass added; N-9..N-18 fixed in v0.3.23).
 | N-4 | Branding | Med | "Powered by Mealie" footer + GitHub icon on every page (upstream leak) | Open |
 | N-5 | Data / UI gap | High | No UI to author ingredient nutrition → recipes built from the catalog show **empty** nutrition labels | Open |
 | N-6 | Workflow dead-end | High | Recipe approval requires every ingredient curated, but there is **no UI to curate an ingredient** → any recipe using a user-added ingredient can never be approved | Open |
-| N-7 | Error handling | Med | The "ingredients not curated" guard throws `InvalidOperationException` → **HTTP 500**; curation UI shows a generic "Failed to approve item," hiding the real cause | Open |
+| N-7 | Error handling | Med | The "ingredients not curated" guard throws `InvalidOperationException` → **HTTP 500**; curation UI shows a generic "Failed to approve item," hiding the real cause | Fixed (v0.3.24) |
 | N-8 | Missing UI (built) | — | Recipes had **no author control to publish/make-public** — built + shipped this session (v0.3.22) | Resolved |
 | N-9 | Mobile layout | High | Recipe form ingredient row: on a Galaxy S23 Ultra (412 CSS px) the **Ingredient name field is 62 px wide** ("In…"), autocomplete panel is clipped to the same width; Qty/Unit fixed min-widths + nested padding eat the row | Fixed (v0.3.23) |
 | N-10 | Mobile layout | Med | Recipe form: sticky "Create Recipe / Cancel" action bar covers ~25% of the mobile viewport; nested section padding (12+16+24 px per side) wastes ~26% of the width | Fixed (v0.3.23) |
@@ -30,8 +30,8 @@ Last updated: 2026-08-18 (mobile pass added; N-9..N-18 fixed in v0.3.23).
 | N-16 | Mobile layout | High | **Meal Plan** week grid is `80px repeat(7, 1fr)` with `overflow:hidden` at every width: at 412 px only Mon–Thu are reachable, recipe names wrap one letter per line ("S / m / B / a."), toolbar overflows ("Toc…" = Today) | Fixed (v0.3.23) |
 | N-17 | Mobile layout | Med | Global chrome on phones: floating "PANEL" tab overlaps content on every page (clips shopping quantities); footer is pinned to the bottom of the viewport; the nav drawer still shows a desktop "Collapse" item | Fixed (v0.3.23) |
 | N-18 | Mobile layout | Low | Shopping "Scaled to household portions" chip wraps to 3 lines; Home "This Week" day strip clips Sunday; Household member email overflows its card over the Profile/Dietary chips | Fixed (v0.3.23) |
-| N-14 | Data | Low | Recipe detail lists ingredients in reverse of authored order (Garlic before Chicken on recipe 324) | Open |
-| N-19 | Desktop layout | Low | Meal Plan week grid is also cramped at ~1400 px with nav + context panel open (day columns ≈45 px) — same one-letter wrapping as N-16, desktop variant | Open |
+| N-14 | Data | Low | Recipe detail lists ingredients in reverse of authored order (Garlic before Chicken on recipe 324) | Fixed (v0.3.24 — ordered by insertion Id; no sort column yet) |
+| N-19 | Desktop layout | Low | Meal Plan week grid is also cramped at ~1400 px with nav + context panel open (day columns ≈45 px) — same one-letter wrapping as N-16, desktop variant | Fixed (v0.3.24 — container query drops thumbnails under 900px) |
 
 _The UI walkthrough was otherwise clean — all ~30 pages render, zero API failures, no real JS errors (the per-page `ERR_CONNECTION_REFUSED` is Cloudflare's own analytics beacon, a sandbox-only false positive). Backend/functional findings from the earlier deep audit are summarized under "Backend" below._
 
