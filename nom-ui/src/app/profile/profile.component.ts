@@ -325,12 +325,18 @@ export class Profile implements OnInit {
   }
 
   private saveProfile(formData: ProfileFormData): void {
-    const personId = this.authService.personId();
-    if (!personId) {
-      this.errorMessage.set('Unable to identify your account. Please try logging in again.');
-      return;
-    }
+    this.authService.ensurePersonId()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((personId) => {
+        if (!personId) {
+          this.errorMessage.set('Unable to identify your account. Please try logging in again.');
+          return;
+        }
+        this.saveProfileAs(personId, formData);
+      });
+  }
 
+  private saveProfileAs(personId: number, formData: ProfileFormData): void {
     this.loading.set(true);
     this.errorMessage.set('');
     this.successMessage.set('');

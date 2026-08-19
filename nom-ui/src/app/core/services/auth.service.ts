@@ -222,6 +222,19 @@ export class AuthService {
     );
   }
 
+  /**
+   * The person id, fetching it if it is not known yet. The one-shot fetch at
+   * login is swallowed on failure (e.g. the Person row was created moments
+   * after an invite registration), which used to strand the session: every
+   * save failed with "Unable to identify your account" until a fresh login.
+   */
+  ensurePersonId(): Observable<number | null> {
+    const known = this.personIdSignal();
+    if (known) return of(known);
+    if (!this.isLoggedInSignal()) return of(null);
+    return this.fetchAndStorePersonId().pipe(switchMap(() => of(this.personIdSignal())));
+  }
+
   private checkLoginStatus(): void {
     const token = localStorage.getItem('authToken');
     if (token) {
@@ -230,6 +243,12 @@ export class AuthService {
       const storedPersonId = localStorage.getItem('personId');
       if (storedPersonId) {
         this.personIdSignal.set(Number(storedPersonId));
+      } else {
+        // Session restored from tokens but the person id never landed — heal it.
+        // Deferred: firing HTTP from this constructor would resolve the auth
+        // interceptor's inject(AuthService) while the service is still being
+        // constructed (circular DI).
+        queueMicrotask(() => this.fetchAndStorePersonId().subscribe());
       }
     }
   }

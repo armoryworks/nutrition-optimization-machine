@@ -180,6 +180,20 @@
   display: flex;
   gap: vars.$spacing-2;
   flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+// Phones: name/email on the first line, badges wrapping beneath — side by side
+// the nowrap badges overlapped the name (audit N-24).
+@media (max-width: vars.$breakpoint-mobile) {
+  .nom-household__member-row {
+    flex-wrap: wrap;
+    gap: vars.$spacing-2 vars.$spacing-3;
+  }
+
+  .nom-household__member-info {
+    flex: 1 1 100%;
+  }
 }
 
 .nom-household__status-badge {

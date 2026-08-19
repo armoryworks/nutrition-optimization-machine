@@ -208,12 +208,18 @@ export class Onboarding implements OnInit {
   }
 
   completeOnboarding(): void {
-    const personId = this.authService.personId();
-    if (!personId) {
-      this.errorMessage.set('Unable to identify your account. Please try logging in again.');
-      return;
-    }
+    this.authService.ensurePersonId()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((pid) => {
+        if (!pid) {
+          this.errorMessage.set('Unable to identify your account. Please try logging in again.');
+          return;
+        }
+        this.completeOnboardingAs(pid);
+      });
+  }
 
+  private completeOnboardingAs(personId: number): void {
     const profile = this.profileData();
     const restrictions = this.restrictionsData();
     const household = this.householdData();
