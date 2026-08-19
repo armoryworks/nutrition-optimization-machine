@@ -552,10 +552,12 @@ namespace Nom.Orch.Services
             foreach (var item in items)
             {
                 var nutrition = await GetNutritionalInfoAsync(item);
-                totalCalories += (int)nutrition.GetValueOrDefault("calories", 0);
-                totalProtein += (int)nutrition.GetValueOrDefault("protein", 0.0m);
-                totalCarbs += (decimal)nutrition.GetValueOrDefault("carbs", 0.0m);
-                totalFat += (decimal)nutrition.GetValueOrDefault("fat", 0.0m);
+                // Values are boxed as int or decimal depending on the entry; unbox via Convert
+                // (a direct (int)/(decimal) cast on the wrong box type throws InvalidCastException).
+                totalCalories += Convert.ToInt32(nutrition.GetValueOrDefault("calories", 0));
+                totalProtein += Convert.ToDecimal(nutrition.GetValueOrDefault("protein", 0.0m));
+                totalCarbs += Convert.ToDecimal(nutrition.GetValueOrDefault("carbs", 0.0m));
+                totalFat += Convert.ToDecimal(nutrition.GetValueOrDefault("fat", 0.0m));
             }
 
             analysis["totalCalories"] = totalCalories;

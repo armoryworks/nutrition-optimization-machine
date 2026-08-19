@@ -43,6 +43,17 @@
     @if (errorMessage()) {
       <p class="nom-login-popover__error" data-testid="login-error">{{ errorMessage() }}</p>
     }
+    @if (needsConfirmation()) {
+      <p class="nom-login-popover__resend">
+        @if (resendState() === 'sent') {
+          <span data-testid="login-resend-sent">If an account exists for that address, a new confirmation link is on its way.</span>
+        } @else {
+          <button type="button" mat-button (click)="resendConfirmation()" [disabled]="resendState() === 'sending'" data-testid="login-resend-btn">
+            Resend confirmation email
+          </button>
+        }
+      </p>
+    }
 
     <div class="nom-login-popover__forgot-row">
       <a routerLink="/forgot-password" (click)="closed.emit()" class="nom-login-popover__forgot"

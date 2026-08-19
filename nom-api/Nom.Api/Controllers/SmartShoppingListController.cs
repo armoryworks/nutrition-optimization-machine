@@ -1,13 +1,21 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Nom.Api.Filters;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Shopping;
 
 namespace Nom.Api.Controllers
 {
+    /// <summary>
+    /// Quarantined: the service behind this layer still returns placeholder prices and
+    /// nutrition (a fixed dictionary + $5 default) and has no UI consumer. Off unless
+    /// Features:SmartShoppingList=true, so nothing fabricated is served by default.
+    /// </summary>
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [FeatureGate("SmartShoppingList")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public class SmartShoppingListController : BaseApiController
     {
         private readonly ISmartShoppingListService _smartShoppingListService;

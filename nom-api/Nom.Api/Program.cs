@@ -122,8 +122,16 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
                         b => b.MigrationsAssembly("Nom.Data")));
 
 // Use AddIdentity for more control, allowing for custom claims factory registration
+// Email confirmation is enforced at sign-in whenever this server can actually
+// send the confirmation mail (SMTP configured); a mail-less dev/test instance
+// would otherwise lock every new account out. Auth:RequireConfirmedEmail
+// overrides the default either way.
+var smtpConfigured = !string.IsNullOrEmpty(builder.Configuration["Email:SmtpHost"]);
+var requireConfirmedEmail = builder.Configuration.GetValue<bool?>("Auth:RequireConfirmedEmail") ?? smtpConfigured;
+
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
+    options.SignIn.RequireConfirmedEmail = requireConfirmedEmail;
     options.Lockout.AllowedForNewUsers = true;
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
@@ -631,6 +639,22 @@ app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks
     }
 });
 
-
+// Baseline restriction criteria: the UI saves restrictions as categories ("Nut
+// Allergy"), and only a category's criteria make it enforceable in planning and
+// search. Types that already have criteria (seeded or admin-edited) are untouched.
+using (var startupScope = app.Services.CreateScope())
+{
+    var db = startupScope.ServiceProvider.GetRequiredService<Nom.Data.ApplicationDbContext>();
+    var startupLogger = startupScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+    try
+    {
+        await Nom.Orch.Services.Support.DefaultRestrictionCriteria.EnsureAsync(db, startupLogger);
+    }
+    catch (Exception ex)
+    {
+        // Never block startup on a data-baseline step (e.g. DB not yet migrated).
+        startupLogger.LogWarning(ex, "Default restriction criteria could not be ensured; planning will use whatever criteria exist");
+    }
+}
 
 app.Run();

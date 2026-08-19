@@ -30,7 +30,7 @@ namespace Nom.Orch.Interfaces
         Task<List<FoodGroupModel>> GetFoodGroupsAsync();
         Task<List<FoodGroupRuleModel>> GetFoodGroupRulesAsync(long householdId);
         Task<FoodGroupRuleModel> UpsertFoodGroupRuleAsync(FoodGroupRuleUpsertModel model);
-        Task<bool> DeleteFoodGroupRuleAsync(long id);
+        Task<bool> DeleteFoodGroupRuleAsync(long id, long householdId);
 
         // Shopping completion
         Task<bool> MarkShoppingCompletedAsync(long mealPlanId);
