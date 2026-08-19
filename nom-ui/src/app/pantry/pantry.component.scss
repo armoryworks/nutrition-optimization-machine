@@ -58,7 +58,7 @@
 .nom-pantry__add-fields {
   display: flex;
   gap: vars.$spacing-3;
-  align-items: flex-start;
+  align-items: center; // fields use subscriptSizing="dynamic", so their box IS the input box
   flex-wrap: wrap;
 }
 
@@ -68,7 +68,7 @@
 }
 
 .nom-pantry__add-qty {
-  width: 80px;
+  width: 96px;
 }
 
 .nom-pantry__add-unit {
@@ -77,8 +77,46 @@
 }
 
 .nom-pantry__add-btn {
-  align-self: center;
-  margin-top: 4px;
+  // Match the 56px outline field height so the row reads as one line.
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.nom-pantry__add-error {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  margin: vars.$spacing-3 0 0;
+  color: var(--mat-sys-error);
+  font-size: vars.$font-size-sm;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// Phones: one control per line, full-width Add underneath — no side-by-side
+// wrapping that leaves the button floating beside a taller field.
+@media (max-width: vars.$breakpoint-mobile) {
+  .nom-pantry__add-fields {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nom-pantry__add-ingredient,
+  .nom-pantry__add-qty,
+  .nom-pantry__add-unit {
+    width: 100%;
+    min-width: 0;
+    flex: none;
+  }
+
+  .nom-pantry__add-btn {
+    width: 100%;
+    height: 48px;
+  }
 }
 
 // Loading & empty states

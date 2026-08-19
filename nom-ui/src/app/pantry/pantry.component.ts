@@ -73,6 +73,8 @@ export class PantryComponent implements OnInit {
   measurements = signal<MeasurementOption[]>([]);
   selectedMeasurementId = signal<number | null>(null);
   adding = signal(false);
+  /** Why the last Add failed (409 message from the API, or a generic fallback). */
+  addError = signal<string | null>(null);
 
   private destroyRef = inject(DestroyRef);
   private searchSubject = new Subject<string>();
@@ -183,6 +185,7 @@ export class PantryComponent implements OnInit {
   }
 
   addItem() {
+    this.addError.set(null);
     const ingredient = this.selectedIngredient();
     const measurementId = this.selectedMeasurementId();
     const hId = this.householdId();
@@ -216,8 +219,9 @@ export class PantryComponent implements OnInit {
           this.showAddForm.set(false);
           this.adding.set(false);
         },
-        error: () => {
+        error: (err: unknown) => {
           this.adding.set(false);
+          this.addError.set(describeAddError(err));
         },
       });
   }
@@ -257,4 +261,12 @@ export class PantryComponent implements OnInit {
   private formatDate(d: Date): string {
     return toLocalDateString(d);
   }
+}
+
+function describeAddError(err: unknown): string {
+  const e = err as { status?: number; error?: { message?: string } | string } | undefined;
+  const apiMessage = typeof e?.error === 'object' ? e?.error?.message : undefined;
+  if (apiMessage) return apiMessage;
+  if (e?.status === 403) return "You don't have permission to add items to this household's pantry.";
+  return "Couldn't add that item to the pantry. Please try again.";
 }

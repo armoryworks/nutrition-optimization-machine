@@ -35,7 +35,7 @@
             @if (ing.description) {
               <span class="nom-ingredients__item-desc">{{ ing.description }}</span>
             }
-            @if (ing.aliases.length > 0) {
+            @if (ing.aliases?.length) {
               <span class="nom-ingredients__item-aliases">
                 Also: {{ aliasNames(ing) }}
               </span>
