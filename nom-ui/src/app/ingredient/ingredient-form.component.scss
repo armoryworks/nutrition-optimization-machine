@@ -43,3 +43,37 @@
   font-size: vars.$font-size-sm;
   color: var(--mat-sys-on-surface-variant);
 }
+
+// ── Nutrition entry (per 100 g) ──
+
+.nom-ingredient-form__per {
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-normal;
+  color: var(--mat-sys-on-surface-variant);
+  margin-left: vars.$spacing-2;
+}
+
+.nom-ingredient-form__nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: vars.$spacing-3;
+  margin-top: vars.$spacing-2;
+}
+
+.nom-ingredient-form__nutrient-field {
+  min-width: 0;
+
+  input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+}
+
+.nom-ingredient-form__unit {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-sm;
+  padding-left: vars.$spacing-1;
+}
+
+.nom-ingredient-form__more-btn {
+  margin-top: vars.$spacing-3;
+}

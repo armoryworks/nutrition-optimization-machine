@@ -68,6 +68,30 @@
                 </ul>
               </div>
             }
+            @if (item.entityType === 'Recipe' && item.uncuratedIngredients?.length) {
+              <div class="nom-curation__blockers" data-testid="curation-blocking-ingredients">
+                <span class="nom-curation__blockers-title">
+                  <mat-icon>block</mat-icon>
+                  Can't be approved yet — {{ item.uncuratedIngredients!.length }} ingredient(s) not curated
+                </span>
+                <ul class="nom-curation__blockers-list">
+                  @for (ing of item.uncuratedIngredients; track ing.id) {
+                    <li class="nom-curation__blocker">
+                      <span>{{ ing.name }}</span>
+                      <span class="nom-curation__blocker-status">{{ ing.status }}</span>
+                    </li>
+                  }
+                </ul>
+                <button mat-stroked-button type="button"
+                        (click)="approveBlockingIngredients(item)"
+                        [disabled]="processing()"
+                        data-testid="curation-approve-ingredients-btn">
+                  <mat-icon>done_all</mat-icon>
+                  Curate these ingredients
+                </button>
+                <span class="nom-curation__blockers-hint">Marks them Curated (usable in planning) so this recipe can be approved. Nutrition is not touched.</span>
+              </div>
+            }
             @if (item.entityType === 'Recipe' && item.sourceImageUrl) {
               <figure class="nom-curation__source-image" data-testid="curation-source-image">
                 <img [src]="item.sourceImageUrl" alt="Source image for {{ item.name }}" />

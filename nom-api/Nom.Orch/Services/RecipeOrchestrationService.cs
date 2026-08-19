@@ -20,17 +20,20 @@ namespace Nom.Orch.Services
 
         private readonly ICurrentUserService _currentUser;
         private readonly Nom.Orch.UtilityInterfaces.IMediaStorageService _mediaStorage;
+        private readonly IRecipeNutritionService _recipeNutrition;
 
         public RecipeOrchestrationService(
             ApplicationDbContext context,
             IHttpContextAccessor httpContextAccessor,
             ICurrentUserService currentUser,
-            Nom.Orch.UtilityInterfaces.IMediaStorageService mediaStorage)
+            Nom.Orch.UtilityInterfaces.IMediaStorageService mediaStorage,
+            IRecipeNutritionService recipeNutrition)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _currentUser = currentUser;
             _mediaStorage = mediaStorage;
+            _recipeNutrition = recipeNutrition;
         }
 
         private string? GetCurrentUserId() => _currentUser.UserId;
@@ -86,47 +89,51 @@ namespace Nom.Orch.Services
             return nutrients;
         }
 
+        /// <summary>
+        /// Replace an ingredient's per-100 g facts. Each amount is stored in the nutrient's
+        /// default unit (kcal for Calories, g for macros, mg/µg for micronutrients).
+        /// Values must be non-negative and plausible for 100 g (kcal ≤ 900, mass ≤ 100 g).
+        /// </summary>
         private async Task UpdateIngredientNutrientsAsync(long ingredientId, List<NutrientValueModel> nutrients)
         {
-            Console.WriteLine($"UpdateIngredientNutrientsAsync called for ingredient {ingredientId} with {nutrients.Count} nutrients");
-            
-            // Remove existing nutrients for this ingredient
             var existingNutrients = await _context.IngredientNutrients
                 .Where(in_ => in_.IngredientId == ingredientId)
                 .ToListAsync();
-            
-            Console.WriteLine($"Found {existingNutrients.Count} existing nutrients to remove");
             _context.IngredientNutrients.RemoveRange(existingNutrients);
 
-            // Add new nutrients
-            int addedCount = 0;
-            foreach (var nutrient in nutrients)
-            {
-                Console.WriteLine($"Processing nutrient: NutrientId={nutrient.NutrientId}, Amount={nutrient.Amount}");
-                
-                // Skip empty nutrients (nutrientId = 0 or empty)
-                if (nutrient.NutrientId <= 0)
-                {
-                    Console.WriteLine($"Skipping nutrient with NutrientId={nutrient.NutrientId} (<= 0)");
-                    continue;
-                }
+            var wanted = nutrients.Where(n => n.NutrientId > 0).ToList();
+            if (wanted.Count == 0) return;
 
-                var ingredientNutrient = new IngredientNutrientEntity
+            var nutrientIds = wanted.Select(n => n.NutrientId).Distinct().ToList();
+            var defs = await _context.Nutrients
+                .Include(n => n.DefaultMeasurement)
+                .Where(n => nutrientIds.Contains(n.Id))
+                .ToDictionaryAsync(n => n.Id);
+
+            var seen = new HashSet<long>();
+            foreach (var nutrient in wanted)
+            {
+                if (!defs.TryGetValue(nutrient.NutrientId, out var def))
+                    throw new ArgumentException($"Unknown nutrient id {nutrient.NutrientId}.");
+                if (!seen.Add(nutrient.NutrientId)) continue; // first occurrence wins
+                if (nutrient.Amount < 0)
+                    throw new ArgumentException($"{def.Name}: amount cannot be negative.");
+                var unit = def.DefaultMeasurement?.Symbol ?? string.Empty;
+                if (unit == "kcal" && nutrient.Amount > 900m)
+                    throw new ArgumentException($"{def.Name}: {nutrient.Amount} kcal per 100 g is not plausible (max 900).");
+                if (unit == "g" && nutrient.Amount > 100m)
+                    throw new ArgumentException($"{def.Name}: {nutrient.Amount} g per 100 g is not possible.");
+
+                _context.IngredientNutrients.Add(new IngredientNutrientEntity
                 {
                     IngredientId = ingredientId,
                     NutrientId = nutrient.NutrientId,
                     Amount = nutrient.Amount,
-                    MeasurementId = 1, // Default measurement ID - you may want to make this configurable
+                    MeasurementId = def.DefaultMeasurementId,
                     CreatedDate = DateTime.UtcNow,
                     LastModifiedDate = DateTime.UtcNow
-                };
-
-                _context.IngredientNutrients.Add(ingredientNutrient);
-                addedCount++;
-                Console.WriteLine($"Added nutrient: IngredientId={ingredientId}, NutrientId={nutrient.NutrientId}, Amount={nutrient.Amount}");
+                });
             }
-            
-            Console.WriteLine($"Total nutrients added: {addedCount}");
         }
 
         public async Task<List<RecipeResponseModel>> GetAllRecipesAsync(long? currentPersonId = null)
@@ -242,6 +249,7 @@ namespace Nom.Orch.Services
             }
 
             await _context.SaveChangesAsync();
+            await _recipeNutrition.RecalculateAsync(recipe.Id);
 
             return new RecipeCreateResponseModel
             {
@@ -560,6 +568,7 @@ namespace Nom.Orch.Services
 
             // Save all changes
             await _context.SaveChangesAsync();
+            await _recipeNutrition.RecalculateAsync(recipe.Id);
 
             return new RecipeResponseModel
             {
@@ -752,7 +761,7 @@ namespace Nom.Orch.Services
                 Id = ingredient.Id,
                 Name = ingredient.Name,
                 Description = ingredient.Description,
-                AuthorId = ingredient.CreatedByPersonId ?? 0L,
+                AuthorId = ingredient.AuthorId ?? ingredient.CreatedByPersonId ?? 0L,
                 CurationStatus = ingredient.CurationStatus?.Name ?? "Draft",
                 Aliases = MapAliases(ingredient),
                 Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
@@ -761,8 +770,6 @@ namespace Nom.Orch.Services
 
         public async Task<IngredientEditModel> CreateIngredientAsync(CreateIngredientRequest model)
         {
-            Console.WriteLine($"CreateIngredientAsync called with {model.Nutrients.Count} nutrients");
-            
             var currentPersonId = GetCurrentPersonId();
 
             // Ingredient names are globally unique (IX_Ingredient_Name); surface a
@@ -804,7 +811,6 @@ namespace Nom.Orch.Services
 
         public async Task<IngredientEditModel> UpdateIngredientAsync(UpdateIngredientRequest model)
         {
-            Console.WriteLine($"UpdateIngredientAsync called for ingredient {model.Id} with {model.Nutrients.Count} nutrients");
             
             var ingredient = await _context.Ingredients
                 .Include(i => i.CurationStatus)
@@ -816,12 +822,14 @@ namespace Nom.Orch.Services
             ingredient.Description = model.Description;
             ingredient.LastModifiedDate = DateTime.UtcNow;
 
-            // Update nutrients
-            await UpdateIngredientNutrientsAsync(ingredient.Id, model.Nutrients);
+            // Update nutrients only when the caller sent them (null = untouched).
+            var nutritionChanged = model.Nutrients != null;
+            if (model.Nutrients != null)
+                await UpdateIngredientNutrientsAsync(ingredient.Id, model.Nutrients);
 
-            Console.WriteLine("About to save changes to database");
             await _context.SaveChangesAsync();
-            Console.WriteLine("Database changes saved successfully");
+            if (nutritionChanged)
+                await _recipeNutrition.RecalculateForIngredientAsync(ingredient.Id);
 
             return new IngredientEditModel
             {

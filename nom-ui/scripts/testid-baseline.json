@@ -20,7 +20,6 @@
   "src/app/household/invite-dialog/invite-dialog.component.html": 1,
   "src/app/ingredient/ingredient-form.component.html": 3,
   "src/app/ingredient/my-ingredients.component.html": 1,
-  "src/app/layout/footer/footer.component.html": 2,
   "src/app/layout/header/login-popover/login-popover.component.html": 5,
   "src/app/layout/sidebar/sidebar.component.html": 4,
   "src/app/messaging/compose.component.html": 4,

@@ -20,4 +20,14 @@ export interface CurationQueueItem {
   containsSourceProse: boolean;
   /** The source's hero image — for the reviewer's side-by-side comparison ONLY, never the recipe's image. */
   sourceImageUrl?: string | null;
+  /** Recipes only: ingredients still blocking approval (approval is refused while non-empty). */
+  uncuratedIngredients?: CurationBlockingIngredient[];
+}
+
+export interface CurationBlockingIngredient {
+  id: number;
+  name: string;
+  statusId: number;
+  /** "NonCurated" | "PendingCuration" | "RequiresRevision" | "Rejected" */
+  status: string;
 }

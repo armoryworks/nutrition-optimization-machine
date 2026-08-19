@@ -17,6 +17,11 @@ namespace Nom.Orch.Models.Recipe
         [MaxLength(4095)]
         public string? Description { get; set; }
 
-        public List<NutrientValueModel> Nutrients { get; set; } = new List<NutrientValueModel>();
+        /// <summary>
+        /// Per-100 g nutrition. Null (property omitted) leaves the stored values untouched;
+        /// an empty list clears them. Callers editing only name/description must omit it —
+        /// otherwise an imported ingredient's FDC facts would be wiped by a rename.
+        /// </summary>
+        public List<NutrientValueModel>? Nutrients { get; set; }
     }
 }

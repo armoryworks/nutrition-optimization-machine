@@ -16,6 +16,8 @@ import { DishGroupService } from '../core/services/dish-group.service';
 import { CurationQueueItem } from '../core/models/curation-queue-item.model';
 import { DishGroupModel } from '../core/models/dish-group.model';
 import { LoadingService } from '../core/services/loading.service';
+import { FoodCatalogService } from '../core/services/food-catalog.service';
+import { CurationStatus } from '../core/models/food-catalog.model';
 
 @Component({
   selector: 'nom-curation-queue',
@@ -36,6 +38,7 @@ import { LoadingService } from '../core/services/loading.service';
 export class CurationQueue implements OnInit {
   private adminService = inject(AdminService);
   private dishGroupService = inject(DishGroupService);
+  private foodCatalogService = inject(FoodCatalogService);
   private loadingService = inject(LoadingService);
   private destroyRef = inject(DestroyRef);
 
@@ -120,6 +123,38 @@ export class CurationQueue implements OnInit {
         this.errorMessage.set('Failed to load curation queue. You may not have permission.');
       },
     });
+  }
+
+  /**
+   * Recipe approval is refused while any ingredient is uncurated (N-6). Let the admin
+   * clear the blockers from the same card: mark them Curated (planning-usable) and
+   * remove them from this recipe's blocker list, so Approve then goes through.
+   * Curation status only — nutrition values are never authored here.
+   */
+  approveBlockingIngredients(item: CurationQueueItem): void {
+    const ids = (item.uncuratedIngredients ?? []).map((i) => i.id);
+    if (ids.length === 0) return;
+    this.processing.set(true);
+    this.errorMessage.set('');
+    this.foodCatalogService.setCurationStatus(ids, CurationStatus.Curated)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          const cleared = new Set(ids);
+          this.items.update((list) => list
+            // The ingredients themselves may also sit in the queue as PendingCuration rows.
+            .filter((i) => !(i.entityType === 'Ingredient' && cleared.has(i.id)))
+            .map((i) => i.entityType === 'Recipe'
+              ? { ...i, uncuratedIngredients: (i.uncuratedIngredients ?? []).filter((b) => !cleared.has(b.id)) }
+              : i));
+          this.processing.set(false);
+        },
+        error: (err: unknown) => {
+          const apiMessage = (err as { error?: { message?: string } } | undefined)?.error?.message;
+          this.errorMessage.set(apiMessage ?? 'Failed to curate the ingredients.');
+          this.processing.set(false);
+        },
+      });
   }
 
   approve(item: CurationQueueItem): void {

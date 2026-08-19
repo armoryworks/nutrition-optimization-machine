@@ -690,7 +690,6 @@ CREATE TABLE nutrient."IngredientNutrient" (
     "Amount" numeric(18,4) NOT NULL,
     "MeasurementId" bigint NOT NULL,
     "FdcId" character varying(255),
-    "IngredientEntityId" bigint,
     "CreatedDate" timestamp with time zone NOT NULL,
     "CreatedByPersonId" bigint,
     "LastModifiedDate" timestamp with time zone,
@@ -4967,13 +4966,6 @@ CREATE INDEX "IX_Measurement_StandardMeasurementId" ON measurement."Measurement"
 
 
 --
--- Name: IX_IngredientNutrient_IngredientEntityId; Type: INDEX; Schema: nutrient; Owner: -
---
-
-CREATE INDEX "IX_IngredientNutrient_IngredientEntityId" ON nutrient."IngredientNutrient" USING btree ("IngredientEntityId");
-
-
---
 -- Name: IX_IngredientNutrient_IngredientId_NutrientId; Type: INDEX; Schema: nutrient; Owner: -
 --
 
@@ -6588,14 +6580,6 @@ ALTER TABLE ONLY measurement."Measurement"
 
 ALTER TABLE ONLY measurement."Measurement"
     ADD CONSTRAINT "FK_Measurement_Nutrient_NutrientId" FOREIGN KEY ("NutrientId") REFERENCES nutrient."Nutrient"("Id") ON DELETE RESTRICT;
-
-
---
--- Name: IngredientNutrient FK_IngredientNutrient_Ingredient_IngredientEntityId; Type: FK CONSTRAINT; Schema: nutrient; Owner: -
---
-
-ALTER TABLE ONLY nutrient."IngredientNutrient"
-    ADD CONSTRAINT "FK_IngredientNutrient_Ingredient_IngredientEntityId" FOREIGN KEY ("IngredientEntityId") REFERENCES recipe."Ingredient"("Id");
 
 
 --

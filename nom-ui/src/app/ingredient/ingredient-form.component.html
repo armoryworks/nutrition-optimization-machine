@@ -41,19 +41,47 @@
         </div>
       </div>
 
-      @if (isEditMode() && nutrients().length > 0) {
-        <div class="nom-form__section">
-          <h2 class="nom-form__section-title">Nutrients</h2>
-          <div class="nom-ingredient-form__nutrients">
-            @for (n of nutrients(); track n.id) {
-              <div class="nom-ingredient-form__nutrient">
-                <span class="nom-ingredient-form__nutrient-name">{{ n.nutrientName }}</span>
-                <span class="nom-ingredient-form__nutrient-value">{{ n.amount }} {{ n.unitName }}</span>
-              </div>
-            }
-          </div>
+      <!-- ── Nutrition (per 100 g) ── -->
+      <div class="nom-form__section" data-testid="ingredient-nutrition-section">
+        <h2 class="nom-form__section-title">Nutrition <span class="nom-ingredient-form__per">per 100 g</span></h2>
+        <p class="nom-form__section-description">
+          Enter values <strong>per 100 g</strong> exactly as printed on the product's nutrition facts label
+          or as listed in USDA FoodData Central. Leave anything you don't know blank — recipes using this
+          ingredient get their nutrition label from these numbers.
+        </p>
+        <div class="nom-ingredient-form__nutrition-grid" [formGroup]="nutritionForm">
+          @for (n of labelNutrients(); track n.id) {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="nom-ingredient-form__nutrient-field">
+              <mat-label>{{ n.name }}</mat-label>
+              <input matInput type="number" inputmode="decimal" min="0" step="any"
+                     [formControlName]="key(n)"
+                     [attr.data-testid]="'ingredient-nutrient-' + n.id" />
+              <span matTextSuffix class="nom-ingredient-form__unit">{{ unitFor(n) }}</span>
+            </mat-form-field>
+          }
         </div>
-      }
+        @if (otherNutrients().length > 0) {
+          <button type="button" mat-button class="nom-ingredient-form__more-btn"
+                  (click)="showMoreNutrients.set(!showMoreNutrients())"
+                  data-testid="ingredient-more-nutrients-btn">
+            <mat-icon>{{ showMoreNutrients() ? 'expand_less' : 'expand_more' }}</mat-icon>
+            {{ showMoreNutrients() ? 'Fewer nutrients' : 'More nutrients (vitamins & minerals)' }}
+          </button>
+          @if (showMoreNutrients()) {
+            <div class="nom-ingredient-form__nutrition-grid" [formGroup]="nutritionForm">
+              @for (n of otherNutrients(); track n.id) {
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="nom-ingredient-form__nutrient-field">
+                  <mat-label>{{ n.name }}</mat-label>
+                  <input matInput type="number" inputmode="decimal" min="0" step="any"
+                         [formControlName]="key(n)"
+                         [attr.data-testid]="'ingredient-nutrient-' + n.id" />
+                  <span matTextSuffix class="nom-ingredient-form__unit">{{ unitFor(n) }}</span>
+                </mat-form-field>
+              }
+            </div>
+          }
+        }
+      </div>
 
       @if (isEditMode() && aliases().length > 0) {
         <div class="nom-form__section">

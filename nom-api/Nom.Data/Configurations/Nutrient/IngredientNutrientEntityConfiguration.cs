@@ -23,8 +23,12 @@ public class IngredientNutrientEntityConfiguration : IEntityTypeConfiguration<In
             .HasMaxLength(255);
 
         // Relationships
+        // Inverse navigation matters: without it EF invents a shadow FK
+        // ("IngredientEntityId") for Ingredient.IngredientNutrients and the collection
+        // never sees rows written through IngredientId — imports, the ingredient form,
+        // and everything reading Ingredient.IngredientNutrients silently saw nothing.
         builder.HasOne(e => e.Ingredient)
-            .WithMany()
+            .WithMany(i => i.IngredientNutrients)
             .HasForeignKey(e => e.IngredientId)
             .OnDelete(DeleteBehavior.Restrict);
 

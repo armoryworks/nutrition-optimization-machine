@@ -1,12 +1,10 @@
 <footer class="nom-footer" data-testid="footer">
   <div class="nom-footer__left">
-    <span class="nom-footer__text">Powered by</span>
-    <a href="https://github.com/mealie-recipes/mealie"
-       target="_blank"
-       rel="noopener noreferrer"
-       class="nom-footer__link">
-      Mealie
-    </a>
+    @if (marketingSite) {
+      <a [href]="marketingSite" class="nom-footer__link" data-testid="footer-brand-link">Armory Works Technology</a>
+    } @else {
+      <span class="nom-footer__text" data-testid="footer-brand-text">Armory Works Technology</span>
+    }
   </div>
   <div class="nom-footer__right">
     @if (termsUrl) {
@@ -15,12 +13,5 @@
       <a routerLink="/terms" class="nom-footer__link" data-testid="footer-terms-link">Terms</a>
     }
     <span class="nom-footer__text">&copy; {{ currentYear }} NOM</span>
-    <a href="https://github.com/danielhampikian/nutrition-optimization-machine"
-       target="_blank"
-       rel="noopener noreferrer"
-       class="nom-footer__link"
-       aria-label="NOM on GitHub">
-      <i class="fab fa-github"></i>
-    </a>
   </div>
 </footer>
