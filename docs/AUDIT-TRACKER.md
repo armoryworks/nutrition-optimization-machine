@@ -2,7 +2,7 @@
 
 _Living document. Maintained during the ongoing audit of NOM. Companion tracker for Forge lives at `forge/docs/AUDIT-TRACKER.md` — keep the two separate._
 
-Last updated: 2026-08-18 (mobile pass added; N-9..N-18 fixed in v0.3.23; N-7/N-14/N-19 in v0.3.24).
+Last updated: 2026-08-18 (mobile pass added; N-9..N-18 fixed in v0.3.23; N-7/N-14/N-19 in v0.3.24; N-4/N-5/N-6/N-20/N-21 in v0.3.25).
 
 ## Audit access
 
@@ -16,9 +16,9 @@ Last updated: 2026-08-18 (mobile pass added; N-9..N-18 fixed in v0.3.23; N-7/N-1
 | N-1 | Navigation | Med (UX) | The "COOK" cluster is 5 overlapping recipe destinations → "which door?" friction | Open |
 | N-2 | Navigation | Low (UX) | "Search" duplicated (nav item + header search bar) | Open |
 | N-3 | Navigation | Low (UX) | Near-duplicate / abstract icons; collapsed rail loses grouping | Open |
-| N-4 | Branding | Med | "Powered by Mealie" footer + GitHub icon on every page (upstream leak) | Open |
-| N-5 | Data / UI gap | High | No UI to author ingredient nutrition → recipes built from the catalog show **empty** nutrition labels | Open |
-| N-6 | Workflow dead-end | High | Recipe approval requires every ingredient curated, but there is **no UI to curate an ingredient** → any recipe using a user-added ingredient can never be approved | Open |
+| N-4 | Branding | Med | "Powered by Mealie" footer + GitHub icon on every page (upstream leak) | Fixed (v0.3.25) |
+| N-5 | Data / UI gap | High | No UI to author ingredient nutrition → recipes built from the catalog show **empty** nutrition labels | Fixed (v0.3.25) |
+| N-6 | Workflow dead-end | High | Recipe approval requires every ingredient curated, but there is **no UI to curate an ingredient** → any recipe using a user-added ingredient can never be approved | Fixed (v0.3.25) |
 | N-7 | Error handling | Med | The "ingredients not curated" guard throws `InvalidOperationException` → **HTTP 500**; curation UI shows a generic "Failed to approve item," hiding the real cause | Fixed (v0.3.24) |
 | N-8 | Missing UI (built) | — | Recipes had **no author control to publish/make-public** — built + shipped this session (v0.3.22) | Resolved |
 | N-9 | Mobile layout | High | Recipe form ingredient row: on a Galaxy S23 Ultra (412 CSS px) the **Ingredient name field is 62 px wide** ("In…"), autocomplete panel is clipped to the same width; Qty/Unit fixed min-widths + nested padding eat the row | Fixed (v0.3.23) |
@@ -31,6 +31,8 @@ Last updated: 2026-08-18 (mobile pass added; N-9..N-18 fixed in v0.3.23; N-7/N-1
 | N-17 | Mobile layout | Med | Global chrome on phones: floating "PANEL" tab overlaps content on every page (clips shopping quantities); footer is pinned to the bottom of the viewport; the nav drawer still shows a desktop "Collapse" item | Fixed (v0.3.23) |
 | N-18 | Mobile layout | Low | Shopping "Scaled to household portions" chip wraps to 3 lines; Home "This Week" day strip clips Sunday; Household member email overflows its card over the Profile/Dietary chips | Fixed (v0.3.23) |
 | N-14 | Data | Low | Recipe detail lists ingredients in reverse of authored order (Garlic before Chicken on recipe 324) | Fixed (v0.3.24 — ordered by insertion Id; no sort column yet) |
+| N-20 | Security (backend) | High | `PUT /api/Ingredients/{id}` had **no ownership check** — any signed-in user could rewrite any catalog ingredient (including FDC rows); and any save wiped the ingredient's nutrition because the request's `Nutrients` defaulted to an empty list | Fixed (v0.3.25) |
+| N-21 | Bug (data model) | High | `IngredientNutrient.Ingredient` was mapped `WithMany()` with no inverse, so `Ingredient.IngredientNutrients` rode a shadow FK (`IngredientEntityId`) and was **always empty** — meal-plan whole-food nutrition and any code reading that navigation saw nothing | Fixed (v0.3.25; schema.sql drops the orphan column — run `db/apply.sh` when convenient, harmless until then) |
 | N-19 | Desktop layout | Low | Meal Plan week grid is also cramped at ~1400 px with nav + context panel open (day columns ≈45 px) — same one-letter wrapping as N-16, desktop variant | Fixed (v0.3.24 — container query drops thumbnails under 900px) |
 
 _The UI walkthrough was otherwise clean — all ~30 pages render, zero API failures, no real JS errors (the per-page `ERR_CONNECTION_REFUSED` is Cloudflare's own analytics beacon, a sandbox-only false positive). Backend/functional findings from the earlier deep audit are summarized under "Backend" below._
@@ -74,6 +76,8 @@ Drove the full "nutritionist sets up recipes → make public → visible to my u
 - **N-6 — user-added ingredients make a recipe permanently un-approvable.** `CurationOrchestrationService.ApproveAsync` (line 199) refuses approval if any ingredient is not curated: `Cannot approve recipe: The following ingredients are not curated: Firm Tofu, Kale, Brown Rice`. Ingredients created via `/ingredient/new` land **NonCurated** (CurationStatusId 9000), and **there is no UI to curate an ingredient** — no `Admin → Food Catalog` route exists in `app.routes.ts`, despite `CLAUDE.md` referencing one. So recipe 323 (built with the three ingredients I added through the UI) can never go public UI-only. The design assumes an ingredient-curation surface that isn't built.
 
 - **N-7 — that guard surfaces as a raw 500.** The un-curated-ingredient check throws `InvalidOperationException`, which the pipeline returns as **HTTP 500** (`POST /api/Curation/approve`). The curation queue UI catches it as a generic "Failed to approve item" — the admin never sees *which* ingredients are the problem. Should be a 400/422 carrying the ingredient list so the UI can show it.
+
+**Fixed in v0.3.25** (2026-08-19): **N-4** footer is "Armory Works Technology · Terms · © NOM" (marketing-site link when `NOM_UI_CONFIG.marketingSite` is set; Mealie + GitHub links gone). **N-5** the ingredient form (create + edit) has a *Nutrition per 100 g* section — nutrition-facts-label nutrients first, "More nutrients" for vitamins/minerals, values stored in each nutrient's default unit with server-side plausibility checks (kcal ≤ 900, mass ≤ 100 g) — and a new `RecipeNutritionService` derives per-serving `RecipeNutrition` from ingredient facts × grams (mass/volume/count-with-reference-serving) on recipe create/update and whenever an ingredient's nutrition changes; seeded/hand-authored labels (`DateCalculated NULL`) are never overwritten. **N-6** submitting a recipe for curation also queues the author's not-yet-curated ingredients; recipe cards in the curation queue list the blocking ingredients with a "Curate these ingredients" action; Food Catalog gained a "Not yet curated (authored)" filter. Also fixed on the way: N-20 (ingredient update authorization + nutrition wipe) and N-21 (shadow-FK navigation).
 
 ## N-9 … N-18 — Mobile pass: recipe entry + pantry (Playwright, Galaxy S23 Ultra emulation, 2026-08-18)
 

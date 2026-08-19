@@ -67,7 +67,16 @@ namespace Nom.Orch.Services
                         ? "RequiresRevision" : "PendingCuration",
                     VettingIssues = r.VettingIssues,
                     ContainsSourceProse = r.ContainsSourceProse,
-                    SourceImageUrl = r.SourceImageUrl
+                    SourceImageUrl = r.SourceImageUrl,
+                    UncuratedIngredients = r.RecipeIngredients
+                        .Where(ri => ri.Ingredient != null && ri.Ingredient.CurationStatusId != (long)CurationStatusEnum.Curated)
+                        .Select(ri => new CurationBlockingIngredientModel
+                        {
+                            Id = ri.Ingredient.Id,
+                            Name = ri.Ingredient.Name,
+                            StatusId = ri.Ingredient.CurationStatusId
+                        })
+                        .ToList()
                 })
                 .ToListAsync();
 
@@ -134,7 +143,24 @@ namespace Nom.Orch.Services
 
                 recipe.CurationStatusId = (long)CurationStatusEnum.PendingCuration;
                 recipe.DateSubmittedForCuration = DateTime.UtcNow;
+
+                // A recipe cannot be approved while any ingredient is uncurated, and an author
+                // had no way to submit an ingredient on its own — so their own not-yet-curated
+                // ingredients ride along and show up in the admin queue next to the recipe.
+                var ownUncurated = await _db.RecipeIngredients
+                    .Where(ri => ri.RecipeId == recipe.Id)
+                    .Select(ri => ri.Ingredient)
+                    .Where(i => i.AuthorId == authorId
+                                && (i.CurationStatusId == (long)CurationStatusEnum.NonCurated
+                                    || i.CurationStatusId == (long)CurationStatusEnum.RequiresRevision))
+                    .Distinct()
+                    .ToListAsync();
+                foreach (var ing in ownUncurated)
+                    ing.CurationStatusId = (long)CurationStatusEnum.PendingCuration;
+
                 await _db.SaveChangesAsync();
+                if (ownUncurated.Count > 0)
+                    _logger.LogInformation("Recipe {RecipeId} submission also queued {Count} authored ingredient(s) for curation", recipe.Id, ownUncurated.Count);
             }
             else if (request.EntityType == "Ingredient")
             {

@@ -60,6 +60,7 @@ export class FoodCatalog implements OnInit {
 
   readonly statuses = [
     { value: null, label: 'Any status' },
+    { value: CurationStatus.NonCurated, label: 'Not yet curated (authored)' },
     { value: CurationStatus.PendingCuration, label: 'Pending review' },
     { value: CurationStatus.Curated, label: 'Curated (in use)' },
     { value: CurationStatus.Rejected, label: 'Rejected' },

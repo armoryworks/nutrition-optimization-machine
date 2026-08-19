@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 
 namespace Nom.Orch.Models.Curation
@@ -24,5 +25,22 @@ namespace Nom.Orch.Models.Curation
 
         /// <summary>Source hero image, for side-by-side review only — never published.</summary>
         public string? SourceImageUrl { get; set; }
+
+        /// <summary>
+        /// Recipes only: ingredients that are not yet Curated. Approval is refused while this
+        /// is non-empty, so the admin sees the blockers up-front and can approve them first.
+        /// </summary>
+        public List<CurationBlockingIngredientModel> UncuratedIngredients { get; set; } = new();
+    }
+
+    public class CurationBlockingIngredientModel
+    {
+        public long Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public long StatusId { get; set; }
+        /// <summary>Curation status name, e.g. "NonCurated" / "PendingCuration".</summary>
+        public string Status => Enum.IsDefined(typeof(Nom.Data.Recipe.CurationStatusEnum), StatusId)
+            ? ((Nom.Data.Recipe.CurationStatusEnum)StatusId).ToString()
+            : StatusId.ToString();
     }
 } 

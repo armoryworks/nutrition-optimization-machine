@@ -61,10 +61,21 @@ namespace Nom.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateIngredient([FromBody] CreateIngredientRequest request)
         {
-            var newIngredient = await _recipeOrch.CreateIngredientAsync(request);
-            return CreatedAtAction(nameof(GetIngredient), new { id = newIngredient.Id }, newIngredient);
+            try
+            {
+                var newIngredient = await _recipeOrch.CreateIngredientAsync(request);
+                return CreatedAtAction(nameof(GetIngredient), new { id = newIngredient.Id }, newIngredient);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
+        /// <summary>
+        /// Only the ingredient's author or a curator may edit it — an FDC-imported catalog
+        /// row must not be rewritable by any signed-in user.
+        /// </summary>
         [HttpPut("{id:long}")]
         public async Task<IActionResult> UpdateIngredient(long id, [FromBody] UpdateIngredientRequest request)
         {
@@ -72,8 +83,24 @@ namespace Nom.Api.Controllers
             {
                 return BadRequest("ID mismatch between route and request body.");
             }
-            await _recipeOrch.UpdateIngredientAsync(request);
-            return NoContent(); // Success
+
+            var existing = await _recipeOrch.GetIngredientForEditAsync(id);
+            if (existing == null) return NotFound();
+
+            var personId = GetCurrentPersonId();
+            var isCurator = User.HasClaim("CanManageCuration", "true");
+            if (!isCurator && (personId == null || existing.AuthorId != personId.Value))
+                return Forbid();
+
+            try
+            {
+                await _recipeOrch.UpdateIngredientAsync(request);
+                return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }
