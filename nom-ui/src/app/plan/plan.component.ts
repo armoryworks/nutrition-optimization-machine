@@ -97,6 +97,11 @@ export class Plan implements OnInit {
   currentWeekStart = signal<string>(Plan.getMonday(new Date()));
   members = signal<HouseholdMemberResponseModel[]>([]);
   shuffling = signal(false);
+  /**
+   * Phones show one day at a time (the 7-column grid is unreadable under
+   * ~600px — audit N-16). Index into weekData().days; desktop ignores it.
+   */
+  mobileDayIndex = signal(0);
 
   // Computed
   isStandalone = computed(() => this.mode() !== 'wizard');
@@ -137,6 +142,7 @@ export class Plan implements OnInit {
 
   ngOnInit(): void {
     if (this.isStandalone()) {
+      this.mobileDayIndex.set(this.defaultMobileDayIndex());
       this.loadHouseholds();
     }
   }
@@ -158,12 +164,52 @@ export class Plan implements OnInit {
     const current = new Date(this.currentWeekStart() + 'T00:00:00');
     current.setDate(current.getDate() + direction * 7);
     this.currentWeekStart.set(Plan.toDateString(current));
+    this.mobileDayIndex.set(this.defaultMobileDayIndex());
     this.loadWeek();
   }
 
   goToToday(): void {
     this.currentWeekStart.set(Plan.getMonday(new Date()));
+    this.mobileDayIndex.set(this.defaultMobileDayIndex());
     this.loadWeek();
+  }
+
+  selectMobileDay(index: number): void {
+    this.mobileDayIndex.set(index);
+  }
+
+  /** Step the phone view one day; crosses into the adjacent week at the ends. */
+  navigateMobileDay(direction: -1 | 1): void {
+    const next = this.mobileDayIndex() + direction;
+    if (next < 0) {
+      this.navigateWeek(-1);
+      this.mobileDayIndex.set(6);
+    } else if (next > 6) {
+      this.navigateWeek(1);
+      this.mobileDayIndex.set(0);
+    } else {
+      this.mobileDayIndex.set(next);
+    }
+  }
+
+  /** Today's column when viewing the current week, else Monday. */
+  private defaultMobileDayIndex(): number {
+    if (!this.isCurrentWeek()) return 0;
+    const monday = new Date(this.currentWeekStart() + 'T00:00:00');
+    const diff = Math.round((new Date(Plan.toDateString(new Date()) + 'T00:00:00').getTime() - monday.getTime()) / 86_400_000);
+    return Math.min(6, Math.max(0, diff));
+  }
+
+  dayHasEntries(day: MealPlanDay): boolean {
+    return day.cells.some(c => c.entries.length > 0);
+  }
+
+  formatMobileDayChip(dateStr: string): { weekday: string; day: string } {
+    const date = new Date(dateStr + 'T00:00:00');
+    return {
+      weekday: date.toLocaleDateString(undefined, { weekday: 'short' }),
+      day: date.toLocaleDateString(undefined, { day: 'numeric' }),
+    };
   }
 
   onHouseholdChange(householdId: number): void {

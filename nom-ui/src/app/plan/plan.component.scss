@@ -33,6 +33,65 @@
   padding: vars.$spacing-16;
 }
 
+// --- Phone day strip (hidden above the mobile breakpoint) ---
+
+.nom-plan__day-strip {
+  display: none;
+  align-items: center;
+  gap: vars.$spacing-1;
+  margin-bottom: vars.$spacing-3;
+
+  @media (max-width: vars.$breakpoint-mobile) { display: flex; }
+}
+
+.nom-plan__day-strip-nav { flex-shrink: 0; }
+
+.nom-plan__day-chip {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: vars.$spacing-1 0;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface-container-low);
+  color: var(--mat-sys-on-surface-variant);
+  cursor: pointer;
+  position: relative;
+
+  &--today { border-color: var(--mat-sys-primary); }
+
+  &--planned::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--mat-sys-primary);
+  }
+
+  &--active {
+    background: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+    border-color: var(--mat-sys-primary);
+  }
+}
+
+.nom-plan__day-chip-weekday {
+  font-size: vars.$font-size-xs;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.nom-plan__day-chip-day {
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-semibold;
+  margin-bottom: 4px;
+}
+
 // --- Calendar Grid ---
 
 .nom-plan__calendar {
@@ -42,6 +101,17 @@
   border-radius: vars.$card-border-radius;
   overflow: hidden;
   background: var(--mat-sys-surface-container-low);
+
+  // Phones: meal label + ONE day column (chosen in the day strip). Seven 47px
+  // columns wrapped titles one letter per line and hid Fri–Sun (audit N-16).
+  @media (max-width: vars.$breakpoint-mobile) {
+    grid-template-columns: 72px 1fr;
+
+    .nom-plan__col--inactive { display: none; }
+    .nom-plan__cell { min-height: 64px; }
+    // Hover-revealed on desktop; there is no hover on a phone.
+    .nom-plan__cell-complete { opacity: 1; }
+  }
 }
 
 .nom-plan__corner {
