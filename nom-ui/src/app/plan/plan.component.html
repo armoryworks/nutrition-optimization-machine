@@ -89,13 +89,37 @@
         <mat-spinner diameter="40"></mat-spinner>
       </div>
     } @else if (weekData()) {
+      <!-- Phones only (CSS-hidden elsewhere): pick the day the grid shows -->
+      <div class="nom-plan__day-strip" data-testid="plan-day-strip" role="tablist" aria-label="Day of the week">
+        <button mat-icon-button class="nom-plan__day-strip-nav" (click)="navigateMobileDay(-1)" aria-label="Previous day" data-testid="plan-day-prev-btn">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        @for (day of weekData()!.days; track day.date; let di = $index) {
+          <button type="button"
+                  class="nom-plan__day-chip"
+                  role="tab"
+                  [attr.aria-selected]="di === mobileDayIndex()"
+                  [class.nom-plan__day-chip--active]="di === mobileDayIndex()"
+                  [class.nom-plan__day-chip--today]="isToday(day.date)"
+                  [class.nom-plan__day-chip--planned]="dayHasEntries(day)"
+                  (click)="selectMobileDay(di)"
+                  data-testid="plan-day-chip">
+            <span class="nom-plan__day-chip-weekday">{{ formatMobileDayChip(day.date).weekday }}</span>
+            <span class="nom-plan__day-chip-day">{{ formatMobileDayChip(day.date).day }}</span>
+          </button>
+        }
+        <button mat-icon-button class="nom-plan__day-strip-nav" (click)="navigateMobileDay(1)" aria-label="Next day" data-testid="plan-day-next-btn">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+
       <div class="nom-plan__calendar" data-testid="plan-calendar">
         <!-- Corner cell -->
         <div class="nom-plan__corner"></div>
 
         <!-- Day headers -->
-        @for (day of weekData()!.days; track day.date) {
-          <div class="nom-plan__day-header" [class.nom-plan__day-header--today]="isToday(day.date)">
+        @for (day of weekData()!.days; track day.date; let di = $index) {
+          <div class="nom-plan__day-header" [class.nom-plan__day-header--today]="isToday(day.date)" [class.nom-plan__col--inactive]="di !== mobileDayIndex()">
             <span class="nom-plan__day-name">{{ formatDayHeader(day.date) }}</span>
             @if (members().length > 0) {
               <div class="nom-plan__exclusions">
@@ -119,12 +143,13 @@
           <div class="nom-plan__meal-label">{{ cell.mealType }}</div>
 
           <!-- Cells for each day -->
-          @for (day of weekData()!.days; track day.date) {
+          @for (day of weekData()!.days; track day.date; let di = $index) {
             <div
               class="nom-plan__cell"
               data-testid="plan-cell"
               [class.nom-plan__cell--filled]="day.cells[mealIdx].entries.length > 0"
               [class.nom-plan__cell--today]="isToday(day.date)"
+              [class.nom-plan__col--inactive]="di !== mobileDayIndex()"
               (click)="onCellClick(day, day.cells[mealIdx])"
               (keydown.enter)="onCellClick(day, day.cells[mealIdx])"
               tabindex="0"
@@ -153,6 +178,7 @@
                       <button class="nom-plan__cell-complete"
                               (click)="completeMeal($event, entry)"
                               matTooltip="Mark as cooked"
+                              matTooltipTouchGestures="off"
                               aria-label="Mark as cooked">
                         <mat-icon>check_circle_outline</mat-icon>
                       </button>
@@ -166,6 +192,7 @@
                         data-testid="plan-portions-btn"
                         (click)="openPortions($event, day, day.cells[mealIdx])"
                         matTooltip="Portion breakdown"
+                        matTooltipTouchGestures="off"
                         aria-label="Portion breakdown">
                   <mat-icon>pie_chart</mat-icon>
                 </button>
@@ -178,8 +205,8 @@
 
         <!-- Nutrition summary row -->
         <div class="nom-plan__meal-label nom-plan__meal-label--summary">Totals</div>
-        @for (day of weekData()!.days; track day.date) {
-          <div class="nom-plan__nutrition-summary" [class.nom-plan__nutrition-summary--today]="isToday(day.date)">
+        @for (day of weekData()!.days; track day.date; let di = $index) {
+          <div class="nom-plan__nutrition-summary" [class.nom-plan__nutrition-summary--today]="isToday(day.date)" [class.nom-plan__col--inactive]="di !== mobileDayIndex()">
             @if (hasDayNutrition(day)) {
               <span class="nom-plan__macro nom-plan__macro--cal">{{ getDayCalories(day) | number:'1.0-0' }} cal</span>
               <span class="nom-plan__macro">P {{ getDayProtein(day) | number:'1.0-0' }}g</span>
