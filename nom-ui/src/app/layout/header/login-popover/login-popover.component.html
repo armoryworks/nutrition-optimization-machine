@@ -18,6 +18,11 @@
       <mat-label>Email</mat-label>
       <input matInput formControlName="email" type="email" autocomplete="email" />
       <mat-icon matPrefix>email</mat-icon>
+      @if (loginForm.controls.email.touched && loginForm.controls.email.hasError('required')) {
+        <mat-error>Email is required</mat-error>
+      } @else if (loginForm.controls.email.touched && loginForm.controls.email.hasError('email')) {
+        <mat-error>Enter a valid email address</mat-error>
+      }
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="nom-login-popover__field">
@@ -40,6 +45,22 @@
       </button>
     </mat-form-field>
 
+    @if (needsTwoFactor()) {
+      <mat-form-field appearance="outline" class="nom-login-popover__field" data-testid="login-2fa-field">
+        <mat-label>{{ useRecoveryCode() ? 'Recovery code' : 'Authenticator code' }}</mat-label>
+        <input matInput formControlName="twoFactorCode"
+               [attr.inputmode]="useRecoveryCode() ? 'text' : 'numeric'"
+               autocomplete="one-time-code"
+               [attr.maxlength]="useRecoveryCode() ? 16 : 7"
+               data-testid="login-2fa-input" />
+        <mat-icon matPrefix>verified_user</mat-icon>
+      </mat-form-field>
+      <p class="nom-login-popover__resend">
+        <button type="button" mat-button (click)="useRecoveryCode.set(!useRecoveryCode())" data-testid="login-2fa-toggle-btn">
+          {{ useRecoveryCode() ? 'Use authenticator code instead' : 'Use a recovery code instead' }}
+        </button>
+      </p>
+    }
     @if (errorMessage()) {
       <p class="nom-login-popover__error" data-testid="login-error">{{ errorMessage() }}</p>
     }

@@ -56,7 +56,13 @@ export class LoginPopover {
   loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', Validators.required],
+    twoFactorCode: [''],
   });
+
+  /** True after Identity answered RequiresTwoFactor — the code field is shown. */
+  needsTwoFactor = signal(false);
+  /** Entering a recovery code instead of an authenticator code. */
+  useRecoveryCode = signal(false);
 
   loading = signal(false);
   errorMessage = signal('');
@@ -79,16 +85,30 @@ export class LoginPopover {
 
   onSubmit(): void {
     if (this.loginForm.invalid) {
+      // Silent early-return looked like a dead button; say what is wrong.
       this.loginForm.markAllAsTouched();
+      const emailCtrl = this.loginForm.controls.email;
+      this.errorMessage.set(
+        emailCtrl.hasError('email')
+          ? 'Please sign in with your email address (not a username).'
+          : 'Please enter your email and password.',
+      );
+      return;
+    }
+    if (this.needsTwoFactor() && !this.loginForm.getRawValue().twoFactorCode?.trim()) {
+      this.errorMessage.set(this.useRecoveryCode() ? 'Enter one of your recovery codes.' : 'Enter the 6-digit code from your authenticator app.');
       return;
     }
 
     this.loading.set(true);
     this.errorMessage.set('');
 
-    const { email, password } = this.loginForm.getRawValue();
+    const { email, password, twoFactorCode } = this.loginForm.getRawValue();
+    const twoFactor = this.needsTwoFactor() && twoFactorCode
+      ? (this.useRecoveryCode() ? { recoveryCode: twoFactorCode } : { code: twoFactorCode })
+      : undefined;
     this.authService
-      .login(email!, password!)
+      .login(email!.trim(), password!, twoFactor)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -105,6 +125,13 @@ export class LoginPopover {
           // Identity's login endpoint answers 401 + detail "NotAllowed" for an
           // account whose email is not yet confirmed (RequireConfirmedEmail).
           const detail: unknown = err?.error?.detail;
+          if (err.status === 401 && detail === 'RequiresTwoFactor') {
+            this.needsTwoFactor.set(true);
+            this.errorMessage.set(this.loginForm.getRawValue().twoFactorCode
+              ? 'That code was not accepted. Check your authenticator app and try again.'
+              : 'Two-factor authentication is on for this account — enter your authenticator code.');
+            return;
+          }
           if (err.status === 401 && detail === 'NotAllowed') {
             this.needsConfirmation.set(true);
             this.errorMessage.set('Please confirm your email address before signing in.');
@@ -113,7 +140,9 @@ export class LoginPopover {
           this.needsConfirmation.set(false);
           this.errorMessage.set(
             err.status === 401
-              ? 'Invalid email or password.'
+              ? (detail === 'LockedOut'
+                  ? 'This account is temporarily locked after too many attempts. Try again in 15 minutes.'
+                  : 'Invalid email or password.')
               : 'Unable to sign in. Please try again.',
           );
         },
