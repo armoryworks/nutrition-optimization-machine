@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Nom.Api.Filters;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using System;
@@ -11,6 +12,9 @@ namespace Nom.Api.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    // Quarantined (audit): no UI, doc or E2E consumer; enable per tenant with Features:RecipeAdvanced=true.
+    [FeatureGate("RecipeAdvanced")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public class RecipeAdvancedController : BaseApiController
     {
         private readonly IRecipeAdvancedOrchestrationService _recipeAdvancedOrchestrationService;

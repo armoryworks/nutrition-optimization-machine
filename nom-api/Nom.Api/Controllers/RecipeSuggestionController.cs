@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Nom.Api.Filters;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 
@@ -10,6 +11,9 @@ namespace Nom.Api.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    // Quarantined (audit): no UI, doc or E2E consumer; enable per tenant with Features:RecipeSuggestions=true.
+    [FeatureGate("RecipeSuggestions")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     [Authorize]
     public class RecipeSuggestionController : BaseApiController
     {

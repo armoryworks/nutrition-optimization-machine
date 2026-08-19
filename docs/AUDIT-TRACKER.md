@@ -148,7 +148,7 @@ Most user-impactful items from the earlier deep audit — **all addressed in v0.
 - ~~**Cross-tenant delete of food-group rules**~~ — **Fixed.** Delete is bound to the authorized household id.
 - ~~**SmartShoppingList serves fabricated prices/nutrition**~~ — **Quarantined.** The controller is behind `Features:SmartShoppingList` (default off → 404, hidden from Swagger); no UI consumer existed. The latent `InvalidCastException` in its nutritional analysis is fixed for when it is enabled.
 - ~~**Open redirect** in the grocery OAuth callback~~ — **Fixed** (only same-origin path returns are honoured). ~~**Email confirmation not enforced** at login~~ — **Fixed**: `SignIn.RequireConfirmedEmail` is on whenever SMTP is configured (override `Auth:RequireConfirmedEmail`); the sign-in popover recognises the 401 `NotAllowed` and offers "Resend confirmation email".
-- **~150 orphan API endpoints (~40%)** with no UI consumer — still open; `FeatureGateAttribute` is the quarantine tool for them.
+- **Orphan API endpoints** — inventory (route-vs-nom-ui heuristic, 2026-08-19): 334 routes; controllers with *no* UI/doc/E2E reference: RecipeAdvanced (21), RecipeSuggestion (18), SmartShoppingList (12), RecipeBulkOperations (12), RecipeAdvancedSearch (9), MeasurementCategory (7), Audience (7), RecipeImport (6), Invitation (6), StagedImport (1). **v0.3.28 quarantines the four recipe layers + SmartShoppingList (72 endpoints) behind `Features:*` flags (404 + hidden from Swagger, default off; enable per tenant).** Left reachable: MeasurementCategory/Audience/Invitation/RecipeImport/StagedImport — plausibly used by Brigade, the scraper sidecar or ops; needs an owner's call before gating.
 
 ## Tenant-provisioning note (fixed)
 
