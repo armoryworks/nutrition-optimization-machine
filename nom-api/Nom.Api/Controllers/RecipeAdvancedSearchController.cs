@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Nom.Api.Filters;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using System.Collections.Generic;
@@ -9,6 +10,9 @@ namespace Nom.Api.Controllers
 {
     [ApiController]
     [Route("api/recipe-advanced-search")]
+    // Quarantined (audit): no UI, doc or E2E consumer; enable per tenant with Features:RecipeAdvancedSearch=true.
+    [FeatureGate("RecipeAdvancedSearch")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     [Authorize]
     public class RecipeAdvancedSearchController : BaseApiController
     {
