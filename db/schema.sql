@@ -5253,13 +5253,6 @@ CREATE INDEX "IX_HouseholdInviteToken_HouseholdId" ON plan."HouseholdInviteToken
 
 
 --
--- Name: IX_HouseholdMember_HouseholdId; Type: INDEX; Schema: plan; Owner: -
---
-
-CREATE INDEX "IX_HouseholdMember_HouseholdId" ON plan."HouseholdMember" USING btree ("HouseholdId");
-
-
---
 -- Name: IX_HouseholdMember_HouseholdId_PersonId; Type: INDEX; Schema: plan; Owner: -
 --
 
