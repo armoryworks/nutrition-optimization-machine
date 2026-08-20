@@ -148,6 +148,13 @@ namespace Nom.Orch.Services
                                     IsSteward = hm.IsAdmin || hm.CanManage,
                                 }).ToListAsync();
 
+            // Tenants that predate the (HouseholdId, PersonId) unique constraint can
+            // hold duplicate membership rows; render each person once.
+            members = members
+                .GroupBy(m => m.PersonId)
+                .Select(g => g.OrderByDescending(m => m.IsSteward).ThenBy(m => m.Id).First())
+                .ToList();
+
             // Get statistics
             // TODO: Update these queries when proper FK relationships are established
             // For now, using navigation properties from household
@@ -379,7 +386,24 @@ namespace Nom.Orch.Services
 
                 if (existingMember != null)
                 {
-                    throw new InvalidOperationException($"Person {personWithEmail.Person.Name} is already a member of this household");
+                    if (existingMember.IsActive)
+                    {
+                        throw new InvalidOperationException($"Person {personWithEmail.Person.Name} is already a member of this household");
+                    }
+                    existingMember.IsActive = true;
+                    existingMember.LastModifiedDate = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                    return new HouseholdMemberResponseModel
+                    {
+                        Id = existingMember.Id,
+                        HouseholdId = existingMember.HouseholdId,
+                        PersonId = existingMember.PersonId,
+                        PersonName = personWithEmail.Person.Name,
+                        PersonEmail = personWithEmail.Email,
+                        Role = existingMember.Role,
+                        JoinedDate = existingMember.JoinedDate ?? existingMember.CreatedDate,
+                        IsActive = existingMember.IsActive
+                    };
                 }
 
                 // Create the household member
@@ -524,7 +548,25 @@ namespace Nom.Orch.Services
                 var alreadyMember = existingMember != null;
                 if (alreadyMember && inviteToken.Kind != InviteTokenKinds.ManagedEnrollment)
                 {
-                    throw new InvalidOperationException($"Person is already a member of this household");
+                    // Redeeming the same link twice (double-tap, refreshed tab) is not an
+                    // error — the desired state already holds. Reactivate if needed.
+                    if (!existingMember!.IsActive)
+                    {
+                        existingMember.IsActive = true;
+                        existingMember.LastModifiedDate = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                    }
+                    return new HouseholdMemberResponseModel
+                    {
+                        Id = existingMember.Id,
+                        HouseholdId = existingMember.HouseholdId,
+                        PersonId = existingMember.PersonId,
+                        PersonName = personWithEmail.Person.Name,
+                        PersonEmail = personWithEmail.Email,
+                        Role = existingMember.Role,
+                        JoinedDate = existingMember.JoinedDate ?? existingMember.CreatedDate,
+                        IsActive = existingMember.IsActive
+                    };
                 }
 
                 // Create the household member (skipped when an enrollment

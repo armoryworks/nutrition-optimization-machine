@@ -5260,6 +5260,13 @@ CREATE INDEX "IX_HouseholdMember_HouseholdId" ON plan."HouseholdMember" USING bt
 
 
 --
+-- Name: IX_HouseholdMember_HouseholdId_PersonId; Type: INDEX; Schema: plan; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_HouseholdMember_HouseholdId_PersonId" ON plan."HouseholdMember" USING btree ("HouseholdId", "PersonId");
+
+
+--
 -- Name: IX_HouseholdMember_PersonId; Type: INDEX; Schema: plan; Owner: -
 --
 
