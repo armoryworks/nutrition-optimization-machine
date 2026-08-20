@@ -87,7 +87,17 @@ export class Household implements OnInit {
   // Non-user members (exclude the primary user from the grid's "other members" section)
   nonUserMembers = computed(() => {
     const personId = this.currentPersonId();
-    return this.members().filter(m => m.personId !== personId);
+    // While the person id is still being resolved (session heal), fall back to the
+    // signed-in email so the current user is never listed twice.
+    const email = (this.authService.username() || '').toLowerCase();
+    const seen = new Set<number>();
+    return this.members().filter(m => {
+      if (m.personId === personId) return false;
+      if (personId == null && email && (m.personEmail ?? '').toLowerCase() === email) return false;
+      if (seen.has(m.personId)) return false;
+      seen.add(m.personId);
+      return true;
+    });
   });
 
   /** True when the current user is a steward of the active household. */
