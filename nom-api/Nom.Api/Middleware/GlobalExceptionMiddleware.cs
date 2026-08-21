@@ -58,6 +58,13 @@ namespace Nom.Api.Middleware
                 _logger.LogWarning(ex, "Bad request: invalid operation");
                 await WriteProblemDetails(context, StatusCodes.Status400BadRequest, "Bad Request", ex.Message);
             }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+            {
+                // Constraint violations (FK/unique) are data conflicts, not server faults.
+                _logger.LogError(ex, "Database update rejected");
+                await WriteProblemDetails(context, StatusCodes.Status409Conflict, "Conflict",
+                    "The change could not be saved because it conflicts with existing data.");
+            }
             catch (KeyNotFoundException ex)
             {
                 _logger.LogWarning(ex, "Resource not found");

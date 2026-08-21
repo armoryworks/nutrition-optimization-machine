@@ -12,10 +12,15 @@ namespace Nom.Orch.Services
         private readonly ApplicationDbContext _context;
         private readonly ILogger<PantryOrchestrationService> _logger;
 
-        // Well-known ItemStatusType reference IDs (must match seed data in db/seed.sql)
-        private const long StatusInPantryId = 502L;
-        private const long StatusUsedId = 503L;
-        private const long StatusExpiredId = 504L;
+        // Item-status names under the "Item Status Types" reference group. Ids are
+        // resolved (and the rows created if absent) at runtime: the old hardcoded
+        // 502/503/504 never existed in any seeded database — the seed creates the
+        // group but no members — so every pantry insert died on the FK (audit N-27).
+        private const string ItemStatusGroupName = "Item Status Types";
+        private const string StatusInPantry = "In Pantry";
+        private const string StatusUsed = "Used";
+        private const string StatusExpired = "Expired";
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, long> StatusIdCache = new();
 
         public PantryOrchestrationService(
             ApplicationDbContext context,
@@ -65,7 +70,7 @@ namespace Nom.Orch.Services
                 IngredientId = model.IngredientId,
                 Quantity = model.Quantity,
                 MeasurementId = model.MeasurementId,
-                ItemStatusTypeId = StatusInPantryId,
+                ItemStatusTypeId = await GetStatusIdAsync(StatusInPantry),
                 AcquisitionDate = model.AcquisitionDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
                 ExpectedExpirationDate = model.ExpectedExpirationDate,
                 SourceLocation = model.SourceLocation,
@@ -85,6 +90,38 @@ namespace Nom.Orch.Services
                 .FirstAsync(p => p.Id == entity.Id);
 
             return MapToResponse(created, DateOnly.FromDateTime(DateTime.UtcNow));
+        }
+
+        /// <summary>
+        /// Resolve an item-status Reference id by name, creating the row (linked to the
+        /// "Item Status Types" group when present) on first use. Process-cached: these
+        /// are immutable lookup rows.
+        /// </summary>
+        private async Task<long> GetStatusIdAsync(string statusName)
+        {
+            if (StatusIdCache.TryGetValue(statusName, out var cached)) return cached;
+
+            var existing = await _context.Set<Nom.Data.Reference.ReferenceEntity>()
+                .FirstOrDefaultAsync(r => r.Name == statusName);
+            if (existing == null)
+            {
+                existing = new Nom.Data.Reference.ReferenceEntity
+                {
+                    Name = statusName,
+                    Description = $"Pantry item status ({statusName}).",
+                    CreatedDate = DateTime.UtcNow,
+                    LastModifiedDate = DateTime.UtcNow
+                };
+                var group = await _context.Set<Nom.Data.Reference.ReferenceGroupEntity>()
+                    .Include(g => g.References)
+                    .FirstOrDefaultAsync(g => g.Name == ItemStatusGroupName);
+                group?.References!.Add(existing);
+                _context.Add(existing);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Created missing item-status reference '{Status}' (id {Id})", statusName, existing.Id);
+            }
+            StatusIdCache[statusName] = existing.Id;
+            return existing.Id;
         }
 
         /// <summary>
@@ -166,7 +203,7 @@ namespace Nom.Orch.Services
                     IngredientId = model.IngredientId,
                     Quantity = model.Quantity,
                     MeasurementId = model.MeasurementId,
-                    ItemStatusTypeId = StatusInPantryId,
+                    ItemStatusTypeId = await GetStatusIdAsync(StatusInPantry),
                     AcquisitionDate = model.AcquisitionDate ?? DateOnly.FromDateTime(now),
                     ExpectedExpirationDate = model.ExpectedExpirationDate,
                     SourceLocation = model.SourceLocation,
@@ -286,11 +323,12 @@ namespace Nom.Orch.Services
             }
 
             // 3. Get active pantry items (In Pantry status, not expired)
+            var inPantryStatusId = await GetStatusIdAsync(StatusInPantry);
             var pantryItems = await _context.PantryItems
                 .Include(p => p.Measurement)
                     .ThenInclude(m => m.Category)
                 .Where(p => p.HouseholdId == householdId
-                    && p.ItemStatusTypeId == StatusInPantryId
+                    && p.ItemStatusTypeId == inPantryStatusId
                     && (p.ExpectedExpirationDate == null || p.ExpectedExpirationDate >= today))
                 .AsNoTracking()
                 .ToListAsync();
@@ -363,11 +401,12 @@ namespace Nom.Orch.Services
                 return false;
 
             // Get pantry items for this household
+            var inPantryStatusId = await GetStatusIdAsync(StatusInPantry);
             var pantryItems = await _context.PantryItems
                 .Include(p => p.Measurement)
                     .ThenInclude(m => m.Category)
                 .Where(p => p.HouseholdId == mealPlan.HouseholdId
-                    && p.ItemStatusTypeId == StatusInPantryId)
+                    && p.ItemStatusTypeId == inPantryStatusId)
                 .ToListAsync();
 
             foreach (var ri in mealPlan.Recipe.RecipeIngredients)
@@ -392,7 +431,7 @@ namespace Nom.Orch.Services
                     if (pantryBase <= neededBase)
                     {
                         // Use up entire pantry item
-                        pantryItem.ItemStatusTypeId = StatusUsedId;
+                        pantryItem.ItemStatusTypeId = await GetStatusIdAsync(StatusUsed);
                         pantryItem.Quantity = 0;
                         pantryItem.LastModifiedDate = DateTime.UtcNow;
                         neededBase -= pantryBase;
