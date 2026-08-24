@@ -14,13 +14,25 @@
   } @else {
     <div class="nom-search__header">
       <h1 class="nom-search__title">
-        @if (query()) {
+        @if (ingredientId()) {
+          Recipes with {{ ingredientName() }}@if (query()) { matching "{{ query() }}"}
+        } @else if (query()) {
           Results for "{{ query() }}"
         } @else {
           All Recipes
         }
       </h1>
       <span class="nom-search__count">{{ totalCount() }} recipes found</span>
+      @if (ingredientId()) {
+        <a class="nom-search__filter-chip"
+           routerLink="/search"
+           [queryParams]="query() ? { q: query() } : {}"
+           data-testid="search-clear-ingredient-filter"
+           aria-label="Clear ingredient filter">
+          {{ ingredientName() }}
+          <mat-icon class="nom-search__filter-chip-icon">close</mat-icon>
+        </a>
+      }
     </div>
 
     @if (results().length > 0) {

@@ -7,6 +7,7 @@ import {
   OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { EntityLink } from '../shared/components/entity-link/entity-link.component';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { NoHouseholdCta } from '../shared/components/no-household-cta/no-household-cta.component';
 import { toLocalDateString } from '../core/utils/local-date';
@@ -39,6 +40,7 @@ import { formatQuantity } from '../core/domain/shopping/unit-conversion';
   standalone: true,
   imports: [
     CommonModule,
+    EntityLink,
     FormsModule,
     MatButtonModule,
     MatIconModule,

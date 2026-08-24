@@ -18,6 +18,9 @@ export class Search {
   private destroyRef = inject(DestroyRef);
 
   query = signal('');
+  /** Active "recipes containing this ingredient" filter (from ?ingredientId=). */
+  ingredientId = signal<number | null>(null);
+  ingredientName = signal('');
   results = signal<RecipeSearchResult[]>([]);
   totalCount = signal(0);
   loading = signal(false);
@@ -27,8 +30,12 @@ export class Search {
 
   constructor() {
     effect(() => {
-      const q = this.queryParams()?.['q'] || '';
+      const params = this.queryParams();
+      const q = params?.['q'] || '';
+      const ingredientId = Number(params?.['ingredientId']) || null;
       this.query.set(q);
+      this.ingredientId.set(ingredientId);
+      this.ingredientName.set(ingredientId ? params?.['ingredient'] || 'this ingredient' : '');
       this.performSearch(q);
     });
   }
@@ -37,7 +44,7 @@ export class Search {
     this.loading.set(true);
     this.error.set('');
 
-    if (!query.trim()) {
+    if (!query.trim() && !this.ingredientId()) {
       this.recipeSearch.getPopular(50).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (response) => {
           this.results.set(response.results);
@@ -52,8 +59,10 @@ export class Search {
       return;
     }
 
+    const ingredientId = this.ingredientId();
     this.recipeSearch.search({
       query: query.trim(),
+      ingredientIds: ingredientId ? [ingredientId] : undefined,
       page: 1,
       pageSize: 50,
       includeIngredients: false,

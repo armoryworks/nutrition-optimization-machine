@@ -1,0 +1,7 @@
+<a class="nom-entity-link"
+   [routerLink]="route()"
+   [queryParams]="queryParams()"
+   [attr.data-testid]="testid()"
+   [attr.aria-label]="ariaLabel() || null"
+   (click)="onActivate($event)"
+   (keydown.enter)="onActivate($event)">{{ label() }}</a>
