@@ -14,6 +14,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RecipeModel } from '../../../core/models/recipe.model';
 import { EntityPreviewService } from './entity-preview.service';
 import { EntityPreviewPopover } from './entity-preview-popover.component';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
+import { EntityPreviewSheet, EntityPreviewSheetData } from './entity-preview-sheet.component';
 
 /**
  * Inline link to another record (recipe, ingredient search, member…). Renders
@@ -49,6 +51,7 @@ export class EntityLink {
   previewRecipeId = input<number | null>(null);
 
   private overlay = inject(Overlay);
+  private bottomSheet = inject(MatBottomSheet);
   private previewService = inject(EntityPreviewService);
   private elementRef = inject(ElementRef);
   private destroyRef = inject(DestroyRef);
@@ -71,11 +74,26 @@ export class EntityLink {
     if (mouse.ctrlKey || mouse.metaKey || mouse.shiftKey || mouse.button === 1) return;
 
     event.preventDefault();
+    // Matches the SCSS $breakpoint-mobile token (768px): phones get the
+    // curated bottom sheet, larger screens the anchored popover.
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      this.openSheet(id);
+      return;
+    }
     if (this.overlayRef) {
       this.closePopover();
     } else {
       this.openPopover(id);
     }
+  }
+
+  private openSheet(id: number): void {
+    const data: EntityPreviewSheetData = {
+      recipeId: id,
+      route: this.route(),
+      queryParams: this.queryParams(),
+    };
+    this.bottomSheet.open(EntityPreviewSheet, { data });
   }
 
   private openPopover(id: number): void {

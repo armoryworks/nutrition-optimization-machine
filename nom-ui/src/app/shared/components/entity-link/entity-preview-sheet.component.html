@@ -1,0 +1,46 @@
+<div class="nom-sheet" data-testid="entity-preview-sheet">
+  <div class="nom-sheet__grip" aria-hidden="true"></div>
+  <button type="button" class="nom-sheet__close" (click)="close()"
+          aria-label="Close preview" data-testid="entity-preview-sheet-close-btn">
+    <mat-icon>close</mat-icon>
+  </button>
+
+  @if (recipe(); as r) {
+    @if (r.imageUrl) {
+      <img class="nom-sheet__img" [src]="r.imageUrl" [alt]="r.name" loading="lazy" />
+    }
+    <div class="nom-sheet__body">
+      <h2 class="nom-sheet__name">{{ r.name }}</h2>
+      <div class="nom-sheet__meta">
+        @if (totalMinutes(); as mins) {
+          <span class="nom-sheet__meta-item"><mat-icon>schedule</mat-icon>{{ mins }} min</span>
+        }
+        @if (r.servings) {
+          <span class="nom-sheet__meta-item"><mat-icon>restaurant</mat-icon>{{ r.servings }} servings</span>
+        }
+        @if (r.rating > 0) {
+          <span class="nom-sheet__meta-item"><mat-icon>star</mat-icon>{{ r.rating }}</span>
+        }
+      </div>
+      @if (r.description) {
+        <p class="nom-sheet__desc">{{ r.description }}</p>
+      }
+      <button mat-flat-button color="primary" class="nom-sheet__open-btn"
+              (click)="open()" data-testid="entity-preview-sheet-open-link">
+        Open recipe
+      </button>
+    </div>
+  } @else if (loadFailed()) {
+    <div class="nom-sheet__body">
+      <p class="nom-sheet__empty">Preview unavailable</p>
+      <button mat-flat-button color="primary" class="nom-sheet__open-btn"
+              (click)="open()" data-testid="entity-preview-sheet-open-link">
+        Open recipe
+      </button>
+    </div>
+  } @else {
+    <div class="nom-sheet__body">
+      <p class="nom-sheet__empty">Loading…</p>
+    </div>
+  }
+</div>
