@@ -3,5 +3,6 @@
    [queryParams]="queryParams()"
    [attr.data-testid]="testid()"
    [attr.aria-label]="ariaLabel() || null"
+   [attr.aria-haspopup]="previewRecipeId() ? 'dialog' : null"
    (click)="onActivate($event)"
    (keydown.enter)="onActivate($event)">{{ label() }}</a>

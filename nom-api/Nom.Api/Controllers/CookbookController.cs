@@ -31,6 +31,17 @@ namespace Nom.Api.Controllers
             return Ok(result);
         }
 
+        /// <summary>The household's cookbooks that contain the given recipe.</summary>
+        [HttpGet("for-recipe/{recipeId:long}")]
+        [ProducesResponseType(typeof(List<CookbookResponseModel>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetCookbooksForRecipe(long recipeId, [FromQuery, Required] long householdId)
+        {
+            if (!IsHouseholdMember(householdId))
+                return Forbid();
+
+            return Ok(await _cookbookService.GetCookbooksForRecipeAsync(householdId, recipeId));
+        }
+
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(CookbookResponseModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -172,6 +172,7 @@
                       @if (entry.recipeId) {
                         <nom-entity-link [route]="['/recipe', entry.recipeId]"
                                          [label]="entry.recipeName ?? entry.title ?? 'Recipe'"
+                                         [previewRecipeId]="entry.recipeId"
                                          testid="plan-cell-recipe-link"
                                          [ariaLabel]="'Open ' + (entry.recipeName ?? 'recipe')" />
                       } @else if (entry.ingredientId && entry.ingredientName) {

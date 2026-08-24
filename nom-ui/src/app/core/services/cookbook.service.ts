@@ -17,6 +17,12 @@ export class CookbookService {
     return this.http.get<CookbookResponseModel[]>(this.apiUrl, { params });
   }
 
+  /** The household's cookbooks containing the given recipe. */
+  getCookbooksForRecipe(recipeId: number, householdId: number): Observable<CookbookResponseModel[]> {
+    const params = new HttpParams().set('householdId', householdId.toString());
+    return this.http.get<CookbookResponseModel[]>(`${this.apiUrl}/for-recipe/${recipeId}`, { params });
+  }
+
   getCookbook(id: number): Observable<CookbookResponseModel> {
     return this.http.get<CookbookResponseModel>(`${this.apiUrl}/${id}`);
   }

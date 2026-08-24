@@ -29,6 +29,16 @@ namespace Nom.Orch.Services
                 .ToListAsync();
         }
 
+        public async Task<List<CookbookResponseModel>> GetCookbooksForRecipeAsync(long householdId, long recipeId)
+        {
+            return await _db.HouseholdCookbooks
+                .Where(c => c.HouseholdId == householdId && c.Recipes.Any(r => r.RecipeId == recipeId))
+                .Include(c => c.Recipes)
+                .AsNoTracking()
+                .Select(c => MapCookbook(c))
+                .ToListAsync();
+        }
+
         public async Task<CookbookResponseModel?> GetCookbookAsync(long id)
         {
             var cookbook = await _db.HouseholdCookbooks

@@ -1,0 +1,110 @@
+@use 'variables' as vars;
+
+.nom-preview {
+  position: relative;
+  width: 280px;
+  overflow: hidden;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  box-shadow: vars.$elevation-2;
+}
+
+.nom-preview__close {
+  position: absolute;
+  top: vars.$spacing-1;
+  right: vars.$spacing-1;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--mat-sys-on-surface);
+  background: color-mix(in srgb, var(--mat-sys-surface) 75%, transparent);
+
+  mat-icon {
+    font-size: vars.$font-size-md;
+    width: vars.$font-size-md;
+    height: vars.$font-size-md;
+  }
+}
+
+.nom-preview__open-link {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  margin-top: vars.$spacing-1;
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  mat-icon {
+    font-size: vars.$font-size-sm;
+    width: vars.$font-size-sm;
+    height: vars.$font-size-sm;
+  }
+}
+
+.nom-preview__img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+
+.nom-preview__body {
+  padding: vars.$spacing-3;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+
+  &--empty {
+    color: var(--mat-sys-on-surface-variant);
+    font-size: vars.$font-size-sm;
+  }
+}
+
+.nom-preview__name {
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-preview__desc {
+  margin: 0;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.nom-preview__meta {
+  display: flex;
+  gap: vars.$spacing-3;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-preview__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+
+  mat-icon {
+    font-size: vars.$font-size-sm;
+    width: vars.$font-size-sm;
+    height: vars.$font-size-sm;
+  }
+}
