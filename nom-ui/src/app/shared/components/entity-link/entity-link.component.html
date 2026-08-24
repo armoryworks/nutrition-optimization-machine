@@ -1,8 +1,17 @@
-<a class="nom-entity-link"
-   [routerLink]="route()"
-   [queryParams]="queryParams()"
-   [attr.data-testid]="testid()"
-   [attr.aria-label]="ariaLabel() || null"
-   [attr.aria-haspopup]="previewRecipeId() ? 'dialog' : null"
-   (click)="onActivate($event)"
-   (keydown.enter)="onActivate($event)">{{ label() }}</a>
+@if (previewRecipeId()) {
+  <a class="nom-entity-link"
+     [attr.href]="previewHref()"
+     [attr.data-testid]="testid()"
+     [attr.aria-label]="ariaLabel() || null"
+     aria-haspopup="dialog"
+     (click)="onActivate($event)"
+     (keydown.enter)="onActivate($event)">{{ label() }}</a>
+} @else {
+  <a class="nom-entity-link"
+     [routerLink]="route()"
+     [queryParams]="queryParams()"
+     [attr.data-testid]="testid()"
+     [attr.aria-label]="ariaLabel() || null"
+     (click)="onActivate($event)"
+     (keydown.enter)="onActivate($event)">{{ label() }}</a>
+}
