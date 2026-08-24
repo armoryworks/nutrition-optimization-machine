@@ -98,6 +98,14 @@
                 {{ dishGroup.name }}
               </a>
             }
+            @for (cookbook of inCookbooks(); track cookbook.id) {
+              <a class="nom-recipe__dish-group-chip"
+                 [routerLink]="['/cookbook', cookbook.id]"
+                 data-testid="recipe-cookbook-chip">
+                <mat-icon>menu_book</mat-icon>
+                {{ cookbook.name }}
+              </a>
+            }
             @if (recipe()!.description) {
               <p class="nom-recipe__description">{{ recipe()!.description }}</p>
             }
@@ -164,7 +172,16 @@
                     <div>
                       <strong>{{ match.restrictionName }}</strong>
                       @if (match.restrictionType) { <span class="nom-recipe__diet-type">{{ match.restrictionType }}</span> }
-                      <div class="nom-recipe__diet-ingredient">contains {{ match.ingredientName }}@if (match.notes) { &mdash; {{ match.notes }}}</div>
+                      <div class="nom-recipe__diet-ingredient">contains
+                        @if (match.ingredientId) {
+                          <nom-entity-link route="/search"
+                                           [label]="match.ingredientName"
+                                           [queryParams]="{ ingredientId: match.ingredientId, ingredient: match.ingredientName }"
+                                           testid="diet-match-ingredient-link"
+                                           [ariaLabel]="'Recipes with ' + match.ingredientName" />
+                        } @else {
+                          {{ match.ingredientName }}
+                        }@if (match.notes) { &mdash; {{ match.notes }}}</div>
                     </div>
                   </li>
                 }

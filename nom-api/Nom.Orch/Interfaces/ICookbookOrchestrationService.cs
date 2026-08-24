@@ -6,6 +6,7 @@ namespace Nom.Orch.Interfaces
     public interface ICookbookOrchestrationService
     {
         Task<List<CookbookResponseModel>> GetCookbooksAsync(long householdId);
+        Task<List<CookbookResponseModel>> GetCookbooksForRecipeAsync(long householdId, long recipeId);
         Task<CookbookResponseModel?> GetCookbookAsync(long id);
         Task<long> CreateCookbookAsync(CookbookCreateModel model);
         Task<CookbookResponseModel?> UpdateCookbookAsync(long id, CookbookUpdateModel model);

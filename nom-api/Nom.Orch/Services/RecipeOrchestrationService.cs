@@ -475,6 +475,7 @@ namespace Nom.Orch.Services
                         RestrictionName = r.Name,
                         RestrictionType = r.RestrictionType != null ? r.RestrictionType.Name : null,
                         Severity = r.Severity,
+                        IngredientId = ri.IngredientId,
                         IngredientName = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty
                     })
                 .ToListAsync();
@@ -498,6 +499,7 @@ namespace Nom.Orch.Services
                         RestrictionName = rc.r.Name,
                         RestrictionType = rc.r.RestrictionType != null ? rc.r.RestrictionType.Name : null,
                         Severity = rc.c.Severity,
+                        IngredientId = ri.IngredientId,
                         IngredientName = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty,
                         Notes = rc.c.Notes
                     })

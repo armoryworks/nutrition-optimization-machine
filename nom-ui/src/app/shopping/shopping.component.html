@@ -142,6 +142,7 @@
                     @for (r of item.sourceRecipes; track r.id; let last = $last) {
                       <nom-entity-link [route]="['/recipe', r.id]"
                                        [label]="r.name"
+                                       [previewRecipeId]="r.id"
                                        testid="shopping-item-recipe-link"
                                        [ariaLabel]="'Open recipe ' + r.name" />@if (!last) {<span>, </span>}
                     }
