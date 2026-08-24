@@ -1,0 +1,95 @@
+@use 'variables' as vars;
+
+.nom-sheet {
+  position: relative;
+}
+
+.nom-sheet__grip {
+  width: 36px;
+  height: 4px;
+  margin: vars.$spacing-2 auto 0;
+  border-radius: 2px;
+  background: var(--mat-sys-outline-variant);
+}
+
+.nom-sheet__close {
+  position: absolute;
+  top: vars.$spacing-2;
+  right: vars.$spacing-2;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--mat-sys-on-surface);
+  background: color-mix(in srgb, var(--mat-sys-surface) 75%, transparent);
+}
+
+.nom-sheet__img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+  margin-top: vars.$spacing-2;
+  border-radius: vars.$nom-border-radius;
+}
+
+.nom-sheet__body {
+  padding: vars.$spacing-3 0 vars.$spacing-2;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-sheet__name {
+  margin: 0;
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-bold;
+  color: var(--mat-sys-on-surface);
+  padding-right: 44px;
+}
+
+.nom-sheet__meta {
+  display: flex;
+  gap: vars.$spacing-4;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-sheet__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+
+  mat-icon {
+    font-size: vars.$font-size-md;
+    width: vars.$font-size-md;
+    height: vars.$font-size-md;
+  }
+}
+
+.nom-sheet__desc {
+  margin: 0;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.nom-sheet__empty {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-sheet__open-btn {
+  width: 100%;
+  margin-top: vars.$spacing-1;
+}
