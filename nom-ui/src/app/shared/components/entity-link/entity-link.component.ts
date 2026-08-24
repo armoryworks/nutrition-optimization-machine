@@ -1,13 +1,14 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
   ElementRef,
   inject,
   input,
   signal,
 } from '@angular/core';
-import { Params, RouterLink } from '@angular/router';
+import { Params, Router, RouterLink } from '@angular/router';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -50,11 +51,26 @@ export class EntityLink {
   /** When set, clicking opens the details popover instead of navigating. */
   previewRecipeId = input<number | null>(null);
 
+  private router = inject(Router);
   private overlay = inject(Overlay);
   private bottomSheet = inject(MatBottomSheet);
   private previewService = inject(EntityPreviewService);
   private elementRef = inject(ElementRef);
   private destroyRef = inject(DestroyRef);
+
+  /**
+   * Plain href for preview-mode links: RouterLink's own click handler ignores
+   * preventDefault, so a preview link must NOT carry the directive — the href
+   * keeps native new-tab (ctrl/cmd/middle-click) behavior while plain clicks
+   * are intercepted to open the details instead of navigating.
+   */
+  previewHref = computed(() => {
+    const route = this.route();
+    const commands = typeof route === 'string' ? [route] : [...route];
+    return this.router.serializeUrl(
+      this.router.createUrlTree(commands, { queryParams: this.queryParams() ?? undefined }),
+    );
+  });
 
   private overlayRef: OverlayRef | null = null;
   private recipe = signal<RecipeModel | null>(null);
