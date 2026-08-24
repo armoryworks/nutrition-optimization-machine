@@ -20,6 +20,7 @@ import {
   RecipeAugmentationModel,
 } from '../core/models/recipe-substitution.model';
 import { NutritionLabel } from '../shared/components/nutrition-label/nutrition-label.component';
+import { EntityLink } from '../shared/components/entity-link/entity-link.component';
 import { RecipeComments } from './recipe-comments.component';
 import { RecipeRating } from './recipe-rating.component';
 
@@ -48,7 +49,7 @@ export interface DisplayIngredientRowModel {
 
 @Component({
   selector: 'nom-recipe-detail',
-  imports: [DecimalPipe, MatIconModule, MatButtonModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating],
+  imports: [DecimalPipe, MatIconModule, MatButtonModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating, EntityLink],
   templateUrl: './recipe-detail.component.html',
   styleUrl: './recipe-detail.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

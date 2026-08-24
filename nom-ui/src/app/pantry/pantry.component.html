@@ -129,7 +129,13 @@
       @for (item of activeItems(); track item.id) {
         <div class="nom-pantry__item" data-testid="pantry-item"
              [class.nom-pantry__item--expiring]="item.isExpiringSoon">
-          <span class="nom-pantry__col-name">{{ item.ingredientName }}</span>
+          <span class="nom-pantry__col-name">
+            <nom-entity-link route="/search"
+                             [label]="item.ingredientName"
+                             [queryParams]="{ ingredientId: item.ingredientId, ingredient: item.ingredientName }"
+                             testid="pantry-item-ingredient-link"
+                             [ariaLabel]="'Recipes with ' + item.ingredientName" />
+          </span>
           <span class="nom-pantry__col-qty">
             {{ formatQuantity(item.quantity) }} {{ item.measurementSymbol }}
           </span>
@@ -162,7 +168,13 @@
         <div class="nom-pantry__list nom-pantry__list--expired">
           @for (item of expiredItems(); track item.id) {
             <div class="nom-pantry__item nom-pantry__item--expired">
-              <span class="nom-pantry__col-name">{{ item.ingredientName }}</span>
+              <span class="nom-pantry__col-name">
+                <nom-entity-link route="/search"
+                                 [label]="item.ingredientName"
+                                 [queryParams]="{ ingredientId: item.ingredientId, ingredient: item.ingredientName }"
+                                 testid="pantry-item-ingredient-link"
+                                 [ariaLabel]="'Recipes with ' + item.ingredientName" />
+              </span>
               <span class="nom-pantry__col-qty">
                 {{ formatQuantity(item.quantity) }} {{ item.measurementSymbol }}
               </span>
