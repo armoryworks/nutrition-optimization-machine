@@ -2,6 +2,8 @@
 
 A comprehensive, production-ready nutrition and meal planning application built with modern technologies and advanced AI features.
 
+🌐 **Site:** [nommeal.com](https://nommeal.com) · **Hosted app:** [nom.nommeal.com](https://nom.nommeal.com)
+
 [![Production Ready](https://img.shields.io/badge/Production-Ready-green.svg)](docs/PRODUCTION_DEPLOYMENT.md)
 [![Docker](https://img.shields.io/badge/Docker-Enabled-blue.svg)](docker-compose.yml)
 [![Tests](https://img.shields.io/badge/Tests-Comprehensive-brightgreen.svg)](nom-test/README.md)
