@@ -7,6 +7,7 @@ import {
   DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { EntityLink } from '../shared/components/entity-link/entity-link.component';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { NoHouseholdCta } from '../shared/components/no-household-cta/no-household-cta.component';
 import { toLocalDateString } from '../core/utils/local-date';
@@ -75,12 +76,15 @@ interface RawAccumulator {
   category: UnitCategory;
   originalUnit: string;
   department: string;
+  /** Planned recipes contributing to this line, keyed by recipe id. */
+  sourceRecipes: Map<number, string>;
 }
 
 @Component({
   selector: 'nom-shopping',
   imports: [
     RouterLink,
+    EntityLink,
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
@@ -176,6 +180,7 @@ export class ShoppingComponent implements OnInit {
               const existing = accMap.get(key);
               if (existing) {
                 existing.baseQuantity += baseQty;
+                existing.sourceRecipes.set(entry.recipeId, recipe.name);
               } else {
                 accMap.set(key, {
                   ingredientId: ing.ingredientId,
@@ -184,6 +189,7 @@ export class ShoppingComponent implements OnInit {
                   category: info.category,
                   originalUnit: ing.measurement ?? '',
                   department: categorizeDepartment(ing.name),
+                  sourceRecipes: new Map([[entry.recipeId, recipe.name]]),
                 });
               }
             }
@@ -328,12 +334,19 @@ export class ShoppingComponent implements OnInit {
 
       if (portions.length === 0) continue;
 
+      const sourceById = new Map<number, string>();
+      for (const a of accs) {
+        for (const [id, recipeName] of a.sourceRecipes) sourceById.set(id, recipeName);
+      }
+
       const item: ShoppingItem = {
         ingredientId,
         name,
         portions,
         department: dept,
         checkKey: `${ingredientId}`,
+        sourceRecipes: Array.from(sourceById, ([id, recipeName]) => ({ id, name: recipeName }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
         baseMassG: accs
           .filter((a) => a.category === 'mass')
           .reduce((s, a) => s + a.baseQuantity, 0),

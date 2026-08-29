@@ -98,6 +98,14 @@
                 {{ dishGroup.name }}
               </a>
             }
+            @for (cookbook of inCookbooks(); track cookbook.id) {
+              <a class="nom-recipe__dish-group-chip"
+                 [routerLink]="['/cookbook', cookbook.id]"
+                 data-testid="recipe-cookbook-chip">
+                <mat-icon>menu_book</mat-icon>
+                {{ cookbook.name }}
+              </a>
+            }
             @if (recipe()!.description) {
               <p class="nom-recipe__description">{{ recipe()!.description }}</p>
             }
@@ -164,7 +172,16 @@
                     <div>
                       <strong>{{ match.restrictionName }}</strong>
                       @if (match.restrictionType) { <span class="nom-recipe__diet-type">{{ match.restrictionType }}</span> }
-                      <div class="nom-recipe__diet-ingredient">contains {{ match.ingredientName }}@if (match.notes) { &mdash; {{ match.notes }}}</div>
+                      <div class="nom-recipe__diet-ingredient">contains
+                        @if (match.ingredientId) {
+                          <nom-entity-link route="/search"
+                                           [label]="match.ingredientName"
+                                           [queryParams]="{ ingredientId: match.ingredientId, ingredient: match.ingredientName }"
+                                           testid="diet-match-ingredient-link"
+                                           [ariaLabel]="'Recipes with ' + match.ingredientName" />
+                        } @else {
+                          {{ match.ingredientName }}
+                        }@if (match.notes) { &mdash; {{ match.notes }}}</div>
                     </div>
                   </li>
                 }
@@ -222,17 +239,31 @@
                 @if (row.ingredient.quantity) {
                   {{ row.ingredient.quantity }} {{ row.ingredient.measurement }}
                 }
-                {{ row.ingredient.name }}
+                <nom-entity-link route="/search"
+                                 [label]="row.ingredient.name"
+                                 [queryParams]="{ ingredientId: row.ingredient.ingredientId, ingredient: row.ingredient.name }"
+                                 testid="recipe-ingredient-link"
+                                 [ariaLabel]="'Recipes with ' + row.ingredient.name" />
                 <span class="nom-recipe__ingredient-addin-chip">add-in</span>
               } @else if (row.swap) {
-                {{ row.swap.quantity }} {{ row.swap.measurement }} {{ row.swap.name }}
+                {{ row.swap.quantity }} {{ row.swap.measurement }}
+                <nom-entity-link route="/search"
+                                 [label]="row.swap.name"
+                                 [queryParams]="{ ingredientId: row.swap.ingredientId, ingredient: row.swap.name }"
+                                 testid="recipe-ingredient-link"
+                                 [ariaLabel]="'Recipes with ' + row.swap.name" />
                 <button type="button" class="nom-recipe__swap-btn" title="Back to {{ row.ingredient.name }}"
                         (click)="revertSwap(row.ingredient.ingredientId)"
                         data-testid="ingredient-swap-undo-btn">
                   <mat-icon>undo</mat-icon>
                 </button>
               } @else {
-                {{ row.ingredient.quantity }} {{ row.ingredient.measurement }} {{ row.ingredient.name }}
+                {{ row.ingredient.quantity }} {{ row.ingredient.measurement }}
+                <nom-entity-link route="/search"
+                                 [label]="row.ingredient.name"
+                                 [queryParams]="{ ingredientId: row.ingredient.ingredientId, ingredient: row.ingredient.name }"
+                                 testid="recipe-ingredient-link"
+                                 [ariaLabel]="'Recipes with ' + row.ingredient.name" />
                 @if (row.ingredient.notes) {
                   <span class="nom-recipe__ingredient-notes">({{ row.ingredient.notes }})</span>
                 }

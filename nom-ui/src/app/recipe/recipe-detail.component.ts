@@ -9,6 +9,9 @@ import { switchMap } from 'rxjs/operators';
 import { RecipeService } from '../core/services/recipe.service';
 import { AuthService } from '../core/services/auth.service';
 import { DishGroupService } from '../core/services/dish-group.service';
+import { CookbookService } from '../core/services/cookbook.service';
+import { HouseholdStore } from '../core/services/household-store';
+import { CookbookResponseModel } from '../core/models/cookbook-response.model';
 import { DishGroupRecipeModel } from '../core/models/dish-group.model';
 import { RecipeModel, RecipeDietMatchModel } from '../core/models/recipe.model';
 import {
@@ -20,6 +23,7 @@ import {
   RecipeAugmentationModel,
 } from '../core/models/recipe-substitution.model';
 import { NutritionLabel } from '../shared/components/nutrition-label/nutrition-label.component';
+import { EntityLink } from '../shared/components/entity-link/entity-link.component';
 import { RecipeComments } from './recipe-comments.component';
 import { RecipeRating } from './recipe-rating.component';
 
@@ -48,7 +52,7 @@ export interface DisplayIngredientRowModel {
 
 @Component({
   selector: 'nom-recipe-detail',
-  imports: [DecimalPipe, MatIconModule, MatButtonModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating],
+  imports: [DecimalPipe, MatIconModule, MatButtonModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating, EntityLink],
   templateUrl: './recipe-detail.component.html',
   styleUrl: './recipe-detail.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,6 +64,8 @@ export class RecipeDetail {
   private route = inject(ActivatedRoute);
   private recipeService = inject(RecipeService);
   private dishGroupService = inject(DishGroupService);
+  private cookbookService = inject(CookbookService);
+  private householdStore = inject(HouseholdStore);
   private destroyRef = inject(DestroyRef);
   private snackBar = inject(MatSnackBar);
   authService = inject(AuthService);
@@ -86,6 +92,9 @@ export class RecipeDetail {
 
   // Diet tab: the caller's restriction hits (null = not yet loaded).
   dietMatches = signal<RecipeDietMatchModel[] | null>(null);
+
+  /** The caller's household cookbooks this recipe is in. */
+  inCookbooks = signal<CookbookResponseModel[]>([]);
 
   // Recipe-scoped substitutions (with step effects) and optional add-ins.
   recipeSubs = signal<RecipeSubstitutionModel[]>([]);
@@ -276,6 +285,7 @@ export class RecipeDetail {
     this.recipeSubs.set([]);
     this.augmentations.set([]);
     this.enabledAugmentations.set(new Set());
+    this.inCookbooks.set([]);
 
     this.recipeService.getRecipe(id).pipe(
       takeUntilDestroyed(this.destroyRef),
@@ -286,6 +296,7 @@ export class RecipeDetail {
         this.loading.set(false);
         this.loadEnhancements(id);
         this.loadVariationsRail(recipe);
+        this.loadCookbookMembership(id);
         if (this.loggedIn()) {
           this.recipeService.getDietMatches(id).pipe(
             takeUntilDestroyed(this.destroyRef),
@@ -303,6 +314,26 @@ export class RecipeDetail {
         }
         this.loading.set(false);
       }
+    });
+  }
+
+  /** Which of the caller's cookbooks hold this recipe — silent on failure/anon. */
+  private loadCookbookMembership(id: number): void {
+    if (!this.loggedIn()) return;
+    this.householdStore.getHouseholds().pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (households) => {
+        const householdId = households[0]?.id;
+        if (!householdId) return;
+        this.cookbookService.getCookbooksForRecipe(id, householdId).pipe(
+          takeUntilDestroyed(this.destroyRef),
+        ).subscribe({
+          next: (cookbooks) => this.inCookbooks.set(cookbooks),
+          error: () => this.inCookbooks.set([]),
+        });
+      },
+      error: () => this.inCookbooks.set([]),
     });
   }
 
