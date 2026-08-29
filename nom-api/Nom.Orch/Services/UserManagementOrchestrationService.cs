@@ -319,28 +319,6 @@ namespace Nom.Orch.Services
             return result.Succeeded;
         }
 
-        public async Task<bool> ForgotPasswordAsync(ForgotPasswordRequestModel request)
-        {
-            var user = await _userManager.FindByEmailAsync(request.Email);
-            if (user == null)
-                return false;
-
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            // In a real implementation, you would send this token via email
-            _logger.LogInformation("Password reset token generated for user {UserId}", user.Id);
-            return true;
-        }
-
-        public async Task<bool> ResetPasswordAsync(ResetPasswordRequestModel request)
-        {
-            var user = await _userManager.FindByEmailAsync(request.Email);
-            if (user == null)
-                return false;
-
-            var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
-            return result.Succeeded;
-        }
-
         public async Task<UserResponseModel> RegisterUserAsync(RegisterUserRequestModel request)
         {
             // Use email as username if username is not provided

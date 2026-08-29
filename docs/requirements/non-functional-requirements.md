@@ -135,7 +135,7 @@ To ensure the system can be easily maintained, extended, and scaled to meet grow
 - **NO DTO Rule**: Consistent use of `Model`, `Request`, `Response` suffixes
 - **BEM Methodology**: Maintainable CSS/SCSS structure
 - **Material 3 Theming**: Consistent UI with theme variables
-- **Standalone Components**: Angular 17 modular architecture
+- **Standalone Components**: Angular 22 modular architecture
 
 #### Extensibility Features
 

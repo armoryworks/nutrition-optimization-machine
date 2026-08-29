@@ -2,6 +2,8 @@
 
 A comprehensive, production-ready nutrition and meal planning application built with modern technologies and advanced AI features.
 
+🌐 **Site:** [nommeal.com](https://nommeal.com) · **Hosted app:** [nom.nommeal.com](https://nom.nommeal.com)
+
 [![Production Ready](https://img.shields.io/badge/Production-Ready-green.svg)](docs/PRODUCTION_DEPLOYMENT.md)
 [![Docker](https://img.shields.io/badge/Docker-Enabled-blue.svg)](docker-compose.yml)
 [![Tests](https://img.shields.io/badge/Tests-Comprehensive-brightgreen.svg)](nom-test/README.md)
@@ -141,7 +143,7 @@ nom/
 ### **Prerequisites**
 
 - **Docker Desktop** ([Download](https://www.docker.com/products/docker-desktop/)) -- required for all development paths
-- **.NET 9.0 SDK** ([Download](https://dotnet.microsoft.com/download)) -- only for native development
+- **.NET 10.0 SDK** ([Download](https://dotnet.microsoft.com/download)) -- only for native development
 - **Node.js 20+** ([Download](https://nodejs.org/)) -- only for native development
 
 ### **Option A: Docker Development (Recommended)**
@@ -283,7 +285,7 @@ These files are gitignored and must be created locally. None should ever be comm
 - **File Separation** - One class/interface per file (strictly enforced)
 - **Naming Conventions** - Abstract classes use `_` prefix, interfaces use `I` prefix
 - **Component Architecture** - Use base components for consistency
-- **Modern Patterns** - Angular standalone components, .NET 9 features
+- **Modern Patterns** - Angular standalone components, .NET 10 features
 - **Security First** - Input validation, rate limiting, audit logging
 
 ## **Testing**

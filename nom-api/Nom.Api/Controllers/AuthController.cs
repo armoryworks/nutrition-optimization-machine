@@ -22,27 +22,9 @@ namespace Nom.Api.Controllers
 
         // refresh-claims moved to minimal API endpoint in Program.cs for proper bearer token response
 
-        [HttpPost("forgotPassword")]
-        [AllowAnonymous]
-        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestModel request)
-        {
-            // Always return OK regardless of whether the email exists,
-            // to avoid revealing which emails are registered.
-            await _userService.ForgotPasswordAsync(request);
-            return Ok();
-        }
-
-        [HttpPost("resetPassword")]
-        [AllowAnonymous]
-        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestModel request)
-        {
-            var success = await _userService.ResetPasswordAsync(request);
-            if (!success)
-            {
-                return BadRequest(new { message = "Unable to reset password. The link may have expired." });
-            }
-            return Ok();
-        }
+        // forgotPassword / resetPassword are served by Identity's MapIdentityApi under
+        // the same "api/auth" group (Program.cs) — that handler is the one that reaches
+        // IEmailSender. The controller copies here were shadowed by it and never ran.
 
         [HttpPost("confirm-email")]
         [AllowAnonymous]
