@@ -6,7 +6,7 @@ import {
   withInMemoryScrolling,
   withPreloading,
 } from '@angular/router';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { policyErrorInterceptor } from './core/interceptors/policy-error.interceptor';
@@ -22,7 +22,7 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({ scrollPositionRestoration: 'enabled' }),
       withPreloading(PreloadAllModules)
     ),
-    provideHttpClient(withInterceptors([authInterceptor, policyErrorInterceptor])),
+    provideHttpClient(withXhr(), withInterceptors([authInterceptor, policyErrorInterceptor])),
     provideAnimationsAsync(),
   ],
 };

@@ -421,7 +421,7 @@ services:
       retries: 3
 
   postgres:
-    image: postgres:16
+    image: postgres:18
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -663,7 +663,7 @@ public class MetricsMiddleware
 The NOM system represents a **modern, scalable, and secure** nutrition planning platform built with:
 
 - **Production-Ready Architecture** - 91% production readiness
-- **Modern Technology Stack** - Angular 17, .NET 9, PostgreSQL 16
+- **Modern Technology Stack** - Angular 22, .NET 10, PostgreSQL 18
 - **Security-First Design** - Multi-layer security with GDPR compliance
 - **Performance Optimized** - Caching, indexing, and efficient queries
 - **Scalable Design** - Stateless services and horizontal scaling ready

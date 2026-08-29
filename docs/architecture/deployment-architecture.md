@@ -125,7 +125,7 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ```dockerfile
 # Multi-stage build for .NET application
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy project files and restore dependencies
@@ -141,7 +141,7 @@ RUN dotnet build "nom-api.sln" -c Release -o /app/build
 RUN dotnet publish "Nom.Api/Nom.Api.csproj" -c Release -o /app/publish
 
 # Runtime stage with security hardening
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # Install health check dependencies
@@ -266,7 +266,7 @@ services:
   # PostgreSQL Database
   postgres:
     container_name: nom_postgres
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nom}
@@ -332,7 +332,7 @@ services:
   # Database Backup Service
   postgres-backup:
     container_name: nom_postgres_backup
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nom}
@@ -889,7 +889,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "9.0.x"
+          dotnet-version: "10.0.x"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -1184,7 +1184,7 @@ services:
 # PostgreSQL with read replicas
 services:
   postgres-primary:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_REPLICATION_MODE: master
       POSTGRES_REPLICATION_USER: replicator
@@ -1196,7 +1196,7 @@ services:
       -c max_replication_slots=3
 
   postgres-replica:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_REPLICATION_MODE: slave
       POSTGRES_REPLICATION_USER: replicator
@@ -1330,7 +1330,7 @@ services:
       - jwt_secret
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     deploy:
       replicas: 1
       placement:
