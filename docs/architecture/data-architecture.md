@@ -13,7 +13,7 @@
 
 ## Database Schema Overview
 
-The NOM application uses **PostgreSQL 16+** with a **domain-driven schema organization** that provides clear separation of concerns and optimal performance.
+The NOM application uses **PostgreSQL 18+** with a **domain-driven schema organization** that provides clear separation of concerns and optimal performance.
 
 ### **Schema Organization**
 

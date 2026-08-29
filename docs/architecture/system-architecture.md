@@ -8,7 +8,7 @@ The Nutritional Optimization Machine (NOM) is a comprehensive nutritional planni
 
 ### Frontend (nom-ui)
 
-- **Framework**: Angular 17 with Standalone Components
+- **Framework**: Angular 22 with Standalone Components
 - **UI Library**: Angular Material 3
 - **Styling**: SCSS with BEM methodology
 - **State Management**: RxJS for reactive programming
@@ -53,7 +53,7 @@ The Nutritional Optimization Machine (NOM) is a comprehensive nutritional planni
 
 - **Base Components**: Reusable UI patterns (`nom-base-page`, `nom-base-form`, `nom-base-list`, `nom-base-detail`)
 - **Domain Components**: Feature-specific components organized by domain
-- **Standalone Components**: All components use Angular 17 standalone architecture
+- **Standalone Components**: All components use Angular 22 standalone architecture
 - **Material 3**: Consistent theming with theme variables, no hardcoded colors
 
 ### Service Layer

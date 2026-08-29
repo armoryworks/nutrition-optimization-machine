@@ -1,7 +1,7 @@
 import { provideBrowserGlobalErrorListeners } from '@angular/core';
 import { createApplication } from '@angular/platform-browser';
 import { createCustomElement } from '@angular/elements';
-import { provideHttpClient, withInterceptors, HttpInterceptorFn } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, HttpInterceptorFn, withXhr } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
 import { authInterceptor } from './app/core/interceptors/auth.interceptor';
@@ -27,7 +27,7 @@ createApplication({
     // Empty route table: RouterLink (used inside LoginPopover) needs a Router
     // to build hrefs, but all navigation breaks out to the app origin.
     provideRouter([]),
-    provideHttpClient(withInterceptors([absoluteApiInterceptor, authInterceptor])),
+    provideHttpClient(withXhr(), withInterceptors([absoluteApiInterceptor, authInterceptor])),
     provideAnimationsAsync(),
     { provide: APP_ORIGIN, useValue: appOrigin },
   ],

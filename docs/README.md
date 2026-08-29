@@ -112,7 +112,7 @@ For AI tools like Cursor AI, start with these key documents:
 
 ### Frontend Architecture
 
-- **Framework**: Angular 17 with Standalone Components
+- **Framework**: Angular 22 with Standalone Components
 - **UI Library**: Angular Material 3
 - **Styling**: SCSS with BEM methodology
 - **Base Components**: Reusable UI patterns (`nom-base-page`, `nom-base-form`, `nom-base-list`, `nom-base-detail`)
