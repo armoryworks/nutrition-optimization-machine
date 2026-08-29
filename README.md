@@ -1,227 +1,127 @@
 # Nutrition Optimization Machine (NOM)
 
-A comprehensive, production-ready nutrition and meal planning application built with modern technologies and advanced AI features.
+NOM is meal planning for households where one person's diet isn't everyone's diet. It holds each
+member's restrictions, goals, and preferences at once, plans a week that works for all of them,
+and turns that week into an aisle-ordered shopping list.
 
-[![Production Ready](https://img.shields.io/badge/Production-Ready-green.svg)](docs/PRODUCTION_DEPLOYMENT.md)
-[![Docker](https://img.shields.io/badge/Docker-Enabled-blue.svg)](docker-compose.yml)
-[![Tests](https://img.shields.io/badge/Tests-Comprehensive-brightgreen.svg)](nom-test/README.md)
-[![Documentation](https://img.shields.io/badge/Docs-Complete-blue.svg)](docs/README.md)
+A hosted instance runs free while NOM is in beta at **[nom.nommeal.com](https://nom.nommeal.com)**;
+the product site is **[nommeal.com](https://nommeal.com)**. This repository holds the whole
+application — Angular front end, .NET API, PostgreSQL schema, test suite, and deployment
+compose files — under the Apache License 2.0, so you can also run your own.
 
-## **Quick Start**
+## What it does
 
-### **Production Deployment** (Recommended)
+- **Household planning.** Multiple members per household, each with their own dietary
+  restrictions, nutrition targets, and preferences. Plans and policies are evaluated against the
+  household, not a single profile.
+- **Meal plans.** Build a week from recipes, standalone whole foods, or dish groups, with
+  restriction checking as you go.
+- **Shopping lists.** Generated from the plan, consolidated across recipes and ordered for the
+  store, with retail packaging sizes taken into account.
+- **Recipes and cookbooks.** Create and organize recipes, or import them by URL. NOM itself
+  contains no scraping code — import is delegated to an operator-provided service against an
+  admin-approved domain whitelist, and imported content is quarantined until curated. See
+  [docs/scraper-integration.md](docs/scraper-integration.md).
+- **Grocery export.** Sending a list to a retailer or share sheet is likewise delegated to an
+  operator-provided service; NOM stores no retailer integration code. See
+  [docs/grocery-integration.md](docs/grocery-integration.md).
+- **Food and nutrition data.** A food catalog built from USDA FoodData Central imports, with
+  cross-check tooling in `ops/` for reconciling sources. Nutrition is stored per 100 g and
+  servings are derived per person. Imports land pending curation and change nothing users see
+  until an admin approves them.
+- **Pantry.** Track what is on hand so the shopping list only asks for what is missing.
+- **Privacy.** Data export and deletion flows backed by a privacy request pipeline and a retention
+  service.
+
+Optional AI assistance (Azure OpenAI, Anthropic, or a local Ollama model) supports the import and
+catalog-enrichment paths. It is configured per install, is not required to run NOM, and is not
+permitted to author nutrition values — models classify and normalize; numbers come from
+authoritative sources only.
+
+## Stack
+
+| Component | Technology |
+|---|---|
+| Front end | Angular 21, Angular Material, standalone components |
+| Back end | .NET 9, ASP.NET Core, Entity Framework Core |
+| Database | PostgreSQL 16, declarative schema (no EF migrations) |
+| End-to-end tests | Cypress 13 |
+| Back-end tests | xUnit |
+| Front-end tests | Vitest, through the Angular CLI |
+| Packaging | Docker and Docker Compose |
+
+```
+┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
+│   Angular UI    │ ---> │    .NET API     │ ---> │  PostgreSQL 16  │
+│    (nom-ui)     │      │    (nom-api)    │      │                 │
+│                 │      │                 │      │  declarative    │
+│  nginx in prod  │      │  JWT auth       │      │  schema + seed  │
+│  proxies /api   │      │  /health        │      │                 │
+└─────────────────┘      └─────────────────┘      └─────────────────┘
+```
+
+Rate limiting, audit logging, and session handling are in-process in the API. The API will register
+a Redis health check if a `RedisConnection` connection string is configured, but no Redis service
+ships in any of the compose files.
+
+## Repository layout
+
+```
+nom-api/                .NET solution
+  Nom.Api/              Controllers, middleware, startup
+  Nom.Data/             EF Core entities and configurations
+  Nom.Orch/             Orchestration and business logic services
+  Nom.Import/           Import, enrichment, and seeding utilities
+  Nom.Api.Tests/        xUnit tests
+nom-ui/                 Angular application
+  src/app/              Feature areas: plan, recipe, shopping, pantry, household, admin, ...
+nom-test/               Cypress end-to-end and API suites
+db/                     schema.sql, seed.sql, and the apply/diff tooling
+ops/                    Python tools for food-catalog cross-checking and normalization
+docs/                   Architecture, requirements, development, and workflow documentation
+data-analysis/          Ad hoc analysis of catalog and nutrition data
+docker-compose.yml      Production stack
+docker-compose.dev*.yml Development stacks
+dev.sh / dev.bat        Development helper scripts
+.github/workflows/      Back-end, front-end, e2e, and packaging CI
+```
+
+## Running it locally
+
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) or Docker Engine with Compose —
+  needed for every path, because PostgreSQL always runs in a container
+- [.NET 9.0 SDK](https://dotnet.microsoft.com/download) — only for running the API natively
+- [Node.js 20+](https://nodejs.org/) — only for running the UI natively
+
+### Start the database
 
 ```bash
-# Clone and setup
-git clone <repository-url>
-cd nom
+git clone https://github.com/armoryworks/nutrition-optimization-machine.git
+cd nutrition-optimization-machine
 
-# Create environment file
-cp .env.example .env
-# Edit .env with your production values
-
-# Deploy with Docker
-docker-compose up -d
-
-# Verify deployment
-curl http://localhost/health
+./dev.sh start          # Linux/macOS; use dev.bat start on Windows
 ```
 
-### **Development Setup**
+That brings up PostgreSQL on `localhost:5432` (database `nom_dev`, user `nom`, password
+`dev_password`). On the first start the container applies `db/schema.sql` and `db/seed.sql`
+automatically — there is nothing to migrate. `./dev.sh start-tools` adds pgAdmin on
+`http://localhost:5050`.
 
-```bash
-# Backend
-cd nom-api
-dotnet restore
-dotnet run
-
-# Frontend (new terminal)
-cd nom-ui
-npm install
-ng serve
-
-# Testing (new terminal)
-cd nom-test
-npm install
-npm run test:integration
-```
-
-## **Architecture**
-
-### **Technology Stack**
-
-| Component      | Technology | Version |
-| -------------- | ---------- | ------- |
-| **Frontend**   | Angular    | 17+     |
-| **Backend**    | .NET       | 9.0     |
-| **Database**   | PostgreSQL | 16+     |
-| **Cache**      | Redis      | 7+      |
-| **Testing**    | Cypress    | Latest  |
-| **Deployment** | Docker     | Latest  |
-
-### **System Architecture**
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Angular UI    │--->│   .NET API      │--->│  PostgreSQL DB  │
-│  (nom-ui)       │    │  (nom-api)      │    │                 │
-│                 │    │                 │    │                 │
-│ - Material 3    │    │ - RESTful API   │    │ - Entity Data   │
-│ - Standalone    │    │ - JWT Auth      │    │ - Migrations    │
-│ - Base Components│   │ - Health Checks │    │ - Seeding       │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │              ┌─────────────────┐             │
-         │              │     Redis       │             │
-         └──────────────│    (Cache)      │─────────────┘
-                        │                 │
-                        │ - Sessions      │
-                        │ - Rate Limiting │
-                        └─────────────────┘
-```
-
-## **Key Features**
-
-### **Core Functionality**
-
-- **Recipe Management** - Create, edit, organize recipes with AI assistance
-- **Ingredient Database** - 8,000+ high-quality ingredients with nutrition data
-- **Meal Planning** - Smart meal planning with dietary restrictions
-- **Shopping Lists** - Auto-generated lists from meal plans
-- **Nutrition Tracking** - Comprehensive nutrient analysis and goals
-
-### **Advanced Features**
-
-- **AI Recipe Suggestions** - Intelligent recipe recommendations
-- **Content Curation** - Community-driven quality control
-- **Privacy Compliance** - Full GDPR compliance with data rights
-- **User Onboarding** - Multi-step personalization workflow
-- **Household Management** - Multi-user household support
-- **Web Scraping** - Import recipes from popular sites
-
-### **Production Features**
-
-- **Docker Deployment** - Complete containerization
-- **Health Monitoring** - Comprehensive health checks
-- **Security Hardening** - Multiple security middleware layers
-- **Rate Limiting** - Advanced request throttling
-- **Audit Logging** - Complete request/response logging
-- **CI/CD Pipeline** - Automated testing and deployment
-
-## **Project Structure**
-
-```
-nom/
-├── docs/                        # Complete documentation
-│   ├── architecture/            # System & component architecture
-│   ├── development/             # Development guidelines & patterns
-│   ├── requirements/            # Functional & non-functional requirements
-│   └── workflows/               # Development processes
-├── nom-ui/                      # Angular frontend application
-│   ├── src/app/
-│   │   ├── common/             # Base components & shared utilities
-│   │   ├── recipe/             # Recipe management features
-│   │   ├── meal-plan/          # Meal planning functionality
-│   │   ├── shopping/           # Shopping list management
-│   │   └── person/             # User management & profiles
-├── nom-api/                     # .NET backend API
-│   ├── Nom.Api/                # API controllers & middleware
-│   ├── Nom.Data/               # Entity Framework & database
-│   ├── Nom.Orch/               # Business logic & orchestration
-│   └── Nom.Import/             # Data import & seeding utilities
-├── nom-test/                    # Comprehensive test suite
-│   └── cypress/e2e/            # End-to-end integration tests
-├── docker-compose.yml           # Production deployment
-├── .github/workflows/           # CI/CD automation
-└── README.md                    # This file
-```
-
-## **Development**
-
-### **Prerequisites**
-
-- **Docker Desktop** ([Download](https://www.docker.com/products/docker-desktop/)) -- required for all development paths
-- **.NET 9.0 SDK** ([Download](https://dotnet.microsoft.com/download)) -- only for native development
-- **Node.js 20+** ([Download](https://nodejs.org/)) -- only for native development
-
-### **Option A: Docker Development (Recommended)**
-
-Everything runs in containers -- no local SDK installs required.
-
-**1. Create `.env.dev`** at the repository root:
-
-```bash
-# Database
-POSTGRES_DB=nom_dev
-POSTGRES_USER=nom
-POSTGRES_PASSWORD=dev_password
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-
-# JWT
-JWT_SECRET_KEY=dev_jwt_secret_key_minimum_32_characters_long_for_development
-JWT_ISSUER=NOMApi
-JWT_AUDIENCE=NOMAngular
-JWT_EXPIRATION_MINUTES=1440
-
-# Application
-ASPNETCORE_ENVIRONMENT=Development
-API_PORT=8080
-UI_PORT=4200
-ALLOWED_ORIGINS=http://localhost:4200,http://localhost:4201
-
-# Redis
-REDIS_CONNECTION_STRING=localhost:6379
-
-# pgAdmin (optional, for database browsing)
-PGADMIN_EMAIL=admin@nom.local
-PGADMIN_PASSWORD=admin
-```
-
-**2. Start the stack:**
-
-```bash
-# Windows
-dev.bat start-full
-
-# Linux / macOS
-./dev.sh start-full
-```
-
-**3. Database schema** — nothing to do on first start: the Postgres container
-applies `db/schema.sql` and `db/seed.sql` automatically on initial volume
-creation (declarative schema workflow — see [db/README.md](db/README.md)).
-
-To update an *existing* database after pulling schema changes:
+To update an existing database after pulling schema changes:
 
 ```bash
 ./db/apply.sh --dry-run   # preview the delta
 ./db/apply.sh             # apply it
 ```
 
-**4. Grant admin claims** (first time, after creating your first account):
+See [db/README.md](db/README.md) for how the declarative schema workflow works.
 
-```bash
-docker exec -i nom_postgres_dev psql -U nom -d nom_dev < _GrantInitialAdminClaims.sql
-```
+### Run the API and UI
 
-The app is available at **http://localhost:4200**.
-
-### **Option B: Native Development**
-
-Run PostgreSQL and Redis in Docker; run the API and UI natively for faster iteration.
-
-**1. Start infrastructure:**
-
-```bash
-# Windows
-dev.bat start
-
-# Linux / macOS
-./dev.sh start
-```
-
-**2. Create `nom-api/Nom.Api/appsettings.Development.json`:**
+Create `nom-api/Nom.Api/appsettings.Development.json` (gitignored — never commit real
+credentials):
 
 ```json
 {
@@ -231,38 +131,56 @@ dev.bat start
 }
 ```
 
-> This file is gitignored. Never commit connection strings with real credentials.
-
-**3. Run the API:**
+Then, in two terminals:
 
 ```bash
 cd nom-api
-dotnet run --project Nom.Api/Nom.Api.csproj
+dotnet run --project Nom.Api/Nom.Api.csproj --urls http://localhost:8080
 ```
-
-The API starts at **http://localhost:7053**.
-
-**4. Run the UI:**
 
 ```bash
 cd nom-ui
 npm install
-ng serve
+npm start
 ```
 
-The UI starts at **http://localhost:4200** and proxies API requests to `localhost:7053` via `proxy.config.json`.
+The UI serves on `http://localhost:4200` and proxies `/api` to `http://localhost:8080` per
+`nom-ui/proxy.config.json`. The `--urls` flag above matters: `launchSettings.json` otherwise starts
+the API on port 7053, which the proxy does not point at.
 
-### **Local Configuration Files Reference**
+### Full stack in containers
 
-These files are gitignored and must be created locally. None should ever be committed.
+`docker-compose.dev.full.yml` runs PostgreSQL, the API, and the UI together with hot reload. On
+Windows, `dev.bat start-full` starts it. On Linux and macOS there is no `dev.sh` equivalent yet,
+so invoke Compose directly:
 
-| File | When Needed | Purpose |
-|------|-------------|---------|
-| `.env.dev` | Docker dev | Environment variables for `docker-compose.dev.full.yml` |
-| `nom-api/Nom.Api/appsettings.Development.json` | Native dev | API connection string and local overrides |
-| `nom-test/cypress.env.json` | Running Cypress tests | Test runner base URLs (see below) |
+```bash
+docker compose -f docker-compose.dev.full.yml up -d
+```
 
-**`nom-test/cypress.env.json`** template:
+Only `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `PGADMIN_EMAIL`, and `PGADMIN_PASSWORD`
+are read from the environment by that file; everything else is baked in. The UI comes up on
+**http://localhost:4210** and the API on **http://localhost:8080**.
+
+### Grant yourself admin
+
+After registering your first account:
+
+```bash
+docker exec -i nom_postgres_dev psql -U nom -d nom_dev < _GrantInitialAdminClaims.sql
+```
+
+## Testing
+
+```bash
+cd nom-api && dotnet test        # xUnit, Nom.Api.Tests
+cd nom-ui  && npm test           # Vitest via the Angular CLI
+cd nom-ui  && npm run lint       # ESLint
+cd nom-ui  && npm run lint:testids       # data-testid coverage ratchet
+cd nom-test && npm install && npm test   # Cypress, against a running stack
+```
+
+Cypress needs `nom-test/cypress.env.json`, which is gitignored:
 
 ```json
 {
@@ -271,137 +189,74 @@ These files are gitignored and must be created locally. None should ever be comm
 }
 ```
 
-### **Development Workflow**
+`nom-test` also has focused runs — `npm run test:daily`, `test:admin`, `test:anon`,
+`test:screenshots` — and `--headed` variants of each. See [nom-test/README.md](nom-test/README.md).
+`./dev.sh test-start`, `test-run`, and `test-stop` drive the containerized test environment in
+`docker-compose.test.yml`.
 
-1. **Read Documentation** - Start with [docs/README.md](docs/README.md)
-2. **Follow Standards** - Review [Development Standards](docs/DEVELOPMENT_STANDARDS.md) (**MANDATORY**)
-3. **Use Base Components** - Follow [Component Architecture](docs/architecture/component-architecture.md)
-4. **Test Thoroughly** - Run [comprehensive test suite](nom-test/README.md)
+## Deployment
 
-### **Code Quality Standards**
-
-- **File Separation** - One class/interface per file (strictly enforced)
-- **Naming Conventions** - Abstract classes use `_` prefix, interfaces use `I` prefix
-- **Component Architecture** - Use base components for consistency
-- **Modern Patterns** - Angular standalone components, .NET 9 features
-- **Security First** - Input validation, rate limiting, audit logging
-
-## **Testing**
-
-### **Test Categories**
-
-| Test Type       | Framework | Coverage               | Command                    |
-| --------------- | --------- | ---------------------- | -------------------------- |
-| **Integration** | Cypress   | Complete user journeys | `npm run test:integration` |
-| **API Tests**   | Cypress   | All endpoints          | `npm run test:api`         |
-| **Unit Tests**  | xUnit     | Backend logic          | `dotnet test`              |
-| **E2E Tests**   | Cypress   | Frontend workflows     | `npm run test`             |
-
-### **Quality Metrics**
-
-- **91% Production Ready** - Based on comprehensive assessment
-- **Comprehensive Test Coverage** - All critical paths tested
-- **Security Validated** - Multiple security layers implemented
-- **Performance Optimized** - Rate limiting, caching, health checks
-
-## **Deployment**
-
-### **Production Deployment**
-
-The application is **production-ready** and can be deployed immediately:
+`docker-compose.yml` builds and runs the API, the nginx-served UI, and PostgreSQL 16. Copy
+`.env.example` to `.env` and fill it in first:
 
 ```bash
-# Quick deployment
-docker-compose up -d
-
-# Verify health
-curl http://localhost/health
+cp .env.example .env
+docker compose up -d
+curl http://localhost:8080/health     # API health, honoring API_PORT
 ```
 
-See [Production Deployment Guide](docs/PRODUCTION_DEPLOYMENT.md) for complete instructions.
+The variables that matter are `POSTGRES_PASSWORD`, `ALLOWED_ORIGINS` (CORS fails closed in
+Production, so this must be set), `FRONTEND_URL` for links in account email, `API_PORT` and
+`UI_PORT`, and the optional `EMAIL_SMTP_*` block — leaving `EMAIL_SMTP_HOST` empty disables
+outbound email.
 
-### **Environment Configuration**
+Sign-in issues ASP.NET Core Identity bearer tokens, which are protected by Data Protection
+rather than a hand-configured signing key — there is no `Jwt:Key` to set. One consequence is
+worth knowing before you deploy: the compose stack does not persist the Data Protection
+keyring, so it is regenerated on every container start. Tokens issued before a restart stop
+working, and two replicas will not accept each other's tokens. Persist the keyring (a volume
+plus `PersistKeysToFileSystem`, or a shared store) before running more than one instance or
+expecting sessions to survive a restart.
 
-Create `.env` file with your production values:
+[docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md) covers the full production
+procedure.
 
-```bash
-# Database
-POSTGRES_PASSWORD=your_secure_password
-JWT_SECRET_KEY=your_jwt_secret_key
+## Documentation
 
-# Application
-ALLOWED_ORIGINS=https://yourdomain.com
-ASPNETCORE_ENVIRONMENT=Production
-```
+[docs/README.md](docs/README.md) is the index. The most useful entry points:
 
-## **Documentation**
+- [System architecture](docs/architecture/system-architecture.md) and
+  [data architecture](docs/architecture/data-architecture.md)
+- [Development standards](docs/DEVELOPMENT_STANDARDS.md) — naming, file separation, and conventions
+  this codebase enforces
+- [Component architecture](docs/architecture/component-architecture.md) and the
+  [component quick reference](docs/architecture/component-quick-reference.md) for the Angular side
+- [C# and Entity Framework patterns](docs/architecture/csharp-entity-framework-patterns.md) for the
+  API side
+- [API reference](docs/API_REFERENCE.md) and [user guide](docs/USER_GUIDE.md)
+- [Troubleshooting](docs/development/troubleshooting.md)
 
-### **Getting Started**
+## Contributing
 
-- **[Documentation Index](docs/README.md)** - Complete documentation overview
-- **[System Architecture](docs/architecture/system-architecture.md)** - Technical architecture
-- **[Development Guide](docs/development/conventions.md)** - Coding standards
-- **[Testing Guide](nom-test/README.md)** - Comprehensive testing
+Read [docs/DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md) before your first change; it is
+enforced in review. In short: one class or interface per file, `I` prefix on interfaces and `_`
+prefix on abstract classes, and Angular standalone components built on the shared base components.
 
-### **Architecture & Patterns**
+Two mechanical rules are enforced by tooling rather than by review:
 
-- **[Component Architecture](docs/architecture/component-architecture.md)** - Frontend patterns
-- **[Component Library](docs/architecture/component-library.md)** - Dynamic data components
-- **[Quick Reference](docs/architecture/component-quick-reference.md)** - Fast lookup guide
-- **[C# Patterns](docs/architecture/csharp-entity-framework-patterns.md)** - Backend patterns
+- **Schema is declarative.** `db/schema.sql` is the source of truth and there are no EF migrations.
+  After changing entities in `Nom.Data`, run `./db/sync-from-model.sh` to regenerate it;
+  `--check` is the CI drift guard.
+- **Every interactive element carries a `data-testid`.** `npm run lint:testids` in `nom-ui` is a
+  per-file ratchet: new templates must be fully covered, and baselined templates may not regress.
 
-### **Migration & Development**
+Changes need tests and should keep the documentation current.
 
-- **[Migration Guide](docs/development/migration-guide.md)** - Component migration patterns
-- **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** - **MANDATORY** conventions
-- **[Troubleshooting](docs/development/troubleshooting.md)** - Common issues & solutions
+## Issues
 
-## **Contributing**
+Report bugs and request features at
+[github.com/armoryworks/nutrition-optimization-machine/issues](https://github.com/armoryworks/nutrition-optimization-machine/issues).
 
-### **Development Process**
+## License
 
-1. **Follow Architecture Patterns** - Use established base components
-2. **Maintain Code Quality** - Follow naming conventions and file separation rules
-3. **Test Thoroughly** - All changes must include appropriate tests
-4. **Update Documentation** - Keep documentation current with changes
-5. **Security First** - Consider security implications of all changes
-
-### **Code Review Checklist**
-
-- [ ] Follows [Development Standards](docs/DEVELOPMENT_STANDARDS.md)
-- [ ] Uses appropriate base components
-- [ ] Includes comprehensive tests
-- [ ] Updates relevant documentation
-- [ ] Passes all CI/CD checks
-
-## **Security**
-
-- **JWT Authentication** - Secure token-based authentication
-- **Rate Limiting** - Advanced request throttling
-- **Security Headers** - CSP, HSTS, XSS protection
-- **Input Validation** - Comprehensive request validation
-- **Audit Logging** - Complete request/response logging
-- **Container Security** - Non-root containers, security scanning
-
-## **Performance**
-
-- **Database Optimization** - Efficient queries, proper indexing
-- **Caching Strategy** - Redis caching for sessions and rate limiting
-- **Health Monitoring** - Comprehensive health checks
-- **Resource Management** - Proper disposal patterns
-- **Bundle Optimization** - Efficient frontend builds
-
-## **License**
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
----
-
-## **Need Help?**
-
-- **Documentation**: [docs/README.md](docs/README.md)
-- **Issues**: Check [troubleshooting guide](docs/development/troubleshooting.md)
-- **Testing**: [nom-test/README.md](nom-test/README.md)
-- **Deployment**: [docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md)
-
-**Ready to deploy? Your application is 91% production-ready!**
+Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
