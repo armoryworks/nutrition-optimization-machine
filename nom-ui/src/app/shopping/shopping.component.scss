@@ -203,6 +203,12 @@
   flex: 1;
   font-size: vars.$font-size-md;
   color: var(--mat-sys-on-surface);
+
+  .nom-shopping__item-sources {
+    display: block;
+    font-size: vars.$font-size-xs;
+    color: var(--mat-sys-on-surface-variant);
+  }
   min-width: 0;
 }
 

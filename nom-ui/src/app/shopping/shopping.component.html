@@ -130,7 +130,25 @@
                 [checked]="isChecked(item.checkKey)"
                 (change)="toggleChecked(item.checkKey)">
               </mat-checkbox>
-              <span class="nom-shopping__item-name">{{ item.name }}</span>
+              <span class="nom-shopping__item-name">
+                <nom-entity-link route="/search"
+                                 [label]="item.name"
+                                 [queryParams]="{ ingredientId: item.ingredientId, ingredient: item.name }"
+                                 testid="shopping-item-ingredient-link"
+                                 [ariaLabel]="'Recipes with ' + item.name" />
+                @if (item.sourceRecipes.length > 0) {
+                  <span class="nom-shopping__item-sources" data-testid="shopping-item-sources">
+                    from
+                    @for (r of item.sourceRecipes; track r.id; let last = $last) {
+                      <nom-entity-link [route]="['/recipe', r.id]"
+                                       [label]="r.name"
+                                       [previewRecipeId]="r.id"
+                                       testid="shopping-item-recipe-link"
+                                       [ariaLabel]="'Open recipe ' + r.name" />@if (!last) {<span>, </span>}
+                    }
+                  </span>
+                }
+              </span>
               @if (editingItem() === item.checkKey) {
                 <input class="nom-shopping__item-qty-input"
                        [value]="quantityOverrides().get(item.checkKey) ?? ''"

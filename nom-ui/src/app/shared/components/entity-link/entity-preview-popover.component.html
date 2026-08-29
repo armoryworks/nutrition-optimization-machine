@@ -1,0 +1,52 @@
+<div class="nom-preview" data-testid="entity-preview-popover">
+  <button type="button" class="nom-preview__close" (click)="closed.emit()"
+          aria-label="Close preview" data-testid="entity-preview-close-btn">
+    <mat-icon>close</mat-icon>
+  </button>
+  @if (recipe(); as r) {
+    @if (r.imageUrl) {
+      <img class="nom-preview__img" [src]="r.imageUrl" [alt]="r.name" loading="lazy" />
+    }
+    <div class="nom-preview__body">
+      <span class="nom-preview__name">{{ r.name }}</span>
+      @if (r.description) {
+        <p class="nom-preview__desc">{{ r.description }}</p>
+      }
+      <div class="nom-preview__meta">
+        @if (totalMinutes(); as mins) {
+          <span class="nom-preview__meta-item"><mat-icon>schedule</mat-icon>{{ mins }} min</span>
+        }
+        @if (r.servings) {
+          <span class="nom-preview__meta-item"><mat-icon>restaurant</mat-icon>{{ r.servings }} servings</span>
+        }
+        @if (r.rating > 0) {
+          <span class="nom-preview__meta-item"><mat-icon>star</mat-icon>{{ r.rating }}</span>
+        }
+      </div>
+      @if (route(); as target) {
+        <a class="nom-preview__open-link"
+           [routerLink]="target"
+           [queryParams]="queryParams()"
+           (click)="closed.emit()"
+           data-testid="entity-preview-open-link">
+          Open recipe <mat-icon>arrow_forward</mat-icon>
+        </a>
+      }
+    </div>
+  } @else if (loadFailed()) {
+    <div class="nom-preview__body">
+      <span class="nom-preview__body--empty">Preview unavailable</span>
+      @if (route(); as target) {
+        <a class="nom-preview__open-link"
+           [routerLink]="target"
+           [queryParams]="queryParams()"
+           (click)="closed.emit()"
+           data-testid="entity-preview-open-link">
+          Open recipe <mat-icon>arrow_forward</mat-icon>
+        </a>
+      }
+    </div>
+  } @else {
+    <div class="nom-preview__body nom-preview__body--empty">Loading…</div>
+  }
+</div>

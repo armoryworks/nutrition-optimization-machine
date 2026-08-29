@@ -18,6 +18,8 @@ export interface ShoppingItem {
   // Retail package info for quantity override scaling
   retailPackage: RetailPackagingResponse | null;
   retailPackageCount: number;
+  /** Planned recipes this line derives from ("why is this on my list"). */
+  sourceRecipes: { id: number; name: string }[];
 }
 
 export interface ShoppingDepartment {

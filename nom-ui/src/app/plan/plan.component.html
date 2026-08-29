@@ -169,7 +169,21 @@
                     }
                     <span class="nom-plan__cell-recipe"
                           [class.nom-plan__cell-recipe--fooditem]="entry.ingredientId">
-                      {{ entry.recipeName ?? entry.ingredientName ?? entry.title }}
+                      @if (entry.recipeId) {
+                        <nom-entity-link [route]="['/recipe', entry.recipeId]"
+                                         [label]="entry.recipeName ?? entry.title ?? 'Recipe'"
+                                         [previewRecipeId]="entry.recipeId"
+                                         testid="plan-cell-recipe-link"
+                                         [ariaLabel]="'Open ' + (entry.recipeName ?? 'recipe')" />
+                      } @else if (entry.ingredientId && entry.ingredientName) {
+                        <nom-entity-link route="/search"
+                                         [label]="entry.ingredientName"
+                                         [queryParams]="{ ingredientId: entry.ingredientId, ingredient: entry.ingredientName }"
+                                         testid="plan-cell-ingredient-link"
+                                         [ariaLabel]="'Recipes with ' + entry.ingredientName" />
+                      } @else {
+                        {{ entry.recipeName ?? entry.ingredientName ?? entry.title }}
+                      }
                       @if (entry.ingredientId && entry.quantity && entry.quantity !== 1) {
                         <span class="nom-plan__cell-qty">×{{ entry.quantity }}</span>
                       }

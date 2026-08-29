@@ -44,6 +44,7 @@ namespace Nom.Orch.Models.Recipe
         public string RestrictionName { get; set; } = string.Empty;
         public string? RestrictionType { get; set; }
         public int? Severity { get; set; }
+        public long? IngredientId { get; set; }
         public string IngredientName { get; set; } = string.Empty;
         /// <summary>Why the hit fired, from the category criterion ("high oxalate").</summary>
         public string? Notes { get; set; }

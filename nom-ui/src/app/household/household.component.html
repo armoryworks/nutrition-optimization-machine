@@ -102,12 +102,16 @@
             <span class="nom-household__member-name">{{ primaryUserName() }} (You)</span>
           </div>
           <div class="nom-household__member-status">
-            <span class="nom-household__status-badge nom-household__status-badge--done">
-              <mat-icon>check_circle</mat-icon> Profile
-            </span>
-            <span class="nom-household__status-badge nom-household__status-badge--done">
-              <mat-icon>check_circle</mat-icon> Dietary
-            </span>
+            <a class="nom-household__status-badge nom-household__status-badge--done nom-household__status-badge--clickable"
+               routerLink="/profile" title="Edit your profile"
+               data-testid="household-primary-profile-link">
+              <mat-icon>check_circle</mat-icon> Profile <mat-icon class="nom-household__badge-edit">edit</mat-icon>
+            </a>
+            <a class="nom-household__status-badge nom-household__status-badge--done nom-household__status-badge--clickable"
+               routerLink="/restrictions" title="Edit your dietary restrictions"
+               data-testid="household-primary-dietary-link">
+              <mat-icon>check_circle</mat-icon> Dietary <mat-icon class="nom-household__badge-edit">edit</mat-icon>
+            </a>
           </div>
         </div>
 

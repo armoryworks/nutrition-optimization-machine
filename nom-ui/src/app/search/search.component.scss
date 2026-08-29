@@ -25,6 +25,29 @@
   color: var(--mat-sys-on-surface-variant);
 }
 
+.nom-search__filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  margin-left: auto;
+  padding: 2px vars.$spacing-2;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-secondary-container);
+  background: var(--mat-sys-secondary-container);
+  border-radius: 999px;
+  text-decoration: none;
+
+  &:hover .nom-search__filter-chip-icon {
+    color: var(--mat-sys-primary);
+  }
+}
+
+.nom-search__filter-chip-icon {
+  font-size: vars.$font-size-md;
+  width: vars.$font-size-md;
+  height: vars.$font-size-md;
+}
+
 // Results grid
 .nom-search__grid {
   display: grid;
