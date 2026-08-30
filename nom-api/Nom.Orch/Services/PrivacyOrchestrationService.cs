@@ -7,6 +7,7 @@ using Nom.Data;
 using Nom.Data.Privacy;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Privacy;
+using Nom.Orch.UtilityInterfaces;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -19,17 +20,24 @@ namespace Nom.Orch.Services
         private readonly IBackgroundTaskQueueOrchestrationService _taskQueue;
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<PrivacyOrchestrationService> _logger;
+        private readonly ISystemEmailService _email;
+
+        // Account administration, not recipe curation: a data-subject request is a
+        // user-account matter.
+        private const string AdminClaimType = "CanManageUserRoles";
 
         public PrivacyOrchestrationService(
             ApplicationDbContext dbContext,
             IBackgroundTaskQueueOrchestrationService taskQueue,
             IServiceProvider serviceProvider,
-            ILogger<PrivacyOrchestrationService> logger)
+            ILogger<PrivacyOrchestrationService> logger,
+            ISystemEmailService email)
         {
             _dbContext = dbContext;
             _taskQueue = taskQueue;
             _serviceProvider = serviceProvider;
             _logger = logger;
+            _email = email;
         }
 
         public async Task<bool> UpdateConsentAsync(UpdateConsentRequest request, long personId)
@@ -83,6 +91,7 @@ namespace Nom.Orch.Services
             };
             _dbContext.PrivacyRequests.Add(privacyRequest);
             await _dbContext.SaveChangesAsync();
+            await NotifyAdminsOfPrivacyRequestAsync(privacyRequest, personId);
 
             _taskQueue.QueueBackgroundWorkItem(async token =>
             {
@@ -131,6 +140,7 @@ namespace Nom.Orch.Services
             };
             _dbContext.PrivacyRequests.Add(privacyRequest);
             await _dbContext.SaveChangesAsync();
+            await NotifyAdminsOfPrivacyRequestAsync(privacyRequest, personId);
 
             _taskQueue.QueueBackgroundWorkItem(async token =>
             {
@@ -162,5 +172,62 @@ namespace Nom.Orch.Services
                 Status = "Pending"
             };
         }
+
+        /// <summary>
+        /// Emails every account admin that a data-subject request is waiting. The privacy
+        /// policy promises a person responds within 30 days, and nothing else surfaces these
+        /// rows - without this the promise has no process behind it.
+        /// Carries identifiers only, never the subject's data: the whole point of the
+        /// accompanying export fix is that this material does not belong in transit or in logs.
+        /// Notification failures are logged and never block the request itself.
+        /// </summary>
+        private async Task NotifyAdminsOfPrivacyRequestAsync(PrivacyRequestEntity request, long personId)
+        {
+            try
+            {
+                var adminUserIds = await _dbContext.UserClaims
+                    .Where(c => c.ClaimType == AdminClaimType && c.ClaimValue == "true")
+                    .Select(c => c.UserId)
+                    .Distinct()
+                    .ToListAsync();
+
+                var admins = await _dbContext.Persons
+                    .Where(p => p.UserId != null && adminUserIds.Contains(p.UserId))
+                    .Select(p => new { p.Id, p.Email })
+                    .ToListAsync();
+
+                if (admins.Count == 0)
+                {
+                    _logger.LogWarning(
+                        "Privacy request {RequestId} ({RequestType}) has no account admin to notify.",
+                        request.Id, request.RequestType);
+                    return;
+                }
+
+                var subject = $"NOM: {request.RequestType} request #{request.Id} needs a response";
+                var body = $@"
+<html><body>
+<h2>Data-subject request</h2>
+<p><strong>Type:</strong> {request.RequestType}</p>
+<p><strong>Request ID:</strong> {request.Id}</p>
+<p><strong>Person ID:</strong> {personId}</p>
+<p><strong>Received:</strong> {request.RequestTimestamp:u}</p>
+<p>The published privacy policy commits to responding within 30 days. Deletion is applied
+automatically; an export has to be produced and sent by hand from the PrivacyRequests record.</p>
+<p>No personal data is included in this message deliberately.</p>
+</body></html>";
+
+                foreach (var admin in admins.Where(a => !string.IsNullOrWhiteSpace(a.Email)))
+                {
+                    await _email.SendAsync(admin.Email!, subject, body);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to notify admins of privacy request {RequestId}", request.Id);
+            }
+        }
+
     }
 }

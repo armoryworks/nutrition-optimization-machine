@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Orch.Interfaces;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Nom.Orch.Services
@@ -45,11 +44,14 @@ namespace Nom.Orch.Services
                 return;
             }
 
-            var jsonData = JsonSerializer.Serialize(personData, new JsonSerializerOptions { WriteIndented = true });
-
-            _logger.LogInformation("--- DATA EXPORT FOR PERSON ID: {PersonId} ---", personId);
-            _logger.LogInformation("{JsonData}", jsonData);
-            _logger.LogInformation("--- END OF DATA EXPORT ---");
+            // Deliberately NOT logged. This projection carries Restrictions - allergies,
+            // intolerances, medically motivated diets - which is health-adjacent data, and the
+            // privacy policy describes operational logs as holding request metadata only.
+            // Writing the payload here made pressing "Export" the thing that leaked it.
+            //
+            // The export itself is not implemented here: the request is recorded in
+            // PrivacyRequests and fulfilled from there. Deliver it from the record, never
+            // from a log scrape.
         }
     }
 }
