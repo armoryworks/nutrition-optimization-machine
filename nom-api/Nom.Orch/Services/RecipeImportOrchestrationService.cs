@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Recipe;
@@ -105,17 +106,29 @@ namespace Nom.Orch.Services
                     AuthorId = authorId,
                     CurationStatusId = (long)CurationStatusEnum.NonCurated, // Default to NonCurated
                     Version = 1,
-                    IsOcrRecipe = true
+                    IsOcrRecipe = true,
+                    PrepTime = Clamp(ocrData.PrepTime, 100),
+                    CookTime = Clamp(ocrData.CookTime, 100),
+                    TotalTime = Clamp(ocrData.TotalTime, 100),
+                    RecipeYield = Clamp(ocrData.Yield, 100),
+                    // The steps below are transcribed verbatim from someone's
+                    // cookbook page, so the same public-listing gate the scraper
+                    // applies to source prose applies here.
+                    ContainsSourceProse = ocrData.Instructions.Count > 0,
                 };
 
                 _context.Recipes.Add(recipe);
+                await _context.SaveChangesAsync();
+
+                var stepCount = AddSteps(recipe.Id, ocrData.Instructions);
+                var (matched, unmatched) = await AddIngredientLinesAsync(recipe.Id, ocrData.Ingredients);
                 await _context.SaveChangesAsync();
 
                 return new RecipeCreateResponseModel
                 {
                     Id = (int)recipe.Id,
                     Name = recipe.Name,
-                    Message = "Recipe imported from image successfully"
+                    Message = BuildImportSummary(stepCount, matched, unmatched),
                 };
             }
             catch (Exception ex)
@@ -123,6 +136,135 @@ namespace Nom.Orch.Services
                 _logger.LogError(ex, "Failed to import recipe from image");
                 throw;
             }
+        }
+
+        private const long DefaultMeasurementId = 1L;
+
+        private static string? Clamp(string? value, int maxLength) =>
+            string.IsNullOrWhiteSpace(value) ? null
+                : value.Length <= maxLength ? value : value[..maxLength].TrimEnd();
+
+        private int AddSteps(long recipeId, IEnumerable<string> instructions)
+        {
+            var stepNumber = 1;
+            foreach (var instruction in instructions.Where(i => !string.IsNullOrWhiteSpace(i)))
+            {
+                _context.RecipeSteps.Add(new RecipeStepEntity
+                {
+                    RecipeId = recipeId,
+                    Summary = Clamp(instruction, 255)!,
+                    Description = Clamp(instruction, 2047)!,
+                    StepNumber = stepNumber++,
+                });
+            }
+
+            return stepNumber - 1;
+        }
+
+        /// <summary>
+        /// Links OCR ingredient lines to ingredients that already exist in the
+        /// catalog. OCR yields whole lines ("2 cups all-purpose flour") and there
+        /// is no line parser, so a new catalog entry is never created from one —
+        /// that would fill the catalog with quantities. Unmatched lines are
+        /// reported to the caller instead of being dropped.
+        /// </summary>
+        private async Task<(int Matched, List<string> Unmatched)> AddIngredientLinesAsync(
+            long recipeId, IReadOnlyCollection<string> lines)
+        {
+            var unmatched = new List<string>();
+            var cleaned = lines.Where(l => !string.IsNullOrWhiteSpace(l)).Select(l => l.Trim()).ToList();
+            if (cleaned.Count == 0)
+            {
+                return (0, unmatched);
+            }
+
+            // One pass over the catalog rather than a query per line. Longest
+            // name first so "all-purpose flour" wins over "flour".
+            var catalog = await _context.Ingredients
+                .Where(i => !i.IsDeleted && i.Name.Length >= 3)
+                .Select(i => new { i.Id, i.Name })
+                .ToListAsync();
+
+            var aliases = await _context.IngredientAliases
+                .Where(a => !a.IsDeleted && a.AliasName.Length >= 3)
+                .Select(a => new { Id = a.IngredientId, Name = a.AliasName })
+                .ToListAsync();
+
+            var candidates = catalog.Concat(aliases)
+                .Select(c => new { c.Id, Lowered = c.Name.ToLowerInvariant() })
+                .OrderByDescending(c => c.Lowered.Length)
+                .ToList();
+
+            var rows = new Dictionary<long, RecipeIngredientEntity>();
+            foreach (var line in cleaned)
+            {
+                var lowered = line.ToLowerInvariant();
+                var hit = candidates.FirstOrDefault(c => ContainsWord(lowered, c.Lowered));
+                if (hit == null)
+                {
+                    unmatched.Add(line);
+                    continue;
+                }
+
+                // Same convention as the scraper: 0 means "not parsed", the raw
+                // line holds the truth, and vetting flags these for review.
+                if (rows.TryGetValue(hit.Id, out var existing))
+                {
+                    existing.RawLine = Clamp($"{existing.RawLine} + {line}", 2047)!;
+                    continue;
+                }
+
+                var row = new RecipeIngredientEntity
+                {
+                    RecipeId = recipeId,
+                    IngredientId = hit.Id,
+                    Quantity = 0m,
+                    MeasurementId = DefaultMeasurementId,
+                    RawLine = Clamp(line, 2047)!,
+                };
+                rows[hit.Id] = row;
+                _context.RecipeIngredients.Add(row);
+            }
+
+            return (rows.Count, unmatched);
+        }
+
+        private static bool ContainsWord(string haystack, string needle)
+        {
+            var index = haystack.IndexOf(needle, StringComparison.Ordinal);
+            while (index >= 0)
+            {
+                var startsClean = index == 0 || !char.IsLetterOrDigit(haystack[index - 1]);
+                var endIndex = index + needle.Length;
+                var endsClean = endIndex == haystack.Length || !char.IsLetterOrDigit(haystack[endIndex]);
+                if (startsClean && endsClean)
+                {
+                    return true;
+                }
+
+                index = haystack.IndexOf(needle, index + 1, StringComparison.Ordinal);
+            }
+
+            return false;
+        }
+
+        private static string BuildImportSummary(int steps, int matched, List<string> unmatched)
+        {
+            var parts = new List<string>
+            {
+                $"{steps} step{(steps == 1 ? "" : "s")}",
+                $"{matched} ingredient{(matched == 1 ? "" : "s")}",
+            };
+
+            var summary = $"Recipe imported from image: {string.Join(", ", parts)}.";
+            if (unmatched.Count > 0)
+            {
+                summary += $" {unmatched.Count} ingredient line{(unmatched.Count == 1 ? "" : "s")} " +
+                    $"could not be matched to the catalog and need{(unmatched.Count == 1 ? "s" : "")} to be added by hand: " +
+                    string.Join("; ", unmatched.Take(10));
+            }
+
+            return summary;
         }
 
         public async Task<RecipeCreateResponseModel> ImportFromHtmlOrJsonAsync(string htmlOrJson, long authorId)
