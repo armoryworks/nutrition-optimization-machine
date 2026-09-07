@@ -75,7 +75,12 @@ builder.Services.AddControllers()
     .AddJsonOptions(opts =>
         opts.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    // Identity's MapIdentityApi contracts collide with ours by short name
+    // (RegisterRequest, LoginRequest, ...), so schema ids must be fully qualified.
+    options.CustomSchemaIds(type => type.FullName?.Replace('+', '.'));
+});
 
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
@@ -428,14 +433,16 @@ var forwardedHeaderOptions = new ForwardedHeadersOptions
 // An EMPTY known-proxy list means "trust nothing", not "trust everything", so
 // the trusted hops must be named: the container network the proxy reaches us
 // over, and the LAN it lives on. The API is never exposed publicly.
+// ASPDEPR005: KnownNetworks is obsolete in .NET 10 — KnownIPNetworks takes the
+// BCL System.Net.IPNetwork instead of the ASP.NET Core one.
 foreach (var network in new[]
 {
-    new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("10.0.0.0"), 8),
-    new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("172.16.0.0"), 12),
-    new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("192.168.0.0"), 16),
+    new System.Net.IPNetwork(System.Net.IPAddress.Parse("10.0.0.0"), 8),
+    new System.Net.IPNetwork(System.Net.IPAddress.Parse("172.16.0.0"), 12),
+    new System.Net.IPNetwork(System.Net.IPAddress.Parse("192.168.0.0"), 16),
 })
 {
-    forwardedHeaderOptions.KnownNetworks.Add(network);
+    forwardedHeaderOptions.KnownIPNetworks.Add(network);
 }
 
 app.UseForwardedHeaders(forwardedHeaderOptions);

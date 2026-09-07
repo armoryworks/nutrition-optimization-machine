@@ -701,7 +701,7 @@ public class DataEncryptionService
 
 ```dockerfile
 # Multi-stage build for security
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy and restore dependencies
@@ -717,7 +717,7 @@ RUN dotnet build "Nom.Api.csproj" -c Release -o /app/build
 RUN dotnet publish "Nom.Api.csproj" -c Release -o /app/publish
 
 # Runtime stage with security hardening
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 
 # Create non-root user
 RUN groupadd -r nomapp && useradd -r -g nomapp nomapp

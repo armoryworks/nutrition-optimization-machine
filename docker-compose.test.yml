@@ -6,7 +6,7 @@ services:
   # PostgreSQL Database for Testing
   postgres-test:
     container_name: nom_postgres_test
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_TEST_DB:-nom_test}

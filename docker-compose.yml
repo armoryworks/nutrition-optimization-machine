@@ -56,12 +56,15 @@ services:
   # PostgreSQL Database
   postgres:
     container_name: nom_postgres
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nom}
       POSTGRES_USER: ${POSTGRES_USER:-nom}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # PG18 moved the image default to /var/lib/postgresql/18/docker; keep the
+      # historical path so the existing data volume and runbooks still line up.
+      PGDATA: /var/lib/postgresql/data
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:

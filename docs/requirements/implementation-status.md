@@ -137,7 +137,7 @@ This document provides a comprehensive overview of the current implementation st
 
 **Technical Implementation**:
 
-- **Component Architecture**: Standalone Angular 17 components
+- **Component Architecture**: Standalone Angular 22 components
 - **Reactive Forms**: Comprehensive form validation and state management
 - **Service Integration**: Full integration with backend API services
 - **Error Handling**: User-friendly error messages and recovery
@@ -413,7 +413,7 @@ This document provides a comprehensive overview of the current implementation st
 
 **Integration Patterns Applied**:
 
-- **Angular 17**: Standalone components and modern Angular patterns
+- **Angular 22**: Standalone components and modern Angular patterns
 - **Material 3**: Consistent theming with theme variables
 - **BEM Methodology**: Maintainable CSS/SCSS structure
 - **Type Safety**: Strong typing throughout the application

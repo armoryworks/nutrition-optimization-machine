@@ -13,5 +13,13 @@
     "src/**/*.spec.ts",
     "src/elements-main.ts",
     "src/app/auth/login-embed.component.ts"
-  ]
+  ],
+  "angularCompilerOptions": {
+    "extendedDiagnostics": {
+      "checks": {
+        "nullishCoalescingNotNullable": "suppress",
+        "optionalChainNotNullable": "suppress"
+      }
+    }
+  }
 }

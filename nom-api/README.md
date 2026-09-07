@@ -1,6 +1,6 @@
 # NOM API - Backend Service
 
-The backend API service for the Nutrition Optimization Machine (NOM), built with .NET 9 and Entity Framework Core.
+The backend API service for the Nutrition Optimization Machine (NOM), built with .NET 10 and Entity Framework Core.
 
 [![.NET](https://img.shields.io/badge/.NET-9.0-blue.svg)](https://dotnet.microsoft.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-blue.svg)](https://www.postgresql.org/)
@@ -270,11 +270,11 @@ The API uses an optimized multi-stage build:
 
 ```dockerfile
 # Stage 1: Build
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 # ... build steps
 
 # Stage 2: Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 # ... runtime configuration
 ```
 

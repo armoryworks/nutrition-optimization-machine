@@ -42,17 +42,17 @@ authoritative sources only.
 
 | Component | Technology |
 |---|---|
-| Front end | Angular 21, Angular Material, standalone components |
-| Back end | .NET 9, ASP.NET Core, Entity Framework Core |
-| Database | PostgreSQL 16, declarative schema (no EF migrations) |
-| End-to-end tests | Cypress 13 |
+| Front end | Angular 22, Angular Material, standalone components |
+| Back end | .NET 10, ASP.NET Core, Entity Framework Core |
+| Database | PostgreSQL 18, declarative schema (no EF migrations) |
+| End-to-end tests | Cypress 15 |
 | Back-end tests | xUnit |
 | Front-end tests | Vitest, through the Angular CLI |
 | Packaging | Docker and Docker Compose |
 
 ```
 ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
-│   Angular UI    │ ---> │    .NET API     │ ---> │  PostgreSQL 16  │
+│   Angular UI    │ ---> │    .NET API     │ ---> │  PostgreSQL 18  │
 │    (nom-ui)     │      │    (nom-api)    │      │                 │
 │                 │      │                 │      │  declarative    │
 │  nginx in prod  │      │  JWT auth       │      │  schema + seed  │
@@ -92,7 +92,7 @@ dev.sh / dev.bat        Development helper scripts
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) or Docker Engine with Compose —
   needed for every path, because PostgreSQL always runs in a container
-- [.NET 9.0 SDK](https://dotnet.microsoft.com/download) — only for running the API natively
+- [.NET 10.0 SDK](https://dotnet.microsoft.com/download) — only for running the API natively
 - [Node.js 20+](https://nodejs.org/) — only for running the UI natively
 
 ### Start the database
@@ -196,7 +196,7 @@ Cypress needs `nom-test/cypress.env.json`, which is gitignored:
 
 ## Deployment
 
-`docker-compose.yml` builds and runs the API, the nginx-served UI, and PostgreSQL 16. Copy
+`docker-compose.yml` builds and runs the API, the nginx-served UI, and PostgreSQL 18. Copy
 `.env.example` to `.env` and fill it in first:
 
 ```bash

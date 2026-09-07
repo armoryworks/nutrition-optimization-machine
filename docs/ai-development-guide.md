@@ -6,7 +6,7 @@ This guide provides specific instructions and patterns for AI tools like Cursor 
 
 ### 1. **Project Overview**
 
-- **Framework**: Angular 17 with Standalone Components
+- **Framework**: Angular 22 with Standalone Components
 - **UI Library**: Angular Material 3
 - **Backend**: ASP.NET Core Web API with Entity Framework Core
 - **Database**: PostgreSQL 17

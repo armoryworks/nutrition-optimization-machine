@@ -24,8 +24,6 @@ namespace Nom.Orch.Interfaces
         
         // User authentication (from Mealie)
         Task<bool> ChangePasswordAsync(string userId, ChangePasswordRequestModel request);
-        Task<bool> ForgotPasswordAsync(ForgotPasswordRequestModel request);
-        Task<bool> ResetPasswordAsync(ResetPasswordRequestModel request);
         
         // User registration (from Mealie)
         Task<UserResponseModel> RegisterUserAsync(RegisterUserRequestModel request);

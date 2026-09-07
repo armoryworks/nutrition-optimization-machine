@@ -25,7 +25,7 @@
 
 ### Software Dependencies
 - Docker and Docker Compose installed
-- PostgreSQL 16+ (or use included container)
+- PostgreSQL 18+ (or use included container)
 - Redis 7+ (or use included container)
 - Domain name configured
 - SSL certificate (Let's Encrypt recommended)

@@ -98,7 +98,7 @@
           <mat-icon>verified_user</mat-icon>
           <div>
             <strong>2FA is enabled</strong>
-            @if (status()?.recoveryCodesLeft !== undefined) {
+            @if ($safeNavigationMigration(status()?.recoveryCodesLeft) !== undefined) {
               <p>{{ status()!.recoveryCodesLeft }} recovery codes remaining</p>
             }
           </div>

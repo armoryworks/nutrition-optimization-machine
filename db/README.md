@@ -41,7 +41,7 @@ git diff db/schema.sql       # review, then commit
 
 ## Requirements
 
-- `psql`/`pg_dump` (PostgreSQL 16 client) and `python3` — nothing else.
+- `psql`/`pg_dump` (PostgreSQL 18 client) and `python3` — nothing else.
   All tooling is open source (PostgreSQL license) or internal (`pgdiff.py`).
 - A superuser (default `postgres`) for database creation and for `seed.sql`
   (it uses `SET LOCAL session_replication_role = replica` to load data with

@@ -279,7 +279,7 @@ The NOM architecture represents a **modern, scalable, and secure** nutrition pla
 
 - **Enterprise-Grade Security** - Multi-layer security with GDPR compliance
 - **Production-Ready Infrastructure** - 98% deployment readiness
-- **Modern Technology Stack** - Angular 17, .NET 9, PostgreSQL 16
+- **Modern Technology Stack** - Angular 22, .NET 10, PostgreSQL 18
 - **Comprehensive Documentation** - Complete architectural specifications
 - **Developer-Friendly** - Clear patterns and extensive documentation
 - **Scalable Design** - Ready for enterprise-scale deployment

@@ -27,12 +27,12 @@ jobs:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: "9.0.x"
+          dotnet-version: "10.0.x"
 
       - name: Restore dependencies
         run: dotnet restore nom-api/nom-api.sln
@@ -44,11 +44,18 @@ jobs:
         run: dotnet test nom-api/nom-api.sln --no-build --verbosity normal --configuration Release --collect:"XPlat Code Coverage"
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v7
         with:
-          file: ./nom-api/**/coverage.cobertura.xml
+          # `files` takes explicit paths, not globs — the CLI's own search is what
+          # actually finds TestResults/<guid>/coverage.cobertura.xml. Scope it.
+          directory: ./nom-api
           flags: backend
           name: backend-coverage
+          # Tokenless upload is unsupported since v4 except for fork PRs.
+          token: ${{ secrets.CODECOV_TOKEN }}
+          # Fail loudly rather than silently skipping the upload — a bad token or
+          # a missing report should not leave CI green with no coverage.
+          fail_ci_if_error: true
 
   schema-drift:
     # Guards the declarative schema workflow: fails if entities in Nom.Data
@@ -69,12 +76,12 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: "9.0.x"
+          dotnet-version: "10.0.x"
 
       - name: Install dotnet-ef
         run: dotnet tool install --global dotnet-ef
