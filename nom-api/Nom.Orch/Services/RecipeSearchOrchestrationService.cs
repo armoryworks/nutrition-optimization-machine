@@ -129,7 +129,7 @@ namespace Nom.Orch.Services
             };
         }
 
-        public async Task<RecipeSearchResponseModel> GetRandomRecipesAsync(int count = 1, long? householdId = null, int? minCalories = null, int? maxCalories = null, long? recipeTypeId = null)
+        public async Task<RecipeSearchResponseModel> GetRandomRecipesAsync(int count = 1, long? householdId = null, int? minCalories = null, int? maxCalories = null, long? recipeTypeId = null, long? mealTypeId = null)
         {
             var query = _context.Recipes
                 .Include(r => r.Ratings)
@@ -178,10 +178,28 @@ namespace Nom.Orch.Services
                 query = query.Where(r => r.RecipeTypes!.Any(rt => rt.Id == recipeTypeId.Value));
             }
 
-            var randomRecipes = await query
-                .OrderBy(r => EF.Functions.Random())
-                .Take(count)
-                .ToListAsync();
+            // Prefer recipes categorized for the requested meal (Breakfast/Lunch/...),
+            // falling back to the full pool — same semantics as the week shuffle. A
+            // breakfast "Surprise me" used to draw from ALL recipes (tester report,
+            // 2026-09-17).
+            var randomRecipes = new List<RecipeEntity>();
+            if (mealTypeId.HasValue)
+            {
+                randomRecipes = await query
+                    .Where(r => r.RecipeCategories!.Any(rc => rc.CategoryId == mealTypeId.Value))
+                    .OrderBy(r => EF.Functions.Random())
+                    .Take(count)
+                    .ToListAsync();
+            }
+            if (randomRecipes.Count < count)
+            {
+                var haveIds = randomRecipes.Select(r => r.Id).ToHashSet();
+                randomRecipes.AddRange(await query
+                    .Where(r => !haveIds.Contains(r.Id))
+                    .OrderBy(r => EF.Functions.Random())
+                    .Take(count - randomRecipes.Count)
+                    .ToListAsync());
+            }
 
             var results = randomRecipes.Select(r => MapToSearchResult(r, new RecipeSearchModel())).ToList();
 

@@ -6,6 +6,16 @@
   padding: vars.$spacing-12;
 }
 
+.nom-recipe-form__serving-row {
+  display: flex;
+  gap: vars.$spacing-3;
+  flex-wrap: wrap;
+}
+
+.nom-recipe-form__servings { flex: 1 1 140px; }
+.nom-recipe-form__serving-qty { flex: 1 1 140px; }
+.nom-recipe-form__serving-unit { flex: 1 1 160px; }
+
 // ── Ingredient rows ──
 
 .nom-recipe-form__ingredient-row {

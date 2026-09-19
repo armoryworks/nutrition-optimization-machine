@@ -36,6 +36,7 @@ export interface RecipeModel {
   /** Per-serving amount for the nutrition label (e.g. 252 + "g"). */
   servingQuantity?: number;
   servingUnit?: string;
+  servingQuantityMeasurementId?: number;
   rating: number;
   commentCount: number;
   ratingCount: number;

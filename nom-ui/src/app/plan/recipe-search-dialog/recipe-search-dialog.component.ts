@@ -181,7 +181,7 @@ export class RecipeSearchDialog implements OnInit {
 
   surpriseMe(): void {
     this.rouletteLoading.set(true);
-    this.recipeSearchService.getRandom(1, this.data.householdId).pipe(
+    this.recipeSearchService.getRandom(1, this.data.householdId, undefined, undefined, undefined, this.data.mealTypeId).pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (response) => {

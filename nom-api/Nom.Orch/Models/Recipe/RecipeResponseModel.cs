@@ -17,6 +17,7 @@ namespace Nom.Orch.Models.Recipe
         /// <summary>Per-serving amount for the nutrition label, e.g. 252 + "g". Null when unset.</summary>
         public decimal? ServingQuantity { get; set; }
         public string? ServingUnit { get; set; }
+        public long? ServingQuantityMeasurementId { get; set; }
 
         public decimal Rating { get; set; }
         public int CommentCount { get; set; }

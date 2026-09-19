@@ -206,6 +206,9 @@ namespace Nom.Orch.Services
             {
                 Name = model.Name,
                 Description = model.Description,
+                Servings = model.Servings,
+                ServingQuantity = model.ServingQuantity,
+                ServingQuantityMeasurementId = model.ServingQuantityMeasurementId,
                 AuthorId = currentPersonId,
                 CurationStatusId = (long)CurationStatusEnum.NonCurated,
                 CreatedDate = DateTime.UtcNow,
@@ -325,6 +328,7 @@ namespace Nom.Orch.Services
                 Servings = recipe.Servings,
                 ServingQuantity = recipe.ServingQuantity,
                 ServingUnit = recipe.ServingQuantityMeasurement?.Name,
+                ServingQuantityMeasurementId = recipe.ServingQuantityMeasurementId,
                 Rating = recipe.Rating ?? 0,
                 CommentCount = recipe.Comments?.Count ?? 0,
                 RatingCount = recipe.Ratings?.Count ?? 0,
@@ -521,6 +525,9 @@ namespace Nom.Orch.Services
             // Update basic recipe properties
             recipe.Name = model.Name;
             recipe.Description = model.Description;
+            recipe.Servings = model.Servings;
+            recipe.ServingQuantity = model.ServingQuantity;
+            recipe.ServingQuantityMeasurementId = model.ServingQuantityMeasurementId;
             recipe.LastModifiedDate = DateTime.UtcNow;
             recipe.Version++;
 

@@ -33,6 +33,35 @@
             <mat-label>Description</mat-label>
             <textarea matInput formControlName="description" rows="3" maxlength="2047"></textarea>
           </mat-form-field>
+
+          <div class="nom-recipe-form__serving-row">
+            <mat-form-field appearance="outline" class="nom-recipe-form__servings">
+              <mat-label>Servings</mat-label>
+              <input matInput type="number" inputmode="numeric" min="1" step="1"
+                     formControlName="servings" data-testid="recipe-servings-input" />
+              <mat-hint>How many portions this makes</mat-hint>
+              @if (recipeForm.get('servings')?.hasError('min') || recipeForm.get('servings')?.hasError('max')) {
+                <mat-error>Between 1 and 100</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="nom-recipe-form__serving-qty">
+              <mat-label>Serving size</mat-label>
+              <input matInput type="number" inputmode="decimal" min="0.01" step="any"
+                     formControlName="servingQuantity" data-testid="recipe-serving-qty-input" />
+              <mat-hint>Optional, e.g. 250</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="nom-recipe-form__serving-unit">
+              <mat-label>Unit</mat-label>
+              <mat-select formControlName="servingQuantityMeasurementId" data-testid="recipe-serving-unit-select">
+                <mat-option [value]="null">—</mat-option>
+                @for (m of measurements(); track m.id) {
+                  <mat-option [value]="m.id">{{ m.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
         </div>
       </div>
 
@@ -90,6 +119,11 @@
                     </mat-option>
                   }
                 </mat-autocomplete>
+                @if (ing.get('searchText')?.hasError('unmatched')) {
+                  <mat-error data-testid="recipe-ingredient-unmatched-error">Pick from the suggestion list</mat-error>
+                } @else if (ing.get('ingredientId')?.touched && ing.get('ingredientId')?.invalid) {
+                  <mat-error>Ingredient is required</mat-error>
+                }
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="nom-recipe-form__ing-qty">

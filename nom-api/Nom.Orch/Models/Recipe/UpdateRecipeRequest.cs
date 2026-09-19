@@ -16,6 +16,9 @@ namespace Nom.Orch.Models.Recipe
         [MaxLength(2047)]
         public string? Description { get; set; }
 
+        public long? Servings { get; set; }
+        public decimal? ServingQuantity { get; set; }
+        public long? ServingQuantityMeasurementId { get; set; }
         public List<RecipeIngredientModel> Ingredients { get; set; } = new List<RecipeIngredientModel>();
         public List<RecipeStepModel> Steps { get; set; } = new List<RecipeStepModel>();
     }

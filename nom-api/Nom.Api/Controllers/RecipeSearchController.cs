@@ -89,11 +89,11 @@ namespace Nom.Api.Controllers
         /// </summary>
         [HttpGet("random")]
         [ProducesResponseType(typeof(RecipeSearchResponseModel), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetRandomRecipes([Range(1, 50)] int count = 1, long? householdId = null, int? minCalories = null, int? maxCalories = null, long? recipeTypeId = null)
+        public async Task<IActionResult> GetRandomRecipes([Range(1, 50)] int count = 1, long? householdId = null, int? minCalories = null, int? maxCalories = null, long? recipeTypeId = null, long? mealTypeId = null)
         {
             // Filtering by a household reveals its restriction shape — members only.
             if (householdId.HasValue && !IsHouseholdMember(householdId.Value)) return Forbid();
-            var results = await _searchOrchestrationService.GetRandomRecipesAsync(count, householdId, minCalories, maxCalories, recipeTypeId);
+            var results = await _searchOrchestrationService.GetRandomRecipesAsync(count, householdId, minCalories, maxCalories, recipeTypeId, mealTypeId);
             return Ok(results);
         }
 

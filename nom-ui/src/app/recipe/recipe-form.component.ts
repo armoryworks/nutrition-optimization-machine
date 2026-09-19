@@ -82,6 +82,9 @@ export class RecipeForm implements OnInit {
   recipeForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(511)]],
     description: ['', [Validators.maxLength(2047)]],
+    servings: [null as number | null, [Validators.min(1), Validators.max(100)]],
+    servingQuantity: [null as number | null, [Validators.min(0.01)]],
+    servingQuantityMeasurementId: [null as number | null],
     ingredients: this.fb.array<FormGroup>([]),
     steps: this.fb.array<FormGroup>([]),
   });
@@ -160,6 +163,7 @@ export class RecipeForm implements OnInit {
   onIngredientInput(index: number, event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     const group = this.ingredientsArray.at(index);
+    group.get('searchText')?.setErrors(null);
     const rowId = group.get('rowId')?.value;
     this.ingredientSearchSubjects.get(rowId)?.next(value);
   }
@@ -167,6 +171,7 @@ export class RecipeForm implements OnInit {
   onIngredientSelected(index: number, item: IngredientSearchResult): void {
     const group = this.ingredientsArray.at(index);
     group.patchValue({ ingredientId: item.id, name: item.name, searchText: item.name });
+    group.get('searchText')?.setErrors(null);
   }
 
   /** The control holds a string after selection (patchValue) but the option value is an object. */
@@ -229,9 +234,10 @@ export class RecipeForm implements OnInit {
     // A trailing blank row (the seed row a user tapped "Add" past, or one they
     // added and abandoned) shouldn't block saving — drop rows nobody touched.
     this.pruneBlankRows();
+    this.repairUnmatchedIngredients();
     if (this.recipeForm.invalid) {
       this.recipeForm.markAllAsTouched();
-      this.errorMessage.set('Please complete the highlighted fields before saving.');
+      this.errorMessage.set(this.describeInvalidState());
       this.scrollToFirstInvalid();
       return;
     }
@@ -257,6 +263,9 @@ export class RecipeForm implements OnInit {
         id,
         name: formVal.name!,
         description: formVal.description ?? undefined,
+        servings: formVal.servings ?? undefined,
+        servingQuantity: formVal.servingQuantity ?? undefined,
+        servingQuantityMeasurementId: formVal.servingQuantityMeasurementId ?? undefined,
         ingredients,
         steps,
       }).pipe(
@@ -282,6 +291,9 @@ export class RecipeForm implements OnInit {
       this.recipeService.createRecipe({
         name: formVal.name!,
         description: formVal.description ?? '',
+        servings: formVal.servings ?? undefined,
+        servingQuantity: formVal.servingQuantity ?? undefined,
+        servingQuantityMeasurementId: formVal.servingQuantityMeasurementId ?? undefined,
         ingredients,
         steps,
       }).pipe(
@@ -298,6 +310,46 @@ export class RecipeForm implements OnInit {
         },
       });
     }
+  }
+
+  /**
+   * A row whose text was typed (not picked from the suggestions) has no
+   * ingredientId and fails validation even though it LOOKS filled — the tester
+   * report behind N-28. If the typed text exactly matches a loaded suggestion,
+   * select it silently.
+   */
+  private repairUnmatchedIngredients(): void {
+    for (let i = 0; i < this.ingredientsArray.length; i++) {
+      const g = this.ingredientsArray.at(i);
+      if (g.get('ingredientId')?.value) continue;
+      const typed = (g.get('searchText')?.value ?? '').toString().trim().toLowerCase();
+      if (!typed) continue;
+      const rowId = g.get('rowId')?.value;
+      const match = (this.ingredientOptions().get(rowId) ?? []).find(
+        (o) => o.name.toLowerCase() === typed || (o.matchedAlias ?? '').toLowerCase() === typed);
+      if (match) {
+        this.onIngredientSelected(i, match);
+      } else {
+        // Surface the problem on the control the user can SEE (mat-error tracks
+        // the field's own control, and ingredientId has no visible field).
+        g.get('searchText')?.setErrors({ unmatched: true });
+      }
+    }
+  }
+
+  /** Name what is actually wrong instead of "complete the highlighted fields". */
+  private describeInvalidState(): string {
+    const unmatched = this.ingredientsArray.controls.some(
+      (g) => !g.get('ingredientId')?.value && (g.get('searchText')?.value ?? '').toString().trim());
+    if (unmatched) {
+      return "Some ingredients aren't matched to the catalog yet — tap each highlighted ingredient and pick it from the suggestion list.";
+    }
+    return 'Please complete the highlighted fields before saving.';
+  }
+
+  ingredientUnmatched(i: number): boolean {
+    const g = this.ingredientsArray.at(i);
+    return !g.get('ingredientId')?.value && !!(g.get('searchText')?.value ?? '').toString().trim();
   }
 
   /** Remove ingredient/step rows that are entirely empty, keeping at least one of each. */
@@ -409,6 +461,9 @@ export class RecipeForm implements OnInit {
         this.recipeForm.patchValue({
           name: recipe.name,
           description: recipe.description,
+          servings: recipe.servings ?? null,
+          servingQuantity: recipe.servingQuantity ?? null,
+          servingQuantityMeasurementId: recipe.servingQuantityMeasurementId ?? null,
         });
 
         // Populate ingredients
