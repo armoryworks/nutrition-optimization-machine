@@ -172,6 +172,7 @@
 .nom-pantry__list-header {
   display: flex;
   align-items: center;
+  gap: vars.$spacing-3;
   padding: vars.$spacing-2 vars.$spacing-4;
   background: var(--mat-sys-surface-container);
   border-bottom: 1px solid var(--mat-sys-outline-variant);
@@ -185,6 +186,7 @@
 .nom-pantry__item {
   display: flex;
   align-items: center;
+  gap: vars.$spacing-3;
   padding: vars.$spacing-2 vars.$spacing-4;
   border-bottom: 1px solid var(--mat-sys-outline-variant);
   transition: background vars.$transition-duration-fast;

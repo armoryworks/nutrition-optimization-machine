@@ -106,6 +106,28 @@
                 {{ cookbook.name }}
               </a>
             }
+            @if (loggedIn()) {
+              <button type="button" class="nom-recipe__dish-group-chip nom-recipe__cookbook-add-btn"
+                      [matMenuTriggerFor]="cookbookMenu" (menuOpened)="loadMyCookbooks()"
+                      data-testid="recipe-add-to-cookbook-btn">
+                <mat-icon>bookmark_add</mat-icon>
+                Cookbook
+              </button>
+              <mat-menu #cookbookMenu="matMenu">
+                @if (myCookbooks().length === 0) {
+                  <a mat-menu-item routerLink="/cookbooks" data-testid="recipe-cookbook-menu-create">
+                    <mat-icon>add</mat-icon>
+                    Create a cookbook…
+                  </a>
+                }
+                @for (cb of myCookbooks(); track cb.id) {
+                  <button mat-menu-item (click)="toggleCookbook(cb)" data-testid="recipe-cookbook-menu-item">
+                    <mat-icon>{{ isInCookbook(cb.id) ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
+                    {{ cb.name }}
+                  </button>
+                }
+              </mat-menu>
+            }
             @if (recipe()!.description) {
               <p class="nom-recipe__description">{{ recipe()!.description }}</p>
             }

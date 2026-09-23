@@ -43,3 +43,15 @@ html {
 .mat-mdc-form-field .mdc-floating-label .mat-mdc-form-field-required-marker {
   pointer-events: none !important;
 }
+
+// Destructive action buttons (`nom-btn--destructive` on any mat button
+// variant): error palette instead of primary. The class was referenced by
+// templates but never defined, so delete buttons rendered in the primary CTA
+// color.
+.nom-btn--destructive {
+  --mdc-filled-button-container-color: var(--mat-sys-error);
+  --mdc-filled-button-label-text-color: var(--mat-sys-on-error);
+  --mdc-text-button-label-text-color: var(--mat-sys-error);
+  --mdc-outlined-button-label-text-color: var(--mat-sys-error);
+  --mat-mdc-button-persistent-ripple-color: var(--mat-sys-error);
+}

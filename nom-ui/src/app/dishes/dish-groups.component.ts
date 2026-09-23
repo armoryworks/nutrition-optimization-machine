@@ -1,3 +1,4 @@
+import { TitleCasePipe } from '@angular/common';
 import { Component, DestroyRef, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
@@ -20,7 +21,7 @@ import {
 /** Browse the canonical dish groups ("chocolate chip cookies"), largest first. */
 @Component({
   selector: 'nom-dish-groups',
-  imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, ErrorBanner],
+  imports: [TitleCasePipe, RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, ErrorBanner],
   templateUrl: './dish-groups.component.html',
   styleUrl: './dish-groups.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

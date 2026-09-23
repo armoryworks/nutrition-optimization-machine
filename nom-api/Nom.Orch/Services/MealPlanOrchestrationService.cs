@@ -338,6 +338,28 @@ namespace Nom.Orch.Services
             };
         }
 
+        public async Task<List<MealPlanRuleResponseModel>> GetRulesAsync(long householdId)
+        {
+            return await _context.MealPlanRules
+                .Include(r => r.DayOfWeek)
+                .Include(r => r.MealType)
+                .Where(r => r.HouseholdId == householdId)
+                .OrderBy(r => r.Id)
+                .Select(rule => new MealPlanRuleResponseModel
+                {
+                    Id = rule.Id,
+                    HouseholdId = rule.HouseholdId,
+                    DayOfWeekId = rule.DayOfWeekId,
+                    DayOfWeek = rule.DayOfWeek != null ? rule.DayOfWeek.Name : string.Empty,
+                    MealTypeId = rule.MealTypeId,
+                    MealType = rule.MealType != null ? rule.MealType.Name : string.Empty,
+                    QueryFilterString = rule.QueryFilter ?? string.Empty,
+                    CreatedDate = rule.CreatedDate,
+                    ModifiedDate = rule.LastModifiedDate
+                })
+                .ToListAsync();
+        }
+
         public async Task<bool> DeleteRuleAsync(long id)
         {
             var rule = await _context.MealPlanRules.FindAsync(id);

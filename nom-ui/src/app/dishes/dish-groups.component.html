@@ -38,7 +38,7 @@
               </button>
             }
             <mat-icon class="nom-dishes__card-icon">restaurant_menu</mat-icon>
-            <span class="nom-dashboard__card-title nom-dishes__name">{{ group.name }}</span>
+            <span class="nom-dashboard__card-title nom-dishes__name">{{ group.name | titlecase }}</span>
             <span class="nom-dashboard__card-subtitle">
               {{ group.recipeCount }} {{ group.recipeCount === 1 ? 'recipe' : 'recipes' }}
             </span>

@@ -272,6 +272,16 @@ namespace Nom.Api.Controllers
             return CreatedAtAction(nameof(GetRule), new { id = response.Id }, response);
         }
 
+        [HttpGet("rule")]
+        [ProducesResponseType(typeof(List<MealPlanRuleResponseModel>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetRules([FromQuery, Required] long householdId)
+        {
+            if (!IsHouseholdMember(householdId))
+                return Forbid();
+
+            return Ok(await _mealPlanOrchestrationService.GetRulesAsync(householdId));
+        }
+
         [HttpGet("rule/{id}")]
         [ProducesResponseType(typeof(MealPlanRuleResponseModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

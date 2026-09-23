@@ -4,6 +4,7 @@ import { DecimalPipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { switchMap } from 'rxjs/operators';
 import { RecipeService } from '../core/services/recipe.service';
@@ -53,7 +54,7 @@ export interface DisplayIngredientRowModel {
 
 @Component({
   selector: 'nom-recipe-detail',
-  imports: [DecimalPipe, UnitPipe, MatIconModule, MatButtonModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating, EntityLink],
+  imports: [DecimalPipe, UnitPipe, MatIconModule, MatButtonModule, MatMenuModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating, EntityLink],
   templateUrl: './recipe-detail.component.html',
   styleUrl: './recipe-detail.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -96,6 +97,9 @@ export class RecipeDetail {
 
   /** The caller's household cookbooks this recipe is in. */
   inCookbooks = signal<CookbookResponseModel[]>([]);
+  /** All of the caller's household cookbooks, loaded when the add menu opens. */
+  myCookbooks = signal<CookbookResponseModel[]>([]);
+  private householdId = signal<number | null>(null);
 
   // Recipe-scoped substitutions (with step effects) and optional add-ins.
   recipeSubs = signal<RecipeSubstitutionModel[]>([]);
@@ -327,6 +331,7 @@ export class RecipeDetail {
       next: (households) => {
         const householdId = households[0]?.id;
         if (!householdId) return;
+        this.householdId.set(householdId);
         this.cookbookService.getCookbooksForRecipe(id, householdId).pipe(
           takeUntilDestroyed(this.destroyRef),
         ).subscribe({
@@ -335,6 +340,40 @@ export class RecipeDetail {
         });
       },
       error: () => this.inCookbooks.set([]),
+    });
+  }
+
+  loadMyCookbooks(): void {
+    const householdId = this.householdId();
+    if (!householdId) return;
+    this.cookbookService.getCookbooks(householdId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (cookbooks) => this.myCookbooks.set(cookbooks),
+      error: () => this.myCookbooks.set([]),
+    });
+  }
+
+  isInCookbook(cookbookId: number): boolean {
+    return this.inCookbooks().some((c) => c.id === cookbookId);
+  }
+
+  toggleCookbook(cookbook: CookbookResponseModel): void {
+    const recipe = this.recipe();
+    if (!recipe) return;
+    const inIt = this.isInCookbook(cookbook.id);
+    const op = inIt
+      ? this.cookbookService.removeRecipe(cookbook.id, recipe.id)
+      : this.cookbookService.addRecipe(cookbook.id, recipe.id);
+    op.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.inCookbooks.update((list) =>
+          inIt ? list.filter((c) => c.id !== cookbook.id) : [...list, cookbook]);
+        this.snackBar.open(
+          inIt ? `Removed from ${cookbook.name}` : `Added to ${cookbook.name}`,
+          undefined, { duration: 2500 });
+      },
+      error: () => this.snackBar.open('Failed to update cookbook.', undefined, { duration: 3000 }),
     });
   }
 

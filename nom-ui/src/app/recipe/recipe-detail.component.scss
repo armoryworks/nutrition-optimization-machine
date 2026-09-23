@@ -707,6 +707,18 @@
     width: 14px;
     height: 14px;
   }
+
+  & + & {
+    margin-left: vars.$spacing-2;
+  }
+}
+
+.nom-recipe__cookbook-add-btn {
+  border: 1px dashed var(--mat-sys-outline);
+  background: transparent;
+  color: var(--mat-sys-primary);
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .nom-recipe__variations {

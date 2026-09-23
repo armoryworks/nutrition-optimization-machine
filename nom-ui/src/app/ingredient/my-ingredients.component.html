@@ -2,7 +2,7 @@
   <div class="nom-dashboard__header">
     <div class="nom-dashboard__header-left">
       <h1 class="nom-dashboard__title">My Ingredients</h1>
-      <span class="nom-dashboard__subtitle">{{ ingredients().length }} ingredients</span>
+      <span class="nom-dashboard__subtitle">{{ ingredients().length }} {{ ingredients().length === 1 ? 'ingredient' : 'ingredients' }}</span>
     </div>
     <div class="nom-dashboard__header-right">
       <a mat-flat-button data-testid="my-ingredients-new-btn" routerLink="/ingredient/new">

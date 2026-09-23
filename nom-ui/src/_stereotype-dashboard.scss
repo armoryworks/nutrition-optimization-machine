@@ -186,10 +186,13 @@
   grid-column: 1 / -1;
 }
 
-.nom-dashboard__empty-icon {
+// mat-icon.<class> out-specifies Material's own .mat-icon host style (24px box +
+// overflow:hidden), which is injected later and clipped the 4rem glyph to a corner.
+mat-icon.nom-dashboard__empty-icon {
   font-size: 4rem;
   width: 4rem;
   height: 4rem;
+  line-height: 1;
   color: var(--mat-sys-on-surface-variant);
   opacity: 0.5;
   margin-bottom: vars.$spacing-4;
