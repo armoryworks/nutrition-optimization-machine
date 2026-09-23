@@ -41,7 +41,7 @@ namespace Nom.Orch.Services
 
         private long? GetCurrentPersonId() => _currentUser.PersonId;
 
-        private const string QuantityLeadChars = "0123456789\u00bd\u2153\u2154\u00bc\u00be\u215b\u215c\u215d\u215e";
+        private const string QuantityLeadChars = "&0123456789\u00bd\u2153\u2154\u00bc\u00be\u215b\u215c\u215d\u215e";
         private const string QuantityWordPattern =
             "^((a|an|one|two|three|half)( |-)){0,2}(pint|quart|gallon|cup|can|jar|package|pkg|box|bag|bunch|slice|pound|ounce|oz|lb|tbsp|tsp|tablespoon|teaspoon)s? of ";
 
