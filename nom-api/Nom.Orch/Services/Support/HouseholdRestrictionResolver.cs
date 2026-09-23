@@ -97,16 +97,16 @@ namespace Nom.Orch.Services.Support
         {
             if (_db.Database.IsRelational())
             {
-                var ids = new List<long>();
-                foreach (var pattern in patterns)
-                {
-                    ids.AddRange(await _db.Ingredients
-                        .Where(i => EF.Functions.ILike(i.Name, pattern)
-                                 || i.Aliases.Any(a => EF.Functions.ILike(a.AliasName, pattern)))
-                        .Select(i => i.Id)
-                        .ToListAsync());
-                }
-                return ids;
+                // One combined-regex scan instead of one ILIKE scan per pattern —
+                // a restriction class like Vegetarian carries dozens of patterns
+                // and the sequential scans dominated "Surprise me" latency (N-69).
+                var combined = "^(?:" + string.Join("|", patterns.Select(p =>
+                    Regex.Escape(p).Replace("%", ".*").Replace("_", "."))) + ")$";
+                return await _db.Ingredients
+                    .Where(i => Regex.IsMatch(i.Name, combined, RegexOptions.IgnoreCase)
+                             || i.Aliases.Any(a => Regex.IsMatch(a.AliasName, combined, RegexOptions.IgnoreCase)))
+                    .Select(i => i.Id)
+                    .ToListAsync();
             }
 
             // In-memory provider (tests): emulate ILIKE client-side.
