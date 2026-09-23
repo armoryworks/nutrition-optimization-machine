@@ -25,6 +25,7 @@ using Nom.Orch.Models.Person;
 using Nom.Orch.Interfaces;
 using Nom.Api.Settings;
 using Nom.Orch.Settings;
+using Microsoft.AspNetCore.DataProtection;
 using Serilog;
 using Nom.Orch.Services.Measurement;
 using OpenIddict.Abstractions;
@@ -183,6 +184,13 @@ builder.Services.AddAuthentication(options =>
     options.BearerTokenExpiration = TimeSpan.FromHours(24);
 });
 // --- END OF UPDATED CONFIGURATION ---
+
+// Identity's bearer tokens are Data Protection payloads. Without a persisted
+// key ring every container recreate mints a new one and invalidates every
+// outstanding session (audit N-76) — keep the keys in the database.
+builder.Services.AddDataProtection()
+    .SetApplicationName("nom-api")
+    .PersistKeysToDbContext<ApplicationDbContext>();
 
 // ---------------------------------------------------------------------------
 // OIDC authority (OpenIddict). NOM owns the identities, so it issues the tokens

@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Nom.Data.Audit;
@@ -23,7 +24,7 @@ using System.Threading.Tasks;
 
 namespace Nom.Data
 {
-    public class ApplicationDbContext : IdentityDbContext<IdentityUser>
+    public class ApplicationDbContext : IdentityDbContext<IdentityUser>, IDataProtectionKeyContext
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -42,6 +43,9 @@ namespace Nom.Data
         #region Audit
         public DbSet<AuditLogEntryEntity> AuditLogEntries { get; set; } = default!;
         #endregion
+
+        /// <summary>ASP.NET Data Protection key ring — persisted so bearer tokens survive container recreates.</summary>
+        public DbSet<DataProtectionKey> DataProtectionKeys { get; set; } = default!;
 
         #region Communication
         public DbSet<MessageEntity> Messages { get; set; } = default!;

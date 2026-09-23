@@ -149,8 +149,13 @@ export class AuthService {
 
     return this.http.post<AuthTokenResponse>('/api/auth/refresh', { refreshToken }).pipe(
       tap((response) => this.storeTokens(response)),
-      catchError(() => {
-        this.clearSession();
+      catchError((err) => {
+        // invalid_grant (400/401) means the refresh token is dead — sign out.
+        // Anything else (network, 5xx during a deploy) keeps the session so
+        // the next request can retry (N-76).
+        if (err?.status === 400 || err?.status === 401) {
+          this.clearSession();
+        }
         return of(null);
       }),
     );
@@ -186,9 +191,14 @@ export class AuthService {
     return this.http.get('/api/auth/manage/info').pipe(
       tap(() => (this.lastValidated = Date.now())),
       map(() => true),
-      catchError(() => {
-        this.clearSession();
-        return of(false);
+      catchError((err) => {
+        // Only a definitive rejection ends the session. A network error or
+        // 5xx (e.g. the API mid-deploy) must not log the user out (N-76).
+        if (err?.status === 401 || err?.status === 403) {
+          this.clearSession();
+          return of(false);
+        }
+        return of(true);
       }),
     );
   }
