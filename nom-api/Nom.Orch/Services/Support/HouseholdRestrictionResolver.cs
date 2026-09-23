@@ -97,16 +97,21 @@ namespace Nom.Orch.Services.Support
         {
             if (_db.Database.IsRelational())
             {
-                // Per-pattern ILIKE stays: with the trigram index on
-                // Ingredient.Name (db/custom-objects.sql) each probe is a
-                // bitmap index scan (~1 ms); collection/regex forms defeat the
-                // index and seq-scan the 200k-row catalog per call (N-69).
+                // Per-pattern ILIKE, split into a name probe and an alias
+                // probe: the trigram index on Ingredient.Name
+                // (db/custom-objects.sql) makes each name probe a bitmap scan
+                // (~1 ms), but OR-ing the correlated alias EXISTS into the
+                // same query forces a 200k-row seq scan per pattern — that OR
+                // was the whole ~20 s "Surprise me" latency (N-69).
                 var ids = new List<long>();
                 foreach (var pattern in patterns)
                 {
                     ids.AddRange(await _db.Ingredients
-                        .Where(i => EF.Functions.ILike(i.Name, pattern)
-                                 || i.Aliases.Any(a => EF.Functions.ILike(a.AliasName, pattern)))
+                        .Where(i => EF.Functions.ILike(i.Name, pattern))
+                        .Select(i => i.Id)
+                        .ToListAsync());
+                    ids.AddRange(await _db.Ingredients
+                        .Where(i => i.Aliases.Any(a => EF.Functions.ILike(a.AliasName, pattern)))
                         .Select(i => i.Id)
                         .ToListAsync());
                 }
