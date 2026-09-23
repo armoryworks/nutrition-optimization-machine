@@ -11,6 +11,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FoodCatalogService } from '../core/services/food-catalog.service';
+import { CatalogCleanupPreview, CatalogCleanupResult } from '../core/models/food-catalog.model';
 import { MealPlanService } from '../core/services/meal-plan.service';
 import { FoodGroup } from '../core/models/food-group.model';
 import {
@@ -85,6 +86,9 @@ export class FoodCatalog implements OnInit {
 
   // Audit
   auditRunning = signal(false);
+  cleanupPreview = signal<CatalogCleanupPreview | null>(null);
+  cleanupResult = signal<CatalogCleanupResult | null>(null);
+  cleanupBusy = signal(false);
   findings = signal<FoodCatalogFinding[]>([]);
   auditExamined = signal(0);
 
@@ -162,6 +166,38 @@ export class FoodCatalog implements OnInit {
 
   toggleAll(checked: boolean): void {
     this.selected.set(checked ? new Set(this.items().map((i) => i.id)) : new Set());
+  }
+
+  runCleanupPreview(): void {
+    this.cleanupBusy.set(true);
+    this.cleanupResult.set(null);
+    this.catalog.cleanupPreview(20)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => { this.cleanupPreview.set(res); this.cleanupBusy.set(false); },
+        error: () => { this.cleanupBusy.set(false); this.errorMessage.set('Cleanup preview failed.'); },
+      });
+  }
+
+  runCleanupApply(): void {
+    this.cleanupBusy.set(true);
+    this.catalog.cleanupApply(2000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.cleanupResult.set(res);
+          this.cleanupBusy.set(false);
+          this.runCleanupPreviewSilent();
+          this.load();
+        },
+        error: () => { this.cleanupBusy.set(false); this.errorMessage.set('Cleanup apply failed.'); },
+      });
+  }
+
+  private runCleanupPreviewSilent(): void {
+    this.catalog.cleanupPreview(20)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (res) => this.cleanupPreview.set(res) });
   }
 
   runAudit(): void {

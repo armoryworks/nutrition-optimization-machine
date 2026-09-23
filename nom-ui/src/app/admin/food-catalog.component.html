@@ -63,7 +63,55 @@
     <a mat-stroked-button [href]="exportUrl()" data-testid="food-catalog-export-btn">
       <mat-icon>download</mat-icon> Export CSV
     </a>
+
+    <button mat-stroked-button (click)="runCleanupPreview()" [disabled]="cleanupBusy()"
+            matTooltip="Find import residue — quantity/unit noise in ingredient names"
+            data-testid="food-catalog-cleanup-preview-btn">
+      @if (cleanupBusy()) { <mat-spinner diameter="18" /> } @else { <mat-icon>cleaning_services</mat-icon> }
+      Residue cleanup
+    </button>
   </div>
+
+  @if (cleanupPreview(); as cp) {
+    <div class="nom-food-catalog__cleanup" data-testid="food-catalog-cleanup-panel">
+      <div class="nom-food-catalog__cleanup-summary">
+        <mat-icon>cleaning_services</mat-icon>
+        <span>
+          <strong>{{ cp.residueCount }}</strong> of {{ cp.catalogSize }} catalog rows carry
+          import residue: {{ cp.mergeCount }} would merge into an existing row,
+          {{ cp.renameCount }} would be renamed in place. Recipe links move with them;
+          rows referenced by pantry, restrictions or nutrition are skipped.
+        </span>
+        <button mat-flat-button (click)="runCleanupApply()"
+                [disabled]="cleanupBusy() || cp.residueCount === 0"
+                data-testid="food-catalog-cleanup-apply-btn">
+          Fix next 2000
+        </button>
+      </div>
+      @if (cleanupResult(); as cr) {
+        <p class="nom-food-catalog__cleanup-result" data-testid="food-catalog-cleanup-result">
+          Applied: {{ cr.merged }} merged, {{ cr.renamed }} renamed,
+          {{ cr.linksMoved }} recipe links moved ({{ cr.linksFolded }} folded),
+          {{ cr.skippedReferenced }} skipped as human-referenced, {{ cr.remaining }} to go.
+        </p>
+      }
+      @if (cp.samples.length > 0) {
+        <ul class="nom-food-catalog__cleanup-samples">
+          @for (a of cp.samples; track a.ingredientId) {
+            <li>
+              <code>{{ a.name }}</code>
+              <mat-icon>arrow_forward</mat-icon>
+              @if (a.action === 'merge') {
+                <code>{{ a.targetName }}</code> <span class="nom-food-catalog__cleanup-tag">merge</span>
+              } @else {
+                <code>{{ a.normalizedName }}</code> <span class="nom-food-catalog__cleanup-tag">rename</span>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
 
   @if (findings().length > 0) {
     <div class="nom-food-catalog__audit-summary" data-testid="food-catalog-audit-summary">

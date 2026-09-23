@@ -3,6 +3,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  CatalogCleanupPreview,
+  CatalogCleanupResult,
   FoodCatalogAuditResult,
   FoodCatalogPage,
   FoodCatalogItem,
@@ -37,6 +39,16 @@ export class FoodCatalogService {
     let params = new HttpParams().set('limit', limit);
     if (source) params = params.set('source', source);
     return this.http.get<FoodCatalogAuditResult>(`${this.apiUrl}/audit`, { params });
+  }
+
+  cleanupPreview(sampleSize = 20): Observable<CatalogCleanupPreview> {
+    const params = new HttpParams().set('sampleSize', sampleSize);
+    return this.http.get<CatalogCleanupPreview>(`${this.apiUrl}/cleanup/preview`, { params });
+  }
+
+  cleanupApply(maxActions = 500): Observable<CatalogCleanupResult> {
+    const params = new HttpParams().set('maxActions', maxActions);
+    return this.http.post<CatalogCleanupResult>(`${this.apiUrl}/cleanup/apply`, null, { params });
   }
 
   update(id: number, update: FoodCatalogUpdate): Observable<FoodCatalogItem> {

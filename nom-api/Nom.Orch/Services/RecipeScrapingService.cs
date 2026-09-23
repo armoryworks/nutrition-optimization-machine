@@ -550,7 +550,11 @@ namespace Nom.Orch.Services
         /// </summary>
         private async Task<IngredientEntity> FindOrCreateIngredientAsync(string name, long? personId)
         {
-            var trimmed = name.Trim();
+            // Scrapers routinely fail to split quantity/unit off the line and
+            // hand "1 can black beans" as the name; that residue minted 60% of
+            // the catalog before normalization (audit N-68). RawLine on the
+            // recipe row keeps the original text.
+            var trimmed = Support.IngredientNameNormalizer.Normalize(name);
             var lowered = trimmed.ToLowerInvariant();
 
             var ingredient = await _dbContext.Ingredients

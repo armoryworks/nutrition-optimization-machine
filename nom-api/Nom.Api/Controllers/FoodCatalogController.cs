@@ -17,11 +17,28 @@ namespace Nom.Api.Controllers
     {
         private readonly IFoodCatalogReviewService _review;
         private readonly IFoodCatalogAuditService _audit;
+        private readonly ICatalogCleanupService _cleanup;
 
-        public FoodCatalogController(IFoodCatalogReviewService review, IFoodCatalogAuditService audit)
+        public FoodCatalogController(IFoodCatalogReviewService review, IFoodCatalogAuditService audit,
+            ICatalogCleanupService cleanup)
         {
             _review = review;
             _audit = audit;
+            _cleanup = cleanup;
+        }
+
+        /// <summary>What the import-residue cleanup would do (deterministic name rules, no writes).</summary>
+        [HttpGet("cleanup/preview")]
+        public async Task<ActionResult<CatalogCleanupPreview>> CleanupPreview([FromQuery] int sampleSize = 50)
+        {
+            return Ok(await _cleanup.PreviewAsync(sampleSize));
+        }
+
+        /// <summary>Apply up to maxActions residue fixes (merge into canonical row or rename in place).</summary>
+        [HttpPost("cleanup/apply")]
+        public async Task<ActionResult<CatalogCleanupResult>> CleanupApply([FromQuery] int maxActions = 500)
+        {
+            return Ok(await _cleanup.ApplyAsync(maxActions));
         }
 
         /// <summary>Paged catalog for the review screen.</summary>

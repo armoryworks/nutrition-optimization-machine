@@ -68,3 +68,29 @@ export const CurationStatus = {
   Curated: 9003,
   Rejected: 9004,
 } as const;
+
+export interface CatalogCleanupAction {
+  ingredientId: number;
+  name: string;
+  normalizedName: string;
+  action: 'merge' | 'rename';
+  targetId?: number;
+  targetName?: string;
+}
+
+export interface CatalogCleanupPreview {
+  catalogSize: number;
+  residueCount: number;
+  mergeCount: number;
+  renameCount: number;
+  samples: CatalogCleanupAction[];
+}
+
+export interface CatalogCleanupResult {
+  renamed: number;
+  merged: number;
+  linksMoved: number;
+  linksFolded: number;
+  skippedReferenced: number;
+  remaining: number;
+}

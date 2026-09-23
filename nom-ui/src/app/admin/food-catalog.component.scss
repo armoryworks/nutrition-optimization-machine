@@ -1,3 +1,4 @@
+@use 'variables' as vars;
 .nom-food-catalog {
   display: flex;
   flex-direction: column;
@@ -127,4 +128,54 @@
   &__proposal-source { opacity: 0.55; font-size: 0.75rem; }
 
   &__proposal-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+}
+
+.nom-food-catalog__cleanup {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  background: var(--mat-sys-surface-container-low);
+  padding: vars.$spacing-3 vars.$spacing-4;
+  margin-bottom: vars.$spacing-4;
+}
+
+.nom-food-catalog__cleanup-summary {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+
+  mat-icon { color: var(--mat-sys-primary); flex-shrink: 0; }
+  span { flex: 1; }
+}
+
+.nom-food-catalog__cleanup-result {
+  margin: vars.$spacing-2 0 0;
+  color: var(--mat-sys-tertiary);
+  font-size: vars.$font-size-sm;
+}
+
+.nom-food-catalog__cleanup-samples {
+  margin: vars.$spacing-3 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+  font-size: vars.$font-size-sm;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-2;
+    padding: 2px 0;
+
+    mat-icon { font-size: 14px; width: 14px; height: 14px; color: var(--mat-sys-on-surface-variant); }
+    code { color: var(--mat-sys-on-surface); }
+  }
+}
+
+.nom-food-catalog__cleanup-tag {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-secondary-container);
+  background: var(--mat-sys-secondary-container);
+  border-radius: vars.$nom-border-radius;
+  padding: 0 vars.$spacing-1;
 }
