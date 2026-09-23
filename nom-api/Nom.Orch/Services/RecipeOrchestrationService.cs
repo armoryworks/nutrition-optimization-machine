@@ -56,7 +56,11 @@ namespace Nom.Orch.Services
                 // Import residue like "1 can black beans" is not an ingredient a
                 // user should pick; hide quantity-prefixed names from search.
                 .Where(i => !QuantityLeadChars.Contains(i.Name.Substring(0, 1)))
-                .OrderByDescending(i => i.IsWholeFood == true) // Surface directly-edible whole foods first
+                // Rank name-prefix, then word-boundary matches above bare
+                // substrings ("oats" should not lead with "goats milk").
+                .OrderByDescending(i => i.Name.ToLower().StartsWith(searchTerm))
+                .ThenByDescending(i => i.Name.ToLower().Contains(" " + searchTerm))
+                .ThenByDescending(i => i.IsWholeFood == true) // then directly-edible whole foods
                 .ThenBy(i => i.Name.Length) // then shorter names (exact matches)
                 .ThenBy(i => i.Name)
                 .Take(20) // Limit results for performance

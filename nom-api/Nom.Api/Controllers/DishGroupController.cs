@@ -29,7 +29,7 @@ namespace Nom.Api.Controllers
         [AllowAnonymous]
         public async Task<ActionResult<List<DishGroupModel>>> List([FromQuery] int limit = 200)
         {
-            return Ok(await _dishGroups.ListAsync(limit));
+            return Ok(await _dishGroups.ListAsync(_currentUser.PersonId, limit));
         }
 
         /// <summary>One group + its recipes visible to the caller.</summary>

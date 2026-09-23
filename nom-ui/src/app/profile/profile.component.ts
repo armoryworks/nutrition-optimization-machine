@@ -155,7 +155,7 @@ export class Profile implements OnInit {
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (data) => {
-        this.activityLevels.set(data[ReferenceDiscriminator.PersonActivityLevelType] ?? []);
+        this.activityLevels.set(sortByIntensity(data[ReferenceDiscriminator.PersonActivityLevelType] ?? []));
         this.healthGoals.set(data[ReferenceDiscriminator.PersonHealthGoalType] ?? []);
         this.attributeTypes.set(data[ReferenceDiscriminator.PersonAttributeType] ?? []);
         onComplete?.();
@@ -361,4 +361,14 @@ export class Profile implements OnInit {
       },
     });
   }
+}
+
+const ACTIVITY_ORDER = ['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active', 'Extremely Active'];
+
+function sortByIntensity(items: ReferenceItem[]): ReferenceItem[] {
+  return [...items].sort((a, b) => {
+    const ai = ACTIVITY_ORDER.indexOf(a.referenceName);
+    const bi = ACTIVITY_ORDER.indexOf(b.referenceName);
+    return (ai === -1 ? ACTIVITY_ORDER.length : ai) - (bi === -1 ? ACTIVITY_ORDER.length : bi);
+  });
 }

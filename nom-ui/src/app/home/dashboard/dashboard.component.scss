@@ -274,3 +274,11 @@
   background: var(--mat-sys-primary);
   transition: width 0.3s ease;
 }
+
+// Four small stat tiles read better as a 2x2 grid on phones than a
+// full-width stack (the stereotype collapses --2col to one column).
+.nom-db-macros {
+  @media (max-width: vars.$breakpoint-mobile) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

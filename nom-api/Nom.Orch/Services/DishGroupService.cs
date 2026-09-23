@@ -54,8 +54,11 @@ namespace Nom.Orch.Services
             return Map(group, 0);
         }
 
-        public async Task<List<DishGroupModel>> ListAsync(int limit = 200)
+        public async Task<List<DishGroupModel>> ListAsync(long? viewerPersonId, int limit = 200)
         {
+            // Count only recipes the caller can open — an unfiltered count sent
+            // users into groups that then rendered "No recipes visible" (N-61).
+            var visible = _db.Recipes.AsNoTracking().VisibleTo(_db, viewerPersonId);
             return await _db.DishGroups
                 .AsNoTracking()
                 .Select(g => new DishGroupModel
@@ -63,8 +66,9 @@ namespace Nom.Orch.Services
                     Id = g.Id,
                     Name = g.Name,
                     Slug = g.Slug,
-                    RecipeCount = g.Recipes.Count(r => !r.IsDeleted),
+                    RecipeCount = visible.Count(r => r.DishGroupId == g.Id && !r.IsDeleted),
                 })
+                .Where(g => g.RecipeCount > 0)
                 .OrderByDescending(g => g.RecipeCount)
                 .Take(Math.Clamp(limit, 1, 1000))
                 .ToListAsync();

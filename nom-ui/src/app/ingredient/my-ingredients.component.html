@@ -5,10 +5,12 @@
       <span class="nom-dashboard__subtitle">{{ ingredients().length }} {{ ingredients().length === 1 ? 'ingredient' : 'ingredients' }}</span>
     </div>
     <div class="nom-dashboard__header-right">
-      <a mat-flat-button data-testid="my-ingredients-new-btn" routerLink="/ingredient/new">
-        <mat-icon>add</mat-icon>
-        New Ingredient
-      </a>
+      @if (ingredients().length > 0) {
+        <a mat-flat-button data-testid="my-ingredients-new-btn" routerLink="/ingredient/new">
+          <mat-icon>add</mat-icon>
+          New Ingredient
+        </a>
+      }
     </div>
   </div>
 

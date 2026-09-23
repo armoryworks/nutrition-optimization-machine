@@ -1,10 +1,12 @@
 <div class="nom-dashboard" data-testid="cookbook-list">
   <div class="nom-dashboard__header">
     <h1 class="nom-dashboard__title">Cookbooks</h1>
-    <button mat-flat-button (click)="onCreate()">
-      <mat-icon>add</mat-icon>
-      New Cookbook
-    </button>
+    @if (cookbooks().length > 0) {
+      <button mat-flat-button (click)="onCreate()">
+        <mat-icon>add</mat-icon>
+        New Cookbook
+      </button>
+    }
   </div>
 
   @if (loading()) {

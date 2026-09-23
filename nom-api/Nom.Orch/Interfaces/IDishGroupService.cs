@@ -16,7 +16,7 @@ namespace Nom.Orch.Interfaces
         Task<DishGroupModel> GetOrCreateAsync(string canonicalName);
 
         /// <summary>All groups with member counts, largest first.</summary>
-        Task<List<DishGroupModel>> ListAsync(int limit = 200);
+        Task<List<DishGroupModel>> ListAsync(long? viewerPersonId, int limit = 200);
 
         /// <summary>Group + its recipes visible to the caller; null when the slug is unknown.</summary>
         Task<DishGroupDetailModel?> GetBySlugAsync(string slug, long? viewerPersonId);

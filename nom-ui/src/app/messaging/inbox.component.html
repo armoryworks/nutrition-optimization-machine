@@ -7,10 +7,12 @@
       }
     </div>
     <div class="nom-dashboard__header-right">
-      <a mat-flat-button routerLink="/messages/new" data-testid="inbox-compose-btn">
-        <mat-icon>edit</mat-icon>
-        Compose
-      </a>
+      @if (threads().length > 0) {
+        <a mat-flat-button routerLink="/messages/new" data-testid="inbox-compose-btn">
+          <mat-icon>edit</mat-icon>
+          Compose
+        </a>
+      }
     </div>
   </div>
 

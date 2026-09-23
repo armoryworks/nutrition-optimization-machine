@@ -1,8 +1,8 @@
-import { Component, inject, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, computed, effect, input, ChangeDetectionStrategy } from '@angular/core';
 import { toLocalDateString } from '../../core/utils/local-date';
 import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { filter, startWith, map, switchMap, of } from 'rxjs';
+import { BehaviorSubject, filter, startWith, map, switchMap, of } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -51,8 +51,17 @@ export class Sidebar {
     return url === '/home' || url === '/';
   });
 
+  /** True while the panel is visible; each open refetches the week. */
+  open = input(false);
+
+  private refresh$ = new BehaviorSubject<void>(undefined);
+  private refreshOnOpen = effect(() => {
+    if (this.open()) this.refresh$.next();
+  });
+
   weekData = toSignal(
-    this.householdStore.getHouseholds().pipe(
+    this.refresh$.pipe(
+      switchMap(() => this.householdStore.getHouseholds()),
       switchMap(list => {
         if (list.length === 0) return of(null);
         const monday = Sidebar.getMonday(new Date());

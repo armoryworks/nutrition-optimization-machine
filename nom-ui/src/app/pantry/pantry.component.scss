@@ -137,9 +137,9 @@
 }
 
 .nom-pantry__empty-icon {
-  font-size: 48px;
-  width: 48px;
-  height: 48px;
+  display: block;
+  margin: vars.$spacing-4 auto vars.$spacing-6;
+  transform: scale(2);
   opacity: 0.5;
 }
 

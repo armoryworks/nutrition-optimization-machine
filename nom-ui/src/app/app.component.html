@@ -30,7 +30,7 @@
         <button class="nom-sidebar-close" (click)="toggleSidebar()">
           <mat-icon>close</mat-icon> Close
         </button>
-        <nom-sidebar></nom-sidebar>
+        <nom-sidebar [open]="sidebarOpen()"></nom-sidebar>
       </aside>
     }
   </div>

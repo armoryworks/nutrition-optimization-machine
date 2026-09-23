@@ -595,11 +595,10 @@
 }
 
 .nom-recipe__not-found-icon {
-  font-size: 64px;
-  width: 64px;
-  height: 64px;
+  display: block;
+  margin: vars.$spacing-6 auto vars.$spacing-8;
+  transform: scale(2.667);
   opacity: 0.4;
-  margin-bottom: vars.$spacing-4;
 }
 
 // Responsive: stack columns below tablet

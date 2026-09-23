@@ -162,11 +162,10 @@
 
 .nom-home__error-icon,
 .nom-home__empty-icon {
-  font-size: vars.$spacing-16;
-  width: vars.$spacing-16;
-  height: vars.$spacing-16;
+  display: block;
+  margin: vars.$spacing-6 auto vars.$spacing-8;
+  transform: scale(2.667);
   opacity: 0.5;
-  margin-bottom: vars.$spacing-4;
 }
 
 .nom-home__retry-btn {
