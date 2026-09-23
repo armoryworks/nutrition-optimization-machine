@@ -10,10 +10,9 @@ public class MealPlanRuleEntityConfiguration : IEntityTypeConfiguration<MealPlan
     {
         builder.ToTable("MealPlanRule", schema: "plan");
 
-        // Properties
+        // Properties. Meal type and day are optional: null means the rule
+        // applies to any meal / any day.
         builder.Property(e => e.HouseholdId).IsRequired();
-        builder.Property(e => e.MealTypeId).IsRequired();
-        builder.Property(e => e.DayOfWeekId).IsRequired();
         builder.Property(e => e.QueryFilter).HasMaxLength(2047);
 
         // Relationships
@@ -26,13 +25,11 @@ public class MealPlanRuleEntityConfiguration : IEntityTypeConfiguration<MealPlan
         builder.HasOne(e => e.MealType)
             .WithMany()
             .HasForeignKey(e => e.MealTypeId)
-            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(e => e.DayOfWeek)
             .WithMany()
             .HasForeignKey(e => e.DayOfWeekId)
-            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -6,12 +6,14 @@ namespace Nom.Orch.Models.MealPlan
     {
         public long Id { get; set; }
         public long HouseholdId { get; set; }
-        public long DayOfWeekId { get; set; }
-        public string DayOfWeek { get; set; } = string.Empty;
-        public long MealTypeId { get; set; }
-        public string MealType { get; set; } = string.Empty;
-        public string QueryFilterString { get; set; } = string.Empty;
+        public long? DayOfWeekId { get; set; }
+        public string? DayOfWeekName { get; set; }
+        public long? MealTypeId { get; set; }
+        public string? MealTypeName { get; set; }
+        public string QueryFilter { get; set; } = string.Empty;
+        public int MaxRecipes { get; set; }
+        public bool IsActive { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
     }
-} 
+}

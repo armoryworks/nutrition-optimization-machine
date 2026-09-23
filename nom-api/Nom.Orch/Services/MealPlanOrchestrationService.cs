@@ -289,14 +289,16 @@ namespace Nom.Orch.Services
             return true;
         }
 
-        public async Task<MealPlanRuleCreateResponseModel> CreateRuleAsync(MealPlanRuleCreateModel model)
+        public async Task<MealPlanRuleResponseModel> CreateRuleAsync(MealPlanRuleCreateModel model)
         {
             var rule = new MealPlanRuleEntity
             {
                 HouseholdId = model.HouseholdId,
                 DayOfWeekId = model.DayOfWeekId,
                 MealTypeId = model.MealTypeId,
-                QueryFilter = model.QueryFilterString,
+                QueryFilter = model.QueryFilter,
+                MaxRecipes = model.MaxRecipes,
+                IsActive = model.IsActive,
                 CreatedDate = DateTime.UtcNow,
                 LastModifiedDate = DateTime.UtcNow
             };
@@ -304,15 +306,7 @@ namespace Nom.Orch.Services
             _context.MealPlanRules.Add(rule);
             await _context.SaveChangesAsync();
 
-            return new MealPlanRuleCreateResponseModel
-            {
-                Id = rule.Id,
-                HouseholdId = rule.HouseholdId,
-                DayOfWeekId = rule.DayOfWeekId,
-                MealTypeId = rule.MealTypeId,
-                QueryFilterString = rule.QueryFilter ?? string.Empty,
-                CreatedDate = rule.CreatedDate
-            };
+            return (await GetRuleAsync(rule.Id))!;
         }
 
         public async Task<MealPlanRuleResponseModel?> GetRuleAsync(long id)
@@ -329,10 +323,12 @@ namespace Nom.Orch.Services
                 Id = rule.Id,
                 HouseholdId = rule.HouseholdId,
                 DayOfWeekId = rule.DayOfWeekId,
-                DayOfWeek = rule.DayOfWeek?.Name ?? string.Empty,
+                DayOfWeekName = rule.DayOfWeek?.Name,
                 MealTypeId = rule.MealTypeId,
-                MealType = rule.MealType?.Name ?? string.Empty,
-                QueryFilterString = rule.QueryFilter ?? string.Empty,
+                MealTypeName = rule.MealType?.Name,
+                QueryFilter = rule.QueryFilter ?? string.Empty,
+                MaxRecipes = rule.MaxRecipes ?? 3,
+                IsActive = rule.IsActive,
                 CreatedDate = rule.CreatedDate,
                 ModifiedDate = rule.LastModifiedDate
             };
@@ -350,10 +346,12 @@ namespace Nom.Orch.Services
                     Id = rule.Id,
                     HouseholdId = rule.HouseholdId,
                     DayOfWeekId = rule.DayOfWeekId,
-                    DayOfWeek = rule.DayOfWeek != null ? rule.DayOfWeek.Name : string.Empty,
+                    DayOfWeekName = rule.DayOfWeek != null ? rule.DayOfWeek.Name : null,
                     MealTypeId = rule.MealTypeId,
-                    MealType = rule.MealType != null ? rule.MealType.Name : string.Empty,
-                    QueryFilterString = rule.QueryFilter ?? string.Empty,
+                    MealTypeName = rule.MealType != null ? rule.MealType.Name : null,
+                    QueryFilter = rule.QueryFilter ?? string.Empty,
+                    MaxRecipes = rule.MaxRecipes ?? 3,
+                    IsActive = rule.IsActive,
                     CreatedDate = rule.CreatedDate,
                     ModifiedDate = rule.LastModifiedDate
                 })

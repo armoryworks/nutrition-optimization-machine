@@ -256,7 +256,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost("rule")]
-        [ProducesResponseType(typeof(MealPlanRuleCreateResponseModel), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(MealPlanRuleResponseModel), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateRule([FromBody] MealPlanRuleCreateModel model)
         {

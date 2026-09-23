@@ -19,7 +19,7 @@ namespace Nom.Orch.Interfaces
         Task<MealPlanWeekResponseModel> GetWeekAsync(long householdId, DateOnly weekStart);
 
         // Meal Plan Rules
-        Task<MealPlanRuleCreateResponseModel> CreateRuleAsync(MealPlanRuleCreateModel model);
+        Task<MealPlanRuleResponseModel> CreateRuleAsync(MealPlanRuleCreateModel model);
         Task<MealPlanRuleResponseModel?> GetRuleAsync(long id);
         Task<List<MealPlanRuleResponseModel>> GetRulesAsync(long householdId);
         Task<bool> DeleteRuleAsync(long id);

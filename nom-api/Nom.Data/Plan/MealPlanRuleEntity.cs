@@ -12,10 +12,10 @@ namespace Nom.Data.Plan
         public long HouseholdId { get; set; }
         public virtual HouseholdEntity? Household { get; set; }
 
-        public long MealTypeId { get; set; }
+        public long? MealTypeId { get; set; }
         public virtual ReferenceEntity? MealType { get; set; }
 
-        public long DayOfWeekId { get; set; }
+        public long? DayOfWeekId { get; set; }
         public virtual ReferenceEntity? DayOfWeek { get; set; }
 
         public string? QueryFilter { get; set; }
