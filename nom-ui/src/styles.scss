@@ -65,3 +65,9 @@ html {
     max-height: 192px;
   }
 }
+
+// CDK overlays (autocomplete panels, menus, dialogs) always paint above app
+// chrome, including the mobile sticky header.
+.cdk-overlay-container {
+  z-index: 1100;
+}
