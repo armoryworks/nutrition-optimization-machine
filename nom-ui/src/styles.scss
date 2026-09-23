@@ -57,12 +57,14 @@ html {
 }
 
 // Phones: the autocomplete panel opens above the input (keyboard below) and
-// at its default 256px max-height its top row lands under the browser
-// toolbar — the overlay's viewport math is off by the URL-bar height while
-// the keyboard is open. A shorter panel keeps every row on screen.
+// at the default 256px max-height the CDK overlay overflows the top of the
+// keyboard-shrunk viewport (measured panelTop: -51px on a Pixel 7a), hiding
+// the top-ranked option. mat-autocomplete neither pushes nor flexes, so cap
+// the height to what fits; the token alone loses to Material's own rule.
 @media (max-width: 767px) {
+  html { --mat-autocomplete-container-max-height: 176px; }
   div.mat-mdc-autocomplete-panel {
-    max-height: 192px;
+    max-height: 176px !important;
   }
 }
 
