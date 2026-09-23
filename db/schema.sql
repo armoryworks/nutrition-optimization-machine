@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict SGRBw47ifg4FK8kRp6wPSkrOF9hvXrmgG1zB9LQ9h9k1ea5lE7gm13bdN2QXq0u
+\restrict 1wuoEY36RFeTphblT8SvW9hcYuUQ9yruBUCiFgjx6AJ4rCamlgctNIiRU67ayvo
 
 -- Dumped from database version 16.14
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -100,6 +100,20 @@ CREATE SCHEMA reference;
 --
 
 CREATE SCHEMA shopping;
+
+
+--
+-- Name: pg_trgm; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION pg_trgm; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION pg_trgm IS 'text similarity measurement and index searching based on trigrams';
 
 
 SET default_tablespace = '';
@@ -5762,6 +5776,13 @@ CREATE UNIQUE INDEX "IX_Ingredient_Name" ON recipe."Ingredient" USING btree ("Na
 
 
 --
+-- Name: IX_Ingredient_Name_trgm; Type: INDEX; Schema: recipe; Owner: -
+--
+
+CREATE INDEX "IX_Ingredient_Name_trgm" ON recipe."Ingredient" USING gin ("Name" public.gin_trgm_ops);
+
+
+--
 -- Name: IX_RecipeAsset_RecipeId; Type: INDEX; Schema: recipe; Owner: -
 --
 
@@ -8067,5 +8088,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict SGRBw47ifg4FK8kRp6wPSkrOF9hvXrmgG1zB9LQ9h9k1ea5lE7gm13bdN2QXq0u
+\unrestrict 1wuoEY36RFeTphblT8SvW9hcYuUQ9yruBUCiFgjx6AJ4rCamlgctNIiRU67ayvo
 

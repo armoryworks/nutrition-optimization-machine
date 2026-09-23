@@ -11,3 +11,10 @@ CREATE OR REPLACE VIEW reference."ReferenceGroupView" AS
    FROM reference."Reference" ref
      JOIN reference."ReferenceIndex" idx ON ref."Id" = idx."ReferenceId"
      JOIN reference."Group" grp ON grp."Id" = idx."GroupId";
+
+-- Trigram index: restriction criteria match ingredients with ILIKE '%…%'
+-- patterns; without this each probe seq-scans the 200k-row catalog and
+-- "Surprise me" took seconds per call (audit N-69).
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS "IX_Ingredient_Name_trgm"
+    ON recipe."Ingredient" USING gin ("Name" gin_trgm_ops);
