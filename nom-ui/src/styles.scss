@@ -55,3 +55,13 @@ html {
   --mdc-outlined-button-label-text-color: var(--mat-sys-error);
   --mat-mdc-button-persistent-ripple-color: var(--mat-sys-error);
 }
+
+// Phones: the autocomplete panel opens above the input (keyboard below) and
+// at its default 256px max-height its top row lands under the browser
+// toolbar — the overlay's viewport math is off by the URL-bar height while
+// the keyboard is open. A shorter panel keeps every row on screen.
+@media (max-width: 767px) {
+  div.mat-mdc-autocomplete-panel {
+    max-height: 192px;
+  }
+}
