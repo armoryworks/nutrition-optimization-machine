@@ -106,7 +106,7 @@
                        [matAutocomplete]="ingAuto"
                        (input)="onIngredientInput(i, $event)"
                        [attr.aria-label]="'Search ingredient ' + (i + 1)" />
-                <mat-autocomplete #ingAuto="matAutocomplete"
+                <mat-autocomplete #ingAuto="matAutocomplete" autoActiveFirstOption
                                   panelWidth="auto"
                                   [displayWith]="displayIngredient"
                                   (optionSelected)="onIngredientSelected(i, $event.option.value)">

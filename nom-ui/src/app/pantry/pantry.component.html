@@ -32,7 +32,7 @@
                  (input)="onIngredientSearchChange($any($event.target).value)"
                  [matAutocomplete]="auto"
                  placeholder="Search ingredients...">
-          <mat-autocomplete #auto="matAutocomplete"
+          <mat-autocomplete #auto="matAutocomplete" autoActiveFirstOption
                            (optionSelected)="selectIngredient($event.option.value)"
                            [displayWith]="displayIngredient">
             @for (option of ingredientOptions(); track option.id) {
@@ -121,8 +121,8 @@
     <!-- Active Items -->
     <div class="nom-pantry__list" data-testid="pantry-list">
       <div class="nom-pantry__list-header">
-        <span class="nom-pantry__col-name">Ingredient</span>
-        <span class="nom-pantry__col-qty">Quantity</span>
+        <span class="nom-pantry__col-name">Item</span>
+        <span class="nom-pantry__col-qty">Qty</span>
         <span class="nom-pantry__col-exp">Expires</span>
         <span class="nom-pantry__col-actions"></span>
       </div>

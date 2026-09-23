@@ -217,6 +217,7 @@
   font-size: vars.$font-size-md;
   color: var(--mat-sys-on-surface);
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .nom-pantry__col-qty {
