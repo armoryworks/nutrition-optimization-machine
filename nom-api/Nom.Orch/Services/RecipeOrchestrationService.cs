@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 using Nom.Data;
 using Nom.Data.Recipe;
 using Nom.Data.Nutrient;
@@ -41,6 +42,8 @@ namespace Nom.Orch.Services
         private long? GetCurrentPersonId() => _currentUser.PersonId;
 
         private const string QuantityLeadChars = "0123456789\u00bd\u2153\u2154\u00bc\u00be\u215b\u215c\u215d\u215e";
+        private const string QuantityWordPattern =
+            "^(a|an|one|two|three|half( a)?)? ?(pint|quart|gallon|cup|can|jar|package|pkg|box|bag|bunch|slice|pound|ounce|oz|lb|tbsp|tsp|tablespoon|teaspoon)s? of ";
 
         public async Task<List<IngredientSearchResponseModel>> SearchIngredientsAsync(string query)
         {
@@ -53,9 +56,11 @@ namespace Nom.Orch.Services
                 .Where(i => i.Name.ToLower().Contains(searchTerm) ||
                             (i.NameNormalized != null && i.NameNormalized.ToLower().Contains(searchTerm)) ||
                             i.Aliases.Any(a => a.AliasName.ToLower().Contains(searchTerm)))
-                // Import residue like "1 can black beans" is not an ingredient a
-                // user should pick; hide quantity-prefixed names from search.
+                // Import residue like "1 can black beans" or "a pint of black
+                // beans" is not an ingredient a user should pick; hide
+                // quantity-prefixed names from search.
                 .Where(i => !QuantityLeadChars.Contains(i.Name.Substring(0, 1)))
+                .Where(i => !Regex.IsMatch(i.Name, QuantityWordPattern, RegexOptions.IgnoreCase))
                 // Rank name-prefix, then word-boundary matches above bare
                 // substrings ("oats" should not lead with "goats milk").
                 .OrderByDescending(i => i.Name.ToLower().StartsWith(searchTerm))
