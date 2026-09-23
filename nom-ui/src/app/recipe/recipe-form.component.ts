@@ -1,4 +1,4 @@
-import { Component, ElementRef, inject, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, QueryList, ViewChildren, inject, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormArray, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -6,7 +6,7 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatAutocomplete, MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -72,6 +72,8 @@ export class RecipeForm implements OnInit {
 
   // Reference data
   measurements = signal<MeasurementOption[]>([]);
+
+  @ViewChildren(MatAutocomplete) private autocompletes!: QueryList<MatAutocomplete>;
 
   // Ingredient autocomplete state per row
   ingredientOptions = signal<Map<number, IngredientSearchResult[]>>(new Map());
@@ -211,6 +213,16 @@ export class RecipeForm implements OnInit {
       takeUntilDestroyed(this.destroyRef),
     ).subscribe(results => {
       this.ingredientOptions.update(m => new Map(m).set(rowId, results));
+      this.scrollPanelsToTop();
+    });
+  }
+
+  /** The above-the-keyboard panel opens scrolled past the top-ranked option; pin it back. */
+  private scrollPanelsToTop(): void {
+    setTimeout(() => {
+      for (const auto of this.autocompletes ?? []) {
+        if (auto.isOpen && auto.panel) auto.panel.nativeElement.scrollTop = 0;
+      }
     });
   }
 

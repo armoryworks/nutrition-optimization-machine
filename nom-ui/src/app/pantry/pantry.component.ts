@@ -5,6 +5,7 @@ import {
   inject,
   signal,
   OnInit,
+  ViewChild,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { EntityLink } from '../shared/components/entity-link/entity-link.component';
@@ -21,7 +22,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatAutocomplete, MatAutocompleteModule } from '@angular/material/autocomplete';
 import { PantryService } from '../core/services/pantry.service';
 import { HouseholdStore } from '../core/services/household-store';
 import { MeasurementService } from '../core/services/measurement.service';
@@ -80,6 +81,8 @@ export class PantryComponent implements OnInit {
 
   private destroyRef = inject(DestroyRef);
   private searchSubject = new Subject<string>();
+
+  @ViewChild(MatAutocomplete) private autocomplete?: MatAutocomplete;
 
   // Computed views
   activeItems = computed(() =>
@@ -160,7 +163,13 @@ export class PantryComponent implements OnInit {
         }),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe((options) => this.ingredientOptions.set(options));
+      .subscribe((options) => {
+        this.ingredientOptions.set(options);
+        setTimeout(() => {
+          const auto = this.autocomplete;
+          if (auto?.isOpen && auto.panel) auto.panel.nativeElement.scrollTop = 0;
+        });
+      });
   }
 
   onIngredientSearchChange(value: string) {
