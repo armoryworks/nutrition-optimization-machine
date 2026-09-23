@@ -218,12 +218,12 @@ export class RecipeForm implements OnInit {
   }
 
   /** The above-the-keyboard panel opens scrolled past the top-ranked option; pin it back. */
-  private scrollPanelsToTop(): void {
+  scrollPanelsToTop(): void {
     setTimeout(() => {
       for (const auto of this.autocompletes ?? []) {
         if (auto.isOpen && auto.panel) auto.panel.nativeElement.scrollTop = 0;
       }
-    });
+    }, 80);
   }
 
   // ── Step rows ──

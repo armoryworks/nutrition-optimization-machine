@@ -165,10 +165,7 @@ export class PantryComponent implements OnInit {
       )
       .subscribe((options) => {
         this.ingredientOptions.set(options);
-        setTimeout(() => {
-          const auto = this.autocomplete;
-          if (auto?.isOpen && auto.panel) auto.panel.nativeElement.scrollTop = 0;
-        });
+        this.scrollPanelToTop();
       });
   }
 
@@ -182,6 +179,13 @@ export class PantryComponent implements OnInit {
     this.selectedIngredient.set(option);
     this.ingredientSearch.set(option.name);
     this.ingredientOptions.set([]);
+  }
+
+  scrollPanelToTop(): void {
+    setTimeout(() => {
+      const auto = this.autocomplete;
+      if (auto?.isOpen && auto.panel) auto.panel.nativeElement.scrollTop = 0;
+    }, 80);
   }
 
   displayIngredient(option: IngredientSearchResult): string {

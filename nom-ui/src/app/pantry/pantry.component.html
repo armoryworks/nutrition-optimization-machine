@@ -32,7 +32,7 @@
                  (input)="onIngredientSearchChange($any($event.target).value)"
                  [matAutocomplete]="auto"
                  placeholder="Search ingredients...">
-          <mat-autocomplete #auto="matAutocomplete" autoActiveFirstOption
+          <mat-autocomplete #auto="matAutocomplete" autoActiveFirstOption (opened)="scrollPanelToTop()"
                            (optionSelected)="selectIngredient($event.option.value)"
                            [displayWith]="displayIngredient">
             @for (option of ingredientOptions(); track option.id) {
