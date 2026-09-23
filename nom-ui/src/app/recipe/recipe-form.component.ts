@@ -19,7 +19,7 @@ import { MeasurementService } from '../core/services/measurement.service';
 import { LoadingService } from '../core/services/loading.service';
 import { PolicyService } from '../core/services/policy.service';
 import { IngredientSearchResult } from '../core/models/ingredient-search-result.model';
-import { MeasurementOption } from '../core/models/measurement.model';
+import { MeasurementOption, foodUnits } from '../core/models/measurement.model';
 import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-delete-dialog/confirm-delete-dialog.component';
 
 @Component({
@@ -75,6 +75,8 @@ export class RecipeForm implements OnInit {
 
   // Ingredient autocomplete state per row
   ingredientOptions = signal<Map<number, IngredientSearchResult[]>>(new Map());
+  /** Row ids whose selected ingredient has no nutrition data in the catalog. */
+  nutritionGaps = signal<Set<number>>(new Set());
   private ingredientSearchSubjects = new Map<number, Subject<string>>();
   private rowCounter = 0;
 
@@ -113,7 +115,7 @@ export class RecipeForm implements OnInit {
     this.measurementService.loadMeasurements().pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: (data) => this.measurements.set(data),
+      next: (data) => this.measurements.set(foodUnits(data)),
     });
 
     this.route.params.pipe(
@@ -165,6 +167,7 @@ export class RecipeForm implements OnInit {
     const group = this.ingredientsArray.at(index);
     group.get('searchText')?.setErrors(null);
     const rowId = group.get('rowId')?.value;
+    this.nutritionGaps.update(s => { const next = new Set(s); next.delete(rowId); return next; });
     this.ingredientSearchSubjects.get(rowId)?.next(value);
   }
 
@@ -172,6 +175,17 @@ export class RecipeForm implements OnInit {
     const group = this.ingredientsArray.at(index);
     group.patchValue({ ingredientId: item.id, name: item.name, searchText: item.name });
     group.get('searchText')?.setErrors(null);
+    const rowId = group.get('rowId')?.value;
+    this.nutritionGaps.update(s => {
+      const next = new Set(s);
+      if (item.hasNutrition === false) next.add(rowId); else next.delete(rowId);
+      return next;
+    });
+  }
+
+  ingredientLacksNutrition(index: number): boolean {
+    const rowId = this.ingredientsArray.at(index).get('rowId')?.value;
+    return this.nutritionGaps().has(rowId);
   }
 
   /** The control holds a string after selection (patchValue) but the option value is an object. */

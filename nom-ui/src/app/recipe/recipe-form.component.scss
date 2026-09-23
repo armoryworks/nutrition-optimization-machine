@@ -8,7 +8,7 @@
 
 .nom-recipe-form__serving-row {
   display: flex;
-  gap: vars.$spacing-3;
+  gap: vars.$spacing-6 vars.$spacing-3;
   flex-wrap: wrap;
 }
 
@@ -45,6 +45,10 @@
 .nom-recipe-form__alias {
   color: var(--mat-sys-on-surface-variant);
   margin-left: vars.$spacing-1;
+}
+
+.nom-recipe-form__nutrition-gap {
+  color: var(--mat-sys-tertiary);
 }
 
 // Phones: name on its own line, qty / unit / remove beneath. In one flex row a

@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../core/services/auth.service';
 import { LoadingService } from '../core/services/loading.service';
+import { HasUnsavedForm } from '../core/guards/unsaved-form.guard';
 
 @Component({
   selector: 'nom-register',
@@ -26,7 +27,7 @@ import { LoadingService } from '../core/services/loading.service';
   styleUrl: './register.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Register {
+export class Register implements HasUnsavedForm {
   private authService = inject(AuthService);
   private loadingService = inject(LoadingService);
   private fb = inject(FormBuilder);
@@ -45,6 +46,12 @@ export class Register {
   showConfirmPassword = signal(false);
   registeredEmail = signal('');
   resendSuccess = signal(false);
+
+  hasUnsavedChanges(): boolean {
+    if (this.registeredEmail()) return false;
+    const { email, fullName, password } = this.registerForm.getRawValue();
+    return !!(email || fullName || password);
+  }
 
   private passwordsMatch(group: AbstractControl): ValidationErrors | null {
     const password = group.get('password')?.value;

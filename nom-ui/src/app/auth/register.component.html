@@ -29,7 +29,7 @@
         </div>
       </div>
       <div class="nom-register__footer">
-        <a routerLink="/home">Go to Sign In</a>
+        <a routerLink="/login">Go to Sign In</a>
       </div>
     </div>
   } @else {
@@ -75,7 +75,7 @@
                      [type]="showPassword() ? 'text' : 'password'"
                      autocomplete="new-password">
               <mat-icon matPrefix>lock</mat-icon>
-              <button mat-icon-button matSuffix type="button"
+              <button mat-icon-button matSuffix type="button" tabindex="-1"
                       (click)="showPassword.set(!showPassword())"
                       [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
                 <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
@@ -91,7 +91,7 @@
                      [type]="showConfirmPassword() ? 'text' : 'password'"
                      autocomplete="new-password">
               <mat-icon matPrefix>lock_outline</mat-icon>
-              <button mat-icon-button matSuffix type="button"
+              <button mat-icon-button matSuffix type="button" tabindex="-1"
                       (click)="showConfirmPassword.set(!showConfirmPassword())"
                       [attr.aria-label]="showConfirmPassword() ? 'Hide password' : 'Show password'">
                 <mat-icon>{{ showConfirmPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
@@ -117,7 +117,7 @@
       </div>
 
       <div class="nom-register__footer">
-        Already have an account? <a routerLink="/home">Sign in</a>
+        Already have an account? <a routerLink="/login">Sign in</a>
       </div>
     </div>
   }

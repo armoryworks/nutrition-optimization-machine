@@ -11,6 +11,7 @@ export class AuthService {
   private http = inject(HttpClient);
   private isLoggedInSignal = signal(false);
   private usernameSignal = signal('');
+  private displayNameSignal = signal('');
   private personIdSignal = signal<number | null>(null);
   private isAdminSignal = signal(false);
   private adminStatus$: Observable<boolean> | null = null;
@@ -19,6 +20,7 @@ export class AuthService {
 
   readonly isLoggedIn = this.isLoggedInSignal.asReadonly();
   readonly username = this.usernameSignal.asReadonly();
+  readonly displayName = this.displayNameSignal.asReadonly();
   readonly personId = this.personIdSignal.asReadonly();
   readonly isAdmin = this.isAdminSignal.asReadonly();
 
@@ -216,6 +218,10 @@ export class AuthService {
       tap((person) => {
         localStorage.setItem('personId', String(person.id));
         this.personIdSignal.set(person.id);
+        if (person.name) {
+          localStorage.setItem('displayName', person.name);
+          this.displayNameSignal.set(person.name);
+        }
       }),
       switchMap(() => of(undefined)),
       catchError(() => of(undefined)),
@@ -240,15 +246,17 @@ export class AuthService {
     if (token) {
       this.isLoggedInSignal.set(true);
       this.usernameSignal.set(localStorage.getItem('username') ?? '');
+      this.displayNameSignal.set(localStorage.getItem('displayName') ?? '');
       const storedPersonId = localStorage.getItem('personId');
       if (storedPersonId) {
         this.personIdSignal.set(Number(storedPersonId));
-      } else {
-        // Session restored from tokens but the person id never landed — heal it.
+      }
+      if (!storedPersonId || !this.usernameSignal() || !this.displayNameSignal()) {
+        // Session restored from tokens but identity never fully landed — heal it.
         // Deferred: firing HTTP from this constructor would resolve the auth
         // interceptor's inject(AuthService) while the service is still being
         // constructed (circular DI).
-        queueMicrotask(() => this.fetchAndStorePersonId().subscribe());
+        queueMicrotask(() => this.fetchAndStoreUserInfo().subscribe());
       }
     }
   }
@@ -257,9 +265,11 @@ export class AuthService {
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('username');
+    localStorage.removeItem('displayName');
     localStorage.removeItem('personId');
     this.isLoggedInSignal.set(false);
     this.usernameSignal.set('');
+    this.displayNameSignal.set('');
     this.personIdSignal.set(null);
     this.isAdminSignal.set(false);
     this.adminStatus$ = null;

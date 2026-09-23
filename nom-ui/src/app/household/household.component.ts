@@ -83,19 +83,34 @@ export class Household implements OnInit {
 
   isStandalone = computed(() => this.mode() !== 'wizard');
   hasHousehold = computed(() => this.households().length > 0);
-  primaryUserName = computed(() => this.authService.username() || 'You');
   currentPersonId = computed(() => this.authService.personId());
+
+  /** The current user's own membership row, matched by person id or signed-in email. */
+  selfMember = computed(() => {
+    const personId = this.currentPersonId();
+    const email = (this.authService.username() || '').toLowerCase();
+    return this.members().find(m =>
+      m.personId === personId || (!!email && (m.personEmail ?? '').toLowerCase() === email)) ?? null;
+  });
+
+  primaryUserName = computed(() =>
+    this.selfMember()?.personName || this.authService.displayName() || this.authService.username());
+
+  primaryLabel = computed(() => {
+    const name = this.primaryUserName();
+    return name ? `${name} (You)` : 'You';
+  });
 
   // Non-user members (exclude the primary user from the grid's "other members" section)
   nonUserMembers = computed(() => {
     const personId = this.currentPersonId();
-    // While the person id is still being resolved (session heal), fall back to the
-    // signed-in email so the current user is never listed twice.
+    // Also match by signed-in email so the current user is never listed twice,
+    // even while the person id is still being resolved (session heal).
     const email = (this.authService.username() || '').toLowerCase();
     const seen = new Set<number>();
     return this.members().filter(m => {
       if (m.personId === personId) return false;
-      if (personId == null && email && (m.personEmail ?? '').toLowerCase() === email) return false;
+      if (email && (m.personEmail ?? '').toLowerCase() === email) return false;
       if (seen.has(m.personId)) return false;
       seen.add(m.personId);
       return true;

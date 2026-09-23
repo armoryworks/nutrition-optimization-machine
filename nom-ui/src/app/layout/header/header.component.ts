@@ -51,7 +51,7 @@ export class Header {
   brandExternal = computed(() => !this.isLoggedIn() && this.marketingSite !== '');
 
   userInitial = computed(() => {
-    const name = this.authService.username();
+    const name = this.authService.displayName() || this.authService.username();
     return name ? name.charAt(0).toUpperCase() : 'U';
   });
 

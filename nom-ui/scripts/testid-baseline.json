@@ -30,7 +30,7 @@
   "src/app/plan/clone-plan-dialog.component.html": 2,
   "src/app/plan/curated-plans.component.html": 2,
   "src/app/plan/plan-rules.component.html": 7,
-  "src/app/plan/plan.component.html": 16,
+  "src/app/plan/plan.component.html": 14,
   "src/app/plan/recipe-search-dialog/recipe-search-dialog.component.html": 6,
   "src/app/plan/shuffle-confirm-dialog.component.html": 1,
   "src/app/profile/profile.component.html": 15,

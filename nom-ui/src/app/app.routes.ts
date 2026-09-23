@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
+import { unsavedFormGuard } from './core/guards/unsaved-form.guard';
 import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
@@ -68,6 +69,7 @@ export const routes: Routes = [
     path: 'register',
     loadComponent: () => import('./auth/register.component').then((m) => m.Register),
     canActivate: [guestGuard],
+    canDeactivate: [unsavedFormGuard],
   },
   {
     // Standalone sign-in page. No guestGuard — the page itself forwards

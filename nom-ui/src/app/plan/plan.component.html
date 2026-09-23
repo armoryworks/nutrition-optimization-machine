@@ -24,11 +24,15 @@
         <button mat-icon-button (click)="printPlan()" [disabled]="!weekData()" matTooltip="Print meal plan" aria-label="Print meal plan" data-testid="plan-print-btn">
           <mat-icon>print</mat-icon>
         </button>
-        <a mat-icon-button routerLink="/plan/curated" matTooltip="Browse curated plans" aria-label="Browse curated plans">
+        <a mat-stroked-button class="nom-plan__toolbar-link" routerLink="/plan/curated"
+           matTooltip="Browse curated plans" data-testid="plan-curated-link">
           <mat-icon>auto_awesome</mat-icon>
+          Curated
         </a>
-        <a mat-icon-button routerLink="/plan/rules" matTooltip="Manage rules" aria-label="Manage rules">
+        <a mat-stroked-button class="nom-plan__toolbar-link" routerLink="/plan/rules"
+           matTooltip="Manage rules" data-testid="plan-rules-link">
           <mat-icon>tune</mat-icon>
+          Rules
         </a>
         <button mat-stroked-button
                 data-testid="plan-shuffle-btn"

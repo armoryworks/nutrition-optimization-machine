@@ -94,7 +94,7 @@ export class Nav {
         },
         {
           label: 'Ingredients',
-          icon: 'nutrition', // a carrot
+          icon: 'egg',
           route: '/ingredients/mine',
           testId: 'nav-ingredients',
         },

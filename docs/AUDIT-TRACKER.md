@@ -43,6 +43,31 @@ Last updated: 2026-08-18 (mobile pass added; N-9..N-18 fixed in v0.3.23; N-7/N-1
 | N-29 | Tester UX | Med | Recipe form had no **servings / serving size** inputs even though the model and nutrition label support them (per-serving nutrition silently divided by 1) | Fixed (v0.3.38 — Servings + serving size (qty/unit) on create & edit, persisted end to end) |
 | N-30 | Tester UX | Med | Cell-level "Surprise me" ignored the meal type — a breakfast slot drew from ALL public recipes (week shuffle was already meal-aware) | Fixed (v0.3.38 — /RecipeSearch/random takes mealTypeId, prefers meal-categorized recipes with full-pool fallback; dialog passes the slot's meal type) |
 | N-19 | Desktop layout | Low | Meal Plan week grid is also cramped at ~1400 px with nav + context panel open (day columns ≈45 px) — same one-letter wrapping as N-16, desktop variant | Fixed (v0.3.24 — container query drops thumbnails under 900px) |
+| N-31 | Marketing | Low | Header has "Log in" only — no Sign up / Get started CTA; registration hides behind the Sign-In dialog's "Create Account" link (by design, noted for funnel review) | Open |
+| N-32 | Marketing | Low | Recipe cards show "13 · 2 SERVINGS" — first number has no unit (minutes?) | Open |
+| N-33 | Mobile UX | Med | Register page: Android back (reflex to close the keyboard) navigates away and silently discards the whole filled form — needs an SPA discard guard | Fixed (v0.3.39 — unsavedFormGuard on /register: navigating away from a partly-filled form asks before discarding) |
+| N-34 | A11y | Low | Password eye-toggle buttons sit in the tab order between Password and Confirm Password | Fixed (v0.3.39 — eye toggles tabindex=-1 on register + login popover) |
+| N-35 | Nav | Med | "Go to Sign In" (post-register) and "Sign In" (post-email-confirmation) both land on logged-out /home; the sign-in form needs a second tap on the header button | Fixed (v0.3.39 — register/confirm links now go to the standalone /login page) |
+| N-36 | Artifact | Low | Header avatar chip shows "U" for a user named "Claude Tester" (expected "C"/"CT") | Fixed (v0.3.39 — avatar initial prefers person display name; name stored/healed with personId) |
+| N-37 | Mobile layout | Med | Household create: sticky "Create Household" bar overlaps the bottom of the Description field at phone height | Fixed (v0.3.39 — global scroll-padding keeps focused fields clear of sticky bars; keyboard now resizes layout viewport) |
+| N-38 | Bug (UI) | Med | Fresh account, right after creating a household: primary row "You (You)" AND the same person again as a removable "Claude Tester" row — self-exclusion fails while username/personId are unresolved (fresh-account repro of the N-24/N-26 symptom; reload self-heals the dup) | Fixed (v0.3.39 — self row matched by email regardless of personId state; identity heals on load) |
+| N-39 | Copy | Low | "1 members" — pluralization | Fixed (v0.3.39 — singular/plural member count) |
+| N-40 | Bug (UI) | Med | Primary member row stays "You (You)" even after reload — auth `username` is never stored/healed on this path (personId heal works); row should show the person's name | Fixed (v0.3.39 — displayName stored at login and healed on app load; row shows person name, plain "You" while unresolved) |
+| N-41 | Bug (misleading) | Med | Primary member row hardcodes Profile ✓ / Dietary ✓ badges — shown complete on a fresh account with neither filled; other rows show real state | Fixed (v0.3.39 — primary row badges driven by own membership hasProfile/hasRestrictions) |
+| N-42 | Artifact | Low | Nav drawer "Ingredients" renders with no icon — `nutrition` ligature missing from the shipped Material icon font | Fixed (v0.3.39 — nav icon swapped to `egg`, present in the classic Material Icons font) |
+| N-43 | Bug? | Low | "Collapse" item visible in the phone nav drawer despite the v0.3.26 mobile hide — check selector/media query on the prod build | Fixed (v0.3.39 — the mobile hide rule was nested inside the `--collapsed` modifier and never matched; moved to top level) |
+| N-44 | Mobile layout | Low | Recipe form: Servings hint "How many portions this makes" collides with the serving-size Unit field below at phone width | Fixed (v0.3.39 — serving row row-gap clears the wrapped hint) |
+| N-45 | Mobile bug | High | Recipe form: ingredient autocomplete renders in a ~30 px sliver hidden behind the keyboard — phone users never see suggestions, type free text, and hit the unmatched-ingredient error (the on-device root cause of N-28) | Fixed (v0.3.39 — viewport meta `interactive-widget=resizes-content`: the keyboard shrinks the layout viewport so the CDK panel flips above the input) |
+| N-46 | Data quality | Med | Ingredient autocomplete returns quantity-prefixed catalog rows ("½ cup black beans", "1 can black beans") alongside "Black Beans" — import residue to alias/merge or hide from user search | Fixed (v0.3.39 — search hides names starting with a digit/fraction) |
+| N-47 | UX noise | Low | Ingredient Unit dropdown includes Celsius/Fahrenheit/Kilocalorie and orders oddly (Dozen first, Cup buried) — unfiltered measurement list | Fixed (v0.3.39 — unit pickers filter to Mass/Volume/Count and order common cooking units first) |
+| N-48 | Aesthetics | Med | Recipe detail header (phone): Edit button overlaps the "Back to recipes" text; "Make public" wraps to its own row — action row doesn't reflow at 412 px (Daniel flagged this one directly) | Fixed (v0.3.39 — banner is a wrapping flex row, back link left, actions right) |
+| N-49 | Copy | Low | Ingredient line renders "2 Cup Black Beans" — unit not pluralized | Fixed (v0.3.39 — `unit` pipe lowercases + pluralizes measurement names) |
+| N-50 | Aesthetics | Low | Meal Plan day view: row-label column clips "BREAKFAST" at the left edge | Fixed (v0.3.39 — label column 88px, tighter tracking on phones) |
+| N-51 | Aesthetics | Low | Meal Plan toolbar is icon-only (print, sparkle, sliders) with no labels/tooltips on mobile — low discoverability for a new user | Fixed (v0.3.39 — Curated/Rules are labeled buttons) |
+| N-52 | Perf | Med | Cell "Surprise me" took ~10 s on device with only a tiny inline spinner (pick itself was correct — meal-aware N-30 fix confirmed on device) | Fixed (v0.3.39 — random pick selects ids first; ORDER BY random() under AsSplitQuery re-ran the sort per split query) |
+| N-53 | Bug (data) | High | Recipe built from a catalog-matched ingredient (Black Beans, 2 Cup) has **no nutrition**: Nutrition tab "not yet available", meal-plan Portions "no calorie data", day TOTALS ignore the meal. Link is real (Recipes-with view finds it) — the catalog row lacks nutrition or a Cup→gram conversion, and the recipe UI never warns | Partial (v0.3.39 — recipe form warns when a picked ingredient has no nutrition data; catalog rows still need curation/FDC values — data side open) |
+| N-54 | Polish | Low | Recipe card shows "0 min" when no prep/cook time was entered | Fixed (v0.3.39 — time hidden when 0) |
+| N-55 | Data quality | Med | Shopping list: Black Beans / Blueberry / Chia Seeds all land in "Other" — catalog rows missing store category (same sparse-row family as N-53); retail-unit conversion itself is good (2 Cups → "15 oz can") | Open |
 
 _The UI walkthrough was otherwise clean — all ~30 pages render, zero API failures, no real JS errors (the per-page `ERR_CONNECTION_REFUSED` is Cloudflare's own analytics beacon, a sandbox-only false positive). Backend/functional findings from the earlier deep audit are summarized under "Backend" below._
 
@@ -145,6 +170,23 @@ The right-edge "PANEL" toggle is a fixed 40 px tab that sits over content on eve
 _Sweep method: hamburger → every nav destination, screenshot + DOM audit (horizontal overflow, elements past the viewport edge, ≥3-line wrapping in boxes < 70 px, text < 11 px). Pantry, My Recipes, Cookbooks, Dishes, Search, Messages, Admin, Settings passed the automated checks and look acceptable by eye at 412 px._
 
 _Screenshots from the run (viewport + full-page) are in the session scratchpad `shots/` folder; the recipe-form and pantry ones are the evidence for N-9/N-13._
+
+## N-31 … N-55 — Pixel 7a real-device pass (prod nommeal.com, 2026-09-22)
+
+Full new-user journey driven over ADB on a physical Pixel 7a (Chrome, no emulation), as
+account "Claude Tester" / household "Tester Family" (Peanut Allergy + Vegetarian):
+register → email confirm → sign in → create household → dietary restrictions →
+create recipe (Peanut-Free Veggie Tacos, 4 servings, 2 Cup Black Beans from
+autocomplete) → meal plan (breakfast "Surprise me" + manual dinner add) → shopping
+list (auto-generated, item check-off) → pantry empty state.
+
+Verified working on device: confirmed-email gate + resend link, v0.3.23 phone recipe-form
+layout, N-28 unmatched-ingredient messaging, N-29 servings end to end (form → detail
+page), N-30 meal-aware Surprise me (breakfast slot drew Banana Smoothie Bowl),
+meal-plan day totals, shopping generation with provenance + retail-unit conversion,
+pantry empty state. Findings table rows N-31–N-55; themes: identity/username healing
+(N-38/40/41), keyboard-vs-overlay layout (N-45 is the big one), sparse catalog rows
+(N-53/55/46), and header/action-row reflow aesthetics (N-48/50/37).
 
 ## Backend / functional (load-bearing — see the deep audit)
 

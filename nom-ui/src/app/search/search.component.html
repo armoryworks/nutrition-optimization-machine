@@ -61,10 +61,12 @@
                 <p class="nom-search__card-desc">{{ recipe.description }}</p>
               }
               <div class="nom-search__card-meta">
-                <span class="nom-search__card-time">
-                  <mat-icon class="nom-search__card-meta-icon">schedule</mat-icon>
-                  {{ recipe.totalTime }} min
-                </span>
+                @if (recipe.totalTime > 0) {
+                  <span class="nom-search__card-time">
+                    <mat-icon class="nom-search__card-meta-icon">schedule</mat-icon>
+                    {{ recipe.totalTime }} min
+                  </span>
+                }
                 @if (recipe.averageRating > 0) {
                   <span class="nom-search__card-rating">
                     <mat-icon class="nom-search__card-meta-icon">star</mat-icon>

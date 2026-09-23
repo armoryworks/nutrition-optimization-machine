@@ -123,6 +123,10 @@
                   <mat-error data-testid="recipe-ingredient-unmatched-error">Pick from the suggestion list</mat-error>
                 } @else if (ing.get('ingredientId')?.touched && ing.get('ingredientId')?.invalid) {
                   <mat-error>Ingredient is required</mat-error>
+                } @else if (ingredientLacksNutrition(i)) {
+                  <mat-hint class="nom-recipe-form__nutrition-gap" data-testid="recipe-ingredient-nutrition-gap">
+                    No nutrition data yet — won't count toward this recipe's nutrition
+                  </mat-hint>
                 }
               </mat-form-field>
 

@@ -237,7 +237,7 @@
                 [attr.data-testid]="row.addIn ? 'ingredient-add-in' : null">
               @if (row.addIn) {
                 @if (row.ingredient.quantity) {
-                  {{ row.ingredient.quantity }} {{ row.ingredient.measurement }}
+                  {{ row.ingredient.quantity }} {{ row.ingredient.measurement | unit: row.ingredient.quantity }}
                 }
                 <nom-entity-link route="/search"
                                  [label]="row.ingredient.name"
@@ -246,7 +246,7 @@
                                  [ariaLabel]="'Recipes with ' + row.ingredient.name" />
                 <span class="nom-recipe__ingredient-addin-chip">add-in</span>
               } @else if (row.swap) {
-                {{ row.swap.quantity }} {{ row.swap.measurement }}
+                {{ row.swap.quantity }} {{ row.swap.measurement | unit: row.swap.quantity }}
                 <nom-entity-link route="/search"
                                  [label]="row.swap.name"
                                  [queryParams]="{ ingredientId: row.swap.ingredientId, ingredient: row.swap.name }"
@@ -258,7 +258,7 @@
                   <mat-icon>undo</mat-icon>
                 </button>
               } @else {
-                {{ row.ingredient.quantity }} {{ row.ingredient.measurement }}
+                {{ row.ingredient.quantity }} {{ row.ingredient.measurement | unit: row.ingredient.quantity }}
                 <nom-entity-link route="/search"
                                  [label]="row.ingredient.name"
                                  [queryParams]="{ ingredientId: row.ingredient.ingredientId, ingredient: row.ingredient.name }"
@@ -283,7 +283,7 @@
                           <button type="button" class="nom-recipe__subs-option"
                                   (click)="pickSubstitution(row.ingredient.ingredientId, sub)"
                                   data-testid="ingredient-subs-option">
-                            {{ sub.quantity }} {{ sub.measurement }} {{ sub.name }}
+                            {{ sub.quantity }} {{ sub.measurement | unit: sub.quantity }} {{ sub.name }}
                             @if (sub.notes) {
                               <span class="nom-recipe__subs-note">{{ sub.notes }}</span>
                             }
@@ -335,7 +335,7 @@
                          data-testid="augmentation-toggle" />
                   <span class="nom-recipe__aug-name">
                     @if (aug.quantity) {
-                      {{ aug.quantity }} {{ aug.measurement }}
+                      {{ aug.quantity }} {{ aug.measurement | unit: aug.quantity }}
                     }
                     {{ aug.ingredientName }}
                   </span>

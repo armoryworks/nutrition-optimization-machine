@@ -25,6 +25,9 @@ textarea:focus-visible,
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  // Focused fields scroll clear of sticky bottom action bars
+  scroll-padding-top: 72px;
+  scroll-padding-bottom: 96px;
 }
 
 body {

@@ -58,7 +58,7 @@
               @if (h.isPersonal) {
                 <span data-testid="household-item-personal">Personal kitchen</span>
               } @else {
-                <span>{{ h.memberCount }} members</span>
+                <span>{{ h.memberCount }} {{ h.memberCount === 1 ? 'member' : 'members' }}</span>
               }
             </div>
           </div>
@@ -99,18 +99,22 @@
         <!-- Primary user row -->
         <div class="nom-household__member-row nom-household__member-row--primary">
           <div class="nom-household__member-info">
-            <span class="nom-household__member-name">{{ primaryUserName() }} (You)</span>
+            <span class="nom-household__member-name">{{ primaryLabel() }}</span>
           </div>
           <div class="nom-household__member-status">
-            <a class="nom-household__status-badge nom-household__status-badge--done nom-household__status-badge--clickable"
+            <a class="nom-household__status-badge nom-household__status-badge--clickable"
+               [class.nom-household__status-badge--done]="selfMember()?.hasProfile"
                routerLink="/profile" title="Edit your profile"
                data-testid="household-primary-profile-link">
-              <mat-icon>check_circle</mat-icon> Profile <mat-icon class="nom-household__badge-edit">edit</mat-icon>
+              <mat-icon>{{ selfMember()?.hasProfile ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+              Profile <mat-icon class="nom-household__badge-edit">edit</mat-icon>
             </a>
-            <a class="nom-household__status-badge nom-household__status-badge--done nom-household__status-badge--clickable"
+            <a class="nom-household__status-badge nom-household__status-badge--clickable"
+               [class.nom-household__status-badge--done]="selfMember()?.hasRestrictions"
                routerLink="/restrictions" title="Edit your dietary restrictions"
                data-testid="household-primary-dietary-link">
-              <mat-icon>check_circle</mat-icon> Dietary <mat-icon class="nom-household__badge-edit">edit</mat-icon>
+              <mat-icon>{{ selfMember()?.hasRestrictions ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+              Dietary <mat-icon class="nom-household__badge-edit">edit</mat-icon>
             </a>
           </div>
         </div>

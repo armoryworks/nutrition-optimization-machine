@@ -11,12 +11,17 @@
 // Banner: back link (does not scroll)
 .nom-recipe__banner {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: vars.$spacing-2 vars.$spacing-3;
   padding: vars.$spacing-1 vars.$spacing-4;
 }
 
 .nom-recipe__back {
   display: inline-flex;
   align-items: center;
+  margin-right: auto;
   gap: vars.$spacing-1;
   color: var(--mat-sys-primary);
   text-decoration: none;

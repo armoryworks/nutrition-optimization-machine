@@ -3,4 +3,6 @@ export interface IngredientSearchResult {
   name: string;
   fdcId?: string;
   matchedAlias?: string;
+  foodGroupName?: string;
+  hasNutrition?: boolean;
 }

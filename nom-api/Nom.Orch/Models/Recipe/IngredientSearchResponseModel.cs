@@ -10,5 +10,6 @@ namespace Nom.Orch.Models.Recipe
         public long? FoodGroupId { get; set; }
         public string? FoodGroupName { get; set; }
         public bool? IsWholeFood { get; set; }
+        public bool HasNutrition { get; set; }
     }
 }

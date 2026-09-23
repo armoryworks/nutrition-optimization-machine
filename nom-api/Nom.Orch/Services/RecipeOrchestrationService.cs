@@ -40,6 +40,8 @@ namespace Nom.Orch.Services
 
         private long? GetCurrentPersonId() => _currentUser.PersonId;
 
+        private const string QuantityLeadChars = "0123456789\u00bd\u2153\u2154\u00bc\u00be\u215b\u215c\u215d\u215e";
+
         public async Task<List<IngredientSearchResponseModel>> SearchIngredientsAsync(string query)
         {
             if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
@@ -47,29 +49,32 @@ namespace Nom.Orch.Services
 
             var searchTerm = query.ToLower().Trim();
 
-            var ingredients = await _context.Ingredients
-                .Include(i => i.CurationStatus)
-                .Include(i => i.Aliases)
-                .Include(i => i.FoodGroup)
+            return await _context.Ingredients
                 .Where(i => i.Name.ToLower().Contains(searchTerm) ||
                             (i.NameNormalized != null && i.NameNormalized.ToLower().Contains(searchTerm)) ||
                             i.Aliases.Any(a => a.AliasName.ToLower().Contains(searchTerm)))
+                // Import residue like "1 can black beans" is not an ingredient a
+                // user should pick; hide quantity-prefixed names from search.
+                .Where(i => !QuantityLeadChars.Contains(i.Name.Substring(0, 1)))
                 .OrderByDescending(i => i.IsWholeFood == true) // Surface directly-edible whole foods first
                 .ThenBy(i => i.Name.Length) // then shorter names (exact matches)
                 .ThenBy(i => i.Name)
                 .Take(20) // Limit results for performance
+                .Select(i => new IngredientSearchResponseModel
+                {
+                    Id = i.Id,
+                    Name = i.Name,
+                    FdcId = i.FdcId,
+                    MatchedAlias = i.Aliases
+                        .Where(a => a.AliasName.ToLower().Contains(searchTerm))
+                        .Select(a => a.AliasName)
+                        .FirstOrDefault(),
+                    FoodGroupId = i.FoodGroupId,
+                    FoodGroupName = i.FoodGroup != null ? i.FoodGroup.Name : null,
+                    IsWholeFood = i.IsWholeFood,
+                    HasNutrition = i.IngredientNutrients.Any()
+                })
                 .ToListAsync();
-
-            return ingredients.Select(i => new IngredientSearchResponseModel
-            {
-                Id = i.Id,
-                Name = i.Name,
-                FdcId = i.FdcId,
-                MatchedAlias = i.Aliases.FirstOrDefault(a => a.AliasName.ToLower().Contains(searchTerm))?.AliasName,
-                FoodGroupId = i.FoodGroupId,
-                FoodGroupName = i.FoodGroup != null ? i.FoodGroup.Name : null,
-                IsWholeFood = i.IsWholeFood
-            }).ToList();
         }
 
         private async Task<List<NutrientValueModel>> GetIngredientNutrientsAsync(long ingredientId)

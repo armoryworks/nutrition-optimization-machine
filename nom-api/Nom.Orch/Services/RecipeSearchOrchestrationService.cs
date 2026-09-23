@@ -182,24 +182,32 @@ namespace Nom.Orch.Services
             // falling back to the full pool — same semantics as the week shuffle. A
             // breakfast "Surprise me" used to draw from ALL recipes (tester report,
             // 2026-09-17).
-            var randomRecipes = new List<RecipeEntity>();
+            // Pick ids first: ORDER BY random() under AsSplitQuery re-runs the
+            // nondeterministic sort per split query (slow, and the includes can
+            // disagree about which rows were picked).
+            var pickedIds = new List<long>();
             if (mealTypeId.HasValue)
             {
-                randomRecipes = await query
+                pickedIds = await query
                     .Where(r => r.RecipeCategories!.Any(rc => rc.CategoryId == mealTypeId.Value))
-                    .OrderBy(r => EF.Functions.Random())
+                    .Select(r => r.Id)
+                    .OrderBy(id => EF.Functions.Random())
                     .Take(count)
                     .ToListAsync();
             }
-            if (randomRecipes.Count < count)
+            if (pickedIds.Count < count)
             {
-                var haveIds = randomRecipes.Select(r => r.Id).ToHashSet();
-                randomRecipes.AddRange(await query
+                var haveIds = pickedIds.ToHashSet();
+                pickedIds.AddRange(await query
                     .Where(r => !haveIds.Contains(r.Id))
-                    .OrderBy(r => EF.Functions.Random())
-                    .Take(count - randomRecipes.Count)
+                    .Select(r => r.Id)
+                    .OrderBy(id => EF.Functions.Random())
+                    .Take(count - pickedIds.Count)
                     .ToListAsync());
             }
+            var randomRecipes = await query
+                .Where(r => pickedIds.Contains(r.Id))
+                .ToListAsync();
 
             var results = randomRecipes.Select(r => MapToSearchResult(r, new RecipeSearchModel())).ToList();
 
