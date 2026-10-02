@@ -10,8 +10,8 @@ public class HouseholdInviteTokenEntityConfiguration : IEntityTypeConfiguration<
     {
         builder.ToTable("HouseholdInviteToken", schema: "plan");
 
-        // Properties
-        builder.Property(e => e.HouseholdId).IsRequired();
+        // Properties. HouseholdId is optional: a managed_enrollment token for a
+        // brand-new client has no household until redemption creates one.
         builder.Property(e => e.Token).IsRequired().HasMaxLength(255);
         builder.Property(e => e.Kind).IsRequired().HasMaxLength(50).HasDefaultValue(InviteTokenKinds.HouseholdJoin);
         builder.Property(e => e.ManagedBy).HasMaxLength(100);
@@ -21,7 +21,6 @@ public class HouseholdInviteTokenEntityConfiguration : IEntityTypeConfiguration<
         builder.HasOne(e => e.Household)
             .WithMany(h => h.InviteTokens)
             .HasForeignKey(e => e.HouseholdId)
-            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

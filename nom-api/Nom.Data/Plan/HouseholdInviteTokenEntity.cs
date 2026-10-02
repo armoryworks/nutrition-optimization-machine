@@ -7,7 +7,11 @@ namespace Nom.Data.Plan
 {
     public class HouseholdInviteTokenEntity : BaseExpirationLimitedUseEntity
     {
-        public long HouseholdId { get; set; }
+        /// <summary>
+        /// Null only for a managed_enrollment token issued for a brand-new
+        /// client: redemption creates their household and back-fills this id.
+        /// </summary>
+        public long? HouseholdId { get; set; }
         public virtual HouseholdEntity? Household { get; set; }
 
         public string Token { get; set; } = string.Empty;

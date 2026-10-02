@@ -345,7 +345,9 @@ namespace Nom.Orch.Services
             return new HouseholdInviteTokenResponseModel
             {
                 Id = token.Id,
-                HouseholdId = token.HouseholdId,
+                // Family invites always carry a household; only Brigade's
+                // new-client enrollment tokens are issued without one.
+                HouseholdId = token.HouseholdId!.Value,
                 Token = token.Token,
                 CreatedDate = token.CreatedDate
             };
@@ -537,13 +539,40 @@ namespace Nom.Orch.Services
                     throw new InvalidOperationException($"Person with ID {personId} not found");
                 }
 
+                // New-client enrollment (design doc §5, join move 1): a
+                // managed_enrollment token issued without a household — the
+                // redeemer's household is created here, pre-linked to the
+                // manager, and the redeemer becomes its admin below.
+                var createdHouseholdForToken = false;
+                if (inviteToken.HouseholdId is null)
+                {
+                    if (inviteToken.Kind != InviteTokenKinds.ManagedEnrollment)
+                    {
+                        throw new InvalidOperationException("Invalid invite token");
+                    }
+                    var newHousehold = new HouseholdEntity
+                    {
+                        Name = $"{personWithEmail.Person.Name}'s Household",
+                        ManagedBy = inviteToken.ManagedBy,
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedByPersonId = personId,
+                        LastModifiedDate = DateTime.UtcNow
+                    };
+                    _context.Households.Add(newHousehold);
+                    await _context.SaveChangesAsync();
+                    inviteToken.HouseholdId = newHousehold.Id;
+                    inviteToken.Household = newHousehold;
+                    createdHouseholdForToken = true;
+                }
+                var tokenHouseholdId = inviteToken.HouseholdId.Value;
+
                 // Check if person is already a member. For managed_enrollment
                 // tokens this is the NORMAL case, not an error: a steward
                 // redeeming a provider's token for their EXISTING household
                 // (design doc §5, join move 3) is already a member — skip the
                 // member insert but still run the enrollment stamping below.
                 var existingMember = await _context.HouseholdMembers
-                    .FirstOrDefaultAsync(hm => hm.HouseholdId == inviteToken.HouseholdId && hm.PersonId == personId);
+                    .FirstOrDefaultAsync(hm => hm.HouseholdId == tokenHouseholdId && hm.PersonId == personId);
 
                 var alreadyMember = existingMember != null;
                 if (alreadyMember && inviteToken.Kind != InviteTokenKinds.ManagedEnrollment)
@@ -573,13 +602,17 @@ namespace Nom.Orch.Services
                 // redemption comes from an existing member — see above).
                 var householdMember = existingMember ?? new HouseholdMemberEntity
                 {
-                    HouseholdId = inviteToken.HouseholdId,
+                    HouseholdId = tokenHouseholdId,
                     PersonId = personId,
-                    Role = "Member",
+                    // The redeemer of a brand-new managed household runs it.
+                    Role = createdHouseholdForToken ? "Admin" : "Member",
                     JoinedDate = DateTime.UtcNow,
                     CreatedDate = DateTime.UtcNow,
                     CreatedByPersonId = personId,
-                    IsActive = true
+                    IsActive = true,
+                    IsAdmin = createdHouseholdForToken,
+                    CanManage = createdHouseholdForToken,
+                    CanInvite = createdHouseholdForToken
                 };
 
                 if (!alreadyMember)
@@ -607,7 +640,7 @@ namespace Nom.Orch.Services
                     }
                     _context.EnrollmentEvents.Add(new EnrollmentEventEntity
                     {
-                        HouseholdId = inviteToken.HouseholdId,
+                        HouseholdId = tokenHouseholdId,
                         PersonId = personId,
                         InviteTokenId = inviteToken.Id,
                         EventType = "enrollment_redeemed",
@@ -624,7 +657,7 @@ namespace Nom.Orch.Services
                     // is triggered manager-side ("invited, not consented").
                     _context.EnrollmentEvents.Add(new EnrollmentEventEntity
                     {
-                        HouseholdId = inviteToken.HouseholdId,
+                        HouseholdId = tokenHouseholdId,
                         PersonId = personId,
                         InviteTokenId = inviteToken.Id,
                         EventType = "member_joined_managed",
