@@ -25,6 +25,7 @@
   "devDependencies": {
     "@types/node": "^24.13.3",
     "cypress": "^15.21.1",
+    "playwright-webkit": "^1.63.0",
     "typescript": "^5.0.0"
   }
 }

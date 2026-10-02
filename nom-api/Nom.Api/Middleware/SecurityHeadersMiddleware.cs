@@ -15,14 +15,34 @@ namespace Nom.Api.Middleware
         private readonly ILogger<SecurityHeadersMiddleware> _logger;
         private readonly SecurityHeadersSettings _settings;
 
+        private readonly string _formAction;
+
         public SecurityHeadersMiddleware(
             RequestDelegate next,
             ILogger<SecurityHeadersMiddleware> logger,
-            IOptions<SecurityHeadersSettings> settings)
+            IOptions<SecurityHeadersSettings> settings,
+            Microsoft.Extensions.Configuration.IConfiguration configuration)
         {
             _next = next;
             _logger = logger;
             _settings = settings.Value;
+            _formAction = BuildFormAction(configuration);
+        }
+
+        /// <summary>
+        /// Chrome enforces form-action against the login POST's whole redirect
+        /// chain, and the OIDC flow ends at a sibling app's /auth/callback — so
+        /// 'self' alone silently blocks every cross-app sign-in (Brigade).
+        /// Only the explicitly configured first-party HTTPS origins from
+        /// AllowedOrigins are added; everything else stays blocked.
+        /// </summary>
+        internal static string BuildFormAction(Microsoft.Extensions.Configuration.IConfiguration configuration)
+        {
+            var origins = (configuration.GetValue<string>("AllowedOrigins") ?? string.Empty)
+                .Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(o => o.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
+            var extra = string.Join(' ', origins);
+            return extra.Length > 0 ? $"form-action 'self' {extra}; " : "form-action 'self'; ";
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -124,8 +144,8 @@ namespace Nom.Api.Middleware
             // Frame ancestors
             cspBuilder.Append("frame-ancestors 'none'; ");
 
-            // Form action
-            cspBuilder.Append("form-action 'self'; ");
+            // Form action — see BuildFormAction for why 'self' alone breaks SSO.
+            cspBuilder.Append(_formAction);
 
             // Base URI
             cspBuilder.Append("base-uri 'self'; ");

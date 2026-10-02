@@ -16,10 +16,14 @@ namespace Nom.Api.Middleware
         private readonly RequestDelegate _next;
         private readonly ILogger<ContainerSecurityMiddleware> _logger;
 
-        public ContainerSecurityMiddleware(RequestDelegate next, ILogger<ContainerSecurityMiddleware> logger)
+        private readonly string _formAction;
+
+        public ContainerSecurityMiddleware(RequestDelegate next, ILogger<ContainerSecurityMiddleware> logger,
+            Microsoft.Extensions.Configuration.IConfiguration configuration)
         {
             _next = next;
             _logger = logger;
+            _formAction = SecurityHeadersMiddleware.BuildFormAction(configuration);
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -61,7 +65,7 @@ namespace Nom.Api.Middleware
                 "connect-src 'self' https:; " +
                 "frame-ancestors 'none'; " +
                 "base-uri 'self'; " +
-                "form-action 'self'; " +
+                _formAction +
                 "upgrade-insecure-requests";
 
             // X-Frame-Options (prevent clickjacking)
