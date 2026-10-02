@@ -206,9 +206,13 @@ export class Household implements OnInit {
           this.saved.emit(this.buildFormData(null, token));
         }
       },
-      error: () => {
+      error: (err) => {
         this.loading.set(false);
-        this.errorMessage.set('Invalid or expired invite code. Please check and try again.');
+        this.errorMessage.set(
+          err?.status >= 500 || err?.status === 0
+            ? 'Something went wrong on our end. Please try again in a moment.'
+            : 'Invalid or expired invite code. Please check and try again.',
+        );
       },
     });
   }
