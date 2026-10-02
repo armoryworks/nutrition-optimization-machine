@@ -553,6 +553,7 @@ namespace Nom.Orch.Services
                     var newHousehold = new HouseholdEntity
                     {
                         Name = $"{personWithEmail.Person.Name}'s Household",
+                        HouseholdGroupId = 1,
                         ManagedBy = inviteToken.ManagedBy,
                         CreatedDate = DateTime.UtcNow,
                         CreatedByPersonId = personId,
