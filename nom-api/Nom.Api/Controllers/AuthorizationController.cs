@@ -216,12 +216,17 @@ namespace Nom.Api.Controllers
             var identity = (ClaimsIdentity)principal.Identity!;
             identity.SetClaim(OpenIddictConstants.Claims.Subject, await _userManager.GetUserIdAsync(user));
             identity.SetClaim(OpenIddictConstants.Claims.Email, await _userManager.GetEmailAsync(user));
-            identity.SetClaim(OpenIddictConstants.Claims.Name, user.UserName);
+            identity.SetClaim(OpenIddictConstants.Claims.PreferredUsername, user.UserName);
 
-            var personId = await ResolvePersonIdAsync(user.Id);
-            if (personId is not null)
+            var person = await _db.Persons.AsNoTracking()
+                .Where(p => p.UserId == user.Id)
+                .Select(p => new { p.Id, p.Name })
+                .FirstOrDefaultAsync();
+            identity.SetClaim(OpenIddictConstants.Claims.Name,
+                string.IsNullOrWhiteSpace(person?.Name) ? user.UserName : person.Name);
+            if (person is not null)
             {
-                identity.SetClaim("PersonId", personId);
+                identity.SetClaim("PersonId", person.Id.ToString());
             }
 
             // Admin claims travel so resource servers can authorize without a
@@ -253,6 +258,7 @@ namespace Nom.Api.Controllers
             switch (claim.Type)
             {
                 case OpenIddictConstants.Claims.Name:
+                case OpenIddictConstants.Claims.PreferredUsername:
                     yield return OpenIddictConstants.Destinations.AccessToken;
                     if (principal.HasScope(OpenIddictConstants.Scopes.Profile))
                     {

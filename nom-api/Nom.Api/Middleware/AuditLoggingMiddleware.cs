@@ -127,7 +127,7 @@ namespace Nom.Api.Middleware
 
         private string? GetUserName(HttpContext context)
         {
-            return context.User?.FindFirst("name")?.Value;
+            return context.User?.FindFirst("preferred_username")?.Value ?? context.User?.FindFirst("name")?.Value;
         }
 
         private string GetUserRoles(HttpContext context)
