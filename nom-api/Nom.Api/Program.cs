@@ -473,11 +473,11 @@ app.UseRouting();
 // app.UseSecurityHeaders(); // Temporarily disabled for CORS testing
 app.UseMiddleware<AuditLoggingMiddleware>();
 // app.UseMiddleware<InputValidationMiddleware>(); // Temporarily disabled for testing
-app.UseMiddleware<RateLimitingMiddleware>();
 app.UseMiddleware<FileUploadSecurityMiddleware>();
 app.UseContainerSecurity(); // Container security middleware
 
 app.UseAuthentication();
+app.UseMiddleware<RateLimitingMiddleware>();
 app.UseAuthorization();
 
 // Custom registration endpoint that always creates both IdentityUser and PersonEntity

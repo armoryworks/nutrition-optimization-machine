@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Nom.Api.Middleware
@@ -65,10 +66,11 @@ namespace Nom.Api.Middleware
             var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             
             // If user is authenticated, include user ID for more granular rate limiting
-            var userId = context.User?.FindFirst("sub")?.Value;
+            var userId = context.User?.FindFirst("sub")?.Value
+                ?? context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (!string.IsNullOrEmpty(userId))
             {
-                return $"{ipAddress}:{userId}";
+                return $"user:{userId}";
             }
 
             return ipAddress;
@@ -140,38 +142,39 @@ namespace Nom.Api.Middleware
             }
 
             // Check hourly limit
-            var hourlyKey = $"rate_limit_hourly:{clientId}";
-            var hourlyCount = await _cache.GetOrCreateAsync(hourlyKey, entry =>
-            {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
-                return Task.FromResult(0);
-            });
-
-            if (hourlyCount >= MaxRequestsPerHour)
+            var hourly = GetWindowCounter($"rate_limit_hourly:{clientId}", TimeSpan.FromHours(1));
+            if (hourly.Count >= MaxRequestsPerHour)
             {
                 _logger.LogWarning("Hourly rate limit exceeded for client {ClientId}", clientId);
                 return false;
             }
 
             // Check daily limit
-            var dailyKey = $"rate_limit_daily:{clientId}";
-            var dailyCount = await _cache.GetOrCreateAsync(dailyKey, entry =>
-            {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1);
-                return Task.FromResult(0);
-            });
-
-            if (dailyCount >= MaxRequestsPerDay)
+            var daily = GetWindowCounter($"rate_limit_daily:{clientId}", TimeSpan.FromDays(1));
+            if (daily.Count >= MaxRequestsPerDay)
             {
                 _logger.LogWarning("Daily rate limit exceeded for client {ClientId}", clientId);
                 return false;
             }
 
-            // Update counters
-            _cache.Set(hourlyKey, hourlyCount + 1, TimeSpan.FromHours(1));
-            _cache.Set(dailyKey, dailyCount + 1, TimeSpan.FromDays(1));
+            Interlocked.Increment(ref hourly.Count);
+            Interlocked.Increment(ref daily.Count);
 
             return true;
+        }
+
+        private WindowCounter GetWindowCounter(string key, TimeSpan window)
+        {
+            return _cache.GetOrCreate(key, entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = window;
+                return new WindowCounter();
+            })!;
+        }
+
+        private sealed class WindowCounter
+        {
+            public int Count;
         }
 
         private int GetRemainingRequests(string clientId)
