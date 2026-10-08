@@ -18,7 +18,7 @@ namespace Nom.Api.Tests.Services.MealPlan
     /// </summary>
     public class HouseholdRestrictionResolverTests
     {
-        private const long HouseholdId = 7, PersonId = 70, NutAllergyRef = 2012, VegetarianRef = 2004;
+        private const long HouseholdId = 7, PersonId = 70, NutAllergyRef = 2012, VegetarianRef = 2004, CeliacRef = 60800;
 
         private static ApplicationDbContext NewContext() =>
             new(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
@@ -86,6 +86,44 @@ namespace Nom.Api.Tests.Services.MealPlan
             second.Should().Be(0);
             (await db.Set<RestrictionCriterionEntity>().CountAsync(c => c.RestrictionTypeId == NutAllergyRef)).Should().Be(1, "an admin-edited type is left alone");
             (await db.Set<RestrictionCriterionEntity>().CountAsync(c => c.RestrictionTypeId == VegetarianRef)).Should().Be(first);
+        }
+
+        [Fact]
+        public async Task Celiac_flags_oats_granola_and_wheat_relatives_but_not_goat()
+        {
+            using var db = NewContext();
+            await SeedAsync(db);
+            db.Set<ReferenceEntity>().Add(new ReferenceEntity { Id = CeliacRef, Name = "Celiac Disease" });
+            var gluten = new[] { "Rolled Oats", "Oat milk, unsweetened", "Flour, oat, whole grain", "Granola", "Muesli", "Spelt", "Orzo", "Potato Gnocchi", "Farina" }
+                .Select(n => new IngredientEntity { Name = n, CurationStatusId = 9003 }).ToList();
+            var goatCheese = new IngredientEntity { Name = "Goat Cheese", CurationStatusId = 9003 };
+            db.Ingredients.AddRange(gluten);
+            db.Ingredients.Add(goatCheese);
+            db.Restrictions.Add(new RestrictionEntity { PersonId = PersonId, Name = "Celiac Disease", RestrictionTypeId = CeliacRef });
+            await db.SaveChangesAsync();
+            await DefaultRestrictionCriteria.EnsureAsync(db);
+
+            var set = await new HouseholdRestrictionResolver(db).ResolveAsync(HouseholdId);
+
+            set.IngredientIds.Should().Contain(gluten.Select(i => i.Id));
+            set.IngredientIds.Should().NotContain(goatCheese.Id);
+            set.HasSevere.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task Ensure_tops_up_types_holding_only_untouched_defaults()
+        {
+            using var db = NewContext();
+            await SeedAsync(db);
+            db.Set<ReferenceEntity>().Add(new ReferenceEntity { Id = CeliacRef, Name = "Celiac Disease" });
+            db.Set<RestrictionCriterionEntity>().Add(new RestrictionCriterionEntity { RestrictionTypeId = CeliacRef, IngredientPattern = "%wheat%", Severity = 4, Notes = "default (name-keyed baseline)" });
+            await db.SaveChangesAsync();
+
+            (await DefaultRestrictionCriteria.EnsureAsync(db)).Should().BeGreaterThan(0);
+
+            var patterns = await db.Set<RestrictionCriterionEntity>().Where(c => c.RestrictionTypeId == CeliacRef).Select(c => c.IngredientPattern).ToListAsync();
+            patterns.Should().Contain(new[] { "%granola%", "oat%", "% oat%" }).And.OnlyHaveUniqueItems();
+            (await DefaultRestrictionCriteria.EnsureAsync(db)).Should().Be(0);
         }
     }
 }

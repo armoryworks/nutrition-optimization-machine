@@ -14,13 +14,16 @@ namespace Nom.Orch.Services.Support
     /// Baseline <see cref="RestrictionCriterionEntity"/> rows for the common allergies,
     /// intolerances, diets and religious rules, keyed by restriction *name* so both the
     /// legacy (2000-series) and current (60xxx) reference sets — and any tenant — resolve.
-    /// Idempotent: a restriction type that already has criteria (seeded or admin-edited
-    /// in Admin → Diet Categories) is left alone; only types with none get the defaults.
+    /// Idempotent: a restriction type whose criteria were seeded or admin-edited in
+    /// Admin → Diet Categories (any non-default or deleted row) is left alone; types with
+    /// none, or with only untouched defaults, get whichever default patterns they lack.
     /// Patterns are ILIKE against ingredient names and aliases. Severity 5 = allergy,
     /// 4 = medical/intolerance, 3 = diet/religious.
     /// </summary>
     public static class DefaultRestrictionCriteria
     {
+        private const string DefaultNote = "default (name-keyed baseline)";
+
         private static readonly string[] Meat = { "%beef%", "%pork%", "%lamb%", "%veal%", "%venison%", "%bison%", "%goat%", "%bacon%", "%ham%", "%sausage%", "%pepperoni%", "%salami%", "%prosciutto%", "%steak%", "%ground meat%", "%meatball%", "%hot dog%", "%chorizo%", "%pancetta%", "%lard%", "%gelatin%" };
         private static readonly string[] Poultry = { "%chicken%", "%turkey%", "%duck%", "%goose%", "%quail%", "%poultry%" };
         private static readonly string[] Fish = { "%salmon%", "%tuna%", "%cod%", "%tilapia%", "%trout%", "%halibut%", "%anchov%", "%sardine%", "%mackerel%", "%haddock%", "%bass%", "%snapper%", "%swordfish%", "%mahi%", "%fish%", "%catfish%", "%herring%", "%pollock%", "%flounder%", "%sole%" };
@@ -28,7 +31,7 @@ namespace Nom.Orch.Services.Support
         private static readonly string[] Dairy = { "%milk%", "%cheese%", "%butter%", "%yogurt%", "%yoghurt%", "%cream%", "%whey%", "%casein%", "%ghee%", "%kefir%", "%custard%", "%ice cream%", "%mozzarella%", "%cheddar%", "%parmesan%", "%feta%", "%ricotta%", "%brie%", "%gouda%" };
         private static readonly string[] Eggs = { "%egg%", "%mayonnaise%", "%meringue%", "%aioli%" };
         private static readonly string[] Honey = { "%honey%" };
-        private static readonly string[] Gluten = { "%wheat%", "%flour%", "%barley%", "%rye%", "%bread%", "%pasta%", "%spaghetti%", "%noodle%", "%couscous%", "%seitan%", "%bulgur%", "%farro%", "%semolina%", "%cracker%", "%tortilla%", "%pita%", "%bagel%", "%croissant%", "%breadcrumb%", "%panko%", "%soy sauce%", "%malt%", "%beer%" };
+        private static readonly string[] Gluten = { "%wheat%", "%flour%", "%barley%", "%rye%", "%bread%", "%pasta%", "%spaghetti%", "%noodle%", "%couscous%", "%seitan%", "%bulgur%", "%farro%", "%semolina%", "%cracker%", "%tortilla%", "%pita%", "%bagel%", "%croissant%", "%breadcrumb%", "%panko%", "%soy sauce%", "%malt%", "%beer%", "oat%", "% oat%", "%granola%", "%muesli%", "%spelt%", "%kamut%", "%triticale%", "%farina%", "%orzo%", "%gnocchi%" };
         private static readonly string[] Peanut = { "%peanut%" };
         private static readonly string[] TreeNuts = { "%almond%", "%walnut%", "%cashew%", "%pecan%", "%pistachio%", "%hazelnut%", "%macadamia%", "%brazil nut%", "%pine nut%", "%chestnut%", "%tree nut%", "%mixed nut%", "%nut butter%", "%marzipan%", "%praline%", "%nutella%" };
         private static readonly string[] Soy = { "%soy%", "%tofu%", "%tempeh%", "%edamame%", "%miso%", "%tamari%", "%natto%" };
@@ -73,7 +76,7 @@ namespace Nom.Orch.Services.Support
                 ["Mussel Allergy"] = (5, new[] { "%mussel%" }),
                 ["Oyster Allergy"] = (5, new[] { "%oyster%" }),
                 ["Scallop Allergy"] = (5, new[] { "%scallop%" }),
-                ["Wheat Allergy"] = (5, new[] { "%wheat%", "%flour%", "%bread%", "%pasta%", "%couscous%", "%seitan%", "%bulgur%", "%farro%", "%semolina%", "%breadcrumb%", "%panko%", "%tortilla%", "%cracker%" }),
+                ["Wheat Allergy"] = (5, new[] { "%wheat%", "%flour%", "%bread%", "%pasta%", "%couscous%", "%seitan%", "%bulgur%", "%farro%", "%semolina%", "%breadcrumb%", "%panko%", "%tortilla%", "%cracker%", "%spelt%", "%kamut%", "%triticale%", "%farina%", "%orzo%", "%gnocchi%" }),
                 ["Sesame Allergy"] = (5, Sesame),
                 ["Corn Allergy"] = (5, Corn),
                 ["Coconut Allergy"] = (5, Coconut),
@@ -124,7 +127,8 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// Insert default criteria for every restriction reference (matched by name) that has
-        /// none. Returns the number of rows added. Safe to run on every startup.
+        /// none, and top up types holding only untouched defaults with patterns added since.
+        /// Returns the number of rows added. Safe to run on every startup.
         /// </summary>
         public static async Task<int> EnsureAsync(ApplicationDbContext db, ILogger? logger = null)
         {
@@ -136,37 +140,48 @@ namespace Nom.Orch.Services.Support
             if (refs.Count == 0) return 0;
 
             var refIds = refs.Select(r => r.Id).ToList();
-            var covered = await db.Set<RestrictionCriterionEntity>()
+            var existing = await db.Set<RestrictionCriterionEntity>()
+                .IgnoreQueryFilters()
                 .Where(c => refIds.Contains(c.RestrictionTypeId))
-                .Select(c => c.RestrictionTypeId)
-                .Distinct()
+                .Select(c => new { c.RestrictionTypeId, c.IngredientPattern, c.Notes, c.IsDeleted })
                 .ToListAsync();
-            var coveredSet = covered.ToHashSet();
+            var byType = existing.ToLookup(c => c.RestrictionTypeId);
 
             var now = DateTime.UtcNow;
             var added = 0;
+            var typesTouched = 0;
             foreach (var r in refs)
             {
-                if (coveredSet.Contains(r.Id)) continue;
                 if (!ByName.TryGetValue(r.Name, out var def)) continue;
+                var rows = byType[r.Id].ToList();
+                if (rows.Any(c => c.IsDeleted || c.Notes != DefaultNote)) continue;
+                var have = rows
+                    .Where(c => c.IngredientPattern != null)
+                    .Select(c => c.IngredientPattern!)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var addedForType = 0;
                 foreach (var pattern in def.Patterns.Distinct(StringComparer.OrdinalIgnoreCase))
                 {
+                    if (have.Contains(pattern)) continue;
                     db.Set<RestrictionCriterionEntity>().Add(new RestrictionCriterionEntity
                     {
                         RestrictionTypeId = r.Id,
                         IngredientPattern = pattern,
                         Severity = def.Severity,
-                        Notes = "default (name-keyed baseline)",
+                        Notes = DefaultNote,
                         CreatedDate = now,
                         LastModifiedDate = now
                     });
-                    added++;
+                    addedForType++;
                 }
+                if (addedForType == 0) continue;
+                added += addedForType;
+                typesTouched++;
             }
             if (added > 0)
             {
                 await db.SaveChangesAsync();
-                logger?.LogInformation("Restriction criteria: added {Count} default rows for {Types} restriction type(s) that had none", added, refs.Count(r => !coveredSet.Contains(r.Id)));
+                logger?.LogInformation("Restriction criteria: added {Count} default rows for {Types} restriction type(s)", added, typesTouched);
             }
             return added;
         }
