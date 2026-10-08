@@ -150,7 +150,9 @@
       <table class="nom-food-catalog__table" data-testid="food-catalog-list">
         <thead>
           <tr>
-            <th><mat-checkbox (change)="toggleAll($event.checked)" aria-label="Select all" /></th>
+            <th><mat-checkbox [checked]="allSelected()" [indeterminate]="someSelected()"
+                              (change)="toggleAll($event.checked)" aria-label="Select all"
+                              data-testid="food-catalog-select-all-checkbox" /></th>
             <th>Food</th>
             <th>Group</th>
             <th>Eaten as-is</th>
@@ -166,7 +168,8 @@
           @for (item of items(); track item.id) {
             <tr data-testid="food-catalog-item" [class.nom-food-catalog__row--flagged]="flagsFor(item.id).length > 0">
               <td><mat-checkbox [checked]="selected().has(item.id)" (change)="toggle(item.id)"
-                                [attr.aria-label]="'Select ' + item.name" /></td>
+                                [attr.aria-label]="'Select ' + item.name"
+                                data-testid="food-catalog-select-checkbox" /></td>
               <td class="nom-food-catalog__name">
                 <span>{{ item.name }}</span>
                 @if (flagsFor(item.id).length > 0) {

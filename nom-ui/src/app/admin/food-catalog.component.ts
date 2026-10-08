@@ -98,6 +98,11 @@ export class FoodCatalog implements OnInit {
 
   totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize)));
   selectedCount = computed(() => this.selected().size);
+  allSelected = computed(() => {
+    const items = this.items();
+    return items.length > 0 && items.every((i) => this.selected().has(i.id));
+  });
+  someSelected = computed(() => this.selectedCount() > 0 && !this.allSelected());
 
   /** Audit codes keyed by ingredient id, so rows can show why they were flagged. */
   findingsByIngredient = computed(() => {
@@ -155,6 +160,7 @@ export class FoodCatalog implements OnInit {
     const next = Math.min(Math.max(1, this.page() + delta), this.totalPages());
     if (next === this.page()) return;
     this.page.set(next);
+    this.selected.set(new Set());
     this.load();
   }
 
