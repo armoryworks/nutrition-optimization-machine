@@ -230,7 +230,8 @@
   <!-- Reviewer proposals -->
   <h3 class="nom-food-catalog__section-title">Reviewer proposals</h3>
   <p class="nom-admin__panel-description">
-    Suggestions from the audit or an automated reviewer. Nothing here has changed the catalog —
+    Suggestions posted by the offline reviewer and cross-check scripts in <code>ops/</code>, such as
+    <code>food-catalog-review.py</code>. Run audit only flags rows; it does not create proposals. Nothing here has changed the catalog —
     approving a proposal is what applies it. Reviewers may propose names, groups and flags;
     changing a nutrient value requires an authoritative source.
   </p>
@@ -239,7 +240,7 @@
     <div class="nom-food-catalog__loading"><mat-spinner diameter="24" /></div>
   } @else if (proposals().length === 0) {
     <p class="nom-food-catalog__empty" data-testid="food-catalog-proposals-empty">
-      No proposals awaiting review.
+      No proposals awaiting review. They appear here once a reviewer script posts a batch.
     </p>
   } @else {
     <div class="nom-food-catalog__proposals" data-testid="food-catalog-proposals">
