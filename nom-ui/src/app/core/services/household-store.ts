@@ -46,6 +46,11 @@ export class HouseholdStore {
   getHouseholds(): Observable<HouseholdResponseModel[]> {
     if (!this.households$) {
       this.households$ = this.householdService.getHouseholds().pipe(
+        switchMap((list) => list.length > 0
+          ? of(list)
+          : this.authService.refreshClaims().pipe(
+              switchMap((token) => token ? this.householdService.getHouseholds() : of(list)),
+            )),
         catchError((err) => {
           // Do not cache failures; the next call retries.
           this.households$ = null;

@@ -73,6 +73,7 @@
         <button mat-stroked-button
                 class="nom-shopping__send-btn"
                 (click)="openSendTo()"
+                [disabled]="departments().length === 0"
                 matTooltip="Send this list to a grocery destination"
                 data-testid="shopping-list-send-btn">
           <mat-icon>send</mat-icon>
