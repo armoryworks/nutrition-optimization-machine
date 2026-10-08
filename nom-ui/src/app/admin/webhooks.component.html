@@ -9,7 +9,7 @@
   </div>
 
   @if (errorMessage()) {
-    <div class="nom-form__error">
+    <div class="nom-form__error" data-testid="webhooks-error">
       <mat-icon>error_outline</mat-icon>
       <span>{{ errorMessage() }}</span>
     </div>
@@ -24,29 +24,31 @@
         <mat-spinner diameter="32"></mat-spinner>
       </div>
     } @else if (webhooks().length === 0) {
-      <p class="nom-webhooks__empty">No webhooks configured. Add one below to receive event notifications.</p>
+      <p class="nom-webhooks__empty" data-testid="webhooks-empty">No webhooks configured. Add one below to receive event notifications.</p>
     } @else {
-      @for (wh of webhooks(); track wh.id) {
-        <div class="nom-webhooks__item" [class.nom-webhooks__item--inactive]="!wh.isActive">
-          <div class="nom-webhooks__item-info">
-            <span class="nom-webhooks__item-name">{{ wh.name }}</span>
-            <span class="nom-webhooks__item-url">{{ wh.url }}</span>
-            <span class="nom-webhooks__item-event">Event: {{ wh.eventType }}</span>
+      <div data-testid="webhooks-list">
+        @for (wh of webhooks(); track wh.id) {
+          <div class="nom-webhooks__item" [class.nom-webhooks__item--inactive]="!wh.isActive" data-testid="webhook-item">
+            <div class="nom-webhooks__item-info">
+              <span class="nom-webhooks__item-name">{{ wh.name }}</span>
+              <span class="nom-webhooks__item-url">{{ wh.url }}</span>
+              <span class="nom-webhooks__item-event">Event: {{ eventLabel(wh.eventType) }}</span>
+            </div>
+            <div class="nom-webhooks__item-actions">
+              <button mat-icon-button (click)="testWebhook(wh)" [disabled]="testing() === wh.id" matTooltip="Send test payload" [attr.aria-label]="'Send test payload to ' + wh.name" data-testid="webhook-test-btn">
+                @if (testing() === wh.id) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                } @else {
+                  <mat-icon>send</mat-icon>
+                }
+              </button>
+              <button mat-icon-button (click)="deleteWebhook(wh)" matTooltip="Delete webhook" [attr.aria-label]="'Delete webhook ' + wh.name" data-testid="webhook-delete-btn">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
           </div>
-          <div class="nom-webhooks__item-actions">
-            <button mat-icon-button (click)="testWebhook(wh)" [disabled]="testing() === wh.id" matTooltip="Test webhook">
-              @if (testing() === wh.id) {
-                <mat-spinner diameter="20"></mat-spinner>
-              } @else {
-                <mat-icon>send</mat-icon>
-              }
-            </button>
-            <button mat-icon-button (click)="deleteWebhook(wh)" matTooltip="Delete webhook">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </div>
-        </div>
-      }
+        }
+      </div>
     }
   </div>
 
@@ -57,33 +59,38 @@
       <div class="nom-form__fields">
         <mat-form-field appearance="outline">
           <mat-label>Name</mat-label>
-          <input matInput formControlName="name" placeholder="e.g. Meal Plan Updated" />
+          <input matInput formControlName="name" placeholder="e.g. Meal Plan Updated" data-testid="webhooks-name-input" />
+          @if (webhookForm.controls.name.hasError('required')) {
+            <mat-error>Name is required</mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field appearance="outline">
           <mat-label>URL</mat-label>
-          <input matInput formControlName="url" placeholder="https://example.com/webhook" type="url" />
+          <input matInput formControlName="url" placeholder="https://example.com/webhook" type="url" data-testid="webhooks-url-input" />
           <mat-hint>The endpoint to receive POST requests</mat-hint>
+          @if (webhookForm.controls.url.hasError('required')) {
+            <mat-error>URL is required</mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field appearance="outline">
           <mat-label>Event Type</mat-label>
-          <mat-select formControlName="eventType">
-            <mat-option value="meal_plan.updated">Meal Plan Updated</mat-option>
-            <mat-option value="meal_plan.created">Meal Plan Created</mat-option>
-            <mat-option value="shopping_list.generated">Shopping List Generated</mat-option>
-            <mat-option value="recipe.created">Recipe Created</mat-option>
-            <mat-option value="recipe.updated">Recipe Updated</mat-option>
-            <mat-option value="pantry.low_stock">Pantry Low Stock</mat-option>
-            <mat-option value="household.member_joined">Member Joined</mat-option>
+          <mat-select formControlName="eventType" data-testid="webhooks-event-select">
+            @for (event of eventTypes; track event.value) {
+              <mat-option [value]="event.value">{{ event.label }}</mat-option>
+            }
           </mat-select>
+          @if (webhookForm.controls.eventType.hasError('required')) {
+            <mat-error>Event type is required</mat-error>
+          }
         </mat-form-field>
 
-        <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+        <mat-slide-toggle formControlName="isActive" data-testid="webhooks-active-toggle">Active</mat-slide-toggle>
       </div>
 
       <div class="nom-form__actions">
-        <a mat-button routerLink="/admin">Back to Admin</a>
+        <a mat-button routerLink="/admin" data-testid="webhooks-cancel-link">Back to Admin</a>
         <button mat-flat-button type="submit" data-testid="webhooks-submit-btn" [disabled]="saving()">
           @if (saving()) {
             <mat-spinner diameter="20"></mat-spinner>

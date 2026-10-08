@@ -31,7 +31,7 @@ export class WebhookService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
-  testWebhook(id: number): Observable<{ success: boolean }> {
-    return this.http.post<{ success: boolean }>(`${this.apiUrl}/${id}/test`, {});
+  testWebhook(id: number): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(`${this.apiUrl}/${id}/test`, {});
   }
 }

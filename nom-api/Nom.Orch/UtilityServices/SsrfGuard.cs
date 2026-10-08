@@ -12,6 +12,8 @@ namespace Nom.Orch.UtilityServices
     /// </summary>
     public static class SsrfGuard
     {
+        private const string InternalAddressError = "Webhook URL may not point at an internal or reserved address.";
+
         /// <summary>True if the address is loopback, link-local, private, CGNAT, ULA, or otherwise non-public.</summary>
         public static bool IsBlocked(IPAddress ip)
         {
@@ -58,10 +60,31 @@ namespace Nom.Orch.UtilityServices
             }
             if (IPAddress.TryParse(uri.Host, out var literal) && IsBlocked(literal))
             {
-                error = "Webhook URL may not point at an internal or reserved address.";
+                error = InternalAddressError;
                 return false;
             }
             return true;
+        }
+
+        /// <summary>Write-time check that also resolves the host, rejecting names that do not resolve or resolve only to non-public addresses. Returns the error, or null when the URL is acceptable.</summary>
+        public static async Task<string?> ValidateDestinationAsync(string? url, CancellationToken cancellationToken = default)
+        {
+            if (!TryValidateUrl(url, out var error)) return error;
+
+            var host = new Uri(url!).Host;
+            if (IPAddress.TryParse(host, out _)) return null;
+
+            IPAddress[] resolved;
+            try
+            {
+                resolved = await Dns.GetHostAddressesAsync(host, cancellationToken);
+            }
+            catch (SocketException)
+            {
+                return $"Webhook URL host '{host}' could not be found.";
+            }
+
+            return resolved.Any(a => !IsBlocked(a)) ? null : InternalAddressError;
         }
 
         /// <summary>

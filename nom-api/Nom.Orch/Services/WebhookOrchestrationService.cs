@@ -42,7 +42,8 @@ namespace Nom.Orch.Services
 
         public async Task<long> CreateWebhookAsync(WebhookCreateModel model)
         {
-            if (!SsrfGuard.TryValidateUrl(model.Url, out var error))
+            var error = await SsrfGuard.ValidateDestinationAsync(model.Url);
+            if (error != null)
                 throw new ArgumentException(error);
 
             var entity = new HouseholdWebhookEntity
@@ -66,8 +67,12 @@ namespace Nom.Orch.Services
             var entity = await _db.HouseholdWebhooks.FindAsync(id);
             if (entity == null) return null;
 
-            if (model.Url != null && !SsrfGuard.TryValidateUrl(model.Url, out var error))
-                throw new ArgumentException(error);
+            if (model.Url != null)
+            {
+                var error = await SsrfGuard.ValidateDestinationAsync(model.Url);
+                if (error != null)
+                    throw new ArgumentException(error);
+            }
 
             if (model.Name != null) entity.Name = model.Name;
             if (model.Url != null) entity.Url = model.Url;
@@ -88,15 +93,16 @@ namespace Nom.Orch.Services
             return true;
         }
 
-        public async Task<bool> TestWebhookAsync(long id)
+        public async Task<WebhookTestResultModel?> TestWebhookAsync(long id)
         {
             var entity = await _db.HouseholdWebhooks.FindAsync(id);
-            if (entity == null) return false;
+            if (entity == null) return null;
 
-            // Re-validate structurally, then send through the SSRF-guarded client
+            // Re-validate the destination, then send through the SSRF-guarded client
             // (which re-checks the resolved IP at connect time — defeats rebinding).
-            if (!SsrfGuard.TryValidateUrl(entity.Url, out _))
-                return false;
+            var error = await SsrfGuard.ValidateDestinationAsync(entity.Url);
+            if (error != null)
+                return new WebhookTestResultModel { Success = false, Message = error };
 
             try
             {
@@ -104,12 +110,19 @@ namespace Nom.Orch.Services
                 client.Timeout = TimeSpan.FromSeconds(10);
                 var payload = new { @event = "test", webhookId = entity.Id, timestamp = DateTime.UtcNow };
                 var response = await client.PostAsJsonAsync(entity.Url, payload);
-                return response.IsSuccessStatusCode;
+                return response.IsSuccessStatusCode
+                    ? new WebhookTestResultModel { Success = true, Message = "Test payload delivered." }
+                    : new WebhookTestResultModel { Success = false, Message = $"The endpoint responded with HTTP {(int)response.StatusCode}." };
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogWarning(ex, "Webhook test timed out for {WebhookId}", id);
+                return new WebhookTestResultModel { Success = false, Message = "The endpoint did not respond within 10 seconds." };
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Webhook test failed for {WebhookId}", id);
-                return false;
+                return new WebhookTestResultModel { Success = false, Message = "The endpoint could not be reached." };
             }
         }
 

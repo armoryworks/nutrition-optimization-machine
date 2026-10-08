@@ -98,7 +98,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost("{id}/test")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(WebhookTestResultModel), StatusCodes.Status200OK)]
         public async Task<IActionResult> TestWebhook(long id)
         {
             var existing = await _webhookService.GetWebhookAsync(id);
@@ -106,8 +106,9 @@ namespace Nom.Api.Controllers
             // Triggers a server-side outbound request — require management rights.
             if (!CanManageHousehold(existing.HouseholdId)) return Forbid();
 
-            var success = await _webhookService.TestWebhookAsync(id);
-            return Ok(new { Success = success, Message = success ? "Webhook test succeeded." : "Webhook test failed." });
+            var result = await _webhookService.TestWebhookAsync(id);
+            if (result == null) return NotFound();
+            return Ok(result);
         }
     }
 }

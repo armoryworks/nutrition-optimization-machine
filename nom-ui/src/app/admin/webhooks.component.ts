@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { WebhookService } from '../core/services/webhook.service';
 import { WebhookResponse } from '../core/models/webhook-response.model';
@@ -30,6 +31,7 @@ import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-
     MatProgressSpinnerModule,
     MatSlideToggleModule,
     MatSnackBarModule,
+    MatTooltipModule,
   ],
   templateUrl: './webhooks.component.html',
   styleUrl: './webhooks.component.scss',
@@ -43,6 +45,16 @@ export class Webhooks implements OnInit {
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
   private destroyRef = inject(DestroyRef);
+
+  readonly eventTypes = [
+    { value: 'meal_plan.updated', label: 'Meal Plan Updated' },
+    { value: 'meal_plan.created', label: 'Meal Plan Created' },
+    { value: 'shopping_list.generated', label: 'Shopping List Generated' },
+    { value: 'recipe.created', label: 'Recipe Created' },
+    { value: 'recipe.updated', label: 'Recipe Updated' },
+    { value: 'pantry.low_stock', label: 'Pantry Low Stock' },
+    { value: 'household.member_joined', label: 'Member Joined' },
+  ];
 
   webhooks = signal<WebhookResponse[]>([]);
   loading = signal(true);
@@ -115,9 +127,9 @@ export class Webhooks implements OnInit {
         this.saving.set(false);
         this.loadWebhooks();
       },
-      error: () => {
+      error: (err) => {
         this.saving.set(false);
-        this.errorMessage.set('Failed to create webhook.');
+        this.errorMessage.set(err?.error?.message ?? 'Failed to create webhook.');
       },
     });
   }
@@ -125,8 +137,12 @@ export class Webhooks implements OnInit {
   testWebhook(wh: WebhookResponse): void {
     this.testing.set(wh.id);
     this.webhookService.testWebhook(wh.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
-        this.snackBar.open('Test payload sent successfully', 'OK', { duration: 3000 });
+      next: (res) => {
+        if (res.success) {
+          this.snackBar.open('Test payload sent successfully', 'OK', { duration: 3000 });
+        } else {
+          this.snackBar.open(`Test failed — ${res.message}`, 'OK', { duration: 6000 });
+        }
         this.testing.set(null);
       },
       error: () => {
@@ -134,6 +150,10 @@ export class Webhooks implements OnInit {
         this.testing.set(null);
       },
     });
+  }
+
+  eventLabel(eventType: string): string {
+    return this.eventTypes.find(e => e.value === eventType)?.label ?? eventType;
   }
 
   deleteWebhook(wh: WebhookResponse): void {

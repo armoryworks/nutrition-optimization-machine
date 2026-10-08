@@ -60,5 +60,20 @@ namespace Nom.Api.Tests.Services
         {
             Assert.True(SsrfGuard.TryValidateUrl(url, out _));
         }
+
+        [Theory]
+        [InlineData("http://localhost:8025/api/v1/info")]
+        [InlineData("http://127.0.0.1/")]
+        [InlineData("ftp://example.com/x")]
+        public async Task ValidateDestinationAsync_rejects_nonpublic_or_invalid(string url)
+        {
+            Assert.NotNull(await SsrfGuard.ValidateDestinationAsync(url));
+        }
+
+        [Fact]
+        public async Task ValidateDestinationAsync_allows_public_literal()
+        {
+            Assert.Null(await SsrfGuard.ValidateDestinationAsync("https://1.1.1.1/hook"));
+        }
     }
 }

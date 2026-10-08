@@ -3,7 +3,6 @@
   "src/app/admin/diet-categories.component.html": 1,
   "src/app/admin/food-catalog.component.html": 4,
   "src/app/admin/scraping-sources.component.html": 1,
-  "src/app/admin/webhooks.component.html": 7,
   "src/app/app.component.html": 5,
   "src/app/auth/forgot-password.component.html": 3,
   "src/app/auth/reset-password.component.html": 6,

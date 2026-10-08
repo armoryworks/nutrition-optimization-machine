@@ -9,6 +9,6 @@ namespace Nom.Orch.Interfaces
         Task<long> CreateWebhookAsync(WebhookCreateModel model);
         Task<WebhookResponseModel?> UpdateWebhookAsync(long id, WebhookUpdateModel model);
         Task<bool> DeleteWebhookAsync(long id);
-        Task<bool> TestWebhookAsync(long id);
+        Task<WebhookTestResultModel?> TestWebhookAsync(long id);
     }
 }
