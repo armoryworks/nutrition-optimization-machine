@@ -47,6 +47,16 @@
     color: var(--mat-sys-on-surface-variant);
     opacity: 0.6;
   }
+
+  &--success mat-icon {
+    color: var(--mat-sys-primary);
+    opacity: 1;
+  }
+
+  &--error mat-icon {
+    color: var(--mat-sys-error);
+    opacity: 1;
+  }
 }
 
 .nom-form__card-header { padding: vars.$spacing-4 vars.$spacing-6; }
