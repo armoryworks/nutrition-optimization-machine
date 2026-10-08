@@ -71,7 +71,11 @@ namespace Nom.Api.Controllers
             var url = await _grocery.StartConnectionAsync(provider, personId, redirectUri);
             if (url == null)
             {
-                return BadRequest(new { message = $"{provider} cannot be connected on this server." });
+                var displayName = (await _grocery.GetProvidersAsync(personId))
+                    .FirstOrDefault(p => string.Equals(p.Key, provider, StringComparison.OrdinalIgnoreCase))
+                    ?.DisplayName;
+                var name = string.IsNullOrWhiteSpace(displayName) ? "That grocery account" : displayName;
+                return BadRequest(new { message = $"{name} cannot be connected on this server." });
             }
 
             return Ok(new { url });

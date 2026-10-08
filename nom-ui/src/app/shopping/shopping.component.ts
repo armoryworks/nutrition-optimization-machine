@@ -397,8 +397,34 @@ export class ShoppingComponent implements OnInit {
    */
   providers = signal<GroceryProviderInfo[]>([]);
 
+  private connectResult = signal<{ ok: boolean; provider: string | null } | null>(null);
+
   /** Notice shown after returning from a retailer's consent screen. */
-  connectNotice = signal<{ ok: boolean; message: string } | null>(null);
+  connectNotice = computed<{ ok: boolean; message: string } | null>(() => {
+    const result = this.connectResult();
+    if (!result) return null;
+
+    const advertised = this.providers().find(
+      (p) => p.key.toLowerCase() === result.provider?.toLowerCase(),
+    );
+    const key = result.provider?.trim();
+    const name =
+      advertised?.displayName ||
+      (key ? key.charAt(0).toUpperCase() + key.slice(1) : null);
+
+    if (result.ok) {
+      return {
+        ok: true,
+        message: `${name ?? 'Your grocery account'} is connected — you can send lists to it now.`,
+      };
+    }
+
+    const retry = advertised?.configured ? ' Please try again.' : '';
+    return {
+      ok: false,
+      message: `${name ?? 'That grocery account'} could not be connected.${retry}`,
+    };
+  });
 
   /** The stretch of meals being shopped, used as the export title. */
   exportTitle = computed(() => {
@@ -596,14 +622,7 @@ export class ShoppingComponent implements OnInit {
     const connected = params.get('connected');
     if (connected !== 'ok' && connected !== 'failed') return;
 
-    const provider = params.get('provider');
-    const ok = connected === 'ok';
-    this.connectNotice.set({
-      ok,
-      message: ok
-        ? `${provider ?? 'Your grocery account'} is connected — you can send lists to it now.`
-        : `${provider ?? 'That grocery account'} could not be connected. Please try again.`,
-    });
+    this.connectResult.set({ ok: connected === 'ok', provider: params.get('provider') });
 
     this.router.navigate([], {
       relativeTo: this.route,
@@ -614,7 +633,7 @@ export class ShoppingComponent implements OnInit {
   }
 
   dismissConnectNotice(): void {
-    this.connectNotice.set(null);
+    this.connectResult.set(null);
   }
 
   // --- Complete Shopping Trip ---

@@ -1,5 +1,6 @@
 import { Component, DestroyRef, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -188,9 +189,14 @@ export class GroceryExportDialog {
         next: ({ url }) => {
           window.location.href = url;
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
           this.connecting.set(false);
-          this.error.set(`${provider.displayName} could not be connected right now.`);
+          const reason = err.status === 400 ? err.error?.message : undefined;
+          this.error.set(
+            typeof reason === 'string' && reason
+              ? reason
+              : `${provider.displayName} could not be connected right now. Please try again.`,
+          );
         },
       });
   }
