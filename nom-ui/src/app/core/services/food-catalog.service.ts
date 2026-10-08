@@ -62,12 +62,20 @@ export class FoodCatalogService {
     });
   }
 
-  /** Download URL for the reviewer CSV export. */
-  exportUrl(source?: string | null, status?: number | null, limit = 5000): string {
-    const params = new URLSearchParams({ limit: String(limit) });
-    if (source) params.set('source', source);
-    if (status != null) params.set('status', String(status));
-    return `${this.apiUrl}/export?${params.toString()}`;
+  /** Reviewer CSV export of the catalog rows matching the given filters. */
+  exportCsv(filters: {
+    source?: string | null;
+    status?: number | null;
+    foodGroupId?: number | null;
+    search?: string | null;
+    limit?: number;
+  }): Observable<Blob> {
+    let params = new HttpParams().set('limit', filters.limit ?? 5000);
+    if (filters.source) params = params.set('source', filters.source);
+    if (filters.status != null) params = params.set('status', filters.status);
+    if (filters.foodGroupId != null) params = params.set('foodGroupId', filters.foodGroupId);
+    if (filters.search) params = params.set('search', filters.search);
+    return this.http.get(`${this.apiUrl}/export`, { params, responseType: 'blob' });
   }
 
   getProposals(batch?: string | null, status = 'Pending', limit = 200): Observable<FoodProposal[]> {

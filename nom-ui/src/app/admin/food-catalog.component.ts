@@ -86,6 +86,7 @@ export class FoodCatalog implements OnInit {
 
   // Audit
   auditRunning = signal(false);
+  exporting = signal(false);
   cleanupPreview = signal<CatalogCleanupPreview | null>(null);
   cleanupResult = signal<CatalogCleanupResult | null>(null);
   cleanupBusy = signal(false);
@@ -268,8 +269,32 @@ export class FoodCatalog implements OnInit {
       });
   }
 
-  exportUrl(): string {
-    return this.catalog.exportUrl(this.source(), this.status());
+  exportCsv(): void {
+    this.exporting.set(true);
+    this.errorMessage.set('');
+    this.catalog
+      .exportCsv({
+        source: this.source(),
+        status: this.status(),
+        foodGroupId: this.foodGroupId(),
+        search: this.search().trim() || null,
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'food-catalog.csv';
+          a.click();
+          URL.revokeObjectURL(url);
+          this.exporting.set(false);
+        },
+        error: () => {
+          this.exporting.set(false);
+          this.errorMessage.set('Could not export the food catalog.');
+        },
+      });
   }
 
   loadProposals(): void {

@@ -23,7 +23,7 @@ namespace Nom.Orch.Interfaces
         Task<int> SetCurationStatusAsync(IEnumerable<long> ingredientIds, long curationStatusId);
 
         /// <summary>Exports the catalog as CSV for an external reviewer to read.</summary>
-        Task<string> ExportCsvAsync(string? source, long? status, int limit);
+        Task<string> ExportCsvAsync(string? source, long? status, long? foodGroupId, string? search, int limit);
 
         /// <summary>
         /// Ingests a proposal CSV. Rows that violate <see cref="Nom.Data.Nutrition.ProposalPolicy"/>

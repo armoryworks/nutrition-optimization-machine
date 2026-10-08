@@ -153,9 +153,9 @@ namespace Nom.Orch.Services
             return rows.Count;
         }
 
-        public async Task<string> ExportCsvAsync(string? source, long? status, int limit)
+        public async Task<string> ExportCsvAsync(string? source, long? status, long? foodGroupId, string? search, int limit)
         {
-            var rows = await BuildQuery(source, status, null, null)
+            var rows = await BuildQuery(source, status, foodGroupId, search)
                 .OrderBy(i => i.Id).Take(Math.Clamp(limit, 1, 20000))
                 .Include(i => i.FoodGroup)
                 .Include(i => i.IngredientNutrients).ThenInclude(n => n.Nutrient)

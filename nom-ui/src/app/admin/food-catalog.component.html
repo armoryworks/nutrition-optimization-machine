@@ -60,9 +60,11 @@
       Run audit
     </button>
 
-    <a mat-stroked-button [href]="exportUrl()" data-testid="food-catalog-export-btn">
-      <mat-icon>download</mat-icon> Export CSV
-    </a>
+    <button mat-stroked-button (click)="exportCsv()" [disabled]="exporting()"
+            data-testid="food-catalog-export-btn">
+      @if (exporting()) { <mat-spinner diameter="18" /> } @else { <mat-icon>download</mat-icon> }
+      Export CSV
+    </button>
 
     <button mat-stroked-button (click)="runCleanupPreview()" [disabled]="cleanupBusy()"
             matTooltip="Find import residue — quantity/unit noise in ingredient names"

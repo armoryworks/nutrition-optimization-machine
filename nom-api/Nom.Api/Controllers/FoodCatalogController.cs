@@ -61,9 +61,10 @@ namespace Nom.Api.Controllers
         /// <summary>Catalog as CSV, for an external reviewer to read.</summary>
         [HttpGet("export")]
         public async Task<IActionResult> Export(
-            [FromQuery] string? source, [FromQuery] long? status, [FromQuery] int limit = 5000)
+            [FromQuery] string? source, [FromQuery] long? status, [FromQuery] long? foodGroupId,
+            [FromQuery] string? search, [FromQuery] int limit = 5000)
         {
-            var csv = await _review.ExportCsvAsync(source, status, limit);
+            var csv = await _review.ExportCsvAsync(source, status, foodGroupId, search, limit);
             return File(System.Text.Encoding.UTF8.GetBytes(csv), "text/csv", "food-catalog.csv");
         }
 
