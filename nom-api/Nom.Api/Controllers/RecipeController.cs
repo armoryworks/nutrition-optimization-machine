@@ -147,7 +147,7 @@ namespace Nom.Api.Controllers
             if (!currentPersonId.HasValue)
                 return Unauthorized("User not authenticated");
 
-            var existing = await _recipeService.GetRecipeAsync(id);
+            var existing = await _recipeService.GetRecipeAsync(id, currentPersonId.Value);
             if (existing == null)
                 return NotFound(new { message = "Recipe not found" });
 
@@ -165,7 +165,7 @@ namespace Nom.Api.Controllers
             if (!currentPersonId.HasValue)
                 return Unauthorized("User not authenticated");
 
-            var existing = await _recipeService.GetRecipeAsync(id);
+            var existing = await _recipeService.GetRecipeAsync(id, currentPersonId.Value);
             if (existing == null)
                 return NotFound(new { message = "Recipe not found" });
 

@@ -576,49 +576,79 @@ namespace Nom.Orch.Services
             recipe.LastModifiedDate = DateTime.UtcNow;
             recipe.Version++;
 
-            // Remove existing ingredients and steps
             var existingIngredients = await _context.RecipeIngredients
+                .IgnoreQueryFilters()
                 .Where(ri => ri.RecipeId == id)
-                .ToListAsync();
-            _context.RecipeIngredients.RemoveRange(existingIngredients);
+                .ToDictionaryAsync(ri => ri.IngredientId);
+            var keptIngredientIds = new HashSet<long>();
 
-            var existingSteps = await _context.RecipeSteps
-                .Where(rs => rs.RecipeId == id)
-                .ToListAsync();
-            _context.RecipeSteps.RemoveRange(existingSteps);
-
-            // Add new ingredients (skip invalid ones)
             foreach (var ingredient in model.Ingredients)
             {
-                // Skip ingredients with invalid IDs
-                if (ingredient.IngredientId <= 0 || ingredient.MeasurementId <= 0)
+                if (ingredient.IngredientId <= 0 || ingredient.MeasurementId <= 0
+                    || !keptIngredientIds.Add(ingredient.IngredientId))
                 {
                     continue;
                 }
 
-                var recipeIngredient = new RecipeIngredientEntity
+                if (existingIngredients.TryGetValue(ingredient.IngredientId, out var recipeIngredient))
                 {
-                    RecipeId = recipe.Id,
-                    IngredientId = ingredient.IngredientId,
-                    Quantity = ingredient.Quantity,
-                    MeasurementId = ingredient.MeasurementId,
-                    RawLine = string.Empty // Default empty since not in model
-                };
-                _context.RecipeIngredients.Add(recipeIngredient);
+                    recipeIngredient.Quantity = ingredient.Quantity;
+                    recipeIngredient.MeasurementId = ingredient.MeasurementId;
+                    recipeIngredient.IsDeleted = false;
+                    recipeIngredient.DeletedAt = null;
+                    recipeIngredient.DeletedByPersonId = null;
+                }
+                else
+                {
+                    _context.RecipeIngredients.Add(new RecipeIngredientEntity
+                    {
+                        RecipeId = recipe.Id,
+                        IngredientId = ingredient.IngredientId,
+                        Quantity = ingredient.Quantity,
+                        MeasurementId = ingredient.MeasurementId,
+                        RawLine = string.Empty
+                    });
+                }
             }
 
-            // Add new steps
+            _context.RecipeIngredients.RemoveRange(existingIngredients.Values
+                .Where(ri => !ri.IsDeleted && !keptIngredientIds.Contains(ri.IngredientId)));
+
+            var existingSteps = await _context.RecipeSteps
+                .IgnoreQueryFilters()
+                .Where(rs => rs.RecipeId == id)
+                .ToDictionaryAsync(rs => rs.StepNumber);
+            var keptStepNumbers = new HashSet<int>();
+
             foreach (var step in model.Steps)
             {
-                var recipeStep = new RecipeStepEntity
+                if (!keptStepNumbers.Add(step.Order))
                 {
-                    RecipeId = recipe.Id,
-                    Summary = step.Description, // Use Description as Summary
-                    Description = step.Description,
-                    StepNumber = step.Order // Use Order as StepNumber
-                };
-                _context.RecipeSteps.Add(recipeStep);
+                    continue;
+                }
+
+                if (existingSteps.TryGetValue(step.Order, out var recipeStep))
+                {
+                    recipeStep.Summary = step.Description;
+                    recipeStep.Description = step.Description;
+                    recipeStep.IsDeleted = false;
+                    recipeStep.DeletedAt = null;
+                    recipeStep.DeletedByPersonId = null;
+                }
+                else
+                {
+                    _context.RecipeSteps.Add(new RecipeStepEntity
+                    {
+                        RecipeId = recipe.Id,
+                        Summary = step.Description,
+                        Description = step.Description,
+                        StepNumber = step.Order
+                    });
+                }
             }
+
+            _context.RecipeSteps.RemoveRange(existingSteps.Values
+                .Where(rs => !rs.IsDeleted && !keptStepNumbers.Contains(rs.StepNumber)));
 
             // Save all changes
             await _context.SaveChangesAsync();
