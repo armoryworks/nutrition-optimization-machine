@@ -275,6 +275,15 @@
   transition: width 0.3s ease;
 }
 
+.nom-db-macro__bar-fill--over {
+  background: var(--mat-sys-error);
+}
+
+.nom-db-macro__over {
+  color: var(--mat-sys-error);
+  font-weight: vars.$font-weight-semibold;
+}
+
 // Four small stat tiles read better as a 2x2 grid on phones than a
 // full-width stack (the stereotype collapses --2col to one column).
 .nom-db-macros {

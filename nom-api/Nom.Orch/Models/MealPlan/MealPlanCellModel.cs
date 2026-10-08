@@ -13,5 +13,6 @@ namespace Nom.Orch.Models.MealPlan
         public decimal? TotalProteinGrams { get; set; }
         public decimal? TotalCarbGrams { get; set; }
         public decimal? TotalFatGrams { get; set; }
+        public decimal? PortionPlates { get; set; }
     }
 }

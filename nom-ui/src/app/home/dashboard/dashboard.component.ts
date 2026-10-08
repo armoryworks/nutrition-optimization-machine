@@ -71,6 +71,11 @@ export class Dashboard implements OnInit {
     return Math.min(100, Math.round((actual / goal) * 100));
   }
 
+  /** True when the day's portion is more than 5% over a daily goal. */
+  isOverGoal(actual: number, goal: number): boolean {
+    return goal > 0 && actual > goal * 1.05;
+  }
+
   today = computed(() => {
     const data = this.weekData();
     if (!data) return null;

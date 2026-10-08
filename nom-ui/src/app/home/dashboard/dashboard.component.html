@@ -160,9 +160,13 @@
               <span class="nom-db-macro__value">{{ todayCalories() | number:'1.0-0' }}</span>
               <span class="nom-db-macro__label">Calories</span>
               @if (goalCalories(); as goal) {
-                <span class="nom-db-macro__goal" data-testid="dashboard-goal-calories">of {{ goal | number:'1.0-0' }}</span>
+                <span class="nom-db-macro__goal" data-testid="dashboard-goal-calories">of {{ goal | number:'1.0-0' }}
+                  @if (isOverGoal(todayCalories(), goal)) {
+                    <span class="nom-db-macro__over" data-testid="dashboard-over-calories"> · {{ todayCalories() - goal | number:'1.0-0' }} kcal over</span>
+                  }
+                </span>
                 <div class="nom-db-macro__bar" aria-hidden="true">
-                  <div class="nom-db-macro__bar-fill" [style.width.%]="goalPct(todayCalories(), goal)"></div>
+                  <div class="nom-db-macro__bar-fill" [class.nom-db-macro__bar-fill--over]="isOverGoal(todayCalories(), goal)" [style.width.%]="goalPct(todayCalories(), goal)"></div>
                 </div>
               }
             </div>
@@ -173,9 +177,13 @@
               <span class="nom-db-macro__value">{{ todayProtein() | number:'1.0-0' }}g</span>
               <span class="nom-db-macro__label">Protein</span>
               @if (goalProtein(); as goal) {
-                <span class="nom-db-macro__goal" data-testid="dashboard-goal-protein">of {{ goal | number:'1.0-0' }}g</span>
+                <span class="nom-db-macro__goal" data-testid="dashboard-goal-protein">of {{ goal | number:'1.0-0' }}g
+                  @if (isOverGoal(todayProtein(), goal)) {
+                    <span class="nom-db-macro__over" data-testid="dashboard-over-protein"> · {{ todayProtein() - goal | number:'1.0-0' }}g over</span>
+                  }
+                </span>
                 <div class="nom-db-macro__bar" aria-hidden="true">
-                  <div class="nom-db-macro__bar-fill" [style.width.%]="goalPct(todayProtein(), goal)"></div>
+                  <div class="nom-db-macro__bar-fill" [class.nom-db-macro__bar-fill--over]="isOverGoal(todayProtein(), goal)" [style.width.%]="goalPct(todayProtein(), goal)"></div>
                 </div>
               }
             </div>
@@ -186,9 +194,13 @@
               <span class="nom-db-macro__value">{{ todayCarbs() | number:'1.0-0' }}g</span>
               <span class="nom-db-macro__label">Carbs</span>
               @if (goalCarbs(); as goal) {
-                <span class="nom-db-macro__goal" data-testid="dashboard-goal-carbs">of {{ goal | number:'1.0-0' }}g</span>
+                <span class="nom-db-macro__goal" data-testid="dashboard-goal-carbs">of {{ goal | number:'1.0-0' }}g
+                  @if (isOverGoal(todayCarbs(), goal)) {
+                    <span class="nom-db-macro__over" data-testid="dashboard-over-carbs"> · {{ todayCarbs() - goal | number:'1.0-0' }}g over</span>
+                  }
+                </span>
                 <div class="nom-db-macro__bar" aria-hidden="true">
-                  <div class="nom-db-macro__bar-fill" [style.width.%]="goalPct(todayCarbs(), goal)"></div>
+                  <div class="nom-db-macro__bar-fill" [class.nom-db-macro__bar-fill--over]="isOverGoal(todayCarbs(), goal)" [style.width.%]="goalPct(todayCarbs(), goal)"></div>
                 </div>
               }
             </div>
@@ -199,9 +211,13 @@
               <span class="nom-db-macro__value">{{ todayFat() | number:'1.0-0' }}g</span>
               <span class="nom-db-macro__label">Fat</span>
               @if (goalFat(); as goal) {
-                <span class="nom-db-macro__goal" data-testid="dashboard-goal-fat">of {{ goal | number:'1.0-0' }}g</span>
+                <span class="nom-db-macro__goal" data-testid="dashboard-goal-fat">of {{ goal | number:'1.0-0' }}g
+                  @if (isOverGoal(todayFat(), goal)) {
+                    <span class="nom-db-macro__over" data-testid="dashboard-over-fat"> · {{ todayFat() - goal | number:'1.0-0' }}g over</span>
+                  }
+                </span>
                 <div class="nom-db-macro__bar" aria-hidden="true">
-                  <div class="nom-db-macro__bar-fill" [style.width.%]="goalPct(todayFat(), goal)"></div>
+                  <div class="nom-db-macro__bar-fill" [class.nom-db-macro__bar-fill--over]="isOverGoal(todayFat(), goal)" [style.width.%]="goalPct(todayFat(), goal)"></div>
                 </div>
               }
             </div>

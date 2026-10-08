@@ -16,7 +16,7 @@
     } @else {
       <p class="nom-portions__summary">
         Meal budget <strong>{{ b.budgetCalories | number:'1.0-0' }} kcal</strong>
-        · one plate ≈ {{ b.plateCalories | number:'1.0-0' }} kcal
+        · one plate ≈ {{ b.plateCalories | number:'1.0-0' }} kcal, {{ b.plateCarbGrams | number:'1.0-0' }} g carbs
         · make <strong>{{ b.totalPlates | number:'1.1-2' }} plates</strong>
       </p>
 
@@ -27,7 +27,7 @@
             <span class="nom-portions__recipe-name">{{ r.name }}</span>
             <span class="nom-portions__factor">×{{ r.cookFactor | number:'1.1-2' }}</span>
             <span class="nom-portions__hint">
-              ({{ r.recipeServings | number:'1.0-1' }} servings @ {{ r.perServingCalories | number:'1.0-0' }} kcal)
+              ({{ r.recipeServings | number:'1.0-1' }} servings @ {{ r.perServingCalories | number:'1.0-0' }} kcal, {{ r.perServingCarbGrams | number:'1.0-0' }} g carbs)
             </span>
           </li>
         }
@@ -36,7 +36,7 @@
       <h3 class="nom-portions__heading">Who gets how much</h3>
       <table class="nom-portions__table" data-testid="portions-members">
         <thead>
-          <tr><th>Member</th><th>Daily target</th><th>Plates</th><th>This meal</th></tr>
+          <tr><th>Member</th><th>Daily target</th><th>Plates</th><th>This meal</th><th>Carbs</th></tr>
         </thead>
         <tbody>
           @for (m of b.members; track m.personId) {
@@ -50,6 +50,7 @@
               <td>{{ m.targetCalories | number:'1.0-0' }} kcal</td>
               <td>{{ m.plates | number:'1.1-2' }}</td>
               <td>{{ m.calories | number:'1.0-0' }} kcal</td>
+              <td data-testid="portions-member-carbs">{{ m.carbGrams | number:'1.0-0' }} g</td>
             </tr>
           }
         </tbody>

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Plan;
 using Nom.Orch.Interfaces;
+using Nom.Orch.Models.MealPlan;
 using Nom.Orch.Models.Plan;
 
 namespace Nom.Orch.Services
@@ -12,6 +13,9 @@ namespace Nom.Orch.Services
     {
         private const string MealSplitPreferenceKey = "meal-split";
         private const string CaloriesNutrientName = "Calories";
+        private const string CarbNutrientName = "Total Carbohydrates";
+        private const string ProteinNutrientName = "Protein";
+        private const string FatNutrientName = "Fat";
         private const decimal DefaultDailyCalories = 2000m;
 
         // Mirrors MealPlanOrchestrationService.MealTypes (private there).
@@ -100,7 +104,8 @@ namespace Nom.Orch.Services
             if (members.Count == 0) return null;
 
             var recipeIds = entries.Select(e => e.RecipeId!.Value).Distinct().ToList();
-            var perServingCalories = await LoadPerServingCaloriesAsync(recipeIds);
+            var perServing = await LoadPerServingMacrosAsync(recipeIds);
+            var perServingCalories = PerServing(perServing, CaloriesNutrientName);
 
             var split = await GetMealSplitAsync(householdId);
             var dailyTotal = members.Sum(m => m.TargetCalories);
@@ -115,6 +120,12 @@ namespace Nom.Orch.Services
 
             var plateCalories = recipeIds.Sum(id => perServingCalories.GetValueOrDefault(id, 0m));
             result.PlateCalories = Math.Round(plateCalories, 0);
+            var plateCarbs = recipeIds.Sum(id => perServing.GetValueOrDefault((id, CarbNutrientName), 0m));
+            var plateProtein = recipeIds.Sum(id => perServing.GetValueOrDefault((id, ProteinNutrientName), 0m));
+            var plateFat = recipeIds.Sum(id => perServing.GetValueOrDefault((id, FatNutrientName), 0m));
+            result.PlateCarbGrams = Math.Round(plateCarbs, 0);
+            result.PlateProteinGrams = Math.Round(plateProtein, 0);
+            result.PlateFatGrams = Math.Round(plateFat, 0);
 
             if (plateCalories <= 0m)
             {
@@ -128,6 +139,9 @@ namespace Nom.Orch.Services
                 member.SharePct = Math.Round(member.TargetCalories / dailyTotal * 100m, 1);
                 member.Plates = Math.Round(member.TargetCalories / dailyTotal * budget / plateCalories, 2);
                 member.Calories = Math.Round(member.Plates * plateCalories, 0);
+                member.CarbGrams = Math.Round(member.Plates * plateCarbs, 0);
+                member.ProteinGrams = Math.Round(member.Plates * plateProtein, 0);
+                member.FatGrams = Math.Round(member.Plates * plateFat, 0);
             }
             result.Members = members;
             result.TotalPlates = Math.Round(members.Sum(m => m.Plates), 2);
@@ -145,12 +159,37 @@ namespace Nom.Orch.Services
                     RecipeId = recipeId,
                     Name = entry.Recipe?.Name ?? string.Empty,
                     PerServingCalories = Math.Round(perServingCalories.GetValueOrDefault(recipeId, 0m), 0),
+                    PerServingCarbGrams = Math.Round(perServing.GetValueOrDefault((recipeId, CarbNutrientName), 0m), 0),
                     RecipeServings = servings,
                     CookFactor = Math.Round(result.TotalPlates / servings, 2),
                 });
             }
 
             return result;
+        }
+
+        public async Task ScaleWeekToPersonAsync(long householdId, long personId, MealPlanWeekResponseModel week)
+        {
+            var member = (await LoadMemberTargetsAsync(householdId)).FirstOrDefault(m => m.PersonId == personId);
+            if (member == null) return;
+
+            var split = await GetMealSplitAsync(householdId);
+
+            foreach (var cell in week.Days.SelectMany(d => d.Cells))
+            {
+                var plate = cell.Entries.Where(e => e.RecipeId != null).DistinctBy(e => e.RecipeId).ToList();
+                var plateCalories = plate.Sum(e => e.Calories ?? 0m);
+                if (plateCalories <= 0m) continue;
+
+                var plates = Math.Round(member.TargetCalories * MealPct(split, cell.MealTypeId) / 100m / plateCalories, 2);
+                var standalone = cell.Entries.Where(e => e.RecipeId == null).ToList();
+
+                cell.PortionPlates = plates;
+                cell.TotalCalories = plates * plateCalories + standalone.Sum(e => e.Calories ?? 0m);
+                cell.TotalProteinGrams = plates * plate.Sum(e => e.ProteinGrams ?? 0m) + standalone.Sum(e => e.ProteinGrams ?? 0m);
+                cell.TotalCarbGrams = plates * plate.Sum(e => e.CarbGrams ?? 0m) + standalone.Sum(e => e.CarbGrams ?? 0m);
+                cell.TotalFatGrams = plates * plate.Sum(e => e.FatGrams ?? 0m) + standalone.Sum(e => e.FatGrams ?? 0m);
+            }
         }
 
         public async Task<List<RangeCookFactorModel>> ComputeRangeCookFactorsAsync(long householdId, DateOnly startDate, DateOnly endDate)
@@ -230,14 +269,20 @@ namespace Nom.Orch.Services
             }).ToList();
         }
 
-        private async Task<Dictionary<long, decimal>> LoadPerServingCaloriesAsync(List<long> recipeIds)
+        private async Task<Dictionary<(long RecipeId, string Nutrient), decimal>> LoadPerServingMacrosAsync(List<long> recipeIds)
         {
-            return await _context.RecipeNutrition
+            var names = new[] { CaloriesNutrientName, CarbNutrientName, ProteinNutrientName, FatNutrientName };
+            var rows = await _context.RecipeNutrition
                 .AsNoTracking()
-                .Where(rn => recipeIds.Contains(rn.RecipeId) && rn.Nutrient!.Name == CaloriesNutrientName)
-                .GroupBy(rn => rn.RecipeId)
-                .Select(g => new { RecipeId = g.Key, Amount = g.Sum(rn => rn.Amount) })
-                .ToDictionaryAsync(x => x.RecipeId, x => x.Amount);
+                .Where(rn => recipeIds.Contains(rn.RecipeId) && names.Contains(rn.Nutrient!.Name))
+                .GroupBy(rn => new { rn.RecipeId, rn.Nutrient!.Name })
+                .Select(g => new { g.Key.RecipeId, g.Key.Name, Amount = g.Sum(rn => rn.Amount) })
+                .ToListAsync();
+            return rows.ToDictionary(x => (x.RecipeId, x.Name), x => x.Amount);
         }
+
+        private static Dictionary<long, decimal> PerServing(
+            Dictionary<(long RecipeId, string Nutrient), decimal> perServing, string nutrient) =>
+            perServing.Where(kv => kv.Key.Nutrient == nutrient).ToDictionary(kv => kv.Key.RecipeId, kv => kv.Value);
     }
 }

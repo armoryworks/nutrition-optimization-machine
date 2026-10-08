@@ -16,6 +16,15 @@ namespace Nom.Orch.Models.Plan
         /// <summary>Calories in one plate (one serving of each recipe in the cell).</summary>
         public decimal PlateCalories { get; set; }
 
+        /// <summary>Carbohydrate grams in one plate.</summary>
+        public decimal PlateCarbGrams { get; set; }
+
+        /// <summary>Protein grams in one plate.</summary>
+        public decimal PlateProteinGrams { get; set; }
+
+        /// <summary>Fat grams in one plate.</summary>
+        public decimal PlateFatGrams { get; set; }
+
         /// <summary>Sum of member plates — how many plates to produce.</summary>
         public decimal TotalPlates { get; set; }
 
@@ -36,6 +45,9 @@ namespace Nom.Orch.Models.Plan
         public decimal SharePct { get; set; }
         public decimal Plates { get; set; }
         public decimal Calories { get; set; }
+        public decimal CarbGrams { get; set; }
+        public decimal ProteinGrams { get; set; }
+        public decimal FatGrams { get; set; }
     }
 
     public class PortionRecipeModel
@@ -43,6 +55,7 @@ namespace Nom.Orch.Models.Plan
         public long RecipeId { get; set; }
         public string Name { get; set; } = string.Empty;
         public decimal PerServingCalories { get; set; }
+        public decimal PerServingCarbGrams { get; set; }
         public decimal RecipeServings { get; set; }
         /// <summary>Multiply the recipe by this to produce TotalPlates servings.</summary>
         public decimal CookFactor { get; set; }

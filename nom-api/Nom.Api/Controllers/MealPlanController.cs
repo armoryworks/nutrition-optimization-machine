@@ -193,6 +193,7 @@ namespace Nom.Api.Controllers
             try
             {
                 var response = await _mealPlanOrchestrationService.ShuffleMealPlansAsync(model, authorId);
+                await _portionService.ScaleWeekToPersonAsync(model.HouseholdId, authorId, response.Week);
                 return Ok(response);
             }
             catch (UnauthorizedAccessException ex) when (ex.Message.StartsWith("feature_gated"))
@@ -323,6 +324,9 @@ namespace Nom.Api.Controllers
                 return Forbid();
 
             var response = await _mealPlanOrchestrationService.GetWeekAsync(householdId, weekStart);
+            var personId = GetCurrentPersonId();
+            if (personId.HasValue)
+                await _portionService.ScaleWeekToPersonAsync(householdId, personId.Value, response);
             return Ok(response);
         }
 

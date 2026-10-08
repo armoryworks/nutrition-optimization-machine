@@ -13,12 +13,16 @@ export interface PortionMember {
   sharePct: number;
   plates: number;
   calories: number;
+  carbGrams: number;
+  proteinGrams: number;
+  fatGrams: number;
 }
 
 export interface PortionRecipe {
   recipeId: number;
   name: string;
   perServingCalories: number;
+  perServingCarbGrams: number;
   recipeServings: number;
   cookFactor: number;
 }
@@ -28,6 +32,9 @@ export interface PortionBreakdown {
   mealType: string;
   budgetCalories: number;
   plateCalories: number;
+  plateCarbGrams: number;
+  plateProteinGrams: number;
+  plateFatGrams: number;
   totalPlates: number;
   noNutritionData: boolean;
   members: PortionMember[];

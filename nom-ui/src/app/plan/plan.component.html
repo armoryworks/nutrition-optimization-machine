@@ -222,7 +222,7 @@
         }
 
         <!-- Nutrition summary row -->
-        <div class="nom-plan__meal-label nom-plan__meal-label--summary">Totals</div>
+        <div class="nom-plan__meal-label nom-plan__meal-label--summary">Your portion</div>
         @for (day of weekData()!.days; track day.date; let di = $index) {
           <div class="nom-plan__nutrition-summary" [class.nom-plan__nutrition-summary--today]="isToday(day.date)" [class.nom-plan__col--inactive]="di !== mobileDayIndex()">
             @if (hasDayNutrition(day)) {
