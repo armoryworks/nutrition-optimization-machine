@@ -1,5 +1,5 @@
 import { Component, inject, input, output, signal, computed, effect, untracked, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
-import { toLocalDateString } from '../core/utils/local-date';
+import { parseLocalDateString, toLocalDateString } from '../core/utils/local-date';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -192,7 +192,7 @@ export class Profile implements OnInit {
       const typeName = this.getAttributeTypeName(attr.attributeTypeRefId);
       switch (typeName) {
         case 'Date of Birth':
-          this.profileForm.patchValue({ dateOfBirth: new Date(attr.value) });
+          this.profileForm.patchValue({ dateOfBirth: parseLocalDateString(attr.value) });
           break;
         case 'Gender':
           this.profileForm.patchValue({ gender: attr.value });
