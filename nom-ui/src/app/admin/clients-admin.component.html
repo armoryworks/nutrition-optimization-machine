@@ -76,7 +76,7 @@
                         {{ member.userId ? 'person' : 'person_outline' }}
                       </mat-icon>
                       <span class="nom-clients-admin__member-name">{{ member.name }}</span>
-                      @if (member.email) {
+                      @if (member.userId) {
                         <span class="nom-clients-admin__member-email">{{ member.email }}</span>
                       } @else {
                         <span class="nom-clients-admin__member-email nom-clients-admin__member-email--none">
@@ -84,7 +84,7 @@
                         </span>
                       }
                       <span class="nom-clients-admin__member-role">{{ member.role }}</span>
-                      @if (member.isAdmin) {
+                      @if (member.isAdmin && member.role !== 'Admin') {
                         <span class="nom-clients-admin__badge nom-clients-admin__badge--managed">admin</span>
                       }
                       @if (!member.isActive) {

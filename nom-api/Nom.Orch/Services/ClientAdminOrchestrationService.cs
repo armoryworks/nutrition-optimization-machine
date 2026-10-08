@@ -43,21 +43,22 @@ namespace Nom.Orch.Services
 
         public async Task<List<AdminHouseholdMemberModel>> GetHouseholdMembersAsync(long householdId)
         {
-            return await _context.HouseholdMembers
-                .AsNoTracking()
-                .Where(m => m.HouseholdId == householdId)
-                .OrderBy(m => m.Person.Name)
-                .Select(m => new AdminHouseholdMemberModel
-                {
-                    PersonId = m.PersonId,
-                    Name = m.Person.Name,
-                    UserId = m.Person.UserId,
-                    Email = m.Person.Email,
-                    Role = m.Role,
-                    IsActive = m.IsActive,
-                    IsAdmin = m.IsAdmin,
-                    JoinedDate = m.JoinedDate,
-                })
+            return await (from m in _context.HouseholdMembers.AsNoTracking()
+                          where m.HouseholdId == householdId
+                          join u in _context.Users on m.Person.UserId equals u.Id into userGroup
+                          from user in userGroup.DefaultIfEmpty()
+                          orderby m.Person.Name
+                          select new AdminHouseholdMemberModel
+                          {
+                              PersonId = m.PersonId,
+                              Name = m.Person.Name,
+                              UserId = m.Person.UserId,
+                              Email = user != null ? user.Email : m.Person.Email,
+                              Role = m.Role,
+                              IsActive = m.IsActive,
+                              IsAdmin = m.IsAdmin,
+                              JoinedDate = m.JoinedDate,
+                          })
                 .ToListAsync();
         }
     }
