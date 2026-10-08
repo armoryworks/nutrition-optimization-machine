@@ -11,7 +11,7 @@ public class RecipeIngredientEntityConfiguration : IEntityTypeConfiguration<Reci
         builder.ToTable("RecipeIngredient", schema: "recipe");
 
         // Composite key
-        builder.HasKey(e => new { e.RecipeId, e.IngredientId });
+        builder.HasKey(e => new { e.RecipeId, e.IngredientId, e.SortOrder });
 
         // Properties
         builder.Property(e => e.RecipeId).IsRequired();
@@ -19,6 +19,7 @@ public class RecipeIngredientEntityConfiguration : IEntityTypeConfiguration<Reci
         builder.Property(e => e.Quantity).IsRequired().HasColumnType("decimal(18,4)");
         builder.Property(e => e.MeasurementId).IsRequired();
         builder.Property(e => e.RawLine).HasColumnType("Text");
+        builder.Property(e => e.SortOrder).IsRequired().HasDefaultValue(0).ValueGeneratedNever();
 
         // Relationships
         builder.HasOne(e => e.Recipe)

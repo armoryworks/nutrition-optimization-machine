@@ -2680,7 +2680,8 @@ CREATE TABLE recipe."RecipeIngredient" (
     "LastModifiedByPersonId" bigint,
     "IsDeleted" boolean DEFAULT false NOT NULL,
     "DeletedAt" timestamp with time zone,
-    "DeletedByPersonId" bigint
+    "DeletedByPersonId" bigint,
+    "SortOrder" integer DEFAULT 0 NOT NULL
 );
 
 
@@ -4471,7 +4472,7 @@ ALTER TABLE ONLY recipe."RecipeComment"
 --
 
 ALTER TABLE ONLY recipe."RecipeIngredient"
-    ADD CONSTRAINT "PK_RecipeIngredient" PRIMARY KEY ("RecipeId", "IngredientId");
+    ADD CONSTRAINT "PK_RecipeIngredient" PRIMARY KEY ("RecipeId", "IngredientId", "SortOrder");
 
 
 --

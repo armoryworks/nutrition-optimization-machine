@@ -235,25 +235,26 @@ namespace Nom.Orch.Services
                 CreatedByPersonId = currentPersonId
             };
 
+            if (model.Ingredients.Any(i => i.IngredientId <= 0))
+            {
+                throw new ArgumentException(
+                    "Each recipe ingredient must reference an existing ingredient (select one from the search).");
+            }
+
             _context.Recipes.Add(recipe);
-            await _context.SaveChangesAsync();
 
             // Add ingredients
+            var sortOrder = 0;
             foreach (var ingredient in model.Ingredients)
             {
-                if (ingredient.IngredientId <= 0)
-                {
-                    throw new ArgumentException(
-                        "Each recipe ingredient must reference an existing ingredient (select one from the search).");
-                }
-
                 var recipeIngredient = new RecipeIngredientEntity
                 {
-                    RecipeId = recipe.Id,
+                    Recipe = recipe,
                     IngredientId = ingredient.IngredientId,
                     Quantity = ingredient.Quantity,
                     MeasurementId = ingredient.MeasurementId,
-                    RawLine = string.Empty // Default empty since not in model
+                    RawLine = string.Empty, // Default empty since not in model
+                    SortOrder = sortOrder++
                 };
                 _context.RecipeIngredients.Add(recipeIngredient);
             }
@@ -263,7 +264,7 @@ namespace Nom.Orch.Services
             {
                 var recipeStep = new RecipeStepEntity
                 {
-                    RecipeId = recipe.Id,
+                    Recipe = recipe,
                     Summary = step.Description, // Use Description as Summary
                     Description = step.Description,
                     StepNumber = step.Order // Use Order as StepNumber
@@ -365,9 +366,7 @@ namespace Nom.Orch.Services
                     Name = recipe.DishGroup.Name,
                     Slug = recipe.DishGroup.Slug,
                 },
-                // No sort column yet; rows are inserted (and re-inserted on edit) in authored
-                // order, so Id order is authored order. (Audit N-14)
-                Ingredients = recipe.RecipeIngredients?.OrderBy(ri => ri.Id).Select(ri => new RecipeIngredientModel
+                Ingredients = recipe.RecipeIngredients?.OrderBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId).Select(ri => new RecipeIngredientModel
                 {
                     IngredientId = ri.IngredientId,
                     Quantity = ri.Quantity,
@@ -585,18 +584,21 @@ namespace Nom.Orch.Services
             var existingIngredients = await _context.RecipeIngredients
                 .IgnoreQueryFilters()
                 .Where(ri => ri.RecipeId == id)
-                .ToDictionaryAsync(ri => ri.IngredientId);
-            var keptIngredientIds = new HashSet<long>();
+                .ToDictionaryAsync(ri => (ri.IngredientId, ri.SortOrder));
+            var lines = model.Ingredients
+                .Where(i => i.IngredientId > 0 && i.MeasurementId > 0)
+                .Select((ingredient, sortOrder) => (Ingredient: ingredient, Key: (ingredient.IngredientId, sortOrder)))
+                .ToList();
+            var keptIngredients = lines.Select(l => l.Key).ToHashSet();
+            var movedRawLines = existingIngredients.Values
+                .Where(ri => !ri.IsDeleted && !keptIngredients.Contains((ri.IngredientId, ri.SortOrder)))
+                .OrderBy(ri => ri.SortOrder)
+                .GroupBy(ri => ri.IngredientId)
+                .ToDictionary(g => g.Key, g => new Queue<string>(g.Select(ri => ri.RawLine)));
 
-            foreach (var ingredient in model.Ingredients)
+            foreach (var (ingredient, key) in lines)
             {
-                if (ingredient.IngredientId <= 0 || ingredient.MeasurementId <= 0
-                    || !keptIngredientIds.Add(ingredient.IngredientId))
-                {
-                    continue;
-                }
-
-                if (existingIngredients.TryGetValue(ingredient.IngredientId, out var recipeIngredient))
+                if (existingIngredients.TryGetValue(key, out var recipeIngredient))
                 {
                     recipeIngredient.Quantity = ingredient.Quantity;
                     recipeIngredient.MeasurementId = ingredient.MeasurementId;
@@ -612,13 +614,15 @@ namespace Nom.Orch.Services
                         IngredientId = ingredient.IngredientId,
                         Quantity = ingredient.Quantity,
                         MeasurementId = ingredient.MeasurementId,
-                        RawLine = string.Empty
+                        RawLine = movedRawLines.TryGetValue(ingredient.IngredientId, out var rawLines)
+                            && rawLines.TryDequeue(out var rawLine) ? rawLine : string.Empty,
+                        SortOrder = key.sortOrder
                     });
                 }
             }
 
             _context.RecipeIngredients.RemoveRange(existingIngredients.Values
-                .Where(ri => !ri.IsDeleted && !keptIngredientIds.Contains(ri.IngredientId)));
+                .Where(ri => !ri.IsDeleted && !keptIngredients.Contains((ri.IngredientId, ri.SortOrder))));
 
             var existingSteps = await _context.RecipeSteps
                 .IgnoreQueryFilters()

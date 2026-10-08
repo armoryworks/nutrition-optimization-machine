@@ -221,6 +221,7 @@ namespace Nom.Orch.Services
                     Quantity = 0m,
                     MeasurementId = DefaultMeasurementId,
                     RawLine = Clamp(line, 2047)!,
+                    SortOrder = rows.Count,
                 };
                 rows[hit.Id] = row;
                 _context.RecipeIngredients.Add(row);

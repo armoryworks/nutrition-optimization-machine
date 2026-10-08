@@ -54,5 +54,11 @@ namespace Nom.Data.Recipe
         /// Useful for debugging, display, or if parsing is incomplete.
         /// </summary>
         public string RawLine { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Zero-based position of this line in the recipe's ingredient list, in the order the author entered it.
+        /// Part of the key, so the same ingredient can appear on more than one line.
+        /// </summary>
+        public int SortOrder { get; set; }
     }
 }
