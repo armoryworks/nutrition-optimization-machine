@@ -518,6 +518,11 @@ export class Plan implements OnInit {
     });
   }
 
+  /** A dead image URL falls back to the no-image cell. */
+  onThumbError(entry: MealPlanEntry): void {
+    entry.recipeImage = null;
+  }
+
   // --- Meal completion ---
 
   completeMeal(event: Event, entry: MealPlanEntry): void {

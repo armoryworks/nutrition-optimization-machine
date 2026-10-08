@@ -14,6 +14,7 @@ import { HouseholdStore } from '../../core/services/household-store';
 import { MealPlanWeekResponse } from '../../core/models/meal-plan-week-response.model';
 import { MealPlanDay } from '../../core/models/meal-plan-day.model';
 import { MealPlanCell } from '../../core/models/meal-plan-cell.model';
+import { MealPlanEntry } from '../../core/models/meal-plan-entry.model';
 import { HouseholdResponseModel } from '../../core/models/household-response.model';
 import { RecipeSearchDialog, RecipeSearchDialogData, RecipeSearchDialogResult } from '../../plan/recipe-search-dialog/recipe-search-dialog.component';
 import { ShuffleFlowService } from '../../plan/shuffle-flow.service';
@@ -197,6 +198,11 @@ export class Dashboard implements OnInit {
     dialogRef.afterClosed().subscribe((result: RecipeSearchDialogResult) => {
       if (result?.changed) this.loadWeek(householdId);
     });
+  }
+
+  /** A dead image URL falls back to the placeholder thumbnail. */
+  onThumbError(entry: MealPlanEntry): void {
+    entry.recipeImage = null;
   }
 
   shuffleTodayEmpty(): void {

@@ -80,7 +80,8 @@
                               <img class="nom-db-today__thumb"
                                    [src]="entry.recipeImage"
                                    [alt]="entry.recipeName ?? ''"
-                                   loading="lazy" />
+                                   loading="lazy"
+                                   (error)="onThumbError(entry)" />
                             } @else {
                               <div class="nom-db-today__thumb-placeholder">
                                 <mat-icon>restaurant</mat-icon>

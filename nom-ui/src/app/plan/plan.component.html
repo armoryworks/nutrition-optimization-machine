@@ -166,7 +166,8 @@
                       <img class="nom-plan__cell-thumb"
                            [src]="entry.recipeImage"
                            [alt]="entry.recipeName ?? entry.title ?? ''"
-                           loading="lazy" />
+                           loading="lazy"
+                           (error)="onThumbError(entry)" />
                     } @else if (entry.ingredientId) {
                       <mat-icon class="nom-plan__cell-fooditem-icon"
                                 matTooltip="Whole food{{ entry.foodGroupName ? ' · ' + entry.foodGroupName : '' }}">nutrition</mat-icon>
