@@ -49,7 +49,10 @@ namespace Nom.Data.Nutrition
         /// </summary>
         public decimal AtwaterTolerance { get; init; } = 0.30m;
 
-        /// <summary>Below this many kcal the Atwater ratio is too noisy to judge; skip that check.</summary>
+        /// <summary>
+        /// When both the stated and the macro-implied energy are below this many kcal the Atwater
+        /// ratio is too noisy to judge; skip that check.
+        /// </summary>
         public decimal AtwaterMinKcal { get; init; } = 20m;
 
         public FoodQualityResult Validate(FoodQualityInput f)
@@ -87,14 +90,14 @@ namespace Nom.Data.Nutrition
                 reasons.Add("macro_sum_impossible");
 
             // Atwater cross-check (only when we have all macros + a usable calorie figure)
-            if (f.KcalPer100g is { } k && k >= AtwaterMinKcal
+            if (f.KcalPer100g is { } k && k >= 0
                 && f.ProteinGramsPer100g is { } pr && f.CarbGramsPer100g is { } cb && f.FatGramsPer100g is { } ft
                 && pr >= 0 && cb >= 0 && ft >= 0)
             {
                 var computed = (4m * pr) + (4m * cb) + (9m * ft);
                 var low = k * (1m - AtwaterTolerance);
                 var high = k * (1m + AtwaterTolerance);
-                if (computed < low || computed > high)
+                if (Math.Max(k, computed) >= AtwaterMinKcal && (computed < low || computed > high))
                     reasons.Add("atwater_mismatch");
             }
 

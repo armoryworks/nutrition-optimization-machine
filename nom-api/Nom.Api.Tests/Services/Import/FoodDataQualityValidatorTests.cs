@@ -96,5 +96,21 @@ namespace Nom.Api.Tests.Services.Import
             r.Reasons.Should().NotContain("atwater_mismatch");
             r.Accepted.Should().BeTrue();
         }
+
+        [Fact]
+        public void Rejects_AtwaterMismatch_WhenStatedCaloriesAreUnderReported()
+        {
+            var r = _v.Validate(new FoodQualityInput("Pork Tenderloin", 18m, 17.9m, 0m, 2.2m));
+            r.Accepted.Should().BeFalse();
+            r.Reasons.Should().Contain("atwater_mismatch");
+        }
+
+        [Fact]
+        public void Rejects_AtwaterMismatch_WhenStatedCaloriesAreZero()
+        {
+            var r = _v.Validate(new FoodQualityInput("Red Nicaraguan Beans", 0m, 22.22m, 63.89m, 0m));
+            r.Accepted.Should().BeFalse();
+            r.Reasons.Should().Contain("atwater_mismatch");
+        }
     }
 }
