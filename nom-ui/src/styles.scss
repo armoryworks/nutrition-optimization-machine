@@ -73,3 +73,8 @@ html {
 .cdk-overlay-container {
   z-index: 1100;
 }
+
+.nom-food-catalog__flag-tip .mdc-tooltip__surface {
+  white-space: pre-line;
+  max-width: 22rem;
+}

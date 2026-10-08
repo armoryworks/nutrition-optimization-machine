@@ -34,6 +34,7 @@ namespace Nom.Orch.Services
         {
             var query = _context.Ingredients
                 .Include(i => i.IngredientNutrients).ThenInclude(n => n.Nutrient)
+                .Include(i => i.FoodGroup)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(source))
@@ -98,7 +99,7 @@ namespace Nom.Orch.Services
                     if (ratio > 6m || (ratio < 0.15m && kv > 0))
                     {
                         findings.Add(Finding(ing, "group_energy_outlier", "medium",
-                            $"{kv:0} kcal/100 g is far from the {ing.FoodGroupId} group median of {med:0} — " +
+                            $"{kv:0} kcal/100 g is far from the {ing.FoodGroup?.Name ?? ing.FoodGroupId.ToString()} group median of {med:0} — " +
                             "check the food group or the value."));
                     }
                 }

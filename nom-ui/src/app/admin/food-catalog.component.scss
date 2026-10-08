@@ -79,9 +79,28 @@
     gap: 0.4rem;
     max-width: 28rem;
     white-space: normal;
+
+    > span:first-child { white-space: normal; min-width: 14rem; }
   }
 
-  &__flag { color: #f9a825; font-size: 1.1rem; height: 1.1rem; width: 1.1rem; }
+  &__flag {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: #f9a825;
+    cursor: pointer;
+
+    mat-icon { font-size: 1.1rem; height: 1.1rem; width: 1.1rem; }
+
+    &:focus-visible { outline: 2px solid var(--mat-sys-primary, #2e7d32); outline-offset: 1px; }
+  }
 
   &__fdc { opacity: 0.55; font-size: 0.75rem; }
 

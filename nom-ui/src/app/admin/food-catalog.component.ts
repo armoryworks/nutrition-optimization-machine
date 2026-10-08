@@ -229,6 +229,12 @@ export class FoodCatalog implements OnInit {
     return this.findingsByIngredient().get(id) ?? [];
   }
 
+  flagText(id: number): string {
+    return this.flagsFor(id)
+      .map((f) => f.detail)
+      .join('\n');
+  }
+
   setGroup(item: FoodCatalogItem, foodGroupId: number | null): void {
     this.catalog
       .update(item.id, { foodGroupId: foodGroupId ?? 0 })

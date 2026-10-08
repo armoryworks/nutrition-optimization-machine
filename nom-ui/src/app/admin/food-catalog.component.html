@@ -175,8 +175,15 @@
               <td class="nom-food-catalog__name">
                 <span>{{ item.name }}</span>
                 @if (flagsFor(item.id).length > 0) {
-                  <mat-icon class="nom-food-catalog__flag"
-                            [matTooltip]="flagsFor(item.id)[0].detail">warning</mat-icon>
+                  <button type="button" class="nom-food-catalog__flag"
+                          #flagTip="matTooltip"
+                          [matTooltip]="flagText(item.id)"
+                          matTooltipClass="nom-food-catalog__flag-tip"
+                          [attr.aria-label]="'Audit findings for ' + item.name + ': ' + flagText(item.id)"
+                          (click)="flagTip.toggle()"
+                          data-testid="food-catalog-item-flag-btn">
+                    <mat-icon>warning</mat-icon>
+                  </button>
                 }
                 @if (item.fdcId) { <span class="nom-food-catalog__fdc">FDC {{ item.fdcId }}</span> }
               </td>
