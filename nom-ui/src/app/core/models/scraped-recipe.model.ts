@@ -1,3 +1,16 @@
+export interface ScrapedIngredientModel {
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  notes: string | null;
+}
+
+export interface ScrapedStepModel {
+  order: number | null;
+  instruction: string;
+  image: string | null;
+}
+
 export interface ScrapedRecipeModel {
   name: string;
   description: string | null;
@@ -8,8 +21,8 @@ export interface ScrapedRecipeModel {
   cookTime: string | null;
   totalTime: string | null;
   recipeYield: string | null;
-  ingredients: string[];
-  steps: string[];
+  ingredients: ScrapedIngredientModel[];
+  steps: ScrapedStepModel[];
   tags: string[];
   categories: string[];
 }

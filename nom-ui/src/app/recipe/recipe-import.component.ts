@@ -13,7 +13,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RecipeScrapingService } from '../core/services/recipe-scraping.service';
 import { LoadingService } from '../core/services/loading.service';
 import { PolicyService } from '../core/services/policy.service';
-import { ScrapedRecipeModel } from '../core/models/scraped-recipe.model';
+import { ScrapedIngredientModel, ScrapedRecipeModel } from '../core/models/scraped-recipe.model';
+import { formatQuantity } from '../core/domain/shopping/unit-conversion';
 
 @Component({
   selector: 'nom-recipe-import',
@@ -85,6 +86,21 @@ export class RecipeImport {
         this.importing.set(false);
       },
     });
+  }
+
+  ingredientLine(ing: ScrapedIngredientModel): string {
+    const main = [ing.quantity != null ? formatQuantity(ing.quantity) : '', ing.unit ?? '', ing.name].filter(Boolean).join(' ');
+    return ing.notes ? `${main}, ${ing.notes}` : main;
+  }
+
+  formatDuration(value: string | null): string {
+    const match = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/i.exec((value ?? '').trim());
+    if (!match || !match.slice(1).some(Boolean)) return value ?? '';
+    const days = Number(match[1] ?? 0);
+    const hours = Number(match[2] ?? 0) + days * 24;
+    const minutes = Number(match[3] ?? 0) + Math.round(Number(match[4] ?? 0) / 60);
+    const parts = [hours ? `${hours} hr` : '', minutes ? `${minutes} min` : ''].filter(Boolean);
+    return parts.length ? parts.join(' ') : '0 min';
   }
 
   private describeError(err: HttpErrorResponse, fallback: string): string {
