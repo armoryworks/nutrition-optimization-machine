@@ -4,7 +4,13 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
+import {
+  ConfirmDeleteDialog,
+  ConfirmDeleteDialogData,
+} from '../shared/confirm-delete-dialog/confirm-delete-dialog.component';
 import { DietAdminService } from '../core/services/diet-admin.service';
 import {
   RestrictionGroupModel,
@@ -24,6 +30,8 @@ import {
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatDialogModule,
+    MatSnackBarModule,
     ErrorBanner,
   ],
   templateUrl: './diet-categories.component.html',
@@ -33,6 +41,16 @@ import {
 export class DietCategories implements OnInit {
   private dietAdminService = inject(DietAdminService);
   private destroyRef = inject(DestroyRef);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
+  readonly severityLevels = [
+    { value: 1, label: 'Mild preference' },
+    { value: 2, label: 'Preference' },
+    { value: 3, label: 'Diet / religious' },
+    { value: 4, label: 'Medical / intolerance' },
+    { value: 5, label: 'Allergy (absolute)' },
+  ];
 
   groups = signal<RestrictionGroupModel[]>([]);
   loading = signal(true);
@@ -121,6 +139,26 @@ export class DietCategories implements OnInit {
 
   deleteCategory(category: RestrictionCategoryModel): void {
     if (this.processing()) return;
+    const criteriaText = category.criteriaCount > 0
+      ? ` and its ${this.criteriaLabel(category.criteriaCount)}`
+      : '';
+    this.dialog
+      .open(ConfirmDeleteDialog, {
+        data: {
+          title: 'Delete category',
+          message: `Delete "${category.name}"${criteriaText}? This cannot be undone.`,
+          confirmText: 'Delete',
+        } satisfies ConfirmDeleteDialogData,
+      })
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((confirmed) => {
+        if (confirmed) this.performDeleteCategory(category);
+      });
+  }
+
+  private performDeleteCategory(category: RestrictionCategoryModel): void {
+    if (this.processing()) return;
     this.processing.set(true);
     this.dietAdminService.deleteCategory(category.id).pipe(
       takeUntilDestroyed(this.destroyRef),
@@ -130,6 +168,7 @@ export class DietCategories implements OnInit {
           ({ ...g, categories: g.categories.filter((c) => c.id !== category.id) })));
         if (this.expandedCategoryId() === category.id) this.expandedCategoryId.set(null);
         this.processing.set(false);
+        this.snackBar.open(`Deleted "${category.name}"`, undefined, { duration: 3000 });
       },
       error: (err) => {
         this.errorMessage.set(err.status === 409
@@ -138,6 +177,14 @@ export class DietCategories implements OnInit {
         this.processing.set(false);
       },
     });
+  }
+
+  criteriaLabel(count: number): string {
+    return `${count} ${count === 1 ? 'criterion' : 'criteria'}`;
+  }
+
+  severityLabel(severity: number): string {
+    return this.severityLevels.find((l) => l.value === severity)?.label ?? '';
   }
 
   toggleCriteria(category: RestrictionCategoryModel): void {

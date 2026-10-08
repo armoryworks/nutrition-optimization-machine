@@ -144,6 +144,8 @@
   gap: vars.$spacing-2;
   flex-wrap: wrap;
   margin-bottom: vars.$spacing-3;
+
+  &--labelled { align-items: flex-end; }
 }
 
 .nom-diet-cats__input {
@@ -164,6 +166,32 @@
     outline: none;
     border-color: var(--mat-sys-primary);
   }
+}
+
+.nom-diet-cats__field {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+
+  .nom-diet-cats__input { flex: none; min-width: 0; width: 100%; box-sizing: border-box; }
+
+  &--severity { flex: 0 1 190px; min-width: 150px; }
+  &--wide { flex: 3; }
+}
+
+.nom-diet-cats__field-label {
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-diet-cats__hint {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
 }
 
 .nom-diet-cats__empty {
