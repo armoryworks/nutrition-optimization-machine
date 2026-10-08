@@ -71,9 +71,6 @@
         <div class="nom-import__preview" data-testid="recipe-import-preview">
           <h3 class="nom-import__preview-title">Preview</h3>
           <div class="nom-import__preview-content">
-            @if (preview()!.image) {
-              <img class="nom-import__preview-img" [src]="preview()!.image" [alt]="preview()!.name">
-            }
             <h4>{{ preview()!.name }}</h4>
             @if (preview()!.description) {
               <p class="nom-import__preview-desc">{{ preview()!.description }}</p>
