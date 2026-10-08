@@ -5,11 +5,11 @@
       <p>Searching...</p>
     </div>
   } @else if (error()) {
-    <div class="nom-search__empty">
+    <div class="nom-search__empty" data-testid="search-error">
       <mat-icon class="nom-search__empty-icon">error_outline</mat-icon>
       <h2>Something went wrong</h2>
       <p>{{ error() }}</p>
-      <button class="nom-search__retry-btn" (click)="performSearch(query())">Try Again</button>
+      <button class="nom-search__retry-btn" (click)="performSearch(query())" data-testid="search-retry-btn">Try Again</button>
     </div>
   } @else {
     <div class="nom-search__header">
@@ -22,16 +22,69 @@
           All Recipes
         }
       </h1>
-      <span class="nom-search__count">{{ totalCount() }} recipes found</span>
+      <span class="nom-search__count" data-testid="search-count">{{ totalCount() }} {{ totalCount() === 1 ? 'recipe' : 'recipes' }} found</span>
       @if (ingredientId()) {
         <a class="nom-search__filter-chip"
            routerLink="/search"
-           [queryParams]="query() ? { q: query() } : {}"
+           [queryParams]="{ ingredientId: null, ingredient: null }"
+           queryParamsHandling="merge"
            data-testid="search-clear-ingredient-filter"
            aria-label="Clear ingredient filter">
           {{ ingredientName() }}
           <mat-icon class="nom-search__filter-chip-icon">close</mat-icon>
         </a>
+      }
+    </div>
+
+    <div class="nom-search__filters" role="group" aria-label="Filter and sort recipes" data-testid="search-filters">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="nom-search__filter">
+        <mat-label>Course</mat-label>
+        <mat-select [value]="recipeTypeId()" (selectionChange)="setFilter('type', $event.value)" data-testid="search-filter-type">
+          <mat-option [value]="null">Any course</mat-option>
+          @for (type of recipeTypes(); track type.referenceId) {
+            <mat-option [value]="type.referenceId">{{ type.referenceName }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="nom-search__filter">
+        <mat-label>Total time</mat-label>
+        <mat-select [value]="maxTime()" (selectionChange)="setFilter('time', $event.value)" data-testid="search-filter-time">
+          <mat-option [value]="null">Any time</mat-option>
+          @for (minutes of timeOptions; track minutes) {
+            <mat-option [value]="minutes">{{ minutes }} min or less</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="nom-search__filter">
+        <mat-label>Rating</mat-label>
+        <mat-select [value]="minRating()" (selectionChange)="setFilter('rating', $event.value)" data-testid="search-filter-rating">
+          <mat-option [value]="null">Any rating</mat-option>
+          @for (stars of ratingOptions; track stars) {
+            <mat-option [value]="stars">{{ stars }}+ stars</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="nom-search__filter">
+        <mat-label>Sort by</mat-label>
+        <mat-select [value]="sort()" (selectionChange)="setFilter('sort', $event.value === 'newest' ? null : $event.value)" data-testid="search-sort">
+          @for (option of sortOptions; track option.value) {
+            <mat-option [value]="option.value">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      @if (isLoggedIn()) {
+        <mat-slide-toggle
+          class="nom-search__mine"
+          [checked]="mineOnly()"
+          (change)="setFilter('mine', $event.checked ? 1 : null)"
+          data-testid="search-filter-mine">
+          My recipes only
+        </mat-slide-toggle>
+      }
+      @if (hasFilters()) {
+        <button type="button" class="nom-search__clear-btn" (click)="clearFilters()" data-testid="search-clear-filters-btn">
+          Clear filters
+        </button>
       }
     </div>
 
@@ -84,12 +137,24 @@
           </a>
         }
       </div>
+      @if (canLoadMore()) {
+        <div class="nom-search__more">
+          <button type="button" class="nom-search__retry-btn" (click)="loadMore()" [disabled]="loadingMore()" data-testid="search-load-more-btn">
+            {{ loadingMore() ? 'Loading…' : 'Show more (' + (totalCount() - results().length) + ' left)' }}
+          </button>
+        </div>
+      }
     } @else {
-      <div class="nom-search__empty">
+      <div class="nom-search__empty" data-testid="search-empty">
         <mat-icon class="nom-search__empty-icon">search_off</mat-icon>
         <h2>No recipes found</h2>
-        <p>Try a different search term.</p>
-        <a routerLink="/home" class="nom-search__empty-link">Browse all recipes</a>
+        @if (hasFilters()) {
+          <p>No recipes match these filters.</p>
+          <button type="button" class="nom-search__retry-btn" (click)="clearFilters()" data-testid="search-empty-clear-filters-btn">Clear filters</button>
+        } @else {
+          <p>Try a different search term.</p>
+          <a routerLink="/home" class="nom-search__empty-link" data-testid="search-empty-browse-link">Browse all recipes</a>
+        }
       </div>
     }
   }

@@ -1,4 +1,5 @@
 export enum ReferenceDiscriminator {
+  RecipeType = 3,
   RestrictionType = 2000,
   GoalType = 2001,
   PersonActivityLevelType = 6004,

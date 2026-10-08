@@ -11,6 +11,7 @@ export interface RecipeSearchRequest {
   maxTotalTime?: number;
   isPublic?: boolean;
   isApproved?: boolean;
+  mineOnly?: boolean;
   sortBy?: string;
   sortDirection?: string;
   page: number;

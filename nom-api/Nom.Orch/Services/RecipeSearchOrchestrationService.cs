@@ -437,7 +437,14 @@ namespace Nom.Orch.Services
 
             if (searchModel.MaxTotalTime.HasValue)
             {
-                query = query.Where(r => (r.PrepTimeMinutes + r.CookTimeMinutes) <= searchModel.MaxTotalTime.Value);
+                query = query.Where(r => (r.PrepTimeMinutes ?? 0) + (r.CookTimeMinutes ?? 0) > 0
+                    && (r.PrepTimeMinutes ?? 0) + (r.CookTimeMinutes ?? 0) <= searchModel.MaxTotalTime.Value);
+            }
+
+            if (searchModel.MineOnly == true)
+            {
+                var authorId = searchModel.RequesterPersonId;
+                query = authorId.HasValue ? query.Where(r => r.AuthorId == authorId.Value) : query.Where(r => false);
             }
 
             // Visibility is ALWAYS applied — the requester (or anonymous) sees
@@ -463,10 +470,15 @@ namespace Nom.Orch.Services
             return sortBy?.ToLower() switch
             {
                 "name" => isDescending ? query.OrderByDescending(r => r.Name) : query.OrderBy(r => r.Name),
-                "rating" => isDescending ? query.OrderByDescending(r => r.Ratings!.Average(rating => rating.Rating)) : query.OrderBy(r => r.Ratings!.Average(rating => rating.Rating)),
+                "rating" => isDescending
+                    ? query.OrderByDescending(r => r.Ratings!.Any()).ThenByDescending(r => r.Ratings!.Average(rating => rating.Rating))
+                    : query.OrderByDescending(r => r.Ratings!.Any()).ThenBy(r => r.Ratings!.Average(rating => rating.Rating)),
                 "date" => isDescending ? query.OrderByDescending(r => r.CreatedDate) : query.OrderBy(r => r.CreatedDate),
                 "preptime" => isDescending ? query.OrderByDescending(r => r.PrepTimeMinutes) : query.OrderBy(r => r.PrepTimeMinutes),
                 "cooktime" => isDescending ? query.OrderByDescending(r => r.CookTimeMinutes) : query.OrderBy(r => r.CookTimeMinutes),
+                "totaltime" => isDescending
+                    ? query.OrderByDescending(r => (r.PrepTimeMinutes ?? 0) + (r.CookTimeMinutes ?? 0))
+                    : query.OrderBy(r => (r.PrepTimeMinutes ?? 0) + (r.CookTimeMinutes ?? 0) <= 0).ThenBy(r => (r.PrepTimeMinutes ?? 0) + (r.CookTimeMinutes ?? 0)),
                 _ => query.OrderByDescending(r => r.CreatedDate) // Default sort
             };
         }

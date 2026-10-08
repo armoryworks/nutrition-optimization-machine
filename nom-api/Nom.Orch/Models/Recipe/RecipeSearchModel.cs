@@ -28,8 +28,9 @@ namespace Nom.Orch.Models.Recipe
         
         public bool? IsPublic { get; set; }
         public bool? IsApproved { get; set; }
+        public bool? MineOnly { get; set; }
         
-        public string? SortBy { get; set; } // "name", "rating", "date", "prepTime", "cookTime"
+        public string? SortBy { get; set; } // "name", "rating", "date", "prepTime", "cookTime", "totalTime"
         public string? SortDirection { get; set; } // "asc", "desc"
         
         public int Page { get; set; } = 1;
