@@ -37,7 +37,15 @@
     gap: 0.75rem;
     padding: 0.5rem 0.75rem;
     border-radius: 8px;
-    background: color-mix(in srgb, var(--mat-sys-primary, #2e7d32) 8%, transparent);
+    background: color-mix(in srgb, var(--mat-sys-primary, #2e7d32) 8%, var(--mat-sys-surface));
+    box-shadow: vars.$elevation-2;
+    position: sticky;
+    top: 0;
+    z-index: vars.$z-sticky;
+
+    @media (max-width: vars.$breakpoint-mobile) {
+      flex-wrap: wrap;
+    }
   }
 
   &__loading { display: flex; justify-content: center; padding: 2rem; }
