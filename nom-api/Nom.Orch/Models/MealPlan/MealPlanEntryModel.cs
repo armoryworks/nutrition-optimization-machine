@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Nom.Orch.Models.Recipe;
 
 namespace Nom.Orch.Models.MealPlan
 {
@@ -33,5 +35,8 @@ namespace Nom.Orch.Models.MealPlan
         public decimal? FatGrams { get; set; }
         public DateOnly? CompletedDate { get; set; }
         public DateTime? ShoppingCompletedAt { get; set; }
+
+        /// <summary>The viewer's severity ≥ 4 restrictions this entry's recipe trips; empty when none.</summary>
+        public List<RecipeDietMatchModel> DietConflicts { get; set; } = new();
     }
 }

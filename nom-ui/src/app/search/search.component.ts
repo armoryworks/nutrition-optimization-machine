@@ -4,10 +4,11 @@ import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { RecipeSearchService } from '../core/services/recipe-search.service';
 import { RecipeSearchResult } from '../core/models/recipe-search-result.model';
+import { DietConflictsPipe } from '../core/utils/diet-conflict';
 
 @Component({
   selector: 'nom-search',
-  imports: [MatIconModule, RouterLink],
+  imports: [MatIconModule, RouterLink, DietConflictsPipe],
   templateUrl: './search.component.html',
   styleUrl: './search.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

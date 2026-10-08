@@ -305,6 +305,14 @@
   color: var(--mat-sys-primary);
 }
 
+.nom-plan__cell-conflict {
+  flex-shrink: 0;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--mat-sys-error);
+}
+
 .nom-plan__cell-thumb {
   width: 22px;
   height: 22px;

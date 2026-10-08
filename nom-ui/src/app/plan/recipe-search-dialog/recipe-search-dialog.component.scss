@@ -55,6 +55,7 @@
 
 .nom-recipe-dialog__entry-info {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: vars.$spacing-2;
   min-width: 0;
@@ -91,6 +92,23 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.nom-recipe-dialog__conflict {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-1;
+  flex-basis: 100%;
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-error);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
 }
 
 // ── Recipe search ──

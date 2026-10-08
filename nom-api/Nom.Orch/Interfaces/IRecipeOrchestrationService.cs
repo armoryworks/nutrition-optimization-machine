@@ -15,6 +15,7 @@ namespace Nom.Orch.Interfaces
         Task<List<RecipeVariationItemModel>?> SaveVariationAsync(long recipeId, long personId, List<SaveVariationItemRequest> items);
         Task<bool> DeleteVariationAsync(long recipeId, long personId);
         Task<List<RecipeDietMatchModel>> GetDietMatchesAsync(long recipeId, long personId);
+        Task<Dictionary<long, List<RecipeDietMatchModel>>> GetSevereDietConflictsAsync(IEnumerable<long> recipeIds, long personId);
         Task<RecipeResponseModel?> UpdateRecipeAsync(long id, UpdateRecipeRequest model);
         Task<bool> DeleteRecipeAsync(long id);
 

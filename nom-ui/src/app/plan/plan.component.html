@@ -171,6 +171,13 @@
                       <mat-icon class="nom-plan__cell-fooditem-icon"
                                 matTooltip="Whole food{{ entry.foodGroupName ? ' · ' + entry.foodGroupName : '' }}">nutrition</mat-icon>
                     }
+                    @if (entry.dietConflicts?.length) {
+                      <mat-icon class="nom-plan__cell-conflict"
+                                data-testid="plan-cell-diet-conflict"
+                                role="img"
+                                [attr.aria-label]="entry.dietConflicts | dietConflicts"
+                                [matTooltip]="entry.dietConflicts | dietConflicts">error</mat-icon>
+                    }
                     <span class="nom-plan__cell-recipe"
                           [class.nom-plan__cell-recipe--fooditem]="entry.ingredientId">
                       @if (entry.recipeId) {

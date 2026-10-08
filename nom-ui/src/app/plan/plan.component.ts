@@ -17,6 +17,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { DietConflictsPipe } from '../core/utils/diet-conflict';
 import { MatDialog } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { PortionsDialog, PortionsDialogData } from './portions-dialog/portions-dialog.component';
@@ -62,7 +63,7 @@ export interface PlanFormData {
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatSelectModule,
-    MatTooltipModule, MatMenuModule, ErrorBanner, NoHouseholdCta],
+    MatTooltipModule, MatMenuModule, ErrorBanner, NoHouseholdCta, DietConflictsPipe],
   templateUrl: './plan.component.html',
   styleUrl: './plan.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

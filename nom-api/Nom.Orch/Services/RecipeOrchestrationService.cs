@@ -474,13 +474,31 @@ namespace Nom.Orch.Services
 
         public async Task<List<RecipeDietMatchModel>> GetDietMatchesAsync(long recipeId, long personId)
         {
+            var matches = await QueryDietMatchesAsync(new List<long> { recipeId }, personId);
+            return matches.Select(m => m.Match).ToList();
+        }
+
+        public async Task<Dictionary<long, List<RecipeDietMatchModel>>> GetSevereDietConflictsAsync(IEnumerable<long> recipeIds, long personId)
+        {
+            var ids = recipeIds.Distinct().ToList();
+            if (ids.Count == 0)
+                return new Dictionary<long, List<RecipeDietMatchModel>>();
+            var matches = await QueryDietMatchesAsync(ids, personId);
+            return matches
+                .Where(m => (m.Match.Severity ?? 0) >= 4)
+                .GroupBy(m => m.RecipeId)
+                .ToDictionary(g => g.Key, g => g.Select(m => m.Match).ToList());
+        }
+
+        private async Task<List<(long RecipeId, RecipeDietMatchModel Match)>> QueryDietMatchesAsync(List<long> recipeIds, long personId)
+        {
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
             var activeRestrictions = _context.Set<Nom.Data.Plan.RestrictionEntity>()
                 .AsNoTracking()
                 .Where(r => r.PersonId == personId
                     && (r.BeginDate == null || r.BeginDate <= today)
                     && (r.EndDate == null || r.EndDate >= today));
-            var recipeIngredients = _context.RecipeIngredients.Where(ri => ri.RecipeId == recipeId);
+            var recipeIngredients = _context.RecipeIngredients.Where(ri => recipeIds.Contains(ri.RecipeId));
 
             // 1) Restrictions that name a specific ingredient directly.
             var direct = await activeRestrictions
@@ -488,13 +506,17 @@ namespace Nom.Orch.Services
                 .Join(recipeIngredients,
                     r => r.IngredientId,
                     ri => ri.IngredientId,
-                    (r, ri) => new RecipeDietMatchModel
+                    (r, ri) => new
                     {
-                        RestrictionName = r.Name,
-                        RestrictionType = r.RestrictionType != null ? r.RestrictionType.Name : null,
-                        Severity = r.Severity,
-                        IngredientId = ri.IngredientId,
-                        IngredientName = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty
+                        ri.RecipeId,
+                        Match = new RecipeDietMatchModel
+                        {
+                            RestrictionName = r.Name,
+                            RestrictionType = r.RestrictionType != null ? r.RestrictionType.Name : null,
+                            Severity = r.Severity,
+                            IngredientId = ri.IngredientId,
+                            IngredientName = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty
+                        }
                     })
                 .ToListAsync();
 
@@ -512,21 +534,26 @@ namespace Nom.Orch.Services
                         (rc.c.IngredientId != null && ri.IngredientId == rc.c.IngredientId)
                         || (rc.c.IngredientPattern != null && ri.Ingredient != null
                             && EF.Functions.ILike(ri.Ingredient.Name, rc.c.IngredientPattern))),
-                    (rc, ri) => new RecipeDietMatchModel
+                    (rc, ri) => new
                     {
-                        RestrictionName = rc.r.Name,
-                        RestrictionType = rc.r.RestrictionType != null ? rc.r.RestrictionType.Name : null,
-                        Severity = rc.c.Severity,
-                        IngredientId = ri.IngredientId,
-                        IngredientName = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty,
-                        Notes = rc.c.Notes
+                        ri.RecipeId,
+                        Match = new RecipeDietMatchModel
+                        {
+                            RestrictionName = rc.r.Name,
+                            RestrictionType = rc.r.RestrictionType != null ? rc.r.RestrictionType.Name : null,
+                            Severity = rc.c.Severity,
+                            IngredientId = ri.IngredientId,
+                            IngredientName = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty,
+                            Notes = rc.c.Notes
+                        }
                     })
                 .ToListAsync();
 
             return direct.Concat(viaCriteria)
-                .GroupBy(m => new { m.RestrictionName, m.IngredientName })
-                .Select(g => g.OrderByDescending(m => m.Severity ?? 0).First())
-                .OrderByDescending(m => m.Severity ?? 0)
+                .GroupBy(m => new { m.RecipeId, m.Match.RestrictionName, m.Match.IngredientName })
+                .Select(g => g.OrderByDescending(m => m.Match.Severity ?? 0).First())
+                .OrderByDescending(m => m.Match.Severity ?? 0)
+                .Select(m => (m.RecipeId, m.Match))
                 .ToList();
         }
 

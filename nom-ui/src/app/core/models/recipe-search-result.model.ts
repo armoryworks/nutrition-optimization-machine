@@ -1,5 +1,6 @@
 import { RecipeIngredientSearchResult } from './recipe-ingredient-search-result.model';
 import { RecipeStepSearchResult } from './recipe-step-search-result.model';
+import { RecipeDietMatchModel } from './recipe.model';
 
 export interface RecipeSearchResult {
   id: number;
@@ -24,4 +25,5 @@ export interface RecipeSearchResult {
   cuisineTypes: string[];
   ingredients?: RecipeIngredientSearchResult[];
   steps?: RecipeStepSearchResult[];
+  dietConflicts?: RecipeDietMatchModel[];
 }

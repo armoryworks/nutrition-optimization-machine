@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
 import { RecipeSearchService } from '../../core/services/recipe-search.service';
 import { MealPlanService } from '../../core/services/meal-plan.service';
@@ -14,6 +15,8 @@ import { IngredientLookupService } from '../../core/services/ingredient-lookup.s
 import { IngredientLookupResult } from '../../core/models/ingredient-lookup-result.model';
 import { RecipeSearchResult } from '../../core/models/recipe-search-result.model';
 import { MealPlanEntry } from '../../core/models/meal-plan-entry.model';
+import { RecipeService } from '../../core/services/recipe.service';
+import { DietConflictsPipe, describeDietConflicts } from '../../core/utils/diet-conflict';
 
 export interface RecipeSearchDialogData {
   householdId: number;
@@ -35,6 +38,7 @@ export type RecipeSearchDialogResult = { changed: boolean } | undefined;
     MatFormFieldModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    DietConflictsPipe,
   ],
   templateUrl: './recipe-search-dialog.component.html',
   styleUrl: './recipe-search-dialog.component.scss',
@@ -46,6 +50,8 @@ export class RecipeSearchDialog implements OnInit {
   private recipeSearchService = inject(RecipeSearchService);
   private mealPlanService = inject(MealPlanService);
   private ingredientLookup = inject(IngredientLookupService);
+  private recipeService = inject(RecipeService);
+  private snackBar = inject(MatSnackBar);
   private destroyRef = inject(DestroyRef);
 
   entries = signal<MealPlanEntry[]>([]);
@@ -222,14 +228,29 @@ export class RecipeSearchDialog implements OnInit {
           fatGrams: null,
           completedDate: null,
           shoppingCompletedAt: null,
+          dietConflicts: recipe.dietConflicts ?? [],
         }]);
         this.changed.set(true);
         this.busy.set(false);
         this.searchQuery.set('');
         this.results.set([]);
+        this.warnOnDietConflicts(response.id, recipe);
       },
       error: () => {
         this.busy.set(false);
+      },
+    });
+  }
+
+  private warnOnDietConflicts(entryId: number, recipe: RecipeSearchResult): void {
+    this.recipeService.getDietMatches(recipe.id).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (matches) => {
+        const severe = matches.filter(m => (m.severity ?? 0) >= 4);
+        if (severe.length === 0) return;
+        this.entries.update(list => list.map(e => e.id === entryId ? { ...e, dietConflicts: severe } : e));
+        this.snackBar.open(`${recipe.name}: ${describeDietConflicts(severe)}`, 'OK', { duration: 8000 });
       },
     });
   }

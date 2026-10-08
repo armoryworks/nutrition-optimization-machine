@@ -16,15 +16,18 @@ namespace Nom.Api.Controllers
         private readonly IMealPlanOrchestrationService _mealPlanOrchestrationService;
         private readonly IPantryOrchestrationService _pantryService;
         private readonly IPortionOrchestrationService _portionService;
+        private readonly IRecipeOrchestrationService _recipeService;
 
         public MealPlanController(
             IMealPlanOrchestrationService mealPlanOrchestrationService,
             IPantryOrchestrationService pantryService,
-            IPortionOrchestrationService portionService)
+            IPortionOrchestrationService portionService,
+            IRecipeOrchestrationService recipeService)
         {
             _mealPlanOrchestrationService = mealPlanOrchestrationService;
             _pantryService = pantryService;
             _portionService = portionService;
+            _recipeService = recipeService;
         }
 
         /// <summary>
@@ -326,7 +329,17 @@ namespace Nom.Api.Controllers
             var response = await _mealPlanOrchestrationService.GetWeekAsync(householdId, weekStart);
             var personId = GetCurrentPersonId();
             if (personId.HasValue)
+            {
                 await _portionService.ScaleWeekToPersonAsync(householdId, personId.Value, response);
+                var entries = response.Days.SelectMany(d => d.Cells).SelectMany(c => c.Entries).ToList();
+                var conflicts = await _recipeService.GetSevereDietConflictsAsync(
+                    entries.Where(e => e.RecipeId.HasValue).Select(e => e.RecipeId!.Value), personId.Value);
+                foreach (var entry in entries)
+                {
+                    if (entry.RecipeId.HasValue && conflicts.TryGetValue(entry.RecipeId.Value, out var hits))
+                        entry.DietConflicts = hits;
+                }
+            }
             return Ok(response);
         }
 

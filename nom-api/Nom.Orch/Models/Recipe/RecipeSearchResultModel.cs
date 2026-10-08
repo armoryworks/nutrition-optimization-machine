@@ -30,5 +30,6 @@ namespace Nom.Orch.Models.Recipe
         public List<string> Tags { get; set; } = new();
         public List<string> Categories { get; set; } = new();
         public List<string> CuisineTypes { get; set; } = new();
+        public List<RecipeDietMatchModel> DietConflicts { get; set; } = new();
     }
 }

@@ -2,7 +2,7 @@
   <h2 mat-dialog-title>
     {{ data.mealType }} — {{ data.date }}
   </h2>
-  <button class="nom-dialog__close" (click)="done()" aria-label="Close dialog">
+  <button class="nom-dialog__close" (click)="done()" aria-label="Close dialog" data-testid="recipe-search-close-btn">
     <mat-icon>close</mat-icon>
   </button>
 </div>
@@ -10,9 +10,9 @@
 <mat-dialog-content>
   <!-- Current entries -->
   @if (entries().length > 0) {
-    <div class="nom-recipe-dialog__entries">
+    <div class="nom-recipe-dialog__entries" data-testid="recipe-search-entries">
       @for (entry of entries(); track entry.id) {
-        <div class="nom-recipe-dialog__entry">
+        <div class="nom-recipe-dialog__entry" data-testid="recipe-search-entry-item">
           <div class="nom-recipe-dialog__entry-info">
             @if (entry.recipeImage) {
               <img class="nom-recipe-dialog__entry-thumb"
@@ -24,11 +24,17 @@
               </mat-icon>
             }
             <span class="nom-recipe-dialog__entry-name">{{ entry.recipeName ?? entry.ingredientName ?? entry.title }}</span>
+            @if (entry.dietConflicts?.length) {
+              <span class="nom-recipe-dialog__conflict" data-testid="recipe-search-entry-conflict">
+                <mat-icon>error</mat-icon>
+                {{ entry.dietConflicts | dietConflicts }}
+              </span>
+            }
             @if (entry.notes) {
               <span class="nom-recipe-dialog__entry-notes">{{ entry.notes }}</span>
             }
           </div>
-          <button mat-icon-button (click)="removeEntry(entry)" [disabled]="busy()" aria-label="Remove item">
+          <button mat-icon-button (click)="removeEntry(entry)" [disabled]="busy()" aria-label="Remove item" data-testid="recipe-search-entry-remove-btn">
             <mat-icon>close</mat-icon>
           </button>
         </div>
@@ -74,10 +80,17 @@
       @for (recipe of results(); track recipe.id) {
         <button
           class="nom-recipe-dialog__result"
+          data-testid="recipe-search-result-item"
           (click)="addRecipe(recipe)"
           [disabled]="busy()">
           <div class="nom-recipe-dialog__result-info">
             <span class="nom-recipe-dialog__result-name">{{ recipe.name }}</span>
+            @if (recipe.dietConflicts?.length) {
+              <span class="nom-recipe-dialog__conflict" data-testid="recipe-search-result-conflict">
+                <mat-icon>error</mat-icon>
+                {{ recipe.dietConflicts | dietConflicts }}
+              </span>
+            }
             @if (recipe.description) {
               <span class="nom-recipe-dialog__result-desc">{{ recipe.description }}</span>
             }
@@ -123,6 +136,7 @@
         @for (food of wholeFoodResults(); track food.id) {
           <button
             class="nom-recipe-dialog__result"
+            data-testid="whole-food-result-item"
             (click)="addWholeFood(food)"
             [disabled]="busy()">
             <div class="nom-recipe-dialog__result-info">
@@ -147,11 +161,11 @@
     <div class="nom-recipe-dialog__fields">
       <mat-form-field appearance="outline">
         <mat-label>Title</mat-label>
-        <input matInput [value]="noteTitle()" (input)="noteTitle.set($any($event.target).value)" [disabled]="busy()" />
+        <input matInput data-testid="recipe-search-note-title-input" [value]="noteTitle()" (input)="noteTitle.set($any($event.target).value)" [disabled]="busy()" />
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Notes</mat-label>
-        <textarea matInput [value]="noteText()" (input)="noteText.set($any($event.target).value)" rows="2" [disabled]="busy()"></textarea>
+        <textarea matInput data-testid="recipe-search-note-text-input" [value]="noteText()" (input)="noteText.set($any($event.target).value)" rows="2" [disabled]="busy()"></textarea>
       </mat-form-field>
       <button mat-stroked-button (click)="addNote()" [disabled]="busy() || (!noteTitle() && !noteText())" data-testid="recipe-search-add-note-btn">
         <mat-icon>add</mat-icon>

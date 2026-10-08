@@ -102,6 +102,19 @@
   color: var(--mat-sys-on-surface);
 }
 
+.nom-search__card-conflict {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-1;
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-error);
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
 .nom-search__card-desc {
   font-size: vars.$font-size-xs;
   color: var(--mat-sys-on-surface-variant);

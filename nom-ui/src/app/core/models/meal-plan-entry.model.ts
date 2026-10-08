@@ -1,3 +1,5 @@
+import { RecipeDietMatchModel } from './recipe.model';
+
 export interface MealPlanEntry {
   id: number;
   recipeId: number | null;
@@ -21,4 +23,6 @@ export interface MealPlanEntry {
   fatGrams: number | null;
   completedDate: string | null;
   shoppingCompletedAt: string | null;
+  /** The viewer's severity ≥ 4 restrictions this entry's recipe trips. */
+  dietConflicts?: RecipeDietMatchModel[];
 }

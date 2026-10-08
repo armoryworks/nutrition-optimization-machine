@@ -12,11 +12,14 @@ namespace Nom.Api.Controllers
     public class RecipeSearchController : BaseApiController
     {
         private readonly IRecipeSearchOrchestrationService _searchOrchestrationService;
+        private readonly IRecipeOrchestrationService _recipeService;
 
         public RecipeSearchController(
-            IRecipeSearchOrchestrationService searchOrchestrationService)
+            IRecipeSearchOrchestrationService searchOrchestrationService,
+            IRecipeOrchestrationService recipeService)
         {
             _searchOrchestrationService = searchOrchestrationService;
+            _recipeService = recipeService;
         }
 
         /// <summary>
@@ -45,6 +48,16 @@ namespace Nom.Api.Controllers
             searchModel.RequesterPersonId = GetCurrentPersonId();
 
             var results = await _searchOrchestrationService.SearchRecipesAsync(searchModel);
+            if (searchModel.RequesterPersonId is long personId && results.Results.Count > 0)
+            {
+                var conflicts = await _recipeService.GetSevereDietConflictsAsync(
+                    results.Results.Select(r => r.Id), personId);
+                foreach (var result in results.Results)
+                {
+                    if (conflicts.TryGetValue(result.Id, out var hits))
+                        result.DietConflicts = hits;
+                }
+            }
             return Ok(results);
         }
 
