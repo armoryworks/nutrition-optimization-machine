@@ -53,26 +53,45 @@
   <div class="nom-recipe__columns" data-testid="recipe-detail">
     <!-- Column 1: Overview (vertical tabs) -->
     <div class="nom-recipe__column nom-recipe__column--overview">
-      <nav class="nom-recipe__tab-nav">
-        <button class="nom-recipe__tab-btn"
+      <nav class="nom-recipe__tab-nav" role="tablist" aria-label="Recipe details" data-testid="recipe-tab-nav">
+        <button type="button" class="nom-recipe__tab-btn"
+                role="tab"
+                id="recipe-tab-overview"
+                aria-controls="recipe-tab-panel"
+                [attr.aria-selected]="activeTab() === 0"
                 [class.nom-recipe__tab-btn--active]="activeTab() === 0"
-                (click)="activeTab.set(0)">
+                (click)="activeTab.set(0)"
+                data-testid="recipe-overview-tab">
           <mat-icon>info_outline</mat-icon>
           Overview
         </button>
-        <button class="nom-recipe__tab-btn"
+        <button type="button" class="nom-recipe__tab-btn"
+                role="tab"
+                id="recipe-tab-nutrition"
+                aria-controls="recipe-tab-panel"
+                [attr.aria-selected]="activeTab() === 1"
                 [class.nom-recipe__tab-btn--active]="activeTab() === 1"
-                (click)="activeTab.set(1)">
+                (click)="activeTab.set(1)"
+                data-testid="recipe-nutrition-tab">
           <mat-icon>monitor_heart</mat-icon>
           Nutrition
         </button>
-        <button class="nom-recipe__tab-btn"
+        <button type="button" class="nom-recipe__tab-btn"
+                role="tab"
+                id="recipe-tab-diet"
+                aria-controls="recipe-tab-panel"
+                [attr.aria-selected]="activeTab() === 2"
                 [class.nom-recipe__tab-btn--active]="activeTab() === 2"
-                (click)="activeTab.set(2)">
+                (click)="activeTab.set(2)"
+                data-testid="recipe-diet-tab">
           <mat-icon>eco</mat-icon>
           Diet
         </button>
-        <button class="nom-recipe__tab-btn"
+        <button type="button" class="nom-recipe__tab-btn"
+                role="tab"
+                id="recipe-tab-rating"
+                aria-controls="recipe-tab-panel"
+                [attr.aria-selected]="activeTab() === 3"
                 [class.nom-recipe__tab-btn--active]="activeTab() === 3"
                 (click)="activeTab.set(3)"
                 data-testid="recipe-rating-tab">
@@ -81,7 +100,8 @@
         </button>
       </nav>
 
-      <div class="nom-recipe__tab-panel">
+      <div class="nom-recipe__tab-panel" id="recipe-tab-panel" role="tabpanel"
+           [attr.aria-labelledby]="'recipe-tab-' + ['overview', 'nutrition', 'diet', 'rating'][activeTab()]" data-testid="recipe-tab-panel">
         @switch (activeTab()) {
           @case (0) {
             @if (recipe()!.imageUrl) {
