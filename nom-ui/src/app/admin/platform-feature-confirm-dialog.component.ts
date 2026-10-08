@@ -29,8 +29,8 @@ export class PlatformFeatureConfirmDialog {
 
   /** Human label for the switch, e.g. "brigade" → "Brigade". */
   get featureLabel(): string {
-    const key = this.data.feature.key;
-    return key.charAt(0).toUpperCase() + key.slice(1);
+    const { key, label } = this.data.feature;
+    return label || key.charAt(0).toUpperCase() + key.slice(1);
   }
 
   /** Plain statement of what changes for real people, not just a flag flip. */

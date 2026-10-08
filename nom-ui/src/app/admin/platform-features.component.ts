@@ -121,7 +121,7 @@ export class PlatformFeatures implements OnInit {
           list.map((f) => (f.key === updated.key ? updated : f)),
         );
         this.snackBar.open(
-          `${updated.key} is now ${updated.isEnabled ? 'on' : 'off'}`,
+          `${updated.label || updated.key} is now ${updated.isEnabled ? 'on' : 'off'}`,
           'OK',
           { duration: 4000 },
         );

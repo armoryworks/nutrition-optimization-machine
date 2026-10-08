@@ -16,6 +16,17 @@ namespace Nom.Orch.Services
     {
         private static readonly TimeSpan CacheFor = TimeSpan.FromSeconds(30);
 
+        private static readonly Dictionary<string, (string Label, string Description)> KnownFeatures = new()
+        {
+            [IPlatformFeatureService.Keys.Brigade] = (
+                "Brigade",
+                "The Brigade provider platform: nutritionists, coaches and clinics enrol client households and "
+                + "manage their programs from the Brigade console. Turning it off makes the Brigade console "
+                + "and API refuse every provider (platform admins can still sign in), and NOM stops reporting "
+                + "provider management on client households, so clients see their household as self-managed. "
+                + "Nothing is deleted: enrollments and provider setup stay in place and are served again when it is turned back on."),
+        };
+
         private readonly ApplicationDbContext _db;
         private readonly IMemoryCache _cache;
         private readonly ILogger<PlatformFeatureService> _logger;
@@ -60,7 +71,8 @@ namespace Nom.Orch.Services
                 .OrderBy(f => f.Key)
                 .ToListAsync();
 
-            return features.Select(Map).ToList();
+            var names = await PersonNamesAsync(features);
+            return features.Select(f => Map(f, names)).ToList();
         }
 
         public async Task<PlatformFeatureModel> SetAsync(string key, bool isEnabled, long adminPersonId)
@@ -94,15 +106,46 @@ namespace Nom.Orch.Services
             _logger.LogInformation("Platform feature {Key} set to {State} by person {PersonId}",
                 normalized, isEnabled ? "ON" : "OFF", adminPersonId);
 
-            return Map(feature);
+            return Map(feature, await PersonNamesAsync(new[] { feature }));
         }
 
-        private static PlatformFeatureModel Map(PlatformFeatureEntity f) => new()
+        private async Task<Dictionary<long, string>> PersonNamesAsync(IEnumerable<PlatformFeatureEntity> features)
         {
-            Key = f.Key,
-            IsEnabled = f.IsEnabled,
-            Description = f.Description,
-            LastModifiedDate = f.LastModifiedDate,
-        };
+            var ids = features
+                .SelectMany(f => new[] { f.CreatedByPersonId, f.LastModifiedByPersonId })
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToList();
+
+            if (ids.Count == 0)
+            {
+                return new Dictionary<long, string>();
+            }
+
+            return await _db.Persons
+                .AsNoTracking()
+                .Where(p => ids.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.Name);
+        }
+
+        private static PlatformFeatureModel Map(PlatformFeatureEntity f, IReadOnlyDictionary<long, string> names)
+        {
+            KnownFeatures.TryGetValue(f.Key, out var known);
+            return new PlatformFeatureModel
+            {
+                Key = f.Key,
+                Label = known.Label,
+                IsEnabled = f.IsEnabled,
+                Description = string.IsNullOrWhiteSpace(f.Description) ? known.Description : f.Description,
+                CreatedDate = f.CreatedDate,
+                CreatedByName = NameOf(f.CreatedByPersonId, names),
+                LastModifiedDate = f.LastModifiedDate,
+                LastModifiedByName = NameOf(f.LastModifiedByPersonId, names),
+            };
+        }
+
+        private static string? NameOf(long? personId, IReadOnlyDictionary<long, string> names) =>
+            personId.HasValue && names.TryGetValue(personId.Value, out var name) ? name : null;
     }
 }

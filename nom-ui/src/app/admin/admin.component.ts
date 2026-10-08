@@ -63,7 +63,7 @@ export class Admin {
     {
       id: 'food-catalog',
       label: 'Food Catalog',
-      icon: 'nutrition',
+      icon: 'local_dining',
       description: 'Review imported foods and approve them for meal planning',
       navTestId: 'nav-food-catalog',
     },

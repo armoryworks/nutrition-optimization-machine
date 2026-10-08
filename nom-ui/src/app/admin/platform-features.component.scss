@@ -57,8 +57,18 @@
   gap: vars.$spacing-2;
 }
 
+.nom-platform-features__label {
+  font-weight: vars.$font-weight-semibold;
+}
+
 .nom-platform-features__key {
   font-weight: vars.$font-weight-semibold;
+}
+
+.nom-platform-features__label + .nom-platform-features__key {
+  font-weight: vars.$font-weight-normal;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-xs;
 }
 
 .nom-platform-features__state {

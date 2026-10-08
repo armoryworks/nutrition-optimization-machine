@@ -47,6 +47,9 @@
         <div class="nom-platform-features__item" data-testid="platform-feature-item">
           <div class="nom-platform-features__info">
             <div class="nom-platform-features__key-row">
+              @if (feature.label) {
+                <span class="nom-platform-features__label">{{ feature.label }}</span>
+              }
               <code class="nom-platform-features__key">{{ feature.key }}</code>
               <span class="nom-platform-features__state"
                     [class.nom-platform-features__state--on]="feature.isEnabled"
@@ -57,13 +60,19 @@
             @if (feature.description) {
               <p class="nom-platform-features__desc">{{ feature.description }}</p>
             }
-            @if (feature.lastModifiedDate) {
-              <span class="nom-platform-features__meta">
-                Last changed {{ feature.lastModifiedDate | date:'medium' }}
-              </span>
-            } @else {
-              <span class="nom-platform-features__meta">Never changed</span>
-            }
+            @let changedBy = feature.lastModifiedDate ? feature.lastModifiedByName : feature.createdByName;
+            @let changedAt = feature.lastModifiedDate ?? feature.createdDate;
+            <span class="nom-platform-features__meta"
+                  [attr.data-testid]="'platform-feature-changed-' + feature.key">
+              @if (changedBy || feature.lastModifiedDate) {
+                Turned {{ feature.isEnabled ? 'on' : 'off' }} {{ changedAt | date:'medium' }}
+                @if (changedBy) {
+                  by {{ changedBy }}
+                }
+              } @else if (changedAt) {
+                Added {{ changedAt | date:'medium' }}
+              }
+            </span>
           </div>
           <div class="nom-platform-features__control">
             @if (savingKey() === feature.key) {
@@ -73,7 +82,7 @@
               [checked]="feature.isEnabled"
               [disabled]="savingKey() != null"
               (change)="onToggle(feature, $event.source, $event.checked)"
-              [attr.aria-label]="'Toggle ' + feature.key"
+              [attr.aria-label]="'Toggle ' + (feature.label || feature.key)"
               data-testid="platform-feature-toggle">
             </mat-slide-toggle>
           </div>
