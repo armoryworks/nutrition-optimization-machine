@@ -348,17 +348,21 @@ namespace Nom.Orch.Services
                 }
             }
 
-            // Clean up any person-level restrictions saved during onboarding (before plan existed)
-            var personLevelRestrictions = await _dbContext.Restrictions
+            var savedRestrictionNames = await _dbContext.Restrictions
                 .Where(r => r.PersonId == primaryPerson.Id && r.PlanId == null)
+                .Select(r => r.Name)
                 .ToListAsync();
-            _dbContext.Restrictions.RemoveRange(personLevelRestrictions);
 
             // Persist restrictions to the plan
             if (request.Restrictions != null && request.Restrictions.Any())
             {
                 foreach (var restriction in request.Restrictions)
                 {
+                    if (savedRestrictionNames.Contains(restriction.Name, StringComparer.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
                     if (restriction.AppliesToEntirePlan)
                     {
                         // Create a single restriction for the entire plan
