@@ -51,8 +51,12 @@ namespace Nom.Orch.Services
                 return new List<IngredientSearchResponseModel>();
 
             var searchTerm = query.ToLower().Trim();
+            var personId = GetCurrentPersonId();
 
             return await _context.Ingredients
+                .Where(i => i.CurationStatusId == (long)CurationStatusEnum.Curated ||
+                            (personId != null && (i.AuthorId == personId || i.CreatedByPersonId == personId)) ||
+                            (i.CurationStatusId == (long)CurationStatusEnum.NonCurated && i.Name.ToLower() == searchTerm))
                 .Where(i => i.Name.ToLower().Contains(searchTerm) ||
                             (i.NameNormalized != null && i.NameNormalized.ToLower().Contains(searchTerm)) ||
                             i.Aliases.Any(a => a.AliasName.ToLower().Contains(searchTerm)))
@@ -63,8 +67,10 @@ namespace Nom.Orch.Services
                 .Where(i => !Regex.IsMatch(i.Name, QuantityWordPattern, RegexOptions.IgnoreCase))
                 // Rank name-prefix, then word-boundary matches above bare
                 // substrings ("oats" should not lead with "goats milk").
-                .OrderByDescending(i => i.Name.ToLower().StartsWith(searchTerm))
+                .OrderByDescending(i => i.Name.ToLower() == searchTerm)
+                .ThenByDescending(i => i.Name.ToLower().StartsWith(searchTerm))
                 .ThenByDescending(i => i.Name.ToLower().Contains(" " + searchTerm))
+                .ThenByDescending(i => i.CurationStatusId == (long)CurationStatusEnum.Curated)
                 .ThenByDescending(i => i.IsWholeFood == true) // then directly-edible whole foods
                 .ThenBy(i => i.Name.Length) // then shorter names (exact matches)
                 .ThenBy(i => i.Name)
