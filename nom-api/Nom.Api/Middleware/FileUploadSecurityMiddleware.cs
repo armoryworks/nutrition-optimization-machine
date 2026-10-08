@@ -64,15 +64,16 @@ namespace Nom.Api.Middleware
                         return;
                     }
                 }
-
-                await _next(context);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in file upload security middleware");
                 context.Response.StatusCode = 500;
                 await context.Response.WriteAsync("Internal server error");
+                return;
             }
+
+            await _next(context);
         }
 
         private bool IsFileUploadRequest(HttpRequest request)

@@ -39,11 +39,20 @@ namespace Nom.Orch.Services
             _personOrchestrationService = personOrchestrationService;
         }
 
-        public async Task UpdateUserClaimsAsync(UpdateUserClaimsRequest request)
+        private const string CanManageUserRolesClaim = "CanManageUserRoles";
+
+        public async Task UpdateUserClaimsAsync(UpdateUserClaimsRequest request, string actingUserId)
         {
             var user = await _userManager.FindByIdAsync(request.UserId);
             if (user == null)
                 throw new KeyNotFoundException($"User with ID {request.UserId} not found.");
+
+            if (!request.CanManageUserRoles && await HoldsUserRolesClaimAsync(user))
+            {
+                if (user.Id == actingUserId)
+                    throw new InvalidOperationException("You cannot remove your own user & role management access. Ask another admin to do it.");
+                await EnsureAnotherUserRolesHolderAsync(user.Id);
+            }
 
             // Update each claim
             await UpdateClaimAsync(user, "CanManageCuration", request.CanManageCuration);
@@ -65,6 +74,19 @@ namespace Nom.Orch.Services
                 CanManageCuration = claims.Any(c => c.Type == "CanManageCuration" && c.Value == "true"),
                 CanManageUserRoles = claims.Any(c => c.Type == "CanManageUserRoles" && c.Value == "true"),
             };
+        }
+
+        private async Task<bool> HoldsUserRolesClaimAsync(IdentityUser user)
+        {
+            var claims = await _userManager.GetClaimsAsync(user);
+            return claims.Any(c => c.Type == CanManageUserRolesClaim && c.Value == "true");
+        }
+
+        private async Task EnsureAnotherUserRolesHolderAsync(string userId)
+        {
+            var holders = await _userManager.GetUsersForClaimAsync(new Claim(CanManageUserRolesClaim, "true"));
+            if (!holders.Any(h => h.Id != userId))
+                throw new InvalidOperationException("This is the last user who can manage users & roles. Grant that access to someone else first.");
         }
 
         private async Task UpdateClaimAsync(IdentityUser user, string claimType, bool hasClaim)
@@ -111,7 +133,7 @@ namespace Nom.Orch.Services
             // management) -- deliberately not the per-household claims derived at sign-in.
             var storedClaims = await _userManager.GetClaimsAsync(user);
             var canManageCuration = storedClaims.Any(c => c.Type == "CanManageCuration" && c.Value == "true");
-            var canManageUserRoles = storedClaims.Any(c => c.Type == "CanManageUserRoles" && c.Value == "true");
+            var canManageUserRoles = storedClaims.Any(c => c.Type == CanManageUserRolesClaim && c.Value == "true");
 
             return new UserResponseModel
             {
@@ -125,8 +147,9 @@ namespace Nom.Orch.Services
                 LockoutEnd = user.LockoutEnd?.DateTime,
                 LockoutEnabled = user.LockoutEnabled,
                 AccessFailedCount = user.AccessFailedCount,
-                IsActive = true, // Default value
-                CreatedDate = DateTime.UtcNow, // Default value
+                FullName = person?.Name,
+                IsActive = user.LockoutEnd == null || user.LockoutEnd <= DateTimeOffset.UtcNow,
+                CreatedDate = person?.CreatedDate,
                 RecipeCount = recipeCount,
                 CanManage = canManageUserRoles,
                 IsAdmin = canManageCuration || canManageUserRoles
@@ -135,28 +158,44 @@ namespace Nom.Orch.Services
 
         public async Task<List<UserResponseModel>> GetAllUsersAsync()
         {
-            var users = await _userManager.Users.ToListAsync();
-            var userResponses = new List<UserResponseModel>();
+            var users = await _userManager.Users.OrderBy(u => u.Email).ToListAsync();
 
-            foreach (var user in users)
+            var persons = await _context.Persons
+                .Where(p => p.UserId != null)
+                .Select(p => new { p.Id, p.UserId, p.Name, p.CreatedDate })
+                .ToListAsync();
+            var personByUser = persons
+                .GroupBy(p => p.UserId!)
+                .ToDictionary(g => g.Key, g => g.OrderBy(p => p.Id).First());
+
+            var personIds = personByUser.Values.Select(p => p.Id).ToList();
+            var recipeCounts = await _context.Recipes
+                .Where(r => personIds.Contains(r.AuthorId))
+                .GroupBy(r => r.AuthorId)
+                .Select(g => new { AuthorId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.AuthorId, x => x.Count);
+
+            var adminClaims = await _context.UserClaims
+                .Where(c => (c.ClaimType == "CanManageCuration" || c.ClaimType == CanManageUserRolesClaim) && c.ClaimValue == "true")
+                .Select(c => new { c.UserId, c.ClaimType })
+                .ToListAsync();
+            var claimsByUser = adminClaims
+                .GroupBy(c => c.UserId)
+                .ToDictionary(g => g.Key, g => g.Select(c => c.ClaimType).ToHashSet());
+
+            var now = DateTimeOffset.UtcNow;
+            return users.Select(user =>
             {
-                // Get the person entity for this user
-                var person = await _context.Persons
-                    .FirstOrDefaultAsync(p => p.UserId == user.Id);
-                
-                var recipeCount = 0;
-                if (person != null)
-                {
-                    recipeCount = await _context.Recipes
-                        .Where(r => r.AuthorId == person.Id)
-                        .CountAsync();
-                }
+                personByUser.TryGetValue(user.Id, out var person);
+                claimsByUser.TryGetValue(user.Id, out var claimTypes);
+                var canManageUserRoles = claimTypes?.Contains(CanManageUserRolesClaim) == true;
 
-                userResponses.Add(new UserResponseModel
+                return new UserResponseModel
                 {
                     Id = user.Id,
                     Username = user.UserName ?? string.Empty,
-                        Email = user.Email ?? string.Empty,
+                    Email = user.Email ?? string.Empty,
+                    FullName = person?.Name,
                     EmailConfirmed = user.EmailConfirmed,
                     PhoneNumber = user.PhoneNumber,
                     PhoneNumberConfirmed = user.PhoneNumberConfirmed,
@@ -164,13 +203,13 @@ namespace Nom.Orch.Services
                     LockoutEnd = user.LockoutEnd?.DateTime,
                     LockoutEnabled = user.LockoutEnabled,
                     AccessFailedCount = user.AccessFailedCount,
-                    IsActive = true, // Default value
-                    CreatedDate = DateTime.UtcNow, // Default value
-                    RecipeCount = recipeCount
-                });
-            }
-
-            return userResponses;
+                    IsActive = user.LockoutEnd == null || user.LockoutEnd <= now,
+                    CreatedDate = person?.CreatedDate,
+                    RecipeCount = person != null && recipeCounts.TryGetValue(person.Id, out var count) ? count : 0,
+                    CanManage = canManageUserRoles,
+                    IsAdmin = claimTypes is { Count: > 0 }
+                };
+            }).ToList();
         }
 
         public async Task<UserResponseModel> CreateUserAsync(CreateUserRequestModel request)
@@ -209,11 +248,16 @@ namespace Nom.Orch.Services
             return await GetUserByIdAsync(user.Id);
         }
 
-        public async Task DeleteUserAsync(string userId)
+        public async Task DeleteUserAsync(string userId, string actingUserId)
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
                 throw new KeyNotFoundException($"User with ID {userId} not found.");
+
+            if (user.Id == actingUserId)
+                throw new InvalidOperationException("You cannot delete your own account from user management.");
+            if (await HoldsUserRolesClaimAsync(user))
+                await EnsureAnotherUserRolesHolderAsync(user.Id);
 
             var result = await _userManager.DeleteAsync(user);
             if (!result.Succeeded)

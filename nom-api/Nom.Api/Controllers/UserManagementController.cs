@@ -21,7 +21,7 @@ namespace Nom.Api.Controllers
         [HttpPut("claims")]
         public async Task<IActionResult> UpdateUserClaims([FromBody] UpdateUserClaimsRequest request)
         {
-            await _userManagementOrch.UpdateUserClaimsAsync(request);
+            await _userManagementOrch.UpdateUserClaimsAsync(request, GetCurrentUserId());
             return NoContent(); // Success, no content to return.
         }
 
@@ -59,7 +59,7 @@ namespace Nom.Api.Controllers
         [HttpDelete("users/{userId}")]
         public async Task<IActionResult> DeleteUser(string userId)
         {
-            await _userManagementOrch.DeleteUserAsync(userId);
+            await _userManagementOrch.DeleteUserAsync(userId, GetCurrentUserId());
             return NoContent();
         }
     }

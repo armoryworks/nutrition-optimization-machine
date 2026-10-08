@@ -96,7 +96,7 @@ namespace Nom.Api.Controllers
         [Authorize(Policy = "CanManageUserRoles")]
         public async Task<ActionResult> DeleteUser(string userId)
         {
-            await _userService.DeleteUserAsync(userId);
+            await _userService.DeleteUserAsync(userId, GetCurrentUserId());
             return NoContent();
         }
 

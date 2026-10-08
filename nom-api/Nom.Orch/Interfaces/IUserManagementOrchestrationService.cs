@@ -6,7 +6,7 @@ namespace Nom.Orch.Interfaces
 {
     public interface IUserManagementOrchestrationService
     {
-        Task UpdateUserClaimsAsync(UpdateUserClaimsRequest request);
+        Task UpdateUserClaimsAsync(UpdateUserClaimsRequest request, string actingUserId);
         Task<UserClaimsResponseModel> GetUserClaimsAsync(string userId);
         
         // User CRUD operations (from Mealie)
@@ -15,7 +15,7 @@ namespace Nom.Orch.Interfaces
         Task<List<UserResponseModel>> GetAllUsersAsync();
         Task<UserResponseModel> CreateUserAsync(CreateUserRequestModel request);
         Task<UserResponseModel> UpdateUserAsync(string userId, UpdateUserRequestModel request);
-        Task DeleteUserAsync(string userId);
+        Task DeleteUserAsync(string userId, string actingUserId);
         
         // User ratings and favorites (from Mealie)
         Task<List<UserRatingResponseModel>> GetUserRatingsAsync(string userId);

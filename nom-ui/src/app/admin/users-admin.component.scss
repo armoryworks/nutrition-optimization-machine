@@ -6,6 +6,59 @@
   gap: vars.$spacing-4;
 }
 
+.nom-users-admin__toolbar {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  flex-wrap: wrap;
+}
+
+.nom-users-admin__search {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  flex: 1;
+  min-width: 220px;
+  max-width: 420px;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+
+  &:focus-within {
+    border-color: var(--mat-sys-primary);
+  }
+
+  mat-icon {
+    color: var(--mat-sys-on-surface-variant);
+    font-size: vars.$icon-size-md;
+    width: vars.$icon-size-md;
+    height: vars.$icon-size-md;
+  }
+}
+
+.nom-users-admin__search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: var(--mat-sys-on-surface);
+  font-family: inherit;
+  font-size: 16px;
+
+  &::placeholder {
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.78;
+  }
+}
+
+.nom-users-admin__count {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+
 .nom-users-admin__loading {
   display: grid;
   place-items: center;
@@ -98,6 +151,13 @@
   display: flex;
   flex-wrap: wrap;
   gap: vars.$spacing-6;
+}
+
+.nom-users-admin__self-note {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
 }
 
 .nom-users-admin__actions {

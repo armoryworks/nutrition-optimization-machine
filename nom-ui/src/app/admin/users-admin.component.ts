@@ -1,4 +1,12 @@
-import { Component, inject, signal, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  computed,
+  OnInit,
+  DestroyRef,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,6 +17,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { AdminService } from '../core/services/admin.service';
+import { AuthService } from '../core/services/auth.service';
 import { LoadingService } from '../core/services/loading.service';
 import { AdminUser, UserClaims } from '../core/models/user-management.model';
 import {
@@ -34,6 +43,7 @@ import {
 })
 export class UsersAdmin implements OnInit {
   private adminService = inject(AdminService);
+  private authService = inject(AuthService);
   private loadingService = inject(LoadingService);
   private destroyRef = inject(DestroyRef);
   private snackBar = inject(MatSnackBar);
@@ -42,10 +52,19 @@ export class UsersAdmin implements OnInit {
   users = signal<AdminUser[]>([]);
   loading = signal(true);
   errorMessage = signal('');
+  filter = signal('');
   expandedId = signal<string | null>(null);
   claims = signal<UserClaims | null>(null);
   claimsLoading = signal(false);
   saving = signal(false);
+
+  filtered = computed(() => {
+    const q = this.filter().trim().toLowerCase();
+    if (!q) return this.users();
+    return this.users().filter((u) =>
+      [u.fullName, u.username, u.email].some((v) => v?.toLowerCase().includes(q)),
+    );
+  });
 
   ngOnInit(): void {
     this.loadUsers();
@@ -67,6 +86,15 @@ export class UsersAdmin implements OnInit {
           this.errorMessage.set('Failed to load users. You may not have permission.');
         },
       });
+  }
+
+  onFilterInput(event: Event): void {
+    this.filter.set((event.target as HTMLInputElement).value);
+  }
+
+  isSelf(user: AdminUser): boolean {
+    const me = this.authService.username().toLowerCase();
+    return !!me && user.email.toLowerCase() === me;
   }
 
   toggleExpand(user: AdminUser): void {
@@ -110,9 +138,11 @@ export class UsersAdmin implements OnInit {
           this.saving.set(false);
           this.snackBar.open('Claims updated', undefined, { duration: 2500 });
         },
-        error: () => {
+        error: (err) => {
           this.saving.set(false);
-          this.snackBar.open('Failed to update claims', undefined, { duration: 4000 });
+          this.snackBar.open(err?.error?.detail || 'Failed to update claims', undefined, {
+            duration: 5000,
+          });
         },
       });
   }
@@ -122,7 +152,7 @@ export class UsersAdmin implements OnInit {
       .open(ConfirmDeleteDialog, {
         data: {
           title: 'Delete User',
-          message: `Delete user "${user.username}" (${user.email})? This cannot be undone.`,
+          message: `Delete user "${user.fullName || user.username}" (${user.email})? This cannot be undone.`,
           confirmText: 'Delete',
         } satisfies ConfirmDeleteDialogData,
       })
@@ -139,7 +169,10 @@ export class UsersAdmin implements OnInit {
               if (this.expandedId() === user.id) this.expandedId.set(null);
               this.snackBar.open('User deleted', undefined, { duration: 2500 });
             },
-            error: () => this.snackBar.open('Failed to delete user', undefined, { duration: 4000 }),
+            error: (err) =>
+              this.snackBar.open(err?.error?.detail || 'Failed to delete user', undefined, {
+                duration: 5000,
+              }),
           });
       });
   }

@@ -11,7 +11,7 @@ namespace Nom.Orch.Models.UserManagement
         public string? FullName { get; set; }
         public string? Image { get; set; }
         public bool IsActive { get; set; } = true;
-        public DateTime CreatedDate { get; set; }
+        public DateTime? CreatedDate { get; set; }
         public DateTime? LastLoginDate { get; set; }
         
         // (Former duplicate "UserName" compatibility property removed: with camel-case

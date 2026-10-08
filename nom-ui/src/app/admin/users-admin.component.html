@@ -1,15 +1,40 @@
 <div class="nom-users-admin" data-testid="users-admin">
-  <nom-error-banner [message]="errorMessage()" />
+  @if (errorMessage()) {
+    <nom-error-banner [message]="errorMessage()" data-testid="users-admin-error" />
+  }
+
+  <div class="nom-users-admin__toolbar">
+    <div class="nom-users-admin__search">
+      <mat-icon>search</mat-icon>
+      <input
+        type="text"
+        class="nom-users-admin__search-input"
+        data-testid="users-admin-search-input"
+        placeholder="Filter by name or email..."
+        aria-label="Filter users"
+        (input)="onFilterInput($event)"
+      />
+    </div>
+    <span class="nom-users-admin__count" data-testid="users-admin-count">
+      {{ filtered().length }} of {{ users().length }} users
+    </span>
+  </div>
 
   @if (loading()) {
     <div class="nom-users-admin__loading">
       <mat-spinner diameter="36" />
     </div>
-  } @else if (users().length === 0) {
-    <p class="nom-users-admin__empty" data-testid="users-admin-empty">No users found.</p>
+  } @else if (filtered().length === 0) {
+    <p class="nom-users-admin__empty" data-testid="users-admin-empty">
+      @if (users().length === 0) {
+        No users found.
+      } @else {
+        No users match "{{ filter() }}".
+      }
+    </p>
   } @else {
     <ul class="nom-users-admin__list" data-testid="users-admin-list">
-      @for (user of users(); track user.id) {
+      @for (user of filtered(); track user.id) {
         <li class="nom-users-admin__item" data-testid="users-admin-item">
           <button
             type="button"
@@ -21,8 +46,11 @@
             <mat-icon class="nom-users-admin__chevron">
               {{ expandedId() === user.id ? 'expand_more' : 'chevron_right' }}
             </mat-icon>
-            <span class="nom-users-admin__name">{{ user.username }}</span>
+            <span class="nom-users-admin__name">{{ user.fullName || user.username }}</span>
             <span class="nom-users-admin__email">{{ user.email }}</span>
+            @if (isSelf(user)) {
+              <span class="nom-users-admin__badge" data-testid="users-admin-self-badge">you</span>
+            }
             @if (user.isAdmin) {
               <span class="nom-users-admin__badge nom-users-admin__badge--admin">admin</span>
             }
@@ -30,8 +58,10 @@
               <span class="nom-users-admin__badge">inactive</span>
             }
             <span class="nom-users-admin__meta">
-              joined {{ user.createdDate | date: 'mediumDate' }}
-              &middot; {{ user.recipeCount }} recipes
+              @if (user.createdDate) {
+                joined {{ user.createdDate | date: 'mediumDate' }} &middot;
+              }
+              {{ user.recipeCount }} recipes
             </span>
           </button>
 
@@ -52,17 +82,24 @@
                   <mat-slide-toggle
                     data-testid="users-admin-roles-toggle"
                     [checked]="c.canManageUserRoles"
-                    [disabled]="saving()"
+                    [disabled]="saving() || (isSelf(user) && c.canManageUserRoles)"
                     (change)="setClaim('canManageUserRoles', $event.checked)"
                   >
                     Can manage users &amp; roles
                   </mat-slide-toggle>
                 </div>
+                @if (isSelf(user)) {
+                  <p class="nom-users-admin__self-note" data-testid="users-admin-self-note">
+                    This is your account. Another admin has to remove your user &amp; role access or
+                    delete it.
+                  </p>
+                }
                 <div class="nom-users-admin__actions">
                   <button
                     mat-stroked-button
                     class="nom-users-admin__delete"
                     data-testid="users-admin-delete-btn"
+                    [disabled]="isSelf(user)"
                     (click)="deleteUser(user)"
                   >
                     <mat-icon>delete</mat-icon>

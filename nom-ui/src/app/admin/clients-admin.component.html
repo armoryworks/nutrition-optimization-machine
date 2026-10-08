@@ -1,5 +1,7 @@
 <div class="nom-clients-admin" data-testid="clients-admin">
-  <nom-error-banner [message]="errorMessage()" />
+  @if (errorMessage()) {
+    <nom-error-banner [message]="errorMessage()" data-testid="clients-admin-error" />
+  }
 
   <div class="nom-clients-admin__toolbar">
     <div class="nom-clients-admin__search">

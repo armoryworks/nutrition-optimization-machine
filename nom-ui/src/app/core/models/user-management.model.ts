@@ -4,7 +4,7 @@ export interface AdminUser {
   email: string;
   fullName?: string;
   isActive: boolean;
-  createdDate: string;
+  createdDate: string | null;
   lastLoginDate?: string;
   emailConfirmed: boolean;
   isAdmin: boolean;
