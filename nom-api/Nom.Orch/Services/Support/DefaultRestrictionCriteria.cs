@@ -22,7 +22,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class DefaultRestrictionCriteria
     {
-        private const string DefaultNote = "default (name-keyed baseline)";
+        internal const string DefaultNote = "default (name-keyed baseline)";
 
         private static readonly string[] Meat = { "%beef%", "%pork%", "%lamb%", "%veal%", "%venison%", "%bison%", "%goat%", "%bacon%", "%ham%", "%sausage%", "%pepperoni%", "%salami%", "%prosciutto%", "%steak%", "%ground meat%", "%meatball%", "%hot dog%", "%chorizo%", "%pancetta%", "%lard%", "%gelatin%" };
         private static readonly string[] Poultry = { "%chicken%", "%turkey%", "%duck%", "%goose%", "%quail%", "%poultry%" };

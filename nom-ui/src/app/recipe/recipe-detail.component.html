@@ -213,7 +213,7 @@
                     <mat-icon>{{ (match.severity ?? 0) >= 4 ? 'error' : 'warning' }}</mat-icon>
                     <div>
                       <strong>{{ match.restrictionName }}</strong>
-                      @if (match.restrictionType) { <span class="nom-recipe__diet-type">{{ match.restrictionType }}</span> }
+                      @if (match.restrictionType && match.restrictionType !== match.restrictionName) { <span class="nom-recipe__diet-type">{{ match.restrictionType }}</span> }
                       <div class="nom-recipe__diet-ingredient">contains
                         @if (match.ingredientId) {
                           <nom-entity-link route="/search"

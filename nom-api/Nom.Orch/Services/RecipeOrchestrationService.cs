@@ -544,7 +544,7 @@ namespace Nom.Orch.Services
                             Severity = rc.c.Severity,
                             IngredientId = ri.IngredientId,
                             IngredientName = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty,
-                            Notes = rc.c.Notes
+                            Notes = rc.c.Notes == Support.DefaultRestrictionCriteria.DefaultNote ? null : rc.c.Notes
                         }
                     })
                 .ToListAsync();
