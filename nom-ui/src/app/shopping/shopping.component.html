@@ -43,18 +43,31 @@
           Scaled to household portions
         </span>
       }
-      <button mat-icon-button (click)="refresh()" aria-label="Refresh">
+      <button mat-icon-button (click)="refresh()" aria-label="Refresh" data-testid="shopping-refresh-btn">
         <mat-icon>refresh</mat-icon>
       </button>
-      <button mat-icon-button (click)="exportList('text')" [disabled]="departments().length === 0" matTooltip="Copy as text" aria-label="Copy list as text" data-testid="shopping-copy-btn">
-        <mat-icon>content_copy</mat-icon>
+      <button mat-icon-button
+              [matMenuTriggerFor]="exportMenu"
+              [disabled]="departments().length === 0"
+              matTooltip="Copy, share or download the unchecked items"
+              aria-label="Export list"
+              data-testid="shopping-export-menu-btn">
+        <mat-icon>ios_share</mat-icon>
       </button>
-      <button mat-icon-button (click)="exportList('csv')" [disabled]="departments().length === 0" matTooltip="Download CSV" aria-label="Download list as CSV" data-testid="shopping-download-btn">
-        <mat-icon>download</mat-icon>
-      </button>
-      <button mat-icon-button (click)="shareList()" [disabled]="departments().length === 0" matTooltip="Share list" aria-label="Share list" data-testid="shopping-share-btn">
-        <mat-icon>share</mat-icon>
-      </button>
+      <mat-menu #exportMenu="matMenu">
+        <button mat-menu-item (click)="exportList('text')" data-testid="shopping-copy-btn">
+          <mat-icon>content_copy</mat-icon>
+          <span>Copy as text</span>
+        </button>
+        <button mat-menu-item (click)="shareList()" data-testid="shopping-share-btn">
+          <mat-icon>share</mat-icon>
+          <span>Share</span>
+        </button>
+        <button mat-menu-item (click)="exportList('csv')" data-testid="shopping-download-btn">
+          <mat-icon>download</mat-icon>
+          <span>Download CSV</span>
+        </button>
+      </mat-menu>
       <!-- Grocery export exists only when the operator configured a destination. -->
       @if (providers().length > 0) {
         <button mat-stroked-button

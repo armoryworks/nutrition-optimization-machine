@@ -19,6 +19,7 @@ import { catchError } from 'rxjs/operators';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -88,6 +89,7 @@ interface RawAccumulator {
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
+    MatMenuModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
@@ -463,16 +465,17 @@ export class ShoppingComponent implements OnInit {
   // --- Share / Export ---
 
   exportList(format: 'text' | 'csv'): void {
-    const departments = this.departments();
-    if (departments.length === 0) return;
+    const items = this.buildExportItems(true);
+    if (items.length === 0) {
+      this.snackBar.open('Every item is checked off — nothing left to export', 'OK', { duration: 3000 });
+      return;
+    }
 
     if (format === 'csv') {
       const lines = ['Department,Item,Quantity'];
-      for (const dept of departments) {
-        for (const item of dept.items) {
-          const qty = this.getDisplayText(item).replace(/,/g, ';');
-          lines.push(`"${dept.name}","${item.name}","${qty}"`);
-        }
+      for (const item of items) {
+        const qty = (item.note ?? '').replace(/,/g, ';');
+        lines.push(`"${item.category}","${item.name}","${qty}"`);
       }
       const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
@@ -483,48 +486,46 @@ export class ShoppingComponent implements OnInit {
       URL.revokeObjectURL(url);
       this.snackBar.open('CSV downloaded', 'OK', { duration: 2000 });
     } else {
-      const lines: string[] = [];
-      for (const dept of departments) {
-        lines.push(`\n${dept.name}`);
-        lines.push('\u2500'.repeat(dept.name.length));
-        for (const item of dept.items) {
-          const qty = this.getDisplayText(item);
-          lines.push(`  \u25A1 ${item.name}  ${qty}`);
-        }
-      }
-      const text = `Shopping List \u2013 ${new Date().toLocaleDateString()}\n${'\u2550'.repeat(30)}${lines.join('\n')}`;
-      navigator.clipboard.writeText(text).then(() => {
-        this.snackBar.open('Copied to clipboard', 'OK', { duration: 2000 });
-      });
+      this.copyText(this.buildListText(items));
     }
   }
 
   shareList(): void {
-    const departments = this.departments();
-    if (departments.length === 0) return;
-
-    const lines: string[] = [`Shopping List \u2013 ${new Date().toLocaleDateString()}\n`];
-    for (const dept of departments) {
-      lines.push(`${dept.name}:`);
-      for (const item of dept.items) {
-        lines.push(`  \u2022 ${item.name} \u2013 ${this.getDisplayText(item)}`);
-      }
-      lines.push('');
+    const items = this.buildExportItems(true);
+    if (items.length === 0) {
+      this.snackBar.open('Every item is checked off — nothing left to share', 'OK', { duration: 3000 });
+      return;
     }
-    const text = lines.join('\n');
 
+    const title = this.exportTitle();
+    const text = this.buildListText(items);
     if (navigator.share) {
-      navigator.share({ title: 'Shopping List', text }).catch(() => {
-        // Fallback to clipboard
-        navigator.clipboard.writeText(text).then(() => {
-          this.snackBar.open('Copied to clipboard', 'OK', { duration: 2000 });
-        });
+      navigator.share({ title, text }).catch((err: unknown) => {
+        if ((err as DOMException)?.name !== 'AbortError') this.copyText(text);
       });
     } else {
-      navigator.clipboard.writeText(text).then(() => {
-        this.snackBar.open('Copied to clipboard', 'OK', { duration: 2000 });
-      });
+      this.copyText(text);
     }
+  }
+
+  private buildListText(items: GroceryExportItem[]): string {
+    const lines = [this.exportTitle()];
+    let category: string | undefined;
+    for (const item of items) {
+      if (item.category !== category) {
+        category = item.category;
+        lines.push('', `${category}:`);
+      }
+      lines.push(item.note ? `- ${item.name} — ${item.note}` : `- ${item.name}`);
+    }
+    return lines.join('\n');
+  }
+
+  private copyText(text: string): void {
+    navigator.clipboard.writeText(text).then(
+      () => this.snackBar.open('Copied to clipboard', 'OK', { duration: 2000 }),
+      () => this.snackBar.open('Could not copy to the clipboard', 'OK', { duration: 3000 }),
+    );
   }
 
   getDisplayText(item: ShoppingItem): string {
