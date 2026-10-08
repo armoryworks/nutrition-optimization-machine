@@ -114,7 +114,7 @@
     </div>
 
     <!-- Macro Goals -->
-    @if (mode() === 'standalone' && currentPersonId()) {
+    @if (isStandalone() && currentPersonId()) {
       <div class="nom-form__section" data-testid="profile-macro-goals">
         <h2 class="nom-form__section-title">Macro Goals</h2>
         <p class="nom-form__section-description">
