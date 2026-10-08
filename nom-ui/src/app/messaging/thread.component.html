@@ -4,8 +4,8 @@
       <mat-icon>arrow_back</mat-icon>
     </a>
     <div class="nom-thread__header-info">
-      <h1 class="nom-thread__subject">{{ thread()?.subject ?? 'Conversation' }}</h1>
-      <span class="nom-thread__participants">{{ thread()?.participantNames?.join(', ') }}</span>
+      <h1 class="nom-thread__subject">Conversation</h1>
+      <span class="nom-thread__participants">{{ participantNames() }}</span>
     </div>
   </div>
 
@@ -18,7 +18,7 @@
       @for (msg of messages(); track msg.id) {
         <div class="nom-thread__message" data-testid="thread-message" [class.nom-thread__message--own]="msg.senderPersonId === currentPersonId()">
           <div class="nom-thread__message-header">
-            <span class="nom-thread__message-sender">{{ msg.senderName }}</span>
+            <span class="nom-thread__message-sender">{{ msg.senderDisplayName }}</span>
             <span class="nom-thread__message-time">{{ formatTime(msg.timestamp) }}</span>
           </div>
           <div class="nom-thread__message-body">{{ msg.content }}</div>

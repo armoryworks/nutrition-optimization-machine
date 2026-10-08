@@ -1,8 +1,8 @@
 export interface Message {
   id: number;
-  threadId: number;
+  messageThreadId: number;
   senderPersonId: number;
-  senderName: string;
+  senderDisplayName: string;
   content: string;
   timestamp: string;
   isRead: boolean;

@@ -9,6 +9,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MessagingService } from '../core/services/messaging.service';
 import { MessageThread } from '../core/models/message-thread.model';
 import { LoadingService } from '../core/services/loading.service';
+import { AuthService } from '../core/services/auth.service';
 
 @Component({
   selector: 'nom-inbox',
@@ -28,6 +29,7 @@ export class Inbox implements OnInit {
   private router = inject(Router);
   private messagingService = inject(MessagingService);
   private loadingService = inject(LoadingService);
+  private authService = inject(AuthService);
   private destroyRef = inject(DestroyRef);
 
   threads = signal<MessageThread[]>([]);
@@ -39,7 +41,7 @@ export class Inbox implements OnInit {
     const list = [...this.threads()].filter(t => !t.isArchived);
     list.sort((a, b) => {
       if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
-      return new Date(b.lastMessageDate).getTime() - new Date(a.lastMessageDate).getTime();
+      return new Date(b.lastActivity ?? 0).getTime() - new Date(a.lastActivity ?? 0).getTime();
     });
     return list;
   });
@@ -66,7 +68,14 @@ export class Inbox implements OnInit {
     this.router.navigate(['/messages', id]);
   }
 
-  formatDate(dateStr: string): string {
+  participantNames(thread: MessageThread): string {
+    const personId = this.authService.personId();
+    const others = thread.participants.filter(p => p.id !== personId);
+    return (others.length > 0 ? others : thread.participants).map(p => p.displayName).join(', ');
+  }
+
+  formatDate(dateStr: string | null): string {
+    if (!dateStr) return '';
     const date = new Date(dateStr);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();

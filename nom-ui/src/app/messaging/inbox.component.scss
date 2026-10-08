@@ -27,10 +27,6 @@
   &--unread {
     background: var(--mat-sys-surface-container-low);
 
-    .nom-inbox__thread-subject {
-      font-weight: vars.$font-weight-semibold;
-    }
-
     .nom-inbox__thread-participants {
       font-weight: vars.$font-weight-semibold;
     }
@@ -76,14 +72,6 @@
   color: var(--mat-sys-on-surface-variant);
   white-space: nowrap;
   flex-shrink: 0;
-}
-
-.nom-inbox__thread-subject {
-  font-size: vars.$font-size-sm;
-  color: var(--mat-sys-on-surface);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .nom-inbox__thread-preview {

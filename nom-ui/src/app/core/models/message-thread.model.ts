@@ -1,10 +1,19 @@
+import { Message } from './message.model';
+
+export interface MessageParticipant {
+  id: number;
+  displayName: string;
+  email: string;
+  avatarUrl: string | null;
+  isOnline: boolean;
+  lastSeen: string | null;
+}
+
 export interface MessageThread {
   id: number;
-  subject: string;
-  lastMessageContent: string;
-  lastMessageDate: string;
-  lastMessageSenderName: string;
-  participantNames: string[];
+  participants: MessageParticipant[];
+  lastMessage: Message | null;
+  lastActivity: string | null;
   unreadCount: number;
   isPinned: boolean;
   isArchived: boolean;

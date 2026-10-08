@@ -18,7 +18,6 @@
   "src/app/layout/header/login-popover/login-popover.component.html": 5,
   "src/app/layout/sidebar/sidebar.component.html": 4,
   "src/app/messaging/compose.component.html": 4,
-  "src/app/messaging/inbox.component.html": 6,
   "src/app/messaging/thread.component.html": 2,
   "src/app/onboarding/onboarding.component.html": 1,
   "src/app/pantry/pantry.component.html": 7,

@@ -53,6 +53,11 @@ export class Thread implements AfterViewChecked {
   loading = signal(true);
   sending = signal(false);
   currentPersonId = computed(() => this.authService.personId() ?? 0);
+  participantNames = computed(() => {
+    const participants = this.thread()?.participants ?? [];
+    const others = participants.filter(p => p.id !== this.currentPersonId());
+    return (others.length > 0 ? others : participants).map(p => p.displayName).join(', ');
+  });
   newMessage = new FormControl('');
   private shouldScroll = false;
 

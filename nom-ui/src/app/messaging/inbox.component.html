@@ -25,7 +25,7 @@
       <mat-icon class="nom-dashboard__empty-icon">forum</mat-icon>
       <h2 class="nom-dashboard__empty-title">No messages</h2>
       <p class="nom-dashboard__empty-message">Start a conversation with household members.</p>
-      <a mat-flat-button routerLink="/messages/new" class="nom-dashboard__empty-action">
+      <a mat-flat-button routerLink="/messages/new" class="nom-dashboard__empty-action" data-testid="inbox-empty-compose-btn">
         <mat-icon>edit</mat-icon>
         Compose Message
       </a>
@@ -46,36 +46,35 @@
           <div class="nom-inbox__thread-content">
             <div class="nom-inbox__thread-top">
               <span class="nom-inbox__thread-participants">
-                {{ thread.participantNames.join(', ') }}
+                {{ participantNames(thread) }}
               </span>
-              <span class="nom-inbox__thread-date">{{ formatDate(thread.lastMessageDate) }}</span>
+              <span class="nom-inbox__thread-date">{{ formatDate(thread.lastActivity) }}</span>
             </div>
-            <span class="nom-inbox__thread-subject">{{ thread.subject }}</span>
-            <span class="nom-inbox__thread-preview">{{ thread.lastMessageContent }}</span>
+            <span class="nom-inbox__thread-preview">{{ thread.lastMessage?.content }}</span>
           </div>
           @if (thread.unreadCount > 0) {
             <span class="nom-inbox__unread-badge">{{ thread.unreadCount }}</span>
           }
-          <button mat-icon-button [matMenuTriggerFor]="threadMenu" (click)="$event.stopPropagation()" aria-label="Thread options">
+          <button mat-icon-button [matMenuTriggerFor]="threadMenu" (click)="$event.stopPropagation()" aria-label="Thread options" data-testid="inbox-thread-menu-btn">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #threadMenu="matMenu">
             @if (thread.isPinned) {
-              <button mat-menu-item (click)="unpin(thread)">
+              <button mat-menu-item (click)="unpin(thread)" data-testid="inbox-thread-unpin-btn">
                 <mat-icon>push_pin</mat-icon>
                 <span>Unpin</span>
               </button>
             } @else {
-              <button mat-menu-item (click)="pin(thread)">
+              <button mat-menu-item (click)="pin(thread)" data-testid="inbox-thread-pin-btn">
                 <mat-icon>push_pin</mat-icon>
                 <span>Pin</span>
               </button>
             }
-            <button mat-menu-item (click)="archive(thread)">
+            <button mat-menu-item (click)="archive(thread)" data-testid="inbox-thread-archive-btn">
               <mat-icon>archive</mat-icon>
               <span>Archive</span>
             </button>
-            <button mat-menu-item (click)="deleteThread(thread)">
+            <button mat-menu-item (click)="deleteThread(thread)" data-testid="inbox-thread-delete-btn">
               <mat-icon>delete</mat-icon>
               <span>Delete</span>
             </button>
