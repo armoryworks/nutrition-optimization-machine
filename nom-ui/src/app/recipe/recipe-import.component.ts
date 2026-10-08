@@ -14,6 +14,7 @@ import { RecipeScrapingService } from '../core/services/recipe-scraping.service'
 import { LoadingService } from '../core/services/loading.service';
 import { PolicyService } from '../core/services/policy.service';
 import { ScrapedIngredientModel, ScrapedRecipeModel } from '../core/models/scraped-recipe.model';
+import { RecipeScrapingResponseModel } from '../core/models/recipe-scraping-response.model';
 import { formatQuantity } from '../core/domain/shopping/unit-conversion';
 
 @Component({
@@ -41,6 +42,7 @@ export class RecipeImport {
   preview = signal<ScrapedRecipeModel | null>(null);
   importing = signal(false);
   error = signal('');
+  alreadyImported = signal<RecipeScrapingResponseModel | null>(null);
   previewLoading = signal(false);
 
   onPreview(): void {
@@ -64,6 +66,7 @@ export class RecipeImport {
   onImport(): void {
     if (!(this.url.value ?? '').trim() || this.importing() || this.importGated()) return;
     this.error.set('');
+    this.alreadyImported.set(null);
     this.importing.set(true);
 
     this.scrapingService.importFromUrl({
@@ -75,7 +78,9 @@ export class RecipeImport {
     ).subscribe({
       next: (result) => {
         this.importing.set(false);
-        if (result.success) {
+        if (result.alreadyImported) {
+          this.alreadyImported.set(result);
+        } else if (result.success) {
           this.router.navigate(['/recipe', result.recipeId]);
         } else {
           this.error.set(result.error ?? 'Failed to import recipe.');

@@ -218,6 +218,31 @@
   }
 }
 
+.nom-recipe__source {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-2;
+  margin-top: vars.$spacing-3;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  overflow-wrap: anywhere;
+
+  a {
+    color: var(--mat-sys-primary);
+  }
+
+  mat-icon {
+    flex-shrink: 0;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.nom-recipe__source-note {
+  margin: vars.$spacing-1 0 0;
+}
+
 .nom-recipe__meta-author {
   background: var(--mat-sys-secondary-container);
   color: var(--mat-sys-on-secondary-container);

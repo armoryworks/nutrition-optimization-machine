@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Recipe;
+using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using Nom.Orch.UtilityInterfaces;
@@ -78,18 +79,26 @@ namespace Nom.Orch.Services
                 return gate;
             }
 
-            // Dedup: the same source URL is imported at most once.
+            // Dedup: the same source URL is imported at most once per reader.
+            var personId = _currentUser.PersonId;
             var existing = await _dbContext.Recipes
                 .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.SourceUrl == normalizedUrl && !r.IsDeleted);
+                .VisibleTo(_dbContext, personId)
+                .Where(r => r.SourceUrl == normalizedUrl && !r.IsDeleted)
+                .OrderByDescending(r => r.AuthorId == personId)
+                .ThenBy(r => r.Id)
+                .FirstOrDefaultAsync();
             if (existing != null)
             {
                 return new RecipeScrapingResponseModel
                 {
                     RecipeId = existing.Id,
                     RecipeName = existing.Name,
-                    Message = "This URL was already imported.",
+                    Message = existing.AuthorId == personId
+                        ? "You already imported this recipe."
+                        : "This recipe was already imported by someone you share recipes with.",
                     Success = true,
+                    AlreadyImported = true,
                 };
             }
 

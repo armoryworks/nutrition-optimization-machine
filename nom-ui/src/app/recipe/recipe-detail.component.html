@@ -183,6 +183,28 @@
                 </span>
               }
             </div>
+            @if (recipe()!.sourceUrl || recipe()!.sourceAttribution) {
+              <div class="nom-recipe__source" data-testid="recipe-source">
+                <mat-icon>menu_book</mat-icon>
+                <div>
+                  @if (recipe()!.sourceUrl) {
+                    <a [href]="recipe()!.sourceUrl" target="_blank" rel="noopener noreferrer" data-testid="recipe-source-link">{{ recipe()!.sourceAttribution || 'Original recipe' }}</a>
+                  } @else {
+                    {{ recipe()!.sourceAttribution }}
+                  }
+                  @if (recipe()!.sourceImageHeld || recipe()!.containsSourceProse) {
+                    <p class="nom-recipe__source-note" data-testid="recipe-source-held-note">
+                      @if (recipe()!.sourceImageHeld) {
+                        The source's photo isn't copied into NOM.
+                      }
+                      @if (recipe()!.containsSourceProse) {
+                        The imported wording is held for review until it's rewritten.
+                      }
+                    </p>
+                  }
+                </div>
+              </div>
+            }
           }
           @case (1) {
             <nom-nutrition-label

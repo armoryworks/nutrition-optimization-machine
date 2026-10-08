@@ -349,6 +349,10 @@ namespace Nom.Orch.Services
                 CreatedDate = recipe.CreatedDate,
                 ModifiedDate = recipe.LastModifiedDate,
                 CurationStatus = recipe.CurationStatus?.Name ?? "Draft",
+                SourceUrl = recipe.SourceUrl,
+                SourceAttribution = recipe.SourceAttribution,
+                ContainsSourceProse = recipe.ContainsSourceProse,
+                SourceImageHeld = recipe.SourceImageUrl != null && string.IsNullOrEmpty(recipe.Image),
                 DishGroup = recipe.DishGroup == null ? null : new RecipeDishGroupModel
                 {
                     Id = recipe.DishGroup.Id,

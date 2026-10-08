@@ -4,4 +4,5 @@ export interface RecipeScrapingResponseModel {
   message: string;
   success: boolean;
   error: string | null;
+  alreadyImported?: boolean;
 }

@@ -16,5 +16,11 @@ namespace Nom.Orch.Models.Recipe
         /// approval as a scraping source (whitelist-only scraping).
         /// </summary>
         public bool SourcePendingApproval { get; set; }
+
+        /// <summary>
+        /// True when no import happened because a copy of this URL the caller
+        /// can open already exists; <see cref="RecipeId"/> points at it.
+        /// </summary>
+        public bool AlreadyImported { get; set; }
     }
 } 

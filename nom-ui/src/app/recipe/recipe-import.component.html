@@ -22,6 +22,16 @@
         </div>
       }
 
+      @if (alreadyImported(); as existing) {
+        <div class="nom-import__notice" role="status" data-testid="recipe-import-already-imported">
+          <mat-icon>info</mat-icon>
+          <span>
+            {{ existing.message }}
+            <a [routerLink]="['/recipe', existing.recipeId]" data-testid="recipe-import-open-existing-link">Open {{ existing.recipeName }}</a>
+          </span>
+        </div>
+      }
+
       <div class="nom-form__fields">
         <mat-form-field>
           <mat-label>Recipe URL</mat-label>

@@ -26,6 +26,16 @@ namespace Nom.Orch.Models.Recipe
         public DateTime? ModifiedDate { get; set; }
         public string? CurationStatus { get; set; }
 
+        /// <summary>Where an imported recipe came from, and its credit line ("Recipe by Jane Baker, example.com").</summary>
+        public string? SourceUrl { get; set; }
+        public string? SourceAttribution { get; set; }
+
+        /// <summary>True while the source's verbatim wording is held for review (not yet rewritten).</summary>
+        public bool ContainsSourceProse { get; set; }
+
+        /// <summary>True when the source had a photo that is held for review and no NOM image replaces it yet.</summary>
+        public bool SourceImageHeld { get; set; }
+
         /// <summary>The canonical dish this recipe is a take on, when classified.</summary>
         public RecipeDishGroupModel? DishGroup { get; set; }
         public List<RecipeIngredientModel> Ingredients { get; set; } = new();

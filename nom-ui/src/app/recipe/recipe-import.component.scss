@@ -8,6 +8,23 @@
   margin-bottom: vars.$spacing-2;
 }
 
+.nom-import__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  margin-bottom: vars.$spacing-4;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+  border-radius: vars.$spacing-2;
+  font-size: vars.$font-size-sm;
+
+  a {
+    color: inherit;
+    font-weight: vars.$font-weight-semibold;
+  }
+}
+
 .nom-import__actions {
   display: flex;
   gap: vars.$spacing-3;
