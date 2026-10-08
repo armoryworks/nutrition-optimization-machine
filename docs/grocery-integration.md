@@ -57,8 +57,11 @@ Every `/api/*` call carries `X-Api-Key` (plus `X-Instance-Id` when configured).
 
 `kind` drives the client: `Text` → hand `text` to the share sheet/clipboard;
 `Link` → open `url`; `Cart` → items were pushed to the user's retailer account.
-`configured: false` means the operator supplied no credentials for it — NOM shows
-it greyed out rather than failing at click time.
+A provider the operator supplied no credentials for should not be offered as if
+it worked. The reference service omits it from the list entirely, so an install
+without Instacart or Kroger keys advertises only `text`. A service may instead
+list it with `configured: false`; NOM then shows it greyed out ("Unavailable")
+rather than failing at click time.
 
 ### `POST /api/export`
 
@@ -88,8 +91,9 @@ Contract rules an implementation must honor:
    `unmatched[]` with a reason; NOM surfaces it to the user.
 2. **Never invent quantities.** An item with no quantity exports as a bare name.
 3. **Preserve aisle order.** `category` grouping should survive text exports.
-4. **Report unconfigured, don't fail.** Providers advertise `configured: false`
-   rather than erroring when called.
+4. **Don't offer what can't work.** An unconfigured provider is either left out
+   of `GET /api/providers` (what the reference service does) or advertised with
+   `configured: false` — never listed as available only to error when called.
 
 ### Connection endpoints (only for `kind: "Cart"`)
 
