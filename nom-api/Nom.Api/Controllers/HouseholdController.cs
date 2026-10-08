@@ -102,6 +102,55 @@ namespace Nom.Api.Controllers
             return Ok(saved);
         }
 
+        /// <summary>
+        /// Gets the household's kitchen: every catalog tool with whether the household has it
+        /// (its answer, or the catalog default) and the hide/warn/ignore mode for recipes that
+        /// need a missing tool.
+        /// </summary>
+        [HttpGet("{id:long}/kitchen-tools")]
+        public async Task<ActionResult<KitchenSettingsModel>> GetKitchenTools(long id, [FromServices] IKitchenToolService kitchen)
+        {
+            if (!IsHouseholdMember(id))
+                return Forbid();
+
+            return Ok(await kitchen.GetSettingsAsync(id));
+        }
+
+        /// <summary>
+        /// Records tool answers (owned true/false, or null to fall back to the default) and/or the mode.
+        /// </summary>
+        [HttpPut("{id:long}/kitchen-tools")]
+        public async Task<ActionResult<KitchenSettingsModel>> UpdateKitchenTools(
+            long id, [FromBody] KitchenSettingsUpdateModel request, [FromServices] IKitchenToolService kitchen)
+        {
+            if (!CanManageHousehold(id))
+                return Forbid();
+
+            try
+            {
+                return Ok(await kitchen.UpdateSettingsAsync(id, request));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Checks a recipe against the household's kitchen: the tools it needs, what stands in
+        /// for missing ones, and the note to show the cook.
+        /// </summary>
+        [HttpGet("{id:long}/kitchen-tools/recipes/{recipeId:long}")]
+        public async Task<ActionResult<RecipeToolCheckModel>> CheckRecipeTools(
+            long id, long recipeId, [FromServices] IKitchenToolService kitchen)
+        {
+            if (!IsHouseholdMember(id))
+                return Forbid();
+
+            var check = await kitchen.CheckRecipeAsync(id, recipeId);
+            return check == null ? NotFound() : Ok(check);
+        }
+
         [HttpGet]
         public async Task<ActionResult<List<HouseholdResponseModel>>> GetHouseholds()
         {

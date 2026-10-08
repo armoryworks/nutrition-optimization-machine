@@ -13,5 +13,7 @@ namespace Nom.Data.Plan
 
         public long ToolId { get; set; }
         public virtual ReferenceEntity? Tool { get; set; }
+
+        public bool IsAvailable { get; set; } = true;
     }
 }

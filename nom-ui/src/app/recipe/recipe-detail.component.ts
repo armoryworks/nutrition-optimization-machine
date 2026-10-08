@@ -12,6 +12,8 @@ import { AuthService } from '../core/services/auth.service';
 import { DishGroupService } from '../core/services/dish-group.service';
 import { CookbookService } from '../core/services/cookbook.service';
 import { HouseholdStore } from '../core/services/household-store';
+import { KitchenToolsService } from '../core/services/kitchen-tools.service';
+import { RecipeToolCheck } from '../core/models/kitchen-tools.model';
 import { CookbookResponseModel } from '../core/models/cookbook-response.model';
 import { DishGroupRecipeModel } from '../core/models/dish-group.model';
 import { RecipeModel, RecipeDietMatchModel } from '../core/models/recipe.model';
@@ -67,6 +69,7 @@ export class RecipeDetail {
   private recipeService = inject(RecipeService);
   private dishGroupService = inject(DishGroupService);
   private cookbookService = inject(CookbookService);
+  private kitchenToolsService = inject(KitchenToolsService);
   private householdStore = inject(HouseholdStore);
   private destroyRef = inject(DestroyRef);
   private snackBar = inject(MatSnackBar);
@@ -100,6 +103,12 @@ export class RecipeDetail {
   /** All of the caller's household cookbooks, loaded when the add menu opens. */
   myCookbooks = signal<CookbookResponseModel[]>([]);
   private householdId = signal<number | null>(null);
+  toolCheck = signal<RecipeToolCheck | null>(null);
+  toolNotes = computed(() => {
+    const check = this.toolCheck();
+    if (!check || check.mode === 'ignore' || check.fit === 'ready') return [];
+    return check.needs.filter((n) => n.note).map((n) => ({ fit: n.fit, note: n.note! }));
+  });
 
   // Recipe-scoped substitutions (with step effects) and optional add-ins.
   recipeSubs = signal<RecipeSubstitutionModel[]>([]);
@@ -332,6 +341,12 @@ export class RecipeDetail {
         const householdId = households[0]?.id;
         if (!householdId) return;
         this.householdId.set(householdId);
+        this.kitchenToolsService.checkRecipe(householdId, id).pipe(
+          takeUntilDestroyed(this.destroyRef),
+        ).subscribe({
+          next: (check) => this.toolCheck.set(check),
+          error: () => this.toolCheck.set(null),
+        });
         this.cookbookService.getCookbooksForRecipe(id, householdId).pipe(
           takeUntilDestroyed(this.destroyRef),
         ).subscribe({

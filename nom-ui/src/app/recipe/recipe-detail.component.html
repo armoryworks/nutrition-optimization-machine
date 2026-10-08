@@ -50,6 +50,22 @@
     }
   </div>
 
+  @if (toolNotes().length) {
+    <div
+      class="nom-recipe__tools"
+      [class.nom-recipe__tools--missing]="toolCheck()?.fit === 'missing'"
+      role="note"
+      data-testid="recipe-kitchen-tools-note"
+    >
+      <mat-icon aria-hidden="true">{{ toolCheck()?.fit === 'missing' ? 'warning' : 'kitchen' }}</mat-icon>
+      <ul class="nom-recipe__tools-list">
+        @for (item of toolNotes(); track item.note) {
+          <li [attr.data-testid]="'recipe-kitchen-tools-note-' + item.fit">{{ item.note }}</li>
+        }
+      </ul>
+    </div>
+  }
+
   <div class="nom-recipe__columns" data-testid="recipe-detail">
     <!-- Column 1: Overview (vertical tabs) -->
     <div class="nom-recipe__column nom-recipe__column--overview">

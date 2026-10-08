@@ -1504,6 +1504,7 @@ CREATE TABLE plan."HouseholdTool" (
     "Id" bigint NOT NULL,
     "HouseholdId" bigint NOT NULL,
     "ToolId" bigint NOT NULL,
+    "IsAvailable" boolean NOT NULL,
     "CreatedDate" timestamp with time zone NOT NULL,
     "CreatedByPersonId" bigint,
     "LastModifiedDate" timestamp with time zone,

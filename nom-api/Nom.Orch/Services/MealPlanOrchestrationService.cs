@@ -12,7 +12,9 @@ using Nom.Data.Recipe;
 using Nom.Data.Reference;
 using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
+using Nom.Orch.Models.Household;
 using Nom.Orch.Models.MealPlan;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Orch.Services
 {
@@ -550,6 +552,32 @@ namespace Nom.Orch.Services
                 .GroupBy(e => (e.RecipeTypeId, e.MealTypeId))
                 .ToDictionary(g => g.Key, g => g.Count());
 
+            var kitchen = new KitchenToolService(_context);
+            var hideMissingTools = await kitchen.GetModeAsync(model.HouseholdId) == KitchenToolModes.Hide;
+            var ownedTools = hideMissingTools ? await kitchen.GetOwnedToolIdsAsync(model.HouseholdId) : null;
+
+            async Task<List<RecipeEntity>> TakeRandomCookableAsync(IQueryable<RecipeEntity> source, int take)
+            {
+                var shuffled = source.OrderBy(r => EF.Functions.Random());
+                if (!hideMissingTools) return await shuffled.Take(take).ToListAsync();
+
+                var candidates = await shuffled
+                    .Take(take * 4 + 10)
+                    .Select(r => new
+                    {
+                        Recipe = r,
+                        ToolIds = r.RecipeTools!.Select(t => t.ToolId).ToList(),
+                        Steps = r.RecipeSteps!.Select(s => s.Summary + " " + s.Description).ToList(),
+                    })
+                    .ToListAsync();
+                return candidates
+                    .Where(c => KitchenToolEvaluator.Evaluate(
+                        KitchenToolEvaluator.RequiredTools(c.ToolIds, c.Recipe.Name, c.Steps), ownedTools!).Fit != KitchenToolFit.Missing)
+                    .Select(c => c.Recipe)
+                    .Take(take)
+                    .ToList();
+            }
+
             var recipePools = new Dictionary<(long RecipeTypeId, long MealTypeId), List<RecipeEntity>>();
             foreach (var ((recipeTypeId, mealTypeId), count) in countByTypeAndMeal)
             {
@@ -585,21 +613,15 @@ namespace Nom.Orch.Services
                 }
 
                 // Prefer recipes whose category matches the meal type (e.g., breakfast entrees for breakfast)
-                var mealAffineRecipes = await query
-                    .Where(r => r.RecipeCategories!.Any(rc => rc.CategoryId == mealTypeId))
-                    .OrderBy(r => EF.Functions.Random())
-                    .Take(count)
-                    .ToListAsync();
+                var mealAffineRecipes = await TakeRandomCookableAsync(
+                    query.Where(r => r.RecipeCategories!.Any(rc => rc.CategoryId == mealTypeId)), count);
 
                 // Fallback: if not enough meal-affine recipes, fill from the full pool
                 if (mealAffineRecipes.Count < count)
                 {
                     var existingIds = mealAffineRecipes.Select(r => r.Id).ToHashSet();
-                    var fallback = await query
-                        .Where(r => !existingIds.Contains(r.Id))
-                        .OrderBy(r => EF.Functions.Random())
-                        .Take(count - mealAffineRecipes.Count)
-                        .ToListAsync();
+                    var fallback = await TakeRandomCookableAsync(
+                        query.Where(r => !existingIds.Contains(r.Id)), count - mealAffineRecipes.Count);
                     mealAffineRecipes.AddRange(fallback);
                 }
 
