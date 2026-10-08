@@ -159,10 +159,11 @@ export class CurationQueue implements OnInit {
 
   approve(item: CurationQueueItem): void {
     this.processing.set(true);
+    this.errorMessage.set('');
     this.adminService.approveCuration({
       entityId: item.id,
       entityType: item.entityType,
-      feedbackNotes: this.feedbackNotes.value ?? '',
+      decisionNotes: this.feedbackNotes.value ?? '',
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.items.update(list => list.filter(i => i.id !== item.id));
@@ -180,10 +181,11 @@ export class CurationQueue implements OnInit {
 
   requestRevision(item: CurationQueueItem): void {
     this.processing.set(true);
+    this.errorMessage.set('');
     this.adminService.requestRevision({
       entityId: item.id,
       entityType: item.entityType,
-      feedbackNotes: this.feedbackNotes.value ?? '',
+      decisionNotes: this.feedbackNotes.value ?? '',
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.items.update(list => list.filter(i => i.id !== item.id));
@@ -191,8 +193,9 @@ export class CurationQueue implements OnInit {
         this.feedbackNotes.setValue('');
         this.processing.set(false);
       },
-      error: () => {
-        this.errorMessage.set('Failed to request revision.');
+      error: (err: unknown) => {
+        const apiMessage = (err as { error?: { message?: string } } | undefined)?.error?.message;
+        this.errorMessage.set(apiMessage ?? 'Failed to request revision.');
         this.processing.set(false);
       },
     });
@@ -200,10 +203,11 @@ export class CurationQueue implements OnInit {
 
   reject(item: CurationQueueItem): void {
     this.processing.set(true);
+    this.errorMessage.set('');
     this.adminService.rejectCuration({
       entityId: item.id,
       entityType: item.entityType,
-      feedbackNotes: this.feedbackNotes.value ?? '',
+      decisionNotes: this.feedbackNotes.value ?? '',
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.items.update(list => list.filter(i => i.id !== item.id));
@@ -211,8 +215,9 @@ export class CurationQueue implements OnInit {
         this.feedbackNotes.setValue('');
         this.processing.set(false);
       },
-      error: () => {
-        this.errorMessage.set('Failed to reject item.');
+      error: (err: unknown) => {
+        const apiMessage = (err as { error?: { message?: string } } | undefined)?.error?.message;
+        this.errorMessage.set(apiMessage ?? 'Failed to reject item.');
         this.processing.set(false);
       },
     });

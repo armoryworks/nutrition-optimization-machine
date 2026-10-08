@@ -58,8 +58,15 @@ namespace Nom.Api.Controllers
         public async Task<IActionResult> RequestRevision([FromBody] CurationDecisionRequest request)
         {
             var adminPersonId = GetCurrentPersonIdRequired();
-            await _curationOrch.RequestRevisionAsync(request, adminPersonId);
-            return Ok();
+            try
+            {
+                await _curationOrch.RequestRevisionAsync(request, adminPersonId);
+                return Ok();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPost("reject")]
@@ -67,8 +74,15 @@ namespace Nom.Api.Controllers
         public async Task<IActionResult> Reject([FromBody] CurationDecisionRequest request)
         {
             var adminPersonId = GetCurrentPersonIdRequired();
-            await _curationOrch.RejectAsync(request, adminPersonId);
-            return Ok();
+            try
+            {
+                await _curationOrch.RejectAsync(request, adminPersonId);
+                return Ok();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>Sets or clears (foodGroupId = null) an ingredient's nutritional food group.</summary>
