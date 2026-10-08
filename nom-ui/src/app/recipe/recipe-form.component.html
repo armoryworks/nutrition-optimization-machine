@@ -15,6 +15,12 @@
     <div class="nom-recipe-form__loading">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
+  } @else if (loadFailed()) {
+    <nom-error-banner
+      data-testid="recipe-form-error"
+      message="Couldn't load this recipe, so there's nothing to edit yet."
+      [showRetry]="true"
+      (retry)="retryLoad()" />
   } @else {
     <form [formGroup]="recipeForm" (ngSubmit)="onSubmit()" data-testid="recipe-form-fields">
       <!-- ── Details ── -->

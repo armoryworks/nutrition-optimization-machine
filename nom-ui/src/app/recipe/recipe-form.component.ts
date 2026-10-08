@@ -21,6 +21,7 @@ import { PolicyService } from '../core/services/policy.service';
 import { IngredientSearchResult } from '../core/models/ingredient-search-result.model';
 import { MeasurementOption, foodUnits } from '../core/models/measurement.model';
 import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-delete-dialog/confirm-delete-dialog.component';
+import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 
 @Component({
   selector: 'nom-recipe-form',
@@ -38,6 +39,7 @@ import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-
     CdkDropList,
     CdkDrag,
     CdkDragHandle,
+    ErrorBanner,
   ],
   templateUrl: './recipe-form.component.html',
   styleUrl: './recipe-form.component.scss',
@@ -62,6 +64,7 @@ export class RecipeForm implements OnInit {
 
   // State
   loading = signal(true);
+  loadFailed = signal(false);
   saving = signal(false);
   errorMessage = signal('');
 
@@ -267,7 +270,7 @@ export class RecipeForm implements OnInit {
       this.scrollToFirstInvalid();
       return;
     }
-    if (this.saving() || this.saveGated()) return;
+    if (this.saving() || this.saveGated() || this.loadFailed()) return;
     this.saving.set(true);
     this.errorMessage.set('');
 
@@ -478,7 +481,13 @@ export class RecipeForm implements OnInit {
 
   // ── Load existing recipe ──
 
+  retryLoad(): void {
+    this.loadRecipe(this.recipeId()!);
+  }
+
   private loadRecipe(id: number): void {
+    this.loadFailed.set(false);
+    this.loading.set(true);
     this.recipeService.getRecipe(id).pipe(
       this.loadingService.loading('Loading recipe...'),
       takeUntilDestroyed(this.destroyRef),
@@ -541,7 +550,7 @@ export class RecipeForm implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.errorMessage.set('Failed to load recipe.');
+        this.loadFailed.set(true);
         this.loading.set(false);
       },
     });
