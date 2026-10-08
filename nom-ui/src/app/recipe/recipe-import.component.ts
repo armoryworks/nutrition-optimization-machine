@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -52,8 +53,8 @@ export class RecipeImport {
         this.preview.set(result);
         this.previewLoading.set(false);
       },
-      error: () => {
-        this.error.set('Failed to scrape recipe from URL. Make sure the URL points to a valid recipe page.');
+      error: (err: HttpErrorResponse) => {
+        this.error.set(this.describeError(err, 'Failed to scrape recipe from URL. Make sure the URL points to a valid recipe page.'));
         this.previewLoading.set(false);
       },
     });
@@ -79,10 +80,22 @@ export class RecipeImport {
           this.error.set(result.error ?? 'Failed to import recipe.');
         }
       },
-      error: () => {
-        this.error.set('Failed to import recipe.');
+      error: (err: HttpErrorResponse) => {
+        this.error.set(this.describeError(err, 'Failed to import recipe.'));
         this.importing.set(false);
       },
     });
+  }
+
+  private describeError(err: HttpErrorResponse, fallback: string): string {
+    if (err.status !== 400) return fallback;
+    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test((this.url.value ?? '').trim())) {
+      return 'That doesn\'t look like a full web address. Paste the recipe link including https:// at the start.';
+    }
+    const body = err.error;
+    if (typeof body?.error === 'string' && body.error) return body.error;
+    if (typeof body?.detail === 'string' && body.detail) return body.detail;
+    const firstFieldError = body?.errors ? Object.values(body.errors as Record<string, string[]>).flat()[0] : undefined;
+    return firstFieldError ?? fallback;
   }
 }
