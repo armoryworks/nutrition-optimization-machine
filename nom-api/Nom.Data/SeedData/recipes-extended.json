@@ -86,12 +86,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 3.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 5,
+          "amount": 5.5,
           "unit": "g"
         },
         {
@@ -101,7 +96,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 5.5,
+          "amount": 3.5,
           "unit": "g"
         }
       ]
@@ -196,12 +191,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 10.5,
+          "amount": 11,
           "unit": "g"
         },
         {
@@ -211,7 +201,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 11,
+          "amount": 5,
           "unit": "g"
         }
       ]
@@ -295,12 +285,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 12,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 16,
+          "amount": 17,
           "unit": "g"
         },
         {
@@ -310,7 +295,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 17,
+          "amount": 12,
           "unit": "g"
         }
       ]
@@ -400,12 +385,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 2.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 7,
+          "amount": 7.5,
           "unit": "g"
         },
         {
@@ -415,7 +395,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 7.5,
+          "amount": 2.5,
           "unit": "g"
         }
       ]
@@ -487,12 +467,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 24,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 1.5,
+          "amount": 2,
           "unit": "g"
         },
         {
@@ -502,7 +477,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 2,
+          "amount": 24,
           "unit": "g"
         }
       ]
@@ -592,12 +567,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 6,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 9,
+          "amount": 10,
           "unit": "g"
         },
         {
@@ -607,7 +577,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 10,
+          "amount": 6,
           "unit": "g"
         }
       ]
@@ -696,12 +666,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 4,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 13.5,
+          "amount": 14,
           "unit": "g"
         },
         {
@@ -711,7 +676,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 14,
+          "amount": 4,
           "unit": "g"
         }
       ]
@@ -790,11 +755,6 @@
         {
           "nutrientId": 5000,
           "amount": 7,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 6.5,
           "unit": "g"
         },
         {
@@ -899,12 +859,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 20,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 8,
+          "amount": 9,
           "unit": "g"
         },
         {
@@ -914,7 +869,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 9,
+          "amount": 20,
           "unit": "g"
         }
       ]
@@ -998,12 +953,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 8,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 9,
+          "amount": 9.5,
           "unit": "g"
         },
         {
@@ -1013,7 +963,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 9.5,
+          "amount": 8,
           "unit": "g"
         }
       ]
@@ -1103,12 +1053,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 4,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 20,
+          "amount": 22,
           "unit": "g"
         },
         {
@@ -1118,7 +1063,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 22,
+          "amount": 4,
           "unit": "g"
         }
       ]
@@ -1213,12 +1158,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 4,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 10,
+          "amount": 11,
           "unit": "g"
         },
         {
@@ -1228,7 +1168,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 11,
+          "amount": 4,
           "unit": "g"
         }
       ]
@@ -1317,12 +1257,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 3.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 2.5,
+          "amount": 3,
           "unit": "g"
         },
         {
@@ -1332,7 +1267,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 3,
+          "amount": 3.5,
           "unit": "g"
         }
       ]
@@ -1422,12 +1357,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 6.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 1,
+          "amount": 1.5,
           "unit": "g"
         },
         {
@@ -1437,7 +1367,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 1.5,
+          "amount": 6.5,
           "unit": "g"
         }
       ]
@@ -1525,11 +1455,6 @@
           "unit": "g"
         },
         {
-          "nutrientId": 5001,
-          "amount": 10,
-          "unit": "g"
-        },
-        {
           "nutrientId": 5003,
           "amount": 13,
           "unit": "g"
@@ -1614,12 +1539,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 7,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 17,
+          "amount": 18,
           "unit": "g"
         },
         {
@@ -1629,7 +1549,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 18,
+          "amount": 7,
           "unit": "g"
         }
       ]
@@ -1713,12 +1633,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 7,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 13,
+          "amount": 14,
           "unit": "g"
         },
         {
@@ -1728,7 +1643,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 14,
+          "amount": 7,
           "unit": "g"
         }
       ]
@@ -1806,12 +1721,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 2.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 7,
+          "amount": 7.5,
           "unit": "g"
         },
         {
@@ -1821,7 +1731,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 7.5,
+          "amount": 2.5,
           "unit": "g"
         }
       ]
@@ -1905,12 +1815,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 8,
+          "amount": 8.5,
           "unit": "g"
         },
         {
@@ -1920,7 +1825,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 8.5,
+          "amount": 5,
           "unit": "g"
         }
       ]
@@ -2015,12 +1920,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 3,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
-          "amount": 9,
+          "amount": 10,
           "unit": "g"
         },
         {
@@ -2030,7 +1930,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 10,
+          "amount": 3,
           "unit": "g"
         }
       ]
@@ -2237,7 +2137,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 22,
+          "amount": 15,
           "unit": "g"
         },
         {
@@ -2252,7 +2152,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 15,
+          "amount": 22,
           "unit": "g"
         }
       ]
@@ -2336,7 +2236,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 26,
+          "amount": 25,
           "unit": "g"
         },
         {
@@ -2351,7 +2251,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 25,
+          "amount": 26,
           "unit": "g"
         }
       ]
@@ -2545,7 +2445,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 20,
+          "amount": 10,
           "unit": "g"
         },
         {
@@ -2560,7 +2460,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 10,
+          "amount": 20,
           "unit": "g"
         }
       ]
@@ -2644,7 +2544,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 14,
+          "amount": 26,
           "unit": "g"
         },
         {
@@ -2659,7 +2559,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 26,
+          "amount": 14,
           "unit": "g"
         }
       ]
@@ -2749,7 +2649,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 28,
+          "amount": 16,
           "unit": "g"
         },
         {
@@ -2764,7 +2664,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 16,
+          "amount": 28,
           "unit": "g"
         }
       ]
@@ -2953,7 +2853,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 40,
+          "amount": 22,
           "unit": "g"
         },
         {
@@ -2968,7 +2868,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 22,
+          "amount": 40,
           "unit": "g"
         }
       ]
@@ -3064,7 +2964,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 38,
+          "amount": 20,
           "unit": "g"
         },
         {
@@ -3079,7 +2979,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 20,
+          "amount": 38,
           "unit": "g"
         }
       ]
@@ -3163,7 +3063,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 30,
+          "amount": 16,
           "unit": "g"
         },
         {
@@ -3178,7 +3078,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 16,
+          "amount": 30,
           "unit": "g"
         }
       ]
@@ -3274,7 +3174,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 15,
+          "amount": 14,
           "unit": "g"
         },
         {
@@ -3289,7 +3189,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 14,
+          "amount": 15,
           "unit": "g"
         }
       ]
@@ -3373,7 +3273,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 38,
+          "amount": 18,
           "unit": "g"
         },
         {
@@ -3388,7 +3288,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 18,
+          "amount": 38,
           "unit": "g"
         }
       ]
@@ -3478,7 +3378,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 38,
+          "amount": 22,
           "unit": "g"
         },
         {
@@ -3493,7 +3393,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 22,
+          "amount": 38,
           "unit": "g"
         }
       ]
@@ -3589,7 +3489,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 14,
+          "amount": 18,
           "unit": "g"
         },
         {
@@ -3604,7 +3504,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 18,
+          "amount": 14,
           "unit": "g"
         }
       ]
@@ -3694,7 +3594,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 36,
+          "amount": 28,
           "unit": "g"
         },
         {
@@ -3709,7 +3609,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 28,
+          "amount": 36,
           "unit": "g"
         }
       ]
@@ -3781,7 +3681,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 18,
+          "amount": 24,
           "unit": "g"
         },
         {
@@ -3796,7 +3696,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 24,
+          "amount": 18,
           "unit": "g"
         }
       ]
@@ -3886,7 +3786,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 32,
+          "amount": 22,
           "unit": "g"
         },
         {
@@ -3901,7 +3801,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 22,
+          "amount": 32,
           "unit": "g"
         }
       ]
@@ -3985,7 +3885,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 28,
+          "amount": 18,
           "unit": "g"
         },
         {
@@ -4000,7 +3900,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 18,
+          "amount": 28,
           "unit": "g"
         }
       ]
@@ -4200,7 +4100,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 42,
+          "amount": 22,
           "unit": "g"
         },
         {
@@ -4215,7 +4115,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 22,
+          "amount": 42,
           "unit": "g"
         }
       ]
@@ -4311,7 +4211,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 30,
+          "amount": 22,
           "unit": "g"
         },
         {
@@ -4326,7 +4226,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 22,
+          "amount": 30,
           "unit": "g"
         }
       ]
@@ -4427,7 +4327,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 30,
+          "amount": 22,
           "unit": "g"
         },
         {
@@ -4442,7 +4342,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 22,
+          "amount": 30,
           "unit": "g"
         }
       ]
@@ -4532,7 +4432,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 34,
+          "amount": 18,
           "unit": "g"
         },
         {
@@ -4547,7 +4447,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 18,
+          "amount": 34,
           "unit": "g"
         }
       ]
@@ -4643,7 +4543,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 32,
+          "amount": 22,
           "unit": "g"
         },
         {
@@ -4658,7 +4558,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 22,
+          "amount": 32,
           "unit": "g"
         }
       ]
@@ -4754,7 +4654,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 28,
+          "amount": 20,
           "unit": "g"
         },
         {
@@ -4769,7 +4669,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 20,
+          "amount": 28,
           "unit": "g"
         }
       ]
@@ -4859,7 +4759,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 28,
+          "amount": 22,
           "unit": "g"
         },
         {
@@ -4874,7 +4774,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 22,
+          "amount": 28,
           "unit": "g"
         }
       ]
@@ -4964,7 +4864,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 30,
+          "amount": 16,
           "unit": "g"
         },
         {
@@ -4979,7 +4879,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 16,
+          "amount": 30,
           "unit": "g"
         }
       ]
@@ -5063,7 +4963,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 35,
+          "amount": 14,
           "unit": "g"
         },
         {
@@ -5078,7 +4978,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 14,
+          "amount": 35,
           "unit": "g"
         }
       ]
@@ -5174,7 +5074,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 12,
+          "amount": 14,
           "unit": "g"
         },
         {
@@ -5189,7 +5089,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 14,
+          "amount": 12,
           "unit": "g"
         }
       ]
@@ -5279,7 +5179,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 42,
+          "amount": 16,
           "unit": "g"
         },
         {
@@ -5294,7 +5194,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 16,
+          "amount": 42,
           "unit": "g"
         }
       ]
@@ -5390,7 +5290,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 36,
+          "amount": 20,
           "unit": "g"
         },
         {
@@ -5405,7 +5305,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 20,
+          "amount": 36,
           "unit": "g"
         }
       ]
@@ -5489,7 +5389,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 34,
+          "amount": 24,
           "unit": "g"
         },
         {
@@ -5504,7 +5404,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 24,
+          "amount": 34,
           "unit": "g"
         }
       ]
@@ -5588,7 +5488,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 36,
+          "amount": 12,
           "unit": "g"
         },
         {
@@ -5603,7 +5503,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 12,
+          "amount": 36,
           "unit": "g"
         }
       ]
@@ -5699,7 +5599,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 38,
+          "amount": 16,
           "unit": "g"
         },
         {
@@ -5714,7 +5614,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 16,
+          "amount": 38,
           "unit": "g"
         }
       ]
@@ -5810,7 +5710,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 28,
+          "amount": 20,
           "unit": "g"
         },
         {
@@ -5825,7 +5725,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 20,
+          "amount": 28,
           "unit": "g"
         }
       ]
@@ -5915,7 +5815,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 36,
+          "amount": 16,
           "unit": "g"
         },
         {
@@ -5930,7 +5830,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 16,
+          "amount": 36,
           "unit": "g"
         }
       ]
@@ -6020,7 +5920,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 34,
+          "amount": 20,
           "unit": "g"
         },
         {
@@ -6035,7 +5935,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 20,
+          "amount": 34,
           "unit": "g"
         }
       ]
@@ -6119,7 +6019,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 40,
+          "amount": 20,
           "unit": "g"
         },
         {
@@ -6134,7 +6034,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 20,
+          "amount": 40,
           "unit": "g"
         }
       ]
@@ -6230,7 +6130,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 28,
+          "amount": 10,
           "unit": "g"
         },
         {
@@ -6245,7 +6145,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 10,
+          "amount": 28,
           "unit": "g"
         }
       ]
@@ -6306,11 +6206,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 4,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 0.5,
           "unit": "g"
         },
@@ -6321,7 +6216,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 0.5,
+          "amount": 4,
           "unit": "g"
         }
       ]
@@ -6394,7 +6289,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 4,
+          "amount": 3.5,
           "unit": "g"
         },
         {
@@ -6409,7 +6304,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 3.5,
+          "amount": 4,
           "unit": "g"
         }
       ]
@@ -6446,7 +6341,7 @@
         {
           "ingredientId": 148,
           "quantity": 12,
-          "measurementId": 3,
+          "measurementId": 7,
           "rawLine": "12 oz spaghetti"
         },
         {
@@ -6570,7 +6465,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 2.5,
+          "amount": 7,
           "unit": "g"
         },
         {
@@ -6585,7 +6480,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 7,
+          "amount": 2.5,
           "unit": "g"
         }
       ]
@@ -6652,7 +6547,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 6,
+          "amount": 12,
           "unit": "g"
         },
         {
@@ -6667,7 +6562,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 12,
+          "amount": 6,
           "unit": "g"
         }
       ]
@@ -6751,7 +6646,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 7,
+          "amount": 6,
           "unit": "g"
         },
         {
@@ -6766,7 +6661,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 6,
+          "amount": 7,
           "unit": "g"
         }
       ]
@@ -6850,7 +6745,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 6,
+          "amount": 8,
           "unit": "g"
         },
         {
@@ -6865,7 +6760,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 8,
+          "amount": 6,
           "unit": "g"
         }
       ]
@@ -6944,7 +6839,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 4.5,
+          "amount": 5,
           "unit": "g"
         },
         {
@@ -6959,7 +6854,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 5,
+          "amount": 4.5,
           "unit": "g"
         }
       ]
@@ -7001,7 +6896,7 @@
         {
           "ingredientId": 148,
           "quantity": 12,
-          "measurementId": 3,
+          "measurementId": 7,
           "rawLine": "12 oz spaghetti"
         },
         {
@@ -7043,7 +6938,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 16,
+          "amount": 18,
           "unit": "g"
         },
         {
@@ -7058,7 +6953,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 18,
+          "amount": 16,
           "unit": "g"
         }
       ]
@@ -7100,7 +6995,7 @@
         {
           "ingredientId": 148,
           "quantity": 10,
-          "measurementId": 3,
+          "measurementId": 7,
           "rawLine": "10 oz spaghetti"
         },
         {
@@ -7142,7 +7037,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 10,
+          "amount": 8,
           "unit": "g"
         },
         {
@@ -7157,7 +7052,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 8,
+          "amount": 10,
           "unit": "g"
         }
       ]
@@ -7236,7 +7131,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 3,
+          "amount": 10,
           "unit": "g"
         },
         {
@@ -7251,7 +7146,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 10,
+          "amount": 3,
           "unit": "g"
         }
       ]
@@ -7318,7 +7213,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 5,
+          "amount": 12,
           "unit": "g"
         },
         {
@@ -7333,7 +7228,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 12,
+          "amount": 5,
           "unit": "g"
         }
       ]
@@ -7417,7 +7312,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 5,
+          "amount": 3.5,
           "unit": "g"
         },
         {
@@ -7432,7 +7327,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 3.5,
+          "amount": 5,
           "unit": "g"
         }
       ]
@@ -7505,7 +7400,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 8,
+          "amount": 9,
           "unit": "g"
         },
         {
@@ -7520,7 +7415,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 9,
+          "amount": 8,
           "unit": "g"
         }
       ]
@@ -7604,7 +7499,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 5,
+          "amount": 8,
           "unit": "g"
         },
         {
@@ -7619,7 +7514,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 8,
+          "amount": 5,
           "unit": "g"
         }
       ]
@@ -7667,7 +7562,7 @@
         {
           "ingredientId": 162,
           "quantity": 8,
-          "measurementId": 3,
+          "measurementId": 7,
           "rawLine": "8 oz cremini mushrooms"
         },
         {
@@ -7791,7 +7686,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 3,
+          "amount": 5,
           "unit": "g"
         },
         {
@@ -7806,7 +7701,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 5,
+          "amount": 3,
           "unit": "g"
         }
       ]
@@ -7826,7 +7721,7 @@
         {
           "stepNumber": 1,
           "summary": "Cook the orzo",
-          "description": "Bring a pot of salted water to a boil. Cook the spaghetti (or orzo pasta) until al dente. Drain and rinse under cold water to stop cooking. Toss with a drizzle of olive oil to prevent sticking."
+          "description": "Bring a pot of salted water to a boil. Cook the orzo until al dente. Drain and rinse under cold water to stop cooking. Toss with a drizzle of olive oil to prevent sticking."
         },
         {
           "stepNumber": 2,
@@ -7846,9 +7741,9 @@
       ],
       "ingredients": [
         {
-          "ingredientId": 148,
+          "ingredientId": 190,
           "quantity": 8,
-          "measurementId": 3,
+          "measurementId": 7,
           "rawLine": "8 oz orzo pasta"
         },
         {
@@ -7973,7 +7868,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 12,
+          "amount": 10,
           "unit": "g"
         },
         {
@@ -7988,7 +7883,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 10,
+          "amount": 12,
           "unit": "g"
         }
       ]
@@ -8072,7 +7967,7 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 9,
+          "amount": 3,
           "unit": "g"
         },
         {
@@ -8087,7 +7982,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 3,
+          "amount": 9,
           "unit": "g"
         }
       ]
@@ -8166,11 +8061,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 10,
           "unit": "g"
         },
@@ -8181,7 +8071,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 10,
+          "amount": 5,
           "unit": "g"
         }
       ]
@@ -8260,11 +8150,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 4,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 10,
           "unit": "g"
         },
@@ -8275,7 +8160,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 10,
+          "amount": 4,
           "unit": "g"
         }
       ]
@@ -8348,11 +8233,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 3,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 7,
           "unit": "g"
         },
@@ -8363,7 +8243,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 7,
+          "amount": 3,
           "unit": "g"
         }
       ]
@@ -8430,11 +8310,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 3,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 4,
           "unit": "g"
         },
@@ -8445,7 +8320,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 4,
+          "amount": 3,
           "unit": "g"
         }
       ]
@@ -8518,11 +8393,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 1.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 3.5,
           "unit": "g"
         },
@@ -8533,7 +8403,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 3.5,
+          "amount": 1.5,
           "unit": "g"
         }
       ]
@@ -8600,11 +8470,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 2.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 5,
           "unit": "g"
         },
@@ -8615,7 +8480,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 5,
+          "amount": 2.5,
           "unit": "g"
         }
       ]
@@ -8683,11 +8548,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 1,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 5,
           "unit": "g"
         },
@@ -8698,7 +8558,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 5,
+          "amount": 1,
           "unit": "g"
         }
       ]
@@ -8760,11 +8620,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 3,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 3.5,
           "unit": "g"
         },
@@ -8775,7 +8630,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 3.5,
+          "amount": 3,
           "unit": "g"
         }
       ]
@@ -8854,11 +8709,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 1.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 5,
           "unit": "g"
         },
@@ -8869,7 +8719,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 5,
+          "amount": 1.5,
           "unit": "g"
         }
       ]
@@ -8948,11 +8798,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 1.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 5,
           "unit": "g"
         },
@@ -8963,7 +8808,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 5,
+          "amount": 1.5,
           "unit": "g"
         }
       ]
@@ -8983,7 +8828,7 @@
         {
           "stepNumber": 1,
           "summary": "Prepare sprouts",
-          "description": "Preheat oven to 425°F. Trim and halve the Brussels sprouts (using broccoli florets as a substitute base). Toss with olive oil, salt, and black pepper."
+          "description": "Preheat oven to 425°F. Trim and halve the Brussels sprouts. Toss with olive oil, salt, and black pepper."
         },
         {
           "stepNumber": 2,
@@ -8998,10 +8843,10 @@
       ],
       "ingredients": [
         {
-          "ingredientId": 146,
+          "ingredientId": 191,
           "quantity": 4,
           "measurementId": 11,
-          "rawLine": "4 cups halved Brussels sprouts (broccoli)"
+          "rawLine": "4 cups halved Brussels sprouts"
         },
         {
           "ingredientId": 118,
@@ -9036,11 +8881,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 3,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 7,
           "unit": "g"
         },
@@ -9051,7 +8891,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 7,
+          "amount": 3,
           "unit": "g"
         }
       ]
@@ -9118,11 +8958,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 2.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 5,
           "unit": "g"
         },
@@ -9133,7 +8968,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 5,
+          "amount": 2.5,
           "unit": "g"
         }
       ]
@@ -9153,7 +8988,7 @@
         {
           "stepNumber": 1,
           "summary": "Prepare zucchini",
-          "description": "Slice the cucumber lengthwise into 1/4-inch thick planks. Brush both sides with olive oil and season with minced garlic, salt, and pepper."
+          "description": "Slice the zucchini lengthwise into 1/4-inch thick planks. Brush both sides with olive oil and season with minced garlic, salt, and pepper."
         },
         {
           "stepNumber": 2,
@@ -9168,10 +9003,10 @@
       ],
       "ingredients": [
         {
-          "ingredientId": 133,
+          "ingredientId": 192,
           "quantity": 4,
           "measurementId": 3,
-          "rawLine": "4 medium zucchini (cucumber), sliced lengthwise"
+          "rawLine": "4 medium zucchini, sliced lengthwise"
         },
         {
           "ingredientId": 118,
@@ -9206,11 +9041,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 1.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 7,
           "unit": "g"
         },
@@ -9221,7 +9051,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 7,
+          "amount": 1.5,
           "unit": "g"
         }
       ]
@@ -9305,11 +9135,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 6,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 10,
           "unit": "g"
         },
@@ -9320,7 +9145,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 10,
+          "amount": 6,
           "unit": "g"
         }
       ]
@@ -9399,11 +9224,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 2.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 17,
           "unit": "g"
         },
@@ -9414,7 +9234,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 17,
+          "amount": 2.5,
           "unit": "g"
         }
       ]
@@ -9476,11 +9296,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 7,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 16,
           "unit": "g"
         },
@@ -9491,7 +9306,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 16,
+          "amount": 7,
           "unit": "g"
         }
       ]
@@ -9553,11 +9368,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 15,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 4,
           "unit": "g"
         },
@@ -9568,7 +9378,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 4,
+          "amount": 15,
           "unit": "g"
         }
       ]
@@ -9624,11 +9434,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 10,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 16,
           "unit": "g"
         },
@@ -9639,7 +9444,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 16,
+          "amount": 10,
           "unit": "g"
         }
       ]
@@ -9706,11 +9511,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 4,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 7,
           "unit": "g"
         },
@@ -9721,7 +9521,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 7,
+          "amount": 4,
           "unit": "g"
         }
       ]
@@ -9783,11 +9583,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 12,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 3,
           "unit": "g"
         },
@@ -9798,7 +9593,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 3,
+          "amount": 12,
           "unit": "g"
         }
       ]
@@ -9871,11 +9666,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 2.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 1.5,
           "unit": "g"
         },
@@ -9886,7 +9676,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 1.5,
+          "amount": 2.5,
           "unit": "g"
         }
       ]
@@ -9948,11 +9738,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 8,
           "unit": "g"
         },
@@ -9963,7 +9748,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 8,
+          "amount": 5,
           "unit": "g"
         }
       ]
@@ -10019,11 +9804,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 7,
           "unit": "g"
         },
@@ -10034,7 +9814,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 7,
+          "amount": 5,
           "unit": "g"
         }
       ]
@@ -10042,7 +9822,7 @@
     {
       "id": 303,
       "name": "Ants on a Log",
-      "description": "Celery sticks filled with peanut butter and topped with sweet raisins (dark chocolate chips as a substitute). A fun and wholesome snack loved by all ages.",
+      "description": "Celery sticks filled with peanut butter and topped with sweet raisins. A fun and wholesome snack loved by all ages.",
       "prepTimeMinutes": 5,
       "cookTimeMinutes": 0,
       "servings": 2,
@@ -10059,7 +9839,7 @@
         {
           "stepNumber": 2,
           "summary": "Top and serve",
-          "description": "Press dark chocolate chips into the peanut butter along the length of each celery stick. Arrange on a plate and serve."
+          "description": "Press raisins into the peanut butter along the length of each celery stick. Arrange on a plate and serve."
         }
       ],
       "ingredients": [
@@ -10076,10 +9856,10 @@
           "rawLine": "3 tbsp peanut butter"
         },
         {
-          "ingredientId": 171,
+          "ingredientId": 193,
           "quantity": 2,
           "measurementId": 12,
-          "rawLine": "2 tbsp dark chocolate chips"
+          "rawLine": "2 tbsp raisins"
         }
       ],
       "nutrition": [
@@ -10090,11 +9870,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 7,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 14,
           "unit": "g"
         },
@@ -10105,7 +9880,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 14,
+          "amount": 7,
           "unit": "g"
         }
       ]
@@ -10172,11 +9947,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 4.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 6,
           "unit": "g"
         },
@@ -10187,7 +9957,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 6,
+          "amount": 4.5,
           "unit": "g"
         }
       ]
@@ -10255,11 +10025,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 8,
           "unit": "g"
         },
@@ -10270,7 +10035,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 8,
+          "amount": 5,
           "unit": "g"
         }
       ]
@@ -10278,7 +10043,7 @@
     {
       "id": 306,
       "name": "Cottage Cheese Bowl",
-      "description": "Creamy Greek yogurt topped with fresh blueberries, sliced banana, chia seeds, and a drizzle of honey. Light, protein-rich, and refreshing.",
+      "description": "Creamy cottage cheese topped with fresh blueberries, sliced banana, chia seeds, and a drizzle of honey. Light, protein-rich, and refreshing.",
       "prepTimeMinutes": 5,
       "cookTimeMinutes": 0,
       "servings": 1,
@@ -10290,7 +10055,7 @@
         {
           "stepNumber": 1,
           "summary": "Assemble the bowl",
-          "description": "Spoon Greek yogurt into a bowl. Top with sliced banana, blueberries, and chia seeds."
+          "description": "Spoon cottage cheese into a bowl. Top with sliced banana, blueberries, and chia seeds."
         },
         {
           "stepNumber": 2,
@@ -10300,10 +10065,10 @@
       ],
       "ingredients": [
         {
-          "ingredientId": 111,
+          "ingredientId": 194,
           "quantity": 1,
           "measurementId": 11,
-          "rawLine": "1 cup Greek yogurt"
+          "rawLine": "1 cup cottage cheese"
         },
         {
           "ingredientId": 110,
@@ -10338,11 +10103,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 18,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 3,
           "unit": "g"
         },
@@ -10353,7 +10113,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 3,
+          "amount": 18,
           "unit": "g"
         }
       ]
@@ -10373,7 +10133,7 @@
         {
           "stepNumber": 1,
           "summary": "Spread and top",
-          "description": "Spread peanut butter evenly over each rice cake (using crackers as the base). Top with sliced banana rounds."
+          "description": "Spread peanut butter evenly over each rice cake. Top with sliced banana rounds."
         },
         {
           "stepNumber": 2,
@@ -10383,10 +10143,10 @@
       ],
       "ingredients": [
         {
-          "ingredientId": 174,
+          "ingredientId": 195,
           "quantity": 4,
           "measurementId": 3,
-          "rawLine": "4 rice cakes (crackers)"
+          "rawLine": "4 rice cakes"
         },
         {
           "ingredientId": 169,
@@ -10415,11 +10175,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 7,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 10,
           "unit": "g"
         },
@@ -10430,7 +10185,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 10,
+          "amount": 7,
           "unit": "g"
         }
       ]
@@ -10438,7 +10193,7 @@
     {
       "id": 308,
       "name": "Popcorn Mix",
-      "description": "Light popcorn (using rolled oats as a base) tossed with melted butter, parmesan cheese, and a sprinkle of paprika. A savory, crunchy snack.",
+      "description": "Light popcorn tossed with melted butter, parmesan cheese, and a sprinkle of paprika. A savory, crunchy snack.",
       "prepTimeMinutes": 5,
       "cookTimeMinutes": 5,
       "servings": 4,
@@ -10449,21 +10204,21 @@
       "steps": [
         {
           "stepNumber": 1,
-          "summary": "Toast the oats",
-          "description": "In a dry skillet over medium heat, toast rolled oats for 3-4 minutes, stirring frequently, until golden and fragrant."
+          "summary": "Pop the popcorn",
+          "description": "Pop the popcorn in an air popper or a covered pot over medium heat, then transfer it to a large bowl."
         },
         {
           "stepNumber": 2,
           "summary": "Season and toss",
-          "description": "Drizzle melted butter over the toasted oats. Sprinkle with grated parmesan and paprika. Toss until evenly coated and serve warm."
+          "description": "Drizzle melted butter over the warm popcorn. Sprinkle with grated parmesan and paprika. Toss until evenly coated and serve warm."
         }
       ],
       "ingredients": [
         {
-          "ingredientId": 170,
-          "quantity": 2,
+          "ingredientId": 196,
+          "quantity": 8,
           "measurementId": 11,
-          "rawLine": "2 cups rolled oats"
+          "rawLine": "8 cups popped popcorn"
         },
         {
           "ingredientId": 103,
@@ -10492,11 +10247,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 5,
           "unit": "g"
         },
@@ -10575,11 +10325,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 7,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 3,
           "unit": "g"
         },
@@ -10590,7 +10335,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 3,
+          "amount": 7,
           "unit": "g"
         }
       ]
@@ -10662,11 +10407,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 4,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 26,
           "unit": "g"
         },
@@ -10677,7 +10417,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 26,
+          "amount": 4,
           "unit": "g"
         }
       ]
@@ -10761,11 +10501,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 4,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 16,
           "unit": "g"
         },
@@ -10776,7 +10511,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 16,
+          "amount": 4,
           "unit": "g"
         }
       ]
@@ -10848,11 +10583,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 3,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 24,
           "unit": "g"
         },
@@ -10863,7 +10593,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 24,
+          "amount": 3,
           "unit": "g"
         }
       ]
@@ -10930,11 +10660,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 2.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 4,
           "unit": "g"
         },
@@ -10945,7 +10670,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 4,
+          "amount": 2.5,
           "unit": "g"
         }
       ]
@@ -11029,11 +10754,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 3,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 7,
           "unit": "g"
         },
@@ -11044,7 +10764,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 7,
+          "amount": 3,
           "unit": "g"
         }
       ]
@@ -11122,11 +10842,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 4,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 10,
           "unit": "g"
         },
@@ -11137,7 +10852,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 10,
+          "amount": 4,
           "unit": "g"
         }
       ]
@@ -11221,11 +10936,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 1.5,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 6,
           "unit": "g"
         },
@@ -11236,7 +10946,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 6,
+          "amount": 1.5,
           "unit": "g"
         }
       ]
@@ -11309,11 +11019,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 6,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 4,
           "unit": "g"
         },
@@ -11324,7 +11029,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 4,
+          "amount": 6,
           "unit": "g"
         }
       ]
@@ -11408,11 +11113,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 7,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 24,
           "unit": "g"
         },
@@ -11423,7 +11123,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 24,
+          "amount": 7,
           "unit": "g"
         }
       ]
@@ -11501,11 +11201,6 @@
         },
         {
           "nutrientId": 5000,
-          "amount": 3,
-          "unit": "g"
-        },
-        {
-          "nutrientId": 5001,
           "amount": 8,
           "unit": "g"
         },
@@ -11516,7 +11211,7 @@
         },
         {
           "nutrientId": 5006,
-          "amount": 8,
+          "amount": 3,
           "unit": "g"
         }
       ]
