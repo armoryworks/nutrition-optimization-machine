@@ -1,6 +1,7 @@
 // File: Nom.Orch/Models/Person/OnboardingCompleteRequest.cs
 
 using Nom.Orch.Models.Privacy;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
@@ -16,6 +17,13 @@ namespace Nom.Orch.Models.Person
         public List<PersonAttributeRequest> Attributes { get; set; } = new();
         public List<RestrictionRequest> Restrictions { get; set; } = new();
         public string? PlanInvitationCode { get; set; }
+        [MaxLength(255)]
+        public string? PlanName { get; set; }
+        [MaxLength(2047)]
+        public string? PlanDescription { get; set; }
+        public DateOnly? PlanStartDate { get; set; }
+        public DateOnly? PlanEndDate { get; set; }
+        public bool ApplyPlanRestrictions { get; set; } = true;
         public bool HasAdditionalParticipants { get; set; }
         public int NumberOfAdditionalParticipants { get; set; }
         public List<PersonDetailsRequest> AdditionalParticipantDetails { get; set; } = new();

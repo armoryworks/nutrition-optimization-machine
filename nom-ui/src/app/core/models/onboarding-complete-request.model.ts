@@ -8,6 +8,11 @@ export interface OnboardingCompleteRequest {
   attributes: PersonAttributeRequest[];
   restrictions: RestrictionRequest[];
   planInvitationCode: string | null;
+  planName: string | null;
+  planDescription: string | null;
+  planStartDate: string | null;
+  planEndDate: string | null;
+  applyPlanRestrictions: boolean;
   hasAdditionalParticipants: boolean;
   numberOfAdditionalParticipants: number;
   additionalParticipantDetails: PersonDetailsRequest[];

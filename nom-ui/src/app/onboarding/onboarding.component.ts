@@ -232,6 +232,11 @@ export class Onboarding implements OnInit {
       attributes: this.profileSaved() ? [] : (profile?.attributes ?? []),
       restrictions: restrictions,
       planInvitationCode: plan?.invitationCode ?? null,
+      planName: plan?.planName ?? null,
+      planDescription: plan?.planDescription ?? null,
+      planStartDate: plan?.startDate ?? null,
+      planEndDate: plan?.endDate ?? null,
+      applyPlanRestrictions: plan?.planName ? plan.applyRestrictions : true,
       hasAdditionalParticipants: members.length > 0,
       numberOfAdditionalParticipants: members.length,
       additionalParticipantDetails: members.map(m => ({

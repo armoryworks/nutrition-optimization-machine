@@ -213,9 +213,13 @@ namespace Nom.Orch.Services
             }
 
             // Create default plan for the primary person
+            var planStartDate = request.PlanStartDate ?? DateOnly.FromDateTime(DateTime.Today);
             var defaultPlan = new PlanEntity
             {
-                Name = $"{primaryPerson.Name}'s Default Plan",
+                Name = string.IsNullOrWhiteSpace(request.PlanName) ? $"{primaryPerson.Name}'s Default Plan" : request.PlanName.Trim(),
+                Description = string.IsNullOrWhiteSpace(request.PlanDescription) ? null : request.PlanDescription.Trim(),
+                StartDate = planStartDate,
+                EndDate = request.PlanEndDate >= planStartDate ? request.PlanEndDate : null,
                 AuthorId = primaryPerson.Id,
                 CurationStatusId = 9000L, // NonCurated
                 Version = 1
@@ -354,7 +358,7 @@ namespace Nom.Orch.Services
                 .ToListAsync();
 
             // Persist restrictions to the plan
-            if (request.Restrictions != null && request.Restrictions.Any())
+            if (request.Restrictions != null && request.Restrictions.Any() && request.ApplyPlanRestrictions)
             {
                 foreach (var restriction in request.Restrictions)
                 {
