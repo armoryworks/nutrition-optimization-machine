@@ -11,6 +11,7 @@ import { EntityLink } from '../shared/components/entity-link/entity-link.compone
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { NoHouseholdCta } from '../shared/components/no-household-cta/no-household-cta.component';
 import { toLocalDateString } from '../core/utils/local-date';
+import { downloadTextFile, shoppingListFileName } from '../core/utils/download-file';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -67,6 +68,7 @@ import {
   isSmallVolumeItem,
   toSmallVolumeDisplay,
   formatQuantity,
+  pluralizePackage,
 } from '../core/domain/shopping/unit-conversion';
 
 /** Accumulator used during ingredient merging */
@@ -472,18 +474,7 @@ export class ShoppingComponent implements OnInit {
     }
 
     if (format === 'csv') {
-      const lines = ['Department,Item,Quantity'];
-      for (const item of items) {
-        const qty = (item.note ?? '').replace(/,/g, ';');
-        lines.push(`"${item.category}","${item.name}","${qty}"`);
-      }
-      const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `shopping-list-${toLocalDateString(new Date())}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadTextFile(shoppingListFileName('csv'), this.buildListCsv(items), 'text/csv');
       this.snackBar.open('CSV downloaded', 'OK', { duration: 2000 });
     } else {
       this.copyText(this.buildListText(items));
@@ -516,9 +507,43 @@ export class ShoppingComponent implements OnInit {
         category = item.category;
         lines.push('', `${category}:`);
       }
-      lines.push(item.note ? `- ${item.name} — ${item.note}` : `- ${item.name}`);
+      lines.push(`- ${this.exportLine(item)}`);
     }
     return lines.join('\n');
+  }
+
+  /** Same columns as the grocery service's CSV, so both downloads open alike. */
+  private buildListCsv(items: GroceryExportItem[]): string {
+    const cell = (value: string | undefined) =>
+      value && /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : (value ?? '');
+    const lines = ['Category,Item,Quantity,Unit,Package,Note'];
+    for (const item of items) {
+      lines.push(
+        [
+          item.category,
+          item.name,
+          item.quantity !== undefined ? String(Math.round(item.quantity * 100) / 100) : undefined,
+          item.unit,
+          item.packageHint,
+          item.note,
+        ]
+          .map(cell)
+          .join(','),
+      );
+    }
+    return lines.join('\n') + '\n';
+  }
+
+  /** "2 1/2 oz Asparagus", "1 block Cheddar Cheese (8 oz block)", "Bread — 1 loaf + 2". */
+  private exportLine(item: GroceryExportItem): string {
+    const amount =
+      item.quantity !== undefined
+        ? [this.formatQuantity(item.quantity), item.unit].filter(Boolean).join(' ') + ' '
+        : '';
+    let line = amount + item.name;
+    if (item.packageHint) line += ` (${item.packageHint})`;
+    if (item.note) line += ` — ${item.note}`;
+    return line;
   }
 
   private copyText(text: string): void {
@@ -578,10 +603,11 @@ export class ShoppingComponent implements OnInit {
   }
 
   /**
-   * Flatten the rendered projection into export lines. The projection carries
-   * amounts as display portions (and honours the user's inline overrides), not
-   * as a single number+unit, so that text rides along in `note` and
-   * `quantity`/`unit` stay unset rather than being guessed at.
+   * Flatten the rendered projection into export lines. An item shown as one
+   * computed amount exports it as `quantity`/`unit` (a retail package as its
+   * count of packages); anything else the projection can only show as text —
+   * several portions, or the user's inline override — rides along in `note`
+   * and `quantity`/`unit` stay unset rather than being guessed at.
    */
   private buildExportItems(excludeChecked: boolean): GroceryExportItem[] {
     const checked = this.checkedItems();
@@ -591,9 +617,11 @@ export class ShoppingComponent implements OnInit {
       for (const item of dept.items) {
         if (excludeChecked && checked.has(item.checkKey)) continue;
 
-        const note = this.getDisplayText(item).trim();
+        const amount = this.exportAmount(item);
+        const note = amount ? '' : this.getDisplayText(item).trim();
         items.push({
           name: item.name,
+          ...amount,
           category: dept.name,
           packageHint: this.packageHint(item),
           note: note || undefined,
@@ -602,6 +630,20 @@ export class ShoppingComponent implements OnInit {
     }
 
     return items;
+  }
+
+  private exportAmount(item: ShoppingItem): { quantity: number; unit?: string } | null {
+    if (this.quantityOverrides().has(item.checkKey) || item.portions.length !== 1) return null;
+
+    const portion = item.portions[0];
+    if (portion.quantity > 0) return { quantity: portion.quantity, unit: portion.unit || undefined };
+
+    const pkg = item.retailPackage;
+    if (!pkg || item.retailPackageCount <= 0) return null;
+    return {
+      quantity: item.retailPackageCount,
+      unit: pluralizePackage(pkg.packageName, item.retailPackageCount),
+    };
   }
 
   /** e.g. "2 × 5 lb bag" — helps the retailer land on a sane package size. */

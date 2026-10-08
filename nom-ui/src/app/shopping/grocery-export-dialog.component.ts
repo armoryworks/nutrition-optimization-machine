@@ -13,6 +13,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { GroceryExportService } from '../core/services/grocery-export.service';
+import { downloadTextFile, shoppingListFileName } from '../core/utils/download-file';
 import {
   GroceryExportFormat,
   GroceryExportItem,
@@ -238,6 +239,12 @@ export class GroceryExportDialog {
       () => this.snackBar.open('Copied to clipboard', 'OK', { duration: 2000 }),
       () => this.error.set('Could not copy to the clipboard.'),
     );
+  }
+
+  download(): void {
+    const text = this.result()?.text;
+    if (!text) return;
+    downloadTextFile(shoppingListFileName('csv'), text, 'text/csv');
   }
 
   // --- Store picker ---

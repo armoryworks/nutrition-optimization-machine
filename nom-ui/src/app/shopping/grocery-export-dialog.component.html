@@ -176,6 +176,12 @@
                   Copy
                 </button>
               }
+              @if (format() === 'csv') {
+                <button mat-stroked-button (click)="download()" data-testid="grocery-export-download-btn">
+                  <mat-icon>download</mat-icon>
+                  Download
+                </button>
+              }
             </div>
           </div>
         }
