@@ -128,10 +128,9 @@ export class Restrictions implements OnInit {
     );
   }
 
-  /** Matches on the name — the strong matches, shown first. */
+  /** Matches on the name — the strong matches, shown first. An empty search lists every option to browse. */
   nameMatches(section: RestrictionSection): ReferenceItem[] {
     const search = section.searchControl.value?.toLowerCase() ?? '';
-    if (!search) return [];
     return this.availableItems(section).filter(
       item => item.referenceName.toLowerCase().includes(search),
     );
