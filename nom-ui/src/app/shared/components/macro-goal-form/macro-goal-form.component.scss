@@ -6,6 +6,12 @@
   gap: vars.$spacing-3;
 }
 
+.nom-macro-goal-form__hint {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-sm;
+  margin: 0 0 vars.$spacing-2;
+}
+
 .nom-macro-goal-form__error {
   color: var(--mat-sys-error);
   font-size: vars.$font-size-sm;

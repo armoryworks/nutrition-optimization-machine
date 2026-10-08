@@ -20,6 +20,11 @@
     }
   </div>
 
+  @if (macroCalorieHint()) {
+    <p class="nom-macro-goal-form__hint" data-testid="macro-goal-calorie-hint" role="status">
+      {{ macroCalorieHint() }}
+    </p>
+  }
   @if (errorMessage()) {
     <p class="nom-macro-goal-form__error" data-testid="macro-goal-error">{{ errorMessage() }}</p>
   }

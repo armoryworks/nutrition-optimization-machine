@@ -3,11 +3,12 @@ import {
   Component,
   DestroyRef,
   OnInit,
+  computed,
   inject,
   input,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -42,6 +43,28 @@ export class MacroGoalForm implements OnInit {
     proteinGramsTarget: [null as number | null, [Validators.min(0), Validators.max(2000)]],
     carbGramsTarget: [null as number | null, [Validators.min(0), Validators.max(3000)]],
     fatGramsTarget: [null as number | null, [Validators.min(0), Validators.max(1500)]],
+  });
+
+  private formValue = toSignal(this.goalForm.valueChanges, { initialValue: this.goalForm.value });
+
+  macroCalorieHint = computed(() => {
+    const { caloriesTarget, proteinGramsTarget, carbGramsTarget, fatGramsTarget } = this.formValue();
+    if (!caloriesTarget || caloriesTarget <= 0) return '';
+    const grams = [proteinGramsTarget, carbGramsTarget, fatGramsTarget];
+    const entered = grams.filter((g): g is number => typeof g === 'number' && g > 0);
+    if (entered.length === 0) return '';
+    const macroKcal = Math.round(
+      ((proteinGramsTarget ?? 0) + (carbGramsTarget ?? 0)) * 4 + (fatGramsTarget ?? 0) * 9,
+    );
+    const total = `${macroKcal.toLocaleString()} kcal`;
+    const target = `${caloriesTarget.toLocaleString()} kcal`;
+    if (macroKcal > caloriesTarget * 1.1) {
+      return `Your protein, carbs and fat add up to about ${total}, more than your ${target} target.`;
+    }
+    if (entered.length === grams.length && macroKcal < caloriesTarget * 0.9) {
+      return `Your protein, carbs and fat add up to about ${total}, less than your ${target} target.`;
+    }
+    return '';
   });
 
   loading = signal(false);
