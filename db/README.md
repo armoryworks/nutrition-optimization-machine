@@ -10,6 +10,7 @@ schema workflow, analogous to SQL Server DACPAC: the repository holds the
 |---|---|
 | `schema.sql` | **Source of truth** for the database schema (all 12 domain schemas, 89 tables, views, indexes, FKs). Generated artifact — do not hand-edit. |
 | `seed.sql` | Idempotent reference + demo data (`ON CONFLICT DO NOTHING`), including the System person and default groups. Applied once on fresh databases. |
+| `fix-seeded-recipe-images.sql` | One-off data fix for databases seeded before the demo-recipe photos were corrected: repoints each demo recipe still carrying its old seeded `Image` to the photo now in `seed.sql`. Rows whose image was changed since seeding are left alone. Run once with `psql -f`. |
 | `custom-objects.sql` | DDL not represented in the EF model (currently the `reference."ReferenceGroupView"` view). Input to `sync-from-model.sh`. |
 | `apply.sh` | **Deploy**: creates/provisions an empty database, or diffs an existing one against `schema.sql` (via `pgdiff.py`) and applies only the delta. `--dry-run` prints the delta. |
 | `sync-from-model.sh` | **Build**: re-derives `schema.sql` after C# entity changes (EF `dbcontext script` + custom objects → dump). `--check` mode is a CI drift guard. |
