@@ -4,9 +4,12 @@ const NO_PLURAL = new Set(['dozen', 'each']);
 
 export function formatUnit(name: string | null | undefined, quantity: number | null | undefined): string {
   if (!name) return '';
-  const lower = name.length > 3 ? name.toLowerCase() : name;
+  const lower = /^[A-Z]?[a-z]+(?: [A-Z]?[a-z]+)*$/.test(name) ? name.toLowerCase() : name;
   if (quantity == null || quantity === 1 || NO_PLURAL.has(lower) || lower.endsWith('s')) {
     return lower;
+  }
+  if (/(?:ch|sh|x|z)$/.test(lower)) {
+    return `${lower}es`;
   }
   return `${lower}s`;
 }

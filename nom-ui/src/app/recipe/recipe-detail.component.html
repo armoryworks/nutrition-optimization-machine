@@ -358,7 +358,7 @@
                                   (click)="pickRecipeSubstitution(row.ingredient, rsub)"
                                   data-testid="ingredient-subs-option">
                             {{ recipeSubQuantity(row.ingredient, rsub) }}
-                            {{ rsub.substituteMeasurement ?? row.ingredient.measurement }}
+                            {{ (rsub.substituteMeasurement ?? row.ingredient.measurement) | unit: recipeSubQuantity(row.ingredient, rsub) }}
                             {{ rsub.substituteName }}
                             @if (rsub.stepEffects.length) {
                               <span class="nom-recipe__subs-note">
