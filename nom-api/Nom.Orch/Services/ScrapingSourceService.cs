@@ -87,7 +87,7 @@ namespace Nom.Orch.Services
 
             _logger.LogInformation("New scraping source request for {Domain} by person {PersonId}", domain, requestedByPersonId);
 
-            await NotifyAdminsAsync(source, requestedByPersonId);
+            await NotifyAdminsAsync(source);
 
             return await MapAsync(source);
         }
@@ -179,7 +179,7 @@ namespace Nom.Orch.Services
         /// via an in-app message thread and, when they have an email address, email.
         /// Notification failures are logged but never block the request itself.
         /// </summary>
-        private async Task NotifyAdminsAsync(ScrapingSourceEntity source, long? requestedByPersonId)
+        private async Task NotifyAdminsAsync(ScrapingSourceEntity source)
         {
             try
             {
@@ -189,9 +189,10 @@ namespace Nom.Orch.Services
                     .Distinct()
                     .ToListAsync();
 
-                var admins = await _db.Persons
-                    .Where(p => p.UserId != null && adminUserIds.Contains(p.UserId))
-                    .Select(p => new { p.Id, p.Name, p.Email })
+                var admins = await (from p in _db.Persons
+                                    join u in _db.Users on p.UserId equals u.Id
+                                    where p.UserId != null && adminUserIds.Contains(p.UserId)
+                                    select new { p.Id, p.Name, Email = u.Email ?? p.Email })
                     .ToListAsync();
 
                 if (admins.Count == 0)
@@ -207,17 +208,15 @@ namespace Nom.Orch.Services
                     "responsibility for the legality and quality of importing from this site. " +
                     "Review it under Admin → Scraping Sources.";
 
-                // In-app: one thread from the requester (or the system person) to all admins.
-                var creatorPersonId = requestedByPersonId ?? SystemConstants.SystemPersonId;
                 var threadId = await _communication.CreateThreadAsync(new CreateThreadRequest
                 {
                     ParticipantIds = admins.Select(a => a.Id).ToArray(),
-                }, creatorPersonId);
+                }, SystemConstants.SystemPersonId);
                 await _communication.SendMessageAsync(new SendMessageRequest
                 {
                     ThreadId = threadId,
                     Content = summary,
-                }, creatorPersonId);
+                }, SystemConstants.SystemPersonId);
 
                 // Email every admin with an address.
                 var subject = $"NOM: scraping source \"{source.Domain}\" awaits approval";
@@ -257,9 +256,10 @@ responsibility for the legality and quality of importing recipes from this site.
                     .Distinct()
                     .ToListAsync();
 
-                var admins = await _db.Persons
-                    .Where(p => p.UserId != null && adminUserIds.Contains(p.UserId))
-                    .Select(p => new { p.Id, p.Name, p.Email })
+                var admins = await (from p in _db.Persons
+                                    join u in _db.Users on p.UserId equals u.Id
+                                    where p.UserId != null && adminUserIds.Contains(p.UserId)
+                                    select new { p.Id, p.Name, Email = u.Email ?? p.Email })
                     .ToListAsync();
 
                 if (admins.Count == 0)
