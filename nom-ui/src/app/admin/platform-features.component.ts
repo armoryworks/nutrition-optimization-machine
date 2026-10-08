@@ -6,7 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSlideToggle, MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
@@ -54,12 +54,6 @@ export class PlatformFeatures implements OnInit {
   errorMessage = signal('');
   /** Key of the switch currently being saved (its toggle is locked meanwhile). */
   savingKey = signal<string | null>(null);
-  /**
-   * Bumped to force the rows (and their toggles) to be recreated. A toggle the
-   * user flipped holds that state internally; re-binding the unchanged value
-   * would not move it back, so the row is rebuilt from server state instead.
-   */
-  renderToken = signal(0);
 
   ngOnInit(): void {
     this.loadFeatures();
@@ -92,9 +86,9 @@ export class PlatformFeatures implements OnInit {
    * Confirm first, then save. The toggle is bound to server state, so a
    * cancelled or failed change simply leaves the rendered state untouched.
    */
-  onToggle(feature: PlatformFeatureModel, checked: boolean): void {
+  onToggle(feature: PlatformFeatureModel, toggle: MatSlideToggle, checked: boolean): void {
     if (checked === feature.isEnabled || this.savingKey() != null) {
-      this.restore();
+      this.restore(feature, toggle);
       return;
     }
 
@@ -105,15 +99,15 @@ export class PlatformFeatures implements OnInit {
 
     dialogRef.afterClosed().subscribe((confirmed: PlatformFeatureConfirmDialogResult) => {
       if (confirmed) {
-        this.save(feature, checked);
+        this.save(feature, toggle, checked);
       } else {
         // Revert the visual flip the user just made.
-        this.restore();
+        this.restore(feature, toggle);
       }
     });
   }
 
-  private save(feature: PlatformFeatureModel, isEnabled: boolean): void {
+  private save(feature: PlatformFeatureModel, toggle: MatSlideToggle, isEnabled: boolean): void {
     this.savingKey.set(feature.key);
     this.errorMessage.set('');
 
@@ -140,13 +134,16 @@ export class PlatformFeatures implements OnInit {
             : `Failed to change "${feature.key}". The switch is unchanged.`,
         );
         // Revert: the rendered toggle must never claim a state the server rejected.
-        this.restore();
+        this.restore(feature, toggle);
       },
     });
   }
 
-  /** Rebuild the rows so bound toggles snap back to server state. */
-  private restore(): void {
-    this.renderToken.update((n) => n + 1);
+  /**
+   * Snap the toggle back to server state. A toggle the user flipped holds that
+   * state internally; re-binding the unchanged value would not move it back.
+   */
+  private restore(feature: PlatformFeatureModel, toggle: MatSlideToggle): void {
+    toggle.checked = feature.isEnabled;
   }
 }

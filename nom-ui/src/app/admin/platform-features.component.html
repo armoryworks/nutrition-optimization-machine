@@ -43,7 +43,7 @@
     </div>
   } @else {
     <div class="nom-platform-features__list" data-testid="platform-features-list">
-      @for (feature of features(); track feature.key + ':' + renderToken()) {
+      @for (feature of features(); track feature.key) {
         <div class="nom-platform-features__item" data-testid="platform-feature-item">
           <div class="nom-platform-features__info">
             <div class="nom-platform-features__key-row">
@@ -72,7 +72,7 @@
             <mat-slide-toggle
               [checked]="feature.isEnabled"
               [disabled]="savingKey() != null"
-              (change)="onToggle(feature, $event.checked)"
+              (change)="onToggle(feature, $event.source, $event.checked)"
               [attr.aria-label]="'Toggle ' + feature.key"
               data-testid="platform-feature-toggle">
             </mat-slide-toggle>
