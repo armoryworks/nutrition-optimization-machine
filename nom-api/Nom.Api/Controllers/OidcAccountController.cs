@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Nom.Api.Authentication;
 
 namespace Nom.Api.Controllers
 {
@@ -55,6 +56,12 @@ namespace Nom.Api.Controllers
             return Content(Page(returnUrl, "That email and password combination was not recognised."), "text/html");
         }
 
+        private static string RegisterHref(string? returnUrl)
+        {
+            var authorize = ConfirmationLink.AuthorizeReturnUrl(returnUrl);
+            return authorize is null ? "/register" : $"/register?returnUrl={Uri.EscapeDataString(authorize)}";
+        }
+
         private static string Page(string? returnUrl, string? error) => $$"""
             <!doctype html>
             <html lang="en">
@@ -68,7 +75,7 @@ namespace Nom.Api.Controllers
                 body { font: 16px/1.5 system-ui, sans-serif; display: grid; place-items: center;
                        min-height: 100vh; margin: 0; background: #f6f7f9; color: #16181d; }
                 @media (prefers-color-scheme: dark) { body { background: #16181d; color: #f6f7f9; } }
-                form { width: min(22rem, 90vw); display: grid; gap: .75rem; padding: 2rem;
+                form { box-sizing: border-box; width: min(22rem, 90vw); display: grid; gap: .75rem; padding: 2rem;
                        border-radius: .75rem; background: Canvas; box-shadow: 0 1px 3px #0002; }
                 h1 { font-size: 1.25rem; margin: 0 0 .5rem; }
                 label { display: grid; gap: .25rem; font-size: .875rem; }
@@ -78,6 +85,9 @@ namespace Nom.Api.Controllers
                          border-radius: .375rem; background: #1f6f4a; color: #fff; cursor: pointer; }
                 .error { font-size: .875rem; color: #b3261e; margin: 0; }
                 .note { font-size: .75rem; opacity: .7; margin: .5rem 0 0; }
+                .links { display: flex; justify-content: space-between; gap: 1rem; font-size: .875rem; margin: 0; }
+                a { color: #1f6f4a; }
+                @media (prefers-color-scheme: dark) { a { color: #7fd1a8; } }
               </style>
             </head>
             <body>
@@ -92,6 +102,10 @@ namespace Nom.Api.Controllers
                   <input name="password" type="password" autocomplete="current-password" required>
                 </label>
                 <button type="submit">Sign in</button>
+                <p class="links">
+                  <a href="{{WebUtility.HtmlEncode(RegisterHref(returnUrl))}}">Create account</a>
+                  <a href="/forgot-password">Forgot password?</a>
+                </p>
                 <p class="note">You are signing in to your NOM account. The application you
                 came from will receive your name, email address and permissions.</p>
               </form>

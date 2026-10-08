@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../core/services/auth.service';
+import { authorizeReturnUrl } from './oidc-return-url';
 
 @Component({
   selector: 'nom-confirm-email',
@@ -23,6 +24,7 @@ export class ConfirmEmail {
   loading = signal(true);
   success = signal(false);
   error = signal('');
+  returnUrl = signal<string | null>(null);
 
   constructor() {
     effect(() => {
@@ -31,6 +33,7 @@ export class ConfirmEmail {
 
       const userId = params['userId'];
       const token = params['token'];
+      this.returnUrl.set(authorizeReturnUrl(params['returnUrl']));
 
       if (!userId || !token) {
         this.error.set('Invalid confirmation link. Please check your email for the correct link.');

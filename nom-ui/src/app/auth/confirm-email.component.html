@@ -13,11 +13,19 @@
       </div>
       <div class="nom-form__card-header">
         <h1 class="nom-form__card-title">Email Confirmed</h1>
-        <p class="nom-form__card-subtitle">Your email has been confirmed. You can now sign in.</p>
+        @if (returnUrl(); as returnUrl) {
+          <p class="nom-form__card-subtitle">Your email has been confirmed. Sign in to continue where you left off.</p>
+        } @else {
+          <p class="nom-form__card-subtitle">Your email has been confirmed. You can now sign in.</p>
+        }
       </div>
       <div class="nom-form__card-content">
         <div class="nom-form__card-actions">
-          <a mat-flat-button routerLink="/login">Sign In</a>
+          @if (returnUrl(); as returnUrl) {
+            <a mat-flat-button [href]="returnUrl" data-testid="confirm-email-continue-btn">Continue</a>
+          } @else {
+            <a mat-flat-button routerLink="/login" data-testid="confirm-email-sign-in-btn">Sign In</a>
+          }
         </div>
       </div>
     } @else {
@@ -30,7 +38,7 @@
       </div>
       <div class="nom-form__card-content">
         <div class="nom-form__card-actions">
-          <a mat-flat-button routerLink="/login">Go to Sign In</a>
+          <a mat-flat-button routerLink="/login" data-testid="confirm-email-error-sign-in-btn">Go to Sign In</a>
         </div>
       </div>
     }

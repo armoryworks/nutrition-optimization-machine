@@ -520,7 +520,7 @@ app.MapPost("api/auth/register-custom", async (
     {
         var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
         var frontendUrl = frontendSettings.Value.Url;
-        var confirmLink = $"{frontendUrl}/confirm-email?userId={Uri.EscapeDataString(user.Id)}&token={Uri.EscapeDataString(token)}";
+        var confirmLink = ConfirmationLink.Build(frontendUrl, user.Id, token, request.ReturnUrl);
         await emailSender.SendConfirmationLinkAsync(user, request.Email, confirmLink);
         logger.LogInformation("Confirmation email sent to {Email}", request.Email);
     }

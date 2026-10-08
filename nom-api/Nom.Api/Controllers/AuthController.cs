@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Nom.Api.Authentication;
 using Nom.Api.Settings;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.UserManagement;
@@ -72,7 +73,7 @@ namespace Nom.Api.Controllers
             {
                 var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
                 var frontendUrl = frontendSettings.Value.Url;
-                var confirmLink = $"{frontendUrl}/confirm-email?userId={Uri.EscapeDataString(user.Id)}&token={Uri.EscapeDataString(token)}";
+                var confirmLink = ConfirmationLink.Build(frontendUrl, user.Id, token, request.ReturnUrl);
                 await emailSender.SendConfirmationLinkAsync(user, request.Email, confirmLink);
             }
 

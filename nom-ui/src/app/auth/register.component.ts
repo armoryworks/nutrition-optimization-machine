@@ -1,7 +1,7 @@
 import { Component, inject, signal, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -11,6 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../core/services/auth.service';
 import { LoadingService } from '../core/services/loading.service';
 import { HasUnsavedForm } from '../core/guards/unsaved-form.guard';
+import { authorizeReturnUrl } from './oidc-return-url';
 
 @Component({
   selector: 'nom-register',
@@ -32,6 +33,8 @@ export class Register implements HasUnsavedForm {
   private loadingService = inject(LoadingService);
   private fb = inject(FormBuilder);
   private destroyRef = inject(DestroyRef);
+
+  readonly returnUrl = authorizeReturnUrl(inject(ActivatedRoute).snapshot.queryParamMap.get('returnUrl'));
 
   registerForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -69,7 +72,7 @@ export class Register implements HasUnsavedForm {
     this.errorMessage.set('');
 
     const { email, password, fullName } = this.registerForm.getRawValue();
-    this.authService.register(email!, password!, fullName || undefined).pipe(
+    this.authService.register(email!, password!, fullName || undefined, this.returnUrl).pipe(
       this.loadingService.loading('Creating your account...'),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
@@ -88,7 +91,7 @@ export class Register implements HasUnsavedForm {
     const email = this.registeredEmail();
     if (!email) return;
 
-    this.authService.resendConfirmation(email).pipe(
+    this.authService.resendConfirmation(email, this.returnUrl).pipe(
       this.loadingService.loading('Resending confirmation email...'),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({

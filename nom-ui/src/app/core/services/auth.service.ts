@@ -60,12 +60,13 @@ export class AuthService {
     );
   }
 
-  register(email: string, password: string, fullName?: string): Observable<void> {
+  register(email: string, password: string, fullName?: string, returnUrl?: string | null): Observable<void> {
     return this.http.post<void>('/api/auth/register-custom', {
       email,
       password,
       confirmPassword: password,
       fullName: fullName || null,
+      returnUrl: returnUrl ?? null,
     });
   }
 
@@ -91,8 +92,8 @@ export class AuthService {
     return this.http.post<{ message: string }>('/api/auth/confirm-email', { userId, token });
   }
 
-  resendConfirmation(email: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>('/api/auth/resend-confirmation', { email });
+  resendConfirmation(email: string, returnUrl?: string | null): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>('/api/auth/resend-confirmation', { email, returnUrl: returnUrl ?? null });
   }
 
   logout(): Observable<void> {

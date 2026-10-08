@@ -29,7 +29,11 @@
         </div>
       </div>
       <div class="nom-register__footer">
-        <a routerLink="/login">Go to Sign In</a>
+        @if (returnUrl) {
+          <a [href]="returnUrl" data-testid="register-continue-sign-in-link">Already confirmed? Continue signing in</a>
+        } @else {
+          <a routerLink="/login" data-testid="register-go-sign-in-link">Go to Sign In</a>
+        }
       </div>
     </div>
   } @else {
@@ -55,7 +59,7 @@
           <div class="nom-form__fields">
             <mat-form-field appearance="outline">
               <mat-label>Email</mat-label>
-              <input matInput formControlName="email" type="email" autocomplete="email">
+              <input matInput formControlName="email" data-testid="register-email-input" type="email" autocomplete="email">
               <mat-icon matPrefix>email</mat-icon>
               @if (registerForm.get('email')?.hasError('email') && registerForm.get('email')?.touched) {
                 <mat-error>Enter a valid email address</mat-error>
@@ -64,19 +68,20 @@
 
             <mat-form-field appearance="outline">
               <mat-label>Full Name</mat-label>
-              <input matInput formControlName="fullName" type="text" autocomplete="name">
+              <input matInput formControlName="fullName" data-testid="register-full-name-input" type="text" autocomplete="name">
               <mat-icon matPrefix>person</mat-icon>
               <mat-hint>Optional</mat-hint>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>Password</mat-label>
-              <input matInput formControlName="password"
+              <input matInput formControlName="password" data-testid="register-password-input"
                      [type]="showPassword() ? 'text' : 'password'"
                      autocomplete="new-password">
               <mat-icon matPrefix>lock</mat-icon>
               <button mat-icon-button matSuffix type="button" tabindex="-1"
                       (click)="showPassword.set(!showPassword())"
+                      data-testid="register-toggle-password-btn"
                       [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
                 <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
               </button>
@@ -87,12 +92,13 @@
 
             <mat-form-field appearance="outline">
               <mat-label>Confirm Password</mat-label>
-              <input matInput formControlName="confirmPassword"
+              <input matInput formControlName="confirmPassword" data-testid="register-confirm-password-input"
                      [type]="showConfirmPassword() ? 'text' : 'password'"
                      autocomplete="new-password">
               <mat-icon matPrefix>lock_outline</mat-icon>
               <button mat-icon-button matSuffix type="button" tabindex="-1"
                       (click)="showConfirmPassword.set(!showConfirmPassword())"
+                      data-testid="register-toggle-confirm-password-btn"
                       [attr.aria-label]="showConfirmPassword() ? 'Hide password' : 'Show password'">
                 <mat-icon>{{ showConfirmPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
               </button>
@@ -117,7 +123,11 @@
       </div>
 
       <div class="nom-register__footer">
-        Already have an account? <a routerLink="/login">Sign in</a>
+        @if (returnUrl) {
+          Already have an account? <a [href]="returnUrl" data-testid="register-sign-in-link">Sign in</a>
+        } @else {
+          Already have an account? <a routerLink="/login" data-testid="register-sign-in-link">Sign in</a>
+        }
       </div>
     </div>
   }
