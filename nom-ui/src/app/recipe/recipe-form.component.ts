@@ -2,7 +2,7 @@ import { Component, ElementRef, QueryList, ViewChildren, inject, signal, compute
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormArray, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
+import { Subject, catchError, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -212,7 +212,9 @@ export class RecipeForm implements OnInit {
     subject.pipe(
       debounceTime(300),
       distinctUntilChanged(),
-      switchMap(query => query.length >= 2 ? this.ingredientService.searchIngredients(query) : of([])),
+      switchMap(query => query.length >= 2
+        ? this.ingredientService.searchIngredients(query).pipe(catchError(() => of([])))
+        : of([])),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe(results => {
       this.ingredientOptions.update(m => new Map(m).set(rowId, results));

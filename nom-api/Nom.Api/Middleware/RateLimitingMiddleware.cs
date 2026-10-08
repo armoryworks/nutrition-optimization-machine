@@ -21,7 +21,7 @@ namespace Nom.Api.Middleware
         private const int MaxRequestsPerMinute = 100;
         private const int MaxRequestsPerHour = 1000;
         private const int MaxRequestsPerDay = 10000;
-        private const int BurstLimit = 20; // Max requests in a short burst
+        private const int BurstLimit = 50; // Max requests in a short burst
 
         public RateLimitingMiddleware(RequestDelegate next, ILogger<RateLimitingMiddleware> logger, IMemoryCache cache)
         {
@@ -43,11 +43,12 @@ namespace Nom.Api.Middleware
             }
 
             // Check rate limits
-            if (!await CheckRateLimits(clientId, endpoint))
+            var retryAfter = await CheckRateLimits(clientId, endpoint);
+            if (retryAfter is not null)
             {
                 _logger.LogWarning("Rate limit exceeded for client {ClientId} on endpoint {Endpoint}", clientId, endpoint);
                 context.Response.StatusCode = 429; // Too Many Requests
-                context.Response.Headers.Append("Retry-After", "60"); // Retry after 1 minute
+                context.Response.Headers.Append("Retry-After", Math.Max(1, (int)Math.Ceiling(retryAfter.Value.TotalSeconds)).ToString());
                 await context.Response.WriteAsync("Rate limit exceeded. Please try again later.");
                 return;
             }
@@ -92,7 +93,7 @@ namespace Nom.Api.Middleware
             return Array.Exists(skipEndpoints, e => endpoint.StartsWith(e, StringComparison.OrdinalIgnoreCase));
         }
 
-        private async Task<bool> CheckRateLimits(string clientId, string endpoint)
+        private async Task<TimeSpan?> CheckRateLimits(string clientId, string endpoint)
         {
             var now = DateTime.UtcNow;
             var cacheKey = $"rate_limit:{clientId}:{endpoint}";
@@ -100,7 +101,7 @@ namespace Nom.Api.Middleware
             // Get or create rate limit info
             var rateLimitInfo = await _cache.GetOrCreateAsync(cacheKey, entry =>
             {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2);
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
                 return Task.FromResult(new RateLimitInfo
                 {
                     ClientId = clientId,
@@ -132,13 +133,13 @@ namespace Nom.Api.Middleware
             if (rateLimitInfo.BurstCount > BurstLimit)
             {
                 _logger.LogWarning("Burst limit exceeded for client {ClientId}", clientId);
-                return false;
+                return rateLimitInfo.BurstStartTime.AddSeconds(10) - now;
             }
 
             if (rateLimitInfo.RequestCount > MaxRequestsPerMinute)
             {
                 _logger.LogWarning("Minute rate limit exceeded for client {ClientId}", clientId);
-                return false;
+                return rateLimitInfo.FirstRequestTime.AddMinutes(1) - now;
             }
 
             // Check hourly limit
@@ -146,7 +147,7 @@ namespace Nom.Api.Middleware
             if (hourly.Count >= MaxRequestsPerHour)
             {
                 _logger.LogWarning("Hourly rate limit exceeded for client {ClientId}", clientId);
-                return false;
+                return hourly.ResetsAt - now;
             }
 
             // Check daily limit
@@ -154,13 +155,13 @@ namespace Nom.Api.Middleware
             if (daily.Count >= MaxRequestsPerDay)
             {
                 _logger.LogWarning("Daily rate limit exceeded for client {ClientId}", clientId);
-                return false;
+                return daily.ResetsAt - now;
             }
 
             Interlocked.Increment(ref hourly.Count);
             Interlocked.Increment(ref daily.Count);
 
-            return true;
+            return null;
         }
 
         private WindowCounter GetWindowCounter(string key, TimeSpan window)
@@ -168,13 +169,14 @@ namespace Nom.Api.Middleware
             return _cache.GetOrCreate(key, entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = window;
-                return new WindowCounter();
+                return new WindowCounter { ResetsAt = DateTime.UtcNow.Add(window) };
             })!;
         }
 
         private sealed class WindowCounter
         {
             public int Count;
+            public DateTime ResetsAt;
         }
 
         private int GetRemainingRequests(string clientId)

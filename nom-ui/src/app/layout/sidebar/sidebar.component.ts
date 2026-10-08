@@ -2,7 +2,7 @@ import { Component, inject, computed, effect, input, ChangeDetectionStrategy } f
 import { toLocalDateString } from '../../core/utils/local-date';
 import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { BehaviorSubject, filter, startWith, map, switchMap, of } from 'rxjs';
+import { BehaviorSubject, catchError, filter, startWith, map, switchMap, of } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -61,12 +61,14 @@ export class Sidebar {
 
   weekData = toSignal(
     this.refresh$.pipe(
-      switchMap(() => this.householdStore.getHouseholds()),
-      switchMap(list => {
-        if (list.length === 0) return of(null);
-        const monday = Sidebar.getMonday(new Date());
-        return this.mealPlanService.getWeek(list[0].id, monday);
-      }),
+      switchMap(() => this.householdStore.getHouseholds().pipe(
+        switchMap(list => {
+          if (list.length === 0) return of(null);
+          const monday = Sidebar.getMonday(new Date());
+          return this.mealPlanService.getWeek(list[0].id, monday);
+        }),
+        catchError(() => of(null)),
+      )),
     ),
     { initialValue: null as MealPlanWeekResponse | null },
   );

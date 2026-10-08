@@ -31,7 +31,7 @@ import { PantryItemResponse } from '../core/models/pantry-item-response.model';
 import { PantryItemCreateRequest } from '../core/models/pantry-item-create-request.model';
 import { IngredientSearchResult } from '../core/models/ingredient-search-result.model';
 import { MeasurementOption, foodUnits } from '../core/models/measurement.model';
-import { debounceTime, distinctUntilChanged, Subject, switchMap, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, Subject, switchMap, of } from 'rxjs';
 import { categorizeDepartment } from '../core/domain/shopping/departments';
 import { shelfLifeDaysFor } from '../core/domain/shopping/shelf-life';
 import { formatQuantity } from '../core/domain/shopping/unit-conversion';
@@ -159,7 +159,7 @@ export class PantryComponent implements OnInit {
         distinctUntilChanged(),
         switchMap((query) => {
           if (query.length < 2) return of([]);
-          return this.ingredientService.searchIngredients(query);
+          return this.ingredientService.searchIngredients(query).pipe(catchError(() => of([])));
         }),
         takeUntilDestroyed(this.destroyRef),
       )

@@ -80,7 +80,7 @@
       <nom-error-banner [message]="errorMessage()" />
     }
 
-    @if (!hasHousehold()) {
+    @if (householdsLoaded() && !hasHousehold()) {
       <div class="nom-dashboard__empty" data-testid="plan-empty">
         <mat-icon class="nom-dashboard__empty-icon">home</mat-icon>
         <h2 class="nom-dashboard__empty-title">Let's get you set up</h2>
@@ -88,7 +88,7 @@
           message="Set up your kitchen to start planning meals."
           (created)="onHouseholdCreated()" />
       </div>
-    } @else if (loading() && !weekData()) {
+    } @else if (!errorMessage() && (!householdsLoaded() || (loading() && !weekData()))) {
       <div class="nom-plan__loading">
         <mat-spinner diameter="40"></mat-spinner>
       </div>

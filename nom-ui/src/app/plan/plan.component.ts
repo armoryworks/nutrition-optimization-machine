@@ -95,6 +95,7 @@ export class Plan implements OnInit {
 
   // Calendar mode state
   households = signal<HouseholdResponseModel[]>([]);
+  householdsLoaded = signal(false);
   activeHouseholdId = signal<number | null>(null);
   weekData = signal<MealPlanWeekResponse | null>(null);
   currentWeekStart = signal<string>(Plan.getMonday(new Date()));
@@ -449,6 +450,7 @@ export class Plan implements OnInit {
     ).subscribe({
       next: (list) => {
         this.households.set(list);
+        this.householdsLoaded.set(true);
         if (list.length > 0) {
           this.activeHouseholdId.set(list[0].id);
           this.policyService.loadOwnPolicy(list[0].id);
@@ -456,7 +458,7 @@ export class Plan implements OnInit {
           this.loadWeek();
         }
       },
-      error: () => {},
+      error: () => this.errorMessage.set('Unable to load your household.'),
     });
   }
 

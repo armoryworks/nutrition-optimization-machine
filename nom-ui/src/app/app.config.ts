@@ -10,6 +10,7 @@ import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/ht
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { policyErrorInterceptor } from './core/interceptors/policy-error.interceptor';
+import { rateLimitInterceptor } from './core/interceptors/rate-limit.interceptor';
 
 import { routes } from './app.routes';
 
@@ -22,7 +23,7 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({ scrollPositionRestoration: 'enabled' }),
       withPreloading(PreloadAllModules)
     ),
-    provideHttpClient(withXhr(), withInterceptors([authInterceptor, policyErrorInterceptor])),
+    provideHttpClient(withXhr(), withInterceptors([authInterceptor, policyErrorInterceptor, rateLimitInterceptor])),
     provideAnimationsAsync(),
   ],
 };
