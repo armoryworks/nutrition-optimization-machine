@@ -1,7 +1,7 @@
 import { Component, inject, signal, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -11,6 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { AdminService } from '../core/services/admin.service';
 import { DishGroupService } from '../core/services/dish-group.service';
 import { CurationQueueItem } from '../core/models/curation-queue-item.model';
@@ -23,6 +24,7 @@ import { CurationStatus } from '../core/models/food-catalog.model';
   selector: 'nom-curation-queue',
   imports: [
     DatePipe,
+    DecimalPipe,
     RouterLink,
     ReactiveFormsModule,
     MatButtonModule,
@@ -40,13 +42,14 @@ export class CurationQueue implements OnInit {
   private dishGroupService = inject(DishGroupService);
   private foodCatalogService = inject(FoodCatalogService);
   private loadingService = inject(LoadingService);
+  private snackBar = inject(MatSnackBar);
   private destroyRef = inject(DestroyRef);
 
   items = signal<CurationQueueItem[]>([]);
   loading = signal(true);
   processing = signal(false);
   errorMessage = signal('');
-  expandedId = signal<number | null>(null);
+  expandedKey = signal<string | null>(null);
   feedbackNotes = new FormControl('');
 
   // Dish-group control (recipes only): autocomplete existing groups or free-text create.
@@ -63,8 +66,20 @@ export class CurationQueue implements OnInit {
     });
   }
 
+  itemKey(item: CurationQueueItem): string {
+    return `${item.entityType}:${item.id}`;
+  }
+
+  itemIcon(item: CurationQueueItem): string {
+    switch (item.entityType) {
+      case 'Recipe': return 'restaurant_menu';
+      case 'Plan': return 'calendar_month';
+      default: return 'shopping_basket';
+    }
+  }
+
   expand(item: CurationQueueItem): void {
-    this.expandedId.set(item.id);
+    this.expandedKey.set(this.itemKey(item));
     this.dishGroupControl.setValue('');
     this.dishGroupSaved.set(false);
   }
@@ -166,10 +181,11 @@ export class CurationQueue implements OnInit {
       decisionNotes: this.feedbackNotes.value ?? '',
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
-        this.items.update(list => list.filter(i => i.id !== item.id));
-        this.expandedId.set(null);
+        this.items.update(list => list.filter(i => this.itemKey(i) !== this.itemKey(item)));
+        this.expandedKey.set(null);
         this.feedbackNotes.setValue('');
         this.processing.set(false);
+        this.snackBar.open(`Approved "${item.name}"`, undefined, { duration: 3000 });
       },
       error: (err: unknown) => {
         const apiMessage = (err as { error?: { message?: string } } | undefined)?.error?.message;
@@ -188,8 +204,8 @@ export class CurationQueue implements OnInit {
       decisionNotes: this.feedbackNotes.value ?? '',
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
-        this.items.update(list => list.filter(i => i.id !== item.id));
-        this.expandedId.set(null);
+        this.items.update(list => list.filter(i => this.itemKey(i) !== this.itemKey(item)));
+        this.expandedKey.set(null);
         this.feedbackNotes.setValue('');
         this.processing.set(false);
       },
@@ -210,8 +226,8 @@ export class CurationQueue implements OnInit {
       decisionNotes: this.feedbackNotes.value ?? '',
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
-        this.items.update(list => list.filter(i => i.id !== item.id));
-        this.expandedId.set(null);
+        this.items.update(list => list.filter(i => this.itemKey(i) !== this.itemKey(item)));
+        this.expandedKey.set(null);
         this.feedbackNotes.setValue('');
         this.processing.set(false);
       },

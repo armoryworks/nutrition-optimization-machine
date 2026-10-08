@@ -6,10 +6,14 @@
         Back to Admin
       </a>
       <h1 class="nom-dashboard__title">Curation Queue</h1>
-      <span class="nom-dashboard__subtitle">{{ items().length }} items pending review</span>
+      <span class="nom-dashboard__subtitle" data-testid="curation-count">{{ items().length }} items pending review</span>
+      <span class="nom-curation__catalog-hint" data-testid="curation-catalog-hint">
+        Imported catalog foods are reviewed in
+        <a routerLink="/admin/food-catalog" data-testid="curation-food-catalog-link">Food Catalog</a>.
+      </span>
     </div>
     <div class="nom-dashboard__header-right">
-      <button mat-icon-button (click)="loadQueue()" aria-label="Refresh">
+      <button mat-icon-button (click)="loadQueue()" aria-label="Refresh" data-testid="curation-refresh-btn">
         <mat-icon>refresh</mat-icon>
       </button>
     </div>
@@ -31,12 +35,10 @@
     </div>
   } @else {
     <div class="nom-curation__list" data-testid="curation-list">
-      @for (item of items(); track item.id) {
+      @for (item of items(); track itemKey(item)) {
         <div class="nom-curation__item" data-testid="curation-item">
           <div class="nom-curation__item-header">
-            <mat-icon class="nom-curation__item-icon">
-              {{ item.entityType === 'Recipe' ? 'restaurant_menu' : 'egg' }}
-            </mat-icon>
+            <mat-icon class="nom-curation__item-icon">{{ itemIcon(item) }}</mat-icon>
             <div class="nom-curation__item-info">
               <span class="nom-curation__item-name">{{ item.name }}</span>
               <span class="nom-curation__item-meta">
@@ -57,7 +59,31 @@
             </span>
           </div>
 
-          @if (expandedId() === item.id) {
+          @if (expandedKey() === itemKey(item)) {
+            @if (item.entityType === 'Ingredient') {
+              <dl class="nom-curation__nutrition" data-testid="curation-ingredient-nutrition">
+                <div class="nom-curation__nutrition-cell">
+                  <dt>Food group</dt>
+                  <dd>{{ item.foodGroupName || 'Unclassified' }}</dd>
+                </div>
+                <div class="nom-curation__nutrition-cell">
+                  <dt>kcal / 100 g</dt>
+                  <dd>{{ item.caloriesPer100g != null ? (item.caloriesPer100g | number:'1.0-0') : '—' }}</dd>
+                </div>
+                <div class="nom-curation__nutrition-cell">
+                  <dt>Protein</dt>
+                  <dd>{{ item.proteinPer100g != null ? (item.proteinPer100g | number:'1.0-1') + ' g' : '—' }}</dd>
+                </div>
+                <div class="nom-curation__nutrition-cell">
+                  <dt>Carbs</dt>
+                  <dd>{{ item.carbPer100g != null ? (item.carbPer100g | number:'1.0-1') + ' g' : '—' }}</dd>
+                </div>
+                <div class="nom-curation__nutrition-cell">
+                  <dt>Fat</dt>
+                  <dd>{{ item.fatPer100g != null ? (item.fatPer100g | number:'1.0-1') + ' g' : '—' }}</dd>
+                </div>
+              </dl>
+            }
             @if (vettingIssueList(item).length > 0) {
               <div class="nom-curation__vetting">
                 <span class="nom-curation__vetting-title">Vetting issues</span>
@@ -131,7 +157,7 @@
             <div class="nom-curation__item-actions">
               <mat-form-field appearance="outline" class="nom-curation__notes-field">
                 <mat-label>Feedback Notes</mat-label>
-                <textarea matInput [formControl]="feedbackNotes" rows="2" placeholder="Optional notes for the author..."></textarea>
+                <textarea matInput [formControl]="feedbackNotes" rows="2" placeholder="Optional notes for the author..." data-testid="curation-notes-input"></textarea>
               </mat-form-field>
               <div class="nom-curation__action-buttons">
                 <button mat-button class="nom-btn--destructive" data-testid="curation-reject-btn" (click)="reject(item)" [disabled]="processing()">
@@ -139,11 +165,13 @@
                   Reject
                 </button>
                 <span class="nom-curation__spacer"></span>
-                <button mat-button (click)="expandedId.set(null)">Cancel</button>
-                <button mat-stroked-button data-testid="curation-revision-btn" (click)="requestRevision(item)" [disabled]="processing()">
-                  <mat-icon>edit_note</mat-icon>
-                  Request Revision
-                </button>
+                <button mat-button (click)="expandedKey.set(null)" data-testid="curation-cancel-btn">Cancel</button>
+                @if (item.authorId) {
+                  <button mat-stroked-button data-testid="curation-revision-btn" (click)="requestRevision(item)" [disabled]="processing()">
+                    <mat-icon>edit_note</mat-icon>
+                    Request Revision
+                  </button>
+                }
                 <button mat-flat-button data-testid="curation-approve-btn" (click)="approve(item)" [disabled]="processing()">
                   <mat-icon>check</mat-icon>
                   Approve

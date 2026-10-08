@@ -214,3 +214,36 @@
   font-size: vars.$font-size-xs;
   color: var(--mat-sys-on-surface-variant);
 }
+
+.nom-curation__catalog-hint {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+
+  a {
+    color: var(--mat-sys-primary);
+  }
+}
+
+.nom-curation__nutrition {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: vars.$spacing-2;
+  margin: vars.$spacing-3 0 0;
+
+  dt {
+    font-size: vars.$font-size-xs;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+    font-weight: vars.$font-weight-semibold;
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+.nom-curation__nutrition-cell {
+  padding: vars.$spacing-2;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+}

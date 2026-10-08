@@ -83,22 +83,30 @@ namespace Nom.Orch.Services
             queueItems.AddRange(pendingRecipes);
 
             // Get pending ingredients
-            var pendingIngredients = await _db.Ingredients
+            var pendingIngredientRows = await _db.Ingredients
                 .Include(i => i.Author)
-                .Include(i => i.CurationStatus)
-                .Where(i => i.CurationStatusId == (long)CurationStatusEnum.PendingCuration)
-                .Select(i => new CurationQueueItemModel
-                {
-                    Id = i.Id,
-                    EntityType = "Ingredient",
-                    Name = i.Name,
-                    AuthorName = i.Author!.Name,
-                    DateSubmitted = i.CreatedDate,
-                    Description = i.Description,
-                    AuthorId = i.AuthorId ?? 0,
-                    Status = "PendingCuration"
-                })
+                .Include(i => i.FoodGroup)
+                .Include(i => i.IngredientNutrients).ThenInclude(n => n.Nutrient)
+                .Where(i => i.CurationStatusId == (long)CurationStatusEnum.PendingCuration
+                            && !(i.FdcId != null && i.AuthorId == null))
                 .ToListAsync();
+
+            var pendingIngredients = pendingIngredientRows.Select(i => new CurationQueueItemModel
+            {
+                Id = i.Id,
+                EntityType = "Ingredient",
+                Name = i.Name,
+                AuthorName = i.Author?.Name ?? string.Empty,
+                DateSubmitted = i.CreatedDate,
+                Description = i.Description,
+                AuthorId = i.AuthorId ?? 0,
+                Status = "PendingCuration",
+                FoodGroupName = i.FoodGroup?.Name,
+                CaloriesPer100g = FoodCatalogReviewService.Amount(i, FoodCatalogReviewService.CalorieNames),
+                ProteinPer100g = FoodCatalogReviewService.Amount(i, FoodCatalogReviewService.ProteinNames),
+                CarbPer100g = FoodCatalogReviewService.Amount(i, FoodCatalogReviewService.CarbNames),
+                FatPer100g = FoodCatalogReviewService.Amount(i, FoodCatalogReviewService.FatNames)
+            });
 
             queueItems.AddRange(pendingIngredients);
 

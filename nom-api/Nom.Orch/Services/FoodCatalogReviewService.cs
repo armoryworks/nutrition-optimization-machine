@@ -32,10 +32,10 @@ namespace Nom.Orch.Services
             _audit = audit;
         }
 
-        private static readonly string[] CalorieNames = { "energy", "calories", "kcal" };
-        private static readonly string[] ProteinNames = { "protein" };
-        private static readonly string[] CarbNames = { "carbohydrate", "carbs" };
-        private static readonly string[] FatNames = { "total lipid", "fat" };
+        internal static readonly string[] CalorieNames = { "energy", "calories", "kcal" };
+        internal static readonly string[] ProteinNames = { "protein" };
+        internal static readonly string[] CarbNames = { "carbohydrate", "carbs" };
+        internal static readonly string[] FatNames = { "total lipid", "fat" };
 
         public async Task<FoodCatalogPageModel> GetPageAsync(
             string? source, long? status, long? foodGroupId, string? search, int page, int pageSize)
@@ -107,7 +107,7 @@ namespace Nom.Orch.Services
             FatPer100g = Amount(i, FatNames),
         };
 
-        private static decimal? Amount(Nom.Data.Recipe.IngredientEntity ing, string[] patterns) =>
+        internal static decimal? Amount(Nom.Data.Recipe.IngredientEntity ing, string[] patterns) =>
             ing.IngredientNutrients
                 .FirstOrDefault(n => n.Nutrient != null
                     && patterns.Any(p => n.Nutrient.Name.Contains(p, StringComparison.OrdinalIgnoreCase)))

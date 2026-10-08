@@ -22,6 +22,13 @@ export interface CurationQueueItem {
   sourceImageUrl?: string | null;
   /** Recipes only: ingredients still blocking approval (approval is refused while non-empty). */
   uncuratedIngredients?: CurationBlockingIngredient[];
+  /** Ingredients only: nutritional food group, null when unclassified. */
+  foodGroupName?: string | null;
+  /** Ingredients only: per-100 g nutrition, null when not recorded. */
+  caloriesPer100g?: number | null;
+  proteinPer100g?: number | null;
+  carbPer100g?: number | null;
+  fatPer100g?: number | null;
 }
 
 export interface CurationBlockingIngredient {

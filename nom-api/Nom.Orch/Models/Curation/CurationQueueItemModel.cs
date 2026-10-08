@@ -31,6 +31,21 @@ namespace Nom.Orch.Models.Curation
         /// is non-empty, so the admin sees the blockers up-front and can approve them first.
         /// </summary>
         public List<CurationBlockingIngredientModel> UncuratedIngredients { get; set; } = new();
+
+        /// <summary>Ingredients only: nutritional food group name, null when unclassified.</summary>
+        public string? FoodGroupName { get; set; }
+
+        /// <summary>Ingredients only: energy per 100 g, null when not recorded.</summary>
+        public decimal? CaloriesPer100g { get; set; }
+
+        /// <summary>Ingredients only: protein grams per 100 g.</summary>
+        public decimal? ProteinPer100g { get; set; }
+
+        /// <summary>Ingredients only: carbohydrate grams per 100 g.</summary>
+        public decimal? CarbPer100g { get; set; }
+
+        /// <summary>Ingredients only: fat grams per 100 g.</summary>
+        public decimal? FatPer100g { get; set; }
     }
 
     public class CurationBlockingIngredientModel
