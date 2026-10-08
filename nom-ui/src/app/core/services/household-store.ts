@@ -1,4 +1,4 @@
-import { Injectable, effect, inject } from '@angular/core';
+import { Injectable, effect, inject, untracked } from '@angular/core';
 import { BehaviorSubject, Observable, catchError, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
 import { HouseholdService } from './household.service';
 import { AuthService } from './auth.service';
@@ -28,14 +28,17 @@ export class HouseholdStore {
 
   /** Reactive household list — re-emits automatically after any invalidate(). Lazy. */
   readonly households$reactive: Observable<HouseholdResponseModel[]> = this.reload$.pipe(
-    switchMap(() => this.householdService.getHouseholds().pipe(catchError(() => of([])))),
+    switchMap(() => this.getHouseholds().pipe(catchError(() => of([])))),
     shareReplay({ bufferSize: 1, refCount: true }),
   );
 
   constructor() {
     // A different user must never see a cached household list.
+    let wasLoggedIn = untracked(this.authService.isLoggedIn);
     effect(() => {
-      this.authService.isLoggedIn();
+      const isLoggedIn = this.authService.isLoggedIn();
+      if (isLoggedIn === wasLoggedIn) return;
+      wasLoggedIn = isLoggedIn;
       this.invalidate();
     });
   }
@@ -45,7 +48,7 @@ export class HouseholdStore {
       this.households$ = this.householdService.getHouseholds().pipe(
         catchError((err) => {
           // Do not cache failures; the next call retries.
-          this.invalidate();
+          this.households$ = null;
           return throwError(() => err);
         }),
         shareReplay({ bufferSize: 1, refCount: false }),

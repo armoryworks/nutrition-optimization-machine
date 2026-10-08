@@ -46,4 +46,27 @@ describe('HouseholdStore', () => {
     store.getHouseholds().subscribe();
     http.expectOne(r => r.url.endsWith('/Household')).flush([]);
   });
+
+  it('shares one request between the reactive stream and getHouseholds()', () => {
+    const reactive: unknown[] = [];
+    store.households$reactive.subscribe(r => reactive.push(r));
+    store.getHouseholds().subscribe();
+    TestBed.tick();
+
+    http.expectOne(r => r.url.endsWith('/Household')).flush([{ id: 1, name: 'Home' }]);
+    http.expectNone(r => r.url.endsWith('/Household'));
+    expect(reactive).toEqual([[{ id: 1, name: 'Home' }]]);
+  });
+
+  it('refetches the reactive stream once after invalidate()', () => {
+    const reactive: unknown[] = [];
+    store.households$reactive.subscribe(r => reactive.push(r));
+    http.expectOne(r => r.url.endsWith('/Household')).flush([]);
+
+    store.invalidate();
+    http.expectOne(r => r.url.endsWith('/Household')).flush([{ id: 2, name: 'New' }]);
+    store.getHouseholds().subscribe();
+    http.expectNone(r => r.url.endsWith('/Household'));
+    expect(reactive).toEqual([[], [{ id: 2, name: 'New' }]]);
+  });
 });
