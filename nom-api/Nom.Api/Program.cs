@@ -27,13 +27,15 @@ using Nom.Api.Settings;
 using Nom.Orch.Settings;
 using Microsoft.AspNetCore.DataProtection;
 using Serilog;
+using Serilog.Events;
 using Nom.Orch.Services.Measurement;
 using OpenIddict.Abstractions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, loggerConfig) =>
-    loggerConfig.ReadFrom.Configuration(context.Configuration)
+    loggerConfig.MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+        .ReadFrom.Configuration(context.Configuration)
         .Enrich.FromLogContext()
         .Enrich.WithProperty("Application", "NomApi")
         .WriteTo.Console()
