@@ -57,6 +57,7 @@ namespace Nom.Api.Services
             var taggedSinceLog = 0;
             while (!stoppingToken.IsCancellationRequested)
             {
+                if (!await AiQuietHours.WaitAsync(_configuration, _logger, stoppingToken)) return;
                 var delay = pause;
                 try
                 {

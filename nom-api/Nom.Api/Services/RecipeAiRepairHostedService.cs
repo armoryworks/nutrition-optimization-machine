@@ -56,6 +56,7 @@ namespace Nom.Api.Services
             int split = 0, filled = 0, cleared = 0;
             while (!stoppingToken.IsCancellationRequested)
             {
+                if (!await AiQuietHours.WaitAsync(_configuration, _logger, stoppingToken)) return;
                 var delay = pause;
                 try
                 {

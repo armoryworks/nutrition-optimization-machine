@@ -265,5 +265,17 @@ namespace Nom.Api.Tests.Services.Curation
             (await db.Recipes.SingleAsync()).CurationStatusId.Should().Be((long)CurationStatusEnum.RequiresRevision);
             (await db.CurationFeedbacks.SingleAsync()).FeedbackTypeId.Should().Be(9202);
         }
+
+        [Fact]
+        public void Every_line_but_seasoning_and_garnish_needs_a_quantity()
+        {
+            var missing = PublicDomain();
+            missing.RecipeIngredients!.Add(Line(103, "butter", 0m, true));
+            RecipeAutoApprovalPolicy.Evaluate(missing).Reason.Should().Be("1 ingredient line(s) have no quantity");
+
+            var seasoning = PublicDomain();
+            seasoning.RecipeIngredients!.Add(Line(103, "a little salt", 0m, true));
+            RecipeAutoApprovalPolicy.Evaluate(seasoning).Eligible.Should().BeTrue();
+        }
     }
 }

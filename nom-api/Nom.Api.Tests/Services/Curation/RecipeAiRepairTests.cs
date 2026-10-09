@@ -26,14 +26,14 @@ namespace Nom.Api.Tests.Services.Curation
     public class RecipeAiRepairTests
     {
         private const string Method =
-            "Take a pound of flour, rub into it half a pound of butter, and add a little salt. " +
+            "Take a pound of flour, rub into it half a pound of butter, and add a little sugar. " +
             "Beat two eggs with a gill of milk and mix it with the flour into a stiff paste. " +
             "Roll it out thin, cut it into small cakes, and prick them with a fork. " +
             "Bake them in a quick oven for about a quarter of an hour.";
 
         private static readonly string[] ModelSteps =
         {
-            "Take a pound of flour, rub into it half a pound of butter, and add a little salt.",
+            "Take a pound of flour, rub into it half a pound of butter, and add a little sugar.",
             "Beat two eggs with a gill of milk and mix it with the flour into a stiff paste.",
             "Roll it out thin, cut it into small cakes, and prick them with a fork.",
             "Bake them in a quick oven for about a quarter of an hour.",
@@ -43,7 +43,7 @@ namespace Nom.Api.Tests.Services.Curation
         {
             [0] = "a pound of flour",
             [1] = "half a pound of butter",
-            [2] = "a little salt",
+            [2] = "a little sugar",
             [3] = "two eggs",
             [4] = "a gill of milk",
         };
@@ -86,7 +86,7 @@ namespace Nom.Api.Tests.Services.Curation
 
         private static RecipeEntity ShrewsburyCakes(long id = 10)
         {
-            var lines = new[] { "flour", "butter", "a little salt", "eggs", "milk" };
+            var lines = new[] { "flour", "butter", "sugar", "eggs", "milk" };
             var recipe = new RecipeEntity
             {
                 Id = id,
@@ -122,7 +122,7 @@ namespace Nom.Api.Tests.Services.Curation
 
             result.StepsSplit.Should().Be(1);
             result.QuantitiesFilled.Should().Be(4);
-            result.ProposalsRejected.Should().Be(1, "\"a little salt\" states no amount");
+            result.ProposalsRejected.Should().Be(1, "\"a little sugar\" states no amount");
             result.Cleared.Should().Be(1);
 
             var recipe = await db.Recipes.Include(r => r.RecipeSteps).Include(r => r.RecipeIngredients).SingleAsync();
@@ -135,8 +135,8 @@ namespace Nom.Api.Tests.Services.Curation
             (byLine["butter"].Quantity, byLine["butter"].MeasurementId).Should().Be((0.5m, 14L));
             (byLine["eggs"].Quantity, byLine["eggs"].MeasurementId).Should().Be((2m, 3L));
             (byLine["milk"].Quantity, byLine["milk"].MeasurementId).Should().Be((0.5m, 11L));
-            byLine["a little salt"].Quantity.Should().Be(0);
-            byLine.Keys.Should().BeEquivalentTo(new[] { "flour", "butter", "a little salt", "eggs", "milk" }, "RawLine is never touched");
+            byLine["sugar"].Quantity.Should().Be(0);
+            byLine.Keys.Should().BeEquivalentTo(new[] { "flour", "butter", "sugar", "eggs", "milk" }, "RawLine is never touched");
 
             var audit = await db.AuditLogEntries.ToListAsync();
             audit.Should().ContainSingle(a => a.PropertyName == "RecipeSteps" && a.OldValue == Method);
