@@ -411,6 +411,13 @@ namespace Nom.Orch.Services
         private async Task<RecipeEntity> CreateRecipeFromScrapedDataAsync(
             ScraperRecipe scraped, string? sourceUrl, bool importKeywordsAsTags)
         {
+            foreach (var ingredient in scraped.Ingredients)
+            {
+                var parsed = Support.IngredientLineParser.Normalize(ingredient.Quantity, ingredient.Unit, ingredient.RawLine);
+                ingredient.Quantity = parsed?.Quantity;
+                ingredient.Unit = parsed?.MeasurementName;
+            }
+
             var vettingIssues = await _vetting.VetAsync(scraped);
             var personId = _currentUser.PersonId;
 
