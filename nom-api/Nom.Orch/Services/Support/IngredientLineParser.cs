@@ -42,6 +42,7 @@ namespace Nom.Orch.Services.Support
             (new[] { "gallons", "gallon", "gal" }, "Cup", 16m),
             (new[] { "quarts", "quart", "qt" }, "Cup", 4m),
             (new[] { "pints", "pint", "pt" }, "Cup", 2m),
+            (new[] { "gills", "gill" }, "Cup", 0.5m),
             (new[] { "cupfuls", "cupful", "cups", "cup", "c" }, "Cup", 1m),
             (new[] { "cloves", "clove" }, "Clove", 1m),
             (new[] { "cans", "can", "tins", "tin" }, "Can", 1m),

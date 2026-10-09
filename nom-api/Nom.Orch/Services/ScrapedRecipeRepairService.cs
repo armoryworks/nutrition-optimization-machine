@@ -85,7 +85,7 @@ namespace Nom.Orch.Services
             return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id);
         }
 
-        private static ScraperRecipe ToVettable(Nom.Data.Recipe.RecipeEntity recipe) => new()
+        internal static ScraperRecipe ToVettable(Nom.Data.Recipe.RecipeEntity recipe) => new()
         {
             Name = recipe.Name,
             PrepTimeMinutes = recipe.PrepTimeMinutes is long prep ? (int)Math.Min(prep, int.MaxValue) : null,

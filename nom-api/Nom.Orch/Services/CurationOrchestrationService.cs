@@ -214,15 +214,9 @@ namespace Nom.Orch.Services
                 if (recipe == null)
                     throw new ArgumentException($"Recipe with ID {request.EntityId} not found");
 
-                // Check if all ingredients are curated
-                var uncuratedIngredients = recipe.RecipeIngredients?
-                    .Where(ri => ri.Ingredient != null && ri.Ingredient.CurationStatusId != (long)CurationStatusEnum.Curated)
-                    .Select(ri => ri.Ingredient?.Name ?? "Unknown")
-                    .ToList() ?? new List<string>();
-
-                if (uncuratedIngredients.Any())
+                if (Support.RecipeApprovalGate.RefusalReason(recipe) is { } refusal)
                 {
-                    throw new InvalidOperationException($"Cannot approve recipe: The following ingredients are not curated: {string.Join(", ", uncuratedIngredients)}");
+                    throw new InvalidOperationException(refusal);
                 }
 
                 recipe.CurationStatusId = (long)CurationStatusEnum.Curated;

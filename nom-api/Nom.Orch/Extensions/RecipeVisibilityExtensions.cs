@@ -17,7 +17,7 @@ namespace Nom.Orch.Extensions
     {
         /// <summary>
         /// Filters to recipes the given person may see:
-        ///  - Public + Approved curation (the public pool; anonymous callers get only this),
+        ///  - Public + Approved curation without verbatim source prose (the public pool; anonymous callers get only this),
         ///  - their own recipes (any visibility, any curation),
         ///  - Household-visibility recipes authored within their households,
         ///  - Audience-visibility recipes scoped to an audience containing one of their households,
@@ -41,7 +41,8 @@ namespace Nom.Orch.Extensions
             {
                 return recipes.Where(r =>
                     r.Visibility == RecipeVisibilityEnum.Public
-                    && r.CurationStatus!.Name == "Approved");
+                    && r.CurationStatus!.Name == "Approved"
+                    && !r.ContainsSourceProse);
             }
 
             var pid = personId.Value;
@@ -56,7 +57,7 @@ namespace Nom.Orch.Extensions
 
             return recipes.Where(r =>
                 // The public pool.
-                (r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved")
+                (r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved" && !r.ContainsSourceProse)
                 // Admin preview: vetted-but-uncurated public recipes, while the platform switch is on.
                 || (nonCuratedPreview && r.Visibility == RecipeVisibilityEnum.Public
                     && r.CurationStatusId == (long)CurationStatusEnum.NonCurated)

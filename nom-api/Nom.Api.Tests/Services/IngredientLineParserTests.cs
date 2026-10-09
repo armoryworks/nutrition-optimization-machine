@@ -26,6 +26,7 @@ namespace Nom.Api.Tests.Services
         [InlineData("1 T butter", 1, "Tablespoon")]
         [InlineData("1 t salt", 1, "Teaspoon")]
         [InlineData("1 quart chicken stock", 4, "Cup")]
+        [InlineData("a gill of cream", 0.5, "Cup")]
         [InlineData("8 fl oz milk", 236.588, "Milliliter")]
         [InlineData("2 sticks unsalted butter", 2, "Piece")]
         [InlineData("500g chicken thighs", 500, "Gram")]
