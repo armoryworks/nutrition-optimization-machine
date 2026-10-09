@@ -33,6 +33,18 @@ namespace Nom.Api.Tests.Services
         [InlineData("2 Cups Rice", 2, "Cup")]
         [InlineData("3 tomatoes", 3, "Piece")]
         [InlineData("1 lemon, juiced", 1, "Piece")]
+        [InlineData("a pint of boiling water", 2, "Cup")]
+        [InlineData("one well-beaten egg", 1, "Piece")]
+        [InlineData("two cups of sugar", 2, "Cup")]
+        [InlineData("One and one-half pounds of flour", 1.5, "Pound")]
+        [InlineData("one third of a cup of gelatine", 0.333, "Cup")]
+        [InlineData("1 teaspoonful salt", 1, "Teaspoon")]
+        [InlineData("1-1/2 cups of powdered sugar", 1.5, "Cup")]
+        [InlineData("Zucchero rosso, grammi 100.", 100, "Gram")]
+        [InlineData("Ricotta (or half ricotta and half cacio raviggiolo), 180 grams.", 180, "Gram")]
+        [InlineData("Farina di granturco (grammi 200)", 200, "Gram")]
+        [InlineData("&frac34; teaspoon ground ginger", 0.75, "Teaspoon")]
+        [InlineData("Pinch of ground cinnamon (optional)", 1, "Pinch")]
         public void Recovers_quantity_and_measurement(string line, double quantity, string measurement)
         {
             var parsed = IngredientLineParser.Parse(line);
@@ -45,6 +57,9 @@ namespace Nom.Api.Tests.Services
         [InlineData("salt, to taste")]
         [InlineData("flaky sea salt (for topping)")]
         [InlineData("fresh basil leaves")]
+        [InlineData("a little salt and cayenne")]
+        [InlineData("a few sprigs of thyme")]
+        [InlineData("Kosher salt and black pepper, (to taste)")]
         [InlineData("2")]
         [InlineData("")]
         [InlineData(null)]
