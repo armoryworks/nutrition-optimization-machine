@@ -44,8 +44,25 @@ namespace Nom.Api.Controllers
             // Visibility filtering keys off the requester, never the body.
             searchModel.RequesterPersonId = GetCurrentPersonId();
 
+            if (searchModel.CookableForHouseholdId is long householdId && !IsHouseholdMember(householdId))
+            {
+                return Forbid();
+            }
+
             var results = await _searchOrchestrationService.SearchRecipesAsync(searchModel);
             return Ok(results);
+        }
+
+        /// <summary>
+        /// Get the choices the search filter panel offers: meal types, courses and kitchen tools.
+        /// Anonymous access allowed.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet("filter-options")]
+        [ProducesResponseType(typeof(RecipeSearchFilterOptionsModel), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetFilterOptions()
+        {
+            return Ok(await _searchOrchestrationService.GetFilterOptionsAsync());
         }
 
         /// <summary>

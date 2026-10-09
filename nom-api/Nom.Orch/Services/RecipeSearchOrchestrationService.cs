@@ -2,9 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Recipe;
+using Nom.Data.Reference;
 using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
+using Nom.Orch.Services.Support;
 using System.Linq;
 
 namespace Nom.Orch.Services
@@ -29,8 +31,13 @@ namespace Nom.Orch.Services
             // Apply filters
             query = ApplySearchFilters(query, searchModel);
 
+            if (searchModel.CookableForHouseholdId is long householdId)
+            {
+                query = await RestrictToCookableAsync(query, householdId);
+            }
+
             // Apply sorting
-            query = ApplySorting(query, searchModel.SortBy, searchModel.SortDirection);
+            query = ApplySorting(query, searchModel);
 
             // Get total count for pagination
             var totalCount = await query.CountAsync();
@@ -54,6 +61,57 @@ namespace Nom.Orch.Services
                 PageSize = searchModel.PageSize,
                 TotalPages = (int)Math.Ceiling((double)totalCount / searchModel.PageSize)
             };
+        }
+
+        public async Task<RecipeSearchFilterOptionsModel> GetFilterOptionsAsync()
+        {
+            var tools = await new KitchenToolService(_context).GetToolSetAsync();
+            return new RecipeSearchFilterOptionsModel
+            {
+                MealTypes = await GetReferenceOptionsAsync(ReferenceDiscriminatorEnum.MealType),
+                Courses = await GetReferenceOptionsAsync(ReferenceDiscriminatorEnum.RecipeType),
+                KitchenTools = tools.Values
+                    .GroupBy(t => t.Category)
+                    .OrderBy(g => g.Min(t => t.Id))
+                    .SelectMany(g => g.OrderBy(t => t.Name))
+                    .Select(t => new RecipeSearchFilterOptionModel { Id = t.Id, Name = t.Name, Group = t.Category })
+                    .ToList(),
+            };
+        }
+
+        private Task<List<RecipeSearchFilterOptionModel>> GetReferenceOptionsAsync(ReferenceDiscriminatorEnum group)
+        {
+            return _context.Set<ReferenceEntity>()
+                .AsNoTracking()
+                .Where(r => !r.IsDeleted && r.Groups!.Any(g => g.Id == (long)group))
+                .OrderBy(r => r.Id)
+                .Select(r => new RecipeSearchFilterOptionModel { Id = r.Id, Name = r.Name })
+                .ToListAsync();
+        }
+
+        private async Task<IQueryable<RecipeEntity>> RestrictToCookableAsync(IQueryable<RecipeEntity> query, long householdId)
+        {
+            var kitchen = new KitchenToolService(_context);
+            var tools = await kitchen.GetToolSetAsync();
+            var owned = await kitchen.GetOwnedToolIdsAsync(householdId, tools);
+
+            var candidates = await query
+                .Select(r => new
+                {
+                    r.Id,
+                    r.Name,
+                    Linked = r.RecipeTools!.Select(t => new LinkedTool(t.ToolId, t.Source)).ToList(),
+                    Steps = r.RecipeSteps!.Select(s => s.Summary + " " + s.Description).ToList(),
+                })
+                .ToListAsync();
+
+            var cookableIds = candidates
+                .Where(c => KitchenToolEvaluator.Evaluate(
+                    KitchenToolEvaluator.RequiredTools(c.Linked, c.Name, c.Steps, tools), owned, tools).Fit != KitchenToolFit.Missing)
+                .Select(c => c.Id)
+                .ToList();
+
+            return query.Where(r => cookableIds.Contains(r.Id));
         }
 
         public async Task<List<string>> GetSearchSuggestionsAsync(string query)
@@ -418,10 +476,15 @@ namespace Nom.Orch.Services
                 query = query.Where(r => r.RecipeTypes!.Any(rc => searchModel.CuisineTypeIds!.Contains(rc.Id)));
             }
 
+            if (searchModel.RecipeTypeIds != null && searchModel.RecipeTypeIds.Any())
+            {
+                query = query.Where(r => r.RecipeTypes!.Any(rt => searchModel.RecipeTypeIds!.Contains(rt.Id)));
+            }
+
             // Rating filter
             if (searchModel.MinRating.HasValue)
             {
-                query = query.Where(r => r.Ratings!.Average(rating => rating.Rating) >= searchModel.MinRating.Value);
+                query = query.Where(r => r.Ratings!.Average(rating => (decimal?)rating.Rating) >= searchModel.MinRating.Value);
             }
 
             // Time filters
@@ -437,7 +500,8 @@ namespace Nom.Orch.Services
 
             if (searchModel.MaxTotalTime.HasValue)
             {
-                query = query.Where(r => (r.PrepTimeMinutes + r.CookTimeMinutes) <= searchModel.MaxTotalTime.Value);
+                query = query.Where(r => (r.PrepTimeMinutes != null || r.CookTimeMinutes != null)
+                    && (r.PrepTimeMinutes ?? 0) + (r.CookTimeMinutes ?? 0) <= searchModel.MaxTotalTime.Value);
             }
 
             // Visibility is ALWAYS applied — the requester (or anonymous) sees
@@ -456,19 +520,55 @@ namespace Nom.Orch.Services
             return query;
         }
 
-        private IQueryable<RecipeEntity> ApplySorting(IQueryable<RecipeEntity> query, string? sortBy, string? sortDirection)
+        private static IQueryable<RecipeEntity> ApplySorting(IQueryable<RecipeEntity> query, RecipeSearchModel searchModel)
         {
-            var isDescending = sortDirection?.ToLower() == "desc";
+            var isDescending = searchModel.SortDirection?.ToLower() == "desc";
 
-            return sortBy?.ToLower() switch
+            IOrderedQueryable<RecipeEntity> sorted = searchModel.SortBy?.ToLower() switch
             {
+                "relevance" => SortByRelevance(query, searchModel.Query),
                 "name" => isDescending ? query.OrderByDescending(r => r.Name) : query.OrderBy(r => r.Name),
-                "rating" => isDescending ? query.OrderByDescending(r => r.Ratings!.Average(rating => rating.Rating)) : query.OrderBy(r => r.Ratings!.Average(rating => rating.Rating)),
+                "rating" => SortByRating(query, isDescending),
                 "date" => isDescending ? query.OrderByDescending(r => r.CreatedDate) : query.OrderBy(r => r.CreatedDate),
+                "newest" => query.OrderByDescending(r => r.CreatedDate),
+                "quickest" => query
+                    .OrderBy(r => r.PrepTimeMinutes == null && r.CookTimeMinutes == null ? 1 : 0)
+                    .ThenBy(r => (r.PrepTimeMinutes ?? 0) + (r.CookTimeMinutes ?? 0)),
+                "ingredients" => query
+                    .OrderBy(r => r.RecipeIngredients!.Any() ? 0 : 1)
+                    .ThenBy(r => r.RecipeIngredients!.Count),
                 "preptime" => isDescending ? query.OrderByDescending(r => r.PrepTimeMinutes) : query.OrderBy(r => r.PrepTimeMinutes),
                 "cooktime" => isDescending ? query.OrderByDescending(r => r.CookTimeMinutes) : query.OrderBy(r => r.CookTimeMinutes),
                 _ => query.OrderByDescending(r => r.CreatedDate) // Default sort
             };
+
+            return sorted.ThenBy(r => r.Id);
+        }
+
+        private static IOrderedQueryable<RecipeEntity> SortByRelevance(IQueryable<RecipeEntity> query, string? text)
+        {
+            var term = text?.Trim().ToLower();
+            var ranked = string.IsNullOrEmpty(term)
+                ? query.OrderByDescending(r => r.Ratings!.Count)
+                : query
+                    .OrderBy(r => r.Name.ToLower() == term ? 0
+                        : r.Name.ToLower().StartsWith(term) ? 1
+                        : r.Name.ToLower().Contains(term) ? 2
+                        : 3)
+                    .ThenByDescending(r => r.Ratings!.Count);
+
+            return ranked
+                .ThenByDescending(r => r.Ratings!.Average(rating => (decimal?)rating.Rating) ?? 0)
+                .ThenByDescending(r => r.CreatedDate);
+        }
+
+        private static IOrderedQueryable<RecipeEntity> SortByRating(IQueryable<RecipeEntity> query, bool isDescending)
+        {
+            var rated = query.OrderBy(r => r.Ratings!.Any() ? 0 : 1);
+            var byAverage = isDescending
+                ? rated.ThenByDescending(r => r.Ratings!.Average(rating => (decimal?)rating.Rating))
+                : rated.ThenBy(r => r.Ratings!.Average(rating => (decimal?)rating.Rating));
+            return byAverage.ThenByDescending(r => r.Ratings!.Count);
         }
 
         private IQueryable<RecipeEntity> IncludeRelatedData(IQueryable<RecipeEntity> query, RecipeSearchModel searchModel)
