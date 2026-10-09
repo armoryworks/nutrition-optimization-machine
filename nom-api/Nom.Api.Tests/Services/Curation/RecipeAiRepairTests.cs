@@ -264,7 +264,7 @@ namespace Nom.Api.Tests.Services.Curation
         [Fact]
         public void An_amount_in_the_line_itself_counts()
         {
-            RecipeRepairGrounding.GroundQuantity("Flour, one pound of the finest", "flour", "Flour, one pound", Array.Empty<string>()).Should().BeNull("the parser needs the amount first");
+            RecipeRepairGrounding.GroundQuantity("Flour, one pound of the finest", "flour", "Flour, one pound", Array.Empty<string>()).Should().Be(new ParsedQuantity(1m, "Pound"));
             RecipeRepairGrounding.GroundQuantity("Of flour, a pound", "flour", "a pound", Array.Empty<string>()).Should().BeNull("the quote must name the ingredient");
             RecipeRepairGrounding.GroundQuantity("the yolks of three eggs", "egg", "three eggs", Array.Empty<string>()).Should().Be(new ParsedQuantity(3m, "Piece"));
         }

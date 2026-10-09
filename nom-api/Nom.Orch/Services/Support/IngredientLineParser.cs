@@ -31,7 +31,13 @@ namespace Nom.Orch.Services.Support
         private static readonly (string[] Forms, string Measurement, decimal Factor)[] Units =
         {
             (new[] { "tablespoonfuls", "tablespoonful", "tablespoons", "tablespoon", "tbsps", "tbsp", "tbs", "tbl", "spoonfuls", "spoonful", "T" }, "Tablespoon", 1m),
-            (new[] { "teaspoonfuls", "teaspoonful", "teaspoons", "teaspoon", "tsps", "tsp", "t" }, "Teaspoon", 1m),
+            (new[] { "teaspoonfuls", "teaspoonful", "teaspoons", "teaspoon", "tsps", "tsp", "t", "cucchiaini", "cucchiaino" }, "Teaspoon", 1m),
+            (new[] { "dessertspoonfuls", "dessertspoonful", "dessertspoons", "dessertspoon" }, "Teaspoon", 2m),
+            (new[] { "cucchiaiate", "cucchiaiata", "cucchiai", "cucchiaio" }, "Tablespoon", 1m),
+            (new[] { "decilitri", "decilitro", "dl" }, "Milliliter", 100m),
+            (new[] { "bicchieri", "bicchiere" }, "Cup", 1m),
+            (new[] { "spicchi", "spicchio" }, "Clove", 1m),
+            (new[] { "pizzichi", "pizzico", "prese", "presa" }, "Pinch", 1m),
             (new[] { "fluid ounces", "fluid ounce", "fl oz", "fl. oz." }, "Milliliter", 29.5735m),
             (new[] { "ounces", "ounce", "oz" }, "Ounce", 1m),
             (new[] { "pounds", "pound", "lbs", "lb" }, "Pound", 1m),
@@ -63,7 +69,7 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex LineRegex = new(
             @"^\s*(?<qty>\d+\s+\d+\s*/\s*\d+|\d+\s*/\s*\d+|\d+(?:\.\d+)?\s*[" + Fractions + @"]|[" + Fractions + @"]|\d+(?:[.,]\d+)?)" +
-            @"(?:\s*(?:-|–|to)\s*(?:\d+(?:[.,]\d+)?|[" + Fractions + @"]))?" +
+            @"(?:\s*(?:-|–|to|or|o)\s*(?:\d+(?:[.,]\d+)?|[" + Fractions + @"]))?" +
             @"\s*(?<unit>(?:" + UnitPattern + @")(?![a-z]))?\.?(?<rest>.*)$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
@@ -97,7 +103,112 @@ namespace Nom.Orch.Services.Support
         public static ParsedQuantity? Parse(string? rawLine)
         {
             if (string.IsNullOrWhiteSpace(rawLine)) return null;
+            if (ParseLeading(rawLine) is { } leading) return leading;
 
+            var spelled = SpellOut(System.Net.WebUtility.HtmlDecode(rawLine).Trim());
+            if (ParseLeading(spelled) is { } respelled) return respelled;
+
+            var of = PartOf.Match(spelled);
+            if (of.Success && ParseQuantity(of.Groups["qty"].Value) is > 0 and var count) return new ParsedQuantity(Round(of.Groups["dozen"].Success ? count * 12 : count), Piece);
+
+            var after = AfterName.Match(spelled);
+            if (after.Success && ParseQuantity(after.Groups["qty"].Value) is > 0 and var amount)
+            {
+                return after.Groups["unit"].Success ? FromUnit(amount, after.Groups["unit"].Value) : new ParsedQuantity(Round(amount), Piece);
+            }
+            return null;
+        }
+
+        private static readonly (Regex Pattern, string Replacement)[] Respellings =
+        {
+            (new Regex(@"\btable-?spoons?-?fulls?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "tablespoonfuls"),
+            (new Regex(@"\btea-?spoons?-?fulls?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "teaspoonfuls"),
+            (new Regex(@"\bspoon-?fulls?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "spoonfuls"),
+            (new Regex(@"\bcup-?fulls?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "cupfuls"),
+            (new Regex(@"\bhand-?fulls?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "handfuls"),
+            (new Regex(@"^\s*(?:from|about|nearly|scant|full|fully|good|generous|heaping|rounded|level|fully)\s+", RegexOptions.Compiled | RegexOptions.IgnoreCase), ""),
+            (new Regex(@"\b(?<p>dessert|table|tea)?spoonsful\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "${p}spoonfuls"),
+            (new Regex(@"\bdessert-?spoons?-?fulls?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "dessertspoonfuls"),
+            (new Regex(@"\bhalf[- ]a[- ]dozen\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "6"),
+            (new Regex(@"^\s*dozen\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1 dozen"),
+            (new Regex(@"^\s*(?:a\s+)?third\s+of\s+an?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1/3"),
+            (new Regex(@"\bquarter[- ](?=(?:pound|pint|ounce|cup)s?\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1/4 "),
+            (new Regex(@"^\s*(?<n>\d+|one|two|three|four|five|six|seven|eight|nine|ten|twelve|twenty)-(?=(?:pound|quart|pint|ounce|inch|gallon|lb|oz)\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1 ${n}-"),
+            (new Regex(@"\bun\s+quarto\s+di\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1/4 di"),
+            (new Regex(@"\b(?:un|uno|una|un')\s+(?!po[co']|pochino|poca)(?=\p{L})", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1 "),
+            (new Regex(@"^\s*(?<unit>grammi|grammo|decilitri|litri|chilogrammi)\s+(?<q>\d+(?:[.,]\d+)?)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "${q} ${unit}"),
+            (new Regex(@"\b(?:a\s+)?quarter\s+of\s+an?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1/4"),
+            (new Regex(@"\bhalf[- ](?:an?[- ])?(?=(?:pound|pint|quart|cup|ounce|gill|gallon|dozen|teaspoon|tablespoon)s?\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1/2 "),
+            (new Regex(@"(?<![\p{L}\d]\s)(?<=^\s*|\ba\s|[,(]\s?)(?:a\s+)?(?<unit>pound|pint|quart|cup|ounce|gill)s?\s+and\s+a\s+half\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1 1/2 ${unit}"),
+            (new Regex(@"\b(?:mezz[oa]|half)[- ]an?\b|\bmezz[oa]\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1/2"),
+        };
+
+        private static readonly Dictionary<string, int> Ones = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["one"] = 1, ["two"] = 2, ["three"] = 3, ["four"] = 4, ["five"] = 5, ["six"] = 6, ["seven"] = 7, ["eight"] = 8, ["nine"] = 9,
+            ["ten"] = 10, ["eleven"] = 11, ["twelve"] = 12, ["thirteen"] = 13, ["fourteen"] = 14, ["fifteen"] = 15, ["sixteen"] = 16,
+            ["seventeen"] = 17, ["eighteen"] = 18, ["nineteen"] = 19,
+            ["due"] = 2, ["tre"] = 3, ["quattro"] = 4, ["cinque"] = 5, ["sei"] = 6, ["sette"] = 7, ["otto"] = 8, ["nove"] = 9,
+            ["dieci"] = 10, ["dodici"] = 12,
+        };
+
+        private static readonly Dictionary<string, int> Tens = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["twenty"] = 20, ["thirty"] = 30, ["forty"] = 40, ["fifty"] = 50, ["sixty"] = 60, ["seventy"] = 70, ["eighty"] = 80, ["ninety"] = 90,
+        };
+
+        private static readonly Dictionary<string, int> Denominators = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["half"] = 2, ["halves"] = 2, ["third"] = 3, ["thirds"] = 3, ["fourth"] = 4, ["fourths"] = 4, ["quarter"] = 4, ["quarters"] = 4,
+            ["fifth"] = 5, ["fifths"] = 5, ["sixth"] = 6, ["sixths"] = 6, ["eighth"] = 8, ["eighths"] = 8,
+        };
+
+        private static readonly Regex FractionWords = new(
+            @"\b(?<n>one|two|three|four|five|six|seven|a)[- ](?<d>halves|half|thirds?|fourths?|quarters?|fifths?|sixths?|eighths?)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex CompoundNumber = new(
+            @"\b(?<t>twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[- ](?<o>one|two|three|four|five|six|seven|eight|nine))?\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex OnesWord = new(
+            @"\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|due|tre|quattro|cinque|sei|sette|otto|nove|dieci|dodici)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex NumberedAndAHalf = new(
+            @"\b(?<q>\d+)\s+(?<unit>pound|pint|quart|cup|ounce|gill)s?\s+and\s+(?:a\s+half|1/2)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex AndFraction = new(@"\b(?<w>\d+)\s+and\s+(?:a\s+)?(?<f>\d+/\d+|half|quarter)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static string SpellOut(string line)
+        {
+            foreach (var (pattern, replacement) in Respellings) line = pattern.Replace(line, replacement);
+            line = FractionWords.Replace(line, m =>
+                $"{(m.Groups["n"].Value.Equals("a", StringComparison.OrdinalIgnoreCase) ? 1 : Ones[m.Groups["n"].Value])}/{Denominators[m.Groups["d"].Value]}");
+            line = CompoundNumber.Replace(line, m => (Tens[m.Groups["t"].Value] + (m.Groups["o"].Success ? Ones[m.Groups["o"].Value] : 0)).ToString(CultureInfo.InvariantCulture));
+            line = OnesWord.Replace(line, m => Ones[m.Value].ToString(CultureInfo.InvariantCulture));
+            line = NumberedAndAHalf.Replace(line, "${q} 1/2 ${unit}s");
+            line = AndFraction.Replace(line, m => m.Groups["w"].Value + " " + m.Groups["f"].Value.ToLowerInvariant() switch
+            {
+                "half" => "1/2",
+                "quarter" => "1/4",
+                var f => f,
+            });
+            return Regex.Replace(line, @"\b(?<q>[\d/ ]*\d)\s+of\s+an?\s+(?=\p{L})", "${q} ");
+        }
+
+        private const string QuantityText = @"\d+\s+\d+/\d+|\d+/\d+|\d+(?:[.,]\d+)?";
+
+        private static readonly Regex PartOf = new(
+            @"^\s*(?:the\s+)?(?:[\p{L}-]+\s+){0,3}?(?:juice|yolks?|whites?|peel|rinds?|zest|fillets?|meat|flesh|leaves|hearts?|livers?|tongues?|breasts?|legs?|wings?|soft\s+part|sugo)\s+(?:of|di)\s+(?:about\s+)?(?<qty>" + QuantityText + @")\s+(?<dozen>dozen\s+(?:of\s+)?)?(?:[\p{L}-]+\s+){0,3}\p{L}",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex AfterName = new(
+            @"^\s*\p{L}[^\d(]*?(?:,\s*|\(\s*|\s)(?<qty>" + QuantityText + @")\s*(?:(?<unit>(?:" + UnitPattern + @"))(?![a-z])\.?)?\s*\)?\s*\.?\s*$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static ParsedQuantity? ParseLeading(string rawLine)
+        {
             var line = HyphenatedMixed.Replace(System.Net.WebUtility.HtmlDecode(rawLine).Trim(), "$1 $2");
             if (UnitFirst.IsMatch(line)) line = "1 " + line;
             var words = LeadingWords.Match(line);
@@ -116,7 +227,7 @@ namespace Nom.Orch.Services.Support
             }
 
             var match = LineRegex.Match(line);
-            if (!match.Success || match.Groups["rest"].Value.Trim().Length == 0) return null;
+            if (!match.Success || (match.Groups["rest"].Value.Trim().Length == 0 && !match.Groups["unit"].Success)) return null;
 
             var quantity = ParseQuantity(match.Groups["qty"].Value);
             if (quantity is not > 0) return null;
