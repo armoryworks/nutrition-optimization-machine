@@ -7,13 +7,16 @@ namespace Nom.Data.Nutrition
     /// Per-100g nutrition facts for one candidate food, pre-validation. Per-100g is the stable,
     /// person-independent fact; the actual serving a person eats is derived per-person from their
     /// caloric need (like portions), so it is intentionally NOT part of quality validation.
+    /// <see cref="UsedInSmallAmounts"/> marks seasonings and leaveners (by source category), whose
+    /// energy is negligible in a dish and whose fiber, acids and alcohol defeat the Atwater check.
     /// </summary>
     public sealed record FoodQualityInput(
         string? Name,
         decimal? KcalPer100g,
         decimal? ProteinGramsPer100g,
         decimal? CarbGramsPer100g,
-        decimal? FatGramsPer100g);
+        decimal? FatGramsPer100g,
+        bool UsedInSmallAmounts = false);
 
     /// <summary>Outcome of quality validation; <see cref="Reasons"/> lists every failed check.</summary>
     public sealed record FoodQualityResult(bool Accepted, IReadOnlyList<string> Reasons)
@@ -87,7 +90,7 @@ namespace Nom.Data.Nutrition
                 reasons.Add("macro_sum_impossible");
 
             // Atwater cross-check (only when we have all macros + a usable calorie figure)
-            if (f.KcalPer100g is { } k && k >= AtwaterMinKcal
+            if (!f.UsedInSmallAmounts && f.KcalPer100g is { } k && k >= AtwaterMinKcal
                 && f.ProteinGramsPer100g is { } pr && f.CarbGramsPer100g is { } cb && f.FatGramsPer100g is { } ft
                 && pr >= 0 && cb >= 0 && ft >= 0)
             {

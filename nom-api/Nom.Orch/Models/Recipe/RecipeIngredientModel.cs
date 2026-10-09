@@ -26,5 +26,8 @@ namespace Nom.Orch.Models.Recipe
         public string? Measurement { get; set; }
 
         public string? Notes { get; set; }
+
+        /// <summary>The line's mass in grams, from the unit (mass), the food's density (volume) or its reference portion (count); null when unknown.</summary>
+        public decimal? Grams { get; set; }
     }
 }

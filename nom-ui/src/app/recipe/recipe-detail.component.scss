@@ -301,6 +301,12 @@
   font-style: italic;
 }
 
+.nom-recipe__ingredient-mass {
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+  margin-right: 0.25em;
+}
+
 // Steps list
 .nom-recipe__steps {
   padding-left: vars.$spacing-5;

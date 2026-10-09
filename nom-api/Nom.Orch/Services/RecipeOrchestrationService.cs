@@ -365,6 +365,7 @@ namespace Nom.Orch.Services
                     Name = ri.Ingredient?.Name ?? string.Empty,
                     Measurement = ri.Measurement?.Name ?? string.Empty,
                     Notes = ri.RawLine,
+                    Grams = RoundGrams(RecipeNutritionService.GramsFor(ri)),
                     SubIngredients = ri.Ingredient?.Components?
                         .OrderBy(c => c.SortOrder)
                         .Select(c => c.ComponentIngredient?.Name ?? string.Empty)
@@ -379,7 +380,8 @@ namespace Nom.Orch.Services
                             Quantity = ri.Quantity * s.Ratio,
                             Measurement = ri.Measurement?.Name ?? string.Empty,
                             MeasurementId = ri.MeasurementId,
-                            Notes = s.Notes
+                            Notes = s.Notes,
+                            Grams = RoundGrams(RecipeNutritionService.GramsFor(ri.Quantity * s.Ratio, ri.Measurement, s.SubstituteIngredient)),
                         }).ToList() ?? new List<IngredientSubstitutionModel>()
                 }).ToList() ?? new List<RecipeIngredientModel>(),
                 Variation = variation,
@@ -953,6 +955,8 @@ namespace Nom.Orch.Services
 
             return result;
         }
+
+        private static decimal? RoundGrams(decimal? grams) => grams is { } g ? Math.Round(g, 1) : null;
 
         private static List<IngredientAliasModel> MapAliases(IngredientEntity ingredient) =>
             ingredient.Aliases

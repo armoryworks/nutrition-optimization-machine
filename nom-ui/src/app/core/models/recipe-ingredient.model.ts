@@ -9,6 +9,8 @@ export interface IngredientSubstitutionModel {
   measurement?: string;
   measurementId?: number;
   notes?: string;
+  /** The substitute's mass at this quantity, when known. */
+  grams?: number | null;
   /** Step alterations carried by a recipe-scoped substitution, when it has any. */
   stepEffects?: RecipeSubstitutionStepEffectModel[];
 }
@@ -24,4 +26,6 @@ export interface RecipeIngredientModel {
   subIngredients?: string[];
   /** Curated swap options for this line. */
   substitutions?: IngredientSubstitutionModel[];
+  /** The line's mass in grams, when known. */
+  grams?: number | null;
 }

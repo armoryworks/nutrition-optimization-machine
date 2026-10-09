@@ -39,9 +39,9 @@ namespace Nom.Api.Tests.Services.Recipe
             await db.SaveChangesAsync();
         }
 
-        private static async Task<long> SeedRecipeAsync(ApplicationDbContext db, long? servings, decimal qty, long measurementId, decimal? referenceGrams = null)
+        private static async Task<long> SeedRecipeAsync(ApplicationDbContext db, long? servings, decimal qty, long measurementId, decimal? referenceGrams = null, decimal? gramsPerMl = null)
         {
-            var chicken = new IngredientEntity { Name = "Chicken", CurationStatusId = 9003, ReferenceServingGrams = referenceGrams };
+            var chicken = new IngredientEntity { Name = "Chicken", CurationStatusId = 9003, ReferenceServingGrams = referenceGrams, GramsPerMilliliter = gramsPerMl };
             db.Ingredients.Add(chicken);
             await db.SaveChangesAsync();
             db.IngredientNutrients.AddRange(
@@ -73,7 +73,7 @@ namespace Nom.Api.Tests.Services.Recipe
         }
 
         [Fact]
-        public async Task Count_ingredient_needs_a_reference_serving_and_volume_assumes_1g_per_ml()
+        public async Task Count_needs_a_reference_serving_and_volume_needs_a_density()
         {
             using var db = NewContext();
             await SeedReferenceAsync(db);
@@ -85,10 +85,13 @@ namespace Nom.Api.Tests.Services.Recipe
             (await svc.RecalculateAsync(withRef)).Should().Be(2);
             (await db.RecipeNutrition.SingleAsync(n => n.RecipeId == withRef && n.NutrientId == Calories)).Amount.Should().Be(495m); // 165 × 3
 
-            var cup = await SeedRecipeAsync(db, servings: 1, qty: 1m, measurementId: Cup);
+            var cupNoDensity = await SeedRecipeAsync(db, servings: 1, qty: 1m, measurementId: Cup);
+            (await svc.RecalculateAsync(cupNoDensity)).Should().Be(0, "a volume with no GramsPerMilliliter has no mass");
+
+            var cup = await SeedRecipeAsync(db, servings: 1, qty: 1m, measurementId: Cup, gramsPerMl: 0.5m);
             (await svc.RecalculateAsync(cup)).Should().Be(2);
             (await db.RecipeNutrition.SingleAsync(n => n.RecipeId == cup && n.NutrientId == Protein)).Amount
-                .Should().BeApproximately(73.3423m, 0.001m); // 31 × 236.588 ÷ 100
+                .Should().BeApproximately(36.6711m, 0.001m);
         }
 
         [Fact]

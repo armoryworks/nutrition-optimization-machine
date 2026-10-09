@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
+using Nom.Data.Measurement;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 
@@ -15,7 +16,7 @@ namespace Nom.Orch.Services
     ///
     /// Grams per recipe ingredient come from the measurement's category:
     ///   Mass   → quantity × factor-to-grams
-    ///   Volume → quantity × factor-to-ml, at 1 g/ml (no per-food density yet — a stated approximation)
+    ///   Volume → quantity × factor-to-ml × Ingredient.GramsPerMilliliter (skipped when unknown)
     ///   Count  → quantity × factor × Ingredient.ReferenceServingGrams (skipped when unknown)
     /// Ingredients without nutrition or without a gram conversion contribute nothing; if
     /// nothing contributes, existing rows are left alone. Rows written here carry
@@ -118,20 +119,22 @@ namespace Nom.Orch.Services
             return totals.Count;
         }
 
-        public static decimal? GramsFor(RecipeIngredientEntity ri)
+        public static decimal? GramsFor(RecipeIngredientEntity ri) => GramsFor(ri.Quantity, ri.Measurement, ri.Ingredient);
+
+        public static decimal? GramsFor(decimal quantity, MeasurementEntity? m, IngredientEntity? ingredient)
         {
-            var m = ri.Measurement;
             if (m == null) return null;
             var factor = m.BaseUnitConversionFactor ?? 1m;
             switch (m.MeasurementCategoryId)
             {
                 case CategoryMass:
-                    return ri.Quantity * factor;
+                    return quantity * factor;
                 case CategoryVolume:
-                    return ri.Quantity * factor; // ml ≈ g
+                    var density = ingredient?.GramsPerMilliliter;
+                    return density is > 0 ? quantity * factor * density.Value : null;
                 case CategoryCount:
-                    var per = ri.Ingredient?.ReferenceServingGrams;
-                    return per is > 0 ? ri.Quantity * factor * per.Value : null;
+                    var per = ingredient?.ReferenceServingGrams;
+                    return per is > 0 ? quantity * factor * per.Value : null;
                 default:
                     return null;
             }

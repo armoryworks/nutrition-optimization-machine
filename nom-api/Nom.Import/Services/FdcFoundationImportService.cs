@@ -123,7 +123,9 @@ namespace Nom.Import.Services
             var foods = ReadFoods(foodCsv, dataType);                 // fdc_id → (desc, categoryId)
             var nutrients = ReadFoodNutrients(nutrientCsv, foods.Keys.ToHashSet()); // fdc_id → macros
 
-            var portions = ReadPortions(TryFindFile(csvDir, "food_portion.csv"), foods.Keys.ToHashSet());
+            var portionCsv = TryFindFile(csvDir, "food_portion.csv");
+            var portions = ReadPortions(portionCsv, foods.Keys.ToHashSet());
+            var densities = ReadDensities(portionCsv, foods.Keys.ToHashSet());
             var nutrientIds = await ResolveNutrientIdsAsync(ct);
             var (gramId, kcalId) = await ResolveMeasurementIdsAsync(ct);
 
@@ -141,7 +143,7 @@ namespace Nom.Import.Services
             var attachRequested = (await _db.FoodCatalogProposals
                 .Where(p => p.Field == AttachField && p.IngredientId != null)
                 .Select(p => p.IngredientId!.Value).ToListAsync(ct)).ToHashSet();
-            var attach = new List<(long IngredientId, string FdcId, string Name, Macros Macros, decimal? Serving)>();
+            var attach = new List<(long IngredientId, string FdcId, string Name, Macros Macros, decimal? Serving, decimal? Density)>();
 
             var report = new ImportReport { TotalFoundation = foods.Count };
             var pendingNutrition = new List<(IngredientEntity Ingredient, Macros Macros)>();
@@ -159,7 +161,7 @@ namespace Nom.Import.Services
                 if (!nutrients.TryGetValue(fdcId, out var m)) { report.RejectedByReason["nutrients_missing"] = report.RejectedByReason.GetValueOrDefault("nutrients_missing") + 1; report.Rejected++; continue; }
 
                 var result = _validator.Validate(new FoodQualityInput(
-                    food.Description, m.Kcal, m.Protein, m.Carb, m.Fat));
+                    food.Description, m.Kcal, m.Protein, m.Carb, m.Fat, UsedInSmallAmounts(food)));
                 if (!result.Accepted)
                 {
                     report.Rejected++;
@@ -174,7 +176,7 @@ namespace Nom.Import.Services
                     report.SkippedDuplicateName++;
                     if (catalogByName.TryGetValue(name.ToLowerInvariant(), out var same) && same.FdcId == null && attachRequested.Add(same.Id))
                     {
-                        attach.Add((same.Id, fdcId, name, m, portions.TryGetValue(fdcId, out var sg) ? sg : null));
+                        attach.Add((same.Id, fdcId, name, m, portions.TryGetValue(fdcId, out var sg) ? sg : null, densities.TryGetValue(fdcId, out var sd) ? sd : null));
                     }
                     continue;
                 }
@@ -194,12 +196,14 @@ namespace Nom.Import.Services
                     // NOTE: must be TryGetValue — GetValueOrDefault on a decimal dictionary yields
                     // 0, which would silently zero out the food's nutrition.
                     ReferenceServingGrams = portions.TryGetValue(fdcId, out var refGrams) ? refGrams : null,
+                    GramsPerMilliliter = densities.TryGetValue(fdcId, out var density) ? density : null,
                     CreatedDate = DateTime.UtcNow,
                 };
 
                 _db.Ingredients.Add(ingredient);
                 pendingNutrition.Add((ingredient, m));
                 if (ingredient.ReferenceServingGrams.HasValue) report.WithReferenceServing++;
+                if (ingredient.GramsPerMilliliter.HasValue) report.WithDensity++;
 
                 report.Accepted++;
                 if (group.HasValue) report.Classified++;
@@ -244,7 +248,20 @@ namespace Nom.Import.Services
                     Fill("added_sugars", gramId, m.AddedSugars);
                 }
             }
-            foreach (var (ingredientId, fdc, name, m, serving) in attach)
+            var densityBackfill = existingByFdc
+                .Where(e => densities.ContainsKey(e.Key))
+                .ToDictionary(e => e.Value, e => densities[e.Key]);
+            if (densityBackfill.Count > 0)
+            {
+                var ids = densityBackfill.Keys.ToList();
+                foreach (var ing in await _db.Ingredients.Where(i => ids.Contains(i.Id) && i.GramsPerMilliliter == null).ToListAsync(ct))
+                {
+                    ing.GramsPerMilliliter = densityBackfill[ing.Id];
+                    report.BackfilledDensities++;
+                }
+            }
+
+            foreach (var (ingredientId, fdc, name, m, serving, density) in attach)
             {
                 var facts = new List<object>();
                 void Fact(string key, long measurementId, decimal? amount)
@@ -266,7 +283,7 @@ namespace Nom.Import.Services
                     FdcId = fdc,
                     Field = AttachField,
                     CurrentValue = name,
-                    ProposedValue = System.Text.Json.JsonSerializer.Serialize(new { fdcDataType = dataType, referenceServingGrams = serving, nutrients = facts }),
+                    ProposedValue = System.Text.Json.JsonSerializer.Serialize(new { fdcDataType = dataType, referenceServingGrams = serving, gramsPerMilliliter = density, nutrients = facts }),
                     Confidence = 1m,
                     Reason = $"Same name as USDA {dataType} food {fdc}: attach its {facts.Count} nutrient values",
                     Source = $"fdc:{fdc}",
@@ -387,7 +404,37 @@ namespace Nom.Import.Services
             return result;
         }
 
+        private static Dictionary<string, decimal> ReadDensities(string? path, HashSet<string> fdcIds)
+        {
+            var byFood = new Dictionary<string, List<UsdaPortion>>();
+            if (path == null || !File.Exists(path)) return new Dictionary<string, decimal>();
+
+            using var reader = new StreamReader(path);
+            reader.ReadLine();
+            string? line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                var f = CsvLine.Split(line);
+                if (f.Length < 8 || !fdcIds.Contains(f[1])) continue;
+                if (!decimal.TryParse(f[7], System.Globalization.CultureInfo.InvariantCulture, out var grams)
+                    || !decimal.TryParse(f[3], System.Globalization.CultureInfo.InvariantCulture, out var amount)) continue;
+                byFood.TryAdd(f[1], new List<UsdaPortion>());
+                byFood[f[1]].Add(new UsdaPortion(amount, f[4], f[6], f[5], grams));
+            }
+
+            var result = new Dictionary<string, decimal>();
+            foreach (var (fdc, list) in byFood)
+                if (UsdaVolumeDensity.GramsPerMilliliter(list) is { } d) result[fdc] = d;
+            return result;
+        }
+
         private sealed record FoodRow(string Description, int? CategoryId);
+
+        private const int SpicesAndHerbs = 2;
+
+        private static bool UsedInSmallAmounts(FoodRow food) =>
+            food.CategoryId == SpicesAndHerbs || food.Description.StartsWith("Leavening agents,", StringComparison.Ordinal);
+
         private sealed record Macros(decimal? Kcal, decimal? Protein, decimal? Carb, decimal? Fat, decimal? Sugars, decimal? AddedSugars);
 
         private static Dictionary<string, FoodRow> ReadFoods(string path, string dataType)
@@ -465,6 +512,8 @@ namespace Nom.Import.Services
             public int SkippedExisting { get; set; }
             public int SkippedDuplicateName { get; set; }
             public int WithReferenceServing { get; set; }
+            public int WithDensity { get; set; }
+            public int BackfilledDensities { get; set; }
             public int NutrientRows;
             public int BackfilledNutrientRows;
             public int AttachProposals { get; set; }

@@ -433,6 +433,7 @@ namespace Nom.Orch.Services
             {
                 source.ReferenceServingGrams = target.ReferenceServingGrams;
             }
+            source.GramsPerMilliliter ??= target.GramsPerMilliliter;
             source.LastModifiedDate = DateTime.UtcNow;
             if (_context.Database.IsRelational())
             {
@@ -488,6 +489,8 @@ namespace Nom.Orch.Services
                 ingredient.FdcDataType = dt.GetString();
             if (ingredient.ReferenceServingGrams == null && root.TryGetProperty("referenceServingGrams", out var rs) && rs.ValueKind == System.Text.Json.JsonValueKind.Number)
                 ingredient.ReferenceServingGrams = rs.GetDecimal();
+            if (ingredient.GramsPerMilliliter == null && root.TryGetProperty("gramsPerMilliliter", out var gml) && gml.ValueKind == System.Text.Json.JsonValueKind.Number)
+                ingredient.GramsPerMilliliter = gml.GetDecimal();
             ingredient.LastModifiedDate = DateTime.UtcNow;
             ingredient.LastModifiedByPersonId = reviewerPersonId;
 

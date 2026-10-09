@@ -285,6 +285,9 @@
                 <span class="nom-recipe__ingredient-addin-chip">add-in</span>
               } @else if (row.swap) {
                 {{ row.swap.quantity }} {{ row.swap.measurement | unit: row.swap.quantity }}
+                @if (row.swap.grams | massAside: row.swap.measurement : unitSystem(); as mass) {
+                  <span class="nom-recipe__ingredient-mass" data-testid="ingredient-mass">({{ mass }})</span>
+                }
                 <nom-entity-link route="/search"
                                  [label]="row.swap.name"
                                  [queryParams]="{ ingredientId: row.swap.ingredientId, ingredient: row.swap.name }"
@@ -297,6 +300,9 @@
                 </button>
               } @else {
                 {{ row.ingredient.quantity }} {{ row.ingredient.measurement | unit: row.ingredient.quantity }}
+                @if (row.ingredient.grams | massAside: row.ingredient.measurement : unitSystem(); as mass) {
+                  <span class="nom-recipe__ingredient-mass" data-testid="ingredient-mass">({{ mass }})</span>
+                }
                 <nom-entity-link route="/search"
                                  [label]="row.ingredient.name"
                                  [queryParams]="{ ingredientId: row.ingredient.ingredientId, ingredient: row.ingredient.name }"
@@ -321,7 +327,11 @@
                           <button type="button" class="nom-recipe__subs-option"
                                   (click)="pickSubstitution(row.ingredient.ingredientId, sub)"
                                   data-testid="ingredient-subs-option">
-                            {{ sub.quantity }} {{ sub.measurement | unit: sub.quantity }} {{ sub.name }}
+                            {{ sub.quantity }} {{ sub.measurement | unit: sub.quantity }}
+                            @if (sub.grams | massAside: sub.measurement : unitSystem(); as mass) {
+                              <span class="nom-recipe__ingredient-mass" data-testid="ingredient-subs-mass">({{ mass }})</span>
+                            }
+                            {{ sub.name }}
                             @if (sub.notes) {
                               <span class="nom-recipe__subs-note">{{ sub.notes }}</span>
                             }

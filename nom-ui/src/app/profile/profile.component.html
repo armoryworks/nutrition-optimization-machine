@@ -72,9 +72,10 @@
 
       <div class="nom-form__fields">
         <div class="nom-profile__unit-toggle">
-          <mat-button-toggle-group [value]="unitSystem()" (change)="onUnitSystemChange($event.value)" hideSingleSelectionIndicator>
-            <mat-button-toggle value="imperial">Imperial (ft/lbs)</mat-button-toggle>
-            <mat-button-toggle value="metric">Metric (cm/kg)</mat-button-toggle>
+          <mat-button-toggle-group [value]="unitSystem()" (change)="onUnitSystemChange($event.value)" hideSingleSelectionIndicator
+                                   data-testid="profile-unit-system-toggle">
+            <mat-button-toggle value="metric" data-testid="profile-unit-system-metric">Metric (cm/kg/g)</mat-button-toggle>
+            <mat-button-toggle value="imperial" data-testid="profile-unit-system-imperial">Imperial (ft/lb/oz)</mat-button-toggle>
           </mat-button-toggle-group>
         </div>
 

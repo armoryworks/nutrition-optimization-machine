@@ -2243,6 +2243,7 @@ CREATE TABLE recipe."Ingredient" (
     "FoodGroupId" bigint,
     "IsWholeFood" boolean,
     "ReferenceServingGrams" numeric(9,2),
+    "GramsPerMilliliter" numeric(7,4),
     "GtinUpc" character varying(32),
     "OnHand" boolean,
     "CreatedDate" timestamp with time zone NOT NULL,

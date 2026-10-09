@@ -96,5 +96,14 @@ namespace Nom.Api.Tests.Services.Import
             r.Reasons.Should().NotContain("atwater_mismatch");
             r.Accepted.Should().BeTrue();
         }
+
+        [Fact]
+        public void SkipsAtwater_ForSeasoningsUsedInSmallAmounts()
+        {
+            var pepper = new FoodQualityInput("Spices, pepper, black", 251m, 10.4m, 64m, 3.3m);
+            _v.Validate(pepper).Reasons.Should().Contain("atwater_mismatch");
+            _v.Validate(pepper with { UsedInSmallAmounts = true }).Accepted.Should().BeTrue();
+            _v.Validate(pepper with { UsedInSmallAmounts = true, KcalPer100g = 5000m }).Reasons.Should().Contain("calories_impossible");
+        }
     }
 }

@@ -24,6 +24,9 @@ namespace Nom.Orch.Services
     /// </summary>
     public class PersonOrchestrationService : IPersonOrchestrationService
     {
+        /// <summary>Reference id of the "Unit System" person attribute (metric | imperial); kept when a profile save omits it.</summary>
+        public const long UnitSystemAttributeType = 11078;
+
         private readonly ApplicationDbContext _dbContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IPrivacyOrchestrationService _privacyOrchestrationService;
@@ -754,8 +757,9 @@ namespace Nom.Orch.Services
                 currentPersonId = person.Id;
 
                 // Remove all existing attributes for this person
+                var keepUnitSystem = request.Attributes?.Any(a => a.AttributeTypeRefId == UnitSystemAttributeType) != true;
                 var oldAttributes = await _dbContext.PersonAttributes
-                    .Where(pa => pa.PersonId == person.Id)
+                    .Where(pa => pa.PersonId == person.Id && !(keepUnitSystem && pa.AttributeTypeId == UnitSystemAttributeType))
                     .ToListAsync();
                 _dbContext.PersonAttributes.RemoveRange(oldAttributes);
             }

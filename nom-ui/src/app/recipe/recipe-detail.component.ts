@@ -28,6 +28,8 @@ import {
 import { NutritionLabel } from '../shared/components/nutrition-label/nutrition-label.component';
 import { EntityLink } from '../shared/components/entity-link/entity-link.component';
 import { UnitPipe } from '../core/utils/unit-display';
+import { MassAsidePipe } from '../core/utils/mass-display';
+import { UnitPreferenceService } from '../core/services/unit-preference.service';
 import { RecipeComments } from './recipe-comments.component';
 import { RecipeRating } from './recipe-rating.component';
 
@@ -56,7 +58,7 @@ export interface DisplayIngredientRowModel {
 
 @Component({
   selector: 'nom-recipe-detail',
-  imports: [DecimalPipe, UnitPipe, MatIconModule, MatButtonModule, MatMenuModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating, EntityLink],
+  imports: [DecimalPipe, UnitPipe, MassAsidePipe, MatIconModule, MatButtonModule, MatMenuModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating, EntityLink],
   templateUrl: './recipe-detail.component.html',
   styleUrl: './recipe-detail.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,6 +75,7 @@ export class RecipeDetail {
   private householdStore = inject(HouseholdStore);
   private destroyRef = inject(DestroyRef);
   private snackBar = inject(MatSnackBar);
+  readonly unitSystem = inject(UnitPreferenceService).system;
   authService = inject(AuthService);
 
   /** True while a make-public request is in flight. */
