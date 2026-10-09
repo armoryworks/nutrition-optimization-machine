@@ -145,7 +145,8 @@ namespace Nom.Import
                             "or command line --ConnectionStrings:NomConnection=...");
 
                     Console.WriteLine($"Environment: {hostContext.HostingEnvironment.EnvironmentName}");
-                    Console.WriteLine($"Database: {connectionString}");
+                    var target = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
+                    Console.WriteLine($"Database: {target.Host}:{target.Port}/{target.Database} as {target.Username}");
 
                     services.Configure<ImportSettings>(opts =>
                     {
