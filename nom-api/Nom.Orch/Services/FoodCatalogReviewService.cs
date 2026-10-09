@@ -392,18 +392,19 @@ namespace Nom.Orch.Services
 
             if (await _cleanup.MergeIntoAsync(source.Id, target.Id, reviewerPersonId, ignoreProposals: true))
             {
-                var lowered = sourceName.ToLowerInvariant();
-                var aliased = await _context.IngredientAliases.AnyAsync(a => a.IngredientId == target.Id && a.AliasName.ToLower() == lowered && !a.IsDeleted)
-                    || string.Equals(target.Name, sourceName, StringComparison.OrdinalIgnoreCase);
-                if (!aliased)
+                var friendly = FriendlyName(sourceName);
+                if (target.Name.Contains(',') && friendly != null
+                    && !await _context.Ingredients.AnyAsync(i => i.Id != source.Id && i.Id != target.Id && i.Name.ToLower() == friendly.ToLower()))
                 {
-                    _context.IngredientAliases.Add(new Nom.Data.Recipe.IngredientAliasEntity
-                    {
-                        IngredientId = target.Id,
-                        AliasName = sourceName,
-                        CreatedDate = DateTime.UtcNow,
-                        CreatedByPersonId = reviewerPersonId,
-                    });
+                    var usdaName = target.Name;
+                    source.Name = Truncate($"{sourceName} (merged into #{target.Id})", 2000);
+                    await _context.SaveChangesAsync();
+                    target.Name = friendly;
+                    await AddAliasAsync(target.Id, usdaName, reviewerPersonId);
+                }
+                if (!string.Equals(target.Name, sourceName, StringComparison.OrdinalIgnoreCase))
+                {
+                    await AddAliasAsync(target.Id, sourceName, reviewerPersonId);
                 }
                 return true;
             }
@@ -497,6 +498,40 @@ namespace Nom.Orch.Services
             }
             return true;
         }
+
+        private async Task AddAliasAsync(long ingredientId, string alias, long reviewerPersonId)
+        {
+            var lowered = alias.ToLowerInvariant();
+            var exists = await _context.IngredientAliases.AnyAsync(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered && !a.IsDeleted)
+                || _context.IngredientAliases.Local.Any(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered);
+            if (exists) return;
+            _context.IngredientAliases.Add(new Nom.Data.Recipe.IngredientAliasEntity
+            {
+                IngredientId = ingredientId,
+                AliasName = alias,
+                CreatedDate = DateTime.UtcNow,
+                CreatedByPersonId = reviewerPersonId,
+            });
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex PrepWords = new(
+            @"\b(chopped|diced|minced|sliced|grated|shredded|crushed|melted|softened|divided|optional|taste|peeled|cubed|beaten|packed|drained|rinsed|halved|quartered|thinly|finely|roughly)\b",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        /// <summary>
+        /// The everyday name a USDA food should go by after a link ("Olive Oil" rather than
+        /// "Oil, olive, salad or cooking"), or null when the linked name is too messy to adopt.
+        /// </summary>
+        public static string? FriendlyName(string name)
+        {
+            var trimmed = name.Trim();
+            if (trimmed.Length < 2 || trimmed.Any(char.IsDigit) || trimmed.IndexOfAny(new[] { ',', '(', ')', '/', ';', ':' }) >= 0) return null;
+            var words = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length > 4 || PrepWords.IsMatch(trimmed)) return null;
+            return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(string.Join(' ', words).ToLowerInvariant());
+        }
+
+        private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max];
 
         public async Task<bool> RejectProposalAsync(long proposalId, long reviewerPersonId)
         {

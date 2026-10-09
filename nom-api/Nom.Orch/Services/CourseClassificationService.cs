@@ -48,7 +48,12 @@ namespace Nom.Orch.Services
 
             var snackType = await _context.Set<ReferenceEntity>().FirstOrDefaultAsync(r => r.Id == SnackType, cancellationToken);
             var dessertType = await _context.Set<ReferenceEntity>().FirstOrDefaultAsync(r => r.Id == DessertType, cancellationToken);
-            if (snackType == null || dessertType == null) return new CourseClassificationResult(ids.Count, 0, 0, ids.Count);
+            var categoriesExist = await _context.Set<ReferenceEntity>().CountAsync(r => r.Id == SnacksCategory || r.Id == DessertsCategory, cancellationToken) == 2;
+            if (snackType == null || dessertType == null || !categoriesExist)
+            {
+                _logger.LogWarning("Course classification skipped: snack/dessert type or category reference rows are missing");
+                return new CourseClassificationResult(ids.Count, 0, 0, ids.Count);
+            }
 
             int classified = 0, changed = 0, undetermined = 0;
             foreach (var chunk in ids.Chunk(Batch))

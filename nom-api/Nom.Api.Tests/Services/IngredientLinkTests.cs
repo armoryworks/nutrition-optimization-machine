@@ -126,6 +126,22 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task An_ingredient_awaiting_a_same_name_attach_is_not_linked_elsewhere()
+        {
+            using var db = NewContext();
+            await SeedFoodsAsync(db);
+            var honey = await UsedIngredientAsync(db, "Honey", 4);
+            db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, IngredientId = honey.Id, Field = FoodCatalogReviewService.FdcAttachField,
+                FdcId = "169640", Source = "fdc:169640", Status = FoodProposalStatus.Pending,
+            });
+            await db.SaveChangesAsync();
+
+            (await Linker(db, new FakeMatcher()).NextSourcesAsync(10)).Should().BeEmpty();
+        }
+
+        [Fact]
         public async Task Approving_a_link_merges_curates_the_food_and_aliases_the_old_name()
         {
             using var db = NewContext();
@@ -144,9 +160,22 @@ namespace Nom.Api.Tests.Services
             (await review.ApplyProposalAsync(proposal.Id, reviewerPersonId: 1)).Should().BeTrue();
 
             cleanup.Merged.Should().Equal((saltIng.Id, salt.Id));
-            (await db.Ingredients.FindAsync(salt.Id))!.CurationStatusId.Should().Be((long)CurationStatusEnum.Curated);
-            (await db.IngredientAliases.SingleAsync()).Should().Match<IngredientAliasEntity>(a => a.IngredientId == salt.Id && a.AliasName == "sea salt");
+            var usdaSalt = await db.Ingredients.FindAsync(salt.Id);
+            usdaSalt!.CurationStatusId.Should().Be((long)CurationStatusEnum.Curated);
+            usdaSalt.Name.Should().Be("Sea Salt", "the USDA food takes the everyday name recipes show");
+            (await db.IngredientAliases.Select(a => a.AliasName).ToListAsync()).Should().BeEquivalentTo(new[] { "Salt, table" });
             (await db.FoodCatalogProposals.FindAsync(proposal.Id))!.Status.Should().Be(FoodProposalStatus.Applied);
+        }
+
+        [Theory]
+        [InlineData("Olive Oil", "Olive Oil")]
+        [InlineData("baby spinach", "Baby Spinach")]
+        [InlineData("diced red onion", null)]
+        [InlineData("salt (or to taste", null)]
+        [InlineData("2 cups flour", null)]
+        public void Only_clean_names_are_adopted(string name, string? expected)
+        {
+            FoodCatalogReviewService.FriendlyName(name).Should().Be(expected);
         }
 
         [Fact]

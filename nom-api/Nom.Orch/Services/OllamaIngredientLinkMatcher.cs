@@ -42,7 +42,8 @@ namespace Nom.Orch.Services
                 "(a different food, a dish, or a product that merely contains it is NOT a match — e.g. 'sugar snap peas' is not sugar). " +
                 "Prefer an option containing every word of the ingredient (a variety or color like 'black' or 'red' must appear in the option). " +
                 "When the ingredient doesn't specify a form, prefer the plain whole food as bought: raw produce (e.g. 'Tomatoes, red, ripe, raw'), " +
-                "not juice, canned, cooked or a variety the ingredient didn't name. " +
+                "not juice, canned, cooked or a variety the ingredient didn't name; USDA marks its general-purpose entries " +
+                "'year round average' or 'all commercial varieties'. A different plant or a dressing/sauce made with it is not a match. " +
                 "confidence is 0.0-1.0.\n" +
                 "Reply with STRICT JSON only: {\"answers\":[{\"n\":1,\"pick\":2,\"confidence\":0.9}]} — one entry per ingredient.\n\n" +
                 string.Join("\n\n", questions.Select((q, i) =>

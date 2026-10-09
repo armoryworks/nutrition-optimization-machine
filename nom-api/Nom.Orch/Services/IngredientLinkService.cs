@@ -43,7 +43,9 @@ namespace Nom.Orch.Services
         {
             return await _context.Ingredients
                 .Where(i => i.FdcId == null && !i.IsDeleted
-                    && !_context.FoodCatalogProposals.Any(p => p.IngredientId == i.Id && p.Field == FoodCatalogReviewService.FdcLinkField))
+                    && !_context.FoodCatalogProposals.Any(p => p.IngredientId == i.Id
+                        && (p.Field == FoodCatalogReviewService.FdcLinkField
+                            || (p.Field == FoodCatalogReviewService.FdcAttachField && p.Status == FoodProposalStatus.Pending))))
                 .Select(i => new { i.Id, i.Name, Uses = _context.RecipeIngredients.Count(ri => ri.IngredientId == i.Id) })
                 .Where(x => x.Uses > 0)
                 .OrderByDescending(x => x.Uses)
