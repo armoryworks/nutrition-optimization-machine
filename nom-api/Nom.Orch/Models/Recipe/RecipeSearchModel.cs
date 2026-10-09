@@ -20,6 +20,8 @@ namespace Nom.Orch.Models.Recipe
         public List<long>? TagIds { get; set; }
         public List<long>? ToolIds { get; set; }
         public List<long>? CuisineTypeIds { get; set; }
+        public List<long>? RecipeTypeIds { get; set; }
+        public long? CookableForHouseholdId { get; set; }
         
         public int? MinRating { get; set; }
         public int? MaxPrepTime { get; set; }
@@ -29,7 +31,7 @@ namespace Nom.Orch.Models.Recipe
         public bool? IsPublic { get; set; }
         public bool? IsApproved { get; set; }
         
-        public string? SortBy { get; set; } // "name", "rating", "date", "prepTime", "cookTime"
+        public string? SortBy { get; set; } // "relevance", "name", "rating", "date", "newest", "quickest", "ingredients", "prepTime", "cookTime"
         public string? SortDirection { get; set; } // "asc", "desc"
         
         public int Page { get; set; } = 1;

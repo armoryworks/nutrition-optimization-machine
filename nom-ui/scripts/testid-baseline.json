@@ -41,7 +41,6 @@
   "src/app/recipe/recipe-import.component.html": 3,
   "src/app/recipe/recipe-rating.component.html": 1,
   "src/app/restrictions/restrictions.component.html": 2,
-  "src/app/search/search.component.html": 2,
   "src/app/settings/security-settings.component.html": 9,
   "src/app/settings/settings.component.html": 6,
   "src/app/shared/confirm-delete-dialog/confirm-delete-dialog.component.html": 2,

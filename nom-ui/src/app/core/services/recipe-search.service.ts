@@ -1,17 +1,32 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, catchError, shareReplay, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { RecipeSearchRequest } from '../models/recipe-search-request.model';
 import { RecipeSearchResponse } from '../models/recipe-search-response.model';
+import { RecipeSearchFilterOptions } from '../models/recipe-search-filter-options.model';
 
 @Injectable({ providedIn: 'root' })
 export class RecipeSearchService {
   private http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/RecipeSearch`;
+  private filterOptions$?: Observable<RecipeSearchFilterOptions>;
 
   search(request: RecipeSearchRequest): Observable<RecipeSearchResponse> {
     return this.http.post<RecipeSearchResponse>(`${this.apiUrl}/search`, request);
+  }
+
+  getFilterOptions(): Observable<RecipeSearchFilterOptions> {
+    this.filterOptions$ ??= this.http
+      .get<RecipeSearchFilterOptions>(`${this.apiUrl}/filter-options`)
+      .pipe(
+        catchError((err) => {
+          this.filterOptions$ = undefined;
+          return throwError(() => err);
+        }),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+    return this.filterOptions$;
   }
 
   getSuggestions(query: string): Observable<string[]> {

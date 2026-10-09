@@ -1,90 +1,267 @@
 <div class="nom-search" data-testid="search-page">
-  @if (loading()) {
-    <div class="nom-search__loading">
-      <mat-icon>hourglass_empty</mat-icon>
-      <p>Searching...</p>
-    </div>
-  } @else if (error()) {
-    <div class="nom-search__empty">
-      <mat-icon class="nom-search__empty-icon">error_outline</mat-icon>
-      <h2>Something went wrong</h2>
-      <p>{{ error() }}</p>
-      <button class="nom-search__retry-btn" (click)="performSearch(query())">Try Again</button>
-    </div>
-  } @else {
-    <div class="nom-search__header">
-      <h1 class="nom-search__title">
-        @if (ingredientId()) {
-          Recipes with {{ ingredientName() }}@if (query()) { matching "{{ query() }}"}
-        } @else if (query()) {
-          Results for "{{ query() }}"
-        } @else {
-          All Recipes
+  <div class="nom-search__header" data-testid="search-results-header">
+    <div class="nom-search__header-row">
+      <button mat-icon-button
+              type="button"
+              class="nom-search__filter-btn"
+              [class.nom-search__filter-btn--active]="filterPanelOpen() || pills().length"
+              (click)="toggleFilterPanel()"
+              [attr.aria-expanded]="filterPanelOpen()"
+              aria-controls="nom-search-filter-panel"
+              aria-label="Filters"
+              data-testid="search-filter-btn">
+        <mat-icon>filter_list</mat-icon>
+        @if (pills().length > 0) {
+          <span class="nom-search__filter-badge" data-testid="search-filter-count">{{ pills().length }}</span>
         }
-      </h1>
-      <span class="nom-search__count">{{ totalCount() }} recipes found</span>
-      @if (ingredientId()) {
-        <a class="nom-search__filter-chip"
-           routerLink="/search"
-           [queryParams]="query() ? { q: query() } : {}"
-           data-testid="search-clear-ingredient-filter"
-           aria-label="Clear ingredient filter">
-          {{ ingredientName() }}
-          <mat-icon class="nom-search__filter-chip-icon">close</mat-icon>
-        </a>
-      }
+      </button>
+      <div class="nom-search__heading">
+        <h1 class="nom-search__title">
+          @if (ingredientId()) {
+            Recipes with {{ ingredientName() }}@if (query()) { matching "{{ query() }}"}
+          } @else if (query()) {
+            Results for "{{ query() }}"
+          } @else {
+            All Recipes
+          }
+        </h1>
+        <span class="nom-search__count" data-testid="search-count">
+          @if (loading()) { Searching... } @else { {{ totalCount() }} recipes found }
+        </span>
+      </div>
+      <mat-form-field class="nom-search__sort" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Sort by</mat-label>
+        <mat-select [value]="filters().sort"
+                    (selectionChange)="setSort($event.value)"
+                    data-testid="search-sort-select">
+          @for (option of sortOptions; track option.value) {
+            <mat-option [value]="option.value" [attr.data-testid]="'search-sort-option-' + option.value">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
     </div>
 
-    @if (results().length > 0) {
-      <div class="nom-search__grid">
-        @for (recipe of results(); track recipe.id) {
-          <a class="nom-search__card"
-             [routerLink]="['/recipe', recipe.id]"
-             data-testid="search-result-card">
-            @if (recipe.imageUrl) {
-              <img
-                [src]="recipe.imageUrl"
-                [alt]="recipe.name"
-                class="nom-search__card-img"
-                loading="lazy">
-            } @else {
-              <div class="nom-search__card-img nom-search__card-img--placeholder">
-                <mat-icon>restaurant</mat-icon>
-              </div>
-            }
-            <div class="nom-search__card-info">
-              @if (recipe.categories.length > 0) {
-                <span class="nom-search__card-category">{{ recipe.categories[0] }}</span>
-              }
-              <span class="nom-search__card-name">{{ recipe.name }}</span>
-              @if (recipe.description) {
-                <p class="nom-search__card-desc">{{ recipe.description }}</p>
-              }
-              <div class="nom-search__card-meta">
-                @if (recipe.totalTime > 0) {
-                  <span class="nom-search__card-time">
-                    <mat-icon class="nom-search__card-meta-icon">schedule</mat-icon>
-                    {{ recipe.totalTime }} min
-                  </span>
-                }
-                @if (recipe.averageRating > 0) {
-                  <span class="nom-search__card-rating">
-                    <mat-icon class="nom-search__card-meta-icon">star</mat-icon>
-                    {{ recipe.averageRating }}
-                  </span>
-                }
-              </div>
-            </div>
+    @if (ingredientId() || pills().length > 0) {
+      <div class="nom-search__pills" data-testid="search-filter-pills">
+        @if (ingredientId()) {
+          <a class="nom-search__filter-chip"
+             routerLink="/search"
+             [queryParams]="{ ingredientId: null, ingredient: null }"
+             queryParamsHandling="merge"
+             data-testid="search-clear-ingredient-filter"
+             aria-label="Clear ingredient filter">
+            {{ ingredientName() }}
+            <mat-icon class="nom-search__filter-chip-icon">close</mat-icon>
           </a>
         }
-      </div>
-    } @else {
-      <div class="nom-search__empty">
-        <mat-icon class="nom-search__empty-icon">search_off</mat-icon>
-        <h2>No recipes found</h2>
-        <p>Try a different search term.</p>
-        <a routerLink="/home" class="nom-search__empty-link">Browse all recipes</a>
+        @for (pill of pills(); track pill.kind + '-' + (pill.id ?? '')) {
+          <button type="button"
+                  class="nom-search__filter-chip"
+                  (click)="removePill(pill)"
+                  [attr.aria-label]="'Remove filter ' + pill.label"
+                  data-testid="search-filter-pill">
+            {{ pill.label }}
+            <mat-icon class="nom-search__filter-chip-icon">close</mat-icon>
+          </button>
+        }
+        @if (pills().length > 1) {
+          <button type="button"
+                  class="nom-search__clear-link"
+                  (click)="clearFilters()"
+                  data-testid="search-filter-pills-clear-btn">
+            Clear all
+          </button>
+        }
       </div>
     }
-  }
+  </div>
+
+  <div class="nom-search__body" [class.nom-search__body--filters-open]="filterPanelOpen()">
+    @if (filterPanelOpen()) {
+      <button type="button"
+              class="nom-search__backdrop"
+              tabindex="-1"
+              aria-label="Close filters"
+              (click)="closeFilterPanel()"
+              data-testid="search-filter-backdrop"></button>
+    }
+
+    <aside id="nom-search-filter-panel"
+           class="nom-search__filters"
+           [attr.inert]="filterPanelOpen() ? null : ''"
+           aria-label="Search filters"
+           data-testid="search-filter-panel">
+      <div class="nom-search__filters-inner">
+        <div class="nom-search__filters-head">
+          <h2 class="nom-search__filters-title">Filters</h2>
+          @if (pills().length > 0) {
+            <button mat-button type="button" (click)="clearFilters()" data-testid="search-filter-clear-btn">Clear</button>
+          }
+          <button mat-icon-button
+                  type="button"
+                  (click)="closeFilterPanel()"
+                  aria-label="Close filters"
+                  data-testid="search-filter-close-btn">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        @if (canFilterByKitchen()) {
+          <section class="nom-search__filter-section">
+            <mat-slide-toggle [checked]="filters().kitchen"
+                              (change)="setKitchen($event.checked)"
+                              data-testid="search-filter-kitchen-toggle">
+              Only what my kitchen can make
+            </mat-slide-toggle>
+          </section>
+        }
+
+        <section class="nom-search__filter-section">
+          <h3 class="nom-search__filter-heading">Ready in</h3>
+          <mat-chip-listbox aria-label="Total time">
+            @for (minutes of maxTimeOptions; track minutes) {
+              <mat-chip-option [selected]="filters().maxTime === minutes"
+                               (selectionChange)="$event.isUserInput && setMaxTime(minutes)"
+                               data-testid="search-filter-time-option">
+                {{ minutes }} min or less
+              </mat-chip-option>
+            }
+          </mat-chip-listbox>
+        </section>
+
+        @if (filterOptions()?.mealTypes?.length) {
+          <section class="nom-search__filter-section">
+            <h3 class="nom-search__filter-heading">Meal</h3>
+            <mat-chip-listbox multiple aria-label="Meal">
+              @for (meal of filterOptions()!.mealTypes; track meal.id) {
+                <mat-chip-option [selected]="filters().mealTypeIds.includes(meal.id)"
+                                 (selectionChange)="$event.isUserInput && toggleMealType(meal.id)"
+                                 data-testid="search-filter-meal-option">
+                  {{ meal.name }}
+                </mat-chip-option>
+              }
+            </mat-chip-listbox>
+          </section>
+        }
+
+        @if (filterOptions()?.courses?.length) {
+          <section class="nom-search__filter-section">
+            <h3 class="nom-search__filter-heading">Course</h3>
+            <mat-chip-listbox multiple aria-label="Course">
+              @for (course of filterOptions()!.courses; track course.id) {
+                <mat-chip-option [selected]="filters().courseIds.includes(course.id)"
+                                 (selectionChange)="$event.isUserInput && toggleCourse(course.id)"
+                                 data-testid="search-filter-course-option">
+                  {{ course.name }}
+                </mat-chip-option>
+              }
+            </mat-chip-listbox>
+          </section>
+        }
+
+        <section class="nom-search__filter-section">
+          <h3 class="nom-search__filter-heading">Rating</h3>
+          <mat-chip-listbox aria-label="Rating">
+            @for (stars of minRatingOptions; track stars) {
+              <mat-chip-option [selected]="filters().minRating === stars"
+                               (selectionChange)="$event.isUserInput && setMinRating(stars)"
+                               data-testid="search-filter-rating-option">
+                {{ stars }}+ stars
+              </mat-chip-option>
+            }
+          </mat-chip-listbox>
+        </section>
+
+        @if (toolGroups().length > 0) {
+          <section class="nom-search__filter-section" data-testid="search-filter-tools">
+            <h3 class="nom-search__filter-heading">Kitchen tools</h3>
+            <p class="nom-search__filter-hint">Recipes that use any of the selected tools.</p>
+            @for (group of toolGroups(); track group.name) {
+              <h4 class="nom-search__filter-subheading">{{ group.name }}</h4>
+              <mat-chip-listbox multiple [attr.aria-label]="group.name">
+                @for (tool of group.tools; track tool.id) {
+                  <mat-chip-option [selected]="filters().toolIds.includes(tool.id)"
+                                   (selectionChange)="$event.isUserInput && toggleTool(tool.id)"
+                                   data-testid="search-filter-tool-option">
+                    {{ tool.name }}
+                  </mat-chip-option>
+                }
+              </mat-chip-listbox>
+            }
+          </section>
+        }
+      </div>
+    </aside>
+
+    <div class="nom-search__results">
+      @if (loading()) {
+        <div class="nom-search__loading" data-testid="search-loading">
+          <mat-icon>hourglass_empty</mat-icon>
+          <p>Searching...</p>
+        </div>
+      } @else if (error()) {
+        <div class="nom-search__empty" data-testid="search-error">
+          <mat-icon class="nom-search__empty-icon">error_outline</mat-icon>
+          <h2>Something went wrong</h2>
+          <p>{{ error() }}</p>
+          <button class="nom-search__retry-btn" (click)="performSearch(query())" data-testid="search-retry-btn">Try Again</button>
+        </div>
+      } @else if (results().length > 0) {
+        <div class="nom-search__grid" data-testid="search-results-list">
+          @for (recipe of results(); track recipe.id) {
+            <a class="nom-search__card"
+               [routerLink]="['/recipe', recipe.id]"
+               data-testid="search-result-card">
+              @if (recipe.imageUrl) {
+                <img
+                  [src]="recipe.imageUrl"
+                  [alt]="recipe.name"
+                  class="nom-search__card-img"
+                  loading="lazy">
+              } @else {
+                <div class="nom-search__card-img nom-search__card-img--placeholder">
+                  <mat-icon>restaurant</mat-icon>
+                </div>
+              }
+              <div class="nom-search__card-info">
+                @if (recipe.categories.length > 0) {
+                  <span class="nom-search__card-category">{{ recipe.categories[0] }}</span>
+                }
+                <span class="nom-search__card-name">{{ recipe.name }}</span>
+                @if (recipe.description) {
+                  <p class="nom-search__card-desc">{{ recipe.description }}</p>
+                }
+                <div class="nom-search__card-meta">
+                  @if (recipe.totalTime > 0) {
+                    <span class="nom-search__card-time">
+                      <mat-icon class="nom-search__card-meta-icon">schedule</mat-icon>
+                      {{ recipe.totalTime }} min
+                    </span>
+                  }
+                  @if (recipe.averageRating > 0) {
+                    <span class="nom-search__card-rating">
+                      <mat-icon class="nom-search__card-meta-icon">star</mat-icon>
+                      {{ recipe.averageRating }}
+                    </span>
+                  }
+                </div>
+              </div>
+            </a>
+          }
+        </div>
+      } @else {
+        <div class="nom-search__empty" data-testid="search-empty">
+          <mat-icon class="nom-search__empty-icon">search_off</mat-icon>
+          <h2>No recipes found</h2>
+          @if (pills().length > 0) {
+            <p>Try removing a filter.</p>
+            <button class="nom-search__retry-btn" (click)="clearFilters()" data-testid="search-empty-clear-filters-btn">Clear filters</button>
+          } @else {
+            <p>Try a different search term.</p>
+            <a routerLink="/home" class="nom-search__empty-link" data-testid="search-empty-browse-link">Browse all recipes</a>
+          }
+        </div>
+      }
+    </div>
+  </div>
 </div>
