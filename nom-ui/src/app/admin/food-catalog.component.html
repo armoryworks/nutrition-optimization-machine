@@ -218,6 +218,50 @@
     </div>
   }
 
+  <h3 class="nom-food-catalog__section-title">USDA links</h3>
+  <p class="nom-admin__panel-description">
+    Ingredients recipes use, matched to USDA foods — most-used first. Exact name matches are
+    deterministic; the rest were chosen by the local model from real USDA rows. Approving a link
+    merges the ingredient into the USDA food (or copies its USDA values when other data depends on
+    it) and marks that food curated. Nutrition always comes from USDA, never the model.
+  </p>
+
+  @if (linksLoading()) {
+    <div class="nom-food-catalog__loading"><mat-spinner diameter="24" /></div>
+  } @else if (links().length === 0) {
+    <p class="nom-food-catalog__empty" data-testid="food-catalog-links-empty">No USDA links awaiting review.</p>
+  } @else {
+    <div class="nom-food-catalog__link-toolbar" data-testid="food-catalog-links-toolbar">
+      <span>{{ links().length | number }} shown · {{ exactLinkCount() | number }} exact</span>
+      <button mat-stroked-button (click)="selectExactLinks()" [disabled]="linkBusy()" data-testid="food-catalog-links-select-exact-btn">
+        Select exact matches
+      </button>
+      <button mat-flat-button color="primary" (click)="approveSelectedLinks()"
+              [disabled]="linkBusy() || selectedLinks().size === 0" data-testid="food-catalog-links-approve-btn">
+        {{ linkBusy() ? 'Linking…' : 'Approve selected (' + selectedLinks().size + ')' }}
+      </button>
+    </div>
+    <div class="nom-food-catalog__proposals" data-testid="food-catalog-links">
+      @for (l of links(); track l.id) {
+        <div class="nom-food-catalog__proposal" data-testid="food-catalog-link-item">
+          <mat-checkbox [checked]="selectedLinks().has(l.id)" (change)="toggleLink(l.id, $event.checked)"
+                        [attr.data-testid]="'food-catalog-link-select-' + l.id"
+                        [attr.aria-label]="'Select link for ' + l.currentValue" />
+          <div class="nom-food-catalog__proposal-body">
+            <strong>{{ l.currentValue }}</strong>
+            @if (l.reason) { <span class="nom-food-catalog__proposal-reason">{{ l.reason }}</span> }
+            <span class="nom-food-catalog__proposal-source">
+              {{ l.source }}@if (l.confidence != null) { · confidence {{ l.confidence | number: '1.0-2' }} }
+            </span>
+          </div>
+          <div class="nom-food-catalog__proposal-actions">
+            <button mat-button (click)="dismissLink(l)" data-testid="food-catalog-link-dismiss-btn">Dismiss</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
   <!-- Reviewer proposals -->
   <h3 class="nom-food-catalog__section-title">Reviewer proposals</h3>
   <p class="nom-admin__panel-description">

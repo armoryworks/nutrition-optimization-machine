@@ -101,4 +101,15 @@ namespace Nom.Orch.Models.Curation
         public string? Batch { get; set; }
         public string Status { get; set; } = string.Empty;
     }
+
+    public class FoodProposalBatchResult
+    {
+        public int Applied { get; set; }
+        public int Skipped { get; set; }
+    }
+
+    public class FoodProposalBatchApplyModel
+    {
+        public List<long> Ids { get; set; } = new();
+    }
 }

@@ -120,6 +120,16 @@ namespace Nom.Api.Controllers
             var ok = await _review.RejectProposalAsync(id, GetCurrentPersonIdRequired());
             return ok ? Ok() : NotFound();
         }
+
+        /// <summary>Applies the listed proposals in order; any that no longer apply are skipped.</summary>
+        [HttpPost("proposals/apply-batch")]
+        public async Task<ActionResult<FoodProposalBatchResult>> ApplyProposals([FromBody] FoodProposalBatchApplyModel request)
+        {
+            if (request.Ids.Count == 0 || request.Ids.Count > 1000)
+                return BadRequest(new { message = "Send between 1 and 1000 proposal ids." });
+
+            return Ok(await _review.ApplyProposalsAsync(request.Ids, GetCurrentPersonIdRequired()));
+        }
     }
 
     public class SetCurationStatusRequest

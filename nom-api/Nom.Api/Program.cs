@@ -394,6 +394,10 @@ builder.Services.AddHttpClient<Nom.Orch.Interfaces.IRecipeToolTagger, Nom.Orch.S
     client => client.Timeout = TimeSpan.FromSeconds(300));
 builder.Services.AddHostedService<Nom.Api.Services.RecipeToolTaggingHostedService>();
 builder.Services.AddHostedService<Nom.Api.Services.ScrapedRecipeRepairHostedService>();
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IIngredientLinkMatcher, Nom.Orch.Services.OllamaIngredientLinkMatcher>(
+    client => client.Timeout = TimeSpan.FromSeconds(300));
+builder.Services.AddHostedService<Nom.Api.Services.IngredientLinkHostedService>();
+builder.Services.AddHostedService<Nom.Api.Services.RecipeNutritionRecalcHostedService>();
 
 // Prose-rewrite batch lane (off unless Ai:BatchOllamaUrl is set): clears the
 // ContainsSourceProse quarantine by rewriting scraped prose in original words;

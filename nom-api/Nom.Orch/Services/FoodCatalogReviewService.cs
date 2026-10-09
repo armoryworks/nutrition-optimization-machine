@@ -25,10 +25,14 @@ namespace Nom.Orch.Services
 
         private readonly ApplicationDbContext _context;
         private readonly IFoodCatalogAuditService _audit;
+        private readonly ICatalogCleanupService _cleanup;
 
-        public FoodCatalogReviewService(ApplicationDbContext context, IFoodCatalogAuditService audit)
+        public const string FdcLinkField = "fdc_link";
+
+        public FoodCatalogReviewService(ApplicationDbContext context, IFoodCatalogAuditService audit, ICatalogCleanupService cleanup)
         {
             _context = context;
+            _cleanup = cleanup;
             _audit = audit;
         }
 
@@ -303,7 +307,12 @@ namespace Nom.Orch.Services
             // Re-check at apply time: policy may have tightened since ingest.
             if (!ProposalPolicy.IsAllowed(p.Field, p.Source, out _)) return false;
 
-            if (p.Action == FoodProposalAction.Update && p.IngredientId.HasValue)
+            if (p.Action == FoodProposalAction.Update && p.IngredientId.HasValue
+                && string.Equals(p.Field?.Trim(), FdcLinkField, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!await ApplyFdcLinkAsync(p, reviewerPersonId)) return false;
+            }
+            else if (p.Action == FoodProposalAction.Update && p.IngredientId.HasValue)
             {
                 var ing = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == p.IngredientId.Value);
                 if (ing == null) return false;
@@ -340,6 +349,96 @@ namespace Nom.Orch.Services
             p.ReviewedByPersonId = reviewerPersonId;
             p.ReviewedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<FoodProposalBatchResult> ApplyProposalsAsync(IEnumerable<long> proposalIds, long reviewerPersonId)
+        {
+            var result = new FoodProposalBatchResult();
+            foreach (var id in proposalIds.Distinct())
+            {
+                if (await ApplyProposalAsync(id, reviewerPersonId)) result.Applied++;
+                else result.Skipped++;
+                _context.ChangeTracker.Clear();
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Links a catalog ingredient to the USDA food the proposal names. When recipes are its only
+        /// users, the ingredient is merged into the USDA food (recipes re-pointed, its name kept as an
+        /// alias so future imports land on the USDA food). Otherwise it stays and copies the USDA
+        /// food's nutrient values (source fdc:&lt;id&gt;) for the nutrients it lacks. Approving a link
+        /// also curates the USDA food, since a reviewer just looked at it.
+        /// </summary>
+        private async Task<bool> ApplyFdcLinkAsync(FoodCatalogProposalEntity p, long reviewerPersonId)
+        {
+            if (!long.TryParse(p.ProposedValue, out var targetId)) return false;
+            var source = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == p.IngredientId!.Value && !i.IsDeleted);
+            var target = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == targetId && !i.IsDeleted);
+            if (source == null || target == null || target.FdcId == null || target.FdcId != p.FdcId) return false;
+
+            target.CurationStatusId = (long)Nom.Data.Recipe.CurationStatusEnum.Curated;
+            target.LastModifiedDate = DateTime.UtcNow;
+            target.LastModifiedByPersonId = reviewerPersonId;
+            var sourceName = source.Name;
+            await _context.SaveChangesAsync();
+
+            if (await _cleanup.MergeIntoAsync(source.Id, target.Id, reviewerPersonId, ignoreProposals: true))
+            {
+                var lowered = sourceName.ToLowerInvariant();
+                var aliased = await _context.IngredientAliases.AnyAsync(a => a.IngredientId == target.Id && a.AliasName.ToLower() == lowered && !a.IsDeleted)
+                    || string.Equals(target.Name, sourceName, StringComparison.OrdinalIgnoreCase);
+                if (!aliased)
+                {
+                    _context.IngredientAliases.Add(new Nom.Data.Recipe.IngredientAliasEntity
+                    {
+                        IngredientId = target.Id,
+                        AliasName = sourceName,
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedByPersonId = reviewerPersonId,
+                    });
+                }
+                return true;
+            }
+
+            var have = await _context.IngredientNutrients
+                .Where(n => n.IngredientId == source.Id)
+                .Select(n => n.NutrientId)
+                .ToListAsync();
+            var copies = await _context.IngredientNutrients
+                .AsNoTracking()
+                .Where(n => n.IngredientId == target.Id && !have.Contains(n.NutrientId))
+                .ToListAsync();
+            foreach (var n in copies)
+            {
+                _context.IngredientNutrients.Add(new Nom.Data.Nutrient.IngredientNutrientEntity
+                {
+                    IngredientId = source.Id,
+                    NutrientId = n.NutrientId,
+                    Amount = n.Amount,
+                    MeasurementId = n.MeasurementId,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedByPersonId = reviewerPersonId,
+                });
+            }
+            if (source.ReferenceServingGrams == null && target.ReferenceServingGrams != null)
+            {
+                source.ReferenceServingGrams = target.ReferenceServingGrams;
+            }
+            source.LastModifiedDate = DateTime.UtcNow;
+            if (_context.Database.IsRelational())
+            {
+                await _context.Database.ExecuteSqlAsync(
+                    $"""UPDATE recipe."RecipeIngredient" SET "LastModifiedDate" = now() WHERE "IngredientId" = {source.Id}""");
+            }
+            else
+            {
+                foreach (var row in await _context.RecipeIngredients.Where(ri => ri.IngredientId == source.Id).ToListAsync())
+                {
+                    row.LastModifiedDate = DateTime.UtcNow;
+                }
+            }
             return true;
         }
 

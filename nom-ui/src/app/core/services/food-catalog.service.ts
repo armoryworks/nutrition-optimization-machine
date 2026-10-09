@@ -88,4 +88,8 @@ export class FoodCatalogService {
   rejectProposal(id: number): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/proposals/${id}/reject`, {});
   }
+
+  applyProposals(ids: number[]): Observable<{ applied: number; skipped: number }> {
+    return this.http.post<{ applied: number; skipped: number }>(`${this.apiUrl}/proposals/apply-batch`, { ids });
+  }
 }

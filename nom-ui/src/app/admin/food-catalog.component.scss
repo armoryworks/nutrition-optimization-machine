@@ -179,3 +179,17 @@
   border-radius: vars.$nom-border-radius;
   padding: 0 vars.$spacing-1;
 }
+
+.nom-food-catalog__link-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: vars.$spacing-2 vars.$spacing-3;
+  margin-bottom: vars.$spacing-2;
+
+  span {
+    margin-right: auto;
+    font-size: vars.$font-size-sm;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}

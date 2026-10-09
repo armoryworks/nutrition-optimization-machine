@@ -37,5 +37,8 @@ namespace Nom.Orch.Interfaces
         Task<bool> ApplyProposalAsync(long proposalId, long reviewerPersonId);
 
         Task<bool> RejectProposalAsync(long proposalId, long reviewerPersonId);
+
+        /// <summary>Applies each proposal in turn; ones that no longer apply are skipped, not failed.</summary>
+        Task<FoodProposalBatchResult> ApplyProposalsAsync(IEnumerable<long> proposalIds, long reviewerPersonId);
     }
 }

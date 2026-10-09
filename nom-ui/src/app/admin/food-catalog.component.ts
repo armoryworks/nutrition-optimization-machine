@@ -92,6 +92,12 @@ export class FoodCatalog implements OnInit {
   findings = signal<FoodCatalogFinding[]>([]);
   auditExamined = signal(0);
 
+  links = signal<FoodProposal[]>([]);
+  linksLoading = signal(false);
+  linkBusy = signal(false);
+  selectedLinks = signal<ReadonlySet<number>>(new Set());
+  exactLinkCount = computed(() => this.links().filter((l) => l.source.startsWith('deterministic:')).length);
+
   // Proposals
   proposals = signal<FoodProposal[]>([]);
   proposalsLoading = signal(false);
@@ -117,6 +123,7 @@ export class FoodCatalog implements OnInit {
       .subscribe({ next: (g) => this.foodGroups.set(g) });
     this.load();
     this.loadProposals();
+    this.loadLinks();
   }
 
   load(): void {
@@ -273,10 +280,71 @@ export class FoodCatalog implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (p) => {
-          this.proposals.set(p);
+          this.proposals.set(p.filter((x) => x.field !== 'fdc_link'));
           this.proposalsLoading.set(false);
         },
         error: () => this.proposalsLoading.set(false),
+      });
+  }
+
+  loadLinks(): void {
+    this.linksLoading.set(true);
+    this.catalog
+      .getProposals('fdc-link', 'Pending', 500)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (l) => {
+          this.links.set(l);
+          this.selectedLinks.set(new Set());
+          this.linksLoading.set(false);
+        },
+        error: () => this.linksLoading.set(false),
+      });
+  }
+
+  toggleLink(id: number, checked: boolean): void {
+    const next = new Set(this.selectedLinks());
+    if (checked) next.add(id);
+    else next.delete(id);
+    this.selectedLinks.set(next);
+  }
+
+  selectExactLinks(): void {
+    this.selectedLinks.set(new Set(this.links().filter((l) => l.source.startsWith('deterministic:')).map((l) => l.id)));
+  }
+
+  approveSelectedLinks(): void {
+    const ids = [...this.selectedLinks()];
+    if (ids.length === 0) return;
+    this.linkBusy.set(true);
+    this.errorMessage.set('');
+    this.catalog
+      .applyProposals(ids)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => {
+          this.linkBusy.set(false);
+          this.successMessage.set(`Linked ${r.applied} ingredient${r.applied === 1 ? '' : 's'} to USDA foods${r.skipped ? ` (${r.skipped} no longer applied)` : ''}.`);
+          this.loadLinks();
+          this.load();
+        },
+        error: () => {
+          this.linkBusy.set(false);
+          this.errorMessage.set('Those links could not be applied.');
+        },
+      });
+  }
+
+  dismissLink(l: FoodProposal): void {
+    this.catalog
+      .rejectProposal(l.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.links.set(this.links().filter((x) => x.id !== l.id));
+          this.toggleLink(l.id, false);
+        },
+        error: () => this.errorMessage.set('That link could not be dismissed.'),
       });
   }
 
