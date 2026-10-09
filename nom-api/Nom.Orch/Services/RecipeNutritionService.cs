@@ -118,7 +118,7 @@ namespace Nom.Orch.Services
             return totals.Count;
         }
 
-        private static decimal? GramsFor(RecipeIngredientEntity ri)
+        public static decimal? GramsFor(RecipeIngredientEntity ri)
         {
             var m = ri.Measurement;
             if (m == null) return null;

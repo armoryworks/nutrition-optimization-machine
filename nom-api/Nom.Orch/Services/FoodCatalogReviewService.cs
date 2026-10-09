@@ -28,6 +28,7 @@ namespace Nom.Orch.Services
         private readonly ICatalogCleanupService _cleanup;
 
         public const string FdcLinkField = "fdc_link";
+        public const string FdcAttachField = "fdc_attach";
 
         public FoodCatalogReviewService(ApplicationDbContext context, IFoodCatalogAuditService audit, ICatalogCleanupService cleanup)
         {
@@ -312,6 +313,11 @@ namespace Nom.Orch.Services
             {
                 if (!await ApplyFdcLinkAsync(p, reviewerPersonId)) return false;
             }
+            else if (p.Action == FoodProposalAction.Update && p.IngredientId.HasValue
+                && string.Equals(p.Field?.Trim(), FdcAttachField, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!await ApplyFdcAttachAsync(p, reviewerPersonId)) return false;
+            }
             else if (p.Action == FoodProposalAction.Update && p.IngredientId.HasValue)
             {
                 var ing = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == p.IngredientId.Value);
@@ -438,6 +444,56 @@ namespace Nom.Orch.Services
                 {
                     row.LastModifiedDate = DateTime.UtcNow;
                 }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Gives a catalog ingredient the USDA identity and values of the same-named food the
+        /// importer found (carried in the proposal, source fdc:&lt;id&gt;). Only fills what is missing.
+        /// </summary>
+        private async Task<bool> ApplyFdcAttachAsync(FoodCatalogProposalEntity p, long reviewerPersonId)
+        {
+            var ingredient = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == p.IngredientId!.Value && !i.IsDeleted);
+            if (ingredient == null || string.IsNullOrWhiteSpace(p.ProposedValue) || string.IsNullOrWhiteSpace(p.FdcId)) return false;
+            if (ingredient.FdcId != null && ingredient.FdcId != p.FdcId) return false;
+
+            using var doc = System.Text.Json.JsonDocument.Parse(p.ProposedValue);
+            var root = doc.RootElement;
+            var have = await _context.IngredientNutrients
+                .Where(n => n.IngredientId == ingredient.Id)
+                .Select(n => n.NutrientId)
+                .ToListAsync();
+            if (root.TryGetProperty("nutrients", out var facts))
+            {
+                foreach (var f in facts.EnumerateArray())
+                {
+                    var nutrientId = f.GetProperty("nutrientId").GetInt64();
+                    if (have.Contains(nutrientId)) continue;
+                    _context.IngredientNutrients.Add(new Nom.Data.Nutrient.IngredientNutrientEntity
+                    {
+                        IngredientId = ingredient.Id,
+                        NutrientId = nutrientId,
+                        Amount = f.GetProperty("amount").GetDecimal(),
+                        MeasurementId = f.GetProperty("measurementId").GetInt64(),
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedByPersonId = reviewerPersonId,
+                    });
+                }
+            }
+
+            ingredient.FdcId ??= p.FdcId;
+            if (ingredient.FdcDataType == null && root.TryGetProperty("fdcDataType", out var dt) && dt.ValueKind == System.Text.Json.JsonValueKind.String)
+                ingredient.FdcDataType = dt.GetString();
+            if (ingredient.ReferenceServingGrams == null && root.TryGetProperty("referenceServingGrams", out var rs) && rs.ValueKind == System.Text.Json.JsonValueKind.Number)
+                ingredient.ReferenceServingGrams = rs.GetDecimal();
+            ingredient.LastModifiedDate = DateTime.UtcNow;
+            ingredient.LastModifiedByPersonId = reviewerPersonId;
+
+            if (_context.Database.IsRelational())
+            {
+                await _context.Database.ExecuteSqlAsync(
+                    $"""UPDATE recipe."RecipeIngredient" SET "LastModifiedDate" = now() WHERE "IngredientId" = {ingredient.Id}""");
             }
             return true;
         }

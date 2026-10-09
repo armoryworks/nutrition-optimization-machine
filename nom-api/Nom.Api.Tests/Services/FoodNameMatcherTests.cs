@@ -25,6 +25,10 @@ namespace Nom.Api.Tests.Services
             new FoodCandidate(10, "171413", "Oil, olive, salad or cooking", "sr_legacy_food"),
             new FoodCandidate(11, "169640", "Honey", "sr_legacy_food"),
             new FoodCandidate(12, "170393", "Carrots, raw", "sr_legacy_food"),
+            new FoodCandidate(13, "170924", "Spices, ginger, ground", "sr_legacy_food"),
+            new FoodCandidate(14, "169231", "Ginger root, raw", "sr_legacy_food"),
+            new FoodCandidate(15, "170931", "Spices, pepper, black", "sr_legacy_food"),
+            new FoodCandidate(16, "168576", "Peppers, hungarian, raw", "sr_legacy_food"),
         });
 
         [Theory]
@@ -55,6 +59,27 @@ namespace Nom.Api.Tests.Services
             Matcher.Shortlist("unsalted butter").First().Name.Should().Be("Butter, without salt");
             Matcher.Shortlist("brown sugar").First().Name.Should().Be("Sugars, brown");
             Matcher.Shortlist("extra virgin olive oil").First().Name.Should().Be("Oil, olive, salad or cooking");
+        }
+
+        [Fact]
+        public void Fresh_and_ground_are_kept_apart()
+        {
+            Matcher.Exact("fresh ginger").Should().BeNull();
+            Matcher.Shortlist("ground ginger").First().Name.Should().Be("Spices, ginger, ground");
+        }
+
+        [Theory]
+        [InlineData("black pepper", 15)]
+        [InlineData("unsalted butter", 2)]
+        public void Covering_matches_need_every_word(string name, long expectedId)
+        {
+            Matcher.Covering(name)!.IngredientId.Should().Be(expectedId);
+        }
+
+        [Fact]
+        public void Covering_refuses_when_several_foods_qualify()
+        {
+            Matcher.Covering("butter").Should().BeNull();
         }
 
         [Fact]

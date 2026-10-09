@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
@@ -96,7 +97,7 @@ export class FoodCatalog implements OnInit {
   linksLoading = signal(false);
   linkBusy = signal(false);
   selectedLinks = signal<ReadonlySet<number>>(new Set());
-  exactLinkCount = computed(() => this.links().filter((l) => l.source.startsWith('deterministic:')).length);
+  exactLinkCount = computed(() => this.links().filter((l) => this.isExact(l)).length);
 
   // Proposals
   proposals = signal<FoodProposal[]>([]);
@@ -280,7 +281,7 @@ export class FoodCatalog implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (p) => {
-          this.proposals.set(p.filter((x) => x.field !== 'fdc_link'));
+          this.proposals.set(p.filter((x) => x.field !== 'fdc_link' && x.field !== 'fdc_attach'));
           this.proposalsLoading.set(false);
         },
         error: () => this.proposalsLoading.set(false),
@@ -289,12 +290,11 @@ export class FoodCatalog implements OnInit {
 
   loadLinks(): void {
     this.linksLoading.set(true);
-    this.catalog
-      .getProposals('fdc-link', 'Pending', 500)
+    forkJoin([this.catalog.getProposals('fdc-attach', 'Pending', 500), this.catalog.getProposals('fdc-link', 'Pending', 500)])
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (l) => {
-          this.links.set(l);
+        next: ([attach, link]) => {
+          this.links.set([...attach, ...link]);
           this.selectedLinks.set(new Set());
           this.linksLoading.set(false);
         },
@@ -309,8 +309,12 @@ export class FoodCatalog implements OnInit {
     this.selectedLinks.set(next);
   }
 
+  isExact(l: FoodProposal): boolean {
+    return l.source.startsWith('deterministic:') || l.source.startsWith('fdc:');
+  }
+
   selectExactLinks(): void {
-    this.selectedLinks.set(new Set(this.links().filter((l) => l.source.startsWith('deterministic:')).map((l) => l.id)));
+    this.selectedLinks.set(new Set(this.links().filter((l) => this.isExact(l)).map((l) => l.id)));
   }
 
   approveSelectedLinks(): void {

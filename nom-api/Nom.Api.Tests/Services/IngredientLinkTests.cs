@@ -96,25 +96,25 @@ namespace Nom.Api.Tests.Services
             using var db = NewContext();
             var (salt, salted, plain) = await SeedFoodsAsync(db);
             var saltIng = await UsedIngredientAsync(db, "salt", 3);
-            var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
+            var butter = await UsedIngredientAsync(db, "butter", 2);
             var weird = await UsedIngredientAsync(db, "xanthan wizardry", 1);
             var matcher = new FakeMatcher
             {
-                Answer = q => q.Name == "unsalted butter"
+                Answer = q => q.Name == "butter"
                     ? new LinkAnswer(q.IngredientId, q.Candidates.Single(c => c.IngredientId == plain.Id), 0.8m)
                     : new LinkAnswer(q.IngredientId, null, 0.2m),
             };
             var linker = Linker(db, matcher);
 
             var sources = await linker.NextSourcesAsync(10);
-            sources.Select(s => s.Name).Should().Equal("salt", "unsalted butter", "xanthan wizardry");
+            sources.Select(s => s.Name).Should().Equal("salt", "butter", "xanthan wizardry");
 
             var result = await linker.ProposeAsync(sources);
 
             result!.ExactProposals.Should().Be(1);
             result.AiProposals.Should().Be(1);
             result.NoMatch.Should().Be(1);
-            matcher.Asked.Should().Equal("unsalted butter");
+            matcher.Asked.Should().Equal("butter");
             var proposals = await db.FoodCatalogProposals.ToListAsync();
             proposals.Single(p => p.IngredientId == saltIng.Id).Should().Match<FoodCatalogProposalEntity>(p =>
                 p.Status == FoodProposalStatus.Pending && p.Source == IngredientLinkService.ExactSource && p.ProposedValue == salt.Id.ToString());

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
+using Nom.Data.Curation;
 using Nom.Data.Nutrient;
 using Nom.Data.Nutrition;
 using Nom.Data.Recipe;
@@ -33,6 +34,7 @@ namespace Nom.Import.Services
         private const long NutSugarsTotal = 2000, NutSugarsTotalNlea = 1063, NutSugarsAdded = 1235;
 
         public const string FoundationFood = "foundation_food";
+        public const string AttachField = "fdc_attach";
         public const string SrLegacyFood = "sr_legacy_food";
 
         private readonly ApplicationDbContext _db;
@@ -130,8 +132,16 @@ namespace Nom.Import.Services
                 .GroupBy(i => i.FdcId!).ToDictionary(g => g.Key, g => g.First().Id);
             var existingFdcIds = existingByFdc.Keys.ToHashSet();
             // Ingredient.Name is unique — dedupe against existing names and within this run.
-            var seenNames = (await _db.Ingredients.Select(i => i.Name).ToListAsync(ct))
-                .Select(n => n.ToLowerInvariant()).ToHashSet();
+            var catalogByName = (await _db.Ingredients
+                .Where(i => !i.IsDeleted)
+                .Select(i => new { i.Id, i.Name, i.FdcId }).ToListAsync(ct))
+                .GroupBy(i => i.Name.ToLowerInvariant())
+                .ToDictionary(g => g.Key, g => (g.First().Id, g.First().FdcId));
+            var seenNames = catalogByName.Keys.ToHashSet();
+            var attachRequested = (await _db.FoodCatalogProposals
+                .Where(p => p.Field == AttachField && p.IngredientId != null)
+                .Select(p => p.IngredientId!.Value).ToListAsync(ct)).ToHashSet();
+            var attach = new List<(long IngredientId, string FdcId, string Name, Macros Macros, decimal? Serving)>();
 
             var report = new ImportReport { TotalFoundation = foods.Count };
             var pendingNutrition = new List<(IngredientEntity Ingredient, Macros Macros)>();
@@ -159,7 +169,15 @@ namespace Nom.Import.Services
                 }
 
                 var name = Truncate(food.Description, 2000);
-                if (!seenNames.Add(name.ToLowerInvariant())) { report.SkippedDuplicateName++; continue; }
+                if (!seenNames.Add(name.ToLowerInvariant()))
+                {
+                    report.SkippedDuplicateName++;
+                    if (catalogByName.TryGetValue(name.ToLowerInvariant(), out var same) && same.FdcId == null && attachRequested.Add(same.Id))
+                    {
+                        attach.Add((same.Id, fdcId, name, m, portions.TryGetValue(fdcId, out var sg) ? sg : null));
+                    }
+                    continue;
+                }
 
                 long? group = (food.CategoryId is int c && CategoryToGroup.TryGetValue(c, out var g))
                     ? g : FoodGroupHeuristics.ClassifyFoodGroup(food.Description);
@@ -225,6 +243,38 @@ namespace Nom.Import.Services
                     Fill("sugars", gramId, m.Sugars);
                     Fill("added_sugars", gramId, m.AddedSugars);
                 }
+            }
+            foreach (var (ingredientId, fdc, name, m, serving) in attach)
+            {
+                var facts = new List<object>();
+                void Fact(string key, long measurementId, decimal? amount)
+                {
+                    if (amount is { } a && nutrientIds.TryGetValue(key, out var nid))
+                        facts.Add(new { nutrientId = nid, amount = a, measurementId });
+                }
+                Fact("calories", kcalId, m.Kcal);
+                Fact("protein", gramId, m.Protein);
+                Fact("carb", gramId, m.Carb);
+                Fact("fat", gramId, m.Fat);
+                Fact("sugars", gramId, m.Sugars);
+                Fact("added_sugars", gramId, m.AddedSugars);
+
+                _db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
+                {
+                    Action = FoodProposalAction.Update,
+                    IngredientId = ingredientId,
+                    FdcId = fdc,
+                    Field = AttachField,
+                    CurrentValue = name,
+                    ProposedValue = System.Text.Json.JsonSerializer.Serialize(new { fdcDataType = dataType, referenceServingGrams = serving, nutrients = facts }),
+                    Confidence = 1m,
+                    Reason = $"Same name as USDA {dataType} food {fdc}: attach its {facts.Count} nutrient values",
+                    Source = $"fdc:{fdc}",
+                    Batch = "fdc-attach",
+                    Status = FoodProposalStatus.Pending,
+                    CreatedDate = DateTime.UtcNow,
+                });
+                report.AttachProposals++;
             }
             await _db.SaveChangesAsync(ct);
             _logger.LogInformation("FDC foundation import: {Accepted} accepted, {Rejected} rejected, {Skipped} existing.",
@@ -417,6 +467,7 @@ namespace Nom.Import.Services
             public int WithReferenceServing { get; set; }
             public int NutrientRows;
             public int BackfilledNutrientRows;
+            public int AttachProposals { get; set; }
             public Dictionary<string, int> RejectedByReason { get; } = new();
         }
     }

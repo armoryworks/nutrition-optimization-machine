@@ -398,6 +398,7 @@ builder.Services.AddHttpClient<Nom.Orch.Interfaces.IIngredientLinkMatcher, Nom.O
     client => client.Timeout = TimeSpan.FromSeconds(300));
 builder.Services.AddHostedService<Nom.Api.Services.IngredientLinkHostedService>();
 builder.Services.AddHostedService<Nom.Api.Services.RecipeNutritionRecalcHostedService>();
+builder.Services.AddHostedService<Nom.Api.Services.CourseClassificationHostedService>();
 
 // Prose-rewrite batch lane (off unless Ai:BatchOllamaUrl is set): clears the
 // ContainsSourceProse quarantine by rewriting scraped prose in original words;

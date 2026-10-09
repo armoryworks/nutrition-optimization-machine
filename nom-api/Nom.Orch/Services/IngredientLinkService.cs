@@ -61,14 +61,14 @@ namespace Nom.Orch.Services
 
             foreach (var source in sources)
             {
-                if (matcher.Exact(source.Name) is { } hit)
+                if ((matcher.Exact(source.Name) ?? matcher.Covering(source.Name)) is { } hit)
                 {
                     Propose(source, hit, ExactSource, ExactConfidence, FoodProposalStatus.Pending);
                     exact++;
                     continue;
                 }
 
-                var shortlist = matcher.Shortlist(source.Name);
+                var shortlist = matcher.Shortlist(source.Name, 10);
                 if (shortlist.Count == 0)
                 {
                     Propose(source, null, NoCandidateSource, null, FoodProposalStatus.Rejected);
@@ -165,7 +165,8 @@ namespace Nom.Orch.Services
 
             var foods = await _context.Ingredients
                 .AsNoTracking()
-                .Where(i => i.FdcId != null && !i.IsDeleted)
+                .Where(i => i.FdcId != null && !i.IsDeleted
+                    && (i.FdcDataType == "foundation_food" || i.FdcDataType == "sr_legacy_food"))
                 .Select(i => new FoodCandidate(i.Id, i.FdcId!, i.Name, i.FdcDataType ?? string.Empty))
                 .ToListAsync(cancellationToken);
             var matcher = new FoodNameMatcher(foods);

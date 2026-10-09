@@ -40,7 +40,9 @@ namespace Nom.Orch.Services
                 "Match each recipe ingredient to the USDA food it most plausibly means, as a home cook would use it.\n" +
                 "Rules: pick only from that ingredient's numbered options; answer 0 when none is the same food " +
                 "(a different food, a dish, or a product that merely contains it is NOT a match — e.g. 'sugar snap peas' is not sugar). " +
-                "Prefer the plain, raw or most common form when the ingredient doesn't specify. " +
+                "Prefer an option containing every word of the ingredient (a variety or color like 'black' or 'red' must appear in the option). " +
+                "When the ingredient doesn't specify a form, prefer the plain whole food as bought: raw produce (e.g. 'Tomatoes, red, ripe, raw'), " +
+                "not juice, canned, cooked or a variety the ingredient didn't name. " +
                 "confidence is 0.0-1.0.\n" +
                 "Reply with STRICT JSON only: {\"answers\":[{\"n\":1,\"pick\":2,\"confidence\":0.9}]} — one entry per ingredient.\n\n" +
                 string.Join("\n\n", questions.Select((q, i) =>

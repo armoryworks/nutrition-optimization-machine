@@ -19,9 +19,9 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex NonWord = new(@"[^a-z0-9 ]+", RegexOptions.Compiled);
         private static readonly HashSet<string> Noise = new(StringComparer.Ordinal)
         {
-            "fresh", "freshly", "chopped", "minced", "diced", "sliced", "large", "small", "medium", "organic", "raw",
-            "whole", "of", "and", "or", "the", "a", "an", "to", "for", "taste", "optional", "finely", "roughly",
-            "cooked", "plain", "pure", "good", "quality", "extra", "virgin", "kosher", "ground", "grated", "shredded",
+            "freshly", "chopped", "minced", "diced", "sliced", "large", "small", "medium", "organic",
+            "of", "and", "or", "the", "a", "an", "to", "for", "taste", "optional", "finely", "roughly",
+            "plain", "pure", "good", "quality",
         };
 
         private static readonly HashSet<string> ClassPrefixes = new(StringComparer.Ordinal)
@@ -70,6 +70,31 @@ namespace Nom.Orch.Services.Support
                 : null;
         }
 
+        /// <summary>
+        /// The single USDA food that contains every word of the name and whose identifying words all
+        /// appear in the name ("black pepper" → "Spices, pepper, black"), when only one does.
+        /// </summary>
+        public FoodCandidate? Covering(string name)
+        {
+            var tokens = Tokens(name);
+            if (tokens.Count == 0) return null;
+
+            FoodCandidate? only = null;
+            foreach (var t in tokens)
+            {
+                if (!_byToken.TryGetValue(t, out var hits)) return null;
+            }
+            var first = tokens.First();
+            foreach (var i in _byToken[first])
+            {
+                var (food, head, _, all) = _foods[i];
+                if (head.Count == 0 || !tokens.IsSubsetOf(all) || !head.IsSubsetOf(tokens)) continue;
+                if (only != null && only.IngredientId != food.IngredientId) return null;
+                only = food;
+            }
+            return only;
+        }
+
         /// <summary>Up to <paramref name="max"/> plausible USDA foods, best first; empty when nothing shares the name's words.</summary>
         public IReadOnlyList<FoodCandidate> Shortlist(string name, int max = 8)
         {
@@ -86,7 +111,8 @@ namespace Nom.Orch.Services.Support
                     if (!head.Overlaps(tokens) && !lead.Overlaps(tokens)) continue;
                     var shared = all.Count(tokens.Contains);
                     var headShared = head.Count(tokens.Contains);
-                    var score = (2.0 * headShared + shared) / (head.Count + tokens.Count + 0.25 * all.Count);
+                    var covers = shared == tokens.Count ? 1.0 : 0.0;
+                    var score = covers + (2.0 * headShared + shared) / (head.Count + tokens.Count + 0.25 * all.Count);
                     if (!scores.TryGetValue(i, out var best) || score > best) scores[i] = score;
                 }
             }

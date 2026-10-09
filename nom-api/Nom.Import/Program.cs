@@ -47,6 +47,7 @@ namespace Nom.Import
                 Console.WriteLine($"Skipped (dup name):{report.SkippedDuplicateName}");
                 Console.WriteLine($"Nutrient rows:     {report.NutrientRows} ({report.WithReferenceServing} foods with a reference serving)");
                 Console.WriteLine($"Backfilled rows:   {report.BackfilledNutrientRows} (missing nutrients added to already-imported foods)");
+                Console.WriteLine($"Attach proposals:  {report.AttachProposals} (same-name catalog ingredients offered this food's USDA values for review)");
                 foreach (var (reason, n) in report.RejectedByReason.OrderByDescending(r => r.Value))
                     Console.WriteLine($"  reject: {reason} × {n}");
                 return;

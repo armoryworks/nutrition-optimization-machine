@@ -57,6 +57,36 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public async Task A_same_name_catalog_ingredient_gets_an_attach_proposal_that_fills_only_gaps()
+        {
+            using var db = await NewContextAsync();
+            var seedSugar = new Nom.Data.Recipe.IngredientEntity { Name = "Sugars, granulated", CurationStatusId = 9003 };
+            db.Ingredients.Add(seedSugar);
+            await db.SaveChangesAsync();
+            db.Set<IngredientNutrientEntity>().Add(new IngredientNutrientEntity { IngredientId = seedSugar.Id, NutrientId = 5035, Amount = 400m, MeasurementId = 16 });
+            await db.SaveChangesAsync();
+            var importer = new FdcFoundationImportService(db, NullLogger<FdcFoundationImportService>.Instance);
+
+            var report = await importer.ImportAsync(_dir, dataType: FdcFoundationImportService.SrLegacyFood);
+            (await importer.ImportAsync(_dir, dataType: FdcFoundationImportService.SrLegacyFood)).AttachProposals.Should().Be(0, "one proposal per ingredient");
+
+            report.Accepted.Should().Be(0);
+            report.AttachProposals.Should().Be(1);
+            var proposal = await db.FoodCatalogProposals.SingleAsync();
+            proposal.Should().Match<Nom.Data.Curation.FoodCatalogProposalEntity>(p =>
+                p.IngredientId == seedSugar.Id && p.Field == FdcFoundationImportService.AttachField && p.Source == "fdc:169655");
+
+            var review = new Nom.Orch.Services.FoodCatalogReviewService(db, null!, null!);
+            (await review.ApplyProposalAsync(proposal.Id, reviewerPersonId: 1)).Should().BeTrue();
+
+            var sugar = await db.Ingredients.SingleAsync(i => i.Id == seedSugar.Id);
+            sugar.FdcId.Should().Be("169655");
+            var facts = await db.Set<IngredientNutrientEntity>().Where(n => n.IngredientId == seedSugar.Id).ToListAsync();
+            facts.Single(n => n.NutrientId == 5035).Amount.Should().Be(400m, "an existing value is never overwritten");
+            facts.Single(n => n.NutrientId == 5036).Amount.Should().Be(99.8m);
+        }
+
+        [Fact]
         public async Task Sr_legacy_food_imports_with_total_sugars_and_reruns_never_overwrite()
         {
             using var db = await NewContextAsync();
