@@ -1,0 +1,101 @@
+<div class="nom-dashboard" data-testid="admin-kitchen-tools">
+  <div class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <a routerLink="/admin" class="nom-dashboard__back" data-testid="kitchen-tools-admin-back-link">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Admin
+      </a>
+      <h1 class="nom-dashboard__title">Kitchen Tools</h1>
+      <span class="nom-dashboard__subtitle">AI equipment tagging and suggested tools</span>
+    </div>
+    <div class="nom-dashboard__header-right">
+      <button mat-stroked-button (click)="tagNow()" [disabled]="tagging() || !status()?.enabled"
+              data-testid="kitchen-tools-admin-tag-btn">
+        <mat-icon>auto_awesome</mat-icon>
+        {{ tagging() ? 'Tagging…' : 'Tag a batch now' }}
+      </button>
+      <button mat-icon-button (click)="refresh()" aria-label="Refresh" data-testid="kitchen-tools-admin-refresh-btn">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  @if (status(); as s) {
+    <dl class="nom-kitchen-admin__stats" data-testid="kitchen-tools-admin-status">
+      <div><dt>Model</dt><dd data-testid="kitchen-tools-admin-model">{{ s.enabled ? s.model : 'Not configured' }}</dd></div>
+      <div><dt>Recipes tagged</dt><dd>{{ s.recipesTagged | number }}</dd></div>
+      <div><dt>Still to tag</dt><dd data-testid="kitchen-tools-admin-remaining">{{ s.recipesRemaining | number }}</dd></div>
+      <div><dt>AI tool links</dt><dd>{{ s.aiToolLinks | number }}</dd></div>
+      <div><dt>Pending suggestions</dt><dd>{{ s.pendingSuggestions | number }}</dd></div>
+    </dl>
+  }
+
+  <p class="nom-kitchen-admin__hint">
+    Approving a suggestion adds it to every household's Kitchen list (unticked) and links it to the recipes it was seen in.
+    Rejected names are never suggested again.
+  </p>
+
+  <div class="nom-kitchen-admin__filters" role="group" aria-label="Filter by status" data-testid="kitchen-tools-admin-filter">
+    @for (s of statuses; track s) {
+      <button type="button" class="nom-kitchen-admin__filter" [class.nom-kitchen-admin__filter--active]="filter() === s"
+              [attr.aria-pressed]="filter() === s" (click)="setFilter(s)" [attr.data-testid]="'kitchen-tools-admin-filter-' + s">
+        {{ s }}
+      </button>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <p class="nom-kitchen-admin__error" role="alert" data-testid="kitchen-tools-admin-error">{{ errorMessage() }}</p>
+  }
+
+  @if (!loading() && suggestions().length === 0) {
+    <p class="nom-kitchen-admin__empty" data-testid="kitchen-tools-admin-empty">No {{ filter() }} suggestions.</p>
+  }
+
+  <ul class="nom-kitchen-admin__list" data-testid="kitchen-tools-admin-list">
+    @for (s of suggestions(); track s.id) {
+      <li class="nom-kitchen-admin__item" data-testid="kitchen-tools-admin-item">
+        <div class="nom-kitchen-admin__item-main">
+          @if (filter() === 'pending') {
+            <label class="nom-kitchen-admin__field">
+              <span>Name</span>
+              <input type="text" [value]="nameFor(s)" (input)="setName(s, $any($event.target).value)"
+                     data-testid="kitchen-tools-admin-name-input" />
+            </label>
+            <label class="nom-kitchen-admin__field">
+              <span>Category</span>
+              <select [value]="categoryFor(s)" (change)="setCategory(s, $any($event.target).value)"
+                      data-testid="kitchen-tools-admin-category-select">
+                @for (c of categories; track c) {
+                  <option [value]="c" [selected]="c === categoryFor(s)">{{ c }}</option>
+                }
+              </select>
+            </label>
+          } @else {
+            <strong>{{ s.displayName }}</strong>
+            <span class="nom-kitchen-admin__muted">{{ s.suggestedCategory }}</span>
+          }
+          <span class="nom-kitchen-admin__muted" data-testid="kitchen-tools-admin-seen">
+            Seen in {{ s.seenCount | number }} recipe{{ s.seenCount === 1 ? '' : 's' }}
+          </span>
+          @if (s.examples.length) {
+            <span class="nom-kitchen-admin__examples">
+              e.g.
+              @for (e of s.examples; track e.recipeId; let last = $last) {
+                <a [routerLink]="['/recipe', e.recipeId]" data-testid="kitchen-tools-admin-example-link">{{ e.name }}</a>{{ last ? '' : ', ' }}
+              }
+            </span>
+          }
+        </div>
+        @if (filter() === 'pending') {
+          <div class="nom-kitchen-admin__actions">
+            <button mat-flat-button color="primary" (click)="approve(s)" [disabled]="busyId() === s.id"
+                    data-testid="kitchen-tools-admin-approve-btn">Approve</button>
+            <button mat-stroked-button (click)="reject(s)" [disabled]="busyId() === s.id"
+                    data-testid="kitchen-tools-admin-reject-btn">Reject</button>
+          </div>
+        }
+      </li>
+    }
+  </ul>
+</div>

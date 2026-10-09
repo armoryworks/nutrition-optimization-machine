@@ -554,7 +554,8 @@ namespace Nom.Orch.Services
 
             var kitchen = new KitchenToolService(_context);
             var hideMissingTools = await kitchen.GetModeAsync(model.HouseholdId) == KitchenToolModes.Hide;
-            var ownedTools = hideMissingTools ? await kitchen.GetOwnedToolIdsAsync(model.HouseholdId) : null;
+            var toolSet = hideMissingTools ? await kitchen.GetToolSetAsync() : null;
+            var ownedTools = hideMissingTools ? await kitchen.GetOwnedToolIdsAsync(model.HouseholdId, toolSet) : null;
 
             async Task<List<RecipeEntity>> TakeRandomCookableAsync(IQueryable<RecipeEntity> source, int take)
             {
@@ -566,13 +567,13 @@ namespace Nom.Orch.Services
                     .Select(r => new
                     {
                         Recipe = r,
-                        ToolIds = r.RecipeTools!.Select(t => t.ToolId).ToList(),
+                        Linked = r.RecipeTools!.Select(t => new LinkedTool(t.ToolId, t.Source)).ToList(),
                         Steps = r.RecipeSteps!.Select(s => s.Summary + " " + s.Description).ToList(),
                     })
                     .ToListAsync();
                 return candidates
                     .Where(c => KitchenToolEvaluator.Evaluate(
-                        KitchenToolEvaluator.RequiredTools(c.ToolIds, c.Recipe.Name, c.Steps), ownedTools!).Fit != KitchenToolFit.Missing)
+                        KitchenToolEvaluator.RequiredTools(c.Linked, c.Recipe.Name, c.Steps, toolSet), ownedTools!, toolSet).Fit != KitchenToolFit.Missing)
                     .Select(c => c.Recipe)
                     .Take(take)
                     .ToList();

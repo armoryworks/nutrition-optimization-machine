@@ -218,18 +218,32 @@ namespace Nom.Data.Reference
         private static readonly Regex Shadowing = new(
             @"\b(dutch oven|toaster oven|oven[- ]safe|oven mitts?|baking (soda|powder|chocolate|spices?)|(fire|dry)[- ]roasted|roasted (red )?peppers|roasted garlic)\b", Rx);
 
+        public const string CategoryOther = "Specialty equipment";
+
+        /// <summary>
+        /// A tool an admin approved from the AI lane's suggestions: stored only as a reference row,
+        /// assumed not owned, no stand-ins, detected by its own name in recipe text.
+        /// </summary>
+        public static KitchenToolDefinition Approved(long id, string name, string? category)
+        {
+            var key = Regex.Replace(name.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
+            var pattern = @"\b" + Regex.Escape(name.ToLowerInvariant()).Replace(@"\ ", @"[\s-]+") + @"(e?s)?\b";
+            return new KitchenToolDefinition(id, key, name, string.IsNullOrWhiteSpace(category) ? CategoryOther : category,
+                false, Array.Empty<KitchenToolAlternative>(), new Regex(pattern, Rx));
+        }
+
         /// <summary>
         /// Tool ids a recipe appears to need, inferred from its name and step text. Phrases
         /// naming one tool inside another ("Dutch oven") are masked so they don't also imply
         /// the other ("oven").
         /// </summary>
-        public static IReadOnlySet<long> Detect(string? name, IEnumerable<string?> stepTexts)
+        public static IReadOnlySet<long> Detect(string? name, IEnumerable<string?> stepTexts, IReadOnlyDictionary<long, KitchenToolDefinition>? tools = null)
         {
             var text = string.Join("\n", new[] { name }.Concat(stepTexts).Where(s => !string.IsNullOrWhiteSpace(s)));
             var found = new HashSet<long>();
             if (text.Length == 0) return found;
 
-            foreach (var tool in All)
+            foreach (var tool in (tools ?? ById).Values)
             {
                 if (tool.Detect == null) continue;
                 var haystack = tool.Id == Oven || tool.Id == Stovetop ? Shadowing.Replace(text, " ") : text;

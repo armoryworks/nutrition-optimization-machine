@@ -100,6 +100,12 @@ namespace Nom.Data.Recipe
         public long? DishGroupId { get; set; }
         public virtual DishGroupEntity? DishGroup { get; set; }
 
+        /// <summary>
+        /// When the AI tool-tagging lane last classified this recipe's equipment.
+        /// Null = not yet tagged (keyword detection covers it meanwhile).
+        /// </summary>
+        public DateTime? ToolsTaggedAt { get; set; }
+
         // Social features (from Mealie)
         /// <summary>
         /// Visibility tier (see _RecipeVisibilityEnum). Public preserves the

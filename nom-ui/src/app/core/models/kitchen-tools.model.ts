@@ -41,3 +41,33 @@ export interface RecipeToolCheck {
   inferred: boolean;
   needs: RecipeToolNeed[];
 }
+
+export type KitchenToolSuggestionStatus = 'pending' | 'approved' | 'rejected';
+
+export interface KitchenToolSuggestion {
+  id: number;
+  name: string;
+  displayName: string;
+  suggestedCategory: string | null;
+  seenCount: number;
+  status: KitchenToolSuggestionStatus;
+  toolId: number | null;
+  createdDate: string;
+  examples: { recipeId: number; name: string }[];
+}
+
+export interface KitchenToolTaggingStatus {
+  enabled: boolean;
+  model: string | null;
+  recipesTagged: number;
+  recipesRemaining: number;
+  aiToolLinks: number;
+  pendingSuggestions: number;
+}
+
+export interface KitchenToolTaggingBatchResult {
+  seen: number;
+  tagged: number;
+  toolLinks: number;
+  suggestions: number;
+}

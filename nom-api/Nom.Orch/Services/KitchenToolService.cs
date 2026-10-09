@@ -23,13 +23,30 @@ namespace Nom.Orch.Services
             _context = context;
         }
 
+        public async Task<IReadOnlyDictionary<long, KitchenToolDefinition>> GetToolSetAsync()
+        {
+            var approved = await _context.Set<ReferenceEntity>()
+                .AsNoTracking()
+                .Where(r => !r.IsDeleted && r.Groups!.Any(g => g.Id == (long)ReferenceDiscriminatorEnum.KitchenToolType))
+                .Select(r => new { r.Id, r.Name, r.Description })
+                .ToListAsync();
+
+            var set = new Dictionary<long, KitchenToolDefinition>(KitchenToolCatalog.ById);
+            foreach (var r in approved.Where(r => !set.ContainsKey(r.Id)))
+            {
+                set[r.Id] = KitchenToolCatalog.Approved(r.Id, r.Name, r.Description);
+            }
+            return set;
+        }
+
         public async Task<KitchenSettingsModel> GetSettingsAsync(long householdId)
         {
+            var tools = await GetToolSetAsync();
             var answers = await LoadAnswersAsync(householdId);
             return new KitchenSettingsModel
             {
                 Mode = await GetModeAsync(householdId),
-                Tools = KitchenToolCatalog.All.Select(t => new KitchenToolModel
+                Tools = tools.Values.Select(t => new KitchenToolModel
                 {
                     Id = t.Id,
                     Key = t.Key,
@@ -66,7 +83,8 @@ namespace Nom.Orch.Services
 
             if (update.Tools is { Count: > 0 })
             {
-                var unknown = update.Tools.Where(a => !KitchenToolCatalog.ById.ContainsKey(a.ToolId)).Select(a => a.ToolId).ToList();
+                var tools = await GetToolSetAsync();
+                var unknown = update.Tools.Where(a => !tools.ContainsKey(a.ToolId)).Select(a => a.ToolId).ToList();
                 if (unknown.Count > 0)
                     throw new ArgumentException($"Unknown kitchen tool id(s): {string.Join(", ", unknown)}.");
 
@@ -116,9 +134,9 @@ namespace Nom.Orch.Services
             return KitchenToolModes.IsValid(value) ? value! : KitchenToolModes.Default;
         }
 
-        public async Task<IReadOnlySet<long>> GetOwnedToolIdsAsync(long householdId)
+        public async Task<IReadOnlySet<long>> GetOwnedToolIdsAsync(long householdId, IReadOnlyDictionary<long, KitchenToolDefinition>? tools = null)
         {
-            return KitchenToolEvaluator.ResolveOwned(await LoadAnswersAsync(householdId));
+            return KitchenToolEvaluator.ResolveOwned(await LoadAnswersAsync(householdId), tools ?? await GetToolSetAsync());
         }
 
         public async Task<RecipeToolCheckModel?> CheckRecipeAsync(long householdId, long recipeId)
@@ -130,29 +148,30 @@ namespace Nom.Orch.Services
                 {
                     r.Id,
                     r.Name,
-                    ToolIds = r.RecipeTools!.Select(t => t.ToolId).ToList(),
+                    Linked = r.RecipeTools!.Select(t => new LinkedTool(t.ToolId, t.Source)).ToList(),
                     Steps = r.RecipeSteps!.Select(s => s.Summary + " " + s.Description).ToList(),
                 })
                 .FirstOrDefaultAsync();
             if (recipe == null) return null;
 
-            var owned = await GetOwnedToolIdsAsync(householdId);
-            var explicitTools = recipe.ToolIds.Where(KitchenToolCatalog.ById.ContainsKey).ToList();
-            var required = KitchenToolEvaluator.RequiredTools(explicitTools, recipe.Name, recipe.Steps);
-            var check = KitchenToolEvaluator.Evaluate(required, owned);
+            var tools = await GetToolSetAsync();
+            var owned = await GetOwnedToolIdsAsync(householdId, tools);
+            var listed = recipe.Linked.Where(l => tools.ContainsKey(l.ToolId)).ToList();
+            var required = KitchenToolEvaluator.RequiredTools(listed, recipe.Name, recipe.Steps, tools);
+            var check = KitchenToolEvaluator.Evaluate(required, owned, tools);
 
             return new RecipeToolCheckModel
             {
                 RecipeId = recipe.Id,
                 Fit = FitName(check.Fit),
                 Mode = await GetModeAsync(householdId),
-                Inferred = explicitTools.Count == 0,
+                Inferred = !listed.Any(l => l.Source == null),
                 Needs = check.Needs.Select(n => new RecipeToolNeedModel
                 {
                     ToolId = n.ToolId,
                     ToolName = n.ToolName,
                     Fit = FitName(n.Fit),
-                    UsingToolName = n.UsingToolId is long u && u != n.ToolId && KitchenToolCatalog.ById.TryGetValue(u, out var t) ? t.Name : null,
+                    UsingToolName = n.UsingToolId is long u && u != n.ToolId && tools.TryGetValue(u, out var t) ? t.Name : null,
                     Note = n.Note,
                 }).ToList(),
             };

@@ -136,6 +136,8 @@ namespace Nom.Data
         public DbSet<TagEntity> Tags { get; set; } = default!;
         public DbSet<CategoryEntity> Categories { get; set; } = default!;
         public DbSet<RecipeToolEntity> RecipeTools { get; set; } = default!;
+        public DbSet<KitchenToolSuggestionEntity> KitchenToolSuggestions { get; set; } = default!;
+        public DbSet<KitchenToolSuggestionRecipeEntity> KitchenToolSuggestionRecipes { get; set; } = default!;
         public DbSet<RecipeNutritionEntity> RecipeNutrition { get; set; } = default!;
         public DbSet<RecipeSettingsEntity> RecipeSettings { get; set; } = default!;
         public DbSet<IngredientExtrasEntity> IngredientExtras { get; set; } = default!;

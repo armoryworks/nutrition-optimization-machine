@@ -390,6 +390,10 @@ builder.Services.AddHttpClient<Nom.Orch.Interfaces.IDishGroupSuggester, Nom.Orch
     client => client.Timeout = TimeSpan.FromSeconds(300));
 builder.Services.AddHostedService<Nom.Api.Services.DishGroupingHostedService>();
 
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IRecipeToolTagger, Nom.Orch.Services.OllamaRecipeToolTagger>(
+    client => client.Timeout = TimeSpan.FromSeconds(300));
+builder.Services.AddHostedService<Nom.Api.Services.RecipeToolTaggingHostedService>();
+
 // Prose-rewrite batch lane (off unless Ai:BatchOllamaUrl is set): clears the
 // ContainsSourceProse quarantine by rewriting scraped prose in original words;
 // curation approval still gates publish, originals stay in ScrapedDocument.

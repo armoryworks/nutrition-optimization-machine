@@ -16,6 +16,7 @@ public class RecipeEntityConfiguration : IEntityTypeConfiguration<RecipeEntity>
             .HasConversion<int>()
             .HasDefaultValue(RecipeVisibilityEnum.Public);
         builder.HasIndex(e => e.Visibility);
+        builder.HasIndex(e => e.Id).HasDatabaseName("IX_Recipe_ToolsUntagged").HasFilter("\"ToolsTaggedAt\" IS NULL");
 
         // Properties
         builder.Property(e => e.Name).IsRequired().HasMaxLength(511);

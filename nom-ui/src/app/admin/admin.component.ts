@@ -11,10 +11,11 @@ import { ClientsAdmin } from './clients-admin.component';
 import { DietCategories } from './diet-categories.component';
 import { FoodCatalog } from './food-catalog.component';
 import { PlatformFeatures } from './platform-features.component';
+import { KitchenToolsAdmin } from './kitchen-tools-admin.component';
 
 // URL-driven tabbed shell (the forge-ui admin idiom): /admin/:tab selects the
 // panel; unknown tabs fall back to the overview launchpad.
-const VALID_TABS = ['overview', 'users', 'clients', 'curation', 'food-catalog', 'scraping-sources', 'diet-categories', 'platform-features', 'webhooks'] as const;
+const VALID_TABS = ['overview', 'users', 'clients', 'curation', 'food-catalog', 'scraping-sources', 'kitchen-tools', 'diet-categories', 'platform-features', 'webhooks'] as const;
 type AdminTab = (typeof VALID_TABS)[number];
 
 interface AdminTabDef {
@@ -28,7 +29,7 @@ interface AdminTabDef {
 
 @Component({
   selector: 'nom-admin',
-  imports: [RouterLink, MatIconModule, CurationQueue, ScrapingSources, Webhooks, UsersAdmin, ClientsAdmin, DietCategories, FoodCatalog, PlatformFeatures],
+  imports: [RouterLink, MatIconModule, CurationQueue, ScrapingSources, Webhooks, UsersAdmin, ClientsAdmin, DietCategories, FoodCatalog, PlatformFeatures, KitchenToolsAdmin],
   templateUrl: './admin.component.html',
   styleUrls: ['../settings/settings.component.scss', './admin.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,6 +74,12 @@ export class Admin {
       icon: 'travel_explore',
       description: 'Approve domains recipes may be imported from',
       navTestId: 'nav-scraping-sources',
+    },
+    {
+      id: 'kitchen-tools',
+      label: 'Kitchen Tools',
+      icon: 'blender',
+      description: 'AI equipment tagging and suggested tools to add',
     },
     {
       id: 'diet-categories',

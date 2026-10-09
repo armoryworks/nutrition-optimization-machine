@@ -22,20 +22,27 @@ namespace Nom.Orch.Services.Support
         public IEnumerable<string> Notes => Needs.Where(n => n.Note != null).Select(n => n.Note!);
     }
 
+    /// <summary>A recipe's linked tool and who linked it (null source = author/admin).</summary>
+    public sealed record LinkedTool(long ToolId, string? Source);
+
     /// <summary>
     /// Decides whether a household can cook a recipe with what's in its kitchen. A needed tool
     /// is covered when owned, otherwise by the first owned alternative in catalog order; with no
     /// owned alternative the recipe is <see cref="KitchenToolFit.Missing"/> that tool.
+    /// Every method takes the tool set in force (code catalog plus admin-approved tools);
+    /// omitting it means the code catalog alone.
     /// </summary>
     public static class KitchenToolEvaluator
     {
         /// <summary>
         /// Tools owned once the household's explicit answers are laid over the catalog defaults.
         /// </summary>
-        public static IReadOnlySet<long> ResolveOwned(IReadOnlyDictionary<long, bool> explicitAnswers)
+        public static IReadOnlySet<long> ResolveOwned(
+            IReadOnlyDictionary<long, bool> explicitAnswers,
+            IReadOnlyDictionary<long, KitchenToolDefinition>? tools = null)
         {
             var owned = new HashSet<long>();
-            foreach (var tool in KitchenToolCatalog.All)
+            foreach (var tool in (tools ?? KitchenToolCatalog.ById).Values)
             {
                 var has = explicitAnswers.TryGetValue(tool.Id, out var answer) ? answer : tool.OwnedByDefault;
                 if (has) owned.Add(tool.Id);
@@ -44,22 +51,42 @@ namespace Nom.Orch.Services.Support
         }
 
         /// <summary>
-        /// Tools a recipe needs: its explicit tool list when it has one, otherwise what its name
-        /// and steps mention.
+        /// Tools a recipe needs: the author's (or an admin's) tool list when it has one; otherwise
+        /// what the AI tagging lane linked plus what the name and steps mention.
         /// </summary>
-        public static IReadOnlySet<long> RequiredTools(IEnumerable<long>? explicitToolIds, string? name, IEnumerable<string?> stepTexts)
+        public static IReadOnlySet<long> RequiredTools(
+            IEnumerable<LinkedTool>? linked,
+            string? name,
+            IEnumerable<string?> stepTexts,
+            IReadOnlyDictionary<long, KitchenToolDefinition>? tools = null)
         {
-            var known = explicitToolIds?.Where(KitchenToolCatalog.ById.ContainsKey).ToHashSet();
-            if (known is { Count: > 0 }) return known;
-            return KitchenToolCatalog.Detect(name, stepTexts);
+            var set = tools ?? KitchenToolCatalog.ById;
+            var known = (linked ?? Enumerable.Empty<LinkedTool>()).Where(l => set.ContainsKey(l.ToolId)).ToList();
+
+            var authored = known.Where(l => l.Source == null).Select(l => l.ToolId).ToHashSet();
+            if (authored.Count > 0) return authored;
+
+            var needed = new HashSet<long>(known.Select(l => l.ToolId));
+            needed.UnionWith(KitchenToolCatalog.Detect(name, stepTexts, set));
+            return needed;
         }
 
-        public static KitchenToolCheck Evaluate(IEnumerable<long> requiredToolIds, IReadOnlySet<long> owned)
+        /// <summary>Treats every id as author-listed.</summary>
+        public static IReadOnlySet<long> RequiredTools(IEnumerable<long>? explicitToolIds, string? name, IEnumerable<string?> stepTexts)
         {
+            return RequiredTools(explicitToolIds?.Select(id => new LinkedTool(id, null)), name, stepTexts);
+        }
+
+        public static KitchenToolCheck Evaluate(
+            IEnumerable<long> requiredToolIds,
+            IReadOnlySet<long> owned,
+            IReadOnlyDictionary<long, KitchenToolDefinition>? tools = null)
+        {
+            var set = tools ?? KitchenToolCatalog.ById;
             var needs = new List<KitchenToolNeed>();
             foreach (var id in requiredToolIds.Distinct().OrderBy(i => i))
             {
-                if (!KitchenToolCatalog.ById.TryGetValue(id, out var tool)) continue;
+                if (!set.TryGetValue(id, out var tool)) continue;
 
                 if (owned.Contains(id))
                 {
