@@ -67,20 +67,43 @@ namespace Nom.Orch.Services
                 return new ToolTagCandidate(r.Id, r.Name, text.Length > StepTextLimit ? text[..StepTextLimit] : text);
             }).ToList();
 
-            IReadOnlyList<ToolTagResult> tagged;
+            var tagged = new List<ToolTagResult>();
             try
             {
-                tagged = await _tagger.TagAsync(candidates, knownForModel, cancellationToken);
+                tagged.AddRange(await _tagger.TagAsync(candidates, knownForModel, cancellationToken));
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 throw;
             }
+            catch (Exception ex) when (IsUnreachable(ex))
+            {
+                _logger.LogWarning(ex, "Tool tagging model unreachable; leaving recipes {First}-{Last} untagged", batch[0].Id, batch[^1].Id);
+                return null;
+            }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Tool tagging model call failed for recipes {First}-{Last}; leaving them untagged",
-                    batch[0].Id, batch[^1].Id);
-                return null;
+                _logger.LogWarning(ex, "Tool tagging batch {First}-{Last} got a bad answer; retrying one recipe at a time", batch[0].Id, batch[^1].Id);
+                foreach (var candidate in candidates)
+                {
+                    try
+                    {
+                        tagged.AddRange(await _tagger.TagAsync(new[] { candidate }, knownForModel, cancellationToken));
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception single) when (IsUnreachable(single))
+                    {
+                        return null;
+                    }
+                    catch (Exception single)
+                    {
+                        _logger.LogWarning(single, "Tool tagging skipped recipe {RecipeId}: the model could not tag it; keyword detection still applies", candidate.RecipeId);
+                        tagged.Add(new ToolTagResult(candidate.RecipeId, Array.Empty<string>(), Array.Empty<ProposedTool>()));
+                    }
+                }
             }
 
             var source = AiSourcePrefix + _tagger.ModelName;
@@ -104,7 +127,12 @@ namespace Nom.Orch.Services
             var now = DateTime.UtcNow;
             foreach (var t in tagged)
             {
-                var linkIds = new HashSet<long>(t.KnownToolKeys.Where(keyToId.ContainsKey).Select(k => keyToId[k]));
+                var candidate = candidates.First(c => c.RecipeId == t.RecipeId);
+                var text = candidate.Name + "\n" + candidate.StepText;
+                bool Evidenced(long toolId) =>
+                    tools.TryGetValue(toolId, out var def) && (def.OwnedByDefault || def.Detect == null || def.Detect.IsMatch(text));
+
+                var linkIds = new HashSet<long>(t.KnownToolKeys.Where(keyToId.ContainsKey).Select(k => keyToId[k]).Where(Evidenced));
 
                 foreach (var proposal in t.Other)
                 {
@@ -119,7 +147,7 @@ namespace Nom.Orch.Services
                             .FirstOrDefault();
                     if (existingTool is long toolId)
                     {
-                        linkIds.Add(toolId);
+                        if (Evidenced(toolId)) linkIds.Add(toolId);
                         continue;
                     }
 
@@ -264,6 +292,9 @@ namespace Nom.Orch.Services
             await _context.SaveChangesAsync();
             return true;
         }
+
+        private static bool IsUnreachable(Exception ex) =>
+            ex is System.Net.Http.HttpRequestException or TimeoutException or TaskCanceledException;
 
         private static Dictionary<string, long> BuildNameIndex(IReadOnlyDictionary<long, KitchenToolDefinition> tools)
         {

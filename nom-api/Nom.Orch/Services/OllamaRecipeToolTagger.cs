@@ -4,7 +4,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
@@ -56,7 +55,9 @@ namespace Nom.Orch.Services
                 "Rules:\n" +
                 "- \"tools\": known keys a step of the recipe actually uses (baking, roasting or broiling uses \"oven\"; " +
                 "boiling, simmering or frying uses \"stovetop\"). Never guess: if no step uses a tool, leave it out. " +
-                "Skip anything optional or merely suggested. No-cook recipes have none.\n" +
+                "Skip anything optional or merely suggested. No-cook recipes have none. " +
+                "Name a specialized appliance (rice cooker, slow cooker, air fryer, instant-pot, sous vide) only when a step explicitly names it — " +
+                "\"cook the rice\" means \"stovetop\".\n" +
                 "- \"other\": specialty equipment the recipe needs that is NOT a known tool and NOT everyday kit " +
                 "(never knives, boards, bowls, spoons, spatulas, whisks, measuring cups, ordinary pots, pans, sheets, foil, " +
                 "parchment, racks, jars). Short singular noun, e.g. \"pizza stone\", \"tortilla press\", \"bundt pan\". " +
@@ -76,46 +77,48 @@ namespace Nom.Orch.Services
             response.EnsureSuccessStatusCode();
 
             var body = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
-            var payload = JsonSerializer.Deserialize<Payload>(body.GetProperty("response").GetString() ?? "{}");
-            var entries = payload?.Recipes ?? new List<Entry>();
+            using var doc = JsonDocument.Parse(body.GetProperty("response").GetString() ?? "{}");
+            var entries = doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("recipes", out var list) && list.ValueKind == JsonValueKind.Array
+                    ? list.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.Object).ToList()
+                    : new List<JsonElement>();
             if (entries.Count == 0) throw new InvalidOperationException("Model returned no recipe entries.");
 
             var results = new List<ToolTagResult>();
             for (var i = 0; i < recipes.Count; i++)
             {
-                var entry = entries.FirstOrDefault(e => e.N == i + 1) ?? (entries.Count == recipes.Count ? entries[i] : null);
-                if (entry == null) continue;
+                var number = i + 1;
+                JsonElement? entry = entries.FirstOrDefault(e => e.TryGetProperty("n", out var n) && n.ValueKind == JsonValueKind.Number && n.TryGetInt32(out var v) && v == number) is { ValueKind: JsonValueKind.Object } found
+                    ? found
+                    : entries.Count == recipes.Count ? entries[i] : null;
+                if (entry is not { } e) continue;
 
-                var known = (entry.Tools ?? new List<string>())
-                    .Select(k => k?.Trim().ToLowerInvariant() ?? string.Empty)
+                var known = Strings(e, "tools")
+                    .Select(k => k.Trim().ToLowerInvariant())
                     .Where(knownTools.ContainsKey)
                     .Distinct()
                     .ToList();
-                var other = (entry.Other ?? new List<OtherEntry>())
-                    .Where(o => !string.IsNullOrWhiteSpace(o.Name))
-                    .Select(o => new ProposedTool(o.Name!.Trim(), Categories.Contains(o.Category) ? o.Category : null))
-                    .ToList();
+                var other = new List<ProposedTool>();
+                if (e.TryGetProperty("other", out var others) && others.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var o in others.EnumerateArray())
+                    {
+                        var name = o.ValueKind == JsonValueKind.String ? o.GetString()
+                            : o.ValueKind == JsonValueKind.Object && o.TryGetProperty("name", out var nm) && nm.ValueKind == JsonValueKind.String ? nm.GetString()
+                            : null;
+                        if (string.IsNullOrWhiteSpace(name)) continue;
+                        var category = o.ValueKind == JsonValueKind.Object && o.TryGetProperty("category", out var c) && c.ValueKind == JsonValueKind.String ? c.GetString() : null;
+                        other.Add(new ProposedTool(name.Trim(), Categories.Contains(category) ? category : null));
+                    }
+                }
                 results.Add(new ToolTagResult(recipes[i].RecipeId, known, other));
             }
             return results;
         }
 
-        private sealed class Payload
-        {
-            [JsonPropertyName("recipes")] public List<Entry>? Recipes { get; set; }
-        }
-
-        private sealed class Entry
-        {
-            [JsonPropertyName("n")] public int N { get; set; }
-            [JsonPropertyName("tools")] public List<string>? Tools { get; set; }
-            [JsonPropertyName("other")] public List<OtherEntry>? Other { get; set; }
-        }
-
-        private sealed class OtherEntry
-        {
-            [JsonPropertyName("name")] public string? Name { get; set; }
-            [JsonPropertyName("category")] public string? Category { get; set; }
-        }
+        private static IEnumerable<string> Strings(JsonElement element, string property) =>
+            element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.Array
+                ? value.EnumerateArray().Where(v => v.ValueKind == JsonValueKind.String).Select(v => v.GetString()!)
+                : Enumerable.Empty<string>();
     }
 }

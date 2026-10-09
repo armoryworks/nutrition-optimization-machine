@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Nom.Data;
 using Nom.Data.Recipe;
@@ -28,12 +29,14 @@ namespace Nom.Api.Tests.Services
         {
             public Func<ToolTagCandidate, ToolTagResult> Answer { get; set; } = c => new ToolTagResult(c.RecipeId, Array.Empty<string>(), Array.Empty<ProposedTool>());
             public bool Fail { get; set; }
+            public Func<IReadOnlyList<ToolTagCandidate>, bool>? BadAnswer { get; set; }
             public bool IsConfigured => true;
             public string ModelName => "fake:1b";
 
             public Task<IReadOnlyList<ToolTagResult>> TagAsync(IReadOnlyList<ToolTagCandidate> recipes, IReadOnlyDictionary<string, string> knownTools, CancellationToken cancellationToken = default)
             {
-                if (Fail) throw new InvalidOperationException("model down");
+                if (Fail) throw new System.Net.Http.HttpRequestException("model down");
+                if (BadAnswer?.Invoke(recipes) == true) throw new System.Text.Json.JsonException("bad shape");
                 return Task.FromResult<IReadOnlyList<ToolTagResult>>(recipes.Select(Answer).ToList());
             }
         }
@@ -63,6 +66,7 @@ namespace Nom.Api.Tests.Services
         [InlineData("tortilla press (cast iron)", "tortilla press")]
         [InlineData("Mixing Bowls", null)]
         [InlineData("oven-safe skillet", null)]
+        [InlineData("sheet-pan", null)]
         [InlineData("large rimmed baking sheet", null)]
         [InlineData("kitchen shears", null)]
         [InlineData("9-inch tart pan", null)]
@@ -96,10 +100,23 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task Specialty_tools_need_textual_evidence_everyday_tools_do_not()
+        {
+            using var db = NewContext();
+            var bowl = await AddRecipeAsync(db, "Rice Bowl", "Rinse and cook the jasmine rice. Simmer the beans.");
+            var (lane, tagger) = NewLane(db);
+            tagger.Answer = c => new ToolTagResult(c.RecipeId, new[] { "rice-cooker", "stovetop" }, Array.Empty<ProposedTool>());
+
+            await lane.TagNextBatchAsync(5);
+
+            (await db.RecipeTools.Select(rt => rt.ToolId).ToListAsync()).Should().Equal(KitchenToolCatalog.Stovetop);
+        }
+
+        [Fact]
         public async Task A_proposed_name_that_is_already_a_tool_links_that_tool()
         {
             using var db = NewContext();
-            var recipe = await AddRecipeAsync(db, "Pot Roast", "Cook low and slow.");
+            var recipe = await AddRecipeAsync(db, "Pot Roast", "Cook low and slow in the crock-pot.");
             var (lane, tagger) = NewLane(db);
             tagger.Answer = c => new ToolTagResult(c.RecipeId, Array.Empty<string>(), new[] { new ProposedTool("Crock-Pot", null) });
 
@@ -113,7 +130,7 @@ namespace Nom.Api.Tests.Services
         public async Task Cast_iron_proposals_link_the_catalog_skillet()
         {
             using var db = NewContext();
-            await AddRecipeAsync(db, "Cornbread", "Heat the fat in the skillet.");
+            await AddRecipeAsync(db, "Cornbread", "Heat the fat in a 10-inch cast-iron skillet.");
             var (lane, tagger) = NewLane(db);
             tagger.Answer = c => new ToolTagResult(c.RecipeId, Array.Empty<string>(), new[] { new ProposedTool("10-inch cast iron skillet", null), new ProposedTool("cast iron skillet", null) });
 
@@ -162,6 +179,23 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_bad_answer_retries_singly_and_never_blocks_the_queue()
+        {
+            using var db = NewContext();
+            var good = await AddRecipeAsync(db, "Soup", "Simmer for 20 minutes.");
+            var poison = await AddRecipeAsync(db, "Weird", "Something the model chokes on.");
+            var (lane, tagger) = NewLane(db);
+            tagger.BadAnswer = batch => batch.Any(r => r.RecipeId == poison.Id);
+            tagger.Answer = c => new ToolTagResult(c.RecipeId, new[] { "stovetop" }, Array.Empty<ProposedTool>());
+
+            var result = await lane.TagNextBatchAsync(5);
+
+            result!.Tagged.Should().Be(2, "the poison recipe is skipped, not retried forever");
+            (await db.RecipeTools.SingleAsync()).RecipeId.Should().Be(good.Id);
+            (await lane.TagNextBatchAsync(5))!.Seen.Should().Be(0);
+        }
+
+        [Fact]
         public async Task Rejected_suggestions_stop_collecting()
         {
             using var db = NewContext();
@@ -176,6 +210,37 @@ namespace Nom.Api.Tests.Services
             await lane.TagNextBatchAsync(5);
 
             (await db.KitchenToolSuggestions.SingleAsync()).SeenCount.Should().Be(1);
+        }
+
+        private sealed class CannedHandler : System.Net.Http.HttpMessageHandler
+        {
+            private readonly string _modelJson;
+            public CannedHandler(string modelJson) => _modelJson = modelJson;
+
+            protected override Task<System.Net.Http.HttpResponseMessage> SendAsync(System.Net.Http.HttpRequestMessage request, CancellationToken cancellationToken) =>
+                Task.FromResult(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                {
+                    Content = System.Net.Http.Json.JsonContent.Create(new { response = _modelJson }),
+                });
+        }
+
+        [Theory]
+        [InlineData("{\"recipes\":[{\"n\":1,\"tools\":[\"oven\",\"made-up\"],\"other\":[\"pizza peel\"]}]}")]
+        [InlineData("{\"recipes\":[{\"n\":1,\"tools\":[\"Oven\"],\"other\":[{\"name\":\"pizza peel\",\"category\":\"nonsense\"}]}]}")]
+        public async Task Tagger_accepts_string_or_object_proposals(string modelJson)
+        {
+            var config = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?> { ["Ai:OllamaUrl"] = "http://ollama.test" })
+                .Build();
+            var tagger = new OllamaRecipeToolTagger(new System.Net.Http.HttpClient(new CannedHandler(modelJson)), config);
+
+            var result = await tagger.TagAsync(
+                new[] { new ToolTagCandidate(7, "Pizza", "Bake on the stone.") },
+                new Dictionary<string, string> { ["oven"] = "Oven" });
+
+            var only = result.Should().ContainSingle().Subject;
+            only.KnownToolKeys.Should().Equal("oven");
+            only.Other.Should().ContainSingle(o => o.Name == "pizza peel" && o.Category == null);
         }
 
         [Fact]

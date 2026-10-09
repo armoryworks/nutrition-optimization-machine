@@ -22,7 +22,7 @@ namespace Nom.Orch.Services.Support
             "peeler", "vegetable peeler", "grater", "box grater", "can opener", "plastic wrap", "foil", "aluminum foil",
             "parchment paper", "parchment", "wax paper", "paper towel", "towel", "kitchen towel", "oven mitt",
             "rack", "wire rack", "cooling rack", "baking sheet", "sheet pan", "cookie sheet", "toothpick", "skewer",
-            "zip-top bag", "ziploc bag", "plastic bag", "bag", "jar", "container", "airtight container", "tray",
+            "zip top bag", "ziploc bag", "plastic bag", "bag", "jar", "container", "airtight container", "tray",
             "rolling pin", "pastry brush", "brush", "scissors", "kitchen scissors", "kitchen shears", "shears",
             "timer", "stove", "burner", "sink", "refrigerator", "fridge", "freezer", "counter", "countertop",
             "serving dish", "serving bowl", "casserole", "dish", "baking pan", "cake pan", "pie dish", "pie plate",
@@ -36,14 +36,14 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex Clean = new(@"\(.*?\)|[^a-z0-9'\- ]", RegexOptions.Compiled);
         private static readonly Regex Spaces = new(@"\s+", RegexOptions.Compiled);
-        private static readonly Regex LeadingArticle = new(@"^(a|an|the|some|large|small|medium|big|heavy|good|sturdy|oven-safe|ovenproof|oven-proof|nonstick|non-stick|heavy-bottomed|heavy-duty|deep|shallow|rimmed|lined|greased|lightly|clean|dry|wide|tall|round|square|rectangular|wooden|metal|glass|ceramic|stainless|steel|stainless-steel)\s+", RegexOptions.Compiled);
+        private static readonly Regex LeadingArticle = new(@"^(a|an|the|some|large|small|medium|big|heavy|good|sturdy|oven safe|ovenproof|oven proof|nonstick|non stick|heavy bottomed|heavy duty|deep|shallow|rimmed|lined|greased|lightly|clean|dry|wide|tall|round|square|rectangular|wooden|metal|glass|ceramic|stainless steel|stainless|steel)\s+", RegexOptions.Compiled);
 
         /// <summary>The normalized key, or null when the noun is unusable or everyday equipment.</summary>
         public static string? Normalize(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return null;
 
-            var s = Clean.Replace(raw.ToLowerInvariant(), " ");
+            var s = Clean.Replace(raw.ToLowerInvariant().Replace('-', ' '), " ");
             s = Spaces.Replace(s, " ").Trim(' ', '-', '\'');
             for (var previous = ""; previous != s;)
             {
