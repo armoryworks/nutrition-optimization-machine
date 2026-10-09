@@ -30,6 +30,21 @@ namespace Nom.Orch.Services.Support
             "vinegar", "salad", "dressing", "cereal", "beverage", "alcoholic", "fish", "crustacean", "mollusk",
         };
 
+        private static readonly HashSet<string> IdentityClasses = new(StringComparer.Ordinal)
+        {
+            "oil", "sauce", "vinegar", "salad", "dressing", "condiment", "sweetener",
+        };
+
+        private static readonly HashSet<string> NeutralQualifiers = new(StringComparer.Ordinal)
+        {
+            "raw", "fresh", "whole", "ground", "dried", "table", "prepared",
+        };
+
+        private static readonly HashSet<string> Disqualifiers = new(StringComparer.Ordinal)
+        {
+            "non", "imitation", "substitute", "artificial", "dietetic", "reduced", "low", "free", "mix", "flavored", "restaurant",
+        };
+
         private readonly List<(FoodCandidate Food, HashSet<string> Head, HashSet<string> Lead, HashSet<string> All)> _foods;
         private readonly Dictionary<string, List<int>> _byToken = new(StringComparer.Ordinal);
         private readonly Dictionary<string, List<int>> _byHeadKey = new(StringComparer.Ordinal);
@@ -41,7 +56,12 @@ namespace Nom.Orch.Services.Support
                 var segments = f.Name.Split(',');
                 var first = Tokens(segments[0]);
                 var second = segments.Length > 1 ? Tokens(segments[1]) : new HashSet<string>(StringComparer.Ordinal);
-                var head = first.Count > 0 && first.All(ClassPrefixes.Contains) && second.Count > 0 ? second : first;
+                var head = first;
+                if (first.Count > 0 && first.All(ClassPrefixes.Contains) && second.Count > 0)
+                {
+                    head = new HashSet<string>(second, StringComparer.Ordinal);
+                    head.UnionWith(first.Where(IdentityClasses.Contains));
+                }
                 var lead = new HashSet<string>(first, StringComparer.Ordinal);
                 lead.UnionWith(second);
                 return (f, head, lead, Tokens(f.Name));
@@ -65,10 +85,14 @@ namespace Nom.Orch.Services.Support
         public FoodCandidate? Exact(string name)
         {
             var key = Key(Tokens(name));
-            return key.Length > 0 && _byHeadKey.TryGetValue(key, out var owners) && owners.Count == 1
-                ? _foods[owners[0]].Food
-                : null;
+            if (key.Length == 0 || !_byHeadKey.TryGetValue(key, out var owners) || owners.Count != 1) return null;
+            var (food, _, lead, all) = _foods[owners[0]];
+            return Qualifies(Tokens(name), lead, all) ? food : null;
         }
+
+        private static bool Qualifies(HashSet<string> tokens, HashSet<string> lead, HashSet<string> all) =>
+            lead.All(t => tokens.Contains(t) || NeutralQualifiers.Contains(t) || (ClassPrefixes.Contains(t) && !IdentityClasses.Contains(t)))
+            && all.All(t => !Disqualifiers.Contains(t) || tokens.Contains(t));
 
         /// <summary>
         /// The single USDA food that contains every word of the name and whose identifying words all
@@ -87,8 +111,8 @@ namespace Nom.Orch.Services.Support
             var first = tokens.First();
             foreach (var i in _byToken[first])
             {
-                var (food, head, _, all) = _foods[i];
-                if (head.Count == 0 || !tokens.IsSubsetOf(all) || !head.IsSubsetOf(tokens)) continue;
+                var (food, head, lead, all) = _foods[i];
+                if (head.Count == 0 || !tokens.IsSubsetOf(all) || !head.IsSubsetOf(tokens) || !Qualifies(tokens, lead, all)) continue;
                 if (only != null && only.IngredientId != food.IngredientId) return null;
                 only = food;
             }

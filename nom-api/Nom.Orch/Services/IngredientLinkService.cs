@@ -171,22 +171,34 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// Re-points pending model-chosen links for bare staple names ("flour", "milk") to the
-        /// standard USDA entry. Only touches proposals no reviewer has acted on.
+        /// Re-points pending model-chosen and name-matched links for bare staple names ("flour",
+        /// "milk") to the standard USDA entry, and withdraws pending name matches the current
+        /// matcher no longer makes so those ingredients are asked again. Only touches proposals no
+        /// reviewer has acted on.
         /// </summary>
         public async Task<int> ApplyStapleDefaultsToPendingAsync(CancellationToken cancellationToken = default)
         {
             var staples = await StapleTargetsAsync(cancellationToken);
             var pending = await _context.FoodCatalogProposals
                 .Where(p => p.Field == FoodCatalogReviewService.FdcLinkField && p.Batch == Batch
-                    && p.Status == FoodProposalStatus.Pending && p.Source.StartsWith("ai:"))
+                    && p.Status == FoodProposalStatus.Pending && (p.Source.StartsWith("ai:") || p.Source == ExactSource))
                 .ToListAsync(cancellationToken);
+            var matcher = await GetMatcherAsync(cancellationToken);
 
             var changed = 0;
             foreach (var p in pending)
             {
-                if (p.CurrentValue == null || StapleFoods.UsdaNameFor(p.CurrentValue) is not { } stapleName
-                    || !staples.TryGetValue(stapleName, out var staple) || p.FdcId == staple.FdcId) continue;
+                if (p.CurrentValue == null) continue;
+                if (StapleFoods.UsdaNameFor(p.CurrentValue) is not { } stapleName || !staples.TryGetValue(stapleName, out var staple))
+                {
+                    if (p.Source == ExactSource && (matcher.Exact(p.CurrentValue) ?? matcher.Covering(p.CurrentValue))?.FdcId != p.FdcId)
+                    {
+                        _context.FoodCatalogProposals.Remove(p);
+                        changed++;
+                    }
+                    continue;
+                }
+                if (p.FdcId == staple.FdcId && p.Source == StapleSource) continue;
 
                 var uses = p.Reason != null && p.Reason.Contains("used in ") ? p.Reason[(p.Reason.LastIndexOf("used in ", StringComparison.Ordinal))..] : null;
                 p.FdcId = staple.FdcId;
@@ -201,15 +213,37 @@ namespace Nom.Orch.Services
             return changed;
         }
 
+        public async Task<IReadOnlyList<long>> PendingDeterministicAsync(int count, IReadOnlyCollection<long> skip, CancellationToken cancellationToken = default)
+        {
+            return await _context.FoodCatalogProposals
+                .Where(p => p.Status == FoodProposalStatus.Pending && p.IngredientId != null && !skip.Contains(p.Id)
+                    && ((p.Field == FoodCatalogReviewService.FdcLinkField && p.Source == StapleSource)
+                        || (p.Field == FoodCatalogReviewService.FdcAttachField && p.Source.StartsWith("fdc:"))))
+                .OrderByDescending(p => _context.RecipeIngredients.Count(ri => ri.IngredientId == p.IngredientId))
+                .Select(p => p.Id)
+                .Take(count)
+                .ToListAsync(cancellationToken);
+        }
+
         private async Task<Dictionary<string, FoodCandidate>> StapleTargetsAsync(CancellationToken cancellationToken)
         {
-            return (await _context.Ingredients
+            var foods = await _context.Ingredients
                 .AsNoTracking()
                 .Where(i => i.FdcId != null && !i.IsDeleted && (i.FdcDataType == "foundation_food" || i.FdcDataType == "sr_legacy_food"))
                 .Select(i => new FoodCandidate(i.Id, i.FdcId!, i.Name, i.FdcDataType ?? string.Empty))
-                .ToListAsync(cancellationToken))
-                .GroupBy(f => f.Name, StringComparer.Ordinal)
-                .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+                .ToListAsync(cancellationToken);
+            var byId = foods.ToDictionary(f => f.IngredientId);
+            var ids = byId.Keys.ToList();
+            var aliases = await _context.IngredientAliases
+                .AsNoTracking()
+                .Where(a => ids.Contains(a.IngredientId))
+                .Select(a => new { a.IngredientId, a.AliasName })
+                .ToListAsync(cancellationToken);
+
+            var map = new Dictionary<string, FoodCandidate>(StringComparer.Ordinal);
+            foreach (var f in foods) map.TryAdd(f.Name, f);
+            foreach (var a in aliases) map.TryAdd(a.AliasName, byId[a.IngredientId]);
+            return map;
         }
 
         private async Task<FoodNameMatcher> GetMatcherAsync(CancellationToken cancellationToken)

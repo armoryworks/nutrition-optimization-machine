@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Nom.Orch.Services.Support
 {
@@ -10,6 +12,10 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class StapleFoods
     {
+        private static readonly Regex NonLetters = new(@"[^a-z ]+", RegexOptions.Compiled);
+
+        private static readonly HashSet<string> Filler = new(StringComparer.Ordinal) { "a", "an", "to", "taste", "as", "needed" };
+
         private static readonly Dictionary<string, string> ByName = Build(new (string Usda, string[] Names)[]
         {
             ("Wheat flour, white, all-purpose, enriched, bleached", new[] { "flour", "all purpose flour", "all-purpose flour", "plain flour", "white flour", "ap flour" }),
@@ -48,6 +54,45 @@ namespace Nom.Orch.Services.Support
             ("Rice, white, long-grain, regular, raw, enriched", new[] { "rice", "white rice", "long grain rice", "long-grain rice" }),
             ("Soy sauce made from soy and wheat (shoyu)", new[] { "soy sauce" }),
             ("Beef, ground, 80% lean meat / 20% fat, raw", new[] { "ground beef", "minced beef", "beef mince" }),
+            ("Spices, mace, ground", new[] { "mace", "ground mace", "large mace" }),
+            ("Spices, pepper, white", new[] { "white pepper", "ground white pepper" }),
+            ("Spices, pepper, red or cayenne", new[] { "cayenne", "cayenne pepper", "ground red pepper" }),
+            ("Egg, whole, cooked, hard-boiled", new[] { "hard boiled egg", "hard boiled eggs", "hard cooked egg", "hard cooked eggs", "hard egg", "hard eggs" }),
+            ("Spices, bay leaf", new[] { "bay leaf", "bay leaves" }),
+            ("Spices, sage, ground", new[] { "ground sage", "rubbed sage" }),
+            ("Spices, thyme, dried", new[] { "dried thyme" }),
+            ("Spices, oregano, dried", new[] { "oregano", "dried oregano" }),
+            ("Spices, rosemary, dried", new[] { "dried rosemary" }),
+            ("Spices, allspice, ground", new[] { "allspice", "ground allspice" }),
+            ("Spices, chili powder", new[] { "chili powder" }),
+            ("Spices, garlic powder", new[] { "garlic powder" }),
+            ("Spices, onion powder", new[] { "onion powder" }),
+            ("Spices, curry powder", new[] { "curry powder" }),
+            ("Spices, turmeric, ground", new[] { "turmeric", "ground turmeric" }),
+            ("Spices, saffron", new[] { "saffron" }),
+            ("Spices, celery seed", new[] { "celery seed", "celery seeds" }),
+            ("Spices, caraway seed", new[] { "caraway seed", "caraway seeds" }),
+            ("Leavening agents, cream of tartar", new[] { "cream of tartar" }),
+            ("Pork, cured, salt pork, raw", new[] { "salt pork" }),
+            ("Sauce, worcestershire", new[] { "worcestershire sauce", "worcestershire" }),
+            ("Butter, Clarified butter (ghee)", new[] { "clarified butter", "ghee" }),
+            ("Cream cheese, full fat, block", new[] { "cream cheese" }),
+            ("Cottage cheese, full fat, large or small curd", new[] { "cottage cheese" }),
+            ("Cheese, cheddar", new[] { "cheddar", "cheddar cheese", "shredded cheddar cheese" }),
+            ("Nuts, almonds, blanched", new[] { "blanched almonds" }),
+            ("Beef, variety meats and by-products, suet, raw", new[] { "suet", "beef suet" }),
+            ("Watercress, raw", new[] { "watercress" }),
+            ("Coriander (cilantro) leaves, raw", new[] { "cilantro", "fresh cilantro", "coriander leaves" }),
+            ("Basil, fresh", new[] { "basil", "fresh basil", "basil leaves", "fresh basil leaves" }),
+            ("Mushrooms, white, raw", new[] { "mushrooms", "button mushrooms", "white mushrooms" }),
+            ("Orange peel, raw", new[] { "orange peel" }),
+            ("Spinach, raw", new[] { "spinach", "fresh spinach", "baby spinach" }),
+            ("Cucumber, with peel, raw", new[] { "cucumber", "cucumbers" }),
+            ("Peppers, sweet, green, raw", new[] { "green pepper", "green bell pepper" }),
+            ("Peppers, sweet, red, raw", new[] { "red bell pepper" }),
+            ("Lettuce, iceberg, raw", new[] { "iceberg lettuce" }),
+            ("Syrups, maple", new[] { "maple syrup", "pure maple syrup" }),
+            ("Oats, whole grain, rolled, old fashioned", new[] { "rolled oats", "old fashioned oats", "old fashioned rolled oats" }),
         });
 
         private static Dictionary<string, string> Build((string Usda, string[] Names)[] rows)
@@ -60,7 +105,9 @@ namespace Nom.Orch.Services.Support
         }
 
         private static string Key(string name) =>
-            string.Join(' ', name.ToLowerInvariant().Replace('-', ' ').Split(' ', StringSplitOptions.RemoveEmptyEntries));
+            string.Join(' ', NonLetters.Replace(name.ToLowerInvariant().Replace('-', ' '), " ")
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Where(w => !Filler.Contains(w)));
 
         /// <summary>The USDA description the name means, or null when it isn't a known bare staple name.</summary>
         public static string? UsdaNameFor(string ingredientName) =>

@@ -29,6 +29,11 @@ namespace Nom.Api.Tests.Services
             new FoodCandidate(14, "169231", "Ginger root, raw", "sr_legacy_food"),
             new FoodCandidate(15, "170931", "Spices, pepper, black", "sr_legacy_food"),
             new FoodCandidate(16, "168576", "Peppers, hungarian, raw", "sr_legacy_food"),
+            new FoodCandidate(17, "174133", "Beverages, Wine, non-alcoholic", "sr_legacy_food"),
+            new FoodCandidate(18, "174538", "Sauce, fish, ready-to-serve", "sr_legacy_food"),
+            new FoodCandidate(19, "173472", "Vinegar, red wine", "sr_legacy_food"),
+            new FoodCandidate(20, "171185", "Milk, chocolate beverage, hot cocoa, homemade", "sr_legacy_food"),
+            new FoodCandidate(21, "175010", "Pastry, Pastelitos de Guava (guava pastries)", "sr_legacy_food"),
         });
 
         [Theory]
@@ -82,10 +87,29 @@ namespace Nom.Api.Tests.Services
             Matcher.Covering("butter").Should().BeNull();
         }
 
+        [Theory]
+        [InlineData("wine")]
+        [InlineData("fish")]
+        [InlineData("red wine")]
+        [InlineData("hot milk")]
+        [InlineData("pastry")]
+        public void A_lone_candidate_that_is_a_different_food_is_not_a_match(string name)
+        {
+            (Matcher.Exact(name) ?? Matcher.Covering(name)).Should().BeNull();
+        }
+
+        [Fact]
+        public void A_class_that_names_the_food_must_be_said()
+        {
+            Matcher.Exact("olive oil")!.IngredientId.Should().Be(10);
+            Matcher.Exact("fish sauce")!.IngredientId.Should().Be(18);
+            Matcher.Exact("red wine vinegar")!.IngredientId.Should().Be(19);
+        }
+
         [Fact]
         public void Unrelated_names_get_no_candidates()
         {
-            Matcher.Shortlist("worcestershire sauce").Should().BeEmpty();
+            Matcher.Shortlist("xanthan gum").Should().BeEmpty();
             Matcher.Exact("sugar snap peas").Should().BeNull();
         }
     }

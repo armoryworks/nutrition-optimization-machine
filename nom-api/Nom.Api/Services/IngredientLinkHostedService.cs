@@ -3,10 +3,12 @@ using Nom.Orch.Interfaces;
 namespace Nom.Api.Services
 {
     /// <summary>
-    /// Proposes USDA links for catalog ingredients recipes use, most-used first, as admin-reviewed
-    /// food-catalog proposals. Runs only when an Ollama URL is configured, because ambiguous names
-    /// need the model to choose.
+    /// Proposes USDA links for catalog ingredients recipes use, most-used first, as food-catalog
+    /// proposals. Certain links (staples, same-name attaches) are applied straight away as the System
+    /// person; name-matcher and model picks wait for an admin. Runs only when an Ollama URL is
+    /// configured, because ambiguous names need the model to choose.
     ///
+    /// IngredientLinking:AutoApplyCertain=false leaves certain links for an admin too.
     /// IngredientLinking:Enabled=false disables it; IngredientLinking:BatchSize (default 30)
     /// ingredients per pass; IngredientLinking:PauseSeconds (default 5) between passes;
     /// IngredientLinking:IdleMinutes (default 30) once nothing is left to propose.
@@ -16,6 +18,8 @@ namespace Nom.Api.Services
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
         private readonly ILogger<IngredientLinkHostedService> _logger;
+
+        private readonly HashSet<long> _unappliable = new();
 
         public IngredientLinkHostedService(
             IServiceScopeFactory scopeFactory,
@@ -63,6 +67,8 @@ namespace Nom.Api.Services
             {
                 _logger.LogWarning(ex, "Re-pointing pending staple links failed");
             }
+            var autoApply = _configuration.GetValue("IngredientLinking:AutoApplyCertain", true);
+            if (autoApply) await ApplyCertainLinksAsync(stoppingToken);
 
             int proposed = 0, sinceLog = 0;
             while (!stoppingToken.IsCancellationRequested)
@@ -88,6 +94,7 @@ namespace Nom.Api.Services
                         }
                         else
                         {
+                            if (autoApply && result.ExactProposals > 0) await ApplyCertainLinksAsync(stoppingToken);
                             proposed += result.Seen;
                             sinceLog += result.Seen;
                             if (sinceLog >= 1000)
@@ -110,6 +117,31 @@ namespace Nom.Api.Services
 
                 if (!await Delay(delay, stoppingToken)) return;
             }
+        }
+
+        private async Task ApplyCertainLinksAsync(CancellationToken stoppingToken)
+        {
+            var applied = 0;
+            try
+            {
+                while (!stoppingToken.IsCancellationRequested)
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var ids = await scope.ServiceProvider.GetRequiredService<IIngredientLinkService>().PendingDeterministicAsync(50, _unappliable, stoppingToken);
+                    if (ids.Count == 0) break;
+                    var review = scope.ServiceProvider.GetRequiredService<IFoodCatalogReviewService>();
+                    foreach (var id in ids)
+                    {
+                        if (await review.ApplyProposalAsync(id, Nom.Data.SystemConstants.SystemPersonId)) applied++;
+                        else _unappliable.Add(id);
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Applying certain ingredient links failed");
+            }
+            if (applied > 0) _logger.LogInformation("Ingredient linking: applied {Count} certain links (staples, same-name USDA attaches)", applied);
         }
 
         private static async Task<bool> Delay(TimeSpan delay, CancellationToken token)

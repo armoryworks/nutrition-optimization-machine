@@ -22,7 +22,13 @@ namespace Nom.Orch.Interfaces
         /// <summary>Null when the model is needed but unreachable; those sources stay unproposed.</summary>
         Task<IngredientLinkBatchResult?> ProposeAsync(IReadOnlyList<LinkSource> sources, CancellationToken cancellationToken = default);
 
-        /// <summary>Re-points pending model-chosen links for bare staple names to their standard USDA entry; returns how many changed.</summary>
+        /// <summary>Re-points pending links for bare staple names to their standard USDA entry and withdraws name matches the matcher no longer makes; returns how many changed.</summary>
         Task<int> ApplyStapleDefaultsToPendingAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Pending links that are certain — staples and same-name USDA attaches — which are applied
+        /// without an admin, most-used first. Name-matcher and model picks stay with reviewers.
+        /// </summary>
+        Task<IReadOnlyList<long>> PendingDeterministicAsync(int count, IReadOnlyCollection<long> skip, CancellationToken cancellationToken = default);
     }
 }

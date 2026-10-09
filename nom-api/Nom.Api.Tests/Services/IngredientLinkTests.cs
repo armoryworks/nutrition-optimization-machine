@@ -175,6 +175,56 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task Only_staples_and_same_name_attaches_are_applied_without_an_admin()
+        {
+            using var db = NewContext();
+            var (salt, salted, plain) = await SeedFoodsAsync(db);
+            var butter = await UsedIngredientAsync(db, "butter", 5);
+            var honey = await UsedIngredientAsync(db, "Honey", 4);
+            var saltIng = await UsedIngredientAsync(db, "sea salt flakes", 3);
+            var creamy = await UsedIngredientAsync(db, "creamery butter", 2);
+            FoodCatalogProposalEntity Link(IngredientEntity ing, string source, IngredientEntity target, FoodProposalStatus status = FoodProposalStatus.Pending) => new()
+            {
+                Action = FoodProposalAction.Update, Batch = IngredientLinkService.Batch, IngredientId = ing.Id, Field = FoodCatalogReviewService.FdcLinkField,
+                CurrentValue = ing.Name, ProposedValue = target.Id.ToString(), FdcId = target.FdcId, Source = source, Status = status,
+            };
+            var staple = Link(butter, IngredientLinkService.StapleSource, salted);
+            var attach = new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, IngredientId = honey.Id, Field = FoodCatalogReviewService.FdcAttachField,
+                FdcId = "169640", Source = "fdc:169640", Status = FoodProposalStatus.Pending,
+            };
+            db.FoodCatalogProposals.AddRange(staple, attach,
+                Link(saltIng, IngredientLinkService.ExactSource, salt),
+                Link(creamy, "ai:fake:1b", plain));
+            await db.SaveChangesAsync();
+            var linker = Linker(db, new FakeMatcher());
+
+            (await linker.PendingDeterministicAsync(10, Array.Empty<long>())).Should().Equal(staple.Id, attach.Id);
+            (await linker.PendingDeterministicAsync(10, new[] { staple.Id })).Should().Equal(attach.Id);
+        }
+
+        [Fact]
+        public async Task Pending_name_matches_the_matcher_no_longer_makes_are_withdrawn()
+        {
+            using var db = NewContext();
+            var (salt, _, _) = await SeedFoodsAsync(db);
+            var fish = await UsedIngredientAsync(db, "fish", 6);
+            db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, Batch = IngredientLinkService.Batch, IngredientId = fish.Id, Field = FoodCatalogReviewService.FdcLinkField,
+                CurrentValue = "fish", ProposedValue = salt.Id.ToString(), FdcId = salt.FdcId, Source = IngredientLinkService.ExactSource, Status = FoodProposalStatus.Pending,
+            });
+            await db.SaveChangesAsync();
+            var linker = Linker(db, new FakeMatcher());
+
+            (await linker.ApplyStapleDefaultsToPendingAsync()).Should().Be(1);
+
+            (await db.FoodCatalogProposals.AnyAsync()).Should().BeFalse();
+            (await linker.NextSourcesAsync(10)).Select(s => s.Name).Should().Equal("fish");
+        }
+
+        [Fact]
         public async Task An_ingredient_awaiting_a_same_name_attach_is_not_linked_elsewhere()
         {
             using var db = NewContext();
