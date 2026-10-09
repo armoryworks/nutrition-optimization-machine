@@ -490,7 +490,17 @@ namespace Nom.Orch.Services
 
                         if (!string.IsNullOrEmpty(request.CurationStatus))
                         {
-                            recipe.CurationStatusId = GetCurationStatusId(request.CurationStatus);
+                            if (MapAuthorCurationStatus(request.CurationStatus) is not { } statusId)
+                            {
+                                errors.Add($"Recipe {recipe.Id}: curation status '{request.CurationStatus}' can't be set in bulk. Authors may only submit (pending) or withdraw (noncurated); approval, revision and rejection are made in the curation queue.");
+                                continue;
+                            }
+
+                            recipe.CurationStatusId = statusId;
+                            if (statusId == (long)CurationStatusEnum.PendingCuration)
+                            {
+                                recipe.DateSubmittedForCuration = DateTime.UtcNow;
+                            }
                         }
 
                         successCount++;
@@ -1004,17 +1014,13 @@ namespace Nom.Orch.Services
             };
         }
 
-        private long GetCurationStatusId(string status)
-        {
-            // Implementation would depend on how curation statuses are stored
-            return status.ToLower() switch
+        internal static long? MapAuthorCurationStatus(string status) =>
+            status.Trim().Replace("-", string.Empty).Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant() switch
             {
-                "approved" => 2,
-                "pending" => 1,
-                "rejected" => 3,
-                _ => 1
+                "pending" or "pendingcuration" or "submitted" => (long)CurationStatusEnum.PendingCuration,
+                "noncurated" or "draft" => (long)CurationStatusEnum.NonCurated,
+                _ => null
             };
-        }
 
         // Note: the previous implementation long.TryParse'd the GUID user id and
         // therefore threw for every authenticated user.

@@ -86,6 +86,44 @@ namespace Nom.Api.Tests.Services
             Assert.Contains(issues, i => i.Contains("no parseable quantity"));
         }
 
+        [Theory]
+        [InlineData("salt, to taste")]
+        [InlineData("a pinch of nutmeg")]
+        [InlineData("oil as needed")]
+        [InlineData("parsley, for garnish")]
+        [InlineData("salt and pepper")]
+        [InlineData("Salt & black pepper")]
+        [InlineData("flour for dusting")]
+        public async Task Seasoning_and_garnish_lines_may_go_unquantified(string line)
+        {
+            var recipe = PlausibleRecipe();
+            recipe.Ingredients[0].Quantity = null;
+            recipe.Ingredients[1].Quantity = null;
+            recipe.Ingredients[0].RawLine = line;
+            recipe.Ingredients[1].RawLine = line;
+
+            var issues = await _vetting.VetAsync(recipe);
+
+            Assert.Empty(issues);
+        }
+
+        [Theory]
+        [InlineData("a little salt")]
+        [InlineData("some flour")]
+        [InlineData("butter")]
+        public async Task Vague_amounts_still_count_as_unparsed(string line)
+        {
+            var recipe = PlausibleRecipe();
+            recipe.Ingredients[0].Quantity = null;
+            recipe.Ingredients[1].Quantity = null;
+            recipe.Ingredients[0].RawLine = line;
+            recipe.Ingredients[1].RawLine = line;
+
+            var issues = await _vetting.VetAsync(recipe);
+
+            Assert.Contains(issues, i => i.Contains("2 of 3 ingredient lines have no parseable quantity"));
+        }
+
         [Fact]
         public async Task Long_ferments_are_not_flagged()
         {

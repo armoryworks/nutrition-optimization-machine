@@ -120,7 +120,7 @@ namespace Nom.Orch.Services
                 return new List<string>();
 
             var suggestions = await _context.Recipes
-                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved") // Only suggest from public/approved recipes
+                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved" && !r.ContainsSourceProse) // Only suggest from public/approved recipes
                 .Where(r => r.Name.Contains(query) || r.Description!.Contains(query))
                 .Select(r => r.Name)
                 .Distinct()
@@ -141,7 +141,7 @@ namespace Nom.Orch.Services
                 .Include(r => r.Author)
                 .AsNoTracking()
                 .AsSplitQuery()
-                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved")
+                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved" && !r.ContainsSourceProse)
                 .OrderByDescending(r => r.Ratings!.Count)
                 .ThenByDescending(r => r.Ratings!.Average(rating => rating.Rating))
                 .Take(count)
@@ -170,7 +170,7 @@ namespace Nom.Orch.Services
                 .Include(r => r.Author)
                 .AsNoTracking()
                 .AsSplitQuery()
-                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved")
+                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved" && !r.ContainsSourceProse)
                 .OrderByDescending(r => r.CreatedDate)
                 .Take(count)
                 .ToListAsync();
@@ -198,7 +198,7 @@ namespace Nom.Orch.Services
                 .Include(r => r.Author)
                 .AsNoTracking()
                 .AsSplitQuery()
-                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved");
+                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved" && !r.ContainsSourceProse);
 
             // Exclude recipes that contain restricted ingredients for household members
             if (householdId.HasValue)
@@ -284,7 +284,7 @@ namespace Nom.Orch.Services
             var recipes = await _context.Recipes
                 .Include(r => r.RecipeIngredients)
                 .ThenInclude(ri => ri.Ingredient)
-                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved")
+                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved" && !r.ContainsSourceProse)
                 .Where(r => r.RecipeIngredients!.Any(ri => ingredientIds.Contains(ri.IngredientId)))
                 .OrderByDescending(r => r.RecipeIngredients!.Count(ri => ingredientIds.Contains(ri.IngredientId)))
                 .Take(count)
@@ -355,7 +355,7 @@ namespace Nom.Orch.Services
                 .ThenInclude(rc => rc.Category)
                 .Include(r => r.RecipeTags)
                 .ThenInclude(rt => rt.Tag)
-                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved");
+                .Where(r => r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved" && !r.ContainsSourceProse);
 
             // Apply filters
             if (!string.IsNullOrWhiteSpace(suggestionModel.Query))
@@ -514,7 +514,7 @@ namespace Nom.Orch.Services
             {
                 query = query.Where(r =>
                     r.Visibility == RecipeVisibilityEnum.Public
-                    && r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved");
+                    && r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved" && !r.ContainsSourceProse);
             }
 
             return query;

@@ -407,6 +407,11 @@ builder.Services.AddHostedService<Nom.Api.Services.CourseClassificationHostedSer
 // curation approval still gates publish, originals stay in ScrapedDocument.
 builder.Services.AddHostedService<Nom.Api.Services.ProseRewriteHostedService>();
 
+builder.Services.AddHostedService<Nom.Api.Services.RecipeAutoApproveHostedService>();
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IRecipeRepairModel, Nom.Orch.Services.OllamaRecipeRepairModel>(
+    client => client.Timeout = TimeSpan.FromSeconds(300));
+builder.Services.AddHostedService<Nom.Api.Services.RecipeAiRepairHostedService>();
+
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Nom.Orch.Interfaces;
 using Nom.Orch.UtilityInterfaces;
@@ -58,7 +59,7 @@ namespace Nom.Orch.Services
                 issues.Add($"Servings value of {servings} is outside the plausible range (1–{MaxPlausibleServings}).");
             }
 
-            var unparsed = recipe.Ingredients.Count(i => i.Quantity == null);
+            var unparsed = recipe.Ingredients.Count(i => i.Quantity == null && !IsAcceptablyUnquantified(i.RawLine));
             if (recipe.Ingredients.Count > 0 && unparsed > recipe.Ingredients.Count / 2)
             {
                 issues.Add($"{unparsed} of {recipe.Ingredients.Count} ingredient lines have no parseable quantity — needs a human (or enrichment) pass.");
@@ -66,6 +67,13 @@ namespace Nom.Orch.Services
 
             return Task.FromResult(issues);
         }
+
+        public static bool IsAcceptablyUnquantified(string? rawLine) =>
+            !string.IsNullOrWhiteSpace(rawLine) && AcceptablyUnquantified.IsMatch(rawLine);
+
+        private static readonly Regex AcceptablyUnquantified = new(
+            @"\b(?:to\s+taste|as\s+(?:needed|required|desired)|if\s+(?:needed|desired)|(?:for|to)\s+(?:garnish(?:ing)?|serv(?:e|ing)|dust(?:ing)?|grease|greasing|frying|decorat(?:e|ing)|sprinkl(?:e|ing))|(?:a|one)\s+(?:pinch|dash)|salt\s+(?:and|&)\s+(?:black\s+)?pepper|optional)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static void CheckDuration(List<string> issues, string label, int? minutes, int maxPlausible)
         {
