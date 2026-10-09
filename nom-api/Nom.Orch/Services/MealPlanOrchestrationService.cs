@@ -387,6 +387,7 @@ namespace Nom.Orch.Services
             [1101] = new[] { (3100L, "Appetizer"), (3101L, "Entree"), (3102L, "Starch") }, // Lunch: 3
             [1102] = new[] { (3100L, "Appetizer"), (3101L, "Entree"), (3102L, "Starch") }, // Dinner: 3
             [1103] = new[] { (3104L, "Snack") },                                    // Snacks: 1
+            [DessertMealTypeId] = new[] { (3105L, "Dessert") },
         };
 
         /// <summary>
@@ -504,6 +505,8 @@ namespace Nom.Orch.Services
             //     be trusted and a restricted item could hide behind it.
             var hasSevereRestriction = restrictedSet.HasSevere;
 
+            var activeMealTypes = await ActiveMealTypesAsync(model.HouseholdId);
+
             // 3. Determine which cells need filling
             var existingEntries = model.ReplaceExisting
                 ? new List<MealPlanEntity>()
@@ -520,7 +523,7 @@ namespace Nom.Orch.Services
             var emptyCells = new List<(DateOnly Date, long MealTypeId)>();
             for (var date = model.StartDate; date <= model.EndDate; date = date.AddDays(1))
             {
-                foreach (var mt in MealTypes)
+                foreach (var mt in activeMealTypes)
                 {
                     if (!filledCells.Contains((date, mt.Id)))
                     {
@@ -1074,6 +1077,18 @@ namespace Nom.Orch.Services
         }
 
         // Meal type IDs from reference data seed
+        public const long DessertMealTypeId = 1104L;
+
+        private async Task<(long Id, string Name)[]> ActiveMealTypesAsync(long householdId)
+        {
+            var includeDessert = await _context.HouseholdPreferences
+                .AsNoTracking()
+                .AnyAsync(p => p.HouseholdId == householdId
+                    && p.PreferenceKey == PortionOrchestrationService.IncludeDessertPreferenceKey
+                    && p.PreferenceValue == "true");
+            return includeDessert ? MealTypes.Append((DessertMealTypeId, "Dessert")).ToArray() : MealTypes;
+        }
+
         private static readonly (long Id, string Name)[] MealTypes = new[]
         {
             (1100L, "Breakfast"),
@@ -1112,6 +1127,7 @@ namespace Nom.Orch.Services
                 .Where(e => e.HouseholdId == householdId && e.Date >= weekStart && e.Date <= weekEnd)
                 .ToListAsync();
 
+            var activeMealTypes = await ActiveMealTypesAsync(householdId);
             var days = new List<MealPlanDayModel>();
             for (int i = 0; i < 7; i++)
             {
@@ -1119,7 +1135,7 @@ namespace Nom.Orch.Services
                 var dayMealPlans = mealPlans.Where(mp => mp.Date == date).ToList();
                 var dayExclusions = exclusions.Where(e => e.Date == date).ToList();
 
-                var cells = MealTypes.Select(mt =>
+                var cells = activeMealTypes.Select(mt =>
                 {
                     var slotEntries = dayMealPlans.Where(mp => mp.MealTypeId == mt.Id).ToList();
                     var entryModels = slotEntries.Select(e =>

@@ -11,6 +11,10 @@ namespace Nom.Orch.Interfaces
         Task<MealSplitModel> GetMealSplitAsync(long householdId);
         Task<MealSplitModel> SaveMealSplitAsync(long householdId, MealSplitModel model);
 
+        /// <summary>Whether meal plans include the optional daily dessert slot (off by default).</summary>
+        Task<MealPlanOptionsModel> GetMealPlanOptionsAsync(long householdId);
+        Task<MealPlanOptionsModel> SaveMealPlanOptionsAsync(long householdId, MealPlanOptionsModel model);
+
         /// <summary>Portion breakdown for one planned meal cell (household + date + meal type).</summary>
         Task<PortionBreakdownModel?> ComputePortionsAsync(long householdId, DateOnly date, long mealTypeId);
 

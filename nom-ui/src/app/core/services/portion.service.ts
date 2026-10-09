@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { MealSplit, PortionBreakdown, RangeCookFactor } from '../models/portion.model';
+import { MealPlanOptions, MealSplit, PortionBreakdown, RangeCookFactor } from '../models/portion.model';
 
 @Injectable({ providedIn: 'root' })
 export class PortionService {
@@ -32,5 +32,13 @@ export class PortionService {
 
   saveMealSplit(householdId: number, split: MealSplit): Observable<MealSplit> {
     return this.http.put<MealSplit>(`${this.householdUrl}/${householdId}/meal-split`, split);
+  }
+
+  getMealPlanOptions(householdId: number): Observable<MealPlanOptions> {
+    return this.http.get<MealPlanOptions>(`${this.householdUrl}/${householdId}/meal-plan-options`);
+  }
+
+  saveMealPlanOptions(householdId: number, options: MealPlanOptions): Observable<MealPlanOptions> {
+    return this.http.put<MealPlanOptions>(`${this.householdUrl}/${householdId}/meal-plan-options`, options);
   }
 }

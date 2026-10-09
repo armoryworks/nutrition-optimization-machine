@@ -11,6 +11,9 @@ namespace Nom.Orch.Models.Plan
         public decimal DinnerPct { get; set; } = 35m;
         public decimal SnacksPct { get; set; } = 10m;
 
-        public decimal Total => BreakfastPct + LunchPct + DinnerPct + SnacksPct;
+        /// <summary>Share for the optional dessert slot; 0 unless the household plans desserts.</summary>
+        public decimal DessertPct { get; set; }
+
+        public decimal Total => BreakfastPct + LunchPct + DinnerPct + SnacksPct + DessertPct;
     }
 }

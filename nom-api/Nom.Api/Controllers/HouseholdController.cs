@@ -75,6 +75,31 @@ namespace Nom.Api.Controllers
         }
 
         /// <summary>
+        /// Gets the household's meal-plan options (whether plans include a daily dessert).
+        /// </summary>
+        [HttpGet("{id:long}/meal-plan-options")]
+        public async Task<ActionResult<MealPlanOptionsModel>> GetMealPlanOptions(long id)
+        {
+            if (!IsHouseholdMember(id))
+                return Forbid();
+
+            return Ok(await _portionService.GetMealPlanOptionsAsync(id));
+        }
+
+        /// <summary>
+        /// Saves the household's meal-plan options. Turning desserts on adds a Dessert row to
+        /// plans and shuffles; give it a share in the meal split so it gets a calorie budget.
+        /// </summary>
+        [HttpPut("{id:long}/meal-plan-options")]
+        public async Task<ActionResult<MealPlanOptionsModel>> SaveMealPlanOptions(long id, [FromBody] MealPlanOptionsModel request)
+        {
+            if (!CanManageHousehold(id))
+                return Forbid();
+
+            return Ok(await _portionService.SaveMealPlanOptionsAsync(id, request));
+        }
+
+        /// <summary>
         /// Gets the household's default daily macro goals. Null targets mean unset.
         /// </summary>
         [HttpGet("{id:long}/macro-goals")]

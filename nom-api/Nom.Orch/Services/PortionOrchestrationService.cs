@@ -21,6 +21,7 @@ namespace Nom.Orch.Services
             [1101L] = "Lunch",
             [1102L] = "Dinner",
             [1103L] = "Snacks",
+            [1104L] = "Dessert",
         };
 
         private readonly ApplicationDbContext _context;
@@ -53,6 +54,37 @@ namespace Nom.Orch.Services
                 _logger.LogWarning("Malformed meal-split preference for household {HouseholdId}; using defaults", householdId);
                 return new MealSplitModel();
             }
+        }
+
+        public const string IncludeDessertPreferenceKey = "meal_plan_include_dessert";
+
+        public async Task<MealPlanOptionsModel> GetMealPlanOptionsAsync(long householdId)
+        {
+            var value = await _context.HouseholdPreferences
+                .AsNoTracking()
+                .Where(p => p.HouseholdId == householdId && p.PreferenceKey == IncludeDessertPreferenceKey)
+                .Select(p => p.PreferenceValue)
+                .FirstOrDefaultAsync();
+            return new MealPlanOptionsModel { IncludeDessert = value == "true" };
+        }
+
+        public async Task<MealPlanOptionsModel> SaveMealPlanOptionsAsync(long householdId, MealPlanOptionsModel model)
+        {
+            var pref = await _context.HouseholdPreferences
+                .FirstOrDefaultAsync(p => p.HouseholdId == householdId && p.PreferenceKey == IncludeDessertPreferenceKey);
+            if (pref == null)
+            {
+                pref = new HouseholdPreferenceEntity
+                {
+                    HouseholdId = householdId,
+                    PreferenceKey = IncludeDessertPreferenceKey,
+                    DataType = "bool",
+                };
+                _context.HouseholdPreferences.Add(pref);
+            }
+            pref.PreferenceValue = model.IncludeDessert ? "true" : "false";
+            await _context.SaveChangesAsync();
+            return model;
         }
 
         public async Task<MealSplitModel> SaveMealSplitAsync(long householdId, MealSplitModel model)
@@ -189,6 +221,7 @@ namespace Nom.Orch.Services
             1101L => split.LunchPct,
             1102L => split.DinnerPct,
             1103L => split.SnacksPct,
+            1104L => split.DessertPct,
             _ => 25m,
         };
 
