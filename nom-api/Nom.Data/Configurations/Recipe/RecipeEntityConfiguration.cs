@@ -37,6 +37,12 @@ public class RecipeEntityConfiguration : IEntityTypeConfiguration<RecipeEntity>
         builder.Property(e => e.Rating).HasColumnType("decimal(3,2)");
         builder.Property(e => e.Slug).HasMaxLength(255);
         builder.Property(e => e.Image).HasMaxLength(2047);
+        builder.Property(e => e.ImageSourceName).HasMaxLength(64);
+        builder.Property(e => e.ImageSourceUrl).HasMaxLength(1023);
+        builder.Property(e => e.ImageAuthor).HasMaxLength(255);
+        builder.Property(e => e.ImageAuthorUrl).HasMaxLength(1023);
+        builder.Property(e => e.ImageLicense).HasMaxLength(64);
+        builder.Property(e => e.ImageLicenseUrl).HasMaxLength(1023);
         builder.Property(e => e.OrgUrl).HasMaxLength(255);
         builder.Property(e => e.NameNormalized).HasMaxLength(511);
         builder.Property(e => e.DescriptionNormalized).HasMaxLength(2047);

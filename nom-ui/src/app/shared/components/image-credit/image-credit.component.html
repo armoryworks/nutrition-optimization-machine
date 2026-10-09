@@ -1,0 +1,27 @@
+<p class="nom-image-credit" [attr.data-testid]="testId()">
+  Photo
+  @if (credit().author; as author) {
+    by
+    @if (credit().authorUrl; as authorUrl) {
+      <a [href]="authorUrl" target="_blank" rel="noopener noreferrer nofollow" [attr.data-testid]="testId() + '-author-link'">{{ author }}</a>
+    } @else {
+      <span [attr.data-testid]="testId() + '-author'">{{ author }}</span>
+    }
+  }
+  @if (credit().sourceName; as sourceName) {
+    on
+    @if (credit().sourceUrl; as sourceUrl) {
+      <a [href]="sourceUrl" target="_blank" rel="noopener noreferrer nofollow" [attr.data-testid]="testId() + '-source-link'">{{ sourceName }}</a>
+    } @else {
+      <span>{{ sourceName }}</span>
+    }
+  }
+  @if (credit().license; as license) {
+    <span aria-hidden="true"> · </span>
+    @if (credit().licenseUrl; as licenseUrl) {
+      <a [href]="licenseUrl" target="_blank" rel="noopener noreferrer nofollow license" [attr.data-testid]="testId() + '-license-link'">{{ license }}</a>
+    } @else {
+      <span [attr.data-testid]="testId() + '-license'">{{ license }}</span>
+    }
+  }
+</p>

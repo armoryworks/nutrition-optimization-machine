@@ -128,6 +128,7 @@ namespace Nom.Data
         public DbSet<RecipeCommentEntity> RecipeComments { get; set; } = default!;
         public DbSet<RecipeRatingEntity> RecipeRatings { get; set; } = default!;
         public DbSet<RecipeAssetEntity> RecipeAssets { get; set; } = default!;
+        public DbSet<RecipeImageCandidateEntity> RecipeImageCandidates { get; set; } = default!;
         public DbSet<RecipeNoteEntity> RecipeNotes { get; set; } = default!;
         public DbSet<RecipeTimelineEventEntity> RecipeTimelineEvents { get; set; } = default!;
         public DbSet<RecipeShareTokenEntity> RecipeShareTokens { get; set; } = default!;

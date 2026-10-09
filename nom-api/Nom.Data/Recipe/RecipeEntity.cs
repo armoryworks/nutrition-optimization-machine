@@ -124,6 +124,26 @@ namespace Nom.Data.Recipe
 
         public string? Image { get; set; }
 
+        /// <summary>
+        /// Where the published <see cref="Image"/> came from when it is a third-party openly
+        /// licensed photo ("Wikimedia Commons", "Pexels", ...). Null for the author's own upload.
+        /// Set together with the other Image* credit fields; cleared whenever the image changes.
+        /// </summary>
+        public string? ImageSourceName { get; set; }
+
+        /// <summary>The photo's page at its source, linked from the credit line.</summary>
+        public string? ImageSourceUrl { get; set; }
+
+        /// <summary>Photographer / creator to credit, as the source names them.</summary>
+        public string? ImageAuthor { get; set; }
+
+        public string? ImageAuthorUrl { get; set; }
+
+        /// <summary>Licence label as shown to readers ("CC BY 4.0", "Pexels License").</summary>
+        public string? ImageLicense { get; set; }
+
+        public string? ImageLicenseUrl { get; set; }
+
         public string? OrgUrl { get; set; }
 
         public bool? IsOcrRecipe { get; set; } = false;

@@ -109,6 +109,11 @@
   display: block;
 }
 
+.nom-recipe__hero-img--whole {
+  object-fit: contain;
+  background: var(--mat-sys-surface-container);
+}
+
 // Three-column grid
 .nom-recipe__columns {
   flex: 1;

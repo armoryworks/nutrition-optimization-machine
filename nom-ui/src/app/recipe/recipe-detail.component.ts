@@ -32,6 +32,7 @@ import { MassAsidePipe } from '../core/utils/mass-display';
 import { UnitPreferenceService } from '../core/services/unit-preference.service';
 import { RecipeComments } from './recipe-comments.component';
 import { RecipeRating } from './recipe-rating.component';
+import { ImageCredit } from '../shared/components/image-credit/image-credit.component';
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -58,7 +59,7 @@ export interface DisplayIngredientRowModel {
 
 @Component({
   selector: 'nom-recipe-detail',
-  imports: [DecimalPipe, UnitPipe, MassAsidePipe, MatIconModule, MatButtonModule, MatMenuModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating, EntityLink],
+  imports: [DecimalPipe, UnitPipe, MassAsidePipe, MatIconModule, MatButtonModule, MatMenuModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating, EntityLink, ImageCredit],
   templateUrl: './recipe-detail.component.html',
   styleUrl: './recipe-detail.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

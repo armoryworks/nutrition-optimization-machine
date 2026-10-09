@@ -337,6 +337,7 @@ namespace Nom.Orch.Services
                 AuthorId = recipe.AuthorId,
                 AuthorName = recipe.Author?.Name ?? "Unknown",
                 ImageUrl = recipe.Image,
+                ImageCredit = RecipeImageService.CreditFor(recipe),
                 PrepTimeMinutes = recipe.PrepTimeMinutes,
                 CookTimeMinutes = recipe.CookTimeMinutes,
                 Servings = recipe.Servings,
@@ -1016,6 +1017,7 @@ namespace Nom.Orch.Services
 
             // Update recipe image URL to point to serve endpoint
             recipe.Image = $"/api/recipe/{recipeId}/image";
+            RecipeImageService.ClearCredit(recipe);
             recipe.LastModifiedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -1100,6 +1102,7 @@ namespace Nom.Orch.Services
             if (!remainingImages)
             {
                 recipe.Image = null;
+                RecipeImageService.ClearCredit(recipe);
                 recipe.LastModifiedDate = DateTime.UtcNow;
             }
 
