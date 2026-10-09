@@ -31,6 +31,7 @@ namespace Nom.Import.Services
         private const long PendingCuration = 9001;
         private const long NutEnergy = 1008, NutEnergyAtwaterSpecific = 2048, NutEnergyAtwaterGeneral = 2047;
         private const long NutProtein = 1003, NutCarb = 1005, NutFat = 1004;
+        private const long NutSugarsTotal = 2000, NutSugarsTotalNlea = 1063, NutSugarsAdded = 1235;
 
         private readonly ApplicationDbContext _db;
         private readonly ILogger<FdcBrandedImportService> _logger;
@@ -124,6 +125,8 @@ namespace Nom.Import.Services
                 AddNutrient(ing.Id, nutrientIds, "protein", gramId, m.Protein, ref report.NutrientRows);
                 AddNutrient(ing.Id, nutrientIds, "carb", gramId, m.Carb, ref report.NutrientRows);
                 AddNutrient(ing.Id, nutrientIds, "fat", gramId, m.Fat, ref report.NutrientRows);
+                AddNutrient(ing.Id, nutrientIds, "sugars", gramId, m.Sugars, ref report.NutrientRows);
+                AddNutrient(ing.Id, nutrientIds, "added_sugars", gramId, m.AddedSugars, ref report.NutrientRows);
             }
             await _db.SaveChangesAsync(ct);
 
@@ -154,7 +157,7 @@ namespace Nom.Import.Services
 
 
         private sealed record Branded(string? BrandOwner, string? Category, decimal? ServingGrams, string? Gtin);
-        private sealed record Macros(decimal? Kcal, decimal? Protein, decimal? Carb, decimal? Fat);
+        private sealed record Macros(decimal? Kcal, decimal? Protein, decimal? Carb, decimal? Fat, decimal? Sugars, decimal? AddedSugars);
 
         /// <summary>
         /// Streams branded_food.csv, keeping US, non-discontinued products that publish a
@@ -223,7 +226,7 @@ namespace Nom.Import.Services
 
         private static Dictionary<string, Macros> ReadNutrients(string path, HashSet<string> fdcIds)
         {
-            var acc = new Dictionary<string, (decimal? k, decimal? ks, decimal? kg, decimal? p, decimal? c, decimal? f)>();
+            var acc = new Dictionary<string, (decimal? k, decimal? ks, decimal? kg, decimal? p, decimal? c, decimal? f, decimal? s, decimal? sn, decimal? sa)>();
             using var reader = new StreamReader(path);
             reader.ReadLine();
             string? line;
@@ -243,11 +246,14 @@ namespace Nom.Import.Services
                 else if (nutId == NutProtein) cur.p = amt;
                 else if (nutId == NutCarb) cur.c = amt;
                 else if (nutId == NutFat) cur.f = amt;
+                else if (nutId == NutSugarsTotal) cur.s = amt;
+                else if (nutId == NutSugarsTotalNlea) cur.sn = amt;
+                else if (nutId == NutSugarsAdded) cur.sa = amt;
                 else continue;
                 acc[fdc] = cur;
             }
             return acc.ToDictionary(kv => kv.Key,
-                kv => new Macros(kv.Value.k ?? kv.Value.ks ?? kv.Value.kg, kv.Value.p, kv.Value.c, kv.Value.f));
+                kv => new Macros(kv.Value.k ?? kv.Value.ks ?? kv.Value.kg, kv.Value.p, kv.Value.c, kv.Value.f, kv.Value.s ?? kv.Value.sn, kv.Value.sa));
         }
 
         private void AddNutrient(long ingredientId, Dictionary<string, long> nutrientIds, string key,
@@ -277,6 +283,8 @@ namespace Nom.Import.Services
             if (Find("protein") is { } pro) map["protein"] = pro;
             if (Find("carbohydrate", "carbs") is { } carb) map["carb"] = carb;
             if (Find("total lipid", "fat") is { } fat) map["fat"] = fat;
+            if (Find("total sugars") is { } sugars) map["sugars"] = sugars;
+            if (Find("added sugars") is { } added) map["added_sugars"] = added;
             return map;
         }
 

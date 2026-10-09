@@ -30,6 +30,10 @@ namespace Nom.Import.Services
         // 2047 general), not the general Energy (1008) — accept any, preferring the most specific.
         private const long NutEnergy = 1008, NutEnergyAtwaterSpecific = 2048, NutEnergyAtwaterGeneral = 2047;
         private const long NutProtein = 1003, NutCarb = 1005, NutFat = 1004;
+        private const long NutSugarsTotal = 2000, NutSugarsTotalNlea = 1063, NutSugarsAdded = 1235;
+
+        public const string FoundationFood = "foundation_food";
+        public const string SrLegacyFood = "sr_legacy_food";
 
         private readonly ApplicationDbContext _db;
         private readonly ILogger<FdcFoundationImportService> _logger;
@@ -104,21 +108,27 @@ namespace Nom.Import.Services
         /// Defensible for Foundation Foods specifically: they are USDA-authored reference data
         /// with validated nutrition, unlike the manufacturer-submitted Branded catalog.
         /// </param>
-        public async Task<ImportReport> ImportAsync(string csvDir, bool curated = false, CancellationToken ct = default)
+        /// <param name="dataType">
+        /// Which FDC data type to read from food.csv: <see cref="FoundationFood"/> (default) or
+        /// <see cref="SrLegacyFood"/> (USDA Standard Reference — the generic staples recipes name).
+        /// </param>
+        public async Task<ImportReport> ImportAsync(string csvDir, bool curated = false, CancellationToken ct = default, string dataType = FoundationFood)
         {
             var foodCsv = FindFile(csvDir, "food.csv");
             var nutrientCsv = FindFile(csvDir, "food_nutrient.csv");
 
             _logger.LogInformation("Reading foundation foods from {Dir}", csvDir);
-            var foods = ReadFoundationFoods(foodCsv);                 // fdc_id → (desc, categoryId)
+            var foods = ReadFoods(foodCsv, dataType);                 // fdc_id → (desc, categoryId)
             var nutrients = ReadFoodNutrients(nutrientCsv, foods.Keys.ToHashSet()); // fdc_id → macros
 
             var portions = ReadPortions(TryFindFile(csvDir, "food_portion.csv"), foods.Keys.ToHashSet());
             var nutrientIds = await ResolveNutrientIdsAsync(ct);
             var (gramId, kcalId) = await ResolveMeasurementIdsAsync(ct);
 
-            var existingFdcIds = (await _db.Ingredients
-                .Where(i => i.FdcId != null).Select(i => i.FdcId!).ToListAsync(ct)).ToHashSet();
+            var existingByFdc = (await _db.Ingredients
+                .Where(i => i.FdcId != null).Select(i => new { i.Id, i.FdcId }).ToListAsync(ct))
+                .GroupBy(i => i.FdcId!).ToDictionary(g => g.Key, g => g.First().Id);
+            var existingFdcIds = existingByFdc.Keys.ToHashSet();
             // Ingredient.Name is unique — dedupe against existing names and within this run.
             var seenNames = (await _db.Ingredients.Select(i => i.Name).ToListAsync(ct))
                 .Select(n => n.ToLowerInvariant()).ToHashSet();
@@ -126,10 +136,16 @@ namespace Nom.Import.Services
             var report = new ImportReport { TotalFoundation = foods.Count };
             var pendingNutrition = new List<(IngredientEntity Ingredient, Macros Macros)>();
 
+            var backfill = new List<(long IngredientId, Macros Macros)>();
             foreach (var (fdcId, food) in foods)
             {
                 ct.ThrowIfCancellationRequested();
-                if (existingFdcIds.Contains(fdcId)) { report.SkippedExisting++; continue; }
+                if (existingFdcIds.Contains(fdcId))
+                {
+                    report.SkippedExisting++;
+                    if (nutrients.TryGetValue(fdcId, out var known)) backfill.Add((existingByFdc[fdcId], known));
+                    continue;
+                }
                 if (!nutrients.TryGetValue(fdcId, out var m)) { report.RejectedByReason["nutrients_missing"] = report.RejectedByReason.GetValueOrDefault("nutrients_missing") + 1; report.Rejected++; continue; }
 
                 var result = _validator.Validate(new FoodQualityInput(
@@ -152,7 +168,7 @@ namespace Nom.Import.Services
                 {
                     Name = name,
                     FdcId = fdcId,
-                    FdcDataType = "foundation_food",
+                    FdcDataType = dataType,
                     CurationStatusId = curated ? Curated : PendingCuration,
                     FoodGroupId = group,
                     IsWholeFood = food.CategoryId is int ec && CategoryDirectlyEdible.TryGetValue(ec, out var edible)
@@ -183,6 +199,32 @@ namespace Nom.Import.Services
                 AddNutrient(ing.Id, nutrientIds, "protein", gramId, m.Protein, ref report.NutrientRows);
                 AddNutrient(ing.Id, nutrientIds, "carb", gramId, m.Carb, ref report.NutrientRows);
                 AddNutrient(ing.Id, nutrientIds, "fat", gramId, m.Fat, ref report.NutrientRows);
+                AddNutrient(ing.Id, nutrientIds, "sugars", gramId, m.Sugars, ref report.NutrientRows);
+                AddNutrient(ing.Id, nutrientIds, "added_sugars", gramId, m.AddedSugars, ref report.NutrientRows);
+            }
+
+            if (backfill.Count > 0)
+            {
+                var ids = backfill.Select(b => b.IngredientId).ToList();
+                var have = (await _db.Set<IngredientNutrientEntity>()
+                    .Where(n => ids.Contains(n.IngredientId))
+                    .Select(n => new { n.IngredientId, n.NutrientId })
+                    .ToListAsync(ct))
+                    .Select(n => (n.IngredientId, n.NutrientId)).ToHashSet();
+                foreach (var (ingredientId, m) in backfill)
+                {
+                    void Fill(string key, long measurementId, decimal? amount)
+                    {
+                        if (amount is null || !nutrientIds.TryGetValue(key, out var nid) || have.Contains((ingredientId, nid))) return;
+                        AddNutrient(ingredientId, nutrientIds, key, measurementId, amount, ref report.BackfilledNutrientRows);
+                    }
+                    Fill("calories", kcalId, m.Kcal);
+                    Fill("protein", gramId, m.Protein);
+                    Fill("carb", gramId, m.Carb);
+                    Fill("fat", gramId, m.Fat);
+                    Fill("sugars", gramId, m.Sugars);
+                    Fill("added_sugars", gramId, m.AddedSugars);
+                }
             }
             await _db.SaveChangesAsync(ct);
             _logger.LogInformation("FDC foundation import: {Accepted} accepted, {Rejected} rejected, {Skipped} existing.",
@@ -228,6 +270,8 @@ namespace Nom.Import.Services
             if (Find("protein") is { } pro) map["protein"] = pro;
             if (Find("carbohydrate", "carbs") is { } carb) map["carb"] = carb;
             if (Find("total lipid", "fat") is { } fat) map["fat"] = fat;
+            if (Find("total sugars") is { } sugars) map["sugars"] = sugars;
+            if (Find("added sugars") is { } added) map["added_sugars"] = added;
 
             foreach (var key in new[] { "calories", "protein", "carb", "fat" })
                 if (!map.ContainsKey(key))
@@ -294,9 +338,9 @@ namespace Nom.Import.Services
         }
 
         private sealed record FoodRow(string Description, int? CategoryId);
-        private sealed record Macros(decimal? Kcal, decimal? Protein, decimal? Carb, decimal? Fat);
+        private sealed record Macros(decimal? Kcal, decimal? Protein, decimal? Carb, decimal? Fat, decimal? Sugars, decimal? AddedSugars);
 
-        private static Dictionary<string, FoodRow> ReadFoundationFoods(string path)
+        private static Dictionary<string, FoodRow> ReadFoods(string path, string dataType)
         {
             var result = new Dictionary<string, FoodRow>();
             using var reader = new StreamReader(path);
@@ -305,7 +349,7 @@ namespace Nom.Import.Services
             while ((line = reader.ReadLine()) != null)
             {
                 var f = CsvLine.Split(line);
-                if (f.Length < 4 || f[1] != "foundation_food") continue;
+                if (f.Length < 4 || f[1] != dataType) continue;
                 int? cat = int.TryParse(f[3], out var c) ? c : (int?)null;
                 result[f[0]] = new FoodRow(f[2], cat);
             }
@@ -315,7 +359,7 @@ namespace Nom.Import.Services
         private static Dictionary<string, Macros> ReadFoodNutrients(string path, HashSet<string> fdcIds)
         {
             // k = general Energy (1008); ks = Atwater specific (2048); kg = Atwater general (2047).
-            var acc = new Dictionary<string, (decimal? k, decimal? ks, decimal? kg, decimal? p, decimal? c, decimal? f)>();
+            var acc = new Dictionary<string, (decimal? k, decimal? ks, decimal? kg, decimal? p, decimal? c, decimal? f, decimal? s, decimal? sn, decimal? sa)>();
             using var reader = new StreamReader(path);
             reader.ReadLine(); // header: id,fdc_id,nutrient_id,amount,...
             string? line;
@@ -335,11 +379,14 @@ namespace Nom.Import.Services
                 else if (nutId == NutProtein) cur.p = amt;
                 else if (nutId == NutCarb) cur.c = amt;
                 else if (nutId == NutFat) cur.f = amt;
+                else if (nutId == NutSugarsTotal) cur.s = amt;
+                else if (nutId == NutSugarsTotalNlea) cur.sn = amt;
+                else if (nutId == NutSugarsAdded) cur.sa = amt;
                 else continue;
                 acc[fdc] = cur;
             }
             return acc.ToDictionary(kv => kv.Key,
-                kv => new Macros(kv.Value.k ?? kv.Value.ks ?? kv.Value.kg, kv.Value.p, kv.Value.c, kv.Value.f));
+                kv => new Macros(kv.Value.k ?? kv.Value.ks ?? kv.Value.kg, kv.Value.p, kv.Value.c, kv.Value.f, kv.Value.s ?? kv.Value.sn, kv.Value.sa));
         }
 
         private static string? TryFindFile(string dir, string name)
@@ -369,6 +416,7 @@ namespace Nom.Import.Services
             public int SkippedDuplicateName { get; set; }
             public int WithReferenceServing { get; set; }
             public int NutrientRows;
+            public int BackfilledNutrientRows;
             public Dictionary<string, int> RejectedByReason { get; } = new();
         }
     }
