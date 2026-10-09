@@ -3966,6 +3966,7 @@ INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (61131,
 INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (61132, 6100) ON CONFLICT DO NOTHING;
 INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (61133, 6100) ON CONFLICT DO NOTHING;
 INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (61134, 6100) ON CONFLICT DO NOTHING;
+INSERT INTO auth."PlatformFeature" ("Key", "IsEnabled", "Description", "CreatedDate", "IsDeleted") VALUES ('noncurated-recipes-admin-preview', false, 'Admins only: show public scraped recipes that passed vetting but are not yet curated, in search, browsing and meal plans. Everyone else still sees curated recipes only.', '2026-10-09 00:00:00-06', false) ON CONFLICT DO NOTHING;
 -- Resync identity sequences to seeded max values
 DO $$
 DECLARE r RECORD; seqname TEXT; maxid BIGINT;
