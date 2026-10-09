@@ -55,6 +55,6 @@ namespace Nom.Data.Reference
         SortDirectionType = 6014,              // For sort directions (asc, desc)
         DayOfWeekType = 6015,                  // For days of week (Monday, Tuesday, etc.)
         RecipeDietaryOptionType = 6016,        // For recipe dietary options (Vegetarian, Vegan, etc.)
-        KitchenToolType = 6017
+        KitchenToolType = 6100
     }
 }
