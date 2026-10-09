@@ -14,6 +14,7 @@ using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
 using Nom.Orch.Services;
+using Nom.Orch.Services.Support;
 using Xunit;
 
 namespace Nom.Api.Tests.Services
@@ -87,8 +88,170 @@ namespace Nom.Api.Tests.Services
             return ing;
         }
 
-        private static IngredientLinkService Linker(ApplicationDbContext db, FakeMatcher matcher) =>
-            new(db, matcher, new MemoryCache(new MemoryCacheOptions()), NullLogger<IngredientLinkService>.Instance);
+        private sealed class FakeVerifier : IIngredientLinkVerifier
+        {
+            public Func<LinkQuestion, FoodCandidate?> Pick { get; set; } = q => q.Candidates.FirstOrDefault();
+            public Exception? Failure { get; set; }
+            public List<LinkQuestion> Asked { get; } = new();
+            public bool IsConfigured => true;
+            public string ModelName => "fake:verify";
+
+            public Task<IReadOnlyList<LinkVerdict>> ChooseAsync(IReadOnlyList<LinkQuestion> questions, CancellationToken cancellationToken = default)
+            {
+                Asked.AddRange(questions);
+                if (Failure != null) throw Failure;
+                return Task.FromResult<IReadOnlyList<LinkVerdict>>(questions.Select(q => new LinkVerdict(q.IngredientId, Pick(q))).ToList());
+            }
+        }
+
+        private static IngredientLinkService Linker(ApplicationDbContext db, FakeMatcher matcher, FakeVerifier? verifier = null) =>
+            new(db, matcher, verifier ?? new FakeVerifier(), new MemoryCache(new MemoryCacheOptions()), NullLogger<IngredientLinkService>.Instance);
+
+        private static async Task<FoodCatalogProposalEntity> AiPickAsync(ApplicationDbContext db, IngredientEntity ing, IngredientEntity target, decimal confidence)
+        {
+            var proposal = new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, Batch = IngredientLinkService.Batch, IngredientId = ing.Id, Field = FoodCatalogReviewService.FdcLinkField,
+                CurrentValue = ing.Name, ProposedValue = target.Id.ToString(), FdcId = target.FdcId, Source = "ai:fake:1b", Confidence = confidence,
+                Reason = $"→ {target.Name} · used in 2 recipes", Status = FoodProposalStatus.Pending,
+            };
+            db.FoodCatalogProposals.Add(proposal);
+            await db.SaveChangesAsync();
+            return proposal;
+        }
+
+        [Fact]
+        public async Task A_model_pick_all_three_checks_agree_on_is_verified_and_applies_as_the_system()
+        {
+            using var db = NewContext();
+            var (_, _, plain) = await SeedFoodsAsync(db);
+            var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
+            var proposal = await AiPickAsync(db, butter, plain, 0.92m);
+            var verifier = new FakeVerifier { Pick = q => q.Candidates.Single(c => c.FdcId == plain.FdcId) };
+            var linker = Linker(db, new FakeMatcher(), verifier);
+
+            var result = await linker.VerifyPendingAiAsync(10, 0.85m);
+
+            result.Should().Be(new IngredientLinkVerifyResult(1, 1, false));
+            verifier.Asked.Single().Name.Should().Be("unsalted butter");
+            proposal.Reason.Should().Contain(IngredientLinkService.VerifiedMark).And.Contain("fake:verify");
+            proposal.Source.Should().Be("ai:fake:1b", "verification is recorded beside the provenance, not instead of it");
+            var ids = await linker.PendingVerifiedAsync(10, Array.Empty<long>());
+            ids.Should().Equal(proposal.Id);
+
+            var review = new FoodCatalogReviewService(db, new NoAudit(), new FakeCleanup());
+            (await review.ApplyProposalAsync(ids[0], Nom.Data.SystemConstants.SystemPersonId)).Should().BeTrue();
+            (await db.FoodCatalogProposals.FindAsync(proposal.Id))!.Should().Match<FoodCatalogProposalEntity>(p =>
+                p.Status == FoodProposalStatus.Applied && p.ReviewedByPersonId == Nom.Data.SystemConstants.SystemPersonId);
+        }
+
+        [Fact]
+        public async Task A_pick_below_the_confidence_bar_is_neither_asked_nor_marked()
+        {
+            using var db = NewContext();
+            var (_, _, plain) = await SeedFoodsAsync(db);
+            var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
+            var proposal = await AiPickAsync(db, butter, plain, 0.8m);
+            var verifier = new FakeVerifier();
+            var linker = Linker(db, new FakeMatcher(), verifier);
+
+            (await linker.VerifyPendingAiAsync(10, 0.85m)).Should().Be(new IngredientLinkVerifyResult(0, 0, false));
+
+            verifier.Asked.Should().BeEmpty();
+            proposal.Reason.Should().NotContain(IngredientLinkService.TriangulationMark, "a lower bar later should still reach it");
+            proposal.Status.Should().Be(FoodProposalStatus.Pending);
+            (await linker.PendingVerifiedAsync(10, Array.Empty<long>())).Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task A_pick_the_name_matcher_does_not_rank_first_stays_pending_without_asking_the_model()
+        {
+            using var db = NewContext();
+            var (_, salted, _) = await SeedFoodsAsync(db);
+            var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
+            var proposal = await AiPickAsync(db, butter, salted, 0.97m);
+            var verifier = new FakeVerifier { Pick = q => q.Candidates.Single(c => c.FdcId == salted.FdcId) };
+            var linker = Linker(db, new FakeMatcher(), verifier);
+
+            (await linker.VerifyPendingAiAsync(10, 0.85m)).Should().Be(new IngredientLinkVerifyResult(1, 0, false));
+
+            verifier.Asked.Should().BeEmpty();
+            proposal.Reason.Should().Contain("not verified — name matcher ranks Butter, without salt first");
+            proposal.Status.Should().Be(FoodProposalStatus.Pending);
+            (await linker.PendingVerifiedAsync(10, Array.Empty<long>())).Should().BeEmpty();
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task A_pick_the_second_opinion_does_not_name_stays_pending(bool choosesNone)
+        {
+            using var db = NewContext();
+            var (_, salted, plain) = await SeedFoodsAsync(db);
+            var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
+            var proposal = await AiPickAsync(db, butter, plain, 0.95m);
+            var verifier = new FakeVerifier { Pick = q => choosesNone ? null : q.Candidates.Single(c => c.FdcId == salted.FdcId) };
+            var linker = Linker(db, new FakeMatcher(), verifier);
+
+            (await linker.VerifyPendingAiAsync(10, 0.85m)).Should().Be(new IngredientLinkVerifyResult(1, 0, false));
+
+            proposal.Reason.Should().Contain(choosesNone ? "fake:verify chose none" : "fake:verify chose Butter, salted");
+            proposal.Status.Should().Be(FoodProposalStatus.Pending);
+            (await linker.PendingVerifiedAsync(10, Array.Empty<long>())).Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task An_unreadable_second_opinion_is_not_a_verification()
+        {
+            using var db = NewContext();
+            var (_, _, plain) = await SeedFoodsAsync(db);
+            var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
+            var proposal = await AiPickAsync(db, butter, plain, 0.95m);
+            var verifier = new FakeVerifier { Failure = new System.Text.Json.JsonException("garbled") };
+            var linker = Linker(db, new FakeMatcher(), verifier);
+
+            (await linker.VerifyPendingAiAsync(10, 0.85m)).Should().Be(new IngredientLinkVerifyResult(1, 0, false));
+
+            proposal.Reason.Should().Contain("not verified — fake:verify gave no readable answer");
+            (await linker.PendingVerifiedAsync(10, Array.Empty<long>())).Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task A_checked_pick_is_not_asked_again()
+        {
+            using var db = NewContext();
+            var (_, salted, plain) = await SeedFoodsAsync(db);
+            var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
+            await AiPickAsync(db, butter, plain, 0.95m);
+            var verifier = new FakeVerifier { Pick = q => q.Candidates.Single(c => c.FdcId == salted.FdcId) };
+            await Linker(db, new FakeMatcher(), verifier).VerifyPendingAiAsync(10, 0.85m);
+            verifier.Asked.Should().HaveCount(1);
+
+            var again = new FakeVerifier();
+            (await Linker(db, new FakeMatcher(), again).VerifyPendingAiAsync(10, 0.85m)).Should().Be(new IngredientLinkVerifyResult(0, 0, false));
+
+            again.Asked.Should().BeEmpty("the outcome is stored on the proposal, so a restart doesn't ask again");
+        }
+
+        [Fact]
+        public async Task An_unreachable_second_opinion_verifies_nothing_and_leaves_picks_for_later()
+        {
+            using var db = NewContext();
+            var (_, _, plain) = await SeedFoodsAsync(db);
+            var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
+            var proposal = await AiPickAsync(db, butter, plain, 0.95m);
+            var verifier = new FakeVerifier { Failure = new System.Net.Http.HttpRequestException("connection refused") };
+            var linker = Linker(db, new FakeMatcher(), verifier);
+
+            (await linker.VerifyPendingAiAsync(10, 0.85m)).Should().BeNull();
+
+            proposal.Reason.Should().NotContain(IngredientLinkService.TriangulationMark);
+            proposal.Status.Should().Be(FoodProposalStatus.Pending);
+            (await linker.PendingVerifiedAsync(10, Array.Empty<long>())).Should().BeEmpty();
+
+            verifier.Failure = null;
+            (await linker.VerifyPendingAiAsync(10, 0.85m))!.Verified.Should().Be(1, "it is checked once the model is back");
+        }
 
         [Fact]
         public async Task Most_used_first_exact_names_skip_the_model_and_none_answers_are_not_asked_again()

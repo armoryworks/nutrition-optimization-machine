@@ -5,10 +5,17 @@ namespace Nom.Api.Services
     /// <summary>
     /// Proposes USDA links for catalog ingredients recipes use, most-used first, as food-catalog
     /// proposals. Certain links (staples, same-name attaches) are applied straight away as the System
-    /// person; name-matcher and model picks wait for an admin. Runs only when an Ollama URL is
-    /// configured, because ambiguous names need the model to choose.
+    /// person; name-matcher picks wait for an admin. Between proposal passes, pending model picks
+    /// are triangulated (model confident, name matcher ranks the same food first, a second model call
+    /// names it too) and applied as the System person only when all three agree; the rest wait for
+    /// an admin. Runs only when an Ollama URL is configured, because ambiguous names need the model
+    /// to choose.
     ///
     /// IngredientLinking:AutoApplyCertain=false leaves certain links for an admin too.
+    /// IngredientLinking:AutoApplyVerifiedAi=false stops triangulating model picks;
+    /// IngredientLinking:VerifiedMinConfidence (default 0.85) is the confidence bar;
+    /// IngredientLinking:VerifyBatchSize (default 24) picks checked per pass;
+    /// IngredientLinking:VerifyModel (default the link model) gives the second opinion.
     /// IngredientLinking:Enabled=false disables it; IngredientLinking:BatchSize (default 30)
     /// ingredients per pass; IngredientLinking:PauseSeconds (default 5) between passes;
     /// IngredientLinking:IdleMinutes (default 30) once nothing is left to propose.
@@ -69,6 +76,10 @@ namespace Nom.Api.Services
             }
             var autoApply = _configuration.GetValue("IngredientLinking:AutoApplyCertain", true);
             if (autoApply) await ApplyCertainLinksAsync(stoppingToken);
+            var autoApplyVerified = _configuration.GetValue("IngredientLinking:AutoApplyVerifiedAi", true);
+            var minConfidence = Math.Clamp(_configuration.GetValue("IngredientLinking:VerifiedMinConfidence", 0.85m), 0m, 1m);
+            var verifyBatch = Math.Clamp(_configuration.GetValue("IngredientLinking:VerifyBatchSize", 24), 1, 200);
+            if (autoApplyVerified) await ApplyVerifiedLinksAsync(stoppingToken);
 
             int proposed = 0, sinceLog = 0;
             while (!stoppingToken.IsCancellationRequested)
@@ -104,6 +115,20 @@ namespace Nom.Api.Services
                             }
                         }
                     }
+
+                    if (autoApplyVerified && delay != backoff)
+                    {
+                        var verified = await links.VerifyPendingAiAsync(verifyBatch, minConfidence, stoppingToken);
+                        if (verified == null)
+                        {
+                            delay = backoff;
+                        }
+                        else
+                        {
+                            if (verified.Verified > 0) await ApplyVerifiedLinksAsync(stoppingToken);
+                            if (verified.MoreWaiting && sources.Count == 0) delay = pause;
+                        }
+                    }
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
@@ -119,7 +144,16 @@ namespace Nom.Api.Services
             }
         }
 
-        private async Task ApplyCertainLinksAsync(CancellationToken stoppingToken)
+        private Task ApplyCertainLinksAsync(CancellationToken stoppingToken) =>
+            ApplyLinksAsync((links, skip, token) => links.PendingDeterministicAsync(50, skip, token), "certain links (staples, same-name USDA attaches)", stoppingToken);
+
+        private Task ApplyVerifiedLinksAsync(CancellationToken stoppingToken) =>
+            ApplyLinksAsync((links, skip, token) => links.PendingVerifiedAsync(50, skip, token), "model picks verified by triangulation", stoppingToken);
+
+        private async Task ApplyLinksAsync(
+            Func<IIngredientLinkService, IReadOnlyCollection<long>, CancellationToken, Task<IReadOnlyList<long>>> next,
+            string what,
+            CancellationToken stoppingToken)
         {
             var applied = 0;
             try
@@ -127,7 +161,7 @@ namespace Nom.Api.Services
                 while (!stoppingToken.IsCancellationRequested)
                 {
                     using var scope = _scopeFactory.CreateScope();
-                    var ids = await scope.ServiceProvider.GetRequiredService<IIngredientLinkService>().PendingDeterministicAsync(50, _unappliable, stoppingToken);
+                    var ids = await next(scope.ServiceProvider.GetRequiredService<IIngredientLinkService>(), _unappliable, stoppingToken);
                     if (ids.Count == 0) break;
                     var review = scope.ServiceProvider.GetRequiredService<IFoodCatalogReviewService>();
                     foreach (var id in ids)
@@ -139,9 +173,9 @@ namespace Nom.Api.Services
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogWarning(ex, "Applying certain ingredient links failed");
+                _logger.LogWarning(ex, "Applying {What} failed", what);
             }
-            if (applied > 0) _logger.LogInformation("Ingredient linking: applied {Count} certain links (staples, same-name USDA attaches)", applied);
+            if (applied > 0) _logger.LogInformation("Ingredient linking: applied {Count} {What}", applied, what);
         }
 
         private static async Task<bool> Delay(TimeSpan delay, CancellationToken token)

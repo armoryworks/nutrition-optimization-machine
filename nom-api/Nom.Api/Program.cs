@@ -396,6 +396,8 @@ builder.Services.AddHostedService<Nom.Api.Services.RecipeToolTaggingHostedServic
 builder.Services.AddHostedService<Nom.Api.Services.ScrapedRecipeRepairHostedService>();
 builder.Services.AddHttpClient<Nom.Orch.Interfaces.IIngredientLinkMatcher, Nom.Orch.Services.OllamaIngredientLinkMatcher>(
     client => client.Timeout = TimeSpan.FromSeconds(300));
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IIngredientLinkVerifier, Nom.Orch.Services.OllamaIngredientLinkVerifier>(
+    client => client.Timeout = TimeSpan.FromSeconds(300));
 builder.Services.AddHostedService<Nom.Api.Services.IngredientLinkHostedService>();
 builder.Services.AddHostedService<Nom.Api.Services.RecipeNutritionRecalcHostedService>();
 builder.Services.AddHostedService<Nom.Api.Services.CourseClassificationHostedService>();
