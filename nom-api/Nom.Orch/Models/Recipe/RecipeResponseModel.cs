@@ -10,6 +10,9 @@ namespace Nom.Orch.Models.Recipe
         public long AuthorId { get; set; }
         public string AuthorName { get; set; } = string.Empty;
         public string? ImageUrl { get; set; }
+
+        /// <summary>Credit line for a third-party openly licensed image; null for the author's own photo.</summary>
+        public RecipeImageCreditModel? ImageCredit { get; set; }
         public long? PrepTimeMinutes { get; set; }
         public long? CookTimeMinutes { get; set; }
         public long? Servings { get; set; }

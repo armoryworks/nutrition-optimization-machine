@@ -1,0 +1,132 @@
+@use 'variables' as vars;
+
+.nom-recipe-images__hint,
+.nom-recipe-images__muted,
+.nom-recipe-images__empty {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-recipe-images__error {
+  color: var(--mat-sys-error);
+  font-size: vars.$font-size-sm;
+}
+
+.nom-recipe-images__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-2;
+  margin-bottom: vars.$spacing-3;
+}
+
+.nom-recipe-images__filter {
+  padding: vars.$spacing-1 vars.$spacing-3;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  text-transform: capitalize;
+  cursor: pointer;
+
+  &--active {
+    background: var(--mat-sys-secondary-container);
+    color: var(--mat-sys-on-secondary-container);
+    border-color: transparent;
+  }
+}
+
+.nom-recipe-images__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
+.nom-recipe-images__item {
+  display: grid;
+  grid-template-columns: 160px 1fr auto;
+  gap: vars.$spacing-3;
+  align-items: start;
+  padding: vars.$spacing-3;
+  border-radius: 8px;
+  background: var(--mat-sys-surface-container);
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nom-recipe-images__preview {
+  width: 160px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--mat-sys-surface-container-high);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  @media (max-width: 600px) {
+    width: 100%;
+    height: 200px;
+  }
+}
+
+.nom-recipe-images__body {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+  min-width: 0;
+
+  nom-image-credit ::ng-deep .nom-image-credit {
+    margin: 0;
+  }
+}
+
+.nom-recipe-images__recipe {
+  font-weight: 600;
+  color: inherit;
+}
+
+.nom-recipe-images__checks {
+  list-style: none;
+  margin: vars.$spacing-1 0 0;
+  padding: 0;
+  font-size: vars.$font-size-sm;
+
+  li {
+    display: flex;
+    align-items: baseline;
+    gap: vars.$spacing-1;
+    flex-wrap: wrap;
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    align-self: center;
+  }
+}
+
+.nom-recipe-images__check--pass mat-icon {
+  color: var(--mat-sys-primary);
+}
+
+.nom-recipe-images__check--fail mat-icon {
+  color: var(--mat-sys-error);
+}
+
+.nom-recipe-images__actions {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}

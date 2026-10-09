@@ -102,7 +102,12 @@
           @case (0) {
             @if (recipe()!.imageUrl) {
               <div class="nom-recipe__hero">
-                <img [src]="recipe()!.imageUrl" [alt]="recipe()!.name" class="nom-recipe__hero-img" (error)="onHeroImageError()">
+                <img [src]="recipe()!.imageUrl" [alt]="recipe()!.name" class="nom-recipe__hero-img"
+                     [class.nom-recipe__hero-img--whole]="recipe()!.imageCredit?.noDerivatives"
+                     (error)="onHeroImageError()">
+                @if (recipe()!.imageCredit; as credit) {
+                  <nom-image-credit [credit]="credit" />
+                }
               </div>
             }
             <h1 class="nom-recipe__title">{{ recipe()!.name }}</h1>
