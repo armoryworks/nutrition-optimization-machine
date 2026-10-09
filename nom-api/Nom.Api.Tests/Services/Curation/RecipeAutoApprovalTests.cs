@@ -251,5 +251,19 @@ namespace Nom.Api.Tests.Services.Curation
 
             (await act.Should().ThrowAsync<InvalidOperationException>()).WithMessage("*not curated: flour*");
         }
+
+        [Fact]
+        public async Task Requesting_a_revision_records_the_seeded_revision_request_feedback()
+        {
+            using var db = await SeedAsync(PublicDomain(10));
+            db.References.Add(new ReferenceEntity { Id = 9202, Name = "Revision Request" });
+            await db.SaveChangesAsync();
+            var curation = new CurationOrchestrationService(db, NullLogger<CurationOrchestrationService>.Instance);
+
+            await curation.RequestRevisionAsync(new CurationDecisionRequest { EntityType = "Recipe", EntityId = 10, DecisionNotes = "Steps are out of order." }, 1);
+
+            (await db.Recipes.SingleAsync()).CurationStatusId.Should().Be((long)CurationStatusEnum.RequiresRevision);
+            (await db.CurationFeedbacks.SingleAsync()).FeedbackTypeId.Should().Be(9202);
+        }
     }
 }

@@ -358,7 +358,7 @@ namespace Nom.Orch.Services
                 EntityTypeId = await GetReferenceIdByNameAsync(request.EntityType),
                 AdminId = adminId,
                 FeedbackNotes = request.DecisionNotes,
-                FeedbackTypeId = await GetReferenceIdByNameAsync("Revision")
+                FeedbackTypeId = await GetReferenceIdByNameAsync("Revision Request")
             };
             _db.CurationFeedbacks.Add(feedback);
             await _db.SaveChangesAsync();
