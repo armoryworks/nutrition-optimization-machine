@@ -53,6 +53,17 @@ namespace Nom.Api.Services
 
             if (!await Delay(TimeSpan.FromMinutes(2), stoppingToken)) return;
 
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var corrected = await scope.ServiceProvider.GetRequiredService<IIngredientLinkService>().ApplyStapleDefaultsToPendingAsync(stoppingToken);
+                if (corrected > 0) _logger.LogInformation("Ingredient linking: {Count} pending staple links re-pointed to their standard USDA entry", corrected);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Re-pointing pending staple links failed");
+            }
+
             int proposed = 0, sinceLog = 0;
             while (!stoppingToken.IsCancellationRequested)
             {

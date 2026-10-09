@@ -96,33 +96,82 @@ namespace Nom.Api.Tests.Services
             using var db = NewContext();
             var (salt, salted, plain) = await SeedFoodsAsync(db);
             var saltIng = await UsedIngredientAsync(db, "salt", 3);
-            var butter = await UsedIngredientAsync(db, "butter", 2);
+            var butter = await UsedIngredientAsync(db, "creamery butter", 2);
             var weird = await UsedIngredientAsync(db, "xanthan wizardry", 1);
             var matcher = new FakeMatcher
             {
-                Answer = q => q.Name == "butter"
+                Answer = q => q.Name == "creamery butter"
                     ? new LinkAnswer(q.IngredientId, q.Candidates.Single(c => c.IngredientId == plain.Id), 0.8m)
                     : new LinkAnswer(q.IngredientId, null, 0.2m),
             };
             var linker = Linker(db, matcher);
 
             var sources = await linker.NextSourcesAsync(10);
-            sources.Select(s => s.Name).Should().Equal("salt", "butter", "xanthan wizardry");
+            sources.Select(s => s.Name).Should().Equal("salt", "creamery butter", "xanthan wizardry");
 
             var result = await linker.ProposeAsync(sources);
 
             result!.ExactProposals.Should().Be(1);
             result.AiProposals.Should().Be(1);
             result.NoMatch.Should().Be(1);
-            matcher.Asked.Should().Equal("butter");
+            matcher.Asked.Should().Equal("creamery butter");
             var proposals = await db.FoodCatalogProposals.ToListAsync();
             proposals.Single(p => p.IngredientId == saltIng.Id).Should().Match<FoodCatalogProposalEntity>(p =>
-                p.Status == FoodProposalStatus.Pending && p.Source == IngredientLinkService.ExactSource && p.ProposedValue == salt.Id.ToString());
+                p.Status == FoodProposalStatus.Pending && p.Source.StartsWith("deterministic:") && p.ProposedValue == salt.Id.ToString());
             proposals.Single(p => p.IngredientId == butter.Id).Should().Match<FoodCatalogProposalEntity>(p =>
                 p.Status == FoodProposalStatus.Pending && p.Source == "ai:fake:1b" && p.FdcId == "173410");
             proposals.Single(p => p.IngredientId == weird.Id).Status.Should().Be(FoodProposalStatus.Rejected);
 
             (await linker.NextSourcesAsync(10)).Should().BeEmpty("every ingredient now has a link decision");
+        }
+
+        [Fact]
+        public async Task A_bare_staple_name_takes_its_standard_usda_entry_without_the_model()
+        {
+            using var db = NewContext();
+            var (_, salted, _) = await SeedFoodsAsync(db);
+            var butter = await UsedIngredientAsync(db, "Butter", 5);
+            var flour = await UsedIngredientAsync(db, "flour", 4);
+            var matcher = new FakeMatcher();
+            var linker = Linker(db, matcher);
+
+            var result = await linker.ProposeAsync(await linker.NextSourcesAsync(10));
+
+            matcher.Asked.Should().NotContain("Butter");
+            result!.ExactProposals.Should().Be(1);
+            (await db.FoodCatalogProposals.SingleAsync(p => p.IngredientId == butter.Id)).Should().Match<FoodCatalogProposalEntity>(p =>
+                p.Status == FoodProposalStatus.Pending && p.Source == IngredientLinkService.StapleSource && p.FdcId == salted.FdcId);
+            (await db.FoodCatalogProposals.SingleAsync(p => p.IngredientId == flour.Id)).Status.Should().Be(FoodProposalStatus.Rejected, "a staple whose USDA entry isn't in the catalog falls through to the usual matching");
+        }
+
+        [Fact]
+        public async Task Pending_model_links_for_staples_are_repointed_but_reviewed_ones_are_left_alone()
+        {
+            using var db = NewContext();
+            var (_, salted, plain) = await SeedFoodsAsync(db);
+            var butter = await UsedIngredientAsync(db, "butter", 5);
+            var salt = await UsedIngredientAsync(db, "salt", 3);
+            db.FoodCatalogProposals.AddRange(
+                new FoodCatalogProposalEntity
+                {
+                    Action = FoodProposalAction.Update, Batch = IngredientLinkService.Batch, IngredientId = butter.Id, Field = FoodCatalogReviewService.FdcLinkField,
+                    CurrentValue = "butter", ProposedValue = plain.Id.ToString(), FdcId = plain.FdcId, Source = "ai:fake:1b", Confidence = 0.7m,
+                    Reason = "→ Butter, without salt · used in 5 recipes", Status = FoodProposalStatus.Pending,
+                },
+                new FoodCatalogProposalEntity
+                {
+                    Action = FoodProposalAction.Update, Batch = IngredientLinkService.Batch, IngredientId = salt.Id, Field = FoodCatalogReviewService.FdcLinkField,
+                    CurrentValue = "salt", ProposedValue = plain.Id.ToString(), FdcId = plain.FdcId, Source = "ai:fake:1b", Status = FoodProposalStatus.Rejected,
+                });
+            await db.SaveChangesAsync();
+
+            (await Linker(db, new FakeMatcher()).ApplyStapleDefaultsToPendingAsync()).Should().Be(1);
+
+            var proposals = await db.FoodCatalogProposals.ToListAsync();
+            proposals.Single(p => p.IngredientId == butter.Id).Should().Match<FoodCatalogProposalEntity>(p =>
+                p.FdcId == salted.FdcId && p.ProposedValue == salted.Id.ToString() && p.Source == IngredientLinkService.StapleSource
+                && p.Reason == "→ Butter, salted · used in 5 recipes");
+            proposals.Single(p => p.IngredientId == salt.Id).FdcId.Should().Be(plain.FdcId);
         }
 
         [Fact]

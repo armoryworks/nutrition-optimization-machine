@@ -17,6 +17,7 @@ namespace Nom.Orch.Services
     {
         public const string Batch = "fdc-link";
         public const string ExactSource = "deterministic:name-match";
+        public const string StapleSource = "deterministic:staple";
         public const string NoCandidateSource = "deterministic:no-candidate";
         public const decimal ExactConfidence = 0.95m;
         private const int ModelBatch = 6;
@@ -61,8 +62,16 @@ namespace Nom.Orch.Services
             int exact = 0, ai = 0, none = 0;
             var ambiguous = new List<(LinkSource Source, IReadOnlyList<FoodCandidate> Candidates)>();
 
+            var staples = await StapleTargetsAsync(cancellationToken);
             foreach (var source in sources)
             {
+                if (StapleFoods.UsdaNameFor(source.Name) is { } stapleName && staples.TryGetValue(stapleName, out var staple))
+                {
+                    Propose(source, staple, StapleSource, ExactConfidence, FoodProposalStatus.Pending);
+                    exact++;
+                    continue;
+                }
+
                 if ((matcher.Exact(source.Name) ?? matcher.Covering(source.Name)) is { } hit)
                 {
                     Propose(source, hit, ExactSource, ExactConfidence, FoodProposalStatus.Pending);
@@ -159,6 +168,48 @@ namespace Nom.Orch.Services
                 Status = status,
                 CreatedDate = DateTime.UtcNow,
             });
+        }
+
+        /// <summary>
+        /// Re-points pending model-chosen links for bare staple names ("flour", "milk") to the
+        /// standard USDA entry. Only touches proposals no reviewer has acted on.
+        /// </summary>
+        public async Task<int> ApplyStapleDefaultsToPendingAsync(CancellationToken cancellationToken = default)
+        {
+            var staples = await StapleTargetsAsync(cancellationToken);
+            var pending = await _context.FoodCatalogProposals
+                .Where(p => p.Field == FoodCatalogReviewService.FdcLinkField && p.Batch == Batch
+                    && p.Status == FoodProposalStatus.Pending && p.Source.StartsWith("ai:"))
+                .ToListAsync(cancellationToken);
+
+            var changed = 0;
+            foreach (var p in pending)
+            {
+                if (p.CurrentValue == null || StapleFoods.UsdaNameFor(p.CurrentValue) is not { } stapleName
+                    || !staples.TryGetValue(stapleName, out var staple) || p.FdcId == staple.FdcId) continue;
+
+                var uses = p.Reason != null && p.Reason.Contains("used in ") ? p.Reason[(p.Reason.LastIndexOf("used in ", StringComparison.Ordinal))..] : null;
+                p.FdcId = staple.FdcId;
+                p.ProposedValue = staple.IngredientId.ToString();
+                p.Source = StapleSource;
+                p.Confidence = ExactConfidence;
+                p.Reason = uses == null ? $"→ {staple.Name}" : $"→ {staple.Name} · {uses}";
+                p.LastModifiedDate = DateTime.UtcNow;
+                changed++;
+            }
+            await _context.SaveChangesAsync(cancellationToken);
+            return changed;
+        }
+
+        private async Task<Dictionary<string, FoodCandidate>> StapleTargetsAsync(CancellationToken cancellationToken)
+        {
+            return (await _context.Ingredients
+                .AsNoTracking()
+                .Where(i => i.FdcId != null && !i.IsDeleted && (i.FdcDataType == "foundation_food" || i.FdcDataType == "sr_legacy_food"))
+                .Select(i => new FoodCandidate(i.Id, i.FdcId!, i.Name, i.FdcDataType ?? string.Empty))
+                .ToListAsync(cancellationToken))
+                .GroupBy(f => f.Name, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
         }
 
         private async Task<FoodNameMatcher> GetMatcherAsync(CancellationToken cancellationToken)
