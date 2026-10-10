@@ -54,5 +54,11 @@ namespace Nom.Data.Recipe
         /// Useful for debugging, display, or if parsing is incomplete.
         /// </summary>
         public string RawLine { get; set; } = string.Empty;
+
+        /// <summary>
+        /// What an unquantified line is, as classified by the curation lanes (see <see cref="RecipeIngredientLineKind"/>).
+        /// Null when the line has not been classified.
+        /// </summary>
+        public string? LineKind { get; set; }
     }
 }

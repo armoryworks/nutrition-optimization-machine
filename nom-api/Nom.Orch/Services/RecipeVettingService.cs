@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.UtilityInterfaces;
 
@@ -59,7 +60,7 @@ namespace Nom.Orch.Services
                 issues.Add($"Servings value of {servings} is outside the plausible range (1–{MaxPlausibleServings}).");
             }
 
-            var unparsed = recipe.Ingredients.Count(i => i.Quantity == null && !IsAcceptablyUnquantified(i.RawLine));
+            var unparsed = recipe.Ingredients.Count(i => i.Quantity == null && !IsAcceptablyUnquantified(i.RawLine, i.LineKind));
             if (recipe.Ingredients.Count > 0 && unparsed > recipe.Ingredients.Count / 2)
             {
                 issues.Add($"{unparsed} of {recipe.Ingredients.Count} ingredient lines have no parseable quantity — needs a human (or enrichment) pass.");
@@ -67,6 +68,9 @@ namespace Nom.Orch.Services
 
             return Task.FromResult(issues);
         }
+
+        public static bool IsAcceptablyUnquantified(string? rawLine, string? lineKind) =>
+            RecipeIngredientLineKind.IsExempt(lineKind) || IsAcceptablyUnquantified(rawLine);
 
         public static bool IsAcceptablyUnquantified(string? rawLine) =>
             !string.IsNullOrWhiteSpace(rawLine)

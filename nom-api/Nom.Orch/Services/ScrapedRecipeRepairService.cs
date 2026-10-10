@@ -70,19 +70,24 @@ namespace Nom.Orch.Services
                         || recipe.CurationStatusId == (long)CurationStatusEnum.NonCurated);
                 if (!reviewable) continue;
 
-                var issues = await _vetting.VetAsync(ToVettable(recipe));
                 revetted++;
-                var wasFlagged = recipe.CurationStatusId == (long)CurationStatusEnum.RequiresRevision;
-                recipe.VettingIssues = issues.Count > 0 ? string.Join("\n", issues) : null;
-                recipe.CurationStatusId = issues.Count > 0
-                    ? (long)CurationStatusEnum.RequiresRevision
-                    : (long)CurationStatusEnum.NonCurated;
-                if (wasFlagged && issues.Count == 0) cleared++;
+                if (await RevetAsync(_vetting, recipe)) cleared++;
             }
 
             await _context.SaveChangesAsync(cancellationToken);
             _context.ChangeTracker.Clear();
             return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id);
+        }
+
+        internal static async Task<bool> RevetAsync(IRecipeVettingService vetting, Nom.Data.Recipe.RecipeEntity recipe)
+        {
+            var issues = await vetting.VetAsync(ToVettable(recipe));
+            var wasFlagged = recipe.CurationStatusId == (long)CurationStatusEnum.RequiresRevision;
+            recipe.VettingIssues = issues.Count > 0 ? string.Join("\n", issues) : null;
+            recipe.CurationStatusId = issues.Count > 0
+                ? (long)CurationStatusEnum.RequiresRevision
+                : (long)CurationStatusEnum.NonCurated;
+            return wasFlagged && issues.Count == 0;
         }
 
         internal static ScraperRecipe ToVettable(Nom.Data.Recipe.RecipeEntity recipe) => new()
@@ -92,7 +97,7 @@ namespace Nom.Orch.Services
             CookTimeMinutes = recipe.CookTimeMinutes is long cook ? (int)Math.Min(cook, int.MaxValue) : null,
             RecipeServings = recipe.RecipeServings,
             Ingredients = (recipe.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>())
-                .Select(i => new ScraperIngredient { RawLine = i.RawLine ?? string.Empty, Quantity = i.Quantity > 0 ? i.Quantity : null })
+                .Select(i => new ScraperIngredient { RawLine = i.RawLine ?? string.Empty, Quantity = i.Quantity > 0 ? i.Quantity : null, LineKind = i.LineKind })
                 .ToList(),
             Steps = (recipe.RecipeSteps ?? Enumerable.Empty<Nom.Data.Recipe.RecipeStepEntity>())
                 .OrderBy(s => s.StepNumber)

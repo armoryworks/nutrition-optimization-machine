@@ -19,6 +19,7 @@ public class RecipeIngredientEntityConfiguration : IEntityTypeConfiguration<Reci
         builder.Property(e => e.Quantity).IsRequired().HasColumnType("decimal(18,4)");
         builder.Property(e => e.MeasurementId).IsRequired();
         builder.Property(e => e.RawLine).HasColumnType("Text");
+        builder.Property(e => e.LineKind).HasMaxLength(16);
 
         // Relationships
         builder.HasOne(e => e.Recipe)

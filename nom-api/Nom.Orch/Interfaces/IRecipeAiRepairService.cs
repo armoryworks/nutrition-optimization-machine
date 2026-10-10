@@ -17,8 +17,8 @@ namespace Nom.Orch.Interfaces
     /// Repairs vetting-flagged (RequiresRevision) imports with the local model: splits a one-paragraph
     /// method into steps without rewording it, and fills ingredient quantities only where the amount is
     /// written in the recipe itself. Then re-vets; a clean recipe returns to NonCurated for the
-    /// auto-approval rules. Each recipe gets one model attempt, recorded in the audit log with the
-    /// original text, so every change is reversible.
+    /// auto-approval rules. Each recipe gets one model attempt per repair version, recorded in the audit
+    /// log with the original text, so every change is reversible.
     /// </summary>
     public interface IRecipeAiRepairService
     {
