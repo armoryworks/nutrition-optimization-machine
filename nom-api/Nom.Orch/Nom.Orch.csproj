@@ -9,7 +9,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.SystemWebAdapters" Version="2.0.0" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.59" />
-    <PackageReference Include="QuestPDF" Version="2026.2.3" />
+    <PackageReference Include="PDFsharp-MigraDoc" Version="6.2.4" />
     <PackageReference Include="SkiaSharp" Version="4.152.1" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.152.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.13.0" />
@@ -17,6 +17,10 @@
     <PackageReference Include="System.Drawing.Common" Version="10.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Fonts\Lato\*.ttf" LogicalName="Nom.Orch.Fonts.Lato.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -8,9 +8,7 @@ using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using Nom.Data.Recipe;
 using System.Security.Claims;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
+using Nom.Orch.UtilityServices;
 
 namespace Nom.Orch.Services
 {
@@ -61,7 +59,8 @@ namespace Nom.Orch.Services
                     .VisibleTo(_dbContext, request.RequesterPersonId)
                     .Where(r => request.RecipeIds.Contains(r.Id)
                         && r.Visibility != Nom.Data.Recipe.RecipeVisibilityEnum.Audience)
-                    .Include(r => r.RecipeIngredients)
+                    .Include(r => r.RecipeIngredients).ThenInclude(ri => ri.Ingredient)
+                    .Include(r => r.RecipeIngredients).ThenInclude(ri => ri.Measurement)
                     .Include(r => r.RecipeSteps)
                     .ToListAsync();
 
@@ -760,82 +759,38 @@ namespace Nom.Orch.Services
 
         private byte[] GenerateRecipePdf(dynamic exportData)
         {
-            QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
-
-            var document = QuestPDF.Fluent.Document.Create(container =>
+            var recipes = new List<RecipePdfRecipe>();
+            foreach (var recipe in exportData.Recipes)
             {
-                container.Page(page =>
+                var times = new List<string>();
+                if (!string.IsNullOrEmpty((string?)recipe.PrepTime)) times.Add($"Prep: {recipe.PrepTime}");
+                if (!string.IsNullOrEmpty((string?)recipe.CookTime)) times.Add($"Cook: {recipe.CookTime}");
+                if (!string.IsNullOrEmpty((string?)recipe.TotalTime)) times.Add($"Total: {recipe.TotalTime}");
+
+                List<string>? ingredientLines = null;
+                if (recipe.Ingredients != null)
                 {
-                    page.Size(QuestPDF.Helpers.PageSizes.Letter);
-                    page.Margin(1, QuestPDF.Infrastructure.Unit.Inch);
-                    page.DefaultTextStyle(x => x.FontSize(11));
-
-                    page.Header().Text("Recipe Export").FontSize(20).Bold().FontColor(QuestPDF.Helpers.Colors.Blue.Darken3);
-
-                    page.Content().Column(col =>
+                    ingredientLines = new List<string>();
+                    foreach (var ing in recipe.Ingredients)
                     {
-                        col.Item().Text($"Exported: {exportData.ExportDate:yyyy-MM-dd}").FontSize(9).FontColor(QuestPDF.Helpers.Colors.Grey.Darken1);
-                        col.Item().Text($"{exportData.RecipeCount} recipe(s)").FontSize(9).FontColor(QuestPDF.Helpers.Colors.Grey.Darken1);
-                        col.Item().PaddingVertical(8);
+                        ingredientLines.Add(!string.IsNullOrEmpty((string?)ing.RawLine)
+                            ? (string)ing.RawLine
+                            : $"{ing.Quantity} {ing.ReferenceName} {ing.Name}".Trim());
+                    }
+                }
 
-                        foreach (var recipe in exportData.Recipes)
-                        {
-                            col.Item().BorderBottom(1).BorderColor(QuestPDF.Helpers.Colors.Grey.Lighten2).PaddingBottom(12).PaddingTop(8).Column(recipeCol =>
-                            {
-                                recipeCol.Item().Text((string)(recipe.Name ?? "Untitled")).FontSize(16).Bold();
+                List<string>? steps = null;
+                if (recipe.Steps != null)
+                {
+                    steps = new List<string>();
+                    foreach (var step in recipe.Steps)
+                        steps.Add($"{step.Description}");
+                }
 
-                                if (!string.IsNullOrEmpty((string?)recipe.Description))
-                                    recipeCol.Item().PaddingTop(4).Text((string)recipe.Description).FontSize(10).Italic();
+                recipes.Add(new RecipePdfRecipe((string)(recipe.Name ?? "Untitled"), (string?)recipe.Description, times, ingredientLines, steps));
+            }
 
-                                // Time info
-                                var times = new List<string>();
-                                if (!string.IsNullOrEmpty((string?)recipe.PrepTime)) times.Add($"Prep: {recipe.PrepTime}");
-                                if (!string.IsNullOrEmpty((string?)recipe.CookTime)) times.Add($"Cook: {recipe.CookTime}");
-                                if (!string.IsNullOrEmpty((string?)recipe.TotalTime)) times.Add($"Total: {recipe.TotalTime}");
-                                if (times.Count > 0)
-                                    recipeCol.Item().PaddingTop(4).Text(string.Join(" | ", times)).FontSize(9).FontColor(QuestPDF.Helpers.Colors.Grey.Darken1);
-
-                                // Ingredients
-                                if (recipe.Ingredients != null)
-                                {
-                                    recipeCol.Item().PaddingTop(8).Text("Ingredients").FontSize(12).SemiBold();
-                                    foreach (var ing in recipe.Ingredients)
-                                    {
-                                        var line = !string.IsNullOrEmpty((string?)ing.RawLine)
-                                            ? (string)ing.RawLine
-                                            : $"{ing.Quantity} {ing.ReferenceName} {ing.Name}".Trim();
-                                        recipeCol.Item().PaddingLeft(12).Text($"• {line}").FontSize(10);
-                                    }
-                                }
-
-                                // Steps
-                                if (recipe.Steps != null)
-                                {
-                                    recipeCol.Item().PaddingTop(8).Text("Instructions").FontSize(12).SemiBold();
-                                    int stepNum = 1;
-                                    foreach (var step in recipe.Steps)
-                                    {
-                                        recipeCol.Item().PaddingLeft(12).Text($"{stepNum}. {step.Description}").FontSize(10);
-                                        stepNum++;
-                                    }
-                                }
-                            });
-                        }
-                    });
-
-                    page.Footer().AlignCenter().Text(x =>
-                    {
-                        x.Span("Page ");
-                        x.CurrentPageNumber();
-                        x.Span(" of ");
-                        x.TotalPages();
-                    });
-                });
-            });
-
-            using var stream = new MemoryStream();
-            document.GeneratePdf(stream);
-            return stream.ToArray();
+            return RecipePdfRenderer.Render(new RecipePdfExport((DateTime)exportData.ExportDate, (int)exportData.RecipeCount, recipes));
         }
 
         private string ConvertToCsv(dynamic exportData)
