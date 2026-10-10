@@ -6,11 +6,10 @@ using System.Text.RegularExpressions;
 using Nom.Data;
 using Nom.Data.Recipe;
 using Nom.Data.Nutrient;
+using Nom.Orch.UtilityServices;
 using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
 
 namespace Nom.Orch.Services
 {
@@ -975,18 +974,8 @@ namespace Nom.Orch.Services
             if (recipe.AuthorId != personId)
                 throw new UnauthorizedAccessException("Only the recipe author can upload images");
 
-            // Resize image if needed using ImageSharp
-            using var image = SixLabors.ImageSharp.Image.Load(fileData);
-            if (image.Width > 1200)
-            {
-                var ratio = 1200.0 / image.Width;
-                var newHeight = (int)(image.Height * ratio);
-                image.Mutate(x => x.Resize(1200, newHeight));
-            }
-
-            using var ms = new MemoryStream();
-            await image.SaveAsJpegAsync(ms);
-            var processedData = ms.ToArray();
+            var processedData = ImageTranscoder.ToJpeg(fileData, 1200)
+                ?? throw new ArgumentException("The file is not an image that can be read.");
 
             var extension = Path.GetExtension(fileName);
 

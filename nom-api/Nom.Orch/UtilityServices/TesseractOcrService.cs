@@ -7,9 +7,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Nom.Orch.UtilityInterfaces;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Processing;
 
 namespace Nom.Orch.UtilityServices
 {
@@ -47,12 +44,8 @@ namespace Nom.Orch.UtilityServices
             {
                 _logger.LogInformation("Processing image with Tesseract OCR");
 
-                // Convert byte array to image using ImageSharp
-                using var imageStream = new MemoryStream(imageData);
-                using var image = await Image.LoadAsync(imageStream);
-
                 // Extract text using Tesseract
-                var extractedText = await ExtractTextFromImageAsync(image);
+                var extractedText = await ExtractTextFromImageAsync(imageData);
 
                 if (string.IsNullOrWhiteSpace(extractedText))
                 {
@@ -77,27 +70,22 @@ namespace Nom.Orch.UtilityServices
 
         public async Task<string> ExtractRawTextAsync(byte[] imageData)
         {
-            using var imageStream = new MemoryStream(imageData);
-            using var image = await Image.LoadAsync(imageStream);
-            return await ExtractTextFromImageAsync(image);
+            return await ExtractTextFromImageAsync(imageData);
         }
 
         /// <summary>
         /// Extracts text from image using Tesseract OCR engine.
         /// Requires eng.traineddata in the tessdata directory.
         /// </summary>
-        private async Task<string> ExtractTextFromImageAsync(Image image)
+        private async Task<string> ExtractTextFromImageAsync(byte[] imageData)
         {
             return await Task.Run(() =>
             {
                 try
                 {
                     // Pre-process: grayscale improves OCR accuracy
-                    image.Mutate(x => x.Grayscale());
-
-                    using var ms = new MemoryStream();
-                    image.Save(ms, new PngEncoder());
-                    var imageBytes = ms.ToArray();
+                    var imageBytes = ImageTranscoder.ToGrayscalePng(imageData)
+                        ?? throw new InvalidOperationException("The file is not an image that can be read.");
 
                     if (!Directory.Exists(_tesseractDataPath) ||
                         !File.Exists(Path.Combine(_tesseractDataPath, "eng.traineddata")))

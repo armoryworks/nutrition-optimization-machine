@@ -7,12 +7,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Recipe;
+using Nom.Orch.UtilityServices;
 using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using Nom.Orch.UtilityInterfaces;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
 
 namespace Nom.Orch.Services
 {
@@ -136,7 +135,7 @@ namespace Nom.Orch.Services
                 byte[]? jpeg = null;
                 if (!c.Hotlink)
                 {
-                    jpeg = await NormalizeImageAsync(c.ImageBase64!);
+                    jpeg = NormalizeImage(c.ImageBase64!);
                     if (jpeg == null)
                     {
                         outcome.Outcome = "rejected";
@@ -480,7 +479,7 @@ namespace Nom.Orch.Services
                 ? recipe.Image == c.ImageUrl
                 : recipe.Image == $"/api/recipe/{recipe.Id}/image" && recipe.ImageSourceUrl == c.LandingUrl;
 
-        private static async Task<byte[]?> NormalizeImageAsync(string base64)
+        private static byte[]? NormalizeImage(string base64)
         {
             byte[] raw;
             try
@@ -494,20 +493,7 @@ namespace Nom.Orch.Services
             if (raw.Length == 0 || raw.Length > MaxImageBytes)
                 return null;
 
-            try
-            {
-                using var image = Image.Load(raw);
-                if (image.Width > MaxWidth)
-                    image.Mutate(x => x.Resize(MaxWidth, (int)(image.Height * (MaxWidth / (double)image.Width))));
-                image.Metadata.ExifProfile = null;
-                using var ms = new MemoryStream();
-                await image.SaveAsJpegAsync(ms);
-                return ms.ToArray();
-            }
-            catch (Exception ex) when (ex is UnknownImageFormatException or InvalidImageContentException or NotSupportedException)
-            {
-                return null;
-            }
+            return ImageTranscoder.ToJpeg(raw, MaxWidth);
         }
 
         private static string? Clip(string? value, int max)

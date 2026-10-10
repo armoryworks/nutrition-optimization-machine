@@ -17,8 +17,7 @@ using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using Nom.Orch.Services;
 using Nom.Orch.UtilityInterfaces;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using SkiaSharp;
 using Xunit;
 
 namespace Nom.Api.Tests.Services.Recipe
@@ -70,10 +69,11 @@ namespace Nom.Api.Tests.Services.Recipe
 
         private static string Png(int width, int height)
         {
-            using var image = new Image<Rgba32>(width, height, new Rgba32(200, 60, 40));
-            using var ms = new MemoryStream();
-            image.SaveAsPng(ms);
-            return Convert.ToBase64String(ms.ToArray());
+            using var bitmap = new SKBitmap(width, height);
+            bitmap.Erase(new SKColor(200, 60, 40));
+            using var image = SKImage.FromBitmap(bitmap);
+            using var png = image.Encode(SKEncodedImageFormat.Png, 100);
+            return Convert.ToBase64String(png.ToArray());
         }
 
         private static RecipeImageCandidateSubmissionModel Commons(string id = "File:Tomato soup.jpg", string status = "attached") => new()
@@ -157,7 +157,7 @@ namespace Nom.Api.Tests.Services.Recipe
 
             var asset = db.RecipeAssets.Single(a => a.RecipeId == 1);
             asset.ContentType.Should().Be("image/jpeg");
-            using var stored = Image.Load(asset.FileData);
+            using var stored = SKBitmap.Decode(asset.FileData);
             stored.Width.Should().Be(RecipeImageService.MaxWidth);
 
             var candidate = db.RecipeImageCandidates.Single();
