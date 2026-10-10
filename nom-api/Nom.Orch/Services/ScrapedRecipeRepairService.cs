@@ -53,7 +53,8 @@ namespace Nom.Orch.Services
                     if (row.Quantity != 0) continue;
 
                     var firstLine = (row.RawLine ?? string.Empty).Split(" + ", 2)[0];
-                    var parsed = IngredientLineParser.Parse(firstLine);
+                    var parsed = IngredientLineParser.Parse(firstLine)
+                        ?? MethodAmountFinder.Find(firstLine, (recipe.RecipeSteps ?? Enumerable.Empty<RecipeStepEntity>()).Where(st => !st.IsDeleted).Select(st => st.Description ?? string.Empty));
                     if (parsed == null || !measurements.TryGetValue(parsed.MeasurementName, out var measurementId))
                     {
                         unparsed++;
