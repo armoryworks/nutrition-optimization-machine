@@ -2804,6 +2804,7 @@ CREATE TABLE recipe."RecipeIngredient" (
     "Quantity" numeric(18,4) NOT NULL,
     "MeasurementId" bigint NOT NULL,
     "RawLine" text NOT NULL,
+    "LineKind" character varying(16),
     "IngredientEntityId" bigint,
     "Id" bigint DEFAULT 0 NOT NULL,
     "CreatedDate" timestamp with time zone NOT NULL,
