@@ -411,6 +411,9 @@ builder.Services.AddHostedService<Nom.Api.Services.RecipeAutoApproveHostedServic
 builder.Services.AddHttpClient<Nom.Orch.Interfaces.IRecipeRepairModel, Nom.Orch.Services.OllamaRecipeRepairModel>(
     client => client.Timeout = TimeSpan.FromSeconds(300));
 builder.Services.AddHostedService<Nom.Api.Services.RecipeAiRepairHostedService>();
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IRecipeClassificationModel, Nom.Orch.Services.OllamaRecipeClassificationModel>(
+    client => client.Timeout = TimeSpan.FromSeconds(300));
+builder.Services.AddHostedService<Nom.Api.Services.RecipeLineClassifyHostedService>();
 
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();

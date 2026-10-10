@@ -158,6 +158,34 @@ namespace Nom.Api.Tests.Services.Curation
             model.Calls.Should().Be(2);
         }
 
+        [Theory]
+        [InlineData("[fake] Only 1 instruction step(s) — likely an incomplete extraction.")]
+        [InlineData("v1 [fake] 5 of 5 ingredient lines have no parseable quantity")]
+        public async Task A_recipe_attempted_by_an_older_repair_version_gets_one_more_attempt(string earlierAttempt)
+        {
+            using var db = await SeedAsync(ShrewsburyCakes());
+            db.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+            {
+                EntityType = "Recipe",
+                EntityId = 10,
+                ChangeType = RecipeAiRepairService.AttemptChangeType,
+                PropertyName = "VettingIssues",
+                NewValue = earlierAttempt,
+                ChangedByPersonId = SystemConstants.SystemPersonId,
+            });
+            await db.SaveChangesAsync();
+            var model = new FakeModel { Steps = new[] { "Take some flour.", "Bake it." } };
+
+            (await Service(db, model).RepairBatchAsync(0, 10)).Examined.Should().Be(1);
+            (await Service(db, model).RepairBatchAsync(0, 10)).Examined.Should().Be(0, "one attempt per version");
+
+            model.Calls.Should().Be(2);
+            var attempts = await db.AuditLogEntries.Where(a => a.ChangeType == RecipeAiRepairService.AttemptChangeType).OrderBy(a => a.Id).ToListAsync();
+            attempts.Should().HaveCount(2);
+            attempts[1].NewValue.Should().StartWith($"v{RecipeAiRepairService.RepairVersion} [fake] ");
+            (await db.RecipeIngredients.Select(r => r.RawLine).ToListAsync()).Should().BeEquivalentTo(new[] { "flour", "butter", "sugar", "eggs", "milk" });
+        }
+
         [Fact]
         public async Task A_split_that_rewords_the_method_is_discarded()
         {

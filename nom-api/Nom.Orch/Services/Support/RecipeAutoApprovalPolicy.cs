@@ -9,8 +9,8 @@ namespace Nom.Orch.Services.Support
     /// When a recipe may be approved without a curator. R1: a public-domain recipe that passed
     /// vetting and publishes no source image. R2: a scraped recipe of unknown license whose prose
     /// has been rewritten and which carries an image of our own. Both also need a Public,
-    /// never-reviewed NonCurated recipe, a quantity on every line that isn't a seasoning or
-    /// garnish, and must pass <see cref="RecipeApprovalGate"/>.
+    /// never-reviewed NonCurated recipe, a quantity on every line that isn't a seasoning, a
+    /// garnish or a line classified as something other than an ingredient, and must pass <see cref="RecipeApprovalGate"/>.
     /// </summary>
     public static class RecipeAutoApprovalPolicy
     {
@@ -43,7 +43,7 @@ namespace Nom.Orch.Services.Support
 
             if (UsesSourceImage(recipe)) return No("its image is the source's image");
             var unquantified = recipe.RecipeIngredients?
-                .Count(ri => ri.Quantity <= 0 && !RecipeVettingService.IsAcceptablyUnquantified(ri.RawLine)) ?? 0;
+                .Count(ri => ri.Quantity <= 0 && !RecipeVettingService.IsAcceptablyUnquantified(ri.RawLine, ri.LineKind)) ?? 0;
             if (unquantified > 0) return No($"{unquantified} ingredient line(s) have no quantity");
             if (RecipeApprovalGate.RefusalReason(recipe) is { } refusal) return No(refusal);
 

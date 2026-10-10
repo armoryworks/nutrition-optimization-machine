@@ -20,6 +20,15 @@ namespace Nom.Orch.Services
         public const string AttemptChangeType = "AiRepairAttempt";
         public const string RepairChangeType = "AiRepair";
 
+        /// <summary>
+        /// Bumped when the repair logic or the ingredient line parser improves. Each attempt's audit row
+        /// starts with its version, and a recipe whose last attempt is older (or unversioned) is attempted
+        /// once more.
+        /// </summary>
+        public const int RepairVersion = 2;
+
+        public static readonly string AttemptVersionPrefix = $"v{RepairVersion} ";
+
         private const string StepsIssueMarker = "instruction step(s)";
         private const string QuantityIssueMarker = "have no parseable quantity";
 
@@ -52,7 +61,8 @@ namespace Nom.Orch.Services
                     && r.DateCurationCompleted == null
                     && r.ScrapedAtUtc != null
                     && r.VettingIssues != null
-                    && !_db.AuditLogEntries.Any(a => a.EntityType == "Recipe" && a.EntityId == r.Id && a.ChangeType == AttemptChangeType)
+                    && !_db.AuditLogEntries.Any(a => a.EntityType == "Recipe" && a.EntityId == r.Id && a.ChangeType == AttemptChangeType
+                        && a.NewValue != null && a.NewValue.StartsWith(AttemptVersionPrefix))
                     && !_db.CurationFeedbacks.Any(f => f.EntityId == r.Id && f.EntityType!.Name == "Recipe" && f.AdminId != SystemConstants.SystemPersonId))
                 .OrderBy(r => r.Id)
                 .Take(batchSize)
@@ -101,7 +111,7 @@ namespace Nom.Orch.Services
                     {
                         var method = string.Join(" ", (recipe.RecipeSteps ?? new List<RecipeStepEntity>()).OrderBy(s => s.StepNumber).Select(s => s.Description));
                         var missing = (recipe.RecipeIngredients ?? new List<RecipeIngredientEntity>())
-                            .Where(ri => ri.Quantity == 0 && !RecipeVettingService.IsAcceptablyUnquantified(ri.RawLine))
+                            .Where(ri => ri.Quantity == 0 && !RecipeVettingService.IsAcceptablyUnquantified(ri.RawLine, ri.LineKind))
                             .ToList();
                         if (missing.Count > 0)
                         {
@@ -131,7 +141,7 @@ namespace Nom.Orch.Services
 
                     issues = await _vetting.VetAsync(ScrapedRecipeRepairService.ToVettable(recipe));
                     audit.Add(Audit("Recipe", recipe.Id, "VettingIssues", before,
-                        $"[{_model.ModelName}] " + (issues.Count > 0 ? string.Join("\n", issues) : "(clean)"), AttemptChangeType));
+                        $"{AttemptVersionPrefix}[{_model.ModelName}] " + (issues.Count > 0 ? string.Join("\n", issues) : "(clean)"), AttemptChangeType));
                     _db.AuditLogEntries.AddRange(audit);
                 }
 

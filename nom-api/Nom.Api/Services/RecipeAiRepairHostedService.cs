@@ -5,12 +5,13 @@ namespace Nom.Api.Services
     /// <summary>
     /// Works through vetting-flagged imports (RequiresRevision) in Id order with the local model:
     /// splits one-paragraph methods into steps and fills quantities written in the recipe, then
-    /// re-vets. Small batches, one model request at a time and a pause between batches keep it
+    /// re-vets. Small batches, one model request at a time and a short pause between batches keep it
     /// polite to the other GPU lanes. Without an Ollama URL it only re-vets. One full pass per
-    /// startup; after that it only picks up recipes newer than the last one it saw.
+    /// startup; after that it only picks up recipes newer than the last one it saw. A recipe is attempted
+    /// once per RecipeAiRepairService.RepairVersion, so bumping it re-attempts earlier failures.
     ///
     /// Curation:AiRepair:Enabled=false disables it; Curation:AiRepair:BatchSize (default 5) recipes
-    /// per batch; Curation:AiRepair:PauseSeconds (default 10) between batches;
+    /// per batch; Curation:AiRepair:PauseSeconds (default 3) between batches;
     /// Curation:AiRepair:IdleMinutes (default 60) once a sweep reaches the end.
     /// </summary>
     public class RecipeAiRepairHostedService : BackgroundService
@@ -38,7 +39,7 @@ namespace Nom.Api.Services
             }
 
             var batchSize = Math.Clamp(_configuration.GetValue("Curation:AiRepair:BatchSize", 5), 1, 100);
-            var pause = TimeSpan.FromSeconds(Math.Max(0, _configuration.GetValue("Curation:AiRepair:PauseSeconds", 10)));
+            var pause = TimeSpan.FromSeconds(Math.Max(0, _configuration.GetValue("Curation:AiRepair:PauseSeconds", 3)));
             var idle = TimeSpan.FromMinutes(Math.Max(1, _configuration.GetValue("Curation:AiRepair:IdleMinutes", 60)));
             var backoff = TimeSpan.FromMinutes(5);
 
