@@ -1,0 +1,200 @@
+@use 'variables' as vars;
+
+.nom-api-tokens {
+  max-width: vars.$content-max-narrow;
+  margin: 0 auto;
+  padding: vars.$spacing-6;
+
+  @media (max-width: vars.$breakpoint-mobile) { padding: vars.$spacing-4; }
+}
+
+.nom-api-tokens__header {
+  margin-bottom: vars.$spacing-8;
+}
+
+.nom-api-tokens__title {
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0;
+}
+
+.nom-api-tokens__subtitle {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+  line-height: vars.$line-height-normal;
+}
+
+.nom-api-tokens__section,
+.nom-api-tokens__secret {
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  padding: vars.$spacing-6;
+  margin-bottom: vars.$spacing-4;
+
+  @media (max-width: vars.$breakpoint-mobile) { padding: vars.$spacing-4; }
+}
+
+.nom-api-tokens__secret {
+  background: var(--mat-sys-tertiary-container);
+  border: 2px solid var(--mat-sys-tertiary);
+  color: var(--mat-sys-on-tertiary-container);
+}
+
+.nom-api-tokens__secret-heading {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  margin-bottom: vars.$spacing-2;
+
+  mat-icon { color: var(--mat-sys-tertiary); flex-shrink: 0; }
+
+  .nom-api-tokens__section-title {
+    margin: 0;
+    color: var(--mat-sys-on-tertiary-container);
+  }
+}
+
+.nom-api-tokens__secret-warning {
+  font-size: vars.$font-size-sm;
+  line-height: vars.$line-height-normal;
+  margin: 0 0 vars.$spacing-4;
+}
+
+.nom-api-tokens__secret-value {
+  display: block;
+  font-family: monospace;
+  font-size: vars.$font-size-md;
+  word-break: break-all;
+  user-select: all;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface);
+  padding: vars.$spacing-3;
+  border-radius: vars.$nom-border-radius;
+}
+
+.nom-api-tokens__copy-status {
+  font-size: vars.$font-size-sm;
+  margin: vars.$spacing-2 0 0;
+
+  &--failed { color: var(--mat-sys-error); }
+}
+
+.nom-api-tokens__section-title {
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0 0 vars.$spacing-4;
+}
+
+.nom-api-tokens__form {
+  display: flex;
+  flex-direction: column;
+}
+
+.nom-api-tokens__field {
+  width: 100%;
+}
+
+.nom-api-tokens__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-3;
+  margin-top: vars.$spacing-4;
+
+  mat-spinner { display: inline-block; margin-right: vars.$spacing-2; }
+}
+
+.nom-api-tokens__form .nom-api-tokens__actions {
+  margin-top: 0;
+}
+
+.nom-api-tokens__loading {
+  display: flex;
+  justify-content: center;
+  padding: vars.$spacing-8;
+}
+
+.nom-api-tokens__empty {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+}
+
+.nom-api-tokens__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
+.nom-api-tokens__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-4;
+  background: var(--mat-sys-surface-container);
+  border-radius: vars.$nom-border-radius;
+}
+
+.nom-api-tokens__item-main {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.nom-api-tokens__item-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: vars.$spacing-2;
+}
+
+.nom-api-tokens__item-name {
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  overflow-wrap: anywhere;
+}
+
+.nom-api-tokens__badge {
+  font-size: vars.$font-size-xs;
+  padding: 2px vars.$spacing-2;
+  border-radius: vars.$nom-border-radius-pill;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+
+  &--inactive {
+    background: var(--mat-sys-surface-container-highest);
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+.nom-api-tokens__item-desc,
+.nom-api-tokens__item-meta {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: vars.$spacing-1 0 0;
+  overflow-wrap: anywhere;
+}
+
+.nom-api-tokens__revoke {
+  flex-shrink: 0;
+}
+
+.nom-api-tokens__confirm {
+  flex: 1 1 100%;
+  padding-top: vars.$spacing-3;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+
+  p {
+    font-size: vars.$font-size-sm;
+    color: var(--mat-sys-on-surface);
+    margin: 0;
+  }
+
+  .nom-api-tokens__actions { margin-top: vars.$spacing-3; }
+}

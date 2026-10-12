@@ -428,7 +428,7 @@ namespace Nom.Orch.Services
                 {
                     Id = t.Id.ToString(),
                     Name = t.Name,
-                    Token = string.Empty, // Never return the hash
+                    Description = t.Description,
                     CreatedDate = t.CreatedDate,
                     LastUsedDate = t.LastUsedDate,
                     IsActive = t.IsActive
@@ -444,7 +444,8 @@ namespace Nom.Orch.Services
             var entity = new ApiTokenEntity
             {
                 UserId = userId,
-                Name = request.Name,
+                Name = request.Name.Trim(),
+                Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
                 TokenHash = tokenHash,
                 IsActive = true,
                 CreatedDate = DateTime.UtcNow
@@ -459,6 +460,7 @@ namespace Nom.Orch.Services
             {
                 Id = entity.Id.ToString(),
                 Name = entity.Name,
+                Description = entity.Description,
                 Token = rawToken, // Only returned once at creation
                 CreatedDate = entity.CreatedDate,
                 LastUsedDate = null,

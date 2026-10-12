@@ -1,0 +1,139 @@
+<div class="nom-api-tokens" data-testid="settings-api-tokens">
+  <div class="nom-api-tokens__header">
+    <a routerLink="/settings" class="nom-form__back" data-testid="api-tokens-back-link">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Settings
+    </a>
+    <h1 class="nom-api-tokens__title">API Tokens</h1>
+    <p class="nom-api-tokens__subtitle">
+      Let scripts and other apps use NOM as you. Send the token in the <code>X-Api-Key</code> header.
+    </p>
+  </div>
+
+  @if (error()) {
+    <div class="nom-form__error" role="alert" data-testid="api-tokens-error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ error() }}</span>
+    </div>
+  }
+
+  @if (createdToken(); as created) {
+    <section class="nom-api-tokens__secret" data-testid="api-token-secret-panel" aria-labelledby="api-token-secret-title">
+      <div class="nom-api-tokens__secret-heading">
+        <mat-icon>key</mat-icon>
+        <h2 id="api-token-secret-title" class="nom-api-tokens__section-title">Copy your new token now</h2>
+      </div>
+      <p class="nom-api-tokens__secret-warning">
+        The token for <strong>{{ created.name }}</strong> won't be shown again. It acts with your account's
+        permissions, so store it somewhere safe and never share it.
+      </p>
+      <code class="nom-api-tokens__secret-value" data-testid="api-token-secret">{{ created.token }}</code>
+      @if (copyStatus() === 'copied') {
+        <p class="nom-api-tokens__copy-status" data-testid="api-token-copied">Copied to clipboard.</p>
+      } @else if (copyStatus() === 'failed') {
+        <p class="nom-api-tokens__copy-status nom-api-tokens__copy-status--failed" data-testid="api-token-copy-failed">
+          Couldn't copy automatically — select the token above and copy it by hand.
+        </p>
+      }
+      <div class="nom-api-tokens__actions">
+        <button mat-stroked-button type="button" data-testid="api-token-copy-btn" (click)="onCopy()">
+          <mat-icon>content_copy</mat-icon>
+          Copy
+        </button>
+        <button mat-flat-button type="button" data-testid="api-token-secret-dismiss-btn" (click)="onDismissSecret()">
+          I've saved it
+        </button>
+      </div>
+    </section>
+  }
+
+  <section class="nom-api-tokens__section">
+    <h2 class="nom-api-tokens__section-title">Create a token</h2>
+    <form class="nom-api-tokens__form" [formGroup]="form" (ngSubmit)="onCreate()" data-testid="api-tokens-create-form">
+      <mat-form-field appearance="outline" class="nom-api-tokens__field">
+        <mat-label>Name</mat-label>
+        <input matInput formControlName="name" maxlength="255" autocomplete="off" data-testid="api-tokens-name-input">
+        @if (form.controls.name.touched && form.controls.name.invalid) {
+          <mat-error data-testid="api-tokens-name-error">Name must be at least 3 characters.</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="nom-api-tokens__field">
+        <mat-label>Description (optional)</mat-label>
+        <textarea matInput formControlName="description" rows="2" maxlength="500" data-testid="api-tokens-description-input"></textarea>
+      </mat-form-field>
+      <div class="nom-api-tokens__actions">
+        <button mat-flat-button type="submit" [disabled]="creating()" data-testid="api-tokens-create-btn">
+          @if (creating()) {
+            <mat-spinner diameter="18"></mat-spinner>
+          } @else {
+            <mat-icon>add</mat-icon>
+          }
+          Create token
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="nom-api-tokens__section">
+    <h2 class="nom-api-tokens__section-title">Your tokens</h2>
+    @if (loading()) {
+      <div class="nom-api-tokens__loading" data-testid="api-tokens-loading">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+    } @else if (tokens().length === 0) {
+      <p class="nom-api-tokens__empty" data-testid="api-tokens-empty">You don't have any API tokens yet.</p>
+    } @else {
+      <ul class="nom-api-tokens__list" data-testid="api-tokens-list">
+        @for (token of tokens(); track token.id) {
+          <li class="nom-api-tokens__item" data-testid="api-token-item">
+            <div class="nom-api-tokens__item-main">
+              <div class="nom-api-tokens__item-heading">
+                <span class="nom-api-tokens__item-name" data-testid="api-token-name">{{ token.name }}</span>
+                <span
+                  class="nom-api-tokens__badge"
+                  [class.nom-api-tokens__badge--inactive]="!token.isActive"
+                  data-testid="api-token-status"
+                >{{ token.isActive ? 'Active' : 'Revoked' }}</span>
+              </div>
+              @if (token.description) {
+                <p class="nom-api-tokens__item-desc" data-testid="api-token-description">{{ token.description }}</p>
+              }
+              <p class="nom-api-tokens__item-meta">
+                Created {{ token.createdDate | date: 'mediumDate' }} ·
+                <span data-testid="api-token-last-used">Last used {{ token.lastUsedDate ? (token.lastUsedDate | date: 'medium') : 'never' }}</span>
+              </p>
+            </div>
+            @if (confirmingId() === token.id) {
+              <div class="nom-api-tokens__confirm" data-testid="api-token-revoke-confirm">
+                <p>Revoke this token? Anything using it will stop working immediately.</p>
+                <div class="nom-api-tokens__actions">
+                  <button mat-button type="button" [disabled]="revokingId() === token.id" data-testid="api-token-revoke-cancel-btn" (click)="onCancelRevoke()">
+                    Cancel
+                  </button>
+                  <button
+                    mat-flat-button
+                    type="button"
+                    class="nom-btn--destructive"
+                    [disabled]="revokingId() === token.id"
+                    data-testid="api-token-revoke-confirm-btn"
+                    (click)="onConfirmRevoke(token)"
+                  >
+                    @if (revokingId() === token.id) {
+                      <mat-spinner diameter="18"></mat-spinner>
+                    }
+                    Revoke
+                  </button>
+                </div>
+              </div>
+            } @else if (token.isActive) {
+              <button mat-stroked-button type="button" class="nom-btn--destructive nom-api-tokens__revoke" data-testid="api-token-revoke-btn" (click)="onStartRevoke(token)">
+                <mat-icon>block</mat-icon>
+                Revoke
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</div>

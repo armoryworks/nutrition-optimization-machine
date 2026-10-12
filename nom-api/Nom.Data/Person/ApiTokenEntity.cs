@@ -8,6 +8,8 @@ namespace Nom.Data.Person
 
         public string Name { get; set; } = string.Empty;
 
+        public string? Description { get; set; }
+
         /// <summary>
         /// SHA-256 hash of the token value. The raw token is only returned once at creation.
         /// </summary>

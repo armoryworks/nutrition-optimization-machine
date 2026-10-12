@@ -835,6 +835,7 @@ CREATE TABLE person."ApiToken" (
     "Id" bigint NOT NULL,
     "UserId" character varying(450) NOT NULL,
     "Name" character varying(255) NOT NULL,
+    "Description" character varying(500),
     "TokenHash" character varying(128) NOT NULL,
     "LastUsedDate" timestamp with time zone,
     "IsActive" boolean DEFAULT true NOT NULL,

@@ -5,7 +5,7 @@
   </div>
 
   <div class="nom-settings__grid" data-testid="settings-grid">
-    <a routerLink="/profile" class="nom-settings__card">
+    <a routerLink="/profile" class="nom-settings__card" data-testid="settings-profile-card">
       <mat-icon class="nom-settings__card-icon">person</mat-icon>
       <div class="nom-settings__card-content">
         <h3 class="nom-settings__card-title">Profile</h3>
@@ -14,7 +14,7 @@
       <mat-icon class="nom-settings__card-arrow">chevron_right</mat-icon>
     </a>
 
-    <a routerLink="/restrictions" class="nom-settings__card">
+    <a routerLink="/restrictions" class="nom-settings__card" data-testid="settings-restrictions-card">
       <mat-icon class="nom-settings__card-icon">restaurant</mat-icon>
       <div class="nom-settings__card-content">
         <h3 class="nom-settings__card-title">Dietary Restrictions</h3>
@@ -23,7 +23,7 @@
       <mat-icon class="nom-settings__card-arrow">chevron_right</mat-icon>
     </a>
 
-    <a routerLink="/household" class="nom-settings__card">
+    <a routerLink="/household" class="nom-settings__card" data-testid="settings-household-card">
       <mat-icon class="nom-settings__card-icon">{{ isPersonalKitchen() ? 'person' : 'family_restroom' }}</mat-icon>
       <div class="nom-settings__card-content">
         <h3 class="nom-settings__card-title">{{ isPersonalKitchen() ? 'My Kitchen' : 'Household' }}</h3>
@@ -32,7 +32,7 @@
       <mat-icon class="nom-settings__card-arrow">chevron_right</mat-icon>
     </a>
 
-    <a routerLink="/plan" class="nom-settings__card">
+    <a routerLink="/plan" class="nom-settings__card" data-testid="settings-plans-card">
       <mat-icon class="nom-settings__card-icon">calendar_month</mat-icon>
       <div class="nom-settings__card-content">
         <h3 class="nom-settings__card-title">Plans</h3>
@@ -41,7 +41,7 @@
       <mat-icon class="nom-settings__card-arrow">chevron_right</mat-icon>
     </a>
 
-    <a routerLink="/settings/security" class="nom-settings__card">
+    <a routerLink="/settings/security" class="nom-settings__card" data-testid="settings-security-card">
       <mat-icon class="nom-settings__card-icon">security</mat-icon>
       <div class="nom-settings__card-content">
         <h3 class="nom-settings__card-title">Security</h3>
@@ -50,7 +50,16 @@
       <mat-icon class="nom-settings__card-arrow">chevron_right</mat-icon>
     </a>
 
-    <a routerLink="/settings/privacy" class="nom-settings__card">
+    <a routerLink="/settings/api-tokens" class="nom-settings__card" data-testid="settings-api-tokens-card">
+      <mat-icon class="nom-settings__card-icon">key</mat-icon>
+      <div class="nom-settings__card-content">
+        <h3 class="nom-settings__card-title">API Tokens</h3>
+        <p class="nom-settings__card-desc">Create and revoke tokens for scripts and integrations</p>
+      </div>
+      <mat-icon class="nom-settings__card-arrow">chevron_right</mat-icon>
+    </a>
+
+    <a routerLink="/settings/privacy" class="nom-settings__card" data-testid="settings-privacy-card">
       <mat-icon class="nom-settings__card-icon">shield</mat-icon>
       <div class="nom-settings__card-content">
         <h3 class="nom-settings__card-title">Privacy & Data</h3>
