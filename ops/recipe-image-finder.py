@@ -434,7 +434,7 @@ def to_model_jpeg(data: bytes, ctype: str) -> tuple[bytes | None, int | None]:
 class NomApi:
     def __init__(self, base: str, api_key: str | None, token: str | None, timeout: int = 60):
         self.base = base.rstrip("/")
-        self.headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        self.headers = {"Content-Type": "application/json", "Accept": "application/json", "User-Agent": USER_AGENT}
         if api_key:
             self.headers["X-Api-Key"] = api_key
         elif token:
