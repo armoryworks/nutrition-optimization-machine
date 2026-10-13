@@ -75,7 +75,7 @@ namespace Nom.Orch.Services
 
                 var pending = lines
                     .Where(ri => ri.Quantity <= 0 && ri.LineKind == null && !RecipeVettingService.IsAcceptablyUnquantified(ri.RawLine))
-                    .OrderBy(ri => ri.IngredientId)
+                    .OrderBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId)
                     .ToList();
                 var audit = new List<AuditLogEntryEntity>();
                 var forModel = new List<RecipeIngredientEntity>();

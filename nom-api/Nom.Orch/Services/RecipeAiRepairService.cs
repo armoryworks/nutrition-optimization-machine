@@ -127,7 +127,7 @@ namespace Nom.Orch.Services
                                     continue;
                                 }
 
-                                audit.Add(Audit("RecipeIngredient", recipe.Id, $"Quantity[{row.IngredientId}]",
+                                audit.Add(Audit("RecipeIngredient", recipe.Id, $"Quantity[{row.IngredientId}:{row.SortOrder}]",
                                     $"{row.Quantity.ToString(CultureInfo.InvariantCulture)} (measurement {row.MeasurementId})",
                                     $"{grounded.Quantity.ToString(CultureInfo.InvariantCulture)} {grounded.MeasurementName} from \"{RecipeRepairGrounding.Normalize(quote)}\""));
                                 row.Quantity = grounded.Quantity;

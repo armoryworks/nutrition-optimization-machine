@@ -136,7 +136,9 @@ export class Search {
     this.page.set(1);
 
     const filters = this.filters();
-    const browsing = !query.trim() && !this.ingredientId() && !hasActiveFilters(filters) && filters.sort === 'relevance';
+    const loggedIn = this.isLoggedIn();
+    const effective = { ...filters, mine: filters.mine && loggedIn, kitchen: filters.kitchen && loggedIn };
+    const browsing = !query.trim() && !this.ingredientId() && !hasActiveFilters(effective) && filters.sort === 'relevance';
     this.browsing.set(browsing);
 
     const request$: Observable<RecipeSearchResponse> = browsing

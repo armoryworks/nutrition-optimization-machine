@@ -1,14 +1,23 @@
 BEGIN;
 
 INSERT INTO recipe."Ingredient" ("Name", "PluralName", "FdcDataType", "NameNormalized", "PluralNameNormalized", "CurationStatusId", "AuthorId", "OnHand", "CreatedDate", "CreatedByPersonId", "IsDeleted")
-VALUES
-    ('Orzo', 'Orzo', '', 'orzo', 'orzo', 9003, 1, false, now(), 1, false),
-    ('Brussels Sprouts', 'Brussels Sprouts', '', 'brussels sprouts', 'brussels sprouts', 9003, 1, false, now(), 1, false),
-    ('Zucchini', 'Zucchini', '', 'zucchini', 'zucchini', 9003, 1, false, now(), 1, false),
-    ('Raisins', 'Raisins', '', 'raisins', 'raisins', 9003, 1, false, now(), 1, false),
-    ('Cottage Cheese', 'Cottage Cheese', '', 'cottage cheese', 'cottage cheese', 9003, 1, false, now(), 1, false),
-    ('Rice Cakes', 'Rice Cakes', '', 'rice cakes', 'rice cakes', 9003, 1, false, now(), 1, false),
-    ('Popcorn', 'Popcorn', '', 'popcorn', 'popcorn', 9003, 1, false, now(), 1, false)
+SELECT v.name, v.name, '', lower(v.name), lower(v.name), 9003, 1, false, now(), 1, false
+FROM (VALUES
+    ('Orzo', 277, 148, '8 oz orzo pasta'),
+    ('Brussels Sprouts', 290, 146, '4 cups halved Brussels sprouts (broccoli)'),
+    ('Zucchini', 292, 133, '4 medium zucchini (cucumber), sliced lengthwise'),
+    ('Raisins', 303, 171, '2 tbsp dark chocolate chips'),
+    ('Cottage Cheese', 306, 111, '1 cup Greek yogurt'),
+    ('Rice Cakes', 307, 174, '4 rice cakes (crackers)'),
+    ('Popcorn', 308, 170, '2 cups rolled oats')
+) AS v(name, recipe_id, old_ingredient, old_raw)
+WHERE EXISTS (
+    SELECT 1 FROM recipe."RecipeIngredient" ri
+    WHERE ri."RecipeId" = v.recipe_id AND ri."IngredientId" = v.old_ingredient AND ri."RawLine" = v.old_raw
+)
+AND NOT EXISTS (
+    SELECT 1 FROM recipe."Ingredient" i WHERE lower(i."Name") = lower(v.name)
+)
 ON CONFLICT ("Name") DO NOTHING;
 
 UPDATE recipe."RecipeIngredient" AS ri
@@ -29,13 +38,25 @@ FROM (VALUES
     (306, 111, 1, 11, '1 cup Greek yogurt', 'Cottage Cheese', 1, 11, '1 cup cottage cheese'),
     (308, 170, 2, 11, '2 cups rolled oats', 'Popcorn', 8, 11, '8 cups popped popcorn')
 ) AS v(recipe_id, old_ingredient, old_qty, old_measurement, old_raw, new_ingredient, new_qty, new_measurement, new_raw)
-LEFT JOIN recipe."Ingredient" AS i ON i."Name" = v.new_ingredient
+LEFT JOIN LATERAL (
+    SELECT x."Id" FROM recipe."Ingredient" x
+    WHERE lower(x."Name") = lower(v.new_ingredient) AND NOT x."IsDeleted"
+    ORDER BY (x."CurationStatusId" = 9003) DESC, x."Id"
+    LIMIT 1
+) AS i ON true
 WHERE ri."RecipeId" = v.recipe_id
   AND ri."IngredientId" = v.old_ingredient
   AND ri."Quantity" = v.old_qty
   AND ri."MeasurementId" = v.old_measurement
   AND ri."RawLine" = v.old_raw
-  AND (v.new_ingredient IS NULL OR i."Id" IS NOT NULL);
+  AND (v.new_ingredient IS NULL OR i."Id" IS NOT NULL)
+  AND NOT EXISTS (
+    SELECT 1 FROM recipe."RecipeIngredient" d
+    WHERE d."RecipeId" = ri."RecipeId"
+      AND d."IngredientId" = COALESCE(i."Id", ri."IngredientId")
+      AND d."SortOrder" = ri."SortOrder"
+      AND d.ctid <> ri.ctid
+  );
 
 UPDATE recipe."Recipe" AS r
 SET "Description" = v.new_description

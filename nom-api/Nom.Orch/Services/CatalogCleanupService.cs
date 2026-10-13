@@ -168,6 +168,7 @@ namespace Nom.Orch.Services
                  WHERE src."IngredientId" = {sourceId}
                    AND dst."IngredientId" = {targetId}
                    AND dst."RecipeId" = src."RecipeId"
+                   AND dst."SortOrder" = src."SortOrder"
                    AND coalesce(src."RawLine", '') <> ''
                  """);
             await _db.Database.ExecuteSqlAsync(
@@ -175,7 +176,7 @@ namespace Nom.Orch.Services
                  DELETE FROM recipe."RecipeIngredient" src
                  WHERE src."IngredientId" = {sourceId}
                    AND EXISTS (SELECT 1 FROM recipe."RecipeIngredient" dst
-                               WHERE dst."RecipeId" = src."RecipeId" AND dst."IngredientId" = {targetId})
+                               WHERE dst."RecipeId" = src."RecipeId" AND dst."IngredientId" = {targetId} AND dst."SortOrder" = src."SortOrder")
                  """);
             var moved = await _db.Database.ExecuteSqlAsync(
                 $"""UPDATE recipe."RecipeIngredient" SET "IngredientId" = {targetId}, "LastModifiedDate" = now() WHERE "IngredientId" = {sourceId}""");

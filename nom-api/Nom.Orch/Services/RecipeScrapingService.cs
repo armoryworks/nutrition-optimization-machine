@@ -481,7 +481,6 @@ namespace Nom.Orch.Services
                 });
             }
 
-            // One row per (recipe, ingredient) — that pair is the primary key.
             // Recipes legitimately name the same ingredient twice (sugar for the
             // batter and again for the frosting), so fold repeats into the first
             // row's raw line rather than failing the import on a duplicate key.
@@ -506,6 +505,7 @@ namespace Nom.Orch.Services
                     Quantity = ingredient.Quantity ?? 0m,
                     MeasurementId = measurementId,
                     RawLine = Clamp(ingredient.RawLine, 2047)!,
+                    SortOrder = ingredientRows.Count,
                 };
                 ingredientRows[ingredientEntity.Id] = row;
                 _dbContext.RecipeIngredients.Add(row);

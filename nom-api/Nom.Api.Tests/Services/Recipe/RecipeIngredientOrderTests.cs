@@ -125,5 +125,39 @@ namespace Nom.Api.Tests.Services.Recipe
             lines.Select(ri => ri.IngredientId).Should().Equal(11L, 10L, 11L);
             lines.Select(ri => ri.RawLine).Should().Equal("1 pinch salt", "2 eggs", string.Empty);
         }
+
+        [Fact]
+        public async Task Update_OfAScrapedRecipe_KeepsEachLinesClassification()
+        {
+            await using var db = NewContext();
+            var recipe = new RecipeEntity { Name = "Scraped soup", AuthorId = 6, Servings = 4 };
+            db.Recipes.Add(recipe);
+            await db.SaveChangesAsync();
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = 10, Quantity = 1, MeasurementId = 1, RawLine = "1 onion" });
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = 11, Quantity = 0, MeasurementId = 1, RawLine = "see note below", LineKind = RecipeIngredientLineKind.Note });
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = 12, Quantity = 0, MeasurementId = 1, RawLine = "a large stockpot", LineKind = RecipeIngredientLineKind.Equipment });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            await NewService(db).UpdateRecipeAsync(recipe.Id, new UpdateRecipeRequest
+            {
+                Id = recipe.Id,
+                Name = "Scraped soup",
+                Servings = 4,
+                Ingredients = new()
+                {
+                    new() { IngredientId = 10, Quantity = 1, MeasurementId = 1 },
+                    new() { IngredientId = 11, Quantity = 0, MeasurementId = 1 },
+                    new() { IngredientId = 12, Quantity = 0, MeasurementId = 1 }
+                },
+                Steps = new()
+            });
+            db.ChangeTracker.Clear();
+
+            var lines = await LinesAsync(db, recipe.Id);
+            lines.Select(ri => (ri.IngredientId, ri.SortOrder, ri.LineKind)).Should().Equal(
+                (10L, 0, (string?)null), (11L, 1, RecipeIngredientLineKind.Note), (12L, 2, RecipeIngredientLineKind.Equipment));
+            lines.Select(ri => ri.RawLine).Should().Equal("1 onion", "see note below", "a large stockpot");
+        }
     }
 }

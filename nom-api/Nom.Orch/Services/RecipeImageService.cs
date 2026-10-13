@@ -72,7 +72,7 @@ namespace Nom.Orch.Services
             var ids = recipes.Select(r => r.Id).ToList();
             var ingredients = await _context.RecipeIngredients.AsNoTracking()
                 .Where(ri => ids.Contains(ri.RecipeId) && !ri.IsDeleted)
-                .OrderBy(ri => ri.Id)
+                .OrderBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId)
                 .Select(ri => new { ri.RecipeId, Name = ri.Ingredient.Name })
                 .ToListAsync();
             var steps = await _context.RecipeSteps.AsNoTracking()

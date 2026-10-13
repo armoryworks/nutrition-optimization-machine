@@ -366,7 +366,7 @@ namespace Nom.Orch.Services
                     Name = recipe.DishGroup.Name,
                     Slug = recipe.DishGroup.Slug,
                 },
-                Ingredients = recipe.RecipeIngredients?.OrderBy(ri => ri.SortOrder).ThenBy(ri => ri.Id).Select(ri => new RecipeIngredientModel
+                Ingredients = recipe.RecipeIngredients?.OrderBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId).Select(ri => new RecipeIngredientModel
                 {
                     IngredientId = ri.IngredientId,
                     Quantity = ri.Quantity,
@@ -592,11 +592,11 @@ namespace Nom.Orch.Services
                 .Select((ingredient, sortOrder) => (Ingredient: ingredient, Key: (ingredient.IngredientId, sortOrder)))
                 .ToList();
             var keptIngredients = lines.Select(l => l.Key).ToHashSet();
-            var movedRawLines = existingIngredients.Values
+            var movedLines = existingIngredients.Values
                 .Where(ri => !ri.IsDeleted && !keptIngredients.Contains((ri.IngredientId, ri.SortOrder)))
                 .OrderBy(ri => ri.SortOrder)
                 .GroupBy(ri => ri.IngredientId)
-                .ToDictionary(g => g.Key, g => new Queue<string>(g.Select(ri => ri.RawLine)));
+                .ToDictionary(g => g.Key, g => new Queue<RecipeIngredientEntity>(g));
 
             foreach (var (ingredient, key) in lines)
             {
@@ -610,14 +610,16 @@ namespace Nom.Orch.Services
                 }
                 else
                 {
+                    var moved = movedLines.TryGetValue(ingredient.IngredientId, out var queue)
+                        && queue.TryDequeue(out var line) ? line : null;
                     _context.RecipeIngredients.Add(new RecipeIngredientEntity
                     {
                         RecipeId = recipe.Id,
                         IngredientId = ingredient.IngredientId,
                         Quantity = ingredient.Quantity,
                         MeasurementId = ingredient.MeasurementId,
-                        RawLine = movedRawLines.TryGetValue(ingredient.IngredientId, out var rawLines)
-                            && rawLines.TryDequeue(out var rawLine) ? rawLine : string.Empty,
+                        RawLine = moved?.RawLine ?? string.Empty,
+                        LineKind = moved?.LineKind,
                         SortOrder = key.sortOrder
                     });
                 }
