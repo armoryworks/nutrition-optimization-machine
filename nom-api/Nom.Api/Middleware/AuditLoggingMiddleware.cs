@@ -170,31 +170,15 @@ namespace Nom.Api.Middleware
             return null;
         }
 
-        private string SanitizeRequestBody(string body)
-        {
-            // Remove or mask sensitive information
-            var sanitized = body;
+        private static readonly System.Text.RegularExpressions.Regex SensitiveField = new(
+            @"""(\w*(?:password|token|secret|apikey)\w*)""\s*:\s*""(?:[^""\\]|\\.)*""",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
-            // Mask passwords
-            sanitized = System.Text.RegularExpressions.Regex.Replace(
-                sanitized, 
-                @"""password""\s*:\s*""[^""]*""", 
-                @"""password"":""***""");
-
-            // Mask tokens
-            sanitized = System.Text.RegularExpressions.Regex.Replace(
-                sanitized, 
-                @"""token""\s*:\s*""[^""]*""", 
-                @"""token"":""***""");
-
-            // Mask API keys
-            sanitized = System.Text.RegularExpressions.Regex.Replace(
-                sanitized, 
-                @"""apiKey""\s*:\s*""[^""]*""", 
-                @"""apiKey"":""***""");
-
-            return sanitized;
-        }
+        /// <summary>
+        /// Masks the value of every JSON string field whose name contains password, token, secret or apiKey
+        /// </summary>
+        public static string SanitizeRequestBody(string body) =>
+            SensitiveField.Replace(body, m => $"\"{m.Groups[1].Value}\":\"***\"");
 
         private void LogAuditEvent(string eventType, AuditInfo auditInfo, string? details)
         {
