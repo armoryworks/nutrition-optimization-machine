@@ -129,9 +129,13 @@
                   <mat-error data-testid="recipe-ingredient-unmatched-error">Pick from the suggestion list</mat-error>
                 } @else if (ing.get('ingredientId')?.touched && ing.get('ingredientId')?.invalid) {
                   <mat-error>Ingredient is required</mat-error>
-                } @else if (ingredientLacksNutrition(i)) {
+                } @else if (nutritionGap(i) === 'no-data') {
                   <mat-hint class="nom-recipe-form__nutrition-gap" data-testid="recipe-ingredient-nutrition-gap">
-                    No nutrition data yet
+                    No nutrition data yet, so it won't count
+                  </mat-hint>
+                } @else if (nutritionGap(i) === 'no-conversion') {
+                  <mat-hint class="nom-recipe-form__nutrition-gap" data-testid="recipe-ingredient-unit-gap">
+                    Use g or oz so it counts
                   </mat-hint>
                 }
               </mat-form-field>

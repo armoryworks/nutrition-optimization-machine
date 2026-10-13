@@ -108,5 +108,25 @@ namespace Nom.Api.Tests.Services.Recipe
             written.Should().Be(0);
             (await db.RecipeNutrition.SingleAsync(n => n.RecipeId == recipeId)).Amount.Should().Be(999m);
         }
+
+        [Theory]
+        [InlineData("ingredient", 2, 2L, true, 0.6, "counted")]
+        [InlineData(null, 2, 2L, true, null, "no-conversion")]
+        [InlineData(null, 2, 2L, false, 0.6, "no-data")]
+        [InlineData(null, 0, 2L, false, null, "not-measured")]
+        [InlineData("note", 2, 2L, false, null, "not-an-ingredient")]
+        [InlineData(null, 100, 1L, true, null, "counted")]
+        public void Each_line_reports_whether_it_counts(string? lineKind, double qty, long category, bool hasData, double? gramsPerMl, string expected)
+        {
+            var line = new RecipeIngredientEntity
+            {
+                LineKind = lineKind,
+                Quantity = (decimal)qty,
+                Measurement = new BaseMeasurementEntity { Name = "u", Symbol = "u", MeasurementCategoryId = category, BaseUnitConversionFactor = 1m },
+                Ingredient = new IngredientEntity { Name = "Black Beans", GramsPerMilliliter = (decimal?)gramsPerMl }
+            };
+
+            RecipeNutritionService.StatusFor(line, hasData).Should().Be(expected);
+        }
     }
 }

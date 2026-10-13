@@ -8,6 +8,22 @@
     </div>
     <div class="nom-nutrition-label__bar nom-nutrition-label__bar--heavy"></div>
 
+    @if (uncounted().length > 0) {
+      <div class="nom-nutrition-label__gap" role="note" data-testid="nutrition-label-uncounted">
+        <p class="nom-nutrition-label__gap-title">
+          Incomplete: {{ uncounted().length }} {{ uncounted().length === 1 ? 'ingredient is' : 'ingredients are' }} not counted, so these totals are low.
+        </p>
+        <ul class="nom-nutrition-label__gap-list" data-testid="nutrition-label-uncounted-list">
+          @for (u of uncounted(); track $index) {
+            <li data-testid="nutrition-label-uncounted-item">
+              <strong>{{ u.name }}</strong>
+              {{ u.reason === 'no-data' ? '— no nutrition data for this food yet' : '— this unit has no gram weight for this food; enter it in grams or ounces' }}
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
     <p class="nom-nutrition-label__servings">Nutrition per serving{{ servingWeight() ? ' (' + servingWeight() + ')' : '' }}</p>
 
     <div class="nom-nutrition-label__views">
@@ -110,5 +126,18 @@
     <p class="nom-nutrition-label__empty-msg">
       Nutrition data is not yet available for this recipe.
     </p>
+    @if (uncounted().length > 0) {
+      <div class="nom-nutrition-label__gap" role="note" data-testid="nutrition-label-uncounted">
+        <p class="nom-nutrition-label__gap-title">These ingredients can't be counted yet:</p>
+        <ul class="nom-nutrition-label__gap-list" data-testid="nutrition-label-uncounted-list">
+          @for (u of uncounted(); track $index) {
+            <li data-testid="nutrition-label-uncounted-item">
+              <strong>{{ u.name }}</strong>
+              {{ u.reason === 'no-data' ? '— no nutrition data for this food yet' : '— this unit has no gram weight for this food; enter it in grams or ounces' }}
+            </li>
+          }
+        </ul>
+      </div>
+    }
   </div>
 }

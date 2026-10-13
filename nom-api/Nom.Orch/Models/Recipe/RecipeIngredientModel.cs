@@ -29,5 +29,8 @@ namespace Nom.Orch.Models.Recipe
 
         /// <summary>The line's mass in grams, from the unit (mass), the food's density (volume) or its reference portion (count); null when unknown.</summary>
         public decimal? Grams { get; set; }
+
+        /// <summary>Whether this line counts toward the derived nutrition label: counted, no-data, no-conversion, not-measured or not-an-ingredient.</summary>
+        public string NutritionStatus { get; set; } = string.Empty;
     }
 }

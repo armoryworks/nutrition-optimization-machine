@@ -18,11 +18,21 @@ namespace Nom.Orch.Services
     ///   Mass   → quantity × factor-to-grams
     ///   Volume → quantity × factor-to-ml × Ingredient.GramsPerMilliliter (skipped when unknown)
     ///   Count  → quantity × factor × Ingredient.ReferenceServingGrams (skipped when unknown)
-    /// Ingredients without nutrition or without a gram conversion contribute nothing; if
-    /// nothing contributes, existing rows are left alone. Rows written here carry
+    /// Ingredients without nutrition or without a gram conversion contribute nothing (the recipe
+    /// response reports them per line, see <see cref="StatusFor"/>); if nothing contributes,
+    /// existing rows are left alone. Rows written here carry
     /// DateCalculated so a later hand-authored/seeded set (DateCalculated NULL) is respected.
     /// Values are per serving (Servings ?? RecipeServings ?? 1), matching the seed convention.
     /// </summary>
+    public static class NutritionLineStatus
+    {
+        public const string Counted = "counted";
+        public const string NoData = "no-data";
+        public const string NoConversion = "no-conversion";
+        public const string NotMeasured = "not-measured";
+        public const string NotAnIngredient = "not-an-ingredient";
+    }
+
     public class RecipeNutritionService : IRecipeNutritionService
     {
         private const long CategoryMass = 1L;
@@ -74,9 +84,9 @@ namespace Nom.Orch.Services
             foreach (var ri in recipe.RecipeIngredients ?? Enumerable.Empty<RecipeIngredientEntity>())
             {
                 var ing = ri.Ingredient;
-                if (ing?.IngredientNutrients == null || ing.IngredientNutrients.Count == 0) continue;
-                var grams = GramsFor(ri);
-                if (grams is not { } g || g <= 0) continue;
+                var hasData = ing?.IngredientNutrients is { Count: > 0 };
+                if (StatusFor(ri, hasData) != NutritionLineStatus.Counted) continue;
+                var g = GramsFor(ri)!.Value;
 
                 contributed++;
                 foreach (var n in ing.IngredientNutrients)
@@ -120,6 +130,19 @@ namespace Nom.Orch.Services
         }
 
         public static decimal? GramsFor(RecipeIngredientEntity ri) => GramsFor(ri.Quantity, ri.Measurement, ri.Ingredient);
+
+        /// <summary>
+        /// Whether a recipe line counts toward the derived label, and if not, why. Lines that are not
+        /// ingredients (notes, equipment, references) and unmeasured lines ("salt to taste") are excluded
+        /// by design; a measured ingredient line is either counted or missing for a reason the cook can fix.
+        /// </summary>
+        public static string StatusFor(RecipeIngredientEntity ri, bool ingredientHasNutrients)
+        {
+            if (ri.LineKind is { } kind && kind != "ingredient") return NutritionLineStatus.NotAnIngredient;
+            if (ri.Quantity <= 0) return NutritionLineStatus.NotMeasured;
+            if (!ingredientHasNutrients) return NutritionLineStatus.NoData;
+            return GramsFor(ri) is > 0 ? NutritionLineStatus.Counted : NutritionLineStatus.NoConversion;
+        }
 
         public static decimal? GramsFor(decimal quantity, MeasurementEntity? m, IngredientEntity? ingredient)
         {

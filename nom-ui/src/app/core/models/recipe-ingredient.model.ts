@@ -28,4 +28,6 @@ export interface RecipeIngredientModel {
   substitutions?: IngredientSubstitutionModel[];
   /** The line's mass in grams, when known. */
   grams?: number | null;
+  /** Whether the line counts toward the derived nutrition label: counted, no-data, no-conversion, not-measured or not-an-ingredient. */
+  nutritionStatus?: string;
 }

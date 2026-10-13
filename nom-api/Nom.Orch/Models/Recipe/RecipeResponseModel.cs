@@ -47,6 +47,9 @@ namespace Nom.Orch.Models.Recipe
         public List<RecipeVariationItemModel>? Variation { get; set; }
         public List<RecipeStepModel> Steps { get; set; } = new();
         public List<RecipeNutritionSearchModel> Nutrition { get; set; } = new();
+
+        /// <summary>True when the label was derived from the ingredients, so lines that did not count make it incomplete; false for a hand-authored label.</summary>
+        public bool NutritionDerived { get; set; }
     }
 
     /// <summary>Compact dish-group reference on the recipe detail response.</summary>

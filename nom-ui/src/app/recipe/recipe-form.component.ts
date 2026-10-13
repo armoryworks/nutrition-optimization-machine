@@ -80,8 +80,8 @@ export class RecipeForm implements OnInit {
 
   // Ingredient autocomplete state per row
   ingredientOptions = signal<Map<number, IngredientSearchResult[]>>(new Map());
-  /** Row ids whose selected ingredient has no nutrition data in the catalog. */
-  nutritionGaps = signal<Set<number>>(new Set());
+  /** The picked catalog entry per row id, for the nutrition-coverage hint. */
+  pickedIngredients = signal<Map<number, IngredientSearchResult>>(new Map());
   private ingredientSearchSubjects = new Map<number, Subject<string>>();
   private rowCounter = 0;
 
@@ -172,7 +172,7 @@ export class RecipeForm implements OnInit {
     const group = this.ingredientsArray.at(index);
     group.get('searchText')?.setErrors(null);
     const rowId = group.get('rowId')?.value;
-    this.nutritionGaps.update(s => { const next = new Set(s); next.delete(rowId); return next; });
+    this.pickedIngredients.update(m => { const next = new Map(m); next.delete(rowId); return next; });
     this.ingredientSearchSubjects.get(rowId)?.next(value);
   }
 
@@ -181,16 +181,19 @@ export class RecipeForm implements OnInit {
     group.patchValue({ ingredientId: item.id, name: item.name, searchText: item.name });
     group.get('searchText')?.setErrors(null);
     const rowId = group.get('rowId')?.value;
-    this.nutritionGaps.update(s => {
-      const next = new Set(s);
-      if (item.hasNutrition === false) next.add(rowId); else next.delete(rowId);
-      return next;
-    });
+    this.pickedIngredients.update(m => new Map(m).set(rowId, item));
   }
 
-  ingredientLacksNutrition(index: number): boolean {
-    const rowId = this.ingredientsArray.at(index).get('rowId')?.value;
-    return this.nutritionGaps().has(rowId);
+  /** Why this row will not count toward the nutrition label, or null when it will (or is unknown). */
+  nutritionGap(index: number): 'no-data' | 'no-conversion' | null {
+    const group = this.ingredientsArray.at(index);
+    const item = this.pickedIngredients().get(group.get('rowId')?.value);
+    if (!item) return null;
+    if (item.hasNutrition === false) return 'no-data';
+    const unit = this.measurements().find(m => m.id === group.get('measurementId')?.value);
+    if (unit?.categoryId === 2 && item.canWeighVolume === false) return 'no-conversion';
+    if (unit?.categoryId === 3 && item.canWeighCount === false) return 'no-conversion';
+    return null;
   }
 
   /** The control holds a string after selection (patchValue) but the option value is an object. */

@@ -86,7 +86,9 @@ namespace Nom.Orch.Services
                     FoodGroupId = i.FoodGroupId,
                     FoodGroupName = i.FoodGroup != null ? i.FoodGroup.Name : null,
                     IsWholeFood = i.IsWholeFood,
-                    HasNutrition = i.IngredientNutrients.Any()
+                    HasNutrition = i.IngredientNutrients.Any(),
+                    CanWeighVolume = i.GramsPerMilliliter > 0,
+                    CanWeighCount = i.ReferenceServingGrams > 0
                 })
                 .ToListAsync();
         }
@@ -313,6 +315,13 @@ namespace Nom.Orch.Services
             if (recipe == null)
                 return null;
 
+            var lineIngredientIds = recipe.RecipeIngredients?.Select(ri => ri.IngredientId).Distinct().ToList() ?? new List<long>();
+            var withNutrients = (await _context.IngredientNutrients
+                .Where(n => lineIngredientIds.Contains(n.IngredientId))
+                .Select(n => n.IngredientId)
+                .Distinct()
+                .ToListAsync()).ToHashSet();
+
             List<RecipeVariationItemModel>? variation = null;
             if (personId.HasValue)
             {
@@ -375,6 +384,7 @@ namespace Nom.Orch.Services
                     Measurement = ri.Measurement?.Name ?? string.Empty,
                     Notes = ri.RawLine,
                     Grams = RoundGrams(RecipeNutritionService.GramsFor(ri)),
+                    NutritionStatus = RecipeNutritionService.StatusFor(ri, withNutrients.Contains(ri.IngredientId)),
                     SubIngredients = ri.Ingredient?.Components?
                         .OrderBy(c => c.SortOrder)
                         .Select(c => c.ComponentIngredient?.Name ?? string.Empty)
@@ -406,7 +416,8 @@ namespace Nom.Orch.Services
                     Amount = n.Amount,
                     Unit = n.Unit ?? string.Empty,
                     DailyValuePercent = n.DailyValuePercentage
-                }).ToList() ?? new List<RecipeNutritionSearchModel>()
+                }).ToList() ?? new List<RecipeNutritionSearchModel>(),
+                NutritionDerived = recipe.Nutrition == null || recipe.Nutrition.Count == 0 || recipe.Nutrition.Any(n => n.DateCalculated != null)
             };
         }
 

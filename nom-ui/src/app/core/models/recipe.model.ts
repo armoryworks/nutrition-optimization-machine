@@ -60,6 +60,8 @@ export interface RecipeModel {
   ingredients?: RecipeIngredientModel[];
   steps?: RecipeStepModel[];
   nutrition?: RecipeNutritionModel[];
+  /** True when the label was derived from the ingredients rather than hand-authored. */
+  nutritionDerived?: boolean;
   /** The caller's saved default variation, when one exists. */
   variation?: RecipeVariationItemModel[];
 }

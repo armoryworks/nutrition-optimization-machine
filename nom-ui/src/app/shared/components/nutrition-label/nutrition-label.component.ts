@@ -11,6 +11,11 @@ interface NutrientDisplayRow {
   bold: boolean;
 }
 
+export interface UncountedIngredient {
+  name: string;
+  reason: 'no-data' | 'no-conversion';
+}
+
 interface NutrientDisplayConfig {
   names: string[];
   displayName: string;
@@ -48,6 +53,8 @@ export class NutritionLabel {
   /** Ingredient names for the label's "Ingredients:" line (sub-ingredient
    *  detail can replace this once the data model carries it). */
   ingredientNames = input<string[]>([]);
+  /** Measured ingredient lines the derived label could not count, so the totals are low. */
+  uncounted = input<UncountedIngredient[]>([]);
 
   /** Mutually exclusive label views: standard facts, ingredients, vitamins/minerals. */
   view = signal<'facts' | 'ingredients' | 'micros'>('facts');

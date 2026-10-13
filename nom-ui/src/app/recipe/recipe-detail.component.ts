@@ -25,7 +25,7 @@ import {
   RecipeSubstitutionModel,
   RecipeAugmentationModel,
 } from '../core/models/recipe-substitution.model';
-import { NutritionLabel } from '../shared/components/nutrition-label/nutrition-label.component';
+import { NutritionLabel, UncountedIngredient } from '../shared/components/nutrition-label/nutrition-label.component';
 import { EntityLink } from '../shared/components/entity-link/entity-link.component';
 import { UnitPipe } from '../core/utils/unit-display';
 import { MassAsidePipe } from '../core/utils/mass-display';
@@ -132,6 +132,17 @@ export class RecipeDetail {
         ? `${row.ingredient.name} (${subs.join(', ')})`
         : row.ingredient.name;
     }).filter((n) => !!n);
+  });
+
+  uncountedIngredients = computed<UncountedIngredient[]>(() => {
+    const r = this.recipe();
+    if (!r || r.nutritionDerived === false) return [];
+    return (r.ingredients ?? [])
+      .filter((i) => i.nutritionStatus === 'no-data' || i.nutritionStatus === 'no-conversion')
+      .map((i) => ({
+        name: [i.quantity, i.measurement, i.name].filter((p) => p !== undefined && p !== null && p !== '').join(' '),
+        reason: i.nutritionStatus as UncountedIngredient['reason'],
+      }));
   });
 
   // Raw numeric average for the Rating tab — no stars in the rail.

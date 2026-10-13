@@ -5,4 +5,6 @@ export interface IngredientSearchResult {
   matchedAlias?: string;
   foodGroupName?: string;
   hasNutrition?: boolean;
+  canWeighVolume?: boolean;
+  canWeighCount?: boolean;
 }
