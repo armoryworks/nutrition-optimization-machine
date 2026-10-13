@@ -134,33 +134,9 @@ namespace Nom.Orch.Services
                 }
                 else
                 {
-                    var targetId = action.TargetId!.Value;
-
-                    // A recipe already linked to the target keeps that row; the
-                    // residue link's raw line is folded in, then dropped.
-                    result.LinksFolded += await _db.Database.ExecuteSqlAsync(
-                        $"""
-                         UPDATE recipe."RecipeIngredient" dst
-                         SET "RawLine" = left(coalesce(nullif(dst."RawLine", ''), '') || ' + ' || src."RawLine", 2047)
-                         FROM recipe."RecipeIngredient" src
-                         WHERE src."IngredientId" = {action.IngredientId}
-                           AND dst."IngredientId" = {targetId}
-                           AND dst."RecipeId" = src."RecipeId"
-                           AND coalesce(src."RawLine", '') <> ''
-                         """);
-                    await _db.Database.ExecuteSqlAsync(
-                        $"""
-                         DELETE FROM recipe."RecipeIngredient" src
-                         WHERE src."IngredientId" = {action.IngredientId}
-                           AND EXISTS (SELECT 1 FROM recipe."RecipeIngredient" dst
-                                       WHERE dst."RecipeId" = src."RecipeId" AND dst."IngredientId" = {targetId})
-                         """);
-                    result.LinksMoved += await _db.Database.ExecuteSqlAsync(
-                        $"""UPDATE recipe."RecipeIngredient" SET "IngredientId" = {targetId} WHERE "IngredientId" = {action.IngredientId}""");
-                    await _db.Database.ExecuteSqlAsync(
-                        $"""UPDATE recipe."RecipeIngredient" SET "IngredientEntityId" = {targetId} WHERE "IngredientEntityId" = {action.IngredientId}""");
-                    await _db.Database.ExecuteSqlAsync(
-                        $"""UPDATE recipe."Ingredient" SET "IsDeleted" = true, "DeletedAt" = now(), "DeletedByPersonId" = {personId} WHERE "Id" = {action.IngredientId}""");
+                    var moved = await MergeRecipeLinksAsync(action.IngredientId, action.TargetId!.Value, personId);
+                    result.LinksFolded += moved.Folded;
+                    result.LinksMoved += moved.Moved;
                     result.Merged++;
                 }
 
@@ -171,11 +147,50 @@ namespace Nom.Orch.Services
             return result;
         }
 
+        public async Task<bool> MergeIntoAsync(long sourceId, long targetId, long? personId, bool ignoreProposals = false)
+        {
+            if (sourceId == targetId || await HasNonRecipeReferencesAsync(sourceId, ignoreProposals)) return false;
+
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            await MergeRecipeLinksAsync(sourceId, targetId, personId);
+            await tx.CommitAsync();
+            return true;
+        }
+
+        private async Task<(int Folded, int Moved)> MergeRecipeLinksAsync(long sourceId, long targetId, long? personId)
+        {
+            var folded = await _db.Database.ExecuteSqlAsync(
+                $"""
+                 UPDATE recipe."RecipeIngredient" dst
+                 SET "RawLine" = left(coalesce(nullif(dst."RawLine", ''), '') || ' + ' || src."RawLine", 2047),
+                     "LastModifiedDate" = now()
+                 FROM recipe."RecipeIngredient" src
+                 WHERE src."IngredientId" = {sourceId}
+                   AND dst."IngredientId" = {targetId}
+                   AND dst."RecipeId" = src."RecipeId"
+                   AND coalesce(src."RawLine", '') <> ''
+                 """);
+            await _db.Database.ExecuteSqlAsync(
+                $"""
+                 DELETE FROM recipe."RecipeIngredient" src
+                 WHERE src."IngredientId" = {sourceId}
+                   AND EXISTS (SELECT 1 FROM recipe."RecipeIngredient" dst
+                               WHERE dst."RecipeId" = src."RecipeId" AND dst."IngredientId" = {targetId})
+                 """);
+            var moved = await _db.Database.ExecuteSqlAsync(
+                $"""UPDATE recipe."RecipeIngredient" SET "IngredientId" = {targetId}, "LastModifiedDate" = now() WHERE "IngredientId" = {sourceId}""");
+            await _db.Database.ExecuteSqlAsync(
+                $"""UPDATE recipe."RecipeIngredient" SET "IngredientEntityId" = {targetId} WHERE "IngredientEntityId" = {sourceId}""");
+            await _db.Database.ExecuteSqlAsync(
+                $"""UPDATE recipe."Ingredient" SET "IsDeleted" = true, "DeletedAt" = now(), "DeletedByPersonId" = {personId} WHERE "Id" = {sourceId}""");
+            return (folded, moved);
+        }
+
         /// <summary>
         /// Anything beyond recipe links (and the orphan IngredientEntityId
         /// column) means a human chose this row — leave it alone.
         /// </summary>
-        private async Task<bool> HasNonRecipeReferencesAsync(long id)
+        private async Task<bool> HasNonRecipeReferencesAsync(long id, bool ignoreProposals = false)
         {
             var referenced = await _db.Database
                 .SqlQuery<bool>($"""
@@ -197,7 +212,7 @@ namespace Nom.Orch.Services
                      OR EXISTS (SELECT 1 FROM shopping."PantryItem" x WHERE x."IngredientId" = {id})
                      OR EXISTS (SELECT 1 FROM shopping."ShoppingListItem" x WHERE x."IngredientId" = {id})
                      OR EXISTS (SELECT 1 FROM communication."MessageThread" x WHERE x."IngredientId" = {id})
-                     OR EXISTS (SELECT 1 FROM curation."FoodCatalogProposal" x WHERE x."IngredientId" = {id})
+                     OR (NOT {ignoreProposals} AND EXISTS (SELECT 1 FROM curation."FoodCatalogProposal" x WHERE x."IngredientId" = {id}))
                     ) AS "Value"
                     """)
                 .ToListAsync();

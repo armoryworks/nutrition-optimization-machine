@@ -128,6 +128,7 @@ namespace Nom.Data
         public DbSet<RecipeCommentEntity> RecipeComments { get; set; } = default!;
         public DbSet<RecipeRatingEntity> RecipeRatings { get; set; } = default!;
         public DbSet<RecipeAssetEntity> RecipeAssets { get; set; } = default!;
+        public DbSet<RecipeImageCandidateEntity> RecipeImageCandidates { get; set; } = default!;
         public DbSet<RecipeNoteEntity> RecipeNotes { get; set; } = default!;
         public DbSet<RecipeTimelineEventEntity> RecipeTimelineEvents { get; set; } = default!;
         public DbSet<RecipeShareTokenEntity> RecipeShareTokens { get; set; } = default!;
@@ -136,6 +137,8 @@ namespace Nom.Data
         public DbSet<TagEntity> Tags { get; set; } = default!;
         public DbSet<CategoryEntity> Categories { get; set; } = default!;
         public DbSet<RecipeToolEntity> RecipeTools { get; set; } = default!;
+        public DbSet<KitchenToolSuggestionEntity> KitchenToolSuggestions { get; set; } = default!;
+        public DbSet<KitchenToolSuggestionRecipeEntity> KitchenToolSuggestionRecipes { get; set; } = default!;
         public DbSet<RecipeNutritionEntity> RecipeNutrition { get; set; } = default!;
         public DbSet<RecipeSettingsEntity> RecipeSettings { get; set; } = default!;
         public DbSet<IngredientExtrasEntity> IngredientExtras { get; set; } = default!;

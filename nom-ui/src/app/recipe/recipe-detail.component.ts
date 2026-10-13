@@ -12,6 +12,8 @@ import { AuthService } from '../core/services/auth.service';
 import { DishGroupService } from '../core/services/dish-group.service';
 import { CookbookService } from '../core/services/cookbook.service';
 import { HouseholdStore } from '../core/services/household-store';
+import { KitchenToolsService } from '../core/services/kitchen-tools.service';
+import { RecipeToolCheck } from '../core/models/kitchen-tools.model';
 import { CookbookResponseModel } from '../core/models/cookbook-response.model';
 import { DishGroupRecipeModel } from '../core/models/dish-group.model';
 import { RecipeModel, RecipeDietMatchModel } from '../core/models/recipe.model';
@@ -26,8 +28,11 @@ import {
 import { NutritionLabel } from '../shared/components/nutrition-label/nutrition-label.component';
 import { EntityLink } from '../shared/components/entity-link/entity-link.component';
 import { UnitPipe } from '../core/utils/unit-display';
+import { MassAsidePipe } from '../core/utils/mass-display';
+import { UnitPreferenceService } from '../core/services/unit-preference.service';
 import { RecipeComments } from './recipe-comments.component';
 import { RecipeRating } from './recipe-rating.component';
+import { ImageCredit } from '../shared/components/image-credit/image-credit.component';
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -54,7 +59,7 @@ export interface DisplayIngredientRowModel {
 
 @Component({
   selector: 'nom-recipe-detail',
-  imports: [DecimalPipe, UnitPipe, MatIconModule, MatButtonModule, MatMenuModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating, EntityLink],
+  imports: [DecimalPipe, UnitPipe, MassAsidePipe, MatIconModule, MatButtonModule, MatMenuModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating, EntityLink, ImageCredit],
   templateUrl: './recipe-detail.component.html',
   styleUrl: './recipe-detail.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -67,9 +72,11 @@ export class RecipeDetail {
   private recipeService = inject(RecipeService);
   private dishGroupService = inject(DishGroupService);
   private cookbookService = inject(CookbookService);
+  private kitchenToolsService = inject(KitchenToolsService);
   private householdStore = inject(HouseholdStore);
   private destroyRef = inject(DestroyRef);
   private snackBar = inject(MatSnackBar);
+  readonly unitSystem = inject(UnitPreferenceService).system;
   authService = inject(AuthService);
 
   /** True while a make-public request is in flight. */
@@ -100,6 +107,12 @@ export class RecipeDetail {
   /** All of the caller's household cookbooks, loaded when the add menu opens. */
   myCookbooks = signal<CookbookResponseModel[]>([]);
   private householdId = signal<number | null>(null);
+  toolCheck = signal<RecipeToolCheck | null>(null);
+  toolNotes = computed(() => {
+    const check = this.toolCheck();
+    if (!check || check.mode === 'ignore' || check.fit === 'ready') return [];
+    return check.needs.filter((n) => n.note).map((n) => ({ fit: n.fit, note: n.note! }));
+  });
 
   // Recipe-scoped substitutions (with step effects) and optional add-ins.
   recipeSubs = signal<RecipeSubstitutionModel[]>([]);
@@ -332,6 +345,12 @@ export class RecipeDetail {
         const householdId = households[0]?.id;
         if (!householdId) return;
         this.householdId.set(householdId);
+        this.kitchenToolsService.checkRecipe(householdId, id).pipe(
+          takeUntilDestroyed(this.destroyRef),
+        ).subscribe({
+          next: (check) => this.toolCheck.set(check),
+          error: () => this.toolCheck.set(null),
+        });
         this.cookbookService.getCookbooksForRecipe(id, householdId).pipe(
           takeUntilDestroyed(this.destroyRef),
         ).subscribe({

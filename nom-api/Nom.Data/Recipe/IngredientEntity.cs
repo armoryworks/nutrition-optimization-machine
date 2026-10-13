@@ -64,6 +64,13 @@ namespace Nom.Data.Recipe
         public decimal? ReferenceServingGrams { get; set; }
 
         /// <summary>
+        /// Grams per millilitre, from the source's household measures (USDA: 1 cup all-purpose
+        /// flour = 125 g → 0.53). Turns a recipe's cups and spoons into mass. NULL = unknown, in
+        /// which case a volume line has no mass rather than a guessed one.
+        /// </summary>
+        public decimal? GramsPerMilliliter { get; set; }
+
+        /// <summary>
         /// Retail barcode (GTIN-8/12/13/14, digits only, leading zeros preserved) for packaged
         /// products. The join key for cross-checking a product against other published catalogs,
         /// and the lookup key for a future scan-to-add flow. NULL for anything unpackaged.

@@ -13,6 +13,7 @@ public class RecipeToolEntityConfiguration : IEntityTypeConfiguration<RecipeTool
         // Properties
         builder.Property(e => e.RecipeId).IsRequired();
         builder.Property(e => e.ToolId).IsRequired();
+        builder.Property(e => e.Source).HasMaxLength(100);
 
         // Relationships
         builder.HasOne(e => e.Recipe)

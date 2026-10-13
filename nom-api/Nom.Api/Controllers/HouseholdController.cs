@@ -75,6 +75,31 @@ namespace Nom.Api.Controllers
         }
 
         /// <summary>
+        /// Gets the household's meal-plan options (whether plans include a daily dessert).
+        /// </summary>
+        [HttpGet("{id:long}/meal-plan-options")]
+        public async Task<ActionResult<MealPlanOptionsModel>> GetMealPlanOptions(long id)
+        {
+            if (!IsHouseholdMember(id))
+                return Forbid();
+
+            return Ok(await _portionService.GetMealPlanOptionsAsync(id));
+        }
+
+        /// <summary>
+        /// Saves the household's meal-plan options. Turning desserts on adds a Dessert row to
+        /// plans and shuffles; give it a share in the meal split so it gets a calorie budget.
+        /// </summary>
+        [HttpPut("{id:long}/meal-plan-options")]
+        public async Task<ActionResult<MealPlanOptionsModel>> SaveMealPlanOptions(long id, [FromBody] MealPlanOptionsModel request)
+        {
+            if (!CanManageHousehold(id))
+                return Forbid();
+
+            return Ok(await _portionService.SaveMealPlanOptionsAsync(id, request));
+        }
+
+        /// <summary>
         /// Gets the household's default daily macro goals. Null targets mean unset.
         /// </summary>
         [HttpGet("{id:long}/macro-goals")]
@@ -100,6 +125,55 @@ namespace Nom.Api.Controllers
 
             var saved = await _macroGoalService.SaveHouseholdGoalAsync(id, request);
             return Ok(saved);
+        }
+
+        /// <summary>
+        /// Gets the household's kitchen: every catalog tool with whether the household has it
+        /// (its answer, or the catalog default) and the hide/warn/ignore mode for recipes that
+        /// need a missing tool.
+        /// </summary>
+        [HttpGet("{id:long}/kitchen-tools")]
+        public async Task<ActionResult<KitchenSettingsModel>> GetKitchenTools(long id, [FromServices] IKitchenToolService kitchen)
+        {
+            if (!IsHouseholdMember(id))
+                return Forbid();
+
+            return Ok(await kitchen.GetSettingsAsync(id));
+        }
+
+        /// <summary>
+        /// Records tool answers (owned true/false, or null to fall back to the default) and/or the mode.
+        /// </summary>
+        [HttpPut("{id:long}/kitchen-tools")]
+        public async Task<ActionResult<KitchenSettingsModel>> UpdateKitchenTools(
+            long id, [FromBody] KitchenSettingsUpdateModel request, [FromServices] IKitchenToolService kitchen)
+        {
+            if (!CanManageHousehold(id))
+                return Forbid();
+
+            try
+            {
+                return Ok(await kitchen.UpdateSettingsAsync(id, request));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Checks a recipe against the household's kitchen: the tools it needs, what stands in
+        /// for missing ones, and the note to show the cook.
+        /// </summary>
+        [HttpGet("{id:long}/kitchen-tools/recipes/{recipeId:long}")]
+        public async Task<ActionResult<RecipeToolCheckModel>> CheckRecipeTools(
+            long id, long recipeId, [FromServices] IKitchenToolService kitchen)
+        {
+            if (!IsHouseholdMember(id))
+                return Forbid();
+
+            var check = await kitchen.CheckRecipeAsync(id, recipeId);
+            return check == null ? NotFound() : Ok(check);
         }
 
         [HttpGet]

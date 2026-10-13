@@ -18,6 +18,33 @@
   padding: vars.$spacing-1 vars.$spacing-4;
 }
 
+.nom-recipe__tools {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-2;
+  margin: 0 vars.$spacing-4 vars.$spacing-2;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  border-radius: 8px;
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface);
+  font-size: vars.$font-size-sm;
+
+  &--missing {
+    background: var(--mat-sys-error-container);
+    color: var(--mat-sys-on-error-container);
+  }
+}
+
+.nom-recipe__tools-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+}
+
 .nom-recipe__back {
   display: inline-flex;
   align-items: center;
@@ -80,6 +107,11 @@
   height: 200px;
   object-fit: cover;
   display: block;
+}
+
+.nom-recipe__hero-img--whole {
+  object-fit: contain;
+  background: var(--mat-sys-surface-container);
 }
 
 // Three-column grid
@@ -297,6 +329,12 @@
 .nom-recipe__ingredient-notes {
   color: var(--mat-sys-on-surface-variant);
   font-style: italic;
+}
+
+.nom-recipe__ingredient-mass {
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+  margin-right: 0.25em;
 }
 
 // Steps list

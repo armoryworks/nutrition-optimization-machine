@@ -206,6 +206,15 @@
       <nom-meal-split-form [householdId]="households()[0].id" />
     </div>
 
+    <div class="nom-form__section" data-testid="household-kitchen-tools">
+      <h2 class="nom-form__section-title">Kitchen</h2>
+      <p class="nom-form__section-description">
+        Tick what your kitchen has. Recipes that need something you don't have can be
+        hidden from meal plans or shown with a note on how to manage without it.
+      </p>
+      <nom-kitchen-tools-form [householdId]="households()[0].id" />
+    </div>
+
     <!-- Food-group requirements -->
     <div class="nom-form__section" data-testid="household-food-group-rules">
       <h2 class="nom-form__section-title">Food-Group Requirements</h2>

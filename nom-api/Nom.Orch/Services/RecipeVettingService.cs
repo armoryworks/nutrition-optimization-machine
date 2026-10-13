@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.UtilityInterfaces;
 
@@ -58,7 +60,7 @@ namespace Nom.Orch.Services
                 issues.Add($"Servings value of {servings} is outside the plausible range (1–{MaxPlausibleServings}).");
             }
 
-            var unparsed = recipe.Ingredients.Count(i => i.Quantity == null);
+            var unparsed = recipe.Ingredients.Count(i => i.Quantity == null && !IsAcceptablyUnquantified(i.RawLine, i.LineKind));
             if (recipe.Ingredients.Count > 0 && unparsed > recipe.Ingredients.Count / 2)
             {
                 issues.Add($"{unparsed} of {recipe.Ingredients.Count} ingredient lines have no parseable quantity — needs a human (or enrichment) pass.");
@@ -66,6 +68,27 @@ namespace Nom.Orch.Services
 
             return Task.FromResult(issues);
         }
+
+        public static bool IsAcceptablyUnquantified(string? rawLine, string? lineKind) =>
+            RecipeIngredientLineKind.IsExempt(lineKind) || IsAcceptablyUnquantified(rawLine);
+
+        public static bool IsAcceptablyUnquantified(string? rawLine) =>
+            !string.IsNullOrWhiteSpace(rawLine)
+            && (AcceptablyUnquantified.IsMatch(rawLine) || VagueAmount.IsMatch(rawLine) || BareSeasoning.IsMatch(rawLine));
+
+        private static readonly Regex VagueAmount = new(
+            @"^\s*(?:and\s+)?(?:a\s+(?:little|bit|few|handful|sprinkl(?:e|ing)|grating|squeeze|splash|drizzle|knob|dollop|dab|pinch|dash|touch|drop|few\s+grains|small\s+(?:piece|quantity|amount))|some|little|few|several)\b(?:\s+of)?\s+\p{L}",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private const string Seasonings = @"(?:salt|pepper|nutmeg|mace|cinnamon|cayenne|paprika|ginger|cloves|allspice|spices?|seasoning|herbs|parsley)";
+
+        private static readonly Regex BareSeasoning = new(
+            @"^\s*(?:(?:fine|kosher|sea|table|black|white|ground|freshly\s+ground|grated)\s+)*" + Seasonings + @"\s*[.,]?\s*$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex AcceptablyUnquantified = new(
+            @"\b(?:to\s+taste|as\s+(?:needed|required|desired)|if\s+(?:needed|desired)|(?:for|to)\s+(?:garnish(?:ing)?|serv(?:e|ing)|dust(?:ing)?|grease|greasing|frying|decorat(?:e|ing)|sprinkl(?:e|ing))|(?:a|one)\s+(?:pinch|dash)|salt\s+(?:and|&)\s+(?:black\s+)?pepper|optional)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static void CheckDuration(List<string> issues, string label, int? minutes, int maxPlausible)
         {

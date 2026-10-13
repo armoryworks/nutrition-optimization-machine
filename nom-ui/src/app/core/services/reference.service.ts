@@ -55,10 +55,6 @@ export class ReferenceService {
     return this.getReferencesByGroup(ReferenceDiscriminator.PersonAttributeType);
   }
 
-  getRecipeTypes(): Observable<ReferenceItem[]> {
-    return this.getReferencesByGroup(ReferenceDiscriminator.RecipeType);
-  }
-
   getRestrictionTypes(): Observable<ReferenceItem[]> {
     return this.getReferencesByGroup(ReferenceDiscriminator.RestrictionType);
   }

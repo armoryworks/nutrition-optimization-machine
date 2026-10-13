@@ -20,6 +20,7 @@ public class RecipeIngredientEntityConfiguration : IEntityTypeConfiguration<Reci
         builder.Property(e => e.MeasurementId).IsRequired();
         builder.Property(e => e.RawLine).HasColumnType("Text");
         builder.Property(e => e.SortOrder).IsRequired().HasDefaultValue(0).ValueGeneratedNever();
+        builder.Property(e => e.LineKind).HasMaxLength(16);
 
         // Relationships
         builder.HasOne(e => e.Recipe)

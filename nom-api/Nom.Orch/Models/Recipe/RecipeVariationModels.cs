@@ -16,6 +16,8 @@ namespace Nom.Orch.Models.Recipe
         public string Measurement { get; set; } = string.Empty;
         public long? MeasurementId { get; set; }
         public string? Notes { get; set; }
+        /// <summary>The substitute's mass in grams at this quantity; null when unknown.</summary>
+        public decimal? Grams { get; set; }
     }
 
     /// <summary>One saved swap in the caller's default variation of a recipe.</summary>

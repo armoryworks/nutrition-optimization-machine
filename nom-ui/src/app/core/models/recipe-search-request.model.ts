@@ -5,6 +5,8 @@ export interface RecipeSearchRequest {
   tagIds?: number[];
   toolIds?: number[];
   cuisineTypeIds?: number[];
+  recipeTypeIds?: number[];
+  cookableForHouseholdId?: number;
   minRating?: number;
   maxPrepTime?: number;
   maxCookTime?: number;

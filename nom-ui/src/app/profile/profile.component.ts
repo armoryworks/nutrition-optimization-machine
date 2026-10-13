@@ -16,6 +16,8 @@ import { AuthService } from '../core/services/auth.service';
 import { ReferenceService } from '../core/services/reference.service';
 import { PersonService } from '../core/services/person.service';
 import { LoadingService } from '../core/services/loading.service';
+import { UNIT_SYSTEM_ATTRIBUTE, UnitPreferenceService } from '../core/services/unit-preference.service';
+import { UnitSystem } from '../core/utils/mass-display';
 import { ReferenceItem } from '../core/models/reference-item.model';
 import { ReferenceDiscriminator } from '../core/models/reference-discriminator.model';
 import { PersonAttributeRequest } from '../core/models/person-attribute-request.model';
@@ -65,12 +67,13 @@ export class Profile implements OnInit {
   private personService = inject(PersonService);
   private loadingService = inject(LoadingService);
   private destroyRef = inject(DestroyRef);
+  private unitPreference = inject(UnitPreferenceService);
 
   currentPersonId = computed(() => this.authService.personId());
   activityLevels = signal<ReferenceItem[]>([]);
   healthGoals = signal<ReferenceItem[]>([]);
   attributeTypes = signal<ReferenceItem[]>([]);
-  unitSystem = signal<'imperial' | 'metric'>('imperial');
+  unitSystem = signal<UnitSystem>(this.unitPreference.system());
   lessCommonExpanded = signal(false);
   loading = signal(false);
   errorMessage = signal('');
@@ -141,7 +144,25 @@ export class Profile implements OnInit {
     }
   }
 
-  onUnitSystemChange(value: 'imperial' | 'metric'): void {
+  onUnitSystemChange(value: UnitSystem): void {
+    if (value === this.unitSystem()) return;
+    const form = this.profileForm.getRawValue();
+    if (value === 'metric') {
+      if (form.heightFeet != null) {
+        this.profileForm.patchValue({ heightCm: Math.round((form.heightFeet * 12 + (form.heightInches ?? 0)) * 2.54) });
+      }
+      if (form.weightLbs != null) {
+        this.profileForm.patchValue({ weightKg: Math.round((form.weightLbs / 2.20462) * 10) / 10 });
+      }
+    } else {
+      if (form.heightCm != null) {
+        const totalInches = form.heightCm / 2.54;
+        this.profileForm.patchValue({ heightFeet: Math.floor(totalInches / 12), heightInches: Math.round(totalInches % 12) });
+      }
+      if (form.weightKg != null) {
+        this.profileForm.patchValue({ weightLbs: Math.round(form.weightKg * 2.20462) });
+      }
+    }
     this.unitSystem.set(value);
   }
 
@@ -186,6 +207,11 @@ export class Profile implements OnInit {
     this.profileForm.patchValue({ name: data.personDetails.name });
     if (data.email) {
       this.profileForm.patchValue({ email: data.email });
+    }
+
+    const savedSystem = data.attributes.find((a) => this.getAttributeTypeName(a.attributeTypeRefId) === UNIT_SYSTEM_ATTRIBUTE)?.value;
+    if (this.isStandalone() && (savedSystem === 'metric' || savedSystem === 'imperial')) {
+      this.unitSystem.set(savedSystem);
     }
 
     for (const attr of data.attributes) {
@@ -313,6 +339,11 @@ export class Profile implements OnInit {
       attributes.push({ attributeTypeRefId: amrId, value: String(form.amr) });
     }
 
+    const unitSystemId = this.getAttributeTypeId(UNIT_SYSTEM_ATTRIBUTE);
+    if (unitSystemId && this.isStandalone()) {
+      attributes.push({ attributeTypeRefId: unitSystemId, value: this.unitSystem() });
+    }
+
     return {
       personDetails: {
         id: 0,
@@ -353,6 +384,7 @@ export class Profile implements OnInit {
       next: () => {
         this.loading.set(false);
         this.successMessage.set('Profile saved successfully.');
+        if (this.isStandalone()) this.unitPreference.set(this.unitSystem());
         this.saved.emit(formData);
       },
       error: () => {

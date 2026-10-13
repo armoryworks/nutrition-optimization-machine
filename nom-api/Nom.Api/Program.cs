@@ -392,10 +392,30 @@ builder.Services.AddHttpClient<Nom.Orch.Interfaces.IDishGroupSuggester, Nom.Orch
     client => client.Timeout = TimeSpan.FromSeconds(300));
 builder.Services.AddHostedService<Nom.Api.Services.DishGroupingHostedService>();
 
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IRecipeToolTagger, Nom.Orch.Services.OllamaRecipeToolTagger>(
+    client => client.Timeout = TimeSpan.FromSeconds(300));
+builder.Services.AddHostedService<Nom.Api.Services.RecipeToolTaggingHostedService>();
+builder.Services.AddHostedService<Nom.Api.Services.ScrapedRecipeRepairHostedService>();
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IIngredientLinkMatcher, Nom.Orch.Services.OllamaIngredientLinkMatcher>(
+    client => client.Timeout = TimeSpan.FromSeconds(300));
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IIngredientLinkVerifier, Nom.Orch.Services.OllamaIngredientLinkVerifier>(
+    client => client.Timeout = TimeSpan.FromSeconds(300));
+builder.Services.AddHostedService<Nom.Api.Services.IngredientLinkHostedService>();
+builder.Services.AddHostedService<Nom.Api.Services.RecipeNutritionRecalcHostedService>();
+builder.Services.AddHostedService<Nom.Api.Services.CourseClassificationHostedService>();
+
 // Prose-rewrite batch lane (off unless Ai:BatchOllamaUrl is set): clears the
 // ContainsSourceProse quarantine by rewriting scraped prose in original words;
 // curation approval still gates publish, originals stay in ScrapedDocument.
 builder.Services.AddHostedService<Nom.Api.Services.ProseRewriteHostedService>();
+
+builder.Services.AddHostedService<Nom.Api.Services.RecipeAutoApproveHostedService>();
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IRecipeRepairModel, Nom.Orch.Services.OllamaRecipeRepairModel>(
+    client => client.Timeout = TimeSpan.FromSeconds(300));
+builder.Services.AddHostedService<Nom.Api.Services.RecipeAiRepairHostedService>();
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IRecipeClassificationModel, Nom.Orch.Services.OllamaRecipeClassificationModel>(
+    client => client.Timeout = TimeSpan.FromSeconds(300));
+builder.Services.AddHostedService<Nom.Api.Services.RecipeLineClassifyHostedService>();
 
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();

@@ -60,5 +60,11 @@ namespace Nom.Data.Recipe
         /// Part of the key, so the same ingredient can appear on more than one line.
         /// </summary>
         public int SortOrder { get; set; }
+
+        /// <summary>
+        /// What an unquantified line is, as classified by the curation lanes (see <see cref="RecipeIngredientLineKind"/>).
+        /// Null when the line has not been classified.
+        /// </summary>
+        public string? LineKind { get; set; }
     }
 }

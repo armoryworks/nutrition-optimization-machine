@@ -58,6 +58,7 @@ namespace Nom.Api.Services
 
             while (!stoppingToken.IsCancellationRequested)
             {
+                if (!await AiQuietHours.WaitAsync(_configuration, _logger, stoppingToken)) return;
                 try
                 {
                     await SweepAsync(baseUrl, model, batchSize, stoppingToken);

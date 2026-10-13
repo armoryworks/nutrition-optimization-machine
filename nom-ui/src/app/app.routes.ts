@@ -149,6 +149,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'settings/api-tokens',
+    loadComponent: () =>
+      import('./settings/api-tokens-settings.component').then((m) => m.ApiTokensSettings),
+    canActivate: [authGuard],
+  },
+  {
     path: 'settings/privacy',
     loadComponent: () =>
       import('./settings/privacy-settings.component').then((m) => m.PrivacySettings),

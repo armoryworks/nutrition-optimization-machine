@@ -6,11 +6,10 @@ using System.Text.RegularExpressions;
 using Nom.Data;
 using Nom.Data.Recipe;
 using Nom.Data.Nutrient;
+using Nom.Orch.UtilityServices;
 using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
 
 namespace Nom.Orch.Services
 {
@@ -344,6 +343,7 @@ namespace Nom.Orch.Services
                 AuthorId = recipe.AuthorId,
                 AuthorName = recipe.Author?.Name ?? "Unknown",
                 ImageUrl = recipe.Image,
+                ImageCredit = RecipeImageService.CreditFor(recipe),
                 PrepTimeMinutes = recipe.PrepTimeMinutes,
                 CookTimeMinutes = recipe.CookTimeMinutes,
                 Servings = recipe.Servings,
@@ -366,7 +366,7 @@ namespace Nom.Orch.Services
                     Name = recipe.DishGroup.Name,
                     Slug = recipe.DishGroup.Slug,
                 },
-                Ingredients = recipe.RecipeIngredients?.OrderBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId).Select(ri => new RecipeIngredientModel
+                Ingredients = recipe.RecipeIngredients?.OrderBy(ri => ri.SortOrder).ThenBy(ri => ri.Id).Select(ri => new RecipeIngredientModel
                 {
                     IngredientId = ri.IngredientId,
                     Quantity = ri.Quantity,
@@ -374,6 +374,7 @@ namespace Nom.Orch.Services
                     Name = ri.Ingredient?.Name ?? string.Empty,
                     Measurement = ri.Measurement?.Name ?? string.Empty,
                     Notes = ri.RawLine,
+                    Grams = RoundGrams(RecipeNutritionService.GramsFor(ri)),
                     SubIngredients = ri.Ingredient?.Components?
                         .OrderBy(c => c.SortOrder)
                         .Select(c => c.ComponentIngredient?.Name ?? string.Empty)
@@ -388,7 +389,8 @@ namespace Nom.Orch.Services
                             Quantity = ri.Quantity * s.Ratio,
                             Measurement = ri.Measurement?.Name ?? string.Empty,
                             MeasurementId = ri.MeasurementId,
-                            Notes = s.Notes
+                            Notes = s.Notes,
+                            Grams = RoundGrams(RecipeNutritionService.GramsFor(ri.Quantity * s.Ratio, ri.Measurement, s.SubstituteIngredient)),
                         }).ToList() ?? new List<IngredientSubstitutionModel>()
                 }).ToList() ?? new List<RecipeIngredientModel>(),
                 Variation = variation,
@@ -1025,6 +1027,8 @@ namespace Nom.Orch.Services
             return result;
         }
 
+        private static decimal? RoundGrams(decimal? grams) => grams is { } g ? Math.Round(g, 1) : null;
+
         private static List<IngredientAliasModel> MapAliases(IngredientEntity ingredient) =>
             ingredient.Aliases
                 .Where(a => !a.IsDeleted)
@@ -1041,18 +1045,8 @@ namespace Nom.Orch.Services
             if (recipe.AuthorId != personId)
                 throw new UnauthorizedAccessException("Only the recipe author can upload images");
 
-            // Resize image if needed using ImageSharp
-            using var image = SixLabors.ImageSharp.Image.Load(fileData);
-            if (image.Width > 1200)
-            {
-                var ratio = 1200.0 / image.Width;
-                var newHeight = (int)(image.Height * ratio);
-                image.Mutate(x => x.Resize(1200, newHeight));
-            }
-
-            using var ms = new MemoryStream();
-            await image.SaveAsJpegAsync(ms);
-            var processedData = ms.ToArray();
+            var processedData = ImageTranscoder.ToJpeg(fileData, 1200)
+                ?? throw new ArgumentException("The file is not an image that can be read.");
 
             var extension = Path.GetExtension(fileName);
 
@@ -1083,6 +1077,7 @@ namespace Nom.Orch.Services
 
             // Update recipe image URL to point to serve endpoint
             recipe.Image = $"/api/recipe/{recipeId}/image";
+            RecipeImageService.ClearCredit(recipe);
             recipe.LastModifiedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -1167,6 +1162,7 @@ namespace Nom.Orch.Services
             if (!remainingImages)
             {
                 recipe.Image = null;
+                RecipeImageService.ClearCredit(recipe);
                 recipe.LastModifiedDate = DateTime.UtcNow;
             }
 

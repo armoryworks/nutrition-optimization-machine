@@ -1,0 +1,50 @@
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Nom.Orch.Interfaces
+{
+    /// <summary>A catalog ingredient that recipes use but that isn't linked to a USDA food yet.</summary>
+    public sealed record LinkSource(long IngredientId, string Name, int Uses);
+
+    public sealed record IngredientLinkBatchResult(int Seen, int ExactProposals, int AiProposals, int NoMatch);
+
+    /// <summary>How many pending model picks were checked in a pass, how many of those all three checks verified, and whether more await checking.</summary>
+    public sealed record IngredientLinkVerifyResult(int Checked, int Verified, bool MoreWaiting);
+
+    /// <summary>
+    /// Proposes links from catalog ingredients (mostly names minted by recipe imports) to USDA
+    /// foods, most-used first. Unambiguous name matches are proposed deterministically; the rest
+    /// go to the local model to choose among shortlisted USDA rows. Every link is an admin-reviewed
+    /// FoodCatalogProposal (field "fdc_link"); nothing changes until one is approved.
+    /// </summary>
+    public interface IIngredientLinkService
+    {
+        Task<IReadOnlyList<LinkSource>> NextSourcesAsync(int count, CancellationToken cancellationToken = default);
+
+        /// <summary>Null when the model is needed but unreachable; those sources stay unproposed.</summary>
+        Task<IngredientLinkBatchResult?> ProposeAsync(IReadOnlyList<LinkSource> sources, CancellationToken cancellationToken = default);
+
+        /// <summary>Re-points pending links for bare staple names to their standard USDA entry and withdraws name matches the matcher no longer makes; returns how many changed.</summary>
+        Task<int> ApplyStapleDefaultsToPendingAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Pending links that are certain — staples and same-name USDA attaches — which are applied
+        /// without an admin, most-used first. Name-matcher and model picks stay with reviewers.
+        /// </summary>
+        Task<IReadOnlyList<long>> PendingDeterministicAsync(int count, IReadOnlyCollection<long> skip, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Triangulates pending model picks, most-used first: a pick is verified only when the model
+        /// was at least <paramref name="minConfidence"/> sure, the name matcher ranks the same USDA
+        /// food first, and a second, differently worded model call independently names it too. The
+        /// outcome is recorded on the proposal's reason, so a pick is checked once. Picks below the
+        /// confidence bar are left unmarked and unasked. Null when the second opinion is unreachable;
+        /// the picks it would have checked stay unchecked.
+        /// </summary>
+        Task<IngredientLinkVerifyResult?> VerifyPendingAiAsync(int count, decimal minConfidence, CancellationToken cancellationToken = default);
+
+        /// <summary>Pending model picks that triangulation verified, most-used first, for applying without an admin.</summary>
+        Task<IReadOnlyList<long>> PendingVerifiedAsync(int count, IReadOnlyCollection<long> skip, CancellationToken cancellationToken = default);
+    }
+}

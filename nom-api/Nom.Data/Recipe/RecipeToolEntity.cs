@@ -12,5 +12,8 @@ namespace Nom.Data.Recipe
 
         public long ToolId { get; set; }
         public virtual ReferenceEntity? Tool { get; set; }
+
+        /// <summary>Who linked the tool: null = the recipe's author or an admin; "ai:&lt;model&gt;" = the tagging lane.</summary>
+        public string? Source { get; set; }
     }
 }

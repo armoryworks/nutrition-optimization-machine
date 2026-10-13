@@ -2,6 +2,7 @@ import { RecipeIngredientModel } from './recipe-ingredient.model';
 import { RecipeStepModel } from './recipe-step.model';
 import { RecipeNutritionModel } from './recipe-nutrition.model';
 import { RecipeDishGroupRef } from './dish-group.model';
+import { RecipeImageCredit } from './recipe-image.model';
 
 export interface RecipeVariationItemModel {
   /** The recipe's original ingredient id being replaced. */
@@ -30,6 +31,8 @@ export interface RecipeModel {
   authorName: string;
   authorId: number;
   imageUrl?: string;
+  /** Credit for a third-party openly licensed photo; absent for the author's own. */
+  imageCredit?: RecipeImageCredit | null;
   prepTimeMinutes?: number;
   cookTimeMinutes?: number;
   servings?: number;

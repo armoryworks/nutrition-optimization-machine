@@ -1,0 +1,93 @@
+<div class="nom-dashboard" data-testid="admin-recipe-images">
+  <div class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <a routerLink="/admin" class="nom-dashboard__back" data-testid="recipe-images-admin-back-link">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Admin
+      </a>
+      <h1 class="nom-dashboard__title">Recipe Images</h1>
+      <span class="nom-dashboard__subtitle">Openly licensed photos proposed for published recipes</span>
+    </div>
+    <div class="nom-dashboard__header-right">
+      <button mat-icon-button (click)="refresh()" aria-label="Refresh" data-testid="recipe-images-admin-refresh-btn">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <p class="nom-recipe-images__hint">
+    The image finder attaches a photo on its own only when every check agrees: its title and tags, a blind caption,
+    directed questions about the dish, and a second model's ranking. Anything less lands here. Approving attaches
+    the photo with its credit line; rejected photos are never proposed again.
+  </p>
+
+  <div class="nom-recipe-images__filters" role="group" aria-label="Filter by status" data-testid="recipe-images-admin-filter">
+    @for (s of statuses; track s) {
+      <button type="button" class="nom-recipe-images__filter" [class.nom-recipe-images__filter--active]="filter() === s"
+              [attr.aria-pressed]="filter() === s" (click)="setFilter(s)" [attr.data-testid]="'recipe-images-admin-filter-' + s">
+        {{ s }}
+      </button>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <p class="nom-recipe-images__error" role="alert" data-testid="recipe-images-admin-error">{{ errorMessage() }}</p>
+  }
+
+  @if (!loading() && candidates().length === 0) {
+    <p class="nom-recipe-images__empty" data-testid="recipe-images-admin-empty">No {{ filter() }} photos.</p>
+  }
+
+  <ul class="nom-recipe-images__list" data-testid="recipe-images-admin-list">
+    @for (c of candidates(); track c.id) {
+      <li class="nom-recipe-images__item" data-testid="recipe-images-admin-item">
+        <div class="nom-recipe-images__preview">
+          @if (previewFor(c); as src) {
+            <img [src]="src" [alt]="c.title || c.recipeName" loading="lazy" data-testid="recipe-images-admin-preview" />
+          } @else {
+            <mat-icon aria-hidden="true">image</mat-icon>
+          }
+        </div>
+        <div class="nom-recipe-images__body">
+          <a [routerLink]="['/recipe', c.recipeId]" class="nom-recipe-images__recipe" data-testid="recipe-images-admin-recipe-link">
+            {{ c.recipeName }}
+          </a>
+          @if (c.title) {
+            <span class="nom-recipe-images__muted">“{{ c.title }}”</span>
+          }
+          <nom-image-credit
+            testId="recipe-images-admin-credit"
+            [credit]="creditFor(c)"
+          />
+          @if (c.score !== null && c.score !== undefined) {
+            <span class="nom-recipe-images__muted" data-testid="recipe-images-admin-score">Score {{ c.score | number: '1.2-2' }}</span>
+          }
+          <ul class="nom-recipe-images__checks" data-testid="recipe-images-admin-checks">
+            @for (check of checksFor(c); track check.name) {
+              <li [class.nom-recipe-images__check--pass]="check.passed" [class.nom-recipe-images__check--fail]="!check.passed"
+                  [attr.data-testid]="'recipe-images-admin-check-' + check.name">
+                <mat-icon aria-hidden="true">{{ check.passed ? 'check_circle' : 'cancel' }}</mat-icon>
+                <span>{{ check.name }}</span>
+                @if (!check.passed && check.reasons.length) {
+                  <span class="nom-recipe-images__muted">— {{ check.reasons.join('; ') }}</span>
+                }
+              </li>
+            }
+          </ul>
+        </div>
+        <div class="nom-recipe-images__actions">
+          @if (c.status === 'pending') {
+            <button mat-flat-button color="primary" (click)="approve(c)" [disabled]="busyId() === c.id"
+                    data-testid="recipe-images-admin-approve-btn">Approve</button>
+            <button mat-stroked-button (click)="reject(c)" [disabled]="busyId() === c.id"
+                    data-testid="recipe-images-admin-reject-btn">Reject</button>
+          }
+          @if (c.status === 'attached' || c.status === 'approved') {
+            <button mat-stroked-button (click)="remove(c)" [disabled]="busyId() === c.id"
+                    data-testid="recipe-images-admin-remove-btn">Remove</button>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+</div>

@@ -7,6 +7,7 @@ namespace Nom.Orch.Interfaces
     public interface IRecipeSearchOrchestrationService
     {
         Task<RecipeSearchResponseModel> SearchRecipesAsync(RecipeSearchModel searchModel);
+        Task<RecipeSearchFilterOptionsModel> GetFilterOptionsAsync();
         Task<List<string>> GetSearchSuggestionsAsync(string query);
         Task<RecipeSearchResponseModel> GetPopularRecipesAsync(int count = 10);
         Task<RecipeSearchResponseModel> GetRecentRecipesAsync(int count = 10);

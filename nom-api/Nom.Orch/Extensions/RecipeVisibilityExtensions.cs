@@ -17,7 +17,7 @@ namespace Nom.Orch.Extensions
     {
         /// <summary>
         /// Filters to recipes the given person may see:
-        ///  - Public + Approved curation (the public pool; anonymous callers get only this),
+        ///  - Public + Approved curation without verbatim source prose (the public pool; anonymous callers get only this),
         ///  - their own recipes (any visibility, any curation),
         ///  - Household-visibility recipes authored within their households,
         ///  - Audience-visibility recipes scoped to an audience containing one of their households,
@@ -25,6 +25,12 @@ namespace Nom.Orch.Extensions
         ///    cooked (completed plan or Made timeline event) or favorited (rating >= 4),
         ///    which stay readable after the household leaves the audience.
         /// </summary>
+        /// <summary>
+        /// Platform switch: while on, curation admins also see public recipes that passed vetting but
+        /// have not been curated (the repaired scraped library). Everyone else is unaffected.
+        /// </summary>
+        public const string NonCuratedPreviewFeature = "noncurated-recipes-admin-preview";
+
         public static IQueryable<RecipeEntity> VisibleTo(
             this IQueryable<RecipeEntity> recipes,
             ApplicationDbContext context,
@@ -35,7 +41,8 @@ namespace Nom.Orch.Extensions
             {
                 return recipes.Where(r =>
                     r.Visibility == RecipeVisibilityEnum.Public
-                    && r.CurationStatus!.Name == "Approved");
+                    && r.CurationStatus!.Name == "Approved"
+                    && !r.ContainsSourceProse);
             }
 
             var pid = personId.Value;
@@ -43,9 +50,17 @@ namespace Nom.Orch.Extensions
                 .Where(hm => hm.PersonId == pid && hm.IsActive)
                 .Select(hm => hm.HouseholdId);
 
+            var nonCuratedPreview =
+                context.PlatformFeatures.Any(f => f.Key == NonCuratedPreviewFeature && f.IsEnabled && !f.IsDeleted)
+                && context.Persons.Any(p => p.Id == pid && context.UserClaims.Any(c =>
+                    c.UserId == p.UserId && c.ClaimType == "CanManageCuration" && c.ClaimValue == "true"));
+
             return recipes.Where(r =>
                 // The public pool.
-                (r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved")
+                (r.Visibility == RecipeVisibilityEnum.Public && r.CurationStatus!.Name == "Approved" && !r.ContainsSourceProse)
+                // Admin preview: vetted-but-uncurated public recipes, while the platform switch is on.
+                || (nonCuratedPreview && r.Visibility == RecipeVisibilityEnum.Public
+                    && r.CurationStatusId == (long)CurationStatusEnum.NonCurated)
                 // Your own recipes.
                 || r.AuthorId == pid
                 // Household-visibility: authored by a member of one of your households.

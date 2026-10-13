@@ -13,5 +13,12 @@ namespace Nom.Orch.Interfaces
     {
         Task<CatalogCleanupPreview> PreviewAsync(int sampleSize = 50);
         Task<CatalogCleanupResult> ApplyAsync(int maxActions = 500);
+
+        /// <summary>
+        /// Moves every recipe link from <paramref name="sourceId"/> to <paramref name="targetId"/>
+        /// (folding duplicates into the target's raw line) and soft-deletes the source. Refuses and
+        /// returns false when anything other than recipes references the source.
+        /// </summary>
+        Task<bool> MergeIntoAsync(long sourceId, long targetId, long? personId, bool ignoreProposals = false);
     }
 }

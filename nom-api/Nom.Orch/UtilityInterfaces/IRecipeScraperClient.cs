@@ -76,6 +76,9 @@ namespace Nom.Orch.UtilityInterfaces
         public decimal? Quantity { get; set; }
         public string? Unit { get; set; }
         public string? Notes { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string? LineKind { get; set; }
     }
 
     public class ScraperStep

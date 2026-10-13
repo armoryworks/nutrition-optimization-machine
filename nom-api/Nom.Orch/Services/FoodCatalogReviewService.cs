@@ -25,10 +25,15 @@ namespace Nom.Orch.Services
 
         private readonly ApplicationDbContext _context;
         private readonly IFoodCatalogAuditService _audit;
+        private readonly ICatalogCleanupService _cleanup;
 
-        public FoodCatalogReviewService(ApplicationDbContext context, IFoodCatalogAuditService audit)
+        public const string FdcLinkField = "fdc_link";
+        public const string FdcAttachField = "fdc_attach";
+
+        public FoodCatalogReviewService(ApplicationDbContext context, IFoodCatalogAuditService audit, ICatalogCleanupService cleanup)
         {
             _context = context;
+            _cleanup = cleanup;
             _audit = audit;
         }
 
@@ -303,7 +308,17 @@ namespace Nom.Orch.Services
             // Re-check at apply time: policy may have tightened since ingest.
             if (!ProposalPolicy.IsAllowed(p.Field, p.Source, out _)) return false;
 
-            if (p.Action == FoodProposalAction.Update && p.IngredientId.HasValue)
+            if (p.Action == FoodProposalAction.Update && p.IngredientId.HasValue
+                && string.Equals(p.Field?.Trim(), FdcLinkField, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!await ApplyFdcLinkAsync(p, reviewerPersonId)) return false;
+            }
+            else if (p.Action == FoodProposalAction.Update && p.IngredientId.HasValue
+                && string.Equals(p.Field?.Trim(), FdcAttachField, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!await ApplyFdcAttachAsync(p, reviewerPersonId)) return false;
+            }
+            else if (p.Action == FoodProposalAction.Update && p.IngredientId.HasValue)
             {
                 var ing = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == p.IngredientId.Value);
                 if (ing == null) return false;
@@ -342,6 +357,188 @@ namespace Nom.Orch.Services
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<FoodProposalBatchResult> ApplyProposalsAsync(IEnumerable<long> proposalIds, long reviewerPersonId)
+        {
+            var result = new FoodProposalBatchResult();
+            foreach (var id in proposalIds.Distinct())
+            {
+                if (await ApplyProposalAsync(id, reviewerPersonId)) result.Applied++;
+                else result.Skipped++;
+                _context.ChangeTracker.Clear();
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Links a catalog ingredient to the USDA food the proposal names. When recipes are its only
+        /// users, the ingredient is merged into the USDA food (recipes re-pointed, its name kept as an
+        /// alias so future imports land on the USDA food). Otherwise it stays and copies the USDA
+        /// food's nutrient values (source fdc:&lt;id&gt;) for the nutrients it lacks. Approving a link
+        /// also curates the USDA food, since a reviewer just looked at it.
+        /// </summary>
+        private async Task<bool> ApplyFdcLinkAsync(FoodCatalogProposalEntity p, long reviewerPersonId)
+        {
+            if (!long.TryParse(p.ProposedValue, out var targetId)) return false;
+            var source = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == p.IngredientId!.Value && !i.IsDeleted);
+            var target = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == targetId && !i.IsDeleted);
+            if (source == null || target == null || target.FdcId == null || target.FdcId != p.FdcId) return false;
+
+            target.CurationStatusId = (long)Nom.Data.Recipe.CurationStatusEnum.Curated;
+            target.LastModifiedDate = DateTime.UtcNow;
+            target.LastModifiedByPersonId = reviewerPersonId;
+            var sourceName = source.Name;
+            await _context.SaveChangesAsync();
+
+            if (await _cleanup.MergeIntoAsync(source.Id, target.Id, reviewerPersonId, ignoreProposals: true))
+            {
+                var friendly = FriendlyName(sourceName);
+                if (target.Name.Contains(',') && friendly != null
+                    && !await _context.Ingredients.AnyAsync(i => i.Id != source.Id && i.Id != target.Id && i.Name.ToLower() == friendly.ToLower()))
+                {
+                    var usdaName = target.Name;
+                    source.Name = Truncate($"{sourceName} (merged into #{target.Id})", 2000);
+                    await _context.SaveChangesAsync();
+                    target.Name = friendly;
+                    await AddAliasAsync(target.Id, usdaName, reviewerPersonId);
+                }
+                if (!string.Equals(target.Name, sourceName, StringComparison.OrdinalIgnoreCase))
+                {
+                    await AddAliasAsync(target.Id, sourceName, reviewerPersonId);
+                }
+                return true;
+            }
+
+            var have = await _context.IngredientNutrients
+                .Where(n => n.IngredientId == source.Id)
+                .Select(n => n.NutrientId)
+                .ToListAsync();
+            var copies = await _context.IngredientNutrients
+                .AsNoTracking()
+                .Where(n => n.IngredientId == target.Id && !have.Contains(n.NutrientId))
+                .ToListAsync();
+            foreach (var n in copies)
+            {
+                _context.IngredientNutrients.Add(new Nom.Data.Nutrient.IngredientNutrientEntity
+                {
+                    IngredientId = source.Id,
+                    NutrientId = n.NutrientId,
+                    Amount = n.Amount,
+                    MeasurementId = n.MeasurementId,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedByPersonId = reviewerPersonId,
+                });
+            }
+            if (source.ReferenceServingGrams == null && target.ReferenceServingGrams != null)
+            {
+                source.ReferenceServingGrams = target.ReferenceServingGrams;
+            }
+            source.GramsPerMilliliter ??= target.GramsPerMilliliter;
+            source.LastModifiedDate = DateTime.UtcNow;
+            if (_context.Database.IsRelational())
+            {
+                await _context.Database.ExecuteSqlAsync(
+                    $"""UPDATE recipe."RecipeIngredient" SET "LastModifiedDate" = now() WHERE "IngredientId" = {source.Id}""");
+            }
+            else
+            {
+                foreach (var row in await _context.RecipeIngredients.Where(ri => ri.IngredientId == source.Id).ToListAsync())
+                {
+                    row.LastModifiedDate = DateTime.UtcNow;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Gives a catalog ingredient the USDA identity and values of the same-named food the
+        /// importer found (carried in the proposal, source fdc:&lt;id&gt;). Only fills what is missing.
+        /// </summary>
+        private async Task<bool> ApplyFdcAttachAsync(FoodCatalogProposalEntity p, long reviewerPersonId)
+        {
+            var ingredient = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == p.IngredientId!.Value && !i.IsDeleted);
+            if (ingredient == null || string.IsNullOrWhiteSpace(p.ProposedValue) || string.IsNullOrWhiteSpace(p.FdcId)) return false;
+            if (ingredient.FdcId != null && ingredient.FdcId != p.FdcId) return false;
+
+            using var doc = System.Text.Json.JsonDocument.Parse(p.ProposedValue);
+            var root = doc.RootElement;
+            var have = await _context.IngredientNutrients
+                .Where(n => n.IngredientId == ingredient.Id)
+                .Select(n => n.NutrientId)
+                .ToListAsync();
+            if (root.TryGetProperty("nutrients", out var facts))
+            {
+                foreach (var f in facts.EnumerateArray())
+                {
+                    var nutrientId = f.GetProperty("nutrientId").GetInt64();
+                    if (have.Contains(nutrientId)) continue;
+                    _context.IngredientNutrients.Add(new Nom.Data.Nutrient.IngredientNutrientEntity
+                    {
+                        IngredientId = ingredient.Id,
+                        NutrientId = nutrientId,
+                        Amount = f.GetProperty("amount").GetDecimal(),
+                        MeasurementId = f.GetProperty("measurementId").GetInt64(),
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedByPersonId = reviewerPersonId,
+                    });
+                }
+            }
+
+            ingredient.FdcId ??= p.FdcId;
+            if (ingredient.FdcDataType == null && root.TryGetProperty("fdcDataType", out var dt) && dt.ValueKind == System.Text.Json.JsonValueKind.String)
+                ingredient.FdcDataType = dt.GetString();
+            if (ingredient.ReferenceServingGrams == null && root.TryGetProperty("referenceServingGrams", out var rs) && rs.ValueKind == System.Text.Json.JsonValueKind.Number)
+                ingredient.ReferenceServingGrams = rs.GetDecimal();
+            if (ingredient.GramsPerMilliliter == null && root.TryGetProperty("gramsPerMilliliter", out var gml) && gml.ValueKind == System.Text.Json.JsonValueKind.Number)
+                ingredient.GramsPerMilliliter = gml.GetDecimal();
+            ingredient.LastModifiedDate = DateTime.UtcNow;
+            ingredient.LastModifiedByPersonId = reviewerPersonId;
+
+            if (_context.Database.IsRelational())
+            {
+                await _context.Database.ExecuteSqlAsync(
+                    $"""UPDATE recipe."RecipeIngredient" SET "LastModifiedDate" = now() WHERE "IngredientId" = {ingredient.Id}""");
+            }
+            return true;
+        }
+
+        private async Task AddAliasAsync(long ingredientId, string alias, long reviewerPersonId)
+        {
+            var lowered = alias.ToLowerInvariant();
+            var exists = await _context.IngredientAliases.AnyAsync(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered && !a.IsDeleted)
+                || _context.IngredientAliases.Local.Any(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered);
+            if (exists) return;
+            _context.IngredientAliases.Add(new Nom.Data.Recipe.IngredientAliasEntity
+            {
+                IngredientId = ingredientId,
+                AliasName = alias,
+                CreatedDate = DateTime.UtcNow,
+                CreatedByPersonId = reviewerPersonId,
+            });
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex PrepWords = new(
+            @"\b(chopped|diced|minced|sliced|grated|shredded|crushed|melted|softened|divided|optional|taste|peeled|cubed|beaten|packed|drained|rinsed|halved|quartered|thinly|finely|roughly)\b",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly System.Text.RegularExpressions.Regex MeasureWords = new(
+            @"\b(a|an|the|of|or|and|for|with|to|some|few|little|one|two|three|four|five|six|seven|eight|nine|ten|twelve|dozen|half|quarter|third|pint|pints|pt|quart|quarts|qt|gallon|gallons|ounce|ounces|oz|pound|pounds|lb|lbs|gram|grams|g|kg|cup|cups|cupful|cupfuls|tablespoon|tablespoons|tablespoonful|tablespoonfuls|tbsp|teaspoon|teaspoons|teaspoonful|teaspoonfuls|tsp|spoonful|spoonfuls|gill|gills|pinch|dash|handful|slice|slices|piece|pieces|can|cans|jar|jars|package|packages|pkg|stick|sticks|clove|cloves|sprig|sprigs|bunch|bunches|head|heads|large|small|medium|very|extra|garnish|juice)\b",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        /// <summary>
+        /// The everyday name a USDA food should go by after a link ("Olive Oil" rather than
+        /// "Oil, olive, salad or cooking"), or null when the linked name is too messy to adopt.
+        /// </summary>
+        public static string? FriendlyName(string name)
+        {
+            var trimmed = name.Trim();
+            if (trimmed.Length < 2 || trimmed.Any(char.IsNumber) || trimmed.IndexOfAny(new[] { ',', '(', ')', '/', ';', ':', '.' }) >= 0) return null;
+            var words = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length > 4 || PrepWords.IsMatch(trimmed) || MeasureWords.IsMatch(trimmed)) return null;
+            return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(string.Join(' ', words).ToLowerInvariant());
+        }
+
+        private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max];
 
         public async Task<bool> RejectProposalAsync(long proposalId, long reviewerPersonId)
         {

@@ -3,6 +3,11 @@ export interface MealSplit {
   lunchPct: number;
   dinnerPct: number;
   snacksPct: number;
+  dessertPct: number;
+}
+
+export interface MealPlanOptions {
+  includeDessert: boolean;
 }
 
 export interface PortionMember {

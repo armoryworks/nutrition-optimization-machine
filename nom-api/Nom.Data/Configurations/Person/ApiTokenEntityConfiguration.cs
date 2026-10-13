@@ -12,6 +12,7 @@ public class ApiTokenEntityConfiguration : IEntityTypeConfiguration<ApiTokenEnti
 
         builder.Property(e => e.UserId).IsRequired().HasMaxLength(450);
         builder.Property(e => e.Name).IsRequired().HasMaxLength(255);
+        builder.Property(e => e.Description).HasMaxLength(500);
         builder.Property(e => e.TokenHash).IsRequired().HasMaxLength(128);
         builder.Property(e => e.IsActive).HasDefaultValue(true);
 

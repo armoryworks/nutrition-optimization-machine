@@ -4,6 +4,15 @@
   class="nom-meal-split-form"
   data-testid="meal-split-form"
 >
+  <mat-slide-toggle
+    class="nom-meal-split-form__dessert-toggle"
+    [checked]="includeDessert()"
+    (change)="onDessertToggle($event.checked)"
+    data-testid="meal-split-dessert-toggle"
+  >
+    Plan a dessert each day
+  </mat-slide-toggle>
+
   <div class="nom-meal-split-form__grid">
     @for (field of fields; track field.control) {
       <mat-form-field appearance="outline" class="nom-meal-split-form__field">
@@ -17,6 +26,20 @@
           [attr.data-testid]="field.testid"
         />
         <mat-icon matPrefix>{{ field.icon }}</mat-icon>
+      </mat-form-field>
+    }
+    @if (includeDessert()) {
+      <mat-form-field appearance="outline" class="nom-meal-split-form__field">
+        <mat-label>{{ dessertField.label }} (%)</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          max="100"
+          [formControlName]="dessertField.control"
+          [attr.data-testid]="dessertField.testid"
+        />
+        <mat-icon matPrefix>{{ dessertField.icon }}</mat-icon>
       </mat-form-field>
     }
   </div>

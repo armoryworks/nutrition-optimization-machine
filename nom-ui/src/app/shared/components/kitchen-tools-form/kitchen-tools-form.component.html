@@ -1,0 +1,54 @@
+<div class="nom-kitchen-tools-form" data-testid="kitchen-tools-form">
+  <div class="nom-kitchen-tools-form__mode">
+    <span class="nom-kitchen-tools-form__label" id="kitchen-tools-mode-label">Recipes that need a tool you don't have</span>
+    <mat-button-toggle-group
+      [value]="mode()"
+      (change)="setMode($event.value)"
+      aria-labelledby="kitchen-tools-mode-label"
+      data-testid="kitchen-tools-mode"
+    >
+      @for (m of modes; track m.value) {
+        <mat-button-toggle [value]="m.value" [attr.data-testid]="m.testid">{{ m.label }}</mat-button-toggle>
+      }
+    </mat-button-toggle-group>
+  </div>
+
+  @if (loaded()) {
+    <div class="nom-kitchen-tools-form__categories" data-testid="kitchen-tools-list">
+      @for (category of categories(); track category.name) {
+        <fieldset class="nom-kitchen-tools-form__category">
+          <legend class="nom-kitchen-tools-form__label">{{ category.name }}</legend>
+          @for (tool of category.tools; track tool.id) {
+            <mat-checkbox
+              [checked]="tool.owned"
+              (change)="toggle(tool, $event.checked)"
+              [attr.data-testid]="'kitchen-tool-' + tool.key"
+            >
+              {{ tool.name }}
+            </mat-checkbox>
+          }
+        </fieldset>
+      }
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <p class="nom-kitchen-tools-form__error" role="alert" data-testid="kitchen-tools-error">{{ errorMessage() }}</p>
+  }
+  @if (successMessage()) {
+    <p class="nom-kitchen-tools-form__success" role="status" data-testid="kitchen-tools-success">{{ successMessage() }}</p>
+  }
+
+  <div class="nom-kitchen-tools-form__actions">
+    <button
+      mat-flat-button
+      color="primary"
+      type="button"
+      (click)="onSave()"
+      [disabled]="saving() || !loaded()"
+      data-testid="kitchen-tools-save-btn"
+    >
+      {{ saving() ? 'Saving…' : 'Save Kitchen' }}
+    </button>
+  </div>
+</div>

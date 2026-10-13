@@ -1,0 +1,13 @@
+@use 'variables' as vars;
+
+.nom-image-credit {
+  margin: vars.$spacing-1 vars.$spacing-2;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  overflow-wrap: anywhere;
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+  }
+}
