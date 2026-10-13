@@ -155,7 +155,6 @@
   line-height: vars.$line-height-normal;
 }
 
-// Empty state
 .nom-nutrition-label__gap {
   margin: vars.$spacing-2 0;
   padding: vars.$spacing-2 vars.$spacing-3;
@@ -175,6 +174,7 @@
   padding-left: vars.$spacing-4;
 }
 
+// Empty state
 .nom-nutrition-label--empty {
   .nom-nutrition-label__empty-msg {
     text-align: center;
