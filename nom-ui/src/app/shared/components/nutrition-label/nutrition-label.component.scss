@@ -156,26 +156,26 @@
 }
 
 // Empty state
+.nom-nutrition-label__gap {
+  margin: vars.$spacing-2 0;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  border-left: 4px solid var(--mat-sys-error);
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  border-radius: 4px;
+}
+
+.nom-nutrition-label__gap-title {
+  margin: 0 0 vars.$spacing-1;
+  font-weight: 600;
+}
+
+.nom-nutrition-label__gap-list {
+  margin: 0;
+  padding-left: vars.$spacing-4;
+}
+
 .nom-nutrition-label--empty {
-  .nom-nutrition-label__gap {
-    margin: vars.$spacing-2 0;
-    padding: vars.$spacing-2 vars.$spacing-3;
-    border-left: 4px solid var(--mat-sys-error);
-    background: var(--mat-sys-error-container);
-    color: var(--mat-sys-on-error-container);
-    border-radius: 4px;
-  }
-
-  .nom-nutrition-label__gap-title {
-    margin: 0 0 vars.$spacing-1;
-    font-weight: 600;
-  }
-
-  .nom-nutrition-label__gap-list {
-    margin: 0;
-    padding-left: vars.$spacing-4;
-  }
-
   .nom-nutrition-label__empty-msg {
     text-align: center;
     padding: vars.$spacing-5 0;
