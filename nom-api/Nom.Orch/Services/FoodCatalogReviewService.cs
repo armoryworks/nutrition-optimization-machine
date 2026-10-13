@@ -521,6 +521,10 @@ namespace Nom.Orch.Services
             @"\b(chopped|diced|minced|sliced|grated|shredded|crushed|melted|softened|divided|optional|taste|peeled|cubed|beaten|packed|drained|rinsed|halved|quartered|thinly|finely|roughly)\b",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
+        private static readonly System.Text.RegularExpressions.Regex MeasureWords = new(
+            @"\b(a|an|the|of|or|and|for|with|to|some|few|little|one|two|three|four|five|six|seven|eight|nine|ten|twelve|dozen|half|quarter|third|pint|pints|pt|quart|quarts|qt|gallon|gallons|ounce|ounces|oz|pound|pounds|lb|lbs|gram|grams|g|kg|cup|cups|cupful|cupfuls|tablespoon|tablespoons|tablespoonful|tablespoonfuls|tbsp|teaspoon|teaspoons|teaspoonful|teaspoonfuls|tsp|spoonful|spoonfuls|gill|gills|pinch|dash|handful|slice|slices|piece|pieces|can|cans|jar|jars|package|packages|pkg|stick|sticks|clove|cloves|sprig|sprigs|bunch|bunches|head|heads|large|small|medium|very|extra|garnish|juice)\b",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
         /// <summary>
         /// The everyday name a USDA food should go by after a link ("Olive Oil" rather than
         /// "Oil, olive, salad or cooking"), or null when the linked name is too messy to adopt.
@@ -528,9 +532,9 @@ namespace Nom.Orch.Services
         public static string? FriendlyName(string name)
         {
             var trimmed = name.Trim();
-            if (trimmed.Length < 2 || trimmed.Any(char.IsDigit) || trimmed.IndexOfAny(new[] { ',', '(', ')', '/', ';', ':' }) >= 0) return null;
+            if (trimmed.Length < 2 || trimmed.Any(char.IsNumber) || trimmed.IndexOfAny(new[] { ',', '(', ')', '/', ';', ':', '.' }) >= 0) return null;
             var words = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (words.Length > 4 || PrepWords.IsMatch(trimmed)) return null;
+            if (words.Length > 4 || PrepWords.IsMatch(trimmed) || MeasureWords.IsMatch(trimmed)) return null;
             return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(string.Join(' ', words).ToLowerInvariant());
         }
 

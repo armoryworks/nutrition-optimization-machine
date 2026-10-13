@@ -435,6 +435,18 @@ namespace Nom.Api.Tests.Services
         [InlineData("diced red onion", null)]
         [InlineData("salt (or to taste", null)]
         [InlineData("2 cups flour", null)]
+        [InlineData("½ cup unsalted butter", null)]
+        [InlineData("A pint of milk", null)]
+        [InlineData("Two eggs", null)]
+        [InlineData("Yolks of raw eggs", null)]
+        [InlineData("Cupful of rice", null)]
+        [InlineData("Large carrots", null)]
+        [InlineData("Juice of one orange", null)]
+        [InlineData("Pt. of whipped cream", null)]
+        [InlineData("Rosemary for garnish", null)]
+        [InlineData("Cream of tartar", null)]
+        [InlineData("Brown Sugar", "Brown Sugar")]
+        [InlineData("green onions", "Green Onions")]
         public void Only_clean_names_are_adopted(string name, string? expected)
         {
             FoodCatalogReviewService.FriendlyName(name).Should().Be(expected);
