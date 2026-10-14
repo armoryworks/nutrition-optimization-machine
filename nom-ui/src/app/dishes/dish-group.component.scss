@@ -1,9 +1,5 @@
 @use 'variables' as vars;
 
-.nom-dishes__name {
-  text-transform: capitalize;
-}
-
 .nom-dishes__recipe-card {
   display: flex;
   flex-direction: column;

@@ -22,3 +22,15 @@ export function parseLocalDateString(value: string): Date {
   }
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 }
+
+/**
+ * Formats a YYYY-MM-DD string the way people say it ("Mon, Oct 12") in the
+ * user's locale, on the same calendar day in every timezone.
+ */
+export function formatFriendlyDate(value: string, locale?: string): string {
+  return parseLocalDateString(value).toLocaleDateString(locale, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}

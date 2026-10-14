@@ -1,4 +1,4 @@
-import { parseLocalDateString, toLocalDateString } from './local-date';
+import { formatFriendlyDate, parseLocalDateString, toLocalDateString } from './local-date';
 
 describe('toLocalDateString', () => {
   it('formats dates in local time as YYYY-MM-DD', () => {
@@ -27,5 +27,15 @@ describe('parseLocalDateString', () => {
 
   it('ignores a trailing time component', () => {
     expect(toLocalDateString(parseLocalDateString('1990-11-23T00:00:00'))).toBe('1990-11-23');
+  });
+});
+
+describe('formatFriendlyDate', () => {
+  it('turns an ISO date into a weekday and short month', () => {
+    expect(formatFriendlyDate('2026-10-12', 'en-US')).toBe('Mon, Oct 12');
+  });
+
+  it('keeps the calendar day rather than shifting to UTC', () => {
+    expect(formatFriendlyDate('2026-01-01', 'en-US')).toBe('Thu, Jan 1');
   });
 });

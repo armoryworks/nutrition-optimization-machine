@@ -18,6 +18,8 @@ export interface IngredientSubstitutionModel {
 export interface RecipeIngredientModel {
   ingredientId: number;
   name: string;
+  /** The ingredient's nutritional food group, when classified; the shopping list's aisle fallback. */
+  foodGroupName?: string | null;
   quantity: number;
   measurementId: number;
   measurement?: string;

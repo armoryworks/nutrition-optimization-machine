@@ -10,6 +10,7 @@ export const SHELF_LIFE_DEFAULTS: Record<string, number> = {
   'spices & seasonings': 365,
   'oils & vinegars': 180,
   baking: 180,
+  'nuts & dried fruit': 180,
   frozen: 90,
   beverages: 30,
   other: 90,

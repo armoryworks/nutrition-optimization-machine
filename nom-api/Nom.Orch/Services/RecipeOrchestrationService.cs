@@ -306,6 +306,9 @@ namespace Nom.Orch.Services
                         .ThenInclude(i => i!.Substitutions)
                             .ThenInclude(s => s.SubstituteIngredient)
                 .Include(r => r.RecipeIngredients)
+                    .ThenInclude(ri => ri.Ingredient)
+                        .ThenInclude(i => i!.FoodGroup)
+                .Include(r => r.RecipeIngredients)
                     .ThenInclude(ri => ri.Measurement)
                 .Include(r => r.RecipeSteps)
                 .Include(r => r.Nutrition)
@@ -384,6 +387,7 @@ namespace Nom.Orch.Services
                     Quantity = ri.Quantity,
                     MeasurementId = ri.MeasurementId,
                     Name = ri.Ingredient?.Name ?? string.Empty,
+                    FoodGroupName = ri.Ingredient?.FoodGroup?.Name,
                     Measurement = ri.Measurement?.Name ?? string.Empty,
                     Notes = ri.RawLine,
                     Grams = RoundGrams(RecipeNutritionService.GramsFor(ri)),

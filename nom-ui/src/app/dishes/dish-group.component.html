@@ -6,7 +6,7 @@
         All dishes
       </a>
       @if (group(); as g) {
-        <h1 class="nom-dashboard__title nom-dishes__name">{{ g.name }}</h1>
+        <h1 class="nom-dashboard__title" data-testid="dish-group-title">{{ g.name | dishTitle }}</h1>
         <p class="nom-dashboard__subtitle">
           {{ g.recipeCount }} {{ g.recipeCount === 1 ? 'take' : 'takes' }} on this dish
         </p>

@@ -53,6 +53,7 @@ import {
   DEPARTMENT_ICONS,
   categorizeDepartment,
 } from '../core/domain/shopping/departments';
+import { shoppingListShareData, shoppingListText } from '../core/domain/shopping/list-text';
 import { SHELF_LIFE_DEFAULTS } from '../core/domain/shopping/shelf-life';
 import {
   UnitCategory,
@@ -192,7 +193,7 @@ export class ShoppingComponent implements OnInit {
                   baseQuantity: baseQty,
                   category: info.category,
                   originalUnit: ing.measurement ?? '',
-                  department: categorizeDepartment(ing.name),
+                  department: categorizeDepartment(ing.name, ing.foodGroupName),
                   sourceRecipes: new Map([[entry.recipeId, recipe.name]]),
                 });
               }
@@ -488,10 +489,10 @@ export class ShoppingComponent implements OnInit {
       return;
     }
 
-    const title = this.exportTitle();
-    const text = this.buildListText(items);
+    const data = shoppingListShareData(this.exportTitle(), items, (item) => this.exportLine(item));
+    const text = data.text ?? '';
     if (navigator.share) {
-      navigator.share({ title, text }).catch((err: unknown) => {
+      navigator.share(data).catch((err: unknown) => {
         if ((err as DOMException)?.name !== 'AbortError') this.copyText(text);
       });
     } else {
@@ -500,16 +501,7 @@ export class ShoppingComponent implements OnInit {
   }
 
   private buildListText(items: GroceryExportItem[]): string {
-    const lines = [this.exportTitle()];
-    let category: string | undefined;
-    for (const item of items) {
-      if (item.category !== category) {
-        category = item.category;
-        lines.push('', `${category}:`);
-      }
-      lines.push(`- ${this.exportLine(item)}`);
-    }
-    return lines.join('\n');
+    return shoppingListText(this.exportTitle(), items, (item) => this.exportLine(item));
   }
 
   /** Same columns as the grocery service's CSV, so both downloads open alike. */

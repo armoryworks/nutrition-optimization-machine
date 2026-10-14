@@ -26,6 +26,7 @@ import { Footer } from './layout/footer/footer.component';
 import { Nav } from './layout/nav/nav.component';
 import { Sidebar } from './layout/sidebar/sidebar.component';
 import { LoadingOverlay } from './shared/components/loading-overlay/loading-overlay.component';
+import { makeRoomForAutocomplete } from './core/utils/autocomplete-room';
 
 @Component({
   selector: 'nom-root',
@@ -35,6 +36,7 @@ import { LoadingOverlay } from './shared/components/loading-overlay/loading-over
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '(document:keydown.escape)': 'onEscape()',
+    '(document:focusin)': 'onFocusIn($event)',
   },
 })
 export class App {
@@ -102,6 +104,11 @@ export class App {
 
   closeNav(): void {
     this.navOpen.set(false);
+  }
+
+  onFocusIn(event: FocusEvent): void {
+    const view = this.document.defaultView;
+    if (view) makeRoomForAutocomplete(event.target, view);
   }
 
   onEscape(): void {

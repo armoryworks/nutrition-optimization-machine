@@ -210,7 +210,7 @@ export class PantryComponent implements OnInit {
     this.adding.set(true);
 
     const today = new Date();
-    const dept = categorizeDepartment(ingredient.name);
+    const dept = categorizeDepartment(ingredient.name, ingredient.foodGroupName);
     const shelfLife = shelfLifeDaysFor(dept);
     const expDate = new Date(today);
     expDate.setDate(expDate.getDate() + shelfLife);

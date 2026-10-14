@@ -11,6 +11,9 @@ namespace Nom.Orch.Models.Recipe
 
         public string Name { get; set; } = string.Empty;
 
+        /// <summary>The ingredient's nutritional food group (Vegetables, Dairy, …), when classified; the shopping list falls back to it to pick an aisle.</summary>
+        public string? FoodGroupName { get; set; }
+
         /// <summary>Component names of a composite ingredient (label order); empty for plain ingredients.</summary>
         public List<string> SubIngredients { get; set; } = new();
 

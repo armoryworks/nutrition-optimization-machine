@@ -13,6 +13,7 @@
           <mat-form-field appearance="outline" class="nom-plan__household-select">
             <mat-label>Household</mat-label>
             <mat-select
+              data-testid="plan-household-select"
               [value]="activeHouseholdId()"
               (selectionChange)="onHouseholdChange($event.value)">
               @for (h of households(); track h.id) {
@@ -67,11 +68,11 @@
           }
         </mat-menu>
         <div class="nom-plan__nav" data-testid="plan-nav">
-          <button mat-icon-button (click)="navigateWeek(-1)" matTooltip="Previous week" aria-label="Previous week">
+          <button mat-icon-button (click)="navigateWeek(-1)" matTooltip="Previous week" aria-label="Previous week" data-testid="plan-prev-week-btn">
             <mat-icon>chevron_left</mat-icon>
           </button>
-          <button mat-stroked-button (click)="goToToday()" [disabled]="isCurrentWeek()">Today</button>
-          <button mat-icon-button (click)="navigateWeek(1)" matTooltip="Next week" aria-label="Next week">
+          <button mat-stroked-button (click)="goToToday()" [disabled]="isCurrentWeek()" data-testid="plan-today-btn">Today</button>
+          <button mat-icon-button (click)="navigateWeek(1)" matTooltip="Next week" aria-label="Next week" data-testid="plan-next-week-btn">
             <mat-icon>chevron_right</mat-icon>
           </button>
         </div>
@@ -132,6 +133,7 @@
                 @for (member of members(); track member.personId) {
                   <button
                     class="nom-plan__exclusion-badge"
+                    data-testid="plan-exclusion-badge"
                     [class.nom-plan__exclusion-badge--excluded]="isExcluded(day, member)"
                     [matTooltip]="isExcluded(day, member) ? member.personName + ' excluded' : member.personName"
                     (click)="toggleExclusion(day, member)">
@@ -204,6 +206,7 @@
                     </span>
                     @if (entry.recipeId && !entry.completedDate) {
                       <button class="nom-plan__cell-complete"
+                              data-testid="plan-cell-complete-btn"
                               (click)="completeMeal($event, entry)"
                               matTooltip="Mark as cooked"
                               matTooltipTouchGestures="off"
@@ -246,6 +249,33 @@
           </div>
         }
       </div>
+
+      <section class="nom-plan-print" data-testid="plan-print">
+        <h1 class="nom-plan-print__title">Meal Plan</h1>
+        <p class="nom-plan-print__week">{{ weekLabel() }}</p>
+        @for (day of printWeek(); track day.date) {
+          <section class="nom-plan-print__day" data-testid="plan-print-day">
+            <h2 class="nom-plan-print__day-name">{{ day.label }}</h2>
+            @for (meal of day.meals; track meal.mealType) {
+              <div class="nom-plan-print__meal" data-testid="plan-print-meal">
+                <span class="nom-plan-print__meal-type">{{ meal.mealType }}</span>
+                @if (meal.items.length > 0) {
+                  <ul class="nom-plan-print__items">
+                    @for (item of meal.items; track $index) {
+                      <li data-testid="plan-print-item">{{ item }}</li>
+                    }
+                  </ul>
+                } @else {
+                  <span class="nom-plan-print__items nom-plan-print__items--empty">—</span>
+                }
+                @if (meal.servings !== null && meal.items.length > 0) {
+                  <span class="nom-plan-print__servings">Serves {{ meal.servings }}</span>
+                }
+              </div>
+            }
+          </section>
+        }
+      </section>
     }
   </div>
 } @else {
@@ -270,6 +300,7 @@
       <button
         type="button"
         class="nom-plan__tab"
+        data-testid="plan-create-tab"
         [class.nom-plan__tab--active]="activeTab() === 'create'"
         (click)="activeTab.set('create')">
         <mat-icon>add_circle_outline</mat-icon>
@@ -278,6 +309,7 @@
       <button
         type="button"
         class="nom-plan__tab"
+        data-testid="plan-join-tab"
         [class.nom-plan__tab--active]="activeTab() === 'join'"
         (click)="activeTab.set('join')">
         <mat-icon>link</mat-icon>
@@ -294,7 +326,7 @@
           <div class="nom-form__fields">
             <mat-form-field appearance="outline">
               <mat-label>Plan Name</mat-label>
-              <input matInput formControlName="name" placeholder="e.g. Spring Weight Loss Plan" />
+              <input matInput formControlName="name" placeholder="e.g. Spring Weight Loss Plan" data-testid="plan-name-input" />
               @if (createForm.get('name')?.hasError('required') && createForm.get('name')?.touched) {
                 <mat-error>Plan name is required</mat-error>
               }
@@ -302,27 +334,27 @@
 
             <mat-form-field appearance="outline">
               <mat-label>Description (optional)</mat-label>
-              <textarea matInput formControlName="description" rows="3" placeholder="What's this plan about?"></textarea>
+              <textarea matInput formControlName="description" rows="3" placeholder="What's this plan about?" data-testid="plan-description-input"></textarea>
             </mat-form-field>
 
             <div class="nom-form__field-row">
               <mat-form-field appearance="outline">
                 <mat-label>Start Date</mat-label>
-                <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
+                <input matInput [matDatepicker]="startPicker" formControlName="startDate" data-testid="plan-start-date-input" />
                 <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
                 <mat-datepicker #startPicker></mat-datepicker>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
                 <mat-label>End Date (optional)</mat-label>
-                <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
+                <input matInput [matDatepicker]="endPicker" formControlName="endDate" data-testid="plan-end-date-input" />
                 <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
                 <mat-datepicker #endPicker></mat-datepicker>
               </mat-form-field>
             </div>
 
             @if (hasRestrictions()) {
-              <mat-checkbox formControlName="applyRestrictions">
+              <mat-checkbox formControlName="applyRestrictions" data-testid="plan-apply-restrictions-checkbox">
                 Apply my dietary restrictions to this plan
               </mat-checkbox>
             }
@@ -348,7 +380,7 @@
           <div class="nom-form__fields">
             <mat-form-field appearance="outline">
               <mat-label>Invitation Code</mat-label>
-              <input matInput formControlName="invitationCode" placeholder="Paste invitation code here" />
+              <input matInput formControlName="invitationCode" placeholder="Paste invitation code here" data-testid="plan-invitation-code-input" />
               <mat-icon matPrefix>link</mat-icon>
               @if (joinForm.get('invitationCode')?.hasError('required') && joinForm.get('invitationCode')?.touched) {
                 <mat-error>Invitation code is required</mat-error>
