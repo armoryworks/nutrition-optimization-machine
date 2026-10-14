@@ -85,6 +85,16 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public void A_half_portion_is_never_doubled_into_one_item()
+        {
+            var salmon = new[] { Sr(3, "oz", 85), Sr(0.5m, "fillet", 198) };
+            var turkey = new[] { Sr(0.5m, "breast, bone removed", 1132), Sr(1, "unit (yield from 1 lb ready-to-cook turkey)", 158) };
+
+            UsdaCountWeight.GramsPerCount(salmon, "Fish, salmon, Atlantic, farmed, raw").Should().BeNull();
+            UsdaCountWeight.GramsPerCount(turkey, "Turkey, all classes, breast, meat and skin, raw").Should().BeNull();
+        }
+
+        [Fact]
         public void A_graded_egg_is_large_unless_the_food_names_a_size()
         {
             var eggs = new[] { Sr(1, "extra large", 56), Sr(1, "jumbo", 63), Sr(1, "large", 50), Sr(1, "medium", 44), Sr(1, "small", 38) };

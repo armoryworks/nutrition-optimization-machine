@@ -18,7 +18,8 @@ namespace Nom.Import.Services
     /// The size the food's description names wins, then medium, then an unsized item, then large,
     /// small and the extremes; in USDA's Dairy and Egg Products category large comes first, since
     /// recipes count graded eggs as large; a single-item portion beats a multi-item one, and file order breaks
-    /// ties. A multi-item portion ("3 cloves = 9 g") is divided by its amount.
+    /// ties. A multi-item portion ("3 cloves = 9 g") is divided by its amount; a fractional one
+    /// ("0.5 fillet") is skipped, since USDA lists a half when the whole is too big to be one item.
     /// </summary>
     public static class UsdaCountWeight
     {
@@ -63,7 +64,7 @@ namespace Nom.Import.Services
 
             var best = portions
                 .Select((p, order) => (Portion: p, Order: order, Text: CountText(p, foodWords)))
-                .Where(x => x.Text != null && x.Portion.Amount > 0 && x.Portion.Grams > 0)
+                .Where(x => x.Text != null && x.Portion.Amount >= 1 && x.Portion.Grams > 0)
                 .Select(x => (x.Portion, x.Order, x.Text, Size: SizeOf(x.Text!), Grams: x.Portion.Grams / x.Portion.Amount))
                 .Where(x => x.Grams <= MaxGrams)
                 .OrderBy(x => namedSize != null && x.Size == namedSize ? 0 : 1)
