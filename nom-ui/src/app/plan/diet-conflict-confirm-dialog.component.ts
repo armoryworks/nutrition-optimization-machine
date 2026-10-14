@@ -7,11 +7,9 @@ import { DietConflictsPipe } from '../core/utils/diet-conflict';
 
 export interface DietConflictConfirmDialogData {
   recipeName: string;
-  /** Severe (allergy/medical) matches only. */
   conflicts: RecipeDietMatchModel[];
 }
 
-/** True only when the user chose "Add anyway". */
 export type DietConflictConfirmDialogResult = boolean | undefined;
 
 /**
