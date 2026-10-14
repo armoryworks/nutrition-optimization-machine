@@ -278,7 +278,9 @@ namespace Nom.Orch.Services
                 query = query.Where(p => p.Status == st);
 
             return await query
-                .OrderByDescending(p => p.Confidence)
+                .OrderBy(p => p.Source != null && p.Source.StartsWith("admin:") ? 0
+                    : p.Source != null && (p.Source.StartsWith("deterministic:") || p.Source.StartsWith("fdc:")) ? 1 : 2)
+                .ThenByDescending(p => p.Confidence)
                 .ThenBy(p => p.Id)
                 .Take(Math.Clamp(limit, 1, 1000))
                 .Select(p => new FoodProposalModel

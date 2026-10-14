@@ -498,5 +498,33 @@ namespace Nom.Api.Tests.Services
             (await new FoodCatalogReviewService(db, new NoAudit(), new FakeCleanup()).ApplyProposalAsync(proposal.Id, 1))
                 .Should().BeFalse("the proposal's FdcId must match the target it names");
         }
+
+        [Fact]
+        public async Task An_admin_entered_link_lists_ahead_of_thousands_of_model_picks()
+        {
+            using var db = NewContext();
+            for (var i = 0; i < 30; i++)
+                db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
+                {
+                    Action = FoodProposalAction.Update, Batch = IngredientLinkService.Batch, Field = FoodCatalogReviewService.FdcLinkField,
+                    IngredientId = 100 + i, Source = "ai:fake:1b", Confidence = 1.000m, Status = FoodProposalStatus.Pending,
+                });
+            db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, Batch = IngredientLinkService.Batch, Field = FoodCatalogReviewService.FdcLinkField,
+                IngredientId = 50, Source = IngredientLinkService.StapleSource, Confidence = 0.900m, Status = FoodProposalStatus.Pending,
+            });
+            db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, Batch = IngredientLinkService.Batch, Field = FoodCatalogReviewService.FdcLinkField,
+                IngredientId = 7, Source = "admin:zucchini-relink", Confidence = 1.000m, Status = FoodProposalStatus.Pending,
+            });
+            await db.SaveChangesAsync();
+
+            var listed = await new FoodCatalogReviewService(db, new NoAudit(), new FakeCleanup())
+                .GetProposalsAsync(IngredientLinkService.Batch, "Pending", 10);
+
+            listed.Select(p => p.Source).Take(2).Should().Equal("admin:zucchini-relink", IngredientLinkService.StapleSource);
+        }
     }
 }
