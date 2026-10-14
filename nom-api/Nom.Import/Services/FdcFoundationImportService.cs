@@ -315,7 +315,7 @@ namespace Nom.Import.Services
         {
             var result = new Dictionary<string, decimal>();
             foreach (var (fdc, rows) in portionRows)
-                if (UsdaCountWeight.GramsPerCount(rows, foods.TryGetValue(fdc, out var food) ? food.Description : null) is { } item)
+                if (UsdaCountWeight.GramsPerCount(rows, foods.TryGetValue(fdc, out var food) ? food.Description : null, food?.CategoryId) is { } item)
                     result[fdc] = item.Grams;
             return result;
         }

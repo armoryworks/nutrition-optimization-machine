@@ -16,12 +16,15 @@ namespace Nom.Import.Services
     /// Wholes that hold many pieces (head, bulb, bunch, loaf, pie) and fractions (slice, wedge, strip)
     /// never count, so garlic resolves to a clove rather than a bulb.
     /// The size the food's description names wins, then medium, then an unsized item, then large,
-    /// small and the extremes; a single-item portion beats a multi-item one, and file order breaks
+    /// small and the extremes; in USDA's Dairy and Egg Products category large comes first, since
+    /// recipes count graded eggs as large; a single-item portion beats a multi-item one, and file order breaks
     /// ties. A multi-item portion ("3 cloves = 9 g") is divided by its amount.
     /// </summary>
     public static class UsdaCountWeight
     {
         private const decimal MaxGrams = 5000m;
+
+        public const int DairyAndEggProducts = 1;
 
         private static readonly HashSet<string> PieceWords = new(StringComparer.Ordinal)
         {
@@ -51,8 +54,9 @@ namespace Nom.Import.Services
 
         private static readonly Regex Words = new(@"[a-z]+", RegexOptions.Compiled);
 
-        public static UsdaCountPortion? GramsPerCount(IEnumerable<UsdaPortion> portions, string? foodDescription)
+        public static UsdaCountPortion? GramsPerCount(IEnumerable<UsdaPortion> portions, string? foodDescription, int? categoryId = null)
         {
+            var graded = categoryId == DairyAndEggProducts;
             var food = (foodDescription ?? string.Empty).ToLowerInvariant();
             var foodWords = Words.Matches(food).Select(m => Singular(m.Value)).ToHashSet(StringComparer.Ordinal);
             var namedSize = SizeOf(food);
@@ -63,7 +67,7 @@ namespace Nom.Import.Services
                 .Select(x => (x.Portion, x.Order, x.Text, Size: SizeOf(x.Text!), Grams: x.Portion.Grams / x.Portion.Amount))
                 .Where(x => x.Grams <= MaxGrams)
                 .OrderBy(x => namedSize != null && x.Size == namedSize ? 0 : 1)
-                .ThenBy(x => SizeRank(x.Size))
+                .ThenBy(x => SizeRank(x.Size, graded))
                 .ThenBy(x => x.Portion.Amount == 1m ? 0 : 1)
                 .ThenBy(x => x.Order)
                 .FirstOrDefault();
@@ -104,8 +108,9 @@ namespace Nom.Import.Services
             return null;
         }
 
-        private static int SizeRank(string? size) => size switch
+        private static int SizeRank(string? size, bool graded) => size switch
         {
+            "large" when graded => -1,
             "medium" => 0,
             null => 1,
             "large" => 2,

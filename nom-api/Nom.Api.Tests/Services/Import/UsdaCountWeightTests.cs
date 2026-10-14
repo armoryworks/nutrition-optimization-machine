@@ -85,6 +85,17 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public void A_graded_egg_is_large_unless_the_food_names_a_size()
+        {
+            var eggs = new[] { Sr(1, "extra large", 56), Sr(1, "jumbo", 63), Sr(1, "large", 50), Sr(1, "medium", 44), Sr(1, "small", 38) };
+            var bananas = new[] { Sr(1, "large (8\" to 8-7/8\" long)", 136), Sr(1, "medium (7\" to 7-7/8\" long)", 118), Sr(1, "small (6\" to 6-7/8\" long)", 101) };
+
+            UsdaCountWeight.GramsPerCount(eggs, "Egg, whole, raw, fresh", UsdaCountWeight.DairyAndEggProducts)!.Grams.Should().Be(50m);
+            UsdaCountWeight.GramsPerCount(eggs, "Egg, whole, raw, fresh, medium", UsdaCountWeight.DairyAndEggProducts)!.Grams.Should().Be(44m);
+            UsdaCountWeight.GramsPerCount(bananas, "Bananas, raw", 9)!.Grams.Should().Be(118m);
+        }
+
+        [Fact]
         public void Foundation_names_the_unit_by_id_and_sizes_it_in_the_modifier()
         {
             var cantaloupe = new[]

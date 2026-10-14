@@ -44,7 +44,7 @@ namespace Nom.Import.Services
 
         public async Task<PortionBackfillReport> BackfillAsync(IReadOnlyList<string> csvDirs, bool dryRun, CancellationToken ct = default)
         {
-            var foods = new Dictionary<string, (string DataType, string Description)>();
+            var foods = new Dictionary<string, (string DataType, string Description, int? CategoryId)>();
             var portions = new Dictionary<string, List<UsdaPortion>>();
             foreach (var dir in csvDirs)
             {
@@ -101,7 +101,7 @@ namespace Nom.Import.Services
                 }
 
                 var item = sources
-                    .Select(s => (Fdc: s, Value: portions.TryGetValue(s, out var rows) ? UsdaCountWeight.GramsPerCount(rows, foods[s].Description) : null))
+                    .Select(s => (Fdc: s, Value: portions.TryGetValue(s, out var rows) ? UsdaCountWeight.GramsPerCount(rows, foods[s].Description, foods[s].CategoryId) : null))
                     .FirstOrDefault(x => x.Value != null);
                 if (item.Value is { } one)
                 {
@@ -256,19 +256,19 @@ namespace Nom.Import.Services
             await _db.SaveChangesAsync(ct);
         }
 
-        private static string Describe(string fdcId, Dictionary<string, (string DataType, string Description)> foods) =>
+        private static string Describe(string fdcId, Dictionary<string, (string DataType, string Description, int? CategoryId)> foods) =>
             $"USDA {foods[fdcId].DataType} {fdcId} '{foods[fdcId].Description}'";
 
-        private static Dictionary<string, (string DataType, string Description)> ReadFoods(string path)
+        private static Dictionary<string, (string DataType, string Description, int? CategoryId)> ReadFoods(string path)
         {
-            var result = new Dictionary<string, (string, string)>();
+            var result = new Dictionary<string, (string, string, int?)>();
             using var reader = new StreamReader(path);
             reader.ReadLine();
             string? line;
             while ((line = reader.ReadLine()) != null)
             {
                 var f = CsvLine.Split(line);
-                if (f.Length >= 3) result[f[0]] = (f[1], f[2]);
+                if (f.Length >= 3) result[f[0]] = (f[1], f[2], f.Length >= 4 && int.TryParse(f[3], out var c) ? c : null);
             }
             return result;
         }
