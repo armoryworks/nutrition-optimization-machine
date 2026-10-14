@@ -68,7 +68,9 @@ namespace Nom.Api.Tests.Services.MealPlan
             ("grain", 15m, 60m, 25m),
         };
 
-        private static async Task<ApplicationDbContext> SeedAsync(params MacroGoalEntity[] goals)
+        private static async Task<ApplicationDbContext> SeedAsync(params MacroGoalEntity[] goals) => await SeedAsync(0, goals);
+
+        private static async Task<ApplicationDbContext> SeedAsync(int unknownPerSlot, params MacroGoalEntity[] goals)
         {
             var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
@@ -119,6 +121,23 @@ namespace Nom.Api.Tests.Services.MealPlan
                     }
                 }
             }
+
+            foreach (var (mealTypeId, recipeTypeIds) in Meals)
+                foreach (var recipeTypeId in recipeTypeIds)
+                    for (var u = 0; u < unknownPerSlot; u++)
+                    {
+                        var recipe = new RecipeEntity
+                        {
+                            Id = nextId++,
+                            Name = $"unknown {mealTypeId}/{recipeTypeId} #{u}",
+                            AuthorId = PersonId,
+                            Visibility = RecipeVisibilityEnum.Public,
+                            CurationStatusId = (long)CurationStatusEnum.Curated,
+                            RecipeTypes = new List<ReferenceEntity> { types[recipeTypeId] },
+                        };
+                        db.Recipes.Add(recipe);
+                        db.Set<RecipeCategoryEntity>().Add(new RecipeCategoryEntity { RecipeId = recipe.Id, CategoryId = mealTypeId });
+                    }
 
             db.MacroGoals.AddRange(goals.Select(g => new MacroGoalEntity
             {
@@ -171,6 +190,20 @@ namespace Nom.Api.Tests.Services.MealPlan
                 "fat lands near her goal every day: " + string.Join(", ", days.Select(d => Math.Round(d.Fat))));
             days.Should().OnlyContain(d => d.Carbs >= 230m * 0.85m && d.Carbs <= 230m * 1.15m,
                 "carbs land near her goal every day: " + string.Join(", ", days.Select(d => Math.Round(d.Carbs))));
+        }
+
+        [Fact]
+        public async Task Recipes_without_nutrition_data_do_not_crowd_out_ones_that_steer_the_mix()
+        {
+            using var db = await SeedAsync(15, LizGoal);
+
+            var days = await ShuffleWeekForLizAsync(db);
+
+            var placed = await db.MealPlans.Include(m => m.Recipe).Where(m => m.RecipeId != null).ToListAsync();
+            placed.Count(m => m.Recipe!.Name.StartsWith("unknown")).Should().BeLessThan(placed.Count / 5,
+                "half the pool has no nutrition data, and an unknown plate must not outscore a known one on the mix");
+            days.Average(d => d.Fat).Should().BeLessThan(1900m * PoolMeanFatPerKcal(),
+                "the known half of the pool still steers fat below an unsteered pick");
         }
 
         [Fact]

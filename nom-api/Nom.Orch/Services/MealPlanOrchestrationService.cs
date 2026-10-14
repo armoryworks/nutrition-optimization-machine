@@ -722,12 +722,12 @@ namespace Nom.Orch.Services
                 : new Nom.Orch.Models.Plan.MealSplitModel();
             var cellPlates = new Dictionary<(DateOnly Date, long MealTypeId), Dictionary<long, decimal>>();
 
-            decimal MacroMixPenalty(DateOnly date, long mealTypeId, Dictionary<long, decimal>? candidate)
+            decimal? MacroMixPenalty(DateOnly date, long mealTypeId, Dictionary<long, decimal>? candidate)
             {
                 var share = PortionOrchestrationService.MealPct(mealSplit, mealTypeId);
-                if (share <= 0m || candidate == null) return 0m;
-                var candidateKcal = candidate.GetValueOrDefault(energyNutrientId!.Value, 0m);
-                if (candidateKcal <= 0m) return 0m;
+                if (share <= 0m) return 0m;
+                var candidateKcal = candidate?.GetValueOrDefault(energyNutrientId!.Value, 0m) ?? 0m;
+                if (candidate == null || candidateKcal <= 0m) return null;
 
                 cellPlates.TryGetValue((date, mealTypeId), out var plate);
                 var plateKcal = (plate?.GetValueOrDefault(energyNutrientId.Value, 0m) ?? 0m) + candidateKcal;
@@ -864,6 +864,11 @@ namespace Nom.Orch.Services
                     dailyTotals[slot.Date] = dayTotals;
                 }
 
+                var unknownMixPenalty = mixTargets.Count > 0
+                    ? pool.Select(c => MacroMixPenalty(slot.Date, slot.MealTypeId, recipeNutrients.GetValueOrDefault(c.Id)))
+                        .Where(p => p.HasValue).Select(p => p!.Value).DefaultIfEmpty(0m).Max()
+                    : 0m;
+
                 RecipeEntity? bestRecipe = null;
                 var bestScore = decimal.MinValue;
 
@@ -927,7 +932,7 @@ namespace Nom.Orch.Services
                     }
 
                     if (mixTargets.Count > 0)
-                        score -= MacroMixPenalty(slot.Date, slot.MealTypeId, nutrients);
+                        score -= MacroMixPenalty(slot.Date, slot.MealTypeId, nutrients) ?? unknownMixPenalty;
 
                     if (score > bestScore)
                     {
