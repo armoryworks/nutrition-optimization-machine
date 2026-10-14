@@ -284,6 +284,10 @@
         <div class="nom-search__empty" data-testid="search-empty">
           <mat-icon class="nom-search__empty-icon">search_off</mat-icon>
           <h2>No recipes found</h2>
+          @if (hideConflicts()) {
+            <p data-testid="search-empty-conflicts-note">Recipes that conflict with your restrictions are hidden.</p>
+            <button class="nom-search__retry-btn" (click)="setHideConflicts(false)" data-testid="search-empty-show-conflicts-btn">Show them</button>
+          }
           @if (clearablePills().length > 0) {
             <p>Try removing a filter.</p>
             <button class="nom-search__retry-btn" (click)="clearFilters()" data-testid="search-empty-clear-filters-btn">Clear filters</button>

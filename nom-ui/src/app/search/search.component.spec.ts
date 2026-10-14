@@ -86,6 +86,22 @@ describe('Search', () => {
     expect(el(fixture).querySelector('[data-testid="search-filter-conflicts-toggle"]')).toBeNull();
   });
 
+  it('says when the restriction filter is what left the results empty and offers to show them', () => {
+    const fixture = create(true, { q: 'bread' }, true);
+    fixture.detectChanges();
+
+    expect(el(fixture).querySelector('[data-testid="search-empty-conflicts-note"]')).not.toBeNull();
+    (el(fixture).querySelector('[data-testid="search-empty-show-conflicts-btn"]') as HTMLButtonElement).click();
+    expect(navigate.mock.calls.at(-1)![1].queryParams).toEqual(expect.objectContaining({ conflicts: 'show' }));
+  });
+
+  it('still lists popular recipes for a guest whose link carries the restriction filter', () => {
+    create(false, { conflicts: 'hide' });
+
+    expect(getPopular).toHaveBeenCalledTimes(1);
+    expect(search).not.toHaveBeenCalled();
+  });
+
   it('asks the server for the nutrient sorts', () => {
     create(false, { q: 'chicken', sort: 'protein' });
     expect(lastRequest().sortBy).toBe('protein');

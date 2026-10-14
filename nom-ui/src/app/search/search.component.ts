@@ -141,7 +141,7 @@ export class Search {
 
     const filters = this.filters();
     const loggedIn = this.isLoggedIn();
-    const effective = { ...filters, mine: filters.mine && loggedIn, kitchen: filters.kitchen && loggedIn };
+    const effective = { ...filters, mine: filters.mine && loggedIn, kitchen: filters.kitchen && loggedIn, hideConflicts: loggedIn ? filters.hideConflicts : null };
     const browsing = !loggedIn && !query.trim() && !this.ingredientId() && !hasActiveFilters(effective) && filters.sort === 'relevance';
     this.browsing.set(browsing);
 
