@@ -18,6 +18,27 @@ namespace Nom.Data.Nutrition
         decimal? FatGramsPer100g,
         bool UsedInSmallAmounts = false);
 
+    /// <summary>
+    /// Keys for the label nutrients beyond the four macros, shared by the importers and
+    /// <see cref="FoodDataQualityValidator.CheckComponent"/>. Amounts are per 100 g in the
+    /// unit FDA labels use: grams, milligrams (cholesterol, sodium, calcium, iron, potassium)
+    /// or micrograms (vitamin D).
+    /// </summary>
+    public static class FoodComponent
+    {
+        public const string SaturatedFat = "saturated_fat";
+        public const string TransFat = "trans_fat";
+        public const string Cholesterol = "cholesterol";
+        public const string Sodium = "sodium";
+        public const string Fiber = "fiber";
+        public const string Sugars = "sugars";
+        public const string AddedSugars = "added_sugars";
+        public const string VitaminD = "vitamin_d";
+        public const string Calcium = "calcium";
+        public const string Iron = "iron";
+        public const string Potassium = "potassium";
+    }
+
     /// <summary>Outcome of quality validation; <see cref="Reasons"/> lists every failed check.</summary>
     public sealed record FoodQualityResult(bool Accepted, IReadOnlyList<string> Reasons)
     {
@@ -57,6 +78,57 @@ namespace Nom.Data.Nutrition
         /// ratio is too noisy to judge; skip that check.
         /// </summary>
         public decimal AtwaterMinKcal { get; init; } = 20m;
+
+        /// <summary>
+        /// Per-100 g ceilings for the <see cref="FoodComponent"/> nutrients. Generous on purpose:
+        /// the richest real foods (table salt for sodium, cream of tartar for potassium, cod liver
+        /// oil for vitamin D) sit below them, so only mis-scaled units trip them.
+        /// </summary>
+        public IReadOnlyDictionary<string, decimal> MaxComponentPer100g { get; init; } = new Dictionary<string, decimal>
+        {
+            [FoodComponent.SaturatedFat] = 100m,
+            [FoodComponent.TransFat] = 100m,
+            [FoodComponent.Cholesterol] = 3500m,
+            [FoodComponent.Sodium] = 45000m,
+            [FoodComponent.Fiber] = 100m,
+            [FoodComponent.Sugars] = 100m,
+            [FoodComponent.AddedSugars] = 100m,
+            [FoodComponent.VitaminD] = 1000m,
+            [FoodComponent.Calcium] = 40000m,
+            [FoodComponent.Iron] = 1000m,
+            [FoodComponent.Potassium] = 20000m,
+        };
+
+        /// <summary>
+        /// A part of total fat or total carbohydrate may exceed its parent by at most this fraction
+        /// plus <see cref="ComponentSlackGrams"/>, which absorbs rounding in the source data.
+        /// </summary>
+        public decimal ComponentTolerance { get; init; } = 0.05m;
+
+        /// <summary>Grams a part may exceed its parent by on top of <see cref="ComponentTolerance"/>.</summary>
+        public decimal ComponentSlackGrams { get; init; } = 1m;
+
+        /// <summary>
+        /// Checks one label nutrient of a food whose macros already passed <see cref="Validate"/>.
+        /// Returns null when plausible, else a reason such as "sodium_impossible" or
+        /// "saturated_fat_exceeds_fat". A failed component is dropped on its own; it does not
+        /// reject the food.
+        /// </summary>
+        public string? CheckComponent(string key, decimal amount, decimal? fatGramsPer100g, decimal? carbGramsPer100g)
+        {
+            if (amount < 0) return $"{key}_negative";
+            if (MaxComponentPer100g.TryGetValue(key, out var max) && amount > max) return $"{key}_impossible";
+
+            var (parent, parentName) = key switch
+            {
+                FoodComponent.SaturatedFat or FoodComponent.TransFat => (fatGramsPer100g, "fat"),
+                FoodComponent.Fiber or FoodComponent.Sugars or FoodComponent.AddedSugars => (carbGramsPer100g, "carb"),
+                _ => ((decimal?)null, string.Empty),
+            };
+            if (parent is { } p && p >= 0 && amount > p * (1m + ComponentTolerance) + ComponentSlackGrams)
+                return $"{key}_exceeds_{parentName}";
+            return null;
+        }
 
         public FoodQualityResult Validate(FoodQualityInput f)
         {

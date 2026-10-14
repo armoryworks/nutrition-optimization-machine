@@ -203,6 +203,30 @@ swamp ingredient search and the catalog for little gain. Import a bounded, curat
 subset (`--limit`), review the pending-curation queue, and grow it as real demand
 appears (a UPC lookup path would later fetch specific products on demand).
 
+### Label nutrients + nutrient backfill — BUILT ✅
+Both FDC importers read the full FDA label set through `Nom.Import/Services/FdcNutrients.cs`
+(FDC nutrient ids verified against the 2025-12-18 `nutrient.csv`): energy (1008, else
+2048/2047), protein (1003), carbohydrate (1005), fat (1004), total sugars (2000, else
+1063), added sugars (1235), saturated fat (1258), trans fat (1257), cholesterol (1253),
+sodium (1093), dietary fibre (1079, else 2033), vitamin D (1114 µg, else 1110 IU ÷ 40),
+calcium (1087), iron (1089) and potassium (1092). Amounts are stored per 100 g in the
+seeded Nutrient row's unit (g, mg or µg); a nutrient whose row is missing or stored in a
+different unit is skipped, never converted by guesswork. Each non-macro value passes
+`FoodDataQualityValidator.CheckComponent` (per-100 g ceiling; saturated/trans fat may not
+exceed total fat, fibre/sugars may not exceed carbohydrate); a failed value is dropped on
+its own and reported, never zeroed.
+
+Foods imported before this have only the macros. `dotnet run -- --backfill-nutrients
+<csv-dir> [--dry-run]` fills the missing values onto every ingredient already linked by
+`FdcId`, from one FDC directory at a time (run it once per Foundation, SR Legacy and
+Branded directory). It only writes nutrients an ingredient has no row for, so it never
+overwrites and a rerun writes nothing; a soft-deleted row counts as present, so a value an
+admin removed is not put back. Every row one run writes carries the same `CreatedDate`,
+printed at the end of the report, so a run can be undone exactly:
+`DELETE FROM nutrient."IngredientNutrient" WHERE "CreatedDate" = '<printed stamp>';`.
+Trans fat needs its Nutrient row first: run `db/fix-trans-fat-nutrient.sql` on databases
+seeded before it existed.
+
 ### AI enrichment (food group + IsWholeFood) — BUILT ✅ (runtime pending)
 `Nom.Import/Services/FoodGroupEnrichmentService.cs` — a batch job that classifies
 ingredients: deterministic keyword classification always runs

@@ -234,7 +234,8 @@
               [servingQuantity]="recipe()!.servingQuantity"
               [servingUnit]="recipe()!.servingUnit"
               [ingredientNames]="ingredientNames()"
-              [uncounted]="uncountedIngredients()">
+              [uncounted]="uncountedIngredients()"
+              [source]="recipe()!.nutritionSource">
             </nom-nutrition-label>
           }
           @case (2) {

@@ -144,7 +144,7 @@ namespace Nom.Orch.Services
 
         private static decimal? Amount(Nom.Data.Recipe.IngredientEntity ing, string[] patterns) =>
             ing.IngredientNutrients
-                .FirstOrDefault(n => n.Nutrient != null
+                .FirstOrDefault(n => n.Nutrient != null && n.Nutrient.ParentNutrientId == null
                     && patterns.Any(p => n.Nutrient.Name.Contains(p, StringComparison.OrdinalIgnoreCase)))
                 ?.Amount;
 

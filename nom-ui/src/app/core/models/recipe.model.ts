@@ -1,6 +1,6 @@
 import { RecipeIngredientModel } from './recipe-ingredient.model';
 import { RecipeStepModel } from './recipe-step.model';
-import { RecipeNutritionModel } from './recipe-nutrition.model';
+import { RecipeNutritionModel, RecipeNutritionSource } from './recipe-nutrition.model';
 import { RecipeDishGroupRef } from './dish-group.model';
 import { RecipeImageCredit } from './recipe-image.model';
 
@@ -62,6 +62,8 @@ export interface RecipeModel {
   nutrition?: RecipeNutritionModel[];
   /** True when the label was derived from the ingredients rather than hand-authored. */
   nutritionDerived?: boolean;
+  /** Where the label's numbers come from; null when there is no label. */
+  nutritionSource?: RecipeNutritionSource | null;
   /** The caller's saved default variation, when one exists. */
   variation?: RecipeVariationItemModel[];
 }

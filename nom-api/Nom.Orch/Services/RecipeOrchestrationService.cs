@@ -316,11 +316,14 @@ namespace Nom.Orch.Services
                 return null;
 
             var lineIngredientIds = recipe.RecipeIngredients?.Select(ri => ri.IngredientId).Distinct().ToList() ?? new List<long>();
-            var withNutrients = (await _context.IngredientNutrients
+            var nutrientsByIngredient = (await _context.IngredientNutrients
                 .Where(n => lineIngredientIds.Contains(n.IngredientId))
-                .Select(n => n.IngredientId)
+                .Select(n => new { n.IngredientId, n.NutrientId })
                 .Distinct()
-                .ToListAsync()).ToHashSet();
+                .ToListAsync())
+                .GroupBy(n => n.IngredientId)
+                .ToDictionary(g => g.Key, g => g.Select(n => n.NutrientId).ToHashSet());
+            var (label, labelSource) = RecipeNutritionService.BuildLabel(recipe, nutrientsByIngredient);
 
             List<RecipeVariationItemModel>? variation = null;
             if (personId.HasValue)
@@ -384,7 +387,7 @@ namespace Nom.Orch.Services
                     Measurement = ri.Measurement?.Name ?? string.Empty,
                     Notes = ri.RawLine,
                     Grams = RoundGrams(RecipeNutritionService.GramsFor(ri)),
-                    NutritionStatus = RecipeNutritionService.StatusFor(ri, withNutrients.Contains(ri.IngredientId)),
+                    NutritionStatus = RecipeNutritionService.StatusFor(ri, nutrientsByIngredient.ContainsKey(ri.IngredientId)),
                     SubIngredients = ri.Ingredient?.Components?
                         .OrderBy(c => c.SortOrder)
                         .Select(c => c.ComponentIngredient?.Name ?? string.Empty)
@@ -409,15 +412,9 @@ namespace Nom.Orch.Services
                     Description = rs.Description ?? string.Empty,
                     Order = rs.StepNumber
                 }).OrderBy(s => s.Order).ToList() ?? new List<RecipeStepModel>(),
-                Nutrition = recipe.Nutrition?.Select(n => new RecipeNutritionSearchModel
-                {
-                    Id = n.NutrientId,
-                    NutrientName = n.Nutrient?.Name ?? string.Empty,
-                    Amount = n.Amount,
-                    Unit = n.Unit ?? string.Empty,
-                    DailyValuePercent = n.DailyValuePercentage
-                }).ToList() ?? new List<RecipeNutritionSearchModel>(),
-                NutritionDerived = recipe.Nutrition == null || recipe.Nutrition.Count == 0 || recipe.Nutrition.Any(n => n.DateCalculated != null)
+                Nutrition = label,
+                NutritionDerived = recipe.Nutrition == null || recipe.Nutrition.Count == 0 || recipe.Nutrition.Any(n => n.DateCalculated != null),
+                NutritionSource = labelSource
             };
         }
 

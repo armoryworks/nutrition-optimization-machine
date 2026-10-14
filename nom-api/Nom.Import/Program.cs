@@ -51,6 +51,8 @@ namespace Nom.Import
                 Console.WriteLine($"Attach proposals:  {report.AttachProposals} (same-name catalog ingredients offered this food's USDA values for review)");
                 foreach (var (reason, n) in report.RejectedByReason.OrderByDescending(r => r.Value))
                     Console.WriteLine($"  reject: {reason} × {n}");
+                foreach (var (reason, n) in report.DroppedValuesByReason.OrderByDescending(r => r.Value))
+                    Console.WriteLine($"  dropped value: {reason} × {n}");
                 return;
             }
 
@@ -76,6 +78,31 @@ namespace Nom.Import
                 Console.WriteLine($"Nutrient rows:      {r.NutrientRows}");
                 foreach (var (reason, n) in r.RejectedByReason.OrderByDescending(x => x.Value))
                     Console.WriteLine($"  reject: {reason} x {n}");
+                foreach (var (reason, n) in r.DroppedValuesByReason.OrderByDescending(x => x.Value))
+                    Console.WriteLine($"  dropped value: {reason} x {n}");
+                return;
+            }
+
+            var backfillFlag = Array.IndexOf(args, "--backfill-nutrients");
+            if (backfillFlag >= 0 && backfillFlag + 1 < args.Length)
+            {
+                var dryRun = args.Contains("--dry-run");
+                using var bfScope = host.Services.CreateScope();
+                var backfill = bfScope.ServiceProvider.GetRequiredService<FdcNutrientBackfillService>();
+                var r = await backfill.BackfillAsync(args[backfillFlag + 1], dryRun);
+                Console.WriteLine($"\n=== FDC nutrient backfill report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
+                Console.WriteLine($"FDC-linked ingredients: {r.LinkedIngredients}");
+                Console.WriteLine($"Found in this file:     {r.MatchedInFile}");
+                Console.WriteLine($"Ingredients filled:     {r.IngredientsFilled}");
+                Console.WriteLine($"Nutrient rows:          {r.Rows} (only nutrients the ingredient had no value for)");
+                foreach (var (key, n) in r.RowsByNutrient.OrderByDescending(x => x.Value))
+                    Console.WriteLine($"  {key}: {n}");
+                foreach (var (reason, n) in r.DroppedValuesByReason.OrderByDescending(x => x.Value))
+                    Console.WriteLine($"  dropped value: {reason} x {n}");
+                if (!dryRun && r.Rows > 0)
+                    Console.WriteLine($"Rows stamped CreatedDate = {r.RunStamp:O}");
+                if (r.UnresolvedNutrients.Count > 0)
+                    Console.WriteLine($"No Nutrient row for (skipped): {string.Join(", ", r.UnresolvedNutrients)}");
                 return;
             }
 
@@ -221,6 +248,7 @@ namespace Nom.Import
                     services.AddScoped<FdcFoundationImportService>();
                     services.AddScoped<FdcBrandedImportService>();
                     services.AddScoped<FdcPortionBackfillService>();
+                    services.AddScoped<FdcNutrientBackfillService>();
 
                     services.AddScoped<FoodGroupEnrichmentService>(sp => new FoodGroupEnrichmentService(
                         sp.GetRequiredService<ApplicationDbContext>(),

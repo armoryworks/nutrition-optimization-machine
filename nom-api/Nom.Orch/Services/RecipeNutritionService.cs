@@ -8,6 +8,7 @@ using Nom.Data;
 using Nom.Data.Measurement;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
+using Nom.Orch.Models.Recipe;
 
 namespace Nom.Orch.Services
 {
@@ -127,6 +128,57 @@ namespace Nom.Orch.Services
             await _db.SaveChangesAsync();
             _logger.LogInformation("Recipe {RecipeId}: derived {Count} nutrient rows from {Ingredients} ingredient(s)", recipeId, totals.Count, contributed);
             return totals.Count;
+        }
+
+        /// <summary>
+        /// The recipe's label rows as shown, plus where they come from. On a derived label a nutrient
+        /// is <c>Partial</c> when some counted line's food has no value for it, so its total is a
+        /// minimum; %DV (<see cref="FdaDailyValues"/>) is given only for a nutrient whose total is
+        /// complete, and not at all while a measured ingredient line goes uncounted.
+        /// <paramref name="nutrientsByIngredient"/> maps each line's ingredient to the nutrient ids it has.
+        /// </summary>
+        public static (List<RecipeNutritionSearchModel> Rows, RecipeNutritionSourceModel? Source) BuildLabel(
+            RecipeEntity recipe, IReadOnlyDictionary<long, HashSet<long>> nutrientsByIngredient)
+        {
+            var stored = recipe.Nutrition?.ToList() ?? new List<RecipeNutritionEntity>();
+            if (stored.Count == 0) return (new List<RecipeNutritionSearchModel>(), null);
+
+            var derived = stored.Any(n => n.DateCalculated != null);
+            var lines = recipe.RecipeIngredients?.ToList() ?? new List<RecipeIngredientEntity>();
+            var statuses = lines.Select(ri => (Line: ri, Status: StatusFor(ri, nutrientsByIngredient.ContainsKey(ri.IngredientId)))).ToList();
+            var counted = statuses.Where(x => x.Status == NutritionLineStatus.Counted).Select(x => x.Line).ToList();
+            var anyUncounted = statuses.Any(x => x.Status is NutritionLineStatus.NoData or NutritionLineStatus.NoConversion);
+
+            var rows = stored.Select(n =>
+            {
+                var partial = derived && counted.Any(ri =>
+                    !nutrientsByIngredient.TryGetValue(ri.IngredientId, out var has) || !has.Contains(n.NutrientId));
+                var name = n.Nutrient?.Name ?? string.Empty;
+                return new RecipeNutritionSearchModel
+                {
+                    Id = n.NutrientId,
+                    NutrientName = name,
+                    Amount = n.Amount,
+                    Unit = n.Unit ?? string.Empty,
+                    Partial = partial,
+                    DailyValuePercent = partial || (derived && anyUncounted)
+                        ? null
+                        : n.DailyValuePercentage ?? FdaDailyValues.PercentOf(name, n.Amount, n.Unit),
+                };
+            }).ToList();
+
+            if (!derived)
+                return (rows, new RecipeNutritionSourceModel { Kind = "recipe" });
+            if (counted.Count == 0)
+                return (rows, null);
+
+            var usda = counted.Count(ri => !string.IsNullOrEmpty(ri.Ingredient?.FdcId));
+            return (rows, new RecipeNutritionSourceModel
+            {
+                Kind = usda == 0 ? "catalog" : usda == counted.Count ? "usda" : "mixed",
+                UsdaLines = usda,
+                CountedLines = counted.Count,
+            });
         }
 
         public static decimal? GramsFor(RecipeIngredientEntity ri) => GramsFor(ri.Quantity, ri.Measurement, ri.Ingredient);

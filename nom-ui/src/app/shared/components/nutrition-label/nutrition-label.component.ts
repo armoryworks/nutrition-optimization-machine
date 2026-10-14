@@ -1,12 +1,13 @@
 import { Component, computed, input, signal, ChangeDetectionStrategy } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { RecipeNutritionModel } from '../../../core/models/recipe-nutrition.model';
+import { RecipeNutritionModel, RecipeNutritionSource } from '../../../core/models/recipe-nutrition.model';
 
 interface NutrientDisplayRow {
   displayName: string;
   amount: number;
   unit: string;
-  dailyValuePercent?: number;
+  dailyValuePercent?: number | null;
+  partial: boolean;
   isChild: boolean;
   bold: boolean;
 }
@@ -40,6 +41,8 @@ const FDA_NUTRIENT_ORDER: NutrientDisplayConfig[] = [
   { names: ['potassium, k', 'potassium'], displayName: 'Potassium', isChild: false, isMacro: false },
 ];
 
+const KNOWN_NUTRIENT_NAMES = new Set(FDA_NUTRIENT_ORDER.flatMap(c => c.names));
+
 @Component({
   selector: 'nom-nutrition-label',
   imports: [DecimalPipe],
@@ -55,6 +58,8 @@ export class NutritionLabel {
   ingredientNames = input<string[]>([]);
   /** Measured ingredient lines the derived label could not count, so the totals are low. */
   uncounted = input<UncountedIngredient[]>([]);
+  /** Where the label's numbers come from, for the attribution line. */
+  source = input<RecipeNutritionSource | null | undefined>(null);
 
   /** Mutually exclusive label views: standard facts, ingredients, vitamins/minerals. */
   view = signal<'facts' | 'ingredients' | 'micros'>('facts');
@@ -82,6 +87,26 @@ export class NutritionLabel {
   macroNutrients = computed(() => this.buildRows(true));
   microNutrients = computed(() => this.buildRows(false));
 
+  /** True when a shown nutrient is a minimum because some counted ingredients lack it. */
+  hasPartial = computed(() => this.calories()?.partial === true
+    || [...this.macroNutrients(), ...this.microNutrients()].some(r => r.partial));
+
+  sourceText = computed(() => {
+    const s = this.source();
+    switch (s?.kind) {
+      case 'usda':
+        return 'Nutrition based on USDA FoodData Central: every counted ingredient is linked to a USDA food.';
+      case 'mixed':
+        return `Nutrition based on USDA FoodData Central for ${s.usdaLines} of ${s.countedLines} counted ingredients; the rest from NOM's own ingredient data.`;
+      case 'catalog':
+        return "Nutrition from NOM's own ingredient data, not linked to USDA FoodData Central.";
+      case 'recipe':
+        return 'Nutrition as entered with this recipe.';
+      default:
+        return '';
+    }
+  });
+
   private buildRows(macro: boolean): NutrientDisplayRow[] {
     const data = this.nutrition();
     const rows: NutrientDisplayRow[] = [];
@@ -96,6 +121,7 @@ export class NutritionLabel {
           amount: match.amount,
           unit: match.unit,
           dailyValuePercent: match.dailyValuePercent,
+          partial: match.partial === true,
           isChild: config.isChild,
           bold: !config.isChild,
         });
@@ -107,9 +133,10 @@ export class NutritionLabel {
 
   private findNutrient(data: RecipeNutritionModel[], names: string[]): RecipeNutritionModel | undefined {
     const lowerNames = names.map(n => n.toLowerCase());
-    return data.find(n => {
-      const name = n.nutrientName.toLowerCase();
-      return lowerNames.some(ln => name === ln || name.includes(ln));
-    });
+    return data.find(n => lowerNames.includes(n.nutrientName.toLowerCase()))
+      ?? data.find(n => {
+        const name = n.nutrientName.toLowerCase();
+        return !KNOWN_NUTRIENT_NAMES.has(name) && lowerNames.some(ln => name.includes(ln));
+      });
   }
 }

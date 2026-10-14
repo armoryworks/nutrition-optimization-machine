@@ -9,5 +9,6 @@ namespace Nom.Orch.Models.Recipe
         public decimal Amount { get; set; }
         public string Unit { get; set; } = string.Empty;
         public decimal? DailyValuePercent { get; set; }
+        public bool Partial { get; set; }
     }
 } 
