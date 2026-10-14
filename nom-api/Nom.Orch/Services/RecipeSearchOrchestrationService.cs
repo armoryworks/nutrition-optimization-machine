@@ -13,6 +13,9 @@ namespace Nom.Orch.Services
 {
     public class RecipeSearchOrchestrationService : IRecipeSearchOrchestrationService
     {
+        private const string ProteinNutrientName = "Protein";
+        private const string CaloriesNutrientName = "Calories";
+
         private readonly ApplicationDbContext _context;
         private readonly ILogger<RecipeSearchOrchestrationService> _logger;
 
@@ -34,6 +37,18 @@ namespace Nom.Orch.Services
             if (searchModel.CookableForHouseholdId is long householdId)
             {
                 query = await RestrictToCookableAsync(query, householdId);
+            }
+
+            var dietConflictsHidden = false;
+            if (searchModel.RequesterPersonId is long requesterId && searchModel.HideDietConflicts != false)
+            {
+                var severe = await new HouseholdRestrictionResolver(_context).ResolveSevereForPersonAsync(requesterId);
+                dietConflictsHidden = searchModel.HideDietConflicts == true || severe.HasSevere;
+                if (dietConflictsHidden && severe.IngredientIds.Count > 0)
+                {
+                    var forbidden = severe.IngredientIds.ToList();
+                    query = query.Where(r => !r.RecipeIngredients!.Any(ri => forbidden.Contains(ri.IngredientId)));
+                }
             }
 
             // Apply sorting
@@ -59,7 +74,8 @@ namespace Nom.Orch.Services
                 TotalCount = totalCount,
                 PageNumber = searchModel.Page,
                 PageSize = searchModel.PageSize,
-                TotalPages = (int)Math.Ceiling((double)totalCount / searchModel.PageSize)
+                TotalPages = (int)Math.Ceiling((double)totalCount / searchModel.PageSize),
+                DietConflictsHidden = dietConflictsHidden
             };
         }
 
@@ -526,7 +542,7 @@ namespace Nom.Orch.Services
             return query;
         }
 
-        private static IQueryable<RecipeEntity> ApplySorting(IQueryable<RecipeEntity> query, RecipeSearchModel searchModel)
+        internal static IQueryable<RecipeEntity> ApplySorting(IQueryable<RecipeEntity> query, RecipeSearchModel searchModel)
         {
             var isDescending = searchModel.SortDirection?.ToLower() == "desc";
 
@@ -543,6 +559,8 @@ namespace Nom.Orch.Services
                 "ingredients" => query
                     .OrderBy(r => r.RecipeIngredients!.Any() ? 0 : 1)
                     .ThenBy(r => r.RecipeIngredients!.Count),
+                "protein" => SortByNutrient(query, ProteinNutrientName, mostFirst: true),
+                "calories" => SortByNutrient(query, CaloriesNutrientName, mostFirst: false),
                 "preptime" => isDescending ? query.OrderByDescending(r => r.PrepTimeMinutes) : query.OrderBy(r => r.PrepTimeMinutes),
                 "cooktime" => isDescending ? query.OrderByDescending(r => r.CookTimeMinutes) : query.OrderBy(r => r.CookTimeMinutes),
                 _ => query.OrderByDescending(r => r.CreatedDate) // Default sort
@@ -566,6 +584,25 @@ namespace Nom.Orch.Services
             return ranked
                 .ThenByDescending(r => r.Ratings!.Average(rating => (decimal?)rating.Rating) ?? 0)
                 .ThenByDescending(r => r.CreatedDate);
+        }
+
+        /// <summary>
+        /// Orders by a per-serving nutrient, recipes whose label is complete first: a hand-authored
+        /// label, or a derived one that counts every measured ingredient. A label missing an
+        /// ingredient reads low, so it must not top "most protein" or "fewest calories".
+        /// </summary>
+        private static IOrderedQueryable<RecipeEntity> SortByNutrient(IQueryable<RecipeEntity> query, string nutrientName, bool mostFirst)
+        {
+            var completeFirst = query.OrderBy(r =>
+                r.Nutrition!.Any(n => n.Nutrient!.Name == nutrientName)
+                && (r.Nutrition!.Any(n => n.DateCalculated == null)
+                    || !r.RecipeIngredients!.AsQueryable().Any(RecipeNutritionService.IsUncountedLine))
+                    ? 0 : 1);
+            return mostFirst
+                ? completeFirst.ThenByDescending(r => r.Nutrition!
+                    .Where(n => n.Nutrient!.Name == nutrientName).Max(n => (decimal?)n.Amount) ?? -1m)
+                : completeFirst.ThenBy(r => r.Nutrition!
+                    .Where(n => n.Nutrient!.Name == nutrientName).Min(n => (decimal?)n.Amount) ?? decimal.MaxValue);
         }
 
         private static IOrderedQueryable<RecipeEntity> SortByRating(IQueryable<RecipeEntity> query, bool isDescending)

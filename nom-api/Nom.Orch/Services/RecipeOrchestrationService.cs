@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using Nom.Data;
 using Nom.Data.Recipe;
@@ -10,6 +11,7 @@ using Nom.Orch.UtilityServices;
 using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Orch.Services
 {
@@ -40,6 +42,8 @@ namespace Nom.Orch.Services
 
         private long? GetCurrentPersonId() => _currentUser.PersonId;
 
+        private const int MaxIngredientResults = 20;
+        private const int MaxExactKept = 3;
         private const string QuantityLeadChars = "&0123456789\u00bd\u2153\u2154\u00bc\u00be\u215b\u215c\u215d\u215e";
         private const string QuantityWordPattern =
             "^((a|an|one|two|three|half)( |-)){0,2}(pint|quart|gallon|cup|can|jar|package|pkg|box|bag|bunch|slice|pound|ounce|oz|lb|tbsp|tsp|tablespoon|teaspoon)s? of ";
@@ -50,47 +54,118 @@ namespace Nom.Orch.Services
                 return new List<IngredientSearchResponseModel>();
 
             var searchTerm = query.ToLower().Trim();
-            var personId = GetCurrentPersonId();
+            var stems = IngredientSearchTerms.Stems(searchTerm);
+            if (stems.Count == 0)
+                return new List<IngredientSearchResponseModel>();
 
-            return await _context.Ingredients
+            var personId = GetCurrentPersonId();
+            var matchedIds = MatchingIngredientIds(stems);
+            var startsWithWord = IngredientSearchTerms.LeadingWordPattern(stems);
+
+            var candidates = _context.Ingredients
+                .Where(i => matchedIds.Contains(i.Id))
                 .Where(i => i.CurationStatusId == (long)CurationStatusEnum.Curated ||
                             (personId != null && (i.AuthorId == personId || i.CreatedByPersonId == personId)) ||
                             (i.CurationStatusId == (long)CurationStatusEnum.NonCurated && i.Name.ToLower() == searchTerm))
-                .Where(i => i.Name.ToLower().Contains(searchTerm) ||
-                            (i.NameNormalized != null && i.NameNormalized.ToLower().Contains(searchTerm)) ||
-                            i.Aliases.Any(a => a.AliasName.ToLower().Contains(searchTerm)))
                 // Import residue like "1 can black beans" or "a pint of black
                 // beans" is not an ingredient a user should pick; hide
                 // quantity-prefixed names from search.
                 .Where(i => !QuantityLeadChars.Contains(i.Name.Substring(0, 1)))
-                .Where(i => !Regex.IsMatch(i.Name, QuantityWordPattern, RegexOptions.IgnoreCase))
-                // Rank name-prefix, then word-boundary matches above bare
-                // substrings ("oats" should not lead with "goats milk").
-                .OrderByDescending(i => i.Name.ToLower() == searchTerm)
+                .Where(i => !Regex.IsMatch(i.Name, QuantityWordPattern, RegexOptions.IgnoreCase));
+            Expression<Func<IngredientEntity, bool>> isExact = i =>
+                i.Name.ToLower() == searchTerm ||
+                (i.NameNormalized != null && i.NameNormalized.ToLower() == searchTerm) ||
+                i.Aliases.Any(a => a.AliasName.ToLower() == searchTerm);
+
+            var rows = await Project(candidates
+                .OrderByDescending(i => i.IngredientNutrients.Any())
+                .ThenByDescending(isExact)
                 .ThenByDescending(i => i.Name.ToLower().StartsWith(searchTerm))
+                .ThenByDescending(i => Regex.IsMatch(i.Name, startsWithWord, RegexOptions.IgnoreCase))
                 .ThenByDescending(i => i.Name.ToLower().Contains(" " + searchTerm))
                 .ThenByDescending(i => i.CurationStatusId == (long)CurationStatusEnum.Curated)
-                .ThenByDescending(i => i.IsWholeFood == true) // then directly-edible whole foods
-                .ThenBy(i => i.Name.Length) // then shorter names (exact matches)
+                .ThenByDescending(i => i.Name.ToLower().Contains(", raw"))
+                .ThenByDescending(i => i.IsWholeFood == true)
+                .ThenBy(i => i.Name.Length - i.Name.Replace(",", "").Length)
+                .ThenBy(i => i.Name.Length)
                 .ThenBy(i => i.Name)
-                .Take(20) // Limit results for performance
-                .Select(i => new IngredientSearchResponseModel
+                .Take(MaxIngredientResults))
+                .ToListAsync();
+
+            var shownIds = rows.Select(r => r.Result.Id).ToList();
+            var missingExact = await Project(candidates
+                .Where(isExact)
+                .Where(i => !shownIds.Contains(i.Id))
+                .OrderByDescending(i => i.CurationStatusId == (long)CurationStatusEnum.Curated)
+                .ThenBy(i => i.Name)
+                .Take(MaxExactKept))
+                .ToListAsync();
+            if (missingExact.Count > 0)
+                rows = rows.Take(MaxIngredientResults - missingExact.Count).Concat(missingExact).ToList();
+
+            foreach (var row in rows)
+            {
+                row.Result.MatchedAlias = row.Aliases
+                    .FirstOrDefault(a => stems.All(s => a.ToLowerInvariant().Contains(s)));
+            }
+            return rows.Select(r => r.Result).ToList();
+        }
+
+        private sealed class IngredientSearchRow
+        {
+            public IngredientSearchResponseModel Result { get; init; } = new();
+            public List<string> Aliases { get; init; } = new();
+        }
+
+        private static IQueryable<IngredientSearchRow> Project(IQueryable<IngredientEntity> ingredients) =>
+            ingredients.Select(i => new IngredientSearchRow
+            {
+                Result = new IngredientSearchResponseModel
                 {
                     Id = i.Id,
                     Name = i.Name,
                     FdcId = i.FdcId,
-                    MatchedAlias = i.Aliases
-                        .Where(a => a.AliasName.ToLower().Contains(searchTerm))
-                        .Select(a => a.AliasName)
-                        .FirstOrDefault(),
                     FoodGroupId = i.FoodGroupId,
                     FoodGroupName = i.FoodGroup != null ? i.FoodGroup.Name : null,
                     IsWholeFood = i.IsWholeFood,
                     HasNutrition = i.IngredientNutrients.Any(),
                     CanWeighVolume = i.GramsPerMilliliter > 0,
                     CanWeighCount = i.GramsPerItem > 0 || i.ReferenceServingGrams > 0
-                })
-                .ToListAsync();
+                },
+                Aliases = i.Aliases.Select(a => a.AliasName).ToList()
+            });
+
+        /// <summary>
+        /// Ids of ingredients whose name, normalized name or one alias contains every stem.
+        /// On Postgres each probe is a chain of ILIKEs on one column so the trigram indexes in
+        /// db/custom-objects.sql serve it; the in-memory test provider compares lower-cased text.
+        /// </summary>
+        private IQueryable<long> MatchingIngredientIds(IReadOnlyList<string> stems)
+        {
+            var relational = _context.Database.IsRelational();
+            var byName = _context.Ingredients.AsQueryable();
+            var byNormalized = _context.Ingredients.Where(i => i.NameNormalized != null);
+            var byAlias = _context.Set<IngredientAliasEntity>().AsQueryable();
+            foreach (var stem in stems)
+            {
+                var pattern = "%" + stem + "%";
+                if (relational)
+                {
+                    byName = byName.Where(i => EF.Functions.ILike(i.Name, pattern));
+                    byNormalized = byNormalized.Where(i => EF.Functions.ILike(i.NameNormalized!, pattern));
+                    byAlias = byAlias.Where(a => EF.Functions.ILike(a.AliasName, pattern));
+                }
+                else
+                {
+                    byName = byName.Where(i => i.Name.ToLower().Contains(stem));
+                    byNormalized = byNormalized.Where(i => i.NameNormalized!.ToLower().Contains(stem));
+                    byAlias = byAlias.Where(a => a.AliasName.ToLower().Contains(stem));
+                }
+            }
+
+            return byName.Select(i => i.Id)
+                .Union(byNormalized.Select(i => i.Id))
+                .Union(byAlias.Select(a => a.IngredientId));
         }
 
         private async Task<List<NutrientValueModel>> GetIngredientNutrientsAsync(long ingredientId)

@@ -92,6 +92,56 @@ namespace Nom.Orch.Services.Support
             return result;
         }
 
+        /// <summary>
+        /// What one person's own active restrictions forbid at severity ≥ 4 (allergy/medical): the
+        /// rule that marks a recipe as a severe diet conflict for them (a direct ingredient restriction
+        /// counts by its own severity, a category by its criteria's). <see cref="RestrictedIngredientSet.HasSevere"/>
+        /// is true when any such restriction applies, even before its criteria match an ingredient.
+        /// </summary>
+        public async Task<RestrictedIngredientSet> ResolveSevereForPersonAsync(long personId)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var restrictions = await _db.Restrictions
+                .Where(r => r.PersonId == personId
+                         && (r.BeginDate == null || r.BeginDate <= today)
+                         && (r.EndDate == null || r.EndDate >= today))
+                .Select(r => new { r.IngredientId, r.RestrictionTypeId, r.Severity })
+                .ToListAsync();
+            if (restrictions.Count == 0) return RestrictedIngredientSet.Empty;
+
+            var result = new RestrictedIngredientSet();
+            foreach (var r in restrictions.Where(r => r.IngredientId != null && (r.Severity ?? 0) >= 4))
+            {
+                result.IngredientIds.Add(r.IngredientId!.Value);
+                result.HasSevere = true;
+            }
+
+            var typeIds = restrictions.Where(r => r.RestrictionTypeId != null).Select(r => r.RestrictionTypeId!.Value).Distinct().ToList();
+            if (typeIds.Count == 0) return result;
+
+            var criteria = await _db.Set<RestrictionCriterionEntity>()
+                .Where(c => typeIds.Contains(c.RestrictionTypeId) && c.Severity >= 4)
+                .Select(c => new { c.IngredientId, c.IngredientPattern })
+                .ToListAsync();
+            if (criteria.Count == 0) return result;
+
+            result.HasSevere = true;
+            foreach (var c in criteria.Where(c => c.IngredientId != null))
+                result.IngredientIds.Add(c.IngredientId!.Value);
+
+            var patterns = criteria
+                .Where(c => !string.IsNullOrWhiteSpace(c.IngredientPattern))
+                .Select(c => c.IngredientPattern!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (patterns.Count == 0) return result;
+
+            foreach (var id in await MatchIngredientsAsync(patterns))
+                result.IngredientIds.Add(id);
+
+            return result;
+        }
+
         /// <summary>Ingredient ids whose name or any alias matches one of the SQL LIKE patterns (case-insensitive).</summary>
         private async Task<List<long>> MatchIngredientsAsync(List<string> patterns)
         {

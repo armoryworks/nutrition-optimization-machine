@@ -1,7 +1,7 @@
 import { Params } from '@angular/router';
 import { RecipeSearchFilterOptions } from '../core/models/recipe-search-filter-options.model';
 
-export type SearchSort = 'relevance' | 'rating' | 'newest' | 'quickest' | 'ingredients' | 'name';
+export type SearchSort = 'relevance' | 'rating' | 'newest' | 'quickest' | 'ingredients' | 'protein' | 'calories' | 'name';
 
 export interface SearchFilters {
   mealTypeIds: number[];
@@ -11,10 +11,11 @@ export interface SearchFilters {
   minRating: number | null;
   kitchen: boolean;
   mine: boolean;
+  hideConflicts: boolean | null;
   sort: SearchSort;
 }
 
-export type SearchFilterKind = 'meal' | 'course' | 'tool' | 'maxTime' | 'minRating' | 'kitchen' | 'mine';
+export type SearchFilterKind = 'meal' | 'course' | 'tool' | 'maxTime' | 'minRating' | 'kitchen' | 'mine' | 'conflicts';
 
 export interface SearchFilterPill {
   kind: SearchFilterKind;
@@ -28,6 +29,8 @@ export const SORT_OPTIONS: readonly { value: SearchSort; label: string; sortBy: 
   { value: 'newest', label: 'Newest', sortBy: 'newest' },
   { value: 'quickest', label: 'Quickest', sortBy: 'quickest' },
   { value: 'ingredients', label: 'Fewest ingredients', sortBy: 'ingredients' },
+  { value: 'protein', label: 'Most protein', sortBy: 'protein' },
+  { value: 'calories', label: 'Fewest calories', sortBy: 'calories' },
   { value: 'name', label: 'Name A–Z', sortBy: 'name', sortDirection: 'asc' },
 ];
 
@@ -42,10 +45,11 @@ export const EMPTY_FILTERS: SearchFilters = {
   minRating: null,
   kitchen: false,
   mine: false,
+  hideConflicts: null,
   sort: 'relevance',
 };
 
-const FILTER_PARAM_KEYS = ['meal', 'course', 'tool', 'maxTime', 'minRating', 'kitchen', 'mine', 'sort'] as const;
+const FILTER_PARAM_KEYS = ['meal', 'course', 'tool', 'maxTime', 'minRating', 'kitchen', 'mine', 'conflicts', 'sort'] as const;
 
 function parseIds(value: unknown): number[] {
   if (typeof value !== 'string' || !value) return [];
@@ -67,6 +71,7 @@ export function parseSearchFilters(params: Params | undefined): SearchFilters {
     minRating: parsePositive(params?.['minRating']),
     kitchen: params?.['kitchen'] === '1' || params?.['kitchen'] === 'true',
     mine: params?.['mine'] === '1' || params?.['mine'] === 'true',
+    hideConflicts: params?.['conflicts'] === 'hide' ? true : params?.['conflicts'] === 'show' ? false : null,
     sort: SORT_OPTIONS.some((o) => o.value === sort) ? (sort as SearchSort) : 'relevance',
   };
 }
@@ -81,6 +86,7 @@ export function filtersToParams(filters: SearchFilters): Params {
     minRating: filters.minRating,
     kitchen: filters.kitchen ? 1 : null,
     mine: filters.mine ? 1 : null,
+    conflicts: filters.hideConflicts === null ? null : filters.hideConflicts ? 'hide' : 'show',
     sort: filters.sort === 'relevance' ? null : filters.sort,
   };
 }
@@ -99,7 +105,8 @@ export function hasActiveFilters(filters: SearchFilters): boolean {
     filters.maxTime !== null ||
     filters.minRating !== null ||
     filters.kitchen ||
-    filters.mine
+    filters.mine ||
+    filters.hideConflicts === true
   );
 }
 
@@ -120,6 +127,8 @@ export function removeFilter(filters: SearchFilters, pill: SearchFilterPill): Se
       return { ...filters, kitchen: false };
     case 'mine':
       return { ...filters, mine: false };
+    case 'conflicts':
+      return { ...filters, hideConflicts: false };
   }
 }
 
@@ -139,5 +148,6 @@ export function filterPills(filters: SearchFilters, options: RecipeSearchFilterO
     ...(filters.minRating !== null ? [{ kind: 'minRating' as const, label: `${filters.minRating}+ stars` }] : []),
     ...(filters.kitchen ? [{ kind: 'kitchen' as const, label: 'My kitchen can make' }] : []),
     ...(filters.mine ? [{ kind: 'mine' as const, label: 'My recipes' }] : []),
+    ...(filters.hideConflicts ? [{ kind: 'conflicts' as const, label: 'Hiding conflicts with my restrictions' }] : []),
   ];
 }

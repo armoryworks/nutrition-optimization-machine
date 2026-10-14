@@ -93,6 +93,7 @@ export class RecipeSearchDialog implements OnInit {
           query,
           page: 1,
           pageSize: 10,
+          hideDietConflicts: false,
           includeIngredients: false,
           includeSteps: false,
           includeNutrition: false,

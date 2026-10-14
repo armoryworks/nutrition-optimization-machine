@@ -31,8 +31,14 @@ namespace Nom.Orch.Models.Recipe
         public bool? IsPublic { get; set; }
         public bool? IsApproved { get; set; }
         public bool? MineOnly { get; set; }
+
+        /// <summary>
+        /// Leave out recipes that conflict with the requester's allergy/medical restrictions.
+        /// Null = on exactly when the requester has such a restriction; ignored for anonymous callers.
+        /// </summary>
+        public bool? HideDietConflicts { get; set; }
         
-        public string? SortBy { get; set; } // "relevance", "name", "rating", "date", "newest", "quickest", "ingredients", "prepTime", "cookTime"
+        public string? SortBy { get; set; } // "relevance", "name", "rating", "date", "newest", "quickest", "ingredients", "protein", "calories", "prepTime", "cookTime"
         public string? SortDirection { get; set; } // "asc", "desc"
         
         public int Page { get; set; } = 1;

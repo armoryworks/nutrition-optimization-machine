@@ -1,14 +1,18 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Nom.Data;
+using Nom.Data.Nutrient;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Services;
+using Nom.Orch.Services.Support;
 using Xunit;
 
 namespace Nom.Api.Tests.Services.Recipe
@@ -16,6 +20,8 @@ namespace Nom.Api.Tests.Services.Recipe
     /// <summary>
     /// The ingredient picker offers curated foods and the caller's own entries; pending
     /// imports and other users' import residue stay hidden, and an exact name match leads.
+    /// Every word of the query must appear, in any order and singular or plural, and foods
+    /// with nutrition data and plain forms rank above data-less rows and processed variants.
     /// </summary>
     public class IngredientSearchTests
     {
@@ -93,6 +99,139 @@ namespace Nom.Api.Tests.Services.Recipe
 
             (await service.SearchIngredientsAsync("suma")).Should().BeEmpty();
             (await service.SearchIngredientsAsync("sumac")).Select(r => r.Name).Should().Equal("Sumac");
+        }
+
+        private static IngredientEntity WithNutrition(IngredientEntity food)
+        {
+            food.IngredientNutrients.Add(new IngredientNutrientEntity { Nutrient = new NutrientEntity { Name = "Protein " + food.Name }, Amount = 5m });
+            return food;
+        }
+
+        private static async Task<ApplicationDbContext> SeedCatalogAsync()
+        {
+            var db = NewContext();
+            var chickpeas = WithNutrition(Food("Chickpeas, mature seeds, canned, drained solids", CurationStatusEnum.Curated));
+            chickpeas.Aliases.Add(new IngredientAliasEntity { AliasName = "garbanzo beans" });
+            db.Ingredients.AddRange(
+                Food("Black Beans", CurationStatusEnum.Curated, true),
+                WithNutrition(Food("Beans, black, mature seeds, canned, low sodium", CurationStatusEnum.Curated)),
+                WithNutrition(Food("Beans, black, mature seeds, raw", CurationStatusEnum.Curated)),
+                WithNutrition(Food("Soup, black bean, canned, prepared with equal volume water", CurationStatusEnum.Curated)),
+                WithNutrition(Food("Anchovies in olive oil", CurationStatusEnum.Curated)),
+                WithNutrition(Food("Oil, olive, salad or cooking", CurationStatusEnum.Curated)),
+                WithNutrition(Food("Potato, flesh and skin, raw", CurationStatusEnum.Curated)),
+                chickpeas);
+            await db.SaveChangesAsync();
+            return db;
+        }
+
+        private static async Task<List<string>> Names(ApplicationDbContext db, string query) =>
+            (await NewService(db).SearchIngredientsAsync(query)).Select(r => r.Name).ToList();
+
+        [Fact]
+        public async Task Search_MatchesEveryWordInAnyOrder_AndRanksFoodsWithDataFirst()
+        {
+            await using var db = await SeedCatalogAsync();
+
+            var names = await Names(db, "black beans");
+
+            names.Should().Contain("Black Beans");
+            names.Take(2).Should().Equal(
+                "Beans, black, mature seeds, raw",
+                "Beans, black, mature seeds, canned, low sodium");
+            names.IndexOf("Soup, black bean, canned, prepared with equal volume water")
+                .Should().BeLessThan(names.IndexOf("Black Beans"), "a food with data outranks one without");
+        }
+
+        [Fact]
+        public async Task Search_FindsUsdaCommaOrderFromNaturalPhrases()
+        {
+            await using var db = await SeedCatalogAsync();
+
+            (await Names(db, "canned black")).Should().BeEquivalentTo(
+                "Beans, black, mature seeds, canned, low sodium",
+                "Soup, black bean, canned, prepared with equal volume water");
+            (await Names(db, "potatoes")).Should().Equal("Potato, flesh and skin, raw");
+        }
+
+        [Fact]
+        public async Task Search_OffersThePlainFoodBeforeOneThatMerelyContainsIt()
+        {
+            await using var db = await SeedCatalogAsync();
+
+            (await Names(db, "olive oil")).Should().Equal("Oil, olive, salad or cooking", "Anchovies in olive oil");
+        }
+
+        [Fact]
+        public async Task Search_MatchesAnAliasInAnyOrder_AndReportsIt()
+        {
+            await using var db = await SeedCatalogAsync();
+
+            var result = (await NewService(db).SearchIngredientsAsync("beans garbanzo")).Single();
+
+            result.Name.Should().Be("Chickpeas, mature seeds, canned, drained solids");
+            result.MatchedAlias.Should().Be("garbanzo beans");
+        }
+
+        [Fact]
+        public async Task Search_KeepsAnExactMatchWithoutData_WhenFoodsWithDataFillTheList()
+        {
+            await using var db = NewContext();
+            db.Ingredients.Add(Food("Chicken", CurationStatusEnum.NonCurated, createdBy: Me));
+            for (var n = 0; n < 25; n++)
+                db.Ingredients.Add(WithNutrition(Food($"Chicken, cut {n:D2}, raw", CurationStatusEnum.Curated)));
+            await db.SaveChangesAsync();
+
+            var names = await Names(db, "chicken");
+
+            names.Should().HaveCount(20);
+            names.Last().Should().Be("Chicken");
+            names.Take(19).Should().OnlyContain(n => n.StartsWith("Chicken, cut"));
+        }
+
+        [Fact]
+        public async Task Search_RanksNamesLeadingWithTheWholeWord_AboveOnesThatOnlyShareItsLetters()
+        {
+            await using var db = NewContext();
+            db.Ingredients.AddRange(
+                WithNutrition(Food("Peanuts, all types, raw", CurationStatusEnum.Curated)),
+                WithNutrition(Food("Pears, raw", CurationStatusEnum.Curated)),
+                WithNutrition(Food("Peas, green, raw", CurationStatusEnum.Curated)),
+                WithNutrition(Food("Berries, mixed, frozen", CurationStatusEnum.Curated)),
+                WithNutrition(Food("Berry juice blend", CurationStatusEnum.Curated)));
+            await db.SaveChangesAsync();
+
+            (await Names(db, "peas")).First().Should().Be("Peas, green, raw");
+            (await Names(db, "berries")).Should().Equal("Berries, mixed, frozen", "Berry juice blend");
+        }
+
+        [Theory]
+        [InlineData("peas", "Peas, green, raw", true)]
+        [InlineData("peas", "Peanuts, raw", false)]
+        [InlineData("peas", "Soup, pea", false)]
+        [InlineData("berries", "Berry juice", true)]
+        [InlineData("berries", "Berries", true)]
+        public void LeadingWordPattern_MatchesOnlyAWholeLeadingWord(string query, string name, bool expected)
+        {
+            var pattern = IngredientSearchTerms.LeadingWordPattern(IngredientSearchTerms.Stems(query));
+
+            Regex.IsMatch(name, pattern, RegexOptions.IgnoreCase).Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData("Black Beans", new[] { "black", "bean" })]
+        [InlineData("beans, black", new[] { "bean", "black" })]
+        [InlineData("tomatoes", new[] { "tomato" })]
+        [InlineData("cherries", new[] { "cherr" })]
+        [InlineData("peaches", new[] { "peach" })]
+        [InlineData("cream of tartar", new[] { "cream", "tartar" })]
+        [InlineData("hummus", new[] { "hummus" })]
+        [InlineData("glass", new[] { "glass" })]
+        [InlineData("2% milk", new[] { "2", "milk" })]
+        [InlineData("fries", new[] { "frie" })]
+        public void Stems_DropPluralsStopWordsAndPunctuation(string query, string[] expected)
+        {
+            IngredientSearchTerms.Stems(query).Should().Equal(expected);
         }
     }
 }

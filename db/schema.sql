@@ -5846,6 +5846,13 @@ CREATE UNIQUE INDEX "IX_DishGroup_Slug" ON recipe."DishGroup" USING btree ("Slug
 
 
 --
+-- Name: IX_IngredientAlias_AliasName_trgm; Type: INDEX; Schema: recipe; Owner: -
+--
+
+CREATE INDEX "IX_IngredientAlias_AliasName_trgm" ON recipe."IngredientAlias" USING gin ("AliasName" public.gin_trgm_ops);
+
+
+--
 -- Name: IX_IngredientComponent_ComponentIngredientId; Type: INDEX; Schema: recipe; Owner: -
 --
 
@@ -5934,6 +5941,13 @@ CREATE INDEX "IX_Ingredient_LabelId" ON recipe."Ingredient" USING btree ("LabelI
 --
 
 CREATE UNIQUE INDEX "IX_Ingredient_Name" ON recipe."Ingredient" USING btree ("Name");
+
+
+--
+-- Name: IX_Ingredient_NameNormalized_trgm; Type: INDEX; Schema: recipe; Owner: -
+--
+
+CREATE INDEX "IX_Ingredient_NameNormalized_trgm" ON recipe."Ingredient" USING gin ("NameNormalized" public.gin_trgm_ops);
 
 
 --

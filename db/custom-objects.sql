@@ -18,3 +18,7 @@ CREATE OR REPLACE VIEW reference."ReferenceGroupView" AS
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE INDEX IF NOT EXISTS "IX_Ingredient_Name_trgm"
     ON recipe."Ingredient" USING gin ("Name" gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS "IX_Ingredient_NameNormalized_trgm"
+    ON recipe."Ingredient" USING gin ("NameNormalized" gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS "IX_IngredientAlias_AliasName_trgm"
+    ON recipe."IngredientAlias" USING gin ("AliasName" gin_trgm_ops);

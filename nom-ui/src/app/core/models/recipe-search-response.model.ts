@@ -6,4 +6,5 @@ export interface RecipeSearchResponse {
   pageNumber: number;
   pageSize: number;
   totalPages: number;
+  dietConflictsHidden?: boolean;
 }

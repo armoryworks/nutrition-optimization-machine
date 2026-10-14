@@ -75,20 +75,24 @@ export class Search {
   filterOptions = signal<RecipeSearchFilterOptions | null>(null);
   filterPanelOpen = signal(false);
   householdId = signal<number | null>(null);
+  conflictsHidden = signal(false);
 
   readonly sortOptions = SORT_OPTIONS;
   readonly maxTimeOptions = MAX_TIME_OPTIONS;
   readonly minRatingOptions = MIN_RATING_OPTIONS;
 
   canFilterByKitchen = computed(() => this.authService.isLoggedIn() && this.householdId() !== null);
+  hideConflicts = computed(() => this.isLoggedIn() && (this.filters().hideConflicts ?? this.conflictsHidden()));
   pills = computed(() => {
     const filters = this.filters();
     return filterPills({
       ...filters,
       kitchen: filters.kitchen && this.canFilterByKitchen(),
       mine: filters.mine && this.isLoggedIn(),
+      hideConflicts: this.hideConflicts(),
     }, this.filterOptions());
   });
+  clearablePills = computed(() => this.pills().filter((pill) => pill.kind !== 'conflicts'));
   canLoadMore = computed(() => !this.browsing() && this.results().length < this.totalCount());
   toolGroups = computed(() => {
     const groups = new Map<string, RecipeSearchFilterOption[]>();
@@ -137,8 +141,8 @@ export class Search {
 
     const filters = this.filters();
     const loggedIn = this.isLoggedIn();
-    const effective = { ...filters, mine: filters.mine && loggedIn, kitchen: filters.kitchen && loggedIn };
-    const browsing = !query.trim() && !this.ingredientId() && !hasActiveFilters(effective) && filters.sort === 'relevance';
+    const effective = { ...filters, mine: filters.mine && loggedIn, kitchen: filters.kitchen && loggedIn, hideConflicts: loggedIn ? filters.hideConflicts : null };
+    const browsing = !loggedIn && !query.trim() && !this.ingredientId() && !hasActiveFilters(effective) && filters.sort === 'relevance';
     this.browsing.set(browsing);
 
     const request$: Observable<RecipeSearchResponse> = browsing
@@ -149,6 +153,7 @@ export class Search {
       next: (response) => {
         this.results.set(response.results);
         this.totalCount.set(response.totalCount);
+        this.conflictsHidden.set(response.dietConflictsHidden ?? false);
         this.loading.set(false);
       },
       error: () => {
@@ -189,6 +194,7 @@ export class Search {
           minRating: filters.minRating ?? undefined,
           cookableForHouseholdId: householdId ?? undefined,
           mineOnly: (filters.mine && this.authService.isLoggedIn()) || undefined,
+          hideDietConflicts: this.authService.isLoggedIn() ? filters.hideConflicts ?? undefined : undefined,
           sortBy: sort.sortBy,
           sortDirection: sort.sortDirection,
           page,
@@ -241,12 +247,16 @@ export class Search {
     this.applyFilters({ ...this.filters(), mine });
   }
 
+  setHideConflicts(hideConflicts: boolean): void {
+    this.applyFilters({ ...this.filters(), hideConflicts });
+  }
+
   removePill(pill: SearchFilterPill): void {
     this.applyFilters(removeFilter(this.filters(), pill));
   }
 
   clearFilters(): void {
-    this.applyFilters({ ...EMPTY_FILTERS, sort: this.filters().sort });
+    this.applyFilters({ ...EMPTY_FILTERS, sort: this.filters().sort, hideConflicts: this.filters().hideConflicts });
   }
 
   private applyFilters(filters: SearchFilters): void {

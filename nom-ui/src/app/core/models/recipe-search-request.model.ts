@@ -14,6 +14,7 @@ export interface RecipeSearchRequest {
   isPublic?: boolean;
   isApproved?: boolean;
   mineOnly?: boolean;
+  hideDietConflicts?: boolean;
   sortBy?: string;
   sortDirection?: string;
   page: number;
