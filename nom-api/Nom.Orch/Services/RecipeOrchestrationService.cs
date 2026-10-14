@@ -2,6 +2,8 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
+using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using Nom.Data;
 using Nom.Data.Recipe;
@@ -10,6 +12,7 @@ using Nom.Orch.UtilityServices;
 using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Orch.Services
 {
@@ -50,47 +53,113 @@ namespace Nom.Orch.Services
                 return new List<IngredientSearchResponseModel>();
 
             var searchTerm = query.ToLower().Trim();
-            var personId = GetCurrentPersonId();
+            var stems = IngredientSearchTerms.Stems(searchTerm);
+            if (stems.Count == 0)
+                return new List<IngredientSearchResponseModel>();
 
-            return await _context.Ingredients
+            var personId = GetCurrentPersonId();
+            var matchedIds = MatchingIngredientIds(stems);
+            var startsWithStem = StartsWithAnyStem(stems);
+
+            var rows = await _context.Ingredients
+                .Where(i => matchedIds.Contains(i.Id))
                 .Where(i => i.CurationStatusId == (long)CurationStatusEnum.Curated ||
                             (personId != null && (i.AuthorId == personId || i.CreatedByPersonId == personId)) ||
                             (i.CurationStatusId == (long)CurationStatusEnum.NonCurated && i.Name.ToLower() == searchTerm))
-                .Where(i => i.Name.ToLower().Contains(searchTerm) ||
-                            (i.NameNormalized != null && i.NameNormalized.ToLower().Contains(searchTerm)) ||
-                            i.Aliases.Any(a => a.AliasName.ToLower().Contains(searchTerm)))
                 // Import residue like "1 can black beans" or "a pint of black
                 // beans" is not an ingredient a user should pick; hide
                 // quantity-prefixed names from search.
                 .Where(i => !QuantityLeadChars.Contains(i.Name.Substring(0, 1)))
                 .Where(i => !Regex.IsMatch(i.Name, QuantityWordPattern, RegexOptions.IgnoreCase))
-                // Rank name-prefix, then word-boundary matches above bare
-                // substrings ("oats" should not lead with "goats milk").
-                .OrderByDescending(i => i.Name.ToLower() == searchTerm)
+                .OrderByDescending(i => i.IngredientNutrients.Any())
+                .ThenByDescending(i => i.Name.ToLower() == searchTerm ||
+                                       (i.NameNormalized != null && i.NameNormalized.ToLower() == searchTerm) ||
+                                       i.Aliases.Any(a => a.AliasName.ToLower() == searchTerm))
                 .ThenByDescending(i => i.Name.ToLower().StartsWith(searchTerm))
+                .ThenByDescending(startsWithStem)
                 .ThenByDescending(i => i.Name.ToLower().Contains(" " + searchTerm))
                 .ThenByDescending(i => i.CurationStatusId == (long)CurationStatusEnum.Curated)
-                .ThenByDescending(i => i.IsWholeFood == true) // then directly-edible whole foods
-                .ThenBy(i => i.Name.Length) // then shorter names (exact matches)
+                .ThenByDescending(i => i.Name.ToLower().Contains(", raw"))
+                .ThenByDescending(i => i.IsWholeFood == true)
+                .ThenBy(i => i.Name.Length - i.Name.Replace(",", "").Length)
+                .ThenBy(i => i.Name.Length)
                 .ThenBy(i => i.Name)
-                .Take(20) // Limit results for performance
-                .Select(i => new IngredientSearchResponseModel
+                .Take(20)
+                .Select(i => new
                 {
-                    Id = i.Id,
-                    Name = i.Name,
-                    FdcId = i.FdcId,
-                    MatchedAlias = i.Aliases
-                        .Where(a => a.AliasName.ToLower().Contains(searchTerm))
-                        .Select(a => a.AliasName)
-                        .FirstOrDefault(),
-                    FoodGroupId = i.FoodGroupId,
-                    FoodGroupName = i.FoodGroup != null ? i.FoodGroup.Name : null,
-                    IsWholeFood = i.IsWholeFood,
-                    HasNutrition = i.IngredientNutrients.Any(),
-                    CanWeighVolume = i.GramsPerMilliliter > 0,
-                    CanWeighCount = i.ReferenceServingGrams > 0
+                    Result = new IngredientSearchResponseModel
+                    {
+                        Id = i.Id,
+                        Name = i.Name,
+                        FdcId = i.FdcId,
+                        FoodGroupId = i.FoodGroupId,
+                        FoodGroupName = i.FoodGroup != null ? i.FoodGroup.Name : null,
+                        IsWholeFood = i.IsWholeFood,
+                        HasNutrition = i.IngredientNutrients.Any(),
+                        CanWeighVolume = i.GramsPerMilliliter > 0,
+                        CanWeighCount = i.ReferenceServingGrams > 0
+                    },
+                    Aliases = i.Aliases.Select(a => a.AliasName).ToList()
                 })
                 .ToListAsync();
+
+            foreach (var row in rows)
+            {
+                row.Result.MatchedAlias = row.Aliases
+                    .FirstOrDefault(a => stems.All(s => a.ToLowerInvariant().Contains(s)));
+            }
+            return rows.Select(r => r.Result).ToList();
+        }
+
+        /// <summary>
+        /// Ids of ingredients whose name, normalized name or one alias contains every stem.
+        /// On Postgres each probe is a chain of ILIKEs on one column so the trigram indexes in
+        /// db/custom-objects.sql serve it; the in-memory test provider compares lower-cased text.
+        /// </summary>
+        private IQueryable<long> MatchingIngredientIds(IReadOnlyList<string> stems)
+        {
+            var relational = _context.Database.IsRelational();
+            var byName = _context.Ingredients.AsQueryable();
+            var byNormalized = _context.Ingredients.Where(i => i.NameNormalized != null);
+            var byAlias = _context.Set<IngredientAliasEntity>().AsQueryable();
+            foreach (var stem in stems)
+            {
+                var pattern = "%" + stem + "%";
+                if (relational)
+                {
+                    byName = byName.Where(i => EF.Functions.ILike(i.Name, pattern));
+                    byNormalized = byNormalized.Where(i => EF.Functions.ILike(i.NameNormalized!, pattern));
+                    byAlias = byAlias.Where(a => EF.Functions.ILike(a.AliasName, pattern));
+                }
+                else
+                {
+                    byName = byName.Where(i => i.Name.ToLower().Contains(stem));
+                    byNormalized = byNormalized.Where(i => i.NameNormalized!.ToLower().Contains(stem));
+                    byAlias = byAlias.Where(a => a.AliasName.ToLower().Contains(stem));
+                }
+            }
+
+            return byName.Select(i => i.Id)
+                .Union(byNormalized.Select(i => i.Id))
+                .Union(byAlias.Select(a => a.IngredientId));
+        }
+
+        private Expression<Func<IngredientEntity, bool>> StartsWithAnyStem(IReadOnlyList<string> stems)
+        {
+            var relational = _context.Database.IsRelational();
+            var ingredient = Expression.Parameter(typeof(IngredientEntity), "i");
+            Expression? body = null;
+            foreach (var stem in stems)
+            {
+                var prefix = stem + "%";
+                Expression<Func<IngredientEntity, bool>> one = relational
+                    ? i => EF.Functions.ILike(i.Name, prefix)
+                    : i => i.Name.ToLower().StartsWith(stem);
+                var clause = ReplacingExpressionVisitor.Replace(one.Parameters[0], ingredient, one.Body);
+                body = body == null ? clause : Expression.OrElse(body, clause);
+            }
+            return Expression.Lambda<Func<IngredientEntity, bool>>(
+                body ?? Expression.Constant(false), ingredient);
         }
 
         private async Task<List<NutrientValueModel>> GetIngredientNutrientsAsync(long ingredientId)
