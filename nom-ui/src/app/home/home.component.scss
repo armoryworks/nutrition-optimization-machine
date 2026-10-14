@@ -7,6 +7,57 @@
   gap: vars.$spacing-6;
 }
 
+.nom-home__hero {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-6;
+  border-radius: vars.$nom-border-radius-lg;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-5 vars.$spacing-4;
+  }
+}
+
+.nom-home__hero-title {
+  margin: 0;
+  font-size: vars.$font-size-2xl;
+  font-weight: vars.$font-weight-bold;
+  line-height: vars.$line-height-tight;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    font-size: vars.$font-size-xl;
+  }
+}
+
+.nom-home__hero-text {
+  margin: 0;
+  max-width: 60ch;
+  font-size: vars.$font-size-md;
+  line-height: vars.$line-height-relaxed;
+}
+
+.nom-home__hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-3;
+  margin-top: vars.$spacing-2;
+  --mat-button-outlined-label-text-color: var(--mat-sys-on-primary-container);
+  --mat-button-outlined-outline-color: var(--mat-sys-on-primary-container);
+
+  a {
+    min-height: vars.$button-height;
+  }
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    a {
+      flex: 1 1 0;
+    }
+  }
+}
+
 // ── Category section ──
 
 .nom-home__category {

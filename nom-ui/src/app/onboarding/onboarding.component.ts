@@ -7,6 +7,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../core/services/auth.service';
 import { PersonService } from '../core/services/person.service';
 import { LoadingService } from '../core/services/loading.service';
+import { HouseholdStore } from '../core/services/household-store';
+import { UnitPreferenceService } from '../core/services/unit-preference.service';
 import { OnboardingCompleteRequest } from '../core/models/onboarding-complete-request.model';
 import { RestrictionRequest } from '../core/models/restriction-request.model';
 import { SaveProfileRequest } from '../core/models/save-profile-request.model';
@@ -34,6 +36,8 @@ export class Onboarding implements OnInit {
   private authService = inject(AuthService);
   private personService = inject(PersonService);
   private loadingService = inject(LoadingService);
+  private householdStore = inject(HouseholdStore);
+  private unitPreference = inject(UnitPreferenceService);
   private destroyRef = inject(DestroyRef);
 
   currentStep = signal(0);
@@ -115,6 +119,7 @@ export class Onboarding implements OnInit {
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => {
+        if (data.unitSystem) this.unitPreference.set(data.unitSystem);
         this.profileSaved.set(true);
         this.markComplete(0);
         this.next();
@@ -254,6 +259,8 @@ export class Onboarding implements OnInit {
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => {
+        this.householdStore.invalidate();
+        if (profile?.unitSystem) this.unitPreference.set(profile.unitSystem);
         this.router.navigate(['/home']);
       },
       error: () => {

@@ -28,6 +28,7 @@ export interface ProfileFormData {
   personDetails: PersonDetailsRequest;
   attributes: PersonAttributeRequest[];
   email?: string;
+  unitSystem?: UnitSystem;
 }
 
 @Component({
@@ -56,6 +57,7 @@ export class Profile implements OnInit {
   submitLabel = input<string | null>(null);
   showCancel = input(false);
   hideActions = input(false);
+  forSelf = input(false);
 
   stepComplete = output<ProfileFormData>();
   saved = output<ProfileFormData>();
@@ -98,6 +100,7 @@ export class Profile implements OnInit {
   genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
   isStandalone = computed(() => this.mode() !== 'wizard');
+  ownsUnitPreference = computed(() => this.isStandalone() || this.forSelf());
   resolvedSubmitLabel = computed(() => {
     const custom = this.submitLabel();
     if (custom) return custom;
@@ -210,7 +213,7 @@ export class Profile implements OnInit {
     }
 
     const savedSystem = data.attributes.find((a) => this.getAttributeTypeName(a.attributeTypeRefId) === UNIT_SYSTEM_ATTRIBUTE)?.value;
-    if (this.isStandalone() && (savedSystem === 'metric' || savedSystem === 'imperial')) {
+    if (this.ownsUnitPreference() && (savedSystem === 'metric' || savedSystem === 'imperial')) {
       this.unitSystem.set(savedSystem);
     }
 
@@ -340,7 +343,7 @@ export class Profile implements OnInit {
     }
 
     const unitSystemId = this.getAttributeTypeId(UNIT_SYSTEM_ATTRIBUTE);
-    if (unitSystemId && this.isStandalone()) {
+    if (unitSystemId && this.ownsUnitPreference()) {
       attributes.push({ attributeTypeRefId: unitSystemId, value: this.unitSystem() });
     }
 
@@ -352,6 +355,7 @@ export class Profile implements OnInit {
       },
       attributes,
       email: form.email || undefined,
+      unitSystem: this.unitSystem(),
     };
   }
 

@@ -38,6 +38,7 @@
       @case (0) {
         <nom-profile
           mode="wizard"
+          [forSelf]="true"
           [initialData]="profileData()"
           (stepComplete)="onProfileComplete($event)" />
       }

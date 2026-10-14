@@ -1,5 +1,5 @@
-import { Component, inject, signal, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, inject, signal, computed, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -12,6 +12,7 @@ import { AuthService } from '../core/services/auth.service';
 import { LoadingService } from '../core/services/loading.service';
 import { HasUnsavedForm } from '../core/guards/unsaved-form.guard';
 import { authorizeReturnUrl } from './oidc-return-url';
+import { identityErrorCodes, PASSWORD_RULES, passwordRulesValidator } from './identity-errors';
 
 @Component({
   selector: 'nom-register',
@@ -39,9 +40,16 @@ export class Register implements HasUnsavedForm {
   registerForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     fullName: [''],
-    password: ['', [Validators.required, Validators.minLength(8)]],
+    password: ['', [Validators.required, passwordRulesValidator]],
     confirmPassword: ['', Validators.required],
   }, { validators: this.passwordsMatch });
+
+  readonly passwordRules = PASSWORD_RULES;
+  private readonly passwordValue = toSignal(this.registerForm.controls.password.valueChanges, { initialValue: '' });
+  readonly passwordRuleStates = computed(() => {
+    const value = this.passwordValue() ?? '';
+    return this.passwordRules.map(rule => ({ rule, met: rule.test(value) }));
+  });
 
   loading = signal(false);
   errorMessage = signal('');
@@ -113,13 +121,15 @@ export class Register implements HasUnsavedForm {
 
   private friendlyError(err: HttpErrorResponse): string {
     if (err.status === 400 && err.error?.errors) {
-      const errorKeys = Object.keys(err.error.errors);
-      for (const key of errorKeys) {
-        if (Register.VALIDATION_ERRORS[key]) {
-          return Register.VALIDATION_ERRORS[key];
-        }
-      }
-      return 'Please check your details and try again.';
+      const messages = [...new Set(
+        identityErrorCodes(err.error.errors)
+          .map(code => Register.VALIDATION_ERRORS[code])
+          .filter((message): message is string => !!message),
+      )];
+      return messages.length ? messages.join(' ') : 'Please check your details and try again.';
+    }
+    if (err.status === 400 && typeof err.error?.message === 'string' && /already exists/i.test(err.error.message)) {
+      return Register.VALIDATION_ERRORS['DuplicateEmail'];
     }
 
     switch (err.status) {

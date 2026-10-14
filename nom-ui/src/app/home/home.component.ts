@@ -3,6 +3,7 @@ import { ErrorBanner } from '../shared/components/error-banner/error-banner.comp
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 import { RecipeSearchService } from '../core/services/recipe-search.service';
 import { AuthService } from '../core/services/auth.service';
 import { RecipeSearchResult } from '../core/models/recipe-search-result.model';
@@ -16,7 +17,7 @@ interface RecipeCategory {
 
 @Component({
   selector: 'nom-home',
-  imports: [MatIconModule, RouterLink, Dashboard, ErrorBanner],
+  imports: [MatIconModule, MatButtonModule, RouterLink, Dashboard, ErrorBanner],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

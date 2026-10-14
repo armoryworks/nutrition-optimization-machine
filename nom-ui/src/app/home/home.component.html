@@ -2,6 +2,18 @@
   <nom-dashboard />
 } @else {
   <div class="nom-home" data-testid="home-page">
+    <section class="nom-home__hero" data-testid="home-hero" aria-labelledby="home-hero-title">
+      <h1 class="nom-home__hero-title" id="home-hero-title">Meal planning that respects everyone at your table</h1>
+      <p class="nom-home__hero-text">
+        Plan the week around each person's allergies, dietary restrictions and calorie needs,
+        with recipe nutrition labels and a shopping list built from the plan.
+      </p>
+      <div class="nom-home__hero-actions">
+        <a mat-flat-button color="primary" routerLink="/register" data-testid="home-create-account-btn">Create account</a>
+        <a mat-stroked-button routerLink="/login" data-testid="home-sign-in-btn">Sign in</a>
+      </div>
+    </section>
+
     @if (loading()) {
       <div class="nom-home__loading">
         <mat-icon>hourglass_empty</mat-icon>
