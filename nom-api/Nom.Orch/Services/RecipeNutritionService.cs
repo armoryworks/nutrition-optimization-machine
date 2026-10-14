@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -143,6 +144,20 @@ namespace Nom.Orch.Services
             if (!ingredientHasNutrients) return NutritionLineStatus.NoData;
             return GramsFor(ri) is > 0 ? NutritionLineStatus.Counted : NutritionLineStatus.NoConversion;
         }
+
+        /// <summary>
+        /// <see cref="StatusFor"/> as a query predicate: true for a measured ingredient line the derived
+        /// label leaves out (no-data or no-conversion), so a recipe holding one has incomplete totals.
+        /// </summary>
+        public static readonly Expression<Func<RecipeIngredientEntity, bool>> IsUncountedLine = ri =>
+            (ri.LineKind == null || ri.LineKind == "ingredient")
+            && ri.Quantity > 0
+            && (!ri.Ingredient.IngredientNutrients.Any()
+                || ri.Measurement == null
+                || (ri.Measurement.BaseUnitConversionFactor ?? 1m) <= 0
+                || !(ri.Measurement.MeasurementCategoryId == CategoryMass
+                     || (ri.Measurement.MeasurementCategoryId == CategoryVolume && ri.Ingredient.GramsPerMilliliter > 0)
+                     || (ri.Measurement.MeasurementCategoryId == CategoryCount && ri.Ingredient.ReferenceServingGrams > 0)));
 
         public static decimal? GramsFor(decimal quantity, MeasurementEntity? m, IngredientEntity? ingredient)
         {

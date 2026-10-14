@@ -12,5 +12,6 @@ namespace Nom.Orch.Models.Recipe
         public int PageSize { get; set; }
         public int TotalPages { get; set; }
         public List<RecipeSearchResultModel> Results { get; set; } = new();
+        public bool DietConflictsHidden { get; set; }
     }
 } 

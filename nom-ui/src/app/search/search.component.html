@@ -64,7 +64,7 @@
             <mat-icon class="nom-search__filter-chip-icon">close</mat-icon>
           </button>
         }
-        @if (pills().length > 1) {
+        @if (clearablePills().length > 1) {
           <button type="button"
                   class="nom-search__clear-link"
                   (click)="clearFilters()"
@@ -94,7 +94,7 @@
       <div class="nom-search__filters-inner">
         <div class="nom-search__filters-head">
           <h2 class="nom-search__filters-title">Filters</h2>
-          @if (pills().length > 0) {
+          @if (clearablePills().length > 0) {
             <button mat-button type="button" (click)="clearFilters()" data-testid="search-filter-clear-btn">Clear</button>
           }
           <button mat-icon-button
@@ -113,6 +113,14 @@
                               data-testid="search-filter-mine-toggle">
               My recipes only
             </mat-slide-toggle>
+          </section>
+          <section class="nom-search__filter-section">
+            <mat-slide-toggle [checked]="hideConflicts()"
+                              (change)="setHideConflicts($event.checked)"
+                              data-testid="search-filter-conflicts-toggle">
+              Hide recipes that conflict with my restrictions
+            </mat-slide-toggle>
+            <p class="nom-search__filter-hint nom-search__filter-hint--below">Allergies and medical diets, such as celiac disease.</p>
           </section>
         }
 
@@ -276,7 +284,7 @@
         <div class="nom-search__empty" data-testid="search-empty">
           <mat-icon class="nom-search__empty-icon">search_off</mat-icon>
           <h2>No recipes found</h2>
-          @if (pills().length > 0) {
+          @if (clearablePills().length > 0) {
             <p>Try removing a filter.</p>
             <button class="nom-search__retry-btn" (click)="clearFilters()" data-testid="search-empty-clear-filters-btn">Clear filters</button>
           } @else {

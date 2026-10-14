@@ -5,6 +5,7 @@ import {
   hasActiveFilters,
   parseSearchFilters,
   removeFilter,
+  SORT_OPTIONS,
   toggleId,
   withoutFilterParams,
 } from './search-filters';
@@ -36,6 +37,7 @@ describe('search filters', () => {
       minRating: 4,
       kitchen: true,
       mine: true,
+      hideConflicts: null,
       sort: 'quickest',
     });
   });
@@ -56,6 +58,7 @@ describe('search filters', () => {
       minRating: null,
       kitchen: 1,
       mine: null,
+      conflicts: null,
       sort: 'rating',
     });
     expect(parseSearchFilters({ tool: params['tool'], kitchen: '1', sort: 'rating' })).toEqual(filters);
@@ -83,6 +86,30 @@ describe('search filters', () => {
     expect(pills.map((p) => p.label)).toEqual(['My recipes']);
     expect(hasActiveFilters(filters)).toBe(true);
     expect(removeFilter(filters, pills[0]).mine).toBe(false);
+  });
+
+  it('reads the restriction filter as on, off or left to the default', () => {
+    expect(parseSearchFilters({ conflicts: 'hide' }).hideConflicts).toBe(true);
+    expect(parseSearchFilters({ conflicts: 'show' }).hideConflicts).toBe(false);
+    expect(parseSearchFilters({ conflicts: 'maybe' }).hideConflicts).toBeNull();
+    expect(filtersToParams({ ...EMPTY_FILTERS, hideConflicts: true })['conflicts']).toBe('hide');
+    expect(filtersToParams({ ...EMPTY_FILTERS, hideConflicts: false })['conflicts']).toBe('show');
+    expect(withoutFilterParams({ q: 'x', conflicts: 'show' })).toEqual({ q: 'x' });
+  });
+
+  it('labels the restriction filter and turns it off when its pill is removed', () => {
+    const filters = { ...EMPTY_FILTERS, hideConflicts: true };
+    const pills = filterPills(filters, options);
+    expect(pills.map((p) => p.label)).toEqual(['Hiding conflicts with my restrictions']);
+    expect(hasActiveFilters(filters)).toBe(true);
+    expect(removeFilter(filters, pills[0]).hideConflicts).toBe(false);
+    expect(filterPills({ ...EMPTY_FILTERS, hideConflicts: false }, options)).toEqual([]);
+  });
+
+  it('offers protein and calorie sorts', () => {
+    expect(SORT_OPTIONS.find((o) => o.value === 'protein')).toEqual({ value: 'protein', label: 'Most protein', sortBy: 'protein' });
+    expect(SORT_OPTIONS.find((o) => o.value === 'calories')).toEqual({ value: 'calories', label: 'Fewest calories', sortBy: 'calories' });
+    expect(parseSearchFilters({ sort: 'calories' }).sort).toBe('calories');
   });
 
   it('sort alone is not an active filter', () => {

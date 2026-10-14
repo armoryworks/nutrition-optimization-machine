@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Moq;
 using Nom.Data;
 using Nom.Orch.Interfaces;
+using Nom.Orch.Models.Recipe;
 using Nom.Orch.Services;
 using Xunit;
 
@@ -17,7 +18,8 @@ namespace Nom.Api.Tests.Services.Recipe
     /// <summary>
     /// Search queries must translate to Postgres SQL with no client evaluation: the ingredient
     /// search probes each column with a chain of ILIKEs, which the trigram indexes in
-    /// db/custom-objects.sql can serve. Each command is captured before it would reach a server.
+    /// db/custom-objects.sql can serve, and the nutrient sorts run in the database so paging
+    /// stays correct. Each command is captured before it would reach a server.
     /// </summary>
     public class SearchPostgresTranslationTests
     {
@@ -66,6 +68,18 @@ namespace Nom.Api.Tests.Services.Recipe
                 .And.Contain("\"NameNormalized\" ILIKE")
                 .And.Contain("\"AliasName\" ILIKE")
                 .And.Contain("UNION");
+        }
+
+        [Theory]
+        [InlineData("protein")]
+        [InlineData("calories")]
+        public async Task Nutrient_sorts_translate_to_sql(string sortBy)
+        {
+            await using var db = Postgres(new CaptureAndStop());
+
+            var sql = RecipeSearchOrchestrationService.ApplySorting(db.Recipes, new RecipeSearchModel { SortBy = sortBy }).ToQueryString();
+
+            sql.Should().Contain("ORDER BY").And.Contain("\"RecipeNutrition\"").And.Contain("\"GramsPerMilliliter\"");
         }
     }
 }
