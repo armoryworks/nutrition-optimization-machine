@@ -162,6 +162,22 @@ const CASES: [string, string][] = [
   ['Sparkling water', 'Beverages'],
   ['Red wine', 'Beverages'],
   ['Tofu', 'Other'],
+  ['Goat cheese', 'Dairy & Eggs'],
+  ['Cheese, goat, soft type', 'Dairy & Eggs'],
+  ['Goat milk', 'Dairy & Eggs'],
+  ['Pasta, gluten-free, corn and rice flour, cooked', 'Grains & Pasta'],
+  ['Gluten-free pasta', 'Grains & Pasta'],
+  ['Tuna in olive oil', 'Canned & Jarred'],
+  ['Chipotle peppers in adobo sauce', 'Canned & Jarred'],
+  ['Catsup', 'Condiments & Sauces'],
+  ['Coconut aminos', 'Condiments & Sauces'],
+  ['Corn flakes', 'Grains & Pasta'],
+  ['Beans, snap, green, raw', 'Produce'],
+  ['Pumpkin', 'Produce'],
+  ['Pumpkin seeds', 'Nuts & Dried Fruit'],
+  ['Potato chips', 'Other'],
+  ['Tortilla chips', 'Other'],
+  ['Chocolate chips', 'Baking'],
 ];
 
 describe('categorizeDepartment', () => {

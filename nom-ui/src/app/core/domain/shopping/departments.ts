@@ -103,8 +103,9 @@ type Rule = [RegExp, string];
 
 const RULES: Rule[] = [
   [/\b(frozen|ice cream|sorbet|gelato|popsicle)\b/, 'Frozen'],
-  [/\b(spaghetti squash|cauliflower rice|riced cauliflower|zucchini noodle|sugar snap pea|snap pea|snow pea|green bean|string bean|(mustard|turnip|beet|collard|dandelion) green)\b/, 'Produce'],
-  [/\b(olive|vegetable|canola|coconut|sesame|avocado|peanut|sunflower|grapeseed|walnut|truffle) oil\b|\bcooking spray\b/, 'Oils & Vinegars'],
+  [/\b(potato|tortilla|corn|pita|plantain|veggie) chip\b|\b(pretzel|popcorn)\b/, 'Other'],
+  [/\b(spaghetti squash|cauliflower rice|riced cauliflower|zucchini noodle|sugar snap pea|snap pea|snow pea|green bean|string bean|snap bean|(mustard|turnip|beet|collard|dandelion) green)\b/, 'Produce'],
+  [/(?<!\bin )\b(olive|vegetable|canola|coconut|sesame|avocado|peanut|sunflower|grapeseed|walnut|truffle) oil\b|\bcooking spray\b/, 'Oils & Vinegars'],
   [/\b(balsamic|vinegar)\b/, 'Oils & Vinegars'],
   [/\b(apple|orange|grape|cranberry|pineapple|tomato|vegetable|prune) juice\b|\b(coconut water|ginger ale|ginger beer|root beer)\b/, 'Beverages'],
 
@@ -118,7 +119,9 @@ const RULES: Rule[] = [
     'Canned & Jarred',
   ],
   [/\b(roasted red pepper|pimiento|olive|caper|pickle|sauerkraut|kimchi|artichoke heart|water chestnut|bamboo shoot)\b/, 'Canned & Jarred'],
-  [/\b(creamed corn|refried bean|baked bean|pumpkin puree|canned pumpkin|applesauce|apple sauce)\b/, 'Canned & Jarred'],
+  [/\b(creamed corn|refried bean|baked bean|pumpkin puree|canned pumpkin|applesauce|apple sauce|adobo)\b/, 'Canned & Jarred'],
+
+  [/\b(rice noodle|egg noodle|noodle|pasta|spaghetti|penne|linguine|fettuccine|macaroni|rigatoni|orzo|lasagna|ramen|udon|soba|gnocchi)\b/, 'Grains & Pasta'],
 
   [/\b(cream of tartar|baking soda|baking powder|yeast|cornstarch|corn ?starch|arrowroot|gelatin|food colou?ring|sprinkle)\b/, 'Baking'],
   [/\bvanilla (extract|bean|paste|essence)\b|\bextract\b/, 'Baking'],
@@ -136,13 +139,12 @@ const RULES: Rule[] = [
   [/\b(seasoning|spice|herbes de provence|za.atar|garam masala|bay leaf)\b/, 'Spices & Seasonings'],
   [/\b(sesame seed|poppy seed|fennel seed|mustard seed|celery seed|cumin seed|caraway|star anise|saffron)\b/, 'Spices & Seasonings'],
 
-  [/\b(soy sauce|tamari|worcestershire|hot sauce|sriracha|tabasco|fish sauce|oyster sauce|hoisin|teriyaki|barbecue|bbq|steak sauce)\b/, 'Condiments & Sauces'],
-  [/\b(ketchup|mustard|curry paste|mayo|mayonnaise|aioli|relish|dressing|marinade|miso|tahini|harissa|gochujang|sambal|pesto|chutney|horseradish)\b/, 'Condiments & Sauces'],
+  [/\b(soy sauce|tamari|coconut amino|worcestershire|hot sauce|sriracha|tabasco|fish sauce|oyster sauce|hoisin|teriyaki|barbecue|bbq|steak sauce)\b/, 'Condiments & Sauces'],
+  [/\b(ketchup|catsup|mustard|curry paste|mayo|mayonnaise|aioli|relish|dressing|marinade|miso|tahini|harissa|gochujang|sambal|pesto|chutney|horseradish)\b/, 'Condiments & Sauces'],
   [/\b(honey|maple syrup|agave|molasses|syrup)\b/, 'Condiments & Sauces'],
 
-  [/\b(rice noodle|egg noodle|noodle|pasta|spaghetti|penne|linguine|fettuccine|macaroni|rigatoni|orzo|lasagna|ramen|udon|soba|gnocchi)\b/, 'Grains & Pasta'],
   [/\b(corn tortilla|flour tortilla|tortilla|bread|baguette|roll|bun|pita|naan|wrap|croissant|english muffin|muffin|bagel|flatbread|brioche|ciabatta|sourdough)\b/, 'Bakery'],
-  [/\b(rice|quinoa|couscous|barley|farro|bulgur|polenta|grits|oat|oatmeal|cereal|granola|millet|buckwheat|amaranth|cracker|rice cake)\b/, 'Grains & Pasta'],
+  [/\b(rice|quinoa|couscous|barley|farro|bulgur|polenta|grits|oat|oatmeal|cereal|granola|millet|buckwheat|amaranth|cracker|rice cake|corn flake|cornflake|bran flake)\b/, 'Grains & Pasta'],
   [/\b(lentil|chickpea|garbanzo|split pea|black.eyed pea|(black|kidney|pinto|navy|cannellini|great northern|lima|butter|white|red|mung|adzuki|fava|black turtle) bean)\b/, 'Grains & Pasta'],
   [/\b(raisin|sultana|currant|prune|date|dried (fruit|cranberry|apricot|cherry|mango|fig|blueberry))\b/, 'Nuts & Dried Fruit'],
 
@@ -151,7 +153,7 @@ const RULES: Rule[] = [
     'Produce',
   ],
   [/\b(lettuce|spinach|kale|arugula|cabbage|bok choy|collard|chard|romaine|mixed green|salad green|spring mix|microgreen|endive|radicchio)\b/, 'Produce'],
-  [/\b(tomato|onion|garlic|carrot|celery|potato|sweet potato|yam)\b/, 'Produce'],
+  [/\b(tomato|onion|garlic|carrot|celery|potato|sweet potato|yam|pumpkin(?! seed))\b/, 'Produce'],
   [/\b(broccoli|broccolini|cauliflower|zucchini|squash|eggplant|mushroom|corn|cremini|portobello|shiitake)\b/, 'Produce'],
   [/\b(cucumber|avocado|bean sprout|sprout|scallion|green onion|shallot|leek)\b/, 'Produce'],
   [/\b(apple|banana|orange|lemon|lime|grapefruit|clementine|tangerine|berry|blueberry|strawberry|raspberry|blackberry|cranberry)\b/, 'Produce'],
@@ -160,6 +162,7 @@ const RULES: Rule[] = [
   [/\b(asparagus|artichoke|beet|radish|turnip|parsnip|fennel|okra|pea|rutabaga|jicama|kohlrabi)\b/, 'Produce'],
   [/\b(green bean|string bean|snap pea|snow pea|edamame|brussels sprout|watercress)\b/, 'Produce'],
 
+  [/\bgoat (cheese|milk|yogurt)\b/, 'Dairy & Eggs'],
   [/\b(chicken|turkey|beef|pork|lamb|veal|duck|bison|venison|goat)\b/, 'Meat & Seafood'],
   [/\b(steak|ground meat|sausage|bacon|ham|prosciutto|pancetta|chorizo|salami|pepperoni|hot dog|meatball|brisket|tenderloin|chop|rib)\b/, 'Meat & Seafood'],
   [/\b(salmon|tuna|shrimp|prawn|cod|tilapia|halibut|trout|crab|lobster|scallop|clam|mussel|oyster|anchovy|sardine|mahi|catfish|haddock|pollock|squid|calamari|fish)\b/, 'Meat & Seafood'],
