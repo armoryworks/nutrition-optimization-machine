@@ -68,6 +68,7 @@ namespace Nom.Api.Tests.Services.Recipe
                 .And.Contain("\"NameNormalized\" ILIKE")
                 .And.Contain("\"AliasName\" ILIKE")
                 .And.Contain("UNION");
+            capture.Sql!.Substring(capture.Sql!.IndexOf("ORDER BY", StringComparison.Ordinal)).Should().Contain("~*");
         }
 
         [Theory]

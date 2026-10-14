@@ -2,7 +2,6 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using Nom.Data;
@@ -43,6 +42,8 @@ namespace Nom.Orch.Services
 
         private long? GetCurrentPersonId() => _currentUser.PersonId;
 
+        private const int MaxIngredientResults = 20;
+        private const int MaxExactKept = 3;
         private const string QuantityLeadChars = "&0123456789\u00bd\u2153\u2154\u00bc\u00be\u215b\u215c\u215d\u215e";
         private const string QuantityWordPattern =
             "^((a|an|one|two|three|half)( |-)){0,2}(pint|quart|gallon|cup|can|jar|package|pkg|box|bag|bunch|slice|pound|ounce|oz|lb|tbsp|tsp|tablespoon|teaspoon)s? of ";
@@ -59,9 +60,9 @@ namespace Nom.Orch.Services
 
             var personId = GetCurrentPersonId();
             var matchedIds = MatchingIngredientIds(stems);
-            var startsWithStem = StartsWithAnyStem(stems);
+            var startsWithWord = IngredientSearchTerms.LeadingWordPattern(stems);
 
-            var rows = await _context.Ingredients
+            var candidates = _context.Ingredients
                 .Where(i => matchedIds.Contains(i.Id))
                 .Where(i => i.CurationStatusId == (long)CurationStatusEnum.Curated ||
                             (personId != null && (i.AuthorId == personId || i.CreatedByPersonId == personId)) ||
@@ -70,13 +71,17 @@ namespace Nom.Orch.Services
                 // beans" is not an ingredient a user should pick; hide
                 // quantity-prefixed names from search.
                 .Where(i => !QuantityLeadChars.Contains(i.Name.Substring(0, 1)))
-                .Where(i => !Regex.IsMatch(i.Name, QuantityWordPattern, RegexOptions.IgnoreCase))
+                .Where(i => !Regex.IsMatch(i.Name, QuantityWordPattern, RegexOptions.IgnoreCase));
+            Expression<Func<IngredientEntity, bool>> isExact = i =>
+                i.Name.ToLower() == searchTerm ||
+                (i.NameNormalized != null && i.NameNormalized.ToLower() == searchTerm) ||
+                i.Aliases.Any(a => a.AliasName.ToLower() == searchTerm);
+
+            var rows = await Project(candidates
                 .OrderByDescending(i => i.IngredientNutrients.Any())
-                .ThenByDescending(i => i.Name.ToLower() == searchTerm ||
-                                       (i.NameNormalized != null && i.NameNormalized.ToLower() == searchTerm) ||
-                                       i.Aliases.Any(a => a.AliasName.ToLower() == searchTerm))
+                .ThenByDescending(isExact)
                 .ThenByDescending(i => i.Name.ToLower().StartsWith(searchTerm))
-                .ThenByDescending(startsWithStem)
+                .ThenByDescending(i => Regex.IsMatch(i.Name, startsWithWord, RegexOptions.IgnoreCase))
                 .ThenByDescending(i => i.Name.ToLower().Contains(" " + searchTerm))
                 .ThenByDescending(i => i.CurationStatusId == (long)CurationStatusEnum.Curated)
                 .ThenByDescending(i => i.Name.ToLower().Contains(", raw"))
@@ -84,24 +89,19 @@ namespace Nom.Orch.Services
                 .ThenBy(i => i.Name.Length - i.Name.Replace(",", "").Length)
                 .ThenBy(i => i.Name.Length)
                 .ThenBy(i => i.Name)
-                .Take(20)
-                .Select(i => new
-                {
-                    Result = new IngredientSearchResponseModel
-                    {
-                        Id = i.Id,
-                        Name = i.Name,
-                        FdcId = i.FdcId,
-                        FoodGroupId = i.FoodGroupId,
-                        FoodGroupName = i.FoodGroup != null ? i.FoodGroup.Name : null,
-                        IsWholeFood = i.IsWholeFood,
-                        HasNutrition = i.IngredientNutrients.Any(),
-                        CanWeighVolume = i.GramsPerMilliliter > 0,
-                        CanWeighCount = i.ReferenceServingGrams > 0
-                    },
-                    Aliases = i.Aliases.Select(a => a.AliasName).ToList()
-                })
+                .Take(MaxIngredientResults))
                 .ToListAsync();
+
+            var shownIds = rows.Select(r => r.Result.Id).ToList();
+            var missingExact = await Project(candidates
+                .Where(isExact)
+                .Where(i => !shownIds.Contains(i.Id))
+                .OrderByDescending(i => i.CurationStatusId == (long)CurationStatusEnum.Curated)
+                .ThenBy(i => i.Name)
+                .Take(MaxExactKept))
+                .ToListAsync();
+            if (missingExact.Count > 0)
+                rows = rows.Take(MaxIngredientResults - missingExact.Count).Concat(missingExact).ToList();
 
             foreach (var row in rows)
             {
@@ -110,6 +110,30 @@ namespace Nom.Orch.Services
             }
             return rows.Select(r => r.Result).ToList();
         }
+
+        private sealed class IngredientSearchRow
+        {
+            public IngredientSearchResponseModel Result { get; init; } = new();
+            public List<string> Aliases { get; init; } = new();
+        }
+
+        private static IQueryable<IngredientSearchRow> Project(IQueryable<IngredientEntity> ingredients) =>
+            ingredients.Select(i => new IngredientSearchRow
+            {
+                Result = new IngredientSearchResponseModel
+                {
+                    Id = i.Id,
+                    Name = i.Name,
+                    FdcId = i.FdcId,
+                    FoodGroupId = i.FoodGroupId,
+                    FoodGroupName = i.FoodGroup != null ? i.FoodGroup.Name : null,
+                    IsWholeFood = i.IsWholeFood,
+                    HasNutrition = i.IngredientNutrients.Any(),
+                    CanWeighVolume = i.GramsPerMilliliter > 0,
+                    CanWeighCount = i.ReferenceServingGrams > 0
+                },
+                Aliases = i.Aliases.Select(a => a.AliasName).ToList()
+            });
 
         /// <summary>
         /// Ids of ingredients whose name, normalized name or one alias contains every stem.
@@ -142,24 +166,6 @@ namespace Nom.Orch.Services
             return byName.Select(i => i.Id)
                 .Union(byNormalized.Select(i => i.Id))
                 .Union(byAlias.Select(a => a.IngredientId));
-        }
-
-        private Expression<Func<IngredientEntity, bool>> StartsWithAnyStem(IReadOnlyList<string> stems)
-        {
-            var relational = _context.Database.IsRelational();
-            var ingredient = Expression.Parameter(typeof(IngredientEntity), "i");
-            Expression? body = null;
-            foreach (var stem in stems)
-            {
-                var prefix = stem + "%";
-                Expression<Func<IngredientEntity, bool>> one = relational
-                    ? i => EF.Functions.ILike(i.Name, prefix)
-                    : i => i.Name.ToLower().StartsWith(stem);
-                var clause = ReplacingExpressionVisitor.Replace(one.Parameters[0], ingredient, one.Body);
-                body = body == null ? clause : Expression.OrElse(body, clause);
-            }
-            return Expression.Lambda<Func<IngredientEntity, bool>>(
-                body ?? Expression.Constant(false), ingredient);
         }
 
         private async Task<List<NutrientValueModel>> GetIngredientNutrientsAsync(long ingredientId)

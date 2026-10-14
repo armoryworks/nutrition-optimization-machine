@@ -35,6 +35,13 @@ namespace Nom.Orch.Services.Support
                 .Take(MaxStems)
                 .ToList();
 
+        /// <summary>
+        /// A case-insensitive regex for a name whose first word is one of the stems, singular or
+        /// plural: "Oil, olive" and "Peas, green" lead with a query word, "Peanuts" does not lead with "peas".
+        /// </summary>
+        public static string LeadingWordPattern(IReadOnlyList<string> stems) =>
+            "^(" + string.Join("|", stems) + ")(s|es|y|ies)?([^a-z0-9]|$)";
+
         /// <summary>The word without a trailing plural ending; stemming never cuts a word below three letters.</summary>
         public static string Stem(string word)
         {

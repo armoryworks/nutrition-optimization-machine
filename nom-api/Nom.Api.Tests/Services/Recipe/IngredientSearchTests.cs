@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
@@ -170,6 +171,51 @@ namespace Nom.Api.Tests.Services.Recipe
 
             result.Name.Should().Be("Chickpeas, mature seeds, canned, drained solids");
             result.MatchedAlias.Should().Be("garbanzo beans");
+        }
+
+        [Fact]
+        public async Task Search_KeepsAnExactMatchWithoutData_WhenFoodsWithDataFillTheList()
+        {
+            await using var db = NewContext();
+            db.Ingredients.Add(Food("Chicken", CurationStatusEnum.NonCurated, createdBy: Me));
+            for (var n = 0; n < 25; n++)
+                db.Ingredients.Add(WithNutrition(Food($"Chicken, cut {n:D2}, raw", CurationStatusEnum.Curated)));
+            await db.SaveChangesAsync();
+
+            var names = await Names(db, "chicken");
+
+            names.Should().HaveCount(20);
+            names.Last().Should().Be("Chicken");
+            names.Take(19).Should().OnlyContain(n => n.StartsWith("Chicken, cut"));
+        }
+
+        [Fact]
+        public async Task Search_RanksNamesLeadingWithTheWholeWord_AboveOnesThatOnlyShareItsLetters()
+        {
+            await using var db = NewContext();
+            db.Ingredients.AddRange(
+                WithNutrition(Food("Peanuts, all types, raw", CurationStatusEnum.Curated)),
+                WithNutrition(Food("Pears, raw", CurationStatusEnum.Curated)),
+                WithNutrition(Food("Peas, green, raw", CurationStatusEnum.Curated)),
+                WithNutrition(Food("Berries, mixed, frozen", CurationStatusEnum.Curated)),
+                WithNutrition(Food("Berry juice blend", CurationStatusEnum.Curated)));
+            await db.SaveChangesAsync();
+
+            (await Names(db, "peas")).First().Should().Be("Peas, green, raw");
+            (await Names(db, "berries")).Should().Equal("Berries, mixed, frozen", "Berry juice blend");
+        }
+
+        [Theory]
+        [InlineData("peas", "Peas, green, raw", true)]
+        [InlineData("peas", "Peanuts, raw", false)]
+        [InlineData("peas", "Soup, pea", false)]
+        [InlineData("berries", "Berry juice", true)]
+        [InlineData("berries", "Berries", true)]
+        public void LeadingWordPattern_MatchesOnlyAWholeLeadingWord(string query, string name, bool expected)
+        {
+            var pattern = IngredientSearchTerms.LeadingWordPattern(IngredientSearchTerms.Stems(query));
+
+            Regex.IsMatch(name, pattern, RegexOptions.IgnoreCase).Should().Be(expected);
         }
 
         [Theory]
