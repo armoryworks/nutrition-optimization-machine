@@ -1,14 +1,13 @@
 import { Component, inject, signal, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
+import { Subject, catchError, debounceTime, distinctUntilChanged, map, switchMap, of } from 'rxjs';
 import { RecipeSearchService } from '../../core/services/recipe-search.service';
 import { MealPlanService } from '../../core/services/meal-plan.service';
 import { IngredientLookupService } from '../../core/services/ingredient-lookup.service';
@@ -16,7 +15,9 @@ import { IngredientLookupResult } from '../../core/models/ingredient-lookup-resu
 import { RecipeSearchResult } from '../../core/models/recipe-search-result.model';
 import { MealPlanEntry } from '../../core/models/meal-plan-entry.model';
 import { RecipeService } from '../../core/services/recipe.service';
-import { DietConflictsPipe, describeDietConflicts } from '../../core/utils/diet-conflict';
+import { DietConflictsPipe } from '../../core/utils/diet-conflict';
+import { RecipeDietMatchModel } from '../../core/models/recipe.model';
+import { DietConflictConfirmDialog, DietConflictConfirmDialogData, DietConflictConfirmDialogResult } from '../diet-conflict-confirm-dialog.component';
 
 export interface RecipeSearchDialogData {
   householdId: number;
@@ -51,7 +52,7 @@ export class RecipeSearchDialog implements OnInit {
   private mealPlanService = inject(MealPlanService);
   private ingredientLookup = inject(IngredientLookupService);
   private recipeService = inject(RecipeService);
-  private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
   private destroyRef = inject(DestroyRef);
 
   entries = signal<MealPlanEntry[]>([]);
@@ -204,6 +205,27 @@ export class RecipeSearchDialog implements OnInit {
 
   addRecipe(recipe: RecipeSearchResult): void {
     this.busy.set(true);
+    this.recipeService.getDietMatches(recipe.id).pipe(
+      catchError(() => of(recipe.dietConflicts ?? [])),
+      switchMap(matches => {
+        const severe = matches.filter(m => (m.severity ?? 0) >= 4);
+        if (severe.length === 0) return of(severe);
+        return this.dialog.open<DietConflictConfirmDialog, DietConflictConfirmDialogData, DietConflictConfirmDialogResult>(
+          DietConflictConfirmDialog,
+          { width: '400px', data: { recipeName: recipe.name, conflicts: severe } },
+        ).afterClosed().pipe(map(confirmed => (confirmed === true ? severe : null)));
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(severe => {
+      if (severe === null) {
+        this.busy.set(false);
+        return;
+      }
+      this.createRecipeEntry(recipe, severe);
+    });
+  }
+
+  private createRecipeEntry(recipe: RecipeSearchResult, severe: RecipeDietMatchModel[]): void {
     this.mealPlanService.createMealPlan({
       householdId: this.data.householdId,
       date: this.data.date,
@@ -228,29 +250,15 @@ export class RecipeSearchDialog implements OnInit {
           fatGrams: null,
           completedDate: null,
           shoppingCompletedAt: null,
-          dietConflicts: recipe.dietConflicts ?? [],
+          dietConflicts: severe,
         }]);
         this.changed.set(true);
         this.busy.set(false);
         this.searchQuery.set('');
         this.results.set([]);
-        this.warnOnDietConflicts(response.id, recipe);
       },
       error: () => {
         this.busy.set(false);
-      },
-    });
-  }
-
-  private warnOnDietConflicts(entryId: number, recipe: RecipeSearchResult): void {
-    this.recipeService.getDietMatches(recipe.id).pipe(
-      takeUntilDestroyed(this.destroyRef),
-    ).subscribe({
-      next: (matches) => {
-        const severe = matches.filter(m => (m.severity ?? 0) >= 4);
-        if (severe.length === 0) return;
-        this.entries.update(list => list.map(e => e.id === entryId ? { ...e, dietConflicts: severe } : e));
-        this.snackBar.open(`${recipe.name}: ${describeDietConflicts(severe)}`, 'OK', { duration: 8000 });
       },
     });
   }

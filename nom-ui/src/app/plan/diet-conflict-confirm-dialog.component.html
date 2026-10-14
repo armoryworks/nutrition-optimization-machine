@@ -1,0 +1,24 @@
+<div class="nom-dialog__title-bar" data-testid="diet-conflict-dialog">
+  <h2 mat-dialog-title>Add {{ data.recipeName }}?</h2>
+  <button class="nom-dialog__close" mat-dialog-close aria-label="Close dialog"
+          data-testid="diet-conflict-close-btn">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content>
+  <p class="nom-diet-conflict__message" data-testid="diet-conflict-message">
+    <mat-icon>error</mat-icon>
+    {{ data.conflicts | dietConflicts }}
+  </p>
+  <p class="nom-diet-conflict__note">It conflicts with a severe dietary restriction (allergy or medical) in your household.</p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button mat-dialog-close cdkFocusInitial data-testid="diet-conflict-cancel-btn">
+    Cancel
+  </button>
+  <button mat-button color="warn" [mat-dialog-close]="true" data-testid="diet-conflict-add-btn">
+    Add anyway
+  </button>
+</mat-dialog-actions>
