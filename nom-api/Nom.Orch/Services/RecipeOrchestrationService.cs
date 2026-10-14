@@ -88,7 +88,7 @@ namespace Nom.Orch.Services
                     IsWholeFood = i.IsWholeFood,
                     HasNutrition = i.IngredientNutrients.Any(),
                     CanWeighVolume = i.GramsPerMilliliter > 0,
-                    CanWeighCount = i.ReferenceServingGrams > 0
+                    CanWeighCount = i.GramsPerItem > 0 || i.ReferenceServingGrams > 0
                 })
                 .ToListAsync();
         }

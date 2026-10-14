@@ -5,14 +5,15 @@ using System.Text.RegularExpressions;
 
 namespace Nom.Import.Services
 {
-    /// <summary>One row of USDA food_portion.csv.</summary>
-    public sealed record UsdaPortion(decimal Amount, string? MeasureUnitId, string? Modifier, string? Description, decimal Grams);
+    /// <summary>One row of USDA food_portion.csv, with the unit's name from measure_unit.csv when known.</summary>
+    public sealed record UsdaPortion(decimal Amount, string? MeasureUnitId, string? Modifier, string? Description, decimal Grams, string? MeasureUnitName = null);
 
     /// <summary>
     /// Derives grams per millilitre from a food's USDA household portions ("1 cup = 125 g").
     /// Foundation names the unit by id; SR Legacy leaves it undetermined and puts it in the
     /// modifier text. A plain measure ("cup") wins over a prepared one ("cup, chopped"), and larger
-    /// measures over smaller ones because their gram weights carry less rounding.
+    /// measures over smaller ones because their gram weights carry less rounding. A purchase yield
+    /// ("pint as purchased, yields") is what a container holds once trimmed, not a volume, so it never counts.
     /// </summary>
     public static class UsdaVolumeDensity
     {
@@ -41,12 +42,14 @@ namespace Nom.Import.Services
             (new Regex(@"^(l|liters?|litres?)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), 1000m),
         };
 
+        private static readonly Regex AsPurchased = new(@"\b(yields?|as purchased)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private static readonly Regex PlainQualifier = new(@"^\s*(\((8 fl oz|1 nlea serving)\))?\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public static decimal? GramsPerMilliliter(IEnumerable<UsdaPortion> portions)
         {
             var best = portions
-                .Where(p => p.Amount > 0 && p.Grams > 0)
+                .Where(p => p.Amount > 0 && p.Grams > 0 && !AsPurchased.IsMatch($"{p.Modifier} {p.Description}"))
                 .Select(p => (Portion: p, Volume: Volume(p)))
                 .Where(x => x.Volume != null)
                 .OrderByDescending(x => x.Volume!.Value.Plain)
@@ -57,6 +60,8 @@ namespace Nom.Import.Services
             var density = best.Portion.Grams / (best.Portion.Amount * v.Ml);
             return density is > 0.05m and < 3m ? Math.Round(density, 4) : null;
         }
+
+        public static bool IsVolume(UsdaPortion p) => Volume(p) != null;
 
         private static (decimal Ml, bool Plain)? Volume(UsdaPortion p)
         {

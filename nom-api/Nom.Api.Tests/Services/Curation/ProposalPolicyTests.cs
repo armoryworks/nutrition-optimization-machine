@@ -18,6 +18,8 @@ namespace Nom.Api.Tests.Services.Curation
         [InlineData("carb_per_100g")]
         [InlineData("fat")]
         [InlineData("reference_serving_grams")]
+        [InlineData("grams_per_milliliter")]
+        [InlineData("grams_per_item")]
         public void ModelReviewer_CannotChangeNutrientValues(string field)
         {
             var allowed = ProposalPolicy.IsAllowed(field, "review:claude/2026-08-15", out var reason);

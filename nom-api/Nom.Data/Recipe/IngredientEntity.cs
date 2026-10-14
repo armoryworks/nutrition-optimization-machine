@@ -71,6 +71,14 @@ namespace Nom.Data.Recipe
         public decimal? GramsPerMilliliter { get; set; }
 
         /// <summary>
+        /// Grams in one countable item, from the source's household measures (USDA: 1 clove garlic =
+        /// 3 g, 1 medium strawberry = 12 g). Turns a recipe's pieces, cloves and stalks into mass, and
+        /// wins over <see cref="ReferenceServingGrams"/> for count units, which stays the reference
+        /// serving a standalone food is planned in. NULL = unknown.
+        /// </summary>
+        public decimal? GramsPerItem { get; set; }
+
+        /// <summary>
         /// Retail barcode (GTIN-8/12/13/14, digits only, leading zeros preserved) for packaged
         /// products. The join key for cross-checking a product against other published catalogs,
         /// and the lookup key for a future scan-to-add flow. NULL for anything unpackaged.

@@ -42,6 +42,18 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public void A_purchase_yield_is_not_a_volume()
+        {
+            var strawberries = new[]
+            {
+                new UsdaPortion(1m, "9999", "cup, whole", null, 144m),
+                new UsdaPortion(1m, "9999", "pint as purchased, yields", null, 357m),
+            };
+
+            UsdaVolumeDensity.GramsPerMilliliter(strawberries).Should().Be(0.6087m);
+        }
+
+        [Fact]
         public void Counts_and_weights_give_no_density()
         {
             var portions = new[]

@@ -94,6 +94,19 @@ namespace Nom.Api.Tests.Services.Recipe
                 .Should().BeApproximately(36.6711m, 0.001m);
         }
 
+        [Theory]
+        [InlineData(3.0, 147.0, 6.0)]
+        [InlineData(null, 147.0, 294.0)]
+        [InlineData(3.0, null, 6.0)]
+        [InlineData(0.0, 147.0, 294.0)]
+        public void A_count_weighs_one_item_before_falling_back_to_the_reference_serving(double? gramsPerItem, double? referenceGrams, double expected)
+        {
+            var piece = new BaseMeasurementEntity { Name = "Piece", Symbol = "pc", MeasurementCategoryId = 3, BaseUnitConversionFactor = 1m };
+            var garlic = new IngredientEntity { Name = "Garlic", GramsPerItem = (decimal?)gramsPerItem, ReferenceServingGrams = (decimal?)referenceGrams };
+
+            RecipeNutritionService.GramsFor(2m, piece, garlic).Should().Be((decimal)expected);
+        }
+
         [Fact]
         public async Task Hand_authored_label_is_not_overwritten()
         {

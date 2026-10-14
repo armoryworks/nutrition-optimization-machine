@@ -17,7 +17,7 @@ namespace Nom.Orch.Services
     /// Grams per recipe ingredient come from the measurement's category:
     ///   Mass   → quantity × factor-to-grams
     ///   Volume → quantity × factor-to-ml × Ingredient.GramsPerMilliliter (skipped when unknown)
-    ///   Count  → quantity × factor × Ingredient.ReferenceServingGrams (skipped when unknown)
+    ///   Count  → quantity × factor × Ingredient.GramsPerItem, else ReferenceServingGrams (skipped when unknown)
     /// Ingredients without nutrition or without a gram conversion contribute nothing (the recipe
     /// response reports them per line, see <see cref="StatusFor"/>); if nothing contributes,
     /// existing rows are left alone. Rows written here carry
@@ -156,7 +156,7 @@ namespace Nom.Orch.Services
                     var density = ingredient?.GramsPerMilliliter;
                     return density is > 0 ? quantity * factor * density.Value : null;
                 case CategoryCount:
-                    var per = ingredient?.ReferenceServingGrams;
+                    var per = ingredient?.GramsPerItem is > 0 ? ingredient.GramsPerItem : ingredient?.ReferenceServingGrams;
                     return per is > 0 ? quantity * factor * per.Value : null;
                 default:
                     return null;
