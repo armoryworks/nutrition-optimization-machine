@@ -15,7 +15,7 @@ import { IngredientLookupResult } from '../../core/models/ingredient-lookup-resu
 import { RecipeSearchResult } from '../../core/models/recipe-search-result.model';
 import { MealPlanEntry } from '../../core/models/meal-plan-entry.model';
 import { RecipeService } from '../../core/services/recipe.service';
-import { DietConflictsPipe, describeDietConflicts } from '../../core/utils/diet-conflict';
+import { DietConflictsPipe } from '../../core/utils/diet-conflict';
 import { formatFriendlyDate } from '../../core/utils/local-date';
 import { RecipeDietMatchModel } from '../../core/models/recipe.model';
 import { DietConflictConfirmDialog, DietConflictConfirmDialogData, DietConflictConfirmDialogResult } from '../diet-conflict-confirm-dialog.component';
