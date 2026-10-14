@@ -217,6 +217,7 @@ namespace Nom.Import.Services
             {
                 var ids = backfill.Select(b => b.IngredientId).ToList();
                 var have = (await _db.Set<IngredientNutrientEntity>()
+                    .IgnoreQueryFilters()
                     .Where(n => ids.Contains(n.IngredientId))
                     .Select(n => new { n.IngredientId, n.NutrientId })
                     .ToListAsync(ct))

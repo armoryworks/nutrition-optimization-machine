@@ -51,6 +51,9 @@
         <span class="nom-nutrition-label__calories-value">
           @if (calories()) {
             {{ calories()!.amount | number:'1.0-0' }}
+            @if (calories()!.partial) {
+              <span class="nom-nutrition-label__partial" title="Some ingredients have no data for this nutrient" data-testid="nutrition-label-calories-partial-mark">†</span>
+            }
           } @else {
             —
           }

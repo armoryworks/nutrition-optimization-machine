@@ -51,7 +51,7 @@ namespace Nom.Orch.Models.Recipe
         /// <summary>True when the label was derived from the ingredients, so lines that did not count make it incomplete; false for a hand-authored label.</summary>
         public bool NutritionDerived { get; set; }
 
-        /// <summary>Where the label's numbers come from, for the attribution line; null when there is no label.</summary>
+        /// <summary>Where the label's numbers come from, for the attribution line; null when there is no label or no ingredient line currently counts toward it.</summary>
         public RecipeNutritionSourceModel? NutritionSource { get; set; }
     }
 

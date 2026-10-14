@@ -142,6 +142,29 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public async Task Backfill_leaves_a_removed_nutrient_removed_and_stamps_its_rows_with_one_run_time()
+        {
+            using var db = await NewContextAsync();
+            var egg = new IngredientEntity { Name = "Egg", FdcId = "171287", CurationStatusId = 9003 };
+            db.Ingredients.Add(egg);
+            await db.SaveChangesAsync();
+            db.Set<IngredientNutrientEntity>().Add(new IngredientNutrientEntity
+            {
+                IngredientId = egg.Id, NutrientId = Cholesterol, Amount = 400m, MeasurementId = Milligram, IsDeleted = true,
+            });
+            await db.SaveChangesAsync();
+
+            var report = await new FdcNutrientBackfillService(db, NullLogger<FdcNutrientBackfillService>.Instance)
+                .BackfillAsync(_dir, dryRun: false);
+
+            report.RowsByNutrient.Should().NotContainKey("cholesterol", "a soft-deleted row still holds the unique (ingredient, nutrient) slot");
+            (await AmountAsync(db, egg.Id, Sodium)).Should().Be(142m);
+            var stamps = await db.Set<IngredientNutrientEntity>().Where(n => !n.IsDeleted).Select(n => n.CreatedDate).Distinct().ToListAsync();
+            stamps.Should().Equal(report.RunStamp);
+            (report.RunStamp.Ticks % 10).Should().Be(0, "PostgreSQL keeps microseconds, so the printed stamp must match the stored one exactly");
+        }
+
+        [Fact]
         public async Task Backfill_names_the_nutrients_the_database_has_no_row_for()
         {
             using var db = await NewContextAsync(withTransFat: false);

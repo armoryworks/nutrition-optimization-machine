@@ -52,12 +52,14 @@ namespace Nom.Import.Services
             var foods = FdcNutrients.Read(nutrientCsv, byFdc.Keys.ToHashSet());
 
             var have = (await _db.Set<IngredientNutrientEntity>()
+                .IgnoreQueryFilters()
                 .Where(n => n.Ingredient.FdcId != null)
                 .Select(n => new { n.IngredientId, n.NutrientId })
                 .ToListAsync(ct))
                 .Select(n => (n.IngredientId, n.NutrientId)).ToHashSet();
 
-            var now = DateTime.UtcNow;
+            var now = new DateTime(DateTime.UtcNow.Ticks / 10 * 10, DateTimeKind.Utc);
+            report.RunStamp = now;
             var filled = new HashSet<long>();
             foreach (var (fdcId, food) in foods)
             {
@@ -106,6 +108,7 @@ namespace Nom.Import.Services
         public sealed class BackfillReport
         {
             public bool DryRun { get; set; }
+            public DateTime RunStamp { get; set; }
             public int LinkedIngredients { get; set; }
             public int MatchedInFile { get; set; }
             public int IngredientsFilled { get; set; }

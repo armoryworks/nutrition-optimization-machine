@@ -169,6 +169,8 @@ namespace Nom.Orch.Services
 
             if (!derived)
                 return (rows, new RecipeNutritionSourceModel { Kind = "recipe" });
+            if (counted.Count == 0)
+                return (rows, null);
 
             var usda = counted.Count(ri => !string.IsNullOrEmpty(ri.Ingredient?.FdcId));
             return (rows, new RecipeNutritionSourceModel

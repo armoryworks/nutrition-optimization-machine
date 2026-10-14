@@ -125,6 +125,39 @@ namespace Nom.Api.Tests.Services.Recipe
         }
 
         [Fact]
+        public void A_derived_label_no_line_counts_toward_names_no_source()
+        {
+            var recipe = new RecipeEntity
+            {
+                RecipeIngredients = new List<RecipeIngredientEntity> { Line(1, null) },
+                Nutrition = new List<RecipeNutritionEntity> { Row(Protein, "Protein", 20m, "g") },
+            };
+
+            var (rows, source) = RecipeNutritionService.BuildLabel(recipe, new Dictionary<long, HashSet<long>>());
+
+            rows.Should().ContainSingle();
+            source.Should().BeNull("no counted ingredient is left to say where the numbers came from");
+        }
+
+        [Fact]
+        public void A_food_with_saturated_fat_but_no_total_fat_does_not_report_it_as_fat()
+        {
+            var food = new IngredientEntity
+            {
+                IngredientNutrients = new List<IngredientNutrientEntity>
+                {
+                    new() { NutrientId = 5001, Amount = 3.1m, Nutrient = new NutrientEntity { Id = 5001, Name = "Saturated Fat", ParentNutrientId = Fat } },
+                    new() { NutrientId = 5037, Amount = 0.04m, Nutrient = new NutrientEntity { Id = 5037, Name = "Trans Fat", ParentNutrientId = Fat } },
+                },
+            };
+
+            FoodCatalogReviewService.Amount(food, FoodCatalogReviewService.FatNames).Should().BeNull();
+
+            food.IngredientNutrients.Add(new IngredientNutrientEntity { NutrientId = Fat, Amount = 9.5m, Nutrient = new NutrientEntity { Id = Fat, Name = "Fat" } });
+            FoodCatalogReviewService.Amount(food, FoodCatalogReviewService.FatNames).Should().Be(9.5m);
+        }
+
+        [Fact]
         public void No_label_has_no_rows_and_no_source()
         {
             var (rows, source) = RecipeNutritionService.BuildLabel(new RecipeEntity(), new Dictionary<long, HashSet<long>>());

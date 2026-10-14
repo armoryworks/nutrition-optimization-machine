@@ -50,6 +50,23 @@ describe('NutritionLabel', () => {
     expect(el.querySelector('[data-testid="nutrition-label-partial-note"]')?.textContent).toContain('minimum');
   });
 
+  it('marks partial calories and never lets a fat subtype stand in for total fat', () => {
+    const fixture = TestBed.createComponent(NutritionLabel);
+    fixture.componentRef.setInput('nutrition', [
+      { nutrientName: 'Calories', amount: 310, unit: 'kcal', partial: true },
+      { nutrientName: 'Saturated Fat', amount: 3, unit: 'g', dailyValuePercent: 15 },
+      { nutrientName: 'Trans Fat', amount: 0.1, unit: 'g' },
+    ]);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('[data-testid="nutrition-label-calories-partial-mark"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="nutrition-label-partial-note"]')).not.toBeNull();
+    const rows = Array.from(el.querySelectorAll('[data-testid="nutrition-label-nutrient-item"]')).map(r => r.textContent ?? '');
+    expect(rows.some(t => t.includes('Total Fat'))).toBe(false);
+    expect(rows.some(t => t.includes('Saturated Fat'))).toBe(true);
+  });
+
   it('names where the numbers come from', () => {
     const fixture = TestBed.createComponent(NutritionLabel);
     fixture.componentRef.setInput('nutrition', [{ nutrientName: 'Calories', amount: 300, unit: 'kcal' }]);

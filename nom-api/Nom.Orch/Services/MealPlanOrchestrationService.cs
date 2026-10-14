@@ -1312,7 +1312,7 @@ namespace Nom.Orch.Services
         private static decimal? FindNutrientAmount(ICollection<RecipeNutritionEntity> nutrition, string[] namePatterns)
         {
             var match = nutrition.FirstOrDefault(n =>
-                n.Nutrient != null && namePatterns.Any(p =>
+                n.Nutrient != null && n.Nutrient.ParentNutrientId == null && namePatterns.Any(p =>
                     n.Nutrient.Name.Contains(p, StringComparison.OrdinalIgnoreCase)));
             return match?.Amount;
         }
@@ -1321,7 +1321,7 @@ namespace Nom.Orch.Services
             ICollection<Nom.Data.Nutrient.IngredientNutrientEntity> nutrients, string[] namePatterns)
         {
             var match = nutrients.FirstOrDefault(n =>
-                n.Nutrient != null && namePatterns.Any(p =>
+                n.Nutrient != null && n.Nutrient.ParentNutrientId == null && namePatterns.Any(p =>
                     n.Nutrient.Name.Contains(p, StringComparison.OrdinalIgnoreCase)));
             return match?.Amount;
         }

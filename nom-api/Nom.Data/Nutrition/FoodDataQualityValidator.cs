@@ -105,6 +105,7 @@ namespace Nom.Data.Nutrition
         /// </summary>
         public decimal ComponentTolerance { get; init; } = 0.05m;
 
+        /// <summary>Grams a part may exceed its parent by on top of <see cref="ComponentTolerance"/>.</summary>
         public decimal ComponentSlackGrams { get; init; } = 1m;
 
         /// <summary>

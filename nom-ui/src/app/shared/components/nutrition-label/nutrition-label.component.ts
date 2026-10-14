@@ -41,6 +41,8 @@ const FDA_NUTRIENT_ORDER: NutrientDisplayConfig[] = [
   { names: ['potassium, k', 'potassium'], displayName: 'Potassium', isChild: false, isMacro: false },
 ];
 
+const KNOWN_NUTRIENT_NAMES = new Set(FDA_NUTRIENT_ORDER.flatMap(c => c.names));
+
 @Component({
   selector: 'nom-nutrition-label',
   imports: [DecimalPipe],
@@ -86,15 +88,16 @@ export class NutritionLabel {
   microNutrients = computed(() => this.buildRows(false));
 
   /** True when a shown nutrient is a minimum because some counted ingredients lack it. */
-  hasPartial = computed(() => [...this.macroNutrients(), ...this.microNutrients()].some(r => r.partial));
+  hasPartial = computed(() => this.calories()?.partial === true
+    || [...this.macroNutrients(), ...this.microNutrients()].some(r => r.partial));
 
   sourceText = computed(() => {
     const s = this.source();
     switch (s?.kind) {
       case 'usda':
-        return 'Nutrition from USDA FoodData Central.';
+        return 'Nutrition based on USDA FoodData Central: every counted ingredient is linked to a USDA food.';
       case 'mixed':
-        return `Nutrition from USDA FoodData Central for ${s.usdaLines} of ${s.countedLines} counted ingredients; the rest from NOM's own ingredient data.`;
+        return `Nutrition based on USDA FoodData Central for ${s.usdaLines} of ${s.countedLines} counted ingredients; the rest from NOM's own ingredient data.`;
       case 'catalog':
         return "Nutrition from NOM's own ingredient data, not linked to USDA FoodData Central.";
       case 'recipe':
@@ -133,7 +136,7 @@ export class NutritionLabel {
     return data.find(n => lowerNames.includes(n.nutrientName.toLowerCase()))
       ?? data.find(n => {
         const name = n.nutrientName.toLowerCase();
-        return lowerNames.some(ln => name.includes(ln));
+        return !KNOWN_NUTRIENT_NAMES.has(name) && lowerNames.some(ln => name.includes(ln));
       });
   }
 }

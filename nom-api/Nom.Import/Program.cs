@@ -99,6 +99,8 @@ namespace Nom.Import
                     Console.WriteLine($"  {key}: {n}");
                 foreach (var (reason, n) in r.DroppedValuesByReason.OrderByDescending(x => x.Value))
                     Console.WriteLine($"  dropped value: {reason} x {n}");
+                if (!dryRun && r.Rows > 0)
+                    Console.WriteLine($"Rows stamped CreatedDate = {r.RunStamp:O}");
                 if (r.UnresolvedNutrients.Count > 0)
                     Console.WriteLine($"No Nutrient row for (skipped): {string.Join(", ", r.UnresolvedNutrients)}");
                 return;

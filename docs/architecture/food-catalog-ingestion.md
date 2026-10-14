@@ -162,8 +162,12 @@ Foods imported before this have only the macros. `dotnet run -- --backfill-nutri
 <csv-dir> [--dry-run]` fills the missing values onto every ingredient already linked by
 `FdcId`, from one FDC directory at a time (run it once per Foundation, SR Legacy and
 Branded directory). It only writes nutrients an ingredient has no row for, so it never
-overwrites and a rerun writes nothing. Trans fat needs its Nutrient row first: run
-`db/fix-trans-fat-nutrient.sql` on databases seeded before it existed.
+overwrites and a rerun writes nothing; a soft-deleted row counts as present, so a value an
+admin removed is not put back. Every row one run writes carries the same `CreatedDate`,
+printed at the end of the report, so a run can be undone exactly:
+`DELETE FROM nutrient."IngredientNutrient" WHERE "CreatedDate" = '<printed stamp>';`.
+Trans fat needs its Nutrient row first: run `db/fix-trans-fat-nutrient.sql` on databases
+seeded before it existed.
 
 ### AI enrichment (food group + IsWholeFood) — BUILT ✅ (runtime pending)
 `Nom.Import/Services/FoodGroupEnrichmentService.cs` — a batch job that classifies
