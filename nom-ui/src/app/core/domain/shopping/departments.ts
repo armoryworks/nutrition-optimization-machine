@@ -195,5 +195,15 @@ export function categorizeDepartment(name: string, foodGroupName?: string | null
   const { text, packaged } = searchText(name);
   const named = RULES.find(([pattern]) => pattern.test(text))?.[1];
   const department = named ?? FOOD_GROUP_DEPARTMENTS[foodGroupName?.toLowerCase() ?? ''] ?? 'Other';
-  return packaged && PACKAGED_FROM.has(department) ? 'Canned & Jarred' : department;
+  return packaged ? inPackage(department, 'can') : department;
+}
+
+/**
+ * The aisle once the retail package is known: a can or jar of something that
+ * would otherwise be fresh, meat, dry goods or unsorted sits with canned goods.
+ */
+export function inPackage(department: string, packageName: string): string {
+  return PACKAGED_FROM.has(department) && /\b(cans?|jars?|tins?)\b/i.test(packageName)
+    ? 'Canned & Jarred'
+    : department;
 }

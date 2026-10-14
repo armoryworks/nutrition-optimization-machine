@@ -1,4 +1,4 @@
-import { categorizeDepartment, DEPARTMENT_ORDER, DEPARTMENT_ICONS } from './departments';
+import { categorizeDepartment, DEPARTMENT_ORDER, DEPARTMENT_ICONS, inPackage } from './departments';
 import { shelfLifeDaysFor, SHELF_LIFE_DEFAULTS } from './shelf-life';
 
 const CASES: [string, string][] = [
@@ -211,6 +211,14 @@ describe('categorizeDepartment', () => {
 
   it('still moves a canned food-group fallback to Canned & Jarred', () => {
     expect(categorizeDepartment('Hearts of palm [14 oz can]', 'Vegetables')).toBe('Canned & Jarred');
+  });
+
+  it('moves an item bought by the can or jar to Canned & Jarred once its package is known', () => {
+    expect(inPackage(categorizeDepartment('Black Beans'), 'can')).toBe('Canned & Jarred');
+    expect(inPackage(categorizeDepartment('Roasted red peppers'), 'jar')).toBe('Canned & Jarred');
+    expect(inPackage(categorizeDepartment('Black Beans'), 'bag')).toBe('Grains & Pasta');
+    expect(inPackage(categorizeDepartment('Coconut Milk'), 'can')).toBe(categorizeDepartment('Coconut Milk'));
+    expect(inPackage(categorizeDepartment('Black Pepper'), 'grinder')).toBe('Spices & Seasonings');
   });
 
   it('has an icon and a shelf life for every ordered department', () => {

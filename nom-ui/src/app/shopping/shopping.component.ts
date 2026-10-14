@@ -52,6 +52,7 @@ import {
   DEPARTMENT_ORDER,
   DEPARTMENT_ICONS,
   categorizeDepartment,
+  inPackage,
 } from '../core/domain/shopping/departments';
 import { shoppingListShareData, shoppingListText } from '../core/domain/shopping/list-text';
 import { SHELF_LIFE_DEFAULTS } from '../core/domain/shopping/shelf-life';
@@ -235,7 +236,7 @@ export class ShoppingComponent implements OnInit {
 
     for (const [ingredientId, accs] of ingredientMap) {
       const name = accs[0].name;
-      const dept = accs[0].department;
+      let dept = accs[0].department;
       const portions: ShoppingPortion[] = [];
 
       // Gather raw totals by category (in base units: ml, g, count)
@@ -268,6 +269,7 @@ export class ShoppingComponent implements OnInit {
       const pkg = findRetailPackage(name, packages);
 
       if (pkg) {
+        dept = inPackage(dept, pkg.packageName);
         const density = getIngredientDensity(name);
         let totalBase: number;
 
