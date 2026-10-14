@@ -106,7 +106,12 @@
 
   &__fdc { display: block; opacity: 0.55; font-size: 0.75rem; }
 
-  &__inline-select { width: 9rem; font-size: 0.85rem; }
+  &__inline-select {
+    width: 9rem;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  }
 
   &__status {
     font-size: 0.8rem;

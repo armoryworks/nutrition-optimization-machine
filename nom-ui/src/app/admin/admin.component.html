@@ -5,7 +5,7 @@
   </div>
 
   <div class="nom-admin__layout">
-    <nav class="nom-admin__nav" aria-label="Admin sections" data-testid="admin-tab-bar">
+    <nav #nav class="nom-admin__nav" aria-label="Admin sections" data-testid="admin-tab-bar">
       @for (tab of tabs; track tab.id) {
         <a
           class="nom-admin__nav-link"

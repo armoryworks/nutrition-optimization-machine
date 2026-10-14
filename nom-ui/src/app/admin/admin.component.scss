@@ -27,7 +27,8 @@
   border: 1px solid var(--mat-sys-outline-variant);
 
   @media (max-width: vars.$breakpoint-mobile) {
-    position: static;
+    position: relative;
+    top: 0;
     flex-direction: row;
     overflow-x: auto;
     scrollbar-width: none;

@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, computed, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ElementRef, afterRenderEffect, computed, inject, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -46,6 +46,19 @@ export class Admin {
     const tab = this.tabParam();
     return (VALID_TABS as readonly string[]).includes(tab ?? '') ? (tab as AdminTab) : 'overview';
   });
+
+  private nav = viewChild<ElementRef<HTMLElement>>('nav');
+
+  constructor() {
+    afterRenderEffect(() => {
+      this.activeTab();
+      const nav = this.nav()?.nativeElement;
+      const active = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+      if (nav && active && nav.scrollWidth > nav.clientWidth) {
+        nav.scrollTo({ left: active.offsetLeft - (nav.clientWidth - active.offsetWidth) / 2 });
+      }
+    });
+  }
 
   readonly tabs: AdminTabDef[] = [
     { id: 'overview', label: 'Overview', icon: 'dashboard', description: 'Admin launchpad' },
