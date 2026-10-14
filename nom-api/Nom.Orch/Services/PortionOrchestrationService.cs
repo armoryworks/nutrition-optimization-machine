@@ -254,7 +254,7 @@ namespace Nom.Orch.Services
             return results;
         }
 
-        private static decimal MealPct(MealSplitModel split, long mealTypeId) => mealTypeId switch
+        internal static decimal MealPct(MealSplitModel split, long mealTypeId) => mealTypeId switch
         {
             1100L => split.BreakfastPct,
             1101L => split.LunchPct,
