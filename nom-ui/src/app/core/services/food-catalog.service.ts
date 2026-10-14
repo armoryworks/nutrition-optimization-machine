@@ -55,8 +55,8 @@ export class FoodCatalogService {
     return this.http.put<FoodCatalogItem>(`${this.apiUrl}/${id}`, update);
   }
 
-  setCurationStatus(ingredientIds: number[], curationStatusId: number): Observable<{ updated: number }> {
-    return this.http.post<{ updated: number }>(`${this.apiUrl}/curation-status`, {
+  setCurationStatus(ingredientIds: number[], curationStatusId: number): Observable<{ updated: number; unchanged: number }> {
+    return this.http.post<{ updated: number; unchanged: number }>(`${this.apiUrl}/curation-status`, {
       ingredientIds,
       curationStatusId,
     });

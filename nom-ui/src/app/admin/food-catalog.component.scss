@@ -13,15 +13,6 @@
 
   &__search { min-width: 16rem; }
 
-  &__success {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--mat-sys-primary, #2e7d32) 12%, transparent);
-  }
-
   &__audit-summary {
     display: flex;
     align-items: center;

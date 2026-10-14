@@ -143,19 +143,20 @@ namespace Nom.Orch.Services
             return ToItem(ing);
         }
 
-        public async Task<int> SetCurationStatusAsync(IEnumerable<long> ingredientIds, long curationStatusId)
+        public async Task<(int Updated, int Unchanged)> SetCurationStatusAsync(IEnumerable<long> ingredientIds, long curationStatusId)
         {
             var ids = ingredientIds.Distinct().ToList();
-            if (ids.Count == 0) return 0;
+            if (ids.Count == 0) return (0, 0);
 
             var rows = await _context.Ingredients.Where(i => ids.Contains(i.Id)).ToListAsync();
-            foreach (var r in rows)
+            var changed = rows.Where(r => r.CurationStatusId != curationStatusId).ToList();
+            foreach (var r in changed)
             {
                 r.CurationStatusId = curationStatusId;
                 r.LastModifiedDate = DateTime.UtcNow;
             }
             await _context.SaveChangesAsync();
-            return rows.Count;
+            return (changed.Count, rows.Count - changed.Count);
         }
 
         public async Task<string> ExportCsvAsync(string? source, long? status, long? foodGroupId, string? search, int limit)

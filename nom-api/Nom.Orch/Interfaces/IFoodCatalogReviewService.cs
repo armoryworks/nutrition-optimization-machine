@@ -19,8 +19,8 @@ namespace Nom.Orch.Interfaces
 
         Task<FoodCatalogItemModel?> UpdateAsync(long id, FoodCatalogUpdateModel model);
 
-        /// <summary>Bulk promote reviewed rows to Curated so meal planning can use them.</summary>
-        Task<int> SetCurationStatusAsync(IEnumerable<long> ingredientIds, long curationStatusId);
+        /// <summary>Bulk promote reviewed rows to Curated so meal planning can use them; rows already in that status are left untouched and counted separately.</summary>
+        Task<(int Updated, int Unchanged)> SetCurationStatusAsync(IEnumerable<long> ingredientIds, long curationStatusId);
 
         /// <summary>Exports the catalog as CSV for an external reviewer to read.</summary>
         Task<string> ExportCsvAsync(string? source, long? status, long? foodGroupId, string? search, int limit);

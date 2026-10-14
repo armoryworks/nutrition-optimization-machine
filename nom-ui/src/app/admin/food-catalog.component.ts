@@ -11,6 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FoodCatalogService } from '../core/services/food-catalog.service';
 import { CatalogCleanupPreview, CatalogCleanupResult } from '../core/models/food-catalog.model';
 import { MealPlanService } from '../core/services/meal-plan.service';
@@ -32,6 +33,7 @@ import {
   selector: 'nom-food-catalog',
   imports: [
     FormsModule,
+    MatSnackBarModule,
     DecimalPipe,
     MatIconModule,
     MatButtonModule,
@@ -50,6 +52,7 @@ export class FoodCatalog implements OnInit {
   private catalog = inject(FoodCatalogService);
   private mealPlanService = inject(MealPlanService);
   private destroyRef = inject(DestroyRef);
+  private snackBar = inject(MatSnackBar);
 
   readonly CurationStatus = CurationStatus;
 
@@ -81,7 +84,6 @@ export class FoodCatalog implements OnInit {
   total = signal(0);
   loading = signal(false);
   errorMessage = signal('');
-  successMessage = signal('');
 
   selected = signal<Set<number>>(new Set());
 
@@ -190,7 +192,7 @@ export class FoodCatalog implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => { this.cleanupPreview.set(res); this.cleanupBusy.set(false); },
-        error: () => { this.cleanupBusy.set(false); this.errorMessage.set('Cleanup preview failed.'); },
+        error: () => { this.cleanupBusy.set(false); this.notify('Cleanup preview failed.'); },
       });
   }
 
@@ -205,7 +207,7 @@ export class FoodCatalog implements OnInit {
           this.runCleanupPreviewSilent();
           this.load();
         },
-        error: () => { this.cleanupBusy.set(false); this.errorMessage.set('Cleanup apply failed.'); },
+        error: () => { this.cleanupBusy.set(false); this.notify('Cleanup apply failed.'); },
       });
   }
 
@@ -228,7 +230,7 @@ export class FoodCatalog implements OnInit {
         },
         error: () => {
           this.auditRunning.set(false);
-          this.errorMessage.set('Audit failed.');
+          this.notify('Audit failed.');
         },
       });
   }
@@ -249,7 +251,7 @@ export class FoodCatalog implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => this.replace(updated),
-        error: () => this.errorMessage.set('Could not update the food group.'),
+        error: () => this.notify('Could not update the food group.'),
       });
   }
 
@@ -259,8 +261,12 @@ export class FoodCatalog implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => this.replace(updated),
-        error: () => this.errorMessage.set('Could not update the food.'),
+        error: () => this.notify('Could not update the food.'),
       });
+  }
+
+  private notify(message: string): void {
+    this.snackBar.open(message, 'OK', { duration: 6000 });
   }
 
   promoteSelected(statusId: number): void {
@@ -271,15 +277,11 @@ export class FoodCatalog implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
-          this.successMessage.set(
-            statusId === CurationStatus.Curated
-              ? `${res.updated} food(s) approved — meal planning can now use them.`
-              : `${res.updated} food(s) updated.`,
-          );
+          this.notify(curationResultMessage(res, statusId === CurationStatus.Curated));
           this.selected.set(new Set());
           this.load();
         },
-        error: () => this.errorMessage.set('Could not update those foods.'),
+        error: () => this.notify('Could not update those foods.'),
       });
   }
 
@@ -306,7 +308,7 @@ export class FoodCatalog implements OnInit {
         },
         error: () => {
           this.exporting.set(false);
-          this.errorMessage.set('Could not export the food catalog.');
+          this.notify('Could not export the food catalog.');
         },
       });
   }
@@ -365,13 +367,13 @@ export class FoodCatalog implements OnInit {
       .subscribe({
         next: (r) => {
           this.linkBusy.set(false);
-          this.successMessage.set(`Linked ${r.applied} ingredient${r.applied === 1 ? '' : 's'} to USDA foods${r.skipped ? ` (${r.skipped} no longer applied)` : ''}.`);
+          this.notify(`Linked ${r.applied} ingredient${r.applied === 1 ? '' : 's'} to USDA foods${r.skipped ? ` (${r.skipped} no longer applied)` : ''}.`);
           this.loadLinks();
           this.load();
         },
         error: () => {
           this.linkBusy.set(false);
-          this.errorMessage.set('Those links could not be applied.');
+          this.notify('Those links could not be applied.');
         },
       });
   }
@@ -385,7 +387,7 @@ export class FoodCatalog implements OnInit {
           this.links.set(this.links().filter((x) => x.id !== l.id));
           this.toggleLink(l.id, false);
         },
-        error: () => this.errorMessage.set('That link could not be dismissed.'),
+        error: () => this.notify('That link could not be dismissed.'),
       });
   }
 
@@ -398,7 +400,7 @@ export class FoodCatalog implements OnInit {
           this.proposals.set(this.proposals().filter((x) => x.id !== p.id));
           this.load();
         },
-        error: () => this.errorMessage.set('That proposal could not be applied.'),
+        error: () => this.notify('That proposal could not be applied.'),
       });
   }
 
@@ -408,11 +410,19 @@ export class FoodCatalog implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.proposals.set(this.proposals().filter((x) => x.id !== p.id)),
-        error: () => this.errorMessage.set('That proposal could not be rejected.'),
+        error: () => this.notify('That proposal could not be rejected.'),
       });
   }
 
   private replace(updated: FoodCatalogItem): void {
     this.items.set(this.items().map((i) => (i.id === updated.id ? updated : i)));
   }
+}
+
+export function curationResultMessage(res: { updated: number; unchanged: number }, approving: boolean): string {
+  const foods = (n: number) => `${n} food${n === 1 ? '' : 's'}`;
+  const done = approving ? 'approved for planning' : 'rejected';
+  if (res.updated === 0) return `${res.unchanged === 1 ? 'That food was' : `All ${foods(res.unchanged)} were`} already ${done}.`;
+  const lead = approving ? `${foods(res.updated)} approved — meal planning can now use them.` : `${foods(res.updated)} rejected.`;
+  return res.unchanged > 0 ? `${lead} ${foods(res.unchanged)} ${res.unchanged === 1 ? 'was' : 'were'} already ${done}.` : lead;
 }

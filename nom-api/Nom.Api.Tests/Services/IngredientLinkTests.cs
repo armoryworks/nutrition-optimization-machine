@@ -526,5 +526,23 @@ namespace Nom.Api.Tests.Services
 
             listed.Select(p => p.Source).Take(2).Should().Equal("admin:zucchini-relink", IngredientLinkService.StapleSource);
         }
+
+        [Fact]
+        public async Task Approving_foods_that_are_already_curated_changes_nothing_and_says_so()
+        {
+            using var db = NewContext();
+            var (salt, salted, _) = await SeedFoodsAsync(db);
+            salt.CurationStatusId = (long)CurationStatusEnum.Curated;
+            var stamped = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            salt.LastModifiedDate = stamped;
+            await db.SaveChangesAsync();
+
+            var (updated, unchanged) = await new FoodCatalogReviewService(db, new NoAudit(), new FakeCleanup())
+                .SetCurationStatusAsync(new[] { salt.Id, salted.Id }, (long)CurationStatusEnum.Curated);
+
+            (updated, unchanged).Should().Be((1, 1));
+            salt.LastModifiedDate.Should().Be(stamped);
+            salted.CurationStatusId.Should().Be((long)CurationStatusEnum.Curated);
+        }
     }
 }
