@@ -4,71 +4,73 @@
     <p class="nom-settings__subtitle">Manage users, content, and system settings</p>
   </div>
 
-  <nav class="nom-admin__tab-bar" aria-label="Admin sections" data-testid="admin-tab-bar">
-    @for (tab of tabs; track tab.id) {
-      <a
-        class="nom-admin__tab"
-        [class.nom-admin__tab--active]="activeTab() === tab.id"
-        [routerLink]="tab.id === 'overview' ? '/admin' : '/admin/' + tab.id"
-        [attr.aria-current]="activeTab() === tab.id ? 'page' : null"
-        [attr.data-testid]="tab.navTestId ?? 'nav-admin-' + tab.id"
-      >
-        <mat-icon>{{ tab.icon }}</mat-icon>
-        {{ tab.label }}
-      </a>
-    }
-  </nav>
+  <div class="nom-admin__layout">
+    <nav class="nom-admin__nav" aria-label="Admin sections" data-testid="admin-tab-bar">
+      @for (tab of tabs; track tab.id) {
+        <a
+          class="nom-admin__nav-link"
+          [class.nom-admin__nav-link--active]="activeTab() === tab.id"
+          [routerLink]="tab.id === 'overview' ? '/admin' : '/admin/' + tab.id"
+          [attr.aria-current]="activeTab() === tab.id ? 'page' : null"
+          [attr.data-testid]="tab.navTestId ?? 'nav-admin-' + tab.id"
+        >
+          <mat-icon>{{ tab.icon }}</mat-icon>
+          <span>{{ tab.label }}</span>
+        </a>
+      }
+    </nav>
 
-  <div class="nom-admin__panel" data-testid="admin-panel">
-    @switch (activeTab()) {
-      @case ('overview') {
-        <div class="nom-settings__grid">
-          @for (card of overviewCards; track card.id) {
-            <a
-              [routerLink]="'/admin/' + card.id"
-              class="nom-settings__card"
-              [attr.data-testid]="'admin-card-' + card.id"
-            >
-              <mat-icon class="nom-settings__card-icon">{{ card.icon }}</mat-icon>
-              <div class="nom-settings__card-content">
-                <h3 class="nom-settings__card-title">{{ card.label }}</h3>
-                <p class="nom-settings__card-desc">{{ card.description }}</p>
-              </div>
-              <mat-icon class="nom-settings__card-arrow">chevron_right</mat-icon>
-            </a>
-          }
-        </div>
+    <div class="nom-admin__panel" data-testid="admin-panel">
+      @switch (activeTab()) {
+        @case ('overview') {
+          <div class="nom-settings__grid">
+            @for (card of overviewCards; track card.id) {
+              <a
+                [routerLink]="'/admin/' + card.id"
+                class="nom-settings__card"
+                [attr.data-testid]="'admin-card-' + card.id"
+              >
+                <mat-icon class="nom-settings__card-icon">{{ card.icon }}</mat-icon>
+                <div class="nom-settings__card-content">
+                  <h3 class="nom-settings__card-title">{{ card.label }}</h3>
+                  <p class="nom-settings__card-desc">{{ card.description }}</p>
+                </div>
+                <mat-icon class="nom-settings__card-arrow">chevron_right</mat-icon>
+              </a>
+            }
+          </div>
+        }
+        @case ('users') {
+          <nom-users-admin />
+        }
+        @case ('clients') {
+          <nom-clients-admin />
+        }
+        @case ('curation') {
+          <nom-curation-queue />
+        }
+        @case ('food-catalog') {
+          <nom-food-catalog />
+        }
+        @case ('scraping-sources') {
+          <nom-scraping-sources />
+        }
+        @case ('kitchen-tools') {
+          <nom-kitchen-tools-admin />
+        }
+        @case ('recipe-images') {
+          <nom-recipe-images-admin />
+        }
+        @case ('diet-categories') {
+          <nom-diet-categories />
+        }
+        @case ('platform-features') {
+          <nom-platform-features />
+        }
+        @case ('webhooks') {
+          <nom-webhooks />
+        }
       }
-      @case ('users') {
-        <nom-users-admin />
-      }
-      @case ('clients') {
-        <nom-clients-admin />
-      }
-      @case ('curation') {
-        <nom-curation-queue />
-      }
-      @case ('food-catalog') {
-        <nom-food-catalog />
-      }
-      @case ('scraping-sources') {
-        <nom-scraping-sources />
-      }
-      @case ('kitchen-tools') {
-        <nom-kitchen-tools-admin />
-      }
-      @case ('recipe-images') {
-        <nom-recipe-images-admin />
-      }
-      @case ('diet-categories') {
-        <nom-diet-categories />
-      }
-      @case ('platform-features') {
-        <nom-platform-features />
-      }
-      @case ('webhooks') {
-        <nom-webhooks />
-      }
-    }
+    </div>
   </div>
 </div>

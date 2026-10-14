@@ -1,29 +1,53 @@
 @use 'variables' as vars;
 
-// Tab bar follows the forge-ui admin idiom, in NOM tokens and sharp corners.
-.nom-admin__tab-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: vars.$spacing-1;
-  padding: vars.$spacing-1;
-  margin-bottom: vars.$spacing-6;
-  background: var(--mat-sys-surface-container);
-  border: 1px solid var(--mat-sys-outline-variant);
-  width: fit-content;
+.nom-admin {
+  max-width: vars.$content-max-medium;
 }
 
-.nom-admin__tab {
-  display: inline-flex;
+.nom-admin__layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: vars.$spacing-6;
+  align-items: start;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: vars.$spacing-4;
+  }
+}
+
+.nom-admin__nav {
+  position: sticky;
+  top: vars.$spacing-6;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: vars.$spacing-1;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+}
+
+.nom-admin__nav-link {
+  display: flex;
   align-items: center;
-  gap: vars.$spacing-2;
-  padding: vars.$spacing-2 vars.$spacing-4;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-2 vars.$spacing-3;
   color: var(--mat-sys-on-surface-variant);
   font-size: vars.$font-size-sm;
   font-weight: vars.$font-weight-medium;
   text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
 
   mat-icon {
+    flex-shrink: 0;
     font-size: vars.$icon-size-md;
     width: vars.$icon-size-md;
     height: vars.$icon-size-md;
@@ -34,17 +58,19 @@
     background: var(--mat-sys-surface-container-high);
   }
 
-  &--active {
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: -2px;
+  }
+
+  &--active,
+  &--active:hover {
     background: var(--mat-sys-primary);
     color: var(--mat-sys-on-primary);
-
-    &:hover {
-      background: var(--mat-sys-primary);
-      color: var(--mat-sys-on-primary);
-    }
   }
 }
 
 .nom-admin__panel {
+  min-width: 0;
   min-height: 200px;
 }
