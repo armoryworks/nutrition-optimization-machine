@@ -76,6 +76,7 @@
             <mat-form-field appearance="outline">
               <mat-label>Password</mat-label>
               <input matInput formControlName="password" data-testid="register-password-input"
+                     aria-describedby="register-password-rules"
                      [type]="showPassword() ? 'text' : 'password'"
                      autocomplete="new-password">
               <mat-icon matPrefix>lock</mat-icon>
@@ -85,10 +86,21 @@
                       [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
                 <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
               </button>
-              @if (registerForm.get('password')?.hasError('minlength') && registerForm.get('password')?.touched) {
-                <mat-error>Password must be at least 8 characters</mat-error>
+              @if (registerForm.get('password')?.hasError('passwordRules') && registerForm.get('password')?.touched) {
+                <mat-error data-testid="register-password-error">Password doesn't meet all the rules below</mat-error>
               }
             </mat-form-field>
+
+            <ul class="nom-register__rules" id="register-password-rules" data-testid="register-password-rules" aria-label="Password must contain">
+              @for (state of passwordRuleStates(); track state.rule.key) {
+                <li class="nom-register__rule" [class.nom-register__rule--met]="state.met"
+                    [attr.data-testid]="'register-password-rule-' + state.rule.key">
+                  <mat-icon aria-hidden="true">{{ state.met ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                  <span>{{ state.rule.label }}</span>
+                  <span class="nom-register__sr-only">{{ state.met ? '(met)' : '(not yet met)' }}</span>
+                </li>
+              }
+            </ul>
 
             <mat-form-field appearance="outline">
               <mat-label>Confirm Password</mat-label>

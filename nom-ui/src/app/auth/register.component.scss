@@ -1,4 +1,5 @@
 @use 'variables' as vars;
+@use 'mixins';
 
 :host {
   display: block;
@@ -27,4 +28,35 @@
       text-decoration: underline;
     }
   }
+}
+
+.nom-register__rules {
+  list-style: none;
+  margin: calc(-1 * #{vars.$spacing-2}) 0 vars.$spacing-4;
+  padding: 0;
+  display: grid;
+  gap: vars.$spacing-1;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-register__rule {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  &--met {
+    color: var(--mat-sys-primary);
+  }
+}
+
+.nom-register__sr-only {
+  @include mixins.nom-sr-only;
 }

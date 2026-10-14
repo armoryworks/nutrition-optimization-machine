@@ -101,6 +101,7 @@ export class Plan implements OnInit {
   currentWeekStart = signal<string>(Plan.getMonday(new Date()));
   members = signal<HouseholdMemberResponseModel[]>([]);
   shuffling = signal(false);
+  hasCuratedPlans = signal(false);
   /**
    * Phones show one day at a time (the 7-column grid is unreadable under
    * ~600px — audit N-16). Index into weekData().days; desktop ignores it.
@@ -148,7 +149,15 @@ export class Plan implements OnInit {
     if (this.isStandalone()) {
       this.mobileDayIndex.set(this.defaultMobileDayIndex());
       this.loadHouseholds();
+      this.loadCuratedAvailability();
     }
+  }
+
+  private loadCuratedAvailability(): void {
+    this.planService.getCuratedPlans().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (plans) => this.hasCuratedPlans.set(plans.length > 0),
+      error: () => this.hasCuratedPlans.set(false),
+    });
   }
 
   /** The no-household CTA created a kitchen — reload page state in place. */

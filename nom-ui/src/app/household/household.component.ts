@@ -315,7 +315,10 @@ export class Household implements OnInit {
     this.householdService.removeMember(householdId, member.id).pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: () => this.loadMembersForHousehold(householdId),
+      next: () => {
+        this.householdStore.invalidate();
+        this.loadMembersForHousehold(householdId);
+      },
       error: () => this.errorMessage.set('Unable to remove member. Please try again.'),
     });
   }
