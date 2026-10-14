@@ -53,15 +53,7 @@ namespace Nom.Api.Services
                     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                     var nutrition = scope.ServiceProvider.GetRequiredService<IRecipeNutritionService>();
 
-                    var due = await db.Recipes
-                        .AsNoTracking()
-                        .Where(r => r.Id > cursor && !r.IsDeleted
-                            && r.RecipeIngredients!.Any(ri => ri.Ingredient.IngredientNutrients.Any())
-                            && (!r.Nutrition!.Any()
-                                || (r.Nutrition!.All(n => n.DateCalculated != null)
-                                    && r.Nutrition!.Max(n => n.DateCalculated) < r.RecipeIngredients!.Max(ri => ri.LastModifiedDate ?? ri.CreatedDate))))
-                        .OrderBy(r => r.Id)
-                        .Select(r => r.Id)
+                    var due = await DueRecipeIds(db, cursor)
                         .Take(batchSize)
                         .ToListAsync(stoppingToken);
 
@@ -95,6 +87,23 @@ namespace Nom.Api.Services
                 if (!await Delay(delay, stoppingToken)) return;
             }
         }
+
+        /// <summary>
+        /// Recipes after <paramref name="cursor"/>, in id order, whose derived label is missing or
+        /// older than a change to their ingredient lines or to a line food's nutrient values (a
+        /// backfill adding sodium, say). Hand-authored labels are never due.
+        /// </summary>
+        public static IQueryable<long> DueRecipeIds(ApplicationDbContext db, long cursor) => db.Recipes
+            .AsNoTracking()
+            .Where(r => r.Id > cursor && !r.IsDeleted
+                && r.RecipeIngredients!.Any(ri => ri.Ingredient.IngredientNutrients.Any())
+                && (!r.Nutrition!.Any()
+                    || (r.Nutrition!.All(n => n.DateCalculated != null)
+                        && (r.Nutrition!.Max(n => n.DateCalculated) < r.RecipeIngredients!.Max(ri => ri.LastModifiedDate ?? ri.CreatedDate)
+                            || r.RecipeIngredients!.Any(ri => ri.Ingredient.IngredientNutrients
+                                .Any(n => (n.LastModifiedDate ?? n.CreatedDate) > r.Nutrition!.Max(x => x.DateCalculated)))))))
+            .OrderBy(r => r.Id)
+            .Select(r => r.Id);
 
         private static async Task<bool> Delay(TimeSpan delay, CancellationToken token)
         {

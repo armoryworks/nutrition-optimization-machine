@@ -50,6 +50,21 @@ namespace Nom.Orch.Models.Recipe
 
         /// <summary>True when the label was derived from the ingredients, so lines that did not count make it incomplete; false for a hand-authored label.</summary>
         public bool NutritionDerived { get; set; }
+
+        /// <summary>Where the label's numbers come from, for the attribution line; null when there is no label.</summary>
+        public RecipeNutritionSourceModel? NutritionSource { get; set; }
+    }
+
+    /// <summary>
+    /// Attribution for a recipe's nutrition label. <see cref="Kind"/> is "usda" when every counted
+    /// ingredient is linked to USDA FoodData Central, "mixed" when only some are, "catalog" when
+    /// none are, and "recipe" for a label entered with the recipe rather than derived.
+    /// </summary>
+    public class RecipeNutritionSourceModel
+    {
+        public string Kind { get; set; } = string.Empty;
+        public int UsdaLines { get; set; }
+        public int CountedLines { get; set; }
     }
 
     /// <summary>Compact dish-group reference on the recipe detail response.</summary>

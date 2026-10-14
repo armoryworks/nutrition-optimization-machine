@@ -121,5 +121,27 @@ namespace Nom.Api.Tests.Services.Import
             _v.Validate(pepper with { UsedInSmallAmounts = true }).Accepted.Should().BeTrue();
             _v.Validate(pepper with { UsedInSmallAmounts = true, KcalPer100g = 5000m }).Reasons.Should().Contain("calories_impossible");
         }
+
+        [Theory]
+        [InlineData(FoodComponent.Sodium, 38758, null)]
+        [InlineData(FoodComponent.Sodium, 387580, "sodium_impossible")]
+        [InlineData(FoodComponent.Cholesterol, -1, "cholesterol_negative")]
+        [InlineData(FoodComponent.VitaminD, 250, null)]
+        [InlineData(FoodComponent.SaturatedFat, 3.1, null)]
+        [InlineData(FoodComponent.SaturatedFat, 30, "saturated_fat_exceeds_fat")]
+        [InlineData(FoodComponent.TransFat, 10.9, null)]
+        [InlineData(FoodComponent.Fiber, 2.4, null)]
+        [InlineData(FoodComponent.Fiber, 40, "fiber_exceeds_carb")]
+        [InlineData(FoodComponent.Sugars, 26, "sugars_exceeds_carb")]
+        public void CheckComponent_BoundsEachLabelNutrientAndItsParent(string key, double amount, string? expected)
+        {
+            _v.CheckComponent(key, (decimal)amount, fatGramsPer100g: 9.5m, carbGramsPer100g: 23m).Should().Be(expected);
+        }
+
+        [Fact]
+        public void CheckComponent_SkipsTheParentCheckWhenTheParentIsUnknown()
+        {
+            _v.CheckComponent(FoodComponent.SaturatedFat, 30m, fatGramsPer100g: null, carbGramsPer100g: null).Should().BeNull();
+        }
     }
 }

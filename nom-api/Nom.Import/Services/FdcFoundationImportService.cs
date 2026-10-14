@@ -27,11 +27,6 @@ namespace Nom.Import.Services
     {
         private const long PendingCuration = 9001; // CurationStatusEnum.PendingCuration
         private const long Curated = 9003;         // CurationStatusEnum.Curated
-        // Energy: many Foundation foods report only the Atwater-factor energies (2048 specific,
-        // 2047 general), not the general Energy (1008) — accept any, preferring the most specific.
-        private const long NutEnergy = 1008, NutEnergyAtwaterSpecific = 2048, NutEnergyAtwaterGeneral = 2047;
-        private const long NutProtein = 1003, NutCarb = 1005, NutFat = 1004;
-        private const long NutSugarsTotal = 2000, NutSugarsTotalNlea = 1063, NutSugarsAdded = 1235;
 
         public const string FoundationFood = "foundation_food";
         public const string AttachField = "fdc_attach";
@@ -121,13 +116,12 @@ namespace Nom.Import.Services
 
             _logger.LogInformation("Reading foundation foods from {Dir}", csvDir);
             var foods = ReadFoods(foodCsv, dataType);                 // fdc_id → (desc, categoryId)
-            var nutrients = ReadFoodNutrients(nutrientCsv, foods.Keys.ToHashSet()); // fdc_id → macros
+            var nutrients = FdcNutrients.Read(nutrientCsv, foods.Keys.ToHashSet());
 
             var portionCsv = TryFindFile(csvDir, "food_portion.csv");
             var portions = ReadPortions(portionCsv, foods.Keys.ToHashSet());
             var densities = ReadDensities(portionCsv, foods.Keys.ToHashSet());
-            var nutrientIds = await ResolveNutrientIdsAsync(ct);
-            var (gramId, kcalId) = await ResolveMeasurementIdsAsync(ct);
+            var targets = await FdcNutrients.ResolveAsync(_db, _logger, ct);
 
             var existingByFdc = (await _db.Ingredients
                 .Where(i => i.FdcId != null).Select(i => new { i.Id, i.FdcId }).ToListAsync(ct))
@@ -143,12 +137,12 @@ namespace Nom.Import.Services
             var attachRequested = (await _db.FoodCatalogProposals
                 .Where(p => p.Field == AttachField && p.IngredientId != null)
                 .Select(p => p.IngredientId!.Value).ToListAsync(ct)).ToHashSet();
-            var attach = new List<(long IngredientId, string FdcId, string Name, Macros Macros, decimal? Serving, decimal? Density)>();
+            var attach = new List<(long IngredientId, string FdcId, string Name, FdcFoodNutrients Nutrients, decimal? Serving, decimal? Density)>();
 
             var report = new ImportReport { TotalFoundation = foods.Count };
-            var pendingNutrition = new List<(IngredientEntity Ingredient, Macros Macros)>();
+            var pendingNutrition = new List<(IngredientEntity Ingredient, FdcFoodNutrients Nutrients)>();
 
-            var backfill = new List<(long IngredientId, Macros Macros)>();
+            var backfill = new List<(long IngredientId, FdcFoodNutrients Nutrients)>();
             foreach (var (fdcId, food) in foods)
             {
                 ct.ThrowIfCancellationRequested();
@@ -216,14 +210,8 @@ namespace Nom.Import.Services
             // (FDC amounts are per 100 g; ReferenceServingGrams carries the standard portion when
             // known, and per-person scaling happens downstream in the portions engine.)
             foreach (var (ing, m) in pendingNutrition)
-            {
-                AddNutrient(ing.Id, nutrientIds, "calories", kcalId, m.Kcal, ref report.NutrientRows);
-                AddNutrient(ing.Id, nutrientIds, "protein", gramId, m.Protein, ref report.NutrientRows);
-                AddNutrient(ing.Id, nutrientIds, "carb", gramId, m.Carb, ref report.NutrientRows);
-                AddNutrient(ing.Id, nutrientIds, "fat", gramId, m.Fat, ref report.NutrientRows);
-                AddNutrient(ing.Id, nutrientIds, "sugars", gramId, m.Sugars, ref report.NutrientRows);
-                AddNutrient(ing.Id, nutrientIds, "added_sugars", gramId, m.AddedSugars, ref report.NutrientRows);
-            }
+                foreach (var (key, amount) in FdcNutrients.Accepted(m, _validator, r => CountDropped(report, r)))
+                    AddNutrient(ing.Id, targets, key, amount, ref report.NutrientRows);
 
             if (backfill.Count > 0)
             {
@@ -234,19 +222,9 @@ namespace Nom.Import.Services
                     .ToListAsync(ct))
                     .Select(n => (n.IngredientId, n.NutrientId)).ToHashSet();
                 foreach (var (ingredientId, m) in backfill)
-                {
-                    void Fill(string key, long measurementId, decimal? amount)
-                    {
-                        if (amount is null || !nutrientIds.TryGetValue(key, out var nid) || have.Contains((ingredientId, nid))) return;
-                        AddNutrient(ingredientId, nutrientIds, key, measurementId, amount, ref report.BackfilledNutrientRows);
-                    }
-                    Fill("calories", kcalId, m.Kcal);
-                    Fill("protein", gramId, m.Protein);
-                    Fill("carb", gramId, m.Carb);
-                    Fill("fat", gramId, m.Fat);
-                    Fill("sugars", gramId, m.Sugars);
-                    Fill("added_sugars", gramId, m.AddedSugars);
-                }
+                    foreach (var (key, amount) in FdcNutrients.Accepted(m, _validator, r => CountDropped(report, r)))
+                        if (targets.TryGetValue(key, out var t) && !have.Contains((ingredientId, t.NutrientId)))
+                            AddNutrient(ingredientId, targets, key, amount, ref report.BackfilledNutrientRows);
             }
             var densityBackfill = existingByFdc
                 .Where(e => densities.ContainsKey(e.Key))
@@ -264,17 +242,9 @@ namespace Nom.Import.Services
             foreach (var (ingredientId, fdc, name, m, serving, density) in attach)
             {
                 var facts = new List<object>();
-                void Fact(string key, long measurementId, decimal? amount)
-                {
-                    if (amount is { } a && nutrientIds.TryGetValue(key, out var nid))
-                        facts.Add(new { nutrientId = nid, amount = a, measurementId });
-                }
-                Fact("calories", kcalId, m.Kcal);
-                Fact("protein", gramId, m.Protein);
-                Fact("carb", gramId, m.Carb);
-                Fact("fat", gramId, m.Fat);
-                Fact("sugars", gramId, m.Sugars);
-                Fact("added_sugars", gramId, m.AddedSugars);
+                foreach (var (key, amount) in FdcNutrients.Accepted(m, _validator))
+                    if (targets.TryGetValue(key, out var t))
+                        facts.Add(new { nutrientId = t.NutrientId, amount, measurementId = t.MeasurementId });
 
                 _db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
                 {
@@ -301,74 +271,23 @@ namespace Nom.Import.Services
 
 
         private void AddNutrient(
-            long ingredientId, Dictionary<string, long> nutrientIds, string key,
-            long measurementId, decimal? amount, ref int counter)
+            long ingredientId, Dictionary<string, FdcNutrients.Target> targets, string key,
+            decimal amount, ref int counter)
         {
-            if (amount is not { } a) return;
-            if (!nutrientIds.TryGetValue(key, out var nutrientId)) return;
+            if (!targets.TryGetValue(key, out var target)) return;
             _db.Set<IngredientNutrientEntity>().Add(new IngredientNutrientEntity
             {
                 IngredientId = ingredientId,
-                NutrientId = nutrientId,
-                Amount = a,                 // per 100 g
-                MeasurementId = measurementId,
+                NutrientId = target.NutrientId,
+                Amount = amount,
+                MeasurementId = target.MeasurementId,
                 CreatedDate = DateTime.UtcNow,
             });
             counter++;
         }
 
-        /// <summary>
-        /// Maps our four macro keys to the seeded Nutrient rows by name, using the same patterns
-        /// the meal-plan nutrition display matches on, so imported facts are actually found.
-        /// </summary>
-        private async Task<Dictionary<string, long>> ResolveNutrientIdsAsync(CancellationToken ct)
-        {
-            var all = await _db.Set<NutrientEntity>()
-                .Select(n => new { n.Id, n.Name }).ToListAsync(ct);
-            var map = new Dictionary<string, long>();
-
-            long? Find(params string[] patterns) => all
-                .Where(n => patterns.Any(p => n.Name.Contains(p, StringComparison.OrdinalIgnoreCase)))
-                .OrderBy(n => n.Name.Length)
-                .Select(n => (long?)n.Id)
-                .FirstOrDefault();
-
-            if (Find("calorie", "energy", "kcal") is { } cal) map["calories"] = cal;
-            if (Find("protein") is { } pro) map["protein"] = pro;
-            if (Find("carbohydrate", "carbs") is { } carb) map["carb"] = carb;
-            if (Find("total lipid", "fat") is { } fat) map["fat"] = fat;
-            if (Find("total sugars") is { } sugars) map["sugars"] = sugars;
-            if (Find("added sugars") is { } added) map["added_sugars"] = added;
-
-            foreach (var key in new[] { "calories", "protein", "carb", "fat" })
-                if (!map.ContainsKey(key))
-                    _logger.LogWarning("No seeded Nutrient row matched '{Key}' — those amounts will be skipped.", key);
-            return map;
-        }
-
-        private async Task<(long GramId, long KcalId)> ResolveMeasurementIdsAsync(CancellationToken ct)
-        {
-            var all = await _db.Set<Nom.Data.Measurement.MeasurementEntity>()
-                .Select(m => new { m.Id, m.Name }).ToListAsync(ct);
-            long Pick(params string[] patterns) => all
-                .Where(m => patterns.Any(p => m.Name.Contains(p, StringComparison.OrdinalIgnoreCase)))
-                .OrderBy(m => m.Name.Length)
-                .Select(m => m.Id)
-                .FirstOrDefault();
-            var gram = Pick("gram");
-            var kcal = Pick("kilocalorie", "calorie");
-            // FirstOrDefault yields 0 when nothing matches, which would either violate the
-            // Measurement FK or silently attach nutrients to a non-existent unit. Fail loudly
-            // instead: the target database is missing its measurement seed.
-            if (gram == 0 || kcal == 0)
-            {
-                throw new InvalidOperationException(
-                    "Cannot resolve the 'Gram' and 'Kilocalorie' measurement rows in the target " +
-                    "database — run the measurement seed before importing, or nutrient amounts " +
-                    "would be written against an invalid unit.");
-            }
-            return (gram, kcal);
-        }
+        private static void CountDropped(ImportReport report, string reason) =>
+            report.DroppedValuesByReason[reason] = report.DroppedValuesByReason.GetValueOrDefault(reason) + 1;
 
         /// <summary>
         /// Standard reference portion in grams per food. Prefers a single-unit portion
@@ -435,8 +354,6 @@ namespace Nom.Import.Services
         private static bool UsedInSmallAmounts(FoodRow food) =>
             food.CategoryId == SpicesAndHerbs || food.Description.StartsWith("Leavening agents,", StringComparison.Ordinal);
 
-        private sealed record Macros(decimal? Kcal, decimal? Protein, decimal? Carb, decimal? Fat, decimal? Sugars, decimal? AddedSugars);
-
         private static Dictionary<string, FoodRow> ReadFoods(string path, string dataType)
         {
             var result = new Dictionary<string, FoodRow>();
@@ -451,39 +368,6 @@ namespace Nom.Import.Services
                 result[f[0]] = new FoodRow(f[2], cat);
             }
             return result;
-        }
-
-        private static Dictionary<string, Macros> ReadFoodNutrients(string path, HashSet<string> fdcIds)
-        {
-            // k = general Energy (1008); ks = Atwater specific (2048); kg = Atwater general (2047).
-            var acc = new Dictionary<string, (decimal? k, decimal? ks, decimal? kg, decimal? p, decimal? c, decimal? f, decimal? s, decimal? sn, decimal? sa)>();
-            using var reader = new StreamReader(path);
-            reader.ReadLine(); // header: id,fdc_id,nutrient_id,amount,...
-            string? line;
-            while ((line = reader.ReadLine()) != null)
-            {
-                var f = CsvLine.Split(line);
-                if (f.Length < 4) continue;
-                var fdc = f[1];
-                if (!fdcIds.Contains(fdc)) continue;
-                if (!long.TryParse(f[2], out var nutId)) continue;
-                if (!decimal.TryParse(f[3], System.Globalization.CultureInfo.InvariantCulture, out var amt)) continue;
-
-                var cur = acc.GetValueOrDefault(fdc);
-                if (nutId == NutEnergy) cur.k = amt;
-                else if (nutId == NutEnergyAtwaterSpecific) cur.ks = amt;
-                else if (nutId == NutEnergyAtwaterGeneral) cur.kg = amt;
-                else if (nutId == NutProtein) cur.p = amt;
-                else if (nutId == NutCarb) cur.c = amt;
-                else if (nutId == NutFat) cur.f = amt;
-                else if (nutId == NutSugarsTotal) cur.s = amt;
-                else if (nutId == NutSugarsTotalNlea) cur.sn = amt;
-                else if (nutId == NutSugarsAdded) cur.sa = amt;
-                else continue;
-                acc[fdc] = cur;
-            }
-            return acc.ToDictionary(kv => kv.Key,
-                kv => new Macros(kv.Value.k ?? kv.Value.ks ?? kv.Value.kg, kv.Value.p, kv.Value.c, kv.Value.f, kv.Value.s ?? kv.Value.sn, kv.Value.sa));
         }
 
         private static string? TryFindFile(string dir, string name)
@@ -518,6 +402,7 @@ namespace Nom.Import.Services
             public int BackfilledNutrientRows;
             public int AttachProposals { get; set; }
             public Dictionary<string, int> RejectedByReason { get; } = new();
+            public Dictionary<string, int> DroppedValuesByReason { get; } = new();
         }
     }
 }

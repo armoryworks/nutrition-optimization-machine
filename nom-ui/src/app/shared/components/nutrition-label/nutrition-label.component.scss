@@ -155,6 +155,19 @@
   line-height: vars.$line-height-normal;
 }
 
+.nom-nutrition-label__partial {
+  margin-left: 2px;
+  font-weight: vars.$font-weight-bold;
+  cursor: help;
+}
+
+.nom-nutrition-label__source {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  margin: vars.$spacing-1 0 0;
+  line-height: vars.$line-height-normal;
+}
+
 .nom-nutrition-label__gap {
   margin: vars.$spacing-2 0;
   padding: vars.$spacing-2 vars.$spacing-3;

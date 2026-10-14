@@ -11,7 +11,7 @@
     @if (uncounted().length > 0) {
       <div class="nom-nutrition-label__gap" role="note" data-testid="nutrition-label-uncounted">
         <p class="nom-nutrition-label__gap-title">
-          Incomplete: {{ uncounted().length }} {{ uncounted().length === 1 ? 'ingredient is' : 'ingredients are' }} not counted, so these totals are low.
+          Incomplete: {{ uncounted().length }} {{ uncounted().length === 1 ? 'ingredient is' : 'ingredients are' }} not counted, so these totals are low and no % Daily Value is given.
         </p>
         <ul class="nom-nutrition-label__gap-list" data-testid="nutrition-label-uncounted-list">
           @for (u of uncounted(); track $index) {
@@ -62,16 +62,20 @@
 
       @for (nutrient of macroNutrients(); track nutrient.displayName) {
         <div class="nom-nutrition-label__row"
-             [class.nom-nutrition-label__row--child]="nutrient.isChild">
+             [class.nom-nutrition-label__row--child]="nutrient.isChild"
+             data-testid="nutrition-label-nutrient-item">
           <span class="nom-nutrition-label__nutrient">
             @if (nutrient.bold) {
               <strong>{{ nutrient.displayName }}</strong> {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
             } @else {
               {{ nutrient.displayName }} {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
             }
+            @if (nutrient.partial) {
+              <span class="nom-nutrition-label__partial" title="Some ingredients have no data for this nutrient" data-testid="nutrition-label-partial-mark">†</span>
+            }
           </span>
-          @if (nutrient.dailyValuePercent !== null) {
-            <span class="nom-nutrition-label__dv">
+          @if (nutrient.dailyValuePercent != null) {
+            <span class="nom-nutrition-label__dv" data-testid="nutrition-label-dv">
               <strong>{{ nutrient.dailyValuePercent | number:'1.0-0' }}%</strong>
             </span>
           }
@@ -91,12 +95,15 @@
     } @else {
       @if (microNutrients().length > 0) {
         @for (nutrient of microNutrients(); track nutrient.displayName) {
-          <div class="nom-nutrition-label__row">
+          <div class="nom-nutrition-label__row" data-testid="nutrition-label-nutrient-item">
             <span class="nom-nutrition-label__nutrient">
               {{ nutrient.displayName }} {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
+              @if (nutrient.partial) {
+                <span class="nom-nutrition-label__partial" title="Some ingredients have no data for this nutrient" data-testid="nutrition-label-partial-mark">†</span>
+              }
             </span>
-            @if (nutrient.dailyValuePercent !== null) {
-              <span class="nom-nutrition-label__dv">
+            @if (nutrient.dailyValuePercent != null) {
+              <span class="nom-nutrition-label__dv" data-testid="nutrition-label-dv">
                 {{ nutrient.dailyValuePercent | number:'1.0-0' }}%
               </span>
             }
@@ -116,6 +123,14 @@
       contributes to a daily diet. 2,000 calories a day is used for
       general nutrition advice.
     </div>
+    @if (hasPartial()) {
+      <div class="nom-nutrition-label__footnote" data-testid="nutrition-label-partial-note">
+        † Some ingredients have no data for this nutrient, so the amount is a minimum and no % Daily Value is given.
+      </div>
+    }
+    @if (sourceText()) {
+      <p class="nom-nutrition-label__source" data-testid="nutrition-label-source">{{ sourceText() }}</p>
+    }
   </div>
 } @else {
   <div class="nom-nutrition-label nom-nutrition-label--empty" role="region" aria-label="Nutrition Facts">
