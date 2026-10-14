@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { DishTitlePipe } from '../../core/utils/dish-title';
 import { DishGroupService } from '../../core/services/dish-group.service';
 import { DishGroupModel } from '../../core/models/dish-group.model';
 
@@ -36,6 +37,7 @@ export type MergeDishGroupDialogResult = boolean | undefined;
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    DishTitlePipe,
   ],
   templateUrl: './merge-dish-group-dialog.component.html',
   styleUrl: './merge-dish-group-dialog.component.scss',

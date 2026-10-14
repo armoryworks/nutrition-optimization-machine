@@ -7,8 +7,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Nom.Data;
+using Nom.Data.Measurement;
 using Nom.Data.Person;
 using Nom.Data.Recipe;
+using Nom.Data.Reference;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using Nom.Orch.Services;
@@ -158,6 +160,30 @@ namespace Nom.Api.Tests.Services.Recipe
             lines.Select(ri => (ri.IngredientId, ri.SortOrder, ri.LineKind)).Should().Equal(
                 (10L, 0, (string?)null), (11L, 1, RecipeIngredientLineKind.Note), (12L, 2, RecipeIngredientLineKind.Equipment));
             lines.Select(ri => ri.RawLine).Should().Equal("1 onion", "see note below", "a large stockpot");
+        }
+
+        [Fact]
+        public async Task Get_CarriesEachLinesFoodGroup_ForTheShoppingAisle()
+        {
+            await using var db = NewContext();
+            db.Persons.Add(new PersonEntity { Id = 6, Name = "Cook" });
+            db.References.Add(new ReferenceEntity { Id = (long)CurationStatusEnum.NonCurated, Name = "Non-Curated" });
+            db.References.Add(new ReferenceEntity { Id = (long)FoodGroupEnum.Legumes, Name = "Legumes" });
+            db.Set<BaseMeasurementEntity>().Add(new BaseMeasurementEntity { Id = 1, Name = "Cup", Symbol = "cup", MeasurementCategoryId = 2 });
+            db.Ingredients.Add(new IngredientEntity { Id = 10, Name = "Black Beans", FoodGroupId = (long)FoodGroupEnum.Legumes });
+            db.Ingredients.Add(new IngredientEntity { Id = 11, Name = "Mystery spice blend" });
+            var recipe = new RecipeEntity { Name = "Bean bowl", AuthorId = 6, Servings = 2, CurationStatusId = (long)CurationStatusEnum.NonCurated };
+            db.Recipes.Add(recipe);
+            await db.SaveChangesAsync();
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = 10, Quantity = 1, MeasurementId = 1, SortOrder = 0 });
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = 11, Quantity = 1, MeasurementId = 1, SortOrder = 1 });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var model = await NewService(db).GetRecipeAsync(recipe.Id, personId: 6);
+
+            model!.Ingredients!.Select(i => (i.Name, i.FoodGroupName)).Should().Equal(
+                ("Black Beans", "Legumes"), ("Mystery spice blend", (string?)null));
         }
     }
 }

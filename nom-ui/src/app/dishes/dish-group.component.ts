@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { DishTitlePipe } from '../core/utils/dish-title';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { DishGroupService } from '../core/services/dish-group.service';
 import { LoadingService } from '../core/services/loading.service';
@@ -13,7 +14,7 @@ import { DishGroupDetailModel } from '../core/models/dish-group.model';
 /** One dish group: every visible take on the dish, as a recipe-card grid. */
 @Component({
   selector: 'nom-dish-group',
-  imports: [DecimalPipe, RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule, ErrorBanner],
+  imports: [DecimalPipe, DishTitlePipe, RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule, ErrorBanner],
   templateUrl: './dish-group.component.html',
   styleUrl: './dish-group.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

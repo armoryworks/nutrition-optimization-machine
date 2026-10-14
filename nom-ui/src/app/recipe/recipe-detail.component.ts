@@ -28,6 +28,7 @@ import {
 import { NutritionLabel, UncountedIngredient } from '../shared/components/nutrition-label/nutrition-label.component';
 import { EntityLink } from '../shared/components/entity-link/entity-link.component';
 import { UnitPipe } from '../core/utils/unit-display';
+import { DishTitlePipe } from '../core/utils/dish-title';
 import { MassAsidePipe } from '../core/utils/mass-display';
 import { UnitPreferenceService } from '../core/services/unit-preference.service';
 import { RecipeComments } from './recipe-comments.component';
@@ -59,7 +60,7 @@ export interface DisplayIngredientRowModel {
 
 @Component({
   selector: 'nom-recipe-detail',
-  imports: [DecimalPipe, UnitPipe, MassAsidePipe, MatIconModule, MatButtonModule, MatMenuModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating, EntityLink, ImageCredit],
+  imports: [DecimalPipe, UnitPipe, DishTitlePipe, MassAsidePipe, MatIconModule, MatButtonModule, MatMenuModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating, EntityLink, ImageCredit],
   templateUrl: './recipe-detail.component.html',
   styleUrl: './recipe-detail.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -541,6 +542,11 @@ export class RecipeDetail {
     if (status === 'pendingcuration') return 'pending';
     return 'none';
   });
+
+  /** Prints the recipe card: name, servings, ingredients and steps, without the page around it. */
+  printRecipe(): void {
+    window.print();
+  }
 
   /**
    * Author action: set the recipe Public and submit it for curation in one step.

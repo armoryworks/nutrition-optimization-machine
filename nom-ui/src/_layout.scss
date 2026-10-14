@@ -236,3 +236,43 @@
     top: vars.$spacing-2;
   }
 }
+
+@media print {
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  nom-root {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+
+  nom-header,
+  nom-footer,
+  nom-loading-overlay,
+  .nom-skip-link,
+  .nom-layout__nav,
+  .nom-layout__sidebar,
+  .nom-sidebar-toggle,
+  .nom-sidebar-backdrop,
+  .cdk-overlay-container {
+    display: none !important;
+  }
+
+  .nom-main,
+  .nom-layout,
+  .nom-layout__content {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+}

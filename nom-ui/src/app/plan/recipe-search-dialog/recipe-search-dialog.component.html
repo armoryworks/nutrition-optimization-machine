@@ -1,6 +1,6 @@
 <div class="nom-dialog__title-bar" data-testid="recipe-search-dialog">
-  <h2 mat-dialog-title>
-    {{ data.mealType }} — {{ data.date }}
+  <h2 mat-dialog-title data-testid="recipe-search-dialog-title">
+    {{ data.mealType }} — {{ dateLabel }}
   </h2>
   <button class="nom-dialog__close" (click)="done()" aria-label="Close dialog" data-testid="recipe-search-close-btn">
     <mat-icon>close</mat-icon>

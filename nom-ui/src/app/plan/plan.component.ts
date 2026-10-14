@@ -37,6 +37,7 @@ import { MealPlanExclusion } from '../core/models/meal-plan-exclusion.model';
 import { RestrictionRequest } from '../core/models/restriction-request.model';
 import { RecipeSearchDialog, RecipeSearchDialogData, RecipeSearchDialogResult } from './recipe-search-dialog/recipe-search-dialog.component';
 import { ShuffleFlowService } from './shuffle-flow.service';
+import { buildPrintWeek, PlanPrintDay } from './plan-print';
 
 export interface PlanFormData {
   planName: string | null;
@@ -124,6 +125,9 @@ export class Plan implements OnInit {
   isCurrentWeek = computed(() => {
     return this.currentWeekStart() === Plan.getMonday(new Date());
   });
+
+  /** The whole selected week for the printed page, independent of the phone's one-day view. */
+  printWeek = computed<PlanPrintDay[]>(() => buildPrintWeek(this.weekData(), this.members()));
 
   /** True when the caller's household policy gates the shuffle feature. */
   shuffleGated = computed(() => this.policyService.isGated(this.activeHouseholdId(), 'shuffle'));

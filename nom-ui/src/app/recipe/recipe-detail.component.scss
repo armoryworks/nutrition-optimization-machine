@@ -762,7 +762,6 @@
   color: var(--mat-sys-on-secondary-container);
   font-size: vars.$font-size-xs;
   text-decoration: none;
-  text-transform: capitalize;
 
   mat-icon {
     font-size: 14px;
@@ -790,10 +789,6 @@
 .nom-recipe__variations-title {
   font-size: vars.$font-size-lg;
   margin: 0 0 vars.$spacing-3;
-}
-
-.nom-recipe__variations-dish {
-  text-transform: capitalize;
 }
 
 .nom-recipe__variations-rail {
@@ -845,5 +840,62 @@
     width: 14px;
     height: 14px;
     color: var(--mat-sys-primary);
+  }
+}
+
+.nom-recipe__print-btn {
+  margin-left: auto;
+}
+
+.nom-recipe-print {
+  display: none;
+}
+
+@media print {
+  :host {
+    display: block;
+  }
+
+  :host > :not(.nom-recipe-print) {
+    display: none !important;
+  }
+
+  .nom-recipe-print {
+    display: block;
+    color: #000;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  .nom-recipe-print__title {
+    margin: 0 0 4pt;
+    font-size: 18pt;
+    color: #000;
+  }
+
+  .nom-recipe-print__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4pt 12pt;
+    margin: 0 0 10pt;
+    color: #333;
+  }
+
+  .nom-recipe-print__heading {
+    margin: 10pt 0 4pt;
+    font-size: 13pt;
+    color: #000;
+  }
+
+  .nom-recipe-print__ingredients,
+  .nom-recipe-print__steps {
+    margin: 0;
+    padding-left: 18pt;
+
+    li {
+      break-inside: avoid;
+      margin-bottom: 3pt;
+      overflow-wrap: anywhere;
+    }
   }
 }

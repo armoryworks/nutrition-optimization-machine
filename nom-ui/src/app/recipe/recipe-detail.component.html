@@ -8,7 +8,7 @@
     <mat-icon class="nom-recipe__not-found-icon">error_outline</mat-icon>
     <h2>Something went wrong</h2>
     <p>{{ error() }}</p>
-    <a mat-flat-button color="primary" routerLink="/recipes/mine">Back to My Recipes</a>
+    <a mat-flat-button color="primary" routerLink="/recipes/mine" data-testid="recipe-error-back-btn">Back to My Recipes</a>
   </div>
 } @else if (recipe()) {
   <div class="nom-recipe__banner">
@@ -17,7 +17,7 @@
       Back to recipes
     </a>
     @if (isAuthor()) {
-      <a mat-stroked-button [routerLink]="'/recipe/' + recipe()!.id + '/edit'">
+      <a mat-stroked-button [routerLink]="'/recipe/' + recipe()!.id + '/edit'" data-testid="recipe-edit-btn">
         <mat-icon>edit</mat-icon>
         Edit
       </a>
@@ -48,6 +48,10 @@
         }
       }
     }
+    <button mat-stroked-button type="button" class="nom-recipe__print-btn" (click)="printRecipe()" data-testid="recipe-print-btn">
+      <mat-icon>print</mat-icon>
+      Print
+    </button>
   </div>
 
   @if (toolNotes().length) {
@@ -136,7 +140,7 @@
                  [routerLink]="['/dishes', dishGroup.slug]"
                  data-testid="recipe-dish-group-chip">
                 <mat-icon>category</mat-icon>
-                {{ dishGroup.name }}
+                {{ dishGroup.name | dishTitle }}
               </a>
             }
             @for (cookbook of inCookbooks(); track cookbook.id) {
@@ -493,7 +497,7 @@
   @if (recipe()!.dishGroup && variations().length > 0) {
     <section class="nom-recipe__variations" data-testid="recipe-variations-rail">
       <h2 class="nom-recipe__variations-title">
-        More takes on <span class="nom-recipe__variations-dish">{{ recipe()!.dishGroup!.name }}</span>
+        More takes on <span class="nom-recipe__variations-dish">{{ recipe()!.dishGroup!.name | dishTitle }}</span>
       </h2>
       <div class="nom-recipe__variations-rail">
         @for (variation of variations(); track variation.id) {
@@ -519,11 +523,44 @@
       </div>
     </section>
   }
+
+  <section class="nom-recipe-print" data-testid="recipe-print">
+    <h1 class="nom-recipe-print__title">{{ recipe()!.name }}</h1>
+    <p class="nom-recipe-print__meta">
+      @if (recipe()!.servings) {
+        <span>{{ recipe()!.servings }} {{ recipe()!.servings === 1 ? 'serving' : 'servings' }}</span>
+      }
+      @if (recipe()!.prepTimeMinutes) {
+        <span>Prep {{ recipe()!.prepTimeMinutes }} min</span>
+      }
+      @if (recipe()!.cookTimeMinutes) {
+        <span>Cook {{ recipe()!.cookTimeMinutes }} min</span>
+      }
+    </p>
+    <h2 class="nom-recipe-print__heading">Ingredients</h2>
+    <ul class="nom-recipe-print__ingredients">
+      @for (row of displayIngredients(); track $index) {
+        @let line = row.swap ?? row.ingredient;
+        <li data-testid="recipe-print-ingredient">
+          @if (line.quantity) {
+            {{ line.quantity }} {{ line.measurement | unit: line.quantity }}
+          }
+          {{ line.name }}
+        </li>
+      }
+    </ul>
+    <h2 class="nom-recipe-print__heading">Instructions</h2>
+    <ol class="nom-recipe-print__steps">
+      @for (step of displaySteps(); track $index) {
+        <li data-testid="recipe-print-step">{{ step.text }}</li>
+      }
+    </ol>
+  </section>
 } @else {
   <div class="nom-recipe__not-found" data-testid="recipe-not-found">
     <mat-icon class="nom-recipe__not-found-icon">search_off</mat-icon>
     <h2>Recipe not found</h2>
     <p>The recipe you're looking for doesn't exist.</p>
-    <a mat-flat-button color="primary" routerLink="/recipes/mine">Back to My Recipes</a>
+    <a mat-flat-button color="primary" routerLink="/recipes/mine" data-testid="recipe-not-found-back-btn">Back to My Recipes</a>
   </div>
 }

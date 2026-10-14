@@ -17,6 +17,7 @@ import { RecipeSearchResult } from '../../core/models/recipe-search-result.model
 import { MealPlanEntry } from '../../core/models/meal-plan-entry.model';
 import { RecipeService } from '../../core/services/recipe.service';
 import { DietConflictsPipe, describeDietConflicts } from '../../core/utils/diet-conflict';
+import { formatFriendlyDate } from '../../core/utils/local-date';
 
 export interface RecipeSearchDialogData {
   householdId: number;
@@ -47,6 +48,7 @@ export type RecipeSearchDialogResult = { changed: boolean } | undefined;
 export class RecipeSearchDialog implements OnInit {
   private dialogRef = inject(MatDialogRef<RecipeSearchDialog>);
   data: RecipeSearchDialogData = inject(MAT_DIALOG_DATA);
+  dateLabel = formatFriendlyDate(this.data.date);
   private recipeSearchService = inject(RecipeSearchService);
   private mealPlanService = inject(MealPlanService);
   private ingredientLookup = inject(IngredientLookupService);

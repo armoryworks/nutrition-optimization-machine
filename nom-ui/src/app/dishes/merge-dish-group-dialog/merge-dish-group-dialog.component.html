@@ -1,6 +1,6 @@
 <div class="nom-dialog__title-bar" data-testid="merge-dish-group-dialog">
   <h2 mat-dialog-title>Merge Dish Group</h2>
-  <button class="nom-dialog__close" (click)="cancel()" aria-label="Close dialog">
+  <button class="nom-dialog__close" (click)="cancel()" aria-label="Close dialog" data-testid="merge-dish-group-close-btn">
     <mat-icon>close</mat-icon>
   </button>
 </div>
@@ -15,7 +15,7 @@
 
   <p class="nom-merge__intro">
     Move every recipe in
-    <strong class="nom-merge__group-name">{{ data.source.name }}</strong>
+    <strong class="nom-merge__group-name">{{ data.source.name | dishTitle }}</strong>
     ({{ data.source.recipeCount }} {{ data.source.recipeCount === 1 ? 'recipe' : 'recipes' }})
     into another group and retire it.
   </p>
@@ -34,7 +34,7 @@
                       (optionSelected)="onTargetSelected($event)">
       @for (group of filteredCandidates(); track group.id) {
         <mat-option [value]="group">
-          <span class="nom-merge__option-name">{{ group.name }}</span>
+          <span class="nom-merge__option-name">{{ group.name | dishTitle }}</span>
           <span class="nom-merge__option-count">
             {{ group.recipeCount }} {{ group.recipeCount === 1 ? 'recipe' : 'recipes' }}
           </span>

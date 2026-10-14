@@ -459,110 +459,85 @@
 // PRINT STYLES
 // =============================================================================
 
-@media print {
-  // Hide non-essential UI elements
-  :host ::ng-deep nom-header,
-  .nom-dashboard__header-right,
-  .nom-plan__exclusions,
-  .nom-plan__cell-add,
-  .nom-plan__cell-complete,
-  .nom-plan__cell-done {
-    display: none !important;
-  }
+.nom-plan-print {
+  display: none;
+}
 
-  // Full-width calendar
-  :host {
-    display: block;
-    width: 100%;
+@media print {
+  .nom-dashboard > :not(.nom-plan-print) {
+    display: none !important;
   }
 
   .nom-dashboard {
     padding: 0 !important;
     margin: 0 !important;
-    max-width: 100% !important;
+    max-width: none !important;
   }
 
-  .nom-dashboard__header {
-    margin-bottom: 8px;
-  }
-
-  .nom-dashboard__header-left {
+  .nom-plan-print {
     display: block;
-  }
-
-  // Page title with week label
-  .nom-dashboard__title {
-    font-size: 18pt;
-    color: #000 !important;
-    margin-bottom: 2px;
-  }
-
-  .nom-dashboard__subtitle {
+    color: #000;
     font-size: 11pt;
-    color: #333 !important;
+    line-height: 1.35;
   }
 
-  // Calendar adjustments
-  .nom-plan__calendar {
-    border: 1px solid #ccc;
-    background: #fff !important;
-    width: 100%;
+  .nom-plan-print__title {
+    margin: 0;
+    font-size: 18pt;
+    color: #000;
   }
 
-  .nom-plan__corner,
-  .nom-plan__day-header,
-  .nom-plan__meal-label {
-    background: #f5f5f5 !important;
-    border-color: #ccc !important;
-    color: #000 !important;
+  .nom-plan-print__week {
+    margin: 0 0 10pt;
+    color: #333;
   }
 
-  .nom-plan__day-header--today {
-    background: #e8e8e8 !important;
+  .nom-plan-print__day {
+    break-inside: avoid;
+    margin-bottom: 8pt;
+    padding-top: 6pt;
+    border-top: 1px solid #999;
   }
 
-  .nom-plan__day-name {
-    color: #000 !important;
+  .nom-plan-print__day-name {
+    margin: 0 0 4pt;
+    font-size: 12pt;
+    color: #000;
   }
 
-  .nom-plan__cell {
-    background: #fff !important;
-    border-color: #ccc !important;
-    min-height: 60px;
+  .nom-plan-print__meal {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2pt 8pt;
+    padding: 2pt 0;
   }
 
-  .nom-plan__cell--today {
-    background: #fafafa !important;
+  .nom-plan-print__meal-type {
+    flex: 0 0 6.5em;
+    font-weight: 600;
   }
 
-  // Recipe names clear and readable
-  .nom-plan__cell-recipe {
-    color: #000 !important;
-    font-size: 9pt;
-    -webkit-line-clamp: unset;
-  }
+  .nom-plan-print__items {
+    flex: 1 1 12em;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
 
-  .nom-plan__cell-thumb {
-    display: none;
-  }
-
-  .nom-plan__cell-entry--completed .nom-plan__cell-recipe {
-    text-decoration: line-through;
-    color: #666 !important;
-  }
-
-  // Nutrition summary visible
-  .nom-plan__nutrition-summary {
-    background: #f5f5f5 !important;
-    border-color: #ccc !important;
-  }
-
-  .nom-plan__macro {
-    color: #333 !important;
-
-    &--cal {
-      color: #000 !important;
+    li {
+      overflow-wrap: anywhere;
     }
+
+    &--empty {
+      color: #777;
+    }
+  }
+
+  .nom-plan-print__servings {
+    flex: 0 0 auto;
+    color: #333;
+    font-size: 10pt;
   }
 }
 
