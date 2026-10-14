@@ -123,9 +123,9 @@ namespace Nom.Import.Services
             var foods = ReadFoods(foodCsv, dataType);                 // fdc_id → (desc, categoryId)
             var nutrients = ReadFoodNutrients(nutrientCsv, foods.Keys.ToHashSet()); // fdc_id → macros
 
-            var portionCsv = TryFindFile(csvDir, "food_portion.csv");
-            var portions = ReadPortions(portionCsv, foods.Keys.ToHashSet());
-            var densities = ReadDensities(portionCsv, foods.Keys.ToHashSet());
+            var portionRows = UsdaPortionFile.Read(TryFindFile(csvDir, "food_portion.csv"), foods.Keys.ToHashSet());
+            var portions = ReferenceServings(portionRows, foods);
+            var densities = Densities(portionRows);
             var nutrientIds = await ResolveNutrientIdsAsync(ct);
             var (gramId, kcalId) = await ResolveMeasurementIdsAsync(ct);
 
@@ -371,59 +371,33 @@ namespace Nom.Import.Services
         }
 
         /// <summary>
-        /// Standard reference portion in grams per food. Prefers a single-unit portion
+        /// Standard reference portion in grams per food: the weight of one item when USDA lists a
+        /// countable portion (see <see cref="UsdaCountWeight"/>), else a single-unit portion
         /// (amount = 1), else the median gram weight, so an outlier ("1 whole cake") doesn't win.
         /// </summary>
-        private static Dictionary<string, decimal> ReadPortions(string? path, HashSet<string> fdcIds)
+        private static Dictionary<string, decimal> ReferenceServings(Dictionary<string, List<UsdaPortion>> portionRows, Dictionary<string, FoodRow> foods)
         {
             var result = new Dictionary<string, decimal>();
-            if (path == null || !File.Exists(path)) return result;
-
-            var byFood = new Dictionary<string, List<(decimal Amount, decimal Grams)>>();
-            using var reader = new StreamReader(path);
-            reader.ReadLine(); // header: id,fdc_id,seq_num,amount,measure_unit_id,portion_description,modifier,gram_weight,...
-            string? line;
-            while ((line = reader.ReadLine()) != null)
+            foreach (var (fdc, rows) in portionRows)
             {
-                var f = CsvLine.Split(line);
-                if (f.Length < 8) continue;
-                if (!fdcIds.Contains(f[1])) continue;
-                if (!decimal.TryParse(f[7], System.Globalization.CultureInfo.InvariantCulture, out var grams) || grams <= 0) continue;
-                decimal.TryParse(f[3], System.Globalization.CultureInfo.InvariantCulture, out var amount);
-                byFood.TryAdd(f[1], new List<(decimal, decimal)>());
-                byFood[f[1]].Add((amount, grams));
-            }
-
-            foreach (var (fdc, list) in byFood)
-            {
+                if (UsdaCountWeight.GramsPerCount(rows, foods.TryGetValue(fdc, out var food) ? food.Description : null) is { } item)
+                {
+                    result[fdc] = item.Grams;
+                    continue;
+                }
+                var list = rows.Where(x => x.Grams > 0).ToList();
                 var single = list.Where(x => x.Amount == 1m).Select(x => x.Grams).OrderBy(g => g).ToList();
                 var pool = single.Count > 0 ? single : list.Select(x => x.Grams).OrderBy(g => g).ToList();
                 if (pool.Count == 0) continue;
-                result[fdc] = pool[pool.Count / 2]; // median
+                result[fdc] = pool[pool.Count / 2];
             }
             return result;
         }
 
-        private static Dictionary<string, decimal> ReadDensities(string? path, HashSet<string> fdcIds)
+        private static Dictionary<string, decimal> Densities(Dictionary<string, List<UsdaPortion>> portionRows)
         {
-            var byFood = new Dictionary<string, List<UsdaPortion>>();
-            if (path == null || !File.Exists(path)) return new Dictionary<string, decimal>();
-
-            using var reader = new StreamReader(path);
-            reader.ReadLine();
-            string? line;
-            while ((line = reader.ReadLine()) != null)
-            {
-                var f = CsvLine.Split(line);
-                if (f.Length < 8 || !fdcIds.Contains(f[1])) continue;
-                if (!decimal.TryParse(f[7], System.Globalization.CultureInfo.InvariantCulture, out var grams)
-                    || !decimal.TryParse(f[3], System.Globalization.CultureInfo.InvariantCulture, out var amount)) continue;
-                byFood.TryAdd(f[1], new List<UsdaPortion>());
-                byFood[f[1]].Add(new UsdaPortion(amount, f[4], f[6], f[5], grams));
-            }
-
             var result = new Dictionary<string, decimal>();
-            foreach (var (fdc, list) in byFood)
+            foreach (var (fdc, list) in portionRows)
                 if (UsdaVolumeDensity.GramsPerMilliliter(list) is { } d) result[fdc] = d;
             return result;
         }

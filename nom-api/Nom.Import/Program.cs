@@ -79,6 +79,35 @@ namespace Nom.Import
                 return;
             }
 
+            var portionFlag = Array.IndexOf(args, "--backfill-portions");
+            if (portionFlag >= 0)
+            {
+                using var portionScope = host.Services.CreateScope();
+                var backfill = portionScope.ServiceProvider.GetRequiredService<FdcPortionBackfillService>();
+                if (args.Contains("--undo"))
+                {
+                    Console.WriteLine($"Portion backfill undone: {await backfill.UndoAsync()} values cleared.");
+                    return;
+                }
+                var dirs = args.Skip(portionFlag + 1).TakeWhile(a => !a.StartsWith("--")).ToList();
+                if (dirs.Count == 0)
+                {
+                    Console.WriteLine("Usage: --backfill-portions <csv-dir> [<csv-dir> ...] [--dry-run] | --backfill-portions --undo");
+                    return;
+                }
+                var p = await backfill.BackfillAsync(dirs, dryRun: args.Contains("--dry-run"));
+                Console.WriteLine($"\n=== FDC portion backfill {(p.DryRun ? "(dry run, nothing written)" : "report")} ===");
+                Console.WriteLine($"USDA-linked ingredients found in the files: {p.Linked} ({p.NotInFiles} linked to foods not in these files)");
+                Console.WriteLine($"Values {(p.DryRun ? "to fill" : "filled")}:   {p.Changes.Count(c => c.Field == FdcPortionBackfillService.DensityField)} g/ml, {p.Changes.Count(c => c.Field == FdcPortionBackfillService.CountField)} per-item grams");
+                Console.WriteLine($"No-conversion lines:  {p.NoConversionLinesBefore} -> {p.NoConversionLinesAfter}");
+                Console.WriteLine($"Recipes with one:     {p.NoConversionRecipesBefore} -> {p.NoConversionRecipesAfter} ({p.CuratedNoConversionRecipesBefore} -> {p.CuratedNoConversionRecipesAfter} curated)");
+                foreach (var c in p.Changes)
+                    Console.WriteLine($"  fill  #{c.IngredientId} {c.Ingredient} | {c.Field} = {c.Value} | fdc:{c.SourceFdcId} | {c.Evidence}");
+                foreach (var c in p.KeptExisting)
+                    Console.WriteLine($"  kept  #{c.IngredientId} {c.Ingredient} | {c.Field} stays {c.Current} (USDA gives {c.Value}) | fdc:{c.SourceFdcId} | {c.Evidence}");
+                return;
+            }
+
             // Roll back an FDC import batch: soft-delete FDC-sourced ingredients that no authored
             // recipe references. `dotnet run -- --purge-fdc`. Safety valve for a bad import.
             if (args.Contains("--purge-fdc"))
@@ -189,6 +218,7 @@ namespace Nom.Import
 
                     services.AddScoped<FdcFoundationImportService>();
                     services.AddScoped<FdcBrandedImportService>();
+                    services.AddScoped<FdcPortionBackfillService>();
 
                     services.AddScoped<FoodGroupEnrichmentService>(sp => new FoodGroupEnrichmentService(
                         sp.GetRequiredService<ApplicationDbContext>(),
