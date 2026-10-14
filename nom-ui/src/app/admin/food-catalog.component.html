@@ -172,19 +172,21 @@
               <td><mat-checkbox [checked]="selected().has(item.id)" (change)="toggle(item.id)"
                                 [aria-label]="'Select ' + item.name"
                                 data-testid="food-catalog-select-checkbox" /></td>
-              <td class="nom-food-catalog__name">
-                <span>{{ item.name }}</span>
-                @if (flagsFor(item.id).length > 0) {
-                  <button type="button" class="nom-food-catalog__flag"
-                          #flagTip="matTooltip"
-                          [matTooltip]="flagText(item.id)"
-                          matTooltipClass="nom-food-catalog__flag-tip"
-                          [attr.aria-label]="'Audit findings for ' + item.name + ': ' + flagText(item.id)"
-                          (click)="flagTip.toggle()"
-                          data-testid="food-catalog-item-flag-btn">
-                    <mat-icon>warning</mat-icon>
-                  </button>
-                }
+              <td class="nom-food-catalog__name-cell">
+                <div class="nom-food-catalog__name">
+                  <span>{{ item.name }}</span>
+                  @if (flagsFor(item.id).length > 0) {
+                    <button type="button" class="nom-food-catalog__flag"
+                            #flagTip="matTooltip"
+                            [matTooltip]="flagText(item.id)"
+                            matTooltipClass="nom-food-catalog__flag-tip"
+                            [attr.aria-label]="'Audit findings for ' + item.name + ': ' + flagText(item.id)"
+                            (click)="flagTip.toggle()"
+                            data-testid="food-catalog-item-flag-btn">
+                      <mat-icon>warning</mat-icon>
+                    </button>
+                  }
+                </div>
                 @if (item.fdcId) { <span class="nom-food-catalog__fdc">FDC {{ item.fdcId }}</span> }
               </td>
               <td>
