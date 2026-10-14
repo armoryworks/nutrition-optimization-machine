@@ -243,6 +243,7 @@ export class Household implements OnInit {
 
     dialogRef.afterClosed().subscribe((result: number | undefined) => {
       if (result) {
+        this.householdStore.invalidate();
         this.loadMembersForHousehold(householdId);
       }
     });

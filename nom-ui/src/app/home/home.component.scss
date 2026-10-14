@@ -44,6 +44,8 @@
   flex-wrap: wrap;
   gap: vars.$spacing-3;
   margin-top: vars.$spacing-2;
+  --mat-button-outlined-label-text-color: var(--mat-sys-on-primary-container);
+  --mat-button-outlined-outline-color: var(--mat-sys-on-primary-container);
 
   a {
     min-height: vars.$button-height;
