@@ -101,8 +101,10 @@ namespace Nom.Import
                 Console.WriteLine($"Values {(p.DryRun ? "to fill" : "filled")}:   {p.Changes.Count(c => c.Field == FdcPortionBackfillService.DensityField)} g/ml, {p.Changes.Count(c => c.Field == FdcPortionBackfillService.CountField)} per-item grams");
                 Console.WriteLine($"No-conversion lines:  {p.NoConversionLinesBefore} -> {p.NoConversionLinesAfter}");
                 Console.WriteLine($"Recipes with one:     {p.NoConversionRecipesBefore} -> {p.NoConversionRecipesAfter} ({p.CuratedNoConversionRecipesBefore} -> {p.CuratedNoConversionRecipesAfter} curated)");
+                Console.WriteLine($"Counted lines reweighed: {p.CountedLinesReweighed} (piece lines that used the reference serving now use one item)");
                 foreach (var c in p.Changes)
-                    Console.WriteLine($"  fill  #{c.IngredientId} {c.Ingredient} | {c.Field} = {c.Value} | fdc:{c.SourceFdcId} | {c.Evidence}");
+                    Console.WriteLine($"  fill  #{c.IngredientId} {c.Ingredient} | {c.Field} = {c.Value} | fdc:{c.SourceFdcId} | {c.Evidence}"
+                        + (c.ReferenceServing is { } rs ? $" | piece lines weighed {rs} g each until now" : ""));
                 foreach (var c in p.KeptExisting)
                     Console.WriteLine($"  kept  #{c.IngredientId} {c.Ingredient} | {c.Field} stays {c.Current} (USDA gives {c.Value}) | fdc:{c.SourceFdcId} | {c.Evidence}");
                 return;

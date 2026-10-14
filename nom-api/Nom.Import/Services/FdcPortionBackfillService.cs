@@ -29,7 +29,7 @@ namespace Nom.Import.Services
     {
         public const string Batch = "fdc-portions";
         public const string DensityField = "grams_per_milliliter";
-        public const string CountField = "reference_serving_grams";
+        public const string CountField = "grams_per_item";
         private const string SrLegacy = FdcFoundationImportService.SrLegacyFood;
         private const long Curated = (long)CurationStatusEnum.Curated;
 
@@ -105,10 +105,10 @@ namespace Nom.Import.Services
                     .FirstOrDefault(x => x.Value != null);
                 if (item.Value is { } one)
                 {
-                    var change = new PortionChange(ing.Id, ing.Name, fdcId, CountField, ing.ReferenceServingGrams, one.Grams, item.Fdc,
-                        $"{one.Portion} = {one.Grams} g each, from {Describe(item.Fdc, foods)}");
-                    if (ing.ReferenceServingGrams == null) report.Changes.Add(change);
-                    else if (ing.ReferenceServingGrams != one.Grams) report.KeptExisting.Add(change);
+                    var change = new PortionChange(ing.Id, ing.Name, fdcId, CountField, ing.GramsPerItem, one.Grams, item.Fdc,
+                        $"{one.Portion} = {one.Grams} g each, from {Describe(item.Fdc, foods)}", ing.ReferenceServingGrams);
+                    if (ing.GramsPerItem == null) report.Changes.Add(change);
+                    else if (ing.GramsPerItem != one.Grams) report.KeptExisting.Add(change);
                 }
             }
 
@@ -122,7 +122,7 @@ namespace Nom.Import.Services
                 {
                     var ing = byId[c.IngredientId];
                     if (c.Field == DensityField) ing.GramsPerMilliliter = c.Value;
-                    else ing.ReferenceServingGrams = c.Value;
+                    else ing.GramsPerItem = c.Value;
                     ing.LastModifiedDate = now;
                     _db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
                     {
@@ -169,7 +169,7 @@ namespace Nom.Import.Services
                 if (!byId.TryGetValue(p.IngredientId!.Value, out var ing)
                     || !decimal.TryParse(p.ProposedValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)) continue;
                 if (p.Field == DensityField && ing.GramsPerMilliliter == value) ing.GramsPerMilliliter = null;
-                else if (p.Field == CountField && ing.ReferenceServingGrams == value) ing.ReferenceServingGrams = null;
+                else if (p.Field == CountField && ing.GramsPerItem == value) ing.GramsPerItem = null;
                 else continue;
 
                 ing.LastModifiedDate = now;
@@ -198,6 +198,7 @@ namespace Nom.Import.Services
                     ri.Measurement,
                     ri.Ingredient.GramsPerMilliliter,
                     ri.Ingredient.ReferenceServingGrams,
+                    ri.Ingredient.GramsPerItem,
                     HasData = ri.Ingredient.IngredientNutrients.Any(),
                 })
                 .ToListAsync(ct);
@@ -212,16 +213,23 @@ namespace Nom.Import.Services
                     Quantity = l.Quantity,
                     LineKind = l.LineKind,
                     Measurement = l.Measurement,
-                    Ingredient = new IngredientEntity { GramsPerMilliliter = l.GramsPerMilliliter, ReferenceServingGrams = l.ReferenceServingGrams },
+                    Ingredient = new IngredientEntity { GramsPerMilliliter = l.GramsPerMilliliter, ReferenceServingGrams = l.ReferenceServingGrams, GramsPerItem = l.GramsPerItem },
                 };
-                if (RecipeNutritionService.StatusFor(line, l.HasData) != NutritionLineStatus.NoConversion) continue;
-                before.Add((l.RecipeId, l.RecipeCurated));
+                var status = RecipeNutritionService.StatusFor(line, l.HasData);
+                var grams = RecipeNutritionService.GramsFor(line);
 
                 foreach (var c in fills[l.IngredientId])
                 {
                     if (c.Field == DensityField) line.Ingredient.GramsPerMilliliter = c.Value;
-                    else line.Ingredient.ReferenceServingGrams = c.Value;
+                    else line.Ingredient.GramsPerItem = c.Value;
                 }
+                if (status == NutritionLineStatus.Counted)
+                {
+                    if (RecipeNutritionService.GramsFor(line) != grams) report.CountedLinesReweighed++;
+                    continue;
+                }
+                if (status != NutritionLineStatus.NoConversion) continue;
+                before.Add((l.RecipeId, l.RecipeCurated));
                 if (RecipeNutritionService.StatusFor(line, l.HasData) == NutritionLineStatus.NoConversion)
                     after.Add((l.RecipeId, l.RecipeCurated));
             }
@@ -276,7 +284,7 @@ namespace Nom.Import.Services
     /// <summary>One conversion the backfill fills, or would have filled over an existing value.</summary>
     public sealed record PortionChange(
         long IngredientId, string Ingredient, string FdcId, string Field,
-        decimal? Current, decimal Value, string SourceFdcId, string Evidence);
+        decimal? Current, decimal Value, string SourceFdcId, string Evidence, decimal? ReferenceServing = null);
 
     public sealed class PortionBackfillReport
     {
@@ -291,5 +299,6 @@ namespace Nom.Import.Services
         public int NoConversionRecipesAfter { get; set; }
         public int CuratedNoConversionRecipesBefore { get; set; }
         public int CuratedNoConversionRecipesAfter { get; set; }
+        public int CountedLinesReweighed { get; set; }
     }
 }

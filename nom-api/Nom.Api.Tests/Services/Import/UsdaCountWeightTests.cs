@@ -30,6 +30,14 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public void A_whole_bird_is_never_one_item_even_from_half_of_one()
+        {
+            var goose = new[] { Sr(1, "cup, chopped or diced", 140), Sr(1, "unit (yield from 1 lb ready-to-cook goose)", 188), Sr(0.5m, "goose", 774) };
+
+            UsdaCountWeight.GramsPerCount(goose, "Goose, domesticated, meat and skin, cooked, roasted").Should().BeNull();
+        }
+
+        [Fact]
         public void Medium_beats_the_other_sizes_and_the_cups()
         {
             var strawberries = new[]

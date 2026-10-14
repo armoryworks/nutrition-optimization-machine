@@ -116,16 +116,20 @@ Atwater-factor nutrient ids (2048 specific / 2047 general), not general Energy
 took acceptance from 107 → 317.
 
 Per-100g `IngredientNutrient` rows are persisted against the seeded Nutrient rows
-(resolved by name), along with `GramsPerMilliliter` and `ReferenceServingGrams` from
-`food_portion.csv` (see *Household portions* below; a food with no countable portion
-falls back to the median of its single-unit portions).
+(resolved by name), along with `ReferenceServingGrams` (median of single-unit portions),
+`GramsPerMilliliter` and `GramsPerItem` from `food_portion.csv` (see *Household portions*
+below).
 
 ### Household portions → gram conversions — BUILT ✅
 A recipe line in cups or pieces only counts toward nutrition when its ingredient can
 turn that unit into grams (`RecipeNutritionService.GramsFor`): volume units need
 `Ingredient.GramsPerMilliliter`, count units (Piece, Clove, Stalk, Dozen…) need
-`Ingredient.ReferenceServingGrams` as the weight of one item. Both come from USDA's
-`food_portion.csv` (+ `measure_unit.csv`), deterministically — never from a model:
+`Ingredient.GramsPerItem`, the weight of one item (falling back to
+`ReferenceServingGrams` when it is unknown). The item weight is kept apart from
+`ReferenceServingGrams` on purpose: that one is the reference serving a standalone food
+is planned in (meal-plan food-group top-ups count "1" as one reference serving), and one
+raspberry (1.9 g) or one garlic clove (3 g) is not a serving. Both conversions come from
+USDA's `food_portion.csv` (+ `measure_unit.csv`), deterministically — never from a model:
 
 - **Grams per mL** (`UsdaVolumeDensity`): portion grams ÷ (amount × mL), with
   cup = 236.588 mL, tbsp = 14.787, tsp = 4.929, fl oz = 29.574 (also pint, quart, mL, L).
@@ -138,7 +142,7 @@ turn that unit into grams (`RecipeNutritionService.GramsFor`): volume units need
   ear, spear, pod, sprig, link, patty, fillet, breast, thigh, drumstick, wing, leg,
   chop), a bare size ("medium", "large"), or the food's own name ("1 cucumber" for
   *Cucumber, with peel, raw*; "10 raspberries" for *Raspberries, raw*). Wholes that hold
-  many pieces (head, bulb, bunch, loaf, rack, pie, pizza, cake, whole bird) and fractions
+  many pieces (head, bulb, bunch, loaf, rack, pie, pizza, cake, a whole chicken, turkey, duck, goose or capon — also from "½ goose") and fractions
   (slice, wedge, strip, half, chopped/sliced/diced) never count, nor do weights,
   volumes, servings or packages. So "1 piece" of garlic is a **clove** (3 g), never a
   bulb, decided by the portion text rather than by food name.
@@ -163,11 +167,15 @@ the USDA figure for comparison — so a rerun is a no-op. Most Foundation foods 
 no portions; for those the USDA food with the **same description** in the other
 supplied release (normally SR Legacy) is used, and its id is the provenance. Each
 filled value is logged as an *Applied* `FoodCatalogProposal` (batch `fdc-portions`,
-field `grams_per_milliliter` / `reference_serving_grams`, source `fdc:<id the portion
+field `grams_per_milliliter` / `grams_per_item`, source `fdc:<id the portion
 came from>`, reason quoting the portion). `--undo` clears every logged value that is
 still unchanged and marks its row Rejected. Touched ingredients bump their recipe
 lines' `LastModifiedDate`, so the API's nutrition sweep recalculates those labels.
-The report gives no-conversion recipe lines and recipes before → after.
+The report gives no-conversion recipe lines and recipes before → after, and how many
+already-counted piece lines change weight because they used the reference serving as a
+per-item weight (e.g. "4 strawberries" weighed as four 144 g cups, now four 12 g berries).
+`GramsPerItem` is a new column (`./db/apply.sh` adds it); `ReferenceServingGrams` is
+never written by the backfill.
 
 ### FDC Branded import — BUILT ✅ + gauged in staging
 `Nom.Import/Services/FdcBrandedImportService.cs` —

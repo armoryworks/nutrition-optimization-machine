@@ -124,8 +124,9 @@ namespace Nom.Import.Services
             var nutrients = ReadFoodNutrients(nutrientCsv, foods.Keys.ToHashSet()); // fdc_id → macros
 
             var portionRows = UsdaPortionFile.Read(TryFindFile(csvDir, "food_portion.csv"), foods.Keys.ToHashSet());
-            var portions = ReferenceServings(portionRows, foods);
+            var portions = ReferenceServings(portionRows);
             var densities = Densities(portionRows);
+            var itemWeights = ItemWeights(portionRows, foods);
             var nutrientIds = await ResolveNutrientIdsAsync(ct);
             var (gramId, kcalId) = await ResolveMeasurementIdsAsync(ct);
 
@@ -143,7 +144,7 @@ namespace Nom.Import.Services
             var attachRequested = (await _db.FoodCatalogProposals
                 .Where(p => p.Field == AttachField && p.IngredientId != null)
                 .Select(p => p.IngredientId!.Value).ToListAsync(ct)).ToHashSet();
-            var attach = new List<(long IngredientId, string FdcId, string Name, Macros Macros, decimal? Serving, decimal? Density)>();
+            var attach = new List<(long IngredientId, string FdcId, string Name, Macros Macros, decimal? Serving, decimal? Density, decimal? Item)>();
 
             var report = new ImportReport { TotalFoundation = foods.Count };
             var pendingNutrition = new List<(IngredientEntity Ingredient, Macros Macros)>();
@@ -176,7 +177,8 @@ namespace Nom.Import.Services
                     report.SkippedDuplicateName++;
                     if (catalogByName.TryGetValue(name.ToLowerInvariant(), out var same) && same.FdcId == null && attachRequested.Add(same.Id))
                     {
-                        attach.Add((same.Id, fdcId, name, m, portions.TryGetValue(fdcId, out var sg) ? sg : null, densities.TryGetValue(fdcId, out var sd) ? sd : null));
+                        attach.Add((same.Id, fdcId, name, m, portions.TryGetValue(fdcId, out var sg) ? sg : null, densities.TryGetValue(fdcId, out var sd) ? sd : null,
+                            itemWeights.TryGetValue(fdcId, out var si) ? si : null));
                     }
                     continue;
                 }
@@ -197,6 +199,7 @@ namespace Nom.Import.Services
                     // 0, which would silently zero out the food's nutrition.
                     ReferenceServingGrams = portions.TryGetValue(fdcId, out var refGrams) ? refGrams : null,
                     GramsPerMilliliter = densities.TryGetValue(fdcId, out var density) ? density : null,
+                    GramsPerItem = itemWeights.TryGetValue(fdcId, out var item) ? item : null,
                     CreatedDate = DateTime.UtcNow,
                 };
 
@@ -261,7 +264,7 @@ namespace Nom.Import.Services
                 }
             }
 
-            foreach (var (ingredientId, fdc, name, m, serving, density) in attach)
+            foreach (var (ingredientId, fdc, name, m, serving, density, item) in attach)
             {
                 var facts = new List<object>();
                 void Fact(string key, long measurementId, decimal? amount)
@@ -283,7 +286,7 @@ namespace Nom.Import.Services
                     FdcId = fdc,
                     Field = AttachField,
                     CurrentValue = name,
-                    ProposedValue = System.Text.Json.JsonSerializer.Serialize(new { fdcDataType = dataType, referenceServingGrams = serving, gramsPerMilliliter = density, nutrients = facts }),
+                    ProposedValue = System.Text.Json.JsonSerializer.Serialize(new { fdcDataType = dataType, referenceServingGrams = serving, gramsPerMilliliter = density, gramsPerItem = item, nutrients = facts }),
                     Confidence = 1m,
                     Reason = $"Same name as USDA {dataType} food {fdc}: attach its {facts.Count} nutrient values",
                     Source = $"fdc:{fdc}",
@@ -371,26 +374,29 @@ namespace Nom.Import.Services
         }
 
         /// <summary>
-        /// Standard reference portion in grams per food: the weight of one item when USDA lists a
-        /// countable portion (see <see cref="UsdaCountWeight"/>), else a single-unit portion
+        /// Standard reference portion in grams per food. Prefers a single-unit portion
         /// (amount = 1), else the median gram weight, so an outlier ("1 whole cake") doesn't win.
         /// </summary>
-        private static Dictionary<string, decimal> ReferenceServings(Dictionary<string, List<UsdaPortion>> portionRows, Dictionary<string, FoodRow> foods)
+        private static Dictionary<string, decimal> ReferenceServings(Dictionary<string, List<UsdaPortion>> portionRows)
         {
             var result = new Dictionary<string, decimal>();
             foreach (var (fdc, rows) in portionRows)
             {
-                if (UsdaCountWeight.GramsPerCount(rows, foods.TryGetValue(fdc, out var food) ? food.Description : null) is { } item)
-                {
-                    result[fdc] = item.Grams;
-                    continue;
-                }
                 var list = rows.Where(x => x.Grams > 0).ToList();
                 var single = list.Where(x => x.Amount == 1m).Select(x => x.Grams).OrderBy(g => g).ToList();
                 var pool = single.Count > 0 ? single : list.Select(x => x.Grams).OrderBy(g => g).ToList();
                 if (pool.Count == 0) continue;
                 result[fdc] = pool[pool.Count / 2];
             }
+            return result;
+        }
+
+        private static Dictionary<string, decimal> ItemWeights(Dictionary<string, List<UsdaPortion>> portionRows, Dictionary<string, FoodRow> foods)
+        {
+            var result = new Dictionary<string, decimal>();
+            foreach (var (fdc, rows) in portionRows)
+                if (UsdaCountWeight.GramsPerCount(rows, foods.TryGetValue(fdc, out var food) ? food.Description : null) is { } item)
+                    result[fdc] = item.Grams;
             return result;
         }
 

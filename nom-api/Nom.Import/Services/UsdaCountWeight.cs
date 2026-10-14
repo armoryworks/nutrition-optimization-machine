@@ -38,7 +38,8 @@ namespace Nom.Import.Services
 
         private static readonly HashSet<string> NeverOneItem = new(StringComparer.Ordinal)
         {
-            "head", "bulb", "bunch", "loaf", "rack", "bird", "chicken", "roast", "pie", "pizza", "cake",
+            "head", "bulb", "bunch", "loaf", "rack", "bird", "chicken", "turkey", "duck", "goose", "capon", "hen",
+            "roast", "pie", "pizza", "cake",
             "slice", "slices", "wedge", "strip", "strips", "half", "cubic", "inch",
             "oz", "lb", "g", "kg", "serving", "nlea", "package", "container", "can", "jar",
             "bottle", "box", "bag", "packet", "carton", "envelope", "recipe", "portion",

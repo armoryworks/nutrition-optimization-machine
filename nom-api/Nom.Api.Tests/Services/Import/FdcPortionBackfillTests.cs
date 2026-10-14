@@ -77,7 +77,7 @@ namespace Nom.Api.Tests.Services.Import
 
             var garlic = new IngredientEntity { Name = "Garlic", FdcId = FoundationGarlic, CurationStatusId = 9003 };
             var honey = new IngredientEntity { Name = "Honey", FdcId = SrHoney, CurationStatusId = 9003, GramsPerMilliliter = 1.42m };
-            var strawberries = new IngredientEntity { Name = "Strawberries", CurationStatusId = 9003 };
+            var strawberries = new IngredientEntity { Name = "Strawberries", CurationStatusId = 9003, ReferenceServingGrams = 144m };
             db.Ingredients.AddRange(garlic, honey, strawberries);
             await db.SaveChangesAsync();
 
@@ -96,7 +96,8 @@ namespace Nom.Api.Tests.Services.Import
             db.RecipeIngredients.AddRange(
                 new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = garlic.Id, Quantity = 2m, MeasurementId = Piece, RawLine = "", SortOrder = 0 },
                 new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = strawberries.Id, Quantity = 1m, MeasurementId = Cup, RawLine = "", SortOrder = 1 },
-                new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = honey.Id, Quantity = 1m, MeasurementId = Piece, RawLine = "", SortOrder = 2 });
+                new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = honey.Id, Quantity = 1m, MeasurementId = Piece, RawLine = "", SortOrder = 2 },
+                new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = strawberries.Id, Quantity = 4m, MeasurementId = Piece, RawLine = "", SortOrder = 3 });
             await db.SaveChangesAsync();
             return new Seeded(db, garlic.Id, honey.Id, strawberries.Id);
         }
@@ -115,8 +116,9 @@ namespace Nom.Api.Tests.Services.Import
             report.NoConversionLinesBefore.Should().Be(3);
             report.NoConversionLinesAfter.Should().Be(1, "honey has no countable USDA portion");
             report.CuratedNoConversionRecipesAfter.Should().Be(1);
+            report.CountedLinesReweighed.Should().Be(1, "4 strawberries were weighed as 4 reference servings and will be 4 berries");
             db.ChangeTracker.Clear();
-            (await db.Ingredients.CountAsync(i => i.GramsPerMilliliter != null || i.ReferenceServingGrams != null)).Should().Be(1);
+            (await db.Ingredients.CountAsync(i => i.GramsPerMilliliter != null || i.GramsPerItem != null)).Should().Be(1);
             (await db.FoodCatalogProposals.CountAsync(p => p.Batch == FdcPortionBackfillService.Batch)).Should().Be(0);
         }
 
@@ -130,11 +132,13 @@ namespace Nom.Api.Tests.Services.Import
 
             db.ChangeTracker.Clear();
             var garlic = await db.Ingredients.SingleAsync(i => i.Id == s.Garlic);
-            garlic.ReferenceServingGrams.Should().Be(3m, "a piece of garlic is a clove, borrowed from the SR Legacy food of the same description");
+            garlic.GramsPerItem.Should().Be(3m, "a piece of garlic is a clove, borrowed from the SR Legacy food of the same description");
+            garlic.ReferenceServingGrams.Should().BeNull("one clove is not the serving a standalone food is planned in");
             garlic.GramsPerMilliliter.Should().Be(0.5748m);
             var strawberries = await db.Ingredients.SingleAsync(i => i.Id == s.Strawberries);
             strawberries.GramsPerMilliliter.Should().Be(0.6087m, "a linked catalog row is reached through its applied fdc_link");
-            strawberries.ReferenceServingGrams.Should().Be(12m);
+            strawberries.GramsPerItem.Should().Be(12m);
+            strawberries.ReferenceServingGrams.Should().Be(144m);
             (await db.Ingredients.SingleAsync(i => i.Id == s.Honey)).GramsPerMilliliter.Should().Be(1.42m, "an existing value is never overwritten");
             report.KeptExisting.Should().ContainSingle(c => c.IngredientId == s.Honey && c.Value == 1.4329m);
 
@@ -157,7 +161,7 @@ namespace Nom.Api.Tests.Services.Import
             await Service(db).BackfillAsync(new[] { _foundation, _sr }, dryRun: false);
             db.ChangeTracker.Clear();
             var edited = await db.Ingredients.SingleAsync(i => i.Id == s.Strawberries);
-            edited.ReferenceServingGrams = 14m;
+            edited.GramsPerItem = 14m;
             await db.SaveChangesAsync();
             db.ChangeTracker.Clear();
 
@@ -166,10 +170,11 @@ namespace Nom.Api.Tests.Services.Import
             undone.Should().Be(3);
             db.ChangeTracker.Clear();
             var garlic = await db.Ingredients.SingleAsync(i => i.Id == s.Garlic);
-            garlic.ReferenceServingGrams.Should().BeNull();
+            garlic.GramsPerItem.Should().BeNull();
             garlic.GramsPerMilliliter.Should().BeNull();
             var strawberries = await db.Ingredients.SingleAsync(i => i.Id == s.Strawberries);
-            strawberries.ReferenceServingGrams.Should().Be(14m);
+            strawberries.GramsPerItem.Should().Be(14m);
+            strawberries.ReferenceServingGrams.Should().Be(144m);
             strawberries.GramsPerMilliliter.Should().BeNull();
             (await db.FoodCatalogProposals.CountAsync(p => p.Batch == FdcPortionBackfillService.Batch && p.Status == FoodProposalStatus.Rejected)).Should().Be(3);
         }

@@ -20,7 +20,7 @@ namespace Nom.Data.Nutrition
         public static readonly string[] NutrientFields =
         {
             "calories", "kcal", "energy", "protein", "carb", "carbohydrate", "fat",
-            "reference_serving_grams", "serving", "amount",
+            "reference_serving_grams", "serving", "amount", "grams_per_milliliter", "grams_per_item",
         };
 
         /// <summary>Source prefixes considered authoritative enough to propose a numeric change.</summary>
