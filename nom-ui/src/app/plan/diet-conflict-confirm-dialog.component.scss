@@ -1,0 +1,20 @@
+@use 'variables' as vars;
+
+.nom-diet-conflict__message {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-2;
+  margin: 0 0 vars.$spacing-3;
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-error);
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+.nom-diet-conflict__note {
+  margin: 0;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Nom.Data;
 using Nom.Data.Person;
 using Nom.Data.Plan;
@@ -380,6 +381,15 @@ namespace Nom.Orch.Services
         /// </summary>
         private sealed record GuidelineTarget(long NutrientId, string NutrientName, decimal Target, decimal? UpperLimit);
 
+        /// <summary>
+        /// Shuffle draws this many candidates per slot so scoring has a real choice; a pool the
+        /// size of the slot count could only reorder a random set, never steer toward the goals.
+        /// </summary>
+        private const int PoolOversample = 3;
+
+        /// <summary>Score lost per 100% relative miss of a macro's goal mix (grams per kcal) on a plate.</summary>
+        private const decimal MacroMixWeight = 400m;
+
         // Meal composition templates: defines how many recipes of each type compose a meal
         private static readonly Dictionary<long, (long RecipeTypeId, string Label)[]> MealComposition = new()
         {
@@ -618,7 +628,7 @@ namespace Nom.Orch.Services
 
                 // Prefer recipes whose category matches the meal type (e.g., breakfast entrees for breakfast)
                 var mealAffineRecipes = await TakeRandomCookableAsync(
-                    query.Where(r => r.RecipeCategories!.Any(rc => rc.CategoryId == mealTypeId)), count);
+                    query.Where(r => r.RecipeCategories!.Any(rc => rc.CategoryId == mealTypeId)), count * PoolOversample);
 
                 // Fallback: if not enough meal-affine recipes, fill from the full pool
                 if (mealAffineRecipes.Count < count)
@@ -648,14 +658,13 @@ namespace Nom.Orch.Services
                 .Select(g => new GuidelineTarget(g.NutrientId, g.NutrientName, g.Target, g.UpperLimit))
                 .ToList();
 
-            // 5b'. Household macro goals override the USDA defaults so shuffle
-            // scoring steers toward the goals users actually set. A goal for a
-            // macro with no guideline row (e.g. Calories has none in seed data)
-            // is appended as a new scoring target rather than ignored.
-            var macroGoal = await _context.MacroGoals
-                .AsNoTracking()
-                .FirstOrDefaultAsync(g => g.HouseholdId == model.HouseholdId);
-            if (macroGoal != null)
+            // 5b'. The members' macro goals (each person's own, falling back to
+            // the household's) override the USDA defaults so shuffle scoring
+            // steers toward the goals users actually set. A goal for a macro
+            // with no guideline row (e.g. Calories has none in seed data) is
+            // appended as a new scoring target rather than ignored.
+            var macroGoal = await PlanningMacroGoal.LoadAsync(_context, model.HouseholdId);
+            if (macroGoal.HasAnyTarget)
             {
                 var goalTargets = new (string NutrientName, decimal? Target)[]
                 {
@@ -689,8 +698,63 @@ namespace Nom.Orch.Services
             }
 
             var guidelinesByNutrient = guidelines.ToDictionary(g => g.NutrientId);
-            var trackedNutrientIds = guidelines.Select(g => g.NutrientId).ToList();
             var caloriesNutrientId = guidelines.FirstOrDefault(g => g.NutrientName == "Calories")?.NutrientId;
+
+            var macroNutrientIds = await _context.Nutrients
+                .Where(n => n.Name == "Calories" || n.Name == "Protein" || n.Name == "Total Carbohydrates" || n.Name == "Fat")
+                .Select(n => new { n.Name, n.Id })
+                .ToListAsync();
+            var energyNutrientId = macroNutrientIds.FirstOrDefault(n => n.Name == "Calories")?.Id;
+            var mixTargets = new List<(long NutrientId, decimal PerKcal)>();
+            foreach (var (nutrientName, perKcal) in new (string, decimal?)[]
+            {
+                ("Protein", macroGoal.ProteinPerKcal),
+                ("Total Carbohydrates", macroGoal.CarbPerKcal),
+                ("Fat", macroGoal.FatPerKcal),
+            })
+            {
+                var nutrient = macroNutrientIds.FirstOrDefault(n => n.Name == nutrientName);
+                if (energyNutrientId.HasValue && nutrient != null && perKcal is > 0m)
+                    mixTargets.Add((nutrient.Id, perKcal.Value));
+            }
+            var mealSplit = mixTargets.Count > 0
+                ? await new PortionOrchestrationService(_context, NullLogger<PortionOrchestrationService>.Instance).GetMealSplitAsync(model.HouseholdId)
+                : new Nom.Orch.Models.Plan.MealSplitModel();
+            var cellPlates = new Dictionary<(DateOnly Date, long MealTypeId), Dictionary<long, decimal>>();
+
+            decimal? MacroMixPenalty(DateOnly date, long mealTypeId, Dictionary<long, decimal>? candidate)
+            {
+                var share = PortionOrchestrationService.MealPct(mealSplit, mealTypeId);
+                if (share <= 0m) return 0m;
+                var candidateKcal = candidate?.GetValueOrDefault(energyNutrientId!.Value, 0m) ?? 0m;
+                if (candidate == null || candidateKcal <= 0m) return null;
+
+                cellPlates.TryGetValue((date, mealTypeId), out var plate);
+                var plateKcal = (plate?.GetValueOrDefault(energyNutrientId.Value, 0m) ?? 0m) + candidateKcal;
+                var otherCells = cellPlates
+                    .Where(c => c.Key.Date == date && c.Key.MealTypeId != mealTypeId
+                        && c.Value.GetValueOrDefault(energyNutrientId.Value, 0m) > 0m)
+                    .Select(c => (Share: PortionOrchestrationService.MealPct(mealSplit, c.Key.MealTypeId), Plate: c.Value))
+                    .ToList();
+                var otherShare = otherCells.Sum(c => c.Share);
+
+                var penalty = 0m;
+                foreach (var (nutrientId, perKcal) in mixTargets)
+                {
+                    var otherGrams = otherCells.Sum(c =>
+                        c.Share * c.Plate.GetValueOrDefault(nutrientId, 0m) / c.Plate[energyNutrientId.Value]);
+                    var wanted = Math.Max(0m, (perKcal * (otherShare + share) - otherGrams) / share);
+                    var actual = ((plate?.GetValueOrDefault(nutrientId, 0m) ?? 0m) + candidate.GetValueOrDefault(nutrientId, 0m)) / plateKcal;
+                    penalty += MacroMixWeight * Math.Abs(actual - wanted) / perKcal;
+                }
+                return penalty;
+            }
+
+            var trackedNutrientIds = guidelines.Select(g => g.NutrientId)
+                .Concat(mixTargets.Select(t => t.NutrientId))
+                .Concat(mixTargets.Count > 0 ? new[] { energyNutrientId!.Value } : Array.Empty<long>())
+                .Distinct()
+                .ToList();
 
             // 5c. Load nutrition data for all candidate recipes (all guideline-tracked nutrients)
             var allCandidateIds = recipePools.Values
@@ -800,6 +864,11 @@ namespace Nom.Orch.Services
                     dailyTotals[slot.Date] = dayTotals;
                 }
 
+                var unknownMixPenalty = mixTargets.Count > 0
+                    ? pool.Select(c => MacroMixPenalty(slot.Date, slot.MealTypeId, recipeNutrients.GetValueOrDefault(c.Id)))
+                        .Where(p => p.HasValue).Select(p => p!.Value).DefaultIfEmpty(0m).Max()
+                    : 0m;
+
                 RecipeEntity? bestRecipe = null;
                 var bestScore = decimal.MinValue;
 
@@ -862,6 +931,9 @@ namespace Nom.Orch.Services
                         }
                     }
 
+                    if (mixTargets.Count > 0)
+                        score -= MacroMixPenalty(slot.Date, slot.MealTypeId, nutrients) ?? unknownMixPenalty;
+
                     if (score > bestScore)
                     {
                         bestScore = score;
@@ -893,9 +965,14 @@ namespace Nom.Orch.Services
                 // Update daily totals for all tracked nutrients
                 if (recipeNutrients.TryGetValue(bestRecipe.Id, out var selectedNutrients))
                 {
+                    if (!cellPlates.TryGetValue((slot.Date, slot.MealTypeId), out var cellPlate))
+                    {
+                        cellPlates[(slot.Date, slot.MealTypeId)] = cellPlate = new Dictionary<long, decimal>();
+                    }
                     foreach (var (nutrientId, amount) in selectedNutrients)
                     {
                         dayTotals[nutrientId] = dayTotals.GetValueOrDefault(nutrientId, 0m) + amount;
+                        cellPlate[nutrientId] = cellPlate.GetValueOrDefault(nutrientId, 0m) + amount;
                     }
                 }
 

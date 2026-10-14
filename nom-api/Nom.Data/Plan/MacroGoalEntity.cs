@@ -6,8 +6,8 @@ namespace Nom.Data.Plan
     /// Daily macronutrient targets owned by exactly one person OR one household
     /// (enforced by a check constraint). A person's goal overrides their
     /// household's when resolving effective targets; the household goal is the
-    /// default for members without one and drives household-scoped meal
-    /// selection (shuffle scoring). Null targets mean "no goal for this macro".
+    /// default for members without one. Shuffle scoring steers toward the
+    /// members' effective goals. Null targets mean "no goal for this macro".
     /// Maps to the 'plan.MacroGoal' table.
     /// </summary>
     public class MacroGoalEntity : BaseEntity
