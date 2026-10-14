@@ -52,8 +52,23 @@ export interface KitchenToolSuggestion {
   seenCount: number;
   status: KitchenToolSuggestionStatus;
   toolId: number | null;
+  toolName: string | null;
+  variants: string[];
   createdDate: string;
   examples: { recipeId: number; name: string }[];
+}
+
+export interface KitchenToolOption {
+  id: number;
+  name: string;
+  category: string;
+  builtIn: boolean;
+}
+
+export interface KitchenToolMergeResult {
+  recipesMoved: number;
+  householdAnswersMoved: number;
+  aliasesMoved: number;
 }
 
 export interface KitchenToolTaggingStatus {

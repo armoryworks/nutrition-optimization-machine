@@ -110,3 +110,8 @@
   display: flex;
   gap: vars.$spacing-2;
 }
+
+.nom-kitchen-admin__alias {
+  color: var(--mat-sys-primary);
+  font-weight: 500;
+}

@@ -16,11 +16,15 @@ namespace Nom.Data.Recipe
         public string? SuggestedCategory { get; set; }
         public int SeenCount { get; set; }
 
-        /// <summary>pending | approved | rejected — see <see cref="KitchenToolSuggestionStatus"/>.</summary>
+        /// <summary>pending | approved | rejected | merged — see <see cref="KitchenToolSuggestionStatus"/>.</summary>
         public string Status { get; set; } = KitchenToolSuggestionStatus.Pending;
 
         public long? ToolId { get; set; }
         public virtual ReferenceEntity? Tool { get; set; }
+
+        /// <summary>The pending suggestion this one is a variant of; set while its status is merged.</summary>
+        public long? MergedIntoId { get; set; }
+        public virtual KitchenToolSuggestionEntity? MergedInto { get; set; }
 
         public virtual ICollection<KitchenToolSuggestionRecipeEntity> Recipes { get; set; } = new List<KitchenToolSuggestionRecipeEntity>();
     }
@@ -40,5 +44,6 @@ namespace Nom.Data.Recipe
         public const string Pending = "pending";
         public const string Approved = "approved";
         public const string Rejected = "rejected";
+        public const string Merged = "merged";
     }
 }

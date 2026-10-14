@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Nom.Data;
+using Nom.Data.Plan;
 using Nom.Data.Recipe;
 using Nom.Data.Reference;
 using Nom.Orch.Interfaces;
@@ -71,6 +72,10 @@ namespace Nom.Api.Tests.Services
         [InlineData("kitchen shears", null)]
         [InlineData("9-inch tart pan", null)]
         [InlineData("x", null)]
+        [InlineData("plain round mould", "mould")]
+        [InlineData("well-buttered fluted mould", "mould")]
+        [InlineData("earthenware pudding basin", "pudding basin")]
+        [InlineData("stone jar", "stone jar")]
         public void Normalizes_equipment_nouns_and_drops_everyday_kit(string raw, string? expected)
         {
             ToolNameNormalizer.Normalize(raw).Should().Be(expected);
@@ -176,6 +181,101 @@ namespace Nom.Api.Tests.Services
             settings.Tools.Should().ContainSingle(t => t.Id == approved.ToolId && t.Name == "Tortilla press" && !t.Owned && t.Category == KitchenToolCatalog.CategoryGadgets);
 
             (await lane.ApproveAsync(suggestion.Id, new KitchenToolSuggestionApproveModel(), 1)).Should().BeNull("only pending suggestions can be approved");
+        }
+
+        private static async Task<List<KitchenToolSuggestionEntity>> QueueAsync(ApplicationDbContext db, KitchenToolTaggingService lane, FakeTagger tagger, params (string Recipe, string Tool)[] seen)
+        {
+            foreach (var (recipe, tool) in seen)
+            {
+                var r = await AddRecipeAsync(db, recipe, "Use the " + tool + ".");
+                tagger.Answer = c => new ToolTagResult(c.RecipeId, Array.Empty<string>(), new[] { new ProposedTool(tool, KitchenToolCatalog.CategoryCookware) });
+                await lane.TagNextBatchAsync(5);
+            }
+            return await db.KitchenToolSuggestions.Include(s => s.Recipes).OrderBy(s => s.Id).ToListAsync();
+        }
+
+        [Fact]
+        public async Task A_suggestion_marked_as_an_existing_tool_becomes_its_alias_and_later_sightings_link_it()
+        {
+            using var db = NewContext();
+            db.Set<ReferenceGroupEntity>().Add(new ReferenceGroupEntity { Id = (long)ReferenceDiscriminatorEnum.KitchenToolType, Name = "Kitchen Tools" });
+            var (lane, tagger) = NewLane(db);
+            var queued = await QueueAsync(db, lane, tagger, ("Pound Cake", "bread tin"));
+            var toolsBefore = await db.Set<ReferenceEntity>().CountAsync();
+
+            var approved = await lane.ApproveAsync(queued[0].Id, new KitchenToolSuggestionApproveModel { ToolId = KitchenToolCatalog.LoafPan }, personId: 1);
+
+            approved!.ToolId.Should().Be(KitchenToolCatalog.LoafPan);
+            (await db.Set<ReferenceEntity>().CountAsync()).Should().Be(toolsBefore, "an alias adds no tool");
+            var later = await AddRecipeAsync(db, "Banana Bread", "Pour into the bread tin.");
+            tagger.Answer = c => new ToolTagResult(c.RecipeId, Array.Empty<string>(), new[] { new ProposedTool("bread tins", null) });
+            await lane.TagNextBatchAsync(5);
+            (await db.RecipeTools.AnyAsync(rt => rt.RecipeId == later.Id && rt.ToolId == KitchenToolCatalog.LoafPan)).Should().BeTrue();
+            (await lane.ApproveAsync(queued[0].Id, new KitchenToolSuggestionApproveModel { ToolId = 999_999 }, 1)).Should().BeNull();
+        }
+
+        [Fact]
+        public async Task Grouped_variants_follow_their_suggestion_when_it_is_approved_or_rejected()
+        {
+            using var db = NewContext();
+            db.Set<ReferenceGroupEntity>().Add(new ReferenceGroupEntity { Id = (long)ReferenceDiscriminatorEnum.KitchenToolType, Name = "Kitchen Tools" });
+            var (lane, tagger) = NewLane(db);
+            var queued = await QueueAsync(db, lane, tagger, ("A", "pastry jagger"), ("B", "jagging iron"), ("C", "jagging iron"), ("D", "gizmo"), ("E", "gizmo two"));
+            var jagger = queued.Single(s => s.Name == "pastry jagger");
+            var iron = queued.Single(s => s.Name == "jagging iron");
+
+            (await lane.MergeSuggestionAsync(iron.Id, jagger.Id)).Should().BeTrue();
+            var pending = await lane.GetSuggestionsAsync(KitchenToolSuggestionStatus.Pending);
+            pending.Should().NotContain(s => s.Id == iron.Id);
+            pending.Single(s => s.Id == jagger.Id).Should().Match<KitchenToolSuggestionModel>(s => s.SeenCount == 3 && s.Variants.SequenceEqual(new[] { "Jagging iron" }));
+
+            var later = await AddRecipeAsync(db, "F", "Cut with the jagging iron.");
+            tagger.Answer = c => new ToolTagResult(c.RecipeId, Array.Empty<string>(), new[] { new ProposedTool("jagging iron", null) });
+            await lane.TagNextBatchAsync(5);
+            (await db.KitchenToolSuggestions.SingleAsync(s => s.Id == jagger.Id)).SeenCount.Should().Be(4, "a variant's new sighting counts toward its group");
+
+            var approved = await lane.ApproveAsync(jagger.Id, new KitchenToolSuggestionApproveModel { DisplayName = "Pastry wheel" }, 1);
+            approved!.RecipesLinked.Should().Be(4);
+            (await db.KitchenToolSuggestions.SingleAsync(s => s.Id == iron.Id)).Should().Match<KitchenToolSuggestionEntity>(s =>
+                s.Status == KitchenToolSuggestionStatus.Approved && s.ToolId == approved.ToolId && s.MergedIntoId == null);
+
+            var gizmo = queued.Single(s => s.Name == "gizmo");
+            await lane.MergeSuggestionAsync(queued.Single(s => s.Name == "gizmo two").Id, gizmo.Id);
+            (await lane.RejectAsync(gizmo.Id)).Should().BeTrue();
+            (await db.KitchenToolSuggestions.Where(s => s.Name.StartsWith("gizmo")).Select(s => s.Status).ToListAsync())
+                .Should().OnlyContain(st => st == KitchenToolSuggestionStatus.Rejected);
+        }
+
+        [Fact]
+        public async Task Merging_a_tool_moves_its_recipes_household_answers_and_aliases_and_retires_it()
+        {
+            using var db = NewContext();
+            db.Set<ReferenceGroupEntity>().Add(new ReferenceGroupEntity { Id = (long)ReferenceDiscriminatorEnum.KitchenToolType, Name = "Kitchen Tools" });
+            var (lane, tagger) = NewLane(db);
+            var queued = await QueueAsync(db, lane, tagger, ("A", "mold"), ("B", "mould"), ("C", "mould"));
+            var mould = (await lane.ApproveAsync(queued.Single(s => s.Name == "mould").Id, new KitchenToolSuggestionApproveModel(), 1))!.ToolId;
+            var mold = (await lane.ApproveAsync(queued.Single(s => s.Name == "mold").Id, new KitchenToolSuggestionApproveModel(), 1))!.ToolId;
+            var shared = await db.RecipeTools.FirstAsync(rt => rt.ToolId == mould);
+            db.RecipeTools.Add(new RecipeToolEntity { RecipeId = shared.RecipeId, ToolId = mold });
+            db.HouseholdTools.AddRange(
+                new HouseholdToolEntity { HouseholdId = 1, ToolId = mold, IsAvailable = true },
+                new HouseholdToolEntity { HouseholdId = 2, ToolId = mold, IsAvailable = true },
+                new HouseholdToolEntity { HouseholdId = 2, ToolId = mould, IsAvailable = false });
+            await db.SaveChangesAsync();
+
+            var merged = await lane.MergeToolAsync(mold, mould);
+
+            merged!.Should().BeEquivalentTo(new KitchenToolMergeResultModel { RecipesMoved = 1, HouseholdAnswersMoved = 1, AliasesMoved = 1 });
+            (await db.RecipeTools.CountAsync(rt => rt.ToolId == mold)).Should().Be(0);
+            (await db.RecipeTools.CountAsync(rt => rt.ToolId == mould)).Should().Be(3, "the shared recipe is linked once");
+            (await db.HouseholdTools.Where(h => h.ToolId == mould).OrderBy(h => h.HouseholdId).Select(h => h.IsAvailable).ToListAsync())
+                .Should().Equal(true, true);
+            (await new KitchenToolService(db).GetToolSetAsync()).Should().NotContainKey(mold);
+            (await lane.MergeToolAsync(KitchenToolCatalog.Oven, mould)).Should().BeNull("built-in tools cannot be merged away");
+            (await lane.RenameToolAsync(mould, "Jelly mould")).Should().BeTrue();
+            (await lane.RenameToolAsync(KitchenToolCatalog.Oven, "Range")).Should().BeFalse();
+            (await lane.GetToolsAsync()).Should().Contain(t => t.Id == mould && t.Name == "Jelly mould" && !t.BuiltIn)
+                .And.Contain(t => t.Id == KitchenToolCatalog.Oven && t.BuiltIn);
         }
 
         [Fact]

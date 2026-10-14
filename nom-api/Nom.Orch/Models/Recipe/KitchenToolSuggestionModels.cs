@@ -12,6 +12,13 @@ namespace Nom.Orch.Models.Recipe
         public int SeenCount { get; set; }
         public string Status { get; set; } = string.Empty;
         public long? ToolId { get; set; }
+
+        /// <summary>Name of the tool an approved suggestion links to; differs from DisplayName when it is an alias.</summary>
+        public string? ToolName { get; set; }
+
+        /// <summary>Other names grouped under this pending suggestion.</summary>
+        public List<string> Variants { get; set; } = new();
+
         public DateTime CreatedDate { get; set; }
 
         /// <summary>A few recipes it was seen in, for the reviewer.</summary>
@@ -31,6 +38,43 @@ namespace Nom.Orch.Models.Recipe
 
         /// <summary>Optional override of the Kitchen section category.</summary>
         public string? Category { get; set; }
+
+        /// <summary>An existing tool this suggestion is another name for; when set no new tool is created.</summary>
+        public long? ToolId { get; set; }
+    }
+
+    public class KitchenToolSuggestionMergeModel
+    {
+        /// <summary>The pending suggestion to group this one under.</summary>
+        public long IntoSuggestionId { get; set; }
+    }
+
+    public class KitchenToolMergeModel
+    {
+        /// <summary>The tool that keeps the recipes, household answers and aliases of the merged one.</summary>
+        public long IntoToolId { get; set; }
+    }
+
+    public class KitchenToolRenameModel
+    {
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class KitchenToolOptionModel
+    {
+        public long Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+
+        /// <summary>Built-in tools come from the code catalog and can be aliased to but not merged away or renamed.</summary>
+        public bool BuiltIn { get; set; }
+    }
+
+    public class KitchenToolMergeResultModel
+    {
+        public int RecipesMoved { get; set; }
+        public int HouseholdAnswersMoved { get; set; }
+        public int AliasesMoved { get; set; }
     }
 
     public class KitchenToolSuggestionApproveResultModel

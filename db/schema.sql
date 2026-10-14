@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 3xGfdjSMxI6LYYOwvodVP5g0Il0OwKuBedQ0IsxBTMfjvWb5CynCu97vvER5nmG
+\restrict ggEEmYMvHbUK0aTf4WHvaBUgR9INtLcDrGCJklwGYvyKeqeWXDsSCDdICMkTwqm
 
 -- Dumped from database version 16.14
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -2404,6 +2404,7 @@ CREATE TABLE recipe."KitchenToolSuggestion" (
     "SeenCount" integer NOT NULL,
     "Status" character varying(20) NOT NULL,
     "ToolId" bigint,
+    "MergedIntoId" bigint,
     "CreatedDate" timestamp with time zone NOT NULL,
     "CreatedByPersonId" bigint,
     "LastModifiedDate" timestamp with time zone,
@@ -5972,6 +5973,13 @@ CREATE UNIQUE INDEX "IX_KitchenToolSuggestionRecipe_SuggestionId_RecipeId" ON re
 
 
 --
+-- Name: IX_KitchenToolSuggestion_MergedIntoId; Type: INDEX; Schema: recipe; Owner: -
+--
+
+CREATE INDEX "IX_KitchenToolSuggestion_MergedIntoId" ON recipe."KitchenToolSuggestion" USING btree ("MergedIntoId");
+
+
+--
 -- Name: IX_KitchenToolSuggestion_Name; Type: INDEX; Schema: recipe; Owner: -
 --
 
@@ -7668,6 +7676,14 @@ ALTER TABLE ONLY recipe."KitchenToolSuggestionRecipe"
 
 
 --
+-- Name: KitchenToolSuggestion FK_KitchenToolSuggestion_KitchenToolSuggestion_MergedIntoId; Type: FK CONSTRAINT; Schema: recipe; Owner: -
+--
+
+ALTER TABLE ONLY recipe."KitchenToolSuggestion"
+    ADD CONSTRAINT "FK_KitchenToolSuggestion_KitchenToolSuggestion_MergedIntoId" FOREIGN KEY ("MergedIntoId") REFERENCES recipe."KitchenToolSuggestion"("Id") ON DELETE SET NULL;
+
+
+--
 -- Name: KitchenToolSuggestion FK_KitchenToolSuggestion_Reference_ToolId; Type: FK CONSTRAINT; Schema: recipe; Owner: -
 --
 
@@ -8351,5 +8367,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 3xGfdjSMxI6LYYOwvodVP5g0Il0OwKuBedQ0IsxBTMfjvWb5CynCu97vvER5nmG
+\unrestrict ggEEmYMvHbUK0aTf4WHvaBUgR9INtLcDrGCJklwGYvyKeqeWXDsSCDdICMkTwqm
 

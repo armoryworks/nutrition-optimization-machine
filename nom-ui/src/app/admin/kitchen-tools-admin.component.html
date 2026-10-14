@@ -48,7 +48,7 @@
     <p class="nom-kitchen-admin__error" role="alert" data-testid="kitchen-tools-admin-error">{{ errorMessage() }}</p>
   }
 
-  @if (!loading() && suggestions().length === 0) {
+  @if (!loading() && filter() !== 'tools' && suggestions().length === 0) {
     <p class="nom-kitchen-admin__empty" data-testid="kitchen-tools-admin-empty">No {{ filter() }} suggestions.</p>
   }
 
@@ -71,9 +71,26 @@
                 }
               </select>
             </label>
+            <label class="nom-kitchen-admin__field">
+              <span>Same as</span>
+              <select (change)="setSameAs(s, $any($event.target).value)" data-testid="kitchen-tools-admin-same-as-select">
+                <option value="" [selected]="sameAsFor(s) === null">A new tool</option>
+                @for (t of tools(); track t.id) {
+                  <option [value]="t.id" [selected]="sameAsFor(s) === t.id">{{ t.name }}</option>
+                }
+              </select>
+            </label>
           } @else {
             <strong>{{ s.displayName }}</strong>
+            @if (s.toolName && s.toolName !== s.displayName) {
+              <span class="nom-kitchen-admin__alias" data-testid="kitchen-tools-admin-alias-of">→ {{ s.toolName }}</span>
+            }
             <span class="nom-kitchen-admin__muted">{{ s.suggestedCategory }}</span>
+          }
+          @if (s.variants.length) {
+            <span class="nom-kitchen-admin__muted" data-testid="kitchen-tools-admin-variants">
+              Also seen as {{ s.variants.join(', ') }}
+            </span>
           }
           <span class="nom-kitchen-admin__muted" data-testid="kitchen-tools-admin-seen">
             Seen in {{ s.seenCount | number }} recipe{{ s.seenCount === 1 ? '' : 's' }}
@@ -89,8 +106,13 @@
         </div>
         @if (filter() === 'pending') {
           <div class="nom-kitchen-admin__actions">
-            <button mat-flat-button color="primary" (click)="approve(s)" [disabled]="busyId() === s.id"
-                    data-testid="kitchen-tools-admin-approve-btn">Approve</button>
+            @if (sameAsFor(s) !== null) {
+              <button mat-flat-button color="primary" (click)="linkToTool(s)" [disabled]="busyId() === s.id"
+                      data-testid="kitchen-tools-admin-link-btn">Link</button>
+            } @else {
+              <button mat-flat-button color="primary" (click)="approve(s)" [disabled]="busyId() === s.id"
+                      data-testid="kitchen-tools-admin-approve-btn">Approve</button>
+            }
             <button mat-stroked-button (click)="reject(s)" [disabled]="busyId() === s.id"
                     data-testid="kitchen-tools-admin-reject-btn">Reject</button>
           </div>
@@ -98,4 +120,41 @@
       </li>
     }
   </ul>
+
+  @if (filter() === 'tools') {
+    @if (approvedTools().length === 0) {
+      <p class="nom-kitchen-admin__empty" data-testid="kitchen-tools-admin-tools-empty">No approved tools yet. Built-in tools can't be renamed or merged.</p>
+    }
+    <ul class="nom-kitchen-admin__list" data-testid="kitchen-tools-admin-tools-list">
+      @for (t of approvedTools(); track t.id) {
+        <li class="nom-kitchen-admin__item" data-testid="kitchen-tools-admin-tool-item">
+          <div class="nom-kitchen-admin__item-main">
+            <label class="nom-kitchen-admin__field">
+              <span>Name</span>
+              <input type="text" [value]="toolNameFor(t)" (input)="setToolName(t, $any($event.target).value)"
+                     data-testid="kitchen-tools-admin-tool-name-input" />
+            </label>
+            <label class="nom-kitchen-admin__field">
+              <span>Merge into</span>
+              <select (change)="setMergeTarget(t, $any($event.target).value)" data-testid="kitchen-tools-admin-merge-select">
+                <option value="" [selected]="mergeTargetFor(t) === null">—</option>
+                @for (o of tools(); track o.id) {
+                  @if (o.id !== t.id) {
+                    <option [value]="o.id" [selected]="mergeTargetFor(t) === o.id">{{ o.name }}</option>
+                  }
+                }
+              </select>
+            </label>
+            <span class="nom-kitchen-admin__muted">{{ t.category }}</span>
+          </div>
+          <div class="nom-kitchen-admin__actions">
+            <button mat-stroked-button (click)="rename(t)" [disabled]="busyId() === t.id || toolNameFor(t).trim() === t.name"
+                    data-testid="kitchen-tools-admin-rename-btn">Rename</button>
+            <button mat-flat-button color="primary" (click)="merge(t)" [disabled]="busyId() === t.id || mergeTargetFor(t) === null"
+                    data-testid="kitchen-tools-admin-merge-btn">Merge</button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
 </div>

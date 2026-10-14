@@ -5,6 +5,8 @@ import { environment } from '../../../environments/environment';
 import {
   KitchenSettings,
   KitchenSettingsUpdate,
+  KitchenToolMergeResult,
+  KitchenToolOption,
   KitchenToolSuggestion,
   KitchenToolSuggestionStatus,
   KitchenToolTaggingBatchResult,
@@ -38,8 +40,20 @@ export class KitchenToolsService {
     return this.http.get<KitchenToolSuggestion[]>(`${this.adminUrl}/suggestions`, { params: { status } });
   }
 
-  approveSuggestion(id: number, displayName: string, category: string): Observable<{ toolId: number; recipesLinked: number }> {
-    return this.http.post<{ toolId: number; recipesLinked: number }>(`${this.adminUrl}/suggestions/${id}/approve`, { displayName, category });
+  approveSuggestion(id: number, displayName: string, category: string, toolId?: number): Observable<{ toolId: number; recipesLinked: number }> {
+    return this.http.post<{ toolId: number; recipesLinked: number }>(`${this.adminUrl}/suggestions/${id}/approve`, { displayName, category, toolId });
+  }
+
+  getTools(): Observable<KitchenToolOption[]> {
+    return this.http.get<KitchenToolOption[]>(`${this.adminUrl}/tools`);
+  }
+
+  mergeTool(id: number, intoToolId: number): Observable<KitchenToolMergeResult> {
+    return this.http.post<KitchenToolMergeResult>(`${this.adminUrl}/tools/${id}/merge`, { intoToolId });
+  }
+
+  renameTool(id: number, name: string): Observable<void> {
+    return this.http.post<void>(`${this.adminUrl}/tools/${id}/rename`, { name });
   }
 
   rejectSuggestion(id: number): Observable<void> {

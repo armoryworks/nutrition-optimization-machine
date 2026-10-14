@@ -21,6 +21,11 @@ public class KitchenToolSuggestionEntityConfiguration : IEntityTypeConfiguration
             .WithMany()
             .HasForeignKey(e => e.ToolId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(e => e.MergedInto)
+            .WithMany()
+            .HasForeignKey(e => e.MergedIntoId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
 

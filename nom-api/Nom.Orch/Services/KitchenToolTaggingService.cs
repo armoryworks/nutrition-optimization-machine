@@ -121,6 +121,7 @@ namespace Nom.Orch.Services
                 .ToList();
             var suggestions = await _context.KitchenToolSuggestions
                 .Include(s => s.Recipes)
+                .Include(s => s.MergedInto).ThenInclude(m => m!.Recipes)
                 .Where(s => proposedKeys.Contains(s.Name))
                 .ToDictionaryAsync(s => s.Name, cancellationToken);
 
@@ -164,6 +165,7 @@ namespace Nom.Orch.Services
                         result.Suggestions++;
                     }
 
+                    if (suggestion.MergedInto != null) suggestion = suggestion.MergedInto;
                     if (suggestion.Status == KitchenToolSuggestionStatus.Rejected) continue;
                     if (suggestion.Status == KitchenToolSuggestionStatus.Approved && suggestion.ToolId is long approvedId)
                     {
@@ -225,6 +227,12 @@ namespace Nom.Orch.Services
                     SeenCount = s.SeenCount,
                     Status = s.Status,
                     ToolId = s.ToolId,
+                    ToolName = s.Tool != null ? s.Tool.Name : null,
+                    Variants = _context.KitchenToolSuggestions
+                        .Where(v => v.MergedIntoId == s.Id)
+                        .OrderBy(v => v.Name)
+                        .Select(v => v.DisplayName)
+                        .ToList(),
                     CreatedDate = s.CreatedDate,
                     Examples = s.Recipes
                         .OrderBy(r => r.RecipeId)
@@ -252,45 +260,167 @@ namespace Nom.Orch.Services
                 ? suggestion.SuggestedCategory ?? KitchenToolCatalog.CategoryOther
                 : request.Category.Trim();
 
-            var tool = new ReferenceEntity
+            long toolId;
+            if (request.ToolId is long existingId)
             {
-                Name = displayName,
-                Description = category,
-                CreatedByPersonId = personId,
-                Groups = new List<ReferenceGroupEntity> { group },
-            };
-            _context.Set<ReferenceEntity>().Add(tool);
-            await _context.SaveChangesAsync();
+                var tools = await _kitchen.GetToolSetAsync();
+                if (!tools.TryGetValue(existingId, out var existing)) return null;
+                toolId = existingId;
+                category = existing.Category;
+            }
+            else
+            {
+                var tool = new ReferenceEntity
+                {
+                    Name = displayName,
+                    Description = category,
+                    CreatedByPersonId = personId,
+                    Groups = new List<ReferenceGroupEntity> { group },
+                };
+                _context.Set<ReferenceEntity>().Add(tool);
+                await _context.SaveChangesAsync();
+                toolId = tool.Id;
+            }
 
             var recipeIds = suggestion.Recipes.Select(r => r.RecipeId).ToList();
             var alreadyLinked = await _context.RecipeTools
-                .Where(rt => rt.ToolId == tool.Id && recipeIds.Contains(rt.RecipeId))
+                .Where(rt => rt.ToolId == toolId && recipeIds.Contains(rt.RecipeId))
                 .Select(rt => rt.RecipeId)
                 .ToListAsync();
             var toLink = recipeIds.Except(alreadyLinked).ToList();
             foreach (var recipeId in toLink)
             {
-                _context.RecipeTools.Add(new RecipeToolEntity { RecipeId = recipeId, ToolId = tool.Id, Source = ApprovalSource });
+                _context.RecipeTools.Add(new RecipeToolEntity { RecipeId = recipeId, ToolId = toolId, Source = ApprovalSource });
             }
 
-            suggestion.Status = KitchenToolSuggestionStatus.Approved;
-            suggestion.ToolId = tool.Id;
+            var variants = await _context.KitchenToolSuggestions.Where(v => v.MergedIntoId == suggestion.Id).ToListAsync();
+            foreach (var v in variants.Append(suggestion))
+            {
+                v.Status = KitchenToolSuggestionStatus.Approved;
+                v.ToolId = toolId;
+                v.MergedIntoId = null;
+            }
             suggestion.DisplayName = displayName;
             suggestion.SuggestedCategory = category;
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Approved kitchen tool suggestion {Name} as tool {ToolId}; linked {Count} recipes",
-                suggestion.Name, tool.Id, toLink.Count);
-            return new KitchenToolSuggestionApproveResultModel { ToolId = tool.Id, RecipesLinked = toLink.Count };
+            _logger.LogInformation("Approved kitchen tool suggestion {Name} as tool {ToolId} ({Variants} variants); linked {Count} recipes",
+                suggestion.Name, toolId, variants.Count, toLink.Count);
+            return new KitchenToolSuggestionApproveResultModel { ToolId = toolId, RecipesLinked = toLink.Count };
         }
 
         public async Task<bool> RejectAsync(long suggestionId)
         {
             var suggestion = await _context.KitchenToolSuggestions.FirstOrDefaultAsync(s => s.Id == suggestionId);
             if (suggestion == null || suggestion.Status != KitchenToolSuggestionStatus.Pending) return false;
-            suggestion.Status = KitchenToolSuggestionStatus.Rejected;
+            var variants = await _context.KitchenToolSuggestions.Where(v => v.MergedIntoId == suggestion.Id).ToListAsync();
+            foreach (var v in variants.Append(suggestion))
+            {
+                v.Status = KitchenToolSuggestionStatus.Rejected;
+                v.MergedIntoId = null;
+            }
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<bool> MergeSuggestionAsync(long suggestionId, long intoSuggestionId)
+        {
+            if (suggestionId == intoSuggestionId) return false;
+            var both = await _context.KitchenToolSuggestions
+                .Include(s => s.Recipes)
+                .Where(s => s.Id == suggestionId || s.Id == intoSuggestionId)
+                .ToListAsync();
+            var from = both.FirstOrDefault(s => s.Id == suggestionId);
+            var into = both.FirstOrDefault(s => s.Id == intoSuggestionId);
+            if (from == null || into == null
+                || from.Status != KitchenToolSuggestionStatus.Pending || into.Status != KitchenToolSuggestionStatus.Pending)
+                return false;
+
+            foreach (var r in from.Recipes.Where(r => into.Recipes.All(x => x.RecipeId != r.RecipeId)))
+            {
+                into.Recipes.Add(new KitchenToolSuggestionRecipeEntity { RecipeId = r.RecipeId });
+            }
+            into.SeenCount = into.Recipes.Count;
+
+            var grouped = await _context.KitchenToolSuggestions.Where(v => v.MergedIntoId == from.Id).ToListAsync();
+            foreach (var v in grouped.Append(from))
+            {
+                v.Status = KitchenToolSuggestionStatus.Merged;
+                v.MergedIntoId = into.Id;
+            }
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<KitchenToolMergeResultModel?> MergeToolAsync(long toolId, long intoToolId)
+        {
+            if (toolId == intoToolId || KitchenToolCatalog.ById.ContainsKey(toolId)) return null;
+            var tools = await _kitchen.GetToolSetAsync();
+            if (!tools.ContainsKey(toolId) || !tools.ContainsKey(intoToolId)) return null;
+            var result = new KitchenToolMergeResultModel();
+
+            var links = await _context.RecipeTools.Where(rt => rt.ToolId == toolId || rt.ToolId == intoToolId).ToListAsync();
+            var linkedToTarget = links.Where(rt => rt.ToolId == intoToolId).Select(rt => rt.RecipeId).ToHashSet();
+            foreach (var rt in links.Where(rt => rt.ToolId == toolId))
+            {
+                if (linkedToTarget.Add(rt.RecipeId))
+                {
+                    rt.ToolId = intoToolId;
+                    result.RecipesMoved++;
+                }
+                else
+                {
+                    _context.RecipeTools.Remove(rt);
+                }
+            }
+
+            var answers = await _context.HouseholdTools.Where(h => h.ToolId == toolId || h.ToolId == intoToolId).ToListAsync();
+            foreach (var answer in answers.Where(h => h.ToolId == toolId))
+            {
+                var kept = answers.FirstOrDefault(h => h.ToolId == intoToolId && h.HouseholdId == answer.HouseholdId);
+                if (kept == null)
+                {
+                    answer.ToolId = intoToolId;
+                    result.HouseholdAnswersMoved++;
+                }
+                else
+                {
+                    kept.IsAvailable |= answer.IsAvailable;
+                    _context.HouseholdTools.Remove(answer);
+                }
+            }
+
+            var aliases = await _context.KitchenToolSuggestions.Where(s => s.ToolId == toolId).ToListAsync();
+            foreach (var alias in aliases) alias.ToolId = intoToolId;
+            result.AliasesMoved = aliases.Count;
+
+            var retired = await _context.Set<ReferenceEntity>().FirstAsync(r => r.Id == toolId);
+            retired.IsDeleted = true;
+            retired.DeletedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Merged kitchen tool {From} into {Into}: {Recipes} recipe links, {Answers} household answers, {Aliases} aliases moved",
+                toolId, intoToolId, result.RecipesMoved, result.HouseholdAnswersMoved, result.AliasesMoved);
+            return result;
+        }
+
+        public async Task<bool> RenameToolAsync(long toolId, string name)
+        {
+            if (string.IsNullOrWhiteSpace(name) || KitchenToolCatalog.ById.ContainsKey(toolId)) return false;
+            var tool = await _context.Set<ReferenceEntity>().FirstOrDefaultAsync(r => r.Id == toolId && !r.IsDeleted);
+            if (tool == null) return false;
+            tool.Name = name.Trim();
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<List<KitchenToolOptionModel>> GetToolsAsync()
+        {
+            var tools = await _kitchen.GetToolSetAsync();
+            return tools.Values
+                .Select(t => new KitchenToolOptionModel { Id = t.Id, Name = t.Name, Category = t.Category, BuiltIn = KitchenToolCatalog.ById.ContainsKey(t.Id) })
+                .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         private static bool IsUnreachable(Exception ex) =>

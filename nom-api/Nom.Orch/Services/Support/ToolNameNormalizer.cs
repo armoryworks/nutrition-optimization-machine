@@ -36,7 +36,7 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex Clean = new(@"\(.*?\)|[^a-z0-9'\- ]", RegexOptions.Compiled);
         private static readonly Regex Spaces = new(@"\s+", RegexOptions.Compiled);
-        private static readonly Regex LeadingArticle = new(@"^(a|an|the|some|large|small|medium|big|heavy|good|sturdy|oven safe|ovenproof|oven proof|nonstick|non stick|heavy bottomed|heavy duty|deep|shallow|rimmed|lined|greased|lightly|clean|dry|wide|tall|round|square|rectangular|wooden|metal|glass|ceramic|stainless steel|stainless|steel)\s+", RegexOptions.Compiled);
+        private static readonly Regex LeadingArticle = new(@"^(a|an|the|some|large|small|medium|big|heavy|good|sturdy|oven safe|ovenproof|oven proof|nonstick|non stick|heavy bottomed|heavy duty|deep|shallow|rimmed|lined|greased|lightly|clean|dry|wide|tall|round|square|rectangular|oval|wooden|metal|glass|ceramic|stainless steel|stainless|steel|plain|well buttered|buttered|well greased|oiled|floured|earthen|earthenware|copper|enamelled|enameled|fluted|fireproof|fire proof)\s+", RegexOptions.Compiled);
 
         /// <summary>The normalized key, or null when the noun is unusable or everyday equipment.</summary>
         public static string? Normalize(string? raw)

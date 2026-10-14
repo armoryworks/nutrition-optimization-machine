@@ -49,6 +49,34 @@ namespace Nom.Api.Controllers
             return await _tagging.RejectAsync(id) ? NoContent() : NotFound();
         }
 
+        /// <summary>Groups a pending suggestion under another pending one, as another name for the same equipment.</summary>
+        [HttpPost("suggestions/{id:long}/merge")]
+        public async Task<IActionResult> MergeSuggestion(long id, [FromBody] KitchenToolSuggestionMergeModel request)
+        {
+            return await _tagging.MergeSuggestionAsync(id, request.IntoSuggestionId) ? NoContent() : NotFound();
+        }
+
+        /// <summary>Every tool a suggestion can be marked as another name for.</summary>
+        [HttpGet("tools")]
+        public async Task<ActionResult<List<KitchenToolOptionModel>>> GetTools()
+        {
+            return Ok(await _tagging.GetToolsAsync());
+        }
+
+        /// <summary>Retires an approved tool into another, keeping its recipes, household answers and names.</summary>
+        [HttpPost("tools/{id:long}/merge")]
+        public async Task<ActionResult<KitchenToolMergeResultModel>> MergeTool(long id, [FromBody] KitchenToolMergeModel request)
+        {
+            var result = await _tagging.MergeToolAsync(id, request.IntoToolId);
+            return result == null ? NotFound() : Ok(result);
+        }
+
+        [HttpPost("tools/{id:long}/rename")]
+        public async Task<IActionResult> RenameTool(long id, [FromBody] KitchenToolRenameModel request)
+        {
+            return await _tagging.RenameToolAsync(id, request.Name) ? NoContent() : NotFound();
+        }
+
         /// <summary>Tags the next batch of untagged recipes now, without waiting for the background lane.</summary>
         [HttpPost("tag-batch")]
         public async Task<ActionResult<KitchenToolTaggingBatchResult>> TagBatch([FromQuery] int size = 6)
