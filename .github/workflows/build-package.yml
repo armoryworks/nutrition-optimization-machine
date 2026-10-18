@@ -8,6 +8,12 @@
 #   <git tag>     on v* tag pushes (e.g. v1.2.0)
 #   sha-<sha>     immutable, what deploys should pin
 #
+# Every image carries the OpenContainers metadata labels, so an artifact can
+# say what it is without being asked what tag it was pulled under. That matters
+# for anything running a floating tag: `latest` moves, and afterwards the only
+# way to identify what a container is actually running is to read it off the
+# image itself. The fleet control plane reads these to report real versions.
+#
 # Detached builds: each image only REBUILDS when its directory changed since
 # the previous v* tag (or when this workflow changed); otherwise the previous
 # tag's image is retagged in the registry (manifest-only, seconds). Every v*
@@ -74,17 +80,41 @@ jobs:
             ghcr.io/armoryworks/nom-api:latest
             ghcr.io/armoryworks/nom-api:${{ github.ref_name }}
             ghcr.io/armoryworks/nom-api:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.title=nom-api
+            org.opencontainers.image.description=NOM API - meal planning for mixed-diet households
+            org.opencontainers.image.version=${{ github.ref_name }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.licenses=Apache-2.0
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Retag unchanged API image
         if: steps.mode.outputs.mode == 'retag'
         run: |
-          docker buildx imagetools create \
+          # imagetools copies the previous release's manifest, so the image
+          # CONFIG labels keep naming the build the bits came from — which is
+          # true, and is what identifies the artifact. Annotate the manifest
+          # with the release it is published under so a consumer can tell both
+          # apart: "these bits are $prev, shipped as $ref_name".
+          # --annotation needs buildx >= 0.12. Never let metadata break a
+          # release: if it is unsupported, publish the tags anyway and say so.
+          if ! docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.version=${{ github.ref_name }}" \
+            --annotation "index:org.opencontainers.image.revision=${{ github.sha }}" \
+            --annotation "index:org.opencontainers.image.base.name=$IMAGE:${{ steps.mode.outputs.prev }}" \
             -t "$IMAGE:latest" \
             -t "$IMAGE:${{ github.ref_name }}" \
             -t "$IMAGE:sha-${{ github.sha }}" \
-            "$IMAGE:${{ steps.mode.outputs.prev }}"
+            "$IMAGE:${{ steps.mode.outputs.prev }}"; then
+            echo "::warning::annotations unsupported by this buildx; retagging without them" >&2
+            docker buildx imagetools create \
+              -t "$IMAGE:latest" \
+              -t "$IMAGE:${{ github.ref_name }}" \
+              -t "$IMAGE:sha-${{ github.sha }}" \
+              "$IMAGE:${{ steps.mode.outputs.prev }}"
+          fi
 
   build-ui:
     runs-on: ubuntu-latest
@@ -129,14 +159,38 @@ jobs:
             ghcr.io/armoryworks/nom-ui:latest
             ghcr.io/armoryworks/nom-ui:${{ github.ref_name }}
             ghcr.io/armoryworks/nom-ui:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.title=nom-ui
+            org.opencontainers.image.description=NOM web client - meal planning for mixed-diet households
+            org.opencontainers.image.version=${{ github.ref_name }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.licenses=Apache-2.0
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Retag unchanged UI image
         if: steps.mode.outputs.mode == 'retag'
         run: |
-          docker buildx imagetools create \
+          # imagetools copies the previous release's manifest, so the image
+          # CONFIG labels keep naming the build the bits came from — which is
+          # true, and is what identifies the artifact. Annotate the manifest
+          # with the release it is published under so a consumer can tell both
+          # apart: "these bits are $prev, shipped as $ref_name".
+          # --annotation needs buildx >= 0.12. Never let metadata break a
+          # release: if it is unsupported, publish the tags anyway and say so.
+          if ! docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.version=${{ github.ref_name }}" \
+            --annotation "index:org.opencontainers.image.revision=${{ github.sha }}" \
+            --annotation "index:org.opencontainers.image.base.name=$IMAGE:${{ steps.mode.outputs.prev }}" \
             -t "$IMAGE:latest" \
             -t "$IMAGE:${{ github.ref_name }}" \
             -t "$IMAGE:sha-${{ github.sha }}" \
-            "$IMAGE:${{ steps.mode.outputs.prev }}"
+            "$IMAGE:${{ steps.mode.outputs.prev }}"; then
+            echo "::warning::annotations unsupported by this buildx; retagging without them" >&2
+            docker buildx imagetools create \
+              -t "$IMAGE:latest" \
+              -t "$IMAGE:${{ github.ref_name }}" \
+              -t "$IMAGE:sha-${{ github.sha }}" \
+              "$IMAGE:${{ steps.mode.outputs.prev }}"
+          fi
