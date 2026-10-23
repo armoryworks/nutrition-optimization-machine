@@ -5,14 +5,14 @@
     <mat-icon>close</mat-icon>
   </button>
 
-  <form class="nom-sheet__body" [formGroup]="form" (ngSubmit)="save()">
+  <form class="nom-sheet__body" [formGroup]="form" (ngSubmit)="save()" data-testid="label-confirm-form">
     <h2 class="nom-sheet__name">{{ data.name }}</h2>
     @if (parsed.parsed) {
       <p class="nom-sheet__lead">Check these against the label and correct anything we misread.</p>
     } @else {
       <p class="nom-sheet__lead">We could not read the label from that photo. Type the values from the package, or retake it.</p>
     }
-    <p class="nom-sheet__hint">{{ basisNote() }}</p>
+    <p class="nom-sheet__hint" data-testid="label-confirm-basis">{{ basisNote() }}</p>
 
     @for (warning of parsed.warnings; track warning) {
       <p class="nom-sheet__warning">{{ warning }}</p>
@@ -24,21 +24,31 @@
         <input matInput type="text" formControlName="servingText" placeholder="2/3 cup"
                (focus)="onFieldFocus($event)" data-testid="label-confirm-serving-size-input">
       </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Serving weight</mat-label>
-        <input matInput type="number" inputmode="decimal" min="0" step="any" formControlName="servingGrams"
-               (focus)="onFieldFocus($event)" data-testid="label-confirm-serving-grams-input">
-        <span matTextSuffix>g</span>
-      </mat-form-field>
+      @if (!per100g) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Serving weight</mat-label>
+          <input matInput type="number" inputmode="decimal" min="0" step="any" formControlName="servingGrams"
+                 (focus)="onFieldFocus($event)" data-testid="label-confirm-serving-grams-input">
+          <span matTextSuffix>g</span>
+          @if (form.controls.servingGrams.hasError('min')) {
+            <mat-error data-testid="label-confirm-serving-grams-error">Must be more than 0</mat-error>
+          }
+        </mat-form-field>
+      }
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>Servings per container</mat-label>
         <input matInput type="number" inputmode="decimal" min="0" step="any" formControlName="servingsPerContainer"
                (focus)="onFieldFocus($event)" data-testid="label-confirm-servings-per-container-input">
+        @if (form.controls.servingsPerContainer.hasError('min')) {
+          <mat-error data-testid="label-confirm-servings-per-container-error">Must be more than 0</mat-error>
+        }
       </mat-form-field>
     </div>
-    <p class="nom-sheet__hint">
-      The serving weight is needed before NOM can convert to per 100 g; leave it blank if the label gives no weight.
-    </p>
+    @if (!per100g) {
+      <p class="nom-sheet__hint">
+        The serving weight is needed before NOM can convert to per 100 g; leave it blank if the label gives no weight.
+      </p>
+    }
 
     <div class="nom-sheet__fields">
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="nom-sheet__field--wide">
@@ -46,6 +56,9 @@
         <input matInput type="number" inputmode="decimal" min="0" step="any" formControlName="calories"
                (focus)="onFieldFocus($event)" data-testid="label-confirm-calories-input">
         <span matTextSuffix>kcal</span>
+        @if (form.controls.calories.hasError('min')) {
+          <mat-error data-testid="label-confirm-calories-error">Cannot be negative</mat-error>
+        }
       </mat-form-field>
       <ng-container formGroupName="nutrients">
         @for (row of rows; track row.key) {
@@ -53,14 +66,26 @@
             <mat-label>{{ row.label }}</mat-label>
             <input matInput type="number" inputmode="decimal" min="0" step="any"
                    [formControlName]="row.key"
+                   [placeholder]="lessThanPlaceholder(row.key)"
                    (focus)="onFieldFocus($event)"
                    [attr.data-testid]="'label-confirm-nutrient-' + row.key">
             <span matTextSuffix>{{ row.unit }}</span>
+            @if (nutrients.get(row.key)?.hasError('min')) {
+              <mat-error [attr.data-testid]="'label-confirm-nutrient-' + row.key + '-error'">Cannot be negative</mat-error>
+            } @else if (printedHint(row.key)) {
+              <mat-hint [attr.data-testid]="'label-confirm-nutrient-' + row.key + '-hint'">{{ printedHint(row.key) }}</mat-hint>
+            }
           </mat-form-field>
         }
       </ng-container>
     </div>
 
+    @if (invalid() && form.invalid) {
+      <p class="nom-sheet__error" role="alert" data-testid="label-confirm-invalid">
+        <mat-icon>error_outline</mat-icon>
+        Fix the highlighted fields above to save.
+      </p>
+    }
     @if (error()) {
       <p class="nom-sheet__error" role="alert" data-testid="label-confirm-error">
         <mat-icon>error_outline</mat-icon>
@@ -70,7 +95,7 @@
 
     <div class="nom-sheet__actions">
       <button mat-flat-button type="submit" class="nom-sheet__action"
-              [disabled]="saving() || form.invalid" data-testid="label-confirm-save-btn">
+              [disabled]="saving()" data-testid="label-confirm-save-btn">
         @if (saving()) {
           <mat-spinner diameter="18"></mat-spinner>
         } @else {

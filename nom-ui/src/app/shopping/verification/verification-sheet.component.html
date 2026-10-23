@@ -20,7 +20,7 @@
     @if (busy()) {
       <div class="nom-sheet__busy" role="status">
         <mat-spinner diameter="20"></mat-spinner>
-        <span>{{ busy() === 'label' ? 'Reading label…' : 'Reading barcode…' }}</span>
+        <span>{{ busyText() }}</span>
       </div>
     } @else {
       <div class="nom-sheet__actions">
@@ -34,9 +34,16 @@
           <mat-icon>qr_code_scanner</mat-icon>
           Scan barcode
         </button>
+        @if (data.adhoc) {
+          <button mat-button type="button" class="nom-sheet__action"
+                  (click)="notFood()" data-testid="verification-sheet-not-food-btn">
+            <mat-icon>no_meals</mat-icon>
+            Not a food
+          </button>
+        }
         <button mat-button type="button" class="nom-sheet__action"
                 (click)="skip()" data-testid="verification-sheet-skip-btn">
-          Skip
+          Skip for a month
         </button>
       </div>
     }

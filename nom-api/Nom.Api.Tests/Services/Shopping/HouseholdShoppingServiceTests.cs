@@ -40,7 +40,7 @@ namespace Nom.Api.Tests.Services.Shopping
             public HouseholdShoppingService Service()
             {
                 var verifications = new IngredientVerificationService(Db, Mock.Of<ITesseractOcrService>(), Mock.Of<IBarcodeDecodeService>(),
-                    Mock.Of<IMediaStorageService>(), new NoOpVerificationLookupLane(), NullLogger<IngredientVerificationService>.Instance);
+                    Mock.Of<IMediaStorageService>(), new NoOpVerificationLookupLane(), new Nom.Orch.UtilityServices.ScanRateLimiter(), NullLogger<IngredientVerificationService>.Instance);
                 return new HouseholdShoppingService(Db, Config, verifications, NullLogger<HouseholdShoppingService>.Instance);
             }
         }
@@ -83,6 +83,90 @@ namespace Nom.Api.Tests.Services.Shopping
             var created = f.Db.Ingredients.Single(i => i.Id == result.Item.IngredientId);
             created.Should().BeEquivalentTo(new { Name = "Grandma's granola", CurationStatusId = (long)CurationStatusEnum.PendingCuration, AuthorId = Person, CreatedByPersonId = Person, FdcDataType = "Custom", FdcId = (string?)null });
             f.Db.IngredientNutrients.Where(n => n.IngredientId == created.Id).Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task AddItem_SplitsATypedAmountOffTheName_UnlessTheWholeNameIsACatalogFood()
+        {
+            var f = await SeedAsync();
+            f.Db.Ingredients.Add(new IngredientEntity { Id = 2, Name = "7 grain bread", CurationStatusId = (long)CurationStatusEnum.Curated, CreatedDate = DateTime.UtcNow });
+            await f.Db.SaveChangesAsync();
+            var service = f.Service();
+
+            var milk = await service.AddItemAsync(Household, Person, new HouseholdShoppingItemCreateModel { HouseholdId = Household, Name = "2 gallons milk" });
+            milk!.Item.Should().BeEquivalentTo(new { Name = "milk", Quantity = 2m, Unit = "gallons" });
+            f.Db.Ingredients.Single(i => i.Id == milk.Item.IngredientId).Name.Should().Be("milk");
+
+            var eggs = await service.AddItemAsync(Household, Person, new HouseholdShoppingItemCreateModel { HouseholdId = Household, Name = "6 eggs" });
+            eggs!.Item.Should().BeEquivalentTo(new { Name = "eggs", Quantity = 6m, Unit = (string?)null });
+
+            var bread = await service.AddItemAsync(Household, Person, new HouseholdShoppingItemCreateModel { HouseholdId = Household, Name = "7 grain bread" });
+            bread!.Item.Should().BeEquivalentTo(new { Name = "7 grain bread", Quantity = (decimal?)null, IngredientId = 2L });
+
+            var typed = await service.AddItemAsync(Household, Person, new HouseholdShoppingItemCreateModel { HouseholdId = Household, Name = "3 limes", Quantity = 5 });
+            typed!.Item.Should().BeEquivalentTo(new { Name = "3 limes", Quantity = 5m });
+
+            await service.Invoking(s => s.AddItemAsync(Household, Person, new HouseholdShoppingItemCreateModel { HouseholdId = Household, Name = "   " }))
+                .Should().ThrowAsync<ArgumentException>();
+        }
+
+        [Fact]
+        public async Task AddItem_KeepsANonFoodAsAPlainLine_WhenAskedNotToLinkTheCatalog()
+        {
+            var f = await SeedAsync();
+            var result = await f.Service().AddItemAsync(Household, Person, new HouseholdShoppingItemCreateModel { HouseholdId = Household, Name = "Paper towels", LinkToCatalog = false });
+
+            result!.Item.Should().BeEquivalentTo(new { Name = "Paper towels", IngredientId = (long?)null, IngredientNeedsVerification = false });
+            (await f.Db.Ingredients.CountAsync()).Should().Be(1);
+        }
+
+        [Fact]
+        public async Task AddItem_RevivesASoftDeletedCatalogNameAsPending_InsteadOfLinkingTheDeletedRow()
+        {
+            var f = await SeedAsync();
+            f.Db.Ingredients.Add(new IngredientEntity { Id = 3, Name = "Granola bar", CurationStatusId = (long)CurationStatusEnum.Curated, IsDeleted = true, DeletedAt = DateTime.UtcNow, CreatedDate = DateTime.UtcNow });
+            await f.Db.SaveChangesAsync();
+
+            var result = await f.Service().AddItemAsync(Household, Person, new HouseholdShoppingItemCreateModel { HouseholdId = Household, Name = "granola bar" });
+
+            result!.Item.IngredientId.Should().Be(3);
+            result.Item.IngredientNeedsVerification.Should().BeTrue();
+            var revived = f.Db.Ingredients.Single(i => i.Id == 3);
+            revived.Should().BeEquivalentTo(new { IsDeleted = false, DeletedAt = (DateTime?)null, CurationStatusId = (long)CurationStatusEnum.PendingCuration, AuthorId = (long?)Person });
+            (await f.Db.Ingredients.IgnoreQueryFilters().CountAsync()).Should().Be(2);
+        }
+
+        [Fact]
+        public async Task AddItem_UnticksAnExistingCheckedItem_SoItIsBoughtAgain()
+        {
+            var f = await SeedAsync();
+            var service = f.Service();
+            var first = await service.AddItemAsync(Household, Person, new HouseholdShoppingItemCreateModel { HouseholdId = Household, Name = "Milk" });
+            await service.SetCheckAsync(Household, Person, new ShoppingCheckRequestModel { HouseholdId = Household, ItemId = first!.Item.Id, Checked = true });
+
+            var again = await service.AddItemAsync(Household, Person, new HouseholdShoppingItemCreateModel { HouseholdId = Household, Name = "milk" });
+
+            again!.Created.Should().BeFalse();
+            again.Item.Id.Should().Be(first.Item.Id);
+            again.Item.Checked.Should().BeFalse();
+            f.Db.HouseholdShoppingItems.Single().Should().BeEquivalentTo(new { Checked = false, CheckedDate = (DateTime?)null, CheckedByPersonId = (long?)null });
+        }
+
+        [Fact]
+        public async Task AddedItemChecks_ExpireAfterTheSameTtlAsDerivedLines()
+        {
+            var f = await SeedAsync();
+            var service = f.Service();
+            var item = await service.AddItemAsync(Household, Person, new HouseholdShoppingItemCreateModel { HouseholdId = Household, Name = "Milk" });
+            await service.SetCheckAsync(Household, Person, new ShoppingCheckRequestModel { HouseholdId = Household, ItemId = item!.Item.Id, Checked = true });
+
+            var row = f.Db.HouseholdShoppingItems.Single();
+            row.CheckedDate = DateTime.UtcNow.AddDays(-4);
+            await f.Db.SaveChangesAsync();
+
+            var state = await service.GetStateAsync(Household);
+            state.Items.Single().Checked.Should().BeFalse();
+            f.Db.HouseholdShoppingItems.Single().Should().BeEquivalentTo(new { Checked = false, CheckedDate = (DateTime?)null });
         }
 
         [Fact]

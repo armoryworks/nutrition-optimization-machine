@@ -10,6 +10,7 @@ namespace Nom.Orch.UtilityServices
     public class BarcodeDecodeService : IBarcodeDecodeService
     {
         private const int RetryWidth = 1600;
+        private const int FullSizePassMaxWidth = 3200;
         private const double CentreCropFraction = 0.6;
 
         public BarcodeDecodeResult? Decode(byte[] image)
@@ -17,13 +18,10 @@ namespace Nom.Orch.UtilityServices
             using var bitmap = ImageTranscoder.Decode(image);
             if (bitmap == null) return null;
 
-            var found = Read(bitmap);
-            if (found == null && bitmap.Width > RetryWidth)
-            {
-                var height = Math.Max(1, (int)Math.Round(bitmap.Height * (RetryWidth / (double)bitmap.Width)));
-                using var resized = bitmap.Resize(new SKImageInfo(RetryWidth, height), new SKSamplingOptions(SKCubicResampler.Mitchell));
-                if (resized != null) found = Read(resized);
-            }
+            using var resized = bitmap.Width > RetryWidth
+                ? bitmap.Resize(new SKImageInfo(RetryWidth, Math.Max(1, (int)Math.Round(bitmap.Height * (RetryWidth / (double)bitmap.Width)))), new SKSamplingOptions(SKCubicResampler.Mitchell))
+                : null;
+            var found = Read(resized ?? bitmap);
             if (found == null)
             {
                 var w = (int)(bitmap.Width * CentreCropFraction);
@@ -35,6 +33,8 @@ namespace Nom.Orch.UtilityServices
                         found = Read(crop);
                 }
             }
+            if (found == null && resized != null && bitmap.Width <= FullSizePassMaxWidth)
+                found = Read(bitmap);
             return found;
         }
 

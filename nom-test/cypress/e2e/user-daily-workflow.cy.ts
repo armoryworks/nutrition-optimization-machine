@@ -162,7 +162,14 @@ describe('Daily User Workflow', () => {
         cy.get('.nom-shopping__item').first().within(() => {
           cy.get('mat-checkbox').click();
         });
-        cy.wait(500);
+        cy.wait(1000);
+
+        cy.get('body').then(($b) => {
+          if ($b.find('[data-testid="verification-sheet-close-btn"]').length) {
+            cy.get('[data-testid="verification-sheet-close-btn"]').click();
+            cy.get('[data-testid="verification-sheet"]').should('not.exist');
+          }
+        });
 
         // Verify the item got the checked class
         cy.get('.nom-shopping__item--checked').should('have.length.at.least', 1);

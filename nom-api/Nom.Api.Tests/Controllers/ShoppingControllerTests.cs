@@ -196,6 +196,27 @@ namespace Nom.Api.Tests.Controllers
         }
 
         [Fact]
+        public async Task BarcodeImage_MapsTheHourlyCapTo429_AndNotFoodIsHouseholdScoped()
+        {
+            var controller = Controller(Mine);
+            _verifications.Setup(v => v.RecordBarcodeFromImageAsync(7, Mine, Person, It.IsAny<byte[]>()))
+                .ThrowsAsync(new InvalidOperationException("Too many barcode photos this hour; try again later."));
+
+            var limited = (await controller.RecordBarcodeFromImage(7, Mine, Jpeg())).Result.Should().BeOfType<ObjectResult>().Subject;
+            limited.StatusCode.Should().Be(StatusCodes.Status429TooManyRequests);
+
+            (await controller.MarkNotFood(7, new HouseholdRequestModel { HouseholdId = Theirs })).Result.Should().BeOfType<ForbidResult>();
+            _verifications.Setup(v => v.MarkNotFoodAsync(7, Mine, Person)).ReturnsAsync(new NotFoodResultModel { IngredientId = 7, ItemsUnlinked = 1 });
+            (await controller.MarkNotFood(7, new HouseholdRequestModel { HouseholdId = Mine })).Result.Should().BeOfType<OkObjectResult>();
+            _verifications.Setup(v => v.MarkNotFoodAsync(8, Mine, Person)).ReturnsAsync((NotFoodResultModel?)null);
+            (await controller.MarkNotFood(8, new HouseholdRequestModel { HouseholdId = Mine })).Result.Should().BeOfType<NotFoundResult>();
+
+            _shopping.Setup(s => s.AddItemAsync(Mine, Person, It.IsAny<HouseholdShoppingItemCreateModel>()))
+                .ThrowsAsync(new ArgumentException("An item needs a name."));
+            (await controller.AddItem(new HouseholdShoppingItemCreateModel { HouseholdId = Mine, Name = " " })).Result.Should().BeOfType<BadRequestObjectResult>();
+        }
+
+        [Fact]
         public async Task Barcode_InvalidGtin_IsABadRequest()
         {
             var controller = Controller(Mine);

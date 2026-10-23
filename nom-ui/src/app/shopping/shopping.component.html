@@ -188,13 +188,20 @@
                 <span class="nom-shopping__item-qty"
                       [class.nom-shopping__item-qty--editable]="true"
                       [class.nom-shopping__item-qty--overridden]="hasOverride(item.checkKey)"
+                      [class.nom-shopping__item-qty--empty]="!getDisplayText(item)"
                       (click)="startEditing(item.checkKey, getDisplayText(item))"
                       (keydown.enter)="startEditing(item.checkKey, getDisplayText(item))"
                       tabindex="0"
                       role="button"
+                      [attr.aria-label]="getDisplayText(item) ? 'Edit amount for ' + item.name : 'Add an amount for ' + item.name"
                       title="Click to edit quantity"
                       data-testid="shopping-item-qty">
-                  {{ getDisplayText(item) }}
+                  @if (getDisplayText(item)) {
+                    {{ getDisplayText(item) }}
+                  } @else {
+                    <mat-icon class="nom-shopping__item-qty-icon" aria-hidden="true">edit</mat-icon>
+                    <span>qty</span>
+                  }
                 </span>
               }
               @if (item.source === 'adhoc') {

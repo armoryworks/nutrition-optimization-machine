@@ -10,6 +10,7 @@ using Nom.Data.Recipe;
 using Nom.Data.Shopping;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Shopping;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Orch.Services
 {
@@ -56,12 +57,30 @@ namespace Nom.Orch.Services
                 .Where(c => c.HouseholdId == householdId && c.Checked)
                 .ToListAsync();
             var expired = checks.Where(c => c.CheckedDate == null || c.CheckedDate < cutoff).ToList();
-            if (expired.Count > 0)
+            var staleItemIds = items.Where(i => i.Checked && (i.CheckedDate == null || i.CheckedDate < cutoff)).Select(i => i.Id).ToList();
+            if (expired.Count > 0 || staleItemIds.Count > 0)
             {
                 foreach (var c in expired)
                 {
                     c.Checked = false;
                     c.LastModifiedDate = DateTime.UtcNow;
+                }
+                if (staleItemIds.Count > 0)
+                {
+                    var stale = await _context.HouseholdShoppingItems.Where(i => staleItemIds.Contains(i.Id)).ToListAsync();
+                    foreach (var i in stale)
+                    {
+                        i.Checked = false;
+                        i.CheckedDate = null;
+                        i.CheckedByPersonId = null;
+                        i.LastModifiedDate = DateTime.UtcNow;
+                    }
+                    foreach (var i in items.Where(i => staleItemIds.Contains(i.Id)))
+                    {
+                        i.Checked = false;
+                        i.CheckedDate = null;
+                        i.CheckedByPersonId = null;
+                    }
                 }
                 await _context.SaveChangesAsync();
             }
@@ -81,22 +100,45 @@ namespace Nom.Orch.Services
         public async Task<ShoppingItemAddResult?> AddItemAsync(long householdId, long personId, HouseholdShoppingItemCreateModel model)
         {
             var name = model.Name.Trim();
+            if (name.Length == 0) throw new ArgumentException("An item needs a name.");
+            var quantity = model.Quantity;
+            var unit = Clip(model.Unit, 32);
+
+            if (model.IngredientId == null && quantity == null && unit == null
+                && !await _context.Ingredients.AnyAsync(i => i.Name.ToLower() == name.ToLower()))
+            {
+                var split = ShoppingItemName.SplitLeadingQuantity(name);
+                name = split.Name;
+                quantity = split.Quantity;
+                unit = split.Unit;
+            }
             var lowered = name.ToLower();
 
             var existing = await _context.HouseholdShoppingItems
                 .Include(i => i.Ingredient!).ThenInclude(i => i.Label)
                 .FirstOrDefaultAsync(i => i.HouseholdId == householdId && i.Name.ToLower() == lowered);
             if (existing != null)
+            {
+                if (existing.Checked)
+                {
+                    existing.Checked = false;
+                    existing.CheckedDate = null;
+                    existing.CheckedByPersonId = null;
+                    existing.LastModifiedDate = DateTime.UtcNow;
+                    existing.LastModifiedByPersonId = personId;
+                    await _context.SaveChangesAsync();
+                }
                 return new ShoppingItemAddResult { Item = await WithVerificationAsync(existing), Created = false };
+            }
 
-            long? ingredientId;
+            long? ingredientId = null;
             if (model.IngredientId is { } requested)
             {
                 if (!await _context.Ingredients.AnyAsync(i => i.Id == requested))
                     return null;
                 ingredientId = requested;
             }
-            else
+            else if (model.LinkToCatalog)
             {
                 ingredientId = await ResolveOrCreateIngredientAsync(name, lowered, personId);
             }
@@ -107,8 +149,8 @@ namespace Nom.Orch.Services
                 HouseholdId = householdId,
                 Name = name,
                 IngredientId = ingredientId,
-                Quantity = model.Quantity,
-                Unit = Clip(model.Unit, 32),
+                Quantity = quantity,
+                Unit = unit,
                 CreatedDate = now,
                 CreatedByPersonId = personId,
             };
@@ -140,6 +182,7 @@ namespace Nom.Orch.Services
                 throw new ArgumentException("That ingredient does not exist.");
 
             if (!string.IsNullOrWhiteSpace(model.Name)) item.Name = model.Name.Trim();
+            if (model.Quantity is < 0) throw new ArgumentException("Quantity cannot be negative.");
             item.Quantity = model.Quantity;
             item.Unit = Clip(model.Unit, 32);
             item.IngredientId = model.IngredientId;
@@ -193,6 +236,7 @@ namespace Nom.Orch.Services
                 var key = request.ItemKey!.Trim();
                 var row = await _context.HouseholdShoppingChecks.IgnoreQueryFilters()
                     .FirstOrDefaultAsync(c => c.HouseholdId == householdId && c.ItemKey == key);
+                var inserting = row == null;
                 if (row == null)
                 {
                     row = new HouseholdShoppingCheckEntity
@@ -204,20 +248,27 @@ namespace Nom.Orch.Services
                     };
                     _context.HouseholdShoppingChecks.Add(row);
                 }
-                row.IsDeleted = false;
-                row.DeletedAt = null;
-                row.DeletedByPersonId = null;
-                row.Checked = request.Checked;
-                row.CheckedDate = request.Checked ? now : null;
-                row.CheckedByPersonId = request.Checked ? personId : null;
-                row.LastModifiedDate = now;
-                row.LastModifiedByPersonId = personId;
+                ApplyCheck(row, request.Checked, personId, now);
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException ex) when (inserting)
+                {
+                    _context.Entry(row).State = EntityState.Detached;
+                    _logger.LogInformation(ex, "Check row for {ItemKey} appeared while inserting it; updating the existing row", key);
+                    row = await _context.HouseholdShoppingChecks.IgnoreQueryFilters()
+                        .FirstAsync(c => c.HouseholdId == householdId && c.ItemKey == key);
+                    ApplyCheck(row, request.Checked, personId, now);
+                    await _context.SaveChangesAsync();
+                }
                 result.ItemKey = key;
                 result.CheckedDate = row.CheckedDate;
                 if (long.TryParse(key, out var parsed)) ingredientId = parsed;
             }
 
-            await _context.SaveChangesAsync();
+            if (request.ItemId != null)
+                await _context.SaveChangesAsync();
 
             if (request.Checked && ingredientId is { } id)
             {
@@ -252,12 +303,39 @@ namespace Nom.Orch.Services
                 await _context.SaveChangesAsync();
         }
 
+        private static void ApplyCheck(HouseholdShoppingCheckEntity row, bool checked_, long personId, DateTime now)
+        {
+            row.IsDeleted = false;
+            row.DeletedAt = null;
+            row.DeletedByPersonId = null;
+            row.Checked = checked_;
+            row.CheckedDate = checked_ ? now : null;
+            row.CheckedByPersonId = checked_ ? personId : null;
+            row.LastModifiedDate = now;
+            row.LastModifiedByPersonId = personId;
+        }
+
         private async Task<long> ResolveOrCreateIngredientAsync(string name, string lowered, long personId)
         {
             var match = await _context.Ingredients.Where(i => i.Name.ToLower() == lowered).Select(i => i.Id).FirstOrDefaultAsync();
             if (match != 0) return match;
 
             var now = DateTime.UtcNow;
+            var retired = await _context.Ingredients.IgnoreQueryFilters()
+                .FirstOrDefaultAsync(i => i.IsDeleted && i.Name.ToLower() == lowered);
+            if (retired != null)
+            {
+                retired.IsDeleted = false;
+                retired.DeletedAt = null;
+                retired.DeletedByPersonId = null;
+                retired.CurationStatusId = (long)CurationStatusEnum.PendingCuration;
+                retired.AuthorId = personId;
+                retired.LastModifiedDate = now;
+                retired.LastModifiedByPersonId = personId;
+                await _context.SaveChangesAsync();
+                return retired.Id;
+            }
+
             var ingredient = new IngredientEntity
             {
                 Name = name,
@@ -277,7 +355,7 @@ namespace Nom.Orch.Services
             {
                 _context.Entry(ingredient).State = EntityState.Detached;
                 _logger.LogInformation(ex, "Ingredient '{Name}' appeared while creating it; linking the existing row", name);
-                var raced = await _context.Ingredients.IgnoreQueryFilters().Where(i => i.Name.ToLower() == lowered).Select(i => i.Id).FirstOrDefaultAsync();
+                var raced = await _context.Ingredients.Where(i => i.Name.ToLower() == lowered).Select(i => i.Id).FirstOrDefaultAsync();
                 if (raced == 0) throw;
                 return raced;
             }

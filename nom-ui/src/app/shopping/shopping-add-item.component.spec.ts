@@ -82,15 +82,31 @@ describe('ShoppingAddItem', () => {
     vi.advanceTimersByTime(300);
     http.expectOne((r) => r.url.endsWith('/Ingredients/search')).flush([chicken]);
 
+    const snack = vi.spyOn(fixture.debugElement.injector.get(MatSnackBar), 'open');
     fixture.componentInstance.onOptionSelected({ option: { value: { kind: 'catalog', hit: chicken } } } as never);
     const req = http.expectOne((r) => r.method === 'POST' && r.url.endsWith('/Shopping/items'));
-    expect(req.request.body).toEqual({ householdId: 7, name: 'Chicken Breast', ingredientId: 11 });
-    req.flush(saved);
+    expect(req.request.body).toEqual({ householdId: 7, name: 'Chicken Breast', ingredientId: 11, linkToCatalog: true });
+    req.flush(saved, { status: 201, statusText: 'Created' });
     fixture.detectChanges();
 
     expect(added).toEqual([saved]);
+    expect(snack).toHaveBeenCalledWith('Added Chicken Breast', 'OK', expect.anything());
     expect(fixture.componentInstance.query()).toBe('');
     expect(input(fixture.nativeElement).value).toBe('');
+  });
+
+  it('says the item was already there when the server hands back the existing line', () => {
+    const fixture = create();
+    const snack = vi.spyOn(fixture.debugElement.injector.get(MatSnackBar), 'open');
+    type(fixture.nativeElement, 'Skyr');
+    vi.advanceTimersByTime(300);
+    http.expectOne((r) => r.url.endsWith('/Ingredients/search')).flush([]);
+    fixture.componentInstance.submit();
+
+    const req = http.expectOne((r) => r.method === 'POST' && r.url.endsWith('/Shopping/items'));
+    expect(req.request.body).toEqual({ householdId: 7, name: 'Skyr', ingredientId: null, linkToCatalog: true });
+    req.flush({ ...saved, id: 3, name: 'Skyr', ingredientId: 44 });
+    expect(snack).toHaveBeenCalledWith('Skyr is already on your list', 'OK', expect.anything());
   });
 
   it('creates a new household food when Enter is pressed on a name the catalog does not know', () => {
@@ -102,8 +118,8 @@ describe('ShoppingAddItem', () => {
 
     input(fixture.nativeElement).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
     const req = http.expectOne((r) => r.method === 'POST' && r.url.endsWith('/Shopping/items'));
-    expect(req.request.body).toEqual({ householdId: 7, name: 'Paper towels', ingredientId: null });
-    req.flush({ ...saved, id: 2, name: 'Paper towels', ingredientId: 99 });
+    expect(req.request.body).toEqual({ householdId: 7, name: 'Paper towels', ingredientId: null, linkToCatalog: false });
+    req.flush({ ...saved, id: 2, name: 'Paper towels', ingredientId: null }, { status: 201, statusText: 'Created' });
   });
 
   it('refuses a food already on the list without calling the server', () => {

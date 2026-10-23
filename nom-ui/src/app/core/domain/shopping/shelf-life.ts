@@ -13,6 +13,7 @@ export const SHELF_LIFE_DEFAULTS: Record<string, number> = {
   'nuts & dried fruit': 180,
   frozen: 90,
   beverages: 30,
+  household: 365,
   other: 90,
 };
 

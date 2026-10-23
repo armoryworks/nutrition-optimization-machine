@@ -313,14 +313,22 @@ namespace Nom.Api.Middleware
             {
                 // Read first few bytes to check image signature
                 using var stream = file.OpenReadStream();
-                var buffer = new byte[8];
+                var buffer = new byte[12];
                 
-                // Read exactly 8 bytes
+                // Read exactly 12 bytes
                 var bytesRead = 0;
                 var totalBytesRead = 0;
-                while (totalBytesRead < 8 && (bytesRead = await stream.ReadAsync(buffer, totalBytesRead, 8 - totalBytesRead)) > 0)
+                while (totalBytesRead < 12 && (bytesRead = await stream.ReadAsync(buffer, totalBytesRead, 12 - totalBytesRead)) > 0)
                 {
                     totalBytesRead += bytesRead;
+                }
+
+                if (StartsWithSignature(buffer, new byte[] { 0x52, 0x49, 0x46, 0x46 }))
+                {
+                    var webp = buffer[8] == 0x57 && buffer[9] == 0x45 && buffer[10] == 0x42 && buffer[11] == 0x50;
+                    if (!webp)
+                        _logger.LogWarning("RIFF upload is not WebP: {FileName}", file.FileName);
+                    return webp;
                 }
 
                 // Check for common image signatures
@@ -330,7 +338,6 @@ namespace Nom.Api.Middleware
                     new byte[] { 0x89, 0x50, 0x4E, 0x47 }, // PNG
                     new byte[] { 0x47, 0x49, 0x46 }, // GIF
                     new byte[] { 0x42, 0x4D }, // BMP
-                    new byte[] { 0x52, 0x49, 0x46, 0x46 },
                 };
 
                 foreach (var signature in signatures)

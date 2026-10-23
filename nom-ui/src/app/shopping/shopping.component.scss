@@ -234,6 +234,22 @@
     color: var(--mat-sys-primary);
     font-weight: vars.$font-weight-semibold;
   }
+
+  &--empty {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+    color: var(--mat-sys-outline);
+    font-style: italic;
+    border-bottom-color: var(--mat-sys-outline-variant);
+  }
+}
+
+.nom-shopping__item-qty-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
 }
 
 .nom-shopping__item-qty-input {

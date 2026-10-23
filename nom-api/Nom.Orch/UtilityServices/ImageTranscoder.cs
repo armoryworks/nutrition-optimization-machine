@@ -11,6 +11,8 @@ namespace Nom.Orch.UtilityServices
     /// </summary>
     public static class ImageTranscoder
     {
+        public const long MaxPixels = 50_000_000;
+
         public static byte[]? ToJpeg(byte[] data, int maxWidth, int quality = 85)
         {
             using var bitmap = DecodeUpright(data);
@@ -51,6 +53,7 @@ namespace Nom.Orch.UtilityServices
             using var stream = new MemoryStream(data);
             using var codec = SKCodec.Create(stream);
             if (codec == null) return null;
+            if (codec.Info.Width <= 0 || codec.Info.Height <= 0 || (long)codec.Info.Width * codec.Info.Height > MaxPixels) return null;
 
             var info = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
             var decoded = new SKBitmap(info);

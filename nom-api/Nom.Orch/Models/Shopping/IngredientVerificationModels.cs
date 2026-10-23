@@ -25,21 +25,50 @@ namespace Nom.Orch.Models.Shopping
     public class ConfirmNutrientModel
     {
         [Required]
+        [StringLength(64)]
         public string Key { get; set; } = string.Empty;
+
+        [Range(0, 9_999_999)]
         public decimal? Amount { get; set; }
+
+        [StringLength(8)]
         public string Unit { get; set; } = "g";
+
+        [Range(0, 10_000)]
         public int? PercentDailyValue { get; set; }
     }
 
+    /// <summary>Basis defaults to what the scan was parsed as; per100g values are stored as printed and never scaled by a serving weight.</summary>
     public class IngredientVerificationConfirmModel
     {
+        [RegularExpression("^(serving|per100g)$")]
+        public string? Basis { get; set; }
+
         [StringLength(255)]
         public string? ServingText { get; set; }
+
+        [Range(0, 9_999_999)]
         public decimal? ServingGrams { get; set; }
+
+        [Range(0, 9_999_999)]
         public decimal? ServingMl { get; set; }
+
+        [Range(0, 9_999_999)]
         public decimal? ServingsPerContainer { get; set; }
+
+        [Range(0, 9_999_999)]
         public decimal? Calories { get; set; }
+
+        [MaxLength(64)]
         public List<ConfirmNutrientModel> Nutrients { get; set; } = new();
+    }
+
+    /// <summary>IngredientRetired is true when the household's own unreviewed catalog entry was soft-deleted along with the unlinking.</summary>
+    public class NotFoodResultModel
+    {
+        public long IngredientId { get; set; }
+        public int ItemsUnlinked { get; set; }
+        public bool IngredientRetired { get; set; }
     }
 
     public class IngredientVerificationModel

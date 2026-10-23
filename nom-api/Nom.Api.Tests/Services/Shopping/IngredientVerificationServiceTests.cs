@@ -13,6 +13,7 @@ using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Shopping;
 using Nom.Orch.Services;
 using Nom.Orch.UtilityInterfaces;
+using Nom.Orch.UtilityServices;
 using SkiaSharp;
 using Xunit;
 
@@ -51,8 +52,10 @@ namespace Nom.Api.Tests.Services.Shopping
             public Mock<IVerificationLookupLane> Lane { get; } = new();
             public MemoryMedia Media { get; init; } = new();
 
+            public ScanRateLimiter Limiter { get; } = new();
+
             public IngredientVerificationService Service() =>
-                new(Db, Ocr.Object, Barcodes.Object, Media, Lane.Object, NullLogger<IngredientVerificationService>.Instance);
+                new(Db, Ocr.Object, Barcodes.Object, Media, Lane.Object, Limiter, NullLogger<IngredientVerificationService>.Instance);
         }
 
         private static async Task<Fixture> SeedAsync(bool withCalories = true)
@@ -126,17 +129,51 @@ namespace Nom.Api.Tests.Services.Shopping
         }
 
         [Fact]
-        public async Task OpenVerifications_SuppressAskingEvenAfterThirtyDays()
+        public async Task OnlyAConfirmedLabelStaysOpen_AbandonedScansAndBarcodesFallBackToTheThirtyDayWindow()
         {
             var f = await SeedAsync();
-            f.Db.IngredientVerifications.Add(new IngredientVerificationEntity
-            {
-                IngredientId = Plain, HouseholdId = Household, Kind = "label", Status = "pending", Source = "label:user:10",
-                LastAskedDate = DateTime.UtcNow.AddDays(-90), CreatedDate = DateTime.UtcNow.AddDays(-90),
-            });
+            var old = DateTime.UtcNow.AddDays(-90);
+            f.Db.IngredientVerifications.AddRange(
+                new IngredientVerificationEntity { IngredientId = Plain, HouseholdId = Household, Kind = "label", Status = "pending", Source = "label:user:10", Confirmed = true, LastAskedDate = old, CreatedDate = old },
+                new IngredientVerificationEntity { IngredientId = UserTyped, HouseholdId = Household, Kind = "label", Status = "pending", Source = "label:user:10", Confirmed = false, LastAskedDate = old, CreatedDate = old },
+                new IngredientVerificationEntity { IngredientId = CuratedNoNutrients, HouseholdId = Household, Kind = "barcode", Status = "pending", Source = "label:user:10", Upc = "036000291452", LastAskedDate = old, CreatedDate = old },
+                new IngredientVerificationEntity { IngredientId = CuratedNoNutrients, HouseholdId = OtherHousehold, Kind = "label", Status = "pending", Source = "label:user:10", Confirmed = false, LastAskedDate = DateTime.UtcNow.AddDays(-2), CreatedDate = DateTime.UtcNow.AddDays(-2) });
             await f.Db.SaveChangesAsync();
 
-            (await f.Service().NeedsVerificationAsync(Household, new[] { Plain })).Single().ShouldAsk.Should().BeFalse();
+            var rows = await f.Service().NeedsVerificationAsync(Household, new[] { Plain, UserTyped, CuratedNoNutrients });
+            rows.Single(r => r.IngredientId == Plain).ShouldAsk.Should().BeFalse();
+            rows.Single(r => r.IngredientId == UserTyped).ShouldAsk.Should().BeTrue();
+            rows.Single(r => r.IngredientId == CuratedNoNutrients).ShouldAsk.Should().BeTrue();
+            (await f.Service().NeedsVerificationAsync(OtherHousehold, new[] { CuratedNoNutrients })).Single().ShouldAsk.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task NotFood_UnlinksTheHouseholdsItems_AndRetiresOnlyTheirOwnOrphanEntry()
+        {
+            var f = await SeedAsync();
+            f.Db.HouseholdMembers.Add(new Nom.Data.Plan.HouseholdMemberEntity { HouseholdId = Household, PersonId = Person, IsActive = true, CreatedDate = DateTime.UtcNow });
+            f.Db.Ingredients.Add(new IngredientEntity { Id = 50, Name = "Dish soap", FdcDataType = "Custom", CurationStatusId = (long)CurationStatusEnum.PendingCuration, AuthorId = Person, CreatedDate = DateTime.UtcNow });
+            f.Db.HouseholdShoppingItems.AddRange(
+                new Nom.Data.Shopping.HouseholdShoppingItemEntity { HouseholdId = Household, Name = "Dish soap", IngredientId = 50, CreatedDate = DateTime.UtcNow },
+                new Nom.Data.Shopping.HouseholdShoppingItemEntity { HouseholdId = Household, Name = "Mystery bar", IngredientId = CuratedNoNutrients, CreatedDate = DateTime.UtcNow },
+                new Nom.Data.Shopping.HouseholdShoppingItemEntity { HouseholdId = OtherHousehold, Name = "Mystery bar", IngredientId = CuratedNoNutrients, CreatedDate = DateTime.UtcNow });
+            await f.Db.SaveChangesAsync();
+            var service = f.Service();
+
+            var soap = await service.MarkNotFoodAsync(50, Household, Person);
+            soap!.Should().BeEquivalentTo(new { ItemsUnlinked = 1, IngredientRetired = true });
+            f.Db.Ingredients.IgnoreQueryFilters().Single(i => i.Id == 50).IsDeleted.Should().BeTrue();
+            f.Db.HouseholdShoppingItems.Single(h => h.Name == "Dish soap").IngredientId.Should().BeNull();
+            f.Db.IngredientVerifications.Should().BeEmpty();
+
+            var bar = await service.MarkNotFoodAsync(CuratedNoNutrients, Household, Person);
+            bar!.Should().BeEquivalentTo(new { ItemsUnlinked = 1, IngredientRetired = false });
+            f.Db.Ingredients.Single(i => i.Id == CuratedNoNutrients).IsDeleted.Should().BeFalse();
+            f.Db.HouseholdShoppingItems.Single(h => h.HouseholdId == OtherHousehold).IngredientId.Should().Be(CuratedNoNutrients);
+            f.Db.IngredientVerifications.Single().Should().BeEquivalentTo(new { IngredientId = CuratedNoNutrients, HouseholdId = Household, Kind = "skip", Status = "skipped" });
+            (await service.NeedsVerificationAsync(Household, new[] { CuratedNoNutrients })).Single().ShouldAsk.Should().BeFalse();
+
+            (await service.MarkNotFoodAsync(999, Household, Person)).Should().BeNull();
         }
 
         [Fact]
@@ -177,7 +214,7 @@ namespace Nom.Api.Tests.Services.Shopping
         {
             var f = await SeedAsync();
             var media = new MemoryMedia { IsConfigured = true };
-            var service = new IngredientVerificationService(f.Db, f.Ocr.Object, f.Barcodes.Object, media, f.Lane.Object, NullLogger<IngredientVerificationService>.Instance);
+            var service = new IngredientVerificationService(f.Db, f.Ocr.Object, f.Barcodes.Object, media, f.Lane.Object, f.Limiter, NullLogger<IngredientVerificationService>.Instance);
             f.Ocr.Setup(o => o.ExtractRawTextAsync(It.IsAny<byte[]>())).ReturnsAsync(string.Empty);
 
             var result = await service.ScanLabelAsync(Plain, Household, Person, SmallPng());
@@ -255,6 +292,70 @@ namespace Nom.Api.Tests.Services.Shopping
             (await f.Db.IngredientNutrients.CountAsync(n => n.IngredientId == Plain)).Should().Be(0);
         }
 
+        private const string EuLabel = "NUTRITION INFORMATION\nTypical values per 100g\nEnergy 1046kJ/250kcal\nFat 8.0g\nof which saturates 1.0g\nCarbohydrate 37g\nof which sugars 12g\nFibre 4g\nProtein 3g\nSalt 0.4g";
+
+        [Fact]
+        public async Task Confirm_KeepsAPer100gLabelOnItsBasis_AndNeverScalesItByAServingWeight()
+        {
+            var f = await SeedAsync();
+            f.Ocr.Setup(o => o.ExtractRawTextAsync(It.IsAny<byte[]>())).ReturnsAsync(EuLabel);
+            var service = f.Service();
+            var scan = await service.ScanLabelAsync(Plain, Household, Person, SmallPng());
+            scan!.Parsed.Basis.Should().Be(NutritionBasis.Per100g);
+
+            var confirmed = await service.ConfirmAsync(scan.VerificationId, Person, new IngredientVerificationConfirmModel
+            {
+                ServingGrams = 30,
+                Calories = 250,
+                Nutrients = new List<ConfirmNutrientModel>
+                {
+                    new() { Key = "fat", Amount = 8, Unit = "g" },
+                    new() { Key = "carbohydrate", Amount = 37, Unit = "g" },
+                    new() { Key = "protein", Amount = 3, Unit = "g" },
+                },
+            });
+
+            confirmed!.Nutrients!.Basis.Should().Be(NutritionBasis.Per100g);
+            confirmed.Nutrients.Per100g!.Calories.Should().Be(250);
+            confirmed.Nutrients.Per100g.Nutrients.Single(n => n.Key == "fat").Amount.Should().Be(8);
+            confirmed.Warnings.Should().NotContain("per100g_calories_impossible");
+            f.Db.IngredientVerifications.Single().NutrientsJson.Should().Contain("\"basis\":\"per100g\"");
+
+            var forced = await service.ConfirmAsync(scan.VerificationId, Person, new IngredientVerificationConfirmModel { Basis = "serving", ServingGrams = 50, Calories = 250 });
+            forced!.Nutrients!.Basis.Should().Be(NutritionBasis.Serving);
+            forced.Nutrients.Per100g!.Calories.Should().Be(500);
+        }
+
+        [Fact]
+        public async Task Confirm_PreservesPrintedLessThanAndNotSignificantReadings_TheUserDidNotOverride()
+        {
+            var f = await SeedAsync();
+            f.Ocr.Setup(o => o.ExtractRawTextAsync(It.IsAny<byte[]>())).ReturnsAsync(Label + "\nDietary Fiber less than 1g\nNot a significant source of trans fat");
+            var service = f.Service();
+            var scan = await service.ScanLabelAsync(Plain, Household, Person, SmallPng());
+            scan!.Parsed.Nutrients.Single(n => n.Key == "fiber").LessThan.Should().Be(1);
+            scan.Parsed.NotSignificantSource.Should().Contain("trans_fat");
+
+            var confirmed = await service.ConfirmAsync(scan.VerificationId, Person, new IngredientVerificationConfirmModel
+            {
+                ServingGrams = 55,
+                Calories = 230,
+                Nutrients = new List<ConfirmNutrientModel> { new() { Key = "fat", Amount = 8, Unit = "g" } },
+            });
+
+            confirmed!.Nutrients!.Nutrients.Single(n => n.Key == "fiber").Should().BeEquivalentTo(new { Amount = (decimal?)null, LessThan = 1m });
+            confirmed.Nutrients.NotSignificantSource.Should().Contain("trans_fat");
+
+            var typed = await service.ConfirmAsync(scan.VerificationId, Person, new IngredientVerificationConfirmModel
+            {
+                Nutrients = new List<ConfirmNutrientModel> { new() { Key = "fiber", Amount = 0.5m, Unit = "g" } },
+            });
+            typed!.Nutrients!.Nutrients.Single(n => n.Key == "fiber").Should().BeEquivalentTo(new { Amount = 0.5m, LessThan = (decimal?)null });
+
+            await service.Invoking(s => s.ConfirmAsync(scan.VerificationId, Person, new IngredientVerificationConfirmModel { ServingGrams = -1 }))
+                .Should().ThrowAsync<ArgumentException>();
+        }
+
         [Fact]
         public async Task Confirm_RefusesNonLabelRows_BadUnits_AndMissingRows()
         {
@@ -300,6 +401,31 @@ namespace Nom.Api.Tests.Services.Shopping
             var attached = await service.RecordBarcodeAsync(UserTyped, Household, Person, "96385074");
             attached!.VerificationId.Should().Be(scan!.VerificationId);
             f.Db.IngredientVerifications.Single(v => v.Id == scan.VerificationId).Upc.Should().Be("96385074");
+        }
+
+        [Fact]
+        public async Task Barcode_NeverWritesAGtinOntoAVerifiedCatalogFood()
+        {
+            var f = await SeedAsync();
+            var result = await f.Service().RecordBarcodeAsync(Verified, Household, Person, "036000291452");
+
+            result!.Should().BeEquivalentTo(new { Upc = "036000291452", Decoded = true, AppliedToIngredient = false });
+            f.Db.Ingredients.Single(i => i.Id == Verified).GtinUpc.Should().BeNull();
+            f.Db.IngredientVerifications.Single().Should().BeEquivalentTo(new { IngredientId = Verified, HouseholdId = Household, Kind = "barcode", Upc = "036000291452" });
+        }
+
+        [Fact]
+        public async Task BarcodeFromImage_IsCappedPerPersonEvenWhenNothingDecodes()
+        {
+            var f = await SeedAsync();
+            f.Barcodes.Setup(b => b.Decode(It.IsAny<byte[]>())).Returns((BarcodeDecodeResult?)null);
+            var service = f.Service();
+            for (var i = 0; i < IngredientVerificationService.MaxLabelScansPerHour; i++)
+                (await service.RecordBarcodeFromImageAsync(Plain, Household, Person, SmallPng()))!.Decoded.Should().BeFalse();
+
+            await service.Invoking(s => s.RecordBarcodeFromImageAsync(Plain, Household, Person, SmallPng()))
+                .Should().ThrowAsync<InvalidOperationException>();
+            (await service.RecordBarcodeFromImageAsync(Plain, Household, Person + 1, SmallPng()))!.Decoded.Should().BeFalse();
         }
 
         [Fact]

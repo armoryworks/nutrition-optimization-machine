@@ -13,7 +13,7 @@ to `nutrient.IngredientNutrient` or to `curation.FoodCatalogProposal` in this re
 
 | Table | What a row is |
 |---|---|
-| `shopping.HouseholdShoppingItem` | One ad-hoc line on a household's list. `IngredientId` links it to the catalog food it matched or created; `Checked`/`CheckedDate`/`CheckedByPersonId` carry its own check state. Soft-deleted when removed. |
+| `shopping.HouseholdShoppingItem` | One ad-hoc line on a household's list. `IngredientId` links it to the catalog food it matched or created, and is NULL for a non-food staple (the UI's Household aisle sends `linkToCatalog: false`) or after a member says "Not a food". A typed amount ("2 gallons milk") is split into `Quantity`/`Unit` before any catalog food is created. `Checked`/`CheckedDate`/`CheckedByPersonId` carry its own check state and expire on the same TTL as computed lines; re-adding a name that is already on the list unticks that line instead of creating a twin. Soft-deleted when removed. |
 | `shopping.HouseholdShoppingCheck` | The check mark on a *computed* line (plan or pantry). One row per `(HouseholdId, ItemKey)`, unique; `ItemKey` is the UI's key for the line, today the ingredient id. Rows are toggled in place (`Checked`), never deleted and re-inserted, because `SaveChanges` turns a delete into a soft delete and the unique index would then block the next check. A check counts only while `CheckedDate` is within `Shopping:CheckTtlDays` (default 3); older rows are reported unchecked and flipped lazily on the next read. This replaces the per-day `localStorage` reset. |
 | `recipe.IngredientVerification` | One user action about a food lacking verified nutrition: a label photo plus the values read off it (`Kind=label`), a barcode (`barcode`), package measurements (`measurements`), or a skip (`skip`). `HouseholdId` scopes it; NULL is reserved for lane-produced global rows in Release B. `LastAskedDate` drives the 30-day quiet window. |
 
@@ -25,9 +25,14 @@ pending food with hand-typed nutrient rows is not verified. The Calories nutrien
 up by name and its absence throws; it is never defaulted to 0.
 
 The household is asked about a food when it lacks verified nutrition and no verification row
-for `(ingredient, household)` has `LastAskedDate` within 30 days or an open status
-(`pending`, `corroborated`, `published`). A `skipped` row therefore silences the question
-for 30 days; a `pending` label scan silences it until the lane resolves it.
+for `(ingredient, household)` has `LastAskedDate` within 30 days or is a **confirmed** label
+in an open status (`pending`, `corroborated`, `published`). A `skipped` row, an abandoned or
+unreadable label scan and a barcode-only row therefore silence the question for 30 days; only
+a label the member confirmed silences it until the lane resolves it, because that is the only
+row carrying nutrition evidence. Only the Skip button records a skip; closing the sheet any
+other way leaves nothing behind. "Not a food" (offered for household-added lines) unlinks the
+household's items from the ingredient and soft-deletes the entry when it was the household's
+own unreviewed, unreferenced creation; otherwise it records a skip.
 
 ## Source namespaces
 
@@ -65,8 +70,12 @@ the raw Tesseract text (`OcrText`, capped at 16 000 chars) and `NutrientsJson`:
 }
 ```
 
-Values are **per serving as printed**. Per-100 g numbers are never stored; they are derived
-on read from `ServingGrams` alone. A serving printed only in millilitres yields no per-100 g
+Values are **as printed**: `basis` is `serving` for a Nutrition Facts panel and `per100g` for
+an EU-style "typical values per 100 g" table. Confirming a scan keeps the parsed basis (the
+client may send `basis` explicitly); a per-100 g table is never scaled by a serving weight,
+and `<1 g` / "not a significant source" readings the member did not override are preserved.
+Per-100 g numbers are never stored for a per-serving label; they are derived on read from
+`ServingGrams` alone. A serving printed only in millilitres yields no per-100 g
 view, because 1 g/mL is a guess. A %DV never becomes an amount. The parser
 (`NutritionFactsParser`) is pure and deterministic; no model is involved anywhere in this lane.
 
@@ -80,11 +89,17 @@ address an existing row load it first and check *its* household, ignoring the bo
 - `POST items`, `GET|PUT|DELETE items/{id}`
 - `POST checks` (`itemKey` xor `itemId`), `POST checks/clear`
 - `GET needs-verification?householdId=&ingredientIds=`
-- `POST verification/{ingredientId}/skip|label|barcode|measurements`
+- `POST verification/{ingredientId}/skip|not-food|label|barcode|measurements` (`barcode` takes
+  `{householdId, upc}` from the browser's `BarcodeDetector`; `barcode/image` takes a multipart
+  photo for server-side ZXing decoding)
 - `PUT verification/{verificationId}` (confirm/correct a label scan)
 - `GET verification?householdId=&ingredientId=`, `GET verification/{verificationId}/image`
 
-Label scans are limited to 20 per person per hour on top of the global rate limiter.
+Label scans and barcode photos are each limited to 20 per person per hour on top of the global
+rate limiter (barcode photos through the in-memory `IScanRateLimiter`, because an undecoded
+photo stores no row). A barcode fills `Ingredient.GtinUpc` only when the food lacks verified
+nutrition; on a verified catalog food the UPC stays on the verification row alone. Uploads are
+refused before decoding when the image header declares more than 50 megapixels.
 
 ## Release B extension point
 

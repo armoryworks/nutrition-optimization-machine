@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, FormRecord, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,6 +15,7 @@ import {
   NutritionFactsParseResult,
 } from '../../core/models/household-shopping.model';
 import { keepFieldVisible } from '../../core/utils/keyboard-room';
+import { revealFirstInvalid } from '../../core/utils/reveal-invalid-control';
 
 export interface LabelConfirmSheetData {
   ingredientId: number;
@@ -78,11 +79,16 @@ export function labelFormValue(parsed: NutritionFactsParseResult): LabelFormValu
   };
 }
 
-/** The confirmation body: only rows the user left a number in are sent. */
+/**
+ * The confirmation body: only rows the user left a number in are sent, on the
+ * basis the label was printed in. A per-100 g table carries no serving weight,
+ * because nothing should ever scale those values.
+ */
 export function labelConfirmBody(
   value: LabelFormValue,
   parsed: NutritionFactsParseResult,
 ): IngredientVerificationConfirm {
+  const per100g = parsed.basis === 'per100g';
   const nutrients = LABEL_ROWS.flatMap((row) => {
     const amount = numberOrNull(value.nutrients[row.key]);
     if (amount === null) return [];
@@ -90,8 +96,9 @@ export function labelConfirmBody(
     return [{ key: row.key, amount, unit: row.unit, percentDailyValue: printed?.percentDailyValue ?? null }];
   });
   return {
+    basis: per100g ? 'per100g' : 'serving',
     servingText: value.servingText?.trim() || null,
-    servingGrams: numberOrNull(value.servingGrams),
+    servingGrams: per100g ? null : numberOrNull(value.servingGrams),
     servingMl: parsed.servingMl ?? null,
     servingsPerContainer: numberOrNull(value.servingsPerContainer),
     calories: numberOrNull(value.calories),
@@ -118,11 +125,14 @@ export class LabelConfirmSheet {
   private sheetRef = inject(MatBottomSheetRef<LabelConfirmSheet, LabelConfirmResult>);
   private shopping = inject(HouseholdShoppingService);
   private destroyRef = inject(DestroyRef);
+  private host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly rows = LABEL_ROWS;
   readonly parsed = this.data.scan.parsed;
+  readonly per100g = this.parsed.basis === 'per100g';
   saving = signal(false);
   error = signal('');
+  invalid = signal(false);
 
   readonly nutrients = new FormRecord<FormControl<number | null>>({});
   readonly form = new FormGroup({
@@ -141,9 +151,24 @@ export class LabelConfirmSheet {
   }
 
   basisNote(): string {
-    return this.parsed.basis === 'per100g'
+    return this.per100g
       ? 'Values are per 100 g, exactly as printed'
       : 'Values are per serving, exactly as printed';
+  }
+
+  /** What the label printed where the parser could not read a number: "< 1 g", or "not a significant source". */
+  printedHint(key: string): string {
+    const reading = this.parsed.nutrients.find((n) => n.key === key);
+    if (reading?.lessThan != null && reading.amount == null) {
+      return `Label says less than ${reading.lessThan} ${reading.unit} — leave blank to keep that`;
+    }
+    if (this.parsed.notSignificantSource.includes(key)) return 'Label says not a significant source';
+    return '';
+  }
+
+  lessThanPlaceholder(key: string): string {
+    const reading = this.parsed.nutrients.find((n) => n.key === key);
+    return reading?.lessThan != null && reading.amount == null ? `< ${reading.lessThan}` : '';
   }
 
   onFieldFocus(event: FocusEvent): void {
@@ -151,7 +176,13 @@ export class LabelConfirmSheet {
   }
 
   save(): void {
-    if (this.saving() || this.form.invalid) return;
+    if (this.saving()) return;
+    if (this.form.invalid) {
+      this.invalid.set(true);
+      revealFirstInvalid(this.form, this.host.nativeElement);
+      return;
+    }
+    this.invalid.set(false);
     this.saving.set(true);
     this.error.set('');
     const body = labelConfirmBody(this.form.getRawValue() as LabelFormValue, this.parsed);

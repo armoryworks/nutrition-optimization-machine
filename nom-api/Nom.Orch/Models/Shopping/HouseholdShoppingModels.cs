@@ -21,6 +21,7 @@ namespace Nom.Orch.Models.Shopping
         public bool IngredientNeedsVerification { get; set; }
     }
 
+    /// <summary>LinkToCatalog false keeps a non-food (paper towels, dish soap) as a plain line: no catalog food is created or matched.</summary>
     public class HouseholdShoppingItemCreateModel
     {
         [Required]
@@ -28,21 +29,28 @@ namespace Nom.Orch.Models.Shopping
 
         [Required]
         [StringLength(255, MinimumLength = 1)]
+        [RegularExpression(@"(?s).*\S.*")]
         public string Name { get; set; } = string.Empty;
 
         public long? IngredientId { get; set; }
+
+        [Range(0, 1_000_000)]
         public decimal? Quantity { get; set; }
 
         [StringLength(32)]
         public string? Unit { get; set; }
+
+        public bool LinkToCatalog { get; set; } = true;
     }
 
     /// <summary>A null name leaves the name alone; quantity, unit and ingredient are replaced as sent, so null clears them.</summary>
     public class HouseholdShoppingItemUpdateModel
     {
         [StringLength(255, MinimumLength = 1)]
+        [RegularExpression(@"(?s).*\S.*")]
         public string? Name { get; set; }
 
+        [Range(0, 1_000_000)]
         public decimal? Quantity { get; set; }
 
         [StringLength(32)]

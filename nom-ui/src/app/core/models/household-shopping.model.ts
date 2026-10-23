@@ -24,12 +24,20 @@ export interface HouseholdShoppingItem {
   ingredientNeedsVerification: boolean;
 }
 
+/** `linkToCatalog: false` keeps a non-food (paper towels, dish soap) as a plain line with no catalog food behind it. */
 export interface HouseholdShoppingItemCreate {
   householdId: number;
   name: string;
   ingredientId?: number | null;
   quantity?: number | null;
   unit?: string | null;
+  linkToCatalog?: boolean;
+}
+
+/** `created` is false when the name was already on the list; the server unticks that line instead of adding a twin. */
+export interface HouseholdShoppingItemAdded {
+  item: HouseholdShoppingItem;
+  created: boolean;
 }
 
 export interface HouseholdShoppingItemUpdate {
@@ -127,7 +135,9 @@ export interface LabelNutrientConfirm {
   percentDailyValue?: number | null;
 }
 
+/** `basis` follows the scan: a per-100 g table is saved as printed and never scaled by a serving weight. */
 export interface IngredientVerificationConfirm {
+  basis: 'serving' | 'per100g';
   servingText?: string | null;
   servingGrams?: number | null;
   servingMl?: number | null;
@@ -178,7 +188,17 @@ export interface IngredientMeasurements {
   cupGrams?: number | null;
 }
 
+export interface NotFoodResult {
+  ingredientId: number;
+  itemsUnlinked: number;
+  ingredientRetired: boolean;
+}
+
 export type VerificationFlowResult =
   | { action: 'label'; scan: LabelScanResult }
   | { action: 'barcode'; result: BarcodeResult }
-  | { action: 'skip' };
+  | { action: 'skip' }
+  | { action: 'not-food'; result: NotFoodResult };
+
+/** What the sheets ended with; the shopping page only needs to react to `not-food`. */
+export type VerificationFlowOutcome = 'skipped' | 'not-food' | 'recorded' | 'dismissed';

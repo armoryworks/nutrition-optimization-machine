@@ -35,6 +35,7 @@ namespace Nom.Orch.Services
         private readonly IBarcodeDecodeService _barcodes;
         private readonly IMediaStorageService _mediaStorage;
         private readonly IVerificationLookupLane _lane;
+        private readonly IScanRateLimiter _scanLimiter;
         private readonly ILogger<IngredientVerificationService> _logger;
 
         public IngredientVerificationService(
@@ -43,6 +44,7 @@ namespace Nom.Orch.Services
             IBarcodeDecodeService barcodes,
             IMediaStorageService mediaStorage,
             IVerificationLookupLane lane,
+            IScanRateLimiter scanLimiter,
             ILogger<IngredientVerificationService> logger)
         {
             _context = context;
@@ -50,6 +52,7 @@ namespace Nom.Orch.Services
             _barcodes = barcodes;
             _mediaStorage = mediaStorage;
             _lane = lane;
+            _scanLimiter = scanLimiter;
             _logger = logger;
         }
 
@@ -75,7 +78,7 @@ namespace Nom.Orch.Services
                                && i.IngredientNutrients.Any(n => n.NutrientId == caloriesId),
                     Asked = _context.IngredientVerifications.Any(v =>
                         v.IngredientId == i.Id && v.HouseholdId == householdId
-                        && (v.LastAskedDate >= cutoff || OpenStatuses.Contains(v.Status))),
+                        && (v.LastAskedDate >= cutoff || (v.Confirmed && OpenStatuses.Contains(v.Status)))),
                 })
                 .ToListAsync();
 
@@ -107,6 +110,58 @@ namespace Nom.Orch.Services
             });
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<NotFoodResultModel?> MarkNotFoodAsync(long ingredientId, long householdId, long personId)
+        {
+            var ingredient = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == ingredientId);
+            if (ingredient == null) return null;
+
+            var now = DateTime.UtcNow;
+            var items = await _context.HouseholdShoppingItems
+                .Where(h => h.HouseholdId == householdId && h.IngredientId == ingredientId)
+                .ToListAsync();
+            foreach (var item in items)
+            {
+                item.IngredientId = null;
+                item.LastModifiedDate = now;
+                item.LastModifiedByPersonId = personId;
+            }
+
+            var retired = false;
+            var householdAuthored = ingredient.FdcId == null
+                && ingredient.CurationStatusId == (long)CurationStatusEnum.PendingCuration
+                && ingredient.AuthorId != null
+                && await _context.HouseholdMembers.AnyAsync(m => m.HouseholdId == householdId && m.PersonId == ingredient.AuthorId && m.IsActive);
+            if (householdAuthored)
+            {
+                var referenced = await _context.RecipeIngredients.AnyAsync(r => r.IngredientId == ingredientId)
+                    || await _context.IngredientNutrients.AnyAsync(n => n.IngredientId == ingredientId)
+                    || await _context.HouseholdShoppingItems.AnyAsync(h => h.IngredientId == ingredientId && h.HouseholdId != householdId);
+                if (!referenced)
+                {
+                    ingredient.IsDeleted = true;
+                    ingredient.DeletedAt = now;
+                    ingredient.DeletedByPersonId = personId;
+                    retired = true;
+                }
+            }
+            if (!retired)
+            {
+                _context.IngredientVerifications.Add(new IngredientVerificationEntity
+                {
+                    IngredientId = ingredientId,
+                    HouseholdId = householdId,
+                    Source = UserLabelSource(personId),
+                    Status = IngredientVerificationStatus.Skipped,
+                    Kind = IngredientVerificationKind.Skip,
+                    LastAskedDate = now,
+                    CreatedDate = now,
+                    CreatedByPersonId = personId,
+                });
+            }
+            await _context.SaveChangesAsync();
+            return new NotFoodResultModel { IngredientId = ingredientId, ItemsUnlinked = items.Count, IngredientRetired = retired };
         }
 
         public async Task<LabelScanResultModel?> ScanLabelAsync(long ingredientId, long householdId, long personId, byte[] image)
@@ -186,14 +241,22 @@ namespace Nom.Orch.Services
             if (row.Status != IngredientVerificationStatus.Pending && row.Status != IngredientVerificationStatus.Held)
                 throw new InvalidOperationException("This verification is no longer open.");
 
+            if (model.ServingGrams is < 0 || model.ServingMl is < 0 || model.ServingsPerContainer is < 0 || model.Calories is < 0)
+                throw new ArgumentException("Serving size, servings per container and calories cannot be negative.");
+
+            var stored = VerificationNutrients.FromJson(row.NutrientsJson, null, null);
+            var basis = model.Basis ?? stored?.Basis ?? NutritionBasis.Serving;
+            if (basis != NutritionBasis.Per100g) basis = NutritionBasis.Serving;
+
             var result = new NutritionFactsParseResult
             {
-                Basis = NutritionBasis.Serving,
+                Basis = basis,
                 ServingText = Clip(model.ServingText, 255),
                 ServingGrams = model.ServingGrams,
                 ServingMl = model.ServingMl,
                 ServingsPerContainer = model.ServingsPerContainer,
                 Calories = model.Calories,
+                NotSignificantSource = stored?.NotSignificantSource.ToList() ?? new List<string>(),
             };
             foreach (var n in model.Nutrients)
             {
@@ -205,6 +268,14 @@ namespace Nom.Orch.Services
                 if (string.IsNullOrWhiteSpace(n.Key) || result.Nutrients.Any(x => x.Key == n.Key))
                     continue;
                 result.Nutrients.Add(new NutrientReading { Key = n.Key.Trim(), Amount = n.Amount, Unit = unit, PercentDailyValue = n.PercentDailyValue });
+            }
+            if (stored != null)
+            {
+                foreach (var printed in stored.Nutrients.Where(x => x.Amount == null && x.LessThan != null))
+                {
+                    if (result.Nutrients.Any(x => x.Key == printed.Key)) continue;
+                    result.Nutrients.Add(new NutrientReading { Key = printed.Key, LessThan = printed.LessThan, Unit = printed.Unit, PercentDailyValue = printed.PercentDailyValue });
+                }
             }
             NutritionFactsParser.Assess(result);
 
@@ -233,6 +304,8 @@ namespace Nom.Orch.Services
         public async Task<BarcodeResultModel?> RecordBarcodeFromImageAsync(long ingredientId, long householdId, long personId, byte[] image)
         {
             if (!await IngredientExistsAsync(ingredientId)) return null;
+            if (!_scanLimiter.TryAcquire($"barcode-image:{personId}", MaxLabelScansPerHour, TimeSpan.FromHours(1)))
+                throw new InvalidOperationException("Too many barcode photos this hour; try again later.");
             var decoded = _barcodes.Decode(image);
             if (decoded == null || !Gtin.TryNormalize(decoded.Text, out var digits))
                 return new BarcodeResultModel { Decoded = false, Source = BarcodeSource.Server, Format = decoded?.Format };
@@ -252,7 +325,7 @@ namespace Nom.Orch.Services
             row.LastModifiedByPersonId = personId;
 
             var applied = false;
-            if (string.IsNullOrEmpty(ingredient.GtinUpc))
+            if (string.IsNullOrEmpty(ingredient.GtinUpc) && !await IsVerifiedAsync(ingredient))
             {
                 ingredient.GtinUpc = digits;
                 ingredient.LastModifiedDate = now;
@@ -342,6 +415,13 @@ namespace Nom.Orch.Services
 
         private Task<bool> IngredientExistsAsync(long ingredientId) =>
             _context.Ingredients.AnyAsync(i => i.Id == ingredientId);
+
+        private async Task<bool> IsVerifiedAsync(IngredientEntity ingredient)
+        {
+            if (ingredient.FdcId == null && ingredient.CurationStatusId != (long)CurationStatusEnum.Curated) return false;
+            var caloriesId = await CaloriesNutrientIdAsync();
+            return await _context.IngredientNutrients.AnyAsync(n => n.IngredientId == ingredient.Id && n.NutrientId == caloriesId);
+        }
 
         private Task<IngredientVerificationEntity?> LatestOpenRowAsync(long ingredientId, long householdId, DateTime now, string? kind)
         {

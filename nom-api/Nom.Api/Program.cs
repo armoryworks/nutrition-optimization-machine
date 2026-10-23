@@ -351,6 +351,7 @@ builder.Services.AddHttpClient("webhook")
 // receipts) live in the private nom-commerce overlay, not this open-core repo.
 builder.Services.AddScoped<Nom.Orch.UtilityInterfaces.ITesseractOcrService, Nom.Orch.UtilityServices.TesseractOcrService>();
 builder.Services.AddScoped<Nom.Orch.Interfaces.IVerificationLookupLane, Nom.Orch.Services.NoOpVerificationLookupLane>();
+builder.Services.AddSingleton<Nom.Orch.UtilityInterfaces.IScanRateLimiter, Nom.Orch.UtilityServices.ScanRateLimiter>();
 
 // General-purpose system email (admin notifications) — mirrors the Identity sender selection
 if (!string.IsNullOrEmpty(builder.Configuration["Email:SmtpHost"]))

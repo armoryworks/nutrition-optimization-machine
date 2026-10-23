@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -13,6 +13,9 @@ import { UnitPreferenceService } from '../../core/services/unit-preference.servi
 import { IngredientMeasurements, PackageUnit } from '../../core/models/household-shopping.model';
 import { UnitSystem } from '../../core/utils/mass-display';
 import { keepFieldVisible } from '../../core/utils/keyboard-room';
+import { revealFirstInvalid } from '../../core/utils/reveal-invalid-control';
+
+export const NOTHING_FILLED = 'Fill in at least one measurement, or skip';
 
 export interface MeasurementsSheetData {
   ingredientId: number;
@@ -88,10 +91,12 @@ export class MeasurementsSheet {
   private shopping = inject(HouseholdShoppingService);
   private units = inject(UnitPreferenceService);
   private destroyRef = inject(DestroyRef);
+  private host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly packageUnits = PACKAGE_UNITS;
   saving = signal(false);
   error = signal('');
+  invalid = signal(false);
 
   readonly form = new FormGroup({
     packageAmount: new FormControl<number | null>(null, [Validators.min(0)]),
@@ -100,20 +105,24 @@ export class MeasurementsSheet {
     cupGrams: new FormControl<number | null>(null, [Validators.min(0)]),
   });
 
-  private value = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
-
-  canSave(): boolean {
-    this.value();
-    return this.form.valid && measurementsBody(this.data.householdId, this.form.getRawValue()) !== null;
-  }
-
   onFieldFocus(event: FocusEvent): void {
     keepFieldVisible(event.target, window);
   }
 
   save(): void {
+    if (this.saving()) return;
+    if (this.form.invalid) {
+      this.invalid.set(true);
+      this.error.set('');
+      revealFirstInvalid(this.form, this.host.nativeElement);
+      return;
+    }
+    this.invalid.set(false);
     const body = measurementsBody(this.data.householdId, this.form.getRawValue());
-    if (this.saving() || this.form.invalid || !body) return;
+    if (!body) {
+      this.error.set(NOTHING_FILLED);
+      return;
+    }
     this.saving.set(true);
     this.error.set('');
     this.shopping

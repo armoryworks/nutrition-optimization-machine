@@ -549,6 +549,13 @@ describe('Screenshot Walkthrough', () => {
           cy.get('mat-checkbox').click();
         });
         settle();
+        cy.get('body').then(($sheet) => {
+          if ($sheet.find('[data-testid="verification-sheet"]').length) {
+            cy.screenshot('20-shopping-verification-sheet', { capture: 'fullPage' });
+            cy.get('[data-testid="verification-sheet-close-btn"]').click();
+            cy.get('[data-testid="verification-sheet"]').should('not.exist');
+          }
+        });
         cy.screenshot('20-shopping-item-checked', { capture: 'fullPage' });
       }
     });

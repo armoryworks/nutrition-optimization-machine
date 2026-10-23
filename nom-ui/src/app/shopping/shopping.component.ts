@@ -37,7 +37,7 @@ import { HouseholdShoppingService } from '../core/services/household-shopping.se
 import { HouseholdShoppingItem, ShoppingState } from '../core/models/household-shopping.model';
 import { ShoppingAddItem } from './shopping-add-item.component';
 import { VerificationFlowService } from './verification/verification-flow.service';
-import { adhocCheckKey, mergeAdhocItems } from '../core/domain/shopping/adhoc-items';
+import { adhocCheckKey, mergeAdhocItems, parseAdhocQuantity } from '../core/domain/shopping/adhoc-items';
 import { GroceryExportItem, GroceryProviderInfo } from '../core/models/grocery-export.model';
 import {
   GroceryExportDialog,
@@ -489,12 +489,49 @@ export class ShoppingComponent implements OnInit {
 
   saveEdit(checkKey: string, value: string): void {
     const trimmed = value.trim();
-    if (trimmed) {
+    const item = this.findItem(checkKey);
+    if (item?.adhocId !== undefined) {
+      this.saveAdhocQuantity(item.adhocId, trimmed);
+    } else if (trimmed) {
       const overrides = new Map(this.quantityOverrides());
       overrides.set(checkKey, trimmed);
       this.quantityOverrides.set(overrides);
     }
     this.editingItem.set(null);
+  }
+
+  /** An amount typed on an added line belongs to the household's row, so every phone sees it. */
+  private saveAdhocQuantity(id: number, text: string): void {
+    const current = this.adhocItems().find((i) => i.id === id);
+    if (!current) return;
+    const { quantity, unit } = parseAdhocQuantity(text);
+    if ((current.quantity ?? null) === quantity && (current.unit ?? null) === unit) return;
+    const key = adhocCheckKey(id);
+    const overrides = new Map(this.quantityOverrides());
+    if (text) overrides.set(key, text);
+    else overrides.delete(key);
+    this.quantityOverrides.set(overrides);
+    this.householdShopping
+      .updateItem(id, { quantity, unit, ingredientId: current.ingredientId ?? null })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (saved) => {
+          this.adhocItems.update((list) => list.map((i) => (i.id === id ? saved : i)));
+          this.quantityOverrides.update((map) => {
+            const next = new Map(map);
+            next.delete(key);
+            return next;
+          });
+        },
+        error: () => {
+          this.quantityOverrides.update((map) => {
+            const next = new Map(map);
+            next.delete(key);
+            return next;
+          });
+          this.snackBar.open(`Could not save the amount for ${current.name} — check your connection`, 'OK', { duration: 4000 });
+        },
+      });
   }
 
   cancelEdit(): void {
@@ -1044,7 +1081,11 @@ export class ShoppingComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (result) => {
-          if (next && result?.verification?.shouldAsk) this.maybeAsk(result.verification.ingredientId, item);
+          if (!next || !item || item.ingredientId === null) return;
+          const verification = result?.verification;
+          const serverSays = verification ? verification.shouldAsk : null;
+          if (serverSays === true) this.ask(item.ingredientId, item);
+          else if (serverSays === null && this.askable().has(item.ingredientId)) this.ask(item.ingredientId, item);
         },
         error: () => {
           this.setCheckedLocally(key, !next);
@@ -1055,10 +1096,6 @@ export class ShoppingComponent implements OnInit {
             .subscribe(() => this.toggleChecked(key));
         },
       });
-
-    if (next && item?.ingredientId !== null && item?.ingredientId !== undefined) {
-      this.maybeAsk(item.ingredientId, item);
-    }
   }
 
   private setCheckedLocally(key: string, checked: boolean): void {
@@ -1076,19 +1113,33 @@ export class ShoppingComponent implements OnInit {
     return undefined;
   }
 
-  /** Opens the verification sheets once per food per session, and only when the server asked for it. */
-  private maybeAsk(ingredientId: number, item: ShoppingItem | undefined): void {
-    if (!item || !this.askable().has(ingredientId) || this.askedThisSession.has(ingredientId)) return;
+  /**
+   * Opens the verification sheets once per food per session, after the tick has
+   * been saved. The server's answer on the tick wins; the askable set only covers
+   * a response that did not carry one.
+   */
+  private ask(ingredientId: number, item: ShoppingItem): void {
+    if (this.askedThisSession.has(ingredientId)) return;
     this.askedThisSession.add(ingredientId);
     const remaining = new Set(this.askable());
     remaining.delete(ingredientId);
     this.askable.set(remaining);
-    void this.verificationFlow.run({ ingredientId, name: item.name }, this.householdId());
+    void this.verificationFlow
+      .run({ ingredientId, name: item.name, adhoc: item.source === 'adhoc' }, this.householdId())
+      .then((outcome) => {
+        if (outcome === 'not-food') this.unlinkAdhocFood(ingredientId);
+      });
+  }
+
+  private unlinkAdhocFood(ingredientId: number): void {
+    this.adhocItems.update((list) =>
+      list.map((i) => (i.ingredientId === ingredientId ? { ...i, ingredientId: null, ingredientNeedsVerification: false } : i)),
+    );
   }
 
   onItemAdded(item: HouseholdShoppingItem): void {
     this.adhocItems.update((list) => [...list.filter((i) => i.id !== item.id), item]);
-    if (item.checked) this.setCheckedLocally(adhocCheckKey(item.id), true);
+    this.setCheckedLocally(adhocCheckKey(item.id), item.checked);
     const ingredientId = item.ingredientId;
     if (ingredientId && item.ingredientNeedsVerification) {
       this.askable.update((set) => new Set(set).add(ingredientId));

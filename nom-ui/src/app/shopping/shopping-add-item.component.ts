@@ -25,6 +25,7 @@ import { HouseholdShoppingService } from '../core/services/household-shopping.se
 import { IngredientSearchResult } from '../core/models/ingredient-search-result.model';
 import { HouseholdShoppingItem } from '../core/models/household-shopping.model';
 import { makeRoomForAutocomplete } from '../core/utils/autocomplete-room';
+import { HOUSEHOLD_DEPARTMENT, categorizeDepartment } from '../core/domain/shopping/departments';
 
 export type AddItemOption =
   | { kind: 'catalog'; hit: IngredientSearchResult }
@@ -145,17 +146,18 @@ export class ShoppingAddItem {
       return;
     }
 
+    const linkToCatalog = ingredientId !== null || categorizeDepartment(name) !== HOUSEHOLD_DEPARTMENT;
     this.saving.set(true);
     this.error.set('');
     this.shoppingService
-      .addItem({ householdId: this.householdId(), name, ingredientId })
+      .addItem({ householdId: this.householdId(), name, ingredientId, linkToCatalog })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (item) => {
+        next: ({ item, created }) => {
           this.saving.set(false);
           this.added.emit(item);
           this.reset();
-          this.snackBar.open(`Added ${item.name}`, 'OK', { duration: 2000 });
+          this.snackBar.open(created ? `Added ${item.name}` : `${item.name} is already on your list`, 'OK', { duration: 2500 });
         },
         error: () => {
           this.saving.set(false);

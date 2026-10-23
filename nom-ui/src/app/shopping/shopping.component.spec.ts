@@ -161,8 +161,25 @@ describe('ShoppingComponent', () => {
     it('opens the sheet on a tick only when the server says the food needs verifying', () => {
       const fixture = create({ needs: [ask(11, true)] });
       checkbox(items(fixture.nativeElement)[0]).click();
+      expect(flow.run).not.toHaveBeenCalled();
       checkPost().flush({ itemKey: '11', checked: true });
-      expect(flow.run).toHaveBeenCalledWith({ ingredientId: 11, name: 'Chicken Breast' }, 7);
+      expect(flow.run).toHaveBeenCalledWith({ ingredientId: 11, name: 'Chicken Breast', adhoc: false }, 7);
+    });
+
+    it('lets the answer on the tick win even before the askable list has loaded', () => {
+      const fixture = create({ needs: [] });
+      checkbox(items(fixture.nativeElement)[0]).click();
+      checkPost().flush({ itemKey: '11', checked: true, verification: ask(11, true) });
+      expect(flow.run).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not open the sheet when the tick could not be saved', () => {
+      const fixture = create({ needs: [ask(11, true)] });
+      checkbox(items(fixture.nativeElement)[0]).click();
+      checkPost().flush(null, { status: 500, statusText: 'Server Error' });
+      fixture.detectChanges();
+      expect(flow.run).not.toHaveBeenCalled();
+      expect(items(fixture.nativeElement)[0].classList).not.toContain('nom-shopping__item--checked');
     });
 
     it('stays quiet for a verified or recently asked food', () => {
@@ -190,20 +207,48 @@ describe('ShoppingComponent', () => {
   describe('items added by the household', () => {
     const state: ShoppingState = {
       items: [
-        adhoc({ id: 1, name: 'Paper towels', ingredientId: 99 }),
+        adhoc({ id: 1, name: 'Paper towels' }),
         adhoc({ id: 2, name: 'Bananas', ingredientId: 12, quantity: 6, unit: '' }),
+        adhoc({ id: 4, name: 'Skyr', ingredientId: 99 }),
       ],
       checks: [],
     };
 
-    it('shows an unplaceable item under "Added by you" and a recognised one in its aisle', () => {
+    it('files a non-food under Household, an unplaceable food under "Added by you" and a recognised one in its aisle', () => {
       const fixture = create({ state });
       const el = fixture.nativeElement as HTMLElement;
       const depts = Array.from(el.querySelectorAll('.nom-shopping__dept-name')).map((d) => d.textContent?.trim());
-      expect(depts).toEqual(['Produce', 'Meat & Seafood', 'Added by you']);
+      expect(depts).toEqual(['Produce', 'Meat & Seafood', 'Household', 'Added by you']);
       const adhocRows = items(el).filter((li) => li.dataset['source'] === 'adhoc');
-      expect(adhocRows).toHaveLength(2);
+      expect(adhocRows).toHaveLength(3);
       expect(adhocRows[0].querySelector('[data-testid="shopping-item-qty"]')?.textContent?.trim()).toBe('6');
+      expect(adhocRows[1].querySelector('[data-testid="shopping-item-qty"]')?.textContent?.trim()).toContain('qty');
+    });
+
+    it('saves an amount typed on an added line to the household row so every phone sees it', () => {
+      const fixture = create({ state });
+      fixture.componentInstance.saveEdit('item-4', '2 dozen');
+      fixture.detectChanges();
+      expect(items(fixture.nativeElement).find((li) => li.textContent?.includes('Skyr'))?.textContent).toContain('2 dozen');
+
+      const req = http.expectOne((r) => r.method === 'PUT' && r.url.endsWith('/Shopping/items/4'));
+      expect(req.request.body).toEqual({ quantity: 2, unit: 'dozen', ingredientId: 99 });
+      req.flush(adhoc({ id: 4, name: 'Skyr', ingredientId: 99, quantity: 2, unit: 'dozen' }));
+      fixture.detectChanges();
+      expect(fixture.componentInstance.adhocItems().find((i) => i.id === 4)?.quantity).toBe(2);
+      expect(fixture.componentInstance.quantityOverrides().has('item-4')).toBe(false);
+      expect(items(fixture.nativeElement).find((li) => li.textContent?.includes('Skyr'))?.textContent).toContain('2 dozen');
+    });
+
+    it('unlinks the line when the sheets end with "not a food"', async () => {
+      const fixture = create({ state, needs: [ask(99, true)] });
+      flow.run.mockImplementation(() => Promise.resolve('not-food'));
+      const skyr = items(fixture.nativeElement).find((li) => li.textContent?.includes('Skyr'))!;
+      checkbox(skyr).click();
+      checkPost().flush({ itemKey: 'item-4', itemId: 4, checked: true, verification: ask(99, true) });
+      await Promise.resolve();
+      expect(flow.run).toHaveBeenCalledWith({ ingredientId: 99, name: 'Skyr', adhoc: true }, 7);
+      expect(fixture.componentInstance.adhocItems().find((i) => i.id === 4)?.ingredientId).toBeNull();
     });
 
     it('ticks an added item by its row id', () => {
@@ -220,11 +265,11 @@ describe('ShoppingComponent', () => {
       const towels = items(fixture.nativeElement).find((li) => li.textContent?.includes('Paper towels'))!;
       towels.querySelector<HTMLButtonElement>('[data-testid="shopping-item-remove-btn"]')!.click();
       fixture.detectChanges();
-      expect(items(fixture.nativeElement)).toHaveLength(2);
+      expect(items(fixture.nativeElement)).toHaveLength(3);
 
       http.expectOne((r) => r.method === 'DELETE' && r.url.endsWith('/Shopping/items/1')).flush(null, { status: 500, statusText: 'Server Error' });
       fixture.detectChanges();
-      expect(items(fixture.nativeElement)).toHaveLength(3);
+      expect(items(fixture.nativeElement)).toHaveLength(4);
     });
 
     it('is a list, not an empty state, when only added items exist', () => {

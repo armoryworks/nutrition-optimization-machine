@@ -19,6 +19,24 @@ export function adhocDepartment(item: HouseholdShoppingItem): string {
   return dept === 'Other' ? ADDED_BY_YOU : dept;
 }
 
+/**
+ * What a shopper types into the amount box of a line they added: "2 dozen" is a
+ * quantity and a unit, "a few" is kept as the unit alone. Blank clears both.
+ */
+export function parseAdhocQuantity(text: string): { quantity: number | null; unit: string | null } {
+  const trimmed = text.trim();
+  if (!trimmed) return { quantity: null, unit: null };
+  const match = /^(\d+\s*\/\s*\d+|\d+(?:[.,]\d+)?)\s*(.*)$/.exec(trimmed);
+  if (!match) return { quantity: null, unit: trimmed.slice(0, 32) };
+  const fraction = /^(\d+)\s*\/\s*(\d+)$/.exec(match[1]);
+  const quantity = fraction
+    ? Math.round((Number(fraction[1]) / Number(fraction[2])) * 100) / 100
+    : Number(match[1].replace(',', '.'));
+  if (!Number.isFinite(quantity) || quantity <= 0) return { quantity: null, unit: trimmed.slice(0, 32) };
+  const unit = match[2].trim();
+  return { quantity, unit: unit ? unit.slice(0, 32) : null };
+}
+
 export function toShoppingItem(item: HouseholdShoppingItem): ShoppingItem {
   const quantity = item.quantity ?? 0;
   const unit = (item.unit ?? '').trim();

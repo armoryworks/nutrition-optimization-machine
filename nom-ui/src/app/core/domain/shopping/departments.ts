@@ -17,6 +17,7 @@ export const DEPARTMENT_ORDER = [
   'Nuts & Dried Fruit',
   'Frozen',
   'Beverages',
+  'Household',
   'Other',
 ];
 
@@ -34,8 +35,12 @@ export const DEPARTMENT_ICONS: Record<string, string> = {
   'Nuts & Dried Fruit': 'nutrition',
   Frozen: 'ac_unit',
   Beverages: 'local_cafe',
+  Household: 'cleaning_services',
   Other: 'category',
 };
+
+/** Non-food staples: never a catalog food, never asked about, filed in their own aisle. */
+export const HOUSEHOLD_DEPARTMENT = 'Household';
 
 const FOOD_GROUP_DEPARTMENTS: Record<string, string> = {
   vegetables: 'Produce',
@@ -102,6 +107,23 @@ function searchText(name: string): { text: string; packaged: boolean } {
 type Rule = [RegExp, string];
 
 const RULES: Rule[] = [
+  [
+    /\b(paper towel|toilet paper|toilet roll|tissue|kleenex|napkin|paper plate|paper cup|plastic cup|cutlery|straw|coffee filter)\b/,
+    HOUSEHOLD_DEPARTMENT,
+  ],
+  [
+    /\b(dish soap|dishwasher|dishwashing|detergent|laundry|fabric softener|dryer sheet|bleach|cleaner|cleaning|disinfectant|wipe|sponge|scrub|soap|hand wash|sanitizer|sanitiser)\b/,
+    HOUSEHOLD_DEPARTMENT,
+  ],
+  [
+    /\b(trash bag|garbage bag|bin bag|bin liner|aluminum foil|aluminium foil|tin foil|foil|plastic wrap|cling film|cling wrap|saran|parchment|wax paper|baking paper|ziploc|zip ?lock|freezer bag|sandwich bag|storage bag|food storage|container|light ?bulb|batter(y|ie)|candle|match(es)?|lighter)\b/,
+    HOUSEHOLD_DEPARTMENT,
+  ],
+  [
+    /\b(shampoo|conditioner|toothpaste|toothbrush|floss|mouthwash|deodorant|razor|shaving|lotion|sunscreen|body wash|q-?tip|band-?aid|bandage|tampon|diaper|nappy|nappies|baby wipe|vitamin|supplement|ibuprofen|tylenol|advil|aspirin|medicine|pain reliever)\b/,
+    HOUSEHOLD_DEPARTMENT,
+  ],
+  [/\b(dog|cat|pet|puppy|kitten) (food|treat|chow|litter|toy)\b|\b(kibble|cat litter|birdseed|bird seed)\b/, HOUSEHOLD_DEPARTMENT],
   [/\b(frozen|ice cream|sorbet|gelato|popsicle)\b/, 'Frozen'],
   [/\b(potato|tortilla|corn|pita|plantain|veggie) chip\b|\b(pretzel|popcorn)\b/, 'Other'],
   [/\b(spaghetti squash|cauliflower rice|riced cauliflower|zucchini noodle|sugar snap pea|snap pea|snow pea|green bean|string bean|snap bean|(mustard|turnip|beet|collard|dandelion) green)\b/, 'Produce'],

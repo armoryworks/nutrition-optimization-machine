@@ -1,10 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   BarcodeResult,
   HouseholdShoppingItem,
+  HouseholdShoppingItemAdded,
   HouseholdShoppingItemCreate,
   HouseholdShoppingItemUpdate,
   IngredientMeasurements,
@@ -12,6 +13,7 @@ import {
   IngredientVerificationConfirm,
   LabelScanResult,
   NeedsVerification,
+  NotFoodResult,
   ShoppingCheckRequest,
   ShoppingCheckResult,
   ShoppingState,
@@ -27,8 +29,10 @@ export class HouseholdShoppingService {
     return this.http.get<ShoppingState>(this.apiUrl, { params });
   }
 
-  addItem(body: HouseholdShoppingItemCreate): Observable<HouseholdShoppingItem> {
-    return this.http.post<HouseholdShoppingItem>(`${this.apiUrl}/items`, body);
+  addItem(body: HouseholdShoppingItemCreate): Observable<HouseholdShoppingItemAdded> {
+    return this.http
+      .post<HouseholdShoppingItem>(`${this.apiUrl}/items`, body, { observe: 'response' })
+      .pipe(map((response) => ({ item: response.body as HouseholdShoppingItem, created: response.status === 201 })));
   }
 
   updateItem(id: number, body: HouseholdShoppingItemUpdate): Observable<HouseholdShoppingItem> {
@@ -58,6 +62,10 @@ export class HouseholdShoppingService {
     return this.http.post<void>(`${this.apiUrl}/verification/${ingredientId}/skip`, { householdId });
   }
 
+  markNotFood(householdId: number, ingredientId: number): Observable<NotFoodResult> {
+    return this.http.post<NotFoodResult>(`${this.apiUrl}/verification/${ingredientId}/not-food`, { householdId });
+  }
+
   uploadLabel(householdId: number, ingredientId: number, image: File): Observable<LabelScanResult> {
     return this.http.post<LabelScanResult>(
       `${this.apiUrl}/verification/${ingredientId}/label`,
@@ -78,7 +86,7 @@ export class HouseholdShoppingService {
 
   decodeBarcodeImage(householdId: number, ingredientId: number, image: File): Observable<BarcodeResult> {
     return this.http.post<BarcodeResult>(
-      `${this.apiUrl}/verification/${ingredientId}/barcode`,
+      `${this.apiUrl}/verification/${ingredientId}/barcode/image`,
       this.imageForm(householdId, image),
     );
   }

@@ -178,6 +178,17 @@ const CASES: [string, string][] = [
   ['Potato chips', 'Other'],
   ['Tortilla chips', 'Other'],
   ['Chocolate chips', 'Baking'],
+  ['Paper towels', 'Household'],
+  ['Dish soap', 'Household'],
+  ['Laundry detergent', 'Household'],
+  ['Dog food', 'Household'],
+  ['Batteries', 'Household'],
+  ['Trash bags', 'Household'],
+  ['Toothpaste', 'Household'],
+  ['Baby wipes', 'Household'],
+  ['Coffee filters', 'Household'],
+  ['Pad thai noodles', 'Grains & Pasta'],
+  ['Strawberries', 'Produce'],
 ];
 
 describe('categorizeDepartment', () => {

@@ -5,7 +5,7 @@
     <mat-icon>close</mat-icon>
   </button>
 
-  <form class="nom-sheet__body" [formGroup]="form" (ngSubmit)="save()">
+  <form class="nom-sheet__body" [formGroup]="form" (ngSubmit)="save()" data-testid="measurements-form">
     <h2 class="nom-sheet__name">{{ data.name }}</h2>
     <p class="nom-sheet__lead">
       Optional: a few numbers from the package help NOM size portions and shopping amounts. Fill in what you can see.
@@ -16,6 +16,9 @@
         <mat-label>Package size</mat-label>
         <input matInput type="number" inputmode="decimal" min="0" step="any" formControlName="packageAmount"
                (focus)="onFieldFocus($event)" data-testid="measurements-package-size-input">
+        @if (form.controls.packageAmount.hasError('min')) {
+          <mat-error data-testid="measurements-package-size-error">Cannot be negative</mat-error>
+        }
       </mat-form-field>
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>Unit</mat-label>
@@ -29,15 +32,27 @@
         <mat-label>Pieces per package</mat-label>
         <input matInput type="number" inputmode="numeric" min="1" step="1" formControlName="piecesPerPackage"
                (focus)="onFieldFocus($event)" data-testid="measurements-pieces-input">
+        @if (form.controls.piecesPerPackage.hasError('pattern') || form.controls.piecesPerPackage.hasError('min')) {
+          <mat-error data-testid="measurements-pieces-error">Whole number of pieces, 1 or more</mat-error>
+        }
       </mat-form-field>
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>1 cup weighs</mat-label>
         <input matInput type="number" inputmode="decimal" min="0" step="any" formControlName="cupGrams"
                (focus)="onFieldFocus($event)" data-testid="measurements-cup-grams-input">
         <span matTextSuffix>g</span>
+        @if (form.controls.cupGrams.hasError('min')) {
+          <mat-error data-testid="measurements-cup-grams-error">Cannot be negative</mat-error>
+        }
       </mat-form-field>
     </div>
 
+    @if (invalid() && form.invalid) {
+      <p class="nom-sheet__error" role="alert" data-testid="measurements-invalid">
+        <mat-icon>error_outline</mat-icon>
+        Fix the highlighted fields above to save.
+      </p>
+    }
     @if (error()) {
       <p class="nom-sheet__error" role="alert" data-testid="measurements-error">
         <mat-icon>error_outline</mat-icon>
@@ -47,7 +62,7 @@
 
     <div class="nom-sheet__actions">
       <button mat-flat-button type="submit" class="nom-sheet__action"
-              [disabled]="saving() || !canSave()" data-testid="measurements-save-btn">
+              [disabled]="saving()" data-testid="measurements-save-btn">
         @if (saving()) {
           <mat-spinner diameter="18"></mat-spinner>
         } @else {

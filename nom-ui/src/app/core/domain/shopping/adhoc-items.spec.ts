@@ -1,4 +1,4 @@
-import { ADDED_BY_YOU, adhocDepartment, mergeAdhocItems, toShoppingItem } from './adhoc-items';
+import { ADDED_BY_YOU, adhocDepartment, mergeAdhocItems, parseAdhocQuantity, toShoppingItem } from './adhoc-items';
 import { ShoppingDepartment } from './shopping-types';
 import { HouseholdShoppingItem } from '../../models/household-shopping.model';
 
@@ -44,10 +44,16 @@ describe('mergeAdhocItems', () => {
   });
 
   it('puts a name nothing recognises under "Added by you" at the end', () => {
-    const result = mergeAdhocItems(planned, [item({ id: 1, name: 'Paper towels' })]);
+    const result = mergeAdhocItems(planned, [item({ id: 1, name: 'Skyr' })]);
     expect(result.map((d) => d.name)).toEqual(['Meat & Seafood', ADDED_BY_YOU]);
     expect(result[1].items[0]).toMatchObject({ checkKey: 'item-1', source: 'adhoc', adhocId: 1, ingredientId: null });
     expect(result[0].items).toHaveLength(1);
+  });
+
+  it('files a non-food staple under Household, after the food aisles', () => {
+    const result = mergeAdhocItems(planned, [item({ id: 1, name: 'Paper towels' }), item({ id: 2, name: 'Skyr' })]);
+    expect(result.map((d) => d.name)).toEqual(['Meat & Seafood', 'Household', ADDED_BY_YOU]);
+    expect(adhocDepartment(item({ id: 3, name: 'Dish soap' }))).toBe('Household');
   });
 
   it('files a recognised food in its aisle, created in store order when absent', () => {
@@ -65,5 +71,16 @@ describe('mergeAdhocItems', () => {
     expect(line.portions).toEqual([{ quantity: 12, unit: '' }]);
     expect(line.baseCount).toBe(12);
     expect(toShoppingItem(item({ id: 5, name: 'Salt' })).portions).toEqual([]);
+  });
+});
+
+describe('parseAdhocQuantity', () => {
+  it('reads a number and a unit, keeps words alone as the unit, and clears on blank', () => {
+    expect(parseAdhocQuantity('2 dozen')).toEqual({ quantity: 2, unit: 'dozen' });
+    expect(parseAdhocQuantity('500 g')).toEqual({ quantity: 500, unit: 'g' });
+    expect(parseAdhocQuantity('3')).toEqual({ quantity: 3, unit: null });
+    expect(parseAdhocQuantity('1/2 lb')).toEqual({ quantity: 0.5, unit: 'lb' });
+    expect(parseAdhocQuantity('a few')).toEqual({ quantity: null, unit: 'a few' });
+    expect(parseAdhocQuantity('   ')).toEqual({ quantity: null, unit: null });
   });
 });

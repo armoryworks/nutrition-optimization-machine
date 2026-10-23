@@ -45,6 +45,7 @@ describe('labelFormValue / labelConfirmBody', () => {
     value.nutrients['fat'] = 9;
     value.nutrients['protein'] = 3;
     const body = labelConfirmBody(value, parsed);
+    expect(body.basis).toBe('serving');
     expect(body.servingGrams).toBeNull();
     expect(body.servingText).toBe('2/3 cup');
     expect(body.nutrients).toEqual([
@@ -55,11 +56,33 @@ describe('labelFormValue / labelConfirmBody', () => {
   });
 });
 
+const per100g: NutritionFactsParseResult = {
+  ...parsed,
+  basis: 'per100g',
+  servingText: null,
+  servingGrams: null,
+  servingsPerContainer: null,
+  calories: 250,
+  nutrients: [{ key: 'fat', amount: 8, unit: 'g', raw: 'Fat 8.0g' }],
+  warnings: [],
+};
+
+describe('labelConfirmBody for a per-100 g table', () => {
+  it('keeps the printed basis and sends no serving weight that could scale the values', () => {
+    const value = labelFormValue(per100g);
+    value.servingGrams = 30;
+    const body = labelConfirmBody(value, per100g);
+    expect(body.basis).toBe('per100g');
+    expect(body.servingGrams).toBeNull();
+    expect(body.calories).toBe(250);
+  });
+});
+
 describe('LabelConfirmSheet', () => {
   let http: HttpTestingController;
   let dismiss: ReturnType<typeof vi.fn>;
 
-  function create() {
+  function create(result: NutritionFactsParseResult = parsed) {
     dismiss = vi.fn();
     TestBed.configureTestingModule({
       imports: [LabelConfirmSheet],
@@ -67,7 +90,7 @@ describe('LabelConfirmSheet', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideNoopAnimations(),
-        { provide: MAT_BOTTOM_SHEET_DATA, useValue: { ingredientId: 11, householdId: 7, name: 'Granola', scan } },
+        { provide: MAT_BOTTOM_SHEET_DATA, useValue: { ingredientId: 11, householdId: 7, name: 'Granola', scan: { ...scan, parsed: result } } },
         { provide: MatBottomSheetRef, useValue: { dismiss } },
       ],
     });
@@ -87,8 +110,40 @@ describe('LabelConfirmSheet', () => {
     expect(field(el, 'label-confirm-nutrient-sodium').value).toBe('160');
     expect(field(el, 'label-confirm-nutrient-trans_fat').value).toBe('');
     expect(field(el, 'label-confirm-serving-grams-input').value).toBe('55');
+    expect(field(el, 'label-confirm-nutrient-trans_fat').placeholder).toBe('< 1');
+    expect(el.querySelector('[data-testid="label-confirm-nutrient-trans_fat-hint"]')?.textContent).toContain('less than 1 g');
     expect(el.textContent).toContain('per serving, exactly as printed');
     expect(el.textContent).toContain('Saturated and trans fat exceed total fat');
+  });
+
+  it('hides the serving weight for a per-100 g table and saves it on that basis', () => {
+    const fixture = create(per100g);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="label-confirm-serving-grams-input"]')).toBeNull();
+    expect(el.querySelector('[data-testid="label-confirm-basis"]')?.textContent).toContain('per 100 g');
+    el.querySelector<HTMLButtonElement>('[data-testid="label-confirm-save-btn"]')!.click();
+
+    const req = http.expectOne((r) => r.method === 'PUT' && r.url.endsWith('/Shopping/verification/501'));
+    expect(req.request.body).toMatchObject({ basis: 'per100g', servingGrams: null, calories: 250 });
+    req.flush({ id: 501 });
+  });
+
+  it('says why Save did nothing and shows the field instead of greying the button out', () => {
+    const fixture = create();
+    const el = fixture.nativeElement as HTMLElement;
+    const grams = field(el, 'label-confirm-serving-grams-input');
+    grams.value = '0';
+    grams.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const save = el.querySelector<HTMLButtonElement>('[data-testid="label-confirm-save-btn"]')!;
+    expect(save.disabled).toBe(false);
+    save.click();
+    fixture.detectChanges();
+
+    http.expectNone((r) => r.method === 'PUT');
+    expect(el.querySelector('[data-testid="label-confirm-invalid"]')?.textContent).toContain('Fix the highlighted fields');
+    expect(el.querySelector('[data-testid="label-confirm-serving-grams-error"]')?.textContent).toContain('Must be more than 0');
   });
 
   it('saves the corrected values against the pending verification', () => {
@@ -102,6 +157,7 @@ describe('LabelConfirmSheet', () => {
 
     const req = http.expectOne((r) => r.method === 'PUT' && r.url.endsWith('/Shopping/verification/501'));
     expect(req.request.body).toMatchObject({
+      basis: 'serving',
       servingText: '2/3 cup',
       servingGrams: 55,
       servingsPerContainer: 8,

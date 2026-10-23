@@ -13,6 +13,7 @@ namespace Nom.Orch.Interfaces
     {
         Task<List<NeedsVerificationModel>> NeedsVerificationAsync(long householdId, IReadOnlyCollection<long> ingredientIds);
         Task<bool> SkipAsync(long ingredientId, long householdId, long personId);
+        Task<NotFoodResultModel?> MarkNotFoodAsync(long ingredientId, long householdId, long personId);
         Task<LabelScanResultModel?> ScanLabelAsync(long ingredientId, long householdId, long personId, byte[] image);
         Task<IngredientVerificationModel?> GetAsync(long verificationId);
         Task<IngredientVerificationModel?> ConfirmAsync(long verificationId, long personId, IngredientVerificationConfirmModel model);

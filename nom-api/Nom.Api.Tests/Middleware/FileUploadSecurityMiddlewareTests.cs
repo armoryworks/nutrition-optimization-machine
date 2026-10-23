@@ -75,6 +75,18 @@ namespace Nom.Api.Tests.Middleware
         }
 
         [Fact]
+        public async Task A_riff_container_that_is_not_webp_is_rejected()
+        {
+            var wav = Encoding.ASCII.GetBytes("RIFF").Concat(new byte[] { 0x20, 0, 0, 0 })
+                .Concat(Encoding.ASCII.GetBytes("WAVEfmt ")).Concat(new byte[32]).ToArray();
+
+            var (nextCalled, status, _) = await Upload("photo.webp", "image/webp", wav);
+
+            Assert.False(nextCalled);
+            Assert.Equal(400, status);
+        }
+
+        [Fact]
         public async Task Image_with_a_non_image_signature_is_rejected()
         {
             var fake = Encoding.ASCII.GetBytes("not really an image at all");

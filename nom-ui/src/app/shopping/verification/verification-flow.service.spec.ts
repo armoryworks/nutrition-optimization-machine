@@ -4,7 +4,7 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { of } from 'rxjs';
-import { VerificationFlowService } from './verification-flow.service';
+import { SKIPPED_MESSAGE, VerificationFlowService } from './verification-flow.service';
 import { VerificationSheet } from './verification-sheet.component';
 import { LabelConfirmSheet } from './label-confirm-sheet.component';
 import { MeasurementsSheet } from './measurements-sheet.component';
@@ -63,26 +63,36 @@ describe('VerificationFlowService', () => {
 
   afterEach(() => http.verify());
 
-  it('records a skip so the household is not asked again for a month', async () => {
-    const run = create([{ action: 'skip' }]).run({ ingredientId: 11, name: 'Chicken Breast' }, 7);
+  it('records a skip only when the Skip button is pressed, and says so', async () => {
+    const service = create([{ action: 'skip' }]);
+    const run = service.run({ ingredientId: 11, name: 'Chicken Breast' }, 7);
     await settle();
     const req = skipPost();
     expect(req.request.body).toEqual({ householdId: 7 });
     req.flush(null);
-    await run;
+    expect(await run).toBe('skipped');
     expect(opened).toEqual([VerificationSheet]);
+    expect(TestBed.inject(MatSnackBar).open).toHaveBeenCalledWith(SKIPPED_MESSAGE, 'OK', expect.anything());
   });
 
-  it('treats closing the sheet any other way as a skip', async () => {
-    const run = create([undefined]).run({ ingredientId: 11, name: 'Chicken Breast' }, 7);
-    await settle();
-    skipPost().flush(null);
-    await run;
+  it('leaves nothing behind when the sheet is closed any other way', async () => {
+    const outcome = await create([undefined]).run({ ingredientId: 11, name: 'Chicken Breast' }, 7);
+    expect(outcome).toBe('dismissed');
     expect(opened).toEqual([VerificationSheet]);
+    http.expectNone(() => true);
+  });
+
+  it('reports a non-food so the page can unlink the line', async () => {
+    const result = { ingredientId: 11, itemsUnlinked: 1, ingredientRetired: true };
+    const outcome = await create([{ action: 'not-food', result }]).run({ ingredientId: 11, name: 'Paper towels', adhoc: true }, 7);
+    expect(outcome).toBe('not-food');
+    expect(opened).toEqual([VerificationSheet]);
+    http.expectNone(() => true);
   });
 
   it('follows a label scan with the confirm sheet and then measurements', async () => {
-    await create([{ action: 'label', scan }, { saved: true }, undefined]).run({ ingredientId: 11, name: 'Chicken Breast' }, 7);
+    const outcome = await create([{ action: 'label', scan }, { saved: true }, undefined]).run({ ingredientId: 11, name: 'Chicken Breast' }, 7);
+    expect(outcome).toBe('recorded');
     expect(opened).toEqual([VerificationSheet, LabelConfirmSheet, MeasurementsSheet]);
     http.expectNone((r) => r.url.endsWith('/skip'));
   });

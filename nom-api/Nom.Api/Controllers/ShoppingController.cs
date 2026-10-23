@@ -40,11 +40,18 @@ namespace Nom.Api.Controllers
             if (!ModelState.IsValid) return BadRequest(ModelState);
             if (!IsHouseholdMember(model.HouseholdId)) return Forbid();
 
-            var result = await _shopping.AddItemAsync(model.HouseholdId, GetCurrentPersonIdRequired(), model);
-            if (result == null) return NotFound(new { message = "Ingredient not found" });
-            return result.Created
-                ? CreatedAtAction(nameof(GetItem), new { id = result.Item.Id }, result.Item)
-                : Ok(result.Item);
+            try
+            {
+                var result = await _shopping.AddItemAsync(model.HouseholdId, GetCurrentPersonIdRequired(), model);
+                if (result == null) return NotFound(new { message = "Ingredient not found" });
+                return result.Created
+                    ? CreatedAtAction(nameof(GetItem), new { id = result.Item.Id }, result.Item)
+                    : Ok(result.Item);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpGet("items/{id:long}")]
@@ -140,6 +147,16 @@ namespace Nom.Api.Controllers
             return ok ? NoContent() : NotFound();
         }
 
+        [HttpPost("verification/{ingredientId:long}/not-food")]
+        public async Task<ActionResult<NotFoodResultModel>> MarkNotFood(long ingredientId, [FromBody] HouseholdRequestModel request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!IsHouseholdMember(request.HouseholdId)) return Forbid();
+
+            var result = await _verifications.MarkNotFoodAsync(ingredientId, request.HouseholdId, GetCurrentPersonIdRequired());
+            return result == null ? NotFound() : Ok(result);
+        }
+
         [HttpPost("verification/{ingredientId:long}/label")]
         [RequestSizeLimit(12_000_000)]
         [Consumes("multipart/form-data")]
@@ -189,7 +206,6 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost("verification/{ingredientId:long}/barcode")]
-        [Consumes("application/json")]
         public async Task<ActionResult<BarcodeResultModel>> RecordBarcode(long ingredientId, [FromBody] BarcodeRequestModel request)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -206,7 +222,7 @@ namespace Nom.Api.Controllers
             }
         }
 
-        [HttpPost("verification/{ingredientId:long}/barcode")]
+        [HttpPost("verification/{ingredientId:long}/barcode/image")]
         [RequestSizeLimit(12_000_000)]
         [Consumes("multipart/form-data")]
         public async Task<ActionResult<BarcodeResultModel>> RecordBarcodeFromImage(long ingredientId, [FromForm] long householdId, IFormFile image)
@@ -216,8 +232,15 @@ namespace Nom.Api.Controllers
             if (problem != null) return BadRequest(new { message = problem });
 
             var bytes = await ReadAsync(image);
-            var result = await _verifications.RecordBarcodeFromImageAsync(ingredientId, householdId, GetCurrentPersonIdRequired(), bytes);
-            return result == null ? NotFound() : Ok(result);
+            try
+            {
+                var result = await _verifications.RecordBarcodeFromImageAsync(ingredientId, householdId, GetCurrentPersonIdRequired(), bytes);
+                return result == null ? NotFound() : Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(StatusCodes.Status429TooManyRequests, new { message = ex.Message });
+            }
         }
 
         [HttpPost("verification/{ingredientId:long}/measurements")]
