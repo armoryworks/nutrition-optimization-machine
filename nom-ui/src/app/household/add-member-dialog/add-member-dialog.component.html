@@ -6,14 +6,14 @@
       {{ isEditMode() ? 'Edit Dietary Preferences' : 'Dietary Preferences' }}
     }
   </h2>
-  <button class="nom-dialog__close" (click)="cancel()" aria-label="Close dialog">
+  <button class="nom-dialog__close" (click)="cancel()" aria-label="Close dialog" data-testid="add-member-close-btn">
     <mat-icon>close</mat-icon>
   </button>
 </div>
 
 <mat-dialog-content>
   @if (errorMessage()) {
-    <div class="nom-form__error">
+    <div class="nom-form__error" data-testid="add-member-error">
       <mat-icon>error_outline</mat-icon>
       <span>{{ errorMessage() }}</span>
     </div>
@@ -37,7 +37,7 @@
 
 <mat-dialog-actions align="end">
   @if (currentStep() === 0) {
-    <button mat-button (click)="cancel()">Cancel</button>
+    <button mat-button (click)="cancel()" data-testid="add-member-cancel-btn">Cancel</button>
     <button mat-flat-button
             (click)="profileRef()?.submit()"
             [disabled]="$safeNavigationMigration(profileRef()?.loading())"
@@ -45,7 +45,7 @@
       Save & Continue
     </button>
   } @else {
-    <button mat-button (click)="skipRestrictions()">Skip</button>
-    <button mat-flat-button (click)="restrictionsRef()?.submit()">Continue</button>
+    <button mat-button (click)="skipRestrictions()" data-testid="add-member-skip-btn">Skip</button>
+    <button mat-flat-button (click)="restrictionsRef()?.submit()" data-testid="add-member-continue-btn">Continue</button>
   }
 </mat-dialog-actions>

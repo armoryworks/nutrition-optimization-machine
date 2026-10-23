@@ -52,7 +52,7 @@
         <mat-label>Food group</mat-label>
         <mat-select formControlName="foodGroupId" data-testid="food-group-rules-group">
           @for (fg of foodGroups(); track fg.id) {
-            <mat-option [value]="fg.id">{{ fg.name }}</mat-option>
+            <mat-option [value]="fg.id" data-testid="food-group-rules-group-option">{{ fg.name }}</mat-option>
           }
         </mat-select>
         @if (addForm.get('foodGroupId')?.hasError('required') && addForm.get('foodGroupId')?.touched) {

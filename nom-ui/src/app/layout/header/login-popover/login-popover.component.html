@@ -16,7 +16,7 @@
   <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" data-testid="login-form">
     <mat-form-field appearance="outline" class="nom-login-popover__field">
       <mat-label>Email</mat-label>
-      <input matInput formControlName="email" type="email" autocomplete="email" />
+      <input matInput formControlName="email" type="email" autocomplete="email" data-testid="login-email-input" />
       <mat-icon matPrefix>email</mat-icon>
       @if (loginForm.controls.email.touched && loginForm.controls.email.hasError('required')) {
         <mat-error>Email is required</mat-error>
@@ -32,6 +32,7 @@
         formControlName="password"
         [type]="showPassword() ? 'text' : 'password'"
         autocomplete="current-password"
+        data-testid="login-password-input"
       />
       <mat-icon matPrefix>lock</mat-icon>
       <button
@@ -41,6 +42,7 @@
         tabindex="-1"
         (click)="showPassword.set(!showPassword())"
         [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+        data-testid="login-toggle-password-btn"
       >
         <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
       </button>
@@ -79,6 +81,7 @@
 
     <div class="nom-login-popover__forgot-row">
       <a routerLink="/forgot-password" (click)="closed.emit()" class="nom-login-popover__forgot"
+        data-testid="login-forgot-password-link"
         >Forgot password?</a
       >
     </div>
@@ -100,6 +103,6 @@
   </form>
 
   <p class="nom-login-popover__footer">
-    Don't have an account? <a routerLink="/register" (click)="closed.emit()">Create Account</a>
+    Don't have an account? <a routerLink="/register" (click)="closed.emit()" data-testid="login-create-account-link">Create Account</a>
   </p>
 </div>

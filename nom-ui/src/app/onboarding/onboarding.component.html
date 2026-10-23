@@ -17,7 +17,7 @@
             {{ i + 1 }}
           }
         </div>
-        <span class="nom-onboarding__step-label">{{ label }}</span>
+        <span class="nom-onboarding__step-label" data-testid="onboarding-step-label">{{ label }}</span>
       </button>
       @if (i < stepLabels.length - 1) {
         <div class="nom-onboarding__step-connector"

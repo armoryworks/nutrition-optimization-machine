@@ -1,122 +1,92 @@
-/**
- * NOM Shopping List E2E Test — household items and label verification
- *
- * Covers the Release A shopping lane end to end through the real UI:
- * 1. Register and sign in (header popover), make sure a household exists
- * 2. Add a non-food staple (no catalog food is created, no question asked)
- * 3. Add a brand-new food the catalog does not know
- * 4. Tick it — the verification sheet offers Scan label / Scan barcode / Not a food / Skip
- * 5. Skip for a month, re-tick: not asked again this session
- * 6. Add a second new food, tick it, photograph a blank "label": the confirm
- *    sheet lets the values be typed, Save leads to the measurements sheet, Save there
- * 7. Add an existing item again: the list says it is already there
- */
+import { selectedViewports } from '../support/viewports';
 
-const BLANK_LABEL_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAS0lEQVR42u3PMQ0AAAwDoPo33UrYvQQckD4XAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAYHLAMpT0sIcNbcEAAAAAElFTkSuQmCC';
+const VIEWPORTS = selectedViewports();
+const CHECKED_CLASS = 'nom-shopping__item--checked';
+const unique = (base: string) => `${base} ${Date.now().toString(36)}`;
 
-describe('Shopping list — household items and label verification', () => {
-  const testPassword = Cypress.env('TEST_PASSWORD') || 'TestPassword123!';
-  const stamp = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-  const userEmail = `shop-${stamp}@example.com`;
-  const firstFood = `Granola ${stamp}`;
-  const secondFood = `Crackers ${stamp}`;
+const shoppingItem = (name: string) => cy.byTestId('shopping-item').filter(`:contains("${name}")`);
 
-  before(() => {
-    cy.visit('/register');
-    cy.get('input[formcontrolname="email"]').type(userEmail);
-    cy.get('input[formcontrolname="fullName"]').type('Shopping Test User');
-    cy.get('input[formcontrolname="password"]').type(testPassword);
-    cy.get('input[formcontrolname="confirmPassword"]').type(testPassword);
-    cy.contains('button', 'Create Account').click();
-    cy.wait(3000);
-  });
+const addItem = (name: string, outcome: 'created' | 'already-listed') => {
+  cy.byTestId('shopping-add-item-input').clear().type(name);
+  cy.byTestId('shopping-add-item-submit-btn').click();
+  cy.wait('@addItem').its('response.statusCode').should('eq', outcome === 'created' ? 201 : 200);
+  shoppingItem(name).should('have.length', 1);
+};
 
-  const loginViaPopover = () => {
-    cy.visit('/home');
-    cy.wait(1000);
-    cy.get('.nom-header__login-btn').click();
-    cy.wait(500);
-    cy.get('.nom-login-popover').within(() => {
-      cy.get('input[formcontrolname="email"]').type(userEmail);
-      cy.get('input[formcontrolname="password"]').type(testPassword);
-      cy.contains('button', 'Sign In').click();
+const tick = (name: string) => {
+  shoppingItem(name).find('[data-testid="shopping-item-checkbox"]').click();
+  cy.wait('@check').its('response.statusCode').should('eq', 200);
+};
+
+VIEWPORTS.forEach((vp) => {
+  describe(`Shopping list: household items and label verification (${vp.name} ${vp.width}x${vp.height})`, () => {
+    beforeEach(() => {
+      cy.viewport(vp.width, vp.height);
     });
-    cy.get('.nom-header__avatar', { timeout: 10000 }).should('be.visible');
-  };
 
-  const addItem = (name: string) => {
-    cy.get('[data-testid="shopping-add-item-input"]').clear().type(name);
-    cy.get('[data-testid="shopping-add-item-submit-btn"]').click();
-    cy.contains('[data-testid="shopping-item"]', name, { timeout: 10000 }).should('exist');
-  };
+    it('adds a staple without a question, asks about a new food on tick, skips, then records a label and measurements', () => {
+      const granola = unique('Granola');
+      const crackers = unique('Crackers');
+      cy.registerAndLogin(`shopping list ${vp.name}`);
 
-  const tick = (name: string) => {
-    cy.contains('[data-testid="shopping-item"]', name).within(() => {
-      cy.get('[data-testid="shopping-item-checkbox"]').click();
+      cy.intercept('POST', '**/api/Shopping/items').as('addItem');
+      cy.intercept('POST', '**/api/Shopping/checks').as('check');
+      cy.intercept('POST', '**/api/Shopping/verification/*/skip').as('skipVerification');
+      cy.intercept('POST', '**/api/Shopping/verification/*/label').as('label');
+      cy.intercept('PUT', '**/api/Shopping/verification/*').as('confirm');
+      cy.intercept('POST', '**/api/Shopping/verification/*/measurements').as('measurements');
+
+      cy.navTo('nav-shopping');
+      cy.byTestId('shopping').should('be.visible');
+      cy.byTestId('shopping-add-item-input').should('be.visible');
+
+      addItem('Paper towels', 'created');
+      cy.byTestId('shopping-dept').filter(':contains("Household")').should('have.length', 1);
+      tick('Paper towels');
+      cy.byTestId('verification-sheet').should('not.exist');
+      shoppingItem('Paper towels').should('have.class', CHECKED_CLASS);
+
+      addItem(granola, 'created');
+      tick(granola);
+      cy.byTestId('verification-sheet').should('be.visible');
+      cy.byTestId('verification-sheet-scan-label-btn').should('be.visible');
+      cy.byTestId('verification-sheet-scan-barcode-btn').should('be.visible');
+      cy.byTestId('verification-sheet-not-food-btn').should('be.visible');
+      cy.byTestId('verification-sheet-skip-btn').should('be.visible').click();
+      cy.wait('@skipVerification').its('response.statusCode').should('eq', 204);
+      cy.byTestId('verification-sheet').should('not.exist');
+      shoppingItem(granola).should('have.class', CHECKED_CLASS);
+
+      tick(granola);
+      shoppingItem(granola).should('not.have.class', CHECKED_CLASS);
+      tick(granola);
+      shoppingItem(granola).should('have.class', CHECKED_CLASS);
+      cy.byTestId('verification-sheet').should('not.exist');
+
+      addItem(crackers, 'created');
+      tick(crackers);
+      cy.byTestId('verification-sheet').should('be.visible');
+      cy.byTestId('verification-sheet-label-input').selectFile('cypress/fixtures/nutrition-label.jpg', { force: true });
+      cy.wait('@label', { timeout: 60000 }).its('response.statusCode').should('eq', 200);
+      cy.byTestId('label-confirm-sheet').should('be.visible');
+      cy.byTestId('label-confirm-basis').should('contain.text', 'per serving');
+      cy.byTestId('label-confirm-serving-grams-input').clear().type('30');
+      cy.byTestId('label-confirm-calories-input').clear().type('120');
+      cy.byTestId('label-confirm-nutrient-fat').clear().type('4');
+      cy.byTestId('label-confirm-save-btn').click();
+      cy.wait('@confirm').its('response.statusCode').should('eq', 200);
+
+      cy.byTestId('measurements-sheet').should('be.visible');
+      cy.byTestId('measurements-package-size-input').type('500');
+      cy.byTestId('measurements-pieces-input').type('24');
+      cy.byTestId('measurements-save-btn').click();
+      cy.wait('@measurements').its('response.statusCode').should('eq', 200);
+      cy.byTestId('measurements-sheet').should('not.exist');
+      shoppingItem(crackers).should('have.class', CHECKED_CLASS);
+
+      addItem('Paper towels', 'already-listed');
+      cy.contains('is already on your list').should('be.visible');
+      shoppingItem('Paper towels').should('not.have.class', CHECKED_CLASS);
     });
-  };
-
-  it('adds items, asks about an unverified food on tick, skips, records a label and measurements', () => {
-    loginViaPopover();
-    cy.visit('/shopping');
-    cy.get('[data-testid="shopping"]', { timeout: 10000 }).should('exist');
-
-    cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="no-household-cta"]').length > 0) {
-        cy.get('[data-testid="no-household-solo-btn"]').click();
-        cy.wait(2000);
-      }
-    });
-    cy.get('[data-testid="shopping-add-item-input"]', { timeout: 15000 }).should('exist');
-
-    addItem('Paper towels');
-    cy.contains('.nom-shopping__dept-name', 'Household').should('exist');
-    tick('Paper towels');
-    cy.wait(1000);
-    cy.get('[data-testid="verification-sheet"]').should('not.exist');
-    cy.contains('[data-testid="shopping-item"]', 'Paper towels').should('have.class', 'nom-shopping__item--checked');
-
-    addItem(firstFood);
-    tick(firstFood);
-    cy.get('[data-testid="verification-sheet"]', { timeout: 10000 }).should('be.visible');
-    cy.get('[data-testid="verification-sheet-scan-label-btn"]').should('be.visible');
-    cy.get('[data-testid="verification-sheet-scan-barcode-btn"]').should('be.visible');
-    cy.get('[data-testid="verification-sheet-not-food-btn"]').should('be.visible');
-    cy.get('[data-testid="verification-sheet-skip-btn"]').click();
-    cy.get('[data-testid="verification-sheet"]').should('not.exist');
-    cy.contains('[data-testid="shopping-item"]', firstFood).should('have.class', 'nom-shopping__item--checked');
-
-    tick(firstFood);
-    cy.wait(500);
-    tick(firstFood);
-    cy.wait(1000);
-    cy.get('[data-testid="verification-sheet"]').should('not.exist');
-
-    addItem(secondFood);
-    tick(secondFood);
-    cy.get('[data-testid="verification-sheet"]', { timeout: 10000 }).should('be.visible');
-    cy.get('[data-testid="verification-sheet-label-input"]').selectFile(
-      { contents: Cypress.Buffer.from(BLANK_LABEL_PNG, 'base64'), fileName: 'label.png', mimeType: 'image/png' },
-      { force: true },
-    );
-    cy.get('[data-testid="label-confirm-sheet"]', { timeout: 30000 }).should('be.visible');
-    cy.get('[data-testid="label-confirm-basis"]').should('contain.text', 'per serving');
-    cy.get('[data-testid="label-confirm-serving-grams-input"]').clear().type('30');
-    cy.get('[data-testid="label-confirm-calories-input"]').clear().type('120');
-    cy.get('[data-testid="label-confirm-nutrient-fat"]').clear().type('4');
-    cy.get('[data-testid="label-confirm-save-btn"]').click();
-
-    cy.get('[data-testid="measurements-sheet"]', { timeout: 15000 }).should('be.visible');
-    cy.get('[data-testid="measurements-package-size-input"]').type('500');
-    cy.get('[data-testid="measurements-pieces-input"]').type('24');
-    cy.get('[data-testid="measurements-save-btn"]').click();
-    cy.get('[data-testid="measurements-sheet"]').should('not.exist');
-    cy.contains('[data-testid="shopping-item"]', secondFood).should('have.class', 'nom-shopping__item--checked');
-
-    cy.get('[data-testid="shopping-add-item-input"]').clear().type('Paper towels');
-    cy.get('[data-testid="shopping-add-item-submit-btn"]').click();
-    cy.contains('is already on your list', { timeout: 10000 }).should('exist');
-    cy.get('[data-testid="shopping-item"]').filter(':contains("Paper towels")').should('have.length', 1);
-    cy.contains('[data-testid="shopping-item"]', 'Paper towels').should('not.have.class', 'nom-shopping__item--checked');
   });
 });

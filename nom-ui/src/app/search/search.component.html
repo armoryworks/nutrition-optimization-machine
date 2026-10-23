@@ -245,7 +245,7 @@
                 @if (recipe.categories.length > 0) {
                   <span class="nom-search__card-category">{{ recipe.categories[0] }}</span>
                 }
-                <span class="nom-search__card-name">{{ recipe.name }}</span>
+                <span class="nom-search__card-name" data-testid="search-result-name">{{ recipe.name }}</span>
                 @if (recipe.dietConflicts?.length) {
                   <span class="nom-search__card-conflict" data-testid="search-result-conflict">
                     <mat-icon class="nom-search__card-meta-icon">error</mat-icon>

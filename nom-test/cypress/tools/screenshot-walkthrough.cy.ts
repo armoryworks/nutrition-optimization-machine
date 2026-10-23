@@ -26,20 +26,30 @@ describe('Screenshot Walkthrough', () => {
   const apiUrl = Cypress.env('apiUrl') || 'http://localhost:8080';
 
   /** Wait for Angular animations / data to settle before capturing. */
-  const settle = (ms = 1500) => cy.wait(ms);
+  const settle = () =>
+    cy.window({ log: false }).then({ timeout: 15000 }, (win) =>
+      new Cypress.Promise<void>((resolve) => {
+        const testabilities = (win as any).getAllAngularTestabilities?.() ?? [];
+        if (testabilities.length === 0) {
+          resolve();
+          return;
+        }
+        testabilities[0].whenStable(() => resolve());
+      })
+    );
 
   /** Navigate via the primary nav rail (always visible when signed in). */
   const navigateViaMenu = (testId: string) => {
     cy.get(`[data-testid="${testId}"]`).click();
-    settle(2000);
+    settle();
   };
 
   /** Navigate via the user-menu dropdown (account items: profile, restrictions). */
   const navigateViaUserMenu = (testId: string) => {
     cy.get('[data-testid="header-avatar-btn"]').click();
-    settle(500);
+    settle();
     cy.get(`[data-testid="${testId}"]`).click();
-    settle(2000);
+    settle();
   };
 
   const adminEmail = Cypress.env('ADMIN_EMAIL') || 'admin@example.com';
@@ -50,7 +60,7 @@ describe('Screenshot Walkthrough', () => {
     cy.visit('/home');
     settle();
     cy.get('[data-testid="header-login-btn"]').click();
-    settle(500);
+    settle();
     cy.get('[data-testid="login-popover"]').within(() => {
       cy.get('input[formcontrolname="email"]').type(email);
       cy.get('input[formcontrolname="password"]').type(password);
@@ -65,7 +75,7 @@ describe('Screenshot Walkthrough', () => {
     cy.get('body').then(($b) => {
       if ($b.find('[data-testid="header-avatar-btn"]').length) {
         cy.get('[data-testid="header-avatar-btn"]').click();
-        settle(500);
+        settle();
         cy.get('[data-testid="nav-sign-out"]').click();
         settle();
       }
@@ -81,7 +91,7 @@ describe('Screenshot Walkthrough', () => {
     cy.get('[data-testid="register"] input[formcontrolname="password"]').type(PASSWORD);
     cy.get('[data-testid="register"] input[formcontrolname="confirmPassword"]').type(PASSWORD);
     cy.get('[data-testid="register-submit-btn"]').click();
-    settle(3000);
+    settle();
   };
 
   // ═════════════════════════════════════════════════════════════
@@ -106,7 +116,7 @@ describe('Screenshot Walkthrough', () => {
     cy.screenshot('02-register-filled', { capture: 'fullPage' });
 
     cy.get('[data-testid="register-submit-btn"]').click();
-    settle(3000);
+    settle();
     cy.screenshot('02-register-result', { capture: 'fullPage' });
   });
 
@@ -147,12 +157,12 @@ describe('Screenshot Walkthrough', () => {
 
     // ── User menu open state ──
     cy.get('[data-testid="header-avatar-btn"]').click();
-    settle(500);
+    settle();
     cy.get('[data-testid="user-menu"]').should('be.visible');
     cy.screenshot('05-user-menu-open', { capture: 'fullPage' });
     // close menu by clicking elsewhere
     cy.get('body').click(10, 10);
-    settle(300);
+    settle();
 
     // ────────────────────────────────────────────────────────────
     //  ONBOARDING — fill out all steps with real data
@@ -181,9 +191,9 @@ describe('Screenshot Walkthrough', () => {
       }
       if ($b.find('mat-select[formcontrolname="gender"]').length) {
         cy.get('mat-select[formcontrolname="gender"]').click();
-        settle(300);
+        settle();
         cy.get('mat-option').first().click();
-        settle(300);
+        settle();
       }
       // Imperial height/weight if present
       if ($b.find('input[formcontrolname="heightFeet"]').length) {
@@ -202,15 +212,15 @@ describe('Screenshot Walkthrough', () => {
       }
       if ($b.find('mat-select[formcontrolname="activityLevel"]').length) {
         cy.get('mat-select[formcontrolname="activityLevel"]').click();
-        settle(300);
+        settle();
         cy.get('mat-option').eq(1).click();
-        settle(300);
+        settle();
       }
       if ($b.find('mat-select[formcontrolname="healthGoal"]').length) {
         cy.get('mat-select[formcontrolname="healthGoal"]').click();
-        settle(300);
+        settle();
         cy.get('mat-option').first().click();
-        settle(300);
+        settle();
       }
     });
     cy.screenshot('06-onboarding-profile-filled', { capture: 'fullPage' });
@@ -290,7 +300,7 @@ describe('Screenshot Walkthrough', () => {
     cy.screenshot('11-ingredient-form-filled', { capture: 'fullPage' });
 
     cy.get('[data-testid="ingredient-submit-btn"]').click();
-    settle(2000);
+    settle();
     cy.screenshot('11-ingredient-created', { capture: 'fullPage' });
 
     // Create a second ingredient for recipe use
@@ -303,7 +313,7 @@ describe('Screenshot Walkthrough', () => {
       }
     });
     cy.get('[data-testid="ingredient-submit-btn"]').click();
-    settle(2000);
+    settle();
 
     cy.visit('/ingredients/mine');
     settle();
@@ -329,11 +339,11 @@ describe('Screenshot Walkthrough', () => {
     cy.get('[data-testid="recipe-form"]').then(($form) => {
       if ($form.find('input[formcontrolname="searchText"]').length) {
         cy.get('[data-testid="recipe-form"] input[formcontrolname="searchText"]').first().type('Chicken');
-        settle(1000);
+        settle();
         cy.get('body').then(($b2) => {
           if ($b2.find('mat-option').length) {
             cy.get('mat-option').first().click();
-            settle(500);
+            settle();
           }
         });
       }
@@ -343,7 +353,7 @@ describe('Screenshot Walkthrough', () => {
     cy.get('body').then(($b) => {
       if ($b.find('[data-testid="recipe-add-step-btn"]').length) {
         cy.get('[data-testid="recipe-add-step-btn"]').click();
-        settle(300);
+        settle();
         cy.get('[data-testid="recipe-form"] textarea[formcontrolname="description"]').last().type('Season chicken with salt, pepper, and garlic powder. Grill 6 minutes per side.');
       }
     });
@@ -351,7 +361,7 @@ describe('Screenshot Walkthrough', () => {
     cy.screenshot('13-recipe-form-filled', { capture: 'fullPage' });
 
     cy.get('[data-testid="recipe-submit-btn"]').click();
-    settle(2000);
+    settle();
     cy.screenshot('13-recipe-created', { capture: 'fullPage' });
 
     // ── My Recipes list ──
@@ -483,7 +493,7 @@ describe('Screenshot Walkthrough', () => {
     cy.get('body').then(($b) => {
       if ($b.find('[data-testid="plan-print-btn"]').length && !$b.find('[data-testid="plan-print-btn"]').prop('disabled')) {
         cy.get('[data-testid="plan-print-btn"]').trigger('mouseenter');
-        settle(500);
+        settle();
         cy.screenshot('17-meal-plan-print-tooltip', { capture: 'viewport' });
         cy.get('[data-testid="plan-print-btn"]').trigger('mouseleave');
       }
@@ -501,9 +511,9 @@ describe('Screenshot Walkthrough', () => {
         cy.get('[data-testid="plan-rules-form"] input[formcontrolname="queryFilter"]').type('chicken');
         if ($el.find('mat-select[formcontrolname="mealTypeId"]').length) {
           cy.get('[data-testid="plan-rules-form"] mat-select[formcontrolname="mealTypeId"]').click();
-          settle(300);
+          settle();
           cy.get('mat-option').first().click();
-          settle(300);
+          settle();
         }
         cy.screenshot('18-plan-rules-filled', { capture: 'fullPage' });
       }
@@ -581,11 +591,11 @@ describe('Screenshot Walkthrough', () => {
         cy.get('[data-testid="pantry-add-form"]').then(($form) => {
           if ($form.find('input[matautocomplete], input').length) {
             cy.get('[data-testid="pantry-add-form"] input').first().type('Chicken');
-            settle(1000);
+            settle();
             cy.get('body').then(($b2) => {
               if ($b2.find('mat-option').length) {
                 cy.get('mat-option').first().click();
-                settle(500);
+                settle();
               }
             });
             cy.screenshot('21-pantry-add-form-filled', { capture: 'fullPage' });
@@ -629,7 +639,7 @@ describe('Screenshot Walkthrough', () => {
           // Save
           if ($b2.find('button:contains("Save")').length) {
             cy.contains('button', 'Save').click();
-            settle(2000);
+            settle();
           } else {
             cy.get('body').type('{esc}');
             settle();
@@ -670,13 +680,13 @@ describe('Screenshot Walkthrough', () => {
       }
       if ($b.find('mat-select[formcontrolname="recipientIds"]').length) {
         cy.get('mat-select[formcontrolname="recipientIds"]').click();
-        settle(300);
+        settle();
         cy.get('body').then(($b2) => {
           if ($b2.find('mat-option').length) {
             cy.get('mat-option').first().click();
-            settle(300);
+            settle();
             cy.get('body').click(10, 10); // close dropdown
-            settle(300);
+            settle();
           }
         });
       }
@@ -713,7 +723,7 @@ describe('Screenshot Walkthrough', () => {
         }
         cy.screenshot('25-household-create-form', { capture: 'fullPage' });
         cy.get('[data-testid="household-create-btn"]').click();
-        settle(2000);
+        settle();
         cy.screenshot('25-household-created', { capture: 'fullPage' });
       }
     });
@@ -872,7 +882,7 @@ describe('Screenshot Walkthrough', () => {
         cy.get('body').then(($b2) => {
           if ($b2.find('[data-testid="curation-approve-btn"]').length) {
             cy.get('[data-testid="curation-approve-btn"]').first().click();
-            settle(2000);
+            settle();
             cy.screenshot('33-admin-curation-approved', { capture: 'fullPage' });
           }
         });
@@ -896,7 +906,7 @@ describe('Screenshot Walkthrough', () => {
         cy.get('body').then(($b2) => {
           if ($b2.find('[data-testid="curation-revision-btn"]').length) {
             cy.get('[data-testid="curation-revision-btn"]').first().click();
-            settle(2000);
+            settle();
             cy.screenshot('34-admin-curation-revision-sent', { capture: 'fullPage' });
           }
         });
@@ -920,7 +930,7 @@ describe('Screenshot Walkthrough', () => {
         cy.get('body').then(($b2) => {
           if ($b2.find('[data-testid="curation-reject-btn"]').length) {
             cy.get('[data-testid="curation-reject-btn"]').first().click();
-            settle(2000);
+            settle();
             cy.screenshot('35-admin-curation-rejected', { capture: 'fullPage' });
           }
         });

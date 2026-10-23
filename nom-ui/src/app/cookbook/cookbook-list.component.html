@@ -2,7 +2,7 @@
   <div class="nom-dashboard__header">
     <h1 class="nom-dashboard__title">Cookbooks</h1>
     @if (cookbooks().length > 0) {
-      <button mat-flat-button (click)="onCreate()">
+      <button mat-flat-button (click)="onCreate()" data-testid="cookbook-list-create-btn">
         <mat-icon>add</mat-icon>
         New Cookbook
       </button>
@@ -24,11 +24,11 @@
   } @else if (error()) {
     <nom-error-banner [message]="error()!" />
   } @else if (cookbooks().length === 0) {
-    <div class="nom-dashboard__empty">
+    <div class="nom-dashboard__empty" data-testid="cookbook-list-empty">
       <mat-icon class="nom-dashboard__empty-icon">collections_bookmark</mat-icon>
       <h2 class="nom-dashboard__empty-title">No cookbooks yet</h2>
       <p class="nom-dashboard__empty-message">Create a cookbook to organize your recipes into collections.</p>
-      <button mat-flat-button (click)="onCreate()">
+      <button mat-flat-button (click)="onCreate()" data-testid="cookbook-list-create-btn">
         <mat-icon>add</mat-icon>
         Create Cookbook
       </button>
@@ -37,7 +37,7 @@
     <div class="nom-cookbook-grid">
       @for (cookbook of cookbooks(); track cookbook.id) {
         <div class="nom-cookbook-card" data-testid="cookbook-card">
-          <a class="nom-cookbook-card__body" [routerLink]="'/cookbook/' + cookbook.id">
+          <a class="nom-cookbook-card__body" [routerLink]="'/cookbook/' + cookbook.id" data-testid="cookbook-card-link">
             <div class="nom-cookbook-card__icon-wrap">
               <mat-icon>collections_bookmark</mat-icon>
             </div>
@@ -55,10 +55,10 @@
             </div>
           </a>
           <div class="nom-cookbook-card__actions">
-            <button mat-icon-button (click)="onEdit(cookbook)" aria-label="Edit cookbook">
+            <button mat-icon-button (click)="onEdit(cookbook)" aria-label="Edit cookbook" data-testid="cookbook-card-edit-btn">
               <mat-icon>edit</mat-icon>
             </button>
-            <button mat-icon-button (click)="onDelete(cookbook)" aria-label="Delete cookbook">
+            <button mat-icon-button (click)="onDelete(cookbook)" aria-label="Delete cookbook" data-testid="cookbook-card-delete-btn">
               <mat-icon>delete</mat-icon>
             </button>
           </div>

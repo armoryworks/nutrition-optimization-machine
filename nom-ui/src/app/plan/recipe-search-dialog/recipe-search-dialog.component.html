@@ -48,6 +48,7 @@
     <mat-icon matPrefix>search</mat-icon>
     <input
       matInput
+      cdkFocusInitial
       data-testid="recipe-search-input"
       [value]="searchQuery()"
       (input)="onSearchInput($any($event.target).value)"

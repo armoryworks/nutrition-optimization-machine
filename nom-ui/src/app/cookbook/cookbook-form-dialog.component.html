@@ -1,6 +1,6 @@
 <h2 mat-dialog-title>{{ data?.cookbook ? 'Edit Cookbook' : 'New Cookbook' }}</h2>
 <mat-dialog-content>
-  <form [formGroup]="form" class="nom-cookbook-form">
+  <form [formGroup]="form" class="nom-cookbook-form" data-testid="cookbook-form-dialog">
     <mat-form-field appearance="outline">
       <mat-label>Name</mat-label>
       <input matInput formControlName="name" maxlength="255" data-testid="cookbook-name-input">
@@ -21,9 +21,8 @@
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close>Cancel</button>
+  <button mat-button mat-dialog-close data-testid="cookbook-cancel-btn">Cancel</button>
   <button mat-flat-button
-          
           (click)="onSave()"
           data-testid="cookbook-save-btn">
     Save

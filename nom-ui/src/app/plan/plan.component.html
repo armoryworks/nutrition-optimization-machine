@@ -126,7 +126,7 @@
 
         <!-- Day headers -->
         @for (day of weekData()!.days; track day.date; let di = $index) {
-          <div class="nom-plan__day-header" [class.nom-plan__day-header--today]="isToday(day.date)" [class.nom-plan__col--inactive]="di !== mobileDayIndex()">
+          <div class="nom-plan__day-header" data-testid="plan-day-header" [class.nom-plan__day-header--today]="isToday(day.date)" [class.nom-plan__col--inactive]="di !== mobileDayIndex()">
             <span class="nom-plan__day-name">{{ formatDayHeader(day.date) }}</span>
             @if (members().length > 0) {
               <div class="nom-plan__exclusions">
@@ -148,7 +148,7 @@
         <!-- Meal rows -->
         @for (cell of weekData()!.days[0].cells; track cell.mealTypeId; let mealIdx = $index) {
           <!-- Meal label -->
-          <div class="nom-plan__meal-label">{{ cell.mealType }}</div>
+          <div class="nom-plan__meal-label" data-testid="plan-meal-label">{{ cell.mealType }}</div>
 
           <!-- Cells for each day -->
           @for (day of weekData()!.days; track day.date; let di = $index) {
@@ -165,6 +165,7 @@
               @if (day.cells[mealIdx].entries.length > 0) {
                 @for (entry of day.cells[mealIdx].entries; track entry.id) {
                   <div class="nom-plan__cell-entry"
+                       data-testid="plan-cell-entry"
                        [class.nom-plan__cell-entry--completed]="entry.completedDate">
                     @if (entry.recipeImage) {
                       <img class="nom-plan__cell-thumb"
@@ -237,9 +238,9 @@
         <!-- Nutrition summary row -->
         <div class="nom-plan__meal-label nom-plan__meal-label--summary">Your portion</div>
         @for (day of weekData()!.days; track day.date; let di = $index) {
-          <div class="nom-plan__nutrition-summary" [class.nom-plan__nutrition-summary--today]="isToday(day.date)" [class.nom-plan__col--inactive]="di !== mobileDayIndex()">
+          <div class="nom-plan__nutrition-summary" data-testid="plan-day-nutrition" [class.nom-plan__nutrition-summary--today]="isToday(day.date)" [class.nom-plan__col--inactive]="di !== mobileDayIndex()">
             @if (hasDayNutrition(day)) {
-              <span class="nom-plan__macro nom-plan__macro--cal">{{ getDayCalories(day) | number:'1.0-0' }} cal</span>
+              <span class="nom-plan__macro nom-plan__macro--cal" data-testid="plan-day-calories">{{ getDayCalories(day) | number:'1.0-0' }} cal</span>
               <span class="nom-plan__macro">P {{ getDayProtein(day) | number:'1.0-0' }}g</span>
               <span class="nom-plan__macro">C {{ getDayCarbs(day) | number:'1.0-0' }}g</span>
               <span class="nom-plan__macro">F {{ getDayFat(day) | number:'1.0-0' }}g</span>
