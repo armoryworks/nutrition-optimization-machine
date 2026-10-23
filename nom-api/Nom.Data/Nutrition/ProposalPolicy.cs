@@ -32,12 +32,19 @@ namespace Nom.Data.Nutrition
             "deterministic:",  // computed by our own audit (e.g. unit normalization)
         };
 
+        /// <summary>
+        /// A household's own label reading. It shares the <c>label:</c> prefix so the lane can
+        /// corroborate it later, but on its own it is one uncorroborated source and never authoritative.
+        /// </summary>
+        public const string HouseholdLabelPrefix = "label:user:";
+
         public static bool IsNutrientField(string? field) =>
             !string.IsNullOrWhiteSpace(field)
             && NutrientFields.Any(f => field.Contains(f, StringComparison.OrdinalIgnoreCase));
 
         public static bool IsAuthoritativeSource(string? source) =>
             !string.IsNullOrWhiteSpace(source)
+            && !source.StartsWith(HouseholdLabelPrefix, StringComparison.OrdinalIgnoreCase)
             && AuthoritativeSourcePrefixes.Any(p => source.StartsWith(p, StringComparison.OrdinalIgnoreCase));
 
         /// <summary>

@@ -149,6 +149,7 @@ namespace Nom.Data
         public DbSet<RecipeSubstitutionStepEffectEntity> RecipeSubstitutionStepEffects { get; set; } = default!;
         public DbSet<RecipeAugmentationEntity> RecipeAugmentations { get; set; } = default!;
         public DbSet<RecipeBulkOperationProgressEntity> RecipeBulkOperationProgress { get; set; } = default!;
+        public DbSet<IngredientVerificationEntity> IngredientVerifications { get; set; } = default!;
         #endregion
 
         #region Reference
@@ -194,6 +195,8 @@ namespace Nom.Data
         public DbSet<ShoppingListCategoryEntity> ShoppingListCategories { get; set; } = default!;
         public DbSet<ShoppingListGenerationHistoryEntity> ShoppingListGenerationHistory { get; set; } = default!;
         public DbSet<ShoppingListShareEntity> ShoppingListShares { get; set; } = default!;
+        public DbSet<HouseholdShoppingItemEntity> HouseholdShoppingItems { get; set; } = default!;
+        public DbSet<HouseholdShoppingCheckEntity> HouseholdShoppingChecks { get; set; } = default!;
         #endregion
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

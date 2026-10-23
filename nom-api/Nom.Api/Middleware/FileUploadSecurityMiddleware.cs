@@ -329,6 +329,7 @@ namespace Nom.Api.Middleware
                     new byte[] { 0x89, 0x50, 0x4E, 0x47 }, // PNG
                     new byte[] { 0x47, 0x49, 0x46 }, // GIF
                     new byte[] { 0x42, 0x4D }, // BMP
+                    new byte[] { 0x52, 0x49, 0x46, 0x46 },
                 };
 
                 foreach (var signature in signatures)

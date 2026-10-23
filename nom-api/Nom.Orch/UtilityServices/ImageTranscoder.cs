@@ -22,6 +22,8 @@ namespace Nom.Orch.UtilityServices
             return Encode(sized ?? bitmap, SKEncodedImageFormat.Jpeg, quality);
         }
 
+        public static SKBitmap? Decode(byte[] data) => DecodeUpright(data);
+
         public static byte[]? ToGrayscalePng(byte[] data)
         {
             using var bitmap = DecodeUpright(data);

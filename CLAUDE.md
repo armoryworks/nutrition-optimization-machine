@@ -15,6 +15,15 @@ Never add code that calls a retailer API directly from nom-api, and never
 hardcode provider names in nom-ui — the UI renders whatever the service
 advertises.
 
+## Shopping List Verification
+
+A household's label photo, barcode or package measurements for an unverified food land in
+`recipe.IngredientVerification` as evidence tagged `label:user:{personId}`; they are never
+written to `nutrient.IngredientNutrient` or to a proposal. The parser is deterministic and
+uses no model; per-100 g values are derived only from an explicit gram weight. Lookups against
+FDC, Open Food Facts or manufacturers belong to the Release B lane behind
+`IVerificationLookupLane` (a no-op today). Design in `docs/architecture/shopping-verification.md`.
+
 ## Database Setup
 
 The database uses a declarative (DACPAC-style) workflow — `db/schema.sql` is the source of truth; there are no EF migrations. See `db/README.md`.

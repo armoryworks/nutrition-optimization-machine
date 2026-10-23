@@ -66,7 +66,9 @@ namespace Nom.Orch.Services
                 .Where(i => matchedIds.Contains(i.Id))
                 .Where(i => i.CurationStatusId == (long)CurationStatusEnum.Curated ||
                             (personId != null && (i.AuthorId == personId || i.CreatedByPersonId == personId)) ||
-                            (i.CurationStatusId == (long)CurationStatusEnum.NonCurated && i.Name.ToLower() == searchTerm))
+                            (i.CurationStatusId == (long)CurationStatusEnum.NonCurated && i.Name.ToLower() == searchTerm) ||
+                            (personId != null && _context.HouseholdShoppingItems.Any(h => h.IngredientId == i.Id &&
+                                _context.HouseholdMembers.Any(m => m.HouseholdId == h.HouseholdId && m.PersonId == personId && m.IsActive))))
                 // Import residue like "1 can black beans" or "a pint of black
                 // beans" is not an ingredient a user should pick; hide
                 // quantity-prefixed names from search.

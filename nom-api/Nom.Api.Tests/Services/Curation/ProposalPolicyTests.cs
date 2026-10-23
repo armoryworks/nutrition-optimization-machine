@@ -46,6 +46,16 @@ namespace Nom.Api.Tests.Services.Curation
             ProposalPolicy.IsAllowed("calories", source, out _).Should().BeTrue();
         }
 
+        [Theory]
+        [InlineData("label:user:42")]
+        [InlineData("LABEL:USER:7")]
+        public void HouseholdLabelReading_IsNotAuthoritative(string source)
+        {
+            ProposalPolicy.IsAuthoritativeSource(source).Should().BeFalse();
+            ProposalPolicy.IsAllowed("calories", source, out var reason).Should().BeFalse();
+            reason.Should().Be("nutrient_change_requires_authoritative_source");
+        }
+
         [Fact]
         public void MissingSource_IsAlwaysRejected()
         {
