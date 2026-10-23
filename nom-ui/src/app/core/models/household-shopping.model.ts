@@ -160,7 +160,7 @@ export interface IngredientVerification {
 }
 
 export interface BarcodeResult {
-  verificationId: number;
+  verificationId?: number | null;
   upc?: string | null;
   decoded: boolean;
   source: 'client' | 'server';
