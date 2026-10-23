@@ -439,10 +439,16 @@ namespace Nom.Orch.Services.Support
         private static bool WordMatches(string word, string target)
         {
             if (word == target) return true;
+            if (FoldConfusables(word) == FoldConfusables(target)) return true;
             if (target.Length <= 4) return false;
             var allowed = target.Length <= 6 ? 1 : 2;
             if (Math.Abs(word.Length - target.Length) > allowed) return false;
             return Levenshtein(word, target) <= allowed;
+        }
+
+        private static string FoldConfusables(string word)
+        {
+            return word.Replace('l', 'i').Replace('1', 'i').Replace('|', 'i').Replace('0', 'o');
         }
 
         private static int Levenshtein(string a, string b)

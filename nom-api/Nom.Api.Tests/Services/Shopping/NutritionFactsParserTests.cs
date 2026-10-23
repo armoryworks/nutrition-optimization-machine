@@ -142,6 +142,15 @@ namespace Nom.Api.Tests.Services.Shopping
         }
 
         [Fact]
+        public void ShortLabels_MatchThroughLeadingConfusables()
+        {
+            var r = NutritionFactsParser.Parse("Nutrition Facts\nServing size 1 cup (30g)\nCalories 120\nTota1 Fat 2g 3%\nlron 8mg 45%\nSa1t 0.5g\n");
+
+            Reading(r, "fat").Should().BeEquivalentTo(new { Amount = 2m, Unit = "g" });
+            Reading(r, "iron").Should().BeEquivalentTo(new { Amount = 8m, Unit = "mg", PercentDailyValue = 45 });
+        }
+
+        [Fact]
         public void ValuesOnTheNextLine_LessThan_AndNotSignificantSource()
         {
             var r = NutritionFactsParser.Parse(Fixture("cookies-values-on-next-line.txt"));
