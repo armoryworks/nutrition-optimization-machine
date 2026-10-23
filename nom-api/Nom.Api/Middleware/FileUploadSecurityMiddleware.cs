@@ -314,8 +314,6 @@ namespace Nom.Api.Middleware
                 // Read first few bytes to check image signature
                 using var stream = file.OpenReadStream();
                 var buffer = new byte[12];
-                
-                // Read exactly 12 bytes
                 var bytesRead = 0;
                 var totalBytesRead = 0;
                 while (totalBytesRead < 12 && (bytesRead = await stream.ReadAsync(buffer, totalBytesRead, 12 - totalBytesRead)) > 0)

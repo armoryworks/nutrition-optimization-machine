@@ -29,8 +29,6 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # Install health check tools + Tesseract OCR natives and English traineddata.
-# The Tesseract .NET wrapper P/Invokes versioned sonames; the symlinks map the distro
-# libraries to the names the wrapper expects. Verify with a container smoke test.
 RUN apt-get update && apt-get install -y --no-install-recommends curl tesseract-ocr tesseract-ocr-eng libleptonica-dev && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /app/tessdata \
     && cp /usr/share/tesseract-ocr/*/tessdata/eng.traineddata /app/tessdata/
@@ -38,6 +36,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl tesseract-
 # Copy published application
 COPY --from=build /app/publish .
 
+# The Tesseract .NET wrapper P/Invokes versioned sonames under <app>/x64; the symlinks map the
+# distro libraries to the names the wrapper expects. Verify with a container smoke test.
 RUN mkdir -p /app/x64 \
     && ln -sf /usr/lib/x86_64-linux-gnu/libtesseract.so.5 /app/x64/libtesseract50.so \
     && ln -sf /usr/lib/x86_64-linux-gnu/liblept.so.5 /app/x64/libleptonica-1.82.0.so \
