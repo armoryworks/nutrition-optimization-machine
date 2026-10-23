@@ -32,13 +32,16 @@ WORKDIR /app
 # The Tesseract .NET wrapper P/Invokes versioned sonames; the symlinks map the distro
 # libraries to the names the wrapper expects. Verify with a container smoke test.
 RUN apt-get update && apt-get install -y --no-install-recommends curl tesseract-ocr tesseract-ocr-eng libleptonica-dev && rm -rf /var/lib/apt/lists/* \
-    && ln -sf /usr/lib/x86_64-linux-gnu/libtesseract.so.5 /usr/lib/x86_64-linux-gnu/libtesseract50.so \
-    && ln -sf /usr/lib/x86_64-linux-gnu/liblept.so.5 /usr/lib/x86_64-linux-gnu/libleptonica-1.82.0.so \
     && mkdir -p /app/tessdata \
     && cp /usr/share/tesseract-ocr/*/tessdata/eng.traineddata /app/tessdata/
 
 # Copy published application
 COPY --from=build /app/publish .
+
+RUN mkdir -p /app/x64 \
+    && ln -sf /usr/lib/x86_64-linux-gnu/libtesseract.so.5 /app/x64/libtesseract50.so \
+    && ln -sf /usr/lib/x86_64-linux-gnu/liblept.so.5 /app/x64/libleptonica-1.82.0.so \
+    && ln -sf /lib/x86_64-linux-gnu/libdl.so.2 /usr/lib/x86_64-linux-gnu/libdl.so
 
 # Create non-root user WITH a writable home: without mounted OIDC certificates
 # (dev/test compose) OpenIddict's development certificate is persisted under
