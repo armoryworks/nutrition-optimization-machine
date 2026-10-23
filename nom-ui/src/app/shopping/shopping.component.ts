@@ -33,6 +33,11 @@ import { RetailPackagingService } from '../core/services/retail-packaging.servic
 import { MeasurementService } from '../core/services/measurement.service';
 import { PortionService } from '../core/services/portion.service';
 import { GroceryExportService } from '../core/services/grocery-export.service';
+import { HouseholdShoppingService } from '../core/services/household-shopping.service';
+import { HouseholdShoppingItem, ShoppingState } from '../core/models/household-shopping.model';
+import { ShoppingAddItem } from './shopping-add-item.component';
+import { VerificationFlowService } from './verification/verification-flow.service';
+import { adhocCheckKey, mergeAdhocItems } from '../core/domain/shopping/adhoc-items';
 import { GroceryExportItem, GroceryProviderInfo } from '../core/models/grocery-export.model';
 import {
   GroceryExportDialog,
@@ -97,7 +102,8 @@ interface RawAccumulator {
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatTooltipModule, ErrorBanner, NoHouseholdCta],
+    MatTooltipModule, ErrorBanner, NoHouseholdCta, ShoppingAddItem],
+  providers: [VerificationFlowService],
   templateUrl: './shopping.component.html',
   styleUrl: './shopping.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -111,6 +117,8 @@ export class ShoppingComponent implements OnInit {
   private measurementService = inject(MeasurementService);
   private portionService = inject(PortionService);
   private groceryExportService = inject(GroceryExportService);
+  private householdShopping = inject(HouseholdShoppingService);
+  private verificationFlow = inject(VerificationFlowService);
   private dialog = inject(MatDialog);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -140,6 +148,11 @@ export class ShoppingComponent implements OnInit {
   /** Household-absence is a setup state, not an error — it gets the shared CTA. */
   noHousehold = signal(false);
   checkedItems = signal<Set<string>>(new Set());
+  /** Items household members typed in, held on the server. */
+  adhocItems = signal<HouseholdShoppingItem[]>([]);
+  /** Foods the server says to ask about on the next tick; an id leaves the set the moment it is asked. */
+  askable = signal<Set<number>>(new Set());
+  private askedThisSession = new Set<number>();
 
   // Inline quantity editing
   editingItem = signal<string | null>(null);
@@ -149,7 +162,7 @@ export class ShoppingComponent implements OnInit {
   completingTrip = signal(false);
   measurements = signal<{ id: number; name: string; symbol: string }[]>([]);
 
-  departments = computed<ShoppingDepartment[]>(() => {
+  private plannedDepartments = computed<ShoppingDepartment[]>(() => {
     const weeks = this.weekDataList();
     const cache = this.recipeCache();
     const packages = this.retailPackages();
@@ -365,6 +378,7 @@ export class ShoppingComponent implements OnInit {
           .reduce((s, a) => s + a.baseQuantity, 0),
         retailPackage: handledByRetail ? pkg : null,
         retailPackageCount: retailPkgCount,
+        source: 'plan',
       };
 
       const items = deptMap.get(dept) ?? [];
@@ -389,11 +403,31 @@ export class ShoppingComponent implements OnInit {
     return result;
   });
 
+  departments = computed<ShoppingDepartment[]>(() =>
+    mergeAdhocItems(this.plannedDepartments(), this.adhocItems()),
+  );
+
   totalItemCount = computed(() =>
     this.departments().reduce((sum, dept) => sum + dept.items.length, 0),
   );
 
-  checkedCount = computed(() => this.checkedItems().size);
+  checkedCount = computed(() => {
+    const checked = this.checkedItems();
+    let count = 0;
+    for (const dept of this.departments()) {
+      for (const item of dept.items) if (checked.has(item.checkKey)) count++;
+    }
+    return count;
+  });
+
+  /** Foods already on the list, so the add field can refuse a duplicate before posting. */
+  existingIngredientIds = computed<ReadonlySet<number>>(() => {
+    const ids = new Set<number>();
+    for (const dept of this.departments()) {
+      for (const item of dept.items) if (item.ingredientId !== null) ids.add(item.ingredientId);
+    }
+    return ids;
+  });
 
   // --- Grocery export ("Send to…") ---
 
@@ -699,13 +733,18 @@ export class ShoppingComponent implements OnInit {
     const today = new Date();
     const todayStr = toLocalDateString(today);
     const items: PantryItemCreateRequest[] = [];
+    const boughtAdhocIds: number[] = [];
 
     for (const dept of departments) {
       for (const item of dept.items) {
         if (!checked.has(item.checkKey)) continue;
+        if (item.adhocId !== undefined) boughtAdhocIds.push(item.adhocId);
+        if (item.ingredientId === null) continue;
 
         // Determine quantity and measurement based on override or original data
-        const override = this.quantityOverrides().get(item.checkKey);
+        const override =
+          this.quantityOverrides().get(item.checkKey) ??
+          (item.source === 'adhoc' && item.portions.length > 0 ? this.getDisplayText(item) : undefined);
         let quantity: number;
         let measurementId: number;
 
@@ -760,32 +799,51 @@ export class ShoppingComponent implements OnInit {
       }
     }
 
-    if (items.length === 0) {
+    if (items.length === 0 && boughtAdhocIds.length === 0) {
       this.snackBar.open('No valid items to transfer.', 'OK', { duration: 3000 });
       return;
     }
 
     this.completingTrip.set(true);
-    this.pantryService
-      .addPantryItemsBatch(items)
+    const transfer = items.length > 0 ? this.pantryService.addPantryItemsBatch(items) : of([]);
+    transfer.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        if (items.length > 0) {
+          this.snackBar.open(`${items.length} item(s) added to pantry!`, 'OK', { duration: 3000 });
+        }
+        this.finishTrip(boughtAdhocIds);
+      },
+      error: () => {
+        this.snackBar.open('Failed to add items to pantry.', 'OK', { duration: 4000 });
+        this.completingTrip.set(false);
+      },
+    });
+  }
+
+  /** Clears the household's shared ticks and drops the typed-in items that were bought, then reloads. */
+  private finishTrip(boughtAdhocIds: number[]): void {
+    forkJoin([
+      this.householdShopping.clearChecks(this.householdId()),
+      ...boughtAdhocIds.map((id) => this.householdShopping.removeItem(id)),
+    ])
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
-          this.snackBar.open(`${items.length} item(s) added to pantry!`, 'OK', { duration: 3000 });
-          // Clear checked items and overrides
-          this.checkedItems.set(new Set());
-          this.quantityOverrides.set(new Map());
-          this.saveCheckedState();
-          this.completingTrip.set(false);
-          // Reload to reflect pantry deductions
-          this.loading.set(true);
-          this.loadData();
-        },
+        next: () => this.afterTrip(),
         error: () => {
-          this.snackBar.open('Failed to add items to pantry.', 'OK', { duration: 4000 });
-          this.completingTrip.set(false);
+          this.snackBar.open('Pantry updated, but the list could not be cleared for everyone.', 'OK', {
+            duration: 4000,
+          });
+          this.afterTrip();
         },
       });
+  }
+
+  private afterTrip(): void {
+    this.checkedItems.set(new Set());
+    this.quantityOverrides.set(new Map());
+    this.completingTrip.set(false);
+    this.loading.set(true);
+    this.loadData();
   }
 
   private parseOverride(
@@ -972,14 +1030,85 @@ export class ShoppingComponent implements OnInit {
   }
 
   toggleChecked(key: string): void {
-    const checked = new Set(this.checkedItems());
-    if (checked.has(key)) {
-      checked.delete(key);
-    } else {
-      checked.add(key);
+    const next = !this.checkedItems().has(key);
+    this.setCheckedLocally(key, next);
+
+    const item = this.findItem(key);
+    const body =
+      item?.adhocId !== undefined
+        ? { householdId: this.householdId(), itemId: item.adhocId, checked: next }
+        : { householdId: this.householdId(), itemKey: key, checked: next };
+
+    this.householdShopping
+      .setChecked(body)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (result) => {
+          if (next && result?.verification?.shouldAsk) this.maybeAsk(result.verification.ingredientId, item);
+        },
+        error: () => {
+          this.setCheckedLocally(key, !next);
+          this.snackBar
+            .open('Could not save that tick — check your connection', 'Retry', { duration: 4000 })
+            .onAction()
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => this.toggleChecked(key));
+        },
+      });
+
+    if (next && item?.ingredientId !== null && item?.ingredientId !== undefined) {
+      this.maybeAsk(item.ingredientId, item);
     }
-    this.checkedItems.set(checked);
-    this.saveCheckedState();
+  }
+
+  private setCheckedLocally(key: string, checked: boolean): void {
+    const set = new Set(this.checkedItems());
+    if (checked) set.add(key);
+    else set.delete(key);
+    this.checkedItems.set(set);
+  }
+
+  private findItem(key: string): ShoppingItem | undefined {
+    for (const dept of this.departments()) {
+      const found = dept.items.find((i) => i.checkKey === key);
+      if (found) return found;
+    }
+    return undefined;
+  }
+
+  /** Opens the verification sheets once per food per session, and only when the server asked for it. */
+  private maybeAsk(ingredientId: number, item: ShoppingItem | undefined): void {
+    if (!item || !this.askable().has(ingredientId) || this.askedThisSession.has(ingredientId)) return;
+    this.askedThisSession.add(ingredientId);
+    const remaining = new Set(this.askable());
+    remaining.delete(ingredientId);
+    this.askable.set(remaining);
+    void this.verificationFlow.run({ ingredientId, name: item.name }, this.householdId());
+  }
+
+  onItemAdded(item: HouseholdShoppingItem): void {
+    this.adhocItems.update((list) => [...list.filter((i) => i.id !== item.id), item]);
+    if (item.checked) this.setCheckedLocally(adhocCheckKey(item.id), true);
+    const ingredientId = item.ingredientId;
+    if (ingredientId && item.ingredientNeedsVerification) {
+      this.askable.update((set) => new Set(set).add(ingredientId));
+    }
+  }
+
+  removeAdhoc(item: ShoppingItem): void {
+    const id = item.adhocId;
+    if (id === undefined) return;
+    const before = this.adhocItems();
+    this.adhocItems.set(before.filter((i) => i.id !== id));
+    this.householdShopping
+      .removeItem(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => {
+          this.adhocItems.set(before);
+          this.snackBar.open(`Could not remove ${item.name} — check your connection`, 'OK', { duration: 4000 });
+        },
+      });
   }
 
   formatQuantity(qty: number): string {
@@ -1015,10 +1144,13 @@ export class ShoppingComponent implements OnInit {
           ShoppingComponent.toDateString(ShoppingComponent.addDays(today, this.daysAhead() - 1)),
         )
         .pipe(catchError(() => of([]))),
+      shopping: this.householdShopping
+        .getState(this.householdId())
+        .pipe(catchError(() => of({ items: [], checks: [] } as ShoppingState))),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ weeks, pantry, packaging, measurements, factors }) => {
+        next: ({ weeks, pantry, packaging, measurements, factors, shopping }) => {
           this.weekDataList.set(weeks);
           this.pantryItems.set(pantry);
           this.retailPackages.set(packaging);
@@ -1026,6 +1158,7 @@ export class ShoppingComponent implements OnInit {
           this.cookFactors.set(
             new Map(factors.map((f) => [`${f.date}|${f.mealTypeId}|${f.recipeId}`, f.cookFactor])),
           );
+          this.applyShoppingState(shopping);
           this.loadRecipes(weeks);
         },
         error: () => {
@@ -1056,7 +1189,7 @@ export class ShoppingComponent implements OnInit {
     if (recipeIds.size === 0) {
       this.recipeCache.set(new Map());
       this.loading.set(false);
-      this.loadCheckedState();
+      this.afterListLoaded();
       return;
     }
 
@@ -1070,7 +1203,7 @@ export class ShoppingComponent implements OnInit {
           }
           this.recipeCache.set(cache);
           this.loading.set(false);
-          this.loadCheckedState();
+          this.afterListLoaded();
           this.lookupMissingPackaging();
         },
         error: () => {
@@ -1088,6 +1221,7 @@ export class ShoppingComponent implements OnInit {
     const unmatchedNames: string[] = [];
     for (const dept of departments) {
       for (const item of dept.items) {
+        if (item.source !== 'plan') continue;
         const hasMatch = findRetailPackage(item.name, packages);
         if (!hasMatch) {
           unmatchedNames.push(item.name);
@@ -1117,30 +1251,65 @@ export class ShoppingComponent implements OnInit {
       });
   }
 
-  private get storageKey(): string {
-    const today = ShoppingComponent.toDateString(new Date());
-    return `nom-shopping-${this.householdId()}-${today}-${this.daysAhead()}`;
+  private applyShoppingState(state: ShoppingState): void {
+    this.adhocItems.set(state.items);
+    const checked = new Set(state.checks.map((c) => c.itemKey));
+    for (const item of state.items) if (item.checked) checked.add(adhocCheckKey(item.id));
+    this.checkedItems.set(checked);
   }
 
-  private loadCheckedState(): void {
+  private afterListLoaded(): void {
+    this.migrateLegacyChecks();
+    this.fetchAskable();
+  }
+
+  /**
+   * Ticks made before check state moved to the server lived in a per-day
+   * localStorage key. Push today's over once, then forget the key.
+   */
+  private migrateLegacyChecks(): void {
+    const key = `nom-shopping-${this.householdId()}-${ShoppingComponent.toDateString(new Date())}-${this.daysAhead()}`;
+    let legacy: string[];
     try {
-      const stored = localStorage.getItem(this.storageKey);
-      if (stored) {
-        this.checkedItems.set(new Set(JSON.parse(stored) as string[]));
-      } else {
-        this.checkedItems.set(new Set());
+      const stored = localStorage.getItem(key);
+      if (!stored) return;
+      legacy = JSON.parse(stored) as string[];
+      localStorage.removeItem(key);
+    } catch {
+      return;
+    }
+    const onList = new Set<string>();
+    for (const dept of this.departments()) for (const item of dept.items) onList.add(item.checkKey);
+    for (const itemKey of legacy) {
+      if (!onList.has(itemKey) || this.checkedItems().has(itemKey)) continue;
+      this.setCheckedLocally(itemKey, true);
+      this.householdShopping
+        .setChecked({ householdId: this.householdId(), itemKey, checked: true })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({ error: () => undefined });
+    }
+  }
+
+  private fetchAskable(): void {
+    const ids = new Set<number>();
+    for (const dept of this.departments()) {
+      for (const item of dept.items) {
+        if (item.ingredientId !== null && !this.checkedItems().has(item.checkKey)) ids.add(item.ingredientId);
       }
-    } catch {
-      this.checkedItems.set(new Set());
     }
-  }
-
-  private saveCheckedState(): void {
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify([...this.checkedItems()]));
-    } catch {
-      /* localStorage unavailable */
+    if (ids.size === 0) {
+      this.askable.set(new Set());
+      return;
     }
+    this.householdShopping
+      .needsVerification(this.householdId(), [...ids].slice(0, 200))
+      .pipe(
+        catchError(() => of([])),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((rows) => {
+        this.askable.set(new Set(rows.filter((r) => r.shouldAsk).map((r) => r.ingredientId)));
+      });
   }
 
   static getMonday(date: Date): string {

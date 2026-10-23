@@ -1,0 +1,91 @@
+<div class="nom-sheet" data-testid="label-confirm-sheet">
+  <div class="nom-sheet__grip" aria-hidden="true"></div>
+  <button type="button" class="nom-sheet__close" (click)="cancel()"
+          aria-label="Close" data-testid="label-confirm-sheet-close-btn">
+    <mat-icon>close</mat-icon>
+  </button>
+
+  <form class="nom-sheet__body" [formGroup]="form" (ngSubmit)="save()">
+    <h2 class="nom-sheet__name">{{ data.name }}</h2>
+    @if (parsed.parsed) {
+      <p class="nom-sheet__lead">Check these against the label and correct anything we misread.</p>
+    } @else {
+      <p class="nom-sheet__lead">We could not read the label from that photo. Type the values from the package, or retake it.</p>
+    }
+    <p class="nom-sheet__hint">{{ basisNote() }}</p>
+
+    @for (warning of parsed.warnings; track warning) {
+      <p class="nom-sheet__warning">{{ warning }}</p>
+    }
+
+    <div class="nom-sheet__fields">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="nom-sheet__field--wide">
+        <mat-label>Serving size</mat-label>
+        <input matInput type="text" formControlName="servingText" placeholder="2/3 cup"
+               (focus)="onFieldFocus($event)" data-testid="label-confirm-serving-size-input">
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Serving weight</mat-label>
+        <input matInput type="number" inputmode="decimal" min="0" step="any" formControlName="servingGrams"
+               (focus)="onFieldFocus($event)" data-testid="label-confirm-serving-grams-input">
+        <span matTextSuffix>g</span>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Servings per container</mat-label>
+        <input matInput type="number" inputmode="decimal" min="0" step="any" formControlName="servingsPerContainer"
+               (focus)="onFieldFocus($event)" data-testid="label-confirm-servings-per-container-input">
+      </mat-form-field>
+    </div>
+    <p class="nom-sheet__hint">
+      The serving weight is needed before NOM can convert to per 100 g; leave it blank if the label gives no weight.
+    </p>
+
+    <div class="nom-sheet__fields">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="nom-sheet__field--wide">
+        <mat-label>Calories</mat-label>
+        <input matInput type="number" inputmode="decimal" min="0" step="any" formControlName="calories"
+               (focus)="onFieldFocus($event)" data-testid="label-confirm-calories-input">
+        <span matTextSuffix>kcal</span>
+      </mat-form-field>
+      <ng-container formGroupName="nutrients">
+        @for (row of rows; track row.key) {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>{{ row.label }}</mat-label>
+            <input matInput type="number" inputmode="decimal" min="0" step="any"
+                   [formControlName]="row.key"
+                   (focus)="onFieldFocus($event)"
+                   [attr.data-testid]="'label-confirm-nutrient-' + row.key">
+            <span matTextSuffix>{{ row.unit }}</span>
+          </mat-form-field>
+        }
+      </ng-container>
+    </div>
+
+    @if (error()) {
+      <p class="nom-sheet__error" role="alert" data-testid="label-confirm-error">
+        <mat-icon>error_outline</mat-icon>
+        {{ error() }}
+      </p>
+    }
+
+    <div class="nom-sheet__actions">
+      <button mat-flat-button type="submit" class="nom-sheet__action"
+              [disabled]="saving() || form.invalid" data-testid="label-confirm-save-btn">
+        @if (saving()) {
+          <mat-spinner diameter="18"></mat-spinner>
+        } @else {
+          Save
+        }
+      </button>
+      <button mat-stroked-button type="button" class="nom-sheet__action"
+              [disabled]="saving()" (click)="retake()" data-testid="label-confirm-retake-btn">
+        <mat-icon>photo_camera</mat-icon>
+        Retake photo
+      </button>
+      <button mat-button type="button" class="nom-sheet__action"
+              [disabled]="saving()" (click)="cancel()" data-testid="label-confirm-cancel-btn">
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,63 @@
+<div class="nom-sheet" data-testid="measurements-sheet">
+  <div class="nom-sheet__grip" aria-hidden="true"></div>
+  <button type="button" class="nom-sheet__close" (click)="skip()"
+          aria-label="Close" data-testid="measurements-sheet-close-btn">
+    <mat-icon>close</mat-icon>
+  </button>
+
+  <form class="nom-sheet__body" [formGroup]="form" (ngSubmit)="save()">
+    <h2 class="nom-sheet__name">{{ data.name }}</h2>
+    <p class="nom-sheet__lead">
+      Optional: a few numbers from the package help NOM size portions and shopping amounts. Fill in what you can see.
+    </p>
+
+    <div class="nom-sheet__fields">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Package size</mat-label>
+        <input matInput type="number" inputmode="decimal" min="0" step="any" formControlName="packageAmount"
+               (focus)="onFieldFocus($event)" data-testid="measurements-package-size-input">
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Unit</mat-label>
+        <mat-select formControlName="packageUnit" data-testid="measurements-package-unit-select">
+          @for (unit of packageUnits; track unit.value) {
+            <mat-option [value]="unit.value" [attr.data-testid]="'measurements-unit-' + unit.value">{{ unit.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Pieces per package</mat-label>
+        <input matInput type="number" inputmode="numeric" min="1" step="1" formControlName="piecesPerPackage"
+               (focus)="onFieldFocus($event)" data-testid="measurements-pieces-input">
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>1 cup weighs</mat-label>
+        <input matInput type="number" inputmode="decimal" min="0" step="any" formControlName="cupGrams"
+               (focus)="onFieldFocus($event)" data-testid="measurements-cup-grams-input">
+        <span matTextSuffix>g</span>
+      </mat-form-field>
+    </div>
+
+    @if (error()) {
+      <p class="nom-sheet__error" role="alert" data-testid="measurements-error">
+        <mat-icon>error_outline</mat-icon>
+        {{ error() }}
+      </p>
+    }
+
+    <div class="nom-sheet__actions">
+      <button mat-flat-button type="submit" class="nom-sheet__action"
+              [disabled]="saving() || !canSave()" data-testid="measurements-save-btn">
+        @if (saving()) {
+          <mat-spinner diameter="18"></mat-spinner>
+        } @else {
+          Save
+        }
+      </button>
+      <button mat-button type="button" class="nom-sheet__action"
+              [disabled]="saving()" (click)="skip()" data-testid="measurements-skip-btn">
+        Skip
+      </button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,119 @@
+@use 'variables' as vars;
+
+@mixin base {
+  .nom-sheet {
+    position: relative;
+  }
+
+  .nom-sheet__grip {
+    width: 36px;
+    height: 4px;
+    margin: vars.$spacing-2 auto 0;
+    border-radius: 2px;
+    background: var(--mat-sys-outline-variant);
+  }
+
+  .nom-sheet__close {
+    position: absolute;
+    top: vars.$spacing-2;
+    right: vars.$spacing-2;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--mat-sys-on-surface);
+    background: color-mix(in srgb, var(--mat-sys-surface) 75%, transparent);
+  }
+
+  .nom-sheet__body {
+    padding: vars.$spacing-3 0 vars.$spacing-2;
+    display: flex;
+    flex-direction: column;
+    gap: vars.$spacing-2;
+  }
+
+  .nom-sheet__name {
+    margin: 0;
+    font-size: vars.$font-size-lg;
+    font-weight: vars.$font-weight-bold;
+    color: var(--mat-sys-on-surface);
+    padding-right: 44px;
+  }
+
+  .nom-sheet__lead {
+    margin: 0;
+    font-size: vars.$font-size-sm;
+    color: var(--mat-sys-on-surface-variant);
+    line-height: 1.5;
+  }
+
+  .nom-sheet__actions {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$spacing-2;
+    margin-top: vars.$spacing-1;
+  }
+
+  .nom-sheet__action {
+    width: 100%;
+    height: vars.$button-height-lg;
+  }
+
+  .nom-sheet__busy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: vars.$spacing-2;
+    min-height: vars.$button-height-lg;
+    font-size: vars.$font-size-sm;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  .nom-sheet__error {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-2;
+    margin: 0;
+    color: var(--mat-sys-error);
+    font-size: vars.$font-size-sm;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+  }
+
+  .nom-sheet__warning {
+    margin: 0;
+    padding: vars.$spacing-2 vars.$spacing-3;
+    font-size: vars.$font-size-sm;
+    color: var(--mat-sys-on-tertiary-container);
+    background: var(--mat-sys-tertiary-container);
+    border-radius: vars.$nom-border-radius;
+  }
+
+  .nom-sheet__fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: vars.$spacing-2 vars.$spacing-3;
+  }
+
+  .nom-sheet__field--wide {
+    grid-column: 1 / -1;
+  }
+
+  .nom-sheet__hint {
+    margin: 0;
+    font-size: vars.$font-size-xs;
+    color: var(--mat-sys-on-surface-variant);
+    line-height: 1.4;
+  }
+}
