@@ -90,6 +90,7 @@ namespace Nom.Api.Middleware
                 var request = context.Request;
 
                 // Read the request body to analyze file content
+                request.EnableBuffering();
                 request.Body.Position = 0;
                 var bufferSize = Math.Min(request.ContentLength ?? 0, 1024); // Read first 1KB
                 var buffer = new byte[bufferSize];
