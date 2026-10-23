@@ -3,7 +3,7 @@
   <p>Some meals already have recipes assigned. What would you like to do?</p>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close>Cancel</button>
+  <button mat-button mat-dialog-close data-testid="shuffle-cancel-btn">Cancel</button>
   <button mat-stroked-button [mat-dialog-close]="'empty'" data-testid="shuffle-empty-btn">Fill empty only</button>
   <button mat-flat-button [mat-dialog-close]="'replace'" data-testid="shuffle-replace-btn">Replace all</button>
 </mat-dialog-actions>

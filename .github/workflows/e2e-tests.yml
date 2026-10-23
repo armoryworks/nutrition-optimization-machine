@@ -18,7 +18,12 @@ on:
 
 jobs:
   e2e-tests:
+    name: E2E (${{ matrix.viewport }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        viewport: [desktop, phone]
 
     steps:
     - name: Checkout code
@@ -73,27 +78,33 @@ jobs:
       working-directory: ./nom-test
       run: npm ci
 
-    - name: Run Cypress E2E tests
+    - name: Type-check specs
+      working-directory: ./nom-test
+      run: npm run build:types
+
+    - name: Run Cypress E2E tests (${{ matrix.viewport }})
       working-directory: ./nom-test
       env:
         CYPRESS_BASE_URL: http://localhost:4211
         CYPRESS_API_URL: http://localhost:8082
         CYPRESS_ADMIN_EMAIL: admin@example.com
         CYPRESS_ADMIN_PASSWORD: AdminPassword123!
+        CYPRESS_VIEWPORT: ${{ matrix.viewport }}
       run: npm run test:e2e
 
     - name: Upload screenshots on failure
       if: failure()
       uses: actions/upload-artifact@v7
       with:
-        name: cypress-screenshots
+        name: cypress-screenshots-${{ matrix.viewport }}
         path: nom-test/cypress/screenshots
         retention-days: 7
+        if-no-files-found: ignore
 
     - name: Display logs on failure
       if: failure()
       run: docker compose -f docker-compose.test.yml logs
+
     - name: Stop test environment
       if: always()
       run: docker compose -f docker-compose.test.yml down -v
-

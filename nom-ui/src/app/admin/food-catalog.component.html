@@ -18,7 +18,9 @@
       <mat-label>Source</mat-label>
       <mat-select [ngModel]="source()" (ngModelChange)="source.set($event); onFilterChange()"
                   data-testid="food-catalog-source">
-        @for (s of sources; track s.label) { <mat-option [value]="s.value">{{ s.label }}</mat-option> }
+        @for (s of sources; track s.label) {
+          <mat-option [value]="s.value" [attr.data-testid]="'food-catalog-source-option-' + (s.value ?? 'all')">{{ s.label }}</mat-option>
+        }
       </mat-select>
     </mat-form-field>
 
@@ -26,7 +28,9 @@
       <mat-label>Status</mat-label>
       <mat-select [ngModel]="status()" (ngModelChange)="status.set($event); onFilterChange()"
                   data-testid="food-catalog-status">
-        @for (s of statuses; track s.label) { <mat-option [value]="s.value">{{ s.label }}</mat-option> }
+        @for (s of statuses; track s.label) {
+          <mat-option [value]="s.value" [attr.data-testid]="'food-catalog-status-option-' + (s.value ?? 'any')">{{ s.label }}</mat-option>
+        }
       </mat-select>
     </mat-form-field>
 
@@ -224,8 +228,8 @@
         <mat-icon>chevron_left</mat-icon>
       </button>
       <span>Page {{ page() }} of {{ totalPages() }} · {{ total() }} foods</span>
-      <button mat-icon-button (click)="goToPage(1)" [disabled]="page() >= totalPages()" aria-label="Next page"
-              data-testid="food-catalog-next-btn">
+      <button mat-icon-button (click)="goToPage(1)" data-testid="food-catalog-next-btn" aria-label="Next page"
+              [disabled]="page() >= totalPages()">
         <mat-icon>chevron_right</mat-icon>
       </button>
     </div>

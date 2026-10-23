@@ -104,16 +104,16 @@
         <mat-icon>login</mat-icon>
         Sign In
       </button>
+    }
 
-      @if (loginPopoverOpen()) {
-        <div
-          class="nom-header__popover-backdrop"
-          data-testid="header-login-popover-backdrop"
-          (click)="loginPopoverOpen.set(false)"
-          aria-hidden="true"
-        ></div>
-        <nom-login-popover (closed)="loginPopoverOpen.set(false)"></nom-login-popover>
-      }
+    @if (loginPopoverOpen()) {
+      <div
+        class="nom-header__popover-backdrop"
+        data-testid="header-login-popover-backdrop"
+        (click)="loginPopoverOpen.set(false)"
+        aria-hidden="true"
+      ></div>
+      <nom-login-popover (closed)="loginPopoverOpen.set(false)"></nom-login-popover>
     }
   </div>
 

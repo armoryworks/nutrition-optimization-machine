@@ -1,5 +1,5 @@
 @if (hasData()) {
-  <div class="nom-nutrition-label" role="region" aria-label="Nutrition Facts">
+  <div class="nom-nutrition-label" role="region" aria-label="Nutrition Facts" data-testid="nutrition-label">
     <div class="nom-nutrition-label__head">
       <h2 class="nom-nutrition-label__title">Nutrition Facts</h2>
       @if (servings()) {
@@ -136,7 +136,7 @@
     }
   </div>
 } @else {
-  <div class="nom-nutrition-label nom-nutrition-label--empty" role="region" aria-label="Nutrition Facts">
+  <div class="nom-nutrition-label nom-nutrition-label--empty" role="region" aria-label="Nutrition Facts" data-testid="nutrition-label-empty">
     <div class="nom-nutrition-label__head">
       <h2 class="nom-nutrition-label__title">Nutrition Facts</h2>
     </div>

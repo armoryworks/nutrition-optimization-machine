@@ -1,274 +1,208 @@
-/**
- * NOM Anonymous Browsing E2E Test
- *
- * This test covers what an unauthenticated visitor does:
- * 1. Land on the home page and browse curated recipe categories
- * 2. Click into a recipe detail — read ingredients, steps, switch to nutrition tab
- * 3. Use the search bar to find recipes by keyword
- * 4. Verify protected pages redirect or show appropriate messaging
- * 5. Verify the Sign In / Create Account links are visible and functional
- *
- * No login required. Assumes seed data exists so the home page has recipes.
- */
+import { selectedViewports } from '../support/viewports';
 
-describe('Anonymous Browsing', () => {
+interface RecipeSearchResponse {
+  results: { id: number; name: string }[];
+  totalCount: number;
+}
 
-  beforeEach(() => {
-    // Always start fresh — no session, no cookies
-    cy.clearCookies();
-    cy.clearLocalStorage();
-  });
+const openHome = () => {
+  cy.intercept('GET', '**/api/RecipeSearch/popular*').as('popularRecipes');
+  cy.visit('/home');
+  cy.byTestId('home-page').should('exist');
+  cy.wait('@popularRecipes').its('response.statusCode').should('eq', 200);
+};
 
-  it('should land on the home page and see curated recipe categories', () => {
-    cy.visit('/home');
-    cy.wait(1500);
+const openRecipeFromCard = (index: number) => {
+  cy.intercept('GET', '**/api/Recipe/*').as('recipeDetail');
+  cy.byTestId('recipe-card').eq(index).click();
+  cy.location('pathname').should('match', /^\/recipe\/\d+$/);
+  cy.wait('@recipeDetail').its('response.statusCode').should('eq', 200);
+  cy.byTestId('recipe-detail').should('be.visible');
+};
 
-    // Header should show "Sign In" (not an avatar)
-    cy.get('.nom-header__login-btn').should('be.visible');
-    cy.get('.nom-header__avatar').should('not.exist');
+const anonymousJourney = (viewportName: 'desktop' | 'phone', viewport: { width: number; height: number }) => {
+  const isPhone = viewportName === 'phone';
 
-    // Search placeholder should say "Search recipes..." (not the logged-in variant)
-    cy.get('.nom-header__search-input')
-      .should('have.attr', 'placeholder')
-      .and('include', 'Search recipes');
+  const searchFromHeader = (term: string) => {
+    if (isPhone) {
+      cy.byTestId('header-search-input').should('not.be.visible');
+      cy.byTestId('header-search-toggle-btn').click();
+      cy.byTestId('header-mobile-search-input').should('be.visible').type(`${term}{enter}`);
+    } else {
+      cy.byTestId('header-search-toggle-btn').should('not.be.visible');
+      cy.byTestId('header-search-input').should('be.visible').type(`${term}{enter}`);
+    }
+  };
 
-    // Home page should render
-    cy.get('[data-testid="home-page"]').should('exist');
+  describe(`Anonymous browsing (${viewportName})`, () => {
+    beforeEach(() => {
+      cy.viewport(viewport.width, viewport.height);
+      cy.clearCookies();
+      cy.clearLocalStorage();
+    });
 
-    // Check for recipe categories or empty state
-    cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="home-category"]').length > 0) {
-        // Categories exist — verify structure
-        cy.get('[data-testid="home-category"]').should('have.length.at.least', 1);
+    it('lands on the home page with a Sign In button, a recipe search box and curated categories', () => {
+      openHome();
 
-        // Each category should have a header and at least one recipe card
-        cy.get('[data-testid="home-category"]').first().within(() => {
-          cy.get('.nom-home__category-header').should('be.visible');
-          cy.get('[data-testid="recipe-card"]').should('have.length.at.least', 1);
-        });
+      cy.byTestId('header-login-btn').should('be.visible');
+      cy.byTestId('header-avatar-btn').should('not.exist');
+      cy.byTestId('header-nav-toggle-btn').should('not.exist');
 
-        // Recipe cards should show name, and optionally time/rating
-        cy.get('[data-testid="recipe-card"]').first().within(() => {
-          cy.get('.nom-home__recipe-name').should('be.visible');
-        });
+      if (isPhone) {
+        cy.byTestId('header-search-toggle-btn').click();
+        cy.byTestId('header-mobile-search-input').should('be.visible').and('have.attr', 'placeholder', 'Search recipes...');
+        cy.byTestId('header-search-toggle-btn').click();
+        cy.byTestId('header-mobile-search-input').should('not.exist');
       } else {
-        // No seed data — empty state should render cleanly
-        cy.get('.nom-home__empty').should('exist');
-        cy.contains('No recipes yet').should('be.visible');
-      }
-    });
-  });
-
-  it('should click into a recipe detail and read all sections', () => {
-    cy.visit('/home');
-    cy.wait(1500);
-
-    cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="recipe-card"]').length === 0) {
-        cy.log('No seed recipes — skipping detail test');
-        return;
+        cy.byTestId('header-search-input').should('be.visible').and('have.attr', 'placeholder', 'Search recipes...');
       }
 
-      // Click the first recipe card
-      cy.get('[data-testid="recipe-card"]').first().click();
-      cy.wait(1500);
+      cy.byTestId('home-hero').should('be.visible');
+      cy.byTestId('home-create-account-btn').should('be.visible');
+      cy.byTestId('home-sign-in-btn').should('be.visible');
 
-      // Should be on the recipe detail page
-      cy.get('[data-testid="recipe-detail"]').should('exist');
-
-      // ── Overview tab (default) ──
-      cy.get('.nom-recipe__title').should('be.visible');
-
-      // Meta section should exist (even if some fields are empty)
-      cy.get('.nom-recipe__meta').should('exist');
-
-      // ── Ingredients column ──
-      cy.get('.nom-recipe__column--ingredients').should('exist');
-      cy.get('.nom-recipe__column--ingredients').within(() => {
-        cy.contains('Ingredients').should('be.visible');
-        // Either has ingredient items or shows "No ingredients listed."
-        // (cy.get('body') is invalid inside .within() — use the scoped root.)
-        cy.root().then(($col) => {
-          if ($col.find('.nom-recipe__ingredient').length > 0) {
-            cy.get('.nom-recipe__ingredient').should('have.length.at.least', 1);
-          } else {
-            cy.contains('No ingredients listed').should('be.visible');
-          }
-        });
-      });
-
-      // ── Instructions column ──
-      cy.get('.nom-recipe__column--instructions').should('exist');
-      cy.get('.nom-recipe__column--instructions').within(() => {
-        cy.contains('Instructions').should('be.visible');
-      });
-
-      // ── Switch to Nutrition tab ──
-      cy.contains('button', 'Nutrition').click();
-      cy.wait(500);
-
-      // Nutrition label component should render (either with data or empty message)
-      cy.get('.nom-nutrition-label, .nom-nutrition-label--empty').should('exist');
-
-      // ── Switch to Diet tab ──
-      cy.contains('button', 'Diet').click();
-      cy.wait(300);
-
-      // ── Back to home via breadcrumb ──
-      cy.get('[data-testid="recipe-back-link"]').click();
-      cy.wait(1000);
-
-      cy.get('[data-testid="home-page"]').should('exist');
-    });
-  });
-
-  it('should use the search bar to find recipes', () => {
-    cy.visit('/home');
-    cy.wait(1000);
-
-    // Type a broad term and press enter
-    cy.get('.nom-header__search-input').type('recipe{enter}');
-    cy.wait(2000);
-
-    // Should navigate to the search page
-    cy.url().should('include', '/search');
-    cy.get('[data-testid="search-page"]').should('exist');
-
-    // Results or empty state
-    cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="search-result-card"]').length > 0) {
-        cy.get('[data-testid="search-result-card"]').should('have.length.at.least', 1);
-
-        // Click a result to verify it navigates to detail
-        cy.get('[data-testid="search-result-card"]').first().click();
-        cy.wait(1500);
-        cy.get('[data-testid="recipe-detail"]').should('exist');
-      } else {
-        cy.log('No search results — seed data may not match "recipe"');
-      }
-    });
-  });
-
-  it('should show Sign In and Create Account links from the login popover', () => {
-    cy.visit('/home');
-    cy.wait(1000);
-
-    // Click "Sign In" in the header
-    cy.get('.nom-header__login-btn').click();
-    cy.wait(500);
-
-    // Login popover should appear
-    cy.get('.nom-login-popover').should('be.visible');
-
-    // Should have email and password fields
-    cy.get('.nom-login-popover').within(() => {
-      cy.get('input[formcontrolname="email"]').should('exist');
-      cy.get('input[formcontrolname="password"]').should('exist');
-      cy.contains('button', 'Sign In').should('exist');
-
-      // "Forgot password?" link
-      cy.contains('Forgot password?').should('be.visible');
-
-      // "Create Account" link in the footer
-      cy.contains('Create Account').should('be.visible');
-    });
-
-    // Click "Create Account" to verify it navigates to registration
-    cy.get('.nom-login-popover').contains('Create Account').click();
-    cy.wait(1000);
-
-    cy.url().should('include', '/register');
-    cy.contains('Create Account').should('be.visible');
-    cy.get('input[formcontrolname="email"]').should('exist');
-    cy.get('input[formcontrolname="password"]').should('exist');
-    cy.get('input[formcontrolname="confirmPassword"]').should('exist');
-  });
-
-  it('should redirect protected routes to home or show auth prompt', () => {
-    // Try accessing a protected route directly
-    cy.visit('/plan');
-    cy.wait(2000);
-
-    // Auth guard should redirect to home or show login
-    cy.url().then((url) => {
-      // Either redirected to /home or stayed but shows login prompt
-      if (url.includes('/home') || url.includes('/login')) {
-        cy.log('Correctly redirected away from protected route');
-      } else {
-        // May have landed on /plan but with an auth prompt
-        cy.get('.nom-header__login-btn').should('be.visible');
-      }
-    });
-
-    // Try another protected route
-    cy.visit('/recipes/mine');
-    cy.wait(2000);
-
-    cy.url().then((url) => {
-      if (url.includes('/home') || url.includes('/login')) {
-        cy.log('Correctly redirected away from /recipes/mine');
-      } else {
-        cy.get('.nom-header__login-btn').should('be.visible');
-      }
-    });
-  });
-
-  it('should navigate between multiple recipe details using the home page', () => {
-    cy.visit('/home');
-    cy.wait(1500);
-
-    cy.get('[data-testid="recipe-card"]').then(($cards) => {
-      if ($cards.length < 2) {
-        cy.log('Not enough seed recipes to test multi-detail navigation');
-        return;
-      }
-
-      // Visit first recipe
-      cy.get('[data-testid="recipe-card"]').eq(0).click();
-      cy.wait(1000);
-      cy.get('.nom-recipe__title').invoke('text').then((firstTitle) => {
-        // Go back
-        cy.get('[data-testid="recipe-back-link"]').click();
-        cy.wait(1000);
-
-        // Visit second recipe
-        cy.get('[data-testid="recipe-card"]').eq(1).click();
-        cy.wait(1000);
-        cy.get('.nom-recipe__title').invoke('text').then((secondTitle) => {
-          // Titles should be different
-          expect(firstTitle.trim()).to.not.equal(secondTitle.trim());
+      cy.get('@popularRecipes').its('response.body').then((body: RecipeSearchResponse) => {
+        if (body.results.length === 0) {
+          cy.byTestId('home-empty').should('be.visible');
+          cy.byTestId('home-category').should('not.exist');
+          return;
+        }
+        cy.byTestId('home-empty').should('not.exist');
+        cy.byTestId('home-category').should('have.length.at.least', 1);
+        cy.byTestId('home-category').first().within(() => {
+          cy.byTestId('home-category-title').should('be.visible').invoke('text').should('not.be.empty');
+          cy.byTestId('recipe-card').should('have.length.at.least', 1);
+          cy.byTestId('recipe-card-name').first().should('be.visible').invoke('text').should('not.be.empty');
         });
       });
     });
-  });
 
-  it('should toggle between light and dark theme', () => {
-    cy.visit('/home');
-    cy.wait(1000);
+    it('opens a recipe from the home page and reads its overview, nutrition and diet tabs', () => {
+      openHome();
+      cy.byTestId('recipe-card').should('have.length.at.least', 1);
+      openRecipeFromCard(0);
 
-    // Find the theme toggle button in the header by its test id — NOT by
-    // class + .first(): the header's action cluster gained a mobile search
-    // toggle (display:none on desktop) ahead of it, which made .first()
-    // resolve to an invisible button and fail the click.
-    cy.get('[data-testid="header-theme-toggle-btn"]').then(($btn) => {
-      // Check the current icon
-      const iconText = $btn.find('mat-icon').text().trim();
-      const isDark = iconText === 'light_mode';
+      cy.byTestId('recipe-title').should('be.visible').invoke('text').should('not.be.empty');
+      cy.byTestId('recipe-meta').should('exist');
+      cy.byTestId('recipe-ingredients').should('exist');
+      cy.get('[data-testid="recipe-ingredient"], [data-testid="recipe-ingredients-empty"]').should('exist');
+      cy.byTestId('recipe-instructions').should('exist');
+      cy.byTestId('recipe-edit-btn').should('not.exist');
 
-      // Click to toggle
-      cy.wrap($btn).click();
-      cy.wait(500);
+      cy.byTestId('recipe-nutrition-tab').click();
+      cy.byTestId('recipe-nutrition-tab').should('have.attr', 'aria-selected', 'true');
+      cy.byTestId('recipe-tab-panel').within(() => {
+        cy.get('[data-testid="nutrition-label"], [data-testid="nutrition-label-empty"]').should('exist');
+      });
 
-      // Icon should have changed
-      if (isDark) {
-        cy.wrap($btn).find('mat-icon').should('contain.text', 'dark_mode');
-      } else {
-        cy.wrap($btn).find('mat-icon').should('contain.text', 'light_mode');
+      cy.byTestId('recipe-diet-tab').click();
+      cy.byTestId('recipe-diet-tab').should('have.attr', 'aria-selected', 'true');
+      cy.byTestId('recipe-tab-panel').should('be.visible');
+
+      cy.byTestId('recipe-overview-tab').click();
+      cy.byTestId('recipe-overview-tab').should('have.attr', 'aria-selected', 'true');
+      cy.byTestId('recipe-ingredients').should('exist');
+
+      cy.byTestId('recipe-back-link').scrollIntoView().click();
+      cy.location('pathname').should('eq', '/home');
+      cy.byTestId('home-page').should('exist');
+    });
+
+    it('searches recipes from the header and opens a result', () => {
+      openHome();
+      cy.intercept('POST', '**/api/RecipeSearch/search').as('search');
+
+      searchFromHeader('salad');
+      cy.location('pathname').should('eq', '/search');
+      cy.byTestId('search-page').should('be.visible');
+      cy.wait('@search').its('response.statusCode').should('eq', 200);
+
+      cy.get('@search').its('response.body').then((body: RecipeSearchResponse) => {
+        expect(body.totalCount, 'seeded salad recipes').to.be.greaterThan(0);
+        expect(body.results.length, 'first page of results').to.be.greaterThan(0);
+        cy.byTestId('search-empty').should('not.exist');
+        cy.byTestId('search-result-card').should('have.length', body.results.length);
+        cy.byTestId('search-count').should('contain.text', String(body.totalCount));
+      });
+      cy.intercept('GET', '**/api/Recipe/*').as('recipeDetail');
+      cy.byTestId('search-result-card').first().click();
+      cy.location('pathname').should('match', /^\/recipe\/\d+$/);
+      cy.wait('@recipeDetail').its('response.statusCode').should('eq', 200);
+      cy.byTestId('recipe-detail').should('be.visible');
+    });
+
+    it('offers password recovery and account creation from the Sign In popover', () => {
+      openHome();
+
+      cy.byTestId('header-login-btn').click();
+      cy.byTestId('login-popover').should('be.visible');
+      cy.byTestId('login-popover').within(() => {
+        cy.byTestId('login-email-input').should('be.visible');
+        cy.byTestId('login-password-input').should('be.visible');
+        cy.byTestId('login-submit-btn').should('be.visible');
+        cy.byTestId('login-forgot-password-link').should('be.visible').and('have.attr', 'href', '/forgot-password');
+        cy.byTestId('login-create-account-link').should('be.visible').click();
+      });
+
+      cy.location('pathname').should('eq', '/register');
+      cy.byTestId('login-popover').should('not.exist');
+      cy.byTestId('register-form').should('be.visible');
+      cy.byTestId('register-email-input').should('be.visible');
+      cy.byTestId('register-password-input').should('be.visible');
+      cy.byTestId('register-confirm-password-input').should('be.visible');
+      cy.byTestId('register-submit-btn').scrollIntoView().should('be.visible');
+    });
+
+    it('sends a visitor who opens a protected page back to the home page', () => {
+      for (const route of ['/plan', '/recipes/mine', '/shopping', '/settings', '/admin']) {
+        cy.visit(route);
+        cy.location('pathname').should('eq', '/home');
+        cy.byTestId('header-login-btn').should('be.visible');
+        cy.byTestId('home-page').should('exist');
       }
+    });
 
-      // Toggle back
-      cy.wrap($btn).click();
-      cy.wait(300);
+    it('moves between two recipe details through the home page', () => {
+      openHome();
+      cy.byTestId('recipe-card').should('have.length.at.least', 2);
+
+      openRecipeFromCard(0);
+      cy.byTestId('recipe-title').invoke('text').then((firstTitle) => {
+        const firstName = firstTitle.trim();
+        cy.byTestId('recipe-back-link').scrollIntoView().click();
+        cy.location('pathname').should('eq', '/home');
+        cy.wait('@popularRecipes');
+        cy.byTestId('recipe-card').should('have.length.at.least', 2);
+
+        cy.intercept('GET', '**/api/Recipe/*').as('secondRecipe');
+        cy.byTestId('recipe-card')
+          .filter((_, card) => Cypress.$(card).find('[data-testid="recipe-card-name"]').text().trim() !== firstName)
+          .first()
+          .click();
+        cy.location('pathname').should('match', /^\/recipe\/\d+$/);
+        cy.wait('@secondRecipe').its('response.statusCode').should('eq', 200);
+        cy.byTestId('recipe-detail').should('be.visible');
+        cy.byTestId('recipe-title').invoke('text').should((secondTitle) => {
+          expect(secondTitle.trim()).to.not.equal(firstName);
+        });
+      });
+    });
+
+    it('toggles between dark and light theme and back', () => {
+      openHome();
+
+      cy.get('body').should('have.class', 'dark-theme');
+      cy.byTestId('header-theme-toggle-btn').find('mat-icon').should('have.text', 'light_mode');
+
+      cy.byTestId('header-theme-toggle-btn').click();
+      cy.get('body').should('have.class', 'light-theme').and('not.have.class', 'dark-theme');
+      cy.byTestId('header-theme-toggle-btn').find('mat-icon').should('have.text', 'dark_mode');
+
+      cy.byTestId('header-theme-toggle-btn').click();
+      cy.get('body').should('have.class', 'dark-theme').and('not.have.class', 'light-theme');
+      cy.byTestId('header-theme-toggle-btn').find('mat-icon').should('have.text', 'light_mode');
     });
   });
-});
+};
+
+selectedViewports().forEach((viewport) => anonymousJourney(viewport.name, viewport));

@@ -5,12 +5,12 @@
     </div>
   } @else if (error()) {
     <nom-error-banner [message]="error()!">
-      <a mat-flat-button routerLink="/cookbooks">Back to Cookbooks</a>
+      <a mat-flat-button routerLink="/cookbooks" data-testid="cookbook-detail-back-btn">Back to Cookbooks</a>
     </nom-error-banner>
   } @else if (cookbook()) {
     <div class="nom-dashboard__header">
       <div>
-        <a routerLink="/cookbooks" class="nom-cookbook-detail__back">
+        <a routerLink="/cookbooks" class="nom-cookbook-detail__back" data-testid="cookbook-detail-back-link">
           <mat-icon>arrow_back</mat-icon>
           Cookbooks
         </a>
@@ -20,11 +20,11 @@
         }
       </div>
       <div class="nom-cookbook-detail__actions">
-        <button mat-stroked-button (click)="onEdit()">
+        <button mat-stroked-button (click)="onEdit()" data-testid="cookbook-detail-edit-btn">
           <mat-icon>edit</mat-icon>
           Edit
         </button>
-        <button mat-stroked-button class="nom-btn--destructive" (click)="onDelete()">
+        <button mat-stroked-button class="nom-btn--destructive" (click)="onDelete()" data-testid="cookbook-detail-delete-btn">
           <mat-icon>delete</mat-icon>
           Delete
         </button>
@@ -37,7 +37,7 @@
       </div>
 
       @if (recipes().length === 0) {
-        <div class="nom-dashboard__empty">
+        <div class="nom-dashboard__empty" data-testid="cookbook-detail-empty">
           <mat-icon class="nom-dashboard__empty-icon">restaurant_menu</mat-icon>
           <h2 class="nom-dashboard__empty-title">No recipes in this cookbook</h2>
           <p class="nom-dashboard__empty-message">
@@ -47,8 +47,8 @@
       } @else {
         <div class="nom-cookbook-recipes">
           @for (recipe of recipes(); track recipe.id) {
-            <div class="nom-cookbook-recipe">
-              <a class="nom-cookbook-recipe__body" [routerLink]="'/recipe/' + recipe.id">
+            <div class="nom-cookbook-recipe" data-testid="cookbook-recipe-item">
+              <a class="nom-cookbook-recipe__body" [routerLink]="'/recipe/' + recipe.id" data-testid="cookbook-recipe-link">
                 @if (recipe.imageUrl) {
                   <img class="nom-cookbook-recipe__img" [src]="recipe.imageUrl" [alt]="recipe.name" loading="lazy">
                 } @else {
@@ -63,7 +63,7 @@
                   }
                 </div>
               </a>
-              <button mat-icon-button (click)="onRemoveRecipe(recipe.id)" aria-label="Remove from cookbook">
+              <button mat-icon-button (click)="onRemoveRecipe(recipe.id)" aria-label="Remove from cookbook" data-testid="cookbook-recipe-remove-btn">
                 <mat-icon>close</mat-icon>
               </button>
             </div>

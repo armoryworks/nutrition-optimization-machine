@@ -67,7 +67,7 @@
             <mat-label>Gender</mat-label>
             <mat-select formControlName="gender" data-testid="profile-gender-select">
               @for (option of genderOptions; track option) {
-                <mat-option [value]="option">{{ option }}</mat-option>
+                <mat-option [value]="option" data-testid="profile-gender-option">{{ option }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
@@ -162,7 +162,7 @@
           <mat-label>Activity Level</mat-label>
           <mat-select formControlName="activityLevel" data-testid="profile-activity-level-select">
             @for (level of activityLevels(); track level.referenceId) {
-              <mat-option [value]="level.referenceId">
+              <mat-option [value]="level.referenceId" data-testid="profile-activity-level-option">
                 {{ level.referenceName }}
                 <span class="nom-profile__option-hint">{{ level.referenceDescription }}</span>
               </mat-option>
@@ -174,7 +174,7 @@
           <mat-label>Health Goal</mat-label>
           <mat-select formControlName="healthGoal" data-testid="profile-health-goal-select">
             @for (goal of healthGoals(); track goal.referenceId) {
-              <mat-option [value]="goal.referenceId">
+              <mat-option [value]="goal.referenceId" data-testid="profile-health-goal-option">
                 {{ goal.referenceName }}
                 <span class="nom-profile__option-hint">{{ goal.referenceDescription }}</span>
               </mat-option>

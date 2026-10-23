@@ -7,14 +7,14 @@
   }
 
   @if (errorMessage()) {
-    <div class="nom-form__error">
+    <div class="nom-form__error" data-testid="restrictions-error">
       <mat-icon>error_outline</mat-icon>
       <span>{{ errorMessage() }}</span>
     </div>
   }
 
   @if (successMessage()) {
-    <div class="nom-restrictions__success">
+    <div class="nom-restrictions__success" data-testid="restrictions-success">
       <mat-icon>check_circle</mat-icon>
       <span>{{ successMessage() }}</span>
     </div>
@@ -47,18 +47,18 @@
   }
 
   @for (section of sections(); track section.groupId) {
-    <div class="nom-form__section">
+    <div class="nom-form__section" data-testid="restrictions-section">
       <h2 class="nom-form__section-title">
         <mat-icon class="nom-restrictions__section-icon">{{ section.icon }}</mat-icon>
         {{ section.label }}
       </h2>
 
       @if (sectionSelectedItems(section.groupId).length > 0) {
-        <mat-chip-set class="nom-restrictions__pills">
+        <mat-chip-set class="nom-restrictions__pills" data-testid="restrictions-pills">
           @for (item of sectionSelectedItems(section.groupId); track item.referenceId) {
-            <mat-chip (removed)="removeRestriction(item.referenceId)">
+            <mat-chip (removed)="removeRestriction(item.referenceId)" data-testid="restrictions-chip">
               {{ item.referenceName }}
-              <button matChipRemove aria-label="Remove {{ item.referenceName }}">
+              <button matChipRemove aria-label="Remove {{ item.referenceName }}" data-testid="restrictions-chip-remove-btn">
                 <mat-icon>cancel</mat-icon>
               </button>
             </mat-chip>
@@ -71,7 +71,8 @@
         <input matInput
                [formControl]="section.searchControl"
                [matAutocomplete]="auto"
-               [attr.aria-label]="'Search ' + section.label">
+               [attr.aria-label]="'Search ' + section.label"
+               data-testid="restrictions-search-input">
         <mat-icon matSuffix>search</mat-icon>
         <mat-autocomplete #auto="matAutocomplete"
                           [displayWith]="displayFn"
@@ -80,8 +81,8 @@
           @let descHits = descriptionMatches(section);
 
           @for (item of nameHits; track item.referenceId) {
-            <mat-option [value]="item">
-              <span>{{ item.referenceName }}</span>
+            <mat-option [value]="item" data-testid="restrictions-option">
+              <span data-testid="restrictions-option-name">{{ item.referenceName }}</span>
               @if (item.referenceDescription) {
                 <small class="nom-restrictions__option-desc">{{ item.referenceDescription }}</small>
               }
@@ -91,8 +92,8 @@
           @if (descHits.length > 0) {
             <mat-optgroup label="Matched in description">
               @for (item of descHits; track item.referenceId) {
-                <mat-option [value]="item">
-                  <span>{{ item.referenceName }}</span>
+                <mat-option [value]="item" data-testid="restrictions-option">
+                  <span data-testid="restrictions-option-name">{{ item.referenceName }}</span>
                   @if (item.referenceDescription) {
                     <small class="nom-restrictions__option-desc">{{ item.referenceDescription }}</small>
                   }

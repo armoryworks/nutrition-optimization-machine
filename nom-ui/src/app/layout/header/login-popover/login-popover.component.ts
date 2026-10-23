@@ -117,8 +117,8 @@ export class LoginPopover {
             this.loggedIn.emit();
             return;
           }
-          this.closed.emit();
           this.checkOnboardingState();
+          this.closed.emit();
         },
         error: (err) => {
           this.loading.set(false);
@@ -153,15 +153,12 @@ export class LoginPopover {
     const personId = this.authService.personId();
     if (!personId) return;
 
-    this.personService
-      .getOnboardingState(personId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (state) => {
-          if (!state.isComplete) {
-            this.router.navigate(['/onboarding']);
-          }
-        },
-      });
+    this.personService.getOnboardingState(personId).subscribe({
+      next: (state) => {
+        if (!state.isComplete) {
+          this.router.navigate(['/onboarding']);
+        }
+      },
+    });
   }
 }

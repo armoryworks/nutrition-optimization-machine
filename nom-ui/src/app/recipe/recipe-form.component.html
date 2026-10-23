@@ -5,7 +5,7 @@
   </div>
 
   @if (errorMessage()) {
-    <div class="nom-form__error">
+    <div class="nom-form__error" data-testid="recipe-form-submit-error">
       <mat-icon>error_outline</mat-icon>
       <span>{{ errorMessage() }}</span>
     </div>
@@ -29,7 +29,7 @@
         <div class="nom-form__fields">
           <mat-form-field appearance="outline">
             <mat-label>Recipe Name</mat-label>
-            <input matInput formControlName="name" maxlength="511" />
+            <input matInput formControlName="name" maxlength="511" data-testid="recipe-name-input" />
             @if (recipeForm.get('name')?.hasError('required') && recipeForm.get('name')?.touched) {
               <mat-error>Recipe name is required</mat-error>
             }
@@ -37,7 +37,7 @@
 
           <mat-form-field appearance="outline">
             <mat-label>Description</mat-label>
-            <textarea matInput formControlName="description" rows="3" maxlength="2047"></textarea>
+            <textarea matInput formControlName="description" rows="3" maxlength="2047" data-testid="recipe-description-input"></textarea>
           </mat-form-field>
 
           <div class="nom-recipe-form__serving-row">
@@ -61,9 +61,9 @@
             <mat-form-field appearance="outline" class="nom-recipe-form__serving-unit">
               <mat-label>Unit</mat-label>
               <mat-select formControlName="servingQuantityMeasurementId" data-testid="recipe-serving-unit-select">
-                <mat-option [value]="null">—</mat-option>
+                <mat-option [value]="null" data-testid="recipe-serving-unit-option">—</mat-option>
                 @for (m of measurements(); track m.id) {
-                  <mat-option [value]="m.id">{{ m.name }}</mat-option>
+                  <mat-option [value]="m.id" data-testid="recipe-serving-unit-option">{{ m.name }}</mat-option>
                 }
               </mat-select>
             </mat-form-field>
@@ -79,15 +79,15 @@
             <div class="nom-recipe-form__image-preview">
               <img [src]="currentImageUrl()" alt="Recipe image" class="nom-recipe-form__image" />
               <button mat-icon-button type="button" class="nom-recipe-form__image-remove"
-                      (click)="onRemoveImage()" aria-label="Remove image">
+                      (click)="onRemoveImage()" aria-label="Remove image" data-testid="recipe-image-remove-btn">
                 <mat-icon>close</mat-icon>
               </button>
             </div>
           }
           <div class="nom-recipe-form__image-upload">
             <input type="file" accept="image/jpeg,image/png,image/gif,image/webp"
-                   #fileInput (change)="onFileSelected($event)" hidden />
-            <button mat-stroked-button type="button" (click)="fileInput.click()">
+                   #fileInput (change)="onFileSelected($event)" hidden data-testid="recipe-image-file-input" />
+            <button mat-stroked-button type="button" (click)="fileInput.click()" data-testid="recipe-image-upload-btn">
               <mat-icon>upload</mat-icon>
               {{ currentImageUrl() ? 'Change Image' : 'Upload Image' }}
             </button>
@@ -104,20 +104,21 @@
 
         <div formArrayName="ingredients">
           @for (ing of ingredientsArray.controls; track ing.get('rowId')?.value; let i = $index) {
-            <div class="nom-recipe-form__ingredient-row" [formGroupName]="i">
+            <div class="nom-recipe-form__ingredient-row" [formGroupName]="i" data-testid="recipe-ingredient-row">
               <mat-form-field appearance="outline" class="nom-recipe-form__ing-name">
                 <mat-label>Ingredient</mat-label>
                 <input matInput
                        formControlName="searchText"
                        [matAutocomplete]="ingAuto"
                        (input)="onIngredientInput(i, $event)"
-                       [attr.aria-label]="'Search ingredient ' + (i + 1)" />
+                       [attr.aria-label]="'Search ingredient ' + (i + 1)"
+                       data-testid="recipe-ingredient-name-input" />
                 <mat-autocomplete #ingAuto="matAutocomplete" autoActiveFirstOption (opened)="scrollPanelsToTop()"
                                   panelWidth="auto"
                                   [displayWith]="displayIngredient"
                                   (optionSelected)="onIngredientSelected(i, $event.option.value)">
                   @for (option of getIngredientOptions(i); track option.id) {
-                    <mat-option [value]="option">
+                    <mat-option [value]="option" data-testid="recipe-ingredient-option">
                       {{ option.name }}
                       @if (option.matchedAlias) {
                         <small class="nom-recipe-form__alias">({{ option.matchedAlias }})</small>
@@ -142,14 +143,14 @@
 
               <mat-form-field appearance="outline" class="nom-recipe-form__ing-qty">
                 <mat-label>Qty</mat-label>
-                <input matInput type="number" formControlName="quantity" min="0.01" step="0.25" />
+                <input matInput type="number" formControlName="quantity" min="0.01" step="0.25" data-testid="recipe-ingredient-qty-input" />
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="nom-recipe-form__ing-measure">
                 <mat-label>Unit</mat-label>
-                <mat-select formControlName="measurementId">
+                <mat-select formControlName="measurementId" data-testid="recipe-ingredient-unit-select">
                   @for (m of measurements(); track m.id) {
-                    <mat-option [value]="m.id">{{ m.name }}</mat-option>
+                    <mat-option [value]="m.id" data-testid="recipe-ingredient-unit-option">{{ m.name }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
@@ -157,7 +158,8 @@
               <button type="button" mat-icon-button
                       class="nom-recipe-form__remove-btn"
                       (click)="removeIngredient(i)"
-                      [attr.aria-label]="'Remove ingredient ' + (i + 1)">
+                      [attr.aria-label]="'Remove ingredient ' + (i + 1)"
+                      data-testid="recipe-ingredient-remove-btn">
                 <mat-icon>close</mat-icon>
               </button>
             </div>
@@ -178,17 +180,18 @@
              cdkDropList
              (cdkDropListDropped)="onStepDrop($event)">
           @for (step of stepsArray.controls; track $index; let i = $index) {
-            <div class="nom-recipe-form__step-row" cdkDrag [formGroupName]="i">
+            <div class="nom-recipe-form__step-row" cdkDrag [formGroupName]="i" data-testid="recipe-step-row">
               <mat-icon cdkDragHandle class="nom-recipe-form__drag-handle">drag_indicator</mat-icon>
               <span class="nom-recipe-form__step-number">{{ i + 1 }}.</span>
               <mat-form-field appearance="outline" class="nom-recipe-form__step-input">
                 <mat-label>Step {{ i + 1 }}</mat-label>
-                <textarea matInput formControlName="description" rows="2"></textarea>
+                <textarea matInput formControlName="description" rows="2" data-testid="recipe-step-input"></textarea>
               </mat-form-field>
               <button type="button" mat-icon-button
                       class="nom-recipe-form__remove-btn"
                       (click)="removeStep(i)"
-                      [attr.aria-label]="'Remove step ' + (i + 1)">
+                      [attr.aria-label]="'Remove step ' + (i + 1)"
+                      data-testid="recipe-step-remove-btn">
                 <mat-icon>close</mat-icon>
               </button>
             </div>
@@ -210,7 +213,7 @@
           </button>
         }
         <span class="nom-recipe-form__spacer"></span>
-        <button mat-button type="button" routerLink="/recipes/mine">Cancel</button>
+        <button mat-button type="button" routerLink="/recipes/mine" data-testid="recipe-cancel-btn">Cancel</button>
         <button mat-flat-button type="submit"
                 [disabledInteractive]="saveGated()"
                 [matTooltip]="saveGatedTooltip()"

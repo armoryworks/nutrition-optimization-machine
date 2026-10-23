@@ -14,7 +14,7 @@
         <mat-icon>{{ showAddForm() ? 'close' : 'add' }}</mat-icon>
         {{ showAddForm() ? 'Cancel' : 'Add Item' }}
       </button>
-      <button mat-icon-button (click)="refresh()" aria-label="Refresh">
+      <button mat-icon-button (click)="refresh()" aria-label="Refresh" data-testid="pantry-refresh-btn">
         <mat-icon>refresh</mat-icon>
       </button>
     </div>
@@ -24,19 +24,20 @@
   @if (showAddForm()) {
     <div class="nom-pantry__add-form" data-testid="pantry-add-form">
       <h3 class="nom-pantry__add-title">Add to Pantry</h3>
-      <div class="nom-pantry__add-fields">
+      <div class="nom-pantry__add-fields" data-testid="pantry-add-fields">
         <mat-form-field class="nom-pantry__add-ingredient" appearance="outline" subscriptSizing="dynamic">
           <mat-label>Ingredient</mat-label>
           <input matInput
                  [value]="ingredientSearch()"
                  (input)="onIngredientSearchChange($any($event.target).value)"
                  [matAutocomplete]="auto"
-                 placeholder="Search ingredients...">
+                 placeholder="Search ingredients..."
+                 data-testid="pantry-ingredient-input">
           <mat-autocomplete #auto="matAutocomplete" autoActiveFirstOption (opened)="scrollPanelToTop()"
                            (optionSelected)="selectIngredient($event.option.value)"
                            [displayWith]="displayIngredient">
             @for (option of ingredientOptions(); track option.id) {
-              <mat-option [value]="option">{{ option.name }}</mat-option>
+              <mat-option [value]="option" data-testid="pantry-ingredient-option">{{ option.name }}</mat-option>
             }
           </mat-autocomplete>
         </mat-form-field>
@@ -48,15 +49,17 @@
                  [value]="newQuantity()"
                  (input)="newQuantity.set(+$any($event.target).value)"
                  min="0.1"
-                 step="0.5">
+                 step="0.5"
+                 data-testid="pantry-quantity-input">
         </mat-form-field>
 
         <mat-form-field class="nom-pantry__add-unit" appearance="outline" subscriptSizing="dynamic">
           <mat-label>Unit</mat-label>
           <mat-select [value]="selectedMeasurementId()"
-                      (selectionChange)="selectedMeasurementId.set($event.value)">
+                      (selectionChange)="selectedMeasurementId.set($event.value)"
+                      data-testid="pantry-unit-select">
             @for (m of measurements(); track m.id) {
-              <mat-option [value]="m.id">{{ m.name }} ({{ m.symbol }})</mat-option>
+              <mat-option [value]="m.id" data-testid="pantry-unit-option">{{ m.name }} ({{ m.symbol }})</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -104,7 +107,7 @@
       <mat-icon class="nom-pantry__empty-icon">kitchen</mat-icon>
       <h2>Pantry is empty</h2>
       <p>Add items to your pantry so your shopping list only shows what you need.</p>
-      <button mat-flat-button (click)="toggleAddForm()">
+      <button mat-flat-button (click)="toggleAddForm()" data-testid="pantry-empty-add-btn">
         <mat-icon>add</mat-icon>
         Add First Item
       </button>
@@ -150,7 +153,8 @@
             <button mat-icon-button
                     (click)="removeItem(item.id)"
                     aria-label="Remove item"
-                    class="nom-pantry__remove-btn">
+                    class="nom-pantry__remove-btn"
+                    data-testid="pantry-item-remove-btn">
               <mat-icon>delete_outline</mat-icon>
             </button>
           </span>
@@ -183,7 +187,8 @@
                 <button mat-icon-button
                         (click)="removeItem(item.id)"
                         aria-label="Remove expired item"
-                        class="nom-pantry__remove-btn">
+                        class="nom-pantry__remove-btn"
+                        data-testid="pantry-expired-item-remove-btn">
                   <mat-icon>delete_outline</mat-icon>
                 </button>
               </span>

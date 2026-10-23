@@ -1,484 +1,69 @@
-> **⚠️ ARCHIVED — DO NOT FOLLOW (marked 2026-07-30)**
->
-> This document describes a previous generation of the codebase (largely the UI archived
-> in commit `696db43` and the since-removed EF-migrations workflow). Its claims were
-> verified inaccurate against the current code in the July 2026 deep-dive review.
-> Kept for historical reference only — trust `CLAUDE.md` and the code itself.
-> Current, verified findings: `docs/DEEP_DIVE_REVIEW_2026-07.md`.
-
-# NOM Testing Suite
-
-Comprehensive end-to-end testing suite for the Nutrition Optimization Machine (NOM) application, built with Cypress for integration validation and user journey testing.
-
-[![Cypress](https://img.shields.io/badge/Cypress-Latest-green.svg)](https://www.cypress.io/)
-[![Integration Tests](https://img.shields.io/badge/Integration-Complete-brightgreen.svg)](cypress/e2e/)
-[![Test Coverage](https://img.shields.io/badge/Coverage-Comprehensive-blue.svg)](#test-coverage)
-[![Production Ready](https://img.shields.io/badge/Production-Ready-green.svg)](#production-testing)
-
-## **Overview**
-
-This testing suite provides comprehensive validation of the NOM application through multiple test categories, ensuring reliability and quality across all user workflows.
-
-### **Key Features**
-
-- **Complete User Journeys** - End-to-end workflow validation
-- **Dynamic Test Data** - No hardcoded credentials or data
-- **Cross-Domain Testing** - Backend API and frontend integration
-- **Production-Ready** - Suitable for CI/CD and production validation
-- **Comprehensive Coverage** - All critical application features tested
-
-## **Test Categories**
-
-### ** Integration Smoke Tests**  **Featured**
-
-**File**: `cypress/e2e/integration-smoke.cy.ts`  
-**Purpose**: Complete user journey validation from registration to shopping list generation  
-**Coverage**: Cross-domain functionality, API integration, end-to-end workflows
-
-```bash
-npm run test:integration
-```
-
-**Test Flow**:
-
-1. User registration with dynamic credentials
-2. Ingredient creation with diverse nutrients
-3. Recipe creation with meal type constraints
-4. Meal plan creation and scheduling
-5. Randomized meal plan generation
-6. Shopping list auto-generation
-7. Complete workflow validation
-
-### ** API Validation Tests**
-
-**File**: `cypress/e2e/api.cy.ts`  
-**Purpose**: Backend API endpoint validation and error handling  
-**Coverage**: Authentication, user management, recipes, privacy features
-
-```bash
-npm run test:api
-```
-
-**Test Coverage**:
-
-- Authentication endpoints
-- Recipe CRUD operations
-- User management APIs
-- Privacy and GDPR endpoints
-- Error handling and validation
-
-### ** Authentication Tests**
-
-**File**: `cypress/e2e/auth.cy.ts`  
-**Purpose**: User authentication and authorization workflows  
-**Coverage**: Registration, login, logout, session management
-
-```bash
-npm run test:auth
-```
-
-**Security Testing**:
-
-- JWT token validation
-- Session management
-- Password security
-- Authorization checks
-
-### ** Onboarding Tests**
-
-**File**: `cypress/e2e/onboarding.cy.ts`  
-**Purpose**: User onboarding and profile completion workflows  
-**Coverage**: Multi-step onboarding, dietary restrictions, preferences
-
-```bash
-npm run test:onboarding
-```
-
-**Onboarding Flow**:
-
-- Profile creation
-- Dietary restriction setup
-- Nutrition goal setting
-- Preference configuration
-
-### ** Recipe Management Tests**
-
-**File**: `cypress/e2e/recipes.cy.ts`  
-**Purpose**: Recipe creation, editing, and management functionality  
-**Coverage**: Recipe CRUD, ingredient management, curation workflow
-
-```bash
-npm run test:recipes
-```
-
-**Recipe Features**:
-
-- Recipe creation and editing
-- Ingredient management
-- Nutrition calculations
-- Curation workflow
-
-### ** Basic Smoke Tests**
-
-**File**: `cypress/e2e/smoke.cy.ts`  
-**Purpose**: Basic application health and navigation checks  
-**Coverage**: Page loading, navigation, API connectivity
-
-```bash
-npm run test
-```
-
-## **Quick Start**
-
-### **Prerequisites**
-
-Ensure the following services are running:
-
-1. **Backend API** - .NET API on `http://localhost:5000`
-2. **Frontend App** - Angular app on `http://localhost:4200`
-3. **Database** - PostgreSQL with test data available
-4. **Dependencies** - Node.js 20+ installed
-
-### **Installation & Setup**
-
-```bash
-# Navigate to test directory
-cd nom-test
-
-# Install dependencies
-npm install
-
-# Verify setup
-npm run test:smoke
-```
-
-### **Running Tests**
-
-```bash
-# Run all test categories
-npm run test
-
-# Run specific test suites
-npm run test:integration    #  Complete integration tests
-npm run test:api           #  API validation tests
-npm run test:auth          #  Authentication tests
-npm run test:onboarding    #  Onboarding workflow tests
-npm run test:recipes       #  Recipe management tests
-
-# Development & Debugging
-npm run test:open          #  Open Cypress test runner
-npm run test:headed        #  Run tests with browser visible
-```
-
-## **Configuration**
-
-### **Environment Setup**
-
-```javascript
-// cypress.config.js
-export default {
-  e2e: {
-    baseUrl: "http://localhost:4200",
-    env: {
-      apiUrl: "http://localhost:5000",
-      testPassword: "TestPassword123!",
-    },
-  },
-};
-```
-
-### **Custom Environment Variables**
-
-```bash
-# Set custom test password
-export CYPRESS_TEST_PASSWORD="CustomTestPassword123!"
-
-# Run with custom configuration
-CYPRESS_TEST_PASSWORD="CustomPass123!" npm run test:integration
-```
-
-### **Test Data Strategy**
-
-** No Hardcoded Data Policy**
-
-All tests generate unique, dynamic data for each run:
-
-```javascript
-// Dynamic user generation
-const testUser = {
-  email: `test-${Date.now()}-${Math.random()
-    .toString(36)
-    .substring(2, 8)}@example.com`,
-  password: Cypress.env("TEST_PASSWORD") || "TestPassword123!",
-  fullName: `Test User ${Math.random().toString(36).substring(2, 8)}`,
-};
-```
-
-**Benefits**:
-
-- **No Test Interference** - Each test run is isolated
-- **Production Safe** - No hardcoded production credentials
-- **Parallel Execution** - Tests can run concurrently
-- **Security Compliant** - No sensitive data in code
-
-## **Test Coverage**
-
-### **Domain Coverage Matrix**
-
-| Domain                  | Integration | API | Auth | Onboarding | Recipes | Coverage |
-| ----------------------- | ----------- | --- | ---- | ---------- | ------- | -------- |
-| **User Authentication** |           |   |    |          |       | 80%      |
-| **Recipe Management**   |           |   |    |          |       | 75%      |
-| **Meal Planning**       |           |   |    |          |       | 50%      |
-| **Shopping Lists**      |           |   |    |          |       | 50%      |
-| **User Onboarding**     |           |   |    |          |       | 75%      |
-| **Privacy/GDPR**        |           |   |    |          |       | 25%      |
-
-### **Validation Points**
-
-- **Data Integrity** - All CRUD operations validated
-- **Business Rules** - Meal type constraints, dietary restrictions
-- **User Experience** - Complete workflow validation
-- **API Integration** - Backend-frontend communication
-- **Error Handling** - Graceful failure scenarios
-- **Security** - Authentication and authorization
-
-## **Advanced Testing Features**
-
-### **Smart Test Data Generation**
-
-```javascript
-// Diverse ingredient creation with nutrients
-const ingredients = [
-  {
-    name: `Chicken Breast ${uniqueId}`,
-    nutrients: ["protein", "vitamin-b6", "niacin"],
-    category: "protein",
-  },
-  {
-    name: `Salmon Fillet ${uniqueId}`,
-    nutrients: ["protein", "omega-3", "vitamin-d"],
-    category: "protein",
-  },
-  // ... more ingredients
-];
-```
-
-### **Business Logic Validation**
-
-```javascript
-// Meal type constraint testing
-it("should respect meal type constraints in randomization", () => {
-  // Breakfast recipes only used for breakfast
-  // Lunch/dinner recipes appropriately categorized
-  // Snack recipes for snack times
-});
-```
-
-### **Automatic Cleanup**
-
-```javascript
-afterEach(() => {
-  // Clean up test data after each test
-  if (testShoppingList?.id) {
-    cy.apiRequest("DELETE", `/api/shopping/${testShoppingList.id}`);
-  }
-  // ... cleanup other entities
-});
-```
-
-## **Custom Commands**
-
-### **Authentication Commands**
-
-```javascript
-// Custom Cypress commands for common operations
-Cypress.Commands.add("registerAndAuthenticateUser", (userData) => {
-  // Complete authentication workflow
-});
-
-Cypress.Commands.add("loginUser", (credentials) => {
-  // User login with token management
-});
-```
-
-### **API Commands**
-
-```javascript
-Cypress.Commands.add("apiRequest", (method, url, body) => {
-  // Authenticated API requests
-});
-
-Cypress.Commands.add("createTestRecipe", (recipeData) => {
-  // Recipe creation with validation
-});
-```
-
-### **Data Generation Commands**
-
-```javascript
-Cypress.Commands.add("createDiverseIngredients", () => {
-  // Generate ingredients with varied nutrients
-});
-
-Cypress.Commands.add("generateMealPlan", (recipes, constraints) => {
-  // Smart meal plan generation
-});
-```
-
-## **CI/CD Integration**
-
-### **GitHub Actions Support**
-
-The test suite integrates with GitHub Actions for automated testing:
-
-```yaml
-# .github/workflows/test-frontend.yml
-- name: Run E2E tests
-  run: |
-    cd nom-test
-    npm run test:integration
-```
-
-### **Production Testing**
-
-```bash
-# Production environment testing
-CYPRESS_BASE_URL=https://production.nom.app npm run test:smoke
-
-# Staging environment validation
-CYPRESS_BASE_URL=https://staging.nom.app npm run test:integration
-```
-
-## **Performance Testing**
-
-### **Response Time Validation**
-
-```javascript
-// Performance assertions in tests
-cy.intercept("GET", "/api/recipes").as("getRecipes");
-cy.wait("@getRecipes").then((interception) => {
-  expect(interception.response.duration).to.be.lessThan(2000);
-});
-```
-
-### **Load Testing Scenarios**
-
-- **Concurrent Users** - Multiple user simulation
-- **Data Volume** - Large dataset handling
-- **API Performance** - Response time validation
-- **Memory Usage** - Browser memory monitoring
-
-## **Development & Debugging**
-
-### **Interactive Development**
-
-```bash
-# Open Cypress test runner for development
-npm run test:open
-
-# Run specific test file with browser
-npx cypress run --spec "cypress/e2e/integration-smoke.cy.ts" --headed
-
-# Debug mode with console logs
-DEBUG=cypress:* npm run test:integration
-```
-
-### **Test Development Workflow**
-
-1. **Write Test** - Create new test file in `cypress/e2e/`
-2. **Add Commands** - Create custom commands in `cypress/support/`
-3. **Test Locally** - Use `npm run test:open` for development
-4. **Validate** - Run complete test suite
-5. **Document** - Update this README with new test info
-
-## **Troubleshooting**
-
-### **Common Issues**
-
-1. **Service Not Running**
-
-   ```bash
-   # Check backend API
-   curl http://localhost:5000/health
-
-   # Check frontend app
-   curl http://localhost:4200
-   ```
-
-2. **Test Data Conflicts**
-
-   - Tests use dynamic data generation
-   - Automatic cleanup prevents conflicts
-   - Each test run is isolated
-
-3. **Browser Issues**
-
-   ```bash
-   # Clear Cypress cache
-   npx cypress cache clear
-
-   # Reset Cypress installation
-   npx cypress install
-   ```
-
-### **Debug Information**
-
-```javascript
-// Add comprehensive logging to tests
-cy.log("Test execution step details");
-console.log("Debug information:", testData);
-```
-
-## **Documentation**
-
-### **Testing Guides**
-
-- **[Smoke Testing Guide](../docs/development/smoke-testing.md)** - Complete testing strategy
-- **[Development Workflow](../docs/workflows/development-workflow.md)** - Testing in development process
-- **[Troubleshooting](../docs/development/troubleshooting.md)** - Common issues and solutions
-
-### **API Documentation**
-
-- **[API Reference](../docs/API_REFERENCE.md)** - Backend endpoint documentation
-- **[Architecture Guide](../docs/architecture/system-architecture.md)** - System architecture overview
-
-## **Contributing**
-
-### **Adding New Tests**
-
-1. **Follow Patterns** - Use existing test patterns and custom commands
-2. **Dynamic Data** - Never hardcode test data or credentials
-3. **Comprehensive Coverage** - Test happy path, edge cases, and errors
-4. **Clean Up** - Ensure proper test data cleanup
-5. **Documentation** - Update this README with new test information
-
-### **Test Quality Standards**
-
-- **Isolation** - Each test runs independently
-- **Deterministic** - Reproducible results every time
-- **Fast Execution** - Optimized for quick feedback
-- **Clear Assertions** - Meaningful test assertions and error messages
-- **Maintainable** - Easy to understand and modify
-
-## 🆘 **Support**
-
-### **Getting Help**
-
-- **Documentation**: [../docs/README.md](../docs/README.md)
-- **Issues**: Check test output and browser console
-- **Development**: Use `npm run test:open` for interactive debugging
-- **Support**: Refer to troubleshooting section above
-
-### **Test Execution Scripts**
-
-| Script                     | Purpose            | Usage                        |
-| -------------------------- | ------------------ | ---------------------------- |
-| `npm run test`             | All tests          | Production validation        |
-| `npm run test:integration` | Integration tests  | Complete workflow validation |
-| `npm run test:open`        | Interactive runner | Development and debugging    |
-| `npm run test:headed`      | Visible browser    | Visual test debugging        |
-
----
-
-**The NOM test suite ensures quality and reliability across all user workflows!** 
+# NOM end-to-end tests
+
+Cypress specs that drive the real NOM UI (Angular, served by the test stack) against the
+real API and a seeded PostgreSQL database. Every spec runs its journeys at a desktop
+viewport (1280x720) and a phone viewport (412x915), registers the users it needs through
+the registration page, and never depends on another spec's data or order.
+
+## Suite layout
+
+| Spec | Journey |
+| --- | --- |
+| `cypress/e2e/anonymous-browse.cy.ts` | Visitor: home categories, recipe detail tabs, header search, Sign In popover, protected routes, theme toggle |
+| `cypress/e2e/registration-onboarding.cy.ts` | Password rules, duplicate email, profile validation, onboarding wizard, skip and finish later |
+| `cypress/e2e/user-daily-workflow.cy.ts` | Returning user signs in from the header, reads a recipe, checks plan, shopping, pantry, settings, signs out |
+| `cypress/e2e/profile-settings.cy.ts` | Settings cards, metric/imperial profile, macro goals, dietary restrictions, security and privacy pages |
+| `cypress/e2e/meal-plan.cy.ts` | Week calendar, add a recipe to a cell, shuffle, diet-conflict confirmation |
+| `cypress/e2e/shopping-pantry.cy.ts` | Shopping list from the plan, check-off, copy/share, send-to-store, pantry add/remove and stock reduction |
+| `cypress/e2e/recipes-cookbook.cy.ts` | Header search and nutrition sorts, severe-restriction filter, recipe form validation, cookbooks |
+| `cypress/e2e/household.cy.ts` | Convert to a household, add a member with restrictions, food-group rules, household macro goals |
+| `cypress/e2e/admin-curation-workflow.cy.ts` | Author submits recipes for review; admin requests a revision and approves; search visibility |
+| `cypress/e2e/admin-sections.cy.ts` | Admin hub, every admin section, food catalog approval and USDA links |
+
+Tests marked `it.skip` document known application bugs: each asserts the correct behaviour
+and is turned back on once the bug is fixed. `cypress/tools/screenshot-walkthrough.cy.ts`
+is a screenshot tour for visual review, not a regression test; it is excluded from
+`npm run test:e2e` and runs with `npm run test:screenshots`.
+
+## Running the suite locally
+
+The suite expects the Docker test stack from `docker-compose.test.yml` at the repository
+root. Create a `.env` there with `POSTGRES_TEST_DB=nom_test`, `POSTGRES_USER=nom`,
+`POSTGRES_PASSWORD=test_password`, a `JWT_SECRET_KEY` of at least 32 characters,
+`API_TEST_PORT=8082` and `UI_TEST_PORT=4211`. PostgreSQL defaults to host port 5433; set
+`POSTGRES_TEST_PORT` if that port is taken. Then run
+`docker compose -f docker-compose.test.yml up -d --build` and wait until
+`http://localhost:8082/health` and `http://localhost:4211` answer. The database is
+created from `db/schema.sql` and `db/seed.sql` on first start, which gives the specs the
+seeded recipes and ingredients they rely on. SMTP is not configured in the stack, so
+email confirmation is off and a freshly registered account can sign in straight away.
+
+Seed the admin account exactly as CI does: register `admin@example.com` with the password
+`AdminPassword123!` through `POST /api/auth/register-custom`, then insert the
+`CanManageCuration` and `CanManageUserRoles` claims for that user into
+`auth."AspNetUserClaims"` (the SQL is in `.github/workflows/e2e-tests.yml`). The admin
+specs sign in with `CYPRESS_ADMIN_EMAIL` and `CYPRESS_ADMIN_PASSWORD`, which default to
+those values. The admin sections spec registers its own user per viewport and has the
+seeded admin grant it the curation and user-role claims on the Users page, so the seeded
+account stays well inside the API's per-user rate limit even when the suite runs
+repeatedly.
+
+From `nom-test`, run `npm ci` once, then start the suite with
+`CYPRESS_BASE_URL=http://localhost:4211 CYPRESS_API_URL=http://localhost:8082 npm run test:e2e`.
+Set `CYPRESS_VIEWPORT=desktop` or `CYPRESS_VIEWPORT=phone` to run a single viewport (CI
+runs one job per viewport); leave it unset to run both. A single spec runs with
+`npx cypress run --spec cypress/e2e/<file>`, and `npm run test:open` opens the interactive
+runner. `npm run build:types` type-checks the specs without running them.
+
+Whenever an Angular template changes, rebuild the UI image
+(`docker compose -f docker-compose.test.yml up -d --build nom-ui-test`) before running
+the suite, because the stack serves a static production build. Failure screenshots land in
+`cypress/screenshots`, which Cypress clears at the start of every run.
+
+## Writing specs
+
+Select elements by `data-testid` (see the E2E Test IDs table in the repository
+`CLAUDE.md`), wait on intercepted requests or on elements rather than on fixed delays, and
+create a fresh user per test with `cy.registerAndLogin('<journey>')`. The custom commands
+live in `cypress/support/commands.ts` and the viewport helpers in
+`cypress/support/viewports.ts`.

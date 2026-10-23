@@ -25,7 +25,7 @@
         [showRetry]="true"
         (retry)="loadRecipes()" />
     } @else if (categories().length === 0) {
-      <div class="nom-home__empty">
+      <div class="nom-home__empty" data-testid="home-empty">
         <mat-icon class="nom-home__empty-icon">restaurant</mat-icon>
         <h2>No recipes yet</h2>
         <p>Recipes will appear here once the community starts sharing.</p>
@@ -35,7 +35,7 @@
         <section class="nom-home__category" data-testid="home-category">
           <div class="nom-home__category-header">
             <mat-icon class="nom-home__category-icon">{{ category.icon }}</mat-icon>
-            <h2 class="nom-home__category-title">{{ category.label }}</h2>
+            <h2 class="nom-home__category-title" data-testid="home-category-title">{{ category.label }}</h2>
           </div>
 
           <div class="nom-home__recipe-row">
@@ -56,7 +56,7 @@
                   </div>
                 }
                 <div class="nom-home__recipe-info">
-                  <span class="nom-home__recipe-name">{{ recipe.name }}</span>
+                  <span class="nom-home__recipe-name" data-testid="recipe-card-name">{{ recipe.name }}</span>
                   <div class="nom-home__recipe-meta">
                     <span class="nom-home__recipe-time">
                       <mat-icon class="nom-home__recipe-meta-icon">schedule</mat-icon>

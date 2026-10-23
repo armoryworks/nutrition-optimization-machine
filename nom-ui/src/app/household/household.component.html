@@ -90,7 +90,8 @@
       <div class="nom-household__dietary-scope">
         <mat-slide-toggle
           [checked]="dietaryScope() === 'individual'"
-          (change)="onDietaryScopeChange($event.checked)">
+          (change)="onDietaryScopeChange($event.checked)"
+          data-testid="household-dietary-scope-toggle">
           Set dietary preferences individually per person
         </mat-slide-toggle>
       </div>
@@ -131,29 +132,34 @@
             <div class="nom-household__member-status">
               @if (member.hasProfile) {
                 <button class="nom-household__status-badge nom-household__status-badge--done nom-household__status-badge--clickable"
-                        (click)="openEditMemberDialog(member, 0)" title="Edit profile">
+                        (click)="openEditMemberDialog(member, 0)" title="Edit profile"
+                        data-testid="household-member-profile-btn">
                   <mat-icon>check_circle</mat-icon> Profile <mat-icon class="nom-household__badge-edit">edit</mat-icon>
                 </button>
               } @else {
                 <button class="nom-household__status-badge nom-household__status-badge--pending nom-household__status-badge--clickable"
-                        (click)="openEditMemberDialog(member, 0)" title="Edit profile">
+                        (click)="openEditMemberDialog(member, 0)" title="Edit profile"
+                        data-testid="household-member-profile-btn">
                   <mat-icon>radio_button_unchecked</mat-icon> Profile <mat-icon class="nom-household__badge-edit">edit</mat-icon>
                 </button>
               }
               @if (member.hasRestrictions) {
                 <button class="nom-household__status-badge nom-household__status-badge--done nom-household__status-badge--clickable"
-                        (click)="openEditMemberDialog(member, 1)" title="Edit dietary preferences">
+                        (click)="openEditMemberDialog(member, 1)" title="Edit dietary preferences"
+                        data-testid="household-member-dietary-btn">
                   <mat-icon>check_circle</mat-icon> Dietary <mat-icon class="nom-household__badge-edit">edit</mat-icon>
                 </button>
               } @else {
                 <button class="nom-household__status-badge nom-household__status-badge--pending nom-household__status-badge--clickable"
-                        (click)="openEditMemberDialog(member, 1)" title="Edit dietary preferences">
+                        (click)="openEditMemberDialog(member, 1)" title="Edit dietary preferences"
+                        data-testid="household-member-dietary-btn">
                   <mat-icon>radio_button_unchecked</mat-icon> Dietary <mat-icon class="nom-household__badge-edit">edit</mat-icon>
                 </button>
               }
             </div>
             <div class="nom-household__member-actions">
-              <button mat-icon-button (click)="removeMember(member)" aria-label="Remove member">
+              <button mat-icon-button (click)="removeMember(member)" aria-label="Remove member"
+                      data-testid="household-member-remove-btn">
                 <mat-icon>close</mat-icon>
               </button>
             </div>
@@ -229,7 +235,7 @@
 
     @if (!isStandalone()) {
       <div class="nom-form__actions">
-        <button mat-flat-button (click)="onContinue()">
+        <button mat-flat-button (click)="onContinue()" data-testid="household-continue-btn">
           Continue
         </button>
       </div>
@@ -251,7 +257,8 @@
         type="button"
         class="nom-household__tab"
         [class.nom-household__tab--active]="activeTab() === 'create'"
-        (click)="activeTab.set('create')">
+        (click)="activeTab.set('create')"
+        data-testid="household-create-tab">
         <mat-icon>add_home</mat-icon>
         Create Household
       </button>
@@ -259,7 +266,8 @@
         type="button"
         class="nom-household__tab"
         [class.nom-household__tab--active]="activeTab() === 'join'"
-        (click)="activeTab.set('join')">
+        (click)="activeTab.set('join')"
+        data-testid="household-join-tab">
         <mat-icon>group_add</mat-icon>
         Join Household
       </button>
@@ -279,7 +287,7 @@
           <div class="nom-form__fields">
             <mat-form-field appearance="outline">
               <mat-label>Household Name</mat-label>
-              <input matInput formControlName="name" placeholder="e.g. The Smith Family" />
+              <input matInput formControlName="name" placeholder="e.g. The Smith Family" data-testid="household-name-input" />
               @if (createForm.get('name')?.hasError('required') && createForm.get('name')?.touched) {
                 <mat-error>Name is required</mat-error>
               }
@@ -287,7 +295,7 @@
 
             <mat-form-field appearance="outline">
               <mat-label>Description (optional)</mat-label>
-              <textarea matInput formControlName="description" rows="3" placeholder="A brief description of your household"></textarea>
+              <textarea matInput formControlName="description" rows="3" placeholder="A brief description of your household" data-testid="household-description-input"></textarea>
             </mat-form-field>
           </div>
 
@@ -311,7 +319,7 @@
           <div class="nom-form__fields">
             <mat-form-field appearance="outline">
               <mat-label>Invite Code</mat-label>
-              <input matInput formControlName="token" placeholder="Paste invite code here" />
+              <input matInput formControlName="token" placeholder="Paste invite code here" data-testid="household-join-token-input" />
               <mat-icon matPrefix>vpn_key</mat-icon>
               @if (joinForm.get('token')?.hasError('required') && joinForm.get('token')?.touched) {
                 <mat-error>Invite code is required</mat-error>

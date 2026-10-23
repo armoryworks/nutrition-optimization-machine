@@ -1,5 +1,5 @@
 @if (!chromeless()) {
-  <a href="#main-content" class="nom-skip-link">Skip to main content</a>
+  <a href="#main-content" class="nom-skip-link" data-testid="skip-link">Skip to main content</a>
 
   <nom-header
     [isLoggedIn]="isLoggedIn()"
@@ -18,7 +18,7 @@
     [class.nom-layout--with-nav]="isLoggedIn()"
   >
     @if (isLoggedIn()) {
-      <div class="nom-layout__nav" [class.nom-layout__nav--open]="navOpen()">
+      <div class="nom-layout__nav" [class.nom-layout__nav--open]="navOpen()" data-testid="nav-drawer">
         <nom-nav (navigated)="closeNav()"></nom-nav>
       </div>
     }
@@ -27,7 +27,7 @@
     </div>
     @if (isLoggedIn()) {
       <aside class="nom-layout__sidebar" [class.nom-layout__sidebar--open]="sidebarOpen()">
-        <button class="nom-sidebar-close" (click)="toggleSidebar()">
+        <button class="nom-sidebar-close" (click)="toggleSidebar()" data-testid="sidebar-close-btn">
           <mat-icon>close</mat-icon> Close
         </button>
         <nom-sidebar [open]="sidebarOpen()"></nom-sidebar>
@@ -37,7 +37,7 @@
 </main>
 
 @if (isLoggedIn()) {
-  <button class="nom-sidebar-toggle" (click)="toggleSidebar()">
+  <button class="nom-sidebar-toggle" (click)="toggleSidebar()" data-testid="sidebar-toggle-btn">
     <mat-icon>widgets</mat-icon>
     <span>Panel</span>
   </button>
@@ -46,12 +46,14 @@
     [class.nom-sidebar-backdrop--visible]="sidebarOpen()"
     (click)="toggleSidebar()"
     aria-hidden="true"
+    data-testid="sidebar-backdrop"
   ></div>
   <div
     class="nom-sidebar-backdrop"
     [class.nom-sidebar-backdrop--visible]="navOpen()"
     (click)="closeNav()"
     aria-hidden="true"
+    data-testid="nav-backdrop"
   ></div>
 }
 
