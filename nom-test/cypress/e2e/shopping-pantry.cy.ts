@@ -198,6 +198,9 @@ viewports.forEach((viewport) => {
       shoppingItem(EGGS).find('mat-checkbox input[type="checkbox"]').should('not.be.checked');
       shoppingItem(EGGS).find('mat-checkbox').click();
       shoppingItem(EGGS).find('mat-checkbox input[type="checkbox"]').should('be.checked');
+      cy.byTestId('verification-sheet').should('be.visible');
+      cy.byTestId('verification-sheet-skip-btn').click();
+      cy.byTestId('verification-sheet').should('not.exist');
       shoppingItem(SPINACH).find('mat-checkbox input[type="checkbox"]').should('not.be.checked');
       cy.byTestId('shopping-complete-btn').should('be.visible').and('contain.text', '(1)');
 
