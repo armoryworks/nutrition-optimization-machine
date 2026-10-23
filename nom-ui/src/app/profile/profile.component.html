@@ -7,14 +7,14 @@
   }
 
   @if (errorMessage()) {
-    <div class="nom-form__error">
+    <div class="nom-form__error" data-testid="profile-error">
       <mat-icon>error_outline</mat-icon>
       <span>{{ errorMessage() }}</span>
     </div>
   }
 
   @if (successMessage()) {
-    <div class="nom-profile__success">
+    <div class="nom-profile__success" data-testid="profile-success">
       <mat-icon>check_circle</mat-icon>
       <span>{{ successMessage() }}</span>
     </div>
@@ -29,18 +29,20 @@
       <div class="nom-form__fields">
         <mat-form-field appearance="outline">
           <mat-label>Name</mat-label>
-          <input matInput formControlName="name" placeholder="Your name" />
+          <input matInput formControlName="name" placeholder="Your name" data-testid="profile-name-input" />
           @if (profileForm.get('name')?.hasError('required') && profileForm.get('name')?.touched) {
-            <mat-error>Name is required</mat-error>
+            <mat-error data-testid="profile-name-error">Name is required</mat-error>
+          } @else if (profileForm.get('name')?.hasError('maxlength') && profileForm.get('name')?.touched) {
+            <mat-error data-testid="profile-name-error">Name must be 100 characters or fewer</mat-error>
           }
         </mat-form-field>
 
         @if (showEmail()) {
           <mat-form-field appearance="outline">
             <mat-label>Email (optional)</mat-label>
-            <input matInput type="email" formControlName="email" placeholder="For sending an invite later" />
+            <input matInput type="email" formControlName="email" placeholder="For sending an invite later" data-testid="profile-email-input" />
             @if (profileForm.get('email')?.hasError('email') && profileForm.get('email')?.touched) {
-              <mat-error>Please enter a valid email address</mat-error>
+              <mat-error data-testid="profile-email-error">Please enter a valid email address</mat-error>
             }
           </mat-form-field>
         }
@@ -48,14 +50,22 @@
         <div class="nom-form__field-row">
           <mat-form-field appearance="outline">
             <mat-label>Date of Birth</mat-label>
-            <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth" placeholder="MM/DD/YYYY" />
-            <mat-datepicker-toggle matIconSuffix [for]="dobPicker"></mat-datepicker-toggle>
-            <mat-datepicker #dobPicker></mat-datepicker>
+            <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth" placeholder="MM/DD/YYYY"
+                   [min]="earliestDateOfBirth" [max]="today" data-testid="profile-dob-input" />
+            <mat-datepicker-toggle matIconSuffix [for]="dobPicker" data-testid="profile-dob-toggle"></mat-datepicker-toggle>
+            <mat-datepicker #dobPicker startView="multi-year"></mat-datepicker>
+            @if (profileForm.get('dateOfBirth')?.hasError('matDatepickerParse') && profileForm.get('dateOfBirth')?.touched) {
+              <mat-error data-testid="profile-dob-error">Enter a date like MM/DD/YYYY</mat-error>
+            } @else if (profileForm.get('dateOfBirth')?.hasError('matDatepickerMax') && profileForm.get('dateOfBirth')?.touched) {
+              <mat-error data-testid="profile-dob-error">Date of birth must be in the past</mat-error>
+            } @else if (profileForm.get('dateOfBirth')?.hasError('matDatepickerMin') && profileForm.get('dateOfBirth')?.touched) {
+              <mat-error data-testid="profile-dob-error">Enter a year of 1900 or later</mat-error>
+            }
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Gender</mat-label>
-            <mat-select formControlName="gender">
+            <mat-select formControlName="gender" data-testid="profile-gender-select">
               @for (option of genderOptions; track option) {
                 <mat-option [value]="option">{{ option }}</mat-option>
               }
@@ -83,32 +93,47 @@
           <div class="nom-form__field-row">
             <mat-form-field appearance="outline">
               <mat-label>Height (feet)</mat-label>
-              <input matInput type="number" formControlName="heightFeet" placeholder="5" />
+              <input matInput type="number" formControlName="heightFeet" placeholder="5" min="1" max="8" data-testid="profile-height-feet-input" />
               <span matTextSuffix>ft</span>
+              @if ((profileForm.get('heightFeet')?.hasError('min') || profileForm.get('heightFeet')?.hasError('max')) && profileForm.get('heightFeet')?.touched) {
+                <mat-error data-testid="profile-height-feet-error">Between 1 and 8 ft</mat-error>
+              }
             </mat-form-field>
             <mat-form-field appearance="outline">
               <mat-label>Height (inches)</mat-label>
-              <input matInput type="number" formControlName="heightInches" placeholder="10" />
+              <input matInput type="number" formControlName="heightInches" placeholder="10" min="0" max="11" data-testid="profile-height-inches-input" />
               <span matTextSuffix>in</span>
+              @if ((profileForm.get('heightInches')?.hasError('min') || profileForm.get('heightInches')?.hasError('max')) && profileForm.get('heightInches')?.touched) {
+                <mat-error data-testid="profile-height-inches-error">Between 0 and 11 in</mat-error>
+              }
             </mat-form-field>
           </div>
 
           <mat-form-field appearance="outline">
             <mat-label>Weight</mat-label>
-            <input matInput type="number" formControlName="weightLbs" placeholder="150" />
+            <input matInput type="number" formControlName="weightLbs" placeholder="150" min="1" max="1000" data-testid="profile-weight-lbs-input" />
             <span matTextSuffix>lbs</span>
+            @if ((profileForm.get('weightLbs')?.hasError('min') || profileForm.get('weightLbs')?.hasError('max')) && profileForm.get('weightLbs')?.touched) {
+              <mat-error data-testid="profile-weight-lbs-error">Between 1 and 1000 lbs</mat-error>
+            }
           </mat-form-field>
         } @else {
           <mat-form-field appearance="outline">
             <mat-label>Height</mat-label>
-            <input matInput type="number" formControlName="heightCm" placeholder="175" />
+            <input matInput type="number" formControlName="heightCm" placeholder="175" min="30" max="250" data-testid="profile-height-cm-input" />
             <span matTextSuffix>cm</span>
+            @if ((profileForm.get('heightCm')?.hasError('min') || profileForm.get('heightCm')?.hasError('max')) && profileForm.get('heightCm')?.touched) {
+              <mat-error data-testid="profile-height-cm-error">Between 30 and 250 cm</mat-error>
+            }
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Weight</mat-label>
-            <input matInput type="number" formControlName="weightKg" placeholder="70" />
+            <input matInput type="number" formControlName="weightKg" placeholder="70" min="1" max="500" data-testid="profile-weight-kg-input" />
             <span matTextSuffix>kg</span>
+            @if ((profileForm.get('weightKg')?.hasError('min') || profileForm.get('weightKg')?.hasError('max')) && profileForm.get('weightKg')?.touched) {
+              <mat-error data-testid="profile-weight-kg-error">Between 1 and 500 kg</mat-error>
+            }
           </mat-form-field>
         }
       </div>
@@ -135,7 +160,7 @@
       <div class="nom-form__fields">
         <mat-form-field appearance="outline">
           <mat-label>Activity Level</mat-label>
-          <mat-select formControlName="activityLevel">
+          <mat-select formControlName="activityLevel" data-testid="profile-activity-level-select">
             @for (level of activityLevels(); track level.referenceId) {
               <mat-option [value]="level.referenceId">
                 {{ level.referenceName }}
@@ -147,7 +172,7 @@
 
         <mat-form-field appearance="outline">
           <mat-label>Health Goal</mat-label>
-          <mat-select formControlName="healthGoal">
+          <mat-select formControlName="healthGoal" data-testid="profile-health-goal-select">
             @for (goal of healthGoals(); track goal.referenceId) {
               <mat-option [value]="goal.referenceId">
                 {{ goal.referenceName }}
@@ -162,7 +187,9 @@
     <!-- Less Common -->
     <div class="nom-form__section">
       <button type="button" class="nom-profile__section-toggle"
-              (click)="lessCommonExpanded.set(!lessCommonExpanded())">
+              (click)="lessCommonExpanded.set(!lessCommonExpanded())"
+              [attr.aria-expanded]="lessCommonExpanded()"
+              data-testid="profile-less-common-toggle">
         <h2 class="nom-form__section-title">Less Common</h2>
         <mat-icon>{{ lessCommonExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
       </button>
@@ -176,14 +203,20 @@
         <div class="nom-form__fields">
           <mat-form-field appearance="outline">
             <mat-label>Resting Metabolic Rate (RMR)</mat-label>
-            <input matInput type="number" formControlName="rmr" placeholder="e.g. 1800" />
+            <input matInput type="number" formControlName="rmr" placeholder="e.g. 1800" min="500" max="10000" data-testid="profile-rmr-input" />
             <span matTextSuffix>kcal/day</span>
+            @if ((profileForm.get('rmr')?.hasError('min') || profileForm.get('rmr')?.hasError('max')) && profileForm.get('rmr')?.touched) {
+              <mat-error data-testid="profile-rmr-error">Between 500 and 10,000 kcal/day</mat-error>
+            }
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Active Metabolic Rate (AMR)</mat-label>
-            <input matInput type="number" formControlName="amr" placeholder="e.g. 2400" />
+            <input matInput type="number" formControlName="amr" placeholder="e.g. 2400" min="500" max="10000" data-testid="profile-amr-input" />
             <span matTextSuffix>kcal/day</span>
+            @if ((profileForm.get('amr')?.hasError('min') || profileForm.get('amr')?.hasError('max')) && profileForm.get('amr')?.touched) {
+              <mat-error data-testid="profile-amr-error">Between 500 and 10,000 kcal/day</mat-error>
+            }
           </mat-form-field>
         </div>
       }
@@ -191,8 +224,9 @@
 
     @if (!hideActions()) {
       <div class="nom-form__actions">
+        <ng-content />
         @if (showCancel()) {
-          <button mat-button type="button" (click)="cancelled.emit()">Cancel</button>
+          <button mat-button type="button" (click)="cancelled.emit()" data-testid="profile-cancel-btn">Cancel</button>
         }
         <button mat-flat-button type="submit" data-testid="profile-submit-btn" [disabled]="loading()">
           @if (loading()) {

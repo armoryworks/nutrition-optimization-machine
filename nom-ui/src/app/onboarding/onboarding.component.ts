@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, DestroyRef, ElementRef, inject, signal, computed, viewChild, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { switchMap } from 'rxjs';
@@ -39,10 +39,12 @@ export class Onboarding implements OnInit {
   private householdStore = inject(HouseholdStore);
   private unitPreference = inject(UnitPreferenceService);
   private destroyRef = inject(DestroyRef);
+  private errorBanner = viewChild<ElementRef<HTMLElement>>('errorBanner');
 
   currentStep = signal(0);
   completedSteps = signal<Set<number>>(new Set());
   errorMessage = signal('');
+  stepInvalid = signal(false);
 
   profileData = signal<ProfileFormData | null>(null);
   profileSaved = signal(false);
@@ -99,7 +101,13 @@ export class Onboarding implements OnInit {
     });
   }
 
+  onStepInvalid(): void {
+    this.stepInvalid.set(true);
+  }
+
   onProfileComplete(data: ProfileFormData): void {
+    this.stepInvalid.set(false);
+    this.errorMessage.set('');
     this.profileData.set(data);
 
     const personId = this.authService.personId();
@@ -124,13 +132,12 @@ export class Onboarding implements OnInit {
         this.markComplete(0);
         this.next();
       },
-      error: () => {
-        this.errorMessage.set('Unable to save profile. Please try again.');
-      },
+      error: () => this.showError('Unable to save profile. Please try again.'),
     });
   }
 
   onRestrictionsComplete(restrictions: RestrictionRequest[]): void {
+    this.errorMessage.set('');
     this.restrictionsData.set(restrictions);
 
     const personId = this.authService.personId();
@@ -148,9 +155,7 @@ export class Onboarding implements OnInit {
         this.markComplete(1);
         this.next();
       },
-      error: () => {
-        this.errorMessage.set('Unable to save dietary preferences. Please try again.');
-      },
+      error: () => this.showError('Unable to save dietary preferences. Please try again.'),
     });
   }
 
@@ -187,12 +192,14 @@ export class Onboarding implements OnInit {
   }
 
   next(): void {
+    this.stepInvalid.set(false);
     if (this.currentStep() < this.totalSteps - 1) {
       this.currentStep.update(s => s + 1);
     }
   }
 
   previous(): void {
+    this.stepInvalid.set(false);
     if (this.currentStep() > 0) {
       this.currentStep.update(s => s - 1);
     }
@@ -207,17 +214,19 @@ export class Onboarding implements OnInit {
   }
 
   goToStep(index: number): void {
+    this.stepInvalid.set(false);
     if (index >= 0 && index < this.totalSteps) {
       this.currentStep.set(index);
     }
   }
 
   completeOnboarding(): void {
+    this.errorMessage.set('');
     this.authService.ensurePersonId()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((pid) => {
         if (!pid) {
-          this.errorMessage.set('Unable to identify your account. Please try logging in again.');
+          this.showError('Unable to identify your account. Please try logging in again.');
           return;
         }
         this.completeOnboardingAs(pid);
@@ -263,10 +272,13 @@ export class Onboarding implements OnInit {
         if (profile?.unitSystem) this.unitPreference.set(profile.unitSystem);
         this.router.navigate(['/home']);
       },
-      error: () => {
-        this.errorMessage.set('Something went wrong. Please try again.');
-      },
+      error: () => this.showError('Something went wrong. Please try again.'),
     });
+  }
+
+  private showError(message: string): void {
+    this.errorMessage.set(message);
+    setTimeout(() => this.errorBanner()?.nativeElement.scrollIntoView?.({ behavior: 'smooth', block: 'center' }));
   }
 
   private markComplete(step: number): void {

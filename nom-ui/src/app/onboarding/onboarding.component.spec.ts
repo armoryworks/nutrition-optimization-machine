@@ -4,8 +4,10 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { Router, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { By } from '@angular/platform-browser';
+import { of, throwError } from 'rxjs';
 import { Onboarding } from './onboarding.component';
+import { Profile } from '../profile/profile.component';
 import { AuthService } from '../core/services/auth.service';
 import { PersonService } from '../core/services/person.service';
 import { HouseholdStore } from '../core/services/household-store';
@@ -83,5 +85,48 @@ describe('Onboarding', () => {
       attributes: [{ attributeTypeRefId: 30, value: 'imperial' }],
     }));
     expect(unitPreference.set).toHaveBeenCalledWith('imperial');
+  });
+
+  it('says what to fix beside Continue when it is pressed on an invalid profile, until the step advances', () => {
+    const fixture = create();
+    const hint = () => fixture.nativeElement.querySelector('.nom-form__actions [data-testid="onboarding-step-invalid"]') as HTMLElement | null;
+    const profile = fixture.debugElement.query(By.directive(Profile)).componentInstance as Profile;
+    profile.profileForm.patchValue({ name: '' });
+
+    (fixture.nativeElement.querySelector('[data-testid="profile-submit-btn"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(personService.saveProfile).not.toHaveBeenCalled();
+    expect(hint()?.textContent).toContain('Fix the highlighted fields above');
+
+    profile.profileForm.patchValue({ name: 'Liz' });
+    (fixture.nativeElement.querySelector('[data-testid="profile-submit-btn"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(personService.saveProfile).toHaveBeenCalledTimes(1);
+    expect(fixture.componentInstance.currentStep()).toBe(1);
+    expect(hint()).toBeNull();
+  });
+
+  it('brings the save error into view when saving the profile fails', async () => {
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView as unknown as typeof Element.prototype.scrollIntoView;
+    try {
+      const fixture = create();
+      personService.saveProfile.mockReturnValue(throwError(() => new Error('500')));
+
+      fixture.componentInstance.onProfileComplete({ personDetails: { id: 0, name: 'Liz', attributes: [] }, attributes: [] });
+      fixture.detectChanges();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const banner = fixture.nativeElement.querySelector('[data-testid="onboarding-error"]') as HTMLElement;
+      expect(banner.textContent).toContain('Unable to save profile');
+      expect(scrollIntoView.mock.instances).toContain(banner);
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
+      expect(fixture.componentInstance.currentStep()).toBe(0);
+    } finally {
+      Element.prototype.scrollIntoView = originalScrollIntoView;
+    }
   });
 });

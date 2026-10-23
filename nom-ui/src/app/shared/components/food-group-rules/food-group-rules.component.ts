@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   OnInit,
   inject,
   input,
@@ -16,6 +17,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MealPlanService } from '../../../core/services/meal-plan.service';
+import { revealFirstInvalid } from '../../../core/utils/reveal-invalid-control';
 import { FoodGroup, FoodGroupRule } from '../../../core/models/food-group.model';
 
 /**
@@ -43,6 +45,7 @@ export class FoodGroupRules implements OnInit {
   householdId = input.required<number>();
 
   private mealPlanService = inject(MealPlanService);
+  private host = inject<ElementRef<HTMLElement>>(ElementRef);
   private fb = inject(FormBuilder);
   private destroyRef = inject(DestroyRef);
 
@@ -99,7 +102,7 @@ export class FoodGroupRules implements OnInit {
 
   onAdd(): void {
     if (this.addForm.invalid) {
-      this.addForm.markAllAsTouched();
+      revealFirstInvalid(this.addForm, this.host.nativeElement);
       return;
     }
     const v = this.addForm.getRawValue();

@@ -1,5 +1,5 @@
 import { RouterLink } from '@angular/router';
-import { Component, inject, input, output, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, inject, input, output, signal, computed, viewChild, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { switchMap } from 'rxjs';
@@ -11,6 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { HouseholdService } from '../core/services/household.service';
+import { revealFirstInvalid } from '../core/utils/reveal-invalid-control';
 import { HouseholdStore } from '../core/services/household-store';
 import { AuthService } from '../core/services/auth.service';
 import { LoadingService } from '../core/services/loading.service';
@@ -66,6 +67,8 @@ export class Household implements OnInit {
   skipped = output<void>();
   saved = output<HouseholdFormData>();
 
+  private createFormEl = viewChild<ElementRef<HTMLElement>>('createFormEl');
+  private joinFormEl = viewChild<ElementRef<HTMLElement>>('joinFormEl');
   private fb = inject(FormBuilder);
   private dialog = inject(MatDialog);
   private householdService = inject(HouseholdService);
@@ -149,7 +152,7 @@ export class Household implements OnInit {
 
   onCreateSubmit(): void {
     if (this.createForm.invalid) {
-      this.createForm.markAllAsTouched();
+      revealFirstInvalid(this.createForm, this.createFormEl()?.nativeElement);
       return;
     }
     const form = this.createForm.getRawValue();
@@ -186,7 +189,7 @@ export class Household implements OnInit {
 
   onJoinSubmit(): void {
     if (this.joinForm.invalid) {
-      this.joinForm.markAllAsTouched();
+      revealFirstInvalid(this.joinForm, this.joinFormEl()?.nativeElement);
       return;
     }
     const token = this.joinForm.getRawValue().token!;

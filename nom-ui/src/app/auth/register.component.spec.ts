@@ -34,6 +34,25 @@ describe('Register', () => {
 
   afterEach(() => http.verify());
 
+  it('shows the mismatch under Confirm Password and sends nothing when the passwords differ', () => {
+    const fixture = create();
+    fixture.componentInstance.registerForm.setValue({
+      email: 'liz@example.com',
+      fullName: '',
+      password: 'Abcdefg1!',
+      confirmPassword: 'Abcdefg1?',
+    });
+    fixture.componentInstance.onSubmit();
+    fixture.detectChanges();
+
+    http.expectNone(r => r.url.endsWith('/register-custom'));
+    expect(fixture.componentInstance.registerForm.controls.confirmPassword.hasError('passwordMismatch')).toBe(true);
+    expect(q(fixture.nativeElement, 'register-confirm-password-error')?.textContent).toContain('Passwords do not match');
+
+    fixture.componentInstance.registerForm.controls.password.setValue('Abcdefg1?');
+    expect(fixture.componentInstance.registerForm.valid).toBe(true);
+  });
+
   it('shows the password rules before the user submits', () => {
     const fixture = create();
     const rules = q(fixture.nativeElement, 'register-password-rules')!.textContent!;

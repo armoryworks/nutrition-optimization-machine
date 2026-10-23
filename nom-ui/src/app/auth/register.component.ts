@@ -1,6 +1,6 @@
-import { Component, inject, signal, computed, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, inject, signal, computed, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,10 +9,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../core/services/auth.service';
+import { revealFirstInvalid } from '../core/utils/reveal-invalid-control';
 import { LoadingService } from '../core/services/loading.service';
 import { HasUnsavedForm } from '../core/guards/unsaved-form.guard';
 import { authorizeReturnUrl } from './oidc-return-url';
-import { identityErrorCodes, PASSWORD_RULES, passwordRulesValidator } from './identity-errors';
+import { identityErrorCodes, matchesPassword, PASSWORD_RULES, passwordRulesValidator } from './identity-errors';
 
 @Component({
   selector: 'nom-register',
@@ -32,6 +33,7 @@ import { identityErrorCodes, PASSWORD_RULES, passwordRulesValidator } from './id
 export class Register implements HasUnsavedForm {
   private authService = inject(AuthService);
   private loadingService = inject(LoadingService);
+  private host = inject<ElementRef<HTMLElement>>(ElementRef);
   private fb = inject(FormBuilder);
   private destroyRef = inject(DestroyRef);
 
@@ -41,8 +43,8 @@ export class Register implements HasUnsavedForm {
     email: ['', [Validators.required, Validators.email]],
     fullName: [''],
     password: ['', [Validators.required, passwordRulesValidator]],
-    confirmPassword: ['', Validators.required],
-  }, { validators: this.passwordsMatch });
+    confirmPassword: ['', [Validators.required, matchesPassword('password')]],
+  });
 
   readonly passwordRules = PASSWORD_RULES;
   private readonly passwordValue = toSignal(this.registerForm.controls.password.valueChanges, { initialValue: '' });
@@ -64,15 +66,15 @@ export class Register implements HasUnsavedForm {
     return !!(email || fullName || password);
   }
 
-  private passwordsMatch(group: AbstractControl): ValidationErrors | null {
-    const password = group.get('password')?.value;
-    const confirm = group.get('confirmPassword')?.value;
-    return password === confirm ? null : { passwordMismatch: true };
+  constructor() {
+    this.registerForm.controls.password.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.registerForm.controls.confirmPassword.updateValueAndValidity());
   }
 
   onSubmit(): void {
     if (this.registerForm.invalid) {
-      this.registerForm.markAllAsTouched();
+      revealFirstInvalid(this.registerForm, this.host.nativeElement);
       return;
     }
 

@@ -119,6 +119,20 @@
   flex: 1;
 }
 
+.nom-onboarding__actions-hint {
+  flex: 1 1 auto;
+  align-self: center;
+  margin: 0;
+  text-align: right;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-error);
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-basis: 100%;
+    text-align: left;
+  }
+}
+
 // Solo / household fork
 .nom-onboarding__fork {
   display: grid;

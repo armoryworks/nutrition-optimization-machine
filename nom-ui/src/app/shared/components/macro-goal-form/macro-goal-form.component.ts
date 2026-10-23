@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   OnInit,
   computed,
   inject,
@@ -15,6 +16,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MacroGoalService } from '../../../core/services/macro-goal.service';
+import { revealFirstInvalid } from '../../../core/utils/reveal-invalid-control';
 import { MacroGoal } from '../../../core/models/macro-goal.model';
 
 /**
@@ -35,6 +37,7 @@ export class MacroGoalForm implements OnInit {
   householdId = input<number | null>(null);
 
   private macroGoalService = inject(MacroGoalService);
+  private host = inject<ElementRef<HTMLElement>>(ElementRef);
   private fb = inject(FormBuilder);
   private destroyRef = inject(DestroyRef);
 
@@ -73,10 +76,10 @@ export class MacroGoalForm implements OnInit {
   successMessage = signal('');
 
   readonly fields = [
-    { control: 'caloriesTarget', label: 'Calories', unit: 'kcal', icon: 'local_fire_department', testid: 'macro-goal-calories' },
-    { control: 'proteinGramsTarget', label: 'Protein', unit: 'g', icon: 'fitness_center', testid: 'macro-goal-protein' },
-    { control: 'carbGramsTarget', label: 'Carbs', unit: 'g', icon: 'grain', testid: 'macro-goal-carbs' },
-    { control: 'fatGramsTarget', label: 'Fat', unit: 'g', icon: 'water_drop', testid: 'macro-goal-fat' },
+    { control: 'caloriesTarget', label: 'Calories', unit: 'kcal', max: 20000, icon: 'local_fire_department', testid: 'macro-goal-calories' },
+    { control: 'proteinGramsTarget', label: 'Protein', unit: 'g', max: 2000, icon: 'fitness_center', testid: 'macro-goal-protein' },
+    { control: 'carbGramsTarget', label: 'Carbs', unit: 'g', max: 3000, icon: 'grain', testid: 'macro-goal-carbs' },
+    { control: 'fatGramsTarget', label: 'Fat', unit: 'g', max: 1500, icon: 'water_drop', testid: 'macro-goal-fat' },
   ] as const;
 
   ngOnInit(): void {
@@ -107,7 +110,7 @@ export class MacroGoalForm implements OnInit {
 
   onSave(): void {
     if (this.goalForm.invalid) {
-      this.goalForm.markAllAsTouched();
+      revealFirstInvalid(this.goalForm, this.host.nativeElement);
       return;
     }
 

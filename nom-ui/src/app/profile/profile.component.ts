@@ -1,5 +1,7 @@
-import { Component, inject, input, output, signal, computed, effect, untracked, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, inject, input, output, signal, computed, effect, untracked, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { parseLocalDateString, toLocalDateString } from '../core/utils/local-date';
+import { LocalDateAdapter } from '../core/utils/local-date-adapter';
+import { revealFirstInvalid } from '../core/utils/reveal-invalid-control';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,7 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
+import { DateAdapter, MatNativeDateModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MacroGoalForm } from '../shared/components/macro-goal-form/macro-goal-form.component';
 import { AuthService } from '../core/services/auth.service';
@@ -46,6 +48,7 @@ export interface ProfileFormData {
     MatProgressSpinnerModule,
     MacroGoalForm,
   ],
+  providers: [{ provide: DateAdapter, useClass: LocalDateAdapter }],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,9 +63,11 @@ export class Profile implements OnInit {
   forSelf = input(false);
 
   stepComplete = output<ProfileFormData>();
+  invalidSubmit = output<void>();
   saved = output<ProfileFormData>();
   cancelled = output<void>();
 
+  private host = inject<ElementRef<HTMLElement>>(ElementRef);
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private referenceService = inject(ReferenceService);
@@ -98,6 +103,8 @@ export class Profile implements OnInit {
   });
 
   genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
+  readonly today = new Date();
+  readonly earliestDateOfBirth = new Date(1900, 0, 1);
 
   isStandalone = computed(() => this.mode() !== 'wizard');
   ownsUnitPreference = computed(() => this.isStandalone() || this.forSelf());
@@ -135,10 +142,20 @@ export class Profile implements OnInit {
 
   onSubmit(): void {
     if (this.profileForm.invalid) {
-      this.profileForm.markAllAsTouched();
+      if (this.isStandalone()) this.errorMessage.set('Please fix the highlighted fields.');
+      this.successMessage.set('');
+      revealFirstInvalid(this.profileForm, this.host.nativeElement, {
+        expand: () => {
+          if (this.profileForm.get('rmr')?.invalid || this.profileForm.get('amr')?.invalid) {
+            this.lessCommonExpanded.set(true);
+          }
+        },
+      });
+      this.invalidSubmit.emit();
       return;
     }
 
+    this.errorMessage.set('');
     const formData = this.buildFormData();
     if (this.isStandalone()) {
       this.saveProfile(formData);
@@ -157,14 +174,15 @@ export class Profile implements OnInit {
       if (form.weightLbs != null) {
         this.profileForm.patchValue({ weightKg: Math.round((form.weightLbs / 2.20462) * 10) / 10 });
       }
+      this.profileForm.patchValue({ heightFeet: null, heightInches: null, weightLbs: null });
     } else {
       if (form.heightCm != null) {
-        const totalInches = form.heightCm / 2.54;
-        this.profileForm.patchValue({ heightFeet: Math.floor(totalInches / 12), heightInches: Math.round(totalInches % 12) });
+        this.profileForm.patchValue(cmToFeetInches(form.heightCm));
       }
       if (form.weightKg != null) {
         this.profileForm.patchValue({ weightLbs: Math.round(form.weightKg * 2.20462) });
       }
+      this.profileForm.patchValue({ heightCm: null, weightKg: null });
     }
     this.unitSystem.set(value);
   }
@@ -229,11 +247,7 @@ export class Profile implements OnInit {
         case 'Height': {
           const cm = parseFloat(attr.value);
           if (this.unitSystem() === 'imperial') {
-            const totalInches = cm / 2.54;
-            this.profileForm.patchValue({
-              heightFeet: Math.floor(totalInches / 12),
-              heightInches: Math.round(totalInches % 12),
-            });
+            this.profileForm.patchValue(cmToFeetInches(cm));
           } else {
             this.profileForm.patchValue({ heightCm: Math.round(cm) });
           }
@@ -400,6 +414,11 @@ export class Profile implements OnInit {
 }
 
 const ACTIVITY_ORDER = ['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active', 'Extremely Active'];
+
+function cmToFeetInches(cm: number): { heightFeet: number; heightInches: number } {
+  const totalInches = Math.round(cm / 2.54);
+  return { heightFeet: Math.floor(totalInches / 12), heightInches: totalInches % 12 };
+}
 
 function sortByIntensity(items: ReferenceItem[]): ReferenceItem[] {
   return [...items].sort((a, b) => {

@@ -12,10 +12,14 @@
           matInput
           type="number"
           min="0"
+          [max]="field.max"
           [formControlName]="field.control"
           [attr.data-testid]="field.testid"
         />
         <mat-icon matPrefix>{{ field.icon }}</mat-icon>
+        @if ((goalForm.get(field.control)?.hasError('min') || goalForm.get(field.control)?.hasError('max')) && goalForm.get(field.control)?.touched) {
+          <mat-error [attr.data-testid]="field.testid + '-error'">Between 0 and {{ field.max }} {{ field.unit }}</mat-error>
+        }
       </mat-form-field>
     }
   </div>

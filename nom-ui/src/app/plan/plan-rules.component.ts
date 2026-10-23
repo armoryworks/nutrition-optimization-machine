@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, DestroyRef, ElementRef, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MealPlanService } from '../core/services/meal-plan.service';
+import { revealFirstInvalid } from '../core/utils/reveal-invalid-control';
 import { HouseholdStore } from '../core/services/household-store';
 import { LoadingService } from '../core/services/loading.service';
 import { MealPlanRule } from '../core/models/meal-plan-rule.model';
@@ -34,6 +35,7 @@ import { NoHouseholdCta } from '../shared/components/no-household-cta/no-househo
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PlanRules implements OnInit {
+  private host = inject<ElementRef<HTMLElement>>(ElementRef);
   private fb = inject(FormBuilder);
   private mealPlanService = inject(MealPlanService);
   private householdStore = inject(HouseholdStore);
@@ -107,7 +109,7 @@ export class PlanRules implements OnInit {
 
   onAddRule(): void {
     if (this.ruleForm.invalid) {
-      this.ruleForm.markAllAsTouched();
+      revealFirstInvalid(this.ruleForm, this.host.nativeElement);
       return;
     }
     if (this.saving()) return;

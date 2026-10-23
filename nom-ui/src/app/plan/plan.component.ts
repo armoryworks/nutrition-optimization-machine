@@ -1,8 +1,10 @@
-import { Component, inject, input, output, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, inject, input, output, signal, computed, viewChild, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { NoHouseholdCta } from '../shared/components/no-household-cta/no-household-cta.component';
 import { EntityLink } from '../shared/components/entity-link/entity-link.component';
 import { toLocalDateString } from '../core/utils/local-date';
+import { revealFirstInvalid } from '../core/utils/reveal-invalid-control';
+import { LocalDateAdapter } from '../core/utils/local-date-adapter';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -12,7 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
+import { DateAdapter, MatNativeDateModule } from '@angular/material/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
@@ -67,6 +69,7 @@ export interface PlanFormData {
     MatTooltipModule, MatMenuModule, ErrorBanner, NoHouseholdCta, DietConflictsPipe],
   templateUrl: './plan.component.html',
   styleUrl: './plan.component.scss',
+  providers: [{ provide: DateAdapter, useClass: LocalDateAdapter }],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Plan implements OnInit {
@@ -77,6 +80,8 @@ export class Plan implements OnInit {
   skipped = output<void>();
   saved = output<PlanFormData>();
 
+  private createFormEl = viewChild<ElementRef<HTMLElement>>('createFormEl');
+  private joinFormEl = viewChild<ElementRef<HTMLElement>>('joinFormEl');
   private fb = inject(FormBuilder);
   private planService = inject(PlanService);
   private mealPlanService = inject(MealPlanService);
@@ -406,7 +411,7 @@ export class Plan implements OnInit {
 
   onCreateSubmit(): void {
     if (this.createForm.invalid) {
-      this.createForm.markAllAsTouched();
+      revealFirstInvalid(this.createForm, this.createFormEl()?.nativeElement);
       return;
     }
     const form = this.createForm.getRawValue();
@@ -429,7 +434,7 @@ export class Plan implements OnInit {
 
   onJoinSubmit(): void {
     if (this.joinForm.invalid) {
-      this.joinForm.markAllAsTouched();
+      revealFirstInvalid(this.joinForm, this.joinFormEl()?.nativeElement);
       return;
     }
     const code = this.joinForm.getRawValue().invitationCode!;

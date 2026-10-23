@@ -61,8 +61,10 @@
               <mat-label>Email</mat-label>
               <input matInput formControlName="email" data-testid="register-email-input" type="email" autocomplete="email">
               <mat-icon matPrefix>email</mat-icon>
-              @if (registerForm.get('email')?.hasError('email') && registerForm.get('email')?.touched) {
-                <mat-error>Enter a valid email address</mat-error>
+              @if (registerForm.get('email')?.hasError('required') && registerForm.get('email')?.touched) {
+                <mat-error data-testid="register-email-error">Email is required</mat-error>
+              } @else if (registerForm.get('email')?.hasError('email') && registerForm.get('email')?.touched) {
+                <mat-error data-testid="register-email-error">Enter a valid email address</mat-error>
               }
             </mat-form-field>
 
@@ -86,7 +88,9 @@
                       [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
                 <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
               </button>
-              @if (registerForm.get('password')?.hasError('passwordRules') && registerForm.get('password')?.touched) {
+              @if (registerForm.get('password')?.hasError('required') && registerForm.get('password')?.touched) {
+                <mat-error data-testid="register-password-error">Password is required</mat-error>
+              } @else if (registerForm.get('password')?.hasError('passwordRules') && registerForm.get('password')?.touched) {
                 <mat-error data-testid="register-password-error">Password doesn't meet all the rules below</mat-error>
               }
             </mat-form-field>
@@ -114,8 +118,10 @@
                       [attr.aria-label]="showConfirmPassword() ? 'Hide password' : 'Show password'">
                 <mat-icon>{{ showConfirmPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
               </button>
-              @if (registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched) {
-                <mat-error>Passwords do not match</mat-error>
+              @if (registerForm.get('confirmPassword')?.hasError('required') && registerForm.get('confirmPassword')?.touched) {
+                <mat-error data-testid="register-confirm-password-error">Confirm your password</mat-error>
+              } @else if (registerForm.get('confirmPassword')?.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched) {
+                <mat-error data-testid="register-confirm-password-error">Passwords do not match</mat-error>
               }
             </mat-form-field>
           </div>

@@ -1,4 +1,4 @@
-import { AbstractControl, ValidationErrors } from '@angular/forms';
+import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 
 /**
  * Error codes from an ASP.NET Identity failure body. The custom register
@@ -40,4 +40,16 @@ export function passwordRulesValidator(control: AbstractControl): ValidationErro
   if (!value) return null;
   const unmet = PASSWORD_RULES.filter(r => !r.test(value)).map(r => r.key);
   return unmet.length ? { passwordRules: unmet } : null;
+}
+
+/**
+ * Validator for a confirm-password control: errors with `passwordMismatch`
+ * when it differs from the sibling control named `passwordControlName`. The
+ * error sits on the confirm control itself so its <mat-error> can render.
+ */
+export function matchesPassword(passwordControlName: string): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const password = control.parent?.get(passwordControlName)?.value;
+    return password == null || control.value === password ? null : { passwordMismatch: true };
+  };
 }

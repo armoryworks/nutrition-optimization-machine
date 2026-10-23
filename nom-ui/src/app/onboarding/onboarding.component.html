@@ -8,7 +8,8 @@
         [class.nom-onboarding__step--active]="currentStep() === i"
         [class.nom-onboarding__step--completed]="completedSteps().has(i)"
         (click)="goToStep(i)"
-        [attr.aria-current]="currentStep() === i ? 'step' : null">
+        [attr.aria-current]="currentStep() === i ? 'step' : null"
+        [attr.data-testid]="'onboarding-step-' + (i + 1)">
         <div class="nom-onboarding__step-indicator">
           @if (completedSteps().has(i)) {
             <mat-icon>check</mat-icon>
@@ -25,13 +26,6 @@
     }
   </div>
 
-  @if (errorMessage()) {
-    <div class="nom-form__error">
-      <mat-icon>error_outline</mat-icon>
-      <span>{{ errorMessage() }}</span>
-    </div>
-  }
-
   <!-- Step content -->
   <div class="nom-onboarding__content" data-testid="onboarding-content">
     @switch (currentStep()) {
@@ -40,7 +34,14 @@
           mode="wizard"
           [forSelf]="true"
           [initialData]="profileData()"
-          (stepComplete)="onProfileComplete($event)" />
+          (stepComplete)="onProfileComplete($event)"
+          (invalidSubmit)="onStepInvalid()">
+          @if (stepInvalid()) {
+            <p class="nom-onboarding__actions-hint" role="alert" data-testid="onboarding-step-invalid">
+              Fix the highlighted fields above to continue.
+            </p>
+          }
+        </nom-profile>
       }
       @case (1) {
         <nom-restrictions
@@ -108,6 +109,13 @@
       }
     }
   </div>
+
+  @if (errorMessage()) {
+    <div #errorBanner class="nom-form__error" data-testid="onboarding-error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
 
   <!-- Navigation bar -->
   <div class="nom-onboarding__nav" data-testid="onboarding-nav">

@@ -22,6 +22,7 @@ import { IngredientSearchResult } from '../core/models/ingredient-search-result.
 import { MeasurementOption, foodUnits } from '../core/models/measurement.model';
 import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-delete-dialog/confirm-delete-dialog.component';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
+import { revealFirstInvalid } from '../core/utils/reveal-invalid-control';
 
 @Component({
   selector: 'nom-recipe-form',
@@ -270,9 +271,8 @@ export class RecipeForm implements OnInit {
     this.pruneBlankRows();
     this.repairUnmatchedIngredients();
     if (this.recipeForm.invalid) {
-      this.recipeForm.markAllAsTouched();
       this.errorMessage.set(this.describeInvalidState());
-      this.scrollToFirstInvalid();
+      revealFirstInvalid(this.recipeForm, this.host.nativeElement);
       return;
     }
     if (this.saving() || this.saveGated() || this.loadFailed()) return;
@@ -357,7 +357,10 @@ export class RecipeForm implements OnInit {
       const g = this.ingredientsArray.at(i);
       if (g.get('ingredientId')?.value) continue;
       const typed = (g.get('searchText')?.value ?? '').toString().trim().toLowerCase();
-      if (!typed) continue;
+      if (!typed) {
+        g.get('searchText')?.setErrors({ required: true });
+        continue;
+      }
       const rowId = g.get('rowId')?.value;
       const match = (this.ingredientOptions().get(rowId) ?? []).find(
         (o) => o.name.toLowerCase() === typed || (o.matchedAlias ?? '').toLowerCase() === typed);
@@ -397,18 +400,6 @@ export class RecipeForm implements OnInit {
     for (let i = this.stepsArray.length - 1; i >= 0 && this.stepsArray.length > 1; i--) {
       if (!this.stepsArray.at(i).get('description')?.value?.trim()) this.removeStep(i);
     }
-  }
-
-  /** Bring the first invalid control on screen — on a phone it is usually above the sticky action bar. */
-  private scrollToFirstInvalid(): void {
-    setTimeout(() => {
-      const el = this.host.nativeElement.querySelector<HTMLElement>(
-        '.mat-mdc-form-field.ng-invalid, .ng-invalid input, .ng-invalid textarea, .ng-invalid mat-select');
-      if (!el) return;
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      const focusable = el.matches('input, textarea, mat-select') ? el : el.querySelector<HTMLElement>('input, textarea, mat-select');
-      focusable?.focus({ preventScroll: true });
-    });
   }
 
   // ── Delete ──

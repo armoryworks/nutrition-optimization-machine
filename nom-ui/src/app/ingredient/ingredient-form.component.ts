@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, effect, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, inject, signal, computed, effect, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormControl, FormRecord, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { IngredientService } from '../core/services/ingredient.service';
+import { revealFirstInvalid } from '../core/utils/reveal-invalid-control';
 import { LoadingService } from '../core/services/loading.service';
 import { NutrientService } from '../core/services/nutrient.service';
 import { NutrientModel } from '../core/models/nutrient.model';
@@ -34,6 +35,7 @@ const LABEL_NUTRIENT_IDS = [5035, 5000, 5001, 5002, 5004, 5003, 5005, 5007, 5006
 export class IngredientForm {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private host = inject<ElementRef<HTMLElement>>(ElementRef);
   private fb = inject(FormBuilder);
   private ingredientService = inject(IngredientService);
   private loadingService = inject(LoadingService);
@@ -162,7 +164,11 @@ export class IngredientForm {
   onSubmit(): void {
     if (this.ingredientForm.invalid || this.nutritionForm.invalid) {
       this.ingredientForm.markAllAsTouched();
-      this.nutritionForm.markAllAsTouched();
+      revealFirstInvalid(this.nutritionForm, this.host.nativeElement, {
+        expand: () => {
+          if (this.otherNutrients().some((n) => this.nutritionForm.get(this.key(n))?.invalid)) this.showMoreNutrients.set(true);
+        },
+      });
       this.errorMessage.set('Please fix the highlighted fields.');
       return;
     }

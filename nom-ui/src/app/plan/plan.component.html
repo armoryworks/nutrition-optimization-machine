@@ -322,7 +322,7 @@
         <h2 class="nom-form__section-title">Create a New Plan</h2>
         <p class="nom-form__section-description">Set up a structured meal plan with goals and restrictions</p>
 
-        <form [formGroup]="createForm" (ngSubmit)="onCreateSubmit()">
+        <form #createFormEl [formGroup]="createForm" (ngSubmit)="onCreateSubmit()">
           <div class="nom-form__fields">
             <mat-form-field appearance="outline">
               <mat-label>Plan Name</mat-label>
@@ -343,6 +343,9 @@
                 <input matInput [matDatepicker]="startPicker" formControlName="startDate" data-testid="plan-start-date-input" />
                 <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
                 <mat-datepicker #startPicker></mat-datepicker>
+                @if (createForm.get('startDate')?.hasError('matDatepickerParse') && createForm.get('startDate')?.touched) {
+                  <mat-error data-testid="plan-start-date-error">Enter a date like MM/DD/YYYY</mat-error>
+                }
               </mat-form-field>
 
               <mat-form-field appearance="outline">
@@ -350,6 +353,9 @@
                 <input matInput [matDatepicker]="endPicker" formControlName="endDate" data-testid="plan-end-date-input" />
                 <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
                 <mat-datepicker #endPicker></mat-datepicker>
+                @if (createForm.get('endDate')?.hasError('matDatepickerParse') && createForm.get('endDate')?.touched) {
+                  <mat-error data-testid="plan-end-date-error">Enter a date like MM/DD/YYYY</mat-error>
+                }
               </mat-form-field>
             </div>
 
@@ -376,7 +382,7 @@
         <h2 class="nom-form__section-title">Join an Existing Plan</h2>
         <p class="nom-form__section-description">Enter an invitation code to join someone else's plan</p>
 
-        <form [formGroup]="joinForm" (ngSubmit)="onJoinSubmit()">
+        <form #joinFormEl [formGroup]="joinForm" (ngSubmit)="onJoinSubmit()">
           <div class="nom-form__fields">
             <mat-form-field appearance="outline">
               <mat-label>Invitation Code</mat-label>

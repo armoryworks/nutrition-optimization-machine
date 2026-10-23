@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   OnInit,
   computed,
   inject,
@@ -18,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { forkJoin, switchMap } from 'rxjs';
 import { PortionService } from '../../../core/services/portion.service';
+import { revealFirstInvalid } from '../../../core/utils/reveal-invalid-control';
 import { MealSplit } from '../../../core/models/portion.model';
 
 /**
@@ -36,6 +38,7 @@ export class MealSplitForm implements OnInit {
   householdId = input.required<number>();
 
   private portionService = inject(PortionService);
+  private host = inject<ElementRef<HTMLElement>>(ElementRef);
   private fb = inject(FormBuilder);
   private destroyRef = inject(DestroyRef);
 
@@ -97,7 +100,7 @@ export class MealSplitForm implements OnInit {
 
   onSave(): void {
     if (this.splitForm.invalid || this.total() !== 100) {
-      this.splitForm.markAllAsTouched();
+      revealFirstInvalid(this.splitForm, this.host.nativeElement);
       return;
     }
 

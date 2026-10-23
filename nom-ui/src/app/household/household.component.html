@@ -275,7 +275,7 @@
           a shared pantry so you never double-buy.
         </p>
 
-        <form [formGroup]="createForm" (ngSubmit)="onCreateSubmit()" data-testid="household-create-form">
+        <form #createFormEl [formGroup]="createForm" (ngSubmit)="onCreateSubmit()" data-testid="household-create-form">
           <div class="nom-form__fields">
             <mat-form-field appearance="outline">
               <mat-label>Household Name</mat-label>
@@ -307,7 +307,7 @@
         <h2 class="nom-form__section-title">Join an Existing Household</h2>
         <p class="nom-form__section-description">Enter an invite code from someone in the household</p>
 
-        <form [formGroup]="joinForm" (ngSubmit)="onJoinSubmit()" data-testid="household-join-form">
+        <form #joinFormEl [formGroup]="joinForm" (ngSubmit)="onJoinSubmit()" data-testid="household-join-form">
           <div class="nom-form__fields">
             <mat-form-field appearance="outline">
               <mat-label>Invite Code</mat-label>
