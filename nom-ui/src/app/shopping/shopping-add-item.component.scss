@@ -1,0 +1,62 @@
+@use 'variables' as vars;
+
+.nom-add-item {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-add-item__row {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+}
+
+.nom-add-item__field {
+  flex: 1;
+  min-width: 0;
+}
+
+.nom-add-item__submit {
+  flex-shrink: 0;
+
+  mat-spinner {
+    display: inline-block;
+  }
+}
+
+.nom-add-item__option-name {
+  display: block;
+}
+
+.nom-add-item__option-group {
+  display: block;
+  font-size: vars.$font-size-xs;
+  line-height: 1.2;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-add-item__new {
+  color: var(--mat-sys-primary);
+  font-weight: vars.$font-weight-medium;
+
+  mat-icon {
+    vertical-align: middle;
+    margin-right: vars.$spacing-1;
+  }
+}
+
+.nom-add-item__error {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  margin: 0;
+  color: var(--mat-sys-error);
+  font-size: vars.$font-size-sm;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}

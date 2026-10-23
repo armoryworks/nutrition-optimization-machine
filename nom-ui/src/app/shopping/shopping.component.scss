@@ -355,3 +355,32 @@
   color: var(--mat-sys-on-error-container);
   background: var(--mat-sys-error-container);
 }
+
+.nom-shopping__add {
+  margin-bottom: vars.$spacing-4;
+}
+
+.nom-shopping__item-remove {
+  flex-shrink: 0;
+  margin-right: -(vars.$spacing-2);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+@media (max-width: #{vars.$breakpoint-mobile - 1px}) {
+  .nom-shopping__add {
+    position: sticky;
+    top: vars.$header-height;
+    z-index: 5;
+    margin: 0 (-(vars.$spacing-4)) vars.$spacing-4;
+    padding: vars.$spacing-2 vars.$spacing-4;
+    background: var(--mat-sys-surface);
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+  }
+}
+
+@media print {
+  .nom-shopping__add,
+  .nom-shopping__item-remove {
+    display: none !important;
+  }
+}

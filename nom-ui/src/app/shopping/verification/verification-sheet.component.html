@@ -1,0 +1,51 @@
+<div class="nom-sheet" data-testid="verification-sheet">
+  <div class="nom-sheet__grip" aria-hidden="true"></div>
+  <button type="button" class="nom-sheet__close" (click)="close()"
+          aria-label="Close" data-testid="verification-sheet-close-btn">
+    <mat-icon>close</mat-icon>
+  </button>
+
+  <div class="nom-sheet__body">
+    <h2 class="nom-sheet__name">{{ data.name }}</h2>
+    <p class="nom-sheet__lead">
+      NOM has no verified nutrition for this food. While you have the package in hand,
+      a quick photo helps your household's plans — nothing is shared beyond your kitchen until it is checked.
+    </p>
+
+    <input type="file" accept="image/*" capture="environment" hidden #labelInput
+           (change)="onLabelPhoto($event)" data-testid="verification-sheet-label-input">
+    <input type="file" accept="image/*" capture="environment" hidden #barcodeInput
+           (change)="onBarcodePhoto($event)" data-testid="verification-sheet-barcode-input">
+
+    @if (busy()) {
+      <div class="nom-sheet__busy" role="status">
+        <mat-spinner diameter="20"></mat-spinner>
+        <span>{{ busy() === 'label' ? 'Reading label…' : 'Reading barcode…' }}</span>
+      </div>
+    } @else {
+      <div class="nom-sheet__actions">
+        <button mat-flat-button type="button" class="nom-sheet__action"
+                (click)="labelInput.click()" data-testid="verification-sheet-scan-label-btn">
+          <mat-icon>photo_camera</mat-icon>
+          Scan label
+        </button>
+        <button mat-stroked-button type="button" class="nom-sheet__action"
+                (click)="barcodeInput.click()" data-testid="verification-sheet-scan-barcode-btn">
+          <mat-icon>qr_code_scanner</mat-icon>
+          Scan barcode
+        </button>
+        <button mat-button type="button" class="nom-sheet__action"
+                (click)="skip()" data-testid="verification-sheet-skip-btn">
+          Skip
+        </button>
+      </div>
+    }
+
+    @if (error()) {
+      <p class="nom-sheet__error" role="alert" data-testid="verification-sheet-error">
+        <mat-icon>error_outline</mat-icon>
+        {{ error() }}
+      </p>
+    }
+  </div>
+</div>

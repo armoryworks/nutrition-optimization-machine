@@ -1,0 +1,61 @@
+<div class="nom-add-item" data-testid="shopping-add-item">
+  <div class="nom-add-item__row">
+    <mat-form-field class="nom-add-item__field" appearance="outline" subscriptSizing="dynamic">
+      <mat-icon matPrefix>add_shopping_cart</mat-icon>
+      <input matInput
+             #itemInput
+             type="text"
+             autocomplete="off"
+             enterkeyhint="done"
+             placeholder="Add an item"
+             aria-label="Add an item to the shopping list"
+             [disabled]="disabled() || saving()"
+             [value]="query()"
+             (input)="onQueryChange($any($event.target).value)"
+             (focus)="onFocus($event)"
+             (keydown.enter)="onEnter($event)"
+             [matAutocomplete]="auto"
+             data-testid="shopping-add-item-input">
+      <mat-autocomplete #auto="matAutocomplete"
+                        autoActiveFirstOption
+                        [displayWith]="displayWith"
+                        (opened)="scrollPanelToTop()"
+                        (optionSelected)="onOptionSelected($event)">
+        @for (option of options(); track option.kind === 'catalog' ? option.hit.id : 'new') {
+          @if (option.kind === 'catalog') {
+            <mat-option [value]="option" data-testid="shopping-add-item-option">
+              <span class="nom-add-item__option-name">{{ option.hit.name }}</span>
+              @if (option.hit.foodGroupName) {
+                <span class="nom-add-item__option-group">{{ option.hit.foodGroupName }}</span>
+              }
+            </mat-option>
+          } @else {
+            <mat-option [value]="option" class="nom-add-item__new" data-testid="shopping-add-item-new-option">
+              <mat-icon>add</mat-icon>
+              Add "{{ option.name }}" as a new item
+            </mat-option>
+          }
+        }
+      </mat-autocomplete>
+    </mat-form-field>
+    <button mat-icon-button
+            type="button"
+            class="nom-add-item__submit"
+            aria-label="Add item"
+            [disabled]="disabled() || saving() || !query().trim()"
+            (click)="submit()"
+            data-testid="shopping-add-item-submit-btn">
+      @if (saving()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        <mat-icon>add</mat-icon>
+      }
+    </button>
+  </div>
+  @if (error()) {
+    <p class="nom-add-item__error" role="alert" data-testid="shopping-add-item-error">
+      <mat-icon>error_outline</mat-icon>
+      {{ error() }}
+    </p>
+  }
+</div>

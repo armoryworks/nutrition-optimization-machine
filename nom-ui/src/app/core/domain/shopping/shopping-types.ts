@@ -5,8 +5,11 @@ export interface ShoppingPortion {
   unit: string;
 }
 
+export type ShoppingItemSource = 'plan' | 'adhoc';
+
 export interface ShoppingItem {
-  ingredientId: number;
+  /** Null only for a household-added item the server could not link to a food. */
+  ingredientId: number | null;
   name: string;
   portions: ShoppingPortion[];
   department: string;
@@ -20,6 +23,10 @@ export interface ShoppingItem {
   retailPackageCount: number;
   /** Planned recipes this line derives from ("why is this on my list"). */
   sourceRecipes: { id: number; name: string }[];
+  /** Derived from the meal plan, or typed in by a household member. */
+  source: ShoppingItemSource;
+  /** The server row behind an ad-hoc line. */
+  adhocId?: number;
 }
 
 export interface ShoppingDepartment {

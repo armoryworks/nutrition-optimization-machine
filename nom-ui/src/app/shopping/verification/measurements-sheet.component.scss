@@ -1,0 +1,7 @@
+@use './sheet';
+
+@include sheet.base;
+
+.nom-sheet__action mat-spinner {
+  display: inline-block;
+}
