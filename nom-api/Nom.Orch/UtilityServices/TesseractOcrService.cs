@@ -98,7 +98,8 @@ namespace Nom.Orch.UtilityServices
                     }
 
                     using var engine = new Tesseract.TesseractEngine(_tesseractDataPath, "eng", Tesseract.EngineMode.Default);
-                    using var pix = Tesseract.Pix.LoadFromMemory(imageBytes);
+                    using var loaded = Tesseract.Pix.LoadFromMemory(imageBytes);
+                    using var pix = Deskew(loaded);
                     using var page = engine.Process(pix);
 
                     var text = page.GetText();
@@ -115,6 +116,19 @@ namespace Nom.Orch.UtilityServices
                     return string.Empty;
                 }
             });
+        }
+
+        private Tesseract.Pix Deskew(Tesseract.Pix pix)
+        {
+            try
+            {
+                return pix.Deskew();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Deskew failed; using the image as given");
+                return pix.Clone();
+            }
         }
 
         /// <summary>
