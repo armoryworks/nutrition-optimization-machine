@@ -19,14 +19,14 @@
     </div>
   }
 
-  @if (currentStep() === 0) {
+  @if (dataReady() && currentStep() === 0) {
     <nom-profile
       mode="wizard"
       [hideActions]="true"
       [showEmail]="true"
       [initialData]="profileInitialData()"
       (stepComplete)="onProfileComplete($event)" />
-  } @else {
+  } @else if (dataReady()) {
     <nom-restrictions
       mode="wizard"
       [hideActions]="true"
@@ -36,7 +36,9 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  @if (currentStep() === 0) {
+  @if (!dataReady()) {
+    <button mat-button (click)="cancel()" data-testid="add-member-cancel-btn">Cancel</button>
+  } @else if (currentStep() === 0) {
     <button mat-button (click)="cancel()" data-testid="add-member-cancel-btn">Cancel</button>
     <button mat-flat-button
             (click)="profileRef()?.submit()"

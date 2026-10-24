@@ -74,6 +74,7 @@ export class MemberPolicyPanel {
 
   // The selected member's restrictions (with lock state)
   restrictions = signal<RestrictionRequest[]>([]);
+  restrictionsError = signal(false);
   restrictionBusyId = signal<number | null>(null);
 
   selectedMember = computed(() =>
@@ -85,6 +86,7 @@ export class MemberPolicyPanel {
     untracked(() => {
       this.selectedPersonId.set(null);
       this.restrictions.set([]);
+      this.restrictionsError.set(false);
       this.errorMessage.set('');
       this.successMessage.set('');
     });
@@ -94,6 +96,8 @@ export class MemberPolicyPanel {
     this.selectedPersonId.set(personId);
     this.errorMessage.set('');
     this.successMessage.set('');
+    this.restrictions.set([]);
+    this.restrictionsError.set(false);
     this.loadPolicy(personId);
     this.loadRestrictions(personId);
   }
@@ -217,8 +221,14 @@ export class MemberPolicyPanel {
     this.personService.getOnboardingState(personId).pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: (state) => this.restrictions.set(state.restrictions ?? []),
-      error: () => this.restrictions.set([]),
+      next: (state) => {
+        this.restrictionsError.set(false);
+        this.restrictions.set(state.restrictions ?? []);
+      },
+      error: () => {
+        this.restrictions.set([]);
+        this.restrictionsError.set(true);
+      },
     });
   }
 
