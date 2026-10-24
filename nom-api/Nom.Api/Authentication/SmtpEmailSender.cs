@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Nom.Api.Settings;
 using System.Net;
 using System.Net.Mail;
+using System.Net.Mime;
 using System.Threading.Tasks;
 
 namespace Nom.Api.Authentication
@@ -12,11 +13,13 @@ namespace Nom.Api.Authentication
     {
         private readonly ILogger<SmtpEmailSender> _logger;
         private readonly EmailSettings _settings;
+        private readonly FrontendSettings _frontend;
 
-        public SmtpEmailSender(ILogger<SmtpEmailSender> logger, IOptions<EmailSettings> settings)
+        public SmtpEmailSender(ILogger<SmtpEmailSender> logger, IOptions<EmailSettings> settings, IOptions<FrontendSettings> frontend)
         {
             _logger = logger;
             _settings = settings.Value;
+            _frontend = frontend.Value;
         }
 
         public async Task SendConfirmationLinkAsync(IdentityUser user, string email, string confirmationLink)
@@ -53,21 +56,11 @@ namespace Nom.Api.Authentication
 
         public async Task SendPasswordResetCodeAsync(IdentityUser user, string email, string resetCode)
         {
-            var subject = "Your NOM password reset code";
-            var body = $@"
-<html>
-<body>
-<h2>Password Reset Code</h2>
-<p>Your password reset code is:</p>
-<h3>{resetCode}</h3>
-<p>If you did not request this, you can safely ignore this email.</p>
-</body>
-</html>";
-
-            await SendEmailAsync(email, subject, body);
+            var link = PasswordResetEmail.Link(_frontend.Url, email, resetCode);
+            await SendEmailAsync(email, PasswordResetEmail.Subject, PasswordResetEmail.HtmlBody(link), PasswordResetEmail.TextBody(link));
         }
 
-        private async Task SendEmailAsync(string toEmail, string subject, string htmlBody)
+        private async Task SendEmailAsync(string toEmail, string subject, string htmlBody, string? textBody = null)
         {
             // Non-production instances redirect every message to one mailbox so a
             // snapshot-loaded environment cannot mail real users. The intended recipient is
@@ -83,6 +76,12 @@ namespace Nom.Api.Authentication
                     $"padding:8px;border-radius:4px\"><strong>Non-production message.</strong> " +
                     $"Intended recipient: <code>{WebUtility.HtmlEncode(intendedRecipient)}</code>. " +
                     $"Redirected here by Email:OverrideRecipient.</p>{htmlBody}";
+                if (textBody is not null)
+                {
+                    textBody =
+                        $"Non-production message. Intended recipient: {intendedRecipient}. " +
+                        $"Redirected here by Email:OverrideRecipient.\n\n{textBody}";
+                }
             }
 
             if (redirected)
@@ -100,8 +99,17 @@ namespace Nom.Api.Authentication
             message.From = new MailAddress(_settings.FromAddress, _settings.FromName);
             message.To.Add(new MailAddress(toEmail));
             message.Subject = subject;
-            message.Body = htmlBody;
-            message.IsBodyHtml = true;
+            if (textBody is null)
+            {
+                message.Body = htmlBody;
+                message.IsBodyHtml = true;
+            }
+            else
+            {
+                message.Body = textBody;
+                message.IsBodyHtml = false;
+                message.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(htmlBody, null, MediaTypeNames.Text.Html));
+            }
 
             using var client = new SmtpClient(_settings.SmtpHost, _settings.SmtpPort);
             client.EnableSsl = _settings.UseSsl;

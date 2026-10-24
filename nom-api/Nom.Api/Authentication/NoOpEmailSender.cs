@@ -2,6 +2,8 @@
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Nom.Api.Settings;
 using System.Threading.Tasks;
 
 namespace Nom.Api.Authentication
@@ -14,10 +16,12 @@ namespace Nom.Api.Authentication
     public class NoOpEmailSender : IEmailSender<IdentityUser>
     {
         private readonly ILogger<NoOpEmailSender> _logger;
+        private readonly FrontendSettings _frontend;
 
-        public NoOpEmailSender(ILogger<NoOpEmailSender> logger)
+        public NoOpEmailSender(ILogger<NoOpEmailSender> logger, IOptions<FrontendSettings> frontend)
         {
             _logger = logger;
+            _frontend = frontend.Value;
         }
 
         public Task SendConfirmationLinkAsync(IdentityUser user, string email, string confirmationLink)
@@ -45,7 +49,7 @@ namespace Nom.Api.Authentication
             _logger.LogInformation("--- SIMULATED EMAIL (Password Reset Code) ---");
             _logger.LogInformation("To: {email}", email);
             _logger.LogInformation("User: {userId}", user.Id);
-            _logger.LogInformation("Code: {code}", resetCode);
+            _logger.LogInformation("Link: {link}", PasswordResetEmail.Link(_frontend.Url, email, resetCode));
             _logger.LogInformation("---------------------------------------------");
             return Task.CompletedTask;
         }

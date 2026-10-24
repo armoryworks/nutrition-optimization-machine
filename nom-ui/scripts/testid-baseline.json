@@ -1,7 +1,5 @@
 {
   "src/app/admin/scraping-sources.component.html": 1,
-  "src/app/auth/forgot-password.component.html": 3,
-  "src/app/auth/reset-password.component.html": 6,
   "src/app/home/dashboard/dashboard.component.html": 11,
   "src/app/household/invite-dialog/invite-dialog.component.html": 1,
   "src/app/ingredient/ingredient-form.component.html": 3,
