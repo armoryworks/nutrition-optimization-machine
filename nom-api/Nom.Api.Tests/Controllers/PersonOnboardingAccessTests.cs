@@ -67,7 +67,9 @@ namespace Nom.Api.Tests.Controllers
                 new HouseholdMemberEntity { HouseholdId = Household, PersonId = plain.Id, CreatedDate = DateTime.UtcNow },
                 new HouseholdMemberEntity { HouseholdId = Household, PersonId = former.Id, IsActive = false, CreatedDate = DateTime.UtcNow },
                 new HouseholdMemberEntity { HouseholdId = OtherHousehold, PersonId = outsider.Id, CanManage = true, CreatedDate = DateTime.UtcNow });
-            context.Restrictions.Add(new RestrictionEntity { PersonId = dependent.Id, Name = "Peanut Allergy", RestrictionTypeId = 1, CreatedDate = DateTime.UtcNow });
+            context.Restrictions.AddRange(
+                new RestrictionEntity { PersonId = dependent.Id, Name = "Peanut Allergy", RestrictionTypeId = 1, CreatedDate = DateTime.UtcNow },
+                new RestrictionEntity { PersonId = dependent.Id, PlanId = 9999, Name = "Another Household's Plan Rule", RestrictionTypeId = 1, CreatedDate = DateTime.UtcNow });
             await context.SaveChangesAsync();
 
             return new Seeded(steward.Id, dependent.Id, plain.Id, outsider.Id, former.Id);

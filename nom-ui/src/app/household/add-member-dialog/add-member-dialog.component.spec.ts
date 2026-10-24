@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import { AddMemberDialog, AddMemberDialogData } from './add-member-dialog.component';
 import { PersonService } from '../../core/services/person.service';
 import { LoadingService } from '../../core/services/loading.service';
@@ -37,6 +37,13 @@ describe('AddMemberDialog editing an existing member', () => {
     expect(component.errorMessage()).toBe('');
   });
 
+  it('is on the dietary step while the member is still loading, so the title does not change under the user', () => {
+    const component = create({ householdId: 3, personId: 12, personName: 'Tobi', initialStep: 1 }, new Subject());
+
+    expect(component.dataReady()).toBe(false);
+    expect(component.currentStep()).toBe(1);
+  });
+
   it('opens the profile step filled in when Profile was clicked', () => {
     const component = create({ householdId: 3, personId: 12, personName: 'Tobi', initialStep: 0 }, of(state));
 
@@ -51,7 +58,7 @@ describe('AddMemberDialog editing an existing member', () => {
     );
 
     expect(component.dataReady()).toBe(false);
-    expect(component.errorMessage()).toBe('Unable to load member data.');
+    expect(component.errorMessage()).toBe("Couldn't load Tobi's details. Close this and try again.");
   });
 
   it('shows the empty profile step straight away when adding a new member', () => {

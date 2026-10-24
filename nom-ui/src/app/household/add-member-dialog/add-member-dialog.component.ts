@@ -53,6 +53,9 @@ export class AddMemberDialog implements OnInit {
   isEditMode = computed(() => !!this.data.personId);
 
   ngOnInit(): void {
+    if (this.data.initialStep != null) {
+      this.currentStep.set(this.data.initialStep);
+    }
     if (this.data.personId) {
       this.createdPersonId.set(this.data.personId);
       this.loadExistingData(this.data.personId);
@@ -132,13 +135,11 @@ export class AddMemberDialog implements OnInit {
           email: this.data.personEmail ?? undefined,
         });
         this.restrictionsInitialData.set(state.restrictions ?? []);
-        if (this.data.initialStep != null) {
-          this.currentStep.set(this.data.initialStep);
-        }
         this.dataReady.set(true);
       },
       error: () => {
-        this.errorMessage.set('Unable to load member data.');
+        const who = this.data.personName ? `${this.data.personName}'s` : "this member's";
+        this.errorMessage.set(`Couldn't load ${who} details. Close this and try again.`);
       },
     });
   }

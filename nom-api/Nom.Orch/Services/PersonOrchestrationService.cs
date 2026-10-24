@@ -449,7 +449,7 @@ namespace Nom.Orch.Services
 
             // Get existing restrictions
             var existingRestrictions = await _dbContext.Restrictions
-                .Where(r => r.PersonId == person.Id)
+                .Where(r => r.PersonId == person.Id && r.PlanId == null)
                 .ToListAsync();
 
             response.Restrictions = existingRestrictions.Select(r => new RestrictionRequest
