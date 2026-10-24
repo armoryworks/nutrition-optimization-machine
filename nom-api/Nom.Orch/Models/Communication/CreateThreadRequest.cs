@@ -7,6 +7,8 @@ namespace Nom.Orch.Models.Communication
         [Required]
         public required long[] ParticipantIds { get; set; }
 
+        public string? InitialMessage { get; set; }
+
         public int ThreadType { get; set; } = 0;
         public long? RecipeId { get; set; }
         public long? IngredientId { get; set; }

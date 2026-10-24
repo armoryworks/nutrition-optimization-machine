@@ -45,7 +45,7 @@ namespace Nom.Api.Controllers
         public async Task<IActionResult> CreateThread([FromBody] CreateThreadRequest request)
         {
             var personId = GetCurrentPersonIdRequired();
-            var threadId = await _communicationOrch.CreateThreadAsync(request, personId);
+            var threadId = await _communicationOrch.StartHouseholdConversationAsync(request, personId);
             return CreatedAtAction(nameof(GetThread), new { id = threadId }, new { threadId });
         }
 
@@ -53,8 +53,8 @@ namespace Nom.Api.Controllers
         public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
         {
             var personId = GetCurrentPersonIdRequired();
-            var messageId = await _communicationOrch.SendMessageAsync(request, personId);
-            return Created($"api/messaging/threads/{request.ThreadId}/messages", new { messageId });
+            var message = await _communicationOrch.PostMessageAsync(request, personId);
+            return Created($"api/messaging/threads/{request.ThreadId}/messages", message);
         }
 
         [HttpPatch("threads/{id}/read")]

@@ -1,0 +1,7 @@
+@use 'variables' as vars;
+
+.nom-compose__loading {
+  display: flex;
+  justify-content: center;
+  padding: vars.$spacing-12;
+}

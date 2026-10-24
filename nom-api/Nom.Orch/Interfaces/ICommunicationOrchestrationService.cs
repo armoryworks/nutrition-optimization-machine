@@ -11,6 +11,8 @@ namespace Nom.Orch.Interfaces
         Task<MessageThreadResponseModel?> GetThreadAsync(long threadId, long personId);
         Task<List<MessageResponseModel>> GetMessagesAsync(long threadId, long personId);
         Task<long> CreateThreadAsync(CreateThreadRequest request, long creatorPersonId);
+        Task<long> StartHouseholdConversationAsync(CreateThreadRequest request, long creatorPersonId);
+        Task<MessageResponseModel> PostMessageAsync(SendMessageRequest request, long senderPersonId);
         Task MarkThreadAsReadAsync(long threadId, long personId);
         Task MarkMessageAsReadAsync(long messageId, long personId);
         Task DeleteThreadAsync(long threadId, long personId);
