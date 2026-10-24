@@ -4,7 +4,14 @@
     <p class="nom-form__subtitle">Send a message to household members</p>
   </div>
 
-  @if (!loaded()) {
+  @if (loadFailed()) {
+    <div data-testid="compose-load-error">
+      <nom-error-banner
+        message="Couldn't load your household, so we can't list who you can message. Try again."
+        [showRetry]="true"
+        (retry)="retryLoad()" />
+    </div>
+  } @else if (!loaded()) {
     <div class="nom-compose__loading" data-testid="compose-loading">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
@@ -61,7 +68,7 @@
 
           <mat-form-field appearance="outline">
             <mat-label>Message</mat-label>
-            <textarea matInput formControlName="message" rows="6" data-testid="compose-message-input"></textarea>
+            <textarea matInput formControlName="message" rows="6" maxlength="4000" data-testid="compose-message-input"></textarea>
             @if (composeForm.get('message')?.invalid && composeForm.get('message')?.touched) {
               <mat-error data-testid="compose-message-error">Message is required</mat-error>
             }

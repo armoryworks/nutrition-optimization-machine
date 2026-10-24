@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { BehaviorSubject, catchError, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -13,6 +14,13 @@ import { HouseholdStore } from '../core/services/household-store';
 import { LoadingService } from '../core/services/loading.service';
 import { AuthService } from '../core/services/auth.service';
 import { HouseholdMemberResponseModel } from '../core/models/household-member-response.model';
+import { HouseholdResponseModel } from '../core/models/household-response.model';
+import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
+
+type RecipientLoad =
+  | { state: 'loading' }
+  | { state: 'error' }
+  | { state: 'ready'; me: number; households: HouseholdResponseModel[] };
 
 @Component({
   selector: 'nom-compose',
@@ -25,6 +33,7 @@ import { HouseholdMemberResponseModel } from '../core/models/household-member-re
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    ErrorBanner,
   ],
   templateUrl: './compose.component.html',
   styleUrl: './compose.component.scss',
@@ -38,14 +47,29 @@ export class Compose {
   private loadingService = inject(LoadingService);
   private authService = inject(AuthService);
 
-  private households = toSignal(this.householdStore.getHouseholds());
-  loaded = computed(() => this.households() !== undefined);
+  private reload$ = new BehaviorSubject<void>(undefined);
+  private load = toSignal(this.reload$.pipe(
+    switchMap(() => {
+      this.householdStore.invalidate();
+      return forkJoin({
+        households: this.householdStore.getHouseholds(),
+        me: this.authService.ensurePersonId(),
+      }).pipe(
+        map(({ households, me }): RecipientLoad => me ? { state: 'ready', me, households } : { state: 'error' }),
+        catchError(() => of<RecipientLoad>({ state: 'error' })),
+        startWith<RecipientLoad>({ state: 'loading' }),
+      );
+    }),
+  ), { initialValue: { state: 'loading' } as RecipientLoad });
+  loaded = computed(() => this.load().state === 'ready');
+  loadFailed = computed(() => this.load().state === 'error');
   private otherMembers = computed(() => {
-    const me = this.authService.personId();
+    const load = this.load();
+    if (load.state !== 'ready') return [];
     const byPerson = new Map<number, HouseholdMemberResponseModel>();
-    for (const household of this.households() ?? []) {
+    for (const household of load.households) {
       for (const member of household.members ?? []) {
-        if (member.personId !== me && !byPerson.has(member.personId)) {
+        if (member.personId !== load.me && !byPerson.has(member.personId)) {
           byPerson.set(member.personId, member);
         }
       }
@@ -62,6 +86,10 @@ export class Compose {
     recipientIds: [[] as number[], Validators.required],
     message: ['', [Validators.required, Validators.pattern(/\S/)]],
   });
+
+  retryLoad(): void {
+    this.reload$.next();
+  }
 
   onSubmit(): void {
     if (this.composeForm.invalid) {

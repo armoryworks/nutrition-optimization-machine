@@ -125,39 +125,39 @@ namespace Nom.Orch.Services
             if (requested.Count == 0)
                 throw new ArgumentException("Choose at least one other household member to message.");
 
+            var content = request.InitialMessage?.Trim();
+            if (string.IsNullOrEmpty(content))
+                throw new ArgumentException("Write a message before sending.");
+
             var creatorHouseholdIds = _db.HouseholdMembers
                 .Where(hm => hm.PersonId == creatorPersonId && hm.IsActive)
                 .Select(hm => hm.HouseholdId);
 
-            var reachable = await (from hm in _db.HouseholdMembers
-                                   where hm.IsActive
-                                       && requested.Contains(hm.PersonId)
-                                       && creatorHouseholdIds.Contains(hm.HouseholdId)
-                                   join p in _db.Persons on hm.PersonId equals p.Id
-                                   where p.UserId != null
-                                   select hm.PersonId)
+            var members = await (from hm in _db.HouseholdMembers
+                                 where hm.IsActive
+                                     && requested.Contains(hm.PersonId)
+                                     && creatorHouseholdIds.Contains(hm.HouseholdId)
+                                 join p in _db.Persons on hm.PersonId equals p.Id
+                                 select new { p.Id, HasAccount = p.UserId != null })
                 .Distinct()
                 .ToListAsync();
 
-            if (reachable.Count != requested.Count)
+            if (members.Count != requested.Count)
+                throw new ArgumentException("You can only message people who are in your household.");
+            if (members.Any(m => !m.HasAccount))
                 throw new ArgumentException("You can only message household members who have their own account.");
 
-            var content = request.InitialMessage?.Trim();
-            var threadId = await CreateThreadAsync(new CreateThreadRequest
+            var thread = new MessageThreadEntity();
+            foreach (var pid in requested.Append(creatorPersonId))
             {
-                ParticipantIds = requested.ToArray(),
-                ThreadType = request.ThreadType,
-                RecipeId = request.RecipeId,
-                IngredientId = request.IngredientId,
-                PlanId = request.PlanId,
-            }, creatorPersonId);
-
-            if (!string.IsNullOrEmpty(content))
-            {
-                await SendMessageAsync(new SendMessageRequest { ThreadId = threadId, Content = content }, creatorPersonId);
+                thread.Participants.Add(new MessageThreadParticipantEntity { PersonId = pid });
             }
+            thread.Messages.Add(new MessageEntity { SenderPersonId = creatorPersonId, Content = content });
 
-            return threadId;
+            _db.MessageThreads.Add(thread);
+            await _db.SaveChangesAsync();
+
+            return thread.Id;
         }
 
         public async Task<MessageResponseModel> PostMessageAsync(SendMessageRequest request, long senderPersonId)

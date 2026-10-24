@@ -1,6 +1,6 @@
 <div class="nom-thread" data-testid="thread">
   <div class="nom-thread__header">
-    <a mat-icon-button routerLink="/messages" aria-label="Back to inbox">
+    <a mat-icon-button routerLink="/messages" aria-label="Back to inbox" data-testid="thread-back-btn">
       <mat-icon>arrow_back</mat-icon>
     </a>
     <div class="nom-thread__header-info">
@@ -30,6 +30,8 @@
       <mat-form-field appearance="outline" class="nom-thread__input">
         <input matInput
                [formControl]="newMessage"
+               maxlength="4000"
+               data-testid="thread-message-input"
                placeholder="Type a message..."
                (keydown.enter)="send()"
                [disabled]="sending()" />

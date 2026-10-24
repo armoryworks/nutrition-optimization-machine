@@ -1,5 +1,4 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter, Router } from '@angular/router';
 import { Observable, of, Subject, throwError } from 'rxjs';
@@ -44,17 +43,21 @@ function household(members: HouseholdMemberResponseModel[] | null, id = 3): Hous
 
 describe('Compose recipients', () => {
   let createThread: ReturnType<typeof vi.fn>;
+  let invalidate: ReturnType<typeof vi.fn>;
+  let getHouseholds: ReturnType<typeof vi.fn>;
 
-  function create(households: Observable<HouseholdResponseModel[]>) {
+  function create(households: Observable<HouseholdResponseModel[]>, me: Observable<number | null> = of(7)) {
     createThread = vi.fn(() => of({ threadId: 42 }));
+    invalidate = vi.fn();
+    getHouseholds = vi.fn(() => households);
     TestBed.configureTestingModule({
       imports: [Compose],
       providers: [
         provideNoopAnimations(),
         provideRouter([]),
-        { provide: HouseholdStore, useValue: { getHouseholds: () => households } },
+        { provide: HouseholdStore, useValue: { getHouseholds, invalidate } },
         { provide: MessagingService, useValue: { createThread } },
-        { provide: AuthService, useValue: { personId: signal(7) } },
+        { provide: AuthService, useValue: { ensurePersonId: () => me } },
       ],
     });
     const fixture = TestBed.createComponent(Compose);
@@ -111,6 +114,7 @@ describe('Compose recipients', () => {
     expect(query(fixture, 'compose-loading')).not.toBeNull();
     expect(query(fixture, 'compose-empty')).toBeNull();
     pending.next([household([member(7, 'Liz'), member(8, 'Sam')])]);
+    pending.complete();
     fixture.detectChanges();
     expect(query(fixture, 'compose-form')).not.toBeNull();
   });
@@ -147,5 +151,42 @@ describe('Compose recipients', () => {
     fixture.detectChanges();
 
     expect(query(fixture, 'compose-error')?.textContent).toContain('their own account');
+  });
+
+  it('drops the cached household list so members who joined from another device are offered', () => {
+    const fixture = create(of([household([member(7, 'Liz'), member(8, 'Sam')])]));
+    expect(invalidate).toHaveBeenCalledBefore(getHouseholds);
+    expect(fixture.componentInstance.recipients().map(m => m.personName)).toEqual(['Sam']);
+  });
+
+  it('waits for the sender id before listing anyone, so the sender is never offered', () => {
+    const me = new Subject<number | null>();
+    const fixture = create(of([household([member(7, 'Liz')])]), me);
+    expect(query(fixture, 'compose-loading')).not.toBeNull();
+    expect(query(fixture, 'compose-form')).toBeNull();
+    me.next(7);
+    me.complete();
+    fixture.detectChanges();
+    expect(query(fixture, 'compose-empty')).not.toBeNull();
+  });
+
+  it('says the household could not be loaded and loads again on retry', () => {
+    const fixture = create(throwError(() => ({ status: 500 })));
+    fixture.detectChanges();
+    expect(query(fixture, 'compose-load-error')?.textContent).toContain("Couldn't load your household");
+    expect(query(fixture, 'compose-form')).toBeNull();
+
+    getHouseholds.mockReturnValue(of([household([member(7, 'Liz'), member(8, 'Sam')])]));
+    (query(fixture, 'error-banner-retry-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(query(fixture, 'compose-load-error')).toBeNull();
+    expect(query(fixture, 'compose-form')).not.toBeNull();
+  });
+
+  it('treats an unknown sender as a load failure rather than listing them', () => {
+    const fixture = create(of([household([member(7, 'Liz'), member(8, 'Sam')])]), of(null));
+    fixture.detectChanges();
+    expect(query(fixture, 'compose-load-error')).not.toBeNull();
   });
 });

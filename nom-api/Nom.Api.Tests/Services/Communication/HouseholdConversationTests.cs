@@ -78,18 +78,48 @@ namespace Nom.Api.Tests.Services.Communication
         }
 
         [Theory]
-        [InlineData(12L)]
-        [InlineData(13L)]
-        [InlineData(20L)]
-        public async Task Dependents_former_members_and_strangers_cannot_be_messaged(long recipientId)
+        [InlineData(12L, "their own account")]
+        [InlineData(13L, "in your household")]
+        [InlineData(20L, "in your household")]
+        public async Task Dependents_former_members_and_strangers_cannot_be_messaged(long recipientId, string reason)
         {
             using var db = await SeedAsync();
 
             var act = () => Service(db).StartHouseholdConversationAsync(
                 new CreateThreadRequest { ParticipantIds = new[] { 11L, recipientId }, InitialMessage = "hi" }, 10);
 
+            (await act.Should().ThrowAsync<ArgumentException>()).Which.Message.Should().Contain(reason);
+            (await db.MessageThreads.CountAsync()).Should().Be(0);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("   ")]
+        public async Task A_blank_first_message_creates_nothing(string? initialMessage)
+        {
+            using var db = await SeedAsync();
+
+            var act = () => Service(db).StartHouseholdConversationAsync(
+                new CreateThreadRequest { ParticipantIds = new[] { 11L }, InitialMessage = initialMessage }, 10);
+
             await act.Should().ThrowAsync<ArgumentException>();
             (await db.MessageThreads.CountAsync()).Should().Be(0);
+            (await db.MessageThreadParticipants.CountAsync()).Should().Be(0);
+        }
+
+        [Fact]
+        public async Task Context_links_from_the_client_are_not_attached_to_a_household_conversation()
+        {
+            using var db = await SeedAsync();
+
+            var threadId = await Service(db).StartHouseholdConversationAsync(
+                new CreateThreadRequest { ParticipantIds = new[] { 11L }, InitialMessage = "hi", PlanId = 999, RecipeId = 998, ThreadType = 1 }, 10);
+
+            var thread = await db.MessageThreads.SingleAsync(t => t.Id == threadId);
+            thread.PlanId.Should().BeNull();
+            thread.RecipeId.Should().BeNull();
+            thread.ThreadType.Should().Be(0);
         }
 
         [Fact]

@@ -7,6 +7,7 @@ namespace Nom.Orch.Models.Communication
         [Required]
         public required long[] ParticipantIds { get; set; }
 
+        [MaxLength(4000)]
         public string? InitialMessage { get; set; }
 
         public int ThreadType { get; set; } = 0;
