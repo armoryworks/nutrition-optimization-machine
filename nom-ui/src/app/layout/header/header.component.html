@@ -62,15 +62,17 @@
     </button>
 
     @if (isLoggedIn()) {
-      <button
-        mat-icon-button
-        class="nom-header__action-btn nom-header__panel-toggle"
-        data-testid="header-panel-toggle-btn"
-        aria-label="Open panel"
-        (click)="sidebarToggle.emit()"
-      >
-        <mat-icon>widgets</mat-icon>
-      </button>
+      @if (showPanelToggle()) {
+        <button
+          mat-icon-button
+          class="nom-header__action-btn nom-header__panel-toggle"
+          data-testid="header-panel-toggle-btn"
+          aria-label="Open panel"
+          (click)="sidebarToggle.emit()"
+        >
+          <mat-icon>widgets</mat-icon>
+        </button>
+      }
       <button
         class="nom-header__avatar"
         data-testid="header-avatar-btn"
