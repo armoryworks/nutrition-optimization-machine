@@ -52,6 +52,12 @@
   flex-direction: column;
 }
 
+.nom-layout--with-sidebar .nom-layout__content {
+  @media (min-width: calc(#{vars.$breakpoint-mobile} + 1px)) and (max-width: vars.$breakpoint-context-rail) {
+    padding-right: vars.$spacing-10;
+  }
+}
+
 .nom-layout__sidebar {
   overflow-y: auto;
   min-height: 0;
