@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
-import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../core/services/auth.service';
+import { identityErrorCodes, matchesPassword } from './identity-errors';
 
 @Component({
   selector: 'nom-reset-password',
@@ -29,28 +30,29 @@ export class ResetPassword {
   private authService = inject(AuthService);
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
-  private router = inject(Router);
   private destroyRef = inject(DestroyRef);
 
   private queryParams = toSignal(this.route.queryParams);
   private email = computed(() => this.queryParams()?.['email'] ?? '');
-  private token = computed(() => this.queryParams()?.['code'] ?? '');
+  private resetCode = computed(() => this.queryParams()?.['code'] ?? '');
 
   resetForm = this.fb.group({
     newPassword: ['', [Validators.required, Validators.minLength(8)]],
-    confirmNewPassword: ['', Validators.required],
-  }, { validators: this.passwordsMatch });
+    confirmNewPassword: ['', [Validators.required, matchesPassword('newPassword')]],
+  });
 
   loading = signal(false);
   errorMessage = signal('');
   showPassword = signal(false);
   showConfirmPassword = signal(false);
-  invalidLink = computed(() => !this.email() || !this.token());
+  linkExpired = signal(false);
+  succeeded = signal(false);
+  invalidLink = computed(() => !this.email() || !this.resetCode());
 
-  private passwordsMatch(group: AbstractControl): ValidationErrors | null {
-    const password = group.get('newPassword')?.value;
-    const confirm = group.get('confirmNewPassword')?.value;
-    return password === confirm ? null : { passwordMismatch: true };
+  constructor() {
+    this.resetForm.controls.newPassword.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.resetForm.controls.confirmNewPassword.updateValueAndValidity());
   }
 
   onSubmit(): void {
@@ -61,12 +63,13 @@ export class ResetPassword {
 
     this.loading.set(true);
     this.errorMessage.set('');
+    this.linkExpired.set(false);
 
-    const { newPassword, confirmNewPassword } = this.resetForm.getRawValue();
-    this.authService.resetPassword(this.email(), this.token(), newPassword!, confirmNewPassword!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    const { newPassword } = this.resetForm.getRawValue();
+    this.authService.resetPassword(this.email(), this.resetCode(), newPassword!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigate(['/home']);
+        this.succeeded.set(true);
       },
       error: (err) => {
         this.loading.set(false);
@@ -81,22 +84,26 @@ export class ResetPassword {
     PasswordRequiresUpper: 'Password must contain at least one uppercase letter.',
     PasswordRequiresLower: 'Password must contain at least one lowercase letter.',
     PasswordRequiresNonAlphanumeric: 'Password must contain at least one special character.',
-    InvalidToken: 'This reset link has expired or is invalid. Please request a new one.',
+    PasswordRequiresUniqueChars: 'Password must use more different characters.',
   };
 
+  private static readonly LINK_EXPIRED = 'This reset link has expired or has already been used. Request a new one to continue.';
+
   private friendlyError(err: HttpErrorResponse): string {
-    if (err.status === 400 && err.error?.errors) {
-      const errorKeys = Object.keys(err.error.errors);
-      for (const key of errorKeys) {
-        if (ResetPassword.VALIDATION_ERRORS[key]) {
-          return ResetPassword.VALIDATION_ERRORS[key];
-        }
+    if (err.status === 400) {
+      const messages = [...new Set(
+        identityErrorCodes(err.error?.errors)
+          .map(code => ResetPassword.VALIDATION_ERRORS[code])
+          .filter((message): message is string => !!message),
+      )];
+      if (messages.length) {
+        return messages.join(' ');
       }
+      this.linkExpired.set(true);
+      return ResetPassword.LINK_EXPIRED;
     }
 
     switch (err.status) {
-      case 400:
-        return 'This reset link has expired or is invalid. Please request a new one.';
       case 429:
         return 'Too many attempts. Please wait a moment and try again.';
       case 0:
