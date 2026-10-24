@@ -171,11 +171,11 @@ namespace Nom.Api.Middleware
         }
 
         private static readonly System.Text.RegularExpressions.Regex SensitiveField = new(
-            @"""(\w*(?:password|token|secret|apikey)\w*)""\s*:\s*""(?:[^""\\]|\\.)*""",
+            @"""(\w*(?:password|token|secret|apikey|code)\w*)""\s*:\s*""(?:[^""\\]|\\.)*""",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
         /// <summary>
-        /// Masks the value of every JSON string field whose name contains password, token, secret or apiKey
+        /// Masks the value of every JSON string field whose name contains password, token, secret, apiKey or code
         /// </summary>
         public static string SanitizeRequestBody(string body) =>
             SensitiveField.Replace(body, m => $"\"{m.Groups[1].Value}\":\"***\"");

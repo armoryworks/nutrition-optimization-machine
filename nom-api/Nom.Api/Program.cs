@@ -146,6 +146,7 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders()
+    .AddPasswordResetTokenProvider()
     .AddClaimsPrincipalFactory<CustomClaimsPrincipalFactory>(); // Register our custom claims factory
 
 // The Identity cookie is used ONLY by the OIDC authorization flow (the SPA uses

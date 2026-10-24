@@ -1,7 +1,8 @@
 import { Component, inject, signal, computed, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { take } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -9,7 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../core/services/auth.service';
-import { identityErrorCodes, matchesPassword } from './identity-errors';
+import { identityErrorCodes, matchesPassword, PASSWORD_RULES, passwordRulesValidator } from './identity-errors';
 
 @Component({
   selector: 'nom-reset-password',
@@ -32,14 +33,21 @@ export class ResetPassword {
   private route = inject(ActivatedRoute);
   private destroyRef = inject(DestroyRef);
 
-  private queryParams = toSignal(this.route.queryParams);
-  private email = computed(() => this.queryParams()?.['email'] ?? '');
-  private resetCode = computed(() => this.queryParams()?.['code'] ?? '');
+  private email = signal('');
+  private resetCode = signal('');
 
   resetForm = this.fb.group({
-    newPassword: ['', [Validators.required, Validators.minLength(8)]],
+    newPassword: ['', [Validators.required, passwordRulesValidator]],
     confirmNewPassword: ['', [Validators.required, matchesPassword('newPassword')]],
   });
+
+  readonly passwordRules = PASSWORD_RULES;
+  private readonly passwordValue = signal('');
+  readonly passwordRuleStates = computed(() => {
+    const value = this.passwordValue();
+    return this.passwordRules.map(rule => ({ rule, met: rule.test(value) }));
+  });
+  serverPasswordError = signal('');
 
   loading = signal(false);
   errorMessage = signal('');
@@ -50,9 +58,20 @@ export class ResetPassword {
   invalidLink = computed(() => !this.email() || !this.resetCode());
 
   constructor() {
+    this.route.queryParams.pipe(take(1)).subscribe(params => {
+      this.email.set(params['email'] ?? '');
+      this.resetCode.set(params['code'] ?? '');
+      if (params['email'] || params['code']) {
+        history.replaceState(null, '', window.location.pathname);
+      }
+    });
     this.resetForm.controls.newPassword.valueChanges
       .pipe(takeUntilDestroyed())
-      .subscribe(() => this.resetForm.controls.confirmNewPassword.updateValueAndValidity());
+      .subscribe(value => {
+        this.passwordValue.set(value ?? '');
+        this.serverPasswordError.set('');
+        this.resetForm.controls.confirmNewPassword.updateValueAndValidity();
+      });
   }
 
   onSubmit(): void {
@@ -63,6 +82,7 @@ export class ResetPassword {
 
     this.loading.set(true);
     this.errorMessage.set('');
+    this.serverPasswordError.set('');
     this.linkExpired.set(false);
 
     const { newPassword } = this.resetForm.getRawValue();
@@ -73,7 +93,7 @@ export class ResetPassword {
       },
       error: (err) => {
         this.loading.set(false);
-        this.errorMessage.set(this.friendlyError(err));
+        this.handleError(err);
       },
     });
   }
@@ -87,9 +107,7 @@ export class ResetPassword {
     PasswordRequiresUniqueChars: 'Password must use more different characters.',
   };
 
-  private static readonly LINK_EXPIRED = 'This reset link has expired or has already been used. Request a new one to continue.';
-
-  private friendlyError(err: HttpErrorResponse): string {
+  private handleError(err: HttpErrorResponse): void {
     if (err.status === 400) {
       const messages = [...new Set(
         identityErrorCodes(err.error?.errors)
@@ -97,12 +115,18 @@ export class ResetPassword {
           .filter((message): message is string => !!message),
       )];
       if (messages.length) {
-        return messages.join(' ');
+        this.serverPasswordError.set(messages.join(' '));
+        this.resetForm.controls.newPassword.setErrors({ server: true });
+        this.resetForm.controls.newPassword.markAsTouched();
+      } else {
+        this.linkExpired.set(true);
       }
-      this.linkExpired.set(true);
-      return ResetPassword.LINK_EXPIRED;
+      return;
     }
+    this.errorMessage.set(this.networkError(err));
+  }
 
+  private networkError(err: HttpErrorResponse): string {
     switch (err.status) {
       case 429:
         return 'Too many attempts. Please wait a moment and try again.';

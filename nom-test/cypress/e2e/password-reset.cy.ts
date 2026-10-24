@@ -51,6 +51,7 @@ const passwordResetJourney = (viewportName: 'desktop' | 'phone', viewport: { wid
       cy.visit('/reset-password?email=e2e.expired%40example.com&code=bm90LWEtcmVhbC1jb2Rl');
 
       cy.byTestId('reset-password-form').should('be.visible');
+      cy.location('search').should('eq', '');
       cy.byTestId('reset-password-new-password-input').type(DEFAULT_TEST_PASSWORD, { log: false });
       cy.byTestId('reset-password-confirm-password-input').type(DEFAULT_TEST_PASSWORD, { log: false });
       cy.byTestId('reset-password-submit-btn').click();
@@ -63,11 +64,31 @@ const passwordResetJourney = (viewportName: 'desktop' | 'phone', viewport: { wid
         });
         expect(response?.statusCode).to.eq(400);
       });
-      cy.byTestId('reset-password-error').should('be.visible').and('contain.text', 'expired or has already been used');
+      cy.byTestId('reset-password-link-expired').should('be.visible')
+        .and('contain.text', 'Link Expired')
+        .and('contain.text', 'expired or has already been used');
+      cy.byTestId('reset-password').should('not.contain.text', 'Choose a new password');
       cy.byTestId('reset-password-form').should('not.exist');
       cy.byTestId('reset-password-request-new-link-btn').click();
       cy.location('pathname').should('eq', '/forgot-password');
       cy.byTestId('forgot-password-form').should('be.visible');
+    });
+
+    it('checks the password rules under New Password before sending anything', () => {
+      cy.intercept('POST', '**/api/auth/resetPassword').as('resetPassword');
+      cy.visit('/reset-password?email=e2e.rules%40example.com&code=bm90LWEtcmVhbC1jb2Rl');
+
+      cy.byTestId('reset-password-password-rules').should('be.visible');
+      cy.byTestId('reset-password-new-password-input').type('longpassword', { log: false });
+      cy.byTestId('reset-password-password-rule-length').should('have.class', 'nom-reset__rule--met');
+      cy.byTestId('reset-password-password-rule-upper').should('not.have.class', 'nom-reset__rule--met');
+      cy.byTestId('reset-password-password-rule-symbol').should('not.have.class', 'nom-reset__rule--met');
+      cy.byTestId('reset-password-confirm-password-input').type('longpassword', { log: false });
+      cy.byTestId('reset-password-submit-btn').click();
+
+      cy.byTestId('reset-password-new-password-error').should('be.visible').and('contain.text', 'rules below');
+      cy.byTestId('reset-password-error').should('not.exist');
+      cy.get('@resetPassword.all').should('have.length', 0);
     });
 
     it('shows the invalid-link state when the reset code is missing', () => {

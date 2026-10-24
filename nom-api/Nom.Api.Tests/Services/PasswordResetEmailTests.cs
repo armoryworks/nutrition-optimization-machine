@@ -10,7 +10,13 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using Moq;
 using Nom.Api.Authentication;
+using Nom.Api.Settings;
 using Xunit;
 
 namespace Nom.Api.Tests.Services
@@ -55,7 +61,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task The_emailed_link_resets_the_password_through_the_identity_endpoint()
+        public async Task The_emailed_link_resets_the_password_once_through_the_identity_endpoint()
         {
             await using var app = await StartAsync();
             var client = app.GetTestClient();
@@ -66,24 +72,59 @@ namespace Nom.Api.Tests.Services
             var forgot = await client.PostAsJsonAsync("/api/auth/forgotPassword", new { email = "cook@example.com" });
             forgot.StatusCode.Should().Be(HttpStatusCode.OK);
 
-            var sender = app.Services.GetRequiredService<CapturingEmailSender>();
-            sender.Links.Should().ContainSingle();
-            var link = new Uri(sender.Links[0]);
+            var log = app.Services.GetRequiredService<CapturingLoggerProvider>();
+            log.ResetLinks.Should().ContainSingle();
+            var link = new Uri(log.ResetLinks[0]);
             link.GetLeftPart(UriPartial.Path).Should().Be("https://nom.example/reset-password");
             var query = QueryHelpers.ParseQuery(link.Query);
-
-            var reset = await client.PostAsJsonAsync("/api/auth/resetPassword", new
+            var body = new
             {
                 email = query["email"].ToString(),
                 resetCode = query["code"].ToString(),
                 newPassword = "NewPassword1!",
-            });
+            };
+
+            var reset = await client.PostAsJsonAsync("/api/auth/resetPassword", body);
 
             reset.StatusCode.Should().Be(HttpStatusCode.OK);
             var fresh = app.Services.CreateScope().ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
             var reloaded = await fresh.FindByEmailAsync("cook@example.com");
             (await fresh.CheckPasswordAsync(reloaded!, "NewPassword1!")).Should().BeTrue();
             (await fresh.CheckPasswordAsync(reloaded!, "OldPassword1!")).Should().BeFalse();
+
+            var replay = await client.PostAsJsonAsync("/api/auth/resetPassword", body);
+            replay.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            (await replay.Content.ReadAsStringAsync()).Should().Contain("InvalidToken");
+        }
+
+        [Fact]
+        public async Task Reset_codes_come_from_the_short_lived_provider()
+        {
+            await using var app = await StartAsync();
+
+            app.Services.GetRequiredService<IOptions<IdentityOptions>>().Value.Tokens.PasswordResetTokenProvider
+                .Should().Be(PasswordResetTokenProvider.ProviderName);
+            app.Services.GetRequiredService<IOptions<PasswordResetTokenProviderOptions>>().Value.TokenLifespan
+                .Should().Be(TimeSpan.FromHours(1));
+            app.Services.GetRequiredService<IOptions<DataProtectionTokenProviderOptions>>().Value.TokenLifespan
+                .Should().Be(TimeSpan.FromDays(1));
+        }
+
+        [Fact]
+        public async Task In_production_the_no_op_sender_logs_neither_the_link_nor_the_code()
+        {
+            var log = new CapturingLoggerProvider();
+            var environment = Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Production);
+            var sender = new NoOpEmailSender(
+                new LoggerFactory(new[] { log }).CreateLogger<NoOpEmailSender>(),
+                Options.Create(new FrontendSettings { Url = FrontendUrl }),
+                environment);
+
+            await sender.SendPasswordResetCodeAsync(new IdentityUser { Id = "u-1" }, "cook@example.com", "Q2Zk-secret");
+            await sender.SendPasswordResetLinkAsync(new IdentityUser { Id = "u-1" }, "cook@example.com", "https://nom.example/x?code=Q2Zk-secret");
+
+            log.Messages.Should().NotBeEmpty();
+            log.Messages.Should().NotContain(m => m.Contains("Q2Zk-secret") || m.Contains("reset-password"));
         }
 
         [Fact]
@@ -120,20 +161,24 @@ namespace Nom.Api.Tests.Services
 
             unknown.StatusCode.Should().Be(known.StatusCode);
             (await unknown.Content.ReadAsStringAsync()).Should().Be(await known.Content.ReadAsStringAsync());
-            app.Services.GetRequiredService<CapturingEmailSender>().Links.Should().ContainSingle();
+            app.Services.GetRequiredService<CapturingLoggerProvider>().ResetLinks.Should().ContainSingle();
         }
 
         private static async Task<WebApplication> StartAsync()
         {
-            var builder = WebApplication.CreateBuilder();
+            var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = Environments.Development });
             builder.WebHost.UseTestServer();
+            var log = new CapturingLoggerProvider();
+            builder.Logging.AddProvider(log);
+            builder.Services.AddSingleton(log);
             var database = Guid.NewGuid().ToString();
             builder.Services.AddDbContext<IdentityOnlyDbContext>(o => o.UseInMemoryDatabase(database));
             builder.Services.AddAuthorization();
             builder.Services.AddIdentityApiEndpoints<IdentityUser>()
-                .AddEntityFrameworkStores<IdentityOnlyDbContext>();
-            builder.Services.AddSingleton<CapturingEmailSender>();
-            builder.Services.AddSingleton<IEmailSender<IdentityUser>>(sp => sp.GetRequiredService<CapturingEmailSender>());
+                .AddEntityFrameworkStores<IdentityOnlyDbContext>()
+                .AddPasswordResetTokenProvider();
+            builder.Services.Configure<FrontendSettings>(f => f.Url = FrontendUrl);
+            builder.Services.AddTransient<IEmailSender<IdentityUser>, NoOpEmailSender>();
 
             var app = builder.Build();
             app.MapGroup("api/auth").MapIdentityApi<IdentityUser>();
@@ -144,18 +189,35 @@ namespace Nom.Api.Tests.Services
         private sealed class IdentityOnlyDbContext(DbContextOptions<IdentityOnlyDbContext> options)
             : IdentityDbContext<IdentityUser>(options);
 
-        private sealed class CapturingEmailSender : IEmailSender<IdentityUser>
+        private sealed class CapturingLoggerProvider : ILoggerProvider
         {
-            public List<string> Links { get; } = new();
+            public List<string> Messages { get; } = new();
 
-            public Task SendConfirmationLinkAsync(IdentityUser user, string email, string confirmationLink) => Task.CompletedTask;
+            public List<string> ResetLinks => Messages
+                .Where(m => m.StartsWith("Link: ", StringComparison.Ordinal) && m.Contains("/reset-password?"))
+                .Select(m => m["Link: ".Length..])
+                .ToList();
 
-            public Task SendPasswordResetLinkAsync(IdentityUser user, string email, string resetLink) => Task.CompletedTask;
+            public ILogger CreateLogger(string categoryName) =>
+                categoryName == typeof(NoOpEmailSender).FullName ? new Capturing(Messages) : NullLogger.Instance;
 
-            public Task SendPasswordResetCodeAsync(IdentityUser user, string email, string resetCode)
+            public void Dispose()
             {
-                Links.Add(PasswordResetEmail.Link(FrontendUrl, email, resetCode));
-                return Task.CompletedTask;
+            }
+
+            private sealed class Capturing(List<string> messages) : ILogger
+            {
+                public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+                public bool IsEnabled(LogLevel logLevel) => true;
+
+                public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+                {
+                    lock (messages)
+                    {
+                        messages.Add(formatter(state, exception));
+                    }
+                }
             }
         }
     }
