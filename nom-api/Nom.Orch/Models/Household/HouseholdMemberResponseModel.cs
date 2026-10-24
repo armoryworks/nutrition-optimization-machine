@@ -20,5 +20,11 @@ namespace Nom.Orch.Models.Household
         /// restriction locks, membership). Mirrors IsAdmin || CanManage.
         /// </summary>
         public bool IsSteward { get; set; }
+
+        /// <summary>
+        /// True when this member signs in with their own account. Dependents
+        /// without one cannot read or receive messages.
+        /// </summary>
+        public bool HasAccount { get; set; }
     }
 } 

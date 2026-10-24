@@ -24,8 +24,8 @@ export class MessagingService {
     return this.http.get<Message[]>(`${this.apiUrl}/threads/${threadId}/messages`);
   }
 
-  createThread(request: CreateThreadRequest): Observable<{ id: number }> {
-    return this.http.post<{ id: number }>(`${this.apiUrl}/threads`, request);
+  createThread(request: CreateThreadRequest): Observable<{ threadId: number }> {
+    return this.http.post<{ threadId: number }>(`${this.apiUrl}/threads`, request);
   }
 
   sendMessage(request: SendMessageRequest): Observable<Message> {

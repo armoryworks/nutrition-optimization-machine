@@ -1,3 +1,4 @@
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
@@ -113,6 +114,60 @@ namespace Nom.Orch.Services
             await _db.SaveChangesAsync();
 
             return thread.Id;
+        }
+
+        public async Task<long> StartHouseholdConversationAsync(CreateThreadRequest request, long creatorPersonId)
+        {
+            var requested = (request.ParticipantIds ?? Array.Empty<long>())
+                .Where(id => id != creatorPersonId)
+                .Distinct()
+                .ToList();
+            if (requested.Count == 0)
+                throw new ArgumentException("Choose at least one other household member to message.");
+
+            var creatorHouseholdIds = _db.HouseholdMembers
+                .Where(hm => hm.PersonId == creatorPersonId && hm.IsActive)
+                .Select(hm => hm.HouseholdId);
+
+            var reachable = await (from hm in _db.HouseholdMembers
+                                   where hm.IsActive
+                                       && requested.Contains(hm.PersonId)
+                                       && creatorHouseholdIds.Contains(hm.HouseholdId)
+                                   join p in _db.Persons on hm.PersonId equals p.Id
+                                   where p.UserId != null
+                                   select hm.PersonId)
+                .Distinct()
+                .ToListAsync();
+
+            if (reachable.Count != requested.Count)
+                throw new ArgumentException("You can only message household members who have their own account.");
+
+            var content = request.InitialMessage?.Trim();
+            var threadId = await CreateThreadAsync(new CreateThreadRequest
+            {
+                ParticipantIds = requested.ToArray(),
+                ThreadType = request.ThreadType,
+                RecipeId = request.RecipeId,
+                IngredientId = request.IngredientId,
+                PlanId = request.PlanId,
+            }, creatorPersonId);
+
+            if (!string.IsNullOrEmpty(content))
+            {
+                await SendMessageAsync(new SendMessageRequest { ThreadId = threadId, Content = content }, creatorPersonId);
+            }
+
+            return threadId;
+        }
+
+        public async Task<MessageResponseModel> PostMessageAsync(SendMessageRequest request, long senderPersonId)
+        {
+            var messageId = await SendMessageAsync(request, senderPersonId);
+            var message = await _db.Messages
+                .Include(m => m.SenderPerson)
+                .AsNoTracking()
+                .FirstAsync(m => m.Id == messageId);
+            return MapMessage(message);
         }
 
         public async Task MarkThreadAsReadAsync(long threadId, long personId)

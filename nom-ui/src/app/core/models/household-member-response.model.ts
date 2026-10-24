@@ -11,4 +11,6 @@ export interface HouseholdMemberResponseModel {
   hasRestrictions: boolean;
   /** True when this member may perform steward actions (policies, restriction locks). */
   isSteward?: boolean;
+  /** True when this member signs in with their own account; dependents without one cannot receive messages. */
+  hasAccount?: boolean;
 }

@@ -11,6 +11,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MessagingService } from '../core/services/messaging.service';
 import { HouseholdStore } from '../core/services/household-store';
 import { LoadingService } from '../core/services/loading.service';
+import { AuthService } from '../core/services/auth.service';
+import { HouseholdMemberResponseModel } from '../core/models/household-member-response.model';
 
 @Component({
   selector: 'nom-compose',
@@ -34,19 +36,31 @@ export class Compose {
   private messagingService = inject(MessagingService);
   private householdStore = inject(HouseholdStore);
   private loadingService = inject(LoadingService);
+  private authService = inject(AuthService);
 
-  private households = toSignal(this.householdStore.getHouseholds(), { initialValue: [] });
-  members = computed(() => {
-    const list = this.households();
-    return list.length > 0 && list[0].members ? list[0].members : [];
+  private households = toSignal(this.householdStore.getHouseholds());
+  loaded = computed(() => this.households() !== undefined);
+  private otherMembers = computed(() => {
+    const me = this.authService.personId();
+    const byPerson = new Map<number, HouseholdMemberResponseModel>();
+    for (const household of this.households() ?? []) {
+      for (const member of household.members ?? []) {
+        if (member.personId !== me && !byPerson.has(member.personId)) {
+          byPerson.set(member.personId, member);
+        }
+      }
+    }
+    return [...byPerson.values()];
   });
+  recipients = computed(() => this.otherMembers().filter(m => m.hasAccount));
+  unreachable = computed(() => this.otherMembers().filter(m => !m.hasAccount));
+  unreachableNames = computed(() => this.unreachable().map(m => m.personName).join(', '));
   sending = signal(false);
   errorMessage = signal('');
 
   composeForm = this.fb.group({
     recipientIds: [[] as number[], Validators.required],
-    subject: ['', [Validators.required, Validators.maxLength(255)]],
-    message: ['', Validators.required],
+    message: ['', [Validators.required, Validators.pattern(/\S/)]],
   });
 
   onSubmit(): void {
@@ -60,19 +74,19 @@ export class Compose {
 
     const form = this.composeForm.getRawValue();
     this.messagingService.createThread({
-      participantPersonIds: form.recipientIds!,
-      subject: form.subject!,
-      initialMessage: form.message!,
+      participantIds: form.recipientIds!,
+      initialMessage: form.message!.trim(),
     }).pipe(
       this.loadingService.loading('Sending message...')
     ).subscribe({
       next: (result) => {
         this.sending.set(false);
-        this.router.navigate(['/messages', result.id]);
+        this.router.navigate(['/messages', result.threadId]);
       },
-      error: () => {
+      error: (err) => {
         this.sending.set(false);
-        this.errorMessage.set('Failed to send message. Please try again.');
+        const detail = err?.status === 400 ? err?.error?.detail : null;
+        this.errorMessage.set(detail || 'Failed to send message. Please try again.');
       },
     });
   }

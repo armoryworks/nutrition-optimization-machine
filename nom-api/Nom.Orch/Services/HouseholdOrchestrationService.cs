@@ -45,19 +45,37 @@ namespace Nom.Orch.Services
             var households = await query.ToListAsync();
             var ids = households.Select(h => h.Id).ToList();
 
-            // Get member counts per household from HouseholdMembers table
-            var memberCounts = await _context.HouseholdMembers
-                .Where(hm => hm.IsActive && ids.Contains(hm.HouseholdId))
-                .GroupBy(hm => hm.HouseholdId)
-                .Select(g => new { HouseholdId = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(x => x.HouseholdId, x => x.Count);
-
             // Get meal plan counts per household
             var planCounts = await _context.MealPlans
                 .Where(mp => ids.Contains(mp.HouseholdId))
                 .GroupBy(mp => mp.HouseholdId)
                 .Select(g => new { HouseholdId = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.HouseholdId, x => x.Count);
+
+            var memberRows = await (from hm in _context.HouseholdMembers
+                                    where hm.IsActive && ids.Contains(hm.HouseholdId)
+                                    join p in _context.Persons on hm.PersonId equals p.Id
+                                    select new HouseholdMemberResponseModel
+                                    {
+                                        Id = hm.Id,
+                                        HouseholdId = hm.HouseholdId,
+                                        PersonId = hm.PersonId,
+                                        PersonName = p.Name,
+                                        Role = hm.Role,
+                                        JoinedDate = hm.JoinedDate ?? hm.CreatedDate,
+                                        IsActive = hm.IsActive,
+                                        IsSteward = hm.IsAdmin || hm.CanManage,
+                                        HasAccount = p.UserId != null,
+                                    }).ToListAsync();
+
+            var membersByHousehold = memberRows
+                .GroupBy(m => m.HouseholdId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.GroupBy(m => m.PersonId)
+                        .Select(pg => pg.OrderByDescending(m => m.IsSteward).ThenBy(m => m.Id).First())
+                        .OrderBy(m => m.JoinedDate).ThenBy(m => m.Id)
+                        .ToList());
 
             return households.Select(h => new HouseholdResponseModel
             {
@@ -69,7 +87,8 @@ namespace Nom.Orch.Services
                 ModifiedDate = h.LastModifiedDate,
                 ManagedBy = h.ManagedBy,
                 IsPersonal = h.IsPersonal,
-                MemberCount = memberCounts.GetValueOrDefault(h.Id, 0),
+                Members = membersByHousehold.GetValueOrDefault(h.Id) ?? new List<HouseholdMemberResponseModel>(),
+                MemberCount = membersByHousehold.GetValueOrDefault(h.Id)?.Count ?? 0,
                 PlanCount = planCounts.GetValueOrDefault(h.Id, 0)
             }).ToList();
         }
@@ -146,6 +165,7 @@ namespace Nom.Orch.Services
                                     HasProfile = _context.PersonAttributes.Any(pa => pa.PersonId == p.Id),
                                     HasRestrictions = _context.Restrictions.Any(r => r.PersonId == p.Id && r.PlanId == null),
                                     IsSteward = hm.IsAdmin || hm.CanManage,
+                                    HasAccount = p.UserId != null,
                                 }).ToListAsync();
 
             // Tenants that predate the (HouseholdId, PersonId) unique constraint can

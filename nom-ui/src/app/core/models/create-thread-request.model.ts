@@ -1,6 +1,5 @@
 export interface CreateThreadRequest {
-  participantPersonIds: number[];
-  subject: string;
+  participantIds: number[];
   initialMessage: string;
   threadType?: number;
   recipeId?: number | null;
