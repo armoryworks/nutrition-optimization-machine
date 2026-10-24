@@ -65,7 +65,7 @@ function registerAndJoinWithCode(journey: string, fullName: string, code: string
     cy.wait('@joinRequest').its('response.statusCode').should('be.within', 200, 299);
     cy.byTestId('household-continue-btn').scrollIntoView().should('be.visible').click();
 
-    cy.byTestId('plan-tabs').should('be.visible');
+    cy.byTestId('plan-tabs').scrollIntoView().should('be.visible');
     cy.byTestId('onboarding-skip-btn').click();
     cy.wait('@completeOnboardingRequest').its('response.statusCode').should('be.within', 200, 299);
     cy.location('pathname').should('eq', '/home');

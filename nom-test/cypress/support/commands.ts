@@ -221,5 +221,5 @@ Cypress.Commands.add('navTo', (id: string) => {
     });
     cy.get(testId('nav-drawer')).should('have.class', 'nom-layout__nav--open');
   });
-  cy.get(testId(id)).should('be.visible').click();
+  cy.get(testId(id)).scrollIntoView().should('be.visible').click();
 });
