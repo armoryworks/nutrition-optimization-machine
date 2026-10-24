@@ -6,6 +6,7 @@
     [isDarkTheme]="isDarkTheme()"
     (themeToggle)="toggleTheme()"
     (navToggle)="toggleNav()"
+    [showPanelToggle]="contextRail()"
     (sidebarToggle)="toggleSidebar()"
   >
   </nom-header>
@@ -14,7 +15,7 @@
 <main id="main-content" class="nom-main" tabindex="-1" [attr.inert]="isLoading() ? '' : null">
   <div
     class="nom-layout"
-    [class.nom-layout--with-sidebar]="isLoggedIn()"
+    [class.nom-layout--with-sidebar]="showContextRail()"
     [class.nom-layout--with-nav]="isLoggedIn()"
   >
     @if (isLoggedIn()) {
@@ -25,8 +26,12 @@
     <div class="nom-layout__content">
       <router-outlet />
     </div>
-    @if (isLoggedIn()) {
-      <aside class="nom-layout__sidebar" [class.nom-layout__sidebar--open]="sidebarOpen()">
+    @if (showContextRail()) {
+      <aside
+        class="nom-layout__sidebar"
+        [class.nom-layout__sidebar--open]="sidebarOpen()"
+        data-testid="context-rail"
+      >
         <button class="nom-sidebar-close" (click)="toggleSidebar()" data-testid="sidebar-close-btn">
           <mat-icon>close</mat-icon> Close
         </button>
@@ -36,7 +41,7 @@
   </div>
 </main>
 
-@if (isLoggedIn()) {
+@if (showContextRail()) {
   <button class="nom-sidebar-toggle" (click)="toggleSidebar()" data-testid="sidebar-toggle-btn">
     <mat-icon>widgets</mat-icon>
     <span>Panel</span>
@@ -48,6 +53,8 @@
     aria-hidden="true"
     data-testid="sidebar-backdrop"
   ></div>
+}
+@if (isLoggedIn()) {
   <div
     class="nom-sidebar-backdrop"
     [class.nom-sidebar-backdrop--visible]="navOpen()"

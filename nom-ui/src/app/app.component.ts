@@ -27,6 +27,7 @@ import { Nav } from './layout/nav/nav.component';
 import { Sidebar } from './layout/sidebar/sidebar.component';
 import { LoadingOverlay } from './shared/components/loading-overlay/loading-overlay.component';
 import { makeRoomForAutocomplete } from './core/utils/autocomplete-room';
+import { contextRailEnabled } from './core/utils/context-rail';
 
 @Component({
   selector: 'nom-root',
@@ -55,6 +56,8 @@ export class App {
   navOpen = signal(false);
   // /login renders without app chrome (it is also iframed by the marketing site).
   chromeless = signal(false);
+  contextRail = signal(true);
+  showContextRail = computed(() => this.isLoggedIn() && this.contextRail());
 
   private navLoadingKey: string | null = null;
 
@@ -82,6 +85,8 @@ export class App {
         // screen-reader users land on the new page, not stale chrome.
         if (e instanceof NavigationEnd) {
           this.chromeless.set(e.urlAfterRedirects.startsWith('/login'));
+          this.contextRail.set(contextRailEnabled(this.router.routerState.snapshot.root));
+          if (!this.contextRail()) this.sidebarOpen.set(false);
           if (this.firstNavigationDone) {
             this.document.getElementById('main-content')?.focus({ preventScroll: true });
           }
