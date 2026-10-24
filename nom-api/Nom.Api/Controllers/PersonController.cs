@@ -271,14 +271,13 @@ namespace Nom.Api.Controllers
         }
 
         /// <summary>
-        /// Gets the onboarding state for a specific person (self only).
+        /// Gets the onboarding state for a specific person (must be self or share a household)
         /// </summary>
         [HttpGet("{id:long}/onboarding")]
         [ProducesResponseType(typeof(OnboardingStateResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetOnboardingState(long id)
         {
-            var currentPersonId = GetCurrentPersonId();
-            if (!currentPersonId.HasValue || currentPersonId.Value != id)
+            if (!await CanAccessPersonAsync(id))
                 return Forbid();
 
             var onboardingState = await _personOrchestrationService.GetOnboardingStateAsync(id);

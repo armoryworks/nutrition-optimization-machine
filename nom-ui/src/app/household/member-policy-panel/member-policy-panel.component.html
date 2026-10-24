@@ -20,7 +20,7 @@
       (valueChange)="onMemberChange($event)"
       data-testid="member-policy-member-select">
       @for (member of members(); track member.personId) {
-        <mat-option [value]="member.personId">{{ member.personName }}</mat-option>
+        <mat-option [value]="member.personId" data-testid="member-policy-member-option">{{ member.personName }}</mat-option>
       }
     </mat-select>
   </mat-form-field>
@@ -150,9 +150,16 @@
               }
             </div>
           } @empty {
-            <p class="nom-policy-panel__hint" data-testid="member-policy-restrictions-empty">
-              This member has no dietary restrictions.
-            </p>
+            @if (restrictionsError()) {
+              <div class="nom-form__error" data-testid="member-policy-restrictions-error">
+                <mat-icon>error_outline</mat-icon>
+                <span>Unable to load this member's dietary restrictions.</span>
+              </div>
+            } @else {
+              <p class="nom-policy-panel__hint" data-testid="member-policy-restrictions-empty">
+                This member has no dietary restrictions.
+              </p>
+            }
           }
         </div>
       </div>

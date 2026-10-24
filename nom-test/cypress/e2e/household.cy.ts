@@ -201,7 +201,7 @@ viewports.forEach((viewport) => {
       cy.signOut();
     });
 
-    it.skip('reopens a member\'s dietary preferences from the roster (BUG: GET /api/Person/{id}/onboarding is self-only, so the steward gets 403 and the dialog says "Unable to load member data.")', () => {
+    it('reopens a member\'s profile and dietary preferences from the roster and shows their restrictions to lock', () => {
       cy.registerAndLogin(`household-member-edit-${viewport.name}`, { fullName: 'E2E Household Owner' });
       openHouseholdPage(viewport.phone);
       convertPersonalKitchenToHousehold(`E2E Edit ${viewport.name}`);
@@ -209,16 +209,40 @@ viewports.forEach((viewport) => {
 
       cy.intercept('GET', '**/api/Person/*/onboarding').as('memberStateRequest');
       cy.byTestId('household-member-row').within(() => {
+        cy.byTestId('household-member-profile-btn').click();
+      });
+      cy.wait('@memberStateRequest').its('response.statusCode').should('eq', 200);
+      memberDialog().within(() => {
+        cy.byTestId('add-member-error').should('not.exist');
+        cy.byTestId('restrictions').should('not.exist');
+        cy.byTestId('profile-name-input').should('have.value', MEMBER_NAME);
+        cy.byTestId('add-member-close-btn').click();
+      });
+      cy.byTestId('add-member-dialog').should('not.exist');
+
+      cy.byTestId('household-member-row').within(() => {
         cy.byTestId('household-member-dietary-btn').click();
       });
       cy.wait('@memberStateRequest').its('response.statusCode').should('eq', 200);
       memberDialog().within(() => {
         cy.byTestId('add-member-error').should('not.exist');
+        cy.byTestId('profile-form').should('not.exist');
         cy.byTestId('restrictions').should('exist');
         cy.byTestId('restrictions-chip').should('have.length', 1).and('contain.text', RESTRICTION_NAME);
         cy.byTestId('add-member-close-btn').click();
       });
       cy.byTestId('add-member-dialog').should('not.exist');
+
+      cy.byTestId('household-member-policies').scrollIntoView().should('be.visible');
+      cy.byTestId('member-policy-member-select').click();
+      cy.byTestId('member-policy-member-option').contains(MEMBER_NAME).click();
+      cy.wait('@memberStateRequest').its('response.statusCode').should('eq', 200);
+      cy.byTestId('member-policy-panel').within(() => {
+        cy.byTestId('member-policy-restrictions-error').should('not.exist');
+        cy.byTestId('member-policy-restrictions-empty').should('not.exist');
+        cy.byTestId('member-policy-restriction-item').should('have.length', 1).and('contain.text', RESTRICTION_NAME);
+        cy.byTestId('member-policy-lock-btn').should('be.visible');
+      });
 
       cy.signOut();
     });

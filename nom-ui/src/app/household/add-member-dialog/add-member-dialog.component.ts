@@ -42,6 +42,7 @@ export class AddMemberDialog implements OnInit {
   loading = signal(false);
   errorMessage = signal('');
   currentStep = signal(0);
+  dataReady = signal(false);
   createdPersonId = signal<number | null>(null);
   profileInitialData = signal<ProfileFormData | null>(null);
   restrictionsInitialData = signal<RestrictionRequest[]>([]);
@@ -55,6 +56,8 @@ export class AddMemberDialog implements OnInit {
     if (this.data.personId) {
       this.createdPersonId.set(this.data.personId);
       this.loadExistingData(this.data.personId);
+    } else {
+      this.dataReady.set(true);
     }
   }
 
@@ -132,6 +135,7 @@ export class AddMemberDialog implements OnInit {
         if (this.data.initialStep != null) {
           this.currentStep.set(this.data.initialStep);
         }
+        this.dataReady.set(true);
       },
       error: () => {
         this.errorMessage.set('Unable to load member data.');
