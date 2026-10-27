@@ -10,7 +10,7 @@ function loadHousehold(session?: Record<string, string>): Cypress.Chainable<Arra
   cy.intercept('GET', '**/api/Household').as(alias);
   cy.visit('/household', {
     onBeforeLoad(win) {
-      Object.entries(session ?? {}).forEach(([key, value]) => win.localStorage.setItem(key, value));
+      Object.keys(session ?? {}).forEach((key) => win.localStorage.setItem(key, (session ?? {})[key]));
     },
   });
   cy.location('pathname').should('eq', '/household');
