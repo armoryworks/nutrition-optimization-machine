@@ -588,7 +588,6 @@ namespace Nom.Orch.Services
                 throw new KeyNotFoundException($"Person with ID {request.Id} not found.");
 
             person.Name = request.Name;
-            person.UserId = request.UserId;
 
             _dbContext.Persons.Update(person);
             await _dbContext.SaveChangesAsync();
@@ -636,6 +635,9 @@ namespace Nom.Orch.Services
             var person = await _dbContext.Persons.FindAsync(personId);
             if (person == null)
                 return false;
+
+            if (person.UserId != null)
+                throw new InvalidOperationException("A person who has a login is removed by deleting their account.");
 
             _dbContext.Persons.Remove(person);
             await _dbContext.SaveChangesAsync();

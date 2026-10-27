@@ -150,17 +150,26 @@ namespace Nom.Api.Controllers
         }
 
         /// <summary>
-        /// Deletes a person (must be self or share a household)
+        /// Deletes a person who has no login (must be self or share a household)
         /// </summary>
         [HttpDelete("{id:long}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> DeletePerson(long id)
         {
             if (!await CanAccessPersonAsync(id))
                 return Forbid();
 
-            var result = await _personOrchestrationService.DeletePersonAsync(id);
+            bool result;
+            try
+            {
+                result = await _personOrchestrationService.DeletePersonAsync(id);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
             if (!result)
             {
                 return NotFound();
