@@ -56,55 +56,7 @@ namespace Nom.Api.Authentication
                 // Add registration status claim
                 identity.AddClaim(new Claim("RegistrationStatus", "Complete"));
 
-                // Get household memberships to determine permissions
-                var householdMemberships = await _dbContext.HouseholdMembers
-                    .Where(hm => hm.PersonId == person.Id)
-                    .Include(hm => hm.Household)
-                    .ToListAsync();
-
-                // Get plan participations to determine plan-level permissions
-                var planParticipations = await _dbContext.PlanParticipants
-                    .Where(pp => pp.PersonId == person.Id)
-                    .Include(pp => pp.Plan)
-                    .ToListAsync();
-
-                // Add household-specific permissions
-                foreach (var membership in householdMemberships)
-                {
-                    var householdId = membership.HouseholdId.ToString();
-                    
-                    // Add household membership claim
-                    identity.AddClaim(new Claim("HouseholdMember", householdId));
-
-                    // Add household-specific permissions based on role
-                    if (membership.CanInvite)
-                        identity.AddClaim(new Claim("can_invite_household", householdId));
-                    
-                    if (membership.CanManage)
-                        identity.AddClaim(new Claim("can_manage_household", householdId));
-                    
-                    if (membership.IsAdmin)
-                        identity.AddClaim(new Claim("admin_household", householdId));
-                }
-
-                // Add plan-specific permissions
-                foreach (var participation in planParticipations)
-                {
-                    var planId = participation.PlanId.ToString();
-                    
-                    // Add plan participation claim
-                    identity.AddClaim(new Claim("PlanParticipant", planId));
-
-                    // Add plan-specific permissions based on role
-                    if (participation.CanInvite)
-                        identity.AddClaim(new Claim("can_invite_plan", planId));
-                    
-                    if (participation.CanManage)
-                        identity.AddClaim(new Claim("can_manage_plan", planId));
-                    
-                    if (participation.IsAdmin)
-                        identity.AddClaim(new Claim("admin_plan", planId));
-                }
+                identity.AddClaims(await MembershipClaims.LoadAsync(_dbContext, person.Id));
 
                 // System-wide permissions (CanManageCuration, CanManageUserRoles) come only
                 // from stored user claims included by the base factory. Household/plan admin

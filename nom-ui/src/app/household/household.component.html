@@ -39,7 +39,7 @@
       <h2 class="nom-form__section-title">Your Households</h2>
       <div class="nom-household__list">
         @for (h of households(); track h.id) {
-          <div class="nom-household__item">
+          <div class="nom-household__item" data-testid="household-item">
             <div class="nom-household__item-info">
               <span class="nom-household__item-name">
                 {{ h.name }}

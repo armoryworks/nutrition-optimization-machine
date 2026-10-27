@@ -148,6 +148,7 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
     .AddDefaultTokenProviders()
     .AddPasswordResetTokenProvider()
     .AddClaimsPrincipalFactory<CustomClaimsPrincipalFactory>(); // Register our custom claims factory
+builder.Services.AddScoped<IClaimsTransformation, MembershipClaimsTransformation>();
 
 // The Identity cookie is used ONLY by the OIDC authorization flow (the SPA uses
 // bearer tokens), so its challenge lands on the authority's own sign-in page.
