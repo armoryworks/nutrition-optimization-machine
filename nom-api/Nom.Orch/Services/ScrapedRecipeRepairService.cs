@@ -89,7 +89,8 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// Turns HTML entities the extractor left in the text ("&amp;#8217;", "&amp;nbsp;") back into
-        /// characters, so the vetting rule for markup residue only sees real tags and links.
+        /// characters and drops bare tags ("&lt;span class="fn"&gt;"), so the vetting rule for markup
+        /// residue only sees what a person has to look at: scripts, links and broken fragments.
         /// </summary>
         private static bool DecodeEntities(RecipeEntity recipe)
         {
@@ -116,11 +117,15 @@ namespace Nom.Orch.Services
             return changed;
         }
 
+        private static readonly System.Text.RegularExpressions.Regex Tag = new(
+            @"</?(?:span|div|p|b|i|em|strong|u|br|a|font|h[1-6]|ul|ol|li|table|tr|td|th|tbody|thead|section|article|header|footer)\b[^<>]*>",
+            System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
         private static string? Decode(string? text)
         {
-            if (text == null || text.IndexOf('&') < 0) return text;
-            var decoded = System.Net.WebUtility.HtmlDecode(text).Replace('\u00a0', ' ');
-            return decoded == text ? text : System.Text.RegularExpressions.Regex.Replace(decoded, @"[ \t]{2,}", " ");
+            if (text == null || (text.IndexOf('&') < 0 && text.IndexOf('<') < 0)) return text;
+            var decoded = System.Net.WebUtility.HtmlDecode(Tag.Replace(text, " ")).Replace('\u00a0', ' ');
+            return decoded == text ? text : System.Text.RegularExpressions.Regex.Replace(decoded, @"[ \t]{2,}", " ").Trim();
         }
 
         private bool SplitSingleStep(RecipeEntity recipe)
