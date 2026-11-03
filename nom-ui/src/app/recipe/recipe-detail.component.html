@@ -234,7 +234,7 @@
           @case (1) {
             <nom-nutrition-label
               [nutrition]="recipe()!.nutrition ?? []"
-              [servings]="recipe()!.servings"
+              [servings]="recipe()!.nutritionServings ?? undefined"
               [servingQuantity]="recipe()!.servingQuantity"
               [servingUnit]="recipe()!.servingUnit"
               [ingredientNames]="ingredientNames()"

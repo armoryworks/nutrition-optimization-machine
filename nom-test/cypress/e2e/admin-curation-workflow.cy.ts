@@ -129,6 +129,8 @@ const curationJourney = (viewportName: 'desktop' | 'phone', viewport: { width: n
         cy.byTestId('curation-status-badge').should('contain.text', 'Pending');
         cy.byTestId('curation-review-btn').click();
         cy.byTestId('curation-blocking-ingredients').should('not.exist');
+        cy.byTestId('curation-approve-btn').should('be.disabled');
+        cy.byTestId('curation-servings-input').clear().type('4');
         cy.byTestId('curation-notes-input').type('Looks great. Approved for the public catalog.');
         cy.byTestId('curation-approve-btn').click();
       });

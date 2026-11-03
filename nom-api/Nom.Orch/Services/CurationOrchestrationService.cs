@@ -68,6 +68,7 @@ namespace Nom.Orch.Services
                     VettingIssues = r.VettingIssues,
                     ContainsSourceProse = r.ContainsSourceProse,
                     SourceImageUrl = r.SourceImageUrl,
+                    Servings = r.Servings > 0 ? r.Servings : (r.RecipeServings > 0 ? r.RecipeServings : null),
                     UncuratedIngredients = r.RecipeIngredients
                         .Where(ri => ri.Ingredient != null && ri.Ingredient.CurationStatusId != (long)CurationStatusEnum.Curated)
                         .Select(ri => new CurationBlockingIngredientModel
@@ -225,6 +226,16 @@ namespace Nom.Orch.Services
                 if (Support.RecipeApprovalGate.RefusalReason(recipe) is { } refusal)
                 {
                     throw new InvalidOperationException(refusal);
+                }
+
+                if (request.Servings is > 0 and <= 200)
+                {
+                    recipe.RecipeServings = request.Servings;
+                    recipe.Servings ??= (long)Math.Round(request.Servings.Value);
+                }
+                if (!RecipeNutritionService.ServingsKnown(recipe))
+                {
+                    throw new InvalidOperationException("Cannot approve recipe: say how many servings it makes first, so its nutrition label can be per serving.");
                 }
 
                 recipe.CurationStatusId = (long)CurationStatusEnum.Curated;

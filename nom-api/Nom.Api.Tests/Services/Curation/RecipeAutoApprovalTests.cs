@@ -159,6 +159,44 @@ namespace Nom.Api.Tests.Services.Curation
         }
 
         [Fact]
+        public void The_operator_may_allow_a_few_unquantified_lines_and_waive_the_own_image_rule()
+        {
+            var recipe = PublicDomain();
+            recipe.RecipeIngredients!.Add(Line(99, "butter", 0m, true));
+            var refused = RecipeAutoApprovalPolicy.Evaluate(recipe);
+            refused.Eligible.Should().BeFalse();
+            refused.Key.Should().Be(RecipeAutoApprovalPolicy.UnquantifiedKey);
+            RecipeAutoApprovalPolicy.Evaluate(recipe, new AutoApprovalOptions(MaxUnquantifiedLines: 1)).Eligible.Should().BeTrue();
+            recipe.RecipeIngredients.Add(Line(98, "flour", 0m, true));
+            RecipeAutoApprovalPolicy.Evaluate(recipe, new AutoApprovalOptions(MaxUnquantifiedLines: 1)).Eligible.Should().BeFalse();
+
+            var scrape = RewrittenScrape();
+            scrape.Image = null;
+            RecipeAutoApprovalPolicy.Evaluate(scrape).Key.Should().Be(RecipeAutoApprovalPolicy.NoImageKey);
+            RecipeAutoApprovalPolicy.Evaluate(scrape, new AutoApprovalOptions(RequireOwnImageForUnknownLicense: false)).Eligible.Should().BeTrue();
+            scrape.Image = scrape.SourceImageUrl;
+            RecipeAutoApprovalPolicy.Evaluate(scrape, new AutoApprovalOptions(RequireOwnImageForUnknownLicense: false)).Eligible.Should().BeFalse("the source's image is never published");
+        }
+
+        [Fact]
+        public void Lines_that_feed_no_nutrition_do_not_block_approval()
+        {
+            var recipe = PublicDomain();
+            var note = Line(97, "Serves four", 0m, false);
+            note.LineKind = RecipeIngredientLineKind.Note;
+            var seasoning = Line(96, "salt to taste", 0m, false);
+            recipe.RecipeIngredients!.Add(note);
+            recipe.RecipeIngredients.Add(seasoning);
+
+            RecipeApprovalGate.UncuratedIngredientNames(recipe).Should().BeEmpty();
+            RecipeAutoApprovalPolicy.Evaluate(recipe).Eligible.Should().BeTrue();
+
+            var pantry = Line(95, "cream", 0m, false);
+            recipe.RecipeIngredients.Add(pantry);
+            RecipeApprovalGate.UncuratedIngredientNames(recipe).Should().Equal(new[] { "cream" }, "an uncurated food with no amount still blocks: it is neither exempt nor a seasoning");
+        }
+
+        [Fact]
         public void Unknown_license_that_was_not_scraped_is_not_eligible()
         {
             var recipe = RewrittenScrape();
@@ -218,6 +256,19 @@ namespace Nom.Api.Tests.Services.Curation
         }
 
         [Fact]
+        public async Task Sweep_reports_why_candidates_were_refused()
+        {
+            var unquantified = PublicDomain(11);
+            unquantified.RecipeIngredients!.Add(Line(119, "butter", 0m, true));
+            using var db = await SeedAsync(PublicDomain(10), unquantified);
+
+            var result = await Service(db).AutoApproveBatchAsync(0, 50);
+
+            result.Approved.Should().Be(1);
+            result.Refusals.Should().Equal(new Dictionary<string, int> { [RecipeAutoApprovalPolicy.UnquantifiedKey] = 1 });
+        }
+
+        [Fact]
         public async Task Sweep_skips_recipes_that_fail_vetting_today()
         {
             var thin = PublicDomain(10);
@@ -239,6 +290,24 @@ namespace Nom.Api.Tests.Services.Curation
 
             (await act.Should().ThrowAsync<InvalidOperationException>()).WithMessage("*verbatim prose*");
             (await db.Recipes.SingleAsync()).CurationStatusId.Should().Be((long)CurationStatusEnum.NonCurated);
+        }
+
+        [Fact]
+        public async Task Admin_approval_records_the_servings_and_needs_them()
+        {
+            using var db = await SeedAsync(PublicDomain(10));
+            var curation = new CurationOrchestrationService(db, NullLogger<CurationOrchestrationService>.Instance);
+
+            var without = () => curation.ApproveAsync(new CurationDecisionRequest { EntityType = "Recipe", EntityId = 10 }, 1);
+            (await without.Should().ThrowAsync<InvalidOperationException>()).WithMessage("*servings*");
+            (await db.Recipes.SingleAsync()).CurationStatusId.Should().Be((long)CurationStatusEnum.NonCurated);
+
+            await curation.ApproveAsync(new CurationDecisionRequest { EntityType = "Recipe", EntityId = 10, Servings = 6 }, 1);
+
+            var approved = await db.Recipes.SingleAsync();
+            approved.CurationStatusId.Should().Be((long)CurationStatusEnum.Curated);
+            approved.RecipeServings.Should().Be(6);
+            approved.Servings.Should().Be(6);
         }
 
         [Fact]

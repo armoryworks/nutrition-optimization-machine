@@ -71,10 +71,32 @@ namespace Nom.Api.Tests.Services.Recipe
         };
 
         [Fact]
+        public void A_derived_label_with_no_servings_on_record_gives_whole_recipe_totals_and_no_daily_value()
+        {
+            var recipe = new RecipeEntity
+            {
+                RecipeIngredients = new List<RecipeIngredientEntity> { Line(1, "171287") },
+                Nutrition = new List<RecipeNutritionEntity> { Row(Sodium, "Sodium", 1150m, "mg") },
+            };
+            var has = new Dictionary<long, HashSet<long>> { [1] = new() { Sodium } };
+
+            RecipeNutritionService.ServingsKnown(recipe).Should().BeFalse();
+            RecipeNutritionService.BuildLabel(recipe, has).Rows.Single().DailyValuePercent.Should().BeNull("a %DV is per serving, and there is no serving");
+
+            recipe.RecipeServings = 4;
+            RecipeNutritionService.LabelServings(recipe).Should().Be(4);
+            RecipeNutritionService.BuildLabel(recipe, has).Rows.Single().DailyValuePercent.Should().Be(50);
+
+            recipe.Servings = 2;
+            RecipeNutritionService.LabelServings(recipe).Should().Be(2, "the cook's own count wins over the scraped one");
+        }
+
+        [Fact]
         public void A_nutrient_some_counted_foods_lack_is_partial_and_gets_no_daily_value()
         {
             var recipe = new RecipeEntity
             {
+                Servings = 1,
                 RecipeIngredients = new List<RecipeIngredientEntity> { Line(1, "171287"), Line(2, "2345") },
                 Nutrition = new List<RecipeNutritionEntity> { Row(Fat, "Fat", 15.6m, "g"), Row(Sodium, "Sodium", 460m, "mg") },
             };

@@ -166,6 +166,23 @@
   max-width: 420px;
 }
 
+.nom-curation__servings {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: vars.$spacing-3;
+  margin-top: vars.$spacing-3;
+}
+
+.nom-curation__servings-field {
+  max-width: 200px;
+}
+
+.nom-curation__servings-hint {
+  font-size: 0.85rem;
+  color: var(--mat-sys-error);
+}
+
 // ── Blocking ingredients (N-6) ──
 
 .nom-curation__blockers {

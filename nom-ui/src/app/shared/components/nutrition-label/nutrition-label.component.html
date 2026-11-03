@@ -24,7 +24,11 @@
       </div>
     }
 
-    <p class="nom-nutrition-label__servings">Nutrition per serving{{ servingWeight() ? ' (' + servingWeight() + ')' : '' }}</p>
+    @if (servings()) {
+      <p class="nom-nutrition-label__servings" data-testid="nutrition-label-basis">Nutrition per serving{{ servingWeight() ? ' (' + servingWeight() + ')' : '' }}</p>
+    } @else {
+      <p class="nom-nutrition-label__servings" data-testid="nutrition-label-basis">Nutrition for the whole recipe (servings not set)</p>
+    }
 
     <div class="nom-nutrition-label__views">
       <button type="button" class="nom-nutrition-label__view-btn"
@@ -61,7 +65,9 @@
       </div>
       <div class="nom-nutrition-label__bar nom-nutrition-label__bar--medium"></div>
 
-      <div class="nom-nutrition-label__dv-header">% Daily Value*</div>
+      @if (servings()) {
+        <div class="nom-nutrition-label__dv-header">% Daily Value*</div>
+      }
 
       @for (nutrient of macroNutrients(); track nutrient.displayName) {
         <div class="nom-nutrition-label__row"
@@ -121,11 +127,17 @@
 
     <div class="nom-nutrition-label__bar nom-nutrition-label__bar--heavy"></div>
 
-    <div class="nom-nutrition-label__footnote">
-      * The % Daily Value tells you how much a nutrient in a serving
-      contributes to a daily diet. 2,000 calories a day is used for
-      general nutrition advice.
-    </div>
+    @if (servings()) {
+      <div class="nom-nutrition-label__footnote">
+        * The % Daily Value tells you how much a nutrient in a serving
+        contributes to a daily diet. 2,000 calories a day is used for
+        general nutrition advice.
+      </div>
+    } @else {
+      <div class="nom-nutrition-label__footnote" data-testid="nutrition-label-whole-recipe-note">
+        These are totals for everything the recipe makes. Set the number of servings to see amounts per serving and % Daily Value.
+      </div>
+    }
     @if (hasPartial()) {
       <div class="nom-nutrition-label__footnote" data-testid="nutrition-label-partial-note">
         † Some ingredients have no data for this nutrient, so the amount is a minimum and no % Daily Value is given.

@@ -53,6 +53,9 @@ namespace Nom.Orch.Models.Recipe
 
         /// <summary>Where the label's numbers come from, for the attribution line; null when there is no label or no ingredient line currently counts toward it.</summary>
         public RecipeNutritionSourceModel? NutritionSource { get; set; }
+
+        /// <summary>Servings the nutrition label is per; null when the recipe never said, so the label shows whole-recipe totals.</summary>
+        public decimal? NutritionServings { get; set; }
     }
 
     /// <summary>

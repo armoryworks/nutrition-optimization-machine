@@ -51,6 +51,7 @@ export class CurationQueue implements OnInit {
   errorMessage = signal('');
   expandedKey = signal<string | null>(null);
   feedbackNotes = new FormControl('');
+  servingsControl = new FormControl<number | null>(null);
 
   // Dish-group control (recipes only): autocomplete existing groups or free-text create.
   dishGroups = signal<DishGroupModel[]>([]);
@@ -81,6 +82,7 @@ export class CurationQueue implements OnInit {
   expand(item: CurationQueueItem): void {
     this.expandedKey.set(this.itemKey(item));
     this.dishGroupControl.setValue('');
+    this.servingsControl.setValue(item.servings ?? null);
     this.dishGroupSaved.set(false);
   }
 
@@ -112,6 +114,13 @@ export class CurationQueue implements OnInit {
         this.errorMessage.set('Failed to save dish group.');
       },
     });
+  }
+
+  canApprove(item: CurationQueueItem): boolean {
+    if (this.processing()) return false;
+    if (item.entityType !== 'Recipe') return true;
+    const servings = this.servingsControl.value;
+    return servings != null && servings > 0;
   }
 
   /** Import-vetting problems, one per line. */
@@ -179,6 +188,7 @@ export class CurationQueue implements OnInit {
       entityId: item.id,
       entityType: item.entityType,
       decisionNotes: this.feedbackNotes.value ?? '',
+      servings: item.entityType === 'Recipe' ? this.servingsControl.value : undefined,
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.items.update(list => list.filter(i => this.itemKey(i) !== this.itemKey(item)));

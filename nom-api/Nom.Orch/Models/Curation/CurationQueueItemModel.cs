@@ -26,6 +26,9 @@ namespace Nom.Orch.Models.Curation
         /// <summary>Source hero image, for side-by-side review only — never published.</summary>
         public string? SourceImageUrl { get; set; }
 
+        /// <summary>Recipes only: servings on record, null when the recipe never said. Approval needs a value.</summary>
+        public decimal? Servings { get; set; }
+
         /// <summary>
         /// Recipes only: ingredients that are not yet Curated. Approval is refused while this
         /// is non-empty, so the admin sees the blockers up-front and can approve them first.

@@ -439,6 +439,7 @@ namespace Nom.Orch.Services
                 PrepTimeMinutes = recipe.PrepTimeMinutes,
                 CookTimeMinutes = recipe.CookTimeMinutes,
                 Servings = recipe.Servings,
+                NutritionServings = RecipeNutritionService.LabelServings(recipe),
                 ServingQuantity = recipe.ServingQuantity,
                 ServingUnit = recipe.ServingQuantityMeasurement?.Name,
                 ServingQuantityMeasurementId = recipe.ServingQuantityMeasurementId,

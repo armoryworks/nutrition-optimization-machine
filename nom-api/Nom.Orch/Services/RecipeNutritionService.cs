@@ -107,9 +107,7 @@ namespace Nom.Orch.Services
                 return 0;
             }
 
-            var servings = recipe.Servings is > 0 ? recipe.Servings.Value
-                : recipe.RecipeServings is > 0 ? recipe.RecipeServings.Value
-                : 1m;
+            var servings = LabelServings(recipe) ?? 1m;
             var now = DateTime.UtcNow;
 
             _db.RecipeNutrition.RemoveRange(existing);
@@ -145,6 +143,7 @@ namespace Nom.Orch.Services
             if (stored.Count == 0) return (new List<RecipeNutritionSearchModel>(), null);
 
             var derived = stored.Any(n => n.DateCalculated != null);
+            var servingsKnown = ServingsKnown(recipe);
             var lines = recipe.RecipeIngredients?.ToList() ?? new List<RecipeIngredientEntity>();
             var statuses = lines.Select(ri => (Line: ri, Status: StatusFor(ri, nutrientsByIngredient.ContainsKey(ri.IngredientId)))).ToList();
             var counted = statuses.Where(x => x.Status == NutritionLineStatus.Counted).Select(x => x.Line).ToList();
@@ -162,7 +161,7 @@ namespace Nom.Orch.Services
                     Amount = n.Amount,
                     Unit = n.Unit ?? string.Empty,
                     Partial = partial,
-                    DailyValuePercent = partial || (derived && anyUncounted)
+                    DailyValuePercent = partial || (derived && (anyUncounted || !servingsKnown))
                         ? null
                         : n.DailyValuePercentage ?? FdaDailyValues.PercentOf(name, n.Amount, n.Unit),
                 };
@@ -181,6 +180,14 @@ namespace Nom.Orch.Services
                 CountedLines = counted.Count,
             });
         }
+
+        /// <summary>How many servings the label divides by, or null when the recipe never said; a derived label then holds whole-recipe totals.</summary>
+        public static decimal? LabelServings(RecipeEntity recipe) =>
+            recipe.Servings is > 0 ? recipe.Servings.Value
+            : recipe.RecipeServings is > 0 ? recipe.RecipeServings.Value
+            : null;
+
+        public static bool ServingsKnown(RecipeEntity recipe) => LabelServings(recipe) != null;
 
         public static decimal? GramsFor(RecipeIngredientEntity ri) => GramsFor(ri.Quantity, ri.Measurement, ri.Ingredient);
 

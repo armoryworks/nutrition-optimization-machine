@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Curation;
@@ -12,22 +14,39 @@ using Nom.Orch.Services.Support;
 
 namespace Nom.Orch.Services
 {
+    /// <summary>
+    /// Curation:AutoApprove:MaxUnquantifiedLines (default 0) and Curation:AutoApprove:RequireOwnImage
+    /// (default true) set the <see cref="AutoApprovalOptions"/> the sweep evaluates with.
+    /// </summary>
     public class RecipeAutoCurationService : IRecipeAutoCurationService
     {
+        private static readonly string[] ExemptLineKinds =
+        {
+            RecipeIngredientLineKind.Reference, RecipeIngredientLineKind.Equipment, RecipeIngredientLineKind.Note,
+            RecipeIngredientLineKind.Instruction, RecipeIngredientLineKind.Artefact,
+        };
+
         private readonly ApplicationDbContext _db;
         private readonly IRecipeVettingService _vetting;
         private readonly ILogger<RecipeAutoCurationService> _logger;
+        private readonly AutoApprovalOptions _options;
         private (long Recipe, long Approval)? _referenceIds;
 
-        public RecipeAutoCurationService(ApplicationDbContext db, IRecipeVettingService vetting, ILogger<RecipeAutoCurationService> logger)
+        public RecipeAutoCurationService(ApplicationDbContext db, IRecipeVettingService vetting, ILogger<RecipeAutoCurationService> logger, IConfiguration? configuration = null)
         {
             _db = db;
             _vetting = vetting;
             _logger = logger;
+            _options = configuration == null ? AutoApprovalOptions.Default : new AutoApprovalOptions(
+                Math.Max(0, configuration.GetValue("Curation:AutoApprove:MaxUnquantifiedLines", 0)),
+                configuration.GetValue("Curation:AutoApprove:RequireOwnImage", true));
         }
+
+        public AutoApprovalOptions Options => _options;
 
         public async Task<AutoApproveBatchResult> AutoApproveBatchAsync(long afterRecipeId, int batchSize, CancellationToken cancellationToken = default)
         {
+            var requireImage = _options.RequireOwnImageForUnknownLicense;
             var query = _db.Recipes
                 .Where(r => r.Id > afterRecipeId
                     && r.CurationStatusId == (long)CurationStatusEnum.NonCurated
@@ -36,8 +55,10 @@ namespace Nom.Orch.Services
                     && r.VettingIssues == null
                     && !r.ContainsSourceProse
                     && (r.LicenseStatus == RecipeLicenseStatus.PublicDomain
-                        || (r.LicenseStatus == RecipeLicenseStatus.Unknown && r.ScrapedAtUtc != null && r.Image != null && r.Image != ""))
-                    && r.RecipeIngredients!.All(ri => ri.Ingredient.CurationStatusId == (long)CurationStatusEnum.Curated))
+                        || (r.LicenseStatus == RecipeLicenseStatus.Unknown && r.ScrapedAtUtc != null && (!requireImage || (r.Image != null && r.Image != ""))))
+                    && r.RecipeIngredients!.All(ri => ri.Ingredient.CurationStatusId == (long)CurationStatusEnum.Curated
+                        || (ri.LineKind != null && ExemptLineKinds.Contains(ri.LineKind))
+                        || ri.Quantity <= 0))
                 .OrderBy(r => r.Id)
                 .Take(batchSize)
                 .Include(r => r.RecipeIngredients!).ThenInclude(ri => ri.Ingredient)
@@ -48,13 +69,22 @@ namespace Nom.Orch.Services
             if (recipes.Count == 0) return new AutoApproveBatchResult(0, 0, afterRecipeId);
 
             var approved = 0;
+            var refusals = new Dictionary<string, int>();
             foreach (var recipe in recipes)
             {
-                var decision = RecipeAutoApprovalPolicy.Evaluate(recipe);
-                if (!decision.Eligible) continue;
+                var decision = RecipeAutoApprovalPolicy.Evaluate(recipe, _options);
+                if (!decision.Eligible)
+                {
+                    Tally(refusals, decision.Key ?? "policy");
+                    continue;
+                }
 
                 var issues = await _vetting.VetAsync(ScrapedRecipeRepairService.ToVettable(recipe));
-                if (issues.Count > 0) continue;
+                if (issues.Count > 0)
+                {
+                    Tally(refusals, "vetting");
+                    continue;
+                }
 
                 var (recipeTypeId, approvalTypeId) = _referenceIds ??= await LoadReferenceIdsAsync(cancellationToken);
                 var now = DateTime.UtcNow;
@@ -78,8 +108,11 @@ namespace Nom.Orch.Services
             await _db.SaveChangesAsync(cancellationToken);
             _db.ChangeTracker.Clear();
             if (approved > 0) _logger.LogInformation("Auto-approved {Approved} of {Examined} candidate recipes", approved, recipes.Count);
-            return new AutoApproveBatchResult(recipes.Count, approved, recipes[^1].Id);
+            return new AutoApproveBatchResult(recipes.Count, approved, recipes[^1].Id, refusals);
         }
+
+        private static void Tally(Dictionary<string, int> refusals, string key) =>
+            refusals[key] = refusals.GetValueOrDefault(key) + 1;
 
         private async Task<(long, long)> LoadReferenceIdsAsync(CancellationToken cancellationToken)
         {

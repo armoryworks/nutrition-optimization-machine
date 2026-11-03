@@ -10,7 +10,8 @@ namespace Nom.Api.Services
     ///
     /// Curation:AutoApprove:Enabled=false disables it; Curation:AutoApprove:BatchSize (default 200)
     /// recipes per batch; Curation:AutoApprove:PauseMilliseconds (default 500) between batches;
-    /// Curation:AutoApprove:IdleMinutes (default 30) between sweeps.
+    /// Curation:AutoApprove:IdleMinutes (default 30) between sweeps. Every sweep logs what it
+    /// examined and why candidates were refused, approved or not.
     /// </summary>
     public class RecipeAutoApproveHostedService : BackgroundService
     {
@@ -45,7 +46,8 @@ namespace Nom.Api.Services
             _logger.LogInformation("Recipe auto-approval enabled ({Batch} recipes per batch, sweeping every {Idle}m)", batchSize, idle.TotalMinutes);
 
             long cursor = 0;
-            int approved = 0;
+            int approved = 0, examined = 0;
+            var refusals = new Dictionary<string, int>();
             while (!stoppingToken.IsCancellationRequested)
             {
                 var delay = pause;
@@ -56,14 +58,22 @@ namespace Nom.Api.Services
                     var batch = await curation.AutoApproveBatchAsync(cursor, batchSize, stoppingToken);
                     if (batch.Examined == 0)
                     {
-                        if (approved > 0) _logger.LogInformation("Recipe auto-approval sweep done: {Approved} approved", approved);
+                        if (examined > 0)
+                        {
+                            _logger.LogInformation("Recipe auto-approval sweep done: {Examined} examined, {Approved} approved, refused by rule: {Refusals}",
+                                examined, approved, string.Join(", ", refusals.OrderByDescending(r => r.Value).Select(r => $"{r.Key} {r.Value}")));
+                        }
                         approved = 0;
+                        examined = 0;
+                        refusals.Clear();
                         cursor = 0;
                         delay = idle;
                     }
                     else
                     {
                         approved += batch.Approved;
+                        examined += batch.Examined;
+                        foreach (var (key, count) in batch.Refusals ?? new Dictionary<string, int>()) refusals[key] = refusals.GetValueOrDefault(key) + count;
                         cursor = batch.LastRecipeId;
                     }
                 }

@@ -125,6 +125,16 @@
               </figure>
             }
             @if (item.entityType === 'Recipe') {
+              <div class="nom-curation__servings">
+                <mat-form-field appearance="outline" class="nom-curation__servings-field">
+                  <mat-label>Servings</mat-label>
+                  <input matInput type="number" min="1" max="200" step="1" [formControl]="servingsControl" data-testid="curation-servings-input">
+                  <mat-hint>How many the recipe makes; the nutrition label is per serving</mat-hint>
+                </mat-form-field>
+                @if (!(servingsControl.value > 0)) {
+                  <span class="nom-curation__servings-hint" data-testid="curation-servings-required">Set the servings before approving</span>
+                }
+              </div>
               <div class="nom-curation__dish-group">
                 <mat-form-field appearance="outline" class="nom-curation__dish-group-field">
                   <mat-label>Dish group</mat-label>
@@ -172,7 +182,7 @@
                     Request Revision
                   </button>
                 }
-                <button mat-flat-button data-testid="curation-approve-btn" (click)="approve(item)" [disabled]="processing()">
+                <button mat-flat-button data-testid="curation-approve-btn" (click)="approve(item)" [disabled]="!canApprove(item)">
                   <mat-icon>check</mat-icon>
                   Approve
                 </button>

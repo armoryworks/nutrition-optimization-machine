@@ -64,6 +64,8 @@ export interface RecipeModel {
   nutritionDerived?: boolean;
   /** Where the label's numbers come from; null when there is no label. */
   nutritionSource?: RecipeNutritionSource | null;
+  /** Servings the nutrition label is per; null when the recipe never said. */
+  nutritionServings?: number | null;
   /** The caller's saved default variation, when one exists. */
   variation?: RecipeVariationItemModel[];
 }
