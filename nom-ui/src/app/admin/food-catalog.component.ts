@@ -61,6 +61,7 @@ export class FoodCatalog implements OnInit {
   readonly sources = [
     { value: null, label: 'All sources' },
     { value: 'foundation_food', label: 'FDC Foundation' },
+    { value: 'sr_legacy_food', label: 'FDC SR Legacy' },
     { value: 'branded_food', label: 'FDC Branded' },
     { value: 'authored', label: 'Authored' },
   ];
