@@ -10,6 +10,7 @@ namespace Nom.Orch.Models.Recipe
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
+        public RecipeImageCreditModel? ImageCredit { get; set; }
         public int PrepTimeMinutes { get; set; }
         public int CookTimeMinutes { get; set; }
         public int TotalTimeMinutes { get; set; }

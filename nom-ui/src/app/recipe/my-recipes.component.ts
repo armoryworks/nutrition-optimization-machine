@@ -11,10 +11,11 @@ import { RecipeService } from '../core/services/recipe.service';
 import { LoadingService } from '../core/services/loading.service';
 import { PolicyService } from '../core/services/policy.service';
 import { RecipeModel } from '../core/models/recipe.model';
+import { ImageCredit } from '../shared/components/image-credit/image-credit.component';
 
 @Component({
   selector: 'nom-my-recipes',
-  imports: [RouterLink, DatePipe, DecimalPipe, MatIconModule, MatButtonModule, MatProgressSpinnerModule, MatTooltipModule, ErrorBanner],
+  imports: [ImageCredit, RouterLink, DatePipe, DecimalPipe, MatIconModule, MatButtonModule, MatProgressSpinnerModule, MatTooltipModule, ErrorBanner],
   templateUrl: './my-recipes.component.html',
   styleUrl: './my-recipes.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

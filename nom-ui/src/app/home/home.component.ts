@@ -8,6 +8,7 @@ import { RecipeSearchService } from '../core/services/recipe-search.service';
 import { AuthService } from '../core/services/auth.service';
 import { RecipeSearchResult } from '../core/models/recipe-search-result.model';
 import { Dashboard } from './dashboard/dashboard.component';
+import { ImageCredit } from '../shared/components/image-credit/image-credit.component';
 
 interface RecipeCategory {
   label: string;
@@ -17,7 +18,7 @@ interface RecipeCategory {
 
 @Component({
   selector: 'nom-home',
-  imports: [MatIconModule, MatButtonModule, RouterLink, Dashboard, ErrorBanner],
+  imports: [ImageCredit, MatIconModule, MatButtonModule, RouterLink, Dashboard, ErrorBanner],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

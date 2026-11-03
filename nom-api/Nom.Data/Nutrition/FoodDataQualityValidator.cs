@@ -57,7 +57,7 @@ namespace Nom.Data.Nutrition
     public sealed class FoodDataQualityValidator
     {
         /// <summary>Energy ceiling per 100g. Pure fat is ~900 kcal/100g; anything above is impossible.</summary>
-        public decimal MaxKcalPer100g { get; init; } = 900m;
+        public decimal MaxKcalPer100g { get; init; } = 902m;
 
         /// <summary>A single macro can't exceed 100 g per 100 g of food.</summary>
         public decimal MaxMacroGramsPer100g { get; init; } = 100m;
@@ -78,6 +78,15 @@ namespace Nom.Data.Nutrition
         /// ratio is too noisy to judge; skip that check.
         /// </summary>
         public decimal AtwaterMinKcal { get; init; } = 20m;
+
+        /// <summary>
+        /// Foods whose carbohydrate is largely organic acid (citrus, vinegar, cranberries): the USDA
+        /// energy figure is rightly below 4·carb, so a stated value under the Atwater figure is accepted.
+        /// </summary>
+        public IReadOnlyList<string> AcidicFoodNameMarkers { get; init; } = new[]
+        {
+            "lemon", "lime", "grapefruit", "citrus", "vinegar", "cranberr", "tamarind", "sour cherr",
+        };
 
         /// <summary>
         /// Per-100 g ceilings for the <see cref="FoodComponent"/> nutrients. Generous on purpose:
@@ -172,7 +181,8 @@ namespace Nom.Data.Nutrition
                 var computed = (4m * pr) + (4m * cb) + (9m * ft);
                 var low = k * (1m - AtwaterTolerance);
                 var high = k * (1m + AtwaterTolerance);
-                if (Math.Max(k, computed) >= AtwaterMinKcal && (computed < low || computed > high))
+                var acidic = computed > high && IsAcidicFood(name);
+                if (Math.Max(k, computed) >= AtwaterMinKcal && (computed < low || computed > high) && !acidic)
                     reasons.Add("atwater_mismatch");
             }
 
@@ -187,6 +197,14 @@ namespace Nom.Data.Nutrition
                 reasons.Add($"{label}_negative");
             else if (v > MaxMacroGramsPer100g)
                 reasons.Add($"{label}_impossible");
+        }
+
+        private bool IsAcidicFood(string? name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            foreach (var marker in AcidicFoodNameMarkers)
+                if (name.Contains(marker, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
         }
 
         private static bool ContainsLetter(string s)

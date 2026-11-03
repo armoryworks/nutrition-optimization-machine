@@ -56,6 +56,9 @@
                   </div>
                 }
                 <div class="nom-home__recipe-info">
+                  @if (recipe.imageCredit) {
+                    <nom-image-credit [credit]="recipe.imageCredit" testId="recipe-card-image-credit" />
+                  }
                   <span class="nom-home__recipe-name" data-testid="recipe-card-name">{{ recipe.name }}</span>
                   <div class="nom-home__recipe-meta">
                     <span class="nom-home__recipe-time">

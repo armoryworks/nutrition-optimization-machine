@@ -2,6 +2,7 @@ import { Component, DestroyRef, inject, signal, OnInit, ChangeDetectionStrategy 
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ImageCredit } from '../shared/components/image-credit/image-credit.component';
 
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,6 +19,7 @@ import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-
   selector: 'nom-cookbook-detail',
   standalone: true,
   imports: [
+    ImageCredit,
     RouterLink,
 
     MatIconModule,

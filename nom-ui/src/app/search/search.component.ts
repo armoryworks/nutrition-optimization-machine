@@ -12,6 +12,7 @@ import { RecipeSearchService } from '../core/services/recipe-search.service';
 import { HouseholdStore } from '../core/services/household-store';
 import { AuthService } from '../core/services/auth.service';
 import { RecipeSearchResult } from '../core/models/recipe-search-result.model';
+import { ImageCredit } from '../shared/components/image-credit/image-credit.component';
 import { RecipeSearchResponse } from '../core/models/recipe-search-response.model';
 import { RecipeSearchFilterOption, RecipeSearchFilterOptions } from '../core/models/recipe-search-filter-options.model';
 import { DietConflictsPipe } from '../core/utils/diet-conflict';
@@ -36,6 +37,7 @@ const PAGE_SIZE = 48;
 @Component({
   selector: 'nom-search',
   imports: [
+    ImageCredit,
     MatIconModule,
     MatButtonModule,
     MatFormFieldModule,

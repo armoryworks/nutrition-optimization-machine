@@ -57,6 +57,9 @@
                   </div>
                 }
                 <div class="nom-cookbook-recipe__info">
+                  @if (recipe.imageCredit) {
+                    <nom-image-credit [credit]="recipe.imageCredit" testId="cookbook-recipe-image-credit" />
+                  }
                   <span class="nom-cookbook-recipe__name">{{ recipe.name }}</span>
                   @if (recipe.description) {
                     <span class="nom-cookbook-recipe__desc">{{ recipe.description }}</span>

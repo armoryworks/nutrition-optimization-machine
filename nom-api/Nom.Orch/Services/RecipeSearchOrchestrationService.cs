@@ -658,6 +658,7 @@ namespace Nom.Orch.Services
                 Name = recipe.Name,
                 Description = recipe.Description,
                 ImageUrl = recipe.Image,
+                ImageCredit = RecipeImageService.CreditFor(recipe),
                 PrepTime = (int)(recipe.PrepTimeMinutes ?? 0),
                 CookTime = (int)(recipe.CookTimeMinutes ?? 0),
                 TotalTime = (int)((recipe.PrepTimeMinutes ?? 0) + (recipe.CookTimeMinutes ?? 0)),

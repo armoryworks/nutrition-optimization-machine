@@ -34,6 +34,28 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public void Accepts_Lard_AtUsdaEnergy()
+        {
+            // USDA SR Legacy 171401 Lard: 902 kcal, 0/0/100.
+            _v.Validate(new FoodQualityInput("Lard", 902m, 0m, 0m, 100m)).Accepted.Should().BeTrue();
+            _v.Validate(new FoodQualityInput("Lard", 903m, 0m, 0m, 100m)).Reasons.Should().Contain("calories_impossible");
+        }
+
+        [Fact]
+        public void Accepts_AcidicFruit_BelowTheAtwaterFigure()
+        {
+            // USDA 167746 Lemons, raw, without peel: 29 kcal, 1.1 protein, 9.3 carb, 0.3 fat — the carb is largely citric acid.
+            var lemon = new FoodQualityInput("Lemons, raw, without peel", 29m, 1.1m, 9.3m, 0.3m);
+            _v.Validate(lemon).Accepted.Should().BeTrue();
+
+            var mystery = new FoodQualityInput("Mystery fruit, raw", 29m, 1.1m, 9.3m, 0.3m);
+            _v.Validate(mystery).Reasons.Should().Contain("atwater_mismatch", "only known acidic foods get the allowance");
+
+            var overstated = new FoodQualityInput("Lemon juice, raw", 80m, 0.4m, 6.9m, 0.2m);
+            _v.Validate(overstated).Reasons.Should().Contain("atwater_mismatch", "the allowance is only for a stated figure below the Atwater one");
+        }
+
+        [Fact]
         public void Rejects_ImpossibleCalories()
         {
             var r = _v.Validate(Banana(kcal: 5000m));

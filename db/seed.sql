@@ -3970,3 +3970,8 @@ INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (3206, 
 INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (3207, 3002) ON CONFLICT DO NOTHING;
 INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (3208, 3002) ON CONFLICT DO NOTHING;
 INSERT INTO reference."ReferenceIndex" ("ReferenceId", "GroupId") VALUES (3209, 3002) ON CONFLICT DO NOTHING;
+
+UPDATE recipe."Recipe"
+SET "ImageSourceName" = 'Unsplash', "ImageSourceUrl" = 'https://unsplash.com/',
+    "ImageLicense" = 'Unsplash License', "ImageLicenseUrl" = 'https://unsplash.com/license'
+WHERE "Image" LIKE 'https://images.unsplash.com/%' AND "ImageSourceName" IS NULL;

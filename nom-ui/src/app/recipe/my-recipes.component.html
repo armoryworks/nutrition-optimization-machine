@@ -57,6 +57,9 @@
               </div>
             }
             <div class="nom-my-recipes__info">
+              @if (recipe.imageCredit) {
+                <nom-image-credit [credit]="recipe.imageCredit" testId="recipe-card-image-credit" />
+              }
               <span class="nom-dashboard__card-title">{{ recipe.name }}</span>
               @if (recipe.description) {
                 <span class="nom-dashboard__card-subtitle nom-my-recipes__desc">{{ recipe.description }}</span>

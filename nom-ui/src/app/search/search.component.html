@@ -242,6 +242,9 @@
                 </div>
               }
               <div class="nom-search__card-info">
+                @if (recipe.imageCredit) {
+                  <nom-image-credit [credit]="recipe.imageCredit" testId="search-result-image-credit" />
+                }
                 @if (recipe.categories.length > 0) {
                   <span class="nom-search__card-category">{{ recipe.categories[0] }}</span>
                 }

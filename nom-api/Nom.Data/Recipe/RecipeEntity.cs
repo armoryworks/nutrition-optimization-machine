@@ -147,6 +147,9 @@ namespace Nom.Data.Recipe
         /// <summary>When the image finder last searched for a photo of this recipe, so untried recipes go first and tried ones rest a while.</summary>
         public DateTime? ImageSearchedAt { get; set; }
 
+        /// <summary>When the prose-rewrite lane last tried this recipe, so a failed rewrite is not retried every sweep.</summary>
+        public DateTime? ProseRewriteAttemptedAt { get; set; }
+
         public string? OrgUrl { get; set; }
 
         public bool? IsOcrRecipe { get; set; } = false;
