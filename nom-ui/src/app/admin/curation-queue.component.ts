@@ -116,11 +116,14 @@ export class CurationQueue implements OnInit {
     });
   }
 
-  canApprove(item: CurationQueueItem): boolean {
-    if (this.processing()) return false;
-    if (item.entityType !== 'Recipe') return true;
+  hasServings(): boolean {
     const servings = this.servingsControl.value;
     return servings != null && servings > 0;
+  }
+
+  canApprove(item: CurationQueueItem): boolean {
+    if (this.processing()) return false;
+    return item.entityType !== 'Recipe' || this.hasServings();
   }
 
   /** Import-vetting problems, one per line. */

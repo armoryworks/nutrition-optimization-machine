@@ -131,7 +131,7 @@
                   <input matInput type="number" min="1" max="200" step="1" [formControl]="servingsControl" data-testid="curation-servings-input">
                   <mat-hint>How many the recipe makes; the nutrition label is per serving</mat-hint>
                 </mat-form-field>
-                @if (!(servingsControl.value > 0)) {
+                @if (!hasServings()) {
                   <span class="nom-curation__servings-hint" data-testid="curation-servings-required">Set the servings before approving</span>
                 }
               </div>
