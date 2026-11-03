@@ -139,28 +139,34 @@ class Http:
             return None
         return os.path.join(self.cache_dir, hashlib.sha256(url.encode()).hexdigest() + ".json")
 
-    def get_json(self, url: str, headers: dict | None = None, cache: bool = True) -> dict | None:
+    def get_json(self, url: str, headers: dict | None = None, cache: bool = True,
+                 timeout: int | None = None, retries: int = 0) -> dict | None:
         path = self._cache_path(url) if cache else None
         if path and os.path.exists(path) and time.time() - os.path.getmtime(path) < CACHE_TTL_SECONDS:
             with open(path, encoding="utf-8") as fh:
                 return json.load(fh)
         host = urllib.parse.urlparse(url).hostname or ""
-        self._throttle(host)
         req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json",
                                                    **(headers or {})})
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            self.failures += 1
-            log(f"    {host}: HTTP {exc.code}")
-            if exc.code == 429:
-                raise RateLimited(host) from exc
-            return None
-        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
-            self.failures += 1
-            log(f"    {host}: {exc}")
-            return None
+        for attempt in range(retries + 1):
+            self._throttle(host)
+            try:
+                with urllib.request.urlopen(req, timeout=timeout or self.timeout) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                break
+            except urllib.error.HTTPError as exc:
+                self.failures += 1
+                log(f"    {host}: HTTP {exc.code}")
+                if exc.code == 429:
+                    raise RateLimited(host) from exc
+                return None
+            except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+                if attempt < retries:
+                    log(f"    {host}: {exc}; retrying")
+                    continue
+                self.failures += 1
+                log(f"    {host}: {exc}")
+                return None
         if path:
             with open(path, "w", encoding="utf-8") as fh:
                 json.dump(data, fh)
@@ -283,7 +289,8 @@ class OpenverseSource(Source):
         params = {"q": query, "license": src.openverse_licence_param(self.allowed), "category": "photograph",
                   "mature": "false", "page_size": str(min(count, 20))}
         headers = {"Authorization": f"Bearer {self.token}"} if self.token else None
-        data = self.http.get_json(self.endpoint + "?" + urllib.parse.urlencode(params), headers=headers)
+        data = self.http.get_json(self.endpoint + "?" + urllib.parse.urlencode(params), headers=headers,
+                                  timeout=60, retries=1)
         return [c for c in src.parse_openverse(data or {}, query) if c.provider not in self.skip_providers]
 
 
@@ -448,8 +455,12 @@ class NomApi:
             raw = resp.read().decode()
             return json.loads(raw) if raw else None
 
-    def missing(self, limit: int) -> list[dict]:
-        return self.call("GET", f"/api/RecipeImages/missing?limit={limit}") or []
+    def missing(self, limit: int, retry_days: int = 0) -> list[dict]:
+        return self.call("GET", f"/api/RecipeImages/missing?limit={limit}&retryDays={retry_days}") or []
+
+    def searched(self, recipe_ids: list[int]) -> None:
+        if recipe_ids:
+            self.call("POST", "/api/RecipeImages/searched", {"recipeIds": recipe_ids})
 
     def submit(self, payload: dict) -> dict | None:
         return self.call("POST", "/api/RecipeImages/candidates", payload)
@@ -484,18 +495,25 @@ class Finder:
         vectors = self.ollama.embed(self.args.embed_model, [f"{prefix}: {text}"])
         return vectors[0] if vectors else None
 
-    def gather(self, recipe: tri.RecipeText, rejected: set[str]) -> list[src.Candidate]:
+    def gather(self, recipe: tri.RecipeText, rejected: set[str]) -> tuple[list[src.Candidate], bool]:
+        """The licensed candidates, and whether every enabled source failed to answer (so nothing was really searched)."""
         found: dict[str, src.Candidate] = {}
+        answered: set[str] = set()
+        asked: set[str] = set()
         for query in tri.build_queries(recipe, self.args.queries_per_recipe):
             for source in self.sources:
                 if not source.enabled():
                     continue
+                asked.add(source.key)
+                failures = self.http.failures
                 try:
                     results = source.search(query, self.args.per_source)
                 except RateLimited:
                     source.disabled_reason = "rate limited (HTTP 429) — stopped for this run"
                     log(f"    {source.name}: rate limited; disabled for the rest of the run")
                     continue
+                if self.http.failures == failures:
+                    answered.add(source.key)
                 for c in results:
                     if c.key in rejected or c.key in found:
                         continue
@@ -504,7 +522,7 @@ class Finder:
                     if not c.thumb_url:
                         continue
                     found[c.key] = c
-        return list(found.values())
+        return list(found.values()), bool(asked) and not answered
 
     def analyse(self, recipe: tri.RecipeText, candidates: list[src.Candidate]) -> tuple[dict, dict, dict]:
         doc_name = self.embed_one(recipe.name + (f" ({recipe.dish_group})" if recipe.dish_group else ""), "search_document")
@@ -578,9 +596,14 @@ class Finder:
         return evidence, by_key, images
 
     def full_image(self, candidate: src.Candidate) -> tuple[bytes, str] | None:
+        """The full-size photo, or the search thumbnail when the host refuses the full file (Flickr answers 403 to some)."""
         source = next((s for s in self.sources if s.key == candidate.source), None)
         url = source.resolve_full_url(candidate) if source else candidate.full_url
-        return self.http.get_bytes(url) if url else None
+        image = self.http.get_bytes(url) if url else None
+        if image is None and candidate.thumb_url and candidate.thumb_url != url:
+            log(f"    full image unavailable for {candidate.key}; using the {candidate.source_name} thumbnail")
+            image = self.http.get_bytes(candidate.thumb_url)
+        return image
 
 
 def candidate_payload(c: src.Candidate, decision: tri.Decision, status: str, image: tuple[bytes, str] | None) -> dict:
@@ -666,7 +689,7 @@ def main() -> None:
     ap.add_argument("--max-review", type=int, default=3)
     ap.add_argument("--cache-dir", default=os.path.join(tempfile.gettempdir(), "nom-image-finder-cache"))
     ap.add_argument("--state", default="recipe-image-finder.state.json")
-    ap.add_argument("--retry-days", type=int, default=30, help="skip recipes that found nothing this recently")
+    ap.add_argument("--retry-days", type=int, default=30, help="skip recipes searched this recently (nom-api and the local state file both remember)")
     ap.add_argument("--log", default="recipe-image-finder.jsonl")
     ap.add_argument("--timeout", type=int, default=180)
     ap.add_argument("--max-errors", type=int, default=2, help="stop after this many recipes in a row hit model failures")
@@ -692,7 +715,7 @@ def main() -> None:
         if not key and not token:
             sys.exit("error: set NOM_API_KEY (X-Api-Key of a curation admin) or NOM_TOKEN")
         api = NomApi(args.api, key, token)
-        rows = api.missing(args.limit)
+        rows = api.missing(args.limit, args.retry_days)
 
     http = Http(args.cache_dir)
     sources = build_sources(args, http, allowed)
@@ -723,10 +746,8 @@ def main() -> None:
                 totals["skipped"] += 1
                 continue
             log(f"[{index}/{min(len(rows), args.limit)}] #{recipe.recipe_id} {recipe.name}")
-            search_failures = http.failures
-            candidates = finder.gather(recipe, set(row.get("rejectedCandidates") or []))
-            log(f"    {len(candidates)} licensed candidate(s)")
-            searches_failed = http.failures > search_failures
+            candidates, searches_failed = finder.gather(recipe, set(row.get("rejectedCandidates") or []))
+            log(f"    {len(candidates)} licensed candidate(s)" + (" — every source failed; not counted as searched" if searches_failed else ""))
             failures_before = ollama.failures
             evidence, by_key, _ = finder.analyse(recipe, candidates) if candidates else ({}, {}, {})
             if ollama.failures > failures_before:
@@ -752,9 +773,14 @@ def main() -> None:
                 "unanalysed": [c.key for c in candidates if c.key not in decision.per_candidate],
             }) + "\n")
 
+            if not searches_failed:
+                state[str(recipe.recipe_id)] = now.isoformat()
+                if api and not args.dry_run:
+                    try:
+                        api.searched([recipe.recipe_id])
+                    except (urllib.error.URLError, OSError) as exc:
+                        log(f"    could not record the search in nom-api: {exc}")
             if decision.outcome == "none":
-                if not searches_failed:
-                    state[str(recipe.recipe_id)] = now.isoformat()
                 continue
             if args.dry_run or api is None:
                 continue
@@ -766,7 +792,7 @@ def main() -> None:
                 c = by_key[key]
                 image = None if c.hotlink else finder.full_image(c)
                 if not c.hotlink and image is None:
-                    log(f"    could not fetch the full image for {key}; skipped")
+                    log(f"    could not fetch any image for {key}; skipped")
                     continue
                 payloads.append(candidate_payload(c, decision, status, image))
             if not payloads:

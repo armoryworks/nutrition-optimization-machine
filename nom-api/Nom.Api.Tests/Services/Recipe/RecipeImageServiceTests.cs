@@ -127,6 +127,29 @@ namespace Nom.Api.Tests.Services.Recipe
         }
 
         [Fact]
+        public async Task Missing_hands_out_untried_recipes_first_then_the_longest_ago_and_one_per_name()
+        {
+            using var db = await SeedAsync();
+            db.Recipes.Add(new RecipeEntity { Id = 6, Name = "Coconut shrimp curry ", CurationStatusId = Approved, Visibility = RecipeVisibilityEnum.Public, AuthorId = 9 });
+            await db.SaveChangesAsync();
+            var service = NewService(db);
+
+            (await service.GetMissingAsync(10)).Select(m => m.Id).Should().Equal(new long[] { 2, 1 }, "the same name is one search; the other copy waits for the next call");
+
+            (await service.MarkSearchedAsync(new[] { 1L })).Should().Be(1);
+            (await service.GetMissingAsync(10)).Select(m => m.Id).Should().Equal(2, 1);
+            (await service.GetMissingAsync(10, retryDays: 30)).Select(m => m.Id).Should().Equal(2);
+
+            var searched = await db.Recipes.SingleAsync(r => r.Id == 1);
+            searched.ImageSearchedAt = DateTime.UtcNow.AddDays(-40);
+            await db.SaveChangesAsync();
+            (await service.GetMissingAsync(10, retryDays: 30)).Select(m => m.Id).Should().Equal(new long[] { 2, 1 }, "a month on it is worth another look");
+
+            await service.MarkSearchedAsync(new[] { 2L });
+            (await service.GetMissingAsync(10, retryDays: 30)).Select(m => m.Id).Should().Equal(new long[] { 6, 1 }, "the untried copy of the name goes first and the searched one rests");
+        }
+
+        [Fact]
         public async Task Missing_skips_recipes_waiting_in_the_queue_and_reports_rejected_photos()
         {
             using var db = await SeedAsync();

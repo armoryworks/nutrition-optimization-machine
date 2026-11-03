@@ -20,7 +20,10 @@ namespace Nom.Orch.Interfaces
     public interface IRecipeImageService
     {
         /// <summary>Published recipes with no image and nothing waiting in the queue, most-rated first.</summary>
-        Task<List<RecipeImageWorkItemModel>> GetMissingAsync(int limit);
+        Task<List<RecipeImageWorkItemModel>> GetMissingAsync(int limit, int retryDays = 0);
+
+        /// <summary>Records that the finder searched these recipes now; returns how many it marked.</summary>
+        Task<int> MarkSearchedAsync(IReadOnlyCollection<long> recipeIds);
 
         /// <summary>Stores the finder's candidates; "attached" ones are applied to the recipe at once.</summary>
         Task<RecipeImageSubmissionResultModel?> SubmitAsync(RecipeImageSubmissionModel submission, long? personId);

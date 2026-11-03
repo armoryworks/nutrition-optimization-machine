@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict CHrbpwLC57h0cSZrXleL2A9U0xevYnQNmNuB4yhT0PjmOJAkum7tVpk5ygguQdM
+\restrict FPIc6cjUhdeCFSQNnWTrd7OqW660uBHuYPR4NeiyUoWbbPiKS5YZ8SnEGabxZwB
 
 -- Dumped from database version 16.14
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -2563,6 +2563,7 @@ CREATE TABLE recipe."Recipe" (
     "ImageAuthorUrl" character varying(1023),
     "ImageLicense" character varying(64),
     "ImageLicenseUrl" character varying(1023),
+    "ImageSearchedAt" timestamp with time zone,
     "OrgUrl" character varying(255),
     "IsOcrRecipe" boolean,
     "NameNormalized" character varying(511),
@@ -8652,5 +8653,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict CHrbpwLC57h0cSZrXleL2A9U0xevYnQNmNuB4yhT0PjmOJAkum7tVpk5ygguQdM
+\unrestrict FPIc6cjUhdeCFSQNnWTrd7OqW660uBHuYPR4NeiyUoWbbPiKS5YZ8SnEGabxZwB
 

@@ -80,6 +80,7 @@ class Thresholds:
     rank_min_score: float = 7.0
     rank_win_share: float = 1.0
     rank_min_rivals: int = 1
+    lone_attach_min_rank: float = 0.0
     review_min_checks: int = 2
 
 
@@ -351,16 +352,18 @@ def vqa_check(recipe: RecipeText, answers: dict, thresholds: Thresholds) -> tupl
     known = recipe_vocabulary(recipe)
     matched = [v for v in visible if set(tokens(v)) & known]
     overlap = len(matched) / len(visible) if visible else 0.0
-    overlap_ok = bool(matched) and overlap >= thresholds.vqa_ingredient_overlap
+    telling = [v for v in matched if any(stem(w) not in _STAPLE_STEMS for w in tokens(v))]
+    overlap_ok = bool(matched) and (overlap >= thresholds.vqa_ingredient_overlap or (dish_ok and bool(telling)))
     if not overlap_ok:
         reasons.append(f"visible ingredients overlap {overlap:.0%} with the recipe "
-                       f"(need {thresholds.vqa_ingredient_overlap:.0%}, at least one)")
+                       f"(need {thresholds.vqa_ingredient_overlap:.0%}, or the dish confirmed with one "
+                       "recipe ingredient in view that is not a staple)")
 
     passed = content_ok and dish_ok and overlap_ok
     score = (0.5 if dish_ok else 0.0) + 0.5 * overlap
     return CheckResult(passed, score, reasons, {
         "dish_matches": dish, "visible_ingredients": visible, "matched_ingredients": matched,
-        "ingredient_overlap": round(overlap, 3), "answers": answers,
+        "telling_ingredients": telling, "ingredient_overlap": round(overlap, 3), "answers": answers,
     }), content_ok, content_reasons
 
 
@@ -393,6 +396,8 @@ def rank_check(evidence: dict[str, CandidateEvidence], chosen: str, thresholds: 
     rival, shown in BOTH orders to cancel position bias, it must win at least
     `rank_win_share` of the votes (default: all of them). Copies of the chosen photo are not
     rivals. Absolute scores alone are not enough — small models rate most food photos 9/10.
+    A lone candidate shows no margin, unless `lone_attach_min_rank` is set and the photo's
+    metadata names the whole dish and the second model scores it at least that high.
     """
     e = evidence[chosen]
     reasons: list[str] = []
@@ -402,7 +407,10 @@ def rank_check(evidence: dict[str, CandidateEvidence], chosen: str, thresholds: 
         reasons.append(f"second model score {e.rank_score:g} < {thresholds.rank_min_score:g}")
 
     rivals = rivals_of(evidence, chosen)
-    if len(rivals) < thresholds.rank_min_rivals:
+    lone_but_sure = (not rivals and thresholds.lone_attach_min_rank > 0
+                     and e.metadata is not None and e.metadata.detail.get("name_coverage") == 1.0
+                     and e.rank_score is not None and e.rank_score >= thresholds.lone_attach_min_rank)
+    if len(rivals) < thresholds.rank_min_rivals and not lone_but_sure:
         reasons.append(f"{len(rivals)} rival(s) to compare against (need {thresholds.rank_min_rivals}); "
                        "a lone candidate cannot show a margin")
     missing = [r for r in rivals if len(e.pairwise.get(r, [])) < 2]
@@ -416,7 +424,7 @@ def rank_check(evidence: dict[str, CandidateEvidence], chosen: str, thresholds: 
                        f"not preferred over {', '.join(lost)}")
     return CheckResult(not reasons, share, reasons, {
         "score": e.rank_score, "rivals": len(rivals), "win_share": round(share, 3),
-        "pairwise": {k: v for k, v in e.pairwise.items()},
+        "lone_but_sure": lone_but_sure, "pairwise": {k: v for k, v in e.pairwise.items()},
     })
 
 

@@ -28,11 +28,21 @@ namespace Nom.Api.Controllers
             _images = images;
         }
 
-        /// <summary>Published recipes with no image and nothing waiting in the review queue, most-rated first.</summary>
+        /// <summary>Published recipes with no image and nothing waiting in the review queue: never-searched first, then the longest ago; one per name.</summary>
         [HttpGet("missing")]
-        public async Task<ActionResult<List<RecipeImageWorkItemModel>>> GetMissing([FromQuery] int limit = 50)
+        public async Task<ActionResult<List<RecipeImageWorkItemModel>>> GetMissing([FromQuery] int limit = 50, [FromQuery] int retryDays = 0)
         {
-            return Ok(await _images.GetMissingAsync(limit));
+            return Ok(await _images.GetMissingAsync(limit, retryDays));
+        }
+
+        /// <summary>The finder reports which recipes it searched this run, whatever it found.</summary>
+        [HttpPost("searched")]
+        public async Task<ActionResult<object>> MarkSearched([FromBody] RecipeImageSearchedModel body)
+        {
+            if (body.RecipeIds.Count == 0 || body.RecipeIds.Count > 1000)
+                return BadRequest(new { message = "Send between 1 and 1000 recipe ids." });
+
+            return Ok(new { marked = await _images.MarkSearchedAsync(body.RecipeIds) });
         }
 
         /// <summary>Stores the finder's candidates for one recipe; "attached" ones go live at once.</summary>

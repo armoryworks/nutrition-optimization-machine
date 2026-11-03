@@ -14,9 +14,15 @@ namespace Nom.Orch.Models.Recipe
         public List<string> Ingredients { get; set; } = new();
         public List<string> Steps { get; set; } = new();
         public int RatingCount { get; set; }
+        public DateTime? ImageSearchedAt { get; set; }
 
         /// <summary>"source:id" keys an admin already rejected for this recipe — never proposed again.</summary>
         public List<string> RejectedCandidates { get; set; } = new();
+    }
+
+    public class RecipeImageSearchedModel
+    {
+        public List<long> RecipeIds { get; set; } = new();
     }
 
     public class RecipeImageSubmissionModel

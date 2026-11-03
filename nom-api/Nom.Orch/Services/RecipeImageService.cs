@@ -44,21 +44,31 @@ namespace Nom.Orch.Services
             _logger = logger;
         }
 
-        public async Task<List<RecipeImageWorkItemModel>> GetMissingAsync(int limit)
+        /// <summary>
+        /// Published recipes with no image and nothing waiting in review. Recipes the finder has
+        /// never searched come first, then the longest-untried; a recipe searched within
+        /// <paramref name="retryDays"/> is left out. Recipes in a dish group come before stragglers,
+        /// and only one recipe per name is handed out per call, since the same photo serves all of them.
+        /// </summary>
+        public async Task<List<RecipeImageWorkItemModel>> GetMissingAsync(int limit, int retryDays = 0)
         {
             limit = Math.Clamp(limit, 1, 500);
             var waiting = _context.RecipeImageCandidates
                 .Where(c => c.Status == RecipeImageCandidateStatus.Pending)
                 .Select(c => c.RecipeId);
+            var restUntil = DateTime.UtcNow.AddDays(-Math.Max(0, retryDays));
 
-            var recipes = await _context.Recipes
+            var candidates = await _context.Recipes
                 .AsNoTracking()
                 .VisibleTo(_context, null)
-                .Where(r => !r.IsDeleted && (r.Image == null || r.Image == "") && !waiting.Contains(r.Id))
-                .OrderByDescending(r => r.Ratings!.Count())
-                .ThenByDescending(r => r.Rating)
-                .ThenBy(r => r.Id)
-                .Take(limit)
+                .Where(r => !r.IsDeleted && (r.Image == null || r.Image == "") && !waiting.Contains(r.Id)
+                    && (r.ImageSearchedAt == null || retryDays <= 0 || r.ImageSearchedAt < restUntil))
+                .OrderBy(r => r.ImageSearchedAt == null ? 0 : 1)
+                .ThenBy(r => r.ImageSearchedAt)
+                .ThenBy(r => r.DishGroupId == null ? 1 : 0)
+                .ThenByDescending(r => r.Ratings!.Count())
+                .ThenByDescending(r => r.Id)
+                .Take(limit * 3)
                 .Select(r => new RecipeImageWorkItemModel
                 {
                     Id = r.Id,
@@ -66,8 +76,12 @@ namespace Nom.Orch.Services
                     Description = r.Description,
                     DishGroup = r.DishGroup != null ? r.DishGroup.Name : null,
                     RatingCount = r.Ratings!.Count(),
+                    ImageSearchedAt = r.ImageSearchedAt,
                 })
                 .ToListAsync();
+
+            var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var recipes = candidates.Where(r => seenNames.Add(r.Name.Trim())).Take(limit).ToList();
 
             var ids = recipes.Select(r => r.Id).ToList();
             var ingredients = await _context.RecipeIngredients.AsNoTracking()
@@ -93,6 +107,22 @@ namespace Nom.Orch.Services
             }
 
             return recipes;
+        }
+
+        public async Task<int> MarkSearchedAsync(IReadOnlyCollection<long> recipeIds)
+        {
+            if (recipeIds.Count == 0) return 0;
+            var now = DateTime.UtcNow;
+            if (_context.Database.IsRelational())
+            {
+                return await _context.Recipes
+                    .Where(r => recipeIds.Contains(r.Id))
+                    .ExecuteUpdateAsync(u => u.SetProperty(r => r.ImageSearchedAt, now));
+            }
+            var rows = await _context.Recipes.Where(r => recipeIds.Contains(r.Id)).ToListAsync();
+            foreach (var r in rows) r.ImageSearchedAt = now;
+            await _context.SaveChangesAsync();
+            return rows.Count;
         }
 
         public async Task<RecipeImageSubmissionResultModel?> SubmitAsync(RecipeImageSubmissionModel submission, long? personId)

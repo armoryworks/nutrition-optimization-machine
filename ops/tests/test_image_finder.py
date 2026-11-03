@@ -183,6 +183,16 @@ class TriangulationTests(unittest.TestCase):
         self.assertEqual(tri.decide({"a": evidence("a", rank=9)}, tri.Thresholds(rank_min_rivals=0)).outcome, "attach")
         self.assertEqual(tri.decide({"a": evidence("a", rank=5)}, tri.Thresholds(rank_min_rivals=0)).outcome, "review")
 
+    def test_a_lone_candidate_may_attach_when_its_metadata_names_the_dish_and_the_second_model_is_sure(self):
+        sure = tri.Thresholds(lone_attach_min_rank=9)
+        self.assertEqual(tri.decide({"a": evidence("a", rank=9)}, sure).outcome, "attach")
+        self.assertEqual(tri.decide({"a": evidence("a", rank=8.5)}, sure).outcome, "review")
+        self.assertEqual(tri.decide({"a": evidence("a", meta_cov=0.5, rank=9)}, sure).outcome, "review")
+        a = evidence("a", rank=9)
+        a.pairwise = {"b": [True, False]}
+        self.assertEqual(tri.decide({"a": a, "b": evidence("b", rank=9)}, sure).outcome, "review",
+                         "with a rival present the margin rule applies as before")
+
     def test_failed_metadata_downgrades_to_review(self):
         decision = tri.decide({"a": evidence("a", meta_cov=0.0, meta_sim=0.2)}, self.t)
         self.assertEqual(decision.outcome, "review")
@@ -277,6 +287,20 @@ class TriangulationTests(unittest.TestCase):
         self.assertEqual(result.detail["matched_ingredients"], ["pancakes", "blueberries", "maple syrup"])
         self.assertTrue(result.passed)
 
+    def test_one_telling_ingredient_in_view_passes_when_the_dish_is_confirmed(self):
+        answers = dict(GOOD_ANSWERS, visible_ingredients=["basil", "bread", "spoon", "napkin"])
+        result, _, _ = tri.vqa_check(SOUP, answers, self.t)
+        self.assertTrue(result.passed)
+        self.assertEqual(result.detail["telling_ingredients"], ["basil"])
+
+        staple_only = dict(GOOD_ANSWERS, visible_ingredients=["olive oil", "bread", "spoon", "napkin"])
+        result, _, _ = tri.vqa_check(SOUP, staple_only, self.t)
+        self.assertFalse(result.passed, "oil in view says nothing about which dish this is")
+
+        unsure = dict(answers, dish_matches="unsure")
+        result, _, _ = tri.vqa_check(SOUP, unsure, self.t)
+        self.assertFalse(result.passed)
+
     def test_dish_mismatch_fails_vqa_but_not_the_content_gate(self):
         result, content_ok, _ = tri.vqa_check(SOUP, dict(GOOD_ANSWERS, dish_matches="no"), self.t)
         self.assertTrue(content_ok)
@@ -350,6 +374,31 @@ class FinderGlueTests(unittest.TestCase):
             os.environ.pop(name, None)
         self.assertFalse(finder.PexelsSource(finder.Http(None), src.DEFAULT_ALLOWED).enabled())
         self.assertFalse(finder.PixabaySource(finder.Http(None), src.DEFAULT_ALLOWED).enabled())
+
+    def test_a_search_counts_as_done_unless_every_source_failed(self):
+        class Fake(finder.Source):
+            key, name = "fake", "Fake"
+
+            def __init__(self, http, fail):
+                super().__init__(http, src.DEFAULT_ALLOWED)
+                self.fail = fail
+
+            def search(self, query, count):
+                if self.fail:
+                    self.http.failures += 1
+                    return []
+                return src.parse_wikimedia(WIKIMEDIA_FIXTURE, query)
+
+        class Args:
+            queries_per_recipe, per_source = 1, 8
+
+        http = finder.Http(None)
+        ok = finder.Finder(Args(), [Fake(http, False), Fake(http, True)], None, tri.Thresholds(), http)
+        candidates, all_failed = ok.gather(SOUP, set())
+        self.assertFalse(all_failed)
+        self.assertTrue(candidates)
+        down = finder.Finder(Args(), [Fake(http, True)], None, tri.Thresholds(), http)
+        self.assertEqual(down.gather(SOUP, set()), ([], True))
 
     def test_unsplash_download_ping_only_goes_to_the_unsplash_api(self):
         os.environ["UNSPLASH_ACCESS_KEY"] = "k"
