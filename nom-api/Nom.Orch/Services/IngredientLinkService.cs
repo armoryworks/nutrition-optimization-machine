@@ -23,6 +23,7 @@ namespace Nom.Orch.Services
         public const string TriangulationMark = " · triangulation: ";
         public const string VerifiedMark = TriangulationMark + "verified";
         public const string NotVerifiedMark = TriangulationMark + "not verified";
+        public const string UsdaDescriptionContext = "fdc:description";
         public static readonly TimeSpan RejectionRetryAge = TimeSpan.FromDays(7);
         private const int ModelBatch = 6;
         private const int VerifierRankWindow = 3;
@@ -407,8 +408,9 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// USDA foods (never branded) as link targets. A food that a link renamed to its everyday name
-        /// ("Olive Oil") is matched by the USDA description it kept as an alias ("Oil, olive, salad or
-        /// cooking"), because that is the name the matcher's comma segments were designed for.
+        /// ("Olive Oil") is matched by the USDA description it kept as its <see cref="UsdaDescriptionContext"/>
+        /// alias ("Oil, olive, salad or cooking"), because that is the name the matcher's comma segments
+        /// were designed for. Other aliases are recipe wordings and never stand in for the description.
         /// </summary>
         private async Task<(List<FoodCandidate> Foods, List<(long IngredientId, string AliasName)> Aliases)> CandidatesAsync(CancellationToken cancellationToken)
         {
@@ -421,20 +423,17 @@ namespace Nom.Orch.Services
             var aliases = await _context.IngredientAliases
                 .AsNoTracking()
                 .Where(a => ids.Contains(a.IngredientId) && !a.IsDeleted)
-                .Select(a => new { a.IngredientId, a.AliasName })
+                .Select(a => new { a.IngredientId, a.AliasName, a.SourceContext })
                 .ToListAsync(cancellationToken);
             var usdaNames = aliases
-                .Where(a => IsUsdaDescription(a.AliasName))
+                .Where(a => a.SourceContext == UsdaDescriptionContext)
                 .GroupBy(a => a.IngredientId)
-                .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.AliasName.Length).First().AliasName);
+                .ToDictionary(g => g.Key, g => g.First().AliasName);
 
             var foods = rows
-                .Select(r => new FoodCandidate(r.Id, r.FdcId!, !r.Name.Contains(',') && usdaNames.TryGetValue(r.Id, out var usda) ? usda : r.Name, r.FdcDataType ?? string.Empty))
+                .Select(r => new FoodCandidate(r.Id, r.FdcId!, usdaNames.TryGetValue(r.Id, out var usda) ? usda : r.Name, r.FdcDataType ?? string.Empty))
                 .ToList();
             return (foods, aliases.Select(a => (a.IngredientId, a.AliasName)).ToList());
         }
-
-        public static bool IsUsdaDescription(string alias) =>
-            alias.Contains(',') && alias.Length > 0 && char.IsUpper(alias[0]) && !alias.Any(char.IsDigit) && !IngredientNameNormalizer.IsResidue(alias);
     }
 }

@@ -465,7 +465,9 @@ namespace Nom.Orch.Services
         /// users, the ingredient is merged into the USDA food (recipes re-pointed, its name kept as an
         /// alias so future imports land on the USDA food). Otherwise it stays and copies the USDA
         /// food's nutrient values (source fdc:&lt;id&gt;) for the nutrients it lacks. Approving a link
-        /// also curates the USDA food, since a reviewer just looked at it.
+        /// also curates the USDA food, since a reviewer just looked at it. Only a person's approval
+        /// gives the USDA food the everyday name; a link the lanes apply on their own leaves the
+        /// description in place, because a wrong pick would otherwise rename the food after it.
         /// </summary>
         private async Task<bool> ApplyFdcLinkAsync(FoodCatalogProposalEntity p, long reviewerPersonId)
         {
@@ -483,19 +485,19 @@ namespace Nom.Orch.Services
             if (await _cleanup.MergeIntoAsync(source.Id, target.Id, reviewerPersonId, ignoreProposals: true, keepProposalId: p.Id))
             {
                 var friendly = FriendlyName(Support.IngredientNameNormalizer.Normalize(sourceName));
-                if (target.Name.Contains(',') && friendly != null
+                if (reviewerPersonId != SystemConstants.SystemPersonId && target.Name.Contains(',') && friendly != null
                     && !await _context.Ingredients.AnyAsync(i => i.Id != source.Id && i.Id != target.Id && i.Name.ToLower() == friendly.ToLower()))
                 {
                     var usdaName = target.Name;
                     source.Name = Truncate($"{sourceName} (merged into #{target.Id})", 2000);
                     await _context.SaveChangesAsync();
                     target.Name = friendly;
-                    await AddAliasAsync(target.Id, usdaName, reviewerPersonId);
+                    await AddAliasAsync(target.Id, usdaName, reviewerPersonId, IngredientLinkService.UsdaDescriptionContext);
                 }
                 var alias = Support.IngredientNameNormalizer.Normalize(sourceName);
                 if (!string.Equals(target.Name, alias, StringComparison.OrdinalIgnoreCase))
                 {
-                    await AddAliasAsync(target.Id, alias, reviewerPersonId);
+                    await AddAliasAsync(target.Id, alias, reviewerPersonId, $"link:{p.Source}");
                 }
                 return true;
             }
@@ -599,7 +601,7 @@ namespace Nom.Orch.Services
             return true;
         }
 
-        private async Task AddAliasAsync(long ingredientId, string alias, long reviewerPersonId)
+        private async Task AddAliasAsync(long ingredientId, string alias, long reviewerPersonId, string? sourceContext = null)
         {
             var lowered = alias.ToLowerInvariant();
             var exists = await _context.IngredientAliases.AnyAsync(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered && !a.IsDeleted)
@@ -609,6 +611,7 @@ namespace Nom.Orch.Services
             {
                 IngredientId = ingredientId,
                 AliasName = alias,
+                SourceContext = sourceContext,
                 CreatedDate = DateTime.UtcNow,
                 CreatedByPersonId = reviewerPersonId,
             });

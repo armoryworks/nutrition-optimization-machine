@@ -280,10 +280,12 @@ namespace Nom.Api.Tests.Services
             db.Ingredients.Add(oliveOil);
             await db.SaveChangesAsync();
             db.IngredientAliases.AddRange(
-                new IngredientAliasEntity { IngredientId = oliveOil.Id, AliasName = "Oil, olive, salad or cooking" },
-                new IngredientAliasEntity { IngredientId = oliveOil.Id, AliasName = "2 tablespoons olive oil, for frying" });
+                new IngredientAliasEntity { IngredientId = oliveOil.Id, AliasName = "Oil, olive, salad or cooking", SourceContext = IngredientLinkService.UsdaDescriptionContext },
+                new IngredientAliasEntity { IngredientId = oliveOil.Id, AliasName = "2 tablespoons olive oil, for frying" },
+                new IngredientAliasEntity { IngredientId = oliveOil.Id, AliasName = "Sherry, or other white wine", SourceContext = "link:ai:fake:1b" });
             await db.SaveChangesAsync();
             var ing = await UsedIngredientAsync(db, "extra virgin olive oil", 2);
+            var sherry = await UsedIngredientAsync(db, "sherry", 2);
             var matcher = new FakeMatcher();
 
             await Linker(db, matcher).ProposeAsync(await Linker(db, matcher).NextSourcesAsync(10));
@@ -291,7 +293,9 @@ namespace Nom.Api.Tests.Services
             var proposal = await db.FoodCatalogProposals.SingleAsync(p => p.IngredientId == ing.Id);
             proposal.ProposedValue.Should().Be(oliveOil.Id.ToString());
             proposal.Reason.Should().StartWith("→ Oil, olive, salad or cooking");
-            IngredientLinkService.IsUsdaDescription("2 tablespoons olive oil, for frying").Should().BeFalse();
+            var sherryProposal = await db.FoodCatalogProposals.SingleAsync(p => p.IngredientId == sherry.Id);
+            sherryProposal.Status.Should().Be(FoodProposalStatus.Rejected, "a recipe wording that an earlier link left as an alias is not the food's description");
+            sherryProposal.ProposedValue.Should().BeNull();
         }
 
         [Theory]
@@ -533,15 +537,40 @@ namespace Nom.Api.Tests.Services
             var cleanup = new FakeCleanup();
             var review = new FoodCatalogReviewService(db, new NoAudit(), cleanup);
 
-            (await review.ApplyProposalAsync(proposal.Id, reviewerPersonId: 1)).Should().BeTrue();
+            (await review.ApplyProposalAsync(proposal.Id, reviewerPersonId: 2)).Should().BeTrue();
 
             cleanup.Merged.Should().Equal((saltIng.Id, salt.Id));
             cleanup.KeptProposals.Should().Equal(new long?[] { proposal.Id }, "the merge clears stale link proposals but must keep the one being applied");
             var usdaSalt = await db.Ingredients.FindAsync(salt.Id);
             usdaSalt!.CurationStatusId.Should().Be((long)CurationStatusEnum.Curated);
             usdaSalt.Name.Should().Be("Sea Salt", "the USDA food takes the everyday name recipes show");
-            (await db.IngredientAliases.Select(a => a.AliasName).ToListAsync()).Should().BeEquivalentTo(new[] { "Salt, table" });
+            var kept = await db.IngredientAliases.SingleAsync();
+            kept.AliasName.Should().Be("Salt, table");
+            kept.SourceContext.Should().Be(IngredientLinkService.UsdaDescriptionContext, "the matcher keeps finding the food by its description");
             (await db.FoodCatalogProposals.FindAsync(proposal.Id))!.Status.Should().Be(FoodProposalStatus.Applied);
+        }
+
+        [Fact]
+        public async Task A_link_the_lane_applies_on_its_own_keeps_the_usda_description_as_the_name()
+        {
+            using var db = NewContext();
+            var (salt, _, _) = await SeedFoodsAsync(db);
+            var saltIng = await UsedIngredientAsync(db, "sea salt", 1);
+            var proposal = new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, IngredientId = saltIng.Id, Field = FoodCatalogReviewService.FdcLinkField,
+                FdcId = salt.FdcId, ProposedValue = salt.Id.ToString(), Source = "ai:fake", Status = FoodProposalStatus.Pending,
+            };
+            db.FoodCatalogProposals.Add(proposal);
+            await db.SaveChangesAsync();
+            var review = new FoodCatalogReviewService(db, new NoAudit(), new FakeCleanup());
+
+            (await review.ApplyProposalAsync(proposal.Id, SystemConstants.SystemPersonId)).Should().BeTrue();
+
+            (await db.Ingredients.FindAsync(salt.Id))!.Name.Should().Be("Salt, table", "nobody has looked at the pick, so it must not rename the food");
+            var alias = await db.IngredientAliases.SingleAsync();
+            alias.AliasName.Should().Be("sea salt");
+            alias.SourceContext.Should().Be("link:ai:fake");
         }
 
         [Theory]
