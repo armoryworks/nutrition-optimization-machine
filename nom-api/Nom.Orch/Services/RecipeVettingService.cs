@@ -63,6 +63,11 @@ namespace Nom.Orch.Services
                 issues.Add($"Servings value of {servings} is outside the plausible range (1–{MaxPlausibleServings}).");
             }
 
+            foreach (var problem in TextProblems(recipe))
+            {
+                issues.Add(problem);
+            }
+
             var unparsed = recipe.Ingredients.Count(i => i.Quantity == null && !IsAcceptablyUnquantified(i.RawLine, i.LineKind));
             if (recipe.Ingredients.Count > 0 && unparsed > recipe.Ingredients.Count / 2)
             {
@@ -71,6 +76,52 @@ namespace Nom.Orch.Services
 
             return Task.FromResult(issues);
         }
+
+        /// <summary>
+        /// Text that cannot be a recipe as written: markup or links left over from extraction,
+        /// placeholder copy, steps with no words, digit soup or consonant runs from bad OCR. One
+        /// issue per kind, naming the first step it was seen in. Pure string rules, no model.
+        /// </summary>
+        public static IEnumerable<string> TextProblems(ScraperRecipe recipe)
+        {
+            var texts = recipe.Steps.Select((s, i) => (Text: s.Instruction, Where: $"step {i + 1}"))
+                .Prepend((Text: recipe.Description ?? string.Empty, Where: "description"))
+                .Prepend((Text: recipe.Name, Where: "name"))
+                .Where(t => !string.IsNullOrWhiteSpace(t.Text))
+                .ToList();
+
+            var checks = new (Func<(string Text, string Where), bool> Hit, string Message)[]
+            {
+                (t => Markup.IsMatch(t.Text), "Text still contains markup, entities or links ({0}) — extraction left residue behind."),
+                (t => Placeholder.IsMatch(t.Text), "Text is placeholder copy ({0})."),
+                (t => t.Where != "name" && !RealWord.IsMatch(t.Text), "Text has no real words ({0})."),
+                (t => t.Text.Length > 40 && DigitShare(t.Text) > 0.3, "Text is mostly digits ({0})."),
+                (t => ConsonantRun.IsMatch(t.Text), "Text has unreadable letter runs ({0}) — likely OCR garbage."),
+            };
+            foreach (var (hit, message) in checks)
+            {
+                var first = texts.FirstOrDefault(hit);
+                if (first.Text != null) yield return string.Format(message, first.Where);
+            }
+        }
+
+        private static double DigitShare(string text) => text.Count(char.IsDigit) / (double)text.Length;
+
+        private static readonly Regex Markup = new(
+            @"<[a-z!/][^>]*>|&(?:nbsp|amp|lt|gt|quot|#\d+|#x[0-9a-f]+);|https?://|\{\{|\}\}|\[\[|\]\]|\[nrt]\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex Placeholder = new(
+            @"\b(?:lorem\s+ipsum|todo|tbd|placeholder|insert\s+\w+\s+here|coming\s+soon|untitled\s+recipe)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex RealWord = new(
+            @"\p{L}{3,}",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly Regex ConsonantRun = new(
+            @"(?<![\p{L}\p{N}])[bcdfghjklmnpqrstvwxz]{5,}(?![\p{L}\p{N}])",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         public static bool IsAcceptablyUnquantified(string? rawLine, string? lineKind) =>
             RecipeIngredientLineKind.IsExempt(lineKind) || IsAcceptablyUnquantified(rawLine);

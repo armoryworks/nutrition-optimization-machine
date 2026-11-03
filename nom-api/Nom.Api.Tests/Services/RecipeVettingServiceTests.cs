@@ -100,6 +100,42 @@ namespace Nom.Api.Tests.Services
             Assert.Contains(await _vetting.VetAsync(recipe), i => i.Contains("ingredient line"));
         }
 
+        [Theory]
+        [InlineData("Whisk the eggs &amp; sugar until pale.", "markup")]
+        [InlineData("See <a href=\"x\">the video</a> for the fold.", "markup")]
+        [InlineData("Full method at https://example.com/cake", "markup")]
+        [InlineData("Lorem ipsum dolor sit amet.", "placeholder")]
+        [InlineData("TODO write the steps", "placeholder")]
+        [InlineData("--- --- ---", "no real words")]
+        [InlineData("1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23", "mostly digits")]
+        [InlineData("Bake the cake ftgklmnpr until done.", "unreadable letter runs")]
+        public async Task Broken_text_is_flagged_once_per_kind(string step, string marker)
+        {
+            var recipe = PlausibleRecipe();
+            recipe.Steps.Add(new ScraperStep { Order = 3, Instruction = step });
+            recipe.Steps.Add(new ScraperStep { Order = 4, Instruction = step });
+
+            var issues = await _vetting.VetAsync(recipe);
+
+            Assert.Single(issues, i => i.Contains(marker));
+            Assert.Contains("step 3", issues.Single(i => i.Contains(marker)));
+        }
+
+        [Theory]
+        [InlineData("Boil the sweet potatoes until tender, then mash them with butter.")]
+        [InlineData("Preheat the oven to 350 °F (175 °C); grease a 9x13-inch pan.")]
+        [InlineData("Add 1 1/2 cups (190 g) flour, 2 tsp baking powder & a pinch of salt.")]
+        [InlineData("Simmer 10–12 minutes. Serve warm.")]
+        [InlineData("Mix well with 3 tbsp Worcestershire sauce — Lea & Perrins works.")]
+        [InlineData("Strengths and lengths of the dough vary; knead until smooth.")]
+        public async Task Ordinary_cooking_text_passes(string step)
+        {
+            var recipe = PlausibleRecipe();
+            recipe.Steps.Add(new ScraperStep { Order = 3, Instruction = step });
+
+            Assert.Empty(await _vetting.VetAsync(recipe));
+        }
+
         [Fact]
         public async Task Mostly_unparsed_quantities_are_flagged_for_review()
         {
