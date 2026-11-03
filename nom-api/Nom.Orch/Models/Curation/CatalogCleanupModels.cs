@@ -32,6 +32,7 @@ namespace Nom.Orch.Models.Curation
         public int LinksFolded { get; set; }
         /// <summary>Rows left alone because something beyond recipe links references them.</summary>
         public int SkippedReferenced { get; set; }
+        public int Failed { get; set; }
         public int Remaining { get; set; }
     }
 

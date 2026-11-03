@@ -126,39 +126,61 @@ namespace Nom.Orch.Services
                     continue;
                 }
 
-                await using var tx = await _db.Database.BeginTransactionAsync();
-                if (action.Action == "rename")
+                try
                 {
-                    await _db.Database.ExecuteSqlAsync(
-                        $"""UPDATE recipe."Ingredient" SET "Name" = {action.NormalizedName}, "LastModifiedDate" = now(), "LastModifiedByPersonId" = {personId} WHERE "Id" = {action.IngredientId} AND "IsDeleted" = false""");
-                    result.Renamed++;
-                }
-                else
-                {
-                    var moved = await MergeRecipeLinksAsync(action.IngredientId, action.TargetId!.Value, personId);
-                    result.LinksFolded += moved.Folded;
-                    result.LinksMoved += moved.Moved;
-                    result.Merged++;
-                }
+                    await using var tx = await _db.Database.BeginTransactionAsync();
+                    if (action.Action == "rename")
+                    {
+                        await FreeNameAsync(action.NormalizedName);
+                        await _db.Database.ExecuteSqlAsync(
+                            $"""UPDATE recipe."Ingredient" SET "Name" = {action.NormalizedName}, "LastModifiedDate" = now(), "LastModifiedByPersonId" = {personId} WHERE "Id" = {action.IngredientId} AND "IsDeleted" = false""");
+                        result.Renamed++;
+                    }
+                    else
+                    {
+                        var moved = await MergeRecipeLinksAsync(action.IngredientId, action.TargetId!.Value, personId);
+                        result.LinksFolded += moved.Folded;
+                        result.LinksMoved += moved.Moved;
+                        result.Merged++;
+                    }
 
-                await tx.CommitAsync();
-                result.Remaining--;
+                    await tx.CommitAsync();
+                    result.Remaining--;
+                }
+                catch (DbUpdateException)
+                {
+                    result.Failed++;
+                }
+                catch (Npgsql.PostgresException)
+                {
+                    result.Failed++;
+                }
             }
 
             return result;
         }
 
-        public async Task<bool> MergeIntoAsync(long sourceId, long targetId, long? personId, bool ignoreProposals = false)
+        /// <summary>
+        /// A soft-deleted row still occupies its name in the unique index; a merged leftover that
+        /// happens to carry the clean name is renamed out of the way before a live row takes it.
+        /// </summary>
+        private async Task FreeNameAsync(string name)
+        {
+            await _db.Database.ExecuteSqlAsync(
+                $"""UPDATE recipe."Ingredient" SET "Name" = left("Name" || ' (deleted #' || "Id" || ')', 2000) WHERE "Name" = {name} AND "IsDeleted" = true""");
+        }
+
+        public async Task<bool> MergeIntoAsync(long sourceId, long targetId, long? personId, bool ignoreProposals = false, long? keepProposalId = null)
         {
             if (sourceId == targetId || await HasNonRecipeReferencesAsync(sourceId, ignoreProposals)) return false;
 
             await using var tx = await _db.Database.BeginTransactionAsync();
-            await MergeRecipeLinksAsync(sourceId, targetId, personId);
+            await MergeRecipeLinksAsync(sourceId, targetId, personId, keepProposalId);
             await tx.CommitAsync();
             return true;
         }
 
-        private async Task<(int Folded, int Moved)> MergeRecipeLinksAsync(long sourceId, long targetId, long? personId)
+        private async Task<(int Folded, int Moved)> MergeRecipeLinksAsync(long sourceId, long targetId, long? personId, long? keepProposalId = null)
         {
             var folded = await _db.Database.ExecuteSqlAsync(
                 $"""
@@ -191,6 +213,7 @@ namespace Nom.Orch.Services
                  WHERE "IngredientId" IN ({sourceId}, {targetId})
                    AND "Field" = {FoodCatalogReviewService.FdcLinkField}
                    AND "Status" <> {(int)FoodProposalStatus.Applied}
+                   AND "Id" <> {keepProposalId ?? 0}
                    AND ("ReviewedByPersonId" IS NULL OR "ReviewedByPersonId" = {SystemConstants.SystemPersonId})
                  """);
             return (folded, moved);

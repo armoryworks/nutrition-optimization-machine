@@ -44,12 +44,14 @@ namespace Nom.Api.Tests.Services
         {
             public bool Merges { get; set; } = true;
             public List<(long Source, long Target)> Merged { get; } = new();
+            public List<long?> KeptProposals { get; } = new();
             public Task<CatalogCleanupPreview> PreviewAsync(int sampleSize = 50) => throw new NotSupportedException();
             public Task<CatalogCleanupResult> ApplyAsync(int maxActions = 500) => throw new NotSupportedException();
 
-            public Task<bool> MergeIntoAsync(long sourceId, long targetId, long? personId, bool ignoreProposals = false)
+            public Task<bool> MergeIntoAsync(long sourceId, long targetId, long? personId, bool ignoreProposals = false, long? keepProposalId = null)
             {
                 if (Merges) Merged.Add((sourceId, targetId));
+                KeptProposals.Add(keepProposalId);
                 return Task.FromResult(Merges);
             }
 
@@ -534,6 +536,7 @@ namespace Nom.Api.Tests.Services
             (await review.ApplyProposalAsync(proposal.Id, reviewerPersonId: 1)).Should().BeTrue();
 
             cleanup.Merged.Should().Equal((saltIng.Id, salt.Id));
+            cleanup.KeptProposals.Should().Equal(new long?[] { proposal.Id }, "the merge clears stale link proposals but must keep the one being applied");
             var usdaSalt = await db.Ingredients.FindAsync(salt.Id);
             usdaSalt!.CurationStatusId.Should().Be((long)CurationStatusEnum.Curated);
             usdaSalt.Name.Should().Be("Sea Salt", "the USDA food takes the everyday name recipes show");

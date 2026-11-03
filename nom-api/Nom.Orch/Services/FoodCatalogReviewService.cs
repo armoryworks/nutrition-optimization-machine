@@ -480,7 +480,7 @@ namespace Nom.Orch.Services
             var sourceName = source.Name;
             await _context.SaveChangesAsync();
 
-            if (await _cleanup.MergeIntoAsync(source.Id, target.Id, reviewerPersonId, ignoreProposals: true))
+            if (await _cleanup.MergeIntoAsync(source.Id, target.Id, reviewerPersonId, ignoreProposals: true, keepProposalId: p.Id))
             {
                 var friendly = FriendlyName(Support.IngredientNameNormalizer.Normalize(sourceName));
                 if (target.Name.Contains(',') && friendly != null

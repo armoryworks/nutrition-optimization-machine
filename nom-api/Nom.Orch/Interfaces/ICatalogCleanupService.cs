@@ -19,7 +19,7 @@ namespace Nom.Orch.Interfaces
         /// (folding duplicates into the target's raw line) and soft-deletes the source. Refuses and
         /// returns false when anything other than recipes references the source.
         /// </summary>
-        Task<bool> MergeIntoAsync(long sourceId, long targetId, long? personId, bool ignoreProposals = false);
+        Task<bool> MergeIntoAsync(long sourceId, long targetId, long? personId, bool ignoreProposals = false, long? keepProposalId = null);
 
         Task<CatalogNormalizeResult> NormalizeAsync(bool apply);
     }
