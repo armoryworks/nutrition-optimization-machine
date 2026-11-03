@@ -48,13 +48,14 @@ namespace Nom.Orch.Services
                 : await query.ToListAsync(cancellationToken);
             if (recipes.Count == 0) return new ScrapedRepairBatchResult(0, 0, 0, 0, 0, afterRecipeId);
 
-            int repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0;
+            int repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0;
             foreach (var recipe in recipes)
             {
                 var reviewable = recipe.DateCurationCompleted == null
                     && (recipe.CurationStatusId == (long)CurationStatusEnum.RequiresRevision
                         || recipe.CurationStatusId == (long)CurationStatusEnum.NonCurated);
 
+                if (reviewable && DecodeEntities(recipe)) decoded++;
                 if (reviewable && SplitSingleStep(recipe)) split++;
 
                 foreach (var row in recipe.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>())
@@ -83,7 +84,43 @@ namespace Nom.Orch.Services
 
             await _context.SaveChangesAsync(cancellationToken);
             _context.ChangeTracker.Clear();
-            return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split);
+            return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded);
+        }
+
+        /// <summary>
+        /// Turns HTML entities the extractor left in the text ("&amp;#8217;", "&amp;nbsp;") back into
+        /// characters, so the vetting rule for markup residue only sees real tags and links.
+        /// </summary>
+        private static bool DecodeEntities(RecipeEntity recipe)
+        {
+            var changed = false;
+            var now = DateTime.UtcNow;
+            if (Decode(recipe.Name) is { } name && name != recipe.Name) { recipe.Name = name; changed = true; }
+            if (Decode(recipe.Description) is { } description && description != recipe.Description) { recipe.Description = description; changed = true; }
+            foreach (var step in (recipe.RecipeSteps ?? Enumerable.Empty<RecipeStepEntity>()).Where(s => !s.IsDeleted))
+            {
+                if (Decode(step.Description) is { } text && text != step.Description)
+                {
+                    step.Description = text;
+                    step.Summary = RecipeStepSplit.Clamp(text, 255);
+                    step.LastModifiedDate = now;
+                    step.LastModifiedByPersonId = SystemConstants.SystemPersonId;
+                    changed = true;
+                }
+            }
+            if (changed)
+            {
+                recipe.LastModifiedDate = now;
+                recipe.LastModifiedByPersonId = SystemConstants.SystemPersonId;
+            }
+            return changed;
+        }
+
+        private static string? Decode(string? text)
+        {
+            if (text == null || text.IndexOf('&') < 0) return text;
+            var decoded = System.Net.WebUtility.HtmlDecode(text).Replace('\u00a0', ' ');
+            return decoded == text ? text : System.Text.RegularExpressions.Regex.Replace(decoded, @"[ \t]{2,}", " ");
         }
 
         private bool SplitSingleStep(RecipeEntity recipe)

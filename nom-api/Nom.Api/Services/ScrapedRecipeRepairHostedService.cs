@@ -48,7 +48,7 @@ namespace Nom.Api.Services
             }
 
             long cursor = 0;
-            long recipes = 0, repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0;
+            long recipes = 0, repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0;
             var started = DateTime.UtcNow;
             _logger.LogInformation("Scraped recipe repair starting ({Batch} recipes per batch)", batchSize);
 
@@ -68,6 +68,7 @@ namespace Nom.Api.Services
                     revetted += batch.Revetted;
                     cleared += batch.Cleared;
                     split += batch.StepsSplit;
+                    decoded += batch.TextDecoded;
 
                     if (recipes % (batchSize * 20) < batch.Recipes)
                     {
@@ -96,8 +97,8 @@ namespace Nom.Api.Services
             }
 
             _logger.LogInformation(
-                "Scraped recipe repair done in {Minutes:F1}m: {Recipes} recipes, {Repaired} rows repaired, {Unparsed} rows without a quantity, {Split} methods split into steps, {Revetted} re-vetted, {Cleared} cleared RequiresRevision",
-                (DateTime.UtcNow - started).TotalMinutes, recipes, repaired, unparsed, split, revetted, cleared);
+                "Scraped recipe repair done in {Minutes:F1}m: {Recipes} recipes, {Repaired} rows repaired, {Unparsed} rows without a quantity, {Split} methods split into steps, {Decoded} texts with entities decoded, {Revetted} re-vetted, {Cleared} cleared RequiresRevision",
+                (DateTime.UtcNow - started).TotalMinutes, recipes, repaired, unparsed, split, decoded, revetted, cleared);
         }
     }
 }

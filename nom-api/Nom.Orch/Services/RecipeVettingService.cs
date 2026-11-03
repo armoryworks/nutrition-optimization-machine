@@ -96,7 +96,7 @@ namespace Nom.Orch.Services
                 (t => Placeholder.IsMatch(t.Text), "Text is placeholder copy ({0})."),
                 (t => t.Where != "name" && !RealWord.IsMatch(t.Text), "Text has no real words ({0})."),
                 (t => t.Text.Length > 40 && DigitShare(t.Text) > 0.3, "Text is mostly digits ({0})."),
-                (t => ConsonantRun.IsMatch(t.Text), "Text has unreadable letter runs ({0}) — likely OCR garbage."),
+                (t => ConsonantRun.Matches(t.Text).Any(m => !Abbreviations.Contains(m.Value)), "Text has unreadable letter runs ({0}) — likely OCR garbage."),
             };
             foreach (var (hit, message) in checks)
             {
@@ -122,6 +122,11 @@ namespace Nom.Orch.Services
         private static readonly Regex ConsonantRun = new(
             @"(?<![\p{L}\p{N}])[bcdfghjklmnpqrstvwxz]{5,}(?![\p{L}\p{N}])",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly HashSet<string> Abbreviations = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "tbsps", "tblsp", "tblsps", "https", "http", "pkgs", "sprts", "cntnr", "mxd",
+        };
 
         public static bool IsAcceptablyUnquantified(string? rawLine, string? lineKind) =>
             RecipeIngredientLineKind.IsExempt(lineKind) || IsAcceptablyUnquantified(rawLine);

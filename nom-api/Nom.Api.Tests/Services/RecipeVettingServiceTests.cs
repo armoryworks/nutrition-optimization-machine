@@ -128,6 +128,7 @@ namespace Nom.Api.Tests.Services
         [InlineData("Simmer 10–12 minutes. Serve warm.")]
         [InlineData("Mix well with 3 tbsp Worcestershire sauce — Lea & Perrins works.")]
         [InlineData("Strengths and lengths of the dough vary; knead until smooth.")]
+        [InlineData("Stir in 2 tbsps butter and 1 tblsp honey.")]
         public async Task Ordinary_cooking_text_passes(string step)
         {
             var recipe = PlausibleRecipe();

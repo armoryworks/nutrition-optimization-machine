@@ -139,6 +139,27 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task Html_entities_left_by_extraction_are_decoded()
+        {
+            using var db = NewContext();
+            var recipe = Harvested("Mom&#8217;s Mac &amp; Cheese", (long)CurationStatusEnum.NonCurated, "2 cups flour", "1 cup milk");
+            recipe.Description = "Creamy&nbsp;and quick&#46;";
+            recipe.RecipeSteps!.First().Description = "Whisk the eggs &amp; sugar&#32;&#32;until pale.";
+            db.Recipes.Add(recipe);
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var result = await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 10);
+
+            result.TextDecoded.Should().Be(1);
+            var saved = await db.Recipes.Include(r => r.RecipeSteps).SingleAsync();
+            saved.Name.Should().Be("Mom’s Mac & Cheese");
+            saved.Description.Should().Be("Creamy and quick.");
+            saved.RecipeSteps!.OrderBy(s => s.StepNumber).First().Description.Should().Be("Whisk the eggs & sugar until pale.");
+            saved.VettingIssues.Should().BeNull("decoded text is not markup residue");
+        }
+
+        [Fact]
         public async Task Cursor_advances_and_reports_done()
         {
             using var db = NewContext();
