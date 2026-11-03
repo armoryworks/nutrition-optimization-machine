@@ -160,6 +160,28 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task Nutrition_facts_residue_is_stripped_and_an_emptied_step_dropped()
+        {
+            using var db = NewContext();
+            var recipe = Harvested("Brownies", (long)CurationStatusEnum.NonCurated, "2 cups flour", "1 cup milk");
+            var steps = recipe.RecipeSteps!.OrderBy(s => s.StepNumber).ToList();
+            steps[0].Description = "Leftovers also freeze well.View Nutrition Facts";
+            steps[1].Description = "6. Note: View Nutrition Facts";
+            db.Recipes.Add(recipe);
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var result = await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 10);
+
+            result.TextDecoded.Should().Be(1);
+            var saved = await db.Recipes.Include(r => r.RecipeSteps).SingleAsync();
+            var live = saved.RecipeSteps!.Where(s => !s.IsDeleted).OrderBy(s => s.StepNumber).ToList();
+            live.Select(s => s.Description).Should().Equal(new[] { "Leftovers also freeze well." });
+            live.Select(s => s.StepNumber).Should().Equal(new[] { 1 });
+            (await db.Set<RecipeStepEntity>().IgnoreQueryFilters().CountAsync(s => s.RecipeId == saved.Id && s.IsDeleted)).Should().Be(1);
+        }
+
+        [Fact]
         public async Task Cursor_advances_and_reports_done()
         {
             using var db = NewContext();

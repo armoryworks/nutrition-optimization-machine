@@ -98,16 +98,32 @@ namespace Nom.Orch.Services
             var now = DateTime.UtcNow;
             if (Decode(recipe.Name) is { } name && name != recipe.Name) { recipe.Name = name; changed = true; }
             if (Decode(recipe.Description) is { } description && description != recipe.Description) { recipe.Description = description; changed = true; }
-            foreach (var step in (recipe.RecipeSteps ?? Enumerable.Empty<RecipeStepEntity>()).Where(s => !s.IsDeleted))
+            var steps = (recipe.RecipeSteps ?? Enumerable.Empty<RecipeStepEntity>()).Where(s => !s.IsDeleted).OrderBy(s => s.StepNumber).ToList();
+            var dropped = false;
+            foreach (var step in steps)
             {
-                if (Decode(step.Description) is { } text && text != step.Description)
+                var text = Decode(step.Description);
+                if (text == null || text == step.Description) continue;
+                if (!RealWord.IsMatch(text))
+                {
+                    step.IsDeleted = true;
+                    step.DeletedAt = now;
+                    step.DeletedByPersonId = SystemConstants.SystemPersonId;
+                    dropped = true;
+                }
+                else
                 {
                     step.Description = text;
                     step.Summary = RecipeStepSplit.Clamp(text, 255);
                     step.LastModifiedDate = now;
                     step.LastModifiedByPersonId = SystemConstants.SystemPersonId;
-                    changed = true;
                 }
+                changed = true;
+            }
+            if (dropped)
+            {
+                var number = 1;
+                foreach (var step in steps.Where(s => !s.IsDeleted)) step.StepNumber = number++;
             }
             if (changed)
             {
@@ -121,10 +137,18 @@ namespace Nom.Orch.Services
             @"</?(?:span|div|p|b|i|em|strong|u|br|a|font|h[1-6]|ul|ol|li|table|tr|td|th|tbody|thead|section|article|header|footer)\b[^<>]*>",
             System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
+        private static readonly System.Text.RegularExpressions.Regex Residue = new(
+            @"\s*(?:\d+\.\s*)?(?:note:\s*)?view\s+nutrition\s+facts\.?\s*$",
+            System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+        private static readonly System.Text.RegularExpressions.Regex RealWord = new(
+            @"\p{L}{3,}", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
         private static string? Decode(string? text)
         {
-            if (text == null || (text.IndexOf('&') < 0 && text.IndexOf('<') < 0)) return text;
-            var decoded = System.Net.WebUtility.HtmlDecode(Tag.Replace(text, " ")).Replace('\u00a0', ' ');
+            if (text == null) return text;
+            var decoded = text.IndexOf('&') < 0 && text.IndexOf('<') < 0 ? text : System.Net.WebUtility.HtmlDecode(Tag.Replace(text, " ")).Replace('\u00a0', ' ');
+            decoded = Residue.Replace(decoded, string.Empty);
             return decoded == text ? text : System.Text.RegularExpressions.Regex.Replace(decoded, @"[ \t]{2,}", " ").Trim();
         }
 

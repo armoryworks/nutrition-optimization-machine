@@ -112,7 +112,7 @@ namespace Nom.Orch.Services
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex Placeholder = new(
-            @"\b(?:lorem\s+ipsum|todo|tbd|placeholder|insert\s+\w+\s+here|coming\s+soon|untitled\s+recipe)\b",
+            @"\b(?:lorem\s+ipsum|todo|tbd|placeholder|insert\s+\w+\s+here|coming\s+soon|untitled\s+recipe|not\s+(?:specified|provided)|provided\s+text|recipe\s+(?:is\s+)?incomplete)\b|^\s*n/?a\s*\.?\s*$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex RealWord = new(
