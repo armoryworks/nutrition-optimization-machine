@@ -24,6 +24,8 @@ public class AuditLogEntryEntityConfiguration : IEntityTypeConfiguration<AuditLo
         builder.Property(e => e.Timestamp).IsRequired();
         builder.Property(e => e.ChangedByPersonId).IsRequired();
 
+        builder.HasIndex(e => new { e.EntityType, e.ChangeType, e.EntityId });
+
         // Relationships
         builder.HasOne(e => e.ChangedByPerson)
             .WithMany()

@@ -14,10 +14,15 @@ namespace Nom.Orch.Services
     /// <summary>
     /// RequiresRevision repair proposals from the self-hosted Ollama model (Ai:BatchOllamaUrl, else
     /// Ai:OllamaUrl; model Ai:RepairModel, else Ai:Model so the GPU keeps one model resident, else
-    /// qwen2.5:14b-instruct). One request at a time; answers are untrusted until grounded.
+    /// qwen2.5:14b-instruct). One request at a time; answers are untrusted until grounded. Each
+    /// call is capped in output tokens and wall time so one degenerate answer cannot hold the lane.
     /// </summary>
     public class OllamaRecipeRepairModel : IRecipeRepairModel
     {
+        public static readonly TimeSpan CallTimeout = TimeSpan.FromSeconds(120);
+        private const int SplitMaxTokens = 1024;
+        private const int QuoteMaxTokens = 512;
+
         private readonly HttpClient _httpClient;
         private readonly string _baseUrl;
 
@@ -41,7 +46,7 @@ namespace Nom.Orch.Services
                 "and the next begins; cut only between sentences or at a semicolon. Each step should be one cooking action or a few " +
                 "closely related ones. Reply with STRICT JSON only: {\"steps\": [str, ...]}.\n\nMETHOD:\n" + method;
 
-            using var doc = await GenerateAsync(prompt, cancellationToken);
+            using var doc = await GenerateAsync(prompt, SplitMaxTokens, cancellationToken);
             if (doc == null || !doc.RootElement.TryGetProperty("steps", out var steps) || steps.ValueKind != JsonValueKind.Array) return null;
             return steps.EnumerateArray()
                 .Select(s => s.ValueKind == JsonValueKind.String ? s.GetString() ?? string.Empty : string.Empty)
@@ -64,7 +69,7 @@ namespace Nom.Orch.Services
                 string.Join("\n", ingredientLines.Select((l, i) => $"{i + 1}. {JsonSerializer.Serialize(l)}")) +
                 "\n\nMETHOD:\n" + method;
 
-            using var doc = await GenerateAsync(prompt, cancellationToken);
+            using var doc = await GenerateAsync(prompt, QuoteMaxTokens, cancellationToken);
             if (doc == null || !doc.RootElement.TryGetProperty("answers", out var answers) || answers.ValueKind != JsonValueKind.Array) return quotes;
 
             foreach (var answer in answers.EnumerateArray().Where(a => a.ValueKind == JsonValueKind.Object))
@@ -79,21 +84,23 @@ namespace Nom.Orch.Services
             return quotes;
         }
 
-        private async Task<JsonDocument?> GenerateAsync(string prompt, CancellationToken cancellationToken)
+        private async Task<JsonDocument?> GenerateAsync(string prompt, int maxTokens, CancellationToken cancellationToken)
         {
             if (!IsConfigured) throw new InvalidOperationException("No Ollama URL configured for recipe repair.");
 
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(CallTimeout);
             var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/api/generate", new
             {
                 model = ModelName,
                 prompt,
                 stream = false,
                 format = "json",
-                options = new { temperature = 0, num_ctx = 8192 },
-            }, cancellationToken);
+                options = new { temperature = 0, num_ctx = 8192, num_predict = maxTokens },
+            }, timeout.Token);
             response.EnsureSuccessStatusCode();
 
-            var body = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
+            var body = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: timeout.Token);
             try
             {
                 var doc = JsonDocument.Parse(body.GetProperty("response").GetString() ?? "{}");

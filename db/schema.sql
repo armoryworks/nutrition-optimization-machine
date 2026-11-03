@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ysWES5b7X3eMSuYKue9XE734aZJa17QQ5Jz7evzOLlTIDqpaDLzwf0po3efxmxx
+\restrict CHrbpwLC57h0cSZrXleL2A9U0xevYnQNmNuB4yhT0PjmOJAkum7tVpk5ygguQdM
 
 -- Dumped from database version 16.14
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -5068,6 +5068,13 @@ CREATE INDEX "IX_AuditLogEntry_ChangedByPersonId" ON audit."AuditLogEntry" USING
 
 
 --
+-- Name: IX_AuditLogEntry_EntityType_ChangeType_EntityId; Type: INDEX; Schema: audit; Owner: -
+--
+
+CREATE INDEX "IX_AuditLogEntry_EntityType_ChangeType_EntityId" ON audit."AuditLogEntry" USING btree ("EntityType", "ChangeType", "EntityId");
+
+
+--
 -- Name: EmailIndex; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -8645,5 +8652,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ysWES5b7X3eMSuYKue9XE734aZJa17QQ5Jz7evzOLlTIDqpaDLzwf0po3efxmxx
+\unrestrict CHrbpwLC57h0cSZrXleL2A9U0xevYnQNmNuB4yhT0PjmOJAkum7tVpk5ygguQdM
 

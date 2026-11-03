@@ -10,12 +10,14 @@ namespace Nom.Orch.Interfaces
         int RowsStillUnparsed,
         int Revetted,
         int Cleared,
-        long LastRecipeId);
+        long LastRecipeId,
+        int StepsSplit = 0);
 
     /// <summary>
-    /// Rebuilds ingredient quantities on scraped recipes from each row's RawLine (deterministic
-    /// parsing — no model involved) and re-runs vetting on recipes no human has reviewed, so
-    /// imports that lost their quantities stop sitting in RequiresRevision for that reason alone.
+    /// Rebuilds ingredient quantities on scraped recipes from each row's RawLine, divides a
+    /// one-paragraph method at its sentence ends (deterministic parsing — no model involved) and
+    /// re-runs vetting on recipes no human has reviewed, so imports that lost their quantities stop
+    /// sitting in RequiresRevision for that reason alone.
     /// </summary>
     public interface IScrapedRecipeRepairService
     {

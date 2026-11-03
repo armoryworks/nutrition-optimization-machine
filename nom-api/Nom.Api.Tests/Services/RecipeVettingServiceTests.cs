@@ -73,6 +73,34 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_one_paragraph_method_is_not_an_incomplete_extraction()
+        {
+            var recipe = PlausibleRecipe();
+            recipe.Steps.Clear();
+            recipe.Steps.Add(new ScraperStep { Order = 1, Instruction = "Boil the sweet potatoes until tender, then mash them with butter." });
+
+            Assert.DoesNotContain(await _vetting.VetAsync(recipe), i => i.Contains("instruction step"));
+
+            recipe.Steps[0].Instruction = "Boil and mash.";
+            Assert.Contains(await _vetting.VetAsync(recipe), i => i.Contains("instruction step"));
+        }
+
+        [Fact]
+        public async Task One_quantified_line_is_enough_for_a_public_domain_recipe()
+        {
+            var recipe = PlausibleRecipe();
+            recipe.Ingredients.RemoveRange(1, 2);
+
+            Assert.Contains(await _vetting.VetAsync(recipe), i => i.Contains("ingredient line"));
+
+            recipe.PublicDomain = true;
+            Assert.DoesNotContain(await _vetting.VetAsync(recipe), i => i.Contains("ingredient line"));
+
+            recipe.Ingredients[0].Quantity = null;
+            Assert.Contains(await _vetting.VetAsync(recipe), i => i.Contains("ingredient line"));
+        }
+
+        [Fact]
         public async Task Mostly_unparsed_quantities_are_flagged_for_review()
         {
             var recipe = PlausibleRecipe();

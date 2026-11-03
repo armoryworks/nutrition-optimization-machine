@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -52,6 +53,7 @@ namespace Nom.Api.Tests.Services.Curation
         {
             public IReadOnlyList<string>? Steps { get; init; } = ModelSteps;
             public IReadOnlyDictionary<int, string> Quotes { get; init; } = ModelQuotes;
+            public Exception? Failure { get; init; }
             public int Calls { get; private set; }
             public bool IsConfigured => true;
             public string ModelName => "fake";
@@ -59,12 +61,14 @@ namespace Nom.Api.Tests.Services.Curation
             public Task<IReadOnlyList<string>?> SplitStepsAsync(string method, CancellationToken cancellationToken = default)
             {
                 Calls++;
+                if (Failure != null) throw Failure;
                 return Task.FromResult(Steps);
             }
 
             public Task<IReadOnlyDictionary<int, string>> QuoteQuantitiesAsync(IReadOnlyList<string> ingredientLines, string method, CancellationToken cancellationToken = default)
             {
                 Calls++;
+                if (Failure != null) throw Failure;
                 return Task.FromResult(Quotes);
             }
         }
@@ -84,7 +88,7 @@ namespace Nom.Api.Tests.Services.Curation
             return db;
         }
 
-        private static RecipeEntity ShrewsburyCakes(long id = 10)
+        private static RecipeEntity ShrewsburyCakes(long id = 10, string method = Method)
         {
             var lines = new[] { "flour", "butter", "sugar", "eggs", "milk" };
             var recipe = new RecipeEntity
@@ -94,7 +98,7 @@ namespace Nom.Api.Tests.Services.Curation
                 ScrapedAtUtc = DateTime.UtcNow,
                 LicenseStatus = RecipeLicenseStatus.PublicDomain,
                 CurationStatusId = (long)CurationStatusEnum.RequiresRevision,
-                RecipeSteps = new List<RecipeStepEntity> { new() { StepNumber = 1, Summary = Method[..60], Description = Method } },
+                RecipeSteps = new List<RecipeStepEntity> { new() { StepNumber = 1, Summary = method[..Math.Min(60, method.Length)], Description = method } },
                 RecipeIngredients = lines.Select((l, i) => new RecipeIngredientEntity
                 {
                     IngredientId = id * 10 + i,
@@ -115,7 +119,7 @@ namespace Nom.Api.Tests.Services.Curation
         public async Task Old_cookbook_recipe_is_split_filled_and_cleared()
         {
             var original = ShrewsburyCakes();
-            original.VettingIssues.Should().Contain("Only 1 instruction step(s)").And.Contain("5 of 5 ingredient lines have no parseable quantity");
+            original.VettingIssues.Should().Contain("5 of 5 ingredient lines have no parseable quantity");
             using var db = await SeedAsync(original);
 
             var result = await Service(db, new FakeModel()).RepairBatchAsync(0, 10);
@@ -139,7 +143,7 @@ namespace Nom.Api.Tests.Services.Curation
             byLine.Keys.Should().BeEquivalentTo(new[] { "flour", "butter", "sugar", "eggs", "milk" }, "RawLine is never touched");
 
             var audit = await db.AuditLogEntries.ToListAsync();
-            audit.Should().ContainSingle(a => a.PropertyName == "RecipeSteps" && a.OldValue == Method);
+            audit.Should().ContainSingle(a => a.PropertyName == "RecipeSteps" && a.OldValue == Method).Which.NewValue.Should().StartWith("[deterministic] ", "a sentence split needs no model");
             audit.Count(a => a.EntityType == "RecipeIngredient").Should().Be(4);
             audit.Should().ContainSingle(a => a.ChangeType == RecipeAiRepairService.AttemptChangeType);
             audit.Should().OnlyContain(a => a.ChangedByPersonId == SystemConstants.SystemPersonId);
@@ -155,7 +159,7 @@ namespace Nom.Api.Tests.Services.Curation
             var again = await Service(db, model).RepairBatchAsync(0, 10);
 
             again.Examined.Should().Be(0);
-            model.Calls.Should().Be(2);
+            model.Calls.Should().Be(1, "the split is deterministic; only the quantities are asked");
         }
 
         [Theory]
@@ -179,7 +183,7 @@ namespace Nom.Api.Tests.Services.Curation
             (await Service(db, model).RepairBatchAsync(0, 10)).Examined.Should().Be(1);
             (await Service(db, model).RepairBatchAsync(0, 10)).Examined.Should().Be(0, "one attempt per version");
 
-            model.Calls.Should().Be(2);
+            model.Calls.Should().Be(1);
             var attempts = await db.AuditLogEntries.Where(a => a.ChangeType == RecipeAiRepairService.AttemptChangeType).OrderBy(a => a.Id).ToListAsync();
             attempts.Should().HaveCount(2);
             attempts[1].NewValue.Should().StartWith($"v{RecipeAiRepairService.RepairVersion} [fake] ");
@@ -187,18 +191,64 @@ namespace Nom.Api.Tests.Services.Curation
         }
 
         [Fact]
-        public async Task A_split_that_rewords_the_method_is_discarded()
+        public async Task A_recipe_whose_quantities_this_prompt_already_asked_is_not_asked_again()
         {
             using var db = await SeedAsync(ShrewsburyCakes());
-            var reworded = ModelSteps.ToArray();
-            reworded[3] = "Bake them in a hot oven for about fifteen minutes.";
+            db.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+            {
+                EntityType = "Recipe",
+                EntityId = 10,
+                ChangeType = RecipeAiRepairService.AttemptChangeType,
+                PropertyName = "VettingIssues",
+                NewValue = $"v{RecipeAiRepairService.QuantityPromptVersion} [fake] 5 of 5 ingredient lines have no parseable quantity",
+                ChangedByPersonId = SystemConstants.SystemPersonId,
+            });
+            await db.SaveChangesAsync();
+            var model = new FakeModel();
 
-            var result = await Service(db, new FakeModel { Steps = reworded }).RepairBatchAsync(0, 10);
+            var result = await Service(db, model).RepairBatchAsync(0, 10);
 
+            result.Examined.Should().Be(1);
+            result.StepsSplit.Should().Be(1, "the sentence split is new in this version");
+            model.Calls.Should().Be(0);
+            (await db.Recipes.Include(r => r.RecipeSteps).SingleAsync()).RecipeSteps!.Should().HaveCount(4);
+            (await Service(db, model).RepairBatchAsync(0, 10)).Examined.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task A_split_that_rewords_the_method_is_discarded()
+        {
+            const string shortMethod = "Boil it. Serve hot.";
+            using var db = await SeedAsync(ShrewsburyCakes(method: shortMethod));
+            var model = new FakeModel { Steps = new[] { "Boil it.", "Serve it warm." } };
+
+            var result = await Service(db, model).RepairBatchAsync(0, 10);
+
+            model.Calls.Should().Be(2, "two fragments too short to stand alone leave the split to the model");
             result.StepsSplit.Should().Be(0);
             var recipe = await db.Recipes.Include(r => r.RecipeSteps).SingleAsync();
-            recipe.RecipeSteps!.Should().ContainSingle().Which.Description.Should().Be(Method);
+            recipe.RecipeSteps!.Should().ContainSingle().Which.Description.Should().Be(shortMethod);
             recipe.CurationStatusId.Should().Be((long)CurationStatusEnum.RequiresRevision);
+        }
+
+        [Theory]
+        [InlineData(typeof(HttpRequestException))]
+        [InlineData(typeof(TaskCanceledException))]
+        [InlineData(typeof(System.Text.Json.JsonException))]
+        public async Task A_model_failure_is_recorded_and_the_batch_moves_on(Type failure)
+        {
+            using var db = await SeedAsync(ShrewsburyCakes(10), ShrewsburyCakes(11));
+            var model = new FakeModel { Failure = (Exception)Activator.CreateInstance(failure)! };
+
+            var result = await Service(db, model).RepairBatchAsync(0, 10);
+
+            result.Examined.Should().Be(2);
+            result.QuantitiesFilled.Should().Be(0);
+            model.Calls.Should().Be(2);
+            var attempts = await db.AuditLogEntries.Where(a => a.ChangeType == RecipeAiRepairService.AttemptChangeType).ToListAsync();
+            attempts.Should().HaveCount(2).And.OnlyContain(a => a.NewValue!.Contains("failed: " + failure.Name));
+            (await db.Recipes.ToListAsync()).Should().OnlyContain(r => r.CurationStatusId == (long)CurationStatusEnum.RequiresRevision);
+            (await Service(db, model).RepairBatchAsync(0, 10)).Examined.Should().Be(0, "a failed recipe is not retried until the version changes");
         }
 
         [Fact]
@@ -226,6 +276,19 @@ namespace Nom.Api.Tests.Services.Curation
 
             model.Calls.Should().Be(0);
             (await db.Recipes.SingleAsync()).CurationStatusId.Should().Be((long)CurationStatusEnum.RequiresRevision);
+            (await db.AuditLogEntries.SingleAsync(a => a.ChangeType == RecipeAiRepairService.AttemptChangeType)).NewValue.Should().StartWith($"v{RecipeAiRepairService.RepairVersion} not repairable: ");
+            (await Service(db, model).RepairBatchAsync(0, 10)).Examined.Should().Be(0, "a recipe the lane cannot fix is not reloaded every sweep");
+        }
+
+        [Fact]
+        public void Sentences_split_deterministically_and_abbreviations_do_not()
+        {
+            RecipeRepairGrounding.SplitSentences(Method).Should().Equal(ModelSteps);
+            RecipeRepairGrounding.SplitSentences("Boil the sweet potatoes until tender, then mash them with butter.").Should().BeNull("one sentence is not a split");
+            RecipeRepairGrounding.SplitSentences("Boil it. Serve hot.").Should().BeNull("fragments fold into one step");
+            RecipeRepairGrounding.SplitSentences("Add 1 lb. of flour and stir well; Then bake it slowly.").Should().Equal("Add 1 lb. of flour and stir well;", "Then bake it slowly.");
+            RecipeRepairGrounding.SplitSentences("Add 1 lb. of flour and stir well — then bake it slowly.").Should().BeNull("an em dash is not a sentence end");
+            RecipeRepairGrounding.SplitSentences(null).Should().BeNull();
         }
 
         [Fact]

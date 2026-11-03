@@ -67,6 +67,9 @@ namespace Nom.Orch.UtilityInterfaces
         public List<string> Cuisines { get; set; } = new();
         public List<string> SuitableForDiet { get; set; } = new();
         public string? RawJsonLd { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool PublicDomain { get; set; }
     }
 
     public class ScraperIngredient

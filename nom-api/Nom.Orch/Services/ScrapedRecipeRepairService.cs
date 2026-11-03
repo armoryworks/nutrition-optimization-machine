@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Nom.Data;
+using Nom.Data.Audit;
 using Nom.Data.Recipe;
 using Nom.Data.Reference;
 using Nom.Orch.Interfaces;
@@ -15,6 +16,8 @@ namespace Nom.Orch.Services
 {
     public class ScrapedRecipeRepairService : IScrapedRecipeRepairService
     {
+        public const string StepSplitChangeType = "StepSplit";
+
         private readonly ApplicationDbContext _context;
         private readonly IRecipeVettingService _vetting;
         private Dictionary<string, long>? _measurementIds;
@@ -45,9 +48,15 @@ namespace Nom.Orch.Services
                 : await query.ToListAsync(cancellationToken);
             if (recipes.Count == 0) return new ScrapedRepairBatchResult(0, 0, 0, 0, 0, afterRecipeId);
 
-            int repaired = 0, unparsed = 0, revetted = 0, cleared = 0;
+            int repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0;
             foreach (var recipe in recipes)
             {
+                var reviewable = recipe.DateCurationCompleted == null
+                    && (recipe.CurationStatusId == (long)CurationStatusEnum.RequiresRevision
+                        || recipe.CurationStatusId == (long)CurationStatusEnum.NonCurated);
+
+                if (reviewable && SplitSingleStep(recipe)) split++;
+
                 foreach (var row in recipe.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>())
                 {
                     if (row.Quantity != 0) continue;
@@ -66,9 +75,6 @@ namespace Nom.Orch.Services
                     repaired++;
                 }
 
-                var reviewable = recipe.DateCurationCompleted == null
-                    && (recipe.CurationStatusId == (long)CurationStatusEnum.RequiresRevision
-                        || recipe.CurationStatusId == (long)CurationStatusEnum.NonCurated);
                 if (!reviewable) continue;
 
                 revetted++;
@@ -77,7 +83,33 @@ namespace Nom.Orch.Services
 
             await _context.SaveChangesAsync(cancellationToken);
             _context.ChangeTracker.Clear();
-            return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id);
+            return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split);
+        }
+
+        private bool SplitSingleStep(RecipeEntity recipe)
+        {
+            var steps = (recipe.RecipeSteps ?? Enumerable.Empty<RecipeStepEntity>()).Where(s => !s.IsDeleted).ToList();
+            if (steps.Count != 1) return false;
+
+            var original = steps[0].Description ?? string.Empty;
+            var accepted = RecipeRepairGrounding.SplitSentences(original);
+            if (accepted == null) return false;
+
+            RecipeStepSplit.Apply(recipe, steps[0], accepted);
+            recipe.LastModifiedDate = DateTime.UtcNow;
+            recipe.LastModifiedByPersonId = SystemConstants.SystemPersonId;
+            _context.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = "Recipe",
+                EntityId = recipe.Id,
+                ChangeType = StepSplitChangeType,
+                PropertyName = "RecipeSteps",
+                OldValue = RecipeStepSplit.Clamp(original, 4000),
+                NewValue = RecipeStepSplit.Clamp(System.Text.Json.JsonSerializer.Serialize(accepted), 4000),
+                Timestamp = DateTime.UtcNow,
+                ChangedByPersonId = SystemConstants.SystemPersonId,
+            });
+            return true;
         }
 
         internal static async Task<bool> RevetAsync(IRecipeVettingService vetting, Nom.Data.Recipe.RecipeEntity recipe)
@@ -94,6 +126,7 @@ namespace Nom.Orch.Services
         internal static ScraperRecipe ToVettable(Nom.Data.Recipe.RecipeEntity recipe) => new()
         {
             Name = recipe.Name,
+            PublicDomain = recipe.LicenseStatus == RecipeLicenseStatus.PublicDomain,
             PrepTimeMinutes = recipe.PrepTimeMinutes is long prep ? (int)Math.Min(prep, int.MaxValue) : null,
             CookTimeMinutes = recipe.CookTimeMinutes is long cook ? (int)Math.Min(cook, int.MaxValue) : null,
             RecipeServings = recipe.RecipeServings,

@@ -114,6 +114,31 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_one_paragraph_method_is_split_at_its_sentences()
+        {
+            const string method = "Whisk everything together in a bowl. Bake until golden, about 12 minutes.";
+            using var db = NewContext();
+            var flagged = Harvested("Plain Cake", (long)CurationStatusEnum.RequiresRevision, "2 cups flour", "1 cup milk");
+            flagged.RecipeSteps = new List<RecipeStepEntity> { new() { StepNumber = 1, Summary = "Mix", Description = method } };
+            var approved = Harvested("Reviewed Cake", (long)CurationStatusEnum.Curated, "2 cups flour", "1 cup milk");
+            approved.DateCurationCompleted = DateTime.UtcNow;
+            approved.RecipeSteps = new List<RecipeStepEntity> { new() { StepNumber = 1, Summary = "Mix", Description = method } };
+            db.Recipes.AddRange(flagged, approved);
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var result = await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 10);
+
+            result.StepsSplit.Should().Be(1);
+            var steps = await db.RecipeSteps.Where(s => s.RecipeId == flagged.Id).OrderBy(s => s.StepNumber).Select(s => s.Description).ToListAsync();
+            steps.Should().Equal("Whisk everything together in a bowl.", "Bake until golden, about 12 minutes.");
+            (await db.RecipeSteps.CountAsync(s => s.RecipeId == approved.Id)).Should().Be(1, "reviewed recipes are left alone");
+            var audit = await db.AuditLogEntries.SingleAsync();
+            (audit.EntityId, audit.ChangeType, audit.OldValue).Should().Be((flagged.Id, ScrapedRecipeRepairService.StepSplitChangeType, method));
+            (await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 10)).StepsSplit.Should().Be(0, "idempotent");
+        }
+
+        [Fact]
         public async Task Cursor_advances_and_reports_done()
         {
             using var db = NewContext();

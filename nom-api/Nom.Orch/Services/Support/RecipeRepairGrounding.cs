@@ -33,10 +33,22 @@ namespace Nom.Orch.Services.Support
         };
 
         private static readonly Regex NumberToken = new(@"^[\d¼½¾⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞./,\-–]+$", RegexOptions.Compiled);
+        private static readonly Regex SentenceEnd = new(@"(?<=[.;!?][""'”’)]?)\s+(?=[""'“‘(]?\p{Lu})", RegexOptions.Compiled);
         private static readonly Regex Words = new(@"[\p{L}\d¼½¾⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞./\-–]+", RegexOptions.Compiled);
 
         public static string Normalize(string? text) =>
             Regex.Replace(System.Net.WebUtility.HtmlDecode(text ?? string.Empty), @"\s+", " ").Trim();
+
+        /// <summary>
+        /// The method divided at sentence ends (a full stop, semicolon, question or exclamation mark followed by
+        /// a capital), passed through <see cref="AcceptSplit"/>; null when it is a single sentence.
+        /// </summary>
+        public static List<string>? SplitSentences(string? method)
+        {
+            var text = Normalize(method);
+            if (text.Length == 0) return null;
+            return AcceptSplit(text, SentenceEnd.Split(text));
+        }
 
         public static List<string>? AcceptSplit(string original, IReadOnlyList<string>? proposed)
         {

@@ -20,6 +20,7 @@ namespace Nom.Orch.Services
         private const int MaxPlausibleActiveMinutes = 24 * 60;      // a day of prep/cook
         private const int MaxPlausibleTotalMinutes = 14 * 24 * 60;  // ferments, cures
         private const decimal MaxPlausibleServings = 200m;
+        private const int MinMethodLengthForOneStep = 40;
 
         public Task<List<string>> VetAsync(ScraperRecipe recipe)
         {
@@ -30,12 +31,14 @@ namespace Nom.Orch.Services
                 issues.Add("Recipe name is missing or implausibly short.");
             }
 
-            if (recipe.Ingredients.Count < 2)
+            var oneQuantifiedPublicDomainLine = recipe.PublicDomain && recipe.Ingredients.Count == 1 && recipe.Ingredients[0].Quantity > 0;
+            if (recipe.Ingredients.Count < 2 && !oneQuantifiedPublicDomainLine)
             {
                 issues.Add($"Only {recipe.Ingredients.Count} ingredient line(s) — a usable recipe almost always has at least 2.");
             }
 
-            if (recipe.Steps.Count < 2)
+            var methodLength = recipe.Steps.Sum(s => s.Instruction.Trim().Length);
+            if (recipe.Steps.Count < 2 && methodLength < MinMethodLengthForOneStep)
             {
                 issues.Add($"Only {recipe.Steps.Count} instruction step(s) — likely an incomplete extraction.");
             }
