@@ -20,5 +20,7 @@ namespace Nom.Orch.Interfaces
         /// returns false when anything other than recipes references the source.
         /// </summary>
         Task<bool> MergeIntoAsync(long sourceId, long targetId, long? personId, bool ignoreProposals = false);
+
+        Task<CatalogNormalizeResult> NormalizeAsync(bool apply);
     }
 }

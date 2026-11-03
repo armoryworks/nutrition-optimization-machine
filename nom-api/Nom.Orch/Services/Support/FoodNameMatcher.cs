@@ -22,6 +22,9 @@ namespace Nom.Orch.Services.Support
             "freshly", "chopped", "minced", "diced", "sliced", "large", "small", "medium", "organic",
             "of", "and", "or", "the", "a", "an", "to", "for", "taste", "optional", "finely", "roughly",
             "plain", "pure", "good", "quality",
+            "cup", "tablespoon", "tbsp", "teaspoon", "tsp", "ounce", "oz", "pound", "lb", "pint", "quart", "gallon",
+            "can", "jar", "package", "pkg", "packet", "box", "bag", "slice", "stick", "piece", "handful", "sprig",
+            "each", "about", "approximately", "divided", "plus", "more", "extra", "heaping", "scant", "level",
         };
 
         private static readonly HashSet<string> ClassPrefixes = new(StringComparer.Ordinal)

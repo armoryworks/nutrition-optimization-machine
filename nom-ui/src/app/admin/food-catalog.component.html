@@ -235,6 +235,57 @@
     </div>
   }
 
+  <h3 class="nom-food-catalog__section-title">USDA links by food</h3>
+  <p class="nom-admin__panel-description">
+    Every pending link, grouped by the USDA food it points at and ordered by how many recipe lines it
+    would curate. Approve a group when its sample names all belong to that food; the model's picks that
+    the name matcher and a second model call agreed with are counted as verified.
+  </p>
+  <div class="nom-food-catalog__link-toolbar" data-testid="food-catalog-link-groups-toolbar">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Proposed by</mat-label>
+      <mat-select [value]="linkGroupSource()" (valueChange)="setLinkGroupSource($event)" data-testid="food-catalog-link-groups-source">
+        <mat-option value="all" data-testid="food-catalog-link-groups-source-all">Anyone</mat-option>
+        <mat-option value="ai" data-testid="food-catalog-link-groups-source-ai">The model</mat-option>
+        <mat-option value="deterministic" data-testid="food-catalog-link-groups-source-deterministic">Exact name match</mat-option>
+        <mat-option value="admin" data-testid="food-catalog-link-groups-source-admin">An admin</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Checked</mat-label>
+      <mat-select [value]="linkGroupVerified()" (valueChange)="setLinkGroupVerified($event)" data-testid="food-catalog-link-groups-verified">
+        <mat-option value="any" data-testid="food-catalog-link-groups-verified-any">Any</mat-option>
+        <mat-option value="verified" data-testid="food-catalog-link-groups-verified-only">Verified by triangulation</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+  @if (linkGroupsLoading()) {
+    <div class="nom-food-catalog__loading"><mat-spinner diameter="24" /></div>
+  } @else if (linkGroups().length === 0) {
+    <p class="nom-food-catalog__empty" data-testid="food-catalog-link-groups-empty">No pending links match.</p>
+  } @else {
+    <div class="nom-food-catalog__proposals" data-testid="food-catalog-link-groups">
+      @for (g of linkGroups(); track g.targetIngredientId) {
+        <div class="nom-food-catalog__proposal" data-testid="food-catalog-link-group-item">
+          <div class="nom-food-catalog__proposal-body">
+            <strong>{{ g.targetName }}</strong>
+            <span class="nom-food-catalog__proposal-reason">
+              {{ g.count | number }} ingredient{{ g.count === 1 ? '' : 's' }} · {{ g.uses | number }} recipe line{{ g.uses === 1 ? '' : 's' }}
+              · {{ g.verifiedCount | number }} verified · {{ g.exactCount | number }} exact
+            </span>
+            <span class="nom-food-catalog__proposal-source">{{ g.samples.join(' · ') }}</span>
+          </div>
+          <div class="nom-food-catalog__proposal-actions">
+            <button mat-flat-button color="primary" (click)="approveLinkGroup(g)"
+                    [disabled]="linkGroupBusy() !== null" data-testid="food-catalog-link-group-approve-btn">
+              {{ linkGroupBusy() === g.targetIngredientId ? 'Linking…' : 'Approve all (' + g.count + ')' }}
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
   <h3 class="nom-food-catalog__section-title">USDA links</h3>
   <p class="nom-admin__panel-description">
     Ingredients recipes use, matched to USDA foods — most-used first. Exact name matches are

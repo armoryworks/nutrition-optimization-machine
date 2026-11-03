@@ -25,7 +25,7 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex LeadingUnit = new(
             @"^\s*(?:small|medium|large|extra[- ]large|heaping|scant|level|generous|rounded)?\s*" +
-            @"(?:pints?|quarts?|gallons?|cups?|cans?|jars?|packages?|pkgs?|packets?|boxes?|bags?|bunch(?:es)?|" +
+            @"(?:pints?|pts?\.?|quarts?|qts?\.?|gallons?|gals?\.?|cups?|cans?|jars?|packages?|pkgs?|packets?|boxes?|bags?|bunch(?:es)?|" +
             @"slices?|pounds?|lbs?\.?|ounces?|oz\.?|fl\.?\s*oz\.?|tablespoons?|tbsps?\.?|teaspoons?|tsps?\.?|" +
             @"cloves?|sticks?|pieces?|pinch(?:es)?|dash(?:es)?|handfuls?|sprigs?|heads?|stalks?|ribs?|ears?|" +
             @"fillets?|filets?|strips?|cubes?|knobs?|pats?|liters?|litres?|l\b|ml\b|milliliters?|grams?|g\b|kgs?|kilograms?)" +

@@ -361,6 +361,93 @@ namespace Nom.Orch.Services
             return true;
         }
 
+        private IQueryable<FoodCatalogProposalEntity> PendingLinks(string? source, bool? verified)
+        {
+            var query = _context.FoodCatalogProposals
+                .Where(p => p.Status == FoodProposalStatus.Pending && p.Field == FdcLinkField && p.IngredientId != null && p.ProposedValue != null);
+            query = source switch
+            {
+                "ai" => query.Where(p => p.Source.StartsWith("ai:")),
+                "deterministic" => query.Where(p => p.Source.StartsWith("deterministic:")),
+                "admin" => query.Where(p => p.Source.StartsWith("admin:")),
+                _ => query,
+            };
+            if (verified == true) query = query.Where(p => p.Reason != null && p.Reason.Contains(IngredientLinkService.VerifiedMark));
+            if (verified == false) query = query.Where(p => p.Reason == null || !p.Reason.Contains(IngredientLinkService.VerifiedMark));
+            return query;
+        }
+
+        public async Task<List<FoodProposalGroupModel>> GetLinkGroupsAsync(string? source, bool? verified, int limit)
+        {
+            limit = Math.Clamp(limit, 1, 500);
+            var rows = PendingLinks(source, verified).Select(p => new
+            {
+                p.Id,
+                Target = p.ProposedValue!,
+                p.FdcId,
+                p.Source,
+                p.CurrentValue,
+                Verified = p.Reason != null && p.Reason.Contains(IngredientLinkService.VerifiedMark),
+                Uses = _context.RecipeIngredients.Count(ri => ri.IngredientId == p.IngredientId),
+            });
+            var groups = await rows
+                .GroupBy(r => r.Target)
+                .Select(g => new
+                {
+                    Target = g.Key,
+                    Count = g.Count(),
+                    Uses = g.Sum(r => r.Uses),
+                    Verified = g.Count(r => r.Verified),
+                    Exact = g.Count(r => r.Source.StartsWith("deterministic:")),
+                })
+                .OrderByDescending(g => g.Uses).ThenByDescending(g => g.Count).ThenBy(g => g.Target)
+                .Take(limit)
+                .ToListAsync();
+            if (groups.Count == 0) return new List<FoodProposalGroupModel>();
+
+            var targets = groups.Select(g => g.Target).ToList();
+            var targetIds = targets.Select(t => long.TryParse(t, out var id) ? id : 0L).Where(id => id > 0).ToList();
+            var names = await _context.Ingredients.AsNoTracking()
+                .Where(i => targetIds.Contains(i.Id))
+                .Select(i => new { i.Id, i.Name, i.FdcId })
+                .ToDictionaryAsync(i => i.Id.ToString(), i => (i.Name, i.FdcId));
+            var samples = (await rows
+                    .Where(r => targets.Contains(r.Target))
+                    .OrderByDescending(r => r.Uses).ThenBy(r => r.Id)
+                    .Select(r => new { r.Target, r.CurrentValue })
+                    .Take(limit * 40)
+                    .ToListAsync())
+                .GroupBy(r => r.Target)
+                .ToDictionary(g => g.Key, g => g.Select(r => r.CurrentValue ?? string.Empty).Where(v => v.Length > 0).Distinct().Take(5).ToList());
+
+            return groups.Select(g => new FoodProposalGroupModel
+            {
+                TargetIngredientId = long.TryParse(g.Target, out var id) ? id : 0,
+                TargetName = names.TryGetValue(g.Target, out var n) ? n.Name : $"#{g.Target}",
+                FdcId = names.TryGetValue(g.Target, out var f) ? f.FdcId : null,
+                Count = g.Count,
+                Uses = g.Uses,
+                VerifiedCount = g.Verified,
+                ExactCount = g.Exact,
+                Samples = samples.TryGetValue(g.Target, out var sm) ? sm : new List<string>(),
+            }).ToList();
+        }
+
+        public async Task<FoodProposalGroupApplyResult> ApplyLinkGroupAsync(long targetIngredientId, string? source, bool? verified, int max, long reviewerPersonId)
+        {
+            max = Math.Clamp(max, 1, 500);
+            var target = targetIngredientId.ToString();
+            var ids = await PendingLinks(source, verified)
+                .Where(p => p.ProposedValue == target)
+                .OrderByDescending(p => _context.RecipeIngredients.Count(ri => ri.IngredientId == p.IngredientId)).ThenBy(p => p.Id)
+                .Select(p => p.Id)
+                .Take(max + 1)
+                .ToListAsync();
+            var batch = await ApplyProposalsAsync(ids.Take(max), reviewerPersonId);
+            var remaining = await PendingLinks(source, verified).CountAsync(p => p.ProposedValue == target);
+            return new FoodProposalGroupApplyResult { Applied = batch.Applied, Skipped = batch.Skipped, Remaining = remaining };
+        }
+
         public async Task<FoodProposalBatchResult> ApplyProposalsAsync(IEnumerable<long> proposalIds, long reviewerPersonId)
         {
             var result = new FoodProposalBatchResult();
@@ -395,7 +482,7 @@ namespace Nom.Orch.Services
 
             if (await _cleanup.MergeIntoAsync(source.Id, target.Id, reviewerPersonId, ignoreProposals: true))
             {
-                var friendly = FriendlyName(sourceName);
+                var friendly = FriendlyName(Support.IngredientNameNormalizer.Normalize(sourceName));
                 if (target.Name.Contains(',') && friendly != null
                     && !await _context.Ingredients.AnyAsync(i => i.Id != source.Id && i.Id != target.Id && i.Name.ToLower() == friendly.ToLower()))
                 {
@@ -405,9 +492,10 @@ namespace Nom.Orch.Services
                     target.Name = friendly;
                     await AddAliasAsync(target.Id, usdaName, reviewerPersonId);
                 }
-                if (!string.Equals(target.Name, sourceName, StringComparison.OrdinalIgnoreCase))
+                var alias = Support.IngredientNameNormalizer.Normalize(sourceName);
+                if (!string.Equals(target.Name, alias, StringComparison.OrdinalIgnoreCase))
                 {
-                    await AddAliasAsync(target.Id, sourceName, reviewerPersonId);
+                    await AddAliasAsync(target.Id, alias, reviewerPersonId);
                 }
                 return true;
             }
@@ -456,7 +544,8 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// Gives a catalog ingredient the USDA identity and values of the same-named food the
-        /// importer found (carried in the proposal, source fdc:&lt;id&gt;). Only fills what is missing.
+        /// importer found (carried in the proposal, source fdc:&lt;id&gt;). Only fills what is missing,
+        /// and curates the food when the record is USDA Foundation or SR Legacy, as approving a link does.
         /// </summary>
         private async Task<bool> ApplyFdcAttachAsync(FoodCatalogProposalEntity p, long reviewerPersonId)
         {
@@ -489,8 +578,10 @@ namespace Nom.Orch.Services
             }
 
             ingredient.FdcId ??= p.FdcId;
-            if (ingredient.FdcDataType == null && root.TryGetProperty("fdcDataType", out var dt) && dt.ValueKind == System.Text.Json.JsonValueKind.String)
+            if (string.IsNullOrEmpty(ingredient.FdcDataType) && root.TryGetProperty("fdcDataType", out var dt) && dt.ValueKind == System.Text.Json.JsonValueKind.String)
                 ingredient.FdcDataType = dt.GetString();
+            if (ingredient.FdcDataType is "foundation_food" or "sr_legacy_food")
+                ingredient.CurationStatusId = CuratedStatus;
             if (ingredient.ReferenceServingGrams == null && root.TryGetProperty("referenceServingGrams", out var rs) && rs.ValueKind == System.Text.Json.JsonValueKind.Number)
                 ingredient.ReferenceServingGrams = rs.GetDecimal();
             if (ingredient.GramsPerMilliliter == null && root.TryGetProperty("gramsPerMilliliter", out var gml) && gml.ValueKind == System.Text.Json.JsonValueKind.Number)

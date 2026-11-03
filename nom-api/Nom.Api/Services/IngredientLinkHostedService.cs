@@ -12,8 +12,10 @@ namespace Nom.Api.Services
     /// to choose.
     ///
     /// IngredientLinking:AutoApplyCertain=false leaves certain links for an admin too.
+    /// IngredientLinking:AutoApplyNameMatches=true also applies exact name matches unreviewed.
     /// IngredientLinking:AutoApplyVerifiedAi=false stops triangulating model picks;
-    /// IngredientLinking:VerifiedMinConfidence (default 0.85) is the confidence bar;
+    /// IngredientLinking:VerifyMinConfidence (default 0.80) is the bar for checking a pick and
+    /// IngredientLinking:VerifiedMinConfidence (default 0.85) the bar for applying a verified one;
     /// IngredientLinking:VerifyBatchSize (default 24) picks checked per pass;
     /// IngredientLinking:VerifyModel (default the link model) gives the second opinion.
     /// IngredientLinking:Enabled=false disables it; IngredientLinking:BatchSize (default 30)
@@ -27,6 +29,8 @@ namespace Nom.Api.Services
         private readonly ILogger<IngredientLinkHostedService> _logger;
 
         private readonly HashSet<long> _unappliable = new();
+        private bool _applyNameMatches;
+        private decimal _applyMinConfidence = 0.85m;
 
         public IngredientLinkHostedService(
             IServiceScopeFactory scopeFactory,
@@ -75,9 +79,11 @@ namespace Nom.Api.Services
                 _logger.LogWarning(ex, "Re-pointing pending staple links failed");
             }
             var autoApply = _configuration.GetValue("IngredientLinking:AutoApplyCertain", true);
+            _applyNameMatches = _configuration.GetValue("IngredientLinking:AutoApplyNameMatches", false);
             if (autoApply) await ApplyCertainLinksAsync(stoppingToken);
             var autoApplyVerified = _configuration.GetValue("IngredientLinking:AutoApplyVerifiedAi", true);
-            var minConfidence = Math.Clamp(_configuration.GetValue("IngredientLinking:VerifiedMinConfidence", 0.85m), 0m, 1m);
+            _applyMinConfidence = Math.Clamp(_configuration.GetValue("IngredientLinking:VerifiedMinConfidence", 0.85m), 0m, 1m);
+            var minConfidence = Math.Clamp(_configuration.GetValue("IngredientLinking:VerifyMinConfidence", 0.80m), 0m, _applyMinConfidence);
             var verifyBatch = Math.Clamp(_configuration.GetValue("IngredientLinking:VerifyBatchSize", 24), 1, 200);
             if (autoApplyVerified) await ApplyVerifiedLinksAsync(stoppingToken);
 
@@ -146,10 +152,11 @@ namespace Nom.Api.Services
         }
 
         private Task ApplyCertainLinksAsync(CancellationToken stoppingToken) =>
-            ApplyLinksAsync((links, skip, token) => links.PendingDeterministicAsync(50, skip, token), "certain links (staples, same-name USDA attaches)", stoppingToken);
+            ApplyLinksAsync((links, skip, token) => links.PendingDeterministicAsync(50, skip, _applyNameMatches, token),
+                _applyNameMatches ? "certain links (staples, exact name matches, same-name USDA attaches)" : "certain links (staples, same-name USDA attaches)", stoppingToken);
 
         private Task ApplyVerifiedLinksAsync(CancellationToken stoppingToken) =>
-            ApplyLinksAsync((links, skip, token) => links.PendingVerifiedAsync(50, skip, token), "model picks verified by triangulation", stoppingToken);
+            ApplyLinksAsync((links, skip, token) => links.PendingVerifiedAsync(50, skip, _applyMinConfidence, token), "model picks verified by triangulation", stoppingToken);
 
         private async Task ApplyLinksAsync(
             Func<IIngredientLinkService, IReadOnlyCollection<long>, CancellationToken, Task<IReadOnlyList<long>>> next,

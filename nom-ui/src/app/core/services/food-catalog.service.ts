@@ -10,6 +10,9 @@ import {
   FoodCatalogItem,
   FoodCatalogUpdate,
   FoodProposal,
+  FoodProposalGroup,
+  FoodProposalGroupApplyResult,
+  LinkGroupSource,
 } from '../models/food-catalog.model';
 
 /** Admin review of the imported food catalog, its quality audit, and reviewer proposals. */
@@ -95,6 +98,20 @@ export class FoodCatalogService {
 
   rejectProposal(id: number): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/proposals/${id}/reject`, {});
+  }
+
+  getLinkGroups(source: LinkGroupSource = 'all', verified: boolean | null = null, limit = 200): Observable<FoodProposalGroup[]> {
+    let params = new HttpParams().set('limit', limit);
+    if (source !== 'all') params = params.set('source', source);
+    if (verified != null) params = params.set('verified', verified);
+    return this.http.get<FoodProposalGroup[]>(`${this.apiUrl}/proposals/link-groups`, { params });
+  }
+
+  applyLinkGroup(targetIngredientId: number, source: LinkGroupSource = 'all', verified: boolean | null = null, max = 500): Observable<FoodProposalGroupApplyResult> {
+    let params = new HttpParams().set('max', max);
+    if (source !== 'all') params = params.set('source', source);
+    if (verified != null) params = params.set('verified', verified);
+    return this.http.post<FoodProposalGroupApplyResult>(`${this.apiUrl}/proposals/link-groups/${targetIngredientId}/apply`, null, { params });
   }
 
   applyProposals(ids: number[]): Observable<{ applied: number; skipped: number }> {

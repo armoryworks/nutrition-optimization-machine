@@ -32,7 +32,7 @@ namespace Nom.Orch.Interfaces
         /// Pending links that are certain — staples and same-name USDA attaches — which are applied
         /// without an admin, most-used first. Name-matcher and model picks stay with reviewers.
         /// </summary>
-        Task<IReadOnlyList<long>> PendingDeterministicAsync(int count, IReadOnlyCollection<long> skip, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<long>> PendingDeterministicAsync(int count, IReadOnlyCollection<long> skip, bool includeNameMatches = false, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Triangulates pending model picks, most-used first: a pick is verified only when the model
@@ -45,6 +45,6 @@ namespace Nom.Orch.Interfaces
         Task<IngredientLinkVerifyResult?> VerifyPendingAiAsync(int count, decimal minConfidence, CancellationToken cancellationToken = default);
 
         /// <summary>Pending model picks that triangulation verified, most-used first, for applying without an admin.</summary>
-        Task<IReadOnlyList<long>> PendingVerifiedAsync(int count, IReadOnlyCollection<long> skip, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<long>> PendingVerifiedAsync(int count, IReadOnlyCollection<long> skip, decimal minConfidence = 0m, CancellationToken cancellationToken = default);
     }
 }

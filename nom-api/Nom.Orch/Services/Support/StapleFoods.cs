@@ -93,6 +93,9 @@ namespace Nom.Orch.Services.Support
             ("Lettuce, iceberg, raw", new[] { "iceberg lettuce" }),
             ("Syrups, maple", new[] { "maple syrup", "pure maple syrup" }),
             ("Oats, whole grain, rolled, old fashioned", new[] { "rolled oats", "old fashioned oats", "old fashioned rolled oats" }),
+            ("Lemons, raw, without peel", new[] { "lemon", "lemons", "fresh lemon", "fresh lemons" }),
+            ("Limes, raw", new[] { "lime", "limes", "fresh lime", "fresh limes" }),
+            ("Lard", new[] { "lard", "pork lard" }),
         });
 
         private static Dictionary<string, string> Build((string Usda, string[] Names)[] rows)

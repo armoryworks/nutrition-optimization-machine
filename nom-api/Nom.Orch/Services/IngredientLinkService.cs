@@ -22,7 +22,10 @@ namespace Nom.Orch.Services
         public const decimal ExactConfidence = 0.95m;
         public const string TriangulationMark = " · triangulation: ";
         public const string VerifiedMark = TriangulationMark + "verified";
+        public const string NotVerifiedMark = TriangulationMark + "not verified";
+        public static readonly TimeSpan RejectionRetryAge = TimeSpan.FromDays(7);
         private const int ModelBatch = 6;
+        private const int VerifierRankWindow = 3;
         private const int ReasonLength = 2047;
         private static readonly TimeSpan MatcherLifetime = TimeSpan.FromMinutes(15);
 
@@ -46,12 +49,21 @@ namespace Nom.Orch.Services
             _logger = logger;
         }
 
+        /// <summary>
+        /// Uncurated ingredients with no open link proposal, most used first. A rejection by a person
+        /// settles the matter; a rejection by the machine (no candidate, or the model chose none) only
+        /// holds for <see cref="RejectionRetryAge"/>, since the catalog and the matcher keep improving.
+        /// </summary>
         public async Task<IReadOnlyList<LinkSource>> NextSourcesAsync(int count, CancellationToken cancellationToken = default)
         {
+            var retryBefore = DateTime.UtcNow - RejectionRetryAge;
             return await _context.Ingredients
                 .Where(i => i.FdcId == null && !i.IsDeleted
                     && !_context.FoodCatalogProposals.Any(p => p.IngredientId == i.Id
-                        && (p.Field == FoodCatalogReviewService.FdcLinkField
+                        && ((p.Field == FoodCatalogReviewService.FdcLinkField
+                                && (p.Status != FoodProposalStatus.Rejected
+                                    || (p.ReviewedByPersonId != null && p.ReviewedByPersonId != SystemConstants.SystemPersonId)
+                                    || (p.LastModifiedDate ?? p.CreatedDate) > retryBefore))
                             || (p.Field == FoodCatalogReviewService.FdcAttachField && p.Status == FoodProposalStatus.Pending))))
                 .Select(i => new { i.Id, i.Name, Uses = _context.RecipeIngredients.Count(ri => ri.IngredientId == i.Id) })
                 .Where(x => x.Uses > 0)
@@ -71,28 +83,29 @@ namespace Nom.Orch.Services
             var staples = await StapleTargetsAsync(cancellationToken);
             foreach (var source in sources)
             {
-                if (StapleFoods.UsdaNameFor(source.Name) is { } stapleName && staples.TryGetValue(stapleName, out var staple))
+                var name = IngredientNameNormalizer.Normalize(source.Name);
+                if (StapleFoods.UsdaNameFor(name) is { } stapleName && staples.TryGetValue(stapleName, out var staple))
                 {
                     Propose(source, staple, StapleSource, ExactConfidence, FoodProposalStatus.Pending);
                     exact++;
                     continue;
                 }
 
-                if ((matcher.Exact(source.Name) ?? matcher.Covering(source.Name)) is { } hit)
+                if ((matcher.Exact(name) ?? matcher.Covering(name)) is { } hit)
                 {
                     Propose(source, hit, ExactSource, ExactConfidence, FoodProposalStatus.Pending);
                     exact++;
                     continue;
                 }
 
-                var shortlist = matcher.Shortlist(source.Name, 10);
+                var shortlist = matcher.Shortlist(name, 10);
                 if (shortlist.Count == 0)
                 {
                     Propose(source, null, NoCandidateSource, null, FoodProposalStatus.Rejected);
                     none++;
                     continue;
                 }
-                ambiguous.Add((source, shortlist));
+                ambiguous.Add((source with { Name = name }, shortlist));
             }
 
             if (ambiguous.Count > 0 && !_matcher.IsConfigured)
@@ -135,8 +148,9 @@ namespace Nom.Orch.Services
                     answers = singles;
                 }
 
-                foreach (var (source, _) in chunk)
+                foreach (var (asked, _) in chunk)
                 {
+                    var source = sources.First(s => s.IngredientId == asked.IngredientId);
                     var answer = answers.FirstOrDefault(a => a.IngredientId == source.IngredientId);
                     if (answer?.Choice is { } choice)
                     {
@@ -195,9 +209,10 @@ namespace Nom.Orch.Services
             foreach (var p in pending)
             {
                 if (p.CurrentValue == null) continue;
-                if (StapleFoods.UsdaNameFor(p.CurrentValue) is not { } stapleName || !staples.TryGetValue(stapleName, out var staple))
+                var name = IngredientNameNormalizer.Normalize(p.CurrentValue);
+                if (StapleFoods.UsdaNameFor(name) is not { } stapleName || !staples.TryGetValue(stapleName, out var staple))
                 {
-                    if (p.Source == ExactSource && (matcher.Exact(p.CurrentValue) ?? matcher.Covering(p.CurrentValue))?.FdcId != p.FdcId)
+                    if (p.Source == ExactSource && (matcher.Exact(name) ?? matcher.Covering(name))?.FdcId != p.FdcId)
                     {
                         _context.FoodCatalogProposals.Remove(p);
                         changed++;
@@ -220,11 +235,11 @@ namespace Nom.Orch.Services
             return changed;
         }
 
-        public async Task<IReadOnlyList<long>> PendingDeterministicAsync(int count, IReadOnlyCollection<long> skip, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<long>> PendingDeterministicAsync(int count, IReadOnlyCollection<long> skip, bool includeNameMatches = false, CancellationToken cancellationToken = default)
         {
             return await _context.FoodCatalogProposals
                 .Where(p => p.Status == FoodProposalStatus.Pending && p.IngredientId != null && !skip.Contains(p.Id)
-                    && ((p.Field == FoodCatalogReviewService.FdcLinkField && p.Source == StapleSource)
+                    && ((p.Field == FoodCatalogReviewService.FdcLinkField && (p.Source == StapleSource || (includeNameMatches && p.Source == ExactSource)))
                         || (p.Field == FoodCatalogReviewService.FdcAttachField && p.Source.StartsWith("fdc:"))))
                 .OrderByDescending(p => _context.RecipeIngredients.Count(ri => ri.IngredientId == p.IngredientId))
                 .Select(p => p.Id)
@@ -249,14 +264,15 @@ namespace Nom.Orch.Services
             int checkedCount = 0, verified = 0;
             foreach (var p in pending)
             {
-                var shortlist = string.IsNullOrWhiteSpace(p.CurrentValue) ? Array.Empty<FoodCandidate>() : matcher.Shortlist(p.CurrentValue, 10);
-                if (shortlist.Count == 0 || shortlist[0].FdcId != p.FdcId)
+                var name = IngredientNameNormalizer.Normalize(p.CurrentValue ?? string.Empty);
+                var shortlist = string.IsNullOrWhiteSpace(name) ? Array.Empty<FoodCandidate>() : matcher.Shortlist(name, 10);
+                if (!shortlist.Take(VerifierRankWindow).Any(c => c.FdcId == p.FdcId))
                 {
                     Mark(p, $"not verified — name matcher ranks {(shortlist.Count == 0 ? "nothing" : shortlist[0].Name)} first");
                     checkedCount++;
                     continue;
                 }
-                ask.Add((p, new LinkQuestion(p.IngredientId!.Value, p.CurrentValue!, shortlist)));
+                ask.Add((p, new LinkQuestion(p.IngredientId!.Value, name, shortlist)));
             }
 
             if (ask.Count > 0 && !_verifier.IsConfigured)
@@ -355,11 +371,12 @@ namespace Nom.Orch.Services
             p.LastModifiedDate = DateTime.UtcNow;
         }
 
-        public async Task<IReadOnlyList<long>> PendingVerifiedAsync(int count, IReadOnlyCollection<long> skip, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<long>> PendingVerifiedAsync(int count, IReadOnlyCollection<long> skip, decimal minConfidence = 0m, CancellationToken cancellationToken = default)
         {
             return await _context.FoodCatalogProposals
                 .Where(p => p.Status == FoodProposalStatus.Pending && p.IngredientId != null && !skip.Contains(p.Id)
                     && p.Field == FoodCatalogReviewService.FdcLinkField && p.Source.StartsWith("ai:")
+                    && p.Confidence >= minConfidence
                     && p.Reason != null && p.Reason.Contains(VerifiedMark))
                 .OrderByDescending(p => _context.RecipeIngredients.Count(ri => ri.IngredientId == p.IngredientId))
                 .Select(p => p.Id)
@@ -369,18 +386,8 @@ namespace Nom.Orch.Services
 
         private async Task<Dictionary<string, FoodCandidate>> StapleTargetsAsync(CancellationToken cancellationToken)
         {
-            var foods = await _context.Ingredients
-                .AsNoTracking()
-                .Where(i => i.FdcId != null && !i.IsDeleted && (i.FdcDataType == "foundation_food" || i.FdcDataType == "sr_legacy_food"))
-                .Select(i => new FoodCandidate(i.Id, i.FdcId!, i.Name, i.FdcDataType ?? string.Empty))
-                .ToListAsync(cancellationToken);
+            var (foods, aliases) = await CandidatesAsync(cancellationToken);
             var byId = foods.ToDictionary(f => f.IngredientId);
-            var ids = byId.Keys.ToList();
-            var aliases = await _context.IngredientAliases
-                .AsNoTracking()
-                .Where(a => ids.Contains(a.IngredientId))
-                .Select(a => new { a.IngredientId, a.AliasName })
-                .ToListAsync(cancellationToken);
 
             var map = new Dictionary<string, FoodCandidate>(StringComparer.Ordinal);
             foreach (var f in foods) map.TryAdd(f.Name, f);
@@ -392,15 +399,42 @@ namespace Nom.Orch.Services
         {
             if (_cache.TryGetValue<FoodNameMatcher>(nameof(IngredientLinkService), out var cached) && cached != null) return cached;
 
-            var foods = await _context.Ingredients
-                .AsNoTracking()
-                .Where(i => i.FdcId != null && !i.IsDeleted
-                    && (i.FdcDataType == "foundation_food" || i.FdcDataType == "sr_legacy_food"))
-                .Select(i => new FoodCandidate(i.Id, i.FdcId!, i.Name, i.FdcDataType ?? string.Empty))
-                .ToListAsync(cancellationToken);
+            var (foods, _) = await CandidatesAsync(cancellationToken);
             var matcher = new FoodNameMatcher(foods);
             _cache.Set(nameof(IngredientLinkService), matcher, MatcherLifetime);
             return matcher;
         }
+
+        /// <summary>
+        /// USDA foods (never branded) as link targets. A food that a link renamed to its everyday name
+        /// ("Olive Oil") is matched by the USDA description it kept as an alias ("Oil, olive, salad or
+        /// cooking"), because that is the name the matcher's comma segments were designed for.
+        /// </summary>
+        private async Task<(List<FoodCandidate> Foods, List<(long IngredientId, string AliasName)> Aliases)> CandidatesAsync(CancellationToken cancellationToken)
+        {
+            var rows = await _context.Ingredients
+                .AsNoTracking()
+                .Where(i => i.FdcId != null && !i.IsDeleted && i.FdcDataType != "branded_food")
+                .Select(i => new { i.Id, i.FdcId, i.Name, i.FdcDataType })
+                .ToListAsync(cancellationToken);
+            var ids = rows.Select(r => r.Id).ToList();
+            var aliases = await _context.IngredientAliases
+                .AsNoTracking()
+                .Where(a => ids.Contains(a.IngredientId) && !a.IsDeleted)
+                .Select(a => new { a.IngredientId, a.AliasName })
+                .ToListAsync(cancellationToken);
+            var usdaNames = aliases
+                .Where(a => IsUsdaDescription(a.AliasName))
+                .GroupBy(a => a.IngredientId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.AliasName.Length).First().AliasName);
+
+            var foods = rows
+                .Select(r => new FoodCandidate(r.Id, r.FdcId!, !r.Name.Contains(',') && usdaNames.TryGetValue(r.Id, out var usda) ? usda : r.Name, r.FdcDataType ?? string.Empty))
+                .ToList();
+            return (foods, aliases.Select(a => (a.IngredientId, a.AliasName)).ToList());
+        }
+
+        public static bool IsUsdaDescription(string alias) =>
+            alias.Contains(',') && alias.Length > 0 && char.IsUpper(alias[0]) && !alias.Any(char.IsDigit) && !IngredientNameNormalizer.IsResidue(alias);
     }
 }

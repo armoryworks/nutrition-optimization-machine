@@ -44,6 +44,25 @@ export interface FoodCatalogAuditResult {
   findings: FoodCatalogFinding[];
 }
 
+export interface FoodProposalGroup {
+  targetIngredientId: number;
+  targetName: string;
+  fdcId: string | null;
+  count: number;
+  uses: number;
+  verifiedCount: number;
+  exactCount: number;
+  samples: string[];
+}
+
+export interface FoodProposalGroupApplyResult {
+  applied: number;
+  skipped: number;
+  remaining: number;
+}
+
+export type LinkGroupSource = 'all' | 'ai' | 'deterministic' | 'admin';
+
 export interface FoodProposal {
   id: number;
   action: string;

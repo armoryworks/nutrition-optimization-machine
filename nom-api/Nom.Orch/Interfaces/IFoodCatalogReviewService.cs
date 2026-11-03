@@ -33,6 +33,12 @@ namespace Nom.Orch.Interfaces
 
         Task<List<FoodProposalModel>> GetProposalsAsync(string? batch, string? status, int limit);
 
+        /// <summary>Pending USDA link proposals grouped by the food they point at, most recipe lines first.</summary>
+        Task<List<FoodProposalGroupModel>> GetLinkGroupsAsync(string? source, bool? verified, int limit);
+
+        /// <summary>Applies up to <paramref name="max"/> pending link proposals that point at one food; Remaining says how many are left.</summary>
+        Task<FoodProposalGroupApplyResult> ApplyLinkGroupAsync(long targetIngredientId, string? source, bool? verified, int max, long reviewerPersonId);
+
         /// <summary>Approves a proposal and applies it to the catalog.</summary>
         Task<bool> ApplyProposalAsync(long proposalId, long reviewerPersonId);
 

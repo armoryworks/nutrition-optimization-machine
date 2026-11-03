@@ -41,6 +41,13 @@ namespace Nom.Api.Controllers
             return Ok(await _cleanup.ApplyAsync(maxActions));
         }
 
+        /// <summary>Replaces quantity-prefixed aliases, fills NameNormalized and resets stale triangulation marks; a dry run unless apply=true.</summary>
+        [HttpPost("cleanup/normalize")]
+        public async Task<ActionResult<CatalogNormalizeResult>> CleanupNormalize([FromQuery] bool apply = false)
+        {
+            return Ok(await _cleanup.NormalizeAsync(apply));
+        }
+
         /// <summary>Paged catalog for the review screen.</summary>
         [HttpGet]
         public async Task<ActionResult<FoodCatalogPageModel>> GetPage(
@@ -120,6 +127,22 @@ namespace Nom.Api.Controllers
         {
             var ok = await _review.RejectProposalAsync(id, GetCurrentPersonIdRequired());
             return ok ? Ok() : NotFound();
+        }
+
+        /// <summary>Pending USDA links grouped by target food. source: ai, deterministic, admin or all; verified: true, false or omitted.</summary>
+        [HttpGet("proposals/link-groups")]
+        public async Task<ActionResult<List<FoodProposalGroupModel>>> GetLinkGroups(
+            [FromQuery] string? source = null, [FromQuery] bool? verified = null, [FromQuery] int limit = 200)
+        {
+            return Ok(await _review.GetLinkGroupsAsync(source, verified, limit));
+        }
+
+        /// <summary>Applies the pending links that point at one food, up to 500 per call; Remaining says whether to call again.</summary>
+        [HttpPost("proposals/link-groups/{targetIngredientId:long}/apply")]
+        public async Task<ActionResult<FoodProposalGroupApplyResult>> ApplyLinkGroup(
+            [Required] long targetIngredientId, [FromQuery] string? source = null, [FromQuery] bool? verified = null, [FromQuery] int max = 500)
+        {
+            return Ok(await _review.ApplyLinkGroupAsync(targetIngredientId, source, verified, max, GetCurrentPersonIdRequired()));
         }
 
         /// <summary>Applies the listed proposals in order; any that no longer apply are skipped.</summary>

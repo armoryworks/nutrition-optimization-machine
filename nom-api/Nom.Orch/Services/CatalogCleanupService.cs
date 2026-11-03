@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Nom.Data;
+using Nom.Data.Curation;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
@@ -119,7 +120,7 @@ namespace Nom.Orch.Services
 
             foreach (var action in batch)
             {
-                if (await HasNonRecipeReferencesAsync(action.IngredientId))
+                if (await HasNonRecipeReferencesAsync(action.IngredientId, ignoreProposals: true))
                 {
                     result.SkippedReferenced++;
                     continue;
@@ -184,7 +185,107 @@ namespace Nom.Orch.Services
                 $"""UPDATE recipe."RecipeIngredient" SET "IngredientEntityId" = {targetId} WHERE "IngredientEntityId" = {sourceId}""");
             await _db.Database.ExecuteSqlAsync(
                 $"""UPDATE recipe."Ingredient" SET "IsDeleted" = true, "DeletedAt" = now(), "DeletedByPersonId" = {personId} WHERE "Id" = {sourceId}""");
+            await _db.Database.ExecuteSqlAsync(
+                $"""
+                 DELETE FROM curation."FoodCatalogProposal"
+                 WHERE "IngredientId" IN ({sourceId}, {targetId})
+                   AND "Field" = {FoodCatalogReviewService.FdcLinkField}
+                   AND "Status" <> {(int)FoodProposalStatus.Applied}
+                   AND ("ReviewedByPersonId" IS NULL OR "ReviewedByPersonId" = {SystemConstants.SystemPersonId})
+                 """);
             return (folded, moved);
+        }
+
+        /// <summary>
+        /// Straightens the residue that earlier links left behind: aliases that still carry a
+        /// quantity ("1 teaspoon vanilla extract") are replaced by their normalised form, every
+        /// ingredient gets its NameNormalized filled, and model picks that were marked "not
+        /// verified" while their name still carried a prefix are reset so triangulation looks again.
+        /// </summary>
+        public async Task<CatalogNormalizeResult> NormalizeAsync(bool apply)
+        {
+            var result = new CatalogNormalizeResult();
+            var aliases = await _db.IngredientAliases
+                .Where(a => !a.IsDeleted)
+                .Select(a => new { a.Id, a.IngredientId, a.AliasName })
+                .ToListAsync();
+            var byIngredient = aliases.GroupBy(a => a.IngredientId)
+                .ToDictionary(g => g.Key, g => g.Select(a => a.AliasName).ToHashSet(StringComparer.OrdinalIgnoreCase));
+            var foodNames = await _db.Ingredients.AsNoTracking()
+                .Where(i => !i.IsDeleted && byIngredient.Keys.Contains(i.Id))
+                .Select(i => new { i.Id, i.Name })
+                .ToDictionaryAsync(i => i.Id, i => i.Name);
+
+            var remove = new List<long>();
+            var add = new List<(long IngredientId, string Alias)>();
+            foreach (var a in aliases)
+            {
+                if (!IngredientNameNormalizer.IsResidue(a.AliasName)) continue;
+                remove.Add(a.Id);
+                var normalized = IngredientNameNormalizer.Normalize(a.AliasName);
+                var owned = byIngredient[a.IngredientId];
+                if (normalized.Length < 2 || owned.Contains(normalized)
+                    || (foodNames.TryGetValue(a.IngredientId, out var foodName) && string.Equals(foodName, normalized, StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+                owned.Add(normalized);
+                add.Add((a.IngredientId, normalized));
+            }
+            result.AliasesRemoved = remove.Count;
+            result.AliasesAdded = add.Count;
+
+            var unnormalized = await _db.Ingredients
+                .Where(i => !i.IsDeleted && i.NameNormalized == null)
+                .Select(i => new { i.Id, i.Name })
+                .ToListAsync();
+            result.NamesNormalized = unnormalized.Count;
+
+            var marked = await _db.FoodCatalogProposals
+                .Where(p => p.Status == FoodProposalStatus.Pending && p.Field == FoodCatalogReviewService.FdcLinkField
+                    && p.Reason != null && p.Reason.Contains(IngredientLinkService.NotVerifiedMark) && p.CurrentValue != null)
+                .Select(p => new { p.Id, p.CurrentValue })
+                .ToListAsync();
+            var reset = marked.Where(p => IngredientNameNormalizer.IsResidue(p.CurrentValue!)).Select(p => p.Id).ToList();
+            result.TriangulationsReset = reset.Count;
+
+            if (!apply) return result;
+
+            var personId = _currentUser.PersonId;
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            foreach (var chunk in remove.Chunk(2000))
+            {
+                await _db.IngredientAliases.Where(a => chunk.Contains(a.Id)).ExecuteDeleteAsync();
+            }
+            foreach (var (ingredientId, alias) in add)
+            {
+                _db.IngredientAliases.Add(new IngredientAliasEntity
+                {
+                    IngredientId = ingredientId,
+                    AliasName = alias,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedByPersonId = personId ?? SystemConstants.SystemPersonId,
+                });
+            }
+            await _db.SaveChangesAsync();
+            foreach (var chunk in unnormalized.Chunk(2000))
+            {
+                foreach (var row in chunk)
+                {
+                    await _db.Database.ExecuteSqlAsync(
+                        $"""UPDATE recipe."Ingredient" SET "NameNormalized" = {IngredientNameNormalizer.Normalize(row.Name)} WHERE "Id" = {row.Id}""");
+                }
+            }
+            foreach (var chunk in reset.Chunk(2000))
+            {
+                await _db.FoodCatalogProposals.Where(p => chunk.Contains(p.Id))
+                    .ExecuteUpdateAsync(u => u
+                        .SetProperty(p => p.Reason, p => p.Reason!.Substring(0, p.Reason!.IndexOf(IngredientLinkService.TriangulationMark)))
+                        .SetProperty(p => p.LastModifiedDate, DateTime.UtcNow));
+            }
+            await tx.CommitAsync();
+            result.Applied = true;
+            return result;
         }
 
         /// <summary>

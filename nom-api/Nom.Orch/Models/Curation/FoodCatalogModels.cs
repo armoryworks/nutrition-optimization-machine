@@ -112,4 +112,23 @@ namespace Nom.Orch.Models.Curation
     {
         public List<long> Ids { get; set; } = new();
     }
+
+    public class FoodProposalGroupModel
+    {
+        public long TargetIngredientId { get; set; }
+        public string TargetName { get; set; } = string.Empty;
+        public string? FdcId { get; set; }
+        public int Count { get; set; }
+        public int Uses { get; set; }
+        public int VerifiedCount { get; set; }
+        public int ExactCount { get; set; }
+        public List<string> Samples { get; set; } = new();
+    }
+
+    public class FoodProposalGroupApplyResult
+    {
+        public int Applied { get; set; }
+        public int Skipped { get; set; }
+        public int Remaining { get; set; }
+    }
 }

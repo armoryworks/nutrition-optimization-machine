@@ -21,6 +21,8 @@ import {
   FoodCatalogFinding,
   FoodCatalogItem,
   FoodProposal,
+  FoodProposalGroup,
+  LinkGroupSource,
 } from '../core/models/food-catalog.model';
 
 /**
@@ -96,6 +98,12 @@ export class FoodCatalog implements OnInit {
   findings = signal<FoodCatalogFinding[]>([]);
   auditExamined = signal(0);
 
+  linkGroups = signal<FoodProposalGroup[]>([]);
+  linkGroupsLoading = signal(false);
+  linkGroupBusy = signal<number | null>(null);
+  linkGroupSource = signal<LinkGroupSource>('all');
+  linkGroupVerified = signal<'any' | 'verified'>('any');
+
   links = signal<FoodProposal[]>([]);
   linksLoading = signal(false);
   linkBusy = signal(false);
@@ -133,6 +141,56 @@ export class FoodCatalog implements OnInit {
     this.load();
     this.loadProposals();
     this.loadLinks();
+    this.loadLinkGroups();
+  }
+
+  loadLinkGroups(): void {
+    this.linkGroupsLoading.set(true);
+    this.catalog
+      .getLinkGroups(this.linkGroupSource(), this.linkGroupVerified() === 'verified' ? true : null)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (groups) => {
+          this.linkGroups.set(groups);
+          this.linkGroupsLoading.set(false);
+        },
+        error: () => this.linkGroupsLoading.set(false),
+      });
+  }
+
+  setLinkGroupSource(source: LinkGroupSource): void {
+    this.linkGroupSource.set(source);
+    this.loadLinkGroups();
+  }
+
+  setLinkGroupVerified(verified: 'any' | 'verified'): void {
+    this.linkGroupVerified.set(verified);
+    this.loadLinkGroups();
+  }
+
+  approveLinkGroup(group: FoodProposalGroup, applied = 0): void {
+    this.linkGroupBusy.set(group.targetIngredientId);
+    this.catalog
+      .applyLinkGroup(group.targetIngredientId, this.linkGroupSource(), this.linkGroupVerified() === 'verified' ? true : null)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => {
+          const total = applied + r.applied;
+          if (r.remaining > 0 && r.applied > 0) {
+            this.approveLinkGroup(group, total);
+            return;
+          }
+          this.linkGroupBusy.set(null);
+          this.notify(`Linked ${total} ingredient${total === 1 ? '' : 's'} to ${group.targetName}${r.remaining ? ` (${r.remaining} could not be applied)` : ''}.`);
+          this.loadLinkGroups();
+          this.loadLinks();
+          this.load();
+        },
+        error: () => {
+          this.linkGroupBusy.set(null);
+          this.notify(`The links to ${group.targetName} could not be applied.`);
+        },
+      });
   }
 
   load(): void {

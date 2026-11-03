@@ -34,4 +34,13 @@ namespace Nom.Orch.Models.Curation
         public int SkippedReferenced { get; set; }
         public int Remaining { get; set; }
     }
+
+    public class CatalogNormalizeResult
+    {
+        public bool Applied { get; set; }
+        public int AliasesRemoved { get; set; }
+        public int AliasesAdded { get; set; }
+        public int NamesNormalized { get; set; }
+        public int TriangulationsReset { get; set; }
+    }
 }
