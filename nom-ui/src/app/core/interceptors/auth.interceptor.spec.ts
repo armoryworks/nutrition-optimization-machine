@@ -89,6 +89,19 @@ describe('authInterceptor', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
+  it('a 401 for a request sent with a token the session no longer holds is left alone', () => {
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    let failed = 0;
+    http.get('/api/Recipe/1').subscribe({ error: () => failed++ });
+    auth.accessToken = null;
+    controller.expectOne('/api/Recipe/1').flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    expect(failed).toBe(1);
+    expect(auth.attemptTokenRefresh).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it('shares a single in-flight refresh across concurrent 401s', () => {
     // Deferred refresh so both 401s land while the refresh is still pending.
     const pending = new Subject<{ accessToken: string; refreshToken: string }>();

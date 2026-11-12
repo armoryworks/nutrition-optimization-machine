@@ -34,7 +34,12 @@ const UNAUTHENTICATED_AUTH_PATHS = [
   '/api/auth/resend-confirmation',
 ];
 
-/** Shared in-flight refresh so concurrent 401s trigger exactly one refresh call. */
+/**
+ * Shared in-flight refresh so concurrent 401s trigger exactly one refresh call.
+ * A 401 for a request that went out with a token the session has since
+ * replaced or dropped belongs to that dead session: it is neither refreshed
+ * nor allowed to send the user home, since a new sign-in may be mid-flight.
+ */
 let refresh$: ReplaySubject<AuthTokenResponse | null> | null = null;
 
 export const authInterceptor: HttpInterceptorFn = (
@@ -54,6 +59,7 @@ export const authInterceptor: HttpInterceptorFn = (
   return next(authedReq).pipe(
     catchError((error) => {
       if (error instanceof HttpErrorResponse && error.status === 401 && token) {
+        if (authService.accessToken !== token) return throwError(() => error);
         return refreshAndRetry(req, next, authService, router, error);
       }
       return throwError(() => error);
