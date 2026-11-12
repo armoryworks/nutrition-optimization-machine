@@ -13,6 +13,8 @@ import { PersonService } from '../core/services/person.service';
  *
  * The code rides the fragment, not the query string, so it never reaches the
  * server or its logs; it is scrubbed from history before the redeem call.
+ * Whatever session this origin still holds is dropped first: an expired one
+ * would otherwise fire 401s whose failed refresh logged the new sign-in out.
  */
 @Component({
   selector: 'nom-auth-handoff',
@@ -63,6 +65,7 @@ export class AuthHandoff implements OnInit {
       return;
     }
 
+    this.authService.discardSession();
     this.authService
       .redeemHandoffCode(code)
       .pipe(takeUntilDestroyed(this.destroyRef))

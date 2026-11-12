@@ -95,7 +95,7 @@ function refreshAndRetry(
       if (result) {
         return next(addToken(req, result.accessToken));
       }
-      router.navigate(['/home']);
+      if (!authService.isLoggedIn()) router.navigate(['/home']);
       return throwError(() => originalError);
     }),
   );

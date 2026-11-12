@@ -131,6 +131,12 @@ export class AuthService {
     );
   }
 
+  /**
+   * A refused refresh only ends the session it was refreshing. A sign-in that
+   * lands while the refresh is in flight (the marketing-site handoff, or a
+   * second tab) has already replaced the tokens, and must not be wiped by the
+   * stale one's failure.
+   */
   attemptTokenRefresh(): Observable<AuthTokenResponse | null> {
     const refreshToken = this.refreshToken;
     if (!refreshToken) {
@@ -144,12 +150,17 @@ export class AuthService {
         // invalid_grant (400/401) means the refresh token is dead — sign out.
         // Anything else (network, 5xx during a deploy) keeps the session so
         // the next request can retry (N-76).
-        if (err?.status === 400 || err?.status === 401) {
+        if ((err?.status === 400 || err?.status === 401) && this.refreshToken === refreshToken) {
           this.clearSession();
         }
         return of(null);
       }),
     );
+  }
+
+  /** Drops whatever session this origin holds, without telling the server. */
+  discardSession(): void {
+    this.clearSession();
   }
 
   /**
@@ -179,6 +190,7 @@ export class AuthService {
   }
 
   validateToken(): Observable<boolean> {
+    const token = this.accessToken;
     return this.http.get('/api/auth/manage/info').pipe(
       tap(() => (this.lastValidated = Date.now())),
       map(() => true),
@@ -186,7 +198,7 @@ export class AuthService {
         // Only a definitive rejection ends the session. A network error or
         // 5xx (e.g. the API mid-deploy) must not log the user out (N-76).
         if (err?.status === 401 || err?.status === 403) {
-          this.clearSession();
+          if (this.accessToken === token) this.clearSession();
           return of(false);
         }
         return of(true);

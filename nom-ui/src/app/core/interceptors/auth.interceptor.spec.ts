@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { authInterceptor } from './auth.interceptor';
 import { AuthService } from '../services/auth.service';
@@ -12,6 +12,7 @@ describe('authInterceptor', () => {
   let auth: {
     accessToken: string | null;
     attemptTokenRefresh: ReturnType<typeof vi.fn>;
+    isLoggedIn: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -20,6 +21,7 @@ describe('authInterceptor', () => {
       attemptTokenRefresh: vi.fn(() =>
         of({ accessToken: 'token-2', refreshToken: 'r2', expiresIn: 3600, tokenType: 'Bearer' }),
       ),
+      isLoggedIn: vi.fn(() => false),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -69,6 +71,22 @@ describe('authInterceptor', () => {
     expect(retried.request.headers.get('Authorization')).toBe('Bearer token-2');
     retried.flush({});
     expect(auth.attemptTokenRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('a failed refresh sends a signed-out user home, but leaves a newer session where it is', () => {
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    auth.attemptTokenRefresh = vi.fn(() => of(null));
+
+    http.get('/api/Recipe/1').subscribe({ error: () => {} });
+    controller.expectOne('/api/Recipe/1').flush(null, { status: 401, statusText: 'Unauthorized' });
+    expect(navigate).toHaveBeenCalledWith(['/home']);
+
+    navigate.mockClear();
+    auth.isLoggedIn = vi.fn(() => true);
+    http.get('/api/Recipe/2').subscribe({ error: () => {} });
+    controller.expectOne('/api/Recipe/2').flush(null, { status: 401, statusText: 'Unauthorized' });
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it('shares a single in-flight refresh across concurrent 401s', () => {
