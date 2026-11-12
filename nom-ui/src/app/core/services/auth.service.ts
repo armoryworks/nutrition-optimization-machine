@@ -254,7 +254,16 @@ export class AuthService {
     return this.fetchAndStorePersonId().pipe(switchMap(() => of(this.personIdSignal())));
   }
 
+  /**
+   * Restores the stored session, except when the app is booting on the sign-in
+   * handoff page: that page exists to replace whatever session is stored, and
+   * restoring a stale one first would fire requests whose 401s race the redeem.
+   */
   private checkLoginStatus(): void {
+    if (window.location.pathname.startsWith('/auth/handoff')) {
+      this.clearSession();
+      return;
+    }
     const token = localStorage.getItem('authToken');
     if (token) {
       this.isLoggedInSignal.set(true);

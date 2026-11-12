@@ -51,6 +51,20 @@ describe('AuthService', () => {
     expect(auth.personId()).toBe(7);
   });
 
+  it('does not restore a stored session when booting on the handoff page', () => {
+    TestBed.resetTestingModule();
+    history.replaceState(null, '', '/auth/handoff');
+    localStorage.setItem('authToken', 'stale-access');
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    try {
+      const fresh = TestBed.inject(AuthService);
+      expect(fresh.isLoggedIn()).toBe(false);
+      expect(localStorage.getItem('authToken')).toBeNull();
+    } finally {
+      history.replaceState(null, '', '/');
+    }
+  });
+
   it('discardSession drops the stored tokens without a server call', () => {
     auth.discardSession();
 
