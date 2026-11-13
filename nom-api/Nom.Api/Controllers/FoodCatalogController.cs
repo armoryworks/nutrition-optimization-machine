@@ -18,13 +18,15 @@ namespace Nom.Api.Controllers
         private readonly IFoodCatalogReviewService _review;
         private readonly IFoodCatalogAuditService _audit;
         private readonly ICatalogCleanupService _cleanup;
+        private readonly ILineRelinkService _relink;
 
         public FoodCatalogController(IFoodCatalogReviewService review, IFoodCatalogAuditService audit,
-            ICatalogCleanupService cleanup)
+            ICatalogCleanupService cleanup, ILineRelinkService relink)
         {
             _review = review;
             _audit = audit;
             _cleanup = cleanup;
+            _relink = relink;
         }
 
         /// <summary>What the import-residue cleanup would do (deterministic name rules, no writes).</summary>
@@ -46,6 +48,27 @@ namespace Nom.Api.Controllers
         public async Task<ActionResult<CatalogNormalizeResult>> CleanupNormalize([FromQuery] bool apply = false)
         {
             return Ok(await _cleanup.NormalizeAsync(apply));
+        }
+
+        /// <summary>Which scraped recipe lines would move to the curated food their wording names (no writes).</summary>
+        [HttpGet("relink/preview")]
+        public async Task<ActionResult<LineRelinkPreview>> RelinkPreview([FromQuery] int sampleSize = 50)
+        {
+            return Ok(await _relink.PreviewAsync(sampleSize));
+        }
+
+        /// <summary>Move up to maxLines lines to the curated food their wording names; each move is written to the audit log.</summary>
+        [HttpPost("relink/apply")]
+        public async Task<ActionResult<LineRelinkResult>> RelinkApply([FromQuery] int maxLines = 5000)
+        {
+            return Ok(await _relink.ApplyAsync(maxLines));
+        }
+
+        /// <summary>Put back the lines moved at or after the given UTC time.</summary>
+        [HttpPost("relink/undo")]
+        public async Task<ActionResult<LineRelinkUndoResult>> RelinkUndo([FromQuery, Required] DateTime sinceUtc)
+        {
+            return Ok(await _relink.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc)));
         }
 
         /// <summary>Paged catalog for the review screen.</summary>

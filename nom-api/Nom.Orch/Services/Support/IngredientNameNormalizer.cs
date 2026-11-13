@@ -163,22 +163,34 @@ namespace Nom.Orch.Services.Support
         public static System.Collections.Generic.IReadOnlyList<string> LookupKeys(string name)
         {
             var keys = new System.Collections.Generic.List<string>();
-            void Add(string key)
-            {
-                if (key.Length >= 2 && !keys.Contains(key, StringComparer.OrdinalIgnoreCase)) keys.Add(key);
-            }
-            void AddWithNumber(string key)
-            {
-                Add(key);
-                if (NumberChangesMeaning.Contains(key)) return;
-                if (key.EndsWith("ies", StringComparison.OrdinalIgnoreCase)) Add(key[..^3] + "y");
-                if (key.EndsWith("es", StringComparison.OrdinalIgnoreCase)) Add(key[..^2]);
-                if (key.EndsWith("s", StringComparison.OrdinalIgnoreCase)) Add(key[..^1]);
-                else { Add(key + "s"); Add(key + "es"); }
-            }
-            AddWithNumber(Normalize(name));
-            AddWithNumber(Bare(name));
+            AddWithNumber(keys, Normalize(name));
+            AddWithNumber(keys, Bare(name));
             return keys;
+        }
+
+        /// <summary>
+        /// The names a wording may be found under with no word taken off: the normalised name, its
+        /// singular and its plural.
+        /// </summary>
+        public static System.Collections.Generic.IReadOnlyList<string> ExactKeys(string name)
+        {
+            var keys = new System.Collections.Generic.List<string>();
+            AddWithNumber(keys, Normalize(name));
+            return keys;
+        }
+
+        private static void AddWithNumber(System.Collections.Generic.List<string> keys, string key)
+        {
+            void Add(string candidate)
+            {
+                if (candidate.Length >= 2 && !keys.Contains(candidate, StringComparer.OrdinalIgnoreCase)) keys.Add(candidate);
+            }
+            Add(key);
+            if (NumberChangesMeaning.Contains(key)) return;
+            if (key.EndsWith("ies", StringComparison.OrdinalIgnoreCase)) Add(key[..^3] + "y");
+            if (key.EndsWith("es", StringComparison.OrdinalIgnoreCase)) Add(key[..^2]);
+            if (key.EndsWith("s", StringComparison.OrdinalIgnoreCase)) Add(key[..^1]);
+            else { Add(key + "s"); Add(key + "es"); }
         }
 
         /// <summary>True when normalization would change this catalog name.</summary>
