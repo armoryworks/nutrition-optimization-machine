@@ -63,7 +63,8 @@ namespace Nom.Orch.Services
 
                 var normalized = IngredientNameNormalizer.Normalize(row.Name);
                 var target = IngredientNameNormalizer.LookupKeys(row.Name)
-                    .Select(key => canonicalByLower.TryGetValue(key, out var found) && found.Id != row.Id && (!found.Cleanable || found.Id < row.Id) ? found : null)
+                    .Select(key => canonicalByLower.TryGetValue(key, out var found) && found.Id != row.Id
+                        && (!found.Cleanable || found.Id < row.Id || string.Equals(key, normalized, StringComparison.OrdinalIgnoreCase)) ? found : null)
                     .FirstOrDefault(found => found != null);
                 if (target == null && !IngredientNameNormalizer.IsResidue(row.Name)) continue;
 

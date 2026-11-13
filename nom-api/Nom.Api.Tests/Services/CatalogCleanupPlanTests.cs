@@ -62,14 +62,15 @@ namespace Nom.Api.Tests.Services
         public async Task A_chain_of_wordings_ends_on_one_row_and_never_on_a_row_that_is_itself_merged_away()
         {
             using var db = NewContext();
-            db.Ingredients.AddRange(Wording("sago"), Wording("sagos"), Wording("washed sagos"));
+            db.Ingredients.AddRange(Wording("cupful of sagos"), Wording("sago"), Wording("sagos"), Wording("washed sagos"));
             await db.SaveChangesAsync();
             var head = await db.Ingredients.SingleAsync(i => i.Name == "sago");
 
             var preview = await new CatalogCleanupService(db, new NoUser()).PreviewAsync(500);
 
-            preview.Samples.Should().HaveCount(2);
-            preview.Samples.Should().OnlyContain(a => a.Action == "merge" && a.TargetId == head.Id);
+            preview.Samples.Should().HaveCount(3);
+            preview.Samples.Should().OnlyContain(a => a.Action == "merge" && a.TargetId == head.Id,
+                "a measured wording goes to the row that already holds its name even when that row is newer, and on from there");
         }
     }
 }
