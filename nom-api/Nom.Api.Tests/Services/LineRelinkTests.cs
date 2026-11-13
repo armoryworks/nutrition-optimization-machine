@@ -184,7 +184,9 @@ namespace Nom.Api.Tests.Services
             using var db = NewContext();
             var named = CuratedFood("Egg Yolks");
             var complete = CuratedFood("Raw Egg Yolks");
-            db.Ingredients.AddRange(named, complete);
+            var dried = CuratedFood("Egg, yolk, dried");
+            dried.Aliases = new List<IngredientAliasEntity> { new() { AliasName = "raw egg yolks" }, new() { AliasName = "dried yolks" } };
+            db.Ingredients.AddRange(named, complete, dried);
             await db.SaveChangesAsync();
             var service = new LineRelinkService(db, new NoUser());
             var started = DateTime.UtcNow;
@@ -194,16 +196,26 @@ namespace Nom.Api.Tests.Services
             retired!.Retired.Should().BeTrue();
             retired.Name.Should().Be("Egg Yolks");
             retired.Alias.Should().Be("Raw Egg Yolks");
-            (await db.Ingredients.SingleAsync()).Should().Match<IngredientEntity>(i => i.Id == complete.Id && i.Name == "Egg Yolks");
-            (await db.IngredientAliases.SingleAsync()).Should().Match<IngredientAliasEntity>(a => a.IngredientId == complete.Id && a.AliasName == "Raw Egg Yolks");
+            retired.AliasesRemoved.Should().Be(1);
+            (await db.Ingredients.SingleAsync(i => i.Name == "Egg Yolks")).Id.Should().Be(complete.Id);
+            (await db.Ingredients.AnyAsync(i => i.Id == named.Id)).Should().BeFalse();
+            (await db.IngredientAliases.Select(a => new { a.IngredientId, a.AliasName }).ToListAsync()).Should().BeEquivalentTo(new[]
+            {
+                new { IngredientId = complete.Id, AliasName = "Raw Egg Yolks" },
+                new { IngredientId = dried.Id, AliasName = "dried yolks" },
+            });
 
             var undone = await service.UndoAsync(started);
 
             undone.FoodsRestored.Should().Be(1);
             undone.Skipped.Should().Be(0);
             var foods = await db.Ingredients.ToDictionaryAsync(i => i.Id, i => i.Name);
-            foods.Should().BeEquivalentTo(new Dictionary<long, string> { [named.Id] = "Egg Yolks", [complete.Id] = "Raw Egg Yolks" });
-            (await db.IngredientAliases.AnyAsync()).Should().BeFalse();
+            foods.Should().BeEquivalentTo(new Dictionary<long, string> { [named.Id] = "Egg Yolks", [complete.Id] = "Raw Egg Yolks", [dried.Id] = "Egg, yolk, dried" });
+            (await db.IngredientAliases.Select(a => new { a.IngredientId, a.AliasName }).ToListAsync()).Should().BeEquivalentTo(new[]
+            {
+                new { IngredientId = dried.Id, AliasName = "raw egg yolks" },
+                new { IngredientId = dried.Id, AliasName = "dried yolks" },
+            });
             (await db.AuditLogEntries.AnyAsync(a => a.ChangeType == LineRelinkService.RetireChangeType)).Should().BeFalse();
         }
     }

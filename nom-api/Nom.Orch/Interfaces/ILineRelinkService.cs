@@ -25,7 +25,7 @@ namespace Nom.Orch.Interfaces
 
         /// <summary>
         /// Takes a duplicate food with no recipe lines left out of the catalog and leaves its name
-        /// as an alias of the main entry, so a later line with that name lands there. With
+        /// as an alias of the main entry alone, so a later line with that name lands there. With
         /// <paramref name="takeName"/> the main entry takes the retired food's name and its own
         /// former name becomes the alias. Nothing is retired while a recipe line or a household's
         /// data still points at the food. Returns null when either food is not a live curated food

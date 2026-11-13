@@ -42,6 +42,8 @@ namespace Nom.Orch.Models.Curation
         public string Name { get; set; } = string.Empty;
         /// <summary>The name that now leads to the main entry.</summary>
         public string Alias { get; set; } = string.Empty;
+        /// <summary>Aliases of that name taken off other foods, so the name leads to the main entry alone.</summary>
+        public int AliasesRemoved { get; set; }
     }
 
     public class LineRelinkUndoResult

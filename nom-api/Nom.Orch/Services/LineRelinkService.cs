@@ -263,6 +263,29 @@ namespace Nom.Orch.Services
 
             result.Alias = takeName ? keptName : retiredName;
             await AddRetiredAliasAsync(target.Id, result.Alias, source.Id, personId);
+            var lowered = result.Alias.ToLowerInvariant();
+            var competing = await _db.IngredientAliases
+                .Where(a => a.IngredientId != target.Id && a.AliasName.ToLower() == lowered)
+                .ToListAsync();
+            foreach (var alias in competing)
+            {
+                alias.IsDeleted = true;
+                alias.DeletedAt = now;
+                alias.DeletedByPersonId = personId;
+                _db.AuditLogEntries.Add(new AuditLogEntryEntity
+                {
+                    EntityType = RetireEntityType,
+                    EntityId = alias.IngredientId,
+                    ChangeType = RetireChangeType,
+                    PropertyName = nameof(IngredientEntity.Aliases),
+                    OldValue = alias.AliasName,
+                    NewValue = null,
+                    Timestamp = now,
+                    ChangedByPersonId = personId,
+                });
+            }
+
+            result.AliasesRemoved = competing.Count;
             await _db.SaveChangesAsync();
             if (tx != null) await tx.CommitAsync();
 
@@ -384,12 +407,24 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// Takes back one step of a retirement: the main entry gives up a name it took, or the
-        /// retired food comes back under its own name and the alias that pointed at the main
-        /// entry goes. False when the name has since been taken by another food.
+        /// Takes back one step of a retirement: another food gets back its alias of the retired
+        /// name, the main entry gives up a name it took, or the retired food comes back under its
+        /// own name and the alias that pointed at the main entry goes. False when the name has
+        /// since been taken by another food.
         /// </summary>
         private async Task<bool> RestoreAsync(AuditLogEntryEntity entry, long personId)
         {
+            if (entry.PropertyName == nameof(IngredientEntity.Aliases))
+            {
+                var alias = await _db.IngredientAliases.IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(a => a.IngredientId == entry.EntityId && a.AliasName == entry.OldValue);
+                if (alias is not { IsDeleted: true }) return false;
+                alias.IsDeleted = false;
+                alias.DeletedAt = null;
+                alias.DeletedByPersonId = null;
+                return true;
+            }
+
             var food = await _db.Ingredients.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Id == entry.EntityId);
             if (food == null || string.IsNullOrEmpty(entry.OldValue)
                 || await _db.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id != food.Id && i.Name == entry.OldValue)) return false;
