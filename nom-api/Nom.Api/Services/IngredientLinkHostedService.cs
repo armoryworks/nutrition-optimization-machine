@@ -155,8 +155,32 @@ namespace Nom.Api.Services
             ApplyLinksAsync((links, skip, token) => links.PendingDeterministicAsync(50, skip, _applyNameMatches, token),
                 _applyNameMatches ? "certain links (staples, exact name matches, same-name USDA attaches)" : "certain links (staples, same-name USDA attaches)", stoppingToken);
 
-        private Task ApplyVerifiedLinksAsync(CancellationToken stoppingToken) =>
-            ApplyLinksAsync((links, skip, token) => links.PendingVerifiedAsync(50, skip, _applyMinConfidence, token), "model picks verified by triangulation", stoppingToken);
+        /// <summary>
+        /// Model picks are applied under a daily allowance and a per-food share of it
+        /// (IngredientLinking:MaxVerifiedAppliesPerDay, default 500, and
+        /// IngredientLinking:MaxVerifiedAppliesPerFoodPerDay, default 25). Reaching either is logged
+        /// as a warning: it is the sign of a matcher fault, not of a productive day.
+        /// </summary>
+        private Task ApplyVerifiedLinksAsync(CancellationToken stoppingToken)
+        {
+            var dailyCap = Math.Max(0, _configuration.GetValue("IngredientLinking:MaxVerifiedAppliesPerDay", 500));
+            var perFoodCap = Math.Max(1, _configuration.GetValue("IngredientLinking:MaxVerifiedAppliesPerFoodPerDay", 25));
+            return ApplyLinksAsync(async (links, skip, token) =>
+            {
+                var allowance = await links.VerifiedAllowanceAsync(dailyCap, perFoodCap, token);
+                if (allowance.BusyTargets.Count > 0)
+                {
+                    _logger.LogWarning("Ingredient linking: {Count} USDA foods reached {Cap} applied model picks in a day and are skipped until tomorrow: {Foods}",
+                        allowance.BusyTargets.Count, perFoodCap, string.Join(", ", allowance.BusyTargets.Take(20)));
+                }
+                if (allowance.Remaining == 0)
+                {
+                    _logger.LogWarning("Ingredient linking: the daily allowance of {Cap} applied model picks is used up; the rest wait", dailyCap);
+                    return Array.Empty<long>();
+                }
+                return await links.PendingVerifiedAsync(Math.Min(50, allowance.Remaining), skip, _applyMinConfidence, token, allowance.BusyTargets);
+            }, "model picks verified by triangulation", stoppingToken);
+        }
 
         private async Task ApplyLinksAsync(
             Func<IIngredientLinkService, IReadOnlyCollection<long>, CancellationToken, Task<IReadOnlyList<long>>> next,
@@ -174,8 +198,17 @@ namespace Nom.Api.Services
                     var review = scope.ServiceProvider.GetRequiredService<IFoodCatalogReviewService>();
                     foreach (var id in ids)
                     {
-                        if (await review.ApplyProposalAsync(id, Nom.Data.SystemConstants.SystemPersonId)) applied++;
-                        else _unappliable.Add(id);
+                        try
+                        {
+                            if (await review.ApplyProposalAsync(id, Nom.Data.SystemConstants.SystemPersonId)) applied++;
+                            else _unappliable.Add(id);
+                        }
+                        catch (Exception ex) when (ex is not OperationCanceledException)
+                        {
+                            _unappliable.Add(id);
+                            _logger.LogWarning(ex, "Applying proposal {Id} of the {What} failed; it is left for a person", id, what);
+                            break;
+                        }
                     }
                 }
             }

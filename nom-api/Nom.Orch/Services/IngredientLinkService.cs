@@ -372,10 +372,31 @@ namespace Nom.Orch.Services
             p.LastModifiedDate = DateTime.UtcNow;
         }
 
-        public async Task<IReadOnlyList<long>> PendingVerifiedAsync(int count, IReadOnlyCollection<long> skip, decimal minConfidence = 0m, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// A lane that suddenly applies thousands of links, or pours hundreds of wordings into one
+        /// food, is wrong far more often than it is right; the counts come from what the System
+        /// person applied in the last 24 hours, so a restart does not reset them.
+        /// </summary>
+        public async Task<LinkApplyAllowance> VerifiedAllowanceAsync(int dailyCap, int perTargetCap, CancellationToken cancellationToken = default)
         {
+            var since = DateTime.UtcNow.AddDays(-1);
+            var applied = await _context.FoodCatalogProposals
+                .Where(p => p.Status == FoodProposalStatus.Applied && p.Field == FoodCatalogReviewService.FdcLinkField && p.Source.StartsWith("ai:")
+                    && p.ReviewedByPersonId == SystemConstants.SystemPersonId && p.ReviewedAt >= since && p.FdcId != null)
+                .GroupBy(p => p.FdcId!)
+                .Select(g => new { FdcId = g.Key, Count = g.Count() })
+                .ToListAsync(cancellationToken);
+            return new LinkApplyAllowance(
+                Math.Max(0, dailyCap - applied.Sum(a => a.Count)),
+                applied.Where(a => a.Count >= perTargetCap).Select(a => a.FdcId).ToList());
+        }
+
+        public async Task<IReadOnlyList<long>> PendingVerifiedAsync(int count, IReadOnlyCollection<long> skip, decimal minConfidence = 0m, CancellationToken cancellationToken = default, IReadOnlyCollection<string>? excludeTargets = null)
+        {
+            excludeTargets ??= Array.Empty<string>();
             return await _context.FoodCatalogProposals
                 .Where(p => p.Status == FoodProposalStatus.Pending && p.IngredientId != null && !skip.Contains(p.Id)
+                    && !excludeTargets.Contains(p.FdcId!)
                     && p.Field == FoodCatalogReviewService.FdcLinkField && p.Source.StartsWith("ai:")
                     && p.Confidence >= minConfidence
                     && p.Reason != null && p.Reason.Contains(VerifiedMark))

@@ -688,5 +688,38 @@ namespace Nom.Api.Tests.Services
             salt.LastModifiedDate.Should().Be(stamped);
             salted.CurationStatusId.Should().Be((long)CurationStatusEnum.Curated);
         }
+
+        private static FoodCatalogProposalEntity AppliedBySystem(IngredientEntity target, DateTime when, string source = "ai:fake:1b") => new()
+        {
+            Action = FoodProposalAction.Update, Batch = IngredientLinkService.Batch, IngredientId = 9000 + target.Id, Field = FoodCatalogReviewService.FdcLinkField,
+            FdcId = target.FdcId, ProposedValue = target.Id.ToString(), Source = source, Status = FoodProposalStatus.Applied,
+            ReviewedByPersonId = SystemConstants.SystemPersonId, ReviewedAt = when,
+        };
+
+        [Fact]
+        public async Task The_lane_stops_applying_model_picks_at_its_daily_allowance_and_leaves_a_food_that_took_its_share()
+        {
+            using var db = NewContext();
+            var (salt, salted, plain) = await SeedFoodsAsync(db);
+            var now = DateTime.UtcNow;
+            db.FoodCatalogProposals.AddRange(
+                AppliedBySystem(salt, now.AddHours(-1)), AppliedBySystem(salt, now.AddHours(-2)), AppliedBySystem(salt, now.AddHours(-3)),
+                AppliedBySystem(salted, now.AddHours(-1)),
+                AppliedBySystem(plain, now.AddDays(-3)),
+                AppliedBySystem(plain, now.AddHours(-1), IngredientLinkService.ExactSource));
+            await db.SaveChangesAsync();
+            var toSalt = await AiPickAsync(db, await UsedIngredientAsync(db, "sea salt", 2), salt, 0.95m);
+            var toPlain = await AiPickAsync(db, await UsedIngredientAsync(db, "sweet butter", 2), plain, 0.95m);
+            foreach (var p in new[] { toSalt, toPlain }) p.Reason += IngredientLinkService.VerifiedMark;
+            await db.SaveChangesAsync();
+            var linker = Linker(db, new FakeMatcher());
+
+            var allowance = await linker.VerifiedAllowanceAsync(dailyCap: 10, perTargetCap: 3);
+
+            allowance.Remaining.Should().Be(6, "four model picks were applied by the lane in the last day; older ones and name matches do not count");
+            allowance.BusyTargets.Should().BeEquivalentTo(new[] { salt.FdcId });
+            (await linker.PendingVerifiedAsync(10, Array.Empty<long>(), 0.85m, default, allowance.BusyTargets)).Should().BeEquivalentTo(new[] { toPlain.Id });
+            (await linker.VerifiedAllowanceAsync(dailyCap: 4, perTargetCap: 3)).Remaining.Should().Be(0);
+        }
     }
 }

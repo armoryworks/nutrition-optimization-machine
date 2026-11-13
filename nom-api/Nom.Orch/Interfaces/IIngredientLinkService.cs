@@ -45,6 +45,15 @@ namespace Nom.Orch.Interfaces
         Task<IngredientLinkVerifyResult?> VerifyPendingAiAsync(int count, decimal minConfidence, CancellationToken cancellationToken = default);
 
         /// <summary>Pending model picks that triangulation verified, most-used first, for applying without an admin.</summary>
-        Task<IReadOnlyList<long>> PendingVerifiedAsync(int count, IReadOnlyCollection<long> skip, decimal minConfidence = 0m, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<long>> PendingVerifiedAsync(int count, IReadOnlyCollection<long> skip, decimal minConfidence = 0m, CancellationToken cancellationToken = default, IReadOnlyCollection<string>? excludeTargets = null);
+
+        /// <summary>
+        /// How many more model picks the lane may apply on its own in the rolling day, and the USDA
+        /// foods that have already taken their share of them.
+        /// </summary>
+        Task<LinkApplyAllowance> VerifiedAllowanceAsync(int dailyCap, int perTargetCap, CancellationToken cancellationToken = default);
     }
+
+    /// <summary>What is left of the lane's daily allowance and the USDA foods (by FDC id) it must leave alone until tomorrow.</summary>
+    public sealed record LinkApplyAllowance(int Remaining, IReadOnlyCollection<string> BusyTargets);
 }

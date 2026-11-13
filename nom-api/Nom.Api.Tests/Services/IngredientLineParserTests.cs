@@ -98,5 +98,61 @@ namespace Nom.Api.Tests.Services
         {
             IngredientLineParser.Parse(line).Should().BeNull();
         }
+
+        [Theory]
+        [InlineData("2 qts. water", 8, "Cup")]
+        [InlineData("2-1/2 pts. of milk", 5, "Cup")]
+        [InlineData("4 ozs. sugar", 4, "Ounce")]
+        [InlineData("6-ozs. flour", 6, "Ounce")]
+        [InlineData("1/4-lb. sugar", 0.25, "Pound")]
+        [InlineData("1 Tb. butter", 1, "Tablespoon")]
+        [InlineData("1 large tablespoonful of butter", 1, "Tablespoon")]
+        [InlineData("3 level teaspoons Royal Baking Powder", 3, "Teaspoon")]
+        [InlineData("four large heaping table-spoonfuls of farina", 4, "Tablespoon")]
+        [InlineData("1 scant tablespoon of flour", 1, "Tablespoon")]
+        [InlineData("4 or 5 tablespoonsful flour", 4, "Tablespoon")]
+        [InlineData("4-4 ½ cups all-purpose flour", 4, "Cup")]
+        [InlineData("one fourth cup of milk", 0.25, "Cup")]
+        [InlineData("one-fourth a teaspoonful of salt", 0.25, "Teaspoon")]
+        [InlineData("one dessert spoon of sugar", 2, "Teaspoon")]
+        [InlineData("a salt-spoonful of cayenne pepper", 0.25, "Teaspoon")]
+        [InlineData("1 teacup butter", 0.5, "Cup")]
+        [InlineData("Half a tea-cup of sugar", 0.25, "Cup")]
+        [InlineData("1 wine-glass of brandy", 0.25, "Cup")]
+        [InlineData("3 coffee cups of lemonade", 3, "Cup")]
+        [InlineData("teacupful of sugar", 0.5, "Cup")]
+        [InlineData("¹⁄₂ lb. butter", 0.5, "Pound")]
+        [InlineData("³⁄₄ cup flour", 0.75, "Cup")]
+        [InlineData("1 large can tomatoes", 1, "Can")]
+        [InlineData("2 large eggs, beaten", 2, "Piece")]
+        [InlineData("1 medium onion", 1, "Piece")]
+        public void Reads_old_cookbook_units_and_qualified_measures(string raw, double quantity, string measurement)
+        {
+            var parsed = IngredientLineParser.Parse(raw);
+
+            parsed.Should().NotBeNull();
+            parsed!.Quantity.Should().Be((decimal)quantity);
+            parsed.MeasurementName.Should().Be(measurement);
+        }
+
+        [Theory]
+        [InlineData("two of butter")]
+        [InlineData("three scant ones of flour")]
+        [InlineData("1 of salt")]
+        [InlineData("a rounded one of sugar")]
+        public void A_number_that_borrows_its_unit_from_the_line_before_is_no_quantity(string raw)
+        {
+            IngredientLineParser.IsElliptical(raw).Should().BeTrue();
+            IngredientLineParser.Parse(raw).Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("1/2 of a lemon")]
+        [InlineData("half of the butter")]
+        [InlineData("2 cups of flour")]
+        public void A_part_of_a_thing_is_not_mistaken_for_a_borrowed_unit(string raw)
+        {
+            IngredientLineParser.IsElliptical(raw).Should().BeFalse();
+        }
     }
 }

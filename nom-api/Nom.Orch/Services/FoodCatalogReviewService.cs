@@ -604,9 +604,19 @@ namespace Nom.Orch.Services
         private async Task AddAliasAsync(long ingredientId, string alias, long reviewerPersonId, string? sourceContext = null)
         {
             var lowered = alias.ToLowerInvariant();
-            var exists = await _context.IngredientAliases.AnyAsync(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered && !a.IsDeleted)
-                || _context.IngredientAliases.Local.Any(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered);
-            if (exists) return;
+            var existing = _context.IngredientAliases.Local.FirstOrDefault(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered)
+                ?? await _context.IngredientAliases.FirstOrDefaultAsync(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered);
+            if (existing != null)
+            {
+                if (!existing.IsDeleted) return;
+                existing.IsDeleted = false;
+                existing.DeletedAt = null;
+                existing.DeletedByPersonId = null;
+                existing.SourceContext = sourceContext;
+                existing.LastModifiedDate = DateTime.UtcNow;
+                existing.LastModifiedByPersonId = reviewerPersonId;
+                return;
+            }
             _context.IngredientAliases.Add(new Nom.Data.Recipe.IngredientAliasEntity
             {
                 IngredientId = ingredientId,

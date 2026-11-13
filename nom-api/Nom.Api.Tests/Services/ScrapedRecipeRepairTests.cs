@@ -209,5 +209,30 @@ namespace Nom.Api.Tests.Services
             Nom.Orch.Services.Support.IngredientLineParser.Normalize(3m, null, "3 apples")!.MeasurementName.Should().Be("Piece");
             await Task.CompletedTask;
         }
+
+        [Fact]
+        public async Task A_row_counted_in_pieces_takes_the_unit_its_line_states()
+        {
+            using var db = NewContext();
+            var recipe = Harvested("Old Cake", 9003, "2 qts. milk", "1 teacup butter", "two of sugar", "3 eggs");
+            foreach (var row in recipe.RecipeIngredients!)
+            {
+                row.Quantity = row.RawLine.StartsWith("two") ? 2 : decimal.Parse(row.RawLine[..1]);
+                row.MeasurementId = 3;
+            }
+            db.Recipes.Add(recipe);
+            await db.SaveChangesAsync();
+
+            await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 50);
+
+            var rows = await db.RecipeIngredients.OrderBy(r => r.IngredientId).ToListAsync();
+            rows[0].Quantity.Should().Be(8);
+            rows[0].MeasurementId.Should().Be(11);
+            rows[1].Quantity.Should().Be(0.5m);
+            rows[1].MeasurementId.Should().Be(11);
+            rows[2].Quantity.Should().Be(0, "\"two of sugar\" borrowed its unit from the line before");
+            rows[3].Quantity.Should().Be(3);
+            rows[3].MeasurementId.Should().Be(3, "eggs are counted");
+        }
     }
 }

@@ -30,24 +30,28 @@ namespace Nom.Orch.Services.Support
 
         private static readonly (string[] Forms, string Measurement, decimal Factor)[] Units =
         {
-            (new[] { "tablespoonfuls", "tablespoonful", "tablespoons", "tablespoon", "tbsps", "tbsp", "tbs", "tbl", "spoonfuls", "spoonful", "T" }, "Tablespoon", 1m),
+            (new[] { "tablespoonfuls", "tablespoonful", "tablespoons", "tablespoon", "tblsps", "tblsp", "tbsps", "tbsp", "tbls", "tbs", "tbl", "tb", "spoonfuls", "spoonful", "T" }, "Tablespoon", 1m),
             (new[] { "teaspoonfuls", "teaspoonful", "teaspoons", "teaspoon", "tsps", "tsp", "t", "cucchiaini", "cucchiaino" }, "Teaspoon", 1m),
             (new[] { "dessertspoonfuls", "dessertspoonful", "dessertspoons", "dessertspoon" }, "Teaspoon", 2m),
+            (new[] { "saltspoonfuls", "saltspoonful", "saltspoons", "saltspoon" }, "Teaspoon", 0.25m),
+            (new[] { "teacupfuls", "teacupful", "teacups", "teacup" }, "Cup", 0.5m),
+            (new[] { "wineglassfuls", "wineglassful", "wineglasses", "wineglass" }, "Cup", 0.25m),
+            (new[] { "coffeecupfuls", "coffeecupful", "tumblerfuls", "tumblerful" }, "Cup", 1m),
             (new[] { "cucchiaiate", "cucchiaiata", "cucchiai", "cucchiaio" }, "Tablespoon", 1m),
             (new[] { "decilitri", "decilitro", "dl" }, "Milliliter", 100m),
             (new[] { "bicchieri", "bicchiere" }, "Cup", 1m),
             (new[] { "spicchi", "spicchio" }, "Clove", 1m),
             (new[] { "pizzichi", "pizzico", "prese", "presa" }, "Pinch", 1m),
             (new[] { "fluid ounces", "fluid ounce", "fl oz", "fl. oz." }, "Milliliter", 29.5735m),
-            (new[] { "ounces", "ounce", "oz" }, "Ounce", 1m),
+            (new[] { "ounces", "ounce", "ozs", "oz" }, "Ounce", 1m),
             (new[] { "pounds", "pound", "lbs", "lb" }, "Pound", 1m),
             (new[] { "kilograms", "kilogram", "chilogrammi", "chilogrammo", "kgs", "kg" }, "Kilogram", 1m),
             (new[] { "grams", "gram", "grammi", "grammo", "grammes", "gramme", "gr", "g" }, "Gram", 1m),
             (new[] { "milliliters", "millilitres", "milliliter", "millilitre", "ml" }, "Milliliter", 1m),
             (new[] { "liters", "litres", "liter", "litre", "litri", "litro", "l" }, "Liter", 1m),
             (new[] { "gallons", "gallon", "gal" }, "Cup", 16m),
-            (new[] { "quarts", "quart", "qt" }, "Cup", 4m),
-            (new[] { "pints", "pint", "pt" }, "Cup", 2m),
+            (new[] { "quarts", "quart", "qts", "qt" }, "Cup", 4m),
+            (new[] { "pints", "pint", "pts", "pt" }, "Cup", 2m),
             (new[] { "gills", "gill" }, "Cup", 0.5m),
             (new[] { "cupfuls", "cupful", "cups", "cup", "c" }, "Cup", 1m),
             (new[] { "cloves", "clove" }, "Clove", 1m),
@@ -67,10 +71,13 @@ namespace Nom.Orch.Services.Support
 
         private const string Fractions = "¼½¾⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞";
 
+        private const string Qualifier = @"(?:large|small|medium|level|heaping|heaped|scant|rounded|rounding|generous|good|full|liberal|even|big)";
+
         private static readonly Regex LineRegex = new(
             @"^\s*(?<qty>\d+\s+\d+\s*/\s*\d+|\d+\s*/\s*\d+|\d+(?:\.\d+)?\s*[" + Fractions + @"]|[" + Fractions + @"]|\d+(?:[.,]\d+)?)" +
-            @"(?:\s*(?:-|–|to|or|o)\s*(?:\d+(?:[.,]\d+)?|[" + Fractions + @"]))?" +
-            @"\s*(?<unit>(?:" + UnitPattern + @")(?![a-z]))?\.?(?<rest>.*)$",
+            @"(?:\s*(?:-|–|to|or|o)\s*(?:\d+\s+\d+\s*/\s*\d+|\d+\s*/\s*\d+|\d+(?:[.,]\d+)?\s*[" + Fractions + @"]?|[" + Fractions + @"]))?" +
+            @"[\s-]*(?:" + Qualifier + @"\s+(?=(?:" + Qualifier + @"\s+)?(?:" + UnitPattern + @")(?![a-z])))*" +
+            @"(?<unit>(?:" + UnitPattern + @")(?![a-z]))?\.?(?<rest>.*)$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Dictionary<string, decimal> NumberWords = new(StringComparer.OrdinalIgnoreCase)
@@ -91,7 +98,7 @@ namespace Nom.Orch.Services.Support
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex UnitFirst = new(
-            @"^(?:pinch|dash|handful|sprig|clove|stick|knob|splash|drizzle)\s+of\s+\S",
+            @"^(?:pinch|dash|handful|sprig|clove|stick|knob|splash|drizzle|teacupful|cupful|tablespoonful|teaspoonful|dessertspoonful|saltspoonful|spoonful|wineglassful|wineglass|teacup|gill|pint|quart|pound)\s+of\s+\S",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex HyphenatedMixed = new(@"^\s*(\d+)-(\d+\s*/\s*\d+)", RegexOptions.Compiled);
@@ -103,10 +110,15 @@ namespace Nom.Orch.Services.Support
         public static ParsedQuantity? Parse(string? rawLine)
         {
             if (string.IsNullOrWhiteSpace(rawLine)) return null;
-            if (ParseLeading(rawLine) is { } leading) return leading;
+            rawLine = IngredientNameNormalizer.PlainFractions(rawLine);
+            if (IsElliptical(rawLine)) return null;
+            var leading = ParseLeading(rawLine);
+            if (leading is { MeasurementName: not Piece }) return leading;
 
             var spelled = SpellOut(System.Net.WebUtility.HtmlDecode(rawLine).Trim());
-            if (ParseLeading(spelled) is { } respelled) return respelled;
+            var respelled = ParseLeading(spelled);
+            if (respelled is { MeasurementName: not Piece }) return respelled;
+            if ((leading ?? respelled) is { } counted) return counted;
 
             var of = PartOf.Match(spelled);
             if (of.Success && ParseQuantity(of.Groups["qty"].Value) is > 0 and var count) return new ParsedQuantity(Round(of.Groups["dozen"].Success ? count * 12 : count), Piece);
@@ -121,11 +133,20 @@ namespace Nom.Orch.Services.Support
 
         private static readonly (Regex Pattern, string Replacement)[] Respellings =
         {
-            (new Regex(@"\btable-?spoons?-?fulls?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "tablespoonfuls"),
-            (new Regex(@"\btea-?spoons?-?fulls?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "teaspoonfuls"),
-            (new Regex(@"\bspoon-?fulls?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "spoonfuls"),
-            (new Regex(@"\bcup-?fulls?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "cupfuls"),
-            (new Regex(@"\bhand-?fulls?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "handfuls"),
+            (new Regex(@"\btable[- ]?spoons?[- ]?full?s?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "tablespoonfuls"),
+            (new Regex(@"\btea[- ]?spoons?[- ]?full?s?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "teaspoonfuls"),
+            (new Regex(@"\bsalt[- ]?spoons?(?:[- ]?full?s?)?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "saltspoonfuls"),
+            (new Regex(@"\btea[- ]?cups?(?:[- ]?full?s?|ful)?\b|\bteacupsful\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "teacupfuls"),
+            (new Regex(@"\bwine[- ]?glass(?:es)?(?:[- ]?full?s?)?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "wineglassfuls"),
+            (new Regex(@"\bcoffee[- ]?cups?(?:[- ]?full?s?)?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "coffeecupfuls"),
+            (new Regex(@"\btumblers?[- ]?full?s?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "tumblerfuls"),
+            (new Regex(@"\bcupsful\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "cupfuls"),
+            (new Regex(@"\btable[- ]spoons?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "tablespoons"),
+            (new Regex(@"\btea[- ]spoons?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "teaspoons"),
+            (new Regex(@"\bdessert[- ]spoons?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "dessertspoons"),
+            (new Regex(@"\bspoon-?full?s?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "spoonfuls"),
+            (new Regex(@"\bcup-?full?s?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "cupfuls"),
+            (new Regex(@"\bhand-?full?s?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "handfuls"),
             (new Regex(@"^\s*(?:from|about|nearly|scant|full|fully|good|generous|heaping|rounded|level|fully)\s+", RegexOptions.Compiled | RegexOptions.IgnoreCase), ""),
             (new Regex(@"\b(?<p>dessert|table|tea)?spoonsful\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "${p}spoonfuls"),
             (new Regex(@"\bdessert-?spoons?-?fulls?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "dessertspoonfuls"),
@@ -194,8 +215,19 @@ namespace Nom.Orch.Services.Support
                 "quarter" => "1/4",
                 var f => f,
             });
+            line = Regex.Replace(line, @"^\s*(?<q>\d+/\d+)\s+an?\s+(?=\p{L})", "${q} ");
             return Regex.Replace(line, @"\b(?<q>[\d/ ]*\d)\s+of\s+an?\s+(?=\p{L})", "${q} ");
         }
+
+        private static readonly Regex Elliptical = new(
+            @"^\s*(?:\d+(?:[.,]\d+)?(?:\s+\d+/\d+)?|\d+/\d+|an?|one|two|three|four|five|six|seven|eight|nine|ten|twelve|half)\s+(?:" + Qualifier + @"\s+)?(?:ones?\s+)?of\s+(?!an?\b|the\b|each\b)\p{L}",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// A line that borrows its unit from the line before it ("two of butter" after "one cup of
+        /// sugar"): the number is there but what it counts is not, so it is no quantity at all.
+        /// </summary>
+        public static bool IsElliptical(string? rawLine) => rawLine != null && Elliptical.IsMatch(rawLine);
 
         private const string QuantityText = @"\d+\s+\d+/\d+|\d+/\d+|\d+(?:[.,]\d+)?";
 
@@ -210,6 +242,7 @@ namespace Nom.Orch.Services.Support
         private static ParsedQuantity? ParseLeading(string rawLine)
         {
             var line = HyphenatedMixed.Replace(System.Net.WebUtility.HtmlDecode(rawLine).Trim(), "$1 $2");
+            if (IsElliptical(line)) return null;
             if (UnitFirst.IsMatch(line)) line = "1 " + line;
             var words = LeadingWords.Match(line);
             if (words.Success)

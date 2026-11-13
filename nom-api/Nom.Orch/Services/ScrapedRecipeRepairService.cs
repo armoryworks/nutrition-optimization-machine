@@ -60,9 +60,14 @@ namespace Nom.Orch.Services
 
                 foreach (var row in recipe.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>())
                 {
-                    if (row.Quantity != 0) continue;
-
                     var firstLine = (row.RawLine ?? string.Empty).Split(" + ", 2)[0];
+                    if (row.Quantity != 0)
+                    {
+                        if (!RereadPieces(row, firstLine, measurements)) continue;
+                        repaired++;
+                        if (row.Quantity != 0) continue;
+                    }
+
                     var parsed = IngredientLineParser.Parse(firstLine)
                         ?? MethodAmountFinder.Find(firstLine, (recipe.RecipeSteps ?? Enumerable.Empty<RecipeStepEntity>()).Where(st => !st.IsDeleted).Select(st => st.Description ?? string.Empty));
                     if (parsed == null || !measurements.TryGetValue(parsed.MeasurementName, out var measurementId))
@@ -85,6 +90,33 @@ namespace Nom.Orch.Services
             await _context.SaveChangesAsync(cancellationToken);
             _context.ChangeTracker.Clear();
             return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded);
+        }
+
+        /// <summary>
+        /// A row counted in pieces whose line states a real unit the parser has since learned
+        /// ("2 qts. water", "1 teacup butter", "3 level teaspoons soda") takes that unit; a row whose
+        /// number borrowed its unit from the line before ("two of butter") goes back to unquantified.
+        /// </summary>
+        private static bool RereadPieces(Nom.Data.Recipe.RecipeIngredientEntity row, string firstLine, Dictionary<string, long> measurements)
+        {
+            if (!measurements.TryGetValue(IngredientLineParser.Piece, out var pieceId) || row.MeasurementId != pieceId) return false;
+
+            if (IngredientLineParser.Parse(firstLine) is { MeasurementName: not IngredientLineParser.Piece } reread
+                && measurements.TryGetValue(reread.MeasurementName, out var measurementId))
+            {
+                row.Quantity = reread.Quantity;
+                row.MeasurementId = measurementId;
+            }
+            else if (IngredientLineParser.IsElliptical(firstLine))
+            {
+                row.Quantity = 0;
+            }
+            else
+            {
+                return false;
+            }
+            row.LastModifiedDate = DateTime.UtcNow;
+            return true;
         }
 
         /// <summary>

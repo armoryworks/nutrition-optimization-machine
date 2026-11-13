@@ -44,7 +44,7 @@ namespace Nom.Orch.Services
 
             // lower(name) -> best canonical row (a non-residue row, lowest id wins)
             var canonicalByLower = new Dictionary<string, Row>(StringComparer.OrdinalIgnoreCase);
-            foreach (var row in all.OrderBy(r => r.Id))
+            foreach (var row in all.OrderBy(r => r.Cleanable).ThenBy(r => r.Id))
             {
                 if (!IngredientNameNormalizer.IsResidue(row.Name) && !canonicalByLower.ContainsKey(row.Name))
                 {
@@ -59,10 +59,15 @@ namespace Nom.Orch.Services
 
             foreach (var row in all.OrderBy(r => r.Id))
             {
-                if (!row.Cleanable || !IngredientNameNormalizer.IsResidue(row.Name)) continue;
+                if (!row.Cleanable) continue;
 
                 var normalized = IngredientNameNormalizer.Normalize(row.Name);
-                if (canonicalByLower.TryGetValue(normalized, out var target))
+                var target = IngredientNameNormalizer.LookupKeys(row.Name)
+                    .Select(key => canonicalByLower.TryGetValue(key, out var found) && found.Id != row.Id && (!found.Cleanable || found.Id < row.Id) ? found : null)
+                    .FirstOrDefault(found => found != null);
+                if (target == null && !IngredientNameNormalizer.IsResidue(row.Name)) continue;
+
+                if (target != null)
                 {
                     actions.Add(new CatalogCleanupAction
                     {
@@ -87,6 +92,16 @@ namespace Nom.Orch.Services
                     };
                     renamed[normalized] = rename;
                     actions.Add(rename);
+                }
+            }
+
+            var mergedInto = actions.Where(x => x.Action == "merge" && x.TargetId != null).ToDictionary(x => x.IngredientId, x => x);
+            foreach (var action in mergedInto.Values)
+            {
+                for (var hop = 0; hop < 8 && mergedInto.TryGetValue(action.TargetId!.Value, out var onward); hop++)
+                {
+                    action.TargetId = onward.TargetId;
+                    action.TargetName = onward.TargetName;
                 }
             }
 
