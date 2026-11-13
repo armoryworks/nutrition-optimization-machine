@@ -24,7 +24,9 @@ namespace Nom.Orch.Models.Curation
     public class LineRelinkResult
     {
         public int Moved { get; set; }
-        /// <summary>Lines left alone because the recipe already has the target food at that position.</summary>
+        /// <summary>Moved lines that took a new position because the recipe already had the target food at theirs.</summary>
+        public int Repositioned { get; set; }
+        /// <summary>Lines that were no longer where the plan found them.</summary>
         public int Skipped { get; set; }
         public int Remaining { get; set; }
     }

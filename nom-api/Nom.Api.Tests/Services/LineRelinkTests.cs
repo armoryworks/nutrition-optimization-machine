@@ -72,6 +72,15 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_journaled_place_reads_back_as_the_food_and_position_it_was_written_from()
+        {
+            LineRelinkService.ReadPlace(LineRelinkService.Place(282236, 0)).Should().Be((282236L, 0));
+            LineRelinkService.ReadPlace(LineRelinkService.Place(280833, 14)).Should().Be((280833L, 14));
+            LineRelinkService.ReadPlace("280833").Should().BeNull();
+            LineRelinkService.ReadPlace(null).Should().BeNull();
+        }
+
+        [Fact]
         public async Task The_plan_moves_only_scraped_lines_and_only_to_a_food_with_nutrition()
         {
             using var db = NewContext();

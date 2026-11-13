@@ -142,8 +142,8 @@ namespace Nom.Orch.Services
                 foreach (var move in chunk)
                 {
                     var line = move.Line;
-                    var moved = await MoveAsync(line.RecipeId, line.SortOrder, line.IngredientId, move.TargetId, personId);
-                    if (moved == 0)
+                    var position = await MoveAsync(line.RecipeId, line.IngredientId, line.SortOrder, move.TargetId, line.SortOrder, personId);
+                    if (position == null)
                     {
                         result.Skipped++;
                         continue;
@@ -154,13 +154,14 @@ namespace Nom.Orch.Services
                         EntityType = RelinkEntityType,
                         EntityId = line.RecipeId,
                         ChangeType = RelinkChangeType,
-                        PropertyName = line.SortOrder.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                        OldValue = line.IngredientId.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                        NewValue = move.TargetId.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        PropertyName = nameof(RecipeIngredientEntity.IngredientId),
+                        OldValue = Place(line.IngredientId, line.SortOrder),
+                        NewValue = Place(move.TargetId, position.Value),
                         Timestamp = DateTime.UtcNow,
                         ChangedByPersonId = personId,
                     });
                     result.Moved++;
+                    if (position.Value != line.SortOrder) result.Repositioned++;
                 }
 
                 await _db.SaveChangesAsync();
@@ -185,10 +186,8 @@ namespace Nom.Orch.Services
                 await using var tx = await _db.Database.BeginTransactionAsync();
                 foreach (var entry in chunk)
                 {
-                    var restored = int.TryParse(entry.PropertyName, out var sortOrder)
-                        && long.TryParse(entry.OldValue, out var fromId) && long.TryParse(entry.NewValue, out var toId)
-                        && await MoveAsync(entry.EntityId, sortOrder, toId, fromId, personId) > 0;
-                    if (!restored)
+                    if (ReadPlace(entry.OldValue) is not { } was || ReadPlace(entry.NewValue) is not { } now
+                        || await MoveAsync(entry.EntityId, now.IngredientId, now.SortOrder, was.IngredientId, was.SortOrder, personId) == null)
                     {
                         result.Skipped++;
                         continue;
@@ -205,17 +204,42 @@ namespace Nom.Orch.Services
             return result;
         }
 
-        private Task<int> MoveAsync(long recipeId, int sortOrder, long fromId, long toId, long personId) =>
-            _db.Database.ExecuteSqlAsync(
+        internal static string Place(long ingredientId, int sortOrder) =>
+            string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{ingredientId}@{sortOrder}");
+
+        internal static (long IngredientId, int SortOrder)? ReadPlace(string? value)
+        {
+            var parts = (value ?? string.Empty).Split('@');
+            return parts.Length == 2
+                && long.TryParse(parts[0], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var ingredientId)
+                && int.TryParse(parts[1], System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out var sortOrder)
+                ? (ingredientId, sortOrder)
+                : null;
+        }
+
+        /// <summary>
+        /// Re-points one line and returns the position it ended at, or null when the line is no
+        /// longer where the caller found it. A recipe that already has the target food at the
+        /// wanted position (most scraped recipes keep every line at position 0) gets the line at
+        /// the next free position, so both lines keep their own quantity.
+        /// </summary>
+        private async Task<int?> MoveAsync(long recipeId, long fromId, int fromSortOrder, long toId, int wantedSortOrder, long personId)
+        {
+            var positions = await _db.Database.SqlQuery<int>(
                 $"""
                  UPDATE recipe."RecipeIngredient" line
                  SET "IngredientId" = {toId},
                      "IngredientEntityId" = CASE WHEN line."IngredientEntityId" = {fromId} THEN {toId} ELSE line."IngredientEntityId" END,
+                     "SortOrder" = CASE WHEN EXISTS (SELECT 1 FROM recipe."RecipeIngredient" other
+                                                     WHERE other."RecipeId" = {recipeId} AND other."IngredientId" = {toId} AND other."SortOrder" = {wantedSortOrder})
+                                        THEN (SELECT max(other."SortOrder") + 1 FROM recipe."RecipeIngredient" other WHERE other."RecipeId" = {recipeId})
+                                        ELSE {wantedSortOrder} END,
                      "LastModifiedDate" = now(), "LastModifiedByPersonId" = {personId}
-                 WHERE line."RecipeId" = {recipeId} AND line."SortOrder" = {sortOrder} AND line."IngredientId" = {fromId}
-                   AND NOT EXISTS (SELECT 1 FROM recipe."RecipeIngredient" other
-                                   WHERE other."RecipeId" = {recipeId} AND other."SortOrder" = {sortOrder} AND other."IngredientId" = {toId})
+                 WHERE line."RecipeId" = {recipeId} AND line."IngredientId" = {fromId} AND line."SortOrder" = {fromSortOrder}
                    AND EXISTS (SELECT 1 FROM recipe."Ingredient" food WHERE food."Id" = {toId} AND food."IsDeleted" = false)
-                 """);
+                 RETURNING line."SortOrder" AS "Value"
+                 """).ToListAsync();
+            return positions.Count == 0 ? null : positions[0];
+        }
     }
 }
