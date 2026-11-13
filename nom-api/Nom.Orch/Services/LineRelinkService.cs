@@ -133,10 +133,15 @@ namespace Nom.Orch.Services
         public async Task<LineRelinkResult> ApplyAsync(int maxLines = 5000)
         {
             var (_, moves, _) = await PlanAsync();
+            return await MoveAsync(moves, Math.Clamp(maxLines, 1, 50000));
+        }
+
+        private async Task<LineRelinkResult> MoveAsync(List<Move> moves, int maxLines)
+        {
             var result = new LineRelinkResult { Remaining = moves.Count };
             var personId = _currentUser.PersonIdOrSystem;
 
-            foreach (var chunk in moves.Take(Math.Clamp(maxLines, 1, 50000)).Chunk(500))
+            foreach (var chunk in moves.Take(maxLines).Chunk(500))
             {
                 await using var tx = await _db.Database.BeginTransactionAsync();
                 foreach (var move in chunk)
@@ -170,6 +175,23 @@ namespace Nom.Orch.Services
             }
 
             return result;
+        }
+
+        public async Task<LineRelinkResult?> MoveFoodAsync(long fromIngredientId, long toIngredientId)
+        {
+            if (fromIngredientId == toIngredientId) return null;
+            var foods = await _db.Ingredients.AsNoTracking()
+                .Where(i => (i.Id == fromIngredientId || i.Id == toIngredientId) && !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated)
+                .Select(i => new { i.Id, HasNutrition = i.IngredientNutrients.Any(n => !n.IsDeleted) })
+                .ToListAsync();
+            if (foods.Count != 2 || !foods.Single(f => f.Id == toIngredientId).HasNutrition) return null;
+
+            var lines = await _db.RecipeIngredients.AsNoTracking()
+                .Where(ri => !ri.IsDeleted && ri.IngredientId == fromIngredientId)
+                .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder)
+                .Select(ri => new Line(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine))
+                .ToListAsync();
+            return await MoveAsync(lines.Select(line => new Move(line, string.Empty, toIngredientId)).ToList(), int.MaxValue);
         }
 
         public async Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc)

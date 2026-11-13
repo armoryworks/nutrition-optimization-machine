@@ -64,6 +64,14 @@ namespace Nom.Api.Controllers
             return Ok(await _relink.ApplyAsync(maxLines));
         }
 
+        /// <summary>Move every recipe line of one curated food to another; each move is written to the audit log.</summary>
+        [HttpPost("relink/food")]
+        public async Task<ActionResult<LineRelinkResult>> RelinkFood([FromQuery, Required] long fromId, [FromQuery, Required] long toId)
+        {
+            var result = await _relink.MoveFoodAsync(fromId, toId);
+            return result == null ? BadRequest(new { message = "Both must be live curated foods, and the target must have nutrition." }) : Ok(result);
+        }
+
         /// <summary>Put back the lines moved at or after the given UTC time.</summary>
         [HttpPost("relink/undo")]
         public async Task<ActionResult<LineRelinkUndoResult>> RelinkUndo([FromQuery, Required] DateTime sinceUtc)

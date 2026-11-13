@@ -113,7 +113,12 @@ namespace Nom.Api.Tests.Services
                 Recipe("Written by a member", null, (wellWater, "1 cup water")));
             await db.SaveChangesAsync();
 
-            var preview = await new LineRelinkService(db, new NoUser()).PreviewAsync(100);
+            var service = new LineRelinkService(db, new NoUser());
+            (await service.MoveFoodAsync(wellWater.Id, milk.Id)).Should().BeNull("Milk has no nutrition here");
+            (await service.MoveFoodAsync(wellWater.Id, wellWater.Id)).Should().BeNull();
+            (await service.MoveFoodAsync(wellWater.Id, 999999)).Should().BeNull();
+
+            var preview = await service.PreviewAsync(100);
 
             preview.LinesExamined.Should().Be(5);
             preview.MoveCount.Should().Be(2);
