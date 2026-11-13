@@ -22,6 +22,9 @@ namespace Nom.Orch.Services
     {
         public const string RelinkChangeType = "LineRelink";
         public const string RelinkEntityType = "RecipeIngredient";
+        public const string RetireChangeType = "FoodRetire";
+        public const string RetireEntityType = "Ingredient";
+        public const string RetiredContextPrefix = "retired:";
 
         private static readonly Regex Word = new(@"[\p{L}\p{N}%']+", RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
@@ -177,7 +180,7 @@ namespace Nom.Orch.Services
             return result;
         }
 
-        public async Task<LineRelinkResult?> MoveFoodAsync(long fromIngredientId, long toIngredientId)
+        public async Task<LineRelinkResult?> MoveFoodAsync(long fromIngredientId, long toIngredientId, string? keepWords = null)
         {
             if (fromIngredientId == toIngredientId) return null;
             var foods = await _db.Ingredients.AsNoTracking()
@@ -191,13 +194,151 @@ namespace Nom.Orch.Services
                 .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder)
                 .Select(ri => new Line(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine))
                 .ToListAsync();
-            return await MoveAsync(lines.Select(line => new Move(line, string.Empty, toIngredientId)).ToList(), int.MaxValue);
+            var keep = Words(keepWords ?? string.Empty);
+            return await MoveAsync(
+                lines.Where(line => keep.Count == 0 || !Words(line.RawLine).Overlaps(keep))
+                    .Select(line => new Move(line, string.Empty, toIngredientId)).ToList(),
+                int.MaxValue);
         }
+
+        public async Task<FoodRetireResult?> RetireAsync(long fromIngredientId, long toIngredientId, bool takeName = false)
+        {
+            if (fromIngredientId == toIngredientId) return null;
+            var foods = await _db.Ingredients
+                .Where(i => (i.Id == fromIngredientId || i.Id == toIngredientId) && i.CurationStatusId == (long)CurationStatusEnum.Curated)
+                .ToListAsync();
+            var source = foods.SingleOrDefault(f => f.Id == fromIngredientId);
+            var target = foods.SingleOrDefault(f => f.Id == toIngredientId);
+            if (source == null || target == null
+                || !await _db.IngredientNutrients.AnyAsync(n => n.IngredientId == toIngredientId)) return null;
+
+            var result = new FoodRetireResult
+            {
+                LinesLeft = await _db.RecipeIngredients.CountAsync(ri => ri.IngredientId == fromIngredientId),
+                InUseElsewhere = await IsUsedOutsideRecipeLinesAsync(fromIngredientId),
+            };
+            if (result.LinesLeft > 0 || result.InUseElsewhere) return result;
+
+            var personId = _currentUser.PersonIdOrSystem;
+            var now = DateTime.UtcNow;
+            var retiredName = source.Name.Trim();
+            var keptName = target.Name.Trim();
+            await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+
+            source.Name = Truncate($"{retiredName} (deleted #{source.Id})", 2000);
+            source.IsDeleted = true;
+            source.DeletedAt = now;
+            source.DeletedByPersonId = personId;
+            _db.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = RetireEntityType,
+                EntityId = source.Id,
+                ChangeType = RetireChangeType,
+                PropertyName = nameof(IngredientEntity.IsDeleted),
+                OldValue = retiredName,
+                NewValue = Place(target.Id, 0),
+                Timestamp = now,
+                ChangedByPersonId = personId,
+            });
+            await _db.SaveChangesAsync();
+
+            if (takeName)
+            {
+                target.Name = retiredName;
+                target.NameNormalized = IngredientNameNormalizer.Normalize(retiredName);
+                target.LastModifiedDate = now;
+                target.LastModifiedByPersonId = personId;
+                _db.AuditLogEntries.Add(new AuditLogEntryEntity
+                {
+                    EntityType = RetireEntityType,
+                    EntityId = target.Id,
+                    ChangeType = RetireChangeType,
+                    PropertyName = nameof(IngredientEntity.Name),
+                    OldValue = keptName,
+                    NewValue = retiredName,
+                    Timestamp = now,
+                    ChangedByPersonId = personId,
+                });
+            }
+
+            result.Alias = takeName ? keptName : retiredName;
+            await AddRetiredAliasAsync(target.Id, result.Alias, source.Id, personId);
+            await _db.SaveChangesAsync();
+            if (tx != null) await tx.CommitAsync();
+
+            result.Retired = true;
+            result.Name = target.Name;
+            return result;
+        }
+
+        private async Task AddRetiredAliasAsync(long ingredientId, string alias, long retiredId, long personId)
+        {
+            if (alias.Length > 511) return;
+            var lowered = alias.ToLowerInvariant();
+            var existing = await _db.IngredientAliases.IgnoreQueryFilters()
+                .FirstOrDefaultAsync(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered);
+            if (existing is { IsDeleted: false }) return;
+
+            var context = RetiredContextPrefix + retiredId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (existing != null)
+            {
+                existing.IsDeleted = false;
+                existing.DeletedAt = null;
+                existing.DeletedByPersonId = null;
+                existing.SourceContext = context;
+                existing.LastModifiedDate = DateTime.UtcNow;
+                existing.LastModifiedByPersonId = personId;
+                return;
+            }
+
+            _db.IngredientAliases.Add(new IngredientAliasEntity
+            {
+                IngredientId = ingredientId,
+                AliasName = alias,
+                SourceContext = context,
+                CreatedDate = DateTime.UtcNow,
+                CreatedByPersonId = personId,
+            });
+        }
+
+        /// <summary>
+        /// Whether anything a household or another food relies on still points at the food: a
+        /// pantry, shopping list, plan, goal, restriction, substitution, variation or component.
+        /// </summary>
+        private async Task<bool> IsUsedOutsideRecipeLinesAsync(long id)
+        {
+            if (!_db.Database.IsRelational()) return false;
+            var used = await _db.Database
+                .SqlQuery<bool>($"""
+                    SELECT (
+                        EXISTS (SELECT 1 FROM recipe."IngredientComponent" x WHERE x."IngredientId" = {id} OR x."ComponentIngredientId" = {id})
+                     OR EXISTS (SELECT 1 FROM recipe."IngredientSubstitution" x WHERE x."IngredientId" = {id} OR x."SubstituteIngredientId" = {id})
+                     OR EXISTS (SELECT 1 FROM recipe."RecipeAugmentation" x WHERE x."IngredientId" = {id})
+                     OR EXISTS (SELECT 1 FROM recipe."RecipeSubstitution" x WHERE x."IngredientId" = {id} OR x."SubstituteIngredientId" = {id})
+                     OR EXISTS (SELECT 1 FROM recipe."RecipeVariationItem" x WHERE x."IngredientId" = {id} OR x."SubstituteIngredientId" = {id})
+                     OR EXISTS (SELECT 1 FROM plan."GoalItem" x WHERE x."IngredientId" = {id})
+                     OR EXISTS (SELECT 1 FROM plan."HouseholdIngredient" x WHERE x."IngredientId" = {id})
+                     OR EXISTS (SELECT 1 FROM plan."MealPlan" x WHERE x."IngredientId" = {id})
+                     OR EXISTS (SELECT 1 FROM plan."Restriction" x WHERE x."IngredientId" = {id})
+                     OR EXISTS (SELECT 1 FROM plan."RestrictionCriterion" x WHERE x."IngredientId" = {id})
+                     OR EXISTS (SELECT 1 FROM shopping."PantryItem" x WHERE x."IngredientId" = {id})
+                     OR EXISTS (SELECT 1 FROM shopping."ShoppingListItem" x WHERE x."IngredientId" = {id})
+                     OR EXISTS (SELECT 1 FROM shopping."HouseholdShoppingItem" x WHERE x."IngredientId" = {id})
+                     OR EXISTS (SELECT 1 FROM communication."MessageThread" x WHERE x."IngredientId" = {id})
+                    ) AS "Value"
+                    """)
+                .ToListAsync();
+            return used.Count > 0 && used[0];
+        }
+
+        private static string Truncate(string text, int length) => text.Length <= length ? text : text[..length];
 
         public async Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc)
         {
             var entries = await _db.AuditLogEntries
-                .Where(a => a.EntityType == RelinkEntityType && a.ChangeType == RelinkChangeType && a.Timestamp >= sinceUtc)
+                .Where(a => ((a.EntityType == RelinkEntityType && a.ChangeType == RelinkChangeType)
+                        || (a.EntityType == RetireEntityType && a.ChangeType == RetireChangeType))
+                    && a.Timestamp >= sinceUtc)
                 .OrderByDescending(a => a.Id)
                 .ToListAsync();
             var result = new LineRelinkUndoResult();
@@ -208,6 +349,22 @@ namespace Nom.Orch.Services
                 await using var tx = await _db.Database.BeginTransactionAsync();
                 foreach (var entry in chunk)
                 {
+                    if (entry.ChangeType == RetireChangeType)
+                    {
+                        if (await RestoreAsync(entry, personId))
+                        {
+                            _db.AuditLogEntries.Remove(entry);
+                            if (entry.PropertyName == nameof(IngredientEntity.IsDeleted)) result.FoodsRestored++;
+                        }
+                        else
+                        {
+                            result.Skipped++;
+                        }
+
+                        await _db.SaveChangesAsync();
+                        continue;
+                    }
+
                     if (ReadPlace(entry.OldValue) is not { } was || ReadPlace(entry.NewValue) is not { } now
                         || await MoveAsync(entry.EntityId, now.IngredientId, now.SortOrder, was.IngredientId, was.SortOrder, personId) == null)
                     {
@@ -224,6 +381,38 @@ namespace Nom.Orch.Services
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Takes back one step of a retirement: the main entry gives up a name it took, or the
+        /// retired food comes back under its own name and the alias that pointed at the main
+        /// entry goes. False when the name has since been taken by another food.
+        /// </summary>
+        private async Task<bool> RestoreAsync(AuditLogEntryEntity entry, long personId)
+        {
+            var food = await _db.Ingredients.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Id == entry.EntityId);
+            if (food == null || string.IsNullOrEmpty(entry.OldValue)
+                || await _db.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id != food.Id && i.Name == entry.OldValue)) return false;
+
+            if (entry.PropertyName == nameof(IngredientEntity.Name))
+            {
+                if (food.Name != entry.NewValue) return false;
+                food.NameNormalized = IngredientNameNormalizer.Normalize(entry.OldValue);
+            }
+            else
+            {
+                if (!food.IsDeleted) return false;
+                food.IsDeleted = false;
+                food.DeletedAt = null;
+                food.DeletedByPersonId = null;
+                var context = RetiredContextPrefix + food.Id.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                _db.IngredientAliases.RemoveRange(await _db.IngredientAliases.Where(a => a.SourceContext == context).ToListAsync());
+            }
+
+            food.Name = entry.OldValue;
+            food.LastModifiedDate = DateTime.UtcNow;
+            food.LastModifiedByPersonId = personId;
+            return true;
         }
 
         internal static string Place(long ingredientId, int sortOrder) =>

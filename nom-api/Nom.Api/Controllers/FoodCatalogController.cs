@@ -64,15 +64,23 @@ namespace Nom.Api.Controllers
             return Ok(await _relink.ApplyAsync(maxLines));
         }
 
-        /// <summary>Move every recipe line of one curated food to another; each move is written to the audit log.</summary>
+        /// <summary>Move every recipe line of one curated food to another, except lines containing one of the keep words; each move is written to the audit log.</summary>
         [HttpPost("relink/food")]
-        public async Task<ActionResult<LineRelinkResult>> RelinkFood([FromQuery, Required] long fromId, [FromQuery, Required] long toId)
+        public async Task<ActionResult<LineRelinkResult>> RelinkFood([FromQuery, Required] long fromId, [FromQuery, Required] long toId, [FromQuery] string? keep = null)
         {
-            var result = await _relink.MoveFoodAsync(fromId, toId);
+            var result = await _relink.MoveFoodAsync(fromId, toId, keep);
             return result == null ? BadRequest(new { message = "Both must be live curated foods, and the target must have nutrition." }) : Ok(result);
         }
 
-        /// <summary>Put back the lines moved at or after the given UTC time.</summary>
+        /// <summary>Retire a duplicate food that has no recipe lines left, leaving its name as an alias of the main entry.</summary>
+        [HttpPost("relink/retire")]
+        public async Task<ActionResult<FoodRetireResult>> RelinkRetire([FromQuery, Required] long fromId, [FromQuery, Required] long toId, [FromQuery] bool takeName = false)
+        {
+            var result = await _relink.RetireAsync(fromId, toId, takeName);
+            return result == null ? BadRequest(new { message = "Both must be live curated foods, and the target must have nutrition." }) : Ok(result);
+        }
+
+        /// <summary>Put back the lines moved and the foods retired at or after the given UTC time.</summary>
         [HttpPost("relink/undo")]
         public async Task<ActionResult<LineRelinkUndoResult>> RelinkUndo([FromQuery, Required] DateTime sinceUtc)
         {

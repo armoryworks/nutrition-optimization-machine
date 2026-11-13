@@ -31,10 +31,24 @@ namespace Nom.Orch.Models.Curation
         public int Remaining { get; set; }
     }
 
+    public class FoodRetireResult
+    {
+        public bool Retired { get; set; }
+        /// <summary>Recipe lines still on the food; it is not retired while there are any.</summary>
+        public int LinesLeft { get; set; }
+        /// <summary>A pantry, shopping list, plan, restriction, substitution or component still points at the food.</summary>
+        public bool InUseElsewhere { get; set; }
+        /// <summary>The name the main entry goes by afterwards.</summary>
+        public string Name { get; set; } = string.Empty;
+        /// <summary>The name that now leads to the main entry.</summary>
+        public string Alias { get; set; } = string.Empty;
+    }
+
     public class LineRelinkUndoResult
     {
         public int Restored { get; set; }
-        /// <summary>Journal entries whose line has since moved again or gone.</summary>
+        public int FoodsRestored { get; set; }
+        /// <summary>Journal entries whose line has since moved again or gone, or whose food cannot take its name back.</summary>
         public int Skipped { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Nom.Data;
 using Nom.Data.Nutrient;
 using Nom.Data.Recipe;
@@ -29,7 +30,17 @@ namespace Nom.Api.Tests.Services
         }
 
         private static ApplicationDbContext NewContext() =>
-            new(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+            new(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                .Options);
+
+        private static IngredientEntity CuratedFood(string name) => new()
+        {
+            Name = name,
+            CurationStatusId = 9003,
+            IngredientNutrients = new List<IngredientNutrientEntity> { new() { NutrientId = 1, Amount = 1 } },
+        };
 
         private static readonly Dictionary<string, long> Foods = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -124,6 +135,76 @@ namespace Nom.Api.Tests.Services
             preview.MoveCount.Should().Be(2);
             preview.Samples.Should().OnlyContain(m => m.FromIngredientId == wellWater.Id && m.ToIngredientId == water.Id);
             preview.Samples.Select(m => m.Wording).Should().BeEquivalentTo(new[] { "water", "boiling water" });
+        }
+
+        [Fact]
+        public async Task A_duplicate_food_is_retired_only_once_no_recipe_line_is_left_on_it()
+        {
+            using var db = NewContext();
+            var water = CuratedFood("Water");
+            var wellWater = CuratedFood("Well Water");
+            var tapWater = CuratedFood("Tap Water");
+            db.Ingredients.AddRange(water, wellWater, tapWater);
+            await db.SaveChangesAsync();
+            db.Recipes.Add(new RecipeEntity
+            {
+                Name = "Scraped",
+                ScrapedAtUtc = DateTime.UtcNow,
+                RecipeIngredients = new List<RecipeIngredientEntity>
+                {
+                    new() { IngredientId = tapWater.Id, SortOrder = 0, Quantity = 1, MeasurementId = 1, RawLine = "1 cup clear water" },
+                },
+            });
+            await db.SaveChangesAsync();
+            var service = new LineRelinkService(db, new NoUser());
+
+            var held = await service.RetireAsync(tapWater.Id, water.Id);
+            var retired = await service.RetireAsync(wellWater.Id, water.Id);
+
+            held!.Retired.Should().BeFalse();
+            held.LinesLeft.Should().Be(1);
+            retired!.Retired.Should().BeTrue();
+            retired.Name.Should().Be("Water");
+            retired.Alias.Should().Be("Well Water");
+            (await service.RetireAsync(wellWater.Id, water.Id)).Should().BeNull("it is no longer a live food");
+
+            var foods = await db.Ingredients.IgnoreQueryFilters().ToDictionaryAsync(i => i.Id);
+            foods[tapWater.Id].IsDeleted.Should().BeFalse();
+            foods[wellWater.Id].IsDeleted.Should().BeTrue();
+            foods[wellWater.Id].Name.Should().Be($"Well Water (deleted #{wellWater.Id})");
+            var alias = await db.IngredientAliases.SingleAsync();
+            alias.IngredientId.Should().Be(water.Id);
+            alias.AliasName.Should().Be("Well Water");
+            alias.SourceContext.Should().Be($"retired:{wellWater.Id}");
+        }
+
+        [Fact]
+        public async Task The_main_entry_can_take_the_retired_name_and_an_undo_puts_both_foods_back()
+        {
+            using var db = NewContext();
+            var named = CuratedFood("Egg Yolks");
+            var complete = CuratedFood("Raw Egg Yolks");
+            db.Ingredients.AddRange(named, complete);
+            await db.SaveChangesAsync();
+            var service = new LineRelinkService(db, new NoUser());
+            var started = DateTime.UtcNow;
+
+            var retired = await service.RetireAsync(named.Id, complete.Id, takeName: true);
+
+            retired!.Retired.Should().BeTrue();
+            retired.Name.Should().Be("Egg Yolks");
+            retired.Alias.Should().Be("Raw Egg Yolks");
+            (await db.Ingredients.SingleAsync()).Should().Match<IngredientEntity>(i => i.Id == complete.Id && i.Name == "Egg Yolks");
+            (await db.IngredientAliases.SingleAsync()).Should().Match<IngredientAliasEntity>(a => a.IngredientId == complete.Id && a.AliasName == "Raw Egg Yolks");
+
+            var undone = await service.UndoAsync(started);
+
+            undone.FoodsRestored.Should().Be(1);
+            undone.Skipped.Should().Be(0);
+            var foods = await db.Ingredients.ToDictionaryAsync(i => i.Id, i => i.Name);
+            foods.Should().BeEquivalentTo(new Dictionary<long, string> { [named.Id] = "Egg Yolks", [complete.Id] = "Raw Egg Yolks" });
+            (await db.IngredientAliases.AnyAsync()).Should().BeFalse();
+            (await db.AuditLogEntries.AnyAsync(a => a.ChangeType == LineRelinkService.RetireChangeType)).Should().BeFalse();
         }
     }
 }
