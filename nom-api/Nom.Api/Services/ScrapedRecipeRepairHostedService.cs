@@ -27,6 +27,8 @@ namespace Nom.Api.Services
             _logger = logger;
         }
 
+        private const int MaxConflicts = 10;
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             if (!_configuration.GetValue("ScrapedRepair:Enabled", true))
@@ -48,6 +50,7 @@ namespace Nom.Api.Services
             }
 
             long cursor = 0;
+            var conflicts = 0;
             long recipes = 0, repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0;
             var started = DateTime.UtcNow;
             _logger.LogInformation("Scraped recipe repair starting ({Batch} recipes per batch)", batchSize);
@@ -79,6 +82,11 @@ namespace Nom.Api.Services
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
                     return;
+                }
+                catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException) when (++conflicts <= MaxConflicts)
+                {
+                    _logger.LogWarning("Scraped recipe repair: another lane changed rows of the batch after recipe {Cursor} while it was being repaired; reading it again", cursor);
+                    continue;
                 }
                 catch (Exception ex)
                 {
