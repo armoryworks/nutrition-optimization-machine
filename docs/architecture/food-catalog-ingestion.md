@@ -248,8 +248,9 @@ stored nutrients), while SR Legacy holds the full profile of the same food. Afte
 backfill, `dotnet run -- --supplement-nutrients <foundation-csv-dir> <sr-legacy-csv-dir>
 [--dry-run]` fills what an ingredient linked to a Foundation food still lacks from the SR
 Legacy food USDA lists under the **same NDB number** (`foundation_food.csv` ↔
-`sr_legacy_food.csv`); a Foundation food with a new NDB number has no counterpart and stays
-as it is, and a pair whose descriptions differ in how the food was cooked (portabella
+`sr_legacy_food.csv`), or, for an older Foundation food the file gives no NDB number
+(granulated sugar, whole milk), from the one SR Legacy food with the very same description;
+a Foundation food with a new NDB number has no counterpart and stays as it is, and a pair whose descriptions differ in how the food was cooked (portabella
 mushroom against grilled portabella) is passed over. The four macros are never taken from the other record, a part of fat or
 carbohydrate is checked against the ingredient's own stored total, and a stored value is
 never overwritten. Each row carries the SR Legacy FDC id in `IngredientNutrient.FdcId` and

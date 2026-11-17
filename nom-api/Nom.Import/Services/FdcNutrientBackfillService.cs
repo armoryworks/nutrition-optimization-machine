@@ -102,8 +102,10 @@ namespace Nom.Import.Services
 
         /// <summary>
         /// Fills nutrients an ingredient linked to a Foundation food still lacks from the SR Legacy
-        /// food with the same NDB number (foundation_food.csv and sr_legacy_food.csv). A pair whose
-        /// descriptions differ in how the food was cooked (raw against grilled) is passed over. The
+        /// food with the same NDB number (foundation_food.csv and sr_legacy_food.csv) or, for a
+        /// Foundation food the file gives no NDB number, from the one SR Legacy food with the very
+        /// same description. A pair whose descriptions differ in how the food was cooked (raw
+        /// against grilled) is passed over. The
         /// four macros are never taken from the other record; a part of fat or carbohydrate is checked
         /// against the ingredient's own stored total. Each row carries the SR Legacy FDC id it came
         /// from, and one run shares one <c>CreatedDate</c>, so it can be told apart and undone.
@@ -117,9 +119,25 @@ namespace Nom.Import.Services
 
             var srByNdb = ReadNdbNumbers(FindFile(srLegacyDir, "sr_legacy_food.csv"))
                 .GroupBy(x => x.Ndb).ToDictionary(g => g.Key, g => g.First().FdcId);
-            var srByFoundation = ReadNdbNumbers(FindFile(foundationDir, "foundation_food.csv"))
-                .Where(x => srByNdb.ContainsKey(x.Ndb))
-                .GroupBy(x => x.FdcId).ToDictionary(g => g.Key, g => srByNdb[g.First().Ndb]);
+            var foundationNdb = ReadNdbNumbers(FindFile(foundationDir, "foundation_food.csv"))
+                .GroupBy(x => x.FdcId).ToDictionary(g => g.Key, g => g.First().Ndb);
+            var foundationNames = ReadDescriptions(FindFile(foundationDir, "food.csv"), "foundation_food");
+            var srNames = ReadDescriptions(FindFile(srLegacyDir, "food.csv"), "sr_legacy_food");
+            var srByName = srNames.GroupBy(x => x.Value, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() == 1)
+                .ToDictionary(g => g.Key, g => g.First().Key, StringComparer.OrdinalIgnoreCase);
+            var srByFoundation = new Dictionary<string, string>();
+            foreach (var (fdcId, name) in foundationNames)
+            {
+                if (foundationNdb.TryGetValue(fdcId, out var ndb))
+                {
+                    if (srByNdb.TryGetValue(ndb, out var sameNumber)) srByFoundation[fdcId] = sameNumber;
+                }
+                else if (srByName.TryGetValue(name, out var sameName))
+                {
+                    srByFoundation[fdcId] = sameName;
+                }
+            }
 
             var paired = (await _db.Ingredients
                 .Where(i => i.FdcId != null && !i.IsDeleted)
@@ -127,8 +145,6 @@ namespace Nom.Import.Services
                 .ToListAsync(ct))
                 .Where(i => srByFoundation.ContainsKey(i.FdcId!))
                 .ToList();
-            var foundationNames = ReadDescriptions(FindFile(foundationDir, "food.csv"), paired.Select(i => i.FdcId!).ToHashSet());
-            var srNames = ReadDescriptions(FindFile(srLegacyDir, "food.csv"), paired.Select(i => srByFoundation[i.FdcId!]).ToHashSet());
             var linked = paired
                 .Where(i => CookingWords(foundationNames.GetValueOrDefault(i.FdcId!))
                     .SetEquals(CookingWords(srNames.GetValueOrDefault(srByFoundation[i.FdcId!]))))
@@ -207,7 +223,7 @@ namespace Nom.Import.Services
                 .Where(w => CookingTerms.Contains(w))
                 .ToHashSet();
 
-        private static Dictionary<string, string> ReadDescriptions(string path, HashSet<string> fdcIds)
+        private static Dictionary<string, string> ReadDescriptions(string path, string dataType)
         {
             var names = new Dictionary<string, string>();
             using var reader = new StreamReader(path);
@@ -216,7 +232,7 @@ namespace Nom.Import.Services
             while ((line = reader.ReadLine()) != null)
             {
                 var f = CsvLine.Split(line);
-                if (f.Length >= 3 && fdcIds.Contains(f[0])) names[f[0]] = f[2];
+                if (f.Length >= 3 && f[1] == dataType) names[f[0]] = f[2];
             }
             return names;
         }

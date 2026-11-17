@@ -44,7 +44,9 @@ namespace Nom.Api.Tests.Services.Import
                 "\"fdc_id\",\"data_type\",\"description\",\"food_category_id\",\"publication_date\"\n" +
                 "\"1104647\",\"foundation_food\",\"Garlic, raw\",\"11\",\"2020-10-30\"\n" +
                 "\"790646\",\"foundation_food\",\"Onions, yellow, raw\",\"11\",\"2020-04-01\"\n" +
-                "\"1999626\",\"foundation_food\",\"Mushroom, portabella\",\"11\",\"2021-10-28\"\n");
+                "\"1999626\",\"foundation_food\",\"Mushroom, portabella\",\"11\",\"2021-10-28\"\n" +
+                "\"334247\",\"foundation_food\",\"Sugars, granulated\",\"19\",\"2019-04-01\"\n" +
+                "\"330001\",\"sample_food\",\"Sugars, powdered\",\"19\",\"2019-04-01\"\n");
             File.WriteAllText(Path.Combine(_foundation, "food_nutrient.csv"),
                 "\"id\",\"fdc_id\",\"nutrient_id\",\"amount\"\n" +
                 "\"1\",\"1104647\",\"1008\",\"143\"\n" +
@@ -61,7 +63,9 @@ namespace Nom.Api.Tests.Services.Import
             File.WriteAllText(Path.Combine(_sr, "food.csv"),
                 "\"fdc_id\",\"data_type\",\"description\",\"food_category_id\",\"publication_date\"\n" +
                 "\"169230\",\"sr_legacy_food\",\"Garlic, raw\",\"11\",\"2019-04-01\"\n" +
-                "\"168436\",\"sr_legacy_food\",\"Mushrooms, portabella, grilled\",\"11\",\"2019-04-01\"\n");
+                "\"168436\",\"sr_legacy_food\",\"Mushrooms, portabella, grilled\",\"11\",\"2019-04-01\"\n" +
+                "\"169655\",\"sr_legacy_food\",\"Sugars, granulated\",\"19\",\"2019-04-01\"\n" +
+                "\"169656\",\"sr_legacy_food\",\"Sugars, powdered\",\"19\",\"2019-04-01\"\n");
             File.WriteAllText(Path.Combine(_sr, "food_nutrient.csv"),
                 "\"id\",\"fdc_id\",\"nutrient_id\",\"amount\"\n" +
                 "\"1\",\"169230\",\"1008\",\"149\"\n" +
@@ -76,7 +80,9 @@ namespace Nom.Api.Tests.Services.Import
                 "\"10\",\"169230\",\"1095\",\"1.16\"\n" +
                 "\"11\",\"169230\",\"1098\",\"299\"\n" +
                 "\"12\",\"169230\",\"1106\",\"0\"\n" +
-                "\"13\",\"168436\",\"1162\",\"0\"\n");
+                "\"13\",\"168436\",\"1162\",\"0\"\n" +
+                "\"14\",\"169655\",\"1162\",\"0\"\n" +
+                "\"15\",\"169656\",\"1162\",\"0\"\n");
         }
 
         public void Dispose() => Directory.Delete(_root, recursive: true);
@@ -133,6 +139,23 @@ namespace Nom.Api.Tests.Services.Import
             zinc.FdcId.Should().BeNull();
             (await RowAsync(db, garlic.Id, Folate)).Should().BeNull("total folate is not the DFE the label counts");
             (await RowAsync(db, garlic.Id, VitaminA)).Should().BeNull("vitamin A in IU is not RAE");
+        }
+
+        [Fact]
+        public async Task Supplement_pairs_a_foundation_food_without_an_ndb_number_by_its_exact_description()
+        {
+            using var db = await NewContextAsync();
+            var sugar = await FoodAsync(db, "Sugar", "334247");
+            var sample = await FoodAsync(db, "Powdered Sugar", "330001");
+
+            var report = await new FdcNutrientBackfillService(db, NullLogger<FdcNutrientBackfillService>.Instance)
+                .SupplementFromSrLegacyAsync(_foundation, _sr, dryRun: false);
+
+            report.LinkedIngredients.Should().Be(1, "a sample record is not a Foundation food");
+            var vitaminC = await RowAsync(db, sugar.Id, VitaminC);
+            vitaminC!.Amount.Should().Be(0m);
+            vitaminC.FdcId.Should().Be("169655");
+            (await RowAsync(db, sample.Id, VitaminC)).Should().BeNull();
         }
 
         [Fact]

@@ -120,7 +120,7 @@ namespace Nom.Import
                 var backfill = supScope.ServiceProvider.GetRequiredService<FdcNutrientBackfillService>();
                 var r = await backfill.SupplementFromSrLegacyAsync(dirs[0], dirs[1], dryRun);
                 Console.WriteLine($"\n=== SR Legacy nutrient supplement report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
-                Console.WriteLine($"Foundation-linked ingredients with an SR Legacy food of the same NDB number: {r.LinkedIngredients}");
+                Console.WriteLine($"Foundation-linked ingredients with an SR Legacy food of the same NDB number or description: {r.LinkedIngredients}");
                 Console.WriteLine($"Passed over, cooked differently: {r.PreparationDiffers}");
                 Console.WriteLine($"Found in the SR Legacy file: {r.MatchedInFile}");
                 Console.WriteLine($"Ingredients filled:          {r.IngredientsFilled}");
