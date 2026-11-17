@@ -135,6 +135,18 @@ namespace Nom.Api.Tests.Services
             preview.MoveCount.Should().Be(2);
             preview.Samples.Should().OnlyContain(m => m.FromIngredientId == wellWater.Id && m.ToIngredientId == water.Id);
             preview.Samples.Select(m => m.Wording).Should().BeEquivalentTo(new[] { "water", "boiling water" });
+
+            var dryRun = await service.MoveWordingsAsync(new List<Nom.Orch.Models.Curation.LineRelinkWordingMove>
+            {
+                new() { FromIngredientId = wellWater.Id, Wording = "Boiling Water", ToIngredientId = water.Id },
+                new() { FromIngredientId = wellWater.Id, Wording = "water", ToIngredientId = water.Id },
+                new() { FromIngredientId = producerMilk.Id, Wording = "milk", ToIngredientId = milk.Id },
+                new() { FromIngredientId = wellWater.Id, Wording = "well water", ToIngredientId = 999999 },
+            });
+
+            dryRun.Remaining.Should().Be(2, "one boiling-water line and one water line in the scraped recipe; the member's recipe is left alone");
+            dryRun.Rejected.Should().Be(2, "Milk has no nutrition and food 999999 does not exist");
+            dryRun.Moved.Should().Be(0);
         }
 
         [Fact]

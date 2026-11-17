@@ -13,6 +13,15 @@ namespace Nom.Orch.Models.Curation
         public int Lines { get; set; }
     }
 
+    /// <summary>Every scraped line of one wording on one curated food, and the curated food it should be on.</summary>
+    public class LineRelinkWordingMove
+    {
+        public long FromIngredientId { get; set; }
+        /// <summary>The normalised wording of the line, compared without regard to case.</summary>
+        public string Wording { get; set; } = string.Empty;
+        public long ToIngredientId { get; set; }
+    }
+
     public class LineRelinkPreview
     {
         public int LinesExamined { get; set; }
@@ -29,6 +38,8 @@ namespace Nom.Orch.Models.Curation
         /// <summary>Lines that were no longer where the plan found them.</summary>
         public int Skipped { get; set; }
         public int Remaining { get; set; }
+        /// <summary>Requested wording moves left out because a food is not a live curated food or the target has no nutrition.</summary>
+        public int Rejected { get; set; }
     }
 
     public class FoodRetireResult

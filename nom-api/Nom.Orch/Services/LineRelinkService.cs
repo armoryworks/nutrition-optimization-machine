@@ -51,11 +51,7 @@ namespace Nom.Orch.Services
             var targets = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
             foreach (var food in curated.Where(f => f.HasNutrition)) targets.TryAdd(food.Name.Trim(), food.Id);
 
-            var lines = await _db.RecipeIngredients.AsNoTracking()
-                .Where(ri => !ri.IsDeleted && ri.RawLine != ""
-                    && (ri.LineKind == null || ri.LineKind == RecipeIngredientLineKind.Ingredient)
-                    && !ri.Recipe.IsDeleted && ri.Recipe.ScrapedAtUtc != null
-                    && !ri.Ingredient.IsDeleted && ri.Ingredient.CurationStatusId == (long)CurationStatusEnum.Curated)
+            var lines = await ScrapedLines()
                 .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder)
                 .Select(ri => new Line(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine))
                 .ToListAsync();
@@ -76,6 +72,13 @@ namespace Nom.Orch.Services
 
             return (lines.Count, moves, names);
         }
+
+        private IQueryable<RecipeIngredientEntity> ScrapedLines() =>
+            _db.RecipeIngredients.AsNoTracking()
+                .Where(ri => !ri.IsDeleted && ri.RawLine != ""
+                    && (ri.LineKind == null || ri.LineKind == RecipeIngredientLineKind.Ingredient)
+                    && !ri.Recipe.IsDeleted && ri.Recipe.ScrapedAtUtc != null
+                    && !ri.Ingredient.IsDeleted && ri.Ingredient.CurationStatusId == (long)CurationStatusEnum.Curated);
 
         /// <summary>
         /// The curated food a wording belongs on when it is not the one it is on, or null to leave
@@ -199,6 +202,50 @@ namespace Nom.Orch.Services
                 lines.Where(line => keep.Count == 0 || !Words(line.RawLine).Overlaps(keep))
                     .Select(line => new Move(line, string.Empty, toIngredientId)).ToList(),
                 int.MaxValue);
+        }
+
+        public async Task<LineRelinkResult> MoveWordingsAsync(IReadOnlyCollection<LineRelinkWordingMove> moves, bool apply = false)
+        {
+            var foodIds = moves.SelectMany(m => new[] { m.FromIngredientId, m.ToIngredientId }).Distinct().ToList();
+            var foods = await _db.Ingredients.AsNoTracking()
+                .Where(i => foodIds.Contains(i.Id) && !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated)
+                .Select(i => new { i.Id, HasNutrition = i.IngredientNutrients.Any(n => !n.IsDeleted) })
+                .ToDictionaryAsync(i => i.Id, i => i.HasNutrition);
+
+            var wanted = new Dictionary<(long, string), long>();
+            var rejected = 0;
+            foreach (var move in moves)
+            {
+                var wording = (move.Wording ?? string.Empty).Trim().ToLowerInvariant();
+                if (wording.Length == 0 || move.FromIngredientId == move.ToIngredientId || !foods.ContainsKey(move.FromIngredientId)
+                    || !foods.TryGetValue(move.ToIngredientId, out var hasNutrition) || !hasNutrition)
+                {
+                    rejected++;
+                    continue;
+                }
+
+                wanted[(move.FromIngredientId, wording)] = move.ToIngredientId;
+            }
+
+            var sources = wanted.Keys.Select(k => k.Item1).Distinct().ToList();
+            var lines = await ScrapedLines()
+                .Where(ri => sources.Contains(ri.IngredientId))
+                .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder)
+                .Select(ri => new Line(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine))
+                .ToListAsync();
+            var planned = new List<Move>();
+            var normalised = new Dictionary<string, string>();
+            foreach (var line in lines)
+            {
+                var first = line.RawLine.Split(" + ", 2)[0];
+                if (!normalised.TryGetValue(first, out var wording))
+                    normalised[first] = wording = IngredientNameNormalizer.Normalize(first).ToLowerInvariant();
+                if (wanted.TryGetValue((line.IngredientId, wording), out var targetId)) planned.Add(new Move(line, wording, targetId));
+            }
+
+            var result = apply ? await MoveAsync(planned, int.MaxValue) : new LineRelinkResult { Remaining = planned.Count };
+            result.Rejected = rejected;
+            return result;
         }
 
         public async Task<FoodRetireResult?> RetireAsync(long fromIngredientId, long toIngredientId, bool takeName = false)

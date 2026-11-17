@@ -72,6 +72,13 @@ namespace Nom.Api.Controllers
             return result == null ? BadRequest(new { message = "Both must be live curated foods, and the target must have nutrition." }) : Ok(result);
         }
 
+        /// <summary>Move the scraped lines of each reviewed wording to the curated food named for it; a dry run unless apply is set.</summary>
+        [HttpPost("relink/wordings")]
+        public async Task<ActionResult<LineRelinkResult>> RelinkWordings([FromBody, Required] List<LineRelinkWordingMove> moves, [FromQuery] bool apply = false)
+        {
+            return Ok(await _relink.MoveWordingsAsync(moves, apply));
+        }
+
         /// <summary>Retire a duplicate food that has no recipe lines left, leaving its name as an alias of the main entry.</summary>
         [HttpPost("relink/retire")]
         public async Task<ActionResult<FoodRetireResult>> RelinkRetire([FromQuery, Required] long fromId, [FromQuery, Required] long toId, [FromQuery] bool takeName = false)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nom.Orch.Models.Curation;
 
@@ -22,6 +23,14 @@ namespace Nom.Orch.Interfaces
         /// food or the target has no nutrition.
         /// </summary>
         Task<LineRelinkResult?> MoveFoodAsync(long fromIngredientId, long toIngredientId, string? keepWords = null);
+
+        /// <summary>
+        /// Moves the scraped lines of each given wording from the curated food they are on to the
+        /// one named for them, for wordings a reviewer has judged ("tart apples" on a Granny Smith
+        /// entry belongs on Apples). Without <paramref name="apply"/> nothing is written and
+        /// Remaining is the number of lines that would move.
+        /// </summary>
+        Task<LineRelinkResult> MoveWordingsAsync(IReadOnlyCollection<LineRelinkWordingMove> moves, bool apply = false);
 
         /// <summary>
         /// Takes a duplicate food with no recipe lines left out of the catalog and leaves its name
