@@ -27,8 +27,10 @@ namespace Nom.Orch.Interfaces
         /// <summary>
         /// Moves the scraped lines of each given wording from the curated food they are on to the
         /// one named for them, for wordings a reviewer has judged ("tart apples" on a Granny Smith
-        /// entry belongs on Apples). Without <paramref name="apply"/> nothing is written and
-        /// Remaining is the number of lines that would move.
+        /// entry belongs on Apples). A line whose own text names the food it is on stays, whatever
+        /// its wording normalises to ("zest and juice of 1 lemon" on Lemon Juice). Without
+        /// <paramref name="apply"/> nothing is written and Remaining is the number of lines that
+        /// would move.
         /// </summary>
         Task<LineRelinkResult> MoveWordingsAsync(IReadOnlyCollection<LineRelinkWordingMove> moves, bool apply = false);
 

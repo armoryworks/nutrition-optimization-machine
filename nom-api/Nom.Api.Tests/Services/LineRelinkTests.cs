@@ -120,6 +120,7 @@ namespace Nom.Api.Tests.Services
             db.Recipes.AddRange(
                 Recipe("Scraped", DateTime.UtcNow,
                     (wellWater, "1 cup water"), (wellWater, "2 quarts boiling water"), (wellWater, "1 pint well water"),
+                    (wellWater, "1 cup water (from the well)"),
                     (producerMilk, "1 cup milk"), (water, "1 cup water")),
                 Recipe("Written by a member", null, (wellWater, "1 cup water")));
             await db.SaveChangesAsync();
@@ -131,7 +132,7 @@ namespace Nom.Api.Tests.Services
 
             var preview = await service.PreviewAsync(100);
 
-            preview.LinesExamined.Should().Be(5);
+            preview.LinesExamined.Should().Be(6);
             preview.MoveCount.Should().Be(2);
             preview.Samples.Should().OnlyContain(m => m.FromIngredientId == wellWater.Id && m.ToIngredientId == water.Id);
             preview.Samples.Select(m => m.Wording).Should().BeEquivalentTo(new[] { "water", "boiling water" });
@@ -144,7 +145,7 @@ namespace Nom.Api.Tests.Services
                 new() { FromIngredientId = wellWater.Id, Wording = "well water", ToIngredientId = 999999 },
             });
 
-            dryRun.Remaining.Should().Be(2, "one boiling-water line and one water line in the scraped recipe; the member's recipe is left alone");
+            dryRun.Remaining.Should().Be(2, "one boiling-water line and one water line in the scraped recipe; the member's recipe and the line whose own text says well are left alone");
             dryRun.Rejected.Should().Be(2, "Milk has no nutrition and food 999999 does not exist");
             dryRun.Moved.Should().Be(0);
         }

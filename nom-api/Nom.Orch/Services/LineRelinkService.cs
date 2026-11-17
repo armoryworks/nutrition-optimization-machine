@@ -16,7 +16,8 @@ namespace Nom.Orch.Services
     /// <summary>
     /// Moves a scraped recipe's line to the curated food its wording names. A line moves when its
     /// normalised wording, or that wording without its preparation words, is the name of another
-    /// curated food that has nutrition, and the wording does not already name the food it is on.
+    /// curated food that has nutrition, and neither the wording nor the line's own text already
+    /// names the food it is on.
     /// </summary>
     public class LineRelinkService : ILineRelinkService
     {
@@ -64,7 +65,8 @@ namespace Nom.Orch.Services
                 if (!decided.TryGetValue((line.IngredientId, first), out var decision))
                 {
                     var wording = IngredientNameNormalizer.Normalize(first);
-                    decision = (wording, TargetFor(wording, line.IngredientId, names[line.IngredientId], targets));
+                    var namesOwnFood = Words(names[line.IngredientId]).IsSubsetOf(Words(first));
+                    decision = (wording, namesOwnFood ? null : TargetFor(wording, line.IngredientId, names[line.IngredientId], targets));
                     decided[(line.IngredientId, first)] = decision;
                 }
                 if (decision.TargetId is { } targetId) moves.Add(new Move(line, decision.Wording, targetId));
@@ -209,8 +211,8 @@ namespace Nom.Orch.Services
             var foodIds = moves.SelectMany(m => new[] { m.FromIngredientId, m.ToIngredientId }).Distinct().ToList();
             var foods = await _db.Ingredients.AsNoTracking()
                 .Where(i => foodIds.Contains(i.Id) && !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated)
-                .Select(i => new { i.Id, HasNutrition = i.IngredientNutrients.Any(n => !n.IsDeleted) })
-                .ToDictionaryAsync(i => i.Id, i => i.HasNutrition);
+                .Select(i => new { i.Id, i.Name, HasNutrition = i.IngredientNutrients.Any(n => !n.IsDeleted) })
+                .ToDictionaryAsync(i => i.Id);
 
             var wanted = new Dictionary<(long, string), long>();
             var rejected = 0;
@@ -218,7 +220,7 @@ namespace Nom.Orch.Services
             {
                 var wording = (move.Wording ?? string.Empty).Trim().ToLowerInvariant();
                 if (wording.Length == 0 || move.FromIngredientId == move.ToIngredientId || !foods.ContainsKey(move.FromIngredientId)
-                    || !foods.TryGetValue(move.ToIngredientId, out var hasNutrition) || !hasNutrition)
+                    || !foods.TryGetValue(move.ToIngredientId, out var target) || !target.HasNutrition)
                 {
                     rejected++;
                     continue;
@@ -235,12 +237,14 @@ namespace Nom.Orch.Services
                 .ToListAsync();
             var planned = new List<Move>();
             var normalised = new Dictionary<string, string>();
+            var ownWords = sources.ToDictionary(id => id, id => Words(foods[id].Name));
             foreach (var line in lines)
             {
                 var first = line.RawLine.Split(" + ", 2)[0];
                 if (!normalised.TryGetValue(first, out var wording))
                     normalised[first] = wording = IngredientNameNormalizer.Normalize(first).ToLowerInvariant();
-                if (wanted.TryGetValue((line.IngredientId, wording), out var targetId)) planned.Add(new Move(line, wording, targetId));
+                if (wanted.TryGetValue((line.IngredientId, wording), out var targetId) && !ownWords[line.IngredientId].IsSubsetOf(Words(first)))
+                    planned.Add(new Move(line, wording, targetId));
             }
 
             var result = apply ? await MoveAsync(planned, int.MaxValue) : new LineRelinkResult { Remaining = planned.Count };
