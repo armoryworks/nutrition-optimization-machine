@@ -5,7 +5,8 @@ namespace Nom.Orch.Services
 {
     /// <summary>
     /// FDA Daily Values for adults and children 4+ (21 CFR 101.9(c), 2016 rule, required on labels
-    /// since 2020), for the nutrients the label shows with a % Daily Value. Trans fat, total
+    /// since 2020), for the nutrients the label shows with a % Daily Value and the vitamins and
+    /// minerals a label may add (vitamin A in µg RAE, folate in µg DFE). Trans fat, total
     /// sugars and protein carry no %DV on a standard label, so they are absent.
     /// </summary>
     public static class FdaDailyValues
@@ -36,6 +37,29 @@ namespace Nom.Orch.Services
             ["iron, fe"] = (18m, "mg"),
             ["potassium"] = (4700m, "mg"),
             ["potassium, k"] = (4700m, "mg"),
+            ["vitamin a"] = (900m, "µg"),
+            ["vitamin c"] = (90m, "mg"),
+            ["vitamin e"] = (15m, "mg"),
+            ["vitamin k"] = (120m, "µg"),
+            ["thiamin"] = (1.2m, "mg"),
+            ["riboflavin"] = (1.3m, "mg"),
+            ["niacin"] = (16m, "mg"),
+            ["vitamin b6"] = (1.7m, "mg"),
+            ["folate"] = (400m, "µg"),
+            ["vitamin b12"] = (2.4m, "µg"),
+            ["biotin"] = (30m, "µg"),
+            ["pantothenic acid"] = (5m, "mg"),
+            ["choline"] = (550m, "mg"),
+            ["phosphorus"] = (1250m, "mg"),
+            ["iodine"] = (150m, "µg"),
+            ["magnesium"] = (420m, "mg"),
+            ["zinc"] = (11m, "mg"),
+            ["selenium"] = (55m, "µg"),
+            ["copper"] = (0.9m, "mg"),
+            ["manganese"] = (2.3m, "mg"),
+            ["chromium"] = (35m, "µg"),
+            ["molybdenum"] = (45m, "µg"),
+            ["chloride"] = (2300m, "mg"),
         };
 
         private static readonly Dictionary<string, decimal> MilligramsPer = new(StringComparer.OrdinalIgnoreCase)

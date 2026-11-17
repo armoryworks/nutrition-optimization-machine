@@ -67,6 +67,29 @@ describe('NutritionLabel', () => {
     expect(rows.some(t => t.includes('Saturated Fat'))).toBe(true);
   });
 
+  it('lists vitamins and minerals in the vitamins view, small amounts to two decimals', () => {
+    const fixture = TestBed.createComponent(NutritionLabel);
+    fixture.componentRef.setInput('nutrition', [
+      { nutrientName: 'Zinc', amount: 1.16, unit: 'mg', dailyValuePercent: 11 },
+      { nutrientName: 'Vitamin C', amount: 31.25, unit: 'mg', dailyValuePercent: 35 },
+      { nutrientName: 'Vitamin B12', amount: 0.24, unit: 'µg', partial: true },
+      { nutrientName: 'Vitamin D', amount: 2, unit: 'µg', dailyValuePercent: 10 },
+    ]);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    (el.querySelector('[data-testid="nutrition-view-micros-btn"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const rows = Array.from(el.querySelectorAll('[data-testid="nutrition-label-nutrient-item"]')).map(r => (r.textContent ?? '').replace(/\s+/g, ' ').trim());
+    expect(rows.length).toBe(4);
+    expect(rows[0]).toContain('Vitamin D 2µg');
+    expect(rows[1]).toContain('Vitamin C 31.3mg');
+    expect(rows[1]).toContain('35%');
+    expect(rows[2]).toContain('Vitamin B12 0.24µg');
+    expect(rows[2]).toContain('†');
+    expect(rows[3]).toContain('Zinc 1.2mg');
+  });
+
   it('names where the numbers come from', () => {
     const fixture = TestBed.createComponent(NutritionLabel);
     fixture.componentRef.setInput('nutrition', [{ nutrientName: 'Calories', amount: 300, unit: 'kcal' }]);

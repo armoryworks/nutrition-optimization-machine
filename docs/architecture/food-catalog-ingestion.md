@@ -227,6 +227,35 @@ printed at the end of the report, so a run can be undone exactly:
 Trans fat needs its Nutrient row first: run `db/fix-trans-fat-nutrient.sql` on databases
 seeded before it existed.
 
+### Vitamins and minerals + SR Legacy supplement — BUILT ✅
+`FdcNutrients` also reads the vitamins and minerals that carry an FDA Daily Value, into the
+seeded Nutrient rows of the same name: vitamin A (1106, µg RAE), vitamin C (1162), vitamin E
+(1109, alpha-tocopherol), vitamin K (1185, phylloquinone), thiamin (1165), riboflavin (1166),
+niacin (1167), vitamin B6 (1175), folate (1190, µg DFE), vitamin B12 (1178), biotin (1176),
+pantothenic acid (1170), choline (1180), phosphorus (1091), iodine (1100), magnesium (1090),
+zinc (1095), selenium (1103), copper (1098), manganese (1101), chromium (1096), molybdenum
+(1102) and chloride (1088). A quantity FDC reports only in another definition is left unknown
+rather than converted: vitamin A in IU is not RAE, total folate is not DFE. Niacin is the
+preformed niacin FDC reports, so it is a floor for the niacin equivalents a label counts. SR
+Legacy and Foundation carry no added sugars, chromium or chloride, and biotin, iodine and
+molybdenum for a few dozen foods only. Each value passes the same per-100 g ceiling check
+(`FoodDataQualityValidator.MaxComponentPer100g`); `--backfill-nutrients` fills them onto
+foods imported earlier. `FdaDailyValues` holds their Daily Values and the recipe label's
+Vitamins view lists them.
+
+A Foundation food reports only what USDA analysed for that sample set (garlic: five of the
+stored nutrients), while SR Legacy holds the full profile of the same food. After the
+backfill, `dotnet run -- --supplement-nutrients <foundation-csv-dir> <sr-legacy-csv-dir>
+[--dry-run]` fills what an ingredient linked to a Foundation food still lacks from the SR
+Legacy food USDA lists under the **same NDB number** (`foundation_food.csv` ↔
+`sr_legacy_food.csv`); a Foundation food with a new NDB number has no counterpart and stays
+as it is, and a pair whose descriptions differ in how the food was cooked (portabella
+mushroom against grilled portabella) is passed over. The four macros are never taken from the other record, a part of fat or
+carbohydrate is checked against the ingredient's own stored total, and a stored value is
+never overwritten. Each row carries the SR Legacy FDC id in `IngredientNutrient.FdcId` and
+the run's `CreatedDate`, so supplemented values can be told apart and a run undone with the
+same `DELETE … WHERE "CreatedDate" = '<printed stamp>'`.
+
 ### AI enrichment (food group + IsWholeFood) — BUILT ✅ (runtime pending)
 `Nom.Import/Services/FoodGroupEnrichmentService.cs` — a batch job that classifies
 ingredients: deterministic keyword classification always runs

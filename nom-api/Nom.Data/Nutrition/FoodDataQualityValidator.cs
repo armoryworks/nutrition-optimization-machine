@@ -19,10 +19,12 @@ namespace Nom.Data.Nutrition
         bool UsedInSmallAmounts = false);
 
     /// <summary>
-    /// Keys for the label nutrients beyond the four macros, shared by the importers and
+    /// Keys for the label nutrients beyond the four macros and for the vitamins and minerals
+    /// that carry an FDA Daily Value, shared by the importers and
     /// <see cref="FoodDataQualityValidator.CheckComponent"/>. Amounts are per 100 g in the
-    /// unit FDA labels use: grams, milligrams (cholesterol, sodium, calcium, iron, potassium)
-    /// or micrograms (vitamin D).
+    /// unit FDA labels use: grams, milligrams (cholesterol, sodium, calcium, iron, potassium,
+    /// vitamin C, the B vitamins, most minerals) or micrograms (vitamins A, D, K and B12,
+    /// folate, biotin, iodine, selenium, chromium, molybdenum).
     /// </summary>
     public static class FoodComponent
     {
@@ -37,6 +39,29 @@ namespace Nom.Data.Nutrition
         public const string Calcium = "calcium";
         public const string Iron = "iron";
         public const string Potassium = "potassium";
+        public const string VitaminA = "vitamin_a";
+        public const string VitaminC = "vitamin_c";
+        public const string VitaminE = "vitamin_e";
+        public const string VitaminK = "vitamin_k";
+        public const string Thiamin = "thiamin";
+        public const string Riboflavin = "riboflavin";
+        public const string Niacin = "niacin";
+        public const string VitaminB6 = "vitamin_b6";
+        public const string Folate = "folate";
+        public const string VitaminB12 = "vitamin_b12";
+        public const string Biotin = "biotin";
+        public const string PantothenicAcid = "pantothenic_acid";
+        public const string Choline = "choline";
+        public const string Phosphorus = "phosphorus";
+        public const string Iodine = "iodine";
+        public const string Magnesium = "magnesium";
+        public const string Zinc = "zinc";
+        public const string Selenium = "selenium";
+        public const string Copper = "copper";
+        public const string Manganese = "manganese";
+        public const string Chromium = "chromium";
+        public const string Molybdenum = "molybdenum";
+        public const string Chloride = "chloride";
     }
 
     /// <summary>Outcome of quality validation; <see cref="Reasons"/> lists every failed check.</summary>
@@ -90,8 +115,9 @@ namespace Nom.Data.Nutrition
 
         /// <summary>
         /// Per-100 g ceilings for the <see cref="FoodComponent"/> nutrients. Generous on purpose:
-        /// the richest real foods (table salt for sodium, cream of tartar for potassium, cod liver
-        /// oil for vitamin D) sit below them, so only mis-scaled units trip them.
+        /// the richest real foods (table salt for sodium and chloride, cream of tartar for
+        /// potassium, cod liver oil for vitamins A and D, fortified yeast for the B vitamins, dried
+        /// kelp for iodine, brazil nuts for selenium) sit below them, so only mis-scaled units trip them.
         /// </summary>
         public IReadOnlyDictionary<string, decimal> MaxComponentPer100g { get; init; } = new Dictionary<string, decimal>
         {
@@ -106,6 +132,29 @@ namespace Nom.Data.Nutrition
             [FoodComponent.Calcium] = 40000m,
             [FoodComponent.Iron] = 1000m,
             [FoodComponent.Potassium] = 20000m,
+            [FoodComponent.VitaminA] = 100000m,
+            [FoodComponent.VitaminC] = 20000m,
+            [FoodComponent.VitaminE] = 500m,
+            [FoodComponent.VitaminK] = 5000m,
+            [FoodComponent.Thiamin] = 200m,
+            [FoodComponent.Riboflavin] = 200m,
+            [FoodComponent.Niacin] = 1000m,
+            [FoodComponent.VitaminB6] = 200m,
+            [FoodComponent.Folate] = 20000m,
+            [FoodComponent.VitaminB12] = 1000m,
+            [FoodComponent.Biotin] = 2000m,
+            [FoodComponent.PantothenicAcid] = 200m,
+            [FoodComponent.Choline] = 5000m,
+            [FoodComponent.Phosphorus] = 30000m,
+            [FoodComponent.Iodine] = 500000m,
+            [FoodComponent.Magnesium] = 10000m,
+            [FoodComponent.Zinc] = 500m,
+            [FoodComponent.Selenium] = 5000m,
+            [FoodComponent.Copper] = 50m,
+            [FoodComponent.Manganese] = 200m,
+            [FoodComponent.Chromium] = 5000m,
+            [FoodComponent.Molybdenum] = 5000m,
+            [FoodComponent.Chloride] = 62000m,
         };
 
         /// <summary>

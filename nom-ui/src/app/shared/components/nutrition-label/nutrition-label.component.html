@@ -106,7 +106,7 @@
         @for (nutrient of microNutrients(); track nutrient.displayName) {
           <div class="nom-nutrition-label__row" data-testid="nutrition-label-nutrient-item">
             <span class="nom-nutrition-label__nutrient">
-              {{ nutrient.displayName }} {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
+              {{ nutrient.displayName }} {{ nutrient.amount | number:nutrient.digits }}{{ nutrient.unit }}
               @if (nutrient.partial) {
                 <span class="nom-nutrition-label__partial" title="Some ingredients have no data for this nutrient" data-testid="nutrition-label-partial-mark">†</span>
               }

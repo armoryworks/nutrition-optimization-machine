@@ -106,6 +106,36 @@ namespace Nom.Import
                 return;
             }
 
+            var supplementFlag = Array.IndexOf(args, "--supplement-nutrients");
+            if (supplementFlag >= 0)
+            {
+                var dirs = args.Skip(supplementFlag + 1).TakeWhile(a => !a.StartsWith("--")).ToList();
+                if (dirs.Count != 2)
+                {
+                    Console.WriteLine("Usage: --supplement-nutrients <foundation-csv-dir> <sr-legacy-csv-dir> [--dry-run]");
+                    return;
+                }
+                var dryRun = args.Contains("--dry-run");
+                using var supScope = host.Services.CreateScope();
+                var backfill = supScope.ServiceProvider.GetRequiredService<FdcNutrientBackfillService>();
+                var r = await backfill.SupplementFromSrLegacyAsync(dirs[0], dirs[1], dryRun);
+                Console.WriteLine($"\n=== SR Legacy nutrient supplement report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
+                Console.WriteLine($"Foundation-linked ingredients with an SR Legacy food of the same NDB number: {r.LinkedIngredients}");
+                Console.WriteLine($"Passed over, cooked differently: {r.PreparationDiffers}");
+                Console.WriteLine($"Found in the SR Legacy file: {r.MatchedInFile}");
+                Console.WriteLine($"Ingredients filled:          {r.IngredientsFilled}");
+                Console.WriteLine($"Nutrient rows:               {r.Rows} (only nutrients the ingredient had no value for)");
+                foreach (var (key, n) in r.RowsByNutrient.OrderByDescending(x => x.Value))
+                    Console.WriteLine($"  {key}: {n}");
+                foreach (var (reason, n) in r.DroppedValuesByReason.OrderByDescending(x => x.Value))
+                    Console.WriteLine($"  dropped value: {reason} x {n}");
+                if (!dryRun && r.Rows > 0)
+                    Console.WriteLine($"Rows stamped CreatedDate = {r.RunStamp:O}");
+                if (r.UnresolvedNutrients.Count > 0)
+                    Console.WriteLine($"No Nutrient row for (skipped): {string.Join(", ", r.UnresolvedNutrients)}");
+                return;
+            }
+
             var portionFlag = Array.IndexOf(args, "--backfill-portions");
             if (portionFlag >= 0)
             {

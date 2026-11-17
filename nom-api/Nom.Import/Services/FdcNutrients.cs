@@ -16,10 +16,12 @@ namespace Nom.Import.Services
 {
     /// <summary>
     /// The USDA FDC nutrients NOM stores per ingredient, shared by the Foundation/SR Legacy and
-    /// Branded importers and the nutrient backfill. Each key lists the FDC nutrient ids that can
-    /// supply it (from nutrient.csv), most preferred first, with a deterministic unit factor where
-    /// FDC reports a different unit (vitamin D in IU: 40 IU = 1 µg). Values are per 100 g and come
-    /// only from the FDC files.
+    /// Branded importers and the nutrient backfill: the FDA label set plus the vitamins and
+    /// minerals that carry a Daily Value. Each key lists the FDC nutrient ids that can supply it
+    /// (from nutrient.csv), most preferred first, with a deterministic unit factor where FDC
+    /// reports a different unit (vitamin D in IU: 40 IU = 1 µg). A quantity FDC reports only in
+    /// another definition is left out rather than converted: vitamin A is taken as RAE (not IU),
+    /// folate as DFE (not total folate). Values are per 100 g and come only from the FDC files.
     /// </summary>
     public static class FdcNutrients
     {
@@ -55,9 +57,33 @@ namespace Nom.Import.Services
             new Spec(FoodComponent.Calcium, Milligram, new[] { new Source(1087) }, new[] { "calcium" }),
             new Spec(FoodComponent.Iron, Milligram, new[] { new Source(1089) }, new[] { "iron" }),
             new Spec(FoodComponent.Potassium, Milligram, new[] { new Source(1092) }, new[] { "potassium" }),
+            new Spec(FoodComponent.VitaminA, Microgram, new[] { new Source(1106) }, new[] { "vitamin a" }),
+            new Spec(FoodComponent.VitaminC, Milligram, new[] { new Source(1162) }, new[] { "vitamin c" }),
+            new Spec(FoodComponent.VitaminE, Milligram, new[] { new Source(1109) }, new[] { "vitamin e" }),
+            new Spec(FoodComponent.VitaminK, Microgram, new[] { new Source(1185) }, new[] { "vitamin k" }),
+            new Spec(FoodComponent.Thiamin, Milligram, new[] { new Source(1165) }, new[] { "thiamin" }),
+            new Spec(FoodComponent.Riboflavin, Milligram, new[] { new Source(1166) }, new[] { "riboflavin" }),
+            new Spec(FoodComponent.Niacin, Milligram, new[] { new Source(1167) }, new[] { "niacin" }),
+            new Spec(FoodComponent.VitaminB6, Milligram, new[] { new Source(1175) }, new[] { "vitamin b6", "vitamin b-6" }),
+            new Spec(FoodComponent.Folate, Microgram, new[] { new Source(1190) }, new[] { "folate" }),
+            new Spec(FoodComponent.VitaminB12, Microgram, new[] { new Source(1178) }, new[] { "vitamin b12", "vitamin b-12" }),
+            new Spec(FoodComponent.Biotin, Microgram, new[] { new Source(1176) }, new[] { "biotin" }),
+            new Spec(FoodComponent.PantothenicAcid, Milligram, new[] { new Source(1170) }, new[] { "pantothenic" }),
+            new Spec(FoodComponent.Choline, Milligram, new[] { new Source(1180) }, new[] { "choline" }),
+            new Spec(FoodComponent.Phosphorus, Milligram, new[] { new Source(1091) }, new[] { "phosphorus" }),
+            new Spec(FoodComponent.Iodine, Microgram, new[] { new Source(1100) }, new[] { "iodine" }),
+            new Spec(FoodComponent.Magnesium, Milligram, new[] { new Source(1090) }, new[] { "magnesium" }),
+            new Spec(FoodComponent.Zinc, Milligram, new[] { new Source(1095) }, new[] { "zinc" }),
+            new Spec(FoodComponent.Selenium, Microgram, new[] { new Source(1103) }, new[] { "selenium" }),
+            new Spec(FoodComponent.Copper, Milligram, new[] { new Source(1098) }, new[] { "copper" }),
+            new Spec(FoodComponent.Manganese, Milligram, new[] { new Source(1101) }, new[] { "manganese" }),
+            new Spec(FoodComponent.Chromium, Microgram, new[] { new Source(1096) }, new[] { "chromium" }),
+            new Spec(FoodComponent.Molybdenum, Microgram, new[] { new Source(1102) }, new[] { "molybdenum" }),
+            new Spec(FoodComponent.Chloride, Milligram, new[] { new Source(1088) }, new[] { "chloride" }),
         };
 
-        private static readonly string[] Macros = { Calories, Protein, Carb, Fat };
+        /// <summary>The four keys the food-level quality gate judges; the rest are checked one by one.</summary>
+        public static readonly IReadOnlyList<string> Macros = new[] { Calories, Protein, Carb, Fat };
 
         private static readonly HashSet<long> WantedIds = All.SelectMany(s => s.Sources).Select(s => s.FdcNutrientId).ToHashSet();
 

@@ -10,6 +10,7 @@ interface NutrientDisplayRow {
   partial: boolean;
   isChild: boolean;
   bold: boolean;
+  digits: string;
 }
 
 export interface UncountedIngredient {
@@ -39,6 +40,29 @@ const FDA_NUTRIENT_ORDER: NutrientDisplayConfig[] = [
   { names: ['calcium, ca', 'calcium'], displayName: 'Calcium', isChild: false, isMacro: false },
   { names: ['iron, fe', 'iron'], displayName: 'Iron', isChild: false, isMacro: false },
   { names: ['potassium, k', 'potassium'], displayName: 'Potassium', isChild: false, isMacro: false },
+  { names: ['vitamin a, rae', 'vitamin a'], displayName: 'Vitamin A', isChild: false, isMacro: false },
+  { names: ['vitamin c, total ascorbic acid', 'vitamin c'], displayName: 'Vitamin C', isChild: false, isMacro: false },
+  { names: ['vitamin e (alpha-tocopherol)', 'vitamin e'], displayName: 'Vitamin E', isChild: false, isMacro: false },
+  { names: ['vitamin k (phylloquinone)', 'vitamin k'], displayName: 'Vitamin K', isChild: false, isMacro: false },
+  { names: ['thiamin'], displayName: 'Thiamin', isChild: false, isMacro: false },
+  { names: ['riboflavin'], displayName: 'Riboflavin', isChild: false, isMacro: false },
+  { names: ['niacin'], displayName: 'Niacin', isChild: false, isMacro: false },
+  { names: ['vitamin b-6', 'vitamin b6'], displayName: 'Vitamin B6', isChild: false, isMacro: false },
+  { names: ['folate, dfe', 'folate'], displayName: 'Folate', isChild: false, isMacro: false },
+  { names: ['vitamin b-12', 'vitamin b12'], displayName: 'Vitamin B12', isChild: false, isMacro: false },
+  { names: ['biotin'], displayName: 'Biotin', isChild: false, isMacro: false },
+  { names: ['pantothenic acid'], displayName: 'Pantothenic Acid', isChild: false, isMacro: false },
+  { names: ['phosphorus, p', 'phosphorus'], displayName: 'Phosphorus', isChild: false, isMacro: false },
+  { names: ['iodine, i', 'iodine'], displayName: 'Iodine', isChild: false, isMacro: false },
+  { names: ['magnesium, mg', 'magnesium'], displayName: 'Magnesium', isChild: false, isMacro: false },
+  { names: ['zinc, zn', 'zinc'], displayName: 'Zinc', isChild: false, isMacro: false },
+  { names: ['selenium, se', 'selenium'], displayName: 'Selenium', isChild: false, isMacro: false },
+  { names: ['copper, cu', 'copper'], displayName: 'Copper', isChild: false, isMacro: false },
+  { names: ['manganese, mn', 'manganese'], displayName: 'Manganese', isChild: false, isMacro: false },
+  { names: ['chromium, cr', 'chromium'], displayName: 'Chromium', isChild: false, isMacro: false },
+  { names: ['molybdenum, mo', 'molybdenum'], displayName: 'Molybdenum', isChild: false, isMacro: false },
+  { names: ['chloride'], displayName: 'Chloride', isChild: false, isMacro: false },
+  { names: ['choline, total', 'choline'], displayName: 'Choline', isChild: false, isMacro: false },
 ];
 
 const KNOWN_NUTRIENT_NAMES = new Set(FDA_NUTRIENT_ORDER.flatMap(c => c.names));
@@ -124,6 +148,7 @@ export class NutritionLabel {
           partial: match.partial === true,
           isChild: config.isChild,
           bold: !config.isChild,
+          digits: !macro && match.amount < 1 ? '1.0-2' : '1.0-1',
         });
       }
     }

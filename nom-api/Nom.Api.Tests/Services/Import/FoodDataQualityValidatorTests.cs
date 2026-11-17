@@ -155,6 +155,13 @@ namespace Nom.Api.Tests.Services.Import
         [InlineData(FoodComponent.Fiber, 2.4, null)]
         [InlineData(FoodComponent.Fiber, 40, "fiber_exceeds_carb")]
         [InlineData(FoodComponent.Sugars, 26, "sugars_exceeds_carb")]
+        [InlineData(FoodComponent.VitaminA, 30000, null)]
+        [InlineData(FoodComponent.VitaminC, 1678, null)]
+        [InlineData(FoodComponent.Selenium, 1917, null)]
+        [InlineData(FoodComponent.Copper, 14.6, null)]
+        [InlineData(FoodComponent.Copper, 370, "copper_impossible")]
+        [InlineData(FoodComponent.Manganese, 269.1, "manganese_impossible")]
+        [InlineData(FoodComponent.VitaminB12, -0.1, "vitamin_b12_negative")]
         public void CheckComponent_BoundsEachLabelNutrientAndItsParent(string key, double amount, string? expected)
         {
             _v.CheckComponent(key, (decimal)amount, fatGramsPer100g: 9.5m, carbGramsPer100g: 23m).Should().Be(expected);
