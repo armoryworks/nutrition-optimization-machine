@@ -287,7 +287,33 @@ namespace Nom.Orch.Services
                 Timestamp = now,
                 ChangedByPersonId = personId,
             });
+
+            if (target.GramsPerMilliliter == null && source.GramsPerMilliliter is { } density)
+            {
+                target.GramsPerMilliliter = density;
+                _db.AuditLogEntries.Add(Inherited(target.Id, nameof(IngredientEntity.GramsPerMilliliter), density, now, personId));
+                result.MeasuresInherited++;
+            }
+
+            if (target.GramsPerItem == null && source.GramsPerItem is { } itemWeight)
+            {
+                target.GramsPerItem = itemWeight;
+                _db.AuditLogEntries.Add(Inherited(target.Id, nameof(IngredientEntity.GramsPerItem), itemWeight, now, personId));
+                result.MeasuresInherited++;
+            }
+
+            if (result.MeasuresInherited > 0)
+            {
+                target.LastModifiedDate = now;
+                target.LastModifiedByPersonId = personId;
+            }
+
             await _db.SaveChangesAsync();
+            if (result.MeasuresInherited > 0 && _db.Database.IsRelational())
+            {
+                await _db.Database.ExecuteSqlAsync(
+                    $"""UPDATE recipe."RecipeIngredient" SET "LastModifiedDate" = now() WHERE "IngredientId" = {target.Id}""");
+            }
 
             if (takeName)
             {
@@ -340,6 +366,18 @@ namespace Nom.Orch.Services
             result.Name = target.Name;
             return result;
         }
+
+        private static AuditLogEntryEntity Inherited(long foodId, string property, decimal value, DateTime at, long personId) => new()
+        {
+            EntityType = RetireEntityType,
+            EntityId = foodId,
+            ChangeType = RetireChangeType,
+            PropertyName = property,
+            OldValue = null,
+            NewValue = value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Timestamp = at,
+            ChangedByPersonId = personId,
+        };
 
         private async Task AddRetiredAliasAsync(long ingredientId, string alias, long retiredId, long personId)
         {
@@ -455,9 +493,10 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// Takes back one step of a retirement: another food gets back its alias of the retired
-        /// name, the main entry gives up a name it took, or the retired food comes back under its
-        /// own name and the alias that pointed at the main entry goes. False when the name has
-        /// since been taken by another food.
+        /// name, the main entry gives up a density or item weight it inherited or a name it took,
+        /// or the retired food comes back under its own name and the alias that pointed at the
+        /// main entry goes. False when the name has since been taken by another food or the
+        /// inherited measure has since been changed.
         /// </summary>
         private async Task<bool> RestoreAsync(AuditLogEntryEntity entry, long personId)
         {
@@ -473,6 +512,16 @@ namespace Nom.Orch.Services
             }
 
             var food = await _db.Ingredients.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Id == entry.EntityId);
+            if (entry.PropertyName is nameof(IngredientEntity.GramsPerMilliliter) or nameof(IngredientEntity.GramsPerItem))
+            {
+                if (food == null || !decimal.TryParse(entry.NewValue, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var inherited)) return false;
+                var density = entry.PropertyName == nameof(IngredientEntity.GramsPerMilliliter);
+                if ((density ? food.GramsPerMilliliter : food.GramsPerItem) != inherited) return false;
+                if (density) food.GramsPerMilliliter = null;
+                else food.GramsPerItem = null;
+                return true;
+            }
+
             if (food == null || string.IsNullOrEmpty(entry.OldValue)
                 || await _db.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id != food.Id && i.Name == entry.OldValue)) return false;
 

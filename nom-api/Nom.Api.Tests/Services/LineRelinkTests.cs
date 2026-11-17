@@ -196,6 +196,9 @@ namespace Nom.Api.Tests.Services
             using var db = NewContext();
             var named = CuratedFood("Egg Yolks");
             var complete = CuratedFood("Raw Egg Yolks");
+            named.GramsPerItem = 17m;
+            named.GramsPerMilliliter = 1.03m;
+            complete.GramsPerMilliliter = 1.1m;
             var dried = CuratedFood("Egg, yolk, dried");
             dried.Aliases = new List<IngredientAliasEntity> { new() { AliasName = "raw egg yolks" }, new() { AliasName = "dried yolks" } };
             db.Ingredients.AddRange(named, complete, dried);
@@ -209,6 +212,8 @@ namespace Nom.Api.Tests.Services
             retired.Name.Should().Be("Egg Yolks");
             retired.Alias.Should().Be("Raw Egg Yolks");
             retired.AliasesRemoved.Should().Be(1);
+            retired.MeasuresInherited.Should().Be(1, "the main entry had a density of its own but no item weight");
+            (await db.Ingredients.SingleAsync(i => i.Id == complete.Id)).Should().Match<IngredientEntity>(i => i.GramsPerItem == 17m && i.GramsPerMilliliter == 1.1m);
             (await db.Ingredients.SingleAsync(i => i.Name == "Egg Yolks")).Id.Should().Be(complete.Id);
             (await db.Ingredients.AnyAsync(i => i.Id == named.Id)).Should().BeFalse();
             (await db.IngredientAliases.Select(a => new { a.IngredientId, a.AliasName }).ToListAsync()).Should().BeEquivalentTo(new[]
@@ -220,6 +225,7 @@ namespace Nom.Api.Tests.Services
             var undone = await service.UndoAsync(started);
 
             undone.FoodsRestored.Should().Be(1);
+            (await db.Ingredients.SingleAsync(i => i.Id == complete.Id)).GramsPerItem.Should().BeNull();
             undone.Skipped.Should().Be(0);
             var foods = await db.Ingredients.ToDictionaryAsync(i => i.Id, i => i.Name);
             foods.Should().BeEquivalentTo(new Dictionary<long, string> { [named.Id] = "Egg Yolks", [complete.Id] = "Raw Egg Yolks", [dried.Id] = "Egg, yolk, dried" });

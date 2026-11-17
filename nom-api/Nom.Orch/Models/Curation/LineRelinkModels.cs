@@ -55,6 +55,8 @@ namespace Nom.Orch.Models.Curation
         public string Alias { get; set; } = string.Empty;
         /// <summary>Aliases of that name taken off other foods, so the name leads to the main entry alone.</summary>
         public int AliasesRemoved { get; set; }
+        /// <summary>Density and item weight the main entry had none of and took over from the retired food.</summary>
+        public int MeasuresInherited { get; set; }
     }
 
     public class LineRelinkUndoResult
