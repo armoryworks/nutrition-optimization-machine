@@ -19,16 +19,17 @@ namespace Nom.Api.Tests.Services.Import
 {
     /// <summary>
     /// --import-label-nutrition gives a food with no USDA record its manufacturer's label, per
-    /// 100 g by the printed serving weight, keeps the label as an applied proposal, and writes
-    /// nothing for a label without a gram weight, a food of another name or a USDA-linked food.
+    /// 100 g by the printed serving weight, with the density or item weight its household measure
+    /// gives, keeps the label as an applied proposal, and writes nothing for a label without a
+    /// gram weight, a food of another name or a USDA-linked food.
     /// </summary>
     public class LabelNutritionImportTests : IDisposable
     {
-        private const long Gram = 1, Milligram = 8, Microgram = 9, Kcal = 16;
+        private const long Gram = 1, Cup = 4, Milligram = 8, Microgram = 9, Kcal = 16;
         private const long Calories = 5035, Protein = 5006, Carbs = 5003, Fat = 5000, SatFat = 5001, Fiber = 5005,
             Sodium = 5021, Iron = 5024, VitaminD = 5010;
         private const string Header =
-            "ingredient_id\tname\tbrand\tproduct\turl\tserving\tserving_grams\tcalories\tfat\tsaturated_fat\tsodium\tcarb\tfiber\tprotein\tvitamin_d\tiron\n";
+            "ingredient_id\tname\tbrand\tproduct\turl\tserving\tserving_grams\tserving_volume\tserving_volume_unit\tserving_pieces\tcalories\tfat\tsaturated_fat\tsodium\tcarb\tfiber\tprotein\tvitamin_d\tiron\n";
 
         private readonly string _file = Path.Combine(Path.GetTempPath(), "labels-" + Guid.NewGuid().ToString("N") + ".tsv");
 
@@ -39,6 +40,7 @@ namespace Nom.Api.Tests.Services.Import
             var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
             db.Set<BaseMeasurementEntity>().AddRange(
                 new BaseMeasurementEntity { Id = Gram, Name = "Gram", Symbol = "g", MeasurementCategoryId = 1 },
+                new BaseMeasurementEntity { Id = Cup, Name = "Cup", Symbol = "cup", MeasurementCategoryId = 2, BaseUnitConversionFactor = 236.588m },
                 new BaseMeasurementEntity { Id = Milligram, Name = "Milligram", Symbol = "mg", MeasurementCategoryId = 1 },
                 new BaseMeasurementEntity { Id = Microgram, Name = "Microgram", Symbol = "µg", MeasurementCategoryId = 1 },
                 new BaseMeasurementEntity { Id = Kcal, Name = "Kilocalorie", Symbol = "kcal", MeasurementCategoryId = 4 });
@@ -76,7 +78,7 @@ namespace Nom.Api.Tests.Services.Import
             using var db = await NewContextAsync();
             var beans = await FoodAsync(db, "Black Beans");
             File.WriteAllText(_file, Header +
-                $"{beans.Id}\tblack beans\tGoya\tBlack Beans 15.5 oz\thttps://shop.goya.com/products/goya-black-beans\t1/2 cup (122g)\t122\t130\t0.5\t0\t410\t23\t6\t8\t0\t2\n");
+                $"{beans.Id}\tblack beans\tGoya\tBlack Beans 15.5 oz\thttps://shop.goya.com/products/goya-black-beans\t1/2 cup (122g)\t122\t0.5\tcup\t\t130\t0.5\t0\t410\t23\t6\t8\t0\t2\n");
 
             var dry = await Service(db).ImportAsync(_file, dryRun: true);
 
@@ -93,14 +95,17 @@ namespace Nom.Api.Tests.Services.Import
             (await AmountAsync(db, beans.Id, Fiber)).Should().Be(4.92m);
             (await AmountAsync(db, beans.Id, VitaminD)).Should().Be(0m);
             (await db.Set<IngredientNutrientEntity>().SingleAsync(n => n.NutrientId == Sodium)).MeasurementId.Should().Be(Milligram);
-            (await db.Ingredients.SingleAsync(i => i.Id == beans.Id)).ReferenceServingGrams.Should().Be(122m);
+            var stored = await db.Ingredients.SingleAsync(i => i.Id == beans.Id);
+            stored.GramsPerMilliliter.Should().Be(1.0313m, "half a cup weighs 122 g");
+            stored.GramsPerItem.Should().BeNull();
+            stored.ReferenceServingGrams.Should().BeNull("a serving is not the weight of one can");
             var kept = await db.FoodCatalogProposals.SingleAsync();
             kept.IngredientId.Should().Be(beans.Id);
             kept.Field.Should().Be(FoodCatalogReviewService.LabelNutritionField);
             kept.Source.Should().Be("label:manufacturer:shop.goya.com");
             kept.Status.Should().Be(FoodProposalStatus.Applied);
             kept.Batch.Should().Be(report.Batch);
-            kept.ProposedValue.Should().Contain("\"servingGrams\":122").And.Contain("\"sodium\":410");
+            kept.ProposedValue.Should().Contain("\"servingGrams\":122").And.Contain("\"sodium\":410").And.Contain("\"gramsPerMilliliter\":1.0313");
             ProposalPolicy.IsAllowed(kept.Field, kept.Source, out _).Should().BeTrue();
             ProposalPolicy.IsAllowed(kept.Field, "ai:qwen", out _).Should().BeFalse("a model may not author label values");
 
@@ -118,7 +123,7 @@ namespace Nom.Api.Tests.Services.Import
             db.Set<IngredientNutrientEntity>().Add(new IngredientNutrientEntity { IngredientId = chips.Id, NutrientId = Calories, Amount = 500m, MeasurementId = Kcal });
             await db.SaveChangesAsync();
             File.WriteAllText(_file, Header +
-                $"{chips.Id}\tDark Chocolate Chips\tNestle Toll House\tDark Chocolate Morsels\thttps://smartlabel.nestleusa.com/x\t1 Tbsp (14g)\t14\t80\t5\t3\t0\t8\t1\t\t0\t0.2\n");
+                $"{chips.Id}\tDark Chocolate Chips\tNestle Toll House\tDark Chocolate Morsels\thttps://smartlabel.nestleusa.com/x\t1 Tbsp (14g)\t14\t\t\t\t80\t5\t3\t0\t8\t1\t\t0\t0.2\n");
 
             var report = await Service(db).ImportAsync(_file, dryRun: false);
 
@@ -130,6 +135,33 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public async Task A_count_serving_gives_the_weight_of_one_item_to_a_food_that_already_has_its_values()
+        {
+            using var db = await NewContextAsync();
+            var crackers = await FoodAsync(db, "Crackers");
+            var yogurt = await FoodAsync(db, "Greek Yogurt");
+            yogurt.GramsPerMilliliter = 1.1m;
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = 1, IngredientId = crackers.Id, Quantity = 12 });
+            db.Set<IngredientNutrientEntity>().AddRange(
+                new IngredientNutrientEntity { IngredientId = crackers.Id, NutrientId = Calories, Amount = 437.5m, MeasurementId = Kcal },
+                new IngredientNutrientEntity { IngredientId = crackers.Id, NutrientId = Fat, Amount = 9.38m, MeasurementId = Gram });
+            await db.SaveChangesAsync();
+            File.WriteAllText(_file, Header +
+                $"{crackers.Id}\tCrackers\tNabisco Premium\tSaltines\thttps://smartlabel.mondelez.info/x\t5 crackers (16g)\t16\t\t\t5\t70\t1.5\t\t\t\t\t\t\t\n" +
+                $"{yogurt.Id}\tGreek Yogurt\tChobani\tWhole Milk Plain\thttps://www.chobani.com/x\t3/4 cup (170g)\t170\t0.75\tCup\t\t170\t9\t5\t60\t7\t\t15\t\t\n");
+
+            var report = await Service(db).ImportAsync(_file, dryRun: false);
+
+            report.ItemWeights.Should().Be(1);
+            report.Densities.Should().Be(0, "a stored density is kept");
+            (await db.Ingredients.SingleAsync(i => i.Id == crackers.Id)).GramsPerItem.Should().Be(3.2m);
+            (await db.RecipeIngredients.SingleAsync()).LastModifiedDate.Should().Be(report.RunStamp, "the label sweep recalculates a recipe whose line changed");
+            (await db.Ingredients.SingleAsync(i => i.Id == yogurt.Id)).GramsPerMilliliter.Should().Be(1.1m);
+            (await db.Set<IngredientNutrientEntity>().CountAsync(n => n.IngredientId == crackers.Id)).Should().Be(2, "both printed values were already stored");
+            (await db.FoodCatalogProposals.SingleAsync(p => p.IngredientId == crackers.Id)).ProposedValue.Should().Contain("\"gramsPerItem\":3.2");
+        }
+
+        [Fact]
         public async Task Labels_that_cannot_be_trusted_write_nothing()
         {
             using var db = await NewContextAsync();
@@ -138,11 +170,11 @@ namespace Nom.Api.Tests.Services.Import
             var garlic = await FoodAsync(db, "Garlic", "1104647");
             var glaze = await FoodAsync(db, "Balsamic Glaze");
             File.WriteAllText(_file, Header +
-                $"{wine.Id}\tDry White Wine\tBrand\tPinot Grigio\thttps://example.com/wine\t5 fl oz\t\t120\t0\t0\t0\t4\t0\t0\t0\t0\n" +
-                $"{oats.Id}\tSteel Cut Oats\tBrand\tOats\thttps://example.com/oats\t1/2 cup (49g)\t49\t190\t3\t1\t0\t34\t4\t6\t0\t3\n" +
-                $"{garlic.Id}\tGarlic\tBrand\tGarlic\thttps://example.com/garlic\t1 tsp (5g)\t5\t5\t0\t0\t0\t1\t0\t0\t0\t0\n" +
-                $"{glaze.Id}\tBalsamic Glaze\tBrand\tGlaze\thttps://example.com/glaze\t1 Tbsp (19g)\t19\t300\t0\t0\t5\t9\t0\t0\t0\t0\n" +
-                $"999999\tNo Such Food\tBrand\tX\thttps://example.com/x\t1 oz (28g)\t28\t100\t1\t0\t0\t10\t0\t1\t0\t0\n");
+                $"{wine.Id}\tDry White Wine\tBrand\tPinot Grigio\thttps://example.com/wine\t5 fl oz\t\t\t\t\t120\t0\t0\t0\t4\t0\t0\t0\t0\n" +
+                $"{oats.Id}\tSteel Cut Oats\tBrand\tOats\thttps://example.com/oats\t1/2 cup (49g)\t49\t\t\t\t190\t3\t1\t0\t34\t4\t6\t0\t3\n" +
+                $"{garlic.Id}\tGarlic\tBrand\tGarlic\thttps://example.com/garlic\t1 tsp (5g)\t5\t\t\t\t5\t0\t0\t0\t1\t0\t0\t0\t0\n" +
+                $"{glaze.Id}\tBalsamic Glaze\tBrand\tGlaze\thttps://example.com/glaze\t1 Tbsp (19g)\t19\t\t\t\t300\t0\t0\t5\t9\t0\t0\t0\t0\n" +
+                $"999999\tNo Such Food\tBrand\tX\thttps://example.com/x\t1 oz (28g)\t28\t\t\t\t100\t1\t0\t0\t10\t0\t1\t0\t0\n");
 
             var report = await Service(db).ImportAsync(_file, dryRun: false);
 

@@ -263,13 +263,17 @@ A catalog food with no USDA record (the hand-seeded "Greek Yogurt", "Marinara Sa
 its own product. `dotnet run -- --import-label-nutrition <labels.tsv> [--dry-run]`
 (`Nom.Import/Services/LabelNutritionImportService.cs`) reads a tab-separated file with one
 transcribed label per row: `ingredient_id`, `name`, `brand`, `product`, `url`, `serving` (as
-printed), `serving_grams`, then one column per `FdcNutrients` key holding the amount **per
-serving**, left empty where the label prints no number ("<1 g", a % Daily Value only, "not a
+printed), `serving_grams`, the printed household measure (`serving_volume` with
+`serving_volume_unit`, or `serving_pieces`), then one column per `FdcNutrients` key holding
+the amount **per serving**, left empty where the label prints no number ("<1 g", a % Daily Value only, "not a
 significant source of"). The importer does the only arithmetic there is: amount × 100 ÷ the
 printed serving weight. A label with no gram weight is refused (a wine label gives fluid
 ounces only), as is a row whose `name` is not the food's name, a food that has a USDA record,
 and a label whose macros fail `FoodDataQualityValidator`. Only nutrients the food has no row
-for are written. The label as printed is kept as an applied `FoodCatalogProposal` (field
+for are written. A food with no density or item weight takes the one the household measure
+gives ("3/4 cup (170g)" → g/ml by the catalog's own cup, "5 crackers (16g)" → 3.2 g each), so
+its cup and piece lines count; the serving is never stored as `ReferenceServingGrams`,
+because a count line would then read "1 jar" as one serving. The label as printed is kept as an applied `FoodCatalogProposal` (field
 `label_nutrition`, source `label:manufacturer:<host>`, the run's batch name), so every value
 traces back to its page; `ProposalPolicy` refuses that field from any source that is not
 authoritative. Undo a run with `DELETE … WHERE "CreatedDate" = '<printed stamp>'` on

@@ -152,6 +152,7 @@ namespace Nom.Import
                 Console.WriteLine($"Labels in file: {r.Labels}");
                 Console.WriteLine($"Foods filled:   {r.Foods}");
                 Console.WriteLine($"Nutrient rows:  {r.Rows} (only nutrients the food had no value for)");
+                Console.WriteLine($"Measures:       {r.Densities} densities, {r.ItemWeights} item weights (from the printed household measure)");
                 foreach (var line in r.Lines)
                     Console.WriteLine($"  {line}");
                 foreach (var (reason, n) in r.DroppedValuesByReason.OrderByDescending(x => x.Value))

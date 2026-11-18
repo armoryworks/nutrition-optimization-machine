@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Curation;
+using Nom.Data.Measurement;
 using Nom.Data.Nutrient;
 using Nom.Data.Nutrition;
 using Nom.Orch.Services;
@@ -20,12 +21,16 @@ namespace Nom.Import.Services
     /// Gives a catalog food with no USDA record the Nutrition Facts its manufacturer publishes.
     /// Reads a tab-separated file, one transcribed label per row: <c>ingredient_id</c>, <c>name</c>
     /// (must match the food, so a file made for another database writes nothing), <c>brand</c>,
-    /// <c>product</c>, <c>url</c>, <c>serving</c> (as printed), <c>serving_grams</c>, then one column
-    /// per <see cref="FdcNutrients"/> key holding the amount per serving, empty where the label
-    /// prints no number. Each amount is rescaled to per 100 g by the printed serving weight and
-    /// nothing else; a label without a gram weight is refused. Only nutrients the food has no row
-    /// for are written, the macros pass <see cref="FoodDataQualityValidator.Validate"/> and every
-    /// other value <see cref="FoodDataQualityValidator.CheckComponent"/>. The label as printed is
+    /// <c>product</c>, <c>url</c>, <c>serving</c> (as printed), <c>serving_grams</c>, the printed
+    /// household measure as <c>serving_volume</c> with <c>serving_volume_unit</c> (a volume
+    /// Measurement name) or as <c>serving_pieces</c>, then one column per <see cref="FdcNutrients"/>
+    /// key holding the amount per serving, empty where the label prints no number. Each amount is
+    /// rescaled to per 100 g by the printed serving weight and nothing else; a label without a
+    /// gram weight is refused. Only nutrients the food has no row for are written, the macros pass
+    /// <see cref="FoodDataQualityValidator.Validate"/> and every other value
+    /// <see cref="FoodDataQualityValidator.CheckComponent"/>. A food with no density or item
+    /// weight takes the one the household measure gives ("3/4 cup (170g)", "5 crackers (16g)");
+    /// the serving is never stored as the weight of one item. The label as printed is
     /// kept as an applied proposal (field <see cref="FoodCatalogReviewService.LabelNutritionField"/>,
     /// source <c>label:manufacturer:&lt;host&gt;</c>), so each value traces back to its page.
     /// Run: <c>dotnet run -- --import-label-nutrition &lt;labels.tsv&gt; [--dry-run]</c>.
@@ -33,6 +38,9 @@ namespace Nom.Import.Services
     public class LabelNutritionImportService
     {
         public const string SourcePrefix = "label:manufacturer:";
+
+        private const long VolumeCategory = 2;
+        private const decimal MinDensity = 0.05m, MaxDensity = 3m, MaxItemGrams = 5000m;
 
         private readonly ApplicationDbContext _db;
         private readonly ILogger<LabelNutritionImportService> _logger;
@@ -51,6 +59,12 @@ namespace Nom.Import.Services
             var targets = await FdcNutrients.ResolveAsync(_db, _logger, ct);
             var labels = Read(path);
             report.Labels = labels.Count;
+            var volumeUnits = (await _db.Set<MeasurementEntity>()
+                .Where(m => m.MeasurementCategoryId == VolumeCategory && m.BaseUnitConversionFactor > 0)
+                .Select(m => new { m.Name, m.BaseUnitConversionFactor })
+                .ToListAsync(ct))
+                .GroupBy(m => m.Name, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().BaseUnitConversionFactor!.Value, StringComparer.OrdinalIgnoreCase);
 
             var ids = labels.Select(l => l.IngredientId).ToList();
             var foods = await _db.Ingredients.Where(i => ids.Contains(i.Id) && !i.IsDeleted).ToDictionaryAsync(i => i.Id, ct);
@@ -67,6 +81,7 @@ namespace Nom.Import.Services
             var now = new DateTime(DateTime.UtcNow.Ticks / 10 * 10, DateTimeKind.Utc);
             report.RunStamp = now;
             report.Batch = $"label-nutrition-{now:yyyyMMdd-HHmmss}";
+            var measured = new List<long>();
             foreach (var label in labels)
             {
                 ct.ThrowIfCancellationRequested();
@@ -117,14 +132,30 @@ namespace Nom.Import.Services
                         });
                     }
                 }
-                if (written.Count == 0) { Skip("nothing_missing"); continue; }
+
+                decimal? density = null, itemGrams = null;
+                if (food.GramsPerMilliliter == null && label.ServingVolume is > 0 && volumeUnits.TryGetValue(label.ServingVolumeUnit, out var unitMl)
+                    && Math.Round(grams / (label.ServingVolume.Value * unitMl), 4) is > MinDensity and < MaxDensity and var d)
+                {
+                    density = d;
+                }
+                if (food.GramsPerItem == null && label.ServingPieces is > 0 && Math.Round(grams / label.ServingPieces.Value, 2) is > 0 and <= MaxItemGrams and var w)
+                {
+                    itemGrams = w;
+                }
+                if (written.Count == 0 && density == null && itemGrams == null) { Skip("nothing_missing"); continue; }
 
                 report.Foods++;
                 report.Rows += written.Count;
-                report.Lines.Add($"filled   #{food.Id} {food.Name}: {written.Count} values from {label.Brand} {label.Product} ({label.Serving}), {source}");
+                if (density != null) report.Densities++;
+                if (itemGrams != null) report.ItemWeights++;
+                var measures = (density != null ? $", {density} g/ml" : string.Empty) + (itemGrams != null ? $", {itemGrams} g each" : string.Empty);
+                report.Lines.Add($"filled   #{food.Id} {food.Name}: {written.Count} values{measures} from {label.Brand} {label.Product} ({label.Serving}), {source}");
                 if (dryRun) continue;
 
-                food.ReferenceServingGrams ??= grams;
+                food.GramsPerMilliliter ??= density;
+                food.GramsPerItem ??= itemGrams;
+                if (density != null || itemGrams != null) measured.Add(food.Id);
                 food.LastModifiedDate = now;
                 _db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
                 {
@@ -140,6 +171,8 @@ namespace Nom.Import.Services
                         servingGrams = grams,
                         perServing = label.PerServing,
                         written,
+                        gramsPerMilliliter = density,
+                        gramsPerItem = itemGrams,
                     }),
                     Reason = $"Manufacturer label: {label.Brand} {label.Product}, {label.Serving}. Per 100 g by the printed serving weight.",
                     Source = source,
@@ -151,10 +184,34 @@ namespace Nom.Import.Services
                 });
             }
 
-            if (!dryRun) await _db.SaveChangesAsync(ct);
+            if (!dryRun)
+            {
+                await _db.SaveChangesAsync(ct);
+                await TouchLinesAsync(measured, now, ct);
+            }
             _logger.LogInformation("Label nutrition import{DryRun}: {Rows} rows on {Foods} foods.",
                 dryRun ? " (dry run)" : string.Empty, report.Rows, report.Foods);
             return report;
+        }
+
+        /// <summary>
+        /// Marks the recipe lines of foods that gained a density or item weight as changed, so the
+        /// API's nutrition sweep recalculates the labels those lines now count toward.
+        /// </summary>
+        private async Task TouchLinesAsync(List<long> ingredientIds, DateTime now, CancellationToken ct)
+        {
+            if (ingredientIds.Count == 0) return;
+            if (_db.Database.IsRelational())
+            {
+                await _db.RecipeIngredients.Where(ri => ingredientIds.Contains(ri.IngredientId))
+                    .ExecuteUpdateAsync(u => u.SetProperty(ri => ri.LastModifiedDate, now), ct);
+                return;
+            }
+            foreach (var line in await _db.RecipeIngredients.Where(ri => ingredientIds.Contains(ri.IngredientId)).ToListAsync(ct))
+            {
+                line.LastModifiedDate = now;
+            }
+            await _db.SaveChangesAsync(ct);
         }
 
         private IReadOnlyList<string> OutOfRange(decimal? kcal, decimal? protein, decimal? carb, decimal? fat)
@@ -192,14 +249,16 @@ namespace Nom.Import.Services
                     if (keys.Contains(header[i]) && decimal.TryParse(f[i].Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var amount))
                         perServing[header[i]] = amount;
                 }
+                decimal? Number(string column) =>
+                    decimal.TryParse(At(column), NumberStyles.Number, CultureInfo.InvariantCulture, out var n) ? n : null;
                 labels.Add(new Label(id, At("name"), At("brand"), At("product"), At("url"), At("serving"),
-                    decimal.TryParse(At("serving_grams"), NumberStyles.Number, CultureInfo.InvariantCulture, out var g) ? g : null, perServing));
+                    Number("serving_grams"), Number("serving_volume"), At("serving_volume_unit"), Number("serving_pieces"), perServing));
             }
             return labels;
         }
 
         private sealed record Label(long IngredientId, string Name, string Brand, string Product, string Url, string Serving,
-            decimal? ServingGrams, Dictionary<string, decimal> PerServing);
+            decimal? ServingGrams, decimal? ServingVolume, string ServingVolumeUnit, decimal? ServingPieces, Dictionary<string, decimal> PerServing);
 
         public sealed class LabelReport
         {
@@ -209,6 +268,8 @@ namespace Nom.Import.Services
             public int Labels { get; set; }
             public int Foods { get; set; }
             public int Rows { get; set; }
+            public int Densities { get; set; }
+            public int ItemWeights { get; set; }
             public Dictionary<string, int> SkippedByReason { get; } = new();
             public Dictionary<string, int> DroppedValuesByReason { get; } = new();
             public List<string> Lines { get; } = new();
