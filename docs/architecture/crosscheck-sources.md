@@ -90,6 +90,40 @@ brands, not a general solution.
   `/search`. Use a licensed API instead — `--search-api brave|google` (Brave Search API
   or Google Programmable Search JSON API, both with free tiers).
 
+### Manufacturer label pages read once by hand — 2026-11-17
+
+Fourteen catalog foods with no USDA record took one manufacturer label each
+(`--import-label-nutrition`, see `food-catalog-ingestion.md`). One product page per brand was
+opened and its Nutrition Facts transcribed; nothing was crawled. `robots.txt` was read for
+every host first. **None of these hosts is cleared for automated runs**: their terms of use
+were not reviewed, so each needs its own determination above before a script touches it.
+
+| Host | robots.txt for `*` | Read |
+|---|---|---|
+| `www.bobsredmill.com` | product pages allowed; `GPTBot`, `Google-Extended`, `PerplexityBot` barred | rolled oats, honey oat granola |
+| `raos.com` | all allowed, `crawl-delay: 10` | marinara sauce |
+| `filippoberio.com` | all allowed, `crawl-delay: 10` | classic balsamic glaze |
+| `www.sargento.com` | product pages allowed; `Content-Signal: search=yes, ai-input=yes, ai-train=no` | shredded mozzarella |
+| `smartlabel.mondelez.info` | no rules | Premium saltines |
+| `www.lundberg.com` | product pages allowed | thin rice cakes (label image) |
+| `shop.goya.com` | product pages allowed | black beans (label image) |
+| `smartlabel.nestleusa.com` | no rules | Toll House dark chocolate morsels |
+| `www.delallo.com` | product pages allowed, `crawl-delay: 10` for the AI agents it names | spaghetti, orzo (label images) |
+| `www.chobani.com` | product pages allowed | whole milk plain Greek yogurt |
+| `www.mediasite.lionimozzarella.com` | uploads allowed, `crawl-delay: 10` | fresh mozzarella (nutrition PDF) |
+| `www.olives.com` | all allowed, `crawl-delay: 10` | Pearls Kalamata olives |
+
+Left alone, with the reason:
+
+- `smartlabel.pepsico.info` (Quaker): `Content-Signal: ai-input=no`.
+- `www.barilla.com`, `www.dececco.com`, `www.verybestbaking.com`: answered 403 to an automated request.
+- `www.ghirardelli.com`, `smartlabel.kelloggs.com`: answered 405.
+- `www.mezzetta.com`: answered 429, then redirected a browser away.
+- `usa.fage`: certificate chain could not be verified, so `robots.txt` was unreadable.
+- Wine: winery pages state calories and carbohydrate per 5 fl oz with no gram weight, so no
+  label can be rescaled to per 100 g. USDA SR Legacy 174837 ("Alcoholic beverage, wine,
+  table, white") is the per-weight source.
+
 ## Recommended configuration
 
 ```bash

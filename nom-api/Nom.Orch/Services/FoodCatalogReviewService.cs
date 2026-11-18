@@ -29,6 +29,7 @@ namespace Nom.Orch.Services
 
         public const string FdcLinkField = "fdc_link";
         public const string FdcAttachField = "fdc_attach";
+        public const string LabelNutritionField = "label_nutrition";
 
         public FoodCatalogReviewService(ApplicationDbContext context, IFoodCatalogAuditService audit, ICatalogCleanupService cleanup)
         {

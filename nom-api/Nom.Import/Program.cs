@@ -136,6 +136,31 @@ namespace Nom.Import
                 return;
             }
 
+            var labelFlag = Array.IndexOf(args, "--import-label-nutrition");
+            if (labelFlag >= 0)
+            {
+                if (labelFlag + 1 >= args.Length || args[labelFlag + 1].StartsWith("--"))
+                {
+                    Console.WriteLine("Usage: --import-label-nutrition <labels.tsv> [--dry-run]");
+                    return;
+                }
+                var dryRun = args.Contains("--dry-run");
+                using var labelScope = host.Services.CreateScope();
+                var labels = labelScope.ServiceProvider.GetRequiredService<LabelNutritionImportService>();
+                var r = await labels.ImportAsync(args[labelFlag + 1], dryRun);
+                Console.WriteLine($"\n=== Manufacturer label nutrition report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
+                Console.WriteLine($"Labels in file: {r.Labels}");
+                Console.WriteLine($"Foods filled:   {r.Foods}");
+                Console.WriteLine($"Nutrient rows:  {r.Rows} (only nutrients the food had no value for)");
+                foreach (var line in r.Lines)
+                    Console.WriteLine($"  {line}");
+                foreach (var (reason, n) in r.DroppedValuesByReason.OrderByDescending(x => x.Value))
+                    Console.WriteLine($"  dropped value: {reason} x {n}");
+                if (!dryRun && r.Rows > 0)
+                    Console.WriteLine($"Rows stamped CreatedDate = {r.RunStamp:O}, proposal batch {r.Batch}");
+                return;
+            }
+
             var portionFlag = Array.IndexOf(args, "--backfill-portions");
             if (portionFlag >= 0)
             {
@@ -279,6 +304,7 @@ namespace Nom.Import
                     services.AddScoped<FdcBrandedImportService>();
                     services.AddScoped<FdcPortionBackfillService>();
                     services.AddScoped<FdcNutrientBackfillService>();
+                    services.AddScoped<LabelNutritionImportService>();
 
                     services.AddScoped<FoodGroupEnrichmentService>(sp => new FoodGroupEnrichmentService(
                         sp.GetRequiredService<ApplicationDbContext>(),

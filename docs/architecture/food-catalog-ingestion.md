@@ -257,6 +257,29 @@ never overwritten. Each row carries the SR Legacy FDC id in `IngredientNutrient.
 the run's `CreatedDate`, so supplemented values can be told apart and a run undone with the
 same `DELETE … WHERE "CreatedDate" = '<printed stamp>'`.
 
+### Manufacturer labels for foods USDA does not cover — BUILT ✅
+A catalog food with no USDA record (the hand-seeded "Greek Yogurt", "Marinara Sauce",
+"Balsamic Glaze" and the like) can take the Nutrition Facts one manufacturer publishes for
+its own product. `dotnet run -- --import-label-nutrition <labels.tsv> [--dry-run]`
+(`Nom.Import/Services/LabelNutritionImportService.cs`) reads a tab-separated file with one
+transcribed label per row: `ingredient_id`, `name`, `brand`, `product`, `url`, `serving` (as
+printed), `serving_grams`, then one column per `FdcNutrients` key holding the amount **per
+serving**, left empty where the label prints no number ("<1 g", a % Daily Value only, "not a
+significant source of"). The importer does the only arithmetic there is: amount × 100 ÷ the
+printed serving weight. A label with no gram weight is refused (a wine label gives fluid
+ounces only), as is a row whose `name` is not the food's name, a food that has a USDA record,
+and a label whose macros fail `FoodDataQualityValidator`. Only nutrients the food has no row
+for are written. The label as printed is kept as an applied `FoodCatalogProposal` (field
+`label_nutrition`, source `label:manufacturer:<host>`, the run's batch name), so every value
+traces back to its page; `ProposalPolicy` refuses that field from any source that is not
+authoritative. Undo a run with `DELETE … WHERE "CreatedDate" = '<printed stamp>'` on
+`nutrient."IngredientNutrient"`.
+
+The manufacturer's own label counts as authoritative on its own (decision of 2026-10-22);
+two agreeing sources are needed only when neither is the manufacturer. The pages are read by
+the operator, never fetched by nom-api, and each host is recorded in `crosscheck-sources.md`.
+A label covers the FDA panel only, so these foods carry no vitamins beyond vitamin D.
+
 ### AI enrichment (food group + IsWholeFood) — BUILT ✅ (runtime pending)
 `Nom.Import/Services/FoodGroupEnrichmentService.cs` — a batch job that classifies
 ingredients: deterministic keyword classification always runs

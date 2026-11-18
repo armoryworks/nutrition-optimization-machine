@@ -21,6 +21,7 @@ namespace Nom.Data.Nutrition
         {
             "calories", "kcal", "energy", "protein", "carb", "carbohydrate", "fat",
             "reference_serving_grams", "serving", "amount", "grams_per_milliliter", "grams_per_item",
+            "label_nutrition",
         };
 
         /// <summary>Source prefixes considered authoritative enough to propose a numeric change.</summary>
