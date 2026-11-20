@@ -202,9 +202,29 @@ namespace Nom.Api.Tests.Services
             replaced.Changed.Should().Be(1);
             var row = await db.IngredientWordings.SingleAsync();
             row.Should().Match<IngredientWordingEntity>(w => w.IngredientId == 901 && w.Batch == "w02");
-            (await db.AuditLogEntries.OrderBy(a => a.Id).Select(a => new { a.OldValue, a.NewValue }).ToListAsync()).Should().Equal(
+            (await db.AuditLogEntries.Where(a => a.PropertyName == nameof(IngredientWordingEntity.IngredientId)).OrderBy(a => a.Id).Select(a => new { a.OldValue, a.NewValue }).ToListAsync()).Should().Equal(
                 new { OldValue = (string?)null, NewValue = (string?)"food:902" },
                 new { OldValue = (string?)"food:902", NewValue = (string?)"food:901" });
+        }
+
+        [Fact]
+        public async Task Unloading_a_batch_that_replaced_a_verdict_puts_the_earlier_batchs_verdict_back()
+        {
+            using var db = NewContext();
+            await SeedAsync(db);
+            var service = Service(db);
+            await service.LoadAsync(new[] { Row("thyme", "food", fdcId: "170938") }, Batch, apply: true);
+            await service.LoadAsync(new[] { Row("thyme", "unclear") }, "w02", apply: true, replace: true);
+
+            var dryRun = await service.UnloadAsync("w02");
+            var done = await service.UnloadAsync("w02", apply: true);
+
+            dryRun.Should().BeEquivalentTo(new { Applied = false, Removed = 0, Restored = 1 });
+            done.Restored.Should().Be(1);
+            var row = await db.IngredientWordings.SingleAsync();
+            row.Should().Match<IngredientWordingEntity>(w => w.Verdict == "food" && w.IngredientId == 902 && w.Batch == Batch && !w.IsDeleted);
+            (await service.UnloadAsync(Batch, apply: true)).Removed.Should().Be(1, "the earlier batch finds its row again");
+            (await db.IngredientWordings.CountAsync()).Should().Be(0);
         }
 
         [Fact]

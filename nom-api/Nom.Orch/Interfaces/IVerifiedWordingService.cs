@@ -22,9 +22,10 @@ namespace Nom.Orch.Interfaces
         Task<VerifiedWordingLoadResult> LoadAsync(IReadOnlyCollection<VerifiedWordingRow> rows, string batch, bool apply = false, bool replace = false);
 
         /// <summary>
-        /// Takes every row of a batch out of the table, and sends back to awaiting curation each
-        /// food a load curated that no wording points at any more. Without
-        /// <paramref name="apply"/> nothing is written.
+        /// Takes every row of a batch out of the table, except that a row the batch took over from
+        /// an earlier batch with replace goes back to that batch's verdict, food and note, and
+        /// sends back to awaiting curation each food a load curated that no wording points at any
+        /// more. Without <paramref name="apply"/> nothing is written.
         /// </summary>
         Task<VerifiedWordingUnloadResult> UnloadAsync(string batch, bool apply = false);
 

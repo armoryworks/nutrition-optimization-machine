@@ -188,7 +188,7 @@ namespace Nom.Orch.Services
                 .Where(w => keys.Contains(w.Wording))
                 .ToDictionaryAsync(w => w.Wording, StringComparer.Ordinal);
 
-            var writes = new List<(Accepted Entry, IngredientWordingEntity? Row, string? OldValue)>();
+            var writes = new List<(Accepted Entry, IngredientWordingEntity? Row, Replaced? Old)>();
             foreach (var entry in accepted)
             {
                 existing.TryGetValue(entry.Wording, out var row);
@@ -207,7 +207,7 @@ namespace Nom.Orch.Services
                     }
 
                     result.Changed++;
-                    writes.Add((entry, row, Value(row.Verdict, row.IngredientId)));
+                    writes.Add((entry, row, new Replaced(Value(row.Verdict, row.IngredientId), row.Batch, row.Note)));
                     continue;
                 }
 
@@ -240,8 +240,8 @@ namespace Nom.Orch.Services
                 food.LastModifiedByPersonId = personId;
             }
 
-            var journaled = new List<(IngredientWordingEntity Row, string? OldValue)>();
-            foreach (var (entry, existingRow, oldValue) in writes)
+            var journaled = new List<(IngredientWordingEntity Row, Replaced? Old)>();
+            foreach (var (entry, existingRow, old) in writes)
             {
                 var row = existingRow;
                 if (row == null)
@@ -263,14 +263,17 @@ namespace Nom.Orch.Services
                 row.Batch = batch;
                 row.Source = Truncate(SourcePrefix + batch, 255);
                 row.Note = entry.Row.Note == null ? null : Truncate(entry.Row.Note.Trim(), 1023);
-                journaled.Add((row, oldValue));
+                journaled.Add((row, old));
             }
 
             await _db.SaveChangesAsync();
-            foreach (var (row, oldValue) in journaled)
+            foreach (var (row, old) in journaled)
             {
                 _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.IngredientId),
-                    oldValue, Value(row.Verdict, row.IngredientId), now, personId));
+                    old?.Value, Value(row.Verdict, row.IngredientId), now, personId));
+                if (old == null) continue;
+                _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.Batch), old.Batch, row.Batch, now, personId));
+                _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.Note), old.Note, row.Note, now, personId));
             }
 
             await _db.SaveChangesAsync();
@@ -284,11 +287,14 @@ namespace Nom.Orch.Services
             var rows = await _db.IngredientWordings.Where(w => w.Batch == batch).ToListAsync();
             var foodIds = rows.Where(r => r.IngredientId != null).Select(r => r.IngredientId!.Value).Distinct().ToList();
             var rowIds = rows.Select(r => r.Id).ToList();
-            var stillPointed = await _db.IngredientWordings
-                .Where(w => w.IngredientId != null && foodIds.Contains(w.IngredientId.Value) && !rowIds.Contains(w.Id))
-                .Select(w => w.IngredientId!.Value)
-                .Distinct()
-                .ToListAsync();
+            var earlier = await EarlierAsync(rows, batch);
+            var stillPointed = (await _db.IngredientWordings
+                    .Where(w => w.IngredientId != null && foodIds.Contains(w.IngredientId.Value) && !rowIds.Contains(w.Id))
+                    .Select(w => w.IngredientId!.Value)
+                    .Distinct()
+                    .ToListAsync())
+                .Concat(earlier.Values.Select(e => e.IngredientId).OfType<long>())
+                .ToList();
             var curatedByLoad = await _db.AuditLogEntries
                 .Where(a => a.EntityType == CurateEntityType && a.ChangeType == CurateChangeType
                     && foodIds.Contains(a.EntityId) && !stillPointed.Contains(a.EntityId))
@@ -298,7 +304,7 @@ namespace Nom.Orch.Services
                 .Where(i => promotedIds.Contains(i.Id) && i.CurationStatusId == (long)CurationStatusEnum.Curated)
                 .ToListAsync();
 
-            var result = new VerifiedWordingUnloadResult { Applied = apply, Removed = rows.Count, Demoted = demote.Count };
+            var result = new VerifiedWordingUnloadResult { Applied = apply, Removed = rows.Count - earlier.Count, Restored = earlier.Count, Demoted = demote.Count };
             if (!apply || rows.Count == 0) return result;
 
             var personId = _currentUser.PersonIdOrSystem;
@@ -306,6 +312,20 @@ namespace Nom.Orch.Services
             await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
             foreach (var row in rows)
             {
+                if (earlier.TryGetValue(row.Id, out var back))
+                {
+                    _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.IngredientId),
+                        Value(row.Verdict, row.IngredientId), Value(back.Verdict, back.IngredientId), now, personId));
+                    row.Verdict = back.Verdict;
+                    row.IngredientId = back.IngredientId;
+                    row.Batch = back.Batch;
+                    row.Source = back.Batch == null ? row.Source : Truncate(SourcePrefix + back.Batch, 255);
+                    row.Note = back.Note;
+                    row.LastModifiedDate = now;
+                    row.LastModifiedByPersonId = personId;
+                    continue;
+                }
+
                 _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.IngredientId),
                     Value(row.Verdict, row.IngredientId), null, now, personId));
                 row.IsDeleted = true;
@@ -386,6 +406,38 @@ namespace Nom.Orch.Services
 
         private static bool IsPromotable(Target food) =>
             food.Status == (long)CurationStatusEnum.PendingCuration && food.FdcId != null && PromotableDataTypes.Contains(food.DataType);
+
+        private sealed record Replaced(string Value, string? Batch, string? Note);
+
+        private sealed record Earlier(string Verdict, long? IngredientId, string? Batch, string? Note);
+
+        /// <summary>
+        /// For each row of the batch that the batch's load took over from an earlier verdict with
+        /// replace, that earlier verdict, food, batch and note, read from the load's journal.
+        /// </summary>
+        private async Task<Dictionary<long, Earlier>> EarlierAsync(List<IngredientWordingEntity> rows, string batch)
+        {
+            var ids = rows.Select(r => r.Id).ToList();
+            var entries = await _db.AuditLogEntries.AsNoTracking()
+                .Where(a => a.EntityType == WordingEntityType && a.ChangeType == VerifyChangeType && ids.Contains(a.EntityId))
+                .OrderByDescending(a => a.Id)
+                .ToListAsync();
+            var earlier = new Dictionary<long, Earlier>();
+            foreach (var row in rows)
+            {
+                var own = entries.Where(a => a.EntityId == row.Id).ToList();
+                var load = own.FirstOrDefault(a => a.PropertyName == nameof(IngredientWordingEntity.IngredientId) && a.NewValue != null);
+                if (load == null || load.OldValue == null || load.NewValue != Value(row.Verdict, row.IngredientId)) continue;
+                var moved = own.FirstOrDefault(a => a.PropertyName == nameof(IngredientWordingEntity.Batch) && a.Timestamp == load.Timestamp && a.NewValue == batch);
+                if (moved == null) continue;
+                var cut = load.OldValue.LastIndexOf(':');
+                if (cut <= 0) continue;
+                long? food = long.TryParse(load.OldValue[(cut + 1)..], NumberStyles.None, CultureInfo.InvariantCulture, out var id) ? id : null;
+                var note = own.FirstOrDefault(a => a.PropertyName == nameof(IngredientWordingEntity.Note) && a.Timestamp == load.Timestamp);
+                earlier[row.Id] = new Earlier(load.OldValue[..cut], food, moved.OldValue, note?.OldValue);
+            }
+            return earlier;
+        }
 
         internal static string Value(string verdict, long? ingredientId) =>
             string.Create(CultureInfo.InvariantCulture, $"{verdict}:{ingredientId}");

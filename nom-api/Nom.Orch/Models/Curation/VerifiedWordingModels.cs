@@ -63,6 +63,8 @@ namespace Nom.Orch.Models.Curation
     {
         public bool Applied { get; set; }
         public int Removed { get; set; }
+        /// <summary>Rows the batch had taken over with replace that go back to the earlier batch's verdict and food.</summary>
+        public int Restored { get; set; }
         /// <summary>Foods a load curated that no wording points at any more and go back to awaiting curation.</summary>
         public int Demoted { get; set; }
     }
@@ -89,6 +91,8 @@ namespace Nom.Orch.Models.Curation
         public int SourcesKept { get; set; }
         /// <summary>Unreviewed link proposals of retired ingredients that were withdrawn.</summary>
         public int ProposalsWithdrawn { get; set; }
+        /// <summary>Unreviewed pending link proposals of other ingredients whose wording the table judged otherwise, withdrawn and journaled.</summary>
+        public int PicksWithdrawn { get; set; }
         /// <summary>The wordings with the most lines first.</summary>
         public List<LineRelinkMove> Samples { get; set; } = new();
     }
