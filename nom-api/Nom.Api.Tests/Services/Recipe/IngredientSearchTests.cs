@@ -101,6 +101,24 @@ namespace Nom.Api.Tests.Services.Recipe
             (await service.SearchIngredientsAsync("sumac")).Select(r => r.Name).Should().Equal("Sumac");
         }
 
+        [Fact]
+        public async Task A_prepared_food_is_found_only_by_the_meal_plan_picker_and_is_marked_prepared()
+        {
+            await using var db = NewContext();
+            var burger = Food("McDONALD'S, Hamburger", CurationStatusEnum.Curated);
+            burger.FdcCategoryId = 21;
+            var bun = Food("Hamburger buns", CurationStatusEnum.Curated);
+            bun.FdcCategoryId = 18;
+            db.Ingredients.AddRange(burger, bun);
+            await db.SaveChangesAsync();
+            var service = NewService(db);
+
+            (await service.SearchIngredientsAsync("hamburger")).Select(r => r.Name)
+                .Should().Equal(new[] { "Hamburger buns" }, "a recipe line, the pantry and the shopping list never take a prepared food");
+            var forPlan = await service.SearchIngredientsAsync("hamburger", includePrepared: true);
+            forPlan.Select(r => (r.Name, r.IsPrepared)).Should().BeEquivalentTo(new[] { ("McDONALD'S, Hamburger", true), ("Hamburger buns", false) });
+        }
+
         private static IngredientEntity WithNutrition(IngredientEntity food)
         {
             food.IngredientNutrients.Add(new IngredientNutrientEntity { Nutrient = new NutrientEntity { Name = "Protein " + food.Name }, Amount = 5m });

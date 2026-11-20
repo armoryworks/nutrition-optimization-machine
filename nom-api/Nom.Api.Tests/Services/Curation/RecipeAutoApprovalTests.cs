@@ -200,6 +200,22 @@ namespace Nom.Api.Tests.Services.Curation
         }
 
         [Fact]
+        public void A_line_linked_to_a_prepared_food_blocks_approval_even_though_the_food_is_curated()
+        {
+            var recipe = PublicDomain();
+            RecipeAutoApprovalPolicy.Evaluate(recipe).Eligible.Should().BeTrue();
+
+            var butchersMeat = Line(98, "1 pound butcher's meat", 1m, true);
+            butchersMeat.Ingredient!.Name = "McDONALD'S, Hamburger";
+            butchersMeat.Ingredient.FdcCategoryId = 21;
+            recipe.RecipeIngredients!.Add(butchersMeat);
+
+            RecipeApprovalGate.PreparedIngredientNames(recipe).Should().Equal("McDONALD'S, Hamburger");
+            RecipeApprovalGate.RefusalReason(recipe).Should().Contain("prepared food");
+            RecipeAutoApprovalPolicy.Evaluate(recipe).Eligible.Should().BeFalse("a prepared food is never a recipe line's food, so the line is a wrong link");
+        }
+
+        [Fact]
         public void Unknown_license_that_was_not_scraped_is_not_eligible()
         {
             var recipe = RewrittenScrape();

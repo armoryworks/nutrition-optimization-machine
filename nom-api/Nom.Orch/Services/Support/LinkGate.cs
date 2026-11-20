@@ -86,7 +86,8 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// A catalog from the foods a pass can link to: siblings and lead words from every live,
-        /// non-branded food, and the curated name map from curated foods with nutrition (first id wins).
+        /// non-branded food, and the curated name map from curated foods with nutrition other than
+        /// prepared foods, which are never a line's food (first id wins).
         /// </summary>
         public static GateCatalog Build(
             IEnumerable<GateFood> foods,
@@ -104,7 +105,7 @@ namespace Nom.Orch.Services.Support
                 .GroupBy(x => x.Lead!, StringComparer.Ordinal)
                 .ToDictionary(g => g.Key, g => (IReadOnlyList<GateFood>)g.Select(x => x.Food).ToList(), StringComparer.Ordinal);
             var curated = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
-            foreach (var f in live.Where(f => f.Status == (long)CurationStatusEnum.Curated && (f.NutrientRows ?? 1) > 0)) curated.TryAdd(f.Name.Trim(), f.Id);
+            foreach (var f in live.Where(f => f.Status == (long)CurationStatusEnum.Curated && (f.NutrientRows ?? 1) > 0 && !PreparedFoods.IsPrepared(f.CategoryId))) curated.TryAdd(f.Name.Trim(), f.Id);
             return new GateCatalog
             {
                 Curated = curated,
@@ -140,7 +141,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class LinkGate
     {
-        public const string Version = "link-gate/1";
+        public const string Version = "link-gate/2";
 
         public const string Heading = "heading";
         public const string Compound = "compound";
@@ -419,10 +420,8 @@ namespace Nom.Orch.Services.Support
 
             if (target.Deleted) Add(Retired, "target retired");
             if (target.DataType == CatalogAdmissionRule.BrandedFood) Add(Branded, "branded target");
-            if (target.CategoryId is { } category && CatalogAdmissionRule.PreparedCategories.TryGetValue(category, out var prepared))
-                Add(Prepared, "prepared food", prepared);
-            else if (target.AdmissionReason?.StartsWith(CatalogAdmissionRule.PreparedCategoryPrefix, StringComparison.Ordinal) == true)
-                Add(Prepared, "prepared food", target.AdmissionReason[CatalogAdmissionRule.PreparedCategoryPrefix.Length..]);
+            if (PreparedFoods.IsPrepared(target.CategoryId))
+                Add(Prepared, "prepared food", CatalogAdmissionRule.PreparedCategories[target.CategoryId!.Value]);
             if (target.Status is { } status && status != (long)CurationStatusEnum.Curated
                 && !(status == (long)CurationStatusEnum.PendingCuration && target.AdmissionReason == null
                      && target.DataType is CatalogAdmissionRule.SrLegacyFood or CatalogAdmissionRule.FoundationFood))

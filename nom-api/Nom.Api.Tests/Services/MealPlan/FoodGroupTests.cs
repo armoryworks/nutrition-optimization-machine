@@ -325,5 +325,60 @@ namespace Nom.Api.Tests.Services.MealPlan
             additions.Select(a => a.IngredientId).Distinct().Should().BeEquivalentTo(new long?[] { kombucha.Id, milk.Id },
                 "0.5 g of alcohol per 100 g or less is not a drink's alcohol, and an unknown edibility is not excluded");
         }
+
+        [Fact]
+        public async Task A_prepared_food_is_never_a_top_up_and_never_counts_toward_a_minimum()
+        {
+            using var ctx = NewContext();
+            var babyCarrots = new IngredientEntity { Name = "Babyfood, vegetables, carrots, strained", FoodGroupId = Vegetables, CurationStatusId = Curated, IsWholeFood = true, FdcCategoryId = 3 };
+            var carrot = new IngredientEntity { Name = "Carrots, raw", FoodGroupId = Vegetables, CurationStatusId = Curated, IsWholeFood = true, FdcCategoryId = 11 };
+            ctx.Ingredients.AddRange(babyCarrots, carrot);
+            var recipe = new RecipeEntity { Name = "Puree", CurationStatusId = Curated };
+            ctx.Recipes.Add(recipe);
+            await ctx.SaveChangesAsync();
+            ctx.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = babyCarrots.Id, SortOrder = 0, Quantity = 1, MeasurementId = 1 });
+            ctx.FoodGroupRules.Add(new FoodGroupRuleEntity
+            {
+                HouseholdId = HouseholdId, FoodGroupId = Vegetables, MinServings = 2,
+                Timeframe = FoodGroupRuleTimeframe.PerDay, IsActive = true,
+            });
+            await ctx.SaveChangesAsync();
+            var svc = new MealPlanOrchestrationService(ctx, new FakePolicy());
+            var date = new DateOnly(2026, 8, 14);
+            var placed = new List<MealPlanEntity>
+            {
+                new() { HouseholdId = HouseholdId, Date = date, MealTypeId = Dinner, RecipeId = recipe.Id },
+                new() { HouseholdId = HouseholdId, Date = date, MealTypeId = Snacks, IngredientId = babyCarrots.Id, Quantity = 1m },
+            };
+
+            var additions = await svc.ApplyFoodGroupRulesAsync(HouseholdId, Author, date, date, placed, new List<long>(), DateTime.UtcNow);
+
+            additions.Should().HaveCount(2, "neither the recipe's line on a prepared food nor the planned prepared food is a Vegetables serving");
+            additions.Should().OnlyContain(a => a.IngredientId == carrot.Id, "a prepared food is never scheduled as a top-up");
+        }
+
+        [Fact]
+        public async Task A_household_plans_a_prepared_food_as_a_food_of_its_own_and_sees_it_marked_prepared()
+        {
+            using var ctx = NewContext();
+            AddActiveMember(ctx);
+            ctx.Set<HouseholdEntity>().Add(new HouseholdEntity { Id = HouseholdId, Name = "Test Household" });
+            ctx.Set<Nom.Data.Person.PersonEntity>().Add(new Nom.Data.Person.PersonEntity { Id = Author, Name = "Tester" });
+            ctx.Set<ReferenceEntity>().Add(new ReferenceEntity { Id = Dinner, Name = "Dinner" });
+            var burger = new IngredientEntity { Name = "McDONALD'S, Hamburger", CurationStatusId = Curated, FdcCategoryId = 21 };
+            ctx.Ingredients.Add(burger);
+            await ctx.SaveChangesAsync();
+            var svc = new MealPlanOrchestrationService(ctx, new FakePolicy());
+            var date = new DateOnly(2026, 8, 14);
+
+            var res = await svc.CreateMealPlanAsync(new MealPlanCreateModel
+            {
+                HouseholdId = HouseholdId, Date = date, MealTypeId = Dinner, IngredientId = burger.Id,
+            }, Author);
+
+            (await ctx.MealPlans.FindAsync(res.Id))!.IngredientId.Should().Be(burger.Id);
+            var week = await svc.GetWeekAsync(HouseholdId, date);
+            week.Days.SelectMany(d => d.Cells).SelectMany(c => c.Entries).Single(e => e.IngredientId == burger.Id).IsPrepared.Should().BeTrue();
+        }
     }
 }

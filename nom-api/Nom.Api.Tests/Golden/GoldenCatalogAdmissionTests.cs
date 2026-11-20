@@ -12,8 +12,8 @@ namespace Nom.Api.Tests.Golden
     /// <summary>
     /// The USDA foods and constructed cases of catalog-admission.tsv against the catalog admission
     /// rule: the status each lands in, its food group and edibility from its category, how its
-    /// energy was confirmed, and why it was not curated. The rule needs no model, so its floor is
-    /// every row.
+    /// energy was confirmed, why it was not curated, and whether it is a prepared food. The rule
+    /// needs no model, so its floor is every row.
     /// </summary>
     [Trait("Category", "Golden")]
     public class GoldenCatalogAdmissionTests
@@ -35,6 +35,7 @@ namespace Nom.Api.Tests.Golden
                     ["expectEdible"] = decision.IsWholeFood is bool e ? (e ? "true" : "false") : "-",
                     ["expectEnergy"] = GoldenSet.Cell(decision.EnergyCheck),
                     ["expectReason"] = GoldenSet.Cell(decision.Reason),
+                    ["expectPrepared"] = decision.Prepared ? "true" : "false",
                 });
             });
             _output.WriteLine(report.Summary);

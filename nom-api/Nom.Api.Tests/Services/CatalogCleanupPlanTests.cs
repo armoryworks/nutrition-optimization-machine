@@ -59,6 +59,22 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_wording_whose_name_leads_to_a_prepared_food_is_left_for_a_person()
+        {
+            using var db = NewContext();
+            var lasagna = new IngredientEntity { Name = "Lasagna", FdcId = "1000001", FdcDataType = "sr_legacy_food", FdcCategoryId = 22, CurationStatusId = 9003 };
+            var onion = new IngredientEntity { Name = "Onion", FdcId = "170000", FdcDataType = "sr_legacy_food", CurationStatusId = 9003 };
+            db.Ingredients.AddRange(lasagna, onion, Wording("2 lasagna"), Wording("lasagna"), Wording("chopped onion"));
+            await db.SaveChangesAsync();
+
+            var preview = await new CatalogCleanupService(db, new NoUser()).PreviewAsync(500);
+
+            preview.Samples.Should().NotContain(a => a.TargetId == lasagna.Id, "a prepared food is never a recipe line's food");
+            preview.Samples.Should().NotContain(a => a.Name == "2 lasagna" || a.Name == "lasagna");
+            preview.Samples.Should().ContainSingle(a => a.Name == "chopped onion" && a.TargetId == onion.Id);
+        }
+
+        [Fact]
         public async Task A_chain_of_wordings_ends_on_one_row_and_never_on_a_row_that_is_itself_merged_away()
         {
             using var db = NewContext();

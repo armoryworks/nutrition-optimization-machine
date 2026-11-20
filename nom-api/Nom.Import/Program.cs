@@ -376,7 +376,7 @@ namespace Nom.Import
             var r = await admission.AdmitAsync(new CatalogAdmissionService.AdmitOptions(dirs[0], dirs[1], Value("--branded"), checksums, dryRun));
             Console.WriteLine($"\n=== Catalog admission report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ({r.RuleVersion}) ===");
             Console.WriteLine($"Foods judged:        {r.Candidates} ({r.UsdaCandidates} USDA, {r.BrandedCandidates} branded, {r.BrandedNotInFile} branded not in the file)");
-            Console.WriteLine($"Admitted (Curated):  {r.Admitted}");
+            Console.WriteLine($"Admitted (Curated):  {r.Admitted} ({r.AdmittedPrepared} prepared foods: plannable, never a recipe line's food or a food-group food)");
             Console.WriteLine($"Held pending:        {r.Held}");
             foreach (var (reason, n) in r.HeldByReason.OrderByDescending(x => x.Value))
                 Console.WriteLine($"  held: {reason} × {n}");
@@ -388,7 +388,7 @@ namespace Nom.Import
                 Console.WriteLine($"  group: {move} × {n}");
             Console.WriteLine($"Edibility set:       {r.EdibilitySet}");
             Console.WriteLine($"Descriptions added:  {r.DescriptionsAdded} ({r.DescriptionsBlocked} blocked by an alias of the same text)");
-            Console.WriteLine($"Picks withdrawn:     {r.PicksWithdrawn} (open model picks that point at a food an admin rejected)");
+            Console.WriteLine($"Picks withdrawn:     {r.PicksWithdrawn} (open model picks that point at a food an admin rejected or at a prepared food)");
             Console.WriteLine($"Energy check:        {r.EnergyPassRate:P2} of USDA foods pass ({string.Join(", ", r.EnergyByOutcome.OrderByDescending(x => x.Value).Select(x => $"{x.Key} {x.Value}"))})");
             Console.WriteLine($"Without a category:  {r.CategoryMissing}");
             foreach (var line in r.NotInFile.Take(50))

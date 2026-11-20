@@ -97,6 +97,53 @@ namespace Nom.Api.Tests.Services.Recipe
         }
 
         [Fact]
+        public async Task A_prepared_food_is_refused_as_a_new_line_but_an_older_line_on_one_stays_editable()
+        {
+            await using var db = NewContext();
+            var authorId = await SeedAuthorAsync(db);
+            var burger = new IngredientEntity { Id = 40, Name = "McDONALD'S, Hamburger", CurationStatusId = (long)CurationStatusEnum.Curated, FdcCategoryId = 21 };
+            var nachos = new IngredientEntity { Id = 41, Name = "Fast foods, nachos, with cheese", CurationStatusId = (long)CurationStatusEnum.Curated, FdcCategoryId = 21 };
+            db.Ingredients.AddRange(burger, nachos);
+            await db.SaveChangesAsync();
+
+            var create = () => NewService(db).CreateRecipeAsync(new RecipeCreateModel
+            {
+                Name = "Burger night",
+                Ingredients = new() { new() { IngredientId = 30, Quantity = 1, MeasurementId = 1 }, new() { IngredientId = burger.Id, Quantity = 1, MeasurementId = 1 } },
+            }, authorId);
+
+            (await create.Should().ThrowAsync<ArgumentException>()).WithMessage("*prepared food*McDONALD'S, Hamburger*");
+            db.ChangeTracker.Clear();
+            (await db.Recipes.CountAsync()).Should().Be(0);
+
+            var recipe = new RecipeEntity { Name = "Old import", AuthorId = authorId, Servings = 1 };
+            db.Recipes.Add(recipe);
+            await db.SaveChangesAsync();
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = burger.Id, Quantity = 1, MeasurementId = 1, RawLine = "1 hamburger" });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            await NewService(db).UpdateRecipeAsync(recipe.Id, new UpdateRecipeRequest
+            {
+                Id = recipe.Id, Name = "Old import, renamed", Servings = 1,
+                Ingredients = new() { new() { IngredientId = burger.Id, Quantity = 2, MeasurementId = 1 } },
+                Steps = new(),
+            });
+            db.ChangeTracker.Clear();
+            (await LinesAsync(db, recipe.Id)).Single().Quantity.Should().Be(2);
+
+            var addNachos = () => NewService(db).UpdateRecipeAsync(recipe.Id, new UpdateRecipeRequest
+            {
+                Id = recipe.Id, Name = "Old import, renamed", Servings = 1,
+                Ingredients = new() { new() { IngredientId = burger.Id, Quantity = 2, MeasurementId = 1 }, new() { IngredientId = nachos.Id, Quantity = 1, MeasurementId = 1 } },
+                Steps = new(),
+            });
+            await addNachos.Should().ThrowAsync<ArgumentException>();
+            db.ChangeTracker.Clear();
+            (await LinesAsync(db, recipe.Id)).Select(ri => ri.IngredientId).Should().Equal(burger.Id);
+        }
+
+        [Fact]
         public async Task Update_ReorderingAndRepeating_FollowsTheNewOrder_AndKeepsRawLines()
         {
             await using var db = NewContext();

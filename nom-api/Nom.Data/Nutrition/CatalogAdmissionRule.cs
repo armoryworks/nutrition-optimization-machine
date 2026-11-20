@@ -23,10 +23,10 @@ namespace Nom.Data.Nutrition
 
     /// <summary>
     /// The rule's verdict for one food: the curation status it lands in, its food group and
-    /// edibility from its category only, how its energy was confirmed, and every reason it was not
-    /// curated (empty when it was).
+    /// edibility from its category only, how its energy was confirmed, every reason it was not
+    /// curated (empty when it was), and whether it is a prepared food (<see cref="PreparedFoods"/>).
     /// </summary>
-    public sealed record AdmissionDecision(long Status, long? FoodGroupId, bool? IsWholeFood, string? EnergyCheck, IReadOnlyList<string> Reasons)
+    public sealed record AdmissionDecision(long Status, long? FoodGroupId, bool? IsWholeFood, string? EnergyCheck, IReadOnlyList<string> Reasons, bool Prepared = false)
     {
         public string? Reason => Reasons.Count == 0 ? null : string.Join("+", Reasons);
     }
@@ -35,15 +35,16 @@ namespace Nom.Data.Nutrition
     /// The deterministic rule that stands in for an admin's look at a USDA food, with no model.
     /// Foundation and SR Legacy foods in an admitted category that pass plausibility and USDA's own
     /// energy check, and whose name no other curated food holds, land as Curated. Foods in Baby
-    /// Foods, Fast Foods, Meals, Entrees and Side Dishes, and Restaurant Foods are held
-    /// PendingCuration with a <see cref="PreparedCategoryPrefix"/> reason until those prepared foods
-    /// have a place of their own. Anything else that fails a check stays PendingCuration with its reasons. Branded foods always stay pending,
+    /// Foods, Fast Foods, Meals, Entrees and Side Dishes, and Restaurant Foods are admitted the same
+    /// way, as prepared foods (<see cref="PreparedFoods"/>) with no food group: a household may plan
+    /// one, but no recipe line links to one and no food-group rule counts one. Anything else that
+    /// fails a check stays PendingCuration with its reasons. Branded foods always stay pending,
     /// awaiting a second independent source. The food group and edibility come from the USDA
     /// category only, never from a name: a category that is mixed or belongs to no group gives none.
     /// </summary>
     public static class CatalogAdmissionRule
     {
-        public const string Version = "catalog-admission/1";
+        public const string Version = "catalog-admission/2";
 
         /// <summary>
         /// The audit change type of a food group or edibility set from the USDA category, by the
@@ -56,7 +57,6 @@ namespace Nom.Data.Nutrition
         public const string BrandedFood = "branded_food";
 
         public const string CategoryMissing = "category_missing";
-        public const string PreparedCategoryPrefix = "prepared_category:";
         public const string CategoryNotAdmittedPrefix = "category_not_admitted:";
         public const string DuplicatePrefix = "duplicate_of:#";
         public const string AwaitingSecondSource = "awaiting_second_source";
@@ -66,13 +66,15 @@ namespace Nom.Data.Nutrition
         public const int SpicesAndHerbs = 2;
 
         /// <summary>
-        /// USDA food category id to food group. Spices and Herbs, Soups, Sauces and Gravies, and the
-        /// mixed American Indian/Alaska Native Foods category are admitted but give no group.
+        /// USDA food category id to food group. Spices and Herbs, Soups, Sauces and Gravies, the
+        /// mixed American Indian/Alaska Native Foods category and the prepared-food categories are
+        /// admitted but give no group.
         /// </summary>
         public static readonly IReadOnlyDictionary<int, long?> CategoryToGroup = new Dictionary<int, long?>
         {
             [1] = (long)FoodGroupEnum.Dairy,
             [2] = null,
+            [3] = null,
             [4] = (long)FoodGroupEnum.FatsOils,
             [5] = (long)FoodGroupEnum.ProteinFoods,
             [6] = null,
@@ -90,14 +92,18 @@ namespace Nom.Data.Nutrition
             [18] = (long)FoodGroupEnum.Grains,
             [19] = (long)FoodGroupEnum.SweetsSnacks,
             [20] = (long)FoodGroupEnum.Grains,
+            [21] = null,
+            [22] = null,
             [23] = (long)FoodGroupEnum.SweetsSnacks,
             [24] = null,
+            [25] = null,
             [28] = (long)FoodGroupEnum.Beverages,
         };
 
         /// <summary>
         /// USDA food categories of prepared, often branded dishes that recipes do not name and that
-        /// model link pickers chose wrongly. Their foods are held by rule, never curated or rejected by it.
+        /// model link pickers chose wrongly. Their foods are admitted as prepared foods
+        /// (<see cref="PreparedFoods"/>): plannable, never a recipe line's food, never a food-group food.
         /// </summary>
         public static readonly IReadOnlyDictionary<int, string> PreparedCategories = new Dictionary<int, string>
         {
@@ -196,7 +202,8 @@ namespace Nom.Data.Nutrition
 
         /// <summary>
         /// Judges one food: Curated when every check passes, otherwise PendingCuration with the
-        /// failed checks as reasons, a prepared-food category first. The rule never rejects a food.
+        /// failed checks as reasons. A food in a prepared-food category is judged by the same checks
+        /// and marked prepared. The rule never rejects a food.
         /// </summary>
         public static AdmissionDecision Decide(AdmissionFacts facts, FoodDataQualityValidator? validator = null)
         {
@@ -211,8 +218,6 @@ namespace Nom.Data.Nutrition
                 reasons.Add(facts.DataType == BrandedFood ? AwaitingSecondSource : SourceNotAdmitted);
             else if (facts.CategoryId is not int category)
                 reasons.Add(CategoryMissing);
-            else if (PreparedCategories.TryGetValue(category, out var prepared))
-                reasons.Add(PreparedCategoryPrefix + prepared);
             else if (!CategoryToGroup.ContainsKey(category))
                 reasons.Add(CategoryNotAdmittedPrefix + category.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
@@ -224,7 +229,7 @@ namespace Nom.Data.Nutrition
 
             return new AdmissionDecision(
                 reasons.Count == 0 ? (long)CurationStatusEnum.Curated : (long)CurationStatusEnum.PendingCuration,
-                group, edible, energy, reasons);
+                group, edible, energy, reasons, IsUsdaAuthored(facts.DataType) && PreparedFoods.IsPrepared(facts.CategoryId));
         }
     }
 }

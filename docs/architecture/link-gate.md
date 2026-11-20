@@ -37,10 +37,10 @@ The code is what golden files and reports name.
 | `compound` | the wording names more than one food (and, or, with, &, +, ;, a slash, a second food after a comma) | links B3, wordings 2.1 |
 | `retired` | the target is deleted | wordings check 1 |
 | `branded` | the target is a branded food | links B3, wordings check 1 |
-| `prepared` | the target is in a USDA prepared category (Baby Foods, Fast Foods, Meals, Entrees and Side Dishes, Restaurant Foods) or held as `prepared_category:` | owner, 2026-11-20: never a link target |
+| `prepared` | the target is in a USDA prepared category (Baby Foods, Fast Foods, Meals, Entrees and Side Dishes, Restaurant Foods; `PreparedFoods`, from the stored `FdcCategoryId`) | owner, 2026-11-20: never a link target |
 | `uncurated` | the target is neither curated nor a pending SR Legacy or Foundation food with no admission reason | wordings check 1, catalog admission |
 | `incomplete` | the core nutrients are missing, or it has fewer than 20 nutrient rows while a food under the same lead word has more than 5 more (Claret, 6 rows, against red table wine, 33) | wordings check 1 |
-| `other-food` | the wording is the name of another curated food (`LineRelinkService.TargetFor`) | links B3, wordings check 2 |
+| `other-food` | the wording is the name of another curated food that is not a prepared food (`LineRelinkService.TargetFor`) | links B3, wordings check 2 |
 | `other-alias` | a trusted alias gives the wording to another food | wordings check 2 |
 | `state` | the description carries a state (dried, canned, cooked, frozen, ground, powder, sweetened, cured, roasted, smoked, pickled, dry) the wording lacks, and another food under the same lead word lacks it too | links B3, wordings check 4 |
 | `word-order` | a name match reads in USDA's order ("gravy beef" for "Gravy, beef") | links B3 |

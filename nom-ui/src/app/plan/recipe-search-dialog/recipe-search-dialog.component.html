@@ -113,7 +113,7 @@
 
   <!-- Whole food (standalone item) -->
   <details class="nom-recipe-dialog__note-section">
-    <summary>Add a whole food (apple, protein bar, …)</summary>
+    <summary>Add a whole food or a prepared meal (apple, protein bar, frozen dinner, …)</summary>
     <mat-form-field appearance="outline" class="nom-recipe-dialog__search">
       <mat-label>Search foods to add</mat-label>
       <mat-icon matPrefix>nutrition</mat-icon>
@@ -144,7 +144,9 @@
               <span class="nom-recipe-dialog__result-name">{{ food.name }}</span>
             </div>
             <div class="nom-recipe-dialog__result-meta">
-              @if (food.foodGroupName) {
+              @if (food.isPrepared) {
+                <span data-testid="whole-food-result-prepared">Prepared</span>
+              } @else if (food.foodGroupName) {
                 <span>{{ food.foodGroupName }}</span>
               }
             </div>

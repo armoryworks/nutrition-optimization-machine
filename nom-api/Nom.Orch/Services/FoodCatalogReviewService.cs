@@ -501,8 +501,8 @@ namespace Nom.Orch.Services
         /// alias; future imports land on the USDA food through it only when a person approved the
         /// link or a deterministic rule proposed it). Otherwise it stays and copies the USDA
         /// food's nutrient values (source fdc:&lt;id&gt;) for the nutrients it lacks. Approving a link
-        /// also curates the USDA food, since a reviewer just looked at it; a Rejected food is never
-        /// a link target, and a food the catalog admission rule holds (pending with a stored
+        /// also curates the USDA food, since a reviewer just looked at it; a Rejected food and a
+        /// prepared food are never a link target, for a person either, and a food the catalog admission rule holds (pending with a stored
         /// reason) is lifted only by a person, never by a lane. Only a person's approval
         /// gives the USDA food the everyday name; a link the lanes apply on their own leaves the
         /// description in place, because a wrong pick would otherwise rename the food after it.
@@ -513,7 +513,7 @@ namespace Nom.Orch.Services
             var source = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == p.IngredientId!.Value && !i.IsDeleted);
             var target = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == targetId && !i.IsDeleted);
             if (source == null || target == null || target.FdcId == null || target.FdcId != p.FdcId) return false;
-            if (target.CurationStatusId == (long)Nom.Data.Recipe.CurationStatusEnum.Rejected) return false;
+            if (target.CurationStatusId == (long)Nom.Data.Recipe.CurationStatusEnum.Rejected || Nom.Data.Nutrition.PreparedFoods.IsPrepared(target)) return false;
             if (reviewerPersonId == SystemConstants.SystemPersonId && target.CurationStatusId == (long)Nom.Data.Recipe.CurationStatusEnum.PendingCuration
                 && target.AdmissionReason != null) return false;
 

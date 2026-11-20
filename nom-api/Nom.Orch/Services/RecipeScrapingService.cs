@@ -594,7 +594,8 @@ namespace Nom.Orch.Services
         /// is set), a live ingredient of that name, then the one food a trusted alias gives the name to,
         /// then the food an applied link merged the retired ingredient of that name into (the line is
         /// journaled under that link, so undoing the link moves it back), and otherwise a new
-        /// uncurated ingredient that the link lane proposes a food for later.
+        /// uncurated ingredient that the link lane proposes a food for later. A wording, an alias or
+        /// an applied link never leads to a prepared food.
         /// Matching is case-insensitive (translated to SQL via ToLower — StringComparison
         /// overloads don't translate in EF).
         /// </summary>
@@ -647,7 +648,7 @@ namespace Nom.Orch.Services
                         .Select(Support.LinkApplyJournal.Read<Support.LinkApplyJournal.HeaderValue>)
                         .FirstOrDefault();
                     if (header is not { Merged: true } || header.Food != holderId) continue;
-                    var target = await _dbContext.Ingredients.FirstOrDefaultAsync(i => i.Id == header.Target && !i.IsDeleted);
+                    var target = await _dbContext.Ingredients.Where(Nom.Data.Nutrition.PreparedFoods.NotPrepared).FirstOrDefaultAsync(i => i.Id == header.Target && !i.IsDeleted);
                     if (target != null) return (target, new FollowedLink(proposalId, holderId));
                 }
             }
@@ -667,7 +668,8 @@ namespace Nom.Orch.Services
                 .FirstOrDefaultAsync();
             return targetId == null
                 ? null
-                : await _dbContext.Ingredients.FirstOrDefaultAsync(i => i.Id == targetId && !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated);
+                : await _dbContext.Ingredients.Where(Nom.Data.Nutrition.PreparedFoods.NotPrepared)
+                    .FirstOrDefaultAsync(i => i.Id == targetId && !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated);
         }
 
         /// <summary>The live ingredient of this name; a curated one before an uncurated one, then the oldest.</summary>
@@ -708,7 +710,7 @@ namespace Nom.Orch.Services
             if (owners.Count != 1) return null;
 
             var ownerId = owners[0];
-            return await _dbContext.Ingredients.FirstOrDefaultAsync(i => i.Id == ownerId && !i.IsDeleted);
+            return await _dbContext.Ingredients.Where(Nom.Data.Nutrition.PreparedFoods.NotPrepared).FirstOrDefaultAsync(i => i.Id == ownerId && !i.IsDeleted);
         }
 
         private async Task<IngredientEntity> CreateIngredientAsync(string name, long? personId)

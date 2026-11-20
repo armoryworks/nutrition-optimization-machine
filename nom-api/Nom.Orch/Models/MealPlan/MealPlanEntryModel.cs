@@ -20,6 +20,9 @@ namespace Nom.Orch.Models.MealPlan
         public long? FoodGroupId { get; set; }
         public string? FoodGroupName { get; set; }
 
+        /// <summary>Whether the standalone food is a prepared food (fast food, restaurant or baby food, a meal or entree).</summary>
+        public bool IsPrepared { get; set; }
+
         /// <summary>
         /// Grams in one reference serving of the standalone food, when the source publishes one.
         /// Null means the nutrition shown uses the 100 g basis. Reference baseline only — an

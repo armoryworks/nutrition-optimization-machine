@@ -61,11 +61,11 @@ namespace Nom.Orch.Services
             var curated = await _db.Ingredients.AsNoTracking()
                 .Where(i => !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated)
                 .OrderBy(i => i.Id)
-                .Select(i => new { i.Id, i.Name, HasNutrition = i.IngredientNutrients.Any(n => !n.IsDeleted) })
+                .Select(i => new { i.Id, i.Name, HasNutrition = i.IngredientNutrients.Any(n => !n.IsDeleted), i.FdcCategoryId })
                 .ToListAsync();
             var names = curated.ToDictionary(i => i.Id, i => i.Name.Trim());
             var targets = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
-            foreach (var food in curated.Where(f => f.HasNutrition)) targets.TryAdd(food.Name.Trim(), food.Id);
+            foreach (var food in curated.Where(f => f.HasNutrition && !Nom.Data.Nutrition.PreparedFoods.IsPrepared(f.FdcCategoryId))) targets.TryAdd(food.Name.Trim(), food.Id);
 
             var lines = await ScrapedLines()
                 .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId)
@@ -216,9 +216,10 @@ namespace Nom.Orch.Services
             if (fromIngredientId == toIngredientId) return null;
             var foods = await _db.Ingredients.AsNoTracking()
                 .Where(i => (i.Id == fromIngredientId || i.Id == toIngredientId) && !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated)
-                .Select(i => new { i.Id, HasNutrition = i.IngredientNutrients.Any(n => !n.IsDeleted) })
+                .Select(i => new { i.Id, HasNutrition = i.IngredientNutrients.Any(n => !n.IsDeleted), i.FdcCategoryId })
                 .ToListAsync();
-            if (foods.Count != 2 || !foods.Single(f => f.Id == toIngredientId).HasNutrition) return null;
+            if (foods.Count != 2 || foods.Single(f => f.Id == toIngredientId) is not { HasNutrition: true } to
+                || Nom.Data.Nutrition.PreparedFoods.IsPrepared(to.FdcCategoryId)) return null;
 
             var lines = await _db.RecipeIngredients.AsNoTracking()
                 .Where(ri => !ri.IsDeleted && ri.IngredientId == fromIngredientId)
@@ -237,7 +238,7 @@ namespace Nom.Orch.Services
             var foodIds = moves.SelectMany(m => new[] { m.FromIngredientId, m.ToIngredientId }).Distinct().ToList();
             var foods = await _db.Ingredients.AsNoTracking()
                 .Where(i => foodIds.Contains(i.Id) && !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated)
-                .Select(i => new { i.Id, i.Name, HasNutrition = i.IngredientNutrients.Any(n => !n.IsDeleted) })
+                .Select(i => new { i.Id, i.Name, HasNutrition = i.IngredientNutrients.Any(n => !n.IsDeleted), i.FdcCategoryId })
                 .ToDictionaryAsync(i => i.Id);
 
             var wanted = new Dictionary<(long, string), long>();
@@ -246,7 +247,8 @@ namespace Nom.Orch.Services
             {
                 var wording = (move.Wording ?? string.Empty).Trim().ToLowerInvariant();
                 if (wording.Length == 0 || move.FromIngredientId == move.ToIngredientId || !foods.ContainsKey(move.FromIngredientId)
-                    || !foods.TryGetValue(move.ToIngredientId, out var target) || !target.HasNutrition)
+                    || !foods.TryGetValue(move.ToIngredientId, out var target) || !target.HasNutrition
+                    || Nom.Data.Nutrition.PreparedFoods.IsPrepared(target.FdcCategoryId))
                 {
                     rejected.Add(move);
                     continue;
@@ -292,7 +294,7 @@ namespace Nom.Orch.Services
                 .ToListAsync();
             var source = foods.SingleOrDefault(f => f.Id == fromIngredientId);
             var target = foods.SingleOrDefault(f => f.Id == toIngredientId);
-            if (source == null || target == null
+            if (source == null || target == null || Nom.Data.Nutrition.PreparedFoods.IsPrepared(target)
                 || !await _db.IngredientNutrients.AnyAsync(n => n.IngredientId == toIngredientId)) return null;
 
             var result = new FoodRetireResult

@@ -35,7 +35,7 @@ namespace Nom.Orch.Interfaces
         Task<IngredientEditModel> CreateIngredientAsync(CreateIngredientRequest model);
         Task<IngredientEditModel> UpdateIngredientAsync(UpdateIngredientRequest model);
         Task<List<IngredientEditModel>> GetMyIngredientsAsync(long personId);
-        Task<List<IngredientSearchResponseModel>> SearchIngredientsAsync(string query);
+        Task<List<IngredientSearchResponseModel>> SearchIngredientsAsync(string query, bool includePrepared = false);
 
         // Dashboard Analytics
         Task<RecipeDashboardAnalyticsModel> GetDashboardAnalyticsAsync(long personId);

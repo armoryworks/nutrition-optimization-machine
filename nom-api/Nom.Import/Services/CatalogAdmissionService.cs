@@ -152,6 +152,7 @@ namespace Nom.Import.Services
             var changedFoods = new HashSet<long>();
             var admittedOrRegrouped = new HashSet<long>();
             var rejectedFoods = new HashSet<long>();
+            var notLinkTargets = new HashSet<long>();
 
             foreach (var food in foods)
             {
@@ -239,8 +240,9 @@ namespace Nom.Import.Services
                     Set(AdmitChangeType, nameof(IngredientEntity.CurationStatusId), Long(food.CurationStatusId), Long(decision.Status));
                     changedFoods.Add(food.Id);
                     report.Admitted++;
+                    if (decision.Prepared) report.AdmittedPrepared++;
                     admittedOrRegrouped.Add(food.Id);
-                    if (report.Lines.Count < 400) report.Lines.Add($"admit    #{food.Id} {food.Name} ({decision.EnergyCheck})");
+                    if (report.Lines.Count < 400) report.Lines.Add($"admit    #{food.Id} {food.Name} ({decision.EnergyCheck}{(decision.Prepared ? ", prepared" : string.Empty)})");
                 }
                 else if (food.CurationStatusId == (long)CurationStatusEnum.PendingCuration)
                 {
@@ -257,6 +259,7 @@ namespace Nom.Import.Services
                 {
                     rejectedFoods.Add(food.Id);
                 }
+                if (decision.Prepared) notLinkTargets.Add(food.Id);
 
                 if (isUsda && !string.IsNullOrWhiteSpace(description) && !describedIds.Contains(food.Id))
                 {
@@ -269,7 +272,8 @@ namespace Nom.Import.Services
             report.DescriptionsAdded = descriptionsToAdd.Count;
             report.ChangedFoods = changedFoods.Count;
             report.EnergyPassRate = report.UsdaCandidates == 0 ? 1m : Math.Round((decimal)report.EnergyPassed / report.UsdaCandidates, 4);
-            var withdraw = await PicksToWithdrawAsync(rejectedFoods, ct);
+            notLinkTargets.UnionWith(rejectedFoods);
+            var withdraw = await PicksToWithdrawAsync(notLinkTargets, ct);
             report.PicksWithdrawn = withdraw.Count;
 
             if (report.ChecksumFailures.Count > 0) report.Stopped.Add($"checksum: {report.ChecksumFailures.Count} USDA file(s) not recorded in {options.ChecksumFile}");
@@ -461,11 +465,11 @@ namespace Nom.Import.Services
             if (tx != null) await tx.CommitAsync(ct);
         }
 
-        /// <summary>The open model link picks (source ai:) that point at a food an admin rejected.</summary>
-        private async Task<List<FoodCatalogProposalEntity>> PicksToWithdrawAsync(HashSet<long> rejected, CancellationToken ct)
+        /// <summary>The open model link picks (source ai:) that point at a food an admin rejected or at a prepared food.</summary>
+        private async Task<List<FoodCatalogProposalEntity>> PicksToWithdrawAsync(HashSet<long> notTargets, CancellationToken ct)
         {
-            if (rejected.Count == 0) return new List<FoodCatalogProposalEntity>();
-            var targets = rejected.Select(id => id.ToString(CultureInfo.InvariantCulture)).ToList();
+            if (notTargets.Count == 0) return new List<FoodCatalogProposalEntity>();
+            var targets = notTargets.Select(id => id.ToString(CultureInfo.InvariantCulture)).ToList();
             return await _db.FoodCatalogProposals
                 .Where(p => p.Field == FoodCatalogReviewService.FdcLinkField && p.Status == FoodProposalStatus.Pending
                     && p.Source.StartsWith("ai:") && p.ProposedValue != null && targets.Contains(p.ProposedValue))
@@ -653,6 +657,7 @@ namespace Nom.Import.Services
             public int BrandedNotInFile { get; set; }
             public int CategoryMissing { get; set; }
             public int Admitted { get; set; }
+            public int AdmittedPrepared { get; set; }
             public int Held { get; set; }
             public int KeptCurated { get; set; }
             public int Regrouped { get; set; }

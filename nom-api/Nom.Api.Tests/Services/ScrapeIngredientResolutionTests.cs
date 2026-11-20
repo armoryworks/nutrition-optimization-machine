@@ -209,6 +209,50 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_trusted_alias_on_a_prepared_food_is_not_followed()
+        {
+            using var db = NewContext();
+            var burger = await FoodAsync(db, "McDONALD'S, Hamburger");
+            burger.FdcCategoryId = 21;
+            await db.SaveChangesAsync();
+            await AliasAsync(db, burger, "hamburger", "admin:link:ai:fake");
+
+            var landed = await ImportAsync(db, "hamburger");
+
+            landed.Id.Should().NotBe(burger.Id, "a prepared food is never a recipe line's food");
+            landed.CurationStatusId.Should().Be((long)CurationStatusEnum.NonCurated);
+        }
+
+        [Fact]
+        public async Task A_wording_an_applied_link_merged_into_a_prepared_food_is_not_followed()
+        {
+            using var db = NewContext();
+            var burger = await FoodAsync(db, "McDONALD'S, Hamburger");
+            burger.FdcCategoryId = 21;
+            var holder = await FoodAsync(db, "hamburger", CurationStatusEnum.NonCurated, deleted: true);
+            await AliasAsync(db, burger, "hamburger", "link:ai:fake");
+            var proposal = new Nom.Data.Curation.FoodCatalogProposalEntity
+            {
+                Action = Nom.Data.Curation.FoodProposalAction.Update, IngredientId = holder.Id, Field = FoodCatalogReviewService.FdcLinkField, CurrentValue = "hamburger",
+                ProposedValue = burger.Id.ToString(), Source = "ai:fake", Status = Nom.Data.Curation.FoodProposalStatus.Applied, ReviewedByPersonId = Nom.Data.SystemConstants.SystemPersonId,
+            };
+            db.FoodCatalogProposals.Add(proposal);
+            await db.SaveChangesAsync();
+            db.AuditLogEntries.Add(Nom.Orch.Services.Support.LinkApplyJournal.Entry(proposal.Id, Nom.Orch.Services.Support.LinkApplyJournal.Header,
+                Nom.Orch.Services.Support.LinkApplyJournal.Write(new Nom.Orch.Services.Support.LinkApplyJournal.HeaderValue(holder.Id, "hamburger", (long)CurationStatusEnum.NonCurated, "ai:fake", true, burger.Id)),
+                burger.Id.ToString(), DateTime.UtcNow.AddMinutes(-5), Nom.Data.SystemConstants.SystemPersonId));
+            await db.SaveChangesAsync();
+
+            var landed = await ImportAsync(db, "hamburger");
+
+            landed.Id.Should().NotBe(burger.Id, "a prepared food is never a recipe line's food");
+            landed.Id.Should().NotBe(holder.Id);
+            landed.Name.Should().Be("hamburger");
+            landed.CurationStatusId.Should().Be((long)CurationStatusEnum.NonCurated);
+            (await db.AuditLogEntries.CountAsync(e => e.EntityId == proposal.Id)).Should().Be(1, "the new line is not journaled under the link to the prepared food");
+        }
+
+        [Fact]
         public async Task A_trusted_alias_on_a_soft_deleted_food_is_not_followed()
         {
             using var db = NewContext();

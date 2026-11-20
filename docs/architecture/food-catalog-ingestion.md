@@ -69,10 +69,10 @@ changes a status. Run `--admit` after every `--import-fdc`.
 | Check | Rule |
 |---|---|
 | Source | Foundation and SR Legacy only (USDA-authored numbers). Branded stays `PendingCuration`, reason `awaiting_second_source`, plus `zero_energy` when it states 0 kcal in a category that is not water, tea, coffee, soda, sweetener, salt, spice or seasoning. |
-| Category | `Ingredient.FdcCategoryId` (USDA `food_category_id`). Baby Foods (3), Fast Foods (21), Meals, Entrees and Side Dishes (22) and Restaurant Foods (25) are **held**, reason `prepared_category:<name>`: the owner did not confirm rejecting them (2026-11-20) and they will be admitted as prepared foods that are never link targets or top-up foods (`cleanup2/catalog-prepared`). The rule never rejects a food. Admitted: the 19 mapped categories plus Spices and Herbs (2), Soups, Sauces and Gravies (6) and American Indian/Alaska Native Foods (24, code 3500). Any other category is held, `category_not_admitted:<id>`; no category is held, `category_missing`. |
+| Category | `Ingredient.FdcCategoryId` (USDA `food_category_id`). The rule never rejects a food. Admitted: the 19 mapped categories plus Spices and Herbs (2), Soups, Sauces and Gravies (6), American Indian/Alaska Native Foods (24, code 3500), and the four prepared-food categories Baby Foods (3), Fast Foods (21), Meals, Entrees and Side Dishes (22) and Restaurant Foods (25), whose foods are admitted as **prepared foods** (see *Prepared foods* below; owner answer 2026-11-20, second round). Any other category is held, `category_not_admitted:<id>`; no category is held, `category_missing`. |
 | Plausibility and energy | `FoodDataQualityValidator` (below), with the food's own calorie factors and fiber. |
 | Duplicate | The food's name or USDA description, as a wording key, must not be a live curated food's name or USDA description alias: held as `duplicate_of:#<id>`. |
-| Food group | From the category only: `CatalogAdmissionRule.CategoryToGroup`; Spices and Herbs, Soups, Sauces and Gravies and the mixed category 24 give none. Branded: the branded category text only (`FoodGroupHeuristics.ClassifyByCategory`; a condiment or sauce category gives none, a category naming oils is Fats/Oils). **No path groups a food by its name**: the importers, `--enrich-food-groups` and `POST /api/Curation/ingredients/auto-classify-food-groups` all read the stored category, and a food without one is left alone. Each group or edibility they set or clear is journaled as `GroupFromCategory` under one stamp per run, so `--admit --undo <stamp>` takes the run back. A model never sets a group: `ProposalPolicy` refuses a `food_group` proposal unless its source is authoritative (`admin:`, `deterministic:`, `fdc:`, `label:`), and `ops/food-catalog-review.py` only flags a group it doubts. |
+| Food group | From the category only: `CatalogAdmissionRule.CategoryToGroup`; Spices and Herbs, Soups, Sauces and Gravies, the mixed category 24 and the four prepared-food categories give none. Branded: the branded category text only (`FoodGroupHeuristics.ClassifyByCategory`; a condiment or sauce category gives none, a category naming oils is Fats/Oils). **No path groups a food by its name**: the importers, `--enrich-food-groups` and `POST /api/Curation/ingredients/auto-classify-food-groups` all read the stored category, and a food without one is left alone. Each group or edibility they set or clear is journaled as `GroupFromCategory` under one stamp per run, so `--admit --undo <stamp>` takes the run back. A model never sets a group: `ProposalPolicy` refuses a `food_group` proposal unless its source is authoritative (`admin:`, `deterministic:`, `fdc:`, `label:`), and `ops/food-catalog-review.py` only flags a group it doubts. |
 | Edibility | From the category only (`CategoryDirectlyEdible`). |
 
 All checks pass: **Curated**. Any failure: `PendingCuration` with the reasons stored in
@@ -98,7 +98,7 @@ category, description, nutrients and calorie factors from the USDA files, stores
 group and edibility from the category (curated foods too, so a name-derived group such as
 black pepper in Vegetables is cleared), stores the USDA description as an
 `fdc:description` alias where the food has none, and withdraws open model link picks
-(`ai:`) that point at a food an admin rejected. **Only a `PendingCuration` food changes status.** A
+(`ai:`) that point at a food an admin rejected or at a prepared food. **Only a `PendingCuration` food changes status.** A
 curated food the rule would not curate stays curated and is reported as `kept curated`.
 
 It stops by itself and writes nothing when:
@@ -133,6 +133,25 @@ bulk promotion like D4 of 2026-11-03 can be reversed from the record from now on
 
 The rule's golden set is `catalog-admission.tsv` (see `golden-sets.md`); its floor is every
 row.
+
+### Prepared foods
+
+A food whose stored `FdcCategoryId` is Baby Foods (3), Fast Foods (21), Meals, Entrees and Side
+Dishes (22) or Restaurant Foods (25) is a prepared food (`Nom.Data/Nutrition/PreparedFoods.cs`;
+rule version `catalog-admission/2`). The admission rule judges it by the same checks as any
+other USDA food and curates it when they pass, with no food group, so a household can put it
+in a plan. It is a dish, not an ingredient, so:
+
+| Path | What it does with a prepared food |
+|---|---|
+| Plan | `GET /api/ingredients/search?q=…&prepared=true` (the plan dialog's food picker, "Add a whole food or a prepared meal") finds it and marks it `isPrepared`; the picker shows "Prepared" (`whole-food-result-prepared`) and adds it as a standalone slot (`MealPlan.IngredientId`), the same path as an apple. The week view marks the entry `isPrepared`. Without `prepared=true` (recipe editor, pantry, shopping list) the search leaves it out. |
+| Recipe lines | Never a line's food. Link candidates (`IngredientLinkService.CandidatesAsync`: staple rule, name matcher, model picker), the auto-apply gate (`LinkAutoApplyGuard` holds a pick at one as `prepared food`), link apply (`ApplyFdcLinkAsync` refuses it for a person too), the verified wording load (`food is a prepared food`, never promoted), `relink/verified`, the relink plan, `MoveFood`, `MoveWordings`, retire, the compound-line vocabulary, the importer's verified-wording, trusted-alias and applied-link resolution, and the catalog cleanup's merge plan (a residue whose name leads to one is left for a person) all leave it out. A recipe save refuses a new line on one; a line a recipe already had stays editable. Recipe approval (admin and the auto-approval sweep) refuses a recipe with a line on one, since such a line is a wrong link. |
+| Food groups | Never a top-up and never a serving: `ApplyFoodGroupRulesAsync` leaves it out of the candidates and does not count a recipe line or a planned slot on one toward a household minimum, even if someone gave it a group by hand. |
+
+`--admit` reports how many prepared foods it admitted and withdraws open model picks that point
+at one. An exact-name import match is the one path left: a scraped wording that is a prepared
+food's whole live name still lands on it (the name is unique, so the importer cannot create a second
+food of that name); the approval gate then holds the recipe.
 
 ## Quality gate — DONE ✅
 

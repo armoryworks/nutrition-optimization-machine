@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Audit;
 using Nom.Data.Curation;
+using Nom.Data.Nutrition;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
@@ -833,7 +834,7 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// USDA foods (never branded, never rejected) as link targets. A food that a link renamed to its everyday name
+        /// USDA foods (never branded, never rejected, never a prepared food) as link targets. A food that a link renamed to its everyday name
         /// ("Olive Oil") is matched by the USDA description it kept as its <see cref="UsdaDescriptionContext"/>
         /// alias ("Oil, olive, salad or cooking"), because that is the name the matcher's comma segments
         /// were designed for. Other aliases are recipe wordings and never stand in for the description,
@@ -844,6 +845,7 @@ namespace Nom.Orch.Services
             var rows = await _context.Ingredients
                 .AsNoTracking()
                 .Where(i => i.FdcId != null && !i.IsDeleted && i.FdcDataType != "branded_food" && i.CurationStatusId != (long)CurationStatusEnum.Rejected)
+                .ExceptPrepared()
                 .Select(i => new { i.Id, i.FdcId, i.Name, i.FdcDataType })
                 .ToListAsync(cancellationToken);
             var ids = rows.Select(r => r.Id).ToList();

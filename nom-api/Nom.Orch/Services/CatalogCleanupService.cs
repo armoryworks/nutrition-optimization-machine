@@ -16,7 +16,8 @@ namespace Nom.Orch.Services
     /// Import-residue cleanup (audit N-68/N-79). Only NonCurated rows without
     /// an FdcId are candidates; a row referenced by anything beyond recipe
     /// links (pantry, restrictions, nutrition, substitutions, …) is skipped and
-    /// left for a human. All rewrites are deterministic name operations.
+    /// left for a human, and so is a row whose name leads to a prepared food, which is never a
+    /// recipe line's food. All rewrites are deterministic name operations.
     /// </summary>
     public class CatalogCleanupService : ICatalogCleanupService
     {
@@ -29,17 +30,18 @@ namespace Nom.Orch.Services
             _currentUser = currentUser;
         }
 
-        private sealed record Row(long Id, string Name, bool Cleanable);
+        private sealed record Row(long Id, string Name, bool Cleanable, bool Prepared);
 
         private async Task<(List<Row> all, List<CatalogCleanupAction> actions)> PlanAsync()
         {
             var all = (await _db.Ingredients
                     .AsNoTracking()
                     .Where(i => !i.IsDeleted)
-                    .Select(i => new { i.Id, i.Name, i.FdcId, i.CurationStatusId })
+                    .Select(i => new { i.Id, i.Name, i.FdcId, i.CurationStatusId, i.FdcCategoryId })
                     .ToListAsync())
                 .Select(i => new Row(i.Id, i.Name,
-                    i.FdcId == null && i.CurationStatusId == (long)CurationStatusEnum.NonCurated))
+                    i.FdcId == null && i.CurationStatusId == (long)CurationStatusEnum.NonCurated,
+                    Nom.Data.Nutrition.PreparedFoods.IsPrepared(i.FdcCategoryId)))
                 .ToList();
 
             // lower(name) -> best canonical row (a non-residue row, lowest id wins)
@@ -52,6 +54,7 @@ namespace Nom.Orch.Services
                 }
             }
 
+            var preparedNames = all.Where(r => r.Prepared).Select(r => r.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var actions = new List<CatalogCleanupAction>();
             // normalized-lower -> the rename target chosen within this run, so
             // later residues with the same normalization merge instead
@@ -66,6 +69,7 @@ namespace Nom.Orch.Services
                     .Select(key => canonicalByLower.TryGetValue(key, out var found) && found.Id != row.Id
                         && (!found.Cleanable || found.Id < row.Id || string.Equals(key, normalized, StringComparison.OrdinalIgnoreCase)) ? found : null)
                     .FirstOrDefault(found => found != null);
+                if (target is { Prepared: true } || (target == null && preparedNames.Contains(normalized))) continue;
                 if (target == null && !IngredientNameNormalizer.IsResidue(row.Name)) continue;
 
                 if (target != null)
