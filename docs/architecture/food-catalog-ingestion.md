@@ -437,6 +437,14 @@ from it (0 on the Gram measurement when it reads none). Rules:
   is one line); a repeated line with an amount is a real second line.
 - When the first line states no amount and the stored amount is exactly a later line's
   ("flour + 2 quarts flour" stored as 8 cups), the amount goes with that line.
+- A later line that names no word of the row's food ("2 tablespoons butter" on Honey; words
+  that only describe a food, such as "fresh" or "canned", do not count) is added without an
+  amount (`UnnamedUnmeasured`), so it counts toward no food until relink moves it to its own.
+- The rows the unfold leaves at 0 stay at 0 by construction: the startup re-read
+  (`ScrapedRecipeRepairService`, every API start) never takes an amount from the method for a
+  line when another live line of the recipe is on the same food or names the same food
+  (`MethodAmountFinder`), and never gives any amount to a line that names none of its food.
+  No API restart or `ScrapedRepair:Enabled` setting is needed around an unfold.
 - Only scraped recipes, and only rows whose `LineKind` is empty or `ingredient`; rows
   classified as artefact, note, instruction, reference or equipment are counted
   (`SkippedOtherKind`) and left.
@@ -445,11 +453,14 @@ from it (0 on the Gram measurement when it reads none). Rules:
 
 Every row taken apart is one `audit.AuditLogEntry` (`EntityType` `RecipeIngredient`,
 `EntityId` the recipe, `ChangeType` `LineUnfold`, the joined text and amount in `OldValue`,
-the added positions in `NewValue`). `POST /api/FoodCatalog/relink/undo?sinceUtc=<start>`
-puts a run back: the sweep goes newest first, so a line relinked after it was unfolded
-returns to its food before its row is joined again, the added rows are deleted and the
-journal entry removed. A row whose lines were edited or removed since is skipped and its
-entry stays. Changed rows carry a fresh `LastModifiedDate`/`CreatedDate`, so the nutrition
+the added positions with the amount each was given in `NewValue`).
+`POST /api/FoodCatalog/relink/undo?sinceUtc=<start>` puts a run back: the sweep goes newest
+first, so a line relinked after it was unfolded returns to its food before its row is joined
+again, the added rows are deleted and the journal entry removed. A row whose lines were
+edited (text or amount) or removed since is skipped, counted under `Skipped`, and its entry
+stays. When the row's food has since been merged into another by a link, the row and its added
+lines are looked for in the same places on the one food that holds them all; if the merge
+moved one to another position, the entry is skipped the same way. Changed rows carry a fresh `LastModifiedDate`/`CreatedDate`, so the nutrition
 sweep recalculates their recipes in both directions.
 
 Order of work, as for any catalog change: restore a production snapshot into staging, dry run
@@ -528,7 +539,13 @@ A new context that begins with `fdc:`, `admin:`, `deterministic:`, `retired:` or
 **What an import does.** `RecipeScrapingService.FindOrCreateIngredientAsync` (URL import, pasted
 data and `POST api/StagedImport`) decides the order in one place: a live ingredient of the
 normalised name (a curated one first, then the oldest), then the food a trusted alias gives the
-name to when exactly one live food holds it, and otherwise a new uncurated ingredient. That
+name to when exactly one live food holds it, then the food an applied link merged the retired
+ingredient of that name into (the new line is journaled under that link, as a `Line` row of its
+`LinkApply` journal, so `link-apply/undo` moves it back with the rest), and otherwise a new
+uncurated ingredient. Until `aliases/classify?apply=true` has written its first journal entry
+on a database, an alias with no context is followed too, as imports did before alias trust; so
+a harvest between the deploy and the classification lands where it always did and creates no
+row the classification cannot take back. That
 ingredient waits for the link lane like any other new name: a rule's proposal is applied by the
 lane, a model pick waits for a reviewer. A soft-deleted ingredient that still holds the name in
 the unique index is renamed to `<name> (deleted #<id>)` first and the rename journaled
@@ -543,7 +560,9 @@ a person picks from the first, and the second only ever adds restricted foods.
 **Writers.** A link applied by a person writes `admin:link:<proposal source>`; the same link
 applied by a lane writes `link:<proposal source>`, so a reviewed batch has to go through the API
 as a person, not be marked in SQL and left to the lane. An alias the food already has keeps its
-context unless the new one is trusted and the old one is not. `cleanup/normalize` hands the
+context unless the new one is trusted and the old one is not, or the new one is a person's
+(`admin:`) and the old one a re-check (`deterministic:recheck:`); that change is journaled with
+the link, so the classify undo leaves the approved alias alone. `cleanup/normalize` hands the
 context of a quantity-prefixed alias to its normalised replacement and leaves USDA descriptions
 and retired names alone.
 
