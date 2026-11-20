@@ -13,7 +13,8 @@ namespace Nom.Orch.Services.Support
     /// amount, time and temperature of the original method (digits, fractions and spelled-out
     /// numbers) must still be in the rewrite, the rewrite may state no number the original lacks,
     /// no sentence of <see cref="CopiedSentenceWords"/> or more words and no run of
-    /// <see cref="CopiedRunWords"/> words may be copied whole from the original, and the text as a
+    /// <see cref="CopiedRunWords"/> words may be copied whole from the original, no step of
+    /// <see cref="CopiedStepWords"/> or more words may come back word for word, and the text as a
     /// whole must have changed. A temperature in brackets after another ("350°F (175°C)") may be
     /// dropped but not invented, and step numbers ("2. Make the salad") are not amounts. Text
     /// only: no database and no model.
@@ -22,6 +23,7 @@ namespace Nom.Orch.Services.Support
     {
         public const int CopiedSentenceWords = 10;
         public const int CopiedRunWords = 20;
+        public const int CopiedStepWords = 6;
 
         public const string LostNumber = "lost-number";
         public const string AddedNumber = "added-number";
@@ -136,6 +138,15 @@ namespace Nom.Orch.Services.Support
                 .Where(w => w.Count >= CopiedSentenceWords)
                 .Select(w => string.Join(" ", w))
                 .FirstOrDefault(s => rewritten.Any(r => r.Contains(" " + s + " ", StringComparison.Ordinal)));
+            if (copied == null)
+            {
+                var sourceSteps = method.Select(t => string.Join(" ", WordsOf(t))).ToHashSet(StringComparer.Ordinal);
+                copied = rewrite.Steps.Select(Prepare).Select(WordsOf)
+                    .Where(w => w.Count >= CopiedStepWords)
+                    .Select(w => string.Join(" ", w))
+                    .FirstOrDefault(sourceSteps.Contains);
+            }
+
             if (copied == null)
             {
                 var runs = new HashSet<string>(StringComparer.Ordinal);

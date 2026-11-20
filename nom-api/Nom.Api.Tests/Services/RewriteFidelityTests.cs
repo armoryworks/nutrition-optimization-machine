@@ -109,6 +109,20 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_step_of_six_words_copied_word_for_word_fails_even_when_the_description_changed()
+        {
+            var original = new RewriteFidelity.SourceText("Our weeknight favourite.", new[] { "Preheat the oven to 350°F.", "Grease a 9x13 pan with butter.", "Bake." });
+
+            var finding = RewriteFidelity.Check(original,
+                new RewriteFidelity.SourceText("A dependable weeknight bake.", new[] { "Heat your oven to 350°F.", "Grease a 9x13 pan with butter.", "Bake." }));
+
+            finding.Copied.Should().Be("grease a 9x13 pan with butter");
+            RewriteFidelity.Check(original,
+                new RewriteFidelity.SourceText("A dependable weeknight bake.", new[] { "Heat your oven to 350°F.", "Butter a 9x13 pan.", "Bake." }))
+                .Passed.Should().BeTrue("a step under six words, such as \"Bake.\", may stay as it is");
+        }
+
+        [Fact]
         public void An_unchanged_text_fails_even_when_short()
         {
             var finding = Check("Serve warm.", "Serve <b>warm</b>!");
