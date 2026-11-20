@@ -43,3 +43,8 @@ c4-revert-11	a white sauce	-	revert	agent	agent-review-staging-2026-11-20	a prep
 c4-revert-12	a clean tin	-	revert	agent	agent-review-staging-2026-11-20	a utensil
 rule-01	an egg	50	keep	ok	rule	a food with a weight per item
 rule-02	six neck chops	-	keep	ok	rule	a stated number
+c4-p3-keep-01	tre rossi delle uova	-	keep	agent	agent-review-staging-2026-11-20	recipes 18891 and 18040: C4 pass 3 no-count: an Italian stated count (three yolks), reverted 3 to 0 by v0.3.120
+c4-p3-keep-02	due rossi	-	keep	agent	agent-review-staging-2026-11-20	recipes 18774 and 17923: C4 pass 3 no-count: an Italian stated count (two yolks), reverted 2 to 0 by v0.3.120
+c4-p3-keep-03	mezza palla	-	keep	agent	agent-review-staging-2026-11-20	recipes 18251, 18249, 18248, 17400 and 17398: C4 pass 3 no-count: half a head of cabbage, reverted 0.5 to 0 by v0.3.120
+c4-p3-keep-04	three eggs to a pint of apples	-	keep	agent	agent-review-staging-2026-11-20	recipe 94631: C4 pass 3 unread-measure: the pint belongs to the apples; the eggs state a count, reverted 3 to 0 by v0.3.120
+c4-p3-revert-01	thirty grains	-	revert	agent	agent-review-staging-2026-11-20	C4 pass 3 no-count: an apothecary weight filled as pieces, rightly reverted

@@ -735,7 +735,9 @@ wine", "one scruple of ginger", "a bunch of parsley"; `unread-measure`), "a"/"an
 amount ("a little butter", "a few", "a couple of", "a grain of"; `vague-amount`) or before a
 preparation or utensil ("a white sauce", "a clean tin"; `not-an-item`), and a quote with neither
 a number nor an article (`no-count`). The number is read only before the first "of", "with",
-"or" or comma, so "1 large egg beaten with 1 Tablespoon milk" is one egg.
+"or" or comma, so "1 large egg beaten with 1 Tablespoon milk" is one egg; an Italian number word
+counts ("tre rossi delle uova", "due rossi", "mezza palla"), and a measure after a ratio's "to a"
+belongs to the other food ("three eggs to a pint of apples" is three eggs).
 `POST /api/FoodCatalog/quantities/revert?apply=false` (`AiRepairRevertService`) checks every
 journaled `AiRepair` piece fill with the same rule and puts back the quantity and measurement
 its journal entry recorded. `reasons=vague-amount,unread-measure` limits the revert to those

@@ -62,6 +62,7 @@ namespace Nom.Orch.Services.Support
         {
             "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "dozen",
             "half", "one-half", "quarter", "one-quarter", "three-quarters", "quarters", "third", "thirds", "one-third", "two-thirds",
+            "due", "tre", "quattro", "cinque", "sei", "sette", "otto", "nove", "dieci", "undici", "dodici", "mezza", "mezzo",
         };
 
         private static readonly Regex UnreadMeasure = new(
@@ -73,7 +74,7 @@ namespace Nom.Orch.Services.Support
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex MeasureSegment = new(
-            @"^.*?(?=\s+(?:with|or)\b|\s*\(|$)",
+            @"^.*?(?=\s+(?:with|or)\b|\s+to\s+(?:a|an|each|every)\b|\s*\(|$)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex HeadSegment = new(
@@ -169,7 +170,8 @@ namespace Nom.Orch.Services.Support
         /// <summary>
         /// Why a quote read as a count in pieces states no count, or null when it does. A measure is
         /// read only before the first "with" or "or", so one that belongs to another food ("1 large egg
-        /// beaten with 1 Tablespoon milk") does not count against this one, and a number only before
+        /// beaten with 1 Tablespoon milk") does not count against this one, nor one after a ratio's "to a"
+        /// ("three eggs to a pint of apples"), and a number (in English or Italian) only before
         /// the first "of", "with", "or", comma and the like. A measure the parser did not read as a unit ("a glassful of good red
         /// wine", "one scruple of ginger") is refused. "A" or "an" counts one item ("a bay leaf", "a leg
         /// of mutton"), except before a vague amount ("a little butter", "a few", "a couple of") or a
