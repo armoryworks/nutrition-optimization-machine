@@ -534,13 +534,21 @@ is left. A bare number in front of a food that has no weight per item is a propo
 count, so "1/2 butter and 1/2 lard" and "½ or ¾ milk and ½ or ¼ water" are left (`bare number on
 a food not counted in pieces`). Also left: "each" whose amount does not read ("tablespoonful each
 of minced onion and parsley"), a later list part with its own count ("1 pinch of pepper and one
-of salt"), a pepper that is chopped, minced or sliced (a vegetable, not the spice), bare
-"mustard" beside salt or pepper (dry mustard is meant), "mustard and cress" (protected), a lemon,
+of salt") or its own measure ("one of allspice and half a teaspoonful of cayenne"), a pepper that
+is chopped, minced or sliced (a vegetable, not the spice), bare "mustard" beside salt, pepper, a
+ground spice, cayenne, paprika or sugar (dry mustard is meant), "mustard and cress" and its plural
+"mustard and cresses" (a protected name also holds in the plural), a lemon,
 orange or lime alternated with a spice ("lemon or nutmeg"), and a single first name before a
 two-word last name that is no food while its first word is ("crab or lobster coral", "duck or
-goose giblets": the tail is shared). "any jam" as the last alternative makes the earlier names
-kinds of jam: "apricot, strawberry, or any jam" moves to Apricot Jam when that is a food, else it
-is left. No
+goose giblets": the tail is shared). A bare first alternative that is a food counted in pieces
+before a longer last one whose first word is also such a food ("tangerine or orange juice",
+"avocado or olive oil to rim pan", "Apricot or Peach-Stones", "lemon or lime gelatin") shares the
+last word, so it is left (`alternatives of a whole food and a product of another`); a purpose
+("to rim pan", "for frying") is not read as the head. "any jam" as the last alternative makes the
+earlier names kinds of jam: "apricot, strawberry, or any jam" moves to Apricot Jam when that is a
+food other than the first alternative's, else it is left, and so is any other "any ..." last
+alternative. A list name is found in the line only as a whole word ("salt" is not the start of
+"saltspoonful"). No
 `recipe.RecipeSubstitution` rows are written.
 
 A split is planned only when each part line reads back through `IngredientLineParser` and the

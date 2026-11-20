@@ -69,7 +69,8 @@ namespace Nom.Orch.Services.Support
         public const string LeaveBareNumber = "bare number on a food not counted in pieces";
         public const string LeaveEachUnread = "each with an amount that does not read";
         public const string LeaveCutPepper = "cut pepper is a vegetable, not the spice";
-        public const string LeaveSpiceMustard = "mustard beside salt or pepper means dry mustard";
+        public const string LeaveSpiceMustard = "mustard beside salt, pepper, a spice or sugar means dry mustard";
+        public const string LeaveWholeFoodProduct = "alternatives of a whole food and a product of another";
 
         private const RegexOptions Options = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled;
 
@@ -133,12 +134,23 @@ namespace Nom.Orch.Services.Support
             "nutmeg", "cinnamon", "mace", "allspice", "cloves", "clove", "ginger", "vanilla", "almond", "cardamom", "coriander",
         };
 
+        private static readonly HashSet<string> MustardCompanions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "cayenne", "paprika", "sugar", "turmeric", "curry",
+        };
+
         private static readonly Regex AnyHead = new(@"^any\s+(?!other\b)(?<head>\p{L}+)$", Options);
+
+        private static readonly Regex AnyKind = new(@"^any\s+(?!other\b)", Options);
 
         private static readonly Regex CutWord = new(@"\b(?:chopped|minced|diced|sliced|seeded|shredded|cut|strips?|rings?)\b", Options);
 
         private static readonly Regex CountStart = new(
             @"^\s*(?:[\d¼½¾⅓⅔⅛⅜⅝⅞]|(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|dozen)\b)", Options);
+
+        private static readonly Regex Purpose = new(@"\s+(?:to|for)\s+\S.*$", Options);
+
+        private static readonly Regex HalfStart = new(@"^\s*(?:half|quarter|a\s+half|one[- ]half)\b", Options);
 
         private static readonly Regex MeasureWord = new(
             @"\b(?:(?:tea|table|dessert|salt|coffee)[- ]?)?spoon|\bcup|\bglass|\bgill|\bpinch|\bdash|\bounce|\boz\b|\bpound|\blbs?\b|\bpint|\bquart|\bdrachm|\bscruple|\bgrain", Options);
@@ -251,10 +263,15 @@ namespace Nom.Orch.Services.Support
             {
                 if (!names.Take(names.Count - 1).All(IsSingleWord)) return CompoundPlan.Leave(wording, LeaveOrAmbiguous);
                 var kind = $"{first} {any.Groups["head"].Value}";
-                return v.Resolve(kind) is { } kindFood
+                return v.Resolve(kind) is { } kindFood && kindFood != v.Resolve(first)
                     ? new CompoundPlan(OrSharedHead, CompoundKind.PickAlternative, new[] { new CompoundPart(kind, kindFood, line, null) }, wording, null)
                     : CompoundPlan.Leave(wording, LeaveOrAmbiguous);
             }
+
+            if (AnyKind.IsMatch(last)) return CompoundPlan.Leave(wording, LeaveOrAmbiguous);
+
+            var core = Purpose.Replace(last, string.Empty);
+            if (WholeFoodBesideProduct(first, core, v)) return CompoundPlan.Leave(wording, LeaveWholeFoodProduct);
 
             if (IsSingleWord(first) && last.Split(' ', StringSplitOptions.RemoveEmptyEntries) is { Length: 2 } tail
                 && v.Resolve(last) == null && v.Resolve(tail[0]) != null)
@@ -263,14 +280,14 @@ namespace Nom.Orch.Services.Support
             }
 
             var foods = names.Select(v.Resolve).ToList();
-            var shared = IsSingleWord(last) ? null : $"{first} {Head(last)}";
+            var shared = IsSingleWord(core) ? null : $"{first} {Head(core)}";
             var sharedFood = shared == null ? null : v.Resolve(shared);
             var sharedKnown = shared != null && v.IsKnown(shared);
 
             if (foods[0] is { } firstFood)
             {
                 if (sharedFood is { } other && other != firstFood) return CompoundPlan.Leave(wording, LeaveOrAmbiguous);
-                if (sharedFood == null && (sharedKnown || SharesHead(first, last, v))) return CompoundPlan.Leave(wording, LeaveOrAmbiguous);
+                if (sharedFood == null && (sharedKnown || SharesHead(first, core, v))) return CompoundPlan.Leave(wording, LeaveOrAmbiguous);
                 if (foods.Skip(1).Any(f => f == firstFood)) return CompoundPlan.Leave(wording, LeaveOneFood);
                 var rule = foods.All(f => f != null) ? OrIndependent : OrFirstNamed;
                 return new CompoundPlan(rule, CompoundKind.PickAlternative, new[] { new CompoundPart(first, firstFood, line, null) }, wording, null);
@@ -283,6 +300,20 @@ namespace Nom.Orch.Services.Support
             }
 
             return CompoundPlan.Leave(wording, foods.Skip(1).Any(f => f != null) ? LeaveOrLastNamed : LeaveOrUnresolved);
+        }
+
+        /// <summary>
+        /// Whether a bare first alternative and the first word of a longer last one are both whole
+        /// foods counted in pieces ("tangerine or orange juice", "avocado or olive oil", "apricot or
+        /// peach-stones"): the last word is then shared, and the first alternative means its
+        /// product, not the whole food.
+        /// </summary>
+        private static bool WholeFoodBesideProduct(string first, string last, CompoundVocabulary v)
+        {
+            var words = last.Split(WordBreaks, StringSplitOptions.RemoveEmptyEntries);
+            return IsSingleWord(first) && !first.Contains('-') && words.Length >= 2
+                && v.Resolve(first) is { } whole && v.CountedInPieces(whole)
+                && v.Resolve(words[0]) is { } other && v.CountedInPieces(other);
         }
 
         private static CompoundPlan AndList(string line, string wording, List<string> names, CompoundVocabulary v)
@@ -304,10 +335,10 @@ namespace Nom.Orch.Services.Support
                 && foods.Contains(salt) && foods.Contains(pepper);
             var written = spans.Select(s => line[s.Start..s.End]).ToList();
             if (each && quantity == null) return CompoundPlan.Leave(wording, LeaveEachUnread);
-            if (written.Skip(1).Any(w => CountStart.IsMatch(w))) return CompoundPlan.Leave(wording, LeaveQuantifiedList);
+            if (written.Skip(1).Any(w => CountStart.IsMatch(w) || HalfStart.IsMatch(w) || MeasureWord.IsMatch(w))) return CompoundPlan.Leave(wording, LeaveQuantifiedList);
             if (v.PepperId is { } spice && foods.Select((f, i) => (f, i)).Any(p => p.f == spice && CutWord.IsMatch(written[p.i]))) return CompoundPlan.Leave(wording, LeaveCutPepper);
             if (written.Any(w => IngredientNameNormalizer.Normalize(w).Equals("mustard", StringComparison.OrdinalIgnoreCase))
-                && foods.Any(f => f == v.SaltId || f == v.PepperId))
+                && (foods.Any(f => f == v.SaltId || f == v.PepperId) || written.Any(IsSpiceOrSugar)))
             {
                 return CompoundPlan.Leave(wording, LeaveSpiceMustard);
             }
@@ -340,6 +371,9 @@ namespace Nom.Orch.Services.Support
 
             return Checked(new CompoundPlan(rule, CompoundKind.Split, parts, wording, null), line, v, strictFood: true);
         }
+
+        private static bool IsSpiceOrSugar(string written) =>
+            Regex.Matches(written, @"\p{L}+").Any(w => Spices.Contains(w.Value) || MustardCompanions.Contains(w.Value) || w.Value.Equals("ground", StringComparison.OrdinalIgnoreCase));
 
         private static CompoundPlan? OwnQuantityPlan(string line, string wording, CompoundVocabulary v)
         {
@@ -415,13 +449,21 @@ namespace Nom.Orch.Services.Support
             var from = 0;
             foreach (var name in names)
             {
-                var start = line.IndexOf(name, from, StringComparison.OrdinalIgnoreCase);
+                var start = WordAt(line, name, from);
                 if (start < 0) return null;
                 spans.Add((start, start + name.Length));
                 from = start + name.Length;
             }
 
             return spans;
+        }
+
+        private static int WordAt(string line, string name, int from)
+        {
+            var start = line.IndexOf(name, from, StringComparison.OrdinalIgnoreCase);
+            while (start >= 0 && ((start > 0 && char.IsLetter(line[start - 1])) || (start + name.Length < line.Length && char.IsLetter(line[start + name.Length]))))
+                start = line.IndexOf(name, start + 1, StringComparison.OrdinalIgnoreCase);
+            return start;
         }
 
         private static string Join(string prefix, string name, string suffix) => Tidy(prefix + name + suffix);

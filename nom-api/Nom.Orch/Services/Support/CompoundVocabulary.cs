@@ -61,7 +61,7 @@ namespace Nom.Orch.Services.Support
             _known = known;
             ProtectedNames = protectedNames.Select(p => p.ToLowerInvariant()).Distinct().OrderBy(p => p, StringComparer.Ordinal).ToList();
             _protected = ProtectedNames
-                .Select(p => new Regex(@"(?<![\p{L}\p{N}])" + Regex.Escape(p).Replace(@"\ ", @"[\s-]+") + @"(?![\p{L}\p{N}])",
+                .Select(p => new Regex(@"(?<![\p{L}\p{N}])" + Regex.Escape(p).Replace(@"\ ", @"[\s-]+") + @"(?:e?s)?(?![\p{L}\p{N}])",
                     RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
                 .ToList();
             SaltId = usda.TryGetValue(SaltDescription, out var salt) ? salt : null;

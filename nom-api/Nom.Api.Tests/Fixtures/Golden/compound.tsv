@@ -97,3 +97,14 @@ c6-ofn-01	3 tablespoonfuls of apricot, strawberry, or any jam	PickAlternative	or
 c6-ofn-02	crab or lobster coral	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 or-first-named: coral is roe, went to Crabs
 c6-ofn-03	duck or goose giblets	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 or-first-named: went to Duck (meat)
 c6-oi-01	lemon or nutmeg	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 or: a flavouring, went to Lemon
+c6-p3-oi-01	1/4 cup tangerine or orange juice	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 pass 3 or-independent: went to Tangerines (fruit); the juice is shared
+c6-p3-ofn-01	2-3 Tbsp avocado or olive oil to rim pan	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 pass 3 or-first-named: went to Avocado (fruit); oil is meant
+c6-p3-ofn-02	Apricot or Peach-Stones	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 pass 3 or-first-named: went to Apricots; the kernels are meant
+c6-p3-ofn-03	package of lemon or lime gelatin dessert powder	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 pass 3 or-first-named: went to Lemon; gelatin dessert is meant
+c6-p3-ofn-04	3 tablespoonfuls of apricot, strawberry, or any jam you like	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 pass 3 or-first-named: the jam line still went to Apricots; an "any" alternative names kinds, never the first food
+c6-p3-au-01	mustard and cresses	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 pass 3 and-unquantified: the plural of the protected salad pair still split to prepared mustard
+c6-p3-au-02	one of allspice and half a teaspoonful of cayenne pepper	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 pass 3 and-unquantified: part text "one of half a teaspoonful of cayenne", the amount lost
+c6-p3-au-03	a little mustard and cayenne	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 pass 3 and-unquantified: dry mustard beside a spice, went to prepared mustard
+c6-p3-au-04	saltspoonful each of salt and ground cinnamon	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 pass 3 and-unquantified: "salt" was found inside "saltspoonful", so the each amount was dropped
+c6-p3-ae-01	1 tablespoonful each of ground cinnamon, ground allspice and mustard	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 pass 3 and-each: dry mustard among ground spices, went to prepared mustard
+c6-p3-ae-02	1 teaspoon each mustard and white sugar	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 pass 3 and-each: dry mustard beside sugar, went to prepared mustard

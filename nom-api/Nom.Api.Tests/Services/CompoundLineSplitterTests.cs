@@ -237,6 +237,37 @@ namespace Nom.Api.Tests.Services
                 line.Should().Contain(part.RawLine.Split(' ')[^1].Trim('(', ')'), "a part line only deletes words from its source");
             }
         }
+
+        [Fact]
+        public void An_any_alternative_whose_kind_resolves_to_the_first_food_is_left_alone()
+        {
+            var vocabulary = CompoundVocabulary.Build(
+                new[] { new CompoundFood(1, "Apricots", true), new CompoundFood(2, "Strawberries", true) },
+                new[] { new CompoundAlias(1, "apricot jam", "retired:3") },
+                new[] { "Apricots", "Strawberries", "apricot jam" });
+
+            var plan = CompoundLineSplitter.Plan("3 tablespoonfuls of apricot, strawberry, or any jam", vocabulary)!;
+
+            plan.Kind.Should().Be(CompoundKind.Leave, "a retired jam alias on the fruit is not a jam");
+            plan.LeaveReason.Should().Be(CompoundLineSplitter.LeaveOrAmbiguous);
+        }
+
+        [Theory]
+        [InlineData("1/4 cup orange or lemon juice")]
+        [InlineData("1 Tbsp avocado or olive oil to rim pan")]
+        public void A_whole_food_beside_the_product_of_another_is_left_alone(string line)
+        {
+            Plan(line)!.Kind.Should().Be(CompoundKind.Leave);
+        }
+
+        [Fact]
+        public void A_bare_alternative_beside_a_product_of_a_food_not_counted_in_pieces_is_still_picked()
+        {
+            var plan = Plan("1/4 cup milk or orange juice")!;
+
+            plan.Kind.Should().Be(CompoundKind.PickAlternative);
+            Parts(plan).Select(p => p.Food).Should().Equal("Milk");
+        }
     }
 
     /// <summary>The names a part of a compound line may be read as.</summary>
