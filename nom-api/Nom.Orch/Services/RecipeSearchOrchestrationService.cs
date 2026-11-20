@@ -401,7 +401,7 @@ namespace Nom.Orch.Services
             {
                 Id = (int)r.Id,
                 Name = r.Name,
-                Description = r.Description,
+                Description = ProseWithholding.DescriptionOrNull(r),
                 ImageUrl = r.Image,
                 Rating = r.Ratings?.Any() == true ? r.Ratings.Average(rating => rating.Rating) : null,
                 RatingCount = r.Ratings?.Count ?? 0,
@@ -656,7 +656,7 @@ namespace Nom.Orch.Services
             {
                 Id = (int)recipe.Id,
                 Name = recipe.Name,
-                Description = recipe.Description,
+                Description = ProseWithholding.DescriptionOrNull(recipe),
                 ImageUrl = recipe.Image,
                 ImageCredit = RecipeImageService.CreditFor(recipe),
                 PrepTime = (int)(recipe.PrepTimeMinutes ?? 0),
@@ -694,7 +694,7 @@ namespace Nom.Orch.Services
             // Map steps if requested
             if (searchModel.IncludeSteps && recipe.RecipeSteps != null)
             {
-                result.Steps = recipe.RecipeSteps.Select(rs => new RecipeStepSearchModel
+                result.Steps = ProseWithholding.Steps(recipe).Select(rs => new RecipeStepSearchModel
                 {
                     Id = (int)rs.Id,
                     StepNumber = rs.StepNumber,

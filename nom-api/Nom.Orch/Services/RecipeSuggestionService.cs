@@ -4,6 +4,7 @@ using Nom.Data;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
+using Nom.Orch.Services.Support;
 using System.Text.Json;
 
 namespace Nom.Orch.Services
@@ -65,7 +66,7 @@ namespace Nom.Orch.Services
                     {
                         RecipeId = recipe.Id,
                         RecipeName = recipe.Name,
-                        Description = recipe.Description ?? "",
+                        Description = ProseWithholding.Description(recipe),
                         ImageUrl = recipe.Image,
                         Rating = recipe.Rating ?? 0,
                         RatingCount = recipe.Ratings?.Count ?? 0,
@@ -130,7 +131,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -192,7 +193,7 @@ namespace Nom.Orch.Services
                     {
                         RecipeId = recipe.Id,
                         RecipeName = recipe.Name,
-                        Description = recipe.Description ?? "",
+                        Description = ProseWithholding.Description(recipe),
                         ImageUrl = recipe.Image,
                         Rating = recipe.Rating ?? 0,
                         RatingCount = recipe.Ratings?.Count ?? 0,
@@ -455,7 +456,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -506,7 +507,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -740,7 +741,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -784,7 +785,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -830,7 +831,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -874,7 +875,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -918,7 +919,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -963,7 +964,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -1009,7 +1010,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -1053,7 +1054,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -1099,7 +1100,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -1144,7 +1145,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -1189,7 +1190,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -1234,7 +1235,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -1279,7 +1280,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -1339,7 +1340,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,
@@ -1399,7 +1400,7 @@ namespace Nom.Orch.Services
                 {
                     RecipeId = r.Id,
                     RecipeName = r.Name,
-                    Description = r.Description ?? "",
+                    Description = ProseWithholding.Description(r),
                     ImageUrl = r.Image,
                     Rating = r.Rating ?? 0,
                     RatingCount = r.Ratings?.Count ?? 0,

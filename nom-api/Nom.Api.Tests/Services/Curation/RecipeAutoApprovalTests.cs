@@ -97,6 +97,7 @@ namespace Nom.Api.Tests.Services.Curation
         {
             yield return Case("vetting issues", r => r.VettingIssues = "Only 1 instruction step(s) — likely an incomplete extraction.");
             yield return Case("source prose", r => r.ContainsSourceProse = true);
+            yield return Case("prose withheld", r => r.ProseWithheld = true);
             yield return Case("pending status", r => r.CurationStatusId = (long)CurationStatusEnum.PendingCuration);
             yield return Case("requires revision", r => r.CurationStatusId = (long)CurationStatusEnum.RequiresRevision);
             yield return Case("already approved", r => r.CurationStatusId = (long)CurationStatusEnum.Curated);
@@ -270,6 +271,19 @@ namespace Nom.Api.Tests.Services.Curation
             db.ChangeTracker.Clear();
 
             (await Service(db).AutoApproveBatchAsync(0, 50)).Approved.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task Sweep_skips_a_recipe_whose_prose_is_withheld()
+        {
+            var withheld = PublicDomain(11);
+            withheld.ProseWithheld = true;
+            using var db = await SeedAsync(PublicDomain(10), withheld);
+
+            var result = await Service(db).AutoApproveBatchAsync(0, 50);
+
+            result.Approved.Should().Be(1);
+            (await db.Recipes.SingleAsync(r => r.Id == 11)).CurationStatusId.Should().Be((long)CurationStatusEnum.NonCurated);
         }
 
         [Fact]

@@ -208,6 +208,17 @@ export class RecipeDetail {
     return rows;
   });
 
+  /** The source site's host without "www.", for the link that stands in for a withheld method. */
+  sourceHost = computed<string | null>(() => {
+    const url = this.recipe()?.sourceUrl;
+    if (!url) return null;
+    try {
+      return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      return null;
+    }
+  });
+
   /**
    * Instruction steps after active swaps and add-ins apply.
    *

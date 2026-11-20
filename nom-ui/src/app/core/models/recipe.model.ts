@@ -51,6 +51,10 @@ export interface RecipeModel {
   sourceAttribution?: string | null;
   /** True while the source's verbatim wording is held for review. */
   containsSourceProse?: boolean;
+  /** True while the recipe's own description and method are withheld until they are rewritten; keyFacts and sourceUrl stand in for the method. */
+  proseWithheld?: boolean;
+  /** Rule-built facts of the source method ("oven 350°F", "bake 30 to 40 min"), in step order, while the method is withheld. */
+  keyFacts?: string[] | null;
   /** True when the source's photo is held for review and no NOM image replaces it yet. */
   sourceImageHeld?: boolean;
   /** Visibility tier name ("Private" | "Household" | "Audience" | "Public"), when the API projects it. */

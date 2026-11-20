@@ -428,6 +428,7 @@ builder.Services.AddHostedService<Nom.Api.Services.CourseClassificationHostedSer
 // ContainsSourceProse quarantine by rewriting scraped prose in original words;
 // curation approval still gates publish, originals stay in ScrapedDocument.
 builder.Services.AddHostedService<Nom.Api.Services.ProseRewriteHostedService>();
+builder.Services.AddHostedService<Nom.Api.Services.ProseRecheckHostedService>();
 
 builder.Services.AddHostedService<Nom.Api.Services.RecipeAutoApproveHostedService>();
 builder.Services.AddHttpClient<Nom.Orch.Interfaces.IRecipeRepairModel, Nom.Orch.Services.OllamaRecipeRepairModel>(

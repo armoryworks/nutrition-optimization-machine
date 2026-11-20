@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 2kIsw9MVBzNBbbey1ZHLSuR2XVmwsm6xeJNz1Q5jzxNMfGBwdmA6dpt3srrxxUL
+\restrict 9NEtHur55eNHXLSRieF4NuxzHa0KDoiVqJVC1d7ocGA8JQKznDc3p7suSm8xydE
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -2686,6 +2686,10 @@ CREATE TABLE recipe."Recipe" (
     "SourceAttribution" text,
     "SourceImageUrl" text,
     "ContainsSourceProse" boolean DEFAULT false NOT NULL,
+    "ProseWithheld" boolean DEFAULT false NOT NULL,
+    "ProseCheckVersion" integer,
+    "ProseAttempts" integer DEFAULT 0 NOT NULL,
+    "ProseLaneVersion" character varying(64),
     "VettingIssues" text,
     "DishGroupId" bigint,
     "ToolsTaggedAt" timestamp with time zone,
@@ -8866,5 +8870,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 2kIsw9MVBzNBbbey1ZHLSuR2XVmwsm6xeJNz1Q5jzxNMfGBwdmA6dpt3srrxxUL
+\unrestrict 9NEtHur55eNHXLSRieF4NuxzHa0KDoiVqJVC1d7ocGA8JQKznDc3p7suSm8xydE
 

@@ -22,7 +22,7 @@ namespace Nom.Orch.Services.Support
     /// has been rewritten and which carries an image of our own (unless the operator waives that).
     /// Both also need a Public, never-reviewed NonCurated recipe, a quantity on every line that isn't a
     /// seasoning, a garnish or a line classified as something other than an ingredient (up to the
-    /// operator's allowance), and must pass <see cref="RecipeApprovalGate"/>.
+    /// operator's allowance), no prose withheld, and must pass <see cref="RecipeApprovalGate"/>.
     /// </summary>
     public static class RecipeAutoApprovalPolicy
     {
@@ -42,6 +42,7 @@ namespace Nom.Orch.Services.Support
             if (recipe.DateCurationCompleted != null) return No("a curator has already reviewed it");
             if (!string.IsNullOrWhiteSpace(recipe.VettingIssues)) return No("has vetting issues");
             if (recipe.ContainsSourceProse) return No("contains source prose");
+            if (recipe.ProseWithheld) return No("prose withheld until it is rewritten");
 
             string rule;
             if (recipe.LicenseStatus == RecipeLicenseStatus.PublicDomain)

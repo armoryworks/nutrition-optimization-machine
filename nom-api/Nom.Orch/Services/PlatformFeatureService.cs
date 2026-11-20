@@ -32,6 +32,12 @@ namespace Nom.Orch.Services
                 + "Turn it on before a data window (line repairs, relinks, compound splits) and off once no change in the window will be undone: "
                 + "an undo puts lines back but leaves a recipe approved meanwhile approved. The job resumes where it left off (from the first recipe if the API restarted meanwhile). "
                 + "It is not a model lane, so the AI pause switches do not hold it."),
+            [IPlatformFeatureService.Keys.ProseRecheckPause] = (
+                "Pause prose re-check",
+                "Holds the job that re-checks the shown prose of scraped recipes against their source and withholds what fails "
+                + "(the recipe stays listed and usable; its method is replaced by key facts and the source link); a run already going keeps none of the batch it is about to save. "
+                + "Turn it on, and wait for the paused log line, before releasing withheld recipes with the re-check undo, or the next run withholds them again. "
+                + "It is not a model lane, so the AI pause switches do not hold it."),
         });
 
         private static Dictionary<string, (string Label, string Description)> AiPauseSwitches(Dictionary<string, (string Label, string Description)> features)

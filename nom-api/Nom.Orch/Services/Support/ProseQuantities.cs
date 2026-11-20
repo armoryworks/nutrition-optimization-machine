@@ -157,6 +157,14 @@ namespace Nom.Orch.Services.Support
             return StepMarker.IsMatch(clean);
         }
 
+        /// <summary>The text with every step marker <see cref="HasStepMarker"/> finds taken out and the spaces around it closed up; nothing else changes.</summary>
+        public static string StripStepMarkers(string? text)
+        {
+            var source = text ?? string.Empty;
+            var stripped = StepMarker.Replace(source, " ");
+            return stripped == source ? source : Regex.Replace(stripped, @"[ \t]{2,}", " ").Trim();
+        }
+
         /// <summary>Every amount <paramref name="text"/> states, in order, with positions in <see cref="Prepare"/>'s text.</summary>
         public static IReadOnlyList<ProseQuantity> Read(string? text) => ReadPrepared(Prepare(text));
 

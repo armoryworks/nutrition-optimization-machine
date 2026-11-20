@@ -36,6 +36,12 @@ namespace Nom.Orch.Models.Recipe
         /// <summary>True while the source's verbatim wording is held for review (not yet rewritten).</summary>
         public bool ContainsSourceProse { get; set; }
 
+        /// <summary>True while the recipe's own description and steps are withheld (they failed the prose check); <see cref="KeyFacts"/> and <see cref="SourceUrl"/> stand in for the method.</summary>
+        public bool ProseWithheld { get; set; }
+
+        /// <summary>Rule-built facts of the source method ("oven 350°F", "bake 30 to 40 min"), in step order, while the prose is withheld; null otherwise.</summary>
+        public List<string>? KeyFacts { get; set; }
+
         /// <summary>True when the source had a photo that is held for review and no NOM image replaces it yet.</summary>
         public bool SourceImageHeld { get; set; }
 

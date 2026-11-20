@@ -468,7 +468,22 @@
         <mat-icon>format_list_numbered</mat-icon>
         Instructions
       </h2>
-      @if (recipe()!.steps && recipe()!.steps!.length > 0) {
+      @if (recipe()!.proseWithheld) {
+        <div data-testid="recipe-method-withheld">
+          <h3 class="nom-recipe__section-title">Key facts</h3>
+          @if (recipe()!.keyFacts && recipe()!.keyFacts!.length > 0) {
+            <ul class="nom-recipe__steps" data-testid="recipe-key-facts">
+              @for (fact of recipe()!.keyFacts!; track $index) {
+                <li class="nom-recipe__step" data-testid="recipe-key-fact">{{ fact }}</li>
+              }
+            </ul>
+          }
+          @if (recipe()!.sourceUrl) {
+            <a [href]="recipe()!.sourceUrl" target="_blank" rel="noopener noreferrer" data-testid="recipe-method-source-link">Full method at {{ sourceHost() || 'the original recipe' }}</a>
+          }
+          <p class="nom-recipe__empty-section" data-testid="recipe-method-withheld-note">We're writing this method in our own words.</p>
+        </div>
+      } @else if (recipe()!.steps && recipe()!.steps!.length > 0) {
         <ol class="nom-recipe__steps">
           @for (step of displaySteps(); track $index) {
             <li class="nom-recipe__step"
@@ -551,11 +566,22 @@
       }
     </ul>
     <h2 class="nom-recipe-print__heading">Instructions</h2>
-    <ol class="nom-recipe-print__steps">
-      @for (step of displaySteps(); track $index) {
-        <li data-testid="recipe-print-step">{{ step.text }}</li>
+    @if (recipe()!.proseWithheld) {
+      <ul class="nom-recipe-print__steps">
+        @for (fact of recipe()!.keyFacts ?? []; track $index) {
+          <li data-testid="recipe-print-key-fact">{{ fact }}</li>
+        }
+      </ul>
+      @if (recipe()!.sourceUrl) {
+        <p data-testid="recipe-print-source">Full method: {{ recipe()!.sourceUrl }}</p>
       }
-    </ol>
+    } @else {
+      <ol class="nom-recipe-print__steps">
+        @for (step of displaySteps(); track $index) {
+          <li data-testid="recipe-print-step">{{ step.text }}</li>
+        }
+      </ol>
+    }
   </section>
 } @else {
   <div class="nom-recipe__not-found" data-testid="recipe-not-found">

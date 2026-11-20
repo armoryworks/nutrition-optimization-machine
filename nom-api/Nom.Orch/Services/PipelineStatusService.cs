@@ -119,6 +119,8 @@ namespace Nom.Orch.Services
                 WaitingPublicDomain = recipeRow.WaitingPublicDomain,
                 WaitingScrapedWithoutOwnImage = recipeRow.WaitingScrapedWithoutOwnImage,
                 WaitingWithSourceProse = recipeRow.WaitingWithSourceProse,
+                ProseWithheld = recipeRow.ProseWithheld,
+                ProseWithheldApproved = recipeRow.ProseWithheldApproved,
                 RevisionMissingQuantities = recipeRow.RevisionMissingQuantities,
                 RevisionSteps = recipeRow.RevisionSteps,
                 ApprovedWithUncountedLine = uncounted,
@@ -477,6 +479,8 @@ namespace Nom.Orch.Services
                     WaitingScrapedWithoutOwnImage = g.Count(r => r.CurationStatusId == NonCurated && r.LicenseStatus == RecipeLicenseStatus.Unknown
                         && r.ScrapedAtUtc != null && (r.Image == null || r.Image == "")),
                     WaitingWithSourceProse = g.Count(r => r.CurationStatusId == NonCurated && r.ContainsSourceProse),
+                    ProseWithheld = g.Count(r => r.ProseWithheld),
+                    ProseWithheldApproved = g.Count(r => r.ProseWithheld && r.CurationStatusId == Curated),
                     RevisionMissingQuantities = g.Count(r => r.CurationStatusId == RequiresRevision && r.VettingIssues != null
                         && r.VettingIssues.Contains(RecipeAiRepairService.QuantityIssueMarker)),
                     RevisionSteps = g.Count(r => r.CurationStatusId == RequiresRevision && r.VettingIssues != null
@@ -771,6 +775,8 @@ namespace Nom.Orch.Services
             public int WaitingPublicDomain { get; init; }
             public int WaitingScrapedWithoutOwnImage { get; init; }
             public int WaitingWithSourceProse { get; init; }
+            public int ProseWithheld { get; init; }
+            public int ProseWithheldApproved { get; init; }
             public int RevisionMissingQuantities { get; init; }
             public int RevisionSteps { get; init; }
             public int ApprovedWithoutImage { get; init; }

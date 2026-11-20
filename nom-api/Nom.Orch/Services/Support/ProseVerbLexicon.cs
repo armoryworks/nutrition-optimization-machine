@@ -90,14 +90,20 @@ namespace Nom.Orch.Services.Support
             var verbs = new List<IReadOnlySet<string>>();
             for (var i = 0; i < words.Count; i++)
             {
-                if (!_groupsOfForm.TryGetValue(words[i], out var groups)) continue;
-                if (i > 0 && NounContext.Contains(words[i - 1])) continue;
-                if (i + 1 < words.Count && words[i + 1] == "in" && _formsOfGroup.ContainsKey(AddGroup) && groups.Overlaps(MixingGroups))
-                    groups = groups.Append(AddGroup).ToHashSet(StringComparer.Ordinal);
-                verbs.Add(groups);
+                if (GroupsAt(words, i) is { } groups) verbs.Add(groups);
             }
 
             return verbs;
+        }
+
+        /// <summary>The groups of the word at <paramref name="index"/> of <paramref name="words"/> when it is read as a verb there; null when it is not.</summary>
+        public IReadOnlySet<string>? GroupsAt(IReadOnlyList<string> words, int index)
+        {
+            if (!_groupsOfForm.TryGetValue(words[index], out var groups)) return null;
+            if (index > 0 && NounContext.Contains(words[index - 1])) return null;
+            if (index + 1 < words.Count && words[index + 1] == "in" && _formsOfGroup.ContainsKey(AddGroup) && groups.Overlaps(MixingGroups))
+                return groups.Append(AddGroup).ToHashSet(StringComparer.Ordinal);
+            return groups;
         }
 
         /// <summary>Every group a verb in <paramref name="words"/> belongs to.</summary>
