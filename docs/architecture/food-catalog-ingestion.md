@@ -284,6 +284,68 @@ two agreeing sources are needed only when neither is the manufacturer. The pages
 the operator, never fetched by nom-api, and each host is recorded in `crosscheck-sources.md`.
 A label covers the FDA panel only, so these foods carry no vitamins beyond vitamin D.
 
+### Alias trust: which wordings an import may follow — BUILT ✅
+An alias (`recipe."IngredientAlias"`) says a wording has been seen on a food; its
+`SourceContext` says who put it there. An import links a line to a food without review, so it
+follows an alias only when the context names a deterministic rule or a person
+(`Nom.Data/Recipe/IngredientAliasTrust.cs`, a case-sensitive prefix test):
+
+| Context | Written by | Trusted |
+|---|---|---|
+| `fdc:description` | a person's link approval that renamed the food; the USDA description it kept | yes |
+| `retired:<id>` | `relink/retire`; the name of the duplicate food retired into this one | yes |
+| `link:deterministic:staple`, `link:deterministic:name-match` | the link lane applying a rule's proposal | yes |
+| `admin:link:<source>` | a person approving a link in Admin → Food Catalog, one at a time or as a group | yes |
+| `deterministic:recheck:name-key`, `:staple`, `:name-match` | `aliases/classify` (below) | yes |
+| `link:ai:<model>` | the link lane applying a model pick on its own | no |
+| none | links applied before 2026-11-03 and the `cleanup/normalize` run of that night; origin unknown | no |
+
+A new context that begins with `fdc:`, `admin:`, `deterministic:`, `retired:` or
+`link:deterministic:` is trusted without further change, so name new writers with care.
+
+**What an import does.** `RecipeScrapingService.FindOrCreateIngredientAsync` (URL import, pasted
+data and `POST api/StagedImport`) decides the order in one place: a live ingredient of the
+normalised name (a curated one first, then the oldest), then the food a trusted alias gives the
+name to when exactly one live food holds it, and otherwise a new uncurated ingredient. That
+ingredient waits for the link lane like any other new name: a rule's proposal is applied by the
+lane, a model pick waits for a reviewer. A soft-deleted ingredient that still holds the name in
+the unique index is renamed to `<name> (deleted #<id>)` first and the rename journaled
+(`audit."AuditLogEntry"`: `EntityType` `Ingredient`, `ChangeType` `NameFreed`, old and new
+name); it is not revived, because its applied link would keep the lane from proposing it again.
+The photo import (`RecipeImportOrchestrationService.AddIngredientLinesAsync`) applies the same
+test to the aliases it matches lines against. The recipe form selects a suggestion on save for
+typed text that equals its alias only when the search result says the alias is trusted
+(`MatchedAliasTrusted`). Ingredient search and the restriction resolver still read every alias:
+a person picks from the first, and the second only ever adds restricted foods.
+
+**Writers.** A link applied by a person writes `admin:link:<proposal source>`; the same link
+applied by a lane writes `link:<proposal source>`, so a reviewed batch has to go through the API
+as a person, not be marked in SQL and left to the lane. An alias the food already has keeps its
+context unless the new one is trusted and the old one is not. `cleanup/normalize` hands the
+context of a quantity-prefixed alias to its normalised replacement and leaves USDA descriptions
+and retired names alone.
+
+**Rechecking the aliases with no context.** `POST api/FoodCatalog/aliases/classify?apply=false&sampleSize=50`
+(curation-gated, a dry run unless `apply=true`) examines every live alias with no context on a
+live food and marks the ones today's rules give to that same food: the alias is the food's name
+in the singular or plural (`name-key`); it is a bare staple name and the food is that staple's
+USDA entry (`staple`); the name matcher places it on the food (`name-match`); or it is the
+food's name once the preparation words are off (`name-key`). An alias a staple or the matcher
+gives to another food is counted as a conflict and stays as it is, as does one no rule covers.
+Nothing is deleted. Each mark is one `audit."AuditLogEntry"` row: `EntityType`
+`IngredientAlias`, `ChangeType` `AliasTrust`, `EntityId` the food, `PropertyName`
+`SourceContext`, `OldValue` the alias text, `NewValue` the context written. Running it again
+only looks at what is still without a context.
+`POST api/FoodCatalog/aliases/classify/undo?sinceUtc=<time>` sets each alias marked at or after
+the time back to no context and removes its journal entry; an alias whose context has changed
+since is skipped and its entry kept. The same by SQL:
+`UPDATE recipe."IngredientAlias" SET "SourceContext" = NULL WHERE "SourceContext" LIKE 'deterministic:recheck:%';`.
+
+Measured on staging on 2026-11-19: of 32,841 live aliases with no context, the rules confirm
+7,312 (name-key 4,967, name-match 1,845, staple 500), name another food for 875 and are silent
+on 24,654. In the lines judged on 2026-11-12 a rule-confirmed alias was right for 98.8 % of
+lines and an unconfirmed one for about half.
+
 ### AI enrichment (food group + IsWholeFood) — BUILT ✅ (runtime pending)
 `Nom.Import/Services/FoodGroupEnrichmentService.cs` — a batch job that classifies
 ingredients: deterministic keyword classification always runs
