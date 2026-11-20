@@ -198,7 +198,7 @@ namespace Nom.Orch.Services
 
         private async Task<(int Repositioned, int Moved)> MergeRecipeLinksAsync(long sourceId, long targetId, long? personId, long? keepProposalId = null)
         {
-            var repositioned = await _db.Database.ExecuteSqlAsync(
+            var shifts = await _db.Database.SqlQuery<LinkApplyJournal.LineShift>(
                 $"""
                  WITH clash AS (
                      SELECT src."RecipeId", src."SortOrder",
@@ -216,13 +216,18 @@ namespace Nom.Orch.Services
                  WHERE src."IngredientId" = {sourceId}
                    AND src."RecipeId" = clash."RecipeId"
                    AND src."SortOrder" = clash."SortOrder"
-                 """);
-            var moved = await _db.Database.ExecuteSqlAsync(
-                $"""UPDATE recipe."RecipeIngredient" SET "IngredientId" = {targetId}, "LastModifiedDate" = now() WHERE "IngredientId" = {sourceId}""");
+                 RETURNING src."RecipeId" AS "RecipeId", clash."SortOrder" AS "OldSortOrder", src."SortOrder" AS "SortOrder"
+                 """).ToListAsync();
+            var moved = await _db.Database.SqlQuery<LinkApplyJournal.LinePlace>(
+                $"""UPDATE recipe."RecipeIngredient" SET "IngredientId" = {targetId}, "LastModifiedDate" = now() WHERE "IngredientId" = {sourceId} RETURNING "RecipeId", "SortOrder" """).ToListAsync();
             await _db.Database.ExecuteSqlAsync(
                 $"""UPDATE recipe."RecipeIngredient" SET "IngredientEntityId" = {targetId} WHERE "IngredientEntityId" = {sourceId}""");
             await _db.Database.ExecuteSqlAsync(
                 $"""UPDATE recipe."Ingredient" SET "IsDeleted" = true, "DeletedAt" = now(), "DeletedByPersonId" = {personId} WHERE "Id" = {sourceId}""");
+            if (keepProposalId is { } proposalId)
+            {
+                await JournalLinkMergeAsync(proposalId, sourceId, targetId, personId ?? SystemConstants.SystemPersonId, shifts, moved);
+            }
             await _db.Database.ExecuteSqlAsync(
                 $"""
                  DELETE FROM curation."FoodCatalogProposal"
@@ -232,7 +237,28 @@ namespace Nom.Orch.Services
                    AND "Id" <> {keepProposalId ?? 0}
                    AND ("ReviewedByPersonId" IS NULL OR "ReviewedByPersonId" = {SystemConstants.SystemPersonId})
                  """);
-            return (repositioned, moved);
+            return (shifts.Count, moved.Count);
+        }
+
+        /// <summary>
+        /// Writes the lines a link's merge moved and the open link proposals it is about to remove
+        /// to the audit log under the applied proposal, so the link can be taken back.
+        /// </summary>
+        private async Task JournalLinkMergeAsync(
+            long proposalId, long sourceId, long targetId, long personId, List<LinkApplyJournal.LineShift> shifts, List<LinkApplyJournal.LinePlace> moved)
+        {
+            var now = DateTime.UtcNow;
+            var removed = await _db.FoodCatalogProposals.IgnoreQueryFilters().AsNoTracking()
+                .Where(p => (p.IngredientId == sourceId || p.IngredientId == targetId)
+                    && p.Field == FoodCatalogReviewService.FdcLinkField
+                    && p.Status != FoodProposalStatus.Applied
+                    && p.Id != proposalId
+                    && (p.ReviewedByPersonId == null || p.ReviewedByPersonId == SystemConstants.SystemPersonId))
+                .OrderBy(p => p.Id)
+                .ToListAsync();
+            _db.AuditLogEntries.AddRange(removed.Select(p => LinkApplyJournal.Removed(proposalId, p, now, personId)));
+            _db.AuditLogEntries.AddRange(LinkApplyJournal.LinesMoved(proposalId, sourceId, targetId, shifts, moved, now, personId));
+            await _db.SaveChangesAsync();
         }
 
         /// <summary>

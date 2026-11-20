@@ -1,0 +1,25 @@
+using System;
+using System.Threading.Tasks;
+using Nom.Orch.Models.Curation;
+
+namespace Nom.Orch.Interfaces
+{
+    /// <summary>
+    /// Takes back applied USDA links from the audit log alone: every link apply journals the lines
+    /// it moved, the food it merged away, the aliases it added and the status and values it gave,
+    /// and this puts each of them back and returns the proposal to Pending.
+    /// </summary>
+    public interface ILinkApplyUndoService
+    {
+        /// <summary>
+        /// Takes back, newest first, up to <paramref name="max"/> links applied at or after
+        /// <paramref name="sinceUtc"/>, only those whose source starts with <paramref name="source"/>
+        /// when it is given, and only those the lanes applied on their own when
+        /// <paramref name="systemOnly"/> is set. A line or alias changed since the link is left as it
+        /// is and counted; a USDA food stays curated while another applied link stands on it.
+        /// Without <paramref name="apply"/> nothing is written and the result is what the same call
+        /// would do.
+        /// </summary>
+        Task<LinkApplyUndoResult> UndoAsync(DateTime sinceUtc, string? source = null, bool systemOnly = false, bool apply = false, int max = 500, int sampleSize = 50);
+    }
+}
