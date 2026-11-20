@@ -49,12 +49,16 @@ namespace Nom.Api.Tests.Services
             private readonly Func<string> _answer;
             public Model(Func<string> answer) => _answer = answer;
             public List<string> Prompts { get; } = new();
+            public Func<int, HttpStatusCode> Status { get; set; } = _ => HttpStatusCode.OK;
 
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 var body = await request.Content!.ReadFromJsonAsync<JsonElement>(cancellationToken);
                 Prompts.Add(body.GetProperty("prompt").GetString()!);
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { response = _answer() }) };
+                var status = Status(Prompts.Count);
+                return status == HttpStatusCode.OK
+                    ? new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { response = _answer() }) }
+                    : new HttpResponseMessage(status);
             }
         }
 
@@ -193,6 +197,23 @@ namespace Nom.Api.Tests.Services
             await SweepAsync(lane);
 
             model.Prompts.Should().ContainSingle().Which.Should().Contain("25 to 30 minutes");
+        }
+
+        [Fact]
+        public async Task A_recipe_the_model_answers_with_an_error_status_is_stamped_and_the_sweep_goes_on()
+        {
+            var model = new Model(() => Faithful) { Status = call => call == 1 ? HttpStatusCode.InternalServerError : HttpStatusCode.OK };
+            var (provider, lane) = NewLane(model);
+            var first = await SeedAsync(provider, SourceSteps);
+            var second = await SeedAsync(provider, SourceSteps);
+
+            var (_, outage) = await lane.SweepAsync("http://model", "test-model", 25, 30, true, CancellationToken.None);
+
+            outage.Should().BeNull();
+            using var scope = provider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.Recipes.SingleAsync(r => r.Id == first)).Should().Match<RecipeEntity>(r => r.ContainsSourceProse && r.ProseRewriteAttemptedAt != null);
+            (await db.Recipes.SingleAsync(r => r.Id == second)).ContainsSourceProse.Should().BeFalse();
         }
 
         [Fact]

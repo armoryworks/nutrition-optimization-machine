@@ -207,7 +207,7 @@ namespace Nom.Api.Services
                 {
                     throw;
                 }
-                catch (HttpRequestException ex)
+                catch (HttpRequestException ex) when (AiLanes.IsOutage(ex))
                 {
                     recipe.ProseRewriteAttemptedAt = attemptedBefore;
                     _logger.LogWarning(ex, "Model host unreachable while rewriting recipe {Id}; ending the sweep without recording an attempt", recipe.Id);

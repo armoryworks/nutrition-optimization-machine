@@ -28,5 +28,14 @@ namespace Nom.Orch.Services.Support
         public const string PauseAllKey = "ai-pause-all";
 
         public static string PauseKey(string lane) => "ai-pause-" + lane;
+
+        /// <summary>
+        /// Whether a failed model call means the lane cannot work at all, so no item is charged an
+        /// attempt: no answer (a refused connection, or the breaker's own refusal) or a 404 for a
+        /// model the host does not have. Any other HTTP status is about the item asked and is
+        /// recorded against it, so one item cannot hold the lane up.
+        /// </summary>
+        public static bool IsOutage(System.Net.Http.HttpRequestException ex) =>
+            ex.StatusCode is null or System.Net.HttpStatusCode.NotFound;
     }
 }

@@ -259,6 +259,34 @@ namespace Nom.Api.Tests.Services.Curation
         }
 
         [Theory]
+        [InlineData(System.Net.HttpStatusCode.InternalServerError)]
+        [InlineData(System.Net.HttpStatusCode.BadRequest)]
+        public async Task A_recipe_the_model_answers_with_an_error_status_is_recorded_and_the_batch_moves_on(System.Net.HttpStatusCode status)
+        {
+            using var db = await SeedAsync(ShrewsburyCakes(10), ShrewsburyCakes(11));
+            var model = new FakeModel { Failure = new HttpRequestException("model error", null, status) };
+
+            var result = await new RecipeAiRepairService(db, new RecipeVettingService(), model, NullLogger<RecipeAiRepairService>.Instance,
+                new FakeHostHealth { Answers = true }).RepairBatchAsync(0, 10);
+
+            result.Examined.Should().Be(2);
+            model.Calls.Should().Be(2, "one recipe the host refuses does not hold up the next");
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == RecipeAiRepairService.AttemptChangeType)).Should().Be(2);
+        }
+
+        [Fact]
+        public async Task A_missing_model_records_no_attempt_and_stops_the_batch()
+        {
+            using var db = await SeedAsync(ShrewsburyCakes(10), ShrewsburyCakes(11));
+            var model = new FakeModel { Failure = new HttpRequestException("model not found", null, System.Net.HttpStatusCode.NotFound) };
+
+            await new RecipeAiRepairService(db, new RecipeVettingService(), model, NullLogger<RecipeAiRepairService>.Instance)
+                .Invoking(s => s.RepairBatchAsync(0, 10)).Should().ThrowAsync<HttpRequestException>();
+
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == RecipeAiRepairService.AttemptChangeType)).Should().Be(0);
+        }
+
+        [Theory]
         [InlineData(typeof(HttpRequestException), true)]
         [InlineData(typeof(TaskCanceledException), false)]
         [InlineData(typeof(HttpRequestException), null)]

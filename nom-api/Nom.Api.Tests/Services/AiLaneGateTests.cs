@@ -200,21 +200,46 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task A_host_comes_back_only_when_its_probe_lists_every_model_the_lanes_ask_for()
+        public async Task A_host_comes_back_only_when_its_probe_lists_every_model_that_has_answered_on_it()
         {
             using var rig = NewRig(new() { ["Ai:Breaker:ProbeMinutes"] = "1" });
-            var host = new FakeHandler { Respond = _ => new HttpResponseMessage(HttpStatusCode.NotFound) };
+            var calls = 0;
+            var host = new FakeHandler { Respond = _ => new HttpResponseMessage(++calls == 1 ? HttpStatusCode.OK : HttpStatusCode.BadGateway) };
             using var repair = rig.Client(AiLanes.Repair, host);
-            for (var i = 0; i < 3; i++) await repair.PostAsync("/api/generate", JsonBody("qwen2.5:14b"));
+            for (var i = 0; i < 4; i++) await repair.PostAsync("/api/generate", JsonBody("qwen2.5:14b"));
 
             rig.Clients.Probe.Respond = _ => Tags("qwen2.5:14b-instruct", "nomic-embed-text:latest");
-            (await rig.Monitor.AnswersAsync(AiLanes.Repair)).Should().BeFalse("the lane asks for a tag the host does not have");
+            (await rig.Monitor.AnswersAsync(AiLanes.Repair)).Should().BeFalse("a model that answered on the host is no longer listed");
             rig.Gate.GetHosts().Single().ModelsMissing.Should().Equal("qwen2.5:14b");
 
             rig.Clients.Probe.Respond = _ => Tags("qwen2.5:14b", "qwen2.5:14b-instruct");
             (await rig.Monitor.AnswersAsync(AiLanes.Repair)).Should().BeTrue();
             rig.Gate.GetHosts().Single().Up.Should().BeTrue();
             (await PassesWithinAsync(rig.Gate, AiLanes.Repair)).Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task A_lane_asking_for_a_model_the_host_lacks_fails_alone_and_never_holds_the_other_lanes()
+        {
+            using var rig = NewRig(new() { ["Ai:Breaker:ProbeMinutes"] = "1" });
+            var host = new FakeHandler
+            {
+                Respond = r => r.Content!.ReadAsStringAsync().Result.Contains("qwen2.5:14b\"", StringComparison.Ordinal)
+                    ? new HttpResponseMessage(HttpStatusCode.NotFound)
+                    : new HttpResponseMessage(HttpStatusCode.OK),
+            };
+            using var repair = rig.Client(AiLanes.Repair, host);
+            using var link = rig.Client(AiLanes.Link, host);
+            (await link.PostAsync("/api/generate", JsonBody("qwen2.5:14b-instruct"))).IsSuccessStatusCode.Should().BeTrue();
+            for (var i = 0; i < 5; i++) await repair.PostAsync("/api/generate", JsonBody("qwen2.5:14b"));
+
+            var status = rig.Gate.GetHosts().Single();
+            status.Up.Should().BeTrue("a 404 is the asking lane's own misconfiguration");
+            status.ModelsMissing.Should().Equal("qwen2.5:14b");
+            (await PassesWithinAsync(rig.Gate, AiLanes.Link)).Should().BeTrue();
+            Status(rig.Gate, AiLanes.Repair).ModelCallErrors.Should().Be(5);
+            rig.Clients.Probe.Respond = _ => Tags("qwen2.5:14b-instruct");
+            (await rig.Monitor.AnswersAsync(AiLanes.Link)).Should().BeTrue("the missing tag never answered, so the probe does not wait for it");
         }
 
         [Fact]

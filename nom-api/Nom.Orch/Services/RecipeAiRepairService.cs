@@ -225,12 +225,14 @@ namespace Nom.Orch.Services
             && ex is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException;
 
         /// <summary>
-        /// A refused connection is an outage. A timeout is an outage unless the host still answers a
-        /// probe, in which case the recipe itself was too slow and its attempt is recorded.
+        /// A refused connection or a missing model is an outage (see <see cref="AiLanes.IsOutage"/>);
+        /// any other HTTP status is the recipe's own failure and its attempt is recorded. A timeout
+        /// is an outage unless the host still answers a probe, in which case the recipe itself was
+        /// too slow and its attempt is recorded.
         /// </summary>
         private async Task<bool> IsOutageAsync(Exception ex, CancellationToken cancellationToken)
         {
-            if (ex is HttpRequestException) return true;
+            if (ex is HttpRequestException http) return AiLanes.IsOutage(http);
             if (ex is not TaskCanceledException) return false;
             return _hostHealth == null || !await _hostHealth.AnswersAsync(AiLanes.Repair, cancellationToken);
         }

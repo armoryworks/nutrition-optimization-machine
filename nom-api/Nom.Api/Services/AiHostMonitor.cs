@@ -7,8 +7,10 @@ namespace Nom.Api.Services
     /// <summary>
     /// The shared breaker for the model hosts the API's lanes call, fed by <see cref="AiLaneHttpHandler"/>.
     /// A host is marked down after Ai:Breaker:FailuresToOpen (default 3) consecutive failed calls
-    /// (no connection, a timeout, a 5xx, or a 404 for a model it does not have) and is marked up again
-    /// only when GET /api/tags answers and lists every model the lanes have asked it for. While a host
+    /// (no connection, a timeout or a 5xx) and is marked up again only when GET /api/tags answers and
+    /// lists every model the lanes have had an answer from on it. A 404 for a model the host does not
+    /// have fails only the lane that asked for it: it is listed as missing and never holds the host
+    /// or the other lanes. While a host
     /// is down its calls fail at once without leaving the API, and it is probed at most every
     /// Ai:Breaker:ProbeMinutes (default 5). Also keeps per-lane call counts and latencies since start.
     /// </summary>
@@ -41,7 +43,7 @@ namespace Nom.Api.Services
         public IReadOnlyList<string> HostsOf(string lane) =>
             _lanes.TryGetValue(lane, out var calls) ? calls.Hosts.Keys.ToList() : Array.Empty<string>();
 
-        public void Record(string lane, string host, string? model, bool healthy, string? error, TimeSpan elapsed)
+        public void Record(string lane, string host, string? model, bool healthy, string? error, TimeSpan elapsed, bool modelMissing = false)
         {
             var calls = _lanes.GetOrAdd(lane, _ => new LaneCalls());
             var state = _hosts.GetOrAdd(host, _ => new HostState());
@@ -69,6 +71,20 @@ namespace Nom.Api.Services
             lock (state)
             {
                 if (model != null) state.Models.Add(model);
+                if (modelMissing)
+                {
+                    if (model != null)
+                    {
+                        state.Answered.Remove(model);
+                        state.NotFound.Add(model);
+                    }
+                    return;
+                }
+                if (model != null && healthy)
+                {
+                    state.Answered.Add(model);
+                    state.NotFound.Remove(model);
+                }
                 if (healthy)
                 {
                     state.ConsecutiveFailures = 0;
@@ -130,7 +146,7 @@ namespace Nom.Api.Services
                         LastProbe = h.Value.LastProbe,
                         ModelsAsked = h.Value.Models.OrderBy(m => m).ToList(),
                         ModelsInstalled = h.Value.Installed,
-                        ModelsMissing = h.Value.Missing,
+                        ModelsMissing = h.Value.Missing.Union(h.Value.NotFound, StringComparer.OrdinalIgnoreCase).OrderBy(m => m).ToList(),
                     };
                 }
             }).OrderBy(h => h.Host).ToList();
@@ -153,7 +169,7 @@ namespace Nom.Api.Services
             lock (state)
             {
                 state.LastProbe = DateTime.UtcNow;
-                asked = state.Models.ToList();
+                asked = state.Answered.ToList();
             }
 
             string? failure;
@@ -226,6 +242,8 @@ namespace Nom.Api.Services
             public DateTime? LastProbe;
             public string? LastError;
             public HashSet<string> Models { get; } = new(StringComparer.OrdinalIgnoreCase);
+            public HashSet<string> NotFound { get; } = new(StringComparer.OrdinalIgnoreCase);
+            public HashSet<string> Answered { get; } = new(StringComparer.OrdinalIgnoreCase);
             public IReadOnlyList<string> Installed = Array.Empty<string>();
             public IReadOnlyList<string> Missing = Array.Empty<string>();
         }

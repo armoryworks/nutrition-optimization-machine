@@ -32,8 +32,9 @@ namespace Nom.Api.Services
             try
             {
                 var response = await base.SendAsync(request, cancellationToken);
-                var healthy = (int)response.StatusCode < 500 && response.StatusCode != HttpStatusCode.NotFound;
-                _monitor.Record(_lane, host, model, healthy, response.IsSuccessStatusCode ? null : $"HTTP {(int)response.StatusCode}", watch.Elapsed);
+                var missing = response.StatusCode == HttpStatusCode.NotFound;
+                var healthy = (int)response.StatusCode < 500 && !missing;
+                _monitor.Record(_lane, host, model, healthy, response.IsSuccessStatusCode ? null : $"HTTP {(int)response.StatusCode}", watch.Elapsed, modelMissing: missing);
                 return response;
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
