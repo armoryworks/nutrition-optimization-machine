@@ -532,6 +532,34 @@ namespace Nom.Api.Tests.Services.Import
             (await db.FoodCatalogProposals.Select(p => p.Status).ToListAsync()).Should().OnlyContain(s => s == FoodProposalStatus.Rejected);
         }
 
+        [Theory]
+        [InlineData(true, "admin:old")]
+        [InlineData(false, null)]
+        [InlineData(false, "link:ai:fake")]
+        public async Task An_alias_the_attach_found_on_the_food_is_put_back_as_it_was_by_the_undo(bool deleted, string? context)
+        {
+            using var db = await NewContextAsync();
+            var wine = await FoodAsync(db, "Dry White Wine");
+            var removedAt = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc);
+            db.IngredientAliases.Add(new IngredientAliasEntity
+            {
+                IngredientId = wine.Id, AliasName = WineDescription, SourceContext = context, IsDeleted = deleted,
+                DeletedAt = deleted ? removedAt : null, DeletedByPersonId = deleted ? 5 : null, CreatedByPersonId = 4,
+            });
+            await db.SaveChangesAsync();
+            await Importer(db).AttachAsync(_dir, Pair(wine), dryRun: false, dataType: SrLegacy);
+            (await Review(db).ApplyProposalAsync((await db.FoodCatalogProposals.SingleAsync()).Id, reviewerPersonId: 7)).Should().BeTrue();
+            (await db.IngredientAliases.SingleAsync()).SourceContext.Should().Be(IngredientLinkService.UsdaDescriptionContext);
+            (await db.AuditLogEntries.CountAsync(a => a.PropertyName == nameof(IngredientEntity.Aliases))).Should().Be(1, "the change to the alias is journaled");
+
+            var undone = await Importer(db).UndoAttachAsync(Pair(wine), dryRun: false);
+
+            undone.Lines.Single().Should().Contain("restored").And.Contain(nameof(IngredientEntity.Aliases)).And.NotContain("left");
+            var alias = await db.IngredientAliases.IgnoreQueryFilters().SingleAsync();
+            alias.Should().Match<IngredientAliasEntity>(a => a.SourceContext == context && a.IsDeleted == deleted && a.CreatedByPersonId == 4
+                && a.DeletedAt == (deleted ? removedAt : null) && a.DeletedByPersonId == (deleted ? 5 : null));
+        }
+
         [Fact]
         public void The_pairs_file_is_read_by_its_header()
         {

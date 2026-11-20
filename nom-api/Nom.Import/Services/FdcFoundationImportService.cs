@@ -576,24 +576,27 @@ namespace Nom.Import.Services
                 var rows = await _db.Set<IngredientNutrientEntity>()
                     .Where(n => n.IngredientId == food.Id && n.FdcId == request.FdcId).ToListAsync(ct);
                 var restored = new List<string>();
+                var left = new List<string>();
                 foreach (var entry in entries)
                 {
                     if (entry.PropertyName == nameof(IngredientEntity.Aliases))
                     {
-                        var alias = await _db.IngredientAliases.FirstOrDefaultAsync(a => a.IngredientId == food.Id
-                            && a.AliasName == entry.NewValue && a.SourceContext == IngredientLinkService.UsdaDescriptionContext, ct);
-                        if (alias == null) continue;
-                        restored.Add(entry.PropertyName);
-                        if (!dryRun) _db.IngredientAliases.Remove(alias);
+                        if (await RestoreAliasAsync(food.Id, entry, dryRun, ct)) restored.Add(entry.PropertyName);
+                        else left.Add(entry.PropertyName);
                     }
                     else if (Restore(food, entry, dryRun))
                     {
                         restored.Add(entry.PropertyName!);
                     }
+                    else
+                    {
+                        left.Add(entry.PropertyName!);
+                    }
                 }
 
                 report.Undone++;
-                report.Lines.Add($"undone   #{food.Id} {food.Name}: fdc:{request.FdcId} detached, {rows.Count} values removed, restored {string.Join(", ", restored)}");
+                report.Lines.Add($"undone   #{food.Id} {food.Name}: fdc:{request.FdcId} detached, {rows.Count} values removed, restored {string.Join(", ", restored)}"
+                    + (left.Count > 0 ? $"; left as changed since: {string.Join(", ", left)}" : string.Empty));
                 if (dryRun) continue;
 
                 _db.Set<IngredientNutrientEntity>().RemoveRange(rows);
@@ -609,6 +612,43 @@ namespace Nom.Import.Services
             if (tx != null) await tx.CommitAsync(ct);
             _logger.LogInformation("FDC attach undo: {Undone} of {Requests} requests.", report.Undone, report.Requests);
             return report;
+        }
+
+        /// <summary>
+        /// Puts back the USDA description alias an attach journaled: one it added is removed, and
+        /// one it found on the food (journaled as <see cref="FoodCatalogReviewService.AttachAliasBefore"/>)
+        /// gets back its context and, when it had been removed, its removal. False when the alias
+        /// no longer carries the attach's context or its journal cannot be read.
+        /// </summary>
+        private async Task<bool> RestoreAliasAsync(long foodId, AuditLogEntryEntity entry, bool dryRun, CancellationToken ct)
+        {
+            var alias = await _db.IngredientAliases.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.IngredientId == foodId
+                && a.AliasName == entry.NewValue && !a.IsDeleted && a.SourceContext == IngredientLinkService.UsdaDescriptionContext, ct);
+            if (alias == null) return false;
+            if (entry.OldValue == null)
+            {
+                if (!dryRun) _db.IngredientAliases.Remove(alias);
+                return true;
+            }
+
+            FoodCatalogReviewService.AttachAliasBefore? was;
+            try
+            {
+                was = System.Text.Json.JsonSerializer.Deserialize<FoodCatalogReviewService.AttachAliasBefore>(entry.OldValue);
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                was = null;
+            }
+            if (was == null) return false;
+            if (dryRun) return true;
+            alias.SourceContext = was.Context;
+            alias.IsDeleted = was.Deleted;
+            alias.DeletedAt = was.DeletedAt;
+            alias.DeletedByPersonId = was.DeletedByPersonId;
+            alias.LastModifiedDate = DateTime.UtcNow;
+            alias.LastModifiedByPersonId = SystemConstants.SystemPersonId;
+            return true;
         }
 
         private static void Reject(IEnumerable<FoodCatalogProposalEntity> proposals, DateTime now)

@@ -33,6 +33,12 @@ namespace Nom.Orch.Services
         public const string FdcAttachChangeType = "FdcAttach";
         public const string FdcAttachEntityType = "Ingredient";
 
+        /// <summary>
+        /// The alias an attach found already on the food, as its journal keeps it (old value of the
+        /// Aliases entry), so the undo puts that row back as it was instead of deleting it.
+        /// </summary>
+        public sealed record AttachAliasBefore(string? Context, bool Deleted, DateTime? DeletedAt, long? DeletedByPersonId);
+
         public FoodCatalogReviewService(ApplicationDbContext context, IFoodCatalogAuditService audit, ICatalogCleanupService cleanup)
         {
             _context = context;
@@ -644,10 +650,16 @@ namespace Nom.Orch.Services
 
             if (root.TryGetProperty("description", out var described) && described.ValueKind == System.Text.Json.JsonValueKind.String
                 && described.GetString() is { Length: > 0 and <= 511 } description
-                && !string.Equals(description.Trim(), ingredient.Name.Trim(), StringComparison.OrdinalIgnoreCase)
-                && await AddAliasAsync(ingredient.Id, description, reviewerPersonId, IngredientLinkService.UsdaDescriptionContext))
+                && !string.Equals(description.Trim(), ingredient.Name.Trim(), StringComparison.OrdinalIgnoreCase))
             {
-                Journal(nameof(ingredient.Aliases), null, description);
+                var lowered = description.ToLowerInvariant();
+                var existing = _context.IngredientAliases.Local.FirstOrDefault(a => a.IngredientId == ingredient.Id && a.AliasName.ToLower() == lowered)
+                    ?? await _context.IngredientAliases.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.IngredientId == ingredient.Id && a.AliasName.ToLower() == lowered);
+                var was = existing == null ? null : new AttachAliasBefore(existing.SourceContext, existing.IsDeleted, existing.DeletedAt, existing.DeletedByPersonId);
+                if (await AddAliasAsync(ingredient.Id, description, reviewerPersonId, IngredientLinkService.UsdaDescriptionContext))
+                {
+                    Journal(nameof(ingredient.Aliases), was == null ? null : System.Text.Json.JsonSerializer.Serialize(was), existing?.AliasName ?? description);
+                }
             }
 
             if (_context.Database.IsRelational())
@@ -670,8 +682,9 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Gives the food an alias, bringing back one that was removed. An alias the food already
         /// has keeps its context, except that an untrusted one takes a trusted context (see
-        /// <see cref="Nom.Data.Recipe.IngredientAliasTrust"/>); a trusted one is never downgraded. Returns
-        /// whether the alias was added or brought back.
+        /// <see cref="Nom.Data.Recipe.IngredientAliasTrust"/>) and one a rule re-checked takes a
+        /// person's approval; a trusted one is never downgraded. Returns whether the alias was
+        /// added, brought back or given another context.
         /// </summary>
         private async Task<bool> AddAliasAsync(long ingredientId, string alias, long reviewerPersonId, string sourceContext)
         {
@@ -682,13 +695,14 @@ namespace Nom.Orch.Services
             {
                 if (!existing.IsDeleted)
                 {
-                    if (Nom.Data.Recipe.IngredientAliasTrust.IsTrusted(sourceContext) && !Nom.Data.Recipe.IngredientAliasTrust.IsTrusted(existing.SourceContext))
-                    {
-                        existing.SourceContext = sourceContext;
-                        existing.LastModifiedDate = DateTime.UtcNow;
-                        existing.LastModifiedByPersonId = reviewerPersonId;
-                    }
-                    return false;
+                    var upgrade = Nom.Data.Recipe.IngredientAliasTrust.IsTrusted(sourceContext) && !Nom.Data.Recipe.IngredientAliasTrust.IsTrusted(existing.SourceContext);
+                    var approval = sourceContext.StartsWith(Nom.Data.Recipe.IngredientAliasTrust.AdminPrefix, StringComparison.Ordinal)
+                        && existing.SourceContext?.StartsWith(Nom.Data.Recipe.IngredientAliasTrust.RecheckPrefix, StringComparison.Ordinal) == true;
+                    if (!upgrade && !approval) return false;
+                    existing.SourceContext = sourceContext;
+                    existing.LastModifiedDate = DateTime.UtcNow;
+                    existing.LastModifiedByPersonId = reviewerPersonId;
+                    return true;
                 }
                 existing.IsDeleted = false;
                 existing.DeletedAt = null;

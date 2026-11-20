@@ -1069,6 +1069,34 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_person_approving_a_wording_after_classification_keeps_it_trusted_through_the_classify_undo()
+        {
+            using var db = NewContext();
+            var (_, _, _, carrots, _) = await SeedAliasedFoodsAsync(db);
+            await AliasAsync(db, carrots, "chopped carrots");
+            var linker = Linker(db, new FakeMatcher());
+            var started = DateTime.UtcNow;
+            await linker.ClassifyAliasesAsync(apply: true, Reviewer);
+            (await ContextOfAsync(db, carrots, "chopped carrots")).Should().Be("deterministic:recheck:name-match");
+            var wording = new IngredientEntity { Name = "chopped carrots", CurationStatusId = 9000 };
+            db.Ingredients.Add(wording);
+            await db.SaveChangesAsync();
+            var proposal = new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, IngredientId = wording.Id, Field = FoodCatalogReviewService.FdcLinkField, CurrentValue = wording.Name,
+                FdcId = carrots.FdcId, ProposedValue = carrots.Id.ToString(), Source = "ai:fake", Batch = IngredientLinkService.Batch, Status = FoodProposalStatus.Pending,
+            };
+            db.FoodCatalogProposals.Add(proposal);
+            await db.SaveChangesAsync();
+
+            (await new FoodCatalogReviewService(db, new NoAudit(), new FakeCleanup()).ApplyProposalAsync(proposal.Id, Reviewer)).Should().BeTrue();
+            var undone = await linker.UndoAliasClassificationAsync(started, Reviewer);
+
+            undone.Should().BeEquivalentTo(new AliasClassifyUndoResult { Skipped = 1 });
+            (await ContextOfAsync(db, carrots, "chopped carrots")).Should().Be("admin:link:ai:fake");
+        }
+
+        [Fact]
         public async Task A_wording_alias_carrying_a_staple_description_does_not_become_the_staple_target()
         {
             using var db = NewContext();
