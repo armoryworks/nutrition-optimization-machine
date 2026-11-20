@@ -1,0 +1,1931 @@
+kind	id	name	context
+alias	255901	raisins, seeded	fdc:description
+alias	274574	Hummus, commercial	fdc:description
+alias	274576	Tomatoes, grape, raw	fdc:description
+alias	274578	Broccoli, raw	fdc:description
+alias	274580	Milk, nonfat, fluid, with added vitamin A and vitamin D (fat free or skim)	fdc:description
+alias	274581	3.7% Whole Milk	retired:278522
+alias	274581	Milk, whole, 3.25% milkfat, with added vitamin D	fdc:description
+alias	274581	Whole Milk	retired:279440
+alias	274583	Nuts, almonds, dry roasted, with salt added	fdc:description
+alias	274584	Cheese, ricotta, whole milk	fdc:description
+alias	274585	Kale, raw	fdc:description
+alias	274587	Egg, white, raw, frozen, pasteurized	fdc:description
+alias	274589	Sauce, salsa, ready-to-serve	fdc:description
+alias	274590	Sausage, breakfast sausage, beef, pre-cooked, unprepared	fdc:description
+alias	274592	Pickles, cucumber, dill or kosher dill	fdc:description
+alias	274594	Cheese, parmesan, grated	fdc:description
+alias	274594	Cheese, parmesan, grated, refrigerated	retired:274721
+alias	274597	Peaches, yellow, raw	fdc:description
+alias	274600	Bread, white, commercially prepared	fdc:description
+alias	274602	Cheese, swiss	fdc:description
+alias	274602	Plain Swiss Cheese	retired:287227
+alias	274605	Mustard, prepared, yellow	fdc:description
+alias	274605	Yellow Mustard	retired:287235
+alias	274606	Figs, dried, uncooked	fdc:description
+alias	274608	Melons, cantaloupe, raw	fdc:description
+alias	274609	Nectarines, raw	fdc:description
+alias	274610	Fresh Navel Oranges	retired:274649
+alias	274610	Oranges, raw, navels (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	274611	Fresh Strawberries	retired:287190
+alias	274611	Strawberries, raw	fdc:description
+alias	274612	Green Romaine Lettuce	retired:274740
+alias	274612	Lettuce, cos or romaine, raw	fdc:description
+alias	274613	Cheese, cheddar	fdc:description
+alias	274613	Cheese, cheddar (Includes foods for USDA's Food Distribution Program)	retired:280607
+alias	274615	Cheese, mozzarella, low moisture, part-skim	fdc:description
+alias	274615	Cheese, mozzarella, low moisture, part-skim, shredded	retired:278170
+alias	274616	Egg, whole, dried	fdc:description
+alias	274617	Egg, yolk, raw, frozen, pasteurized	fdc:description
+alias	274620	Yogurt, Greek, nonfat, plain, CHOBANI	retired:278564
+alias	274620	Yogurt, Greek, plain, nonfat	fdc:description
+alias	274622	Oil, coconut	fdc:description
+alias	274626	Sauce, pasta, spaghetti/marinara, ready-to-serve	fdc:description
+alias	274628	Pears, raw, bartlett (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	274629	Olives, green, Manzanilla, stuffed with pimiento	fdc:description
+alias	274630	Sausage, pork, chorizo, link or ground, cooked, pan-fried	fdc:description
+alias	274632	Tomatoes, canned, red, ripe, diced	fdc:description
+alias	274633	Fish, haddock, raw	fdc:description
+alias	274635	Fish, tuna, light, canned in water, drained solids	fdc:description
+alias	274635	Fish, tuna, light, canned in water, drained solids (Includes foods for USDA's Food Distribution Program)	retired:280891
+alias	274636	Cane Sugar	retired:287207
+alias	274636	Sugars, granulated	fdc:description
+alias	274648	Carrots, frozen, unprepared	fdc:description
+alias	274650	Pears, raw, bartlett	fdc:description
+alias	274653	Ketchup, restaurant	fdc:description
+alias	274661	Flour, whole wheat, unenriched	fdc:description
+alias	274661	Wheat flour, whole-grain (Includes foods for USDA's Food Distribution Program)	retired:276223
+alias	274662	Flour, bread, white, enriched, unbleached	fdc:description
+alias	274662	Wheat flours, bread, unenriched	retired:276243
+alias	274664	Flour, corn, yellow, fine meal, enriched	fdc:description
+alias	274665	Onions, red, raw	fdc:description
+alias	274666	Onions, yellow, raw	fdc:description
+alias	274669	Garlic, raw	fdc:description
+alias	274674	Flour, pastry, unenriched, unbleached	fdc:description
+alias	274675	Onions, white, raw	fdc:description
+alias	274677	Apples, honeycrisp, with skin, raw	fdc:description
+alias	274680	Apples, fuji, with skin, raw	fdc:description
+alias	274680	Apples, raw, fuji, with skin (Includes foods for USDA's Food Distribution Program)	retired:275159
+alias	274681	Soy milk, unsweetened, plain, shelf stable	fdc:description
+alias	274687	Spinach, baby	fdc:description
+alias	274689	Tomato, roma	fdc:description
+alias	274690	Flour, 00	fdc:description
+alias	274691	Flour, spelt, whole grain	fdc:description
+alias	274692	Flour, semolina, coarse and semi-coarse	fdc:description
+alias	274703	Mushroom, king oyster	fdc:description
+alias	274705	Mushroom, crimini	fdc:description
+alias	274710	Almond milk, unsweetened, plain, refrigerated	fdc:description
+alias	274710	Shelf-Stable Unsweetened Almond Milk	retired:274682
+alias	274711	Oat milk, unsweetened, plain, refrigerated	fdc:description
+alias	274713	Carrots, baby, raw	fdc:description
+alias	274715	Peppers, bell, yellow, raw	fdc:description
+alias	274716	Peppers, bell, red, raw	fdc:description
+alias	274717	Peppers, bell, orange, raw	fdc:description
+alias	274718	Buttermilk, low fat	fdc:description
+alias	274719	Yogurt, plain, whole milk	fdc:description
+alias	274720	Yogurt, Greek, plain, whole milk	fdc:description
+alias	274722	Cheese, feta, whole milk, crumbled	fdc:description
+alias	274723	Flour, almond	fdc:description
+alias	274724	Flour, oat, whole grain	fdc:description
+alias	274724	Oat flour, partially debranned	retired:277041
+alias	274725	Flour, potato	fdc:description
+alias	274726	Peanut Butter, smooth (Includes foods for USDA's Food Distribution Program)	retired:281461
+alias	274726	Peanut butter, creamy	fdc:description
+alias	274726	Smooth Salted Peanut Butter	retired:274593
+alias	274727	Sesame butter, creamy	fdc:description
+alias	274728	Almond butter, creamy	fdc:description
+alias	274729	Flaxseed, ground	fdc:description
+alias	274730	Raspberries, raw	fdc:description
+alias	274730	Raspberry	retired:287189
+alias	274731	Blueberries, raw	fdc:description
+alias	274732	Grapes, red, seedless, raw	fdc:description
+alias	274733	Grapes, green, seedless, raw	fdc:description
+alias	274734	Applesauce, canned, unsweetened, with added ascorbic acid	retired:275140
+alias	274734	Applesauce, canned, unsweetened, without added ascorbic acid (Includes foods for USDA's Food Distribution Program)	retired:278933
+alias	274734	Applesauce, unsweetened, with added vitamin C	fdc:description
+alias	274735	Cottage cheese, full fat, large or small curd	fdc:description
+alias	274735	Creamed Cottage Cheese	retired:279406
+alias	274736	Cream cheese, full fat, block	fdc:description
+alias	274736	Plain Cream Cheese	retired:280611
+alias	274739	Crisphead Lettuce	retired:276566
+alias	274739	Lettuce, iceberg, raw	fdc:description
+alias	274741	Lettuce, leaf, red, raw	fdc:description
+alias	274742	Lettuce, leaf, green, raw	fdc:description
+alias	274743	Dried Pine Nuts	retired:277864
+alias	274743	Nuts, pine nuts, raw	fdc:description
+alias	274746	Nuts, pecans, halves, raw	fdc:description
+alias	274746	Pecan	retired:277468
+alias	274747	Oats, whole grain, rolled, old fashioned	fdc:description
+alias	274748	Oats, whole grain, steel cut	fdc:description
+alias	274751	Beans, snap, green, raw	fdc:description
+alias	274751	Green Snap Beans	retired:287211
+alias	274753	Potatoes, red, without skin, raw	fdc:description
+alias	274754	Potatoes, gold, without skin, raw	fdc:description
+alias	274755	Raw Sweet Potatoes	retired:275829
+alias	274755	Sweet potatoes, orange flesh, without skin, raw	fdc:description
+alias	274756	Celery, raw	fdc:description
+alias	274757	Cucumber, with peel, raw	fdc:description
+alias	274759	Cabbage, red, raw	fdc:description
+alias	274762	Flour, sorghum	fdc:description
+alias	274763	Flour, buckwheat	fdc:description
+alias	274763	Whole-Groat Buckwheat Flour	retired:277959
+alias	274764	Flour, rye	fdc:description
+alias	274765	Barley flour or meal	retired:277039
+alias	274765	Flour, barley	fdc:description
+alias	274772	Beef, ground, 80% lean meat / 20% fat, raw	fdc:description
+alias	274773	Pork, ground, raw	fdc:description
+alias	274773	Raw Ground Pork	retired:275267
+alias	274777	Nuts, cashew nuts, raw	fdc:description
+alias	274779	Peanuts, raw	fdc:description
+alias	274782	Nuts, pistachio nuts, raw	fdc:description
+alias	274783	Seeds, pumpkin seeds (pepitas), raw	fdc:description
+alias	274785	Flour, coconut	fdc:description
+alias	274786	Beans, cannellini, dry	fdc:description
+alias	274787	Chickpeas, (garbanzo beans, bengal gram), dry	fdc:description
+alias	274789	Blackeye pea, dry	fdc:description
+alias	274790	Beans, black, canned, sodium added, drained and rinsed	fdc:description
+alias	274792	Beans, cannellini, canned, sodium added, drained and rinsed	fdc:description
+alias	274794	Beans, kidney, dark red, canned, sodium added, sugar added, drained and rinsed	fdc:description
+alias	274800	Pork, loin, boneless, raw	fdc:description
+alias	274802	Chicken, breast, boneless, skinless, raw	fdc:description
+alias	274802	Raw Chicken Breasts	retired:278339
+alias	274803	Chicken, thigh, boneless, skinless, raw	fdc:description
+alias	274805	Beef, round, top round, boneless, choice, raw	fdc:description
+alias	274806	Beef, chuck, roast, boneless, choice, raw	fdc:description
+alias	274808	Yogurt, plain, nonfat	fdc:description
+alias	274809	Cheese, monterey jack, solid	fdc:description
+alias	274813	Cheese, queso fresco, solid	fdc:description
+alias	274815	Fish, salmon, sockeye, wild caught, raw	fdc:description
+alias	274820	Catfish Fillets	retired:282303
+alias	274820	Fish, catfish, farm raised, raw	fdc:description
+alias	274821	Crustaceans, crab, blue swimming, lump, pasteurized, refrigerated	fdc:description
+alias	274823	Squash, summer, yellow, includes skin, raw	fdc:description
+alias	274824	Squash, winter, butternut, raw	fdc:description
+alias	274825	Squash, winter, acorn, raw	fdc:description
+alias	274826	Cabbage, bok choy, raw	fdc:description
+alias	274827	Cauliflower, raw	fdc:description
+alias	274827	Cauliflowers	retired:287213
+alias	274828	Collards, raw	fdc:description
+alias	274829	Brussels Sprout	retired:287219
+alias	274829	Brussels sprouts, raw	fdc:description
+alias	274830	Beets, raw	fdc:description
+alias	274831	Eggplant, raw	fdc:description
+alias	274831	Eggplants	retired:287202
+alias	274832	Tomatoes, whole, canned, solids and liquids, with salt added	fdc:description
+alias	274833	Tomato, sauce, canned, with salt added	fdc:description
+alias	274835	Tomatoes, crushed, canned	fdc:description
+alias	274836	Tomato, puree, canned	fdc:description
+alias	274838	Melons, honeydew, raw	fdc:description
+alias	274839	Plantains, ripe, raw	fdc:description
+alias	274842	Bulgur, dry, raw	fdc:description
+alias	274844	Arugula, baby, raw	fdc:description
+alias	274845	Asparagus Stalks	retired:275745
+alias	274845	Asparagus, green, raw	fdc:description
+alias	274846	Avocado, Hass, peeled, raw	fdc:description
+alias	274847	Rice, black, unenriched, raw	fdc:description
+alias	274848	Corn, sweet, yellow and white kernels,  fresh, raw	fdc:description
+alias	274850	Farro, pearled, dry, raw	fdc:description
+alias	274853	Kiwifruit (kiwi), green, peeled, raw	fdc:description
+alias	274854	Mandarin, seedless, peeled, raw	fdc:description
+alias	274856	Mango, Ataulfo, peeled, raw	fdc:description
+alias	274857	Corn flour, masa harina, white or yellow, dry, raw	fdc:description
+alias	274858	Pear, Anjou, green, with skin, raw	fdc:description
+alias	274859	Plum, black, with skin, raw	fdc:description
+alias	274861	Sorghum bran, white, unenriched, dry, raw	fdc:description
+alias	274866	Beef, short loin (NY strip steak), raw	fdc:description
+alias	274867	Beef, tenderloin steak, raw	fdc:description
+alias	274868	Beef, top sirloin steak, raw	fdc:description
+alias	274870	Beet greens, raw	fdc:description
+alias	274872	Fennel, bulb, raw	fdc:description
+alias	274873	Lobster, tail only, frozen, wild caught	fdc:description
+alias	274875	Parsnips, raw	fdc:description
+alias	274876	Peppers, banana or Hungarian wax, seeded, raw	fdc:description
+alias	274878	Peppers, poblano, seeded, raw	fdc:description
+alias	274881	Radishes, red, raw	fdc:description
+alias	274883	Scallops, sea, frozen, wild caught	fdc:description
+alias	274886	Snow crab, legs only, frozen	fdc:description
+alias	274887	Squid (calamari), frozen, tubes only	fdc:description
+alias	274889	Turnip	retired:287222
+alias	274889	Turnips, raw	fdc:description
+alias	274890	Watermelon, seedless, rind only, raw	fdc:description
+alias	274899	Pie Crust, Cookie-type, Graham Cracker, Ready Crust	fdc:description
+alias	274900	Pie Crust, Cookie-type, Chocolate, Ready Crust	fdc:description
+alias	274902	Pie crust, deep dish, frozen, unbaked, made with enriched flour	fdc:description
+alias	274914	Flour Tortilla	retired:126
+alias	274914	Tortillas, ready-to-bake or -fry, flour, refrigerated	retired:282177
+alias	274914	Tortillas, ready-to-bake or -fry, flour, shelf stable	fdc:description
+alias	274915	Snacks, beef jerky, chopped and formed	fdc:description
+alias	274934	Snacks, pretzels, hard, plain, salted	fdc:description
+alias	274940	Snacks, trail mix, regular	fdc:description
+alias	274946	Baking chocolate, unsweetened, squares	fdc:description
+alias	274949	Candies, white chocolate	fdc:description
+alias	274951	Ice creams, vanilla, rich	fdc:description
+alias	274953	Ice creams, vanilla	fdc:description
+alias	274955	Sherbet, orange	fdc:description
+alias	274965	Candies, milk chocolate	fdc:description
+alias	274985	Moose, meat, raw (Alaska Native)	fdc:description
+alias	274996	Sea cucumber, yane (Alaska Native)	fdc:description
+alias	274997	Squirrel, ground, meat (Alaska Native)	fdc:description
+alias	275000	Deer (venison), sitka, raw (Alaska Native)	fdc:description
+alias	275006	Cornmeal, blue (Navajo)	fdc:description
+alias	275009	Corn, dried (Navajo)	fdc:description
+alias	275012	Mutton, cooked, roasted (Navajo)	fdc:description
+alias	275016	Fish, halibut, raw, with skin (Alaska Native)	fdc:description
+alias	275018	Blueberries, wild, raw (Alaska Native)	fdc:description
+alias	275024	Fish, salmon, red, (sockeye), kippered (Alaska Native)	fdc:description
+alias	275031	Corn, dried, yellow (Northern Plains Indians)	fdc:description
+alias	275062	Whipped topping, frozen, low fat	fdc:description
+alias	275069	Sausage, turkey and pork, fresh, bulk, patty or link, cooked	fdc:description
+alias	275070	Mayonnaise, made with tofu	fdc:description
+alias	275077	Oil, flaxseed, cold pressed	fdc:description
+alias	275103	Milk, imitation, non-soy	fdc:description
+alias	275109	Mayonnaise dressing, no cholesterol	fdc:description
+alias	275116	Syrup, Cane	fdc:description
+alias	275117	Mollusks, snail, raw	fdc:description
+alias	275118	Turtle, green, raw	fdc:description
+alias	275119	Lemon juice from concentrate, bottled, REAL LEMON	retired:275168
+alias	275119	Lemon juice from concentrate, canned or bottled	fdc:description
+alias	275121	Plums, dried (prunes), stewed, without added sugar	fdc:description
+alias	275123	Prune juice, canned	fdc:description
+alias	275125	Raspberries, canned, red, heavy syrup pack, solids and liquids	fdc:description
+alias	275127	Rhubarb, raw	fdc:description
+alias	275131	Tamarinds, raw	fdc:description
+alias	275133	Watermelon, raw	fdc:description
+alias	275134	Maraschino cherries, canned, drained	fdc:description
+alias	275135	Pineapple, canned, juice pack, drained	fdc:description
+alias	275135	Pineapple, canned, juice pack, solids and liquids	retired:276452
+alias	275138	Cherries, sweet, canned, pitted, heavy syrup, drained	fdc:description
+alias	275145	Pears, raw, bosc (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	275146	Pears, raw, green anjou (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	275153	Pomegranate juice, bottled	fdc:description
+alias	275169	Cranberry sauce, whole, canned, OCEAN SPRAY	fdc:description
+alias	275170	Cranberry sauce, jellied, canned, OCEAN SPRAY	fdc:description
+alias	275172	Cherry juice, tart	fdc:description
+alias	275173	Raspberries, puree, seedless	fdc:description
+alias	275174	Raspberries, puree, with seeds	fdc:description
+alias	275176	Pork, fresh, backfat, raw	fdc:description
+alias	275177	Pork, fresh, belly, raw	fdc:description
+alias	275178	Pork, fresh, separable fat, raw	fdc:description
+alias	275183	Pork, fresh, loin, whole, separable lean and fat, raw	fdc:description
+alias	275204	Pork, fresh, loin, top loin (chops), boneless, separable lean and fat, raw	fdc:description
+alias	275208	Pork, fresh, shoulder, whole, separable lean and fat, raw	fdc:description
+alias	275218	Pork, fresh, spareribs, separable lean and fat, raw	fdc:description
+alias	275225	Pork, fresh, variety meats and by-products, kidneys, cooked, braised	fdc:description
+alias	275227	Pork, fresh, variety meats and by-products, liver, raw	fdc:description
+alias	275234	Canadian bacon, unprepared	fdc:description
+alias	275260	Pork, fresh, loin, country-style ribs, separable lean and fat, raw	fdc:description
+alias	275268	Pork, fresh, ground, cooked	fdc:description
+alias	275286	Pillsbury Grands, Buttermilk Biscuits, refrigerated dough	fdc:description
+alias	275295	Pie crust, refrigerated, regular, baked	fdc:description
+alias	275297	Pie crust, refrigerated, regular, unbaked	fdc:description
+alias	275300	Bread, pan dulce, sweet yeast bread	fdc:description
+alias	275310	Focaccia, Italian flatbread, plain	fdc:description
+alias	275320	Topping, SMUCKER'S MAGIC SHELL	fdc:description
+alias	275323	Air-Popped Popcorn	retired:277531
+alias	275323	Snacks, popcorn, air-popped	fdc:description
+alias	275336	Candies, butterscotch	fdc:description
+alias	275338	Candies, caramels	fdc:description
+alias	275340	Candies, semisweet chocolate	fdc:description
+alias	275341	Candies, sweet chocolate	fdc:description
+alias	275342	Candies, sweet chocolate coated fondant	fdc:description
+alias	275345	Ice creams, french vanilla, soft-serve	fdc:description
+alias	275350	Candies, fondant, prepared-from-recipe	fdc:description
+alias	275351	Candies, fudge, chocolate, prepared-from-recipe	fdc:description
+alias	275354	Candies, hard	fdc:description
+alias	275355	Candies, jellybeans	fdc:description
+alias	275359	Candies, marshmallows	fdc:description
+alias	275363	Baking chocolate, mexican, squares	fdc:description
+alias	275378	Cookies, animal crackers (includes arrowroot, tea biscuits)	fdc:description
+alias	275391	Soup, fish, homemade (Alaska Native)	fdc:description
+alias	275401	Corn, white, steamed (Navajo)	fdc:description
+alias	275404	Squash, Indian, raw (Navajo)	fdc:description
+alias	275450	Syrups, grenadine	fdc:description
+alias	275454	Ham, turkey, sliced, extra lean, prepackaged or deli	fdc:description
+alias	275456	Mayonnaise, reduced-calorie or diet, cholesterol-free	fdc:description
+alias	275466	Frozen yogurts, chocolate	fdc:description
+alias	275479	Cranberry juice, unsweetened	fdc:description
+alias	275488	Rolls, pumpernickel	fdc:description
+alias	275503	Cheese, swiss, low fat	fdc:description
+alias	275507	Jellies, reduced sugar, home preserved	fdc:description
+alias	275510	Frog legs, raw	fdc:description
+alias	275511	Fish, mackerel, salted	fdc:description
+alias	275513	Jujube, raw	fdc:description
+alias	275515	Kumquats, raw	fdc:description
+alias	275516	Blueberries, dried, sweetened	fdc:description
+alias	275517	Prunes, canned, heavy syrup pack, solids and liquids	fdc:description
+alias	275518	Prunes, dehydrated (low-moisture), uncooked	fdc:description
+alias	275519	Prunes, dehydrated (low-moisture), stewed	fdc:description
+alias	275520	Plums, dried (prunes), uncooked	fdc:description
+alias	275521	Quinces, raw	fdc:description
+alias	275522	Raisins, golden, seedless	fdc:description
+alias	275523	Raisins, dark, seedless (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	275525	Rhubarb, frozen, uncooked	fdc:description
+alias	275526	Rhubarb, frozen, cooked, with sugar	fdc:description
+alias	275528	Rose-apples, raw	fdc:description
+alias	275529	Strawberries, canned, heavy syrup pack, solids and liquids	fdc:description
+alias	275530	Strawberries, frozen, unsweetened (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	275538	Peaches, canned, heavy syrup, drained	fdc:description
+alias	275542	Peach nectar, canned, with added ascorbic acid	fdc:description
+alias	275544	Pineapple juice, canned or bottled, unsweetened, with added ascorbic acid	fdc:description
+alias	275544	Pineapple juice, canned or bottled, unsweetened, without added ascorbic acid	retired:277242
+alias	275544	Pineapple juice, canned, not from concentrate, unsweetened, with added vitamins A, C and E	retired:275562
+alias	275548	Dates, medjool	fdc:description
+alias	275558	Apples, raw, red delicious, with skin (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	275558	Fresh Red Delicious Apples	retired:274676
+alias	275559	Apples, raw, golden delicious, with skin	fdc:description
+alias	275560	Apples, raw, granny smith, with skin (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	275560	Fresh Granny Smith Apples	retired:274678
+alias	275561	Apples, raw, gala, with skin (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	275561	Fresh Gala Apples	retired:274679
+alias	275566	Raspberries, frozen, red, unsweetened	fdc:description
+alias	275572	Plantains, green, raw	fdc:description
+alias	275576	Pork, fresh, carcass, separable lean and fat, raw	fdc:description
+alias	275579	Pork, fresh, leg (ham), whole, separable lean and fat, raw	fdc:description
+alias	275587	Pork, fresh, loin, whole, separable lean only, raw	fdc:description
+alias	275606	Pork Tenderloins	retired:274801
+alias	275606	Pork, fresh, loin, tenderloin, separable lean only, raw	fdc:description
+alias	275606	Trimmed Pork Tenderloin	retired:275669
+alias	275620	Pork, fresh, loin, center loin (chops), boneless, separable lean only, raw	fdc:description
+alias	275624	Pork, fresh, variety meats and by-products, heart, raw	fdc:description
+alias	275627	Pork, fresh, variety meats and by-products, kidneys, raw	fdc:description
+alias	275632	Pork, fresh, variety meats and by-products, tongue, raw	fdc:description
+alias	275644	Pork, cured, salt pork, raw	fdc:description
+alias	275676	HORMEL ALWAYS TENDER, Center Cut Chops, Fresh Pork	fdc:description
+alias	275681	Pork, bacon, rendered fat, cooked	fdc:description
+alias	275740	Canadian bacon, cooked, pan-fried	fdc:description
+alias	275742	Artichokes, (globe or french), cooked, boiled, drained, without salt	fdc:description
+alias	275743	Artichokes, (globe or french), frozen, unprepared	fdc:description
+alias	275746	Asparagus, cooked, boiled, drained	fdc:description
+alias	275748	Balsam-pear (bitter gourd), pods, raw	fdc:description
+alias	275750	Lima beans, immature seeds, raw	fdc:description
+alias	275754	Corn, sweet, yellow, frozen, kernels on cob, unprepared	fdc:description
+alias	275760	Cress, garden, raw	fdc:description
+alias	275762	Edamame, frozen, unprepared	fdc:description
+alias	275763	Edamame, frozen, prepared	fdc:description
+alias	275764	Endive, raw	fdc:description
+alias	275765	Escarole, cooked, boiled, drained, no salt added	fdc:description
+alias	275770	Jute, potherb, raw	fdc:description
+alias	275772	Mushrooms, Chanterelle, raw	fdc:description
+alias	275773	Mushrooms, morel, raw	fdc:description
+alias	275774	Kohlrabi, raw	fdc:description
+alias	275779	Lettuce, butterhead (includes boston and bibb types), raw	fdc:description
+alias	275781	Lettuce, red leaf, raw	fdc:description
+alias	275784	Mushrooms, brown, italian, or crimini, raw	fdc:description
+alias	275786	Mushrooms, shiitake, dried	fdc:description
+alias	275794	Potatoes, french fried, steak fries, salt added in processing, frozen, as purchased	fdc:description
+alias	275797	Pumpkin, raw	fdc:description
+alias	275798	Pumpkin, cooked, boiled, drained, without salt	fdc:description
+alias	275799	Pumpkin, canned, without salt	fdc:description
+alias	275800	Radishes, oriental, raw	fdc:description
+alias	275803	Rutabagas, raw	fdc:description
+alias	275810	Spinach, mature	retired:274688
+alias	275810	Spinach, raw	fdc:description
+alias	275811	Spinach, cooked, boiled, drained, without salt	fdc:description
+alias	275812	Squash, summer, crookneck and straightneck, raw	fdc:description
+alias	275820	Squash, winter, butternut, frozen, unprepared	fdc:description
+alias	275822	Squash, winter, hubbard, raw	fdc:description
+alias	275831	Sweet potato, cooked, boiled, without skin	fdc:description
+alias	275837	Arrowroot, raw	fdc:description
+alias	275853	Beets, cooked, boiled. drained, with salt	fdc:description
+alias	275857	Broccoli, cooked, boiled, drained, with salt	fdc:description
+alias	275860	Brussels sprouts, cooked, boiled, drained, with salt	fdc:description
+alias	275861	Cabbage, common, cooked, boiled, drained, with salt	fdc:description
+alias	275867	Cauliflower, cooked, boiled, drained, with salt	fdc:description
+alias	275872	Corn, sweet, yellow, cooked, boiled, drained, with salt	fdc:description
+alias	275884	Corn, sweet, white, raw	fdc:description
+alias	275885	Corn, sweet, white, cooked, boiled, drained, without salt	fdc:description
+alias	275890	Corn, sweet, white, frozen, kernels cut off cob, unprepared	fdc:description
+alias	275892	Peppers, sweet, red, canned, solids and liquids	fdc:description
+alias	275901	Potatoes, mashed, home-prepared, whole milk and butter added	fdc:description
+alias	275903	Pimento, canned	fdc:description
+alias	275905	Pickle relish, sweet	fdc:description
+alias	275906	Pickles, cucumber, sour, low sodium	fdc:description
+alias	275907	Pickles, cucumber, dill, reduced sodium	fdc:description
+alias	275908	Squash, zucchini, baby, raw	fdc:description
+alias	275909	Tomatillos, raw	fdc:description
+alias	275910	Tomatoes, sun-dried	fdc:description
+alias	275912	Peppers, hot chile, sun-dried	fdc:description
+alias	275914	Cabbage, napa, cooked	fdc:description
+alias	275915	Lemon grass (citronella), raw	fdc:description
+alias	275916	Beans, fava, in pod, raw	fdc:description
+alias	275917	Grape leaves, raw	fdc:description
+alias	275918	Peppers, jalapeno, raw	fdc:description
+alias	275918	Peppers, jalapeno, seeded, raw	retired:274877
+alias	275919	Peppers, chili, green, canned	fdc:description
+alias	275921	Peppers, pasilla, dried	fdc:description
+alias	275929	Seeds, sisymbrium sp. seeds, whole, dried	fdc:description
+alias	275930	Nuts, almond butter, plain, without salt added	fdc:description
+alias	275934	Nuts, almonds, honey roasted, unblanched	fdc:description
+alias	275936	Seeds, sunflower seed kernels, toasted, with salt added	fdc:description
+alias	275937	Seeds, sunflower seed butter, with salt added (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	275938	Nuts, cashew butter, plain, with salt added	fdc:description
+alias	275940	Nuts, mixed nuts, dry roasted, with peanuts, with salt added	fdc:description
+alias	275943	Nuts, almonds, oil roasted, lightly salted	fdc:description
+alias	275944	Nuts, almond butter, plain, with salt added	fdc:description
+alias	275946	Beef, retail cuts, separable fat, raw	fdc:description
+alias	275965	Beef, variety meats and by-products, heart, raw	fdc:description
+alias	276003	Beef, brisket, whole, separable lean and fat, trimmed to 1/8" fat, all grades, raw	fdc:description
+alias	276065	Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8" fat, all grades, raw	fdc:description
+alias	276067	Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8" fat, choice, raw	fdc:description
+alias	276086	Beverages, almond milk, sweetened, vanilla flavor, ready-to-drink	fdc:description
+alias	276096	Candies, REESE'S Peanut Butter Cups	fdc:description
+alias	276097	Candies, REESE'S PIECES Candy	fdc:description
+alias	276107	Cocoa, dry powder, unsweetened, HERSHEY'S European Style Cocoa	fdc:description
+alias	276108	Gelatin desserts, dry mix	fdc:description
+alias	276112	Puddings, chocolate, dry mix, instant	fdc:description
+alias	276117	Puddings, vanilla, dry mix, instant	fdc:description
+alias	276128	Frostings, chocolate, creamy, ready-to-eat	fdc:description
+alias	276134	Candies, HEATH BITES	fdc:description
+alias	276142	Ice creams, chocolate	fdc:description
+alias	276143	Ice creams, strawberry	fdc:description
+alias	276148	Frozen yogurts, vanilla, soft-serve	fdc:description
+alias	276149	Fruit butters, apple	fdc:description
+alias	276152	Marmalade, orange	fdc:description
+alias	276153	Pectin, unsweetened, dry mix	fdc:description
+alias	276154	Pie fillings, apple, canned	fdc:description
+alias	276156	Pie fillings, canned, cherry	fdc:description
+alias	276165	Sugars, brown	fdc:description
+alias	276166	Syrups, chocolate, HERSHEY'S Genuine Chocolate Flavored Lite Syrup	fdc:description
+alias	276168	Syrups, corn, dark	fdc:description
+alias	276169	Syrups, corn, light	fdc:description
+alias	276171	Syrups, table blends, corn, refiner, and sugar	fdc:description
+alias	276173	Toppings, butterscotch or caramel	fdc:description
+alias	276189	Snacks, corn cakes	fdc:description
+alias	276203	Millet, cooked	fdc:description
+alias	276204	quinoa, uncooked	fdc:description
+alias	276207	Long-Grain White Rice	retired:274770
+alias	276207	Raw Rice	retired:277056
+alias	276207	Rice, white, long-grain, regular, raw, enriched	fdc:description
+alias	276208	Rice, white, long-grain, regular, enriched, cooked	fdc:description
+alias	276210	Rice, white, medium-grain, enriched, cooked	fdc:description
+alias	276211	Rice, white, short-grain, enriched, uncooked	fdc:description
+alias	276211	Rice, white, short-grain, raw, unenriched	retired:276261
+alias	276213	Rice, white, glutinous, unenriched, uncooked	fdc:description
+alias	276215	Rye flour, dark	fdc:description
+alias	276220	Wheat, hard red winter	fdc:description
+alias	276222	Wheat germ, crude	fdc:description
+alias	276224	Flour, wheat, all-purpose, enriched, bleached	retired:274658
+alias	276224	Unbleached All-Purpose Flour	retired:276266
+alias	276224	Unenriched All-Purpose Flour	retired:274660
+alias	276224	Wheat flour, white (industrial), 10% protein, unbleached, enriched	retired:276268
+alias	276224	Wheat flour, white, all-purpose, enriched, bleached	fdc:description
+alias	276224	Wheat flour, white, all-purpose, enriched, calcium-fortified	retired:277054
+alias	276225	Wheat flour, white, all-purpose, self-rising, enriched	fdc:description
+alias	276226	Wheat flour, white, bread, enriched	fdc:description
+alias	276227	Wild rice, cooked	fdc:description
+alias	276228	Rice flour, brown	fdc:description
+alias	276229	Pasta, gluten-free, corn, dry	fdc:description
+alias	276233	Macaroni, vegetable, enriched, dry	fdc:description
+alias	276234	Macaroni, vegetable, enriched, cooked	fdc:description
+alias	276235	Noodles, chinese, chow mein	fdc:description
+alias	276236	Noodles, japanese, soba, dry	fdc:description
+alias	276240	Pasta, whole-wheat, cooked (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	276244	Rice noodles, cooked	fdc:description
+alias	276247	Quinoa, cooked	fdc:description
+alias	276252	Cornmeal, degermed, enriched, white	fdc:description
+alias	276256	Noodles, egg, unenriched, cooked, without added salt	fdc:description
+alias	276259	Cornmeal, degermed, unenriched, yellow	fdc:description
+alias	276260	Rice, white, medium-grain, cooked, unenriched	fdc:description
+alias	276263	Semolina Flour	retired:274693
+alias	276263	Semolina, unenriched	fdc:description
+alias	276264	Spaghetti, protein-fortified, cooked, enriched (n x 6.25)	fdc:description
+alias	276265	Rice, white, long-grain, regular, cooked, unenriched, with salt	fdc:description
+alias	276267	Spaghetti, protein-fortified, dry, enriched (n x 6.25)	fdc:description
+alias	276274	Wheat flour, whole-grain, soft wheat	fdc:description
+alias	276291	Chicken, thighs, frozen, breaded, reheated	fdc:description
+alias	276294	Rice mix, white and wild, flavored, unprepared	fdc:description
+alias	276324	Cattail, Narrow Leaf Shoots (Northern Plains Indians)	fdc:description
+alias	276375	Gums, seed gums (includes locust bean, guar)	fdc:description
+alias	276385	Salad dressing, caesar dressing, regular	fdc:description
+alias	276387	Salad dressing, green goddess, regular	fdc:description
+alias	276390	Candies, gum drops, no sugar or low calorie (sorbitol)	fdc:description
+alias	276393	Pretzels, soft	fdc:description
+alias	276394	Beans, chili, barbecue, ranch style, cooked	fdc:description
+alias	276396	Meatballs, meatless	fdc:description
+alias	276401	Tomato sauce, canned, no salt added	fdc:description
+alias	276406	Cheese, cream, low fat	fdc:description
+alias	276408	Cheese spread, cream cheese base	fdc:description
+alias	276415	Loganberries, frozen	fdc:description
+alias	276418	Mango, dried, sweetened	fdc:description
+alias	276420	Olives, ripe, canned (small-extra large)	fdc:description
+alias	276421	Olives, ripe, canned (jumbo-super colossal)	fdc:description
+alias	276422	Olives, pickled, canned or bottled, green	fdc:description
+alias	276423	Florida Oranges	retired:277214
+alias	276423	Oranges, raw, all commercial varieties	fdc:description
+alias	276426	Orange juice, canned, unsweetened	retired:276425
+alias	276426	Orange juice, chilled, includes from concentrate	fdc:description
+alias	276426	Orange juice, no pulp, not fortified, not from concentrate, refrigerated	retired:274701
+alias	276429	Orange peel, raw	fdc:description
+alias	276431	Tangerines, (mandarin oranges), raw	fdc:description
+alias	276437	Peaches, canned, light syrup pack, solids and liquids	fdc:description
+alias	276442	Peaches, frozen, sliced, sweetened	fdc:description
+alias	276444	Pears, raw	fdc:description
+alias	276447	Pears, dried, sulfured, uncooked	fdc:description
+alias	276450	Fresh Pineapple	retired:274749
+alias	276450	Pineapple, raw, all varieties	fdc:description
+alias	276460	Pomegranates, raw	fdc:description
+alias	276470	Beets, cooked, boiled, drained	fdc:description
+alias	276513	Pork, shoulder, petite tender, boneless, separable lean and fat, cooked, broiled	fdc:description
+alias	276514	Pork, ground, 96% lean / 4% fat, raw	fdc:description
+alias	276529	Artichokes, (globe or french), raw	fdc:description
+alias	276531	Asparagus, canned, drained solids	fdc:description
+alias	276533	Bamboo shoots, raw	fdc:description
+alias	276538	Corn, sweet, yellow, canned, cream style, regular pack	fdc:description
+alias	276539	Corn, sweet, yellow, canned, vacuum pack, regular pack	fdc:description
+alias	276540	Corn, yellow, whole kernel, frozen, microwaved	fdc:description
+alias	276547	Cucumber, peeled, raw	fdc:description
+alias	276548	Dandelion greens, raw	fdc:description
+alias	276551	Ginger root, raw	fdc:description
+alias	276556	Jerusalem-artichokes, raw	fdc:description
+alias	276561	Mushrooms, shiitake	retired:274685
+alias	276561	Mushrooms, shiitake, raw	fdc:description
+alias	276565	Leeks, (bulb and lower leaf-portion), raw	fdc:description
+alias	276567	Lettuce, green leaf, raw	fdc:description
+alias	276569	Button Mushrooms	retired:274686
+alias	276569	Mushrooms, white, raw	fdc:description
+alias	276569	UV-Exposed White Mushrooms	retired:276691
+alias	276570	Mushrooms, white, cooked, boiled, drained, without salt	fdc:description
+alias	276571	Mushrooms, white, stir-fried	fdc:description
+alias	276572	Mushrooms, canned, drained solids	fdc:description
+alias	276574	Mustard greens, raw	fdc:description
+alias	276577	Okra, raw	fdc:description
+alias	276579	Okra, frozen, unprepared	fdc:description
+alias	276586	Potato salad, home-prepared	fdc:description
+alias	276591	Purslane, raw	fdc:description
+alias	276593	Radishes, raw	fdc:description
+alias	276594	Salsify, (vegetable oyster), raw	fdc:description
+alias	276595	Salsify, cooked, boiled, drained, without salt	fdc:description
+alias	276596	Sauerkraut, canned, solids and liquids	fdc:description
+alias	276602	Spinach, canned, regular pack, solids and liquids	fdc:description
+alias	276604	Spinach, frozen, chopped or leaf, unprepared (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	276606	Squash, summer, scallop, raw	fdc:description
+alias	276608	Squash, summer, green, zucchini, includes skin, raw	retired:274822
+alias	276614	Squash, winter, spaghetti, raw	fdc:description
+alias	276615	Squash, winter, spaghetti, cooked, boiled, drained, or baked, without salt	fdc:description
+alias	276621	Sweet potato, canned, mashed	fdc:description
+alias	276627	Artichokes, (globe or french), cooked, boiled, drained, with salt	fdc:description
+alias	276629	Asparagus, cooked, boiled, drained, with salt	fdc:description
+alias	276635	Beans, snap, yellow, raw	fdc:description
+alias	276636	Beans, snap, green, cooked, boiled, drained, with salt	fdc:description
+alias	276644	Broccoli, leaves, raw	fdc:description
+alias	276645	Broccoli, flower clusters, raw	fdc:description
+alias	276646	Broccoli, stalks, raw	fdc:description
+alias	276654	Carrots, cooked, boiled, drained, with salt	fdc:description
+alias	276657	Celery, cooked, boiled, drained, with salt	fdc:description
+alias	276680	Corn, sweet, white, frozen, kernels on cob, unprepared	fdc:description
+alias	276693	Pickles, cucumber, sweet (includes bread and butter pickles)	fdc:description
+alias	276694	Pickles, cucumber, sour	fdc:description
+alias	276695	Pickles, cucumber, sweet, low sodium (includes bread and butter pickles)	fdc:description
+alias	276696	Catsup, low sodium	fdc:description
+alias	276698	Peppers, sweet, yellow, raw	fdc:description
+alias	276699	Tomatoes, sun-dried, packed in oil, drained	fdc:description
+alias	276701	Arugula, raw	fdc:description
+alias	276708	Pepper, banana, raw	fdc:description
+alias	276709	Peppers, serrano, raw	fdc:description
+alias	276709	Peppers, serrano, seeded, raw	retired:274879
+alias	276711	Pickles, chowchow, with cauliflower onion mustard, sweet	fdc:description
+alias	276719	Fiddlehead ferns, raw	fdc:description
+alias	276723	Nuts, coconut milk, frozen (liquid expressed from grated meat and water)	fdc:description
+alias	276726	Seeds, sesame seed kernels, dried (decorticated)	fdc:description
+alias	276728	Seeds, flaxseed	fdc:description
+alias	276733	Nuts, almonds, oil roasted, with salt added, smoke flavor	fdc:description
+alias	276735	Nuts, cashew nuts, oil roasted, with salt added	fdc:description
+alias	276739	Nuts, pistachio nuts, dry roasted, with salt added	fdc:description
+alias	276746	Beef, flank, steak, separable lean and fat, trimmed to 0" fat, choice, raw	fdc:description
+alias	276746	Boneless Flank Steak	retired:274807
+alias	276762	Beef, New Zealand, imported, variety meats and by-products, kidney, raw	retired:281887
+alias	276762	Beef, variety meats and by-products, kidneys, raw	fdc:description
+alias	276764	Beef, variety meats and by-products, liver, raw	fdc:description
+alias	276770	Beef, top sirloin, steak, separable lean and fat, trimmed to 0" fat, all grades, cooked, broiled	fdc:description
+alias	276842	Beef, round, top round, steak, separable lean and fat, trimmed to 1/8" fat, all grades, raw	fdc:description
+alias	276842	Beef, round, top round, steak, separable lean and fat, trimmed to 1/8" fat, select, raw	retired:276051
+alias	276847	Beef, round, top round, separable lean and fat, trimmed to 1/8" fat, prime, raw	fdc:description
+alias	276855	Beef, tenderloin, steak, separable lean and fat, trimmed to 1/8" fat, all grades, raw	fdc:description
+alias	276858	Beef, tenderloin, separable lean and fat, trimmed to 1/8" fat, prime, raw	retired:276860
+alias	276858	Beef, tenderloin, steak, separable lean and fat, trimmed to 1/8" fat, choice, raw	fdc:description
+alias	276889	Candies, truffles, prepared-from-recipe	fdc:description
+alias	276890	Baking chocolate, MARS SNACKFOOD US, M&M's Semisweet Chocolate Mini Baking Bits	fdc:description
+alias	276892	Candies, MARS SNACKFOOD US, M&M's Milk Chocolate Candies	fdc:description
+alias	276902	Desserts, egg custard, baked, prepared-from-recipe	fdc:description
+alias	276905	Gelatins, dry powder, unsweetened	fdc:description
+alias	276912	Puddings, tapioca, dry mix	fdc:description
+alias	276914	Puddings, vanilla, ready-to-eat	fdc:description
+alias	276925	Frostings, cream cheese-flavor, ready-to-eat	fdc:description
+alias	276926	Frostings, vanilla, creamy, ready-to-eat	fdc:description
+alias	276928	Candies, HERSHEY'S MILK CHOCOLATE WITH ALMOND BITES	fdc:description
+alias	276932	Frostings, white, fluffy, dry mix, prepared with water	fdc:description
+alias	276952	Puddings, banana, dry mix, instant	fdc:description
+alias	276958	Puddings, lemon, dry mix, instant	fdc:description
+alias	276959	Sugars, powdered	fdc:description
+alias	276961	Sugars, maple	fdc:description
+alias	276962	Syrups, corn, high-fructose	fdc:description
+alias	276964	Canadian Maple Syrup	retired:277560
+alias	276964	Syrups, maple	fdc:description
+alias	276967	Toppings, marshmallow cream	fdc:description
+alias	276971	Frostings, glaze, prepared-from-recipe	fdc:description
+alias	276973	Candies, taffy, prepared-from-recipe	fdc:description
+alias	276974	Candies, toffee, prepared-from-recipe	fdc:description
+alias	276980	Snacks, potato chips, plain, salted	fdc:description
+alias	276998	Corn flour, yellow, degermed, unenriched	fdc:description
+alias	277001	Couscous, dry	fdc:description
+alias	277002	Couscous, cooked	fdc:description
+alias	277003	Hominy, canned, white	fdc:description
+alias	277004	Millet, raw	fdc:description
+alias	277005	Rice, brown, long grain, unenriched, raw	retired:274769
+alias	277005	Rice, brown, long-grain, raw (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	277011	Rice, white, long-grain, precooked or instant, enriched, dry	fdc:description
+alias	277012	Rice, white, long-grain, precooked or instant, enriched, prepared	fdc:description
+alias	277014	Rice, white, steamed, Chinese restaurant	fdc:description
+alias	277015	Rice flour, white, unenriched	fdc:description
+alias	277018	Tapioca, pearl, dry	fdc:description
+alias	277023	Wheat flour, white, cake, enriched	fdc:description
+alias	277026	Dry Wild Rice	retired:274843
+alias	277026	Wild rice, raw	fdc:description
+alias	277027	Pasta, fresh-refrigerated, plain, as purchased	fdc:description
+alias	277033	Noodles, egg, spinach, enriched, dry	fdc:description
+alias	277035	Noodles, flat, crunchy, Chinese restaurant	fdc:description
+alias	277036	Pasta, dry, enriched	fdc:description
+alias	277042	Rice noodles, dry	fdc:description
+alias	277045	Spelt, uncooked	fdc:description
+alias	277046	Spelt, cooked	fdc:description
+alias	277051	Pasta, cooked, enriched, with added salt	fdc:description
+alias	277052	Hominy, canned, yellow	fdc:description
+alias	277055	Dry Egg Noodles	retired:277031
+alias	277055	Noodles, egg, dry, unenriched	fdc:description
+alias	277060	Enriched Medium-Grain White Rice	retired:276209
+alias	277060	Rice, white, medium-grain, raw, unenriched	fdc:description
+alias	277061	Wheat flour, white, all-purpose, unenriched	fdc:description
+alias	277065	Ginger root, pickled, canned, with artificial sweetener	fdc:description
+alias	277066	Peppers, hot pickled, canned	fdc:description
+alias	277068	Potatoes, mashed, ready-to-eat	fdc:description
+alias	277071	Taquitos, frozen, chicken and cheese, oven-heated	fdc:description
+alias	277073	Potsticker or wonton, pork and vegetable, frozen, unprepared	fdc:description
+alias	277077	Spanish rice mix, dry mix, prepared (with canola/vegetable oil blend or diced tomatoes and margarine)	fdc:description
+alias	277098	Fish, blackfish, whole (Alaska Native)	fdc:description
+alias	277100	Caribou, bone marrow, raw (Alaska Native)	fdc:description
+alias	277102	Cloudberries, raw (Alaska Native)	fdc:description
+alias	277103	Cockles, raw (Alaska Native)	fdc:description
+alias	277108	Huckleberries, raw (Alaska Native)	fdc:description
+alias	277114	Agave, raw (Southwest)	fdc:description
+alias	277119	Stinging Nettles, blanched (Northern Plains Indians)	fdc:description
+alias	277121	Pinon Nuts, roasted (Navajo)	fdc:description
+alias	277128	Tea, herbal, brewed, Hohoysi (Hopi)	fdc:description
+alias	277129	Tortilla, blue corn, Sakwavikaviki (Hopi)	fdc:description
+alias	277178	Syrups, sugar free	fdc:description
+alias	277184	Beans, liquid from stewed kidney beans	fdc:description
+alias	277189	Cabbage, japanese style, fresh, pickled	fdc:description
+alias	277200	Cheese, american cheddar, imitation	fdc:description
+alias	277209	Mango, Tommy Atkins, peeled, raw	retired:274855
+alias	277209	Mangos, raw	fdc:description
+alias	277210	Melon balls, frozen	fdc:description
+alias	277211	Mulberries, raw	fdc:description
+alias	277213	Oranges, raw, California, valencias	fdc:description
+alias	277215	Oranges, raw, with peel	fdc:description
+alias	277229	Peaches, dried, sulfured, uncooked	fdc:description
+alias	277236	Persimmons, japanese, raw	fdc:description
+alias	277241	Pineapple, frozen, chunks, sweetened	fdc:description
+alias	277244	Plums, raw	fdc:description
+alias	277248	Lima beans, immature seeds, frozen, fordhook, unprepared	fdc:description
+alias	277250	Lima beans, immature seeds, frozen, baby, unprepared	fdc:description
+alias	277252	Mung beans, mature seeds, sprouted, raw	fdc:description
+alias	277259	Beans, snap, green, microwaved	fdc:description
+alias	277262	Broccoli, frozen, chopped, unprepared	fdc:description
+alias	277268	Burdock root, raw	fdc:description
+alias	277269	Cabbage, raw	fdc:description
+alias	277269	Raw Cabbage	retired:276651
+alias	277270	Cabbage, cooked, boiled, drained, without salt	fdc:description
+alias	277274	Cardoon, raw	fdc:description
+alias	277279	Celery, cooked, boiled, drained, without salt	fdc:description
+alias	277281	Chard, swiss, raw	fdc:description
+alias	277282	Chicory greens, raw	fdc:description
+alias	277283	Chicory roots, raw	fdc:description
+alias	277284	Chives, raw	fdc:description
+alias	277285	Chrysanthemum, garland, raw	fdc:description
+alias	277287	Coriander (cilantro) leaves, raw	fdc:description
+alias	277288	Corn, sweet, yellow, raw	fdc:description
+alias	277289	Corn, sweet, yellow, cooked, boiled, drained, without salt	fdc:description
+alias	277290	Onions, raw	fdc:description
+alias	277291	Onions, cooked, boiled, drained, without salt	fdc:description
+alias	277292	Onions, dehydrated flakes	fdc:description
+alias	277294	Onions, yellow, sauteed	fdc:description
+alias	277295	Onions, spring or scallions (includes tops and bulb), raw	fdc:description
+alias	277296	Onions, young green, tops only	fdc:description
+alias	277297	Onions, welsh, raw	fdc:description
+alias	277298	Onions, sweet, raw	fdc:description
+alias	277299	Parsnips, cooked, boiled, drained, without salt	fdc:description
+alias	277300	Peas, edible-podded, raw	fdc:description
+alias	277302	Peas, edible-podded, frozen, unprepared	fdc:description
+alias	277306	Peas, green, frozen, unprepared (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	277307	Peas, green, frozen, cooked, boiled, drained, without salt	fdc:description
+alias	277316	Potatoes, flesh and skin, raw	fdc:description
+alias	277317	Potatoes, russet, flesh and skin, raw (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	277318	Potatoes, white, flesh and skin, raw	fdc:description
+alias	277319	Potatoes, red, flesh and skin, raw	fdc:description
+alias	277321	Potatoes, roasted, salt added in processing, frozen, unprepared	fdc:description
+alias	277322	Potatoes, raw, skin	fdc:description
+alias	277323	Potatoes, baked, flesh and skin, without salt	retired:277381
+alias	277323	Potatoes, baked, flesh, without salt	fdc:description
+alias	277327	Potatoes, mashed, home-prepared, whole milk and margarine added	fdc:description
+alias	277340	Tomatoes, red, ripe, cooked	fdc:description
+alias	277342	Tomatoes, red, ripe, canned, stewed	fdc:description
+alias	277343	Tomatoes, red, ripe, canned, with green chilies	fdc:description
+alias	277348	Turnips, cooked, boiled, drained, without salt	fdc:description
+alias	277351	Turnip greens, raw	fdc:description
+alias	277358	Watercress, raw	fdc:description
+alias	277361	Yam, raw	fdc:description
+alias	277366	Dock, raw	fdc:description
+alias	277370	Peppers, jalapeno, canned, solids and liquids	fdc:description
+alias	277371	Radishes, white icicle, raw	fdc:description
+alias	277375	Tomato products, canned, sauce, spanish style	fdc:description
+alias	277378	Sweet potato, cooked, candied, home-prepared	fdc:description
+alias	277379	Tomatoes, red, ripe, cooked, stewed	fdc:description
+alias	277380	Seaweed, agar, dried	fdc:description
+alias	277384	Tomatoes, yellow, raw	fdc:description
+alias	277388	Onions, cooked, boiled, drained, with salt	fdc:description
+alias	277390	Peas, green, cooked, boiled, drained, with salt	fdc:description
+alias	277393	Peas, green, frozen, cooked, boiled, drained, with salt	fdc:description
+alias	277394	Peppers, hot chili, red, raw	fdc:description
+alias	277395	Peppers, hot chili, red, canned, excluding seeds, solids and liquids	fdc:description
+alias	277396	Peppers, sweet, red, raw	fdc:description
+alias	277399	Potatoes, baked, flesh and skin, with salt	fdc:description
+alias	277402	Potatoes, boiled, cooked in skin, flesh, with salt	fdc:description
+alias	277402	Potatoes, boiled, cooked without skin, flesh, with salt	retired:277793
+alias	277426	Tomatoes, red, ripe, canned, packed in tomato juice, no salt added	fdc:description
+alias	277436	Seeds, hemp seed, hulled	fdc:description
+alias	277438	Seeds, sesame seeds, whole, dried	fdc:description
+alias	277439	Seeds, sesame seeds, whole, roasted and toasted	fdc:description
+alias	277443	Seeds, sunflower seed butter, without salt	fdc:description
+alias	277446	Nuts, almonds, dry roasted, without salt added	fdc:description
+alias	277447	Nuts, almonds, oil roasted, without salt added	fdc:description
+alias	277448	Nuts, almond paste	fdc:description
+alias	277450	Nuts, cashew butter, plain, without salt added	fdc:description
+alias	277453	Nuts, chestnuts, chinese, boiled and steamed	fdc:description
+alias	277455	Nuts, chestnuts, european, boiled and steamed	fdc:description
+alias	277456	Nuts, coconut meat, raw	fdc:description
+alias	277457	Nuts, coconut meat, dried (desiccated), not sweetened	fdc:description
+alias	277459	Nuts, coconut milk, raw (liquid expressed from grated meat and water)	fdc:description
+alias	277460	Nuts, coconut milk, canned (liquid expressed from grated meat and water)	fdc:description
+alias	277461	Nuts, coconut water (liquid from coconuts)	fdc:description
+alias	277465	Nuts, macadamia nuts, dry roasted, without salt added	fdc:description
+alias	277469	Nuts, pecans, dry roasted, without salt added	fdc:description
+alias	277470	Nuts, pistachio nuts, dry roasted, without salt added	fdc:description
+alias	277471	Nuts, walnuts, black, dried	fdc:description
+alias	277472	English Walnuts	retired:274745
+alias	277472	Nuts, walnuts, english	fdc:description
+alias	277475	Nuts, chestnuts, european, roasted	fdc:description
+alias	277476	Seeds, sesame butter, paste	fdc:description
+alias	277478	Beef, variety meats and by-products, suet, raw	fdc:description
+alias	277481	Beef, variety meats and by-products, tongue, raw	fdc:description
+alias	277484	Beef, cured, corned beef, brisket, raw	fdc:description
+alias	277485	Beef, cured, corned beef, brisket, cooked	fdc:description
+alias	277489	Beef, cured, pastrami	fdc:description
+alias	277555	Chocolate, dark, 45- 59% cacao solids	fdc:description
+alias	277556	Chocolate, dark, 60-69% cacao solids	fdc:description
+alias	277557	Chocolate, dark, 70-85% cacao solids	fdc:description
+alias	277561	Sweetener, syrup, agave	fdc:description
+alias	277567	Barley, hulled	fdc:description
+alias	277568	Barley, pearled, raw	fdc:description
+alias	277569	Barley, pearled, cooked	fdc:description
+alias	277661	Broccoli raab, raw	fdc:description
+alias	277667	Cabbage, savoy, raw	fdc:description
+alias	277671	Cabbage, kimchi	fdc:description
+alias	277672	Carrots, raw	fdc:description
+alias	277672	Mature Carrots	retired:274712
+alias	277673	Carrots, cooked, boiled, drained, without salt	fdc:description
+alias	277676	Cauliflower, cooked, boiled, drained, without salt	fdc:description
+alias	277677	Cauliflower, frozen, unprepared	fdc:description
+alias	277679	Celeriac, raw	fdc:description
+alias	277682	Chayote, fruit, cooked, boiled, drained, without salt	fdc:description
+alias	277690	Onions, frozen, whole, unprepared	fdc:description
+alias	277692	Onion rings, breaded, par fried, frozen, unprepared	fdc:description
+alias	277693	Parsley, fresh	fdc:description
+alias	277695	Peas, green, raw	fdc:description
+alias	277696	Peas, green, cooked, boiled, drained, without salt	fdc:description
+alias	277697	Peas, green, canned, regular pack, solids and liquids	fdc:description
+alias	277698	Peas, mature seeds, sprouted, raw	fdc:description
+alias	277702	Peppers, hot chili, green, canned, pods, excluding seeds, solids and liquids	fdc:description
+alias	277703	Green Sweet Pepper	retired:274714
+alias	277703	Peppers, sweet, green, raw	fdc:description
+alias	277705	Peppers, sweet, green, canned, solids and liquids	fdc:description
+alias	277708	Pokeberry shoots, (poke), raw	fdc:description
+alias	277710	Potatoes, white, flesh and skin, baked	fdc:description
+alias	277711	Potatoes, red, flesh and skin, baked	fdc:description
+alias	277714	Potatoes, boiled, cooked in skin, flesh, without salt	fdc:description
+alias	277714	Potatoes, boiled, cooked without skin, flesh, without salt	retired:277716
+alias	277732	Tomatoes, green, raw	fdc:description
+alias	277733	Tomatoes, red, ripe, raw, year round average	fdc:description
+alias	277735	No-Salt-Added Tomato Paste	retired:274834
+alias	277735	Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	277736	Tomato products, canned, puree, without salt added	fdc:description
+alias	277746	Vegetables, mixed, frozen, unprepared	fdc:description
+alias	277747	Vegetables, mixed, frozen, cooked, boiled, drained, without salt	fdc:description
+alias	277755	Beets, pickled, canned, solids and liquids	fdc:description
+alias	277756	Borage, raw	fdc:description
+alias	277761	Parsley, freeze-dried	fdc:description
+alias	277762	Squash, summer, all varieties, raw	fdc:description
+alias	277764	Squash, winter, all varieties, raw	fdc:description
+alias	277768	Potatoes, mashed, home-prepared, whole milk added	fdc:description
+alias	277770	Seaweed, wakame, raw	fdc:description
+alias	277771	Peppers, hot chili, green, raw	fdc:description
+alias	277773	Shallots, raw	fdc:description
+alias	277775	Tomatoes, orange, raw	fdc:description
+alias	277781	Parsnips, cooked, boiled, drained, with salt	fdc:description
+alias	277799	Pumpkin, cooked, boiled, drained, with salt	fdc:description
+alias	277802	Salsify, cooked, boiled, drained, with salt	fdc:description
+alias	277804	Spinach, cooked, boiled, drained, with salt	fdc:description
+alias	277814	Sweet potato, cooked, boiled, without skin, with salt	fdc:description
+alias	277818	Tomato juice, canned, without salt added	fdc:description
+alias	277820	Turnips, cooked, boiled, drained, with salt	fdc:description
+alias	277827	Raw Chia Seeds	retired:274841
+alias	277827	Seeds, chia seeds, dried	fdc:description
+alias	277830	Seeds, pumpkin and squash seed kernels, roasted, without salt	fdc:description
+alias	277835	Seeds, sunflower seed kernels, dried	fdc:description
+alias	277836	Seeds, sunflower seed kernels, dry roasted, without salt	fdc:description
+alias	277840	Nuts, almonds	fdc:description
+alias	277840	Raw Almonds	retired:274744
+alias	277841	Nuts, almonds, blanched	fdc:description
+alias	277843	Nuts, butternuts, dried	fdc:description
+alias	277844	Nuts, cashew nuts, dry roasted, without salt added	fdc:description
+alias	277847	Nuts, chestnuts, european, raw, unpeeled	fdc:description
+alias	277848	Nuts, chestnuts, european, raw, peeled	fdc:description
+alias	277850	Nuts, coconut meat, dried (desiccated), sweetened, flaked, packaged	fdc:description
+alias	277852	Nuts, coconut meat, dried (desiccated), toasted	fdc:description
+alias	277853	Nuts, coconut cream, raw (liquid expressed from grated meat)	fdc:description
+alias	277854	Nuts, hazelnuts or filberts	fdc:description
+alias	277854	Raw Hazelnuts	retired:274778
+alias	277855	Nuts, hazelnuts or filberts, blanched	fdc:description
+alias	277856	Nuts, hazelnuts or filberts, dry roasted, without salt added	fdc:description
+alias	277862	Nuts, pecans, oil roasted, without salt added	fdc:description
+alias	277865	Nuts, pine nuts, pinyon, dried	fdc:description
+alias	277866	Nuts, walnuts, glazed	fdc:description
+alias	277871	Beef, variety meats and by-products, tongue, cooked, simmered	fdc:description
+alias	277873	Beef, sandwich steaks, flaked, chopped, formed and thinly sliced, raw	fdc:description
+alias	277875	Beef, cured, corned beef, canned	fdc:description
+alias	277877	Beef, cured, dried	fdc:description
+alias	277880	Beef, chopped, cured, smoked	fdc:description
+alias	277918	Jams and preserves, apricot	fdc:description
+alias	277930	Cocoa, dry powder, hi-fat or breakfast, processed with alkali	fdc:description
+alias	277947	Sugar, turbinado	fdc:description
+alias	277948	Sweeteners, sugar substitute, granulated, brown	fdc:description
+alias	277950	Candies, M&M MARS Pretzel Chocolate Candies	fdc:description
+alias	277951	Sweetener, herbal extract powder from Stevia leaf	fdc:description
+alias	277953	Syrup, NESTLE, chocolate	fdc:description
+alias	277957	Buckwheat groats, roasted, dry	fdc:description
+alias	277960	Bulgur, dry	fdc:description
+alias	277965	Fast foods, hamburger; single, regular patty; plain	fdc:description
+alias	278074	Beef, chuck eye steak, boneless, separable lean only, trimmed to 0" fat, choice, raw	fdc:description
+alias	278106	Beef, chuck eye steak, boneless, separable lean and fat, trimmed to 0" fat, choice, raw	fdc:description
+alias	278115	Cheese, fontina	fdc:description
+alias	278119	Cheese, mozzarella, part skim milk	fdc:description
+alias	278120	Cheese, parmesan, hard	fdc:description
+alias	278122	Cheese, provolone	fdc:description
+alias	278122	Cheese, provolone, sliced	retired:274811
+alias	278125	Cheese, pasteurized process, pimento	fdc:description
+alias	278128	Cream, fluid, light (coffee cream or table cream)	fdc:description
+alias	278129	Cream, fluid, light whipping	fdc:description
+alias	278130	Cream, fluid, heavy whipping	fdc:description
+alias	278130	Heavy Whipping Cream	retired:274737
+alias	278131	Cream, whipped, cream topping, pressurized	fdc:description
+alias	278140	Sour cream, imitation, cultured	fdc:description
+alias	278152	Milk, sheep, fluid	fdc:description
+alias	278156	Yogurt, plain, low fat	fdc:description
+alias	278158	Yogurt, vanilla, low fat, fortified with vitamin D	retired:279442
+alias	278168	Cheese, mexican, queso cotija	fdc:description
+alias	278168	Cotija Cheese Block	retired:274814
+alias	278169	Cheese, cheddar, sharp, sliced	fdc:description
+alias	278171	Yogurt, Greek, nonfat, vanilla, CHOBANI	retired:278549
+alias	278171	Yogurt, Greek, vanilla, nonfat	fdc:description
+alias	278172	Yogurt, Greek, plain, lowfat	fdc:description
+alias	278173	Kefir, lowfat, plain, LIFEWAY	fdc:description
+alias	278175	Yogurt, vanilla, non-fat	fdc:description
+alias	278186	Spices, bay leaf	fdc:description
+alias	278187	Spices, caraway seed	fdc:description
+alias	278188	Spices, cardamom	fdc:description
+alias	278189	Spices, celery seed	fdc:description
+alias	278190	Spices, coriander leaf, dried	fdc:description
+alias	278191	Spices, cumin seed	fdc:description
+alias	278192	Spices, curry powder	fdc:description
+alias	278193	Spices, ginger, ground	fdc:description
+alias	278194	Spices, mace, ground	fdc:description
+alias	278195	Spices, mustard seed, ground	fdc:description
+alias	278196	Spices, parsley, dried	fdc:description
+alias	278197	Spices, pepper, white	fdc:description
+alias	278198	Spices, saffron	fdc:description
+alias	278199	Spices, sage, ground	fdc:description
+alias	278200	Spices, tarragon, dried	fdc:description
+alias	278266	Salad dressing, KRAFT MIRACLE WHIP FREE Nonfat Dressing	fdc:description
+alias	278267	Salad dressing, russian dressing	fdc:description
+alias	278268	Salad dressing, sesame seed dressing, regular	fdc:description
+alias	278271	Salad dressing, mayonnaise, regular	fdc:description
+alias	278271	Salad dressing, mayonnaise, soybean and safflower oil, with salt	retired:278272
+alias	278277	Oil, palm	fdc:description
+alias	278278	Oil, sesame, salad or cooking	fdc:description
+alias	278281	Salad dressing, italian dressing, commercial, regular	fdc:description
+alias	278284	Salad dressing, italian dressing, commercial, regular, without salt	fdc:description
+alias	278291	Oil, corn, industrial and retail, all purpose salad or cooking	fdc:description
+alias	278293	Oil, almond	fdc:description
+alias	278305	Salad dressing, honey mustard, regular	fdc:description
+alias	278314	Chicken, broilers or fryers, meat only, raw	fdc:description
+alias	278315	Chicken, broilers or fryers, meat only, cooked, fried	fdc:description
+alias	278319	Chicken, broilers or fryers, giblets, raw	fdc:description
+alias	278322	Chicken, liver, all classes, raw	fdc:description
+alias	278323	Chicken, liver, all classes, cooked, simmered	fdc:description
+alias	278341	Squab, (pigeon), meat only, raw	fdc:description
+alias	278342	Squab, (pigeon), light meat without skin, raw	fdc:description
+alias	278343	Turkey, whole, meat and skin, raw	fdc:description
+alias	278348	Turkey, whole, neck, meat only, raw	fdc:description
+alias	278357	Turkey, fryer-roasters, meat and skin, cooked, roasted	fdc:description
+alias	278362	Pate de foie gras, canned (goose liver pate), smoked	fdc:description
+alias	278378	Chicken, ground, raw	fdc:description
+alias	278378	Chicken, ground, with additives, raw	retired:274774
+alias	278379	Chicken, ground, crumbles, cooked, pan-browned	fdc:description
+alias	278381	Chicken, feet, boiled	fdc:description
+alias	278406	Soup, chicken, canned, chunky, ready-to-serve	fdc:description
+alias	278407	Soup, cream of chicken, canned, condensed	fdc:description
+alias	278416	CAMPBELL'S, Cream of Mushroom Soup, condensed	retired:280111
+alias	278416	Soup, cream of mushroom, canned, condensed	fdc:description
+alias	278426	Soup, onion, dry, mix	fdc:description
+alias	278427	Soup, cream of vegetable, dry, powder	fdc:description
+alias	278428	Sauce, teriyaki, ready-to-serve	fdc:description
+alias	278430	Gravy, au jus, dry	fdc:description
+alias	278431	Gravy, mushroom, canned	fdc:description
+alias	278432	Gravy, mushroom, dry, powder	fdc:description
+alias	278434	Gravy, pork, dry, powder	fdc:description
+alias	278435	Sauce, sofrito, prepared from recipe	fdc:description
+alias	278437	Soup, tomato, canned, prepared with equal volume water, commercial	fdc:description
+alias	278438	Soup, ramen noodle, any flavor, dry	fdc:description
+alias	278447	Sauce, hot chile, sriracha	fdc:description
+alias	278449	Sauce, hot chile, sriracha, TUONG OT SRIRACHA	fdc:description
+alias	278452	Sauce, cheese, ready-to-serve	fdc:description
+alias	278466	Beef, chuck for stew, separable lean and fat, all grades, raw	fdc:description
+alias	278501	Cheese, gouda	fdc:description
+alias	278502	Cheese, gruyere	fdc:description
+alias	278503	Cheese, limburger	fdc:description
+alias	278504	Cheese, muenster	fdc:description
+alias	278505	Cheese, neufchatel	fdc:description
+alias	278506	Cheese, ricotta, part skim milk	fdc:description
+alias	278507	Cheese, romano	fdc:description
+alias	278508	Cheese, roquefort	fdc:description
+alias	278512	Cream, fluid, half and half	fdc:description
+alias	278513	Cream, sour, reduced fat, cultured	fdc:description
+alias	278514	Cream, sour, cultured	fdc:description
+alias	278514	Full-Fat Sour Cream	retired:274738
+alias	278517	Yogurt, Greek, 2%fat, coconut blend, CHOBANI	fdc:description
+alias	278528	Milk, buttermilk, dried	fdc:description
+alias	278529	Milk, canned, condensed, sweetened	fdc:description
+alias	278532	Milk, goat, fluid, with added vitamin D	fdc:description
+alias	278533	Milk, human, mature, fluid	fdc:description
+alias	278540	Egg, whole, raw, fresh	fdc:description
+alias	278540	Whole Raw Eggs	retired:274656
+alias	278541	Cheese, Mexican blend	fdc:description
+alias	278555	Milk, evaporated, 2% fat, with added vitamin A and vitamin D	fdc:description
+alias	278566	Butter, Clarified butter (ghee)	fdc:description
+alias	278567	Spices, anise seed	fdc:description
+alias	278568	Spices, fennel seed	fdc:description
+alias	278569	Spices, fenugreek seed	fdc:description
+alias	278570	Spices, garlic powder	fdc:description
+alias	278571	Spices, nutmeg, ground	fdc:description
+alias	278572	Spices, onion powder	fdc:description
+alias	278573	Spices, poppy seed	fdc:description
+alias	278574	Spices, poultry seasoning	fdc:description
+alias	278575	Spices, pumpkin pie spice	fdc:description
+alias	278576	Spices, rosemary, dried	fdc:description
+alias	278642	Salad dressing, thousand island, commercial, regular	fdc:description
+alias	278650	Oil, peanut, salad or cooking	fdc:description
+alias	278651	Oil, soybean, salad or cooking	fdc:description
+alias	278652	Oil, olive, salad or cooking	fdc:description
+alias	278653	Salad dressing, french dressing, commercial, regular	fdc:description
+alias	278654	Margarine,spread, 35-39% fat, tub	fdc:description
+alias	278654	Margarine-like spread, SMART BALANCE Light Buttery Spread	retired:279587
+alias	278655	Salad dressing, french, home recipe	fdc:description
+alias	278660	Oil, cocoa butter	fdc:description
+alias	278669	Oil, PAM cooking spray, original	fdc:description
+alias	278682	Mayonnaise, reduced fat, with olive oil	fdc:description
+alias	278683	Salad dressing, mayonnaise-type, light	fdc:description
+alias	278686	Chicken, broilers or fryers, meat and skin, raw	fdc:description
+alias	278689	Chicken, broilers or fryers, meat and skin, cooked, roasted	fdc:description
+alias	278689	Chicken, roasting, meat and skin, cooked, roasted	retired:280821
+alias	278695	Chicken, gizzard, all classes, raw	fdc:description
+alias	278707	Chicken, broilers or fryers, separable fat, raw	fdc:description
+alias	278718	Turkey, whole, meat and skin, cooked, roasted	fdc:description
+alias	278719	Turkey, whole, meat only, raw	fdc:description
+alias	278720	Turkey, whole, meat only, cooked, roasted	fdc:description
+alias	278732	Turkey, all classes, leg, meat and skin, raw	fdc:description
+alias	278735	Turkey, whole, breast, meat only, cooked, roasted	fdc:description
+alias	278738	Turkey, young hen, skin only, cooked, roasted	fdc:description
+alias	278742	Turkey roast, boneless, frozen, seasoned, light and dark meat, raw	fdc:description
+alias	278746	Chicken, cornish game hens, meat and skin, raw	fdc:description
+alias	278773	Chicken, broiler or fryers, breast, skinless, boneless, meat only, cooked, grilled	fdc:description
+alias	278775	Chicken, broiler or fryers, breast, skinless, boneless, meat only, with added solution, cooked, grilled	fdc:description
+alias	278777	Soup, beef broth or bouillon canned, ready-to-serve	fdc:description
+alias	278780	Soup, cheese, canned, condensed	fdc:description
+alias	278781	Soup, chicken broth, canned, condensed	fdc:description
+alias	278787	Soup, beef broth bouillon and consomme, canned, condensed	fdc:description
+alias	278793	Soup, pea, green, canned, condensed	fdc:description
+alias	278799	Soup, beef broth or bouillon, powder, dry	fdc:description
+alias	278802	Soup, chicken broth cubes, dry	fdc:description
+alias	278803	Gravy, beef, canned, ready-to-serve	fdc:description
+alias	278804	Gravy, brown, dry	fdc:description
+alias	278818	Sauce, pesto, ready-to-serve, refrigerated	fdc:description
+alias	278819	Sauce, pesto, ready-to-serve, shelf stable	fdc:description
+alias	278822	Canned Vegetable Broth	retired:278441
+alias	278822	Soup, vegetable broth, ready to serve	fdc:description
+alias	278827	Gravy, brown instant, dry	fdc:description
+alias	278834	Sauce, tomato chili sauce, bottled, with salt	fdc:description
+alias	278836	Sauce, pasta, spaghetti/marinara, ready-to-serve, low sodium	fdc:description
+alias	278837	Gravy, meat or poultry, low sodium, prepared	fdc:description
+alias	278842	Sauce, alfredo mix, dry	fdc:description
+alias	278843	Sauce, peppers, hot, chili, mature red, canned	fdc:description
+alias	278844	Sauce, chili, peppers, hot, immature green, canned	fdc:description
+alias	278847	Soup, chicken broth, low sodium, canned	fdc:description
+alias	278848	Sauce, worcestershire	fdc:description
+alias	278851	Soup, bouillon cubes and granules, low sodium, dry	fdc:description
+alias	278869	Sausage, Italian, pork, mild, raw	fdc:description
+alias	278871	Frankfurter, meat and poultry, cooked, boiled	fdc:description
+alias	278876	Meatballs, frozen, Italian style	fdc:description
+alias	278888	Cereals ready-to-eat, POST Raisin Bran Cereal	fdc:description
+alias	278892	Cereals, corn grits, white, regular and quick, enriched, dry	fdc:description
+alias	278899	Cereals, oats, instant, fortified, plain, dry	fdc:description
+alias	278905	Cereals, whole wheat hot natural cereal, dry	fdc:description
+alias	278926	Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	278927	Apples, raw, without skin	fdc:description
+alias	278929	Apples, dried, sulfured, uncooked	fdc:description
+alias	278934	Applesauce, canned, sweetened, without salt	fdc:description
+alias	278935	Apricots, raw	fdc:description
+alias	278943	Avocados, raw, California	retired:278944
+alias	278943	Avocados, raw, all commercial varieties	fdc:description
+alias	278946	Cherries, tart, dried, sweetened (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	278948	Blackberries, frozen, unsweetened	fdc:description
+alias	278955	Cherries, sour, red, frozen, unsweetened (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	278956	Black Cherries	retired:274750
+alias	278956	Cherries, sweet, raw	fdc:description
+alias	278958	Crabapples, raw	fdc:description
+alias	278959	Cranberries, raw	fdc:description
+alias	278960	Cranberries, dried, sweetened (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	278961	Currants, zante, dried	fdc:description
+alias	278962	Custard-apple, (bullock's-heart), raw	fdc:description
+alias	278963	Dates, deglet noor	fdc:description
+alias	278964	Elderberries, raw	fdc:description
+alias	279026	Beef, ground, 95% lean meat / 5% fat, raw	fdc:description
+alias	279060	Sauce, salsa, verde, ready-to-serve	fdc:description
+alias	279061	Sauce, steak, tomato based	fdc:description
+alias	279062	Sauce, tartar, ready-to-serve	fdc:description
+alias	279068	Sauce, horseradish	fdc:description
+alias	279080	Bread, naan, plain, commercially prepared, refrigerated	fdc:description
+alias	279082	Cookies, coconut macaroon	fdc:description
+alias	279085	Bread, wheat, sprouted	fdc:description
+alias	279090	Crackers, whole grain, sandwich-type, with peanut butter filling	fdc:description
+alias	279091	Crackers, water biscuits	fdc:description
+alias	279104	Beverages, carbonated, tonic water	fdc:description
+alias	279115	Beverages, coffee, brewed, breakfast blend	fdc:description
+alias	279123	Beverages, coffee, brewed, prepared with tap water, decaffeinated	fdc:description
+alias	279124	Beverages, coffee, brewed, prepared with tap water	fdc:description
+alias	279127	Beverages, coffee, instant, regular, powder	fdc:description
+alias	279141	Beverages, tea, green, brewed, decaffeinated	fdc:description
+alias	279142	Beverages, tea, green, ready to drink, unsweetened	fdc:description
+alias	279148	Beverages, tea, green, brewed, regular	fdc:description
+alias	279169	Beverages, Horchata, as served in restaurant	fdc:description
+alias	279174	Beverages, tea, hibiscus, brewed	fdc:description
+alias	279176	Fish, bass, striped, raw	fdc:description
+alias	279177	Fish, bluefish, raw	fdc:description
+alias	279179	Fish, butterfish, raw	fdc:description
+alias	279180	Fish, carp, raw	fdc:description
+alias	279183	Fish, cod, Atlantic, raw	fdc:description
+alias	279184	Fish, cod, Atlantic, cooked, dry heat	fdc:description
+alias	279198	Crustaceans, shrimp, mixed species, cooked, moist heat (may contain additives to retain moisture)	fdc:description
+alias	279199	Crustaceans, shrimp, mixed species, canned	fdc:description
+alias	279201	Mollusks, clam, mixed species, cooked, breaded and fried	fdc:description
+alias	279202	Mollusks, clam, mixed species, cooked, moist heat	fdc:description
+alias	279203	Mollusks, clam, mixed species, canned, drained solids	fdc:description
+alias	279204	Mollusks, clam, mixed species, canned, liquid	fdc:description
+alias	279205	Mollusks, oyster, eastern, wild, raw	fdc:description
+alias	279206	Mollusks, oyster, eastern, cooked, breaded and fried	fdc:description
+alias	279207	Mollusks, oyster, eastern, wild, cooked, moist heat	fdc:description
+alias	279208	Mollusks, oyster, eastern, canned	fdc:description
+alias	279212	Fish, salmon, chinook, smoked, (lox), regular	fdc:description
+alias	279213	Fish, tuna, light, canned in water, without salt, drained solids	fdc:description
+alias	279217	Fish, cod, Pacific, cooked, dry heat (may contain additives to retain moisture)	fdc:description
+alias	279229	Fish, sucker, white, cooked, dry heat	fdc:description
+alias	279235	Crustaceans, crab, queen, cooked, moist heat	fdc:description
+alias	279236	Crustaceans, spiny lobster, mixed species, cooked, moist heat	fdc:description
+alias	279238	Beerwurst, beer salami, pork and beef	fdc:description
+alias	279240	Bologna, beef and pork	fdc:description
+alias	279253	Pasta, gluten-free, brown rice flour, cooked, TINKYADA	fdc:description
+alias	279321	Tortellini, pasta with cheese filling, fresh-refrigerated, as purchased	fdc:description
+alias	279324	Chili con carne with beans, canned entree	fdc:description
+alias	279324	Chili with beans, canned	retired:282345
+alias	279340	Ravioli, cheese with tomato sauce, frozen, not prepared, includes regular and light entrees	fdc:description
+alias	279379	Beef, rib eye steak/roast, bone-in, lip-on, separable lean and fat, trimmed to 1/8" fat, choice, raw	fdc:description
+alias	279388	Beef, ground, unspecified fat content, cooked	fdc:description
+alias	279402	Cheese, blue	fdc:description
+alias	279404	Cheese, brie	fdc:description
+alias	279405	Cheese, camembert	fdc:description
+alias	279408	Cheese, cottage, nonfat, uncreamed, dry, large or small curd	fdc:description
+alias	279409	Egg, white, raw, fresh	fdc:description
+alias	279409	Eggs, Grade A, Large, egg white	retired:274654
+alias	279410	Egg, yolk, raw, fresh	fdc:description
+alias	279410	Raw Egg Yolks	retired:274655
+alias	279411	Egg, whole, cooked, omelet	fdc:description
+alias	279412	Egg, whole, cooked, poached	fdc:description
+alias	279413	Egg, whole, cooked, scrambled	fdc:description
+alias	279414	Egg, duck, whole, fresh, raw	fdc:description
+alias	279417	Egg, turkey, whole, fresh, raw	fdc:description
+alias	279419	Milk, canned, evaporated, with added vitamin A	fdc:description
+alias	279421	Milk, dry, nonfat, instant, with added vitamin A and vitamin D	retired:278526
+alias	279421	Milk, dry, nonfat, instant, without added vitamin A and vitamin D	fdc:description
+alias	279425	Cheese sauce, prepared from recipe	fdc:description
+alias	279427	Egg, whole, raw, frozen, pasteurized (Includes foods for USDA's Food Distribution Program)	fdc:description
+alias	279429	Parmesan cheese topping, fat free	fdc:description
+alias	279430	Cheese, cream, fat free	fdc:description
+alias	279438	Cheese, provolone, reduced fat	fdc:description
+alias	279439	Cheese, Mexican, blend, reduced fat	fdc:description
+alias	279445	Cheese, fresh, queso fresco	fdc:description
+alias	279446	Cheese, white, queso blanco	fdc:description
+alias	279447	Milk, buttermilk, fluid, whole	fdc:description
+alias	279453	Spices, turmeric, ground	fdc:description
+alias	279454	Basil, fresh	fdc:description
+alias	279455	Dill weed, fresh	fdc:description
+alias	279456	Vanilla extract, imitation, no alcohol	fdc:description
+alias	279457	Vinegar, distilled	fdc:description
+alias	279458	Spearmint, dried	fdc:description
+alias	279459	Vinegar, red wine	fdc:description
+alias	279460	Vinegar, balsamic	fdc:description
+alias	279461	Seasoning mix, dry, sazon, coriander & annatto	fdc:description
+alias	279462	Seasoning mix, dry, taco, original	fdc:description
+alias	279555	Canola Cooking Oil	retired:279574
+alias	279555	Oil, canola	fdc:description
+alias	279559	Butter, light, stick, without salt	fdc:description
+alias	279560	Animal fat, bacon grease	fdc:description
+alias	279573	Oil, industrial, canola with antifoaming agent, principal uses salads, woks and light frying	fdc:description
+alias	279585	Oil, vegetable, soybean, refined	fdc:description
+alias	279586	Margarine-like spread, SMART BALANCE Regular Buttery Spread with flax oil	fdc:description
+alias	279593	Chicken, broilers or fryers, leg, meat and skin, raw	fdc:description
+alias	279618	Chicken, stewing, meat only, cooked, stewed	fdc:description
+alias	279623	Duck, domesticated, meat and skin, raw	fdc:description
+alias	279625	Duck, domesticated, meat only, raw	fdc:description
+alias	279628	Goose, domesticated, meat only, raw	fdc:description
+alias	279630	Goose, liver, raw	fdc:description
+alias	279631	Guinea hen, meat and skin, raw	fdc:description
+alias	279633	Quail, meat and skin, raw	fdc:description
+alias	279634	Quail, meat only, raw	fdc:description
+alias	279635	Lentils, raw	fdc:description
+alias	279636	Lentils, mature seeds, cooked, boiled, without salt	fdc:description
+alias	279643	Peas, green, split, mature seeds, raw	fdc:description
+alias	279645	Peanuts, all types, raw	fdc:description
+alias	279646	Peanuts, spanish, oil-roasted, with salt	fdc:description
+alias	279653	Refried beans, canned, traditional style	fdc:description
+alias	279654	Bacon, meatless	fdc:description
+alias	279656	Soybeans, mature seeds, dry roasted	fdc:description
+alias	279664	Tofu, soft, prepared with calcium sulfate and magnesium chloride (nigari)	fdc:description
+alias	279669	Hummus, home prepared	fdc:description
+alias	279670	Falafel, home-prepared	fdc:description
+alias	279675	Peanut butter, chunky, vitamin and mineral fortified	fdc:description
+alias	279680	Refried beans, canned, fat-free	fdc:description
+alias	279685	Peanut butter, smooth style, without salt	fdc:description
+alias	279688	Soy sauce made from soy and wheat (shoyu), low sodium	fdc:description
+alias	279689	Soy sauce, reduced sodium, made from hydrolyzed vegetable protein	fdc:description
+alias	279690	Tofu, raw, firm, prepared with calcium sulfate	fdc:description
+alias	279703	Lamb, leg, sirloin half, separable lean and fat, trimmed to 1/4" fat, choice, raw	fdc:description
+alias	279719	Lamb, shoulder, blade, separable lean and fat, trimmed to 1/4" fat, choice, raw	fdc:description
+alias	279732	Lamb, New Zealand, imported, loin chop, separable lean and fat, raw	fdc:description
+alias	279736	Game meat, rabbit, domesticated, composite of cuts, raw	fdc:description
+alias	279737	Game meat, rabbit, domesticated, composite of cuts, cooked, roasted	fdc:description
+alias	279746	Lamb, variety meats and by-products, liver, raw	fdc:description
+alias	279749	Veal, variety meats and by-products, liver, raw	fdc:description
+alias	279759	Lamb, ground, cooked, broiled	fdc:description
+alias	279823	Lamb, Australian, ground,  85% lean / 15% fat, raw	fdc:description
+alias	279826	Lamb, New Zealand, imported, breast, separable lean only, raw	fdc:description
+alias	279834	Lamb, New Zealand, imported, testes, raw	fdc:description
+alias	279858	Veal, leg, top round, cap off, cutlet, boneless, raw	fdc:description
+alias	279883	Biscuits, plain or buttermilk, refrigerated dough, higher fat	fdc:description
+alias	279885	Biscuits, plain or buttermilk, prepared from recipe	fdc:description
+alias	279888	Bread, egg	fdc:description
+alias	279890	Bread, french or vienna (includes sourdough)	fdc:description
+alias	279893	Bread, oatmeal	fdc:description
+alias	279895	Bread, raisin, enriched	fdc:description
+alias	279899	Bread, rye	fdc:description
+alias	279900	Bread, rye, toasted	fdc:description
+alias	279901	Bread, wheat	fdc:description
+alias	279902	Bread, wheat, toasted	fdc:description
+alias	279904	Bread, whole-wheat, prepared from recipe	fdc:description
+alias	279908	Cake, angelfood, commercially prepared	fdc:description
+alias	279911	Cake, chocolate, prepared from recipe without frosting	fdc:description
+alias	279915	Cake, gingerbread, dry mix	fdc:description
+alias	279919	Cake, white, dry mix, special dietary (includes lemon-flavored)	fdc:description
+alias	279920	Cake, sponge, commercially prepared	fdc:description
+alias	279921	Cake, sponge, prepared from recipe	fdc:description
+alias	279923	Cake, white, prepared from recipe without frosting	fdc:description
+alias	279928	Cookies, chocolate wafers	fdc:description
+alias	279932	Cookies, chocolate sandwich, with creme filling, regular	fdc:description
+alias	279938	Cookies, molasses	fdc:description
+alias	279951	Cookies, vanilla sandwich with creme filling	fdc:description
+alias	279952	Puff pastry, frozen, ready-to-bake, baked	fdc:description
+alias	279954	Crackers, matzo, plain	fdc:description
+alias	279958	Crackers, rye, wafers, plain	fdc:description
+alias	279960	Crackers, saltines (includes oyster, soda, soup)	fdc:description
+alias	279964	Cracker, meal	fdc:description
+alias	279965	Croutons, plain	fdc:description
+alias	279966	Croutons, seasoned	fdc:description
+alias	279976	Muffins, English, whole-wheat	fdc:description
+alias	279986	Pancakes, plain, dry mix, complete (includes buttermilk)	fdc:description
+alias	280004	Puff pastry, frozen, ready-to-bake	fdc:description
+alias	280007	Rolls, dinner, plain, commercially prepared (includes brown-and-serve)	fdc:description
+alias	280008	Rolls, dinner, whole-wheat	fdc:description
+alias	280009	Rolls, french	fdc:description
+alias	280010	Rolls, hamburger or hotdog, plain	fdc:description
+alias	280012	Sweet rolls, cinnamon, refrigerated dough with frosting	fdc:description
+alias	280014	Taco shells, baked	fdc:description
+alias	280017	Bread, crumbs, dry, grated, seasoned	fdc:description
+alias	280022	Pie crust, cookie-type, prepared from recipe, graham cracker, chilled	fdc:description
+alias	280025	Pie crust, standard-type, prepared from recipe, unbaked	fdc:description
+alias	280032	Cookies, ladyfingers, without lemon juice and rind	fdc:description
+alias	280032	Ladyfinger Cookies	retired:282099
+alias	280042	Ruffed Grouse, breast meat, skinless, raw	fdc:description
+alias	280061	Turkey, ground, 93% lean/ 7% fat, raw	retired:274775
+alias	280089	Sauce, plum, ready-to-serve	fdc:description
+alias	280090	Sauce, pizza, canned, ready-to-serve	fdc:description
+alias	280092	CAMPBELL'S, Tomato Soup, condensed	retired:281713
+alias	280092	Soup, tomato, canned, condensed	fdc:description
+alias	280093	Soup, stock, beef, home-prepared	fdc:description
+alias	280094	Soup, stock, chicken, home-prepared	fdc:description
+alias	280095	Soup, stock, fish, home-prepared	fdc:description
+alias	280096	Sauce, hoisin, ready-to-serve	fdc:description
+alias	280098	Soup, chicken broth, less/reduced sodium, ready to serve	fdc:description
+alias	280099	Soup, beef broth, less/reduced sodium, ready to serve	fdc:description
+alias	280100	Sauce, teriyaki, ready-to-serve, reduced sodium	fdc:description
+alias	280139	Pate, goose liver, smoked, canned	fdc:description
+alias	280144	Pork sausage, link/patty, unprepared	fdc:description
+alias	280152	Sausage, Vienna, canned, chicken, beef, pork	fdc:description
+alias	280162	Sausage, Italian, sweet, links	fdc:description
+alias	280169	Pastrami, beef, 98% fat-free	fdc:description
+alias	280176	Salami, Italian, pork and beef, dry, sliced, 50% less sodium	fdc:description
+alias	280188	Cereals, Oat Bran, QUAKER, QUAKER/MOTHER'S Oat Bran, prepared with water, salt	fdc:description
+alias	280231	Figs, raw	fdc:description
+alias	280240	Gooseberries, raw	fdc:description
+alias	280251	Grape juice, canned or bottled, unsweetened, with added ascorbic acid	fdc:description
+alias	280251	Grape juice, canned or bottled, unsweetened, without added ascorbic acid	retired:280252
+alias	280251	Grape juice, purple, with added vitamin C, from concentrate, shelf stable	retired:274696
+alias	280312	Beef, New Zealand, imported, cube roll, separable lean and fat, raw	fdc:description
+alias	280315	Beef, New Zealand, imported, hind shin, separable lean and fat, raw	fdc:description
+alias	280321	Beef, ground, 97% lean meat / 3% fat, raw	fdc:description
+alias	280339	Beef, brisket, flat half, separable lean and fat, trimmed to 1/8" fat, select, raw	fdc:description
+alias	280345	Snacks, M&M MARS, KUDOS Whole Grain Bar, M&M's milk chocolate	fdc:description
+alias	280352	Snacks, plantain chips, salted	fdc:description
+alias	280353	Tortilla chips, yellow, plain, salted	fdc:description
+alias	280357	Snacks, pita chips, salted	fdc:description
+alias	280360	Snacks, bagel chips, plain	fdc:description
+alias	280367	Snacks, peas, roasted, wasabi-flavored	fdc:description
+alias	280393	Beverages, chocolate almond milk, unsweetened, shelf-stable, fortified with vitamin D2 and E	fdc:description
+alias	280410	Lemonade, frozen concentrate, white	fdc:description
+alias	280411	Lemonade, frozen concentrate, white, prepared with water	fdc:description
+alias	280421	Beverages, tea, black, brewed, prepared with tap water	fdc:description
+alias	280427	Beverages, water, bottled, PERRIER	fdc:description
+alias	280443	Archway Home Style Cookies, Old Fashioned Molasses	fdc:description
+alias	280451	Nabisco, Nabisco Ritz Crackers	fdc:description
+alias	280452	Pillsbury, Buttermilk Biscuits, Artificial Flavor, refrigerated dough	fdc:description
+alias	280496	McDONALD'S, McFLURRY with M&M'S CANDIES	fdc:description
+alias	280521	Ravioli, cheese-filled, canned	fdc:description
+alias	280525	Beef, corned beef hash, with potato, canned	fdc:description
+alias	280603	Butter, salted	fdc:description
+alias	280604	Butter, whipped, with salt	fdc:description
+alias	280608	Cheese, cheshire	fdc:description
+alias	280609	Cheese, colby	fdc:description
+alias	280612	Cheese, edam	fdc:description
+alias	280613	Cheese, feta	fdc:description
+alias	280615	Egg, whole, cooked, fried	fdc:description
+alias	280616	Egg, whole, cooked, hard-boiled	fdc:description
+alias	280621	Butter, without salt	fdc:description
+alias	280622	Cheese, parmesan, shredded	fdc:description
+alias	280623	Calcium-Fortified Skim Milk	retired:277168
+alias	280623	Milk, nonfat, fluid, without added vitamin A and vitamin D (fat free or skim)	fdc:description
+alias	280624	Cheese, goat, semisoft type	fdc:description
+alias	280626	Cheese, goat, soft type	fdc:description
+alias	280630	Cheese, low fat, cheddar or colby	fdc:description
+alias	280633	Sour cream, reduced fat	fdc:description
+alias	280634	Sour cream, light	fdc:description
+alias	280635	Sour cream, fat free	fdc:description
+alias	280643	Cheese, parmesan, dry grated, reduced fat	fdc:description
+alias	280653	Egg substitute, liquid or frozen, fat free	fdc:description
+alias	280658	Fat free ice cream, no sugar added, flavors other than chocolate	fdc:description
+alias	280659	Salt, table	fdc:description
+alias	280660	Horseradish, prepared	fdc:description
+alias	280661	Rosemary, fresh	fdc:description
+alias	280662	Peppermint, fresh	fdc:description
+alias	280663	Spearmint, fresh	fdc:description
+alias	280664	Seasoning mix, dry, chili, original	fdc:description
+alias	280752	Fat, chicken	fdc:description
+alias	280754	Shortening industrial, lard and vegetable oil	fdc:description
+alias	280755	Shortening frying (heavy duty), beef tallow and cottonseed	fdc:description
+alias	280759	Fat, turkey	fdc:description
+alias	280760	Fat, goose	fdc:description
+alias	280761	Oil, avocado	fdc:description
+alias	280767	Butter, light, stick, with salt	fdc:description
+alias	280770	Shortening frying (heavy duty), soybean (hydrogenated), linoleic (less than 1%)	retired:279552
+alias	280770	Shortening, vegetable, household, composite	fdc:description
+alias	280770	Vegetable Shortening	retired:280765
+alias	280778	Salad dressing, ranch dressing, regular	fdc:description
+alias	280779	Salad dressing, ranch dressing, reduced fat	fdc:description
+alias	280781	Oil, industrial, coconut, principal uses candy coatings, oil sprays, roasting nuts	fdc:description
+alias	280798	Chicken, broilers or fryers, drumstick, meat and skin, cooked, roasted	fdc:description
+alias	280822	Chicken, roasting, meat only, raw	fdc:description
+alias	280831	Chicken, capons, meat and skin, raw	fdc:description
+alias	280833	Beverages, water, tap, drinking	fdc:description
+alias	280833	Bottled Water	retired:281326
+alias	280833	Tap Water	retired:282242
+alias	280833	Well Water	retired:282236
+alias	280849	Beverages, lemonade, frozen concentrate, pink, prepared with water	fdc:description
+alias	280850	Fish, herring, Atlantic, kippered	fdc:description
+alias	280851	Fish, herring, Pacific, raw	fdc:description
+alias	280852	Fish, ling, raw	fdc:description
+alias	280855	Fish, mackerel, spanish, raw	fdc:description
+alias	280860	Fish, perch, mixed species, raw	fdc:description
+alias	280862	Fish, pike, northern, raw	fdc:description
+alias	280864	Fish, pompano, florida, raw	fdc:description
+alias	280872	Fish, salmon, pink, canned, drained solids	retired:282313
+alias	280872	Fish, salmon, pink, canned, total can contents	fdc:description
+alias	280878	Fish, shad, american, raw	fdc:description
+alias	280880	Fish, snapper, mixed species, raw	fdc:description
+alias	280883	Fish, sturgeon, mixed species, raw	fdc:description
+alias	280885	Fish, swordfish, raw	fdc:description
+alias	280892	Fish, turbot, european, raw	fdc:description
+alias	280893	Fish, whitefish, mixed species, raw	fdc:description
+alias	280895	Fish, whiting, mixed species, raw	fdc:description
+alias	280899	Fish, trout, rainbow, farmed, raw	fdc:description
+alias	280913	Beans, baked, home prepared	fdc:description
+alias	280916	Beans, black, mature seeds, raw	fdc:description
+alias	280917	Beans, black, mature seeds, cooked, boiled, without salt	fdc:description
+alias	280922	Beans, kidney, all types, mature seeds, cooked, boiled, without salt	fdc:description
+alias	280926	Beans, kidney, red, mature seeds, raw	fdc:description
+alias	280927	Beans, navy, mature seeds, raw	fdc:description
+alias	280928	Beans, navy, mature seeds, cooked, boiled, without salt	fdc:description
+alias	280930	Beans, pink, mature seeds, raw	fdc:description
+alias	280931	Beans, small white, mature seeds, raw	fdc:description
+alias	280937	Chickpeas (garbanzo beans, bengal gram), mature seeds, raw	fdc:description
+alias	280938	Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt	fdc:description
+alias	280939	Cowpeas, common (blackeyes, crowder, southern), mature seeds, raw	fdc:description
+alias	280953	SILK Light Vanilla, soymilk	fdc:description
+alias	280975	Beans, navy, mature seeds, cooked, boiled, with salt	fdc:description
+alias	280976	Beans, pink, mature seeds, cooked, boiled, with salt	fdc:description
+alias	280980	Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, with salt	fdc:description
+alias	280983	Lima beans, large, mature seeds, cooked, boiled, with salt	fdc:description
+alias	280987	Peanuts, all types, dry-roasted, without salt	fdc:description
+alias	281004	Veal, loin, separable lean and fat, raw	fdc:description
+alias	281007	Veal, loin, separable lean only, raw	fdc:description
+alias	281008	Veal, rib, separable lean and fat, cooked, roasted	fdc:description
+alias	281036	Game meat, deer, raw	fdc:description
+alias	281039	Sausage, pork, chorizo, link or ground, raw	fdc:description
+alias	281042	Ham, sliced, regular (approximately 11% fat)	fdc:description
+alias	281048	Liver sausage, liverwurst, pork	fdc:description
+alias	281054	Pork sausage, link/patty, fully cooked, unheated	fdc:description
+alias	281057	Kielbasa, fully cooked, unheated	fdc:description
+alias	281058	Sausage, chicken or turkey, Italian style,  lower sodium	fdc:description
+alias	281059	Ham, smoked, extra lean, low sodium	fdc:description
+alias	281065	Cereals ready-to-eat, RALSTON CRISP RICE	fdc:description
+alias	281078	Cereals, CREAM OF RICE, dry	fdc:description
+alias	281082	Cereals, QUAKER, Quick Oats, Dry	retired:280199
+alias	281082	Cereals, oats, regular and quick, not fortified, dry	fdc:description
+alias	281083	Cereals, oats, regular and quick, unenriched, cooked with water (includes boiling and microwaving), without salt	fdc:description
+alias	281090	Cereals ready-to-eat, rice, puffed, fortified	fdc:description
+alias	281090	Puffed Rice Cereal	retired:278889
+alias	281094	Cereals, farina, unenriched, dry	fdc:description
+alias	281108	Apples, canned, sweetened, sliced, drained, heated	fdc:description
+alias	281111	Apple juice, canned or bottled, unsweetened, with added ascorbic acid	retired:275139
+alias	281111	Apple juice, canned or bottled, unsweetened, without added ascorbic acid	fdc:description
+alias	281119	Apricots, dried, sulfured, uncooked	fdc:description
+alias	281122	Bananas, raw	fdc:description
+alias	281122	Overripe Bananas	retired:274667
+alias	281123	Bananas, dehydrated, or banana powder	fdc:description
+alias	281124	Blackberries, raw	fdc:description
+alias	281125	Blackberry juice, canned	fdc:description
+alias	281132	Cherries, sour, red, raw	fdc:description
+alias	281133	Cherries, sour, red, canned, water pack, solids and liquids	fdc:description
+alias	281138	Cherries, sweet, canned, pitted, heavy syrup pack, solids and liquids	fdc:description
+alias	281139	Cranberry sauce, canned, sweetened	fdc:description
+alias	281140	Cranberry-orange relish, canned	fdc:description
+alias	281141	Currants, european black, raw	fdc:description
+alias	281142	Currants, red and white, raw	fdc:description
+alias	281240	Sauce, cocktail, ready-to-serve	fdc:description
+alias	281243	Sauce, peanut, made from peanut butter, water, soy sauce	fdc:description
+alias	281247	Sauce, enchilada, red, mild, ready to serve	fdc:description
+alias	281249	Bread, paratha, whole wheat, commercially prepared, frozen	fdc:description
+alias	281251	Bread, roll, Mexican, bollilo	fdc:description
+alias	281254	Tortillas, ready-to-bake or -fry, whole wheat	fdc:description
+alias	281264	Bread, french or vienna, whole wheat	fdc:description
+alias	281271	Crackers, flavored, fish-shaped	fdc:description
+alias	281274	Bread, gluten-free, white, made with tapioca starch and brown rice flour	fdc:description
+alias	281287	Beverages, coconut milk, sweetened, fortified with calcium, vitamins A, B12, D2	fdc:description
+alias	281288	Beverages, chocolate syrup	fdc:description
+alias	281289	Beverages, chocolate syrup, prepared with whole milk	fdc:description
+alias	281290	Beverages, coffee, ready to drink, iced, mocha, milk based	fdc:description
+alias	281293	Beverages, Cocoa mix, powder	fdc:description
+alias	281295	Beverages, Cocoa mix, NESTLE, Hot Cocoa Mix Rich Chocolate With Marshmallows	fdc:description
+alias	281303	Beverages, OCEAN SPRAY, Cran Grape	fdc:description
+alias	281304	Beverages, coffee, instant, decaffeinated, powder	fdc:description
+alias	281305	Beverages, coffee, instant, chicory	fdc:description
+alias	281309	Beverages, coffee substitute, cereal grain beverage, powder	fdc:description
+alias	281310	Beverages, coffee substitute, cereal grain beverage, prepared with water	fdc:description
+alias	281325	Beverages, Wine, non-alcoholic	fdc:description
+alias	281350	Fish, anchovy, european, raw	fdc:description
+alias	281351	Anchovies In Olive Oil	retired:274869
+alias	281351	Fish, anchovy, european, canned in oil, drained solids	fdc:description
+alias	281352	Fish, bass, fresh water, mixed species, raw	fdc:description
+alias	281356	Fish, caviar, black and red, granular	fdc:description
+alias	281358	Fish, cod, Atlantic, dried and salted	fdc:description
+alias	281359	Cod, Pacific or Alaskan, frozen, wild caught	retired:274871
+alias	281359	Fish, cod, Pacific, raw (may have been previously frozen)	fdc:description
+alias	281361	Fish, eel, mixed species, raw	fdc:description
+alias	281362	Fish, eel, mixed species, cooked, dry heat	fdc:description
+alias	281364	Fish, flatfish (flounder and sole species), raw	fdc:description
+alias	281365	Fish, flatfish (flounder and sole species), cooked, dry heat	fdc:description
+alias	281367	Fish, haddock, smoked	fdc:description
+alias	281368	Fish, halibut, Atlantic and Pacific, raw	fdc:description
+alias	281369	Fish, halibut, Atlantic and Pacific, cooked, dry heat	fdc:description
+alias	281371	Crustaceans, crab, alaska king, imitation, made from surimi	fdc:description
+alias	281372	Crustaceans, crab, blue, raw	fdc:description
+alias	281373	Crustaceans, crab, blue, cooked, moist heat	fdc:description
+alias	281374	Crustaceans, crayfish, mixed species, wild, raw	fdc:description
+alias	281374	Farmed Crayfish	retired:282307
+alias	281376	Crustaceans, lobster, northern, raw	fdc:description
+alias	281377	Crustaceans, lobster, northern, cooked, moist heat	fdc:description
+alias	281378	Crustaceans, shrimp, mixed species, raw (may contain additives to retain moisture)	fdc:description
+alias	281379	Crustaceans, spiny lobster, mixed species, raw	fdc:description
+alias	281382	Mollusks, clam, mixed species, raw	fdc:description
+alias	281383	Mollusks, cuttlefish, mixed species, raw	fdc:description
+alias	281384	Mollusks, mussel, blue, raw	fdc:description
+alias	281385	Mollusks, mussel, blue, cooked, moist heat	fdc:description
+alias	281387	Mollusks, oyster, Pacific, raw	fdc:description
+alias	281388	Mollusks, scallop, mixed species, raw	fdc:description
+alias	281391	Mollusks, squid, mixed species, raw	fdc:description
+alias	281393	Fish, salmon, pink, canned, without salt, solids with bone and liquid	fdc:description
+alias	281396	Fish, bass, striped, cooked, dry heat	fdc:description
+alias	281397	Fish, bluefish, cooked, dry heat	fdc:description
+alias	281411	Fish, shad, american, cooked, dry heat	fdc:description
+alias	281413	Fish, turbot, european, cooked, dry heat	fdc:description
+alias	281418	Mollusks, oyster, Pacific, cooked, moist heat	fdc:description
+alias	281420	Lima beans, large, mature seeds, raw	fdc:description
+alias	281421	Lima beans, large, mature seeds, cooked, boiled, without salt	fdc:description
+alias	281428	Peanuts, all types, cooked, boiled, with salt	fdc:description
+alias	281430	Peanuts, all types, dry-roasted, with salt	fdc:description
+alias	281431	Peanuts, spanish, raw	fdc:description
+alias	281437	Sausage, meatless	fdc:description
+alias	281438	Soybeans, mature seeds, raw	fdc:description
+alias	281439	Soybeans, mature cooked, boiled, without salt	fdc:description
+alias	281452	Lentils, pink or red, raw	fdc:description
+alias	281466	Soybeans, mature seeds, cooked, boiled, with salt	fdc:description
+alias	281471	Tofu, fried, prepared with calcium sulfate	fdc:description
+alias	281486	Lamb, loin, separable lean and fat, trimmed to 1/4" fat, choice, raw	fdc:description
+alias	281518	Veal, variety meats and by-products, brain, raw	fdc:description
+alias	281521	Lamb, variety meats and by-products, kidneys, raw	fdc:description
+alias	281521	New Zealand Lamb Kidneys	retired:281609
+alias	281523	Veal, variety meats and by-products, kidneys, raw	fdc:description
+alias	281533	Lamb, variety meats and by-products, tongue, raw	fdc:description
+alias	281534	Lamb, variety meats and by-products, tongue, cooked, braised	fdc:description
+alias	281537	Lamb, ground, raw	fdc:description
+alias	281559	Veal, breast, whole, boneless, separable lean and fat, raw	fdc:description
+alias	281613	Lamb, New Zealand, imported, sweetbread, raw	fdc:description
+alias	281630	Lamb, New Zealand, imported, loin saddle, separable lean and fat, raw	fdc:description
+alias	281634	Duck, domesticated, liver, raw	fdc:description
+alias	281635	Duck, wild, meat and skin, raw	fdc:description
+alias	281637	Goose, domesticated, meat and skin, raw	fdc:description
+alias	281638	Guinea hen, meat only, raw	fdc:description
+alias	281639	Pheasant, raw, meat and skin	fdc:description
+alias	281640	Pheasant, raw, meat only	fdc:description
+alias	281642	Squab, (pigeon), meat and skin, raw	fdc:description
+alias	281646	Emu, full rump, raw	fdc:description
+alias	281658	Chicken, liver, all classes, cooked, pan-fried	fdc:description
+alias	281690	Sauce, barbecue	fdc:description
+alias	281691	Sauce, homemade, white, medium	fdc:description
+alias	281692	Sauce, homemade, white, thick	fdc:description
+alias	281694	Sauce, ready-to-serve, pepper, TABASCO	fdc:description
+alias	281695	Sauce, oyster, ready-to-serve	fdc:description
+alias	281697	Sauce, fish, ready-to-serve	fdc:description
+alias	281702	Soup, chicken broth, ready-to-serve	fdc:description
+alias	281708	Sauce, white, thin, prepared-from-recipe, with butter	fdc:description
+alias	281723	Soup, beef broth, bouillon, consomme, prepared with equal volume water	fdc:description
+alias	281727	Soup, pea, green, canned, prepared with equal volume water	fdc:description
+alias	281734	Soup, onion, dry, mix, prepared with water	fdc:description
+alias	281736	Roast beef, deli style, prepackaged, sliced	fdc:description
+alias	281739	Mortadella, beef, pork	fdc:description
+alias	281741	Pepperoni, beef and pork, sliced	fdc:description
+alias	281744	Pork sausage, link/patty, cooked, pan-fried	fdc:description
+alias	281745	Sausage, pork and beef, fresh, cooked	fdc:description
+alias	281750	Sausage, smoked link sausage, pork	fdc:description
+alias	281757	Bacon, turkey, unprepared	fdc:description
+alias	281764	Sausage, summer, pork and beef, sticks, with cheddar cheese	fdc:description
+alias	281767	Salami, Italian, pork	fdc:description
+alias	281769	Sausage, chicken, beef, pork, skinless, smoked	fdc:description
+alias	281770	Sausage, turkey, hot, smoked	fdc:description
+alias	281775	Ham, honey, smoked, cooked	fdc:description
+alias	281779	Frankfurter, meat, heated	fdc:description
+alias	281780	Sausage, turkey, fresh, raw	fdc:description
+alias	281810	Cereals ready-to-eat, RALSTON Corn Flakes	fdc:description
+alias	281834	Grapefruit, raw, pink and red, all areas	fdc:description
+alias	281837	Grapefruit Pulp	retired:280243
+alias	281837	Grapefruit, raw, white, all areas	fdc:description
+alias	281842	Grapes, american type (slip skin), raw	fdc:description
+alias	281843	Grapes, red or green (European type, such as Thompson seedless), raw	fdc:description
+alias	281885	Beef, New Zealand, imported, hind shin, separable lean only, raw	fdc:description
+alias	281885	Beef, shank crosscuts, separable lean only, trimmed to 1/4" fat, choice, raw	retired:276754
+alias	281890	Beef, New Zealand, imported, manufacturing beef, cooked, boiled	fdc:description
+alias	281897	Beef, New Zealand, imported, variety meats and by-products, tongue, cooked, boiled	fdc:description
+alias	281922	Beef, tenderloin, steak, separable lean only, trimmed to 1/8" fat, choice, raw	fdc:description
+alias	281985	Beverages, Coconut water, ready-to-drink, unsweetened	fdc:description
+alias	281986	Beverages, almond milk, unsweetened, shelf stable	fdc:description
+alias	281995	Beverages, tea, black, ready-to-drink, peach, diet	fdc:description
+alias	282003	Malt beverage, includes non-alcoholic beer	fdc:description
+alias	282009	Strawberry-flavor beverage mix, powder	fdc:description
+alias	282024	Veal, seam fat only, raw	fdc:description
+alias	282039	Bagels, plain, enriched, with calcium propionate (includes onion, poppy, sesame)	fdc:description
+alias	282042	Biscuits, plain or buttermilk, dry mix	fdc:description
+alias	282043	Biscuits, plain or buttermilk, dry mix, prepared	fdc:description
+alias	282044	Biscuits, plain or buttermilk, refrigerated dough, lower fat	fdc:description
+alias	282047	Bread, boston brown, canned	fdc:description
+alias	282050	Bread, cornbread, prepared from recipe, made with low fat (2%) milk	fdc:description
+alias	282051	Bread, french or vienna, toasted (includes sourdough)	fdc:description
+alias	282053	Bread, Italian	fdc:description
+alias	282054	Bread, multi-grain, toasted (includes whole-grain)	fdc:description
+alias	282055	Bread, pita, white, enriched	fdc:description
+alias	282056	Bread, pita, whole-wheat	fdc:description
+alias	282058	Bread, pumpernickel	fdc:description
+alias	282064	Bread, white, commercially prepared (includes soft bread crumbs)	fdc:description
+alias	282065	Bread, white, commercially prepared, toasted	fdc:description
+alias	282068	Bread, crumbs, dry, grated, plain	fdc:description
+alias	282070	Bread, stuffing, dry mix	fdc:description
+alias	282071	Bread, stuffing, dry mix, prepared	fdc:description
+alias	282075	Cake, pudding-type, chocolate, dry mix	fdc:description
+alias	282087	Cake, yellow, enriched, dry mix	fdc:description
+alias	282089	Cookies, brownies, prepared from recipe	fdc:description
+alias	282096	Cookies, gingersnaps	fdc:description
+alias	282097	Cookies, graham crackers, plain or honey (includes cinnamon)	fdc:description
+alias	282097	Nabisco, Nabisco Grahams Crackers	retired:282223
+alias	282098	Cookies, graham crackers, chocolate-coated	fdc:description
+alias	282107	Cookies, shortbread, commercially prepared, plain	fdc:description
+alias	282113	Cookies, vanilla wafers, lower fat	fdc:description
+alias	282114	Cookies, vanilla wafers, higher fat	fdc:description
+alias	282117	Crackers, melba toast, plain	fdc:description
+alias	282120	Crackers, milk	fdc:description
+alias	282121	Crackers, rusk toast	fdc:description
+alias	282126	Cream puff shell, prepared from recipe	fdc:description
+alias	282127	Croissants, butter	fdc:description
+alias	282135	Muffins, English, plain, toasted, enriched, with calcium propionate (includes sourdough)	fdc:description
+alias	282138	French toast, prepared from recipe, made with low fat (2%) milk	fdc:description
+alias	282140	Ice cream cones, cake or wafer-type	fdc:description
+alias	282141	Ice cream cones, sugar, rolled-type	fdc:description
+alias	282143	Muffins, corn, dry mix, prepared	fdc:description
+alias	282149	Pancakes, plain, prepared from recipe	fdc:description
+alias	282152	Pie, apple, prepared from recipe	fdc:description
+alias	282159	Pie, mince, prepared from recipe	fdc:description
+alias	282166	Pie crust, standard-type, prepared from recipe, baked	fdc:description
+alias	282167	Rolls, dinner, egg	fdc:description
+alias	282170	Rolls, dinner, wheat	fdc:description
+alias	282171	Rolls, hard (includes kaiser)	fdc:description
+alias	282176	Tortillas, ready-to-bake or -fry, corn	fdc:description
+alias	282180	Leavening agents, baking soda	fdc:description
+alias	282181	Leavening agents, cream of tartar	fdc:description
+alias	282182	Leavening agents, yeast, baker's, compressed	fdc:description
+alias	282183	Leavening agents, yeast, baker's, active dry	fdc:description
+alias	282197	Crackers, saltines, unsalted tops (includes oyster, soda, soup)	fdc:description
+alias	282203	English muffins, plain, enriched, without calcium propionate(includes sourdough)	fdc:description
+alias	282207	Taco shells, baked, without added salt	fdc:description
+alias	282209	Tart, breakfast, low fat	fdc:description
+alias	282217	Archway Home Style Cookies, Reduced Fat Ginger Snaps	fdc:description
+alias	282220	Martha White Foods, Martha White's Chewy Fudge Brownie Mix, dry	fdc:description
+alias	282237	Alcoholic beverage, liqueur, coffee with cream, 34 proof	fdc:description
+alias	282254	Fish, herring, Atlantic, raw	fdc:description
+alias	282256	Fish, herring, Atlantic, pickled	fdc:description
+alias	282259	Fish, mackerel, jack, canned, drained solids	fdc:description
+alias	282260	Fish, mackerel, king, raw	fdc:description
+alias	282261	Fish, mullet, striped, raw	fdc:description
+alias	282266	Fish, pike, walleye, raw	fdc:description
+alias	282270	Fish, roe, mixed species, raw	fdc:description
+alias	282275	Fish, salmon, coho, wild, cooked, moist heat	fdc:description
+alias	282276	Fish, salmon, pink, raw	fdc:description
+alias	282277	Fish, sardine, Atlantic, canned in oil, drained solids with bone	fdc:description
+alias	282278	Fish, sardine, Pacific, canned in tomato sauce, drained solids with bone	fdc:description
+alias	282280	Fish, sea bass, mixed species, raw	fdc:description
+alias	282282	Fish, sheepshead, raw	fdc:description
+alias	282283	Fish, sheepshead, cooked, dry heat	fdc:description
+alias	282284	Fish, smelt, rainbow, raw	fdc:description
+alias	282287	Fish, sturgeon, mixed species, smoked	fdc:description
+alias	282288	Fish, sucker, white, raw	fdc:description
+alias	282291	Fish, trout, mixed species, raw	fdc:description
+alias	282292	Fish, trout, rainbow, wild, raw	fdc:description
+alias	282296	Fish, tuna, white, canned in water, drained solids	fdc:description
+alias	282297	Fish, tuna, fresh, yellowfin, raw	fdc:description
+alias	282298	Fish, tuna salad	fdc:description
+alias	282305	Farmed Atlantic Salmon	retired:274816
+alias	282305	Fish, salmon, Atlantic, farmed, raw	fdc:description
+alias	282308	Crustaceans, crayfish, mixed species, farmed, cooked, moist heat	fdc:description
+alias	282308	Crustaceans, crayfish, mixed species, wild, cooked, moist heat	retired:281375
+alias	282310	Mollusks, oyster, eastern, farmed, raw	fdc:description
+alias	282311	Mollusks, oyster, eastern, farmed, cooked, dry heat	fdc:description
+alias	282314	Fish, tilapia, raw	fdc:description
+alias	282316	Fish, cod, Pacific, cooked	fdc:description
+alias	282317	Crustaceans, shrimp, raw	fdc:description
+alias	282317	Farm-Raised Shrimp	retired:274818
+alias	282318	Crustaceans, shrimp, cooked	fdc:description
+alias	282319	Fish, trout, brook, raw, New York State	fdc:description
+alias	282320	Beans, baked, canned, plain or vegetarian	fdc:description
+alias	282334	Beans, kidney, royal red, mature seeds, raw	fdc:description
+alias	282340	Beans, white, mature seeds, raw	fdc:description
+alias	282342	Beans, white, mature seeds, canned	fdc:description
+alias	282376	Beans, black, mature seeds, canned, low sodium	fdc:description
+alias	282383	Beans, kidney, red, mature seeds, canned, solids and liquid, low sodium	fdc:description
+alias	282392	Lentils, mature seeds, cooked, boiled, with salt	fdc:description
+alias	282406	Veal, leg (top round), separable lean and fat, raw	fdc:description
+alias	282413	Veal, rib, separable lean and fat, raw	fdc:description
+alias	282420	Veal, shoulder, arm, separable lean only, raw	fdc:description
+alias	282428	Veal, ground, raw	fdc:description
+alias	282430	Game meat, antelope, raw	fdc:description
+alias	282435	Game meat, boar, wild, raw	fdc:description
+alias	286929	Spices, coriander seed	fdc:description
+alias	286930	Spices, dill seed	fdc:description
+alias	286931	Spices, marjoram, dried	fdc:description
+alias	286932	Spices, pepper, black	fdc:description
+alias	286933	Spices, pepper, red or cayenne	fdc:description
+alias	286934	Spices, savory, ground	fdc:description
+alias	286935	Spices, thyme, dried	fdc:description
+alias	286936	Spices, allspice, ground	fdc:description
+alias	286937	Spices, basil, dried	fdc:description
+alias	286938	Spices, chervil, dried	fdc:description
+alias	286939	Spices, chili powder	fdc:description
+alias	286940	Spices, cinnamon, ground	fdc:description
+alias	286941	Spices, cloves, ground	fdc:description
+alias	286942	Spices, dill weed, dried	fdc:description
+alias	286943	Spices, oregano, dried	fdc:description
+alias	286944	Spices, paprika	fdc:description
+alias	286945	Vanilla extract, imitation, alcohol	fdc:description
+alias	286946	Capers, canned	fdc:description
+alias	286947	Double-Acting Baking Powder	retired:286948
+alias	286947	Leavening agents, baking powder, double-acting, sodium aluminum sulfate	fdc:description
+alias	286950	Vinegar, cider	fdc:description
+alias	286951	Thyme, fresh	fdc:description
+alias	287186	Lemons, raw, without peel	fdc:description
+alias	287188	Lemon peel, raw	fdc:description
+alias	287191	Limes, raw	fdc:description
+alias	287192	Lime juice, raw	fdc:description
+alias	287198	Radicchio Leaves	retired:274880
+alias	287198	Radicchio, raw	fdc:description
+alias	287208	Melons, honeydew, raw	fdc:description
+alias	287224	Cheese, ricotta, whole milk	fdc:description
+known	111	Greek Yogurt	-
+known	112	Honey	-
+known	254	stock	-
+known	260	bacon	-
+known	1194	cream	-
+known	1257	syrup	-
+known	1960	Sal	-
+known	3423	Soda	-
+known	3695	fine sea salt and freshly-ground black pepper	-
+known	3789	ice	-
+known	4766	fine sea salt	-
+known	5041	olive or avocado oil	-
+known	5076	beans	-
+known	5146	lard	-
+known	5147	bread	-
+known	5198	milk or water	-
+known	5200	fat	-
+known	5338	oil or butter	-
+known	5612	sour milk	-
+known	6033	butter or lard	-
+known	6268	milk and water	-
+known	6757	butter or margarine, melted	-
+known	7251	butter or margarine	-
+known	7615	oil	-
+known	7792	salt and ground pepper	-
+known	8456	dripping	-
+known	8635	butter or dripping	-
+known	8935	butter, cold	-
+known	9271	rum	-
+known	9288	butter and flour	-
+known	9383	tablespoon	-
+known	10061	buttermilk	-
+known	10179	lard or drippings	-
+known	10225	sherry or Madeira	-
+known	10268	rich milk or cream	-
+known	10755	ham or bacon	-
+known	10884	cream or milk	-
+known	10915	stock or water	-
+known	10922	cracker crumbs	-
+known	10957	water or stock	-
+known	11035	butter or substitute	-
+known	11152	milk or cream	-
+known	11481	Madeira	-
+known	11521	sauce	-
+known	11821	Kosher salt	-
+known	12126	packed light or dark brown sugar	-
+known	12619	Sea salt and freshly ground black pepper	-
+known	12921	frozen blueberries	-
+known	12998	kosher salt and pepper	-
+known	14088	fresh or frozen blueberries	-
+known	14215	sour cream or plain Greek yogurt	-
+known	14495	plain Greek yogurt	-
+known	14668	cracked black pepper	-
+known	14818	chicken or vegetable broth	-
+known	15668	sherry	-
+known	15673	cinnamon and nutmeg	-
+known	16028	rich milk	-
+known	20220	vegetable stock	-
+known	20432	tu	-
+known	20516	crumbs	-
+known	22214	vin	-
+known	22438	nutm	-
+known	22489	salt and black pepper	-
+known	22697	broth	-
+known	23112	one	-
+known	24242	peas	-
+known	24840	nut	-
+known	25033	water or milk	-
+known	25085	sa	-
+known	26885	milk or butter	-
+known	27029	lard or butter	-
+known	27255	cider	-
+known	27496	blue	-
+known	28115	cream or rich milk	-
+known	29220	tea	-
+known	29809	bran	-
+known	31009	berries	-
+known	31285	salted butter, melted	-
+known	33980	black	-
+known	34331	salt & pepper	-
+known	34557	chicken or vegetable stock	-
+known	35509	Butter or oil	-
+known	37437	butter or olive oil	-
+known	38222	Greek yogurt or sour cream	-
+known	38262	avocado or olive oil	-
+known	39470	sea salt and black pepper	-
+known	41612	white or cider vinegar	-
+known	42071	kosher salt and black pepper	-
+known	42273	kosher salt and fresh pepper	-
+known	43615	freshly-cracked black pepper	-
+known	52774	OR	-
+known	56512	vinegar or lemon juice	-
+known	56695	kosher	-
+known	58021	Kosher salt and freshly ground black pepper	-
+known	62289	fine sea salt and freshly-cracked black pepper	-
+known	63175	Kosher salt and freshly ground black	-
+known	63502	tamari or soy sauce	-
+known	70882	Plain Greek yogurt or sour cream	-
+known	75487	cinnamon and	-
+known	75504	yogurt or sour cream	-
+known	81264	yogurt	-
+known	82419	frozen	-
+known	85785	salted butter, melted and slightly cooled	-
+known	86948	margarine, melted	-
+known	88089	salt and freshly ground black pepper	-
+known	89979	spoons	-
+known	93515	juice	-
+known	93682	sweetened	-
+known	93734	grated rind	-
+known	95279	teaspoon	-
+known	95675	salt and pepper	-
+known	95738	o	-
+known	96068	ta	-
+known	96894	cups	-
+known	98699	cherry	-
+known	99690	3 tablespoons	-
+known	99999	gr	-
+known	100203	mi	-
+known	100366	1 pint	-
+known	101869	2 t	-
+known	101921	tablespoonf	-
+known	102827	lemon juice or vinegar	-
+known	103806	cocoa	-
+known	106597	Rind	-
+known	107723	canola	-
+known	109790	brown	-
+known	114823	Oy	-
+known	115670	lac	-
+known	119070	ra	-
+known	120693	soy	-
+known	121934	cayenne and salt	-
+known	121977	to	-
+known	123036	pepper and salt	-
+known	124427	ga	-
+known	125524	vinegar or lemon	-
+known	125873	broth or water	-
+known	130041	unsalted butter, cold and cubed	-
+known	134177	fresh pepper	-
+known	134213	natural	-
+known	138727	unsweetened	-
+known	140027	dark	-
+known	142617	unsweetened natural or dutch-process cocoa powder	-
+known	144323	salted butter, cold	-
+known	149816	canola or vegetable	-
+known	152718	cubed	-
+known	155440	cold	-
+known	158582	olive oil or avocado oil	-
+known	160192	sweet	-
+known	167340	green	-
+known	169186	crack	-
+known	170862	bread or cracker crumbs	-
+known	171530	1/	-
+known	177875	melt	-
+known	179410	salted	-
+known	184108	more	-
+known	184972	each	-
+known	185091	t	-
+known	185265	rape	-
+known	185845	3	-
+known	187268	a	-
+known	187739	tw	-
+known	188425	ries	-
+known	188767	Cottolene	-
+known	189513	rack	-
+known	190261	pa	-
+known	191676	ilk	-
+known	192935	1 teaspoon	-
+known	195307	g	-
+known	195433	syrup or honey	-
+known	195497	white	-
+known	195789	ca	-
+known	197655	maple	-
+known	199323	melted	-
+known	199623	butter or other shortening	-
+known	206990	salt and cayenne	-
+known	208008	le	-
+known	210218	atoes	-
+known	211550	tablespoonfuls	-
+known	211914	sour milk or buttermilk	-
+known	212383	emon juice	-
+known	217942	2 cups	-
+known	217944	1 cup	-
+known	217945	1/4 cup	-
+known	222152	ba	-
+known	228041	Sweeten	-
+known	228243	fine	-
+known	229106	nnamon	-
+known	229209	sher	-
+known	231629	boiling milk, or 1 pint of boiling cream	-
+known	232358	1	-
+known	232446	kin	-
+known	233324	sour milk or	-
+known	233994	peppe	-
+known	235335	br	-
+known	239081	the	-
+known	240094	grated	-
+known	240711	tab	-
+known	240727	canned peas, green beans, and tomatoes	-
+known	240832	of	-
+known	241696	fresh	-
+known	242561	ground	-
+known	243814	m	-
+known	245257	Lea & Perrins' Sauce	-
+known	247794	¼ cup	-
+known	247823	margarine	-
+known	250141	cottolene or other fat	-
+known	251029	f	-
+known	253844	salt and white pepper	-
+known	254171	baking	-
+known	254221	flou	-
+known	255190	2	-
+known	256354	two	-
+known	256759	vi	-
+known	257025	butt	-
+known	257889	grate	-
+known	258873	cu	-
+known	262905	lem	-
+known	265130	spoonful	-
+known	266799	c	-
+known	269785	co	-
+known	271251	¼ c	-
+known	271501	rumbs	-
+known	271992	½ c	-
+known	272820	little	-
+known	273994	tables	-
+known	274539	avocado oil or olive oil	-
+known	274568	maple syrup or honey	-
+known	274576	Grape Tomatoes	-
+known	274581	Milk	-
+known	274636	Sugar	-
+known	274731	Blueberries	-
+known	274751	Green Beans	-
+known	275119	Lemon Juice	-
+known	276107	Dutch-Process Cocoa Powder	-
+known	276165	Brown Sugar	-
+known	276224	Flour	-
+known	276964	Maple Syrup	-
+known	277697	Canned Peas	-
+known	277733	Tomatoes	-
+known	277930	Cocoa Powder	-
+known	278130	Heavy Cream	-
+known	278197	White Pepper	-
+known	278514	Sour Cream	-
+known	278571	Nutmeg	-
+known	278652	Olive Oil	-
+known	278822	Vegetable Broth	-
+known	278943	Avocado	-
+known	279457	Vinegar	-
+known	279585	Vegetable Oil	-
+known	280603	Butter	-
+known	280621	Unsalted Butter	-
+known	280659	Salt	-
+known	280761	Avocado Oil	-
+known	280770	Shortening	-
+known	280833	Water	-
+known	280852	Ling	-
+known	281042	Ham	-
+known	282180	Baking Soda	-
+known	286932	Pepper	-
+known	286940	Cinnamon	-
+known	287186	Lemon	-

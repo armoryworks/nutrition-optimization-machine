@@ -1,0 +1,6193 @@
+[
+  {
+    "id": 273,
+    "origin": "cited",
+    "licence": "Unknown",
+    "name": null,
+    "servings": 4,
+    "recipeServings": null,
+    "lines": [
+      {
+        "qty": 1.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276204,
+          "name": "Quinoa",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.7185,
+          "referenceServingGrams": 170.0,
+          "per100": {
+            "calories": 368.0,
+            "protein": 14.12,
+            "fat": 6.07
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278652,
+          "name": "Olive Oil",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.913,
+          "referenceServingGrams": 13.5,
+          "per100": {
+            "calories": 884.0,
+            "protein": 0.0,
+            "fat": 100.0
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286951,
+          "name": "Fresh Thyme",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.1623,
+          "referenceServingGrams": 0.8,
+          "per100": {
+            "calories": 101.0,
+            "protein": 5.56,
+            "fat": 1.68
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 287186,
+          "name": "Lemon",
+          "hasNutrition": true,
+          "gramsPerItem": 58.0,
+          "gramsPerMl": 0.8961,
+          "referenceServingGrams": 58.0,
+          "per100": {
+            "calories": 29.0,
+            "protein": 1.1,
+            "fat": 0.3
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 220.0,
+      "protein": 8.0,
+      "fat": 9.0,
+      "handLabel": true
+    },
+    "status": "ok",
+    "source": "staging:hand label, design:golden-gate",
+    "note": ""
+  },
+  {
+    "id": 33365,
+    "origin": "cited",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 1.0,
+    "lines": [
+      {
+        "qty": 2.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274636,
+          "name": "Sugar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.7946,
+          "referenceServingGrams": 188.0,
+          "per100": {
+            "calories": 385.0,
+            "protein": 0.0,
+            "fat": 0.32
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276224,
+          "name": "Flour",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5283,
+          "referenceServingGrams": 125.0,
+          "per100": {
+            "calories": 364.0,
+            "protein": 10.33,
+            "fat": 0.98
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278540,
+          "name": "Eggs",
+          "hasNutrition": true,
+          "gramsPerItem": 50.0,
+          "gramsPerMl": 1.0271,
+          "referenceServingGrams": 56.0,
+          "per100": {
+            "calories": 143.0,
+            "protein": 12.56,
+            "fat": 9.51
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278961,
+          "name": "Dried Currants",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.6087,
+          "referenceServingGrams": 144.0,
+          "per100": {
+            "calories": 290.0,
+            "protein": 3.43,
+            "fat": 0.22
+          }
+        }
+      },
+      {
+        "qty": 1.75,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279447,
+          "name": "Whole Buttermilk",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0356,
+          "referenceServingGrams": 245.0,
+          "per100": {
+            "calories": 62.0,
+            "protein": 3.21,
+            "fat": 3.31
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280621,
+          "name": "Unsalted Butter",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9595,
+          "referenceServingGrams": 113.0,
+          "per100": {
+            "calories": 717.0,
+            "protein": 0.85,
+            "fat": 81.11
+          }
+        }
+      },
+      {
+        "qty": 1.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 282180,
+          "name": "Baking Soda",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9333,
+          "referenceServingGrams": 4.6,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 3072.1967,
+      "protein": 77.1111,
+      "fat": 70.2702,
+      "handLabel": false
+    },
+    "status": "known",
+    "source": "staging:derived label, design:golden-gate",
+    "note": "the yield '1' is read as one serving"
+  },
+  {
+    "id": 37855,
+    "origin": "cited",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 9.0,
+    "lines": [
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276408,
+          "name": "Cream Cheese Spread",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0144,
+          "referenceServingGrams": 240.0,
+          "per100": {
+            "calories": 295.0,
+            "protein": 7.1,
+            "fat": 28.6
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279212,
+          "name": "Smoked Salmon",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": 28.35,
+          "per100": {
+            "calories": 117.0,
+            "protein": 18.28,
+            "fat": 4.32
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279455,
+          "name": "Dill",
+          "hasNutrition": true,
+          "gramsPerItem": 0.2,
+          "gramsPerMl": null,
+          "referenceServingGrams": 8.9,
+          "per100": {
+            "calories": 43.0,
+            "protein": 3.46,
+            "fat": 1.12
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280004,
+          "name": "Puff Pastry",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": 47.0,
+          "per100": {
+            "calories": 551.0,
+            "protein": 7.3,
+            "fat": 38.1
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 111.1266,
+      "protein": 2.8504,
+      "fat": 9.7524,
+      "handLabel": false
+    },
+    "status": "known",
+    "source": "staging:derived label, design:golden-gate",
+    "note": "a 5-ounce package of smoked salmon weighed as 28.35 g; a sheet of puff pastry as 47 g"
+  },
+  {
+    "id": 41537,
+    "origin": "cited",
+    "licence": "PublicDomain",
+    "name": "French Toast",
+    "servings": null,
+    "recipeServings": 6.0,
+    "lines": [
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": "1/2 teaspoon vanilla extract",
+        "food": {
+          "id": 106,
+          "name": "Vanilla Extract",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.8792,
+          "referenceServingGrams": 13.0,
+          "per100": {
+            "calories": 288.0,
+            "protein": 0.06,
+            "fat": 0.06
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": "syrup or other toppings (optional)",
+        "food": {
+          "id": 88498,
+          "name": "syrup or other toppings",
+          "hasNutrition": false,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": null,
+            "protein": null,
+            "fat": null
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": "1/2 cup non-fat (skim) milk",
+        "food": {
+          "id": 274580,
+          "name": "Fat-Free Milk",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0356,
+          "referenceServingGrams": 229.0,
+          "per100": {
+            "calories": 34.0,
+            "protein": 3.43,
+            "fat": 0.08
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "2 large eggs",
+        "food": {
+          "id": 278540,
+          "name": "Eggs",
+          "hasNutrition": true,
+          "gramsPerItem": 50.0,
+          "gramsPerMl": 1.0271,
+          "referenceServingGrams": 56.0,
+          "per100": {
+            "calories": 143.0,
+            "protein": 12.56,
+            "fat": 9.51
+          }
+        }
+      },
+      {
+        "qty": 6.0,
+        "unit": "Slice",
+        "kind": "ingredient",
+        "raw": "6 slices whole wheat bread",
+        "food": {
+          "id": 279904,
+          "name": "Whole Wheat Bread",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": 33.0,
+          "per100": {
+            "calories": 278.0,
+            "protein": 8.4,
+            "fat": 5.4
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": 4,
+      "calories": 123.5553,
+      "protein": 5.5659,
+      "fat": 3.3836,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label, design:golden-gate",
+    "note": ""
+  },
+  {
+    "id": 42114,
+    "origin": "cited",
+    "licence": "PublicDomain",
+    "name": "Spicy Cucumber & Orange Salad",
+    "servings": null,
+    "recipeServings": 4.0,
+    "lines": [
+      {
+        "qty": 2.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "2 medium cucumbers",
+        "food": {
+          "id": 274757,
+          "name": "Cucumbers",
+          "hasNutrition": true,
+          "gramsPerItem": 301.0,
+          "gramsPerMl": 0.4396,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 13.9349,
+            "protein": 0.625,
+            "fat": 0.1775
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "1 lemon or lime (the juice)",
+        "food": {
+          "id": 275119,
+          "name": "Lemon Juice",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0313,
+          "referenceServingGrams": 30.5,
+          "per100": {
+            "calories": 17.0,
+            "protein": 0.45,
+            "fat": 0.07
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "2 medium oranges",
+        "food": {
+          "id": 276423,
+          "name": "Oranges",
+          "hasNutrition": true,
+          "gramsPerItem": 131.0,
+          "gramsPerMl": 0.7608,
+          "referenceServingGrams": 180.0,
+          "per100": {
+            "calories": 47.0,
+            "protein": 0.94,
+            "fat": 0.12
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": "1/4 teaspoon salt",
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": "1/2 teaspoon chili powder",
+        "food": {
+          "id": 286939,
+          "name": "Chili Powder",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.541,
+          "referenceServingGrams": 8.0,
+          "per100": {
+            "calories": 282.0,
+            "protein": 13.46,
+            "fat": 14.28
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": 5,
+      "calories": 53.9932,
+      "protein": 1.6355,
+      "fat": 0.3987,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label, design:golden-gate",
+    "note": ""
+  },
+  {
+    "id": 61142,
+    "origin": "cited",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 15.0,
+    "lines": [
+      {
+        "qty": 4.0,
+        "unit": "Ounce",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 176,
+          "name": "Fresh Mozzarella",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 214.29,
+            "protein": 14.29,
+            "fat": 16.07
+          }
+        }
+      },
+      {
+        "qty": 15.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277733,
+          "name": "Tomatoes",
+          "hasNutrition": true,
+          "gramsPerItem": 123.0,
+          "gramsPerMl": 0.6298,
+          "referenceServingGrams": 62.0,
+          "per100": {
+            "calories": 18.0,
+            "protein": 0.88,
+            "fat": 0.2
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279454,
+          "name": "Basil",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.1014,
+          "referenceServingGrams": 5.3,
+          "per100": {
+            "calories": 23.0,
+            "protein": 3.15,
+            "fat": 0.64
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279460,
+          "name": "Balsamic Vinegar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0778,
+          "referenceServingGrams": 16.0,
+          "per100": {
+            "calories": 88.0,
+            "protein": 0.49,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280005,
+          "name": "Phyllo dough",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": 28.35,
+          "per100": {
+            "calories": 299.0,
+            "protein": 7.1,
+            "fat": 6.0
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 51.796,
+      "protein": 2.3831,
+      "fat": 1.5833,
+      "handLabel": false
+    },
+    "status": "known",
+    "source": "staging:derived label, design:golden-gate",
+    "note": "15 grape or cherry tomatoes weighed as 15 x 123 g; 4 basil leaves as 21 g"
+  },
+  {
+    "id": 62963,
+    "origin": "cited",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 2.0,
+    "lines": [
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": "equipment",
+        "raw": null,
+        "food": {
+          "id": 13803,
+          "name": "olive oil spray",
+          "hasNutrition": false,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": null,
+            "protein": null,
+            "fat": null
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274739,
+          "name": "Lettuce",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.3043,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 14.4554,
+            "protein": 0.7425,
+            "fat": 0.0738
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277287,
+          "name": "Cilantro",
+          "hasNutrition": true,
+          "gramsPerItem": 2.22,
+          "gramsPerMl": 0.0676,
+          "referenceServingGrams": 20.0,
+          "per100": {
+            "calories": 23.0,
+            "protein": 2.13,
+            "fat": 0.52
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277290,
+          "name": "Onion",
+          "hasNutrition": true,
+          "gramsPerItem": 110.0,
+          "gramsPerMl": 0.6763,
+          "referenceServingGrams": 70.0,
+          "per100": {
+            "calories": 40.0,
+            "protein": 1.1,
+            "fat": 0.1
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277702,
+          "name": "Canned Green Chiles",
+          "hasNutrition": true,
+          "gramsPerItem": 73.0,
+          "gramsPerMl": 0.5748,
+          "referenceServingGrams": 73.0,
+          "per100": {
+            "calories": 21.0,
+            "protein": 0.9,
+            "fat": 0.1
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277733,
+          "name": "Tomatoes",
+          "hasNutrition": true,
+          "gramsPerItem": 123.0,
+          "gramsPerMl": 0.6298,
+          "referenceServingGrams": 62.0,
+          "per100": {
+            "calories": 18.0,
+            "protein": 0.88,
+            "fat": 0.2
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278168,
+          "name": "Cotija Cheese",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5072,
+          "referenceServingGrams": 5.0,
+          "per100": {
+            "calories": 366.0,
+            "protein": 20.0,
+            "fat": 30.0
+          }
+        }
+      },
+      {
+        "qty": 0.125,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278191,
+          "name": "Cumin",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4058,
+          "referenceServingGrams": 6.0,
+          "per100": {
+            "calories": 375.0,
+            "protein": 17.81,
+            "fat": 22.27
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278540,
+          "name": "Eggs",
+          "hasNutrition": true,
+          "gramsPerItem": 50.0,
+          "gramsPerMl": 1.0271,
+          "referenceServingGrams": 56.0,
+          "per100": {
+            "calories": 143.0,
+            "protein": 12.56,
+            "fat": 9.51
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279555,
+          "name": "Canola Oil",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9214,
+          "referenceServingGrams": 14.0,
+          "per100": {
+            "calories": 884.0,
+            "protein": 0.0,
+            "fat": 100.0
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 282176,
+          "name": "Corn Tortillas",
+          "hasNutrition": true,
+          "gramsPerItem": 24.0,
+          "gramsPerMl": null,
+          "referenceServingGrams": 24.0,
+          "per100": {
+            "calories": 218.0,
+            "protein": 5.7,
+            "fat": 2.85
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": 10,
+      "calories": 373.6227,
+      "protein": 20.3135,
+      "fat": 18.013,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label, design:golden-gate",
+    "note": ""
+  },
+  {
+    "id": 67498,
+    "origin": "cited",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 12.0,
+    "lines": [
+      {
+        "qty": 6.0,
+        "unit": "Clove",
+        "kind": "ingredient",
+        "raw": null,
+        "food": {
+          "id": 274669,
+          "name": "Garlic",
+          "hasNutrition": true,
+          "gramsPerItem": 3.0,
+          "gramsPerMl": 0.5748,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 143.0,
+            "protein": 6.62,
+            "fat": 0.38
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276426,
+          "name": "Orange Juice",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0525,
+          "referenceServingGrams": 249.0,
+          "per100": {
+            "calories": 49.0,
+            "protein": 0.68,
+            "fat": 0.12
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Pound",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276746,
+          "name": "Flank Steak",
+          "hasNutrition": true,
+          "gramsPerItem": 202.0,
+          "gramsPerMl": null,
+          "referenceServingGrams": 202.0,
+          "per100": {
+            "calories": 165.0,
+            "protein": 21.22,
+            "fat": 8.29
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278191,
+          "name": "Cumin",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4058,
+          "referenceServingGrams": 6.0,
+          "per100": {
+            "calories": 375.0,
+            "protein": 17.81,
+            "fat": 22.27
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278652,
+          "name": "Olive Oil",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.913,
+          "referenceServingGrams": 13.5,
+          "per100": {
+            "calories": 884.0,
+            "protein": 0.0,
+            "fat": 100.0
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 281445,
+          "name": "Soy sauce made from soy and wheat (shoyu)",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0778,
+          "referenceServingGrams": 16.0,
+          "per100": {
+            "calories": 53.0,
+            "protein": 8.14,
+            "fat": 0.57
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286932,
+          "name": "Pepper",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4666,
+          "referenceServingGrams": 2.9,
+          "per100": {
+            "calories": 251.0,
+            "protein": 10.39,
+            "fat": 3.26
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286939,
+          "name": "Chili Powder",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.541,
+          "referenceServingGrams": 8.0,
+          "per100": {
+            "calories": 282.0,
+            "protein": 13.46,
+            "fat": 14.28
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286943,
+          "name": "Dried Oregano",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.2029,
+          "referenceServingGrams": 1.8,
+          "per100": {
+            "calories": 265.0,
+            "protein": 9.0,
+            "fat": 4.28
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 287191,
+          "name": "Fresh Lime",
+          "hasNutrition": true,
+          "gramsPerItem": 67.0,
+          "gramsPerMl": null,
+          "referenceServingGrams": 67.0,
+          "per100": {
+            "calories": 30.0,
+            "protein": 0.7,
+            "fat": 0.2
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": 11,
+      "calories": 210.4847,
+      "protein": 24.8251,
+      "fat": 10.7007,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label, design:golden-gate",
+    "note": ""
+  },
+  {
+    "id": 78498,
+    "origin": "cited",
+    "licence": "PublicDomain",
+    "name": "Orange Soufle",
+    "servings": null,
+    "recipeServings": null,
+    "lines": [
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": "equipment",
+        "raw": "well buttered form",
+        "food": {
+          "id": 185675,
+          "name": "well buttered form",
+          "hasNutrition": false,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": null,
+            "protein": null,
+            "fat": null
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": "1 cup cold milk",
+        "food": {
+          "id": 274581,
+          "name": "Milk",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0313,
+          "referenceServingGrams": 229.0,
+          "per100": {
+            "calories": 60.0,
+            "protein": 3.28,
+            "fat": 3.2
+          }
+        }
+      },
+      {
+        "qty": 6.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": "6 tablespoonfuls sugar",
+        "food": {
+          "id": 274636,
+          "name": "Sugar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.7946,
+          "referenceServingGrams": 188.0,
+          "per100": {
+            "calories": 385.0,
+            "protein": 0.0,
+            "fat": 0.32
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": "1 cup sifted flour",
+        "food": {
+          "id": 276224,
+          "name": "Flour",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5283,
+          "referenceServingGrams": 125.0,
+          "per100": {
+            "calories": 364.0,
+            "protein": 10.33,
+            "fat": 0.98
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "juice of 2 oranges",
+        "food": {
+          "id": 276426,
+          "name": "Orange Juice",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0525,
+          "referenceServingGrams": 249.0,
+          "per100": {
+            "calories": 49.0,
+            "protein": 0.68,
+            "fat": 0.12
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "grated rind of 1 orange",
+        "food": {
+          "id": 276429,
+          "name": "Orange Peel",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4058,
+          "referenceServingGrams": 6.0,
+          "per100": {
+            "calories": 97.0,
+            "protein": 1.5,
+            "fat": 0.2
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": "1 cup milk or cream",
+        "food": {
+          "id": 278529,
+          "name": "Condensed Milk",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2934,
+          "referenceServingGrams": 306.0,
+          "per100": {
+            "calories": 321.0,
+            "protein": 7.91,
+            "fat": 8.7
+          }
+        }
+      },
+      {
+        "qty": 6.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "beaten whites of 6 eggs",
+        "food": {
+          "id": 279409,
+          "name": "Egg Whites",
+          "hasNutrition": true,
+          "gramsPerItem": 33.0,
+          "gramsPerMl": 1.0271,
+          "referenceServingGrams": 243.0,
+          "per100": {
+            "calories": 52.0,
+            "protein": 10.9,
+            "fat": 0.17
+          }
+        }
+      },
+      {
+        "qty": 8.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "yolks of 8 eggs",
+        "food": {
+          "id": 279410,
+          "name": "Egg Yolks",
+          "hasNutrition": true,
+          "gramsPerItem": 17.0,
+          "gramsPerMl": 1.0271,
+          "referenceServingGrams": 243.0,
+          "per100": {
+            "calories": 322.0,
+            "protein": 15.86,
+            "fat": 26.54
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": "1/2 tablespoonful butter + 1/2 tablespoonful butter",
+        "food": {
+          "id": 280603,
+          "name": "Butter",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9595,
+          "referenceServingGrams": 113.0,
+          "per100": {
+            "calories": 717.0,
+            "protein": 0.85,
+            "fat": 81.11
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 2696.6262,
+      "protein": 91.8075,
+      "fat": 78.675,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label, design:golden-gate",
+    "note": ""
+  },
+  {
+    "id": 34377,
+    "origin": "count-heavy",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 8.0,
+    "lines": [
+      {
+        "qty": 2.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 112,
+          "name": "Honey",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.4329,
+          "referenceServingGrams": 21.0,
+          "per100": {
+            "calories": 304.0,
+            "protein": 0.3,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274576,
+          "name": "Grape Tomatoes",
+          "hasNutrition": true,
+          "gramsPerItem": 9.94,
+          "gramsPerMl": 0.6425,
+          "referenceServingGrams": 152.0,
+          "per100": {
+            "calories": 27.0,
+            "protein": 0.83,
+            "fat": 0.63
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274594,
+          "name": "Parmesan Cheese",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.514,
+          "referenceServingGrams": 7.6,
+          "per100": {
+            "calories": 421.0,
+            "protein": 29.6,
+            "fat": 28.0
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274605,
+          "name": "Mustard",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0525,
+          "referenceServingGrams": 249.0,
+          "per100": {
+            "calories": 61.0,
+            "protein": 4.25,
+            "fat": 3.38
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274665,
+          "name": "Red Onion",
+          "hasNutrition": true,
+          "gramsPerItem": 197.0,
+          "gramsPerMl": null,
+          "referenceServingGrams": 197.0,
+          "per100": {
+            "calories": 44.0,
+            "protein": 0.94,
+            "fat": 0.1
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Clove",
+        "kind": "ingredient",
+        "raw": null,
+        "food": {
+          "id": 274669,
+          "name": "Garlic",
+          "hasNutrition": true,
+          "gramsPerItem": 3.0,
+          "gramsPerMl": 0.5748,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 143.0,
+            "protein": 6.62,
+            "fat": 0.38
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274715,
+          "name": "Yellow Bell Pepper",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 26.581,
+            "protein": 0.8194,
+            "fat": 0.1211
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274757,
+          "name": "Cucumbers",
+          "hasNutrition": true,
+          "gramsPerItem": 301.0,
+          "gramsPerMl": 0.4396,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 13.9349,
+            "protein": 0.625,
+            "fat": 0.1775
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274792,
+          "name": "Canned Cannellini Beans",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 112.0972,
+            "protein": 7.4125,
+            "fat": 1.169
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276420,
+          "name": "Ripe Olives",
+          "hasNutrition": true,
+          "gramsPerItem": 4.4,
+          "gramsPerMl": 0.5681,
+          "referenceServingGrams": 4.4,
+          "per100": {
+            "calories": 116.0,
+            "protein": 0.84,
+            "fat": 10.9
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277693,
+          "name": "Parsley",
+          "hasNutrition": true,
+          "gramsPerItem": 1.0,
+          "gramsPerMl": 0.257,
+          "referenceServingGrams": 60.0,
+          "per100": {
+            "calories": 36.0,
+            "protein": 2.97,
+            "fat": 0.79
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278118,
+          "name": "Cheese, mozzarella, whole milk, low moisture",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": 28.35,
+          "per100": {
+            "calories": 318.0,
+            "protein": 21.6,
+            "fat": 24.64
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278652,
+          "name": "Olive Oil",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.913,
+          "referenceServingGrams": 13.5,
+          "per100": {
+            "calories": 884.0,
+            "protein": 0.0,
+            "fat": 100.0
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279459,
+          "name": "Red Wine Vinegar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0102,
+          "referenceServingGrams": 14.9,
+          "per100": {
+            "calories": 19.0,
+            "protein": 0.04,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280937,
+          "name": "Garbanzo Beans",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.8454,
+          "referenceServingGrams": 200.0,
+          "per100": {
+            "calories": 378.0,
+            "protein": 20.47,
+            "fat": 6.04
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 281767,
+          "name": "Salami",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": 28.0,
+          "per100": {
+            "calories": 425.0,
+            "protein": 21.7,
+            "fat": 37.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286943,
+          "name": "Dried Oregano",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.2029,
+          "referenceServingGrams": 1.8,
+          "per100": {
+            "calories": 265.0,
+            "protein": 9.0,
+            "fat": 4.28
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 291.9436,
+      "protein": 7.6008,
+      "fat": 19.4324,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 35470,
+    "origin": "count-heavy",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 4.0,
+    "lines": [
+      {
+        "qty": 3.0,
+        "unit": "Clove",
+        "kind": "ingredient",
+        "raw": null,
+        "food": {
+          "id": 274669,
+          "name": "Garlic",
+          "hasNutrition": true,
+          "gramsPerItem": 3.0,
+          "gramsPerMl": 0.5748,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 143.0,
+            "protein": 6.62,
+            "fat": 0.38
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276212,
+          "name": "Rice, white, short-grain, enriched, cooked",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.7862,
+          "referenceServingGrams": 186.0,
+          "per100": {
+            "calories": 130.0,
+            "protein": 2.36,
+            "fat": 0.19
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277290,
+          "name": "Onion",
+          "hasNutrition": true,
+          "gramsPerItem": 110.0,
+          "gramsPerMl": 0.6763,
+          "referenceServingGrams": 70.0,
+          "per100": {
+            "calories": 40.0,
+            "protein": 1.1,
+            "fat": 0.1
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277295,
+          "name": "Spring Onions",
+          "hasNutrition": true,
+          "gramsPerItem": 15.0,
+          "gramsPerMl": 0.4227,
+          "referenceServingGrams": 15.0,
+          "per100": {
+            "calories": 32.0,
+            "protein": 1.83,
+            "fat": 0.19
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277306,
+          "name": "Frozen Peas",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5664,
+          "referenceServingGrams": 284.0,
+          "per100": {
+            "calories": 77.0,
+            "protein": 5.22,
+            "fat": 0.4
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277672,
+          "name": "Carrots",
+          "hasNutrition": true,
+          "gramsPerItem": 61.0,
+          "gramsPerMl": 0.541,
+          "referenceServingGrams": 61.0,
+          "per100": {
+            "calories": 41.0,
+            "protein": 0.93,
+            "fat": 0.24
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278278,
+          "name": "Sesame Oil",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9214,
+          "referenceServingGrams": 13.6,
+          "per100": {
+            "calories": 884.0,
+            "protein": 0.0,
+            "fat": 100.0
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278540,
+          "name": "Eggs",
+          "hasNutrition": true,
+          "gramsPerItem": 50.0,
+          "gramsPerMl": 1.0271,
+          "referenceServingGrams": 56.0,
+          "per100": {
+            "calories": 143.0,
+            "protein": 12.56,
+            "fat": 9.51
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280603,
+          "name": "Butter",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9595,
+          "referenceServingGrams": 113.0,
+          "per100": {
+            "calories": 717.0,
+            "protein": 0.85,
+            "fat": 81.11
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 281445,
+          "name": "Soy sauce made from soy and wheat (shoyu)",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0778,
+          "referenceServingGrams": 16.0,
+          "per100": {
+            "calories": 53.0,
+            "protein": 8.14,
+            "fat": 0.57
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 281695,
+          "name": "Oyster Sauce",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2173,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 51.0,
+            "protein": 1.35,
+            "fat": 0.25
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 409.9565,
+      "protein": 10.449,
+      "fat": 12.2027,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 38245,
+    "origin": "count-heavy",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 4.0,
+    "lines": [
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 12998,
+          "name": "kosher salt and pepper",
+          "hasNutrition": false,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": null,
+            "protein": null,
+            "fat": null
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": "reference",
+        "raw": null,
+        "food": {
+          "id": 82088,
+          "name": "Buffalo wing sauce",
+          "hasNutrition": false,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": null,
+            "protein": null,
+            "fat": null
+          }
+        }
+      },
+      {
+        "qty": 8.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274612,
+          "name": "Romaine Lettuce",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.1987,
+          "referenceServingGrams": 581.0,
+          "per100": {
+            "calories": 17.0,
+            "protein": 1.24,
+            "fat": 0.26
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274756,
+          "name": "Celery",
+          "hasNutrition": true,
+          "gramsPerItem": 40.0,
+          "gramsPerMl": 0.5072,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 14.8322,
+            "protein": 0.4922,
+            "fat": 0.1625
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274757,
+          "name": "Cucumbers",
+          "hasNutrition": true,
+          "gramsPerItem": 301.0,
+          "gramsPerMl": 0.4396,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 13.9349,
+            "protein": 0.625,
+            "fat": 0.1775
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Pound",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274802,
+          "name": "Chicken Breast",
+          "hasNutrition": true,
+          "gramsPerItem": 263.0,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 112.2023,
+            "protein": 22.525,
+            "fat": 1.934
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277284,
+          "name": "Chives",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.2029,
+          "referenceServingGrams": 3.0,
+          "per100": {
+            "calories": 30.0,
+            "protein": 3.27,
+            "fat": 0.73
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277287,
+          "name": "Cilantro",
+          "hasNutrition": true,
+          "gramsPerItem": 2.22,
+          "gramsPerMl": 0.0676,
+          "referenceServingGrams": 20.0,
+          "per100": {
+            "calories": 23.0,
+            "protein": 2.13,
+            "fat": 0.52
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277295,
+          "name": "Spring Onions",
+          "hasNutrition": true,
+          "gramsPerItem": 15.0,
+          "gramsPerMl": 0.4227,
+          "referenceServingGrams": 15.0,
+          "per100": {
+            "calories": 32.0,
+            "protein": 1.83,
+            "fat": 0.19
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277672,
+          "name": "Carrots",
+          "hasNutrition": true,
+          "gramsPerItem": 61.0,
+          "gramsPerMl": 0.541,
+          "referenceServingGrams": 61.0,
+          "per100": {
+            "calories": 41.0,
+            "protein": 0.93,
+            "fat": 0.24
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": "ingredient",
+        "raw": null,
+        "food": {
+          "id": 278570,
+          "name": "Garlic Powder",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.656,
+          "referenceServingGrams": 9.7,
+          "per100": {
+            "calories": 331.0,
+            "protein": 16.55,
+            "fat": 0.73
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279402,
+          "name": "Blue Cheese",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5706,
+          "referenceServingGrams": 28.35,
+          "per100": {
+            "calories": 353.0,
+            "protein": 21.4,
+            "fat": 28.74
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280778,
+          "name": "Ranch Dressing",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0144,
+          "referenceServingGrams": 30.0,
+          "per100": {
+            "calories": 430.0,
+            "protein": 1.32,
+            "fat": 44.54
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 250.3748,
+      "protein": 31.9696,
+      "fat": 7.6931,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 42214,
+    "origin": "count-heavy",
+    "licence": "PublicDomain",
+    "name": "Terrific Bean Taco",
+    "servings": null,
+    "recipeServings": 8.0,
+    "lines": [
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": "taco sauce (optional)",
+        "food": {
+          "id": 6548,
+          "name": "taco sauce",
+          "hasNutrition": false,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": null,
+            "protein": null,
+            "fat": null
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": "1 cup cheddar cheese (shredded)",
+        "food": {
+          "id": 274613,
+          "name": "Cheddar Cheese",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4438,
+          "referenceServingGrams": 105.0,
+          "per100": {
+            "calories": 408.0,
+            "protein": 23.3,
+            "fat": 34.0
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "1/4 head of lettuce (chopped)",
+        "food": {
+          "id": 274739,
+          "name": "Lettuce",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.3043,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 14.4554,
+            "protein": 0.7425,
+            "fat": 0.0738
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "1 small onion (chopped)",
+        "food": {
+          "id": 277290,
+          "name": "Onion",
+          "hasNutrition": true,
+          "gramsPerItem": 110.0,
+          "gramsPerMl": 0.6763,
+          "referenceServingGrams": 70.0,
+          "per100": {
+            "calories": 40.0,
+            "protein": 1.1,
+            "fat": 0.1
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "2 medium tomatoes (chopped)",
+        "food": {
+          "id": 277733,
+          "name": "Tomatoes",
+          "hasNutrition": true,
+          "gramsPerItem": 123.0,
+          "gramsPerMl": 0.6298,
+          "referenceServingGrams": 62.0,
+          "per100": {
+            "calories": 18.0,
+            "protein": 0.88,
+            "fat": 0.2
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": "2 teaspoons vegetable oil (or cooking oil of choice)",
+        "food": {
+          "id": 279585,
+          "name": "Vegetable Oil",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9214,
+          "referenceServingGrams": 13.6,
+          "per100": {
+            "calories": 884.0,
+            "protein": 0.0,
+            "fat": 100.0
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": "2 cups refried beans",
+        "food": {
+          "id": 279653,
+          "name": "Refried Beans",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.006,
+          "referenceServingGrams": 442.0,
+          "per100": {
+            "calories": 90.0,
+            "protein": 4.98,
+            "fat": 2.01
+          }
+        }
+      },
+      {
+        "qty": 8.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "8 taco shells (or flour tortillas)",
+        "food": {
+          "id": 280014,
+          "name": "Taco Shells",
+          "hasNutrition": true,
+          "gramsPerItem": 13.3,
+          "gramsPerMl": null,
+          "referenceServingGrams": 13.3,
+          "per100": {
+            "calories": 476.0,
+            "protein": 6.41,
+            "fat": 21.79
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 191.4803,
+      "protein": 7.2956,
+      "fat": 9.7671,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 51327,
+    "origin": "count-heavy",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 8.0,
+    "lines": [
+      {
+        "qty": 0.667,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274666,
+          "name": "Yellow Onion",
+          "hasNutrition": true,
+          "gramsPerItem": 143.0,
+          "gramsPerMl": null,
+          "referenceServingGrams": 143.0,
+          "per100": {
+            "calories": 38.0,
+            "protein": 0.83,
+            "fat": 0.05
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Clove",
+        "kind": "ingredient",
+        "raw": null,
+        "food": {
+          "id": 274669,
+          "name": "Garlic",
+          "hasNutrition": true,
+          "gramsPerItem": 3.0,
+          "gramsPerMl": 0.5748,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 143.0,
+            "protein": 6.62,
+            "fat": 0.38
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274722,
+          "name": "Crumbled Feta",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 273.4725,
+            "protein": 19.7078,
+            "fat": 19.08
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 275297,
+          "name": "Pie Crust",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": 229.0,
+          "per100": {
+            "calories": 445.0,
+            "protein": 2.97,
+            "fat": 25.46
+          }
+        }
+      },
+      {
+        "qty": 20.0,
+        "unit": "Ounce",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 275810,
+          "name": "Spinach",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.1268,
+          "referenceServingGrams": 284.0,
+          "per100": {
+            "calories": 23.0,
+            "protein": 2.86,
+            "fat": 0.39
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277693,
+          "name": "Parsley",
+          "hasNutrition": true,
+          "gramsPerItem": 1.0,
+          "gramsPerMl": 0.257,
+          "referenceServingGrams": 60.0,
+          "per100": {
+            "calories": 36.0,
+            "protein": 2.97,
+            "fat": 0.79
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278506,
+          "name": "Part-Skim Ricotta",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0482,
+          "referenceServingGrams": 246.0,
+          "per100": {
+            "calories": 138.0,
+            "protein": 11.39,
+            "fat": 7.91
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278540,
+          "name": "Eggs",
+          "hasNutrition": true,
+          "gramsPerItem": 50.0,
+          "gramsPerMl": 1.0271,
+          "referenceServingGrams": 56.0,
+          "per100": {
+            "calories": 143.0,
+            "protein": 12.56,
+            "fat": 9.51
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278652,
+          "name": "Olive Oil",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.913,
+          "referenceServingGrams": 13.5,
+          "per100": {
+            "calories": 884.0,
+            "protein": 0.0,
+            "fat": 100.0
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279455,
+          "name": "Dill",
+          "hasNutrition": true,
+          "gramsPerItem": 0.2,
+          "gramsPerMl": null,
+          "referenceServingGrams": 8.9,
+          "per100": {
+            "calories": 43.0,
+            "protein": 3.46,
+            "fat": 1.12
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280622,
+          "name": "Shredded Parmesan Cheese",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.3381,
+          "referenceServingGrams": 5.0,
+          "per100": {
+            "calories": 415.0,
+            "protein": 37.86,
+            "fat": 27.34
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286932,
+          "name": "Pepper",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4666,
+          "referenceServingGrams": 2.9,
+          "per100": {
+            "calories": 251.0,
+            "protein": 10.39,
+            "fat": 3.26
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 302.5363,
+      "protein": 12.7093,
+      "fat": 19.6244,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 61163,
+    "origin": "count-heavy",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 2.0,
+    "lines": [
+      {
+        "qty": 2.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 112,
+          "name": "Honey",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.4329,
+          "referenceServingGrams": 21.0,
+          "per100": {
+            "calories": 304.0,
+            "protein": 0.3,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274585,
+          "name": "Kale",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.0871,
+          "referenceServingGrams": 20.6,
+          "per100": {
+            "calories": 35.0,
+            "protein": 2.92,
+            "fat": 1.49
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Clove",
+        "kind": "ingredient",
+        "raw": null,
+        "food": {
+          "id": 274669,
+          "name": "Garlic",
+          "hasNutrition": true,
+          "gramsPerItem": 3.0,
+          "gramsPerMl": 0.5748,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 143.0,
+            "protein": 6.62,
+            "fat": 0.38
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 275119,
+          "name": "Lemon Juice",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0313,
+          "referenceServingGrams": 30.5,
+          "per100": {
+            "calories": 17.0,
+            "protein": 0.45,
+            "fat": 0.07
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277773,
+          "name": "Shallots",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.6763,
+          "referenceServingGrams": 10.0,
+          "per100": {
+            "calories": 72.0,
+            "protein": 2.5,
+            "fat": 0.1
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277840,
+          "name": "Almonds",
+          "hasNutrition": true,
+          "gramsPerItem": 1.2,
+          "gramsPerMl": 0.6044,
+          "referenceServingGrams": 95.0,
+          "per100": {
+            "calories": 579.0,
+            "protein": 21.15,
+            "fat": 49.93
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278652,
+          "name": "Olive Oil",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.913,
+          "referenceServingGrams": 13.5,
+          "per100": {
+            "calories": 884.0,
+            "protein": 0.0,
+            "fat": 100.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278960,
+          "name": "Dried Cranberries",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.6763,
+          "referenceServingGrams": 40.0,
+          "per100": {
+            "calories": 308.0,
+            "protein": 0.17,
+            "fat": 1.09
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279402,
+          "name": "Blue Cheese",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5706,
+          "referenceServingGrams": 28.35,
+          "per100": {
+            "calories": 353.0,
+            "protein": 21.4,
+            "fat": 28.74
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279459,
+          "name": "Red Wine Vinegar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0102,
+          "referenceServingGrams": 14.9,
+          "per100": {
+            "calories": 19.0,
+            "protein": 0.04,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.125,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.125,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286932,
+          "name": "Pepper",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4666,
+          "referenceServingGrams": 2.9,
+          "per100": {
+            "calories": 251.0,
+            "protein": 10.39,
+            "fat": 3.26
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 568.5189,
+      "protein": 4.7165,
+      "fat": 30.2327,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 62333,
+    "origin": "count-heavy",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 4.0,
+    "lines": [
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274602,
+          "name": "Swiss Cheese",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5579,
+          "referenceServingGrams": 21.9,
+          "per100": {
+            "calories": 393.0,
+            "protein": 27.0,
+            "fat": 31.0
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274802,
+          "name": "Chicken Breast",
+          "hasNutrition": true,
+          "gramsPerItem": 263.0,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 112.2023,
+            "protein": 22.525,
+            "fat": 1.934
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276224,
+          "name": "Flour",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5283,
+          "referenceServingGrams": 125.0,
+          "per100": {
+            "calories": 364.0,
+            "protein": 10.33,
+            "fat": 0.98
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277290,
+          "name": "Onion",
+          "hasNutrition": true,
+          "gramsPerItem": 110.0,
+          "gramsPerMl": 0.6763,
+          "referenceServingGrams": 70.0,
+          "per100": {
+            "calories": 40.0,
+            "protein": 1.1,
+            "fat": 0.1
+          }
+        }
+      },
+      {
+        "qty": 8.0,
+        "unit": "Slice",
+        "kind": "ingredient",
+        "raw": null,
+        "food": {
+          "id": 278122,
+          "name": "Provolone Cheese",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5579,
+          "referenceServingGrams": 28.35,
+          "per100": {
+            "calories": 351.0,
+            "protein": 25.58,
+            "fat": 26.62
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278652,
+          "name": "Olive Oil",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.913,
+          "referenceServingGrams": 13.5,
+          "per100": {
+            "calories": 884.0,
+            "protein": 0.0,
+            "fat": 100.0
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280621,
+          "name": "Unsalted Butter",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9595,
+          "referenceServingGrams": 113.0,
+          "per100": {
+            "calories": 717.0,
+            "protein": 0.85,
+            "fat": 81.11
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 281723,
+          "name": "Beef Broth",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0186,
+          "referenceServingGrams": 586.0,
+          "per100": {
+            "calories": 12.0,
+            "protein": 2.22,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286935,
+          "name": "Dried Thyme",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.1826,
+          "referenceServingGrams": 2.7,
+          "per100": {
+            "calories": 276.0,
+            "protein": 9.11,
+            "fat": 7.43
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286943,
+          "name": "Dried Oregano",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.2029,
+          "referenceServingGrams": 1.8,
+          "per100": {
+            "calories": 265.0,
+            "protein": 9.0,
+            "fat": 4.28
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 786.2874,
+      "protein": 86.4409,
+      "fat": 43.0342,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 65688,
+    "origin": "count-heavy",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 4.0,
+    "lines": [
+      {
+        "qty": 3.0,
+        "unit": "Clove",
+        "kind": "ingredient",
+        "raw": null,
+        "food": {
+          "id": 274669,
+          "name": "Garlic",
+          "hasNutrition": true,
+          "gramsPerItem": 3.0,
+          "gramsPerMl": 0.5748,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 143.0,
+            "protein": 6.62,
+            "fat": 0.38
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Pound",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 275208,
+          "name": "Pork Shoulder",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": 453.6,
+          "per100": {
+            "calories": 236.0,
+            "protein": 17.18,
+            "fat": 17.99
+          }
+        }
+      },
+      {
+        "qty": 0.75,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276426,
+          "name": "Orange Juice",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0525,
+          "referenceServingGrams": 249.0,
+          "per100": {
+            "calories": 49.0,
+            "protein": 0.68,
+            "fat": 0.12
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277290,
+          "name": "Onion",
+          "hasNutrition": true,
+          "gramsPerItem": 110.0,
+          "gramsPerMl": 0.6763,
+          "referenceServingGrams": 70.0,
+          "per100": {
+            "calories": 40.0,
+            "protein": 1.1,
+            "fat": 0.1
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277735,
+          "name": "Tomato Paste",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.1159,
+          "referenceServingGrams": 170.0,
+          "per100": {
+            "calories": 82.0,
+            "protein": 4.32,
+            "fat": 0.47
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278191,
+          "name": "Cumin",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4058,
+          "referenceServingGrams": 6.0,
+          "per100": {
+            "calories": 375.0,
+            "protein": 17.81,
+            "fat": 22.27
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279585,
+          "name": "Vegetable Oil",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9214,
+          "referenceServingGrams": 13.6,
+          "per100": {
+            "calories": 884.0,
+            "protein": 0.0,
+            "fat": 100.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280094,
+          "name": "Chicken Stock",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0144,
+          "referenceServingGrams": 240.0,
+          "per100": {
+            "calories": 36.0,
+            "protein": 2.52,
+            "fat": 1.2
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286932,
+          "name": "Pepper",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4666,
+          "referenceServingGrams": 2.9,
+          "per100": {
+            "calories": 251.0,
+            "protein": 10.39,
+            "fat": 3.26
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286939,
+          "name": "Chili Powder",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.541,
+          "referenceServingGrams": 8.0,
+          "per100": {
+            "calories": 282.0,
+            "protein": 13.46,
+            "fat": 14.28
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286943,
+          "name": "Dried Oregano",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.2029,
+          "referenceServingGrams": 1.8,
+          "per100": {
+            "calories": 265.0,
+            "protein": 9.0,
+            "fat": 4.28
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 287192,
+          "name": "Lime Juice",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0229,
+          "referenceServingGrams": 44.0,
+          "per100": {
+            "calories": 25.0,
+            "protein": 0.42,
+            "fat": 0.07
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 1204.9278,
+      "protein": 82.4278,
+      "fat": 86.3677,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 307,
+    "origin": "hand-label",
+    "licence": "Unknown",
+    "name": null,
+    "servings": 2,
+    "recipeServings": null,
+    "lines": [
+      {
+        "qty": 1.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 112,
+          "name": "Honey",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.4329,
+          "referenceServingGrams": 21.0,
+          "per100": {
+            "calories": 304.0,
+            "protein": 0.3,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274726,
+          "name": "Peanut Butter",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0905,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 589.383,
+            "protein": 23.9912,
+            "fat": 49.43
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 281122,
+          "name": "Bananas",
+          "hasNutrition": true,
+          "gramsPerItem": 118.0,
+          "gramsPerMl": 0.951,
+          "referenceServingGrams": 136.0,
+          "per100": {
+            "calories": 89.0,
+            "protein": 1.09,
+            "fat": 0.33
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286988,
+          "name": "Rice Cakes",
+          "hasNutrition": true,
+          "gramsPerItem": 7.0,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 357.14,
+            "protein": 7.14,
+            "fat": 0.0
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 260.0,
+      "protein": 7.0,
+      "fat": 10.0,
+      "handLabel": true
+    },
+    "status": "ok",
+    "source": "staging:hand label",
+    "note": ""
+  },
+  {
+    "id": 314,
+    "origin": "hand-label",
+    "licence": "Unknown",
+    "name": null,
+    "servings": 6,
+    "recipeServings": null,
+    "lines": [
+      {
+        "qty": 0.75,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 170,
+          "name": "Rolled Oats",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4142,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 378.8661,
+            "protein": 13.4965,
+            "fat": 5.89
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274636,
+          "name": "Sugar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.7946,
+          "referenceServingGrams": 188.0,
+          "per100": {
+            "calories": 385.0,
+            "protein": 0.0,
+            "fat": 0.32
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274731,
+          "name": "Blueberries",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.6256,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 57.3846,
+            "protein": 0.7031,
+            "fat": 0.3063
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276224,
+          "name": "Flour",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5283,
+          "referenceServingGrams": 125.0,
+          "per100": {
+            "calories": 364.0,
+            "protein": 10.33,
+            "fat": 0.98
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280621,
+          "name": "Unsalted Butter",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9595,
+          "referenceServingGrams": 113.0,
+          "per100": {
+            "calories": 717.0,
+            "protein": 0.85,
+            "fat": 81.11
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286940,
+          "name": "Cinnamon",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5275,
+          "referenceServingGrams": 7.8,
+          "per100": {
+            "calories": 247.0,
+            "protein": 3.99,
+            "fat": 1.24
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 200.0,
+      "protein": 3.0,
+      "fat": 7.0,
+      "handLabel": true
+    },
+    "status": "ok",
+    "source": "staging:hand label",
+    "note": ""
+  },
+  {
+    "id": 35997,
+    "origin": "mass-volume",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 6.0,
+    "lines": [
+      {
+        "qty": 1.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278191,
+          "name": "Cumin",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4058,
+          "referenceServingGrams": 6.0,
+          "per100": {
+            "calories": 375.0,
+            "protein": 17.81,
+            "fat": 22.27
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278570,
+          "name": "Garlic Powder",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.656,
+          "referenceServingGrams": 9.7,
+          "per100": {
+            "calories": 331.0,
+            "protein": 16.55,
+            "fat": 0.73
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278572,
+          "name": "Onion Powder",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4666,
+          "referenceServingGrams": 6.9,
+          "per100": {
+            "calories": 341.0,
+            "protein": 10.41,
+            "fat": 1.04
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286932,
+          "name": "Pepper",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4666,
+          "referenceServingGrams": 2.9,
+          "per100": {
+            "calories": 251.0,
+            "protein": 10.39,
+            "fat": 3.26
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286939,
+          "name": "Chili Powder",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.541,
+          "referenceServingGrams": 8.0,
+          "per100": {
+            "calories": 282.0,
+            "protein": 13.46,
+            "fat": 14.28
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286943,
+          "name": "Dried Oregano",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.2029,
+          "referenceServingGrams": 1.8,
+          "per100": {
+            "calories": 265.0,
+            "protein": 9.0,
+            "fat": 4.28
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286944,
+          "name": "Paprika",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4599,
+          "referenceServingGrams": 6.8,
+          "per100": {
+            "calories": 282.0,
+            "protein": 14.14,
+            "fat": 12.89
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 8.5967,
+      "protein": 0.4002,
+      "fat": 0.3593,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 38038,
+    "origin": "mass-volume",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 10.0,
+    "lines": [
+      {
+        "qty": 10.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 275323,
+          "name": "Popcorn",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": 28.35,
+          "per100": {
+            "calories": 387.0,
+            "protein": 12.94,
+            "fat": 4.54
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276165,
+          "name": "Brown Sugar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9299,
+          "referenceServingGrams": 4.6,
+          "per100": {
+            "calories": 380.0,
+            "protein": 0.12,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276169,
+          "name": "Light Corn Syrup",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.4413,
+          "referenceServingGrams": 341.0,
+          "per100": {
+            "calories": 283.0,
+            "protein": 0.0,
+            "fat": 0.2
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280621,
+          "name": "Unsalted Butter",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9595,
+          "referenceServingGrams": 113.0,
+          "per100": {
+            "calories": 717.0,
+            "protein": 0.85,
+            "fat": 81.11
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 282180,
+          "name": "Baking Soda",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9333,
+          "referenceServingGrams": 4.6,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.125,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 282181,
+          "name": "Cream Of Tartar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.6087,
+          "referenceServingGrams": 3.0,
+          "per100": {
+            "calories": 258.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 189.205,
+      "protein": 0.1229,
+      "fat": 9.2233,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 39634,
+    "origin": "mass-volume",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 12.0,
+    "lines": [
+      {
+        "qty": 0.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 112,
+          "name": "Honey",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.4329,
+          "referenceServingGrams": 21.0,
+          "per100": {
+            "calories": 304.0,
+            "protein": 0.3,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274726,
+          "name": "Peanut Butter",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0905,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 589.383,
+            "protein": 23.9912,
+            "fat": 49.43
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Ounce",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277555,
+          "name": "Semi-Sweet Chocolate Chips",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": 162.0,
+          "per100": {
+            "calories": 546.0,
+            "protein": 4.88,
+            "fat": 31.28
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280833,
+          "name": "Water",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0,
+          "referenceServingGrams": 237.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 2.75,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 281082,
+          "name": "Quick Oats",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.3424,
+          "referenceServingGrams": 81.0,
+          "per100": {
+            "calories": 379.0,
+            "protein": 13.15,
+            "fat": 6.52
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 281122,
+          "name": "Bananas",
+          "hasNutrition": true,
+          "gramsPerItem": 118.0,
+          "gramsPerMl": 0.951,
+          "referenceServingGrams": 136.0,
+          "per100": {
+            "calories": 89.0,
+            "protein": 1.09,
+            "fat": 0.33
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 204.9184,
+      "protein": 4.3364,
+      "fat": 6.8541,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 40504,
+    "origin": "mass-volume",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 9.0,
+    "lines": [
+      {
+        "qty": 2.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274581,
+          "name": "Milk",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0313,
+          "referenceServingGrams": 229.0,
+          "per100": {
+            "calories": 60.0,
+            "protein": 3.28,
+            "fat": 3.2
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Pound",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274754,
+          "name": "Yukon Gold Potatoes",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 71.5752,
+            "protein": 1.8125,
+            "fat": 0.2638
+          }
+        }
+      },
+      {
+        "qty": 5.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276224,
+          "name": "Flour",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5283,
+          "referenceServingGrams": 125.0,
+          "per100": {
+            "calories": 364.0,
+            "protein": 10.33,
+            "fat": 0.98
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278570,
+          "name": "Garlic Powder",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.656,
+          "referenceServingGrams": 9.7,
+          "per100": {
+            "calories": 331.0,
+            "protein": 16.55,
+            "fat": 0.73
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Pinch",
+        "kind": "ingredient",
+        "raw": null,
+        "food": {
+          "id": 278571,
+          "name": "Nutmeg",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4734,
+          "referenceServingGrams": 7.0,
+          "per100": {
+            "calories": 525.0,
+            "protein": 5.84,
+            "fat": 36.31
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278572,
+          "name": "Onion Powder",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4666,
+          "referenceServingGrams": 6.9,
+          "per100": {
+            "calories": 341.0,
+            "protein": 10.41,
+            "fat": 1.04
+          }
+        }
+      },
+      {
+        "qty": 5.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280603,
+          "name": "Butter",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9595,
+          "referenceServingGrams": 113.0,
+          "per100": {
+            "calories": 717.0,
+            "protein": 0.85,
+            "fat": 81.11
+          }
+        }
+      },
+      {
+        "qty": 6.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 281702,
+          "name": "Chicken Broth",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0525,
+          "referenceServingGrams": 249.0,
+          "per100": {
+            "calories": 6.0,
+            "protein": 0.64,
+            "fat": 0.21
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286932,
+          "name": "Pepper",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4666,
+          "referenceServingGrams": 2.9,
+          "per100": {
+            "calories": 251.0,
+            "protein": 10.39,
+            "fat": 3.26
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Pinch",
+        "kind": "ingredient",
+        "raw": null,
+        "food": {
+          "id": 286933,
+          "name": "Cayenne Pepper",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.3584,
+          "referenceServingGrams": 5.3,
+          "per100": {
+            "calories": 318.0,
+            "protein": 12.01,
+            "fat": 17.27
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 215.5244,
+      "protein": 5.2418,
+      "fat": 8.6392,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 42205,
+    "origin": "mass-volume",
+    "licence": "PublicDomain",
+    "name": "Tartar Sauce",
+    "servings": null,
+    "recipeServings": 4.0,
+    "lines": [
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": "1 teaspoon mustard",
+        "food": {
+          "id": 274605,
+          "name": "Mustard",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0525,
+          "referenceServingGrams": 249.0,
+          "per100": {
+            "calories": 61.0,
+            "protein": 4.25,
+            "fat": 3.38
+          }
+        }
+      },
+      {
+        "qty": 0.063,
+        "unit": "Cup",
+        "kind": null,
+        "raw": "1/16 cup (1 tablespoon) pickle relish",
+        "food": {
+          "id": 275905,
+          "name": "Pickle Relish",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0356,
+          "referenceServingGrams": 15.0,
+          "per100": {
+            "calories": 130.0,
+            "protein": 0.37,
+            "fat": 0.47
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": "1 tablespoon onion, minced (or 2 teaspoons dried minced onion)",
+        "food": {
+          "id": 277290,
+          "name": "Onion",
+          "hasNutrition": true,
+          "gramsPerItem": 110.0,
+          "gramsPerMl": 0.6763,
+          "referenceServingGrams": 70.0,
+          "per100": {
+            "calories": 40.0,
+            "protein": 1.1,
+            "fat": 0.1
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": "1/2 cup low-fat plain yogurt (or low-fat sour cream)",
+        "food": {
+          "id": 278156,
+          "name": "Low-Fat Plain Yogurt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0356,
+          "referenceServingGrams": 227.0,
+          "per100": {
+            "calories": 63.0,
+            "protein": 5.25,
+            "fat": 1.55
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": "1 teaspoon dried parsley (or 1 tablespoon chopped fresh parsley)",
+        "food": {
+          "id": 278196,
+          "name": "Dried Parsley",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.1082,
+          "referenceServingGrams": 1.6,
+          "per100": {
+            "calories": 292.0,
+            "protein": 26.63,
+            "fat": 5.48
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": "hot pepper sauce (2 drops, optional)",
+        "food": {
+          "id": 278843,
+          "name": "Red Hot Chili Sauce",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0356,
+          "referenceServingGrams": 245.0,
+          "per100": {
+            "calories": 21.0,
+            "protein": 0.9,
+            "fat": 0.6
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 26.4916,
+      "protein": 1.7403,
+      "fat": 0.5465,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 50955,
+    "origin": "mass-volume",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 21.0,
+    "lines": [
+      {
+        "qty": 0.333,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 112,
+          "name": "Honey",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.4329,
+          "referenceServingGrams": 21.0,
+          "per100": {
+            "calories": 304.0,
+            "protein": 0.3,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280603,
+          "name": "Butter",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9595,
+          "referenceServingGrams": 113.0,
+          "per100": {
+            "calories": 717.0,
+            "protein": 0.85,
+            "fat": 81.11
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Pinch",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286940,
+          "name": "Cinnamon",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5275,
+          "referenceServingGrams": 7.8,
+          "per100": {
+            "calories": 247.0,
+            "protein": 3.99,
+            "fat": 1.24
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 94.0014,
+      "protein": 0.1105,
+      "fat": 8.7686,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 51307,
+    "origin": "mass-volume",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 12.0,
+    "lines": [
+      {
+        "qty": 2.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 106,
+          "name": "Vanilla Extract",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.8792,
+          "referenceServingGrams": 13.0,
+          "per100": {
+            "calories": 288.0,
+            "protein": 0.06,
+            "fat": 0.06
+          }
+        }
+      },
+      {
+        "qty": 1.75,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274636,
+          "name": "Sugar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.7946,
+          "referenceServingGrams": 188.0,
+          "per100": {
+            "calories": 385.0,
+            "protein": 0.0,
+            "fat": 0.32
+          }
+        }
+      },
+      {
+        "qty": 2.75,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276224,
+          "name": "Flour",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5283,
+          "referenceServingGrams": 125.0,
+          "per100": {
+            "calories": 364.0,
+            "protein": 10.33,
+            "fat": 0.98
+          }
+        }
+      },
+      {
+        "qty": 0.667,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276959,
+          "name": "Powdered Sugar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5072,
+          "referenceServingGrams": 100.0,
+          "per100": {
+            "calories": 389.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277930,
+          "name": "Cocoa Powder",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4058,
+          "referenceServingGrams": 6.0,
+          "per100": {
+            "calories": 479.0,
+            "protein": 16.8,
+            "fat": 23.71
+          }
+        }
+      },
+      {
+        "qty": 1.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278130,
+          "name": "Heavy Cream",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0077,
+          "referenceServingGrams": 120.0,
+          "per100": {
+            "calories": 340.0,
+            "protein": 2.84,
+            "fat": 36.08
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279457,
+          "name": "Vinegar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.006,
+          "referenceServingGrams": 14.9,
+          "per100": {
+            "calories": 18.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.667,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279585,
+          "name": "Vegetable Oil",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9214,
+          "referenceServingGrams": 13.6,
+          "per100": {
+            "calories": 884.0,
+            "protein": 0.0,
+            "fat": 100.0
+          }
+        }
+      },
+      {
+        "qty": 0.75,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280833,
+          "name": "Water",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0,
+          "referenceServingGrams": 237.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 282180,
+          "name": "Baking Soda",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9333,
+          "referenceServingGrams": 4.6,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 453.9059,
+      "protein": 4.0577,
+      "fat": 23.5936,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 60195,
+    "origin": "mass-volume",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 8.0,
+    "lines": [
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 112,
+          "name": "Honey",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.4329,
+          "referenceServingGrams": 21.0,
+          "per100": {
+            "calories": 304.0,
+            "protein": 0.3,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.333,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274605,
+          "name": "Mustard",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0525,
+          "referenceServingGrams": 249.0,
+          "per100": {
+            "calories": 61.0,
+            "protein": 4.25,
+            "fat": 3.38
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278172,
+          "name": "Low-Fat Plain Greek Yogurt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": 200.0,
+          "per100": {
+            "calories": 73.0,
+            "protein": 9.95,
+            "fat": 1.92
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279457,
+          "name": "Vinegar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.006,
+          "referenceServingGrams": 14.9,
+          "per100": {
+            "calories": 18.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Pinch",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286933,
+          "name": "Cayenne Pepper",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.3584,
+          "referenceServingGrams": 5.3,
+          "per100": {
+            "calories": 318.0,
+            "protein": 12.01,
+            "fat": 17.27
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 38.7953,
+      "protein": 0.474,
+      "fat": 0.3527,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 61361,
+    "origin": "mass-volume",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 8.0,
+    "lines": [
+      {
+        "qty": 3.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274662,
+          "name": "Bread Flour",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5791,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 363.0,
+            "protein": 14.3,
+            "fat": 1.65
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276259,
+          "name": "Cornmeal",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.6636,
+          "referenceServingGrams": 157.0,
+          "per100": {
+            "calories": 370.0,
+            "protein": 7.11,
+            "fat": 1.75
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278576,
+          "name": "Dried Rosemary",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.2232,
+          "referenceServingGrams": 3.3,
+          "per100": {
+            "calories": 331.0,
+            "protein": 4.88,
+            "fat": 15.22
+          }
+        }
+      },
+      {
+        "qty": 1.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280833,
+          "name": "Water",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0,
+          "referenceServingGrams": 237.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 282183,
+          "name": "Active Dry Yeast",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.8115,
+          "referenceServingGrams": 7.2,
+          "per100": {
+            "calories": 325.0,
+            "protein": 40.44,
+            "fat": 7.61
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 287188,
+          "name": "Lemon Peel",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4058,
+          "referenceServingGrams": 6.0,
+          "per100": {
+            "calories": 47.0,
+            "protein": 1.5,
+            "fat": 0.3
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 206.7797,
+      "protein": 7.7778,
+      "fat": 1.0081,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 63490,
+    "origin": "mass-volume",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 4.0,
+    "lines": [
+      {
+        "qty": 1.0,
+        "unit": "Pound",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274829,
+          "name": "Brussels Sprouts",
+          "hasNutrition": true,
+          "gramsPerItem": 19.0,
+          "gramsPerMl": 0.372,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 48.7787,
+            "protein": 3.9844,
+            "fat": 0.565
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278570,
+          "name": "Garlic Powder",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.656,
+          "referenceServingGrams": 9.7,
+          "per100": {
+            "calories": 331.0,
+            "protein": 16.55,
+            "fat": 0.73
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278652,
+          "name": "Olive Oil",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.913,
+          "referenceServingGrams": 13.5,
+          "per100": {
+            "calories": 884.0,
+            "protein": 0.0,
+            "fat": 100.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 279460,
+          "name": "Balsamic Vinegar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0778,
+          "referenceServingGrams": 16.0,
+          "per100": {
+            "calories": 88.0,
+            "protein": 0.49,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280603,
+          "name": "Butter",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9595,
+          "referenceServingGrams": 113.0,
+          "per100": {
+            "calories": 717.0,
+            "protein": 0.85,
+            "fat": 81.11
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286932,
+          "name": "Pepper",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4666,
+          "referenceServingGrams": 2.9,
+          "per100": {
+            "calories": 251.0,
+            "protein": 10.39,
+            "fat": 3.26
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 204.6249,
+      "protein": 4.6163,
+      "fat": 17.0242,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 63911,
+    "origin": "mass-volume",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 12.0,
+    "lines": [
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274594,
+          "name": "Parmesan Cheese",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.514,
+          "referenceServingGrams": 7.6,
+          "per100": {
+            "calories": 421.0,
+            "protein": 29.6,
+            "fat": 28.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274615,
+          "name": "Part Skim Mozzarella",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.3643,
+          "referenceServingGrams": 86.2,
+          "per100": {
+            "calories": 298.0,
+            "protein": 23.7,
+            "fat": 20.4
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274669,
+          "name": "Garlic",
+          "hasNutrition": true,
+          "gramsPerItem": 3.0,
+          "gramsPerMl": 0.5748,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 143.0,
+            "protein": 6.62,
+            "fat": 0.38
+          }
+        }
+      },
+      {
+        "qty": 8.0,
+        "unit": "Ounce",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274736,
+          "name": "Cream Cheese",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9806,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 336.7321,
+            "protein": 5.7899,
+            "fat": 33.49
+          }
+        }
+      },
+      {
+        "qty": 10.0,
+        "unit": "Ounce",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 276604,
+          "name": "Frozen Spinach",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.6594,
+          "referenceServingGrams": 284.0,
+          "per100": {
+            "calories": 29.0,
+            "protein": 3.63,
+            "fat": 0.57
+          }
+        }
+      },
+      {
+        "qty": 0.75,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278514,
+          "name": "Sour Cream",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9722,
+          "referenceServingGrams": 230.0,
+          "per100": {
+            "calories": 198.0,
+            "protein": 2.44,
+            "fat": 19.35
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278572,
+          "name": "Onion Powder",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4666,
+          "referenceServingGrams": 6.9,
+          "per100": {
+            "calories": 341.0,
+            "protein": 10.41,
+            "fat": 1.04
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.125,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286932,
+          "name": "Pepper",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4666,
+          "referenceServingGrams": 2.9,
+          "per100": {
+            "calories": 251.0,
+            "protein": 10.39,
+            "fat": 3.26
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 164.4122,
+      "protein": 7.0582,
+      "fat": 13.5531,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 76787,
+    "origin": "mass-volume",
+    "licence": "Unknown",
+    "name": null,
+    "servings": null,
+    "recipeServings": 8.0,
+    "lines": [
+      {
+        "qty": 0.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 112,
+          "name": "Honey",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.4329,
+          "referenceServingGrams": 21.0,
+          "per100": {
+            "calories": 304.0,
+            "protein": 0.3,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 4874,
+          "name": "Lime wedges",
+          "hasNutrition": false,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": null,
+            "protein": null,
+            "fat": null
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 15949,
+          "name": "cornstarch",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.541,
+          "referenceServingGrams": 128.0,
+          "per100": {
+            "calories": 381.0,
+            "protein": 0.26,
+            "fat": 0.05
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 274669,
+          "name": "Garlic",
+          "hasNutrition": true,
+          "gramsPerItem": 3.0,
+          "gramsPerMl": 0.5748,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 143.0,
+            "protein": 6.62,
+            "fat": 0.38
+          }
+        }
+      },
+      {
+        "qty": 2.5,
+        "unit": "Pound",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 275183,
+          "name": "Pork Loin",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": 117.0,
+          "per100": {
+            "calories": 198.0,
+            "protein": 19.74,
+            "fat": 12.58
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 277287,
+          "name": "Cilantro",
+          "hasNutrition": true,
+          "gramsPerItem": 2.22,
+          "gramsPerMl": 0.0676,
+          "referenceServingGrams": 20.0,
+          "per100": {
+            "calories": 23.0,
+            "protein": 2.13,
+            "fat": 0.52
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278193,
+          "name": "Ground Ginger",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.3517,
+          "referenceServingGrams": 5.2,
+          "per100": {
+            "calories": 335.0,
+            "protein": 8.98,
+            "fat": 4.24
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278652,
+          "name": "Olive Oil",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.913,
+          "referenceServingGrams": 13.5,
+          "per100": {
+            "calories": 884.0,
+            "protein": 0.0,
+            "fat": 100.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 278848,
+          "name": "Worcestershire Sauce",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.1624,
+          "referenceServingGrams": 275.0,
+          "per100": {
+            "calories": 77.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 281445,
+          "name": "Soy sauce made from soy and wheat (shoyu)",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0778,
+          "referenceServingGrams": 16.0,
+          "per100": {
+            "calories": 53.0,
+            "protein": 8.14,
+            "fat": 0.57
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 286932,
+          "name": "Pepper",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4666,
+          "referenceServingGrams": 2.9,
+          "per100": {
+            "calories": 251.0,
+            "protein": 10.39,
+            "fat": 3.26
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 287192,
+          "name": "Lime Juice",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0229,
+          "referenceServingGrams": 44.0,
+          "per100": {
+            "calories": 25.0,
+            "protein": 0.42,
+            "fat": 0.07
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 375.5383,
+      "protein": 28.7752,
+      "fat": 19.5787,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 81756,
+    "origin": "servings-unknown",
+    "licence": "PublicDomain",
+    "name": "Cold Slaw",
+    "servings": null,
+    "recipeServings": null,
+    "lines": [
+      {
+        "qty": 0.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": "one half cupful of milk",
+        "food": {
+          "id": 274581,
+          "name": "Milk",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0313,
+          "referenceServingGrams": 229.0,
+          "per100": {
+            "calories": 60.0,
+            "protein": 3.28,
+            "fat": 3.2
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Cup",
+        "kind": null,
+        "raw": "one quarter of a cupful of sugar",
+        "food": {
+          "id": 274636,
+          "name": "Sugar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.7946,
+          "referenceServingGrams": 188.0,
+          "per100": {
+            "calories": 385.0,
+            "protein": 0.0,
+            "fat": 0.32
+          }
+        }
+      },
+      {
+        "qty": 0.25,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "A quarter of a head of firm white cabbage",
+        "food": {
+          "id": 277269,
+          "name": "Cabbage",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.3762,
+          "referenceServingGrams": 89.0,
+          "per100": {
+            "calories": 25.0,
+            "protein": 1.28,
+            "fat": 0.1
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "one egg",
+        "food": {
+          "id": 278540,
+          "name": "Eggs",
+          "hasNutrition": true,
+          "gramsPerItem": 50.0,
+          "gramsPerMl": 1.0271,
+          "referenceServingGrams": 56.0,
+          "per100": {
+            "calories": 143.0,
+            "protein": 12.56,
+            "fat": 9.51
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Cup",
+        "kind": null,
+        "raw": "one half cupful of vinegar",
+        "food": {
+          "id": 279457,
+          "name": "Vinegar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.006,
+          "referenceServingGrams": 14.9,
+          "per100": {
+            "calories": 18.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": "a teaspoonful of butter",
+        "food": {
+          "id": 280603,
+          "name": "Butter",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9595,
+          "referenceServingGrams": 113.0,
+          "per100": {
+            "calories": 717.0,
+            "protein": 0.85,
+            "fat": 81.11
+          }
+        }
+      },
+      {
+        "qty": 0.5,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": "one half tablespoonful of salt",
+        "food": {
+          "id": 280659,
+          "name": "Salt",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.2342,
+          "referenceServingGrams": 18.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 386.5333,
+      "protein": 10.6065,
+      "fat": 12.6675,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 90807,
+    "origin": "servings-unknown",
+    "licence": "PublicDomain",
+    "name": "Oysters with Nutmeg and Mace",
+    "servings": null,
+    "recipeServings": null,
+    "lines": [
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": "a few blades of mace",
+        "food": {
+          "id": 278194,
+          "name": "Mace",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.3584,
+          "referenceServingGrams": 5.3,
+          "per100": {
+            "calories": 475.0,
+            "protein": 6.71,
+            "fat": 32.38
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": "nutmeg",
+        "food": {
+          "id": 278571,
+          "name": "Nutmeg",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.4734,
+          "referenceServingGrams": 7.0,
+          "per100": {
+            "calories": 525.0,
+            "protein": 5.84,
+            "fat": 36.31
+          }
+        }
+      },
+      {
+        "qty": 4.0,
+        "unit": "Dozen",
+        "kind": null,
+        "raw": "four dozen of fine large fresh oysters",
+        "food": {
+          "id": 281387,
+          "name": "Oysters",
+          "hasNutrition": true,
+          "gramsPerItem": 50.0,
+          "gramsPerMl": null,
+          "referenceServingGrams": 50.0,
+          "per100": {
+            "calories": 81.0,
+            "protein": 9.45,
+            "fat": 2.3
+          }
+        }
+      },
+      {
+        "qty": 0.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": "a little cayenne",
+        "food": {
+          "id": 286933,
+          "name": "Cayenne Pepper",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.3584,
+          "referenceServingGrams": 5.3,
+          "per100": {
+            "calories": 318.0,
+            "protein": 12.01,
+            "fat": 17.27
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 1944.0,
+      "protein": 226.8,
+      "fat": 55.2,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 115244,
+    "origin": "servings-unknown",
+    "licence": "PublicDomain",
+    "name": "Gooseberry Wine",
+    "servings": null,
+    "recipeServings": null,
+    "lines": [
+      {
+        "qty": 1.0,
+        "unit": "Pound",
+        "kind": null,
+        "raw": "a pound of moist sugar",
+        "food": {
+          "id": 276165,
+          "name": "Brown Sugar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9299,
+          "referenceServingGrams": 4.6,
+          "per100": {
+            "calories": 380.0,
+            "protein": 0.12,
+            "fat": 0.0
+          }
+        }
+      },
+      {
+        "qty": 3.0,
+        "unit": "Pound",
+        "kind": null,
+        "raw": "three pounds of ripe gooseberries",
+        "food": {
+          "id": 280240,
+          "name": "Gooseberries",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.634,
+          "referenceServingGrams": 150.0,
+          "per100": {
+            "calories": 44.0,
+            "protein": 0.88,
+            "fat": 0.58
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": "a pint of spring water",
+        "food": {
+          "id": 280833,
+          "name": "Water",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0,
+          "referenceServingGrams": 237.0,
+          "per100": {
+            "calories": 0.0,
+            "protein": 0.0,
+            "fat": 0.0
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 2322.391,
+      "protein": 12.5191,
+      "fat": 7.8925,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  },
+  {
+    "id": 137068,
+    "origin": "servings-unknown",
+    "licence": "PublicDomain",
+    "name": "Heavy Fudge Sauce",
+    "servings": null,
+    "recipeServings": null,
+    "lines": [
+      {
+        "qty": 0.5,
+        "unit": "Teaspoon",
+        "kind": null,
+        "raw": "½ teaspoonful of vanilla",
+        "food": {
+          "id": 106,
+          "name": "Vanilla Extract",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.8792,
+          "referenceServingGrams": 13.0,
+          "per100": {
+            "calories": 288.0,
+            "protein": 0.06,
+            "fat": 0.06
+          }
+        }
+      },
+      {
+        "qty": 1.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": "1 cupful of milk",
+        "food": {
+          "id": 274581,
+          "name": "Milk",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 1.0313,
+          "referenceServingGrams": 229.0,
+          "per100": {
+            "calories": 60.0,
+            "protein": 3.28,
+            "fat": 3.2
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Cup",
+        "kind": null,
+        "raw": "2 cupfuls of sugar",
+        "food": {
+          "id": 274636,
+          "name": "Sugar",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.7946,
+          "referenceServingGrams": 188.0,
+          "per100": {
+            "calories": 385.0,
+            "protein": 0.0,
+            "fat": 0.32
+          }
+        }
+      },
+      {
+        "qty": 2.0,
+        "unit": "Piece",
+        "kind": null,
+        "raw": "2 squares of chocolate",
+        "food": {
+          "id": 274946,
+          "name": "Unsweetened Baking Chocolate",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.5579,
+          "referenceServingGrams": 132.0,
+          "per100": {
+            "calories": 642.0,
+            "protein": 14.32,
+            "fat": 52.31
+          }
+        }
+      },
+      {
+        "qty": 1.25,
+        "unit": "Tablespoon",
+        "kind": null,
+        "raw": "1¼ tablespoonfuls of butter",
+        "food": {
+          "id": 280603,
+          "name": "Butter",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": 0.9595,
+          "referenceServingGrams": 113.0,
+          "per100": {
+            "calories": 717.0,
+            "protein": 0.85,
+            "fat": 81.11
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": null,
+      "calories": 3422.2203,
+      "protein": 45.9598,
+      "fat": 161.4954,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "staging:derived label",
+    "note": ""
+  }
+]

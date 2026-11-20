@@ -1,0 +1,47 @@
+{
+  "link-pick": {
+    "scorer": true,
+    "required": false,
+    "minScore": 0.93,
+    "maxFalseAcceptRate": 0.03,
+    "note": "Ambiguous wordings of link-pairs.tsv asked as the link lane asks them (deterministic answers left out). Floor: the October triangulated picks measured 93.5 % right on the judged pairs."
+  },
+  "link-verify": {
+    "scorer": true,
+    "required": false,
+    "minScore": 0.9,
+    "maxFalseAcceptRate": 0.02,
+    "note": "Every judged pair of link-pairs.tsv; a false accept is 'same' for a pair judged wrong, near or compound."
+  },
+  "line-classify": {
+    "scorer": true,
+    "required": false,
+    "minScore": 0.9,
+    "maxFalseAcceptRate": 0.05,
+    "note": "line-labels.tsv; a false accept is a non-ingredient answer for a line that is an ingredient by rule."
+  },
+  "repair": {
+    "scorer": false,
+    "required": false,
+    "minScore": 0,
+    "note": "No person-judged quote cases exist yet; see docs/architecture/golden-sets.md."
+  },
+  "prose-rewrite": {
+    "scorer": false,
+    "required": false,
+    "minScore": 0,
+    "note": "The rewrite prompt is private to ProseRewriteHostedService; its output is checked by RewriteFidelity at run time."
+  },
+  "dish-grouping": {
+    "scorer": false,
+    "required": false,
+    "minScore": 0,
+    "note": "No golden set."
+  },
+  "tool-tagging": {
+    "scorer": false,
+    "required": false,
+    "minScore": 0,
+    "note": "No golden set."
+  }
+}

@@ -1,0 +1,800 @@
+id	origin	lines	raw	onId	onFood	expect	status	stays	source	note
+cited-25	cited	292	chopped onion	274666	Yellow Onion	=Onion	ok	ok	design:golden-gate	example 25: rule, 11-13
+cited-26	cited	57	quarter of a pound of butter	279559	Light Unsalted Butter	=Butter	ok	ok	design:golden-gate	example 26: rule
+cited-27	cited	24	white onions	277290	Onion	=White Onions	known	ok	design:golden-gate	example 27: rule
+cited-28	cited	3	four ounces of ground rice	277060	Medium-Grain White Rice	~Rice Flour	ok	ok	design:golden-gate	example 28: reviewed move, 11-17
+cited-29	cited	165	whole pepper	276708	Banana Peppers	~Pepper	ok	ok	design:golden-gate	example 29: reviewed move; the rule says stay
+cited-30	cited	121	1 (28-ounce) can diced tomatoes	274632	Canned Diced Tomatoes	!Tomatoes	known	-	design:golden-gate	example 30: moved to fresh tomatoes, wrong
+cited-31	cited	10	A can of salmon	280872	Canned Salmon	!Salmon	known	-	design:golden-gate	example 31: moved to fresh salmon, wrong
+cited-33	cited	7	dry onion	274666	Yellow Onion	!Onion	ok	-	design:golden-gate	example 33: refuted
+ML1-2	wording-move	2	1 1/2  sticks, (12 tablespoons of unsalted butter, melted and cooled)	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter named; light not stated
+ML1-3	wording-move	2	1, or a small bunch of green onions	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions are whole scallions, not tops only
+ML1-6	wording-move	3	1 12oz. can evaporated milk ($1.42)	278555	Reduced-Fat Evaporated Milk	~Whole Evaporated Milk	ok	ok	agent-review-2026-11-16	plain evaporated milk; reduced-fat not stated
+ML1-7	wording-move	3	1/2 12oz. jar banana pepper rings ($1.00)	274876	Seeded Banana Peppers	~Banana Peppers	ok	ok	agent-review-2026-11-16	banana peppers; seeded not stated
+ML1-10	wording-move	14	1 15oz. can diced tomatoes ($0.89)	274832	Canned Whole Tomatoes	~Canned Diced Tomatoes	ok	ok	agent-review-2026-11-16	diced canned tomatoes named, not whole
+ML1-12	wording-move	4	1⁄12 lb. of butter	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; unsalted not stated
+ML1-17	wording-move	2	30g Parmesan cheese	280622	Shredded Parmesan Cheese	~Parmesan Cheese	ok	ok	agent-review-2026-11-16	parmesan cheese; shredded not stated
+ML1-20	wording-move	2	9-inch, unbaked pie crust	282164	Pie crust, standard-type, frozen, ready-to-bake, enriched	~Pie Crust	ok	ok	agent-review-2026-11-16	unbaked pie crust; frozen not stated
+ML1-23	wording-move	2	_Almonds_	277446	Roasted Almonds	~Almonds	ok	ok	agent-review-2026-11-16	plain almonds; roasted not stated
+ML1-28	wording-move	2	additional Parmesan cheese	280622	Shredded Parmesan Cheese	~Parmesan Cheese	ok	ok	agent-review-2026-11-16	parmesan cheese; shredded not stated
+ML1-54	wording-move	2	1 teaspoonful each of cloves, allspice and cinnamon.	286941	Ground Cloves	stay	ok	-	agent-review-2026-11-16	several spices in one line
+ML1-58	wording-move	2	2 cups almond butter or allergy-friendly sub	275930	Unsalted Almond Butter	~Almond Butter	ok	ok	agent-review-2026-11-16	almond butter; unsalted not stated
+ML1-59	wording-move	6	almond essence	278293	Almond Oil	stay	ok	-	agent-review-2026-11-16	almond essence is extract, not oil; no extract entry
+ML1-60	wording-move	31	3 ozs. almond meal	277841	Blanched Almonds	~Almond Flour	ok	ok	agent-review-2026-11-16	almond meal is almond flour
+ML1-62	wording-move	2	four pounds of Almond-nuts	277446	Roasted Almonds	~Almonds	ok	ok	agent-review-2026-11-16	plain almonds; roasted not stated
+ML1-63	wording-move	2	1/4 lb. of almonds cut in fine strips	277841	Blanched Almonds	~Almonds	ok	ok	agent-review-2026-11-16	plain almonds; blanched not stated
+ML1-64	wording-move	2	3 ounces of almonds pounded to a paste (optional)	277841	Blanched Almonds	~Almonds	ok	ok	agent-review-2026-11-16	plain almonds; blanched not stated
+ML1-65	wording-move	2	Almonds shelled, 130 grams.	277841	Blanched Almonds	~Almonds	ok	ok	agent-review-2026-11-16	plain almonds; blanched not stated
+ML1-70	wording-move	182	anchovy	281350	Raw Anchovies	~Anchovies	ok	ok	agent-review-2026-11-16	preserved anchovy meant, not raw fish
+ML1-71	wording-move	3	a little cloves and cinnamon	286941	Ground Cloves	stay	ok	-	agent-review-2026-11-16	several spices in one line
+ML1-72	wording-move	6	4 tablespoons half and half	278560	Cream, half and half, lowfat	~Half And Half	ok	ok	agent-review-2026-11-16	half and half; lowfat not stated
+ML1-77	wording-move	9	Apple slices	278927	Peeled Apples	~Apples	ok	ok	agent-review-2026-11-16	apple slices; peeled not stated
+ML1-78	wording-move	5	apple slices for garnish	278927	Peeled Apples	~Apples	ok	ok	agent-review-2026-11-16	apple slices; peeled not stated
+ML1-104	wording-move	33	artichoke-bottoms	276627	Boiled Artichokes With Salt	~Boiled Artichokes	ok	ok	agent-review-2026-11-16	cooked artichoke bottoms; salted not stated
+ML1-107	wording-move	2	Half as much chopped ham	278865	Ham, chopped, not canned	~Ham	ok	ok	agent-review-2026-11-16	chopped ham is ham cut up, not luncheon loaf
+ML1-117	wording-move	6	8 ounces baby bella mushrooms (thinly sliced)	274702	Mushroom, portabella	~Cremini Mushrooms	ok	ok	agent-review-2026-11-16	baby bella is cremini, not portabella
+ML1-118	wording-move	2	2  baby cucumbers, (thinly sliced)	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	baby cucumbers; peeled not stated
+ML1-120	wording-move	8	1 pound baby potatoes (halved)	277319	Red Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	baby potatoes; red not stated
+ML1-121	wording-move	2	24 oz. baby potatoes* ($2.99)	277322	Raw Potato Skins	~Potatoes	ok	ok	agent-review-2026-11-16	whole baby potatoes, not skins
+ML1-122	wording-move	3	1 pound baby potatoes, halved	277319	Red Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	baby potatoes; red not stated
+ML1-123	wording-move	2	1/2 lb. baby potatoes, quartered ($1.08)	277322	Raw Potato Skins	~Potatoes	ok	ok	agent-review-2026-11-16	whole baby potatoes, not skins
+ML1-124	wording-move	2	1 1/2 pounds baby red or Yukon Gold potatoes (halved)	277711	Baked Red Potatoes	~Red Potatoes	ok	ok	agent-review-2026-11-16	raw red potatoes; baked not stated
+ML1-125	wording-move	2	3 pounds baby red potatoes	277711	Baked Red Potatoes	~Red Potatoes	ok	ok	agent-review-2026-11-16	raw red potatoes; baked not stated
+ML1-145	wording-move	3	1 1/2 cups basmati or jasmine rice	277060	Medium-Grain White Rice	~Rice	ok	ok	agent-review-2026-11-16	basmati is long-grain, not medium-grain
+ML1-147	wording-move	2	2 cups basmati rice	277060	Medium-Grain White Rice	~Rice	ok	ok	agent-review-2026-11-16	basmati is long-grain, not medium-grain
+ML1-148	wording-move	2	beaten Cloves and Mace	286941	Ground Cloves	stay	ok	-	agent-review-2026-11-16	two spices in one line
+ML1-149	wording-move	2	beef suet or lard	275946	Beef Fat	~Beef Suet	ok	ok	agent-review-2026-11-16	beef suet named first
+ML1-173	wording-move	3	bermuda potatoes	274753	Peeled Red Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	potatoes; peeled red not stated
+ML1-174	wording-move	2	one cupful best granular corn meal	274664	Fine Yellow Cornmeal	~Cornmeal	ok	ok	agent-review-2026-11-16	granular corn meal, not fine corn flour
+ML1-183	wording-move	2	1 tsp black and white sesame seeds	277439	Toasted Sesame Seeds	~Sesame Seeds	ok	ok	agent-review-2026-11-16	sesame seeds; toasted not stated
+ML1-189	wording-move	2	2 tablespoons blackberry brandy	282237	Coffee Cream Liqueur	stay	ok	-	agent-review-2026-11-16	brandy, not cream liqueur; no brandy entry
+ML1-198	wording-move	2	boiled asparagus	276629	Salted Cooked Asparagus	~Cooked Asparagus	ok	ok	agent-review-2026-11-16	boiled asparagus; salted not stated
+ML1-201	wording-move	2	twelve ears of boiled corn	275872	Salted Boiled Yellow Corn	~Boiled Yellow Corn	ok	ok	agent-review-2026-11-16	boiled corn; salted not stated
+ML1-202	wording-move	7	one pint boiled crab meat	279235	Cooked Queen Crab	~Cooked Blue Crab	ok	ok	agent-review-2026-11-16	generic crab here is blue crab; queen not stated
+ML1-215	wording-move	4	4 pounds boneless pork shoulder (cut into 3-inch pieces)	276513	Broiled Pork Shoulder Petite Tender	~Pork Shoulder	ok	ok	agent-review-2026-11-16	raw pork shoulder; broiled petite tender not stated
+ML1-232	wording-move	2	brandy or vinegar	282237	Coffee Cream Liqueur	stay	ok	-	agent-review-2026-11-16	brandy or vinegar; current is neither
+ML1-233	wording-move	2	bread and butter pickles, (for serving)	276695	Low-Sodium Sweet Pickles	~Sweet Pickles	ok	ok	agent-review-2026-11-16	bread and butter pickles; low-sodium not stated
+ML1-236	wording-move	20	one ounce of bread-crumbs	282064	Soft Bread Crumbs	!Bread Crumbs	ok	-	agent-review-2026-11-16	bread crumbs; main entry named, soft not stated
+ML1-238	wording-move	2	3  (8-ounce) bricks PHILADELPHIA Neufchatel (Low-Fat) cream cheese (softened)	276406	Reduced Fat Cream Cheese	~Neufchatel	ok	ok	agent-review-2026-11-16	Neufchatel named in wording
+ML1-245	wording-move	2	Slices of brown bread-and-butter	282047	Boston Brown Bread	stay	ok	-	agent-review-2026-11-16	bread and butter compound; Boston brown bread wrong
+ML1-252	wording-move	4	3 1/2 cups brown rice, cooked (or white rice)	276210	Boiled Rice	~Rice, brown, long-grain, cooked (Includes foods for USDA's Food Distribution Program)	ok	ok	agent-review-2026-11-16	brown rice cooked, not white rice
+ML1-263	wording-move	3	two burnt onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onions; yellow not stated
+ML1-264	wording-move	14	burnt sugar	275354	Hard Candy	~Sugar	ok	ok	agent-review-2026-11-16	burnt sugar is sugar, not candy
+ML1-265	wording-move	2	piece of butter about the size of an egg	278566	Clarified Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; clarified not stated
+ML1-266	wording-move	3	one of butter and salt	280767	Light Salted Butter	stay	ok	-	agent-review-2026-11-16	butter and salt compound; light butter wrong
+ML1-267	wording-move	5	a piece of butter as large as an egg	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; unsalted not stated
+ML1-268	wording-move	2	piece of butter half the size of an egg	278566	Clarified Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; clarified not stated
+ML1-269	wording-move	2	butter in small bits	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; unsalted not stated
+ML1-270	wording-move	3	1  head butter lettuce, (leaves removed)	274742	Green Looseleaf Lettuce	~Butterhead Lettuce	ok	ok	agent-review-2026-11-16	butter lettuce is butterhead
+ML1-271	wording-move	23	butter or fat	276382	Margarine-like, butter-margarine blend, 80% fat, stick, without salt	~Butter	ok	ok	agent-review-2026-11-16	butter named first; blend not stated
+ML1-273	wording-move	4	butter or good dripping	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	butter named first; unsalted not stated
+ML1-274	wording-move	3	Butter or Hog's-Lard	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	butter named first; unsalted not stated
+ML1-276	wording-move	4	6 tablespoons butter or margarine, divided	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	butter named first; unsalted not stated
+ML1-277	wording-move	6	l 1/2 tablespoonfuls butter or substitute	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	butter named first; unsalted not stated
+ML1-278	wording-move	4	butter or sweet lard	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	butter named first; unsalted not stated
+ML1-279	wording-move	3	1/4 cup butter or vegan butter	278566	Clarified Butter	~Butter	ok	ok	agent-review-2026-11-16	butter named first; clarified not stated
+ML1-280	wording-move	2	butter or vegetable fat	278566	Clarified Butter	~Butter	ok	ok	agent-review-2026-11-16	butter named first; clarified not stated
+ML1-282	wording-move	4	Piece of Butter size of an Egg	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; unsalted not stated
+ML1-283	wording-move	2	piece butter size of an egg	278566	Clarified Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; clarified not stated
+ML1-284	wording-move	5	butter the size of a hickory-nut	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; unsalted not stated
+ML1-285	wording-move	4	a piece of butter the size of a nut	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; unsalted not stated
+ML1-286	wording-move	3	a lump of butter the size of an egg	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; unsalted not stated
+ML1-287	wording-move	3	a piece of butter the size of half an egg	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; unsalted not stated
+ML1-288	wording-move	2	¾ cup butter, creamed with sugar	280604	Whipped Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter creamed by cook; whipped not stated
+ML1-289	wording-move	3	½ lb. butter, creamed with the sugar	280604	Whipped Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter creamed by cook; whipped not stated
+ML1-290	wording-move	2	1 piece of butter, half the size of an egg	278566	Clarified Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; clarified not stated
+ML1-291	wording-move	2	butter, or vege-butter	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	butter named first; unsalted not stated
+ML1-295	wording-move	61	two button onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onions; yellow not stated
+ML1-308	wording-move	3	a quarter of an ounce of candied orange-flowers	276429	Orange Peel	stay	ok	-	agent-review-2026-11-16	candied orange flowers are not orange peel
+ML1-311	wording-move	2	4 ounces canned chopped green chiles	277771	Green Chile Peppers	~Canned Green Chiles	ok	ok	agent-review-2026-11-16	canned green chiles named, not raw
+ML1-312	wording-move	5	1/4 cup canned coconut cream	277458	Nuts, coconut cream, canned, sweetened	~Coconut Cream	ok	ok	agent-review-2026-11-16	unsweetened coconut cream; sweetened not stated
+ML1-314	wording-move	2	3 1/2 cups canned low-sodium tomatoes (including the juice or fresh tomato)	277341	Tomatoes, red, ripe, canned, packed in tomato juice	~No-Salt-Added Canned Tomatoes	ok	ok	agent-review-2026-11-16	low-sodium canned tomatoes; no-salt entry fits
+ML1-318	wording-move	2	1 cup canned petite diced tomatoes	277341	Tomatoes, red, ripe, canned, packed in tomato juice	~Canned Diced Tomatoes	ok	ok	agent-review-2026-11-16	canned diced tomatoes named
+ML1-327	wording-move	2	1 qt. canned tomatoes or 4 lbs. fresh tomatoes	277340	Boiled Tomatoes	!Canned Diced Tomatoes	ok	-	agent-review-2026-11-16	canned tomatoes named first, not boiled fresh
+ML1-334	wording-move	57	1 pint of carbonated water	279104	Tonic Water	~Beverages, carbonated, club soda	ok	ok	agent-review-2026-11-16	carbonated water is club soda; tonic has sugar
+ML1-345	wording-move	8	2 dessertspoonfuls of castor sugar	276959	Powdered Sugar	~Sugar	ok	ok	agent-review-2026-11-16	castor sugar is fine granulated, not powdered
+ML1-368	wording-move	3	1 1/2 Tbsp chili garlic sauce ((for more heat // I like Huy Fong Foods brand))	278834	Tomato Chili Sauce	~Red Hot Chili Sauce	ok	ok	agent-review-2026-11-16	chili garlic sauce is not tomato chili sauce
+ML1-369	wording-move	2	3 tablespoons chili garlic sauce	278447	Sriracha Sauce	~Red Hot Chili Sauce	ok	ok	agent-review-2026-11-16	chili garlic sauce; same landing, sriracha is sweetened
+ML1-372	wording-move	3	1/2 cup chilled unsalted butter, (cut into pieces)	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter named; light not stated
+ML2-7	wording-move	2	1 ½ cups chocolate graham cracker crumbs (about 12 graham crackers)	282098	Chocolate-Coated Graham Crackers	~Graham Crackers	ok	ok	agent-review-2026-11-16	chocolate-flavoured grahams, not chocolate-coated cookies
+ML2-8	wording-move	3	chocolate graham crackers	282098	Chocolate-Coated Graham Crackers	~Graham Crackers	ok	ok	agent-review-2026-11-16	chocolate-flavoured grahams, not chocolate-coated cookies
+ML2-16	wording-move	17	1 oz. chopped cooked ham	281775	Honey Ham	~Ham	ok	ok	agent-review-2026-11-16	plain cooked ham; wording does not say honey ham
+ML2-17	wording-move	2	2 tablespoons chopped cooked ham	278865	Ham, chopped, not canned	~Ham	ok	ok	agent-review-2026-11-16	ham that is chopped, not chopped-ham luncheon meat
+ML2-22	wording-move	4	2 Tablespoons chopped fresh basil (or 1 and 1/2 teaspoons dried)	274594	Parmesan Cheese	~Basil	ok	ok	agent-review-2026-11-16	wording is fresh basil, not parmesan
+ML2-24	wording-move	16	Chopped fresh cilantro (for serving)	286929	Coriander Seeds	~Cilantro	ok	ok	agent-review-2026-11-16	fresh cilantro leaves, not coriander seed
+ML2-25	wording-move	2	1 teaspoon chopped fresh rosemary leaves	278576	Dried Rosemary	~Fresh Rosemary	ok	ok	agent-review-2026-11-16	fresh rosemary, not dried
+ML2-27	wording-move	2	1 1/2 cups chopped frozen pineapple  ((as ripe as possible!))	277241	Sweetened Frozen Pineapple Chunks	~Pineapple	ok	ok	agent-review-2026-11-16	plain frozen pineapple; wording does not say sweetened
+ML2-31	wording-move	18	chopped green onion (for garnish)	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions, not tops only; same as other rows
+ML2-32	wording-move	2	¹⁄₄ cup chopped green onion	277297	Welsh Onions	~Spring Onions	ok	ok	agent-review-2026-11-16	green onion is spring onion, not Welsh onion
+ML2-35	wording-move	13	&frac14; cup chopped green onions	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions, not tops only; same as other rows
+ML2-36	wording-move	2	&#8531; cup chopped green onions, both green and white parts	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	wording says both green and white parts
+ML2-37	wording-move	4	one chopped half-onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; wording names no variety
+ML2-42	wording-move	2	2/3 C-chopped nut meats, dates or raisins	277456	Fresh Coconut Meat	stay	ok	-	agent-review-2026-11-16	compound of nuts, dates or raisins; coconut is wrong
+ML2-44	wording-move	6	Chopped onion, 1.	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; wording names no variety
+ML2-48	wording-move	2	Chopped pistachio kernels	277470	Roasted Pistachios	~Pistachios	ok	ok	agent-review-2026-11-16	plain pistachios; wording does not say roasted
+ML2-49	wording-move	4	chopped pistachio nuts (or any chopped nuts)	277470	Roasted Pistachios	~Pistachios	ok	ok	agent-review-2026-11-16	plain pistachios; wording does not say roasted
+ML2-50	wording-move	2	chopped pistachio-nuts	277470	Roasted Pistachios	~Pistachios	ok	ok	agent-review-2026-11-16	plain pistachios; wording does not say roasted
+ML2-54	wording-move	4	1 tablespoon chopped red pepper	286933	Cayenne Pepper	~Red Bell Pepper	ok	ok	agent-review-2026-11-16	chopped red pepper is the fresh vegetable, not cayenne
+ML2-57	wording-move	3	1/3 cup chopped roasted peanuts	281429	Peanuts, all types, oil-roasted, with salt	!Salted Dry Roasted Peanuts	ok	-	agent-review-2026-11-16	roasted peanuts; same entry as the other row
+ML2-62	wording-move	2	half a chopped sound onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; wording names no variety
+ML2-63	wording-move	2	2 tablespoons chopped sun dried tomatoes	276699	Sun-Dried Tomatoes In Oil	~Sun-Dried Tomatoes	ok	ok	agent-review-2026-11-16	sun-dried tomatoes; wording does not say oil-packed
+ML2-69	wording-move	2	2 cups chopped white or red onion	277688	Onions, frozen, chopped, unprepared	~Onion	ok	ok	agent-review-2026-11-16	fresh onion, white or red; not frozen chopped
+ML2-70	wording-move	2	a chopped-up onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; wording names no variety
+ML2-75	wording-move	3	cinnamon and allspice	286936	Ground Allspice	stay	ok	-	agent-review-2026-11-16	two or more spices in one line
+ML2-76	wording-move	6	cinnamon and cloves	286941	Ground Cloves	stay	ok	-	agent-review-2026-11-16	two or more spices in one line
+ML2-79	wording-move	2	one tablespoonful each of cloves, cinnamon, and allspice	286941	Ground Cloves	stay	ok	-	agent-review-2026-11-16	two or more spices in one line
+ML2-80	wording-move	4	2 tablespoons each of cinnamon, cloves and allspice	286941	Ground Cloves	stay	ok	-	agent-review-2026-11-16	two or more spices in one line
+ML2-87	wording-move	2	one-half pint of coarse corn meal	274664	Fine Yellow Cornmeal	~Cornmeal	ok	ok	agent-review-2026-11-16	coarse corn meal is not fine cornmeal
+ML2-88	wording-move	2	coarse corn-meal	274664	Fine Yellow Cornmeal	~Cornmeal	ok	ok	agent-review-2026-11-16	coarse corn meal is not fine cornmeal
+ML2-89	wording-move	3	1 cup coarse cornmeal	277000	Cornmeal, whole-grain, yellow	~Cornmeal	ok	ok	agent-review-2026-11-16	plain cornmeal; wording does not say whole-grain
+ML2-97	wording-move	10	1 Tbsp coconut sugar	276165	Brown Sugar	stay	ok	-	agent-review-2026-11-16	coconut sugar is not in the catalog
+ML2-98	wording-move	4	2 Tbsp coconut sugar ((or sub organic cane sugar))	277947	Turbinado Sugar	stay	ok	-	agent-review-2026-11-16	coconut sugar is not in the catalog
+ML2-99	wording-move	2	1 pound cod fillets, fresh or frozen, skinless and thawed (or other white fleshed fish)	281359	Pacific Cod	~Cod	ok	ok	agent-review-2026-11-16	plain cod; wording does not say Pacific
+ML2-100	wording-move	2	three slices of cod fish	274819	Fish, cod, Atlantic, wild caught, raw	~Cod	ok	ok	agent-review-2026-11-16	same cod, under its everyday name
+ML2-103	wording-move	2	4 cod steaks	281359	Pacific Cod	~Cod	ok	ok	agent-review-2026-11-16	plain cod; wording does not say Pacific
+ML2-104	wording-move	5	cod-fish	281359	Pacific Cod	~Cod	ok	ok	agent-review-2026-11-16	plain cod; wording does not say Pacific
+ML2-113	wording-move	8	1 lb. cold cooked ham	281775	Honey Ham	~Ham	ok	ok	agent-review-2026-11-16	plain cooked ham; wording does not say honey ham
+ML2-116	wording-move	2	Cold cooked sliced beets	275853	Salted Boiled Beets	~Boiled Beets	ok	ok	agent-review-2026-11-16	cooked beets; wording does not say salted
+ML2-117	wording-move	2	cold fat pork or bacon	275681	Rendered Bacon Fat	stay	ok	-	agent-review-2026-11-16	pieces of fat pork or bacon, not rendered fat
+ML2-121	wording-move	2	10 tablespoons cold unsalted butter (cut into 1/2 inch cubes, 1 stick	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter, not light butter
+ML2-122	wording-move	5	¾ cups cold unsalted butter cut into pieces, ((1 ½ sticks or 12 tablespoons))	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter, not light butter
+ML2-123	wording-move	2	8 tablespoons (1 stick) cold unsalted butter, cut into small pieces	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter, not light butter
+ML2-124	wording-move	2	cold white wine vinegar	279459	Red Wine Vinegar	stay	ok	-	agent-review-2026-11-16	white wine vinegar is not in the catalog
+ML2-130	wording-move	2	two tablespoonfuls of common vinegar	286950	Apple Cider Vinegar	~Vinegar	ok	ok	agent-review-2026-11-16	common vinegar is plain vinegar, not cider
+ML2-148	wording-move	2	2 cups (350g) cooked and cubed ham	281775	Honey Ham	~Ham	ok	ok	agent-review-2026-11-16	plain cooked ham; wording does not say honey ham
+ML2-149	wording-move	2	1 cup cooked and shredded chicken breast	278716	Chicken, broilers or fryers, breast, meat only, cooked, roasted	~Cooked Chicken Breast	ok	ok	agent-review-2026-11-16	cooked chicken breast, under the everyday name
+ML2-150	wording-move	2	cooked artichokes	276627	Boiled Artichokes With Salt	~Boiled Artichokes	ok	ok	agent-review-2026-11-16	cooked artichokes; wording does not say salted
+ML2-151	wording-move	2	half a pint of cooked asparagus points	276629	Salted Cooked Asparagus	~Cooked Asparagus	ok	ok	agent-review-2026-11-16	cooked asparagus; wording does not say salted
+ML2-152	wording-move	5	1 cup cooked asparagus tips	276629	Salted Cooked Asparagus	~Cooked Asparagus	ok	ok	agent-review-2026-11-16	cooked asparagus; wording does not say salted
+ML2-155	wording-move	3	A cooked beet	275853	Salted Boiled Beets	~Boiled Beets	ok	ok	agent-review-2026-11-16	cooked beets; wording does not say salted
+ML2-156	wording-move	2	half a cooked beet-root	275853	Salted Boiled Beets	~Boiled Beets	ok	ok	agent-review-2026-11-16	cooked beets; wording does not say salted
+ML2-158	wording-move	3	1 cup cooked beets	275853	Salted Boiled Beets	~Boiled Beets	ok	ok	agent-review-2026-11-16	cooked beets; wording does not say salted
+ML2-162	wording-move	2	2 cups cooked cabbage	275861	Salted Boiled Cabbage	~Boiled Cabbage	ok	ok	agent-review-2026-11-16	cooked cabbage; wording does not say salted
+ML2-169	wording-move	2	2 cups cooked corn	275872	Salted Boiled Yellow Corn	~Boiled Yellow Corn	ok	ok	agent-review-2026-11-16	cooked corn; wording does not say salted
+ML2-173	wording-move	2	six ears of cooked green corn	275872	Salted Boiled Yellow Corn	~Boiled Yellow Corn	ok	ok	agent-review-2026-11-16	cooked corn; wording does not say salted
+ML2-174	wording-move	39	one cupful of cooked ham	281775	Honey Ham	~Ham	ok	ok	agent-review-2026-11-16	plain cooked ham; wording does not say honey ham
+ML2-175	wording-move	4	¹⁄₂ cup cooked ham finely chopped	281775	Honey Ham	~Ham	ok	ok	agent-review-2026-11-16	plain cooked ham; wording does not say honey ham
+ML2-176	wording-move	3	cooked ham or tongue	281775	Honey Ham	stay	ok	-	agent-review-2026-11-16	compound ham or tongue; honey ham is not named
+ML2-177	wording-move	2	5 cups cooked ham, diced	281775	Honey Ham	~Ham	ok	ok	agent-review-2026-11-16	plain cooked ham; wording does not say honey ham
+ML2-179	wording-move	4	a cooked lobster	279236	Cooked Spiny Lobster	~Boiled Lobster	ok	ok	agent-review-2026-11-16	plain cooked lobster, not spiny lobster
+ML2-191	wording-move	2	8 oz cooked shredded chicken breast	278716	Chicken, broilers or fryers, breast, meat only, cooked, roasted	~Cooked Chicken Breast	ok	ok	agent-review-2026-11-16	cooked chicken breast, under the everyday name
+ML2-192	wording-move	2	2 cups cooked shredded chicken breast	278717	Chicken, broilers or fryers, breast, meat only, cooked, stewed	~Cooked Chicken Breast	ok	ok	agent-review-2026-11-16	cooked chicken breast, under the everyday name
+ML2-193	wording-move	2	cooked tips of asparagus	276629	Salted Cooked Asparagus	~Cooked Asparagus	ok	ok	agent-review-2026-11-16	cooked asparagus; wording does not say salted
+ML2-194	wording-move	2	1 cup of cooked tomato	277379	Homemade Stewed Tomatoes	~Boiled Tomatoes	ok	ok	agent-review-2026-11-16	plain cooked tomatoes, not the stewed-tomato recipe
+ML2-196	wording-move	2	2 cups cooked tomatoes (no. 2 can)	277379	Homemade Stewed Tomatoes	~Boiled Tomatoes	ok	ok	agent-review-2026-11-16	plain cooked tomatoes, not the stewed-tomato recipe
+ML2-199	wording-move	2	2 cups cooked, shredded chicken breast	278717	Chicken, broilers or fryers, breast, meat only, cooked, stewed	~Cooked Chicken Breast	ok	ok	agent-review-2026-11-16	cooked chicken breast, under the everyday name
+ML2-200	wording-move	2	corn beef	277875	Canned Corned Beef	~Corned Beef	ok	ok	agent-review-2026-11-16	corned beef; wording does not say canned
+ML2-201	wording-move	2	1 qt. corn brandy	282237	Coffee Cream Liqueur	stay	ok	-	agent-review-2026-11-16	corn brandy is a spirit; no spirit in catalog
+ML2-202	wording-move	5	3 cups Corn Chex cereal	281810	Corn Flakes	stay	ok	-	agent-review-2026-11-16	Corn Chex is not in the catalog
+ML2-204	wording-move	2	1-1/2 pints corn cut from the cob	275890	Frozen Corn Kernels	~Corn	ok	ok	agent-review-2026-11-16	fresh corn cut from the cob, not frozen
+ML2-205	wording-move	2	corn cut from the cob	275752	Corn, sweet, yellow, frozen, kernels cut off cob, unprepared (Includes foods for USDA's Food Distribution Program)	~Corn	ok	ok	agent-review-2026-11-16	fresh corn cut from the cob, not frozen
+ML2-206	wording-move	6	corn from the cob	275884	White Sweet Corn	~Corn	ok	ok	agent-review-2026-11-16	plain corn; wording does not say white
+ML2-207	wording-move	111	two pounds of corn meal	274664	Fine Yellow Cornmeal	~Cornmeal	ok	ok	agent-review-2026-11-16	plain corn meal; wording does not say fine or yellow
+ML2-208	wording-move	4	Corn meal, 1 cup	277571	Corn grain, yellow	~Cornmeal	ok	ok	agent-review-2026-11-16	corn meal is cornmeal, not whole corn grain
+ML2-209	wording-move	2	Corn meal mush, 1 quart	274664	Fine Yellow Cornmeal	stay	ok	-	agent-review-2026-11-16	cooked cornmeal mush, not dry meal; no such entry
+ML2-210	wording-move	3	1 package corn muffin mix	282143	Corn Muffins From Mix	~Bread, cornbread, dry mix, enriched (includes corn muffin mix)	ok	ok	agent-review-2026-11-16	dry corn muffin mix, not prepared muffins
+ML2-211	wording-move	2	corn off the cob	275752	Corn, sweet, yellow, frozen, kernels cut off cob, unprepared (Includes foods for USDA's Food Distribution Program)	~Corn	ok	ok	agent-review-2026-11-16	fresh corn cut from the cob, not frozen
+ML2-212	wording-move	2	Corn starch, 1 teaspoonful.	275009	Dried Corn	~cornstarch	ok	ok	agent-review-2026-11-16	corn starch is cornstarch, not dried corn
+ML2-213	wording-move	2	Corn starch, 1 rounded teaspoonful.	275009	Dried Corn	~cornstarch	ok	ok	agent-review-2026-11-16	corn starch is cornstarch, not dried corn
+ML2-215	wording-move	14	Corn Syrup,         1 tablespoon	276962	High-Fructose Corn Syrup	~Light Corn Syrup	ok	ok	agent-review-2026-11-16	plain corn syrup, not high-fructose
+ML2-216	wording-move	8	one cup of corn syrup	276168	Dark Corn Syrup	~Light Corn Syrup	ok	ok	agent-review-2026-11-16	plain corn syrup; wording does not say dark
+ML2-217	wording-move	2	4 ears corn, kernels removed from cob	275890	Frozen Corn Kernels	~Corn	ok	ok	agent-review-2026-11-16	fresh corn cut from the cob, not frozen
+ML2-218	wording-move	4	2 ears corn, kernels removed from the cob	275890	Frozen Corn Kernels	~Corn	ok	ok	agent-review-2026-11-16	fresh corn cut from the cob, not frozen
+ML2-220	wording-move	91	half cup of corn-meal	274664	Fine Yellow Cornmeal	~Cornmeal	ok	ok	agent-review-2026-11-16	plain corn meal; wording does not say fine or yellow
+ML2-221	wording-move	4	two cups corn-meal	277571	Corn grain, yellow	~Cornmeal	ok	ok	agent-review-2026-11-16	corn meal is cornmeal, not whole corn grain
+ML2-229	wording-move	2	2 tablespoons Countryside Creamery unsalted butter	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter, not light butter
+ML2-230	wording-move	3	a couple of onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; wording names no variety
+ML2-232	wording-move	4	One and one-half cups of crab meat	279196	Crustaceans, crab, queen, raw	~Crabs	ok	ok	agent-review-2026-11-16	plain crab meat; wording names no species
+ML2-233	wording-move	2	two cupfuls of crab meat	279195	Crustaceans, crab, dungeness, raw	~Crabs	ok	ok	agent-review-2026-11-16	plain crab meat; wording names no species
+ML2-240	wording-move	8	1  can cream of mushroom soup, (10 ounce)	280125	Soup, cream of mushroom, canned, prepared with equal volume water	~Condensed Mushroom Soup	ok	ok	agent-review-2026-11-16	a can of cream of mushroom soup is condensed
+ML2-246	wording-move	7	1/4 cup cream or half and half	278560	Cream, half and half, lowfat	stay	ok	-	agent-review-2026-11-16	compound cream or half and half; lowfat not named
+ML2-248	wording-move	12	one pint cream or new milk	278145	Milk, low sodium, fluid	stay	ok	-	agent-review-2026-11-16	compound cream or new milk; low-sodium milk is wrong
+ML2-257	wording-move	12	a large cup of creamed butter	280604	Whipped Butter	~Butter	ok	ok	agent-review-2026-11-16	creamed butter is ordinary butter beaten soft
+ML2-260	wording-move	2	3/4 cup (185g) creamy peanut butter*	279685	Unsalted Smooth Peanut Butter	~Peanut Butter	ok	ok	agent-review-2026-11-16	creamy peanut butter; wording does not say unsalted
+ML2-264	wording-move	2	1 crisp lettuce	274742	Green Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	crisp lettuce; wording does not say looseleaf
+ML2-266	wording-move	28	crisp lettuce leaf	274742	Green Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	crisp lettuce; wording does not say looseleaf
+ML2-268	wording-move	6	2 cups crispy fried onions	277294	Sauteed Yellow Onions	stay	ok	-	agent-review-2026-11-16	crispy french-fried onions are not sauteed onions; no entry
+ML2-274	wording-move	2	1/2 cup crunchy fried onions, crushed (like the kind you put on green bean casserole from the store!)	277294	Sauteed Yellow Onions	stay	ok	-	agent-review-2026-11-16	crispy french-fried onions are not sauteed onions; no entry
+ML2-280	wording-move	3	Crushed graham cracker crumbs, (for garnish)	279964	Cracker Meal	~Graham Crackers	ok	ok	agent-review-2026-11-16	graham cracker crumbs, not cracker meal
+ML2-282	wording-move	2	1 cup crushed peppermint candy (or candy canes)	275346	Candies, YORK Peppermint Pattie	~Hard Candy	ok	ok	agent-review-2026-11-16	peppermint hard candy, not a chocolate peppermint pattie
+ML2-283	wording-move	2	1 cup crushed peppermint candy canes (about 8-10 large candy canes)*	275346	Candies, YORK Peppermint Pattie	~Hard Candy	ok	ok	agent-review-2026-11-16	peppermint hard candy, not a chocolate peppermint pattie
+ML2-287	wording-move	6	1/3 cup crushed pistachios	277470	Roasted Pistachios	~Pistachios	ok	ok	agent-review-2026-11-16	plain pistachios; wording does not say roasted
+ML2-289	wording-move	2	One cup crushed raspberries	275173	Raspberry Purée	~Raspberries	ok	ok	agent-review-2026-11-16	crushed raspberries are raspberries, not seedless puree
+ML2-291	wording-move	2	1/2 tsp. crushed red pepper (more/less to taste)	277396	Red Bell Pepper	~Cayenne Pepper	ok	ok	agent-review-2026-11-16	crushed red pepper is the spice, not bell pepper
+ML2-298	wording-move	6	Cucumber slices	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	plain cucumber; wording does not say peeled
+ML2-299	wording-move	2	cucumber, sliced into thin rounds	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	plain cucumber; wording does not say peeled
+ML2-300	wording-move	3	half a pound of currants washed and picked	281141	Black Currants	~Dried Currants	ok	ok	agent-review-2026-11-16	old cookbook currants are dried Zante currants
+ML2-304	wording-move	2	2 cups cut onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; wording names no variety
+ML2-305	wording-move	9	1 cup cut-up dates	278963	Deglet Noor Dates	~Medjool Dates	ok	ok	agent-review-2026-11-16	plain dates; wording does not say Deglet Noor
+ML2-306	wording-move	7	one cut-up onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; wording names no variety
+ML2-314	wording-move	3	one pound of dates stoned	278963	Deglet Noor Dates	~Medjool Dates	ok	ok	agent-review-2026-11-16	plain dates; wording does not say Deglet Noor
+ML2-315	wording-move	4	Dates stoned and sliced	278963	Deglet Noor Dates	~Medjool Dates	ok	ok	agent-review-2026-11-16	plain dates; wording does not say Deglet Noor
+ML2-316	wording-move	3	1/2 C-dates, cut fine	278963	Deglet Noor Dates	~Medjool Dates	ok	ok	agent-review-2026-11-16	plain dates; wording does not say Deglet Noor
+ML2-320	wording-move	2	1-lb. Demerara sugar	276165	Brown Sugar	~Turbinado Sugar	ok	ok	agent-review-2026-11-16	demerara is a raw cane sugar like turbinado
+ML2-328	wording-move	7	1 cup diced English cucumber	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	plain cucumber; wording does not say peeled
+ML2-332	wording-move	3	Diced green onion	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions, not tops only; same as other rows
+ML2-333	wording-move	2	2 tablespoons diced green onion, (for serving)	277297	Welsh Onions	~Spring Onions	ok	ok	agent-review-2026-11-16	green onion is spring onion, not Welsh onion
+ML2-337	wording-move	2	1 (10-ounce) can diced tomatoes and chiles	274632	Canned Diced Tomatoes	~Canned Tomatoes With Green Chilies	ok	ok	agent-review-2026-11-16	diced tomatoes with chiles has its own entry
+ML2-340	wording-move	2	1 (15-ounce) can diced tomatoes with juice	277341	Tomatoes, red, ripe, canned, packed in tomato juice	~Canned Diced Tomatoes	ok	ok	agent-review-2026-11-16	canned diced tomatoes, under the everyday name
+ML2-341	wording-move	2	2 cups diced, raw potatoes	277322	Raw Potato Skins	~Potatoes	ok	ok	agent-review-2026-11-16	whole potatoes, not potato skins
+ML2-343	wording-move	2	a quart of double distilled white wine vinegar	279459	Red Wine Vinegar	stay	ok	-	agent-review-2026-11-16	white wine vinegar is not in the catalog
+ML2-344	wording-move	3	1 doz onions	277298	Sweet Onions	~Onion	ok	ok	agent-review-2026-11-16	plain onions; wording does not say sweet
+ML2-345	wording-move	2	1 doz. oysters	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; wording does not say wild eastern
+ML2-346	wording-move	7	1 dozen anchovies	281350	Raw Anchovies	~Anchovies	ok	ok	agent-review-2026-11-16	recipe anchovies are preserved, not raw fish
+ML2-348	wording-move	2	Two dozen cucumbers, cut in chunks about an inch thick	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	plain cucumber; wording does not say peeled
+ML2-352	wording-move	2	two dozen large fine oysters	282310	Fresh Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; same entry as the other rows
+ML2-353	wording-move	4	a dozen large oysters	282310	Fresh Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; same entry as the other rows
+ML2-355	wording-move	3	One dozen medium-sized onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; wording names no variety
+ML2-356	wording-move	6	four dozen of oysters	282310	Fresh Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; same entry as the other rows
+ML2-357	wording-move	2	one dozen of oysters	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; wording does not say wild eastern
+ML2-358	wording-move	3	half a dozen onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; wording names no variety
+ML2-359	wording-move	26	four dozen oysters	282310	Fresh Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; same entry as the other rows
+ML2-360	wording-move	2	2½ dozen oysters	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; wording does not say wild eastern
+ML2-361	wording-move	2	a dozen oysters on the half shell	282310	Fresh Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; same entry as the other rows
+ML2-363	wording-move	6	a dozen potatoes	277322	Raw Potato Skins	~Potatoes	ok	ok	agent-review-2026-11-16	whole potatoes, not potato skins
+ML2-364	wording-move	2	a dozen small onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; wording names no variety
+ML2-365	wording-move	2	dozen small oysters with the beards removed	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; wording does not say wild eastern
+ML2-373	wording-move	3	1/2 teaspoon dried cayenne pepper	275912	Sun-Dried Hot Chile Peppers	~Cayenne Pepper	ok	ok	agent-review-2026-11-16	dried cayenne pepper by the teaspoon is the spice
+ML3-9	wording-move	2	2 teaspoons dried parsley flakes	277761	Freeze-Dried Parsley	~Dried Parsley	ok	ok	agent-review-2026-11-16	dried parsley flakes; freeze-dried not stated
+ML3-11	wording-move	2	4 dried red chile peppers, crumbled	276710	Peppers, ancho, dried	~Sun-Dried Hot Chile Peppers	ok	ok	agent-review-2026-11-16	generic dried hot chile; ancho not stated
+ML3-12	wording-move	10	two quarts of dried white beans	274786	Dry Cannellini Beans	~White Beans	ok	ok	agent-review-2026-11-16	wording names white beans, not cannellini
+ML3-14	wording-move	3	15 drops essence of lemon	275119	Lemon Juice	stay	ok	-	agent-review-2026-11-16	lemon essence is an extract, not juice; no extract food
+ML3-16	wording-move	2	2 tablespoonfuls dry farina	278896	Cereals, farina, enriched, assorted brands including CREAM OF WHEAT, quick (1-3 minutes), dry	~Farina	ok	ok	agent-review-2026-11-16	plain farina; brand and quick-cook not stated
+ML3-17	wording-move	3	2 cupfuls dry mashed potatoes	277721	Potatoes, mashed, dehydrated, flakes without milk, dry form	~Mashed Potatoes	ok	ok	agent-review-2026-11-16	old-cookbook mashed potatoes, not dehydrated flakes
+ML3-21	wording-move	7	DRY ONION	274666	Yellow Onion	!Onion	ok	-	agent-review-2026-11-16	dry bulb onion; yellow not stated
+ML3-30	wording-move	2	1 teaspoon each, salt and pepper	286933	Cayenne Pepper	stay	ok	-	agent-review-2026-11-16	compound salt and pepper; cayenne is wrong
+ML3-37	wording-move	17	½  English cucumber (julienned)	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	English cucumber is used unpeeled; peeled not stated
+ML3-38	wording-move	2	&frac12; English cucumber or 1 Persian cucumber, thinly sliced	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	both are cucumbers; peeled not stated
+ML3-39	wording-move	4	2  English cucumbers, (chopped)	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	English cucumber is used unpeeled; peeled not stated
+ML3-41	wording-move	21	1 cup entire wheat flour	276274	Soft Whole Wheat Flour	~Whole Wheat Flour	ok	ok	agent-review-2026-11-16	entire wheat is whole wheat; soft not stated
+ML3-43	wording-move	3	1 cup entire wheat or graham flour	276274	Soft Whole Wheat Flour	~Whole Wheat Flour	ok	ok	agent-review-2026-11-16	entire wheat and graham are whole wheat flour
+ML3-44	wording-move	2	three pints entire-wheat flour	276274	Soft Whole Wheat Flour	~Whole Wheat Flour	ok	ok	agent-review-2026-11-16	entire wheat is whole wheat; soft not stated
+ML3-47	wording-move	3	an equal quantity of butter	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; unsalted not stated
+ML3-50	wording-move	51	one teaspoonful essence of lemon	275119	Lemon Juice	stay	ok	-	agent-review-2026-11-16	lemon essence is an extract, not juice; no extract food
+ML3-51	wording-move	3	One drop of essence of lemon	287187	Lemon juice, raw	stay	ok	-	agent-review-2026-11-16	lemon essence is an extract, not juice; no extract food
+ML3-52	wording-move	111	1 (12 ounce) can Evaporated Milk	278555	Reduced-Fat Evaporated Milk	~Whole Evaporated Milk	ok	ok	agent-review-2026-11-16	plain evaporated milk is whole; reduced-fat not stated
+ML3-58	wording-move	2	extra salt	286933	Cayenne Pepper	~Salt	ok	ok	agent-review-2026-11-16	wording is salt, not cayenne
+ML3-61	wording-move	2	1½ tablespoons extra-virgin olive oil or unsalted butter	279559	Light Unsalted Butter	stay	ok	-	agent-review-2026-11-16	compound oil or butter; light wrong, Unsalted Butter 280621 fits
+ML3-62	wording-move	3	1 tablespoonful extract of vanilla	286945	Imitation Vanilla Extract	~Vanilla Extract	ok	ok	agent-review-2026-11-16	vanilla extract; imitation not stated
+ML3-63	wording-move	2	1 tablespoonful extract vanilla	286945	Imitation Vanilla Extract	~Vanilla Extract	ok	ok	agent-review-2026-11-16	vanilla extract; imitation not stated
+ML3-65	wording-move	2	Farina d'Ungheria, grammi 500.	278896	Cereals, farina, enriched, assorted brands including CREAM OF WHEAT, quick (1-3 minutes), dry	~Flour	ok	ok	agent-review-2026-11-16	Italian farina means flour (Hungarian wheat flour)
+ML3-73	wording-move	2	50 fat oysters	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; wild eastern not stated
+ML3-79	wording-move	2	2 ounces feta cheese or goat cheese (crumbled)	280624	Semisoft Goat Cheese	stay	ok	-	agent-review-2026-11-16	compound feta or goat; semisoft wrong, Feta Cheese 280613 fits
+ML3-80	wording-move	2	fifteen middling-sized onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onions; yellow not stated
+ML3-81	wording-move	2	fifteen plump oysters	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; wild eastern not stated
+ML3-83	wording-move	2	fifty large oysters	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; wild eastern not stated
+ML3-87	wording-move	2	ten or twelve fine baking apples	274677	Honey Crisp Apples	~Apples	ok	ok	agent-review-2026-11-16	baking apples; Honeycrisp not stated
+ML3-89	wording-move	2	1/2 cup fine corn meal	276998	Corn Flour	~Fine Yellow Cornmeal	ok	ok	agent-review-2026-11-16	fine corn meal; consistent with other row
+ML3-90	wording-move	3	1 1/2 cups fine graham cracker crumbs	279964	Cracker Meal	~Graham Crackers	ok	ok	agent-review-2026-11-16	crumbs are crushed graham crackers, not cracker meal
+ML3-91	wording-move	2	fine large juicy apples	278927	Peeled Apples	~Apples	ok	ok	agent-review-2026-11-16	plain apples; peeled not stated
+ML3-92	wording-move	12	fine loaf-sugar	276959	Powdered Sugar	~Sugar	ok	ok	agent-review-2026-11-16	loaf sugar is plain white sugar
+ML3-93	wording-move	2	fine native oysters	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; wild eastern not stated
+ML3-94	wording-move	2	fine plump native oysters, 3 dozen	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; wild eastern not stated
+ML3-95	wording-move	2	fine raw oysters	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; wild eastern not stated
+ML3-96	wording-move	2	pieces of a fine ripe orange	277213	Valencia Oranges	~Oranges	ok	ok	agent-review-2026-11-16	plain oranges; Valencia not stated
+ML3-100	wording-move	2	fine white corn-meal	274664	Fine Yellow Cornmeal	~White Cornmeal	ok	ok	agent-review-2026-11-16	white cornmeal stated; current is yellow
+ML3-101	wording-move	4	fine white flour	276226	White Bread Flour	~Flour	ok	ok	agent-review-2026-11-16	fine white flour; bread flour not stated
+ML3-104	wording-move	4	1 half cup finely chopped cooked ham	281775	Honey Ham	~Ham	ok	ok	agent-review-2026-11-16	cooked ham; honey not stated
+ML3-105	wording-move	2	2 Tbsp finely chopped fresh cilantro ($0.09)	286929	Coriander Seeds	~Cilantro	ok	ok	agent-review-2026-11-16	fresh cilantro leaves, not coriander seed
+ML3-106	wording-move	2	1 tablespoon finely chopped fresh rosemary leaves	278576	Dried Rosemary	~Fresh Rosemary	ok	ok	agent-review-2026-11-16	fresh rosemary, not dried
+ML3-108	wording-move	3	3 tablespoons finely chopped green onion	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	whole green onions; tops only not stated
+ML3-109	wording-move	2	1 cup finely chopped or grated almonds	277841	Blanched Almonds	~Almonds	ok	ok	agent-review-2026-11-16	plain almonds; blanched not stated
+ML3-112	wording-move	4	½ cup finely cut dates	278963	Deglet Noor Dates	~Medjool Dates	ok	ok	agent-review-2026-11-16	plain dates; deglet noor not stated
+ML3-113	wording-move	2	2 tablespoons finely cut onion	274675	White Onions	~Onion	ok	ok	agent-review-2026-11-16	plain onion; white not stated
+ML3-115	wording-move	2	3 tablespoons finely ground pistachios	277470	Roasted Pistachios	~Pistachios	ok	ok	agent-review-2026-11-16	plain pistachios; roasted not stated
+ML3-116	wording-move	5	1 cup of finely ground roasted peanuts	282396	Peanuts, all types, oil-roasted, without salt	~Dry Roasted Peanuts	ok	ok	agent-review-2026-11-16	roasted peanuts; oil-roasted not stated
+ML3-121	wording-move	2	1/3 cup finely-chopped white or red onion	277688	Onions, frozen, chopped, unprepared	~Onion	ok	ok	agent-review-2026-11-16	fresh white or red onion, not frozen chopped
+ML3-125	wording-move	2	finest and largest oysters	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; wild eastern not stated
+ML3-130	wording-move	2	1 (14.5-oz.) can fire-roasted diced tomatoes	274835	Canned Crushed Tomatoes	~Canned Diced Tomatoes	ok	ok	agent-review-2026-11-16	diced stated; current is crushed
+ML3-133	wording-move	2	firm, medium-sized tomatoes	274689	Plum Tomatoes	~Tomatoes	ok	ok	agent-review-2026-11-16	plain tomatoes; plum not stated
+ML3-137	wording-move	3	one can of flaked salmon	282312	Salmon, sockeye, canned, total can contents	~Canned Salmon	ok	ok	agent-review-2026-11-16	canned salmon; sockeye not stated
+ML3-156	wording-move	3	Fresh basil or cilantro ((chopped/torn))	286929	Coriander Seeds	stay	ok	-	agent-review-2026-11-16	compound basil or cilantro; coriander seed wrong, Basil 279454 fits
+ML3-157	wording-move	2	Fresh basil or parsley (to garnish)	274594	Parmesan Cheese	stay	ok	-	agent-review-2026-11-16	compound basil/parsley; Parmesan wrong, herbs 279454 or 277693 fit
+ML3-158	wording-move	2	1 1/2 cups fresh (or frozen unsweetened) blueberries	281128	Blueberries, frozen, unsweetened (Includes foods for USDA's Food Distribution Program)	~Blueberries	ok	ok	agent-review-2026-11-16	fresh blueberries; current is frozen
+ML3-162	wording-move	143	a quarter of a pound of fresh butter	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	fresh butter is unsalted butter; light not stated
+ML3-167	wording-move	10	2 Tbsp fresh chopped rosemary	278576	Dried Rosemary	~Fresh Rosemary	ok	ok	agent-review-2026-11-16	fresh rosemary, not dried
+ML3-168	wording-move	4	2 cups fresh cilantro leaves (loosely packed)	286929	Coriander Seeds	~Cilantro	ok	ok	agent-review-2026-11-16	fresh cilantro leaves, not coriander seed
+ML3-169	wording-move	2	Fresh cilantro or mint  ((optional))	286929	Coriander Seeds	stay	ok	-	agent-review-2026-11-16	compound cilantro/mint; coriander seed wrong, Cilantro 277287 fits
+ML3-170	wording-move	2	1 pound fresh cod, (cut into 4 filets)	274819	Fish, cod, Atlantic, wild caught, raw	~Cod	ok	ok	agent-review-2026-11-16	plain cod; wild caught not stated
+ML3-172	wording-move	21	2 fresh Cornish game hens	278370	Chicken, cornish game hens, meat only, raw	~Cornish Game Hens	ok	ok	agent-review-2026-11-16	whole hens include skin; named entry
+ML3-173	wording-move	2	2 oz fresh goat cheese (crumbled)	280624	Semisoft Goat Cheese	~Goat Cheese	ok	ok	agent-review-2026-11-16	fresh goat cheese is the soft type
+ML3-176	wording-move	4	half a pint of fresh green peas	277306	Frozen Peas	~Green Peas	ok	ok	agent-review-2026-11-16	fresh green peas, not frozen
+ML3-177	wording-move	2	fresh halibut	275016	Halibut With Skin	~Halibut	ok	ok	agent-review-2026-11-16	plain halibut; skin-on Alaska entry not stated
+ML3-179	wording-move	10	fresh Herrings	280851	Pacific Herring	~Herring	ok	ok	agent-review-2026-11-16	plain herring; Pacific not stated
+ML3-180	wording-move	2	four ounces of fresh lard	275576	Fresh Pork	~lard	ok	ok	agent-review-2026-11-16	lard, not pork meat
+ML3-183	wording-move	5	fresh lettuce	274742	Green Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	plain lettuce; looseleaf not stated
+ML3-185	wording-move	2	Fresh mint or cilantro (optional for serving)	286929	Coriander Seeds	stay	ok	-	agent-review-2026-11-16	compound cilantro/mint; coriander seed wrong, Cilantro 277287 fits
+ML3-190	wording-move	2	¼ lb. of fresh or washed salt butter	280767	Light Salted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	fresh butter is unsalted; light is wrong
+ML3-193	wording-move	2	1 and 1/2 Tablespoons fresh orange zest	277215	Oranges With Peel	~Orange Peel	ok	ok	agent-review-2026-11-16	zest is peel, not whole orange
+ML3-194	wording-move	2	fresh Oranges	277213	Valencia Oranges	~Oranges	ok	ok	agent-review-2026-11-16	plain oranges; Valencia not stated
+ML3-195	wording-move	2	fresh parsley or basil (if desired)	274594	Parmesan Cheese	stay	ok	-	agent-review-2026-11-16	compound basil/parsley; Parmesan wrong, herbs 279454 or 277693 fit
+ML3-196	wording-move	2	2 tablespoons fresh parsley, chopped (or 1 teaspoon dried)	280613	Feta Cheese	~Parsley	ok	ok	agent-review-2026-11-16	fresh parsley, not feta cheese
+ML3-198	wording-move	4	2 teaspoons fresh rosemary leaves	278576	Dried Rosemary	~Fresh Rosemary	ok	ok	agent-review-2026-11-16	fresh rosemary, not dried
+ML3-199	wording-move	2	2-3 sprigs fresh rosemary or thyme ((I used a bit of both))	278576	Dried Rosemary	stay	ok	-	agent-review-2026-11-16	compound rosemary or thyme; dried wrong, Fresh Rosemary 280661 fits
+ML3-201	wording-move	2	Fresh rosemary sprig (for garnish)	278576	Dried Rosemary	~Fresh Rosemary	ok	ok	agent-review-2026-11-16	fresh rosemary, not dried
+ML3-202	wording-move	5	4 to 5 fresh rosemary sprigs	278576	Dried Rosemary	~Fresh Rosemary	ok	ok	agent-review-2026-11-16	fresh rosemary, not dried
+ML3-216	wording-move	2	two fresh tomatoes	274689	Plum Tomatoes	~Tomatoes	ok	ok	agent-review-2026-11-16	plain tomatoes; plum not stated
+ML3-218	wording-move	2	fresh-gathered corn	275884	White Sweet Corn	~Corn	ok	ok	agent-review-2026-11-16	plain corn; white not stated
+ML3-230	wording-move	2	freshly-roasted peanuts	281430	Salted Dry Roasted Peanuts	~Dry Roasted Peanuts	ok	ok	agent-review-2026-11-16	roasted peanuts; salted not stated
+ML3-241	wording-move	2	1/2 lb. frozen broccoli florets ($1.30)	277264	Broccoli, frozen, spears, unprepared (Includes foods for USDA's Food Distribution Program)	~Frozen Chopped Broccoli	ok	ok	agent-review-2026-11-16	frozen broccoli; spears not stated, consistent with other row
+ML3-244	wording-move	2	1 cup frozen corn ($0.20)	275754	Frozen Yellow Corn On The Cob	~Frozen Corn Kernels	ok	ok	agent-review-2026-11-16	cup of kernels, not corn on the cob
+ML3-245	wording-move	2	1 package (10 ounces) frozen corn or kernels from 2 ears of corn	275754	Frozen Yellow Corn On The Cob	~Frozen Corn Kernels	ok	ok	agent-review-2026-11-16	both options are kernels, not on the cob
+ML3-247	wording-move	6	1/3 cup frozen edamame (steamed)	275763	Shelled Cooked Edamame	~Edamame	ok	ok	agent-review-2026-11-16	frozen edamame as bought; cooked not stated
+ML3-255	wording-move	3	1 package (17-1/2-ounces) frozen puff pastry	279952	Baked Puff Pastry	~Puff Pastry	ok	ok	agent-review-2026-11-16	frozen unbaked puff pastry; baked not stated
+ML3-256	wording-move	4	1 cup frozen shelled edamame (thawed)	275763	Shelled Cooked Edamame	~Edamame	ok	ok	agent-review-2026-11-16	frozen edamame as bought; cooked not stated
+ML3-258	wording-move	2	2 packages (10 ounces)  frozen spinach, thawed and drained	276605	Spinach, frozen, chopped or leaf, cooked, boiled, drained, without salt	~Frozen Spinach	ok	ok	agent-review-2026-11-16	thawed frozen spinach, not boiled
+ML3-259	wording-move	5	1 cup frozen sweet corn	275754	Frozen Yellow Corn On The Cob	~Frozen Corn Kernels	ok	ok	agent-review-2026-11-16	cup of kernels, not corn on the cob
+ML3-260	wording-move	2	three of fruit jelly	275507	Reduced-Sugar Homemade Jelly	~jellies	ok	ok	agent-review-2026-11-16	plain fruit jelly; reduced-sugar not stated
+ML3-261	wording-move	12	2  cans full-fat coconut milk (cold (refrigerated overnight))	277459	Fresh Coconut Milk	~Coconut Milk	ok	ok	agent-review-2026-11-16	canned full-fat coconut milk, not fresh-pressed
+ML3-262	wording-move	2	6 to 8 lbs fully cooked spiral bone-in ham	281775	Honey Ham	~Ham	ok	ok	agent-review-2026-11-16	plain ham; honey not stated
+ML3-274	wording-move	10	3/4 cup gluten-free rolled oats	281082	Quick Oats	~Whole Rolled Oats	ok	ok	agent-review-2026-11-16	rolled oats, not quick; consistent with other row
+ML3-288	wording-move	23	1 and 3/4 cups (210g) graham cracker crumbs (about 14 full-sheet graham crackers)	279964	Cracker Meal	~Graham Crackers	ok	ok	agent-review-2026-11-16	crumbs are crushed graham crackers, not cracker meal
+ML3-289	wording-move	7	few grains red pepper	277396	Red Bell Pepper	~Cayenne Pepper	ok	ok	agent-review-2026-11-16	grains of red pepper means cayenne, not bell pepper
+ML3-290	wording-move	8	1 pt. granular corn meal	274664	Fine Yellow Cornmeal	~Cornmeal	ok	ok	agent-review-2026-11-16	granular cornmeal; fine not stated
+ML3-291	wording-move	3	1 cupful of granulated corn meal	274664	Fine Yellow Cornmeal	~Cornmeal	ok	ok	agent-review-2026-11-16	granular cornmeal; fine not stated
+ML3-298	wording-move	2	⅔ cup grated cheddar cheese or Mexican cheese blend	279439	Reduced-Fat Mexican Cheese Blend	stay	ok	-	agent-review-2026-11-16	compound cheddar or Mexican blend; reduced-fat not stated
+ML3-300	wording-move	3	one pint of grated green corn	275884	White Sweet Corn	~Corn	ok	ok	agent-review-2026-11-16	green corn is fresh sweet corn; white not stated
+ML3-303	wording-move	2	1 Tbsp. grated lemon zest	275119	Lemon Juice	~Lemon Peel	ok	ok	agent-review-2026-11-16	zest is peel, not juice
+ML3-321	wording-move	3	great Eels	281362	Cooked Eel	~Eels	ok	ok	agent-review-2026-11-16	raw eels; cooked not stated
+ML3-322	wording-move	2	two great Onions	274675	White Onions	~Onion	ok	ok	agent-review-2026-11-16	plain onion; white not stated
+ML3-328	wording-move	74	a pint of green corn	275884	White Sweet Corn	~Corn	ok	ok	agent-review-2026-11-16	green corn is fresh sweet corn; white not stated
+ML3-329	wording-move	2	green corn pulp	275884	White Sweet Corn	~Corn	ok	ok	agent-review-2026-11-16	green corn is fresh sweet corn; white not stated
+ML3-330	wording-move	2	2 cups green corn put through food chopper	275884	White Sweet Corn	~Corn	ok	ok	agent-review-2026-11-16	green corn is fresh sweet corn; white not stated
+ML3-335	wording-move	22	2 tablespoons green onion	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	whole green onions; tops only not stated
+ML3-336	wording-move	10	1  green onion (thinly sliced, (white and green parts separated) $0.09)	277297	Welsh Onions	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions are the scallion entry; Welsh not stated
+ML3-337	wording-move	2	green onion for garnish	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	whole green onions; tops only not stated
+ML3-339	wording-move	2	1 green onion, chopped	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	whole green onions; tops only not stated
+ML3-341	wording-move	2	1  green onion, sliced ($0.20)	277297	Welsh Onions	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions are the scallion entry; Welsh not stated
+ML3-343	wording-move	4	4 stalks green onion, thinly sliced ((optional))	277297	Welsh Onions	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions are the scallion entry; Welsh not stated
+ML3-344	wording-move	2	2 stalks green onion, trimmed and thinly sliced ((2 scallions yield ~1/2 cup or 42 g))	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	whole green onions; tops only not stated
+ML3-346	wording-move	101	green onions  (for garnish)	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	whole green onions; tops only not stated
+ML3-347	wording-move	41	1/2  bunch (3-4 each) green onions ($0.38)	277297	Welsh Onions	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions are the scallion entry; Welsh not stated
+ML3-354	wording-move	3	3 green onions, chopped	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	whole green onions; tops only not stated
+ML3-355	wording-move	2	4  green onions, chopped, plus more for serving	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	whole green onions; tops only not stated
+ML3-356	wording-move	2	4  green onions, divided ($0.44)	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	whole green onions; tops only not stated
+ML3-358	wording-move	2	1 bunch of green onions, finely chopped	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	whole green onions; tops only not stated
+ML3-360	wording-move	2	6 green onions, minced	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	whole green onions; tops only not stated
+ML3-362	wording-move	21	green onions, sliced	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	whole green onions; tops only not stated
+ML3-363	wording-move	4	4  green onions, sliced ($0.29)	277297	Welsh Onions	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions are the scallion entry; Welsh not stated
+ML3-365	wording-move	4	5 green onions, thinly sliced (green saved for garnish)	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	whole green onions; tops only not stated
+ML3-370	wording-move	3	green oranges	277213	Valencia Oranges	~Oranges	ok	ok	agent-review-2026-11-16	plain oranges; Valencia not stated
+ML3-371	wording-move	2	1/2 cup green peas, cooked	277393	Cooked Frozen Peas With Salt	~Cooked Green Peas	ok	ok	agent-review-2026-11-16	cooked green peas; frozen not stated
+ML4-5	wording-move	28	one pound of ground almonds	277841	Blanched Almonds	~Almonds	ok	ok	agent-review-2026-11-16	ground almonds; blanched not stated
+ML4-11	wording-move	2	½ lb. ground hazelnuts	277855	Blanched Hazelnuts	~Hazelnuts	ok	ok	agent-review-2026-11-16	ground hazelnuts; blanched not stated
+ML4-14	wording-move	3	1 cup ground raisins (1½ cup before grinding)	255901	Seeded Raisins	~Raisins	ok	ok	agent-review-2026-11-16	plain raisins; seeded not stated
+ML4-16	wording-move	130	two ounces of ground rice	277060	Medium-Grain White Rice	~Rice Flour	ok	ok	agent-review-2026-11-16	ground rice is rice flour, not medium-grain rice
+ML4-19	wording-move	25	2½ cups half-and-half	278560	Cream, half and half, lowfat	~Half And Half	ok	ok	agent-review-2026-11-16	plain half-and-half; lowfat not stated
+ML4-20	wording-move	2	3/4 cup (180ml) half-and-half or whole milk	278146	Milk, dry, whole, with added vitamin D	stay	ok	-	agent-review-2026-11-16	compound; dry whole milk fits neither option
+ML4-21	wording-move	2	2/3 lb. Halibut Steak	275016	Halibut With Skin	~Halibut	ok	ok	agent-review-2026-11-16	plain halibut; skin-on Alaska entry not stated
+ML4-23	wording-move	3	1 pound halved baby potatoes	277319	Red Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	plain potatoes; red variety not stated
+ML4-25	wording-move	2	two and one-half oz. of ham cut into dice	278865	Ham, chopped, not canned	~Ham	ok	ok	agent-review-2026-11-16	diced ham, not chopped-ham luncheon product
+ML4-26	wording-move	2	ham slices	274651	Ham, sliced, restaurant	~Ham	ok	ok	agent-review-2026-11-16	plain sliced ham; restaurant not stated
+ML4-44	wording-move	3	heart-leaf of lettuce	274742	Green Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	leaves of lettuce, not the looseleaf variety
+ML4-46	wording-move	2	hearts of lettuces	276567	Green Leaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	lettuce hearts are head lettuce, not leaf
+ML4-56	wording-move	2	1  6 to 7 pound Hickory smoked fully cooked spiral cut ham	281775	Honey Ham	~Ham	ok	ok	agent-review-2026-11-16	smoked ham; honey not stated
+ML4-57	wording-move	2	6 ounces high quality dark chocolate, (I used Lindt 70%)	277556	Dark Chocolate 60-69% Cacao	~Dark Chocolate	ok	ok	agent-review-2026-11-16	plain dark chocolate; 60-69% not stated
+ML4-58	wording-move	14	4 ounces high-quality dark chocolate, (chopped)	277556	Dark Chocolate 60-69% Cacao	~Dark Chocolate	ok	ok	agent-review-2026-11-16	plain dark chocolate; 60-69% not stated
+ML4-59	wording-move	2	1/2 cup of highly seasoned white sauce	281708	Thin White Sauce	~White Sauce	ok	ok	agent-review-2026-11-16	plain white sauce; thin not stated
+ML4-73	wording-move	13	hot lard or clarified dripping	278566	Clarified Butter	stay	ok	-	agent-review-2026-11-16	compound lard or dripping; ghee is neither
+ML4-80	wording-move	2	six hundred small cucumbers	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	whole cucumbers; peeled not stated
+ML4-88	wording-move	7	2 tsp. instant coffee powder	281304	Decaf Instant Coffee	~Instant Coffee	ok	ok	agent-review-2026-11-16	instant coffee; decaf not stated
+ML4-93	wording-move	8	Italian Dry Salami (about 14 slices for a small rose) (thinly sliced)	280176	Reduced-Sodium Italian Dry Salami	~Salami	ok	ok	agent-review-2026-11-16	Italian salami; reduced sodium not stated
+ML4-94	wording-move	5	3 tablespoons Italian salad dressing (low fat)	278284	Unsalted Italian Dressing	~Italian Dressing	ok	ok	agent-review-2026-11-16	Italian dressing; unsalted not stated
+ML4-95	wording-move	4	12 slices Italian salami	280176	Reduced-Sodium Italian Dry Salami	~Salami	ok	ok	agent-review-2026-11-16	Italian salami; reduced sodium not stated
+ML4-96	wording-move	2	2 (20-ounce) cans jackfruit in water or brine ((NOT in syrup // we like Trader Joe’s brand))	275547	Jackfruit, canned, syrup pack	stay	ok	-	agent-review-2026-11-16	in water or brine; only syrup-pack jackfruit exists
+ML4-97	wording-move	38	1  jalapeño pepper (stemmed, seeded, and cut into strips)	276709	Serrano Peppers	~Jalapeno Peppers	ok	ok	agent-review-2026-11-16	jalapeno, not serrano
+ML4-100	wording-move	2	1    jalapeño pepper thinly sliced	276709	Serrano Peppers	~Jalapeno Peppers	ok	ok	agent-review-2026-11-16	jalapeno, not serrano
+ML4-101	wording-move	2	1 jalapeño pepper, finely diced	276709	Serrano Peppers	~Jalapeno Peppers	ok	ok	agent-review-2026-11-16	jalapeno, not serrano
+ML4-102	wording-move	2	1 jalapeño pepper, minced	276709	Serrano Peppers	~Jalapeno Peppers	ok	ok	agent-review-2026-11-16	jalapeno, not serrano
+ML4-109	wording-move	2	1 1/2 cup jasmine rice, uncooked	276211	Short-Grain White Rice	~Rice	ok	ok	agent-review-2026-11-16	jasmine is long-grain rice, not short-grain
+ML4-110	wording-move	6	a pint and a half of jelly	275507	Reduced-Sugar Homemade Jelly	!jellies	ok	-	agent-review-2026-11-16	plain jelly; reduced-sugar homemade not stated
+ML4-111	wording-move	2	a quart of jelly clarified as before	275507	Reduced-Sugar Homemade Jelly	stay	ok	-	agent-review-2026-11-16	clarified gelatin-type jelly, no matching food
+ML4-134	wording-move	3	6 tablespoons  Land O Lakes® Unsalted Butter	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML4-135	wording-move	2	1 tablespoonful lard and butter	280621	Unsalted Butter	stay	ok	-	agent-review-2026-11-16	two fats, lard and butter
+ML4-136	wording-move	83	½ pound lard or butter	279559	Light Unsalted Butter	stay	ok	-	agent-review-2026-11-16	compound; light unsalted butter fits neither
+ML4-139	wording-move	2	large and finest oysters	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; wild eastern not stated
+ML4-140	wording-move	2	twelve large baking pears	274650	Fresh Bartlett Pears	~Pears	ok	ok	agent-review-2026-11-16	plain pears; Bartlett not stated
+ML4-146	wording-move	2	1 large celery root (or from 4 to 6 ounces)	277279	Boiled Celery	~Celeriac	ok	ok	agent-review-2026-11-16	celery root is celeriac, not boiled celery
+ML4-147	wording-move	2	large drained oysters	279208	Canned Oysters	~Oysters	ok	ok	agent-review-2026-11-16	drained fresh oysters; canned not stated
+ML4-148	wording-move	15	8 large eggs	280616	Hard-Boiled Eggs	~Eggs	ok	ok	agent-review-2026-11-16	raw large eggs, not hard-boiled
+ML4-149	wording-move	3	1 large English onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML4-158	wording-move	2	large juicy apples	274677	Honey Crisp Apples	~Apples	ok	ok	agent-review-2026-11-16	plain apples; Honeycrisp not stated
+ML4-159	wording-move	5	Large lettuce leaves (Boston, Bibb, or romaine)	274742	Green Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	leaves of lettuce, not the looseleaf variety
+ML4-160	wording-move	3	1 Large Onion or few small ones	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML4-176	wording-move	2	1 large spoon butter	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; unsalted not stated
+ML4-182	wording-move	2	twelve large, plump oysters	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; wild eastern not stated
+ML4-183	wording-move	6	large, solid tomatoes	274832	Canned Whole Tomatoes	~Tomatoes	ok	ok	agent-review-2026-11-16	fresh tomatoes, not canned
+ML4-184	wording-move	5	largest Oysters	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	plain oysters; wild eastern not stated
+ML4-186	wording-move	2	1 leaf lettuce	274741	Red Looseleaf Lettuce	~Green Looseleaf Lettuce	ok	ok	agent-review-2026-11-16	leaf lettuce; red not stated, matches other row
+ML4-187	wording-move	2	leaf of lettuce	274741	Red Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	a leaf of lettuce, not red looseleaf variety
+ML4-205	wording-move	3	4 leaves lettuce ($0.55)	274742	Green Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	leaves of lettuce, not the looseleaf variety
+ML4-206	wording-move	7	six leaves of lettuce	274742	Green Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	leaves of lettuce, not the looseleaf variety
+ML4-209	wording-move	2	a lemon cut in slices	275119	Lemon Juice	~Lemon	ok	ok	agent-review-2026-11-16	whole lemon sliced, not lemon juice
+ML4-210	wording-move	4	1 t-lemon extract	275119	Lemon Juice	stay	ok	-	agent-review-2026-11-16	lemon extract; no extract food in catalog
+ML4-217	wording-move	2	½ teaspoon lemon pepper seasoning	278574	Poultry Seasoning	stay	ok	-	agent-review-2026-11-16	lemon pepper seasoning; poultry seasoning is different
+ML4-220	wording-move	2	grated rind of half a large lemon	275119	Lemon Juice	~Lemon Peel	ok	ok	agent-review-2026-11-16	rind/zest is lemon peel, not juice
+ML4-223	wording-move	3	Lemon wedge (for serving)	275119	Lemon Juice	~Lemon	ok	ok	agent-review-2026-11-16	lemon wedges are lemon, not bottled juice
+ML4-224	wording-move	3	Lemon wedges (for squeezing, optional)	275119	Lemon Juice	~Lemon	ok	ok	agent-review-2026-11-16	lemon wedges are lemon, not bottled juice
+ML4-225	wording-move	129	Zest of 1 lemon	275119	Lemon Juice	~Lemon Peel	ok	ok	agent-review-2026-11-16	rind/zest is lemon peel, not juice
+ML4-227	wording-move	3	zest of 2 lemons (use the same lemons for the syrup (below))	286951	Fresh Thyme	~Lemon Peel	ok	ok	agent-review-2026-11-16	lemon zest is lemon peel, not thyme
+ML4-240	wording-move	48	lettuce leaf	274742	Green Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	leaves of lettuce, not the looseleaf variety
+ML4-241	wording-move	228	lettuce leaves	274742	Green Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	leaves of lettuce, not the looseleaf variety
+ML4-243	wording-move	4	lettuce-leaves	274742	Green Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	leaves of lettuce, not the looseleaf variety
+ML4-244	wording-move	5	2 level tablespns. butter	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; unsalted not stated
+ML4-249	wording-move	18	1 tablespoon light mayonnaise	278683	Lite Mayonnaise-Type Dressing	~Salad dressing, mayonnaise, light	ok	ok	agent-review-2026-11-16	light mayonnaise, not mayonnaise-type dressing; matches other row
+ML4-257	wording-move	3	1/2 loaf of sourdough bread	282051	Toasted French Bread	~Sourdough Bread	ok	ok	agent-review-2026-11-16	sourdough loaf; toasted not stated
+ML4-259	wording-move	6	1  loaf sourdough bread, (sliced thick)	282051	Toasted French Bread	~Sourdough Bread	ok	ok	agent-review-2026-11-16	sourdough loaf; toasted not stated
+ML4-260	wording-move	7	1 pound of loaf sugar	277947	Turbinado Sugar	~Sugar	ok	ok	agent-review-2026-11-16	loaf sugar is refined white sugar, not turbinado
+ML4-263	wording-move	256	loaf-sugar	277947	Turbinado Sugar	~Sugar	ok	ok	agent-review-2026-11-16	loaf sugar is refined white sugar, not turbinado
+ML4-277	wording-move	2	2 cups low-sodium tomato juice	275082	Tomato and vegetable juice, low sodium	~Unsalted Tomato Juice	ok	ok	agent-review-2026-11-16	tomato juice, not tomato-vegetable blend; matches other row
+ML4-282	wording-move	2	cloves, mace, pepper, and salt	286933	Cayenne Pepper	stay	ok	-	agent-review-2026-11-16	compound of three seasonings; pepper is not cayenne
+ML4-295	wording-move	7	1 ounce maraschino cherry juice	275172	Tart Cherry Juice	stay	ok	-	agent-review-2026-11-16	maraschino jar syrup, not tart cherry juice
+ML4-309	wording-move	4	½ lb. mashed sweet potato	276621	Canned Mashed Sweet Potatoes	~Boiled Sweet Potatoes	ok	ok	agent-review-2026-11-16	mashed sweet potato; canned not stated, matches other rows
+ML4-312	wording-move	3	1/2 cupful mashed sweet potatoes	276621	Canned Mashed Sweet Potatoes	~Boiled Sweet Potatoes	ok	ok	agent-review-2026-11-16	mashed sweet potato; canned not stated, matches other rows
+ML4-329	wording-move	4	2 medium size potatoes	277319	Red Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	plain potatoes; red variety not stated
+ML4-331	wording-move	2	medium sized onion	274675	White Onions	~Onion	ok	ok	agent-review-2026-11-16	plain onion; white variety not stated
+ML4-332	wording-move	2	one medium sized onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML4-333	wording-move	6	2 medium sized onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML4-334	wording-move	10	6 medium sized potatoes	277319	Red Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	plain potatoes; red variety not stated
+ML4-340	wording-move	2	medium-sized raw potatoes	277322	Raw Potato Skins	~Potatoes	ok	ok	agent-review-2026-11-16	whole raw potatoes, not potato skins
+ML4-341	wording-move	2	2 medium-sized ripe tomatoes	277341	Tomatoes, red, ripe, canned, packed in tomato juice	~Tomatoes	ok	ok	agent-review-2026-11-16	fresh tomatoes, not canned
+ML4-343	wording-move	2	one medium-sized, sliced onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML4-344	wording-move	2	one medium-sized, sound onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML4-349	wording-move	3	1/3 cup Mexican cheese blend	279439	Reduced-Fat Mexican Cheese Blend	~Mexican Blend Cheese	ok	ok	agent-review-2026-11-16	Mexican cheese blend; reduced fat not stated
+ML4-350	wording-move	2	A middle-sized onion	274675	White Onions	~Onion	ok	ok	agent-review-2026-11-16	plain onion; white variety not stated
+ML4-351	wording-move	2	six middle-sized onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML4-352	wording-move	3	middling cucumbers	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	whole cucumbers; peeled not stated
+ML4-353	wording-move	6	a middling-sized onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML4-354	wording-move	5	three middling-sized onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML4-355	wording-move	2	middling-sized potatoes	277319	Red Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	plain potatoes; red variety not stated
+ML4-356	wording-move	2	½ cup mild banana peppers	274876	Seeded Banana Peppers	~Banana Peppers	ok	ok	agent-review-2026-11-16	banana peppers; seeded not stated
+ML4-359	wording-move	5	1 mild onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML4-360	wording-move	4	mild onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML4-364	wording-move	244	half a pint of milk or cream	278529	Condensed Milk	stay	ok	-	agent-review-2026-11-16	compound milk or cream; condensed milk is neither
+ML4-370	wording-move	2	1 tablespoon minced cooked ham	281775	Honey Ham	~Ham	ok	ok	agent-review-2026-11-16	cooked ham; honey not stated, not minced-ham product
+ML4-372	wording-move	2	1 teaspoon minced fresh rosemary	278576	Dried Rosemary	~Fresh Rosemary	ok	ok	agent-review-2026-11-16	fresh rosemary, not dried
+ML5-1	wording-move	2	2  minced green onions, (divided )	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions are whole scallions, not tops only
+ML5-3	wording-move	3	Minced onion, 1.	277688	Onions, frozen, chopped, unprepared	~Onion	ok	ok	agent-review-2026-11-16	plain onion; frozen chopped not stated
+ML5-7	wording-move	10	4  mini cucumbers (diced)	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	cucumber; peeled not stated
+ML5-11	wording-move	37	½ cup minute tapioca	276912	Tapioca Pudding Mix	~Tapioca	ok	ok	agent-review-2026-11-16	minute tapioca is plain tapioca, not pudding mix
+ML5-17	wording-move	2	2 tablespoonfuls of molasses, generous measure	279938	Molasses Cookies	~molasses	ok	ok	agent-review-2026-11-16	molasses, not molasses cookies
+ML5-25	wording-move	31	a spoonful of mushroom powder	278432	Mushroom Gravy Mix	stay	ok	-	agent-review-2026-11-16	dried mushroom powder, not gravy mix; no catalog match
+ML5-27	wording-move	4	mushroom-powder	278432	Mushroom Gravy Mix	stay	ok	-	agent-review-2026-11-16	dried mushroom powder, not gravy mix; no catalog match
+ML5-34	wording-move	3	2 oz. of mustard-seed	286941	Ground Cloves	~Ground Mustard	ok	ok	agent-review-2026-11-16	mustard seed, not cloves
+ML5-36	wording-move	9	1  small head of Napa cabbage (roughly chopped)	275914	Cooked Napa Cabbage	~Cabbage, chinese (pe-tsai), raw	ok	ok	agent-review-2026-11-16	raw napa cabbage; cooked not stated
+ML5-39	wording-move	2	1/2 cup (41g) natural unsweetened cocoa powder	276107	Dutch-Process Cocoa Powder	~Cocoa Powder	ok	ok	agent-review-2026-11-16	natural cocoa contradicts Dutch-process
+ML5-42	wording-move	2	One quart New Orleans Molasses	279938	Molasses Cookies	~molasses	ok	ok	agent-review-2026-11-16	molasses, not molasses cookies
+ML5-43	wording-move	2	a few new potatoes	277322	Raw Potato Skins	~Potatoes	ok	ok	agent-review-2026-11-16	whole potatoes, not potato skins
+ML5-44	wording-move	2	4 new potatoes	277319	Red Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	new potatoes; red variety not stated
+ML5-46	wording-move	2	Nice, smooth, firm tomatoes	274689	Plum Tomatoes	~Tomatoes	ok	ok	agent-review-2026-11-16	plain tomatoes; plum variety not stated
+ML5-48	wording-move	2	1 can 8 ounce no-salt-added tomato sauce	277426	No-Salt-Added Canned Tomatoes	~Unsalted Tomato Sauce	ok	ok	agent-review-2026-11-16	no-salt tomato sauce, not canned tomatoes
+ML5-71	wording-move	3	2 tablespoons oil or lard	280754	Lard And Vegetable Oil Shortening	stay	ok	-	agent-review-2026-11-16	compound oil or lard; current is industrial shortening
+ML5-83	wording-move	2	old green peas	277306	Frozen Peas	~Green Peas	ok	ok	agent-review-2026-11-16	fresh green peas; frozen not stated
+ML5-84	wording-move	2	2 cups old-fashioned oats or quick-cooking oats	274748	Steel-Cut Oats	~Whole Rolled Oats	ok	ok	agent-review-2026-11-16	old-fashioned oats are rolled, not steel-cut
+ML5-87	wording-move	2	2 tablespoons olive oil or cooking oil	275110	Oil, corn, peanut, and olive	~Olive Oil	ok	ok	agent-review-2026-11-16	olive oil named first; current is odd oil blend
+ML5-88	wording-move	3	an onion cut in pieces	274675	White Onions	~Onion	ok	ok	agent-review-2026-11-16	plain onion; white variety not stated
+ML5-89	wording-move	3	½ onion cut in thin slices	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML5-90	wording-move	2	onion cut into thin rings	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML5-92	wording-move	3	onion in slices	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML5-93	wording-move	9	half a teaspoonful of onion juice	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML5-94	wording-move	8	1 (1-ounce) packet onion soup mix	281734	Prepared Onion Soup	~Dehydrated Onion Soup Mix	ok	ok	agent-review-2026-11-16	dry soup mix, not prepared soup
+ML5-95	wording-move	2	1 onion stuck with 3 cloves	274675	White Onions	~Onion	ok	ok	agent-review-2026-11-16	plain onion; white variety not stated
+ML5-96	wording-move	12	onion stuck with cloves	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML5-97	wording-move	2	One onion, chopped very fine	274675	White Onions	~Onion	ok	ok	agent-review-2026-11-16	plain onion; white variety not stated
+ML5-98	wording-move	4	one onion, cut fine	277688	Onions, frozen, chopped, unprepared	~Onion	ok	ok	agent-review-2026-11-16	plain onion; frozen chopped not stated
+ML5-99	wording-move	2	three onions cut small	274675	White Onions	~Onion	ok	ok	agent-review-2026-11-16	plain onion; white variety not stated
+ML5-101	wording-move	2	Two onions, cut fine	274675	White Onions	~Onion	ok	ok	agent-review-2026-11-16	plain onion; white variety not stated
+ML5-102	wording-move	2	two onions, cut thin	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML5-103	wording-move	2	2 onions, each stuck with 3 cloves	274675	White Onions	~Onion	ok	ok	agent-review-2026-11-16	plain onion; white variety not stated
+ML5-109	wording-move	2	optional: 1/4 cup (about 20g) sliced almonds	277841	Blanched Almonds	~Almonds	ok	ok	agent-review-2026-11-16	sliced almonds; blanched not stated
+ML5-116	wording-move	2	optional: sliced almonds for garnish	277446	Roasted Almonds	~Almonds	ok	ok	agent-review-2026-11-16	sliced almonds; roasted not stated
+ML5-118	wording-move	2	one or more fresh cucumbers	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	cucumber; peeled not stated
+ML5-119	wording-move	2	2 teaspoonfuls orange extract	276429	Orange Peel	stay	ok	-	agent-review-2026-11-16	orange extract is not peel; no extract food
+ML5-120	wording-move	3	1 cup orange juice and pulp	280385	Beverages, Orange juice, light, No pulp	~Orange Juice	ok	ok	agent-review-2026-11-16	juice with pulp contradicts light no-pulp juice
+ML5-130	wording-move	6	2 cups orange pulp and juice	280385	Beverages, Orange juice, light, No pulp	~Orange Juice	ok	ok	agent-review-2026-11-16	juice with pulp contradicts light no-pulp juice
+ML5-140	wording-move	3	1 tablespoonful orange-juice	280385	Beverages, Orange juice, light, No pulp	~Orange Juice	ok	ok	agent-review-2026-11-16	plain orange juice; light not stated
+ML5-146	wording-move	15	a pint of oyster juice	279208	Canned Oysters	stay	ok	-	agent-review-2026-11-16	oyster liquor, not oysters; no catalog match
+ML5-148	wording-move	2	a quart of oysters in their own liquor	279208	Canned Oysters	~Oysters	ok	ok	agent-review-2026-11-16	fresh oysters in liquor; canned not stated
+ML5-153	wording-move	2	6 ounces Pad Thai/wide rice noodles	276244	Cooked Rice Noodles	~Dried Rice Noodles	ok	ok	agent-review-2026-11-16	dry noodles by weight; cooked not stated
+ML5-154	wording-move	2	a pair of fine fat young fowls or chickens	278707	Raw Chicken Fat	~Raw Chicken	ok	ok	agent-review-2026-11-16	whole chickens, not chicken fat
+ML5-161	wording-move	2	part of an onion chopped fine	274665	Red Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; red variety not stated
+ML5-168	wording-move	11	4 oz. of Patna rice	277060	Medium-Grain White Rice	~Rice	ok	ok	agent-review-2026-11-16	Patna is long-grain rice, not medium-grain
+ML5-170	wording-move	2	One spoonful of peach water	277224	Peaches, canned, water pack, solids and liquids	stay	ok	-	agent-review-2026-11-16	peach water is a flavouring, not canned peaches
+ML5-175	wording-move	3	pearl-barley	277567	Whole Barley	~Pearl Barley	ok	ok	agent-review-2026-11-16	pearl barley, not hulled barley
+ML5-176	wording-move	2	1 rounded qt. (8 or 9) pears in halves	274650	Fresh Bartlett Pears	~Pears	ok	ok	agent-review-2026-11-16	plain pears; Bartlett not stated
+ML5-179	wording-move	3	½ peck of green peas.	277306	Frozen Peas	~Green Peas	ok	ok	agent-review-2026-11-16	fresh green peas; frozen not stated
+ML5-181	wording-move	3	½ peck onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML5-182	wording-move	2	2 peeled and concassed tomatoes	274689	Plum Tomatoes	~Tomatoes	ok	ok	agent-review-2026-11-16	plain tomatoes; plum variety not stated
+ML5-192	wording-move	2	three quarts of peeled and sliced potatoes	274754	Yukon Gold Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	plain potatoes; gold variety not stated
+ML5-194	wording-move	2	peeled raw potatoes	274752	Potatoes, russet, without skin, raw	~Potatoes	ok	ok	agent-review-2026-11-16	plain potatoes; russet not stated
+ML5-197	wording-move	2	3 pennyworth of essence of lemon	275119	Lemon Juice	stay	ok	-	agent-review-2026-11-16	lemon essence is extract, not juice; no match
+ML5-199	wording-move	62	a little pepper and salt	286933	Cayenne Pepper	stay	ok	-	agent-review-2026-11-16	compound pepper and salt; cayenne is wrong
+ML5-205	wording-move	2	1  Persian cucumber (thinly sliced)	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	cucumber; peeled not stated
+ML5-206	wording-move	2	2  Persian cucumbers (sliced)	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	cucumber; peeled not stated
+ML5-224	wording-move	8	a half pound of pistachio nuts	277470	Roasted Pistachios	~Pistachios	ok	ok	agent-review-2026-11-16	pistachio nuts; roasted not stated
+ML5-230	wording-move	3	1 cup plus 2 tablespoons unsalted butter (room temperature)	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML5-233	wording-move	8	one pod of red pepper	277396	Red Bell Pepper	~Red Chili Peppers	ok	ok	agent-review-2026-11-16	old pod of red pepper is a hot chili
+ML5-234	wording-move	2	1 pod red pepper	277396	Red Bell Pepper	~Red Chili Peppers	ok	ok	agent-review-2026-11-16	old pod of red pepper is a hot chili
+ML5-236	wording-move	3	eight pods of red pepper	277396	Red Bell Pepper	~Red Chili Peppers	ok	ok	agent-review-2026-11-16	old pod of red pepper is a hot chili
+ML5-240	wording-move	2	one pound of pork sausage-meat	281780	Raw Turkey Sausage	~Pork Sausages	ok	ok	agent-review-2026-11-16	pork sausage meat, not turkey sausage
+ML5-245	wording-move	14	2 cups potato cubes	274753	Peeled Red Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	plain potatoes; red variety not stated
+ML5-246	wording-move	2	potato slices	274752	Potatoes, russet, without skin, raw	~Potatoes	ok	ok	agent-review-2026-11-16	plain potatoes; russet not stated
+ML5-247	wording-move	4	3 cups potatoes cut in half-inch cubes	274753	Peeled Red Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	plain potatoes; red variety not stated
+ML5-248	wording-move	2	potatoes cut in one inch cubes	274753	Peeled Red Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	plain potatoes; red variety not stated
+ML5-253	wording-move	6	¼ lb. of pounded loaf sugar	277947	Turbinado Sugar	~Sugar	ok	ok	agent-review-2026-11-16	loaf sugar is white sugar, not turbinado
+ML5-254	wording-move	2	1 lb. of pounded loaf sugar per pint of liquor	277947	Turbinado Sugar	~Sugar	ok	ok	agent-review-2026-11-16	loaf sugar is white sugar, not turbinado
+ML5-268	wording-move	2	1 can preserved salmon	282312	Salmon, sockeye, canned, total can contents	~Canned Salmon	ok	ok	agent-review-2026-11-16	canned salmon; sockeye not stated
+ML5-282	wording-move	22	1 and 1/2 teaspoon pure vanilla extract	286945	Imitation Vanilla Extract	~Vanilla Extract	ok	ok	agent-review-2026-11-16	real vanilla extract, not imitation
+ML5-283	wording-move	2	1/2 teaspoon pure vanilla or almond extract	286945	Imitation Vanilla Extract	~Vanilla Extract	ok	ok	agent-review-2026-11-16	pure vanilla named first, not imitation
+ML5-290	wording-move	2	1/2 cup Purple Onion, (sliced)	274675	White Onions	~Red Onion	ok	ok	agent-review-2026-11-16	purple onion is red onion
+ML5-292	wording-move	2	1 tsp quality vanilla extract	286945	Imitation Vanilla Extract	~Vanilla Extract	ok	ok	agent-review-2026-11-16	real vanilla extract, not imitation
+ML5-296	wording-move	2	4 cups quartered baby potatoes (red and/or gold)	277322	Raw Potato Skins	~Potatoes	ok	ok	agent-review-2026-11-16	whole potatoes, not potato skins
+ML5-297	wording-move	2	2 cups quartered baby red potatoes	277711	Baked Red Potatoes	~Red Potatoes	ok	ok	agent-review-2026-11-16	raw red potatoes; baked not stated
+ML5-301	wording-move	2	1-1/2 cups quick-cooking rice, uncooked	276211	Short-Grain White Rice	~Instant White Rice	ok	ok	agent-review-2026-11-16	quick-cooking rice is instant rice, not short-grain
+ML5-305	wording-move	2	Pound of Raisins of the Sun	275522	Golden Raisins	~Raisins	ok	ok	agent-review-2026-11-16	sun raisins are dark raisins, not golden
+ML5-307	wording-move	3	1/2 cup raisins or dried cranberries	255901	Seeded Raisins	~Raisins	ok	ok	agent-review-2026-11-16	plain raisins; seeded not stated
+ML5-308	wording-move	2	two pounds of raisins stoned	275522	Golden Raisins	~Seeded Raisins	ok	ok	agent-review-2026-11-16	stoned raisins are seeded raisins, not golden
+ML5-313	wording-move	2	2 cupfuls of raspberry juice	275574	Raspberry juice concentrate	stay	ok	-	agent-review-2026-11-16	raspberry juice, not concentrate; no juice food
+ML5-315	wording-move	11	half a cup raspberry syrup	275125	Canned Raspberries In Heavy Syrup	~Syrup, fruit flavored	ok	ok	agent-review-2026-11-16	raspberry syrup is a fruit syrup, not canned berries
+ML5-317	wording-move	2	raspberry-juice	275574	Raspberry juice concentrate	stay	ok	-	agent-review-2026-11-16	raspberry juice, not concentrate; no juice food
+ML5-322	wording-move	10	raw onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML5-325	wording-move	2	1 teacupful raw potato	277322	Raw Potato Skins	~Potatoes	ok	ok	agent-review-2026-11-16	whole potatoes, not potato skins
+ML5-326	wording-move	11	2 C-raw potatoes	277322	Raw Potato Skins	~Potatoes	ok	ok	agent-review-2026-11-16	whole potatoes, not potato skins
+ML5-327	wording-move	2	two cupfuls of raw potatoes	274752	Potatoes, russet, without skin, raw	~Potatoes	ok	ok	agent-review-2026-11-16	plain potatoes; russet not stated
+ML5-328	wording-move	2	4 cups raw potatoes, diced	277322	Raw Potato Skins	~Potatoes	ok	ok	agent-review-2026-11-16	whole potatoes, not potato skins
+ML5-330	wording-move	2	raw salmon	282276	Pink Salmon	~Salmon	ok	ok	agent-review-2026-11-16	plain salmon; pink species not stated
+ML5-332	wording-move	2	&frac12; cup raw sliced almonds	277841	Blanched Almonds	~Almonds	ok	ok	agent-review-2026-11-16	sliced almonds; blanched not stated
+ML5-350	wording-move	2	1/4 tsp red pepper flake  ((reduce or increase according to spice preference))	277396	Red Bell Pepper	~Cayenne Pepper	ok	ok	agent-review-2026-11-16	red pepper flakes are the spice, not bell pepper
+ML5-352	wording-move	4	red pepper flakes (optional for garnish)	277396	Red Bell Pepper	~Cayenne Pepper	ok	ok	agent-review-2026-11-16	red pepper flakes are the spice, not bell pepper
+ML5-356	wording-move	3	1 red pepper, chopped	286933	Cayenne Pepper	~Red Bell Pepper	ok	ok	agent-review-2026-11-16	whole chopped red pepper is the vegetable
+ML5-371	wording-move	4	1  refrigerated pie crust	275295	Baked Refrigerated Pie Crust	~Pie Crust	ok	ok	agent-review-2026-11-16	bought refrigerated crust is unbaked
+ML5-372	wording-move	3	2 packages  refrigerated pie crusts	275295	Baked Refrigerated Pie Crust	~Pie Crust	ok	ok	agent-review-2026-11-16	bought refrigerated crust is unbaked
+ML5-373	wording-move	3	1 tsp Reishi mushroom powder	278432	Mushroom Gravy Mix	stay	ok	-	agent-review-2026-11-16	reishi powder, not gravy mix; no catalog match
+ML6-14	wording-move	2	1 tablespoon rice vinegar or white wine vinegar	279459	Red Wine Vinegar	~Vinegar	ok	ok	agent-review-2026-11-16	neither vinegar is red wine; generic vinegar
+ML6-15	wording-move	8	2 Tbsp rice wine  ($0.27)	279459	Red Wine Vinegar	stay	ok	-	agent-review-2026-11-16	rice wine is a drink, not vinegar; no entry
+ML6-16	wording-move	20	1 tablespoon rice wine vinegar	279459	Red Wine Vinegar	~Vinegar	ok	ok	agent-review-2026-11-16	rice vinegar is not red wine vinegar
+ML6-19	wording-move	3	2 cups rice, uncooked	276211	Short-Grain White Rice	~Rice	ok	ok	agent-review-2026-11-16	plain rice; grain length not stated
+ML6-20	wording-move	3	1 1/2 cups rice, uncooked	277060	Medium-Grain White Rice	~Rice	ok	ok	agent-review-2026-11-16	plain rice; grain length not stated
+ML6-22	wording-move	2	1 tablespoonful of rice-flour	276228	Brown Rice Flour	~Rice Flour	ok	ok	agent-review-2026-11-16	brown not stated
+ML6-23	wording-move	5	three tablespoonfuls rich milk or cream	278128	Light Cream	stay	ok	-	agent-review-2026-11-16	compound: milk or cream
+ML6-31	wording-move	2	1  ripe avocado, (sliced)	274846	Hass Avocado	~Avocado	ok	ok	agent-review-2026-11-16	Hass variety not stated
+ML6-34	wording-move	2	ripe juicy grapes	274732	Red Seedless Grapes	~Grapes	ok	ok	agent-review-2026-11-16	red seedless not stated
+ML6-36	wording-move	2	3 lbs. ripe pears (peeled, cored and diced)	274650	Fresh Bartlett Pears	~Pears	ok	ok	agent-review-2026-11-16	Bartlett variety not stated
+ML6-39	wording-move	3	roasted and salted peanuts	281429	Peanuts, all types, oil-roasted, with salt	~Salted Peanuts	ok	ok	agent-review-2026-11-16	salted roasted peanuts; named entry
+ML6-43	wording-move	20	1/2 cup roasted peanuts	281430	Salted Dry Roasted Peanuts	~Dry Roasted Peanuts	ok	ok	agent-review-2026-11-16	salt not stated
+ML6-44	wording-move	5	1 cup roasted peanuts	281429	Peanuts, all types, oil-roasted, with salt	~Dry Roasted Peanuts	ok	ok	agent-review-2026-11-16	salt and oil-roasting not stated
+ML6-45	wording-move	2	1 quart of roasted peanuts in shells	281430	Salted Dry Roasted Peanuts	~Dry Roasted Peanuts	ok	ok	agent-review-2026-11-16	salt not stated
+ML6-46	wording-move	3	1/3 cup roasted peanuts, chopped	281429	Peanuts, all types, oil-roasted, with salt	~Dry Roasted Peanuts	ok	ok	agent-review-2026-11-16	salt and oil-roasting not stated
+ML6-47	wording-move	2	1/4 cup roasted peanuts, chopped	281430	Salted Dry Roasted Peanuts	~Dry Roasted Peanuts	ok	ok	agent-review-2026-11-16	salt not stated
+ML6-49	wording-move	2	1 jar (16 ounce) roasted red peppers, drained and sliced	277788	Peppers, sweet, red, cooked, boiled, drained, with salt	~Canned Red Pepper	ok	ok	agent-review-2026-11-16	jarred roasted red peppers; named canned entry
+ML6-50	wording-move	5	Roasted salted peanuts ((chopped))	281429	Peanuts, all types, oil-roasted, with salt	~Salted Peanuts	ok	ok	agent-review-2026-11-16	salted roasted peanuts; named entry
+ML6-51	wording-move	2	Roasted salted peanuts, chopped	281429	Peanuts, all types, oil-roasted, with salt	~Salted Peanuts	ok	ok	agent-review-2026-11-16	salted roasted peanuts; named entry
+ML6-53	wording-move	2	1 cup roasted unsalted almonds ((loosely chopped // see instructions for roasting nuts))	277447	Unsalted Oil Roasted Almonds	~Roasted Almonds	ok	ok	agent-review-2026-11-16	oil-roasting not stated
+ML6-58	wording-move	5	rolled rusk crumbs	282068	Bread Crumbs	~Rusk	ok	ok	agent-review-2026-11-16	wording names rusk
+ML6-62	wording-move	6	8 tablespoons room-temperature unsalted butter	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	light butter not stated
+ML6-63	wording-move	2	Roots of Potatoes	277319	Red Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	red variety not stated
+ML6-65	wording-move	2	10 ounces rotini pasta, (cooked and drained)	279241	Pasta, cooked, unenriched, with added salt	~Pasta	ok	ok	agent-review-2026-11-16	dry weight pasta, cooked later
+ML6-68	wording-move	2	1½ pounds round steak, cut ¼ inch thick	276033	Beef, round, full cut, separable lean and fat, trimmed to 1/8" fat, choice, raw	~Round Steak	ok	ok	agent-review-2026-11-16	wording names round steak
+ML6-76	wording-move	2	a teaspoonful each of sage, black pepper and salt	278199	Rubbed Sage	stay	ok	-	agent-review-2026-11-16	compound: sage, pepper and salt
+ML6-79	wording-move	3	1  (2 pound) salmon filet	280873	Fish, salmon, sockeye, raw	~Salmon	ok	ok	agent-review-2026-11-16	sockeye not stated
+ML6-80	wording-move	28	salmon fillets	282276	Pink Salmon	~Salmon	ok	ok	agent-review-2026-11-16	pink species not stated
+ML6-81	wording-move	2	a can of salmon flaked	282312	Salmon, sockeye, canned, total can contents	~Canned Salmon	ok	ok	agent-review-2026-11-16	canned salmon; sockeye not stated
+ML6-83	wording-move	2	three good slices of salmon or a large salmon peal trussed in the form of the letter S	282276	Pink Salmon	~Salmon	ok	ok	agent-review-2026-11-16	pink species not stated
+ML6-84	wording-move	3	salmon or darne	282276	Pink Salmon	~Salmon	ok	ok	agent-review-2026-11-16	pink species not stated
+ML6-85	wording-move	2	Salmon or other Fish	282276	Pink Salmon	~Salmon	ok	ok	agent-review-2026-11-16	pink species not stated
+ML6-86	wording-move	2	Salmon, 1 can	282312	Salmon, sockeye, canned, total can contents	~Canned Salmon	ok	ok	agent-review-2026-11-16	canned salmon; sockeye not stated
+ML6-87	wording-move	2	Slices of salmon, 1 inch thick	280870	Fish, salmon, chinook, raw	~Salmon	ok	ok	agent-review-2026-11-16	chinook not stated
+ML6-88	wording-move	2	1-lb. can salmon, drained, boned, and flaked	280906	Fish, Salmon, pink, canned, drained solids, without skin and bones	~Canned Salmon	ok	ok	agent-review-2026-11-16	canned salmon; named entry
+ML6-89	wording-move	3	a can of salmon, flaked	282312	Salmon, sockeye, canned, total can contents	~Canned Salmon	ok	ok	agent-review-2026-11-16	canned salmon; sockeye not stated
+ML6-90	wording-move	9	salt & pepper (optional, to taste)	286933	Cayenne Pepper	stay	ok	-	agent-review-2026-11-16	compound: salt and pepper; cayenne wrong
+ML6-91	wording-move	70	teaspoon each of salt and pepper	286933	Cayenne Pepper	stay	ok	-	agent-review-2026-11-16	compound: salt and pepper; cayenne wrong
+ML6-92	wording-move	2	salt and pepper to taste, (optional if needed)	286933	Cayenne Pepper	stay	ok	-	agent-review-2026-11-16	compound: salt and pepper; cayenne wrong
+ML6-93	wording-move	2	a pinch each of salt and sugar	274664	Fine Yellow Cornmeal	stay	ok	-	agent-review-2026-11-16	compound: salt and sugar; cornmeal wrong
+ML6-94	wording-move	2	2 oz. salt butter	280767	Light Salted Butter	~Butter	ok	ok	agent-review-2026-11-16	salted butter is Butter; light not stated
+ML6-98	wording-move	7	two ounces of salt of tartar	282181	Cream Of Tartar	stay	ok	-	agent-review-2026-11-16	salt of tartar is potassium carbonate; no entry
+ML6-101	wording-move	2	Salt, olive oil, lemon juice.	287187	Lemon juice, raw	stay	ok	-	agent-review-2026-11-16	compound: salt, oil and lemon juice
+ML6-102	wording-move	11	1 stick salted butter	280767	Light Salted Butter	~Butter	ok	ok	agent-review-2026-11-16	salted butter is Butter; light not stated
+ML6-103	wording-move	3	1 stick (8 tablespoons) salted butter, cubed	280767	Light Salted Butter	~Butter	ok	ok	agent-review-2026-11-16	salted butter is Butter; light not stated
+ML6-112	wording-move	5	1  seedless cucumber, (sliced)	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	peeled not stated
+ML6-118	wording-move	5	1/2 cup semi-sweet chocolate chips or chunks	277556	Dark Chocolate 60-69% Cacao	~Semi-Sweet Chocolate Chips	ok	ok	agent-review-2026-11-16	semi-sweet is the 45-59% entry
+ML6-124	wording-move	2	4 ounces (113g) semi-sweet chocolate, finely chopped*	277556	Dark Chocolate 60-69% Cacao	~Semi-Sweet Chocolate Chips	ok	ok	agent-review-2026-11-16	semi-sweet is the 45-59% entry
+ML6-125	wording-move	5	12 ounces semi-sweet or dark chocolate chips	277556	Dark Chocolate 60-69% Cacao	!Semi-Sweet Chocolate Chips	ok	-	agent-review-2026-11-16	semi-sweet first; matches same wording elsewhere
+ML6-126	wording-move	2	24 ounces semi-sweet or dark chocolate, chopped	277556	Dark Chocolate 60-69% Cacao	!Semi-Sweet Chocolate Chips	ok	-	agent-review-2026-11-16	semi-sweet first; matches same wording elsewhere
+ML6-138	wording-move	4	sesame seeds for garnish	277439	Toasted Sesame Seeds	~Sesame Seeds	ok	ok	agent-review-2026-11-16	toasted not stated
+ML6-139	wording-move	3	sesame seeds, for serving	277439	Toasted Sesame Seeds	~Sesame Seeds	ok	ok	agent-review-2026-11-16	toasted not stated
+ML6-140	wording-move	2	several small onions	274675	White Onions	~Onion	ok	ok	agent-review-2026-11-16	white variety not stated
+ML6-146	wording-move	2	4 ounces sharp white cheddar, (freshly grated)	274613	Cheddar Cheese	~Sharp Cheddar	ok	ok	agent-review-2026-11-16	wording names sharp cheddar
+ML6-150	wording-move	2	shell oysters	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	wild eastern not stated
+ML6-151	wording-move	13	three ounces of shelled almonds	277841	Blanched Almonds	~Almonds	ok	ok	agent-review-2026-11-16	blanched not stated
+ML6-153	wording-move	2	twelve shelled and cooked shrimps	279198	Steamed Shrimp	~Cooked Shrimp	ok	ok	agent-review-2026-11-16	cooked shrimp; steaming not stated
+ML6-157	wording-move	2	2 ounces of shelled pistachio nuts	277470	Roasted Pistachios	~Pistachios	ok	ok	agent-review-2026-11-16	roasted not stated
+ML6-158	wording-move	2	1/2 cup shelled roasted peanuts	281429	Peanuts, all types, oil-roasted, with salt	~Dry Roasted Peanuts	ok	ok	agent-review-2026-11-16	salt and oil-roasting not stated
+ML6-161	wording-move	2	1 pint of shelled shrimps	282318	Cooked Shrimp	!Shrimp	ok	-	agent-review-2026-11-16	cooked not stated; same wording elsewhere raw
+ML6-163	wording-move	16	half a pound of shelled sweet almonds	277841	Blanched Almonds	~Almonds	ok	ok	agent-review-2026-11-16	blanched not stated
+ML6-168	wording-move	2	Shortening, melted, or oil (1 tablespoon)	279546	Shortening, household, lard and vegetable oil	~Shortening	ok	ok	agent-review-2026-11-16	lard blend not stated
+ML6-169	wording-move	2	3 lbs. shoulder of fresh pork	275615	Pork, fresh, shoulder, arm picnic, separable lean only, raw	~Pork Shoulder	ok	ok	agent-review-2026-11-16	pork shoulder; named entry
+ML6-170	wording-move	2	shred lettuce	274742	Green Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	leaf variety not stated
+ML6-171	wording-move	3	shred onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	yellow variety not stated
+ML6-172	wording-move	2	2 shred onions	274665	Red Onion	~Onion	ok	ok	agent-review-2026-11-16	red variety not stated
+ML6-177	wording-move	2	shredded lettuce/green onion/cilantro	274742	Green Looseleaf Lettuce	stay	ok	-	agent-review-2026-11-16	compound: lettuce, green onion, cilantro
+ML6-179	wording-move	3	1 1/2 cups shredded Mexican blend or cheddar cheese	279439	Reduced-Fat Mexican Cheese Blend	~Mexican Blend Cheese	ok	ok	agent-review-2026-11-16	reduced fat not stated
+ML6-181	wording-move	5	3 cups shredded Mexican-blend cheese (divided)	279439	Reduced-Fat Mexican Cheese Blend	~Mexican Blend Cheese	ok	ok	agent-review-2026-11-16	reduced fat not stated
+ML6-192	wording-move	3	half an ounce of shrimp butter	278566	Clarified Butter	stay	ok	-	agent-review-2026-11-16	shrimp butter is a compound butter; no entry
+ML6-195	wording-move	3	can of shrimps, washed and drained	281378	Raw Shrimp	~Canned Shrimp	ok	ok	agent-review-2026-11-16	canned shrimp, washed and drained
+ML6-214	wording-move	5	6 tablespoons Simply Nature Organic Unsalted Butter, (melted)	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	light butter not stated
+ML6-221	wording-move	13	slic't dates	278963	Deglet Noor Dates	~Medjool Dates	ok	ok	agent-review-2026-11-16	Deglet Noor variety not stated
+ML6-222	wording-move	2	three or four slic't onions	274675	White Onions	~Onion	ok	ok	agent-review-2026-11-16	white variety not stated
+ML6-224	wording-move	2	sliced almonds for topping	277841	Blanched Almonds	~Almonds	ok	ok	agent-review-2026-11-16	blanched not stated
+ML6-229	wording-move	2	1  sliced English cucumber	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	peeled not stated
+ML6-232	wording-move	4	¼ cup sliced green onion (for garnish)	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	tops only not stated
+ML6-234	wording-move	14	sliced green onions (for topping)	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	tops only not stated
+ML6-237	wording-move	2	sliced green onions, for serving	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	tops only not stated
+ML6-245	wording-move	2	two pounds of sliced raw potatoes	277322	Raw Potato Skins	~Potatoes	ok	ok	agent-review-2026-11-16	potatoes, not potato skins
+ML6-246	wording-move	2	4 cupfuls of sliced raw potatoes	274752	Potatoes, russet, without skin, raw	~Potatoes	ok	ok	agent-review-2026-11-16	russet, peeled not stated
+ML6-249	wording-move	2	1 cup sliced sweet peppers	275893	Peppers, sweet, red, frozen, chopped, unprepared	~Red Bell Pepper	ok	ok	agent-review-2026-11-16	frozen not stated; matches same wording elsewhere
+ML6-252	wording-move	2	2 tablespoons slivered almonds	277446	Roasted Almonds	~Almonds	ok	ok	agent-review-2026-11-16	roasted not stated
+ML6-259	wording-move	4	1 small English onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	yellow variety not stated
+ML6-263	wording-move	8	1 small jalapeño pepper (diced)	276709	Serrano Peppers	~Jalapeno Peppers	ok	ok	agent-review-2026-11-16	jalapeno, not serrano
+ML6-266	wording-move	2	small lettuce leaf	274741	Red Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	red leaf not stated
+ML6-267	wording-move	3	small lettuce leaves	274742	Green Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	leaf variety not stated
+ML6-268	wording-move	2	six small lettuce-leaves	274742	Green Looseleaf Lettuce	~Lettuce	ok	ok	agent-review-2026-11-16	leaf variety not stated
+ML6-269	wording-move	2	3 pounds small new potatoes (white or red (about 1 inch in diameter))	277322	Raw Potato Skins	~Potatoes	ok	ok	agent-review-2026-11-16	potatoes, not potato skins
+ML6-270	wording-move	2	1 small onion stuck with cloves	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	yellow variety not stated
+ML6-277	wording-move	7	small round tomatoes	274576	Grape Tomatoes	~Tomatoes	ok	ok	agent-review-2026-11-16	small ordinary tomatoes, not grape
+ML6-278	wording-move	2	small sized potatoes	277319	Red Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	red variety not stated
+ML6-280	wording-move	2	six small steaks from a tender leg of lamb	279730	Lamb, New Zealand, imported, leg chop/steak, bone-in, separable lean only, raw	~Leg Of Lamb	ok	ok	agent-review-2026-11-16	leg of lamb; named entry
+ML6-282	wording-move	3	1 1/2 lbs small yellow or red potatoes, (scrubbed well)	277711	Baked Red Potatoes	~Potatoes	ok	ok	agent-review-2026-11-16	raw potatoes; baked not stated
+ML6-289	wording-move	3	a pound of soaked rice	277060	Medium-Grain White Rice	~Rice	ok	ok	agent-review-2026-11-16	plain rice; grain length not stated
+ML6-296	wording-move	2	a pint of soft boiled rice	276260	Cooked Medium-Grain White Rice	~Boiled Rice	ok	ok	agent-review-2026-11-16	wording names boiled rice
+ML6-297	wording-move	2	4-6 ounces soft goat cheese (crumbled)	280624	Semisoft Goat Cheese	~Goat Cheese	ok	ok	agent-review-2026-11-16	soft goat cheese, not semisoft
+ML6-298	wording-move	2	soft part of a dozen oysters	279205	Wild Eastern Oysters	~Oysters	ok	ok	agent-review-2026-11-16	wild eastern not stated
+ML6-299	wording-move	2	2 slices soft whole wheat bread	274647	Bread, whole-wheat, commercially prepared	~Whole Wheat Bread	ok	ok	agent-review-2026-11-16	whole wheat bread; named entry
+ML6-300	wording-move	9	softened butter for spreading	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	unsalted not stated
+ML6-302	wording-move	2	one sound, sliced onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	yellow variety not stated
+ML6-305	wording-move	35	1 pint of sour milk or buttermilk	278144	Milk, buttermilk, fluid, cultured, lowfat	~Whole Buttermilk	ok	ok	agent-review-2026-11-16	matches sour milk rows; named entry
+ML6-306	wording-move	2	4 cups sourdough bread cubes	282051	Toasted French Bread	~Sourdough Bread	ok	ok	agent-review-2026-11-16	toasted not stated
+ML6-325	wording-move	3	¼ cup SPICE ISLANDS White Wine Vinegar	279459	Red Wine Vinegar	~Vinegar	ok	ok	agent-review-2026-11-16	white wine vinegar is not red wine vinegar
+ML6-327	wording-move	2	6 ounces spicy salami, chopped	280148	Salami, dry or hard, pork	~Salami	ok	ok	agent-review-2026-11-16	salami; named entry
+ML6-331	wording-move	2	12 square sponge-cakes—stale	279920	Store-Bought Sponge Cake	~Sponge Cake	ok	ok	agent-review-2026-11-16	store-bought not stated
+ML6-337	wording-move	2	12 stale small sponge-cakes	279920	Store-Bought Sponge Cake	~Sponge Cake	ok	ok	agent-review-2026-11-16	store-bought not stated
+ML6-338	wording-move	5	Half pound of stale sponge cake	279920	Store-Bought Sponge Cake	~Sponge Cake	ok	ok	agent-review-2026-11-16	store-bought not stated
+ML6-339	wording-move	5	3 or 4 stale sponge cakes	279920	Store-Bought Sponge Cake	~Sponge Cake	ok	ok	agent-review-2026-11-16	store-bought not stated
+ML6-340	wording-move	6	½ lb. stale sponge-cake.	279920	Store-Bought Sponge Cake	~Sponge Cake	ok	ok	agent-review-2026-11-16	store-bought not stated
+ML6-345	wording-move	4	a pint of stewed and strained pumpkin	277799	Salted Boiled Pumpkin	~Boiled Pumpkin	ok	ok	agent-review-2026-11-16	salt not stated
+ML6-346	wording-move	5	two tablespoonfuls of stewed and strained tomato	277379	Homemade Stewed Tomatoes	~Stewed Tomatoes	ok	ok	agent-review-2026-11-16	plain stewed tomato; homemade recipe is 79 kcal
+ML6-347	wording-move	3	half a cupful of stewed and strained tomatoes	274835	Canned Crushed Tomatoes	~Stewed Tomatoes	ok	ok	agent-review-2026-11-16	wording names stewed tomatoes
+ML6-348	wording-move	2	half a cupful of stewed and strained tomatoes	277379	Homemade Stewed Tomatoes	~Stewed Tomatoes	ok	ok	agent-review-2026-11-16	plain stewed tomato; homemade recipe is 79 kcal
+ML6-350	wording-move	2	One pint of stewed pumpkin	277799	Salted Boiled Pumpkin	~Boiled Pumpkin	ok	ok	agent-review-2026-11-16	salt not stated
+ML6-358	wording-move	2	2 qts. strained, stewed tomato	274835	Canned Crushed Tomatoes	~Stewed Tomatoes	ok	ok	agent-review-2026-11-16	wording names stewed tomatoes
+ML6-359	wording-move	2	two quarts of strained, stewed tomatoes	277379	Homemade Stewed Tomatoes	~Stewed Tomatoes	ok	ok	agent-review-2026-11-16	plain stewed tomato; homemade recipe is 79 kcal
+ML6-365	wording-move	3	strawberry pulp	275530	Frozen Strawberries	~Strawberries	ok	ok	agent-review-2026-11-16	frozen not stated
+ML6-366	wording-move	2	1 cup strawberry purée	275530	Frozen Strawberries	~Strawberries	ok	ok	agent-review-2026-11-16	frozen not stated
+ML6-368	wording-move	4	two striped bass	281396	Cooked Striped Bass	~Bass	ok	ok	agent-review-2026-11-16	cooked not stated
+ML6-369	wording-move	2	strong black coffee	279115	Breakfast Blend Coffee	~Black Coffee	ok	ok	agent-review-2026-11-16	wording names black coffee
+ML6-371	wording-move	2	sufficient vinegar to cover the cucumbers	286950	Apple Cider Vinegar	~Vinegar	ok	ok	agent-review-2026-11-16	plain vinegar; cider not stated
+ML7-7	wording-move	4	2 tablespoons sun-dried tomato oil (from the drained tomatoes)	276699	Sun-Dried Tomatoes In Oil	stay	ok	-	agent-review-2026-11-16	oil from the jar, not tomatoes; no oil entry fits
+ML7-11	wording-move	6	1 pound or a quart of superfine flour	274690	00 Flour	~Flour	ok	ok	agent-review-2026-11-16	old term for best white flour, not Italian 00
+ML7-12	wording-move	2	2 cups sushi rice, cooked	277013	Rice, white, glutinous, unenriched, cooked	~Rice, white, short-grain, enriched, cooked	ok	ok	agent-review-2026-11-16	sushi rice is short-grain, not glutinous
+ML7-15	wording-move	2	1½ qt. sweet apples in quarters	274680	Fuji Apples	~Apples	ok	ok	agent-review-2026-11-16	sweet apples, Fuji variety not stated
+ML7-20	wording-move	2	1/2 cup sweet corn	275754	Frozen Yellow Corn On The Cob	~Corn Kernels	ok	ok	agent-review-2026-11-16	frozen on-cob not stated; plain sweet corn kernels
+ML7-24	wording-move	6	one pint of sweet cream or rich milk	278529	Condensed Milk	stay	ok	-	agent-review-2026-11-16	compound cream or milk; neither is condensed milk
+ML7-27	wording-move	5	one of sweet milk	278529	Condensed Milk	~Milk	ok	ok	agent-review-2026-11-16	sweet milk is ordinary fresh milk, not condensed
+ML7-37	wording-move	2	1/2 cup sweetened flake coconut	277851	Nuts, coconut meat, dried (desiccated), sweetened, flaked, canned	~Sweetened Coconut Flakes	ok	ok	agent-review-2026-11-16	canned not stated; sweetened flaked coconut
+ML7-39	wording-move	2	⅔ tablespn. butter	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; unsalted not stated
+ML7-40	wording-move	4	1 tablespn. chopped onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML7-41	wording-move	3	3 tablespns. chopped onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML7-42	wording-move	2	2 tablespns. molasses	279938	Molasses Cookies	~molasses	ok	ok	agent-review-2026-11-16	molasses, not molasses cookies
+ML7-43	wording-move	3	2½ tablespns. white flour	276226	White Bread Flour	~Flour	ok	ok	agent-review-2026-11-16	white flour is plain flour; bread flour not stated
+ML7-45	wording-move	2	a teaspoonful of tarragon vinegar	286950	Apple Cider Vinegar	~Vinegar	ok	ok	agent-review-2026-11-16	tarragon vinegar is not cider vinegar; generic vinegar
+ML7-47	wording-move	5	½ tbp chopped onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML7-48	wording-move	2	2 tbp chopped onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML7-51	wording-move	2	½ tbp finely chopped onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML7-52	wording-move	4	1 tbp minced onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML7-55	wording-move	5	2 tbp rice	277060	Medium-Grain White Rice	~Rice	ok	ok	agent-review-2026-11-16	plain rice; grain length not stated
+ML7-60	wording-move	2	quarter of a pound of the best almonds	277841	Blanched Almonds	~Almonds	ok	ok	agent-review-2026-11-16	blanched not stated; plain almonds
+ML7-63	wording-move	8	the best loaf-sugar	277947	Turbinado Sugar	~Sugar	ok	ok	agent-review-2026-11-16	loaf sugar is refined white sugar, not turbinado
+ML7-64	wording-move	3	half a pint of the best white wine vinegar	279459	Red Wine Vinegar	~Vinegar	ok	ok	agent-review-2026-11-16	white wine vinegar is not red; generic vinegar
+ML7-65	wording-move	3	7 lbs. of the brisket of beef	275948	Beef, brisket, whole, separable lean only, all grades, raw	~Brisket	ok	ok	agent-review-2026-11-16	whole brisket; lean-only not stated
+ML7-71	wording-move	2	About 3 lbs. of the prime part of the leg of veal	282407	Veal, leg (top round), separable lean only, raw	~Leg Of Veal	ok	ok	agent-review-2026-11-16	leg of veal; lean-only not stated
+ML7-75	wording-move	2	the weight of 7 in flour	274690	00 Flour	~Flour	ok	ok	agent-review-2026-11-16	plain flour; 00 not stated
+ML7-79	wording-move	3	thick butter	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; unsalted not stated
+ML7-82	wording-move	2	thick piece of halibut	275016	Halibut With Skin	~Halibut	ok	ok	agent-review-2026-11-16	plain halibut; Alaska Native with-skin entry not stated
+ML7-86	wording-move	5	1 cup thick tomato sauce	276401	Unsalted Tomato Sauce	~Tomato Sauce	ok	ok	agent-review-2026-11-16	tomato sauce; unsalted not stated
+ML7-93	wording-move	2	a thin slice of cold ham cut into pieces	274651	Ham, sliced, restaurant	~Ham	ok	ok	agent-review-2026-11-16	cold ham; restaurant sliced entry not stated
+ML7-95	wording-move	2	thin slices of cold ham	274651	Ham, sliced, restaurant	~Ham	ok	ok	agent-review-2026-11-16	cold ham; restaurant sliced entry not stated
+ML7-96	wording-move	2	⅛ cup thinly sliced cooked ham	281775	Honey Ham	~Ham	ok	ok	agent-review-2026-11-16	cooked ham; honey not stated
+ML7-98	wording-move	9	1  thinly sliced green onion, (about 1 ½ tablespoons)	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions are whole scallions, not tops only
+ML7-100	wording-move	11	thinly sliced green onions, (for topping)	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions are whole scallions, not tops only
+ML7-102	wording-move	10	thinly-sliced green onions (for garnish)	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions are whole scallions, not tops only
+ML7-103	wording-move	2	thirty lemons	275119	Lemon Juice	~Lemon	ok	ok	agent-review-2026-11-16	whole lemons, not bottled lemon juice
+ML7-108	wording-move	2	1 tin Sardines	282278	Sardines In Tomato Sauce	~Sardines	ok	ok	agent-review-2026-11-16	tin of sardines; tomato sauce not stated
+ML7-111	wording-move	4	Tiny bits of butter	280621	Unsalted Butter	~Butter	ok	ok	agent-review-2026-11-16	plain butter; unsalted not stated
+ML7-112	wording-move	2	to taste salt &amp; pepper  ($0.02)	286933	Cayenne Pepper	stay	ok	-	agent-review-2026-11-16	compound salt and pepper; cayenne is wrong
+ML7-113	wording-move	2	to taste salt and pepper ($0.10)	286933	Cayenne Pepper	stay	ok	-	agent-review-2026-11-16	compound salt and pepper; cayenne is wrong
+ML7-114	wording-move	2	1/3 cup toasted almonds	277841	Blanched Almonds	~Roasted Almonds	ok	ok	agent-review-2026-11-16	toasted almonds; blanched not stated
+ML7-119	wording-move	3	1/4 cup toasted slivered almonds	274583	Salted Dry Roasted Almonds	~Roasted Almonds	ok	ok	agent-review-2026-11-16	toasted almonds; salted not stated
+ML7-120	wording-move	2	1/4 cup toasted, slivered almonds	277841	Blanched Almonds	~Roasted Almonds	ok	ok	agent-review-2026-11-16	toasted almonds; consistent with other toasted slivered row
+ML7-121	wording-move	6	5 T-tomato catsup	276696	Low-Sodium Ketchup	~catsup	ok	ok	agent-review-2026-11-16	tomato catsup; low sodium not stated
+ML7-135	wording-move	3	3 cups torn butter lettuce	274742	Green Looseleaf Lettuce	~Butterhead Lettuce	ok	ok	agent-review-2026-11-16	butter lettuce is butterhead, not looseleaf
+ML7-136	wording-move	2	2 cups torn sourdough bread	282051	Toasted French Bread	~Sourdough Bread	ok	ok	agent-review-2026-11-16	sourdough bread; toasted not stated
+ML7-137	wording-move	2	Tortilla chips, crushed ((optional))	276191	Tortilla chips, low fat, baked without fat	~Tortilla Chips	ok	ok	agent-review-2026-11-16	tortilla chips; low-fat baked not stated
+ML7-139	wording-move	2	trimmings of cucumber	276547	Peeled Cucumber	~Cucumbers	ok	ok	agent-review-2026-11-16	trimmings include peel; not peeled cucumber
+ML7-141	wording-move	2	2  5 oz. cans of tuna in water (drained, $1.76)	279213	Unsalted Light Tuna In Water	~Light Tuna	ok	ok	agent-review-2026-11-16	tuna in water; unsalted not stated
+ML7-142	wording-move	2	turbot or sheep’s-head fish	281413	Cooked Turbot	~Turbot	ok	ok	agent-review-2026-11-16	turbot named first; cooked not stated
+ML7-147	wording-move	8	twenty button onions	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	button onions are small onions; yellow not stated
+ML7-153	wording-move	2	1 unbaked 9-inch pie crust	274902	Deep Dish Pie Crust	~Pie Crust	ok	ok	agent-review-2026-11-16	plain unbaked pie crust; deep dish not stated
+ML7-169	wording-move	10	1/2 cup of uncooked rice	276211	Short-Grain White Rice	~Rice	ok	ok	agent-review-2026-11-16	plain rice; grain length not stated
+ML7-170	wording-move	9	3 tablespoons uncooked Rice	277060	Medium-Grain White Rice	~Rice	ok	ok	agent-review-2026-11-16	plain rice; grain length not stated
+ML7-177	wording-move	3	3/4 cup (100g) unsalted almonds	277447	Unsalted Oil Roasted Almonds	~Almonds	ok	ok	agent-review-2026-11-16	unsalted almonds; oil roasted not stated
+ML7-178	wording-move	3	4 tablespoons unsalted butter or extra-virgin olive oil	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter named first; light not stated
+ML7-179	wording-move	4	2 tablespoons unsalted butter or olive oil	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter named first; light not stated
+ML7-180	wording-move	3	3 Tablespoons (43g) unsalted butter, cold	280767	Light Salted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; current is light and salted
+ML7-181	wording-move	2	1/2 cup (113g; 8 Tbsp) unsalted butter, cold	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-182	wording-move	20	2 tablespoons (25g) unsalted butter, cold and cubed	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-183	wording-move	2	1/2 cup (8 Tbsp; 113g) unsalted butter, cubed and very cold*	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-184	wording-move	4	1/4 cup (4 Tbsp; 56g) unsalted butter, cut into 4 pieces	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-185	wording-move	2	6 Tablespoons (85g) unsalted butter, cut into 6 pieces	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-186	wording-move	2	1/2 cup (8 Tbsp; 113g) unsalted butter, cut into 8 pieces	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-187	wording-move	2	2 tablespoons unsalted butter, cut into a few pieces	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-188	wording-move	3	6 Tablespoons (85g) unsalted butter, extra softened	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-189	wording-move	2	1/2 cup (8 Tbsp; 113g) unsalted butter, frozen	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-190	wording-move	5	6 Tablespoons (85g) unsalted butter, melted &amp; slightly cooled	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-191	wording-move	2	7 Tbsp unsalted butter, melted and cooled ($0.91)	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-192	wording-move	24	1/4 cup (4 Tbsp; 56g) unsalted butter, melted and slightly cooled*	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-193	wording-move	2	5 Tablespoons (71g) unsalted butter, sliced into 1 Tbsp-size pieces and softened to room temperature	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-194	wording-move	186	6 Tablespoons (85g) unsalted butter, softened to room temperature	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-195	wording-move	6	4 Tablespoons (56g) unsalted butter, softened to room temperature and cut into 4 pieces	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-196	wording-move	2	6 Tablespoons (85g) unsalted butter, softened to room temperature and cut into 6 pieces	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-197	wording-move	11	1 and 3/4 cup (396g) unsalted butter, very cold and cubed	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-198	wording-move	3	1/4 cup (4 Tbsp; 56g) unsalted butter, very soft	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-200	wording-move	5	6 tablespoons unsalted cold butter (cut into small pieces)	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-201	wording-move	5	¾ cup unsalted melted butter	279559	Light Unsalted Butter	~Unsalted Butter	ok	ok	agent-review-2026-11-16	unsalted butter; light not stated
+ML7-202	wording-move	4	2 cups unsalted pecans, (coarsely chopped)	277862	Unsalted Oil Roasted Pecans	~Pecans	ok	ok	agent-review-2026-11-16	unsalted pecans; oil roasted not stated
+ML7-212	wording-move	2	1 teaspoon vanilla extract or 1/2 teaspoon almond extract	286945	Imitation Vanilla Extract	~Vanilla Extract	ok	ok	agent-review-2026-11-16	vanilla extract; imitation not stated
+ML7-213	wording-move	2	1 teaspoon vanilla extract or other flavoring	286945	Imitation Vanilla Extract	~Vanilla Extract	ok	ok	agent-review-2026-11-16	vanilla extract; imitation not stated
+ML7-214	wording-move	2	1/2  teaspoon vanilla extract or vanilla bean paste	286945	Imitation Vanilla Extract	~Vanilla Extract	ok	ok	agent-review-2026-11-16	vanilla extract; imitation not stated
+ML7-215	wording-move	10	vanilla ice cream for serving	274951	Rich Vanilla Ice Cream	~Vanilla Ice Cream	ok	ok	agent-review-2026-11-16	vanilla ice cream; rich not stated
+ML7-217	wording-move	5	1 teaspoon vanilla or almond extract	286945	Imitation Vanilla Extract	~Vanilla Extract	ok	ok	agent-review-2026-11-16	vanilla extract; imitation not stated
+ML7-219	wording-move	2	1 large teaspoonful vanilla or other extract	286945	Imitation Vanilla Extract	~Vanilla Extract	ok	ok	agent-review-2026-11-16	vanilla extract; imitation not stated
+ML7-220	wording-move	5	1 teaspoon vanilla paste or extract	279456	Vanilla Flavoring	~Vanilla Extract	ok	ok	agent-review-2026-11-16	vanilla paste or extract; imitation not stated
+ML7-230	wording-move	2	very green peas	277306	Frozen Peas	~Green Peas	ok	ok	agent-review-2026-11-16	green peas; frozen not stated
+ML7-232	wording-move	2	a very small piece of onion	274675	White Onions	~Onion	ok	ok	agent-review-2026-11-16	plain onion; white variety not stated
+ML7-239	wording-move	2	2 teaspoons wasabi paste	275925	Wasabi, root, raw	~Wasabi	ok	ok	agent-review-2026-11-16	wasabi paste, not raw wasabi root
+ML7-242	wording-move	2	1/3 pint of water to every oz. of coffee	281301	Beverages, coffee, instant, regular, prepared with water	!Water	ok	-	agent-review-2026-11-16	the measured ingredient is water, not prepared coffee
+ML7-245	wording-move	2	Whipped Almond Ricotta	274584	Full-Fat Ricotta	stay	ok	-	agent-review-2026-11-16	almond ricotta is a nut cheese; no catalog food
+ML7-247	wording-move	2	2 pounds white artichokes	275743	Frozen Artichokes	~Artichokes	ok	ok	agent-review-2026-11-16	artichokes; frozen not stated
+ML7-254	wording-move	13	2 cups white corn meal	274664	Fine Yellow Cornmeal	~White Cornmeal	ok	ok	agent-review-2026-11-16	white cornmeal, not yellow
+ML7-255	wording-move	3	1 cup white corn meal	276250	Corn grain, white	~White Cornmeal	ok	ok	agent-review-2026-11-16	white corn meal, not whole corn grain
+ML7-256	wording-move	2	4 level cupfuls (1½ pounds) white corn meal	277048	Corn flour, whole-grain, white	~White Cornmeal	ok	ok	agent-review-2026-11-16	white corn meal; named cornmeal entry
+ML7-258	wording-move	9	1 cup white corn-meal	274664	Fine Yellow Cornmeal	~White Cornmeal	ok	ok	agent-review-2026-11-16	white cornmeal, not yellow
+ML7-261	wording-move	35	one cup of white flour	276226	White Bread Flour	~Flour	ok	ok	agent-review-2026-11-16	white flour is plain flour; bread flour not stated
+ML7-262	wording-move	25	1 C-white flour	274662	Bread Flour	~Flour	ok	ok	agent-review-2026-11-16	white flour is plain flour; bread flour not stated
+ML7-265	wording-move	16	1/2 c. white flour additional for kneading	276226	White Bread Flour	~Flour	ok	ok	agent-review-2026-11-16	white flour is plain flour; bread flour not stated
+ML7-266	wording-move	2	1 c. white flour for kneading	274662	Bread Flour	~Flour	ok	ok	agent-review-2026-11-16	white flour is plain flour; bread flour not stated
+ML7-271	wording-move	2	a quart of white haricot beans	274786	Dry Cannellini Beans	~Small White Beans	ok	ok	agent-review-2026-11-16	haricot is small white bean, not cannellini
+ML7-279	wording-move	2	1 large cup of white or cream sauce.	281708	Thin White Sauce	~White Sauce	ok	ok	agent-review-2026-11-16	white sauce; thin not stated
+ML7-282	wording-move	6	1 cup white rice	277060	Medium-Grain White Rice	~Rice	ok	ok	agent-review-2026-11-16	plain rice; grain length not stated
+ML7-284	wording-move	2	1 cup white rice (uncooked)	276211	Short-Grain White Rice	~Rice	ok	ok	agent-review-2026-11-16	plain rice; grain length not stated
+ML7-291	wording-move	3	1/2 cup white whole wheat flour (King Arthur)	276274	Soft Whole Wheat Flour	~Whole Wheat Flour	ok	ok	agent-review-2026-11-16	white whole wheat flour; soft wheat not stated
+ML7-294	wording-move	6	2 &frac12; cups white whole wheat flour or regular whole wheat flour	276274	Soft Whole Wheat Flour	~Whole Wheat Flour	ok	ok	agent-review-2026-11-16	both options are whole wheat flour; soft not stated
+ML7-295	wording-move	23	one tablespoonful of white wine vinegar	279459	Red Wine Vinegar	~Vinegar	ok	ok	agent-review-2026-11-16	white wine vinegar is not red; generic vinegar
+ML7-296	wording-move	2	2 Tbsp white wine vinegar or apple cider vinegar	279459	Red Wine Vinegar	stay	ok	-	agent-review-2026-11-16	compound; neither option is red wine vinegar
+ML7-297	wording-move	2	White wine-Vinegar	279459	Red Wine Vinegar	~Vinegar	ok	ok	agent-review-2026-11-16	white wine vinegar is not red; generic vinegar
+ML7-298	wording-move	2	3/4 cup white, oat, or spelt flour	276226	White Bread Flour	stay	ok	-	agent-review-2026-11-16	compound of three flours; current is bread flour
+ML7-299	wording-move	2	3/4 cup white, spelt, or oat flour	276226	White Bread Flour	stay	ok	-	agent-review-2026-11-16	compound of three flours; current is bread flour
+ML7-301	wording-move	5	each Quart of White-Wine Vinegar	279459	Red Wine Vinegar	~Vinegar	ok	ok	agent-review-2026-11-16	white wine vinegar is not red; generic vinegar
+ML7-308	wording-move	3	2-4 whole chipotle peppers in adobo sauce	278843	Red Hot Chili Sauce	stay	ok	-	agent-review-2026-11-16	chipotles in adobo not in catalog; not hot sauce
+ML7-309	wording-move	2	2 whole English muffins	279976	Whole Wheat English Muffins	~English Muffins	ok	ok	agent-review-2026-11-16	whole means entire muffin, not whole wheat
+ML7-312	wording-move	3	2  whole green onions ($0.20)	277297	Welsh Onions	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions are scallions, not Welsh onions
+ML7-313	wording-move	2	3  whole green onions  ($0.33)	277296	Green Onion Tops	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions are whole scallions, not tops only
+ML7-319	wording-move	4	whole mustard seed	275929	Hedge Mustard Seeds	~Ground Mustard	ok	ok	agent-review-2026-11-16	mustard seed spice, not hedge mustard seeds
+ML7-321	wording-move	11	a whole onion	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML7-322	wording-move	2	a whole onion peeled	274666	Yellow Onion	~Onion	ok	ok	agent-review-2026-11-16	plain onion; yellow variety not stated
+ML7-323	wording-move	2	two or three whole onions	274675	White Onions	~Onion	ok	ok	agent-review-2026-11-16	plain onion; white variety not stated
+ML7-326	wording-move	180	whole Pepper	276708	Banana Peppers	~Pepper	ok	ok	agent-review-2026-11-16	whole pepper is peppercorns, not banana peppers
+ML7-329	wording-move	2	2 cups (260g) whole wheat flour or white whole wheat flour (spooned &amp; leveled)	276274	Soft Whole Wheat Flour	~Whole Wheat Flour	ok	ok	agent-review-2026-11-16	both options are whole wheat flour; soft not stated
+ML7-345	wording-move	3	5 cups yellow corn kernels  ((from about 4 ears corn))	276540	Microwaved Frozen Yellow Corn	~Corn Kernels	ok	ok	agent-review-2026-11-16	fresh kernels from ears; not microwaved frozen
+ML7-346	wording-move	2	4 cups yellow corn kernels  ((from about 4 ears corn))	275752	Corn, sweet, yellow, frozen, kernels cut off cob, unprepared (Includes foods for USDA's Food Distribution Program)	~Corn Kernels	ok	ok	agent-review-2026-11-16	fresh kernels from ears; not frozen
+ML7-352	wording-move	2	3 yellow squash, medium (sliced)	275812	Crookneck Squash	~Yellow Squash	ok	ok	agent-review-2026-11-16	yellow squash; exact named food exists
+ML7-355	wording-move	3	six young green chopped onions	277297	Welsh Onions	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions are scallions, not Welsh onions
+ML7-356	wording-move	2	young green onions	277297	Welsh Onions	~Spring Onions	ok	ok	agent-review-2026-11-16	green onions are scallions, not Welsh onions

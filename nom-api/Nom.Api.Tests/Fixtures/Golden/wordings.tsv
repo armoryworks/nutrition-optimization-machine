@@ -1,0 +1,5 @@
+id	stratum	lines	name	normalized	bare	residue	status	source	note
+cited-17	plain	416	fresh lime juice	fresh lime juice	fresh lime juice	*	ok	design:golden-gate	example 17
+cited-20	leading-word-residue	147	and half	*	*	yes	known	design:golden-gate	example 20: residue
+cited-21	comma-prep	81	Eggs, separated	Eggs, separated	Eggs	*	known	design:golden-gate	example 21: the bare name drops the preparation
+cited-22	unit-word-inside	10	half-cupful of butter	butter	butter	*	known	design:golden-gate	example 22
