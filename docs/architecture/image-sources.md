@@ -208,8 +208,10 @@ Four independent checks; **all four** must pass to attach unattended
    to **Admin → Recipe Images**. Each row carries licence, credit and the full evidence.
    When nom-api's `RecipeImages:MaxPendingReview` is set and the queue already holds that
    many pending candidates, a would-be `pending` candidate is not stored and comes back as
-   `held`; the recipe is still marked searched and returns after the finder's
-   `--retry-days`. Attaches are never held. Unset or `0` means no cap.
+   `held`. A recipe with none of its candidates stored is left unsearched, and the finder
+   ends the run there, since every later review would be held too; a recipe with some
+   stored is marked searched and waits in review. Attaches are never held. Unset or `0`
+   means no cap.
 4. Approve attaches (and supersedes the siblings); Reject records the photo so it is never
    proposed again; Remove takes an attached photo and its credit back off the recipe
    (licence takedowns). A recipe author's own upload always clears the credit fields.

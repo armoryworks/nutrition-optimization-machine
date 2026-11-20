@@ -152,5 +152,53 @@ class RetryAfterTests(unittest.TestCase):
         self.assertEqual((api.calls, api.slept), (1, []))
 
 
+
+class SubmitOnly:
+    """POST /api/RecipeImages/candidates answering with fixed outcomes; records what was submitted."""
+
+    def __init__(self, *outcomes):
+        self.outcomes = list(outcomes)
+        self.submitted: list[dict] = []
+
+    def submit(self, payload):
+        self.submitted.append(payload)
+        return {"recipeId": payload["recipeId"], "outcomes": [{"outcome": o} for o in self.outcomes]}
+
+
+class QueueCapTests(unittest.TestCase):
+    def settle(self, api, outcome, payloads=({"sourceKey": "a"},)):
+        marked = []
+        result = finder.settle(api, 7, outcome, list(payloads), "image-finder-20261120", marked.append)
+        return result, marked
+
+    def test_a_review_held_whole_leaves_the_recipe_unsearched_and_reports_the_queue_full(self):
+        (held, full), marked = self.settle(SubmitOnly("held", "held"), "review")
+        self.assertEqual((held, full, marked), (2, True, []))
+
+    def test_a_review_with_one_candidate_stored_marks_the_recipe_searched(self):
+        (held, full), marked = self.settle(SubmitOnly("pending", "held"), "review")
+        self.assertEqual((held, full, marked), (1, False, [7]))
+
+    def test_a_review_with_nothing_held_marks_the_recipe_searched(self):
+        (held, full), marked = self.settle(SubmitOnly("pending", "duplicate"), "review")
+        self.assertEqual((held, full, marked), (0, False, [7]))
+
+    def test_an_attach_marks_the_recipe_searched_before_it_submits(self):
+        api = SubmitOnly("attached")
+        (held, full), marked = self.settle(api, "attach")
+        self.assertEqual((held, full, marked, len(api.submitted)), (0, False, [7], 1))
+
+    def test_a_review_with_no_image_to_send_is_marked_searched_and_submits_nothing(self):
+        api = SubmitOnly()
+        (held, full), marked = self.settle(api, "review", payloads=())
+        self.assertEqual((held, full, marked, api.submitted), (0, False, [7], []))
+
+    def test_queue_full_needs_a_held_outcome_and_nothing_stored(self):
+        self.assertTrue(finder.queue_full({"outcomes": [{"outcome": "held"}, {"outcome": "rejected"}]}))
+        self.assertFalse(finder.queue_full({"outcomes": [{"outcome": "rejected"}]}))
+        self.assertFalse(finder.queue_full({"outcomes": [{"outcome": "held"}, {"outcome": "pending"}]}))
+        self.assertFalse(finder.queue_full(None))
+
+
 if __name__ == "__main__":
     unittest.main()

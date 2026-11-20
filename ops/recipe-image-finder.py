@@ -691,6 +691,33 @@ def candidate_payload(c: src.Candidate, decision: tri.Decision, status: str, ima
     return payload
 
 
+def queue_full(result: dict | None) -> bool:
+    """True when nom-api stored none of a submission's candidates and held at least one because the review queue is at RecipeImages:MaxPendingReview."""
+    outcomes = [o.get("outcome") for o in (result or {}).get("outcomes") or []]
+    return "held" in outcomes and not any(o in ("pending", "attached") for o in outcomes)
+
+
+def settle(api, recipe_id: int, outcome: str, payloads: list[dict], batch: str, mark_searched) -> tuple[int, bool]:
+    """Submits a recipe's candidates and marks it searched. A review submission that nom-api held whole because the
+    review queue is full leaves the recipe unmarked, so it comes back on the next run. Returns the held candidate count
+    and whether the queue was full."""
+    if outcome != "review" or not payloads:
+        mark_searched(recipe_id)
+    if not payloads:
+        return 0, False
+    result = None
+    try:
+        result = api.submit({"recipeId": recipe_id, "batch": batch, "candidates": payloads})
+        log(f"    submitted: {result}")
+    except urllib.error.HTTPError as exc:
+        log(f"    nom-api rejected the submission: HTTP {exc.code} {exc.read()[:300]!r}")
+    held = sum(1 for o in (result or {}).get("outcomes") or [] if o.get("outcome") == "held")
+    full = outcome == "review" and queue_full(result)
+    if outcome == "review" and not full:
+        mark_searched(recipe_id)
+    return held, full
+
+
 def load_state(path: str | None) -> dict:
     if path and os.path.exists(path):
         with open(path, encoding="utf-8") as fh:
@@ -821,9 +848,20 @@ def main() -> None:
     finder = Finder(args, sources, ollama, thresholds, http)
     state = load_state(args.state)
     now = datetime.now(timezone.utc)
-    totals = {"attach": 0, "review": 0, "none": 0, "skipped": 0, "error": 0}
+    totals = {"attach": 0, "review": 0, "none": 0, "skipped": 0, "error": 0, "held": 0}
     held = 0
     consecutive_errors = 0
+
+    def mark_searched(recipe_id: int) -> None:
+        state[str(recipe_id)] = now.isoformat()
+        if api and not args.dry_run:
+            try:
+                api.searched([recipe_id])
+            except (urllib.error.URLError, OSError) as exc:
+                log(f"    could not record the search in nom-api: {exc}")
+
+    def leave_unsearched(_recipe_id: int) -> None:
+        return None
 
     with open(args.log, "a", encoding="utf-8") as audit:
         for index, row in enumerate(rows, start=1):
@@ -863,16 +901,9 @@ def main() -> None:
                 "unanalysed": [c.key for c in candidates if c.key not in decision.per_candidate],
             }) + "\n")
 
-            if not searches_failed:
-                state[str(recipe.recipe_id)] = now.isoformat()
-                if api and not args.dry_run:
-                    try:
-                        api.searched([recipe.recipe_id])
-                    except (urllib.error.URLError, OSError) as exc:
-                        log(f"    could not record the search in nom-api: {exc}")
-            if decision.outcome == "none":
-                continue
-            if args.dry_run or api is None:
+            stamp = leave_unsearched if searches_failed else mark_searched
+            if decision.outcome == "none" or args.dry_run or api is None:
+                stamp(recipe.recipe_id)
                 continue
 
             keys = [decision.chosen] if decision.outcome == "attach" else decision.review
@@ -885,16 +916,15 @@ def main() -> None:
                     log(f"    could not fetch any image for {key}; skipped")
                     continue
                 payloads.append(candidate_payload(c, decision, status, image))
-            if not payloads:
-                continue
-            try:
-                result = api.submit({"recipeId": recipe.recipe_id, "batch": f"image-finder-{now:%Y%m%d}",
-                                     "candidates": payloads})
-                log(f"    submitted: {result}")
-                held += sum(1 for o in (result or {}).get("outcomes") or [] if o.get("outcome") == "held")
-            except urllib.error.HTTPError as exc:
-                log(f"    nom-api rejected the submission: HTTP {exc.code} {exc.read()[:300]!r}")
-            if decision.outcome == "attach" and api:
+            batch_held, full = settle(api, recipe.recipe_id, decision.outcome, payloads, f"image-finder-{now:%Y%m%d}", stamp)
+            held += batch_held
+            if full:
+                totals["review"] -= 1
+                totals["held"] += 1
+                log(f"    stopping: the review queue is full (RecipeImages:MaxPendingReview); #{recipe.recipe_id} is left "
+                    "unsearched and comes back on the next run")
+                break
+            if decision.outcome == "attach" and payloads:
                 track_unsplash_downloads(api, sources, False)
 
     save_state(args.state, state)
@@ -903,8 +933,9 @@ def main() -> None:
             ollama.unload(model)
     if held:
         log(f"\nHeld: {held} review candidate(s) not stored because the review queue is full (RecipeImages:MaxPendingReview); "
-            "their recipes come back after --retry-days")
-    log(f"\nDone: {totals['attach']} attached, {totals['review']} queued for review, "
+            "a recipe whose candidates were all held is left unsearched and comes back on the next run, "
+            "one with some stored waits in review")
+    log(f"\nDone: {totals['attach']} attached, {totals['review']} queued for review, {totals['held']} held (queue full), "
         f"{totals['none']} with no usable image, {totals['error']} errored, {totals['skipped']} skipped (tried recently). "
         f"Log: {args.log}")
 
