@@ -143,6 +143,12 @@ namespace Nom.Orch.Services
                         {
                             singles.AddRange(await _matcher.ChooseAsync(new[] { new LinkQuestion(one.Source.IngredientId, one.Source.Name, one.Candidates) }, cancellationToken));
                         }
+                        catch (Exception single) when (!cancellationToken.IsCancellationRequested && IsUnreachable(single))
+                        {
+                            _logger.LogWarning(single, "Ingredient link model unreachable; {Count} ingredients left for later", ambiguous.Count);
+                            await _context.SaveChangesAsync(cancellationToken);
+                            return null;
+                        }
                         catch (Exception single) when (single is not OperationCanceledException)
                         {
                             singles.Add(new LinkAnswer(one.Source.IngredientId, null, 0m));

@@ -231,16 +231,23 @@ namespace Nom.Api.Tests.Services.Curation
             recipe.CurationStatusId.Should().Be((long)CurationStatusEnum.RequiresRevision);
         }
 
+        private sealed class FakeHostHealth : IAiHostHealth
+        {
+            public bool Answers { get; init; }
+            public Task<bool> AnswersAsync(string lane, CancellationToken cancellationToken = default) => Task.FromResult(Answers);
+        }
+
         [Theory]
-        [InlineData(typeof(HttpRequestException))]
-        [InlineData(typeof(TaskCanceledException))]
-        [InlineData(typeof(System.Text.Json.JsonException))]
-        public async Task A_model_failure_is_recorded_and_the_batch_moves_on(Type failure)
+        [InlineData(typeof(System.Text.Json.JsonException), false)]
+        [InlineData(typeof(InvalidOperationException), false)]
+        [InlineData(typeof(TaskCanceledException), true)]
+        public async Task A_model_failure_is_recorded_and_the_batch_moves_on(Type failure, bool hostAnswers)
         {
             using var db = await SeedAsync(ShrewsburyCakes(10), ShrewsburyCakes(11));
             var model = new FakeModel { Failure = (Exception)Activator.CreateInstance(failure)! };
 
-            var result = await Service(db, model).RepairBatchAsync(0, 10);
+            var result = await new RecipeAiRepairService(db, new RecipeVettingService(), model, NullLogger<RecipeAiRepairService>.Instance,
+                new FakeHostHealth { Answers = hostAnswers }).RepairBatchAsync(0, 10);
 
             result.Examined.Should().Be(2);
             result.QuantitiesFilled.Should().Be(0);
@@ -249,6 +256,26 @@ namespace Nom.Api.Tests.Services.Curation
             attempts.Should().HaveCount(2).And.OnlyContain(a => a.NewValue!.Contains("failed: " + failure.Name));
             (await db.Recipes.ToListAsync()).Should().OnlyContain(r => r.CurationStatusId == (long)CurationStatusEnum.RequiresRevision);
             (await Service(db, model).RepairBatchAsync(0, 10)).Examined.Should().Be(0, "a failed recipe is not retried until the version changes");
+        }
+
+        [Theory]
+        [InlineData(typeof(HttpRequestException), true)]
+        [InlineData(typeof(TaskCanceledException), false)]
+        [InlineData(typeof(HttpRequestException), null)]
+        [InlineData(typeof(TaskCanceledException), null)]
+        public async Task A_model_host_outage_records_no_attempt_and_stops_the_batch(Type failure, bool? hostAnswers)
+        {
+            using var db = await SeedAsync(ShrewsburyCakes(10), ShrewsburyCakes(11));
+            var model = new FakeModel { Failure = (Exception)Activator.CreateInstance(failure)! };
+            var service = new RecipeAiRepairService(db, new RecipeVettingService(), model, NullLogger<RecipeAiRepairService>.Instance,
+                hostAnswers is { } answers ? new FakeHostHealth { Answers = answers } : null);
+
+            await service.Invoking(s => s.RepairBatchAsync(0, 10)).Should().ThrowAsync<Exception>();
+
+            model.Calls.Should().Be(1, "the batch stops at the first recipe the host could not answer");
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == RecipeAiRepairService.AttemptChangeType)).Should().Be(0);
+            var healthy = new FakeModel();
+            (await Service(db, healthy).RepairBatchAsync(0, 10)).Examined.Should().Be(2, "both recipes are tried again once the host is back");
         }
 
         [Fact]

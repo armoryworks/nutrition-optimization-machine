@@ -43,10 +43,13 @@ namespace Nom.Orch.Services
         private readonly IRecipeVettingService _vetting;
         private readonly IRecipeRepairModel _model;
         private readonly ILogger<RecipeAiRepairService> _logger;
+        private readonly IAiHostHealth? _hostHealth;
         private Dictionary<string, long>? _measurementIds;
 
-        public RecipeAiRepairService(ApplicationDbContext db, IRecipeVettingService vetting, IRecipeRepairModel model, ILogger<RecipeAiRepairService> logger)
+        public RecipeAiRepairService(ApplicationDbContext db, IRecipeVettingService vetting, IRecipeRepairModel model, ILogger<RecipeAiRepairService> logger,
+            IAiHostHealth? hostHealth = null)
         {
+            _hostHealth = hostHealth;
             _db = db;
             _vetting = vetting;
             _model = model;
@@ -174,6 +177,12 @@ namespace Nom.Orch.Services
                     }
                     catch (Exception ex) when (IsModelFailure(ex, cancellationToken))
                     {
+                        if (await IsOutageAsync(ex, cancellationToken))
+                        {
+                            _logger.LogWarning("AI recipe repair stopped at recipe {RecipeId}: the model host is not answering ({Failure}); nothing recorded, it is retried later", recipe.Id, ex.GetType().Name);
+                            _db.ChangeTracker.Clear();
+                            throw;
+                        }
                         _logger.LogWarning(ex, "AI recipe repair of recipe {RecipeId} failed ({Failure}); recorded and skipped", recipe.Id, ex.GetType().Name);
                         issues = await _vetting.VetAsync(ScrapedRecipeRepairService.ToVettable(recipe));
                         audit.Add(Audit("Recipe", recipe.Id, "VettingIssues", before,
@@ -214,6 +223,17 @@ namespace Nom.Orch.Services
         private static bool IsModelFailure(Exception ex, CancellationToken cancellationToken) =>
             !cancellationToken.IsCancellationRequested
             && ex is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException;
+
+        /// <summary>
+        /// A refused connection is an outage. A timeout is an outage unless the host still answers a
+        /// probe, in which case the recipe itself was too slow and its attempt is recorded.
+        /// </summary>
+        private async Task<bool> IsOutageAsync(Exception ex, CancellationToken cancellationToken)
+        {
+            if (ex is HttpRequestException) return true;
+            if (ex is not TaskCanceledException) return false;
+            return _hostHealth == null || !await _hostHealth.AnswersAsync(AiLanes.Repair, cancellationToken);
+        }
 
         private static int AttemptVersion(string? attempt)
         {
