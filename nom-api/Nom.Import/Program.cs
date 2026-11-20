@@ -17,6 +17,12 @@ namespace Nom.Import
     {
         public static async Task Main(string[] args)
         {
+            if (args.Contains(Nom.Import.Golden.GoldenScoreCommand.Flag))
+            {
+                Environment.ExitCode = await Nom.Import.Golden.GoldenScoreCommand.RunAsync(args);
+                return;
+            }
+
             var host = CreateHostBuilder(args).Build();
 
             // Standalone command: classify the ingredient catalog into food groups + whole-food
