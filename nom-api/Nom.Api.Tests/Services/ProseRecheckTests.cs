@@ -228,6 +228,26 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_recipe_whose_withhold_a_person_ended_is_left_alone_even_when_its_steps_carry_the_system_stamp()
+        {
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            var id = await SeedAsync(db, CurationStatusEnum.Curated, CollapsedRange);
+            db.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = "Recipe", EntityId = id, ChangeType = ProseRecheckService.WithholdEndChangeType, PropertyName = "ProseWithheld",
+                OldValue = "true", NewValue = "false", Timestamp = DateTime.UtcNow, ChangedByPersonId = Admin,
+            });
+            await db.SaveChangesAsync();
+
+            var result = await Service(db).RecheckAsync(apply: true);
+
+            result.SkippedEditedRecipeIds.Should().Equal(id);
+            result.Withheld.Should().Be(0);
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == id)).ProseWithheld.Should().BeFalse();
+        }
+
+        [Fact]
         public async Task The_undo_leaves_a_recipe_whose_prose_was_replaced_since()
         {
             await using var db = NewContext();
@@ -266,6 +286,42 @@ namespace Nom.Api.Tests.Services
             result.Remaining.Should().Be(1);
             result.RunRecorded.Should().BeFalse();
             result.Samples.Select(s => s.RecipeId).Should().Equal(ids.Copied);
+            (await Service(db).LastRunAsync()).Should().BeNull();
+        }
+
+        [Fact]
+        public async Task A_hold_that_comes_on_during_an_apply_keeps_none_of_the_batch_it_would_save_and_stops()
+        {
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            for (var i = 0; i < ProseRecheckService.WithholdBatch + 1; i++)
+            {
+                var recipe = new RecipeEntity
+                {
+                    Name = "Roast potatoes", Description = "Weeknight potatoes, roasted until crisp.", ScrapedAtUtc = Imported,
+                    LicenseStatus = RecipeLicenseStatus.Unknown, CurationStatusId = (long)CurationStatusEnum.Curated,
+                    RecipeSteps = CopiedStep.Select((text, n) => new RecipeStepEntity { StepNumber = n + 1, Description = text, LastModifiedByPersonId = SystemConstants.SystemPersonId }).ToList(),
+                };
+                db.Recipes.Add(recipe);
+                db.ScrapedDocuments.Add(new ScrapedDocumentEntity { Recipe = recipe, RawJsonLd = Source, CreatedDate = Imported });
+            }
+
+            var passing = await SeedAsync(db, CurationStatusEnum.Curated, Faithful);
+            db.ChangeTracker.Clear();
+            var asked = 0;
+
+            var result = await Service(db).RecheckAsync(apply: true, maxRecipes: 100000, hold: _ => Task.FromResult(++asked > 1));
+            db.ChangeTracker.Clear();
+
+            asked.Should().Be(2);
+            result.Held.Should().BeTrue();
+            result.Withheld.Should().Be(ProseRecheckService.WithholdBatch, "the first batch was saved before the hold came on");
+            result.Remaining.Should().Be(1);
+            result.RunRecorded.Should().BeFalse();
+            result.Stamped.Should().Be(0);
+            (await db.Recipes.CountAsync(r => r.ProseWithheld)).Should().Be(ProseRecheckService.WithholdBatch);
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == ProseRecheckService.WithholdChangeType)).Should().Be(ProseRecheckService.WithholdBatch);
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == passing)).ProseCheckVersion.Should().BeNull();
             (await Service(db).LastRunAsync()).Should().BeNull();
         }
 

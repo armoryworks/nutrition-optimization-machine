@@ -66,8 +66,8 @@ namespace Nom.Api.Tests.Services.Recipe
             Ratings = new List<RecipeRatingEntity> { new() { RaterId = Author, Rating = 4 } },
             RecipeSteps = new List<RecipeStepEntity>
             {
-                new() { StepNumber = 1, Summary = "one", Description = $"{(withheld ? WithheldText : ShownText)} step one of {name}" },
-                new() { StepNumber = 2, Summary = "two", Description = $"{(withheld ? WithheldText : ShownText)} step two of {name}" },
+                new() { StepNumber = 1, Summary = "one", Description = $"{(withheld ? WithheldText : ShownText)} step one of {name}", LastModifiedByPersonId = SystemConstants.SystemPersonId },
+                new() { StepNumber = 2, Summary = "two", Description = $"{(withheld ? WithheldText : ShownText)} step two of {name}", LastModifiedByPersonId = SystemConstants.SystemPersonId },
             },
         };
 
@@ -103,8 +103,8 @@ namespace Nom.Api.Tests.Services.Recipe
             return db;
         }
 
-        private static RecipeOrchestrationService Recipes(ApplicationDbContext db) =>
-            new(db, new HttpContextAccessor(), Mock.Of<ICurrentUserService>(), Mock.Of<Nom.Orch.UtilityInterfaces.IMediaStorageService>(), Mock.Of<IRecipeNutritionService>());
+        private static RecipeOrchestrationService Recipes(ApplicationDbContext db, ICurrentUserService? user = null) =>
+            new(db, new HttpContextAccessor(), user ?? Mock.Of<ICurrentUserService>(), Mock.Of<Nom.Orch.UtilityInterfaces.IMediaStorageService>(), Mock.Of<IRecipeNutritionService>());
 
         private static string Json(object? value) => JsonSerializer.Serialize(value);
 
@@ -255,6 +255,52 @@ namespace Nom.Api.Tests.Services.Recipe
             recipe.ProseWithheld.Should().BeFalse("a person has replaced both the description and the steps");
             recipe.RecipeSteps!.Select(s => s.Description).Should().Equal("Bake it our way.");
             (await db.AuditLogEntries.SingleAsync(a => a.ChangeType == ProseRecheckService.WithholdEndChangeType)).EntityId.Should().Be(Withheld);
+        }
+
+        [Fact]
+        public async Task A_method_a_person_writes_for_a_withheld_recipe_is_never_withheld_again_by_the_recheck()
+        {
+            await using var db = await SeedAsync();
+            db.ProseStockPhrases.Add(new ProseStockPhraseEntity { Version = 1, Hash = Nom.Orch.Services.Support.ProsePhrases.Hash("bring a large pot of"), SiteCount = 3 });
+            db.ScrapedDocuments.Add(new ScrapedDocumentEntity { RecipeId = Shown, RawJsonLd = Source });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var curator = Mock.Of<ICurrentUserService>(u => u.PersonId == Author && u.PersonIdOrSystem == Author);
+            var service = Recipes(db, curator);
+
+            await service.UpdateRecipeAsync(Withheld, new UpdateRecipeRequest
+            {
+                Id = Withheld, Name = "Withheld pie", Description = "Our own pie.",
+                Steps = new List<RecipeStepModel>
+                {
+                    new() { Order = 1, Description = "Oven at 350." },
+                    new() { Order = 2, Description = "Bake it our way." },
+                    new() { Order = 3, Description = "Cool, then slice." },
+                },
+            });
+            db.ChangeTracker.Clear();
+            var shown = await db.Recipes.AsNoTracking().Include(r => r.RecipeSteps).SingleAsync(r => r.Id == Shown);
+            await service.UpdateRecipeAsync(Shown, new UpdateRecipeRequest
+            {
+                Id = Shown, Name = "Shown pie, renamed", Description = shown.Description,
+                Steps = shown.RecipeSteps!.OrderBy(st => st.StepNumber).Select(st => new RecipeStepModel { Order = st.StepNumber, Description = st.Description }).ToList(),
+            });
+            db.ChangeTracker.Clear();
+
+            (await db.RecipeSteps.Where(st => st.RecipeId == Withheld).Select(st => st.LastModifiedByPersonId).ToListAsync())
+                .Should().HaveCount(3).And.OnlyContain(by => by == Author, "a step a person rewrote or added is theirs, whatever the old lane stamped on it");
+            (await db.RecipeSteps.Where(st => st.RecipeId == Shown).Select(st => st.LastModifiedByPersonId).ToListAsync())
+                .Should().OnlyContain(by => by == SystemConstants.SystemPersonId, "saving the form with the steps unchanged does not make copied text a person's");
+
+            var recheck = new ProseRecheckService(db, curator, new ProseStockService(db, curator));
+            var dryRun = await recheck.RecheckAsync();
+            dryRun.SkippedEditedRecipeIds.Should().Contain(Withheld);
+            dryRun.SkippedEditedRecipeIds.Should().NotContain(Shown);
+
+            await recheck.RecheckAsync(apply: true);
+            db.ChangeTracker.Clear();
+
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == Withheld)).ProseWithheld.Should().BeFalse();
         }
     }
 }

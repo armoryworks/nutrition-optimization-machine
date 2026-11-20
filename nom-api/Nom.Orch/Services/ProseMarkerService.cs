@@ -38,7 +38,7 @@ namespace Nom.Orch.Services
             _currentUser = currentUser;
         }
 
-        private sealed record Change(long RecipeId, int StepNumber, string Before, string After);
+        private sealed record Change(long RecipeId, int StepNumber, string Before, string After, bool Shown);
 
         public static string StepProperty(int stepNumber) => StepPropertyPrefix + stepNumber.ToString(CultureInfo.InvariantCulture);
 
@@ -50,14 +50,16 @@ namespace Nom.Orch.Services
             var cursor = long.MinValue;
             while (true)
             {
-                var ids = await _db.Recipes.AsNoTracking()
+                var page = await _db.Recipes.AsNoTracking()
                     .Where(r => r.Id > cursor && r.ScrapedAtUtc != null)
                     .OrderBy(r => r.Id)
                     .Take(RecipesPerRead)
-                    .Select(r => r.Id)
+                    .Select(r => new { r.Id, Hidden = r.ProseWithheld || r.ContainsSourceProse })
                     .ToListAsync(cancellationToken);
-                if (ids.Count == 0) break;
-                cursor = ids[^1];
+                if (page.Count == 0) break;
+                cursor = page[^1].Id;
+                var ids = page.Select(r => r.Id).ToList();
+                var hidden = page.Where(r => r.Hidden).Select(r => r.Id).ToHashSet();
 
                 var steps = await _db.RecipeSteps.AsNoTracking()
                     .Where(s => ids.Contains(s.RecipeId))
@@ -88,7 +90,7 @@ namespace Nom.Orch.Services
                         continue;
                     }
 
-                    changes.Add(new Change(step.RecipeId, step.StepNumber, step.Description, after));
+                    changes.Add(new Change(step.RecipeId, step.StepNumber, step.Description, after, !hidden.Contains(step.RecipeId)));
                 }
             }
 
@@ -103,7 +105,7 @@ namespace Nom.Orch.Services
             result.Removed = taken.Count(c => c.After.Length == 0);
             result.RecipesChanged = taken.Select(c => c.RecipeId).Distinct().Count();
             result.Remaining = changes.Count - taken.Count;
-            result.Samples = taken.Take(Math.Clamp(sampleSize, 0, 1000)).Select(c => new ProseMarkerSample
+            result.Samples = taken.Where(c => c.Shown).Take(Math.Clamp(sampleSize, 0, 1000)).Select(c => new ProseMarkerSample
             {
                 RecipeId = c.RecipeId, StepNumber = c.StepNumber, Before = c.Before, After = c.After,
             }).ToList();

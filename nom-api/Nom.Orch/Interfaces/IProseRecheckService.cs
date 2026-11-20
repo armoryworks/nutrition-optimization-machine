@@ -19,11 +19,13 @@ namespace Nom.Orch.Interfaces
         /// Checks every shown scraped recipe and, with <paramref name="apply"/>, withholds the prose
         /// of up to <paramref name="maxRecipes"/> failing ones, approved first, in transactions of
         /// 500, and stamps the passing ones with the check version. A recipe with a step a person has
-        /// edited is left alone and listed. An apply is refused while no stock-phrase index has been
+        /// edited, or whose withhold a person ended by writing their own method, is left alone and listed. An apply is refused while no stock-phrase index has been
         /// built. An apply that leaves no failure shown is recorded as a full run. Without
         /// <paramref name="apply"/> nothing is written and the result is what the same call would do.
+        /// <paramref name="hold"/> is asked before each batch is saved; once it answers true the apply
+        /// keeps none of that batch, withholds nothing more and records no run.
         /// </summary>
-        Task<ProseRecheckResult> RecheckAsync(bool apply = false, int maxRecipes = 500, int sampleSize = 50, CancellationToken cancellationToken = default);
+        Task<ProseRecheckResult> RecheckAsync(bool apply = false, int maxRecipes = 500, int sampleSize = 50, Func<CancellationToken, Task<bool>>? hold = null, CancellationToken cancellationToken = default);
 
         /// <summary>The last full run recorded by <see cref="RecheckAsync"/>; null when there has been none.</summary>
         Task<ProseRecheckRun?> LastRunAsync(CancellationToken cancellationToken = default);

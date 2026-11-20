@@ -74,7 +74,8 @@ namespace Nom.Api.Services
         public async Task<bool> RunOnceAsync(TimeSpan interval, bool wasPaused, CancellationToken cancellationToken)
         {
             using var scope = _scopeFactory.CreateScope();
-            if (await scope.ServiceProvider.GetRequiredService<IPlatformFeatureService>().IsEnabledAsync(IPlatformFeatureService.Keys.ProseRecheckPause))
+            var features = scope.ServiceProvider.GetRequiredService<IPlatformFeatureService>();
+            if (await features.IsEnabledAsync(IPlatformFeatureService.Keys.ProseRecheckPause))
             {
                 if (!wasPaused) _logger.LogInformation("Prose re-check paused (platform feature {Key})", IPlatformFeatureService.Keys.ProseRecheckPause);
                 return true;
@@ -85,11 +86,19 @@ namespace Nom.Api.Services
             if (due == null) return false;
 
             _logger.LogInformation("Prose re-check starting ({Reason})", due);
-            var result = await recheck.RecheckAsync(apply: true, maxRecipes: MaxRecipesPerRun, sampleSize: 0, cancellationToken: cancellationToken);
+            var result = await recheck.RecheckAsync(apply: true, maxRecipes: MaxRecipesPerRun, sampleSize: 0, cancellationToken: cancellationToken,
+                hold: _ => features.IsEnabledAsync(IPlatformFeatureService.Keys.ProseRecheckPause));
             if (result.Refused != null)
             {
                 _logger.LogWarning("Prose re-check refused: {Reason}", result.Refused);
                 return false;
+            }
+
+            if (result.Held)
+            {
+                _logger.LogInformation("Prose re-check paused (platform feature {Key}) after withholding {Withheld}; {Remaining} failures left shown and no run recorded",
+                    IPlatformFeatureService.Keys.ProseRecheckPause, result.Withheld, result.Remaining);
+                return true;
             }
 
             _logger.LogInformation(

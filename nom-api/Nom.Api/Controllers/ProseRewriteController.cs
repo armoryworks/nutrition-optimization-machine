@@ -32,7 +32,7 @@ namespace Nom.Api.Controllers
         {
             if (version != ProseCheck.Version)
                 return BadRequest($"Only prose check version {ProseCheck.Version} runs; version {version} is not available.");
-            return Ok(await _recheck.RecheckAsync(apply, maxRecipes, sampleSize, cancellationToken));
+            return Ok(await _recheck.RecheckAsync(apply, maxRecipes, sampleSize, cancellationToken: cancellationToken));
         }
 
         /// <summary>Release the recipes withheld (or, from an earlier re-check, put back into quarantine) at or after the given UTC time, unless their prose has been replaced since; a dry run unless apply=true.</summary>

@@ -38,7 +38,7 @@ namespace Nom.Orch.Models.Curation
         public Dictionary<string, int> FailedByStatus { get; set; } = new();
         /// <summary>Recipes with no stored source document, or one that states no method.</summary>
         public int SkippedNoSource { get; set; }
-        /// <summary>Recipes with a step a person has edited since import; their wording is not the lane's.</summary>
+        /// <summary>Recipes with a step a person has edited since import, or whose withhold a person ended; their wording is not the lane's.</summary>
         public int SkippedEditedByPerson { get; set; }
         /// <summary>The first recipes skipped because a person edited a step, by id.</summary>
         public List<long> SkippedEditedRecipeIds { get; set; } = new();
@@ -50,6 +50,8 @@ namespace Nom.Orch.Models.Curation
         public int Stamped { get; set; }
         /// <summary>Failing recipes still shown after this call.</summary>
         public int Remaining { get; set; }
+        /// <summary>True when the hold (pause-prose-recheck, for the job) was on before a batch was saved: that batch and the rest were not withheld.</summary>
+        public bool Held { get; set; }
         /// <summary>True when this apply covered every failure and was recorded as a full run for the weekly job.</summary>
         public bool RunRecorded { get; set; }
         public List<ProseRecheckSample> Samples { get; set; } = new();

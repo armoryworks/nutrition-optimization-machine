@@ -748,6 +748,7 @@ namespace Nom.Orch.Services
                 .Where(rs => rs.RecipeId == id)
                 .ToDictionaryAsync(rs => rs.StepNumber);
             var keptStepNumbers = new HashSet<int>();
+            var editor = GetCurrentPersonId();
 
             foreach (var step in withheld && !ownSteps ? Enumerable.Empty<RecipeStepModel>() : model.Steps)
             {
@@ -758,6 +759,11 @@ namespace Nom.Orch.Services
 
                 if (existingSteps.TryGetValue(step.Order, out var recipeStep))
                 {
+                    if (editor != null && (recipeStep.IsDeleted || recipeStep.Description != step.Description))
+                    {
+                        recipeStep.LastModifiedByPersonId = editor;
+                    }
+
                     recipeStep.Summary = step.Description;
                     recipeStep.Description = step.Description;
                     recipeStep.IsDeleted = false;
@@ -771,7 +777,8 @@ namespace Nom.Orch.Services
                         RecipeId = recipe.Id,
                         Summary = step.Description,
                         Description = step.Description,
-                        StepNumber = step.Order
+                        StepNumber = step.Order,
+                        LastModifiedByPersonId = editor
                     });
                 }
             }

@@ -32,6 +32,7 @@ namespace Nom.Orch.Models.Curation
         public int Unmatched { get; set; }
         /// <summary>Steps with a marker still left after this call.</summary>
         public int Remaining { get; set; }
+        /// <summary>Steps stripped, with their old and new text, of recipes whose prose is shown; a withheld or quarantined recipe's text is never served, so its steps are counted but not sampled.</summary>
         public List<ProseMarkerSample> Samples { get; set; } = new();
     }
 

@@ -35,8 +35,8 @@ namespace Nom.Orch.Services
             [IPlatformFeatureService.Keys.ProseRecheckPause] = (
                 "Pause prose re-check",
                 "Holds the job that re-checks the shown prose of scraped recipes against their source and withholds what fails "
-                + "(the recipe stays listed and usable; its method is replaced by key facts and the source link). "
-                + "Turn it on before releasing withheld recipes with the re-check undo, or the next run withholds them again. "
+                + "(the recipe stays listed and usable; its method is replaced by key facts and the source link); a run already going keeps none of the batch it is about to save. "
+                + "Turn it on, and wait for the paused log line, before releasing withheld recipes with the re-check undo, or the next run withholds them again. "
                 + "It is not a model lane, so the AI pause switches do not hold it."),
         });
 

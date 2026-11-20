@@ -58,7 +58,7 @@ namespace Nom.Orch.Services
         private sealed record Candidate(long Id, string Name, long CurationStatusId, string? Description, int? CheckVersion);
         private sealed record Failure(Candidate Recipe, ProseCheck.Finding Finding);
 
-        public async Task<ProseRecheckResult> RecheckAsync(bool apply = false, int maxRecipes = WithholdBatch, int sampleSize = 50, CancellationToken cancellationToken = default)
+        public async Task<ProseRecheckResult> RecheckAsync(bool apply = false, int maxRecipes = WithholdBatch, int sampleSize = 50, Func<CancellationToken, Task<bool>>? hold = null, CancellationToken cancellationToken = default)
         {
             var stock = await _stock.LoadAsync(cancellationToken);
             var result = new ProseRecheckResult { Applied = apply, CheckVersion = ProseCheck.Version, StockVersion = stock.Version };
@@ -92,11 +92,16 @@ namespace Nom.Orch.Services
                         .ToListAsync(cancellationToken))
                     .GroupBy(d => d.RecipeId)
                     .ToDictionary(g => g.Key, g => g.Last().RawJsonLd);
+                var ended = (await _db.AuditLogEntries.AsNoTracking()
+                        .Where(a => a.EntityType == RecipeEntityType && a.ChangeType == WithholdEndChangeType && ids.Contains(a.EntityId))
+                        .Select(a => a.EntityId)
+                        .ToListAsync(cancellationToken))
+                    .ToHashSet();
 
                 foreach (var candidate in chunk)
                 {
                     var own = steps[candidate.Id].OrderBy(s => s.StepNumber).ToList();
-                    if (own.Any(s => s.LastModifiedByPersonId is { } by && by != SystemConstants.SystemPersonId))
+                    if (ended.Contains(candidate.Id) || own.Any(s => s.LastModifiedByPersonId is { } by && by != SystemConstants.SystemPersonId))
                     {
                         result.SkippedEditedByPerson++;
                         if (result.SkippedEditedRecipeIds.Count < MaxListedRecipeIds) result.SkippedEditedRecipeIds.Add(candidate.Id);
@@ -143,6 +148,7 @@ namespace Nom.Orch.Services
                     await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(cancellationToken) : null;
                     var recipes = await _db.Recipes.Where(r => ids.Contains(r.Id)).ToDictionaryAsync(r => r.Id, cancellationToken);
                     var now = DateTime.UtcNow;
+                    var batch = new List<Failure>();
                     foreach (var failure in chunk)
                     {
                         if (!recipes.TryGetValue(failure.Recipe.Id, out var recipe) || recipe.ContainsSourceProse || recipe.ProseWithheld) continue;
@@ -162,16 +168,24 @@ namespace Nom.Orch.Services
                         recipe.ProseCheckVersion = ProseCheck.Version;
                         recipe.LastModifiedDate = now;
                         recipe.LastModifiedByPersonId = personId;
-                        result.Withheld++;
-                        applied.Add(failure);
+                        batch.Add(failure);
+                    }
+
+                    if (hold != null && await hold(cancellationToken))
+                    {
+                        _db.ChangeTracker.Clear();
+                        result.Held = true;
+                        break;
                     }
 
                     await _db.SaveChangesAsync(cancellationToken);
                     if (tx != null) await tx.CommitAsync(cancellationToken);
                     _db.ChangeTracker.Clear();
+                    result.Withheld += batch.Count;
+                    applied.AddRange(batch);
                 }
 
-                foreach (var chunk in unstamped.Chunk(RecipesPerTransaction))
+                foreach (var chunk in result.Held ? Array.Empty<long[]>() : unstamped.Chunk(RecipesPerTransaction))
                 {
                     var recipes = await _db.Recipes.Where(r => chunk.Contains(r.Id) && !r.ProseWithheld && !r.ContainsSourceProse).ToListAsync(cancellationToken);
                     foreach (var recipe in recipes)
@@ -192,7 +206,7 @@ namespace Nom.Orch.Services
             }
 
             result.Remaining = result.Failed - result.Withheld;
-            if (result.Applied && result.Remaining == 0)
+            if (result.Applied && !result.Held && result.Remaining == 0)
             {
                 _db.AuditLogEntries.Add(new AuditLogEntryEntity
                 {

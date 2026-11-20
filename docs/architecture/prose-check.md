@@ -153,7 +153,10 @@ meal plans.
 - **Edits.** A save from the edit form, which never saw the withheld text, keeps the stored
   description when it sends a blank one and the stored steps when it sends none. When a person
   writes both their own steps and their own description (or the stored one is empty), the withhold
-  ends, journaled as `ProseWithholdEnd`.
+  ends, journaled as `ProseWithholdEnd`. A step whose text a person changes or adds carries that
+  person as its last editor (a save that sends a step unchanged leaves its editor as it was), and a
+  recipe with a `ProseWithholdEnd` row counts as edited by a person, so neither the re-check nor the
+  marker cleanup touches the person's own method.
 - **A holding state, never an end.** Every withheld recipe is work for the rewrite lane (prose lane
   v2), approved first. The Pipeline page shows the count ("Prose withheld (approved)"); the goal is
   none.
@@ -164,7 +167,7 @@ meal plans.
 recipe of unknown licence (neither quarantined nor withheld) against its source with the current
 stock index. It reports the totals by reason (`failedByReason`: `wrong-amount`, `lost-step`,
 `copied-text` ...), by status and for approved recipes, the samples (approved first), and lists the
-recipes skipped because a person edited a step. Only the current check version runs; any other
+recipes skipped because a person edited a step or ended the withhold. Only the current check version runs; any other
 `version` is refused. With `apply=true` it withholds up to `maxRecipes` failures, approved first, in
 transactions of 500, each journaled as `ProseWithhold` (old check version, the finding, the check and
 stock versions), and stamps the passing recipes with the check version. An apply is refused while no
@@ -185,8 +188,11 @@ recorded, when the check or the stock index has a version the last full run did 
 with a new check runs it), or every `ProseRecheck:IntervalDays` (default 7). It never runs before a
 stock index exists. It is off until `ProseRecheck:Enabled=true` (turn it on after the first withhold
 has been applied by hand), looks every `ProseRecheck:CheckMinutes` (default 60), and the platform
-feature `pause-prose-recheck` holds it. Turn the pause on before a release with the undo, or the next
-run withholds those recipes again.
+feature `pause-prose-recheck` holds it. A run already going asks the switch before it saves each
+batch of 500; once it is on, that batch and the rest are not withheld, no full run is recorded, and the
+log says "Prose re-check paused ... after withholding N". Turn the pause on, and wait for that line or
+for the next check to log the pause, before a release with the undo, or the run withholds those recipes
+again.
 
 ### Step markers
 
@@ -196,7 +202,9 @@ run withholds those recipes again.
 a marker is removed. Steps a person edited, and steps too long for the journal to hold, are left
 alone. Each step changed is journaled as `ProseMarkerStrip` on the recipe, with the property
 `RecipeStep:{number}` and the whole old text. `POST /api/ProseRewrite/markers/undo?sinceUtc=&apply=false`
-puts back every step whose text has not changed since, journaled as `ProseMarkerStripUndo`.
+puts back every step whose text has not changed since, journaled as `ProseMarkerStripUndo`. The
+samples (old and new text of each step) cover only recipes whose prose is shown: the steps of a
+withheld or quarantined recipe are stripped and counted but their text is never served.
 
 ## Proving it on staging
 

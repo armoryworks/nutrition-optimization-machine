@@ -62,12 +62,14 @@ namespace Nom.Api.Tests.Services
             ProseQuantities.StripStepMarkers(step).Should().Be(step);
         }
 
-        private static async Task<long> SeedAsync(ApplicationDbContext db, bool scraped = true)
+        private static async Task<long> SeedAsync(ApplicationDbContext db, bool scraped = true, bool withheld = false, bool quarantined = false)
         {
             var recipe = new RecipeEntity
             {
                 Name = "Berry cake",
                 ScrapedAtUtc = scraped ? new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc) : null,
+                ProseWithheld = withheld,
+                ContainsSourceProse = quarantined,
                 CurationStatusId = (long)CurationStatusEnum.Curated,
                 RecipeSteps = new[]
                 {
@@ -145,6 +147,22 @@ namespace Nom.Api.Tests.Services
             live = await db.RecipeSteps.Where(s => s.RecipeId == recipeId).OrderBy(s => s.StepNumber).Select(s => s.Description).ToListAsync();
             live.Should().Equal("1. Heat the oven to 350 degrees F.", "Toss well.", "Step 3:", "Fold in the berries.", "5. Bake until golden.");
             (await service.UndoAsync(before)).Restored.Should().Be(0, "each step put back is journaled, so a repeat finds nothing left");
+        }
+
+        [Fact]
+        public async Task The_samples_never_serve_the_text_of_a_withheld_or_quarantined_recipe_though_its_steps_are_stripped()
+        {
+            await using var db = NewContext();
+            var withheld = await SeedAsync(db, withheld: true);
+            var quarantined = await SeedAsync(db, quarantined: true);
+            var shown = await SeedAsync(db);
+
+            var result = await new ProseMarkerService(db, new NoUser()).StripAsync(sampleSize: 1000);
+
+            result.Stripped.Should().Be(9);
+            result.RecipesChanged.Should().Be(3);
+            result.Samples.Should().HaveCount(3).And.OnlyContain(s => s.RecipeId == shown);
+            result.Samples.Select(s => s.RecipeId).Should().NotContain(new[] { withheld, quarantined });
         }
 
         [Fact]
