@@ -565,9 +565,9 @@ namespace Nom.Import.Services
                 {
                     var waiting = mine.Where(p => p.Status == FoodProposalStatus.Pending).ToList();
                     if (waiting.Count == 0) { Skip("not_attached"); continue; }
+                    if (!dryRun && await RejectIfPendingAsync(waiting, now, ct) < waiting.Count) { Skip("applied_meanwhile_rerun"); continue; }
                     report.Undone++;
                     report.Lines.Add($"rejected #{food.Id} {food.Name}: the pending proposal for fdc:{request.FdcId}");
-                    if (!dryRun) Reject(waiting, now);
                     continue;
                 }
                 var entries = journal[food.Id].ToList();
@@ -649,6 +649,37 @@ namespace Nom.Import.Services
             alias.LastModifiedDate = DateTime.UtcNow;
             alias.LastModifiedByPersonId = SystemConstants.SystemPersonId;
             return true;
+        }
+
+        /// <summary>
+        /// Rejects the proposals that are still pending when the write reaches the database, so an
+        /// attach the certain-links lane applied after they were read keeps its Applied status.
+        /// Returns how many were rejected.
+        /// </summary>
+        private async Task<int> RejectIfPendingAsync(List<FoodCatalogProposalEntity> proposals, DateTime now, CancellationToken ct)
+        {
+            if (_db.Database.IsRelational())
+            {
+                var ids = proposals.Select(p => p.Id).ToList();
+                foreach (var p in proposals) _db.Entry(p).State = EntityState.Detached;
+                return await _db.FoodCatalogProposals
+                    .Where(p => ids.Contains(p.Id) && p.Status == FoodProposalStatus.Pending)
+                    .ExecuteUpdateAsync(u => u
+                        .SetProperty(p => p.Status, FoodProposalStatus.Rejected)
+                        .SetProperty(p => p.ReviewedByPersonId, SystemConstants.SystemPersonId)
+                        .SetProperty(p => p.ReviewedAt, now)
+                        .SetProperty(p => p.LastModifiedDate, now), ct);
+            }
+
+            var rejected = 0;
+            foreach (var p in proposals)
+            {
+                await _db.Entry(p).ReloadAsync(ct);
+                if (p.Status != FoodProposalStatus.Pending) continue;
+                Reject(new[] { p }, now);
+                rejected++;
+            }
+            return rejected;
         }
 
         private static void Reject(IEnumerable<FoodCatalogProposalEntity> proposals, DateTime now)

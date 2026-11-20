@@ -200,7 +200,9 @@ it and otherwise gets back the context and removal it had before (the attach jou
 alias's earlier state), the proposal is marked Rejected and the food's recipe lines are
 marked changed so their labels are recalculated. A column or alias changed since the attach
 is left and named in the report line.
-A proposal still pending is simply rejected. An attach applied before the journal existed
+A proposal still pending is simply rejected; one the certain-links lane applied while the
+undo ran is left Applied and reported as `applied_meanwhile_rerun`, and running the undo
+again takes it back through the journal. An attach applied before the journal existed
 is reported as `not_journaled` and left alone.
 
 ### Household portions → gram conversions — BUILT ✅

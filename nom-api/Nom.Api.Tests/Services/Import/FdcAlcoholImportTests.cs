@@ -560,6 +560,49 @@ namespace Nom.Api.Tests.Services.Import
                 && a.DeletedAt == (deleted ? removedAt : null) && a.DeletedByPersonId == (deleted ? 5 : null));
         }
 
+        private sealed class ApplyOnRead : Microsoft.EntityFrameworkCore.Diagnostics.IMaterializationInterceptor
+        {
+            public string? DatabaseName { get; set; }
+            public Microsoft.EntityFrameworkCore.Storage.InMemoryDatabaseRoot Root { get; } = new();
+
+            public object InitializedInstance(Microsoft.EntityFrameworkCore.Diagnostics.MaterializationInterceptionData materializationData, object entity)
+            {
+                if (DatabaseName == null || entity is not FoodCatalogProposalEntity { Status: FoodProposalStatus.Pending } read) return entity;
+                var name = DatabaseName;
+                DatabaseName = null;
+                using var lane = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(name, Root).Options);
+                lane.Ingredients.Single(i => i.Id == read.IngredientId).FdcId = read.FdcId;
+                lane.FoodCatalogProposals.Single(p => p.Id == read.Id).Status = FoodProposalStatus.Applied;
+                lane.SaveChanges();
+                return entity;
+            }
+        }
+
+        [Fact]
+        public async Task An_undo_that_finds_its_pending_attach_applied_by_the_lane_meanwhile_leaves_it_applied_and_says_so()
+        {
+            var name = Guid.NewGuid().ToString();
+            var race = new ApplyOnRead();
+            using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(name, race.Root).AddInterceptors(race).Options);
+            db.Set<BaseMeasurementEntity>().Add(new BaseMeasurementEntity { Id = 1, Name = "Gram", Symbol = "g", MeasurementCategoryId = 1 });
+            var wine = await FoodAsync(db, "Dry White Wine");
+            db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, IngredientId = wine.Id, Field = FoodCatalogReviewService.FdcAttachField, FdcId = Wine, Source = $"fdc:{Wine}",
+                ProposedValue = "{}", Batch = FdcFoundationImportService.AttachBatch, Status = FoodProposalStatus.Pending,
+            });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            race.DatabaseName = name;
+
+            var undone = await Importer(db).UndoAttachAsync(Pair(wine), dryRun: false);
+
+            undone.Undone.Should().Be(0);
+            undone.SkippedByReason.Should().ContainKey("applied_meanwhile_rerun");
+            db.ChangeTracker.Clear();
+            (await db.FoodCatalogProposals.SingleAsync()).Status.Should().Be(FoodProposalStatus.Applied);
+        }
+
         [Fact]
         public void The_pairs_file_is_read_by_its_header()
         {
