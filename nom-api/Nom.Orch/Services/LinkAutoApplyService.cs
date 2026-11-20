@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Nom.Data;
 using Nom.Data.Curation;
+using Nom.Data.Nutrition;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
@@ -93,7 +94,7 @@ namespace Nom.Orch.Services
                     continue;
                 }
 
-                var hold = picks.TryGetValue(id, out var pick) ? LinkAutoApplyGuard.Hold(pick, catalog!) : "target food not found";
+                var hold = picks.TryGetValue(id, out var pick) ? LinkGate.Hold(pick, catalog!) : "target food not found";
                 if (hold == null)
                 {
                     allowed.Add(id);
@@ -125,7 +126,7 @@ namespace Nom.Orch.Services
             var samples = Math.Clamp(sampleSize, 0, 5000);
             foreach (var p in pending)
             {
-                var hold = picks.TryGetValue(p.Id, out var pick) ? LinkAutoApplyGuard.Hold(pick, catalog) : "target food not found";
+                var hold = picks.TryGetValue(p.Id, out var pick) ? LinkGate.Hold(pick, catalog) : "target food not found";
                 var marked = LinkAutoApplyGuard.IsMarked(p.Reason);
                 if (hold == null && !marked) continue;
 
@@ -141,7 +142,7 @@ namespace Nom.Orch.Services
                         ProposalId = p.Id,
                         Source = p.Source,
                         Wording = p.CurrentValue ?? string.Empty,
-                        TargetName = pick?.TargetName ?? string.Empty,
+                        TargetName = pick?.Target.Name ?? string.Empty,
                         Hold = hold ?? "marked earlier",
                     });
                 }
@@ -153,66 +154,98 @@ namespace Nom.Orch.Services
             p.Field == FoodCatalogReviewService.FdcLinkField
             && (p.Source == IngredientLinkService.ExactSource || p.Source.StartsWith("ai:", StringComparison.Ordinal));
 
-        private async Task<Dictionary<long, LinkAutoApplyGuard.Pick>> PicksAsync(IReadOnlyCollection<FoodCatalogProposalEntity> proposals, CancellationToken cancellationToken)
+        private async Task<Dictionary<long, GatePair>> PicksAsync(IReadOnlyCollection<FoodCatalogProposalEntity> proposals, CancellationToken cancellationToken)
         {
             var targets = proposals.Select(p => long.TryParse(p.ProposedValue, out var id) ? id : 0L).Where(id => id > 0).Distinct().ToList();
-            var foods = new Dictionary<long, (string Name, string Description)>();
+            var foods = new Dictionary<long, GateFood>();
             foreach (var chunk in targets.Chunk(2000))
             {
-                var rows = await _db.Ingredients.AsNoTracking()
-                    .Where(i => chunk.Contains(i.Id))
-                    .Select(i => new
-                    {
-                        i.Id,
-                        i.Name,
-                        Description = i.Aliases.Where(a => !a.IsDeleted && a.SourceContext == IngredientLinkService.UsdaDescriptionContext).Select(a => a.AliasName).FirstOrDefault(),
-                    })
-                    .ToListAsync(cancellationToken);
-                foreach (var r in rows) foods[r.Id] = (r.Name, r.Description ?? r.Name);
+                foreach (var food in await GateFoodsAsync(_db.Ingredients.Where(i => chunk.Contains(i.Id)), cancellationToken)) foods[food.Id] = food;
             }
 
-            var picks = new Dictionary<long, LinkAutoApplyGuard.Pick>();
+            var picks = new Dictionary<long, GatePair>();
             foreach (var p in proposals)
             {
                 if (!long.TryParse(p.ProposedValue, out var targetId) || !foods.TryGetValue(targetId, out var food) || p.IngredientId == null) continue;
-                picks[p.Id] = new LinkAutoApplyGuard.Pick(p.CurrentValue ?? string.Empty, p.IngredientId.Value, targetId, food.Name, food.Description,
-                    p.Source == IngredientLinkService.ExactSource);
+                picks[p.Id] = new GatePair(p.CurrentValue ?? string.Empty, p.IngredientId.Value, food,
+                    NameMatch: p.Source == IngredientLinkService.ExactSource,
+                    ModelPick: p.Source.StartsWith("ai:", StringComparison.Ordinal));
             }
             return picks;
         }
 
-        private async Task<LinkAutoApplyGuard.Catalog> CatalogAsync(CancellationToken cancellationToken)
+        /// <summary>
+        /// The gate's facts about each food of the query: name, USDA description, data type, status,
+        /// category, admission reason, nutrient rows and whether calories, protein, carbohydrate and
+        /// fat are all stored.
+        /// </summary>
+        private async Task<List<GateFood>> GateFoodsAsync(IQueryable<IngredientEntity> query, CancellationToken cancellationToken)
         {
-            if (_cache.TryGetValue<LinkAutoApplyGuard.Catalog>(nameof(LinkAutoApplyService), out var cached) && cached != null) return cached;
+            var core = await CoreNutrientIdsAsync(cancellationToken);
+            var rows = await GateFoodRows(query, core).ToListAsync(cancellationToken);
+            return rows.Select(r => new GateFood(r.Id, r.Name, r.Description, r.FdcDataType, r.CurationStatusId, r.FdcCategoryId, r.AdmissionReason, r.Rows,
+                core.Count == 0 ? null : r.Core >= core.Count, r.IsDeleted)).ToList();
+        }
 
-            var curated = await _db.Ingredients.AsNoTracking()
-                .Where(i => !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated && i.IngredientNutrients.Any(n => !n.IsDeleted))
-                .OrderBy(i => i.Id)
-                .Select(i => new { i.Id, i.Name })
-                .ToListAsync(cancellationToken);
-            var byName = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
-            foreach (var food in curated) byName.TryAdd(food.Name.Trim(), food.Id);
+        /// <summary>One food's gate facts as the database gives them, before the core count becomes a yes or no.</summary>
+        internal sealed record GateFoodRow(long Id, string Name, bool IsDeleted, string FdcDataType, long CurationStatusId, int? FdcCategoryId,
+            string? AdmissionReason, string? Description, int Rows, int Core);
 
-            var usda = await _db.Ingredients.AsNoTracking()
-                .Where(i => i.FdcId != null && !i.IsDeleted && i.FdcDataType != "branded_food")
-                .Select(i => new
-                {
-                    i.Name,
-                    Description = i.Aliases.Where(a => !a.IsDeleted && a.SourceContext == IngredientLinkService.UsdaDescriptionContext).Select(a => a.AliasName).FirstOrDefault(),
-                })
-                .ToListAsync(cancellationToken);
-            var leadWords = usda
-                .Select(f => LinkAutoApplyGuard.Words(f.Description ?? f.Name).FirstOrDefault())
-                .OfType<string>()
-                .GroupBy(w => w, StringComparer.Ordinal)
-                .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+        internal static IQueryable<GateFoodRow> GateFoodRows(IQueryable<IngredientEntity> query, IReadOnlyCollection<long> core) =>
+            query.AsNoTracking().Select(i => new GateFoodRow(
+                i.Id,
+                i.Name,
+                i.IsDeleted,
+                i.FdcDataType,
+                i.CurationStatusId,
+                i.FdcCategoryId,
+                i.AdmissionReason,
+                i.Aliases.Where(a => !a.IsDeleted && a.SourceContext == IngredientLinkService.UsdaDescriptionContext).Select(a => a.AliasName).FirstOrDefault(),
+                i.IngredientNutrients.Count(n => !n.IsDeleted),
+                i.IngredientNutrients.Where(n => !n.IsDeleted && core.Contains(n.NutrientId)).Select(n => n.NutrientId).Distinct().Count()));
 
-            var catalog = new LinkAutoApplyGuard.Catalog
+        /// <summary>One nutrient id for each of calories, protein, carbohydrate and total fat; empty when the seed lacks one.</summary>
+        private async Task<List<long>> CoreNutrientIdsAsync(CancellationToken cancellationToken)
+        {
+            var nutrients = await _db.Nutrients.AsNoTracking().Where(n => n.ParentNutrientId == null).Select(n => new { n.Id, n.Name }).ToListAsync(cancellationToken);
+            long? Find(Func<string, bool> test) => nutrients.Where(n => test(n.Name.ToLowerInvariant())).OrderBy(n => n.Id).Select(n => (long?)n.Id).FirstOrDefault();
+            var ids = new[]
             {
-                Curated = byName,
-                CuratedNames = curated.ToDictionary(f => f.Id, f => f.Name),
-                LeadWords = leadWords,
+                Find(n => n.Contains("calorie") || n.Contains("energy")),
+                Find(n => n.Contains("protein")),
+                Find(n => n.Contains("carbohydrate")),
+                Find(n => n.Contains("total lipid") || n == "fat" || n == "total fat"),
             };
+            return ids.Any(id => id == null) ? new List<long>() : ids.Select(id => id!.Value).ToList();
+        }
+
+        private async Task<GateCatalog> CatalogAsync(CancellationToken cancellationToken)
+        {
+            if (_cache.TryGetValue<GateCatalog>(nameof(LinkAutoApplyService), out var cached) && cached != null) return cached;
+
+            var foods = await GateFoodsAsync(_db.Ingredients.Where(i => !i.IsDeleted
+                && (i.CurationStatusId == (long)CurationStatusEnum.Curated
+                    || (i.FdcId != null && i.FdcDataType != CatalogAdmissionRule.BrandedFood && i.CurationStatusId != (long)CurationStatusEnum.Rejected))), cancellationToken);
+            var fdcIds = await _db.Ingredients.AsNoTracking()
+                .Where(i => !i.IsDeleted && i.FdcId != null && i.FdcDataType != CatalogAdmissionRule.BrandedFood && i.CurationStatusId != (long)CurationStatusEnum.Rejected)
+                .Select(i => new { i.Id, i.FdcId })
+                .ToDictionaryAsync(i => i.Id, i => i.FdcId!, cancellationToken);
+            var candidates = foods.Where(f => fdcIds.ContainsKey(f.Id)).Select(f => new FoodCandidate(f.Id, fdcIds[f.Id], f.Text, f.DataType ?? string.Empty)).ToList();
+            var matcher = new FoodNameMatcher(candidates);
+            var staples = IngredientLinkService.StapleTargets(candidates, foods.Where(f => f.Description != null && fdcIds.ContainsKey(f.Id)).Select(f => (f.Id, f.Description!)).ToList());
+
+            var aliases = await _db.IngredientAliases.AsNoTracking()
+                .Where(a => !a.IsDeleted && a.SourceContext != null
+                    && (a.SourceContext.StartsWith(IngredientAliasTrust.AdminPrefix) || a.SourceContext.StartsWith(IngredientAliasTrust.DeterministicPrefix)
+                        || a.SourceContext.StartsWith(IngredientAliasTrust.RetiredPrefix) || a.SourceContext.StartsWith(IngredientAliasTrust.DeterministicLinkPrefix)))
+                .Select(a => new { a.AliasName, a.IngredientId })
+                .ToListAsync(cancellationToken);
+            var trusted = aliases
+                .GroupBy(a => IngredientNameNormalizer.WordingKey(a.AliasName), StringComparer.Ordinal)
+                .Where(g => g.Select(a => a.IngredientId).Distinct().Count() == 1)
+                .ToDictionary(g => g.Key, g => g.First().IngredientId, StringComparer.Ordinal);
+
+            var catalog = GateCatalog.Build(foods, matcher, trusted, staples: staples);
             _cache.Set(nameof(LinkAutoApplyService), catalog, CatalogLifetime);
             return catalog;
         }

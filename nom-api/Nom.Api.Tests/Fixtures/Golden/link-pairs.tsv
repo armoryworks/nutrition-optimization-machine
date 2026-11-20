@@ -486,7 +486,7 @@ P0484	U	97	276224	168894	cupful flour	Wheat flour, white, all-purpose, enriched,
 P0485	U	97	274808	2647437	applesauce	Yogurt, plain, nonfat	wrong	no	agent-review-2026-11-13	!274808	agent	applesauce
 P0486	L	97	274605	326698	french mustard	Mustard, prepared, yellow	near	no	agent-review-2026-11-13	!274605	agent	French (Dijon-style) mustard
 P0487	L	97	277672	170393	shredded carrots	Carrots, raw	ok	no	agent-review-2026-11-13	~277672	agent	
-P0488	L	96	277322	170032	large potatoes	Potatoes, raw, skin	near	yes	agent-review-2026-11-13	!277322	known	whole potatoes, flesh and skin
+P0488	L	96	277322	170032	large potatoes	Potatoes, raw, skin	near	yes	agent-review-2026-11-13	!277322	agent	whole potatoes, flesh and skin
 P0489	L	96	279455	172233	dried dill	Dill weed, fresh	near	no	agent-review-2026-11-13	!279455	agent	dried dill weed
 P0490	L	96	275523	168165	stoned raisins	Raisins, dark, seedless (Includes foods for USDA's Food Distribution Program)	ok	no	agent-review-2026-11-13	~275523	agent	
 P0491	L	96	274674	1104913	pastry flour	Flour, pastry, unenriched, unbleached	ok	no	agent-review-2026-11-13	~274674	agent	
@@ -1819,7 +1819,7 @@ P1817	L	23	274756	2346405	celery, diced	Celery, raw	ok	no	agent-review-2026-11-1
 P1818	L	23	281364	174196	flounders	Fish, flatfish (flounder and sole species), raw	ok	no	agent-review-2026-11-13	~281364	agent	
 P1819	L	23	5602	168820	gill of molasses	molasses	ok	no	agent-review-2026-11-13	~5602	agent	
 P1820	L	23	278571	171326	beaten nutmeg	Spices, nutmeg, ground	ok	no	agent-review-2026-11-13	~278571	agent	
-P1821	L	23	277322	170032	medium potatoes	Potatoes, raw, skin	near	yes	agent-review-2026-11-13	!277322	known	whole potatoes, not skins
+P1821	L	23	277322	170032	medium potatoes	Potatoes, raw, skin	near	yes	agent-review-2026-11-13	!277322	agent	whole potatoes, not skins
 P1822	L	23	276165	168833	cupfuls of light brown sugar	Sugars, brown	ok	no	agent-review-2026-11-13	~276165	agent	
 P1823	L	23	276165	168833	cupfuls of brown sugar	Sugars, brown	ok	no	agent-review-2026-11-13	~276165	agent	
 P1824	L	23	280659	173468	salt and fresh pepper to taste	Salt, table	compound	no	agent-review-2026-11-13	!280659	agent	salt, black pepper
@@ -1903,7 +1903,7 @@ P1901	L	22	275267	-	chopped pork	Pork, fresh, ground, raw	ok	no	agent-review-202
 P1902	L	22	276959	169656	white powdered sugar	Sugars, powdered	ok	no	agent-review-2026-11-13	~276959	agent	
 P1903	L	22	276429	169103	grated rind of 1 orange	Orange peel, raw	ok	no	agent-review-2026-11-13	~276429	agent	
 P1904	L	22	286935	170938	of thyme	Spices, thyme, dried	ok	no	agent-review-2026-11-13	~286935	agent	
-P1905	L	22	277322	170032	sliced potatoes	Potatoes, raw, skin	near	yes	agent-review-2026-11-13	!277322	known	whole potatoes, not skins
+P1905	L	22	277322	170032	sliced potatoes	Potatoes, raw, skin	near	yes	agent-review-2026-11-13	!277322	agent	whole potatoes, not skins
 P1906	L	22	278197	170933	teaspoonful white pepper	Spices, pepper, white	ok	no	agent-review-2026-11-13	~278197	agent	
 P1907	L	22	276946	169641	preserves	Jams and preserves	ok	no	agent-review-2026-11-13	~276946	agent	
 P1908	L	22	278560	171308	half-and-half	Cream, half and half, lowfat	wrong	no	agent-review-2026-11-13	!278560	agent	regular half-and-half, not lowfat
@@ -3052,7 +3052,7 @@ P3050	L	13	279457	172237	teaspoonfuls of vinegar	Vinegar, distilled	ok	no	agent-
 P3051	L	13	279631	172416	young fowl	Guinea hen, meat and skin, raw	near	no	agent-review-2026-11-13	!279631	agent	young chicken
 P3052	L	13	280659	173468	big pinch of kosher salt and pepper	Salt, table	compound	no	agent-review-2026-11-13	!280659	agent	kosher salt, pepper
 P3053	L	13	281122	173944	large banana	Bananas, raw	ok	yes	agent-review-2026-11-13	~281122	agent	
-P3054	L	13	277322	170032	small potatoes	Potatoes, raw, skin	near	yes	agent-review-2026-11-13	!277322	known	whole potatoes, not skins
+P3054	L	13	277322	170032	small potatoes	Potatoes, raw, skin	near	yes	agent-review-2026-11-13	!277322	agent	whole potatoes, not skins
 P3055	L	13	277672	170393	chopped carrot	Carrots, raw	ok	no	agent-review-2026-11-13	~277672	agent	
 P3056	L	13	279229	172002	cold cooked fish	Fish, sucker, white, cooked, dry heat	near	no	agent-review-2026-11-13	!279229	agent	cooked fish, type unspecified
 P3057	L	13	286939	171319	ground chili powder	Spices, chili powder	ok	no	agent-review-2026-11-13	~286939	agent	
@@ -4152,7 +4152,7 @@ P4150	L	9	276569	169251	few mushrooms	Mushrooms, white, raw	ok	no	agent-review-2
 P4151	L	9	278348	171086	neck	Turkey, whole, neck, meat only, raw	unclear	no	agent-review-2026-11-13	*	-	
 P4152	L	9	276224	168894	large tablespoonfuls of flour	Wheat flour, white, all-purpose, enriched, bleached	ok	no	agent-review-2026-11-13	~276224	agent	
 P4153	L	9	274636	334247	pounded sugar to taste	Sugars, granulated	ok	no	agent-review-2026-11-13	~274636	agent	
-P4154	L	9	277322	170032	raw potatoes	Potatoes, raw, skin	near	yes	agent-review-2026-11-13	!277322	known	whole raw potatoes
+P4154	L	9	277322	170032	raw potatoes	Potatoes, raw, skin	near	yes	agent-review-2026-11-13	!277322	agent	whole raw potatoes
 P4155	L	9	274953	167575	vanilla ice	Ice creams, vanilla	ok	no	agent-review-2026-11-13	~274953	agent	
 P4156	L	9	280603	173410	butter size of walnut	Butter, salted	ok	no	agent-review-2026-11-13	~280603	agent	
 P4157	L	9	276424	169098	the juice of an orange	Orange juice, raw (Includes foods for USDA's Food Distribution Program)	ok	no	agent-review-2026-11-13	*	-	(the rule gives another food; this pair does not judge it)

@@ -17,7 +17,7 @@ namespace Nom.Orch.Services.Support
     public sealed class FoodNameMatcher
     {
         private static readonly Regex NonWord = new(@"[^a-z0-9 ]+", RegexOptions.Compiled);
-        private static readonly HashSet<string> Noise = new(StringComparer.Ordinal)
+        internal static readonly HashSet<string> Noise = new(StringComparer.Ordinal)
         {
             "freshly", "chopped", "minced", "diced", "sliced", "large", "small", "medium", "organic",
             "of", "and", "or", "the", "a", "an", "to", "for", "taste", "optional", "finely", "roughly",
@@ -27,18 +27,18 @@ namespace Nom.Orch.Services.Support
             "each", "about", "approximately", "divided", "plus", "more", "extra", "heaping", "scant", "level",
         };
 
-        private static readonly HashSet<string> ClassPrefixes = new(StringComparer.Ordinal)
+        internal static readonly HashSet<string> ClassPrefixes = new(StringComparer.Ordinal)
         {
             "spice", "oil", "leavening", "agent", "seasoning", "condiment", "sweetener", "nut", "seed", "sauce",
             "vinegar", "salad", "dressing", "cereal", "beverage", "alcoholic", "fish", "crustacean", "mollusk",
         };
 
-        private static readonly HashSet<string> IdentityClasses = new(StringComparer.Ordinal)
+        internal static readonly HashSet<string> IdentityClasses = new(StringComparer.Ordinal)
         {
             "oil", "sauce", "vinegar", "salad", "dressing", "condiment", "sweetener",
         };
 
-        private static readonly HashSet<string> NeutralQualifiers = new(StringComparer.Ordinal)
+        internal static readonly HashSet<string> NeutralQualifiers = new(StringComparer.Ordinal)
         {
             "raw", "fresh", "whole", "ground", "dried", "table", "prepared",
         };
@@ -46,6 +46,16 @@ namespace Nom.Orch.Services.Support
         private static readonly HashSet<string> Disqualifiers = new(StringComparer.Ordinal)
         {
             "non", "imitation", "substitute", "artificial", "dietetic", "reduced", "low", "free", "mix", "flavored", "restaurant",
+        };
+
+        /// <summary>
+        /// Words that name a part of a food. A later segment of a USDA description that is one of
+        /// these on its own ("Potatoes, raw, skin") says the food is that part, so a name must say
+        /// it too before the food is its match.
+        /// </summary>
+        internal static readonly HashSet<string> PartWords = new(StringComparer.Ordinal)
+        {
+            "skin", "peel", "rind", "zest", "juice", "seed", "leaf", "leave", "kernel", "bran", "germ", "roe", "yolk", "flesh", "top", "stalk",
         };
 
         private readonly List<(FoodCandidate Food, HashSet<string> Head, HashSet<string> Lead, HashSet<string> All)> _foods;
@@ -67,6 +77,11 @@ namespace Nom.Orch.Services.Support
                 }
                 var lead = new HashSet<string>(first, StringComparer.Ordinal);
                 lead.UnionWith(second);
+                foreach (var segment in segments.Skip(1))
+                {
+                    var words = Tokens(segment);
+                    if (words.Count == 1 && PartWords.Contains(words.First())) lead.UnionWith(words);
+                }
                 return (f, head, lead, Tokens(f.Name));
             }).ToList();
 
@@ -154,7 +169,7 @@ namespace Nom.Orch.Services.Support
 
         private static string Key(HashSet<string> tokens) => string.Join(' ', tokens.OrderBy(t => t, StringComparer.Ordinal));
 
-        private static readonly Dictionary<string, string> Synonyms = new(StringComparer.Ordinal)
+        internal static readonly Dictionary<string, string> Synonyms = new(StringComparer.Ordinal)
         {
             ["unsalted"] = "without salt",
             ["confectioners"] = "powdered",
@@ -204,7 +219,7 @@ namespace Nom.Orch.Services.Support
             return set;
         }
 
-        private static string Singular(string w)
+        internal static string Singular(string w)
         {
             if (w.Length <= 3 || w.EndsWith("ss")) return w;
             if (w.EndsWith("ies") && w.Length > 4) return w[..^3] + "y";

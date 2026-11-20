@@ -20,6 +20,14 @@
     "maxFalseAcceptRate": 0.05,
     "note": "line-labels.tsv; a false accept is a non-ingredient answer for a line that is an ingredient by rule. Of its 180 cases, 60 are judged rule:deterministic-pre-pass, the pre-pass's own earlier answers, and 120 rule:names-a-curated-food; none is judged by a person."
   },
+  "link-gate": {
+    "scorer": true,
+    "required": true,
+    "minScore": 0.45,
+    "maxFalseAcceptRate": 0.01,
+    "minPrecision": 0.99,
+    "note": "No model: LinkGate.Check replayed on every pair of link-pairs.tsv judged right, wrong, near or compound, over gate-catalog.tsv. A case agrees when a right pair passes or a wrong, near or compound pair is held; a false accept is a held-to-be-wrong pair the gate lets through; precision is the share judged right among the pairs it lets through. The signature is LinkGate.Signature, so any change to a rule table needs a new record, which needs no host. The pairs are judged by agent-review-2026-11-13, a model reviewer, not a person: these figures measure agreement with that reviewer."
+  },
   "repair": {
     "scorer": false,
     "required": false,

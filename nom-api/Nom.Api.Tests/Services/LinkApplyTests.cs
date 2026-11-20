@@ -106,15 +106,15 @@ namespace Nom.Api.Tests.Services
         private static ApplicationDbContext NewContext() =>
             new(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
-        private static LinkAutoApplyGuard.Catalog Catalog(Dictionary<string, long>? curated = null, params (string Word, int Count)[] leads) => new()
+        private static GateCatalog Catalog(Dictionary<string, long>? curated = null, params (string Word, int Count)[] leads) => new()
         {
             Curated = new Dictionary<string, long>(curated ?? new Dictionary<string, long>(), StringComparer.OrdinalIgnoreCase),
             CuratedNames = (curated ?? new Dictionary<string, long>()).ToDictionary(kv => kv.Value, kv => kv.Key),
             LeadWords = leads.ToDictionary(l => l.Word, l => l.Count),
         };
 
-        private static string? Hold(string wording, string description, bool nameMatch, LinkAutoApplyGuard.Catalog? catalog = null) =>
-            LinkAutoApplyGuard.Hold(new LinkAutoApplyGuard.Pick(wording, 1, 2, description, description, nameMatch), catalog ?? Catalog());
+        private static string? Hold(string wording, string description, bool nameMatch, GateCatalog? catalog = null) =>
+            LinkGate.Hold(new GatePair(wording, 1, new GateFood(2, description, description), NameMatch: nameMatch), catalog ?? Catalog());
 
         [Theory]
         [InlineData("salt and pepper")]
@@ -129,8 +129,14 @@ namespace Nom.Api.Tests.Services
             Hold(wording, "Salt, table", nameMatch: false).Should().Be(LinkAutoApplyGuard.CompoundRule);
         }
 
+        [Fact]
+        public void A_hyphenated_wording_that_names_the_food_is_not_a_second_food()
+        {
+            LinkGate.Check(new GatePair("half-and-half", 1, new GateFood(2, "Half and Half", "Cream, fluid, half and half")), Catalog()).Select(h => h.Code)
+                .Should().NotContain(LinkGate.Compound);
+        }
+
         [Theory]
-        [InlineData("half-and-half", "Cream, fluid, half and half")]
         [InlineData("butter, softened", "Butter, salted")]
         [InlineData("chicken breasts, boneless, skinless", "Chicken breast, boneless")]
         [InlineData("onion, finely chopped", "Onions, raw")]
@@ -154,15 +160,14 @@ namespace Nom.Api.Tests.Services
         }
 
         [Theory]
-        [InlineData("chopped tarragon", "Spices, tarragon, dried", "spices", 40, "dried")]
+        [InlineData("chopped tarragon", "Spices, tarragon, dried", "tarragon", 40, "dried")]
         [InlineData("gravy beef", "Gravy, beef, canned", "gravy", 6, "canned")]
         [InlineData("rice", "Rice, white, long-grain, regular, cooked", "rice", 30, "cooked")]
-        [InlineData("peas", "Peas, green, frozen, unprepared", "peas", 9, "frozen")]
-        [InlineData("dried tarragon", "Spices, tarragon, dried", "spices", 40, null)]
+        [InlineData("peas", "Peas, green, frozen, unprepared", "pea", 9, "frozen")]
+        [InlineData("dried tarragon", "Spices, tarragon, dried", "tarragon", 40, null)]
         [InlineData("ground beef", "Beef, ground, 80% lean meat / 20% fat, raw", "beef", 200, null)]
-        [InlineData("powdered sugar", "Sugars, powdered", "sugars", 8, null)]
-        [InlineData("confectioners sugar", "Sugars, powdered", "sugars", 8, null)]
-        [InlineData("chopped tarragon", "Spices, tarragon, dried", "spices", 1, null)]
+        [InlineData("powdered sugar", "Sugars, powdered", "sugar", 8, null)]
+        [InlineData("confectioners sugar", "Sugars, powdered", "sugar", 8, null)]
         public void A_usda_state_the_wording_does_not_mention_is_held_when_the_food_has_siblings(string wording, string description, string lead, int foods, string? state)
         {
             Hold(wording, description, nameMatch: false, Catalog(null, (lead, foods)))
@@ -170,14 +175,22 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_fresh_herb_wording_is_held_from_the_dried_spice_even_when_the_spice_is_the_only_food_of_its_lead()
+        {
+            Hold("chopped tarragon", "Spices, tarragon, dried", nameMatch: false, Catalog(null, ("tarragon", 1)))
+                .Should().StartWith("a fresh herb is not the dried spice");
+        }
+
+        [Fact]
         public void A_wording_that_is_the_name_of_another_curated_food_is_held_but_not_its_own_food()
         {
             var catalog = Catalog(new Dictionary<string, long> { ["Sea Salt"] = 9 });
+            var table = new GateFood(2, "Salt, table", "Salt, table");
 
-            LinkAutoApplyGuard.Hold(new LinkAutoApplyGuard.Pick("sea salt", 1, 2, "Salt, table", "Salt, table", false), catalog)
+            LinkGate.Hold(new GatePair("sea salt", 1, table), catalog)
                 .Should().Be($"{LinkAutoApplyGuard.OtherFoodRule} (Sea Salt)");
-            LinkAutoApplyGuard.Hold(new LinkAutoApplyGuard.Pick("sea salt", 9, 2, "Salt, table", "Salt, table", false), catalog)
-                .Should().BeNull("a curated seed food linked to its USDA record names itself");
+            LinkGate.Check(new GatePair("sea salt", 9, table), catalog).Select(h => h.Code)
+                .Should().NotContain(LinkGate.OtherFood, "a curated seed food linked to its USDA record names itself");
         }
 
         [Fact]

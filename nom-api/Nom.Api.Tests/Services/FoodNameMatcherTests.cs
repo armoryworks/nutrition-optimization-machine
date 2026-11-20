@@ -67,6 +67,21 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_food_that_is_a_part_is_not_the_match_of_a_name_that_does_not_say_the_part()
+        {
+            var matcher = new FoodNameMatcher(new[]
+            {
+                new FoodCandidate(1, "170032", "Potatoes, raw, skin", "sr_legacy_food"),
+                new FoodCandidate(2, "170093", "Lemon peel, raw", "sr_legacy_food"),
+            });
+
+            matcher.Exact("potatoes").Should().BeNull("Potatoes, raw, skin is the skin");
+            matcher.Covering("raw potatoes").Should().BeNull();
+            matcher.Covering("potato skins")!.IngredientId.Should().Be(1);
+            matcher.Exact("lemon peel")!.IngredientId.Should().Be(2);
+        }
+
+        [Fact]
         public void Fresh_and_ground_are_kept_apart()
         {
             Matcher.Exact("fresh ginger").Should().BeNull();

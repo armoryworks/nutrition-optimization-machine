@@ -52,7 +52,7 @@ const frameLane = (overrides: Partial<LaneFrameLane> = {}): LaneFrameLane => ({
   figures: {
     evaluatedAt: '2026-11-20T10:00:00Z', signature: 'sig-1', decisions: 400, written: 200, audited: 400, errors: 10, flagged: 4,
     observedError: 0.025, correctedError: 0.026, precisionLower: 0.955, precisionUpper: 0.987, qualifyBar: 0.98, neededAudited: 210,
-    windowAudited: 200, windowErrors: 10, windowErrorLower: 0.027, windowErrorUpper: 0.0897, pauseBar: 0.03, window: 200,
+    windowAudited: 200, windowErrors: 10, windowError: 0.05, windowErrorLower: 0.027, windowErrorUpper: 0.0897, pauseBar: 0.03, window: 200,
     auditorSource: 'link-audit golden', auditorSensitivity: 0.95, auditorFalseFlagRate: 0.01, auditorKnownBad: 400, auditorKnownGood: 1000,
     auditorExact: false, auditorProblem: null, goldenProblem: null, pauseReasons: [],
   },
@@ -321,6 +321,7 @@ describe('PipelineAdmin', () => {
     expect(byId(el, 'pipeline-frame-wording-read-all-qualify')?.textContent).toContain('210 needed');
     expect(byId(el, 'pipeline-frame-wording-read-all-qualify')?.textContent).toContain('4 flags not confirmed');
     expect(byId(el, 'pipeline-frame-wording-read-all-window')?.textContent).toContain('3.0%');
+    expect(byId(el, 'pipeline-frame-wording-read-all-window')?.textContent).toContain('observed error 5.0%');
     expect(byId(el, 'pipeline-frame-wording-read-all-auditor')?.textContent).toContain('1,000 known-good rows');
     expect(byId(el, 'pipeline-frame-wording-read-t2-mode')?.textContent?.trim()).toBe('shadow');
     expect(byId(el, 'pipeline-frame-wording-read-t2-undo-preview-btn')).toBeNull();

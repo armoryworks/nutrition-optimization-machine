@@ -19,7 +19,7 @@ using Nom.Orch.Services.Support;
 namespace Nom.Import.Golden
 {
     /// <summary>What one golden case got from the model, and whether that is the judged answer.</summary>
-    public sealed record LaneCaseResult(string Id, bool Pass, bool FalseAccept, bool CanFalseAccept, string Expected, string Actual, string JudgedBy);
+    public sealed record LaneCaseResult(string Id, bool Pass, bool FalseAccept, bool CanFalseAccept, string Expected, string Actual, string JudgedBy, bool? Accepted = null);
 
     /// <summary>
     /// One operator run of a model lane over its golden set: the lane's prompt signature, the model
@@ -41,6 +41,8 @@ namespace Nom.Import.Golden
         public int FalseAccepts { get; set; }
         public int FalseAcceptCases { get; set; }
         public double FalseAcceptRate { get; set; }
+        public int? Accepted { get; set; }
+        public double? Precision { get; set; }
         public Dictionary<string, int[]> ByJudge { get; set; } = new();
         public List<string> Failed { get; set; } = new();
     }
@@ -56,6 +58,7 @@ namespace Nom.Import.Golden
         public bool Required { get; set; }
         public double MinScore { get; set; }
         public double? MaxFalseAcceptRate { get; set; }
+        public double? MinPrecision { get; set; }
         public string Note { get; set; } = string.Empty;
     }
 
@@ -71,13 +74,17 @@ namespace Nom.Import.Golden
         public const string LinkPick = "link-pick";
         public const string LinkVerify = "link-verify";
         public const string LineClassify = "line-classify";
+        public const string LinkGateLane = "link-gate";
         public const string FloorsFile = "model-lanes.json";
         public const string ScoresFolder = "scores";
         public const int PickBatch = 6;
         public const int VerifyBatch = 12;
         public const int ClassifyBatch = 20;
 
-        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify };
+        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane };
+
+        /// <summary>Lanes scored by rules alone: no host or model is asked, and the signature is the rules' own.</summary>
+        public static readonly IReadOnlyList<string> NoModel = new[] { LinkGateLane };
 
         private static readonly HashSet<string> Bad = new(StringComparer.Ordinal) { "wrong", "near", "compound" };
 
@@ -95,6 +102,7 @@ namespace Nom.Import.Golden
 
         public static async Task<string> SignatureAsync(string lane)
         {
+            if (lane == LinkGateLane) return LinkGate.Signature;
             var capture = new CapturingHandler();
             using var http = new HttpClient(capture);
             var config = Config("http://signature.invalid", "signature");
@@ -156,6 +164,8 @@ namespace Nom.Import.Golden
                 breaches.Add($"{score.Lane}: score {score.Score:P1} ({score.Passed}/{score.Cases}) is below the floor {floor.MinScore:P1}");
             if (floor.MaxFalseAcceptRate is { } max && score.FalseAcceptRate > max)
                 breaches.Add($"{score.Lane}: accepted {score.FalseAccepts} of {score.FalseAcceptCases} judged-wrong answers ({score.FalseAcceptRate:P1}), above the ceiling {max:P1}");
+            if (floor.MinPrecision is { } precision && (score.Precision ?? 0) < precision)
+                breaches.Add($"{score.Lane}: {score.Precision ?? 0:P1} of the {score.Accepted ?? 0} answers it accepted are judged right, below the floor {precision:P1}");
             return breaches;
         }
 
@@ -163,6 +173,8 @@ namespace Nom.Import.Golden
         {
             var possible = results.Count(r => r.CanFalseAccept);
             var accepted = results.Count(r => r.FalseAccept);
+            var gated = results.Where(r => r.Accepted != null).ToList();
+            var taken = gated.Count(r => r.Accepted == true);
             return new LaneScore
             {
                 Lane = lane,
@@ -177,6 +189,8 @@ namespace Nom.Import.Golden
                 FalseAccepts = accepted,
                 FalseAcceptCases = possible,
                 FalseAcceptRate = possible == 0 ? 0 : Math.Round((double)accepted / possible, 4),
+                Accepted = gated.Count == 0 ? null : taken,
+                Precision = gated.Count == 0 ? null : taken == 0 ? 0 : Math.Round((double)gated.Count(r => r.Accepted == true && !r.FalseAccept) / taken, 4),
                 ByJudge = results.GroupBy(r => r.JudgedBy).OrderBy(g => g.Key, StringComparer.Ordinal)
                     .ToDictionary(g => g.Key, g => new[] { g.Count(r => r.Pass), g.Count() }),
                 Failed = results.Where(r => !r.Pass).Select(r => r.Id).OrderBy(id => id, StringComparer.Ordinal).ToList(),
@@ -198,6 +212,14 @@ namespace Nom.Import.Golden
         {
             switch (lane)
             {
+                case LinkGateLane:
+                {
+                    var cases = GateCases(goldenDir).Take(limit ?? int.MaxValue).ToList();
+                    var catalog = GoldenGateCatalog(goldenDir);
+                    var results = cases.Select(c => c.Outcome(LinkGate.Check(c.Pair, catalog))).ToList();
+                    progress($"{lane}: {results.Count}/{cases.Count}");
+                    return results;
+                }
                 case LinkPick:
                 {
                     var cases = PickCases(goldenDir).Take(limit ?? int.MaxValue).ToList();
@@ -270,6 +292,17 @@ namespace Nom.Import.Golden
             }
         }
 
+        public sealed record GateCase(string Id, GatePair Pair, bool Right, string Verdict, string Description, string JudgedBy)
+        {
+            public LaneCaseResult Outcome(IReadOnlyList<GateHold> holds)
+            {
+                var passes = holds.Count == 0;
+                return new LaneCaseResult(Id, Right == passes, !Right && passes, !Right,
+                    Right ? $"pass ({Pair.Wording} -> {Description})" : $"hold ({Verdict}: {Pair.Wording} -> {Description})",
+                    passes ? "pass" : string.Join("; ", holds.Select(h => h.Code + ": " + h)), JudgedBy, passes);
+            }
+        }
+
         public sealed record ClassifyCase(string Id, string Recipe, string Raw, string Kind, string JudgedBy)
         {
             public LaneCaseResult Outcome(string? kind)
@@ -301,6 +334,47 @@ namespace Nom.Import.Golden
                 if (right.Count == 0 && wrong.Count == 0) continue;
                 yield return new PickCase("pick:" + name, name, shortlist, right, wrong, string.Join('+', group.Select(r => r["judgedBy"]).Distinct().OrderBy(j => j)));
             }
+        }
+
+        /// <summary>
+        /// Every pair of link-pairs.tsv judged right, wrong, near or compound, as the link gate
+        /// reads it: the judged food with its facts from gate-catalog.tsv when that holds it, the
+        /// pair's own USDA description otherwise; a pair that was not a name match is a model pick.
+        /// </summary>
+        public static IEnumerable<GateCase> GateCases(string goldenDir)
+        {
+            var foods = GateFoods(goldenDir).ToDictionary(f => f.Id);
+            foreach (var r in GoldenTsv.Read(Path.Combine(goldenDir, "link-pairs.tsv")).Rows)
+            {
+                if (r["verdict"] != "ok" && !Bad.Contains(r["verdict"])) continue;
+                var foodId = long.Parse(r["foodId"]);
+                var description = r["description"];
+                var target = foods.TryGetValue(foodId, out var known)
+                    ? known with { Description = known.Description ?? description }
+                    : new GateFood(foodId, description, description);
+                var nameMatch = r["nameMatch"] == "yes";
+                yield return new GateCase("gate:" + r.Id, new GatePair(r["wording"], 0, target, NameMatch: nameMatch, ModelPick: !nameMatch),
+                    r["verdict"] == "ok", r["verdict"], description, r["judgedBy"]);
+            }
+        }
+
+        /// <summary>The foods of gate-catalog.tsv: the curated foods and the pending USDA foods a link may target, with their USDA category, admission reason and nutrient rows.</summary>
+        public static IEnumerable<GateFood> GateFoods(string goldenDir) =>
+            GoldenTsv.Read(Path.Combine(goldenDir, "gate-catalog.tsv")).Rows.Select(r => new GateFood(
+                long.Parse(r.Id),
+                r["name"],
+                r.Value("description"),
+                r.Value("dataType"),
+                r["status"] == "curated" ? (long)CurationStatusEnum.Curated : (long)CurationStatusEnum.PendingCuration,
+                int.TryParse(r["categoryId"], out var category) ? category : null,
+                string.IsNullOrEmpty(r.Value("admission")) ? null : r["admission"],
+                int.TryParse(r["nutrients"], out var rows) ? rows : null));
+
+        /// <summary>The gate's catalog over gate-catalog.tsv, with the name matcher and staples of usda-catalog.tsv.</summary>
+        public static GateCatalog GoldenGateCatalog(string goldenDir)
+        {
+            var (matcher, staples) = UsdaMatcher(goldenDir);
+            return GateCatalog.Build(GateFoods(goldenDir), matcher, staples: staples);
         }
 
         public static IEnumerable<VerifyCase> VerifyCases(string goldenDir) =>
