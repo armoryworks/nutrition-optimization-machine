@@ -846,7 +846,9 @@ needs, not of the first `maxLines` batch. Lines are moved in recipe, position an
 two lines that land on the same food in one recipe take the same positions on every apply.
 `relink/undo?sinceUtc=<T0>&apply=true` puts lines and ingredients back, opens the withdrawn picks again
 (`picksRestored`) and brings back the proposals of retired ingredients with their status
-(`proposalsRestored`); run it before `wordings/unload`, and keep other relink work out of the
+(`proposalsRestored`) after every other step, only when their ingredient is back: when another food has
+since taken the retired name, the ingredient and its proposals both stay withdrawn, are counted
+`skipped` and keep their journal entries; run it before `wordings/unload`, and keep other relink work out of the
 window, since the undo is by time. Proposals withdrawn by a release before v0.3.121 have no
 journal entry and are not revived.
 

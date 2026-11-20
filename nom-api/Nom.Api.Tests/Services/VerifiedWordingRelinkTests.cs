@@ -209,6 +209,33 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_withdrawn_proposal_stays_withdrawn_when_its_ingredient_cannot_come_back()
+        {
+            using var db = NewContext();
+            var extract = CuratedFood("Vanilla Extract");
+            var vanilla = Uncurated("vanilla");
+            db.Ingredients.AddRange(extract, vanilla);
+            await db.SaveChangesAsync();
+            db.IngredientWordings.Add(Wording("vanilla", "food", extract));
+            var pending = OpenLink(vanilla);
+            db.FoodCatalogProposals.Add(pending);
+            await db.SaveChangesAsync();
+            var service = new LineRelinkService(db, new NoUser());
+            var started = DateTime.UtcNow;
+            await service.LinkVerifiedWordingsAsync(apply: true);
+            db.Ingredients.Add(Uncurated("vanilla"));
+            await db.SaveChangesAsync();
+
+            var undone = await service.UndoAsync(started, apply: true);
+
+            (undone.FoodsRestored, undone.ProposalsRestored, undone.Skipped).Should().Be((0, 0, 2));
+            (await db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == vanilla.Id)).IsDeleted.Should().BeTrue();
+            (await db.FoodCatalogProposals.IgnoreQueryFilters().SingleAsync(p => p.Id == pending.Id)).IsDeleted.Should().BeTrue();
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LineRelinkService.ProposalWithdrawChangeType)).Should().Be(1,
+                "the entry stays, so a later undo can bring the proposal back with its ingredient");
+        }
+
+        [Fact]
         public async Task A_dry_run_counts_the_sources_and_proposals_every_batch_of_the_apply_retires_and_withdraws()
         {
             using var db = NewContext();

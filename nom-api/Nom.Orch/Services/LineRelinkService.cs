@@ -517,6 +517,7 @@ namespace Nom.Orch.Services
                     && a.Timestamp >= sinceUtc)
                 .OrderByDescending(a => a.Id)
                 .ToListAsync();
+            entries = entries.OrderBy(a => a.ChangeType == ProposalWithdrawChangeType).ToList();
             foreach (var entry in entries) _db.Entry(entry).State = EntityState.Detached;
             var result = new LineRelinkUndoResult();
             var personId = _currentUser.PersonIdOrSystem;
@@ -529,7 +530,8 @@ namespace Nom.Orch.Services
                     if (entry.ChangeType == ProposalWithdrawChangeType)
                     {
                         var withdrawn = await _db.FoodCatalogProposals.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == entry.EntityId);
-                        if (withdrawn is { IsDeleted: true })
+                        if (withdrawn is { IsDeleted: true }
+                            && (withdrawn.IngredientId is not { } owner || await _db.Ingredients.AnyAsync(i => i.Id == owner)))
                         {
                             withdrawn.IsDeleted = false;
                             withdrawn.DeletedAt = null;
