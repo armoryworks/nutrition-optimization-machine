@@ -305,6 +305,32 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task The_startup_reread_leaves_the_lines_an_unfold_leaves_without_an_amount_at_zero()
+        {
+            using var db = await NewContextAsync();
+            var flour = await SeedAsync(db, null, ("Flour", 0, 2m, Pound, null, "flour + two pounds of flour"));
+            var salt = await SeedAsync(db, null, ("Salt", 0, 1m, Pound, null, "salt + a pound of salt"));
+            var butter = await SeedAsync(db, null, ("Butter", 0, 0.25m, Pound, null, "a quarter of a pound of butter + a little butter"));
+            void Method(long recipeId, string text) =>
+                db.RecipeSteps.Add(new RecipeStepEntity { RecipeId = recipeId, StepNumber = 1, Summary = "Method", Description = text });
+            Method(flour.RecipeId, "Mix together two pounds of flour, a teaspoonful of soda and cold water to a stiff paste.");
+            Method(salt.RecipeId, "Then stew a gallon of ripe tomatoes with a pound of salt for two hours.");
+            Method(butter.RecipeId, "I then add a quarter of a pound of butter, a teaspoonful of salt, mixed with a little butter, stir in the rice.");
+            await db.SaveChangesAsync();
+            await new LineUnfoldService(db, new NoUser()).UnfoldAsync(apply: true);
+            db.ChangeTracker.Clear();
+
+            await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 50);
+
+            async Task<decimal> TotalAsync(Seeded seeded, string food) =>
+                (await LinesAsync(db, seeded.RecipeId)).Where(l => l.IngredientId == seeded.Foods[food]).Sum(l => l.Quantity);
+            (await LinesAsync(db, flour.RecipeId)).Should().HaveCount(2);
+            (await TotalAsync(flour, "Flour")).Should().Be(2m, "the method's two pounds is the line that states it, not a second two pounds");
+            (await TotalAsync(salt, "Salt")).Should().Be(1m);
+            (await TotalAsync(butter, "Butter")).Should().Be(0.25m);
+        }
+
+        [Fact]
         public async Task The_undo_sweep_joins_the_row_again_and_removes_the_added_lines()
         {
             using var db = await NewContextAsync();

@@ -9,7 +9,9 @@ namespace Nom.Orch.Services.Support
     /// Old cookbooks often list an ingredient bare ("butter") and state its amount in the method
     /// ("put two ounces of butter in the saucepan"). Finds that amount when the method states it
     /// exactly once, immediately before the ingredient's name; "the butter", "half the butter" and
-    /// conflicting amounts give nothing. The number always comes from <see cref="IngredientLineParser"/>.
+    /// conflicting amounts give nothing, and so does a name another line of the recipe also names
+    /// ("a little butter" beside "a quarter of a pound of butter"), because the method's amount
+    /// cannot then be pinned to one of those lines. The number always comes from <see cref="IngredientLineParser"/>.
     /// </summary>
     public static class MethodAmountFinder
     {
@@ -47,7 +49,7 @@ namespace Nom.Orch.Services.Support
 
         private static bool IsClean(string w) => IsNumberish(w) || Measures.Contains(w) || Filler.Contains(w) || FractionParts.Contains(w);
 
-        public static ParsedQuantity? Find(string? rawLine, IEnumerable<string> steps)
+        public static ParsedQuantity? Find(string? rawLine, IEnumerable<string> steps, IEnumerable<string>? otherLines = null)
         {
             var written = (rawLine ?? string.Empty).Split(',', '(')[0];
             if (SeveralNames.IsMatch(written)) return null;
@@ -57,6 +59,9 @@ namespace Nom.Orch.Services.Support
 
             var head = words[^1].TrimEnd('s');
             if (head.Length < 3) return null;
+
+            var named = new Regex(@"(?<![\p{L}-])" + Regex.Escape(head) + @"(?:e?s)?(?![\p{L}-])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            if ((otherLines ?? Enumerable.Empty<string>()).Any(line => named.IsMatch(line ?? string.Empty))) return null;
 
             var found = new List<ParsedQuantity>();
             var pattern = new Regex(@"(?<before>(?:[\p{L}\d/½¼¾⅓⅔⅛-]+\s+){1,7})" + Regex.Escape(head) + @"(?:e?s)?\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);

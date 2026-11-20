@@ -38,5 +38,15 @@ namespace Nom.Api.Tests.Services
         {
             MethodAmountFinder.Find(line, new[] { method }).Should().BeNull();
         }
+
+        [Theory]
+        [InlineData("flour", "two pounds of flour", "Mix together two pounds of flour, a teaspoonful of salt and water to a stiff dough.")]
+        [InlineData("a little butter", "a quarter of a pound of butter", "I then add a quarter of a pound of butter, a teaspoonful of salt, mixed with a little butter, stir in the rice.")]
+        [InlineData("eggs", "2 eggs, beaten", "Beat two eggs with a gill of milk and mix it with the flour.")]
+        public void Says_nothing_when_another_line_of_the_recipe_names_the_same_food(string line, string otherLine, string method)
+        {
+            MethodAmountFinder.Find(line, new[] { method }).Should().NotBeNull("the method states the amount once");
+            MethodAmountFinder.Find(line, new[] { method }, new[] { "1 cup water", otherLine }).Should().BeNull();
+        }
     }
 }

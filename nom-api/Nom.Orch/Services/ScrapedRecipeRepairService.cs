@@ -58,7 +58,8 @@ namespace Nom.Orch.Services
                 if (reviewable && DecodeEntities(recipe)) decoded++;
                 if (reviewable && SplitSingleStep(recipe)) split++;
 
-                foreach (var row in recipe.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>())
+                var rows = (recipe.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>()).Where(ri => !ri.IsDeleted).ToList();
+                foreach (var row in rows)
                 {
                     var firstLine = (row.RawLine ?? string.Empty).Split(" + ", 2)[0];
                     if (row.Quantity != 0)
@@ -68,8 +69,14 @@ namespace Nom.Orch.Services
                         if (row.Quantity != 0) continue;
                     }
 
+                    var others = rows.Where(other => !ReferenceEquals(other, row)).ToList();
                     var parsed = IngredientLineParser.Parse(firstLine)
-                        ?? MethodAmountFinder.Find(firstLine, (recipe.RecipeSteps ?? Enumerable.Empty<RecipeStepEntity>()).Where(st => !st.IsDeleted).Select(st => st.Description ?? string.Empty));
+                        ?? (others.Any(other => other.IngredientId == row.IngredientId)
+                            ? null
+                            : MethodAmountFinder.Find(
+                                firstLine,
+                                (recipe.RecipeSteps ?? Enumerable.Empty<RecipeStepEntity>()).Where(st => !st.IsDeleted).Select(st => st.Description ?? string.Empty),
+                                others.Select(other => other.RawLine ?? string.Empty)));
                     if (parsed == null || !measurements.TryGetValue(parsed.MeasurementName, out var measurementId))
                     {
                         unparsed++;
