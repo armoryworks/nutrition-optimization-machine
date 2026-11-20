@@ -36,6 +36,8 @@ namespace Nom.Orch.Services
         private static readonly Dictionary<string, (Func<ApplicationDbContext, AuditLogEntryEntity, long, Task<bool>> PutBack, Action<LineRelinkUndoResult> Count)> LineRepairs = new()
         {
             [LineUnfoldService.UnfoldChangeType] = (LineUnfoldService.RefoldAsync, result => result.Refolded++),
+            [CompoundLineService.SplitChangeType] = (CompoundLineService.UnsplitAsync, result => result.Unsplit++),
+            [CompoundLineService.AlternativeChangeType] = (CompoundLineService.UnpickAsync, result => result.AlternativesPutBack++),
         };
 
         private readonly ApplicationDbContext _db;
@@ -114,7 +116,7 @@ namespace Nom.Orch.Services
             return null;
         }
 
-        private static HashSet<string> Words(string text) =>
+        internal static HashSet<string> Words(string text) =>
             Word.Matches(text.ToLowerInvariant()).Select(m => Singular(m.Value)).ToHashSet();
 
         private static string Singular(string word) =>
@@ -597,23 +599,7 @@ namespace Nom.Orch.Services
         /// wanted position (most scraped recipes keep every line at position 0) gets the line at
         /// the next free position, so both lines keep their own quantity.
         /// </summary>
-        private async Task<int?> MoveAsync(long recipeId, long fromId, int fromSortOrder, long toId, int wantedSortOrder, long personId)
-        {
-            var positions = await _db.Database.SqlQuery<int>(
-                $"""
-                 UPDATE recipe."RecipeIngredient" line
-                 SET "IngredientId" = {toId},
-                     "IngredientEntityId" = CASE WHEN line."IngredientEntityId" = {fromId} THEN {toId} ELSE line."IngredientEntityId" END,
-                     "SortOrder" = CASE WHEN EXISTS (SELECT 1 FROM recipe."RecipeIngredient" other
-                                                     WHERE other."RecipeId" = {recipeId} AND other."IngredientId" = {toId} AND other."SortOrder" = {wantedSortOrder})
-                                        THEN (SELECT max(other."SortOrder") + 1 FROM recipe."RecipeIngredient" other WHERE other."RecipeId" = {recipeId})
-                                        ELSE {wantedSortOrder} END,
-                     "LastModifiedDate" = now(), "LastModifiedByPersonId" = {personId}
-                 WHERE line."RecipeId" = {recipeId} AND line."IngredientId" = {fromId} AND line."SortOrder" = {fromSortOrder}
-                   AND EXISTS (SELECT 1 FROM recipe."Ingredient" food WHERE food."Id" = {toId} AND food."IsDeleted" = false)
-                 RETURNING line."SortOrder" AS "Value"
-                 """).ToListAsync();
-            return positions.Count == 0 ? null : positions[0];
-        }
+        private Task<int?> MoveAsync(long recipeId, long fromId, int fromSortOrder, long toId, int wantedSortOrder, long personId) =>
+            RecipeLineRowWriter.MoveAsync(_db, recipeId, fromId, fromSortOrder, toId, wantedSortOrder, personId);
     }
 }

@@ -22,10 +22,11 @@ namespace Nom.Api.Controllers
         private readonly ILineUnfoldService _unfold;
         private readonly IPackageLineService _packages;
         private readonly IIngredientLinkService _links;
+        private readonly ICompoundLineService _compound;
 
         public FoodCatalogController(IFoodCatalogReviewService review, IFoodCatalogAuditService audit,
             ICatalogCleanupService cleanup, ILineRelinkService relink, ILineUnfoldService unfold,
-            IPackageLineService packages, IIngredientLinkService links)
+            IPackageLineService packages, IIngredientLinkService links, ICompoundLineService compound)
         {
             _review = review;
             _audit = audit;
@@ -34,6 +35,7 @@ namespace Nom.Api.Controllers
             _unfold = unfold;
             _packages = packages;
             _links = links;
+            _compound = compound;
         }
 
         /// <summary>What the import-residue cleanup would do (deterministic name rules, no writes).</summary>
@@ -101,7 +103,34 @@ namespace Nom.Api.Controllers
             return Ok(await _unfold.UnfoldAsync(apply, maxRows, sampleSize));
         }
 
-        /// <summary>Put back the lines moved, the foods retired and the rows unfolded at or after the given UTC time.</summary>
+        /// <summary>Which scraped lines naming more than one food the given rules (all when none are given) would split or move to their first alternative, and which are left alone and why (no writes).</summary>
+        [HttpGet("compound/preview")]
+        public async Task<ActionResult<CompoundLinePreview>> CompoundPreview([FromQuery] List<string>? rules = null, [FromQuery] int sampleSize = 50)
+        {
+            var chosen = RuleList(rules);
+            return chosen.Any(r => !Nom.Orch.Services.Support.CompoundLineSplitter.Rules.Contains(r))
+                ? BadRequest(new { message = "Unknown rule.", rules = Nom.Orch.Services.Support.CompoundLineSplitter.Rules })
+                : Ok(await _compound.PreviewAsync(chosen, sampleSize));
+        }
+
+        /// <summary>Apply the given rules to up to maxLines scraped lines naming more than one food; each line changed is written to the audit log and put back by relink/undo.</summary>
+        [HttpPost("compound/apply")]
+        public async Task<ActionResult<CompoundLineResult>> CompoundApply([FromQuery, Required] List<string> rules, [FromQuery] int maxLines = 5000)
+        {
+            var chosen = RuleList(rules);
+            return chosen.Count == 0 || chosen.Any(r => !Nom.Orch.Services.Support.CompoundLineSplitter.Rules.Contains(r))
+                ? BadRequest(new { message = "Name one or more known rules.", rules = Nom.Orch.Services.Support.CompoundLineSplitter.Rules })
+                : Ok(await _compound.ApplyAsync(chosen, maxLines));
+        }
+
+        private static List<string> RuleList(IEnumerable<string>? rules) =>
+            (rules ?? Enumerable.Empty<string>())
+                .SelectMany(r => (r ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                .Select(r => r.ToLowerInvariant())
+                .Distinct()
+                .ToList();
+
+        /// <summary>Put back the lines moved, the foods retired, the rows unfolded and the compound lines split or moved at or after the given UTC time.</summary>
         [HttpPost("relink/undo")]
         public async Task<ActionResult<LineRelinkUndoResult>> RelinkUndo([FromQuery, Required] DateTime sinceUtc)
         {

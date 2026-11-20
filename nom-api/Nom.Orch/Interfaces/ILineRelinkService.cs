@@ -49,7 +49,8 @@ namespace Nom.Orch.Interfaces
         /// Puts back every line moved at or after <paramref name="sinceUtc"/> that still sits where
         /// the move left it, brings back every food retired since then, and joins again every row
         /// taken apart into one row per source line since then whose lines are as the unfold left
-        /// them. Newest first, so a line moved after it was unfolded goes back before it is joined.
+        /// them. Compound lines split or moved to their first alternative since then go back the
+        /// same way. Newest first, so a line moved after it was unfolded goes back before it is joined.
         /// </summary>
         Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc);
     }
