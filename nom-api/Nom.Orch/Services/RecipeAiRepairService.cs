@@ -149,7 +149,7 @@ namespace Nom.Orch.Services
                                 foreach (var (index, quote) in quotes)
                                 {
                                     var row = missing[index];
-                                    var grounded = RecipeRepairGrounding.GroundQuantity(row.RawLine, row.Ingredient?.Name, quote, new[] { method });
+                                    var grounded = RecipeRepairGrounding.GroundQuantity(row.RawLine, row.Ingredient?.Name, quote, new[] { method }, row.Ingredient?.GramsPerItem);
                                     if (grounded == null || !measurements.TryGetValue(grounded.MeasurementName, out var measurementId))
                                     {
                                         rejected++;
