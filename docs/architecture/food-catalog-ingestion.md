@@ -510,7 +510,15 @@ under the first two, and never when its own text names its food. Left alone: pro
 ("half and half", "pork and beans", short curated names with "and"), preparation words, lists
 with a part not in the catalog, quantified lists without "each" other than salt and pepper, "and"
 mixed with "or", more than four names, either reading of a shared head being a food, and every
-line whose first alternative is not in the catalog ("cream or milk"). No
+line whose first alternative is not in the catalog ("cream or milk"). A shared head is read both
+ways: the first name (or its last word) joined to the last name's head or to every word of the
+last name after its first, in singular or plural, so "milk or dark chocolate chips", "orange or
+red bell peppers" and "garlic and onion powder" are left when "milk chocolate chips", "orange
+bell pepper" or "garlic powder" is a food or an ingredient name; for an and-list this check runs
+even when every part is a food. "Flavor" counts as a flavour word like "flavouring". A list part
+counted in pieces must start with a count and name no measure ("a very little salt" and "1
+quarter teaspoonful of salt" are left), and "lemon juice and grated rind" after a spoon measure
+is left. No
 `recipe.RecipeSubstitution` rows are written.
 
 A split is planned only when each part line reads back through `IngredientLineParser` and the
@@ -620,7 +628,8 @@ water". The dry run reports both rules (`Certain`, `WithShortLines`) with lines,
 approved recipes and `ApprovedStopPassing`: approved recipes that pass the line rules
 (unquantified allowance, curated foods) now and would not after the change. Each change is a
 `LineKindReview` audit entry; `POST /api/FoodCatalog/labels/undo?sinceUtc=<start>` restores a
-batch, skipping lines labelled again since.
+batch, skipping lines labelled again since and rows that now hold another line than the one the
+review relabelled (an unfold or split that kept the row's place); their entries stay.
 
 The AI repair lane no longer accepts a count in pieces from a quote whose only number is "a"
 or "an" on a food with no `GramsPerItem` ("a clean tin"), or from a quote that names a measure
@@ -629,8 +638,17 @@ the parser did not read as a unit ("a glassful of good red wine", "one scruple o
 (`AiRepairRevertService`) checks every journaled `AiRepair` piece fill with the same rule and
 puts back the quantity and measurement its journal entry recorded. A fill journaled without a
 line position (`Quantity[{ingredientId}]`) on a recipe with two such lines holding the fill is
-left alone (`Ambiguous`). Each revert is an `AiRepairRevert` entry in the `LineReread` value
+left alone (`Ambiguous`). When the fill's food no longer has any line in the recipe (merged,
+relinked or split since), the fill is looked for on the one line of the recipe that holds the
+filled piece count and states no count of its own (`FoundMoved`); two such lines are
+`Ambiguous`. Each revert is an `AiRepairRevert` entry in the `LineReread` value
 format; `POST /api/FoodCatalog/quantities/undo?sinceUtc=<start>` replays a batch forward.
+
+**Order.** Run `quantities/revert` before `relink/verified`, `compound/apply` and any link batch
+(`link-groups` apply, or the lanes' auto-apply): those move lines to other foods, and the revert
+can only follow a moved fill when exactly one line of the recipe can be it. A bare seasoning
+whose bracket states an amount ("Cloves (1½ oz.)", "salt (a small teaspoonful)") is not
+acceptably unquantified; one with a price or a brand in the bracket still is.
 
 Neither correction changes a recipe's curation status. Both touch `LastModifiedDate`, so the
 nutrition sweep recalculates the labels. Order of work as for the other line lanes: staging
@@ -675,24 +693,39 @@ returns the live table as TSV for diffing against the file.
 
 **Unload.** `POST api/FoodCatalog/wordings/unload?batch=<name>&apply=false` soft-deletes the
 batch's rows (journaled with `NewValue` null) and returns to awaiting curation each food a load
-curated that no remaining wording points at. Loading the wording again revives its row.
+curated that no remaining wording points at. A row the batch took over from an earlier batch with
+`replace=true` goes back to that batch's verdict, food and note instead (`restored`); the replace
+journals the earlier batch and note as `Batch` and `Note` rows beside the `IngredientId` row.
+Unload replacing batches newest first. Loading the wording again revives its row.
 
 **Existing lines.** `POST api/FoodCatalog/relink/verified?apply=false&maxLines=20000&sampleSize=50`
 moves the scraped ingredient lines of every uncurated ingredient named with a `food` wording to
 its food through the journaled `LineRelink` move (re-positioned, never folded), then retires each
 such ingredient left with no line and nothing else pointing at it (`FoodRetire`, name tombstoned)
-and withdraws its unreviewed link proposals. Member-written recipes and non-ingredient lines stay.
-`relink/undo?sinceUtc=<T0>` puts lines and ingredients back; run it before `wordings/unload`,
-and keep other relink work out of the window, since the undo is by time. Withdrawn proposals are
-not revived; the lane re-proposes once the wording is unloaded.
+and withdraws its unreviewed link proposals. It also withdraws every other pending, unreviewed
+link proposal whose wording the table has judged and whose pick is not the table's food
+(`picksWithdrawn`), each journaled as `WordingPickWithdraw` (`EntityType` `FoodCatalogProposal`).
+Member-written recipes and non-ingredient lines stay.
+`relink/undo?sinceUtc=<T0>` puts lines and ingredients back and opens the withdrawn picks again
+(`picksRestored`); run it before `wordings/unload`, and keep other relink work out of the
+window, since the undo is by time. Proposals of retired ingredients are not revived; the lane
+re-proposes once the wording is unloaded.
 
 **Gates.** With `VerifiedWordings:ResolveOnImport=true` (default `false`),
 `RecipeScrapingService.FindOrCreateIngredientAsync` looks the wording up first, before the name
 and the trusted aliases, and lands it on its food while that food is live and curated; `none`,
 `unclear` and a food that lost curation fall through to the usual order. With
 `VerifiedWordings:GateLinkLane=true` (default) the link lane takes no ingredient whose wording the
-table has any verdict on, and `ProposeAsync` drops one handed to it before the staple list, the
-name matcher or a model sees it. A food a wording points at cannot be retired by `relink/retire`.
+table has any verdict on, and `ProposeAsync` sets aside one handed to it before the staple list,
+the name matcher or a model sees it, with a Rejected `deterministic:verified-wording` proposal:
+the lane's source query compares the lower-cased raw name, `ProposeAsync` the wording key, so a
+raw name such as "1 teaspoon vanilla" would otherwise come back every pass and hold a batch slot.
+A food a wording points at cannot be retired by `relink/retire`.
+
+**Rollout order.** Run `./db/apply.sh` (after `--dry-run`) before deploying a build that has
+the table: with `GateLinkLane` on, every link pass queries `recipe."IngredientWording"` and
+fails, logged, until the table exists. Nothing is written wrongly in that window, but the lane
+does nothing; deploy with `VerifiedWordings__GateLinkLane=false` if the schema cannot go first.
 
 **Rename.** `POST api/FoodCatalog/relink/rename?id=<food>&name=<new name>` renames a live curated
 food and sets `NameNormalized`; a soft-deleted holder of the name is tombstoned, a live holder
@@ -715,14 +748,31 @@ wording's food is kept, each nutrient row copied and each serving, density or it
 or after the time: the wording's food comes back under its name, each line goes back to it at
 its old position, the removed proposals are written back, the aliases and values go back to
 what they were, the USDA food gets its earlier status unless another applied link still points
-at it, and the proposal returns to Pending. A line or alias changed since is left where it is
-and counted. Each undone proposal leaves one `LinkApplyUndo` row and loses its `LinkApply`
-rows. It does not run inside `relink/undo`: when both a relink and link applies happened in the
-window, run `relink/undo` first so lines a relink moved after the link are back on its food.
+at it, and the proposal returns to Pending with ` · hold: undone` on its reason, so no lane
+(staples, name matches, verified model picks) applies it again on its own; a person can. When a
+person's approval gave the USDA food the wording's own name, that name comes off the USDA food
+before the wording's food takes it back.
+
+A link with a line that is no longer where the link put it (moved by a relink, a compound split
+or an unfold since, edited or deleted) is skipped and reported (`proposalsSkipped`, the sample's
+`skipped` says how many lines) and nothing of it is written. Undo the later change first; or
+pass `leaveMovedLines=true` to take the link back anyway, leaving those lines where they are
+(`linesSkipped`) with their journal rows kept as `LinkApplyLeft`. An alias changed since is left
+where it is and counted. When another applied link still stands on the USDA food, its status row
+is handed to the newest such link with a journal, whose own undo restores the status; links
+taken back earlier in the same call do not count as standing, so the dry run reports what the
+apply does. Each undone proposal leaves one `LinkApplyUndo` row and loses the `LinkApply` rows
+it reversed. Skipped links stay Applied, do not count towards `max`, and are reported in
+`proposalsSkipped`; `remaining` counts only links the call did not reach, so "repeat until
+remaining is 0" ends. It does not run inside `relink/undo`: when both a relink and link applies
+happened in the window, run `relink/undo` first so lines a relink moved after the link are back
+on its food. A withdrawn (soft-deleted) proposal the merge removed comes back withdrawn.
 
 The lanes apply exact name matches only under `IngredientLinking:AutoApplyNameMatches` (default
 off), at most `IngredientLinking:MaxNameMatchAppliesPerDay` (200) a day and
-`IngredientLinking:MaxNameMatchAppliesPerFoodPerDay` (25) per USDA food; staples are uncapped.
+`IngredientLinking:MaxNameMatchAppliesPerFoodPerDay` (25) per USDA food, the share checked within
+each batch as well; staples are uncapped. A person's approval never renames the USDA food to a
+name a soft-deleted food holds (the unique name index covers deleted rows).
 Before a name match or a verified model pick is applied on its own, the hold rules in
 `Nom.Orch/Services/Support/LinkAutoApplyGuard.cs` run (`IngredientLinking:HoldGuard`, default
 on): the wording names more than one food; it is the name of another curated food; the USDA
