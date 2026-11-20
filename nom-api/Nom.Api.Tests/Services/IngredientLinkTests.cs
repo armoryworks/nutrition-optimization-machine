@@ -573,6 +573,111 @@ namespace Nom.Api.Tests.Services
             alias.SourceContext.Should().Be("link:ai:fake");
         }
 
+        private static async Task<(IngredientEntity Salt, FoodCatalogProposalEntity Proposal)> SeaSaltLinkAsync(ApplicationDbContext db, string source = "ai:fake")
+        {
+            var salt = new IngredientEntity { Name = "Salt", FdcId = "173468", FdcDataType = "sr_legacy_food", CurationStatusId = 9003 };
+            db.Ingredients.Add(salt);
+            await db.SaveChangesAsync();
+            var saltIng = await UsedIngredientAsync(db, "sea salt", 1);
+            var proposal = new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, IngredientId = saltIng.Id, Field = FoodCatalogReviewService.FdcLinkField,
+                FdcId = salt.FdcId, ProposedValue = salt.Id.ToString(), Source = source, Status = FoodProposalStatus.Pending,
+            };
+            db.FoodCatalogProposals.Add(proposal);
+            await db.SaveChangesAsync();
+            return (salt, proposal);
+        }
+
+        [Fact]
+        public async Task Approving_a_link_as_a_person_marks_the_wording_alias_admin()
+        {
+            using var db = NewContext();
+            var (salt, proposal) = await SeaSaltLinkAsync(db);
+            var review = new FoodCatalogReviewService(db, new NoAudit(), new FakeCleanup());
+
+            (await review.ApplyProposalAsync(proposal.Id, reviewerPersonId: 2)).Should().BeTrue();
+
+            var alias = await db.IngredientAliases.SingleAsync();
+            alias.Should().Match<IngredientAliasEntity>(a => a.IngredientId == salt.Id && a.AliasName == "sea salt" && a.SourceContext == "admin:link:ai:fake");
+            IngredientAliasTrust.IsTrusted(alias.SourceContext).Should().BeTrue("a person looked at the wording, so a later import may follow it");
+        }
+
+        [Fact]
+        public async Task A_persons_approval_upgrades_an_untrusted_alias_already_on_the_food()
+        {
+            using var db = NewContext();
+            var (salt, proposal) = await SeaSaltLinkAsync(db);
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = salt.Id, AliasName = "Sea Salt" });
+            await db.SaveChangesAsync();
+            var review = new FoodCatalogReviewService(db, new NoAudit(), new FakeCleanup());
+
+            (await review.ApplyProposalAsync(proposal.Id, reviewerPersonId: 2)).Should().BeTrue();
+
+            var alias = await db.IngredientAliases.SingleAsync();
+            alias.AliasName.Should().Be("Sea Salt");
+            alias.SourceContext.Should().Be("admin:link:ai:fake");
+            alias.LastModifiedByPersonId.Should().Be(2);
+        }
+
+        [Fact]
+        public async Task A_lane_applied_link_does_not_downgrade_a_trusted_alias()
+        {
+            using var db = NewContext();
+            var (salt, proposal) = await SeaSaltLinkAsync(db);
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = salt.Id, AliasName = "sea salt", SourceContext = "admin:link:ai:earlier" });
+            await db.SaveChangesAsync();
+            var review = new FoodCatalogReviewService(db, new NoAudit(), new FakeCleanup());
+
+            (await review.ApplyProposalAsync(proposal.Id, SystemConstants.SystemPersonId)).Should().BeTrue();
+
+            (await db.IngredientAliases.SingleAsync()).SourceContext.Should().Be("admin:link:ai:earlier");
+        }
+
+        [Fact]
+        public async Task A_model_pick_the_lane_applies_leaves_an_alias_with_no_context_untrusted()
+        {
+            using var db = NewContext();
+            var (salt, proposal) = await SeaSaltLinkAsync(db);
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = salt.Id, AliasName = "sea salt" });
+            await db.SaveChangesAsync();
+            var review = new FoodCatalogReviewService(db, new NoAudit(), new FakeCleanup());
+
+            (await review.ApplyProposalAsync(proposal.Id, SystemConstants.SystemPersonId)).Should().BeTrue();
+
+            (await db.IngredientAliases.SingleAsync()).SourceContext.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task A_rule_proposed_link_the_lane_applies_upgrades_an_alias_with_no_context()
+        {
+            using var db = NewContext();
+            var (salt, proposal) = await SeaSaltLinkAsync(db, IngredientLinkService.ExactSource);
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = salt.Id, AliasName = "sea salt" });
+            await db.SaveChangesAsync();
+            var review = new FoodCatalogReviewService(db, new NoAudit(), new FakeCleanup());
+
+            (await review.ApplyProposalAsync(proposal.Id, SystemConstants.SystemPersonId)).Should().BeTrue();
+
+            (await db.IngredientAliases.SingleAsync()).SourceContext.Should().Be("link:deterministic:name-match");
+        }
+
+        [Fact]
+        public async Task An_approved_wording_that_was_removed_from_the_food_comes_back_as_the_same_alias()
+        {
+            using var db = NewContext();
+            var (salt, proposal) = await SeaSaltLinkAsync(db);
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = salt.Id, AliasName = "sea salt", SourceContext = "link:ai:earlier", IsDeleted = true, DeletedAt = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var review = new FoodCatalogReviewService(db, new NoAudit(), new FakeCleanup());
+
+            (await review.ApplyProposalAsync(proposal.Id, reviewerPersonId: 2)).Should().BeTrue();
+
+            var alias = await db.IngredientAliases.IgnoreQueryFilters().SingleAsync();
+            alias.Should().Match<IngredientAliasEntity>(a => !a.IsDeleted && a.DeletedAt == null && a.SourceContext == "admin:link:ai:fake");
+        }
+
         [Theory]
         [InlineData("Olive Oil", "Olive Oil")]
         [InlineData("baby spinach", "Baby Spinach")]

@@ -464,7 +464,8 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Links a catalog ingredient to the USDA food the proposal names. When recipes are its only
         /// users, the ingredient is merged into the USDA food (recipes re-pointed, its name kept as an
-        /// alias so future imports land on the USDA food). Otherwise it stays and copies the USDA
+        /// alias; future imports land on the USDA food through it only when a person approved the
+        /// link or a deterministic rule proposed it). Otherwise it stays and copies the USDA
         /// food's nutrient values (source fdc:&lt;id&gt;) for the nutrients it lacks. Approving a link
         /// also curates the USDA food, since a reviewer just looked at it. Only a person's approval
         /// gives the USDA food the everyday name; a link the lanes apply on their own leaves the
@@ -498,7 +499,7 @@ namespace Nom.Orch.Services
                 var alias = Support.IngredientNameNormalizer.Normalize(sourceName);
                 if (!string.Equals(target.Name, alias, StringComparison.OrdinalIgnoreCase))
                 {
-                    await AddAliasAsync(target.Id, alias, reviewerPersonId, $"link:{p.Source}");
+                    await AddAliasAsync(target.Id, alias, reviewerPersonId, WordingContext(p.Source, reviewerPersonId));
                 }
                 return true;
             }
@@ -602,14 +603,37 @@ namespace Nom.Orch.Services
             return true;
         }
 
-        private async Task AddAliasAsync(long ingredientId, string alias, long reviewerPersonId, string? sourceContext = null)
+        /// <summary>
+        /// The context of the alias an applied link leaves on its food: "admin:link:&lt;source&gt;" when a
+        /// person approved it, "link:&lt;source&gt;" when a lane applied it on its own.
+        /// </summary>
+        private static string WordingContext(string proposalSource, long reviewerPersonId) =>
+            reviewerPersonId != SystemConstants.SystemPersonId
+                ? $"{Nom.Data.Recipe.IngredientAliasTrust.AdminPrefix}link:{proposalSource}"
+                : $"link:{proposalSource}";
+
+        /// <summary>
+        /// Gives the food an alias, bringing back one that was removed. An alias the food already
+        /// has keeps its context, except that an untrusted one takes a trusted context (see
+        /// <see cref="Nom.Data.Recipe.IngredientAliasTrust"/>); a trusted one is never downgraded.
+        /// </summary>
+        private async Task AddAliasAsync(long ingredientId, string alias, long reviewerPersonId, string sourceContext)
         {
             var lowered = alias.ToLowerInvariant();
             var existing = _context.IngredientAliases.Local.FirstOrDefault(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered)
-                ?? await _context.IngredientAliases.FirstOrDefaultAsync(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered);
+                ?? await _context.IngredientAliases.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered);
             if (existing != null)
             {
-                if (!existing.IsDeleted) return;
+                if (!existing.IsDeleted)
+                {
+                    if (Nom.Data.Recipe.IngredientAliasTrust.IsTrusted(sourceContext) && !Nom.Data.Recipe.IngredientAliasTrust.IsTrusted(existing.SourceContext))
+                    {
+                        existing.SourceContext = sourceContext;
+                        existing.LastModifiedDate = DateTime.UtcNow;
+                        existing.LastModifiedByPersonId = reviewerPersonId;
+                    }
+                    return;
+                }
                 existing.IsDeleted = false;
                 existing.DeletedAt = null;
                 existing.DeletedByPersonId = null;
