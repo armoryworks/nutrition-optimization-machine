@@ -47,12 +47,22 @@ namespace Nom.Api.Tests.Golden
             {
                 table.Rows.Where(r => r[column] is GoldenSet.New or GoldenSet.Review).Select(r => r.Id)
                     .Should().BeEmpty($"{file} may not ship an unreviewed {column} row");
-                table.Rows.Select(r => r[column]).Should().OnlyContain(s => s == GoldenSet.Ok || s == GoldenSet.Known || s == GoldenTsv.NoAnswer,
-                    $"{column} in {file} is ok, known or {GoldenTsv.NoAnswer}");
+                table.Rows.Select(r => r[column]).Should().OnlyContain(s => s == GoldenSet.Ok || s == GoldenSet.Agent || s == GoldenSet.Known || s == GoldenTsv.NoAnswer,
+                    $"{column} in {file} is ok, agent, known or {GoldenTsv.NoAnswer}");
                 var known = table.Rows.Count(r => r[column] == GoldenSet.Known);
                 known.Should().BeLessThanOrEqualTo(baseline.TryGetValue($"{file}:{column}", out var allowed) ? allowed : 0,
                     $"known rows of {file}:{column} stay within baseline.json");
             }
+        }
+
+        [Theory]
+        [InlineData("link-pairs.tsv", "judgedBy", "status")]
+        [InlineData("links.tsv", "source", "status")]
+        [InlineData("links.tsv", "source", "stays")]
+        public void No_row_judged_by_a_model_reviewer_is_marked_ok(string file, string judgeColumn, string statusColumn)
+        {
+            GoldenSet.Read(file).Rows.Where(r => GoldenSet.ByModel(r[judgeColumn]) && r[statusColumn] == GoldenSet.Ok).Select(r => r.Id)
+                .Should().BeEmpty($"only a person sets {file}:{statusColumn} to ok; a row a model reviewer judged stays agent until then");
         }
 
         [Fact]

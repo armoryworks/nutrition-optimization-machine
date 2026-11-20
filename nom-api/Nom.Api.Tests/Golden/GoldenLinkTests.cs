@@ -49,7 +49,7 @@ namespace Nom.Api.Tests.Golden
                 var (_, target) = LineRelinkService.Decide(row["raw"], long.Parse(row["onId"]), row["onFood"], targets);
                 var (pass, actual) = Judge(row["expect"], target);
                 return new GoldenOutcome(pass, $"{row["expect"]} from {row["onFood"]}", actual, new Dictionary<string, string> { ["expect"] = target == null ? "stay" : "=" + actual });
-            });
+            }, modelJudged: row => GoldenSet.ByModel(row["source"]));
             _output.WriteLine(report.Summary);
             GoldenSet.Assert(report);
         }
@@ -66,7 +66,7 @@ namespace Nom.Api.Tests.Golden
                 var (_, target) = LineRelinkService.Decide(row["raw"], foodId, catalog.Names[foodId], catalog.Targets);
                 var actual = target is { } id ? (catalog.Names.TryGetValue(id, out var name) ? name : $"#{id}") : "stay";
                 return new GoldenOutcome(target == null, $"stays on {food}", actual, new Dictionary<string, string>());
-            });
+            }, modelJudged: row => GoldenSet.ByModel(row["source"]));
             _output.WriteLine(report.Summary);
             GoldenSet.Assert(report);
         }
@@ -87,7 +87,7 @@ namespace Nom.Api.Tests.Golden
                 var pass = rule[0] == '~' ? target == null || target == foodId : target != foodId;
                 var actual = hit == null ? "no rule answer" : $"{hit.Value.Food.IngredientId} {hit.Value.Food.Name} ({hit.Value.Source})";
                 return new GoldenOutcome(pass, $"{rule} ({row["verdict"]}: {row["wording"]} -> {row["description"]})", actual, new Dictionary<string, string>());
-            });
+            }, modelJudged: row => GoldenSet.ByModel(row["judgedBy"]));
 
             foreach (var group in answered.GroupBy(a => a.NameMatch ? "name match" : "staple"))
                 _output.WriteLine($"{group.Key}: {group.Count(a => a.Verdict == "ok")}/{group.Count()} judged pairs it answers are judged right ({100.0 * group.Count(a => a.Verdict == "ok") / group.Count():F1} %)");

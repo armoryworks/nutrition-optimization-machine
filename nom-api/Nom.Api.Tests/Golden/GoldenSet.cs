@@ -34,6 +34,8 @@ namespace Nom.Api.Tests.Golden
         public int Judged { get; set; }
         public int Ok { get; set; }
         public int OkPassing { get; set; }
+        public int Agent { get; set; }
+        public int AgentPassing { get; set; }
         public int Known { get; set; }
         public int? Baseline { get; set; }
         public List<string> Regressed { get; } = new();
@@ -45,7 +47,9 @@ namespace Nom.Api.Tests.Golden
         public bool Failed => Regressed.Count > 0 || NowPassing.Count > 0 || Unreviewed.Count > 0 || Known > (Baseline ?? 0) || Updated.Count > 0;
 
         public string Summary =>
-            $"{Key}: {OkPassing}/{Ok} ok rows pass ({(Ok == 0 ? 100 : 100.0 * OkPassing / Ok):F1} %), {Known} known failures (baseline {Baseline?.ToString() ?? "none"}), {Unreviewed.Count} unreviewed, {Judged} judged rows";
+            $"{Key}: {OkPassing}/{Ok} ok rows pass ({(Ok == 0 ? 100 : 100.0 * OkPassing / Ok):F1} %), "
+            + (Agent > 0 ? $"{AgentPassing}/{Agent} agent rows pass (judged by a model reviewer, not yet by a person), " : string.Empty)
+            + $"{Known} known failures (baseline {Baseline?.ToString() ?? "none"}), {Unreviewed.Count} unreviewed, {Judged} judged rows";
 
         public string Message()
         {
@@ -57,7 +61,7 @@ namespace Nom.Api.Tests.Golden
                 foreach (var row in rows.Take(200)) text.Append("\n  ").Append(row);
                 if (rows.Count > 200) text.Append("\n  ... and ").Append(rows.Count - 200).Append(" more");
             }
-            Section("REGRESSED: ok rows that now fail", Regressed);
+            Section("REGRESSED: ok or agent rows that now fail", Regressed);
             Section("NOW PASSES, promote it: known rows that pass (NOM_GOLDEN_UPDATE=1 marks them ok and lowers the baseline)", NowPassing);
             Section("UNREVIEWED: new or review rows cannot ship until a person sets them to ok or known", Unreviewed);
             Section("UPDATED by NOM_GOLDEN_UPDATE: review the diff, then run again without it", Updated);
@@ -70,11 +74,14 @@ namespace Nom.Api.Tests.Golden
     /// <summary>
     /// Scores golden files: rows with status ok must pass, known rows must still fail (one that
     /// passes asks to be promoted), new and review rows fail the run, and the known count may not
-    /// exceed baseline.json. With NOM_GOLDEN_UPDATE=1 a run fills the blank expected cells of new
-    /// rows with the code's output and marks them review, gives a new row whose expected cells are
-    /// all judged ok or known by whether it passes, promotes known rows that pass and lowers the
-    /// baseline. It never rewrites a judged cell, never raises a baseline, is refused under CI, and
-    /// always ends red.
+    /// exceed baseline.json. An agent row was judged by a model reviewer and not yet by a person:
+    /// it must pass like an ok row, so the code cannot drift from it, but it is reported apart and
+    /// only a person turns it into ok. With NOM_GOLDEN_UPDATE=1 a run fills the blank expected
+    /// cells of new rows with the code's output and marks them review, gives a new row whose
+    /// expected cells are all judged ok or known by whether it passes (agent instead of ok when
+    /// the row's judge is a model), promotes known rows that pass and lowers the baseline. It
+    /// never rewrites a judged cell, never raises a baseline, is refused under CI, and always ends
+    /// red.
     /// </summary>
     internal static class GoldenSet
     {
@@ -84,6 +91,10 @@ namespace Nom.Api.Tests.Golden
         public const string Known = "known";
         public const string New = "new";
         public const string Review = "review";
+        public const string Agent = "agent";
+
+        /// <summary>Whether a judge or source cell names a model reviewer (agent-review-*) rather than a person, a rule or a design.</summary>
+        public static bool ByModel(string judge) => judge.StartsWith("agent-", StringComparison.Ordinal);
 
         public static string Folder => Path.Combine(AppContext.BaseDirectory, "Fixtures", "Golden");
 
@@ -101,7 +112,7 @@ namespace Nom.Api.Tests.Golden
                 : new Dictionary<string, int>();
         }
 
-        public static GoldenReport Run(string file, string statusColumn, Func<GoldenRow, GoldenOutcome?> check, GoldenOptions? options = null)
+        public static GoldenReport Run(string file, string statusColumn, Func<GoldenRow, GoldenOutcome?> check, GoldenOptions? options = null, Func<GoldenRow, bool>? modelJudged = null)
         {
             options ??= GoldenOptions.FromEnvironment();
             if (options.Update && options.UnderCi)
@@ -130,6 +141,11 @@ namespace Nom.Api.Tests.Golden
                         if (outcome.Pass && blanks.Count == 0) report.OkPassing++;
                         else report.Regressed.Add(line);
                         break;
+                    case Agent:
+                        report.Agent++;
+                        if (outcome.Pass && blanks.Count == 0) report.AgentPassing++;
+                        else report.Regressed.Add(line + " (agent)");
+                        break;
                     case Known:
                         report.Known++;
                         if (!outcome.Pass || blanks.Count > 0)
@@ -139,9 +155,9 @@ namespace Nom.Api.Tests.Golden
                         }
                         if (options.Update)
                         {
-                            row[statusColumn] = Ok;
+                            row[statusColumn] = modelJudged?.Invoke(row) == true ? Agent : Ok;
                             report.Known--;
-                            report.Updated.Add($"{row.Id}: known -> ok, it now passes");
+                            report.Updated.Add($"{row.Id}: known -> {row[statusColumn]}, it now passes");
                             changed = true;
                         }
                         else report.NowPassing.Add(line);
@@ -155,10 +171,19 @@ namespace Nom.Api.Tests.Golden
                         }
                         else
                         {
-                            row[statusColumn] = outcome.Pass ? Ok : Known;
-                            if (outcome.Pass) report.Ok++;
-                            else report.Known++;
-                            if (outcome.Pass) report.OkPassing++;
+                            var byModel = modelJudged?.Invoke(row) == true;
+                            row[statusColumn] = !outcome.Pass ? Known : byModel ? Agent : Ok;
+                            if (!outcome.Pass) report.Known++;
+                            else if (byModel)
+                            {
+                                report.Agent++;
+                                report.AgentPassing++;
+                            }
+                            else
+                            {
+                                report.Ok++;
+                                report.OkPassing++;
+                            }
                             report.Updated.Add($"{row.Id}: judged row marked {row[statusColumn]}{(outcome.Pass ? string.Empty : $" ({line})")}");
                         }
                         changed = true;

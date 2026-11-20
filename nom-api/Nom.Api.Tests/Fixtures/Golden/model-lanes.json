@@ -4,21 +4,21 @@
     "required": false,
     "minScore": 0.93,
     "maxFalseAcceptRate": 0.03,
-    "note": "Ambiguous wordings of link-pairs.tsv asked as the link lane asks them (deterministic answers left out). Floor: the October triangulated picks measured 93.5 % right on the judged pairs."
+    "note": "Ambiguous wordings of link-pairs.tsv asked as the link lane asks them (deterministic answers left out). Floor: the October triangulated picks measured 93.5 % right on the judged pairs. Every case comes from link-pairs.tsv rows judged by agent-review-2026-11-13, a model reviewer, not a person: until the owner confirms them, this floor measures agreement with that reviewer."
   },
   "link-verify": {
     "scorer": true,
     "required": false,
     "minScore": 0.9,
     "maxFalseAcceptRate": 0.02,
-    "note": "Every judged pair of link-pairs.tsv; a false accept is 'same' for a pair judged wrong, near or compound."
+    "note": "Every judged pair of link-pairs.tsv; a false accept is 'same' for a pair judged wrong, near or compound. Every case is judged by agent-review-2026-11-13, a model reviewer, not a person: until the owner confirms them, this floor measures agreement with that reviewer."
   },
   "line-classify": {
     "scorer": true,
     "required": false,
     "minScore": 0.9,
     "maxFalseAcceptRate": 0.05,
-    "note": "line-labels.tsv; a false accept is a non-ingredient answer for a line that is an ingredient by rule."
+    "note": "line-labels.tsv; a false accept is a non-ingredient answer for a line that is an ingredient by rule. Of its 180 cases, 60 are judged rule:deterministic-pre-pass, the pre-pass's own earlier answers, and 120 rule:names-a-curated-food; none is judged by a person."
   },
   "repair": {
     "scorer": false,

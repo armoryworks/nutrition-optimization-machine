@@ -96,6 +96,35 @@ namespace Nom.Api.Tests.Golden
         }
 
         [Fact]
+        public void An_agent_row_must_pass_like_an_ok_row_and_is_counted_apart()
+        {
+            Write("a\tsalt\tSALT\tagent\nb\tdill\tDILL\tok\nc\tpepper\tCUMIN\tagent\n");
+
+            var report = Run(Options());
+
+            report.Should().BeEquivalentTo(new { Ok = 1, OkPassing = 1, Agent = 2, AgentPassing = 1 }, o => o.ExcludingMissingMembers());
+            report.Unreviewed.Should().BeEmpty();
+            report.Regressed.Should().ContainSingle().Which.Should().Contain("c (line 4)").And.EndWith("(agent)");
+            report.Summary.Should().Contain("1/2 agent rows pass (judged by a model reviewer, not yet by a person)");
+        }
+
+        [Fact]
+        public void The_update_switch_marks_a_passing_row_a_model_judged_agent_and_never_ok()
+        {
+            File.WriteAllText(Path.Combine(_folder, "set.tsv"),
+                "id\traw\tupper\tjudge\tstatus\na\tsalt\tSALT\tagent-review-2026-11-13\tnew\nb\tdill\tDILL\tperson\tnew\nc\tbay\tBAY\tagent-review-2026-11-13\tknown\n");
+            File.WriteAllText(Path.Combine(_folder, GoldenSet.BaselineFile), "{\"set.tsv:status\": 1}");
+
+            GoldenSet.Run("set.tsv", "status", row => GoldenSet.Compare(row, new Dictionary<string, string> { ["upper"] = row["raw"].ToUpperInvariant() }),
+                Options(update: true), row => GoldenSet.ByModel(row["judge"]));
+
+            var text = Read("set.tsv");
+            text.Should().Contain("a\tsalt\tSALT\tagent-review-2026-11-13\tagent");
+            text.Should().Contain("b\tdill\tDILL\tperson\tok");
+            text.Should().Contain("c\tbay\tBAY\tagent-review-2026-11-13\tagent");
+        }
+
+        [Fact]
         public void The_update_switch_is_refused_under_ci()
         {
             Write("a\tsalt\t\tnew\n");

@@ -49,7 +49,11 @@ itself, must fail `unchanged`), `drop-step-N` (without a step that alone states 
 
 ## Status
 
-- `ok`: the code must give the expected answer.
+- `ok`: the code must give the expected answer; a person set this status.
+- `agent`: the expected answer was judged by a model reviewer (`agent-review-*` in `judgedBy` or
+  `source`) and no person has confirmed it. The code must give it, as for `ok`, so it cannot drift
+  from the reviewer's verdict, but the run reports these rows apart, and only a person turns one
+  into `ok` or `known`.
 - `known`: the expected cell holds the correct answer and the code still gets it wrong. When a fix
   makes it pass, the run fails with "NOW PASSES, promote it". The count per file and column may not
   exceed `baseline.json`, which only goes down. For `recipes.json`, `known` means the frozen data is
@@ -59,6 +63,8 @@ itself, must fail `unchanged`), `drop-step-N` (without a step that alone states 
 
 Expected values change only by a hand edit that shows in the diff. A person reviews `review` rows and
 sets them to `ok` or `known`; a model may pre-sort rows but never sets a status or types a value.
+The test `No_row_judged_by_a_model_reviewer_is_marked_ok` keeps `link-pairs.tsv` and `links.tsv` from
+holding an `ok` row whose judge is a model.
 
 ## The update switch
 
@@ -66,8 +72,9 @@ sets them to `ok` or `known`; a model may pre-sort rows but never sets a status 
 tree and does only this:
 
 - fills the blank expected cells of a `new` row with the code's current output and marks it `review`;
-- marks a `new` row whose expected cells are all judged `ok` or `known` by whether it passes;
-- flips a `known` row that now passes to `ok` and lowers `baseline.json`.
+- marks a `new` row whose expected cells are all judged `ok` or `known` by whether it passes
+  (`agent` instead of `ok` when the row's judge is a model reviewer);
+- flips a `known` row that now passes to `ok` (or `agent`, as above) and lowers `baseline.json`.
 
 It never rewrites a judged cell and never raises a baseline (a new `known` row needs a hand edit to
 `baseline.json` in the same commit). It is refused when `CI` or `GITHUB_ACTIONS` is set, and a run with
@@ -89,7 +96,11 @@ without it.
 | `line-labels.tsv` | 120 lines labelled not an ingredient that are exactly a curated food's name (ingredient by the veto rule) and 60 lines the deterministic pre-pass labelled | rule |
 
 The judged pairs and wording moves were judged by agents, not by a person; their rows carry that in
-`judgedBy`/`source` so a person can demote any of them. Of the right-judged pairs, 313 that the rule
+`judgedBy`/`source` and have status `agent` (6,702 in `link-pairs.tsv`, 791 rows in `links.tsv`), so
+a person can confirm or demote any of them. Their `known` rows (35 and 1) were set by the update
+switch from the code's result, not by a person. The `link-pick` and `link-verify` floors in
+`model-lanes.json` therefore measure agreement with that reviewer until a person confirms the rows,
+and 60 of the `line-classify` cases are the deterministic pre-pass's own earlier answers. Of the right-judged pairs, 313 that the rule
 answers with a different food are kept with `rule` `*` and status `-`: a pair judged right does not
 make every other food wrong.
 
@@ -124,8 +135,12 @@ left out), the case-set hash, the score and the failed case ids. Commit it with 
 
 `GoldenModelLaneTests` then holds the release when a recorded lane's signature differs from the code
 (a prompt, schema or option changed), its case set differs from the golden files, or its score is
-below the floor; and when a lane marked `required` has no record. The production compose file must
-name the model the record names.
+below the floor; and when a lane marked `required` has no record. A lane that has a scorer, no
+record and `required: false` is not checked: the test run reports
+`Every_model_lane_with_a_scorer_has_been_scored` as skipped and names the lanes (and the floor test
+itself as skipped while no lane is checked at all), so a green run never claims a gate that is not
+armed. Score the lane with `--record` and set `required: true` in the same commit. The production
+compose file must name the model the record names.
 
 ## Release gate
 
