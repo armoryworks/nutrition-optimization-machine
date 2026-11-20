@@ -177,6 +177,8 @@ namespace Nom.Api.Tests.Services
         [InlineData("freshly-cracked black pepper (to taste)")]
         [InlineData("fresh pepper")]
         [InlineData("kosher salt, divided")]
+        [InlineData("salt (Diamond Crystal)")]
+        [InlineData("salt ($0.05)")]
         public async Task Seasoning_and_garnish_lines_may_go_unquantified(string line)
         {
             var recipe = PlausibleRecipe();
@@ -197,6 +199,13 @@ namespace Nom.Api.Tests.Services
         [InlineData("somen noodles")]
         [InlineData("pinch butter")]
         [InlineData("salt, butter")]
+        [InlineData("Cloves (1½ oz.)")]
+        [InlineData("ginger (1½ oz)")]
+        [InlineData("salt (4 ounces to the gallon)")]
+        [InlineData("PEPPER (10 SCRUPLES)")]
+        [InlineData("salt (1-1/2 teaspoonful)")]
+        [InlineData("salt (a small teaspoonful)")]
+        [InlineData("mace (five or six blades)")]
         public async Task Vague_amounts_still_count_as_unparsed(string line)
         {
             var recipe = PlausibleRecipe();

@@ -143,7 +143,7 @@ namespace Nom.Orch.Services
 
         private static readonly Regex BareSeasoning = new(
             @"^\s*(?:(?:a\s+)?(?:pinch|dash)(?:\s+of)?\s+)?(?:(?:fine|kosher|sea|table|black|white|ground|grated|fresh|cracked|coarse|coarsely|flaky|(?:freshly|fresh)[\s-]+(?:ground|cracked))\s+)*" +
-            Seasonings + @"\s*(?:,\s*(?:divided|plus\s+more|for\s+the)\b[^,()]*|\([^()]*\))?\s*[.,]?\s*$",
+            Seasonings + @"\s*(?:,\s*(?:divided|plus\s+more|for\s+the)\b[^,()]*|\(\s*\$\d[\d.,]*\s*\)|\((?![^()]*(?:[\d¼½¾⅓⅔⅛⅜⅝⅞]|\b(?:one|two|three|four|five|six|seven|eight|nine|ten|twelve|half)\b|spoon|ounce|\boz\b|scruple|drachm|gram|pound|\blbs?\b|\bcups?\b|blade))[^()]*\))?\s*[.,]?\s*$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex AcceptablyUnquantified = new(
