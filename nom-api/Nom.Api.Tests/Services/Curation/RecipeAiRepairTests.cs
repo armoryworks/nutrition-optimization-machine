@@ -418,7 +418,6 @@ namespace Nom.Api.Tests.Services.Curation
         [Theory]
         [InlineData("a clean tin", "tin", null)]
         [InlineData("a toothpick", "toothpick", null)]
-        [InlineData("a large cabbage", "cabbage", null)]
         [InlineData("a glassful of good red wine", "wine", 150)]
         [InlineData("one scruple of ginger", "ginger", null)]
         [InlineData("a bunch of parsley", "parsley", null)]
@@ -432,6 +431,7 @@ namespace Nom.Api.Tests.Services.Curation
         [Theory]
         [InlineData("six neck chops", "neck chops", null, 6)]
         [InlineData("a large cabbage", "cabbage", 900, 1)]
+        [InlineData("a large cabbage", "cabbage", null, 1)]
         [InlineData("an egg", "egg", 50, 1)]
         [InlineData("2 onions", "onion", null, 2)]
         public void A_piece_with_a_count_or_an_item_weight_is_grounded(string quote, string ingredient, int? gramsPerItem, int count)
@@ -444,7 +444,9 @@ namespace Nom.Api.Tests.Services.Curation
         public void A_piece_refusal_says_why()
         {
             RecipeRepairGrounding.PieceRefusal("a big teaspoonful of lard", null).Should().Be(RecipeRepairGrounding.UnreadMeasureRefusal);
-            RecipeRepairGrounding.PieceRefusal("a clean tin", null).Should().Be(RecipeRepairGrounding.ArticleRefusal);
+            RecipeRepairGrounding.PieceRefusal("a clean tin", null).Should().Be(RecipeRepairGrounding.NotAnItemRefusal);
+            RecipeRepairGrounding.PieceRefusal("a little butter", null).Should().Be(RecipeRepairGrounding.VagueAmountRefusal);
+            RecipeRepairGrounding.PieceRefusal("the onion", null).Should().Be(RecipeRepairGrounding.NoCountRefusal);
             RecipeRepairGrounding.PieceRefusal("a clean tin", 20m).Should().BeNull();
             RecipeRepairGrounding.PieceRefusal("three eggs", null).Should().BeNull();
             RecipeRepairGrounding.PieceRefusal("½ lemon", null).Should().BeNull();

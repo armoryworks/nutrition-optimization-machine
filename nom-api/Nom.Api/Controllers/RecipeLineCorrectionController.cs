@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
+using Nom.Orch.Services.Support;
 using System.ComponentModel.DataAnnotations;
 
 namespace Nom.Api.Controllers
@@ -39,11 +40,18 @@ namespace Nom.Api.Controllers
             return Ok(await _labels.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc)));
         }
 
-        /// <summary>Which model-filled piece counts state no count and would get back their earlier quantity; a dry run unless apply=true, and each change is written to the audit log.</summary>
+        /// <summary>Which model-filled piece counts state no count and would get back their earlier quantity, limited to the given reasons (all when none are given); a dry run unless apply=true, and each change is written to the audit log.</summary>
         [HttpPost("quantities/revert")]
-        public async Task<ActionResult<QuantityRevertResult>> RevertQuantities([FromQuery] bool apply = false, [FromQuery] int maxLines = 5000, [FromQuery] int sampleSize = 50)
+        public async Task<ActionResult<QuantityRevertResult>> RevertQuantities([FromQuery] bool apply = false, [FromQuery] int maxLines = 5000, [FromQuery] int sampleSize = 50, [FromQuery] List<string>? reasons = null)
         {
-            return Ok(await _quantities.RevertAsync(apply, maxLines, sampleSize));
+            var chosen = (reasons ?? new List<string>())
+                .SelectMany(r => (r ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                .Select(r => r.ToLowerInvariant())
+                .Distinct()
+                .ToList();
+            if (chosen.Any(r => !RecipeRepairGrounding.RefusalReasons.ContainsKey(r)))
+                return BadRequest(new { message = "Unknown reason.", reasons = RecipeRepairGrounding.RefusalReasons });
+            return Ok(await _quantities.RevertAsync(apply, maxLines, sampleSize, chosen));
         }
 
         /// <summary>Give back the filled quantity to the lines reverted at or after the given UTC time.</summary>

@@ -47,9 +47,15 @@ namespace Nom.Orch.Services
         private sealed record Line(long RecipeId, long IngredientId, int SortOrder, decimal Quantity, long MeasurementId, string RawLine, decimal? GramsPerItem, long RecipeStatusId);
         private sealed record Revert(Fill Fill, Line Line, string Reason);
 
-        public async Task<QuantityRevertResult> RevertAsync(bool apply = false, int maxLines = 5000, int sampleSize = 50)
+        public async Task<QuantityRevertResult> RevertAsync(bool apply = false, int maxLines = 5000, int sampleSize = 50, IReadOnlyCollection<string>? reasons = null)
         {
-            var result = new QuantityRevertResult { Applied = apply };
+            var chosen = (reasons ?? Array.Empty<string>()).ToHashSet(StringComparer.Ordinal);
+            var result = new QuantityRevertResult
+            {
+                Applied = apply,
+                Reasons = chosen.OrderBy(r => r, StringComparer.Ordinal).ToList(),
+                ReasonMeanings = RecipeRepairGrounding.RefusalReasons.Concat(RecipeRepairGrounding.AcceptanceReasons).ToDictionary(p => p.Key, p => p.Value),
+            };
             var pieceId = await _db.Measurements.AsNoTracking()
                 .Where(m => !m.IsDeleted && m.Name == IngredientLineParser.Piece)
                 .Select(m => (long?)m.Id)
@@ -98,11 +104,18 @@ namespace Nom.Orch.Services
                 if (RecipeRepairGrounding.PieceRefusal(fill.Quote, line.GramsPerItem) is not { } reason)
                 {
                     result.Grounded++;
+                    var kept = RecipeRepairGrounding.PieceAcceptance(fill.Quote, line.GramsPerItem) ?? string.Empty;
+                    result.GroundedByReason[kept] = result.GroundedByReason.GetValueOrDefault(kept) + 1;
                     continue;
                 }
 
                 result.Ungrounded++;
                 result.ByReason[reason] = result.ByReason.GetValueOrDefault(reason) + 1;
+                if (chosen.Count > 0 && !chosen.Contains(reason))
+                {
+                    result.NotChosen++;
+                    continue;
+                }
                 reverts.Add(new Revert(fill, line, reason));
             }
 

@@ -15,8 +15,31 @@ namespace Nom.Orch.Services.Support
     public static class RecipeRepairGrounding
     {
         public const int MinStepLength = 10;
-        public const string UnreadMeasureRefusal = "names a measure that is not a unit";
-        public const string ArticleRefusal = "counts \"a\" or \"an\" on a food with no weight per item";
+        public const string UnreadMeasureRefusal = "unread-measure";
+        public const string VagueAmountRefusal = "vague-amount";
+        public const string NotAnItemRefusal = "not-an-item";
+        public const string NoCountRefusal = "no-count";
+
+        public const string StatesCount = "states-a-count";
+        public const string WeightPerItem = "weight-per-item";
+        public const string OneCountableItem = "one-countable-item";
+
+        /// <summary>The reasons <see cref="PieceRefusal"/> gives, each with what it means.</summary>
+        public static readonly IReadOnlyDictionary<string, string> RefusalReasons = new Dictionary<string, string>
+        {
+            [UnreadMeasureRefusal] = "names a measure that is not a unit (\"a glassful of wine\", \"a bunch of parsley\")",
+            [VagueAmountRefusal] = "\"a\" or \"an\" before a vague amount (\"a little butter\", \"a few cloves\", \"a couple of pigeons\")",
+            [NotAnItemRefusal] = "\"a\" or \"an\" before a preparation or a utensil, not a countable item (\"a white sauce\", \"a clean tin\")",
+            [NoCountRefusal] = "states no number and starts with no \"a\" or \"an\" (\"the onion\", \"some salt\")",
+        };
+
+        /// <summary>Why <see cref="PieceAcceptance"/> leaves a count in pieces alone, each with what it means.</summary>
+        public static readonly IReadOnlyDictionary<string, string> AcceptanceReasons = new Dictionary<string, string>
+        {
+            [StatesCount] = "states a number (\"six neck chops\", \"½ lemon\")",
+            [WeightPerItem] = "the food has a weight per item (\"an egg\")",
+            [OneCountableItem] = "\"a\" or \"an\" before one countable item (\"a bay leaf\", \"a leg of mutton\", \"a sandwich loaf\")",
+        };
 
         private static readonly HashSet<string> QuantityWords = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -42,8 +65,42 @@ namespace Nom.Orch.Services.Support
         };
 
         private static readonly Regex UnreadMeasure = new(
-            @"\b(?:\p{L}*spoon(?:ful)?s?|\p{L}*glass(?:ful)?(?:e?s)?|\p{L}*cupfuls?|handfuls?|bunch(?:es)?|sprinkl(?:e|ing)s?|pinch(?:es)?|dash(?:es)?|scruples?|drachms?|drams?|quantit(?:y|ies)|ladle(?:ful)?s?|knobs?|lumps?|bits?)\b",
+            @"\b(?:\p{L}*spoon(?:ful)?s?|\p{L}*glass(?:ful)?(?:e?s)?|\p{L}*cupfuls?|handfuls?|bunch(?:es)?|sprinkl(?:e|ing)s?|pinch(?:es)?|dash(?:es)?|scruples?|drachms?|drams?|quantit(?:y|ies)|ladle(?:ful)?s?|knobs?|lumps?|bits?|\p{L}+cups?|\p{L}+full?s?|thimbles?|jugs?|pecks?|pints?|quarts?|gills?|jills?|bushels?|gallons?|stones?|tbsps?|tbps?|tsps?|bouquets?|faggots?|bundles?|measures?)\b",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex LeadSegment = new(
+            @"^.*?(?=\s+(?:of|with|or|for|to|into|in|from|made|and|the)\b|\s*[,;:(]|$)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex MeasureSegment = new(
+            @"^.*?(?=\s+(?:with|or)\b|\s*\(|$)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex HeadSegment = new(
+            @"^.*?(?=\s+of\b|\s*[,;:(]|$)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly HashSet<string> Articles = new(StringComparer.OrdinalIgnoreCase) { "a", "an" };
+
+        private static readonly HashSet<string> VagueWords = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "little", "few", "couple", "some", "suspicion", "shaving", "shavings", "grain", "grains", "touch", "trifle",
+            "morsel", "drop", "drops", "sprinkling", "squeeze", "splash", "hint", "portion", "part", "equal", "enough",
+            "plenty", "sufficient", "layer", "coating", "amount", "proportion", "weight", "dust", "dusting", "variety",
+            "batch", "brace", "pair",
+        };
+
+        private static readonly HashSet<string> NotItemWords = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "sauce", "gravy", "forcemeat", "stuffing", "dressing", "puree", "purée", "paste", "crust", "mixture", "batter",
+            "stock", "broth", "bouillon", "infusion", "decoction", "syrup", "glaze", "ragout", "ragoût", "hash", "marinade",
+            "liquor", "essence", "seasoning", "icing", "frosting", "custard", "mayonnaise", "salad", "soup", "jelly",
+            "fricassee", "fricassée", "brine", "marmalade", "jam", "preparation", "bavarois", "butter", "iceing",
+            "cloth", "cloths", "pan", "saucepan", "stewpan", "basin", "bowl", "dish", "paper", "bag", "mould", "mold",
+            "cutter", "needle", "thread", "string", "twine", "saucer", "barrel", "brick", "tin", "sieve", "towel", "napkin",
+            "skewer", "knife", "fork", "board", "plate", "pot", "kettle", "oven", "toothpick", "tips", "spoon", "jar", "box",
+            "tub", "pail", "funnel", "muslin", "brush", "vessel", "bottle", "handkerchief", "tube", "basket", "cup", "beater",
+        };
 
         private static readonly Regex NumberToken = new(@"^[\d¼½¾⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞./,\-–]+$", RegexOptions.Compiled);
         private static readonly Regex SentenceEnd = new(@"(?<=[.;!?][""'”’)]?)\s+(?=[""'“‘(]?\p{Lu})", RegexOptions.Compiled);
@@ -110,20 +167,41 @@ namespace Nom.Orch.Services.Support
         }
 
         /// <summary>
-        /// Why a quote read as a count in pieces states no count, or null when it does. A quote that
-        /// names a measure the parser did not read as a unit ("a glassful of wine", "one scruple of
-        /// ginger") is refused, and so is one whose only number is "a" or "an" ("a clean tin"),
-        /// unless the food has a weight per item ("an egg").
+        /// Why a quote read as a count in pieces states no count, or null when it does. A measure is
+        /// read only before the first "with" or "or", so one that belongs to another food ("1 large egg
+        /// beaten with 1 Tablespoon milk") does not count against this one, and a number only before
+        /// the first "of", "with", "or", comma and the like. A measure the parser did not read as a unit ("a glassful of good red
+        /// wine", "one scruple of ginger") is refused. "A" or "an" counts one item ("a bay leaf", "a leg
+        /// of mutton"), except before a vague amount ("a little butter", "a few", "a couple of") or a
+        /// preparation or utensil ("a white sauce", "a clean tin"). A quote with neither a number nor an
+        /// article is refused unless the food has a weight per item.
         /// </summary>
-        public static string? PieceRefusal(string? quote, decimal? gramsPerItem)
-        {
-            var text = Normalize(quote);
-            if (UnreadMeasure.IsMatch(text)) return UnreadMeasureRefusal;
+        public static string? PieceRefusal(string? quote, decimal? gramsPerItem) =>
+            Judge(quote, gramsPerItem) is { Refused: true } verdict ? verdict.Reason : null;
 
-            var tokens = Words.Matches(text).Select(m => m.Value).ToList();
-            var named = tokens.FindIndex(IsContentWord);
-            var lead = named > 0 ? tokens.Take(named) : tokens;
-            return lead.Any(IsCount) || gramsPerItem > 0 ? null : ArticleRefusal;
+        /// <summary>Why a count in pieces read from the quote stands, or null when <see cref="PieceRefusal"/> refuses it.</summary>
+        public static string? PieceAcceptance(string? quote, decimal? gramsPerItem) =>
+            Judge(quote, gramsPerItem) is { Refused: false } verdict ? verdict.Reason : null;
+
+        private static (bool Refused, string Reason) Judge(string? quote, decimal? gramsPerItem)
+        {
+            var text = Normalize(quote).TrimEnd('.', ',', ';', ':');
+            var lead = LeadSegment.Match(text).Value;
+            if (UnreadMeasure.IsMatch(MeasureSegment.Match(text).Value)) return (true, UnreadMeasureRefusal);
+
+            var tokens = Words.Matches(lead).Select(m => m.Value).ToList();
+            if (tokens.Any(IsCount)) return (false, StatesCount);
+            if (gramsPerItem > 0) return (false, WeightPerItem);
+            if (tokens.Count > 0 && Articles.Contains(tokens[0]))
+            {
+                if (tokens.Any(VagueWords.Contains)) return (true, VagueAmountRefusal);
+                var head = Words.Matches(HeadSegment.Match(text).Value).SelectMany(m => m.Value.Split('-')).ToList();
+                return head.Any(NotItemWords.Contains) ? (true, NotAnItemRefusal) : (false, OneCountableItem);
+            }
+
+            var all = Words.Matches(text).Select(m => m.Value).ToList();
+            var named = all.FindIndex(IsContentWord);
+            return (named > 0 ? all.Take(named) : all).Any(IsCount) ? (false, StatesCount) : (true, NoCountRefusal);
         }
 
         private static bool IsCount(string token) =>

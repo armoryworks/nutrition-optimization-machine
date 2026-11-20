@@ -269,6 +269,43 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_single_countable_item_keeps_its_count_and_a_chosen_reason_reverts_alone()
+        {
+            using var db = NewContext();
+            db.Ingredients.AddRange(Food(1, "Bay Leaf"), Food(2, "Mutton"), Food(3, "Butter"), Food(4, "Red Wine"));
+            db.Recipes.Add(Recipe(30, NonCurated,
+                new Row(1, "a bay leaf", 1m, null, Piece),
+                new Row(2, "a leg of mutton", 1m, null, Piece),
+                new Row(3, "a little butter", 1m, null, Piece),
+                new Row(4, "a glass of red wine", 1m, null, Piece)));
+            db.AuditLogEntries.AddRange(
+                Fill(30, "1:0", "a bay leaf"),
+                Fill(30, "2:1", "a leg of mutton"),
+                Fill(30, "3:2", "a little butter"),
+                Fill(30, "4:3", "a glass of red wine"));
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var dry = await Quantities(db).RevertAsync();
+
+            dry.Grounded.Should().Be(2);
+            dry.GroundedByReason.Should().BeEquivalentTo(new Dictionary<string, int> { [RecipeRepairGrounding.OneCountableItem] = 2 });
+            dry.ByReason.Should().BeEquivalentTo(new Dictionary<string, int>
+            {
+                [RecipeRepairGrounding.VagueAmountRefusal] = 1,
+                [RecipeRepairGrounding.UnreadMeasureRefusal] = 1,
+            });
+            dry.ReasonMeanings.Keys.Should().Contain(RecipeRepairGrounding.OneCountableItem);
+
+            var applied = await Quantities(db).RevertAsync(apply: true, reasons: new[] { RecipeRepairGrounding.VagueAmountRefusal });
+
+            (applied.Changed, applied.NotChosen, applied.Remaining).Should().Be((1, 1, 0));
+            applied.Reasons.Should().Equal(RecipeRepairGrounding.VagueAmountRefusal);
+            var lines = await db.RecipeIngredients.AsNoTracking().OrderBy(ri => ri.SortOrder).Select(ri => ri.Quantity).ToListAsync();
+            lines.Should().Equal(1m, 1m, 0m, 1m);
+        }
+
+        [Fact]
         public async Task Applying_the_revert_restores_the_journaled_amount_and_the_batch_undoes()
         {
             using var db = await FillsAsync();

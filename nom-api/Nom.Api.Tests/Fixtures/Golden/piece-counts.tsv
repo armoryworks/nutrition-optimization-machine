@@ -1,0 +1,45 @@
+id	quote	gramsPerItem	expect	status	source	note
+c4-keep-01	a bay leaf	-	keep	agent	agent-review-staging-2026-11-20	recipe 122158: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-02	a bay leaf	-	keep	agent	agent-review-staging-2026-11-20	recipe 76922: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-03	a leg of mutton	-	keep	agent	agent-review-staging-2026-11-20	recipe 88717: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-04	a breast of veal	-	keep	agent	agent-review-staging-2026-11-20	recipe 43788: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-05	a breast of lamb	-	keep	agent	agent-review-staging-2026-11-20	recipe 87163: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-06	a neck of mutton	-	keep	agent	agent-review-staging-2026-11-20	recipe 102642: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-07	a knuckle of veal	-	keep	agent	agent-review-staging-2026-11-20	recipe 58463: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-08	a small leg of pork	-	keep	agent	agent-review-staging-2026-11-20	recipe 45529: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-09	a blade of mace	-	keep	agent	agent-review-staging-2026-11-20	recipe 73414: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-10	a thin rasher of bacon	-	keep	agent	agent-review-staging-2026-11-20	recipe 55182: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-11	a square of bacon	-	keep	agent	agent-review-staging-2026-11-20	recipe 28309: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-12	a lettuce leaf	-	keep	agent	agent-review-staging-2026-11-20	recipe 49663: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-13	a small lettuce leaf	-	keep	agent	agent-review-staging-2026-11-20	recipe 59001: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-14	a crisp lettuce heart	-	keep	agent	agent-review-staging-2026-11-20	recipe 140866: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-15	a nice salted and cooked calf’s tongue	-	keep	agent	agent-review-staging-2026-11-20	recipe 133920: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-16	a calf’s brains	-	keep	agent	agent-review-staging-2026-11-20	recipe 104815: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-17	a fine larded sweetbread	-	keep	agent	agent-review-staging-2026-11-20	recipe 102865: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-18	a crayfish’s tail, cut into two lengthwise	-	keep	agent	agent-review-staging-2026-11-20	recipe 129617: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-19	a round of beef	-	keep	agent	agent-review-staging-2026-11-20	recipe 111612: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-20	a nice fresh cauliflower	-	keep	agent	agent-review-staging-2026-11-20	recipe 97934: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-21	a thin piece of bread	-	keep	agent	agent-review-staging-2026-11-20	recipe 127971: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-22	a sandwich loaf	-	keep	agent	agent-review-staging-2026-11-20	recipe 124569: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-23	a twopenny loaf	-	keep	agent	agent-review-staging-2026-11-20	recipe 112696: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-24	a penny white loaf	-	keep	agent	agent-review-staging-2026-11-20	recipe 52657: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-25	a candy stick	-	keep	agent	agent-review-staging-2026-11-20	recipe 117928: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-26	a wild boar	-	keep	agent	agent-review-staging-2026-11-20	recipe 107440: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-27	a young porker's head	-	keep	agent	agent-review-staging-2026-11-20	recipe 91577: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-28	a fat salt eel	-	keep	agent	agent-review-staging-2026-11-20	recipe 68556: C4 sample: "a" before one countable item, reverted to 0 by v0.3.118
+c4-keep-29	1 large egg beaten with 1 Tablespoon (15ml) milk	-	keep	agent	agent-review-staging-2026-11-20	recipe 34236: C4 sample: the count is stated; the tablespoon belongs to the milk
+c4-keep-30	one red pepper or one canned pimento chopped, or one teaspoon of paprika	-	keep	agent	agent-review-staging-2026-11-20	recipe 44761: C4 sample (doubtful): one pepper is stated; the teaspoon belongs to the paprika
+c4-revert-01	a glass of red wine	-	revert	agent	agent-review-staging-2026-11-20	recipe 76922: C4 sample: a measure that is not a unit, revert right
+c4-revert-02	a bunch of sweet herbs	-	revert	agent	agent-review-staging-2026-11-20	recipe 73414: C4 sample: a measure that is not a unit, revert right
+c4-revert-03	a jug of cold water	-	revert	agent	agent-review-staging-2026-11-20	recipe 127971: C4 sample: a measure that is not a unit
+c4-revert-04	a lump of butter the size of an egg	-	revert	agent	agent-review-staging-2026-11-20	the original defect: a vague amount
+c4-revert-05	a very little milk	-	revert	agent	agent-review-staging-2026-11-20	the original defect: "a" before a vague amount
+c4-revert-06	a few drops of vinegar	-	revert	agent	agent-review-staging-2026-11-20	the original defect: "a" before a vague amount
+c4-revert-07	a couple of pigeons	-	revert	agent	agent-review-staging-2026-11-20	"a couple" is not one
+c4-revert-08	a pinch of ginger	-	revert	agent	agent-review-staging-2026-11-20	the original defect: a pinch
+c4-revert-09	a tiny bit of garlic	-	revert	agent	agent-review-staging-2026-11-20	the original defect: a bit
+c4-revert-10	a sauce à l’Italienne	-	revert	agent	agent-review-staging-2026-11-20	recipe 102865: a preparation, not a countable item
+c4-revert-11	a white sauce	-	revert	agent	agent-review-staging-2026-11-20	a preparation, not a countable item
+c4-revert-12	a clean tin	-	revert	agent	agent-review-staging-2026-11-20	a utensil
+rule-01	an egg	50	keep	ok	rule	a food with a weight per item
+rule-02	six neck chops	-	keep	ok	rule	a stated number

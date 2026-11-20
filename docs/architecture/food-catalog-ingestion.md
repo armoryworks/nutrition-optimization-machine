@@ -631,12 +631,21 @@ approved recipes and `ApprovedStopPassing`: approved recipes that pass the line 
 batch, skipping lines labelled again since and rows that now hold another line than the one the
 review relabelled (an unfold or split that kept the row's place); their entries stay.
 
-The AI repair lane no longer accepts a count in pieces from a quote whose only number is "a"
-or "an" on a food with no `GramsPerItem` ("a clean tin"), or from a quote that names a measure
-the parser did not read as a unit ("a glassful of good red wine", "one scruple of ginger")
-(`RecipeRepairGrounding.PieceRefusal`). `POST /api/FoodCatalog/quantities/revert?apply=false`
-(`AiRepairRevertService`) checks every journaled `AiRepair` piece fill with the same rule and
-puts back the quantity and measurement its journal entry recorded. A fill journaled without a
+The AI repair lane accepts a count in pieces only when the quote states a number, the food has
+a `GramsPerItem`, or "a"/"an" stands before one countable item ("a bay leaf", "a leg of mutton",
+"a sandwich loaf"). It refuses (`RecipeRepairGrounding.PieceRefusal`, reason codes in brackets) a
+measure the parser did not read as a unit before the first "with"/"or" ("a glassful of good red
+wine", "one scruple of ginger", "a bunch of parsley"; `unread-measure`), "a"/"an" before a vague
+amount ("a little butter", "a few", "a couple of", "a grain of"; `vague-amount`) or before a
+preparation or utensil ("a white sauce", "a clean tin"; `not-an-item`), and a quote with neither
+a number nor an article (`no-count`). The number is read only before the first "of", "with",
+"or" or comma, so "1 large egg beaten with 1 Tablespoon milk" is one egg.
+`POST /api/FoodCatalog/quantities/revert?apply=false` (`AiRepairRevertService`) checks every
+journaled `AiRepair` piece fill with the same rule and puts back the quantity and measurement
+its journal entry recorded. `reasons=vague-amount,unread-measure` limits the revert to those
+reasons; the dry run still counts every reason (`ByReason`), the fills left alone because
+their reason was not chosen (`NotChosen`) and the fills that stay, by why (`GroundedByReason`:
+`states-a-count`, `weight-per-item`, `one-countable-item`); `ReasonMeanings` spells each code out. A fill journaled without a
 line position (`Quantity[{ingredientId}]`) on a recipe with two such lines holding the fill is
 left alone (`Ambiguous`). When the fill's food no longer has any line in the recipe (merged,
 relinked or split since), the fill is looked for on the one line of the recipe that holds the

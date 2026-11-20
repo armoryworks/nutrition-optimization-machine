@@ -93,9 +93,17 @@ namespace Nom.Orch.Models.Curation
         /// line that still holds the filled piece count and states no count of its own.
         /// </summary>
         public int FoundMoved { get; set; }
+        /// <summary>Fills that stay, by why: a stated number, a food with a weight per item, or "a"/"an" before one countable item.</summary>
+        public Dictionary<string, int> GroundedByReason { get; set; } = new();
         public int Ungrounded { get; set; }
-        /// <summary>Ungrounded fills by the reason the grounding rule gives.</summary>
+        /// <summary>Ungrounded fills by the reason the grounding rule gives, whether or not that reason was chosen.</summary>
         public Dictionary<string, int> ByReason { get; set; } = new();
+        /// <summary>The reasons asked for; empty means every reason.</summary>
+        public List<string> Reasons { get; set; } = new();
+        /// <summary>Ungrounded fills left alone because their reason was not asked for.</summary>
+        public int NotChosen { get; set; }
+        /// <summary>What each reason in <see cref="ByReason"/> and <see cref="GroundedByReason"/> means.</summary>
+        public Dictionary<string, string> ReasonMeanings { get; set; } = new();
         public int Recipes { get; set; }
         public int ApprovedRecipes { get; set; }
         /// <summary>Approved recipes that pass the line rules now and would not after the revert.</summary>
