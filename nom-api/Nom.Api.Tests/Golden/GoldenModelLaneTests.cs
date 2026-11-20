@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -13,7 +15,8 @@ namespace Nom.Api.Tests.Golden
     /// golden scorer must have a committed score record (when model-lanes.json marks it required)
     /// whose prompt signature and case set match the code and the golden files of this commit, and
     /// whose score reaches the lane's floor. A changed prompt, schema or option, or a changed set,
-    /// holds the release until an operator scores the lane again.
+    /// holds the release until an operator scores the lane again. A lane that was never scored and
+    /// is not required is reported as a skipped test, not a pass.
     /// </summary>
     [Trait("Category", "Golden")]
     public class GoldenModelLaneTests
@@ -30,7 +33,7 @@ namespace Nom.Api.Tests.Golden
             _ => Enumerable.Empty<string>(),
         };
 
-        [Fact]
+        [ModelLaneFact(ModelLaneSkip.WhenNoLaneIsChecked)]
         public async Task Every_scored_model_lane_has_a_current_record_at_or_above_its_floor()
         {
             var failures = new List<string>();
@@ -69,6 +72,45 @@ namespace Nom.Api.Tests.Golden
             }
 
             failures.Should().BeEmpty("a model lane below its floor, or scored against another prompt or set, holds the release");
+        }
+
+        [ModelLaneFact(ModelLaneSkip.WhenAnyLaneIsUnscored)]
+        public void Every_model_lane_with_a_scorer_has_been_scored()
+        {
+            ModelLanes.Unscored(GoldenSet.Folder).Should().BeEmpty();
+        }
+
+        [Fact]
+        public void The_gate_names_every_unscored_lane_and_checks_nothing_while_none_is_scored()
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "lanes-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path.Combine(folder, ModelLanes.ScoresFolder));
+            try
+            {
+                File.WriteAllText(Path.Combine(folder, ModelLanes.FloorsFile),
+                    "{\"link-pick\": {\"scorer\": true}, \"link-verify\": {\"scorer\": true}, \"repair\": {\"scorer\": false}}");
+
+                ModelLaneGate.NothingChecked(folder).Should().Contain("link-pick, link-verify");
+                ModelLaneGate.NotArmed(folder).Should().Contain("link-pick, link-verify").And.NotContain("repair");
+
+                File.WriteAllText(ModelLanes.RecordPath(folder, "link-pick"), "{}");
+                ModelLaneGate.NothingChecked(folder).Should().BeNull();
+                ModelLaneGate.NotArmed(folder).Should().Contain("link-verify").And.NotContain("link-pick");
+            }
+            finally
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void The_committed_lanes_are_reported_unscored_until_a_record_is_committed()
+        {
+            var unscored = ModelLanes.Unscored(GoldenSet.Folder);
+            var records = ModelLanes.Scored.Where(l => ModelLanes.Recorded(GoldenSet.Folder, l) != null).ToList();
+
+            unscored.Should().BeEquivalentTo(ModelLanes.Scored.Except(records).Where(l => !ModelLanes.Floors(GoldenSet.Folder)[l].Required));
+            if (unscored.Count > 0) ModelLaneGate.NotArmed(GoldenSet.Folder).Should().NotBeNull();
         }
 
         [Fact]

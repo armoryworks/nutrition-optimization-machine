@@ -126,6 +126,17 @@ namespace Nom.Import.Golden
 
         public static string RecordPath(string goldenDir, string lane) => Path.Combine(goldenDir, ScoresFolder, lane + ".json");
 
+        /// <summary>
+        /// The lanes with a golden scorer that have no score record and that model-lanes.json does
+        /// not require yet: the release gate checks nothing for them until they are scored.
+        /// </summary>
+        public static IReadOnlyList<string> Unscored(string goldenDir) =>
+            Floors(goldenDir)
+                .Where(f => f.Value.Scorer && !f.Value.Required && !File.Exists(RecordPath(goldenDir, f.Key)))
+                .Select(f => f.Key)
+                .OrderBy(l => l, StringComparer.Ordinal)
+                .ToList();
+
         public static LaneScore? Recorded(string goldenDir, string lane) =>
             File.Exists(RecordPath(goldenDir, lane))
                 ? JsonSerializer.Deserialize<LaneScore>(File.ReadAllText(RecordPath(goldenDir, lane)), Json)
