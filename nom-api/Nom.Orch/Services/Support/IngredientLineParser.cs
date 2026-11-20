@@ -291,7 +291,7 @@ namespace Nom.Orch.Services.Support
         private const string ContainerQualifier = @"(?:(?:large|small|medium|big|regular|standard|whole|full|tall|jumbo|(?:family|large|medium|small)[- ]sized?)\s+)*";
 
         private static readonly string Size =
-            @"(?:(?:about|approx\.?|approximately)\s+)?(?<sq>" + Number + @")(?:\s*(?:-|–|to)\s*(?:" + Number + @"))?(?<hy>[\s-]*)" +
+            @"(?:(?<about>about|approx\.?|approximately)\s+)?(?<sq>" + Number + @")(?:\s*(?:-|–|to)\s*(?:" + Number + @"))?(?<hy>[\s-]*)" +
             @"(?<su>" + SizeUnit + @")(?![a-z])(?!(?<=pounds?|lbs?)\.?[\s,]*(?:and\s+)?(?:" + Number + @")[\s-]*(?:ounces?|ozs?)(?![a-z]))\.?" +
             @"(?:\s*/\s*(?:" + Number + @")[\s-]*(?:" + SizeUnit + @")(?![a-z])\.?)?";
 
@@ -342,7 +342,13 @@ namespace Nom.Orch.Services.Support
             }
 
             var after = SizeAfterContainer.Match(line);
-            if (after.Success) return Sized(after, each: !after.Groups["total"].Success, out containers);
+            if (after.Success)
+            {
+                var whole = ParseQuantity(after.Groups["count"].Value) is { } count && count == decimal.Truncate(count);
+                var each = after.Groups["each"].Success
+                    || (!after.Groups["total"].Success && whole && !after.Groups["about"].Success);
+                return Sized(after, each, out containers);
+            }
 
             var later = SizeLater.Match(line);
             if (later.Success && (later.Groups["each"].Success || later.Groups["total"].Success || ParseQuantity(later.Groups["count"].Value) == 1m))

@@ -282,5 +282,19 @@ namespace Nom.Api.Tests.Services
             IngredientLineParser.SizedContainers("1 (3-pound) chicken").Should().BeNull();
             IngredientLineParser.SizedContainers("1 can tomatoes").Should().BeNull();
         }
+
+        [Theory]
+        [InlineData("2 cans (about 30 ounces) low-sodium diced tomatoes, drained", 30, "Ounce")]
+        [InlineData("1/2 can (about 8 ounces) low-sodium kidney beans, drained", 8, "Ounce")]
+        [InlineData("1/2 can (7.5 oz) chickpeas", 7.5, "Ounce")]
+        [InlineData("1 1/2 bags (24 ounces of dry small red beans)", 24, "Ounce")]
+        [InlineData("1/2 can (8 oz fat-free refried beans)", 8, "Ounce")]
+        [InlineData("2 cans (15 oz each) corn", 30, "Ounce")]
+        [InlineData("2 cans (15 oz) black beans", 30, "Ounce")]
+        [InlineData("1 can (15 oz) corn", 15, "Ounce")]
+        public void A_size_after_a_part_count_or_an_about_is_the_amount_of_the_line(string raw, double expected, string measurement)
+        {
+            IngredientLineParser.StatedSize(raw).Should().Be(new ParsedQuantity((decimal)expected, measurement));
+        }
     }
 }
