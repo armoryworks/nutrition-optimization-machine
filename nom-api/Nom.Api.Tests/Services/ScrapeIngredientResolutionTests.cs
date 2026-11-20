@@ -272,5 +272,38 @@ namespace Nom.Api.Tests.Services
             lines.Single(l => l.IngredientId == chickpeas.Id).Should().Match<RecipeIngredientEntity>(l => l.Quantity == 1m && l.MeasurementId == 20);
             lines.Single(l => l.IngredientId != chickpeas.Id).Should().Match<RecipeIngredientEntity>(l => l.Quantity == 15m && l.MeasurementId == 7);
         }
+
+        [Theory]
+        [InlineData(false, 0, 1)]
+        [InlineData(true, 2, 22)]
+        public async Task A_line_whose_measurement_has_no_row_is_stored_without_an_amount_and_never_in_grams(bool packageRow, int quantity, long measurementId)
+        {
+            using var db = NewContext();
+            db.Set<Nom.Data.Measurement.BaseMeasurementEntity>().AddRange(
+                new Nom.Data.Measurement.BaseMeasurementEntity { Id = 1, Name = "Gram", Symbol = "g", MeasurementCategoryId = 1 },
+                new Nom.Data.Measurement.BaseMeasurementEntity { Id = 3, Name = "Piece", Symbol = "pc", MeasurementCategoryId = 3 });
+            if (packageRow)
+            {
+                db.Set<Nom.Data.Measurement.BaseMeasurementEntity>().Add(
+                    new Nom.Data.Measurement.BaseMeasurementEntity { Id = 22, Name = "Package", Symbol = "pkg", MeasurementCategoryId = 3, IsContainer = true });
+            }
+            await db.SaveChangesAsync();
+
+            var result = await NewService(db).ImportStagedAsync(new StagedImportRequestModel
+            {
+                Recipes =
+                {
+                    new ScraperRecipe
+                    {
+                        Name = "Bread",
+                        Ingredients = { new ScraperIngredient { Name = "active dry yeast", RawLine = "2 packages active dry yeast", Quantity = 2, Unit = "packages" } },
+                    },
+                },
+            });
+
+            result.Imported.Should().Be(1);
+            var line = await db.RecipeIngredients.SingleAsync();
+            (line.Quantity, line.MeasurementId).Should().Be(((decimal)quantity, measurementId));
+        }
     }
 }

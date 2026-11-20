@@ -432,7 +432,7 @@ namespace Nom.Orch.Services
             var scrapedAmounts = scraped.Ingredients.ToDictionary(i => i, i => (i.Quantity, i.Unit), ReferenceEqualityComparer.Instance);
             foreach (var ingredient in scraped.Ingredients)
             {
-                var parsed = Support.IngredientLineParser.Normalize(ingredient.Quantity, ingredient.Unit, ingredient.RawLine);
+                var parsed = await KnownMeasurementAsync(Support.IngredientLineParser.Normalize(ingredient.Quantity, ingredient.Unit, ingredient.RawLine), ingredient.RawLine);
                 ingredient.Quantity = parsed?.Quantity;
                 ingredient.Unit = parsed?.MeasurementName;
             }
@@ -497,7 +497,7 @@ namespace Nom.Orch.Services
                 var ingredientEntity = await FindOrCreateIngredientAsync(Clamp(ingredient.Name, 2047)!, personId);
                 if (PackageLineService.WeighsDrained(ingredientEntity.Name) && scrapedAmounts.TryGetValue(ingredient, out var amount))
                 {
-                    var counted = Support.IngredientLineParser.Normalize(amount.Quantity, amount.Unit, ingredient.RawLine, drained: true);
+                    var counted = await KnownMeasurementAsync(Support.IngredientLineParser.Normalize(amount.Quantity, amount.Unit, ingredient.RawLine, drained: true), ingredient.RawLine);
                     ingredient.Quantity = counted?.Quantity;
                     ingredient.Unit = counted?.MeasurementName;
                 }
@@ -682,13 +682,11 @@ namespace Nom.Orch.Services
             await _dbContext.SaveChangesAsync();
         }
 
-        private async Task<long> ResolveMeasurementIdAsync(string? unit)
-        {
-            if (string.IsNullOrWhiteSpace(unit))
-            {
-                return DefaultMeasurementId;
-            }
+        private async Task<long> ResolveMeasurementIdAsync(string? unit) =>
+            string.IsNullOrWhiteSpace(unit) ? DefaultMeasurementId : await FindMeasurementIdAsync(unit) ?? DefaultMeasurementId;
 
+        private async Task<long?> FindMeasurementIdAsync(string unit)
+        {
             var lowered = unit.Trim().ToLowerInvariant();
             var trimmedSingular = lowered.TrimEnd('s');
 
@@ -698,7 +696,19 @@ namespace Nom.Orch.Services
                     m.Name.ToLower() == trimmedSingular ||
                     m.Symbol.ToLower() == lowered);
 
-            return measurement?.Id ?? DefaultMeasurementId;
+            return measurement?.Id;
+        }
+
+        /// <summary>
+        /// The parsed amount when its measurement has a row, otherwise nothing: the line is then
+        /// stored unmeasured (Quantity 0) with a warning, never counted in the fallback unit, where
+        /// "2 packages yeast" would read as 2 grams.
+        /// </summary>
+        private async Task<Support.ParsedQuantity?> KnownMeasurementAsync(Support.ParsedQuantity? parsed, string? rawLine)
+        {
+            if (parsed == null || await FindMeasurementIdAsync(parsed.MeasurementName) != null) return parsed;
+            _logger.LogWarning("Import: measurement {Measurement} has no row, so the line \"{Line}\" is stored without an amount", parsed.MeasurementName, rawLine);
+            return null;
         }
 
         /// <summary>
