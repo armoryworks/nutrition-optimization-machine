@@ -350,7 +350,8 @@ export class RecipeForm implements OnInit {
   /**
    * A row whose text was typed (not picked from the suggestions) has no
    * ingredientId and fails validation even though it LOOKS filled — the tester
-   * report behind N-28. If the typed text exactly matches a loaded suggestion,
+   * report behind N-28. If the typed text exactly matches a loaded suggestion's
+   * name, or its alias when a rule or a person put that alias on the food,
    * select it silently.
    */
   private repairUnmatchedIngredients(): void {
@@ -364,7 +365,8 @@ export class RecipeForm implements OnInit {
       }
       const rowId = g.get('rowId')?.value;
       const match = (this.ingredientOptions().get(rowId) ?? []).find(
-        (o) => o.name.toLowerCase() === typed || (o.matchedAlias ?? '').toLowerCase() === typed);
+        (o) => o.name.toLowerCase() === typed
+          || (o.matchedAliasTrusted === true && (o.matchedAlias ?? '').toLowerCase() === typed));
       if (match) {
         this.onIngredientSelected(i, match);
       } else {

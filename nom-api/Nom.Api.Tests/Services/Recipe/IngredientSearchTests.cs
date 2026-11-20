@@ -173,6 +173,28 @@ namespace Nom.Api.Tests.Services.Recipe
             result.MatchedAlias.Should().Be("garbanzo beans");
         }
 
+        [Theory]
+        [InlineData(null, false)]
+        [InlineData("link:ai:fake", false)]
+        [InlineData("admin:link:ai:fake", true)]
+        [InlineData("deterministic:recheck:name-match", true)]
+        public async Task The_matched_alias_says_whether_it_is_trusted(string? context, bool trusted)
+        {
+            await using var db = NewContext();
+            var chickpeas = WithNutrition(Food("Chickpeas, mature seeds, canned, drained solids", CurationStatusEnum.Curated));
+            chickpeas.Aliases.Add(new IngredientAliasEntity { AliasName = "garbanzo beans", SourceContext = context });
+            db.Ingredients.AddRange(chickpeas, WithNutrition(Food("Potato, flesh and skin, raw", CurationStatusEnum.Curated)));
+            await db.SaveChangesAsync();
+
+            var byAlias = (await NewService(db).SearchIngredientsAsync("garbanzo beans")).Single();
+            var byName = (await NewService(db).SearchIngredientsAsync("potato")).Single();
+
+            byAlias.MatchedAlias.Should().Be("garbanzo beans");
+            byAlias.MatchedAliasTrusted.Should().Be(trusted);
+            byName.MatchedAlias.Should().BeNull();
+            byName.MatchedAliasTrusted.Should().BeFalse();
+        }
+
         [Fact]
         public async Task Search_KeepsAnExactMatchWithoutData_WhenFoodsWithDataFillTheList()
         {

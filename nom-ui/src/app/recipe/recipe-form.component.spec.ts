@@ -7,6 +7,27 @@ import { of } from 'rxjs';
 import { RecipeForm } from './recipe-form.component';
 import { MeasurementService } from '../core/services/measurement.service';
 import { PolicyService } from '../core/services/policy.service';
+import { IngredientSearchResult } from '../core/models/ingredient-search-result.model';
+
+function create() {
+  TestBed.configureTestingModule({
+    imports: [RecipeForm],
+    providers: [
+      provideHttpClient(),
+      provideHttpClientTesting(),
+      provideNoopAnimations(),
+      provideRouter([]),
+      {
+        provide: MeasurementService,
+        useValue: { loadMeasurements: () => of([{ id: 1, name: 'Cup', symbol: 'cup', categoryId: 2, categoryName: 'Volume' }]) },
+      },
+      { provide: PolicyService, useValue: { loadOwnPolicyForPrimaryHousehold: () => undefined, isGatedPrimary: () => false } },
+    ],
+  });
+  const fixture = TestBed.createComponent(RecipeForm);
+  fixture.detectChanges();
+  return fixture;
+}
 
 describe('RecipeForm invalid submit feedback', () => {
   const originalScrollIntoView = Element.prototype.scrollIntoView;
@@ -20,26 +41,6 @@ describe('RecipeForm invalid submit feedback', () => {
   afterEach(() => {
     Element.prototype.scrollIntoView = originalScrollIntoView;
   });
-
-  function create() {
-    TestBed.configureTestingModule({
-      imports: [RecipeForm],
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        provideNoopAnimations(),
-        provideRouter([]),
-        {
-          provide: MeasurementService,
-          useValue: { loadMeasurements: () => of([{ id: 1, name: 'Cup', symbol: 'cup', categoryId: 2, categoryName: 'Volume' }]) },
-        },
-        { provide: PolicyService, useValue: { loadOwnPolicyForPrimaryHousehold: () => undefined, isGatedPrimary: () => false } },
-      ],
-    });
-    const fixture = TestBed.createComponent(RecipeForm);
-    fixture.detectChanges();
-    return fixture;
-  }
 
   it('names the blank ingredient and scrolls to it when the row has a quantity and unit but no ingredient', async () => {
     const fixture = create();
@@ -108,5 +109,57 @@ describe('RecipeForm nutrition hints', () => {
     expect(component.nutritionGap(0)).toBe('no-conversion');
     const hint = fixture.nativeElement.querySelector('[data-testid="recipe-ingredient-unit-gap"]') as HTMLElement;
     expect(hint?.textContent).toContain('Use g or oz so it counts');
+  });
+});
+
+describe('RecipeForm typed ingredient that equals the alias of a suggestion', () => {
+  const originalScrollIntoView = Element.prototype.scrollIntoView;
+
+  beforeEach(() => {
+    Element.prototype.scrollIntoView = vi.fn() as unknown as typeof Element.prototype.scrollIntoView;
+  });
+
+  afterEach(() => {
+    Element.prototype.scrollIntoView = originalScrollIntoView;
+  });
+
+  function submitTyped(typed: string, suggestion: IngredientSearchResult) {
+    const fixture = create();
+    const component = fixture.componentInstance;
+    const row = component.ingredientsArray.at(0);
+    row.patchValue({ searchText: typed, quantity: 1, measurementId: 1 });
+    component.ingredientOptions.set(new Map([[row.get('rowId')?.value as number, [suggestion]]]));
+
+    component.onSubmit();
+
+    return row;
+  }
+
+  it('leaves the row unmatched when nobody has confirmed the alias', () => {
+    const row = submitTyped('Kosher Salt', { id: 280659, name: 'Salt', matchedAlias: 'kosher salt', matchedAliasTrusted: false });
+
+    expect(row.get('ingredientId')?.value).toBe(0);
+    expect(row.get('searchText')?.hasError('unmatched')).toBe(true);
+  });
+
+  it('leaves the row unmatched when the server does not say whether the alias is trusted', () => {
+    const row = submitTyped('kosher salt', { id: 280659, name: 'Salt', matchedAlias: 'kosher salt' });
+
+    expect(row.get('ingredientId')?.value).toBe(0);
+    expect(row.get('searchText')?.hasError('unmatched')).toBe(true);
+  });
+
+  it('selects the suggestion when a rule or a person put the alias on the food', () => {
+    const row = submitTyped('Large Eggs', { id: 278540, name: 'Eggs', matchedAlias: 'large eggs', matchedAliasTrusted: true });
+
+    expect(row.get('ingredientId')?.value).toBe(278540);
+    expect(row.get('searchText')?.value).toBe('Eggs');
+    expect(row.get('searchText')?.hasError('unmatched')).toBe(false);
+  });
+
+  it('selects the suggestion whose own name was typed, whatever its alias', () => {
+    const row = submitTyped('salt', { id: 280659, name: 'Salt', matchedAlias: 'kosher salt', matchedAliasTrusted: false });
+
+    expect(row.get('ingredientId')?.value).toBe(280659);
   });
 });

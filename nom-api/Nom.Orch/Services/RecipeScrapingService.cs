@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
+using Nom.Data.Audit;
 using Nom.Data.Recipe;
 using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
@@ -32,6 +33,9 @@ namespace Nom.Orch.Services
     {
         /// <summary>Fallback unit for unparseable ingredient lines. Seeded "each"-style measurement.</summary>
         private const long DefaultMeasurementId = 1L;
+
+        public const string NameFreedChangeType = "NameFreed";
+        public const string NameFreedEntityType = "Ingredient";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly ICurrentUserService _currentUser;
@@ -550,8 +554,11 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// Finds an ingredient by exact name or alias (case-insensitive, translated
-        /// to SQL via ToLower — StringComparison overloads don't translate in EF).
+        /// The catalog row a scraped ingredient name belongs on, tried in this order: a live
+        /// ingredient of that name, then the one food a trusted alias gives the name to, and
+        /// otherwise a new uncurated ingredient that the link lane proposes a food for later.
+        /// Matching is case-insensitive (translated to SQL via ToLower — StringComparison
+        /// overloads don't translate in EF).
         /// </summary>
         private async Task<IngredientEntity> FindOrCreateIngredientAsync(string name, long? personId)
         {
@@ -562,31 +569,87 @@ namespace Nom.Orch.Services
             var trimmed = Support.IngredientNameNormalizer.Normalize(name);
             var lowered = trimmed.ToLowerInvariant();
 
-            var ingredient = await _dbContext.Ingredients
-                .FirstOrDefaultAsync(i => i.Name.ToLower() == lowered && !i.IsDeleted);
+            return await FindByNameAsync(lowered)
+                ?? await FindByTrustedAliasAsync(lowered)
+                ?? await CreateIngredientAsync(trimmed, personId);
+        }
 
-            if (ingredient == null)
+        /// <summary>The live ingredient of this name; a curated one before an uncurated one, then the oldest.</summary>
+        private Task<IngredientEntity?> FindByNameAsync(string lowered) =>
+            _dbContext.Ingredients
+                .Where(i => i.Name.ToLower() == lowered && !i.IsDeleted)
+                .OrderByDescending(i => i.CurationStatusId == (long)CurationStatusEnum.Curated)
+                .ThenBy(i => i.Id)
+                .FirstOrDefaultAsync();
+
+        /// <summary>
+        /// The live food that a deterministic rule or a person gave this wording to (see
+        /// <see cref="IngredientAliasTrust"/>). An alias of unknown origin or from a model pick is
+        /// not followed, and neither is a wording that two foods both claim.
+        /// </summary>
+        private async Task<IngredientEntity?> FindByTrustedAliasAsync(string lowered)
+        {
+            var owners = await _dbContext.IngredientAliases
+                .Where(a => a.AliasName.ToLower() == lowered && !a.IsDeleted && !a.Ingredient.IsDeleted)
+                .Where(IngredientAliasTrust.IsTrustedAlias)
+                .Select(a => a.IngredientId)
+                .Distinct()
+                .Take(2)
+                .ToListAsync();
+            if (owners.Count != 1) return null;
+
+            var ownerId = owners[0];
+            return await _dbContext.Ingredients.FirstOrDefaultAsync(i => i.Id == ownerId && !i.IsDeleted);
+        }
+
+        private async Task<IngredientEntity> CreateIngredientAsync(string name, long? personId)
+        {
+            await FreeNameAsync(name, personId);
+
+            var ingredient = new IngredientEntity
             {
-                ingredient = await _dbContext.IngredientAliases
-                    .Where(a => a.AliasName.ToLower() == lowered && !a.IsDeleted)
-                    .Select(a => a.Ingredient)
-                    .FirstOrDefaultAsync(i => !i.IsDeleted);
-            }
-
-            if (ingredient == null)
-            {
-                ingredient = new IngredientEntity
-                {
-                    Name = trimmed,
-                    CurationStatusId = (long)CurationStatusEnum.NonCurated,
-                    CreatedDate = DateTime.UtcNow,
-                    CreatedByPersonId = personId,
-                };
-                _dbContext.Ingredients.Add(ingredient);
-                await _dbContext.SaveChangesAsync();
-            }
-
+                Name = name,
+                CurationStatusId = (long)CurationStatusEnum.NonCurated,
+                CreatedDate = DateTime.UtcNow,
+                CreatedByPersonId = personId,
+            };
+            _dbContext.Ingredients.Add(ingredient);
+            await _dbContext.SaveChangesAsync();
             return ingredient;
+        }
+
+        /// <summary>
+        /// A soft-deleted row still occupies its name in the unique index, so a retired ingredient
+        /// that holds the name is renamed out of the way, and the rename journaled, before a new
+        /// row takes it.
+        /// </summary>
+        private async Task FreeNameAsync(string name, long? personId)
+        {
+            var holders = await _dbContext.Ingredients
+                .IgnoreQueryFilters()
+                .Where(i => i.IsDeleted && i.Name == name)
+                .ToListAsync();
+            if (holders.Count == 0) return;
+
+            foreach (var holder in holders)
+            {
+                var freed = $"{holder.Name} (deleted #{holder.Id})";
+                if (freed.Length > 2000) freed = freed[..2000];
+                _dbContext.AuditLogEntries.Add(new AuditLogEntryEntity
+                {
+                    EntityType = NameFreedEntityType,
+                    EntityId = holder.Id,
+                    ChangeType = NameFreedChangeType,
+                    PropertyName = nameof(IngredientEntity.Name),
+                    OldValue = holder.Name,
+                    NewValue = freed,
+                    Timestamp = DateTime.UtcNow,
+                    ChangedByPersonId = personId ?? SystemConstants.SystemPersonId,
+                });
+                holder.Name = freed;
+            }
+
+            await _dbContext.SaveChangesAsync();
         }
 
         private async Task<long> ResolveMeasurementIdAsync(string? unit)

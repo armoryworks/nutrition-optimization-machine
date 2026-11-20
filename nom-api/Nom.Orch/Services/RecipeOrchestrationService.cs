@@ -107,8 +107,10 @@ namespace Nom.Orch.Services
 
             foreach (var row in rows)
             {
-                row.Result.MatchedAlias = row.Aliases
-                    .FirstOrDefault(a => stems.All(s => a.ToLowerInvariant().Contains(s)));
+                var matched = row.Aliases
+                    .FirstOrDefault(a => stems.All(s => a.AliasName.ToLowerInvariant().Contains(s)));
+                row.Result.MatchedAlias = matched?.AliasName;
+                row.Result.MatchedAliasTrusted = IngredientAliasTrust.IsTrusted(matched?.SourceContext);
             }
             return rows.Select(r => r.Result).ToList();
         }
@@ -116,7 +118,13 @@ namespace Nom.Orch.Services
         private sealed class IngredientSearchRow
         {
             public IngredientSearchResponseModel Result { get; init; } = new();
-            public List<string> Aliases { get; init; } = new();
+            public List<IngredientSearchAlias> Aliases { get; init; } = new();
+        }
+
+        private sealed class IngredientSearchAlias
+        {
+            public string AliasName { get; init; } = string.Empty;
+            public string? SourceContext { get; init; }
         }
 
         private static IQueryable<IngredientSearchRow> Project(IQueryable<IngredientEntity> ingredients) =>
@@ -134,7 +142,7 @@ namespace Nom.Orch.Services
                     CanWeighVolume = i.GramsPerMilliliter > 0,
                     CanWeighCount = i.GramsPerItem > 0 || i.ReferenceServingGrams > 0
                 },
-                Aliases = i.Aliases.Select(a => a.AliasName).ToList()
+                Aliases = i.Aliases.Select(a => new IngredientSearchAlias { AliasName = a.AliasName, SourceContext = a.SourceContext }).ToList()
             });
 
         /// <summary>

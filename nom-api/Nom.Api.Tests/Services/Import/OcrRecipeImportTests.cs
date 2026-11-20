@@ -150,6 +150,41 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public async Task A_line_is_not_linked_through_an_alias_with_no_context()
+        {
+            using var db = NewContext();
+            db.Ingredients.Add(new IngredientEntity { Id = 4, Name = "Light Cream", CurationStatusId = 9003 });
+            db.IngredientAliases.AddRange(
+                new IngredientAliasEntity { IngredientId = 4, AliasName = "cream" },
+                new IngredientAliasEntity { IngredientId = 4, AliasName = "half-and-half", SourceContext = "link:ai:fake" });
+            await db.SaveChangesAsync();
+
+            var ocr = FullRecipe();
+            ocr.Ingredients = new List<string> { "1 cup cream", "2 cups half-and-half" };
+            var result = await NewService(db, ocr).ImportFromImageAsync(new byte[] { 1 }, AuthorId);
+
+            (await db.RecipeIngredients.CountAsync(ri => ri.RecipeId == result.Id)).Should().Be(0);
+            result.Message.Should().Contain("1 cup cream").And.Contain("2 cups half-and-half");
+        }
+
+        [Fact]
+        public async Task A_line_is_linked_through_a_trusted_alias()
+        {
+            using var db = NewContext();
+            db.Ingredients.Add(new IngredientEntity { Id = 5, Name = "Eggs", CurationStatusId = 9003 });
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = 5, AliasName = "large egg", SourceContext = "deterministic:recheck:staple" });
+            await db.SaveChangesAsync();
+
+            var ocr = FullRecipe();
+            ocr.Ingredients = new List<string> { "1 large egg, beaten" };
+            var result = await NewService(db, ocr).ImportFromImageAsync(new byte[] { 1 }, AuthorId);
+
+            var row = await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == result.Id);
+            row.IngredientId.Should().Be(5);
+            row.RawLine.Should().Be("1 large egg, beaten");
+        }
+
+        [Fact]
         public async Task Flags_transcribed_prose_so_it_stays_out_of_public_listings()
         {
             using var db = NewContext();

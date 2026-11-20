@@ -240,13 +240,17 @@ namespace Nom.Orch.Services
         /// quantity ("1 teaspoon vanilla extract") are replaced by their normalised form, every
         /// ingredient gets its NameNormalized filled, and model picks that were marked "not
         /// verified" while their name still carried a prefix are reset so triangulation looks again.
+        /// The normalised alias keeps the context of the alias it replaces; when several collapse
+        /// into one, a trusted context wins. A food's USDA description and the names of foods
+        /// retired into it are not recipe wordings and are left as they are, and a wording that was
+        /// removed from a food is not put back on it.
         /// </summary>
         public async Task<CatalogNormalizeResult> NormalizeAsync(bool apply)
         {
             var result = new CatalogNormalizeResult();
             var aliases = await _db.IngredientAliases
-                .Where(a => !a.IsDeleted)
-                .Select(a => new { a.Id, a.IngredientId, a.AliasName })
+                .IgnoreQueryFilters()
+                .Select(a => new { a.IngredientId, a.AliasName, a.SourceContext, a.IsDeleted })
                 .ToListAsync();
             var byIngredient = aliases.GroupBy(a => a.IngredientId)
                 .ToDictionary(g => g.Key, g => g.Select(a => a.AliasName).ToHashSet(StringComparer.OrdinalIgnoreCase));
@@ -255,13 +259,22 @@ namespace Nom.Orch.Services
                 .Select(i => new { i.Id, i.Name })
                 .ToDictionaryAsync(i => i.Id, i => i.Name);
 
-            var remove = new List<long>();
-            var add = new List<(long IngredientId, string Alias)>();
+            var remove = new List<(long IngredientId, string AliasName)>();
+            var add = new Dictionary<(long IngredientId, string Lowered), (string Alias, string? SourceContext)>();
             foreach (var a in aliases)
             {
-                if (!IngredientNameNormalizer.IsResidue(a.AliasName)) continue;
-                remove.Add(a.Id);
+                if (a.IsDeleted || !IsRecipeWording(a.SourceContext) || !IngredientNameNormalizer.IsResidue(a.AliasName)) continue;
+                remove.Add((a.IngredientId, a.AliasName));
                 var normalized = IngredientNameNormalizer.Normalize(a.AliasName);
+                var key = (a.IngredientId, normalized.ToLowerInvariant());
+                if (add.TryGetValue(key, out var planned))
+                {
+                    if (!IngredientAliasTrust.IsTrusted(planned.SourceContext) && IngredientAliasTrust.IsTrusted(a.SourceContext))
+                    {
+                        add[key] = (planned.Alias, a.SourceContext);
+                    }
+                    continue;
+                }
                 var owned = byIngredient[a.IngredientId];
                 if (normalized.Length < 2 || owned.Contains(normalized)
                     || (foodNames.TryGetValue(a.IngredientId, out var foodName) && string.Equals(foodName, normalized, StringComparison.OrdinalIgnoreCase)))
@@ -269,7 +282,7 @@ namespace Nom.Orch.Services
                     continue;
                 }
                 owned.Add(normalized);
-                add.Add((a.IngredientId, normalized));
+                add[key] = (normalized, a.SourceContext);
             }
             result.AliasesRemoved = remove.Count;
             result.AliasesAdded = add.Count;
@@ -292,16 +305,21 @@ namespace Nom.Orch.Services
 
             var personId = _currentUser.PersonId;
             await using var tx = await _db.Database.BeginTransactionAsync();
-            foreach (var chunk in remove.Chunk(2000))
+            foreach (var food in remove.GroupBy(r => r.IngredientId))
             {
-                await _db.IngredientAliases.Where(a => chunk.Contains(a.Id)).ExecuteDeleteAsync();
+                var ingredientId = food.Key;
+                var names = food.Select(r => r.AliasName).ToList();
+                var residue = _db.IngredientAliases.Where(a => a.IngredientId == ingredientId && names.Contains(a.AliasName));
+                if (_db.Database.IsRelational()) await residue.ExecuteDeleteAsync();
+                else _db.IngredientAliases.RemoveRange(await residue.ToListAsync());
             }
-            foreach (var (ingredientId, alias) in add)
+            foreach (var ((ingredientId, _), (alias, sourceContext)) in add)
             {
                 _db.IngredientAliases.Add(new IngredientAliasEntity
                 {
                     IngredientId = ingredientId,
                     AliasName = alias,
+                    SourceContext = sourceContext,
                     CreatedDate = DateTime.UtcNow,
                     CreatedByPersonId = personId ?? SystemConstants.SystemPersonId,
                 });
@@ -326,6 +344,15 @@ namespace Nom.Orch.Services
             result.Applied = true;
             return result;
         }
+
+        /// <summary>
+        /// False for an alias that holds a food's USDA description or the name of a food retired
+        /// into it; the matcher and the retire undo look those up by their exact text.
+        /// </summary>
+        private static bool IsRecipeWording(string? sourceContext) =>
+            sourceContext == null
+            || !(sourceContext.StartsWith(IngredientAliasTrust.FdcPrefix, StringComparison.Ordinal)
+                || sourceContext.StartsWith(IngredientAliasTrust.RetiredPrefix, StringComparison.Ordinal));
 
         /// <summary>
         /// Anything beyond recipe links (and the orphan IngredientEntityId

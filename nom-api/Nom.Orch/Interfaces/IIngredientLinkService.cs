@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Nom.Orch.Models.Curation;
 
 namespace Nom.Orch.Interfaces
 {
@@ -52,6 +54,21 @@ namespace Nom.Orch.Interfaces
         /// foods that have already taken their share of them.
         /// </summary>
         Task<LinkApplyAllowance> VerifiedAllowanceAsync(int dailyCap, int perTargetCap, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Rechecks every live alias that has no context against today's deterministic rules and
+        /// marks the ones a rule gives to the food they are on ("deterministic:recheck:name-key",
+        /// ":staple" or ":name-match"), so imports may follow them. An alias a rule gives to another
+        /// food, or that no rule covers, stays without a context. Without <paramref name="apply"/>
+        /// nothing is written. Each mark is written to the audit log and can be undone from it.
+        /// </summary>
+        Task<AliasClassifyResult> ClassifyAliasesAsync(bool apply, long personId, int sampleSize = 50, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Takes the context off every alias marked at or after <paramref name="sinceUtc"/> that
+        /// still carries the mark; one whose context has changed since is skipped.
+        /// </summary>
+        Task<AliasClassifyUndoResult> UndoAliasClassificationAsync(DateTime sinceUtc, long personId, CancellationToken cancellationToken = default);
     }
 
     /// <summary>What is left of the lane's daily allowance and the USDA foods (by FDC id) it must leave alone until tomorrow.</summary>

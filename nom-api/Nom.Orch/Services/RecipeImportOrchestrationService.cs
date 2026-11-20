@@ -166,7 +166,10 @@ namespace Nom.Orch.Services
         /// catalog. OCR yields whole lines ("2 cups all-purpose flour") and there
         /// is no line parser, so a new catalog entry is never created from one —
         /// that would fill the catalog with quantities. Unmatched lines are
-        /// reported to the caller instead of being dropped.
+        /// reported to the caller instead of being dropped. A line is matched by
+        /// an ingredient's name or by an alias a rule or a person put on it (see
+        /// <see cref="IngredientAliasTrust"/>); the link is made without review,
+        /// so an alias of unknown origin is not followed.
         /// </summary>
         private async Task<(int Matched, List<string> Unmatched)> AddIngredientLinesAsync(
             long recipeId, IReadOnlyCollection<string> lines)
@@ -187,6 +190,7 @@ namespace Nom.Orch.Services
 
             var aliases = await _context.IngredientAliases
                 .Where(a => !a.IsDeleted && a.AliasName.Length >= 3)
+                .Where(IngredientAliasTrust.IsTrustedAlias)
                 .Select(a => new { Id = a.IngredientId, Name = a.AliasName })
                 .ToListAsync();
 
