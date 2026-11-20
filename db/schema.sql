@@ -609,6 +609,7 @@ CREATE TABLE curation."LaneDecision" (
     "Decision" character varying(255),
     "Mode" character varying(16) NOT NULL,
     "Written" boolean NOT NULL,
+    "Writes" boolean NOT NULL,
     "SignatureHash" character varying(128),
     "Stratum" character varying(128),
     "SignalsJson" jsonb,

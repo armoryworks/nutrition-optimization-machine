@@ -16,13 +16,13 @@ line classify, dish grouping, tool tagging) keep their own switches until their 
 | Mode | The lane | Leaves it when |
 |---|---|---|
 | `shadow` (also: no row) | decides and records every decision, writes nothing | its audited sample qualifies (`LaneQualify`) |
-| `live` | writes, records every decision with `Written = true` | a pause trigger fires (`LanePause`), or its signature, golden record or audit-check score goes (`LaneShadow`) |
+| `live` | writes, records every decision that writes with `Written = true` | a pause trigger fires (`LanePause`), or its signature, golden record or audit-check score goes (`LaneShadow`) |
 | `paused` | decides in shadow (probation), writes nothing | a sample decided after the pause qualifies again (`LaneResume`); with `ResumeNeedsNewSignature`, only under a new signature |
 
-A lane asks before each write batch:
+A lane asks `AiLaneGate` before each write batch:
 
 ```csharp
-var mode = await gate.WriteModeAsync(lane, tier, ct);    // AiLaneGate
+var mode = await gate.WriteModeAsync(lane, tier, ct);
 ```
 
 That is paused while `ai-pause-all` or `ai-pause-{lane}` is on, or while the lane's or the tier's
@@ -34,10 +34,13 @@ a new lane has no row and starts in shadow.
 
 `curation."LaneDecision"` holds every decision: lane, tier, subject (`wording:123`), the answer,
 the mode, whether it was written, the signature, a stratum, the signals and verdicts as `jsonb`,
-and the audit outcome. `ILaneFrameService.RecordAsync` stores one; a decision recorded in any mode
-but live is never `Written`.
+and the audit outcome. `ILaneFrameService.RecordAsync` stores one. `Writes` says whether the
+decision is one the lane writes (a pick or a rewrite, not an abstention or a no-op) in any mode;
+`Written` says it was written, which only a live lane does. Only decisions that write are audited
+and counted, so the sample a shadow lane qualifies on is the same kind of decision it writes live.
 
-`ILaneFrameService.AuditAsync` reads a stratified random sample of a tier's unaudited decisions:
+`ILaneFrameService.AuditAsync` reads a stratified random sample of a tier's unaudited decisions
+that write:
 the larger of `LaneSamplePlan.Minimum` (default 30) and `Rate` (default 5 %), each stratum in
 proportion. The lane supplies two checks:
 
@@ -83,13 +86,15 @@ widened to the smallest that can (T1 at 1.5 % reads at least 253, not 200).
 on golden known-bad and known-good rows: its sensitivity `Se` and false-flag rate `f`. The lane
 passes the score as `AuditorScore(KnownBad, FlaggedBad, KnownGood, FlaggedGood, Source)`. The
 corrected error is `(p − f) / (Se − f)`. Its bounds use the Wilson bounds of `p`, `Se` and `f` that
-make the lane look worse, so a weak or barely scored check needs a larger sample. A rule audit with
+make the lane look worse, and the upper bound never credits more false flags than errors were
+confirmed (`f` there is at most `p`), so a weak, noisy or barely scored check needs a larger sample
+than an exact one: with no confirmed error the upper bound is `upper(p) / lower(Se)`. A rule audit with
 no sampling error passes `AuditorScore.ExactRule` and is not corrected. Without a usable score the
 lane cannot qualify, and a live lane goes back to shadow.
 
 **Qualify.** Shadow to live when the audited sample (current signature, since the window start)
 is at least the sample needed and `1 − upper(corrected error) ≥ QualifyBar`, and the lane reports
-no golden problem.
+no golden problem and no fault (`PauseReasons`); a shadow lane with a fault stays in shadow.
 
 **Pause.** Live to paused when the lane reports a fault (`PauseReasons`: auditor unreachable, a
 canary false accept, rule-audit failures), or when, over the last `PauseWindow` audited writes:
@@ -99,6 +104,11 @@ canary false accept, rule-audit failures), or when, over the last `PauseWindow` 
 
 A full window that passes marks the newest decision in it as the last clean point (`LastCleanAt`).
 
+The full-window rule asks for proof that the error is under the bar, not proof that it is over it, so
+a lane running at its target still pauses in many windows: with an exact check, one error in T1's 253
+pauses it (about 72 % of windows at 99.5 % precision), and two in T2's 200 (about 59 % at 99 %).
+Each lane sets its bars knowing this.
+
 **Self-undo.** On a pause the frame calls the lane's `ILaneUndo.UndoSinceAsync(tier, LastCleanAt)`,
 first as a dry run (logged and journaled), then applied (journaled). The undo writes its own journal
 in the lane's domain, so it can itself be undone. A lane with no undo registered is paused and
@@ -107,9 +117,10 @@ journaled with "no undo registered"; a failed undo leaves the lane paused and jo
 **Resume.** A pause resets the window start. Probation is the lane deciding in shadow after the
 pause; it resumes when that sample qualifies as above. It never resumes by waiting.
 
-**Signature.** A lane passes a hash of what decides (models, prompt versions, rules version). A
-changed signature sends a live lane back to shadow without an undo; decisions under the old
-signature no longer count.
+**Signature.** A lane passes a hash of what decides (models, prompt versions, rules version). On a
+changed signature the frame first reads the live lane's window under the old signature: if it fails
+the pause test the lane pauses and undoes as above (paused under the old signature); otherwise it
+goes back to shadow without an undo. After that, decisions under the old signature no longer count.
 
 ## Journal
 
@@ -135,10 +146,14 @@ Settings `Ai:Roster` (environment `Ai__Roster__ReaderA` and so on):
 | Auditor (samples only) | `Auditor` | `phi4` | MIT |
 
 The API refuses to start when reader B is of reader A's family, when the auditor is of either
-reader's family, or when a role names Llama or Gemma (licences not OSI-approved). The family is the
-tag's leading letters (`qwen2.5:7b-instruct` is qwen, `mistral-nemo` mistral, `phi4` phi), with
-known offshoots mapped (`mixtral`, `codestral` → mistral; `qwq` → qwen). The final model inside each
-family is chosen by golden score.
+reader's family, or when a role's family is not one known to publish OSI-licensed models (qwen,
+mistral, phi, granite, olmo). The family is the tag's leading letters (`qwen2.5:7b-instruct` is
+qwen, `mistral-nemo` mistral, `phi4` phi), with known offshoots mapped (`mixtral` → mistral; `qwq` →
+qwen); a tag that names Llama or Gemma anywhere (`Meta-Llama-3.1-8B`, `dolphin-llama3`) is of that
+family and refused. Fine-tunes under other names (`hermes3`, `nemotron`) fall outside the list and
+are refused too. The check is by family: a family on the list may still publish a model under
+another licence (Mistral's `codestral`), so the final model inside each family is chosen by golden
+score and its own licence checked.
 
 ## Pipeline page
 

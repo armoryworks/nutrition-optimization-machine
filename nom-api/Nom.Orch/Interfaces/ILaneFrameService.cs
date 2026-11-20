@@ -24,7 +24,7 @@ namespace Nom.Orch.Interfaces
         Task<long> RecordAsync(LaneDecisionInput decision, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Audits a stratified random sample of the tier's unaudited decisions since
+        /// Audits a stratified random sample of the tier's unaudited decisions that write since
         /// <paramref name="sinceUtc"/>. A decision the auditor flags is an error only when
         /// <paramref name="check"/> agrees.
         /// </summary>

@@ -59,7 +59,8 @@ namespace Nom.Orch.Services.Support
     /// <summary>
     /// An error rate from an audited sample: the share of confirmed errors, the same corrected for
     /// the audit check's sensitivity and false flags (Rogan-Gladen), and conservative 95 % bounds
-    /// of the corrected rate.
+    /// of the corrected rate. The upper bound never credits more false flags than errors were
+    /// confirmed, so with no confirmed error no audit check bounds the error below an exact check.
     /// </summary>
     public sealed record ErrorEstimate(int Audited, int Errors, double Observed, double Corrected, double Lower, double Upper);
 
@@ -128,7 +129,8 @@ namespace Nom.Orch.Services.Support
     /// bar; it pauses when the upper bound of its corrected error over a full rolling window, or
     /// the lower bound over a window still filling, is above the pause bar. Errors are corrected
     /// for the audit check with Rogan-Gladen, using the bounds of the check's own score that make
-    /// the lane look worse, so a weak or barely scored auditor needs more audited decisions.
+    /// the lane look worse and never crediting more false flags than errors were confirmed, so a
+    /// weak, noisy or barely scored auditor needs more audited decisions than an exact check.
     /// See docs/architecture/lane-frame.md.
     /// </summary>
     public static class LaneQualifier
@@ -173,7 +175,7 @@ namespace Nom.Orch.Services.Support
                 audited, errors, observed,
                 RoganGladen(observed, se, f, 0),
                 RoganGladen(low, seHigh, fHigh, 0),
-                RoganGladen(high, seLow, fLow, 1));
+                RoganGladen(high, seLow, Math.Min(fLow, observed), 1));
         }
 
         /// <summary>
@@ -260,6 +262,14 @@ namespace Nom.Orch.Services.Support
                 {
                     if (input.PauseReasons.Count > 0)
                         return new(LaneMode.Paused, "paused: " + string.Join("; ", input.PauseReasons), LaneJournal.Pause, false, true, figures);
+
+                    var full = recent != null && input.Recent.Audited >= window;
+                    if (recent != null && (full ? recent.Upper > policy.PauseBar : recent.Lower > policy.PauseBar))
+                    {
+                        return new(LaneMode.Paused, string.Create(CultureInfo.InvariantCulture,
+                            $"paused: {input.Recent.Errors} confirmed errors in the last {input.Recent.Audited} audited writes{(input.SignatureChanged ? " under the previous signature" : "")}, error {(full ? "upper" : "lower")} bound {Pct(full ? recent.Upper : recent.Lower)} above the pause bar {Pct(policy.PauseBar)}"),
+                            LaneJournal.Pause, false, true, figures);
+                    }
                     if (input.SignatureChanged)
                         return new(LaneMode.Shadow, "back to shadow: the signature changed", LaneJournal.Shadow, false, false, figures);
                     if (input.GoldenProblem != null)
@@ -267,19 +277,13 @@ namespace Nom.Orch.Services.Support
                     if (recent == null)
                         return new(LaneMode.Shadow, "back to shadow: " + auditorProblem, LaneJournal.Shadow, false, false, figures);
 
-                    var full = input.Recent.Audited >= window;
-                    if (full ? recent.Upper > policy.PauseBar : recent.Lower > policy.PauseBar)
-                    {
-                        return new(LaneMode.Paused, string.Create(CultureInfo.InvariantCulture,
-                            $"paused: {input.Recent.Errors} confirmed errors in the last {input.Recent.Audited} audited writes, error {(full ? "upper" : "lower")} bound {Pct(full ? recent.Upper : recent.Lower)} above the pause bar {Pct(policy.PauseBar)}"),
-                            LaneJournal.Pause, false, true, figures);
-                    }
                     return new(LaneMode.Live, string.Create(CultureInfo.InvariantCulture,
                         $"live: {input.Recent.Errors} confirmed errors in the last {input.Recent.Audited} audited writes of a {window} window, error upper bound {Pct(recent.Upper)} against the pause bar {Pct(policy.PauseBar)}"),
                         null, full, false, figures);
                 }
                 default:
                 {
+                    if (input.PauseReasons.Count > 0) return Stay(LaneMode.Shadow, "shadow: " + string.Join("; ", input.PauseReasons));
                     if (input.GoldenProblem != null) return Stay(LaneMode.Shadow, "shadow: " + input.GoldenProblem);
                     if (!qualifies) return Stay(LaneMode.Shadow, "shadow: " + standing);
                     return new(LaneMode.Live, "qualified: " + proof, LaneJournal.Qualify, false, false, figures);

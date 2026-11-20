@@ -4,7 +4,7 @@ namespace Nom.Data.Curation
 {
     /// <summary>
     /// One decision of an automated lane, in shadow or live: what it was about, the signals and
-    /// verdicts it rested on, whether it was written, and what the audit found. The lane frame
+    /// verdicts it rested on, whether it writes and was written, and what the audit found. The lane frame
     /// counts the audited rows to qualify a lane and to pause it. Rows are evidence only; the
     /// lane's own write and its journal are elsewhere.
     /// </summary>
@@ -25,6 +25,12 @@ namespace Nom.Data.Curation
 
         /// <summary>Whether the lane wrote the decision; only a live lane writes.</summary>
         public bool Written { get; set; }
+
+        /// <summary>
+        /// Whether the decision is one the lane writes (a pick or a rewrite, not an abstention or a
+        /// no-op), in any mode. Only these are audited and counted to qualify and to pause the lane.
+        /// </summary>
+        public bool Writes { get; set; }
 
         /// <summary>The lane's signature when it decided.</summary>
         public string? SignatureHash { get; set; }

@@ -49,6 +49,10 @@ namespace Nom.Api.Tests.Services
         [InlineData("qwen2.5:14b-instruct", "llama3.1:8b", "phi4", "licence is not OSI-approved")]
         [InlineData("qwen2.5:14b-instruct", "mistral-nemo", "gemma2:9b", "licence is not OSI-approved")]
         [InlineData("qwen2.5:14b-instruct", "", "phi4", "reader B has no model")]
+        [InlineData("qwen2.5:14b-instruct", "mistral-nemo", "hermes3", "not among the families known to publish OSI-licensed models")]
+        [InlineData("qwen2.5:14b-instruct", "mistral-nemo", "nemotron", "not among the families known to publish OSI-licensed models")]
+        [InlineData("qwen2.5:14b-instruct", "mistral-nemo", "hf.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF", "licence is not OSI-approved")]
+        [InlineData("qwen2.5:14b-instruct", "dolphin-llama3", "phi4", "licence is not OSI-approved")]
         public void A_roster_that_lets_a_model_check_its_own_family_or_uses_a_non_osi_family_is_refused(string a, string b, string auditor, string problem)
         {
             var roster = new LaneModelRoster { ReaderA = a, ReaderB = b, Auditor = auditor };

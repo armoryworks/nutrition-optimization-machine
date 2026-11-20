@@ -49,7 +49,8 @@ namespace Nom.Orch.Services
                 Subject = Clip(decision.Subject, 255)!,
                 Decision = Clip(decision.Decision, 255),
                 Mode = decision.Mode,
-                Written = decision.Written && decision.Mode == LaneMode.Live,
+                Writes = decision.Writes,
+                Written = decision.Writes && decision.Mode == LaneMode.Live,
                 SignatureHash = decision.Signature,
                 Stratum = Clip(decision.Stratum, 128),
                 SignalsJson = decision.Signals == null ? null : LaneJournal.Write(decision.Signals),
@@ -138,16 +139,18 @@ namespace Nom.Orch.Services
                 _db.LaneStates.Add(state);
             }
 
-            var signatureChanged = state.SignatureHash != null && state.SignatureHash != request.Signature;
+            var previousSignature = state.SignatureHash;
+            var signatureChanged = previousSignature != null && previousSignature != request.Signature;
             if (signatureChanged) state.WindowStart = state.EvaluatedAt ?? state.Since;
 
-            var qualify = await CountAsync(request, state.WindowStart, null, cancellationToken);
+            var qualify = await CountAsync(request, request.Signature, state.WindowStart, null, cancellationToken);
             var auditorScore = request.Auditor;
             var window = auditorScore?.Problem == null && auditorScore != null
                 ? LaneQualifier.PauseWindow(request.Policy, auditorScore)
                 : request.Policy.PauseWindow;
-            var recent = state.Mode == LaneMode.Live && !signatureChanged
-                ? await CountAsync(request, state.Since, window, cancellationToken)
+            var windowSignature = signatureChanged ? previousSignature! : request.Signature;
+            var recent = state.Mode == LaneMode.Live
+                ? await CountAsync(request, windowSignature, state.Since, window, cancellationToken)
                 : LaneCounts.None;
 
             var verdict = LaneQualifier.Decide(new LaneQualifyInput(
@@ -171,7 +174,7 @@ namespace Nom.Orch.Services
                 if (verdict.Mode == LaneMode.Live) state.LastCleanAt = now;
                 if (verdict.Mode == LaneMode.Paused)
                 {
-                    state.PausedSignatureHash = request.Signature;
+                    state.PausedSignatureHash = request.PauseReasons is { Count: > 0 } ? request.Signature : windowSignature;
                     state.WindowStart = now;
                 }
             }
@@ -272,18 +275,18 @@ namespace Nom.Orch.Services
 
         private ILaneUndo? Undo(string lane) => _undos.FirstOrDefault(u => string.Equals(u.Lane, lane, StringComparison.OrdinalIgnoreCase));
 
-        private async Task<LaneCounts> CountAsync(LaneEvaluateRequest request, DateTime since, int? lastAudited, CancellationToken cancellationToken)
+        private async Task<LaneCounts> CountAsync(LaneEvaluateRequest request, string signature, DateTime since, int? lastAudited, CancellationToken cancellationToken)
         {
             if (lastAudited is { } take)
             {
-                var window = await WindowQuery(_db, request.Lane, request.Tier, request.Signature, since, take).ToListAsync(cancellationToken);
+                var window = await WindowQuery(_db, request.Lane, request.Tier, signature, since, take).ToListAsync(cancellationToken);
                 return new LaneCounts(window.Count, window.Count, window.Count,
                     window.Count(w => w.AuditOutcome == LaneAuditOutcome.Error),
                     window.Count(w => w.AuditOutcome == LaneAuditOutcome.Flagged),
                     window.Count == 0 ? null : window.Max(w => w.CreatedDate));
             }
 
-            var totals = await TotalsQuery(_db, request.Lane, request.Tier, request.Signature, since).FirstOrDefaultAsync(cancellationToken);
+            var totals = await TotalsQuery(_db, request.Lane, request.Tier, signature, since).FirstOrDefaultAsync(cancellationToken);
             return totals ?? LaneCounts.None;
         }
 
@@ -301,9 +304,9 @@ namespace Nom.Orch.Services
                 .Select(g => new LaneCounts(
                     g.Count(),
                     g.Count(d => d.Written),
-                    g.Count(d => d.AuditOutcome != null && Audited.Contains(d.AuditOutcome)),
-                    g.Count(d => d.AuditOutcome == LaneAuditOutcome.Error),
-                    g.Count(d => d.AuditOutcome == LaneAuditOutcome.Flagged),
+                    g.Count(d => d.Writes && d.AuditOutcome != null && Audited.Contains(d.AuditOutcome)),
+                    g.Count(d => d.Writes && d.AuditOutcome == LaneAuditOutcome.Error),
+                    g.Count(d => d.Writes && d.AuditOutcome == LaneAuditOutcome.Flagged),
                     null));
 
         internal static IQueryable<WindowRow> WindowQuery(ApplicationDbContext db, string lane, string tier, string signature, DateTime since, int take) =>
@@ -315,7 +318,7 @@ namespace Nom.Orch.Services
 
         internal static IQueryable<LaneDecisionEntity> AuditPoolQuery(ApplicationDbContext db, string lane, string tier, DateTime since) =>
             db.LaneDecisions
-                .Where(d => d.Lane == lane && d.Tier == tier && d.AuditOutcome == null && d.CreatedDate >= since)
+                .Where(d => d.Lane == lane && d.Tier == tier && d.Writes && d.AuditOutcome == null && d.CreatedDate >= since)
                 .OrderBy(d => d.Id);
 
         internal static IQueryable<RecentCount> RecentCountsQuery(ApplicationDbContext db, DateTime since) =>

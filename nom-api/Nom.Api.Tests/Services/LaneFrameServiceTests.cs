@@ -104,14 +104,14 @@ namespace Nom.Api.Tests.Services
         private static LaneEvaluateRequest Evaluate(string signature = "sig-1", params string[] pauseReasons) =>
             new(Lane, Tier, signature, Policy, AuditorScore.ExactRule, null, pauseReasons);
 
-        private static async Task DecideAsync(Rig rig, int count, string signature = "sig-1", string stratum = "s")
+        private static async Task DecideAsync(Rig rig, int count, string signature = "sig-1", string stratum = "s", bool writes = true)
         {
             await rig.With(async (frame, _) =>
             {
                 var mode = await frame.ModeAsync(Lane, Tier);
                 for (var i = 0; i < count; i++)
                 {
-                    await frame.RecordAsync(new LaneDecisionInput(Lane, Tier, $"wording:{i}", "food:1", mode, Written: true, signature, stratum));
+                    await frame.RecordAsync(new LaneDecisionInput(Lane, Tier, $"wording:{i}", writes ? "food:1" : "none", mode, Writes: writes, signature, stratum));
                 }
                 return 0;
             });
@@ -273,6 +273,42 @@ namespace Nom.Api.Tests.Services
             again.Mode.Should().Be(LaneMode.Shadow);
             again.Figures.Audited.Should().Be(0);
             rig.Undo.Calls.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task A_live_tier_whose_signature_changes_after_a_failing_window_pauses_under_the_old_signature_and_undoes()
+        {
+            using var rig = NewRig();
+            await QualifyAsync(rig);
+            var liveSince = await rig.With(async (_, db) => (await db.LaneStates.SingleAsync()).LastCleanAt!.Value);
+
+            await DecideAsync(rig, 200);
+            var n = 0;
+            await AuditAllAsync(rig, new FakeAuditor { Wrong = _ => n++ % 20 == 0 }, new FakeCheck());
+            var verdict = await rig.With((frame, _) => frame.EvaluateAsync(Evaluate("sig-2")));
+
+            verdict.Mode.Should().Be(LaneMode.Paused);
+            verdict.Journal.Should().Be(LaneJournal.Pause);
+            verdict.Figures.WindowErrors.Should().Be(10);
+            rig.Undo.Calls.Should().Equal((Tier, liveSince, false), (Tier, liveSince, true));
+            (await rig.With(async (_, db) => (await db.LaneStates.SingleAsync()).PausedSignatureHash)).Should().Be("sig-1");
+        }
+
+        [Fact]
+        public async Task Only_decisions_that_write_are_audited_and_counted_to_qualify()
+        {
+            using var rig = NewRig();
+
+            await DecideAsync(rig, 700, writes: false);
+            await DecideAsync(rig, 150);
+            var audit = await AuditAllAsync(rig, new FakeAuditor(), new FakeCheck());
+            var verdict = await rig.With((frame, _) => frame.EvaluateAsync(Evaluate()));
+
+            audit.Available.Should().Be(150);
+            verdict.Mode.Should().Be(LaneMode.Shadow);
+            verdict.Figures.Decisions.Should().Be(850);
+            verdict.Figures.Audited.Should().Be(150);
+            (await rig.With(async (_, db) => await db.LaneDecisions.CountAsync(d => d.Writes))).Should().Be(150);
         }
 
         [Fact]

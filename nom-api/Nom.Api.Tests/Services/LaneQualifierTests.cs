@@ -91,6 +91,51 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_check_that_false_flags_right_rows_never_needs_a_smaller_sample_than_an_exact_check()
+        {
+            var noisy = new AuditorScore(KnownBad: 500, FlaggedBad: 450, KnownGood: 1000, FlaggedGood: 30);
+            var t1 = new LanePolicy(0.99, 0.015);
+
+            LaneQualifier.NeededToQualify(t1, noisy).Should().BeGreaterThan(LaneQualifier.NeededToQualify(t1, Exact)!.Value);
+            LaneQualifier.Correct(0, 200, noisy).Upper.Should().BeGreaterThanOrEqualTo(LaneQualifier.Correct(0, 200, Exact).Upper);
+            LaneQualifier.Decide(Input(LaneMode.Shadow, Audited(126, 0), policy: t1, auditor: noisy), Now).Mode.Should().Be(LaneMode.Shadow);
+        }
+
+        [Fact]
+        public void A_check_that_false_flags_right_rows_does_not_hide_an_error_in_a_full_window()
+        {
+            var noisy = new AuditorScore(KnownBad: 500, FlaggedBad: 450, KnownGood: 1000, FlaggedGood: 30);
+            var t1 = new LanePolicy(0.99, 0.015);
+            var window = LaneQualifier.PauseWindow(t1, noisy);
+
+            var verdict = LaneQualifier.Decide(Input(LaneMode.Live, Audited(1000, 0), recent: Audited(window, 1), policy: t1, auditor: noisy), Now);
+
+            verdict.Mode.Should().Be(LaneMode.Paused);
+            verdict.Undo.Should().BeTrue();
+        }
+
+        [Fact]
+        public void A_shadow_tier_that_reports_a_fault_does_not_qualify()
+        {
+            var verdict = LaneQualifier.Decide(Input(LaneMode.Shadow, Audited(400, 0), policy: new LanePolicy(0.99, 0.015), pauseReasons: "canary false accept"), Now);
+
+            verdict.Mode.Should().Be(LaneMode.Shadow);
+            verdict.Journal.Should().BeNull();
+            verdict.Reason.Should().Contain("canary false accept");
+        }
+
+        [Fact]
+        public void A_live_tier_whose_signature_changed_after_a_failing_window_pauses_and_undoes()
+        {
+            var verdict = LaneQualifier.Decide(Input(LaneMode.Live, LaneCounts.None, recent: Audited(253, 10), signature: "sig-2", changed: true), Now);
+
+            verdict.Mode.Should().Be(LaneMode.Paused);
+            verdict.Journal.Should().Be(LaneJournal.Pause);
+            verdict.Undo.Should().BeTrue();
+            verdict.Reason.Should().Contain("previous signature");
+        }
+
+        [Fact]
         public void A_policy_whose_pause_bar_a_qualified_lane_would_cross_is_refused()
         {
             new LanePolicy(0.98, 0.02).Problems().Should().ContainSingle().Which.Should().Contain("would pause at once");

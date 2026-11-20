@@ -7,7 +7,8 @@ namespace Nom.Orch.Models.Curation
 {
     /// <summary>
     /// One decision a lane records: what it was about, its answer, the mode it decided in and
-    /// whether it wrote. <see cref="Signals"/> and <see cref="Verdicts"/> are stored as JSON.
+    /// whether it writes (a pick or a rewrite, not an abstention or a no-op), whatever the mode.
+    /// <see cref="Signals"/> and <see cref="Verdicts"/> are stored as JSON.
     /// </summary>
     public sealed record LaneDecisionInput(
         string Lane,
@@ -15,7 +16,7 @@ namespace Nom.Orch.Models.Curation
         string Subject,
         string? Decision,
         string Mode,
-        bool Written,
+        bool Writes,
         string Signature,
         string? Stratum = null,
         object? Signals = null,
