@@ -645,7 +645,13 @@ ingredient is only journaled as `LineClassifySuggested` unless
 (`RecipeLineLabelReviewService`) returns the labels already written to ingredient. By default
 it covers the certain cases only; `shortLines=true` adds the wider rule (a line of 40
 characters or fewer on a curated food), which also returns harmless lines such as "boiling
-water". The dry run reports both rules (`Certain`, `WithShortLines`) with lines, recipes,
+water". A line that reads as a heading or a note is never vetoed and so never returned
+(`RecipeLineKindGuard.ReadsAsHeading`): a label before a colon not followed by an amount
+("Piping tips: Wilton #125, ..."; "egg wash: 1 large egg ..." still counts), a line in capitals
+("MEATBALLS"), a line that starts with "or" ("or 6 baked potatoes") and fat or liquid taken from
+the dish itself ("dripping from the top of the soup"). Single food names that are headings or
+serving notes ("Mashed Potatoes", "Pears", "Asparagus") have no such signal and are still
+returned. The dry run reports both rules (`Certain`, `WithShortLines`) with lines, recipes,
 approved recipes and `ApprovedStopPassing`: approved recipes that pass the line rules
 (unquantified allowance, curated foods) now and would not after the change. Each change is a
 `LineKindReview` audit entry; `POST /api/FoodCatalog/labels/undo?sinceUtc=<start>` restores a
