@@ -451,5 +451,22 @@ namespace Nom.Api.Tests.Services.Curation
             RecipeRepairGrounding.PieceRefusal("three eggs", null).Should().BeNull();
             RecipeRepairGrounding.PieceRefusal("½ lemon", null).Should().BeNull();
         }
+
+        [Theory]
+        [InlineData("una foglia di alloro", null, RecipeRepairGrounding.OneCountableItem)]
+        [InlineData("un limone", null, RecipeRepairGrounding.OneCountableItem)]
+        [InlineData("uno scalogno", null, RecipeRepairGrounding.OneCountableItem)]
+        [InlineData("un'arancia", null, RecipeRepairGrounding.OneCountableItem)]
+        [InlineData("un po' di sale", null, RecipeRepairGrounding.VagueAmountRefusal)]
+        [InlineData("un filo d'olio", null, RecipeRepairGrounding.VagueAmountRefusal)]
+        [InlineData("una salsa besciamella", null, RecipeRepairGrounding.NotAnItemRefusal)]
+        [InlineData("una tazza di brodo", null, RecipeRepairGrounding.UnreadMeasureRefusal)]
+        [InlineData("una manciata di prezzemolo", null, RecipeRepairGrounding.UnreadMeasureRefusal)]
+        public void An_Italian_article_counts_one_item_as_a_or_an_does(string quote, int? gramsPerItem, string reason)
+        {
+            var verdict = RecipeRepairGrounding.PieceRefusal(quote, gramsPerItem) ?? RecipeRepairGrounding.PieceAcceptance(quote, gramsPerItem);
+
+            verdict.Should().Be(reason);
+        }
     }
 }

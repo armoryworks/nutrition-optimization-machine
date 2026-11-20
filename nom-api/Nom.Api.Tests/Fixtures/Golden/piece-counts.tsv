@@ -48,3 +48,6 @@ c4-p3-keep-02	due rossi	-	keep	agent	agent-review-staging-2026-11-20	recipes 187
 c4-p3-keep-03	mezza palla	-	keep	agent	agent-review-staging-2026-11-20	recipes 18251, 18249, 18248, 17400 and 17398: C4 pass 3 no-count: half a head of cabbage, reverted 0.5 to 0 by v0.3.120
 c4-p3-keep-04	three eggs to a pint of apples	-	keep	agent	agent-review-staging-2026-11-20	recipe 94631: C4 pass 3 unread-measure: the pint belongs to the apples; the eggs state a count, reverted 3 to 0 by v0.3.120
 c4-p3-revert-01	thirty grains	-	revert	agent	agent-review-staging-2026-11-20	C4 pass 3 no-count: an apothecary weight filled as pieces, rightly reverted
+r1-keep-01	una foglia di alloro	-	keep	agent	agent-review-fix4-2026-11-20	review finding R1: the Italian article before one countable item counts one, as "a bay leaf" does
+r1-revert-01	un po' di sale	-	revert	agent	agent-review-fix4-2026-11-20	review finding R1: "un po' di" is a vague amount, as "a little" is
+r1-revert-02	una salsa besciamella	-	revert	agent	agent-review-fix4-2026-11-20	review finding R1: the Italian article before a preparation is not an item, as "a white sauce" is not

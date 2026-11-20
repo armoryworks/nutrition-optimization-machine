@@ -30,7 +30,7 @@ namespace Nom.Orch.Services.Support
             [UnreadMeasureRefusal] = "names a measure that is not a unit (\"a glassful of wine\", \"a bunch of parsley\")",
             [VagueAmountRefusal] = "\"a\" or \"an\" before a vague amount (\"a little butter\", \"a few cloves\", \"a couple of pigeons\")",
             [NotAnItemRefusal] = "\"a\" or \"an\" before a preparation or a utensil, not a countable item (\"a white sauce\", \"a clean tin\")",
-            [NoCountRefusal] = "states no number and starts with no \"a\" or \"an\" (\"the onion\", \"some salt\")",
+            [NoCountRefusal] = "states no number and starts with no \"a\", \"an\" or Italian \"un\", \"uno\", \"una\" (\"the onion\", \"some salt\")",
         };
 
         /// <summary>Why <see cref="PieceAcceptance"/> leaves a count in pieces alone, each with what it means.</summary>
@@ -38,7 +38,7 @@ namespace Nom.Orch.Services.Support
         {
             [StatesCount] = "states a number (\"six neck chops\", \"½ lemon\")",
             [WeightPerItem] = "the food has a weight per item (\"an egg\")",
-            [OneCountableItem] = "\"a\" or \"an\" before one countable item (\"a bay leaf\", \"a leg of mutton\", \"a sandwich loaf\")",
+            [OneCountableItem] = "\"a\" or \"an\" (or Italian \"un\", \"uno\", \"una\") before one countable item (\"a bay leaf\", \"a leg of mutton\", \"una foglia di alloro\")",
         };
 
         private static readonly HashSet<string> QuantityWords = new(StringComparer.OrdinalIgnoreCase)
@@ -66,7 +66,7 @@ namespace Nom.Orch.Services.Support
         };
 
         private static readonly Regex UnreadMeasure = new(
-            @"\b(?:\p{L}*spoon(?:ful)?s?|\p{L}*glass(?:ful)?(?:e?s)?|\p{L}*cupfuls?|handfuls?|bunch(?:es)?|sprinkl(?:e|ing)s?|pinch(?:es)?|dash(?:es)?|scruples?|drachms?|drams?|quantit(?:y|ies)|ladle(?:ful)?s?|knobs?|lumps?|bits?|\p{L}+cups?|\p{L}+full?s?|thimbles?|jugs?|pecks?|pints?|quarts?|gills?|jills?|bushels?|gallons?|stones?|tbsps?|tbps?|tsps?|bouquets?|faggots?|bundles?|measures?)\b",
+            @"\b(?:\p{L}*spoon(?:ful)?s?|\p{L}*glass(?:ful)?(?:e?s)?|\p{L}*cupfuls?|handfuls?|bunch(?:es)?|sprinkl(?:e|ing)s?|pinch(?:es)?|dash(?:es)?|scruples?|drachms?|drams?|quantit(?:y|ies)|ladle(?:ful)?s?|knobs?|lumps?|bits?|\p{L}+cups?|\p{L}+full?s?|thimbles?|jugs?|pecks?|pints?|quarts?|gills?|jills?|bushels?|gallons?|stones?|tbsps?|tbps?|tsps?|bouquets?|faggots?|bundles?|measures?|tazz(?:a|e|ina|ine)|manciat[ae]|mazz(?:o|i|etto|etti)|ciuff(?:o|i)|bicchier[ei])\b",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex LeadSegment = new(
@@ -81,14 +81,15 @@ namespace Nom.Orch.Services.Support
             @"^.*?(?=\s+of\b|\s*[,;:(]|$)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        private static readonly HashSet<string> Articles = new(StringComparer.OrdinalIgnoreCase) { "a", "an" };
+        private static readonly HashSet<string> Articles = new(StringComparer.OrdinalIgnoreCase) { "a", "an", "un", "uno", "una" };
 
         private static readonly HashSet<string> VagueWords = new(StringComparer.OrdinalIgnoreCase)
         {
             "little", "few", "couple", "some", "suspicion", "shaving", "shavings", "grain", "grains", "touch", "trifle",
             "morsel", "drop", "drops", "sprinkling", "squeeze", "splash", "hint", "portion", "part", "equal", "enough",
             "plenty", "sufficient", "layer", "coating", "amount", "proportion", "weight", "dust", "dusting", "variety",
-            "batch", "brace", "pair",
+            "batch", "brace", "pair", "po", "poco", "poca", "pochino", "pochi", "poche", "goccio", "goccia", "gocce", "filo",
+            "spruzzo", "spolverata", "paio",
         };
 
         private static readonly HashSet<string> NotItemWords = new(StringComparer.OrdinalIgnoreCase)
@@ -101,6 +102,8 @@ namespace Nom.Orch.Services.Support
             "cutter", "needle", "thread", "string", "twine", "saucer", "barrel", "brick", "tin", "sieve", "towel", "napkin",
             "skewer", "knife", "fork", "board", "plate", "pot", "kettle", "oven", "toothpick", "tips", "spoon", "jar", "box",
             "tub", "pail", "funnel", "muslin", "brush", "vessel", "bottle", "handkerchief", "tube", "basket", "cup", "beater",
+            "salsa", "sugo", "brodo", "besciamella", "impasto", "ripieno", "crema", "teglia", "tegame", "pentola", "casseruola",
+            "padella", "ciotola", "terrina", "stampo", "tovagliolo",
         };
 
         private static readonly Regex NumberToken = new(@"^[\d¼½¾⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞./,\-–]+$", RegexOptions.Compiled);
@@ -174,7 +177,7 @@ namespace Nom.Orch.Services.Support
         /// ("three eggs to a pint of apples"), and a number (in English or Italian) only before
         /// the first "of", "with", "or", comma and the like. A measure the parser did not read as a unit ("a glassful of good red
         /// wine", "one scruple of ginger") is refused. "A" or "an" counts one item ("a bay leaf", "a leg
-        /// of mutton"), except before a vague amount ("a little butter", "a few", "a couple of") or a
+        /// of mutton"), and so does the Italian "un", "uno" or "una" ("una foglia di alloro"), except before a vague amount ("a little butter", "a few", "a couple of") or a
         /// preparation or utensil ("a white sauce", "a clean tin"). A quote with neither a number nor an
         /// article is refused unless the food has a weight per item.
         /// </summary>
