@@ -37,7 +37,7 @@ namespace Nom.Api.Tests.Services
 
         private sealed class NoAudit : IFoodCatalogAuditService
         {
-            public Task<FoodCatalogAuditResult> AuditAsync(string? source = null, int limit = 5000) => throw new NotSupportedException();
+            public Task<FoodCatalogAuditResult> AuditAsync(string? source = null, int limit = 5000, long afterId = 0) => throw new NotSupportedException();
         }
 
         private sealed class MovingCleanup : ICatalogCleanupService

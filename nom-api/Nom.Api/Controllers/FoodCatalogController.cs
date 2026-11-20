@@ -196,12 +196,12 @@ namespace Nom.Api.Controllers
             return Ok(await _review.GetPageAsync(source, status, foodGroupId, search, page, pageSize));
         }
 
-        /// <summary>Deterministic quality audit — no model, no network.</summary>
+        /// <summary>Deterministic quality audit — no model, no network. Pages by id: afterId gives the next page, and Remaining says how many matching foods this page did not reach.</summary>
         [HttpGet("audit")]
         public async Task<ActionResult<FoodCatalogAuditResult>> Audit(
-            [FromQuery] string? source, [FromQuery] int limit = 5000)
+            [FromQuery] string? source, [FromQuery] int limit = 5000, [FromQuery] long afterId = 0)
         {
-            return Ok(await _audit.AuditAsync(source, limit));
+            return Ok(await _audit.AuditAsync(source, limit, afterId));
         }
 
         /// <summary>Catalog as CSV, for an external reviewer to read.</summary>

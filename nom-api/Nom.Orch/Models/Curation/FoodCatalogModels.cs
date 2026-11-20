@@ -21,6 +21,12 @@ namespace Nom.Orch.Models.Curation
     public class FoodCatalogAuditResult
     {
         public int Examined { get; set; }
+        /// <summary>Foods the source filter matches, examined or not.</summary>
+        public int Matching { get; set; }
+        /// <summary>Matching foods after the last one examined that this page did not reach; more than 0 means the result was cut off at the limit.</summary>
+        public int Remaining { get; set; }
+        /// <summary>The afterId that gives the next page, or null when this page reached the last food.</summary>
+        public long? NextAfterId { get; set; }
         public List<FoodCatalogFindingModel> Findings { get; set; } = new();
     }
 

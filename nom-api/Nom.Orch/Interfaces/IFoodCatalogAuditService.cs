@@ -10,6 +10,8 @@ namespace Nom.Orch.Interfaces
     public interface IFoodCatalogAuditService
     {
         /// <param name="source">Optional FdcDataType filter ("foundation_food", "branded_food").</param>
-        Task<FoodCatalogAuditResult> AuditAsync(string? source = null, int limit = 5000);
+        /// <param name="limit">Foods examined in this page, in id order.</param>
+        /// <param name="afterId">Examine foods with an id above this one; the result's NextAfterId gives the next page.</param>
+        Task<FoodCatalogAuditResult> AuditAsync(string? source = null, int limit = 5000, long afterId = 0);
     }
 }

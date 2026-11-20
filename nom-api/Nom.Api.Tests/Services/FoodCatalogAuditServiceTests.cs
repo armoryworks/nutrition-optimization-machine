@@ -60,5 +60,23 @@ namespace Nom.Api.Tests.Services
             result.Findings.Where(f => f.IngredientId == withAlcohol.Id).Select(f => f.Code).Should().NotContain(c => c.Contains("atwater_mismatch"));
             result.Findings.Where(f => f.IngredientId == without.Id).Select(f => f.Code).Should().Contain("atwater_mismatch");
         }
+
+        [Fact]
+        public async Task The_audit_pages_by_id_and_says_when_a_page_was_cut_off()
+        {
+            using var db = await NewContextAsync();
+            var first = await WineAsync(db, "Dry White Wine", 10.3m);
+            var second = await WineAsync(db, "Dry Red Wine", null);
+            var third = await WineAsync(db, "Rose Wine", null);
+
+            var page = await new FoodCatalogAuditService(db).AuditAsync(limit: 2);
+
+            (page.Examined, page.Matching, page.Remaining, page.NextAfterId).Should().Be((2, 3, 1, (long?)second.Id));
+
+            var next = await new FoodCatalogAuditService(db).AuditAsync(limit: 2, afterId: page.NextAfterId!.Value);
+
+            (next.Examined, next.Remaining, next.NextAfterId).Should().Be((1, 0, (long?)null));
+            next.Findings.Select(f => f.IngredientId).Should().Contain(third.Id).And.NotContain(first.Id);
+        }
     }
 }

@@ -31,7 +31,7 @@ namespace Nom.Orch.Services
         private static readonly string[] FatNames = { "total lipid", "fat" };
         private static readonly string[] AlcoholNames = { "alcohol" };
 
-        public async Task<FoodCatalogAuditResult> AuditAsync(string? source = null, int limit = 5000)
+        public async Task<FoodCatalogAuditResult> AuditAsync(string? source = null, int limit = 5000, long afterId = 0)
         {
             var query = _context.Ingredients
                 .Include(i => i.IngredientNutrients).ThenInclude(n => n.Nutrient)
@@ -41,7 +41,10 @@ namespace Nom.Orch.Services
             if (!string.IsNullOrWhiteSpace(source))
                 query = query.Where(i => i.FdcDataType == source);
 
-            var ingredients = await query.OrderBy(i => i.Id).Take(limit).ToListAsync();
+            var matching = await query.CountAsync();
+            var ingredients = await query.Where(i => i.Id > afterId).OrderBy(i => i.Id).Take(limit).ToListAsync();
+            var lastId = ingredients.Count == 0 ? long.MaxValue : ingredients[^1].Id;
+            var later = await query.CountAsync(i => i.Id > lastId);
             var validator = new FoodDataQualityValidator();
             var findings = new List<FoodCatalogFindingModel>();
 
@@ -124,6 +127,9 @@ namespace Nom.Orch.Services
             return new FoodCatalogAuditResult
             {
                 Examined = ingredients.Count,
+                Matching = matching,
+                Remaining = later,
+                NextAfterId = later > 0 ? lastId : null,
                 Findings = findings.OrderByDescending(f => f.Severity == "high")
                                    .ThenByDescending(f => f.Severity == "medium")
                                    .ToList(),
