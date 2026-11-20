@@ -24,7 +24,7 @@ namespace Nom.Orch.Services.Support
             @"(?:one|two|three|five|seven)[- ](?:half|halves|thirds?|fourths?|quarters?|eighths?)";
 
         private static readonly Regex LeadingQuantity = new(
-            $@"^\s*(?:(?:and|or|to|about|nearly)\s+)?(?:{Number}(?:\s*(?:-|–|—|to|or)\s*{Number})?(?:-(?=(?:lbs?|ozs?|pounds?|ounces?|pints?|pts?|quarts?|qts?|cups?)\b)|(?=[\s.])[\s.]+)|(?:{FractionWord}|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half(?![\s-]+(?:and|&|n|'n'?)[\s-]+half\b)|halves|quarters?|thirds?)(?=[\s.])[\s.]+)",
+            $@"^\s*(?:(?:and|or|to|about|nearly)\s+)?(?:{Number}(?:\s*(?:-|–|—|to|or)\s*{Number})?(?:-(?=(?:lbs?|ozs?|pounds?|ounces?|pints?|pts?|quarts?|qts?|cups?)\b)|(?=[\s.])[\s.]+)|(?:a\s+(?:couple|pair)(?:\s+of)?|{FractionWord}|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half(?![\s-]+(?:and|&|n|'n'?)[\s-]+half\b)|halves|quarters?|thirds?|(?:couple|pair)(?=\s+of\b)|mezz[oa])(?=[\s.])[\s.]+)",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private const string Qualifier =
@@ -33,34 +33,39 @@ namespace Nom.Orch.Services.Support
         private const string SpoonOrCup =
             @"table[- ]?spoons?(?:[- ]?full?s?)?|tablespoonsful|tea[- ]?spoons?(?:[- ]?full?s?)?|teaspoonsful|dessert[- ]?spoons?(?:[- ]?full?s?)?|" +
             @"salt[- ]?spoons?(?:[- ]?full?s?)?|spoonfull?s?|spoonsful|cupfull?s?|cupsful|tea[- ]?cups?(?:[- ]?full?s?)?|teacupsful|coffee[- ]?cups?(?:[- ]?full?s?)?|" +
-            @"wine[- ]?glass(?:es)?(?:[- ]?full?s?)?|tumblers?(?:[- ]?full?s?)?|gills?";
+            @"wine[- ]?glass(?:es)?(?:[- ]?full?s?)?|tumblers?(?:[- ]?full?s?)?|[gj]ills?|tablespns?|teaspns?|dessertspns?";
 
         private static readonly Regex LeadingUnit = new(
             @"^\s*" + Qualifier +
-            @"(?:(?:" + SpoonOrCup + @"|pints?|pts?\.?|quarts?|qts?\.?|gallons?|gals?\.?|cups?|cans?|jars?|packages?|pkgs?|packets?|boxes?|bags?|bunch(?:es)?|" +
-            @"slices?|pounds?|lbs?\.?|ounces?|ozs?\.?|fl\.?\s*oz\.?|tablespoons?|tbsps?\.?|tblsps?\.?|tbls?\.?|teaspoons?|tsps?\.?|" +
+            @"(?:(?:" + SpoonOrCup + @"|pints?|pts?\.?|quarts?|qts?\.?|gallons?|gals?\.?|cups?|(?:(?:No\.?|#)\s*\d+(?:\s*½|\s*[-\s]\s*1/2)?\s+(?:size\s+)?)?cans?|jars?|packages?|pkgs?|packets?|boxes?|bags?|bunch(?:es)?|" +
+            @"slices?|pounds?|lbs?\.?|ounces?|ozs?\.?|fl\.?\s*oz\.?|tablespoons?|tbsps?\.?|tbps?\.?|tblsps?\.?|tbls?\.?|teaspoons?|tsps?\.?|ponies|pony|" +
             @"cloves?(?!\s*(?:,|and\b|&))|sticks?|pieces?|pinch(?:es)?|dash(?:es)?|handfull?s?|sprigs?|heads?|stalks?|ribs?|ears?|" +
-            @"fillets?|filets?|strips?|cubes?|knobs?|pats?|liters?|litres?|l\b|ml\b|milliliters?|grams?|g\b|kgs?|kilograms?)" +
-            @"\b\.?\s*(?:each\s+)?(?:of\s+)?" +
+            @"fillets?|filets?|strips?|cubes?|knobs?|pats?|liters?|litres?|l\b|ml\b|milliliters?|grams?|g\b|kgs?|kilograms?|" +
+            @"grammi|grammo|gr\b(?=\.?\s*(?:\d|di\b))|chilogrammi|chilogrammo|litri|litro|decilitri|decilitro|dl\b)" +
+            @"\b\.?\s*(?:each\s+)?(?:(?:of|di)\s+)?" +
             @"|(?:glass(?:es|full?s?)?|drops?|blades?|grains?|lumps?|bits?)\s+of\s+" +
             @"|(?:c|t|tb|tbs)\.?[\s-]+(?=\p{L}{3}))",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex LeadingFiller = new(
-            @"^\s*(?:[*~•·]+\s*|of\s+|each\s+(?:of\s+)?|(?:an?\s+)?(?:very\s+)?(?:little(?!\s+(?:gem|neck))|few|some|enough|plenty\s+of)\s+(?:of\s+)?(?:the\s+)?)",
+            @"^\s*(?:[*~•·]+\s*|(?:of|di)\s+|each\s+(?:of\s+)?|(?:an?\s+)?(?:very\s+)?(?:little(?!\s+(?:gem|neck))|few|some|enough|plenty\s+of)\s+(?:of\s+)?(?:the\s+)?" +
+            @"|(?:(?:entirely|totally|completely|strictly)\s+)?optional\s*[:\-–,]\s*|optional\s+(?=[\d" + Fractions + @"])" +
+            @"|(?:just|a\s+bit|slightly)\s+(?:under|over|less\s+than|more\s+than)\s+(?=[\d" + Fractions + @"])" +
+            @"|un\s+po['’]?\s+(?:di\s+)?|(?:an?\s+)?(?:small\s+|little\s+)?quantity\s+of\s+)",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex TrailingNote = new(
-            @"(?:\s*[,;—-])?\s*(?:or\s+(?:more\s+)?)?(?:to\s+(?:your\s+)?taste|as\s+needed|if\s+liked|if\s+desired|optional)\.?\s*$|\s*\*+\s*$",
+            @"(?:\s*[,;—-])?\s*(?:or\s+(?:more\s+)?)?(?:to\s+(?:your\s+)?taste|as\s+needed|if\s+liked|if\s+desired|optional)\.?\s*$|\s*\*+\s*$|\s*,?\s+q\.\s?b\.?\s*$",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex TrailingQuantity = new(
             $@"\s*,?\s+(?:{Number}|{FractionWord}|one|two|three|four|five|six|half)\s*-?\s*(?:" + SpoonOrCup +
-            @"|pints?|pts?|quarts?|qts?|cups?|pounds?|lbs?|ounces?|ozs?|tablespoons?|tbsps?|teaspoons?|tsps?|grams?|g|kgs?|ml)\.?\s*$",
+            @"|pints?|pts?|quarts?|qts?|cups?|pounds?|lbs?|ounces?|ozs?|tablespoons?|tbsps?|teaspoons?|tsps?|grams?|g|kgs?|ml|grammi|grammo|gr|chilogrammi|litri|litro|decilitri|dl)\.?\s*$" +
+            $@"|\s*,?\s+(?:grammi|gr|g|kg|chilogrammi|litri|litro|dl)\.?\s*{Number}\.?\s*$|\s*,?\s+N\.\s*\d+\.?\s*$|\s*,\s*{Number}\.?\s*$",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex PartOf = new(
-            $@"^\s*(?:the\s+)?(?:(?:grated|strained|fresh|beaten|well[- ]beaten|yellow|thin)\s+)*(?<part>juice|rind|zest|peel|yolks?|yelks?|whites?)\s+(?:and\s+(?:grated\s+)?(?:rind|juice|zest|peel)\s+)?of\s+" +
+            $@"^\s*(?:the\s+)?(?:(?:grated|strained|fresh|beaten|well[- ]beaten|yellow|thin)\s+)*(?<part>juice|rind|zest|peel|yolks?|yelks?|whites?)\s+(?:and\s+(?:grated\s+)?(?:rind|juice|zest|peel)\s+)?(?:of|from)\s+" +
             $@"(?:(?:{Number}|{FractionWord}|half\s+an?|an?|the|one|two|three|four|five|six|seven|eight|nine|ten|twelve)\s+)?(?:(?:large|small|medium|fresh|raw|hard[- ]boiled|ripe|juicy)\s+)*(?<food>lemon|lime|orange|grapefruit|egg)s?\b[\s.,]*$",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 

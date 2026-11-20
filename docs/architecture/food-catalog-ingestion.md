@@ -368,6 +368,11 @@ stands in for it (one can of tomatoes is not one tomato). A line weighs what it 
   artichokes") is weighed as sold even on a drained food. No drained-weight factor is invented.
 - A size in front of a utensil ("two-quart tin mould", "8-inch pan") is not an amount: the
   line is not read.
+- A size in pounds and ounces is added up in ounces: "1 can hominy (1 lb. 13 ounce can)" and
+  "1 1 lb. 13 oz. can peaches" → 29 Ounce, "1 can (1 pound 5 ounces) cherry pie filling" → 21 Ounce.
+- A numbered can ("1 No. 2 can tomatoes", "1 #2½ can peaches", "1 No. 303 can peas", "1 can
+  (No. 2) tomatoes") is a count of cans with no stated size; `IngredientLineParser.CanNumber`
+  gives the number ("2", "2½", "303") for a cited can table to size, and the name drops it.
 - A container with no stated size is stored in a **container unit**: Can, or Package for a
   jar, bottle, box, bag, packet, envelope, carton, tub, tube or pouch
   (`measurement."Measurement"."IsContainer"`). `GramsFor` gives a container unit no weight,
@@ -605,6 +610,36 @@ apply in batches until `Remaining` is 0, open a few of the sampled recipes in th
 `relink/undo` and re-apply, and only then repeat on production with its own dry run and
 recorded start time.
 
+### Line reading rules of NOM's own parser — BUILT ✅
+The import keeps the scraper's parsed amount, but every NOM path that reads a raw line (the
+re-read lanes, the start-up repair, unfold, the compound rules, and the planned rebuild of a
+recipe from its stored source) reads it with `IngredientLineParser` and names it with `IngredientNameNormalizer`,
+so a rule fixed here holds for every source. A missing scraper amount is always read from the
+raw line. Rules (golden rows in `lines.tsv`, `line-kinds.tsv`, `startup-fills.tsv`, `compound.tsv`):
+
+- Abbreviated spoons are spoons: `tablespn.`, `tablespns.`, `teaspn.`, `teaspns.`, `dessertspn.`
+  ("2 tablespns. water" → 2 Tablespoon), and the name drops `tbp` as it drops `tbsp`.
+- "pinch X" and "dash X" without "of" are 1 Pinch ("Pinch kosher salt").
+- "a couple of" and "a pair of" are 2 ("a couple of ounces of butter" → 2 Ounce, "a pair of ducks" → 2 Piece),
+  as are "a couple", "couple of" and "pair of"; a bare "pair" or "couple" is no count ("Pair with
+  crusty bread" has no amount and keeps its name).
+- An amount after the name, after a comma or a word, is read when nothing before it is a number
+  ("Corn starch, ½ cup." → 0.5 Cup, "Mace, in powder ½ oz.", "Potatoes, medium size, 2", "Burro
+  gr. 50" → 50 Gram), and the name drops it ("Burro, 100 grammi." → Burro, "Uova, N. 4." → Uova).
+- Old measures: jill (as gill, ½ cup), tumbler (1 cup), pony (1 fl oz). "a drop", "a small
+  quantity" and "a very little" are vague: no amount.
+- Italian units for the Artusi text: grammi, gr., chilogrammi, litro, mezzo litro, decilitri and
+  "N. 4" are read; "q.b." and "un po'" are vague; the name drops the unit and "di". The name
+  drops a leading "gr." only before "di" or a number ("100 gr. di burro" → burro), so the English
+  "gr." of "1 gr. pepper" (green) stays in the name.
+- Scraper sample forms: a leading "optional", "optional:", "Entirely optional:", "~" or "just
+  under" is skipped before the amount, "juice from 1 lime" reads as "juice of 1 lime" (Lime
+  juice, 1 Piece), and HTML entities are decoded first.
+- Headings: a line ending in a colon with no amount ("Marmalade Pineapple Glaze:", "Chocolate:")
+  and a short "For the ..." line with no amount and no colon ("For the sauce") are labelled
+  `note` by the deterministic pre-pass (`RecipeLineClassifier`). A title-case line with no
+  signal ("Mashed Potatoes", "Pears") is left: it may be the main ingredient.
+
 ### One food per recipe row: compound lines — BUILT ✅
 A scraped line can name more than one food ("salt and pepper to taste", "1 cup each flour and
 sugar", "butter or margarine"). Until it is split it sits on one food, or on an uncurated
@@ -657,8 +692,20 @@ last word, so it is left (`alternatives of a whole food and a product of another
 ("to rim pan", "for frying") is not read as the head. "any jam" as the last alternative makes the
 earlier names kinds of jam: "apricot, strawberry, or any jam" moves to Apricot Jam when that is a
 food other than the first alternative's, else it is left, and so is any other "any ..." last
-alternative. A list name is found in the line only as a whole word ("salt" is not the start of
-"saltspoonful"). No
+alternative. A list of whole foods whose later alternatives end in a product word (jam,
+marmalade, preserves, jelly, juice, brandy, sauce, butter, oil) and are no bare product ("lard
+or butter" is still picked) names that product, never the first whole food. The first food is
+a whole food when it is counted in pieces, when every product is one only fruit makes (jam,
+jelly, marmalade, preserves: "blueberries, cherries, or any other jam"), or when its own product
+is a food or an ingredient name ("cranberries or grape juice"); "milk or orange juice" is no such
+list and still goes to Milk. The line goes to the first food's
+own product when the catalog holds it ("apple or quince butter" → Apple Butter), else the
+product an "any other" alternative names ("apple, peach, or any other marmalade" → Marmalade),
+else it is left (`whole foods sharing a product the catalog does not hold`: "peach or French
+brandy", "raspberry, cherry, strawberry, or currant-juice", "avocado, coconut, or vegan butter",
+"orange, peach, or apricot jam or preserves"). When the first food's product and a later
+alternative are both foods ("avocado or olive oil") the line stays ambiguous. A list name is
+found in the line only as a whole word ("salt" is not the start of "saltspoonful"). No
 `recipe.RecipeSubstitution` rows are written.
 
 A split is planned only when each part line reads back through `IngredientLineParser` and the
@@ -713,9 +760,19 @@ Two rules make it safe to restart the API between any apply and its undo:
   `LineKind[food:position]`, amount before and after as `food@position|quantity|measurement`), and
   the row gets `LastModifiedDate`, so the nutrition sweep recalculates the label. Only the net change
   of a line is written: a count that is emptied as elliptical and then filled again from the method
-  with the same amount ("one of rosemary", "one of Moselle wine (or hock)") is neither written nor
+  with the same amount ("one of rosemary" on a food with a weight per item) is neither written nor
   journaled, so a start no longer logs that pair on every restart and `startup-fills/undo` cannot
   take half of it back.
+
+The method fill (`MethodAmountFinder`) takes an amount only when it stands next to the line's
+food word, with nothing between but measures and preparation words ("two quarts of water",
+"three pints of boiling water", "two beaten eggs" is 2). It takes none from a clause that states a
+ratio ("to each", "to every", "per", "for every", "in the proportion", "half and half", "half
+vinegar and half water", "to a gallon"), from a vessel or a length before or after the food word
+("a kettle of water", "1-inch of water", "a water bath", "an oil barrel"), or from "waters" in the
+plural ("three or four waters" is washing). It never counts pieces of a liquid (water, milk, wine,
+stock and the like), nor of a food without a weight per item, so "one of Moselle wine (or hock)"
+beside "one wine glass of the stock" is emptied as elliptical and journaled once.
 
 ```
 POST /api/FoodCatalog/startup-fills/undo?sinceUtc=<utc time>&apply=false   # dry run: entries, lines it would restore, lines changed since

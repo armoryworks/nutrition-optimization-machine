@@ -54,10 +54,12 @@ namespace Nom.Orch.Services
             var held = await RecipeLineHold.HeldAsync(_context, recipes.Select(r => r.Id).ToList(), cancellationToken);
             var now = DateTime.UtcNow;
             var foodIds = recipes.SelectMany(r => r.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>())
-                .Where(ri => ri.Quantity == 0).Select(ri => ri.IngredientId).Distinct().ToList();
+                .Where(ri => ri.Quantity == 0 || (measurements.TryGetValue(IngredientLineParser.Piece, out var piece) && ri.MeasurementId == piece))
+                .Select(ri => ri.IngredientId).Distinct().ToList();
             var foodNames = await _context.Ingredients.IgnoreQueryFilters().AsNoTracking()
                 .Where(i => foodIds.Contains(i.Id))
-                .ToDictionaryAsync(i => i.Id, i => i.Name, cancellationToken);
+                .Select(i => new { i.Id, i.Name, i.GramsPerItem })
+                .ToDictionaryAsync(i => i.Id, i => (i.Name, Counted: i.GramsPerItem > 0), cancellationToken);
 
             int repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0;
             foreach (var recipe in recipes)
@@ -103,11 +105,12 @@ namespace Nom.Orch.Services
         /// back as the same count ("one of rosemary": elliptical, then 1 piece) writes nothing.
         /// </summary>
         private static bool Fill(RecipeEntity recipe, Nom.Data.Recipe.RecipeIngredientEntity row, List<Nom.Data.Recipe.RecipeIngredientEntity> rows,
-            Dictionary<string, long> measurements, Dictionary<long, string> foodNames)
+            Dictionary<string, long> measurements, Dictionary<long, (string Name, bool Counted)> foods)
         {
             var firstLine = (row.RawLine ?? string.Empty).Split(" + ", 2)[0];
             if (row.Quantity != 0 && (!RereadPieces(row, firstLine, measurements) || row.Quantity != 0)) return true;
-            if (foodNames.TryGetValue(row.IngredientId, out var foodName) && !FoodNameMatcher.NamesFood(firstLine, foodName)) return false;
+            var known = foods.TryGetValue(row.IngredientId, out var food);
+            if (known && !FoodNameMatcher.NamesFood(firstLine, food.Name)) return false;
 
             var others = rows.Where(other => !ReferenceEquals(other, row)).ToList();
             var parsed = IngredientLineParser.Parse(firstLine)
@@ -116,7 +119,8 @@ namespace Nom.Orch.Services
                     : MethodAmountFinder.Find(
                         firstLine,
                         (recipe.RecipeSteps ?? Enumerable.Empty<RecipeStepEntity>()).Where(st => !st.IsDeleted).Select(st => st.Description ?? string.Empty),
-                        others.Select(other => other.RawLine ?? string.Empty)));
+                        others.Select(other => other.RawLine ?? string.Empty),
+                        countedInPieces: known && food.Counted));
             if (parsed == null || !measurements.TryGetValue(parsed.MeasurementName, out var measurementId)) return false;
 
             row.Quantity = parsed.Quantity;

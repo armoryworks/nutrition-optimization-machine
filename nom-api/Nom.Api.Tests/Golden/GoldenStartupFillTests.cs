@@ -17,7 +17,8 @@ namespace Nom.Api.Tests.Golden
     /// <summary>
     /// The reviewed lines of startup-fills.tsv against the start-up repair: each line stating no
     /// amount is put in a recipe with its method and the other lines, under an open line journal
-    /// when the row names one, and the amount the repair gives it is compared.
+    /// when the row names one, and the amount the repair gives it is compared. A line whose name
+    /// is a food the frozen catalog counts in pieces gets a weight per item, as such a food has.
     /// </summary>
     [Trait("Category", "Golden")]
     public class GoldenStartupFillTests
@@ -34,7 +35,13 @@ namespace Nom.Api.Tests.Golden
             var units = Units.Select((name, i) => new BaseMeasurementEntity { Id = i + 1, Name = name, Symbol = name.ToLowerInvariant(), MeasurementCategoryId = 1, BaseUnitConversionFactor = 1m }).ToList();
             db.Set<BaseMeasurementEntity>().AddRange(units);
             var lines = new[] { row["part"] }.Concat(row["others"] == GoldenTsv.NoAnswer ? Array.Empty<string>() : row["others"].Split(" ¦ ")).ToList();
-            var foods = lines.Select(l => new IngredientEntity { Name = IngredientNameNormalizer.Normalize(l) is { Length: > 0 } n ? n : l, CurationStatusId = 9003 }).ToList();
+            var counted = GoldenCatalog.Instance.Foods.Where(f => f.CountedInPieces).Select(f => f.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var foods = lines.Select(l => new IngredientEntity
+            {
+                Name = IngredientNameNormalizer.Normalize(l) is { Length: > 0 } n ? n : l,
+                CurationStatusId = 9003,
+                GramsPerItem = IngredientNameNormalizer.LookupKeys(l).Any(counted.Contains) ? 50m : null,
+            }).ToList();
             db.Ingredients.AddRange(foods);
             db.SaveChanges();
 

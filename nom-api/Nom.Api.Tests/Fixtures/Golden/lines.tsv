@@ -51,3 +51,51 @@ c5-02	sum	1 cup + 2 oz sugar	-	-	-	*	*	agent	-	agent-review-staging-2026-11-20	u
 c2-02	container	1 package (9 ounces) frozen artichokes, cooked	9	Ounce	9 Ounce	*	*	agent	-	agent-review-staging-2026-11-20	recipe 22537, C2: a frozen package is weighed as sold
 c4-p3-01	misspelt-unit	a tbp of lard and butter	1	Tablespoon	-	*	*	agent	-	agent-review-staging-2026-11-20	C4 pass 3 unread-measure: "tbp" filled as 1 Piece; a tablespoon is meant
 c4-p3-02	qualified-unit	1 heaped tablespoonful	1	Tablespoon	-	*	*	agent	-	agent-review-staging-2026-11-20	C4 pass 3 unread-measure: an old fill of 1 Piece; the parser reads the spoon
+r1-01	misspelt-unit	2 tablespns. water	2	Tablespoon	-	water	water	ok	ok	design:reprocess	R1 (B6): tablespn./teaspn. are spoon units, not 2 pieces
+r1-02	misspelt-unit	1 teaspn. vanilla	1	Teaspoon	-	vanilla	vanilla	ok	ok	design:reprocess	R1 (B6)
+r1-03	misspelt-unit	2 tablespn. butter	2	Tablespoon	-	butter	butter	agent	agent	agent-review-parser-rules-2026-11-20	R1: the singular abbreviation
+r1-04	misspelt-unit	1 dessertspn. sugar	2	Teaspoon	-	sugar	sugar	agent	agent	agent-review-parser-rules-2026-11-20	R1: a dessertspoon is two teaspoons, as the unit table has it
+r1-05	misspelt-unit	1 tbp butter	1	Tablespoon	-	butter	butter	agent	agent	agent-review-parser-rules-2026-11-20	class 4: tbp lines on Piece; the parser read the spoon, the name kept "tbp"
+r1-06	misspelt-unit	2 tbp. flour	2	Tablespoon	-	flour	flour	agent	agent	agent-review-parser-rules-2026-11-20	class 4: tbp with a period
+r2-01	unit-first	Pinch kosher salt	1	Pinch	-	kosher salt	kosher salt	ok	ok	design:reprocess	R2 (B6): pinch with no "of" is 1 Pinch, like "Pinch of kosher salt"
+r2-02	unit-first	Dash cayenne pepper	1	Pinch	-	cayenne pepper	cayenne pepper	agent	agent	agent-review-parser-rules-2026-11-20	R2: dash with no "of"; the unit table counts a dash as a pinch
+r3-01	number-word	a couple of ounces of butter	2	Ounce	-	butter	butter	ok	ok	design:reprocess	R3 (B6): a couple is 2
+r3-02	number-word	a pair of ducks	2	Piece	-	ducks	ducks	ok	ok	design:reprocess	R3 (B6): a pair is 2
+r3-03	number-word	a couple of eggs	2	Piece	-	eggs	eggs	agent	agent	agent-review-parser-rules-2026-11-20	R3: read as 1 Piece before
+r3-04	number-word	a couple of tablespoons of sugar	2	Tablespoon	-	sugar	sugar	agent	agent	agent-review-parser-rules-2026-11-20	R3
+r4-01	amount-after-name	Corn starch, ½ cup.	0.5	Cup	-	Corn starch	Corn starch	ok	ok	design:reprocess	R4 (B6): the amount after the name
+r4-02	amount-after-name	Sage, ½ teaspoonful.	0.5	Teaspoon	-	Sage	Sage	ok	ok	design:reprocess	R4 (B6)
+r4-03	amount-after-name	Mace, in powder ½ oz.	0.5	Ounce	-	Mace, in powder	*	agent	agent	agent-review-parser-rules-2026-11-20	R4: after a run of words, nothing before it a number
+r4-04	amount-after-name	Bay salt ¼ lb.	0.25	Pound	-	Bay salt	Bay salt	agent	agent	agent-review-parser-rules-2026-11-20	R4
+r4-05	amount-after-name	Potatoes, medium size, 2	2	Piece	-	Potatoes, medium size	*	agent	agent	agent-review-parser-rules-2026-11-20	R4: the trailing count is read and taken off the name
+r5-01	old-measure	one jill of cold water	0.5	Cup	-	cold water	water	ok	ok	design:reprocess	R5 (B6): a jill is a gill
+r5-02	old-measure	a drop of water	-	-	-	water	water	ok	ok	design:reprocess	R5 (B6): "a drop" is vague, not 1 piece of water
+r5-03	old-measure	a tumbler of water	1	Cup	-	water	water	agent	agent	agent-review-parser-rules-2026-11-20	R5: a tumbler, as a tumblerful
+r5-04	old-measure	1 pony brandy	29.574	Milliliter	-	brandy	brandy	agent	agent	agent-review-parser-rules-2026-11-20	R5: a pony is one fluid ounce
+r5-05	old-measure	a small quantity of salt	-	-	-	salt	salt	agent	agent	agent-review-parser-rules-2026-11-20	R5: vague
+r5-06	old-measure	a very little salt	-	-	-	salt	salt	agent	agent	agent-review-parser-rules-2026-11-20	R5: vague, read as 1 Piece before
+r6-01	italian	Burro, 100 grammi.	100	Gram	-	Burro	Burro	ok	ok	design:reprocess	R6 (B6): the name drops the trailing amount
+r6-02	italian	2 chilogrammi di carne magra	2	Kilogram	-	carne magra	carne magra	ok	ok	design:reprocess	R6 (B6)
+r6-03	italian	Uova, N. 4.	4	Piece	-	Uova	Uova	ok	ok	design:reprocess	R6 (B6): N. 4 is 4 items
+r6-04	italian	Burro gr. 50	50	Gram	-	Burro	Burro	agent	agent	agent-review-parser-rules-2026-11-20	R6: the unit before the amount; read as 50 Piece before
+r6-05	italian	Sale q.b.	-	-	-	Sale	Sale	agent	agent	agent-review-parser-rules-2026-11-20	R6: q.b. is vague
+r6-06	italian	un po' di sale	-	-	-	sale	sale	agent	agent	agent-review-parser-rules-2026-11-20	R6: un po' is vague
+r6-07	italian	mezzo litro di latte	0.5	Liter	-	latte	latte	agent	agent	agent-review-parser-rules-2026-11-20	R6
+s13-01	hedge	optional 1 tbsp dutch cocoa	1	Tablespoon	-	dutch cocoa	dutch cocoa	agent	agent	agent-review-parser-rules-2026-11-20	sources item 13, scraper sample: a leading "optional"
+s13-02	hedge	optional: 1/2 cup add-ins	0.5	Cup	-	add-ins	add-ins	agent	agent	agent-review-parser-rules-2026-11-20	sources item 13
+s13-03	hedge	optional: 2 teaspoons Cognac	2	Teaspoon	-	Cognac	Cognac	agent	agent	agent-review-parser-rules-2026-11-20	sources item 13
+s13-04	hedge	Optional: 1 large jalapeno	1	Piece	-	large jalapeno	jalapeno	agent	agent	agent-review-parser-rules-2026-11-20	sources item 13
+s13-05	html-entity	Entirely optional: &#8531; cup grated Parmesan	0.333	Cup	-	grated Parmesan	Parmesan	agent	agent	agent-review-parser-rules-2026-11-20	sources item 13: entity and a leading "Entirely optional:"
+s13-06	hedge	~1/2 tsp each salt and pepper	0.5	Teaspoon	-	salt and pepper	salt and pepper	agent	agent	agent-review-parser-rules-2026-11-20	sources item 13: a leading "~"
+s13-07	hedge	just under 1/4 tsp salt	0.25	Teaspoon	-	salt	salt	agent	agent	agent-review-parser-rules-2026-11-20	sources item 13: "just under" reads the amount it names
+s13-08	part-of	juice from 1 lime	1	Piece	-	lime juice	lime juice	agent	agent	agent-review-parser-rules-2026-11-20	sources item 13: "juice from" as "juice of"
+s13-09	unit-first	pinch pure stevia OR 1/3 cup sugar	1	Pinch	-	*	*	agent	-	agent-review-parser-rules-2026-11-20	sources item 13: the first alternative's amount
+can-01	numbered-can	1 No. 2 can tomatoes	1	Can	-	tomatoes	tomatoes	agent	agent	agent-review-parser-rules-2026-11-20	containers item 4: a numbered can is a count of cans; its size comes from the cited can table
+can-02	numbered-can	1 #2½ can peaches	1	Can	-	peaches	peaches	agent	agent	agent-review-parser-rules-2026-11-20	containers item 4
+can-03	numbered-can	1 No. 303 can peas	1	Can	-	peas	peas	agent	agent	agent-review-parser-rules-2026-11-20	containers item 4
+can-04	numbered-can	1 can (No. 2) tomatoes	1	Can	-	tomatoes	tomatoes	agent	agent	agent-review-parser-rules-2026-11-20	containers item 4
+can-05	container	1 can hominy (1 lb. 13 ounce can)	29	Ounce	29 Ounce	hominy	hominy	ok	ok	design:containers	containers 1c: 1 lb 13 oz is 29 oz
+can-06	container	1 1 lb. 13 oz. can peaches	29	Ounce	29 Ounce	peaches	peaches	agent	agent	agent-review-parser-rules-2026-11-20	containers item 4: pounds and ounces add up
+r6-08	italian	100 gr. di burro	100	Gram	-	burro	burro	agent	agent	agent-review-parser-rules-2026-11-20	R6 review PR-2: gr before "di" or a number is the Italian gram
+r6-09	abbreviation	1 gr. pepper, chopped	*	*	*	gr. pepper, chopped	gr. pepper	agent	agent	agent-review-parser-rules-2026-11-20	R6 review PR-2: the English "gr." (green) stays in the name; was "pepper, chopped", a spice key
+r3-05	number-word	Pair with crusty bread	-	-	-	Pair with crusty bread	Pair with crusty bread	agent	agent	agent-review-parser-rules-2026-11-20	R3 review PR-3: "pair" with no "of" and no "a" is no count; was 2 Piece "with crusty bread"

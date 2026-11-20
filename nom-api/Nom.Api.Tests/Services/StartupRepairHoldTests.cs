@@ -372,11 +372,13 @@ namespace Nom.Api.Tests.Services
 
         [Theory]
         [InlineData("one of rosemary", "Rosemary", "Stuff the fowl with one rosemary sprig and roast it.")]
-        [InlineData("one of Moselle wine (or hock)", "Moselle Wine", "Pour in one wine glass of the stock.")]
+        [InlineData("one of thyme", "Thyme", "Stuff the fowl with one thyme sprig and roast it.")]
         public async Task A_count_read_back_as_the_same_count_is_neither_written_nor_journaled(string line, string food, string method)
         {
             using var db = await NewContextAsync();
             var foods = await FoodsAsync(db, food, "Flour");
+            (await db.Ingredients.SingleAsync(i => i.Id == foods[food])).GramsPerItem = 5m;
+            await db.SaveChangesAsync();
             var recipe = await RecipeAsync(db, foods, new[] { method }, (food, 0, 1m, Piece, line, null), ("Flour", 1, 0m, Gram, "1 cup flour", null));
             var before = await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == recipe && ri.SortOrder == 0);
 
@@ -387,6 +389,33 @@ namespace Nom.Api.Tests.Services
                 .Should().Equal($"LineKind[{foods["Flour"]}:1]");
             var after = await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == recipe && ri.SortOrder == 0);
             (after.Quantity, after.MeasurementId, after.LastModifiedDate).Should().Be((1m, Piece, before.LastModifiedDate));
+        }
+
+        [Fact]
+        public async Task A_count_of_a_liquid_read_from_the_method_is_dropped_and_journaled()
+        {
+            using var db = await NewContextAsync();
+            var foods = await FoodsAsync(db, "Moselle Wine", "Flour");
+            var recipe = await RecipeAsync(db, foods, new[] { "Pour in one wine glass of the stock." },
+                ("Moselle Wine", 0, 1m, Piece, "one of Moselle wine (or hock)", null), ("Flour", 1, 1m, Cup, "1 cup flour", null));
+
+            await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 500);
+
+            (await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == recipe && ri.SortOrder == 0)).Quantity.Should().Be(0m);
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == ScrapedRecipeRepairService.FillChangeType)).Should().Be(1);
+        }
+
+        [Fact]
+        public async Task A_count_of_pieces_from_the_method_is_not_taken_for_a_food_with_no_weight_per_item()
+        {
+            using var db = await NewContextAsync();
+            var foods = await FoodsAsync(db, "Rosemary", "Flour");
+            var recipe = await RecipeAsync(db, foods, new[] { "Stuff the fowl with one rosemary sprig and roast it." },
+                ("Rosemary", 0, 0m, Gram, "rosemary", null), ("Flour", 1, 1m, Cup, "1 cup flour", null));
+
+            await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 500);
+
+            (await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == recipe && ri.SortOrder == 0)).Quantity.Should().Be(0m);
         }
     }
 }
