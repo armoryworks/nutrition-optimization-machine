@@ -123,8 +123,13 @@ namespace Nom.Import.Services
         /// </param>
         /// <param name="onlyFdcIds">When given, only the foods with these FDC ids are read from the file.</param>
         /// <param name="dryRun">Report what would be written without saving anything.</param>
+        /// <param name="createFoods">
+        /// False backfills the foods already in the catalog and creates none: a whole SR Legacy file
+        /// holds foods whose catalog rows were moved to Foundation records, and creating them again
+        /// would add pending duplicates of curated foods.
+        /// </param>
         public async Task<ImportReport> ImportAsync(string csvDir, bool curated = false, CancellationToken ct = default, string dataType = FoundationFood,
-            IReadOnlySet<string>? onlyFdcIds = null, bool dryRun = false)
+            IReadOnlySet<string>? onlyFdcIds = null, bool dryRun = false, bool createFoods = true)
         {
             var foodCsv = FindFile(csvDir, "food.csv");
             var nutrientCsv = FindFile(csvDir, "food_nutrient.csv");
@@ -157,6 +162,13 @@ namespace Nom.Import.Services
                 .GroupBy(i => i.Name.ToLowerInvariant())
                 .ToDictionary(g => g.Key, g => (g.First().Id, g.First().FdcId));
             var seenNames = catalogByName.Keys.ToHashSet();
+            var claimed = (await _db.FoodCatalogProposals
+                .Where(p => p.FdcId != null && p.IngredientId != null && p.Status != FoodProposalStatus.Rejected
+                    && (p.Field != AttachField || p.Status == FoodProposalStatus.Pending)
+                    && _db.Ingredients.Any(i => i.Id == p.IngredientId && !i.IsDeleted))
+                .Select(p => p.FdcId!)
+                .Distinct()
+                .ToListAsync(ct)).ToHashSet();
             var attachRequested = (await _db.FoodCatalogProposals
                 .Where(p => p.Field == AttachField && p.IngredientId != null)
                 .Select(p => p.IngredientId!.Value).ToListAsync(ct)).ToHashSet();
@@ -176,6 +188,16 @@ namespace Nom.Import.Services
                     report.SkippedExisting++;
                     if (!existingByFdc.TryGetValue(fdcId, out var existingId)) report.SkippedRetired++;
                     else if (nutrients.TryGetValue(fdcId, out var known)) backfill.Add((existingId, known));
+                    continue;
+                }
+                if (claimed.Contains(fdcId))
+                {
+                    report.SkippedClaimed.Add(fdcId);
+                    continue;
+                }
+                if (!createFoods)
+                {
+                    report.SkippedNotCreated++;
                     continue;
                 }
                 if (!nutrients.TryGetValue(fdcId, out var m)) { report.RejectedByReason["nutrients_missing"] = report.RejectedByReason.GetValueOrDefault("nutrients_missing") + 1; report.Rejected++; continue; }
@@ -262,7 +284,10 @@ namespace Nom.Import.Services
                     var before = report.BackfilledNutrientRows;
                     foreach (var (key, amount) in FdcNutrients.Accepted(m, _validator, r => CountDropped(report, r)))
                         if (targets.TryGetValue(key, out var t) && !have.Contains((ingredientId, t.NutrientId)))
+                        {
                             AddNutrient(ingredientId, targets, key, amount, now, dryRun, ref report.BackfilledNutrientRows);
+                            report.BackfilledByNutrient[key] = report.BackfilledByNutrient.GetValueOrDefault(key) + 1;
+                        }
                     var added = report.BackfilledNutrientRows - before;
                     if (added > 0 && !dryRun)
                         _db.AuditLogEntries.Add(Journal(ingredientId, nameof(IngredientEntity.IngredientNutrients), added.ToString(CultureInfo.InvariantCulture), now));
@@ -815,6 +840,9 @@ namespace Nom.Import.Services
             public int NutrientRows;
             public int BackfilledNutrientRows;
             public int AttachProposals { get; set; }
+            public List<string> SkippedClaimed { get; } = new();
+            public int SkippedNotCreated { get; set; }
+            public Dictionary<string, int> BackfilledByNutrient { get; } = new();
             public Dictionary<string, int> RejectedByReason { get; } = new();
             public Dictionary<string, int> DroppedValuesByReason { get; } = new();
             public List<string> ListedNotInFile { get; } = new();

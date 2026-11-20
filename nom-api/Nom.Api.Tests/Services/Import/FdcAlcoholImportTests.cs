@@ -173,6 +173,58 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public async Task An_fdc_id_a_pending_attach_promises_another_food_is_not_imported_and_the_attach_still_applies()
+        {
+            using var db = await NewContextAsync();
+            var wine = await FoodAsync(db, "Dry White Wine");
+            await Importer(db).AttachAsync(_dir, Pair(wine), dryRun: false, dataType: SrLegacy);
+
+            var report = await Importer(db).ImportAsync(_dir, dataType: SrLegacy, onlyFdcIds: new HashSet<string> { Wine, Spirit });
+
+            report.Accepted.Should().Be(1);
+            report.SkippedClaimed.Should().Equal(Wine);
+            (await db.Ingredients.CountAsync(i => i.FdcId == Wine)).Should().Be(0);
+            (await Review(db).ApplyProposalAsync((await db.FoodCatalogProposals.SingleAsync()).Id, reviewerPersonId: 7)).Should().BeTrue();
+            (await db.Ingredients.SingleAsync(i => i.Id == wine.Id)).FdcId.Should().Be(Wine);
+        }
+
+        [Fact]
+        public async Task An_fdc_id_a_live_food_took_values_from_before_it_moved_is_not_imported_again()
+        {
+            using var db = await NewContextAsync();
+            var moved = await FoodAsync(db, "Whole Milk Yogurt", "2259793");
+            db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, IngredientId = moved.Id, Field = "grams_per_milliliter", FdcId = Spirit, Source = $"fdc:{Spirit}",
+                ProposedValue = "1.03", Status = FoodProposalStatus.Applied,
+            });
+            await db.SaveChangesAsync();
+
+            var report = await Importer(db).ImportAsync(_dir, dataType: SrLegacy, onlyFdcIds: new HashSet<string> { Spirit });
+
+            report.Accepted.Should().Be(0);
+            report.SkippedClaimed.Should().Equal(Spirit);
+            (await db.Ingredients.CountAsync()).Should().Be(1);
+        }
+
+        [Fact]
+        public async Task A_run_that_may_not_create_foods_only_backfills_and_counts_each_nutrient_it_adds()
+        {
+            using var db = await NewContextAsync();
+            var wine = await FoodAsync(db, WineDescription, Wine);
+            db.Set<IngredientNutrientEntity>().Add(new IngredientNutrientEntity { IngredientId = wine.Id, NutrientId = Calories, Amount = 82m, MeasurementId = 16 });
+            await db.SaveChangesAsync();
+
+            var report = await Importer(db).ImportAsync(_dir, dataType: SrLegacy, dryRun: true, createFoods: false);
+
+            report.Accepted.Should().Be(0);
+            report.SkippedNotCreated.Should().Be(2);
+            report.BackfilledNutrientRows.Should().Be(5);
+            report.BackfilledByNutrient.Values.Sum().Should().Be(5);
+            report.BackfilledByNutrient.Should().HaveCount(5).And.NotContainKey(FdcNutrients.Calories).And.ContainKey(FdcNutrients.Protein);
+        }
+
+        [Fact]
         public async Task A_dry_run_import_reports_the_same_counts_and_saves_nothing()
         {
             using var db = await NewContextAsync();

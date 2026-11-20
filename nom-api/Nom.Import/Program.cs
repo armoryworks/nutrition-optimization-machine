@@ -75,7 +75,8 @@ namespace Nom.Import
                 }
 
                 var dataType = args.Contains("--sr-legacy") ? FdcFoundationImportService.SrLegacyFood : FdcFoundationImportService.FoundationFood;
-                var report = await importer.ImportAsync(args[fdcFlag + 1], curated: args.Contains("--curated"), dataType: dataType, onlyFdcIds: only, dryRun: dryRun);
+                var createFoods = dataType != FdcFoundationImportService.SrLegacyFood || only != null;
+                var report = await importer.ImportAsync(args[fdcFlag + 1], curated: args.Contains("--curated"), dataType: dataType, onlyFdcIds: only, dryRun: dryRun, createFoods: createFoods);
                 Console.WriteLine($"\n=== FDC {dataType} import report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
                 Console.WriteLine($"Foods in file:     {report.TotalFoundation}{(only != null ? $" (of {only.Count} listed with --only)" : string.Empty)}");
                 if (report.ListedNotInFile.Count > 0)
@@ -85,8 +86,13 @@ namespace Nom.Import
                 Console.WriteLine($"Rejected:          {report.Rejected}");
                 Console.WriteLine($"Skipped (existing):{report.SkippedExisting} ({report.SkippedRetired} of them retired foods that still hold their FDC id)");
                 Console.WriteLine($"Skipped (dup name):{report.SkippedDuplicateName}");
+                Console.WriteLine($"Skipped (claimed): {report.SkippedClaimed.Count} (FDC ids a proposal on a live food already names: a pending attach, or values taken before the food moved to another record){(report.SkippedClaimed.Count > 0 ? ": " + string.Join(", ", report.SkippedClaimed.OrderBy(id => id, StringComparer.Ordinal)) : string.Empty)}");
+                if (!createFoods)
+                    Console.WriteLine($"Not created:       {report.SkippedNotCreated} (an SR Legacy run creates foods only for the ids listed with --only; this run only backfills)");
                 Console.WriteLine($"Nutrient rows:     {report.NutrientRows} ({report.WithReferenceServing} foods with a reference serving)");
                 Console.WriteLine($"Backfilled rows:   {report.BackfilledNutrientRows} (missing nutrients added to already-imported foods)");
+                foreach (var (key, n) in report.BackfilledByNutrient.OrderByDescending(b => b.Value).ThenBy(b => b.Key, StringComparer.Ordinal))
+                    Console.WriteLine($"  backfilled: {key} × {n}");
                 Console.WriteLine($"Densities:         {report.WithDensity} new foods, {report.BackfilledDensities} backfilled (g/ml from household measures)");
                 Console.WriteLine($"Attach proposals:  {report.AttachProposals} (same-name catalog ingredients offered this food's USDA values for review)");
                 foreach (var (reason, n) in report.RejectedByReason.OrderByDescending(r => r.Value))

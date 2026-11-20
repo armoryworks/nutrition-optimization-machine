@@ -136,7 +136,17 @@ below).
   names any that are not in the file as that data type. Without it the whole file is read,
   and every food already in the catalog also gets the nutrients and density it lacks, so a
   plain SR Legacy run after a new Nutrient row is added writes that nutrient onto every
-  SR Legacy food.
+  SR Legacy food. The report counts the backfilled rows per nutrient key, so a dry run
+  shows exactly which nutrients the apply would add.
+- An SR Legacy run creates foods only for ids listed with `--only`. Without `--only` it
+  only backfills existing foods and reports the rest as `Not created`: the SR file holds
+  foods whose catalog rows were since moved to Foundation records, and creating them again
+  would add pending duplicates of curated foods.
+- An FDC id that a proposal on a live food already names is skipped and listed as
+  `Skipped (claimed)`: a pending `fdc_attach` that promises the id to another food (so
+  importing it cannot make that attach unappliable, whatever order the attach and the
+  import run in), or a proposal whose values came from that USDA food before its food moved
+  to another record.
 - An FDC id held by a **retired** (soft-deleted) food counts as existing: the food is
   skipped and reported, never recreated (`FdcId` is unique across deleted rows too) and
   never backfilled.
