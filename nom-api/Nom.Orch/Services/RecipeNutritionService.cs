@@ -39,9 +39,9 @@ namespace Nom.Orch.Services
 
     public class RecipeNutritionService : IRecipeNutritionService
     {
-        private const long CategoryMass = 1L;
-        private const long CategoryVolume = 2L;
-        private const long CategoryCount = 3L;
+        public const long CategoryMass = 1L;
+        public const long CategoryVolume = 2L;
+        public const long CategoryCount = 3L;
 
         private readonly ApplicationDbContext _db;
         private readonly ILogger<RecipeNutritionService> _logger;

@@ -1,0 +1,212 @@
+@use 'variables' as vars;
+
+.nom-pipeline__section {
+  margin: 0 0 vars.$spacing-6;
+}
+
+.nom-pipeline__heading {
+  margin: 0 0 vars.$spacing-3;
+  font-size: 1.125rem;
+}
+
+.nom-pipeline__subheading {
+  margin: vars.$spacing-3 0 vars.$spacing-2;
+  font-size: vars.$font-size-sm;
+  font-weight: 600;
+}
+
+.nom-pipeline__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: vars.$spacing-3;
+  margin: 0 0 vars.$spacing-3;
+
+  div {
+    padding: vars.$spacing-2 vars.$spacing-3;
+    border-radius: 8px;
+    background: var(--mat-sys-surface-container);
+  }
+
+  dt {
+    font-size: vars.$font-size-sm;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+}
+
+.nom-pipeline__stats--small dd {
+  font-size: 1rem;
+}
+
+.nom-pipeline__table-wrap {
+  overflow-x: auto;
+}
+
+.nom-pipeline__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: vars.$font-size-sm;
+
+  th,
+  td {
+    padding: vars.$spacing-1 vars.$spacing-2;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    text-align: right;
+  }
+
+  th[scope='row'],
+  thead th:first-child {
+    text-align: left;
+    font-weight: 400;
+  }
+}
+
+.nom-pipeline__row--indent th[scope='row'] {
+  padding-left: vars.$spacing-6;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-pipeline__columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: vars.$spacing-4;
+}
+
+.nom-pipeline__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nom-pipeline__list-item {
+  display: flex;
+  justify-content: space-between;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-1 0;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  font-size: vars.$font-size-sm;
+}
+
+.nom-pipeline__dry-runs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: vars.$spacing-4;
+}
+
+.nom-pipeline__dry-run {
+  margin-top: vars.$spacing-3;
+}
+
+.nom-pipeline__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: vars.$spacing-3;
+  margin-bottom: vars.$spacing-3;
+}
+
+.nom-pipeline__field {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+  font-size: vars.$font-size-sm;
+}
+
+.nom-pipeline__check {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  font-size: vars.$font-size-sm;
+}
+
+.nom-pipeline__pause-all {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: vars.$spacing-3;
+  margin-bottom: vars.$spacing-3;
+}
+
+.nom-pipeline__lanes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: vars.$spacing-3;
+  margin: vars.$spacing-3 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nom-pipeline__lane {
+  padding: vars.$spacing-3;
+  border-radius: 8px;
+  background: var(--mat-sys-surface-container);
+}
+
+.nom-pipeline__lane-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: vars.$spacing-2;
+  margin-bottom: vars.$spacing-2;
+}
+
+.nom-pipeline__lane-line {
+  margin: 0 0 vars.$spacing-1;
+  font-size: vars.$font-size-sm;
+}
+
+.nom-pipeline__badge {
+  padding: 0 vars.$spacing-2;
+  border-radius: 999px;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font-size: vars.$font-size-sm;
+}
+
+.nom-pipeline__badge--off {
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-pipeline__badge--state {
+  background: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
+}
+
+.nom-pipeline__switches {
+  margin: vars.$spacing-2 0;
+  padding-left: vars.$spacing-4;
+  font-size: vars.$font-size-sm;
+}
+
+.nom-pipeline__banner {
+  padding: vars.$spacing-2 vars.$spacing-3;
+  border-radius: 8px;
+  background: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
+  font-size: vars.$font-size-sm;
+}
+
+.nom-pipeline__link {
+  font-size: vars.$font-size-sm;
+}
+
+.nom-pipeline__hint,
+.nom-pipeline__muted {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-pipeline__warn {
+  color: var(--mat-sys-error);
+}
+
+.nom-pipeline__error {
+  color: var(--mat-sys-error);
+  font-size: vars.$font-size-sm;
+}

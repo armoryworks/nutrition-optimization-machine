@@ -15,6 +15,7 @@ const sections: AdminSection[] = [
   { id: 'clients', navTestId: 'nav-admin-clients', rootTestId: 'clients-admin', readyTestIds: ['clients-admin-list', 'clients-admin-empty'] },
   { id: 'curation', navTestId: 'nav-admin-curation', rootTestId: 'curation-queue', readyTestIds: ['curation-list', 'curation-empty'] },
   { id: 'food-catalog', navTestId: 'nav-food-catalog', rootTestId: 'food-catalog', readyTestIds: ['food-catalog-list', 'food-catalog-empty'] },
+  { id: 'pipeline', navTestId: 'nav-admin-pipeline', rootTestId: 'pipeline', readyTestIds: ['pipeline-recipes', 'pipeline-error'] },
   { id: 'scraping-sources', navTestId: 'nav-scraping-sources', rootTestId: 'admin-scraping-sources', readyTestIds: ['admin-scraping-sources-list', 'admin-scraping-sources-empty'] },
   { id: 'kitchen-tools', navTestId: 'nav-admin-kitchen-tools', rootTestId: 'admin-kitchen-tools', readyTestIds: ['kitchen-tools-admin-list'] },
   { id: 'recipe-images', navTestId: 'nav-admin-recipe-images', rootTestId: 'admin-recipe-images', readyTestIds: ['recipe-images-admin-list'] },
