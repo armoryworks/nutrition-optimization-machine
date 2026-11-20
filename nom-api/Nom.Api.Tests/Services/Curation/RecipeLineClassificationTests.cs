@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Nom.Data;
 using Nom.Data.Recipe;
@@ -114,8 +115,9 @@ namespace Nom.Api.Tests.Services.Curation
         private static RecipeEntity LobsterNewburg(long id = 10) => Recipe(id, "Lobster a la Newburg",
             ("2 lobsters", 2m), ("white sauce", 0m), ("good stock", 0m), ("bain-marie", 0m), ("butter + butter", 0m), ("salt", 0m));
 
-        private static RecipeLineClassificationService Lines(ApplicationDbContext db, IRecipeClassificationModel model) =>
-            new(db, new RecipeVettingService(), model, NullLogger<RecipeLineClassificationService>.Instance);
+        private static RecipeLineClassificationService Lines(ApplicationDbContext db, IRecipeClassificationModel model, bool modelMayExempt = true) =>
+            new(db, new RecipeVettingService(), model, NullLogger<RecipeLineClassificationService>.Instance,
+                new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Curation:LineClassify:ModelMayExempt"] = modelMayExempt.ToString() }).Build());
 
         private static RecipeNonFoodScreeningService Screening(ApplicationDbContext db, IRecipeClassificationModel model) =>
             new(db, model, NullLogger<RecipeNonFoodScreeningService>.Instance);
@@ -350,6 +352,53 @@ namespace Nom.Api.Tests.Services.Curation
             (await Lines(db, model).ClassifyBatchAsync(0, 10)).ModelCalls.Should().Be(0);
             await Screening(db, model).ScreenBatchAsync(0, 10);
             (await Lines(db, model).ClassifyBatchAsync(0, 10)).ModelClassified.Should().Be(3);
+        }
+
+        [Fact]
+        public async Task A_model_label_is_only_a_suggestion_unless_the_model_may_exempt()
+        {
+            using var db = await SeedAsync(LobsterNewburg());
+
+            var result = await Lines(db, KnownKinds(), modelMayExempt: false).ClassifyBatchAsync(0, 10);
+
+            result.ModelClassified.Should().Be(0);
+            result.Unclassified.Should().Be(2);
+            var rows = (await db.RecipeIngredients.ToListAsync()).ToDictionary(r => r.RawLine);
+            rows["white sauce"].LineKind.Should().BeNull();
+            rows["good stock"].LineKind.Should().BeNull();
+            rows["bain-marie"].LineKind.Should().Be(RecipeIngredientLineKind.Equipment, "the deterministic pre-pass still labels");
+
+            var suggestions = await db.AuditLogEntries.Where(a => a.ChangeType == RecipeLineClassificationService.SuggestedChangeType).ToListAsync();
+            suggestions.Select(a => a.NewValue!.Split(':')[0]).Should().BeEquivalentTo("reference (fake)", "reference (fake)");
+            suggestions.Select(a => a.PropertyName).Should().BeEquivalentTo("LineKind[1001:0]", "LineKind[1002:0]");
+            (await db.AuditLogEntries.SingleAsync(a => a.ChangeType == RecipeLineClassificationService.AttemptChangeType))
+                .NewValue.Should().EndWith("(2 suggested)");
+        }
+
+        [Fact]
+        public async Task A_model_label_on_a_line_that_names_a_curated_food_is_refused_and_stored_as_an_ingredient()
+        {
+            var recipe = Recipe(10, "Pie", ("2 apples", 2m), ("puff paste", 0m), ("good stock", 0m));
+            using var db = await SeedAsync(recipe);
+            db.Ingredients.Add(new IngredientEntity
+            {
+                Id = 5000,
+                Name = "Puff Paste",
+                CurationStatusId = (long)CurationStatusEnum.Curated,
+                IngredientNutrients = new List<Nom.Data.Nutrient.IngredientNutrientEntity> { new() { NutrientId = 1, Amount = 1 } },
+            });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var model = new FakeModel { Kind = _ => RecipeIngredientLineKind.Reference };
+
+            var result = await Lines(db, model).ClassifyBatchAsync(0, 10);
+
+            result.ModelClassified.Should().Be(2);
+            var rows = (await db.RecipeIngredients.ToListAsync()).ToDictionary(r => r.RawLine);
+            rows["puff paste"].LineKind.Should().Be(RecipeIngredientLineKind.Ingredient);
+            rows["good stock"].LineKind.Should().Be(RecipeIngredientLineKind.Reference);
+            (await db.AuditLogEntries.SingleAsync(a => a.PropertyName == "LineKind[1001:0]")).NewValue
+                .Should().StartWith("ingredient (fake, reference refused: names a curated food)");
         }
     }
 }
