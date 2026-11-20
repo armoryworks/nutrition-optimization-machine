@@ -128,7 +128,7 @@ export class PipelineAdmin implements OnInit {
     return this.data()?.gate.lanes.find((l) => l.lane === lane) ?? null;
   }
 
-  setPause(lane: string, paused: boolean): void {
+  setPause(lane: string, paused: boolean, toggle?: { checked: boolean }): void {
     this.pauseBusy.set(lane);
     this.pauseError.set('');
     this.pipeline.setPause(lane, paused).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -137,9 +137,12 @@ export class PipelineAdmin implements OnInit {
         if (current) this.data.set({ ...current, gate });
         this.pauseBusy.set(null);
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         this.pauseBusy.set(null);
-        this.pauseError.set('Unable to change the pause switch.');
+        if (toggle) toggle.checked = !paused;
+        this.pauseError.set(
+          err.status === 403 && !paused ? 'Only a user-roles admin can turn a pause off.' : 'Unable to change the pause switch.',
+        );
       },
     });
   }

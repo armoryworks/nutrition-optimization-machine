@@ -52,7 +52,7 @@ namespace Nom.Api.Tests.Controllers
                 .ReturnsAsync((string key, bool on, long _) => new PlatformFeatureModel { Key = key, IsEnabled = on });
         }
 
-        private PipelineController Controller(Dictionary<string, string?>? settings = null) =>
+        private PipelineController Controller(Dictionary<string, string?>? settings = null, bool roleAdmin = false) =>
             new(_pipeline.Object, _lanes.Object, _features.Object,
                 new ConfigurationBuilder().AddInMemoryCollection(settings ?? new Dictionary<string, string?> { ["Ai:QuietHours"] = "" }).Build())
             {
@@ -60,7 +60,11 @@ namespace Nom.Api.Tests.Controllers
                 {
                     HttpContext = new DefaultHttpContext
                     {
-                        User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim("PersonId", Person.ToString()) }, "test")),
+                        User = new ClaimsPrincipal(new ClaimsIdentity(
+                            roleAdmin
+                                ? new[] { new Claim("PersonId", Person.ToString()), new Claim("CanManageCuration", "true"), new Claim("CanManageUserRoles", "true") }
+                                : new[] { new Claim("PersonId", Person.ToString()), new Claim("CanManageCuration", "true") },
+                            "test")),
                     },
                 },
             };
@@ -120,6 +124,26 @@ namespace Nom.Api.Tests.Controllers
 
             result.Result.Should().BeOfType<OkObjectResult>().Which.Value.Should().BeOfType<PipelineGateStatus>();
             _features.Verify(f => f.SetAsync(key, true, Person), Times.Once);
+        }
+
+        [Theory]
+        [InlineData("all")]
+        [InlineData("link")]
+        public async Task SetPause_refuses_a_curation_admin_turning_a_pause_off(string lane)
+        {
+            var result = await Controller().SetPause(lane, new SetPipelinePauseRequest { IsEnabled = false });
+
+            result.Result.Should().BeOfType<ForbidResult>();
+            _features.Verify(f => f.SetAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<long>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SetPause_lets_a_role_admin_turn_a_pause_off()
+        {
+            var result = await Controller(roleAdmin: true).SetPause("link", new SetPipelinePauseRequest { IsEnabled = false });
+
+            result.Result.Should().BeOfType<OkObjectResult>();
+            _features.Verify(f => f.SetAsync("ai-pause-link", false, Person), Times.Once);
         }
 
         [Theory]

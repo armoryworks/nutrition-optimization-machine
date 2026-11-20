@@ -254,7 +254,7 @@
         </p>
       }
       <div class="nom-pipeline__pause-all">
-        <mat-slide-toggle [checked]="d.gate.pauseAll" [disabled]="pauseBusy() !== null" (change)="setPause('all', $event.checked)"
+        <mat-slide-toggle [checked]="d.gate.pauseAll" [disabled]="pauseBusy() !== null" (change)="setPause('all', $event.checked, $event.source)"
                           data-testid="pipeline-pause-all-toggle">
           Pause all AI lanes
         </mat-slide-toggle>
@@ -312,7 +312,7 @@
                   Last error {{ gate.status.lastErrorAt | date: 'MMM d, HH:mm' }}: {{ gate.status.lastError }}
                 </p>
               }
-              <mat-slide-toggle [checked]="gate.paused" [disabled]="pauseBusy() !== null" (change)="setPause(gate.lane, $event.checked)"
+              <mat-slide-toggle [checked]="gate.paused" [disabled]="pauseBusy() !== null" (change)="setPause(gate.lane, $event.checked, $event.source)"
                                 [attr.data-testid]="'pipeline-lane-' + lane.key + '-pause-toggle'">
                 Pause this lane
               </mat-slide-toggle>

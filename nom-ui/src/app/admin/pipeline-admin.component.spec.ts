@@ -217,6 +217,23 @@ describe('PipelineAdmin', () => {
     put.flush({ ...gate(), pauseAll: true });
   });
 
+  it('says only a user-roles admin can turn a pause off and puts the switch back', () => {
+    const body = status();
+    body.gate = gate(true);
+    const fixture = loaded(body);
+    const el = fixture.nativeElement as HTMLElement;
+    const button = () => byId(el, 'pipeline-lane-ingredient-link-pause-toggle')!.querySelector<HTMLButtonElement>('button')!;
+
+    button().click();
+    const put = http.expectOne((r) => r.method === 'PUT' && r.url.endsWith('/Pipeline/pause/link'));
+    expect(put.request.body).toEqual({ isEnabled: false });
+    put.flush({}, { status: 403, statusText: 'Forbidden' });
+    fixture.detectChanges();
+
+    expect(byId(el, 'pipeline-pause-error')?.textContent).toContain('Only a user-roles admin can turn a pause off.');
+    expect(button().getAttribute('aria-checked')).toBe('true');
+  });
+
   it('runs the unfold and re-read dry runs and shows the counts the last round added', () => {
     const fixture = loaded();
     const el = fixture.nativeElement as HTMLElement;

@@ -9,7 +9,8 @@ namespace Nom.Api.Controllers
     /// <summary>
     /// Admin view of the automated catalog pipeline: where recipes, lines and foods are waiting,
     /// each lane's settings and queue, and the model lanes' live state from the lane gate. Read-only
-    /// except for the AI pause switches, which only ever stop work.
+    /// except for the AI pause switches: a curation admin may turn a pause on, and only a user-roles
+    /// admin may turn one off, as on the platform feature endpoint that writes the same switches.
     /// </summary>
     [Authorize(Policy = "CanManageCuration")]
     public class PipelineController : BaseApiController
@@ -39,7 +40,7 @@ namespace Nom.Api.Controllers
             return Ok(new PipelineStatusResponse(status, await GateAsync()));
         }
 
-        /// <summary>Turns the pause switch of one model lane, or of all of them ("all"), on or off.</summary>
+        /// <summary>Turns the pause switch of one model lane, or of all of them ("all"), on or off; turning one off needs CanManageUserRoles.</summary>
         [HttpPut("pause/{lane}")]
         public async Task<ActionResult<PipelineGateStatus>> SetPause(string lane, [FromBody] SetPipelinePauseRequest request)
         {
@@ -48,6 +49,8 @@ namespace Nom.Api.Controllers
                 : null;
             if (key == null)
                 return BadRequest(new { error = $"Unknown lane '{lane}'.", lanes = AiLanes.All.Select(l => l.Lane).Prepend(AllLanes) });
+            if (!request.IsEnabled && !User.HasClaim("CanManageUserRoles", "true"))
+                return Forbid();
 
             await _features.SetAsync(key, request.IsEnabled, GetCurrentPersonIdRequired());
             return Ok(await GateAsync());
