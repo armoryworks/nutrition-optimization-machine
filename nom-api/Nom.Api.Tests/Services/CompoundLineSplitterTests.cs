@@ -268,6 +268,37 @@ namespace Nom.Api.Tests.Services
             plan.Kind.Should().Be(CompoundKind.PickAlternative);
             Parts(plan).Select(p => p.Food).Should().Equal("Milk");
         }
+
+        [Theory]
+        [InlineData("onions and pinto beans")]
+        [InlineData("honey and whole grain mustard")]
+        [InlineData("kombu and dashi")]
+        [InlineData("mushrooms and glass noodles")]
+        [InlineData("rice and cupcakes")]
+        public void A_later_list_name_that_only_starts_with_a_measure_word_still_splits(string line)
+        {
+            var names = new[] { "Onions", "Pinto Beans", "Honey", "Whole Grain Mustard", "Kombu", "Dashi", "Mushrooms", "Glass Noodles",
+                "Rice", "Cupcakes" };
+            var vocabulary = CompoundVocabulary.Build(names.Select((n, i) => new CompoundFood(i + 1, n, true)), Array.Empty<CompoundAlias>(), names);
+
+            var plan = CompoundLineSplitter.Plan(line, vocabulary)!;
+
+            plan.Kind.Should().Be(CompoundKind.Split, plan.LeaveReason);
+            plan.Rule.Should().Be(CompoundLineSplitter.AndUnquantified);
+        }
+
+        [Theory]
+        [InlineData("salt and half a teaspoonful of cayenne pepper")]
+        [InlineData("salt and a pinch of cayenne")]
+        [InlineData("butter and 2 oz. lard")]
+        [InlineData("flour and a heaped cupful of sugar")]
+        public void A_later_list_part_with_its_own_measure_is_left_alone(string line)
+        {
+            var plan = Plan(line)!;
+
+            plan.Kind.Should().Be(CompoundKind.Leave);
+            plan.LeaveReason.Should().Be(CompoundLineSplitter.LeaveQuantifiedList);
+        }
     }
 
     /// <summary>The names a part of a compound line may be read as.</summary>

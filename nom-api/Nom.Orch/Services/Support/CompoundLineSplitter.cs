@@ -155,6 +155,9 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex MeasureWord = new(
             @"\b(?:(?:tea|table|dessert|salt|coffee)[- ]?)?spoon|\bcup|\bglass|\bgill|\bpinch|\bdash|\bounce|\boz\b|\bpound|\blbs?\b|\bpint|\bquart|\bdrachm|\bscruple|\bgrain", Options);
 
+        private static readonly Regex ListMeasure = new(
+            @"(?:^|[\s(])(?:[\d¼½¾⅓⅔⅛⅜⅝⅞][\d¼½¾⅓⅔⅛⅜⅝⅞/.\-–]*|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half|quarter)\s+(?:(?:heaped|heaping|level|rounded|large|small|good|scant|full|generous|big)\s+)?(?:(?:tea|table|dessert|salt|coffee|wine)[- ]?)?(?:spoon(?:ful)?s?|cup(?:ful)?s?|glass(?:ful)?(?:es)?|gills?|pinch(?:es)?|dash(?:es)?|ounces?|oz|pounds?|lbs?|pints?|quarts?|drachms?|scruples?|grains?)\b", Options);
+
         private static readonly HashSet<string> PartWords = new(StringComparer.OrdinalIgnoreCase)
         {
             "juice", "zest", "rind", "peel", "the", "its", "grated", "fresh", "freshly", "squeezed", "finely", "large", "small", "medium",
@@ -335,7 +338,7 @@ namespace Nom.Orch.Services.Support
                 && foods.Contains(salt) && foods.Contains(pepper);
             var written = spans.Select(s => line[s.Start..s.End]).ToList();
             if (each && quantity == null) return CompoundPlan.Leave(wording, LeaveEachUnread);
-            if (written.Skip(1).Any(w => CountStart.IsMatch(w) || HalfStart.IsMatch(w) || MeasureWord.IsMatch(w))) return CompoundPlan.Leave(wording, LeaveQuantifiedList);
+            if (written.Skip(1).Any(w => CountStart.IsMatch(w) || HalfStart.IsMatch(w) || ListMeasure.IsMatch(w))) return CompoundPlan.Leave(wording, LeaveQuantifiedList);
             if (v.PepperId is { } spice && foods.Select((f, i) => (f, i)).Any(p => p.f == spice && CutWord.IsMatch(written[p.i]))) return CompoundPlan.Leave(wording, LeaveCutPepper);
             if (written.Any(w => IngredientNameNormalizer.Normalize(w).Equals("mustard", StringComparison.OrdinalIgnoreCase))
                 && (foods.Any(f => f == v.SaltId || f == v.PepperId) || written.Any(IsSpiceOrSugar)))
