@@ -188,6 +188,27 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_can_line_returned_to_ingredient_is_read_by_its_stated_size_in_the_same_apply()
+        {
+            using var db = NewContext();
+            db.Set<BaseMeasurementEntity>().AddRange(
+                new BaseMeasurementEntity { Id = 7, Name = "Ounce", Symbol = "oz", MeasurementCategoryId = 1, BaseUnitConversionFactor = 28.3495m },
+                new BaseMeasurementEntity { Id = 20, Name = "Can", Symbol = "can", MeasurementCategoryId = 3, BaseUnitConversionFactor = 1m, IsContainer = true });
+            db.Ingredients.Add(Food(1, "Rotel Tomatoes"));
+            db.Recipes.Add(Recipe(50, NonCurated,
+                new Row(1, "1 can (10 ounce) Rotel tomatoes", 1m, RecipeIngredientLineKind.Reference, Piece)));
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var result = await Labels(db).ReviewAsync(apply: true);
+
+            (result.Changed, result.Reread).Should().Be((1, 1));
+            var line = await db.RecipeIngredients.AsNoTracking().SingleAsync();
+            (line.LineKind, line.Quantity, line.MeasurementId).Should().Be((RecipeIngredientLineKind.Ingredient, 10m, 7L));
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == PackageLineService.RereadChangeType)).Should().Be(1);
+        }
+
+        [Fact]
         public async Task The_label_undo_leaves_a_row_that_now_holds_another_line()
         {
             using var db = await LabelsAsync();

@@ -652,7 +652,11 @@ water". A line that reads as a heading or a note is never vetoed and so never re
 ("MEATBALLS"), a line that starts with "or" ("or 6 baked potatoes") and fat or liquid taken from
 the dish itself ("dripping from the top of the soup"). Single food names that are headings or
 serving notes ("Mashed Potatoes", "Pears", "Asparagus") have no such signal and are still
-returned. The dry run reports both rules (`Certain`, `WithShortLines`) with lines, recipes,
+returned. The apply then runs the container re-read on exactly the lines it returned, which the
+re-read skipped while they were labelled ("4 cans (13-3/4 ounces each) chicken broth" → 55
+Ounce), and reports them as `Reread`; those are `LineReread` entries, so `reread/undo` with the
+label batch's start time puts them back. The re-read and the label review can therefore run in
+either order. The dry run reports both rules (`Certain`, `WithShortLines`) with lines, recipes,
 approved recipes and `ApprovedStopPassing`: approved recipes that pass the line rules
 (unquantified allowance, curated foods) now and would not after the change. Each change is a
 `LineKindReview` audit entry; `POST /api/FoodCatalog/labels/undo?sinceUtc=<start>` restores a

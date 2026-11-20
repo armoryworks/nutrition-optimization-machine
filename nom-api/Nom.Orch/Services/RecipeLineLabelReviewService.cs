@@ -99,6 +99,7 @@ namespace Nom.Orch.Services
             if (!apply) return result;
 
             var personId = _currentUser.PersonIdOrSystem;
+            var returned = new HashSet<(long RecipeId, long IngredientId, int SortOrder)>();
             foreach (var chunk in chosen.Take(Math.Clamp(maxLines, 1, 50000)).GroupBy(f => f.Label.RecipeId).Chunk(RecipesPerTransaction))
             {
                 var recipeIds = chunk.Select(g => g.Key).ToList();
@@ -118,6 +119,7 @@ namespace Nom.Orch.Services
                     }
 
                     row.LineKind = RecipeIngredientLineKind.Ingredient;
+                    returned.Add((label.RecipeId, label.IngredientId, label.SortOrder));
                     row.LastModifiedDate = now;
                     row.LastModifiedByPersonId = personId;
                     _db.AuditLogEntries.Add(new AuditLogEntryEntity
@@ -137,6 +139,12 @@ namespace Nom.Orch.Services
                 await _db.SaveChangesAsync();
                 if (tx != null) await tx.CommitAsync();
                 _db.ChangeTracker.Clear();
+            }
+
+            if (returned.Count > 0)
+            {
+                var reread = await new PackageLineService(_db, _currentUser).ApplyAsync(50000, returned);
+                result.Reread = reread.Changed;
             }
 
             return result;

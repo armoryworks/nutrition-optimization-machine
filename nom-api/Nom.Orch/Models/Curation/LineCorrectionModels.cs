@@ -45,6 +45,11 @@ namespace Nom.Orch.Models.Curation
         /// <summary>Recipes the chosen rule touches, by curation status.</summary>
         public Dictionary<string, int> RecipesByStatus { get; set; } = new();
         public int Changed { get; set; }
+        /// <summary>
+        /// Lines returned to ingredient whose can, jar or package wording the container re-read then
+        /// read in the same apply, journaled as LineReread entries that reread/undo puts back.
+        /// </summary>
+        public int Reread { get; set; }
         /// <summary>Lines no longer as the review found them.</summary>
         public int Skipped { get; set; }
         public int Remaining { get; set; }

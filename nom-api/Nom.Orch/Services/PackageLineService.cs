@@ -180,15 +180,27 @@ namespace Nom.Orch.Services
             };
         }
 
-        public async Task<PackageLineResult> ApplyAsync(int maxLines = 5000)
+        public async Task<PackageLineResult> ApplyAsync(int maxLines = 5000) => await ApplyAsync(maxLines, null);
+
+        /// <summary>
+        /// Applies the re-read to the given lines only (recipe, ingredient, position), or to every
+        /// line when none are given. The label review uses it for the lines it returns to
+        /// ingredient, which the re-read skipped while they were labelled.
+        /// </summary>
+        internal async Task<PackageLineResult> ApplyAsync(int maxLines, IReadOnlySet<(long RecipeId, long IngredientId, int SortOrder)>? only)
         {
             var plan = await PlanAsync();
+            if (only != null)
+            {
+                bool Chosen(Line line) => only.Contains((line.RecipeId, line.IngredientId, line.SortOrder));
+                plan = plan with { Changes = plan.Changes.Where(c => Chosen(c.Line)).ToList(), Touches = plan.Touches.Where(Chosen).ToList() };
+            }
             var result = new PackageLineResult { Remaining = plan.Changes.Count };
             var personId = _currentUser.PersonIdOrSystem;
 
             foreach (var chunk in plan.Changes.Take(Math.Clamp(maxLines, 1, 50000)).Chunk(500))
             {
-                await using var tx = await _db.Database.BeginTransactionAsync();
+                await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
                 var rows = await RowsAsync(chunk.Select(c => c.Line));
                 var now = DateTime.UtcNow;
                 foreach (var change in chunk)
@@ -220,7 +232,7 @@ namespace Nom.Orch.Services
                 }
 
                 await _db.SaveChangesAsync();
-                await tx.CommitAsync();
+                if (tx != null) await tx.CommitAsync();
                 _db.ChangeTracker.Clear();
                 result.Remaining -= chunk.Length;
             }
