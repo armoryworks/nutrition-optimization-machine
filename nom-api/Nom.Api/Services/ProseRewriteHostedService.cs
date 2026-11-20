@@ -1,34 +1,26 @@
-using System.Net.Http.Json;
-using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
-using Nom.Data;
-using Nom.Data.Audit;
-using Nom.Data.Recipe;
+using Nom.Orch.Interfaces;
+using Nom.Orch.Models.Curation;
 using Nom.Orch.Services;
 using Nom.Orch.Services.Support;
 
 namespace Nom.Api.Services
 {
     /// <summary>
-    /// Clears the copyright quarantine on scraped recipes by rewriting their
-    /// verbatim source prose (description + step text) in original words via a
-    /// self-hosted model. Facts are preserved, nothing is invented, the source
-    /// text remains in recipe.ScrapedDocument for provenance, and the recipe
-    /// still requires normal curation approval before it can publish — this
-    /// worker only removes the ContainsSourceProse blocker.
+    /// Runs the clean-room prose lane (<see cref="ProseLaneService"/>) on the lane frame: it works
+    /// the recipes whose prose is withheld or quarantined off by writing each method again from
+    /// fact sheets, never from the source's wording, and writes a rewrite only while the frame has
+    /// the lane live; in shadow or on probation it decides and records without writing. Each sweep
+    /// is followed by the planted-fault canaries when due and by the lane's measurement (audit
+    /// sample, evaluation), which qualifies, pauses and undoes it.
     ///
-    /// Off unless Ai:BatchOllamaUrl is configured (point it at the batch-lane
-    /// Ollama host, not the interactive one). ProseRewrite:IntervalMinutes
-    /// (default 10) and ProseRewrite:BatchSize (default 25) tune the pace;
-    /// ProseRewrite:RetryDays (default 30) is how long a recipe the model could
-    /// not rewrite rests before it is tried again. ProseRewrite:CheckFidelity
-    /// (default true) keeps a rewrite in quarantine unless <see cref="RewriteFidelity"/>
-    /// passes it against the text it was given and against the stored source. While a sweep comes
-    /// back full the next starts after ProseRewrite:PauseSeconds (default 5) instead of the interval
-    /// (ProseRewrite:DrainWhileFull, default on only when Ai:Lanes:prose-rewrite:MaxItemsPerDay is
-    /// above 0). A refused connection to the model host stamps
-    /// nothing; a timeout stamps the recipe it hit. Either ends the sweep and is reported to the
-    /// <see cref="AiLaneGate"/> (lane "prose-rewrite"), which every sweep passes.
+    /// Off unless Ai:BatchOllamaUrl is configured. The writer is Ai:RewriteModel or the roster's
+    /// reader A, the judge reader B and the auditor the roster's auditor; the lane refuses to run
+    /// when two of them share a family. ProseRewrite:IntervalMinutes (default 10) and
+    /// ProseRewrite:BatchSize (default 25) set the pace; while a sweep comes back full the next
+    /// starts after ProseRewrite:PauseSeconds (default 5) instead (ProseRewrite:DrainWhileFull,
+    /// default on only when Ai:Lanes:prose-rewrite:MaxItemsPerDay is above 0). A model host outage
+    /// charges the recipe nothing, ends the sweep and is reported to the <see cref="AiLaneGate"/>
+    /// (lane "prose-rewrite"), which every sweep passes.
     /// </summary>
     public class ProseRewriteHostedService : BackgroundService
     {
@@ -62,18 +54,22 @@ namespace Nom.Api.Services
                 return;
             }
 
-            var model = _configuration["Ai:RewriteModel"] ?? _configuration["Ai:Model"] ?? "qwen2.5:3b";
-            var interval = TimeSpan.FromMinutes(
-                Math.Max(1, _configuration.GetValue("ProseRewrite:IntervalMinutes", 10)));
+            var models = ProseLaneModels.From(_configuration);
+            if (models.Problem is { } problem)
+            {
+                _logger.LogError("Prose rewrite is disabled: {Problem}", problem);
+                _gate.Disabled(AiLanes.ProseRewrite, problem);
+                return;
+            }
+
+            var interval = TimeSpan.FromMinutes(Math.Max(1, _configuration.GetValue("ProseRewrite:IntervalMinutes", 10)));
             var batchSize = Math.Clamp(_configuration.GetValue("ProseRewrite:BatchSize", 25), 1, 100);
-            var retryDays = Math.Max(1, _configuration.GetValue("ProseRewrite:RetryDays", 30));
             var drain = AiLanes.ProseDrainWhileFull(_configuration);
             var drainPause = TimeSpan.FromSeconds(Math.Max(0, _configuration.GetValue("ProseRewrite:PauseSeconds", 5)));
-            var checkFidelity = _configuration.GetValue("ProseRewrite:CheckFidelity", true);
 
             _logger.LogInformation(
-                "Prose rewrite enabled: {Url} ({Model}), every {Minutes}m, up to {Batch} recipes per sweep, fidelity check {Check}",
-                baseUrl, model, interval.TotalMinutes, batchSize, checkFidelity ? "on" : "off");
+                "Prose rewrite (clean-room lane {Version}) enabled: {Url}, writer {Writer}, judge {Judge}, auditor {Auditor}, every {Minutes}m, up to {Batch} recipes per sweep",
+                models.Version, baseUrl, models.Writer, models.Judge, models.Auditor, interval.TotalMinutes, batchSize);
 
             await SafeDelay(TimeSpan.FromMinutes(3), stoppingToken);
 
@@ -83,15 +79,15 @@ namespace Nom.Api.Services
                 var delay = interval;
                 try
                 {
-                    var (seen, outage) = await SweepAsync(baseUrl, model, batchSize, retryDays, checkFidelity, stoppingToken);
-                    if (outage != null)
+                    var result = await RunOnceAsync(baseUrl, models, batchSize, stoppingToken);
+                    if (result.Outage != null)
                     {
-                        _gate.Failed(AiLanes.ProseRewrite, outage);
+                        _gate.Failed(AiLanes.ProseRewrite, result.Outage);
                     }
                     else
                     {
-                        _gate.Passed(AiLanes.ProseRewrite, seen, seen == 0);
-                        if (drain && seen >= batchSize) delay = drainPause;
+                        _gate.Passed(AiLanes.ProseRewrite, result.Seen, result.Seen == 0);
+                        if (drain && result.Seen >= batchSize) delay = drainPause;
                     }
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -108,230 +104,36 @@ namespace Nom.Api.Services
             }
         }
 
-        internal async Task<(int Seen, Exception? Outage)> SweepAsync(string baseUrl, string model, int batchSize, int retryDays, bool checkFidelity, CancellationToken cancellationToken)
-        {
-            using var scope = _scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var retryBefore = DateTime.UtcNow.AddDays(-retryDays);
-
-            var quarantined = await db.Recipes
-                .Include(r => r.RecipeSteps)
-                .Where(r => r.ContainsSourceProse && (r.ProseRewriteAttemptedAt == null || r.ProseRewriteAttemptedAt < retryBefore))
-                .OrderBy(r => r.ProseRewriteAttemptedAt == null ? 0 : 1)
-                .ThenBy(r => r.Id)
-                .Take(batchSize)
-                .ToListAsync(cancellationToken);
-
-            if (quarantined.Count == 0)
-            {
-                return (0, null);
-            }
-
-            var ids = quarantined.Select(r => r.Id).ToList();
-            var sources = (await db.ScrapedDocuments.AsNoTracking()
-                    .Where(d => ids.Contains(d.RecipeId) && d.Format == ScrapedDocumentFormat.JsonLd)
-                    .OrderBy(d => d.Id)
-                    .Select(d => new { d.RecipeId, d.RawJsonLd })
-                    .ToListAsync(cancellationToken))
-                .GroupBy(d => d.RecipeId)
-                .ToDictionary(g => g.Key, g => RewriteFidelity.Source(g.Last().RawJsonLd));
-
-            var rewritten = 0;
-            Exception? outage = null;
-            foreach (var recipe in quarantined)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var attemptedBefore = recipe.ProseRewriteAttemptedAt;
-                recipe.ProseRewriteAttemptedAt = DateTime.UtcNow;
-
-                var steps = recipe.RecipeSteps?.Where(s => !s.IsDeleted).OrderBy(s => s.StepNumber).ToList() ?? new();
-                var source = sources.GetValueOrDefault(recipe.Id);
-                var original = source != null && source.Steps.Count == steps.Count
-                    ? new RewriteFidelity.SourceText(source.Description.Length > 0 ? source.Description : recipe.Description ?? string.Empty, source.Steps, recipe.Name ?? string.Empty)
-                    : new RewriteFidelity.SourceText(recipe.Description ?? string.Empty, steps.Select(s => s.Description).ToList(), recipe.Name ?? string.Empty);
-                try
-                {
-                    var answer = await RewriteAsync(baseUrl, model, recipe, original, steps.Count, null, cancellationToken);
-                    var finding = answer == null || !checkFidelity ? null : Verify(Rewritten(recipe, answer), original, source);
-                    if (finding is { Passed: false })
-                    {
-                        answer = await RewriteAsync(baseUrl, model, recipe, original, steps.Count, finding, cancellationToken);
-                        finding = answer == null ? null : Verify(Rewritten(recipe, answer), original, source);
-                    }
-
-                    if (answer == null)
-                    {
-                        await db.SaveChangesAsync(cancellationToken);
-                        continue;
-                    }
-
-                    if (finding is { Passed: false })
-                    {
-                        _logger.LogWarning("Rewrite for recipe {Id} failed the fidelity check ({Finding}); leaving quarantined", recipe.Id, finding);
-                        await db.SaveChangesAsync(cancellationToken);
-                        continue;
-                    }
-
-                    var rewrite = Rewritten(recipe, answer);
-                    var description = rewrite.Description.Length > 0 ? rewrite.Description : recipe.Description;
-                    var texts = rewrite.Steps.ToList();
-                    var now = DateTime.UtcNow;
-                    if (description != recipe.Description)
-                    {
-                        db.AuditLogEntries.Add(Journal(recipe.Id, nameof(recipe.Description), recipe.Description, $"[{model}] {description}", now));
-                        recipe.Description = description;
-                    }
-
-                    if (steps.Count == 1 && texts.Count > 1)
-                    {
-                        db.AuditLogEntries.Add(Journal(recipe.Id, nameof(recipe.RecipeSteps), steps[0].Description, $"[{model}] {JsonSerializer.Serialize(texts)}", now));
-                        RecipeStepSplit.Apply(recipe, steps[0], texts);
-                    }
-                    else
-                    {
-                        for (var i = 0; i < steps.Count; i++)
-                        {
-                            db.AuditLogEntries.Add(Journal(recipe.Id, $"RecipeStep:{steps[i].StepNumber}", steps[i].Description, $"[{model}] {texts[i]}", now));
-                            steps[i].Description = texts[i];
-                            steps[i].LastModifiedDate = now;
-                            steps[i].LastModifiedByPersonId = SystemConstants.SystemPersonId;
-                        }
-                    }
-
-                    db.AuditLogEntries.Add(Journal(recipe.Id, nameof(recipe.ContainsSourceProse), "true", $"[{model}] false", now));
-                    recipe.ContainsSourceProse = false;
-                    recipe.LastModifiedDate = DateTime.UtcNow;
-                    recipe.LastModifiedByPersonId = SystemConstants.SystemPersonId;
-                    await db.SaveChangesAsync(cancellationToken);
-                    rewritten++;
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch (HttpRequestException ex) when (AiLanes.IsOutage(ex))
-                {
-                    recipe.ProseRewriteAttemptedAt = attemptedBefore;
-                    _logger.LogWarning(ex, "Model host unreachable while rewriting recipe {Id}; ending the sweep without recording an attempt", recipe.Id);
-                    outage = ex;
-                    break;
-                }
-                catch (TaskCanceledException ex)
-                {
-                    _logger.LogWarning(ex, "Rewrite of recipe {Id} timed out; ending the sweep", recipe.Id);
-                    await db.SaveChangesAsync(cancellationToken);
-                    outage = ex;
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Rewrite failed for recipe {Id}; leaving quarantined", recipe.Id);
-                    await db.SaveChangesAsync(cancellationToken);
-                }
-            }
-
-            _logger.LogInformation("Prose rewrite sweep: {Rewritten}/{Seen} recipes cleared",
-                rewritten, quarantined.Count);
-            return (quarantined.Count, outage);
-        }
-
-        /// <summary>
-        /// Asks the model once, and once more with the step count spelled out when its answer is off
-        /// by one. A one-step original may come back as several steps, since old cookbooks wrote the
-        /// whole method as one paragraph; anything else must keep the step count. With a failed
-        /// fidelity check the model is told what its previous answer lost, added or copied.
-        /// </summary>
-        private async Task<RewritePayload?> RewriteAsync(string baseUrl, string model, Nom.Data.Recipe.RecipeEntity recipe,
-            RewriteFidelity.SourceText original, int stepCount, RewriteFidelity.Finding? failed, CancellationToken cancellationToken)
-        {
-            var payload = new
-            {
-                name = recipe.Name,
-                description = original.Description,
-                steps = original.Steps,
-            };
-            var prompt =
-                "Rewrite this recipe's description and steps in fresh, plain wording. " +
-                "Preserve every fact — ingredients, amounts, temperatures, times, order, technique. " +
-                "Invent nothing; drop storytelling and personal anecdotes. Keep the same NUMBER of steps, " +
-                "one rewritten step per original step, same order. Reply with STRICT JSON: " +
-                "{\"description\": str, \"steps\": [str, ...]} with exactly " +
-                $"{stepCount} steps.\n\nRECIPE:\n{JsonSerializer.Serialize(payload)}"
-                + (failed == null ? string.Empty : Feedback(failed));
-
-            var answer = await GenerateAsync(baseUrl, model, prompt, cancellationToken);
-            if (Acceptable(answer, stepCount)) return answer;
-
-            var got = answer?.Steps?.Count ?? 0;
-            if (answer?.Steps != null && Math.Abs(got - stepCount) == 1 && stepCount > 1)
-            {
-                answer = await GenerateAsync(baseUrl, model,
-                    prompt + $"\n\nYour previous answer had {got} steps. Reply again with EXACTLY {stepCount} steps.", cancellationToken);
-                if (Acceptable(answer, stepCount)) return answer;
-                got = answer?.Steps?.Count ?? 0;
-            }
-
-            _logger.LogWarning("Rewrite for recipe {Id} returned {Got} steps for {Want}; leaving quarantined", recipe.Id, got, stepCount);
-            return null;
-        }
-
-        private static string Feedback(RewriteFidelity.Finding failed)
-        {
-            var problems = new List<string>();
-            if (failed.Lost.Count > 0) problems.Add($"it dropped these numbers the original states: {string.Join(", ", failed.Lost)}. Keep every amount, time and temperature exactly as the original gives it");
-            if (failed.Added.Count > 0) problems.Add($"it stated numbers the original does not: {string.Join(", ", failed.Added)}. Add no number");
-            if (failed.Copied != null) problems.Add($"it copied the original word for word: \"{failed.Copied}\". Reword it");
-            if (failed.IsUnchanged) problems.Add("it repeated the original wording. Reword it");
-            return $"\n\nYour previous answer was refused because {string.Join("; ", problems)}.";
-        }
-
-        private static RewriteFidelity.SourceText Rewritten(Nom.Data.Recipe.RecipeEntity recipe, RewritePayload answer) =>
-            new(string.IsNullOrWhiteSpace(answer.Description) ? recipe.Description ?? string.Empty : answer.Description.Trim(),
-                answer.Steps!.Select(s => s.Trim()).ToList());
-
-        private static RewriteFidelity.Finding Verify(RewriteFidelity.SourceText rewrite, RewriteFidelity.SourceText original, RewriteFidelity.SourceText? source)
-        {
-            var finding = RewriteFidelity.Check(original, rewrite);
-            return finding.Passed && source != null ? RewriteFidelity.Check(source, rewrite) : finding;
-        }
-
-        private static bool Acceptable(RewritePayload? answer, int originalSteps) =>
-            answer?.Steps != null
-            && answer.Steps.Count > 0
-            && (answer.Steps.Count == originalSteps || originalSteps == 1)
-            && !answer.Steps.Any(string.IsNullOrWhiteSpace);
-
-        private async Task<RewritePayload?> GenerateAsync(string baseUrl, string model, string prompt, CancellationToken cancellationToken)
+        /// <summary>One sweep in the mode the frame gives the lane, then the canaries when due and the lane's measurement; a model host outage ends it early.</summary>
+        internal async Task<ProseSweepResult> RunOnceAsync(string baseUrl, ProseLaneModels models, int batchSize, CancellationToken cancellationToken)
         {
             var http = _httpClientFactory.CreateClient(nameof(ProseRewriteHostedService));
             http.Timeout = TimeSpan.FromSeconds(600);
-            var response = await http.PostAsJsonAsync($"{baseUrl}/api/generate", new
+            var writer = new OllamaProseWriter(http, baseUrl, models.Writer);
+            var judge = new OllamaProseJudge(http, baseUrl, models.Judge);
+            var auditor = new OllamaProseJudge(http, baseUrl, models.Auditor);
+
+            var mode = await _gate.WriteModeAsync(AiLanes.ProseRewrite, ProseLaneService.Tier, cancellationToken);
+            using var scope = _scopeFactory.CreateScope();
+            var lane = scope.ServiceProvider.GetRequiredService<ProseLaneService>();
+            var result = await lane.SweepAsync(mode, models, writer, judge, batchSize, cancellationToken);
+            if (result.Outage != null) return result;
+
+            try
             {
-                model,
-                prompt,
-                stream = false,
-                format = "json",
-                options = new { temperature = 0, num_predict = 2048 },
-            }, cancellationToken);
-            response.EnsureSuccessStatusCode();
+                if (await lane.CanariesDueAsync(models.Version, cancellationToken))
+                    await lane.RunCanariesAsync(models, judge, cancellationToken);
+                var verdict = await lane.MeasureAsync(mode, models, auditor, judge, cancellationToken: cancellationToken);
+                if (verdict.Journal != null)
+                    _logger.LogWarning("Prose rewrite lane: {Journal} ({Mode}): {Reason}", verdict.Journal, verdict.Mode, verdict.Reason);
+            }
+            catch (HttpRequestException ex) when (AiLanes.IsOutage(ex))
+            {
+                result.Outage = ex;
+            }
 
-            var body = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
-            return JsonSerializer.Deserialize<RewritePayload>(
-                body.GetProperty("response").GetString() ?? "{}",
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return result;
         }
-
-        private static AuditLogEntryEntity Journal(long recipeId, string property, string? before, string after, DateTime at) => new()
-        {
-            EntityType = ProseRecheckService.RecipeEntityType,
-            EntityId = recipeId,
-            ChangeType = ProseRecheckService.RewriteChangeType,
-            PropertyName = property,
-            OldValue = ProseRecheckService.Clamp(before ?? string.Empty),
-            NewValue = ProseRecheckService.Clamp(after),
-            Timestamp = at,
-            ChangedByPersonId = SystemConstants.SystemPersonId,
-        };
 
         private static async Task SafeDelay(TimeSpan delay, CancellationToken token)
         {
@@ -341,14 +143,7 @@ namespace Nom.Api.Services
             }
             catch (OperationCanceledException)
             {
-                // shutting down
             }
-        }
-
-        private sealed class RewritePayload
-        {
-            public string? Description { get; set; }
-            public List<string>? Steps { get; set; }
         }
     }
 }

@@ -4,9 +4,8 @@ A scraped recipe's method and description are shown only in our own words. The p
 whether a text is our own: it compares a rewrite with the stored source (`recipe.ScrapedDocument`) by
 rule, with no model. Version 2 (`ProseCheck`, `ProseCheck.Version = 2`) replaces the bare-number
 comparison of `RewriteFidelity`. The re-check and the rewrite lane are to call the same function, so
-they always agree. The re-check runs v2 (see "The withheld state" below); until the rewrite lane is
-moved onto it (prose lane v2), `RewriteFidelity` stays the gate of the lane, and the re-check catches
-what the lane lets through.
+they always agree. The re-check runs v2 (see "The withheld state" below), and so does the clean-room
+rewrite lane (prose lane v2, `prose-lane.md`) on every rewrite before its judge reads it.
 
 The check is text only: `ProseCheck.Check(source, rewrite, ingredientLines, stockIndex)`. The finding
 lists every rule broken with its detail, the copy measures it computed, the check version and the
@@ -158,7 +157,8 @@ meal plans.
   recipe with a `ProseWithholdEnd` row counts as edited by a person, so neither the re-check nor the
   marker cleanup touches the person's own method.
 - **A holding state, never an end.** Every withheld recipe is work for the rewrite lane (prose lane
-  v2), approved first. The Pipeline page shows the count ("Prose withheld (approved)"); the goal is
+  v2, `prose-lane.md`), approved first; a recipe the lane gives up on is counted by failure class on
+  the Pipeline page and taken again when the lane version changes. The Pipeline page shows the count ("Prose withheld (approved)"); the goal is
   none.
 
 ### Re-check, apply and undo

@@ -1,0 +1,109 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using Nom.Orch.Interfaces;
+using Nom.Orch.Services.Support;
+
+namespace Nom.Api.Tests.Services
+{
+    /// <summary>
+    /// The garlic cream sauce of prose-judge.tsv (k1, constructed in our own words) as the lane's
+    /// tests use it: its source method and lines, and a faithful method written with the lane's
+    /// tokens, as a writer that keeps to the rules would answer.
+    /// </summary>
+    internal static class GarlicSauce
+    {
+        public const string Dish = "Garlic Cream Sauce";
+
+        public static readonly string[] Lines = { "1/2 tablespoon olive oil", "2 cloves garlic, minced", "3/4 cup heavy cream", "3/4 teaspoon salt", "2 tablespoons butter" };
+
+        public static readonly string[] Method =
+        {
+            "Heat ½ tablespoon of the olive oil in a small saucepan over medium heat and cook the garlic for a minute or two, until fragrant.",
+            "Pour in ¾ cup cream and ¾ teaspoon salt, then simmer for 7 to 10 minutes until slightly thickened.",
+            "Take the pan off the heat and whisk in the butter.",
+            "Let the sauce stand for a half hour before serving.",
+        };
+
+        public static readonly string[] Written =
+        {
+            "Warm ⟦Q1⟧ ⟦L1⟧ in a small pan on medium and fry the ⟦L2⟧ ⟦Q2⟧, just until it smells good.",
+            "Add the ⟦Q3⟧ ⟦L3⟧ with the ⟦Q4⟧ ⟦L4⟧ and let it simmer ⟦Q5⟧, until a little thicker.",
+            "Remove the pan from the burner, then whisk the ⟦L5⟧ in.",
+            "Rest the sauce ⟦Q6⟧, then serve.",
+        };
+
+        public static string JsonLd() => JsonSerializer.Serialize(new Dictionary<string, object>
+        {
+            ["@type"] = "Recipe",
+            ["name"] = Dish,
+            ["description"] = "The silkiest garlic sauce you will ever pour over pasta, straight from our family kitchen.",
+            ["recipeIngredient"] = Lines,
+            ["recipeInstructions"] = Method.Select(m => new Dictionary<string, string> { ["@type"] = "HowToStep", ["text"] = m }).ToArray(),
+        });
+
+        public static ProseLaneInput Input(ProseStockIndex? stock = null) =>
+            new(Dish, new RewriteFidelity.SourceText(string.Empty, Method, Dish), Lines, stock ?? ProseStockIndex.Empty);
+    }
+
+    /// <summary>A writer whose extractor answers with the rule sheets and whose writer answers from a queue (the last answer repeats), recording what it was given.</summary>
+    internal sealed class FakeWriter : IProseWriter
+    {
+        private readonly Queue<string?> _written;
+        private string? _last;
+
+        public FakeWriter(params string?[] written)
+        {
+            _written = new Queue<string?>(written.Length == 0 ? new[] { Steps(GarlicSauce.Written) } : written);
+        }
+
+        public string Model { get; init; } = "qwen2.5:14b-instruct";
+        public Func<MaskedMethod, string?> Extract { get; init; } = m => ProseFactSheet.ToJson(ProseCleanRoom.RuleSheets(m));
+        public List<MaskedMethod> Extracted { get; } = new();
+        public List<ProseWriteRequest> Requests { get; } = new();
+        public Exception? Throw { get; set; }
+
+        public static string Steps(IEnumerable<string> steps) => JsonSerializer.Serialize(new { steps });
+
+        public Task<string?> ExtractAsync(MaskedMethod method, IReadOnlyList<string> problems, CancellationToken cancellationToken)
+        {
+            if (Throw != null) throw Throw;
+            Extracted.Add(method);
+            return Task.FromResult(Extract(method));
+        }
+
+        public Task<string?> WriteAsync(ProseWriteRequest request, CancellationToken cancellationToken)
+        {
+            if (Throw != null) throw Throw;
+            Requests.Add(request);
+            if (_written.Count > 0) _last = _written.Dequeue();
+            return Task.FromResult(_last);
+        }
+    }
+
+    /// <summary>A judge that finds every rewrite faithful unless told otherwise, recording each rewrite it read.</summary>
+    internal sealed class FakeJudge : IProseJudge
+    {
+        public string Model { get; init; } = "mistral-nemo";
+        public Func<IReadOnlyList<string>, IReadOnlyList<string>, bool?> Faithful { get; set; } = (_, _) => true;
+        public Func<int, bool?> Confirms { get; set; } = _ => true;
+        public List<IReadOnlyList<string>> Read { get; } = new();
+
+        public Task<ProseJudgeVerdict?> JudgeAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, CancellationToken cancellationToken)
+        {
+            Read.Add(rewrite);
+            var faithful = Faithful(original, rewrite);
+            if (faithful == null) return Task.FromResult<ProseJudgeVerdict?>(null);
+            var steps = Enumerable.Range(1, original.Count)
+                .Select(n => new ProseJudgeStep(n, true, true, n == 1 && faithful == false, false, null))
+                .ToList();
+            return Task.FromResult<ProseJudgeVerdict?>(new ProseJudgeVerdict(steps, original.Count));
+        }
+
+        public Task<bool?> ConfirmAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, int step, CancellationToken cancellationToken) =>
+            Task.FromResult(Confirms(step));
+    }
+}

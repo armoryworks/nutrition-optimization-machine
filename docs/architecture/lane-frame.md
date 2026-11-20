@@ -6,8 +6,9 @@ writes since its last clean window. It is built once, in Nom.Orch, and the lanes
 (wording tiers and readers, applied-link re-check, prose rewrite v2, reprocess, containers,
 source admission).
 
-The frame is in place; no lane runs on it yet. Lanes that exist today (link, prose rewrite, repair,
-line classify, dish grouping, tool tagging) keep their own switches until their branch moves them.
+The prose rewrite lane runs on the frame (`prose-rewrite`, tier `*`; see `prose-lane.md`). Lanes
+that exist today (link, repair, line classify, dish grouping, tool tagging) keep their own switches
+until their branch moves them.
 
 ## Modes
 

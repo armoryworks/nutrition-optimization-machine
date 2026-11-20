@@ -36,6 +36,7 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `prose.tsv` | `RewriteFidelity.Check`; `ProseCheck.Check` (check v2, with `prose-stock.tsv`) | `expect`: a reason the check must give, or `passed`; `check2`: `passed`, a reason, `!reason` (must not give it) or `!quantity` (no amount reason) | `status`; `status2` |
 | `prose-stock.tsv` | the stock phrases check v2 runs with | `sites` (stock at 3 or more) | none |
 | `prose-verbs.tsv` | the verb groups of check v2, compiled into Nom.Orch | `words` (`\|`-joined) | none |
+| `prose-judge.tsv` | `ProseCheck.Check` on a faithful rewrite and planted faults of each recipe; the masking and rule rendering of the clean-room lane; compiled into Nom.Orch as the lane's judge cases and canaries (see `prose-lane.md`) | `check2`: `passed` or the first reason check v2 gives; `expect` (`faithful`/`fault`) and `fault` (the planted fault) are what the judge must find | `status` |
 | `piece-counts.tsv` | `RecipeRepairGrounding.PieceRefusal` (repair lane fills and `quantities/revert`) | `expect`: `keep` or `revert` | `status` |
 | `startup-fills.tsv` | `ScrapedRecipeRepairService.RepairBatchAsync` (the start-up repair's amount for a line that states none, in a recipe with its method, its other lines and, when `journal` names one, an open line journal) | `expect` (`<quantity> <unit>`, or `-` for no amount) | `status` |
 | `link-gate.tsv` + `gate-catalog.tsv` | `LinkGate.Check` (the one link gate, see `link-gate.md`) | `expect`: `pass`, or the code of a rule that must hold the pair; the target's facts in the row | `status` |
@@ -46,6 +47,7 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `line-labels.tsv` | model lane `line-classify` | `kind` | none (scored by the operator run) |
 | `link-pairs.tsv` + `gate-catalog.tsv` | scorer lane `link-gate` (no model) | `verdict` | none (scored by the record) |
 | `alcohol-context.tsv` + `gate-catalog.tsv` | scorer lane `alcohol-context` (no model) | `expect`, `allows`, `refuses` | `status` (and the record) |
+| `prose-judge.tsv` + `prose-stock.tsv` | scorer lanes `prose-rewrite` (writer end to end, planted faults through the gate), `prose-judge` (the judge), `prose-audit` (the auditor confirmed by the judge) | `expect`, `fault` | none (scored by the record) |
 | `model-lanes.json` | every model lane | floors | — |
 | `baseline.json` | — | allowed `known` rows per `file:column` | — |
 
@@ -110,6 +112,7 @@ without it.
 | `unfold.tsv` | examples 1–16 of the unfold design, with source lists read from staging | design |
 | `prose.tsv` | 12 public-domain recipes from staging, rewrites built by construction | rule (by construction) |
 | `prose.tsv` check v2 rows, `prose-stock.tsv` (2026-11-20) | constructed recipes of our own text, two public-domain recipes and constructed sentences for the C9 faults and equal forms; fault rows are one deterministic edit of a faithful rewrite; the stock phrases are constructed | fault and equal-form rows: rule (`rule:construction`, `ok`); faithful rewrites: the model operator who wrote them (`agent-review-construction-2026-11-20`, `agent`) |
+| `prose-judge.tsv` (2026-11-20) | 8 recipes: four constructed in our own words and four public-domain recipes already in `prose.tsv`; for each, one faithful rewrite and three or four planted faults (heat level, doneness cue, a dropped preparation, an added action or ingredient, swapped steps, a unit, a time or a range) | planted faults: one deterministic edit of the faithful rewrite (`rule:construction`, `ok`); faithful rewrites: the prose-lane-v2 builder (`agent-review-construction-2026-11-20`, `agent`) |
 | staging rehearsal rows (2026-11-20) in `piece-counts.tsv`, `compound.tsv`, `unfold.tsv`, `lines.tsv`, `veto.tsv`, `prose.tsv` | the wrong and doubtful cases of the C1–C9 operator logs, with the right outcome or "left alone" | the model operator of the rehearsal (`agent-review-staging-2026-11-20`, status `agent`) |
 | `startup-fills.tsv` (2026-11-20) | the split parts a v0.3.118 start filled on staging (pass-2 log, S1) and two stand-alone lines the same method rule misread (`known` until the R7 method-fill checks of `cleanup2/parser-rules`, now `agent`) | the model operator of the rehearsal (`agent-review-staging-2026-11-20`, status `agent`) |
 | parser-rules rows (2026-11-20) in `lines.tsv` (`r1`-`r6`, `s13`, `can`), `line-kinds.tsv` (`r8`), `startup-fills.tsv` (`r7`), `compound.tsv` (`r9`) | the lines the reprocess design names for rules R1-R9 (its B6-B9 lists; the method-fill rows put the phrase the design quotes from each recipe in a short step), the containers design's "1 lb. 13 ounce can", and further lines of the same classes: the scraper sample of the sources design (item 13), numbered cans, "a couple of", "tbp", single-food headings | design rows: the design authors (`design:reprocess`, `design:containers`, `ok`); the rest: the parser-rules builder (`agent-review-parser-rules-2026-11-20`, `agent`) |
@@ -132,9 +135,20 @@ make every other food wrong. Five of them (2026-11-20, parser-rules) were `~` ro
 unanswered until the name dropped "tablespn.", "tablespns." and "tbp"; it now gives "Lemon juice,
 raw" for lemon juice and "Onions, raw" for chopped onion.
 
-Sets that no existing judgement fills yet: the repair lane's quoted amounts, the prose rewrite
-lane's own output (its prompt is private to `ProseRewriteHostedService`), dish grouping and tool
+Sets that no existing judgement fills yet: the repair lane's quoted amounts, dish grouping and tool
 tagging. `model-lanes.json` lists them with `scorer: false`.
+
+The clean-room prose lane (`prose-lane.md`) has three scorer lanes over `prose-judge.tsv`, scored by
+an operator with `--golden-score --lane <lane> --host <model host> --model <model> [--check-model
+<judge>] --record`: `prose-rewrite` (the writer through the whole pipeline with the judge; a planted
+fault the gate lets through is a false accept, ceiling 0), `prose-judge` (floor 95 %, at most 2 %
+false accepts) and `prose-audit` (the auditor's flags confirmed by the judge, whose known-bad and
+known-good counts are the audit check score the lane frame corrects with). None is `required` until
+the staging proof records it, but the records are also compiled into Nom.Orch and the running lane
+cannot qualify without a current record for its own models (`ProseLaneGolden.GoldenProblem`), so a
+missing record holds the lane in shadow rather than the release. Of the 29 planted faults, 21 pass
+check v2 by construction: they are the judge's work (heat levels, cues, dropped preparations,
+added actions, swapped steps), and the lane's canaries draw from them first.
 
 To add rows: run the matching query (`./ops/golden/capture.sh <query>.sql`, read-only against staging,
 seed `GOLDEN_SEED`, default `golden-2026-11`), put judged answers in, mark the rows `new`, then use the

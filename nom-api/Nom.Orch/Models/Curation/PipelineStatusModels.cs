@@ -39,6 +39,10 @@ namespace Nom.Orch.Models.Curation
         public int ProseWithheld { get; init; }
         /// <summary>Of those withheld, the approved ones, which the rewrite lane takes first.</summary>
         public int ProseWithheldApproved { get; init; }
+        /// <summary>Withheld or quarantined recipes the clean-room rewrite lane gave up on under its current version; each is a failure of the engine to fix, and they are tried again when the lane version changes.</summary>
+        public int ProseGaveUp { get; init; }
+        /// <summary>The lane's give-ups under its current version, by the failure class that held each one.</summary>
+        public IReadOnlyDictionary<string, int> ProseGaveUpByClass { get; init; } = new Dictionary<string, int>();
         public int RevisionMissingQuantities { get; init; }
         public int RevisionSteps { get; init; }
         /// <summary>Approved recipes holding a measured ingredient line their label leaves out.</summary>

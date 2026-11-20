@@ -76,13 +76,20 @@ namespace Nom.Import.Golden
         public const string LineClassify = "line-classify";
         public const string LinkGateLane = "link-gate";
         public const string AlcoholContextLane = "alcohol-context";
+        public const string ProseRewriteLane = ProseLaneGolden.RewriteLane;
+        public const string ProseJudgeLane = ProseLaneGolden.JudgeLane;
+        public const string ProseAuditLane = ProseLaneGolden.AuditLane;
+        public const string CheckModelKey = "Golden:CheckModel";
         public const string FloorsFile = "model-lanes.json";
         public const string ScoresFolder = "scores";
         public const int PickBatch = 6;
         public const int VerifyBatch = 12;
         public const int ClassifyBatch = 20;
 
-        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane };
+        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane, ProseRewriteLane, ProseJudgeLane, ProseAuditLane };
+
+        /// <summary>The prose lanes, scored on prose-judge.tsv; their signatures are <see cref="ProseLaneGolden.Signature"/>.</summary>
+        public static readonly IReadOnlyList<string> Prose = new[] { ProseRewriteLane, ProseJudgeLane, ProseAuditLane };
 
         /// <summary>Lanes scored by rules alone: no host or model is asked, and the signature is the rules' own.</summary>
         public static readonly IReadOnlyList<string> NoModel = new[] { LinkGateLane, AlcoholContextLane };
@@ -94,9 +101,10 @@ namespace Nom.Import.Golden
 
         private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-        public static IConfiguration Config(string host, string model) => new ConfigurationBuilder()
+        public static IConfiguration Config(string host, string model, string? checkModel = null) => new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
+                [CheckModelKey] = checkModel,
                 ["Ai:BatchOllamaUrl"] = host,
                 ["Ai:LinkModel"] = model,
                 ["Ai:RepairModel"] = model,
@@ -108,6 +116,7 @@ namespace Nom.Import.Golden
         {
             if (lane == LinkGateLane) return LinkGate.Signature;
             if (lane == AlcoholContextLane) return AlcoholLineContext.Signature;
+            if (Prose.Contains(lane)) return ProseLaneGolden.Signature(lane);
             var capture = new CapturingHandler();
             using var http = new HttpClient(capture);
             var config = Config("http://signature.invalid", "signature");
@@ -217,6 +226,10 @@ namespace Nom.Import.Golden
         {
             switch (lane)
             {
+                case ProseRewriteLane:
+                case ProseJudgeLane:
+                case ProseAuditLane:
+                    return await ProseResultsAsync(lane, goldenDir, http, config, limit, progress, cancellationToken);
                 case AlcoholContextLane:
                 {
                     var cases = AlcoholCases(goldenDir).Take(limit ?? int.MaxValue).ToList();
@@ -278,6 +291,89 @@ namespace Nom.Import.Golden
                 }
                 default:
                     throw new ArgumentException($"No scorer for lane '{lane}'.", nameof(lane));
+            }
+        }
+
+        /// <summary>The rows of prose-judge.tsv.</summary>
+        public static IReadOnlyList<ProseJudgeCase> ProseCases(string goldenDir) =>
+            ProseLaneGolden.ParseCases(File.ReadAllText(Path.Combine(goldenDir, ProseLaneGolden.CasesFile)));
+
+        /// <summary>The stock phrases of prose-stock.tsv that the golden prose rows are checked with.</summary>
+        public static ProseStockIndex ProseStock(string goldenDir) =>
+            new(1, GoldenTsv.Read(Path.Combine(goldenDir, "prose-stock.tsv")).Rows
+                .Where(r => int.Parse(r["sites"], System.Globalization.CultureInfo.InvariantCulture) >= ProseStockIndex.StockSites)
+                .Select(r => ProsePhrases.Hash(r.Id)));
+
+        /// <summary>
+        /// A prose lane over prose-judge.tsv. prose-judge: the judge (the model named) reads each
+        /// rewrite against its method; a case passes when it finds a faithful row faithful and a
+        /// fault row not, and a fault it finds faithful is a false accept. prose-audit: the auditor
+        /// (the model named) reads each row and the judge (<c>--check-model</c>, default the roster's
+        /// reader B) confirms its flags; a row counts as flagged only when both agree. prose-rewrite:
+        /// the writer (the model named) writes each recipe of the file through the whole clean-room
+        /// pipeline with the judge, which passes when a rewrite gets through the gate, and each
+        /// planted fault is put through the gate, check v2 then the judge, which passes when it is
+        /// refused and is a false accept when it is not.
+        /// </summary>
+        private static async Task<IReadOnlyList<LaneCaseResult>> ProseResultsAsync(string lane, string goldenDir, HttpClient http, IConfiguration config, int? limit, Action<string> progress, CancellationToken cancellationToken)
+        {
+            var host = config["Ai:BatchOllamaUrl"] ?? string.Empty;
+            var model = config["Ai:LinkModel"] ?? string.Empty;
+            var checkModel = config[CheckModelKey] is { Length: > 0 } check ? check : new Nom.Orch.Settings.LaneModelRoster().ReaderB;
+            var cases = ProseCases(goldenDir);
+            var stock = ProseStock(goldenDir);
+            var results = new List<LaneCaseResult>();
+            switch (lane)
+            {
+                case ProseJudgeLane:
+                {
+                    var judge = new OllamaProseJudge(http, host, model);
+                    foreach (var c in cases.Take(limit ?? int.MaxValue))
+                    {
+                        var verdict = await judge.JudgeAsync(c.Method.Select(ProseQuantities.Prepare).ToList(), c.Rewrite, cancellationToken);
+                        var faithful = verdict?.Faithful;
+                        results.Add(new LaneCaseResult($"{lane}:{c.Id}", faithful == c.Faithful, !c.Faithful && faithful == true, !c.Faithful,
+                            c.Faithful ? "faithful" : "fault " + c.Fault, faithful == null ? "no readable answer" : faithful.Value ? "faithful" : "fault", c.Source));
+                        progress($"{lane}: {results.Count}/{cases.Count}");
+                    }
+                    return results;
+                }
+                case ProseAuditLane:
+                {
+                    var auditor = new OllamaProseJudge(http, host, model);
+                    var judge = new OllamaProseJudge(http, host, checkModel);
+                    foreach (var c in cases.Take(limit ?? int.MaxValue))
+                    {
+                        var original = c.Method.Select(ProseQuantities.Prepare).ToList();
+                        var verdict = await auditor.JudgeAsync(original, c.Rewrite, cancellationToken);
+                        var flagged = verdict is { Faithful: false } && await judge.ConfirmAsync(original, c.Rewrite, verdict.FirstFlagged?.Number ?? 1, cancellationToken) == true;
+                        results.Add(new LaneCaseResult($"{lane}:{c.Id}", flagged != c.Faithful, !c.Faithful && !flagged, !c.Faithful,
+                            c.Faithful ? "not flagged" : "flagged", verdict == null ? "no readable answer" : flagged ? "flagged" : "not flagged", c.Source));
+                        progress($"{lane}: {results.Count}/{cases.Count}");
+                    }
+                    return results;
+                }
+                default:
+                {
+                    var writer = new OllamaProseWriter(http, host, model);
+                    var judge = new OllamaProseJudge(http, host, checkModel);
+                    foreach (var recipe in cases.GroupBy(c => c.Recipe).Take(limit ?? int.MaxValue))
+                    {
+                        var first = recipe.First();
+                        var outcome = await ProseCleanRoom.RunAsync(first.Input(stock), writer, judge, cancellationToken: cancellationToken);
+                        results.Add(new LaneCaseResult($"{lane}:recipe:{recipe.Key}", outcome.Passed, false, false, "a rewrite through the gate",
+                            outcome.Passed ? $"rewritten in attempt {outcome.Attempts.Count}" : $"gave up: {outcome.FailureClass}", "rule:end-to-end"));
+                        foreach (var c in recipe.Where(c => !c.Faithful))
+                        {
+                            var reasons = await ProseCleanRoom.GateAsync(c.Input(stock), c.RewriteText, judge, cancellationToken);
+                            results.Add(new LaneCaseResult($"{lane}:{c.Id}", reasons.Count > 0, reasons.Count == 0, true, "refused",
+                                reasons.Count == 0 ? "accepted" : string.Join(", ", reasons), c.Source));
+                        }
+
+                        progress($"{lane}: {results.Count}");
+                    }
+                    return results;
+                }
             }
         }
 

@@ -17,6 +17,8 @@ export interface PipelineRecipeCounts {
   waitingWithSourceProse: number;
   proseWithheld: number;
   proseWithheldApproved: number;
+  proseGaveUp: number;
+  proseGaveUpByClass: Record<string, number>;
   revisionMissingQuantities: number;
   revisionSteps: number;
   approvedWithUncountedLine: number;
