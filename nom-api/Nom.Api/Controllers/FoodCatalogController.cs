@@ -19,14 +19,16 @@ namespace Nom.Api.Controllers
         private readonly IFoodCatalogAuditService _audit;
         private readonly ICatalogCleanupService _cleanup;
         private readonly ILineRelinkService _relink;
+        private readonly ILineUnfoldService _unfold;
 
         public FoodCatalogController(IFoodCatalogReviewService review, IFoodCatalogAuditService audit,
-            ICatalogCleanupService cleanup, ILineRelinkService relink)
+            ICatalogCleanupService cleanup, ILineRelinkService relink, ILineUnfoldService unfold)
         {
             _review = review;
             _audit = audit;
             _cleanup = cleanup;
             _relink = relink;
+            _unfold = unfold;
         }
 
         /// <summary>What the import-residue cleanup would do (deterministic name rules, no writes).</summary>
@@ -87,7 +89,14 @@ namespace Nom.Api.Controllers
             return result == null ? BadRequest(new { message = "Both must be live curated foods, and the target must have nutrition." }) : Ok(result);
         }
 
-        /// <summary>Put back the lines moved and the foods retired at or after the given UTC time.</summary>
+        /// <summary>Give each source line of up to maxRows joined rows ("a + b") a row of its own on the same food; a dry run unless apply is set, and each row taken apart is written to the audit log.</summary>
+        [HttpPost("relink/unfold")]
+        public async Task<ActionResult<LineUnfoldResult>> RelinkUnfold([FromQuery] bool apply = false, [FromQuery] int maxRows = 5000, [FromQuery] int sampleSize = 50)
+        {
+            return Ok(await _unfold.UnfoldAsync(apply, maxRows, sampleSize));
+        }
+
+        /// <summary>Put back the lines moved, the foods retired and the rows unfolded at or after the given UTC time.</summary>
         [HttpPost("relink/undo")]
         public async Task<ActionResult<LineRelinkUndoResult>> RelinkUndo([FromQuery, Required] DateTime sinceUtc)
         {

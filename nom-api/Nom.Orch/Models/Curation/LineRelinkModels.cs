@@ -63,7 +63,9 @@ namespace Nom.Orch.Models.Curation
     {
         public int Restored { get; set; }
         public int FoodsRestored { get; set; }
-        /// <summary>Journal entries whose line has since moved again or gone, or whose food cannot take its name back.</summary>
+        /// <summary>Rows that were taken apart into one row per source line and are joined again, their added lines removed.</summary>
+        public int Refolded { get; set; }
+        /// <summary>Journal entries whose line has since moved again, been edited or gone, or whose food cannot take its name back.</summary>
         public int Skipped { get; set; }
     }
 }

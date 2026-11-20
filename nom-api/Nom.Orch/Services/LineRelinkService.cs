@@ -29,6 +29,15 @@ namespace Nom.Orch.Services
 
         private static readonly Regex Word = new(@"[\p{L}\p{N}%']+", RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+        /// <summary>
+        /// Other repairs of a recipe's lines that journal under their own change type and are put
+        /// back by the same undo sweep: how one entry is taken back, and where a success is counted.
+        /// </summary>
+        private static readonly Dictionary<string, (Func<ApplicationDbContext, AuditLogEntryEntity, long, Task<bool>> PutBack, Action<LineRelinkUndoResult> Count)> LineRepairs = new()
+        {
+            [LineUnfoldService.UnfoldChangeType] = (LineUnfoldService.RefoldAsync, result => result.Refolded++),
+        };
+
         private readonly ApplicationDbContext _db;
         private readonly ICurrentUserService _currentUser;
 
@@ -447,12 +456,14 @@ namespace Nom.Orch.Services
 
         public async Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc)
         {
+            var repairs = LineRepairs.Keys.ToList();
             var entries = await _db.AuditLogEntries
-                .Where(a => ((a.EntityType == RelinkEntityType && a.ChangeType == RelinkChangeType)
+                .Where(a => ((a.EntityType == RelinkEntityType && (a.ChangeType == RelinkChangeType || repairs.Contains(a.ChangeType)))
                         || (a.EntityType == RetireEntityType && a.ChangeType == RetireChangeType))
                     && a.Timestamp >= sinceUtc)
                 .OrderByDescending(a => a.Id)
                 .ToListAsync();
+            foreach (var entry in entries) _db.Entry(entry).State = EntityState.Detached;
             var result = new LineRelinkUndoResult();
             var personId = _currentUser.PersonIdOrSystem;
 
@@ -474,6 +485,23 @@ namespace Nom.Orch.Services
                         }
 
                         await _db.SaveChangesAsync();
+                        continue;
+                    }
+
+                    if (LineRepairs.TryGetValue(entry.ChangeType, out var repair))
+                    {
+                        if (await repair.PutBack(_db, entry, personId))
+                        {
+                            _db.AuditLogEntries.Remove(entry);
+                            repair.Count(result);
+                        }
+                        else
+                        {
+                            result.Skipped++;
+                        }
+
+                        await _db.SaveChangesAsync();
+                        foreach (var line in _db.ChangeTracker.Entries<RecipeIngredientEntity>().ToList()) line.State = EntityState.Detached;
                         continue;
                     }
 

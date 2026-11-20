@@ -4,10 +4,12 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Nom.Data;
 using Nom.Data.Measurement;
 using Nom.Data.Nutrient;
 using Nom.Data.Recipe;
+using Nom.Orch.Interfaces;
 using Nom.Orch.Services;
 using Xunit;
 
@@ -105,6 +107,37 @@ namespace Nom.Api.Tests.Services.Recipe
             var garlic = new IngredientEntity { Name = "Garlic", GramsPerItem = (decimal?)gramsPerItem, ReferenceServingGrams = (decimal?)referenceGrams };
 
             RecipeNutritionService.GramsFor(2m, piece, garlic).Should().Be((decimal)expected);
+        }
+
+        [Fact]
+        public async Task Both_lines_of_a_food_count_once_a_joined_row_is_unfolded()
+        {
+            using var db = NewContext();
+            await SeedReferenceAsync(db);
+            var sugar = new IngredientEntity { Name = "Sugar", CurationStatusId = 9003, GramsPerMilliliter = 0.85m };
+            db.Ingredients.Add(sugar);
+            await db.SaveChangesAsync();
+            db.IngredientNutrients.Add(new IngredientNutrientEntity { IngredientId = sugar.Id, NutrientId = Calories, Amount = 387m, MeasurementId = Kcal });
+            var recipe = new RecipeEntity { Name = "Sugar cookies", AuthorId = 1, Servings = 1, ScrapedAtUtc = DateTime.UtcNow };
+            db.Recipes.Add(recipe);
+            await db.SaveChangesAsync();
+            db.RecipeIngredients.Add(new RecipeIngredientEntity
+            {
+                RecipeId = recipe.Id, IngredientId = sugar.Id, Quantity = 1.75m, MeasurementId = Cup,
+                RawLine = "1 3/4 cup granulated sugar + 1/3 cup granulated sugar, (for rolling cookies)",
+            });
+            await db.SaveChangesAsync();
+            var nutrition = new RecipeNutritionService(db, NullLogger<RecipeNutritionService>.Instance);
+            await nutrition.RecalculateAsync(recipe.Id);
+            (await db.RecipeNutrition.SingleAsync(n => n.RecipeId == recipe.Id)).Amount
+                .Should().BeApproximately(3.87m * 1.75m * 236.588m * 0.85m, 0.01m);
+
+            var currentUser = Mock.Of<ICurrentUserService>(u => u.PersonIdOrSystem == SystemConstants.SystemPersonId);
+            (await new LineUnfoldService(db, currentUser).UnfoldAsync(apply: true)).LinesAdded.Should().Be(1);
+            await nutrition.RecalculateAsync(recipe.Id);
+
+            (await db.RecipeNutrition.SingleAsync(n => n.RecipeId == recipe.Id)).Amount
+                .Should().BeApproximately(3.87m * (1.75m + 0.333m) * 236.588m * 0.85m, 0.01m);
         }
 
         [Fact]

@@ -4,11 +4,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Moq;
 using Nom.Api.Services;
 using Nom.Data;
 using Nom.Data.Measurement;
 using Nom.Data.Nutrient;
 using Nom.Data.Recipe;
+using Nom.Orch.Interfaces;
 using Nom.Orch.Services;
 using Xunit;
 
@@ -230,6 +233,42 @@ namespace Nom.Api.Tests.Services.Recipe
 
             db.IngredientNutrients.Add(new IngredientNutrientEntity { IngredientId = egg.Id, NutrientId = Sodium, Amount = 142m, MeasurementId = 8, CreatedDate = calculated.AddHours(1) });
             await db.SaveChangesAsync();
+
+            (await RecipeNutritionRecalcHostedService.DueRecipeIds(db, 0).ToListAsync()).Should().Equal(recipe.Id);
+        }
+
+        [Fact]
+        public async Task A_derived_label_is_due_again_when_a_joined_row_is_unfolded_and_when_it_is_joined_again()
+        {
+            using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                .Options);
+            var imported = DateTime.UtcNow.AddDays(-30);
+            db.Set<BaseMeasurementEntity>().Add(new BaseMeasurementEntity { Id = 11, Name = "Cup", Symbol = "cup", MeasurementCategoryId = 2, BaseUnitConversionFactor = 236.588m });
+            var sugar = new IngredientEntity { Name = "Sugar", CurationStatusId = 9003 };
+            db.Ingredients.Add(sugar);
+            var recipe = new RecipeEntity { Name = "Sugar cookies", AuthorId = 1, ScrapedAtUtc = imported };
+            db.Recipes.Add(recipe);
+            await db.SaveChangesAsync();
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = sugar.Id, Quantity = 1.75m, MeasurementId = 11, RawLine = "1 3/4 cup sugar + 1/3 cup sugar", CreatedDate = imported });
+            db.IngredientNutrients.Add(new IngredientNutrientEntity { IngredientId = sugar.Id, NutrientId = Fat, Amount = 0m, MeasurementId = 1, CreatedDate = imported });
+            var label = new RecipeNutritionEntity { RecipeId = recipe.Id, NutrientId = Fat, Amount = 0m, Unit = "g", DateCalculated = DateTime.UtcNow.AddMinutes(-1) };
+            db.RecipeNutrition.Add(label);
+            await db.SaveChangesAsync();
+            var currentUser = Mock.Of<ICurrentUserService>(u => u.PersonIdOrSystem == SystemConstants.SystemPersonId);
+            (await RecipeNutritionRecalcHostedService.DueRecipeIds(db, 0).ToListAsync()).Should().BeEmpty();
+
+            var started = DateTime.UtcNow;
+            await new LineUnfoldService(db, currentUser).UnfoldAsync(apply: true);
+
+            (await RecipeNutritionRecalcHostedService.DueRecipeIds(db, 0).ToListAsync()).Should().Equal(recipe.Id);
+
+            (await db.RecipeNutrition.SingleAsync()).DateCalculated = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+            (await RecipeNutritionRecalcHostedService.DueRecipeIds(db, 0).ToListAsync()).Should().BeEmpty();
+
+            (await new LineRelinkService(db, currentUser).UndoAsync(started)).Refolded.Should().Be(1);
 
             (await RecipeNutritionRecalcHostedService.DueRecipeIds(db, 0).ToListAsync()).Should().Equal(recipe.Id);
         }
