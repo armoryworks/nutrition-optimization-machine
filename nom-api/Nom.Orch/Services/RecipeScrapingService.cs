@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Audit;
@@ -36,6 +37,7 @@ namespace Nom.Orch.Services
 
         public const string NameFreedChangeType = "NameFreed";
         public const string NameFreedEntityType = "Ingredient";
+        public const string ResolveOnImportSetting = "VerifiedWordings:ResolveOnImport";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly ICurrentUserService _currentUser;
@@ -43,6 +45,7 @@ namespace Nom.Orch.Services
         private readonly IScrapingSourceService _scrapingSources;
         private readonly IRecipeVettingService _vetting;
         private readonly ILogger<RecipeScrapingService> _logger;
+        private readonly bool _resolveVerifiedWordings;
 
         public RecipeScrapingService(
             ApplicationDbContext dbContext,
@@ -50,8 +53,10 @@ namespace Nom.Orch.Services
             IRecipeScraperClient scraperClient,
             IScrapingSourceService scrapingSources,
             IRecipeVettingService vetting,
-            ILogger<RecipeScrapingService> logger)
+            ILogger<RecipeScrapingService> logger,
+            IConfiguration? configuration = null)
         {
+            _resolveVerifiedWordings = configuration?.GetValue(ResolveOnImportSetting, false) ?? false;
             _dbContext = dbContext;
             _currentUser = currentUser;
             _scraperClient = scraperClient;
@@ -554,8 +559,9 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// The catalog row a scraped ingredient name belongs on, tried in this order: a live
-        /// ingredient of that name, then the one food a trusted alias gives the name to, and
+        /// The catalog row a scraped ingredient name belongs on, tried in this order: the curated
+        /// food the verified wording table gives the name to (when VerifiedWordings:ResolveOnImport
+        /// is set), a live ingredient of that name, then the one food a trusted alias gives the name to, and
         /// otherwise a new uncurated ingredient that the link lane proposes a food for later.
         /// Matching is case-insensitive (translated to SQL via ToLower — StringComparison
         /// overloads don't translate in EF).
@@ -569,9 +575,26 @@ namespace Nom.Orch.Services
             var trimmed = Support.IngredientNameNormalizer.Normalize(name);
             var lowered = trimmed.ToLowerInvariant();
 
-            return await FindByNameAsync(lowered)
+            return await FindByVerifiedWordingAsync(lowered)
+                ?? await FindByNameAsync(lowered)
                 ?? await FindByTrustedAliasAsync(lowered)
                 ?? await CreateIngredientAsync(trimmed, personId);
+        }
+
+        /// <summary>
+        /// The food a reviewed verdict gives this wording to, while that food is live and curated.
+        /// A wording judged to name no food, or no single food, falls through.
+        /// </summary>
+        private async Task<IngredientEntity?> FindByVerifiedWordingAsync(string lowered)
+        {
+            if (!_resolveVerifiedWordings) return null;
+            var targetId = await _dbContext.IngredientWordings
+                .Where(w => w.Wording == lowered && w.Verdict == IngredientWordingVerdict.Food)
+                .Select(w => w.IngredientId)
+                .FirstOrDefaultAsync();
+            return targetId == null
+                ? null
+                : await _dbContext.Ingredients.FirstOrDefaultAsync(i => i.Id == targetId && !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated);
         }
 
         /// <summary>The live ingredient of this name; a curated one before an uncurated one, then the oldest.</summary>
