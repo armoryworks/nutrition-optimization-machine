@@ -112,6 +112,12 @@ namespace Nom.Orch.Services.Support
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries)
                 .Where(w => !Filler.Contains(w)));
 
+        /// <summary>Every staple name key and the USDA description it means.</summary>
+        internal static IEnumerable<KeyValuePair<string, string>> Entries => ByName;
+
+        /// <summary>The words a staple name key leaves out.</summary>
+        internal static IEnumerable<string> FillerWords => Filler;
+
         /// <summary>The USDA description the name means, or null when it isn't a known bare staple name.</summary>
         public static string? UsdaNameFor(string ingredientName) =>
             ByName.TryGetValue(Key(ingredientName.Trim()), out var usda) ? usda : null;

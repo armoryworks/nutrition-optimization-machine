@@ -21,7 +21,7 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex Word = new(@"[\p{L}']+", RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-        private static readonly HashSet<string> Joiners = new(StringComparer.Ordinal) { "and", "or", "with", "&", "+", "n'" };
+        internal static readonly HashSet<string> Joiners = new(StringComparer.Ordinal) { "and", "or", "with", "&", "+", "n'" };
 
         internal static readonly HashSet<string> Notes = new(StringComparer.Ordinal)
         {

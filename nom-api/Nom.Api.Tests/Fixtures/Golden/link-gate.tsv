@@ -1,64 +1,67 @@
-id	wording	foodId	name	description	dataType	foodStatus	categoryId	nutrients	core	admission	deleted	nameMatch	modelPick	lines	bound	expect	status	source	note
-lg-01	black pepper	286932	Pepper	Spices, pepper, black	sr_legacy_food	curated	2	33	-	-	no	no	no	-	-	pass	ok	rule:link-gate	the spice is dried by nature; the lead noun after "Spices," is pepper
-lg-02	olive oil	278652	Olive Oil	Oil, olive, salad or cooking	sr_legacy_food	curated	4	32	-	-	no	no	no	-	-	pass	ok	rule:link-gate	an identity class ("Oil,") stays in the lead
-lg-03	granulated sugar	274636	Sugar	Sugars, granulated	foundation_food	curated	19	31	-	-	no	no	no	-	-	pass	ok	rule:link-gate	plural folding: Sugars
-lg-04	potatoes	277316	Potatoes	Potatoes, flesh and skin, raw	sr_legacy_food	curated	11	33	-	-	no	no	no	-	-	pass	ok	rule:link-gate	flesh and skin is not a part segment; staple default
-lg-05	dried tarragon	278200	Dried Tarragon	Spices, tarragon, dried	sr_legacy_food	curated	2	28	-	-	no	no	no	-	-	pass	ok	rule:link-gate	the wording asks for the dried spice
-lg-06	dry mustard	278195	Black Mustard Seed	Spices, mustard seed, ground	sr_legacy_food	curated	2	33	-	-	no	no	no	-	-	pass	ok	rule:link-gate	dry and ground are neutral for a spice, and seed is the spice itself
-lg-07	browned flour	276224	Flour	Wheat flour, white, all-purpose, enriched, bleached	sr_legacy_food	curated	20	32	-	-	no	no	no	-	-	pass	ok	rule:link-gate	browned is neutral for flour; the catalog name Flour is named
-lg-08	dried sesame seeds	277438	Sesame Seeds	Seeds, sesame seeds, whole, dried	sr_legacy_food	curated	12	32	-	-	no	no	no	-	-	pass	ok	rule:link-gate	the wording names the part and the state the food is
-lg-09	fresh lemon juice	287187	Lemon juice, raw	Lemon juice, raw	sr_legacy_food	curated	9	33	-	-	no	no	no	-	-	pass	ok	rule:link-gate	fresh meets raw; juice is named on both sides
-lg-10	egg whites	279409	Egg Whites	Egg, white, raw, fresh	sr_legacy_food	curated	1	32	-	-	no	no	no	-	-	pass	ok	rule:link-gate	the egg part white is named
-lg-11	unsalted butter	280621	Unsalted Butter	Butter, without salt	sr_legacy_food	curated	1	32	-	-	no	no	no	-	-	pass	ok	rule:link-gate	unsalted against without salt is the same polarity
-lg-12	ground beef	274772	Ground Beef	Beef, ground, 80% lean meat / 20% fat, raw	foundation_food	curated	13	32	-	-	no	no	no	-	-	pass	ok	rule:link-gate	the staple default: the percent variant is the data-given default
-lg-13	red wine	287420	Alcoholic beverage, wine, table, red	Alcoholic beverage, wine, table, red	sr_legacy_food	pending	14	33	-	-	no	no	no	-	-	pass	ok	rule:link-gate	a pending SR Legacy food with no admission reason may be a target
-lg-14	baking soda	282180	Baking Soda	Leavening agents, baking soda	sr_legacy_food	curated	18	32	-	-	no	no	no	-	-	pass	ok	rule:link-gate	a class lead ("Leavening agents,") is skipped
-lg-15	15-ounce can chickpeas	280981	Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids	Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids	sr_legacy_food	curated	16	31	-	-	no	no	no	-	-	pass	ok	rule:link-gate	the can in the wording meets canned; a parenthesis is not a segment
-lg-16	salt	280659	Salt	Salt, table	sr_legacy_food	curated	2	33	-	-	no	no	no	-	-	pass	ok	rule:link-gate	table is a neutral qualifier
-lg-17	freshly ground black pepper	286932	Pepper	Spices, pepper, black	sr_legacy_food	curated	2	33	-	-	no	no	no	-	-	pass	ok	rule:link-gate	freshly ground is the spice, not a fresh herb
-lg-18	dried basil leaves	286937	Dried Basil	Spices, basil, dried	sr_legacy_food	curated	2	33	-	-	no	no	no	-	-	pass	ok	rule:link-gate	leaves of a dried herb are the dried spice
-lg-20	For the frosting:	274636	Sugar	Sugars, granulated	sr_legacy_food	curated	19	31	-	-	no	no	no	-	-	heading	ok	rule:construction	a heading line names no food
-lg-21	salt and pepper	280659	Salt	Salt, table	sr_legacy_food	curated	2	33	-	-	no	no	no	-	-	compound	ok	rule:link-gate	two foods joined by and
-lg-22	lemon or lime juice	287187	Lemon juice, raw	Lemon juice, raw	sr_legacy_food	curated	9	33	-	-	no	no	no	-	-	compound	ok	rule:link-gate	alternatives
-lg-23	tamari/soy sauce	900001	Tamari	Soy sauce made from soy (tamari)	sr_legacy_food	curated	16	30	-	-	no	no	no	-	-	compound	ok	rule:construction	alternatives joined by a slash
-lg-24	nutmeg	900002	Nutmeg	Spices, nutmeg, ground	sr_legacy_food	curated	2	30	-	-	yes	no	no	-	-	retired	ok	rule:construction	a retired duplicate is never a target
-lg-25	peanut butter	900003	Peanut Butter	PEANUT BUTTER	branded_food	pending	-	15	-	-	no	no	no	-	-	branded	ok	rule:construction	branded foods stay pending
-lg-26	chicken nuggets	900004	Chicken nuggets	Fast foods, chicken tenders	sr_legacy_food	curated	21	30	-	-	no	no	no	-	-	prepared	ok	rule:construction	a USDA Fast Foods food is never a link target
-lg-27	strained peas	900005	Babyfood, peas	Babyfood, vegetables, peas, strained	sr_legacy_food	pending	-	30	-	prepared_category:Baby Foods	no	no	no	-	-	prepared	ok	rule:construction	held by admission as a prepared category
-lg-28	mixed nuts	900006	Mixed nuts	Nuts, mixed nuts, oil roasted, with peanuts, with salt added	sr_legacy_food	pending	12	30	-	energy_mismatch	no	no	no	-	-	uncurated	ok	rule:construction	a pending food the admission rule holds is not a target
-lg-29	quince	900007	Quince	Quinces, raw	sr_legacy_food	rejected	9	30	-	-	no	no	no	-	-	uncurated	ok	rule:construction	a rejected food is not a target
-lg-30	claret	287424	Alcoholic Beverage, wine, table, red, Claret	Alcoholic Beverage, wine, table, red, Claret	sr_legacy_food	pending	14	6	-	-	no	no	no	-	-	incomplete	ok	rule:link-gate	Claret has 6 nutrient rows; red table wine, under the same lead, has 33
-lg-31	clotted cream	900008	Clotted cream	Cream, clotted	sr_legacy_food	curated	1	25	no	-	no	no	no	-	-	incomplete	ok	rule:construction	calories, protein, carbohydrate or fat missing
-lg-32	peas	277306	Frozen Peas	Peas, green, frozen, unprepared (Includes foods for USDA's Food Distribution Program)	sr_legacy_food	curated	11	33	-	-	no	no	no	-	-	state	ok	rule:link-gate	frozen while fresh siblings lack it
-lg-33	gravy beef	278803	Beef Gravy	Gravy, beef, canned, ready-to-serve	sr_legacy_food	curated	6	32	-	-	no	no	no	-	-	state	ok	rule:link-gate	canned while other gravies lack it
-lg-34	rice	276265	Cooked White Rice	Rice, white, long-grain, regular, cooked, unenriched, with salt	sr_legacy_food	curated	20	32	-	-	no	no	no	-	-	state	ok	rule:link-gate	cooked while raw rice lacks it
-lg-35	cake chocolate	279911	Chocolate Cake	Cake, chocolate, prepared from recipe without frosting	sr_legacy_food	curated	18	27	-	-	no	yes	no	-	-	word-order	ok	rule:link-gate	a name match in the USDA word order
-lg-36	lemon juice	275119	Lemon Juice	Lemon juice from concentrate, canned or bottled	sr_legacy_food	curated	9	33	-	-	no	no	yes	-	-	rule-other	ok	rule:link-gate	the name rule gives lemon juice, raw
-lg-37	halloumi	900009	Arrowroot flour	Arrowroot flour	sr_legacy_food	curated	20	30	-	-	no	no	yes	-	-	shortlist	ok	rule:construction	a lone model pick off the name matcher shortlist
-lg-38	molasses	279938	Molasses Cookies	Cookies, molasses	sr_legacy_food	curated	18	32	-	-	no	no	no	-	-	lead-noun	ok	rule:link-gate	a dish led by another noun
-lg-39	chopped nut meats	277456	Fresh Coconut Meat	Nuts, coconut meat, raw	sr_legacy_food	curated	12	32	-	-	no	no	no	-	-	lead-noun	ok	rule:link-gate	coconut leads the food and the wording lacks it
-lg-40	maraschino	275134	Maraschino Cherries	Maraschino cherries, canned, drained	sr_legacy_food	curated	9	33	-	-	no	no	no	-	-	lead-noun	ok	rule:link-gate	the cherries lead the food
-lg-41	cider	286950	Apple Cider Vinegar	Vinegar, cider	sr_legacy_food	curated	2	33	-	-	no	no	no	-	-	lead-noun	ok	rule:link-gate	vinegar is an identity class
-lg-42	ham-liquor	279204	Clam Juice	Mollusks, clam, mixed species, canned, liquid	sr_legacy_food	curated	15	32	-	-	no	no	no	-	-	containment	ok	rule:link-gate	ham and liquor are not in clam juice
-lg-43	kosher salt	280659	Salt	Salt, table	sr_legacy_food	curated	2	33	-	-	no	no	no	-	-	containment	ok	rule:link-gate	kosher is not in the food; a reader or the lexicon must carry it
-lg-44	dried chickpeas	280981	Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids	Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids	sr_legacy_food	curated	16	31	-	-	no	no	no	-	-	form	ok	rule:link-gate	dried against canned
-lg-45	fresh peas	277306	Frozen Peas	Peas, green, frozen, unprepared (Includes foods for USDA's Food Distribution Program)	sr_legacy_food	curated	11	33	-	-	no	no	no	-	-	form	ok	rule:link-gate	fresh against frozen
-lg-46	dried dill	279455	Dill	Dill weed, fresh	sr_legacy_food	curated	2	27	-	-	no	no	no	-	-	form	ok	rule:link-gate	dried against the fresh herb
-lg-47	freshly chopped tarragon	278200	Dried Tarragon	Spices, tarragon, dried	sr_legacy_food	curated	2	28	-	-	no	no	no	-	-	fresh-herb	ok	rule:link-gate	a fresh cue on a dried spice
-lg-48	good handful of chervil	286938	Dried Chervil	Spices, chervil, dried	sr_legacy_food	curated	2	28	-	-	no	no	no	-	-	fresh-herb	ok	rule:link-gate	a handful is the fresh herb
-lg-49	tarragon	278200	Dried Tarragon	Spices, tarragon, dried	sr_legacy_food	curated	2	28	-	-	no	no	no	sprigs of tarragon|-|-;tarragon|teaspoon|1	-	fresh-herb	ok	rule:link-gate	the lines carry sprigs
-lg-50	potatoes	277322	Raw Potato Skins	Potatoes, raw, skin	sr_legacy_food	curated	11	28	-	-	no	no	no	-	-	part	ok	rule:link-gate	the food is the skin; the wording does not name it
-lg-51	lemon zest	287187	Lemon juice, raw	Lemon juice, raw	sr_legacy_food	curated	9	33	-	-	no	no	no	-	-	part	ok	rule:link-gate	zest is not in lemon juice
-lg-52	large egg	279409	Egg Whites	Egg, white, raw, fresh	sr_legacy_food	curated	1	32	-	-	no	no	no	-	-	part	ok	rule:link-gate	the white alone
-lg-53	hard-boiled egg yolks	280616	Hard-Boiled Eggs	Egg, whole, cooked, hard-boiled	sr_legacy_food	curated	1	32	-	-	no	no	no	-	-	part	ok	rule:link-gate	yolks against the whole egg
-lg-54	unsalted butter	279559	Light Unsalted Butter	Butter, light, stick, without salt	sr_legacy_food	curated	4	30	-	-	no	no	no	-	-	marked	ok	rule:link-gate	light butter is a marked variant
-lg-55	vanilla	286945	Imitation Vanilla Extract	Vanilla extract, imitation, alcohol	sr_legacy_food	curated	2	27	-	-	no	no	no	-	-	marked	ok	rule:link-gate	imitation is a marked variant
-lg-56	2% milk	274581	Milk	Milk, whole, 3.25% milkfat, with added vitamin D	foundation_food	curated	1	33	-	-	no	no	no	-	-	percent	ok	rule:link-gate	the wording states a percent the food does not
-lg-57	unsalted butter	280603	Butter	Butter, salted	sr_legacy_food	curated	1	33	-	-	no	no	no	-	-	polarity	ok	rule:link-gate	unsalted against salted
-lg-58	salted butter	280621	Unsalted Butter	Butter, without salt	sr_legacy_food	curated	1	32	-	-	no	no	no	-	-	polarity	ok	rule:link-gate	salted against without salt
-lg-59	cheese	278501	Gouda	Cheese, gouda	sr_legacy_food	curated	1	32	-	-	no	no	no	-	-	generic	ok	rule:link-gate	one generic word for one variety of many
-lg-60	glasses of sherry	279459	Red Wine Vinegar	Vinegar, red wine	sr_legacy_food	curated	2	19	-	-	no	no	no	-	-	group	ok	rule:link-gate	sherry is a drink; red wine vinegar is in Spices and Herbs
-lg-61	gelatine	276108	Gelatin Dessert Mix	Gelatin desserts, dry mix	sr_legacy_food	curated	19	32	-	-	no	no	no	1 box gelatine|box|85;2 tablespoons gelatine|tablespoon|18;1 gallon water|gallon|3785	-	units	ok	rule:link-gate	a gallon on a dry food
-lg-62	gelatine	276108	Gelatin Dessert Mix	Gelatin desserts, dry mix	sr_legacy_food	curated	19	32	-	-	no	no	no	1 box gelatine|box|-;1 package gelatine|package|-;2 tablespoons gelatine|tablespoon|18	-	units	ok	rule:link-gate	the food weighs too few of the lines
-lg-63	glucose	276169	Light Corn Syrup	Syrups, corn, light	sr_legacy_food	curated	19	32	-	-	no	no	no	3 lbs glucose|pound|1361;1 cup glucose|cup|328	1000	grams	ok	rule:link-gate	amounts past the bound of the category
-lg-64	glucose	276169	Light Corn Syrup	Syrups, corn, light	sr_legacy_food	curated	19	32	-	-	no	no	no	-	-	lead-noun	ok	rule:link-gate	syrup leads the food; glucose needs a lexicon entry
+id	wording	foodId	name	description	dataType	foodStatus	categoryId	nutrients	core	admission	deleted	nameMatch	modelPick	readers	aliasOf	lines	bound	expect	status	source	note
+lg-01	black pepper	286932	Pepper	Spices, pepper, black	sr_legacy_food	curated	2	33	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	the spice is dried by nature; the lead noun after "Spices," is pepper
+lg-02	olive oil	278652	Olive Oil	Oil, olive, salad or cooking	sr_legacy_food	curated	4	32	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	an identity class ("Oil,") stays in the lead
+lg-03	granulated sugar	274636	Sugar	Sugars, granulated	foundation_food	curated	19	31	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	plural folding: Sugars
+lg-04	potatoes	277316	Potatoes	Potatoes, flesh and skin, raw	sr_legacy_food	curated	11	33	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	flesh and skin is not a part segment; staple default
+lg-05	dried tarragon	278200	Dried Tarragon	Spices, tarragon, dried	sr_legacy_food	curated	2	28	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	the wording asks for the dried spice
+lg-06	dry mustard	278195	Black Mustard Seed	Spices, mustard seed, ground	sr_legacy_food	curated	2	33	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	dry and ground are neutral for a spice, and seed is the spice itself
+lg-07	browned flour	276224	Flour	Wheat flour, white, all-purpose, enriched, bleached	sr_legacy_food	curated	20	32	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	browned is neutral for flour; the catalog name Flour is named
+lg-08	dried sesame seeds	277438	Sesame Seeds	Seeds, sesame seeds, whole, dried	sr_legacy_food	curated	12	32	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	the wording names the part and the state the food is
+lg-09	fresh lemon juice	287187	Lemon juice, raw	Lemon juice, raw	sr_legacy_food	curated	9	33	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	fresh meets raw; juice is named on both sides
+lg-10	egg whites	279409	Egg Whites	Egg, white, raw, fresh	sr_legacy_food	curated	1	32	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	the egg part white is named
+lg-11	unsalted butter	280621	Unsalted Butter	Butter, without salt	sr_legacy_food	curated	1	32	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	unsalted against without salt is the same polarity
+lg-12	ground beef	274772	Ground Beef	Beef, ground, 80% lean meat / 20% fat, raw	foundation_food	curated	13	32	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	the staple default: the percent variant is the data-given default
+lg-13	red wine	287420	Alcoholic beverage, wine, table, red	Alcoholic beverage, wine, table, red	sr_legacy_food	pending	14	33	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	a pending SR Legacy food with no admission reason may be a target
+lg-14	baking soda	282180	Baking Soda	Leavening agents, baking soda	sr_legacy_food	curated	18	32	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	a class lead ("Leavening agents,") is skipped
+lg-15	15-ounce can chickpeas	280981	Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids	Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids	sr_legacy_food	curated	16	31	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	the can in the wording meets canned; a parenthesis is not a segment
+lg-16	salt	280659	Salt	Salt, table	sr_legacy_food	curated	2	33	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	table is a neutral qualifier
+lg-17	freshly ground black pepper	286932	Pepper	Spices, pepper, black	sr_legacy_food	curated	2	33	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	freshly ground is the spice, not a fresh herb
+lg-18	dried basil leaves	286937	Dried Basil	Spices, basil, dried	sr_legacy_food	curated	2	33	-	-	no	no	no	no	-	-	-	pass	ok	rule:link-gate	leaves of a dried herb are the dried spice
+lg-20	For the frosting:	274636	Sugar	Sugars, granulated	sr_legacy_food	curated	19	31	-	-	no	no	no	no	-	-	-	heading	ok	rule:construction	a heading line names no food
+lg-21	salt and pepper	280659	Salt	Salt, table	sr_legacy_food	curated	2	33	-	-	no	no	no	no	-	-	-	compound	ok	rule:link-gate	two foods joined by and
+lg-22	lemon or lime juice	287187	Lemon juice, raw	Lemon juice, raw	sr_legacy_food	curated	9	33	-	-	no	no	no	no	-	-	-	compound	ok	rule:link-gate	alternatives
+lg-23	tamari/soy sauce	900001	Tamari	Soy sauce made from soy (tamari)	sr_legacy_food	curated	16	30	-	-	no	no	no	no	-	-	-	compound	ok	rule:construction	alternatives joined by a slash
+lg-24	nutmeg	900002	Nutmeg	Spices, nutmeg, ground	sr_legacy_food	curated	2	30	-	-	yes	no	no	no	-	-	-	retired	ok	rule:construction	a retired duplicate is never a target
+lg-25	peanut butter	900003	Peanut Butter	PEANUT BUTTER	branded_food	pending	-	15	-	-	no	no	no	no	-	-	-	branded	ok	rule:construction	branded foods stay pending
+lg-26	chicken nuggets	900004	Chicken nuggets	Fast foods, chicken tenders	sr_legacy_food	curated	21	30	-	-	no	no	no	no	-	-	-	prepared	ok	rule:construction	a USDA Fast Foods food is never a link target
+lg-27	strained peas	900005	Babyfood, peas	Babyfood, vegetables, peas, strained	sr_legacy_food	pending	-	30	-	prepared_category:Baby Foods	no	no	no	no	-	-	-	prepared	ok	rule:construction	held by admission as a prepared category
+lg-28	mixed nuts	900006	Mixed nuts	Nuts, mixed nuts, oil roasted, with peanuts, with salt added	sr_legacy_food	pending	12	30	-	energy_mismatch	no	no	no	no	-	-	-	uncurated	ok	rule:construction	a pending food the admission rule holds is not a target
+lg-29	quince	900007	Quince	Quinces, raw	sr_legacy_food	rejected	9	30	-	-	no	no	no	no	-	-	-	uncurated	ok	rule:construction	a rejected food is not a target
+lg-30	claret	287424	Alcoholic Beverage, wine, table, red, Claret	Alcoholic Beverage, wine, table, red, Claret	sr_legacy_food	pending	14	6	-	-	no	no	no	no	-	-	-	incomplete	ok	rule:link-gate	Claret has 6 nutrient rows; red table wine, under the same lead, has 33
+lg-31	clotted cream	900008	Clotted cream	Cream, clotted	sr_legacy_food	curated	1	25	no	-	no	no	no	no	-	-	-	incomplete	ok	rule:construction	calories, protein, carbohydrate or fat missing
+lg-32	peas	277306	Frozen Peas	Peas, green, frozen, unprepared (Includes foods for USDA's Food Distribution Program)	sr_legacy_food	curated	11	33	-	-	no	no	no	no	-	-	-	state	ok	rule:link-gate	frozen while fresh siblings lack it
+lg-33	gravy beef	278803	Beef Gravy	Gravy, beef, canned, ready-to-serve	sr_legacy_food	curated	6	32	-	-	no	no	no	no	-	-	-	state	ok	rule:link-gate	canned while other gravies lack it
+lg-34	rice	276265	Cooked White Rice	Rice, white, long-grain, regular, cooked, unenriched, with salt	sr_legacy_food	curated	20	32	-	-	no	no	no	no	-	-	-	state	ok	rule:link-gate	cooked while raw rice lacks it
+lg-35	cake chocolate	279911	Chocolate Cake	Cake, chocolate, prepared from recipe without frosting	sr_legacy_food	curated	18	27	-	-	no	yes	no	no	-	-	-	word-order	ok	rule:link-gate	a name match in the USDA word order
+lg-36	lemon juice	275119	Lemon Juice	Lemon juice from concentrate, canned or bottled	sr_legacy_food	curated	9	33	-	-	no	no	yes	no	-	-	-	rule-other	ok	rule:link-gate	the name rule gives lemon juice, raw
+lg-37	halloumi	900009	Arrowroot flour	Arrowroot flour	sr_legacy_food	curated	20	30	-	-	no	no	yes	no	-	-	-	shortlist	ok	rule:construction	a lone model pick off the name matcher shortlist
+lg-38	molasses	279938	Molasses Cookies	Cookies, molasses	sr_legacy_food	curated	18	32	-	-	no	no	no	no	-	-	-	lead-noun	ok	rule:link-gate	a dish led by another noun
+lg-39	chopped nut meats	277456	Fresh Coconut Meat	Nuts, coconut meat, raw	sr_legacy_food	curated	12	32	-	-	no	no	no	no	-	-	-	lead-noun	ok	rule:link-gate	coconut leads the food and the wording lacks it
+lg-40	maraschino	275134	Maraschino Cherries	Maraschino cherries, canned, drained	sr_legacy_food	curated	9	33	-	-	no	no	no	no	-	-	-	lead-noun	ok	rule:link-gate	the cherries lead the food
+lg-41	cider	286950	Apple Cider Vinegar	Vinegar, cider	sr_legacy_food	curated	2	33	-	-	no	no	no	no	-	-	-	lead-noun	ok	rule:link-gate	vinegar is an identity class
+lg-42	ham-liquor	279204	Clam Juice	Mollusks, clam, mixed species, canned, liquid	sr_legacy_food	curated	15	32	-	-	no	no	no	no	-	-	-	containment	ok	rule:link-gate	ham and liquor are not in clam juice
+lg-43	kosher salt	280659	Salt	Salt, table	sr_legacy_food	curated	2	33	-	-	no	no	no	no	-	-	-	containment	ok	rule:link-gate	kosher is not in the food; a reader or the lexicon must carry it
+lg-44	dried chickpeas	280981	Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids	Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids	sr_legacy_food	curated	16	31	-	-	no	no	no	no	-	-	-	form	ok	rule:link-gate	dried against canned
+lg-45	fresh peas	277306	Frozen Peas	Peas, green, frozen, unprepared (Includes foods for USDA's Food Distribution Program)	sr_legacy_food	curated	11	33	-	-	no	no	no	no	-	-	-	form	ok	rule:link-gate	fresh against frozen
+lg-46	dried dill	279455	Dill	Dill weed, fresh	sr_legacy_food	curated	2	27	-	-	no	no	no	no	-	-	-	form	ok	rule:link-gate	dried against the fresh herb
+lg-47	freshly chopped tarragon	278200	Dried Tarragon	Spices, tarragon, dried	sr_legacy_food	curated	2	28	-	-	no	no	no	no	-	-	-	fresh-herb	ok	rule:link-gate	a fresh cue on a dried spice
+lg-48	good handful of chervil	286938	Dried Chervil	Spices, chervil, dried	sr_legacy_food	curated	2	28	-	-	no	no	no	no	-	-	-	fresh-herb	ok	rule:link-gate	a handful is the fresh herb
+lg-49	tarragon	278200	Dried Tarragon	Spices, tarragon, dried	sr_legacy_food	curated	2	28	-	-	no	no	no	no	-	sprigs of tarragon|-|-;tarragon|teaspoon|1	-	fresh-herb	ok	rule:link-gate	the lines carry sprigs
+lg-50	potatoes	277322	Raw Potato Skins	Potatoes, raw, skin	sr_legacy_food	curated	11	28	-	-	no	no	no	no	-	-	-	part	ok	rule:link-gate	the food is the skin; the wording does not name it
+lg-51	lemon zest	287187	Lemon juice, raw	Lemon juice, raw	sr_legacy_food	curated	9	33	-	-	no	no	no	no	-	-	-	part	ok	rule:link-gate	zest is not in lemon juice
+lg-52	large egg	279409	Egg Whites	Egg, white, raw, fresh	sr_legacy_food	curated	1	32	-	-	no	no	no	no	-	-	-	part	ok	rule:link-gate	the white alone
+lg-53	hard-boiled egg yolks	280616	Hard-Boiled Eggs	Egg, whole, cooked, hard-boiled	sr_legacy_food	curated	1	32	-	-	no	no	no	no	-	-	-	part	ok	rule:link-gate	yolks against the whole egg
+lg-54	unsalted butter	279559	Light Unsalted Butter	Butter, light, stick, without salt	sr_legacy_food	curated	4	30	-	-	no	no	no	no	-	-	-	marked	ok	rule:link-gate	light butter is a marked variant
+lg-55	vanilla	286945	Imitation Vanilla Extract	Vanilla extract, imitation, alcohol	sr_legacy_food	curated	2	27	-	-	no	no	no	no	-	-	-	marked	ok	rule:link-gate	imitation is a marked variant
+lg-56	2% milk	274581	Milk	Milk, whole, 3.25% milkfat, with added vitamin D	foundation_food	curated	1	33	-	-	no	no	no	no	-	-	-	percent	ok	rule:link-gate	the wording states a percent the food does not
+lg-57	unsalted butter	280603	Butter	Butter, salted	sr_legacy_food	curated	1	33	-	-	no	no	no	no	-	-	-	polarity	ok	rule:link-gate	unsalted against salted
+lg-58	salted butter	280621	Unsalted Butter	Butter, without salt	sr_legacy_food	curated	1	32	-	-	no	no	no	no	-	-	-	polarity	ok	rule:link-gate	salted against without salt
+lg-59	cheese	278501	Gouda	Cheese, gouda	sr_legacy_food	curated	1	32	-	-	no	no	no	no	-	-	-	generic	ok	rule:link-gate	one generic word for one variety of many
+lg-60	glasses of sherry	279459	Red Wine Vinegar	Vinegar, red wine	sr_legacy_food	curated	2	19	-	-	no	no	no	no	-	-	-	group	ok	rule:link-gate	sherry is a drink; red wine vinegar is in Spices and Herbs
+lg-61	gelatine	276108	Gelatin Dessert Mix	Gelatin desserts, dry mix	sr_legacy_food	curated	19	32	-	-	no	no	no	no	-	1 box gelatine|box|85;2 tablespoons gelatine|tablespoon|18;1 gallon water|gallon|3785	-	units	ok	rule:link-gate	a gallon on a dry food
+lg-62	gelatine	276108	Gelatin Dessert Mix	Gelatin desserts, dry mix	sr_legacy_food	curated	19	32	-	-	no	no	no	no	-	1 box gelatine|box|-;1 package gelatine|package|-;2 tablespoons gelatine|tablespoon|18	-	units	ok	rule:link-gate	the food weighs too few of the lines
+lg-63	glucose	276169	Light Corn Syrup	Syrups, corn, light	sr_legacy_food	curated	19	32	-	-	no	no	no	no	-	3 lbs glucose|pound|1361;1 cup glucose|cup|328	1000	grams	ok	rule:link-gate	amounts past the bound of the category
+lg-64	glucose	276169	Light Corn Syrup	Syrups, corn, light	sr_legacy_food	curated	19	32	-	-	no	no	no	no	-	-	-	lead-noun	ok	rule:link-gate	syrup leads the food; glucose needs a lexicon entry
+lg-65	olive oil	279555	Canola Oil	Oil, canola	sr_legacy_food	curated	4	33	-	-	no	no	no	no	-	-	-	other-food	ok	rule:link-gate	olive oil is the name of another curated food (Olive Oil)
+lg-66	sea salt	280659	Salt	Salt, table	sr_legacy_food	curated	2	33	-	-	no	no	no	no	990001	-	-	other-alias	ok	rule:construction	a trusted alias gives sea salt to another food (#990001, constructed)
+lg-67	saleratus	280659	Salt	Salt, table	sr_legacy_food	curated	2	33	-	-	no	no	no	yes	-	-	-	head-noun	ok	rule:link-gate	two readers agreed, but the head noun (saleratus is baking soda) is not in the food

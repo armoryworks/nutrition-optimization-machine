@@ -358,7 +358,7 @@ namespace Nom.Import.Golden
             }
         }
 
-        /// <summary>The foods of gate-catalog.tsv: the curated foods and the pending USDA foods a link may target, with their USDA category and nutrient rows.</summary>
+        /// <summary>The foods of gate-catalog.tsv: the curated foods and the pending USDA foods a link may target, with their USDA category, admission reason and nutrient rows.</summary>
         public static IEnumerable<GateFood> GateFoods(string goldenDir) =>
             GoldenTsv.Read(Path.Combine(goldenDir, "gate-catalog.tsv")).Rows.Select(r => new GateFood(
                 long.Parse(r.Id),
@@ -367,7 +367,7 @@ namespace Nom.Import.Golden
                 r.Value("dataType"),
                 r["status"] == "curated" ? (long)CurationStatusEnum.Curated : (long)CurationStatusEnum.PendingCuration,
                 int.TryParse(r["categoryId"], out var category) ? category : null,
-                null,
+                string.IsNullOrEmpty(r.Value("admission")) ? null : r["admission"],
                 int.TryParse(r["nutrients"], out var rows) ? rows : null));
 
         /// <summary>The gate's catalog over gate-catalog.tsv, with the name matcher and staples of usda-catalog.tsv.</summary>

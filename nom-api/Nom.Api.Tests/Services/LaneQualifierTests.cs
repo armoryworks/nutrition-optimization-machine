@@ -233,27 +233,24 @@ namespace Nom.Api.Tests.Services
         [Fact]
         public void The_observed_error_rule_seldom_pauses_a_t1_tier_at_its_target_and_nearly_always_pauses_one_at_three_percent()
         {
-            static double AtLeast(int k, int n, double p)
+            static double Binomial(int k, int n, double p)
             {
-                var below = 0.0;
-                for (var i = 0; i < k; i++)
-                {
-                    var term = Math.Exp(LogChoose(n, i) + i * Math.Log(p) + (n - i) * Math.Log(1 - p));
-                    below += term;
-                }
-                return 1 - below;
+                var logChoose = 0.0;
+                for (var i = 1; i <= k; i++) logChoose += Math.Log(n - k + i) - Math.Log(i);
+                return Math.Exp(logChoose + k * Math.Log(p) + (n - k) * Math.Log(1 - p));
             }
 
-            static double LogChoose(int n, int k)
-            {
-                var sum = 0.0;
-                for (var i = 1; i <= k; i++) sum += Math.Log(n - k + i) - Math.Log(i);
-                return sum;
-            }
+            var t1 = new LanePolicy(0.99, 0.015);
+            var window = LaneQualifier.PauseWindow(t1, Exact);
+            var pausingErrors = Enumerable.Range(0, window + 1)
+                .Where(k => LaneQualifier.Decide(Input(LaneMode.Live, Audited(1000, k), recent: Audited(window, k), policy: t1), Now).Mode == LaneMode.Paused)
+                .ToList();
+            double PauseRate(double error) => pausingErrors.Sum(k => Binomial(k, window, error));
+            var oneErrorRate = Enumerable.Range(1, window).Sum(k => Binomial(k, window, 0.005));
 
-            AtLeast(4, 253, 0.005).Should().BeInRange(0.03, 0.05, "a tier running at its 99.5 % target pauses in about 4 % of windows");
-            AtLeast(4, 253, 0.03).Should().BeGreaterThan(0.94, "a tier at 3 % error pauses in about 95 % of windows");
-            AtLeast(1, 253, 0.005).Should().BeGreaterThan(0.7, "the upper-bound rule this replaces paused at one error, about 72 % of windows at target");
+            PauseRate(0.005).Should().BeInRange(0.03, 0.05, "a tier running at its 99.5 % target pauses in about 4 % of windows");
+            PauseRate(0.03).Should().BeGreaterThan(0.94, "a tier at 3 % error pauses in about 95 % of windows");
+            oneErrorRate.Should().BeGreaterThan(0.7, "the upper-bound rule this replaces paused at one error, about 72 % of windows at target");
         }
 
         [Fact]

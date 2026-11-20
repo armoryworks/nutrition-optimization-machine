@@ -7,6 +7,7 @@ SELECT i."Id" AS id,
                  WHERE a."IngredientId" = i."Id" AND NOT a."IsDeleted" AND a."SourceContext" = 'fdc:description'
                  ORDER BY a."Id" LIMIT 1), '-') AS description,
        coalesce(i."FdcCategoryId"::text, '-') AS "categoryId",
+       coalesce(nullif(btrim(replace(i."AdmissionReason", E'\t', ' ')), ''), '-') AS admission,
        (SELECT count(*) FROM nutrient."IngredientNutrient" n WHERE n."IngredientId" = i."Id" AND NOT n."IsDeleted") AS nutrients
 FROM recipe."Ingredient" i
 WHERE NOT i."IsDeleted"

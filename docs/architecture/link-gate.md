@@ -84,15 +84,23 @@ to the skin. The fix promoted five `known` rows of `link-pairs.tsv`.
 
 ## Signature
 
-`LinkGate.Signature` is a hash of `LinkGate.Version` and every table the rules read. Any change to a
-table changes it. The scorer lane `link-gate` records it, and a lane tier on the frame passes it in
-its gate signature, so a changed gate drops that tier back to shadow.
+`LinkGate.Signature` is a hash of `LinkGate.Version` and every table the rules read: the gate's own
+word lists, phrases (the salted and sweetened polarity phrases, the dried cues that turn a fresh cue
+off, the egg-white and "only" words) and patterns (heading, slash, percent, "with salt added"), the
+staple names (`StapleFoods`, read by the head-default spare and, through the name rule, by
+`rule-other`), the prepared categories (`CatalogAdmissionRule.PreparedCategories`) and the matcher
+and compound guard tables. Any change to a table changes it; a change to a rule's code rather than
+a table raises `LinkGate.Version`. `LinkGateTests` checks that every staple and prepared category is
+in the hashed text. The scorer lane `link-gate` records it, and a lane tier on the frame passes it
+in its gate signature, so a changed gate drops that tier back to shadow.
 
 ## Golden files and the scorer
 
 - `link-gate.tsv`: rule-given rows (`rule:link-gate`, `rule:construction`, status `ok`). Each is a
   pair the gate must let through (`pass`) or a pair a named rule must hold. Every rule has a row
-  (`Every_rule_of_the_gate_has_a_rule_given_row`).
+  (`Every_rule_of_the_gate_has_a_rule_given_row` reads the rule codes from `LinkGate` itself, so a
+  new rule without a row fails). `readers` = `yes` reads the pair as two blind readers' answer (the
+  head-noun rule); `aliasOf` names the food the wording is a trusted alias of (the other-alias rule).
 - `wording-pairs.tsv`: the 232 kept rows of batch w01 (judged by the model reviewer and second
   reader, `=`, status `agent`), the w01 judge picks the second reader refuted (`!`, `agent`), the
   wordings design's rule cases (`!`, `ok`) and its judged cases (`agent`), and claret: held for its
@@ -101,8 +109,10 @@ its gate signature, so a changed gate drops that tier back to shadow.
   not say, foods short of nutrients), with the count in `baseline.json`.
 - `gate-catalog.tsv`: the frozen catalog the gate reads in the golden tests: the curated foods and
   the pending SR Legacy foods of staging on 2026-11-20 with their USDA description, USDA category
-  (from the SR Legacy 2018-04 and Foundation 2025-12-18 releases) and nutrient row count.
-  `ops/golden/gate-catalog.sql` recaptures it once `--admit` has stored the categories.
+  (from the SR Legacy 2018-04 and Foundation 2025-12-18 releases), admission reason (`-` in the
+  first capture, which predates `--admit`) and nutrient row count. `ops/golden/gate-catalog.sql`
+  recaptures it once `--admit` has stored the categories and reasons; a pending USDA food that
+  admission holds by rule keeps its reason and is held as `uncurated`, as in production.
 - Scorer lane `link-gate` in `model-lanes.json`, with no model: the gate replayed over every pair of
   `link-pairs.tsv` judged right, wrong, near or compound. Run it with
   `dotnet run --project nom-api/Nom.Import -- --golden-score --lane link-gate [--record]`; it needs

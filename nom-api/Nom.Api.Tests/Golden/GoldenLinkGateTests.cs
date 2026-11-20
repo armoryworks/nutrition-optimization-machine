@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nom.Data.Recipe;
@@ -58,10 +60,16 @@ namespace Nom.Api.Tests.Golden
 
         private static GateCatalog CatalogFor(GoldenRow row, GateFood food)
         {
-            if (row["bound"] == GoldenTsv.NoAnswer || food.CategoryId is not { } category) return Catalog.Value;
-            var bound = decimal.Parse(row["bound"], CultureInfo.InvariantCulture);
+            var bounded = row["bound"] != GoldenTsv.NoAnswer && food.CategoryId != null;
+            var aliased = row["aliasOf"] != GoldenTsv.NoAnswer;
+            if (!bounded && !aliased) return Catalog.Value;
             var (matcher, staples) = ModelLanes.UsdaMatcher(GoldenSet.Folder);
-            return GateCatalog.Build(Foods.Value.Values, matcher, gramBounds: new Dictionary<int, decimal> { [category] = bound }, staples: staples);
+            return GateCatalog.Build(
+                Foods.Value.Values,
+                matcher,
+                trustedAliases: aliased ? new Dictionary<string, long> { [IngredientNameNormalizer.WordingKey(row["wording"])] = long.Parse(row["aliasOf"], CultureInfo.InvariantCulture) } : null,
+                gramBounds: bounded ? new Dictionary<int, decimal> { [food.CategoryId!.Value] = decimal.Parse(row["bound"], CultureInfo.InvariantCulture) } : null,
+                staples: staples);
         }
 
         [Fact]
@@ -70,7 +78,7 @@ namespace Nom.Api.Tests.Golden
             var report = GoldenSet.Run("link-gate.tsv", "status", row =>
             {
                 var food = Food(row);
-                var pair = new GatePair(row["wording"], 0, food, NameMatch: row["nameMatch"] == "yes", ModelPick: row["modelPick"] == "yes", Lines: Lines(row["lines"]));
+                var pair = new GatePair(row["wording"], 0, food, NameMatch: row["nameMatch"] == "yes", ModelPick: row["modelPick"] == "yes", ReadersAgreed: row["readers"] == "yes", Lines: Lines(row["lines"]));
                 var holds = LinkGate.Check(pair, CatalogFor(row, food));
                 var expect = row["expect"];
                 var pass = expect == "pass" ? holds.Count == 0 : holds.Any(h => h.Code == expect);
@@ -85,16 +93,50 @@ namespace Nom.Api.Tests.Golden
         public void Every_rule_of_the_gate_has_a_rule_given_row()
         {
             var codes = GoldenSet.Read("link-gate.tsv").Rows.Where(r => r["status"] == GoldenSet.Ok).Select(r => r["expect"]).ToHashSet(StringComparer.Ordinal);
-            var rules = new[]
-            {
-                LinkGate.Heading, LinkGate.Compound, LinkGate.Retired, LinkGate.Branded, LinkGate.Prepared, LinkGate.Uncurated, LinkGate.Incomplete,
-                LinkGate.State, LinkGate.WordOrder, LinkGate.RuleOther, LinkGate.Shortlist, LinkGate.LeadNoun, LinkGate.Containment, LinkGate.Form,
-                LinkGate.FreshHerb, LinkGate.Part, LinkGate.Marked, LinkGate.Percent, LinkGate.Polarity, LinkGate.Generic, LinkGate.Group,
-                LinkGate.Units, LinkGate.Grams,
-            };
+            var rules = typeof(LinkGate).GetFields(BindingFlags.Public | BindingFlags.Static)
+                .Where(f => f.IsLiteral && f.FieldType == typeof(string) && f.Name != nameof(LinkGate.Version))
+                .Select(f => (string)f.GetRawConstantValue()!)
+                .ToList();
 
             rules.Where(r => !codes.Contains(r)).Should().BeEmpty("each class the gate holds has a rule-given golden row");
             codes.Should().Contain("pass");
+        }
+
+        [Fact]
+        public void A_frozen_food_keeps_the_admission_reason_that_holds_it()
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "gate-catalog-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                File.WriteAllLines(Path.Combine(folder, "gate-catalog.tsv"), new[]
+                {
+                    "id\tfdcId\tdataType\tstatus\tname\tdescription\tcategoryId\tadmission\tnutrients",
+                    "1\t100\tsr_legacy_food\tpending\tPorridge\tPorridge, oat\t20\tenergy_check:fail\t30",
+                    "2\t101\tsr_legacy_food\tpending\tOats\tOats\t20\t-\t30",
+                });
+                var foods = ModelLanes.GateFoods(folder).ToDictionary(f => f.Id);
+                var catalog = GateCatalog.Build(foods.Values);
+
+                foods[1].AdmissionReason.Should().Be("energy_check:fail");
+                LinkGate.Check(new GatePair("porridge", 0, foods[1]), catalog).Select(h => h.Code).Should().Contain(LinkGate.Uncurated);
+                foods[2].AdmissionReason.Should().BeNull();
+                LinkGate.Check(new GatePair("oats", 0, foods[2]), catalog).Select(h => h.Code).Should().NotContain(LinkGate.Uncurated);
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+
+        [Fact]
+        public void The_recapture_query_captures_the_admission_reason()
+        {
+            var query = File.ReadAllText(Path.Combine(GoldenSet.SourceFolder(), "..", "..", "..", "..", "ops", "golden", "gate-catalog.sql"));
+            var header = GoldenSet.Read("gate-catalog.tsv").Header;
+
+            query.Should().Contain("i.\"AdmissionReason\"");
+            header.Should().Contain("admission");
         }
 
         [Fact]

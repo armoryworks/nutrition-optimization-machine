@@ -118,7 +118,9 @@ paused in most windows (one error in T1's 253 paused it, about 72 % of windows a
 and with `ResumeNeedsNewSignature` such a tier could not come back without a new signature). Under
 the observed rule, with an exact check, T1 (1.5 % over 253) pauses at 4 or more errors: about 4 % of
 windows at its 99.5 % target and about 95 % of windows at 3 % error; T2 (3 % over 200) pauses at 7
-or more. Qualifying still needs the Wilson lower bound, so a lane goes live only on proof and stops
+or more. `LaneQualifierTests` derives the T1 rates from `LaneQualifier.Decide` itself: it asks the
+frame which error counts in a full 253 window pause the tier and sums their binomial probabilities,
+so a change to the rule changes the rates the test checks. Qualifying still needs the Wilson lower bound, so a lane goes live only on proof and stops
 when it is seen to fail.
 
 **Self-undo.** On a pause the frame calls the lane's `ILaneUndo.UndoSinceAsync(tier, LastCleanAt)`,

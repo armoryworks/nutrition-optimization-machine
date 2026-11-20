@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
+using Nom.Data.Nutrition;
 using Nom.Data.Recipe;
 using Nom.Orch.Services.Support;
 using Xunit;
@@ -142,6 +143,18 @@ namespace Nom.Api.Tests.Services
         {
             LinkGate.Signature.Should().MatchRegex("^[0-9a-f]{16}$").And.Be(LinkGate.Signature);
             LinkGate.Version.Should().StartWith("link-gate/");
+        }
+
+        [Fact]
+        public void The_signature_covers_the_staples_the_prepared_categories_and_the_gates_own_word_lists()
+        {
+            var source = LinkGate.SignatureSource();
+
+            StapleFoods.Entries.Should().NotBeEmpty();
+            StapleFoods.Entries.Where(kv => !source.Contains(kv.Key + "=" + kv.Value + "|")).Should().BeEmpty("a changed staple changes what the gate lets through");
+            CatalogAdmissionRule.PreparedCategories.Where(kv => !source.Contains($"{kv.Key}={kv.Value}|")).Should().BeEmpty("a changed prepared category changes what the prepared rule holds");
+            source.Should().Contain("dried-cues:").And.Contain("polarity:").And.Contain("unsalted=salt free|").And.Contain("patterns:").And.Contain(@"^\s*for\s+the\b|")
+                .And.Contain("egg-white:").And.Contain("only=only|").And.Contain("guard-joiners:").And.Contain("staple-filler:");
         }
     }
 }

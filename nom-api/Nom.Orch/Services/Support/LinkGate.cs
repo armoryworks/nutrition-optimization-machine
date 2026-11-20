@@ -180,6 +180,8 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex Parenthetical = new(@"\([^)]*\)", RegexOptions.CultureInvariant | RegexOptions.Compiled);
         private static readonly Regex Slash = new(@"\p{L}\s*/\s*\p{L}", RegexOptions.CultureInvariant | RegexOptions.Compiled);
         private static readonly Regex PercentPattern = new(@"\d+(?:\.\d+)?\s*%", RegexOptions.CultureInvariant | RegexOptions.Compiled);
+        private static readonly Regex HeadingPattern = new(@"^\s*for\s+the\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+        private static readonly Regex SaltAddedPattern = new(@"\bwith salt added\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         internal static readonly Dictionary<string, string> OldSpellings = new(StringComparer.Ordinal)
         {
@@ -255,6 +257,19 @@ namespace Nom.Orch.Services.Support
         private static readonly HashSet<string> SpiceNeutral = new(StringComparer.Ordinal) { "dried", "dry", "dehydrated", "ground", "powder", "powdered", "pulverized", "pounded" };
         private static readonly HashSet<string> FlourNeutral = new(StringComparer.Ordinal) { "browned", "dried", "dry", "roasted", "toasted" };
         private static readonly HashSet<string> DrinkNeutral = new(StringComparer.Ordinal) { "dry" };
+
+        private static readonly HashSet<string> DriedCues = new(StringComparer.Ordinal) { "dried", "dry", "ground", "grated", "powdered", "powder" };
+
+        private static readonly HashSet<string> EggWhiteWords = new(StringComparer.Ordinal) { "white", "whites" };
+
+        private const string OnlyWord = "only";
+
+        private static readonly string[] UnsaltedPhrases = { "unsalted", "without salt", "no salt", "salt free" };
+        private static readonly string[] SaltedWordingPhrases = { "salted" };
+        private static readonly string[] SaltedFoodPhrases = { "salted", "with salt" };
+        private static readonly string[] UnsweetenedWordingPhrases = { "unsweetened", "sugar free", "no sugar" };
+        private static readonly string[] UnsweetenedFoodPhrases = { "unsweetened", "sugar free", "no sugar added" };
+        private static readonly string[] SweetenedPhrases = { "sweetened" };
 
         private static readonly HashSet<string> FreshCues = new(StringComparer.Ordinal)
         {
@@ -342,12 +357,14 @@ namespace Nom.Orch.Services.Support
 
         private static readonly HashSet<string> AlcoholicWords = new(StringComparer.Ordinal) { "alcoholic", "wine", "beer", "liqueur", "spirits", "rum", "whiskey", "vodka", "gin", "brandy" };
 
-        private static readonly Lazy<string> SignatureValue = new(ComputeSignature);
+        private static readonly Lazy<string> SignatureValue = new(() => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(SignatureSource())))[..16].ToLowerInvariant());
 
         /// <summary>
-        /// A hash of <see cref="Version"/> and every table the rules read, so any change to a rule
-        /// table shows as a new signature: the link-gate scorer records it and a tier's gate
-        /// signature drops it back to shadow when it changes.
+        /// A hash of <see cref="Version"/> and every table the rules read (the gate's own word lists,
+        /// phrases and patterns, the staple names, the prepared categories and the matcher and guard
+        /// tables), so any change to a rule table shows as a new signature: the link-gate scorer
+        /// records it and a tier's gate signature drops it back to shadow when it changes. A change
+        /// to a rule's code rather than a table raises <see cref="Version"/>.
         /// </summary>
         public static string Signature => SignatureValue.Value;
 
@@ -397,7 +414,7 @@ namespace Nom.Orch.Services.Support
 
             void Add(string code, string rule, string? detail = null) => holds.Add(new GateHold(code, rule, detail));
 
-            if (Regex.IsMatch(raw, @"^\s*for\s+the\b", RegexOptions.IgnoreCase) || raw.TrimEnd().EndsWith(':')) Add(Heading, "a heading, not a food");
+            if (HeadingPattern.IsMatch(raw) || raw.TrimEnd().EndsWith(':')) Add(Heading, "a heading, not a food");
             if (LinkAutoApplyGuard.IsCompound(wording) || Slash.IsMatch(wording)) Add(Compound, LinkAutoApplyGuard.CompoundRule);
 
             if (target.Deleted) Add(Retired, "target retired");
@@ -466,7 +483,7 @@ namespace Nom.Orch.Services.Support
                 Add(FreshHerb, "a fresh herb is not the dried spice");
 
             var egg = lead == "egg" || folded.Contains("egg");
-            foreach (var part in firstSegmentWords.Where(w => WordingParts.ContainsKey(w) || (egg && w is "white" or "whites")).Distinct())
+            foreach (var part in firstSegmentWords.Where(w => WordingParts.ContainsKey(w) || (egg && EggWhiteWords.Contains(w))).Distinct())
             {
                 var kind = WordingParts.TryGetValue(part, out var k) ? k : "white";
                 if (TextHasPart(text, kind) || (kind == "leaf" && spice)) continue;
@@ -475,9 +492,9 @@ namespace Nom.Orch.Services.Support
             }
             foreach (var segment in segments.Skip(1))
             {
-                var words = Words(segment).Where(w => w != "only").ToList();
-                var only = Words(segment).Contains("only");
-                var isPart = words.Count > 0 && words.All(w => DescriptionParts.ContainsKey(w) || (egg && w == "white"));
+                var words = Words(segment).Where(w => w != OnlyWord).ToList();
+                var only = Words(segment).Contains(OnlyWord);
+                var isPart = words.Count > 0 && words.All(w => DescriptionParts.ContainsKey(w) || (egg && EggWhiteWords.Contains(w)));
                 if (!isPart && !only) continue;
                 if (words.Count == 0 || words.Any(w => folded.Contains(Fold(w)) || (DescriptionParts.TryGetValue(w, out var kind) && WordingHasPart(firstSegmentWords, kind)))) continue;
                 Add(Part, "food is a part the wording does not name", segment);
@@ -486,7 +503,7 @@ namespace Nom.Orch.Services.Support
 
             var marked = Words(text).FirstOrDefault(w => MarkedWords.Contains(w) && !allWords.Contains(w));
             if (marked != null) Add(Marked, "marked variant", marked);
-            else if (Regex.IsMatch(text, @"\bwith salt added\b", RegexOptions.IgnoreCase) && !allWords.Contains("salt") && !allWords.Contains("salted"))
+            else if (SaltAddedPattern.IsMatch(text) && !allWords.Contains("salt") && !allWords.Contains("salted"))
                 Add(Marked, "marked variant", "with salt added");
 
             if (lexical && !headDefault && PercentPattern.IsMatch(text) && !raw.Contains('%') && LeadCount(lead, catalog) > 1)
@@ -760,16 +777,17 @@ namespace Nom.Orch.Services.Support
         {
             var w = " " + string.Join(' ', Words(wording)) + " ";
             var t = " " + string.Join(' ', Words(text)) + " ";
-            var wUnsalted = w.Contains(" unsalted ") || w.Contains(" without salt ") || w.Contains(" no salt ") || w.Contains(" salt free ");
-            var wSalted = !wUnsalted && w.Contains(" salted ");
-            var tUnsalted = t.Contains(" unsalted ") || t.Contains(" without salt ") || t.Contains(" no salt ") || t.Contains(" salt free ");
-            var tSalted = !tUnsalted && (t.Contains(" salted ") || t.Contains(" with salt "));
+            static bool Has(string padded, IEnumerable<string> phrases) => phrases.Any(p => padded.Contains(" " + p + " ", StringComparison.Ordinal));
+            var wUnsalted = Has(w, UnsaltedPhrases);
+            var wSalted = !wUnsalted && Has(w, SaltedWordingPhrases);
+            var tUnsalted = Has(t, UnsaltedPhrases);
+            var tSalted = !tUnsalted && Has(t, SaltedFoodPhrases);
             if (wUnsalted && tSalted) return "unsalted against salted";
             if (wSalted && tUnsalted) return "salted against unsalted";
-            var wUnsweet = w.Contains(" unsweetened ") || w.Contains(" sugar free ") || w.Contains(" no sugar ");
-            var wSweet = !wUnsweet && w.Contains(" sweetened ");
-            var tUnsweet = t.Contains(" unsweetened ") || t.Contains(" sugar free ") || t.Contains(" no sugar added ");
-            var tSweet = !tUnsweet && t.Contains(" sweetened ");
+            var wUnsweet = Has(w, UnsweetenedWordingPhrases);
+            var wSweet = !wUnsweet && Has(w, SweetenedPhrases);
+            var tUnsweet = Has(t, UnsweetenedFoodPhrases);
+            var tSweet = !tUnsweet && Has(t, SweetenedPhrases);
             if (wUnsweet && tSweet) return "unsweetened against sweetened";
             if (wSweet && tUnsweet) return "sweetened against unsweetened";
             return null;
@@ -794,7 +812,7 @@ namespace Nom.Orch.Services.Support
         private static bool HasFreshCue(string text, IReadOnlySet<string> target)
         {
             var words = Words(text);
-            if (words.Any(w => w is "dried" or "dry" or "ground" or "grated" or "powdered" or "powder")) return false;
+            if (words.Any(DriedCues.Contains)) return false;
             return words.Any(w => FreshCues.Contains(w) && !(w == "leaves" && target.Contains("leaf")));
         }
 
@@ -824,7 +842,8 @@ namespace Nom.Orch.Services.Support
         private static double ShareOf(IReadOnlyList<GateLine>? lines, Func<GateLine, bool> test) =>
             lines is not { Count: > 0 } ? 0 : lines.Count(test) / (double)lines.Count;
 
-        private static string ComputeSignature()
+        /// <summary>The text <see cref="Signature"/> hashes: <see cref="Version"/> and every table the rules read, each sorted.</summary>
+        internal static string SignatureSource()
         {
             var text = new StringBuilder(Version);
             void Table(string name, IEnumerable<string> rows)
@@ -858,13 +877,26 @@ namespace Nom.Orch.Services.Support
             Table("synonyms", FoodNameMatcher.Synonyms.Select(kv => kv.Key + "=" + kv.Value));
             Table("matcher-noise", FoodNameMatcher.Noise);
             Table("matcher-classes", FoodNameMatcher.ClassPrefixes.Concat(FoodNameMatcher.IdentityClasses.Select(c => "identity:" + c)));
+            Table("dried-cues", DriedCues);
+            Table("egg-white", EggWhiteWords.Append("only=" + OnlyWord));
+            Table("polarity", UnsaltedPhrases.Select(p => "unsalted=" + p)
+                .Concat(SaltedWordingPhrases.Select(p => "salted-wording=" + p))
+                .Concat(SaltedFoodPhrases.Select(p => "salted-food=" + p))
+                .Concat(UnsweetenedWordingPhrases.Select(p => "unsweetened-wording=" + p))
+                .Concat(UnsweetenedFoodPhrases.Select(p => "unsweetened-food=" + p))
+                .Concat(SweetenedPhrases.Select(p => "sweetened=" + p)));
+            Table("patterns", new[] { Word, Parenthetical, Slash, PercentPattern, HeadingPattern, SaltAddedPattern }.Select(r => r.ToString()));
+            Table("guard-joiners", LinkAutoApplyGuard.Joiners);
+            Table("staples", StapleFoods.Entries.Select(kv => kv.Key + "=" + kv.Value));
+            Table("staple-filler", StapleFoods.FillerWords);
+            Table("prepared", CatalogAdmissionRule.PreparedCategories.Select(kv => kv.Key.ToString(CultureInfo.InvariantCulture) + "=" + kv.Value));
             Table("numbers", new[]
             {
                 ShortlistSize.ToString(CultureInfo.InvariantCulture), MinimumNutrientRows.ToString(CultureInfo.InvariantCulture),
                 SiblingNutrientSlack.ToString(CultureInfo.InvariantCulture), UnitCoverage.ToString(CultureInfo.InvariantCulture),
                 LiquidOnDryShare.ToString(CultureInfo.InvariantCulture), OverBoundShare.ToString(CultureInfo.InvariantCulture),
             });
-            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())))[..16].ToLowerInvariant();
+            return text.ToString();
         }
     }
 }
