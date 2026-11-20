@@ -59,6 +59,7 @@ namespace Nom.Orch.Models.Curation
 
     public class LineCorrectionUndoResult
     {
+        public bool Applied { get; set; }
         public int Restored { get; set; }
         /// <summary>Journal entries whose line has since been changed again, moved to another food or removed.</summary>
         public int Skipped { get; set; }

@@ -23,7 +23,8 @@ namespace Nom.Orch.Interfaces
         /// <summary>
         /// Gives back the filled quantity to every line reverted at or after <paramref name="sinceUtc"/>
         /// that still holds what the revert gave it.
+        /// Without <paramref name="apply"/> nothing is written and the result is what the same call would do.
         /// </summary>
-        Task<LineCorrectionUndoResult> UndoAsync(DateTime sinceUtc);
+        Task<LineCorrectionUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false);
     }
 }

@@ -148,11 +148,11 @@ namespace Nom.Api.Controllers
                 .Distinct()
                 .ToList();
 
-        /// <summary>Put back the lines moved, the foods retired, the rows unfolded and the compound lines split or moved at or after the given UTC time.</summary>
+        /// <summary>Put back the lines moved, the foods retired, the proposals withdrawn, the rows unfolded and the compound lines split or moved at or after the given UTC time; a dry run (rolled back) unless apply=true.</summary>
         [HttpPost("relink/undo")]
-        public async Task<ActionResult<LineRelinkUndoResult>> RelinkUndo([FromQuery, Required] DateTime sinceUtc)
+        public async Task<ActionResult<LineRelinkUndoResult>> RelinkUndo([FromQuery, Required] DateTime sinceUtc, [FromQuery] bool apply = false)
         {
-            return Ok(await _relink.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc)));
+            return Ok(await _relink.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), apply));
         }
 
         /// <summary>Which scraped recipe lines counted in pieces, cans or packages would take the size or the package their wording states (no writes).</summary>
@@ -169,11 +169,11 @@ namespace Nom.Api.Controllers
             return Ok(await _packages.ApplyAsync(maxLines));
         }
 
-        /// <summary>Put back the quantity and measurement of the lines re-read at or after the given UTC time.</summary>
+        /// <summary>Put back the quantity and measurement of the lines re-read at or after the given UTC time; a dry run unless apply=true.</summary>
         [HttpPost("reread/undo")]
-        public async Task<ActionResult<PackageLineUndoResult>> RereadUndo([FromQuery, Required] DateTime sinceUtc)
+        public async Task<ActionResult<PackageLineUndoResult>> RereadUndo([FromQuery, Required] DateTime sinceUtc, [FromQuery] bool apply = false)
         {
-            return Ok(await _packages.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc)));
+            return Ok(await _packages.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), apply));
         }
 
         /// <summary>Give back the amount each line had before a start-up repair at or after the given UTC time changed it; a dry run unless apply=true.</summary>

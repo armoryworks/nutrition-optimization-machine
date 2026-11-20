@@ -188,7 +188,7 @@ namespace Nom.Api.Tests.Services
 
             (await RowsAsync(db, recipe)).Should().Equal(parts, $"{staging}: no part of a split line takes an amount from the method");
             (await db.AuditLogEntries.CountAsync(a => a.ChangeType == ScrapedRecipeRepairService.FillChangeType)).Should().Be(0);
-            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started);
+            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started, apply: true);
             db.ChangeTracker.Clear();
             undone.Unsplit.Should().Be(1, staging);
             undone.Skipped.Should().Be(0, staging);
@@ -213,7 +213,7 @@ namespace Nom.Api.Tests.Services
             await RestartAsync(db);
 
             (await RowsAsync(db, recipe)).Should().Equal(after, "the start-up re-read of pieces waits until the unfold is undone");
-            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started);
+            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started, apply: true);
             db.ChangeTracker.Clear();
             undone.Refolded.Should().Be(1);
             undone.Skipped.Should().Be(0);
@@ -240,9 +240,9 @@ namespace Nom.Api.Tests.Services
             await RestartAsync(db);
 
             (await RowsAsync(db, recipe)).Should().Equal(after, "the start-up re-read of pieces waits until the review is undone");
-            var reread = await new PackageLineService(db, new NoUser()).UndoAsync(started);
+            var reread = await new PackageLineService(db, new NoUser()).UndoAsync(started, apply: true);
             db.ChangeTracker.Clear();
-            var labels = await new RecipeLineLabelReviewService(db, new NoUser()).UndoAsync(started);
+            var labels = await new RecipeLineLabelReviewService(db, new NoUser()).UndoAsync(started, apply: true);
             db.ChangeTracker.Clear();
             (reread.Restored, reread.Skipped).Should().Be((1, 0));
             (labels.Restored, labels.Skipped).Should().Be((2, 0));

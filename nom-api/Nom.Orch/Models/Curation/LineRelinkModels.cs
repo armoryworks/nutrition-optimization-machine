@@ -78,6 +78,7 @@ namespace Nom.Orch.Models.Curation
 
     public class LineRelinkUndoResult
     {
+        public bool Applied { get; set; }
         public int Restored { get; set; }
         public int FoodsRestored { get; set; }
         /// <summary>Rows that were taken apart into one row per source line and are joined again, their added lines removed.</summary>

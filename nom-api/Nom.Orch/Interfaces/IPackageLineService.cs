@@ -24,7 +24,8 @@ namespace Nom.Orch.Interfaces
         /// <summary>
         /// Puts back the quantity and measurement of every line changed at or after
         /// <paramref name="sinceUtc"/> that still holds what the change gave it.
+        /// Without <paramref name="apply"/> nothing is written and the result is what the same call would do.
         /// </summary>
-        Task<PackageLineUndoResult> UndoAsync(DateTime sinceUtc);
+        Task<PackageLineUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false);
     }
 }

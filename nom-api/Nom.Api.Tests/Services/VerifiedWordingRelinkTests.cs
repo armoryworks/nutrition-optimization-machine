@@ -168,7 +168,7 @@ namespace Nom.Api.Tests.Services
             (await db.AuditLogEntries.SingleAsync(a => a.ChangeType == LineRelinkService.RetireChangeType)).Should().Match<AuditLogEntryEntity>(a =>
                 a.EntityId == vanilla.Id && a.NewValue == $"{extract.Id}@0");
 
-            var undone = await service.UndoAsync(started);
+            var undone = await service.UndoAsync(started, apply: true);
 
             undone.FoodsRestored.Should().Be(1);
             undone.ProposalsRestored.Should().Be(1);
@@ -199,7 +199,7 @@ namespace Nom.Api.Tests.Services
                 .Should().BeEquivalentTo(new[] { pending.Id, rejected.Id });
             (await db.FoodCatalogProposals.AnyAsync()).Should().BeFalse();
 
-            var undone = await service.UndoAsync(started);
+            var undone = await service.UndoAsync(started, apply: true);
 
             (undone.FoodsRestored, undone.ProposalsRestored, undone.Skipped).Should().Be((1, 2, 0));
             (await db.FoodCatalogProposals.OrderBy(p => p.Id).Select(p => p.Status).ToListAsync())
@@ -297,7 +297,7 @@ namespace Nom.Api.Tests.Services
             (await db.AuditLogEntries.Where(a => a.ChangeType == LineRelinkService.PickWithdrawChangeType).Select(a => a.EntityId).ToListAsync())
                 .Should().BeEquivalentTo(new[] { wrong.Id, unclear.Id });
 
-            (await service.UndoAsync(started)).PicksRestored.Should().Be(2);
+            (await service.UndoAsync(started, apply: true)).PicksRestored.Should().Be(2);
             (await db.FoodCatalogProposals.CountAsync()).Should().Be(3);
         }
 
@@ -318,7 +318,7 @@ namespace Nom.Api.Tests.Services
             (await service.RenameAsync(seed.Id, "Ground Mustard")).Should().BeNull("the name is unchanged");
             (await service.RenameAsync(seed.Id, " ")).Should().BeNull();
 
-            await service.UndoAsync(started);
+            await service.UndoAsync(started, apply: true);
 
             (await db.Ingredients.SingleAsync()).Should().Match<IngredientEntity>(i => i.Name == "Black Mustard Seed" && i.NameNormalized == "Black Mustard Seed");
             (await db.AuditLogEntries.AnyAsync()).Should().BeFalse();
@@ -365,7 +365,7 @@ namespace Nom.Api.Tests.Services
             renamed!.AliasesRemoved.Should().Be(1);
             (await db.IngredientAliases.AnyAsync()).Should().BeFalse();
 
-            await service.UndoAsync(started);
+            await service.UndoAsync(started, apply: true);
 
             (await db.IngredientAliases.SingleAsync()).Should().Match<IngredientAliasEntity>(a => a.IngredientId == mustard.Id && a.AliasName == "ground mustard");
         }

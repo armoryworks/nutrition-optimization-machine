@@ -490,7 +490,24 @@ namespace Nom.Orch.Services
 
         private static string Truncate(string text, int length) => text.Length <= length ? text : text[..length];
 
-        public async Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc)
+        public async Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false)
+        {
+            if (!apply && !_db.Database.IsRelational())
+                throw new InvalidOperationException("A dry run of the relink undo rolls back a database transaction, which this provider does not have.");
+
+            await using var dryRun = apply ? null : await _db.Database.BeginTransactionAsync();
+            var result = await UndoEntriesAsync(sinceUtc);
+            result.Applied = apply;
+            if (dryRun != null)
+            {
+                await dryRun.RollbackAsync();
+                _db.ChangeTracker.Clear();
+            }
+
+            return result;
+        }
+
+        private async Task<LineRelinkUndoResult> UndoEntriesAsync(DateTime sinceUtc)
         {
             var repairs = LineRepairs.Keys.ToList();
             var entries = await _db.AuditLogEntries
@@ -506,7 +523,7 @@ namespace Nom.Orch.Services
 
             foreach (var chunk in entries.Chunk(500))
             {
-                await using var tx = await _db.Database.BeginTransactionAsync();
+                await using var tx = _db.Database.CurrentTransaction == null ? await _db.Database.BeginTransactionAsync() : null;
                 foreach (var entry in chunk)
                 {
                     if (entry.ChangeType == ProposalWithdrawChangeType)
@@ -594,7 +611,7 @@ namespace Nom.Orch.Services
                 }
 
                 await _db.SaveChangesAsync();
-                await tx.CommitAsync();
+                if (tx != null) await tx.CommitAsync();
             }
 
             return result;

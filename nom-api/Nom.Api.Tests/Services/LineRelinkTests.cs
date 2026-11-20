@@ -242,8 +242,13 @@ namespace Nom.Api.Tests.Services
                 new { IngredientId = dried.Id, AliasName = "dried yolks" },
             });
 
-            var undone = await service.UndoAsync(started);
+            var dryRun = () => service.UndoAsync(started);
+            await dryRun.Should().ThrowAsync<InvalidOperationException>("only a database transaction can be rolled back");
+            (await db.Ingredients.AnyAsync(i => i.Id == named.Id)).Should().BeFalse("the refused dry run wrote nothing");
 
+            var undone = await service.UndoAsync(started, apply: true);
+
+            undone.Applied.Should().BeTrue();
             undone.FoodsRestored.Should().Be(1);
             (await db.Ingredients.SingleAsync(i => i.Id == complete.Id)).GramsPerItem.Should().BeNull();
             undone.Skipped.Should().Be(0);

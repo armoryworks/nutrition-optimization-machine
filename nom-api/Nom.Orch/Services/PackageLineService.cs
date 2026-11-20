@@ -256,18 +256,18 @@ namespace Nom.Orch.Services
             return result;
         }
 
-        public async Task<PackageLineUndoResult> UndoAsync(DateTime sinceUtc)
+        public async Task<PackageLineUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false)
         {
             var entries = await _db.AuditLogEntries
                 .Where(a => a.EntityType == RereadEntityType && a.ChangeType == RereadChangeType && a.Timestamp >= sinceUtc)
                 .OrderByDescending(a => a.Id)
                 .ToListAsync();
-            var result = new PackageLineUndoResult();
+            var result = new PackageLineUndoResult { Applied = apply };
             var personId = _currentUser.PersonIdOrSystem;
 
             foreach (var chunk in entries.Chunk(500))
             {
-                await using var tx = await _db.Database.BeginTransactionAsync();
+                await using var tx = apply ? await _db.Database.BeginTransactionAsync() : null;
                 var recipeIds = chunk.Select(e => e.EntityId).Distinct().ToList();
                 var rows = (await _db.RecipeIngredients.Where(ri => recipeIds.Contains(ri.RecipeId)).ToListAsync())
                     .ToDictionary(ri => (ri.RecipeId, ri.IngredientId, ri.SortOrder));
@@ -286,14 +286,16 @@ namespace Nom.Orch.Services
                     row.MeasurementId = was.MeasurementId;
                     row.LastModifiedDate = now;
                     row.LastModifiedByPersonId = personId;
-                    _db.AuditLogEntries.Remove(entry);
+                    if (apply) _db.AuditLogEntries.Remove(entry);
                     result.Restored++;
                 }
 
+                if (tx == null) continue;
                 await _db.SaveChangesAsync();
                 await tx.CommitAsync();
             }
 
+            if (!apply) _db.ChangeTracker.Clear();
             return result;
         }
 

@@ -268,7 +268,7 @@ namespace Nom.Api.Tests.Services.Recipe
             await db.SaveChangesAsync();
             (await RecipeNutritionRecalcHostedService.DueRecipeIds(db, 0).ToListAsync()).Should().BeEmpty();
 
-            (await new LineRelinkService(db, currentUser).UndoAsync(started)).Refolded.Should().Be(1);
+            (await new LineRelinkService(db, currentUser).UndoAsync(started, apply: true)).Refolded.Should().Be(1);
 
             (await RecipeNutritionRecalcHostedService.DueRecipeIds(db, 0).ToListAsync()).Should().Equal(recipe.Id);
         }

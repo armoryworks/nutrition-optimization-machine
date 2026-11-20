@@ -258,18 +258,18 @@ namespace Nom.Orch.Services
             return result;
         }
 
-        public async Task<LineCorrectionUndoResult> UndoAsync(DateTime sinceUtc)
+        public async Task<LineCorrectionUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false)
         {
             var entries = await _db.AuditLogEntries
                 .Where(a => a.EntityType == RevertEntityType && a.ChangeType == RevertChangeType && a.Timestamp >= sinceUtc)
                 .OrderByDescending(a => a.Id)
                 .ToListAsync();
-            var result = new LineCorrectionUndoResult();
+            var result = new LineCorrectionUndoResult { Applied = apply };
             var personId = _currentUser.PersonIdOrSystem;
 
             foreach (var chunk in entries.Chunk(500))
             {
-                await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+                await using var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
                 var recipeIds = chunk.Select(e => e.EntityId).Distinct().ToList();
                 var rows = (await _db.RecipeIngredients.Where(ri => recipeIds.Contains(ri.RecipeId)).ToListAsync())
                     .ToDictionary(ri => (ri.RecipeId, ri.IngredientId, ri.SortOrder));
@@ -288,14 +288,16 @@ namespace Nom.Orch.Services
                     row.MeasurementId = was.MeasurementId;
                     row.LastModifiedDate = now;
                     row.LastModifiedByPersonId = personId;
-                    _db.AuditLogEntries.Remove(entry);
+                    if (apply) _db.AuditLogEntries.Remove(entry);
                     result.Restored++;
                 }
 
+                if (!apply) continue;
                 await _db.SaveChangesAsync();
                 if (tx != null) await tx.CommitAsync();
             }
 
+            if (!apply) _db.ChangeTracker.Clear();
             return result;
         }
     }

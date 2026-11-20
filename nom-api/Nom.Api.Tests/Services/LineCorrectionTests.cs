@@ -155,10 +155,18 @@ namespace Nom.Api.Tests.Services
             edited.LineKind = RecipeIngredientLineKind.Note;
             await db.SaveChangesAsync();
             db.ChangeTracker.Clear();
+            var labelled = await db.RecipeIngredients.AsNoTracking().OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder).Select(ri => ri.LineKind).ToListAsync();
 
-            var undo = await Labels(db).UndoAsync(since);
+            var dryRun = await Labels(db).UndoAsync(since);
 
-            (undo.Restored, undo.Skipped).Should().Be((4, 1), "a line labelled again since is left as it is");
+            (dryRun.Applied, dryRun.Restored, dryRun.Skipped).Should().Be((false, 4, 1));
+            (await db.RecipeIngredients.AsNoTracking().OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder).Select(ri => ri.LineKind).ToListAsync())
+                .Should().Equal(labelled, "a dry run writes nothing");
+            (await db.AuditLogEntries.CountAsync()).Should().Be(5);
+
+            var undo = await Labels(db).UndoAsync(since, apply: true);
+
+            (undo.Applied, undo.Restored, undo.Skipped).Should().Be((true, 4, 1), "a line labelled again since is left as it is");
             var kinds = await db.RecipeIngredients.AsNoTracking().OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder).Select(ri => ri.LineKind).ToListAsync();
             kinds.Should().Equal(
                 RecipeIngredientLineKind.Instruction, RecipeIngredientLineKind.Reference,
@@ -219,7 +227,7 @@ namespace Nom.Api.Tests.Services
             await db.SaveChangesAsync();
             db.ChangeTracker.Clear();
 
-            var undo = await Labels(db).UndoAsync(since);
+            var undo = await Labels(db).UndoAsync(since, apply: true);
 
             (undo.Restored, undo.Skipped).Should().Be((1, 1));
             (await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == 10 && ri.IngredientId == 2)).LineKind.Should().Be(RecipeIngredientLineKind.Ingredient);
@@ -358,6 +366,9 @@ namespace Nom.Api.Tests.Services
             var lard = await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == 20 && ri.IngredientId == 1);
             (lard.Quantity, lard.MeasurementId).Should().Be((0m, Gram));
             (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == 20)).CurationStatusId.Should().Be(Curated);
+            var dryRun = await Quantities(db).UndoAsync(since);
+            (dryRun.Applied, dryRun.Restored, dryRun.Skipped).Should().Be((false, 3, 0));
+            (await db.RecipeIngredients.CountAsync(ri => ri.Quantity == 0)).Should().Be(3, "a dry run writes nothing");
             var journal = await db.AuditLogEntries.AsNoTracking().Where(a => a.ChangeType == AiRepairRevertService.RevertChangeType).OrderBy(a => a.Id).ToListAsync();
             journal.Select(a => (a.EntityId, a.OldValue, a.NewValue)).Should().BeEquivalentTo(new[]
             {
@@ -365,7 +376,7 @@ namespace Nom.Api.Tests.Services
             });
             (await Quantities(db).RevertAsync()).Ungrounded.Should().Be(0);
 
-            var undo = await Quantities(db).UndoAsync(since);
+            var undo = await Quantities(db).UndoAsync(since, apply: true);
 
             (undo.Restored, undo.Skipped).Should().Be((3, 0));
             (await db.RecipeIngredients.CountAsync(ri => ri.Quantity == 0)).Should().Be(0);
@@ -411,8 +422,34 @@ namespace Nom.Api.Tests.Services
             var lines = await db.RecipeIngredients.AsNoTracking().OrderBy(ri => ri.SortOrder).Select(ri => new { ri.Quantity, ri.MeasurementId }).ToListAsync();
             lines.Select(l => (l.Quantity, l.MeasurementId)).Should().Equal((1m, Tablespoon), (1m, Teaspoon), (1m, Tablespoon), (0.5m, Cup), (0m, Gram));
 
-            (await Quantities(db).UndoAsync(since)).Restored.Should().Be(5);
+            (await Quantities(db).UndoAsync(since, apply: true)).Restored.Should().Be(5);
             (await db.RecipeIngredients.AsNoTracking().Select(ri => ri.MeasurementId).Distinct().ToListAsync()).Should().Equal(Piece);
+        }
+
+        [Fact]
+        public async Task A_dry_run_of_an_undo_follows_a_line_changed_twice_as_the_undo_does()
+        {
+            using var db = NewContext();
+            db.Ingredients.Add(Food(1, "Lard"));
+            db.Recipes.Add(Recipe(60, NonCurated, new Row(1, "lard", 3m, null, Piece)));
+            AuditLogEntryEntity Reverted(string was, string became) => new()
+            {
+                EntityType = AiRepairRevertService.RevertEntityType, EntityId = 60, ChangeType = AiRepairRevertService.RevertChangeType,
+                PropertyName = "Quantity", OldValue = was, NewValue = became, Timestamp = DateTime.UtcNow, ChangedByPersonId = SystemConstants.SystemPersonId,
+            };
+            db.AuditLogEntries.AddRange(Reverted("1@0|1|3", "1@0|2|3"), Reverted("1@0|2|3", "1@0|3|3"));
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var since = DateTime.UtcNow.AddMinutes(-1);
+
+            var dryRun = await Quantities(db).UndoAsync(since);
+
+            (dryRun.Restored, dryRun.Skipped).Should().Be((2, 0));
+            (await db.RecipeIngredients.AsNoTracking().SingleAsync()).Quantity.Should().Be(3m);
+            (await db.AuditLogEntries.CountAsync()).Should().Be(2);
+            var undo = await Quantities(db).UndoAsync(since, apply: true);
+            (undo.Restored, undo.Skipped).Should().Be((2, 0));
+            (await db.RecipeIngredients.AsNoTracking().SingleAsync()).Quantity.Should().Be(1m);
         }
     }
 }

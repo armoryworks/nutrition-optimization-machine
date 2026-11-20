@@ -280,8 +280,17 @@ that every change is journaled:
 ```
 GET  /api/FoodCatalog/reread/preview?sampleSize=50     # counts per transition, lines that stop or start counting, samples; no writes
 POST /api/FoodCatalog/reread/apply?maxLines=5000       # one audit.AuditLogEntry (ChangeType LineReread) per changed line
-POST /api/FoodCatalog/reread/undo?sinceUtc=<utc time>  # restores each line that still holds what the re-read gave it
+POST /api/FoodCatalog/reread/undo?sinceUtc=<utc time>&apply=false  # dry run: lines it would restore and lines changed since
+POST /api/FoodCatalog/reread/undo?sinceUtc=<utc time>&apply=true   # restores each line that still holds what the re-read gave it
 ```
+
+**Undo dry runs.** `reread/undo`, `labels/undo`, `quantities/undo` and `relink/undo` are dry
+runs unless `apply=true`, like `startup-fills/undo`, `wordings/unload` and `recheck/undo`;
+before v0.3.121 a call without the switch applied. Each result carries `applied`. The dry run
+returns the same counts as the apply, skipped included, and follows a line changed twice in the
+window as the undo does: the first three keep the restored values in memory and save nothing;
+`relink/undo` runs the whole undo inside one database transaction and rolls it back, so it takes
+as long as the undo and holds its row locks until the rollback (run it with the lanes paused).
 
 Apply also marks the unchanged can and package lines that were weighed as one item or one
 serving as modified, so the nutrition sweep recalculates their recipes' labels; a derived
@@ -480,7 +489,7 @@ from it (0 on the Gram measurement when it reads none). Rules:
 Every row taken apart is one `audit.AuditLogEntry` (`EntityType` `RecipeIngredient`,
 `EntityId` the recipe, `ChangeType` `LineUnfold`, the joined text and amount in `OldValue`,
 the added positions with the amount each was given in `NewValue`).
-`POST /api/FoodCatalog/relink/undo?sinceUtc=<start>` puts a run back: the sweep goes newest
+`POST /api/FoodCatalog/relink/undo?sinceUtc=<start>&apply=true` puts a run back: the sweep goes newest
 first, so a line relinked after it was unfolded returns to its food before its row is joined
 again, the added rows are deleted and the journal entry removed. A row whose lines were
 edited (text or amount) or removed since is skipped, counted under `Skipped`, and its entry
@@ -565,7 +574,7 @@ line's position, or at the end of the recipe when that food already holds it.
 Each line is one `audit.AuditLogEntry` (`EntityType` `RecipeIngredient`, `EntityId` the
 recipe): `LineSplit` with the row before in `OldValue` and the resulting rows in `NewValue`
 (`{i, s, q, m, r}`: food, position, amount, measurement, text), or `LineAlternative` with
-`food@position` like a relink. `POST /api/FoodCatalog/relink/undo?sinceUtc=<start>` puts them
+`food@position` like a relink. `POST /api/FoodCatalog/relink/undo?sinceUtc=<start>&apply=true` puts them
 back with the other line repairs; a split whose rows were edited since is skipped. Do not prune
 these journal entries: the source text of a split line lives only there.
 
@@ -727,7 +736,7 @@ label batch's start time puts them back. The re-read and the label review can th
 either order. The dry run reports both rules (`Certain`, `WithShortLines`) with lines, recipes,
 approved recipes and `ApprovedStopPassing`: approved recipes that pass the line rules
 (unquantified allowance, curated foods) now and would not after the change. Each change is a
-`LineKindReview` audit entry; `POST /api/FoodCatalog/labels/undo?sinceUtc=<start>` restores a
+`LineKindReview` audit entry; `POST /api/FoodCatalog/labels/undo?sinceUtc=<start>&apply=true` restores a
 batch, skipping lines labelled again since and rows that now hold another line than the one the
 review relabelled (an unfold or split that kept the row's place); their entries stay.
 
@@ -755,7 +764,7 @@ left alone (`Ambiguous`). When the fill's food no longer has any line in the rec
 relinked or split since), the fill is looked for on the one line of the recipe that holds the
 filled piece count and states no count of its own (`FoundMoved`); two such lines are
 `Ambiguous`. Each revert is an `AiRepairRevert` entry in the `LineReread` value
-format; `POST /api/FoodCatalog/quantities/undo?sinceUtc=<start>` replays a batch forward.
+format; `POST /api/FoodCatalog/quantities/undo?sinceUtc=<start>&apply=true` replays a batch forward.
 
 **Order.** Run `quantities/revert` before `relink/verified`, `compound/apply` and any link batch
 (`link-groups` apply, or the lanes' auto-apply): those move lines to other foods, and the revert
@@ -826,7 +835,7 @@ from being retired, and are counted as `leftBehind` with `leftBehindSamples` in 
 The dry run's `sourcesRetired` and `proposalsWithdrawn` are the totals of every batch the apply
 needs, not of the first `maxLines` batch. Lines are moved in recipe, position and food order, so
 two lines that land on the same food in one recipe take the same positions on every apply.
-`relink/undo?sinceUtc=<T0>` puts lines and ingredients back, opens the withdrawn picks again
+`relink/undo?sinceUtc=<T0>&apply=true` puts lines and ingredients back, opens the withdrawn picks again
 (`picksRestored`) and brings back the proposals of retired ingredients with their status
 (`proposalsRestored`); run it before `wordings/unload`, and keep other relink work out of the
 window, since the undo is by time. Proposals withdrawn by a release before v0.3.121 have no

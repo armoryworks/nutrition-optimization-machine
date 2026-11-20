@@ -24,7 +24,8 @@ namespace Nom.Orch.Interfaces
         /// <summary>
         /// Gives back its earlier label to every line corrected at or after <paramref name="sinceUtc"/>
         /// that is still labelled as an ingredient.
+        /// Without <paramref name="apply"/> nothing is written and the result is what the same call would do.
         /// </summary>
-        Task<LineCorrectionUndoResult> UndoAsync(DateTime sinceUtc);
+        Task<LineCorrectionUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false);
     }
 }

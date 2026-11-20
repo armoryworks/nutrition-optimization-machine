@@ -319,7 +319,7 @@ namespace Nom.Api.Tests.Services
             await db.SaveChangesAsync();
             db.ChangeTracker.Clear();
 
-            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started);
+            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started, apply: true);
 
             undone.Refolded.Should().Be(0);
             undone.Skipped.Should().Be(1);
@@ -352,7 +352,7 @@ namespace Nom.Api.Tests.Services
             await db.SaveChangesAsync();
             db.ChangeTracker.Clear();
 
-            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started);
+            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started, apply: true);
 
             undone.Refolded.Should().Be(1);
             (await LinesAsync(db, seeded.RecipeId)).Select(l => (l.IngredientId, l.RawLine, l.Quantity)).Should().Equal((usda.Id, "1 cup sugar + 2 cups sugar", 1m));
@@ -418,7 +418,7 @@ namespace Nom.Api.Tests.Services
             await new LineUnfoldService(db, new NoUser()).UnfoldAsync(apply: true);
             (await LinesAsync(db, seeded.RecipeId)).Should().HaveCount(6);
 
-            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started);
+            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started, apply: true);
 
             undone.Refolded.Should().Be(3);
             undone.Skipped.Should().Be(0);
@@ -450,7 +450,7 @@ namespace Nom.Api.Tests.Services
             (await LinesAsync(db, seeded.RecipeId)).Select(l => (l.SortOrder, l.RawLine, l.Quantity, l.MeasurementId)).Should().Equal(
                 (0, "one pint of cold water", 0m, Gram), (1, "one-half box gelatine", 0m, Gram));
 
-            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started);
+            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started, apply: true);
 
             undone.Refolded.Should().Be(1);
             (await LinesAsync(db, seeded.RecipeId)).Single().Should().Match<RecipeIngredientEntity>(
@@ -487,7 +487,7 @@ namespace Nom.Api.Tests.Services
             (await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == remeasured.RecipeId && ri.SortOrder == 0)).Quantity = 0.5m;
             await db.SaveChangesAsync();
 
-            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started);
+            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started, apply: true);
 
             undone.Refolded.Should().Be(1);
             undone.Skipped.Should().Be(3);

@@ -206,9 +206,17 @@ namespace Nom.Api.Tests.Services
             await db.SaveChangesAsync();
             db.ChangeTracker.Clear();
 
-            (await service.UndoAsync(DateTime.UtcNow.AddMinutes(1))).Restored.Should().Be(0, "nothing was re-read after that time");
+            (await service.UndoAsync(DateTime.UtcNow.AddMinutes(1), apply: true)).Restored.Should().Be(0, "nothing was re-read after that time");
+            var edited = await db.RecipeIngredients.AsNoTracking().OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder).Select(ri => new { ri.Quantity, ri.MeasurementId }).ToListAsync();
 
-            var undone = await service.UndoAsync(before);
+            var dryRun = await service.UndoAsync(before);
+
+            (dryRun.Applied, dryRun.Restored, dryRun.Skipped).Should().Be((false, 4, 1));
+            (await db.RecipeIngredients.AsNoTracking().OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder).Select(ri => new { ri.Quantity, ri.MeasurementId }).ToListAsync())
+                .Should().Equal(edited, "a dry run writes nothing");
+            (await db.AuditLogEntries.CountAsync()).Should().Be(5);
+
+            var undone = await service.UndoAsync(before, apply: true);
 
             undone.Restored.Should().Be(4);
             undone.Skipped.Should().Be(1, "the corn was edited after the re-read");

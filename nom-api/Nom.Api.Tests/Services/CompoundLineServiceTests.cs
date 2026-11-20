@@ -194,7 +194,7 @@ namespace Nom.Api.Tests.Services
             await new CompoundLineService(kitchen.Db, new NoUser()).ApplyAsync(CompoundLineSplitter.Rules.ToList());
             kitchen.Db.ChangeTracker.Clear();
 
-            var undone = await new LineRelinkService(kitchen.Db, new NoUser()).UndoAsync(started);
+            var undone = await new LineRelinkService(kitchen.Db, new NoUser()).UndoAsync(started, apply: true);
 
             undone.Unsplit.Should().Be(3);
             undone.AlternativesPutBack.Should().Be(1);
@@ -218,7 +218,7 @@ namespace Nom.Api.Tests.Services
             await kitchen.Db.SaveChangesAsync();
             kitchen.Db.ChangeTracker.Clear();
 
-            var undone = await new LineRelinkService(kitchen.Db, new NoUser()).UndoAsync(started);
+            var undone = await new LineRelinkService(kitchen.Db, new NoUser()).UndoAsync(started, apply: true);
 
             undone.Unsplit.Should().Be(2);
             undone.Skipped.Should().Be(1);

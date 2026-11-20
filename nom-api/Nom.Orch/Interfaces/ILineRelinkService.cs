@@ -73,7 +73,9 @@ namespace Nom.Orch.Interfaces
         /// taken apart into one row per source line since then whose lines are as the unfold left
         /// them. Compound lines split or moved to their first alternative since then go back the
         /// same way. Newest first, so a line moved after it was unfolded goes back before it is joined.
+        /// Without <paramref name="apply"/> the same work runs in one database transaction that is
+        /// rolled back, so the result is what the same call would do and nothing is kept.
         /// </summary>
-        Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc);
+        Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false);
     }
 }
