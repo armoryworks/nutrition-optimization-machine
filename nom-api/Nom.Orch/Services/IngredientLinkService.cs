@@ -303,7 +303,7 @@ namespace Nom.Orch.Services
         /// first the standard entry of a bare staple name, then the one food the name matcher gives
         /// the name to. Null when neither rule answers.
         /// </summary>
-        private static (FoodCandidate Food, string Source)? DeterministicTarget(
+        internal static (FoodCandidate Food, string Source)? DeterministicTarget(
             string name, FoodNameMatcher matcher, IReadOnlyDictionary<string, FoodCandidate> staples)
         {
             if (StapleFoods.UsdaNameFor(name) is { } stapleName && staples.TryGetValue(stapleName, out var staple))
@@ -655,7 +655,7 @@ namespace Nom.Orch.Services
             return StapleTargets(foods, descriptions);
         }
 
-        private static Dictionary<string, FoodCandidate> StapleTargets(List<FoodCandidate> foods, List<(long IngredientId, string AliasName)> descriptions)
+        internal static Dictionary<string, FoodCandidate> StapleTargets(List<FoodCandidate> foods, List<(long IngredientId, string AliasName)> descriptions)
         {
             var byId = foods.ToDictionary(f => f.IngredientId);
 
