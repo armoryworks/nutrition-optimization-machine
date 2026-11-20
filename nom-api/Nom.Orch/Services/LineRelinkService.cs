@@ -527,6 +527,7 @@ namespace Nom.Orch.Services
             foreach (var chunk in entries.Chunk(500))
             {
                 await using var tx = _db.Database.CurrentTransaction == null ? await _db.Database.BeginTransactionAsync() : null;
+                var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db, chunk.Where(e => e.EntityType == RelinkEntityType).Select(e => e.EntityId).ToList());
                 foreach (var entry in chunk)
                 {
                     if (entry.ChangeType == ProposalWithdrawChangeType)
@@ -583,6 +584,13 @@ namespace Nom.Orch.Services
                         }
 
                         await _db.SaveChangesAsync();
+                        continue;
+                    }
+
+                    if (entry.EntityType == RelinkEntityType && rebuilt.TryGetValue(entry.EntityId, out var rebuiltAt) && rebuiltAt > entry.Timestamp)
+                    {
+                        result.Skipped++;
+                        result.SkippedRebuilt++;
                         continue;
                     }
 

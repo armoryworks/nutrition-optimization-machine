@@ -59,5 +59,7 @@ namespace Nom.Orch.Models.Curation
         public int Restored { get; set; }
         /// <summary>Journal entries whose line has since been changed again, moved to another food or removed.</summary>
         public int Skipped { get; set; }
+        /// <summary>Journal entries of a recipe rebuilt after them (<see cref="Nom.Orch.Services.RecipeReprocessService"/>): undo the rebuild first.</summary>
+        public int SkippedRebuilt { get; set; }
     }
 }

@@ -179,11 +179,19 @@ namespace Nom.Orch.Services
             {
                 await using var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
                 var recipeIds = chunk.Select(e => e.EntityId).Distinct().ToList();
+                var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db, recipeIds);
                 var rows = (await _db.RecipeIngredients.Where(ri => recipeIds.Contains(ri.RecipeId)).ToListAsync())
                     .ToDictionary(ri => (ri.RecipeId, ri.IngredientId, ri.SortOrder));
                 var now = DateTime.UtcNow;
                 foreach (var entry in chunk)
                 {
+                    if (rebuilt.TryGetValue(entry.EntityId, out var rebuiltAt) && rebuiltAt > entry.Timestamp)
+                    {
+                        result.Skipped++;
+                        result.SkippedRebuilt++;
+                        continue;
+                    }
+
                     var match = LineProperty.Match(entry.PropertyName ?? string.Empty);
                     if (!match.Success || !RecipeIngredientLineKind.IsExempt(entry.OldValue)
                         || !rows.TryGetValue((entry.EntityId, long.Parse(match.Groups["i"].Value, CultureInfo.InvariantCulture), int.Parse(match.Groups["s"].Value, CultureInfo.InvariantCulture)), out var row)

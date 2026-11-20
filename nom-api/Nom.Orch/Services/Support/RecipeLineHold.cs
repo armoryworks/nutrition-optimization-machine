@@ -22,6 +22,7 @@ namespace Nom.Orch.Services.Support
         private static readonly string[] Unheld =
         {
             ScrapedRecipeRepairService.FillChangeType, RecipeLineClassificationService.ClassifyChangeType, RecipeLineClassificationService.SuggestedChangeType,
+            RecipeReprocessService.ReprocessUndoneChangeType,
         };
 
         /// <summary>The held recipes among <paramref name="recipeIds"/>; entries of the change types in <paramref name="alsoUnheld"/> (a writer's own) hold none.</summary>

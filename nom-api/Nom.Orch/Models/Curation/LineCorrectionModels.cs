@@ -63,6 +63,8 @@ namespace Nom.Orch.Models.Curation
         public int Restored { get; set; }
         /// <summary>Journal entries whose line has since been changed again, moved to another food or removed.</summary>
         public int Skipped { get; set; }
+        /// <summary>Journal entries of a recipe rebuilt after them (<see cref="Nom.Orch.Services.RecipeReprocessService"/>): undo the rebuild first.</summary>
+        public int SkippedRebuilt { get; set; }
     }
 
     /// <summary>What taking back the start-up repair's amounts did, or would do on a dry run.</summary>
@@ -75,6 +77,8 @@ namespace Nom.Orch.Models.Curation
         public int Restored { get; set; }
         /// <summary>Journal entries whose line has since been changed again, moved to another food or removed.</summary>
         public int Skipped { get; set; }
+        /// <summary>Journal entries of a recipe rebuilt after them (<see cref="Nom.Orch.Services.RecipeReprocessService"/>): undo the rebuild first.</summary>
+        public int SkippedRebuilt { get; set; }
     }
 
     /// <summary>One quantity fill that would be put back, and why.</summary>
