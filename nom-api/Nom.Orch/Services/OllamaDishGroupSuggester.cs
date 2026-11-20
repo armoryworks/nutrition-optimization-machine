@@ -17,7 +17,9 @@ namespace Nom.Orch.Services
     /// (config: Ai:OllamaUrl + Ai:GroupingModel, falling back to Ai:Model).
     /// Self-contained HTTP on purpose — no dependency on other AI plumbing, so
     /// the class compiles wherever it's dropped. Falls back to the heuristic
-    /// suggester per batch on any model failure.
+    /// suggester per batch on an unreadable answer; when the host cannot be
+    /// reached it throws, so an outage leaves recipes ungrouped instead of
+    /// giving them heuristic names for good.
     /// </summary>
     public class OllamaDishGroupSuggester : IDishGroupSuggester
     {
@@ -79,6 +81,11 @@ namespace Nom.Orch.Services
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                throw;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            {
+                _logger.LogWarning("Ollama dish grouping unreachable ({Failure}); leaving {Count} recipes ungrouped for the next sweep", ex.GetType().Name, candidates.Count);
                 throw;
             }
             catch (Exception ex)

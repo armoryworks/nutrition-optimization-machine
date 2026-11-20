@@ -1,4 +1,5 @@
 using Nom.Orch.Interfaces;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Api.Services
 {
@@ -6,9 +7,10 @@ namespace Nom.Api.Services
     /// Works through vetting-flagged imports (RequiresRevision) in Id order with the local model:
     /// splits one-paragraph methods into steps and fills quantities written in the recipe, then
     /// re-vets. Small batches, one model request at a time and a short pause between batches keep it
-    /// polite to the other GPU lanes. Without an Ollama URL it only re-vets. One full pass per
-    /// startup; after that it only picks up recipes newer than the last one it saw. A recipe is attempted
-    /// once per RecipeAiRepairService.RepairVersion, so bumping it re-attempts earlier failures.
+    /// polite to the other GPU lanes. Without an Ollama URL it only re-vets. Each sweep starts over
+    /// from the beginning after the idle wait. A recipe is attempted once per
+    /// RecipeAiRepairService.RepairVersion; a model-host outage records no attempt. Every batch
+    /// passes the <see cref="AiLaneGate"/> (lane "repair").
     ///
     /// Curation:AiRepair:Enabled=false disables it; Curation:AiRepair:BatchSize (default 5) recipes
     /// per batch; Curation:AiRepair:PauseSeconds (default 3) between batches;
@@ -19,15 +21,18 @@ namespace Nom.Api.Services
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
         private readonly ILogger<RecipeAiRepairHostedService> _logger;
+        private readonly AiLaneGate _gate;
 
         public RecipeAiRepairHostedService(
             IServiceScopeFactory scopeFactory,
             IConfiguration configuration,
-            ILogger<RecipeAiRepairHostedService> logger)
+            ILogger<RecipeAiRepairHostedService> logger,
+            AiLaneGate gate)
         {
             _scopeFactory = scopeFactory;
             _configuration = configuration;
             _logger = logger;
+            _gate = gate;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -35,6 +40,7 @@ namespace Nom.Api.Services
             if (!_configuration.GetValue("Curation:AiRepair:Enabled", true))
             {
                 _logger.LogInformation("AI recipe repair is disabled (Curation:AiRepair:Enabled=false)");
+                _gate.Disabled(AiLanes.Repair, "Curation:AiRepair:Enabled=false");
                 return;
             }
 
@@ -57,13 +63,14 @@ namespace Nom.Api.Services
             int split = 0, filled = 0, cleared = 0;
             while (!stoppingToken.IsCancellationRequested)
             {
-                if (!await AiQuietHours.WaitAsync(_configuration, _logger, stoppingToken)) return;
+                if (!await _gate.WaitAsync(AiLanes.Repair, stoppingToken)) return;
                 var delay = pause;
                 try
                 {
                     using var scope = _scopeFactory.CreateScope();
                     var repair = scope.ServiceProvider.GetRequiredService<IRecipeAiRepairService>();
                     var batch = await repair.RepairBatchAsync(cursor, batchSize, stoppingToken);
+                    _gate.Passed(AiLanes.Repair, batch.Examined, batch.Examined == 0);
                     if (batch.Examined == 0)
                     {
                         if (split + filled + cleared > 0)
@@ -72,6 +79,7 @@ namespace Nom.Api.Services
                                 split, filled, cleared);
                         }
                         split = filled = cleared = 0;
+                        cursor = 0;
                         delay = idle;
                     }
                     else
@@ -90,6 +98,7 @@ namespace Nom.Api.Services
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "AI recipe repair batch after recipe {Cursor} failed", cursor);
+                    _gate.Failed(AiLanes.Repair, ex);
                     delay = backoff;
                 }
 

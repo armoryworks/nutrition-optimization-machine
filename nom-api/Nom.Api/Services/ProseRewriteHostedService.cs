@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Nom.Data;
 using Nom.Orch.Services;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Api.Services
 {
@@ -18,7 +19,10 @@ namespace Nom.Api.Services
     /// Ollama host, not the interactive one). ProseRewrite:IntervalMinutes
     /// (default 10) and ProseRewrite:BatchSize (default 25) tune the pace;
     /// ProseRewrite:RetryDays (default 30) is how long a recipe the model could
-    /// not rewrite rests before it is tried again.
+    /// not rewrite rests before it is tried again. While a sweep comes back full the next starts
+    /// after ProseRewrite:PauseSeconds (default 5) instead of the interval
+    /// (ProseRewrite:DrainWhileFull, default true). A model-host outage stamps nothing. Every
+    /// sweep passes the <see cref="AiLaneGate"/> (lane "prose-rewrite").
     /// </summary>
     public class ProseRewriteHostedService : BackgroundService
     {
@@ -26,13 +30,16 @@ namespace Nom.Api.Services
         private readonly IConfiguration _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<ProseRewriteHostedService> _logger;
+        private readonly AiLaneGate _gate;
 
         public ProseRewriteHostedService(
             IServiceScopeFactory scopeFactory,
             IConfiguration configuration,
             IHttpClientFactory httpClientFactory,
-            ILogger<ProseRewriteHostedService> logger)
+            ILogger<ProseRewriteHostedService> logger,
+            AiLaneGate gate)
         {
+            _gate = gate;
             _scopeFactory = scopeFactory;
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
@@ -45,6 +52,7 @@ namespace Nom.Api.Services
             if (string.IsNullOrEmpty(baseUrl))
             {
                 _logger.LogInformation("Prose rewrite is disabled (Ai:BatchOllamaUrl not configured)");
+                _gate.Disabled(AiLanes.ProseRewrite, "Ai:BatchOllamaUrl not configured");
                 return;
             }
 
@@ -53,6 +61,8 @@ namespace Nom.Api.Services
                 Math.Max(1, _configuration.GetValue("ProseRewrite:IntervalMinutes", 10)));
             var batchSize = Math.Clamp(_configuration.GetValue("ProseRewrite:BatchSize", 25), 1, 100);
             var retryDays = Math.Max(1, _configuration.GetValue("ProseRewrite:RetryDays", 30));
+            var drain = _configuration.GetValue("ProseRewrite:DrainWhileFull", true);
+            var drainPause = TimeSpan.FromSeconds(Math.Max(0, _configuration.GetValue("ProseRewrite:PauseSeconds", 5)));
 
             _logger.LogInformation(
                 "Prose rewrite enabled: {Url} ({Model}), every {Minutes}m, up to {Batch} recipes per sweep",
@@ -62,10 +72,13 @@ namespace Nom.Api.Services
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                if (!await AiQuietHours.WaitAsync(_configuration, _logger, stoppingToken)) return;
+                if (!await _gate.WaitAsync(AiLanes.ProseRewrite, stoppingToken)) return;
+                var delay = interval;
                 try
                 {
-                    await SweepAsync(baseUrl, model, batchSize, retryDays, stoppingToken);
+                    var seen = await SweepAsync(baseUrl, model, batchSize, retryDays, stoppingToken);
+                    _gate.Passed(AiLanes.ProseRewrite, seen, seen == 0);
+                    if (drain && seen >= batchSize) delay = drainPause;
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
@@ -74,13 +87,14 @@ namespace Nom.Api.Services
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Prose rewrite sweep failed");
+                    _gate.Failed(AiLanes.ProseRewrite, ex);
                 }
 
-                await SafeDelay(interval, stoppingToken);
+                await SafeDelay(delay, stoppingToken);
             }
         }
 
-        private async Task SweepAsync(string baseUrl, string model, int batchSize, int retryDays, CancellationToken cancellationToken)
+        private async Task<int> SweepAsync(string baseUrl, string model, int batchSize, int retryDays, CancellationToken cancellationToken)
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -96,13 +110,14 @@ namespace Nom.Api.Services
 
             if (quarantined.Count == 0)
             {
-                return;
+                return 0;
             }
 
             var rewritten = 0;
             foreach (var recipe in quarantined)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                var attemptedBefore = recipe.ProseRewriteAttemptedAt;
                 recipe.ProseRewriteAttemptedAt = DateTime.UtcNow;
 
                 var steps = recipe.RecipeSteps?.Where(s => !s.IsDeleted).OrderBy(s => s.StepNumber).ToList() ?? new();
@@ -142,6 +157,12 @@ namespace Nom.Api.Services
                 {
                     throw;
                 }
+                catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+                {
+                    recipe.ProseRewriteAttemptedAt = attemptedBefore;
+                    _logger.LogWarning("Prose rewrite stopped at recipe {Id}: the model host is not answering ({Failure}); nothing stamped", recipe.Id, ex.GetType().Name);
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Rewrite failed for recipe {Id}; leaving quarantined", recipe.Id);
@@ -151,6 +172,7 @@ namespace Nom.Api.Services
 
             _logger.LogInformation("Prose rewrite sweep: {Rewritten}/{Seen} recipes cleared",
                 rewritten, quarantined.Count);
+            return quarantined.Count;
         }
 
         /// <summary>

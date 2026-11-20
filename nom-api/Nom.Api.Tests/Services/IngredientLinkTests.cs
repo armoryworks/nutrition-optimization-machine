@@ -414,6 +414,27 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_connection_error_while_asking_one_at_a_time_records_no_rejection()
+        {
+            using var db = NewContext();
+            await SeedFoodsAsync(db);
+            var butter = await UsedIngredientAsync(db, "creamery butter", 2);
+            var calls = 0;
+            var matcher = new FakeMatcher
+            {
+                Answer = q => throw (calls++ == 0
+                    ? new System.Text.Json.JsonException("garbled")
+                    : new System.Net.Http.HttpRequestException("connection refused")),
+            };
+            var linker = Linker(db, matcher);
+
+            (await linker.ProposeAsync(await linker.NextSourcesAsync(10))).Should().BeNull();
+
+            (await db.FoodCatalogProposals.AnyAsync(p => p.IngredientId == butter.Id)).Should().BeFalse();
+            (await linker.NextSourcesAsync(10)).Select(s => s.IngredientId).Should().Contain(butter.Id, "it is asked again once the model is back");
+        }
+
+        [Fact]
         public async Task A_bare_staple_name_takes_its_standard_usda_entry_without_the_model()
         {
             using var db = NewContext();

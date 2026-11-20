@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Nom.Data;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Services;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Api.Services
 {
@@ -13,7 +14,10 @@ namespace Nom.Api.Services
     ///
     /// On by default (DishGrouping:Enabled=false to disable);
     /// DishGrouping:IntervalMinutes (default 30) between sweeps,
-    /// DishGrouping:BatchSize (default 50) recipes per sweep.
+    /// DishGrouping:BatchSize (default 50) recipes per sweep. While a sweep comes back full and
+    /// grouped something, the next starts after DishGrouping:PauseSeconds (default 5) instead of the interval
+    /// (DishGrouping:DrainWhileFull, default true). Every sweep passes the
+    /// <see cref="AiLaneGate"/> (lane "dish-grouping").
     /// </summary>
     public class DishGroupingHostedService : BackgroundService
     {
@@ -22,12 +26,15 @@ namespace Nom.Api.Services
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
         private readonly ILogger<DishGroupingHostedService> _logger;
+        private readonly AiLaneGate _gate;
 
         public DishGroupingHostedService(
             IServiceScopeFactory scopeFactory,
             IConfiguration configuration,
-            ILogger<DishGroupingHostedService> logger)
+            ILogger<DishGroupingHostedService> logger,
+            AiLaneGate gate)
         {
+            _gate = gate;
             _scopeFactory = scopeFactory;
             _configuration = configuration;
             _logger = logger;
@@ -38,12 +45,15 @@ namespace Nom.Api.Services
             if (!_configuration.GetValue("DishGrouping:Enabled", true))
             {
                 _logger.LogInformation("Dish grouping is disabled (DishGrouping:Enabled=false)");
+                _gate.Disabled(AiLanes.DishGrouping, "DishGrouping:Enabled=false");
                 return;
             }
 
             var interval = TimeSpan.FromMinutes(
                 Math.Max(1, _configuration.GetValue("DishGrouping:IntervalMinutes", 30)));
             var batchSize = Math.Clamp(_configuration.GetValue("DishGrouping:BatchSize", 50), 1, 500);
+            var drain = _configuration.GetValue("DishGrouping:DrainWhileFull", true);
+            var drainPause = TimeSpan.FromSeconds(Math.Max(0, _configuration.GetValue("DishGrouping:PauseSeconds", 5)));
 
             _logger.LogInformation("Dish grouping enabled: every {Minutes}m, up to {Batch} recipes per sweep",
                 interval.TotalMinutes, batchSize);
@@ -52,10 +62,13 @@ namespace Nom.Api.Services
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                if (!await AiQuietHours.WaitAsync(_configuration, _logger, stoppingToken)) return;
+                if (!await _gate.WaitAsync(AiLanes.DishGrouping, stoppingToken)) return;
+                var delay = interval;
                 try
                 {
-                    await SweepAsync(batchSize, stoppingToken);
+                    var (seen, assigned) = await SweepAsync(batchSize, stoppingToken);
+                    _gate.Passed(AiLanes.DishGrouping, seen, seen == 0);
+                    if (drain && seen >= batchSize && assigned > 0) delay = drainPause;
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
@@ -64,13 +77,14 @@ namespace Nom.Api.Services
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Dish grouping sweep failed");
+                    _gate.Failed(AiLanes.DishGrouping, ex);
                 }
 
-                await SafeDelay(interval, stoppingToken);
+                await SafeDelay(delay, stoppingToken);
             }
         }
 
-        private async Task SweepAsync(int batchSize, CancellationToken cancellationToken)
+        private async Task<(int Seen, int Assigned)> SweepAsync(int batchSize, CancellationToken cancellationToken)
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -94,7 +108,7 @@ namespace Nom.Api.Services
 
             if (unclassified.Count == 0)
             {
-                return;
+                return (0, 0);
             }
 
             var assigned = 0;
@@ -122,6 +136,7 @@ namespace Nom.Api.Services
 
             _logger.LogInformation("Dish grouping sweep: {Assigned}/{Seen} recipes classified",
                 assigned, unclassified.Count);
+            return (unclassified.Count, assigned);
         }
 
         private static async Task SafeDelay(TimeSpan delay, CancellationToken token)

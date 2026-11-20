@@ -126,7 +126,7 @@ namespace Nom.Orch.Services
                 });
             }
             await _db.SaveChangesAsync();
-            _logger.LogInformation("Recipe {RecipeId}: derived {Count} nutrient rows from {Ingredients} ingredient(s)", recipeId, totals.Count, contributed);
+            _logger.LogDebug("Recipe {RecipeId}: derived {Count} nutrient rows from {Ingredients} ingredient(s)", recipeId, totals.Count, contributed);
             return totals.Count;
         }
 
