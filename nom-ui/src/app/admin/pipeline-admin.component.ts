@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,6 +8,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { PipelineService } from '../core/services/pipeline.service';
 import {
+  LaneFrameLane,
+  LaneUndoReport,
   LinkUndoPreview,
   PipelineGateLane,
   PipelineLineFunnel,
@@ -34,12 +36,13 @@ interface StuckList {
 
 /**
  * Where recipes, recipe lines and foods wait in the automated catalog pipeline, each lane's
- * settings and queue, and the model lanes' live state from the lane gate. Read-only apart from
- * the AI pause switches; the dry runs call the existing previews and never apply anything.
+ * settings and queue, the model lanes' live state from the lane gate, and every lane on the lane
+ * frame with its mode, figures and bounds. Read-only apart from the AI pause switches; the dry
+ * runs call the existing previews and never apply anything.
  */
 @Component({
   selector: 'nom-pipeline-admin',
-  imports: [RouterLink, DecimalPipe, DatePipe, MatButtonModule, MatIconModule, MatSlideToggleModule],
+  imports: [RouterLink, DecimalPipe, DatePipe, PercentPipe, MatButtonModule, MatIconModule, MatSlideToggleModule],
   templateUrl: './pipeline-admin.component.html',
   styleUrl: './pipeline-admin.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -86,6 +89,9 @@ export class PipelineAdmin implements OnInit {
   linkUndoError = signal('');
   undoSince = signal('');
   leaveMoved = signal(false);
+  frameUndo = signal<Record<string, LaneUndoReport>>({});
+  frameUndoBusy = signal<string | null>(null);
+  frameUndoError = signal<Record<string, string>>({});
 
   status = computed(() => this.data()?.status ?? null);
 
@@ -202,6 +208,26 @@ export class PipelineAdmin implements OnInit {
       error: (err: HttpErrorResponse) => {
         this.linkUndoBusy.set(false);
         this.linkUndoError.set(err.status === 400 ? 'The time was not accepted.' : 'Unable to run the link undo dry run.');
+      },
+    });
+  }
+
+  frameKey(row: LaneFrameLane): string {
+    return `${row.lane}-${row.tier === '*' ? 'all' : row.tier}`;
+  }
+
+  previewFrameUndo(row: LaneFrameLane): void {
+    const key = this.frameKey(row);
+    this.frameUndoBusy.set(key);
+    this.frameUndoError.update((errors) => ({ ...errors, [key]: '' }));
+    this.pipeline.previewFrameUndo(row.lane, row.tier).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (report) => {
+        this.frameUndo.update((reports) => ({ ...reports, [key]: report }));
+        this.frameUndoBusy.set(null);
+      },
+      error: () => {
+        this.frameUndoBusy.set(null);
+        this.frameUndoError.update((errors) => ({ ...errors, [key]: 'Unable to run the undo dry run.' }));
       },
     });
   }

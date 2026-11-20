@@ -347,6 +347,89 @@
       </ul>
     </section>
 
+    <section class="nom-pipeline__section" data-testid="pipeline-frame">
+      <h2 class="nom-pipeline__heading">Lane qualification</h2>
+      @if (d.frame; as frame) {
+        <p class="nom-pipeline__lane-line" data-testid="pipeline-frame-roster">
+          Reader A {{ frame.roster.readerA }} ({{ frame.roster.readerAFamily }}) · reader B {{ frame.roster.readerB }} ({{ frame.roster.readerBFamily }})
+          · auditor {{ frame.roster.auditor }} ({{ frame.roster.auditorFamily }})
+        </p>
+        @if (frame.lanes.length === 0) {
+          <p class="nom-pipeline__hint" data-testid="pipeline-frame-empty">No lane has been evaluated yet; a lane starts in shadow and writes nothing until it qualifies.</p>
+        } @else {
+          <ul class="nom-pipeline__lanes" data-testid="pipeline-frame-list">
+            @for (row of frame.lanes; track row.lane + '/' + row.tier) {
+              @let key = frameKey(row);
+              <li class="nom-pipeline__lane" [attr.data-testid]="'pipeline-frame-' + key">
+                <div class="nom-pipeline__lane-head">
+                  <strong>{{ row.lane }}{{ row.tier === '*' ? '' : ' · ' + row.tier }}</strong>
+                  <span class="nom-pipeline__badge" [class.nom-pipeline__badge--off]="row.mode === 'shadow'" [class.nom-pipeline__badge--paused]="row.mode === 'paused'"
+                        [attr.data-testid]="'pipeline-frame-' + key + '-mode'">{{ row.mode }}</span>
+                  <span class="nom-pipeline__muted">since {{ row.since | date: 'MMM d, HH:mm' }}</span>
+                </div>
+                @if (row.reason) {
+                  <p class="nom-pipeline__lane-line" [class.nom-pipeline__warn]="row.mode === 'paused'" [attr.data-testid]="'pipeline-frame-' + key + '-reason'">{{ row.reason }}</p>
+                }
+                @if (row.figures; as f) {
+                  <p class="nom-pipeline__lane-line" [attr.data-testid]="'pipeline-frame-' + key + '-qualify'">
+                    Audited {{ f.audited | number }}{{ f.neededAudited != null ? ' of ' + (f.neededAudited | number) + ' needed' : '' }}
+                    · {{ f.errors | number }} confirmed errors, {{ f.flagged | number }} flags not confirmed
+                    · corrected error {{ f.correctedError | percent: '1.1-2' }}
+                    · precision {{ f.precisionLower | percent: '1.1-2' }} to {{ f.precisionUpper | percent: '1.1-2' }} against the bar {{ f.qualifyBar | percent: '1.1-2' }}
+                  </p>
+                  <p class="nom-pipeline__lane-line" [attr.data-testid]="'pipeline-frame-' + key + '-window'">
+                    Last {{ f.windowAudited | number }} of a {{ f.window | number }} audited window: {{ f.windowErrors | number }} errors,
+                    error {{ f.windowErrorLower | percent: '1.1-2' }} to {{ f.windowErrorUpper | percent: '1.1-2' }} against the pause bar {{ f.pauseBar | percent: '1.1-2' }}
+                  </p>
+                  <p class="nom-pipeline__lane-line nom-pipeline__muted" [attr.data-testid]="'pipeline-frame-' + key + '-auditor'">
+                    @if (f.auditorExact) {
+                      Audit check: rule, not corrected.
+                    } @else if (f.auditorSensitivity != null && !f.auditorProblem) {
+                      Audit check {{ f.auditorSource ?? '' }}: catches {{ f.auditorSensitivity | percent: '1.0-1' }} of {{ f.auditorKnownBad | number }} known-bad rows,
+                      flags {{ f.auditorFalseFlagRate | percent: '1.0-1' }} of {{ f.auditorKnownGood | number }} known-good rows.
+                    } @else {
+                      Audit check: {{ f.auditorProblem ?? 'not scored' }}.
+                    }
+                    @if (f.goldenProblem) {
+                      Golden record: {{ f.goldenProblem }}.
+                    }
+                  </p>
+                }
+                <p class="nom-pipeline__lane-line nom-pipeline__muted">
+                  {{ row.decisionsLast24h | number }} decisions in 24 h, {{ row.writtenLast24h | number }} written
+                  · last evaluated {{ row.evaluatedAt ? (row.evaluatedAt | date: 'MMM d, HH:mm') : 'never' }}
+                  · last clean window {{ row.lastCleanAt ? (row.lastCleanAt | date: 'MMM d, HH:mm') : 'none' }}
+                </p>
+                @if (row.canUndo) {
+                  <button mat-stroked-button type="button" (click)="previewFrameUndo(row)" [disabled]="frameUndoBusy() === key"
+                          [attr.data-testid]="'pipeline-frame-' + key + '-undo-preview-btn'">
+                    {{ frameUndoBusy() === key ? 'Reading the journal…' : 'Dry run: undo since the last clean window' }}
+                  </button>
+                }
+                @if (frameUndoError()[key]) {
+                  <p class="nom-pipeline__error" role="alert" [attr.data-testid]="'pipeline-frame-' + key + '-undo-error'">{{ frameUndoError()[key] }}</p>
+                }
+                @if (frameUndo()[key]; as u) {
+                  <dl class="nom-pipeline__stats nom-pipeline__stats--small" [attr.data-testid]="'pipeline-frame-' + key + '-undo-preview'">
+                    <div><dt>Since</dt><dd>{{ u.sinceUtc | date: 'MMM d, HH:mm' }}</dd></div>
+                    <div><dt>Would undo</dt><dd [attr.data-testid]="'pipeline-metric-frame-' + key + '-undo-undone'">{{ u.result.undone | number }}</dd></div>
+                    <div><dt>Skipped</dt><dd [attr.data-testid]="'pipeline-metric-frame-' + key + '-undo-skipped'">{{ u.result.skipped | number }}</dd></div>
+                    <div><dt>Not reached</dt><dd [attr.data-testid]="'pipeline-metric-frame-' + key + '-undo-remaining'">{{ u.result.remaining | number }}</dd></div>
+                  </dl>
+                }
+              </li>
+            }
+          </ul>
+        }
+        <p class="nom-pipeline__hint">
+          A lane writes only when live. Errors count only where the auditor's flag is confirmed by a second check, and are corrected for that check's
+          own score. Scores from agent-judged golden rows measure agreement with the reviewer model, not accuracy.
+        </p>
+      } @else {
+        <p class="nom-pipeline__hint" data-testid="pipeline-frame-error">The lane frame did not report.</p>
+      }
+    </section>
+
     <section class="nom-pipeline__section" data-testid="pipeline-images">
       <h2 class="nom-pipeline__heading">Images</h2>
       <dl class="nom-pipeline__stats">
