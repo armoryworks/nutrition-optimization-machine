@@ -69,7 +69,7 @@ namespace Nom.Orch.Models.Recipe
         public string SourceId { get; set; } = string.Empty;
         public long? CandidateId { get; set; }
 
-        /// <summary>attached | pending | duplicate | rejected</summary>
+        /// <summary>attached | pending | held | duplicate | rejected</summary>
         public string Outcome { get; set; } = string.Empty;
         public string? Message { get; set; }
     }
