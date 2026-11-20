@@ -68,9 +68,12 @@ namespace Nom.Orch.Services
                 .Select(a => a.EntityId)
                 .ToListAsync(cancellationToken)).ToHashSet();
 
+            var held = await RecipeLineHold.HeldAsync(_db, ids, cancellationToken);
+
             int deterministic = 0, classified = 0, unclassified = 0, cleared = 0, calls = 0, suggested = 0;
             foreach (var recipe in recipes)
             {
+                if (held.Contains(recipe.Id)) continue;
                 var lines = recipe.RecipeIngredients ?? new List<RecipeIngredientEntity>();
                 if (recipe.LicenseStatus == RecipeLicenseStatus.PublicDomain && !screened.Contains(recipe.Id)
                     && NonFoodRecipeFilter.IsCandidate(recipe.Name, lines.Select(l => l.RawLine)))

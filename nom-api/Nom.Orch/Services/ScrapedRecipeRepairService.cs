@@ -22,11 +22,6 @@ namespace Nom.Orch.Services
         public const string FillChangeType = "StartupFill";
         public const string LineEntityType = "RecipeIngredient";
 
-        private static readonly string[] UnheldChangeTypes =
-        {
-            FillChangeType, RecipeLineClassificationService.ClassifyChangeType, RecipeLineClassificationService.SuggestedChangeType,
-        };
-
         private readonly ApplicationDbContext _context;
         private readonly IRecipeVettingService _vetting;
         private Dictionary<string, long>? _measurementIds;
@@ -56,7 +51,7 @@ namespace Nom.Orch.Services
                 ? await query.AsSplitQuery().ToListAsync(cancellationToken)
                 : await query.ToListAsync(cancellationToken);
             if (recipes.Count == 0) return new ScrapedRepairBatchResult(0, 0, 0, 0, 0, afterRecipeId);
-            var held = await HeldRecipesAsync(recipes.Select(r => r.Id).ToList(), cancellationToken);
+            var held = await RecipeLineHold.HeldAsync(_context, recipes.Select(r => r.Id).ToList(), cancellationToken);
             var now = DateTime.UtcNow;
             var foodIds = recipes.SelectMany(r => r.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>())
                 .Where(ri => ri.Quantity == 0).Select(ri => ri.IngredientId).Distinct().ToList();
@@ -124,45 +119,6 @@ namespace Nom.Orch.Services
             await _context.SaveChangesAsync(cancellationToken);
             _context.ChangeTracker.Clear();
             return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded, held.Count);
-        }
-
-        /// <summary>
-        /// The recipes whose lines the repair leaves as they are: those with a journal entry of a
-        /// line operation that can still be taken back. Every such operation journals its lines
-        /// under EntityType RecipeIngredient with the recipe as EntityId, except an applied USDA
-        /// link, which names the recipe in each moved line's value; an undo removes or relabels its
-        /// entry, which frees the recipe again. Only the line labels of the classify lane, which no
-        /// undo reads, and the repair's own entries do not hold a recipe.
-        /// </summary>
-        private async Task<HashSet<long>> HeldRecipesAsync(List<long> recipeIds, CancellationToken cancellationToken)
-        {
-            var held = (await _context.AuditLogEntries.AsNoTracking()
-                    .Where(a => a.EntityType == LineEntityType && recipeIds.Contains(a.EntityId) && !UnheldChangeTypes.Contains(a.ChangeType))
-                    .Select(a => a.EntityId)
-                    .Distinct()
-                    .ToListAsync(cancellationToken))
-                .ToHashSet();
-
-            var keys = recipeIds.Select(id => id.ToString(CultureInfo.InvariantCulture)).ToArray();
-            var linked = _context.Database.IsRelational()
-                ? await _context.Database.SqlQuery<string>($"""
-                    SELECT DISTINCT split_part(a."NewValue", ':', 1) AS "Value"
-                    FROM audit."AuditLogEntry" a
-                    WHERE a."EntityType" = {LinkApplyJournal.EntityType} AND a."ChangeType" = {LinkApplyJournal.ChangeType}
-                      AND a."PropertyName" = {LinkApplyJournal.Line} AND split_part(a."NewValue", ':', 1) = ANY({keys})
-                    """).ToListAsync(cancellationToken)
-                : (await _context.AuditLogEntries.AsNoTracking()
-                        .Where(a => a.EntityType == LinkApplyJournal.EntityType && a.ChangeType == LinkApplyJournal.ChangeType && a.PropertyName == LinkApplyJournal.Line)
-                        .Select(a => a.NewValue)
-                        .ToListAsync(cancellationToken))
-                    .Select(v => (v ?? string.Empty).Split(':')[0])
-                    .Where(keys.Contains)
-                    .ToList();
-            foreach (var key in linked)
-            {
-                if (long.TryParse(key, NumberStyles.None, CultureInfo.InvariantCulture, out var id)) held.Add(id);
-            }
-            return held;
         }
 
         private void Journal(long recipeId, Nom.Data.Recipe.RecipeIngredientEntity row, decimal quantity, long measurementId, DateTime now)

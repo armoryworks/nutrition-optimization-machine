@@ -319,6 +319,38 @@ namespace Nom.Api.Tests.Services
             else after.Should().Contain(new Row(foods["Butter"], 0, 2m, Ounce, "butter", null)).And.Contain(new Row(foods["Milk"], 0, 8m, Cup, "2 qts. milk", null));
         }
 
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task The_line_classify_lane_leaves_a_held_recipe_for_after_the_undo(bool held)
+        {
+            using var db = await NewContextAsync();
+            var foods = await FoodsAsync(db, "Butter", "Flour");
+            var recipe = await RecipeAsync(db, foods, new[] { "Rub the butter into the flour." },
+                ("Butter", 0, 0m, Gram, "For the pastry:", null), ("Flour", 0, 2m, Cup, "2 cups flour", null));
+            if (held)
+            {
+                db.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+                {
+                    EntityType = LineRelinkService.RelinkEntityType, EntityId = recipe, ChangeType = CompoundLineService.SplitChangeType,
+                    PropertyName = "RawLine", Timestamp = Imported, ChangedByPersonId = SystemConstants.SystemPersonId,
+                });
+                await db.SaveChangesAsync();
+                db.ChangeTracker.Clear();
+            }
+            var before = await RowsAsync(db, recipe);
+            var model = new Moq.Mock<IRecipeClassificationModel>();
+            model.SetupGet(m => m.IsConfigured).Returns(false);
+
+            await new RecipeLineClassificationService(db, new RecipeVettingService(), model.Object,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<RecipeLineClassificationService>.Instance).ClassifyBatchAsync(0, 10);
+            db.ChangeTracker.Clear();
+
+            var after = await RowsAsync(db, recipe);
+            if (held) after.Should().Equal(before);
+            else after.Should().Contain(new Row(foods["Butter"], 0, 0m, Gram, "For the pastry:", RecipeIngredientLineKind.Note));
+        }
+
         [Fact]
         public async Task A_fill_undo_skips_a_line_changed_since()
         {

@@ -92,9 +92,12 @@ namespace Nom.Orch.Services
                 .Select(a => a.EntityId)
                 .ToHashSet();
 
+            var held = await RecipeLineHold.HeldAsync(_db, ids, cancellationToken, RepairChangeType);
+
             int split = 0, filled = 0, rejected = 0, cleared = 0, calls = 0;
             foreach (var recipe in recipes)
             {
+                if (held.Contains(recipe.Id)) continue;
                 var before = recipe.VettingIssues;
                 var steps = (recipe.RecipeSteps ?? new List<RecipeStepEntity>()).OrderBy(s => s.StepNumber).ToList();
                 var singleStep = steps.Count == 1
