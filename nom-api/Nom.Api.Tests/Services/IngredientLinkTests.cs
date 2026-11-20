@@ -934,6 +934,29 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task Classification_never_trusts_a_utensil_or_an_each_of_list()
+        {
+            using var db = NewContext();
+            var (_, _, _, carrots, _) = await SeedAliasedFoodsAsync(db);
+            var jellies = new IngredientEntity { Name = "jellies", FdcId = "169642", FdcDataType = "sr_legacy_food", CurationStatusId = 9003 };
+            var cornmeal = new IngredientEntity { Name = "Fine Yellow Cornmeal", FdcId = "790276", FdcDataType = "foundation_food", CurationStatusId = 9003 };
+            db.Ingredients.AddRange(jellies, cornmeal);
+            await db.SaveChangesAsync();
+            await AliasAsync(db, jellies, "Jellies", IngredientLinkService.UsdaDescriptionContext);
+            await AliasAsync(db, cornmeal, "Flour, corn, yellow, fine meal, enriched", IngredientLinkService.UsdaDescriptionContext);
+            await AliasAsync(db, jellies, "jelly-bag");
+            await AliasAsync(db, cornmeal, "each of corn meal and flour");
+            await AliasAsync(db, carrots, "chopped carrots");
+
+            var result = await Linker(db, new FakeMatcher()).ClassifyAliasesAsync(apply: true, Reviewer);
+
+            (result.NameKey + result.Staple + result.NameMatch).Should().Be(1);
+            (await ContextOfAsync(db, jellies, "jelly-bag")).Should().BeNull();
+            (await ContextOfAsync(db, cornmeal, "each of corn meal and flour")).Should().BeNull();
+            (await ContextOfAsync(db, carrots, "chopped carrots")).Should().NotBeNull();
+        }
+
+        [Fact]
         public async Task Classification_samples_stop_at_the_sample_size_for_each_rule()
         {
             using var db = NewContext();

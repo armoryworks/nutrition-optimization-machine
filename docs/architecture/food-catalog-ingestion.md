@@ -616,7 +616,8 @@ in the singular or plural (`name-key`); it is a bare staple name and the food is
 USDA entry (`staple`); the name matcher places it on the food (`name-match`); or it is the
 food's name once the preparation words are off (`name-key`). An alias a staple or the matcher
 gives to another food is counted as a conflict and stays as it is, as does one no rule covers.
-Nothing is deleted. Each mark is one `audit."AuditLogEntry"` row: `EntityType`
+An alias that names a utensil ("jelly-bag", "pudding cloth", "sieve") or holds "each of" ("each of
+corn meal and flour") takes no rule and stays untrusted. Nothing is deleted. Each mark is one `audit."AuditLogEntry"` row: `EntityType`
 `IngredientAlias`, `ChangeType` `AliasTrust`, `EntityId` the food, `PropertyName`
 `SourceContext`, `OldValue` the alias text, `NewValue` the context written. Running it again
 only looks at what is still without a context.

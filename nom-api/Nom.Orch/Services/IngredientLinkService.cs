@@ -676,11 +676,14 @@ namespace Nom.Orch.Services
         /// the wording is the food's name in the singular or plural; it is a bare staple name or a
         /// name the matcher places, and that names this food; it is the food's name once its
         /// preparation words are taken off. A wording a staple or the matcher gives to another
-        /// food is a conflict and takes no rule.
+        /// food is a conflict and takes no rule. A wording that names a utensil ("jelly-bag") or more
+        /// than one food ("each of corn meal and flour") takes no rule at all.
         /// </summary>
         private static (string? Rule, bool Conflict) RecheckRule(
             string alias, long foodId, string foodName, FoodNameMatcher matcher, IReadOnlyDictionary<string, FoodCandidate> staples)
         {
+            if (UntrustedWording.IsMatch(alias)) return (null, false);
+
             if (IngredientNameNormalizer.ExactKeys(alias).Contains(foodName, StringComparer.OrdinalIgnoreCase))
             {
                 return (NameKeyRule, false);
@@ -697,6 +700,10 @@ namespace Nom.Orch.Services
                 ? (NameKeyRule, false)
                 : (null, false);
         }
+
+        private static readonly System.Text.RegularExpressions.Regex UntrustedWording = new(
+            @"(?<![\p{L}])(?:each\s+of|(?:jelly[- ]?)?bags?|cloths?|muslin|sieves?|moulds?|molds?|pans?|saucepans?|basins?|bowls?|skewers?|strainers?|colanders?|paper|string|twine|toothpicks?|tins?\s+(?:for|to))(?![\p{L}])",
+            System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
         public async Task<AliasClassifyResult> ClassifyAliasesAsync(bool apply, long personId, int sampleSize = 50, CancellationToken cancellationToken = default)
         {
