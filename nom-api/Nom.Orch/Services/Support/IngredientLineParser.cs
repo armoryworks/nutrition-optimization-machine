@@ -115,7 +115,7 @@ namespace Nom.Orch.Services.Support
             @"[,(]\s*(?:(?<unit>" + UnitPattern + @")\.?\s*(?<qty>\d+(?:[.,]\d+)?)|(?<qty>\d+(?:[.,]\d+)?)\s*(?<unit>" + UnitPattern + @"))\s*\)?\.?\s*$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        public static ParsedQuantity? Parse(string? rawLine) => Read(rawLine, out _);
+        public static ParsedQuantity? Parse(string? rawLine) => Read(rawLine, out _, out _);
 
         /// <summary>
         /// The amount a line gives by the size of its can, package or piece ("1 (15 oz) can black
@@ -123,28 +123,37 @@ namespace Nom.Orch.Services.Support
         /// 3 Pound), or null when the line states no such size or the size could be each or total
         /// ("4 (6-ounce) salmon filets").
         /// </summary>
-        public static ParsedQuantity? StatedSize(string? rawLine) => Read(rawLine, out var sized) is { } parsed && sized ? parsed : null;
+        public static ParsedQuantity? StatedSize(string? rawLine) => Read(rawLine, out var sized, out _) is { } parsed && sized ? parsed : null;
+
+        /// <summary>
+        /// The number of cans or packages a line states a size for ("1 (15 oz) can chickpeas" →
+        /// 1 Can, "2 jars (24 oz each) sauce" → 2 Package), or null when the line states no size or
+        /// the size it states is not a can's or a package's ("1 (3-pound) chicken").
+        /// </summary>
+        public static ParsedQuantity? SizedContainers(string? rawLine) => Read(rawLine, out var sized, out var containers) != null && sized ? containers : null;
 
         /// <summary>
         /// Whether a line is read as a can or package: it states a size (<see cref="StatedSize"/>)
         /// or its unit is Can or Package ("1 jar marinara").
         /// </summary>
         public static bool ReadsPackage(string? rawLine) =>
-            Read(rawLine, out var sized) is { } parsed && (sized || parsed.MeasurementName is Can or Package);
+            Read(rawLine, out var sized, out _) is { } parsed && (sized || parsed.MeasurementName is Can or Package);
 
-        private static ParsedQuantity? Read(string? rawLine, out bool sized)
+        private static ParsedQuantity? Read(string? rawLine, out bool sized, out ParsedQuantity? containers)
         {
             sized = false;
+            containers = null;
             if (string.IsNullOrWhiteSpace(rawLine)) return null;
             rawLine = IngredientNameNormalizer.PlainFractions(rawLine);
             if (IsElliptical(rawLine)) return null;
-            var leading = ParseLeading(rawLine, out sized);
+            var leading = ParseLeading(rawLine, out sized, out containers);
             if (leading is { MeasurementName: not Piece }) return leading;
 
             var spelled = SpellOut(System.Net.WebUtility.HtmlDecode(rawLine).Trim());
-            var respelled = ParseLeading(spelled, out sized);
+            var respelled = ParseLeading(spelled, out sized, out containers);
             if (respelled is { MeasurementName: not Piece }) return respelled;
             sized = false;
+            containers = null;
             if ((leading ?? respelled) is { } counted) return counted;
 
             var of = PartOf.Match(spelled);
@@ -317,35 +326,43 @@ namespace Nom.Orch.Services.Support
 
         private const decimal LargestStatedSize = 15000m;
 
-        private static ParsedQuantity? SizeIn(string line)
+        private static ParsedQuantity? SizeIn(string line, out ParsedQuantity? containers)
         {
+            containers = null;
             line = MixedHyphen.Replace(line, " ");
             var first = SizeFirst.Match(line);
             if (first.Success)
             {
                 var marked = first.Groups["open"].Success || first.Groups["hy"].Value.Contains('-');
                 var one = first.Groups["each"].Success || ParseQuantity(first.Groups["count"].Value) == 1m;
-                if (first.Groups["con"].Success) return Sized(first, each: true);
-                if (first.Groups["measure"].Success && first.Groups["close"].Success) return Sized(first, each: false);
-                if (marked && one && Sized(first, each: true) is { MeasurementName: "Ounce" or "Pound" or "Gram" or "Kilogram" } weighed) return weighed;
+                if (first.Groups["con"].Success) return Sized(first, each: true, out containers);
+                if (first.Groups["measure"].Success && first.Groups["close"].Success) return Sized(first, each: false, out containers);
+                if (marked && one && Sized(first, each: true, out containers) is { MeasurementName: "Ounce" or "Pound" or "Gram" or "Kilogram" } weighed) return weighed;
+                containers = null;
             }
 
             var after = SizeAfterContainer.Match(line);
-            if (after.Success) return Sized(after, each: !after.Groups["total"].Success);
+            if (after.Success) return Sized(after, each: !after.Groups["total"].Success, out containers);
 
             var later = SizeLater.Match(line);
             if (later.Success && (later.Groups["each"].Success || later.Groups["total"].Success || ParseQuantity(later.Groups["count"].Value) == 1m))
             {
-                return Sized(later, each: !later.Groups["total"].Success);
+                return Sized(later, each: !later.Groups["total"].Success, out containers);
             }
             return null;
         }
 
-        private static ParsedQuantity? Sized(Match match, bool each)
+        private static readonly Regex ContainerWord = new(@"(?<!\p{L})" + Container, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static ParsedQuantity? Sized(Match match, bool each, out ParsedQuantity? containers)
         {
+            containers = null;
             var count = ParseQuantity(match.Groups["count"].Value);
             var size = ParseQuantity(match.Groups["sq"].Value);
             if (count is not > 0 || size is not > 0) return null;
+
+            var word = match.Groups["con"].Success ? match.Groups["con"].Value : ContainerWord.Match(match.Value) is { Success: true } named ? named.Value : null;
+            if (word != null) containers = FromUnit(count.Value, word.Trim().TrimEnd('.'));
 
             var sized = FromUnit(each ? count.Value * size.Value : size.Value, match.Groups["su"].Value);
             return GramsOrMillilitersPer.TryGetValue(sized.MeasurementName, out var per) && sized.Quantity > 0 && sized.Quantity * per <= LargestStatedSize
@@ -353,9 +370,10 @@ namespace Nom.Orch.Services.Support
                 : null;
         }
 
-        private static ParsedQuantity? ParseLeading(string rawLine, out bool sized)
+        private static ParsedQuantity? ParseLeading(string rawLine, out bool sized, out ParsedQuantity? containers)
         {
             sized = false;
+            containers = null;
             var line = HyphenatedMixed.Replace(System.Net.WebUtility.HtmlDecode(rawLine).Trim(), "$1 $2");
             if (IsElliptical(line)) return null;
             if (UnitFirst.IsMatch(line)) line = "1 " + line;
@@ -367,9 +385,10 @@ namespace Nom.Orch.Services.Support
                 line = value.ToString(CultureInfo.InvariantCulture) + " " + line[words.Length..];
             }
 
-            if (SizeIn(line) is { } stated)
+            if (SizeIn(line, out var sizedContainers) is { } stated)
             {
                 sized = true;
+                containers = sizedContainers;
                 return stated;
             }
 
@@ -402,14 +421,17 @@ namespace Nom.Orch.Services.Support
         /// <summary>
         /// Brings a quantity the scraper already parsed onto NOM's vocabulary: its unit mapped
         /// (with conversion), no unit meaning pieces; a missing quantity is parsed from the raw line.
-        /// A count of pieces, cans or packages gives way to the size the raw line states.
+        /// A count of pieces, cans or packages gives way to the size the raw line states, unless
+        /// <paramref name="drained"/> says the food is weighed drained: a can's stated size is its net
+        /// weight with the liquid, so such a line stays a count of cans or packages.
         /// </summary>
-        public static ParsedQuantity? Normalize(decimal? quantity, string? unit, string? rawLine)
+        public static ParsedQuantity? Normalize(decimal? quantity, string? unit, string? rawLine, bool drained = false)
         {
-            if (quantity is not > 0) return Parse(rawLine);
+            if (quantity is not > 0) return drained && SizedContainers(rawLine) is { } counted ? counted : Parse(rawLine);
 
             var mapped = FromUnit(quantity.Value, string.IsNullOrWhiteSpace(unit) ? null : unit.Trim().TrimEnd('.'));
-            return mapped.MeasurementName is Piece or Can or Package && StatedSize(rawLine) is { } stated ? stated : mapped;
+            if (mapped.MeasurementName is not (Piece or Can or Package) || StatedSize(rawLine) is not { } stated) return mapped;
+            return drained ? SizedContainers(rawLine) ?? mapped : stated;
         }
 
         private static decimal? ParseQuantity(string text)

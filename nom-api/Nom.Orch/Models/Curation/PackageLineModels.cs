@@ -33,6 +33,8 @@ namespace Nom.Orch.Models.Curation
         public int StopCounting { get; set; }
         /// <summary>Lines that did not count toward a label and will, by their stated size.</summary>
         public int StartCounting { get; set; }
+        /// <summary>Lines on a food weighed drained that state a can or package size; they are read as that many cans or packages, never as the net weight.</summary>
+        public int DrainedAsContainers { get; set; }
         /// <summary>Measurements the lines read as that the database has no row for; their lines are left out.</summary>
         public List<string> MissingMeasurements { get; set; } = new();
         /// <summary>The transitions with the most lines first.</summary>

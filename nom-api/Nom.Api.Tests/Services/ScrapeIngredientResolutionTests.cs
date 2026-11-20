@@ -238,5 +238,39 @@ namespace Nom.Api.Tests.Services
             second.Id.Should().Be(first.Id);
             (await db.Ingredients.CountAsync()).Should().Be(2);
         }
+
+        [Fact]
+        public async Task A_sized_can_line_landing_on_a_food_weighed_drained_is_stored_as_cans_not_as_the_net_weight()
+        {
+            using var db = NewContext();
+            db.Set<Nom.Data.Measurement.BaseMeasurementEntity>().AddRange(
+                new Nom.Data.Measurement.BaseMeasurementEntity { Id = 1, Name = "Gram", Symbol = "g", MeasurementCategoryId = 1 },
+                new Nom.Data.Measurement.BaseMeasurementEntity { Id = 7, Name = "Ounce", Symbol = "oz", MeasurementCategoryId = 1 },
+                new Nom.Data.Measurement.BaseMeasurementEntity { Id = 20, Name = "Can", Symbol = "can", MeasurementCategoryId = 3, IsContainer = true });
+            await db.SaveChangesAsync();
+            var chickpeas = await FoodAsync(db, "Chickpeas, canned, drained, rinsed in tap water");
+            await FoodAsync(db, "Black Beans");
+
+            var result = await NewService(db).ImportStagedAsync(new StagedImportRequestModel
+            {
+                Recipes =
+                {
+                    new ScraperRecipe
+                    {
+                        Name = "Hummus",
+                        Ingredients =
+                        {
+                            new ScraperIngredient { Name = "Chickpeas, canned, drained, rinsed in tap water", RawLine = "1 (15-ounce) can chickpeas, drained and rinsed", Quantity = 1, Unit = "can" },
+                            new ScraperIngredient { Name = "Black Beans", RawLine = "1 (15-ounce) can black beans", Quantity = 1, Unit = "can" },
+                        },
+                    },
+                },
+            });
+
+            result.Imported.Should().Be(1);
+            var lines = await db.RecipeIngredients.ToListAsync();
+            lines.Single(l => l.IngredientId == chickpeas.Id).Should().Match<RecipeIngredientEntity>(l => l.Quantity == 1m && l.MeasurementId == 20);
+            lines.Single(l => l.IngredientId != chickpeas.Id).Should().Match<RecipeIngredientEntity>(l => l.Quantity == 15m && l.MeasurementId == 7);
+        }
     }
 }

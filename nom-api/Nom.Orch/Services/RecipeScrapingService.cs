@@ -429,6 +429,7 @@ namespace Nom.Orch.Services
         private async Task<RecipeEntity> CreateRecipeFromScrapedDataAsync(
             ScraperRecipe scraped, string? sourceUrl, bool importKeywordsAsTags)
         {
+            var scrapedAmounts = scraped.Ingredients.ToDictionary(i => i, i => (i.Quantity, i.Unit), ReferenceEqualityComparer.Instance);
             foreach (var ingredient in scraped.Ingredients)
             {
                 var parsed = Support.IngredientLineParser.Normalize(ingredient.Quantity, ingredient.Unit, ingredient.RawLine);
@@ -494,6 +495,12 @@ namespace Nom.Orch.Services
             foreach (var ingredient in scraped.Ingredients)
             {
                 var ingredientEntity = await FindOrCreateIngredientAsync(Clamp(ingredient.Name, 2047)!, personId);
+                if (PackageLineService.WeighsDrained(ingredientEntity.Name) && scrapedAmounts.TryGetValue(ingredient, out var amount))
+                {
+                    var counted = Support.IngredientLineParser.Normalize(amount.Quantity, amount.Unit, ingredient.RawLine, drained: true);
+                    ingredient.Quantity = counted?.Quantity;
+                    ingredient.Unit = counted?.MeasurementName;
+                }
                 var measurementId = await ResolveMeasurementIdAsync(ingredient.Unit);
 
                 _dbContext.RecipeIngredients.Add(new RecipeIngredientEntity

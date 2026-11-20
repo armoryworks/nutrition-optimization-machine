@@ -246,6 +246,32 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_sized_can_of_a_food_weighed_drained_is_read_as_cans_and_never_as_its_net_weight()
+        {
+            using var db = NewContext();
+            var chickpeas = Food("Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained, rinsed in tap water", servingGrams: 254m);
+            var pinto = Food("Beans, pinto, mature seeds, canned, drained solids", servingGrams: 171m);
+            db.Ingredients.AddRange(chickpeas, pinto);
+            await db.SaveChangesAsync();
+            db.Recipes.Add(Recipe("Scraped hummus", scraped: true,
+                new Row(chickpeas, 1, Piece, "1 (15-ounce) can chickpeas, drained and rinsed"),
+                new Row(pinto, 2, Can, "2 cans (15 oz each) pinto beans, drained")));
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var service = new PackageLineService(db, new NoUser());
+
+            var preview = await service.PreviewAsync();
+            await service.ApplyAsync();
+
+            preview.DrainedAsContainers.Should().Be(2);
+            preview.Transitions.Select(t => (t.FromMeasurement, t.ToMeasurement, t.Lines)).Should().Equal(("Piece", "Can", 1));
+            var lines = await LinesAsync(db, "Scraped hummus");
+            (lines["1 (15-ounce) can chickpeas, drained and rinsed"].Quantity, lines["1 (15-ounce) can chickpeas, drained and rinsed"].MeasurementId).Should().Be((1m, Can));
+            (lines["2 cans (15 oz each) pinto beans, drained"].Quantity, lines["2 cans (15 oz each) pinto beans, drained"].MeasurementId).Should().Be((2m, Can));
+            (await db.RecipeIngredients.AsNoTracking().AnyAsync(ri => ri.MeasurementId == Ounce)).Should().BeFalse();
+        }
+
+        [Fact]
         public void A_journaled_amount_reads_back_as_the_line_and_amount_it_was_written_from()
         {
             PackageLineService.ReadAmount(PackageLineService.Amount(282236, 3, 399.242m, 2)).Should().Be((282236L, 3, 399.242m, 2L));

@@ -17,7 +17,9 @@ namespace Nom.Orch.Services
     /// Re-reads the scraped recipe lines stored as pieces, cans or packages. A line changes when
     /// <see cref="IngredientLineParser.ReadsPackage"/> holds for its wording and the parser gives
     /// it another quantity or measurement than it has: the size its can or package states, or
-    /// Package for a jar, bottle, box or bag that was counted as a piece.
+    /// Package for a jar, bottle, box or bag that was counted as a piece. A line on a food weighed
+    /// drained (<see cref="WeighsDrained"/>) is never given its can's stated size, which is the net
+    /// weight with the liquid: it is read as that many cans or packages instead.
     /// </summary>
     public class PackageLineService : IPackageLineService
     {
@@ -27,6 +29,7 @@ namespace Nom.Orch.Services
         private const long CategoryMass = 1L;
         private const long CategoryVolume = 2L;
         private const decimal SameQuantity = 0.0005m;
+        private const string DrainedWord = "drained";
 
         private static readonly string[] CandidateMeasurements = { IngredientLineParser.Piece, IngredientLineParser.Can, IngredientLineParser.Package };
 
@@ -42,9 +45,16 @@ namespace Nom.Orch.Services
         private sealed record Unit(long Id, string Name, long CategoryId, bool IsContainer);
         private sealed record Line(
             long RecipeId, long IngredientId, int SortOrder, decimal Quantity, long MeasurementId, string RawLine, DateTime ModifiedUtc,
-            bool HasNutrition, bool HasItemWeight, bool HasDensity);
+            bool HasNutrition, bool HasItemWeight, bool HasDensity, bool Drained);
         private sealed record Change(Line Line, string First, Unit From, decimal Quantity, Unit To);
-        private sealed record Plan(int Examined, List<Change> Changes, List<Line> Touches, int StopCounting, int StartCounting, List<string> Missing);
+        private sealed record Plan(int Examined, List<Change> Changes, List<Line> Touches, int StopCounting, int StartCounting, List<string> Missing, int Drained);
+
+        /// <summary>
+        /// Whether a food's values are for its drained solids ("Chickpeas ..., canned, drained,
+        /// rinsed in tap water", "Beans, pinto, canned, drained solids"), so the net weight a can
+        /// states is not the weight of the food.
+        /// </summary>
+        public static bool WeighsDrained(string? foodName) => foodName != null && foodName.Contains(DrainedWord, StringComparison.OrdinalIgnoreCase);
 
         private async Task<Plan> PlanAsync()
         {
@@ -67,7 +77,8 @@ namespace Nom.Orch.Services
                     ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.Quantity, ri.MeasurementId, ri.RawLine, ri.LastModifiedDate ?? ri.CreatedDate,
                     ri.Ingredient.IngredientNutrients.Any(),
                     ri.Ingredient.GramsPerItem > 0 || ri.Ingredient.ReferenceServingGrams > 0,
-                    ri.Ingredient.GramsPerMilliliter > 0))
+                    ri.Ingredient.GramsPerMilliliter > 0,
+                    ri.Ingredient.Name.ToLower().Contains(DrainedWord)))
                 .ToListAsync();
 
             var firstReread = await _db.AuditLogEntries
@@ -78,7 +89,7 @@ namespace Nom.Orch.Services
             var changes = new List<Change>();
             var touches = new List<Line>();
             var missing = new SortedSet<string>(StringComparer.Ordinal);
-            int stop = 0, start = 0;
+            int stop = 0, start = 0, drained = 0;
             foreach (var line in lines)
             {
                 var from = stored[line.MeasurementId];
@@ -88,6 +99,11 @@ namespace Nom.Orch.Services
                     parsed = IngredientLineParser.Parse(first);
                     if (parsed != null && (parsed.MeasurementName == IngredientLineParser.Piece || !IngredientLineParser.ReadsPackage(first))) parsed = null;
                     read[first] = parsed;
+                }
+                if (line.Drained && parsed != null && IngredientLineParser.StatedSize(first) != null)
+                {
+                    parsed = IngredientLineParser.SizedContainers(first);
+                    drained++;
                 }
 
                 var weighedAsItem = line.HasNutrition && line.HasItemWeight;
@@ -110,7 +126,7 @@ namespace Nom.Orch.Services
                 if (!weighedAsItem && weighedAfter) start++;
             }
 
-            return new Plan(lines.Count, changes, touches, stop, start, missing.ToList());
+            return new Plan(lines.Count, changes, touches, stop, start, missing.ToList(), drained);
         }
 
         public async Task<PackageLinePreview> PreviewAsync(int sampleSize = 50)
@@ -125,6 +141,7 @@ namespace Nom.Orch.Services
                 StopCounting = plan.StopCounting,
                 StartCounting = plan.StartCounting,
                 MissingMeasurements = plan.Missing,
+                DrainedAsContainers = plan.Drained,
                 Transitions = plan.Changes
                     .GroupBy(c => (From: c.From.Name, To: c.To.Name))
                     .Select(g => new PackageLineTransition { FromMeasurement = g.Key.From, ToMeasurement = g.Key.To, Lines = g.Count() })

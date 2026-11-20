@@ -263,5 +263,24 @@ namespace Nom.Api.Tests.Services
         {
             IngredientLineParser.Normalize(quantity, unit, raw).Should().Be(new ParsedQuantity((decimal)expected, measurement));
         }
+
+        [Theory]
+        [InlineData(1.0, "can", "1 (15-ounce) can chickpeas, drained and rinsed", 1, "Can")]
+        [InlineData(null, null, "1 (15-ounce) can chickpeas, drained and rinsed", 1, "Can")]
+        [InlineData(2.0, null, "2 cans (15 oz each) pinto beans, drained", 2, "Can")]
+        [InlineData(1.0, null, "1 jar (12 oz) roasted red peppers, drained", 1, "Package")]
+        [InlineData(1.0, "cup", "1 cup chickpeas, drained", 1, "Cup")]
+        public void A_food_weighed_drained_keeps_its_count_of_cans_instead_of_the_net_weight(double? quantity, string? unit, string raw, double expected, string measurement)
+        {
+            IngredientLineParser.Normalize((decimal?)quantity, unit, raw, drained: true).Should().Be(new ParsedQuantity((decimal)expected, measurement));
+        }
+
+        [Fact]
+        public void The_containers_a_stated_size_belongs_to_are_counted()
+        {
+            IngredientLineParser.SizedContainers("2 (15 oz) cans black beans").Should().Be(new ParsedQuantity(2m, "Can"));
+            IngredientLineParser.SizedContainers("1 (3-pound) chicken").Should().BeNull();
+            IngredientLineParser.SizedContainers("1 can tomatoes").Should().BeNull();
+        }
     }
 }
