@@ -304,7 +304,8 @@ namespace Nom.Orch.Services
         /// is still what the unfold left. False, with nothing changed, when the row or one of the
         /// added lines is no longer where the unfold left it, no longer reads as part of the joined
         /// text or no longer has the amount the unfold gave it, so an edit made since is never
-        /// deleted.
+        /// deleted. When the food the row was on has since been merged into another, the row and
+        /// its added lines are found in the same places on the one food that holds them all.
         /// </summary>
         internal static async Task<bool> RefoldAsync(ApplicationDbContext db, AuditLogEntryEntity entry, long personId)
         {
@@ -314,19 +315,31 @@ namespace Nom.Orch.Services
                 || after.Added.Contains(at.SortOrder)
                 || after.Added.Distinct().Count() != after.Added.Count) return false;
 
-            var lines = await db.RecipeIngredients
-                .Where(ri => ri.RecipeId == entry.EntityId && ri.IngredientId == at.IngredientId
-                    && (ri.SortOrder == at.SortOrder || after.Added.Contains(ri.SortOrder)))
+            var placed = await db.RecipeIngredients
+                .Where(ri => ri.RecipeId == entry.EntityId && (ri.SortOrder == at.SortOrder || after.Added.Contains(ri.SortOrder)))
                 .ToListAsync();
-            var row = lines.SingleOrDefault(ri => ri.SortOrder == at.SortOrder);
-            var added = lines.Where(ri => ri.SortOrder != at.SortOrder).ToList();
-            if (row == null || row.RawLine.Length == 0 || row.RawLine == before.Raw
-                || !before.Raw.TrimStart().StartsWith(row.RawLine, StringComparison.Ordinal)
-                || added.Count != after.Added.Count
-                || added.Any(line => line.RawLine.Length == 0 || !before.Raw.Contains(line.RawLine, StringComparison.Ordinal))
-                || added.Any(line => after.Lines == null
-                    ? line.LastModifiedDate > entry.Timestamp
-                    : !after.Lines.Any(l => l.SortOrder == line.SortOrder && l.Quantity == line.Quantity && l.MeasurementId == line.MeasurementId))) return false;
+            bool Fits(List<RecipeIngredientEntity> lines)
+            {
+                var kept = lines.Where(ri => ri.SortOrder == at.SortOrder).ToList();
+                var added = lines.Where(ri => ri.SortOrder != at.SortOrder).ToList();
+                return kept.Count == 1 && kept[0].RawLine.Length > 0 && kept[0].RawLine != before.Raw
+                    && before.Raw.TrimStart().StartsWith(kept[0].RawLine, StringComparison.Ordinal)
+                    && added.Count == after.Added.Count
+                    && added.All(line => line.RawLine.Length > 0 && before.Raw.Contains(line.RawLine, StringComparison.Ordinal))
+                    && added.All(line => after.Lines == null
+                        ? !(line.LastModifiedDate > entry.Timestamp)
+                        : after.Lines.Any(l => l.SortOrder == line.SortOrder && l.Quantity == line.Quantity && l.MeasurementId == line.MeasurementId));
+            }
+
+            var onFood = placed.Where(ri => ri.IngredientId == at.IngredientId).ToList();
+            if (onFood.Count == 0 && await db.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id == at.IngredientId && i.IsDeleted))
+            {
+                var merged = placed.GroupBy(ri => ri.IngredientId).Select(g => g.ToList()).Where(Fits).ToList();
+                if (merged.Count == 1) onFood = merged[0];
+            }
+            if (!Fits(onFood)) return false;
+            var row = onFood.Single(ri => ri.SortOrder == at.SortOrder);
+            var added = onFood.Where(ri => ri.SortOrder != at.SortOrder).ToList();
 
             foreach (var line in added)
             {

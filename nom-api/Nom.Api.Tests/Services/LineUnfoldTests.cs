@@ -329,6 +329,36 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task The_undo_sweep_follows_a_row_whose_food_was_merged_into_another_since()
+        {
+            using var db = await NewContextAsync();
+            var seeded = await SeedAsync(db, null, ("sugar, granulated", 0, 1m, Cup, null, "1 cup sugar + 2 cups sugar"));
+            var usda = new IngredientEntity { Name = "Sugars, granulated", CurationStatusId = 9003 };
+            db.Ingredients.Add(usda);
+            await db.SaveChangesAsync();
+            var started = DateTime.UtcNow;
+            await new LineUnfoldService(db, new NoUser()).UnfoldAsync(apply: true);
+            var source = await db.Ingredients.SingleAsync(i => i.Id == seeded.Foods["sugar, granulated"]);
+            foreach (var line in await db.RecipeIngredients.Where(ri => ri.IngredientId == source.Id).ToListAsync())
+            {
+                db.RecipeIngredients.Remove(line);
+                db.RecipeIngredients.Add(new RecipeIngredientEntity
+                {
+                    RecipeId = line.RecipeId, IngredientId = usda.Id, SortOrder = line.SortOrder, Quantity = line.Quantity,
+                    MeasurementId = line.MeasurementId, RawLine = line.RawLine, LineKind = line.LineKind, CreatedDate = line.CreatedDate,
+                });
+            }
+            source.IsDeleted = true;
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started);
+
+            undone.Refolded.Should().Be(1);
+            (await LinesAsync(db, seeded.RecipeId)).Select(l => (l.IngredientId, l.RawLine, l.Quantity)).Should().Equal((usda.Id, "1 cup sugar + 2 cups sugar", 1m));
+        }
+
+        [Fact]
         public async Task The_startup_reread_leaves_the_lines_an_unfold_leaves_without_an_amount_at_zero()
         {
             using var db = await NewContextAsync();
