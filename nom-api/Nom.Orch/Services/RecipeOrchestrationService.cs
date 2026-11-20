@@ -675,7 +675,7 @@ namespace Nom.Orch.Services
                 .SelectMany(
                     rc => recipeIngredients.Where(ri =>
                         (rc.c.IngredientId != null && ri.IngredientId == rc.c.IngredientId)
-                        || (rc.c.IngredientPattern != null && ri.Ingredient != null
+                        || (rc.c.IngredientPattern != null && ri.Ingredient != null && !rc.c.IngredientPattern.StartsWith(Support.DietCriteriaMatcher.WordMarker)
                             && EF.Functions.ILike(ri.Ingredient.Name, rc.c.IngredientPattern))),
                     (rc, ri) => new
                     {
@@ -692,12 +692,62 @@ namespace Nom.Orch.Services
                     })
                 .ToListAsync();
 
-            return direct.Concat(viaCriteria)
+            var byData = await DataDietMatchesAsync(activeRestrictions, recipeIngredients);
+
+            return direct.Select(m => (m.RecipeId, m.Match)).Concat(viaCriteria.Select(m => (m.RecipeId, m.Match))).Concat(byData)
                 .GroupBy(m => new { m.RecipeId, m.Match.RestrictionName, m.Match.IngredientName })
                 .Select(g => g.OrderByDescending(m => m.Match.Severity ?? 0).First())
                 .OrderByDescending(m => m.Match.Severity ?? 0)
-                .Select(m => (m.RecipeId, m.Match))
                 .ToList();
+        }
+
+        /// <summary>
+        /// The diet matches the word and nutrient criteria give (<see cref="Support.DietCriteriaMatcher"/>):
+        /// each recipe line whose food a criterion of one of the person's restriction categories matches,
+        /// and, for the alcohol criterion, each line whose own text reads as a drink while its food is
+        /// not matched (named by the line's text).
+        /// </summary>
+        private async Task<List<(long RecipeId, RecipeDietMatchModel Match)>> DataDietMatchesAsync(
+            IQueryable<Nom.Data.Plan.RestrictionEntity> activeRestrictions, IQueryable<RecipeIngredientEntity> recipeIngredients)
+        {
+            var restrictions = await activeRestrictions
+                .Where(r => r.RestrictionTypeId != null)
+                .Select(r => new { r.Name, TypeId = r.RestrictionTypeId!.Value, TypeName = r.RestrictionType != null ? r.RestrictionType.Name : null })
+                .ToListAsync();
+            var criteria = await Support.DietCriteriaMatcher.CriteriaAsync(_context, restrictions.Select(r => r.TypeId).Distinct().ToList());
+            if (criteria.Count == 0) return new List<(long, RecipeDietMatchModel)>();
+
+            var lines = await recipeIngredients
+                .Select(ri => new { ri.RecipeId, ri.IngredientId, ri.RawLine, Name = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty })
+                .ToListAsync();
+            var foods = await Support.DietCriteriaMatcher.FoodsAsync(_context, criteria, lines.Select(l => l.IngredientId).Distinct().ToList());
+            var byFood = from r in restrictions
+                         from c in criteria.Where(c => c.RestrictionTypeId == r.TypeId && foods.ContainsKey(c))
+                         from l in lines.Where(l => foods[c].Contains(l.IngredientId))
+                         select (l.RecipeId, new RecipeDietMatchModel
+                         {
+                             RestrictionName = r.Name,
+                             RestrictionType = r.TypeName,
+                             Severity = c.Severity,
+                             IngredientId = l.IngredientId,
+                             IngredientName = l.Name,
+                             Notes = c.Notes == Support.DefaultRestrictionCriteria.DefaultNote ? null : c.Notes
+                         });
+            var byLine = from r in restrictions
+                         let type = criteria.Where(c => c.RestrictionTypeId == r.TypeId).ToList()
+                         where Support.DietCriteriaMatcher.ReadsLines(type)
+                         let c = type.First(c => c.NutrientId != null && c.MaxAmountPerServing == null && Support.DietCriteriaMatcher.IsAlcohol(c.NutrientName))
+                         from l in lines.Where(l => !type.Any(t => foods.TryGetValue(t, out var ids) && ids.Contains(l.IngredientId)) && Support.DietCriteriaMatcher.LineCounts(l.RawLine))
+                         select (l.RecipeId, new RecipeDietMatchModel
+                         {
+                             RestrictionName = r.Name,
+                             RestrictionType = r.TypeName,
+                             Severity = c.Severity,
+                             IngredientId = l.IngredientId,
+                             IngredientName = l.RawLine.Trim(),
+                             Notes = c.Notes == Support.DefaultRestrictionCriteria.DefaultNote ? null : c.Notes
+                         });
+            return byFood.Concat(byLine).ToList();
         }
 
         public async Task<RecipeResponseModel?> UpdateRecipeAsync(long id, UpdateRecipeRequest model)

@@ -49,7 +49,8 @@ namespace Nom.Api.Tests.Golden
             row.Value("admission"),
             int.TryParse(row["nutrients"], out var rows) ? rows : null,
             row["core"] switch { "yes" => true, "no" => false, _ => null },
-            row["deleted"] == "yes");
+            row["deleted"] == "yes",
+            Foods.Value.TryGetValue(long.Parse(row["foodId"], CultureInfo.InvariantCulture), out var frozen) ? frozen.FdcId : null);
 
         private static IReadOnlyList<GateLine>? Lines(string cell) =>
             cell == GoldenTsv.NoAnswer ? null

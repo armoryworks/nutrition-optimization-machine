@@ -134,7 +134,7 @@ namespace Nom.Orch.Services
                     continue;
                 }
 
-                var shortlist = matcher.Shortlist(name, 10);
+                var shortlist = matcher.Shortlist(name, 10, AlcoholLineContext.Read(source.Name));
                 if (shortlist.Count == 0)
                 {
                     Propose(source, null, NoCandidateSource, null, FoodProposalStatus.Rejected);

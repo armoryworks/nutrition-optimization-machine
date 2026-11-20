@@ -1,0 +1,27 @@
+{
+  "lane": "alcohol-context",
+  "model": "alcohol-context/2",
+  "host": "none",
+  "signature": "e2d7fdcf7e361fc3",
+  "scoredAtUtc": "2026-11-20T21:59:08.8117162Z",
+  "caseSet": "bfb8cced3cfb973f",
+  "cases": 161,
+  "passed": 161,
+  "score": 1,
+  "falseAccepts": 0,
+  "falseAcceptCases": 126,
+  "falseAcceptRate": 0,
+  "accepted": null,
+  "precision": null,
+  "byJudge": {
+    "agent-review-alcohol-context-2026-11-20": [
+      10,
+      10
+    ],
+    "rule:alcohol-context": [
+      151,
+      151
+    ]
+  },
+  "failed": []
+}

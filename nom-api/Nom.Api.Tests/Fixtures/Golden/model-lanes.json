@@ -28,6 +28,13 @@
     "minPrecision": 0.99,
     "note": "No model: LinkGate.Check replayed on every pair of link-pairs.tsv judged right, wrong, near or compound, over gate-catalog.tsv. A case agrees when a right pair passes or a wrong, near or compound pair is held; a false accept is a held-to-be-wrong pair the gate lets through; precision is the share judged right among the pairs it lets through. The signature is LinkGate.Signature, so any change to a rule table needs a new record, which needs no host. The pairs are judged by agent-review-2026-11-13, a model reviewer, not a person: these figures measure agreement with that reviewer."
   },
+  "alcohol-context": {
+    "scorer": true,
+    "required": true,
+    "minScore": 0.98,
+    "maxFalseAcceptRate": 0,
+    "note": "No model: AlcoholLineContext.Read and Refuse replayed on every row of alcohol-context.tsv. A case passes when the line reads the expected sense, allows the food it must allow and refuses the food it must refuse; a false accept is a food the row says must be refused that the sense allows. The signature is AlcoholLineContext.Signature, so any change to a rule needs a new record, which needs no host. Rule-given rows (status ok) must all pass in GoldenAlcoholContextTests; the rows judged by the alcohol-context builder (agent-review-alcohol-context-2026-11-20, status agent) measure agreement with that reviewer."
+  },
   "repair": {
     "scorer": false,
     "required": false,

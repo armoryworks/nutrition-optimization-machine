@@ -177,19 +177,19 @@ namespace Nom.Orch.Services
         /// <summary>
         /// The gate's facts about each food of the query: name, USDA description, data type, status,
         /// category, admission reason, nutrient rows and whether calories, protein, carbohydrate and
-        /// fat are all stored.
+        /// fat are all stored, and the FDC id the alcohol sense rules read.
         /// </summary>
         private async Task<List<GateFood>> GateFoodsAsync(IQueryable<IngredientEntity> query, CancellationToken cancellationToken)
         {
             var core = await CoreNutrientIdsAsync(cancellationToken);
             var rows = await GateFoodRows(query, core).ToListAsync(cancellationToken);
             return rows.Select(r => new GateFood(r.Id, r.Name, r.Description, r.FdcDataType, r.CurationStatusId, r.FdcCategoryId, r.AdmissionReason, r.Rows,
-                core.Count == 0 ? null : r.Core >= core.Count, r.IsDeleted)).ToList();
+                core.Count == 0 ? null : r.Core >= core.Count, r.IsDeleted, r.FdcId)).ToList();
         }
 
         /// <summary>One food's gate facts as the database gives them, before the core count becomes a yes or no.</summary>
         internal sealed record GateFoodRow(long Id, string Name, bool IsDeleted, string FdcDataType, long CurationStatusId, int? FdcCategoryId,
-            string? AdmissionReason, string? Description, int Rows, int Core);
+            string? AdmissionReason, string? Description, int Rows, int Core, string? FdcId = null);
 
         internal static IQueryable<GateFoodRow> GateFoodRows(IQueryable<IngredientEntity> query, IReadOnlyCollection<long> core) =>
             query.AsNoTracking().Select(i => new GateFoodRow(
@@ -202,7 +202,8 @@ namespace Nom.Orch.Services
                 i.AdmissionReason,
                 i.Aliases.Where(a => !a.IsDeleted && a.SourceContext == IngredientLinkService.UsdaDescriptionContext).Select(a => a.AliasName).FirstOrDefault(),
                 i.IngredientNutrients.Count(n => !n.IsDeleted),
-                i.IngredientNutrients.Where(n => !n.IsDeleted && core.Contains(n.NutrientId)).Select(n => n.NutrientId).Distinct().Count()));
+                i.IngredientNutrients.Where(n => !n.IsDeleted && core.Contains(n.NutrientId)).Select(n => n.NutrientId).Distinct().Count(),
+                i.FdcId));
 
         /// <summary>One nutrient id for each of calories, protein, carbohydrate and total fat; empty when the seed lacks one.</summary>
         private async Task<List<long>> CoreNutrientIdsAsync(CancellationToken cancellationToken)

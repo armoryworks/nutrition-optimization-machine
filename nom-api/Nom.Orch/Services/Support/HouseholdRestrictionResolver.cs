@@ -15,6 +15,8 @@ namespace Nom.Orch.Services.Support
         public HashSet<long> IngredientIds { get; } = new();
         /// <summary>Any active restriction (or its category's criteria) at severity ≥ 4 — allergy/medical.</summary>
         public bool HasSevere { get; set; }
+        /// <summary>Recipes forbidden by a line's own text rather than its food: a drink line linked to a food that is not a drink (<see cref="DietCriteriaMatcher.DrinkLineRecipesAsync"/>).</summary>
+        public HashSet<long> RecipeIds { get; } = new();
         public static readonly RestrictedIngredientSet Empty = new();
     }
 
@@ -22,8 +24,8 @@ namespace Nom.Orch.Services.Support
     /// Turns a household's restrictions into a concrete set of ingredient ids that meal
     /// planning, search and top-up must avoid. Restrictions saved through the UI reference
     /// a *category* (RestrictionTypeId, e.g. "Nut Allergy"); the category's curated
-    /// <see cref="RestrictionCriterionEntity"/> rows (exact ingredient or ILIKE name pattern,
-    /// with severity) are what make it enforceable. Direct IngredientId restrictions still
+    /// <see cref="RestrictionCriterionEntity"/> rows (exact ingredient, ILIKE name pattern, word
+    /// pattern or nutrient, with severity; see <see cref="DietCriteriaMatcher"/>) are what make it enforceable. Direct IngredientId restrictions still
     /// count too. Plan-wide restrictions (PersonId NULL) apply through the members' plans.
     /// </summary>
     public sealed class HouseholdRestrictionResolver
@@ -80,15 +82,17 @@ namespace Nom.Orch.Services.Support
             }
 
             var patterns = criteria
-                .Where(c => !string.IsNullOrWhiteSpace(c.IngredientPattern))
+                .Where(c => !string.IsNullOrWhiteSpace(c.IngredientPattern) && !DietCriteriaMatcher.IsWordPattern(c.IngredientPattern))
                 .Select(c => c.IngredientPattern!.Trim())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            if (patterns.Count == 0) return result;
+            if (patterns.Count > 0)
+            {
+                foreach (var id in await MatchIngredientsAsync(patterns))
+                    result.IngredientIds.Add(id);
+            }
 
-            foreach (var id in await MatchIngredientsAsync(patterns))
-                result.IngredientIds.Add(id);
-
+            await AddDataCriteriaAsync(result, typeIds, 0);
             return result;
         }
 
@@ -130,16 +134,28 @@ namespace Nom.Orch.Services.Support
                 result.IngredientIds.Add(c.IngredientId!.Value);
 
             var patterns = criteria
-                .Where(c => !string.IsNullOrWhiteSpace(c.IngredientPattern))
+                .Where(c => !string.IsNullOrWhiteSpace(c.IngredientPattern) && !DietCriteriaMatcher.IsWordPattern(c.IngredientPattern))
                 .Select(c => c.IngredientPattern!.Trim())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            if (patterns.Count == 0) return result;
+            if (patterns.Count > 0)
+            {
+                foreach (var id in await MatchIngredientsAsync(patterns))
+                    result.IngredientIds.Add(id);
+            }
 
-            foreach (var id in await MatchIngredientsAsync(patterns))
-                result.IngredientIds.Add(id);
-
+            await AddDataCriteriaAsync(result, typeIds, 4);
             return result;
+        }
+
+        /// <summary>Adds the foods the word and nutrient criteria of the types match, and the recipes whose drink lines are linked to none of them (<see cref="DietCriteriaMatcher"/>).</summary>
+        private async Task AddDataCriteriaAsync(RestrictedIngredientSet result, IReadOnlyCollection<long> typeIds, int minimumSeverity)
+        {
+            var data = await DietCriteriaMatcher.CriteriaAsync(_db, typeIds, minimumSeverity);
+            if (data.Count == 0) return;
+            foreach (var ids in (await DietCriteriaMatcher.FoodsAsync(_db, data)).Values)
+                result.IngredientIds.UnionWith(ids);
+            result.RecipeIds.UnionWith(await DietCriteriaMatcher.DrinkLineRecipesAsync(_db, data, result.IngredientIds));
         }
 
         /// <summary>Ingredient ids whose name or any alias matches one of the SQL LIKE patterns (case-insensitive).</summary>

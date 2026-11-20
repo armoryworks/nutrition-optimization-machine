@@ -40,10 +40,12 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `startup-fills.tsv` | `ScrapedRecipeRepairService.RepairBatchAsync` (the start-up repair's amount for a line that states none, in a recipe with its method, its other lines and, when `journal` names one, an open line journal) | `expect` (`<quantity> <unit>`, or `-` for no amount) | `status` |
 | `link-gate.tsv` + `gate-catalog.tsv` | `LinkGate.Check` (the one link gate, see `link-gate.md`) | `expect`: `pass`, or the code of a rule that must hold the pair; the target's facts in the row | `status` |
 | `wording-pairs.tsv` + `gate-catalog.tsv` | `LinkGate.Check` for two readers' answer; `LinkGate.Family` | `expect`: `=` must pass, `!` must be held, `~` must win its family | `status` |
+| `alcohol-context.tsv` + `gate-catalog.tsv` | `AlcoholLineContext.Read` and `.Refuse` (the alcohol sense rules, see `alcohol-context.md`) | `expect` (the sense code), `allows` (an FDC id the sense must allow, or `-`), `refuses` (an FDC id it must refuse, or `-`); `title`, `context` (the recipe's other lines, `;`-joined) and `site` give the recipe | `status` |
 | `catalog-admission.tsv` | `CatalogAdmissionRule.Decide` (USDA catalog admission: status, group from category, edibility, energy check, reasons, prepared food) | `expectStatus` (`Curated`, `PendingCuration`; the rule never rejects, and a food of the four prepared-food categories is judged like any other), `expectGroup`, `expectEdible`, `expectEnergy`, `expectReason`, `expectPrepared` (`true` for a Foundation or SR Legacy food of Baby Foods, Fast Foods, Meals, Entrees and Side Dishes, or Restaurant Foods) | `status` |
 | `recipes.json` + `measurements.tsv` | `RecipeNutritionService.RecalculateAsync`, `.StatusFor` | `expected.calories/protein/fat` (4 dp), `countedLines`, `handLabel` | `status` |
 | `line-labels.tsv` | model lane `line-classify` | `kind` | none (scored by the operator run) |
 | `link-pairs.tsv` + `gate-catalog.tsv` | scorer lane `link-gate` (no model) | `verdict` | none (scored by the record) |
+| `alcohol-context.tsv` + `gate-catalog.tsv` | scorer lane `alcohol-context` (no model) | `expect`, `allows`, `refuses` | `status` (and the record) |
 | `model-lanes.json` | every model lane | floors | — |
 | `baseline.json` | — | allowed `known` rows per `file:column` | — |
 
@@ -113,8 +115,9 @@ without it.
 | parser-rules rows (2026-11-20) in `lines.tsv` (`r1`-`r6`, `s13`, `can`), `line-kinds.tsv` (`r8`), `startup-fills.tsv` (`r7`), `compound.tsv` (`r9`) | the lines the reprocess design names for rules R1-R9 (its B6-B9 lists; the method-fill rows put the phrase the design quotes from each recipe in a short step), the containers design's "1 lb. 13 ounce can", and further lines of the same classes: the scraper sample of the sources design (item 13), numbered cans, "a couple of", "tbp", single-food headings | design rows: the design authors (`design:reprocess`, `design:containers`, `ok`); the rest: the parser-rules builder (`agent-review-parser-rules-2026-11-20`, `agent`) |
 | `recipes.json` | 9 recipes cited in the golden-gate design and 26 sampled curated recipes; expected values are staging's stored labels, which the in-memory service reproduces to 4 dp | catalog facts and arithmetic |
 | `catalog-admission.tsv` (2026-11-20) | 85 USDA foods (SR Legacy 2018-04, Foundation 2025-12-18) with their own category, nutrients and calorie factors: every food the catalog-admission design names, the first two SR foods of each category, foods that fail the energy check, and Foundation foods judged by their specific energy; 9 constructed rows (duplicate, no category, Quality Control category, branded oil, dressing, soda, sauce, cheese). Expected values computed from the rule as the design writes it, apart from the code. Hand-edited the same day for prepared foods (owner answer, second round): the 10 rows of the four prepared-food categories now expect `Curated` with no reason, every row gained `expectPrepared`, and 3 constructed prepared rows were added (an energy failure, a Foundation entree, a duplicate); 97 rows | rule (`rule:usda-*`, `rule:construction`) |
-| `link-gate.tsv` (2026-11-20) | 66 pairs: real USDA foods from `gate-catalog.tsv` and constructed foods (branded, retired, prepared, rejected, short of nutrients), one or more per rule of the gate and 18 the gate must let through; expected values from the rules as the links and wordings designs write them | rule (`rule:link-gate`, `rule:construction`) |
+| `link-gate.tsv` (2026-11-20; 24 alcohol rows added the same day by `cleanup2/alcohol-context`, one or more per alcohol rule) | 90 pairs: real USDA foods from `gate-catalog.tsv` and constructed foods (branded, retired, prepared, rejected, short of nutrients), one or more per rule of the gate and 18 the gate must let through; expected values from the rules as the links and wordings designs write them | rule (`rule:link-gate`, `rule:construction`) |
 | `wording-pairs.tsv` (2026-11-20) | the 232 kept rows of batch w01 (`staging/w01/verified-wordings-w01.tsv`), the 11 judge picks its second reader refuted (`dropped.tsv`), the wordings design's cases, and claret | w01 rows: the model reviewer and second reader (`agent-review-w01-*`, `agent`); refuted rows: the second reader; `gravy beef` and `sack`: the link-gate builder (`agent-review-link-gate-2026-11-20`); claret, potatoes, tarragon and the compound: rule (`ok`) |
+| `alcohol-context.tsv` (2026-11-20) | 161 lines: the classes of the alcohol design (its sections 1 and 2.1: the wrong-link classes measured on staging and every place where the bare word misleads) and the false matches of the old diet patterns; expected senses and foods from the design's rules. Ten rows the builder judged where the design is silent (country wines, malt liquor, brandy snaps, beer batter, white zinfandel, "poached in", "rum and raisin ice cream", "brandy and water", dry cider, rice wine) | design rules (`rule:alcohol-context`, `ok`); the ten: the alcohol-context builder (`agent-review-alcohol-context-2026-11-20`, `agent`) |
 | `gate-catalog.tsv` (2026-11-20) | the curated foods and pending SR Legacy foods of staging (`staging/w01/foods.tsv`) with their USDA description, admission reason (none yet) and nutrient rows, and the USDA category from the SR Legacy 2018-04 and Foundation 2025-12-18 `food.csv` | catalog facts |
 | `line-labels.tsv` | 120 lines labelled not an ingredient that are exactly a curated food's name (ingredient by the veto rule) and 60 lines the deterministic pre-pass labelled | rule |
 
@@ -141,11 +144,11 @@ every file from the captures and the evidence, all rows `new`.
 ## Model lanes
 
 ```
-dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link-verify|line-classify|link-gate> \
+dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link-verify|line-classify|link-gate|alcohol-context> \
     --host http://<model host>:11434 --model <model tag> [--limit N] [--out failures.tsv] [--record]
 ```
 
-- `link-gate`: see below; it needs no model.
+- `link-gate` and `alcohol-context`: see below; they need no model.
 - `link-pick`: the ambiguous judged wordings (a staple or the name matcher would answer the rest),
   asked six at a time with the name matcher's shortlist of ten from `usda-catalog.tsv`. A case passes
   when the pick is a food judged right, or, with no right food on the shortlist, is not one judged
@@ -160,6 +163,12 @@ dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link
   (`minPrecision` in `model-lanes.json`). Its signature is `LinkGate.Signature`, so a changed rule
   table needs a new record, and `required` is true: the record is always committed, and
   `GoldenLinkGateTests` checks that the gate still scores exactly what it records.
+- `alcohol-context`: no model and no host. `AlcoholLineContext.Read` and `.Refuse` on every row of
+  `alcohol-context.tsv`: a case passes when the line reads its sense, allows its `allows` food and
+  refuses its `refuses` food; a false accept is a `refuses` food the sense allows. Floors: score at
+  least 98 %, no false accept; `GoldenAlcoholContextTests` also requires every rule-given row to pass.
+  Its signature is `AlcoholLineContext.Signature`; `required` is true, so a changed rule needs a new
+  record (`--golden-score --lane alcohol-context --record`).
 
 The run prints the score, the false-accept rate, the floor and every case that passed in the recorded
 run and fails now, and exits 1 below the floor. `--record` writes `scores/<lane>.json`: model, host

@@ -1,0 +1,450 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
+using Nom.Data.Nutrition;
+
+namespace Nom.Orch.Services.Support
+{
+    /// <summary>What the rest of a recipe tells about one of its lines: the title, the other lines, the step text, and whether the recipe came from a web source (a modern recipe).</summary>
+    public sealed record AlcoholRecipeContext(string? Title = null, IReadOnlyList<string>? OtherLines = null, string? Steps = null, bool HasSourceSite = false);
+
+    /// <summary>How a sense of an alcohol word stands to the foods a line may be linked to.</summary>
+    public enum AlcoholSenseKind
+    {
+        /// <summary>No alcohol word: the rules say nothing.</summary>
+        None,
+        /// <summary>A list or alternatives: each part has its own reading.</summary>
+        List,
+        /// <summary>Not a drink (a vinegar, a flavouring, a measure, a dish, a soft drink ...): never an alcoholic food.</summary>
+        NotDrink,
+        /// <summary>Not food at all ("spirits of turpentine"): no food.</summary>
+        NotFood,
+        /// <summary>A drink with USDA foods of its sense: only those.</summary>
+        Drink,
+        /// <summary>A drink USDA has no food for (vermouth, mirin, most liqueurs): no food.</summary>
+        Held,
+        /// <summary>A drink whose kind the line and its recipe cannot tell (bare cider, bare wine in an old text): no food.</summary>
+        Unclear,
+    }
+
+    /// <summary>One line's alcohol sense: its code, its kind, the rule that gave it and, for a list, each part's reading.</summary>
+    public sealed record AlcoholReading(string Sense, AlcoholSenseKind Kind, string Rule, IReadOnlyList<AlcoholReading>? Parts = null)
+    {
+        public static readonly AlcoholReading Nothing = new(AlcoholLineContext.NoSense, AlcoholSenseKind.None, "no alcohol word");
+
+        public override string ToString() => Parts == null ? Sense : $"{Sense} ({string.Join(" | ", Parts.Select(p => p.Sense))})";
+    }
+
+    /// <summary>Why a reading refuses a food: the link gate rule code and the detail.</summary>
+    public sealed record AlcoholRefusal(string Code, string Detail);
+
+    /// <summary>
+    /// Reads the sense of an alcohol word in a recipe line from the line and its recipe, by rules,
+    /// with no model (alcohol design 2.1): a list, something that is not a drink (a vinegar, a
+    /// non-alcoholic drink, a meat or yeast extract, ale yeast, a cooking liquid, not food, Scotch
+    /// barley and the like), a measure ("a wineglass of milk"), a dish named after a drink, a
+    /// flavouring extract, cooking wine and rice wines, soft drinks, cider, fortified wine, spirits,
+    /// liqueurs, beer, and wine by colour, with bare "wine" read from the recipe. The first rule
+    /// that fires wins. Each sense allows a fixed set of USDA foods (<see cref="Allowed"/>); a drink
+    /// USDA has no food for, or one the recipe cannot tell, allows none, and a sense that is not a
+    /// drink allows no alcoholic food. The link gate holds any answer a line's sense refuses, the
+    /// name matcher's shortlist keeps only the foods a wording's sense allows, and the diet gate
+    /// counts a food with no alcohol data by the sense of its name. See docs/architecture/alcohol-context.md.
+    /// </summary>
+    public static class AlcoholLineContext
+    {
+        public const string Version = "alcohol-context/2";
+
+        public const string NoSense = "none";
+        public const string ListSense = "list";
+
+        private const RegexOptions Options = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled;
+
+        private sealed record SenseSpec(AlcoholSenseKind Kind, string[] Allowed, string[]? Requires = null, string[]? Refuses = null);
+
+        private static readonly string[] RedTable = { "173190", "171872", "171925", "173191", "173192", "173193", "173194", "173208", "174109", "174833", "174834", "174835", "174836", "174838", "174839", "174840" };
+        private static readonly string[] WhiteTable = { "174837", "173195", "173196", "173198", "173200", "173201", "174110", "174841", "174843", "174845", "174848", "174849" };
+
+        private static readonly Dictionary<string, SenseSpec> Senses = new(StringComparer.Ordinal)
+        {
+            ["vinegar"] = new(AlcoholSenseKind.NotDrink, Array.Empty<string>(), Requires: new[] { "vinegar" }),
+            ["vinaigrette"] = new(AlcoholSenseKind.NotDrink, Array.Empty<string>()),
+            ["non-alcoholic"] = new(AlcoholSenseKind.NotDrink, Array.Empty<string>()),
+            ["extract-food"] = new(AlcoholSenseKind.NotDrink, Array.Empty<string>()),
+            ["yeast"] = new(AlcoholSenseKind.NotDrink, Array.Empty<string>(), Requires: new[] { "yeast" }),
+            ["liquid"] = new(AlcoholSenseKind.NotDrink, Array.Empty<string>()),
+            ["other"] = new(AlcoholSenseKind.NotDrink, Array.Empty<string>()),
+            ["not-food"] = new(AlcoholSenseKind.NotFood, Array.Empty<string>()),
+            ["measure"] = new(AlcoholSenseKind.NotDrink, Array.Empty<string>()),
+            ["dish"] = new(AlcoholSenseKind.NotDrink, Array.Empty<string>()),
+            ["extract"] = new(AlcoholSenseKind.NotDrink, Array.Empty<string>(), Requires: new[] { "extract", "flavor", "flavoring", "flavour", "flavouring", "essence" }),
+            ["soft-drink"] = new(AlcoholSenseKind.NotDrink, Array.Empty<string>(), Refuses: new[] { "vinegar" }),
+            ["apple-juice"] = new(AlcoholSenseKind.NotDrink, Array.Empty<string>(), Requires: new[] { "apple" }, Refuses: new[] { "vinegar" }),
+            ["cooking-wine"] = new(AlcoholSenseKind.Drink, new[] { "169070" }),
+            ["sake"] = new(AlcoholSenseKind.Drink, new[] { "167723" }),
+            ["hard-cider"] = new(AlcoholSenseKind.Drink, new[] { "174146" }),
+            ["fortified-dry"] = new(AlcoholSenseKind.Drink, new[] { "175112" }),
+            ["fortified-sweet"] = new(AlcoholSenseKind.Drink, new[] { "173176" }),
+            ["fortified"] = new(AlcoholSenseKind.Drink, new[] { "175112", "173176" }),
+            ["spirit"] = new(AlcoholSenseKind.Drink, new[] { "174815" }),
+            ["rum"] = new(AlcoholSenseKind.Drink, new[] { "174817", "174815" }),
+            ["vodka"] = new(AlcoholSenseKind.Drink, new[] { "174818", "174815" }),
+            ["whiskey"] = new(AlcoholSenseKind.Drink, new[] { "174819", "174815" }),
+            ["coffee-liqueur"] = new(AlcoholSenseKind.Drink, new[] { "175097", "173665" }),
+            ["cream-liqueur"] = new(AlcoholSenseKind.Drink, new[] { "175098" }),
+            ["creme-de-menthe"] = new(AlcoholSenseKind.Drink, new[] { "173168" }),
+            ["beer"] = new(AlcoholSenseKind.Drink, new[] { "168746" }),
+            ["light-beer"] = new(AlcoholSenseKind.Drink, new[] { "168749" }),
+            ["malt-liquor"] = new(AlcoholSenseKind.Drink, new[] { "171907" }),
+            ["wine-red"] = new(AlcoholSenseKind.Drink, RedTable),
+            ["wine-white"] = new(AlcoholSenseKind.Drink, WhiteTable),
+            ["wine-rose"] = new(AlcoholSenseKind.Drink, new[] { "171908" }),
+            ["wine-late-harvest"] = new(AlcoholSenseKind.Drink, new[] { "173202", "174844" }),
+            ["wine-table"] = new(AlcoholSenseKind.Drink, new[] { "173185", "173190", "174837" }),
+            ["rice-wine"] = new(AlcoholSenseKind.Held, Array.Empty<string>()),
+            ["boiled-cider"] = new(AlcoholSenseKind.Held, Array.Empty<string>()),
+            ["liqueur"] = new(AlcoholSenseKind.Held, Array.Empty<string>()),
+            ["vermouth"] = new(AlcoholSenseKind.Held, Array.Empty<string>()),
+            ["country-wine"] = new(AlcoholSenseKind.Held, Array.Empty<string>()),
+            ["wine-unclear"] = new(AlcoholSenseKind.Unclear, Array.Empty<string>()),
+            ["cider-unclear"] = new(AlcoholSenseKind.Unclear, Array.Empty<string>()),
+            ["alcohol-unclear"] = new(AlcoholSenseKind.Unclear, Array.Empty<string>()),
+        };
+
+        private const string DrinkWords =
+            @"wines?|sherry|brandy|rum|whiske?y|bourbon|beers?|ales?|cider|port|madeira|marsala|kirsch|cognac|champagne|liqueurs?|gin|vodka|claret|sack|stout|vermouth|tequila|sake|calvados|grand marnier|cointreau|amaretto|kahlua|hock|burgundy|chablis";
+
+        private static readonly Regex Trigger = new(
+            @"\b(?:wines?|wineglass\w*|sherry|brandy|brandies|rum|whiske?y|bourbon|scotch|beers?|ales?|lager|stout|porter|pilsn?er|ipa|bock|guinness|cider|perry|scrumpy|port|sack|madeira|marsala|vermouth|liqueurs?|liquor|spirits?|alcohol\w*|bitters|angostura|extract|essence|flavou?r(?:ing)?|sake|mirin|shaoxing|shaohsing|hsing|gin|vodka|tequila|mezcal|cognac|armagnac|calvados|applejack|kirsch\w*|grappa|hollands|arrack|arak|schnapps?|champagne|prosecco|cava|claret|burgundy|bordeaux|chablis|hocks?|brewer'?s|brewers|rhenish|riesling|chardonnay|sauvignon|merlot|cabernet|chianti|zinfandel|syrah|shiraz|rioja|malbec|pinot|sangiovese|gamay|beaujolais|grenache|tempranillo|barolo|valpolicella|sauternes|tokay|tokaji|malaga|muscatel|muscatels|moscatel|amontillado|fino|oloroso|manzanilla|sercial|malmsey|kahlua|baileys|curacao|cointreau|maraschino|noyau|noyeau|amaretto|frangelico|grand marnier|chartreuse|benedictine|drambuie|limoncello|sambuca|anisette|ratafia|cassis|creme de|ouzo|pastis|absinthe|galliano|strega|advocaat|pisco|everclear|eau de vie|mead|barm|moselle|muscadet|sancerre|soave|gewurztraminer|semillon|sekt|asti|frascati|orvieto|eiswein|icewine)\b",
+            Options);
+
+        private static readonly Regex ListSplit = new(@"\s+(?:and\s*/\s*or|or|and|&)\s+|\s*\(\s*or\s+|(?<=\p{L})\s*/\s*(?=\p{L})", Options);
+        private static readonly Regex ListJoiner = new(@"\s(?:and|or|&)\s|\(\s*or\s|(?<=\p{L})\s*/\s*(?=\p{L})", Options);
+        private static readonly Regex DishBeforeJoiner = new(@"\b(?:soaked|soak|boil'?d|boiled|steeped|macerated|marinated|poached|stewed)\s+in\b", Options);
+
+        private static readonly Regex NotFood = new(@"\b(?:turpentine|camphor|nitre|niter|hartshorn|lamp|varnish|bay rum|rubbing alcohol|isopropyl|denatured|methylated|white spirits?|spirits? of ammonia|sal volatile|surgical spirit|wood alcohol)\b", Options);
+
+        private static readonly (string Sense, string Rule, Regex Pattern)[] NotDrink =
+        {
+            ("vinegar", "vinegar", new Regex(@"\bvinegars?\b", Options)),
+            ("vinaigrette", "vinaigrette", new Regex(@"\bvinaigrettes?\b", Options)),
+            ("non-alcoholic", "non-alcoholic", new Regex(@"\bnon ?alcoholic\b|\balcohol free\b|\balcohol removed\b|\bde ?alcoholi[sz]ed\b|\bzero proof\b|\bno alcohol\b|\bwithout alcohol\b", Options)),
+            ("extract-food", "a meat, fish, malt or yeast extract", new Regex(@"\b(?:meat|beef|malt|yeast|vegetable|chicken|liebig'?s?|anchov(?:y|ies)|shrimps?|fish|mushrooms?|lobster|tomato)\s+(?:extract|essence)\b|\b(?:extract|essence) of (?:meat|beef|malt|yeast|vegetables?|chicken|anchov(?:y|ies)|shrimps?|fish|mushrooms?|lobsters?|tomato(?:es)?)\b", Options)),
+            ("yeast", "ale or beer yeast", new Regex(@"\b(?:ale|beer|brewer'?s?|brewers)\s+yeast\b|\byeast of (?:ale|beer)\b|\bbarm\b", Options)),
+            ("not-food", "not food", NotFood),
+            ("other", "Scotch barley, oats and the like", new Regex(@"\bscotch\s+(?:barley|oats?|oatmeal|groats|bonnets?|broth|eggs?|kale|pancakes?|woodcock|collops|shortbread|pies?|mist|tape)\b", Options)),
+            ("other", "a sack of", new Regex(@"\bsacks? of\b", Options)),
+            ("other", "a ham hock", new Regex(@"\b(?:ham|pork|smoked|beef|veal|lamb)\s+hocks?\b|\bhocks? of\b|\bhock end\b|\bhocks\b", Options)),
+            ("other", "Port Salut", new Regex(@"\bport salut\b|\bport du salut\b", Options)),
+            ("other", "Muscatel or Malaga raisins and grapes", new Regex(@"\b(?:malaga|muscatel|moscatel)\s+(?:raisins?|grapes?)\b|\bmuscatel raisins?\b|\bmuscatels\b", Options)),
+            ("other", "champagne mango or grapes", new Regex(@"\bchampagne (?:mangos?|mangoes|grapes?)\b", Options)),
+            ("other", "maraschino cherries", new Regex(@"\bmaraschino cherr(?:y|ies)\b", Options)),
+            ("other", "malt for ale", new Regex(@"\bmalt for ale\b", Options)),
+            ("other", "for the rum", new Regex(@"\bfor the rum\b", Options)),
+        };
+
+        private static readonly Regex LiquorWord = new(@"\bliquor\b", Options);
+        private static readonly Regex SpiritWord = new(@"\b(?:brandy|rum|whiske?y|bourbon|gin|vodka|tequila|cognac|liqueur|malt liquor|orange liquor|coffee liquor)\b", Options);
+
+        private static readonly Regex Measure = new(@"\b(?:wine|claret|sherry|liqueur|whiske?y|brandy|port|champagne|beer|cordial)\s?glass(?:es|ful|fuls|esful)?\b", Options);
+        private static readonly Regex OfPart = new(@"\bof\b\s*(.*)$", Options);
+
+        private static readonly Regex DishAfterDrink = new(
+            @"\b(?:" + DrinkWords + @")\s+(?:sauce|butter|jell(?:y|ies)|syrup|cakes?|glaze|gravy|cream|custard|paper|punch|sangria|frosting|icing|marinade|trifle|posset|sorbet|granita|batter|bread|salami|sausages?|snaps|balls|truffles?|pudding|soup|reduction|spritzer|cocktail|mustard|jam|cheese|biscuits?|cookies?|caramel)\b",
+            Options);
+        private static readonly Regex DrinkFlavoured = new(@"\b(?:" + DrinkWords + @")\s+flavou?red\b", Options);
+        private static readonly Regex SoakedIn = new(@"\b(?:soaked|soak|boil'?d|boiled|steeped|macerated|marinated|poached|stewed)\s+in\b.*\b(?:" + DrinkWords + @")\b", Options);
+
+        private static readonly Regex Flavouring = new(@"\bextracts?\b|\bessence\b|\b(?!(?:for|to|as|of|the|a|and|more|extra|add|with|added|natural|good|any)\b)\p{L}+\s+flavou?r(?:ing)?s?\b(?!\s+(?!(?:extract|essence|to|or|and|if|for|as|optional|divided)\b)\p{L})", Options);
+
+        private static readonly (string Sense, string Rule, Regex Pattern)[] Rules =
+        {
+            ("rice-wine", "Shaoxing, Chinese rice wine or mirin", new Regex(@"\bshaoxing\b|\bshao ?hsing\b|\bchinese (?:rice |cooking )?wine\b|\brice (?:cooking )?wine\b|\bmirin\b|\bhua ?tiao\b|\bhuadiao\b", Options)),
+            ("cooking-wine", "cooking wine or cooking sherry", new Regex(@"\bcooking (?:wine|sherry|sake|marsala)\b", Options)),
+            ("sake", "sake", new Regex(@"(?<!\bfor\b[^,]*)\bsake\b(?!\s*'s)", Options)),
+            ("soft-drink", "ginger beer, root beer, ginger ale", new Regex(@"\b(?:ginger|root|spruce|birch|sarsaparilla)\s+(?:beers?|ales?)\b", Options)),
+            ("boiled-cider", "boiled cider", new Regex(@"\bboiled cider\b", Options)),
+            ("hard-cider", "hard cider or perry", new Regex(@"\bhard cider\b|\bperry\b|\bscrumpy\b|\bfermented cider\b", Options)),
+            ("apple-juice", "sweet, fresh or apple cider", new Regex(@"\b(?:sweet|fresh|new|unfermented|apple|mulled|unfiltered|cold)\s+cider\b", Options)),
+            ("cider-unclear", "bare cider", new Regex(@"\bciders?\b", Options)),
+            ("fortified-sweet", "sweet fortified wine", new Regex(@"\b(?:cream sherry|sweet sherry|port|tokay|tokaji|malaga|muscatel|moscatel|malmsey|sweet marsala|sweet madeira|vin santo|dessert wine|sweet wine|mavrodaphne|banyuls)\b", Options)),
+            ("fortified-dry", "dry fortified wine", new Regex(@"\b(?:sherry|sack|amontillado|fino|oloroso|manzanilla|sercial|dry madeira|dry marsala)\b", Options)),
+            ("fortified", "Madeira or Marsala", new Regex(@"\b(?:madeira|marsala)\b", Options)),
+            ("coffee-liqueur", "coffee liqueur", new Regex(@"\bcoffee (?:liqueur|brandy|liquor)\b|\bkahlua\b|\btia maria\b", Options)),
+            ("cream-liqueur", "Irish cream", new Regex(@"\birish cream\b|\bbaileys\b|\bbailey's\b|\bcream liqueur\b", Options)),
+            ("creme-de-menthe", "creme de menthe", new Regex(@"\bcreme de menthe\b", Options)),
+            ("liqueur", "a liqueur or fruit brandy USDA has no food for", new Regex(@"\b(?:peach|cherry|apricot|blackberry|plum|raspberry|ginger|orange)\s+brand(?:y|ies)\b|\b(?:grand marnier|cointreau|curacao|triple sec|maraschino|noyau|noyeau|amaretto|frangelico|chartreuse|benedictine|drambuie|limoncello|sambuca|anisette|ratafia|creme de \p{L}+|cassis|liqueurs?|bitters|angostura|ouzo|pastis|absinthe|galliano|strega|advocaat|schnapps?|orange liquor)\b", Options)),
+            ("rum", "rum", new Regex(@"\brum\b", Options)),
+            ("vodka", "vodka", new Regex(@"\bvodka\b", Options)),
+            ("whiskey", "whiskey", new Regex(@"\bwhiske?y\b|\bbourbon\b|\bscotch\b", Options)),
+            ("spirit", "a distilled spirit", new Regex(@"\b(?:brandy|brandies|cognac|armagnac|calvados|applejack|kirsch|kirschwasser|grappa|gin|hollands|tequila|mezcal|arrack|arak|pisco|everclear|eau de vie|proof spirit|rectified spirit|neutral spirit|grain spirit|grain alcohol|pure alcohol|spirits? of wine|spirits)\b", Options)),
+            ("light-beer", "light beer", new Regex(@"\b(?:light|lite)\s+beers?\b", Options)),
+            ("malt-liquor", "malt liquor", new Regex(@"\bmalt liquor\b", Options)),
+            ("beer", "beer, ale, lager, stout", new Regex(@"\b(?:beers?|ales?|lager|stout|porter|pilsn?er|ipa|bock|guinness)\b", Options)),
+            ("vermouth", "vermouth", new Regex(@"\bvermouth\b", Options)),
+            ("wine-late-harvest", "late harvest or Sauternes", new Regex(@"\blate harvest\b|\bsauternes\b|\bice ?wine\b|\beiswein\b", Options)),
+            ("country-wine", "a fruit or flower wine", new Regex(@"\b(?:ginger|elder|elderberry|elderflower|cowslip|currant|gooseberry|raisin|orange|cherry|plum|damson|dandelion|primrose|birch|blackberry|rhubarb|parsnip|clary|balm|raspberry|apricot|peach|palm|rice|honey)\s+wines?\b|\bmead\b", Options)),
+            ("wine-rose", "rose wine", new Regex(@"\brose wines?\b|\bblush wines?\b|\bwhite zinfandel\b", Options)),
+            ("wine-white", "white burgundy", new Regex(@"\bwhite burgundy\b", Options)),
+            ("wine-red", "a red wine name", new Regex(@"\b(?:claret|burgundy|bordeaux|merlot|cabernet|chianti|zinfandel|syrah|shiraz|rioja|malbec|pinot noir|sangiovese|gamay|beaujolais|grenache|tempranillo|barolo|valpolicella)\b", Options)),
+            ("wine-white", "a white wine name", new Regex(@"\b(?:chablis|riesling|chardonnay|sauvignon|pinot grigio|pinot gris|moselle|rhine wine|rhenish|hock|champagne|prosecco|cava|sparkling wine|muscadet|sancerre|soave|vinho verde|gewurztraminer|semillon|chenin blanc|pinot blanc|vermentino|asti|frascati|orvieto|sekt)\b", Options)),
+        };
+
+        private static readonly Regex NotAvailable = new(@"\bNA\b", RegexOptions.CultureInvariant | RegexOptions.Compiled);
+        private static readonly Regex RoseAccented = new(@"\brosé\b(?!\s*wine)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+        private static readonly Regex RedNextToWine = new(@"\bred\s+(?:\p{L}+\s+)?wines?\b", Options);
+        private static readonly Regex WhiteNextToWine = new(@"\bwhite\s+(?:\p{L}+\s+)?wines?\b", Options);
+        private static readonly Regex RedWord = new(@"\bred\b", Options);
+        private static readonly Regex WhiteWord = new(@"\bwhite\b", Options);
+        private static readonly Regex Wine = new(@"\bwines?\b", Options);
+        private static readonly Regex Alcohol = new(@"\balcohol\b", Options);
+        private static readonly Regex RedContext = new(@"\bred wines?\b|\b(?:claret|burgundy|bordeaux|merlot|cabernet|chianti|zinfandel|syrah|shiraz|rioja|malbec|pinot noir|sangiovese|beaujolais)\b", Options);
+        private static readonly Regex WhiteContext = new(@"\bwhite wines?\b|\b(?:chablis|riesling|chardonnay|sauvignon blanc|pinot grigio|moselle|rhine wine|rhenish|hock|champagne|prosecco|sauternes)\b", Options);
+
+        private static readonly Regex AlcoholicFood = new(@"^\s*alcoholic beverages?\b|\bliqueur\b|\bhard cider\b|\bmalt liquor\b", Options);
+        private static readonly Regex NotAlcoholicFood = new(@"\bnon ?alcoholic\b|\balcohol free\b|\bno alcohol\b|\bwithout alcohol\b", Options);
+        private static readonly Regex NonWord = new(@"[^\p{L}\p{N}']+", RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        /// <summary>
+        /// Every word a drink's name may hold, as one Postgres word pattern (<c>\m(?:...)\M</c>, read
+        /// with <c>~*</c>): the diet gate's probe for foods with no alcohol figure whose name may read
+        /// as a drink. The rules then read each name it finds.
+        /// </summary>
+        public const string DrinkNamePattern =
+            @"\m(?:wines?|beers?|ales?|lager|stout|porter|pilsn?er|guinness|ciders?|perry|scrumpy|vodka|rum|whiske?y|bourbon|scotch|brandy|brandies|cognac|armagnac|calvados|applejack|kirsch|kirschwasser|grappa|gin|hollands|tequila|mezcal|arrack|arak|pisco|everclear|schnapps?|liqueurs?|liquor|sake|mirin|shaoxing|sherry|sack|port|madeira|marsala|tokay|tokaji|malaga|muscatel|moscatel|amontillado|fino|oloroso|manzanilla|sercial|malmsey|vermouth|champagne|prosecco|cava|sekt|claret|burgundy|bordeaux|chablis|hock|rhenish|moselle|riesling|chardonnay|sauvignon|merlot|cabernet|chianti|zinfandel|syrah|shiraz|rioja|malbec|pinot|beaujolais|sauternes|rosé|kahlua|baileys|curacao|cointreau|marnier|amaretto|frangelico|chartreuse|benedictine|drambuie|limoncello|sambuca|anisette|ratafia|cassis|menthe|ouzo|pastis|absinthe|galliano|strega|advocaat|noyau|noyeau|maraschino|bitters|angostura|spirits|alcohol|mead|eiswein|icewine)\M";
+
+        private static readonly HashSet<string> DrinkIds =Senses.Values.Where(s => s.Kind == AlcoholSenseKind.Drink).SelectMany(s => s.Allowed).ToHashSet(StringComparer.Ordinal);
+
+        private static readonly Lazy<string> SignatureValue = new(() => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(SignatureSource())))[..16].ToLowerInvariant());
+
+        /// <summary>A hash of <see cref="Version"/>, every sense rule and the allowed-food table, so any change to a rule shows as a new signature.</summary>
+        public static string Signature => SignatureValue.Value;
+
+        /// <summary>Every sense code the rules can give, with no list.</summary>
+        public static IReadOnlyCollection<string> SenseCodes => Senses.Keys.Append(NoSense).ToList();
+
+        /// <summary>The USDA FDC ids a sense allows; empty for a sense that is not a drink or that has no food.</summary>
+        public static IReadOnlyList<string> Allowed(string sense) => Senses.TryGetValue(sense, out var spec) ? spec.Allowed : Array.Empty<string>();
+
+        /// <summary>The kind of a sense code.</summary>
+        public static AlcoholSenseKind KindOf(string sense) =>
+            sense == ListSense ? AlcoholSenseKind.List : Senses.TryGetValue(sense, out var spec) ? spec.Kind : AlcoholSenseKind.None;
+
+        /// <summary>
+        /// The sense of the line's alcohol word, from the line and, when given, its recipe. A line
+        /// with no alcohol word reads <see cref="NoSense"/>. A list or alternatives ("brandy or
+        /// rum", "red wine (or chicken broth)") reads each part on its own.
+        /// </summary>
+        public static AlcoholReading Read(string? line, AlcoholRecipeContext? context = null)
+        {
+            var text = Normalize(line);
+            if (!Trigger.IsMatch(text)) return AlcoholReading.Nothing;
+            if (line != null && NotAvailable.IsMatch(line)) return Reading("non-alcoholic", "NA");
+            if (ListJoiner.IsMatch(text) && !DishBeforeJoiner.IsMatch(text))
+            {
+                var parts = ListSplit.Split(text).SelectMany(p => p.Split(',')).Select(p => p.Trim(' ', ')', '(')).Where(p => p.Length > 0).ToList();
+                if (parts.Count > 1)
+                {
+                    var readings = parts.Select(p => ReadOne(p, context)).ToList();
+                    if (readings.All(r => r.Kind == AlcoholSenseKind.None)) return ReadOne(text, context);
+                    return new AlcoholReading(ListSense, AlcoholSenseKind.List, "a list or alternatives", readings);
+                }
+            }
+            return ReadOne(text, context);
+        }
+
+        /// <summary>
+        /// Why the reading refuses the food (by its FDC id and its USDA description or name), or null
+        /// when the food is one of the sense's: a drink is refused any food outside its allowed
+        /// table; a drink with no USDA food, or an unclear one, is refused every food; a sense that
+        /// is not a drink is refused an alcoholic food and a food that is not its kind (a vinegar
+        /// for "sherry vinegar", an extract or flavouring for "rum extract"); not food is refused
+        /// everything. A list is refused only when every part refuses.
+        /// </summary>
+        public static AlcoholRefusal? Refuse(AlcoholReading reading, string? fdcId, string? foodText)
+        {
+            switch (reading.Kind)
+            {
+                case AlcoholSenseKind.None:
+                    return null;
+                case AlcoholSenseKind.List:
+                {
+                    AlcoholRefusal? first = null;
+                    foreach (var part in reading.Parts ?? Array.Empty<AlcoholReading>())
+                    {
+                        var refusal = part.Kind == AlcoholSenseKind.None
+                            ? IsAlcoholicFood(fdcId, foodText) ? new AlcoholRefusal(LinkGate.AlcoholDrink, "list: an alcoholic food no part names") : null
+                            : Refuse(part, fdcId, foodText);
+                        if (refusal == null) return null;
+                        first ??= refusal;
+                    }
+                    return first;
+                }
+                case AlcoholSenseKind.Drink:
+                    return fdcId != null && Senses[reading.Sense].Allowed.Contains(fdcId) ? null : new AlcoholRefusal(LinkGate.AlcoholDrink, reading.Sense);
+                case AlcoholSenseKind.Held:
+                case AlcoholSenseKind.Unclear:
+                    return new AlcoholRefusal(LinkGate.AlcoholNoFood, reading.Sense);
+                case AlcoholSenseKind.NotFood:
+                    return new AlcoholRefusal(LinkGate.AlcoholNotDrink, reading.Sense);
+                default:
+                {
+                    var spec = Senses[reading.Sense];
+                    if (IsAlcoholicFood(fdcId, foodText)) return new AlcoholRefusal(LinkGate.AlcoholNotDrink, reading.Sense + ": an alcoholic food");
+                    var words = Words(foodText);
+                    if (spec.Requires != null && !spec.Requires.Any(words.Contains)) return new AlcoholRefusal(LinkGate.AlcoholNotDrink, reading.Sense + ": not " + spec.Requires[0]);
+                    if (spec.Refuses != null && spec.Refuses.Any(words.Contains)) return new AlcoholRefusal(LinkGate.AlcoholNotDrink, reading.Sense + ": " + spec.Refuses.First(words.Contains));
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether a food is an alcoholic drink: a food of a drink sense's allowed table, or a USDA
+        /// description led by "Alcoholic beverage" or naming a liqueur, hard cider or malt liquor,
+        /// unless it says it is non-alcoholic.
+        /// </summary>
+        public static bool IsAlcoholicFood(string? fdcId, string? foodText)
+        {
+            if (fdcId != null && DrinkIds.Contains(fdcId)) return true;
+            var text = Normalize(foodText);
+            return AlcoholicFood.IsMatch(text) && !NotAlcoholicFood.IsMatch(text);
+        }
+
+        /// <summary>
+        /// Whether a line of this reading counts as alcohol for the diet gate when its food stores no
+        /// alcohol figure: a drink, a drink with no USDA food, an unclear one, or a dish named after a
+        /// drink (it carries the drink); for a list, any part. A vinegar, a flavouring, a measure, a
+        /// soft drink, a cooking liquid, yeast or a non-alcoholic drink does not.
+        /// </summary>
+        public static bool CountsForDiet(AlcoholReading reading) => reading.Kind switch
+        {
+            AlcoholSenseKind.Drink or AlcoholSenseKind.Held or AlcoholSenseKind.Unclear => true,
+            AlcoholSenseKind.List => reading.Parts?.Any(CountsForDiet) == true,
+            _ => reading.Sense == "dish",
+        };
+
+        /// <summary>Whether the reading is a flavouring extract ("vanilla extract", "rum flavoring"), which the diet gate leaves to a note (owner answer 6).</summary>
+        public static bool IsFlavouring(AlcoholReading reading) =>
+            reading.Sense == "extract" || (reading.Kind == AlcoholSenseKind.List && reading.Parts?.All(p => p.Kind == AlcoholSenseKind.None || p.Sense == "extract") == true && reading.Parts.Any(p => p.Sense == "extract"));
+
+        /// <summary>
+        /// The one reading a wording's lines share, for the shortlist: the reading every line with
+        /// an alcohol word gives when they all agree on its sense; null when none has one or they
+        /// disagree.
+        /// </summary>
+        public static AlcoholReading? Shared(IEnumerable<AlcoholReading> readings)
+        {
+            AlcoholReading? shared = null;
+            foreach (var reading in readings.Where(r => r.Kind != AlcoholSenseKind.None))
+            {
+                if (shared == null) shared = reading;
+                else if (shared.ToString() != reading.ToString()) return null;
+            }
+            return shared;
+        }
+
+        private static AlcoholReading ReadOne(string text, AlcoholRecipeContext? context)
+        {
+            if (!Trigger.IsMatch(text)) return AlcoholReading.Nothing;
+
+            foreach (var (sense, rule, pattern) in NotDrink)
+                if (pattern.IsMatch(text)) return Reading(sense, rule);
+            if (LiquorWord.IsMatch(text) && !SpiritWord.IsMatch(text)) return Reading("liquid", "liquor as a cooking liquid");
+
+            var measure = Measure.Match(text);
+            if (measure.Success)
+            {
+                var rest = text.Remove(measure.Index, measure.Length);
+                var of = OfPart.Match(rest);
+                var inner = ReadOne((of.Success ? of.Groups[1].Value : rest).Trim(), context);
+                return inner.Kind == AlcoholSenseKind.None ? Reading("measure", "a measure named after a drink") : inner with { Rule = "a measure of " + inner.Rule };
+            }
+
+            if (DishAfterDrink.IsMatch(text) || DrinkFlavoured.IsMatch(text) || SoakedIn.IsMatch(text)) return Reading("dish", "a dish named after a drink");
+            if (Flavouring.IsMatch(text)) return Reading("extract", "a flavouring extract");
+
+            foreach (var (sense, rule, pattern) in Rules)
+                if (pattern.IsMatch(text)) return Reading(sense, rule);
+
+            if (Wine.IsMatch(text))
+            {
+                var nextRed = RedNextToWine.IsMatch(text);
+                var nextWhite = WhiteNextToWine.IsMatch(text);
+                if (nextRed != nextWhite) return nextRed ? Reading("wine-red", "red wine") : Reading("wine-white", "white wine");
+                var red = RedWord.IsMatch(text);
+                var white = WhiteWord.IsMatch(text);
+                if (red && white) return Reading("wine-unclear", "red and white in one line");
+                if (red || white) return red ? Reading("wine-red", "red wine") : Reading("wine-white", "white wine");
+            }
+
+            if (Alcohol.IsMatch(text))
+            {
+                var others = context?.OtherLines;
+                return others is { Count: > 0 } && !others.Any(o => NotFood.IsMatch(Normalize(o)))
+                    ? Reading("spirit", "alcohol in a recipe of food")
+                    : Reading("alcohol-unclear", "alcohol with no food context");
+            }
+
+            if (Wine.IsMatch(text)) return BareWine(context);
+            return AlcoholReading.Nothing;
+        }
+
+        private static AlcoholReading BareWine(AlcoholRecipeContext? context)
+        {
+            if (context == null) return Reading("wine-unclear", "bare wine with no recipe");
+            var recipe = Normalize(string.Join(" \n ", new[] { context.Title, context.Steps }.Concat(context.OtherLines ?? Array.Empty<string>()).Where(s => !string.IsNullOrWhiteSpace(s))));
+            var red = RedContext.IsMatch(recipe);
+            var white = WhiteContext.IsMatch(recipe);
+            if (red && !white) return Reading("wine-red", "red from the recipe");
+            if (white && !red) return Reading("wine-white", "white from the recipe");
+            if (red && white) return Reading("wine-unclear", "both colours in the recipe");
+            return context.HasSourceSite ? Reading("wine-table", "bare wine in a modern recipe") : Reading("wine-unclear", "bare wine in an old text");
+        }
+
+        private static AlcoholReading Reading(string sense, string rule) => new(sense, Senses[sense].Kind, rule);
+
+        private static string Normalize(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+            var s = RoseAccented.Replace(text.ToLowerInvariant(), "rose wine").Replace('’', '\'').Replace('‘', '\'');
+            if (s.Any(c => c >= 128))
+            {
+                var decomposed = s.Normalize(NormalizationForm.FormD);
+                s = new string(decomposed.Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark).ToArray()).Normalize(NormalizationForm.FormC);
+            }
+            s = s.Replace('-', ' ').Replace('_', ' ');
+            return Regex.Replace(s, @"\s+", " ").Trim();
+        }
+
+        private static HashSet<string> Words(string? text) =>
+            NonWord.Split(Normalize(text)).Where(w => w.Length > 0).Select(w => w.Trim('\'')).ToHashSet(StringComparer.Ordinal);
+
+        /// <summary>The text <see cref="Signature"/> hashes: <see cref="Version"/>, every rule pattern in order and the sense table.</summary>
+        internal static string SignatureSource()
+        {
+            var text = new StringBuilder(Version);
+            text.Append("\ntrigger:").Append(Trigger);
+            text.Append("\nlist:").Append(ListSplit).Append('|').Append(ListJoiner).Append('|').Append(DishBeforeJoiner);
+            foreach (var (sense, _, pattern) in NotDrink) text.Append("\nnot-drink:").Append(sense).Append('=').Append(pattern);
+            text.Append("\nliquor:").Append(LiquorWord).Append('|').Append(SpiritWord);
+            text.Append("\nmeasure:").Append(Measure).Append('|').Append(OfPart);
+            text.Append("\ndish:").Append(DishAfterDrink).Append('|').Append(DrinkFlavoured).Append('|').Append(SoakedIn);
+            text.Append("\nflavouring:").Append(Flavouring);
+            foreach (var (sense, _, pattern) in Rules) text.Append("\nrule:").Append(sense).Append('=').Append(pattern);
+            text.Append("\nwine:").Append(NotAvailable).Append('|').Append(RoseAccented).Append('|').Append(RedNextToWine).Append('|').Append(WhiteNextToWine)
+                .Append('|').Append(RedWord).Append('|').Append(WhiteWord).Append('|').Append(Wine).Append('|').Append(Alcohol).Append('|').Append(RedContext).Append('|').Append(WhiteContext);
+            text.Append("\nfood:").Append(AlcoholicFood).Append('|').Append(NotAlcoholicFood);
+            text.Append("\nnames:").Append(DrinkNamePattern);
+            foreach (var (sense, spec) in Senses.OrderBy(kv => kv.Key, StringComparer.Ordinal))
+                text.Append("\nsense:").Append(sense).Append('=').Append(spec.Kind).Append(':').Append(string.Join(',', spec.Allowed))
+                    .Append(':').Append(string.Join(',', spec.Requires ?? Array.Empty<string>())).Append(':').Append(string.Join(',', spec.Refuses ?? Array.Empty<string>()));
+            text.Append("\nspices:").Append(CatalogAdmissionRule.SpicesAndHerbs.ToString(CultureInfo.InvariantCulture));
+            return text.ToString();
+        }
+    }
+}
