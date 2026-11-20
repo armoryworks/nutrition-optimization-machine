@@ -35,6 +35,7 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `unfold.tsv` | `FoldedLine.Segments` | `segments` (count, or `-` when the line is not read) | `status` |
 | `prose.tsv` | `RewriteFidelity.Check` | `expect`: a reason the check must give, or `passed` | `status` |
 | `piece-counts.tsv` | `RecipeRepairGrounding.PieceRefusal` (repair lane fills and `quantities/revert`) | `expect`: `keep` or `revert` | `status` |
+| `startup-fills.tsv` | `ScrapedRecipeRepairService.RepairBatchAsync` (the start-up repair's amount for a line that states none, in a recipe with its method, its other lines and, when `journal` names one, an open line journal) | `expect` (`<quantity> <unit>`, or `-` for no amount) | `status` |
 | `recipes.json` + `measurements.tsv` | `RecipeNutritionService.RecalculateAsync`, `.StatusFor` | `expected.calories/protein/fat` (4 dp), `countedLines`, `handLabel` | `status` |
 | `line-labels.tsv` | model lane `line-classify` | `kind` | none (scored by the operator run) |
 | `model-lanes.json` | every model lane | floors | — |
@@ -98,6 +99,7 @@ without it.
 | `unfold.tsv` | examples 1–16 of the unfold design, with source lists read from staging | design |
 | `prose.tsv` | 12 public-domain recipes from staging, rewrites built by construction | rule (by construction) |
 | staging rehearsal rows (2026-11-20) in `piece-counts.tsv`, `compound.tsv`, `unfold.tsv`, `lines.tsv`, `veto.tsv`, `prose.tsv` | the wrong and doubtful cases of the C1–C9 operator logs, with the right outcome or "left alone" | the model operator of the rehearsal (`agent-review-staging-2026-11-20`, status `agent`) |
+| `startup-fills.tsv` (2026-11-20) | the split parts a v0.3.118 start filled on staging (pass-2 log, S1) and two stand-alone lines the same method rule still misreads (`known`) | the model operator of the rehearsal (`agent-review-staging-2026-11-20`, status `agent`/`known`) |
 | `recipes.json` | 9 recipes cited in the golden-gate design and 26 sampled curated recipes; expected values are staging's stored labels, which the in-memory service reproduces to 4 dp | catalog facts and arithmetic |
 | `line-labels.tsv` | 120 lines labelled not an ingredient that are exactly a curated food's name (ingredient by the veto rule) and 60 lines the deterministic pre-pass labelled | rule |
 
