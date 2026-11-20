@@ -82,6 +82,19 @@ namespace Nom.Api.Tests.Services
             Target(wording, on).Should().BeNull();
         }
 
+        [Theory]
+        [InlineData("cold boiled potatoes", "Boiled Potatoes", "cold boiled potatoes", null)]
+        [InlineData("2 cups boiling water + 1 cup cold water", "Well Water", "boiling water", "Water")]
+        [InlineData("1 chopped yellow onion", "Yellow Onion", "chopped yellow onion", null)]
+        [InlineData("1 cup chopped onion", "Yellow Onion", "chopped onion", "Onion")]
+        public void The_plan_decides_a_line_by_its_first_segment_and_leaves_one_that_names_its_own_food(string rawLine, string on, string wording, string? expected)
+        {
+            var decision = LineRelinkService.Decide(rawLine, Foods[on], on, Foods);
+
+            decision.Wording.Should().Be(wording);
+            decision.TargetId.Should().Be(expected == null ? null : Foods[expected]);
+        }
+
         [Fact]
         public void A_journaled_place_reads_back_as_the_food_and_position_it_was_written_from()
         {

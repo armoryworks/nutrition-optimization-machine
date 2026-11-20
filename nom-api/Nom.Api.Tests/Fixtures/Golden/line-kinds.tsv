@@ -1,0 +1,10 @@
+id	raw	kind	status	source	note
+cited-23a	buttered paper	equipment	ok	design:golden-gate	example 23
+cited-23b	For the Gravy:	note	ok	design:golden-gate	example 23
+cited-23c	salt + salt	artefact	ok	design:golden-gate	example 23
+cited-24a	lemon wedges (for serving)	-	known	design:golden-gate	example 24: no pre-pass answer
+cited-24b	four cloves of garlic + four cloves of garlic	-	known	design:golden-gate	example 24: a real ingredient
+ai-01	rich puff paste	-	ok	design:ai-design-1	change 1: an ordinary food
+ai-02	chicken-stock	-	ok	design:ai-design-1	change 1: an ordinary food
+ai-03	hot mashed potatoes	-	ok	design:ai-design-1	change 1: an ordinary food
+ai-04	whites 3 eggs beaten stiff	-	ok	design:ai-design-1	change 1: an ordinary food

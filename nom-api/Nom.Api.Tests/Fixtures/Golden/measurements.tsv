@@ -1,0 +1,17 @@
+id	name	category	factor	isBase	isContainer
+1	Gram	1	1.000000	true	false
+2	Milliliter	2	1.000000	true	false
+3	Piece	3	1.000000	true	false
+5	Kilogram	1	1000.000000	false	false
+6	Pound	1	453.592000	false	false
+7	Ounce	1	28.349500	false	false
+10	Liter	2	1000.000000	false	false
+11	Cup	2	236.588000	false	false
+12	Tablespoon	2	14.786800	false	false
+13	Teaspoon	2	4.928920	false	false
+14	Dozen	3	12.000000	false	false
+17	Can	3	1.000000	false	true
+18	Stalk	3	1.000000	false	false
+19	Slice	3	1.000000	false	false
+20	Clove	3	1.000000	false	false
+21	Pinch	2	0.308058	false	false

@@ -1,0 +1,10 @@
+{
+  "compound.tsv:status": 7,
+  "line-kinds.tsv:status": 2,
+  "lines.tsv:name": 5,
+  "lines.tsv:parse": 4,
+  "link-pairs.tsv:status": 35,
+  "links.tsv:status": 3,
+  "recipes.json:status": 3,
+  "wordings.tsv:status": 3
+}

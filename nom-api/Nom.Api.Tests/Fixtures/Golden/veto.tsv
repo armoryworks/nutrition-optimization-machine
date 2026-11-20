@@ -1,0 +1,12 @@
+id	raw	kind	quantity	onCurated	wide	expect	status	source	note
+ai-01	rich puff paste	reference	0	yes	yes	refused	ok	design:ai-design-1	change 1: an ordinary food labelled not an ingredient
+ai-02	chicken-stock	reference	0	yes	yes	refused	ok	design:ai-design-1	change 1: an ordinary food labelled not an ingredient
+ai-03	hot mashed potatoes	reference	0	yes	yes	refused	ok	design:ai-design-1	change 1: an ordinary food labelled not an ingredient
+ai-04	whites 3 eggs beaten stiff	instruction	0	yes	yes	refused	ok	design:ai-design-1	change 1: an ordinary food labelled not an ingredient
+rule-01	1 cup flour	note	1	yes	no	states an amount	ok	rule:veto	a line with an amount is an ingredient
+rule-02	2 tablespoons butter	equipment	2	no	no	states an amount	ok	rule:veto	a line with an amount is an ingredient
+rule-03	Butter	equipment	0	yes	no	names a curated food	ok	rule:veto	exactly a curated food's name
+rule-04	flour	reference	0	no	no	names a curated food	ok	rule:veto	exactly a curated food's name
+rule-05	buttered paper	equipment	0	no	no	-	ok	rule:veto	not a food, no amount, not on a curated food
+rule-06	For the Gravy:	note	0	no	yes	-	ok	rule:veto	a heading off any curated food stands
+rule-07	1 cup flour	ingredient	1	yes	yes	-	ok	rule:veto	an ingredient label is never refused

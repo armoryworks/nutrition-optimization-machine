@@ -78,9 +78,7 @@ namespace Nom.Orch.Services
                 var first = line.RawLine.Split(" + ", 2)[0];
                 if (!decided.TryGetValue((line.IngredientId, first), out var decision))
                 {
-                    var wording = IngredientNameNormalizer.Normalize(first);
-                    var namesOwnFood = Words(names[line.IngredientId]).IsSubsetOf(Words(first));
-                    decision = (wording, namesOwnFood ? null : TargetFor(wording, line.IngredientId, names[line.IngredientId], targets));
+                    decision = Decide(first, line.IngredientId, names[line.IngredientId], targets);
                     decided[(line.IngredientId, first)] = decision;
                 }
                 if (decision.TargetId is { } targetId) moves.Add(new Move(line, decision.Wording, targetId));
@@ -95,6 +93,19 @@ namespace Nom.Orch.Services
                     && (ri.LineKind == null || ri.LineKind == RecipeIngredientLineKind.Ingredient)
                     && !ri.Recipe.IsDeleted && ri.Recipe.ScrapedAtUtc != null
                     && !ri.Ingredient.IsDeleted && ri.Ingredient.CurationStatusId == (long)CurationStatusEnum.Curated);
+
+        /// <summary>
+        /// What the relink plan does with one recipe line on a food: the wording of its first
+        /// " + " segment, and the curated food it moves to, or null to leave it where it is. A line
+        /// whose own text holds every word of its food's name stays; otherwise <see cref="TargetFor"/> decides.
+        /// </summary>
+        internal static (string Wording, long? TargetId) Decide(string rawLine, long currentId, string currentName, IReadOnlyDictionary<string, long> targets)
+        {
+            var first = rawLine.Split(" + ", 2)[0];
+            var wording = IngredientNameNormalizer.Normalize(first);
+            var namesOwnFood = Words(currentName).IsSubsetOf(Words(first));
+            return (wording, namesOwnFood ? null : TargetFor(wording, currentId, currentName, targets));
+        }
 
         /// <summary>
         /// The curated food a wording belongs on when it is not the one it is on, or null to leave

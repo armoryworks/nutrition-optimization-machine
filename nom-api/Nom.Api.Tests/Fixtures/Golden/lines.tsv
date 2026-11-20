@@ -1,0 +1,47 @@
+id	stratum	raw	quantity	measurement	size	wording	bare	parse	name	source	note
+cited-01	leading-number	1 teaspoon salt	1	Teaspoon	*	salt	salt	ok	ok	design:golden-gate	example 1
+cited-02	unicode-fraction	½-pint bread crumbs	1	Cup	*	bread crumbs	bread crumbs	ok	ok	design:golden-gate	example 2
+cited-03	unicode-fraction	³⁄₄ cup butter	0.75	Cup	*	butter	butter	ok	ok	design:golden-gate	example 3
+cited-04	range	1-1/2 cups flour	1.5	Cup	*	flour	flour	ok	ok	design:golden-gate	example 4
+cited-05	number-word	a Gallon of new Milk	16	Cup	*	new Milk	*	ok	ok	design:golden-gate	example 5
+cited-06	trailing-or-inner-number	rich boiling cream (1/4 pint)	0.5	Cup	*	rich boiling cream	*	ok	ok	design:golden-gate	example 6
+cited-07	html-entity	&frac14; to &frac12; ounce honey simple syrup	0.25	Ounce	*	honey simple syrup	*	ok	ok	design:golden-gate	example 7
+cited-08	no-number	a little salt	-	-	*	salt	salt	ok	ok	design:golden-gate	example 8
+cited-09	pack-parenthetical	1 (14-ounce) can sweetened condensed milk	*	*	14 Ounce	*	*	ok	-	design:golden-gate	example 9: the pack weight is the amount
+cited-10	pack-parenthetical	2 15oz. cans black beans ($1.18)	*	*	30 Ounce	black beans	black beans	ok	known	design:golden-gate	example 10: parse and name
+cited-11	number-word	two drachms of saffron	*	*	*	saffron	saffron	-	known	design:golden-gate	example 11: a drachm is a mass, not a piece
+cited-12	trailing-or-inner-number	Chocolate, 2 squares	2	*	*	Chocolate	Chocolate	known	known	design:golden-gate	example 12
+cited-14	attached-metric	60g cheddar cheese, shredded	60	Gram	*	cheddar cheese, shredded	cheddar cheese	ok	known	design:golden-gate	example 14: the wording should drop the amount
+cited-15	range	1/2 to 3/4 cup pistachios, chopped roughly	0.5	Cup	*	*	pistachios	ok	known	design:golden-gate	example 15: the bare name drops the preparation
+cited-16	italian	Burro fresco, 185 grammi	185	Gram	*	*	*	ok	-	design:golden-gate	example 16
+size-01	container	1 13oz. can coconut milk ($1.99)	*	*	13 Ounce	*	*	ok	-	design:count-fallback	sized lines: 369 g
+size-02	container	1 15-oz can chickpeas, rinsed and drained	*	*	15 Ounce	*	*	ok	-	design:count-fallback	sized lines: 425 g
+size-03	container	1 14 ounce can sweetened condensed milk	*	*	14 Ounce	*	*	ok	-	design:count-fallback	sized lines: 397 g
+size-04	container	2 (15-oz.) cans white beans, drained and rinsed	*	*	30 Ounce	*	*	ok	-	design:count-fallback	sized lines: 850 g
+size-05	container	1 15oz. can diced tomatoes ($1.00)	*	*	15 Ounce	*	*	ok	-	design:count-fallback	sized lines: 425 g
+size-06	container	1 (12 ounce) can Evaporated Milk	*	*	12 Ounce	*	*	ok	-	design:count-fallback	sized lines: 340 g
+size-07	container	1 (24 ounce) jar pasta sauce	*	*	24 Ounce	*	*	ok	-	design:count-fallback	sized lines: 680 g
+size-08	container	two 14-ounce cans fire-roasted tomatoes	*	*	28 Ounce	*	*	ok	-	design:count-fallback	on an item weight: 794 g
+size-09	container	1 (4-ounce) can green chiles	*	*	4 Ounce	*	*	ok	-	design:count-fallback	on an item weight
+size-10	container	1 large can (28 ounces) diced tomatoes	*	*	28 Ounce	*	*	ok	-	design:count-fallback	on an item weight: 794 g
+size-11	container	1 (28-ounce) can diced tomatoes	*	*	28 Ounce	*	*	ok	-	design:golden-gate	example 30
+size-12	container	1 (5-ounce) package smoked salmon	*	*	5 Ounce	*	*	ok	-	design:golden-gate	example 39
+size-13	container	1/2 can (about 8 ounces) tomato sauce	*	*	8 Ounce	*	*	ok	-	commit:d41eedf	a size after 'about' is the amount of the whole line
+size-14	container	2 cans (about 30 ounces) black beans	*	*	30 Ounce	*	*	ok	-	commit:d41eedf	a size after 'about' is the amount of the whole line
+size-15	container	2 cans (28 ounces) full fat coconut milk	*	*	28 Ounce	*	*	known	-	report:integrate-not-fixed	28 is the total for two cans; still read as 56
+size-16	container	1 1/2 (180g) cups all-purpose flour	*	*	180 Gram	*	*	ok	-	design:count-fallback	sized lines: 180 g
+unsized-01	container	one can of tomatoes	1	Can	-	*	*	ok	-	design:count-fallback	container with no size
+unsized-02	container	1/4 can of mushrooms	0.25	Can	-	*	*	ok	-	design:count-fallback	container with no size
+unsized-03	container	1 can of corn	1	Can	-	*	*	ok	-	design:count-fallback	container with no size
+unsized-04	container	one can of salmon	1	Can	-	*	*	ok	-	design:count-fallback	container with no size
+unsized-05	container	1 can coconut milk	1	Can	-	*	*	ok	-	design:count-fallback	container with no size
+unsized-06	container	½ can sweetened condensed milk	0.5	Can	-	*	*	ok	-	design:count-fallback	container with no size
+unsized-07	container	2 packages lime flavored gelatin	2	Package	-	*	*	ok	-	design:count-fallback	container with no size
+unsized-08	container	1 tall can of Carnation Milk	1	Can	-	*	*	known	-	report:wave1-count-fallback	still read as Piece
+unsized-09	container	1 family size package golden oreos	1	Package	-	*	*	known	-	report:wave1-count-fallback	still read as Piece
+alone-01	container	4 (6-ounce) salmon filets	*	*	-	*	*	ok	-	design:count-fallback	lines the size rules leave alone
+alone-02	container	40 (½ pound) marshmallows.	*	*	-	*	*	ok	-	design:count-fallback	lines the size rules leave alone
+alone-03	container	8 medium (8-ounces) shrimp	*	*	-	*	*	ok	-	design:count-fallback	lines the size rules leave alone
+alone-04	container	1 can or ½ lb. fresh tomatoes	*	*	-	*	*	ok	-	design:count-fallback	lines the size rules leave alone
+alone-05	container	1 can (#2 size or 2 1/2 cups) pineapple tidbits	*	*	-	*	*	ok	-	design:count-fallback	lines the size rules leave alone
+alone-06	container	1 914-ounce) can coconut cream	*	*	-	*	*	ok	-	design:count-fallback	lines the size rules leave alone

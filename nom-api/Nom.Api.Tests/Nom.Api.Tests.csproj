@@ -31,6 +31,7 @@
   <ItemGroup>
     <None Include="Fixtures\**\*.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Fixtures\**\*.tsv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures\Golden\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

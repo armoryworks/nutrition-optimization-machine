@@ -24,6 +24,20 @@ uses no model; per-100 g values are derived only from an explicit gram weight. L
 FDC, Open Food Facts or manufacturers belong to the Release B lane behind
 `IVerificationLookupLane` (a no-op today). Design in `docs/architecture/shopping-verification.md`.
 
+## Golden Sets and the Release Gate
+
+Person-judged or rule-given cases for the line rules and the model lanes live in
+`nom-api/Nom.Api.Tests/Fixtures/Golden/`; design in `docs/architecture/golden-sets.md`.
+
+- Expected values change only by a hand edit that shows in the diff. A golden case is never a
+  model's answer, and a model never sets a row's status.
+- `NOM_GOLDEN_UPDATE=1` only fills blank cells of `new` rows (marking them `review`), settles judged
+  `new` rows, and promotes `known` rows that now pass; it never raises `baseline.json` and is refused
+  under CI.
+- A `v*` tag does not build until the `gate` job passes: the commit is on `main` and the whole backend
+  suite, golden sets included, is green. A changed model prompt holds the release until an operator
+  re-scores the lane with `--golden-score ... --record` and commits the record.
+
 ## Database Setup
 
 The database uses a declarative (DACPAC-style) workflow — `db/schema.sql` is the source of truth; there are no EF migrations. See `db/README.md`.

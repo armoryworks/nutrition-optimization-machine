@@ -1,0 +1,181 @@
+id	recipe	raw	kind	judgedBy	note
+veto-a8758328fc	-	boiled cabbage	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-713202a391	-	Oysters	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-15a6e066b9	-	boiled beets	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-89dc995715	-	scrambled eggs	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-a2c9302603	-	ketchup	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-a4c5e7d0de	-	Cucumbers	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-41da7dfa84	-	rusk	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-b52fd24f8a	-	boiled beef	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-c8d1a76b75	-	cooked oysters	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-52381cef39	-	sauerkraut	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-28fa5707e2	-	stewed oysters	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-95ba03c8f8	-	whipped cream	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-dc315a811b	-	macaroons	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-0ad3d4d028	-	Puff pastry	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-5bcae6f7de	-	white frosting	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-186a8b72fe	-	Carrots	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-a216511ac7	-	roasted chicken	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-81a436d445	-	chicken meat	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-65f9944b77	-	Peanut sauce	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-d013be4eed	-	Mayonnaise	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-b8bf721de5	-	stewed tomatoes	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-017d73fa1b	-	sponge cake	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-e92ad78e8e	-	white sauce	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-cf9e29f580	-	corn cake	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-39e789a43b	-	fish stock	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-f4a28d8d52	-	catfish	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-5c30f72539	-	boiled onions	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-52bf846384	-	cooked kidney beans	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-f11e9daf58	-	strawberry ice cream	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-ba16f0cae5	-	Steamed rice	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-18c940c2d5	-	baked potatoes	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-55fe6873bb	-	boiled rice	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-c6ad2e0f29	-	Parsnips	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-a57ca52068	-	French rolls	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-08090207f3	-	Asparagus	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-e3b13c3c01	-	fried oysters in batter	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-2141edcb67	-	poached eggs	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-5259b9442e	-	raisin bread	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-769c139c0c	-	cooked peas	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-3168e6a60e	-	lobster	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-fa7735b721	-	pike	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-982e1f5586	-	Spanish Rice	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-ebc11b0963	-	unsweetened applesauce	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-6d6f9563a7	-	vanilla ice cream	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-f0ed9c72fe	-	cooking spray	ingredient	rule:names-a-curated-food	labelled equipment on staging; the line is exactly a curated food's name
+veto-b436cc3bb3	-	stewed chicken	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-8d64024d12	-	beef tongue	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-cc990cb62f	-	broiled oysters	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-30b64ab4fd	-	cooked carrots	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-5b6528dbae	-	Cooked quinoa	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-0143c1e8e9	-	Salsa	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-a26cc3db05	-	Crabs	ingredient	rule:names-a-curated-food	labelled artefact on staging; the line is exactly a curated food's name
+veto-3767b45082	-	Rice	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-d887d4feb1	-	Refried beans	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-a46521753e	-	Sardines	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-4be8896bc3	-	beef gravy	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-e046ebae62	-	biscuits	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-246935e2f3	-	tuna salad	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-5cf7e42698	-	pineapple juice	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-79dd9cd52b	-	ladyfingers	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-abbfbaf847	-	boiled barley	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-3a0823b501	-	corned beef	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-51fb46f527	-	boiled clams	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-35bab32db6	-	canned corn	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-bbe46f5461	-	Boston brown bread	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-92577ac1ab	-	fish sauce	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-8ebbcb03ab	-	cooked wild rice	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-fd0b873702	-	gingersnaps	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-db4698f984	-	chocolate fudge	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-2235a09eb3	-	pate de foie gras	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-36846677e3	-	Duck	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-39ae689f82	-	Oyster Sauce	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-0d50558f9d	-	chocolate ice cream	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-058d07c016	-	Jerusalem Artichokes	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-8ef02db51f	-	Toasted bread	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-6548f28be8	-	Cream Cheese Frosting	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-95cd3fc018	-	Peaches	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-2a80e48dd0	-	boiled peanuts	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-3b3a1b58ca	-	breast of veal	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-fda77e7c1f	-	clarified butter	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-102d51d074	-	Peanut butter	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-7add57b9f8	-	Summer Squash	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-a240f445ca	-	Anchovies	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-8d872428bb	-	Brownies	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-648cf76bd7	-	cooked halibut	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-6dfe9828b7	-	French dressing	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-406332c061	-	Cauliflower	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-5efda72e7e	-	almond paste	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-34d6cc2133	-	chicken broth	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-d4bdc079dd	-	Veal Cutlets	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-0f4ef0d636	-	boiled lobster	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-089f2b8c82	-	Lima Beans	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-fc4e8e45cc	-	low-sodium chicken broth	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-8a270b8527	-	Italian Dressing	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-731ddd16eb	-	ranch dressing	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-edf8377563	-	Pumpkin	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-af707f665c	-	Boneless turkey roast	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-220f299753	-	leg of pork	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-0d45901750	-	cream cheese	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-96ba616be0	-	raspberry purée	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-2b9f1cc64c	-	boiled parsnips	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-4e8a00a4d2	-	Green Goddess Dressing	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-76aba95cba	-	Spinach	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-ff7919cc16	-	chocolate frosting	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-32a203b925	-	white cake	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-35f6a83a5b	-	crackers	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-3c23d986e9	-	tomato soup	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-878313ba24	-	glaze	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-c6e6e173c0	-	hard-boiled eggs	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-db1b59702c	-	pie crust	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-a48f8cd5b2	-	Guinea Fowls	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-5a8f444c87	-	Caesar dressing	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-53f8d64113	-	Tomatoes	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-d48d66e246	-	Thousand Island Dressing	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-9509b0eb32	-	Carp	ingredient	rule:names-a-curated-food	labelled note on staging; the line is exactly a curated food's name
+veto-43ea1b2ad5	-	boiled pumpkin	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-3168a2c5f4	-	Pita bread	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-e345ec3b5f	-	Chocolate Sauce	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-cc60199b6e	-	Cranberry sauce	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+veto-2fd36c1f50	-	vanilla frosting	ingredient	rule:names-a-curated-food	labelled reference on staging; the line is exactly a curated food's name
+prepass-e851ac4fc9	-	Peach Filling:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-17770ed450	-	Topping Ingredients:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-319a69a4b9	-	stewpan	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-c8bfb360c3	-	For the streusel topping:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-f5586fd8b1	-	For the chocolate ganache:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-d8bc0f65a1	-	For the eggnog glaze:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-8ad7b68afa	-	bain-marie	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-c57bc85f3a	-	kitchen paper	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-7c1d335892	-	For the Tofu:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-ac15587b24	-	greased pan	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-79682d7f17	-	For the Citrus Dressing:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-181da94978	-	For the Hazelnut Streusel Topping:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-eabf7869af	-	For the slow roasted tomatoes:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-6854512fa9	-	Marmalade Pineapple Glaze:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-070dce7ade	-	For the cookie:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-636c063cb5	-	_four to six servings_	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-6e075c6ad8	-	For the Maple Mustard Dressing:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-3ab425bf22	-	Double Pie Crust:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-d43f5de53a	-	For the bars:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-c06b69081f	-	Toffee caramel sauce:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-f148949f4e	-	For the Peanut Butter Streusel Topping:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-2692fda8aa	-	pie pan	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-b85cb24b40	-	Large roasting pan	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-9ccc2e2ac6	-	Dough:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-6f65182749	-	For the Compote:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-e11d1c53f3	-	white paper	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-601917c759	-	small cloths	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-e9b21102f1	-	For Stew:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-f7b27a6564	-	clean pans	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-d079047ef2	-	molds	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-0548350704	-	_six to eight servings_	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-c68390c342	-	wooden skewer	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-03d6c385d4	-	shallow tin	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-cd3b9ef1a3	-	baking pan	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-bb71ea09a2	-	half a slice of lemon per portion	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-6a5f49d2d9	-	For the topping:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-2733dff400	-	wet Paper	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-89feeb702e	-	clean cloth	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-c87e102945	-	basins	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-9301500abd	-	For the pizza:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-b7d5e8b5bd	-	For the Polenta Rounds:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-a4b7860bd1	-	For the Roasted Strawberries:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-848cd27cd1	-	mould	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-d7bfba1bab	-	For Sesame Soy Dressing:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-eed201e70c	-	Deep pudding pan	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-237348814d	-	Lemon wedges (for squeezing and serving)	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-ca5c72567e	-	For the Dumplings:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-7eafea57f9	-	Brown Sugar Cinnamon Filling:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-b9d27d6b3d	-	Cloth	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-6d463bce4f	-	Streusel Topping:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-66938f95da	-	roasting pan	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-0c3f821f7a	-	_ten to twelve servings_	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-7e3f660480	-	paper	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-01cad3df88	-	wet cloth	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-2d8f901da2	-	buttered mould	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-0ad9f97589	-	mold	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-98f0877b2a	-	hot oven	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-b2542c1603	-	For Dressing:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-6f5119e064	-	small molds	equipment	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
+prepass-383cb26953	-	Corn Bread Batter:	note	rule:deterministic-pre-pass	answered by the deterministic pre-pass on staging
