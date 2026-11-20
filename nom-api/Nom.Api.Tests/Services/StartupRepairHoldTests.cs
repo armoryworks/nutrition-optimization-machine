@@ -369,5 +369,24 @@ namespace Nom.Api.Tests.Services
             (undone.Restored, undone.Skipped).Should().Be((0, 1));
             (await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == recipe)).Quantity.Should().Be(2m);
         }
+
+        [Theory]
+        [InlineData("one of rosemary", "Rosemary", "Stuff the fowl with one rosemary sprig and roast it.")]
+        [InlineData("one of Moselle wine (or hock)", "Moselle Wine", "Pour in one wine glass of the stock.")]
+        public async Task A_count_read_back_as_the_same_count_is_neither_written_nor_journaled(string line, string food, string method)
+        {
+            using var db = await NewContextAsync();
+            var foods = await FoodsAsync(db, food, "Flour");
+            var recipe = await RecipeAsync(db, foods, new[] { method }, (food, 0, 1m, Piece, line, null), ("Flour", 1, 0m, Gram, "1 cup flour", null));
+            var before = await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == recipe && ri.SortOrder == 0);
+
+            var result = await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 500);
+
+            result.RowsRepaired.Should().Be(1, "only the flour line changes");
+            (await db.AuditLogEntries.Where(a => a.ChangeType == ScrapedRecipeRepairService.FillChangeType).Select(a => a.PropertyName).ToListAsync())
+                .Should().Equal($"LineKind[{foods["Flour"]}:1]");
+            var after = await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == recipe && ri.SortOrder == 0);
+            (after.Quantity, after.MeasurementId, after.LastModifiedDate).Should().Be((1m, Piece, before.LastModifiedDate));
+        }
     }
 }

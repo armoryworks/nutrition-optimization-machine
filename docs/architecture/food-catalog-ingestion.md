@@ -601,7 +601,11 @@ Two rules make it safe to restart the API between any apply and its undo:
 - **Every amount it still changes is journaled.** One `audit.AuditLogEntry` per line
   (`EntityType` `RecipeIngredient`, `EntityId` the recipe, `ChangeType` `StartupFill`, the line as
   `LineKind[food:position]`, amount before and after as `food@position|quantity|measurement`), and
-  the row gets `LastModifiedDate`, so the nutrition sweep recalculates the label.
+  the row gets `LastModifiedDate`, so the nutrition sweep recalculates the label. Only the net change
+  of a line is written: a count that is emptied as elliptical and then filled again from the method
+  with the same amount ("one of rosemary", "one of Moselle wine (or hock)") is neither written nor
+  journaled, so a start no longer logs that pair on every restart and `startup-fills/undo` cannot
+  take half of it back.
 
 ```
 POST /api/FoodCatalog/startup-fills/undo?sinceUtc=<utc time>&apply=false   # dry run: entries, lines it would restore, lines changed since

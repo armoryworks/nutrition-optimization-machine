@@ -73,39 +73,14 @@ namespace Nom.Orch.Services
                 if (held.Contains(recipe.Id)) rows.Clear();
                 foreach (var row in rows)
                 {
-                    var firstLine = (row.RawLine ?? string.Empty).Split(" + ", 2)[0];
-                    if (row.Quantity != 0)
+                    var (was, wasUnit, wasModified) = (row.Quantity, row.MeasurementId, row.LastModifiedDate);
+                    if (!Fill(recipe, row, rows, measurements, foodNames)) unparsed++;
+                    if (row.Quantity == was && row.MeasurementId == wasUnit)
                     {
-                        var (pieces, pieceUnit) = (row.Quantity, row.MeasurementId);
-                        if (!RereadPieces(row, firstLine, measurements)) continue;
-                        Journal(recipe.Id, row, pieces, pieceUnit, now);
-                        repaired++;
-                        if (row.Quantity != 0) continue;
-                    }
-
-                    if (foodNames.TryGetValue(row.IngredientId, out var foodName) && !FoodNameMatcher.NamesFood(firstLine, foodName))
-                    {
-                        unparsed++;
+                        row.LastModifiedDate = wasModified;
                         continue;
                     }
 
-                    var others = rows.Where(other => !ReferenceEquals(other, row)).ToList();
-                    var parsed = IngredientLineParser.Parse(firstLine)
-                        ?? (others.Any(other => other.IngredientId == row.IngredientId)
-                            ? null
-                            : MethodAmountFinder.Find(
-                                firstLine,
-                                (recipe.RecipeSteps ?? Enumerable.Empty<RecipeStepEntity>()).Where(st => !st.IsDeleted).Select(st => st.Description ?? string.Empty),
-                                others.Select(other => other.RawLine ?? string.Empty)));
-                    if (parsed == null || !measurements.TryGetValue(parsed.MeasurementName, out var measurementId))
-                    {
-                        unparsed++;
-                        continue;
-                    }
-
-                    var (was, wasUnit) = (row.Quantity, row.MeasurementId);
-                    row.Quantity = parsed.Quantity;
-                    row.MeasurementId = measurementId;
                     Journal(recipe.Id, row, was, wasUnit, now);
                     repaired++;
                 }
@@ -119,6 +94,34 @@ namespace Nom.Orch.Services
             await _context.SaveChangesAsync(cancellationToken);
             _context.ChangeTracker.Clear();
             return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded, held.Count);
+        }
+
+        /// <summary>
+        /// Gives one line the amount its text, or the method, states: a piece count whose text states
+        /// a unit takes that unit, and a line with no amount is filled. False when a line left without
+        /// an amount could not be read. The caller journals only a net change, so a count that is read
+        /// back as the same count ("one of rosemary": elliptical, then 1 piece) writes nothing.
+        /// </summary>
+        private static bool Fill(RecipeEntity recipe, Nom.Data.Recipe.RecipeIngredientEntity row, List<Nom.Data.Recipe.RecipeIngredientEntity> rows,
+            Dictionary<string, long> measurements, Dictionary<long, string> foodNames)
+        {
+            var firstLine = (row.RawLine ?? string.Empty).Split(" + ", 2)[0];
+            if (row.Quantity != 0 && (!RereadPieces(row, firstLine, measurements) || row.Quantity != 0)) return true;
+            if (foodNames.TryGetValue(row.IngredientId, out var foodName) && !FoodNameMatcher.NamesFood(firstLine, foodName)) return false;
+
+            var others = rows.Where(other => !ReferenceEquals(other, row)).ToList();
+            var parsed = IngredientLineParser.Parse(firstLine)
+                ?? (others.Any(other => other.IngredientId == row.IngredientId)
+                    ? null
+                    : MethodAmountFinder.Find(
+                        firstLine,
+                        (recipe.RecipeSteps ?? Enumerable.Empty<RecipeStepEntity>()).Where(st => !st.IsDeleted).Select(st => st.Description ?? string.Empty),
+                        others.Select(other => other.RawLine ?? string.Empty)));
+            if (parsed == null || !measurements.TryGetValue(parsed.MeasurementName, out var measurementId)) return false;
+
+            row.Quantity = parsed.Quantity;
+            row.MeasurementId = measurementId;
+            return true;
         }
 
         private void Journal(long recipeId, Nom.Data.Recipe.RecipeIngredientEntity row, decimal quantity, long measurementId, DateTime now)
