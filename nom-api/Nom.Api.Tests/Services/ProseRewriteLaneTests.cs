@@ -74,8 +74,10 @@ namespace Nom.Api.Tests.Services
                     .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)))
                 .BuildServiceProvider();
             var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings ?? new()).Build();
+            var gate = new AiLaneGate(provider.GetRequiredService<IServiceScopeFactory>(), configuration,
+                new AiHostMonitor(new Factory(model), configuration, NullLogger<AiHostMonitor>.Instance), NullLogger<AiLaneGate>.Instance);
             var lane = new ProseRewriteHostedService(
-                provider.GetRequiredService<IServiceScopeFactory>(), configuration, new Factory(model), NullLogger<ProseRewriteHostedService>.Instance);
+                provider.GetRequiredService<IServiceScopeFactory>(), configuration, new Factory(model), NullLogger<ProseRewriteHostedService>.Instance, gate);
             return (provider, lane);
         }
 
@@ -201,8 +203,9 @@ namespace Nom.Api.Tests.Services
             var first = await SeedAsync(provider, SourceSteps);
             var second = await SeedAsync(provider, SourceSteps);
 
-            await SweepAsync(lane);
+            var (_, outage) = await lane.SweepAsync("http://model", "test-model", 25, 30, true, CancellationToken.None);
 
+            outage.Should().BeOfType<HttpRequestException>();
             model.Prompts.Should().HaveCount(1);
             using var scope = provider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
