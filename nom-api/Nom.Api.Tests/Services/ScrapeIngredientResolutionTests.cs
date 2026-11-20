@@ -305,5 +305,40 @@ namespace Nom.Api.Tests.Services
             var line = await db.RecipeIngredients.SingleAsync();
             (line.Quantity, line.MeasurementId).Should().Be(((decimal)quantity, measurementId));
         }
+
+        [Fact]
+        public async Task A_wording_a_lane_applied_link_merged_lands_on_its_food_and_the_link_undo_takes_the_new_line_back_too()
+        {
+            using var db = NewContext();
+            var salt = await FoodAsync(db, "Salt, table");
+            var kosher = await FoodAsync(db, "kosher salt", CurationStatusEnum.NonCurated, deleted: true);
+            await AliasAsync(db, salt, "kosher salt", "link:ai:fake");
+            var proposal = new Nom.Data.Curation.FoodCatalogProposalEntity
+            {
+                Action = Nom.Data.Curation.FoodProposalAction.Update, IngredientId = kosher.Id, Field = FoodCatalogReviewService.FdcLinkField, CurrentValue = "kosher salt",
+                ProposedValue = salt.Id.ToString(), Source = "ai:fake", Status = Nom.Data.Curation.FoodProposalStatus.Applied, ReviewedByPersonId = Nom.Data.SystemConstants.SystemPersonId,
+            };
+            db.FoodCatalogProposals.Add(proposal);
+            await db.SaveChangesAsync();
+            var linked = DateTime.UtcNow.AddMinutes(-5);
+            db.AuditLogEntries.Add(Nom.Orch.Services.Support.LinkApplyJournal.Entry(proposal.Id, Nom.Orch.Services.Support.LinkApplyJournal.Header,
+                Nom.Orch.Services.Support.LinkApplyJournal.Write(new Nom.Orch.Services.Support.LinkApplyJournal.HeaderValue(kosher.Id, "kosher salt", (long)CurationStatusEnum.NonCurated, "ai:fake", true, salt.Id)),
+                salt.Id.ToString(), linked, Nom.Data.SystemConstants.SystemPersonId));
+            await db.SaveChangesAsync();
+
+            var landed = await ImportAsync(db, "kosher salt");
+
+            landed.Id.Should().Be(salt.Id);
+            (await db.Ingredients.IgnoreQueryFilters().CountAsync(i => i.Name.StartsWith("kosher salt"))).Should().Be(1, "no new row takes the name and the retired one keeps it");
+            db.ChangeTracker.Clear();
+
+            var currentUser = new Mock<ICurrentUserService>();
+            currentUser.SetupGet(u => u.PersonIdOrSystem).Returns(Importer);
+            var undone = await new LinkApplyUndoService(db, currentUser.Object).UndoAsync(linked.AddSeconds(-1), apply: true);
+
+            undone.Proposals.Should().Be(1);
+            (await db.RecipeIngredients.SingleAsync()).IngredientId.Should().Be(kosher.Id);
+            (await db.Ingredients.SingleAsync(i => i.Id == kosher.Id)).IsDeleted.Should().BeFalse();
+        }
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Audit;
+using Nom.Data.Curation;
 using Nom.Data.Recipe;
 using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
@@ -494,7 +495,7 @@ namespace Nom.Orch.Services
             var sortOrder = 0;
             foreach (var ingredient in scraped.Ingredients)
             {
-                var ingredientEntity = await FindOrCreateIngredientAsync(Clamp(ingredient.Name, 2047)!, personId);
+                var (ingredientEntity, followed) = await FindOrCreateIngredientAsync(Clamp(ingredient.Name, 2047)!, personId);
                 if (PackageLineService.WeighsDrained(ingredientEntity.Name) && scrapedAmounts.TryGetValue(ingredient, out var amount))
                 {
                     var counted = await KnownMeasurementAsync(Support.IngredientLineParser.Normalize(amount.Quantity, amount.Unit, ingredient.RawLine, drained: true), ingredient.RawLine);
@@ -512,8 +513,16 @@ namespace Nom.Orch.Services
                     Quantity = ingredient.Quantity ?? 0m,
                     MeasurementId = measurementId,
                     RawLine = Clamp(ingredient.RawLine, 2047)!,
-                    SortOrder = sortOrder++,
+                    SortOrder = sortOrder,
                 });
+                if (followed is { } link)
+                {
+                    _dbContext.AuditLogEntries.AddRange(Support.LinkApplyJournal.LinesMoved(
+                        link.ProposalId, link.HolderId, ingredientEntity.Id, Array.Empty<Support.LinkApplyJournal.LineShift>(),
+                        new[] { new Support.LinkApplyJournal.LinePlace { RecipeId = recipe.Id, SortOrder = sortOrder } },
+                        DateTime.UtcNow, personId ?? SystemConstants.SystemPersonId));
+                }
+                sortOrder++;
             }
 
             var stepNumber = 1;
@@ -568,12 +577,16 @@ namespace Nom.Orch.Services
         /// <summary>
         /// The catalog row a scraped ingredient name belongs on, tried in this order: the curated
         /// food the verified wording table gives the name to (when VerifiedWordings:ResolveOnImport
-        /// is set), a live ingredient of that name, then the one food a trusted alias gives the name to, and
-        /// otherwise a new uncurated ingredient that the link lane proposes a food for later.
+        /// is set), a live ingredient of that name, then the one food a trusted alias gives the name to,
+        /// then the food an applied link merged the retired ingredient of that name into (the line is
+        /// journaled under that link, so undoing the link moves it back), and otherwise a new
+        /// uncurated ingredient that the link lane proposes a food for later.
         /// Matching is case-insensitive (translated to SQL via ToLower — StringComparison
         /// overloads don't translate in EF).
         /// </summary>
-        private async Task<IngredientEntity> FindOrCreateIngredientAsync(string name, long? personId)
+        private sealed record FollowedLink(long ProposalId, long HolderId);
+
+        private async Task<(IngredientEntity Food, FollowedLink? Link)> FindOrCreateIngredientAsync(string name, long? personId)
         {
             // Scrapers routinely fail to split quantity/unit off the line and
             // hand "1 can black beans" as the name; that residue minted 60% of
@@ -582,10 +595,49 @@ namespace Nom.Orch.Services
             var trimmed = Support.IngredientNameNormalizer.Normalize(name);
             var lowered = trimmed.ToLowerInvariant();
 
-            return await FindByVerifiedWordingAsync(lowered)
+            var found = await FindByVerifiedWordingAsync(lowered)
                 ?? await FindByNameAsync(lowered)
-                ?? await FindByTrustedAliasAsync(lowered)
-                ?? await CreateIngredientAsync(trimmed, personId);
+                ?? await FindByTrustedAliasAsync(lowered);
+            if (found != null) return (found, null);
+            if (await FindByAppliedLinkAsync(lowered) is { } linked) return linked;
+            return (await CreateIngredientAsync(trimmed, personId), null);
+        }
+
+        /// <summary>
+        /// The live food an applied link merged the retired ingredient of this name into, while that
+        /// link's journal can still take it back. A lane-applied link leaves only an untrusted alias,
+        /// so without this every harvest would free the name and create the wording again.
+        /// </summary>
+        private async Task<(IngredientEntity, FollowedLink)?> FindByAppliedLinkAsync(string lowered)
+        {
+            var holders = await _dbContext.Ingredients.IgnoreQueryFilters()
+                .Where(i => i.IsDeleted && i.Name.ToLower() == lowered)
+                .OrderByDescending(i => i.Id)
+                .Select(i => i.Id)
+                .ToListAsync();
+            foreach (var holderId in holders)
+            {
+                var links = await _dbContext.FoodCatalogProposals
+                    .Where(p => p.IngredientId == holderId && p.Field == FoodCatalogReviewService.FdcLinkField && p.Status == FoodProposalStatus.Applied)
+                    .OrderByDescending(p => p.Id)
+                    .Select(p => p.Id)
+                    .ToListAsync();
+                foreach (var proposalId in links)
+                {
+                    var header = (await _dbContext.AuditLogEntries
+                            .Where(a => a.EntityType == Support.LinkApplyJournal.EntityType && a.ChangeType == Support.LinkApplyJournal.ChangeType
+                                && a.EntityId == proposalId && a.PropertyName == Support.LinkApplyJournal.Header)
+                            .OrderByDescending(a => a.Id)
+                            .Select(a => a.OldValue)
+                            .ToListAsync())
+                        .Select(Support.LinkApplyJournal.Read<Support.LinkApplyJournal.HeaderValue>)
+                        .FirstOrDefault();
+                    if (header is not { Merged: true } || header.Food != holderId) continue;
+                    var target = await _dbContext.Ingredients.FirstOrDefaultAsync(i => i.Id == header.Target && !i.IsDeleted);
+                    if (target != null) return (target, new FollowedLink(proposalId, holderId));
+                }
+            }
+            return null;
         }
 
         /// <summary>
