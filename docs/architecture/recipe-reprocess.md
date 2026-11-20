@@ -98,7 +98,9 @@ from a stored record rebuilds to the same lines (as long as its method fills not
 source line by text (a fold by its first part) and sets `SortOrder` from the source, nothing
 else: food, amount, kind and text stay. A row with no source line holds the recipe
 (`order-unpaired`). Same journal, kind `order`. Meant for the 105,775 recipes whose lines all sit
-at position 0.
+at position 0. Its header is `ReprocessOrder`, which does not hold the recipe: the line-classify,
+repair and start-up lanes keep working on it, and its undo then skips a recipe they changed. The
+older line undos skip it like a rebuild, since its keys changed.
 
 ## Duplicate retire
 

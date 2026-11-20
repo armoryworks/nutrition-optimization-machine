@@ -38,6 +38,7 @@ namespace Nom.Orch.Services
     {
         public const string RecipeEntityType = "Recipe";
         public const string ReprocessChangeType = "Reprocess";
+        public const string ReprocessOrderChangeType = "ReprocessOrder";
         public const string ReprocessUndoneChangeType = "ReprocessUndone";
         public const string UndoChangeType = "ReprocessUndo";
         public const string RuleRejectChangeType = "RuleReject";
@@ -601,7 +602,8 @@ namespace Nom.Orch.Services
             {
                 _db.AuditLogEntries.Add(new AuditLogEntryEntity
                 {
-                    EntityType = ScrapedRecipeRepairService.LineEntityType, EntityId = journal.RecipeId, ChangeType = ReprocessChangeType,
+                    EntityType = ScrapedRecipeRepairService.LineEntityType, EntityId = journal.RecipeId,
+                    ChangeType = journal.Kind == RecipeReprocessKind.Order ? ReprocessOrderChangeType : ReprocessChangeType,
                     PropertyName = journal.Kind, NewValue = value, Timestamp = stamp, ChangedByPersonId = by,
                 });
             }
@@ -827,7 +829,8 @@ namespace Nom.Orch.Services
                 entry.UndoneAt = now;
                 var marker = string.Create(CultureInfo.InvariantCulture, $"journal={entry.Id};");
                 var headers = await _db.AuditLogEntries
-                    .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType && a.EntityId == recipe.Id && a.ChangeType == ReprocessChangeType
+                    .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType && a.EntityId == recipe.Id
+                        && (a.ChangeType == ReprocessChangeType || a.ChangeType == ReprocessOrderChangeType)
                         && a.NewValue != null && a.NewValue.StartsWith(marker))
                     .ToListAsync();
                 foreach (var header in headers) header.ChangeType = ReprocessUndoneChangeType;
@@ -859,7 +862,8 @@ namespace Nom.Orch.Services
             a.CurationStatusId == b.CurationStatusId && a.VettingIssues == b.VettingIssues && a.IsDeleted == b.IsDeleted;
 
         /// <summary>
-        /// The newest standing reprocess of each of the given recipes that rewrote its lines. An older
+        /// The newest standing reprocess of each of the given recipes that rewrote its lines, order-only
+        /// writes included. An older
         /// line journal's undo skips a recipe rebuilt after that journal's entry: the rebuild replaced
         /// the rows the entry names, so it is undone first.
         /// </summary>
@@ -869,7 +873,8 @@ namespace Nom.Orch.Services
             foreach (var chunk in recipeIds.Distinct().Chunk(IdsPerRead))
             {
                 var headers = await db.AuditLogEntries.AsNoTracking()
-                    .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType && a.ChangeType == ReprocessChangeType && chunk.Contains(a.EntityId))
+                    .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType
+                        && (a.ChangeType == ReprocessChangeType || a.ChangeType == ReprocessOrderChangeType) && chunk.Contains(a.EntityId))
                     .GroupBy(a => a.EntityId)
                     .Select(g => new { RecipeId = g.Key, At = g.Max(a => a.Timestamp) })
                     .ToListAsync();

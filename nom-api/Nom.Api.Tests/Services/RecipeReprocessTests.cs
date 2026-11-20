@@ -487,6 +487,8 @@ namespace Nom.Api.Tests.Services
             var lines = await LinesAsync(db, recipe.Id);
             lines.Select(l => (l.IngredientId, l.SortOrder, l.Quantity, l.MeasurementId)).Should().Equal((flour.Id, 0, 2m, Cup), (sugar.Id, 1, 1m, Piece), (eggs.Id, 2, 3m, Piece));
             (await db.RecipeReprocessJournals.SingleAsync()).Kind.Should().Be(RecipeReprocessKind.Order);
+            (await RecipeLineHold.HeldAsync(db, new[] { recipe.Id })).Should().NotContain(recipe.Id);
+            (await RecipeReprocessService.RebuiltAtAsync(db, new[] { recipe.Id })).Should().ContainKey(recipe.Id);
         }
 
         [Fact]

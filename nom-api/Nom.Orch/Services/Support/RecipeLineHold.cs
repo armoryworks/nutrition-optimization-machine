@@ -15,14 +15,15 @@ namespace Nom.Orch.Services.Support
     /// entry, which frees the recipe again. Background writers (the start-up repair, the repair and
     /// line-classify lanes) leave the lines of a held recipe as they are, so the undo restores every
     /// row it wrote however often the API restarts in between. Only the line labels of the classify
-    /// lane, which no undo reads, and the start-up repair's own entries hold no recipe.
+    /// lane, which no undo reads, the start-up repair's own entries, an order-only reprocess (its undo
+    /// skips a recipe changed since) and an undone reprocess hold no recipe.
     /// </summary>
     public static class RecipeLineHold
     {
         private static readonly string[] Unheld =
         {
             ScrapedRecipeRepairService.FillChangeType, RecipeLineClassificationService.ClassifyChangeType, RecipeLineClassificationService.SuggestedChangeType,
-            RecipeReprocessService.ReprocessUndoneChangeType,
+            RecipeReprocessService.ReprocessUndoneChangeType, RecipeReprocessService.ReprocessOrderChangeType,
         };
 
         /// <summary>The held recipes among <paramref name="recipeIds"/>; entries of the change types in <paramref name="alsoUnheld"/> (a writer's own) hold none.</summary>
