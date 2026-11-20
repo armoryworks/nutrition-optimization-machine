@@ -1,0 +1,8 @@
+wording	verdict	food_id	food_fdc_id	food_name	lines_at_review	batch_row	reason
+thyme	food		173470	Fresh Thyme	1140	W01-6	sprigs and bunches are fresh thyme
+vanilla	food	900		Vanilla Extract	2433	W01-1	a recipe's vanilla is the extract
+white wine	none				1461	W01-2	the catalog has no wine yet
+kosher salt and pepper	unclear				649	W01-15	two foods
+lemon rind	food		999999	Lemon Peel	1229	W01-4	peel of a lemon
+Crisco	food		172336	Shortening	973	W01-9	the brand is vegetable shortening
+sweet herbs	unclear	891	W01-10

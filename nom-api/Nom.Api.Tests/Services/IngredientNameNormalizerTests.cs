@@ -122,5 +122,18 @@ namespace Nom.Api.Tests.Services
             Assert.DoesNotContain("pepper", IngredientNameNormalizer.LookupKeys("peppers"));
             Assert.DoesNotContain("cloves", IngredientNameNormalizer.LookupKeys("clove"));
         }
+
+        [Theory]
+        [InlineData("2 cups Kosher Salt", "kosher salt")]
+        [InlineData("Vanilla", "vanilla")]
+        [InlineData("grated rind of 1 lemon", "lemon rind")]
+        [InlineData("chopped onions", "chopped onions")]
+        public void The_wording_key_is_the_normalised_name_lower_cased_and_does_not_change_again(string name, string expected)
+        {
+            var key = IngredientNameNormalizer.WordingKey(name);
+
+            Assert.Equal(expected, key);
+            Assert.Equal(key, IngredientNameNormalizer.WordingKey(key));
+        }
     }
 }

@@ -193,6 +193,12 @@ namespace Nom.Orch.Services.Support
             else { Add(key + "s"); Add(key + "es"); }
         }
 
+        /// <summary>
+        /// The key a wording is judged and looked up under in the verified wording table: the
+        /// normalised name, lower-cased, with no word folded or taken off.
+        /// </summary>
+        public static string WordingKey(string name) => Normalize(name).ToLowerInvariant();
+
         /// <summary>True when normalization would change this catalog name.</summary>
         public static bool IsResidue(string name) =>
             !string.Equals(Normalize(name), name?.Trim(), StringComparison.Ordinal);
