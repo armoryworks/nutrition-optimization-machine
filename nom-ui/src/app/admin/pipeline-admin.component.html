@@ -1,0 +1,382 @@
+<div class="nom-dashboard" data-testid="pipeline">
+  <div class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <a routerLink="/admin" class="nom-dashboard__back" data-testid="pipeline-back-link">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Admin
+      </a>
+      <h1 class="nom-dashboard__title">Pipeline</h1>
+      @if (status(); as s) {
+        <span class="nom-dashboard__subtitle" data-testid="pipeline-generated-at">
+          As of {{ s.generatedAt | date: 'MMM d, HH:mm' }}{{ s.fromCache ? ' (cached)' : '' }}
+        </span>
+      }
+    </div>
+    <div class="nom-dashboard__header-right">
+      <button mat-icon-button (click)="refresh()" [disabled]="loading()" aria-label="Recompute" data-testid="pipeline-refresh-btn">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="nom-pipeline__error" role="alert" data-testid="pipeline-error">{{ errorMessage() }}</p>
+  }
+
+  @if (loading() && !data()) {
+    <p class="nom-pipeline__hint" data-testid="pipeline-loading">Counting… this reads every recipe line and takes a few seconds.</p>
+  }
+
+  @if (data(); as d) {
+    @let s = d.status;
+
+    <section class="nom-pipeline__section" data-testid="pipeline-recipes">
+      <h2 class="nom-pipeline__heading">Recipes</h2>
+      <dl class="nom-pipeline__stats">
+        <div><dt>Approved</dt><dd data-testid="pipeline-metric-recipes-approved">{{ s.recipes.approved | number }}</dd></div>
+        <div><dt>Waiting</dt><dd data-testid="pipeline-metric-recipes-waiting">{{ s.recipes.waiting | number }}</dd></div>
+        <div><dt>Needs revision</dt><dd data-testid="pipeline-metric-recipes-needs-revision">{{ s.recipes.needsRevision | number }}</dd></div>
+        <div><dt>Rejected</dt><dd data-testid="pipeline-metric-recipes-rejected">{{ s.recipes.rejected | number }}</dd></div>
+      </dl>
+      <h3 class="nom-pipeline__subheading">Waiting on unresolved foods</h3>
+      <dl class="nom-pipeline__stats">
+        <div><dt>None</dt><dd data-testid="pipeline-metric-blocked-none">{{ s.recipes.waitingBlockedBy.none | number }}</dd></div>
+        <div><dt>One</dt><dd data-testid="pipeline-metric-blocked-one">{{ s.recipes.waitingBlockedBy.one | number }}</dd></div>
+        <div><dt>Two</dt><dd data-testid="pipeline-metric-blocked-two">{{ s.recipes.waitingBlockedBy.two | number }}</dd></div>
+        <div><dt>Three or more</dt><dd data-testid="pipeline-metric-blocked-three-or-more">{{ s.recipes.waitingBlockedBy.threeOrMore | number }}</dd></div>
+      </dl>
+      <dl class="nom-pipeline__stats">
+        <div><dt>Waiting, public domain</dt><dd data-testid="pipeline-metric-recipes-waiting-public-domain">{{ s.recipes.waitingPublicDomain | number }}</dd></div>
+        <div><dt>Waiting, scraped without own image</dt><dd data-testid="pipeline-metric-recipes-waiting-without-image">{{ s.recipes.waitingScrapedWithoutOwnImage | number }}</dd></div>
+        <div><dt>Waiting with source prose</dt><dd data-testid="pipeline-metric-recipes-waiting-source-prose">{{ s.recipes.waitingWithSourceProse | number }}</dd></div>
+        <div><dt>Revision: missing quantities</dt><dd data-testid="pipeline-metric-recipes-revision-quantities">{{ s.recipes.revisionMissingQuantities | number }}</dd></div>
+        <div><dt>Revision: steps</dt><dd data-testid="pipeline-metric-recipes-revision-steps">{{ s.recipes.revisionSteps | number }}</dd></div>
+        <div><dt>Approved with an uncounted line</dt><dd data-testid="pipeline-metric-recipes-uncounted-line">{{ s.recipes.approvedWithUncountedLine | number }}</dd></div>
+        <div><dt>Approved without image</dt><dd data-testid="pipeline-metric-recipes-without-image">{{ s.recipes.approvedWithoutImage | number }}</dd></div>
+        <div><dt>Without a nutrition label</dt><dd data-testid="pipeline-metric-recipes-without-label">{{ s.recipes.withoutNutritionLabel | number }}</dd></div>
+      </dl>
+      <a routerLink="/admin/curation" class="nom-pipeline__link" data-testid="pipeline-curation-link">Open the curation queue</a>
+    </section>
+
+    <section class="nom-pipeline__section" data-testid="pipeline-lines">
+      <h2 class="nom-pipeline__heading">Recipe lines</h2>
+      <div class="nom-pipeline__table-wrap">
+        <table class="nom-pipeline__table" data-testid="pipeline-lines-table">
+          <thead>
+            <tr><th scope="col">Lines</th><th scope="col">All recipes</th><th scope="col">Approved</th></tr>
+          </thead>
+          <tbody>
+            @for (row of funnelRows; track row.key) {
+              <tr [class.nom-pipeline__row--indent]="row.indent">
+                <th scope="row">{{ row.label }}</th>
+                <td [attr.data-testid]="'pipeline-metric-lines-' + row.key">{{ s.lines.all[row.field] | number }}</td>
+                <td [attr.data-testid]="'pipeline-metric-lines-approved-' + row.key">{{ s.lines.approved[row.field] | number }}</td>
+              </tr>
+            }
+            <tr>
+              <th scope="row">Joined with " + "</th>
+              <td data-testid="pipeline-metric-lines-folded">{{ s.lines.folded | number }}</td>
+              <td data-testid="pipeline-metric-lines-approved-folded">{{ s.lines.foldedOnApproved | number }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="nom-pipeline__hint">
+        "Counted on the label" is what users see; the serving-size fallback is known to undercount a can or a jar.
+        "Countable without the fallback" continues the cleanup series.
+      </p>
+
+      <div class="nom-pipeline__dry-runs">
+        <div class="nom-pipeline__dry-run">
+          <button mat-stroked-button type="button" (click)="previewUnfold()" [disabled]="unfoldBusy()" data-testid="pipeline-unfold-preview-btn">
+            {{ unfoldBusy() ? 'Reading joined rows…' : 'Dry run: unfold joined rows' }}
+          </button>
+          @if (unfoldError()) {
+            <p class="nom-pipeline__error" role="alert" data-testid="pipeline-unfold-error">{{ unfoldError() }}</p>
+          }
+          @if (unfold(); as u) {
+            <dl class="nom-pipeline__stats nom-pipeline__stats--small" data-testid="pipeline-unfold-preview">
+              <div><dt>Joined rows</dt><dd data-testid="pipeline-metric-unfold-folds">{{ u.folds | number }}</dd></div>
+              <div><dt>Lines added</dt><dd data-testid="pipeline-metric-unfold-lines-added">{{ u.linesAdded | number }}</dd></div>
+              <div><dt>Added without an amount</dt><dd data-testid="pipeline-metric-unfold-unmeasured-added">{{ u.unmeasuredAdded | number }}</dd></div>
+              <div><dt>Naming none of the row's food</dt><dd data-testid="pipeline-metric-unfold-unnamed-unmeasured">{{ u.unnamedUnmeasured | number }}</dd></div>
+              <div><dt>Left: other kind</dt><dd data-testid="pipeline-metric-unfold-skipped-other-kind">{{ u.skippedOtherKind | number }}</dd></div>
+              <div><dt>Left: ambiguous</dt><dd data-testid="pipeline-metric-unfold-skipped-ambiguous">{{ u.skippedAmbiguous | number }}</dd></div>
+            </dl>
+          }
+        </div>
+        <div class="nom-pipeline__dry-run">
+          <button mat-stroked-button type="button" (click)="previewReread()" [disabled]="rereadBusy()" data-testid="pipeline-reread-preview-btn">
+            {{ rereadBusy() ? 'Reading can and package lines…' : 'Dry run: re-read cans and packages' }}
+          </button>
+          @if (rereadError()) {
+            <p class="nom-pipeline__error" role="alert" data-testid="pipeline-reread-error">{{ rereadError() }}</p>
+          }
+          @if (reread(); as r) {
+            <dl class="nom-pipeline__stats nom-pipeline__stats--small" data-testid="pipeline-reread-preview">
+              <div><dt>Lines examined</dt><dd data-testid="pipeline-metric-reread-examined">{{ r.linesExamined | number }}</dd></div>
+              <div><dt>Would change</dt><dd data-testid="pipeline-metric-reread-changes">{{ r.changeCount | number }}</dd></div>
+              <div><dt>Stop counting</dt><dd data-testid="pipeline-metric-reread-stop-counting">{{ r.stopCounting | number }}</dd></div>
+              <div><dt>Start counting</dt><dd data-testid="pipeline-metric-reread-start-counting">{{ r.startCounting | number }}</dd></div>
+              <div><dt>Drained foods read as cans</dt><dd data-testid="pipeline-metric-reread-drained-as-containers">{{ r.drainedAsContainers | number }}</dd></div>
+              <div>
+                <dt>Missing measurements</dt>
+                <dd data-testid="pipeline-metric-reread-missing-measurements">{{ r.missingMeasurements.length ? r.missingMeasurements.join(', ') : 'none' }}</dd>
+              </div>
+            </dl>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="nom-pipeline__section" data-testid="pipeline-foods">
+      <h2 class="nom-pipeline__heading">Foods and wordings</h2>
+      <dl class="nom-pipeline__stats">
+        <div><dt>Curated</dt><dd data-testid="pipeline-metric-foods-curated">{{ s.foods.curated | number }}</dd></div>
+        <div><dt>Pending review</dt><dd data-testid="pipeline-metric-foods-pending-review">{{ s.foods.pendingReview | number }}</dd></div>
+        <div><dt>Wordings in use</dt><dd data-testid="pipeline-metric-foods-wordings-in-use">{{ s.foods.wordingsInUse | number }}</dd></div>
+        <div><dt>Unresolved wordings</dt><dd data-testid="pipeline-metric-foods-unresolved-wordings">{{ s.foods.unresolvedWordings | number }}</dd></div>
+        <div><dt>Curated without nutrition</dt><dd data-testid="pipeline-metric-foods-without-nutrition">{{ s.foods.curatedWithoutNutrition | number }}</dd></div>
+        <div><dt>Curated without USDA link</dt><dd data-testid="pipeline-metric-foods-without-usda">{{ s.foods.curatedWithoutUsdaLink | number }}</dd></div>
+        <div><dt>Curated without food group</dt><dd data-testid="pipeline-metric-foods-without-group">{{ s.foods.curatedWithoutFoodGroup | number }}</dd></div>
+        <div><dt>Missing item weight</dt><dd data-testid="pipeline-metric-foods-missing-item-weight">{{ s.foods.foodsMissingItemWeight | number }}</dd></div>
+        <div><dt>Missing density</dt><dd data-testid="pipeline-metric-foods-missing-density">{{ s.foods.foodsMissingDensity | number }}</dd></div>
+      </dl>
+      <div class="nom-pipeline__columns">
+        <div>
+          <h3 class="nom-pipeline__subheading">Unresolved wordings by use</h3>
+          <ul class="nom-pipeline__list" data-testid="pipeline-wordings-by-use-list">
+            @for (b of s.foods.wordingsByUse; track b.bucket) {
+              <li class="nom-pipeline__list-item" data-testid="pipeline-wordings-by-use-item">
+                <span>Used {{ b.bucket }} {{ b.bucket === '1' ? 'time' : 'times' }}</span>
+                <span>{{ b.wordings | number }} wordings, {{ b.lines | number }} lines</span>
+              </li>
+            }
+          </ul>
+        </div>
+        <div>
+          <h3 class="nom-pipeline__subheading">Wordings in use by link state</h3>
+          <ul class="nom-pipeline__list" data-testid="pipeline-link-state-list">
+            @for (l of s.foods.unresolvedByLinkState; track l.state) {
+              <li class="nom-pipeline__list-item" data-testid="pipeline-link-state-item">
+                <span>{{ linkStateLabels[l.state] }}</span>
+                <span>{{ l.foods | number }} foods, {{ l.lines | number }} lines</span>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+      <a routerLink="/admin/food-catalog" class="nom-pipeline__link" data-testid="pipeline-food-catalog-link">Open the food catalog</a>
+    </section>
+
+    <section class="nom-pipeline__section" data-testid="pipeline-stuck">
+      <h2 class="nom-pipeline__heading">Where it is stuck</h2>
+      <div class="nom-pipeline__columns">
+        @for (list of stuckLists(); track list.key) {
+          <div>
+            <h3 class="nom-pipeline__subheading">{{ list.title }}</h3>
+            @if (list.items.length === 0) {
+              <p class="nom-pipeline__hint" [attr.data-testid]="'pipeline-stuck-' + list.key + '-empty'">Nothing here.</p>
+            } @else {
+              <ol class="nom-pipeline__list" [attr.data-testid]="'pipeline-stuck-' + list.key + '-list'">
+                @for (f of list.items; track f.ingredientId) {
+                  <li class="nom-pipeline__list-item" data-testid="pipeline-stuck-item">
+                    <span>{{ f.name }} <span class="nom-pipeline__muted">#{{ f.ingredientId }}</span></span>
+                    <span>{{ f.lines | number }} {{ list.hint }}</span>
+                  </li>
+                }
+              </ol>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="nom-pipeline__section" data-testid="pipeline-proposals">
+      <h2 class="nom-pipeline__heading">Link proposals</h2>
+      <dl class="nom-pipeline__stats">
+        <div><dt>Pending</dt><dd data-testid="pipeline-metric-proposals-pending">{{ s.proposals.pending | number }}</dd></div>
+        <div><dt>Model picks</dt><dd data-testid="pipeline-metric-proposals-model-picks">{{ s.proposals.pendingModelPicks | number }}</dd></div>
+        <div><dt>Verified picks</dt><dd data-testid="pipeline-metric-proposals-verified">{{ s.proposals.pendingModelPicksVerified | number }}</dd></div>
+        <div><dt>Exact name matches</dt><dd data-testid="pipeline-metric-proposals-exact">{{ s.proposals.pendingExactMatches | number }}</dd></div>
+        <div><dt>Link queue</dt><dd data-testid="pipeline-metric-proposals-link-queue">{{ s.proposals.linkQueue | number }}</dd></div>
+        <div>
+          <dt>Verified applied in 24 h</dt>
+          <dd data-testid="pipeline-metric-verified-cap">{{ s.proposals.verifiedAppliedLast24h | number }} / {{ s.proposals.verifiedDailyCap | number }}</dd>
+        </div>
+        <div><dt>Foods at their cap</dt><dd data-testid="pipeline-metric-proposals-foods-at-cap">{{ s.proposals.foodsAtCap | number }}</dd></div>
+        <div>
+          <dt>Name matches applied in 24 h</dt>
+          <dd data-testid="pipeline-metric-name-match-cap">{{ s.proposals.nameMatchAppliedLast24h | number }} / {{ s.proposals.nameMatchDailyCap | number }}</dd>
+        </div>
+      </dl>
+
+      <div class="nom-pipeline__dry-run">
+        <h3 class="nom-pipeline__subheading">Dry run: take back applied links</h3>
+        <div class="nom-pipeline__form">
+          <label class="nom-pipeline__field">
+            <span>Applied since (your time)</span>
+            <input type="datetime-local" [value]="undoSince()" (input)="setUndoSince($any($event.target).value)"
+                   data-testid="pipeline-link-undo-since-input" />
+          </label>
+          <label class="nom-pipeline__check">
+            <input type="checkbox" [checked]="leaveMoved()" (change)="setLeaveMoved($any($event.target).checked)"
+                   data-testid="pipeline-link-undo-leave-moved-checkbox" />
+            <span>Leave lines that moved since where they are</span>
+          </label>
+          <button mat-stroked-button type="button" (click)="previewLinkUndo()" [disabled]="linkUndoBusy()" data-testid="pipeline-link-undo-preview-btn">
+            {{ linkUndoBusy() ? 'Reading the journal…' : 'Dry run' }}
+          </button>
+        </div>
+        @if (linkUndoError()) {
+          <p class="nom-pipeline__error" role="alert" data-testid="pipeline-link-undo-error">{{ linkUndoError() }}</p>
+        }
+        @if (linkUndo(); as l) {
+          <dl class="nom-pipeline__stats nom-pipeline__stats--small" data-testid="pipeline-link-undo-preview">
+            <div><dt>Links taken back</dt><dd data-testid="pipeline-metric-link-undo-proposals">{{ l.proposals | number }}</dd></div>
+            <div><dt>Links skipped</dt><dd data-testid="pipeline-metric-link-undo-proposals-skipped">{{ l.proposalsSkipped | number }}</dd></div>
+            <div><dt>Lines moved back</dt><dd data-testid="pipeline-metric-link-undo-lines-restored">{{ l.linesRestored | number }}</dd></div>
+            <div>
+              <dt>{{ leaveMoved() ? 'Moved lines left in place' : 'Lines moved since' }}</dt>
+              <dd data-testid="pipeline-metric-link-undo-lines-skipped">{{ l.linesSkipped | number }}</dd>
+            </div>
+            <div><dt>Not reached</dt><dd data-testid="pipeline-metric-link-undo-remaining">{{ l.remaining | number }}</dd></div>
+          </dl>
+        }
+      </div>
+    </section>
+
+    <section class="nom-pipeline__section" data-testid="pipeline-lanes">
+      <h2 class="nom-pipeline__heading">Lanes</h2>
+      @if (s.ai.quietMinutesLeft != null) {
+        <p class="nom-pipeline__banner" role="status" data-testid="pipeline-quiet-hours">
+          AI quiet hours ({{ s.ai.quietHours }}, {{ s.ai.quietTimeZone }}): the model lanes wait {{ s.ai.quietMinutesLeft }} more minutes.
+        </p>
+      }
+      <div class="nom-pipeline__pause-all">
+        <mat-slide-toggle [checked]="d.gate.pauseAll" [disabled]="pauseBusy() !== null" (change)="setPause('all', $event.checked)"
+                          data-testid="pipeline-pause-all-toggle">
+          Pause all AI lanes
+        </mat-slide-toggle>
+        <span class="nom-pipeline__hint">Stops every model lane within about 30 seconds; nothing is lost.</span>
+      </div>
+      @if (pauseError()) {
+        <p class="nom-pipeline__error" role="alert" data-testid="pipeline-pause-error">{{ pauseError() }}</p>
+      }
+      @if (d.gate.hosts.length > 0) {
+        <ul class="nom-pipeline__list" data-testid="pipeline-hosts-list">
+          @for (h of d.gate.hosts; track h.host) {
+            <li class="nom-pipeline__list-item" data-testid="pipeline-host-item">
+              <span>{{ h.host }}</span>
+              <span>
+                {{ h.up ? 'Up' : 'Down since ' + (h.downSince | date: 'MMM d, HH:mm') }}
+                @if (h.modelsMissing.length > 0) {
+                  <span class="nom-pipeline__warn" data-testid="pipeline-host-missing-models">missing {{ h.modelsMissing.join(', ') }}</span>
+                }
+              </span>
+            </li>
+          }
+        </ul>
+      }
+      <ul class="nom-pipeline__lanes" data-testid="pipeline-lanes-list">
+        @for (lane of s.lanes; track lane.key) {
+          @let gate = gateFor(lane.gateLane);
+          <li class="nom-pipeline__lane" [attr.data-testid]="'pipeline-lane-' + lane.key">
+            <div class="nom-pipeline__lane-head">
+              <strong>{{ lane.name }}</strong>
+              <span class="nom-pipeline__badge" [class.nom-pipeline__badge--off]="!lane.enabled">{{ lane.external ? 'Outside the API' : lane.enabled ? 'On' : 'Off' }}</span>
+              @if (gate) {
+                <span class="nom-pipeline__badge nom-pipeline__badge--state" [attr.data-testid]="'pipeline-lane-' + lane.key + '-state'">{{ gate.status.state }}</span>
+              }
+            </div>
+            @if (lane.usesModel) {
+              <p class="nom-pipeline__lane-line" [attr.data-testid]="'pipeline-lane-' + lane.key + '-model'">
+                {{ lane.modelConfigured === false ? 'No model configured' : (gate?.status?.model ?? lane.model ?? 'Model not reported yet') }}
+              </p>
+            }
+            @if (gate) {
+              @if (gate.status.stateReason) {
+                <p class="nom-pipeline__lane-line nom-pipeline__muted">{{ gate.status.stateReason }}</p>
+              }
+              <p class="nom-pipeline__lane-line">
+                Items in 24 h: {{ gate.status.itemsToday | number }}{{ gate.status.dailyCap != null ? ' / ' + (gate.status.dailyCap | number) : '' }}
+                · last pass {{ gate.status.lastPass ? (gate.status.lastPass | date: 'MMM d, HH:mm') + ' (' + gate.status.lastPassItems + ')' : 'none yet' }}
+                · calls {{ gate.status.modelCalls | number }}, errors {{ gate.status.modelCallErrors | number }}
+                @if (gate.status.latencyMedianMs != null) {
+                  · median {{ gate.status.latencyMedianMs | number: '1.0-0' }} ms, p95 {{ gate.status.latencyP95Ms | number: '1.0-0' }} ms
+                }
+                · counting since {{ gate.status.countingSince | date: 'MMM d, HH:mm' }}
+              </p>
+              @if (gate.status.lastError) {
+                <p class="nom-pipeline__lane-line nom-pipeline__warn" [attr.data-testid]="'pipeline-lane-' + lane.key + '-last-error'">
+                  Last error {{ gate.status.lastErrorAt | date: 'MMM d, HH:mm' }}: {{ gate.status.lastError }}
+                </p>
+              }
+              <mat-slide-toggle [checked]="gate.paused" [disabled]="pauseBusy() !== null" (change)="setPause(gate.lane, $event.checked)"
+                                [attr.data-testid]="'pipeline-lane-' + lane.key + '-pause-toggle'">
+                Pause this lane
+              </mat-slide-toggle>
+            }
+            @if (lane.switches.length > 0) {
+              <ul class="nom-pipeline__switches">
+                @for (sw of lane.switches; track sw.key) {
+                  <li [attr.data-testid]="'pipeline-lane-' + lane.key + '-switch-' + sw.key">{{ sw.label }}: {{ sw.on ? 'On' : 'Off' }}</li>
+                }
+              </ul>
+            }
+            @if (lane.caps.length > 0) {
+              <ul class="nom-pipeline__switches">
+                @for (cap of lane.caps; track cap.label) {
+                  <li>{{ cap.label }}: {{ cap.used != null ? (cap.used | number) + ' / ' : '' }}{{ cap.limit | number }}</li>
+                }
+              </ul>
+            }
+            @if (lane.queue != null) {
+              <p class="nom-pipeline__lane-line" [attr.data-testid]="'pipeline-lane-' + lane.key + '-queue'">
+                Queue: {{ lane.queue | number }} {{ lane.queueLabel }}
+              </p>
+            }
+            <p class="nom-pipeline__lane-line nom-pipeline__muted">
+              Last change seen: {{ lane.lastActivityAt ? (lane.lastActivityAt | date: 'MMM d, HH:mm') : 'none' }}
+              @if (lane.activityLast24h != null) {
+                · {{ lane.activityLast24h | number }} in 24 h
+              }
+            </p>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="nom-pipeline__section" data-testid="pipeline-images">
+      <h2 class="nom-pipeline__heading">Images</h2>
+      <dl class="nom-pipeline__stats">
+        <div><dt>Approved without image</dt><dd data-testid="pipeline-metric-images-without-image">{{ s.images.approvedWithoutImage | number }}</dd></div>
+        <div><dt>Never searched</dt><dd data-testid="pipeline-metric-images-never-searched">{{ s.images.neverSearched | number }}</dd></div>
+        <div><dt>Pending photos</dt><dd data-testid="pipeline-metric-images-pending">{{ s.images.candidates.pending | number }}</dd></div>
+        <div><dt>Attached</dt><dd data-testid="pipeline-metric-images-attached">{{ s.images.candidates.attached | number }}</dd></div>
+        <div><dt>Approved</dt><dd data-testid="pipeline-metric-images-approved">{{ s.images.candidates.approved | number }}</dd></div>
+        <div><dt>Rejected</dt><dd data-testid="pipeline-metric-images-rejected">{{ s.images.candidates.rejected | number }}</dd></div>
+      </dl>
+      <a routerLink="/admin/recipe-images" class="nom-pipeline__link" data-testid="pipeline-recipe-images-link">Open recipe images</a>
+    </section>
+
+    <section class="nom-pipeline__section">
+      <h2 class="nom-pipeline__heading">Journal</h2>
+      @if (s.journal.length === 0) {
+        <p class="nom-pipeline__hint" data-testid="pipeline-journal-empty">The audit log is empty.</p>
+      } @else {
+        <ul class="nom-pipeline__list" data-testid="pipeline-journal-list">
+          @for (j of s.journal; track j.entityType + j.changeType) {
+            <li class="nom-pipeline__list-item" data-testid="pipeline-journal-item">
+              <span>{{ j.changeType }} <span class="nom-pipeline__muted">{{ j.entityType }}</span></span>
+              <span>{{ j.last24h | number }} / {{ j.last7d | number }} / {{ j.total | number }} · {{ j.lastAt | date: 'MMM d, HH:mm' }}</span>
+            </li>
+          }
+        </ul>
+        <p class="nom-pipeline__hint">Rows in the last day / week / all time, and the latest.</p>
+      }
+    </section>
+
+    <p class="nom-pipeline__hint">Counted in {{ s.computeMs | number }} ms; counts are kept for ten minutes, the lane states are live.</p>
+  }
+</div>
