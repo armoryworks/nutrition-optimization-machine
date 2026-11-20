@@ -409,6 +409,48 @@ class FinderGlueTests(unittest.TestCase):
         down = finder.Finder(Args(), [Fake(http, True)], None, tri.Thresholds(), http)
         self.assertEqual(down.gather(SOUP, set()), ([], True))
 
+    def test_a_recipe_in_hand_stops_at_its_next_search_or_model_call_once_time_is_up(self):
+        class Fake(finder.Source):
+            key, name = "fake", "Fake"
+
+            def search(self, query, count):
+                return src.parse_wikimedia(WIKIMEDIA_FIXTURE, query)
+
+        class Args:
+            queries_per_recipe, per_source, max_vision, stop_after_minutes = 1, 8, 4, 15
+            vision_model, rank_model, embed_model = "v", "r", "e"
+
+        class Ollama:
+            calls = 0
+
+            def embed(self, model, texts):
+                Ollama.calls += 1
+                return [[1.0, 0.0]]
+
+            def generate(self, *args, **kwargs):
+                Ollama.calls += 1
+                return "{}"
+
+        http = finder.Http(None)
+        late = finder.Finder(Args(), [Fake(http, src.DEFAULT_ALLOWED)], Ollama(), tri.Thresholds(), http)
+        late.started -= 16 * 60
+        with self.assertRaises(finder.OutOfTime):
+            late.gather(SOUP, set())
+        late.http.get_bytes = lambda url: (b"jpeg", "image/jpeg")
+        finder.to_model_jpeg, original = (lambda data, ctype: (b"jpeg", 1)), finder.to_model_jpeg
+        try:
+            candidates = src.parse_wikimedia(WIKIMEDIA_FIXTURE, "soup")
+            with self.assertRaises(finder.OutOfTime):
+                late.analyse(SOUP, candidates)
+        finally:
+            finder.to_model_jpeg = original
+        self.assertEqual(Ollama.calls, len(candidates) + 3, "only the embeddings ran; no caption, rank or pair call")
+
+        on_time = finder.Finder(Args(), [Fake(http, src.DEFAULT_ALLOWED)], Ollama(), tri.Thresholds(), http)
+        found, all_failed = on_time.gather(SOUP, set())
+        self.assertTrue(found)
+        self.assertFalse(all_failed)
+
     def test_unsplash_download_ping_only_goes_to_the_unsplash_api(self):
         os.environ["UNSPLASH_ACCESS_KEY"] = "k"
         try:

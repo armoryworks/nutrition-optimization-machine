@@ -541,6 +541,10 @@ def out_of_time(started: float, stop_after_minutes: float, now: float) -> bool:
     return stop_after_minutes > 0 and now - started >= stop_after_minutes * 60
 
 
+class OutOfTime(Exception):
+    """--stop-after-minutes ran out while a recipe was in hand; it is left unsearched."""
+
+
 def recipe_from_dict(row: dict) -> tri.RecipeText:
     return tri.RecipeText(
         recipe_id=int(row.get("id") or row.get("recipeId") or 0),
@@ -559,6 +563,11 @@ class Finder:
         self.ollama = ollama
         self.t = thresholds
         self.http = http
+        self.started = time.monotonic()
+
+    def check_time(self) -> None:
+        if out_of_time(self.started, getattr(self.args, "stop_after_minutes", 0), time.monotonic()):
+            raise OutOfTime()
 
     def embed_one(self, text: str, prefix: str) -> list[float] | None:
         vectors = self.ollama.embed(self.args.embed_model, [f"{prefix}: {text}"])
@@ -573,6 +582,7 @@ class Finder:
             for source in self.sources:
                 if not source.enabled():
                     continue
+                self.check_time()
                 asked.add(source.key)
                 failures = self.http.failures
                 try:
@@ -625,6 +635,7 @@ class Finder:
 
         log(f"    {len(images)} thumbnail(s) to analyse with {self.args.vision_model} and {self.args.rank_model}")
         for index, (key, image) in enumerate(images.items(), start=1):
+            self.check_time()
             started = time.monotonic()
             caption = self.ollama.generate(self.args.vision_model, CAPTION_PROMPT, image)
             cap_vec = self.embed_one(caption, "search_query") if caption else None
@@ -642,6 +653,7 @@ class Finder:
         rank_prompt = RANK_PROMPT.format(name=recipe.name, description=(recipe.description or "")[:400],
                                          ingredients=", ".join(tri.ingredient_heads(recipe.ingredients)[:8]) or "n/a")
         for key, image in images.items():
+            self.check_time()
             reply = parse_json_object(self.ollama.generate(self.args.rank_model, rank_prompt, image, as_json=True))
             try:
                 evidence[key].rank_score = max(0.0, min(10.0, float(reply.get("score"))))
@@ -654,6 +666,7 @@ class Finder:
         pairs = tri.round_robin(evidence)
         for first, second in pairs:
             for a, b in ((first, second), (second, first)):
+                self.check_time()
                 reply = parse_json_object(self.ollama.generate_many(
                     self.args.rank_model, pair_prompt, [images[a], images[b]], as_json=True))
                 tri.record_vote(evidence, a, b, str(reply.get("better", "")))
@@ -773,7 +786,8 @@ def main() -> None:
     ap.add_argument("--dry-run", action="store_true", help="analyse and log, but send nothing to nom-api")
     ap.add_argument("--limit", type=int, default=20)
     ap.add_argument("--stop-after-minutes", type=float, default=0,
-                    help="start no new recipe after this many minutes (0 = no time limit); the run ends by time, not count")
+                    help="stop after this many minutes (0 = no time limit): no new recipe starts, and a recipe in hand is "
+                         "left unsearched at its next search or model call; the run ends by time, not count")
     ap.add_argument("--page-size", type=int, default=100,
                     help="recipes asked of nom-api per call; the work list is refetched until --limit (nom-api gives at most 500 a call)")
     ap.add_argument("--api-max-wait", type=float, default=900,
@@ -853,6 +867,7 @@ def main() -> None:
     if missing:
         sys.exit(f"error: pull these models on the Ollama host first: {', '.join(missing)}")
     finder = Finder(args, sources, ollama, thresholds, http)
+    finder.started = started
     state = load_state(args.state)
     now = datetime.now(timezone.utc)
     totals = {"attach": 0, "review": 0, "none": 0, "skipped": 0, "error": 0, "held": 0}
@@ -881,10 +896,15 @@ def main() -> None:
                 totals["skipped"] += 1
                 continue
             log(f"[{index}/{total}] #{recipe.recipe_id} {recipe.name}")
-            candidates, searches_failed = finder.gather(recipe, set(row.get("rejectedCandidates") or []))
-            log(f"    {len(candidates)} licensed candidate(s)" + (" — every source failed; not counted as searched" if searches_failed else ""))
             failures_before = ollama.failures
-            evidence, by_key, _ = finder.analyse(recipe, candidates) if candidates else ({}, {}, {})
+            try:
+                candidates, searches_failed = finder.gather(recipe, set(row.get("rejectedCandidates") or []))
+                log(f"    {len(candidates)} licensed candidate(s)" + (" — every source failed; not counted as searched" if searches_failed else ""))
+                evidence, by_key, _ = finder.analyse(recipe, candidates) if candidates else ({}, {}, {})
+            except OutOfTime:
+                log(f"stopping: --stop-after-minutes {args.stop_after_minutes:g} reached during #{recipe.recipe_id}, which is left "
+                    f"unsearched and comes back on the next run; {index - 1} recipe(s) done")
+                break
             if ollama.failures > failures_before:
                 totals["error"] += 1
                 consecutive_errors += 1

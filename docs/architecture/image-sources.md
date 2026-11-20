@@ -240,8 +240,10 @@ export OPENVERSE_CLIENT_ID=... OPENVERSE_CLIENT_SECRET=...   # optional
 - Budget per run is set by the keyless Openverse quota (200 requests/day anonymous):
   `--limit 25` with two queries per recipe stays well inside it. Past that quota Openverse
   answers 429 and is switched off for the rest of the run; the other sources carry on.
-- Run by the clock: `--stop-after-minutes N` starts no new recipe after N minutes, so a
-  nightly run sets a high `--limit` and ends by time. The work list is fetched from nom-api
+- Run by the clock: `--stop-after-minutes N` starts no new recipe after N minutes, and a
+  recipe still in hand then stops at its next search or model call, is left unsearched and
+  comes back on the next run (`stopping: ... reached during #id`), so a run ends within one
+  model call of N minutes. A nightly run sets a high `--limit` and ends by time. The work list is fetched from nom-api
   `--page-size` recipes at a time (nom-api gives at most 500 a call) until `--limit` is
   reached or the backlog runs out. A 429 from nom-api is waited out for its `Retry-After`,
   up to `--api-max-wait` seconds and three retries.
