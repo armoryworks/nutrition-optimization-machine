@@ -107,7 +107,8 @@ namespace Nom.Orch.Interfaces
 
     /// <summary>
     /// What is left of the lane's daily allowance, the USDA foods (by FDC id) it must leave alone
-    /// until tomorrow, and how many links each USDA food has already taken in the rolling day.
+    /// until tomorrow, how many links each USDA food has already taken in the rolling day, and how
+    /// many the lane applied in that day in all, which may be more than a cap lowered since.
     /// </summary>
-    public sealed record LinkApplyAllowance(int Remaining, IReadOnlyCollection<string> BusyTargets, IReadOnlyDictionary<string, int>? AppliedByTarget = null);
+    public sealed record LinkApplyAllowance(int Remaining, IReadOnlyCollection<string> BusyTargets, IReadOnlyDictionary<string, int>? AppliedByTarget = null, int Applied = 0);
 }

@@ -275,7 +275,33 @@ namespace Nom.Api.Tests.Services
             });
             var link = status.Lanes.Single(l => l.Key == "ingredient-link");
             link.Caps.Should().ContainEquivalentOf(new PipelineLaneCap("Verified model picks per day", 5, 1));
-            link.Caps.Should().ContainEquivalentOf(new PipelineLaneCap("Verified model picks per food per day", 1, 1));
+            link.Caps.Should().ContainEquivalentOf(new PipelineLaneCap("Verified model picks per food per day", 1, null));
+            link.Caps.Should().ContainEquivalentOf(new PipelineLaneCap("Name matches per food per day", 25, null));
+        }
+
+        [Theory]
+        [InlineData("0")]
+        [InlineData("1")]
+        public async Task Applied_counts_are_the_real_applies_when_the_cap_is_lowered_below_them(string cap)
+        {
+            await using var db = await SeededAsync();
+            foreach (var (source, fdc) in new[] { ("ai:qwen", "1"), ("ai:qwen", "2"), ("ai:qwen", "3"), (IngredientLinkService.ExactSource, "4"), (IngredientLinkService.ExactSource, "5") })
+                db.FoodCatalogProposals.Add(Proposal(null, source, FoodProposalStatus.Applied, fdcId: fdc)
+                    .With(p => { p.ReviewedByPersonId = SystemConstants.SystemPersonId; p.ReviewedAt = DateTime.UtcNow.AddHours(-1); }));
+            await db.SaveChangesAsync();
+            var config = Config(new()
+            {
+                ["IngredientLinking:MaxVerifiedAppliesPerDay"] = cap,
+                ["IngredientLinking:MaxNameMatchAppliesPerDay"] = cap,
+            });
+
+            var status = await Service(db, config).GetAsync();
+
+            status.Proposals.VerifiedAppliedLast24h.Should().Be(3);
+            status.Proposals.NameMatchAppliedLast24h.Should().Be(2);
+            var link = status.Lanes.Single(l => l.Key == "ingredient-link");
+            link.Caps.Should().ContainEquivalentOf(new PipelineLaneCap("Verified model picks per day", int.Parse(cap), 3));
+            link.Caps.Should().ContainEquivalentOf(new PipelineLaneCap("Name matches per day", int.Parse(cap), 2));
         }
 
         [Fact]

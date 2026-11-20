@@ -633,9 +633,11 @@ namespace Nom.Orch.Services
                 .GroupBy(p => p.FdcId!)
                 .Select(g => new { FdcId = g.Key, Count = g.Count() })
                 .ToListAsync(cancellationToken);
+            var total = applied.Sum(a => a.Count);
             return new LinkApplyAllowance(
-                Math.Max(0, dailyCap - applied.Sum(a => a.Count)),
-                applied.Where(a => a.Count >= perTargetCap).Select(a => a.FdcId).ToList());
+                Math.Max(0, dailyCap - total),
+                applied.Where(a => a.Count >= perTargetCap).Select(a => a.FdcId).ToList(),
+                Applied: total);
         }
 
         public async Task<IReadOnlyList<long>> PendingVerifiedAsync(int count, IReadOnlyCollection<long> skip, decimal minConfidence = 0m, CancellationToken cancellationToken = default, IReadOnlyCollection<string>? excludeTargets = null)

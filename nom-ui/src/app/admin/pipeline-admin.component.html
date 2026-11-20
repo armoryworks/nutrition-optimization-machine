@@ -134,7 +134,7 @@
       <dl class="nom-pipeline__stats">
         <div><dt>Curated</dt><dd data-testid="pipeline-metric-foods-curated">{{ s.foods.curated | number }}</dd></div>
         <div><dt>Pending review</dt><dd data-testid="pipeline-metric-foods-pending-review">{{ s.foods.pendingReview | number }}</dd></div>
-        <div><dt>Wordings in use</dt><dd data-testid="pipeline-metric-foods-wordings-in-use">{{ s.foods.wordingsInUse | number }}</dd></div>
+        <div><dt>Uncurated foods on a line</dt><dd data-testid="pipeline-metric-foods-wordings-in-use">{{ s.foods.wordingsInUse | number }}</dd></div>
         <div><dt>Unresolved wordings</dt><dd data-testid="pipeline-metric-foods-unresolved-wordings">{{ s.foods.unresolvedWordings | number }}</dd></div>
         <div><dt>Curated without nutrition</dt><dd data-testid="pipeline-metric-foods-without-nutrition">{{ s.foods.curatedWithoutNutrition | number }}</dd></div>
         <div><dt>Curated without USDA link</dt><dd data-testid="pipeline-metric-foods-without-usda">{{ s.foods.curatedWithoutUsdaLink | number }}</dd></div>
@@ -155,7 +155,7 @@
           </ul>
         </div>
         <div>
-          <h3 class="nom-pipeline__subheading">Wordings in use by link state</h3>
+          <h3 class="nom-pipeline__subheading">Unresolved wordings by link state</h3>
           <ul class="nom-pipeline__list" data-testid="pipeline-link-state-list">
             @for (l of s.foods.unresolvedByLinkState; track l.state) {
               <li class="nom-pipeline__list-item" data-testid="pipeline-link-state-item">

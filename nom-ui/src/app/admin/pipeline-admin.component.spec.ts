@@ -139,6 +139,7 @@ describe('PipelineAdmin', () => {
     expect(byId(el, 'pipeline-metric-blocked-none')?.textContent?.trim()).toBe('1,238');
     expect(byId(el, 'pipeline-generated-at')).not.toBeNull();
     expect(el.querySelectorAll('[data-testid="pipeline-journal-item"]').length).toBe(1);
+    expect(byId(el, 'pipeline-metric-foods-wordings-in-use')?.parentElement?.textContent).toContain('Uncurated foods on a line');
   });
 
   it('shows a lane with its switch off, its cap and its state from the lane gate', () => {

@@ -103,7 +103,7 @@ namespace Nom.Orch.Models.Curation
         public int FoodsMissingItemWeight { get; init; }
         /// <summary>Curated foods with measured volume lines and no density.</summary>
         public int FoodsMissingDensity { get; init; }
-        /// <summary>Distinct uncurated foods on any live line.</summary>
+        /// <summary>Distinct uncurated foods on any live line; curated foods are not counted.</summary>
         public int WordingsInUse { get; init; }
         /// <summary>Distinct uncurated foods on ingredient lines only.</summary>
         public int UnresolvedWordings { get; init; }

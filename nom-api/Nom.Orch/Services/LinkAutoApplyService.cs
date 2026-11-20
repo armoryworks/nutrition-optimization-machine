@@ -63,10 +63,12 @@ namespace Nom.Orch.Services
                 .GroupBy(p => p.FdcId!)
                 .Select(g => new { FdcId = g.Key, Count = g.Count() })
                 .ToListAsync(cancellationToken);
+            var total = applied.Sum(a => a.Count);
             return new LinkApplyAllowance(
-                Math.Max(0, dailyCap - applied.Sum(a => a.Count)),
+                Math.Max(0, dailyCap - total),
                 applied.Where(a => a.Count >= perTargetCap).Select(a => a.FdcId).ToList(),
-                applied.ToDictionary(a => a.FdcId, a => a.Count));
+                applied.ToDictionary(a => a.FdcId, a => a.Count),
+                total);
         }
 
         public async Task<LinkScreenResult> ScreenAsync(IReadOnlyList<long> proposalIds, CancellationToken cancellationToken = default)
