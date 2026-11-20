@@ -1028,9 +1028,10 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Guarantees each active household <see cref="FoodGroupRuleEntity"/> minimum over the shuffled
         /// range. A serving of a food group is supplied by any placed recipe that contains an ingredient of
-        /// that group, or by a standalone whole food of that group. Shortfalls are topped up by scheduling
-        /// standalone curated whole foods (respecting restrictions and steward/provider locks), never a food
-        /// marked as a recipe-only ingredient or one with alcohol above <see cref="MaxTopUpAlcoholGramsPer100g"/>. Returns the
+        /// that group, or by a standalone whole food of that group; a prepared food never supplies one.
+        /// Shortfalls are topped up by scheduling standalone curated whole foods (respecting restrictions
+        /// and steward/provider locks), never a prepared food, a food marked as a recipe-only ingredient
+        /// or one with alcohol above <see cref="MaxTopUpAlcoholGramsPer100g"/>. Returns the
         /// standalone entries to add; never mutates <paramref name="placed"/>.
         /// </summary>
         internal async Task<List<MealPlanEntity>> ApplyFoodGroupRulesAsync(
@@ -1060,7 +1061,8 @@ namespace Nom.Orch.Services
                         r.Id,
                         Groups = r.RecipeIngredients!
                             .Where(ri => ri.Ingredient!.FoodGroupId != null
-                                && groupIds.Contains(ri.Ingredient.FoodGroupId!.Value))
+                                && groupIds.Contains(ri.Ingredient.FoodGroupId!.Value)
+                                && (ri.Ingredient.FdcCategoryId == null || !Nom.Data.Nutrition.PreparedFoods.CategoryIds.Contains(ri.Ingredient.FdcCategoryId.Value)))
                             .Select(ri => ri.Ingredient!.FoodGroupId!.Value)
                             .Distinct().ToList()
                     })
@@ -1078,6 +1080,7 @@ namespace Nom.Orch.Services
                     .Where(i => i.FoodGroupId == gid
                         && i.CurationStatusId == (long)CurationStatusEnum.Curated
                         && i.IsWholeFood != false
+                        && (i.FdcCategoryId == null || !Nom.Data.Nutrition.PreparedFoods.CategoryIds.Contains(i.FdcCategoryId.Value))
                         && !i.IngredientNutrients.Any(n => !n.IsDeleted && n.Nutrient.Name.ToLower() == "alcohol" && n.Amount > MaxTopUpAlcoholGramsPer100g)
                         && !restrictedIngredientIds.Contains(i.Id)
                         && !lockedIds.Contains(i.Id))
@@ -1239,6 +1242,7 @@ namespace Nom.Orch.Services
                             MeasurementName = e.Measurement?.Name,
                             FoodGroupId = e.Ingredient?.FoodGroupId,
                             FoodGroupName = e.Ingredient?.FoodGroup?.Name,
+                            IsPrepared = e.Ingredient != null && Nom.Data.Nutrition.PreparedFoods.IsPrepared(e.Ingredient),
                             Title = e.Title,
                             Notes = e.Note,
                             CompletedDate = e.CompletedDate,

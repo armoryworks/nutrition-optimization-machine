@@ -329,6 +329,7 @@ namespace Nom.Orch.Services
         {
             var curated = await _db.Ingredients.AsNoTracking()
                 .Where(i => !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated)
+                .Where(Nom.Data.Nutrition.PreparedFoods.NotPrepared)
                 .Select(i => new CompoundFood(i.Id, i.Name, i.IngredientNutrients.Any(n => !n.IsDeleted), i.GramsPerItem > 0))
                 .ToListAsync();
             var aliases = await _db.IngredientAliases.AsNoTracking()

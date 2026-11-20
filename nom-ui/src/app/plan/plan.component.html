@@ -175,7 +175,7 @@
                            (error)="onThumbError(entry)" />
                     } @else if (entry.ingredientId) {
                       <mat-icon class="nom-plan__cell-fooditem-icon"
-                                matTooltip="Whole food{{ entry.foodGroupName ? ' · ' + entry.foodGroupName : '' }}">nutrition</mat-icon>
+                                matTooltip="{{ entry.isPrepared ? 'Prepared food' : 'Whole food' }}{{ entry.foodGroupName ? ' · ' + entry.foodGroupName : '' }}">nutrition</mat-icon>
                     }
                     @if (entry.dietConflicts?.length) {
                       <mat-icon class="nom-plan__cell-conflict"

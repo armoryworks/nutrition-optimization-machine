@@ -321,6 +321,24 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_prepared_food_is_never_a_link_target_not_even_for_a_person()
+        {
+            using var db = NewContext();
+            var seeded = await SeedSeaSaltAsync(db);
+            var salt = await db.Ingredients.SingleAsync(i => i.Id == seeded.Salt.Id);
+            salt.CurationStatusId = (long)CurationStatusEnum.Curated;
+            salt.FdcCategoryId = 21;
+            await db.SaveChangesAsync();
+            var review = new FoodCatalogReviewService(db, new NoAudit(), new MovingCleanup(db));
+
+            (await review.ApplyProposalAsync(seeded.Proposal.Id, SystemConstants.SystemPersonId)).Should().BeFalse("no lane links a recipe line to a fast food");
+            (await review.ApplyProposalAsync(seeded.Proposal.Id, reviewerPersonId: 2)).Should().BeFalse("nor does a person");
+            db.ChangeTracker.Clear();
+            (await db.FoodCatalogProposals.SingleAsync(p => p.Id == seeded.Proposal.Id)).Status.Should().Be(FoodProposalStatus.Pending);
+            (await db.RecipeIngredients.CountAsync(ri => ri.IngredientId == seeded.SeaSalt.Id)).Should().Be(2, "no line moved to the prepared food");
+        }
+
+        [Fact]
         public async Task A_line_edited_since_the_link_stays_where_it_is_and_is_counted()
         {
             using var db = NewContext();
@@ -710,6 +728,25 @@ namespace Nom.Api.Tests.Services
             (await gate.ScreenAsync(new[] { held.Id })).Held.Should().Equal(held.Id);
             (await db.FoodCatalogProposals.FindAsync(held.Id))!.Reason.Should().EndWith(LinkAutoApplyGuard.WordOrderRule).And.NotContain(LinkAutoApplyGuard.WordOrderRule + LinkAutoApplyGuard.HoldMark);
             (await gate.PendingNameMatchesAsync(10, Array.Empty<long>(), Array.Empty<string>())).Should().Equal(clean.Id);
+        }
+
+        [Fact]
+        public async Task The_gate_holds_every_pick_at_a_prepared_food_for_a_person()
+        {
+            using var db = NewContext();
+            var (cake, _, clean, staple) = await SeedNameMatchesAsync(db);
+            cake.CurationStatusId = (long)CurationStatusEnum.Curated;
+            cake.FdcCategoryId = 25;
+            await db.SaveChangesAsync();
+            var gate = new LinkAutoApplyService(db, new MemoryCache(new MemoryCacheOptions()));
+
+            var screened = await gate.ScreenAsync(new[] { clean.Id, staple.Id });
+
+            screened.Allowed.Should().Equal(staple.Id);
+            screened.Held.Should().Equal(clean.Id);
+            (await db.FoodCatalogProposals.FindAsync(clean.Id))!.Reason.Should().EndWith(LinkAutoApplyGuard.HoldMark + LinkAutoApplyGuard.PreparedRule);
+            LinkAutoApplyGuard.Hold(new LinkAutoApplyGuard.Pick("chocolate cake", 1, 2, "Cake, chocolate", "Cake, chocolate", false, TargetPrepared: true), Catalog())
+                .Should().Be(LinkAutoApplyGuard.PreparedRule);
         }
 
         [Fact]

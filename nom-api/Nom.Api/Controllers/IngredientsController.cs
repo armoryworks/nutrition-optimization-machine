@@ -35,15 +35,20 @@ namespace Nom.Api.Controllers
             return Ok(ingredients);
         }
 
+        /// <summary>
+        /// Prepared foods (fast food, restaurant and baby foods, meals and entrees) are found only
+        /// with <paramref name="prepared"/>, which the meal plan's food picker sets: a prepared food
+        /// goes in a plan as a food of its own and is never a recipe line's food.
+        /// </summary>
         [HttpGet("search")]
-        public async Task<IActionResult> SearchIngredients([FromQuery] string q)
+        public async Task<IActionResult> SearchIngredients([FromQuery] string q, [FromQuery] bool prepared = false)
         {
             if (string.IsNullOrWhiteSpace(q))
             {
                 return BadRequest("Search query is required");
             }
 
-            var ingredients = await _recipeOrch.SearchIngredientsAsync(q);
+            var ingredients = await _recipeOrch.SearchIngredientsAsync(q, prepared);
             return Ok(ingredients);
         }
 

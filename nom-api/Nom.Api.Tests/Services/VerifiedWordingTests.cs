@@ -165,6 +165,31 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_prepared_food_never_carries_a_wording_curated_or_not()
+        {
+            using var db = NewContext();
+            await SeedAsync(db);
+            var burger = Food(922, "McDONALD'S, Hamburger", "170717");
+            burger.FdcCategoryId = 21;
+            var nachos = Food(923, "Fast foods, nachos, with cheese", "170291", status: CurationStatusEnum.PendingCuration);
+            nachos.FdcCategoryId = 21;
+            db.Ingredients.AddRange(burger, nachos);
+            await db.SaveChangesAsync();
+
+            var result = await Service(db).LoadAsync(new List<VerifiedWordingRow>
+            {
+                Row("hamburger", "food", fdcId: "170717"),
+                Row("nachos", "food", fdcId: "170291"),
+            }, Batch, apply: true);
+
+            result.Problems.Select(p => (p.Wording, p.Reason)).Should().Equal(
+                ("hamburger", VerifiedWordingService.TargetPrepared),
+                ("nachos", VerifiedWordingService.TargetPrepared));
+            (await db.IngredientWordings.AnyAsync(w => w.IngredientId == 922 || w.IngredientId == 923)).Should().BeFalse();
+            (await db.Ingredients.SingleAsync(i => i.Id == 923)).CurationStatusId.Should().Be((long)CurationStatusEnum.PendingCuration, "a wording load never promotes a prepared food");
+        }
+
+        [Fact]
         public async Task A_row_is_refused_when_its_food_cannot_carry_the_wording()
         {
             using var db = NewContext();

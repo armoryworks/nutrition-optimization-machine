@@ -169,6 +169,7 @@ export class RecipeSearchDialog implements OnInit {
           quantity: 1,
           foodGroupId: ingredient.foodGroupId,
           foodGroupName: ingredient.foodGroupName,
+          isPrepared: ingredient.isPrepared,
           title: response.title,
           notes: response.notes,
           calories: null,

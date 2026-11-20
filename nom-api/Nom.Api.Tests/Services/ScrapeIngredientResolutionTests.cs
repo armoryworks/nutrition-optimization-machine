@@ -209,6 +209,21 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_trusted_alias_on_a_prepared_food_is_not_followed()
+        {
+            using var db = NewContext();
+            var burger = await FoodAsync(db, "McDONALD'S, Hamburger");
+            burger.FdcCategoryId = 21;
+            await db.SaveChangesAsync();
+            await AliasAsync(db, burger, "hamburger", "admin:link:ai:fake");
+
+            var landed = await ImportAsync(db, "hamburger");
+
+            landed.Id.Should().NotBe(burger.Id, "a prepared food is never a recipe line's food");
+            landed.CurationStatusId.Should().Be((long)CurationStatusEnum.NonCurated);
+        }
+
+        [Fact]
         public async Task A_trusted_alias_on_a_soft_deleted_food_is_not_followed()
         {
             using var db = NewContext();

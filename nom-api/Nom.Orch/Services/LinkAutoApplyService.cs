@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Nom.Data;
 using Nom.Data.Curation;
+using Nom.Data.Nutrition;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
@@ -156,7 +157,7 @@ namespace Nom.Orch.Services
         private async Task<Dictionary<long, LinkAutoApplyGuard.Pick>> PicksAsync(IReadOnlyCollection<FoodCatalogProposalEntity> proposals, CancellationToken cancellationToken)
         {
             var targets = proposals.Select(p => long.TryParse(p.ProposedValue, out var id) ? id : 0L).Where(id => id > 0).Distinct().ToList();
-            var foods = new Dictionary<long, (string Name, string Description)>();
+            var foods = new Dictionary<long, (string Name, string Description, bool Prepared)>();
             foreach (var chunk in targets.Chunk(2000))
             {
                 var rows = await _db.Ingredients.AsNoTracking()
@@ -165,10 +166,11 @@ namespace Nom.Orch.Services
                     {
                         i.Id,
                         i.Name,
+                        i.FdcCategoryId,
                         Description = i.Aliases.Where(a => !a.IsDeleted && a.SourceContext == IngredientLinkService.UsdaDescriptionContext).Select(a => a.AliasName).FirstOrDefault(),
                     })
                     .ToListAsync(cancellationToken);
-                foreach (var r in rows) foods[r.Id] = (r.Name, r.Description ?? r.Name);
+                foreach (var r in rows) foods[r.Id] = (r.Name, r.Description ?? r.Name, PreparedFoods.IsPrepared(r.FdcCategoryId));
             }
 
             var picks = new Dictionary<long, LinkAutoApplyGuard.Pick>();
@@ -176,7 +178,7 @@ namespace Nom.Orch.Services
             {
                 if (!long.TryParse(p.ProposedValue, out var targetId) || !foods.TryGetValue(targetId, out var food) || p.IngredientId == null) continue;
                 picks[p.Id] = new LinkAutoApplyGuard.Pick(p.CurrentValue ?? string.Empty, p.IngredientId.Value, targetId, food.Name, food.Description,
-                    p.Source == IngredientLinkService.ExactSource);
+                    p.Source == IngredientLinkService.ExactSource, food.Prepared);
             }
             return picks;
         }
@@ -187,6 +189,7 @@ namespace Nom.Orch.Services
 
             var curated = await _db.Ingredients.AsNoTracking()
                 .Where(i => !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated && i.IngredientNutrients.Any(n => !n.IsDeleted))
+                .ExceptPrepared()
                 .OrderBy(i => i.Id)
                 .Select(i => new { i.Id, i.Name })
                 .ToListAsync(cancellationToken);

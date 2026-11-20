@@ -170,6 +170,38 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task No_relink_plan_move_or_retirement_puts_a_line_on_a_prepared_food()
+        {
+            using var db = NewContext();
+            var hamburger = CuratedFood("Hamburger");
+            hamburger.FdcCategoryId = 21;
+            var ground = CuratedFood("Ground Beef Hamburger");
+            db.Ingredients.AddRange(hamburger, ground);
+            await db.SaveChangesAsync();
+            db.Recipes.Add(new RecipeEntity
+            {
+                Name = "Scraped",
+                ScrapedAtUtc = DateTime.UtcNow,
+                RecipeIngredients = new List<RecipeIngredientEntity>
+                {
+                    new() { IngredientId = ground.Id, SortOrder = 0, Quantity = 1, MeasurementId = 1, RawLine = "1 lb hamburger" },
+                },
+            });
+            await db.SaveChangesAsync();
+            var service = new LineRelinkService(db, new NoUser());
+
+            (await service.PreviewAsync(100)).MoveCount.Should().Be(0, "the wording \"hamburger\" names a prepared food, which is never a line's food");
+            (await service.MoveFoodAsync(ground.Id, hamburger.Id)).Should().BeNull();
+            var moves = await service.MoveWordingsAsync(new List<Nom.Orch.Models.Curation.LineRelinkWordingMove>
+            {
+                new() { FromIngredientId = ground.Id, Wording = "hamburger", ToIngredientId = hamburger.Id },
+            }, apply: true);
+            moves.Rejected.Should().Be(1);
+            moves.Moved.Should().Be(0);
+            (await db.RecipeIngredients.SingleAsync()).IngredientId.Should().Be(ground.Id);
+        }
+
+        [Fact]
         public async Task A_duplicate_food_is_retired_only_once_no_recipe_line_is_left_on_it()
         {
             using var db = NewContext();

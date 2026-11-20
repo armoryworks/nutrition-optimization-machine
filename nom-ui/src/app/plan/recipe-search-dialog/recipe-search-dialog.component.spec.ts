@@ -113,6 +113,35 @@ describe('RecipeSearchDialog adding a recipe', () => {
     await fixture.whenStable();
   });
 
+  it('finds prepared foods for the plan, marks them Prepared and adds one as a food of its own', () => {
+    vi.useFakeTimers();
+    try {
+      const fixture = create();
+      fixture.componentInstance.onWholeFoodInput('hamburger');
+      vi.advanceTimersByTime(300);
+
+      const search = http.expectOne((r) => r.method === 'GET' && r.url.endsWith('/ingredients/search'));
+      expect(search.request.params.get('q')).toBe('hamburger');
+      expect(search.request.params.get('prepared')).toBe('true');
+      const burger = { id: 7, name: "McDONALD'S, Hamburger", fdcId: '170717', matchedAlias: null, foodGroupId: null, foodGroupName: null, isWholeFood: null, isPrepared: true };
+      search.flush([burger]);
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelectorAll('[data-testid="whole-food-result-item"]').length).toBe(1);
+      expect(el.querySelector('[data-testid="whole-food-result-prepared"]')!.textContent).toContain('Prepared');
+
+      fixture.componentInstance.addWholeFood(burger);
+      const post = createRequest();
+      expect(post.request.body.ingredientId).toBe(7);
+      expect(post.request.body.recipeId).toBeNull();
+      post.flush({ id: 902, title: burger.name, notes: null });
+      expect(fixture.componentInstance.entries()[0].isPrepared).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('routes "Surprise me" through the same check', () => {
     const fixture = create();
     fixture.componentInstance.surpriseMe();

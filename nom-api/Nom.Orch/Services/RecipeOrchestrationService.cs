@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Nom.Data;
 using Nom.Data.Recipe;
 using Nom.Data.Nutrient;
+using Nom.Data.Nutrition;
 using Nom.Orch.UtilityServices;
 using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
@@ -48,7 +49,7 @@ namespace Nom.Orch.Services
         private const string QuantityWordPattern =
             "^((a|an|one|two|three|half)( |-)){0,2}(pint|quart|gallon|cup|can|jar|package|pkg|box|bag|bunch|slice|pound|ounce|oz|lb|tbsp|tsp|tablespoon|teaspoon)s? of ";
 
-        public async Task<List<IngredientSearchResponseModel>> SearchIngredientsAsync(string query)
+        public async Task<List<IngredientSearchResponseModel>> SearchIngredientsAsync(string query, bool includePrepared = false)
         {
             if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
                 return new List<IngredientSearchResponseModel>();
@@ -74,6 +75,7 @@ namespace Nom.Orch.Services
                 // quantity-prefixed names from search.
                 .Where(i => !QuantityLeadChars.Contains(i.Name.Substring(0, 1)))
                 .Where(i => !Regex.IsMatch(i.Name, QuantityWordPattern, RegexOptions.IgnoreCase));
+            if (!includePrepared) candidates = candidates.ExceptPrepared();
             Expression<Func<IngredientEntity, bool>> isExact = i =>
                 i.Name.ToLower() == searchTerm ||
                 (i.NameNormalized != null && i.NameNormalized.ToLower() == searchTerm) ||
@@ -138,12 +140,30 @@ namespace Nom.Orch.Services
                     FoodGroupId = i.FoodGroupId,
                     FoodGroupName = i.FoodGroup != null ? i.FoodGroup.Name : null,
                     IsWholeFood = i.IsWholeFood,
+                    IsPrepared = i.FdcCategoryId != null && PreparedFoods.CategoryIds.Contains(i.FdcCategoryId.Value),
                     HasNutrition = i.IngredientNutrients.Any(),
                     CanWeighVolume = i.GramsPerMilliliter > 0,
                     CanWeighCount = i.GramsPerItem > 0 || i.ReferenceServingGrams > 0
                 },
                 Aliases = i.Aliases.Select(a => new IngredientSearchAlias { AliasName = a.AliasName, SourceContext = a.SourceContext }).ToList()
             });
+
+        /// <summary>
+        /// Refuses a recipe line on a prepared food (<see cref="PreparedFoods"/>) unless the recipe
+        /// already had a line on that food, so an older recipe stays editable while no edit adds one.
+        /// </summary>
+        private async Task RefusePreparedFoodsAsync(IEnumerable<long> ingredientIds, IReadOnlyCollection<long> alreadyOnRecipe)
+        {
+            var added = ingredientIds.Where(id => id > 0 && !alreadyOnRecipe.Contains(id)).Distinct().ToList();
+            if (added.Count == 0) return;
+            var prepared = await _context.Ingredients
+                .Where(i => added.Contains(i.Id) && i.FdcCategoryId != null && PreparedFoods.CategoryIds.Contains(i.FdcCategoryId.Value))
+                .Select(i => i.Name)
+                .ToListAsync();
+            if (prepared.Count > 0)
+                throw new ArgumentException(
+                    $"A prepared food cannot be a recipe ingredient: {string.Join(", ", prepared)}. Add it to a meal plan as a food of its own instead.");
+        }
 
         /// <summary>
         /// Ids of ingredients whose name, normalized name or one alias contains every stem.
@@ -326,6 +346,7 @@ namespace Nom.Orch.Services
                 throw new ArgumentException(
                     "Each recipe ingredient must reference an existing ingredient (select one from the search).");
             }
+            await RefusePreparedFoodsAsync(model.Ingredients.Select(i => i.IngredientId), Array.Empty<long>());
 
             _context.Recipes.Add(recipe);
 
@@ -685,6 +706,8 @@ namespace Nom.Orch.Services
                 .IgnoreQueryFilters()
                 .Where(ri => ri.RecipeId == id)
                 .ToDictionaryAsync(ri => (ri.IngredientId, ri.SortOrder));
+            await RefusePreparedFoodsAsync(model.Ingredients.Select(i => i.IngredientId),
+                existingIngredients.Values.Where(ri => !ri.IsDeleted).Select(ri => ri.IngredientId).ToHashSet());
             var lines = model.Ingredients
                 .Where(i => i.IngredientId > 0 && i.MeasurementId > 0)
                 .Select((ingredient, sortOrder) => (Ingredient: ingredient, Key: (ingredient.IngredientId, sortOrder)))

@@ -11,11 +11,13 @@ namespace Nom.Orch.Services.Support
     /// that names more than one food, a wording that is the name of another curated food, a USDA
     /// food in a state (dried, canned, cooked...) the wording does not mention while the catalog has
     /// other foods under the same lead word, and, for name matches, a wording that reads in the USDA
-    /// description's own order ("cake chocolate", "gravy beef"). A hold only withholds auto-apply.
+    /// description's own order ("cake chocolate", "gravy beef"). A pick at a prepared food is always
+    /// held, since a prepared food is never a recipe line's food. A hold only withholds auto-apply.
     /// </summary>
     public static class LinkAutoApplyGuard
     {
         public const string HoldMark = " · hold: ";
+        public const string PreparedRule = "prepared food";
         public const string CompoundRule = "more than one food";
         public const string OtherFoodRule = "names another curated food";
         public const string StateRule = "USDA state not in the wording";
@@ -70,11 +72,12 @@ namespace Nom.Orch.Services.Support
         }
 
         /// <summary>One pick as the rules read it.</summary>
-        public sealed record Pick(string Wording, long SourceId, long TargetId, string TargetName, string Description, bool NameMatch);
+        public sealed record Pick(string Wording, long SourceId, long TargetId, string TargetName, string Description, bool NameMatch, bool TargetPrepared = false);
 
         /// <summary>The first rule that holds the pick, with its detail, or null to let it through.</summary>
         public static string? Hold(Pick pick, Catalog catalog)
         {
+            if (pick.TargetPrepared) return PreparedRule;
             var wording = IngredientNameNormalizer.Normalize(pick.Wording);
             if (IsCompound(wording)) return CompoundRule;
 

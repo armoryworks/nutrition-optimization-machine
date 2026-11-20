@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Nom.Data;
 using Nom.Data.Audit;
 using Nom.Data.Curation;
+using Nom.Data.Nutrition;
 using Nom.Data.Recipe;
 using Nom.Orch.Models.Curation;
 using Nom.Orch.Services.Support;
@@ -24,6 +25,7 @@ namespace Nom.Orch.Services
             var targets = await _db.Ingredients.AsNoTracking()
                 .Where(i => targetIds.Contains(i.Id) && !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated
                     && i.IngredientNutrients.Any(n => !n.IsDeleted))
+                .ExceptPrepared()
                 .ToDictionaryAsync(i => i.Id, i => i.Name);
             var usable = verified.Where(w => targets.ContainsKey(w.TargetId)).ToDictionary(w => w.Wording, w => w.TargetId, StringComparer.Ordinal);
             var result = new VerifiedWordingLinkResult

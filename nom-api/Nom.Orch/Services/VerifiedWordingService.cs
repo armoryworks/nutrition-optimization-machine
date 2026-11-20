@@ -34,6 +34,7 @@ namespace Nom.Orch.Services
         public const string UnknownVerdict = "verdict is not food, none or unclear";
         public const string TargetMissing = "food not found";
         public const string TargetBranded = "food is branded";
+        public const string TargetPrepared = "food is a prepared food";
         public const string TargetNoNutrition = "food has no nutrition";
         public const string TargetNotCurated = "food is not curated";
         public const string NamesCuratedFood = "wording is the name of a curated food";
@@ -54,7 +55,7 @@ namespace Nom.Orch.Services
             _currentUser = currentUser;
         }
 
-        private sealed record Target(long Id, string Name, string? FdcId, string DataType, long Status, bool HasNutrition, string? AdmissionReason);
+        private sealed record Target(long Id, string Name, string? FdcId, string DataType, long Status, bool HasNutrition, string? AdmissionReason, bool Prepared);
         private sealed record Accepted(VerifiedWordingRow Row, string Wording, string Verdict, Target? Food);
 
         /// <summary>
@@ -151,6 +152,7 @@ namespace Nom.Orch.Services
                     food = Resolve(row, targets);
                     var refusal = food == null ? TargetMissing
                         : food.DataType == "branded_food" ? TargetBranded
+                        : food.Prepared ? TargetPrepared
                         : !food.HasNutrition ? TargetNoNutrition
                         : food.Status != (long)CurationStatusEnum.Curated && !IsPromotable(food) ? TargetNotCurated
                         : null;
@@ -378,10 +380,12 @@ namespace Nom.Orch.Services
             var foodRows = rows.Where(r => string.Equals((r.Verdict ?? string.Empty).Trim(), IngredientWordingVerdict.Food, StringComparison.OrdinalIgnoreCase)).ToList();
             var fdcIds = foodRows.Select(r => r.FoodFdcId?.Trim()).Where(f => !string.IsNullOrEmpty(f)).Distinct().ToList();
             var ids = foodRows.Where(r => string.IsNullOrWhiteSpace(r.FoodFdcId) && r.FoodId != null).Select(r => r.FoodId!.Value).Distinct().ToList();
-            return await _db.Ingredients.AsNoTracking()
+            var foods = await _db.Ingredients.AsNoTracking()
                 .Where(i => !i.IsDeleted && ((i.FdcId != null && fdcIds.Contains(i.FdcId)) || ids.Contains(i.Id)))
-                .Select(i => new Target(i.Id, i.Name, i.FdcId, i.FdcDataType ?? string.Empty, i.CurationStatusId, i.IngredientNutrients.Any(n => !n.IsDeleted), i.AdmissionReason))
+                .Select(i => new { i.Id, i.Name, i.FdcId, i.FdcDataType, i.CurationStatusId, HasNutrition = i.IngredientNutrients.Any(n => !n.IsDeleted), i.AdmissionReason, i.FdcCategoryId })
                 .ToListAsync();
+            return foods.Select(i => new Target(i.Id, i.Name, i.FdcId, i.FdcDataType ?? string.Empty, i.CurationStatusId, i.HasNutrition, i.AdmissionReason,
+                Nom.Data.Nutrition.PreparedFoods.IsPrepared(i.FdcCategoryId))).ToList();
         }
 
         /// <summary>

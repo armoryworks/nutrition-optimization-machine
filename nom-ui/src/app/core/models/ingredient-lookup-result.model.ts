@@ -6,4 +6,5 @@ export interface IngredientLookupResult {
   foodGroupId: number | null;
   foodGroupName: string | null;
   isWholeFood: boolean | null;
+  isPrepared: boolean;
 }
