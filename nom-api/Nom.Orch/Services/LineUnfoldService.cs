@@ -55,6 +55,12 @@ namespace Nom.Orch.Services
         private sealed record After(
             [property: JsonPropertyName("added")] List<int> Added,
             [property: JsonPropertyName("qty")] decimal Quantity,
+            [property: JsonPropertyName("m")] long MeasurementId,
+            [property: JsonPropertyName("lines")] List<AddedLine>? Lines = null);
+
+        private sealed record AddedLine(
+            [property: JsonPropertyName("at")] int SortOrder,
+            [property: JsonPropertyName("qty")] decimal Quantity,
             [property: JsonPropertyName("m")] long MeasurementId);
 
         public async Task<LineUnfoldResult> UnfoldAsync(bool apply = false, int maxRows = 5000, int sampleSize = 50)
@@ -156,7 +162,10 @@ namespace Nom.Orch.Services
             foreach (var row in rows)
             {
                 var segments = FoldedLine.Segments(row.RawLine, sources.GetValueOrDefault(row.RecipeId));
-                if (segments == null || Journal(new Before(LineRelinkService.Place(row.IngredientId, row.SortOrder), row.RawLine, row.Quantity, row.MeasurementId)).Length > JournalLength)
+                if (segments == null || Journal(new Before(LineRelinkService.Place(row.IngredientId, row.SortOrder), row.RawLine, row.Quantity, row.MeasurementId)).Length > JournalLength
+                    || Journal(new After(
+                        segments.Select(_ => int.MaxValue).ToList(), row.Quantity, row.MeasurementId,
+                        segments.Select(_ => new AddedLine(int.MaxValue, decimal.MaxValue, long.MaxValue)).ToList())).Length > JournalLength)
                 {
                     result.SkippedAmbiguous++;
                 }
@@ -215,7 +224,7 @@ namespace Nom.Orch.Services
         {
             var now = DateTime.UtcNow;
             var before = new Before(LineRelinkService.Place(row.IngredientId, row.SortOrder), row.RawLine, row.Quantity, row.MeasurementId);
-            var added = new List<int>();
+            var added = new List<AddedLine>();
 
             row.RawLine = lines.Kept[0].RawLine;
             row.Quantity = lines.Kept[0].Quantity;
@@ -235,7 +244,7 @@ namespace Nom.Orch.Services
                     CreatedDate = now,
                     CreatedByPersonId = personId,
                 });
-                added.Add(next++);
+                added.Add(new AddedLine(next++, line.Quantity, line.MeasurementId));
             }
 
             _db.AuditLogEntries.Add(new AuditLogEntryEntity
@@ -245,7 +254,7 @@ namespace Nom.Orch.Services
                 ChangeType = UnfoldChangeType,
                 PropertyName = nameof(RecipeIngredientEntity.RawLine),
                 OldValue = Journal(before),
-                NewValue = Journal(new After(added, row.Quantity, row.MeasurementId)),
+                NewValue = Journal(new After(added.Select(a => a.SortOrder).ToList(), row.Quantity, row.MeasurementId, added)),
                 Timestamp = now,
                 ChangedByPersonId = personId,
             });
@@ -293,8 +302,9 @@ namespace Nom.Orch.Services
         /// Puts one row that was taken apart back together from its journal entry: the lines it
         /// added are deleted and the row gets its joined text back, and its amount too when that
         /// is still what the unfold left. False, with nothing changed, when the row or one of the
-        /// added lines is no longer where the unfold left it or no longer reads as part of the
-        /// joined text.
+        /// added lines is no longer where the unfold left it, no longer reads as part of the joined
+        /// text or no longer has the amount the unfold gave it, so an edit made since is never
+        /// deleted.
         /// </summary>
         internal static async Task<bool> RefoldAsync(ApplicationDbContext db, AuditLogEntryEntity entry, long personId)
         {
@@ -313,7 +323,10 @@ namespace Nom.Orch.Services
             if (row == null || row.RawLine.Length == 0 || row.RawLine == before.Raw
                 || !before.Raw.TrimStart().StartsWith(row.RawLine, StringComparison.Ordinal)
                 || added.Count != after.Added.Count
-                || added.Any(line => line.RawLine.Length == 0 || !before.Raw.Contains(line.RawLine, StringComparison.Ordinal))) return false;
+                || added.Any(line => line.RawLine.Length == 0 || !before.Raw.Contains(line.RawLine, StringComparison.Ordinal))
+                || added.Any(line => after.Lines == null
+                    ? line.LastModifiedDate > entry.Timestamp
+                    : !after.Lines.Any(l => l.SortOrder == line.SortOrder && l.Quantity == line.Quantity && l.MeasurementId == line.MeasurementId))) return false;
 
             foreach (var line in added)
             {

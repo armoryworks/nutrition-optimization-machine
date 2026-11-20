@@ -159,7 +159,7 @@ namespace Nom.Api.Tests.Services
             entry.EntityId.Should().Be(seeded.RecipeId);
             entry.ChangeType.Should().Be(LineUnfoldService.UnfoldChangeType);
             entry.OldValue.Should().Be($$"""{"at":"{{seeded.Foods["Sugar"]}}@0","raw":"1 3/4 cup granulated sugar + 1/3 cup granulated sugar, (for rolling cookies)","qty":1.75,"m":11}""");
-            entry.NewValue.Should().Be("""{"added":[1],"qty":1.75,"m":11}""");
+            entry.NewValue.Should().Be("""{"added":[1],"qty":1.75,"m":11,"lines":[{"at":1,"qty":0.333,"m":11}]}""");
         }
 
         [Fact]
@@ -302,6 +302,30 @@ namespace Nom.Api.Tests.Services
             result.SkippedAmbiguous.Should().Be(1);
             (await LinesAsync(db, seeded.RecipeId)).Single().RawLine.Should().Be(longLine);
             (await db.AuditLogEntries.AnyAsync()).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task The_undo_sweep_leaves_a_row_whose_added_line_was_given_another_amount_in_the_editor()
+        {
+            using var db = await NewContextAsync();
+            var seeded = await SeedAsync(db, null,
+                ("Water", 0, 1m, Cup, null, "1 cup water"),
+                ("Sugar", 1, 0.25m, Cup, null, "1/4 cup sugar + 1/4 cup sugar, for dusting"));
+            var started = DateTime.UtcNow;
+            await new LineUnfoldService(db, new NoUser()).UnfoldAsync(apply: true);
+            var corrected = await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == seeded.RecipeId && ri.SortOrder == 2);
+            corrected.Quantity = 0.333m;
+            corrected.LastModifiedDate = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started);
+
+            undone.Refolded.Should().Be(0);
+            undone.Skipped.Should().Be(1);
+            (await LinesAsync(db, seeded.RecipeId)).Select(l => (l.RawLine, l.Quantity)).Should().Equal(
+                ("1 cup water", 1m), ("1/4 cup sugar", 0.25m), ("1/4 cup sugar, for dusting", 0.333m));
+            (await db.AuditLogEntries.CountAsync()).Should().Be(1, "the entry stays for the operator to see");
         }
 
         [Fact]
