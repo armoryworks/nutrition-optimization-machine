@@ -429,6 +429,23 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_persons_approval_leaves_the_usda_name_when_a_deleted_food_holds_the_everyday_name()
+        {
+            using var db = NewContext();
+            var seeded = await SeedSeaSaltAsync(db);
+            db.Ingredients.Add(new IngredientEntity { Name = "Sea Salt", CurationStatusId = 9000, IsDeleted = true, DeletedAt = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+            var start = DateTime.UtcNow.AddSeconds(-1);
+
+            (await new FoodCatalogReviewService(db, new NoAudit(), new MovingCleanup(db)).ApplyProposalAsync(seeded.Proposal.Id, reviewerPersonId: 2)).Should().BeTrue();
+            db.ChangeTracker.Clear();
+
+            (await db.Ingredients.FindAsync(seeded.Salt.Id))!.Name.Should().Be("Salt, table", "the unique name index covers deleted foods");
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LinkApplyJournal.ChangeType && a.PropertyName == LinkApplyJournal.Header)).Should().Be(1);
+            (await new LinkApplyUndoService(db, new NoUser()).UndoAsync(start)).Proposals.Should().Be(1);
+        }
+
+        [Fact]
         public async Task A_withdrawn_proposal_the_merge_removed_comes_back_withdrawn()
         {
             using var db = NewContext();
@@ -634,5 +651,26 @@ namespace Nom.Api.Tests.Services
             (await gate.AllowanceAsync(IngredientLinkService.ExactSource, dailyCap: 0, perTargetCap: 3)).Remaining.Should().Be(0);
         }
 
+        [Fact]
+        public async Task One_batch_of_name_matches_takes_no_more_for_a_food_than_its_share_has_left()
+        {
+            using var db = NewContext();
+            for (var i = 0; i < 4; i++)
+            {
+                db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
+                {
+                    Action = FoodProposalAction.Update, IngredientId = 400 + i, Field = FoodCatalogReviewService.FdcLinkField, FdcId = i < 3 ? "173468" : "171413",
+                    ProposedValue = "1", Source = IngredientLinkService.ExactSource, Status = FoodProposalStatus.Pending,
+                });
+            }
+            await db.SaveChangesAsync();
+            var gate = new LinkAutoApplyService(db, new MemoryCache(new MemoryCacheOptions()));
+
+            var ids = await gate.PendingNameMatchesAsync(50, Array.Empty<long>(), Array.Empty<string>(), default, perTargetCap: 2,
+                appliedByTarget: new Dictionary<string, int> { ["173468"] = 1 });
+
+            (await db.FoodCatalogProposals.Where(p => ids.Contains(p.Id)).Select(p => p.FdcId).ToListAsync())
+                .Should().BeEquivalentTo(new[] { "173468", "171413" });
+        }
     }
 }

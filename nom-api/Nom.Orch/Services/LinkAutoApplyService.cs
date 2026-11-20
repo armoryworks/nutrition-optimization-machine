@@ -28,18 +28,30 @@ namespace Nom.Orch.Services
             _cache = cache;
         }
 
-        public async Task<IReadOnlyList<long>> PendingNameMatchesAsync(int count, IReadOnlyCollection<long> skip, IReadOnlyCollection<string> excludeTargets, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<long>> PendingNameMatchesAsync(int count, IReadOnlyCollection<long> skip, IReadOnlyCollection<string> excludeTargets, CancellationToken cancellationToken = default,
+            int perTargetCap = int.MaxValue, IReadOnlyDictionary<string, int>? appliedByTarget = null)
         {
-            return await _db.FoodCatalogProposals
+            var pending = await _db.FoodCatalogProposals
                 .Where(p => p.Status == FoodProposalStatus.Pending && p.IngredientId != null && !skip.Contains(p.Id)
                     && p.Field == FoodCatalogReviewService.FdcLinkField && p.Source == IngredientLinkService.ExactSource
                     && !excludeTargets.Contains(p.FdcId!)
                     && (p.Reason == null || !p.Reason.Contains(LinkAutoApplyGuard.HoldMark)))
                 .OrderByDescending(p => _db.RecipeIngredients.Count(ri => ri.IngredientId == p.IngredientId))
                 .ThenBy(p => p.Id)
-                .Select(p => p.Id)
+                .Select(p => new { p.Id, p.FdcId })
                 .Take(count)
                 .ToListAsync(cancellationToken);
+            var taken = new Dictionary<string, int>(appliedByTarget ?? new Dictionary<string, int>());
+            var ids = new List<long>();
+            foreach (var p in pending)
+            {
+                var key = p.FdcId ?? string.Empty;
+                var already = taken.GetValueOrDefault(key);
+                if (already >= perTargetCap) continue;
+                taken[key] = already + 1;
+                ids.Add(p.Id);
+            }
+            return ids;
         }
 
         public async Task<LinkApplyAllowance> AllowanceAsync(string sourcePrefix, int dailyCap, int perTargetCap, CancellationToken cancellationToken = default)
@@ -53,7 +65,8 @@ namespace Nom.Orch.Services
                 .ToListAsync(cancellationToken);
             return new LinkApplyAllowance(
                 Math.Max(0, dailyCap - applied.Sum(a => a.Count)),
-                applied.Where(a => a.Count >= perTargetCap).Select(a => a.FdcId).ToList());
+                applied.Where(a => a.Count >= perTargetCap).Select(a => a.FdcId).ToList(),
+                applied.ToDictionary(a => a.FdcId, a => a.Count));
         }
 
         public async Task<LinkScreenResult> ScreenAsync(IReadOnlyList<long> proposalIds, CancellationToken cancellationToken = default)

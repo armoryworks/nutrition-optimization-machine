@@ -225,7 +225,7 @@ namespace Nom.Api.Services
                     if (dailyCap > 0) _logger.LogWarning("Ingredient linking: the daily allowance of {Cap} applied name matches is used up; the rest wait", dailyCap);
                     return Array.Empty<long>();
                 }
-                return await gate.PendingNameMatchesAsync(Math.Min(50, allowance.Remaining), skip, allowance.BusyTargets, token);
+                return await gate.PendingNameMatchesAsync(Math.Min(50, allowance.Remaining), skip, allowance.BusyTargets, token, perFoodCap, allowance.AppliedByTarget);
             }, "exact name matches", stoppingToken, guarded: true);
         }
 

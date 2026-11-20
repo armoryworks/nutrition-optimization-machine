@@ -97,6 +97,9 @@ namespace Nom.Orch.Interfaces
         Task<AliasClassifyUndoResult> UndoAliasClassificationAsync(DateTime sinceUtc, long personId, CancellationToken cancellationToken = default);
     }
 
-    /// <summary>What is left of the lane's daily allowance and the USDA foods (by FDC id) it must leave alone until tomorrow.</summary>
-    public sealed record LinkApplyAllowance(int Remaining, IReadOnlyCollection<string> BusyTargets);
+    /// <summary>
+    /// What is left of the lane's daily allowance, the USDA foods (by FDC id) it must leave alone
+    /// until tomorrow, and how many links each USDA food has already taken in the rolling day.
+    /// </summary>
+    public sealed record LinkApplyAllowance(int Remaining, IReadOnlyCollection<string> BusyTargets, IReadOnlyDictionary<string, int>? AppliedByTarget = null);
 }

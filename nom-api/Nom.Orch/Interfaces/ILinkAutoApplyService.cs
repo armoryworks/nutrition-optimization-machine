@@ -17,9 +17,12 @@ namespace Nom.Orch.Interfaces
     {
         /// <summary>
         /// Pending exact name matches, most-used first, leaving out those already held, those in
-        /// <paramref name="skip"/> and those that point at a USDA food in <paramref name="excludeTargets"/>.
+        /// <paramref name="skip"/> and those that point at a USDA food in <paramref name="excludeTargets"/>,
+        /// and no more for one USDA food than <paramref name="perTargetCap"/> less what
+        /// <paramref name="appliedByTarget"/> says it has already taken.
         /// </summary>
-        Task<IReadOnlyList<long>> PendingNameMatchesAsync(int count, IReadOnlyCollection<long> skip, IReadOnlyCollection<string> excludeTargets, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<long>> PendingNameMatchesAsync(int count, IReadOnlyCollection<long> skip, IReadOnlyCollection<string> excludeTargets, CancellationToken cancellationToken = default,
+            int perTargetCap = int.MaxValue, IReadOnlyDictionary<string, int>? appliedByTarget = null);
 
         /// <summary>
         /// How many more links whose source starts with <paramref name="sourcePrefix"/> the lane may

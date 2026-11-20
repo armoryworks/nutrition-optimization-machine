@@ -498,7 +498,7 @@ namespace Nom.Orch.Services
             {
                 var friendly = FriendlyName(Support.IngredientNameNormalizer.Normalize(sourceName));
                 if (reviewerPersonId != SystemConstants.SystemPersonId && target.Name.Contains(',') && friendly != null
-                    && !await _context.Ingredients.AnyAsync(i => i.Id != source.Id && i.Id != target.Id && i.Name.ToLower() == friendly.ToLower()))
+                    && !await _context.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id != source.Id && i.Id != target.Id && i.Name.ToLower() == friendly.ToLower()))
                 {
                     var usdaName = target.Name;
                     source.Name = Truncate($"{sourceName} (merged into #{target.Id})", 2000);
