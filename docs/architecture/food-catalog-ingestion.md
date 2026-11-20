@@ -468,11 +468,9 @@ from it (0 on the Gram measurement when it reads none). Rules:
   The same holds for the first line when it names no word of the food and a later line does
   ("one pint of cold water + one-half box gelatine" on box gelatine): it keeps the row's place
   on the Gram measurement at 0, and the undo gives the row back its stored amount.
-- The rows the unfold leaves at 0 stay at 0 by construction: the startup re-read
-  (`ScrapedRecipeRepairService`, every API start) never takes an amount from the method for a
-  line when another live line of the recipe is on the same food or names the same food
-  (`MethodAmountFinder`), and never gives any amount to a line that names none of its food.
-  No API restart or `ScrapedRepair:Enabled` setting is needed around an unfold.
+- The rows the unfold leaves at 0 stay at 0 by construction: while the `LineUnfold` entry
+  stands, the start-up repair leaves every line of the recipe as it is (see "Start-up repair and
+  the undo guarantee" below). No `ScrapedRepair:Enabled` setting is needed around an unfold.
 - Only scraped recipes, and only rows whose `LineKind` is empty or `ingredient`; rows
   classified as artefact, note, instruction, reference or equipment are counted
   (`SkippedOtherKind`) and left.
@@ -546,8 +544,13 @@ is left. No
 `recipe.RecipeSubstitution` rows are written.
 
 A split is planned only when each part line reads back through `IngredientLineParser` and the
-name rules as exactly the row it becomes, so the scraped re-read pass and `relink` leave it as it
-is, and an acceptably unquantified source gives acceptably unquantified parts. The row stays on
+name rules as exactly the row it becomes, so `relink` leaves it as it is, and an acceptably
+unquantified source gives acceptably unquantified parts. A part gets no amount from the method
+or from any default unless its own text states one: the start-up repair leaves the recipe alone
+while the `LineSplit` entry stands. Before v0.3.120 it did not, and a restart filled 146 part rows
+of 142 split recipes on staging (2026-11-20; 117 of them salt parts, 102 given a pinch the method
+shares with the pepper, and "vinegar and water" gave vinegar 32 cups), which made `relink/undo` skip
+those 142 splits. The row stays on
 the part that names its food (or moves to the first part); each other part is a new row at the
 line's position, or at the end of the recipe when that food already holds it.
 
@@ -562,6 +565,56 @@ Order: `relink/unfold` first (lines holding " + " wait and are counted as `Folde
 then the compound rules one at a time, then `relink/preview`. Same staging-first runbook as
 above: dry run, note the UTC time, apply one rule, check recipes in the app, prove the undo,
 re-apply, then the next rule; production only after that, behind a dump.
+
+### Start-up repair and the undo guarantee — BUILT ✅
+`ScrapedRecipeRepairHostedService` runs `ScrapedRecipeRepairService` over every scraped recipe
+30 seconds after each API start (`ScrapedRepair:Enabled`, default on). For a line with no
+amount it takes the amount its own text states, or the amount the method states once for it
+(`MethodAmountFinder`); a line counted in pieces whose text states a unit takes that unit; it
+splits a one-paragraph method into steps, decodes HTML entities and re-vets recipes no person has
+reviewed. The pass ends with the log line
+
+```
+Scraped recipe repair done in <m>m: <n> recipes, <r> rows repaired, ... <h> recipes left alone because a journaled line operation holds their lines
+```
+
+Two rules make it safe to restart the API between any apply and its undo:
+
+- **A held recipe is not touched.** A recipe is held while it has a journal entry with `EntityType`
+  `RecipeIngredient` (the recipe as `EntityId`) of any change type other than the classify lane's
+  labels (`LineClassify`, `LineClassifySuggested`, which no undo reads) and the repair's own
+  `StartupFill`, or a `LinkApply` `Line` entry that names it (`Support/RecipeLineHold.cs`). That
+  covers compound splits and alternatives, unfold, relink and verified-wording relink, label review
+  and its container re-read, container re-read, the repair lane's fills and the piece-count revert,
+  and applied links; an undo removes or relabels its entry, which frees the recipe. A line operation
+  added later is held by the same rule as long as it journals under `RecipeIngredient`. The repair
+  lane (`RecipeAiRepairService`, its own `AiRepair` entries excepted) and the line-classify lane
+  skip held recipes the same way and come back to them after the undo.
+- **Every amount it still changes is journaled.** One `audit.AuditLogEntry` per line
+  (`EntityType` `RecipeIngredient`, `EntityId` the recipe, `ChangeType` `StartupFill`, the line as
+  `LineKind[food:position]`, amount before and after as `food@position|quantity|measurement`), and
+  the row gets `LastModifiedDate`, so the nutrition sweep recalculates the label.
+
+```
+POST /api/FoodCatalog/startup-fills/undo?sinceUtc=<utc time>&apply=false   # dry run: entries, lines it would restore, lines changed since
+POST /api/FoodCatalog/startup-fills/undo?sinceUtc=<utc time>&apply=true    # restores each line that still holds what the repair gave it
+```
+
+So after any number of restarts every line undo restores everything it journaled, with nothing
+skipped because of the repair. Operators still wait for the "Scraped recipe repair done" line
+after a container start before running an apply or an undo: the repair saves a batch of up to 500
+recipes at a time, and a line operation that writes to one of them while that batch is open can
+be overwritten.
+
+Not journaled, and why that is harmless for undos: the re-vet moves a recipe no person has
+reviewed between `RequiresRevision` and `NonCurated` and rewrites `VettingIssues` (intended; it is
+counted in the log line only, and no undo compares a recipe's status), and the entity decoding
+rewrites name, description and step text of such recipes (no line undo reads them).
+
+The stand-alone rule itself still misreads some methods: on staging 139 stand-alone water lines
+that state no amount are stored in pieces, 64 of them in recipes whose method says "two or three
+waters", "a spoonful or two of water" or "six of water". Those fills predate the journal and are
+left as they are; `startup-fills.tsv` keeps two of them as `known`.
 
 ### Alias trust: which wordings an import may follow — BUILT ✅
 An alias (`recipe."IngredientAlias"`) says a wording has been seen on a food; its
