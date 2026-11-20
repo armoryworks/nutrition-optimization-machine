@@ -30,6 +30,7 @@
 
   <ItemGroup>
     <None Include="Fixtures\**\*.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures\**\*.tsv" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

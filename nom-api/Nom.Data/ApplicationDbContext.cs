@@ -115,6 +115,7 @@ namespace Nom.Data
 
         #region Recipe
         public DbSet<IngredientAliasEntity> IngredientAliases { get; set; } = default!;
+        public DbSet<IngredientWordingEntity> IngredientWordings { get; set; } = default!;
         public DbSet<IngredientEntity> Ingredients { get; set; } = default!;
         public DbSet<RecipeEntity> Recipes { get; set; } = default!;
         public DbSet<DishGroupEntity> DishGroups { get; set; } = default!;

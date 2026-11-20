@@ -589,6 +589,69 @@ nutrition sweep recalculates the labels. Order of work as for the other line lan
 snapshot, dry run, note the UTC time, apply, check the samples in the app, prove the undo,
 then production.
 
+### Verified wording table — BUILT ✅ (table empty until the first judged batch)
+`recipe."IngredientWording"` holds one reviewed verdict per wording, keyed by
+`IngredientNameNormalizer.WordingKey` (the normalised name, lower-cased; no plural or
+preparation-word folding):
+
+| Verdict | Meaning | Effect |
+|---|---|---|
+| `food` | the wording names this one live, curated, non-branded food with nutrition | imports land on it; `relink/verified` moves existing lines to it |
+| `none` | the catalog has no such food yet (white wine, brandy, sherry) | the link lane stops asking the model; the worklist for a USDA import |
+| `unclear` | names no single food ("kosher salt and pepper", "cream or milk") | the link lane stops asking the model |
+
+It is a table and not alias rows because a map from wording to food has to be a function (an
+alias name can belong to several foods), every row needs an id for the journal, and aliases cannot
+say "no such food". Aliases with no `SourceContext` are not a trusted source for it.
+
+**The reviewed file.** `db/verified-wordings.tsv`, tab-separated, header
+`wording verdict food_id food_fdc_id food_name lines_at_review batch_row reason`. The food is
+found by `food_fdc_id` when given (ids differ between staging and production), otherwise by
+`food_id` together with the exact `food_name` (seed foods have no FdcId). Candidates come from
+`ops/verified-wording-candidates.sql` (read-only; `psql -v limit=2000 -f ...`), which ranks
+unresolved wordings by the recipes they are the only blocker of in the auto-approval sweep, then
+by scraped lines, with the three commonest raw lines and the pending model pick for the judge.
+
+**Load.** `POST api/FoodCatalog/wordings/load?batch=<name>&apply=false&replace=false`, body
+`{"tsv": "<file contents>"}` or `{"rows": [...]}`, curation-gated, a dry run unless `apply=true`.
+A row is refused, with its reason in `problems`, when the wording is not in key form, the verdict
+is unknown, the food is missing, deleted, branded, without nutrition or not curated, the wording
+is the name of another curated food, two rows give it different answers, or the table already
+gives it another answer and `replace` is off. A USDA Foundation or SR Legacy food awaiting
+curation is curated by the load (`promoted`); a branded food never is. Each row written is one
+`audit."AuditLogEntry"` (`EntityType` `IngredientWording`, `ChangeType` `WordingVerify`,
+`OldValue`/`NewValue` `verdict:foodId`), each food curated one more (`EntityType` `Ingredient`,
+`ChangeType` `WordingCurate`, `9001` to `9003`). `busiestFoods` lists the foods receiving the most
+wordings, the place to look for a wrong mass mapping. `GET api/FoodCatalog/wordings/export`
+returns the live table as TSV for diffing against the file.
+
+**Unload.** `POST api/FoodCatalog/wordings/unload?batch=<name>&apply=false` soft-deletes the
+batch's rows (journaled with `NewValue` null) and returns to awaiting curation each food a load
+curated that no remaining wording points at. Loading the wording again revives its row.
+
+**Existing lines.** `POST api/FoodCatalog/relink/verified?apply=false&maxLines=20000&sampleSize=50`
+moves the scraped ingredient lines of every uncurated ingredient named with a `food` wording to
+its food through the journaled `LineRelink` move (re-positioned, never folded), then retires each
+such ingredient left with no line and nothing else pointing at it (`FoodRetire`, name tombstoned)
+and withdraws its unreviewed link proposals. Member-written recipes and non-ingredient lines stay.
+`relink/undo?sinceUtc=<T0>` puts lines and ingredients back; run it before `wordings/unload`,
+and keep other relink work out of the window, since the undo is by time. Withdrawn proposals are
+not revived; the lane re-proposes once the wording is unloaded.
+
+**Gates.** With `VerifiedWordings:ResolveOnImport=true` (default `false`),
+`RecipeScrapingService.FindOrCreateIngredientAsync` looks the wording up first, before the name
+and the trusted aliases, and lands it on its food while that food is live and curated; `none`,
+`unclear` and a food that lost curation fall through to the usual order. With
+`VerifiedWordings:GateLinkLane=true` (default) the link lane takes no ingredient whose wording the
+table has any verdict on, and `ProposeAsync` drops one handed to it before the staple list, the
+name matcher or a model sees it. A food a wording points at cannot be retired by `relink/retire`.
+
+**Rename.** `POST api/FoodCatalog/relink/rename?id=<food>&name=<new name>` renames a live curated
+food and sets `NameNormalized`; a soft-deleted holder of the name is tombstoned, a live holder
+stops it (`heldByIngredientId`, `heldByLines`), and aliases of the new name come off other foods.
+It journals as `FoodRetire` so `relink/undo` gives every name back. `relink/wordings` dry runs
+now list `planned` (lines per food, wording and target) and `rejectedMoves`.
+
 ### AI enrichment (food group + IsWholeFood) — BUILT ✅ (runtime pending)
 `Nom.Import/Services/FoodGroupEnrichmentService.cs` — a batch job that classifies
 ingredients: deterministic keyword classification always runs

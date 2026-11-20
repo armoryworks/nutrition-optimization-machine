@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Audit;
@@ -32,6 +33,7 @@ namespace Nom.Orch.Services
         public const string NameKeyRule = "name-key";
         public const string StapleRule = "staple";
         public const string NameMatchRule = "name-match";
+        public const string GateLinkLaneSetting = "VerifiedWordings:GateLinkLane";
         public static readonly TimeSpan RejectionRetryAge = TimeSpan.FromDays(7);
         private const int JournalChunk = 500;
         private const int ModelBatch = 6;
@@ -44,14 +46,17 @@ namespace Nom.Orch.Services
         private readonly IIngredientLinkVerifier _verifier;
         private readonly IMemoryCache _cache;
         private readonly ILogger<IngredientLinkService> _logger;
+        private readonly bool _gateVerifiedWordings;
 
         public IngredientLinkService(
             ApplicationDbContext context,
             IIngredientLinkMatcher matcher,
             IIngredientLinkVerifier verifier,
             IMemoryCache cache,
-            ILogger<IngredientLinkService> logger)
+            ILogger<IngredientLinkService> logger,
+            IConfiguration? configuration = null)
         {
+            _gateVerifiedWordings = configuration?.GetValue(GateLinkLaneSetting, true) ?? true;
             _context = context;
             _matcher = matcher;
             _verifier = verifier;
@@ -63,12 +68,15 @@ namespace Nom.Orch.Services
         /// Uncurated ingredients with no open link proposal, most used first. A rejection by a person
         /// settles the matter; a rejection by the machine (no candidate, or the model chose none) only
         /// holds for <see cref="RejectionRetryAge"/>, since the catalog and the matcher keep improving.
+        /// A wording the verified wording table has a verdict on is never a source.
         /// </summary>
         public async Task<IReadOnlyList<LinkSource>> NextSourcesAsync(int count, CancellationToken cancellationToken = default)
         {
             var retryBefore = DateTime.UtcNow - RejectionRetryAge;
+            var gate = _gateVerifiedWordings;
             return await _context.Ingredients
                 .Where(i => i.FdcId == null && !i.IsDeleted
+                    && (!gate || !_context.IngredientWordings.Any(w => w.Wording == i.Name.ToLower()))
                     && !_context.FoodCatalogProposals.Any(p => p.IngredientId == i.Id
                         && ((p.Field == FoodCatalogReviewService.FdcLinkField
                                 && (p.Status != FoodProposalStatus.Rejected
@@ -90,9 +98,11 @@ namespace Nom.Orch.Services
             int exact = 0, ai = 0, none = 0;
             var ambiguous = new List<(LinkSource Source, IReadOnlyList<FoodCandidate> Candidates)>();
 
+            var judged = await JudgedWordingsAsync(sources, cancellationToken);
             var staples = await StapleTargetsAsync(cancellationToken);
             foreach (var source in sources)
             {
+                if (judged.Contains(IngredientNameNormalizer.WordingKey(source.Name))) continue;
                 var name = IngredientNameNormalizer.Normalize(source.Name);
                 if (DeterministicTarget(name, matcher, staples) is { } rule)
                 {
@@ -170,6 +180,21 @@ namespace Nom.Orch.Services
 
             await _context.SaveChangesAsync(cancellationToken);
             return new IngredientLinkBatchResult(sources.Count, exact, ai, none);
+        }
+
+        /// <summary>
+        /// The wordings among these sources that the verified wording table has a verdict on. They
+        /// are settled by the table, so neither a name rule nor a model is asked about them.
+        /// </summary>
+        private async Task<HashSet<string>> JudgedWordingsAsync(IReadOnlyList<LinkSource> sources, CancellationToken cancellationToken)
+        {
+            if (!_gateVerifiedWordings) return new HashSet<string>(StringComparer.Ordinal);
+            var keys = sources.Select(s => IngredientNameNormalizer.WordingKey(s.Name)).Distinct().ToList();
+            var judged = await _context.IngredientWordings
+                .Where(w => keys.Contains(w.Wording))
+                .Select(w => w.Wording)
+                .ToListAsync(cancellationToken);
+            return judged.ToHashSet(StringComparer.Ordinal);
         }
 
         /// <summary>
