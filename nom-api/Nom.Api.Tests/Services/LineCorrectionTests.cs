@@ -167,6 +167,24 @@ namespace Nom.Api.Tests.Services
             (await db.AuditLogEntries.CountAsync()).Should().Be(1);
         }
 
+        [Fact]
+        public async Task The_label_undo_leaves_a_row_that_now_holds_another_line()
+        {
+            using var db = await LabelsAsync();
+            var since = DateTime.UtcNow.AddSeconds(-1);
+            await Labels(db).ReviewAsync(apply: true);
+            var unfolded = await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == 10 && ri.IngredientId == 2);
+            unfolded.RawLine = "puff paste, rolled";
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var undo = await Labels(db).UndoAsync(since);
+
+            (undo.Restored, undo.Skipped).Should().Be((1, 1));
+            (await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == 10 && ri.IngredientId == 2)).LineKind.Should().Be(RecipeIngredientLineKind.Ingredient);
+            (await db.AuditLogEntries.SingleAsync()).PropertyName.Should().Be("LineKind[2:1]", "the entry it could not take back stays");
+        }
+
         private static AuditLogEntryEntity Fill(long recipeId, string place, string quote, decimal quantity = 1m) => new()
         {
             EntityType = "RecipeIngredient",

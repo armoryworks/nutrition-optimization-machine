@@ -179,7 +179,7 @@ namespace Nom.Orch.Services
                     var match = LineProperty.Match(entry.PropertyName ?? string.Empty);
                     if (!match.Success || !RecipeIngredientLineKind.IsExempt(entry.OldValue)
                         || !rows.TryGetValue((entry.EntityId, long.Parse(match.Groups["i"].Value, CultureInfo.InvariantCulture), int.Parse(match.Groups["s"].Value, CultureInfo.InvariantCulture)), out var row)
-                        || row.LineKind != RecipeIngredientLineKind.Ingredient)
+                        || row.LineKind != RecipeIngredientLineKind.Ingredient || !SameLine(entry.NewValue, row.RawLine))
                     {
                         result.Skipped++;
                         continue;
@@ -200,5 +200,19 @@ namespace Nom.Orch.Services
         }
 
         private static string Clamp(string value, int maxLength) => RecipeStepSplit.Clamp(value, maxLength);
+
+        /// <summary>
+        /// Whether the row still holds the line the review relabelled, as its journal entry
+        /// recorded it after "): ". An unfold or a split that kept the row's place gives it
+        /// another line, which the undo must not label again.
+        /// </summary>
+        private static bool SameLine(string? journaled, string? rawLine)
+        {
+            var at = (journaled ?? string.Empty).IndexOf("): ", StringComparison.Ordinal);
+            if (at < 0) return false;
+            var recorded = journaled![(at + 3)..];
+            return string.Equals(recorded, rawLine ?? string.Empty, StringComparison.Ordinal)
+                || (journaled.Length >= 3900 && (rawLine ?? string.Empty).StartsWith(recorded, StringComparison.Ordinal));
+        }
     }
 }
