@@ -91,15 +91,40 @@ namespace Nom.Api.Tests.Services
             var plan = await new LineRelinkService(db, new NoUser()).LinkVerifiedWordingsAsync();
 
             plan.Should().Match<VerifiedWordingLinkResult>(r => !r.Applied && r.Wordings == 2 && r.TargetsUnusable == 1
-                && r.Sources == 2 && r.Remaining == 2 && r.Moved == 0 && r.SourcesRetired == 1 && r.SourcesKept == 1 && r.ProposalsWithdrawn == 1);
+                && r.Sources == 2 && r.Remaining == 2 && r.Moved == 0 && r.LeftBehind == 0 && r.SourcesRetired == 1 && r.SourcesKept == 1 && r.ProposalsWithdrawn == 1);
             plan.Samples.Select(m => (m.FromName, m.Wording, m.ToName, m.Lines)).Should().BeEquivalentTo(new[]
             {
                 ("vanilla", "vanilla", "Vanilla Extract", 1),
                 ("lemon rind", "lemon rind", "Lemon Peel", 1),
-            });
+            }, "\"grated rind of 1 lemon\" normalises to the wording lemon rind");
             (await db.Ingredients.CountAsync()).Should().Be(7);
             (await db.FoodCatalogProposals.CountAsync()).Should().Be(1);
             (await db.AuditLogEntries.AnyAsync()).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task A_line_whose_own_text_does_not_name_the_wording_stays_on_the_uncurated_row()
+        {
+            using var db = NewContext();
+            var gelatin = CuratedFood("Gelatin");
+            var gelatine = Uncurated("gelatine");
+            var boxed = Uncurated("box of gelatine");
+            db.Ingredients.AddRange(gelatin, gelatine, boxed);
+            await db.SaveChangesAsync();
+            db.IngredientWordings.AddRange(Wording("gelatine", "food", gelatin), Wording("box of gelatine", "food", gelatin));
+            db.Recipes.AddRange(
+                Recipe("27601", DateTime.UtcNow, (gelatine, "one gallon of water", null), (gelatine, "one ounce of gelatine", null)),
+                Recipe("56975", DateTime.UtcNow, (boxed, "one-half pint cold water", null), (boxed, "1 box of gelatine", null)));
+            await db.SaveChangesAsync();
+            var service = new LineRelinkService(db, new NoUser());
+
+            var applied = await service.LinkVerifiedWordingsAsync(apply: true);
+
+            applied.Should().Match<VerifiedWordingLinkResult>(r => r.Moved == 2 && r.LeftBehind == 2 && r.SourcesRetired == 0 && r.SourcesKept == 2);
+            var lines = await db.RecipeIngredients.AsNoTracking().ToListAsync();
+            lines.Where(l => l.IngredientId == gelatin.Id).Select(l => l.RawLine).Should().BeEquivalentTo("one ounce of gelatine", "1 box of gelatine");
+            lines.Single(l => l.RawLine == "one gallon of water").IngredientId.Should().Be(gelatine.Id);
+            lines.Single(l => l.RawLine == "one-half pint cold water").IngredientId.Should().Be(boxed.Id);
         }
 
         [Fact]

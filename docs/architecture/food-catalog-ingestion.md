@@ -749,7 +749,10 @@ such ingredient left with no line and nothing else pointing at it (`FoodRetire`,
 and withdraws its unreviewed link proposals. It also withdraws every other pending, unreviewed
 link proposal whose wording the table has judged and whose pick is not the table's food
 (`picksWithdrawn`), each journaled as `WordingPickWithdraw` (`EntityType` `FoodCatalogProposal`).
-Member-written recipes and non-ingredient lines stay.
+Member-written recipes and non-ingredient lines stay. A line moves only when its own text,
+normalised as the wording key is (singular and plural included), is the wording: stray lines an
+import parked on the row ("one gallon of water" on `gelatine`) stay where they are, keep the row
+from being retired, and are counted as `leftBehind` with `leftBehindSamples` in the dry run.
 `relink/undo?sinceUtc=<T0>` puts lines and ingredients back and opens the withdrawn picks again
 (`picksRestored`); run it before `wordings/unload`, and keep other relink work out of the
 window, since the undo is by time. Proposals of retired ingredients are not revived; the lane

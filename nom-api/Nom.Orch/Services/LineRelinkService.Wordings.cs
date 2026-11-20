@@ -52,7 +52,14 @@ namespace Nom.Orch.Services
                 .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder)
                 .Select(ri => new Line(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine))
                 .ToListAsync();
-            var moves = lines.Select(line => new Move(line, sources[line.IngredientId].Wording, usable[sources[line.IngredientId].Wording])).ToList();
+            var all = lines.Select(line => new Move(line, sources[line.IngredientId].Wording, usable[sources[line.IngredientId].Wording])).ToList();
+            var moves = all.Where(m => NamesWording(m.Line.RawLine, m.Wording)).ToList();
+            var behind = all.Where(m => !NamesWording(m.Line.RawLine, m.Wording)).ToList();
+            result.LeftBehind = behind.Count;
+            var leftStep = Math.Max(1, behind.Count / Math.Max(1, Math.Clamp(sampleSize, 0, 5000)));
+            result.LeftBehindSamples = behind.Where((_, i) => i % leftStep == 0).Take(Math.Clamp(sampleSize, 0, 5000))
+                .Select(m => new VerifiedWordingLeftLine { RecipeId = m.Line.RecipeId, IngredientId = m.Line.IngredientId, Wording = m.Wording, Line = m.Line.RawLine })
+                .ToList();
 
             var names = sources.Values.ToDictionary(s => s.Id, s => s.Name);
             foreach (var target in targets) names[target.Key] = target.Value;
@@ -177,6 +184,14 @@ namespace Nom.Orch.Services
                 if (tx != null) await tx.CommitAsync();
             }
         }
+
+        /// <summary>
+        /// Whether a recipe line's own text names a judged wording: the line, normalised as the
+        /// wording key is, is the wording or its singular or plural.
+        /// </summary>
+        internal static bool NamesWording(string? rawLine, string wording) =>
+            IngredientNameNormalizer.ExactKeys(rawLine ?? string.Empty).Any(k => string.Equals(k, wording, StringComparison.OrdinalIgnoreCase))
+            || IngredientNameNormalizer.ExactKeys(wording).Any(k => string.Equals(k, IngredientNameNormalizer.WordingKey(rawLine ?? string.Empty), StringComparison.OrdinalIgnoreCase));
 
         private static readonly System.Linq.Expressions.Expression<Func<FoodCatalogProposalEntity, bool>> UnreviewedLink = p =>
             p.Field == FoodCatalogReviewService.FdcLinkField

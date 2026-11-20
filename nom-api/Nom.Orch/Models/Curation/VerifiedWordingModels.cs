@@ -95,5 +95,21 @@ namespace Nom.Orch.Models.Curation
         public int PicksWithdrawn { get; set; }
         /// <summary>The wordings with the most lines first.</summary>
         public List<LineRelinkMove> Samples { get; set; } = new();
+        /// <summary>
+        /// Lines on a wording's uncurated row whose own text does not name the wording ("one gallon of
+        /// water" on gelatine); they stay on that row, which is then kept, not retired.
+        /// </summary>
+        public int LeftBehind { get; set; }
+        /// <summary>Lines left behind, taken at even steps.</summary>
+        public List<VerifiedWordingLeftLine> LeftBehindSamples { get; set; } = new();
+    }
+
+    /// <summary>One line left on a wording's uncurated row because its text does not name the wording.</summary>
+    public class VerifiedWordingLeftLine
+    {
+        public long RecipeId { get; set; }
+        public long IngredientId { get; set; }
+        public string Wording { get; set; } = string.Empty;
+        public string Line { get; set; } = string.Empty;
     }
 }
