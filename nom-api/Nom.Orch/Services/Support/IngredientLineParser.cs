@@ -16,8 +16,11 @@ namespace Nom.Orch.Services.Support
     /// counts pieces. A can, jar or package is read by the size it states ("2 (15 oz) cans" →
     /// 30 Ounce) and as Can or Package when it states none. Two amounts of one food joined by
     /// " + " are added up in the first one's unit ("1/4 cup + 1 tablespoon sugar" → 0.313 Cup), or
-    /// not read when their units do not add. Returns null when the line has no leading quantity
-    /// ("salt, to taste") or sizes a utensil ("two-quart tin mould").
+    /// not read when their units do not add. Old and abbreviated measures ("one jill", "1 pony",
+    /// "2 tablespns."), "a couple of", a pinch with no "of", a leading "optional" or "~", and an
+    /// amount after the name ("Corn starch, ½ cup.") are read; a numbered can ("1 No. 2 can") is a
+    /// count of cans. Returns null when the line has no leading quantity ("salt, to taste"), states
+    /// a vague one ("a drop of water") or sizes a utensil ("two-quart tin mould").
     /// </summary>
     public static class IngredientLineParser
     {
@@ -36,19 +39,19 @@ namespace Nom.Orch.Services.Support
 
         private static readonly (string[] Forms, string Measurement, decimal Factor)[] Units =
         {
-            (new[] { "tablespoonfuls", "tablespoonful", "tablespoons", "tablespoon", "tblsps", "tblsp", "tbsps", "tbsp", "tbps", "tbp", "tbls", "tbs", "tbl", "tb", "spoonfuls", "spoonful", "T" }, "Tablespoon", 1m),
-            (new[] { "teaspoonfuls", "teaspoonful", "teaspoons", "teaspoon", "tsps", "tsp", "t", "cucchiaini", "cucchiaino" }, "Teaspoon", 1m),
-            (new[] { "dessertspoonfuls", "dessertspoonful", "dessertspoons", "dessertspoon" }, "Teaspoon", 2m),
+            (new[] { "tablespoonfuls", "tablespoonful", "tablespoons", "tablespoon", "tblsps", "tblsp", "tbsps", "tbsp", "tbps", "tbp", "tbls", "tbs", "tbl", "tb", "tablespns", "tablespn", "spoonfuls", "spoonful", "T" }, "Tablespoon", 1m),
+            (new[] { "teaspoonfuls", "teaspoonful", "teaspoons", "teaspoon", "tsps", "tsp", "t", "teaspns", "teaspn", "cucchiaini", "cucchiaino" }, "Teaspoon", 1m),
+            (new[] { "dessertspoonfuls", "dessertspoonful", "dessertspoons", "dessertspoon", "dessertspns", "dessertspn" }, "Teaspoon", 2m),
             (new[] { "saltspoonfuls", "saltspoonful", "saltspoons", "saltspoon" }, "Teaspoon", 0.25m),
             (new[] { "teacupfuls", "teacupful", "teacups", "teacup" }, "Cup", 0.5m),
             (new[] { "wineglassfuls", "wineglassful", "wineglasses", "wineglass" }, "Cup", 0.25m),
-            (new[] { "coffeecupfuls", "coffeecupful", "tumblerfuls", "tumblerful" }, "Cup", 1m),
+            (new[] { "coffeecupfuls", "coffeecupful", "tumblerfuls", "tumblerful", "tumblers", "tumbler" }, "Cup", 1m),
             (new[] { "cucchiaiate", "cucchiaiata", "cucchiai", "cucchiaio" }, "Tablespoon", 1m),
             (new[] { "decilitri", "decilitro", "dl" }, "Milliliter", 100m),
             (new[] { "bicchieri", "bicchiere" }, "Cup", 1m),
             (new[] { "spicchi", "spicchio" }, "Clove", 1m),
             (new[] { "pizzichi", "pizzico", "prese", "presa" }, "Pinch", 1m),
-            (new[] { "fluid ounces", "fluid ounce", "fl oz", "fl. oz." }, "Milliliter", 29.5735m),
+            (new[] { "fluid ounces", "fluid ounce", "fl oz", "fl. oz.", "ponies", "pony" }, "Milliliter", 29.5735m),
             (new[] { "ounces", "ounce", "ozs", "oz" }, "Ounce", 1m),
             (new[] { "pounds", "pound", "lbs", "lb" }, "Pound", 1m),
             (new[] { "kilograms", "kilogram", "chilogrammi", "chilogrammo", "kgs", "kg" }, "Kilogram", 1m),
@@ -58,7 +61,7 @@ namespace Nom.Orch.Services.Support
             (new[] { "gallons", "gallon", "gal" }, "Cup", 16m),
             (new[] { "quarts", "quart", "qts", "qt" }, "Cup", 4m),
             (new[] { "pints", "pint", "pts", "pt" }, "Cup", 2m),
-            (new[] { "gills", "gill" }, "Cup", 0.5m),
+            (new[] { "gills", "gill", "jills", "jill" }, "Cup", 0.5m),
             (new[] { "cupfuls", "cupful", "cups", "cup", "c" }, "Cup", 1m),
             (new[] { "cloves", "clove" }, "Clove", 1m),
             (new[] { "cans", "can", "tins", "tin" }, Can, 1m),
@@ -104,12 +107,47 @@ namespace Nom.Orch.Services.Support
             NumberWords.Keys.OrderByDescending(k => k.Length).Select(k => Regex.Escape(k).Replace(@"\ ", @"\s+")));
 
         private static readonly Regex LeadingWords = new(
-            @"^\s*(?<a>" + NumberWordPattern + @")(?:\s+and\s+(?<b>" + NumberWordPattern + @"))?(?:\s+of)?(?:\s+an?)?\s+(?!(?:little|few|bit|touch|tad|squeeze|sprinkle|sprinkling|grating|good\s+pinch)\b)(?=\S)",
+            @"^\s*(?<a>" + NumberWordPattern + @")(?:\s+and\s+(?<b>" + NumberWordPattern + @"))?(?:\s+of)?(?:\s+an?)?\s+(?!(?:little|few|bit|touch|tad|squeeze|sprinkle|sprinkling|grating|good\s+pinch|very\s+little|drops?|(?:small\s+|little\s+)?quantity)\b)(?=\S)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex UnitFirst = new(
             @"^(?:pinch|dash|handful|sprig|clove|stick|knob|splash|drizzle|teacupful|cupful|tablespoonful|teaspoonful|dessertspoonful|saltspoonful|spoonful|wineglassful|wineglass|teacup|gill|pint|quart|pound)\s+of\s+\S",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex PinchFirst = new(
+            @"^(?:pinch(?:es)?|dash(?:es)?)\s+(?!of\b)(?=\p{L})",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex CoupleOrPair = new(
+            @"^\s*(?:a\s+)?(?:couple|pair)(?:\s+of)?\s+(?=\S)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex Hedge = new(
+            @"^\s*(?:(?:(?:entirely|totally|completely|strictly)\s+)?optional\b\s*[:\-–,]?\s*|~\s*|(?:just|a\s+bit|slightly)\s+(?:under|over|less\s+than|more\s+than)\s+(?=[\d" + Fractions + @"])|(?:approx\.?|approximately|around|roughly)\s+(?=[\d" + Fractions + @"]))",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private const string CanNumberText = @"(?<n>\d+(?:\s*½|\s*[-\s]\s*1/2)?)";
+
+        private static readonly Regex NumberedCan = new(
+            @"\s*(?:\b(?:No|Nr|Number)\.?\s*|#\s*)" + CanNumberText + @"(?:\s+size)?(?=\s*(?:\)|(?:cans?|tins?)\b))",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex EmptyBrackets = new(@"\s*\(\s*\)", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The number of a numbered can the line names ("1 No. 2 can tomatoes" → "2", "1 #2½ can
+        /// peaches" → "2½", "1 can (No. 303) peas" → "303"), or null when it names none. The line
+        /// itself reads as a count of cans; the number says nothing about the size until a cited
+        /// can table gives one.
+        /// </summary>
+        public static string? CanNumber(string? rawLine)
+        {
+            if (string.IsNullOrWhiteSpace(rawLine)) return null;
+            var match = NumberedCan.Match(System.Net.WebUtility.HtmlDecode(rawLine));
+            if (!match.Success) return null;
+            var number = Regex.Replace(match.Groups["n"].Value, @"\s*[-\s]\s*1/2$|\s*½$", "½");
+            return Regex.Replace(number, @"\s+", string.Empty);
+        }
 
         private static readonly Regex HyphenatedMixed = new(@"^\s*(\d+)-(\d+\s*/\s*\d+)", RegexOptions.Compiled);
 
@@ -277,11 +315,16 @@ namespace Nom.Orch.Services.Support
         private const string QuantityText = @"\d+\s+\d+/\d+|\d+/\d+|\d+(?:[.,]\d+)?";
 
         private static readonly Regex PartOf = new(
-            @"^\s*(?:the\s+)?(?:[\p{L}-]+\s+){0,3}?(?:juice|yolks?|whites?|peel|rinds?|zest|fillets?|meat|flesh|leaves|hearts?|livers?|tongues?|breasts?|legs?|wings?|soft\s+part|sugo)\s+(?:of|di)\s+(?:about\s+)?(?<qty>" + QuantityText + @")\s+(?<dozen>dozen\s+(?:of\s+)?)?(?:[\p{L}-]+\s+){0,3}\p{L}",
+            @"^\s*(?:the\s+)?(?:[\p{L}-]+\s+){0,3}?(?:juice|yolks?|whites?|peel|rinds?|zest|fillets?|meat|flesh|leaves|hearts?|livers?|tongues?|breasts?|legs?|wings?|soft\s+part|sugo)\s+(?:of|from|di)\s+(?:about\s+)?(?<qty>" + QuantityText + @")\s+(?<dozen>dozen\s+(?:of\s+)?)?(?:[\p{L}-]+\s+){0,3}\p{L}",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        private const string TrailingQuantityText = @"\d+\s+\d+/\d+|\d+/\d+|\d+(?:[.,]\d+)?\s*[" + Fractions + @"]?|[" + Fractions + @"]";
+
+        private static readonly string UnitBeforeAmount = Alternation(Units.SelectMany(u => u.Forms).Where(f => f.Length > 1 && !char.IsUpper(f[0])));
+
         private static readonly Regex AfterName = new(
-            @"^\s*\p{L}[^\d(]*?(?:,\s*|\(\s*|\s)(?<qty>" + QuantityText + @")\s*(?:(?<unit>(?:" + UnitPattern + @"))(?![a-z])\.?)?\s*\)?\s*\.?\s*$",
+            @"^\s*\p{L}[^\d(" + Fractions + @"]*?(?:,\s*|\(\s*|\s)(?:(?<unit>" + UnitBeforeAmount + @")(?![a-z])\.?\s*)?(?<qty>" + TrailingQuantityText + @")(?:\s*(?:-|–|to)\s*(?:" + TrailingQuantityText + @"))?" +
+            @"\s*(?:(?<unit>(?:" + UnitPattern + @"))(?![a-z])\.?)?\s*\)?\s*\.?\s*$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly string[] LargeVolumes = { "gallons", "quarts", "pints" };
@@ -345,6 +388,10 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex MixedHyphen = new(@"(?<=\d)-(?=\d+\s*/\s*\d)", RegexOptions.Compiled);
 
+        private static readonly Regex PoundsAndOunces = new(
+            @"(?<lb>\d+)\s*(?:pounds?|lbs?)\.?[\s,]*(?:and\s+)?(?<oz>\d+(?:\.\d+)?)\s*(?:ounces?|ozs?)(?![a-z])\.?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private static readonly Dictionary<string, decimal> GramsOrMillilitersPer = new()
         {
             ["Ounce"] = 28.3495m, ["Pound"] = 453.592m, ["Gram"] = 1m, ["Kilogram"] = 1000m, ["Milliliter"] = 1m, ["Liter"] = 1000m, ["Cup"] = 236.588m,
@@ -355,7 +402,11 @@ namespace Nom.Orch.Services.Support
         private static ParsedQuantity? SizeIn(string line, out ParsedQuantity? containers)
         {
             containers = null;
-            line = MixedHyphen.Replace(line, " ");
+            line = PoundsAndOunces.Replace(MixedHyphen.Replace(line, " "), m =>
+                decimal.TryParse(m.Groups["lb"].Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var pounds)
+                && decimal.TryParse(m.Groups["oz"].Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var ounces) && pounds < 1000m
+                    ? (pounds * 16m + ounces).ToString(CultureInfo.InvariantCulture) + " ounce"
+                    : m.Value);
             var first = SizeFirst.Match(line);
             if (first.Success)
             {
@@ -406,9 +457,11 @@ namespace Nom.Orch.Services.Support
         {
             sized = false;
             containers = null;
-            var line = HyphenatedMixed.Replace(System.Net.WebUtility.HtmlDecode(rawLine).Trim(), "$1 $2");
+            var line = Hedge.Replace(System.Net.WebUtility.HtmlDecode(rawLine).Trim(), string.Empty);
+            line = EmptyBrackets.Replace(NumberedCan.Replace(line, string.Empty), string.Empty);
+            line = HyphenatedMixed.Replace(CoupleOrPair.Replace(line, "2 "), "$1 $2");
             if (IsElliptical(line)) return null;
-            if (UnitFirst.IsMatch(line)) line = "1 " + line;
+            if (UnitFirst.IsMatch(line) || PinchFirst.IsMatch(line)) line = "1 " + line;
             var words = LeadingWords.Match(line);
             if (words.Success)
             {

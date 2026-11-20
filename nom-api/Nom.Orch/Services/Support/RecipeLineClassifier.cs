@@ -17,7 +17,7 @@ namespace Nom.Orch.Services.Support
         {
             if (string.IsNullOrWhiteSpace(rawLine) || !rawLine.Any(char.IsLetter)) return RecipeIngredientLineKind.Artefact;
             if (IsRepeatedMerge(rawLine)) return RecipeIngredientLineKind.Artefact;
-            if (Heading.IsMatch(rawLine) || YieldNote.IsMatch(rawLine)) return RecipeIngredientLineKind.Note;
+            if (Heading.IsMatch(rawLine) || YieldNote.IsMatch(rawLine) || IsBareHeading(rawLine)) return RecipeIngredientLineKind.Note;
             if (Equipment.IsMatch(rawLine)) return RecipeIngredientLineKind.Equipment;
             return null;
         }
@@ -30,11 +30,22 @@ namespace Nom.Orch.Services.Support
             return first.Length > 0 && parts.All(p => Normalize(p) == first);
         }
 
+        private static bool IsBareHeading(string rawLine) =>
+            (ColonHeading.IsMatch(rawLine) || ForThe.IsMatch(rawLine)) && IngredientLineParser.Parse(rawLine) == null;
+
         private static string Normalize(string part) =>
             Regex.Replace(part.ToLowerInvariant(), @"[\W_]+", " ").Trim();
 
         private static readonly Regex Heading = new(
             @"^[\W_]*(?:for\s+(?:the\s+)?[^:\d]{1,50}|[^:\d]{0,40}\b(?:ingredients|garnish|filling|sauce|dressing|topping|icing|frosting|crust|pastry|dough|batter|marinade|glaze|stuffing)\b[^:\d]{0,20}):[\W_]*$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex ColonHeading = new(
+            @"^[\W_]*\p{L}[^\d:¼½¾⅓⅔⅛⅜⅝⅞]{0,60}:[\W_]*$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex ForThe = new(
+            @"^[\W_]*for\s+the\s+\p{L}+(?:[\s-]+\p{L}+){0,3}[\s.!]*$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex YieldNote = new(

@@ -1173,7 +1173,7 @@ P1171	L	38	277290	170000	small white onion	Onions, raw	ok	no	agent-review-2026-1
 P1172	L	38	277297	170007	green onions	Onions, welsh, raw	ok	no	agent-review-2026-11-13	~277297	agent	
 P1173	L	38	275799	168450	pumpkin purée	Pumpkin, canned, without salt	ok	no	agent-review-2026-11-13	~275799	agent	
 P1174	L	38	277478	170193	finely chopped suet	Beef, variety meats and by-products, suet, raw	ok	no	agent-review-2026-11-13	~277478	agent	
-P1175	L	38	275119	167748	tablespns. lemon juice	Lemon juice from concentrate, canned or bottled	ok	no	agent-review-2026-11-13	~275119	agent	
+P1175	L	38	275119	167748	tablespns. lemon juice	Lemon juice from concentrate, canned or bottled	ok	no	agent-review-2026-11-13	*	-	(the rule gives another food; this pair does not judge it)
 P1176	L	38	274605	326698	made mustard	Mustard, prepared, yellow	ok	no	agent-review-2026-11-13	~274605	agent	
 P1177	L	38	274636	334247	three-quarters of a pound of sugar	Sugars, granulated	ok	no	agent-review-2026-11-13	~274636	agent	
 P1178	L	38	277290	170000	white onions	Onions, raw	ok	no	agent-review-2026-11-13	*	-	(the rule gives another food; this pair does not judge it)
@@ -2168,7 +2168,7 @@ P2166	L	19	276165	168833	cupfuls brown sugar	Sugars, brown	ok	no	agent-review-20
 P2167	L	19	274946	167568	squares chocolate	Baking chocolate, unsweetened, squares	ok	no	agent-review-2026-11-13	~274946	agent	
 P2168	L	19	279410	172184	egg-yolk	Egg, yolk, raw, fresh	ok	no	agent-review-2026-11-13	~279410	agent	
 P2169	L	19	282237	175098	wine-glassful of brandy	Alcoholic beverage, liqueur, coffee with cream, 34 proof	wrong	no	agent-review-2026-11-13	!282237	agent	brandy (distilled spirit)
-P2170	L	19	275119	167748	tablespn. lemon juice	Lemon juice from concentrate, canned or bottled	ok	no	agent-review-2026-11-13	~275119	agent	
+P2170	L	19	275119	167748	tablespn. lemon juice	Lemon juice from concentrate, canned or bottled	ok	no	agent-review-2026-11-13	*	-	(the rule gives another food; this pair does not judge it)
 P2171	L	19	274656	-	eggs slightly beaten	Eggs, Grade A, Large, egg whole	ok	no	agent-review-2026-11-13	*	-	(food no longer in the USDA catalog)
 P2172	L	19	5602	168820	c molasses	molasses	ok	no	agent-review-2026-11-13	~5602	agent	
 P2173	L	19	277733	170457	chopped tomato	Tomatoes, red, ripe, raw, year round average	ok	no	agent-review-2026-11-13	*	-	(the rule gives another food; this pair does not judge it)
@@ -2917,7 +2917,7 @@ P2915	L	14	280659	173468	table-salt	Salt, table	ok	no	agent-review-2026-11-13	~2
 P2916	L	14	278144	170874	buttermilk	Milk, buttermilk, fluid, cultured, lowfat	ok	no	agent-review-2026-11-13	~278144	agent	
 P2917	L	14	274756	2346405	celery stalks, chopped	Celery, raw	ok	no	agent-review-2026-11-13	~274756	agent	
 P2918	L	14	278652	171413	olive oil or melted butter	Oil, olive, salad or cooking	compound	no	agent-review-2026-11-13	!278652	agent	olive oil, butter
-P2919	L	14	275119	167748	tbp lemon juice	Lemon juice from concentrate, canned or bottled	ok	no	agent-review-2026-11-13	~275119	agent	
+P2919	L	14	275119	167748	tbp lemon juice	Lemon juice from concentrate, canned or bottled	ok	no	agent-review-2026-11-13	*	-	(the rule gives another food; this pair does not judge it)
 P2920	L	14	276566	-	crisp lettuce	Lettuce, iceberg (includes crisphead types), raw	ok	no	agent-review-2026-11-13	*	-	(food no longer in the USDA catalog)
 P2921	L	14	274605	326698	dijon	Mustard, prepared, yellow	near	no	agent-review-2026-11-13	!274605	agent	Dijon mustard
 P2922	L	14	280659	173468	fine sea salt, to taste	Salt, table	ok	no	agent-review-2026-11-13	~280659	agent	
@@ -6458,13 +6458,13 @@ P6456	U	1	274675	1104962	tablespoonful chopped onion	Onions, white, raw	ok	no	ag
 P6457	U	1	276429	169103	tablespoonful chopped candied orange peel	Orange peel, raw	near	no	agent-review-2026-11-13	!276429	agent	candied orange peel
 P6458	U	1	280603	173410	tablespoonful butter or lard	Butter, salted	compound	no	agent-review-2026-11-13	!280603	agent	butter, lard
 P6459	U	1	280603	173410	tablespns. oil or butter	Butter, salted	compound	no	agent-review-2026-11-13	!280603	agent	oil, butter
-P6460	U	1	275119	167748	tablespns. lemon juice	Lemon juice from concentrate, canned or bottled	ok	no	agent-review-2026-11-13	~275119	agent	
+P6460	U	1	275119	167748	tablespns. lemon juice	Lemon juice from concentrate, canned or bottled	ok	no	agent-review-2026-11-13	*	-	(the rule gives another food; this pair does not judge it)
 P6461	U	1	277290	170000	tablespns. grated onion	Onions, raw	ok	no	agent-review-2026-11-13	~277290	agent	
 P6462	U	1	277693	170416	tablespns. chopped parsley	Parsley, fresh	ok	no	agent-review-2026-11-13	~277693	agent	
 P6463	U	1	276224	168894	tablespns. browned flour	Wheat flour, white, all-purpose, enriched, bleached	ok	no	agent-review-2026-11-13	~276224	agent	
 P6464	U	1	280603	173410	tablespn. oil or melted butter	Butter, salted	compound	no	agent-review-2026-11-13	!280603	agent	oil, butter
 P6465	U	1	280603	173410	tablespn. of butter	Butter, salted	ok	no	agent-review-2026-11-13	~280603	agent	
-P6466	U	1	274666	790646	tablespn. chopped onion	Onions, yellow, raw	ok	no	agent-review-2026-11-13	~274666	agent	
+P6466	U	1	274666	790646	tablespn. chopped onion	Onions, yellow, raw	ok	no	agent-review-2026-11-13	*	-	(the rule gives another food; this pair does not judge it)
 P6467	U	1	274636	334247	table-spoonsful of rolled sugar	Sugars, granulated	ok	no	agent-review-2026-11-13	~274636	agent	
 P6468	U	1	276959	169656	table-spoonsful of powdered white sugar	Sugars, powdered	ok	no	agent-review-2026-11-13	~276959	agent	
 P6469	U	1	281325	174157	table-spoonfuls of wine	Beverages, Wine, non-alcoholic	near	no	agent-review-2026-11-13	!281325	agent	alcoholic wine

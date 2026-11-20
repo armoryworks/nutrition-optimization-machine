@@ -174,7 +174,6 @@ namespace Nom.Api.Tests.Services
         [InlineData("1/4 tsp each garlic and onion powders", CompoundLineSplitter.LeaveSharedHead)]
         [InlineData("two ounces each of fennel and coriander seeds", CompoundLineSplitter.LeaveSharedHead)]
         [InlineData("2 tablespoonfuls each of lemon and orange juice", CompoundLineSplitter.LeaveSharedHead)]
-        [InlineData("A very little black pepper and salt", CompoundLineSplitter.LeaveNotFixedPoint)]
         [InlineData("a very little salt and pepper", CompoundLineSplitter.LeaveNotFixedPoint)]
         [InlineData("1 quarter teaspoonful each of salt and pepper", CompoundLineSplitter.LeaveNotFixedPoint)]
         [InlineData("3 tablespoons lemon juice and grated rind", CompoundLineSplitter.LeaveNotFixedPoint)]
@@ -221,6 +220,7 @@ namespace Nom.Api.Tests.Services
         [InlineData("The rind and juice of 1 lemon")]
         [InlineData("1/4 tsp kosher salt and black pepper")]
         [InlineData("salt and cayenne to taste")]
+        [InlineData("A very little black pepper and salt")]
         public void Every_part_line_reads_back_as_the_row_it_becomes(string line)
         {
             var plan = Plan(line)!;
@@ -258,6 +258,51 @@ namespace Nom.Api.Tests.Services
         public void A_whole_food_beside_the_product_of_another_is_left_alone(string line)
         {
             Plan(line)!.Kind.Should().Be(CompoundKind.Leave);
+        }
+
+        private static CompoundVocabulary FruitProducts() => CompoundVocabulary.Build(
+            new[]
+            {
+                new CompoundFood(1, "Apples", true), new CompoundFood(2, "Peaches", true), new CompoundFood(3, "Raspberry", true),
+                new CompoundFood(4, "Avocados", true), new CompoundFood(5, "Marmalade", true, false), new CompoundFood(6, "Butter", true, false),
+                new CompoundFood(7, "Apple Butter", true, false), new CompoundFood(8, "Lard", true, false),
+            },
+            Array.Empty<CompoundAlias>(),
+            new[] { "Apples", "Peaches", "Raspberry", "Avocados", "Marmalade", "Butter", "Apple Butter", "Lard" });
+
+        [Theory]
+        [InlineData("apple, peach, or any other marmalade", 5L)]
+        [InlineData("apple, peach, or any other butter", 7L)]
+        [InlineData("apple or quince butter", 7L)]
+        public void A_list_of_whole_foods_ending_in_a_product_goes_to_the_product(string line, long product)
+        {
+            var plan = CompoundLineSplitter.Plan(line, FruitProducts())!;
+
+            plan.Kind.Should().Be(CompoundKind.PickAlternative);
+            plan.Rule.Should().Be(CompoundLineSplitter.OrSharedHead);
+            plan.Parts.Select(p => p.FoodId).Should().Equal(product);
+        }
+
+        [Theory]
+        [InlineData("peach or French brandy")]
+        [InlineData("raspberry, cherry, strawberry, or currant-juice")]
+        [InlineData("avocado, coconut, or vegan butter")]
+        [InlineData("peach, raspberry, or apricot jam or preserves")]
+        public void A_list_of_whole_foods_whose_product_is_not_in_the_catalog_is_left_and_never_goes_to_the_first_fruit(string line)
+        {
+            var plan = CompoundLineSplitter.Plan(line, FruitProducts())!;
+
+            plan.Kind.Should().Be(CompoundKind.Leave);
+            plan.LeaveReason.Should().Be(CompoundLineSplitter.LeaveSharedProduct);
+        }
+
+        [Fact]
+        public void A_bare_product_alternative_is_still_picked_as_before()
+        {
+            var plan = CompoundLineSplitter.Plan("lard or butter", FruitProducts())!;
+
+            plan.Kind.Should().Be(CompoundKind.PickAlternative);
+            plan.Parts.Select(p => p.FoodId).Should().Equal(8L);
         }
 
         [Fact]

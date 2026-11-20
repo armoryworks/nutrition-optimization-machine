@@ -108,3 +108,11 @@ c6-p3-au-03	a little mustard and cayenne	Leave	*	*	agent	agent-review-staging-20
 c6-p3-au-04	saltspoonful each of salt and ground cinnamon	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 pass 3 and-unquantified: "salt" was found inside "saltspoonful", so the each amount was dropped
 c6-p3-ae-01	1 tablespoonful each of ground cinnamon, ground allspice and mustard	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 pass 3 and-each: dry mustard among ground spices, went to prepared mustard
 c6-p3-ae-02	1 teaspoon each mustard and white sugar	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 pass 3 and-each: dry mustard beside sugar, went to prepared mustard
+r9-01	apple, peach, or any other marmalade	PickAlternative	or-shared-head	Marmalade	ok	design:reprocess	R9 (B9): went to Apples; the catalog has no apple marmalade, so the "any other" product
+r9-02	orange, peach, or apricot jam or preserves	Leave	*	*	ok	design:reprocess	R9 (B9): went to Oranges; no orange jam or preserves in the catalog, so unresolved
+r9-03	peach or French brandy	Leave	*	*	ok	design:reprocess	R9 (B9): went to Peaches
+r9-04	raspberry, cherry, strawberry, or currant-juice	Leave	*	*	ok	design:reprocess	R9 (B9): went to Raspberries
+r9-05	avocado, coconut, or vegan butter	Leave	*	*	ok	design:reprocess	R9 (B9): unresolved, never Avocado and never Butter
+r9-06	6 Tablespoons orange, peach, or apricot jam	Leave	*	*	ok	design:reprocess	class 9: went to Oranges at 6 Tbsp
+r9-07	3 tablespoonfuls of apricot, strawberry, or any jam	PickAlternative	or-shared-head	Apricot Jam	agent	agent-review-parser-rules-2026-11-20	R9 keeps the "any jam" reading of c6-ofn-01
+r9-08	lard or butter	PickAlternative	*	*	agent	agent-review-parser-rules-2026-11-20	R9 does not touch a bare product alternative

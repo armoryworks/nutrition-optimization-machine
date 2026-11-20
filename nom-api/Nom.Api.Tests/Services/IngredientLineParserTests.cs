@@ -225,8 +225,6 @@ namespace Nom.Api.Tests.Services
         [InlineData("2 cans diced tomatoes (14.5 oz)", 2, "Can")]
         [InlineData("1 can or 1/2 lb. fresh tomatoes", 1, "Can")]
         [InlineData("1 can (#2 size or 2 1/2 cups) pineapple tidbits", 1, "Can")]
-        [InlineData("1 can (1 pound 5 ounces) cherry pie filling", 1, "Can")]
-        [InlineData("1 can (1 pound, 8 ounces) corned beef hash", 1, "Can")]
         public void A_size_that_may_be_each_or_total_or_is_unclear_is_not_read(string raw, double quantity, string measurement)
         {
             IngredientLineParser.Parse(raw).Should().Be(new ParsedQuantity((decimal)quantity, measurement));
@@ -296,6 +294,86 @@ namespace Nom.Api.Tests.Services
         public void A_size_after_a_part_count_or_an_about_is_the_amount_of_the_line(string raw, double expected, string measurement)
         {
             IngredientLineParser.StatedSize(raw).Should().Be(new ParsedQuantity((decimal)expected, measurement));
+        }
+
+        [Theory]
+        [InlineData("1 can (1 pound 5 ounces) cherry pie filling", 21)]
+        [InlineData("1 can (1 pound, 8 ounces) corned beef hash", 24)]
+        [InlineData("1 can hominy (1 lb. 13 ounce can)", 29)]
+        [InlineData("1 1 lb. 13 oz. can peaches", 29)]
+        [InlineData("2 cans (1 lb. 4 oz. each) pineapple", 40)]
+        public void A_can_size_in_pounds_and_ounces_is_added_up_in_ounces(string raw, double expected)
+        {
+            IngredientLineParser.StatedSize(raw).Should().Be(new ParsedQuantity((decimal)expected, "Ounce"));
+        }
+
+        [Theory]
+        [InlineData("1 No. 2 can tomatoes", "2")]
+        [InlineData("1 #2½ can peaches", "2½")]
+        [InlineData("1 #2 1/2 can peaches", "2½")]
+        [InlineData("2 No. 303 cans peas", "303")]
+        [InlineData("1 can (No. 2) tomatoes", "2")]
+        [InlineData("1 No. 10 tin apricots", "10")]
+        public void A_numbered_can_is_a_count_of_cans_and_its_number_is_kept(string raw, string number)
+        {
+            IngredientLineParser.Parse(raw)!.MeasurementName.Should().Be("Can");
+            IngredientLineParser.StatedSize(raw).Should().BeNull();
+            IngredientLineParser.CanNumber(raw).Should().Be(number);
+        }
+
+        [Theory]
+        [InlineData("1 can (#2 size or 2 1/2 cups) pineapple tidbits")]
+        [InlineData("1 can tomatoes")]
+        [InlineData("Recipe No. 2: tomato sauce")]
+        public void A_line_without_a_numbered_can_has_no_can_number(string raw)
+        {
+            IngredientLineParser.CanNumber(raw).Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("2 tablespns. water", 2, "Tablespoon")]
+        [InlineData("2 tablespn. butter", 2, "Tablespoon")]
+        [InlineData("1 teaspn. vanilla", 1, "Teaspoon")]
+        [InlineData("3 teaspns salt", 3, "Teaspoon")]
+        [InlineData("1 dessertspn. sugar", 2, "Teaspoon")]
+        [InlineData("Pinch kosher salt", 1, "Pinch")]
+        [InlineData("pinch salt", 1, "Pinch")]
+        [InlineData("Dash cayenne pepper", 1, "Pinch")]
+        [InlineData("a couple of ounces of butter", 2, "Ounce")]
+        [InlineData("a couple of eggs", 2, "Piece")]
+        [InlineData("a couple eggs", 2, "Piece")]
+        [InlineData("a pair of ducks", 2, "Piece")]
+        [InlineData("Corn starch, ½ cup.", 0.5, "Cup")]
+        [InlineData("Sage, ½ teaspoonful.", 0.5, "Teaspoon")]
+        [InlineData("Mace, in powder ½ oz.", 0.5, "Ounce")]
+        [InlineData("Bay salt ¼ lb.", 0.25, "Pound")]
+        [InlineData("Potatoes, medium size, 2", 2, "Piece")]
+        [InlineData("one jill of cold water", 0.5, "Cup")]
+        [InlineData("a tumbler of water", 1, "Cup")]
+        [InlineData("1 pony brandy", 29.574, "Milliliter")]
+        [InlineData("Burro gr. 50", 50, "Gram")]
+        [InlineData("Burro, 100 grammi.", 100, "Gram")]
+        [InlineData("Uova, N. 4.", 4, "Piece")]
+        [InlineData("optional 1 tbsp dutch cocoa", 1, "Tablespoon")]
+        [InlineData("optional: 2 teaspoons Cognac", 2, "Teaspoon")]
+        [InlineData("Entirely optional: &#8531; cup grated Parmesan", 0.333, "Cup")]
+        [InlineData("~1/2 tsp each salt and pepper", 0.5, "Teaspoon")]
+        [InlineData("just under 1/4 tsp salt", 0.25, "Teaspoon")]
+        [InlineData("juice from 1 lime", 1, "Piece")]
+        public void Old_measures_hedges_and_amounts_after_the_name_are_read(string raw, double quantity, string measurement)
+        {
+            IngredientLineParser.Parse(raw).Should().Be(new ParsedQuantity((decimal)quantity, measurement));
+        }
+
+        [Theory]
+        [InlineData("a drop of water")]
+        [InlineData("a small quantity of salt")]
+        [InlineData("a very little salt")]
+        [InlineData("Sale q.b.")]
+        [InlineData("un po' di sale")]
+        public void A_vague_amount_is_no_amount(string raw)
+        {
+            IngredientLineParser.Parse(raw).Should().BeNull();
         }
     }
 }

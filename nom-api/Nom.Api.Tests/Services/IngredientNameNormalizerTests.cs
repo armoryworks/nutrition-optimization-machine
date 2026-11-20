@@ -37,6 +37,37 @@ namespace Nom.Api.Tests.Services
         }
 
         [Theory]
+        [InlineData("2 tablespns. water", "water")]
+        [InlineData("1 teaspn. vanilla", "vanilla")]
+        [InlineData("1 tbp butter", "butter")]
+        [InlineData("2 tbp. flour", "flour")]
+        [InlineData("a couple of ounces of butter", "butter")]
+        [InlineData("a pair of ducks", "ducks")]
+        [InlineData("Corn starch, ½ cup.", "Corn starch")]
+        [InlineData("Potatoes, medium size, 2", "Potatoes, medium size")]
+        [InlineData("one jill of cold water", "cold water")]
+        [InlineData("1 pony brandy", "brandy")]
+        [InlineData("a small quantity of salt", "salt")]
+        [InlineData("Burro, 100 grammi.", "Burro")]
+        [InlineData("Burro gr. 50", "Burro")]
+        [InlineData("grammi 100 di burro", "burro")]
+        [InlineData("2 chilogrammi di carne magra", "carne magra")]
+        [InlineData("mezzo litro di latte", "latte")]
+        [InlineData("Uova, N. 4.", "Uova")]
+        [InlineData("Sale q.b.", "Sale")]
+        [InlineData("un po' di sale", "sale")]
+        [InlineData("optional 1 tbsp dutch cocoa", "dutch cocoa")]
+        [InlineData("Entirely optional: &#8531; cup grated Parmesan", "grated Parmesan")]
+        [InlineData("just under 1/4 tsp salt", "salt")]
+        [InlineData("juice from 1 lime", "lime juice")]
+        [InlineData("1 No. 2 can tomatoes", "tomatoes")]
+        [InlineData("1 #2½ can peaches", "peaches")]
+        public void Strips_old_measures_italian_units_hedges_and_trailing_amounts(string raw, string expected)
+        {
+            Assert.Equal(expected, IngredientNameNormalizer.Normalize(raw));
+        }
+
+        [Theory]
         [InlineData("Black Beans")]
         [InlineData("Rolled Oats")]
         [InlineData("Extra Virgin Olive Oil")]

@@ -8,3 +8,13 @@ ai-01	rich puff paste	-	ok	design:ai-design-1	change 1: an ordinary food
 ai-02	chicken-stock	-	ok	design:ai-design-1	change 1: an ordinary food
 ai-03	hot mashed potatoes	-	ok	design:ai-design-1	change 1: an ordinary food
 ai-04	whites 3 eggs beaten stiff	-	ok	design:ai-design-1	change 1: an ordinary food
+r8-01	Marmalade Pineapple Glaze:	note	ok	design:reprocess	R8 (B8): recipe 22407, a heading among the lines
+r8-02	For the chocolate cookies:	note	ok	design:reprocess	R8 (B8)
+r8-03	Dressing:	note	ok	design:reprocess	R8 (B8): stored at 1.5 before
+r8-04	Pears	-	ok	design:reprocess	R8 (B8): recipe 31441, the main ingredient, no heading signal
+r8-05	Mashed Potatoes	-	ok	design:reprocess	class 8b: a title-case heading with no signal is left
+r8-06	For the sauce	note	agent	agent-review-parser-rules-2026-11-20	R8: "For the" with no amount
+r8-07	Chocolate:	note	agent	agent-review-parser-rules-2026-11-20	R8: a single-food heading
+r8-08	Optional:	note	agent	agent-review-parser-rules-2026-11-20	R8
+r8-09	2 cups flour:	-	agent	agent-review-parser-rules-2026-11-20	R8: a line with an amount is not a heading
+r8-10	For the garnish: parsley	-	agent	agent-review-parser-rules-2026-11-20	R8: a food after the colon

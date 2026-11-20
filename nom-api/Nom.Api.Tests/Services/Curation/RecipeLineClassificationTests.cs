@@ -141,7 +141,14 @@ namespace Nom.Api.Tests.Services.Curation
         [InlineData("butter + sugar", null)]
         [InlineData("flour + 2 cups flour", null)]
         [InlineData("string beans", null)]
-        [InlineData("Salt:", null)]
+        [InlineData("Salt:", RecipeIngredientLineKind.Note)]
+        [InlineData("Marmalade Pineapple Glaze:", RecipeIngredientLineKind.Note)]
+        [InlineData("For the sauce", RecipeIngredientLineKind.Note)]
+        [InlineData("For the chocolate cookies.", RecipeIngredientLineKind.Note)]
+        [InlineData("2 cups flour:", null)]
+        [InlineData("For the garnish: parsley", null)]
+        [InlineData("For the sauce, 1 cup cream", null)]
+        [InlineData("Pears", null)]
         [InlineData("pan drippings", null)]
         public void Deterministic_pre_pass_only_takes_obvious_lines(string raw, string? expected)
         {

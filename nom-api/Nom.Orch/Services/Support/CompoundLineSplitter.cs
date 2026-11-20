@@ -71,6 +71,7 @@ namespace Nom.Orch.Services.Support
         public const string LeaveCutPepper = "cut pepper is a vegetable, not the spice";
         public const string LeaveSpiceMustard = "mustard beside salt, pepper, a spice or sugar means dry mustard";
         public const string LeaveWholeFoodProduct = "alternatives of a whole food and a product of another";
+        public const string LeaveSharedProduct = "whole foods sharing a product the catalog does not hold";
 
         private const RegexOptions Options = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled;
 
@@ -142,6 +143,13 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex AnyHead = new(@"^any\s+(?!other\b)(?<head>\p{L}+)$", Options);
 
         private static readonly Regex AnyKind = new(@"^any\s+(?!other\b)", Options);
+
+        private static readonly Regex AnyOther = new(@"^(?:any\s+)?other\s+(?=\p{L})", Options);
+
+        private static readonly HashSet<string> ProductWords = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "jam", "jams", "marmalade", "marmalades", "preserves", "jelly", "jellies", "juice", "juices", "brandy", "sauce", "butter", "oil",
+        };
 
         private static readonly Regex CutWord = new(@"\b(?:chopped|minced|diced|sliced|seeded|shredded|cut|strips?|rings?)\b", Options);
 
@@ -289,6 +297,7 @@ namespace Nom.Orch.Services.Support
 
             if (foods[0] is { } firstFood)
             {
+                if (SharedProduct(line, wording, names, firstFood, v) is { } product) return product;
                 if (sharedFood is { } other && other != firstFood) return CompoundPlan.Leave(wording, LeaveOrAmbiguous);
                 if (sharedFood == null && (sharedKnown || SharesHead(first, core, v))) return CompoundPlan.Leave(wording, LeaveOrAmbiguous);
                 if (foods.Skip(1).Any(f => f == firstFood)) return CompoundPlan.Leave(wording, LeaveOneFood);
@@ -304,6 +313,45 @@ namespace Nom.Orch.Services.Support
 
             return CompoundPlan.Leave(wording, foods.Skip(1).Any(f => f != null) ? LeaveOrLastNamed : LeaveOrUnresolved);
         }
+
+        /// <summary>
+        /// A list of whole foods whose later alternatives end in a product word ("apple, peach, or any
+        /// other marmalade", "peach or French brandy", "raspberry, cherry, or currant-juice") names
+        /// that product, never the first whole food: the first food's own product ("apple
+        /// marmalade") when the catalog holds it, else the product an "any other" alternative names
+        /// ("marmalade"), else nothing. When the first food's product and a later alternative are
+        /// both foods ("avocado or olive oil"), the line is ambiguous as before. Null when the line
+        /// is not such a list.
+        /// </summary>
+        private static CompoundPlan? SharedProduct(string line, string wording, List<string> names, long firstFood, CompoundVocabulary v)
+        {
+            var at = names.FindIndex(IsProduct);
+            if (at < 1 || !v.CountedInPieces(firstFood)) return null;
+            var products = names.Skip(at).Select(n => Purpose.Replace(n, string.Empty)).ToList();
+            if (!products.All(IsProduct) || !products.Any(p => Words(p).Length > 1)) return null;
+            if (!names.Take(at).All(n => IsSingleWord(n) && !n.Contains('-'))) return null;
+
+            foreach (var candidate in products.Select(p => $"{names[0]} {Words(p)[^1]}"))
+            {
+                if (v.Resolve(candidate) is not { } product || product == firstFood) continue;
+                if (products.Any(p => !AnyOther.IsMatch(p) && v.Resolve(p) is { } named && named != product)) return CompoundPlan.Leave(wording, LeaveOrAmbiguous);
+                return new CompoundPlan(OrSharedHead, CompoundKind.PickAlternative, new[] { new CompoundPart(candidate, product, line, null) }, wording, null);
+            }
+
+            foreach (var kind in products.Where(p => AnyOther.IsMatch(p)).Select(p => AnyOther.Replace(p, string.Empty)))
+            {
+                if (v.Resolve(kind) is { } product && product != firstFood)
+                {
+                    return new CompoundPlan(OrSharedHead, CompoundKind.PickAlternative, new[] { new CompoundPart(kind, product, line, null) }, wording, null);
+                }
+            }
+
+            return CompoundPlan.Leave(wording, LeaveSharedProduct);
+        }
+
+        private static string[] Words(string name) => name.Split(WordBreaks, StringSplitOptions.RemoveEmptyEntries).Select(w => w.Trim('.', ';', ':')).ToArray();
+
+        private static bool IsProduct(string name) => Words(name) is { Length: > 0 } words && ProductWords.Contains(words[^1]);
 
         /// <summary>
         /// Whether a bare first alternative and the first word of a longer last one are both whole
