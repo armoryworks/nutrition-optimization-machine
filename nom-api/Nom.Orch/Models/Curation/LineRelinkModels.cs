@@ -86,6 +86,8 @@ namespace Nom.Orch.Models.Curation
         public int Unsplit { get; set; }
         /// <summary>Lines with alternatives that were moved to their first alternative and are back on the food they were on.</summary>
         public int AlternativesPutBack { get; set; }
+        /// <summary>Pending link proposals the verified wording link withdrew that are open again.</summary>
+        public int PicksRestored { get; set; }
         /// <summary>Journal entries whose line has since moved again, been edited or gone, or whose food cannot take its name back.</summary>
         public int Skipped { get; set; }
     }

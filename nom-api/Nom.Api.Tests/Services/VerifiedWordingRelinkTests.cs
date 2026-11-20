@@ -150,6 +150,45 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_pending_pick_the_table_judged_otherwise_is_withdrawn_with_a_journal_entry_and_the_undo_opens_it_again()
+        {
+            using var db = NewContext();
+            var extract = CuratedFood("Vanilla Extract");
+            var soymilk = CuratedFood("SILK Very Vanilla soymilk");
+            var vanilla = Uncurated("vanilla");
+            var buttermilk = Uncurated("sweet milk");
+            db.Ingredients.AddRange(extract, soymilk, vanilla, buttermilk);
+            await db.SaveChangesAsync();
+            db.IngredientWordings.AddRange(Wording("vanilla", "food", extract), Wording("sweet milk", "unclear"));
+            db.Recipes.Add(Recipe("Written by a member", null, (vanilla, "1 tsp vanilla", null), (buttermilk, "1 cup sweet milk", null)));
+            var wrong = OpenLink(vanilla);
+            wrong.CurrentValue = "vanilla";
+            wrong.ProposedValue = soymilk.Id.ToString();
+            var unclear = OpenLink(buttermilk);
+            unclear.CurrentValue = "sweet milk";
+            unclear.ProposedValue = soymilk.Id.ToString();
+            var agreeing = OpenLink(vanilla);
+            agreeing.CurrentValue = "Vanilla";
+            agreeing.ProposedValue = extract.Id.ToString();
+            db.FoodCatalogProposals.AddRange(wrong, unclear, agreeing);
+            await db.SaveChangesAsync();
+            var service = new LineRelinkService(db, new NoUser());
+            var started = DateTime.UtcNow;
+
+            (await service.LinkVerifiedWordingsAsync()).PicksWithdrawn.Should().Be(2);
+            (await db.FoodCatalogProposals.CountAsync()).Should().Be(3, "a dry run writes nothing");
+            var applied = await service.LinkVerifiedWordingsAsync(apply: true);
+
+            applied.Should().Match<VerifiedWordingLinkResult>(r => r.SourcesKept == 1 && r.PicksWithdrawn == 2);
+            (await db.FoodCatalogProposals.Select(p => p.Id).ToListAsync()).Should().Equal(agreeing.Id);
+            (await db.AuditLogEntries.Where(a => a.ChangeType == LineRelinkService.PickWithdrawChangeType).Select(a => a.EntityId).ToListAsync())
+                .Should().BeEquivalentTo(new[] { wrong.Id, unclear.Id });
+
+            (await service.UndoAsync(started)).PicksRestored.Should().Be(2);
+            (await db.FoodCatalogProposals.CountAsync()).Should().Be(3);
+        }
+
+        [Fact]
         public async Task A_rename_is_journaled_and_an_undo_gives_the_name_back()
         {
             using var db = NewContext();

@@ -58,7 +58,9 @@ namespace Nom.Orch.Interfaces
         /// Moves the scraped ingredient lines of every uncurated ingredient named with a verified
         /// wording to the food the wording table gives it, up to <paramref name="maxLines"/>, and
         /// retires each such ingredient left with no line and nothing else pointing at it,
-        /// withdrawing its unreviewed link proposals. A wording whose food is gone, no longer
+        /// withdrawing its unreviewed link proposals. A pending unreviewed link proposal of any
+        /// other ingredient whose wording the table judged, and whose pick is not the table's food,
+        /// is withdrawn and journaled too. A wording whose food is gone, no longer
         /// curated or without nutrition moves nothing. Lines are re-positioned, never folded, and
         /// each move and retirement is journaled for the undo sweep. Without
         /// <paramref name="apply"/> nothing is written and the result is what the same call would do.

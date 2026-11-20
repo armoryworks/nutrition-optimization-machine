@@ -139,7 +139,26 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task A_judged_wording_handed_to_the_lane_gets_no_proposal_and_no_question_before_any_rule_runs()
+        public async Task A_raw_name_whose_key_the_table_judged_is_set_aside_once_instead_of_taking_a_batch_slot_every_pass()
+        {
+            using var db = NewContext();
+            var extract = await FoodAsync(db, "Vanilla Extract");
+            var raw = await UsedAsync(db, "1 teaspoon vanilla");
+            await JudgeAsync(db, "vanilla", IngredientWordingVerdict.Food, extract);
+            var matcher = new CountingMatcher();
+            var linker = Linker(db, matcher);
+
+            (await linker.NextSourcesAsync(10)).Select(s => s.Name).Should().Equal("1 teaspoon vanilla");
+            await linker.ProposeAsync(await linker.NextSourcesAsync(10));
+
+            matcher.Asked.Should().BeEmpty();
+            (await db.FoodCatalogProposals.SingleAsync(p => p.IngredientId == raw.Id)).Should().Match<Nom.Data.Curation.FoodCatalogProposalEntity>(p =>
+                p.Status == Nom.Data.Curation.FoodProposalStatus.Rejected && p.Source == IngredientLinkService.VerifiedWordingSource && p.ProposedValue == null);
+            (await linker.NextSourcesAsync(10)).Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task A_judged_wording_handed_to_the_lane_gets_no_pick_and_no_question_before_any_rule_runs()
         {
             using var db = NewContext();
             var extract = await FoodAsync(db, "Vanilla Extract");
@@ -158,7 +177,9 @@ namespace Nom.Api.Tests.Services
             });
 
             matcher.Asked.Should().BeEmpty();
-            (await db.FoodCatalogProposals.Select(p => p.IngredientId).ToListAsync()).Should().Equal(fruit.Id);
+            (await db.FoodCatalogProposals.Where(p => p.Source != IngredientLinkService.VerifiedWordingSource).Select(p => p.IngredientId).ToListAsync()).Should().Equal(fruit.Id);
+            (await db.FoodCatalogProposals.Where(p => p.Source == IngredientLinkService.VerifiedWordingSource).ToListAsync()).Should().OnlyContain(p =>
+                p.Status == Nom.Data.Curation.FoodProposalStatus.Rejected && p.ProposedValue == null, "a judged wording is only set aside");
         }
 
         [Fact]

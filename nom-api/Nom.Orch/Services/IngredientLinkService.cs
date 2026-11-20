@@ -24,6 +24,7 @@ namespace Nom.Orch.Services
         public const string ExactSource = "deterministic:name-match";
         public const string StapleSource = "deterministic:staple";
         public const string NoCandidateSource = "deterministic:no-candidate";
+        public const string VerifiedWordingSource = "deterministic:verified-wording";
         public const decimal ExactConfidence = 0.95m;
         public const string TriangulationMark = " · triangulation: ";
         public const string VerifiedMark = TriangulationMark + "verified";
@@ -115,7 +116,11 @@ namespace Nom.Orch.Services
             var staples = await StapleTargetsAsync(cancellationToken);
             foreach (var source in sources)
             {
-                if (judged.Contains(IngredientNameNormalizer.WordingKey(source.Name))) continue;
+                if (judged.Contains(IngredientNameNormalizer.WordingKey(source.Name)))
+                {
+                    Propose(source, null, VerifiedWordingSource, null, FoodProposalStatus.Rejected, reason: $"The verified wording table has a verdict · used in {source.Uses} recipes");
+                    continue;
+                }
                 var name = IngredientNameNormalizer.Normalize(source.Name);
                 if (DeterministicTarget(name, matcher, staples) is { } rule)
                 {
@@ -314,7 +319,7 @@ namespace Nom.Orch.Services
             return null;
         }
 
-        private void Propose(LinkSource source, FoodCandidate? target, string provenance, decimal? confidence, FoodProposalStatus status, string askKey = "")
+        private void Propose(LinkSource source, FoodCandidate? target, string provenance, decimal? confidence, FoodProposalStatus status, string askKey = "", string? reason = null)
         {
             _context.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
             {
@@ -325,9 +330,9 @@ namespace Nom.Orch.Services
                 FdcId = target?.FdcId,
                 ProposedValue = target?.IngredientId.ToString(),
                 Confidence = confidence,
-                Reason = Trim(target == null
+                Reason = Trim(reason ?? (target == null
                     ? $"No USDA match · used in {source.Uses} recipes{askKey}"
-                    : $"→ {target.Name} · used in {source.Uses} recipes{askKey}"),
+                    : $"→ {target.Name} · used in {source.Uses} recipes{askKey}")),
                 Source = provenance,
                 Batch = Batch,
                 Status = status,

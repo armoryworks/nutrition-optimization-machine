@@ -26,6 +26,8 @@ namespace Nom.Orch.Services
         public const string RelinkEntityType = "RecipeIngredient";
         public const string RetireChangeType = "FoodRetire";
         public const string RetireEntityType = "Ingredient";
+        public const string PickWithdrawChangeType = "WordingPickWithdraw";
+        public const string PickWithdrawEntityType = "FoodCatalogProposal";
         public const string RetiredContextPrefix = "retired:";
 
         private static readonly Regex Word = new(@"[\p{L}\p{N}%']+", RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -481,7 +483,8 @@ namespace Nom.Orch.Services
             var repairs = LineRepairs.Keys.ToList();
             var entries = await _db.AuditLogEntries
                 .Where(a => ((a.EntityType == RelinkEntityType && (a.ChangeType == RelinkChangeType || repairs.Contains(a.ChangeType)))
-                        || (a.EntityType == RetireEntityType && a.ChangeType == RetireChangeType))
+                        || (a.EntityType == RetireEntityType && a.ChangeType == RetireChangeType)
+                        || (a.EntityType == PickWithdrawEntityType && a.ChangeType == PickWithdrawChangeType))
                     && a.Timestamp >= sinceUtc)
                 .OrderByDescending(a => a.Id)
                 .ToListAsync();
@@ -494,6 +497,26 @@ namespace Nom.Orch.Services
                 await using var tx = await _db.Database.BeginTransactionAsync();
                 foreach (var entry in chunk)
                 {
+                    if (entry.ChangeType == PickWithdrawChangeType)
+                    {
+                        var pick = await _db.FoodCatalogProposals.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == entry.EntityId);
+                        if (pick is { IsDeleted: true, Status: FoodProposalStatus.Pending })
+                        {
+                            pick.IsDeleted = false;
+                            pick.DeletedAt = null;
+                            pick.DeletedByPersonId = null;
+                            _db.AuditLogEntries.Remove(entry);
+                            result.PicksRestored++;
+                        }
+                        else
+                        {
+                            result.Skipped++;
+                        }
+
+                        await _db.SaveChangesAsync();
+                        continue;
+                    }
+
                     if (entry.ChangeType == RetireChangeType)
                     {
                         if (await RestoreAsync(entry, personId))

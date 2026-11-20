@@ -80,6 +80,7 @@ namespace Nom.Orch.Services
                 .ToDictionaryAsync(g => g.Key, g => g.Lines);
             var personId = _currentUser.PersonIdOrSystem;
             var now = DateTime.UtcNow;
+            var allRetired = new List<long>();
             foreach (var chunk in sourceIds.Chunk(500))
             {
                 var retired = new List<long>();
@@ -96,6 +97,7 @@ namespace Nom.Orch.Services
                 }
 
                 result.SourcesRetired += retired.Count;
+                allRetired.AddRange(retired);
                 result.ProposalsWithdrawn += await _db.FoodCatalogProposals
                     .Where(p => p.IngredientId != null && retired.Contains(p.IngredientId.Value)).Where(UnreviewedLink).CountAsync();
                 if (!apply || retired.Count == 0) continue;
@@ -118,7 +120,62 @@ namespace Nom.Orch.Services
                 if (tx != null) await tx.CommitAsync();
             }
 
+            await WithdrawContradictedPicksAsync(apply, allRetired, result, now, personId);
             return result;
+        }
+
+        /// <summary>
+        /// Withdraws each pending link proposal no person has reviewed whose wording the table has
+        /// judged and whose pick is not the table's food, so it can no longer be applied from the
+        /// queue. Each withdrawal is journaled (<see cref="PickWithdrawChangeType"/>) and taken back
+        /// by the undo sweep.
+        /// </summary>
+        private async Task WithdrawContradictedPicksAsync(bool apply, List<long> retired, VerifiedWordingLinkResult result, DateTime now, long personId)
+        {
+            var table = await _db.IngredientWordings.AsNoTracking()
+                .Select(w => new { w.Wording, w.Verdict, w.IngredientId })
+                .ToDictionaryAsync(w => w.Wording, StringComparer.Ordinal);
+            if (table.Count == 0) return;
+
+            var pending = await _db.FoodCatalogProposals.AsNoTracking()
+                .Where(p => p.Field == FoodCatalogReviewService.FdcLinkField && p.Status == FoodProposalStatus.Pending
+                    && p.IngredientId != null && p.CurrentValue != null
+                    && (p.ReviewedByPersonId == null || p.ReviewedByPersonId == SystemConstants.SystemPersonId))
+                .Select(p => new { p.Id, p.IngredientId, p.CurrentValue, p.ProposedValue })
+                .ToListAsync();
+            var contradicted = pending
+                .Where(p => !retired.Contains(p.IngredientId!.Value)
+                    && table.TryGetValue(IngredientNameNormalizer.WordingKey(p.CurrentValue!), out var verdict)
+                    && !(verdict.Verdict == IngredientWordingVerdict.Food && verdict.IngredientId?.ToString(System.Globalization.CultureInfo.InvariantCulture) == p.ProposedValue))
+                .Select(p => p.Id)
+                .ToList();
+            result.PicksWithdrawn = contradicted.Count;
+            if (!apply || contradicted.Count == 0) return;
+
+            foreach (var chunk in contradicted.Chunk(500))
+            {
+                await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+                foreach (var proposal in await _db.FoodCatalogProposals.Where(p => chunk.Contains(p.Id)).ToListAsync())
+                {
+                    proposal.IsDeleted = true;
+                    proposal.DeletedAt = now;
+                    proposal.DeletedByPersonId = personId;
+                    _db.AuditLogEntries.Add(new AuditLogEntryEntity
+                    {
+                        EntityType = PickWithdrawEntityType,
+                        EntityId = proposal.Id,
+                        ChangeType = PickWithdrawChangeType,
+                        PropertyName = nameof(FoodCatalogProposalEntity.IsDeleted),
+                        OldValue = bool.FalseString,
+                        NewValue = bool.TrueString,
+                        Timestamp = now,
+                        ChangedByPersonId = personId,
+                    });
+                }
+
+                await _db.SaveChangesAsync();
+                if (tx != null) await tx.CommitAsync();
+            }
         }
 
         private static readonly System.Linq.Expressions.Expression<Func<FoodCatalogProposalEntity, bool>> UnreviewedLink = p =>
