@@ -9,11 +9,14 @@ namespace Nom.Orch.Services.Support
     /// Deterministic checks that keep model-proposed recipe repairs honest. A step split is accepted
     /// only when the steps, joined, are the original text (whitespace aside). A quantity is accepted
     /// only when the model's quote is verbatim source text that names the ingredient, and the amount
-    /// comes from <see cref="IngredientLineParser"/> reading that quote — never from the model.
+    /// comes from <see cref="IngredientLineParser"/> reading that quote — never from the model. A count
+    /// in pieces also needs a stated number, or a food that has a weight per item.
     /// </summary>
     public static class RecipeRepairGrounding
     {
         public const int MinStepLength = 10;
+        public const string UnreadMeasureRefusal = "names a measure that is not a unit";
+        public const string ArticleRefusal = "counts \"a\" or \"an\" on a food with no weight per item";
 
         private static readonly HashSet<string> QuantityWords = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -31,6 +34,16 @@ namespace Nom.Orch.Services.Support
             "tablespoonfuls", "spoonful", "spoonfuls", "pinch", "dash", "half", "quarter", "one", "two", "three",
             "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "dozen", "piece", "pieces",
         };
+
+        private static readonly HashSet<string> CountWords = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "dozen",
+            "half", "one-half", "quarter", "one-quarter", "three-quarters", "quarters", "third", "thirds", "one-third", "two-thirds",
+        };
+
+        private static readonly Regex UnreadMeasure = new(
+            @"\b(?:\p{L}*spoon(?:ful)?s?|\p{L}*glass(?:ful)?(?:e?s)?|\p{L}*cupfuls?|handfuls?|bunch(?:es)?|sprinkl(?:e|ing)s?|pinch(?:es)?|dash(?:es)?|scruples?|drachms?|drams?|quantit(?:y|ies)|ladle(?:ful)?s?|knobs?|lumps?|bits?)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex NumberToken = new(@"^[\d¼½¾⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞./,\-–]+$", RegexOptions.Compiled);
         private static readonly Regex SentenceEnd = new(@"(?<=[.;!?][""'”’)]?)\s+(?=[""'“‘(]?\p{Lu})", RegexOptions.Compiled);
@@ -70,7 +83,7 @@ namespace Nom.Orch.Services.Support
             return steps.Count >= 2 ? steps : null;
         }
 
-        public static ParsedQuantity? GroundQuantity(string rawLine, string? ingredientName, string? quote, IEnumerable<string> sourceTexts)
+        public static ParsedQuantity? GroundQuantity(string rawLine, string? ingredientName, string? quote, IEnumerable<string> sourceTexts, decimal? gramsPerItem = null)
         {
             var normalizedQuote = Normalize(quote).TrimEnd('.', ',', ';', ':');
             if (normalizedQuote.Length == 0) return null;
@@ -91,8 +104,30 @@ namespace Nom.Orch.Services.Support
                 return null;
             }
 
+            if (parsed.MeasurementName == IngredientLineParser.Piece && PieceRefusal(normalizedQuote, gramsPerItem) != null) return null;
+
             return parsed;
         }
+
+        /// <summary>
+        /// Why a quote read as a count in pieces states no count, or null when it does. A quote that
+        /// names a measure the parser did not read as a unit ("a glassful of wine", "one scruple of
+        /// ginger") is refused, and so is one whose only number is "a" or "an" ("a clean tin"),
+        /// unless the food has a weight per item ("an egg").
+        /// </summary>
+        public static string? PieceRefusal(string? quote, decimal? gramsPerItem)
+        {
+            var text = Normalize(quote);
+            if (UnreadMeasure.IsMatch(text)) return UnreadMeasureRefusal;
+
+            var tokens = Words.Matches(text).Select(m => m.Value).ToList();
+            var named = tokens.FindIndex(IsContentWord);
+            var lead = named > 0 ? tokens.Take(named) : tokens;
+            return lead.Any(IsCount) || gramsPerItem > 0 ? null : ArticleRefusal;
+        }
+
+        private static bool IsCount(string token) =>
+            CountWords.Contains(token) || (NumberToken.IsMatch(token) && token.Any(c => char.IsDigit(c) || !char.IsAscii(c)));
 
         private static IEnumerable<string> ContentWords(string? text) =>
             Words.Matches(text ?? string.Empty).Select(m => m.Value).Where(IsContentWord);

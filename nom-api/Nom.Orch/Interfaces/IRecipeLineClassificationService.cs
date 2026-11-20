@@ -17,7 +17,9 @@ namespace Nom.Orch.Interfaces
     /// Classifies unquantified ingredient lines of unreviewed recipes (RequiresRevision, NonCurated) as a real
     /// ingredient with a missing amount, or as something that never had one: a reference to another
     /// preparation, equipment, a note, method text or a merge artefact. Obvious cases are classified
-    /// deterministically, the rest by the local model; then the recipe is re-vetted. Never changes a
+    /// deterministically, the rest by the local model; then the recipe is re-vetted. A model's answer that a
+    /// line is not an ingredient is refused when the line states an amount or names a curated food, and is
+    /// only recorded as a suggestion unless Curation:LineClassify:ModelMayExempt is on. Never changes a
     /// quantity or a raw line. Each recipe gets one attempt per classifier version, recorded in the audit log.
     /// </summary>
     public interface IRecipeLineClassificationService

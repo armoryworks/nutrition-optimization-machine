@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Audit;
@@ -17,6 +18,7 @@ namespace Nom.Orch.Services
     {
         public const string AttemptChangeType = "LineClassifyAttempt";
         public const string ClassifyChangeType = "LineClassify";
+        public const string SuggestedChangeType = "LineClassifySuggested";
 
         /// <summary>Bumped when the pre-pass or prompt changes; recipes attempted by an older version are attempted once more.</summary>
         public const int ClassifierVersion = 1;
@@ -29,13 +31,16 @@ namespace Nom.Orch.Services
         private readonly IRecipeVettingService _vetting;
         private readonly IRecipeClassificationModel _model;
         private readonly ILogger<RecipeLineClassificationService> _logger;
+        private readonly bool _modelMayExempt;
+        private HashSet<string>? _curatedNames;
 
-        public RecipeLineClassificationService(ApplicationDbContext db, IRecipeVettingService vetting, IRecipeClassificationModel model, ILogger<RecipeLineClassificationService> logger)
+        public RecipeLineClassificationService(ApplicationDbContext db, IRecipeVettingService vetting, IRecipeClassificationModel model, ILogger<RecipeLineClassificationService> logger, IConfiguration? configuration = null)
         {
             _db = db;
             _vetting = vetting;
             _model = model;
             _logger = logger;
+            _modelMayExempt = configuration?.GetValue("Curation:LineClassify:ModelMayExempt", false) ?? false;
         }
 
         public async Task<LineClassifyBatchResult> ClassifyBatchAsync(long afterRecipeId, int batchSize, CancellationToken cancellationToken = default)
@@ -63,7 +68,7 @@ namespace Nom.Orch.Services
                 .Select(a => a.EntityId)
                 .ToListAsync(cancellationToken)).ToHashSet();
 
-            int deterministic = 0, classified = 0, unclassified = 0, cleared = 0, calls = 0;
+            int deterministic = 0, classified = 0, unclassified = 0, cleared = 0, calls = 0, suggested = 0;
             foreach (var recipe in recipes)
             {
                 var lines = recipe.RecipeIngredients ?? new List<RecipeIngredientEntity>();
@@ -92,7 +97,7 @@ namespace Nom.Orch.Services
                     }
                 }
 
-                var answered = 0;
+                int answered = 0, suggestions = 0;
                 if (forModel.Count > 0 && _model.IsConfigured)
                 {
                     foreach (var chunk in forModel.Chunk(LinesPerCall))
@@ -101,14 +106,33 @@ namespace Nom.Orch.Services
                         var kinds = await _model.ClassifyLinesAsync(recipe.Name, chunk.Select(r => r.RawLine).ToList(), cancellationToken);
                         for (var i = 0; i < chunk.Length; i++)
                         {
-                            if (kinds.TryGetValue(i, out var kind) && RecipeIngredientLineKind.All.Contains(kind))
+                            if (!kinds.TryGetValue(i, out var kind) || !RecipeIngredientLineKind.All.Contains(kind)) continue;
+
+                            var line = chunk[i];
+                            if (RecipeIngredientLineKind.IsExempt(kind))
                             {
-                                audit.Add(Apply(recipe, chunk[i], kind, _model.ModelName));
-                                answered++;
+                                _curatedNames ??= await RecipeLineKindGuard.CuratedNamesAsync(_db);
+                                if (RecipeLineKindGuard.Refusal(kind, line.Quantity, line.RawLine, false, _curatedNames) is { } refusal)
+                                {
+                                    audit.Add(Apply(recipe, line, RecipeIngredientLineKind.Ingredient, $"{_model.ModelName}, {kind} refused: {refusal}"));
+                                    answered++;
+                                    continue;
+                                }
+
+                                if (!_modelMayExempt)
+                                {
+                                    audit.Add(Suggest(recipe, line, kind, _model.ModelName));
+                                    suggestions++;
+                                    continue;
+                                }
                             }
+
+                            audit.Add(Apply(recipe, line, kind, _model.ModelName));
+                            answered++;
                         }
                     }
                     classified += answered;
+                    suggested += suggestions;
                     unclassified += forModel.Count - answered;
                 }
 
@@ -122,14 +146,15 @@ namespace Nom.Orch.Services
                         ChangeType = AttemptChangeType,
                         PropertyName = "LineKind",
                         NewValue = $"{AttemptVersionPrefix}[{(forModel.Count > 0 ? _model.ModelName : RecipeLineClassifier.DeterministicSource)}] " +
-                            $"{pending.Count - forModel.Count} deterministic, {answered} by model, {forModel.Count - answered} unclassified",
+                            $"{pending.Count - forModel.Count} deterministic, {answered} by model, {forModel.Count - answered} unclassified" +
+                            (suggestions > 0 ? $" ({suggestions} suggested)" : string.Empty),
                         Timestamp = DateTime.UtcNow,
                         ChangedByPersonId = SystemConstants.SystemPersonId,
                     });
                 }
 
                 if (audit.Count == 0) continue;
-                if (audit.Count > (attempted ? 1 : 0))
+                if (audit.Count > (attempted ? 1 : 0) + suggestions)
                 {
                     var before = (recipe.CurationStatusId, recipe.VettingIssues);
                     if (await ScrapedRecipeRepairService.RevetAsync(_vetting, recipe)) cleared++;
@@ -146,28 +171,38 @@ namespace Nom.Orch.Services
             _db.ChangeTracker.Clear();
             if (deterministic + classified + cleared > 0)
             {
-                _logger.LogInformation("Line classification: {Examined} recipes examined, {Deterministic} lines classified deterministically, {Classified} by model, {Unclassified} unclassified, {Cleared} cleared vetting",
-                    recipes.Count, deterministic, classified, unclassified, cleared);
+                _logger.LogInformation("Line classification: {Examined} recipes examined, {Deterministic} lines classified deterministically, {Classified} by model, {Unclassified} unclassified ({Suggested} suggested), {Cleared} cleared vetting",
+                    recipes.Count, deterministic, classified, unclassified, suggested, cleared);
             }
             return new LineClassifyBatchResult(recipes.Count, deterministic, classified, unclassified, cleared, calls, recipes[^1].Id);
         }
 
         private static AuditLogEntryEntity Apply(RecipeEntity recipe, RecipeIngredientEntity row, string kind, string source)
         {
+            var entry = Entry(recipe, row, kind, source, ClassifyChangeType);
             row.LineKind = kind;
             row.LastModifiedDate = DateTime.UtcNow;
             row.LastModifiedByPersonId = SystemConstants.SystemPersonId;
-            return new AuditLogEntryEntity
-            {
-                EntityType = "RecipeIngredient",
-                EntityId = recipe.Id,
-                ChangeType = ClassifyChangeType,
-                PropertyName = $"LineKind[{row.IngredientId}]",
-                NewValue = $"{kind} ({source}): {Clamp(row.RawLine, 3800)}",
-                Timestamp = DateTime.UtcNow,
-                ChangedByPersonId = SystemConstants.SystemPersonId,
-            };
+            return entry;
         }
+
+        private static AuditLogEntryEntity Suggest(RecipeEntity recipe, RecipeIngredientEntity row, string kind, string source) =>
+            Entry(recipe, row, kind, source, SuggestedChangeType);
+
+        private static AuditLogEntryEntity Entry(RecipeEntity recipe, RecipeIngredientEntity row, string kind, string source, string changeType) => new()
+        {
+            EntityType = "RecipeIngredient",
+            EntityId = recipe.Id,
+            ChangeType = changeType,
+            PropertyName = LinePropertyName(row.IngredientId, row.SortOrder),
+            OldValue = row.LineKind,
+            NewValue = $"{kind} ({source}): {Clamp(row.RawLine, 3800)}",
+            Timestamp = DateTime.UtcNow,
+            ChangedByPersonId = SystemConstants.SystemPersonId,
+        };
+
+        internal static string LinePropertyName(long ingredientId, int sortOrder) =>
+            string.Create(System.Globalization.CultureInfo.InvariantCulture, $"LineKind[{ingredientId}:{sortOrder}]");
 
         private static string Clamp(string value, int maxLength) =>
             value.Length <= maxLength ? value : value[..maxLength].TrimEnd();

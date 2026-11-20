@@ -553,6 +553,42 @@ Measured on staging on 2026-11-19: of 32,841 live aliases with no context, the r
 on 24,654. In the lines judged on 2026-11-12 a rule-confirmed alias was right for 98.8 % of
 lines and an unconfirmed one for about half.
 
+### Line labels and model quantities: veto and correction — BUILT ✅
+The line classification lane labels unquantified lines as an ingredient or as something that
+never had an amount (reference, equipment, note, instruction, artefact). A label other than
+ingredient takes the line off the nutrition label, the missing-amount count and the curated
+ingredient gate, so `Support/RecipeLineKindGuard.cs` vetoes it when the line states an amount
+or its normalised wording is exactly a curated food's name (the name map line relinking uses).
+A vetoed model answer is stored as `ingredient`. Any other model answer that a line is not an
+ingredient is only journaled as `LineClassifySuggested` unless
+`Curation:LineClassify:ModelMayExempt` is true (default false). Labels are journaled as
+`LineKind[{ingredientId}:{sortOrder}]` with the old kind in `OldValue`.
+
+`POST /api/FoodCatalog/labels/review?apply=false&shortLines=false&maxLines=5000&sampleSize=50`
+(`RecipeLineLabelReviewService`) returns the labels already written to ingredient. By default
+it covers the certain cases only; `shortLines=true` adds the wider rule (a line of 40
+characters or fewer on a curated food), which also returns harmless lines such as "boiling
+water". The dry run reports both rules (`Certain`, `WithShortLines`) with lines, recipes,
+approved recipes and `ApprovedStopPassing`: approved recipes that pass the line rules
+(unquantified allowance, curated foods) now and would not after the change. Each change is a
+`LineKindReview` audit entry; `POST /api/FoodCatalog/labels/undo?sinceUtc=<start>` restores a
+batch, skipping lines labelled again since.
+
+The AI repair lane no longer accepts a count in pieces from a quote whose only number is "a"
+or "an" on a food with no `GramsPerItem` ("a clean tin"), or from a quote that names a measure
+the parser did not read as a unit ("a glassful of good red wine", "one scruple of ginger")
+(`RecipeRepairGrounding.PieceRefusal`). `POST /api/FoodCatalog/quantities/revert?apply=false`
+(`AiRepairRevertService`) checks every journaled `AiRepair` piece fill with the same rule and
+puts back the quantity and measurement its journal entry recorded. A fill journaled without a
+line position (`Quantity[{ingredientId}]`) on a recipe with two such lines holding the fill is
+left alone (`Ambiguous`). Each revert is an `AiRepairRevert` entry in the `LineReread` value
+format; `POST /api/FoodCatalog/quantities/undo?sinceUtc=<start>` replays a batch forward.
+
+Neither correction changes a recipe's curation status. Both touch `LastModifiedDate`, so the
+nutrition sweep recalculates the labels. Order of work as for the other line lanes: staging
+snapshot, dry run, note the UTC time, apply, check the samples in the app, prove the undo,
+then production.
+
 ### AI enrichment (food group + IsWholeFood) — BUILT ✅ (runtime pending)
 `Nom.Import/Services/FoodGroupEnrichmentService.cs` — a batch job that classifies
 ingredients: deterministic keyword classification always runs

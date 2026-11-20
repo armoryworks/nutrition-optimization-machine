@@ -1,0 +1,103 @@
+using System.Collections.Generic;
+
+namespace Nom.Orch.Models.Curation
+{
+    /// <summary>How many lines a rule would return to ingredient, on how many recipes, and what that does to approved ones.</summary>
+    public class LineLabelReviewCount
+    {
+        public int Lines { get; set; }
+        public int Recipes { get; set; }
+        public int ApprovedRecipes { get; set; }
+        /// <summary>Approved recipes that pass the line rules now and would not after the change.</summary>
+        public int ApprovedStopPassing { get; set; }
+    }
+
+    /// <summary>One line whose label would return to ingredient, and why.</summary>
+    public class LineLabelReviewSample
+    {
+        public long RecipeId { get; set; }
+        public long IngredientId { get; set; }
+        public int SortOrder { get; set; }
+        public string Line { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public string LineKind { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
+        public string RecipeStatus { get; set; } = string.Empty;
+    }
+
+    public class LineLabelReviewResult
+    {
+        public bool Applied { get; set; }
+        /// <summary>Whether the wider rule was asked for: a short line that sits on a curated food also returns to ingredient.</summary>
+        public bool ShortLinesOnCuratedFoods { get; set; }
+        /// <summary>Lines labelled as something other than an ingredient.</summary>
+        public int LinesExamined { get; set; }
+        /// <summary>Lines that state an amount.</summary>
+        public int WithAmount { get; set; }
+        /// <summary>Lines with no amount whose wording is exactly a curated food's name.</summary>
+        public int NamingCuratedFood { get; set; }
+        /// <summary>Lines neither of those that are short and sit on a curated food.</summary>
+        public int ShortOnCuratedFood { get; set; }
+        /// <summary>The certain cases: a line that states an amount or names a curated food.</summary>
+        public LineLabelReviewCount Certain { get; set; } = new();
+        /// <summary>The certain cases and the short lines on curated foods together.</summary>
+        public LineLabelReviewCount WithShortLines { get; set; } = new();
+        /// <summary>Recipes the chosen rule touches, by curation status.</summary>
+        public Dictionary<string, int> RecipesByStatus { get; set; } = new();
+        public int Changed { get; set; }
+        /// <summary>Lines no longer as the review found them.</summary>
+        public int Skipped { get; set; }
+        public int Remaining { get; set; }
+        /// <summary>Lines of the chosen rule taken at even steps through the whole plan.</summary>
+        public List<LineLabelReviewSample> Samples { get; set; } = new();
+    }
+
+    public class LineCorrectionUndoResult
+    {
+        public int Restored { get; set; }
+        /// <summary>Journal entries whose line has since been changed again, moved to another food or removed.</summary>
+        public int Skipped { get; set; }
+    }
+
+    /// <summary>One quantity fill that would be put back, and why.</summary>
+    public class QuantityRevertSample
+    {
+        public long RecipeId { get; set; }
+        public long IngredientId { get; set; }
+        public int SortOrder { get; set; }
+        public string Line { get; set; } = string.Empty;
+        public string Quote { get; set; } = string.Empty;
+        public decimal FilledQuantity { get; set; }
+        public decimal RestoredQuantity { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public string RecipeStatus { get; set; } = string.Empty;
+    }
+
+    public class QuantityRevertResult
+    {
+        public bool Applied { get; set; }
+        /// <summary>Journaled model fills counted in pieces.</summary>
+        public int FillsExamined { get; set; }
+        /// <summary>Fills that pass the present grounding rule and stay.</summary>
+        public int Grounded { get; set; }
+        /// <summary>Fills whose line has since been changed, moved or removed.</summary>
+        public int LineChanged { get; set; }
+        /// <summary>Older fills journaled without a line position, on a recipe with more than one such line of that food.</summary>
+        public int Ambiguous { get; set; }
+        public int Ungrounded { get; set; }
+        /// <summary>Ungrounded fills by the reason the grounding rule gives.</summary>
+        public Dictionary<string, int> ByReason { get; set; } = new();
+        public int Recipes { get; set; }
+        public int ApprovedRecipes { get; set; }
+        /// <summary>Approved recipes that pass the line rules now and would not after the revert.</summary>
+        public int ApprovedStopPassing { get; set; }
+        /// <summary>Recipes the revert touches, by curation status.</summary>
+        public Dictionary<string, int> RecipesByStatus { get; set; } = new();
+        public int Changed { get; set; }
+        /// <summary>Lines no longer as the plan found them.</summary>
+        public int Skipped { get; set; }
+        public int Remaining { get; set; }
+        /// <summary>Fills to put back, taken at even steps through the whole plan.</summary>
+        public List<QuantityRevertSample> Samples { get; set; } = new();
+    }
+}
