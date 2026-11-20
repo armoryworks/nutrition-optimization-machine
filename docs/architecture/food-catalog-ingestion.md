@@ -195,8 +195,11 @@ does not read that shape.
 
 `--attach-fdc --undo <pairs.tsv> [--dry-run]` takes the same pairs back from that journal:
 each column returns to its old value when it still holds what the attach gave it, the
-stamped nutrient rows and the description alias are removed, the proposal is marked
-Rejected and the food's recipe lines are marked changed so their labels are recalculated.
+stamped nutrient rows are removed, the description alias is removed when the attach added
+it and otherwise gets back the context and removal it had before (the attach journals that
+alias's earlier state), the proposal is marked Rejected and the food's recipe lines are
+marked changed so their labels are recalculated. A column or alias changed since the attach
+is left and named in the report line.
 A proposal still pending is simply rejected. An attach applied before the journal existed
 is reported as `not_journaled` and left alone.
 
