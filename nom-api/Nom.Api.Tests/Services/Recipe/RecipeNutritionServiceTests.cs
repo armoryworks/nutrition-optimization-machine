@@ -142,6 +142,29 @@ namespace Nom.Api.Tests.Services.Recipe
         }
 
         [Fact]
+        public async Task A_derived_label_whose_only_measured_lines_became_unsized_cans_is_removed_and_any_other_is_kept()
+        {
+            using var db = NewContext();
+            await SeedReferenceAsync(db);
+            var svc = new RecipeNutritionService(db, NullLogger<RecipeNutritionService>.Instance);
+            var cans = await SeedRecipeAsync(db, servings: 1, qty: 1m, measurementId: Piece, referenceGrams: 150m);
+            var pieces = await SeedRecipeAsync(db, servings: 1, qty: 1m, measurementId: Piece, referenceGrams: 150m);
+            (await svc.RecalculateAsync(cans)).Should().Be(2);
+            (await svc.RecalculateAsync(pieces)).Should().Be(2);
+            (await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == cans)).MeasurementId = Can;
+            var unweighed = await db.Ingredients.SingleAsync(i => i.Id == db.RecipeIngredients.Single(ri => ri.RecipeId == pieces).IngredientId);
+            unweighed.ReferenceServingGrams = null;
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            (await svc.RecalculateAsync(cans)).Should().Be(0);
+            (await svc.RecalculateAsync(pieces)).Should().Be(0);
+
+            (await db.RecipeNutrition.AnyAsync(n => n.RecipeId == cans)).Should().BeFalse("one can = one serving was never a weight");
+            (await db.RecipeNutrition.CountAsync(n => n.RecipeId == pieces)).Should().Be(2, "a label is otherwise left as it is when nothing contributes");
+        }
+
+        [Fact]
         public async Task Both_lines_of_a_food_count_once_a_joined_row_is_unfolded()
         {
             using var db = NewContext();
