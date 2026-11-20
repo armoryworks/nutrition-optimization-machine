@@ -192,6 +192,7 @@ export class RecipeForm implements OnInit {
     if (!item) return null;
     if (item.hasNutrition === false) return 'no-data';
     const unit = this.measurements().find(m => m.id === group.get('measurementId')?.value);
+    if (unit?.isContainer) return 'no-conversion';
     if (unit?.categoryId === 2 && item.canWeighVolume === false) return 'no-conversion';
     if (unit?.categoryId === 3 && item.canWeighCount === false) return 'no-conversion';
     return null;

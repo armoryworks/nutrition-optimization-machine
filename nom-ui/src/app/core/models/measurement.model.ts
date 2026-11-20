@@ -4,13 +4,14 @@ export interface MeasurementOption {
   symbol: string;
   categoryId: number;
   categoryName: string;
+  isContainer?: boolean;
 }
 
 const FOOD_CATEGORIES = new Set(['Mass', 'Volume', 'Count']);
 
 const COMMON_UNIT_ORDER = [
   'Cup', 'Tablespoon', 'Teaspoon', 'Pinch', 'Fluid Ounce', 'Milliliter', 'Liter',
-  'Gram', 'Kilogram', 'Ounce', 'Pound', 'Piece', 'Clove', 'Slice', 'Stalk', 'Can', 'Dozen',
+  'Gram', 'Kilogram', 'Ounce', 'Pound', 'Piece', 'Clove', 'Slice', 'Stalk', 'Can', 'Package', 'Dozen',
 ];
 
 export function foodUnits(all: MeasurementOption[]): MeasurementOption[] {
