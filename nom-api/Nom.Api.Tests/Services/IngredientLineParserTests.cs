@@ -21,7 +21,7 @@ namespace Nom.Api.Tests.Services
         [InlineData("2 cups minus 2 tablespoons cake flour", 2, "Cup")]
         [InlineData("1 cup + 2 tablespoons granulated sugar", 1, "Cup")]
         [InlineData("3 cloves garlic, minced", 3, "Clove")]
-        [InlineData("1 (15 oz) can black beans", 1, "Piece")]
+        [InlineData("1 (15 oz) can black beans", 15, "Ounce")]
         [InlineData("2-3 Tbsp olive oil", 2, "Tablespoon")]
         [InlineData("1 T butter", 1, "Tablespoon")]
         [InlineData("1 t salt", 1, "Teaspoon")]
@@ -63,7 +63,7 @@ namespace Nom.Api.Tests.Services
         [InlineData("water, four pints and a half", 9, "Cup")]
         [InlineData("Half-a-pound of finely sifted sugar", 0.5, "Pound")]
         [InlineData("third of a cup of sugar", 0.333, "Cup")]
-        [InlineData("Two-pound can of pineapples", 1, "Piece")]
+        [InlineData("Two-pound can of pineapples", 2, "Pound")]
         [InlineData("currie-powder, two dessertspoonsful", 4, "Teaspoon")]
         [InlineData("dozen large ripe tomatoes with the skins taken off", 1, "Dozen")]
         [InlineData("one tablespoonful", 1, "Tablespoon")]
@@ -153,6 +153,115 @@ namespace Nom.Api.Tests.Services
         public void A_part_of_a_thing_is_not_mistaken_for_a_borrowed_unit(string raw)
         {
             IngredientLineParser.IsElliptical(raw).Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData("1 (15 oz) can black beans", 15, "Ounce")]
+        [InlineData("2 (14.5-ounce) cans diced tomatoes", 29, "Ounce")]
+        [InlineData("1 14-ounce can chickpeas", 14, "Ounce")]
+        [InlineData("one 28-ounce can whole tomatoes", 28, "Ounce")]
+        [InlineData("1 15oz. can chickpeas ($0.69)", 15, "Ounce")]
+        [InlineData("1 can (10 1/2 ounces) condensed soup", 10.5, "Ounce")]
+        [InlineData("1 can (10-1/2-ounces) pizza sauce", 10.5, "Ounce")]
+        [InlineData("1 7¾-oz. can salmon", 7.75, "Ounce")]
+        [InlineData("2 cans (15 oz each) corn", 30, "Ounce")]
+        [InlineData("2  cans (15 oz each diced tomatoes)", 30, "Ounce")]
+        [InlineData("2  cans (29 oz total gandules)", 29, "Ounce")]
+        [InlineData("1 can pumpkin (15 oz)", 15, "Ounce")]
+        [InlineData("2 cans diced tomatoes (14.5 ounce cans, drained)", 29, "Ounce")]
+        [InlineData("1/2 package raspberries (3 ounces total)", 3, "Ounce")]
+        [InlineData("1 (24 ounce) jar pasta sauce", 24, "Ounce")]
+        [InlineData("2 (16 ounce cans) refried beans", 32, "Ounce")]
+        [InlineData("1/2 (15 oz) can pumpkin", 7.5, "Ounce")]
+        [InlineData("2 (.25 oz) packets of gelatin", 0.5, "Ounce")]
+        [InlineData("1 (400 g) tin tomatoes", 400, "Gram")]
+        [InlineData("1 (13.5 fl oz) can coconut milk", 399.242, "Milliliter")]
+        [InlineData("1 750 mL bottle dry rosé wine", 750, "Milliliter")]
+        [InlineData("1 (15.5-ounce/439g) can kidney beans", 15.5, "Ounce")]
+        [InlineData("a 10-12 oz bag of cauliflower rice", 10, "Ounce")]
+        [InlineData("3 one-pound cans of salmon", 3, "Pound")]
+        [InlineData("1 (4-5 pound) boneless pork shoulder", 4, "Pound")]
+        [InlineData("1 3-pound chuck roast", 3, "Pound")]
+        [InlineData("a four-pound fowl", 4, "Pound")]
+        [InlineData("1  medium (8-ounce zucchini, quartered lengthwise)", 8, "Ounce")]
+        [InlineData("4  medium (7 oz each zucchinis, ends trimmed)", 28, "Ounce")]
+        [InlineData("1 1/2 (180g) cups all-purpose flour", 180, "Gram")]
+        [InlineData("2 and 1/4 (281g) cups all-purpose flour", 281, "Gram")]
+        public void A_stated_size_is_the_amount(string raw, double quantity, string measurement)
+        {
+            var expected = new ParsedQuantity((decimal)quantity, measurement);
+
+            IngredientLineParser.Parse(raw).Should().Be(expected);
+            IngredientLineParser.StatedSize(raw).Should().Be(expected);
+            IngredientLineParser.ReadsPackage(raw).Should().BeTrue();
+        }
+
+        [Theory]
+        [InlineData("1 jar marinara", 1, "Package")]
+        [InlineData("2 packages cream cheese", 2, "Package")]
+        [InlineData("1 bottle ketchup", 1, "Package")]
+        [InlineData("1 box gelatine", 1, "Package")]
+        [InlineData("1 envelope onion soup mix", 1, "Package")]
+        [InlineData("1 pkg. yeast", 1, "Package")]
+        [InlineData("half a package of gelatine", 0.5, "Package")]
+        [InlineData("1 carton eggs", 1, "Package")]
+        [InlineData("1 can tomatoes", 1, "Can")]
+        [InlineData("1 tin sardines", 1, "Can")]
+        public void A_container_without_a_size_is_a_can_or_a_package(string raw, double quantity, string measurement)
+        {
+            IngredientLineParser.Parse(raw).Should().Be(new ParsedQuantity((decimal)quantity, measurement));
+            IngredientLineParser.StatedSize(raw).Should().BeNull();
+            IngredientLineParser.ReadsPackage(raw).Should().BeTrue();
+        }
+
+        [Theory]
+        [InlineData("4 (6-ounce) salmon filets", 4, "Piece")]
+        [InlineData("40 (1/2 pound) marshmallows", 40, "Piece")]
+        [InlineData("2 4-ounce lobster tails", 2, "Piece")]
+        [InlineData("2 (1-inch) pieces ginger", 2, "Piece")]
+        [InlineData("1  914-ounce) can coconut cream", 1, "Piece")]
+        [InlineData("three-pint, channeled, ice-cream mold", 1, "Piece")]
+        [InlineData("2 cans diced tomatoes (14.5 oz)", 2, "Can")]
+        [InlineData("1 can or 1/2 lb. fresh tomatoes", 1, "Can")]
+        [InlineData("1 can (#2 size or 2 1/2 cups) pineapple tidbits", 1, "Can")]
+        [InlineData("1 can (1 pound 5 ounces) cherry pie filling", 1, "Can")]
+        [InlineData("1 can (1 pound, 8 ounces) corned beef hash", 1, "Can")]
+        public void A_size_that_may_be_each_or_total_or_is_unclear_is_not_read(string raw, double quantity, string measurement)
+        {
+            IngredientLineParser.Parse(raw).Should().Be(new ParsedQuantity((decimal)quantity, measurement));
+            IngredientLineParser.StatedSize(raw).Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("3 eggs", 3, "Piece")]
+        [InlineData("2 sticks unsalted butter", 2, "Piece")]
+        [InlineData("4 sticks cinnamon", 4, "Piece")]
+        [InlineData("2 bunches kale", 2, "Piece")]
+        [InlineData("4 tea bags", 4, "Piece")]
+        [InlineData("1 bagel", 1, "Piece")]
+        [InlineData("1 1/2 ounces chocolate", 1.5, "Ounce")]
+        [InlineData("15-ounce can chickpeas", 15, "Ounce")]
+        [InlineData("2 cups (16 oz) sour cream", 2, "Cup")]
+        [InlineData("1 1/2 pound can tomatoes", 1.5, "Pound")]
+        [InlineData("2 qts. water", 8, "Cup")]
+        public void A_line_that_is_no_can_or_package_reads_as_before(string raw, double quantity, string measurement)
+        {
+            IngredientLineParser.Parse(raw).Should().Be(new ParsedQuantity((decimal)quantity, measurement));
+            IngredientLineParser.StatedSize(raw).Should().BeNull();
+            IngredientLineParser.ReadsPackage(raw).Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData(1, "can", "1 (15 oz) can black beans", 15, "Ounce")]
+        [InlineData(1, null, "1 (15 oz) can black beans", 15, "Ounce")]
+        [InlineData(2, "package", "2 (8 ounce) packages cream cheese", 16, "Ounce")]
+        [InlineData(1, "can", "1 can tomatoes", 1, "Can")]
+        [InlineData(1, "jar", "1 jar marinara", 1, "Package")]
+        [InlineData(2, "cups", "2 cups (16 oz) sour cream", 2, "Cup")]
+        [InlineData(4, null, "4 (6-ounce) salmon filets", 4, "Piece")]
+        public void A_scraped_count_of_cans_or_packages_takes_the_size_its_line_states(int quantity, string? unit, string raw, double expected, string measurement)
+        {
+            IngredientLineParser.Normalize(quantity, unit, raw).Should().Be(new ParsedQuantity((decimal)expected, measurement));
         }
     }
 }

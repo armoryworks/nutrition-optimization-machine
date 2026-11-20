@@ -13,11 +13,15 @@ namespace Nom.Orch.Services.Support
     /// Deterministic quantity/unit extraction from an ingredient line ("1 ⅔ cups bread flour",
     /// "2 large eggs"), mapped onto NOM's measurement vocabulary. Units NOM has no row for are
     /// converted (quart → 4 Cup, fl oz → Milliliter) or counted as Piece; a line without a unit
-    /// counts pieces. Returns null when the line has no leading quantity ("salt, to taste").
+    /// counts pieces. A can, jar or package is read by the size it states ("2 (15 oz) cans" →
+    /// 30 Ounce) and as Can or Package when it states none. Returns null when the line has no
+    /// leading quantity ("salt, to taste").
     /// </summary>
     public static class IngredientLineParser
     {
         public const string Piece = "Piece";
+        public const string Can = "Can";
+        public const string Package = "Package";
 
         private static readonly Dictionary<char, decimal> UnicodeFractions = new()
         {
@@ -55,19 +59,23 @@ namespace Nom.Orch.Services.Support
             (new[] { "gills", "gill" }, "Cup", 0.5m),
             (new[] { "cupfuls", "cupful", "cups", "cup", "c" }, "Cup", 1m),
             (new[] { "cloves", "clove" }, "Clove", 1m),
-            (new[] { "cans", "can", "tins", "tin" }, "Can", 1m),
+            (new[] { "cans", "can", "tins", "tin" }, Can, 1m),
+            (new[] { "packages", "package", "pkgs", "pkg", "packets", "packet", "packs", "pack", "jars", "jar", "bottles", "bottle", "boxes", "box", "bags", "bag",
+                     "cartons", "carton", "containers", "container", "tubs", "tub", "envelopes", "envelope", "pouches", "pouch", "tubes", "tube", "sachets", "sachet" }, Package, 1m),
             (new[] { "slices", "slice" }, "Slice", 1m),
             (new[] { "stalks", "stalk", "ribs", "rib" }, "Stalk", 1m),
             (new[] { "pinches", "pinch", "dashes", "dash", "splash", "drizzle" }, "Pinch", 1m),
             (new[] { "dozen" }, "Dozen", 1m),
-            (new[] { "sticks", "stick", "packages", "package", "pkgs", "pkg", "packets", "packet", "bunches", "bunch",
-                     "sprigs", "sprig", "pieces", "piece", "heads", "head", "ears", "ear", "handfuls", "handful", "knobs", "knob", "large", "medium", "small", "whole" }, Piece, 1m),
+            (new[] { "sticks", "stick", "bunches", "bunch", "sprigs", "sprig", "pieces", "piece", "heads", "head", "ears", "ear",
+                     "handfuls", "handful", "knobs", "knob", "large", "medium", "small", "whole" }, Piece, 1m),
         };
 
         private static readonly Dictionary<string, (string Measurement, decimal Factor)> UnitIndex = BuildUnitIndex();
 
-        private static readonly string UnitPattern = string.Join("|",
-            Units.SelectMany(u => u.Forms).OrderByDescending(f => f.Length).Select(f => Regex.Escape(f).Replace(@"\ ", @"\s+")));
+        private static readonly string UnitPattern = Alternation(Units.SelectMany(u => u.Forms));
+
+        private static string Alternation(IEnumerable<string> forms) =>
+            string.Join("|", forms.OrderByDescending(f => f.Length).Select(f => Regex.Escape(f).Replace(@"\ ", @"\s+")));
 
         private const string Fractions = "¼½¾⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞";
 
@@ -107,17 +115,36 @@ namespace Nom.Orch.Services.Support
             @"[,(]\s*(?:(?<unit>" + UnitPattern + @")\.?\s*(?<qty>\d+(?:[.,]\d+)?)|(?<qty>\d+(?:[.,]\d+)?)\s*(?<unit>" + UnitPattern + @"))\s*\)?\.?\s*$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        public static ParsedQuantity? Parse(string? rawLine)
+        public static ParsedQuantity? Parse(string? rawLine) => Read(rawLine, out _);
+
+        /// <summary>
+        /// The amount a line gives by the size of its can, package or piece ("1 (15 oz) can black
+        /// beans" → 15 Ounce, "2 cans (15 oz each) corn" → 30 Ounce, "1 (3-pound) chicken" →
+        /// 3 Pound), or null when the line states no such size or the size could be each or total
+        /// ("4 (6-ounce) salmon filets").
+        /// </summary>
+        public static ParsedQuantity? StatedSize(string? rawLine) => Read(rawLine, out var sized) is { } parsed && sized ? parsed : null;
+
+        /// <summary>
+        /// Whether a line is read as a can or package: it states a size (<see cref="StatedSize"/>)
+        /// or its unit is Can or Package ("1 jar marinara").
+        /// </summary>
+        public static bool ReadsPackage(string? rawLine) =>
+            Read(rawLine, out var sized) is { } parsed && (sized || parsed.MeasurementName is Can or Package);
+
+        private static ParsedQuantity? Read(string? rawLine, out bool sized)
         {
+            sized = false;
             if (string.IsNullOrWhiteSpace(rawLine)) return null;
             rawLine = IngredientNameNormalizer.PlainFractions(rawLine);
             if (IsElliptical(rawLine)) return null;
-            var leading = ParseLeading(rawLine);
+            var leading = ParseLeading(rawLine, out sized);
             if (leading is { MeasurementName: not Piece }) return leading;
 
             var spelled = SpellOut(System.Net.WebUtility.HtmlDecode(rawLine).Trim());
-            var respelled = ParseLeading(spelled);
+            var respelled = ParseLeading(spelled, out sized);
             if (respelled is { MeasurementName: not Piece }) return respelled;
+            sized = false;
             if ((leading ?? respelled) is { } counted) return counted;
 
             var of = PartOf.Match(spelled);
@@ -239,8 +266,96 @@ namespace Nom.Orch.Services.Support
             @"^\s*\p{L}[^\d(]*?(?:,\s*|\(\s*|\s)(?<qty>" + QuantityText + @")\s*(?:(?<unit>(?:" + UnitPattern + @"))(?![a-z])\.?)?\s*\)?\s*\.?\s*$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        private static ParsedQuantity? ParseLeading(string rawLine)
+        private static readonly string[] LargeVolumes = { "gallons", "quarts", "pints" };
+
+        private static readonly string SizeUnit = Alternation(Units
+            .Where(u => u.Measurement is "Ounce" or "Pound" or "Gram" or "Kilogram" or "Milliliter" or "Liter" || LargeVolumes.Contains(u.Forms[0]))
+            .SelectMany(u => u.Forms));
+
+        private static readonly string Container = @"(?:" + Alternation(Units.Where(u => u.Measurement is Can or Package).SelectMany(u => u.Forms)) + @")(?![a-z])\.?";
+
+        private const string Number =
+            @"\d+\s+\d+\s*/\s*\d+|\d+\s*/\s*\d+|\d+(?:[.,]\d+)?\s*[" + Fractions + @"]|[" + Fractions + @"]|\d+(?:[.,]\d+)?|\.\d+";
+
+        private const string Count = @"(?>(?<count>" + Number + @")(?:\s*(?:-|–|to|or)\s*(?:" + Number + @"))?)";
+
+        private const string ContainerQualifier = @"(?:(?:large|small|medium|big|regular|standard|whole|full|tall|jumbo|(?:family|large|medium|small)[- ]sized?)\s+)*";
+
+        private static readonly string Size =
+            @"(?:(?:about|approx\.?|approximately)\s+)?(?<sq>" + Number + @")(?:\s*(?:-|–|to)\s*(?:" + Number + @"))?(?<hy>[\s-]*)" +
+            @"(?<su>" + SizeUnit + @")(?![a-z])(?!(?<=pounds?|lbs?)\.?[\s,]*(?:and\s+)?(?:" + Number + @")[\s-]*(?:ounces?|ozs?)(?![a-z]))\.?" +
+            @"(?:\s*/\s*(?:" + Number + @")[\s-]*(?:" + SizeUnit + @")(?![a-z])\.?)?";
+
+        private const string EachOrTotal = @"(?:\s+(?:(?<each>each|apiece)|(?<total>total)|size))?";
+
+        private static readonly Regex SizeFirst = new(
+            @"^\s*" + Count + @"\s*(?:x\s*)?" + ContainerQualifier +
+            @"(?:(?<open>\(\(?\s*)" + Size + @"(?<each>\s+each)?(?<close>\s*\)\)?)?" +
+            @"|" + Size + @"(?<each>\s+each)?(?!\s*\)))" +
+            @"[\s,-]*" + ContainerQualifier +
+            @"(?:(?<con>" + Container + @")|(?<measure>(?:cups?|c\.|tablespoons?|tbsps?|tbs|teaspoons?|tsps?|pints?|quarts?)(?![a-z]))|(?<food>\p{L}))",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex SizeAfterContainer = new(
+            @"^\s*" + Count + @"\s+" + ContainerQualifier + Container +
+            @"(?:\s*\(\(?\s*" + Size + EachOrTotal +
+            @"|\s*,\s*" + Size + EachOrTotal + @"(?!\s*\))" +
+            @"|\s+" + Size + EachOrTotal + @"(?!\s*\)))",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex SizeLater = new(
+            @"^\s*" + Count + @"\s+" + ContainerQualifier + Container + @"[^()]*\(\(?\s*" + Size +
+            @"(?:\s+(?:(?<each>each|apiece|size|" + Container + @")|(?<total>total)))?\s*[,;)]",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex MixedHyphen = new(@"(?<=\d)-(?=\d+\s*/\s*\d)", RegexOptions.Compiled);
+
+        private static readonly Dictionary<string, decimal> GramsOrMillilitersPer = new()
         {
+            ["Ounce"] = 28.3495m, ["Pound"] = 453.592m, ["Gram"] = 1m, ["Kilogram"] = 1000m, ["Milliliter"] = 1m, ["Liter"] = 1000m, ["Cup"] = 236.588m,
+        };
+
+        private const decimal LargestStatedSize = 15000m;
+
+        private static ParsedQuantity? SizeIn(string line)
+        {
+            line = MixedHyphen.Replace(line, " ");
+            var first = SizeFirst.Match(line);
+            if (first.Success)
+            {
+                var marked = first.Groups["open"].Success || first.Groups["hy"].Value.Contains('-');
+                var one = first.Groups["each"].Success || ParseQuantity(first.Groups["count"].Value) == 1m;
+                if (first.Groups["con"].Success) return Sized(first, each: true);
+                if (first.Groups["measure"].Success && first.Groups["close"].Success) return Sized(first, each: false);
+                if (marked && one && Sized(first, each: true) is { MeasurementName: "Ounce" or "Pound" or "Gram" or "Kilogram" } weighed) return weighed;
+            }
+
+            var after = SizeAfterContainer.Match(line);
+            if (after.Success) return Sized(after, each: !after.Groups["total"].Success);
+
+            var later = SizeLater.Match(line);
+            if (later.Success && (later.Groups["each"].Success || later.Groups["total"].Success || ParseQuantity(later.Groups["count"].Value) == 1m))
+            {
+                return Sized(later, each: !later.Groups["total"].Success);
+            }
+            return null;
+        }
+
+        private static ParsedQuantity? Sized(Match match, bool each)
+        {
+            var count = ParseQuantity(match.Groups["count"].Value);
+            var size = ParseQuantity(match.Groups["sq"].Value);
+            if (count is not > 0 || size is not > 0) return null;
+
+            var sized = FromUnit(each ? count.Value * size.Value : size.Value, match.Groups["su"].Value);
+            return GramsOrMillilitersPer.TryGetValue(sized.MeasurementName, out var per) && sized.Quantity > 0 && sized.Quantity * per <= LargestStatedSize
+                ? sized
+                : null;
+        }
+
+        private static ParsedQuantity? ParseLeading(string rawLine, out bool sized)
+        {
+            sized = false;
             var line = HyphenatedMixed.Replace(System.Net.WebUtility.HtmlDecode(rawLine).Trim(), "$1 $2");
             if (IsElliptical(line)) return null;
             if (UnitFirst.IsMatch(line)) line = "1 " + line;
@@ -250,6 +365,12 @@ namespace Nom.Orch.Services.Support
                 var value = NumberWords[Regex.Replace(words.Groups["a"].Value, @"\s+", " ")]
                     + (words.Groups["b"].Success ? NumberWords[Regex.Replace(words.Groups["b"].Value, @"\s+", " ")] : 0m);
                 line = value.ToString(CultureInfo.InvariantCulture) + " " + line[words.Length..];
+            }
+
+            if (SizeIn(line) is { } stated)
+            {
+                sized = true;
+                return stated;
             }
 
             var trailing = Trailing.Match(line);
@@ -281,16 +402,14 @@ namespace Nom.Orch.Services.Support
         /// <summary>
         /// Brings a quantity the scraper already parsed onto NOM's vocabulary: its unit mapped
         /// (with conversion), no unit meaning pieces; a missing quantity is parsed from the raw line.
+        /// A count of pieces, cans or packages gives way to the size the raw line states.
         /// </summary>
         public static ParsedQuantity? Normalize(decimal? quantity, string? unit, string? rawLine)
         {
             if (quantity is not > 0) return Parse(rawLine);
-            if (string.IsNullOrWhiteSpace(unit)) return new ParsedQuantity(Round(quantity.Value), Piece);
 
-            var key = Regex.Replace(unit.Trim().TrimEnd('.'), @"\s+", " ");
-            return UnitIndex.TryGetValue(key, out var mapped) || UnitIndex.TryGetValue(key.ToLowerInvariant(), out mapped)
-                ? new ParsedQuantity(Round(quantity.Value * mapped.Factor), mapped.Measurement)
-                : new ParsedQuantity(Round(quantity.Value), Piece);
+            var mapped = FromUnit(quantity.Value, string.IsNullOrWhiteSpace(unit) ? null : unit.Trim().TrimEnd('.'));
+            return mapped.MeasurementName is Piece or Can or Package && StatedSize(rawLine) is { } stated ? stated : mapped;
         }
 
         private static decimal? ParseQuantity(string text)
