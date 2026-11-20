@@ -30,6 +30,7 @@ namespace Nom.Orch.Services
         private static readonly string[] CarbNames = { "carbohydrate", "carbs" };
         private static readonly string[] FatNames = { "total lipid", "fat" };
         private static readonly string[] AlcoholNames = { "alcohol" };
+        private static readonly string[] FiberNames = { "fiber", "fibre" };
 
         public async Task<FoodCatalogAuditResult> AuditAsync(string? source = null, int limit = 5000, long afterId = 0)
         {
@@ -82,7 +83,10 @@ namespace Nom.Orch.Services
                 }
 
                 // 2. Physical plausibility, incl. the Atwater cross-check.
-                var verdict = validator.Validate(new FoodQualityInput(ing.Name, k, p, c, f, AlcoholGramsPer100g: Amount(ing, AlcoholNames)));
+                var energyAlreadyConfirmed = ing.EnergyCheck is EnergyCheckOutcome.OwnFactors or EnergyCheckOutcome.ExemptSmall
+                    || CatalogAdmissionRule.UsedInSmallAmounts(ing.FdcCategoryId, null);
+                var verdict = validator.Validate(new FoodQualityInput(ing.Name, k, p, c, f, energyAlreadyConfirmed,
+                    Amount(ing, AlcoholNames), FiberGramsPer100g: AnyAmount(ing, FiberNames)));
                 if (!verdict.Accepted)
                 {
                     findings.Add(Finding(ing, string.Join("+", verdict.Reasons),
@@ -153,6 +157,11 @@ namespace Nom.Orch.Services
             ing.IngredientNutrients
                 .FirstOrDefault(n => n.Nutrient != null && n.Nutrient.ParentNutrientId == null
                     && patterns.Any(p => n.Nutrient.Name.Contains(p, StringComparison.OrdinalIgnoreCase)))
+                ?.Amount;
+
+        private static decimal? AnyAmount(Nom.Data.Recipe.IngredientEntity ing, string[] patterns) =>
+            ing.IngredientNutrients
+                .FirstOrDefault(n => n.Nutrient != null && patterns.Any(p => n.Nutrient.Name.Contains(p, StringComparison.OrdinalIgnoreCase)))
                 ?.Amount;
 
         private static decimal Median(List<decimal> values)

@@ -235,7 +235,7 @@ namespace Nom.Api.Controllers
         [HttpPost("curation-status")]
         public async Task<IActionResult> SetCurationStatus([FromBody] SetCurationStatusRequest request)
         {
-            var (updated, unchanged) = await _review.SetCurationStatusAsync(request.IngredientIds, request.CurationStatusId);
+            var (updated, unchanged) = await _review.SetCurationStatusAsync(request.IngredientIds, request.CurationStatusId, GetCurrentPersonIdRequired());
             return Ok(new { updated, unchanged });
         }
 

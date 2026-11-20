@@ -85,6 +85,32 @@ namespace Nom.Data.Recipe
         /// </summary>
         public string? GtinUpc { get; set; }
 
+        /// <summary>
+        /// The USDA food category id (food_category.csv) of a Foundation or SR Legacy food, which
+        /// decides its food group, edibility and admission. NULL for branded and hand-made foods.
+        /// </summary>
+        public int? FdcCategoryId { get; set; }
+
+        /// <summary>
+        /// The USDA category as USDA words it: the food_category description of a Foundation or
+        /// SR Legacy food, the branded_food_category of a branded one. NULL for hand-made foods.
+        /// </summary>
+        public string? FdcCategory { get; set; }
+
+        /// <summary>
+        /// How the stated energy was confirmed when the food was imported or admitted
+        /// (<see cref="Nom.Data.Nutrition.EnergyCheckOutcome"/>): own-factors, general,
+        /// exempt-small, or the failure reason. NULL when not judged.
+        /// </summary>
+        public string? EnergyCheck { get; set; }
+
+        /// <summary>
+        /// Why the catalog admission rule did not curate this food (<see cref="Nom.Data.Nutrition.CatalogAdmissionRule"/>):
+        /// the failed checks joined by '+', such as "category:Fast Foods" or "awaiting_second_source".
+        /// NULL when the rule admitted it or never judged it.
+        /// </summary>
+        public string? AdmissionReason { get; set; }
+
         // Legacy field (from Mealie)
         public bool? OnHand { get; set; } = false;
 

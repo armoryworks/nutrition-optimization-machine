@@ -97,7 +97,9 @@ namespace Nom.Api.Tests.Services.Import
             first.Accepted.Should().Be(1, "only sr_legacy_food rows are read");
             var sugar = await db.Ingredients.SingleAsync();
             sugar.FdcDataType.Should().Be(FdcFoundationImportService.SrLegacyFood);
-            sugar.CurationStatusId.Should().Be(9001, "SR Legacy lands pending unless --curated");
+            sugar.CurationStatusId.Should().Be(9003, "the admission rule curates an SR Legacy food in Sweets that passes the energy check");
+            sugar.FdcCategoryId.Should().Be(19);
+            sugar.EnergyCheck.Should().Be("general");
             var sugars = await db.Set<IngredientNutrientEntity>().SingleAsync(n => n.IngredientId == sugar.Id && n.NutrientId == 5036);
             sugars.Amount.Should().Be(99.8m);
 

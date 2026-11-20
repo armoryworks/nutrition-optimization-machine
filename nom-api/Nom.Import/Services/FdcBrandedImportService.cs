@@ -73,7 +73,8 @@ namespace Nom.Import.Services
                 { Reject(report, "description_missing"); continue; }
                 if (!nutrients.TryGetValue(fdcId, out var m)) { Reject(report, "nutrients_missing"); continue; }
 
-                var result = _validator.Validate(new FoodQualityInput(description, m.Kcal, m.Protein, m.Carb, m.Fat, AlcoholGramsPer100g: m.Alcohol));
+                var quality = m.QualityInput(description);
+                var result = _validator.Validate(quality);
                 if (!result.Accepted)
                 {
                     report.Rejected++;
@@ -86,21 +87,20 @@ namespace Nom.Import.Services
                 var name = Truncate(ComposeName(description, b.BrandOwner), 2000);
                 if (!seenNames.Add(name.ToLowerInvariant())) { report.SkippedDuplicateName++; continue; }
 
+                var decision = CatalogAdmissionRule.Decide(new AdmissionFacts(CatalogAdmissionRule.BrandedFood, null, b.Category, description, quality), _validator);
                 var ingredient = new IngredientEntity
                 {
                     Name = name,
                     FdcId = fdcId,
-                    FdcDataType = "branded_food",
+                    FdcDataType = CatalogAdmissionRule.BrandedFood,
                     CurationStatusId = PendingCuration,
-                    // A condiment category is conclusive: don't let the product name talk us into
-                    // a food group ("Prego Sauces Tomato Basil" is not a serving of vegetables).
-                    FoodGroupId = FoodGroupHeuristics.IsNonFoodGroupCategory(b.Category)
-                        ? null
-                        : FoodGroupHeuristics.ClassifyByCategory(b.Category)
-                            ?? FoodGroupHeuristics.ClassifyFoodGroup(description),
+                    FoodGroupId = decision.FoodGroupId,
                     ReferenceServingGrams = b.ServingGrams,
                     GtinUpc = b.Gtin,
-                    IsWholeFood = FoodGroupHeuristics.IsDirectlyEdibleCategory(b.Category),
+                    IsWholeFood = decision.IsWholeFood,
+                    FdcCategory = string.IsNullOrWhiteSpace(b.Category) ? null : Truncate(b.Category.Trim(), 255),
+                    EnergyCheck = decision.EnergyCheck,
+                    AdmissionReason = decision.Reason,
                     CreatedDate = DateTime.UtcNow,
                 };
 

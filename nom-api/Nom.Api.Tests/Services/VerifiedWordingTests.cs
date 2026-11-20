@@ -134,6 +134,20 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_food_the_catalog_rejected_is_never_promoted_to_carry_a_wording()
+        {
+            using var db = NewContext();
+            await SeedAsync(db);
+            db.Ingredients.Add(Food(920, "McDONALD'S, Hamburger", "170717", status: CurationStatusEnum.Rejected));
+            await db.SaveChangesAsync();
+
+            var result = await Service(db).LoadAsync(new List<VerifiedWordingRow> { Row("butcher's meat", "food", fdcId: "170717") }, Batch, apply: true);
+
+            result.Problems.Select(p => (p.Wording, p.Reason)).Should().Equal(("butcher's meat", VerifiedWordingService.TargetNotCurated));
+            (await db.Ingredients.SingleAsync(i => i.Id == 920)).CurationStatusId.Should().Be((long)CurationStatusEnum.Rejected);
+        }
+
+        [Fact]
         public async Task A_row_is_refused_when_its_food_cannot_carry_the_wording()
         {
             using var db = NewContext();

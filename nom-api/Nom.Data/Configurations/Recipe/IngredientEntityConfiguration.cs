@@ -56,5 +56,8 @@ public class IngredientEntityConfiguration : IEntityTypeConfiguration<Ingredient
         builder.Property(e => e.GramsPerItem).HasColumnType("decimal(9,2)");
         builder.Property(e => e.GtinUpc).HasMaxLength(32);
         builder.HasIndex(e => e.GtinUpc).HasFilter("\"GtinUpc\" IS NOT NULL");
+        builder.Property(e => e.FdcCategory).HasMaxLength(255);
+        builder.Property(e => e.EnergyCheck).HasMaxLength(64);
+        builder.Property(e => e.AdmissionReason).HasMaxLength(255);
     }
 }

@@ -291,5 +291,39 @@ namespace Nom.Api.Tests.Services.MealPlan
 
             additions.Should().BeEmpty();
         }
+
+        [Fact]
+        public async Task TopUp_NeverSchedulesAnAlcoholicDrinkOrARecipeOnlyIngredient()
+        {
+            using var ctx = NewContext();
+            const long Beverages = (long)FoodGroupEnum.Beverages;
+            var alcohol = new Nom.Data.Nutrient.NutrientEntity { Name = "Alcohol" };
+            ctx.Set<Nom.Data.Nutrient.NutrientEntity>().Add(alcohol);
+            var vodka = new IngredientEntity { Name = "Alcoholic beverage, distilled, vodka, 80 proof", FoodGroupId = Beverages, CurationStatusId = Curated, IsWholeFood = true };
+            var stock = new IngredientEntity { Name = "Beverages, coffee, instant, powder", FoodGroupId = Beverages, CurationStatusId = Curated, IsWholeFood = false };
+            var kombucha = new IngredientEntity { Name = "Kombucha", FoodGroupId = Beverages, CurationStatusId = Curated };
+            var milk = new IngredientEntity { Name = "Beverages, almond milk, unsweetened", FoodGroupId = Beverages, CurationStatusId = Curated, IsWholeFood = true };
+            ctx.Ingredients.AddRange(vodka, stock, kombucha, milk);
+            await ctx.SaveChangesAsync();
+            ctx.Set<Nom.Data.Nutrient.IngredientNutrientEntity>().AddRange(
+                new Nom.Data.Nutrient.IngredientNutrientEntity { IngredientId = vodka.Id, NutrientId = alcohol.Id, Amount = 33.4m },
+                new Nom.Data.Nutrient.IngredientNutrientEntity { IngredientId = kombucha.Id, NutrientId = alcohol.Id, Amount = 0.5m });
+            ctx.FoodGroupRules.Add(new FoodGroupRuleEntity
+            {
+                HouseholdId = HouseholdId, FoodGroupId = Beverages, MinServings = 4,
+                Timeframe = FoodGroupRuleTimeframe.PerDay, IsActive = true,
+            });
+            await ctx.SaveChangesAsync();
+            var svc = new MealPlanOrchestrationService(ctx, new FakePolicy());
+            var date = new DateOnly(2026, 8, 14);
+
+            var additions = await svc.ApplyFoodGroupRulesAsync(
+                HouseholdId, Author, date, date, new List<MealPlanEntity>(), new List<long>(), DateTime.UtcNow);
+
+            additions.Select(a => a.IngredientId).Should().NotContain(new long?[] { vodka.Id, stock.Id },
+                "a spirit admitted to Beverages and a recipe-only ingredient are never a standalone serving");
+            additions.Select(a => a.IngredientId).Distinct().Should().BeEquivalentTo(new long?[] { kombucha.Id, milk.Id },
+                "0.5 g of alcohol per 100 g or less is not a drink's alcohol, and an unknown edibility is not excluded");
+        }
     }
 }

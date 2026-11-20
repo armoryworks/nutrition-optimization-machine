@@ -447,7 +447,7 @@ namespace Nom.Orch.Services
 
         public async Task<int> AutoClassifyFoodGroupsAsync(bool overwrite)
         {
-            var query = _db.Ingredients.AsQueryable();
+            var query = _db.Ingredients.Where(i => i.FdcCategoryId != null || i.FdcCategory != null);
             if (!overwrite)
                 query = query.Where(i => i.FoodGroupId == null);
 
@@ -455,8 +455,8 @@ namespace Nom.Orch.Services
             int updated = 0;
             foreach (var ing in ingredients)
             {
-                var match = Nom.Data.Nutrition.FoodGroupHeuristics.ClassifyFoodGroup(ing.NameNormalized ?? ing.Name);
-                if (match.HasValue && ing.FoodGroupId != match)
+                var match = Nom.Data.Nutrition.CatalogAdmissionRule.GroupFor(ing.FdcDataType, ing.FdcCategoryId, ing.FdcCategory);
+                if ((match.HasValue || overwrite) && ing.FoodGroupId != match)
                 {
                     ing.FoodGroupId = match;
                     ing.LastModifiedDate = System.DateTime.UtcNow;

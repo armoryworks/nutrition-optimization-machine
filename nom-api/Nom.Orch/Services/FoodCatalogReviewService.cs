@@ -32,6 +32,8 @@ namespace Nom.Orch.Services
         public const string LabelNutritionField = "label_nutrition";
         public const string FdcAttachChangeType = "FdcAttach";
         public const string FdcAttachEntityType = "Ingredient";
+        public const string CurationStatusSetChangeType = "CurationStatusSet";
+        public const string CurationStatusSetEntityType = "Ingredient";
 
         /// <summary>
         /// The alias an attach found already on the food, as its journal keeps it (old value of the
@@ -152,17 +154,29 @@ namespace Nom.Orch.Services
             return ToItem(ing);
         }
 
-        public async Task<(int Updated, int Unchanged)> SetCurationStatusAsync(IEnumerable<long> ingredientIds, long curationStatusId)
+        public async Task<(int Updated, int Unchanged)> SetCurationStatusAsync(IEnumerable<long> ingredientIds, long curationStatusId, long personId = Nom.Data.SystemConstants.SystemPersonId)
         {
             var ids = ingredientIds.Distinct().ToList();
             if (ids.Count == 0) return (0, 0);
 
             var rows = await _context.Ingredients.Where(i => ids.Contains(i.Id)).ToListAsync();
             var changed = rows.Where(r => r.CurationStatusId != curationStatusId).ToList();
+            var now = DateTime.UtcNow;
             foreach (var r in changed)
             {
+                _context.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+                {
+                    EntityType = CurationStatusSetEntityType,
+                    EntityId = r.Id,
+                    ChangeType = CurationStatusSetChangeType,
+                    PropertyName = nameof(r.CurationStatusId),
+                    OldValue = r.CurationStatusId.ToString(CultureInfo.InvariantCulture),
+                    NewValue = curationStatusId.ToString(CultureInfo.InvariantCulture),
+                    Timestamp = now,
+                    ChangedByPersonId = personId,
+                });
                 r.CurationStatusId = curationStatusId;
-                r.LastModifiedDate = DateTime.UtcNow;
+                r.LastModifiedDate = now;
             }
             await _context.SaveChangesAsync();
             return (changed.Count, rows.Count - changed.Count);
