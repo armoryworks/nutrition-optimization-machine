@@ -407,7 +407,7 @@ namespace Nom.Orch.Services
                     Switches = new[]
                     {
                         Switch("ProseRewrite", "CheckFidelity", "Fidelity check", true),
-                        Switch("ProseRewrite", "DrainWhileFull", "Drain while full", true),
+                        Switch("ProseRewrite", "DrainWhileFull", "Drain while full", AiLanes.DailyCap(_configuration, AiLanes.ProseRewrite) > 0),
                     },
                     Queue = recipeRow.ProseQueue, QueueLabel = "quarantined recipes due a rewrite attempt",
                     LastActivityAt = recipeRow.LastProseAttemptAt, ActivityLast24h = recipeRow.ProseAttemptsDay,

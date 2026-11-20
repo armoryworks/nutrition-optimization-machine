@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
 
 namespace Nom.Orch.Services.Support
 {
@@ -28,6 +29,18 @@ namespace Nom.Orch.Services.Support
         public const string PauseAllKey = "ai-pause-all";
 
         public static string PauseKey(string lane) => "ai-pause-" + lane;
+
+        /// <summary>The lane's daily item cap, Ai:Lanes:{lane}:MaxItemsPerDay; 0 or unset means none.</summary>
+        public static int DailyCap(IConfiguration configuration, string lane) =>
+            System.Math.Max(0, configuration.GetValue($"Ai:Lanes:{lane}:MaxItemsPerDay", 0));
+
+        /// <summary>
+        /// Whether the prose rewrite lane starts its next sweep at once while sweeps come back full
+        /// (ProseRewrite:DrainWhileFull). Unset, it drains only when the lane has a daily cap, so it
+        /// never rewrites back to back without a limit.
+        /// </summary>
+        public static bool ProseDrainWhileFull(IConfiguration configuration) =>
+            configuration.GetValue("ProseRewrite:DrainWhileFull", DailyCap(configuration, ProseRewrite) > 0);
 
         /// <summary>
         /// Whether a failed model call means the lane cannot work at all, so no item is charged an

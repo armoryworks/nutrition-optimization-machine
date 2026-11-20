@@ -304,6 +304,27 @@ namespace Nom.Api.Tests.Services
             link.Caps.Should().ContainEquivalentOf(new PipelineLaneCap("Name matches per day", int.Parse(cap), 2));
         }
 
+        [Theory]
+        [InlineData(null, null, false)]
+        [InlineData("100", null, true)]
+        [InlineData(null, "true", true)]
+        [InlineData("100", "false", false)]
+        public async Task Prose_drain_is_on_by_default_only_under_a_daily_cap(string? cap, string? drain, bool expected)
+        {
+            await using var db = await SeededAsync();
+            var settings = new Dictionary<string, string?>
+            {
+                ["Ai:Lanes:prose-rewrite:MaxItemsPerDay"] = cap,
+                ["ProseRewrite:DrainWhileFull"] = drain,
+            };
+            var config = Config(settings.Where(kv => kv.Value != null).ToDictionary(kv => kv.Key, kv => kv.Value));
+
+            var status = await Service(db, config).GetAsync();
+
+            status.Lanes.Single(l => l.Key == "prose-rewrite").Switches.Single(s => s.Key == "DrainWhileFull").On.Should().Be(expected);
+            Nom.Orch.Services.Support.AiLanes.ProseDrainWhileFull(config).Should().Be(expected);
+        }
+
         [Fact]
         public async Task Lanes_show_switches_caps_and_missing_models()
         {

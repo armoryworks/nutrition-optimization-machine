@@ -24,7 +24,8 @@ namespace Nom.Api.Services
     /// (default true) keeps a rewrite in quarantine unless <see cref="RewriteFidelity"/>
     /// passes it against the text it was given and against the stored source. While a sweep comes
     /// back full the next starts after ProseRewrite:PauseSeconds (default 5) instead of the interval
-    /// (ProseRewrite:DrainWhileFull, default true). A refused connection to the model host stamps
+    /// (ProseRewrite:DrainWhileFull, default on only when Ai:Lanes:prose-rewrite:MaxItemsPerDay is
+    /// above 0). A refused connection to the model host stamps
     /// nothing; a timeout stamps the recipe it hit. Either ends the sweep and is reported to the
     /// <see cref="AiLaneGate"/> (lane "prose-rewrite"), which every sweep passes.
     /// </summary>
@@ -65,7 +66,7 @@ namespace Nom.Api.Services
                 Math.Max(1, _configuration.GetValue("ProseRewrite:IntervalMinutes", 10)));
             var batchSize = Math.Clamp(_configuration.GetValue("ProseRewrite:BatchSize", 25), 1, 100);
             var retryDays = Math.Max(1, _configuration.GetValue("ProseRewrite:RetryDays", 30));
-            var drain = _configuration.GetValue("ProseRewrite:DrainWhileFull", true);
+            var drain = AiLanes.ProseDrainWhileFull(_configuration);
             var drainPause = TimeSpan.FromSeconds(Math.Max(0, _configuration.GetValue("ProseRewrite:PauseSeconds", 5)));
             var checkFidelity = _configuration.GetValue("ProseRewrite:CheckFidelity", true);
 
