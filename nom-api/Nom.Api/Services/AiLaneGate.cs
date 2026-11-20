@@ -58,6 +58,17 @@ namespace Nom.Api.Services
             return false;
         }
 
+        /// <summary>
+        /// True when a pause switch stops the lane now, without waiting; a lane working through a
+        /// backlog in batches checks it between batches so a pause stops it at the next one.
+        /// </summary>
+        public async Task<bool> PausedAsync(string lane)
+        {
+            if (await PausedByAsync(lane) is not { } key) return false;
+            Enter(lane, Lane(lane), AiLaneState.Paused, $"paused by the platform feature {key}");
+            return true;
+        }
+
         /// <summary>Records a finished batch: how many items it handled and whether the lane found nothing to do.</summary>
         public void Passed(string lane, int items, bool idle)
         {

@@ -277,7 +277,8 @@ namespace Nom.Api.Services
             ApplyLinksCoreAsync((services, skip, token) => next(services.GetRequiredService<IIngredientLinkService>(), skip, token), what, stoppingToken, guarded);
 
         /// <summary>
-        /// Applies what <paramref name="next"/> hands out until it hands out nothing. With
+        /// Applies what <paramref name="next"/> hands out until it hands out nothing, or until the
+        /// link lane is paused, which it checks before every batch. With
         /// <paramref name="guarded"/> (and IngredientLinking:HoldGuard on) each batch first goes
         /// through the hold rules; a held pick is marked for a person and not asked for again.
         /// </summary>
@@ -293,6 +294,11 @@ namespace Nom.Api.Services
             {
                 while (!stoppingToken.IsCancellationRequested)
                 {
+                    if (await _gate.PausedAsync(AiLanes.Link))
+                    {
+                        _logger.LogInformation("Ingredient linking: the link lane is paused; applying {What} stopped after {Count}", what, applied);
+                        break;
+                    }
                     using var scope = _scopeFactory.CreateScope();
                     var ids = await next(scope.ServiceProvider, _unappliable, stoppingToken);
                     if (ids.Count == 0) break;

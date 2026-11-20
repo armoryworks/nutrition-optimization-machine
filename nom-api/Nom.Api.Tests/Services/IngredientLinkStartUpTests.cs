@@ -26,6 +26,7 @@ namespace Nom.Api.Tests.Services
             public required ServiceProvider Provider { get; init; }
             public required IngredientLinkHostedService Lane { get; init; }
             public required Mock<IIngredientLinkService> Links { get; init; }
+            public required Mock<IFoodCatalogReviewService> Review { get; init; }
             public required ConcurrentDictionary<string, bool> Switches { get; init; }
 
             public void Dispose() => Provider.Dispose();
@@ -48,16 +49,20 @@ namespace Nom.Api.Tests.Services
             links.Setup(l => l.VerifiedAllowanceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new LinkApplyAllowance(0, Array.Empty<string>()));
 
+            var review = new Mock<IFoodCatalogReviewService>();
+            review.Setup(r => r.ApplyProposalAsync(It.IsAny<long>(), It.IsAny<long>())).ReturnsAsync(true);
+
             var services = new ServiceCollection();
             services.AddScoped(_ => features.Object);
             services.AddScoped(_ => links.Object);
+            services.AddScoped(_ => review.Object);
             var provider = services.BuildServiceProvider();
             var scopes = provider.GetRequiredService<IServiceScopeFactory>();
             var gate = new AiLaneGate(scopes, configuration,
                 new AiHostMonitor(new Mock<System.Net.Http.IHttpClientFactory>().Object, configuration, NullLogger<AiHostMonitor>.Instance),
                 NullLogger<AiLaneGate>.Instance);
             var lane = new IngredientLinkHostedService(scopes, configuration, NullLogger<IngredientLinkHostedService>.Instance, gate);
-            return new Rig { Provider = provider, Lane = lane, Links = links, Switches = switches };
+            return new Rig { Provider = provider, Lane = lane, Links = links, Review = review, Switches = switches };
         }
 
         private static async Task<bool> StartUpWithinAsync(Rig rig, int milliseconds = 1500)
@@ -91,6 +96,25 @@ namespace Nom.Api.Tests.Services
             rig.Links.Verify(l => l.ApplyStapleDefaultsToPendingAsync(It.IsAny<CancellationToken>()), Times.Once);
             rig.Links.Verify(l => l.PendingDeterministicAsync(It.IsAny<int>(), It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
             rig.Links.Verify(l => l.VerifiedAllowanceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task A_pause_set_while_the_start_up_step_applies_stops_it_at_the_next_batch()
+        {
+            using var rig = NewRig();
+            var batches = new Queue<long[]>(new[] { new long[] { 1, 2 }, new long[] { 3, 4 }, new long[] { 5, 6 } });
+            rig.Links.Setup(l => l.PendingDeterministicAsync(It.IsAny<int>(), It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() =>
+                {
+                    rig.Switches["ai-pause-link"] = true;
+                    return batches.Count > 0 ? batches.Dequeue() : Array.Empty<long>();
+                });
+
+            (await StartUpWithinAsync(rig)).Should().BeTrue();
+
+            rig.Links.Verify(l => l.PendingDeterministicAsync(It.IsAny<int>(), It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
+            rig.Review.Verify(r => r.ApplyProposalAsync(It.IsAny<long>(), It.IsAny<long>()), Times.Exactly(2));
+            rig.Links.Verify(l => l.VerifiedAllowanceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [Fact]
