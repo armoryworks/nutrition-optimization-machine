@@ -20,7 +20,7 @@ namespace Nom.Orch.Services
     /// </summary>
     public class RecipeAutoCurationService : IRecipeAutoCurationService
     {
-        private static readonly string[] ExemptLineKinds =
+        internal static readonly string[] ExemptLineKinds =
         {
             RecipeIngredientLineKind.Reference, RecipeIngredientLineKind.Equipment, RecipeIngredientLineKind.Note,
             RecipeIngredientLineKind.Instruction, RecipeIngredientLineKind.Artefact,

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Nom.Data.Curation;
 using Nom.Orch.Models.Curation;
 
 namespace Nom.Orch.Interfaces
@@ -9,7 +10,21 @@ namespace Nom.Orch.Interfaces
     /// <summary>A catalog ingredient that recipes use but that isn't linked to a USDA food yet.</summary>
     public sealed record LinkSource(long IngredientId, string Name, int Uses);
 
-    public sealed record IngredientLinkBatchResult(int Seen, int ExactProposals, int AiProposals, int NoMatch);
+    /// <summary>
+    /// What a proposal pass did. Unchanged counts model rejections due again whose question (model,
+    /// prompt version, wording and shortlist) had not changed, so the model was not asked; Unreadable
+    /// counts ingredients the model left unanswered, which get no row and are asked again.
+    /// </summary>
+    public sealed record IngredientLinkBatchResult(int Seen, int ExactProposals, int AiProposals, int NoMatch, int Unchanged = 0, int Unreadable = 0);
+
+    /// <summary>The latest link proposal for a wording, as the link-impact list shows it.</summary>
+    public sealed record LinkImpactProposal(long Id, FoodProposalStatus Status, string Source, string? FdcId, long? TargetIngredientId, string? TargetName, decimal? Confidence, string? Verification);
+
+    /// <summary>
+    /// An uncurated wording that is the only thing keeping recipes from the auto-approve sweep: how
+    /// many recipes and lines it alone blocks, and the latest link proposal for it, if any.
+    /// </summary>
+    public sealed record LinkImpactRow(long IngredientId, string Wording, int RecipesUnlocked, int Lines, LinkImpactProposal? Proposal);
 
     /// <summary>How many pending model picks were checked in a pass, how many of those all three checks verified, and whether more await checking.</summary>
     public sealed record IngredientLinkVerifyResult(int Checked, int Verified, bool MoreWaiting);
@@ -37,14 +52,25 @@ namespace Nom.Orch.Interfaces
         Task<IReadOnlyList<long>> PendingDeterministicAsync(int count, IReadOnlyCollection<long> skip, bool includeNameMatches = false, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Triangulates pending model picks, most-used first: a pick is verified only when the model
-        /// was at least <paramref name="minConfidence"/> sure, the name matcher ranks the same USDA
-        /// food first, and a second, differently worded model call independently names it too. The
-        /// outcome is recorded on the proposal's reason, so a pick is checked once. Picks below the
-        /// confidence bar are left unmarked and unasked. Null when the second opinion is unreachable;
-        /// the picks it would have checked stay unchecked.
+        /// Triangulates pending model picks, those that would release the most recipes first, then
+        /// most-used: a pick is verified only when the model was at least
+        /// <paramref name="minConfidence"/> sure, the name matcher ranks the same USDA food first, and
+        /// a judge on a different model says the wording and the USDA description are the same food.
+        /// The outcome, with the judge's model and prompt version, is recorded on the proposal's
+        /// reason, so a pick is checked once; nothing is applied here. A pick the judge's own model
+        /// made is never judged, and without a judge model nothing is checked. Picks below the
+        /// confidence bar are left unmarked and unasked. Null when the judge is unreachable; the
+        /// picks it would have checked stay unchecked.
         /// </summary>
         Task<IngredientLinkVerifyResult?> VerifyPendingAiAsync(int count, decimal minConfidence, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// The uncurated wordings that alone block the most recipes from the auto-approve sweep: recipes
+        /// that pass its status, licence, image and vetting rules and whose every uncurated, quantified,
+        /// non-exempt line is on that one wording. Upper bounds, since the sweep's own policy still
+        /// applies. Read-only; cached for a few minutes.
+        /// </summary>
+        Task<IReadOnlyList<LinkImpactRow>> TopBlockersAsync(int limit, CancellationToken cancellationToken = default);
 
         /// <summary>Pending model picks that triangulation verified, most-used first, for applying without an admin.</summary>
         Task<IReadOnlyList<long>> PendingVerifiedAsync(int count, IReadOnlyCollection<long> skip, decimal minConfidence = 0m, CancellationToken cancellationToken = default, IReadOnlyCollection<string>? excludeTargets = null);

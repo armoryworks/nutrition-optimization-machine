@@ -13,11 +13,14 @@ namespace Nom.Api.Services
     ///
     /// IngredientLinking:AutoApplyCertain=false leaves certain links for an admin too.
     /// IngredientLinking:AutoApplyNameMatches=true also applies exact name matches unreviewed.
-    /// IngredientLinking:AutoApplyVerifiedAi=false stops triangulating model picks;
+    /// IngredientLinking:AutoApplyVerifiedAi=false stops applying verified model picks;
+    /// IngredientLinking:VerifyPending=true (default false) checks pending picks in shadow, marking
+    /// them verified or not without applying anything, whether or not auto-apply is on;
     /// IngredientLinking:VerifyMinConfidence (default 0.80) is the bar for checking a pick and
     /// IngredientLinking:VerifiedMinConfidence (default 0.85) the bar for applying a verified one;
     /// IngredientLinking:VerifyBatchSize (default 24) picks checked per pass;
-    /// IngredientLinking:VerifyModel (default the link model) gives the second opinion.
+    /// IngredientLinking:VerifyModel (no default) gives the second opinion; unset, or the same as the
+    /// link model, means nothing is verified.
     /// IngredientLinking:Enabled=false disables it; IngredientLinking:BatchSize (default 30)
     /// ingredients per pass; IngredientLinking:PauseSeconds (default 5) between passes;
     /// IngredientLinking:IdleMinutes (default 30) once nothing is left to propose.
@@ -54,6 +57,7 @@ namespace Nom.Api.Services
             var pause = TimeSpan.FromSeconds(Math.Max(0, _configuration.GetValue("IngredientLinking:PauseSeconds", 5)));
             var idle = TimeSpan.FromMinutes(Math.Max(1, _configuration.GetValue("IngredientLinking:IdleMinutes", 30)));
             var backoff = TimeSpan.FromMinutes(5);
+            bool verifyUsable;
 
             using (var scope = _scopeFactory.CreateScope())
             {
@@ -64,6 +68,7 @@ namespace Nom.Api.Services
                     return;
                 }
                 _logger.LogInformation("Ingredient linking enabled: model {Model}, {Batch} ingredients per pass", matcher.ModelName, batchSize);
+                verifyUsable = SecondOpinionUsable(matcher, scope.ServiceProvider.GetRequiredService<IIngredientLinkVerifier>());
             }
 
             if (!await Delay(TimeSpan.FromMinutes(2), stoppingToken)) return;
@@ -86,6 +91,7 @@ namespace Nom.Api.Services
             var minConfidence = Math.Clamp(_configuration.GetValue("IngredientLinking:VerifyMinConfidence", 0.80m), 0m, _applyMinConfidence);
             var verifyBatch = Math.Clamp(_configuration.GetValue("IngredientLinking:VerifyBatchSize", 24), 1, 200);
             if (autoApplyVerified) await ApplyVerifiedLinksAsync(stoppingToken);
+            var verify = verifyUsable && (autoApplyVerified || _configuration.GetValue("IngredientLinking:VerifyPending", false));
 
             int proposed = 0, sinceLog = 0;
             while (!stoppingToken.IsCancellationRequested)
@@ -123,7 +129,7 @@ namespace Nom.Api.Services
                         }
                     }
 
-                    if (autoApplyVerified && delay != backoff)
+                    if (verify && delay != backoff)
                     {
                         var verified = await links.VerifyPendingAiAsync(verifyBatch, minConfidence, stoppingToken);
                         if (verified == null)
@@ -132,7 +138,7 @@ namespace Nom.Api.Services
                         }
                         else
                         {
-                            if (verified.Verified > 0) await ApplyVerifiedLinksAsync(stoppingToken);
+                            if (autoApplyVerified && verified.Verified > 0) await ApplyVerifiedLinksAsync(stoppingToken);
                             if (verified.MoreWaiting && sources.Count == 0) delay = pause;
                         }
                     }
@@ -149,6 +155,26 @@ namespace Nom.Api.Services
 
                 if (!await Delay(delay, stoppingToken)) return;
             }
+        }
+
+        /// <summary>
+        /// The second opinion runs only with a judge model of its own: none configured means no
+        /// checking, and the picker's own model judging its picks is refused outright.
+        /// </summary>
+        private bool SecondOpinionUsable(IIngredientLinkMatcher matcher, IIngredientLinkVerifier verifier)
+        {
+            if (!verifier.IsConfigured)
+            {
+                _logger.LogInformation("Ingredient link second opinion off: IngredientLinking:VerifyModel is not set, so no pick is verified");
+                return false;
+            }
+            if (string.Equals(verifier.ModelName, matcher.ModelName, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogError("Ingredient link second opinion refused: IngredientLinking:VerifyModel {Model} is the picker's own model; no pick is verified", verifier.ModelName);
+                return false;
+            }
+            _logger.LogInformation("Ingredient link second opinion: {Model} prompt {Version}", verifier.ModelName, verifier.PromptVersion);
+            return true;
         }
 
         private Task ApplyCertainLinksAsync(CancellationToken stoppingToken) =>
