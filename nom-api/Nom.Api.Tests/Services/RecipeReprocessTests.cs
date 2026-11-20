@@ -606,6 +606,181 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task The_undo_of_a_rebuild_takes_back_the_link_lines_it_journaled_so_the_recipe_is_free_again()
+        {
+            using var db = await SeededAsync();
+            var wheat = await FoodAsync(db, "Wheat flour, white");
+            var holder = await FoodAsync(db, "flour", curated: false);
+            var junk = await FoodAsync(db, "2 cups flour", curated: false);
+            (await db.Ingredients.SingleAsync(i => i.Id == holder.Id)).IsDeleted = true;
+            var proposal = new Nom.Data.Curation.FoodCatalogProposalEntity
+            {
+                Action = Nom.Data.Curation.FoodProposalAction.Update, IngredientId = holder.Id, Field = FoodCatalogReviewService.FdcLinkField, CurrentValue = "flour",
+                ProposedValue = wheat.Id.ToString(), Source = "ai:fake", Status = Nom.Data.Curation.FoodProposalStatus.Applied,
+            };
+            db.FoodCatalogProposals.Add(proposal);
+            await db.SaveChangesAsync();
+            db.AuditLogEntries.Add(LinkApplyJournal.Entry(proposal.Id, LinkApplyJournal.Header,
+                LinkApplyJournal.Write(new LinkApplyJournal.HeaderValue(holder.Id, "flour", (long)CurationStatusEnum.NonCurated, "ai:fake", true, wheat.Id)),
+                wheat.Id.ToString(), Imported, SystemConstants.SystemPersonId));
+            await db.SaveChangesAsync();
+            var recipe = await RecipeAsync(db, Record("Bread", new[] { "2 cups flour" }), new[] { new Row(junk, "2 cups flour", 2, Cup) });
+
+            var rebuild = await Service(db).RebuildAsync(For(recipe.Id), apply: true);
+            db.ChangeTracker.Clear();
+            (await LinesAsync(db, recipe.Id)).Single().IngredientId.Should().Be(wheat.Id);
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LinkApplyJournal.ChangeType && a.PropertyName == LinkApplyJournal.Line)).Should().Be(1);
+
+            await Service(db).UndoAsync(null, rebuild.BatchId, apply: true);
+            db.ChangeTracker.Clear();
+
+            (await LinesAsync(db, recipe.Id)).Single().IngredientId.Should().Be(junk.Id);
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LinkApplyJournal.ChangeType && a.PropertyName == LinkApplyJournal.Line)).Should().Be(0);
+            (await RecipeLineHold.HeldAsync(db, new[] { recipe.Id })).Should().NotContain(recipe.Id);
+        }
+
+        [Fact]
+        public async Task The_undo_leaves_a_recipe_approved_since_the_rebuild_on_the_lines_it_was_approved_with()
+        {
+            using var db = await SeededAsync();
+            var flour = await FoodAsync(db, "flour");
+            var sugar = await FoodAsync(db, "sugar");
+            var recipe = await RecipeAsync(db, Record("Dough", new[] { "2 cups flour", "1/2 cup sugar" }),
+                new[] { new Row(flour, "2 cups flour", 0, Piece), new Row(sugar, "1/2 cup sugar", 0, Piece, 1) }, CurationStatusEnum.RequiresRevision);
+            var rebuild = await Service(db).RebuildAsync(For(recipe.Id), apply: true);
+            db.ChangeTracker.Clear();
+            var approved = await db.Recipes.SingleAsync();
+            approved.CurationStatusId.Should().Be((long)CurationStatusEnum.NonCurated);
+            approved.CurationStatusId = (long)CurationStatusEnum.Curated;
+            approved.DateCurationCompleted = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var undone = await Service(db).UndoAsync(null, rebuild.BatchId, apply: true);
+            db.ChangeTracker.Clear();
+
+            undone.Skipped.Should().Be(1);
+            undone.Restored.Should().Be(0);
+            (await LinesAsync(db, recipe.Id)).Select(l => l.Quantity).Should().Equal(2m, 0.5m);
+            (await db.Recipes.SingleAsync()).CurationStatusId.Should().Be((long)CurationStatusEnum.Curated);
+        }
+
+        [Fact]
+        public async Task Recipes_people_typed_in_are_never_grouped_as_duplicates()
+        {
+            using var db = await SeededAsync();
+            var flour = await FoodAsync(db, "flour");
+            var lines = new[] { new Row(flour, "2 cups flour", 2, Cup) };
+            await RecipeAsync(db, null, lines);
+            await RecipeAsync(db, null, lines);
+            foreach (var r in await db.Recipes.ToListAsync())
+            {
+                r.Name = "Grandma's Pancakes";
+                r.ScrapedAtUtc = null;
+            }
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var byBook = await Service(db).RetireDuplicatesAsync(new RecipeDuplicateRequestModel(), apply: true);
+            var byName = await Service(db).RetireDuplicatesAsync(new RecipeDuplicateRequestModel { AnyAttribution = true }, apply: true);
+
+            (byBook.Groups, byName.Groups).Should().Be((0, 0));
+            (await db.Recipes.CountAsync()).Should().Be(2);
+        }
+
+        [Fact]
+        public async Task An_approved_recipe_that_already_fails_vetting_is_held_when_it_would_fail_a_further_rule()
+        {
+            using var db = await SeededAsync();
+            var flour = await FoodAsync(db, "flour");
+            var sugar = await FoodAsync(db, "sugar");
+            await FoodAsync(db, "butter");
+            await FoodAsync(db, "cream");
+            await FoodAsync(db, "vanilla");
+            var steps = new[] { "Mix it all." };
+            var recipe = await RecipeAsync(db, Record("Dough", new[] { "2 cups flour", "1 cup sugar", "butter", "cream", "vanilla" }, steps),
+                new[] { new Row(flour, "2 cups flour", 2, Cup), new Row(sugar, "1 cup sugar", 1, Cup, 1) }, CurationStatusEnum.Curated, steps);
+
+            var result = await Service(db).RebuildAsync(For(recipe.Id), apply: true);
+
+            result.HeldByReason.Should().ContainKey(RecipeReprocessHold.ApprovedVetting);
+            (await LinesAsync(db, recipe.Id)).Should().HaveCount(2);
+        }
+
+        [Fact]
+        public async Task A_rebuild_stamps_each_recipe_when_it_writes_it_so_a_lane_entry_written_before_that_counts_as_rebuilt_over()
+        {
+            using var db = await SeededAsync();
+            var sugar = await FoodAsync(db, "sugar");
+            var flour = await FoodAsync(db, "flour");
+            var recipe = await RecipeAsync(db, null, new[] { new Row(sugar, "1/2 cup sugar", 1, Piece), new Row(flour, "2 cups flour", 2, Cup) });
+            db.ScrapedDocuments.Add(new ScrapedDocumentEntity { RecipeId = recipe.Id, RawJsonLd = "{\"@type\":\"Recipe\"}", SourceUrl = "https://example.org/r", FetchedAtUtc = Imported });
+            await db.SaveChangesAsync();
+            DateTime? laneAt = null;
+            var scraper = new Mock<IRecipeScraperClient>();
+            scraper.SetupGet(s => s.IsConfigured).Returns(true);
+            scraper.Setup(s => s.ParseAsync(It.IsAny<string>(), It.IsAny<string?>(), default)).ReturnsAsync(() =>
+            {
+                System.Threading.Thread.Sleep(5);
+                laneAt = DateTime.UtcNow;
+                System.Threading.Thread.Sleep(5);
+                return new ScraperResult { Success = true, Recipe = Record("Web", new[] { "2 cups flour", "1/2 cup sugar" }) };
+            });
+
+            var result = await Service(db, scraper.Object).RebuildAsync(For(recipe.Id), apply: true);
+
+            result.Rebuilt.Should().Be(1);
+            (await RecipeReprocessService.RebuiltAtAsync(db, new[] { recipe.Id }))[recipe.Id].Should().BeAfter(laneAt!.Value);
+            (await db.RecipeReprocessJournals.SingleAsync()).CreatedDate.Should().BeAfter(laneAt.Value);
+        }
+
+        [Fact]
+        public async Task A_rule_rejection_that_also_changes_lines_is_undone_by_its_kind()
+        {
+            using var db = await SeededAsync();
+            var flour = await FoodAsync(db, "flour");
+            var steps = new[] { "Placeholder text for the method goes here.", "Insert steps here once known." };
+            var recipe = await RecipeAsync(db, Record("Lorem", new[] { "2 cups flour" }, steps), new[] { new Row(flour, "2 cups flour", 1, Piece) },
+                CurationStatusEnum.RequiresRevision, steps);
+
+            var result = await Service(db).RebuildAsync(For(recipe.Id), apply: true);
+            db.ChangeTracker.Clear();
+            result.Rejected.Should().Be(1);
+
+            var undone = await Service(db).UndoAsync(null, result.BatchId, RecipeReprocessKind.RuleReject, apply: true);
+            db.ChangeTracker.Clear();
+
+            undone.RestoredByKind.Should().ContainKey(RecipeReprocessKind.RuleReject);
+            (await db.Recipes.SingleAsync()).CurationStatusId.Should().Be((long)CurationStatusEnum.RequiresRevision);
+            (await LinesAsync(db, recipe.Id)).Single().Quantity.Should().Be(2m);
+
+            await Service(db).UndoAsync(null, result.BatchId, apply: true);
+            db.ChangeTracker.Clear();
+
+            (await LinesAsync(db, recipe.Id)).Single().Quantity.Should().Be(1m);
+            (await db.Recipes.SingleAsync()).CurationStatusId.Should().Be((long)CurationStatusEnum.RequiresRevision);
+        }
+
+        [Fact]
+        public async Task A_line_left_on_a_prepared_food_because_its_text_is_that_foods_whole_name_is_reported()
+        {
+            using var db = await SeededAsync();
+            var burger = await FoodAsync(db, "Hamburger");
+            (await db.Ingredients.SingleAsync(i => i.Id == burger.Id)).FdcCategoryId = 21;
+            var buns = await FoodAsync(db, "buns");
+            await db.SaveChangesAsync();
+            var recipe = await RecipeAsync(db, Record("Burger Night", new[] { "2 buns", "1 hamburger" }),
+                new[] { new Row(burger, "1 hamburger", 1, Piece), new Row(buns, "2 buns", 2, Piece) });
+
+            var result = await Service(db).RebuildAsync(For(recipe.Id));
+
+            var one = result.Results.Single();
+            one.Lines.Single(l => l.RawLine == "1 hamburger").Changes.Should().Contain(RecipeReprocessLineDiff.PreparedFood);
+            one.Lines.Single(l => l.RawLine == "2 buns").Changes.Should().NotContain(RecipeReprocessLineDiff.PreparedFood);
+            result.Counts.OnPreparedFood.Should().Be(1);
+        }
+
+        [Fact]
         public void Pairing_takes_the_row_of_the_same_text_first_and_a_fold_for_each_of_its_parts()
         {
             RecipeReprocessService.LineRow Row(string raw, int sort) => new(1, sort, 0, 1, raw, null, null, Imported, null, null, null, false, null, null);

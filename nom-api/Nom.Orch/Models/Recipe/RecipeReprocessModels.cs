@@ -46,6 +46,13 @@ namespace Nom.Orch.Models.Recipe
     /// <summary>One line of a rebuilt recipe next to the stored row it replaces (none for an added line).</summary>
     public class RecipeReprocessLineDiff
     {
+        /// <summary>
+        /// Listed in <see cref="Changes"/> when the line ends on a prepared food: its text is that
+        /// food's whole name, so the import's name match leads there and no other food can take the
+        /// name. The approval gate holds such a recipe; renaming the food is for a person.
+        /// </summary>
+        public const string PreparedFood = "prepared-food";
+
         public int SortOrder { get; set; }
         public string RawLine { get; set; } = string.Empty;
         public int? OldSortOrder { get; set; }
@@ -61,7 +68,7 @@ namespace Nom.Orch.Models.Recipe
         public string? NewLineKind { get; set; }
         public bool FilledFromMethod { get; set; }
 
-        /// <summary>What changed: any of amount, food, order, kind, text, added; empty when nothing did.</summary>
+        /// <summary>What changed: any of amount, food, order, kind, text, added; empty when nothing did. Also prepared-food (see <see cref="PreparedFood"/>).</summary>
         public List<string> Changes { get; set; } = new();
     }
 
@@ -78,6 +85,7 @@ namespace Nom.Orch.Models.Recipe
         public int Dropped { get; set; }
         public int FilledFromMethod { get; set; }
         public int NewFoods { get; set; }
+        public int OnPreparedFood { get; set; }
 
         public void Add(RecipeReprocessChangeCounts other)
         {
@@ -91,6 +99,7 @@ namespace Nom.Orch.Models.Recipe
             Dropped += other.Dropped;
             FilledFromMethod += other.FilledFromMethod;
             NewFoods += other.NewFoods;
+            OnPreparedFood += other.OnPreparedFood;
         }
     }
 

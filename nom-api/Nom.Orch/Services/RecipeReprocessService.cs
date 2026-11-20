@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -47,6 +48,7 @@ namespace Nom.Orch.Services
         public const int MaxRecipesPerCall = 500;
 
         private const int IdsPerRead = 1000;
+        private const string LinksKey = "links=";
         private static readonly string[] NotARecipeProblems = { "Text is placeholder copy", "Text has no real words" };
 
         private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -105,7 +107,7 @@ namespace Nom.Orch.Services
                 RecipeReprocessRecipeResult one;
                 try
                 {
-                    one = orderOnly ? await OrderOneAsync(recipeId, apply, result.BatchId, stamp) : await RebuildOneAsync(recipeId, apply, result.BatchId, stamp);
+                    one = orderOnly ? await OrderOneAsync(recipeId, apply, result.BatchId) : await RebuildOneAsync(recipeId, apply, result.BatchId, stamp);
                 }
                 catch (Exception ex)
                 {
@@ -190,62 +192,86 @@ namespace Nom.Orch.Services
 
             var by = _currentUser.PersonIdOrSystem;
             await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+            var now = DateTime.UtcNow;
             var oldState = State(recipe);
-            List<LineRow>? written = null;
             if (!unchanged)
             {
                 built = await _builder.BuildAsync(source.Record.Ingredients, _currentUser.PersonId, write: true, method, choose);
                 KeepKinds(built, pairs);
-                written = NewRows(built, pairs, stamp);
+                var written = NewRows(built, pairs, now);
                 await ReplaceRowsAsync(recipeId, written);
+                var links = new List<AuditLogEntryEntity>();
                 foreach (var line in built.Where(l => l.Link != null))
                 {
-                    _db.AuditLogEntries.AddRange(LinkApplyJournal.LinesMoved(
+                    links.AddRange(LinkApplyJournal.LinesMoved(
                         line.Link!.ProposalId, line.Link.HolderId, line.Food!.Id, Array.Empty<LinkApplyJournal.LineShift>(),
-                        new[] { new LinkApplyJournal.LinePlace { RecipeId = recipeId, SortOrder = line.SortOrder } }, stamp, by));
+                        new[] { new LinkApplyJournal.LinePlace { RecipeId = recipeId, SortOrder = line.SortOrder } }, now, by));
                 }
+                _db.AuditLogEntries.AddRange(links);
+
+                if (!reject && recipe.DateCurationCompleted == null
+                    && (recipe.CurationStatusId == (long)CurationStatusEnum.NonCurated || recipe.CurationStatusId == (long)CurationStatusEnum.RequiresRevision))
+                {
+                    recipe.VettingIssues = newIssues.Count > 0 ? string.Join("\n", newIssues) : null;
+                    recipe.CurationStatusId = newIssues.Count > 0 ? (long)CurationStatusEnum.RequiresRevision : (long)CurationStatusEnum.NonCurated;
+                }
+                var rebuiltState = Stamped(recipe, oldState, now);
+                var rebuild = new RecipeReprocessJournalEntity
+                {
+                    RecipeId = recipeId,
+                    BatchId = batchId,
+                    Kind = RecipeReprocessKind.Rebuild,
+                    RuleVersion = RecipeLineBuilder.Version,
+                    SourceDocumentId = source.DocumentId,
+                    OldRows = JsonSerializer.Serialize(rows, Json),
+                    NewRows = JsonSerializer.Serialize(written, Json),
+                    OldRecipe = JsonSerializer.Serialize(oldState, Json),
+                    NewRecipe = JsonSerializer.Serialize(rebuiltState, Json),
+                    CreatedDate = now,
+                    CreatedByPersonId = by,
+                };
+                await JournalAsync(rebuild, by, now, rejected: false, links);
+                one.JournalId = rebuild.Id;
+                oldState = rebuiltState;
             }
 
             if (reject)
             {
                 recipe.CurationStatusId = (long)CurationStatusEnum.Rejected;
                 recipe.VettingIssues = string.Join("\n", newIssues.Append(RuleRejectIssue));
-            }
-            else if (!curated && recipe.DateCurationCompleted == null
-                && (recipe.CurationStatusId == (long)CurationStatusEnum.NonCurated || recipe.CurationStatusId == (long)CurationStatusEnum.RequiresRevision))
-            {
-                recipe.VettingIssues = newIssues.Count > 0 ? string.Join("\n", newIssues) : null;
-                recipe.CurationStatusId = newIssues.Count > 0 ? (long)CurationStatusEnum.RequiresRevision : (long)CurationStatusEnum.NonCurated;
-            }
-            var newState = State(recipe);
-            if (newState != oldState)
-            {
-                recipe.LastModifiedDate = stamp;
-                recipe.LastModifiedByPersonId = SystemConstants.SystemPersonId;
+                var rejection = new RecipeReprocessJournalEntity
+                {
+                    RecipeId = recipeId,
+                    BatchId = batchId,
+                    Kind = RecipeReprocessKind.RuleReject,
+                    RuleVersion = RecipeLineBuilder.Version,
+                    SourceDocumentId = source.DocumentId,
+                    OldRecipe = JsonSerializer.Serialize(oldState, Json),
+                    NewRecipe = JsonSerializer.Serialize(Stamped(recipe, oldState, now), Json),
+                    CreatedDate = now,
+                    CreatedByPersonId = by,
+                };
+                await JournalAsync(rejection, by, now, rejected: true);
+                one.JournalId ??= rejection.Id;
             }
 
-            var journal = new RecipeReprocessJournalEntity
-            {
-                RecipeId = recipeId,
-                BatchId = batchId,
-                Kind = unchanged ? RecipeReprocessKind.RuleReject : RecipeReprocessKind.Rebuild,
-                RuleVersion = RecipeLineBuilder.Version,
-                SourceDocumentId = source.DocumentId,
-                OldRows = written == null ? null : JsonSerializer.Serialize(rows, Json),
-                NewRows = written == null ? null : JsonSerializer.Serialize(written, Json),
-                OldRecipe = JsonSerializer.Serialize(oldState, Json),
-                NewRecipe = JsonSerializer.Serialize(newState, Json),
-                CreatedDate = stamp,
-                CreatedByPersonId = by,
-            };
-            await JournalAsync(journal, by, stamp, reject);
             if (tx != null) await tx.CommitAsync();
-            one.JournalId = journal.Id;
             await RecalculateAsync(recipeId);
             return one;
         }
 
-        private async Task<RecipeReprocessRecipeResult> OrderOneAsync(long recipeId, bool apply, string batchId, DateTime stamp)
+        private static RecipeState Stamped(RecipeEntity recipe, RecipeState before, DateTime now)
+        {
+            var state = State(recipe);
+            if (state != before)
+            {
+                recipe.LastModifiedDate = now;
+                recipe.LastModifiedByPersonId = SystemConstants.SystemPersonId;
+            }
+            return state;
+        }
+
+        private async Task<RecipeReprocessRecipeResult> OrderOneAsync(long recipeId, bool apply, string batchId)
         {
             var one = new RecipeReprocessRecipeResult { RecipeId = recipeId };
             var recipe = await _db.Recipes.AsNoTracking().FirstOrDefaultAsync(r => r.Id == recipeId);
@@ -263,11 +289,8 @@ namespace Nom.Orch.Services
             if (positions == null) return Hold(one, RecipeReprocessHold.OrderUnpaired);
 
             var ranked = live.Select((row, i) => (Row: row, Position: positions[i])).OrderBy(p => p.Position).Select((p, rank) => (p.Row, Rank: rank)).ToList();
-            var written = ranked.Select(p => p.Row.SortOrder == p.Rank ? p.Row : p.Row with { SortOrder = p.Rank, LastModifiedDate = stamp, LastModifiedByPersonId = SystemConstants.SystemPersonId })
-                .OrderBy(r => r.SortOrder)
-                .ToList();
             one.Counts.LinesBefore = live.Count;
-            one.Counts.LinesAfter = written.Count;
+            one.Counts.LinesAfter = ranked.Count;
             one.Counts.OrderChanged = ranked.Count(p => p.Row.SortOrder != p.Rank);
             if (one.Counts.OrderChanged == 0)
             {
@@ -288,6 +311,10 @@ namespace Nom.Orch.Services
 
             var by = _currentUser.PersonIdOrSystem;
             await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+            var now = DateTime.UtcNow;
+            var written = ranked.Select(p => p.Row.SortOrder == p.Rank ? p.Row : p.Row with { SortOrder = p.Rank, LastModifiedDate = now, LastModifiedByPersonId = SystemConstants.SystemPersonId })
+                .OrderBy(r => r.SortOrder)
+                .ToList();
             await ReplaceRowsAsync(recipeId, written);
             var journal = new RecipeReprocessJournalEntity
             {
@@ -298,10 +325,10 @@ namespace Nom.Orch.Services
                 SourceDocumentId = source.DocumentId,
                 OldRows = JsonSerializer.Serialize(rows, Json),
                 NewRows = JsonSerializer.Serialize(written, Json),
-                CreatedDate = stamp,
+                CreatedDate = now,
                 CreatedByPersonId = by,
             };
-            await JournalAsync(journal, by, stamp, rejected: false);
+            await JournalAsync(journal, by, now, rejected: false);
             if (tx != null) await tx.CommitAsync();
             one.JournalId = journal.Id;
             return one;
@@ -444,6 +471,11 @@ namespace Nom.Orch.Services
                     if (old.RawLine != line.RawLine) diff.Changes.Add("text");
                 }
                 if (line.FilledFromMethod) counts.FilledFromMethod++;
+                if (line.Food != null && PreparedFoods.IsPrepared(line.Food))
+                {
+                    diff.Changes.Add(RecipeReprocessLineDiff.PreparedFood);
+                    counts.OnPreparedFood++;
+                }
                 one.Lines.Add(diff);
             }
         }
@@ -498,10 +530,17 @@ namespace Nom.Orch.Services
                     RawLine = r.RawLine, LineKind = r.LineKind, SortOrder = r.SortOrder,
                 }).ToList(),
             };
-            if (newIssues.Count > 0 && (await _vetting.VetAsync(ScrapedRecipeRepairService.ToVettable(before))).Count == 0) return RecipeReprocessHold.ApprovedVetting;
+            if (newIssues.Count > 0)
+            {
+                var oldKinds = (await _vetting.VetAsync(ScrapedRecipeRepairService.ToVettable(before))).Select(IssueKind).ToHashSet(StringComparer.Ordinal);
+                if (newIssues.Any(issue => !oldKinds.Contains(IssueKind(issue)))) return RecipeReprocessHold.ApprovedVetting;
+            }
             if (RecipeApprovalGate.RefusalReason(Shadow(recipe, built, steps)) != null && RecipeApprovalGate.RefusalReason(before) == null) return RecipeReprocessHold.ApprovedGate;
             return null;
         }
+
+        /// <summary>A vetting issue with its numbers taken out, so "Only 1 step" and "Only 2 steps" are one kind.</summary>
+        public static string IssueKind(string issue) => Regex.Replace(issue, @"\d+", "#");
 
         private async Task<(Source? Source, string? Hold)> SourceAsync(RecipeEntity recipe)
         {
@@ -593,18 +632,25 @@ namespace Nom.Orch.Services
             await _db.SaveChangesAsync();
         }
 
-        private async Task JournalAsync(RecipeReprocessJournalEntity journal, long by, DateTime stamp, bool rejected)
+        /// <summary>
+        /// Saves the journal row and its audit rows. The header of a line write names the link journal
+        /// rows the rebuild wrote (<c>links=</c>), so its undo takes them back with the lines.
+        /// </summary>
+        private async Task JournalAsync(RecipeReprocessJournalEntity journal, long by, DateTime stamp, bool rejected, IReadOnlyCollection<AuditLogEntryEntity>? links = null)
         {
             _db.RecipeReprocessJournals.Add(journal);
             await _db.SaveChangesAsync();
             var value = string.Create(CultureInfo.InvariantCulture, $"journal={journal.Id};batch={journal.BatchId};rules={journal.RuleVersion};kind={journal.Kind}");
             if (journal.NewRows != null)
             {
+                var header = links is { Count: > 0 }
+                    ? string.Create(CultureInfo.InvariantCulture, $"{value};{LinksKey}{string.Join(",", links.Select(l => l.Id))}")
+                    : value;
                 _db.AuditLogEntries.Add(new AuditLogEntryEntity
                 {
                     EntityType = ScrapedRecipeRepairService.LineEntityType, EntityId = journal.RecipeId,
                     ChangeType = journal.Kind == RecipeReprocessKind.Order ? ReprocessOrderChangeType : ReprocessChangeType,
-                    PropertyName = journal.Kind, NewValue = value, Timestamp = stamp, ChangedByPersonId = by,
+                    PropertyName = journal.Kind, NewValue = header, Timestamp = stamp, ChangedByPersonId = by,
                 });
             }
             var recipeChange = journal.Kind == RecipeReprocessKind.DuplicateRetire ? DuplicateRetireChangeType : rejected ? RuleRejectChangeType : null;
@@ -642,7 +688,7 @@ namespace Nom.Orch.Services
             var wanted = request.RecipeIds.Distinct().ToList();
             var recipes = new List<Copy>();
             IQueryable<Copy> Copies(IQueryable<RecipeEntity> query) =>
-                query.AsNoTracking().Select(r => new Copy(r.Id, r.Name, r.SourceUrl, r.SourceAttribution, r.CurationStatusId, r.Version));
+                query.AsNoTracking().Where(r => r.ScrapedAtUtc != null || _db.ScrapedDocuments.Any(d => d.RecipeId == r.Id)).Select(r => new Copy(r.Id, r.Name, r.SourceUrl, r.SourceAttribution, r.CurationStatusId, r.Version));
             if (wanted.Count == 0)
             {
                 recipes = await Copies(_db.Recipes).ToListAsync();
@@ -658,7 +704,7 @@ namespace Nom.Orch.Services
                 groups.Add(("url", g.ToList()));
             }
             var inUrlGroup = groups.SelectMany(g => g.Members).Select(r => r.Id).ToHashSet();
-            foreach (var g in recipes.Where(r => !inUrlGroup.Contains(r.Id))
+            foreach (var g in recipes.Where(r => !inUrlGroup.Contains(r.Id) && !string.IsNullOrWhiteSpace(r.SourceAttribution))
                          .GroupBy(r => (Name: r.Name.Trim().ToLowerInvariant(), Attribution: request.AnyAttribution ? null : r.SourceAttribution))
                          .Where(g => g.Count() > 1))
             {
@@ -800,7 +846,9 @@ namespace Nom.Orch.Services
                 var stateNow = simulatedState.TryGetValue(recipe.Id, out var simulatedRecipe) ? simulatedRecipe : State(recipe);
                 var linesStand = newRows == null || SameRowsWithDeletion(rowsNow, newRows);
                 var stateStands = newState == null || SameState(stateNow, newState);
-                if (!linesStand || (newRows == null && !stateStands))
+                var approvedSince = !stateStands && stateNow.CurationStatusId == (long)CurationStatusEnum.Curated
+                    && newState!.CurationStatusId != (long)CurationStatusEnum.Curated;
+                if (!linesStand || (newRows == null && !stateStands) || approvedSince)
                 {
                     Skip(result, recipe.Id);
                     continue;
@@ -833,7 +881,11 @@ namespace Nom.Orch.Services
                         && (a.ChangeType == ReprocessChangeType || a.ChangeType == ReprocessOrderChangeType)
                         && a.NewValue != null && a.NewValue.StartsWith(marker))
                     .ToListAsync();
-                foreach (var header in headers) header.ChangeType = ReprocessUndoneChangeType;
+                var linkIds = headers.SelectMany(h => LinkRowIds(h.NewValue)).ToList();
+                var links = linkIds.Count == 0
+                    ? new List<AuditLogEntryEntity>()
+                    : await _db.AuditLogEntries.Where(a => linkIds.Contains(a.Id) && a.ChangeType == LinkApplyJournal.ChangeType).ToListAsync();
+                foreach (var header in headers.Concat(links)) header.ChangeType = ReprocessUndoneChangeType;
                 _db.AuditLogEntries.Add(new AuditLogEntryEntity
                 {
                     EntityType = RecipeEntityType, EntityId = recipe.Id, ChangeType = UndoChangeType, PropertyName = entry.Kind,
@@ -848,6 +900,13 @@ namespace Nom.Orch.Services
 
             return result;
         }
+
+        private static IEnumerable<long> LinkRowIds(string? header) =>
+            (header ?? string.Empty).Split(';')
+                .Where(part => part.StartsWith(LinksKey, StringComparison.Ordinal))
+                .SelectMany(part => part[LinksKey.Length..].Split(','))
+                .Select(id => long.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0)
+                .Where(id => id > 0);
 
         private static void Skip(RecipeReprocessUndoResult result, long recipeId)
         {

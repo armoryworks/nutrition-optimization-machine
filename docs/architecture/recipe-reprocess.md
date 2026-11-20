@@ -51,14 +51,18 @@ older version built.
   by the applied-link re-check, which runs after the rebuild). It gives way only when that food is
   retired, a prepared food, an uncurated food whose name carries an amount or unit
   (`IngredientNameNormalizer.IsResidue`, e.g. "2 cups flour"), or an uncurated food where the
-  import now finds a curated one.
+  import now finds a curated one. The line then takes the food the import finds. A prepared food
+  whose whole name is the line's text ("1 hamburger" on a food renamed "Hamburger") is the one food
+  the import's name match still finds, and no other food can take that name, so such a line stays
+  on it: the answer lists it as `prepared-food` and counts it (`onPreparedFood`), the approval gate
+  holds the recipe, and renaming the food is for a person.
 - **Kind of a paired line.** A rebuilt line with no amount and no deterministic kind keeps the kind
   the lanes gave the row of the same text.
 - **Order.** The source's order (`SortOrder` 0, 1, 2 ...).
 - **Steps and prose** are not touched. `ProseWithheld` and the step stamps stay as they are.
 
 The answer lists, per recipe, each line before and after with what changed (`amount`, `food`,
-`order`, `kind`, `text`, `added`), and the counts per batch (including `dropped` rows, lines
+`order`, `kind`, `text`, `added`, and `prepared-food` for a line left on a prepared food), and the counts per batch (including `dropped` rows, lines
 `filledFromMethod` and `newFoods` the apply would create).
 
 ### Guards
@@ -73,7 +77,7 @@ Each keeps the stored lines and is reported as `held` with its reason:
 | `planned-food-change` | the recipe is in a meal plan from today on and a line would change its food (amounts, order and kinds may change) |
 | `approved-fewer-amounts` | an approved recipe would end with fewer lines with an amount |
 | `approved-fewer-curated` | an approved recipe would end with fewer lines on a curated food |
-| `approved-vetting` | an approved recipe would newly fail vetting |
+| `approved-vetting` | an approved recipe would fail a vetting rule it did not fail before (issues compared by kind, numbers aside, so one that already failed a rule may not fail a further one) |
 | `approved-gate` | an approved recipe would newly fail the approval gate (an uncurated counted line, a prepared food) |
 
 An approved recipe keeps its status. Other recipes not yet curated are vetted again
@@ -84,8 +88,10 @@ An approved recipe keeps its status. Other recipes not yet curated are vetted ag
 A recipe that is not curated (NonCurated or RequiresRevision, curation not completed) whose
 source **and** rebuilt version both fail the text rules for "not a recipe" (placeholder copy, or
 text with no real words) is set to `Rejected`, with `Rejected by rule: ...` added to its vetting
-issues and a `RuleReject` row in `audit.AuditLogEntry` (entity `Recipe`). When its lines do not
-change, the journal row has kind `rule-reject` and no rows.
+issues and a `RuleReject` row in `audit.AuditLogEntry` (entity `Recipe`). The rejection is its own
+journal row of kind `rule-reject` with the state before and after and no rows; when the lines change
+too, a `rebuild` row before it holds them. So `undo?kind=rule-reject` takes back every rule
+rejection and leaves the rebuilt lines, and an undo of the whole batch takes back both.
 
 ### Idempotence
 
@@ -105,8 +111,10 @@ older line undos skip it like a rebuild, since its keys changed.
 ## Duplicate retire
 
 `POST /api/RecipeReprocess/duplicates?apply=false` with `{ "recipeIds": [...], "anyAttribution": false }`
-(all recipes when the list is empty). Copies are grouped by the same source URL, else by the same
-name (case and spacing ignored) and attribution; `anyAttribution=true` groups by name alone, for a
+(all recipes when the list is empty). Only imported recipes take part (scraped, or with a stored
+source document): a recipe a person typed in is never grouped. Copies are grouped by the same source
+URL, else by the same name (case and spacing ignored) and attribution, and only copies that carry an
+attribution (the site or book) are grouped by name; `anyAttribution=true` groups by name alone, for a
 book imported twice under two attributions (Artusi). In each group the copy kept is the one that
 is referenced (meal plan, household recipe or cookbook, rating, comment, note, share token,
 shopping item, a child recipe), then approved, then older. Every other copy is soft-deleted when
@@ -139,10 +147,19 @@ the row it was paired with, and is stamped as last changed by the system person.
 at or after `sinceUtc`, or of one batch, newest first, limited to one kind when given. A write is
 restored only when the recipe's rows (deleted ones included) still equal `NewRows`; otherwise it
 is skipped and its recipe listed. The recipe's state is restored only when it still equals
-`NewRecipe`; otherwise the lines are restored and the state kept (`stateKept`). The header is
-relabelled `ReprocessUndone` (which holds nothing, so the recipe is free again), the journal row
+`NewRecipe`; otherwise the lines are restored and the state kept (`stateKept`), except that a
+recipe approved since the write (Curated now, not Curated after the write) is skipped: it was
+approved on the rebuilt lines, and an approved recipe must not get back lines that may fail
+vetting or the gate. The header is relabelled `ReprocessUndone` (which holds nothing, so the recipe
+is free again), and so are the applied-link line rows (`LinkApply`, `Line`) the rebuild wrote for a
+line that followed a USDA link, which its header names (`links=`): the recipe is no longer held
+through them and the link's own undo no longer finds a line "moved since" there. The journal row
 gets `UndoneAt`, and a `ReprocessUndo` row is written (entity `Recipe`). A second undo finds
 nothing to do.
+
+Each recipe's journal row, header and new rows carry the time that recipe was written, not the
+start of the batch, so a lane entry written on a recipe while the batch was still working through
+earlier recipes counts as older than its rebuild.
 
 **Order of undos.** A rebuild replaces the rows that older line journals name. `relink/undo`,
 `reread/undo`, `labels/undo`, `quantities/undo` and `startup-fills/undo` therefore skip an entry
