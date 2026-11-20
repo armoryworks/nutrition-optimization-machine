@@ -57,7 +57,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class AlcoholLineContext
     {
-        public const string Version = "alcohol-context/1";
+        public const string Version = "alcohol-context/2";
 
         public const string NoSense = "none";
         public const string ListSense = "list";
@@ -133,7 +133,7 @@ namespace Nom.Orch.Services.Support
             ("vinegar", "vinegar", new Regex(@"\bvinegars?\b", Options)),
             ("vinaigrette", "vinaigrette", new Regex(@"\bvinaigrettes?\b", Options)),
             ("non-alcoholic", "non-alcoholic", new Regex(@"\bnon ?alcoholic\b|\balcohol free\b|\balcohol removed\b|\bde ?alcoholi[sz]ed\b|\bzero proof\b|\bno alcohol\b|\bwithout alcohol\b", Options)),
-            ("extract-food", "a meat, fish, malt or yeast extract", new Regex(@"\b(?:meat|beef|malt|yeast|vegetable|chicken|liebig'?s?|anchov(?:y|ies)|shrimps?|fish|mushrooms?|lobster|tomato)\s+(?:extract|essence)\b|\bextract of (?:meat|beef|malt)\b", Options)),
+            ("extract-food", "a meat, fish, malt or yeast extract", new Regex(@"\b(?:meat|beef|malt|yeast|vegetable|chicken|liebig'?s?|anchov(?:y|ies)|shrimps?|fish|mushrooms?|lobster|tomato)\s+(?:extract|essence)\b|\b(?:extract|essence) of (?:meat|beef|malt|yeast|vegetables?|chicken|anchov(?:y|ies)|shrimps?|fish|mushrooms?|lobsters?|tomato(?:es)?)\b", Options)),
             ("yeast", "ale or beer yeast", new Regex(@"\b(?:ale|beer|brewer'?s?|brewers)\s+yeast\b|\byeast of (?:ale|beer)\b|\bbarm\b", Options)),
             ("not-food", "not food", NotFood),
             ("other", "Scotch barley, oats and the like", new Regex(@"\bscotch\s+(?:barley|oats?|oatmeal|groats|bonnets?|broth|eggs?|kale|pancakes?|woodcock|collops|shortbread|pies?|mist|tape)\b", Options)),
@@ -159,7 +159,7 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex DrinkFlavoured = new(@"\b(?:" + DrinkWords + @")\s+flavou?red\b", Options);
         private static readonly Regex SoakedIn = new(@"\b(?:soaked|soak|boil'?d|boiled|steeped|macerated|marinated|poached|stewed)\s+in\b.*\b(?:" + DrinkWords + @")\b", Options);
 
-        private static readonly Regex Flavouring = new(@"\bextracts?\b|\bessence\b|\b(?!(?:for|to|as|of|the|a|and|more|extra|add|with|added|natural|good|any)\b)\p{L}+\s+flavou?r(?:ing)?s?\b", Options);
+        private static readonly Regex Flavouring = new(@"\bextracts?\b|\bessence\b|\b(?!(?:for|to|as|of|the|a|and|more|extra|add|with|added|natural|good|any)\b)\p{L}+\s+flavou?r(?:ing)?s?\b(?!\s+(?!(?:extract|essence|to|or|and|if|for|as|optional|divided)\b)\p{L})", Options);
 
         private static readonly (string Sense, string Rule, Regex Pattern)[] Rules =
         {

@@ -19,7 +19,7 @@ first rule that fires wins:
    each part is read on its own (sense `list`).
 2. **Not a drink**: `vinegar`, `vinaigrette`; `non-alcoholic` (non-alcoholic, alcohol-free,
    alcohol-removed, dealcoholised, "NA"); `extract-food` (a meat, beef, malt, yeast, anchovy or
-   mushroom extract or essence); `yeast` (ale or beer yeast, brewer's yeast, barm); `not-food`
+   mushroom extract or essence, either way round: "anchovy essence", "essence of anchovies"); `yeast` (ale or beer yeast, brewer's yeast, barm); `not-food`
    (turpentine, camphor, nitre, hartshorn, bay rum, white spirit, rubbing alcohol); `other` (Scotch
    barley, oats, groats or bonnet; a sack of; a ham hock; Port Salut; Muscatel or Malaga raisins and
    grapes; champagne mango; maraschino cherries; malt for ale; "for the rum"); `liquid` ("liquor"
@@ -28,7 +28,10 @@ first rule that fires wins:
    "of"; only a drink there is read on (`measure` otherwise).
 4. **A dish named after a drink** ("white wine sauce", "brandy butter", "beer batter",
    "Kirsch-flavoured syrup", "soaked in rum", "poached in red wine"): `dish`.
-5. **A flavouring** ("rum extract", "almond essence", "brandy flavouring"): `extract`.
+5. **A flavouring** ("rum extract", "almond essence", "brandy flavouring", "1 tsp rum flavor"):
+   `extract`. A flavour word followed by the name of a product is not a flavouring ("chicken flavor
+   bouillon", "lemon flavor gelatin"): such a line has no alcohol word and reads `none`, so the gate
+   and the shortlist leave its food alone.
 6. **Rice and cooking wines**: Shaoxing, Chinese rice wine, mirin (`rice-wine`, no USDA food);
    cooking wine or cooking sherry (`cooking-wine`); sake (`sake`).
 7. **Soft drinks**: ginger beer, root beer, spruce or birch beer (`soft-drink`).
@@ -130,6 +133,16 @@ gives the one reading a wording's lines agree on, for lanes that read lines.
   is not a drink, and a food that stores alcohol is left to its figure.
 - Vinegars, non-alcoholic drinks, soft drinks, yeast, cooking liquid, measures, Bread Crumbs,
   Ginger Root and Crumbled Feta no longer match.
+- A recipe line's own text is read too. A line that reads as a drink counts whatever food it is
+  linked to, so a drink line still linked to a food that is not a drink ("1 glass of sherry" on Red
+  Wine Vinegar, "cider" on Apple Cider Vinegar, "white wine" on Non-Alcoholic Wine: the wrong links
+  the applied-link re-check (A4, `cleanup2/link-recheck`) moves) keeps its recipe flagged, while the
+  vinegar's own lines stay cleared. The recipe page names such a match by the line's text. Meal
+  planning and search exclude these recipes by id (`RestrictedIngredientSet.RecipeIds`); to keep
+  that probe small, they read only the lines on foods whose name or an alias holds a drink word,
+  which are the foods the old `%…%` patterns could have flagged as a drink. A drink line on a food
+  with no drink word at all (sherry on Sugar) was never flagged by the old patterns either; the
+  recipe page flags it, the plan filter does not until the re-check moves the link.
 - The same rules serve the per-recipe diet matches (`GetDietMatchesAsync`, the severe-conflict
   filter of search and the plan) and the household's forbidden-food set (meal planning, search).
 - A criterion with a per-serving cap (`MaxAmountPerServing`) is not read: excluding a recipe above
@@ -144,8 +157,8 @@ the old release's own start-up, since its defaults are then missing again.
 
 ## Golden set and scorer
 
-- `alcohol-context.tsv`: 157 lines with the expected sense, a food the sense must allow and one it
-  must refuse; 147 rule-given rows (`rule:alcohol-context`, `ok`) from the design's classes and ten
+- `alcohol-context.tsv`: 161 lines with the expected sense, a food the sense must allow and one it
+  must refuse; 151 rule-given rows (`rule:alcohol-context`, `ok`) from the design's classes and ten
   judged by the builder (`agent`). `GoldenAlcoholContextTests` requires every row to pass, every
   sense to have a row, and every sense of the design a rule-given one.
 - Scorer lane `alcohol-context` in `model-lanes.json`: no model, `required`, floor 98 % and no false
@@ -153,7 +166,11 @@ the old release's own start-up, since its defaults are then missing again.
   (`dotnet run --project nom-api/Nom.Import -- --golden-score --lane alcohol-context --record`).
 - 24 rows in `link-gate.tsv` (lg-68 to lg-91), one or more per alcohol rule of the gate.
 - The diet replay over the golden lines: no line read as a drink loses its flag, no line that is
-  not a drink is flagged, and 26 lines the old patterns flagged are cleared.
+  not a drink is flagged, and 26 lines the old patterns flagged are cleared. A second replay links
+  every rule-given golden line to a food that is not a drink (Red Wine Vinegar, Apple Cider Vinegar,
+  Non-Alcoholic Wine, Sugar), which is the staging state of the wrong links; every line whose
+  expected sense counts keeps its recipe flagged on the recipe page, and in plans wherever the food
+  carries a drink word, and no other line is flagged.
 
 ## Not built here
 

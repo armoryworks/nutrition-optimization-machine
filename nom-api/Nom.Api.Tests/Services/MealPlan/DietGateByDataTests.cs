@@ -174,6 +174,59 @@ namespace Nom.Api.Tests.Services.MealPlan
         }
 
         [Fact]
+        public async Task A_drink_line_linked_to_a_food_that_is_not_a_drink_keeps_its_recipe_flagged_and_a_vinegar_line_on_the_same_food_does_not()
+        {
+            using var db = NewContext();
+            var foods = await SeedAsync(db);
+            var sugar = new IngredientEntity { Name = "Sugar", CurationStatusId = Curated };
+            db.Ingredients.Add(sugar);
+            await db.SaveChangesAsync();
+            var trifle = Recipe("Trifle", (foods.Ids["Red Wine Vinegar"], "1 glass of sherry"), (foods.Ids["Bread Crumbs"], "1 cup bread crumbs"));
+            var salad = Recipe("Salad", (foods.Ids["Red Wine Vinegar"], "2 tbsp red wine vinegar"), (foods.Ids["Apple Cider Vinegar"], "1 tbsp apple cider vinegar"));
+            var wassail = Recipe("Wassail", (foods.Ids["Apple Cider Vinegar"], "2 cups cider"));
+            var syllabub = Recipe("Syllabub", (sugar.Id, "1/2 pint of Madeira"));
+            db.Recipes.AddRange(trifle, salad, wassail, syllabub);
+            await db.SaveChangesAsync();
+
+            var set = await ResolveAsync(db, NoAlcoholRef, "No Alcohol");
+            var service = new RecipeOrchestrationService(db, new HttpContextAccessor(), new Mock<ICurrentUserService>().Object,
+                new Mock<Nom.Orch.UtilityInterfaces.IMediaStorageService>().Object, new Mock<IRecipeNutritionService>().Object);
+
+            set.RecipeIds.Should().Contain(new[] { trifle.Id, wassail.Id }).And.NotContain(salad.Id);
+            set.IngredientIds.Should().NotContain(new[] { foods.Ids["Red Wine Vinegar"], foods.Ids["Apple Cider Vinegar"] }, "the vinegar itself stays cleared");
+            (await service.GetDietMatchesAsync(trifle.Id, PersonId)).Should().ContainSingle()
+                .Which.Should().BeEquivalentTo(new { RestrictionName = "No Alcohol", IngredientId = foods.Ids["Red Wine Vinegar"], IngredientName = "1 glass of sherry", Severity = (int?)3 });
+            (await service.GetDietMatchesAsync(syllabub.Id, PersonId)).Select(m => m.IngredientName).Should().Equal("1/2 pint of Madeira");
+            (await service.GetDietMatchesAsync(salad.Id, PersonId)).Should().BeEmpty();
+            (await service.GetSevereDietConflictsAsync(new[] { trifle.Id }, PersonId)).Should().BeEmpty("No Alcohol is severity 3");
+        }
+
+        [Fact]
+        public async Task A_household_with_no_alcohol_is_never_offered_a_recipe_whose_drink_line_is_linked_to_a_vinegar()
+        {
+            using var db = NewContext();
+            var foods = await SeedAsync(db);
+            const long Approved = 990001;
+            db.Set<ReferenceEntity>().Add(new ReferenceEntity { Id = Approved, Name = "Approved" });
+            db.Persons.Add(new PersonEntity { Id = PersonId, Name = "Cook" });
+            var trifle = Recipe("Trifle", (foods.Ids["Red Wine Vinegar"], "1 glass of sherry"));
+            var salad = Recipe("Salad", (foods.Ids["Red Wine Vinegar"], "2 tbsp red wine vinegar"));
+            foreach (var recipe in new[] { trifle, salad })
+            {
+                recipe.Visibility = RecipeVisibilityEnum.Public;
+                recipe.CurationStatusId = Approved;
+            }
+            db.Recipes.AddRange(trifle, salad);
+            await db.SaveChangesAsync();
+            await ResolveAsync(db, NoAlcoholRef, "No Alcohol");
+
+            var offered = await new RecipeSearchOrchestrationService(db, Microsoft.Extensions.Logging.Abstractions.NullLogger<RecipeSearchOrchestrationService>.Instance)
+                .GetRandomRecipesAsync(10, HouseholdId);
+
+            offered.Results.Select(r => r.Name).Should().Equal("Salad");
+        }
+
+        [Fact]
         public void A_word_pattern_is_matched_on_word_bounds()
         {
             DietCriteriaMatcher.IsWordPattern(@"\mrum\M").Should().BeTrue();
@@ -194,6 +247,7 @@ namespace Nom.Api.Tests.Services.MealPlan
             DietCriteriaMatcher.WordNameRows(db, AlcoholLineContext.DrinkNamePattern, scope).ToQueryString().Should().Contain("\"Name\" ~*").And.NotContain("\"AliasName\"");
             DietCriteriaMatcher.WordAliasRows(db, @"\mrum\M", null).ToQueryString().Should().Contain("\"AliasName\" ~*");
             DietCriteriaMatcher.NutrientRows(db, Alcohol, scope).ToQueryString().Should().Contain("\"Amount\" >").And.Contain("\"FdcCategoryId\"");
+            DietCriteriaMatcher.DrinkLineRows(db, scope).ToQueryString().Should().Contain("\"RawLine\" ~*").And.Contain("\"IngredientId\" = ANY");
             db.Set<RestrictionCriterionEntity>().Where(c => c.IngredientPattern != null && !c.IngredientPattern.StartsWith(DietCriteriaMatcher.WordMarker)).ToQueryString()
                 .Should().Contain("LIKE");
         }
@@ -204,6 +258,15 @@ namespace Nom.Api.Tests.Services.MealPlan
             var order = 0;
             foreach (var food in foods)
                 recipe.RecipeIngredients.Add(new RecipeIngredientEntity { IngredientId = food, MeasurementId = Gram, Quantity = 1m, SortOrder = order++ });
+            return recipe;
+        }
+
+        private static RecipeEntity Recipe(string name, params (long Food, string Raw)[] lines)
+        {
+            var recipe = new RecipeEntity { Name = name, AuthorId = PersonId, CurationStatusId = (long)CurationStatusEnum.NonCurated, RecipeIngredients = new List<RecipeIngredientEntity>() };
+            var order = 0;
+            foreach (var (food, raw) in lines)
+                recipe.RecipeIngredients.Add(new RecipeIngredientEntity { IngredientId = food, MeasurementId = Gram, Quantity = 1m, RawLine = raw, SortOrder = order++ });
             return recipe;
         }
     }

@@ -121,6 +121,35 @@ namespace Nom.Api.Tests.Services
             AlcoholLineContext.Refuse(AlcoholLineContext.Read("1/4 cup dry vermouth"), "174837", "Alcoholic beverage, wine, table, white")!.Code.Should().Be(LinkGate.AlcoholNoFood);
         }
 
+        [Theory]
+        [InlineData("2 cubes chicken flavor bouillon", "none")]
+        [InlineData("1 (3 oz) pkg lemon flavor gelatin", "none")]
+        [InlineData("1 envelope onion flavour soup mix", "none")]
+        [InlineData("1 tsp rum flavor", "extract")]
+        [InlineData("1 tsp vanilla flavoring to taste", "extract")]
+        [InlineData("1/2 tsp butter flavouring, optional", "extract")]
+        [InlineData("2 tsp essence of anchovies", "extract-food")]
+        [InlineData("1 tsp essence of lemon", "extract")]
+        public void A_product_named_with_a_flavour_word_is_not_a_flavouring_and_a_fish_essence_is_a_food_extract(string line, string sense)
+        {
+            AlcoholLineContext.Read(line).Sense.Should().Be(sense);
+        }
+
+        [Fact]
+        public void A_flavour_word_in_a_product_name_does_not_hold_the_product_or_empty_its_shortlist()
+        {
+            var bouillon = new GateFood(278801, "Chicken Bouillon", "Soup, chicken broth or bouillon, dry", "sr_legacy_food", Curated, 6, NutrientRows: 32, FdcId: "171562");
+            var gelatin = new GateFood(276108, "Gelatin Dessert Mix", "Gelatin desserts, dry mix", "sr_legacy_food", Curated, 19, NutrientRows: 32, FdcId: "168775");
+            var catalog = GateCatalog.Build(new[] { bouillon, gelatin, VanillaExtract });
+
+            LinkGate.Check(new GatePair("2 cubes chicken flavor bouillon", 1, bouillon, ReadersAgreed: true), catalog).Select(h => h.Code).Should().NotContain(LinkGate.AlcoholNotDrink);
+            LinkGate.Check(new GatePair("lemon flavor gelatin", 1, gelatin, ReadersAgreed: true), catalog).Select(h => h.Code).Should().NotContain(LinkGate.AlcoholNotDrink);
+            AlcoholLineContext.Refuse(AlcoholLineContext.Read("2 tsp essence of anchovies"), "174183", "Fish, anchovy, european, canned in oil, drained solids").Should().BeNull("a fish essence is not held for lacking an extract word");
+
+            var matcher = new FoodNameMatcher(new[] { new FoodCandidate(278801, "171562", "Soup, chicken broth or bouillon, dry", "sr_legacy_food") });
+            matcher.Shortlist("chicken bouillon", 10, AlcoholLineContext.Read("chicken flavor bouillon")).Select(c => c.FdcId).Should().Equal("171562");
+        }
+
         [Fact]
         public void Every_drink_sense_has_foods_and_no_other_sense_has_any()
         {

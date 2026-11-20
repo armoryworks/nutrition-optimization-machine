@@ -513,6 +513,7 @@ namespace Nom.Orch.Services
             //    no IngredientId of its own — the criteria supply the ingredients).
             var restrictedSet = await new Support.HouseholdRestrictionResolver(_context).ResolveAsync(model.HouseholdId);
             var restrictedIngredientIds = restrictedSet.IngredientIds.ToList();
+            var restrictedRecipeIds = restrictedSet.RecipeIds.ToList();
 
             // 2b. Safety gate: does any active member carry a SEVERE restriction
             //     (severity >= 4 — allergy/medical)? If so, recipes are limited
@@ -617,6 +618,10 @@ namespace Nom.Orch.Services
                 {
                     query = query.Where(r => !r.RecipeIngredients!
                         .Any(ri => restrictedIngredientIds.Contains(ri.IngredientId)));
+                }
+                if (restrictedRecipeIds.Count > 0)
+                {
+                    query = query.Where(r => !restrictedRecipeIds.Contains(r.Id));
                 }
 
                 if (hasSevereRestriction)

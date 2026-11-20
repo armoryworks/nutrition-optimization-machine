@@ -11,7 +11,10 @@ using Nom.Data.Nutrient;
 using Nom.Data.Plan;
 using Nom.Data.Recipe;
 using Nom.Data.Reference;
+using Moq;
 using Nom.Import.Golden;
+using Nom.Orch.Interfaces;
+using Nom.Orch.Services;
 using Nom.Orch.Services.Support;
 using Xunit;
 using Xunit.Abstractions;
@@ -25,7 +28,9 @@ namespace Nom.Api.Tests.Golden
     /// the rules score now. The allowed-food table names only USDA alcoholic beverages of the
     /// frozen catalog. Over the judged link pairs, the rules refuse no pair judged right. The diet
     /// gate replay: every golden line read as a drink is still flagged for No Alcohol when it is the
-    /// name of an unlinked food, and the lines the old name patterns flagged by mistake are not.
+    /// name of an unlinked food, and the lines the old name patterns flagged by mistake are not; and
+    /// every golden line its expected sense counts, linked to a food that is not a drink (the state of
+    /// the wrong links on staging until the re-check), keeps its recipe flagged.
     /// </summary>
     [Trait("Category", "Golden")]
     public class GoldenAlcoholContextTests
@@ -137,6 +142,62 @@ namespace Nom.Api.Tests.Golden
             lost.Should().BeEmpty("no line read as a drink may lose its flag");
             falseFlags.Should().BeEmpty();
             cleared.Should().BeGreaterThan(20, "vinegars, extracts, soft drinks, crumbs and ginger no longer match");
+        }
+
+        [Fact]
+        public async Task The_diet_gate_replay_keeps_a_recipe_flagged_when_its_drink_line_is_linked_to_a_food_that_is_not_a_drink()
+        {
+            var rows = GoldenSet.Read("alcohol-context.tsv").Rows.Where(r => r["status"] == GoldenSet.Ok && r.Value("title") == null).ToList();
+            await using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options,
+                new HttpContextAccessor { HttpContext = new DefaultHttpContext() });
+            const long NoAlcohol = 60913, Person = 70, Household = 7, Gram = 1;
+            db.Set<ReferenceEntity>().Add(new ReferenceEntity { Id = NoAlcohol, Name = "No Alcohol" });
+            db.Nutrients.Add(new NutrientEntity { Id = 5038, Name = "Alcohol", DefaultMeasurementId = Gram });
+            db.HouseholdMembers.Add(new HouseholdMemberEntity { HouseholdId = Household, PersonId = Person, IsActive = true });
+            db.Restrictions.Add(new RestrictionEntity { PersonId = Person, Name = "No Alcohol", RestrictionTypeId = NoAlcohol });
+            var wrongFoods = new[] { "Red Wine Vinegar", "Apple Cider Vinegar", "Non-Alcoholic Wine", "Sugar" }
+                .Select(n => new IngredientEntity { Name = n, CurationStatusId = (long)CurationStatusEnum.Curated }).ToList();
+            foreach (var food in wrongFoods) food.IngredientNutrients.Add(new IngredientNutrientEntity { NutrientId = 5038, Amount = 0m, MeasurementId = Gram });
+            db.Ingredients.AddRange(wrongFoods);
+            await db.SaveChangesAsync();
+            var recipes = rows.Select((r, i) => (Row: r, Food: wrongFoods[i % wrongFoods.Count], Recipe: new RecipeEntity
+            {
+                Name = "replay " + r.Id, AuthorId = Person, CurationStatusId = (long)CurationStatusEnum.NonCurated,
+                RecipeIngredients = new List<RecipeIngredientEntity> { new() { IngredientId = wrongFoods[i % wrongFoods.Count].Id, MeasurementId = Gram, Quantity = 1m, RawLine = r["raw"] } },
+            })).ToList();
+            db.Recipes.AddRange(recipes.Select(x => x.Recipe));
+            await db.SaveChangesAsync();
+            await DefaultRestrictionCriteria.EnsureAsync(db);
+
+            var set = await new HouseholdRestrictionResolver(db).ResolveAsync(Household);
+            var service = new RecipeOrchestrationService(db, new HttpContextAccessor(), new Mock<ICurrentUserService>().Object,
+                new Mock<Nom.Orch.UtilityInterfaces.IMediaStorageService>().Object, new Mock<IRecipeNutritionService>().Object);
+            var old = OldAlcoholPatterns.Select(p => new Regex("^" + Regex.Escape(p).Replace("%", ".*") + "$", RegexOptions.IgnoreCase)).ToList();
+
+            var lostInPlans = new List<string>();
+            var lostOnPage = new List<string>();
+            var falseFlags = new List<string>();
+            foreach (var (row, food, recipe) in recipes)
+            {
+                var drink = ExpectedToCount(row);
+                var planned = !set.IngredientIds.Contains(food.Id) && !set.RecipeIds.Contains(recipe.Id);
+                var onPage = (await service.GetDietMatchesAsync(recipe.Id, Person)).Count > 0;
+                if (drink && old.Any(o => o.IsMatch(food.Name)) && planned) lostInPlans.Add($"{row["raw"]} on {food.Name}");
+                if (drink && !onPage) lostOnPage.Add($"{row["raw"]} on {food.Name}");
+                if (!drink && (onPage || !planned)) falseFlags.Add($"{row["raw"]} on {food.Name}");
+            }
+            _output.WriteLine($"{recipes.Count(x => ExpectedToCount(x.Row))} of {recipes.Count} golden lines are drinks, each linked to a food that is not one");
+
+            lostInPlans.Should().BeEmpty("a drink line on a food the old name patterns matched keeps its recipe out of a No Alcohol household's plans");
+            lostOnPage.Should().BeEmpty("the recipe page reads every line's own text");
+            falseFlags.Should().BeEmpty();
+        }
+
+        private static bool ExpectedToCount(GoldenRow row)
+        {
+            var sense = row["expect"];
+            if (sense == AlcoholLineContext.ListSense) return AlcoholLineContext.CountsForDiet(AlcoholLineContext.Read(row["raw"]));
+            return AlcoholLineContext.KindOf(sense) is AlcoholSenseKind.Drink or AlcoholSenseKind.Held or AlcoholSenseKind.Unclear || sense == "dish";
         }
     }
 }

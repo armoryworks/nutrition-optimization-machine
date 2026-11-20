@@ -15,6 +15,8 @@ namespace Nom.Orch.Services.Support
         public HashSet<long> IngredientIds { get; } = new();
         /// <summary>Any active restriction (or its category's criteria) at severity ≥ 4 — allergy/medical.</summary>
         public bool HasSevere { get; set; }
+        /// <summary>Recipes forbidden by a line's own text rather than its food: a drink line linked to a food that is not a drink (<see cref="DietCriteriaMatcher.DrinkLineRecipesAsync"/>).</summary>
+        public HashSet<long> RecipeIds { get; } = new();
         public static readonly RestrictedIngredientSet Empty = new();
     }
 
@@ -146,13 +148,14 @@ namespace Nom.Orch.Services.Support
             return result;
         }
 
-        /// <summary>Adds the foods the word and nutrient criteria of the types match (<see cref="DietCriteriaMatcher"/>).</summary>
+        /// <summary>Adds the foods the word and nutrient criteria of the types match, and the recipes whose drink lines are linked to none of them (<see cref="DietCriteriaMatcher"/>).</summary>
         private async Task AddDataCriteriaAsync(RestrictedIngredientSet result, IReadOnlyCollection<long> typeIds, int minimumSeverity)
         {
             var data = await DietCriteriaMatcher.CriteriaAsync(_db, typeIds, minimumSeverity);
             if (data.Count == 0) return;
             foreach (var ids in (await DietCriteriaMatcher.FoodsAsync(_db, data)).Values)
                 result.IngredientIds.UnionWith(ids);
+            result.RecipeIds.UnionWith(await DietCriteriaMatcher.DrinkLineRecipesAsync(_db, data, result.IngredientIds));
         }
 
         /// <summary>Ingredient ids whose name or any alias matches one of the SQL LIKE patterns (case-insensitive).</summary>

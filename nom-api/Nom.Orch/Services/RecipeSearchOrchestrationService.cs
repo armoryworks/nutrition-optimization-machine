@@ -49,6 +49,11 @@ namespace Nom.Orch.Services
                     var forbidden = severe.IngredientIds.ToList();
                     query = query.Where(r => !r.RecipeIngredients!.Any(ri => forbidden.Contains(ri.IngredientId)));
                 }
+                if (dietConflictsHidden && severe.RecipeIds.Count > 0)
+                {
+                    var forbiddenRecipes = severe.RecipeIds.ToList();
+                    query = query.Where(r => !forbiddenRecipes.Contains(r.Id));
+                }
             }
 
             // Apply sorting
@@ -219,13 +224,18 @@ namespace Nom.Orch.Services
             // Exclude recipes that contain restricted ingredients for household members
             if (householdId.HasValue)
             {
-                var restrictedIngredientIds = (await new Support.HouseholdRestrictionResolver(_context)
-                    .ResolveAsync(householdId.Value)).IngredientIds.ToList();
+                var restricted = await new Support.HouseholdRestrictionResolver(_context).ResolveAsync(householdId.Value);
+                var restrictedIngredientIds = restricted.IngredientIds.ToList();
+                var restrictedRecipeIds = restricted.RecipeIds.ToList();
 
                 if (restrictedIngredientIds.Count > 0)
                 {
                     query = query.Where(r => !r.RecipeIngredients!
                         .Any(ri => restrictedIngredientIds.Contains(ri.IngredientId)));
+                }
+                if (restrictedRecipeIds.Count > 0)
+                {
+                    query = query.Where(r => !restrictedRecipeIds.Contains(r.Id));
                 }
             }
 

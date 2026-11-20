@@ -29,7 +29,9 @@ namespace Nom.Orch.Services.Support
     /// extract, a soft drink, a cooking liquid) does not count, and when the same restriction has
     /// a nutrient criterion, a food that stores that nutrient is left to it. A criterion with a
     /// per-serving cap is not read here: the per-serving exclusion of retained alcohol belongs to
-    /// the alcohol-retention item. Name patterns with <c>%</c> keep their ILIKE meaning and are
+    /// the alcohol-retention item. A recipe line's own text is read too: a line that reads as a drink
+    /// counts whatever food it is linked to (<see cref="DrinkLineRecipesAsync"/>), so a drink line
+    /// still linked to a vinegar or a non-alcoholic drink keeps its recipe flagged. Name patterns with <c>%</c> keep their ILIKE meaning and are
     /// matched where they were before.
     /// </summary>
     public static class DietCriteriaMatcher
@@ -97,6 +99,38 @@ namespace Nom.Orch.Services.Support
             }
             return result;
         }
+
+        /// <summary>Whether the criteria hold the alcohol nutrient criterion with no per-serving cap, the one a recipe line's own text is read for.</summary>
+        public static bool ReadsLines(IEnumerable<DietDataCriterion> criteria) => criteria.Any(c => c.NutrientId != null && c.MaxAmountPerServing == null && IsAlcohol(c.NutrientName));
+
+        /// <summary>Whether a recipe line's own text counts as alcohol for the diet gate, whatever food it is linked to.</summary>
+        public static bool LineCounts(string? rawLine) => !string.IsNullOrWhiteSpace(rawLine) && AlcoholLineContext.CountsForDiet(AlcoholLineContext.Read(rawLine));
+
+        /// <summary>
+        /// The recipes with a line whose own text reads as a drink while its food is none of the
+        /// <paramref name="flagged"/> foods: a line such as "1 glass of sherry" linked to Red Wine
+        /// Vinegar, which the old name patterns flagged by the food's name. Only lines linked to a
+        /// food whose name or an alias holds a drink word are read (<see cref="AlcoholLineContext.DrinkNamePattern"/>),
+        /// so the probe stays on the few foods the old patterns could have matched as a drink.
+        /// </summary>
+        public static async Task<HashSet<long>> DrinkLineRecipesAsync(ApplicationDbContext db, IReadOnlyCollection<DietDataCriterion> criteria, IReadOnlySet<long> flagged)
+        {
+            if (!ReadsLines(criteria)) return new HashSet<long>();
+            var candidates = (await NamesAsync(db, AlcoholLineContext.DrinkNamePattern, null)).Select(n => n.Id).Where(id => !flagged.Contains(id)).Distinct().ToList();
+            if (candidates.Count == 0) return new HashSet<long>();
+            var lines = db.Database.IsRelational()
+                ? await DrinkLineRows(db, candidates).ToListAsync()
+                : await db.RecipeIngredients.AsNoTracking().Where(ri => !ri.IsDeleted && candidates.Contains(ri.IngredientId)).Select(ri => new RecipeLine(ri.RecipeId, ri.RawLine)).ToListAsync();
+            return lines.Where(l => LineCounts(l.RawLine)).Select(l => l.RecipeId).ToHashSet();
+        }
+
+        internal sealed record RecipeLine(long RecipeId, string RawLine);
+
+        /// <summary>The live lines on the candidate foods whose text holds a drink word (<c>~*</c>), read by the rules after.</summary>
+        internal static IQueryable<RecipeLine> DrinkLineRows(ApplicationDbContext db, IReadOnlyCollection<long> candidates) =>
+            db.RecipeIngredients.AsNoTracking()
+                .Where(ri => !ri.IsDeleted && candidates.Contains(ri.IngredientId) && Regex.IsMatch(ri.RawLine, AlcoholLineContext.DrinkNamePattern, RegexOptions.IgnoreCase))
+                .Select(ri => new RecipeLine(ri.RecipeId, ri.RawLine));
 
         internal sealed record NutrientFood(long IngredientId, string Name, int? CategoryId);
 

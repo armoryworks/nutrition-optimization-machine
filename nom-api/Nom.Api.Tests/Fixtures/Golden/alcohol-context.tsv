@@ -156,3 +156,7 @@ ac-154	1 cup rice wine	-	-	no	rice-wine	-	173185	agent	agent-review-alcohol-cont
 ac-155	1 tsp anchovy essence	-	-	no	extract-food	-	174815	ok	rule:alcohol-context	anchovy essence is a fish sauce, not a flavouring of drink
 ac-156	1/2 lb malaga raisins	-	-	no	other	-	173176	ok	rule:alcohol-context	raisins, not Malaga wine
 ac-157	1 lb malaga grapes	-	-	no	other	-	173176	ok	rule:alcohol-context	grapes, not Malaga wine
+ac-158	2 cubes chicken flavor bouillon	-	-	no	none	171562	-	ok	rule:alcohol-context	a product named with a flavour word is not a flavouring
+ac-159	1 (3 oz) pkg lemon flavor gelatin	-	-	no	none	168775	-	ok	rule:alcohol-context	a product named with a flavour word is not a flavouring
+ac-160	1 tsp rum flavor	-	-	no	extract	173471	174817	ok	rule:alcohol-context	<drink> flavor at the end of the line is a flavouring
+ac-161	2 tsp essence of anchovies	-	-	no	extract-food	174183	174815	ok	rule:alcohol-context	essence of a fish is a food extract, not a flavouring
