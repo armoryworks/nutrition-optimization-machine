@@ -110,6 +110,53 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void Amounts_swapped_between_two_ingredients_are_wrong_amounts()
+        {
+            var finding = Check(
+                new[] { "Whisk 1 cup flour with 2 cups milk until smooth." },
+                new[] { "Using a whisk, combine 2 cups flour and 1 cup milk until smooth." },
+                new[] { "1 cup flour", "2 cups milk" });
+
+            finding.Faults.Where(f => f.Reason == ProseCheck.WrongAmount).Should().HaveCount(2, finding.ToString());
+            Check(
+                new[] { "Whisk 1 cup flour with 2 cups milk until smooth." },
+                new[] { "Using a whisk, combine 1 cup flour and 2 cups milk until smooth." },
+                new[] { "1 cup flour", "2 cups milk" }).Passed.Should().BeTrue();
+        }
+
+        [Fact]
+        public void An_amount_the_source_states_twice_must_be_stated_twice()
+        {
+            var finding = Check(new[] { "Bake 10 minutes, then turn and bake 10 minutes more." }, new[] { "Bake 10 minutes, turn it over and continue." });
+
+            finding.Reasons.Should().Contain(ProseCheck.LostQuantity, finding.ToString());
+            Check(new[] { "Bake 10 minutes, then turn and bake 10 minutes more." }, new[] { "Bake 10 minutes, turn it over and bake another 10 minutes." })
+                .Passed.Should().BeTrue();
+        }
+
+        [Fact]
+        public void A_short_method_copied_with_one_word_changed_is_copied_text()
+        {
+            var finding = Check(
+                new[] { "Spread the softened cream cheese evenly over each warm tortilla, then sprinkle with the chopped green onions and roll up tightly." },
+                new[] { "Spread the softened cream cheese evenly over each warm tortilla, and sprinkle with the chopped green onions and roll up tightly." });
+
+            finding.Reasons.Should().Contain(ProseCheck.CopiedText, finding.ToString());
+        }
+
+        [Fact]
+        public void A_soft_count_changed_in_the_same_context_is_a_changed_amount()
+        {
+            var finding = Check(
+                new[] { "Divide the dough into two equal parts and shape each into a ball." },
+                new[] { "Split the dough into three equal parts, then shape each one into a ball." });
+
+            finding.Reasons.Should().Contain(ProseCheck.LostQuantity, finding.ToString());
+            Check(new[] { "Divide the dough into two equal parts and shape each into a ball." }, new[] { "Halve the dough and shape each half into a ball." })
+                .Reasons.Should().NotContain(ProseCheck.QuantityReasons);
+        }
+
+        [Fact]
         public void The_source_lines_are_the_recipe_ingredients_of_its_json_ld()
         {
             const string json = """{"@type":"Recipe","recipeIngredient":["3/4 cup heavy cream","<b>1</b> tsp salt",""],"recipeInstructions":["Mix."]}""";

@@ -16,8 +16,9 @@ namespace Nom.Api.Tests.Services
     /// <summary>
     /// The stock-phrase index is built from the stored source documents: a phrase is stock when
     /// three or more sites use it, a site counts once however many of its documents use it, a dry
-    /// run writes nothing, a write replaces the index under the next version and is journaled,
-    /// and an unchanged index is not written again.
+    /// run writes nothing, a write adds the index under the next version, keeps the earlier ones
+    /// and is journaled, an unchanged index is not written again, and an earlier version can be
+    /// loaded and restored.
     /// </summary>
     public class ProseStockServiceTests
     {
@@ -101,7 +102,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task A_write_replaces_the_index_under_the_next_version_and_an_unchanged_one_is_not_written()
+        public async Task A_write_adds_the_index_under_the_next_version_and_an_unchanged_one_is_not_written()
         {
             await using var db = await SeedAsync();
             var service = new ProseStockService(db, new NoUser());
@@ -122,13 +123,54 @@ namespace Nom.Api.Tests.Services
             next.Added.Should().BeGreaterThan(0);
             index.Version.Should().Be(2);
             index.IsStock(ProsePhrases.Hash("bring a large pot of")).Should().BeTrue("delta is its third site");
-            (await db.ProseStockPhrases.Select(p => p.Version).Distinct().ToListAsync()).Should().Equal(2);
+            (await db.ProseStockPhrases.Select(p => p.Version).Distinct().OrderBy(v => v).ToListAsync()).Should().Equal(1, 2);
 
             var journal = await db.AuditLogEntries.OrderBy(a => a.Id).ToListAsync();
             journal.Should().HaveCount(2);
             journal.Should().OnlyContain(a => a.EntityType == ProseStockService.EntityType && a.ChangeType == ProseStockService.RebuildChangeType);
             journal[1].EntityId.Should().Be(2);
             journal[1].OldValue.Should().StartWith("version 1:");
+        }
+
+        [Fact]
+        public async Task An_earlier_version_survives_a_rebuild_and_can_be_restored_as_the_next_version()
+        {
+            await using var db = await SeedAsync();
+            var service = new ProseStockService(db, new NoUser());
+            await service.RebuildAsync(apply: true);
+            var first = await service.LoadAsync();
+            await AddAsync(db, "https://delta.example/pasta", Document("Pasta.", "Bring a large pot of water to a boil."));
+            await service.RebuildAsync(apply: true);
+
+            var kept = await service.LoadAsync(1);
+            kept.Version.Should().Be(1);
+            kept.Count.Should().Be(first.Count);
+            kept.IsStock(ProsePhrases.Hash("bring a large pot of")).Should().BeFalse();
+
+            var dryRun = await service.RestoreAsync(1);
+            dryRun.Found.Should().BeTrue();
+            dryRun.Applied.Should().BeFalse();
+            dryRun.Version.Should().Be(3);
+            dryRun.Removed.Should().BeGreaterThan(0);
+            (await service.LoadAsync()).Version.Should().Be(2);
+
+            var restored = await service.RestoreAsync(1, apply: true);
+            var index = await service.LoadAsync();
+            restored.Applied.Should().BeTrue();
+            index.Version.Should().Be(3);
+            index.Count.Should().Be(first.Count);
+            index.IsStock(ProsePhrases.Hash("bring a large pot of")).Should().BeFalse();
+            (await service.LoadAsync(2)).IsStock(ProsePhrases.Hash("bring a large pot of")).Should().BeTrue();
+
+            var journal = await db.AuditLogEntries.OrderBy(a => a.Id).ToListAsync();
+            journal.Should().HaveCount(3);
+            journal[2].ChangeType.Should().Be(ProseStockService.RestoreChangeType);
+            journal[2].EntityId.Should().Be(3);
+            journal[2].NewValue.Should().Contain("of version 1");
+
+            (await service.RestoreAsync(3, apply: true)).Applied.Should().BeFalse("version 3 is the current index");
+            (await service.RestoreAsync(9, apply: true)).Found.Should().BeFalse();
+            (await db.AuditLogEntries.CountAsync()).Should().Be(3);
         }
 
         [Theory]

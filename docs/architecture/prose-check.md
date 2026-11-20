@@ -27,19 +27,27 @@ A rewrite passes only when every rule holds.
      minutes). A range collapsed, widened or narrowed is `changed-range`. A source amount the rewrite
      lacks is `lost-quantity`; an amount the source, its title and its ingredient lines lack is
      `added-quantity`.
+   - Amounts are matched one for one: an amount the source states twice ("bake 10 minutes, turn and
+     bake 10 minutes more") must be stated twice, or the second is `lost-quantity`. An oven
+     temperature restated counts once.
    - Step markers ("2.", "Step 3", "2In a bowl", a trailing "3.") and cross-references ("as in step
      3", "No. 156") are not amounts. A count of exactly one, and a spelled-out count before "sides",
-     "edges", "ends" or "equal", is soft: never required, never added.
+     "edges", "ends" or "equal", is soft: it may be dropped or added ("in half" as "two equal
+     parts"), but where both texts state a soft count before the same word, the source's must be
+     kept ("two equal parts" as "three equal parts" is `lost-quantity`).
    - An amount in brackets right after another of its family ("350°F (175°C)", "9-inch (23 cm)") is
      a conversion and may be dropped; one stated must still match. Any other bracketed amount
      ("(350° F.)" alone, "1 can (15 oz)") is required.
 2. **Amounts against the ingredient lines.** An amount up to 4 words before an ingredient's name
-   (the last name word of a line, matched by the recipe's own line words) must equal a source method
-   amount. If not, and the method states an amount of that family for that ingredient, it is
-   `wrong-amount`: where the method and its own lines disagree, the method's amount is the one to
-   keep. If the method states none, the line's amount or the sum of that ingredient's lines is
-   allowed, and any other amount of the line's family is `wrong-amount`. The ingredient lines are
-   the source's `recipeIngredient` (`ProseCheck.SourceLines`).
+   (the last name word of a line, matched by the recipe's own line words) is compared with that
+   ingredient's amounts only. If the method states an amount of that family for that ingredient,
+   the rewrite's must equal it, or it is `wrong-amount`: where the method and its own lines
+   disagree, the method's amount is the one to keep, and two amounts swapped between ingredients
+   ("1 cup flour with 2 cups milk" as "2 cups flour and 1 cup milk") are two `wrong-amount`s. If the
+   method states none, the line's amount, the sum of that ingredient's lines, or a method amount next
+   to no ingredient is allowed; any other amount of the line's family is `wrong-amount`, and a method
+   amount that belongs to another ingredient counts as added. The ingredient lines are the source's
+   `recipeIngredient` (`ProseCheck.SourceLines`).
 3. **Coverage.**
    - Every cooking verb of the source must be kept (`lost-step`). Verbs come from the synonym groups
      of `prose-verbs.tsv` (compiled into Nom.Orch): "heat", "warm" and "preheat" are one action,
@@ -57,7 +65,10 @@ A rewrite passes only when every rule holds.
      found in the rewrite, must be at most 0.12. It is counted when the source has 20 or more
      distinctive phrases; below that the run and sentence rules carry the check.
    - No run of copied distinctive phrases may be longer than 11 words.
-   - No source sentence of 10 or more distinctive words may appear whole.
+   - No source sentence of 10 or more distinctive words may appear whole, or with 80 % or more of
+     those words inside distinctive phrases the rewrite shares (`ProseCheck.SentenceCopiedShare`):
+     a sentence copied with a word or two changed is still copied. This is what catches a short
+     method below the containment floor.
    - Steps word for word equal to the source method are `unchanged`.
    All three copy rules report `copied-text`. The limits C = 0.12 and R = 11 are the design's
    starting values, to be set from the staging proof at the 98th percentile of clean-room output and
@@ -75,18 +86,25 @@ the 64-bit FNV-1a of the phrase's words joined by single spaces.
 
 `ProseStockService` builds it from every stored source document: the description and each method
 step of the JSON-LD, phrases inside one step only, each site (the source host without "www.")
-counted once per phrase. The same documents always give the same index. A write replaces the whole
-index under the next version and journals one `ProseStockRebuild` entry in `audit.AuditLogEntry`
-(`EntityType` `ProseStockPhrase`, old and new version and counts). An index that would not change is
-not written and keeps its version.
+counted once per phrase. The same documents always give the same index. A write adds the whole
+index as the next version (the primary key is `Version`, `Hash`) and keeps the earlier versions, so
+a check run recorded with stock version N can be repeated against version N
+(`IProseStockService.LoadAsync(N)`) after the documents have changed. It journals one
+`ProseStockRebuild` entry in `audit.AuditLogEntry` (`EntityType` `ProseStockPhrase`, old and new
+version and counts). An index that would not change, or one with no phrases, is not written and keeps
+its version.
 
 ```
 POST /api/ProseRewrite/stock/rebuild?apply=false   # dry run: documents, sites, per-site counts, phrases, stock phrases, added, removed, versions
 POST /api/ProseRewrite/stock/rebuild?apply=true
+POST /api/ProseRewrite/stock/restore?version=N&apply=false   # dry run of the undo
+POST /api/ProseRewrite/stock/restore?version=N&apply=true
 ```
 
-Curation-gated (`CanManageCuration`). There is no separate undo: a rebuild from the same documents
-gives the same index. With no index built the check treats every phrase as distinctive, which is the
+Curation-gated (`CanManageCuration`). The undo of a rebuild is a restore: it writes the phrases of
+version N again as the next version and journals one `ProseStockRestore` entry, so a version number
+always names one index and is never reused. A version that does not exist or equals the current index
+is not written. With no index built the check treats every phrase as distinctive, which is the
 strict reading.
 
 ## Golden sets

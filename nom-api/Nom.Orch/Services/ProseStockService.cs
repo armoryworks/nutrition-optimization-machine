@@ -18,13 +18,15 @@ namespace Nom.Orch.Services
     /// Builds the stock-phrase index from the stored source documents: every five-word phrase of
     /// each document's description and method steps (<see cref="ProsePhrases"/>), counted once per
     /// site, kept when <see cref="ProseStockIndex.StockSites"/> or more sites use it. The same
-    /// documents always give the same index. Each write replaces the whole index under the next
-    /// version and is journaled.
+    /// documents always give the same index. Each write adds the whole index under the next version
+    /// and keeps the earlier ones, so a check run against any earlier version can be repeated and
+    /// that version restored; every write is journaled.
     /// </summary>
     public class ProseStockService : IProseStockService
     {
         public const string EntityType = "ProseStockPhrase";
         public const string RebuildChangeType = "ProseStockRebuild";
+        public const string RestoreChangeType = "ProseStockRestore";
 
         private const int DocumentsPerRead = 500;
         private const int RowsPerSave = 10000;
@@ -116,27 +118,13 @@ namespace Nom.Orch.Services
             result.CurrentVersion = current.Version;
             result.Added = stock.Keys.Count(h => !currentHashes.Contains(h));
             result.Removed = currentHashes.Count(h => !stock.ContainsKey(h));
-            var unchanged = current.Version > 0 && result.Added == 0 && result.Removed == 0;
+            var unchanged = stock.Count == 0 || current.Version > 0 && result.Added == 0 && result.Removed == 0;
             result.Version = unchanged ? current.Version : current.Version + 1;
+            if (unchanged) result.Applied = false;
             if (!apply || unchanged) return result;
 
             await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(cancellationToken) : null;
-            if (_db.Database.IsRelational())
-            {
-                await _db.ProseStockPhrases.ExecuteDeleteAsync(cancellationToken);
-            }
-            else
-            {
-                _db.ProseStockPhrases.RemoveRange(await _db.ProseStockPhrases.ToListAsync(cancellationToken));
-                await _db.SaveChangesAsync(cancellationToken);
-            }
-
-            foreach (var chunk in stock.OrderBy(e => e.Key).Chunk(RowsPerSave))
-            {
-                _db.ProseStockPhrases.AddRange(chunk.Select(e => new ProseStockPhraseEntity { Hash = e.Key, SiteCount = e.Value, Version = result.Version }));
-                await _db.SaveChangesAsync(cancellationToken);
-                _db.ChangeTracker.Clear();
-            }
+            await WriteAsync(stock, result.Version, cancellationToken);
 
             _db.AuditLogEntries.Add(new AuditLogEntryEntity
             {
@@ -155,12 +143,66 @@ namespace Nom.Orch.Services
             return result;
         }
 
-        public async Task<ProseStockIndex> LoadAsync(CancellationToken cancellationToken = default)
+        public async Task<ProseStockRestoreResult> RestoreAsync(int version, bool apply = false, CancellationToken cancellationToken = default)
         {
-            var version = await _db.ProseStockPhrases.AsNoTracking().MaxAsync(p => (int?)p.Version, cancellationToken) ?? 0;
-            if (version == 0) return ProseStockIndex.Empty;
+            var current = await CurrentVersionAsync(cancellationToken);
+            var result = new ProseStockRestoreResult { RestoredVersion = version, CurrentVersion = current, Version = current };
+            var restored = await _db.ProseStockPhrases.AsNoTracking().Where(p => p.Version == version)
+                .ToDictionaryAsync(p => p.Hash, p => p.SiteCount, cancellationToken);
+            if (restored.Count == 0) return result;
+
+            result.Found = true;
+            result.StockPhrases = restored.Count;
+            var currentHashes = (await _db.ProseStockPhrases.AsNoTracking().Where(p => p.Version == current).Select(p => p.Hash).ToListAsync(cancellationToken)).ToHashSet();
+            result.Added = restored.Keys.Count(h => !currentHashes.Contains(h));
+            result.Removed = currentHashes.Count(h => !restored.ContainsKey(h));
+            if (result.Added == 0 && result.Removed == 0) return result;
+
+            result.Version = current + 1;
+            if (!apply) return result;
+
+            result.Applied = true;
+
+            await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(cancellationToken) : null;
+            await WriteAsync(restored, result.Version, cancellationToken);
+            _db.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = EntityType,
+                EntityId = result.Version,
+                ChangeType = RestoreChangeType,
+                PropertyName = nameof(ProseStockPhraseEntity.Version),
+                OldValue = string.Create(CultureInfo.InvariantCulture, $"version {current}: {currentHashes.Count} phrases"),
+                NewValue = string.Create(CultureInfo.InvariantCulture,
+                    $"version {result.Version}: the {restored.Count} phrases of version {version}; added {result.Added}, removed {result.Removed}"),
+                Timestamp = DateTime.UtcNow,
+                ChangedByPersonId = _currentUser.PersonIdOrSystem,
+            });
+            await _db.SaveChangesAsync(cancellationToken);
+            if (tx != null) await tx.CommitAsync(cancellationToken);
+            return result;
+        }
+
+        public async Task<ProseStockIndex> LoadAsync(CancellationToken cancellationToken = default) =>
+            await LoadAsync(await CurrentVersionAsync(cancellationToken), cancellationToken);
+
+        public async Task<ProseStockIndex> LoadAsync(int version, CancellationToken cancellationToken = default)
+        {
+            if (version <= 0) return ProseStockIndex.Empty;
             var hashes = await _db.ProseStockPhrases.AsNoTracking().Where(p => p.Version == version).Select(p => p.Hash).ToListAsync(cancellationToken);
-            return new ProseStockIndex(version, hashes);
+            return hashes.Count == 0 ? ProseStockIndex.Empty : new ProseStockIndex(version, hashes);
+        }
+
+        private async Task<int> CurrentVersionAsync(CancellationToken cancellationToken) =>
+            await _db.ProseStockPhrases.AsNoTracking().MaxAsync(p => (int?)p.Version, cancellationToken) ?? 0;
+
+        private async Task WriteAsync(IReadOnlyDictionary<long, int> phrases, int version, CancellationToken cancellationToken)
+        {
+            foreach (var chunk in phrases.OrderBy(e => e.Key).Chunk(RowsPerSave))
+            {
+                _db.ProseStockPhrases.AddRange(chunk.Select(e => new ProseStockPhraseEntity { Hash = e.Key, SiteCount = e.Value, Version = version }));
+                await _db.SaveChangesAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+            }
         }
 
         /// <summary>The recipe site a source address belongs to: its host, lower-cased, without "www."; null when it names none.</summary>

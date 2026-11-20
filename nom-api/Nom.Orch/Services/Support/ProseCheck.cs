@@ -12,11 +12,15 @@ namespace Nom.Orch.Services.Support
     /// the rewrite lane share. A rewrite passes only when every rule holds:
     /// <list type="number">
     /// <item>Quantities: every amount of the source method is stated with its unit and range
-    /// (<see cref="ProseQuantities"/>), and the rewrite states no amount the source, its title or
-    /// its ingredient lines lack. A bracketed conversion may be dropped.</item>
+    /// (<see cref="ProseQuantities"/>), once for each time the source states it (an oven
+    /// temperature restated counts once), and the rewrite states no amount the source, its title
+    /// or its ingredient lines lack. A bracketed conversion may be dropped. A soft count is
+    /// compared only where both texts state one before the same word ("two equal parts").</item>
     /// <item>Amounts against the ingredient lines: an amount within <see cref="IngredientWindow"/>
     /// words before an ingredient's name equals the source method's amount for it, or else that
-    /// line's amount or the sum of its lines; one that conflicts is <see cref="WrongAmount"/>, and
+    /// line's amount, the sum of its lines or a method amount next to no other ingredient; an
+    /// amount the method states for another ingredient does not count. One that conflicts is
+    /// <see cref="WrongAmount"/>, and
     /// where the method disagrees with its own lines the method's amount is the one to keep.</item>
     /// <item>Coverage: every cooking verb of the source (<see cref="ProseVerbLexicon"/>) and every
     /// ingredient a source step names is kept, the source steps' amounts appear in their order,
@@ -26,8 +30,9 @@ namespace Nom.Orch.Services.Support
     /// <see cref="MaximumContainment"/> of the source's distinctive five-word phrases (counted when
     /// it has <see cref="MinimumPhrasesForContainment"/> or more), no copied distinctive run longer
     /// than <see cref="MaximumRun"/> words, and no source sentence of
-    /// <see cref="SentenceWords"/> or more distinctive words whole. The description is checked
-    /// against the source description and method together.</item>
+    /// <see cref="SentenceWords"/> or more distinctive words kept whole or with
+    /// <see cref="SentenceCopiedShare"/> or more of those words inside copied phrases. The
+    /// description is checked against the source description and method together.</item>
     /// <item>Form: no step marker and no empty step.</item>
     /// </list>
     /// <see cref="Version"/> changes whenever a rule or a limit does. Text only: no database and no
@@ -41,6 +46,7 @@ namespace Nom.Orch.Services.Support
         public const int MinimumPhrasesForContainment = 20;
         public const int MaximumRun = 11;
         public const int SentenceWords = 10;
+        public const decimal SentenceCopiedShare = 0.8m;
         public const decimal MinimumLengthRatio = 0.4m;
         public const decimal MaximumLengthRatio = 1.3m;
         public const int MinimumWordsForLength = 25;
@@ -168,38 +174,58 @@ namespace Nom.Orch.Services.Support
                 .SelectMany(s => ProseQuantities.ReadPrepared(s.Text).Select(q => new Located(q, s.Text, s.Step)))
                 .ToList();
 
-            var required = sourceQuantities.Where(s => !s.Quantity.Conversion && !s.Quantity.Soft).ToList();
-            var lost = required.Where(s => !ours.Any(o => ProseQuantities.Equal(s.Quantity, o.Quantity))).ToList();
+            var softContexts = sourceQuantities.Where(s => s.Quantity.Soft).Select(SoftWord)
+                .Intersect(ours.Where(o => o.Quantity.Soft).Select(SoftWord), StringComparer.Ordinal)
+                .Where(w => w.Length > 0)
+                .ToHashSet(StringComparer.Ordinal);
+            bool Compared(Located q) => !q.Quantity.Soft || softContexts.Contains(SoftWord(q));
+
+            var required = sourceQuantities.Where(s => !s.Quantity.Conversion && Compared(s)).ToList();
+            var used = new HashSet<Located>();
+            var lost = new List<Located>();
+            foreach (var s in required)
+            {
+                var match = ours.FirstOrDefault(o => (s.Quantity.Family == ProseQuantities.Temperature || !used.Contains(o)) && ProseQuantities.Equal(s.Quantity, o.Quantity));
+                if (match == null) lost.Add(s);
+                else used.Add(match);
+            }
 
             var unmatched = new List<Located>();
             var conflicting = new List<Located>();
             foreach (var o in ours)
             {
-                if (o.Quantity.Soft) continue;
-                if (sourceQuantities.Any(s => ProseQuantities.Equal(s.Quantity, o.Quantity))) continue;
-                if (optional.Any(q => ProseQuantities.Equal(q, o.Quantity))) continue;
+                if (!Compared(o)) continue;
 
                 var ingredient = IngredientAfter(o, ingredients);
-                if (ingredient != null)
+                if (ingredient == null)
                 {
-                    var methodAmounts = sourceQuantities
-                        .Where(s => s.Quantity.Family == o.Quantity.Family && IngredientAfter(s, ingredients)?.Head == ingredient.Head)
-                        .ToList();
-                    if (methodAmounts.Count > 0)
-                    {
-                        faults.Add(new Fault(WrongAmount, $"\"{o.Quantity.Text}\" {ingredient.Head}, the method says \"{methodAmounts[0].Quantity.Text}\""));
-                        conflicting.Add(o);
-                        continue;
-                    }
+                    if (sourceQuantities.Any(s => ProseQuantities.Equal(s.Quantity, o.Quantity))) continue;
+                    if (optional.Any(q => ProseQuantities.Equal(q, o.Quantity))) continue;
+                    unmatched.Add(o);
+                    continue;
+                }
 
-                    if (LineAllows(o.Quantity, ingredient, ingredients)) continue;
-                    var lineAmount = ingredient.Amounts.FirstOrDefault(a => a.Family == o.Quantity.Family && !a.Soft);
-                    if (lineAmount != null)
-                    {
-                        faults.Add(new Fault(WrongAmount, $"\"{o.Quantity.Text}\" {ingredient.Head}, the line says \"{lineAmount.Text}\""));
-                        conflicting.Add(o);
-                        continue;
-                    }
+                var methodAmounts = sourceQuantities
+                    .Where(s => s.Quantity.Family == o.Quantity.Family && IngredientAfter(s, ingredients)?.Head == ingredient.Head)
+                    .ToList();
+                if (methodAmounts.Count > 0)
+                {
+                    if (methodAmounts.Any(s => ProseQuantities.Equal(s.Quantity, o.Quantity))) continue;
+                    faults.Add(new Fault(WrongAmount, $"\"{o.Quantity.Text}\" {ingredient.Head}, the method says \"{methodAmounts[0].Quantity.Text}\""));
+                    conflicting.Add(o);
+                    continue;
+                }
+
+                if (LineAllows(o.Quantity, ingredient, ingredients)) continue;
+                if (sourceQuantities.Any(s => ProseQuantities.Equal(s.Quantity, o.Quantity) && IngredientAfter(s, ingredients) == null)) continue;
+                if (optional.Any(q => ProseQuantities.Equal(q, o.Quantity))) continue;
+
+                var lineAmount = ingredient.Amounts.FirstOrDefault(a => a.Family == o.Quantity.Family && !a.Soft);
+                if (lineAmount != null)
+                {
+                    faults.Add(new Fault(WrongAmount, $"\"{o.Quantity.Text}\" {ingredient.Head}, the line says \"{lineAmount.Text}\""));
+                    conflicting.Add(o);
+                    continue;
                 }
 
                 unmatched.Add(o);
@@ -258,6 +284,12 @@ namespace Nom.Orch.Services.Support
 
                 if (chosen.Count > 0) cursor = chosen.Min();
             }
+        }
+
+        private static string SoftWord(Located located)
+        {
+            var next = WordToken.Match(located.Text, located.Quantity.End);
+            return next.Success ? next.Value.ToLowerInvariant().TrimEnd('s') : string.Empty;
         }
 
         private static bool LineAllows(ProseQuantity q, Ingredient ingredient, List<Ingredient> ingredients)
@@ -411,16 +443,16 @@ namespace Nom.Orch.Services.Support
 
             if (longest > MaximumRun) faults.Add(new Fault(CopiedText, $"a run of {longest} words: \"{longestText}\""));
 
-            var ourJoined = ourWords.Select(w => " " + string.Join(" ", w) + " ").ToList();
             foreach (var text in sourceTexts)
             {
                 foreach (var sentence in SentenceEnd.Split(text))
                 {
                     var words = ProsePhrases.WordsOfPrepared(sentence);
-                    if (DistinctiveWords(words, stock) < SentenceWords) continue;
-                    var joined = " " + string.Join(" ", words) + " ";
-                    if (!ourJoined.Any(o => o.Contains(joined, StringComparison.Ordinal))) continue;
-                    faults.Add(new Fault(CopiedText, $"the sentence \"{Excerpt(sentence)}\""));
+                    var (distinctiveWords, copiedWords) = SentenceCopy(words, stock, ourPhrases);
+                    if (distinctiveWords < SentenceWords || copiedWords < SentenceCopiedShare * distinctiveWords) continue;
+                    faults.Add(new Fault(CopiedText, copiedWords == distinctiveWords
+                        ? $"the sentence \"{Excerpt(sentence)}\""
+                        : $"{copiedWords} of the {distinctiveWords} distinctive words of the sentence \"{Excerpt(sentence)}\""));
                     return (containment, distinctive.Count, longest);
                 }
             }
@@ -428,16 +460,21 @@ namespace Nom.Orch.Services.Support
             return (containment, distinctive.Count, longest);
         }
 
-        private static int DistinctiveWords(List<string> words, ProseStockIndex stock)
+        private static (int Distinctive, int Copied) SentenceCopy(List<string> words, ProseStockIndex stock, HashSet<long> ourPhrases)
         {
-            var covered = new bool[words.Count];
+            var stockWord = new bool[words.Count];
+            var copiedWord = new bool[words.Count];
             for (var i = 0; i + ProsePhrases.Length <= words.Count; i++)
             {
-                if (!stock.IsStock(ProsePhrases.Hash(words, i))) continue;
+                var hash = ProsePhrases.Hash(words, i);
+                var covered = stock.IsStock(hash) ? stockWord : ourPhrases.Contains(hash) ? copiedWord : null;
+                if (covered == null) continue;
                 for (var j = i; j < i + ProsePhrases.Length; j++) covered[j] = true;
             }
 
-            return covered.Count(c => !c);
+            var distinctiveWords = stockWord.Count(c => !c);
+            var copiedWords = Enumerable.Range(0, words.Count).Count(i => copiedWord[i] && !stockWord[i]);
+            return (distinctiveWords, copiedWords);
         }
 
         private static string Excerpt(string text) => text.Length <= 120 ? text : text[..120] + "...";

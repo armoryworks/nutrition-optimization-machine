@@ -15,15 +15,27 @@ namespace Nom.Orch.Interfaces
     {
         /// <summary>
         /// Reads every stored source document, counts the sites that use each phrase of its
-        /// description and method, and with <paramref name="apply"/> replaces the index with the
-        /// phrases of <see cref="ProseStockIndex.StockSites"/> or more sites under the next version,
-        /// journaled as one <c>ProseStockRebuild</c> entry. An index that would not change is not
-        /// written. Without <paramref name="apply"/> nothing is written and the result is what the
-        /// same call would do.
+        /// description and method, and with <paramref name="apply"/> writes the phrases of
+        /// <see cref="ProseStockIndex.StockSites"/> or more sites as the next version, keeping the
+        /// earlier versions, journaled as one <c>ProseStockRebuild</c> entry. An index that would not
+        /// change, or one with no phrases, is not written. Without <paramref name="apply"/> nothing is
+        /// written and the result is what the same call would do.
         /// </summary>
         Task<ProseStockRebuildResult> RebuildAsync(bool apply = false, CancellationToken cancellationToken = default);
 
+        /// <summary>
+        /// The undo of a rebuild: with <paramref name="apply"/> writes the phrases of an earlier
+        /// <paramref name="version"/> again as the next version, journaled as one
+        /// <c>ProseStockRestore</c> entry, so versions are never reused. Nothing is written when that
+        /// version does not exist or equals the current index. Without <paramref name="apply"/>
+        /// nothing is written and the result is what the same call would do.
+        /// </summary>
+        Task<ProseStockRestoreResult> RestoreAsync(int version, bool apply = false, CancellationToken cancellationToken = default);
+
         /// <summary>The current index, or <see cref="ProseStockIndex.Empty"/> when none has been built.</summary>
         Task<ProseStockIndex> LoadAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>The index as <paramref name="version"/> held it, to repeat a check run with; <see cref="ProseStockIndex.Empty"/> when there is no such version.</summary>
+        Task<ProseStockIndex> LoadAsync(int version, CancellationToken cancellationToken = default);
     }
 }

@@ -10,7 +10,7 @@ public class ProseStockPhraseEntityConfiguration : IEntityTypeConfiguration<Pros
     {
         builder.ToTable("ProseStockPhrase", schema: "recipe");
 
-        builder.HasKey(e => e.Hash);
+        builder.HasKey(e => new { e.Version, e.Hash });
         builder.Property(e => e.Hash).ValueGeneratedNever();
         builder.Property(e => e.SiteCount).IsRequired();
         builder.Property(e => e.Version).IsRequired();

@@ -43,5 +43,12 @@ namespace Nom.Api.Controllers
         {
             return Ok(await _stock.RebuildAsync(apply, cancellationToken));
         }
+
+        /// <summary>Restore an earlier version of the stock-phrase index by writing its phrases again under the next version; a dry run unless apply=true, an unknown or current version is not written, and a write is journaled.</summary>
+        [HttpPost("stock/restore")]
+        public async Task<ActionResult<ProseStockRestoreResult>> RestoreStock([FromQuery] int version, [FromQuery] bool apply = false, CancellationToken cancellationToken = default)
+        {
+            return Ok(await _stock.RestoreAsync(version, apply, cancellationToken));
+        }
     }
 }
