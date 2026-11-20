@@ -33,7 +33,9 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `link-pairs.tsv` + `usda-catalog.tsv` | `IngredientLinkService.DeterministicTarget` (staple names, then the name matcher) | `rule`: `~id` the rule gives this food or none; `!id` never this food | `status` |
 | `compound.tsv` + `compound-vocabulary.tsv` | `CompoundLineSplitter.Plan` | `kind` (`Split`, `PickAlternative`, `Leave`, `-`), `rule`, `parts` (food names, `\|`-joined) | `status` |
 | `unfold.tsv` | `FoldedLine.Segments` | `segments` (count, or `-` when the line is not read) | `status` |
-| `prose.tsv` | `RewriteFidelity.Check` | `expect`: a reason the check must give, or `passed` | `status` |
+| `prose.tsv` | `RewriteFidelity.Check`; `ProseCheck.Check` (check v2, with `prose-stock.tsv`) | `expect`: a reason the check must give, or `passed`; `check2`: `passed`, a reason, `!reason` (must not give it) or `!quantity` (no amount reason) | `status`; `status2` |
+| `prose-stock.tsv` | the stock phrases check v2 runs with | `sites` (stock at 3 or more) | none |
+| `prose-verbs.tsv` | the verb groups of check v2, compiled into Nom.Orch | `words` (`\|`-joined) | none |
 | `piece-counts.tsv` | `RecipeRepairGrounding.PieceRefusal` (repair lane fills and `quantities/revert`) | `expect`: `keep` or `revert` | `status` |
 | `startup-fills.tsv` | `ScrapedRecipeRepairService.RepairBatchAsync` (the start-up repair's amount for a line that states none, in a recipe with its method, its other lines and, when `journal` names one, an open line journal) | `expect` (`<quantity> <unit>`, or `-` for no amount) | `status` |
 | `catalog-admission.tsv` | `CatalogAdmissionRule.Decide` (USDA catalog admission: status, group from category, edibility, energy check, reasons) | `expectStatus` (`Curated`, `PendingCuration`; the rule never rejects, and the prepared-food categories are held as `prepared_category:<name>`), `expectGroup`, `expectEdible`, `expectEnergy`, `expectReason` | `status` |
@@ -50,7 +52,10 @@ itself, must fail `unchanged`), `drop-step-N` (without a step that alone states 
 the stored rewrite itself (`rewriteDescription`, `rewriteSteps`, and the recipe `title`), as short
 excerpts of the staging rows a model operator judged on 2026-11-20 (source
 `agent-review-staging-2026-11-20`, status `agent`): false alarms that must pass and real faults
-that must fail.
+that must fail. Check v2 (`check2`, `status2`, see `prose-check.md`) runs on every row, with the
+ingredient `lines` when a row has them and an empty stock index when `stock` is `none`; its own rows
+are constructed recipes and sentences, and no fault row may pass it and at most 5 % of the faithful
+rows may fail it.
 
 `recipes.json` keeps a recipe that is not public domain as numbers only: no title and no raw line.
 
@@ -99,6 +104,7 @@ without it.
 | `compound.tsv` | the top-80 compound wordings and sample part lines of the compound design | design |
 | `unfold.tsv` | examples 1–16 of the unfold design, with source lists read from staging | design |
 | `prose.tsv` | 12 public-domain recipes from staging, rewrites built by construction | rule (by construction) |
+| `prose.tsv` check v2 rows, `prose-stock.tsv` (2026-11-20) | constructed recipes of our own text, two public-domain recipes and constructed sentences for the C9 faults and equal forms; fault rows are one deterministic edit of a faithful rewrite; the stock phrases are constructed | fault and equal-form rows: rule (`rule:construction`, `ok`); faithful rewrites: the model operator who wrote them (`agent-review-construction-2026-11-20`, `agent`) |
 | staging rehearsal rows (2026-11-20) in `piece-counts.tsv`, `compound.tsv`, `unfold.tsv`, `lines.tsv`, `veto.tsv`, `prose.tsv` | the wrong and doubtful cases of the C1–C9 operator logs, with the right outcome or "left alone" | the model operator of the rehearsal (`agent-review-staging-2026-11-20`, status `agent`) |
 | `startup-fills.tsv` (2026-11-20) | the split parts a v0.3.118 start filled on staging (pass-2 log, S1) and two stand-alone lines the same method rule still misreads (`known`) | the model operator of the rehearsal (`agent-review-staging-2026-11-20`, status `agent`/`known`) |
 | `recipes.json` | 9 recipes cited in the golden-gate design and 26 sampled curated recipes; expected values are staging's stored labels, which the in-memory service reproduces to 4 dp | catalog facts and arithmetic |

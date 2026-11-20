@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Fonts\Lato\*.ttf" LogicalName="Nom.Orch.Fonts.Lato.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\prose-verbs.tsv" LogicalName="Nom.Orch.Prose.prose-verbs.tsv" Link="Prose\prose-verbs.tsv" />
   </ItemGroup>
 
   <PropertyGroup>
