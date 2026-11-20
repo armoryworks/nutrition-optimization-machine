@@ -17,7 +17,7 @@ namespace Nom.Api.Tests.Services
 {
     /// <summary>
     /// Which stored recipe lines take the size or the package their own wording states, and how a
-    /// batch is journaled and undone. Lines here are real staging rows.
+    /// batch is journaled and undone.
     /// </summary>
     public class PackageLineTests
     {
