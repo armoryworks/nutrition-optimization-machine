@@ -15,6 +15,8 @@ namespace Nom.Orch.Services.Support
     {
         private static readonly Regex NonLetters = new(@"[^\p{L}\s-]+", RegexOptions.Compiled);
 
+        private static readonly Regex SeveralNames = new(@"\p{L}\s*&\s*\p{L}|\p{L}\s+(?:and|or)\s+\p{L}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private static readonly HashSet<string> Lead = new(StringComparer.OrdinalIgnoreCase)
         {
             "a", "an", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
@@ -47,7 +49,9 @@ namespace Nom.Orch.Services.Support
 
         public static ParsedQuantity? Find(string? rawLine, IEnumerable<string> steps)
         {
-            var name = NonLetters.Replace((rawLine ?? string.Empty).Split(',', '(')[0], " ").Trim().ToLowerInvariant();
+            var written = (rawLine ?? string.Empty).Split(',', '(')[0];
+            if (SeveralNames.IsMatch(written)) return null;
+            var name = NonLetters.Replace(written, " ").Trim().ToLowerInvariant();
             var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length == 0 || words.Length > 4) return null;
 

@@ -142,7 +142,8 @@ namespace Nom.Orch.Services
         private const string Seasonings = @"(?:salt|pepper|nutmeg|mace|cinnamon|cayenne|paprika|ginger|cloves|allspice|spices?|seasoning|herbs|parsley)";
 
         private static readonly Regex BareSeasoning = new(
-            @"^\s*(?:(?:fine|kosher|sea|table|black|white|ground|freshly\s+ground|grated)\s+)*" + Seasonings + @"\s*[.,]?\s*$",
+            @"^\s*(?:(?:a\s+)?(?:pinch|dash)(?:\s+of)?\s+)?(?:(?:fine|kosher|sea|table|black|white|ground|grated|fresh|cracked|coarse|coarsely|flaky|(?:freshly|fresh)[\s-]+(?:ground|cracked))\s+)*" +
+            Seasonings + @"\s*(?:,\s*(?:divided|plus\s+more|for\s+the)\b[^,()]*|\([^()]*\))?\s*[.,]?\s*$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex AcceptablyUnquantified = new(

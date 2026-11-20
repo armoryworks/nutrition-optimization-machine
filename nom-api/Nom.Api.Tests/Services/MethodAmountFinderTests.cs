@@ -16,6 +16,7 @@ namespace Nom.Api.Tests.Services
         [InlineData("eggs", "Beat two eggs with a gill of milk and mix it with the flour.", 2, "Piece")]
         [InlineData("milk", "Beat two eggs with a gill of milk and mix it with the flour.", 0.5, "Cup")]
         [InlineData("sugar", "Add three-fourths of a cup of sugar and stir.", 0.75, "Cup")]
+        [InlineData("pepper", "Season with a teaspoonful of pepper.", 1, "Teaspoon")]
         public void Reads_the_amount_the_method_states(string line, string method, double quantity, string measurement)
         {
             var found = MethodAmountFinder.Find(line, new[] { method });
@@ -30,6 +31,9 @@ namespace Nom.Api.Tests.Services
         [InlineData("butter", "Rub two ounces of butter into the flour, then add three ounces of butter to the sauce.")]
         [InlineData("salt", "Season with salt and pepper.")]
         [InlineData("milk", "Add milk until smooth.")]
+        [InlineData("salt and pepper", "Season with a teaspoonful of pepper.")]
+        [InlineData("butter or lard", "Melt two ounces of lard.")]
+        [InlineData("salt & pepper", "Season with a teaspoonful of pepper.")]
         public void Says_nothing_when_the_method_does_not_state_one_amount(string line, string method)
         {
             MethodAmountFinder.Find(line, new[] { method }).Should().BeNull();
