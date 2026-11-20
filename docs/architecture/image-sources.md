@@ -236,7 +236,7 @@ export OPENVERSE_CLIENT_ID=... OPENVERSE_CLIENT_SECRET=...   # optional
   seconds). Model failures never record a recipe as "nothing found": it is retried next run,
   and two failing recipes in a row stop the run. Models are unloaded at the end
   (`--no-unload` to keep them).
-- Rehearse first: `--dry-run` (or `--recipes-json file`) analyses and logs but sends nothing.
+- Rehearse first: `--dry-run` (or `--recipes-json file`) analyses and logs but sends nothing, and records no recipe as searched in the `--state` file, so the next real run still looks at them.
 - Budget per run is set by the keyless Openverse quota (200 requests/day anonymous):
   `--limit 25` with two queries per recipe stays well inside it. Past that quota Openverse
   answers 429 and is switched off for the rest of the run; the other sources carry on.

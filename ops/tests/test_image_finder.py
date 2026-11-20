@@ -369,6 +369,15 @@ class FinderGlueTests(unittest.TestCase):
         self.assertIn("unsplash.com/data", off.disabled_reason)
         self.assertTrue(on.enabled())
 
+    def test_a_dry_run_records_no_recipe_as_searched_in_the_state_file(self):
+        from datetime import datetime, timezone
+        at = datetime(2026, 11, 20, 11, 30, tzinfo=timezone.utc)
+        state = {}
+        finder.record_search(state, 141759, at, dry_run=True)
+        self.assertEqual(state, {})
+        finder.record_search(state, 141759, at, dry_run=False)
+        self.assertEqual(state, {"141759": at.isoformat()})
+
     def test_keyless_sources_are_skipped_not_failed(self):
         for name in ("PEXELS_API_KEY", "PIXABAY_API_KEY"):
             os.environ.pop(name, None)

@@ -718,6 +718,13 @@ def settle(api, recipe_id: int, outcome: str, payloads: list[dict], batch: str, 
     return held, full
 
 
+def record_search(state: dict, recipe_id: int, at: datetime, dry_run: bool) -> None:
+    """Note in the local state file that a recipe was searched; a dry run sends nothing and records nothing."""
+    if dry_run:
+        return
+    state[str(recipe_id)] = at.isoformat()
+
+
 def load_state(path: str | None) -> dict:
     if path and os.path.exists(path):
         with open(path, encoding="utf-8") as fh:
@@ -853,7 +860,7 @@ def main() -> None:
     consecutive_errors = 0
 
     def mark_searched(recipe_id: int) -> None:
-        state[str(recipe_id)] = now.isoformat()
+        record_search(state, recipe_id, now, args.dry_run)
         if api and not args.dry_run:
             try:
                 api.searched([recipe_id])
