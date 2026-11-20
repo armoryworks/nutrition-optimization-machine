@@ -145,12 +145,12 @@ in a plan. It is a dish, not an ingredient, so:
 | Path | What it does with a prepared food |
 |---|---|
 | Plan | `GET /api/ingredients/search?q=…&prepared=true` (the plan dialog's food picker, "Add a whole food or a prepared meal") finds it and marks it `isPrepared`; the picker shows "Prepared" (`whole-food-result-prepared`) and adds it as a standalone slot (`MealPlan.IngredientId`), the same path as an apple. The week view marks the entry `isPrepared`. Without `prepared=true` (recipe editor, pantry, shopping list) the search leaves it out. |
-| Recipe lines | Never a line's food. Link candidates (`IngredientLinkService.CandidatesAsync`: staple rule, name matcher, model picker), the auto-apply gate (`LinkAutoApplyGuard` holds a pick at one as `prepared food`), link apply (`ApplyFdcLinkAsync` refuses it for a person too), the verified wording load (`food is a prepared food`, never promoted), `relink/verified`, the relink plan, `MoveFood`, `MoveWordings`, retire, the compound-line vocabulary, and the importer's verified-wording and trusted-alias resolution all leave it out. A recipe save refuses a new line on one; a line a recipe already had stays editable. Recipe approval (admin and the auto-approval sweep) refuses a recipe with a line on one, since such a line is a wrong link. |
+| Recipe lines | Never a line's food. Link candidates (`IngredientLinkService.CandidatesAsync`: staple rule, name matcher, model picker), the auto-apply gate (`LinkAutoApplyGuard` holds a pick at one as `prepared food`), link apply (`ApplyFdcLinkAsync` refuses it for a person too), the verified wording load (`food is a prepared food`, never promoted), `relink/verified`, the relink plan, `MoveFood`, `MoveWordings`, retire, the compound-line vocabulary, the importer's verified-wording, trusted-alias and applied-link resolution, and the catalog cleanup's merge plan (a residue whose name leads to one is left for a person) all leave it out. A recipe save refuses a new line on one; a line a recipe already had stays editable. Recipe approval (admin and the auto-approval sweep) refuses a recipe with a line on one, since such a line is a wrong link. |
 | Food groups | Never a top-up and never a serving: `ApplyFoodGroupRulesAsync` leaves it out of the candidates and does not count a recipe line or a planned slot on one toward a household minimum, even if someone gave it a group by hand. |
 
 `--admit` reports how many prepared foods it admitted and withdraws open model picks that point
 at one. An exact-name import match is the one path left: a scraped wording that is a prepared
-food's whole name still lands on it (the name is unique, so the importer cannot create a second
+food's whole live name still lands on it (the name is unique, so the importer cannot create a second
 food of that name); the approval gate then holds the recipe.
 
 ## Quality gate — DONE ✅
