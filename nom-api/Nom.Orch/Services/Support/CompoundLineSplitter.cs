@@ -120,7 +120,13 @@ namespace Nom.Orch.Services.Support
             "vanilla", "almond", "rose", "peppermint", "wintergreen", "pistachio",
         };
 
-        private static readonly Regex FlavourWord = new(@"\b(?:extract|essence|flavou?ring)\b", Options);
+        private static readonly Regex FlavourWord = new(@"\b(?:extract|essence|flavou?r(?:ing)?s?)\b", Options);
+
+        private static readonly Regex CountStart = new(
+            @"^\s*(?:[\d¼½¾⅓⅔⅛⅜⅝⅞]|(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|dozen)\b)", Options);
+
+        private static readonly Regex MeasureWord = new(
+            @"\b(?:(?:tea|table|dessert|salt|coffee)[- ]?)?spoon|\bcup|\bglass|\bgill|\bpinch|\bdash|\bounce|\boz\b|\bpound|\blbs?\b|\bpint|\bquart|\bdrachm|\bscruple|\bgrain", Options);
 
         private static readonly HashSet<string> PartWords = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -203,6 +209,22 @@ namespace Nom.Orch.Services.Support
 
         private static bool IsSingleWord(string name) => !name.Contains(' ');
 
+        /// <summary>
+        /// Whether the first name reads as a modifier of the last one's head ("milk or dark
+        /// chocolate chips", "garlic and onion powder"): the first name, or its last word, joined to
+        /// the last one's head, or to every word of the last one after its first, resolves to a
+        /// food or is the name of an ingredient, in singular or plural form.
+        /// </summary>
+        private static bool SharesHead(string first, string last, CompoundVocabulary v)
+        {
+            var words = last.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length < 2) return false;
+            var joined = new[] { first, Head(first) }.SelectMany(f => new[] { $"{f} {words[^1]}", $"{f} {string.Join(' ', words.Skip(1))}" });
+            return joined.Distinct(StringComparer.OrdinalIgnoreCase)
+                .SelectMany(j => new[] { j, j.EndsWith('s') ? j[..^1] : j + "s", j.EndsWith("es", StringComparison.OrdinalIgnoreCase) ? j[..^2] : j })
+                .Any(j => v.Resolve(j) != null || v.IsKnown(j));
+        }
+
         private static CompoundPlan Alternatives(string line, string wording, List<string> names, CompoundVocabulary v)
         {
             if (names.Any(n => Flavours.Contains(n) || FlavourWord.IsMatch(n))) return CompoundPlan.Leave(wording, LeaveFlavour);
@@ -217,7 +239,7 @@ namespace Nom.Orch.Services.Support
             if (foods[0] is { } firstFood)
             {
                 if (sharedFood is { } other && other != firstFood) return CompoundPlan.Leave(wording, LeaveOrAmbiguous);
-                if (sharedFood == null && sharedKnown) return CompoundPlan.Leave(wording, LeaveOrAmbiguous);
+                if (sharedFood == null && (sharedKnown || SharesHead(first, last, v))) return CompoundPlan.Leave(wording, LeaveOrAmbiguous);
                 if (foods.Skip(1).Any(f => f == firstFood)) return CompoundPlan.Leave(wording, LeaveOneFood);
                 var rule = foods.All(f => f != null) ? OrIndependent : OrFirstNamed;
                 return new CompoundPlan(rule, CompoundKind.PickAlternative, new[] { new CompoundPart(first, firstFood, line, null) }, wording, null);
@@ -235,12 +257,8 @@ namespace Nom.Orch.Services.Support
         private static CompoundPlan AndList(string line, string wording, List<string> names, CompoundVocabulary v)
         {
             var foods = names.Select(v.Resolve).ToList();
-            if (foods.Any(f => f == null))
-            {
-                var shared = IsSingleWord(names[^1]) ? null : $"{names[0]} {Head(names[^1])}";
-                var sharesHead = shared != null && (v.Resolve(shared) != null || v.IsKnown(shared));
-                return CompoundPlan.Leave(wording, sharesHead ? LeaveSharedHead : LeaveNotInCatalog);
-            }
+            var sharesHead = SharesHead(names[0], names[^1], v);
+            if (foods.Any(f => f == null) || sharesHead) return CompoundPlan.Leave(wording, sharesHead ? LeaveSharedHead : LeaveNotInCatalog);
 
             if (foods.Distinct().Count() != foods.Count) return CompoundPlan.Leave(wording, LeaveOneFood);
 
@@ -314,7 +332,8 @@ namespace Nom.Orch.Services.Support
         private static CompoundPlan? PartPairPlan(string line, CompoundVocabulary v)
         {
             var match = PartPairOf.Match(line);
-            if (!match.Success) match = PartPairAfter.Match(line);
+            var after = !match.Success;
+            if (after) match = PartPairAfter.Match(line);
             if (!match.Success) return null;
 
             var p1 = match.Groups["p1"];
@@ -328,6 +347,7 @@ namespace Nom.Orch.Services.Support
             var juice = v.Resolve($"{fruit} juice");
             var peel = PeelNames.Select(p => v.Resolve($"{fruit} {p}")).FirstOrDefault(f => f != null);
             if (juice == null || peel == null) return CompoundPlan.Leave(wording, LeaveNotInCatalog);
+            if (after && IngredientLineParser.Parse(line) is { } amount && amount.MeasurementName != IngredientLineParser.Piece) return CompoundPlan.Leave(wording, LeaveNotFixedPoint);
 
             var firstLine = Tidy(line.Remove(p1.Index + p1.Length, p2.Index + p2.Length - (p1.Index + p1.Length)));
             var from = isJuice2 && match.Groups["adj"].Success ? match.Groups["adj"].Index : p1.Index;
@@ -375,7 +395,9 @@ namespace Nom.Orch.Services.Support
         /// Keeps a split only when every part line is a fixed point of the pipeline: the line
         /// parser reads from it exactly the amount its row stores, its wording names its food (or,
         /// for a part pair, no other food), an acceptably unquantified source gives acceptably
-        /// unquantified unmeasured parts, and no part repeats another's text.
+        /// unquantified unmeasured parts, no part repeats another's text, and a part of a list
+        /// counted in pieces starts with a count and names no measure ("a very little salt" and "1 quarter
+        /// teaspoonful of salt" are read as one piece, which is not what they say).
         /// </summary>
         private static CompoundPlan Checked(CompoundPlan plan, string line, CompoundVocabulary v, bool strictFood)
         {
@@ -384,6 +406,8 @@ namespace Nom.Orch.Services.Support
             foreach (var part in plan.Parts)
             {
                 if (!Same(IngredientLineParser.Parse(part.RawLine), part.Quantity)) return CompoundPlan.Leave(plan.Wording, LeaveNotFixedPoint);
+                if (strictFood && part.Quantity is { MeasurementName: IngredientLineParser.Piece }
+                    && (!CountStart.IsMatch(part.RawLine) || MeasureWord.IsMatch(part.RawLine))) return CompoundPlan.Leave(plan.Wording, LeaveNotFixedPoint);
                 var food = v.Resolve(IngredientNameNormalizer.Normalize(part.RawLine));
                 if (strictFood ? food != part.FoodId : food != null && food != part.FoodId) return CompoundPlan.Leave(plan.Wording, LeaveNotFixedPoint);
                 if (acceptable && part.Quantity == null && !RecipeVettingService.IsAcceptablyUnquantified(part.RawLine)) return CompoundPlan.Leave(plan.Wording, LeaveNotFixedPoint);

@@ -21,6 +21,8 @@ namespace Nom.Api.Tests.Services
             ["Water"] = 14, ["Olive Oil"] = 15, ["Avocados"] = 16, ["Avocado Oil"] = 17, ["Grapes"] = 18, ["Cherry Tomatoes"] = 19,
             ["Eggs"] = 20, ["Egg Yolk"] = 21, ["Peas"] = 22, ["Green Beans"] = 23, ["Tomatoes"] = 24, ["Almonds"] = 25,
             ["Brown Sugar"] = 26, ["Cinnamon"] = 27, ["Nutmeg"] = 28, ["Half And Half"] = 29, ["Bread Crumbs"] = 31, ["Honey"] = 32,
+            ["Garlic"] = 33, ["Onion Powder"] = 34, ["Fennel"] = 35, ["Coriander Seeds"] = 36, ["Oranges"] = 37, ["Red Bell Pepper"] = 38,
+            ["Dark Chocolate Chips"] = 39, ["Orange Juice"] = 40, ["Lemons"] = 41, ["Ham"] = 42, ["Bacon Fat"] = 43, ["Orange Peel"] = 44,
         };
 
         internal static CompoundVocabulary Vocabulary() => CompoundVocabulary.Build(
@@ -34,7 +36,8 @@ namespace Nom.Api.Tests.Services
                 new CompoundAlias(7, "oleo", null),
                 new CompoundAlias(7, "oleomargarine", "retired:99"),
             },
-            Foods.Keys.Concat(new[] { "grape tomatoes", "honey syrup", "Kosher salt", "butter or margarine" }));
+            Foods.Keys.Concat(new[] { "grape tomatoes", "honey syrup", "Kosher salt", "butter or margarine", "milk chocolate chips", "orange bell pepper",
+                "garlic powder", "fennel seeds", "ham fat", "lemon rind" }));
 
         private static readonly CompoundVocabulary V = Vocabulary();
 
@@ -156,6 +159,20 @@ namespace Nom.Api.Tests.Services
         [InlineData("salt, pepper, paprika, cinnamon and nutmeg", CompoundLineSplitter.LeaveTooManyNames)]
         [InlineData("salt and pepper + 1 tsp salt", CompoundLineSplitter.LeaveFolded)]
         [InlineData("salt and dragonfruit", CompoundLineSplitter.LeaveNotInCatalog)]
+        [InlineData("3/4 cup milk or dark chocolate chips", CompoundLineSplitter.LeaveOrAmbiguous)]
+        [InlineData("2 orange or red bell peppers, sliced", CompoundLineSplitter.LeaveOrAmbiguous)]
+        [InlineData("1 medium orange or red bell pepper", CompoundLineSplitter.LeaveOrAmbiguous)]
+        [InlineData("ham or bacon fat", CompoundLineSplitter.LeaveOrAmbiguous)]
+        [InlineData("2 teaspoons grated lemon or orange rind", CompoundLineSplitter.LeaveOrAmbiguous)]
+        [InlineData("one teaspoonful of lemon or vanilla flavor", CompoundLineSplitter.LeaveFlavour)]
+        [InlineData("1/2 teaspoon each garlic and onion powder", CompoundLineSplitter.LeaveSharedHead)]
+        [InlineData("1/4 tsp each garlic and onion powders", CompoundLineSplitter.LeaveSharedHead)]
+        [InlineData("two ounces each of fennel and coriander seeds", CompoundLineSplitter.LeaveSharedHead)]
+        [InlineData("2 tablespoonfuls each of lemon and orange juice", CompoundLineSplitter.LeaveSharedHead)]
+        [InlineData("A very little black pepper and salt", CompoundLineSplitter.LeaveNotFixedPoint)]
+        [InlineData("a very little salt and pepper", CompoundLineSplitter.LeaveNotFixedPoint)]
+        [InlineData("1 quarter teaspoonful each of salt and pepper", CompoundLineSplitter.LeaveNotFixedPoint)]
+        [InlineData("3 tablespoons lemon juice and grated rind", CompoundLineSplitter.LeaveNotFixedPoint)]
         public void Lines_the_rules_do_not_trust_are_left_with_a_reason(string line, string reason)
         {
             var plan = Plan(line);
