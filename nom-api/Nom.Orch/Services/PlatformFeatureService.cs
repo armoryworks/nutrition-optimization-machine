@@ -28,9 +28,9 @@ namespace Nom.Orch.Services
                 + "Nothing is deleted: enrollments and provider setup stay in place and are served again when it is turned back on."),
             [IPlatformFeatureService.Keys.AutoApprovePause] = (
                 "Pause recipe auto-approval",
-                "Holds the deterministic job that approves recipes whose lines all meet the auto-approval rules, within about 30 seconds. "
+                "Holds the deterministic job that approves recipes whose lines all meet the auto-approval rules; a batch already running keeps none of its approvals. "
                 + "Turn it on before a data window (line repairs, relinks, compound splits) and off once no change in the window will be undone: "
-                + "an undo puts lines back but leaves a recipe approved meanwhile approved. The job resumes where it left off. "
+                + "an undo puts lines back but leaves a recipe approved meanwhile approved. The job resumes where it left off (from the first recipe if the API restarted meanwhile). "
                 + "It is not a model lane, so the AI pause switches do not hold it."),
         });
 

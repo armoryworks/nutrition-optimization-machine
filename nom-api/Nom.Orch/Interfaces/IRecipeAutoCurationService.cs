@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 namespace Nom.Orch.Interfaces
 {
     /// <summary>Outcome of one auto-approval batch; <see cref="LastRecipeId"/> is the cursor for the next.</summary>
-    /// <summary><see cref="Refusals"/> counts the candidates the policy turned down, by rule.</summary>
-    public sealed record AutoApproveBatchResult(int Examined, int Approved, long LastRecipeId, IReadOnlyDictionary<string, int>? Refusals = null);
+    /// <summary><see cref="Refusals"/> counts the candidates the policy turned down, by rule; <see cref="Held"/> means the pause was on when the batch would have saved, so it kept nothing and the cursor stays.</summary>
+    public sealed record AutoApproveBatchResult(int Examined, int Approved, long LastRecipeId, IReadOnlyDictionary<string, int>? Refusals = null, bool Held = false);
 
     /// <summary>
     /// Approves recipes that meet <see cref="Nom.Orch.Services.Support.RecipeAutoApprovalPolicy"/> as the

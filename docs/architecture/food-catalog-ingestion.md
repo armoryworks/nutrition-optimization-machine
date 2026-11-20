@@ -781,7 +781,11 @@ or no amount). The AI pause switches do not hold that job, since it is not a mod
 platform feature `pause-auto-approve` does (`PUT /api/Pipeline/pause/auto-approve` with
 `{"isEnabled": true}`, or Admin → Platform features; the pipeline gate reports it as
 `autoApprovePaused`). Turn it on with `ai-pause-all` before a data window and off only once no
-change made in the window will be undone; the job then resumes where it left off. Both touch `LastModifiedDate`, so the
+change made in the window will be undone. The job looks at the switch before each batch (every
+`Curation:AutoApprove:PauseCheckSeconds`, default 30, while paused) and again before a batch saves
+its approvals, so a batch already running when the switch goes on keeps none of them; wait for the
+log line `Recipe auto-approval paused` before the first apply. It then resumes where it left off,
+or from the first recipe if the API restarted meanwhile. Both touch `LastModifiedDate`, so the
 nutrition sweep recalculates the labels. Order of work as for the other line lanes: staging
 snapshot, dry run, note the UTC time, apply, check the samples in the app, prove the undo,
 then production.

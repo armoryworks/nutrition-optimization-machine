@@ -30,13 +30,16 @@ namespace Nom.Orch.Services
         private readonly IRecipeVettingService _vetting;
         private readonly ILogger<RecipeAutoCurationService> _logger;
         private readonly AutoApprovalOptions _options;
+        private readonly IPlatformFeatureService? _features;
         private (long Recipe, long Approval)? _referenceIds;
 
-        public RecipeAutoCurationService(ApplicationDbContext db, IRecipeVettingService vetting, ILogger<RecipeAutoCurationService> logger, IConfiguration? configuration = null)
+        public RecipeAutoCurationService(ApplicationDbContext db, IRecipeVettingService vetting, ILogger<RecipeAutoCurationService> logger, IConfiguration? configuration = null,
+            IPlatformFeatureService? features = null)
         {
             _db = db;
             _vetting = vetting;
             _logger = logger;
+            _features = features;
             _options = configuration == null ? AutoApprovalOptions.Default : new AutoApprovalOptions(
                 Math.Max(0, configuration.GetValue("Curation:AutoApprove:MaxUnquantifiedLines", 0)),
                 configuration.GetValue("Curation:AutoApprove:RequireOwnImage", true));
@@ -103,6 +106,13 @@ namespace Nom.Orch.Services
                     CreatedByPersonId = SystemConstants.SystemPersonId,
                 });
                 approved++;
+            }
+
+            if (approved > 0 && _features != null && await _features.IsEnabledAsync(IPlatformFeatureService.Keys.AutoApprovePause))
+            {
+                _db.ChangeTracker.Clear();
+                _logger.LogInformation("Recipe auto-approval paused before saving {Approved} approvals after recipe {Cursor}; none kept", approved, afterRecipeId);
+                return new AutoApproveBatchResult(0, 0, afterRecipeId, Held: true);
             }
 
             await _db.SaveChangesAsync(cancellationToken);

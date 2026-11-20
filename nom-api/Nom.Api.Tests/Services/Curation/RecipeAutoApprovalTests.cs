@@ -5,9 +5,11 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Nom.Data;
 using Nom.Data.Recipe;
 using Nom.Data.Reference;
+using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
 using Nom.Orch.Services;
 using Nom.Orch.Services.Support;
@@ -239,6 +241,21 @@ namespace Nom.Api.Tests.Services.Curation
             notes.Should().OnlyContain(n => n.AdminId == SystemConstants.SystemPersonId && n.FeedbackTypeId == 9199 && n.EntityTypeId == 9100);
             notes[0].FeedbackNotes.Should().StartWith("auto-approved: R1");
             notes[1].FeedbackNotes.Should().StartWith("auto-approved: R2");
+        }
+
+        [Fact]
+        public async Task A_batch_that_finds_the_pause_on_when_it_would_save_keeps_no_approval_and_holds_its_cursor()
+        {
+            using var db = await SeedAsync(PublicDomain(10), RewrittenScrape(12));
+            var features = new Mock<IPlatformFeatureService>();
+            features.Setup(f => f.IsEnabledAsync(IPlatformFeatureService.Keys.AutoApprovePause)).ReturnsAsync(true);
+            var service = new RecipeAutoCurationService(db, new RecipeVettingService(), NullLogger<RecipeAutoCurationService>.Instance, features: features.Object);
+
+            var result = await service.AutoApproveBatchAsync(5, 50);
+
+            result.Should().Match<AutoApproveBatchResult>(r => r.Held && r.Approved == 0 && r.Examined == 0 && r.LastRecipeId == 5);
+            (await db.Recipes.CountAsync(r => r.CurationStatusId == (long)CurationStatusEnum.Curated)).Should().Be(0);
+            (await db.CurationFeedbacks.AnyAsync()).Should().BeFalse();
         }
 
         [Fact]

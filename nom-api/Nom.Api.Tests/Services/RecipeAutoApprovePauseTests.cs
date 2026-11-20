@@ -65,5 +65,58 @@ namespace Nom.Api.Tests.Services
                 await job.StopAsync(CancellationToken.None);
             }
         }
+
+        [Fact]
+        public async Task A_batch_held_at_its_save_is_asked_again_from_the_same_cursor_once_the_pause_is_off()
+        {
+            var switches = new ConcurrentDictionary<string, bool>();
+            var features = new Mock<IPlatformFeatureService>();
+            features.Setup(f => f.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync((string key) => switches.ContainsKey(key));
+            var cursors = new ConcurrentQueue<long>();
+            var curation = new Mock<IRecipeAutoCurationService>();
+            curation.Setup(c => c.AutoApproveBatchAsync(It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((long after, int _, CancellationToken _) =>
+                {
+                    cursors.Enqueue(after);
+                    if (after == 0) return new AutoApproveBatchResult(1, 0, 40);
+                    if (cursors.Count == 2)
+                    {
+                        switches[IPlatformFeatureService.Keys.AutoApprovePause] = true;
+                        return new AutoApproveBatchResult(0, 0, after, Held: true);
+                    }
+                    return new AutoApproveBatchResult(0, 0, after);
+                });
+            var services = new ServiceCollection();
+            services.AddScoped(_ => features.Object);
+            services.AddScoped(_ => curation.Object);
+            using var provider = services.BuildServiceProvider();
+            var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Curation:AutoApprove:StartDelaySeconds"] = "0",
+                ["Curation:AutoApprove:PauseCheckSeconds"] = "1",
+                ["Curation:AutoApprove:PauseMilliseconds"] = "0",
+                ["Curation:AutoApprove:SkipUnchanged"] = "false",
+                ["Curation:AutoApprove:IdleMinutes"] = "1",
+            }).Build();
+            var job = new RecipeAutoApproveHostedService(provider.GetRequiredService<IServiceScopeFactory>(), configuration, NullLogger<RecipeAutoApproveHostedService>.Instance);
+
+            await job.StartAsync(CancellationToken.None);
+            try
+            {
+                var until = DateTime.UtcNow.AddSeconds(5);
+                while (cursors.Count < 2 && DateTime.UtcNow < until) await Task.Delay(50);
+                await Task.Delay(1500);
+                cursors.Should().Equal(new long[] { 0, 40 }, "no batch runs while the pause is on");
+
+                switches.TryRemove(IPlatformFeatureService.Keys.AutoApprovePause, out _);
+                until = DateTime.UtcNow.AddSeconds(5);
+                while (cursors.Count < 3 && DateTime.UtcNow < until) await Task.Delay(50);
+                cursors.Should().StartWith(new long[] { 0, 40, 40 }, "the held batch is asked again from where it stood");
+            }
+            finally
+            {
+                await job.StopAsync(CancellationToken.None);
+            }
+        }
     }
 }

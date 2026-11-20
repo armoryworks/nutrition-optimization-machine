@@ -16,9 +16,12 @@ namespace Nom.Api.Services
     /// one-line heartbeat, when nothing it decides on has changed since the last full one
     /// (<see cref="AutoApproveChangeSignal"/>; Curation:AutoApprove:SkipUnchanged, default true),
     /// but a full sweep still runs at least every Curation:AutoApprove:FullSweepHours (default 24).
-    /// The platform feature pause-auto-approve holds it before its next batch, within about 30
-    /// seconds, for a data window whose changes may still be undone; it then resumes where it
-    /// left off. Curation:AutoApprove:StartDelaySeconds (default 120) is the wait after start.
+    /// The platform feature pause-auto-approve holds it before its next batch, for a data window
+    /// whose changes may still be undone; a batch already running keeps none of its approvals when
+    /// the pause is on at its save. While paused it logs "Recipe auto-approval paused" once; it then
+    /// resumes where it left off, or from the first recipe after a restart.
+    /// Curation:AutoApprove:PauseCheckSeconds (default 30) is how often a pause is looked at.
+    /// Curation:AutoApprove:StartDelaySeconds (default 120) is the wait after start.
     /// </summary>
     public class RecipeAutoApproveHostedService : BackgroundService
     {
@@ -94,6 +97,11 @@ namespace Nom.Api.Services
                     }
                     var curation = scope.ServiceProvider.GetRequiredService<IRecipeAutoCurationService>();
                     var batch = await curation.AutoApproveBatchAsync(cursor, batchSize, stoppingToken);
+                    if (batch.Held)
+                    {
+                        continue;
+                    }
+
                     if (batch.Examined == 0)
                     {
                         lastOutcome = $"{examined} examined, {approved} approved";
