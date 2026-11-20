@@ -82,8 +82,17 @@ namespace Nom.Orch.Models.Curation
         public int Grounded { get; set; }
         /// <summary>Fills whose line has since been changed, moved or removed.</summary>
         public int LineChanged { get; set; }
-        /// <summary>Older fills journaled without a line position, on a recipe with more than one such line of that food.</summary>
+        /// <summary>
+        /// Older fills journaled without a line position, on a recipe with more than one such line
+        /// of that food, and fills whose food has left the recipe with more than one line that
+        /// could be theirs.
+        /// </summary>
         public int Ambiguous { get; set; }
+        /// <summary>
+        /// Fills whose food has left the recipe (merged, relinked or split since) found on the one
+        /// line that still holds the filled piece count and states no count of its own.
+        /// </summary>
+        public int FoundMoved { get; set; }
         public int Ungrounded { get; set; }
         /// <summary>Ungrounded fills by the reason the grounding rule gives.</summary>
         public Dictionary<string, int> ByReason { get; set; } = new();

@@ -249,6 +249,26 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_fill_whose_line_has_moved_to_another_food_is_found_on_it_and_reverted()
+        {
+            using var db = await FillsAsync();
+            var wine = await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == 20 && ri.IngredientId == 2);
+            db.RecipeIngredients.Remove(wine);
+            db.Ingredients.Add(Food(7, "Wine, table, red"));
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = 20, IngredientId = 7, SortOrder = 1, RawLine = "red wine", Quantity = 1m, MeasurementId = Piece });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var result = await Quantities(db).RevertAsync(apply: true);
+
+            result.FoundMoved.Should().Be(1);
+            result.LineChanged.Should().Be(1, "only the ginger fill at a position no ginger line holds is lost");
+            result.Changed.Should().Be(3);
+            var moved = await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == 20 && ri.IngredientId == 7);
+            (moved.Quantity, moved.MeasurementId).Should().Be((0m, Gram));
+        }
+
+        [Fact]
         public async Task Applying_the_revert_restores_the_journaled_amount_and_the_batch_undoes()
         {
             using var db = await FillsAsync();

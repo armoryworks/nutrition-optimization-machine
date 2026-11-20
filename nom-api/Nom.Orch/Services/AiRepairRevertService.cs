@@ -62,12 +62,26 @@ namespace Nom.Orch.Services
 
             var reverts = new List<Revert>();
             var seen = new HashSet<(long, long, int)>();
+            var filledFoods = fills.Select(f => (f.RecipeId, f.IngredientId)).ToHashSet();
             foreach (var fill in fills)
             {
-                var candidates = lines.TryGetValue(fill.RecipeId, out var recipeLines)
-                    ? recipeLines.Where(l => l.IngredientId == fill.IngredientId && (fill.SortOrder == null || l.SortOrder == fill.SortOrder)).ToList()
-                    : new List<Line>();
+                var recipeLines = lines.GetValueOrDefault(fill.RecipeId) ?? new List<Line>();
+                var candidates = recipeLines.Where(l => l.IngredientId == fill.IngredientId && (fill.SortOrder == null || l.SortOrder == fill.SortOrder)).ToList();
                 var holding = candidates.Where(l => l.Quantity == fill.Quantity && l.MeasurementId == pieceId).ToList();
+                if (holding.Count == 0 && recipeLines.All(l => l.IngredientId != fill.IngredientId))
+                {
+                    var moved = recipeLines.Where(l => l.MeasurementId == pieceId && l.Quantity == fill.Quantity
+                            && !filledFoods.Contains((l.RecipeId, l.IngredientId)) && !seen.Contains((l.RecipeId, l.IngredientId, l.SortOrder))
+                            && IngredientLineParser.Parse(l.RawLine) is not { MeasurementName: IngredientLineParser.Piece })
+                        .ToList();
+                    if (moved.Count > 1)
+                    {
+                        result.Ambiguous++;
+                        continue;
+                    }
+                    if (moved.Count == 1) result.FoundMoved++;
+                    holding = moved;
+                }
                 if (fill.SortOrder == null && holding.Count > 1)
                 {
                     result.Ambiguous++;
