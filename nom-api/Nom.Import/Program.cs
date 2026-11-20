@@ -56,7 +56,7 @@ namespace Nom.Import
                     var undone = await importer.UndoImportAsync(stamp, dryRun);
                     Console.WriteLine($"\n=== FDC import undo report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
                     Console.WriteLine($"Run stamp:              {undone.RunStamp:O}");
-                    Console.WriteLine($"Foods retired:          {undone.FoodsRetired} (soft delete; {undone.KeptInUse} kept because a recipe line uses them)");
+                    Console.WriteLine($"Foods retired:          {undone.FoodsRetired} (soft delete; {undone.KeptInUse} kept because a recipe line uses them; a later --import-fdc of the same ids revives them)");
                     Console.WriteLine($"Nutrient rows removed:  {undone.NutrientRowsRemoved} (rows the run added to foods that already existed)");
                     Console.WriteLine($"Densities cleared:      {undone.DensitiesCleared}");
                     Console.WriteLine($"Proposals rejected:     {undone.ProposalsRejected} (attach proposals still pending)");
@@ -90,7 +90,8 @@ namespace Nom.Import
                 Console.WriteLine($"Curation status:   {(args.Contains("--curated") ? "Curated (usable by meal planning)" : "PendingCuration (invisible to planning until reviewed)")}");
                 Console.WriteLine($"Accepted:          {report.Accepted} ({report.Classified} classified into a food group)");
                 Console.WriteLine($"Rejected:          {report.Rejected}");
-                Console.WriteLine($"Skipped (existing):{report.SkippedExisting} ({report.SkippedRetired} of them retired foods that still hold their FDC id)");
+                Console.WriteLine($"Revived:           {report.Revived} (foods an --import-fdc --undo retired, brought back with their nutrient rows)");
+                Console.WriteLine($"Skipped (existing):{report.SkippedExisting} ({report.SkippedRetired} of them retired by other means and still holding their FDC id)");
                 Console.WriteLine($"Skipped (dup name):{report.SkippedDuplicateName}");
                 Console.WriteLine($"Skipped (claimed): {report.SkippedClaimed.Count} (FDC ids a proposal on a live food already names: a pending attach, or values taken before the food moved to another record){(report.SkippedClaimed.Count > 0 ? ": " + string.Join(", ", report.SkippedClaimed.OrderBy(id => id, StringComparer.Ordinal)) : string.Empty)}");
                 if (!createFoods)

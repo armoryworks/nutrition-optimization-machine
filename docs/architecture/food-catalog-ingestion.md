@@ -158,8 +158,11 @@ below).
   created is soft-deleted unless a recipe line already uses it (those are listed and their
   journal rows kept), the nutrient rows it added to existing foods are removed, a density it
   filled is cleared when unchanged, and its attach proposals still pending are rejected. A
-  retired food keeps its FDC id, so importing again skips it; restore one with
-  `UPDATE recipe."Ingredient" SET "IsDeleted" = false, "DeletedAt" = NULL WHERE "FdcId" = '<id>'`.
+  retired food keeps its FDC id and nutrient rows, and each retirement is journaled as
+  `FdcImportUndo` (`NewValue` the FDC id). Importing that id again revives the same food
+  (`Revived` in the report; journaled as an `FdcImport` row of the new run, so the new run's
+  undo retires it again) instead of skipping it, unless a live food now holds its name or its
+  FDC id. A food retired any other way is still skipped (`SkippedRetired`).
 
 ### Attaching a USDA food to a catalog food by id — BUILT ✅
 `--import-fdc` offers a catalog food a USDA record only when the two share a name. A seeded

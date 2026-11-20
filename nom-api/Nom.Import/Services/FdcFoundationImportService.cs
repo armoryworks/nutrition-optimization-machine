@@ -42,6 +42,7 @@ namespace Nom.Import.Services
         public const string SrLegacyFood = "sr_legacy_food";
         public const string AttachBatch = "fdc-attach";
         public const string ImportChangeType = "FdcImport";
+        public const string ImportUndoChangeType = "FdcImportUndo";
         public const string ImportEntityType = "Ingredient";
 
         private readonly ApplicationDbContext _db;
@@ -152,6 +153,16 @@ namespace Nom.Import.Services
 
             var linked = await _db.Ingredients.IgnoreQueryFilters()
                 .Where(i => i.FdcId != null).Select(i => new { i.Id, i.FdcId, i.IsDeleted }).ToListAsync(ct);
+            var undoneIds = linked.Where(i => i.IsDeleted).Select(i => i.Id).ToList();
+            var retiredByUndo = (await _db.AuditLogEntries
+                    .Where(a => a.EntityType == ImportEntityType && a.ChangeType == ImportUndoChangeType && undoneIds.Contains(a.EntityId))
+                    .Select(a => new { a.Id, a.EntityId, a.NewValue })
+                    .ToListAsync(ct))
+                .Where(a => linked.Any(i => i.Id == a.EntityId && i.FdcId == a.NewValue))
+                .GroupBy(a => a.NewValue!)
+                .Where(g => g.Select(a => a.EntityId).Distinct().Count() == 1 && !linked.Any(i => i.FdcId == g.Key && !i.IsDeleted))
+                .ToDictionary(g => g.Key, g => (FoodId: g.First().EntityId, EntryIds: g.Select(a => a.Id).ToList()));
+            var revive = new List<(long FoodId, List<long> EntryIds)>();
             var existingFdcIds = linked.Select(i => i.FdcId!).ToHashSet();
             var existingByFdc = linked.Where(i => !i.IsDeleted)
                 .GroupBy(i => i.FdcId!).ToDictionary(g => g.Key, g => g.First().Id);
@@ -183,6 +194,12 @@ namespace Nom.Import.Services
             foreach (var (fdcId, food) in foods)
             {
                 ct.ThrowIfCancellationRequested();
+                if (retiredByUndo.TryGetValue(fdcId, out var undone) && createFoods)
+                {
+                    revive.Add(undone);
+                    report.Revived++;
+                    continue;
+                }
                 if (existingFdcIds.Contains(fdcId))
                 {
                     report.SkippedExisting++;
@@ -254,6 +271,29 @@ namespace Nom.Import.Services
             }
 
             await using var tx = !dryRun && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(ct) : null;
+
+            if (!dryRun && revive.Count > 0)
+            {
+                var reviveIds = revive.Select(r => r.FoodId).ToList();
+                var entryIds = revive.SelectMany(r => r.EntryIds).ToList();
+                var liveNames = (await _db.Ingredients.Where(i => !i.IsDeleted).Select(i => i.Name).ToListAsync(ct)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                foreach (var food in await _db.Ingredients.IgnoreQueryFilters().Where(i => reviveIds.Contains(i.Id)).ToListAsync(ct))
+                {
+                    if (!liveNames.Add(food.Name))
+                    {
+                        report.Revived--;
+                        report.SkippedDuplicateName++;
+                        entryIds.RemoveAll(id => revive.Single(r => r.FoodId == food.Id).EntryIds.Contains(id));
+                        continue;
+                    }
+                    food.IsDeleted = false;
+                    food.DeletedAt = null;
+                    food.DeletedByPersonId = null;
+                    food.LastModifiedDate = now;
+                    _db.AuditLogEntries.Add(Journal(food.Id, nameof(IngredientEntity.FdcId), food.FdcId, now));
+                }
+                _db.AuditLogEntries.RemoveRange(await _db.AuditLogEntries.Where(a => entryIds.Contains(a.Id)).ToListAsync(ct));
+            }
 
             // Phase 1: persist the ingredients so identity values exist.
             if (!dryRun)
@@ -327,7 +367,9 @@ namespace Nom.Import.Services
         /// journal: a food it created is soft-deleted unless a recipe line already uses it, the
         /// nutrient rows it added to an existing food are removed, a density it filled is cleared
         /// when unchanged, and its attach proposals still pending are rejected. A retired food keeps
-        /// its FDC id, so a later import skips it as existing.
+        /// its FDC id and is journaled as retired by this undo (change type
+        /// <see cref="ImportUndoChangeType"/>), so a later import of that id revives the same food,
+        /// with its nutrient rows, instead of skipping it.
         /// </summary>
         /// <param name="dryRun">Report what would be undone without saving anything.</param>
         public async Task<ImportUndoReport> UndoImportAsync(DateTime stamp, bool dryRun, CancellationToken ct = default)
@@ -364,6 +406,17 @@ namespace Nom.Import.Services
                     food.DeletedAt = now;
                     food.DeletedByPersonId = SystemConstants.SystemPersonId;
                     food.LastModifiedDate = now;
+                    _db.AuditLogEntries.Add(new AuditLogEntryEntity
+                    {
+                        EntityType = ImportEntityType,
+                        EntityId = food.Id,
+                        ChangeType = ImportUndoChangeType,
+                        PropertyName = nameof(IngredientEntity.IsDeleted),
+                        OldValue = stamp.ToString("O", CultureInfo.InvariantCulture),
+                        NewValue = food.FdcId,
+                        Timestamp = now,
+                        ChangedByPersonId = SystemConstants.SystemPersonId,
+                    });
                 }
                 else if (entry.PropertyName == nameof(IngredientEntity.GramsPerMilliliter))
                 {
@@ -904,6 +957,8 @@ namespace Nom.Import.Services
             public int Rejected { get; set; }
             public int SkippedExisting { get; set; }
             public int SkippedRetired { get; set; }
+            /// <summary>Foods an import undo retired that this run brings back, the same row with its nutrient rows.</summary>
+            public int Revived { get; set; }
             public int SkippedDuplicateName { get; set; }
             public int WithReferenceServing { get; set; }
             public int WithDensity { get; set; }

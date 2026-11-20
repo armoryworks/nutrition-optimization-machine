@@ -7,6 +7,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Nom.Data;
+using Nom.Data.Audit;
 using Nom.Data.Curation;
 using Nom.Data.Measurement;
 using Nom.Data.Nutrient;
@@ -278,8 +279,17 @@ namespace Nom.Api.Tests.Services.Import
             (await db.Ingredients.Select(i => i.Id).ToListAsync()).Should().Equal(existing.Id);
             (await db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == wine.Id)).FdcId.Should().Be(Wine, "a retired food keeps its FDC id");
             (await db.Set<IngredientNutrientEntity>().Where(n => n.IngredientId == existing.Id).Select(n => n.NutrientId).ToListAsync()).Should().Equal(Calories);
-            (await db.AuditLogEntries.CountAsync()).Should().Be(0);
-            (await Importer(db).ImportAsync(_dir, dataType: SrLegacy, onlyFdcIds: new HashSet<string> { Wine })).SkippedRetired.Should().Be(1);
+            (await db.AuditLogEntries.Select(a => a.ChangeType).ToListAsync()).Should().Equal(FdcFoundationImportService.ImportUndoChangeType);
+
+            var again = await Importer(db).ImportAsync(_dir, dataType: SrLegacy, onlyFdcIds: new HashSet<string> { Wine });
+
+            (again.Revived, again.SkippedRetired, again.Accepted).Should().Be((1, 0, 0));
+            var revived = await db.Ingredients.SingleAsync(i => i.FdcId == Wine);
+            revived.Id.Should().Be(wine.Id, "the same food comes back, not a second one");
+            (await db.Set<IngredientNutrientEntity>().CountAsync(n => n.IngredientId == wine.Id)).Should().BeGreaterThan(0);
+            (await db.AuditLogEntries.SingleAsync()).Should().Match<AuditLogEntryEntity>(a =>
+                a.ChangeType == FdcFoundationImportService.ImportChangeType && a.EntityId == wine.Id && a.Timestamp == again.RunStamp);
+            (await Importer(db).UndoImportAsync(again.RunStamp, dryRun: false)).FoodsRetired.Should().Be(1, "the revival is journaled like an import");
         }
 
         [Fact]
@@ -296,7 +306,7 @@ namespace Nom.Api.Tests.Services.Import
             undone.FoodsRetired.Should().Be(1);
             undone.KeptInUse.Should().Be(1);
             (await db.Ingredients.Select(i => i.FdcId).ToListAsync()).Should().Equal(Wine);
-            (await db.AuditLogEntries.SingleAsync()).EntityId.Should().Be(wine.Id, "its journal entry stays so a later undo can retire it");
+            (await db.AuditLogEntries.SingleAsync(a => a.ChangeType == FdcFoundationImportService.ImportChangeType)).EntityId.Should().Be(wine.Id, "its journal entry stays so a later undo can retire it");
         }
 
         [Fact]
