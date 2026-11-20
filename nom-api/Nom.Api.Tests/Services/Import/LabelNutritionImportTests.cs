@@ -162,6 +162,28 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public async Task A_label_that_prints_alcohol_passes_the_gate_and_stores_it_per_100_g()
+        {
+            const long Alcohol = 5038;
+            const string header = "ingredient_id\tname\tbrand\tproduct\turl\tserving\tserving_grams\tcalories\tfat\tcarb\tprotein\talcohol\n";
+            using var db = await NewContextAsync();
+            db.Set<NutrientEntity>().Add(new NutrientEntity { Id = Alcohol, Name = "Alcohol", DefaultMeasurementId = Gram });
+            var marsala = await FoodAsync(db, "Marsala Cooking Wine");
+            var sherry = await FoodAsync(db, "Sherry Cooking Wine");
+            File.WriteAllText(_file, header +
+                $"{marsala.Id}\tMarsala Cooking Wine\tBrand\tMarsala\thttps://example.com/marsala\t5 fl oz (148g)\t148\t120\t0\t4\t0\t14\n" +
+                $"{sherry.Id}\tSherry Cooking Wine\tBrand\tSherry\thttps://example.com/sherry\t5 fl oz (148g)\t148\t120\t0\t4\t0\t\n");
+
+            var report = await Service(db).ImportAsync(_file, dryRun: false);
+
+            report.Foods.Should().Be(1);
+            (await AmountAsync(db, marsala.Id, Calories)).Should().Be(81.08m);
+            (await AmountAsync(db, marsala.Id, Alcohol)).Should().Be(9.46m);
+            report.SkippedByReason.Should().ContainKey("atwater_mismatch", "4 g of carbohydrate does not explain 120 kcal");
+            (await db.Set<IngredientNutrientEntity>().CountAsync(n => n.IngredientId == sherry.Id)).Should().Be(0);
+        }
+
+        [Fact]
         public async Task Labels_that_cannot_be_trusted_write_nothing()
         {
             using var db = await NewContextAsync();

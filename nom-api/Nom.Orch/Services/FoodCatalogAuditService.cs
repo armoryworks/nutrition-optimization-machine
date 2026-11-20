@@ -29,6 +29,7 @@ namespace Nom.Orch.Services
         private static readonly string[] ProteinNames = { "protein" };
         private static readonly string[] CarbNames = { "carbohydrate", "carbs" };
         private static readonly string[] FatNames = { "total lipid", "fat" };
+        private static readonly string[] AlcoholNames = { "alcohol" };
 
         public async Task<FoodCatalogAuditResult> AuditAsync(string? source = null, int limit = 5000)
         {
@@ -78,7 +79,7 @@ namespace Nom.Orch.Services
                 }
 
                 // 2. Physical plausibility, incl. the Atwater cross-check.
-                var verdict = validator.Validate(new FoodQualityInput(ing.Name, k, p, c, f));
+                var verdict = validator.Validate(new FoodQualityInput(ing.Name, k, p, c, f, AlcoholGramsPer100g: Amount(ing, AlcoholNames)));
                 if (!verdict.Accepted)
                 {
                     findings.Add(Finding(ing, string.Join("+", verdict.Reasons),

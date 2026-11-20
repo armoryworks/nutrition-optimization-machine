@@ -156,7 +156,7 @@ namespace Nom.Import.Services
                 if (!nutrients.TryGetValue(fdcId, out var m)) { report.RejectedByReason["nutrients_missing"] = report.RejectedByReason.GetValueOrDefault("nutrients_missing") + 1; report.Rejected++; continue; }
 
                 var result = _validator.Validate(new FoodQualityInput(
-                    food.Description, m.Kcal, m.Protein, m.Carb, m.Fat, UsedInSmallAmounts(food)));
+                    food.Description, m.Kcal, m.Protein, m.Carb, m.Fat, UsedInSmallAmounts(food), m.Alcohol));
                 if (!result.Accepted)
                 {
                     report.Rejected++;
