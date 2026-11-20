@@ -197,9 +197,20 @@ namespace Nom.Api.Services
             }
 
             int? counted;
-            using (var scope = _scopeFactory.CreateScope())
+            try
             {
+                using var scope = _scopeFactory.CreateScope();
                 counted = await AiLaneLedger.CountSinceAsync(scope.ServiceProvider.GetRequiredService<ApplicationDbContext>(), lane, now - Day, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "AI lane {Lane}: could not count its items in the last 24 hours; using the last count and what it has done since", lane);
+                lock (state)
+                {
+                    Trim(state, now);
+                    var inMemory = state.Items.Sum(i => i.Count);
+                    return state.LedgerCount is { } last ? Math.Max(last + state.ItemsSinceLedger, inMemory) : inMemory;
+                }
             }
 
             lock (state)

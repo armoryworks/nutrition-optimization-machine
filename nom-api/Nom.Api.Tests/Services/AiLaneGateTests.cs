@@ -64,7 +64,7 @@ namespace Nom.Api.Tests.Services
             public void Dispose() => Provider.Dispose();
         }
 
-        private static Rig NewRig(Dictionary<string, string?>? settings = null)
+        private static Rig NewRig(Dictionary<string, string?>? settings = null, bool databaseDown = false)
         {
             var values = new Dictionary<string, string?> { ["Ai:QuietHours"] = "", ["Ai:Gate:PollSeconds"] = "1" };
             foreach (var (k, v) in settings ?? new()) values[k] = v;
@@ -73,7 +73,8 @@ namespace Nom.Api.Tests.Services
             var services = new ServiceCollection();
             services.AddMemoryCache();
             services.AddLogging();
-            services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(dbName));
+            if (databaseDown) services.AddScoped<ApplicationDbContext>(_ => throw new InvalidOperationException("the database is restarting"));
+            else services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(dbName));
             services.AddScoped<IPlatformFeatureService, PlatformFeatureService>();
             var provider = services.BuildServiceProvider();
             var clients = new FakeClientFactory();
@@ -102,6 +103,17 @@ namespace Nom.Api.Tests.Services
 
             rig.Gate.GetLanes().Select(l => l.Lane).Should().Equal(AiLanes.All.Select(l => l.Lane));
             Status(rig.Gate, AiLanes.Link).Should().Match<AiLaneStatusModel>(s => s.State == AiLaneState.Running && s.DailyCap == null);
+        }
+
+        [Fact]
+        public async Task A_database_error_while_counting_the_daily_cap_does_not_escape_the_gate()
+        {
+            using var rig = NewRig(new Dictionary<string, string?> { [$"Ai:Lanes:{AiLanes.Repair}:MaxItemsPerDay"] = "5" }, databaseDown: true);
+
+            (await PassesWithinAsync(rig.Gate, AiLanes.Repair)).Should().BeTrue("nothing has been done in memory either");
+            rig.Gate.Passed(AiLanes.Repair, 5, idle: false);
+            (await PassesWithinAsync(rig.Gate, AiLanes.Repair)).Should().BeFalse("the in-memory count still holds the cap");
+            Status(rig.Gate, AiLanes.Repair).State.Should().Be(AiLaneState.AtCap);
         }
 
         [Fact]
