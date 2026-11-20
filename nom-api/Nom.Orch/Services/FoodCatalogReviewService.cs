@@ -19,7 +19,7 @@ namespace Nom.Orch.Services
     /// an admin approves them — and a proposal that tries to change a nutrient value without an
     /// authoritative source is rejected at ingest.
     /// </summary>
-    public class FoodCatalogReviewService : IFoodCatalogReviewService
+    public partial class FoodCatalogReviewService : IFoodCatalogReviewService
     {
         private const long CuratedStatus = 9003;
 
@@ -480,10 +480,12 @@ namespace Nom.Orch.Services
             var target = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == targetId && !i.IsDeleted);
             if (source == null || target == null || target.FdcId == null || target.FdcId != p.FdcId) return false;
 
+            var before = (Status: target.CurationStatusId, SourceStatus: source.CurationStatusId);
             target.CurationStatusId = (long)Nom.Data.Recipe.CurationStatusEnum.Curated;
             target.LastModifiedDate = DateTime.UtcNow;
             target.LastModifiedByPersonId = reviewerPersonId;
             var sourceName = source.Name;
+            JournalFood(p.Id, nameof(target.CurationStatusId), target.Id, Support.LinkApplyJournal.Number(before.Status), Support.LinkApplyJournal.Number(target.CurationStatusId), reviewerPersonId);
             await _context.SaveChangesAsync();
 
             if (await _cleanup.MergeIntoAsync(source.Id, target.Id, reviewerPersonId, ignoreProposals: true, keepProposalId: p.Id))
@@ -496,13 +498,16 @@ namespace Nom.Orch.Services
                     source.Name = Truncate($"{sourceName} (merged into #{target.Id})", 2000);
                     await _context.SaveChangesAsync();
                     target.Name = friendly;
-                    await AddAliasAsync(target.Id, usdaName, reviewerPersonId, IngredientLinkService.UsdaDescriptionContext);
+                    JournalFood(p.Id, nameof(source.Name), source.Id, sourceName, source.Name, reviewerPersonId);
+                    JournalFood(p.Id, nameof(target.Name), target.Id, usdaName, target.Name, reviewerPersonId);
+                    await AddLinkAliasAsync(p.Id, target.Id, usdaName, reviewerPersonId, IngredientLinkService.UsdaDescriptionContext);
                 }
                 var alias = Support.IngredientNameNormalizer.Normalize(sourceName);
                 if (!string.Equals(target.Name, alias, StringComparison.OrdinalIgnoreCase))
                 {
-                    await AddAliasAsync(target.Id, alias, reviewerPersonId, WordingContext(p.Source, reviewerPersonId));
+                    await AddLinkAliasAsync(p.Id, target.Id, alias, reviewerPersonId, WordingContext(p.Source, reviewerPersonId));
                 }
+                JournalLinkApplied(p, source.Id, sourceName, before.SourceStatus, merged: true, target.Id, reviewerPersonId);
                 return true;
             }
 
@@ -525,13 +530,19 @@ namespace Nom.Orch.Services
                     CreatedDate = DateTime.UtcNow,
                     CreatedByPersonId = reviewerPersonId,
                 });
+                JournalNutrient(p.Id, source.Id, n, reviewerPersonId);
             }
+            var measures = (source.ReferenceServingGrams, source.GramsPerMilliliter, source.GramsPerItem);
             if (source.ReferenceServingGrams == null && target.ReferenceServingGrams != null)
             {
                 source.ReferenceServingGrams = target.ReferenceServingGrams;
             }
             source.GramsPerMilliliter ??= target.GramsPerMilliliter;
             source.GramsPerItem ??= target.GramsPerItem;
+            JournalFood(p.Id, nameof(source.ReferenceServingGrams), source.Id, Support.LinkApplyJournal.Number(measures.ReferenceServingGrams), Support.LinkApplyJournal.Number(source.ReferenceServingGrams), reviewerPersonId);
+            JournalFood(p.Id, nameof(source.GramsPerMilliliter), source.Id, Support.LinkApplyJournal.Number(measures.GramsPerMilliliter), Support.LinkApplyJournal.Number(source.GramsPerMilliliter), reviewerPersonId);
+            JournalFood(p.Id, nameof(source.GramsPerItem), source.Id, Support.LinkApplyJournal.Number(measures.GramsPerItem), Support.LinkApplyJournal.Number(source.GramsPerItem), reviewerPersonId);
+            JournalLinkApplied(p, source.Id, sourceName, before.SourceStatus, merged: false, target.Id, reviewerPersonId);
             source.LastModifiedDate = DateTime.UtcNow;
             if (_context.Database.IsRelational())
             {
