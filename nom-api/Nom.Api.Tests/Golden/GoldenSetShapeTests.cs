@@ -35,6 +35,7 @@ namespace Nom.Api.Tests.Golden
             { "catalog-admission.tsv", 80, new[] { "status" } },
             { "link-gate.tsv", 60, new[] { "status" } },
             { "wording-pairs.tsv", 240, new[] { "status" } },
+            { "alcohol-context.tsv", 150, new[] { "status" } },
             { "gate-catalog.tsv", 7000, Array.Empty<string>() },
             { "line-labels.tsv", 150, Array.Empty<string>() },
             { "catalog.tsv", 6000, Array.Empty<string>() },
@@ -76,6 +77,7 @@ namespace Nom.Api.Tests.Golden
         [InlineData("catalog-admission.tsv", "source", "status")]
         [InlineData("link-gate.tsv", "source", "status")]
         [InlineData("wording-pairs.tsv", "judgedBy", "status")]
+        [InlineData("alcohol-context.tsv", "source", "status")]
         [InlineData("prose.tsv", "source", "status")]
         [InlineData("prose.tsv", "source", "status2")]
         public void No_row_judged_by_a_model_reviewer_is_marked_ok(string file, string judgeColumn, string statusColumn)

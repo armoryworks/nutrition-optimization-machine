@@ -13,7 +13,7 @@ namespace Nom.Orch.Services.Support
     /// <summary>
     /// What the link gate knows about a food a wording might be linked to: its catalog name, its
     /// USDA description, data type, curation status, USDA category, admission reason, nutrient row
-    /// count and whether it holds the core nutrients. A fact left null is not checked.
+    /// count, whether it holds the core nutrients and its FDC id. A fact left null is not checked.
     /// </summary>
     public sealed record GateFood(
         long Id,
@@ -25,13 +25,14 @@ namespace Nom.Orch.Services.Support
         string? AdmissionReason = null,
         int? NutrientRows = null,
         bool? CoreNutrients = null,
-        bool Deleted = false)
+        bool Deleted = false,
+        string? FdcId = null)
     {
         public string Text => string.IsNullOrWhiteSpace(Description) ? Name : Description;
     }
 
-    /// <summary>One recipe line of the wording as the units check reads it: its raw text, its unit, and its grams through the food's conversions (null when none).</summary>
-    public sealed record GateLine(string? Raw, string? Unit, decimal? Grams);
+    /// <summary>One recipe line of the wording as the units and alcohol checks read it: its raw text, its unit, its grams through the food's conversions (null when none) and, when the caller has it, what the rest of its recipe says.</summary>
+    public sealed record GateLine(string? Raw, string? Unit, decimal? Grams, AlcoholRecipeContext? Recipe = null);
 
     /// <summary>
     /// One candidate answer the gate judges: the wording, the ingredient it is on, the food it
@@ -135,13 +136,14 @@ namespace Nom.Orch.Services.Support
     /// alias, or that a name rule gives to another food; a target led by another noun; a wording
     /// word the food lacks; a state, form or part one side has and the other lacks; a dried herb for
     /// a fresh one; a marked variant, a percent variant or a salted/sweetened polarity; one generic
-    /// word for one of many varieties; a group word the target's USDA category contradicts; and, with
-    /// lines, units the food cannot weigh or amounts past its group's bound. <see cref="Family"/>
+    /// word for one of many varieties; a group word the target's USDA category contradicts; a line
+    /// whose alcohol sense (<see cref="AlcoholLineContext"/>) refuses the food; and, with lines,
+    /// units the food cannot weigh or amounts past its group's bound. <see cref="Family"/>
     /// makes wordings that fold to one key agree on one food. See docs/architecture/link-gate.md.
     /// </summary>
     public static class LinkGate
     {
-        public const string Version = "link-gate/2";
+        public const string Version = "link-gate/3";
 
         public const string Heading = "heading";
         public const string Compound = "compound";
@@ -169,6 +171,9 @@ namespace Nom.Orch.Services.Support
         public const string Shortlist = "shortlist";
         public const string Units = "units";
         public const string Grams = "grams";
+        public const string AlcoholDrink = "alcohol-drink";
+        public const string AlcoholNoFood = "alcohol-no-food";
+        public const string AlcoholNotDrink = "alcohol-not-drink";
 
         public const int ShortlistSize = 12;
         public const int MinimumNutrientRows = 20;
@@ -358,12 +363,19 @@ namespace Nom.Orch.Services.Support
 
         private static readonly HashSet<string> AlcoholicWords = new(StringComparer.Ordinal) { "alcoholic", "wine", "beer", "liqueur", "spirits", "rum", "whiskey", "vodka", "gin", "brandy" };
 
+        private static readonly Dictionary<string, string> AlcoholRules = new(StringComparer.Ordinal)
+        {
+            [AlcoholDrink] = "a drink line on a food outside its sense",
+            [AlcoholNoFood] = "a drink with no USDA food, or one its line cannot tell",
+            [AlcoholNotDrink] = "a line that is not a drink on an alcoholic food or a food not of its kind",
+        };
+
         private static readonly Lazy<string> SignatureValue = new(() => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(SignatureSource())))[..16].ToLowerInvariant());
 
         /// <summary>
         /// A hash of <see cref="Version"/> and every table the rules read (the gate's own word lists,
-        /// phrases and patterns, the staple names, the prepared categories and the matcher and guard
-        /// tables), so any change to a rule table shows as a new signature: the link-gate scorer
+        /// phrases and patterns, the staple names, the prepared categories, the matcher and guard
+        /// tables and the alcohol sense rules), so any change to a rule table shows as a new signature: the link-gate scorer
         /// records it and a tier's gate signature drops it back to shadow when it changes. A change
         /// to a rule's code rather than a table raises <see cref="Version"/>.
         /// </summary>
@@ -427,6 +439,16 @@ namespace Nom.Orch.Services.Support
                      && target.DataType is CatalogAdmissionRule.SrLegacyFood or CatalogAdmissionRule.FoundationFood))
                 Add(Uncurated, "target not curated", target.AdmissionReason ?? ((CurationStatusEnum)status).ToString());
             if (Incompleteness(target, lead, catalog) is { } incomplete) Add(Incomplete, "nutrients incomplete", incomplete);
+
+            var readings = pair.Lines is { Count: > 0 } senseLines
+                ? senseLines.Select(l => AlcoholLineContext.Read(l.Raw ?? raw, l.Recipe))
+                : new[] { AlcoholLineContext.Read(raw) };
+            foreach (var reading in readings)
+            {
+                if (AlcoholLineContext.Refuse(reading, target.FdcId, text) is not { } refusal) continue;
+                Add(refusal.Code, AlcoholRules[refusal.Code], refusal.Detail);
+                break;
+            }
 
             if (LineRelinkService.TargetFor(wording, target.Id, target.Name.Trim(), catalog.Curated) is { } other && other != pair.SourceId)
                 Add(OtherFood, LinkAutoApplyGuard.OtherFoodRule, catalog.CuratedNames.TryGetValue(other, out var otherName) ? otherName : "#" + other);
@@ -886,6 +908,7 @@ namespace Nom.Orch.Services.Support
                 .Concat(SweetenedPhrases.Select(p => "sweetened=" + p)));
             Table("patterns", new[] { Word, Parenthetical, Slash, PercentPattern, HeadingPattern, SaltAddedPattern }.Select(r => r.ToString()));
             Table("guard-joiners", LinkAutoApplyGuard.Joiners);
+            Table("alcohol-context", new[] { AlcoholLineContext.SignatureSource() });
             Table("staples", StapleFoods.Entries.Select(kv => kv.Key + "=" + kv.Value));
             Table("staple-filler", StapleFoods.FillerWords);
             Table("prepared", CatalogAdmissionRule.PreparedCategories.Select(kv => kv.Key.ToString(CultureInfo.InvariantCulture) + "=" + kv.Value));

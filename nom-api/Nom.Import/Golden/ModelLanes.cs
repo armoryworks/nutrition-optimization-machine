@@ -75,16 +75,20 @@ namespace Nom.Import.Golden
         public const string LinkVerify = "link-verify";
         public const string LineClassify = "line-classify";
         public const string LinkGateLane = "link-gate";
+        public const string AlcoholContextLane = "alcohol-context";
         public const string FloorsFile = "model-lanes.json";
         public const string ScoresFolder = "scores";
         public const int PickBatch = 6;
         public const int VerifyBatch = 12;
         public const int ClassifyBatch = 20;
 
-        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane };
+        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane };
 
         /// <summary>Lanes scored by rules alone: no host or model is asked, and the signature is the rules' own.</summary>
-        public static readonly IReadOnlyList<string> NoModel = new[] { LinkGateLane };
+        public static readonly IReadOnlyList<string> NoModel = new[] { LinkGateLane, AlcoholContextLane };
+
+        /// <summary>The rule version a lane with no model records in place of a model name.</summary>
+        public static string NoModelVersion(string lane) => lane == AlcoholContextLane ? AlcoholLineContext.Version : LinkGate.Version;
 
         private static readonly HashSet<string> Bad = new(StringComparer.Ordinal) { "wrong", "near", "compound" };
 
@@ -103,6 +107,7 @@ namespace Nom.Import.Golden
         public static async Task<string> SignatureAsync(string lane)
         {
             if (lane == LinkGateLane) return LinkGate.Signature;
+            if (lane == AlcoholContextLane) return AlcoholLineContext.Signature;
             var capture = new CapturingHandler();
             using var http = new HttpClient(capture);
             var config = Config("http://signature.invalid", "signature");
@@ -212,6 +217,13 @@ namespace Nom.Import.Golden
         {
             switch (lane)
             {
+                case AlcoholContextLane:
+                {
+                    var cases = AlcoholCases(goldenDir).Take(limit ?? int.MaxValue).ToList();
+                    var results = cases.Select(c => c.Outcome()).ToList();
+                    progress($"{lane}: {results.Count}/{cases.Count}");
+                    return results;
+                }
                 case LinkGateLane:
                 {
                     var cases = GateCases(goldenDir).Take(limit ?? int.MaxValue).ToList();
@@ -303,6 +315,24 @@ namespace Nom.Import.Golden
             }
         }
 
+        /// <summary>
+        /// One row of alcohol-context.tsv: a line, what its recipe says, the sense the rules must
+        /// read, a food (FDC id and USDA description) the sense must allow and one it must refuse.
+        /// </summary>
+        public sealed record AlcoholCase(string Id, string Raw, AlcoholRecipeContext? Context, string Expect, string? Allows, string? AllowsText, string? Refuses, string? RefusesText, string JudgedBy)
+        {
+            public LaneCaseResult Outcome()
+            {
+                var reading = AlcoholLineContext.Read(Raw, Context);
+                var allowed = Allows == null || AlcoholLineContext.Refuse(reading, Allows, AllowsText) == null;
+                var refused = Refuses == null || AlcoholLineContext.Refuse(reading, Refuses, RefusesText) != null;
+                var pass = reading.Sense == Expect && allowed && refused;
+                return new LaneCaseResult(Id, pass, Refuses != null && !refused, Refuses != null,
+                    $"{Expect}{(Allows == null ? string.Empty : $", allows {Allows}")}{(Refuses == null ? string.Empty : $", refuses {Refuses}")}",
+                    $"{reading}{(allowed ? string.Empty : $", refuses {Allows}")}{(refused ? string.Empty : $", allows {Refuses}")}", JudgedBy);
+            }
+        }
+
         public sealed record ClassifyCase(string Id, string Recipe, string Raw, string Kind, string JudgedBy)
         {
             public LaneCaseResult Outcome(string? kind)
@@ -326,7 +356,7 @@ namespace Nom.Import.Golden
             {
                 var name = group.Key;
                 if (name.Length == 0 || IngredientLinkService.DeterministicTarget(name, matcher, staples) != null) continue;
-                var shortlist = matcher.Shortlist(name, 10);
+                var shortlist = matcher.Shortlist(name, 10, AlcoholLineContext.Read(group.First()["wording"]));
                 var listed = shortlist.Select(c => c.FdcId).ToHashSet(StringComparer.Ordinal);
                 var right = group.Where(r => r["verdict"] == "ok" && listed.Contains(r["fdcId"])).Select(r => r["fdcId"]).ToHashSet(StringComparer.Ordinal);
                 var wrong = group.Where(r => Bad.Contains(r["verdict"]) && listed.Contains(r["fdcId"])).Select(r => r["fdcId"]).ToHashSet(StringComparer.Ordinal);
@@ -351,10 +381,35 @@ namespace Nom.Import.Golden
                 var description = r["description"];
                 var target = foods.TryGetValue(foodId, out var known)
                     ? known with { Description = known.Description ?? description }
-                    : new GateFood(foodId, description, description);
+                    : new GateFood(foodId, description, description, FdcId: r.Value("fdcId"));
                 var nameMatch = r["nameMatch"] == "yes";
                 yield return new GateCase("gate:" + r.Id, new GatePair(r["wording"], 0, target, NameMatch: nameMatch, ModelPick: !nameMatch),
                     r["verdict"] == "ok", r["verdict"], description, r["judgedBy"]);
+            }
+        }
+
+        /// <summary>
+        /// The rows of alcohol-context.tsv as cases, with the USDA description of each FDC id from
+        /// gate-catalog.tsv (or its name when it has none). The context column holds the recipe's other
+        /// lines, separated by ";"; site = yes marks a recipe from a web source.
+        /// </summary>
+        public static IEnumerable<AlcoholCase> AlcoholCases(string goldenDir)
+        {
+            var texts = GoldenTsv.Read(Path.Combine(goldenDir, "gate-catalog.tsv")).Rows
+                .Where(r => r.Value("fdcId") != null)
+                .GroupBy(r => r["fdcId"], StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First().Value("description") ?? g.First()["name"], StringComparer.Ordinal);
+            foreach (var r in GoldenTsv.Read(Path.Combine(goldenDir, "alcohol-context.tsv")).Rows)
+            {
+                var title = r.Value("title");
+                var others = r.Value("context")?.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                var site = r["site"] == "yes";
+                var context = title == null && others == null && !site ? null : new AlcoholRecipeContext(title, others, null, site);
+                var allows = r.Value("allows");
+                var refuses = r.Value("refuses");
+                yield return new AlcoholCase("alcohol:" + r.Id, r["raw"], context, r["expect"],
+                    allows, allows == null ? null : texts.GetValueOrDefault(allows),
+                    refuses, refuses == null ? null : texts.GetValueOrDefault(refuses), r["source"]);
             }
         }
 
@@ -368,7 +423,8 @@ namespace Nom.Import.Golden
                 r["status"] == "curated" ? (long)CurationStatusEnum.Curated : (long)CurationStatusEnum.PendingCuration,
                 int.TryParse(r["categoryId"], out var category) ? category : null,
                 string.IsNullOrEmpty(r.Value("admission")) ? null : r["admission"],
-                int.TryParse(r["nutrients"], out var rows) ? rows : null));
+                int.TryParse(r["nutrients"], out var rows) ? rows : null,
+                FdcId: r.Value("fdcId")));
 
         /// <summary>The gate's catalog over gate-catalog.tsv, with the name matcher and staples of usda-catalog.tsv.</summary>
         public static GateCatalog GoldenGateCatalog(string goldenDir)

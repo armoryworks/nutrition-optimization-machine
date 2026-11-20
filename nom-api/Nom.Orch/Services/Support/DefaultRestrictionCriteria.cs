@@ -17,8 +17,10 @@ namespace Nom.Orch.Services.Support
     /// Idempotent: a restriction type whose criteria were seeded or admin-edited in
     /// Admin → Diet Categories (any non-default or deleted row) is left alone; types with
     /// none, or with only untouched defaults, get whichever default patterns they lack.
-    /// Patterns are ILIKE against ingredient names and aliases. Severity 5 = allergy,
-    /// 4 = medical/intolerance, 3 = diet/religious.
+    /// Patterns are ILIKE against ingredient names and aliases, except word patterns
+    /// (<c>\mrum\M</c>), which match whole words, and the alcohol diets also carry a nutrient
+    /// row (<see cref="NutrientsByName"/>; both read by <see cref="DietCriteriaMatcher"/>).
+    /// Severity 5 = allergy, 4 = medical/intolerance, 3 = diet/religious.
     /// </summary>
     public static class DefaultRestrictionCriteria
     {
@@ -40,11 +42,25 @@ namespace Nom.Orch.Services.Support
         private static readonly string[] Coconut = { "%coconut%" };
         private static readonly string[] Mustard = { "%mustard%" };
         private static readonly string[] Celery = { "%celery%", "%celeriac%" };
-        private static readonly string[] Alcohol = { "%wine%", "%beer%", "%vodka%", "%rum%", "%whisk%", "%bourbon%", "%brandy%", "%liqueur%", "%sake%", "%tequila%", "%gin%", "%sherry%", "%vermouth%", "%cider%" };
+        private static readonly string[] Alcohol =
+        {
+            @"\mwines?\M", @"\mbeers?\M", @"\males?\M", @"\mlager\M", @"\mstout\M", @"\mvodka\M", @"\mrum\M", @"\mwhiske?y\M", @"\mbourbon\M", @"\mscotch\M",
+            @"\mbrandy\M", @"\mcognac\M", @"\mliqueurs?\M", @"\msake\M", @"\mmirin\M", @"\mtequila\M", @"\mgin\M", @"\msherry\M", @"\mport\M", @"\mmadeira\M",
+            @"\mmarsala\M", @"\mvermouth\M", @"\mciders?\M", @"\mchampagne\M", @"\mprosecco\M", @"\mclaret\M", @"\mkirsch\M", @"\mschnapps\M", @"\mspirits\M", @"\malcohol\M",
+        };
         private static readonly string[] PorkOnly = { "%pork%", "%bacon%", "%ham%", "%lard%", "%prosciutto%", "%pancetta%", "%pepperoni%", "%salami%", "%chorizo%", "%gelatin%" };
         private static readonly string[] Lactose = { "%milk%", "%cream%", "%ice cream%", "%yogurt%", "%yoghurt%", "%whey%", "%kefir%", "%custard%", "%ricotta%", "%cottage cheese%", "%cream cheese%", "%mozzarella%" };
         private static readonly string[] Caffeine = { "%coffee%", "%espresso%", "%black tea%", "%green tea%", "%cola%", "%energy drink%", "%matcha%", "%yerba%", "%dark chocolate%" };
         private static readonly string[] Nightshade = { "%tomato%", "%potato%", "%eggplant%", "%aubergine%", "%bell pepper%", "%chili%", "%chile%", "%paprika%", "%cayenne%", "%jalape%", "%goji%", "%tomatillo%" };
+
+        /// <summary>Restriction name (case-insensitive) → the nutrients whose stored presence the restriction forbids (by nutrient name; the diet gate by data, <see cref="DietCriteriaMatcher"/>).</summary>
+        public static readonly IReadOnlyDictionary<string, string[]> NutrientsByName =
+            new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Halal"] = new[] { DietCriteriaMatcher.AlcoholNutrientName },
+                ["No Alcohol"] = new[] { DietCriteriaMatcher.AlcoholNutrientName },
+                ["Whole30"] = new[] { DietCriteriaMatcher.AlcoholNutrientName },
+            };
 
         /// <summary>Restriction name (case-insensitive) → (severity, patterns).</summary>
         public static readonly IReadOnlyDictionary<string, (int Severity, string[] Patterns)> ByName =
@@ -127,8 +143,11 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// Insert default criteria for every restriction reference (matched by name) that has
-        /// none, and top up types holding only untouched defaults with patterns added since.
-        /// Returns the number of rows added. Safe to run on every startup.
+        /// none, and bring types holding only untouched defaults to the current defaults: add the
+        /// patterns and nutrient rows added since, and remove the default rows no longer among them
+        /// (the alcohol name patterns that became word patterns and a nutrient row). Returns the
+        /// number of rows added. Safe to run on every startup; an earlier release puts back what it
+        /// misses on its own start.
         /// </summary>
         public static async Task<int> EnsureAsync(ApplicationDbContext db, ILogger? logger = null)
         {
@@ -139,51 +158,80 @@ namespace Nom.Orch.Services.Support
                 .ToListAsync();
             if (refs.Count == 0) return 0;
 
+            var nutrientNames = NutrientsByName.Values.SelectMany(n => n).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            var nutrients = (await db.Nutrients.AsNoTracking()
+                    .Where(n => n.ParentNutrientId == null && nutrientNames.Contains(n.Name))
+                    .Select(n => new { n.Id, n.Name })
+                    .ToListAsync())
+                .GroupBy(n => n.Name, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.Min(n => n.Id), StringComparer.OrdinalIgnoreCase);
+
             var refIds = refs.Select(r => r.Id).ToList();
             var existing = await db.Set<RestrictionCriterionEntity>()
                 .IgnoreQueryFilters()
                 .Where(c => refIds.Contains(c.RestrictionTypeId))
-                .Select(c => new { c.RestrictionTypeId, c.IngredientPattern, c.Notes, c.IsDeleted })
+                .Select(c => new { c.Id, c.RestrictionTypeId, c.IngredientId, c.IngredientPattern, c.NutrientId, c.Notes, c.IsDeleted })
                 .ToListAsync();
             var byType = existing.ToLookup(c => c.RestrictionTypeId);
 
             var now = DateTime.UtcNow;
             var added = 0;
             var typesTouched = 0;
+            var retired = new List<long>();
             foreach (var r in refs)
             {
                 if (!ByName.TryGetValue(r.Name, out var def)) continue;
                 var rows = byType[r.Id].ToList();
                 if (rows.Any(c => c.IsDeleted || c.Notes != DefaultNote)) continue;
+                var patterns = def.Patterns.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                var nutrientIds = (NutrientsByName.TryGetValue(r.Name, out var wanted) ? wanted : Array.Empty<string>())
+                    .Where(nutrients.ContainsKey).Select(n => nutrients[n]).Distinct().ToList();
+
+                var stale = rows.Where(c => c.IngredientId == null
+                    && (c.IngredientPattern != null ? !patterns.Contains(c.IngredientPattern, StringComparer.OrdinalIgnoreCase) : c.NutrientId == null || !nutrientIds.Contains(c.NutrientId.Value)))
+                    .Select(c => c.Id)
+                    .ToList();
+                retired.AddRange(stale);
+
                 var have = rows
                     .Where(c => c.IngredientPattern != null)
                     .Select(c => c.IngredientPattern!)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var haveNutrients = rows.Where(c => c.IngredientPattern == null && c.NutrientId != null).Select(c => c.NutrientId!.Value).ToHashSet();
                 var addedForType = 0;
-                foreach (var pattern in def.Patterns.Distinct(StringComparer.OrdinalIgnoreCase))
+                foreach (var pattern in patterns.Where(p => !have.Contains(p)))
                 {
-                    if (have.Contains(pattern)) continue;
-                    db.Set<RestrictionCriterionEntity>().Add(new RestrictionCriterionEntity
-                    {
-                        RestrictionTypeId = r.Id,
-                        IngredientPattern = pattern,
-                        Severity = def.Severity,
-                        Notes = DefaultNote,
-                        CreatedDate = now,
-                        LastModifiedDate = now
-                    });
+                    db.Set<RestrictionCriterionEntity>().Add(Row(r.Id, def.Severity, now, pattern: pattern));
                     addedForType++;
                 }
-                if (addedForType == 0) continue;
+                foreach (var nutrientId in nutrientIds.Where(n => !haveNutrients.Contains(n)))
+                {
+                    db.Set<RestrictionCriterionEntity>().Add(Row(r.Id, def.Severity, now, nutrientId: nutrientId));
+                    addedForType++;
+                }
+                if (addedForType == 0 && stale.Count == 0) continue;
                 added += addedForType;
                 typesTouched++;
             }
-            if (added > 0)
+            if (retired.Count > 0)
+                db.Set<RestrictionCriterionEntity>().RemoveRange(await db.Set<RestrictionCriterionEntity>().IgnoreQueryFilters().Where(c => retired.Contains(c.Id)).ToListAsync());
+            if (added > 0 || retired.Count > 0)
             {
                 await db.SaveChangesAsync();
-                logger?.LogInformation("Restriction criteria: added {Count} default rows for {Types} restriction type(s)", added, typesTouched);
+                logger?.LogInformation("Restriction criteria: added {Count} default rows and removed {Retired} superseded default rows for {Types} restriction type(s)", added, retired.Count, typesTouched);
             }
             return added;
         }
+
+        private static RestrictionCriterionEntity Row(long typeId, int severity, DateTime now, string? pattern = null, long? nutrientId = null) => new()
+        {
+            RestrictionTypeId = typeId,
+            IngredientPattern = pattern,
+            NutrientId = nutrientId,
+            Severity = severity,
+            Notes = DefaultNote,
+            CreatedDate = now,
+            LastModifiedDate = now
+        };
     }
 }

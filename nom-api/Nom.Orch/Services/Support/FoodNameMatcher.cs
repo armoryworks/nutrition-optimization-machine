@@ -137,8 +137,13 @@ namespace Nom.Orch.Services.Support
             return only;
         }
 
-        /// <summary>Up to <paramref name="max"/> plausible USDA foods, best first; empty when nothing shares the name's words.</summary>
-        public IReadOnlyList<FoodCandidate> Shortlist(string name, int max = 8)
+        /// <summary>
+        /// Up to <paramref name="max"/> plausible USDA foods, best first; empty when nothing shares the
+        /// name's words. Given the alcohol sense the wording's lines share, only the foods that sense
+        /// allows are listed (<see cref="AlcoholLineContext.Refuse"/>), so a model can only choose
+        /// among them: no vinegar for "a glass of sherry", no liqueur for "brandy".
+        /// </summary>
+        public IReadOnlyList<FoodCandidate> Shortlist(string name, int max = 8, AlcoholReading? sense = null)
         {
             var tokens = Tokens(name);
             if (tokens.Count == 0) return Array.Empty<FoodCandidate>();
@@ -160,6 +165,7 @@ namespace Nom.Orch.Services.Support
             }
 
             return scores
+                .Where(kv => sense == null || AlcoholLineContext.Refuse(sense, _foods[kv.Key].Food.FdcId, _foods[kv.Key].Food.Name) == null)
                 .OrderByDescending(kv => kv.Value)
                 .ThenBy(kv => _foods[kv.Key].Food.Name.Length)
                 .Take(max)

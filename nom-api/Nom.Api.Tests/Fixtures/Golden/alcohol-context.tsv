@@ -1,0 +1,158 @@
+id	raw	title	context	site	expect	allows	refuses	status	source	note
+ac-001	1 tablespoon sherry vinegar	-	-	no	vinegar	172240	175112	ok	rule:alcohol-context	vinegar before the drink word
+ac-002	2 tbsp. white wine vinegar	-	-	no	vinegar	172240	174837	ok	rule:alcohol-context	vinegar, not white wine
+ac-003	1/4 cup rice wine vinegar	-	-	no	vinegar	172237	-	ok	rule:alcohol-context	vinegar before rice wine
+ac-004	1 tbsp apple cider vinegar	-	-	no	vinegar	173469	174146	ok	rule:alcohol-context	vinegar, not hard cider
+ac-005	2 tablespoons champagne vinegar	-	-	no	vinegar	172240	174837	ok	rule:alcohol-context	vinegar, not champagne
+ac-006	1 cup malt vinegar	-	-	no	none	-	-	ok	rule:alcohol-context	no alcohol word
+ac-007	balsamic vinaigrette made with red wine	-	-	no	vinaigrette	-	173190	ok	rule:alcohol-context	a dressing, never the wine
+ac-008	½ tsp rum extract	-	-	no	extract	173471	174817	ok	rule:alcohol-context	a flavouring, never the spirit
+ac-009	1 teaspoon vanilla extract	-	-	no	extract	173471	-	ok	rule:alcohol-context	vanilla extract is a flavouring
+ac-010	1 tsp rum flavoring	-	-	no	extract	172236	174817	ok	rule:alcohol-context	<drink> flavoring
+ac-011	1 tsp peppermint extract	-	-	no	extract	173471	173474	ok	rule:alcohol-context	a flavouring, not the fresh herb
+ac-012	2 tsp lemon extract	-	-	no	extract	173471	174815	ok	rule:alcohol-context	a flavouring
+ac-013	1 tsp almond essence	-	-	no	extract	173471	-	ok	rule:alcohol-context	essence is a flavouring
+ac-014	1 tsp brandy flavouring	-	-	no	extract	173471	174815	ok	rule:alcohol-context	<drink> flavouring
+ac-015	1 tsp beef extract	-	-	no	extract-food	-	174815	ok	rule:alcohol-context	a meat extract is not alcoholic
+ac-016	1 tablespoon yeast extract	-	-	no	extract-food	167717	174815	ok	rule:alcohol-context	a yeast extract is not alcoholic
+ac-017	2 tbsp malt extract	-	-	no	extract-food	-	168746	ok	rule:alcohol-context	a malt extract is not beer
+ac-018	1/2 cup oyster liquor	-	-	no	liquid	171978	174815	ok	rule:alcohol-context	liquor with no spirit word is the cooking liquid
+ac-019	the liquor from the mushrooms	-	-	no	liquid	-	174815	ok	rule:alcohol-context	cooking liquid
+ac-020	stew them in their own liquor	-	-	no	liquid	-	174815	ok	rule:alcohol-context	cooking liquid
+ac-021	a wine glass of milk	-	-	no	measure	322892	174837	ok	rule:alcohol-context	the measure; the food follows of
+ac-022	a wineglassful of oil	-	-	no	measure	-	174837	ok	rule:alcohol-context	the measure
+ac-023	a claret-glass of cream	-	-	no	measure	-	173190	ok	rule:alcohol-context	the measure
+ac-024	1 wineglass of brandy	-	-	no	spirit	174815	175098	ok	rule:alcohol-context	a measure of a drink reads the drink
+ac-025	half a sherry glass of sherry	-	-	no	fortified-dry	175112	172240	ok	rule:alcohol-context	a measure of sherry
+ac-026	2 oz ginger beer	-	-	no	soft-drink	174846	168746	ok	rule:alcohol-context	ginger beer is a soft drink
+ac-027	1 bottle root beer	-	-	no	soft-drink	171871	168746	ok	rule:alcohol-context	root beer is a soft drink
+ac-028	1 can ginger ale	-	-	no	soft-drink	174846	168746	ok	rule:alcohol-context	ginger ale is a soft drink
+ac-029	1 quart spruce beer	-	-	no	soft-drink	-	168746	ok	rule:alcohol-context	spruce beer is a soft drink
+ac-030	a pint of Ale-yeast	-	-	no	yeast	175043	168746	ok	rule:alcohol-context	ale yeast is yeast
+ac-031	2 tablespoons brewer's yeast	-	-	no	yeast	175043	168746	ok	rule:alcohol-context	brewer's yeast is yeast
+ac-032	a quart of barm	-	-	no	yeast	175043	168746	ok	rule:alcohol-context	barm is yeast
+ac-033	2/3 cup cooking sherry	-	-	no	cooking-wine	169070	175112	ok	rule:alcohol-context	cooking sherry is salted cooking wine
+ac-034	1/2 cup cooking wine	-	-	no	cooking-wine	169070	173185	ok	rule:alcohol-context	cooking wine
+ac-035	3 tbsp Shaoxing wine	-	-	no	rice-wine	-	169070	ok	rule:alcohol-context	no USDA food
+ac-036	2 tbsp Chinese rice wine	-	-	no	rice-wine	-	167723	ok	rule:alcohol-context	no USDA food
+ac-037	1 tbsp mirin	-	-	no	rice-wine	-	167723	ok	rule:alcohol-context	no USDA food
+ac-038	1/4 cup sake	-	-	no	sake	167723	174815	ok	rule:alcohol-context	sake
+ac-039	1 cup white wine sauce	-	-	no	dish	-	174837	ok	rule:alcohol-context	a dish named after the drink
+ac-040	brandy butter	-	-	no	dish	-	174815	ok	rule:alcohol-context	a dish named after the drink
+ac-041	Kirsch-flavoured syrup	-	-	no	dish	-	174815	ok	rule:alcohol-context	<drink>-flavoured
+ac-042	pistaches boil'd in white-wine and sugar	-	-	no	dish	-	174837	ok	rule:alcohol-context	boil'd in
+ac-043	1 cup raisins soaked in rum	-	-	no	dish	-	174817	ok	rule:alcohol-context	soaked in
+ac-044	1 tbsp port wine jelly	-	-	no	dish	-	173176	ok	rule:alcohol-context	a dish named after the drink
+ac-045	spirits of turpentine	-	-	no	not-food	-	174815	ok	rule:alcohol-context	not food
+ac-046	a few drops of spirit of nitre	-	-	no	not-food	-	174815	ok	rule:alcohol-context	not food
+ac-047	a little bay rum	-	-	no	not-food	-	174817	ok	rule:alcohol-context	bay rum is a cologne
+ac-048	2 oz Scotch barley	-	-	no	other	170284	174819	ok	rule:alcohol-context	Scotch barley is barley
+ac-049	1 scotch bonnet pepper, minced	-	-	no	other	-	174819	ok	rule:alcohol-context	a pepper
+ac-050	1 cup Scotch groats	-	-	no	other	-	174819	ok	rule:alcohol-context	oats
+ac-051	a sack of flour	-	-	no	other	-	175112	ok	rule:alcohol-context	a container
+ac-052	a hock of a cold ham	-	-	no	other	167875	174837	ok	rule:alcohol-context	ham, not Rhine wine
+ac-053	2 ham hocks	-	-	no	other	-	174837	ok	rule:alcohol-context	ham hocks
+ac-054	4 oz Port Salut, sliced	-	-	no	other	170849	173176	ok	rule:alcohol-context	a cheese, not port
+ac-055	1/2 cup Muscatel raisins	-	-	no	other	-	173176	ok	rule:alcohol-context	raisins, not muscatel wine
+ac-056	1 champagne mango, diced	-	-	no	other	2710834	174837	ok	rule:alcohol-context	a mango
+ac-057	rim the glass with salt for the rum	-	-	no	other	-	174817	ok	rule:alcohol-context	for the rum
+ac-058	1 cup maraschino cherries	-	-	no	other	167766	-	ok	rule:alcohol-context	cherries, not the liqueur
+ac-059	1 cup non-alcoholic beer	-	-	no	non-alcoholic	174863	168746	ok	rule:alcohol-context	non-alcoholic
+ac-060	1 bottle alcohol-removed sparkling wine	-	-	no	non-alcoholic	174157	174837	ok	rule:alcohol-context	alcohol-removed
+ac-061	NA beer works too	-	-	no	non-alcoholic	174863	168746	ok	rule:alcohol-context	NA
+ac-062	1 cup dealcoholised red wine	-	-	no	non-alcoholic	174157	173190	ok	rule:alcohol-context	dealcoholised
+ac-063	1 cup hard cider	-	-	no	hard-cider	174146	173469	ok	rule:alcohol-context	hard cider
+ac-064	a quart of perry	-	-	no	hard-cider	174146	-	ok	rule:alcohol-context	perry
+ac-065	2 cups sweet cider	-	-	no	apple-juice	173933	173469	ok	rule:alcohol-context	sweet cider is apple juice, never vinegar
+ac-066	1 cup apple cider	-	-	no	apple-juice	173933	174146	ok	rule:alcohol-context	apple cider is apple juice
+ac-067	1 cup fresh cider	-	-	no	apple-juice	173933	174146	ok	rule:alcohol-context	fresh cider
+ac-068	1/2 cup boiled cider	-	-	no	boiled-cider	-	173933	ok	rule:alcohol-context	no USDA food
+ac-069	1 pint cider	-	-	no	cider-unclear	-	174146	ok	rule:alcohol-context	bare cider is unclear
+ac-070	1 glass of sherry	-	-	no	fortified-dry	175112	172240	ok	rule:alcohol-context	a glass of sherry never reaches red wine vinegar
+ac-071	4 tablespoonfuls of brandy	-	-	no	spirit	174815	175098	ok	rule:alcohol-context	brandy never reaches coffee cream liqueur
+ac-072	a gill of rum	-	-	no	rum	174817	175098	ok	rule:alcohol-context	rum
+ac-073	1 cup beer	-	-	no	beer	168746	174863	ok	rule:alcohol-context	beer never reaches the malt beverage
+ac-074	a bottle of hock	-	-	no	wine-white	174837	167875	ok	rule:alcohol-context	hock is Rhine wine
+ac-075	1/2 cup sack	-	-	no	fortified-dry	175112	172240	ok	rule:alcohol-context	sack is a dry sherry-type wine
+ac-076	1/2 cup Madeira	-	-	no	fortified	173176	173190	ok	rule:alcohol-context	bare Madeira: either dessert wine
+ac-077	1/2 cup Marsala wine	-	-	no	fortified	175112	173190	ok	rule:alcohol-context	bare Marsala: either dessert wine
+ac-078	1/4 cup dry Marsala	-	-	no	fortified-dry	175112	173176	ok	rule:alcohol-context	dry Marsala
+ac-079	1/4 cup sweet Marsala	-	-	no	fortified-sweet	173176	175112	ok	rule:alcohol-context	sweet Marsala
+ac-080	1/2 cup port	-	-	no	fortified-sweet	173176	173190	ok	rule:alcohol-context	port
+ac-081	1/2 cup cream sherry	-	-	no	fortified-sweet	173176	175112	ok	rule:alcohol-context	cream sherry is sweet
+ac-082	1/4 cup amontillado sherry	-	-	no	fortified-dry	175112	-	ok	rule:alcohol-context	amontillado
+ac-083	1/4 cup Tokay	-	-	no	fortified-sweet	173176	-	ok	rule:alcohol-context	Tokay
+ac-084	a glass of Malaga	-	-	no	fortified-sweet	173176	-	ok	rule:alcohol-context	Malaga
+ac-085	1 cup dry red wine	-	-	no	wine-red	173190	174837	ok	rule:alcohol-context	red
+ac-086	1 cup dry white wine	-	-	no	wine-white	174837	173190	ok	rule:alcohol-context	white
+ac-087	1 cup claret	-	-	no	wine-red	173190	172240	ok	rule:alcohol-context	claret is red
+ac-088	1 bottle burgundy	-	-	no	wine-red	173190	174837	ok	rule:alcohol-context	burgundy is red
+ac-089	1 cup white burgundy	-	-	no	wine-white	174837	173190	ok	rule:alcohol-context	white burgundy is white
+ac-090	1 cup chablis	-	-	no	wine-white	174837	173190	ok	rule:alcohol-context	chablis is white
+ac-091	1/2 cup Rhenish wine	-	-	no	wine-white	174837	-	ok	rule:alcohol-context	Rhenish is white
+ac-092	1 cup champagne	-	-	no	wine-white	174837	-	ok	rule:alcohol-context	champagne is white
+ac-093	1 cup prosecco	-	-	no	wine-white	174837	-	ok	rule:alcohol-context	prosecco is white
+ac-094	1/2 cup Sauternes	-	-	no	wine-late-harvest	173202	174837	ok	rule:alcohol-context	late harvest white
+ac-095	1 cup rosé	-	-	no	wine-rose	171908	173190	ok	rule:alcohol-context	rose wine
+ac-096	1/4 cup dry vermouth	-	-	no	vermouth	-	174837	ok	rule:alcohol-context	no USDA food
+ac-097	1 cup merlot	-	-	no	wine-red	171925	174837	ok	rule:alcohol-context	a red wine name
+ac-098	1 cup cabernet sauvignon	-	-	no	wine-red	173190	174837	ok	rule:alcohol-context	cabernet before sauvignon
+ac-099	2 tbsp. white wine, such as Sauvignon Blanc	-	-	no	wine-white	174837	173190	ok	rule:alcohol-context	white
+ac-100	1 cup light beer	-	-	no	light-beer	168749	168746	ok	rule:alcohol-context	light beer
+ac-101	1 bottle stout	-	-	no	beer	168746	-	ok	rule:alcohol-context	stout is beer
+ac-102	a pint of ale	-	-	no	beer	168746	174846	ok	rule:alcohol-context	ale is beer, not ginger ale
+ac-103	1 pint small beer	-	-	no	beer	168746	-	ok	rule:alcohol-context	small beer is beer
+ac-104	1 can lager	-	-	no	beer	168746	-	ok	rule:alcohol-context	lager is beer
+ac-105	1/4 cup bourbon	-	-	no	whiskey	174819	175098	ok	rule:alcohol-context	bourbon is whiskey
+ac-106	2 oz Scotch whisky	-	-	no	whiskey	174819	-	ok	rule:alcohol-context	Scotch the drink
+ac-107	1 oz vodka	-	-	no	vodka	174818	-	ok	rule:alcohol-context	vodka
+ac-108	1 oz gin	-	-	no	spirit	174815	-	ok	rule:alcohol-context	gin
+ac-109	a wine-glassful of Hollands	-	-	no	spirit	174815	-	ok	rule:alcohol-context	Hollands is Dutch gin
+ac-110	1 oz tequila	-	-	no	spirit	174815	-	ok	rule:alcohol-context	tequila
+ac-111	1 tbsp cognac	-	-	no	spirit	174815	175098	ok	rule:alcohol-context	cognac is brandy
+ac-112	2 tbsp kirsch	-	-	no	spirit	174815	-	ok	rule:alcohol-context	kirsch is a distilled spirit
+ac-113	2 tbsp Calvados	-	-	no	spirit	174815	-	ok	rule:alcohol-context	Calvados is brandy
+ac-114	1 oz peach brandy	-	-	no	liqueur	-	174815	ok	rule:alcohol-context	fruit brandy is a liqueur
+ac-115	1/4 cup cherry brandy	-	-	no	liqueur	-	174815	ok	rule:alcohol-context	fruit brandy is a liqueur
+ac-116	2 tbsp Grand Marnier	-	-	no	liqueur	-	175098	ok	rule:alcohol-context	no USDA food
+ac-117	1/2 cup orange liqueur	-	-	no	liqueur	-	175098	ok	rule:alcohol-context	no USDA food
+ac-118	1 tbsp maraschino	-	-	no	liqueur	-	-	ok	rule:alcohol-context	maraschino the liqueur
+ac-119	1/4 cup coffee liqueur	-	-	no	coffee-liqueur	175097	175098	ok	rule:alcohol-context	coffee liqueur, not with cream
+ac-120	1/4 cup Kahlua	-	-	no	coffee-liqueur	173665	-	ok	rule:alcohol-context	Kahlua
+ac-121	1/4 cup Baileys Irish cream	-	-	no	cream-liqueur	175098	175097	ok	rule:alcohol-context	Irish cream
+ac-122	1 tbsp creme de menthe	-	-	no	creme-de-menthe	173168	-	ok	rule:alcohol-context	creme de menthe
+ac-123	¼ pint of liqueur	-	-	no	liqueur	-	175098	ok	rule:alcohol-context	bare liqueur is not coffee cream liqueur
+ac-124	a dash of Angostura bitters	-	-	no	liqueur	-	174815	ok	rule:alcohol-context	bitters: no USDA food
+ac-125	1 cup red wine or chicken broth	-	-	no	list	174536	175098	ok	rule:alcohol-context	alternatives: broth allows a non-alcoholic food only
+ac-126	2 tbsp brandy or rum	-	-	no	list	174817	175098	ok	rule:alcohol-context	alternatives: each part's foods
+ac-127	1 cup sherry-wine or milk	-	-	no	list	322892	175098	ok	rule:alcohol-context	alternatives
+ac-128	1/4 cup dry sherry (or rice wine)	-	-	no	list	175112	169070	ok	rule:alcohol-context	alternatives
+ac-129	1 cup wine	-	-	no	wine-unclear	-	173185	ok	rule:alcohol-context	bare wine and no recipe
+ac-130	1 cup wine	Braised beef	2 lb beef chuck;2 cups red wine;1 onion	no	wine-red	173190	174837	ok	rule:alcohol-context	colour from the other lines
+ac-131	1/2 cup wine	Chicken with white wine and tarragon	2 chicken breasts;1 bunch tarragon	no	wine-white	174837	173190	ok	rule:alcohol-context	colour from the title
+ac-132	1 cup wine	Chicken stew	2 chicken breasts;salt	yes	wine-table	173185	175112	ok	rule:alcohol-context	modern recipe, no colour: table wine
+ac-133	1 pint of wine	Wine jelly	1 oz isinglass;1 lb sugar	no	wine-unclear	-	173185	ok	rule:alcohol-context	old text, no colour
+ac-134	2 tbsp. wine	Two wines	1 cup red wine;1 cup white wine	yes	wine-unclear	-	173185	ok	rule:alcohol-context	both colours in the recipe
+ac-135	1/2 cup alcohol	Lemon cordial	1 cup sugar;2 cups water;peel of 2 lemons	no	spirit	174815	-	ok	rule:alcohol-context	alcohol in a recipe of food
+ac-136	1 pint alcohol	-	-	no	alcohol-unclear	-	174815	ok	rule:alcohol-context	alcohol with no recipe
+ac-137	a wineglass of wine	-	-	no	wine-unclear	-	173185	ok	rule:alcohol-context	a measure of bare wine
+ac-138	1 cup salt	-	-	no	none	-	-	ok	rule:alcohol-context	no alcohol word
+ac-139	2 cups bread crumbs	-	-	no	none	-	-	ok	rule:alcohol-context	crumbs is not rum
+ac-140	1 tbsp grated ginger root	-	-	no	none	-	-	ok	rule:alcohol-context	ginger is not gin
+ac-141	1 cup crumbled feta	-	-	no	none	-	-	ok	rule:alcohol-context	crumbled is not rum
+ac-142	1 tablespoon vanilla	-	-	no	none	-	-	ok	rule:alcohol-context	no alcohol word
+ac-143	1 cup apple juice	-	-	no	none	-	-	ok	rule:alcohol-context	no alcohol word
+ac-144	1 cup Rhine wine	-	-	no	wine-white	174837	-	ok	rule:alcohol-context	Rhine wine is white
+ac-145	1 cup elderberry wine	-	-	no	country-wine	-	173185	agent	agent-review-alcohol-context-2026-11-20	a country wine; USDA has no food
+ac-146	1 cup malt liquor	-	-	no	malt-liquor	171907	168746	agent	agent-review-alcohol-context-2026-11-20	malt liquor is not the cooking liquid
+ac-147	1 lb brandy snaps	-	-	no	dish	-	174815	agent	agent-review-alcohol-context-2026-11-20	a biscuit named after the drink
+ac-148	1 cup white zinfandel	-	-	no	wine-rose	171908	173190	agent	agent-review-alcohol-context-2026-11-20	white zinfandel is a rose
+ac-149	1 cup rum and raisin ice cream	-	-	no	list	-	175098	agent	agent-review-alcohol-context-2026-11-20	read as a list: the rum part counts for the diet; which part is the food is the alternative lane's call
+ac-150	1/2 cup beer batter	-	-	no	dish	-	168746	agent	agent-review-alcohol-context-2026-11-20	a batter named after the drink
+ac-151	2 cups pears poached in red wine	-	-	no	dish	-	173190	agent	agent-review-alcohol-context-2026-11-20	poached in
+ac-152	1 cup brandy and water	-	-	no	list	-	175098	agent	agent-review-alcohol-context-2026-11-20	a list: brandy refuses the liqueur, water allows only a food that is not alcoholic
+ac-153	1 cup dry cider	-	-	no	cider-unclear	-	174146	agent	agent-review-alcohol-context-2026-11-20	dry cider is hard in British usage but the rules leave it unclear
+ac-154	1 cup rice wine	-	-	no	rice-wine	-	173185	agent	agent-review-alcohol-context-2026-11-20	rice wine has no USDA food
+ac-155	1 tsp anchovy essence	-	-	no	extract-food	-	174815	ok	rule:alcohol-context	anchovy essence is a fish sauce, not a flavouring of drink
+ac-156	1/2 lb malaga raisins	-	-	no	other	-	173176	ok	rule:alcohol-context	raisins, not Malaga wine
+ac-157	1 lb malaga grapes	-	-	no	other	-	173176	ok	rule:alcohol-context	grapes, not Malaga wine

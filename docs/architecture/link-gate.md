@@ -5,7 +5,7 @@ food is this wording" passes before anything writes it, whatever produced the an
 a staple, a verified wording, a trusted alias, a lone model pick, or two blind readers that agreed.
 It holds a pair and says why; it never chooses a food. It joins the stricter hold rules of the links
 design (B3), the wording pair checks of the wordings design (checks 1 to 8) and the alcohol sense
-rules to come (`cleanup2/alcohol-context` adds them as rules of this gate, not a second gate). It
+rules (`AlcoholLineContext`, see `alcohol-context.md`; rules of this gate, not a second gate). It
 uses no model.
 
 Today it screens the name matches and model picks of the link lane
@@ -17,10 +17,12 @@ before). The wording tiers, the readers and the re-check of applied links (`clea
 
 - `GatePair`: the wording, the ingredient it is on (`SourceId`), the target `GateFood`, how the
   answer was reached (`NameMatch`, `ModelPick`, `ReadersAgreed`) and, when the caller has them, the
-  wording's lines (`GateLine`: raw text, unit, grams through the food's conversions).
+  wording's lines (`GateLine`: raw text, unit, grams through the food's conversions and, when the
+  caller has it, the rest of the line's recipe as `AlcoholRecipeContext`: title, other lines, steps,
+  whether it came from a web source).
 - `GateFood`: name, USDA description (the `fdc:description` alias), data type, curation status, USDA
   category (`FdcCategoryId`), admission reason, nutrient row count, whether calories, protein,
-  carbohydrate and fat are all stored, deleted. A fact left null is not checked.
+  carbohydrate and fat are all stored, deleted, FDC id. A fact left null is not checked.
 - `GateCatalog`: the curated name map the relink rule reads, the foods under each lead word, how many
   foods carry each lead word, trusted aliases by wording key, the name matcher and the staples,
   data-given head defaults, the lexicon, and the 99th percentile of grams per line by category.
@@ -40,6 +42,9 @@ The code is what golden files and reports name.
 | `prepared` | the target is in a USDA prepared category (Baby Foods, Fast Foods, Meals, Entrees and Side Dishes, Restaurant Foods; `PreparedFoods`, from the stored `FdcCategoryId`) | owner, 2026-11-20: never a link target |
 | `uncurated` | the target is neither curated nor a pending SR Legacy or Foundation food with no admission reason | wordings check 1, catalog admission |
 | `incomplete` | the core nutrients are missing, or it has fewer than 20 nutrient rows while a food under the same lead word has more than 5 more (Claret, 6 rows, against red table wine, 33) | wordings check 1 |
+| `alcohol-drink` | a line (or, with no lines, the wording) reads as a drink and the food is not one of its sense's allowed USDA foods ("brandy" on Coffee Cream Liqueur, "glass of sherry" on Red Wine Vinegar, "beer" on the non-alcoholic malt beverage); a food with no FDC id is never one | alcohol design A2 |
+| `alcohol-no-food` | a line reads as a drink USDA has no food for (vermouth, mirin and Shaoxing, most liqueurs, boiled cider, fruit and flower wines) or one its recipe cannot tell (bare cider, bare wine in an old text or with no recipe, "alcohol" with no food around it) | alcohol design A2, 2.3 |
+| `alcohol-not-drink` | a line reads as something that is not a drink (a vinegar, a flavouring extract, a meat or yeast extract, ale yeast, a cooking liquid, a measure, a dish named after a drink, a soft drink, sweet cider, a non-alcoholic drink, Scotch barley and the like) and the food is an alcoholic drink, or is not of the line's kind (a vinegar for a vinegar, an extract or flavouring for an extract, yeast for yeast, apple and no vinegar for sweet cider); or the line is not food at all | alcohol design A2 |
 | `other-food` | the wording is the name of another curated food that is not a prepared food (`LineRelinkService.TargetFor`) | links B3, wordings check 2 |
 | `other-alias` | a trusted alias gives the wording to another food | wordings check 2 |
 | `state` | the description carries a state (dried, canned, cooked, frozen, ground, powder, sweetened, cured, roasted, smoked, pickled, dry) the wording lacks, and another food under the same lead word lacks it too | links B3, wordings check 4 |
@@ -89,14 +94,17 @@ word lists, phrases (the salted and sweetened polarity phrases, the dried cues t
 off, the egg-white and "only" words) and patterns (heading, slash, percent, "with salt added"), the
 staple names (`StapleFoods`, read by the head-default spare and, through the name rule, by
 `rule-other`), the prepared categories (`CatalogAdmissionRule.PreparedCategories`) and the matcher
-and compound guard tables. Any change to a table changes it; a change to a rule's code rather than
+and compound guard tables, and the alcohol sense rules (`AlcoholLineContext.SignatureSource`, its
+own version, every pattern and the allowed-food table). Any change to a table changes it; a change to a rule's code rather than
 a table raises `LinkGate.Version`. `LinkGateTests` checks that every staple and prepared category is
 in the hashed text. The scorer lane `link-gate` records it, and a lane tier on the frame passes it
 in its gate signature, so a changed gate drops that tier back to shadow.
 
 ## Golden files and the scorer
 
-- `link-gate.tsv`: rule-given rows (`rule:link-gate`, `rule:construction`, status `ok`). Each is a
+- `link-gate.tsv`: rule-given rows (`rule:link-gate`, `rule:construction`, status `ok`); lg-68 to
+  lg-91 are the alcohol rows, one or more per alcohol rule of the design, and two pairs the alcohol
+  rules let through. The test reads each row's FDC id from `gate-catalog.tsv`. Each is a
   pair the gate must let through (`pass`) or a pair a named rule must hold. Every rule has a row
   (`Every_rule_of_the_gate_has_a_rule_given_row` reads the rule codes from `LinkGate` itself, so a
   new rule without a row fails). `readers` = `yes` reads the pair as two blind readers' answer (the
@@ -116,7 +124,9 @@ in its gate signature, so a changed gate drops that tier back to shadow.
 - Scorer lane `link-gate` in `model-lanes.json`, with no model: the gate replayed over every pair of
   `link-pairs.tsv` judged right, wrong, near or compound. Run it with
   `dotnet run --project nom-api/Nom.Import -- --golden-score --lane link-gate [--record]`; it needs
-  no host. Recorded on 2026-11-20: it lets through 2,284 of 7,664 pairs, 99.5 % of them judged right;
+  no host. Recorded on 2026-11-20 (`link-gate/2`, and again for `link-gate/3` with the alcohol
+  rules, with the same figures: every judged pair the alcohol rules refuse is already held by
+  another rule): it lets through 2,284 of 7,664 pairs, 99.5 % of them judged right;
   it lets through 12 of 1,406 pairs judged wrong, near or compound (0.9 %). Floors: precision at
   least 99 %, false accepts at most 1 %, agreement at least 45 %. The record is required, and
   `The_committed_link_gate_record_is_what_the_gate_scores_now` checks in CI that the gate still

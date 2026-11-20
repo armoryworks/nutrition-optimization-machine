@@ -31,7 +31,7 @@ namespace Nom.Import.Golden
             var lane = Option(args, "--lane");
             var noModel = lane != null && ModelLanes.NoModel.Contains(lane);
             var host = Option(args, "--host") ?? (noModel ? "none" : null);
-            var model = Option(args, "--model") ?? (noModel ? LinkGate.Version : null);
+            var model = Option(args, "--model") ?? (noModel ? ModelLanes.NoModelVersion(lane!) : null);
             if (lane == null || host == null || model == null || !ModelLanes.Scored.Contains(lane))
             {
                 Console.Error.WriteLine($"usage: {Flag} --lane <{string.Join('|', ModelLanes.Scored)}> --host <url> --model <name> [--limit N] [--golden <dir>] [--out <file>] [--record] ({string.Join(", ", ModelLanes.NoModel)} needs no host or model)");
