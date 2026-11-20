@@ -37,6 +37,8 @@ namespace Nom.Orch.Models.Curation
         public int SkippedEditedByPerson { get; set; }
         /// <summary>Recipes this call put back into quarantine.</summary>
         public int Requarantined { get; set; }
+        /// <summary>The recipes this call put back into quarantine, by curation status; with apply, the samples are these recipes too.</summary>
+        public Dictionary<string, int> RequarantinedByStatus { get; set; } = new();
         /// <summary>Failing recipes still out of quarantine after this call.</summary>
         public int Remaining { get; set; }
         public List<ProseRecheckSample> Samples { get; set; } = new();

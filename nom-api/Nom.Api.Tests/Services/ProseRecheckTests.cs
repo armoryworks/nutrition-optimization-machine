@@ -210,5 +210,19 @@ namespace Nom.Api.Tests.Services
             result.Requarantined.Should().Be(1);
             result.Remaining.Should().Be(1);
         }
+
+        [Fact]
+        public async Task The_samples_and_counts_of_an_apply_are_the_recipes_it_put_back()
+        {
+            await using var db = NewContext();
+            var lost = await SeedAsync(db, CurationStatusEnum.NonCurated, LostTime);
+            await SeedAsync(db, CurationStatusEnum.Curated, CopiedStep);
+
+            var result = await new ProseRecheckService(db, new NoUser()).RecheckAsync(apply: true, maxRecipes: 1);
+
+            result.Requarantined.Should().Be(1);
+            result.Samples.Select(s => s.RecipeId).Should().Equal(lost);
+            result.RequarantinedByStatus.Should().BeEquivalentTo(new System.Collections.Generic.Dictionary<string, int> { ["NonCurated"] = 1 });
+        }
     }
 }

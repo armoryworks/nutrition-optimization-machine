@@ -101,20 +101,14 @@ namespace Nom.Orch.Services
                 .OrderBy(f => f.Recipe.CurationStatusId == (long)CurationStatusEnum.Curated ? 0 : 1)
                 .ThenBy(f => f.Recipe.Id)
                 .Take(Math.Clamp(sampleSize, 0, 5000))
-                .Select(f => new ProseRecheckSample
-                {
-                    RecipeId = f.Recipe.Id,
-                    Name = f.Recipe.Name,
-                    Status = StatusName(f.Recipe.CurationStatusId),
-                    Reasons = f.Finding.Reasons.ToList(),
-                    Detail = f.Finding.ToString(),
-                })
+                .Select(Sample)
                 .ToList();
 
             if (apply)
             {
                 var batch = failures.Take(Math.Clamp(maxRecipes, 1, 100000)).ToList();
                 var personId = _currentUser.PersonIdOrSystem;
+                var applied = new List<Failure>();
                 foreach (var chunk in batch.Chunk(RecipesPerTransaction))
                 {
                     var ids = chunk.Select(f => f.Recipe.Id).ToList();
@@ -141,17 +135,33 @@ namespace Nom.Orch.Services
                         recipe.LastModifiedDate = now;
                         recipe.LastModifiedByPersonId = personId;
                         result.Requarantined++;
+                        applied.Add(failure);
                     }
 
                     await _db.SaveChangesAsync();
                     if (tx != null) await tx.CommitAsync();
                     _db.ChangeTracker.Clear();
                 }
+
+                result.Samples = applied.Take(Math.Clamp(sampleSize, 0, 5000)).Select(Sample).ToList();
+                result.RequarantinedByStatus = applied
+                    .GroupBy(f => StatusName(f.Recipe.CurationStatusId))
+                    .OrderBy(g => g.Key, StringComparer.Ordinal)
+                    .ToDictionary(g => g.Key, g => g.Count());
             }
 
             result.Remaining = result.Failed - result.Requarantined;
             return result;
         }
+
+        private static ProseRecheckSample Sample(Failure f) => new()
+        {
+            RecipeId = f.Recipe.Id,
+            Name = f.Recipe.Name,
+            Status = StatusName(f.Recipe.CurationStatusId),
+            Reasons = f.Finding.Reasons.ToList(),
+            Detail = f.Finding.ToString(),
+        };
 
         public async Task<ProseRecheckUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false)
         {
