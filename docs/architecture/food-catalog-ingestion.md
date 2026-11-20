@@ -505,6 +505,39 @@ Measured on staging on 2026-11-19: of 32,841 live aliases with no context, the r
 on 24,654. In the lines judged on 2026-11-12 a rule-confirmed alias was right for 98.8 % of
 lines and an unconfirmed one for about half.
 
+### Applied links: journal, undo and holds — BUILT ✅
+Every USDA link applied through `FoodCatalogReviewService.ApplyProposalAsync`, by a person or a
+lane, is journaled in `audit."AuditLogEntry"` (`EntityType` `FoodCatalogProposal`, `EntityId`
+the proposal, `ChangeType` `LinkApply`; format in `Nom.Orch/Services/Support/LinkApplyJournal.cs`):
+a `Proposal` header with the wording's food, name, status and source and whether it was merged;
+one `Line` row per recipe line the merge moved (`recipe:food@position`, old and new); every open
+link proposal the merge removed, in full; the USDA food's earlier curation status; any rename;
+each alias added, brought back or given a trusted context, with its state before; and, when the
+wording's food is kept, each nutrient row copied and each serving, density or item weight filled.
+
+`POST api/FoodCatalog/proposals/undo-applied?sinceUtc=<time>&source=<prefix>&systemOnly=false&apply=false&max=500&sampleSize=50`
+(curation-gated, a dry run unless `apply=true`) takes back, newest first, the links applied at
+or after the time: the wording's food comes back under its name, each line goes back to it at
+its old position, the removed proposals are written back, the aliases and values go back to
+what they were, the USDA food gets its earlier status unless another applied link still points
+at it, and the proposal returns to Pending. A line or alias changed since is left where it is
+and counted. Each undone proposal leaves one `LinkApplyUndo` row and loses its `LinkApply`
+rows. It does not run inside `relink/undo`: when both a relink and link applies happened in the
+window, run `relink/undo` first so lines a relink moved after the link are back on its food.
+
+The lanes apply exact name matches only under `IngredientLinking:AutoApplyNameMatches` (default
+off), at most `IngredientLinking:MaxNameMatchAppliesPerDay` (200) a day and
+`IngredientLinking:MaxNameMatchAppliesPerFoodPerDay` (25) per USDA food; staples are uncapped.
+Before a name match or a verified model pick is applied on its own, the hold rules in
+`Nom.Orch/Services/Support/LinkAutoApplyGuard.cs` run (`IngredientLinking:HoldGuard`, default
+on): the wording names more than one food; it is the name of another curated food; the USDA
+description carries a state (dried, canned, cooked, frozen, ground, powder) the wording does not
+while other USDA foods share its lead word; or, for a name match, the wording reads in the
+description's own order ("cake chocolate"). A held pick gets ` · hold: <rule>` on its reason and
+stays Pending for a person. `GET api/FoodCatalog/proposals/link-holds?sampleSize=50` counts what
+the rules would hold across all pending name matches and model picks and writes nothing.
+`IngredientLinking:AutoApplyVerifiedAi` defaults to off.
+
 ### AI enrichment (food group + IsWholeFood) — BUILT ✅ (runtime pending)
 `Nom.Import/Services/FoodGroupEnrichmentService.cs` — a batch job that classifies
 ingredients: deterministic keyword classification always runs
