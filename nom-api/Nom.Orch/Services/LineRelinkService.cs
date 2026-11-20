@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Nom.Data;
 using Nom.Data.Audit;
+using Nom.Data.Curation;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
@@ -19,7 +20,7 @@ namespace Nom.Orch.Services
     /// curated food that has nutrition, and neither the wording nor the line's own text already
     /// names the food it is on.
     /// </summary>
-    public class LineRelinkService : ILineRelinkService
+    public partial class LineRelinkService : ILineRelinkService
     {
         public const string RelinkChangeType = "LineRelink";
         public const string RelinkEntityType = "RecipeIngredient";
@@ -224,14 +225,14 @@ namespace Nom.Orch.Services
                 .ToDictionaryAsync(i => i.Id);
 
             var wanted = new Dictionary<(long, string), long>();
-            var rejected = 0;
+            var rejected = new List<LineRelinkWordingMove>();
             foreach (var move in moves)
             {
                 var wording = (move.Wording ?? string.Empty).Trim().ToLowerInvariant();
                 if (wording.Length == 0 || move.FromIngredientId == move.ToIngredientId || !foods.ContainsKey(move.FromIngredientId)
                     || !foods.TryGetValue(move.ToIngredientId, out var target) || !target.HasNutrition)
                 {
-                    rejected++;
+                    rejected.Add(move);
                     continue;
                 }
 
@@ -257,7 +258,13 @@ namespace Nom.Orch.Services
             }
 
             var result = apply ? await MoveAsync(planned, int.MaxValue) : new LineRelinkResult { Remaining = planned.Count };
-            result.Rejected = rejected;
+            result.Rejected = rejected.Count;
+            if (!apply)
+            {
+                result.Planned = Grouped(planned, id => foods[id].Name);
+                result.RejectedMoves = rejected;
+            }
+
             return result;
         }
 
@@ -281,25 +288,10 @@ namespace Nom.Orch.Services
 
             var personId = _currentUser.PersonIdOrSystem;
             var now = DateTime.UtcNow;
-            var retiredName = source.Name.Trim();
             var keptName = target.Name.Trim();
             await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
 
-            source.Name = Truncate($"{retiredName} (deleted #{source.Id})", 2000);
-            source.IsDeleted = true;
-            source.DeletedAt = now;
-            source.DeletedByPersonId = personId;
-            _db.AuditLogEntries.Add(new AuditLogEntryEntity
-            {
-                EntityType = RetireEntityType,
-                EntityId = source.Id,
-                ChangeType = RetireChangeType,
-                PropertyName = nameof(IngredientEntity.IsDeleted),
-                OldValue = retiredName,
-                NewValue = Place(target.Id, 0),
-                Timestamp = now,
-                ChangedByPersonId = personId,
-            });
+            var retiredName = Retire(source, target.Id, now, personId);
 
             if (target.GramsPerMilliliter == null && source.GramsPerMilliliter is { } density)
             {
@@ -380,6 +372,32 @@ namespace Nom.Orch.Services
             return result;
         }
 
+        /// <summary>
+        /// Tombstones the food's name as "X (deleted #id)", soft-deletes it and journals the
+        /// retirement with the food that takes its lines, so an undo brings it back under its
+        /// own name. Returns the name it had.
+        /// </summary>
+        private string Retire(IngredientEntity source, long targetId, DateTime now, long personId)
+        {
+            var retiredName = source.Name.Trim();
+            source.Name = Truncate($"{retiredName} (deleted #{source.Id})", 2000);
+            source.IsDeleted = true;
+            source.DeletedAt = now;
+            source.DeletedByPersonId = personId;
+            _db.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = RetireEntityType,
+                EntityId = source.Id,
+                ChangeType = RetireChangeType,
+                PropertyName = nameof(IngredientEntity.IsDeleted),
+                OldValue = retiredName,
+                NewValue = Place(targetId, 0),
+                Timestamp = now,
+                ChangedByPersonId = personId,
+            });
+            return retiredName;
+        }
+
         private static AuditLogEntryEntity Inherited(long foodId, string property, decimal value, DateTime at, long personId) => new()
         {
             EntityType = RetireEntityType,
@@ -424,7 +442,8 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// Whether anything a household or another food relies on still points at the food: a
-        /// pantry, shopping list, plan, goal, restriction, substitution, variation or component.
+        /// pantry, shopping list, plan, goal, restriction, substitution, variation, component or a
+        /// verified wording.
         /// </summary>
         private async Task<bool> IsUsedOutsideRecipeLinesAsync(long id)
         {
@@ -446,6 +465,7 @@ namespace Nom.Orch.Services
                      OR EXISTS (SELECT 1 FROM shopping."ShoppingListItem" x WHERE x."IngredientId" = {id})
                      OR EXISTS (SELECT 1 FROM shopping."HouseholdShoppingItem" x WHERE x."IngredientId" = {id})
                      OR EXISTS (SELECT 1 FROM communication."MessageThread" x WHERE x."IngredientId" = {id})
+                     OR EXISTS (SELECT 1 FROM recipe."IngredientWording" x WHERE x."IngredientId" = {id} AND x."IsDeleted" = false)
                     ) AS "Value"
                     """)
                 .ToListAsync();

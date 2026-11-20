@@ -40,6 +40,10 @@ namespace Nom.Orch.Models.Curation
         public int Remaining { get; set; }
         /// <summary>Requested wording moves left out because a food is not a live curated food or the target has no nutrition.</summary>
         public int Rejected { get; set; }
+        /// <summary>A dry run's moves, one per food, wording and target with its lines, most lines first.</summary>
+        public List<LineRelinkMove>? Planned { get; set; }
+        /// <summary>A dry run's requested wording moves that were left out.</summary>
+        public List<LineRelinkWordingMove>? RejectedMoves { get; set; }
     }
 
     public class FoodRetireResult
@@ -57,6 +61,19 @@ namespace Nom.Orch.Models.Curation
         public int AliasesRemoved { get; set; }
         /// <summary>Density and item weight the main entry had none of and took over from the retired food.</summary>
         public int MeasuresInherited { get; set; }
+    }
+
+    public class FoodRenameResult
+    {
+        public bool Renamed { get; set; }
+        /// <summary>The name the food goes by afterwards.</summary>
+        public string Name { get; set; } = string.Empty;
+        /// <summary>The live food that already holds the name; nothing is renamed while one does.</summary>
+        public long? HeldByIngredientId { get; set; }
+        /// <summary>Recipe lines on the food that holds the name.</summary>
+        public int HeldByLines { get; set; }
+        /// <summary>Aliases of the new name taken off other foods, so the name leads to this food alone.</summary>
+        public int AliasesRemoved { get; set; }
     }
 
     public class LineRelinkUndoResult

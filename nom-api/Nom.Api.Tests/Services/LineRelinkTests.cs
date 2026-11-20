@@ -148,6 +148,12 @@ namespace Nom.Api.Tests.Services
             dryRun.Remaining.Should().Be(2, "one boiling-water line and one water line in the scraped recipe; the member's recipe and the line whose own text says well are left alone");
             dryRun.Rejected.Should().Be(2, "Milk has no nutrition and food 999999 does not exist");
             dryRun.Moved.Should().Be(0);
+            dryRun.Planned!.Select(m => (m.FromName, m.Wording, m.ToName, m.Lines)).Should().BeEquivalentTo(new[]
+            {
+                ("Well Water", "boiling water", "Water", 1),
+                ("Well Water", "water", "Water", 1),
+            });
+            dryRun.RejectedMoves!.Select(m => m.ToIngredientId).Should().BeEquivalentTo(new[] { milk.Id, 999999L });
         }
 
         [Fact]
