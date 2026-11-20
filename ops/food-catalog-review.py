@@ -6,12 +6,14 @@ Batch review of the NOM food catalog by a local Claude Code instance.
 
 WHAT THE REVIEWER IS ALLOWED TO DO
 ----------------------------------
-Categorical judgement only: classify food groups, flag suspicious rows, normalize
-names, and name foods that look missing. It must NOT author nutrition numbers.
+Categorical judgement only: flag suspicious rows, normalize names, and name foods
+that look missing. It must NOT author nutrition numbers, and it never sets a food
+group: groups come from the USDA category only (a wrong group can only be flagged).
 A language model has no authoritative nutrition data, so a model-supplied value
 would replace a measured number with a plausible guess — worse than no change.
 The API enforces this too (ProposalPolicy): a nutrient-field proposal is rejected
-unless its source is authoritative (fdc:/label:/admin:/deterministic:). This
+unless its source is authoritative (fdc:/label:/admin:/deterministic:), and so is
+a food_group proposal. This
 script never emits one; the server check is the backstop, not the only guard.
 
 To actually verify numbers, re-run the FDC import against the latest release and
@@ -47,33 +49,27 @@ import sys
 from datetime import date
 
 # Fields the reviewer may propose. Anything nutritional is deliberately absent.
-ALLOWED_FIELDS = {"name", "food_group", "is_whole_food"}
+ALLOWED_FIELDS = {"name", "is_whole_food"}
 
-FOOD_GROUPS = [
-    "Vegetables", "Fruits", "Grains", "Protein Foods", "Dairy",
-    "Fats/Oils", "Legumes", "Nuts/Seeds", "Sweets/Snacks", "Beverages",
-]
-
-PROMPT = f"""You are auditing rows from a food catalog. Reply with ONLY a JSON array, no prose.
+PROMPT = """You are auditing rows from a food catalog. Reply with ONLY a JSON array, no prose.
 
 For each input row, decide whether anything looks wrong. Output one object per row you
 want to change or flag — omit rows that look fine.
 
 Object shape:
-  {{"ingredient_id": <int>,
+  {"ingredient_id": <int>,
     "action": "update" | "flag",
-    "field": "name" | "food_group" | "is_whole_food" | null,
+    "field": "name" | "is_whole_food" | null,
     "proposed_value": <string|null>,
     "confidence": <0..1>,
-    "reason": "<short>"}}
+    "reason": "<short>"}
 
 Rules you MUST follow:
 - NEVER propose a nutrition number (calories, protein, carbs, fat, serving grams).
   You have no authoritative nutrition data. If a value looks wrong, use
   action "flag" with a reason and leave field/proposed_value null.
-- food_group must be exactly one of: {", ".join(FOOD_GROUPS)}.
-- Condiments, sauces, dressings and seasonings belong to NO food group. Do not
-  assign one; flag instead if the current group is wrong.
+- NEVER propose a food_group. Food groups come from the USDA category only. If
+  the current group looks wrong, use action "flag" with a reason.
 - "is_whole_food" means a person would eat it as-is (an apple, a protein bar),
   as opposed to a cooking ingredient (flour, raw chicken, oil).
 - For name changes, only normalize retail shouting into readable text
@@ -167,9 +163,6 @@ def to_proposals(suggestions: list[dict], by_id: dict[str, dict], source: str) -
             if field not in ALLOWED_FIELDS:
                 dropped += 1  # nutrition or unknown field — never allowed from a reviewer
                 continue
-            if field == "food_group" and s.get("proposed_value") not in FOOD_GROUPS:
-                dropped += 1  # hallucinated group
-                continue
         else:
             field = None  # flags change nothing
 
@@ -182,8 +175,6 @@ def to_proposals(suggestions: list[dict], by_id: dict[str, dict], source: str) -
         current_value = ""
         if field == "name":
             current_value = current.get("name", "")
-        elif field == "food_group":
-            current_value = current.get("food_group", "")
         elif field == "is_whole_food":
             current_value = current.get("is_whole_food", "")
 

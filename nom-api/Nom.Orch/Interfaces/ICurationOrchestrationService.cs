@@ -16,10 +16,14 @@ namespace Nom.Orch.Interfaces
         Task<bool> SetIngredientFoodGroupAsync(long ingredientId, long? foodGroupId);
 
         /// <summary>
-        /// Heuristically classifies unclassified ingredients into food groups by name keywords.
-        /// When <paramref name="overwrite"/> is true, re-classifies already-classified ingredients too.
-        /// Returns the number of ingredients updated.
+        /// Classifies unclassified ingredients into food groups from their stored USDA category only
+        /// (never from a name); an ingredient without a stored category is left alone. When
+        /// <paramref name="overwrite"/> is true, sets already-classified ingredients to what their
+        /// category gives too, clearing the group where it gives none. Every change is journaled as
+        /// GroupFromCategory under one stamp, by <paramref name="personId"/> (the system when none),
+        /// so `Nom.Import --admit --undo &lt;stamp&gt;` takes the run back. Returns the number of
+        /// ingredients updated.
         /// </summary>
-        Task<int> AutoClassifyFoodGroupsAsync(bool overwrite);
+        Task<int> AutoClassifyFoodGroupsAsync(bool overwrite, long? personId = null);
     }
 }

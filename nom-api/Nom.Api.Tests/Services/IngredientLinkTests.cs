@@ -251,6 +251,49 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_food_the_catalog_rejected_is_never_a_link_candidate()
+        {
+            using var db = NewContext();
+            var (salt, _, plain) = await SeedFoodsAsync(db);
+            salt.CurationStatusId = (long)CurationStatusEnum.Rejected;
+            plain.CurationStatusId = (long)CurationStatusEnum.Rejected;
+            await db.SaveChangesAsync();
+            var prefixedSalt = await UsedIngredientAsync(db, "1 teaspoon salt", 3);
+            await UsedIngredientAsync(db, "2 tablespoons of creamery butter", 2);
+            var matcher = new FakeMatcher();
+            var offered = new List<long>();
+            matcher.Answer = q =>
+            {
+                offered.AddRange(q.Candidates.Select(c => c.IngredientId));
+                return new LinkAnswer(q.IngredientId, null, 0m);
+            };
+            var linker = Linker(db, matcher);
+
+            await linker.ProposeAsync(await linker.NextSourcesAsync(10));
+
+            (await db.FoodCatalogProposals.AnyAsync(p => p.IngredientId == prefixedSalt.Id && p.ProposedValue == salt.Id.ToString()))
+                .Should().BeFalse("the staple rule never names a rejected food");
+            offered.Should().NotContain(new[] { salt.Id, plain.Id }, "the model picker is never shown a rejected food");
+        }
+
+        [Fact]
+        public async Task The_bulk_status_endpoint_journals_every_change_with_who_made_it()
+        {
+            using var db = NewContext();
+            var (salt, salted, _) = await SeedFoodsAsync(db);
+            salt.CurationStatusId = (long)CurationStatusEnum.Curated;
+            await db.SaveChangesAsync();
+
+            await new FoodCatalogReviewService(db, new NoAudit(), new FakeCleanup())
+                .SetCurationStatusAsync(new[] { salt.Id, salted.Id }, (long)CurationStatusEnum.Curated, personId: 42);
+
+            var entry = await db.AuditLogEntries.SingleAsync();
+            entry.Should().Match<Nom.Data.Audit.AuditLogEntryEntity>(a => a.EntityId == salted.Id && a.EntityType == "Ingredient"
+                && a.ChangeType == FoodCatalogReviewService.CurationStatusSetChangeType && a.PropertyName == "CurationStatusId"
+                && a.OldValue == "9001" && a.NewValue == "9003" && a.ChangedByPersonId == 42);
+        }
+
+        [Fact]
         public async Task A_machine_rejection_is_retried_after_a_week_but_a_persons_is_final()
         {
             using var db = NewContext();

@@ -7,12 +7,13 @@ namespace Nom.Data.Nutrition
     /// <summary>
     /// What a proposal is allowed to change, based on where it came from.
     ///
-    /// The governing rule: <b>an automated reviewer may propose names, food groups, flags and
-    /// coverage gaps — never a nutrient value.</b> Language models have no authoritative nutrition
+    /// The governing rule: <b>an automated reviewer may propose names, flags and coverage gaps —
+    /// never a nutrient value, and never a food group.</b> Language models have no authoritative nutrition
     /// data; a model-authored number would replace a measured value with a plausible guess, which
     /// is strictly worse than leaving the record alone. Numeric changes must cite an authoritative
     /// source (an FDC record, or a corroborated published label), and even then land as proposals
-    /// for a human to approve.
+    /// for a human to approve. A food group comes from the USDA category, so a food_group change
+    /// also needs an authoritative source; a model may only flag a group it doubts.
     /// </summary>
     public static class ProposalPolicy
     {
@@ -39,6 +40,9 @@ namespace Nom.Data.Nutrition
         /// </summary>
         public const string HouseholdLabelPrefix = "label:user:";
 
+        /// <summary>The field that sets a food's group, which no model may propose.</summary>
+        public const string FoodGroupField = "food_group";
+
         public static bool IsNutrientField(string? field) =>
             !string.IsNullOrWhiteSpace(field)
             && NutrientFields.Any(f => field.Contains(f, StringComparison.OrdinalIgnoreCase));
@@ -50,7 +54,8 @@ namespace Nom.Data.Nutrition
 
         /// <summary>
         /// Whether a proposal may be accepted at ingest. Returns false with a reason when a
-        /// non-authoritative source (e.g. a model reviewer) tries to change a nutrient value.
+        /// non-authoritative source (e.g. a model reviewer) tries to change a nutrient value or a
+        /// food group.
         /// </summary>
         public static bool IsAllowed(string? field, string? source, out string? rejection)
         {
@@ -63,6 +68,12 @@ namespace Nom.Data.Nutrition
             if (IsNutrientField(field) && !IsAuthoritativeSource(source))
             {
                 rejection = "nutrient_change_requires_authoritative_source";
+                return false;
+            }
+
+            if (string.Equals(field?.Trim(), FoodGroupField, StringComparison.OrdinalIgnoreCase) && !IsAuthoritativeSource(source))
+            {
+                rejection = "food_group_requires_authoritative_source";
                 return false;
             }
 

@@ -641,7 +641,7 @@ namespace Nom.Orch.Services.Support
 
             if (result.Per100g.Calories != null && p != null && c != null && f != null)
             {
-                var check = new FoodDataQualityValidator().Validate(new FoodQualityInput("label", result.Per100g.Calories, p, c, f));
+                var check = new FoodDataQualityValidator().Validate(new FoodQualityInput("label", result.Per100g.Calories, p, c, f, FiberGramsPer100g: Per100(FoodComponent.Fiber)));
                 foreach (var reason in check.Reasons.Where(r => !r.StartsWith("name_", StringComparison.Ordinal) && !result.Warnings.Contains(r)))
                     result.Warnings.Add(reason);
             }

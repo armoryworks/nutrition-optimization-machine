@@ -72,7 +72,7 @@ namespace Nom.Import
                 {
                     if (onlyFlag + 1 >= args.Length || !File.Exists(args[onlyFlag + 1]))
                     {
-                        Console.WriteLine("Usage: --import-fdc <csv-dir> [--sr-legacy] [--curated] [--only <ids-file>] [--dry-run]   (ids-file: FDC ids separated by whitespace or commas)");
+                        Console.WriteLine("Usage: --import-fdc <csv-dir> [--sr-legacy] [--only <ids-file>] [--dry-run]   (ids-file: FDC ids separated by whitespace or commas)");
                         return;
                     }
                     only = File.ReadAllText(args[onlyFlag + 1]).Replace(',', ' ')
@@ -82,13 +82,17 @@ namespace Nom.Import
 
                 var dataType = args.Contains("--sr-legacy") ? FdcFoundationImportService.SrLegacyFood : FdcFoundationImportService.FoundationFood;
                 var createFoods = dataType != FdcFoundationImportService.SrLegacyFood || only != null;
-                var report = await importer.ImportAsync(args[fdcFlag + 1], curated: args.Contains("--curated"), dataType: dataType, onlyFdcIds: only, dryRun: dryRun, createFoods: createFoods);
+                var report = await importer.ImportAsync(args[fdcFlag + 1], dataType: dataType, onlyFdcIds: only, dryRun: dryRun, createFoods: createFoods);
                 Console.WriteLine($"\n=== FDC {dataType} import report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
                 Console.WriteLine($"Foods in file:     {report.TotalFoundation}{(only != null ? $" (of {only.Count} listed with --only)" : string.Empty)}");
                 if (report.ListedNotInFile.Count > 0)
                     Console.WriteLine($"Listed, not in the file as {dataType}: {string.Join(", ", report.ListedNotInFile)}");
-                Console.WriteLine($"Curation status:   {(args.Contains("--curated") ? "Curated (usable by meal planning)" : "PendingCuration (invisible to planning until reviewed)")}");
+                if (args.Contains("--curated"))
+                    Console.WriteLine("--curated is retired: foods land pending, and --admit curates the ones the catalog admission rule passes.");
                 Console.WriteLine($"Accepted:          {report.Accepted} ({report.Classified} classified into a food group)");
+                Console.WriteLine($"Admission rule:    {report.Admissible} pass and wait for --admit, {report.Accepted - report.Admissible} held ({Nom.Data.Nutrition.CatalogAdmissionRule.Version})");
+                foreach (var (reason, n) in report.HeldByReason.OrderByDescending(r => r.Value))
+                    Console.WriteLine($"  not curated: {reason} × {n}");
                 Console.WriteLine($"Rejected:          {report.Rejected}");
                 Console.WriteLine($"Revived:           {report.Revived} (foods an --import-fdc --undo retired, brought back with their nutrient rows)");
                 Console.WriteLine($"Skipped (existing):{report.SkippedExisting} ({report.SkippedRetired} of them retired by other means and still holding their FDC id)");
@@ -108,6 +112,13 @@ namespace Nom.Import
                     Console.WriteLine($"  dropped value: {reason} × {n}");
                 if (!dryRun)
                     Console.WriteLine($"Run stamp:         {report.RunStamp:O} (take this run back with --import-fdc --undo {report.RunStamp:O})");
+                return;
+            }
+
+            var admitFlag = Array.IndexOf(args, "--admit");
+            if (admitFlag >= 0)
+            {
+                await RunAdmissionAsync(host, args, admitFlag);
                 return;
             }
 
@@ -327,6 +338,104 @@ namespace Nom.Import
             await host.RunAsync();
         }
 
+        private static async Task RunAdmissionAsync(IHost host, string[] args, int admitFlag)
+        {
+            using var scope = host.Services.CreateScope();
+            var admission = scope.ServiceProvider.GetRequiredService<CatalogAdmissionService>();
+            var dryRun = args.Contains("--dry-run");
+            string? Value(string flag)
+            {
+                var i = Array.IndexOf(args, flag);
+                return i >= 0 && i + 1 < args.Length && !args[i + 1].StartsWith("--") ? args[i + 1] : null;
+            }
+
+            if (admitFlag + 1 < args.Length && args[admitFlag + 1] == "--undo")
+            {
+                if (admitFlag + 2 >= args.Length
+                    || !DateTime.TryParse(args[admitFlag + 2], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var stamp)
+                    || stamp.Kind != DateTimeKind.Utc)
+                {
+                    Console.WriteLine("Usage: --admit --undo <stamp> [--dry-run]   (the stamp an admission run printed)");
+                    return;
+                }
+                var undone = await admission.UndoAsync(stamp, dryRun);
+                PrintUndo(undone);
+                return;
+            }
+
+            var dirs = args.Skip(admitFlag + 1).TakeWhile(a => !a.StartsWith("--")).ToList();
+            var checksums = Value("--checksums");
+            if (dirs.Count != 2 || !dirs.All(Directory.Exists) || checksums == null || !File.Exists(checksums)
+                || (Value("--branded") is { } b && !Directory.Exists(b)))
+            {
+                Console.WriteLine("Usage: --admit <foundation-csv-dir> <sr-legacy-csv-dir> [--branded <branded-csv-dir>] --checksums <sha256-file> [--dry-run]");
+                Console.WriteLine("       --admit --undo <stamp> [--dry-run]");
+                return;
+            }
+
+            var r = await admission.AdmitAsync(new CatalogAdmissionService.AdmitOptions(dirs[0], dirs[1], Value("--branded"), checksums, dryRun));
+            Console.WriteLine($"\n=== Catalog admission report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ({r.RuleVersion}) ===");
+            Console.WriteLine($"Foods judged:        {r.Candidates} ({r.UsdaCandidates} USDA, {r.BrandedCandidates} branded, {r.BrandedNotInFile} branded not in the file)");
+            Console.WriteLine($"Admitted (Curated):  {r.Admitted}");
+            Console.WriteLine($"Held pending:        {r.Held}");
+            foreach (var (reason, n) in r.HeldByReason.OrderByDescending(x => x.Value))
+                Console.WriteLine($"  held: {reason} × {n}");
+            Console.WriteLine($"Kept curated:        {r.KeptCurated} (curated foods the rule would not curate; never demoted by the pass)");
+            foreach (var (reason, n) in r.KeptCuratedByReason.OrderByDescending(x => x.Value))
+                Console.WriteLine($"  kept: {reason} × {n}");
+            Console.WriteLine($"Regrouped:           {r.Regrouped} ({r.GroupsCleared} cleared)");
+            foreach (var (move, n) in r.GroupMoves.OrderByDescending(x => x.Value))
+                Console.WriteLine($"  group: {move} × {n}");
+            Console.WriteLine($"Edibility set:       {r.EdibilitySet}");
+            Console.WriteLine($"Descriptions added:  {r.DescriptionsAdded} ({r.DescriptionsBlocked} blocked by an alias of the same text)");
+            Console.WriteLine($"Picks withdrawn:     {r.PicksWithdrawn} (open model picks that point at a food an admin rejected)");
+            Console.WriteLine($"Energy check:        {r.EnergyPassRate:P2} of USDA foods pass ({string.Join(", ", r.EnergyByOutcome.OrderByDescending(x => x.Value).Select(x => $"{x.Key} {x.Value}"))})");
+            Console.WriteLine($"Without a category:  {r.CategoryMissing}");
+            foreach (var line in r.NotInFile.Take(50))
+                Console.WriteLine($"  not in the files: {line}");
+            Console.WriteLine($"Foods changed:       {r.ChangedFoods} (limit {CatalogAdmissionService.MaxChangedFoods})");
+            foreach (var line in r.Checksums)
+                Console.WriteLine($"  sha256 {line}");
+            foreach (var line in r.ChecksumFailures)
+                Console.WriteLine($"  NOT RECORDED: {line}");
+            foreach (var line in r.Lines)
+                Console.WriteLine($"  {line}");
+            foreach (var reason in r.Stopped)
+                Console.WriteLine($"STOPPED, nothing written: {reason}");
+            if (r.Stopped.Count > 0)
+            {
+                Environment.ExitCode = 1;
+                return;
+            }
+            if (!dryRun)
+                Console.WriteLine($"Run stamp:           {r.RunStamp:O} (take this run back with --admit --undo {r.RunStamp:O})");
+            if (r.SelfUndo != null)
+            {
+                Console.WriteLine($"UNDONE BY ITSELF: {r.NewFindings.Count} new audit finding(s) on admitted or regrouped foods");
+                foreach (var finding in r.NewFindings.Take(100))
+                    Console.WriteLine($"  finding: {finding}");
+                PrintUndo(r.SelfUndo);
+                Environment.ExitCode = 1;
+            }
+        }
+
+        private static void PrintUndo(CatalogAdmissionService.AdmissionUndoReport undone)
+        {
+            Console.WriteLine($"\n=== Catalog admission undo report{(undone.DryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
+            Console.WriteLine($"Run stamp:              {undone.RunStamp:O}");
+            if (undone.UndoStamp is { } undoStamp)
+                Console.WriteLine($"Undo stamp:             {undoStamp:O} (take this undo back with --admit --undo {undoStamp:O})");
+            Console.WriteLine($"Demoted:                {undone.Demoted} (admitted foods back to PendingCuration)");
+            Console.WriteLine($"Reapplied:              {undone.Reapplied} (values an earlier undo had put back)");
+            Console.WriteLine($"Groups restored:        {undone.GroupsRestored}");
+            Console.WriteLine($"Facts restored:         {undone.FactsRestored}");
+            Console.WriteLine($"Descriptions removed:   {undone.DescriptionsRemoved} ({undone.DescriptionsRestored} restored)");
+            Console.WriteLine($"Picks restored:         {undone.PicksRestored} ({undone.PicksWithdrawn} withdrawn again)");
+            Console.WriteLine($"Skipped:                {undone.Skipped} (changed since the run)");
+            foreach (var line in undone.Lines)
+                Console.WriteLine($"  {line}");
+        }
+
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((context, config) =>
@@ -395,10 +504,10 @@ namespace Nom.Import
                     services.AddScoped<FdcNutrientBackfillService>();
                     services.AddScoped<LabelNutritionImportService>();
 
+                    services.AddScoped<CatalogAdmissionService>();
                     services.AddScoped<FoodGroupEnrichmentService>(sp => new FoodGroupEnrichmentService(
                         sp.GetRequiredService<ApplicationDbContext>(),
                         sp.GetRequiredService<ILogger<FoodGroupEnrichmentService>>(),
-                        sp.GetService<Nom.Import.Services.IAiService>(),
                         aiSettings.BatchSize > 0 ? aiSettings.BatchSize : 50));
                 });
     }

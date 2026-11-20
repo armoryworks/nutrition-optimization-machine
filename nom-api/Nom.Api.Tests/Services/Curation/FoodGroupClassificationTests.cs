@@ -13,8 +13,8 @@ using Xunit;
 namespace Nom.Api.Tests.Services.Curation
 {
     /// <summary>
-    /// Heuristic food-group classification of ingredients by name keyword,
-    /// and manual override.
+    /// Food-group classification of ingredients from their stored USDA category only, never a
+    /// name keyword, and manual override.
     /// </summary>
     public class FoodGroupClassificationTests
     {
@@ -29,52 +29,56 @@ namespace Nom.Api.Tests.Services.Curation
             ctx.Ingredients.Single(i => i.Name == name).FoodGroupId;
 
         [Fact]
-        public async Task AutoClassify_AssignsGroupsByKeyword_MostSpecificWins()
+        public async Task AutoClassify_SetsGroupsFromTheStoredCategoryOnly_NeverFromAName()
         {
             using var ctx = NewContext();
             ctx.Ingredients.AddRange(
-                new IngredientEntity { Name = "Fuji Apple" },
-                new IngredientEntity { Name = "Boneless Chicken Breast" },
-                new IngredientEntity { Name = "Creamy Peanut Butter" }, // peanut → Nuts/Seeds, not Dairy(butter)
-                new IngredientEntity { Name = "Fresh Spinach" },
-                new IngredientEntity { Name = "Unobtainium Widget" });   // no keyword → stays null
+                new IngredientEntity { Name = "Apples, raw, with skin", FdcDataType = "sr_legacy_food", FdcCategoryId = 9 },
+                new IngredientEntity { Name = "Spices, pepper, black", FdcDataType = "sr_legacy_food", FdcCategoryId = 2 },
+                new IngredientEntity { Name = "Cheddar Snack Cubes (Acme)", FdcDataType = "branded_food", FdcCategory = "Cheese" },
+                new IngredientEntity { Name = "Tomato Ketchup (Acme)", FdcDataType = "branded_food", FdcCategory = "Ketchup, Mustard, BBQ & Cheese Sauce" },
+                new IngredientEntity { Name = "Fuji Apple" });
             await ctx.SaveChangesAsync();
 
             var updated = await NewService(ctx).AutoClassifyFoodGroupsAsync(overwrite: false);
 
-            updated.Should().Be(4);
-            GroupOf(ctx, "Fuji Apple").Should().Be((long)FoodGroupEnum.Fruits);
-            GroupOf(ctx, "Boneless Chicken Breast").Should().Be((long)FoodGroupEnum.ProteinFoods);
-            GroupOf(ctx, "Creamy Peanut Butter").Should().Be((long)FoodGroupEnum.NutsSeeds);
-            GroupOf(ctx, "Fresh Spinach").Should().Be((long)FoodGroupEnum.Vegetables);
-            GroupOf(ctx, "Unobtainium Widget").Should().BeNull();
+            updated.Should().Be(2);
+            GroupOf(ctx, "Apples, raw, with skin").Should().Be((long)FoodGroupEnum.Fruits);
+            GroupOf(ctx, "Spices, pepper, black").Should().BeNull("Spices and Herbs gives no group, whatever \"pepper\" reads like");
+            GroupOf(ctx, "Cheddar Snack Cubes (Acme)").Should().Be((long)FoodGroupEnum.Dairy);
+            GroupOf(ctx, "Tomato Ketchup (Acme)").Should().BeNull("a condiment category gives no group");
+            GroupOf(ctx, "Fuji Apple").Should().BeNull("a food with no stored category is never grouped by its name");
         }
 
         [Fact]
         public async Task AutoClassify_WithoutOverwrite_LeavesAlreadyClassifiedAlone()
         {
             using var ctx = NewContext();
-            // Deliberately "wrong" existing classification; without overwrite it must be preserved.
-            ctx.Ingredients.Add(new IngredientEntity { Name = "Fuji Apple", FoodGroupId = (long)FoodGroupEnum.Dairy });
+            ctx.Ingredients.Add(new IngredientEntity { Name = "Apples, raw, with skin", FdcDataType = "sr_legacy_food", FdcCategoryId = 9, FoodGroupId = (long)FoodGroupEnum.Dairy });
             await ctx.SaveChangesAsync();
 
             var updated = await NewService(ctx).AutoClassifyFoodGroupsAsync(overwrite: false);
 
             updated.Should().Be(0);
-            GroupOf(ctx, "Fuji Apple").Should().Be((long)FoodGroupEnum.Dairy);
+            GroupOf(ctx, "Apples, raw, with skin").Should().Be((long)FoodGroupEnum.Dairy);
         }
 
         [Fact]
-        public async Task AutoClassify_WithOverwrite_Reclassifies()
+        public async Task AutoClassify_WithOverwrite_SetsWhatTheCategoryGives_AndClearsANameDerivedGroup()
         {
             using var ctx = NewContext();
-            ctx.Ingredients.Add(new IngredientEntity { Name = "Fuji Apple", FoodGroupId = (long)FoodGroupEnum.Dairy });
+            ctx.Ingredients.AddRange(
+                new IngredientEntity { Name = "Apples, raw, with skin", FdcDataType = "sr_legacy_food", FdcCategoryId = 9, FoodGroupId = (long)FoodGroupEnum.Dairy },
+                new IngredientEntity { Name = "Pepper", FdcDataType = "sr_legacy_food", FdcCategoryId = 2, FoodGroupId = (long)FoodGroupEnum.Vegetables },
+                new IngredientEntity { Name = "Fuji Apple", FoodGroupId = (long)FoodGroupEnum.Dairy });
             await ctx.SaveChangesAsync();
 
             var updated = await NewService(ctx).AutoClassifyFoodGroupsAsync(overwrite: true);
 
-            updated.Should().Be(1);
-            GroupOf(ctx, "Fuji Apple").Should().Be((long)FoodGroupEnum.Fruits);
+            updated.Should().Be(2);
+            GroupOf(ctx, "Apples, raw, with skin").Should().Be((long)FoodGroupEnum.Fruits);
+            GroupOf(ctx, "Pepper").Should().BeNull("black pepper leaves Vegetables");
+            GroupOf(ctx, "Fuji Apple").Should().Be((long)FoodGroupEnum.Dairy, "a hand-made food has no category to judge by");
         }
 
         [Fact]

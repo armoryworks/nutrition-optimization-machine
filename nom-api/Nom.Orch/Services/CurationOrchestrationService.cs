@@ -445,24 +445,30 @@ namespace Nom.Orch.Services
             return true;
         }
 
-        public async Task<int> AutoClassifyFoodGroupsAsync(bool overwrite)
+        public async Task<int> AutoClassifyFoodGroupsAsync(bool overwrite, long? personId = null)
         {
-            var query = _db.Ingredients.AsQueryable();
+            var query = _db.Ingredients.Where(i => i.FdcCategoryId != null || i.FdcCategory != null);
             if (!overwrite)
                 query = query.Where(i => i.FoodGroupId == null);
 
             var ingredients = await query.ToListAsync();
+            var stamp = new DateTime(DateTime.UtcNow.Ticks / 10 * 10, DateTimeKind.Utc);
             int updated = 0;
             foreach (var ing in ingredients)
             {
-                var match = Nom.Data.Nutrition.FoodGroupHeuristics.ClassifyFoodGroup(ing.NameNormalized ?? ing.Name);
-                if (match.HasValue && ing.FoodGroupId != match)
+                var match = Nom.Data.Nutrition.CatalogAdmissionRule.GroupFor(ing.FdcDataType, ing.FdcCategoryId, ing.FdcCategory);
+                if ((match.HasValue || overwrite) && ing.FoodGroupId != match)
                 {
+                    _db.AuditLogEntries.Add(Nom.Data.Nutrition.CatalogAdmissionRule.GroupJournal(ing.Id, nameof(ing.FoodGroupId),
+                        ing.FoodGroupId?.ToString(System.Globalization.CultureInfo.InvariantCulture), match?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        personId ?? SystemConstants.SystemPersonId, stamp));
                     ing.FoodGroupId = match;
-                    ing.LastModifiedDate = System.DateTime.UtcNow;
+                    ing.LastModifiedDate = stamp;
                     updated++;
                 }
             }
+            if (updated > 0)
+                _logger.LogInformation("Auto-classify {Stamp:O}: {Updated} food groups set from the USDA category, journaled under that stamp for --admit --undo.", stamp, updated);
             if (updated > 0) await _db.SaveChangesAsync();
             return updated;
         }

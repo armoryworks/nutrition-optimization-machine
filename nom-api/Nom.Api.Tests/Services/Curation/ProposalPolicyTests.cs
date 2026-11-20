@@ -5,9 +5,9 @@ using Xunit;
 namespace Nom.Api.Tests.Services.Curation
 {
     /// <summary>
-    /// The safety rule that keeps model-authored numbers out of the catalog: an automated reviewer
-    /// may propose names, food groups and flags, but a nutrient value may only change on the word
-    /// of an authoritative source. A plausible-but-invented number is worse than no change at all.
+    /// The safety rule that keeps model-authored numbers and groups out of the catalog: an automated
+    /// reviewer may propose names and flags, but a nutrient value or a food group may only change on
+    /// the word of an authoritative source. A plausible-but-invented number is worse than no change at all.
     /// </summary>
     public class ProposalPolicyTests
     {
@@ -29,11 +29,28 @@ namespace Nom.Api.Tests.Services.Curation
 
         [Theory]
         [InlineData("name")]
-        [InlineData("food_group")]
         [InlineData("is_whole_food")]
         public void ModelReviewer_MayProposeCategoricalFields(string field)
         {
             ProposalPolicy.IsAllowed(field, "review:claude/2026-08-15", out _).Should().BeTrue();
+        }
+
+        [Theory]
+        [InlineData("review:claude/2026-08-15")]
+        [InlineData("ai:qwen2.5:14b-instruct")]
+        [InlineData("label:user:42")]
+        public void A_model_or_any_other_unauthoritative_source_never_sets_a_food_group(string source)
+        {
+            ProposalPolicy.IsAllowed("food_group", source, out var reason).Should().BeFalse();
+            reason.Should().Be("food_group_requires_authoritative_source");
+        }
+
+        [Theory]
+        [InlineData("admin:42")]
+        [InlineData("deterministic:usda-category")]
+        public void An_admin_or_a_rule_may_set_a_food_group(string source)
+        {
+            ProposalPolicy.IsAllowed("food_group", source, out _).Should().BeTrue();
         }
 
         [Theory]

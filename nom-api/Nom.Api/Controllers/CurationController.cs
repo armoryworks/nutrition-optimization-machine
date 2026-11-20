@@ -94,12 +94,12 @@ namespace Nom.Api.Controllers
             return ok ? Ok() : NotFound();
         }
 
-        /// <summary>Heuristically classifies ingredients into food groups by name keywords.</summary>
+        /// <summary>Classifies ingredients into food groups from their stored USDA category only, never from a name.</summary>
         [HttpPost("ingredients/auto-classify-food-groups")]
         [Authorize(Policy = "CanManageCuration")]
         public async Task<IActionResult> AutoClassifyFoodGroups([FromQuery] bool overwrite = false)
         {
-            var count = await _curationOrch.AutoClassifyFoodGroupsAsync(overwrite);
+            var count = await _curationOrch.AutoClassifyFoodGroupsAsync(overwrite, GetCurrentPersonIdRequired());
             return Ok(new { classified = count });
         }
     }

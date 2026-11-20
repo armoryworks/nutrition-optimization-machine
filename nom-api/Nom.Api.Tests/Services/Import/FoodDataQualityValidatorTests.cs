@@ -201,6 +201,70 @@ namespace Nom.Api.Tests.Services.Import
             _v.Validate(new FoodQualityInput("Liqueur", 600m, 40m, 40m, 0m, AlcoholGramsPer100g: 40m)).Reasons.Should().Contain("macro_sum_impossible");
         }
 
+        [Theory]
+        [InlineData("Alcoholic Beverage, wine, table, red, Gamay", 78, 0.07, 2.38, 0, 9.8, null, 3.36, 8.37, 3.92, "own-factors")]
+        [InlineData("Alcoholic beverage, distilled, vodka, 80 proof", 231, 0, 0, 0, 33.4, 0.0, null, null, null, "general")]
+        [InlineData("Cocoa, dry powder, unsweetened", 228, 19.6, 57.9, 13.7, 0.0, 37.0, 1.83, 8.37, 1.33, "own-factors")]
+        [InlineData("Oat bran, raw", 246, 17.3, 66.22, 7.03, 0.0, 15.4, 1.82, 8.37, 2.35, "own-factors")]
+        [InlineData("Mustard greens, raw", 27, 2.86, 4.67, 0.42, 0.0, 3.2, 2.44, 8.37, 3.57, "own-factors")]
+        [InlineData("Baobab powder", 250, 3.69, 79.65, 0.47, null, 44.5, 3.36, 8.37, 3.6, "atwater_mismatch")]
+        [InlineData("Sweetener, herbal extract powder from Stevia leaf", 0, 0, 100, 0, 0.0, 0.0, null, null, null, "atwater_mismatch")]
+        public void CheckEnergy_ConfirmsUsdaFoodsByTheirOwnFactors_OrTheFiberAwareFormula(
+            string name, double kcal, double protein, double carb, double fat, double? alcohol, double? fiber,
+            double? proteinFactor, double? fatFactor, double? carbFactor, string expected)
+        {
+            var food = new FoodQualityInput(name, (decimal)kcal, (decimal)protein, (decimal)carb, (decimal)fat,
+                AlcoholGramsPer100g: (decimal?)alcohol, FiberGramsPer100g: (decimal?)fiber,
+                CalorieFactors: CalorieFactors.Of((decimal?)proteinFactor, (decimal?)fatFactor, (decimal?)carbFactor));
+
+            _v.CheckEnergy(food).Should().Be(expected);
+            _v.Validate(food).Reasons.Contains("atwater_mismatch").Should().Be(expected == "atwater_mismatch");
+        }
+
+        [Fact]
+        public void Cocoa_powder_failed_the_old_general_check_and_passes_by_its_own_factors()
+        {
+            var cocoa = new FoodQualityInput("Cocoa, dry powder, unsweetened", 228m, 19.6m, 57.9m, 13.7m, FiberGramsPer100g: 37m);
+
+            _v.CheckEnergy(cocoa).Should().Be(EnergyCheckOutcome.Mismatch, "4·P + 4·(C − fiber) + 2·fiber + 9·F is 286 kcal against 228");
+            _v.CheckEnergy(cocoa with { CalorieFactors = CalorieFactors.Of(1.83m, 8.37m, 1.33m) }).Should().Be(EnergyCheckOutcome.OwnFactors);
+        }
+
+        [Fact]
+        public void The_general_check_counts_fiber_at_two_kcal_a_gram_and_holds_fifteen_percent()
+        {
+            var bran = new FoodQualityInput("Bran cereal", 290m, 13m, 74m, 3m, FiberGramsPer100g: 30m);
+
+            _v.CheckEnergy(bran with { FiberGramsPer100g = null }).Should().Be(EnergyCheckOutcome.Mismatch, "4·13 + 4·74 + 9·3 = 375 is 29 % over, which the old ±30 % let through");
+            _v.CheckEnergy(bran).Should().Be(EnergyCheckOutcome.General, "with fiber at 2 kcal/g it is 315, 9 % over");
+        }
+
+        [Fact]
+        public void A_foundation_food_is_compared_with_its_energy_by_specific_factors_when_USDA_states_it()
+        {
+            var apple = new FoodQualityInput("Apples, red delicious, with skin, raw", 62m, 0.19m, 14.8m, 0.21m,
+                FiberGramsPer100g: 2m, CalorieFactors: CalorieFactors.Of(3.36m, 8.37m, 3.6m));
+
+            _v.CheckEnergy(apple).Should().Be(EnergyCheckOutcome.Mismatch, "1008 is USDA's general figure; 55.7 kcal by own factors is 10 % under it");
+            _v.CheckEnergy(apple with { SpecificKcalPer100g = 56m }).Should().Be(EnergyCheckOutcome.OwnFactors);
+        }
+
+        [Fact]
+        public void Seasonings_leaveners_and_tiny_energies_are_exempt_and_say_so()
+        {
+            _v.CheckEnergy(new FoodQualityInput("Spices, pepper, black", 251m, 10.39m, 63.95m, 3.26m, UsedInSmallAmounts: true)).Should().Be(EnergyCheckOutcome.ExemptSmall);
+            _v.CheckEnergy(new FoodQualityInput("Iceberg Lettuce", 14m, 0.9m, 3m, 0.1m)).Should().Be(EnergyCheckOutcome.ExemptSmall);
+            _v.CheckEnergy(new FoodQualityInput("Mystery", null, 1m, 1m, 1m)).Should().BeNull();
+        }
+
+        [Fact]
+        public void A_calorie_factor_of_zero_is_no_factor()
+        {
+            CalorieFactors.Of(0m, 0m, 0m).Should().BeNull("USDA ships 0/0/0 factor rows for some foods");
+            CalorieFactors.Of(4m, 9m, null).Should().BeNull();
+            CalorieFactors.Of(4m, 9m, 4m).Should().Be(new CalorieFactors(4m, 9m, 4m));
+        }
+
         [Fact]
         public void CheckComponent_SkipsTheParentCheckWhenTheParentIsUnknown()
         {

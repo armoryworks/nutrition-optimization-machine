@@ -292,6 +292,35 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_link_never_curates_a_rejected_food_and_a_lane_never_lifts_a_food_the_admission_rule_holds()
+        {
+            using var db = NewContext();
+            var seeded = await SeedSeaSaltAsync(db);
+            seeded.Proposal.Source = IngredientLinkService.ExactSource;
+            var salt = await db.Ingredients.SingleAsync(i => i.Id == seeded.Salt.Id);
+            salt.CurationStatusId = (long)CurationStatusEnum.Rejected;
+            await db.SaveChangesAsync();
+            var review = new FoodCatalogReviewService(db, new NoAudit(), new MovingCleanup(db));
+
+            (await review.ApplyProposalAsync(seeded.Proposal.Id, SystemConstants.SystemPersonId)).Should().BeFalse();
+            (await review.ApplyProposalAsync(seeded.Proposal.Id, reviewerPersonId: 2)).Should().BeFalse("not even a person links a line to a rejected food");
+            db.ChangeTracker.Clear();
+            (await db.Ingredients.SingleAsync(i => i.Id == seeded.Salt.Id)).CurationStatusId.Should().Be((long)CurationStatusEnum.Rejected);
+
+            salt = await db.Ingredients.SingleAsync(i => i.Id == seeded.Salt.Id);
+            salt.CurationStatusId = (long)CurationStatusEnum.PendingCuration;
+            salt.AdmissionReason = "prepared_category:Fast Foods";
+            await db.SaveChangesAsync();
+
+            (await review.ApplyProposalAsync(seeded.Proposal.Id, SystemConstants.SystemPersonId)).Should().BeFalse("a lane never lifts a food the rule holds");
+            db.ChangeTracker.Clear();
+            (await db.Ingredients.SingleAsync(i => i.Id == seeded.Salt.Id)).CurationStatusId.Should().Be((long)CurationStatusEnum.PendingCuration);
+            (await db.FoodCatalogProposals.SingleAsync(p => p.Id == seeded.Proposal.Id)).Status.Should().Be(FoodProposalStatus.Pending);
+
+            (await review.ApplyProposalAsync(seeded.Proposal.Id, reviewerPersonId: 2)).Should().BeTrue("a person may approve it");
+        }
+
+        [Fact]
         public async Task A_line_edited_since_the_link_stays_where_it_is_and_is_counted()
         {
             using var db = NewContext();

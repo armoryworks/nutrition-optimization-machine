@@ -20,11 +20,12 @@ namespace Nom.Import.Services
 {
     /// <summary>
     /// Focused loader for USDA FDC Foundation Foods (CC0). Reads the bulk CSVs, applies the
-    /// quality gate (per-100g plausibility + Atwater), classifies each food by its FDC food
-    /// category (authoritative — far better than name keywords), and lands accepted foods as
-    /// PendingCuration ingredients with per-100g macro nutrients. Idempotent by FdcId.
+    /// quality gate (per-100g plausibility + energy by USDA's own calorie factors), classifies each
+    /// food by its FDC food category only, and lands accepted foods with per-100g nutrients as
+    /// PendingCuration with the verdict of <see cref="CatalogAdmissionRule"/> stored; only the gated
+    /// `--admit` pass (<see cref="CatalogAdmissionService"/>) curates them. Idempotent by FdcId.
     /// Reports accepted/rejected so quality can be gauged in staging before touching prod.
-    /// Run: `dotnet run -- --import-fdc &lt;csv-dir&gt; [--sr-legacy] [--curated] [--only &lt;ids-file&gt;] [--dry-run]`.
+    /// Run: `dotnet run -- --import-fdc &lt;csv-dir&gt; [--sr-legacy] [--only &lt;ids-file&gt;] [--dry-run]`.
     /// Everything one run writes shares one timestamp and is journaled in the audit log
     /// (change type <see cref="ImportChangeType"/>), which <see cref="UndoImportAsync"/> reverses:
     /// `--import-fdc --undo &lt;stamp&gt; [--dry-run]`.
@@ -34,9 +35,6 @@ namespace Nom.Import.Services
     /// </summary>
     public class FdcFoundationImportService
     {
-        private const long PendingCuration = 9001; // CurationStatusEnum.PendingCuration
-        private const long Curated = 9003;         // CurationStatusEnum.Curated
-
         public const string FoundationFood = "foundation_food";
         public const string AttachField = "fdc_attach";
         public const string SrLegacyFood = "sr_legacy_food";
@@ -55,69 +53,12 @@ namespace Nom.Import.Services
             _logger = logger;
         }
 
-        // FDC food_category_id → our food group. Mixed/ambiguous categories map to null (unclassified).
-        private static readonly Dictionary<int, long> CategoryToGroup = new()
-        {
-            [1] = (long)FoodGroupEnum.Dairy,           // Dairy and Egg Products
-            [4] = (long)FoodGroupEnum.FatsOils,        // Fats and Oils
-            [5] = (long)FoodGroupEnum.ProteinFoods,    // Poultry
-            [7] = (long)FoodGroupEnum.ProteinFoods,    // Sausages and Luncheon Meats
-            [8] = (long)FoodGroupEnum.Grains,          // Breakfast Cereals
-            [9] = (long)FoodGroupEnum.Fruits,          // Fruits and Fruit Juices
-            [10] = (long)FoodGroupEnum.ProteinFoods,   // Pork
-            [11] = (long)FoodGroupEnum.Vegetables,     // Vegetables
-            [12] = (long)FoodGroupEnum.NutsSeeds,      // Nut and Seed Products
-            [13] = (long)FoodGroupEnum.ProteinFoods,   // Beef
-            [14] = (long)FoodGroupEnum.Beverages,      // Beverages
-            [15] = (long)FoodGroupEnum.ProteinFoods,   // Finfish and Shellfish
-            [16] = (long)FoodGroupEnum.Legumes,        // Legumes
-            [17] = (long)FoodGroupEnum.ProteinFoods,   // Lamb, Veal, Game
-            [18] = (long)FoodGroupEnum.Grains,         // Baked Products
-            [19] = (long)FoodGroupEnum.SweetsSnacks,   // Sweets
-            [20] = (long)FoodGroupEnum.Grains,         // Cereal Grains and Pasta
-            [23] = (long)FoodGroupEnum.SweetsSnacks,   // Snacks
-            [28] = (long)FoodGroupEnum.Beverages,      // Alcoholic Beverages
-        };
-
         /// <summary>
-        /// Whether a Foundation food in this FDC category is eaten as-is. Foundation is largely raw
-        /// commodities, so this is not "is it food" but "would someone put it in a meal slot without
-        /// cooking it": an apple yes, raw chicken and dry pasta no. Unlisted categories stay null.
+        /// Every accepted food is judged by <see cref="CatalogAdmissionRule"/> as it is created and
+        /// lands PendingCuration, with its food group and edibility from its USDA category only and
+        /// its category, energy check and the rule's reasons (none when the rule would curate it)
+        /// stored. The `--admit` pass curates it, after its file, energy and size gates.
         /// </summary>
-        private static readonly Dictionary<int, bool> CategoryDirectlyEdible = new()
-        {
-            [1] = true,    // Dairy and Egg Products
-            [2] = false,   // Spices and Herbs
-            [3] = true,    // Baby Foods
-            [4] = false,   // Fats and Oils
-            [5] = false,   // Poultry — raw
-            [7] = true,    // Sausages and Luncheon Meats — ready to eat
-            [8] = true,    // Breakfast Cereals
-            [9] = true,    // Fruits and Fruit Juices
-            [10] = false,  // Pork — raw
-            [11] = true,   // Vegetables
-            [12] = true,   // Nut and Seed Products
-            [13] = false,  // Beef — raw
-            [14] = true,   // Beverages
-            [15] = false,  // Finfish and Shellfish — raw
-            // 16 Legumes is deliberately absent: it mixes dry commodities that need cooking with
-            // ready-to-eat products (hummus, peanut butter), so the category cannot decide. Leaving
-            // it unknown is better than asserting the wrong answer for half the category.
-            [17] = false,  // Lamb, Veal, Game — raw
-            [18] = true,   // Baked Products
-            [19] = true,   // Sweets
-            [20] = false,  // Cereal Grains and Pasta — needs cooking
-            [23] = true,   // Snacks
-            [28] = true,   // Alcoholic Beverages
-        };
-
-        /// <param name="curated">
-        /// Land accepted foods as Curated rather than PendingCuration. Meal-plan food-group
-        /// top-up and the severe-restriction safety gate only draw from Curated ingredients, so
-        /// foods imported with the default (false) stay invisible to planning until reviewed.
-        /// Defensible for Foundation Foods specifically: they are USDA-authored reference data
-        /// with validated nutrition, unlike the manufacturer-submitted Branded catalog.
-        /// </param>
         /// <param name="dataType">
         /// Which FDC data type to read from food.csv: <see cref="FoundationFood"/> (default) or
         /// <see cref="SrLegacyFood"/> (USDA Standard Reference — the generic staples recipes name).
@@ -129,14 +70,14 @@ namespace Nom.Import.Services
         /// holds foods whose catalog rows were moved to Foundation records, and creating them again
         /// would add pending duplicates of curated foods.
         /// </param>
-        public async Task<ImportReport> ImportAsync(string csvDir, bool curated = false, CancellationToken ct = default, string dataType = FoundationFood,
+        public async Task<ImportReport> ImportAsync(string csvDir, CancellationToken ct = default, string dataType = FoundationFood,
             IReadOnlySet<string>? onlyFdcIds = null, bool dryRun = false, bool createFoods = true)
         {
             var foodCsv = FindFile(csvDir, "food.csv");
             var nutrientCsv = FindFile(csvDir, "food_nutrient.csv");
 
             _logger.LogInformation("Reading foundation foods from {Dir}", csvDir);
-            var foods = ReadFoods(foodCsv, dataType);                 // fdc_id → (desc, categoryId)
+            var foods = ReadFoods(foodCsv, dataType);
             var listedNotInFile = new List<string>();
             if (onlyFdcIds != null)
             {
@@ -144,6 +85,9 @@ namespace Nom.Import.Services
                 foods = foods.Where(f => onlyFdcIds.Contains(f.Key)).ToDictionary(f => f.Key, f => f.Value);
             }
             var nutrients = FdcNutrients.Read(nutrientCsv, foods.Keys.ToHashSet());
+            var categories = UsdaFoodFacts.Categories(TryFindFile(csvDir, "food_category.csv"));
+            var factors = ReadCalorieFactors(csvDir, foods.Keys.ToHashSet());
+            var curatedKeys = await CatalogAdmissionService.CuratedKeysAsync(_db, ct);
 
             var portionRows = UsdaPortionFile.Read(TryFindFile(csvDir, "food_portion.csv"), foods.Keys.ToHashSet());
             var portions = ReferenceServings(portionRows);
@@ -219,8 +163,8 @@ namespace Nom.Import.Services
                 }
                 if (!nutrients.TryGetValue(fdcId, out var m)) { report.RejectedByReason["nutrients_missing"] = report.RejectedByReason.GetValueOrDefault("nutrients_missing") + 1; report.Rejected++; continue; }
 
-                var result = _validator.Validate(new FoodQualityInput(
-                    food.Description, m.Kcal, m.Protein, m.Carb, m.Fat, UsedInSmallAmounts(food), m.Alcohol));
+                var quality = m.QualityInput(food.Description, UsedInSmallAmounts(food), factors.GetValueOrDefault(fdcId));
+                var result = _validator.Validate(quality);
                 if (!result.Accepted)
                 {
                     report.Rejected++;
@@ -241,18 +185,23 @@ namespace Nom.Import.Services
                     continue;
                 }
 
-                long? group = (food.CategoryId is int c && CategoryToGroup.TryGetValue(c, out var g))
-                    ? g : FoodGroupHeuristics.ClassifyFoodGroup(food.Description);
+                var decision = CatalogAdmissionRule.Decide(new AdmissionFacts(dataType, food.CategoryId,
+                    food.CategoryId is int named ? categories.GetValueOrDefault(named) : null, food.Description, quality,
+                    curatedKeys.TryGetValue(CatalogAdmissionService.Key(name), out var holder) ? holder : null), _validator);
+                var group = decision.FoodGroupId;
 
                 var ingredient = new IngredientEntity
                 {
                     Name = name,
                     FdcId = fdcId,
                     FdcDataType = dataType,
-                    CurationStatusId = curated ? Curated : PendingCuration,
+                    CurationStatusId = (long)CurationStatusEnum.PendingCuration,
                     FoodGroupId = group,
-                    IsWholeFood = food.CategoryId is int ec && CategoryDirectlyEdible.TryGetValue(ec, out var edible)
-                        ? edible : null,
+                    IsWholeFood = decision.IsWholeFood,
+                    FdcCategoryId = food.CategoryId,
+                    FdcCategory = food.CategoryId is int c ? categories.GetValueOrDefault(c) : null,
+                    EnergyCheck = decision.EnergyCheck,
+                    AdmissionReason = decision.Reason,
                     // NOTE: must be TryGetValue — GetValueOrDefault on a decimal dictionary yields
                     // 0, which would silently zero out the food's nutrition.
                     ReferenceServingGrams = portions.TryGetValue(fdcId, out var refGrams) ? refGrams : null,
@@ -268,6 +217,9 @@ namespace Nom.Import.Services
 
                 report.Accepted++;
                 if (group.HasValue) report.Classified++;
+                if (decision.Status == (long)CurationStatusEnum.Curated) report.Admissible++;
+                foreach (var reason in decision.Reasons)
+                    report.HeldByReason[reason] = report.HeldByReason.GetValueOrDefault(reason) + 1;
             }
 
             await using var tx = !dryRun && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(ct) : null;
@@ -510,6 +462,7 @@ namespace Nom.Import.Services
             var foods = ReadFoods(FindFile(csvDir, "food.csv"), dataType)
                 .Where(f => fdcIds.Contains(f.Key)).ToDictionary(f => f.Key, f => f.Value);
             var nutrients = FdcNutrients.Read(FindFile(csvDir, "food_nutrient.csv"), foods.Keys.ToHashSet());
+            var factors = ReadCalorieFactors(csvDir, foods.Keys.ToHashSet());
             var portionRows = UsdaPortionFile.Read(TryFindFile(csvDir, "food_portion.csv"), foods.Keys.ToHashSet());
             var portions = ReferenceServings(portionRows);
             var densities = Densities(portionRows);
@@ -548,8 +501,7 @@ namespace Nom.Import.Services
                 if (holders.TryGetValue(request.FdcId, out var held) && held.Any(id => id != food.Id)) { Skip("fdc_id_taken"); continue; }
                 if (!foods.TryGetValue(request.FdcId, out var usda)) { Skip("fdc_food_not_in_file"); continue; }
                 if (!nutrients.TryGetValue(request.FdcId, out var m)) { Skip("nutrients_missing"); continue; }
-                var verdict = _validator.Validate(new FoodQualityInput(
-                    usda.Description, m.Kcal, m.Protein, m.Carb, m.Fat, UsedInSmallAmounts(usda), m.Alcohol));
+                var verdict = _validator.Validate(m.QualityInput(usda.Description, UsedInSmallAmounts(usda), factors.GetValueOrDefault(request.FdcId)));
                 if (!verdict.Accepted) { Skip(string.Join("+", verdict.Reasons)); continue; }
 
                 decimal? serving = portions.TryGetValue(request.FdcId, out var sg) ? sg : null;
@@ -909,10 +861,10 @@ namespace Nom.Import.Services
 
         private sealed record FoodRow(string Description, int? CategoryId);
 
-        private const int SpicesAndHerbs = 2;
+        private static bool UsedInSmallAmounts(FoodRow food) => CatalogAdmissionRule.UsedInSmallAmounts(food.CategoryId, food.Description);
 
-        private static bool UsedInSmallAmounts(FoodRow food) =>
-            food.CategoryId == SpicesAndHerbs || food.Description.StartsWith("Leavening agents,", StringComparison.Ordinal);
+        internal static Dictionary<string, CalorieFactors> ReadCalorieFactors(string csvDir, ISet<string> fdcIds) =>
+            UsdaFoodFacts.CalorieFactors(TryFindFile(csvDir, "food_nutrient_conversion_factor.csv"), TryFindFile(csvDir, "food_calorie_conversion_factor.csv"), fdcIds);
 
         private static Dictionary<string, FoodRow> ReadFoods(string path, string dataType)
         {
@@ -954,6 +906,10 @@ namespace Nom.Import.Services
             public int TotalFoundation { get; set; }
             public int Accepted { get; set; }
             public int Classified { get; set; }
+            /// <summary>Accepted foods the admission rule would curate, left pending for the gated `--admit` pass.</summary>
+            public int Admissible { get; set; }
+            /// <summary>Why the admission rule did not curate accepted foods, counted per reason.</summary>
+            public Dictionary<string, int> HeldByReason { get; } = new();
             public int Rejected { get; set; }
             public int SkippedExisting { get; set; }
             public int SkippedRetired { get; set; }

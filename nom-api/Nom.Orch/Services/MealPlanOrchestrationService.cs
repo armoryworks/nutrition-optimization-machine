@@ -390,6 +390,12 @@ namespace Nom.Orch.Services
         /// <summary>Score lost per 100% relative miss of a macro's goal mix (grams per kcal) on a plate.</summary>
         private const decimal MacroMixWeight = 400m;
 
+        /// <summary>
+        /// A food with more alcohol than this per 100 g is never drawn by the food-group top-up as a
+        /// standalone food: a spirit or wine admitted to Beverages is not a serving to schedule.
+        /// </summary>
+        internal const decimal MaxTopUpAlcoholGramsPer100g = 0.5m;
+
         // Meal composition templates: defines how many recipes of each type compose a meal
         private static readonly Dictionary<long, (long RecipeTypeId, string Label)[]> MealComposition = new()
         {
@@ -1023,7 +1029,8 @@ namespace Nom.Orch.Services
         /// Guarantees each active household <see cref="FoodGroupRuleEntity"/> minimum over the shuffled
         /// range. A serving of a food group is supplied by any placed recipe that contains an ingredient of
         /// that group, or by a standalone whole food of that group. Shortfalls are topped up by scheduling
-        /// standalone curated whole foods (respecting restrictions and steward/provider locks). Returns the
+        /// standalone curated whole foods (respecting restrictions and steward/provider locks), never a food
+        /// marked as a recipe-only ingredient or one with alcohol above <see cref="MaxTopUpAlcoholGramsPer100g"/>. Returns the
         /// standalone entries to add; never mutates <paramref name="placed"/>.
         /// </summary>
         internal async Task<List<MealPlanEntity>> ApplyFoodGroupRulesAsync(
@@ -1070,6 +1077,8 @@ namespace Nom.Orch.Services
                 var cands = await _context.Ingredients
                     .Where(i => i.FoodGroupId == gid
                         && i.CurationStatusId == (long)CurationStatusEnum.Curated
+                        && i.IsWholeFood != false
+                        && !i.IngredientNutrients.Any(n => !n.IsDeleted && n.Nutrient.Name.ToLower() == "alcohol" && n.Amount > MaxTopUpAlcoholGramsPer100g)
                         && !restrictedIngredientIds.Contains(i.Id)
                         && !lockedIds.Contains(i.Id))
                     .OrderBy(i => i.Id)

@@ -11,6 +11,11 @@ namespace Nom.Data.Nutrition
     /// energy is negligible in a dish and whose fiber, acids and alcohol defeat the Atwater check.
     /// <see cref="AlcoholGramsPer100g"/> is the ethanol the source reports (USDA or a label); it
     /// counts toward the macro sum and the Atwater energy, and a food without it is judged as before.
+    /// <see cref="FiberGramsPer100g"/> is the dietary fiber inside the carbohydrate, counted at 2 kcal/g
+    /// by the general energy check. <see cref="CalorieFactors"/> are the source's own calorie factors
+    /// (USDA food_calorie_conversion_factor.csv); with them the energy check is the source's own
+    /// arithmetic, compared with <see cref="SpecificKcalPer100g"/> when the source states energy by
+    /// those factors apart (USDA Foundation nutrient 2048), else with <see cref="KcalPer100g"/>.
     /// </summary>
     public sealed record FoodQualityInput(
         string? Name,
@@ -19,7 +24,34 @@ namespace Nom.Data.Nutrition
         decimal? CarbGramsPer100g,
         decimal? FatGramsPer100g,
         bool UsedInSmallAmounts = false,
-        decimal? AlcoholGramsPer100g = null);
+        decimal? AlcoholGramsPer100g = null,
+        decimal? FiberGramsPer100g = null,
+        CalorieFactors? CalorieFactors = null,
+        decimal? SpecificKcalPer100g = null);
+
+    /// <summary>
+    /// A food's own kcal per gram of protein, fat and carbohydrate, as USDA publishes them. Use
+    /// <see cref="Of"/>, which gives none when a factor is missing or not positive.
+    /// </summary>
+    public sealed record CalorieFactors(decimal Protein, decimal Fat, decimal Carbohydrate)
+    {
+        public static CalorieFactors? Of(decimal? protein, decimal? fat, decimal? carbohydrate) =>
+            protein is > 0m && fat is > 0m && carbohydrate is > 0m ? new CalorieFactors(protein.Value, fat.Value, carbohydrate.Value) : null;
+    }
+
+    /// <summary>
+    /// How a food's stated energy was confirmed (<see cref="FoodDataQualityValidator.CheckEnergy"/>),
+    /// as stored in the ingredient's EnergyCheck column: by its own calorie factors, by the general
+    /// fiber-aware formula, exempt (seasonings, leaveners and foods under the minimum kcal), or the
+    /// failure reason.
+    /// </summary>
+    public static class EnergyCheckOutcome
+    {
+        public const string OwnFactors = "own-factors";
+        public const string General = "general";
+        public const string ExemptSmall = "exempt-small";
+        public const string Mismatch = "atwater_mismatch";
+    }
 
     /// <summary>
     /// Keys for the label nutrients beyond the four macros and for the vitamins and minerals
@@ -97,14 +129,28 @@ namespace Nom.Data.Nutrition
         public int MaxNameLength { get; init; } = 200;
 
         /// <summary>
-        /// Atwater cross-check tolerance: 4·protein + 4·carb + 9·fat, plus
+        /// General Atwater cross-check tolerance, for a food without its own calorie factors:
+        /// 4·protein + 4·(carb − fiber) + <see cref="FiberKcalPerGram"/>·fiber + 9·fat, plus
         /// <see cref="AlcoholKcalPerGram"/>·alcohol when the source reports alcohol, should land
-        /// within this fraction of the stated calories. Loose (±30%) because fiber/rounding shift it.
+        /// within this fraction of the stated calories.
         /// </summary>
-        public decimal AtwaterTolerance { get; init; } = 0.30m;
+        public decimal AtwaterTolerance { get; init; } = 0.15m;
 
-        /// <summary>Energy of ethanol in the Atwater cross-check: 7 kcal per gram.</summary>
+        /// <summary>
+        /// Tolerance of the check by the food's own calorie factors: protein, fat and carbohydrate
+        /// times those factors, plus <see cref="AlcoholKcalPerGramWithFactors"/>·alcohol, should
+        /// land within this fraction of the stated calories.
+        /// </summary>
+        public decimal OwnFactorTolerance { get; init; } = 0.05m;
+
+        /// <summary>Energy of ethanol in the general Atwater cross-check: 7 kcal per gram.</summary>
         public decimal AlcoholKcalPerGram { get; init; } = 7m;
+
+        /// <summary>Energy of ethanol beside a food's own calorie factors: 6.93 kcal per gram, as USDA counts it.</summary>
+        public decimal AlcoholKcalPerGramWithFactors { get; init; } = 6.93m;
+
+        /// <summary>Energy of a gram of dietary fiber in the general Atwater cross-check.</summary>
+        public decimal FiberKcalPerGram { get; init; } = 2m;
 
         /// <summary>
         /// When both the stated and the macro-implied energy are below this many kcal the Atwater
@@ -237,20 +283,47 @@ namespace Nom.Data.Nutrition
                 && p >= 0 && c >= 0 && fat >= 0 && (p + c + fat + alcohol) > MaxMacroSumPer100g)
                 reasons.Add("macro_sum_impossible");
 
-            // Atwater cross-check (only when we have all macros + a usable calorie figure)
-            if (!f.UsedInSmallAmounts && f.KcalPer100g is { } k && k >= 0
-                && f.ProteinGramsPer100g is { } pr && f.CarbGramsPer100g is { } cb && f.FatGramsPer100g is { } ft
-                && pr >= 0 && cb >= 0 && ft >= 0)
-            {
-                var computed = (4m * pr) + (4m * cb) + (9m * ft) + (AlcoholKcalPerGram * alcohol);
-                var low = k * (1m - AtwaterTolerance);
-                var high = k * (1m + AtwaterTolerance);
-                var acidic = computed > high && IsAcidicFood(name);
-                if (Math.Max(k, computed) >= AtwaterMinKcal && (computed < low || computed > high) && !acidic)
-                    reasons.Add("atwater_mismatch");
-            }
+            if (CheckEnergy(f) == EnergyCheckOutcome.Mismatch)
+                reasons.Add(EnergyCheckOutcome.Mismatch);
 
             return reasons.Count == 0 ? FoodQualityResult.Ok : new FoodQualityResult(false, reasons);
+        }
+
+        /// <summary>
+        /// Confirms the stated energy from the macros, or returns null when the calories or a macro
+        /// is missing or negative. Seasonings and leavenings (<see cref="FoodQualityInput.UsedInSmallAmounts"/>)
+        /// and foods whose stated and computed energy are both under <see cref="AtwaterMinKcal"/> are
+        /// <see cref="EnergyCheckOutcome.ExemptSmall"/>. A food with its own calorie factors must come
+        /// within <see cref="OwnFactorTolerance"/>; any other food within <see cref="AtwaterTolerance"/>
+        /// of the general fiber-aware formula, where a known acidic food may state less than it.
+        /// </summary>
+        public string? CheckEnergy(FoodQualityInput f)
+        {
+            if (f.KcalPer100g is not { } stated || stated < 0
+                || f.ProteinGramsPer100g is not { } protein || f.CarbGramsPer100g is not { } carb || f.FatGramsPer100g is not { } fat
+                || protein < 0 || carb < 0 || fat < 0)
+                return null;
+            var alcohol = f.AlcoholGramsPer100g is { } grams && grams > 0 ? grams : 0m;
+
+            decimal computed, kcal, tolerance;
+            if (f.CalorieFactors is { } factors)
+            {
+                computed = (factors.Protein * protein) + (factors.Fat * fat) + (factors.Carbohydrate * carb) + (AlcoholKcalPerGramWithFactors * alcohol);
+                kcal = f.SpecificKcalPer100g is { } specific && specific >= 0 ? specific : stated;
+                tolerance = OwnFactorTolerance;
+            }
+            else
+            {
+                var fiber = Math.Min(Math.Max(f.FiberGramsPer100g ?? 0m, 0m), carb);
+                computed = (4m * protein) + (4m * (carb - fiber)) + (FiberKcalPerGram * fiber) + (9m * fat) + (AlcoholKcalPerGram * alcohol);
+                kcal = stated;
+                tolerance = AtwaterTolerance;
+            }
+
+            if (f.UsedInSmallAmounts || Math.Max(kcal, computed) < AtwaterMinKcal) return EnergyCheckOutcome.ExemptSmall;
+            if (computed >= kcal * (1m - tolerance) && computed <= kcal * (1m + tolerance))
+                return f.CalorieFactors != null ? EnergyCheckOutcome.OwnFactors : EnergyCheckOutcome.General;
+            return f.CalorieFactors == null && computed > kcal && IsAcidicFood(f.Name?.Trim()) ? EnergyCheckOutcome.General : EnergyCheckOutcome.Mismatch;
         }
 
         private void CheckMacro(string label, decimal? value, List<string> reasons)

@@ -22,6 +22,15 @@ namespace Nom.Api.Tests.Services.Shopping
             result.Nutrients.Should().ContainSingle(n => n.Key == key, $"expected one '{key}' reading").Subject;
 
         [Fact]
+        public void AHighFiberLabel_IsCheckedWithItsFiberAtTwoKcalPerGram()
+        {
+            var r = NutritionFactsParser.Parse("Nutrition Facts\nServing size 1 cup (100g)\nCalories 300\nTotal Fat 4g 5%\nTotal Carbohydrate 70g 25%\nDietary Fiber 20g 71%\nProtein 10g\n");
+
+            r.Per100g!.Calories.Should().Be(300m);
+            r.Warnings.Should().NotContain("atwater_mismatch", "10 g protein, 50 g other carbohydrate, 20 g fiber and 4 g fat give 316 kcal, 5 % from 300");
+        }
+
+        [Fact]
         public void Fda2020Cereal_ReadsEveryLineAndDerivesPer100gFromGrams()
         {
             var r = NutritionFactsParser.Parse(Fixture("fda-2020-cereal.txt"));

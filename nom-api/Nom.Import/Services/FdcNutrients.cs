@@ -128,10 +128,13 @@ namespace Nom.Import.Services
                         break;
                     }
                 }
-                result[fdc] = new FdcFoodNutrients(values);
+                result[fdc] = new FdcFoodNutrients(values, byId.TryGetValue(SpecificEnergyId, out var specific) ? specific : null);
             }
             return result;
         }
+
+        /// <summary>FDC nutrient 2048, energy by the food's own (Atwater specific) factors, which Foundation states beside 1008.</summary>
+        public const long SpecificEnergyId = 2048;
 
         /// <summary>
         /// The values worth storing for one food: the macros as read (the food-level gate already
@@ -227,9 +230,20 @@ namespace Nom.Import.Services
     /// <summary>Per-100 g values one FDC food supplies, keyed by <see cref="FdcNutrients"/> key.</summary>
     public sealed class FdcFoodNutrients
     {
-        public FdcFoodNutrients(IReadOnlyDictionary<string, decimal> values) => Values = values;
+        public FdcFoodNutrients(IReadOnlyDictionary<string, decimal> values, decimal? specificKcal = null)
+        {
+            Values = values;
+            SpecificKcal = specificKcal;
+        }
 
         public IReadOnlyDictionary<string, decimal> Values { get; }
+
+        /// <summary>Energy by the food's own factors (FDC 2048) when the file states it apart; not stored.</summary>
+        public decimal? SpecificKcal { get; }
+
+        /// <summary>The quality gate's input for this food, with its fiber and, when USDA publishes them, its own calorie factors.</summary>
+        public FoodQualityInput QualityInput(string? name, bool usedInSmallAmounts = false, CalorieFactors? factors = null) =>
+            new(name, Kcal, Protein, Carb, Fat, usedInSmallAmounts, Alcohol, this[FoodComponent.Fiber], factors, SpecificKcal);
 
         public decimal? this[string key] => Values.TryGetValue(key, out var v) ? v : null;
 
