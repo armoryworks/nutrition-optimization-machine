@@ -1,5 +1,6 @@
 ﻿// File: nom-api/Nom.Import/Program.cs
 
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,14 +37,53 @@ namespace Nom.Import
             {
                 using var importScope = host.Services.CreateScope();
                 var importer = importScope.ServiceProvider.GetRequiredService<FdcFoundationImportService>();
+                var dryRun = args.Contains("--dry-run");
+                if (args[fdcFlag + 1] == "--undo")
+                {
+                    if (fdcFlag + 2 >= args.Length
+                        || !DateTime.TryParse(args[fdcFlag + 2], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var stamp)
+                        || stamp.Kind != DateTimeKind.Utc)
+                    {
+                        Console.WriteLine("Usage: --import-fdc --undo <stamp> [--dry-run]   (the stamp an import run printed, e.g. 2026-11-19T18:04:05.1234560Z)");
+                        return;
+                    }
+                    var undone = await importer.UndoImportAsync(stamp, dryRun);
+                    Console.WriteLine($"\n=== FDC import undo report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
+                    Console.WriteLine($"Run stamp:              {undone.RunStamp:O}");
+                    Console.WriteLine($"Foods retired:          {undone.FoodsRetired} (soft delete; {undone.KeptInUse} kept because a recipe line uses them)");
+                    Console.WriteLine($"Nutrient rows removed:  {undone.NutrientRowsRemoved} (rows the run added to foods that already existed)");
+                    Console.WriteLine($"Densities cleared:      {undone.DensitiesCleared}");
+                    Console.WriteLine($"Proposals rejected:     {undone.ProposalsRejected} (attach proposals still pending)");
+                    Console.WriteLine($"Skipped:                {undone.Skipped} (changed since the run)");
+                    foreach (var line in undone.Lines)
+                        Console.WriteLine($"  {line}");
+                    return;
+                }
+
+                HashSet<string>? only = null;
+                var onlyFlag = Array.IndexOf(args, "--only");
+                if (onlyFlag >= 0)
+                {
+                    if (onlyFlag + 1 >= args.Length || !File.Exists(args[onlyFlag + 1]))
+                    {
+                        Console.WriteLine("Usage: --import-fdc <csv-dir> [--sr-legacy] [--curated] [--only <ids-file>] [--dry-run]   (ids-file: FDC ids separated by whitespace or commas)");
+                        return;
+                    }
+                    only = File.ReadAllText(args[onlyFlag + 1]).Replace(',', ' ')
+                        .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+                        .ToHashSet();
+                }
+
                 var dataType = args.Contains("--sr-legacy") ? FdcFoundationImportService.SrLegacyFood : FdcFoundationImportService.FoundationFood;
-                var report = await importer.ImportAsync(args[fdcFlag + 1], curated: args.Contains("--curated"), dataType: dataType);
-                Console.WriteLine($"\n=== FDC {dataType} import report ===");
-                Console.WriteLine($"Foods in file:     {report.TotalFoundation}");
+                var report = await importer.ImportAsync(args[fdcFlag + 1], curated: args.Contains("--curated"), dataType: dataType, onlyFdcIds: only, dryRun: dryRun);
+                Console.WriteLine($"\n=== FDC {dataType} import report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
+                Console.WriteLine($"Foods in file:     {report.TotalFoundation}{(only != null ? $" (of {only.Count} listed with --only)" : string.Empty)}");
+                if (report.ListedNotInFile.Count > 0)
+                    Console.WriteLine($"Listed, not in the file as {dataType}: {string.Join(", ", report.ListedNotInFile)}");
                 Console.WriteLine($"Curation status:   {(args.Contains("--curated") ? "Curated (usable by meal planning)" : "PendingCuration (invisible to planning until reviewed)")}");
                 Console.WriteLine($"Accepted:          {report.Accepted} ({report.Classified} classified into a food group)");
                 Console.WriteLine($"Rejected:          {report.Rejected}");
-                Console.WriteLine($"Skipped (existing):{report.SkippedExisting}");
+                Console.WriteLine($"Skipped (existing):{report.SkippedExisting} ({report.SkippedRetired} of them retired foods that still hold their FDC id)");
                 Console.WriteLine($"Skipped (dup name):{report.SkippedDuplicateName}");
                 Console.WriteLine($"Nutrient rows:     {report.NutrientRows} ({report.WithReferenceServing} foods with a reference serving)");
                 Console.WriteLine($"Backfilled rows:   {report.BackfilledNutrientRows} (missing nutrients added to already-imported foods)");
@@ -53,6 +93,41 @@ namespace Nom.Import
                     Console.WriteLine($"  reject: {reason} × {n}");
                 foreach (var (reason, n) in report.DroppedValuesByReason.OrderByDescending(r => r.Value))
                     Console.WriteLine($"  dropped value: {reason} × {n}");
+                if (!dryRun)
+                    Console.WriteLine($"Run stamp:         {report.RunStamp:O} (take this run back with --import-fdc --undo {report.RunStamp:O})");
+                return;
+            }
+
+            var attachFlag = Array.IndexOf(args, "--attach-fdc");
+            if (attachFlag >= 0)
+            {
+                var undo = attachFlag + 1 < args.Length && args[attachFlag + 1] == "--undo";
+                var paths = args.Skip(attachFlag + (undo ? 2 : 1)).TakeWhile(a => !a.StartsWith("--")).ToList();
+                if (paths.Count != (undo ? 1 : 2) || !File.Exists(paths[^1]))
+                {
+                    Console.WriteLine("Usage: --attach-fdc <csv-dir> <pairs.tsv> [--sr-legacy] [--dry-run] | --attach-fdc --undo <pairs.tsv> [--dry-run]");
+                    Console.WriteLine("pairs.tsv: a header row ingredient_id<TAB>name<TAB>fdc_id, then one food per row.");
+                    return;
+                }
+                var dryRun = args.Contains("--dry-run");
+                using var attachScope = host.Services.CreateScope();
+                var attacher = attachScope.ServiceProvider.GetRequiredService<FdcFoundationImportService>();
+                var requests = FdcFoundationImportService.ReadAttachRequests(paths[^1]);
+                var dataType = args.Contains("--sr-legacy") ? FdcFoundationImportService.SrLegacyFood : FdcFoundationImportService.FoundationFood;
+                var r = undo
+                    ? await attacher.UndoAttachAsync(requests, dryRun)
+                    : await attacher.AttachAsync(paths[0], requests, dryRun, dataType: dataType);
+                Console.WriteLine($"\n=== FDC attach {(undo ? "undo " : string.Empty)}report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
+                Console.WriteLine($"Requests in file: {r.Requests}");
+                Console.WriteLine(undo
+                    ? $"Undone:           {r.Undone}"
+                    : $"Proposals:        {r.Proposals} (pending; applied in Admin → Food Catalog → Links or by the certain-links lane)");
+                foreach (var (reason, n) in r.SkippedByReason.OrderByDescending(x => x.Value))
+                    Console.WriteLine($"  skipped: {reason} x {n}");
+                foreach (var line in r.Lines)
+                    Console.WriteLine($"  {line}");
+                if (r.UnresolvedNutrients.Count > 0)
+                    Console.WriteLine($"No Nutrient row for (skipped): {string.Join(", ", r.UnresolvedNutrients)}");
                 return;
             }
 
