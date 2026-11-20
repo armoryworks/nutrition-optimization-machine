@@ -7,8 +7,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
+using Nom.Data.Audit;
 using Nom.Data.Curation;
+using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
+using Nom.Orch.Models.Curation;
 using Nom.Orch.Services.Support;
 
 namespace Nom.Orch.Services
@@ -24,7 +27,13 @@ namespace Nom.Orch.Services
         public const string VerifiedMark = TriangulationMark + "verified";
         public const string NotVerifiedMark = TriangulationMark + "not verified";
         public const string UsdaDescriptionContext = "fdc:description";
+        public const string AliasTrustChangeType = "AliasTrust";
+        public const string AliasEntityType = "IngredientAlias";
+        public const string NameKeyRule = "name-key";
+        public const string StapleRule = "staple";
+        public const string NameMatchRule = "name-match";
         public static readonly TimeSpan RejectionRetryAge = TimeSpan.FromDays(7);
+        private const int JournalChunk = 500;
         private const int ModelBatch = 6;
         private const int VerifierRankWindow = 3;
         private const int ReasonLength = 2047;
@@ -85,16 +94,9 @@ namespace Nom.Orch.Services
             foreach (var source in sources)
             {
                 var name = IngredientNameNormalizer.Normalize(source.Name);
-                if (StapleFoods.UsdaNameFor(name) is { } stapleName && staples.TryGetValue(stapleName, out var staple))
+                if (DeterministicTarget(name, matcher, staples) is { } rule)
                 {
-                    Propose(source, staple, StapleSource, ExactConfidence, FoodProposalStatus.Pending);
-                    exact++;
-                    continue;
-                }
-
-                if ((matcher.Exact(name) ?? matcher.Covering(name)) is { } hit)
-                {
-                    Propose(source, hit, ExactSource, ExactConfidence, FoodProposalStatus.Pending);
+                    Propose(source, rule.Food, rule.Source, ExactConfidence, FoodProposalStatus.Pending);
                     exact++;
                     continue;
                 }
@@ -168,6 +170,27 @@ namespace Nom.Orch.Services
 
             await _context.SaveChangesAsync(cancellationToken);
             return new IngredientLinkBatchResult(sources.Count, exact, ai, none);
+        }
+
+        /// <summary>
+        /// The USDA food a normalised name means without asking a model, and the rule that says so:
+        /// first the standard entry of a bare staple name, then the one food the name matcher gives
+        /// the name to. Null when neither rule answers.
+        /// </summary>
+        private static (FoodCandidate Food, string Source)? DeterministicTarget(
+            string name, FoodNameMatcher matcher, IReadOnlyDictionary<string, FoodCandidate> staples)
+        {
+            if (StapleFoods.UsdaNameFor(name) is { } stapleName && staples.TryGetValue(stapleName, out var staple))
+            {
+                return (staple, StapleSource);
+            }
+
+            if ((matcher.Exact(name) ?? matcher.Covering(name)) is { } hit)
+            {
+                return (hit, ExactSource);
+            }
+
+            return null;
         }
 
         private void Propose(LinkSource source, FoodCandidate? target, string provenance, decimal? confidence, FoodProposalStatus status)
@@ -408,13 +431,162 @@ namespace Nom.Orch.Services
 
         private async Task<Dictionary<string, FoodCandidate>> StapleTargetsAsync(CancellationToken cancellationToken)
         {
-            var (foods, aliases) = await CandidatesAsync(cancellationToken);
+            var (foods, descriptions) = await CandidatesAsync(cancellationToken);
+            return StapleTargets(foods, descriptions);
+        }
+
+        private static Dictionary<string, FoodCandidate> StapleTargets(List<FoodCandidate> foods, List<(long IngredientId, string AliasName)> descriptions)
+        {
             var byId = foods.ToDictionary(f => f.IngredientId);
 
             var map = new Dictionary<string, FoodCandidate>(StringComparer.Ordinal);
             foreach (var f in foods) map.TryAdd(f.Name, f);
-            foreach (var a in aliases) map.TryAdd(a.AliasName, byId[a.IngredientId]);
+            foreach (var a in descriptions) map.TryAdd(a.AliasName, byId[a.IngredientId]);
             return map;
+        }
+
+        /// <summary>
+        /// The deterministic rule that gives a wording to the food it is on, tried in this order:
+        /// the wording is the food's name in the singular or plural; it is a bare staple name or a
+        /// name the matcher places, and that names this food; it is the food's name once its
+        /// preparation words are taken off. A wording a staple or the matcher gives to another
+        /// food is a conflict and takes no rule.
+        /// </summary>
+        private static (string? Rule, bool Conflict) RecheckRule(
+            string alias, long foodId, string foodName, FoodNameMatcher matcher, IReadOnlyDictionary<string, FoodCandidate> staples)
+        {
+            if (IngredientNameNormalizer.ExactKeys(alias).Contains(foodName, StringComparer.OrdinalIgnoreCase))
+            {
+                return (NameKeyRule, false);
+            }
+
+            if (DeterministicTarget(IngredientNameNormalizer.Normalize(alias), matcher, staples) is { } target)
+            {
+                return target.Food.IngredientId != foodId
+                    ? (null, true)
+                    : (target.Source == StapleSource ? StapleRule : NameMatchRule, false);
+            }
+
+            return IngredientNameNormalizer.LookupKeys(alias).Contains(foodName, StringComparer.OrdinalIgnoreCase)
+                ? (NameKeyRule, false)
+                : (null, false);
+        }
+
+        public async Task<AliasClassifyResult> ClassifyAliasesAsync(bool apply, long personId, int sampleSize = 50, CancellationToken cancellationToken = default)
+        {
+            var (foods, descriptions) = await CandidatesAsync(cancellationToken);
+            var matcher = new FoodNameMatcher(foods);
+            var staples = StapleTargets(foods, descriptions);
+            var aliases = await _context.IngredientAliases
+                .AsNoTracking()
+                .Where(a => !a.IsDeleted && a.SourceContext == null && !a.Ingredient.IsDeleted)
+                .OrderBy(a => a.IngredientId).ThenBy(a => a.AliasName)
+                .Select(a => new { a.IngredientId, a.AliasName, FoodName = a.Ingredient.Name })
+                .ToListAsync(cancellationToken);
+
+            var result = new AliasClassifyResult { Examined = aliases.Count };
+            var perRule = Math.Clamp(sampleSize, 0, 5000);
+            var marks = new List<(long IngredientId, string AliasName, string Context)>();
+            foreach (var a in aliases)
+            {
+                var (rule, conflict) = RecheckRule(a.AliasName, a.IngredientId, a.FoodName.Trim(), matcher, staples);
+                if (rule == null)
+                {
+                    if (conflict) result.Conflicts++;
+                    else result.Unchanged++;
+                    continue;
+                }
+
+                var seen = rule switch
+                {
+                    NameKeyRule => ++result.NameKey,
+                    StapleRule => ++result.Staple,
+                    _ => ++result.NameMatch,
+                };
+                if (seen <= perRule)
+                {
+                    result.Samples.Add(new AliasClassifySample { IngredientId = a.IngredientId, FoodName = a.FoodName, AliasName = a.AliasName, Rule = rule });
+                }
+                marks.Add((a.IngredientId, a.AliasName, IngredientAliasTrust.RecheckPrefix + rule));
+            }
+
+            if (!apply) return result;
+
+            foreach (var chunk in marks.Chunk(JournalChunk))
+            {
+                await using var tx = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync(cancellationToken) : null;
+                var foodIds = chunk.Select(m => m.IngredientId).Distinct().ToList();
+                var rows = (await _context.IngredientAliases
+                        .Where(a => foodIds.Contains(a.IngredientId) && !a.IsDeleted && a.SourceContext == null)
+                        .ToListAsync(cancellationToken))
+                    .ToDictionary(a => (a.IngredientId, a.AliasName));
+                var now = DateTime.UtcNow;
+                foreach (var mark in chunk)
+                {
+                    if (!rows.TryGetValue((mark.IngredientId, mark.AliasName), out var alias)) continue;
+                    alias.SourceContext = mark.Context;
+                    alias.LastModifiedDate = now;
+                    alias.LastModifiedByPersonId = personId;
+                    _context.AuditLogEntries.Add(new AuditLogEntryEntity
+                    {
+                        EntityType = AliasEntityType,
+                        EntityId = mark.IngredientId,
+                        ChangeType = AliasTrustChangeType,
+                        PropertyName = nameof(IngredientAliasEntity.SourceContext),
+                        OldValue = mark.AliasName,
+                        NewValue = mark.Context,
+                        Timestamp = now,
+                        ChangedByPersonId = personId,
+                    });
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                if (tx != null) await tx.CommitAsync(cancellationToken);
+            }
+
+            result.Applied = true;
+            return result;
+        }
+
+        public async Task<AliasClassifyUndoResult> UndoAliasClassificationAsync(DateTime sinceUtc, long personId, CancellationToken cancellationToken = default)
+        {
+            var entries = await _context.AuditLogEntries
+                .Where(e => e.EntityType == AliasEntityType && e.ChangeType == AliasTrustChangeType && e.Timestamp >= sinceUtc)
+                .OrderByDescending(e => e.Id)
+                .ToListAsync(cancellationToken);
+            var result = new AliasClassifyUndoResult();
+
+            foreach (var chunk in entries.Chunk(JournalChunk))
+            {
+                await using var tx = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync(cancellationToken) : null;
+                var foodIds = chunk.Select(e => e.EntityId).Distinct().ToList();
+                var rows = (await _context.IngredientAliases
+                        .IgnoreQueryFilters()
+                        .Where(a => foodIds.Contains(a.IngredientId))
+                        .ToListAsync(cancellationToken))
+                    .ToDictionary(a => (a.IngredientId, a.AliasName));
+                var now = DateTime.UtcNow;
+                foreach (var entry in chunk)
+                {
+                    if (entry.OldValue == null || entry.NewValue == null
+                        || !rows.TryGetValue((entry.EntityId, entry.OldValue), out var alias) || alias.SourceContext != entry.NewValue)
+                    {
+                        result.Skipped++;
+                        continue;
+                    }
+
+                    alias.SourceContext = null;
+                    alias.LastModifiedDate = now;
+                    alias.LastModifiedByPersonId = personId;
+                    _context.AuditLogEntries.Remove(entry);
+                    result.Restored++;
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                if (tx != null) await tx.CommitAsync(cancellationToken);
+            }
+
+            return result;
         }
 
         private async Task<FoodNameMatcher> GetMatcherAsync(CancellationToken cancellationToken)
@@ -431,9 +603,10 @@ namespace Nom.Orch.Services
         /// USDA foods (never branded) as link targets. A food that a link renamed to its everyday name
         /// ("Olive Oil") is matched by the USDA description it kept as its <see cref="UsdaDescriptionContext"/>
         /// alias ("Oil, olive, salad or cooking"), because that is the name the matcher's comma segments
-        /// were designed for. Other aliases are recipe wordings and never stand in for the description.
+        /// were designed for. Other aliases are recipe wordings and never stand in for the description,
+        /// so only the description aliases are returned beside the foods.
         /// </summary>
-        private async Task<(List<FoodCandidate> Foods, List<(long IngredientId, string AliasName)> Aliases)> CandidatesAsync(CancellationToken cancellationToken)
+        private async Task<(List<FoodCandidate> Foods, List<(long IngredientId, string AliasName)> Descriptions)> CandidatesAsync(CancellationToken cancellationToken)
         {
             var rows = await _context.Ingredients
                 .AsNoTracking()
@@ -441,20 +614,19 @@ namespace Nom.Orch.Services
                 .Select(i => new { i.Id, i.FdcId, i.Name, i.FdcDataType })
                 .ToListAsync(cancellationToken);
             var ids = rows.Select(r => r.Id).ToList();
-            var aliases = await _context.IngredientAliases
+            var descriptions = await _context.IngredientAliases
                 .AsNoTracking()
-                .Where(a => ids.Contains(a.IngredientId) && !a.IsDeleted)
-                .Select(a => new { a.IngredientId, a.AliasName, a.SourceContext })
+                .Where(a => ids.Contains(a.IngredientId) && !a.IsDeleted && a.SourceContext == UsdaDescriptionContext)
+                .Select(a => new { a.IngredientId, a.AliasName })
                 .ToListAsync(cancellationToken);
-            var usdaNames = aliases
-                .Where(a => a.SourceContext == UsdaDescriptionContext)
+            var usdaNames = descriptions
                 .GroupBy(a => a.IngredientId)
                 .ToDictionary(g => g.Key, g => g.First().AliasName);
 
             var foods = rows
                 .Select(r => new FoodCandidate(r.Id, r.FdcId!, usdaNames.TryGetValue(r.Id, out var usda) ? usda : r.Name, r.FdcDataType ?? string.Empty))
                 .ToList();
-            return (foods, aliases.Select(a => (a.IngredientId, a.AliasName)).ToList());
+            return (foods, descriptions.Select(a => (a.IngredientId, a.AliasName)).ToList());
         }
     }
 }

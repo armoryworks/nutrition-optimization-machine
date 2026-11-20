@@ -826,5 +826,235 @@ namespace Nom.Api.Tests.Services
             (await linker.PendingVerifiedAsync(10, Array.Empty<long>(), 0.85m, default, allowance.BusyTargets)).Should().BeEquivalentTo(new[] { toPlain.Id });
             (await linker.VerifiedAllowanceAsync(dailyCap: 4, perTargetCap: 3)).Remaining.Should().Be(0);
         }
+
+        private const long Reviewer = 2;
+
+        private static async Task<(IngredientEntity Salt, IngredientEntity ButterSalted, IngredientEntity ButterPlain, IngredientEntity Carrots, IngredientEntity YellowOnion)> SeedAliasedFoodsAsync(ApplicationDbContext db)
+        {
+            var (salt, salted, plain) = await SeedFoodsAsync(db);
+            var carrots = new IngredientEntity { Name = "Carrots, raw", FdcId = "170393", FdcDataType = "sr_legacy_food", CurationStatusId = 9003 };
+            var yellowOnion = new IngredientEntity { Name = "Yellow Onion", CurationStatusId = 9003 };
+            db.Ingredients.AddRange(carrots, yellowOnion);
+            await db.SaveChangesAsync();
+            return (salt, salted, plain, carrots, yellowOnion);
+        }
+
+        private static async Task AliasAsync(ApplicationDbContext db, IngredientEntity food, string wording, string? context = null, bool deleted = false)
+        {
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = food.Id, AliasName = wording, SourceContext = context, IsDeleted = deleted });
+            await db.SaveChangesAsync();
+        }
+
+        private static async Task<string?> ContextOfAsync(ApplicationDbContext db, IngredientEntity food, string wording) =>
+            (await db.IngredientAliases.AsNoTracking().SingleAsync(a => a.IngredientId == food.Id && a.AliasName == wording)).SourceContext;
+
+        [Fact]
+        public async Task Classification_dry_run_counts_and_changes_nothing()
+        {
+            using var db = NewContext();
+            var (salt, salted, plain, carrots, yellowOnion) = await SeedAliasedFoodsAsync(db);
+            await AliasAsync(db, yellowOnion, "yellow onions");
+            await AliasAsync(db, yellowOnion, "diced yellow onion");
+            await AliasAsync(db, salted, "salted butter");
+            await AliasAsync(db, carrots, "chopped carrots");
+            await AliasAsync(db, plain, "butter");
+            await AliasAsync(db, salt, "kosher salt");
+            await AliasAsync(db, salt, "fine salt", "link:ai:fake:1b");
+            await AliasAsync(db, salt, "table salt", deleted: true);
+
+            var result = await Linker(db, new FakeMatcher()).ClassifyAliasesAsync(apply: false, Reviewer);
+
+            result.Should().BeEquivalentTo(new { Applied = false, Examined = 6, NameKey = 2, Staple = 1, NameMatch = 1, Conflicts = 1, Unchanged = 1 });
+            result.Samples.Select(s => (s.FoodName, s.AliasName, s.Rule)).Should().BeEquivalentTo(new[]
+            {
+                ("Yellow Onion", "yellow onions", IngredientLinkService.NameKeyRule),
+                ("Yellow Onion", "diced yellow onion", IngredientLinkService.NameKeyRule),
+                ("Butter, salted", "salted butter", IngredientLinkService.StapleRule),
+                ("Carrots, raw", "chopped carrots", IngredientLinkService.NameMatchRule),
+            });
+            (await db.IngredientAliases.CountAsync(a => a.SourceContext == null)).Should().Be(6);
+            (await db.AuditLogEntries.AnyAsync()).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task Classification_samples_stop_at_the_sample_size_for_each_rule()
+        {
+            using var db = NewContext();
+            var (_, _, _, carrots, yellowOnion) = await SeedAliasedFoodsAsync(db);
+            await AliasAsync(db, yellowOnion, "yellow onions");
+            await AliasAsync(db, yellowOnion, "diced yellow onion");
+            await AliasAsync(db, carrots, "chopped carrots");
+
+            var result = await Linker(db, new FakeMatcher()).ClassifyAliasesAsync(apply: false, Reviewer, sampleSize: 1);
+
+            result.NameKey.Should().Be(2);
+            result.Samples.Select(s => s.Rule).Should().BeEquivalentTo(new[] { IngredientLinkService.NameKeyRule, IngredientLinkService.NameMatchRule });
+        }
+
+        [Fact]
+        public async Task Classification_marks_an_alias_that_is_the_foods_name_in_the_plural()
+        {
+            using var db = NewContext();
+            var (_, _, _, _, yellowOnion) = await SeedAliasedFoodsAsync(db);
+            await AliasAsync(db, yellowOnion, "yellow onions");
+            await AliasAsync(db, yellowOnion, "1 large yellow onion (diced)");
+
+            var result = await Linker(db, new FakeMatcher()).ClassifyAliasesAsync(apply: true, Reviewer);
+
+            result.Applied.Should().BeTrue();
+            result.NameKey.Should().Be(2);
+            (await ContextOfAsync(db, yellowOnion, "yellow onions")).Should().Be("deterministic:recheck:name-key");
+            (await ContextOfAsync(db, yellowOnion, "1 large yellow onion (diced)")).Should().Be("deterministic:recheck:name-key", "the name is what is left once the amount and the preparation words are off");
+        }
+
+        [Fact]
+        public async Task Classification_marks_a_staple_wording_on_its_staple_food()
+        {
+            using var db = NewContext();
+            var (_, salted, _, _, _) = await SeedAliasedFoodsAsync(db);
+            salted.Name = "Butter";
+            await AliasAsync(db, salted, "Butter, salted", IngredientLinkService.UsdaDescriptionContext);
+            await AliasAsync(db, salted, "salted butter");
+
+            await Linker(db, new FakeMatcher()).ClassifyAliasesAsync(apply: true, Reviewer);
+
+            (await ContextOfAsync(db, salted, "salted butter")).Should().Be("deterministic:recheck:staple");
+            (await ContextOfAsync(db, salted, "Butter, salted")).Should().Be(IngredientLinkService.UsdaDescriptionContext);
+        }
+
+        [Fact]
+        public async Task Classification_marks_a_wording_the_name_matcher_gives_to_that_food()
+        {
+            using var db = NewContext();
+            var (_, _, _, carrots, _) = await SeedAliasedFoodsAsync(db);
+            await AliasAsync(db, carrots, "chopped carrots");
+
+            await Linker(db, new FakeMatcher()).ClassifyAliasesAsync(apply: true, Reviewer);
+
+            (await ContextOfAsync(db, carrots, "chopped carrots")).Should().Be("deterministic:recheck:name-match");
+        }
+
+        [Fact]
+        public async Task Classification_leaves_an_alias_the_rules_give_to_another_food()
+        {
+            using var db = NewContext();
+            var (_, _, plain, _, yellowOnion) = await SeedAliasedFoodsAsync(db);
+            await AliasAsync(db, plain, "butter");
+            await AliasAsync(db, yellowOnion, "carrots");
+
+            var result = await Linker(db, new FakeMatcher()).ClassifyAliasesAsync(apply: true, Reviewer);
+
+            result.Conflicts.Should().Be(2, "butter is the salted staple, and the matcher gives carrots to the carrot");
+            (await ContextOfAsync(db, plain, "butter")).Should().BeNull();
+            (await ContextOfAsync(db, yellowOnion, "carrots")).Should().BeNull();
+            (await db.AuditLogEntries.AnyAsync()).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task Classification_leaves_an_alias_no_rule_covers()
+        {
+            using var db = NewContext();
+            var (salt, _, _, _, yellowOnion) = await SeedAliasedFoodsAsync(db);
+            await AliasAsync(db, salt, "kosher salt");
+            await AliasAsync(db, yellowOnion, "crispy fried onions");
+
+            var result = await Linker(db, new FakeMatcher()).ClassifyAliasesAsync(apply: true, Reviewer);
+
+            result.Should().BeEquivalentTo(new { Applied = true, Examined = 2, Unchanged = 2, Conflicts = 0 });
+            (await db.IngredientAliases.CountAsync(a => a.SourceContext == null)).Should().Be(2);
+        }
+
+        [Fact]
+        public async Task Classification_leaves_aliases_on_a_soft_deleted_food_alone()
+        {
+            using var db = NewContext();
+            var gone = new IngredientEntity { Name = "Turnip", CurationStatusId = 9003, IsDeleted = true };
+            db.Ingredients.Add(gone);
+            await db.SaveChangesAsync();
+            await AliasAsync(db, gone, "turnips");
+
+            var result = await Linker(db, new FakeMatcher()).ClassifyAliasesAsync(apply: true, Reviewer);
+
+            result.Examined.Should().Be(0);
+            (await ContextOfAsync(db, gone, "turnips")).Should().BeNull();
+        }
+
+        [Fact]
+        public async Task Classification_writes_one_journal_entry_per_alias_and_undo_since_restores_null_and_removes_the_entries()
+        {
+            using var db = NewContext();
+            var (salt, salted, _, carrots, yellowOnion) = await SeedAliasedFoodsAsync(db);
+            await AliasAsync(db, yellowOnion, "yellow onions");
+            await AliasAsync(db, salted, "salted butter");
+            await AliasAsync(db, carrots, "chopped carrots");
+            await AliasAsync(db, salt, "kosher salt");
+            var linker = Linker(db, new FakeMatcher());
+            var started = DateTime.UtcNow;
+
+            await linker.ClassifyAliasesAsync(apply: true, Reviewer);
+
+            var journal = await db.AuditLogEntries.AsNoTracking().ToListAsync();
+            journal.Should().OnlyContain(e => e.EntityType == IngredientLinkService.AliasEntityType && e.ChangeType == IngredientLinkService.AliasTrustChangeType
+                && e.PropertyName == nameof(IngredientAliasEntity.SourceContext) && e.ChangedByPersonId == Reviewer && e.Timestamp >= started);
+            journal.Select(e => (e.EntityId, e.OldValue, e.NewValue)).Should().BeEquivalentTo(new[]
+            {
+                (yellowOnion.Id, (string?)"yellow onions", (string?)"deterministic:recheck:name-key"),
+                (salted.Id, "salted butter", "deterministic:recheck:staple"),
+                (carrots.Id, "chopped carrots", "deterministic:recheck:name-match"),
+            });
+
+            var again = await linker.ClassifyAliasesAsync(apply: true, Reviewer);
+            again.Should().BeEquivalentTo(new { Examined = 1, NameKey = 0, Staple = 0, NameMatch = 0, Unchanged = 1 }, "a marked alias is not looked at again");
+            (await db.AuditLogEntries.CountAsync()).Should().Be(3);
+
+            (await linker.UndoAliasClassificationAsync(DateTime.UtcNow.AddMinutes(1), Reviewer)).Should().BeEquivalentTo(new AliasClassifyUndoResult(), "nothing was marked that late");
+            var undone = await linker.UndoAliasClassificationAsync(started, Reviewer);
+
+            undone.Should().BeEquivalentTo(new AliasClassifyUndoResult { Restored = 3 });
+            (await db.IngredientAliases.CountAsync(a => a.SourceContext == null)).Should().Be(4);
+            (await db.AuditLogEntries.AnyAsync()).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task Undo_skips_an_alias_whose_context_changed_since()
+        {
+            using var db = NewContext();
+            var (_, salted, _, carrots, yellowOnion) = await SeedAliasedFoodsAsync(db);
+            await AliasAsync(db, yellowOnion, "yellow onions");
+            await AliasAsync(db, salted, "salted butter");
+            await AliasAsync(db, carrots, "chopped carrots");
+            var linker = Linker(db, new FakeMatcher());
+            var started = DateTime.UtcNow;
+            await linker.ClassifyAliasesAsync(apply: true, Reviewer);
+            var approved = await db.IngredientAliases.SingleAsync(a => a.AliasName == "yellow onions");
+            approved.SourceContext = "admin:link:ai:fake";
+            db.IngredientAliases.Remove(await db.IngredientAliases.SingleAsync(a => a.AliasName == "chopped carrots"));
+            await db.SaveChangesAsync();
+
+            var undone = await linker.UndoAliasClassificationAsync(started, Reviewer);
+
+            undone.Should().BeEquivalentTo(new AliasClassifyUndoResult { Restored = 1, Skipped = 2 });
+            (await ContextOfAsync(db, yellowOnion, "yellow onions")).Should().Be("admin:link:ai:fake");
+            (await ContextOfAsync(db, salted, "salted butter")).Should().BeNull();
+            (await db.AuditLogEntries.Select(e => e.OldValue).ToListAsync()).Should().BeEquivalentTo(new[] { "yellow onions", "chopped carrots" }, "a skipped entry stays in the journal");
+        }
+
+        [Fact]
+        public async Task A_wording_alias_carrying_a_staple_description_does_not_become_the_staple_target()
+        {
+            using var db = NewContext();
+            var margarine = new IngredientEntity { Name = "Margarine, regular, 80% fat composite, stick, with salt", FdcId = "173577", FdcDataType = "sr_legacy_food", CurationStatusId = 9003 };
+            db.Ingredients.Add(margarine);
+            await db.SaveChangesAsync();
+            await AliasAsync(db, margarine, "Butter, salted", "link:ai:fake:1b");
+            var butter = await UsedIngredientAsync(db, "Butter", 5);
+            var linker = Linker(db, new FakeMatcher());
+
+            await linker.ProposeAsync(await linker.NextSourcesAsync(10));
+
+            var proposal = await db.FoodCatalogProposals.SingleAsync(p => p.IngredientId == butter.Id);
+            proposal.Source.Should().NotBe(IngredientLinkService.StapleSource, "only a food's own USDA description makes it a staple's standard entry");
+            proposal.ProposedValue.Should().BeNull();
+        }
     }
 }

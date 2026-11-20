@@ -19,14 +19,16 @@ namespace Nom.Api.Controllers
         private readonly IFoodCatalogAuditService _audit;
         private readonly ICatalogCleanupService _cleanup;
         private readonly ILineRelinkService _relink;
+        private readonly IIngredientLinkService _links;
 
         public FoodCatalogController(IFoodCatalogReviewService review, IFoodCatalogAuditService audit,
-            ICatalogCleanupService cleanup, ILineRelinkService relink)
+            ICatalogCleanupService cleanup, ILineRelinkService relink, IIngredientLinkService links)
         {
             _review = review;
             _audit = audit;
             _cleanup = cleanup;
             _relink = relink;
+            _links = links;
         }
 
         /// <summary>What the import-residue cleanup would do (deterministic name rules, no writes).</summary>
@@ -92,6 +94,20 @@ namespace Nom.Api.Controllers
         public async Task<ActionResult<LineRelinkUndoResult>> RelinkUndo([FromQuery, Required] DateTime sinceUtc)
         {
             return Ok(await _relink.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc)));
+        }
+
+        /// <summary>Marks the aliases with no context that a deterministic rule gives to the food they are on, so imports may follow them; a dry run unless apply=true, and each mark is written to the audit log.</summary>
+        [HttpPost("aliases/classify")]
+        public async Task<ActionResult<AliasClassifyResult>> ClassifyAliases([FromQuery] bool apply = false, [FromQuery] int sampleSize = 50)
+        {
+            return Ok(await _links.ClassifyAliasesAsync(apply, GetCurrentPersonIdRequired(), sampleSize));
+        }
+
+        /// <summary>Take the context back off the aliases marked at or after the given UTC time.</summary>
+        [HttpPost("aliases/classify/undo")]
+        public async Task<ActionResult<AliasClassifyUndoResult>> ClassifyAliasesUndo([FromQuery, Required] DateTime sinceUtc)
+        {
+            return Ok(await _links.UndoAliasClassificationAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), GetCurrentPersonIdRequired()));
         }
 
         /// <summary>Paged catalog for the review screen.</summary>
