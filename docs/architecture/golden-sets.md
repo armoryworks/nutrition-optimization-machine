@@ -33,7 +33,8 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `link-pairs.tsv` + `usda-catalog.tsv` | `IngredientLinkService.DeterministicTarget` (staple names, then the name matcher) | `rule`: `~id` the rule gives this food or none; `!id` never this food | `status` |
 | `compound.tsv` + `compound-vocabulary.tsv` | `CompoundLineSplitter.Plan` | `kind` (`Split`, `PickAlternative`, `Leave`, `-`), `rule`, `parts` (food names, `\|`-joined) | `status` |
 | `unfold.tsv` | `FoldedLine.Segments` | `segments` (count, or `-` when the line is not read) | `status` |
-| `prose.tsv` | `RewriteFidelity.Check` | `expect`: a reason the check must give | `status` |
+| `prose.tsv` | `RewriteFidelity.Check` | `expect`: a reason the check must give, or `passed` | `status` |
+| `piece-counts.tsv` | `RecipeRepairGrounding.PieceRefusal` (repair lane fills and `quantities/revert`) | `expect`: `keep` or `revert` | `status` |
 | `recipes.json` + `measurements.tsv` | `RecipeNutritionService.RecalculateAsync`, `.StatusFor` | `expected.calories/protein/fat` (4 dp), `countedLines`, `handLabel` | `status` |
 | `line-labels.tsv` | model lane `line-classify` | `kind` | none (scored by the operator run) |
 | `model-lanes.json` | every model lane | floors | — |
@@ -43,7 +44,11 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 parts (` ¦ `-joined), `{}` for an empty list and `-` for a recipe with no stored source. In
 `prose.tsv` the rewrite is built by the test from the public-domain source: `identical` (the source
 itself, must fail `unchanged`), `drop-step-N` (without a step that alone states a number, must fail
-`lost-number`) and `add-number` (the last step gains "Rest it 437 minutes.", must fail `added-number`).
+`lost-number`) and `add-number` (the last step gains "Rest it 437 minutes.", must fail `added-number`). `given` rows hold
+the stored rewrite itself (`rewriteDescription`, `rewriteSteps`, and the recipe `title`), as short
+excerpts of the staging rows a model operator judged on 2026-11-20 (source
+`agent-review-staging-2026-11-20`, status `agent`): false alarms that must pass and real faults
+that must fail.
 
 `recipes.json` keeps a recipe that is not public domain as numbers only: no title and no raw line.
 
@@ -92,6 +97,7 @@ without it.
 | `compound.tsv` | the top-80 compound wordings and sample part lines of the compound design | design |
 | `unfold.tsv` | examples 1–16 of the unfold design, with source lists read from staging | design |
 | `prose.tsv` | 12 public-domain recipes from staging, rewrites built by construction | rule (by construction) |
+| staging rehearsal rows (2026-11-20) in `piece-counts.tsv`, `compound.tsv`, `unfold.tsv`, `lines.tsv`, `veto.tsv`, `prose.tsv` | the wrong and doubtful cases of the C1–C9 operator logs, with the right outcome or "left alone" | the model operator of the rehearsal (`agent-review-staging-2026-11-20`, status `agent`) |
 | `recipes.json` | 9 recipes cited in the golden-gate design and 26 sampled curated recipes; expected values are staging's stored labels, which the in-memory service reproduces to 4 dp | catalog facts and arithmetic |
 | `line-labels.tsv` | 120 lines labelled not an ingredient that are exactly a curated food's name (ingredient by the veto rule) and 60 lines the deterministic pre-pass labelled | rule |
 

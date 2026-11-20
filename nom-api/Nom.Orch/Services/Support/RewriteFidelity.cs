@@ -16,7 +16,11 @@ namespace Nom.Orch.Services.Support
     /// <see cref="CopiedRunWords"/> words may be copied whole from the original, no step of
     /// <see cref="CopiedStepWords"/> or more words may come back word for word, and the text as a
     /// whole must have changed. A temperature in brackets after another ("350°F (175°C)") may be
-    /// dropped but not invented, and step numbers ("2. Make the salad") are not amounts. Text
+    /// dropped but not invented, and so may a metric or imperial conversion in brackets ("9-inch
+    /// (23cm)"). Step numbers ("2. Make the salad", "2In a bowl", a stray "3." at a step's end) and
+    /// cross-references ("as in step 3") are not amounts; "one-third" reads as ⅓; a spelled-out
+    /// number before "sides", "corners", "edges", "ends" or "equal" ("all four sides", "two equal
+    /// parts") is soft like "half"; and a number in the recipe's own title may be stated. Text
     /// only: no database and no model.
     /// </summary>
     public static class RewriteFidelity
@@ -38,12 +42,25 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex SentenceEnd = new(@"(?<=[.!?;])\s+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         private static readonly Regex StepNumber = new(
-            @"(?<=^|[.!?:]\s*)\s*(?:step\s*)?\d{1,2}\s*[.)](?=\s*\p{L})",
+            @"(?<=^|[.!?:]\s*)\s*(?:step\s*)?\d{1,2}\s*[.)](?=\s*\p{L})|^\s*\d{1,2}(?=\p{Lu}\p{Ll})|(?<=[.!?])\s+\d{1,2}\.\s*$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex StepReference = new(
+            @"\bsteps?\s+\d{1,2}(?:\s*(?:and|or|to|-|–)\s*\d{1,2})?\b",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex BracketedTemperature = new(
-            @"\([^()]*\d\s*(?:°|º|degrees?\b)[^()]*\)",
+            @"\([^()]*\d\s*(?:°|º|degrees?\b|(?:cm|mm|ml|g|kg|l|oz|lbs?|in)\b|(?:centimet|millimet|millilit|lit)(?:er|re)s?\b|grams?\b|ounces?\b|pounds?\b|inch(?:es)?\b)[^()]*\)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex SoftContext = new(
+            @"^\s*(?:sides?|corners?|edges?|ends?|equal)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Dictionary<string, decimal> Denominators = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["half"] = 2m, ["halves"] = 2m, ["third"] = 3m, ["thirds"] = 3m, ["quarter"] = 4m, ["quarters"] = 4m,
+            ["fourth"] = 4m, ["fourths"] = 4m, ["eighth"] = 8m, ["eighths"] = 8m,
+        };
 
         private static readonly Regex NumberPattern = new(
             @"(?<whole>\d+)(?:\s+|-)?(?<part>\d+/\d+|[" + Fractions + @"])"
@@ -51,6 +68,7 @@ namespace Nom.Orch.Services.Support
             + @"|(?<thousands>\d{1,3}(?:,\d{3})+)(?!\d)"
             + @"|(?<plain>\d+(?:\.\d+)?)"
             + @"|(?<glyph>[" + Fractions + @"])"
+            + @"|\b(?<numerator>one|two|three|a)[- ](?<denominator>thirds?|quarters?|fourths?|eighths?)\b"
             + @"|\b(?<tens>twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[- ](?<ones>one|two|three|four|five|six|seven|eight|nine))?\b"
             + @"|\b(?<word>two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|dozen)\b"
             + @"|\b(?<soft>one|half|quarter)\b",
@@ -95,8 +113,8 @@ namespace Nom.Orch.Services.Support
                 }.OfType<string>());
         }
 
-        /// <summary>A scraped recipe's own description and method, as its stored JSON-LD gives them.</summary>
-        public sealed record SourceText(string Description, IReadOnlyList<string> Steps);
+        /// <summary>A scraped recipe's own description and method, as its stored JSON-LD gives them, and its title.</summary>
+        public sealed record SourceText(string Description, IReadOnlyList<string> Steps, string Title = "");
 
         public static Finding Check(SourceText original, SourceText rewrite)
         {
@@ -107,6 +125,7 @@ namespace Nom.Orch.Services.Support
 
             var required = new HashSet<string>(StringComparer.Ordinal);
             var allowed = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var (value, _) in Numbers(Prepare(original.Title)).Concat(Numbers(Prepare(rewrite.Title)))) allowed.Add(value);
             foreach (var text in before)
             {
                 var bracketed = BracketedTemperature.Matches(text).Select(m => m.Value).ToList();
@@ -177,9 +196,10 @@ namespace Nom.Orch.Services.Support
                 var description = root.TryGetProperty("description", out var d) && d.ValueKind == JsonValueKind.String
                     ? d.GetString() ?? string.Empty
                     : string.Empty;
+                var title = root.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String ? n.GetString() ?? string.Empty : string.Empty;
                 var steps = new List<string>();
                 if (root.TryGetProperty("recipeInstructions", out var instructions)) Collect(instructions, steps);
-                return steps.Count == 0 ? null : new SourceText(Clean(description), steps);
+                return steps.Count == 0 ? null : new SourceText(Clean(description), steps, Clean(title));
             }
             catch (JsonException)
             {
@@ -218,7 +238,7 @@ namespace Nom.Orch.Services.Support
         private static string Clean(string? text) =>
             Regex.Replace(WebUtility.HtmlDecode(Tags.Replace(text ?? string.Empty, " ")), @"\s+", " ").Trim();
 
-        private static string Prepare(string? text) => StepNumber.Replace(Clean(text), " ").Trim();
+        private static string Prepare(string? text) => StepReference.Replace(StepNumber.Replace(Clean(text), " "), " step ").Trim();
 
         private static IEnumerable<(string Value, bool Soft)> Numbers(string text)
         {
@@ -244,6 +264,11 @@ namespace Nom.Orch.Services.Support
                 {
                     yield return (Format(Glyphs[m.Groups["glyph"].Value[0]]), false);
                 }
+                else if (m.Groups["numerator"].Success)
+                {
+                    var top = m.Groups["numerator"].Value.Equals("a", StringComparison.OrdinalIgnoreCase) ? 1m : Words[m.Groups["numerator"].Value];
+                    yield return (Format(top / Denominators[m.Groups["denominator"].Value]), false);
+                }
                 else if (m.Groups["tens"].Success)
                 {
                     var value = Words[m.Groups["tens"].Value] + (m.Groups["ones"].Success ? Words[m.Groups["ones"].Value] : 0m);
@@ -251,7 +276,7 @@ namespace Nom.Orch.Services.Support
                 }
                 else if (m.Groups["word"].Success)
                 {
-                    yield return (Format(Words[m.Groups["word"].Value]), false);
+                    yield return (Format(Words[m.Groups["word"].Value]), SoftContext.IsMatch(text[(m.Index + m.Length)..]));
                 }
                 else if (m.Groups["soft"].Success)
                 {

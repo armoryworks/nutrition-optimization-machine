@@ -85,7 +85,7 @@ namespace Nom.Orch.Services
 
                     var finding = RewriteFidelity.Check(
                         source,
-                        new RewriteFidelity.SourceText(candidate.Description ?? string.Empty, own.Select(s => s.Description).ToList()));
+                        new RewriteFidelity.SourceText(candidate.Description ?? string.Empty, own.Select(s => s.Description).ToList(), candidate.Name ?? string.Empty));
                     if (finding.Passed)
                     {
                         result.Passed++;

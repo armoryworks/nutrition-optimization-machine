@@ -20,9 +20,11 @@ namespace Nom.Api.Tests.Golden
 
         public GoldenProseTests(ITestOutputHelper output) => _output = output;
 
-        private static RewriteFidelity.SourceText Rewrite(RewriteFidelity.SourceText source, string variant)
+        private static RewriteFidelity.SourceText Rewrite(RewriteFidelity.SourceText source, string variant, GoldenRow row)
         {
             if (variant == "identical") return source;
+            if (variant == "given")
+                return new RewriteFidelity.SourceText(row.Value("rewriteDescription") ?? string.Empty, row["rewriteSteps"].Split(" ¦ "), row.Value("title") ?? string.Empty);
             if (variant == "add-number")
                 return source with { Steps = source.Steps.Take(source.Steps.Count - 1).Append(source.Steps[^1] + " Rest it 437 minutes.").ToList() };
             var drop = int.Parse(variant["drop-step-".Length..]) - 1;
@@ -34,11 +36,12 @@ namespace Nom.Api.Tests.Golden
         {
             var report = GoldenSet.Run("prose.tsv", "status", row =>
             {
-                var source = new RewriteFidelity.SourceText(row.Value("description") ?? string.Empty, row["steps"].Split(" ¦ "));
-                var finding = RewriteFidelity.Check(source, Rewrite(source, row["variant"]));
+                var source = new RewriteFidelity.SourceText(row.Value("description") ?? string.Empty, row["steps"].Split(" ¦ "), row.Value("title") ?? string.Empty);
+                var finding = RewriteFidelity.Check(source, Rewrite(source, row["variant"], row));
                 var reasons = finding.Reasons;
-                return new GoldenOutcome(reasons.Contains(row["expect"]), row["expect"], finding.ToString(),
-                    new Dictionary<string, string> { ["expect"] = reasons.FirstOrDefault() ?? GoldenTsv.NoAnswer });
+                var pass = row["expect"] == "passed" ? finding.Passed : reasons.Contains(row["expect"]);
+                return new GoldenOutcome(pass, row["expect"], finding.ToString(),
+                    new Dictionary<string, string> { ["expect"] = finding.Passed ? "passed" : reasons.FirstOrDefault() ?? GoldenTsv.NoAnswer });
             });
             _output.WriteLine(report.Summary);
             GoldenSet.Assert(report);

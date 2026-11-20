@@ -146,8 +146,8 @@ namespace Nom.Api.Services
                 var steps = recipe.RecipeSteps?.Where(s => !s.IsDeleted).OrderBy(s => s.StepNumber).ToList() ?? new();
                 var source = sources.GetValueOrDefault(recipe.Id);
                 var original = source != null && source.Steps.Count == steps.Count
-                    ? new RewriteFidelity.SourceText(source.Description.Length > 0 ? source.Description : recipe.Description ?? string.Empty, source.Steps)
-                    : new RewriteFidelity.SourceText(recipe.Description ?? string.Empty, steps.Select(s => s.Description).ToList());
+                    ? new RewriteFidelity.SourceText(source.Description.Length > 0 ? source.Description : recipe.Description ?? string.Empty, source.Steps, recipe.Name ?? string.Empty)
+                    : new RewriteFidelity.SourceText(recipe.Description ?? string.Empty, steps.Select(s => s.Description).ToList(), recipe.Name ?? string.Empty);
                 try
                 {
                     var answer = await RewriteAsync(baseUrl, model, recipe, original, steps.Count, null, cancellationToken);
