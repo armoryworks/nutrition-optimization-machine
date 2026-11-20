@@ -206,6 +206,10 @@ Four independent checks; **all four** must pass to attach unattended
 3. `POST /api/RecipeImages/candidates` — all four pass → `attached` (live immediately,
    only if the recipe still has no image); otherwise up to three `pending` candidates go
    to **Admin → Recipe Images**. Each row carries licence, credit and the full evidence.
+   When nom-api's `RecipeImages:MaxPendingReview` is set and the queue already holds that
+   many pending candidates, a would-be `pending` candidate is not stored and comes back as
+   `held`; the recipe is still marked searched and returns after the finder's
+   `--retry-days`. Attaches are never held. Unset or `0` means no cap.
 4. Approve attaches (and supersedes the siblings); Reject records the photo so it is never
    proposed again; Remove takes an attached photo and its credit back off the recipe
    (licence takedowns). A recipe author's own upload always clears the credit fields.
@@ -232,7 +236,15 @@ export OPENVERSE_CLIENT_ID=... OPENVERSE_CLIENT_SECRET=...   # optional
   (`--no-unload` to keep them).
 - Rehearse first: `--dry-run` (or `--recipes-json file`) analyses and logs but sends nothing.
 - Budget per run is set by the keyless Openverse quota (200 requests/day anonymous):
-  `--limit 25` with two queries per recipe stays well inside it.
+  `--limit 25` with two queries per recipe stays well inside it. Past that quota Openverse
+  answers 429 and is switched off for the rest of the run; the other sources carry on.
+- Run by the clock: `--stop-after-minutes N` starts no new recipe after N minutes, so a
+  nightly run sets a high `--limit` and ends by time. The work list is fetched from nom-api
+  `--page-size` recipes at a time (nom-api gives at most 500 a call) until `--limit` is
+  reached or the backlog runs out. A 429 from nom-api is waited out for its `Retry-After`,
+  up to `--api-max-wait` seconds and three retries.
+- Python dependencies are pinned in `ops/recipe-image-finder.requirements.txt`
+  (`pip install -r` it instead of an unpinned `pip install pillow`).
 
 ## Open items
 

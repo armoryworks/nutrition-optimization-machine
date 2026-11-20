@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import email.utils
 import hashlib
 import io
 import json
@@ -438,8 +439,27 @@ def to_model_jpeg(data: bytes, ctype: str) -> tuple[bytes | None, int | None]:
     return out.getvalue(), bits
 
 
+def retry_after_seconds(value: str | None, default: float, now: datetime | None = None) -> float:
+    """Seconds to wait from a Retry-After header (delta-seconds or an HTTP date); the default when absent or unreadable."""
+    if not value:
+        return default
+    value = value.strip()
+    if value.isdigit():
+        return float(value)
+    try:
+        when = email.utils.parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return default
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return max(0.0, (when - (now or datetime.now(timezone.utc))).total_seconds())
+
+
 class NomApi:
-    def __init__(self, base: str, api_key: str | None, token: str | None, timeout: int = 60):
+    MISSING_PAGE_MAX = 500
+
+    def __init__(self, base: str, api_key: str | None, token: str | None, timeout: int = 60,
+                 max_retries: int = 3, max_wait: float = 900, default_wait: float = 60, sleep=time.sleep):
         self.base = base.rstrip("/")
         self.headers = {"Content-Type": "application/json", "Accept": "application/json", "User-Agent": USER_AGENT}
         if api_key:
@@ -447,13 +467,35 @@ class NomApi:
         elif token:
             self.headers["Authorization"] = f"Bearer {token}"
         self.timeout = timeout
+        self.max_retries = max_retries
+        self.max_wait = max_wait
+        self.default_wait = default_wait
+        self.sleep = sleep
+        self.rate_limited = 0
 
-    def call(self, method: str, path: str, body: dict | None = None):
-        req = urllib.request.Request(self.base + path, method=method, headers=self.headers,
-                                     data=json.dumps(body).encode() if body is not None else None)
+    def _open(self, req: urllib.request.Request):
         with urllib.request.urlopen(req, timeout=self.timeout) as resp:
             raw = resp.read().decode()
             return json.loads(raw) if raw else None
+
+    def call(self, method: str, path: str, body: dict | None = None):
+        """One API call; a 429 is retried after its Retry-After, unless that is longer than --api-max-wait."""
+        req = urllib.request.Request(self.base + path, method=method, headers=self.headers,
+                                     data=json.dumps(body).encode() if body is not None else None)
+        for attempt in range(self.max_retries + 1):
+            try:
+                return self._open(req)
+            except urllib.error.HTTPError as exc:
+                if exc.code != 429:
+                    raise
+                self.rate_limited += 1
+                wait = retry_after_seconds(exc.headers.get("Retry-After") if exc.headers else None, self.default_wait)
+                if attempt >= self.max_retries or wait > self.max_wait:
+                    log(f"    nom-api rate limited {method} {path}; Retry-After {wait:.0f} s, giving up")
+                    raise
+                log(f"    nom-api rate limited {method} {path}; waiting {wait:.0f} s (Retry-After)")
+                self.sleep(wait)
+        return None
 
     def missing(self, limit: int, retry_days: int = 0) -> list[dict]:
         return self.call("GET", f"/api/RecipeImages/missing?limit={limit}&retryDays={retry_days}") or []
@@ -470,6 +512,33 @@ class NomApi:
 
     def mark_tracked(self, candidate_id: int) -> None:
         self.call("POST", f"/api/RecipeImages/candidates/{candidate_id}/download-tracked")
+
+
+def work_list(fetch, limit: int, page_size: int):
+    """Recipes to search, fetched a page at a time so a run can go past the API's 500 per call; ends when a page brings nothing new."""
+    seen: set[int] = set()
+    handed = 0
+    repeats = 0
+    while handed < limit:
+        page = fetch(max(1, min(min(page_size, limit - handed) + repeats, NomApi.MISSING_PAGE_MAX))) or []
+        fresh = []
+        for row in page:
+            key = int(row.get("id") or row.get("recipeId") or 0)
+            if key not in seen:
+                seen.add(key)
+                fresh.append(row)
+        if not fresh:
+            return
+        repeats = len(page) - len(fresh)
+        for row in fresh:
+            yield row
+            handed += 1
+            if handed >= limit:
+                return
+
+
+def out_of_time(started: float, stop_after_minutes: float, now: float) -> bool:
+    return stop_after_minutes > 0 and now - started >= stop_after_minutes * 60
 
 
 def recipe_from_dict(row: dict) -> tri.RecipeText:
@@ -669,6 +738,12 @@ def main() -> None:
     ap.add_argument("--recipes-json", help="read recipes from this file instead of nom-api (implies nothing is sent)")
     ap.add_argument("--dry-run", action="store_true", help="analyse and log, but send nothing to nom-api")
     ap.add_argument("--limit", type=int, default=20)
+    ap.add_argument("--stop-after-minutes", type=float, default=0,
+                    help="start no new recipe after this many minutes (0 = no time limit); the run ends by time, not count")
+    ap.add_argument("--page-size", type=int, default=100,
+                    help="recipes asked of nom-api per call; the work list is refetched until --limit (nom-api gives at most 500 a call)")
+    ap.add_argument("--api-max-wait", type=float, default=900,
+                    help="longest Retry-After (seconds) to wait out when nom-api answers 429; a longer one ends the call")
     ap.add_argument("--source", action="append", choices=["wikimedia", "openverse", "pexels", "pixabay", "unsplash"])
     ap.add_argument("--allow-licence", action="append", default=[],
                     help="opt in to an extra licence family (only 'by-sa' is accepted)")
@@ -703,19 +778,30 @@ def main() -> None:
     except ValueError as exc:
         sys.exit(f"error: {exc}")
 
+    started = time.monotonic()
     api = None
     if args.recipes_json:
         with open(args.recipes_json, encoding="utf-8") as fh:
-            rows = json.load(fh)
+            rows = json.load(fh)[: args.limit]
         args.dry_run = True
+        total = len(rows)
     else:
         if not args.api:
             sys.exit("error: --api (or NOM_API) is required unless --recipes-json is given")
         key, token = os.environ.get("NOM_API_KEY"), os.environ.get("NOM_TOKEN")
         if not key and not token:
             sys.exit("error: set NOM_API_KEY (X-Api-Key of a curation admin) or NOM_TOKEN")
-        api = NomApi(args.api, key, token)
-        rows = api.missing(args.limit, args.retry_days)
+        api = NomApi(args.api, key, token, max_wait=args.api_max_wait)
+
+        def fetch(count: int) -> list[dict]:
+            try:
+                return api.missing(count, args.retry_days)
+            except (urllib.error.URLError, OSError) as exc:
+                log(f"could not fetch the next recipes from nom-api: {exc}; ending the run")
+                return []
+
+        rows = work_list(fetch, args.limit, args.page_size)
+        total = args.limit
 
     http = Http(args.cache_dir)
     sources = build_sources(args, http, allowed)
@@ -736,16 +822,20 @@ def main() -> None:
     state = load_state(args.state)
     now = datetime.now(timezone.utc)
     totals = {"attach": 0, "review": 0, "none": 0, "skipped": 0, "error": 0}
+    held = 0
     consecutive_errors = 0
 
     with open(args.log, "a", encoding="utf-8") as audit:
-        for index, row in enumerate(rows[: args.limit], start=1):
+        for index, row in enumerate(rows, start=1):
+            if out_of_time(started, args.stop_after_minutes, time.monotonic()):
+                log(f"stopping: --stop-after-minutes {args.stop_after_minutes:g} reached after {index - 1} recipe(s)")
+                break
             recipe = recipe_from_dict(row)
             last = state.get(str(recipe.recipe_id))
             if last and (now - datetime.fromisoformat(last)).days < args.retry_days:
                 totals["skipped"] += 1
                 continue
-            log(f"[{index}/{min(len(rows), args.limit)}] #{recipe.recipe_id} {recipe.name}")
+            log(f"[{index}/{total}] #{recipe.recipe_id} {recipe.name}")
             candidates, searches_failed = finder.gather(recipe, set(row.get("rejectedCandidates") or []))
             log(f"    {len(candidates)} licensed candidate(s)" + (" — every source failed; not counted as searched" if searches_failed else ""))
             failures_before = ollama.failures
@@ -801,6 +891,7 @@ def main() -> None:
                 result = api.submit({"recipeId": recipe.recipe_id, "batch": f"image-finder-{now:%Y%m%d}",
                                      "candidates": payloads})
                 log(f"    submitted: {result}")
+                held += sum(1 for o in (result or {}).get("outcomes") or [] if o.get("outcome") == "held")
             except urllib.error.HTTPError as exc:
                 log(f"    nom-api rejected the submission: HTTP {exc.code} {exc.read()[:300]!r}")
             if decision.outcome == "attach" and api:
@@ -810,6 +901,9 @@ def main() -> None:
     if not args.no_unload:
         for model in {args.vision_model, args.rank_model, args.embed_model}:
             ollama.unload(model)
+    if held:
+        log(f"\nHeld: {held} review candidate(s) not stored because the review queue is full (RecipeImages:MaxPendingReview); "
+            "their recipes come back after --retry-days")
     log(f"\nDone: {totals['attach']} attached, {totals['review']} queued for review, "
         f"{totals['none']} with no usable image, {totals['error']} errored, {totals['skipped']} skipped (tried recently). "
         f"Log: {args.log}")

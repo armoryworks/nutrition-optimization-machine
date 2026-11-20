@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Recipe;
@@ -20,6 +21,7 @@ namespace Nom.Orch.Services
         public const int MaxImageBytes = 10 * 1024 * 1024;
         public const int MaxCandidatesPerSubmission = 5;
         public const int MaxWidth = 1200;
+        public const string HeldOutcome = "held";
 
         public static readonly IReadOnlySet<string> Sources =
             new HashSet<string> { "wikimedia", "openverse", "pexels", "pixabay", "unsplash" };
@@ -36,12 +38,14 @@ namespace Nom.Orch.Services
         private readonly ApplicationDbContext _context;
         private readonly IMediaStorageService _mediaStorage;
         private readonly ILogger<RecipeImageService> _logger;
+        private readonly int _maxPendingReview;
 
-        public RecipeImageService(ApplicationDbContext context, IMediaStorageService mediaStorage, ILogger<RecipeImageService> logger)
+        public RecipeImageService(ApplicationDbContext context, IMediaStorageService mediaStorage, ILogger<RecipeImageService> logger, IConfiguration? configuration = null)
         {
             _context = context;
             _mediaStorage = mediaStorage;
             _logger = logger;
+            _maxPendingReview = Math.Max(0, configuration?.GetValue("RecipeImages:MaxPendingReview", 0) ?? 0);
         }
 
         /// <summary>
@@ -162,6 +166,20 @@ namespace Nom.Orch.Services
                     continue;
                 }
 
+                var attach = c.Status == RecipeImageCandidateStatus.Attached && published;
+                if (!attach && _maxPendingReview > 0)
+                {
+                    var queued = await _context.RecipeImageCandidates.CountAsync(x => x.Status == RecipeImageCandidateStatus.Pending);
+                    if (queued >= _maxPendingReview)
+                    {
+                        outcome.Outcome = HeldOutcome;
+                        outcome.Message = $"The review queue already holds {queued} candidates (cap {_maxPendingReview}); not stored.";
+                        _logger.LogInformation("Image finder candidate {Source}:{SourceId} for recipe {RecipeId} held: review queue {Queued} at cap {Cap}",
+                            c.SourceKey, c.SourceId, recipe.Id, queued, _maxPendingReview);
+                        continue;
+                    }
+                }
+
                 byte[]? jpeg = null;
                 if (!c.Hotlink)
                 {
@@ -174,7 +192,6 @@ namespace Nom.Orch.Services
                     }
                 }
 
-                var attach = c.Status == RecipeImageCandidateStatus.Attached && published;
                 var entity = new RecipeImageCandidateEntity
                 {
                     RecipeId = recipe.Id,
