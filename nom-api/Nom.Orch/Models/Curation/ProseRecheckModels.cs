@@ -44,9 +44,14 @@ namespace Nom.Orch.Models.Curation
 
     public class ProseRecheckUndoResult
     {
-        /// <summary>Recipes taken out of quarantine again, with their earlier rewrite stamp.</summary>
+        public bool Applied { get; set; }
+        /// <summary>Recipes taken out of quarantine again, with their earlier rewrite stamp; without apply, those that would be.</summary>
         public int Restored { get; set; }
-        /// <summary>Entries left alone because the rewrite lane has worked on the recipe since.</summary>
+        /// <summary>Of those restored, recipes the rewrite lane tried and left quarantined with their text unchanged.</summary>
+        public int RestoredAfterFailedAttempt { get; set; }
+        /// <summary>Entries left alone because the recipe is gone or the rewrite lane has cleared it with a rewrite since.</summary>
         public int Skipped { get; set; }
+        /// <summary>Of those skipped, recipes the rewrite lane has cleared with a rewrite since.</summary>
+        public int SkippedRewritten { get; set; }
     }
 }

@@ -27,11 +27,11 @@ namespace Nom.Api.Controllers
             return Ok(await _recheck.RecheckAsync(apply, maxRecipes, sampleSize));
         }
 
-        /// <summary>Take the recipes put back into quarantine at or after the given UTC time out of it again, unless the rewrite lane has worked on them since.</summary>
+        /// <summary>Take the recipes put back into quarantine at or after the given UTC time out of it again, unless the rewrite lane has cleared them with a rewrite since; a dry run unless apply=true.</summary>
         [HttpPost("recheck/undo")]
-        public async Task<ActionResult<ProseRecheckUndoResult>> RecheckUndo([FromQuery, Required] DateTime sinceUtc)
+        public async Task<ActionResult<ProseRecheckUndoResult>> RecheckUndo([FromQuery, Required] DateTime sinceUtc, [FromQuery] bool apply = false)
         {
-            return Ok(await _recheck.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc)));
+            return Ok(await _recheck.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), apply));
         }
     }
 }

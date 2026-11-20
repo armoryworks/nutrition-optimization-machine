@@ -153,30 +153,39 @@ namespace Nom.Orch.Services
             return result;
         }
 
-        public async Task<ProseRecheckUndoResult> UndoAsync(DateTime sinceUtc)
+        public async Task<ProseRecheckUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false)
         {
             var entries = await _db.AuditLogEntries
                 .Where(a => a.EntityType == RecipeEntityType && a.ChangeType == RecheckChangeType && a.Timestamp >= sinceUtc)
                 .OrderByDescending(a => a.Id)
                 .ToListAsync();
-            var result = new ProseRecheckUndoResult();
+            var result = new ProseRecheckUndoResult { Applied = apply };
             var personId = _currentUser.PersonIdOrSystem;
 
             foreach (var chunk in entries.Chunk(RecipesPerTransaction))
             {
-                await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+                await using var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
                 var ids = chunk.Select(e => e.EntityId).Distinct().ToList();
                 var recipes = await _db.Recipes.Where(r => ids.Contains(r.Id)).ToDictionaryAsync(r => r.Id);
                 var now = DateTime.UtcNow;
                 foreach (var entry in chunk)
                 {
-                    if (!recipes.TryGetValue(entry.EntityId, out var recipe)
-                        || !recipe.ContainsSourceProse || recipe.ProseRewriteAttemptedAt != null)
+                    if (!recipes.TryGetValue(entry.EntityId, out var recipe))
                     {
                         result.Skipped++;
                         continue;
                     }
 
+                    if (!recipe.ContainsSourceProse)
+                    {
+                        result.Skipped++;
+                        result.SkippedRewritten++;
+                        continue;
+                    }
+
+                    result.Restored++;
+                    if (recipe.ProseRewriteAttemptedAt != null) result.RestoredAfterFailedAttempt++;
+                    if (!apply) continue;
                     recipe.ContainsSourceProse = false;
                     recipe.ProseRewriteAttemptedAt = DateTime.TryParse(entry.OldValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var at)
                         ? at
@@ -184,9 +193,9 @@ namespace Nom.Orch.Services
                     recipe.LastModifiedDate = now;
                     recipe.LastModifiedByPersonId = personId;
                     _db.AuditLogEntries.Remove(entry);
-                    result.Restored++;
                 }
 
+                if (!apply) continue;
                 await _db.SaveChangesAsync();
                 if (tx != null) await tx.CommitAsync();
             }

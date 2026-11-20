@@ -160,15 +160,42 @@ namespace Nom.Api.Tests.Services
             var lost = await db.Recipes.SingleAsync(r => r.Id == ids.Lost);
             lost.ProseRewriteAttemptedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
 
-            var undo = await service.UndoAsync(before);
+            var dryRun = await service.UndoAsync(before);
+            db.ChangeTracker.Clear();
 
-            undo.Restored.Should().Be(1);
-            undo.Skipped.Should().Be(1);
+            dryRun.Should().BeEquivalentTo(new { Applied = false, Restored = 2, RestoredAfterFailedAttempt = 1, Skipped = 0 });
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == ids.Copied)).ContainsSourceProse.Should().BeTrue("a dry run writes nothing");
+
+            var undo = await service.UndoAsync(before, apply: true);
+
+            undo.Restored.Should().Be(2, "the lane's failed attempt changed none of the text");
+            undo.Skipped.Should().Be(0);
             var restored = await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == ids.Copied);
             restored.ContainsSourceProse.Should().BeFalse();
             restored.ProseRewriteAttemptedAt.Should().Be(Rewritten);
-            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == ids.Lost)).ContainsSourceProse.Should().BeTrue();
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == ids.Lost)).ContainsSourceProse.Should().BeFalse();
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == ProseRecheckService.RecheckChangeType)).Should().Be(0);
+        }
+
+        [Fact]
+        public async Task The_undo_leaves_a_recipe_the_lane_has_cleared_with_a_rewrite_since()
+        {
+            await using var db = NewContext();
+            var ids = await SeedSetAsync(db);
+            var service = new ProseRecheckService(db, new NoUser());
+            var before = DateTime.UtcNow.AddSeconds(-1);
+            await service.RecheckAsync(apply: true);
+            var lost = await db.Recipes.SingleAsync(r => r.Id == ids.Lost);
+            lost.ContainsSourceProse = false;
+            lost.ProseRewriteAttemptedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var undo = await service.UndoAsync(before, apply: true);
+
+            undo.Should().BeEquivalentTo(new { Restored = 1, Skipped = 1, SkippedRewritten = 1 });
             (await db.AuditLogEntries.CountAsync(a => a.ChangeType == ProseRecheckService.RecheckChangeType)).Should().Be(1);
         }
 

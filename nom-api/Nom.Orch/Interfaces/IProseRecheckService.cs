@@ -23,8 +23,10 @@ namespace Nom.Orch.Interfaces
 
         /// <summary>
         /// Takes the recipes put back into quarantine at or after <paramref name="sinceUtc"/> out of
-        /// it again, unless the rewrite lane has worked on them since.
+        /// it again with their earlier rewrite stamp, including those the rewrite lane tried and
+        /// left quarantined, unless the lane has cleared them with a rewrite since. Without
+        /// <paramref name="apply"/> nothing is written and the result is what the same call would do.
         /// </summary>
-        Task<ProseRecheckUndoResult> UndoAsync(DateTime sinceUtc);
+        Task<ProseRecheckUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false);
     }
 }
