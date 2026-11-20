@@ -38,9 +38,12 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `prose-verbs.tsv` | the verb groups of check v2, compiled into Nom.Orch | `words` (`\|`-joined) | none |
 | `piece-counts.tsv` | `RecipeRepairGrounding.PieceRefusal` (repair lane fills and `quantities/revert`) | `expect`: `keep` or `revert` | `status` |
 | `startup-fills.tsv` | `ScrapedRecipeRepairService.RepairBatchAsync` (the start-up repair's amount for a line that states none, in a recipe with its method, its other lines and, when `journal` names one, an open line journal) | `expect` (`<quantity> <unit>`, or `-` for no amount) | `status` |
+| `link-gate.tsv` + `gate-catalog.tsv` | `LinkGate.Check` (the one link gate, see `link-gate.md`) | `expect`: `pass`, or the code of a rule that must hold the pair; the target's facts in the row | `status` |
+| `wording-pairs.tsv` + `gate-catalog.tsv` | `LinkGate.Check` for two readers' answer; `LinkGate.Family` | `expect`: `=` must pass, `!` must be held, `~` must win its family | `status` |
 | `catalog-admission.tsv` | `CatalogAdmissionRule.Decide` (USDA catalog admission: status, group from category, edibility, energy check, reasons) | `expectStatus` (`Curated`, `PendingCuration`; the rule never rejects, and the prepared-food categories are held as `prepared_category:<name>`), `expectGroup`, `expectEdible`, `expectEnergy`, `expectReason` | `status` |
 | `recipes.json` + `measurements.tsv` | `RecipeNutritionService.RecalculateAsync`, `.StatusFor` | `expected.calories/protein/fat` (4 dp), `countedLines`, `handLabel` | `status` |
 | `line-labels.tsv` | model lane `line-classify` | `kind` | none (scored by the operator run) |
+| `link-pairs.tsv` + `gate-catalog.tsv` | scorer lane `link-gate` (no model) | `verdict` | none (scored by the record) |
 | `model-lanes.json` | every model lane | floors | — |
 | `baseline.json` | — | allowed `known` rows per `file:column` | — |
 
@@ -109,6 +112,9 @@ without it.
 | `startup-fills.tsv` (2026-11-20) | the split parts a v0.3.118 start filled on staging (pass-2 log, S1) and two stand-alone lines the same method rule still misreads (`known`) | the model operator of the rehearsal (`agent-review-staging-2026-11-20`, status `agent`/`known`) |
 | `recipes.json` | 9 recipes cited in the golden-gate design and 26 sampled curated recipes; expected values are staging's stored labels, which the in-memory service reproduces to 4 dp | catalog facts and arithmetic |
 | `catalog-admission.tsv` (2026-11-20) | 85 USDA foods (SR Legacy 2018-04, Foundation 2025-12-18) with their own category, nutrients and calorie factors: every food the catalog-admission design names, the first two SR foods of each category, foods that fail the energy check, and Foundation foods judged by their specific energy; 9 constructed rows (duplicate, no category, Quality Control category, branded oil, dressing, soda, sauce, cheese). Expected values computed from the rule as the design writes it, apart from the code | rule (`rule:usda-*`, `rule:construction`) |
+| `link-gate.tsv` (2026-11-20) | 63 pairs: real USDA foods from `gate-catalog.tsv` and constructed foods (branded, retired, prepared, rejected, short of nutrients), one or more per rule of the gate and 18 the gate must let through; expected values from the rules as the links and wordings designs write them | rule (`rule:link-gate`, `rule:construction`) |
+| `wording-pairs.tsv` (2026-11-20) | the 232 kept rows of batch w01 (`staging/w01/verified-wordings-w01.tsv`), the 11 judge picks its second reader refuted (`dropped.tsv`), the wordings design's cases, and claret | w01 rows: the model reviewer and second reader (`agent-review-w01-*`, `agent`); refuted rows: the second reader; `gravy beef` and `sack`: the link-gate builder (`agent-review-link-gate-2026-11-20`); claret, potatoes, tarragon and the compound: rule (`ok`) |
+| `gate-catalog.tsv` (2026-11-20) | the curated foods and pending SR Legacy foods of staging (`staging/w01/foods.tsv`) with their USDA description and nutrient rows, and the USDA category from the SR Legacy 2018-04 and Foundation 2025-12-18 `food.csv` | catalog facts |
 | `line-labels.tsv` | 120 lines labelled not an ingredient that are exactly a curated food's name (ingredient by the veto rule) and 60 lines the deterministic pre-pass labelled | rule |
 
 The judged pairs and wording moves were judged by agents, not by a person; their rows carry that in
@@ -132,10 +138,11 @@ every file from the captures and the evidence, all rows `new`.
 ## Model lanes
 
 ```
-dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link-verify|line-classify> \
+dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link-verify|line-classify|link-gate> \
     --host http://<model host>:11434 --model <model tag> [--limit N] [--out failures.tsv] [--record]
 ```
 
+- `link-gate`: see below; it needs no model.
 - `link-pick`: the ambiguous judged wordings (a staple or the name matcher would answer the rest),
   asked six at a time with the name matcher's shortlist of ten from `usda-catalog.tsv`. A case passes
   when the pick is a food judged right, or, with no right food on the shortlist, is not one judged
@@ -143,6 +150,13 @@ dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link
 - `link-verify`: every judged pair, twelve at a time; right pairs must be `same`, others must not.
 - `line-classify`: `line-labels.tsv`, twenty lines at a time; a false accept is a non-ingredient answer
   for a line that is an ingredient.
+- `link-gate`: no model and no host (`--host` and `--model` may be left out). `LinkGate.Check` on every
+  pair of `link-pairs.tsv` judged right, wrong, near or compound, over `gate-catalog.tsv`. A case
+  agrees when a right pair passes or a bad one is held; a false accept is a bad pair let through; the
+  record also holds how many pairs the gate let through and the share of them judged right
+  (`minPrecision` in `model-lanes.json`). Its signature is `LinkGate.Signature`, so a changed rule
+  table needs a new record, and `required` is true: the record is always committed, and
+  `GoldenLinkGateTests` checks that the gate still scores exactly what it records.
 
 The run prints the score, the false-accept rate, the floor and every case that passed in the recorded
 run and fails now, and exits 1 below the floor. `--record` writes `scores/<lane>.json`: model, host

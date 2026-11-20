@@ -243,6 +243,7 @@ export interface LaneFigures {
   neededAudited: number | null;
   windowAudited: number;
   windowErrors: number;
+  windowError: number;
   windowErrorLower: number;
   windowErrorUpper: number;
   pauseBar: number;

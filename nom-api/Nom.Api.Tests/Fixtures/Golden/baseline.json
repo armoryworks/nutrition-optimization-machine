@@ -3,9 +3,10 @@
   "line-kinds.tsv:status": 2,
   "lines.tsv:name": 5,
   "lines.tsv:parse": 4,
-  "link-pairs.tsv:status": 35,
+  "link-pairs.tsv:status": 30,
   "links.tsv:status": 3,
   "recipes.json:status": 3,
   "startup-fills.tsv:status": 2,
+  "wording-pairs.tsv:status": 94,
   "wordings.tsv:status": 3
 }

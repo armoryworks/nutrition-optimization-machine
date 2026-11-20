@@ -9,7 +9,8 @@ namespace Nom.Orch.Services.Support
     /// <summary>
     /// The bars of one lane or tier. <see cref="QualifyBar"/> is the Wilson 95 % lower bound the
     /// audited precision must reach before the lane writes; <see cref="PauseBar"/> is the error
-    /// rate whose upper bound, over the last <see cref="PauseWindow"/> audited writes, pauses it.
+    /// rate that pauses it when the observed error of the last <see cref="PauseWindow"/> audited
+    /// writes is above it.
     /// A pause bar at or under 1 − <see cref="QualifyBar"/> is refused, since a lane that just
     /// qualified would pause at once.
     /// </summary>
@@ -62,7 +63,16 @@ namespace Nom.Orch.Services.Support
     /// of the corrected rate. The upper bound never credits more false flags than errors were
     /// confirmed, so with no confirmed error no audit check bounds the error below an exact check.
     /// </summary>
-    public sealed record ErrorEstimate(int Audited, int Errors, double Observed, double Corrected, double Lower, double Upper);
+    public sealed record ErrorEstimate(int Audited, int Errors, double Observed, double Corrected, double Lower, double Upper)
+    {
+        /// <summary>
+        /// The corrected error the pause test reads: for an exact check the observed share; for a
+        /// sampled one the confirmed share less no more false flags than the check's own lower
+        /// false-flag bound and no more than were confirmed, divided by its lower sensitivity bound,
+        /// so a window is never made to look better than the check can vouch for.
+        /// </summary>
+        public double Pausing { get; init; } = Corrected;
+    }
 
     /// <summary>Counted decisions: all, written, audited (pass, flagged or error), confirmed errors, unconfirmed flags, and the newest audited one.</summary>
     public sealed record LaneCounts(int Decisions, int Written, int Audited, int Errors, int Flagged, DateTime? NewestAudited = null)
@@ -101,6 +111,7 @@ namespace Nom.Orch.Services.Support
         public int? NeededAudited { get; init; }
         public int WindowAudited { get; init; }
         public int WindowErrors { get; init; }
+        public double WindowError { get; init; }
         public double WindowErrorLower { get; init; }
         public double WindowErrorUpper { get; init; }
         public double PauseBar { get; init; }
@@ -126,8 +137,8 @@ namespace Nom.Orch.Services.Support
     /// <summary>
     /// The arithmetic of the lane frame. A lane qualifies when its audited sample is at least the
     /// sample its bar needs and the Wilson 95 % lower bound of its corrected precision reaches the
-    /// bar; it pauses when the upper bound of its corrected error over a full rolling window, or
-    /// the lower bound over a window still filling, is above the pause bar. Errors are corrected
+    /// bar; it pauses when the observed corrected error of a full rolling window, or the lower
+    /// bound of the error over a window still filling, is above the pause bar. Errors are corrected
     /// for the audit check with Rogan-Gladen, using the bounds of the check's own score that make
     /// the lane look worse and never crediting more false flags than errors were confirmed, so a
     /// weak, noisy or barely scored auditor needs more audited decisions than an exact check.
@@ -165,7 +176,7 @@ namespace Nom.Orch.Services.Support
         {
             var observed = audited == 0 ? 0 : (double)errors / audited;
             var (low, high) = Wilson(errors, audited);
-            if (score.Exact) return new ErrorEstimate(audited, errors, observed, observed, low, high);
+            if (score.Exact) return new ErrorEstimate(audited, errors, observed, observed, low, high) { Pausing = observed };
 
             var se = score.Sensitivity;
             var f = score.FalseFlagRate;
@@ -175,7 +186,10 @@ namespace Nom.Orch.Services.Support
                 audited, errors, observed,
                 RoganGladen(observed, se, f, 0),
                 RoganGladen(low, seHigh, fHigh, 0),
-                RoganGladen(high, seLow, Math.Min(fLow, observed), 1));
+                RoganGladen(high, seLow, Math.Min(fLow, observed), 1))
+            {
+                Pausing = RoganGladen(observed, seLow, Math.Min(fLow, observed), 1),
+            };
         }
 
         /// <summary>
@@ -188,7 +202,11 @@ namespace Nom.Orch.Services.Support
             return Smallest(floor, n => 1 - Correct(0, n, score).Upper >= policy.QualifyBar);
         }
 
-        /// <summary>The rolling window the pause check reads: the policy's, or more when a clean window that size could not pass the bar.</summary>
+        /// <summary>
+        /// The rolling window the pause check reads: the policy's, or more when a clean window that
+        /// size could not bound the error under the bar, so a full window holds enough audits to
+        /// tell a lane at its bar from one above it.
+        /// </summary>
         public static int PauseWindow(LanePolicy policy, AuditorScore score) =>
             Math.Max(policy.PauseWindow, Smallest(1, n => Correct(0, n, score).Upper <= policy.PauseBar) ?? policy.PauseWindow);
 
@@ -220,6 +238,7 @@ namespace Nom.Orch.Services.Support
                 NeededAudited = needed,
                 WindowAudited = input.Recent.Audited,
                 WindowErrors = input.Recent.Errors,
+                WindowError = recent?.Pausing ?? 0,
                 WindowErrorLower = recent?.Lower ?? 0,
                 WindowErrorUpper = recent?.Upper ?? 1,
                 PauseBar = policy.PauseBar,
@@ -264,10 +283,10 @@ namespace Nom.Orch.Services.Support
                         return new(LaneMode.Paused, "paused: " + string.Join("; ", input.PauseReasons), LaneJournal.Pause, false, true, figures);
 
                     var full = recent != null && input.Recent.Audited >= window;
-                    if (recent != null && (full ? recent.Upper > policy.PauseBar : recent.Lower > policy.PauseBar))
+                    if (recent != null && (full ? recent.Pausing > policy.PauseBar : recent.Lower > policy.PauseBar))
                     {
                         return new(LaneMode.Paused, string.Create(CultureInfo.InvariantCulture,
-                            $"paused: {input.Recent.Errors} confirmed errors in the last {input.Recent.Audited} audited writes{(input.SignatureChanged ? " under the previous signature" : "")}, error {(full ? "upper" : "lower")} bound {Pct(full ? recent.Upper : recent.Lower)} above the pause bar {Pct(policy.PauseBar)}"),
+                            $"paused: {input.Recent.Errors} confirmed errors in the last {input.Recent.Audited} audited writes{(input.SignatureChanged ? " under the previous signature" : "")}, {(full ? "observed error" : "error lower bound")} {Pct(full ? recent.Pausing : recent.Lower)} above the pause bar {Pct(policy.PauseBar)}"),
                             LaneJournal.Pause, false, true, figures);
                     }
                     if (input.SignatureChanged)
@@ -278,7 +297,7 @@ namespace Nom.Orch.Services.Support
                         return new(LaneMode.Shadow, "back to shadow: " + auditorProblem, LaneJournal.Shadow, false, false, figures);
 
                     return new(LaneMode.Live, string.Create(CultureInfo.InvariantCulture,
-                        $"live: {input.Recent.Errors} confirmed errors in the last {input.Recent.Audited} audited writes of a {window} window, error upper bound {Pct(recent.Upper)} against the pause bar {Pct(policy.PauseBar)}"),
+                        $"live: {input.Recent.Errors} confirmed errors in the last {input.Recent.Audited} audited writes of a {window} window, observed error {Pct(recent.Pausing)} against the pause bar {Pct(policy.PauseBar)}"),
                         null, full, false, figures);
                 }
                 default:

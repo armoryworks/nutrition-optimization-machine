@@ -62,7 +62,7 @@ A lane hands its bars as a `LanePolicy`:
 | Field | Meaning |
 |---|---|
 | `QualifyBar` | Wilson 95 % lower bound the corrected precision must reach to go live |
-| `PauseBar` | error rate whose bound over the rolling window pauses a live lane |
+| `PauseBar` | error rate a live lane's observed error over a full rolling window may not exceed |
 | `PauseWindow` | the rolling window, in audited writes (default 200) |
 | `MinimumAudited` | a floor on the qualifying sample, above what the bar needs |
 | `ResumeNeedsNewSignature` | a paused lane resumes only under another signature (links) |
@@ -79,8 +79,9 @@ pause at once.
 | 97.0 % | 125 | 3 |
 
 A tier stays in shadow until it has the sample its bar needs (`NeededAudited` on the Pipeline page).
-The pause window grows the same way: a window too small for a clean run to pass the pause bar is
-widened to the smallest that can (T1 at 1.5 % reads at least 253, not 200).
+The pause window grows the same way: a window too small for a clean run to bound the error under the
+pause bar is widened to the smallest that can (T1 at 1.5 % reads at least 253, not 200), so a full
+window holds enough audits to tell a lane at its bar from one above it.
 
 **Corrected error (Rogan-Gladen).** The combined check (auditor flag plus second check) is scored
 on golden known-bad and known-good rows: its sensitivity `Se` and false-flag rate `f`. The lane
@@ -99,15 +100,26 @@ no golden problem and no fault (`PauseReasons`); a shadow lane with a fault stay
 **Pause.** Live to paused when the lane reports a fault (`PauseReasons`: auditor unreachable, a
 canary false accept, rule-audit failures), or when, over the last `PauseWindow` audited writes:
 
-- the window is full and the upper bound of the corrected error is above `PauseBar`; or
-- the window is still filling and the lower bound is above `PauseBar` (a clear fault, early).
+- the window is full and its observed corrected error is above `PauseBar`; or
+- the window is still filling and the lower bound of the error is above `PauseBar` (a clear fault,
+  early).
+
+The observed corrected error (`ErrorEstimate.Pausing`, `WindowError` on the page) is the confirmed
+share for an exact check. For a sampled check it is the confirmed share, less no more false flags
+than the check's lower false-flag bound and no more than were confirmed, divided by the check's lower
+sensitivity bound: never kinder to the lane than the check can vouch for.
 
 A full window that passes marks the newest decision in it as the last clean point (`LastCleanAt`).
 
-The full-window rule asks for proof that the error is under the bar, not proof that it is over it, so
-a lane running at its target still pauses in many windows: with an exact check, one error in T1's 253
-pauses it (about 72 % of windows at 99.5 % precision), and two in T2's 200 (about 59 % at 99 %).
-Each lane sets its bars knowing this.
+This is the rule the lead set on 2026-11-20 (LQ-4) from the owner's direction that automation must
+work: a live tier pauses on the observed error of a full window, not on its upper bound. The
+upper-bound rule asked for proof that the error was under the bar, so a lane running at its target
+paused in most windows (one error in T1's 253 paused it, about 72 % of windows at 99.5 % precision,
+and with `ResumeNeedsNewSignature` such a tier could not come back without a new signature). Under
+the observed rule, with an exact check, T1 (1.5 % over 253) pauses at 4 or more errors: about 4 % of
+windows at its 99.5 % target and about 95 % of windows at 3 % error; T2 (3 % over 200) pauses at 7
+or more. Qualifying still needs the Wilson lower bound, so a lane goes live only on proof and stops
+when it is seen to fail.
 
 **Self-undo.** On a pause the frame calls the lane's `ILaneUndo.UndoSinceAsync(tier, LastCleanAt)`,
 first as a dry run (logged and journaled), then applied (journaled). The undo writes its own journal
@@ -159,7 +171,8 @@ score and its own licence checked.
 
 `GET /api/Pipeline/status` returns `frame`: every row with its mode, reason, since, figures
 (audited and needed, confirmed errors, unconfirmed flags, corrected error, precision bounds against
-the bar, the rolling window's bounds against the pause bar, the audit check's own scores), the
+the bar, the rolling window's observed error against the pause bar with its bounds, the audit check's
+own scores), the
 decisions of the last 24 hours, and the roster. Admin → Pipeline shows it under "Lane
 qualification" (`data-testid="pipeline-frame"`, one item `pipeline-frame-{lane}-{tier|all}`).
 Scores from agent-judged golden rows are labelled as agreement with the reviewer model.

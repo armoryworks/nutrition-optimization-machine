@@ -74,5 +74,17 @@ namespace Nom.Api.Tests.Services
             totals.Should().Contain("FILTER (WHERE").And.Contain("curation.\"LaneDecision\"");
             window.Should().Contain("LIMIT");
         }
+
+        [Fact]
+        public void The_link_gate_food_facts_query_translates_to_one_postgres_statement()
+        {
+            using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql("Host=localhost;Database=none").Options,
+                new HttpContextAccessor { HttpContext = new DefaultHttpContext() });
+
+            var sql = LinkAutoApplyService.GateFoodRows(db.Ingredients.Where(i => !i.IsDeleted), new long[] { 1, 2, 3, 4 }).ToQueryString();
+
+            _output.WriteLine(sql);
+            sql.Should().Contain("SELECT DISTINCT").And.Contain("\"AdmissionReason\"").And.Contain("\"FdcCategoryId\"");
+        }
     }
 }

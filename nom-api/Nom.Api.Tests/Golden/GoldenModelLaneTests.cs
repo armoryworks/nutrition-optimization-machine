@@ -30,6 +30,7 @@ namespace Nom.Api.Tests.Golden
             ModelLanes.LinkPick => ModelLanes.PickCases(GoldenSet.Folder).Select(c => c.Id),
             ModelLanes.LinkVerify => ModelLanes.VerifyCases(GoldenSet.Folder).Select(c => c.Id),
             ModelLanes.LineClassify => ModelLanes.ClassifyCases(GoldenSet.Folder).Select(c => c.Id),
+            ModelLanes.LinkGateLane => ModelLanes.GateCases(GoldenSet.Folder).Select(c => c.Id),
             _ => Enumerable.Empty<string>(),
         };
 

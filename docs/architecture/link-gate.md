@@ -1,0 +1,121 @@
+# Link gate: one deterministic check for every wording-to-food answer
+
+`LinkGate` (`nom-api/Nom.Orch/Services/Support/LinkGate.cs`) is the one gate every answer to "which
+food is this wording" passes before anything writes it, whatever produced the answer: a name match,
+a staple, a verified wording, a trusted alias, a lone model pick, or two blind readers that agreed.
+It holds a pair and says why; it never chooses a food. It joins the stricter hold rules of the links
+design (B3), the wording pair checks of the wordings design (checks 1 to 8) and the alcohol sense
+rules to come (`cleanup2/alcohol-context` adds them as rules of this gate, not a second gate). It
+uses no model.
+
+Today it screens the name matches and model picks of the link lane
+(`LinkAutoApplyService.ScreenAsync` and the hold report, which both used `LinkAutoApplyGuard.Hold`
+before). The wording tiers, the readers and the re-check of applied links (`cleanup2/wording-tiers`,
+`cleanup2/wording-readers`, `cleanup2/link-recheck`) call the same `LinkGate.Check`.
+
+## Input
+
+- `GatePair`: the wording, the ingredient it is on (`SourceId`), the target `GateFood`, how the
+  answer was reached (`NameMatch`, `ModelPick`, `ReadersAgreed`) and, when the caller has them, the
+  wording's lines (`GateLine`: raw text, unit, grams through the food's conversions).
+- `GateFood`: name, USDA description (the `fdc:description` alias), data type, curation status, USDA
+  category (`FdcCategoryId`), admission reason, nutrient row count, whether calories, protein,
+  carbohydrate and fat are all stored, deleted. A fact left null is not checked.
+- `GateCatalog`: the curated name map the relink rule reads, the foods under each lead word, how many
+  foods carry each lead word, trusted aliases by wording key, the name matcher and the staples,
+  data-given head defaults, the lexicon, and the 99th percentile of grams per line by category.
+  `GateCatalog.Build` makes one from the foods a pass can link to.
+
+## Rules
+
+`Check` returns every rule that holds a pair, in this order; `Hold` returns the first as a reason.
+The code is what golden files and reports name.
+
+| Code | Holds when | From |
+|---|---|---|
+| `heading` | the line is a heading ("For the frosting:") | links B3 |
+| `compound` | the wording names more than one food (and, or, with, &, +, ;, a slash, a second food after a comma) | links B3, wordings 2.1 |
+| `retired` | the target is deleted | wordings check 1 |
+| `branded` | the target is a branded food | links B3, wordings check 1 |
+| `prepared` | the target is in a USDA prepared category (Baby Foods, Fast Foods, Meals, Entrees and Side Dishes, Restaurant Foods) or held as `prepared_category:` | owner, 2026-11-20: never a link target |
+| `uncurated` | the target is neither curated nor a pending SR Legacy or Foundation food with no admission reason | wordings check 1, catalog admission |
+| `incomplete` | the core nutrients are missing, or it has fewer than 20 nutrient rows while a food under the same lead word has more than 5 more (Claret, 6 rows, against red table wine, 33) | wordings check 1 |
+| `other-food` | the wording is the name of another curated food (`LineRelinkService.TargetFor`) | links B3, wordings check 2 |
+| `other-alias` | a trusted alias gives the wording to another food | wordings check 2 |
+| `state` | the description carries a state (dried, canned, cooked, frozen, ground, powder, sweetened, cured, roasted, smoked, pickled, dry) the wording lacks, and another food under the same lead word lacks it too | links B3, wordings check 4 |
+| `word-order` | a name match reads in USDA's order ("gravy beef" for "Gravy, beef") | links B3 |
+| `rule-other` | a staple or the name matcher gives the wording to another food | wordings check 7 |
+| `shortlist` | a lone model pick is not on the name matcher's shortlist of 12 and no name rule gives it | wordings check 7 |
+| `lead-noun` | the description's lead (after a class word such as "Spices," or "Alcoholic beverage, distilled,"; an identity class such as "Oil," or "Vinegar," stays) has a word the wording lacks ("molasses" for "Cookies, molasses", "nut meats" for "Nuts, coconut meat") | links B3 |
+| `containment` | a food word of the wording is not in the food's name or description (folded: plural, old spelling, hyphen or space joins, one edit on words of 6 letters or more, a lexicon entry) | links B3 |
+| `head-noun` | for two readers' answer, in place of the two rules above: the wording's head noun ("X of Y": Y) is not in the food | wordings check 3 |
+| `form` | the wording says a form (dried, canned, cooked, roasted, frozen, smoked, cured, pickled, ground, powder, salted, fresh) the food does not have; neutral table: dry, ground and pounded for a dried spice, browned or dried for flour, dry for a drink | links B3, wordings check 4 |
+| `fresh-herb` | the target is a dried spice and the wording, or more than 5 % of its lines, has a fresh cue (fresh, sprig, handful, bunch, stalk, leaves, chopped, minced), not "freshly ground", and "leaves" not when the spice is itself a leaf | wordings 1.5 class C, 2.7 |
+| `part` | the wording names a part (skin, peel/rind/zest, juice, seeds, leaves, kernels, greens, bran, germ, roe, yolk, egg white) the food is not, or the food is a part (a later description segment that is a part word, or says "only") the wording does not name ("potatoes" for "Potatoes, raw, skin") | links B3, wordings check 4 |
+| `marked` | the description has a marked word (light, imitation, substitute, reduced, low, nonfat, skim, free, non, artificial, diet, decaffeinated, instant, mix, flavored, pressurized, "with salt added") the wording lacks | links B3 |
+| `percent` | for a lone answer, the description states a percent the wording does not, under a lead word with other foods; for any answer, the wording states a percent the food does not | links B3 |
+| `polarity` | salted against unsalted or without salt, sweetened against unsweetened | links B3, wordings check 4 |
+| `generic` | for a lone answer, the wording is one food word that leads three or more foods and the food qualifies it ("cheese" for "Cheese, gouda") | links B3 |
+| `group` | the wording's head noun is a group word (wine, cheese, flour, oil, juice, sauce, stock and 37 more) and the target's USDA category is not one it allows ("glasses of sherry" for red wine vinegar) | wordings check 5 |
+| `units` | with lines: the food weighs under 90 % of them, or more than 5 % are liquid measures (gill, pint, gallon, glass, ml) on a dry food | wordings check 6 |
+| `grams` | with lines and a bound: more than 2 % of the lines weigh more than the 99th percentile of their category | wordings check 6 |
+
+A target that is the default food of the wording is spared the variety rules (`state`, `lead-noun`,
+`percent`, `generic`): the staple entry of the wording, or, when the wording is only its food words
+plus filler and forms the food meets ("browned flour"), the staple entry or data-given head default
+of those words. A staple's sense is never stretched past that: "fresh butter" keeps its fresh.
+
+Two blind readers of different families that agreed (`ReadersAgreed`) are read by the wording
+checks: their answer is held by `head-noun` instead of `containment` and `lead-noun`, and the
+`generic` and description-side `percent` rules, which stand in for a reader's choice of variety, are
+not applied. Every other rule holds for them as for a lone answer. A synonym with no shared word
+("crisco", "saleratus", "sack") passes only through a lexicon entry (`GateCatalog.Lexicon`, filled
+by `cleanup2/wording-readers`).
+
+**Family.** `LinkGate.Family` takes a batch of answers. Wordings that fold to one key (plural,
+hyphen or space, "X wine" against "X", a unit word in front) must agree on one food. Within a key
+whose answers name more than one food, the food with no readiness fault and the most nutrient rows
+wins and the others are to be re-pointed to it; when the best two tie, no answer of that key is
+written. "claret" and "claret wine" both go to red table wine.
+
+**Matcher fix.** `FoodNameMatcher` now treats a later description segment that is one part word on
+its own ("Potatoes, raw, skin") as part of the food's lead words, so no name rule gives "potatoes"
+to the skin. The fix promoted five `known` rows of `link-pairs.tsv`.
+
+## Signature
+
+`LinkGate.Signature` is a hash of `LinkGate.Version` and every table the rules read. Any change to a
+table changes it. The scorer lane `link-gate` records it, and a lane tier on the frame passes it in
+its gate signature, so a changed gate drops that tier back to shadow.
+
+## Golden files and the scorer
+
+- `link-gate.tsv`: rule-given rows (`rule:link-gate`, `rule:construction`, status `ok`). Each is a
+  pair the gate must let through (`pass`) or a pair a named rule must hold. Every rule has a row
+  (`Every_rule_of_the_gate_has_a_rule_given_row`).
+- `wording-pairs.tsv`: the 232 kept rows of batch w01 (judged by the model reviewer and second
+  reader, `=`, status `agent`), the w01 judge picks the second reader refuted (`!`, `agent`), the
+  wordings design's rule cases (`!`, `ok`) and its judged cases (`agent`), and claret: held for its
+  six nutrient rows and re-pointed by the family check to red table wine (`~`, `ok`). The rows the
+  gate holds that w01 kept are `known` (88; synonyms that need the lexicon, states the readers did
+  not say, foods short of nutrients), with the count in `baseline.json`.
+- `gate-catalog.tsv`: the frozen catalog the gate reads in the golden tests: the curated foods and
+  the pending SR Legacy foods of staging on 2026-11-20 with their USDA description, USDA category
+  (from the SR Legacy 2018-04 and Foundation 2025-12-18 releases) and nutrient row count.
+  `ops/golden/gate-catalog.sql` recaptures it once `--admit` has stored the categories.
+- Scorer lane `link-gate` in `model-lanes.json`, with no model: the gate replayed over every pair of
+  `link-pairs.tsv` judged right, wrong, near or compound. Run it with
+  `dotnet run --project nom-api/Nom.Import -- --golden-score --lane link-gate [--record]`; it needs
+  no host. Recorded on 2026-11-20: it lets through 2,284 of 7,664 pairs, 99.5 % of them judged right;
+  it lets through 12 of 1,406 pairs judged wrong, near or compound (0.9 %). Floors: precision at
+  least 99 %, false accepts at most 1 %, agreement at least 45 %. The record is required, and
+  `The_committed_link_gate_record_is_what_the_gate_scores_now` checks in CI that the gate still
+  scores exactly what was recorded. These are agreement with the reviewer of 2026-11-13, a model,
+  and in-sample: the rules were tuned on these pairs. The held-out figure comes from the lanes'
+  shadow runs on the frame.
+
+The 12 pairs it lets through and should not: "teaspoonful of mustard" and four more to prepared
+mustard (the staple; old cookbooks meant dry mustard by the teaspoon, which only the unit tells),
+"chopped figs" and two more to raw figs (dried figs, which nothing in the wording says), "crushed
+red pepper" to sweet red pepper, "sweet-breads" to sweet bread, "soup stock" to chicken stock and
+"cold corned beef" to raw corned beef.

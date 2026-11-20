@@ -102,16 +102,22 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public void A_check_that_false_flags_right_rows_does_not_hide_an_error_in_a_full_window()
+        public void A_check_that_false_flags_right_rows_pauses_a_full_window_once_its_errors_pass_the_flags_it_is_known_to_make()
         {
             var noisy = new AuditorScore(KnownBad: 500, FlaggedBad: 450, KnownGood: 1000, FlaggedGood: 30);
             var t1 = new LanePolicy(0.99, 0.015);
             var window = LaneQualifier.PauseWindow(t1, noisy);
+            var (seLow, _) = LaneQualifier.Wilson(450, 500);
+            var (fLow, _) = LaneQualifier.Wilson(30, 1000);
+            var errorsAtBar = (int)Math.Floor((fLow + t1.PauseBar * seLow) * window);
 
-            var verdict = LaneQualifier.Decide(Input(LaneMode.Live, Audited(1000, 0), recent: Audited(window, 1), policy: t1, auditor: noisy), Now);
-
-            verdict.Mode.Should().Be(LaneMode.Paused);
-            verdict.Undo.Should().BeTrue();
+            LaneQualifier.Decide(Input(LaneMode.Live, Audited(1000, 0), recent: Audited(window, errorsAtBar), policy: t1, auditor: noisy), Now)
+                .Mode.Should().Be(LaneMode.Live, "these confirmed errors are no more than the false flags the check is known to make plus the bar");
+            var paused = LaneQualifier.Decide(Input(LaneMode.Live, Audited(1000, 0), recent: Audited(window, errorsAtBar + 1), policy: t1, auditor: noisy), Now);
+            paused.Mode.Should().Be(LaneMode.Paused);
+            paused.Undo.Should().BeTrue();
+            LaneQualifier.Correct(errorsAtBar + 1, window, noisy).Pausing
+                .Should().BeGreaterThanOrEqualTo(LaneQualifier.Correct(errorsAtBar + 1, window, noisy).Corrected, "the pause test never reads a sampled check more kindly than its point estimate");
         }
 
         [Fact]
@@ -199,14 +205,55 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public void A_live_tier_pauses_when_the_error_upper_bound_of_a_full_window_is_above_the_bar()
+        public void A_live_tier_pauses_when_the_observed_error_of_a_full_window_is_above_the_bar()
         {
-            var verdict = LaneQualifier.Decide(Input(LaneMode.Live, Audited(500, 2), recent: Audited(200, 3)), Now);
+            var verdict = LaneQualifier.Decide(Input(LaneMode.Live, Audited(500, 2), recent: Audited(200, 7)), Now);
+            var atBar = LaneQualifier.Decide(Input(LaneMode.Live, Audited(500, 2), recent: Audited(200, 6)), Now);
 
             verdict.Mode.Should().Be(LaneMode.Paused);
             verdict.Journal.Should().Be(LaneJournal.Pause);
             verdict.Undo.Should().BeTrue();
-            verdict.Reason.Should().Contain("upper bound");
+            verdict.Reason.Should().Contain("observed error 3.5%");
+            verdict.Figures.WindowError.Should().BeApproximately(0.035, 1e-9);
+            atBar.Mode.Should().Be(LaneMode.Live, "6 in 200 is 3.0 %, at the pause bar, not above it");
+            atBar.Clean.Should().BeTrue();
+        }
+
+        [Fact]
+        public void A_t1_tier_pauses_at_four_errors_in_its_253_window_and_not_at_three()
+        {
+            var t1 = new LanePolicy(0.99, 0.015);
+            var window = LaneQualifier.PauseWindow(t1, Exact);
+
+            window.Should().Be(253);
+            LaneQualifier.Decide(Input(LaneMode.Live, Audited(1000, 3), recent: Audited(window, 3), policy: t1), Now).Mode.Should().Be(LaneMode.Live);
+            LaneQualifier.Decide(Input(LaneMode.Live, Audited(1000, 4), recent: Audited(window, 4), policy: t1), Now).Mode.Should().Be(LaneMode.Paused);
+        }
+
+        [Fact]
+        public void The_observed_error_rule_seldom_pauses_a_t1_tier_at_its_target_and_nearly_always_pauses_one_at_three_percent()
+        {
+            static double AtLeast(int k, int n, double p)
+            {
+                var below = 0.0;
+                for (var i = 0; i < k; i++)
+                {
+                    var term = Math.Exp(LogChoose(n, i) + i * Math.Log(p) + (n - i) * Math.Log(1 - p));
+                    below += term;
+                }
+                return 1 - below;
+            }
+
+            static double LogChoose(int n, int k)
+            {
+                var sum = 0.0;
+                for (var i = 1; i <= k; i++) sum += Math.Log(n - k + i) - Math.Log(i);
+                return sum;
+            }
+
+            AtLeast(4, 253, 0.005).Should().BeInRange(0.03, 0.05, "a tier running at its 99.5 % target pauses in about 4 % of windows");
+            AtLeast(4, 253, 0.03).Should().BeGreaterThan(0.94, "a tier at 3 % error pauses in about 95 % of windows");
+            AtLeast(1, 253, 0.005).Should().BeGreaterThan(0.7, "the upper-bound rule this replaces paused at one error, about 72 % of windows at target");
         }
 
         [Fact]

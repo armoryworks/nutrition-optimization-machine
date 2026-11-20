@@ -379,7 +379,8 @@
                   </p>
                   <p class="nom-pipeline__lane-line" [attr.data-testid]="'pipeline-frame-' + key + '-window'">
                     Last {{ f.windowAudited | number }} of a {{ f.window | number }} audited window: {{ f.windowErrors | number }} errors,
-                    error {{ f.windowErrorLower | percent: '1.1-2' }} to {{ f.windowErrorUpper | percent: '1.1-2' }} against the pause bar {{ f.pauseBar | percent: '1.1-2' }}
+                    observed error {{ f.windowError | percent: '1.1-2' }} against the pause bar {{ f.pauseBar | percent: '1.1-2' }}
+                    (bounds {{ f.windowErrorLower | percent: '1.1-2' }} to {{ f.windowErrorUpper | percent: '1.1-2' }})
                   </p>
                   <p class="nom-pipeline__lane-line nom-pipeline__muted" [attr.data-testid]="'pipeline-frame-' + key + '-auditor'">
                     @if (f.auditorExact) {

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Import.Golden
 {
@@ -28,11 +29,12 @@ namespace Nom.Import.Golden
             }
 
             var lane = Option(args, "--lane");
-            var host = Option(args, "--host");
-            var model = Option(args, "--model");
+            var noModel = lane != null && ModelLanes.NoModel.Contains(lane);
+            var host = Option(args, "--host") ?? (noModel ? "none" : null);
+            var model = Option(args, "--model") ?? (noModel ? LinkGate.Version : null);
             if (lane == null || host == null || model == null || !ModelLanes.Scored.Contains(lane))
             {
-                Console.Error.WriteLine($"usage: {Flag} --lane <{string.Join('|', ModelLanes.Scored)}> --host <url> --model <name> [--limit N] [--golden <dir>] [--out <file>] [--record]");
+                Console.Error.WriteLine($"usage: {Flag} --lane <{string.Join('|', ModelLanes.Scored)}> --host <url> --model <name> [--limit N] [--golden <dir>] [--out <file>] [--record] ({string.Join(", ", ModelLanes.NoModel)} needs no host or model)");
                 return 2;
             }
 
@@ -66,6 +68,8 @@ namespace Nom.Import.Golden
 
             Console.WriteLine($"Score {score.Score:P1} ({score.Passed}/{score.Cases}); floor {floor.MinScore:P1}");
             Console.WriteLine($"False accepts {score.FalseAccepts}/{score.FalseAcceptCases} ({score.FalseAcceptRate:P1}); ceiling {(floor.MaxFalseAcceptRate is { } max ? max.ToString("P1") : "none")}");
+            if (score.Precision is { } precision)
+                Console.WriteLine($"Accepted {score.Accepted}/{score.Cases}; judged right among them {precision:P1}; floor {(floor.MinPrecision is { } minPrecision ? minPrecision.ToString("P1") : "none")}");
             foreach (var (judge, counts) in score.ByJudge) Console.WriteLine($"  judged by {judge}: {counts[0]}/{counts[1]}");
             if (recorded == null) Console.WriteLine("No recorded run to compare with.");
             else if (recorded.CaseSet != score.CaseSet) Console.WriteLine($"The case set differs from the recorded run ({recorded.Model}, {recorded.ScoredAtUtc:u}); regressions are not compared.");
