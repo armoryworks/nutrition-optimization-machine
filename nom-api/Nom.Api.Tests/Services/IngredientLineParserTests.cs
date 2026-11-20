@@ -343,6 +343,8 @@ namespace Nom.Api.Tests.Services
         [InlineData("a couple of eggs", 2, "Piece")]
         [InlineData("a couple eggs", 2, "Piece")]
         [InlineData("a pair of ducks", 2, "Piece")]
+        [InlineData("couple of eggs", 2, "Piece")]
+        [InlineData("pair of ducks", 2, "Piece")]
         [InlineData("Corn starch, ½ cup.", 0.5, "Cup")]
         [InlineData("Sage, ½ teaspoonful.", 0.5, "Teaspoon")]
         [InlineData("Mace, in powder ½ oz.", 0.5, "Ounce")]
@@ -371,6 +373,9 @@ namespace Nom.Api.Tests.Services
         [InlineData("a very little salt")]
         [InlineData("Sale q.b.")]
         [InlineData("un po' di sale")]
+        [InlineData("Pair with crusty bread")]
+        [InlineData("Couple the sauce with rice")]
+        [InlineData("pair well with a dry white wine")]
         public void A_vague_amount_is_no_amount(string raw)
         {
             IngredientLineParser.Parse(raw).Should().BeNull();

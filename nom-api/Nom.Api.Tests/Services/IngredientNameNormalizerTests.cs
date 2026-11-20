@@ -62,7 +62,22 @@ namespace Nom.Api.Tests.Services
         [InlineData("juice from 1 lime", "lime juice")]
         [InlineData("1 No. 2 can tomatoes", "tomatoes")]
         [InlineData("1 #2½ can peaches", "peaches")]
+        [InlineData("gr. 100 di zucchero", "zucchero")]
+        [InlineData("100 gr. di burro", "burro")]
+        [InlineData("a couple eggs", "eggs")]
+        [InlineData("couple of eggs", "eggs")]
         public void Strips_old_measures_italian_units_hedges_and_trailing_amounts(string raw, string expected)
+        {
+            Assert.Equal(expected, IngredientNameNormalizer.Normalize(raw));
+        }
+
+        [Theory]
+        [InlineData("1 gr. pepper, chopped", "gr. pepper, chopped")]
+        [InlineData("1/2 gr. pepper", "gr. pepper")]
+        [InlineData("1 can gr. beans", "gr. beans")]
+        [InlineData("Pair with crusty bread", "Pair with crusty bread")]
+        [InlineData("Couple the sauce with rice", "Couple the sauce with rice")]
+        public void Keeps_an_english_gr_abbreviation_and_a_pair_or_couple_that_is_no_count(string raw, string expected)
         {
             Assert.Equal(expected, IngredientNameNormalizer.Normalize(raw));
         }

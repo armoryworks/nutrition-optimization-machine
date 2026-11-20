@@ -96,3 +96,6 @@ can-03	numbered-can	1 No. 303 can peas	1	Can	-	peas	peas	agent	agent	agent-revie
 can-04	numbered-can	1 can (No. 2) tomatoes	1	Can	-	tomatoes	tomatoes	agent	agent	agent-review-parser-rules-2026-11-20	containers item 4
 can-05	container	1 can hominy (1 lb. 13 ounce can)	29	Ounce	29 Ounce	hominy	hominy	ok	ok	design:containers	containers 1c: 1 lb 13 oz is 29 oz
 can-06	container	1 1 lb. 13 oz. can peaches	29	Ounce	29 Ounce	peaches	peaches	agent	agent	agent-review-parser-rules-2026-11-20	containers item 4: pounds and ounces add up
+r6-08	italian	100 gr. di burro	100	Gram	-	burro	burro	agent	agent	agent-review-parser-rules-2026-11-20	R6 review PR-2: gr before "di" or a number is the Italian gram
+r6-09	abbreviation	1 gr. pepper, chopped	*	*	*	gr. pepper, chopped	gr. pepper	agent	agent	agent-review-parser-rules-2026-11-20	R6 review PR-2: the English "gr." (green) stays in the name; was "pepper, chopped", a spice key
+r3-05	number-word	Pair with crusty bread	-	-	-	Pair with crusty bread	Pair with crusty bread	agent	agent	agent-review-parser-rules-2026-11-20	R3 review PR-3: "pair" with no "of" and no "a" is no count; was 2 Piece "with crusty bread"

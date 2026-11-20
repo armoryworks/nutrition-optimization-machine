@@ -119,7 +119,7 @@ namespace Nom.Orch.Services.Support
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex CoupleOrPair = new(
-            @"^\s*(?:a\s+)?(?:couple|pair)(?:\s+of)?\s+(?=\S)",
+            @"^\s*(?:a\s+(?:couple|pair)(?:\s+of)?|(?:couple|pair)\s+of)\s+(?=\S)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex Hedge = new(

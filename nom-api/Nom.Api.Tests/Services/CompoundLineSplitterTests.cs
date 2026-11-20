@@ -266,9 +266,54 @@ namespace Nom.Api.Tests.Services
                 new CompoundFood(1, "Apples", true), new CompoundFood(2, "Peaches", true), new CompoundFood(3, "Raspberry", true),
                 new CompoundFood(4, "Avocados", true), new CompoundFood(5, "Marmalade", true, false), new CompoundFood(6, "Butter", true, false),
                 new CompoundFood(7, "Apple Butter", true, false), new CompoundFood(8, "Lard", true, false),
+                new CompoundFood(9, "Blueberries", true, false), new CompoundFood(10, "Cranberries", true, false),
+                new CompoundFood(11, "Cherries", true, false), new CompoundFood(12, "Jam", true, false),
+                new CompoundFood(13, "Milk", true, false), new CompoundFood(14, "Oranges", true),
+                new CompoundFood(15, "Cranberry Juice", true, false), new CompoundFood(16, "Orange Juice", true, false),
             },
             Array.Empty<CompoundAlias>(),
-            new[] { "Apples", "Peaches", "Raspberry", "Avocados", "Marmalade", "Butter", "Apple Butter", "Lard" });
+            new[] { "Apples", "Peaches", "Raspberry", "Avocados", "Marmalade", "Butter", "Apple Butter", "Lard", "Blueberries", "Cranberries", "Cherries", "Jam", "Milk", "Oranges", "Cranberry Juice", "Orange Juice" });
+
+        [Theory]
+        [InlineData("blueberries, cherries, or any other jam", 12L)]
+        [InlineData("cranberries or grape juice", 15L)]
+        public void A_first_fruit_without_a_weight_per_item_still_goes_to_the_product(string line, long product)
+        {
+            var plan = CompoundLineSplitter.Plan(line, FruitProducts())!;
+
+            plan.Kind.Should().Be(CompoundKind.PickAlternative);
+            plan.Rule.Should().Be(CompoundLineSplitter.OrSharedHead);
+            plan.Parts.Select(p => p.FoodId).Should().Equal(product);
+        }
+
+        [Theory]
+        [InlineData("cranberries, raspberries, or any other jelly")]
+        [InlineData("blueberries, cherries, or wild plum jam")]
+        public void A_first_fruit_without_a_weight_per_item_is_left_when_the_product_is_not_in_the_catalog(string line)
+        {
+            var plan = CompoundLineSplitter.Plan(line, FruitProducts())!;
+
+            plan.Kind.Should().Be(CompoundKind.Leave);
+            plan.LeaveReason.Should().Be(CompoundLineSplitter.LeaveSharedProduct);
+        }
+
+        [Theory]
+        [InlineData("blueberries or raspberry jam")]
+        [InlineData("blueberries, cherries, or raspberry jam")]
+        [InlineData("cranberries or orange juice")]
+        public void A_first_fruit_without_a_weight_per_item_beside_another_product_is_left(string line)
+        {
+            CompoundLineSplitter.Plan(line, FruitProducts())!.Kind.Should().Be(CompoundKind.Leave);
+        }
+
+        [Fact]
+        public void A_first_food_that_has_no_product_of_its_own_beside_a_juice_is_still_picked()
+        {
+            var plan = CompoundLineSplitter.Plan("milk or orange juice", FruitProducts())!;
+
+            plan.Kind.Should().Be(CompoundKind.PickAlternative);
+            plan.Parts.Select(p => p.FoodId).Should().Equal(13L);
+        }
 
         [Theory]
         [InlineData("apple, peach, or any other marmalade", 5L)]

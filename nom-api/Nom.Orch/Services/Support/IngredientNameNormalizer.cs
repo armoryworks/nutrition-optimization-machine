@@ -24,7 +24,7 @@ namespace Nom.Orch.Services.Support
             @"(?:one|two|three|five|seven)[- ](?:half|halves|thirds?|fourths?|quarters?|eighths?)";
 
         private static readonly Regex LeadingQuantity = new(
-            $@"^\s*(?:(?:and|or|to|about|nearly)\s+)?(?:{Number}(?:\s*(?:-|–|—|to|or)\s*{Number})?(?:-(?=(?:lbs?|ozs?|pounds?|ounces?|pints?|pts?|quarts?|qts?|cups?)\b)|(?=[\s.])[\s.]+)|(?:{FractionWord}|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half(?![\s-]+(?:and|&|n|'n'?)[\s-]+half\b)|halves|quarters?|thirds?|couple|pair|mezz[oa])(?=[\s.])[\s.]+)",
+            $@"^\s*(?:(?:and|or|to|about|nearly)\s+)?(?:{Number}(?:\s*(?:-|–|—|to|or)\s*{Number})?(?:-(?=(?:lbs?|ozs?|pounds?|ounces?|pints?|pts?|quarts?|qts?|cups?)\b)|(?=[\s.])[\s.]+)|(?:a\s+(?:couple|pair)(?:\s+of)?|{FractionWord}|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half(?![\s-]+(?:and|&|n|'n'?)[\s-]+half\b)|halves|quarters?|thirds?|(?:couple|pair)(?=\s+of\b)|mezz[oa])(?=[\s.])[\s.]+)",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private const string Qualifier =
@@ -41,7 +41,7 @@ namespace Nom.Orch.Services.Support
             @"slices?|pounds?|lbs?\.?|ounces?|ozs?\.?|fl\.?\s*oz\.?|tablespoons?|tbsps?\.?|tbps?\.?|tblsps?\.?|tbls?\.?|teaspoons?|tsps?\.?|ponies|pony|" +
             @"cloves?(?!\s*(?:,|and\b|&))|sticks?|pieces?|pinch(?:es)?|dash(?:es)?|handfull?s?|sprigs?|heads?|stalks?|ribs?|ears?|" +
             @"fillets?|filets?|strips?|cubes?|knobs?|pats?|liters?|litres?|l\b|ml\b|milliliters?|grams?|g\b|kgs?|kilograms?|" +
-            @"grammi|grammo|gr\b|chilogrammi|chilogrammo|litri|litro|decilitri|decilitro|dl\b)" +
+            @"grammi|grammo|gr\b(?=\.?\s*(?:\d|di\b))|chilogrammi|chilogrammo|litri|litro|decilitri|decilitro|dl\b)" +
             @"\b\.?\s*(?:each\s+)?(?:(?:of|di)\s+)?" +
             @"|(?:glass(?:es|full?s?)?|drops?|blades?|grains?|lumps?|bits?)\s+of\s+" +
             @"|(?:c|t|tb|tbs)\.?[\s-]+(?=\p{L}{3}))",

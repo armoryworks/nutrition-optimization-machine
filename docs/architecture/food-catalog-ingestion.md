@@ -620,14 +620,18 @@ raw line. Rules (golden rows in `lines.tsv`, `line-kinds.tsv`, `startup-fills.ts
 - Abbreviated spoons are spoons: `tablespn.`, `tablespns.`, `teaspn.`, `teaspns.`, `dessertspn.`
   ("2 tablespns. water" → 2 Tablespoon), and the name drops `tbp` as it drops `tbsp`.
 - "pinch X" and "dash X" without "of" are 1 Pinch ("Pinch kosher salt").
-- "a couple of" and "a pair of" are 2 ("a couple of ounces of butter" → 2 Ounce, "a pair of ducks" → 2 Piece).
+- "a couple of" and "a pair of" are 2 ("a couple of ounces of butter" → 2 Ounce, "a pair of ducks" → 2 Piece),
+  as are "a couple", "couple of" and "pair of"; a bare "pair" or "couple" is no count ("Pair with
+  crusty bread" has no amount and keeps its name).
 - An amount after the name, after a comma or a word, is read when nothing before it is a number
   ("Corn starch, ½ cup." → 0.5 Cup, "Mace, in powder ½ oz.", "Potatoes, medium size, 2", "Burro
   gr. 50" → 50 Gram), and the name drops it ("Burro, 100 grammi." → Burro, "Uova, N. 4." → Uova).
 - Old measures: jill (as gill, ½ cup), tumbler (1 cup), pony (1 fl oz). "a drop", "a small
   quantity" and "a very little" are vague: no amount.
 - Italian units for the Artusi text: grammi, gr., chilogrammi, litro, mezzo litro, decilitri and
-  "N. 4" are read; "q.b." and "un po'" are vague; the name drops the unit and "di".
+  "N. 4" are read; "q.b." and "un po'" are vague; the name drops the unit and "di". The name
+  drops a leading "gr." only before "di" or a number ("100 gr. di burro" → burro), so the English
+  "gr." of "1 gr. pepper" (green) stays in the name.
 - Scraper sample forms: a leading "optional", "optional:", "Entirely optional:", "~" or "just
   under" is skipped before the amount, "juice from 1 lime" reads as "juice of 1 lime" (Lime
   juice, 1 Piece), and HTML entities are decoded first.
@@ -690,7 +694,11 @@ earlier names kinds of jam: "apricot, strawberry, or any jam" moves to Apricot J
 food other than the first alternative's, else it is left, and so is any other "any ..." last
 alternative. A list of whole foods whose later alternatives end in a product word (jam,
 marmalade, preserves, jelly, juice, brandy, sauce, butter, oil) and are no bare product ("lard
-or butter" is still picked) names that product, never the first whole food: the first food's
+or butter" is still picked) names that product, never the first whole food. The first food is
+a whole food when it is counted in pieces, when every product is one only fruit makes (jam,
+jelly, marmalade, preserves: "blueberries, cherries, or any other jam"), or when its own product
+is a food or an ingredient name ("cranberries or grape juice"); "milk or orange juice" is no such
+list and still goes to Milk. The line goes to the first food's
 own product when the catalog holds it ("apple or quince butter" → Apple Butter), else the
 product an "any other" alternative names ("apple, peach, or any other marmalade" → Marmalade),
 else it is left (`whole foods sharing a product the catalog does not hold`: "peach or French

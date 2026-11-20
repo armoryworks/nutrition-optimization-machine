@@ -151,6 +151,11 @@ namespace Nom.Orch.Services.Support
             "jam", "jams", "marmalade", "marmalades", "preserves", "jelly", "jellies", "juice", "juices", "brandy", "sauce", "butter", "oil",
         };
 
+        private static readonly HashSet<string> FruitProductWords = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "jam", "jams", "marmalade", "marmalades", "preserves", "jelly", "jellies",
+        };
+
         private static readonly Regex CutWord = new(@"\b(?:chopped|minced|diced|sliced|seeded|shredded|cut|strips?|rings?)\b", Options);
 
         private static readonly Regex CountStart = new(
@@ -320,18 +325,32 @@ namespace Nom.Orch.Services.Support
         /// that product, never the first whole food: the first food's own product ("apple
         /// marmalade") when the catalog holds it, else the product an "any other" alternative names
         /// ("marmalade"), else nothing. When the first food's product and a later alternative are
-        /// both foods ("avocado or olive oil"), the line is ambiguous as before. Null when the line
-        /// is not such a list.
+        /// both foods ("avocado or olive oil"), the line is ambiguous as before. The first food is
+        /// a whole food when it is counted in pieces, when every product is one only fruit makes
+        /// (jam, jelly, marmalade, preserves: "blueberries or raspberry jam"), or when its own
+        /// product ("cranberry juice") is a food or an ingredient name; "milk or orange juice" is
+        /// not such a list. Null when the line is not such a list.
         /// </summary>
         private static CompoundPlan? SharedProduct(string line, string wording, List<string> names, long firstFood, CompoundVocabulary v)
         {
             var at = names.FindIndex(IsProduct);
-            if (at < 1 || !v.CountedInPieces(firstFood)) return null;
+            if (at < 1) return null;
             var products = names.Skip(at).Select(n => Purpose.Replace(n, string.Empty)).ToList();
             if (!products.All(IsProduct) || !products.Any(p => Words(p).Length > 1)) return null;
             if (!names.Take(at).All(n => IsSingleWord(n) && !n.Contains('-'))) return null;
 
-            foreach (var candidate in products.Select(p => $"{names[0]} {Words(p)[^1]}"))
+            var own = products.Select(p => Words(p)[^1]).Distinct(StringComparer.OrdinalIgnoreCase)
+                .SelectMany(word => Singulars(names[0]).Select(f => $"{f} {word}"))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (!v.CountedInPieces(firstFood)
+                && !products.All(p => FruitProductWords.Contains(Words(p)[^1]))
+                && !own.Any(c => v.Resolve(c) != null || v.IsKnown(c)))
+            {
+                return null;
+            }
+
+            foreach (var candidate in own)
             {
                 if (v.Resolve(candidate) is not { } product || product == firstFood) continue;
                 if (products.Any(p => !AnyOther.IsMatch(p) && v.Resolve(p) is { } named && named != product)) return CompoundPlan.Leave(wording, LeaveOrAmbiguous);
@@ -347,6 +366,14 @@ namespace Nom.Orch.Services.Support
             }
 
             return CompoundPlan.Leave(wording, LeaveSharedProduct);
+        }
+
+        private static IEnumerable<string> Singulars(string name)
+        {
+            yield return name;
+            if (name.EndsWith("ies", StringComparison.OrdinalIgnoreCase)) yield return name[..^3] + "y";
+            if (name.EndsWith("es", StringComparison.OrdinalIgnoreCase)) yield return name[..^2];
+            if (name.EndsWith("s", StringComparison.OrdinalIgnoreCase)) yield return name[..^1];
         }
 
         private static string[] Words(string name) => name.Split(WordBreaks, StringSplitOptions.RemoveEmptyEntries).Select(w => w.Trim('.', ';', ':')).ToArray();
