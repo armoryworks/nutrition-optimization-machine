@@ -513,6 +513,39 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_proposal_the_undo_puts_back_keeps_its_original_creation_time_and_creator()
+        {
+            var name = Guid.NewGuid().ToString();
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(name).Options;
+            using var db = new ApplicationDbContext(options);
+            var seeded = await SeedSeaSaltAsync(db);
+            var created = new DateTime(2026, 10, 15, 0, 0, 0, DateTimeKind.Utc);
+            db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, IngredientId = seeded.SeaSalt.Id, Field = FoodCatalogReviewService.FdcLinkField, CurrentValue = "sea salt",
+                FdcId = "999", ProposedValue = "999", Source = "ai:fake", Batch = IngredientLinkService.Batch, Status = FoodProposalStatus.Rejected,
+                Reason = "No USDA match", CreatedDate = created,
+            });
+            await db.SaveChangesAsync();
+            var start = DateTime.UtcNow.AddSeconds(-1);
+            await new FoodCatalogReviewService(db, new NoAudit(), new MovingCleanup(db)).ApplyProposalAsync(seeded.Proposal.Id, 2);
+            db.ChangeTracker.Clear();
+            var http = new Microsoft.AspNetCore.Http.HttpContextAccessor
+            {
+                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext
+                {
+                    User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(new[] { new System.Security.Claims.Claim("PersonId", "2") }, "test")),
+                },
+            };
+            using var asPerson = new ApplicationDbContext(options, http);
+
+            (await new LinkApplyUndoService(asPerson, new NoUser()).UndoAsync(start, apply: true)).Proposals.Should().Be(1);
+
+            var restored = await db.FoodCatalogProposals.AsNoTracking().SingleAsync(p => p.FdcId == "999");
+            (restored.CreatedDate, restored.CreatedByPersonId).Should().Be((created, (long?)null));
+        }
+
+        [Fact]
         public async Task Skipped_links_do_not_take_the_undos_slots_and_are_not_counted_as_remaining()
         {
             using var db = NewContext();

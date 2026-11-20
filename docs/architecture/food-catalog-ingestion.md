@@ -805,7 +805,12 @@ what they were, the USDA food gets its earlier status unless another applied lin
 at it, and the proposal returns to Pending with ` · hold: undone` on its reason, so no lane
 (staples, name matches, verified model picks) applies it again on its own; a person can. When a
 person's approval gave the USDA food the wording's own name, that name comes off the USDA food
-before the wording's food takes it back.
+before the wording's food takes it back. Only the lines the undo moves get a new `LastModifiedDate`, plus every line of the USDA food
+when the undo took nutrient values or measures off it (so its labels are recalculated). A removed
+proposal written back keeps its original `CreatedDate`, `LastModifiedDate` and `CreatedByPersonId`
+(journaled from this release; an older journal entry has no creator, so such a proposal gets the
+person running the undo as creator but still its original dates), so the pipeline page's
+`lastProposedAt` does not move.
 
 A link with a line that is no longer where the link put it (moved by a relink, a compound split
 or an unfold since, edited or deleted) is skipped and reported (`proposalsSkipped`, the sample's

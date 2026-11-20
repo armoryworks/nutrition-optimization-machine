@@ -59,6 +59,7 @@ namespace Nom.Orch.Services
                 if (apply)
                 {
                     await _db.SaveChangesAsync();
+                    await KeepCreationAsync(run);
                     if (tx != null) await tx.CommitAsync();
                     _db.ChangeTracker.Clear();
                 }
@@ -88,7 +89,37 @@ namespace Nom.Orch.Services
         private sealed record Run(bool Apply, bool LeaveMovedLines, long PersonId, LinkApplyUndoResult Result)
         {
             public HashSet<long> Undone { get; } = new();
+            public List<(FoodCatalogProposalEntity Proposal, LinkApplyJournal.ProposalValue Removed)> Recreated { get; } = new();
             public Dictionary<long, List<AuditLogEntryEntity>> HandedOn { get; } = new();
+        }
+
+        /// <summary>
+        /// Gives each proposal the undo put back its original creation time and creator, which the
+        /// context's save stamps over. A journal entry written before the creator was journaled
+        /// keeps the person running the undo as creator; its creation time is always restored.
+        /// </summary>
+        private async Task KeepCreationAsync(Run run)
+        {
+            foreach (var (proposal, removed) in run.Recreated)
+            {
+                var creator = removed.CreatorJournaled ? removed.CreatedByPersonId : proposal.CreatedByPersonId;
+                if (_db.Database.IsRelational())
+                {
+                    await _db.FoodCatalogProposals.Where(p => p.Id == proposal.Id).ExecuteUpdateAsync(set => set
+                        .SetProperty(p => p.CreatedDate, removed.CreatedDate)
+                        .SetProperty(p => p.CreatedByPersonId, creator)
+                        .SetProperty(p => p.LastModifiedDate, removed.LastModifiedDate));
+                }
+                else
+                {
+                    proposal.CreatedDate = removed.CreatedDate;
+                    proposal.CreatedByPersonId = creator;
+                    proposal.LastModifiedDate = removed.LastModifiedDate;
+                }
+            }
+
+            if (!_db.Database.IsRelational() && run.Recreated.Count > 0) await _db.SaveChangesAsync();
+            run.Recreated.Clear();
         }
 
         private async Task<LinkApplyUndoSample> UndoOneAsync(long proposalId, Run run)
@@ -195,6 +226,7 @@ namespace Nom.Orch.Services
             result.LinesRestored += sample.LinesRestored;
             result.LinesSkipped += sample.LinesSkipped;
 
+            var valuesChanged = result.NutrientsRemoved + result.MeasuresRestored;
             var handOn = new Dictionary<long, long>();
             foreach (var row in rows)
             {
@@ -225,7 +257,7 @@ namespace Nom.Orch.Services
                 if (LinkApplyJournal.Read<LinkApplyJournal.ProposalValue>(row.OldValue) is not { } removed) continue;
                 result.ProposalsRestored++;
                 if (!apply) continue;
-                _db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
+                var recreated = new FoodCatalogProposalEntity
                 {
                     Action = removed.Action,
                     IngredientId = removed.IngredientId,
@@ -245,7 +277,10 @@ namespace Nom.Orch.Services
                     IsDeleted = removed.Deleted,
                     DeletedAt = removed.DeletedAt,
                     DeletedByPersonId = removed.DeletedByPersonId,
-                });
+                    CreatedByPersonId = removed.CreatorJournaled ? removed.CreatedByPersonId : null,
+                };
+                _db.FoodCatalogProposals.Add(recreated);
+                run.Recreated.Add((recreated, removed));
             }
 
             if (!apply)
@@ -293,10 +328,10 @@ namespace Nom.Orch.Services
                 Timestamp = DateTime.UtcNow,
                 ChangedByPersonId = personId,
             });
-            if (_db.Database.IsRelational())
+            if (_db.Database.IsRelational() && result.NutrientsRemoved + result.MeasuresRestored > valuesChanged)
             {
                 await _db.Database.ExecuteSqlAsync(
-                    $"""UPDATE recipe."RecipeIngredient" SET "LastModifiedDate" = now() WHERE "IngredientId" IN ({header.Food}, {header.Target})""");
+                    $"""UPDATE recipe."RecipeIngredient" SET "LastModifiedDate" = now() WHERE "IngredientId" = {header.Target}""");
             }
             return sample;
         }

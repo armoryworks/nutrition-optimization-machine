@@ -55,7 +55,8 @@ namespace Nom.Orch.Services.Support
             FoodProposalAction Action, long? IngredientId, string? FdcId, string? Field, string? CurrentValue, string? ProposedValue,
             decimal? Confidence, string? Reason, string Source, string? Batch, FoodProposalStatus Status,
             long? ReviewedByPersonId, DateTime? ReviewedAt, DateTime CreatedDate, DateTime? LastModifiedDate,
-            bool Deleted = false, DateTime? DeletedAt = null, long? DeletedByPersonId = null);
+            bool Deleted = false, DateTime? DeletedAt = null, long? DeletedByPersonId = null,
+            long? CreatedByPersonId = null, bool CreatorJournaled = false);
 
         /// <summary>A line before and after a move. Columns are named for the merge's RETURNING clause.</summary>
         public sealed class LineShift
@@ -146,7 +147,7 @@ namespace Nom.Orch.Services.Support
         {
             var value = new ProposalValue(p.Action, p.IngredientId, p.FdcId, p.Field, p.CurrentValue, p.ProposedValue, p.Confidence, p.Reason,
                 p.Source, p.Batch, p.Status, p.ReviewedByPersonId, p.ReviewedAt, p.CreatedDate, p.LastModifiedDate,
-                p.IsDeleted, p.DeletedAt, p.DeletedByPersonId);
+                p.IsDeleted, p.DeletedAt, p.DeletedByPersonId, p.CreatedByPersonId, true);
             var text = Write(value);
             if (text.Length > ValueLength && p.Reason != null)
             {
