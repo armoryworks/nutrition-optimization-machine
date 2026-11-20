@@ -18,7 +18,9 @@ namespace Nom.Orch.Services
     /// Loads reviewed wording verdicts into recipe.IngredientWording. Each row added, changed or
     /// taken out is one audit entry (EntityType IngredientWording, ChangeType WordingVerify, old
     /// and new value "verdict:foodId"); each food the load curates is one entry (EntityType
-    /// Ingredient, ChangeType WordingCurate) that an unload takes back.
+    /// Ingredient, ChangeType WordingCurate) that an unload takes back. A retract takes one row out
+    /// with its lines and keeps its verdict and food in recipe.IngredientWordingRejection (ChangeType
+    /// WordingRetract on the row and on the rejection; WordingRejectionLift when a load lifts it).
     /// </summary>
     public class VerifiedWordingService : IVerifiedWordingService
     {
@@ -42,6 +44,9 @@ namespace Nom.Orch.Services
         public const string DuplicateRow = "row repeats an earlier row";
         public const string ExistsDifferent = "table gives the wording another verdict or food";
         public const string MalformedLine = "line does not have the header's columns";
+        public const string RetractedBefore = "the wording was retracted from this verdict and food";
+        public const string RejectionEntityType = "IngredientWordingRejection";
+        public const string RejectionLiftChangeType = "WordingRejectionLift";
 
         private const int BusiestFoodCount = 20;
         private static readonly string[] PromotableDataTypes = { "foundation_food", "sr_legacy_food" };
@@ -56,7 +61,7 @@ namespace Nom.Orch.Services
         }
 
         private sealed record Target(long Id, string Name, string? FdcId, string DataType, long Status, bool HasNutrition, string? AdmissionReason, bool Prepared);
-        private sealed record Accepted(VerifiedWordingRow Row, string Wording, string Verdict, Target? Food);
+        private sealed record Accepted(VerifiedWordingRow Row, string Wording, string Verdict, Target? Food, IReadOnlyList<IngredientWordingRejectionEntity> Lifts);
 
         /// <summary>
         /// Reads db/verified-wordings.tsv: a header naming its columns (wording and verdict
@@ -110,13 +115,18 @@ namespace Nom.Orch.Services
             return rows;
         }
 
-        public async Task<VerifiedWordingLoadResult> LoadAsync(IReadOnlyCollection<VerifiedWordingRow> rows, string batch, bool apply = false, bool replace = false)
+        public async Task<VerifiedWordingLoadResult> LoadAsync(IReadOnlyCollection<VerifiedWordingRow> rows, string batch, bool apply = false, bool replace = false, bool overrideRejections = false)
         {
             batch = (batch ?? string.Empty).Trim();
             if (batch.Length == 0 || batch.Length > 128) throw new ArgumentException("A batch name of 1 to 128 characters is required.", nameof(batch));
 
             var result = new VerifiedWordingLoadResult { Applied = apply, Rows = rows.Count };
             var targets = await TargetsAsync(rows);
+            var rowWordings = rows.Select(r => (r.Wording ?? string.Empty).Trim()).Distinct().ToList();
+            var rejections = (await _db.IngredientWordingRejections
+                    .Where(r => rowWordings.Contains(r.Wording))
+                    .ToListAsync())
+                .ToLookup(r => r.Wording, StringComparer.Ordinal);
             var curatedNames = (await _db.Ingredients.AsNoTracking()
                     .Where(i => !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated)
                     .Select(i => new { i.Id, i.Name })
@@ -169,7 +179,17 @@ namespace Nom.Orch.Services
                     continue;
                 }
 
-                candidates.Add(new Accepted(row, wording, verdict, food));
+                var evidence = string.IsNullOrWhiteSpace(row.EvidenceKey) ? null : row.EvidenceKey.Trim();
+                var retracted = rejections[wording]
+                    .Where(r => r.Verdict == verdict && r.IngredientId == food?.Id && (r.EvidenceKey == null || r.EvidenceKey == evidence))
+                    .ToList();
+                if (retracted.Count > 0 && !overrideRejections)
+                {
+                    Refuse(row, RetractedBefore);
+                    continue;
+                }
+
+                candidates.Add(new Accepted(row, wording, verdict, food, retracted));
             }
 
             var accepted = new List<Accepted>();
@@ -220,6 +240,8 @@ namespace Nom.Orch.Services
             var promoted = writes.Where(w => w.Entry.Food != null && w.Entry.Food.Status != (long)CurationStatusEnum.Curated)
                 .Select(w => w.Entry.Food!.Id).Distinct().ToList();
             result.Promoted = promoted.Count;
+            var lifted = writes.SelectMany(w => w.Entry.Lifts).Distinct().ToList();
+            result.RejectionsLifted = lifted.Count;
             result.BusiestFoods = writes.Where(w => w.Entry.Food != null)
                 .GroupBy(w => w.Entry.Food!.Id)
                 .Select(g => new VerifiedWordingFood { IngredientId = g.Key, Name = g.First().Entry.Food!.Name, Wordings = g.Count() })
@@ -232,6 +254,15 @@ namespace Nom.Orch.Services
             var personId = _currentUser.PersonIdOrSystem;
             var now = DateTime.UtcNow;
             await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+
+            foreach (var rejection in lifted)
+            {
+                _db.AuditLogEntries.Add(Journal(RejectionEntityType, rejection.Id, RejectionLiftChangeType, nameof(IngredientWordingRejectionEntity.Reason),
+                    rejection.Reason, null, now, personId));
+                rejection.IsDeleted = true;
+                rejection.DeletedAt = now;
+                rejection.DeletedByPersonId = personId;
+            }
 
             foreach (var food in await _db.Ingredients.Where(i => promoted.Contains(i.Id)).ToListAsync())
             {
@@ -283,7 +314,7 @@ namespace Nom.Orch.Services
             return result;
         }
 
-        public async Task<VerifiedWordingUnloadResult> UnloadAsync(string batch, bool apply = false)
+        public async Task<VerifiedWordingUnloadResult> UnloadAsync(string batch, bool apply = false, bool withLines = false)
         {
             batch = (batch ?? string.Empty).Trim();
             var rows = await _db.IngredientWordings.Where(w => w.Batch == batch).ToListAsync();
@@ -307,11 +338,13 @@ namespace Nom.Orch.Services
                 .ToListAsync();
 
             var result = new VerifiedWordingUnloadResult { Applied = apply, Removed = rows.Count - earlier.Count, Restored = earlier.Count, Demoted = demote.Count };
+            if (withLines && !apply) result.Lines = await Relink().UndoForSourcesAsync(Scopes(rows), apply: false);
             if (!apply || rows.Count == 0) return result;
 
             var personId = _currentUser.PersonIdOrSystem;
             var now = DateTime.UtcNow;
             await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+            if (withLines) result.Lines = await Relink().UndoForSourcesAsync(Scopes(rows), apply: true);
             foreach (var row in rows)
             {
                 if (earlier.TryGetValue(row.Id, out var back))
@@ -349,6 +382,60 @@ namespace Nom.Orch.Services
             if (tx != null) await tx.CommitAsync();
             return result;
         }
+
+        public async Task<WordingRetractResult?> RetractAsync(long id, string reason, bool apply = false, string? evidenceKey = null)
+        {
+            reason = (reason ?? string.Empty).Trim();
+            if (reason.Length == 0 || reason.Length > 1023) throw new ArgumentException("A reason of 1 to 1023 characters is required.", nameof(reason));
+            var row = await _db.IngredientWordings.FirstOrDefaultAsync(w => w.Id == id);
+            if (row == null) return null;
+
+            var result = new WordingRetractResult
+            {
+                Applied = apply, WordingId = row.Id, Wording = row.Wording, Verdict = row.Verdict, IngredientId = row.IngredientId, Batch = row.Batch,
+            };
+            if (!apply)
+            {
+                result.Lines = await Relink().UndoForSourcesAsync(Scopes(new[] { row }), apply: false);
+                return result;
+            }
+
+            var personId = _currentUser.PersonIdOrSystem;
+            var now = DateTime.UtcNow;
+            await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+            result.Lines = await Relink().UndoForSourcesAsync(Scopes(new[] { row }), apply: true);
+
+            _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, LineRelinkService.WordingRetractChangeType, nameof(IngredientWordingEntity.IngredientId),
+                Value(row.Verdict, row.IngredientId), null, now, personId));
+            row.IsDeleted = true;
+            row.DeletedAt = now;
+            row.DeletedByPersonId = personId;
+            var rejection = new IngredientWordingRejectionEntity
+            {
+                Wording = row.Wording,
+                Verdict = row.Verdict,
+                IngredientId = row.IngredientId,
+                Reason = reason,
+                Source = row.Source,
+                EvidenceKey = string.IsNullOrWhiteSpace(evidenceKey) ? null : Truncate(evidenceKey.Trim(), 128),
+                CreatedDate = now,
+                CreatedByPersonId = personId,
+            };
+            _db.IngredientWordingRejections.Add(rejection);
+            await _db.SaveChangesAsync();
+
+            _db.AuditLogEntries.Add(Journal(RejectionEntityType, rejection.Id, LineRelinkService.WordingRetractChangeType, nameof(IngredientWordingRejectionEntity.Reason),
+                null, reason, now, personId));
+            await _db.SaveChangesAsync();
+            if (tx != null) await tx.CommitAsync();
+            result.RejectionId = rejection.Id;
+            return result;
+        }
+
+        private LineRelinkService Relink() => new(_db, _currentUser);
+
+        private static List<WordingUndoScope> Scopes(IEnumerable<IngredientWordingEntity> rows) =>
+            rows.Select(r => new WordingUndoScope(r.Wording, r.Verdict == IngredientWordingVerdict.Food ? r.IngredientId : null)).ToList();
 
         public async Task<string> ExportTsvAsync()
         {

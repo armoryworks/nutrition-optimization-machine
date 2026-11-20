@@ -29,6 +29,8 @@ namespace Nom.Orch.Services
         public const string PickWithdrawChangeType = "WordingPickWithdraw";
         public const string PickWithdrawEntityType = "FoodCatalogProposal";
         public const string ProposalWithdrawChangeType = "ProposalWithdraw";
+        public const string WordingResolveChangeType = "WordingResolve";
+        public const string WordingRetractChangeType = "WordingRetract";
         public const string RetiredContextPrefix = "retired:";
 
         private static readonly Regex Word = new(@"[\p{L}\p{N}%']+", RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -517,9 +519,17 @@ namespace Nom.Orch.Services
                         || (a.EntityType == RetireEntityType && a.ChangeType == RetireChangeType)
                         || (a.EntityType == PickWithdrawEntityType && (a.ChangeType == PickWithdrawChangeType || a.ChangeType == ProposalWithdrawChangeType)))
                     && a.Timestamp >= sinceUtc)
-                .OrderByDescending(a => a.Id)
                 .ToListAsync();
-            entries = entries.OrderBy(a => a.ChangeType == ProposalWithdrawChangeType).ToList();
+            return await UndoEntriesAsync(entries);
+        }
+
+        /// <summary>
+        /// Takes back the given journal entries, newest first, with the proposals withdrawn with a
+        /// retired food after every other step. A line entry of a recipe rebuilt after it is skipped.
+        /// </summary>
+        private async Task<LineRelinkUndoResult> UndoEntriesAsync(List<AuditLogEntryEntity> entries)
+        {
+            entries = entries.OrderBy(a => a.ChangeType == ProposalWithdrawChangeType).ThenByDescending(a => a.Id).ToList();
             foreach (var entry in entries) _db.Entry(entry).State = EntityState.Detached;
             var result = new LineRelinkUndoResult();
             var personId = _currentUser.PersonIdOrSystem;

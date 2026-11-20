@@ -62,10 +62,23 @@ namespace Nom.Orch.Interfaces
         /// other ingredient whose wording the table judged, and whose pick is not the table's food,
         /// is withdrawn and journaled too. A wording whose food is gone, no longer
         /// curated or without nutrition moves nothing. Lines are re-positioned, never folded, and
-        /// each move and retirement is journaled for the undo sweep. Without
+        /// each move and retirement is journaled for the undo sweep. With <paramref name="batch"/>
+        /// only that batch's wordings move lines and withdraw picks. Without
         /// <paramref name="apply"/> nothing is written and the result is what the same call would do.
         /// </summary>
-        Task<VerifiedWordingLinkResult> LinkVerifiedWordingsAsync(bool apply = false, int maxLines = 20000, int sampleSize = 50);
+        Task<VerifiedWordingLinkResult> LinkVerifiedWordingsAsync(bool apply = false, int maxLines = 20000, int sampleSize = 50, string? batch = null);
+
+        /// <summary>
+        /// Takes back what the verified wording link and the import did for each given wording, found
+        /// by the journal rather than by time: the wording's sources (uncurated ingredients named with
+        /// it, retired into its food or still live) get back the lines moved from them to its food and
+        /// come back themselves with their withdrawn proposals; the picks withdrawn because the table
+        /// judged the wording open again; and each line an import or a rebuild put on its food through
+        /// the wording goes to the food the import finds without the wording. A line on a recipe
+        /// rebuilt after its entry stays (undo the rebuild first). Without <paramref name="apply"/>
+        /// nothing is written and the result counts the journal entries found.
+        /// </summary>
+        Task<WordingLinesUndoResult> UndoForSourcesAsync(IReadOnlyCollection<WordingUndoScope> wordings, bool apply = false);
 
         /// <summary>
         /// Puts back every line moved at or after <paramref name="sinceUtc"/> that still sits where

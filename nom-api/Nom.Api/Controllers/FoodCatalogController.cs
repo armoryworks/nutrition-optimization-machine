@@ -107,11 +107,11 @@ namespace Nom.Api.Controllers
             return result == null ? BadRequest(new { message = "The food must be a live curated food, and the name must be new and not empty." }) : Ok(result);
         }
 
-        /// <summary>Move the scraped lines of uncurated ingredients named with a verified wording to the wording's food and retire the emptied ingredients; a dry run unless apply is set, and each move is written to the audit log.</summary>
+        /// <summary>Move the scraped lines of uncurated ingredients named with a verified wording (of one batch, when given) to the wording's food and retire the emptied ingredients; a dry run unless apply is set, and each move is written to the audit log.</summary>
         [HttpPost("relink/verified")]
-        public async Task<ActionResult<VerifiedWordingLinkResult>> RelinkVerified([FromQuery] bool apply = false, [FromQuery] int maxLines = 20000, [FromQuery] int sampleSize = 50)
+        public async Task<ActionResult<VerifiedWordingLinkResult>> RelinkVerified([FromQuery] bool apply = false, [FromQuery] int maxLines = 20000, [FromQuery] int sampleSize = 50, [FromQuery] string? batch = null)
         {
-            return Ok(await _relink.LinkVerifiedWordingsAsync(apply, maxLines, sampleSize));
+            return Ok(await _relink.LinkVerifiedWordingsAsync(apply, maxLines, sampleSize, batch));
         }
 
         /// <summary>Give each source line of up to maxRows joined rows ("a + b") a row of its own on the same food; a dry run unless apply is set, and each row taken apart is written to the audit log.</summary>

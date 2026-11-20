@@ -984,15 +984,47 @@ curation is curated by the load (`promoted`); a branded food never is. Each row 
 wordings, the place to look for a wrong mass mapping. `GET api/FoodCatalog/wordings/export`
 returns the live table as TSV for diffing against the file.
 
-**Unload.** `POST api/FoodCatalog/wordings/unload?batch=<name>&apply=false` soft-deletes the
+**Unload.** `POST api/FoodCatalog/wordings/unload?batch=<name>&apply=false&withLines=false` soft-deletes the
 batch's rows (journaled with `NewValue` null) and returns to awaiting curation each food a load
 curated that no remaining wording points at. A row the batch took over from an earlier batch with
 `replace=true` goes back to that batch's verdict, food and note instead (`restored`); the replace
 journals the earlier batch and note as `Batch` and `Note` rows beside the `IngredientId` row.
-Unload replacing batches newest first. Loading the wording again revives its row.
+Unload replacing batches newest first. Loading the wording again revives its row. With
+`withLines=true` every row's lines, sources, proposals, picks and import landings are first taken
+back as a retract does (below, `lines` in the result), in the same transaction, and no rejection
+memory is written: an unload is a rollback, not a verdict. Unload, load and `relink/verified?batch=`
+again give the same rows, byte for byte.
 
-**Existing lines.** `POST api/FoodCatalog/relink/verified?apply=false&maxLines=20000&sampleSize=50`
-moves the scraped ingredient lines of every uncurated ingredient named with a `food` wording to
+**Retract one wording.** `POST api/FoodCatalog/wordings/{id}/retract?reason=<why>&apply=false&evidenceKey=`
+takes one live row back with everything it did, found by the journal rather than by time
+(`LineRelinkService.UndoForSourcesAsync`): its sources (uncurated ingredients named with the
+wording, by their `FoodRetire` entry into the wording's food or still live by name) get back the
+`LineRelink` moves into the wording's food and come back themselves with their withdrawn proposals;
+the picks withdrawn because the table judged the wording (`WordingPickWithdraw`, matched by the
+pick's wording key) open again; and each import landing (below) goes to the food the import finds
+without the table (`RecipeLineBuilder.FoodWithoutWordingAsync`: the ingredient of that name, the one
+trusted-alias owner, an applied link's food, else a new uncurated ingredient), journaled as
+`WordingRetract` (`EntityType` `RecipeIngredient`, old and new `food@position`); a landing the import
+would put on the same food without the table stays (`landingsKept`). Line entries of a recipe
+rebuilt after them are skipped and keep their entries (`skippedRebuilt`, `landingsSkippedRebuilt`;
+the dry run's `onRebuiltRecipes`): undo the rebuild first. Then the row is soft-deleted (`WordingRetract`,
+`EntityType` `IngredientWording`, `NewValue` null) and the verdict, food, source, reason and
+evidence key are kept in `recipe."IngredientWordingRejection"` (`WordingRetract`, `EntityType`
+`IngredientWordingRejection`). The dry run counts the journal entries it found and writes nothing.
+A food the load curated stays curated after a retract (the batch unload demotes it). Lines the
+wording's earlier food got under another verdict are not moved.
+
+**Rejection memory.** While a rejection row is live, a load refuses the same wording, verdict and
+food (`the wording was retracted from this verdict and food`) when the rejection has no evidence key
+or the row's `evidenceKey` equals it; another food, another verdict or new evidence goes through. So
+`claret` retracted from Claret #287424 can be loaded onto red table wine at once, and a lane never
+writes a retracted pair again on the same evidence. `load?overrideRejections=true` writes the pair on
+purpose and lifts the memory (`WordingRejectionLift`, journaled): that is how a retract is undone,
+followed by `relink/verified?batch=`; the result then equals the state before the retract.
+
+**Existing lines.** `POST api/FoodCatalog/relink/verified?apply=false&maxLines=20000&sampleSize=50&batch=`
+moves the scraped ingredient lines of every uncurated ingredient named with a `food` wording (of
+that batch only, and withdrawing only that batch's contradicted picks, when `batch` is given) to
 its food through the journaled `LineRelink` move (re-positioned, never folded), then retires each
 such ingredient left with no line and nothing else pointing at it (`FoodRetire`, name tombstoned)
 and withdraws its unreviewed link proposals (pending, or rejected by no person; `proposalsWithdrawn`,
@@ -1017,7 +1049,13 @@ journal entry and are not revived.
 **Gates.** With `VerifiedWordings:ResolveOnImport=true` (default `false`),
 `RecipeScrapingService.FindOrCreateIngredientAsync` looks the wording up first, before the name
 and the trusted aliases, and lands it on its food while that food is live and curated; `none`,
-`unclear` and a food that lost curation fall through to the usual order. With
+`unclear` and a food that lost curation fall through to the usual order. Each line landed that way,
+by an import or a rebuild (`RecipeLineBuilder`, shared by both), is journaled as `WordingResolve`
+(`EntityType` `RecipeIngredient`, the recipe as `EntityId`, the wording key as `OldValue`,
+`food@position` as `NewValue`), so a retract or an unload with lines takes it back; a rebuild's
+entry carries the rebuild's time and is retired with the rebuild by `RecipeReprocess/undo`. Lines
+landed before this journal existed (w01 with `ResolveOnImport` on) have no entry and stay on the
+food when the wording is retracted. With
 `VerifiedWordings:GateLinkLane=true` (default) the link lane takes no ingredient whose wording the
 table has any verdict on, and `ProposeAsync` sets aside one handed to it before the staple list,
 the name matcher or a model sees it, with a Rejected `deterministic:verified-wording` proposal:

@@ -523,6 +523,12 @@ namespace Nom.Orch.Services
                         new[] { new Support.LinkApplyJournal.LinePlace { RecipeId = recipe.Id, SortOrder = line.SortOrder } },
                         DateTime.UtcNow, personId ?? SystemConstants.SystemPersonId));
                 }
+
+                if (line.ByWording is { } judged)
+                {
+                    _dbContext.AuditLogEntries.Add(LineRelinkService.WordingResolved(
+                        recipe.Id, judged, line.Food.Id, line.SortOrder, DateTime.UtcNow, personId ?? SystemConstants.SystemPersonId));
+                }
             }
 
             var stepNumber = 1;
