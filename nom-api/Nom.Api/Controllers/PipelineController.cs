@@ -16,6 +16,7 @@ namespace Nom.Api.Controllers
     public class PipelineController : BaseApiController
     {
         public const string AllLanes = "all";
+        public const string AutoApprove = "auto-approve";
 
         private readonly IPipelineStatusService _pipeline;
         private readonly IAiLaneStatus _lanes;
@@ -40,15 +41,16 @@ namespace Nom.Api.Controllers
             return Ok(new PipelineStatusResponse(status, await GateAsync()));
         }
 
-        /// <summary>Turns the pause switch of one model lane, or of all of them ("all"), on or off; turning one off needs CanManageUserRoles.</summary>
+        /// <summary>Turns the pause switch of one model lane, of all of them ("all") or of recipe auto-approval ("auto-approve") on or off; turning one off needs CanManageUserRoles.</summary>
         [HttpPut("pause/{lane}")]
         public async Task<ActionResult<PipelineGateStatus>> SetPause(string lane, [FromBody] SetPipelinePauseRequest request)
         {
             var key = string.Equals(lane, AllLanes, StringComparison.OrdinalIgnoreCase) ? AiLanes.PauseAllKey
+                : string.Equals(lane, AutoApprove, StringComparison.OrdinalIgnoreCase) ? IPlatformFeatureService.Keys.AutoApprovePause
                 : AiLanes.All.Any(l => string.Equals(l.Lane, lane, StringComparison.OrdinalIgnoreCase)) ? AiLanes.PauseKey(lane.ToLowerInvariant())
                 : null;
             if (key == null)
-                return BadRequest(new { error = $"Unknown lane '{lane}'.", lanes = AiLanes.All.Select(l => l.Lane).Prepend(AllLanes) });
+                return BadRequest(new { error = $"Unknown lane '{lane}'.", lanes = AiLanes.All.Select(l => l.Lane).Prepend(AllLanes).Append(AutoApprove) });
             if (!request.IsEnabled && !User.HasClaim("CanManageUserRoles", "true"))
                 return Forbid();
 
@@ -65,7 +67,8 @@ namespace Nom.Api.Controllers
                 lanes.Add(new PipelineGateLane(lane, label, await _features.IsEnabledAsync(AiLanes.PauseKey(lane)),
                     states.GetValueOrDefault(lane) ?? new AiLaneStatusModel { Lane = lane }));
             }
-            return new PipelineGateStatus(await _features.IsEnabledAsync(AiLanes.PauseAllKey), lanes, _lanes.GetHosts());
+            return new PipelineGateStatus(await _features.IsEnabledAsync(AiLanes.PauseAllKey), lanes, _lanes.GetHosts(),
+                await _features.IsEnabledAsync(IPlatformFeatureService.Keys.AutoApprovePause));
         }
     }
 }

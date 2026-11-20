@@ -16,6 +16,9 @@ namespace Nom.Api.Services
     /// one-line heartbeat, when nothing it decides on has changed since the last full one
     /// (<see cref="AutoApproveChangeSignal"/>; Curation:AutoApprove:SkipUnchanged, default true),
     /// but a full sweep still runs at least every Curation:AutoApprove:FullSweepHours (default 24).
+    /// The platform feature pause-auto-approve holds it before its next batch, within about 30
+    /// seconds, for a data window whose changes may still be undone; it then resumes where it
+    /// left off. Curation:AutoApprove:StartDelaySeconds (default 120) is the wait after start.
     /// </summary>
     public class RecipeAutoApproveHostedService : BackgroundService
     {
@@ -47,8 +50,10 @@ namespace Nom.Api.Services
             var backoff = TimeSpan.FromMinutes(5);
             var skipUnchanged = _configuration.GetValue("Curation:AutoApprove:SkipUnchanged", true);
             var fullSweepEvery = TimeSpan.FromHours(Math.Max(1, _configuration.GetValue("Curation:AutoApprove:FullSweepHours", 24)));
+            var startDelay = TimeSpan.FromSeconds(Math.Max(0, _configuration.GetValue("Curation:AutoApprove:StartDelaySeconds", 120)));
+            var pauseCheck = TimeSpan.FromSeconds(Math.Max(1, _configuration.GetValue("Curation:AutoApprove:PauseCheckSeconds", 30)));
 
-            if (!await Delay(TimeSpan.FromMinutes(2), stoppingToken)) return;
+            if (!await Delay(startDelay, stoppingToken)) return;
             _logger.LogInformation("Recipe auto-approval enabled ({Batch} recipes per batch, sweeping every {Idle}m)", batchSize, idle.TotalMinutes);
 
             long cursor = 0;
@@ -57,12 +62,23 @@ namespace Nom.Api.Services
             string? lastFingerprint = null;
             DateTime lastFullSweep = DateTime.MinValue;
             string lastOutcome = string.Empty;
+            var paused = false;
             while (!stoppingToken.IsCancellationRequested)
             {
                 var delay = pause;
                 try
                 {
                     using var scope = _scopeFactory.CreateScope();
+                    if (await scope.ServiceProvider.GetRequiredService<IPlatformFeatureService>().IsEnabledAsync(IPlatformFeatureService.Keys.AutoApprovePause))
+                    {
+                        if (!paused) _logger.LogInformation("Recipe auto-approval paused (platform feature {Key}); it resumes after recipe {Cursor} when that is turned off",
+                            IPlatformFeatureService.Keys.AutoApprovePause, cursor);
+                        paused = true;
+                        if (!await Delay(pauseCheck, stoppingToken)) return;
+                        continue;
+                    }
+                    if (paused) _logger.LogInformation("Recipe auto-approval resumed after recipe {Cursor}", cursor);
+                    paused = false;
                     if (cursor == 0 && skipUnchanged)
                     {
                         var fingerprint = await AutoApproveChangeSignal.FingerprintAsync(scope.ServiceProvider.GetRequiredService<ApplicationDbContext>(), stoppingToken);
