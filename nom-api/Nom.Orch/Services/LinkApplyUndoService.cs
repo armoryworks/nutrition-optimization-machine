@@ -16,6 +16,7 @@ namespace Nom.Orch.Services
 {
     public class LinkApplyUndoService : ILinkApplyUndoService
     {
+        private const long KeepHere = 0;
         private readonly ApplicationDbContext _db;
         private readonly ICurrentUserService _currentUser;
 
@@ -25,7 +26,7 @@ namespace Nom.Orch.Services
             _currentUser = currentUser;
         }
 
-        public async Task<LinkApplyUndoResult> UndoAsync(DateTime sinceUtc, string? source = null, bool systemOnly = false, bool apply = false, int max = 500, int sampleSize = 50)
+        public async Task<LinkApplyUndoResult> UndoAsync(DateTime sinceUtc, string? source = null, bool systemOnly = false, bool apply = false, int max = 500, int sampleSize = 50, bool leaveMovedLines = false)
         {
             var headers = await _db.AuditLogEntries.AsNoTracking()
                 .Where(a => a.ChangeType == LinkApplyJournal.ChangeType && a.EntityType == LinkApplyJournal.EntityType
@@ -45,12 +46,16 @@ namespace Nom.Orch.Services
                 .ToList();
 
             var result = new LinkApplyUndoResult();
-            var personId = _currentUser.PersonIdOrSystem;
+            var run = new Run(apply, leaveMovedLines, _currentUser.PersonIdOrSystem, result);
             var samples = Math.Clamp(sampleSize, 0, 5000);
-            foreach (var proposalId in proposals.Take(Math.Clamp(max, 1, 5000)))
+            var limit = Math.Clamp(max, 1, 5000);
+            var examined = 0;
+            foreach (var proposalId in proposals)
             {
+                if (result.Proposals >= limit) break;
+                examined++;
                 await using var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
-                var sample = await UndoOneAsync(proposalId, apply, personId, result);
+                var sample = await UndoOneAsync(proposalId, run);
                 if (apply)
                 {
                     await _db.SaveChangesAsync();
@@ -61,6 +66,7 @@ namespace Nom.Orch.Services
                 if (sample.Skipped.Length == 0)
                 {
                     result.Proposals++;
+                    run.Undone.Add(proposalId);
                 }
                 else
                 {
@@ -70,16 +76,29 @@ namespace Nom.Orch.Services
             }
 
             result.Applied = apply;
-            result.Remaining = proposals.Count - result.Proposals;
+            result.Remaining = proposals.Count - examined;
             return result;
         }
 
-        private async Task<LinkApplyUndoSample> UndoOneAsync(long proposalId, bool apply, long personId, LinkApplyUndoResult result)
+        /// <summary>
+        /// One call's state: the links it has taken back, which no longer hold a USDA food's status,
+        /// and in a dry run the status rows it would hand on to a link that still stands, so the
+        /// dry run counts what the apply does.
+        /// </summary>
+        private sealed record Run(bool Apply, bool LeaveMovedLines, long PersonId, LinkApplyUndoResult Result)
         {
+            public HashSet<long> Undone { get; } = new();
+            public Dictionary<long, List<AuditLogEntryEntity>> HandedOn { get; } = new();
+        }
+
+        private async Task<LinkApplyUndoSample> UndoOneAsync(long proposalId, Run run)
+        {
+            var (apply, personId, result) = (run.Apply, run.PersonId, run.Result);
             var rows = await _db.AuditLogEntries.AsNoTracking()
                 .Where(a => a.ChangeType == LinkApplyJournal.ChangeType && a.EntityType == LinkApplyJournal.EntityType && a.EntityId == proposalId)
                 .OrderByDescending(a => a.Id)
                 .ToListAsync();
+            if (run.HandedOn.TryGetValue(proposalId, out var handed)) rows.AddRange(handed);
             var proposal = await _db.FoodCatalogProposals.IgnoreQueryFilters().FirstAsync(p => p.Id == proposalId);
             var header = LinkApplyJournal.Read<LinkApplyJournal.HeaderValue>(rows.First(r => r.PropertyName == LinkApplyJournal.Header).OldValue);
             var sample = new LinkApplyUndoSample { ProposalId = proposalId, Source = proposal.Source, Wording = proposal.CurrentValue ?? string.Empty };
@@ -100,12 +119,51 @@ namespace Nom.Orch.Services
                 return sample;
             }
 
+            var lineRows = rows.Where(r => r.PropertyName == LinkApplyJournal.Line).ToList();
+            var movedSince = new HashSet<long>();
+            foreach (var row in lineRows)
+            {
+                if (LinkApplyJournal.ReadPlace(row.OldValue) is null || LinkApplyJournal.ReadPlace(row.NewValue) is not { } now
+                    || !await _db.RecipeIngredients.IgnoreQueryFilters().AnyAsync(ri => ri.RecipeId == now.RecipeId && ri.IngredientId == now.IngredientId && ri.SortOrder == now.SortOrder))
+                {
+                    movedSince.Add(row.Id);
+                }
+            }
+            if (movedSince.Count > 0 && !run.LeaveMovedLines)
+            {
+                sample.LinesSkipped = movedSince.Count;
+                sample.Skipped = string.Create(CultureInfo.InvariantCulture,
+                    $"{movedSince.Count} of {lineRows.Count} lines are no longer where the link put them; undo the later change first, or pass leaveMovedLines=true to leave them where they are");
+                return sample;
+            }
+
+            var renames = new List<(IngredientEntity Owner, string Name)>();
+            foreach (var row in rows)
+            {
+                if (LinkApplyJournal.ReadOnFood(row.PropertyName) is not { Property: nameof(IngredientEntity.Name) } on
+                    || on.FoodId == header.Food || !foods.TryGetValue(on.FoodId, out var owner)
+                    || owner.Name != row.NewValue || string.IsNullOrEmpty(row.OldValue)
+                    || await _db.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id != owner.Id && i.Name == row.OldValue)) continue;
+                renames.Add((owner, row.OldValue));
+            }
+
             var restoreName = header.Merged && food.IsDeleted && food.Name != header.Name;
-            if (restoreName && await _db.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id != food.Id && i.Name == header.Name))
+            var renamedAway = renames.Where(r => r.Owner.Name == header.Name).Select(r => r.Owner.Id).ToList();
+            if (restoreName && await _db.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id != food.Id && !renamedAway.Contains(i.Id) && i.Name == header.Name))
             {
                 sample.Skipped = $"another food now has the name \"{header.Name}\"";
                 return sample;
             }
+
+            foreach (var (owner, name) in renames)
+            {
+                result.NamesRestored++;
+                if (!apply) continue;
+                owner.Name = name;
+                owner.LastModifiedDate = DateTime.UtcNow;
+                owner.LastModifiedByPersonId = personId;
+            }
+            if (apply && renames.Count > 0) await _db.SaveChangesAsync();
 
             if (header.Merged && food.IsDeleted)
             {
@@ -122,13 +180,14 @@ namespace Nom.Orch.Services
                 }
             }
 
-            foreach (var row in rows.Where(r => r.PropertyName == LinkApplyJournal.Line))
+            var left = new List<long>();
+            foreach (var row in lineRows)
             {
-                if (LinkApplyJournal.ReadPlace(row.OldValue) is not { } was || LinkApplyJournal.ReadPlace(row.NewValue) is not { } now
-                    || !await _db.RecipeIngredients.IgnoreQueryFilters().AnyAsync(ri => ri.RecipeId == now.RecipeId && ri.IngredientId == now.IngredientId && ri.SortOrder == now.SortOrder)
-                    || (apply && await MoveLineAsync(now.RecipeId, now.IngredientId, now.SortOrder, was.IngredientId, was.SortOrder, personId) == null))
+                if (movedSince.Contains(row.Id)
+                    || (apply && await MoveLineAsync(LinkApplyJournal.ReadPlace(row.NewValue)!.Value, LinkApplyJournal.ReadPlace(row.OldValue)!.Value, personId) == null))
                 {
                     sample.LinesSkipped++;
+                    left.Add(row.Id);
                     continue;
                 }
                 sample.LinesRestored++;
@@ -136,6 +195,7 @@ namespace Nom.Orch.Services
             result.LinesRestored += sample.LinesRestored;
             result.LinesSkipped += sample.LinesSkipped;
 
+            var handOn = new Dictionary<long, long>();
             foreach (var row in rows)
             {
                 if (LinkApplyJournal.ReadOnFood(row.PropertyName) is not { } on || !foods.TryGetValue(on.FoodId, out var owner)) continue;
@@ -148,13 +208,9 @@ namespace Nom.Orch.Services
                         await RemoveNutrientAsync(on.FoodId, row, apply, result);
                         break;
                     case nameof(IngredientEntity.CurationStatusId):
-                        await RestoreStatusAsync(owner, proposalId, row, apply, result);
-                        break;
-                    case nameof(IngredientEntity.Name):
-                        if (owner.Id == header.Food || owner.Name != row.NewValue || string.IsNullOrEmpty(row.OldValue)
-                            || await _db.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id != owner.Id && i.Name == row.OldValue)) break;
-                        result.NamesRestored++;
-                        if (apply) owner.Name = row.OldValue;
+                        if (await RestoreStatusAsync(owner, proposalId, row, run) is not { } standing) break;
+                        if (standing == KeepHere) left.Add(row.Id);
+                        else handOn[row.Id] = standing;
                         break;
                     case nameof(IngredientEntity.ReferenceServingGrams):
                     case nameof(IngredientEntity.GramsPerMilliliter):
@@ -186,17 +242,44 @@ namespace Nom.Orch.Services
                     ReviewedAt = removed.ReviewedAt,
                     CreatedDate = removed.CreatedDate,
                     LastModifiedDate = removed.LastModifiedDate,
+                    IsDeleted = removed.Deleted,
+                    DeletedAt = removed.DeletedAt,
+                    DeletedByPersonId = removed.DeletedByPersonId,
                 });
             }
 
-            if (!apply) return sample;
+            if (!apply)
+            {
+                foreach (var (rowId, standing) in handOn)
+                {
+                    var row = rows.First(r => r.Id == rowId);
+                    if (!run.HandedOn.TryGetValue(standing, out var list)) run.HandedOn[standing] = list = new List<AuditLogEntryEntity>();
+                    list.Add(new AuditLogEntryEntity
+                    {
+                        Id = row.Id, EntityType = row.EntityType, EntityId = standing, ChangeType = row.ChangeType, PropertyName = row.PropertyName,
+                        OldValue = row.OldValue, NewValue = row.NewValue, Timestamp = row.Timestamp, ChangedByPersonId = row.ChangedByPersonId,
+                    });
+                }
+                return sample;
+            }
 
             proposal.Status = FoodProposalStatus.Pending;
             proposal.ReviewedByPersonId = null;
             proposal.ReviewedAt = null;
+            proposal.Reason = LinkAutoApplyGuard.MarkUndone(proposal.Reason);
             proposal.LastModifiedDate = DateTime.UtcNow;
             proposal.LastModifiedByPersonId = personId;
-            var journaled = rows.Select(r => r.Id).ToList();
+            foreach (var (rowId, standing) in handOn)
+            {
+                var row = await _db.AuditLogEntries.FirstAsync(a => a.Id == rowId);
+                row.EntityId = standing;
+            }
+            foreach (var rowId in left)
+            {
+                var row = await _db.AuditLogEntries.FirstAsync(a => a.Id == rowId);
+                row.ChangeType = LinkApplyJournal.LeftChangeType;
+            }
+            var journaled = rows.Select(r => r.Id).Except(handOn.Keys).Except(left).ToList();
             if (_db.Database.IsRelational()) await _db.AuditLogEntries.Where(a => journaled.Contains(a.Id)).ExecuteDeleteAsync();
             else _db.AuditLogEntries.RemoveRange(await _db.AuditLogEntries.Where(a => journaled.Contains(a.Id)).ToListAsync());
             _db.AuditLogEntries.Add(new AuditLogEntryEntity
@@ -206,7 +289,7 @@ namespace Nom.Orch.Services
                 ChangeType = LinkApplyJournal.UndoChangeType,
                 PropertyName = nameof(FoodCatalogProposalEntity.Status),
                 OldValue = nameof(FoodProposalStatus.Applied),
-                NewValue = string.Create(CultureInfo.InvariantCulture, $"{nameof(FoodProposalStatus.Pending)} · lines restored {sample.LinesRestored}, skipped {sample.LinesSkipped}"),
+                NewValue = string.Create(CultureInfo.InvariantCulture, $"{nameof(FoodProposalStatus.Pending)} · lines restored {sample.LinesRestored}, left {sample.LinesSkipped}"),
                 Timestamp = DateTime.UtcNow,
                 ChangedByPersonId = personId,
             });
@@ -283,25 +366,45 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// Gives the USDA food back the status it had before the link, unless another applied link
-        /// still points at it or its status has changed since.
+        /// Gives the USDA food back the status it had before the link, unless its status has changed
+        /// since or another applied link that this call has not taken back still points at it. In
+        /// that last case the row is handed on to the newest such link that has a journal, whose
+        /// own undo then restores the status, and that link's id is returned; when none of them has
+        /// a journal, <see cref="KeepHere"/> is returned and the row is kept as left.
         /// </summary>
-        private async Task RestoreStatusAsync(IngredientEntity food, long proposalId, AuditLogEntryEntity row, bool apply, LinkApplyUndoResult result)
+        private async Task<long?> RestoreStatusAsync(IngredientEntity food, long proposalId, AuditLogEntryEntity row, Run run)
         {
             var target = food.Id.ToString(CultureInfo.InvariantCulture);
             if (LinkApplyJournal.Number(food.CurationStatusId) != row.NewValue
-                || !long.TryParse(row.OldValue, NumberStyles.None, CultureInfo.InvariantCulture, out var old)
-                || await _db.FoodCatalogProposals.AnyAsync(p => p.Id != proposalId && p.Status == FoodProposalStatus.Applied
-                    && p.Field == FoodCatalogReviewService.FdcLinkField && p.ProposedValue == target))
+                || !long.TryParse(row.OldValue, NumberStyles.None, CultureInfo.InvariantCulture, out var old))
             {
-                result.StatusesKept++;
-                return;
+                run.Result.StatusesKept++;
+                return null;
             }
 
-            result.StatusesRestored++;
-            if (!apply) return;
+            var standing = await _db.FoodCatalogProposals
+                .Where(p => p.Id != proposalId && p.Status == FoodProposalStatus.Applied
+                    && p.Field == FoodCatalogReviewService.FdcLinkField && p.ProposedValue == target)
+                .Select(p => p.Id)
+                .ToListAsync();
+            standing = standing.Where(id => !run.Undone.Contains(id)).ToList();
+            if (standing.Count > 0)
+            {
+                run.Result.StatusesKept++;
+                var journaled = await _db.AuditLogEntries
+                    .Where(a => a.ChangeType == LinkApplyJournal.ChangeType && a.EntityType == LinkApplyJournal.EntityType
+                        && a.PropertyName == LinkApplyJournal.Header && standing.Contains(a.EntityId))
+                    .OrderByDescending(a => a.Id)
+                    .Select(a => (long?)a.EntityId)
+                    .FirstOrDefaultAsync();
+                return journaled ?? KeepHere;
+            }
+
+            run.Result.StatusesRestored++;
+            if (!run.Apply) return null;
             food.CurationStatusId = old;
             food.LastModifiedDate = DateTime.UtcNow;
+            return null;
         }
 
         private static void RestoreMeasure(IngredientEntity food, string property, AuditLogEntryEntity row, bool apply, LinkApplyUndoResult result)
@@ -340,8 +443,10 @@ namespace Nom.Orch.Services
         /// when the line is no longer where the link put it. A recipe that already has a line of
         /// that food at the old position takes it at its next free position.
         /// </summary>
-        private async Task<int?> MoveLineAsync(long recipeId, long fromId, int fromSortOrder, long toId, int wantedSortOrder, long personId)
+        private async Task<int?> MoveLineAsync((long RecipeId, long IngredientId, int SortOrder) from, (long RecipeId, long IngredientId, int SortOrder) to, long personId)
         {
+            var (recipeId, fromId, fromSortOrder) = from;
+            var (_, toId, wantedSortOrder) = to;
             if (_db.Database.IsRelational())
             {
                 var positions = await _db.Database.SqlQuery<int>(

@@ -21,10 +21,10 @@ namespace Nom.Orch.Models.Curation
         public bool Applied { get; set; }
         /// <summary>Applied links this call took back, or would take back with apply.</summary>
         public int Proposals { get; set; }
-        /// <summary>Applied links left as they are because the wording's food can no longer come back under its name.</summary>
+        /// <summary>Applied links left as they are: the wording's food cannot come back under its name, or a line moved since the link. They do not count towards max.</summary>
         public int ProposalsSkipped { get; set; }
         public int LinesRestored { get; set; }
-        /// <summary>Lines no longer where the link put them (edited, deleted or moved since); they stay where they are.</summary>
+        /// <summary>Lines no longer where the link put them (edited, deleted or moved since); with leaveMovedLines they stay where they are and their journal row is kept.</summary>
         public int LinesSkipped { get; set; }
         /// <summary>Wording foods the link had merged away that come back.</summary>
         public int FoodsRestored { get; set; }
@@ -34,14 +34,14 @@ namespace Nom.Orch.Models.Curation
         /// <summary>Aliases changed since the link; they are left as they are.</summary>
         public int AliasesSkipped { get; set; }
         public int StatusesRestored { get; set; }
-        /// <summary>USDA foods that stay curated because another applied link or a later change still stands on them.</summary>
+        /// <summary>USDA foods that stay curated because another applied link or a later change still stands on them; with another link, the status row moves to that link.</summary>
         public int StatusesKept { get; set; }
         public int NamesRestored { get; set; }
         public int MeasuresRestored { get; set; }
         public int NutrientsRemoved { get; set; }
         /// <summary>Open link proposals the merge had removed that are written back.</summary>
         public int ProposalsRestored { get; set; }
-        /// <summary>Applied links in the window still journaled after this call.</summary>
+        /// <summary>Applied links in the window this call did not reach; skipped links are counted in ProposalsSkipped instead.</summary>
         public int Remaining { get; set; }
         public List<LinkApplyUndoSample> Samples { get; set; } = new();
     }

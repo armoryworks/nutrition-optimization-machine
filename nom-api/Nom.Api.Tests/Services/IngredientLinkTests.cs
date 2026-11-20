@@ -515,6 +515,34 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_held_staple_or_verified_pick_is_left_for_a_person_and_keeps_its_hold_when_repointed()
+        {
+            using var db = NewContext();
+            var (_, salted, plain) = await SeedFoodsAsync(db);
+            var butter = await UsedIngredientAsync(db, "butter", 5);
+            var unsalted = await UsedIngredientAsync(db, "creamery butter", 2);
+            var held = LinkAutoApplyGuard.MarkUndone("→ Butter, without salt · used in 5 recipes");
+            var staple = new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, Batch = IngredientLinkService.Batch, IngredientId = butter.Id, Field = FoodCatalogReviewService.FdcLinkField,
+                CurrentValue = "butter", ProposedValue = plain.Id.ToString(), FdcId = plain.FdcId, Source = "ai:fake:1b", Reason = held, Status = FoodProposalStatus.Pending,
+            };
+            db.FoodCatalogProposals.Add(staple);
+            var verified = await AiPickAsync(db, unsalted, plain, 0.95m);
+            verified.Reason = LinkAutoApplyGuard.MarkUndone(verified.Reason + IngredientLinkService.VerifiedMark);
+            await db.SaveChangesAsync();
+            var linker = Linker(db, new FakeMatcher());
+
+            (await linker.ApplyStapleDefaultsToPendingAsync()).Should().Be(1);
+
+            var repointed = await db.FoodCatalogProposals.SingleAsync(p => p.Id == staple.Id);
+            repointed.Should().Match<FoodCatalogProposalEntity>(p => p.Source == IngredientLinkService.StapleSource && p.FdcId == salted.FdcId);
+            repointed.Reason.Should().Be("→ Butter, salted · used in 5 recipes" + LinkAutoApplyGuard.HoldMark + LinkAutoApplyGuard.UndoneRule);
+            (await linker.PendingDeterministicAsync(10, Array.Empty<long>())).Should().BeEmpty();
+            (await linker.PendingVerifiedAsync(10, Array.Empty<long>())).Should().BeEmpty();
+        }
+
+        [Fact]
         public async Task Pending_name_matches_the_matcher_no_longer_makes_are_withdrawn()
         {
             using var db = NewContext();

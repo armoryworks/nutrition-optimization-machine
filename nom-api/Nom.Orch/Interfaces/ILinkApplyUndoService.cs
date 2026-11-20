@@ -15,11 +15,15 @@ namespace Nom.Orch.Interfaces
         /// Takes back, newest first, up to <paramref name="max"/> links applied at or after
         /// <paramref name="sinceUtc"/>, only those whose source starts with <paramref name="source"/>
         /// when it is given, and only those the lanes applied on their own when
-        /// <paramref name="systemOnly"/> is set. A line or alias changed since the link is left as it
-        /// is and counted; a USDA food stays curated while another applied link stands on it.
-        /// Without <paramref name="apply"/> nothing is written and the result is what the same call
-        /// would do.
+        /// <paramref name="systemOnly"/> is set. A link with a line no longer where it put the line
+        /// is skipped and reported, unless <paramref name="leaveMovedLines"/> is set: then that line
+        /// stays where it is, counted, and its journal row is kept. An alias changed since the link
+        /// is left as it is and counted; a USDA food stays curated while another applied link
+        /// stands on it, and that link's undo restores the status later. A link taken back returns
+        /// to Pending held for a person, so no lane applies it again on its own. Skipped links do
+        /// not count towards <paramref name="max"/>. Without <paramref name="apply"/> nothing is
+        /// written and the result is what the same call would do.
         /// </summary>
-        Task<LinkApplyUndoResult> UndoAsync(DateTime sinceUtc, string? source = null, bool systemOnly = false, bool apply = false, int max = 500, int sampleSize = 50);
+        Task<LinkApplyUndoResult> UndoAsync(DateTime sinceUtc, string? source = null, bool systemOnly = false, bool apply = false, int max = 500, int sampleSize = 50, bool leaveMovedLines = false);
     }
 }

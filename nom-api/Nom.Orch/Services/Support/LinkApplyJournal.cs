@@ -26,6 +26,7 @@ namespace Nom.Orch.Services.Support
     {
         public const string ChangeType = "LinkApply";
         public const string UndoChangeType = "LinkApplyUndo";
+        public const string LeftChangeType = "LinkApplyLeft";
         public const string EntityType = "FoodCatalogProposal";
         public const string Header = "Proposal";
         public const string Line = "Line";
@@ -49,11 +50,12 @@ namespace Nom.Orch.Services.Support
         /// <summary>A copied nutrient row: which nutrient and the amount it was given.</summary>
         public sealed record NutrientValue(long NutrientId, decimal Amount, long MeasurementId);
 
-        /// <summary>The columns of a removed link proposal that bring it back.</summary>
+        /// <summary>The columns of a removed link proposal that bring it back, withdrawn ones as withdrawn.</summary>
         public sealed record ProposalValue(
             FoodProposalAction Action, long? IngredientId, string? FdcId, string? Field, string? CurrentValue, string? ProposedValue,
             decimal? Confidence, string? Reason, string Source, string? Batch, FoodProposalStatus Status,
-            long? ReviewedByPersonId, DateTime? ReviewedAt, DateTime CreatedDate, DateTime? LastModifiedDate);
+            long? ReviewedByPersonId, DateTime? ReviewedAt, DateTime CreatedDate, DateTime? LastModifiedDate,
+            bool Deleted = false, DateTime? DeletedAt = null, long? DeletedByPersonId = null);
 
         /// <summary>A line before and after a move. Columns are named for the merge's RETURNING clause.</summary>
         public sealed class LineShift
@@ -143,7 +145,8 @@ namespace Nom.Orch.Services.Support
         public static AuditLogEntryEntity Removed(long proposalId, FoodCatalogProposalEntity p, DateTime at, long personId)
         {
             var value = new ProposalValue(p.Action, p.IngredientId, p.FdcId, p.Field, p.CurrentValue, p.ProposedValue, p.Confidence, p.Reason,
-                p.Source, p.Batch, p.Status, p.ReviewedByPersonId, p.ReviewedAt, p.CreatedDate, p.LastModifiedDate);
+                p.Source, p.Batch, p.Status, p.ReviewedByPersonId, p.ReviewedAt, p.CreatedDate, p.LastModifiedDate,
+                p.IsDeleted, p.DeletedAt, p.DeletedByPersonId);
             var text = Write(value);
             if (text.Length > ValueLength && p.Reason != null)
             {

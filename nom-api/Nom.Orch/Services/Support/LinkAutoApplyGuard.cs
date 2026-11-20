@@ -20,6 +20,7 @@ namespace Nom.Orch.Services.Support
         public const string OtherFoodRule = "names another curated food";
         public const string StateRule = "USDA state not in the wording";
         public const string WordOrderRule = "USDA word order";
+        public const string UndoneRule = "undone";
 
         private static readonly Regex Word = new(@"[\p{L}']+", RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
@@ -94,6 +95,18 @@ namespace Nom.Orch.Services.Support
 
             if (pick.NameMatch && FollowsDescriptionOrder(words, pick.Description)) return WordOrderRule;
             return null;
+        }
+
+        /// <summary>
+        /// The reason of a link an undo took back: held for a person, so no lane applies the same
+        /// pick again on its own.
+        /// </summary>
+        public static string MarkUndone(string? reason)
+        {
+            var mark = HoldMark + UndoneRule;
+            if (reason != null && reason.EndsWith(mark, StringComparison.Ordinal)) return reason;
+            var marked = (reason ?? string.Empty) + mark;
+            return marked.Length <= 2047 ? marked : marked[..(2047 - mark.Length)] + mark;
         }
 
         public static bool IsMarked(string? reason) => reason != null && reason.Contains(HoldMark, StringComparison.Ordinal);

@@ -25,13 +25,13 @@ namespace Nom.Api.Controllers
             _autoApply = autoApply;
         }
 
-        /// <summary>Take back, newest first, up to max links applied at or after the given UTC time, optionally only those whose source starts with source or that the lanes applied; a dry run unless apply=true.</summary>
+        /// <summary>Take back, newest first, up to max links applied at or after the given UTC time, optionally only those whose source starts with source or that the lanes applied; a link whose lines moved since is skipped unless leaveMovedLines=true; a dry run unless apply=true.</summary>
         [HttpPost("undo-applied")]
         public async Task<ActionResult<LinkApplyUndoResult>> UndoApplied(
             [FromQuery, Required] DateTime sinceUtc, [FromQuery] string? source = null, [FromQuery] bool systemOnly = false,
-            [FromQuery] bool apply = false, [FromQuery] int max = 500, [FromQuery] int sampleSize = 50)
+            [FromQuery] bool apply = false, [FromQuery] int max = 500, [FromQuery] int sampleSize = 50, [FromQuery] bool leaveMovedLines = false)
         {
-            return Ok(await _undo.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), source, systemOnly, apply, max, sampleSize));
+            return Ok(await _undo.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), source, systemOnly, apply, max, sampleSize, leaveMovedLines));
         }
 
         /// <summary>What the hold rules make of every pending name match and model pick (no writes).</summary>

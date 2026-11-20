@@ -68,7 +68,7 @@ namespace Nom.Api.Tests.Services
                     await _db.SaveChangesAsync();
                 }
 
-                var stale = await _db.FoodCatalogProposals
+                var stale = await _db.FoodCatalogProposals.IgnoreQueryFilters()
                     .Where(p => (p.IngredientId == sourceId || p.IngredientId == targetId) && p.Field == FoodCatalogReviewService.FdcLinkField
                         && p.Status != FoodProposalStatus.Applied && p.Id != keepProposalId
                         && (p.ReviewedByPersonId == null || p.ReviewedByPersonId == SystemConstants.SystemPersonId))
@@ -290,10 +290,194 @@ namespace Nom.Api.Tests.Services
             await db.SaveChangesAsync();
             db.ChangeTracker.Clear();
 
-            var result = await new LinkApplyUndoService(db, new NoUser()).UndoAsync(start, apply: true);
+            var undo = new LinkApplyUndoService(db, new NoUser());
+
+            var refused = await undo.UndoAsync(start, apply: true);
+            db.ChangeTracker.Clear();
+
+            refused.Should().BeEquivalentTo(new { Proposals = 0, ProposalsSkipped = 1, LinesRestored = 0, FoodsRestored = 0, Remaining = 0 });
+            refused.Samples.Single().Skipped.Should().StartWith("1 of 2 lines are no longer where the link put them");
+            (await db.FoodCatalogProposals.FindAsync(seeded.Proposal.Id))!.Status.Should().Be(FoodProposalStatus.Applied, "nothing is taken back while a line has moved");
+            (await db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == seeded.SeaSalt.Id)).IsDeleted.Should().BeTrue();
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LinkApplyJournal.ChangeType && a.PropertyName == LinkApplyJournal.Line)).Should().Be(2);
+
+            var result = await undo.UndoAsync(start, apply: true, leaveMovedLines: true);
+            db.ChangeTracker.Clear();
 
             result.Should().BeEquivalentTo(new { Proposals = 1, LinesRestored = 1, LinesSkipped = 1, FoodsRestored = 1 });
             (await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == seeded.First.Id && ri.IngredientId == seeded.SeaSalt.Id)).SortOrder.Should().Be(0);
+            var left = await db.AuditLogEntries.SingleAsync(a => a.ChangeType == LinkApplyJournal.LeftChangeType);
+            left.Should().Match<Nom.Data.Audit.AuditLogEntryEntity>(a => a.EntityId == seeded.Proposal.Id && a.PropertyName == LinkApplyJournal.Line
+                && a.NewValue == LinkApplyJournal.Place(seeded.Second.Id, seeded.Salt.Id, 1));
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LinkApplyJournal.ChangeType)).Should().Be(0);
+        }
+
+        private static async Task<FoodCatalogProposalEntity> SecondLinkAsync(ApplicationDbContext db, IngredientEntity target, string wording, string source)
+        {
+            var food = new IngredientEntity { Name = wording, CurationStatusId = 9000 };
+            db.Ingredients.Add(food);
+            var recipe = new RecipeEntity { Name = $"{wording} bread" };
+            db.Recipes.Add(recipe);
+            await db.SaveChangesAsync();
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = food.Id, SortOrder = 0, Quantity = 1, MeasurementId = 1, RawLine = $"1 tsp {wording}" });
+            var proposal = new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, IngredientId = food.Id, Field = FoodCatalogReviewService.FdcLinkField, CurrentValue = wording,
+                FdcId = target.FdcId, ProposedValue = target.Id.ToString(), Source = source, Batch = IngredientLinkService.Batch, Status = FoodProposalStatus.Pending,
+            };
+            db.FoodCatalogProposals.Add(proposal);
+            await db.SaveChangesAsync();
+            return proposal;
+        }
+
+        [Fact]
+        public async Task A_status_kept_for_a_later_link_moves_to_that_link_and_its_undo_restores_it()
+        {
+            using var db = NewContext();
+            var seeded = await SeedSeaSaltAsync(db);
+            var kosher = await SecondLinkAsync(db, seeded.Salt, "kosher salt", "ai:other");
+            var start = DateTime.UtcNow.AddSeconds(-1);
+            var review = new FoodCatalogReviewService(db, new NoAudit(), new MovingCleanup(db));
+            await review.ApplyProposalAsync(seeded.Proposal.Id, SystemConstants.SystemPersonId);
+            db.ChangeTracker.Clear();
+            await review.ApplyProposalAsync(kosher.Id, SystemConstants.SystemPersonId);
+            db.ChangeTracker.Clear();
+            var undo = new LinkApplyUndoService(db, new NoUser());
+
+            (await undo.UndoAsync(start, source: "ai:fake", apply: true)).Should().BeEquivalentTo(new { Proposals = 1, StatusesKept = 1, StatusesRestored = 0 });
+            db.ChangeTracker.Clear();
+            (await db.Ingredients.FindAsync(seeded.Salt.Id))!.CurationStatusId.Should().Be((long)CurationStatusEnum.Curated, "the kosher salt link still stands on it");
+            (await db.AuditLogEntries.SingleAsync(a => a.PropertyName == $"CurationStatusId@{seeded.Salt.Id}")).EntityId.Should().Be(kosher.Id);
+
+            (await undo.UndoAsync(start, source: "ai:other", apply: true)).Should().BeEquivalentTo(new { Proposals = 1, StatusesRestored = 1 });
+            db.ChangeTracker.Clear();
+            (await db.Ingredients.FindAsync(seeded.Salt.Id))!.CurationStatusId.Should().Be(9001);
+        }
+
+        [Fact]
+        public async Task A_dry_run_over_two_links_on_one_food_counts_the_status_the_apply_restores()
+        {
+            using var db = NewContext();
+            var seeded = await SeedSeaSaltAsync(db);
+            var kosher = await SecondLinkAsync(db, seeded.Salt, "kosher salt", "ai:other");
+            var start = DateTime.UtcNow.AddSeconds(-1);
+            var review = new FoodCatalogReviewService(db, new NoAudit(), new MovingCleanup(db));
+            await review.ApplyProposalAsync(seeded.Proposal.Id, SystemConstants.SystemPersonId);
+            db.ChangeTracker.Clear();
+            await review.ApplyProposalAsync(kosher.Id, SystemConstants.SystemPersonId);
+            db.ChangeTracker.Clear();
+            var undo = new LinkApplyUndoService(db, new NoUser());
+
+            var dryRun = await undo.UndoAsync(start);
+            db.ChangeTracker.Clear();
+            var done = await undo.UndoAsync(start, apply: true);
+            db.ChangeTracker.Clear();
+
+            dryRun.Should().BeEquivalentTo(new { Proposals = 2, StatusesRestored = 1, StatusesKept = 0 });
+            done.Should().BeEquivalentTo(new { Proposals = 2, StatusesRestored = 1, StatusesKept = 0 });
+            (await db.Ingredients.FindAsync(seeded.Salt.Id))!.CurationStatusId.Should().Be(9001);
+        }
+
+        [Fact]
+        public async Task A_link_taken_back_is_held_for_a_person_so_the_lanes_do_not_apply_it_again()
+        {
+            using var db = NewContext();
+            var seeded = await SeedSeaSaltAsync(db);
+            var start = DateTime.UtcNow.AddSeconds(-1);
+            await new FoodCatalogReviewService(db, new NoAudit(), new MovingCleanup(db)).ApplyProposalAsync(seeded.Proposal.Id, SystemConstants.SystemPersonId);
+            db.ChangeTracker.Clear();
+
+            await new LinkApplyUndoService(db, new NoUser()).UndoAsync(start, apply: true);
+            db.ChangeTracker.Clear();
+
+            var proposal = await db.FoodCatalogProposals.SingleAsync(p => p.Id == seeded.Proposal.Id);
+            proposal.Status.Should().Be(FoodProposalStatus.Pending);
+            LinkAutoApplyGuard.IsMarked(proposal.Reason).Should().BeTrue();
+            proposal.Reason.Should().EndWith(LinkAutoApplyGuard.HoldMark + LinkAutoApplyGuard.UndoneRule);
+            LinkAutoApplyGuard.MarkUndone(proposal.Reason).Should().Be(proposal.Reason, "a second undo does not mark it twice");
+        }
+
+        [Fact]
+        public async Task A_persons_approval_that_gives_the_usda_food_the_wordings_own_name_is_undone_with_both_names_back()
+        {
+            using var db = NewContext();
+            var crackers = new IngredientEntity { Name = "Crackers", CurationStatusId = 9000 };
+            var usda = new IngredientEntity { Name = "Crackers, wheat, regular", FdcId = "172742", FdcDataType = "sr_legacy_food", CurationStatusId = 9001 };
+            db.Ingredients.AddRange(crackers, usda);
+            var recipe = new RecipeEntity { Name = "Cheese board" };
+            db.Recipes.Add(recipe);
+            await db.SaveChangesAsync();
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = crackers.Id, SortOrder = 0, Quantity = 10, MeasurementId = 3, RawLine = "10 crackers" });
+            var proposal = new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, IngredientId = crackers.Id, Field = FoodCatalogReviewService.FdcLinkField, CurrentValue = "Crackers",
+                FdcId = usda.FdcId, ProposedValue = usda.Id.ToString(), Source = "ai:fake", Batch = IngredientLinkService.Batch, Status = FoodProposalStatus.Pending,
+            };
+            db.FoodCatalogProposals.Add(proposal);
+            await db.SaveChangesAsync();
+            var start = DateTime.UtcNow.AddSeconds(-1);
+            (await new FoodCatalogReviewService(db, new NoAudit(), new MovingCleanup(db)).ApplyProposalAsync(proposal.Id, reviewerPersonId: 2)).Should().BeTrue();
+            db.ChangeTracker.Clear();
+            (await db.Ingredients.FindAsync(usda.Id))!.Name.Should().Be("Crackers");
+
+            var result = await new LinkApplyUndoService(db, new NoUser()).UndoAsync(start, apply: true);
+            db.ChangeTracker.Clear();
+
+            result.Should().BeEquivalentTo(new { Proposals = 1, ProposalsSkipped = 0, NamesRestored = 1, FoodsRestored = 1, LinesRestored = 1 });
+            (await db.Ingredients.FindAsync(usda.Id))!.Name.Should().Be("Crackers, wheat, regular");
+            (await db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == crackers.Id)).Should().Match<IngredientEntity>(i => !i.IsDeleted && i.Name == "Crackers");
+        }
+
+        [Fact]
+        public async Task A_withdrawn_proposal_the_merge_removed_comes_back_withdrawn()
+        {
+            using var db = NewContext();
+            var seeded = await SeedSeaSaltAsync(db);
+            var withdrawn = new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, IngredientId = seeded.SeaSalt.Id, Field = FoodCatalogReviewService.FdcLinkField, CurrentValue = "sea salt",
+                FdcId = "999", ProposedValue = "999", Source = "ai:fake", Batch = IngredientLinkService.Batch, Status = FoodProposalStatus.Pending,
+                IsDeleted = true, DeletedAt = new DateTime(2026, 11, 2, 0, 0, 0, DateTimeKind.Utc), DeletedByPersonId = 5,
+            };
+            db.FoodCatalogProposals.Add(withdrawn);
+            await db.SaveChangesAsync();
+            var start = DateTime.UtcNow.AddSeconds(-1);
+            await new FoodCatalogReviewService(db, new NoAudit(), new MovingCleanup(db)).ApplyProposalAsync(seeded.Proposal.Id, SystemConstants.SystemPersonId);
+            db.ChangeTracker.Clear();
+
+            (await new LinkApplyUndoService(db, new NoUser()).UndoAsync(start, apply: true)).ProposalsRestored.Should().Be(2);
+            db.ChangeTracker.Clear();
+
+            (await db.FoodCatalogProposals.CountAsync(p => p.Id != seeded.Proposal.Id)).Should().Be(1, "only the rejection comes back live");
+            (await db.FoodCatalogProposals.IgnoreQueryFilters().SingleAsync(p => p.FdcId == "999")).Should().Match<FoodCatalogProposalEntity>(p =>
+                p.IsDeleted && p.DeletedByPersonId == 5 && p.DeletedAt == withdrawn.DeletedAt);
+        }
+
+        [Fact]
+        public async Task Skipped_links_do_not_take_the_undos_slots_and_are_not_counted_as_remaining()
+        {
+            using var db = NewContext();
+            var seeded = await SeedSeaSaltAsync(db);
+            var kosher = await SecondLinkAsync(db, seeded.Salt, "kosher salt", "ai:other");
+            var start = DateTime.UtcNow.AddSeconds(-1);
+            var review = new FoodCatalogReviewService(db, new NoAudit(), new MovingCleanup(db));
+            await review.ApplyProposalAsync(seeded.Proposal.Id, SystemConstants.SystemPersonId);
+            db.ChangeTracker.Clear();
+            await review.ApplyProposalAsync(kosher.Id, SystemConstants.SystemPersonId);
+            db.ChangeTracker.Clear();
+            var retired = await db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == kosher.IngredientId);
+            retired.Name = "kosher salt (merged into #1)";
+            db.Ingredients.Add(new IngredientEntity { Name = "kosher salt", CurationStatusId = 9000 });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var undo = new LinkApplyUndoService(db, new NoUser());
+
+            var first = await undo.UndoAsync(start, apply: true, max: 1);
+            db.ChangeTracker.Clear();
+
+            first.Should().BeEquivalentTo(new { Proposals = 1, ProposalsSkipped = 1, Remaining = 0 });
+            first.Samples.Select(sm => sm.ProposalId).Should().Equal(kosher.Id, seeded.Proposal.Id);
+            (await db.FoodCatalogProposals.FindAsync(seeded.Proposal.Id))!.Status.Should().Be(FoodProposalStatus.Pending);
         }
 
         [Fact]
@@ -449,5 +633,6 @@ namespace Nom.Api.Tests.Services
             allowance.BusyTargets.Should().Equal("173468");
             (await gate.AllowanceAsync(IngredientLinkService.ExactSource, dailyCap: 0, perTargetCap: 3)).Remaining.Should().Be(0);
         }
+
     }
 }

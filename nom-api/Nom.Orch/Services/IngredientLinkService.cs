@@ -372,7 +372,8 @@ namespace Nom.Orch.Services
                 p.ProposedValue = staple.IngredientId.ToString();
                 p.Source = StapleSource;
                 p.Confidence = ExactConfidence;
-                p.Reason = uses == null ? $"→ {staple.Name}" : $"→ {staple.Name} · {uses}";
+                var hold = p.Reason != null && p.Reason.IndexOf(LinkAutoApplyGuard.HoldMark, StringComparison.Ordinal) is var held and >= 0 ? p.Reason[held..] : string.Empty;
+                p.Reason = (uses == null ? $"→ {staple.Name}" : $"→ {staple.Name} · {uses}") + hold;
                 p.LastModifiedDate = DateTime.UtcNow;
                 changed++;
             }
@@ -384,6 +385,7 @@ namespace Nom.Orch.Services
         {
             return await _context.FoodCatalogProposals
                 .Where(p => p.Status == FoodProposalStatus.Pending && p.IngredientId != null && !skip.Contains(p.Id)
+                    && (p.Reason == null || !p.Reason.Contains(LinkAutoApplyGuard.HoldMark))
                     && ((p.Field == FoodCatalogReviewService.FdcLinkField && (p.Source == StapleSource || (includeNameMatches && p.Source == ExactSource)))
                         || (p.Field == FoodCatalogReviewService.FdcAttachField && p.Source.StartsWith("fdc:"))))
                 .OrderByDescending(p => _context.RecipeIngredients.Count(ri => ri.IngredientId == p.IngredientId))
@@ -635,7 +637,7 @@ namespace Nom.Orch.Services
                     && !excludeTargets.Contains(p.FdcId!)
                     && p.Field == FoodCatalogReviewService.FdcLinkField && p.Source.StartsWith("ai:")
                     && p.Confidence >= minConfidence
-                    && p.Reason != null && p.Reason.Contains(VerifiedMark))
+                    && p.Reason != null && p.Reason.Contains(VerifiedMark) && !p.Reason.Contains(LinkAutoApplyGuard.HoldMark))
                 .OrderByDescending(p => _context.RecipeIngredients.Count(ri => ri.IngredientId == p.IngredientId))
                 .Select(p => p.Id)
                 .Take(count)
