@@ -246,7 +246,16 @@ stands in for it (one can of tomatoes is not one tomato). A line weighs what it 
   "1 (13.5 fl oz) can coconut milk" → 399.242 Milliliter, "1 (3-pound) chicken" → 3 Pound,
   "1 1/2 (180g) cups flour" → 180 Gram. A size that could be each or total
   ("4 (6-ounce) salmon filets", "2 cans diced tomatoes (14.5 oz)") is not read, and
-  nothing above 15 kg is.
+  nothing above 15 kg is. A size written after a part count or after "about" is the amount
+  of the whole line: "1/2 can (about 8 ounces)" → 8 Ounce, "2 cans (about 30 ounces)" →
+  30 Ounce. A whole count with a plain size is still each ("2 cans (15 oz) beans" → 30
+  Ounce), so "2 cans (28 ounces) coconut milk", where 28 is the total, reads as 56 and needs
+  a person.
+- A food whose values are for its drained solids (its name contains "drained": "Chickpeas
+  ..., canned, drained, rinsed in tap water", "Beans, pinto, canned, drained solids") never
+  takes a can's stated size, which is the net weight with the liquid: the line is stored as
+  that many cans or packages instead (`no-conversion`), at import and in the re-read lane,
+  whose preview counts them as `DrainedAsContainers`. No drained-weight factor is invented.
 - A container with no stated size is stored in a **container unit**: Can, or Package for a
   jar, bottle, box, bag, packet, envelope, carton, tub, tube or pouch
   (`measurement."Measurement"."IsContainer"`). `GramsFor` gives a container unit no weight,
@@ -264,10 +273,13 @@ POST /api/FoodCatalog/reread/undo?sinceUtc=<utc time>  # restores each line that
 ```
 
 Apply also marks the unchanged can and package lines that were weighed as one item or one
-serving as modified, so the nutrition sweep recalculates their recipes' labels. On an
-existing database run `./db/apply.sh` and `db/fix-container-units.sql` before the API
-version that reads packages starts: an import whose unit has no measurement row falls
-back to Gram.
+serving as modified, so the nutrition sweep recalculates their recipes' labels; a derived
+label whose every measured line has become a can or package with no stated size is removed
+by that recalculation rather than kept. On an existing database run `./db/apply.sh` and
+`db/fix-container-units.sql` before the API version that reads packages starts. If the order
+slips, an imported line whose measurement has no row (Package before the script) is stored
+without an amount and logged as a warning, never counted in grams; the re-read lane lists the
+missing measurement in its preview and leaves those lines.
 
 **Backfill for foods already in the catalog** (no nutrient changes):
 
