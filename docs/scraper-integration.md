@@ -115,8 +115,10 @@ A record is stored in one JSON form (`Support/SourceRecord.cs`: camelCase, nulls
 - `matched`: stored (with its `jsonld` too when the recipe holds none);
 - `already-attached`: the recipe already holds this exact text;
 - `ambiguous` (a tie), `low-score` (under 80 %), `unmatched` (no recipe has the key): not stored;
-- `double-match`: two records of the batch matched one recipe, neither is stored;
+- `double-match`: an earlier record of the batch took this recipe and this record's text differs; not stored;
 - `conflict`: the recipe already holds a different document of the record's format; stored as the next `Version` only with `newVersion=true`.
+
+Records are settled in batch order, as the staged import took them (it keeps the first record of a URL, or of a name and attribution): the first record of a recipe takes it, a later copy with the same text is `already-attached`, and a later different one is a `double-match`. Each answer carries the record's `contentSha256`, and the script settles records of different batches the same way (a dry run's second `matched` copy becomes `already-attached`; a different record, or a `conflict` with a record an earlier batch of the run took, becomes `double-match`), so where the batches split changes no outcome. Its staging target counts lines it could not read as records that were not attached. An apply names its undo stamp as soon as its first batch is stored, again if a later batch fails, and in every `--log` line.
 
 Each stored document is journaled in `audit.AuditLogEntry` (`SourceAttach`, entity `ScrapedDocument`, the recipe, version, checksum, score and key in `NewValue`). `POST /api/RecipeSource/attach/undo?sinceUtc=&apply=false` soft-deletes the documents attached at or after `sinceUtc` that are still there, journaled as `SourceAttachUndo`; a later attach stores them again. Documents stored by an import are never touched by the undo.
 

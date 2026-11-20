@@ -15,11 +15,13 @@ RULES
 1. Nothing is fetched. The script reads local files only; its one network peer is nom-api,
    authenticated as a curation admin (X-Api-Key or Bearer).
 2. A dry run unless --apply. Run the dry run over every file first: it reports matched,
-   already attached, ambiguous, low-score and unmatched records per file kind, and recipes that
-   records of different batches both matched (a double match the server cannot see across
-   batches in a dry run).
+   already attached, ambiguous, low-score, unmatched and unread records per file kind, and
+   recipes that two different records matched. Records are settled in file order as the import
+   took them: the first record of a recipe takes it, a later copy with the same text is already
+   attached and a later different one is a double match, wherever the batches split.
 3. Every stored document is journaled by nom-api (SourceAttach). --undo-since STAMP removes the
-   documents attached at or after STAMP (a dry run unless --apply); an apply prints its stamp.
+   documents attached at or after STAMP (a dry run unless --apply); an apply names its stamp as
+   soon as its first batch is stored, again if a later batch fails, and in every --log line.
 4. Attribution: a book's recipes were imported with the book's attribution. Give the same
    mapping the promoter used with --attribution-csv (one row per file); a file not in it is sent
    without one, and nom-api then uses the record's own author and site, as the import did.
@@ -40,6 +42,7 @@ import csv
 import json
 import os
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from collections import Counter, defaultdict
@@ -163,13 +166,37 @@ class Summary:
     by_kind: dict[str, Counter] = field(default_factory=lambda: defaultdict(Counter))
     errors: list[dict] = field(default_factory=list)
     recipes: dict[int, list[dict]] = field(default_factory=lambda: defaultdict(list))
+    taken: dict[int, str | None] = field(default_factory=dict)
+    doubled: set[int] = field(default_factory=set)
+
+    def settle(self, answer: dict, place: dict) -> str:
+        """The outcome of a record across the whole run: the first record of a recipe takes it, a later one with its text is already attached, a later different one is a double match."""
+        outcome, recipe, sha = answer["outcome"], answer.get("recipeId"), answer.get("contentSha256")
+        if recipe is None:
+            return outcome
+        held = recipe in self.taken
+        if outcome in ("matched", "already-attached"):
+            self.recipes[recipe].append(place)
+            if not held:
+                self.taken[recipe] = sha
+                return outcome
+            if self.taken[recipe] == sha:
+                return "already-attached"
+        elif outcome == "double-match":
+            self.recipes[recipe].append(place)
+        elif outcome == "conflict" and held and self.taken[recipe] != sha:
+            self.recipes[recipe].append(place)
+        else:
+            return outcome
+        self.doubled.add(recipe)
+        return "double-match"
 
     def doubles(self) -> dict[int, list[dict]]:
-        """Recipes that more than one record matched, across batches and files."""
-        return {recipe: places for recipe, places in self.recipes.items() if len(places) > 1}
+        """Recipes that two different records matched, across batches and files, with every record that matched them."""
+        return {recipe: self.recipes[recipe] for recipe in self.doubled}
 
     def target(self) -> dict:
-        """The staging target of reprocess.md step 2: at least 99 % of cookbook and myplate records matched or already attached, and no recipe matched twice."""
+        """The staging target of reprocess.md step 2: at least 99 % of cookbook and myplate records, unread lines included, matched or already attached, and no recipe matched by two different records."""
         counts = Counter()
         for kind in TARGET_KINDS:
             counts.update(self.by_kind.get(kind, Counter()))
@@ -205,26 +232,41 @@ def attach(files: Iterable[str], post: Post, attributions: dict[str, str], apply
     for path in files:
         kind = file_kind(path)
         attribution = attributions.get(os.path.basename(path))
+        unread = len(summary.errors)
         items = list(read_records(path, summary.errors))
-        summary.by_kind[kind]["files"] += 1
+        unread = len(summary.errors) - unread
+        counts = summary.by_kind[kind]
+        counts["files"] += 1
+        if unread:
+            counts["records"] += unread
+            counts["unread"] += unread
         for batch in chunks(items, batch_size):
             body = {"records": [item.record for item in batch], "sourceAttribution": attribution}
-            result = post(ATTACH_PATH, params, body)
-            if summary.stamp is None:
-                summary.stamp = result.get("stamp")
-            counts = summary.by_kind[kind]
+            try:
+                result = post(ATTACH_PATH, params, body)
+            except Exception as exc:
+                if apply and summary.stamp:
+                    log(f"{os.path.basename(path)} line {batch[0].line}: stopped by {exc!r}; earlier batches are stored, "
+                        f"undo with: --undo-since {summary.stamp}")
+                raise
+            stamp = result.get("stamp")
+            if summary.stamp is None and stamp:
+                summary.stamp = stamp
+                if apply:
+                    log(f"first batch stored; undo with: --undo-since {stamp}")
             counts["records"] += len(batch)
-            counts["documents"] += result.get("documents", 0)
-            for outcome in result.get("results", []):
-                item = batch[outcome["index"]]
-                counts[outcome["outcome"]] += 1
-                place = {"file": os.path.basename(path), "line": item.line, "name": outcome.get("name")}
-                if outcome["outcome"] == "matched" and outcome.get("recipeId") is not None:
-                    summary.recipes[outcome["recipeId"]].append(place)
+            for answer in result.get("results", []):
+                item = batch[answer["index"]]
+                place = {"file": os.path.basename(path), "line": item.line, "name": answer.get("name")}
+                outcome = summary.settle(answer, place)
+                counts[outcome] += 1
+                if apply or outcome == "matched":
+                    counts["documents"] += answer.get("documents", 0)
                 if write_log is not None:
-                    write_log({**place, "kind": kind, **{k: outcome.get(k) for k in
-                               ("outcome", "matchedBy", "recipeId", "score", "candidates", "format", "version", "documents")}})
-        log(f"{os.path.basename(path)}: {len(items)} records, {dict(summary.by_kind[kind])}")
+                    write_log({**place, "kind": kind, "outcome": outcome, "answered": answer["outcome"], "stamp": stamp,
+                               **{k: answer.get(k) for k in
+                                  ("matchedBy", "recipeId", "score", "candidates", "format", "contentSha256", "version", "documents")}})
+        log(f"{os.path.basename(path)}: {len(items)} records, {unread} unread, {dict(counts)}")
     return summary
 
 

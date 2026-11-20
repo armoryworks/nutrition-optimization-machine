@@ -56,7 +56,6 @@ namespace Nom.Orch.Services
             public required string Sha256 { get; init; }
             public required List<string> LineKeys { get; init; }
             public RecipeSourceAttachRecordResult Result { get; } = new();
-            public Candidate? Recipe { get; set; }
         }
 
         public async Task<RecipeSourceAttachResult> AttachAsync(RecipeSourceAttachRequestModel request, bool apply = false, bool newVersion = false)
@@ -104,7 +103,10 @@ namespace Nom.Orch.Services
 
             var candidateIds = candidatesOf.Values.SelectMany(c => c.Recipes).Select(c => c.Id).Distinct().ToList();
             var lines = await LineKeysAsync(candidateIds);
-            var documents = await DocumentsAsync(candidateIds);
+            var documents = (await DocumentsAsync(candidateIds)).ToDictionary(g => g.Key, g => g.ToList());
+            List<Document> Held(long recipeId) => documents.TryGetValue(recipeId, out var held) ? held : documents[recipeId] = new List<Document>();
+            var taken = new HashSet<long>();
+            var toStore = new List<(Prepared Source, ScrapedDocumentEntity Document)>();
 
             foreach (var p in prepared)
             {
@@ -113,6 +115,7 @@ namespace Nom.Orch.Services
                 outcome.Name = p.Record.Name;
                 outcome.SourceUrl = p.Record.SourceUrl;
                 outcome.Format = p.Format;
+                outcome.ContentSha256 = p.Sha256;
 
                 if (!candidatesOf.TryGetValue(p.Index, out var found))
                 {
@@ -128,53 +131,55 @@ namespace Nom.Orch.Services
                 var best = outcome.Candidates[0];
                 outcome.Score = best.Score;
 
-                if (found.Recipes.FirstOrDefault(c => documents[c.Id].Any(d => d.Format == p.Format && d.ContentSha256 == p.Sha256)) is { } holder)
+                if (found.Recipes.FirstOrDefault(c => Held(c.Id).Any(d => d.Format == p.Format && d.ContentSha256 == p.Sha256)) is { } holder)
                 {
                     outcome.Outcome = RecipeSourceAttachOutcome.AlreadyAttached;
                     outcome.RecipeId = holder.Id;
-                }
-                else if (best.Score < MinimumLineAgreement)
-                {
-                    outcome.Outcome = RecipeSourceAttachOutcome.LowScore;
-                }
-                else if (outcome.Candidates.Count > 1 && outcome.Candidates[1].Score == best.Score)
-                {
-                    outcome.Outcome = RecipeSourceAttachOutcome.Ambiguous;
-                }
-                else
-                {
-                    outcome.Outcome = RecipeSourceAttachOutcome.Matched;
-                    outcome.RecipeId = best.RecipeId;
-                    p.Recipe = found.Recipes.Single(c => c.Id == best.RecipeId);
-                }
-            }
-
-            foreach (var twice in prepared.Where(p => p.Recipe != null).GroupBy(p => p.Recipe!.Id).Where(g => g.Count() > 1))
-            {
-                foreach (var p in twice)
-                {
-                    p.Result.Outcome = RecipeSourceAttachOutcome.DoubleMatch;
-                    p.Recipe = null;
-                }
-            }
-
-            var toStore = new List<(Prepared Source, ScrapedDocumentEntity Document)>();
-            foreach (var p in prepared.Where(p => p.Recipe != null))
-            {
-                var held = documents[p.Recipe!.Id].ToList();
-                var sameFormat = held.Where(d => d.Format == p.Format).ToList();
-                if (sameFormat.Count > 0 && !newVersion)
-                {
-                    p.Result.Outcome = RecipeSourceAttachOutcome.Conflict;
-                    p.Recipe = null;
+                    taken.Add(holder.Id);
                     continue;
                 }
 
-                p.Result.Version = sameFormat.Count == 0 ? 1 : sameFormat.Max(d => d.Version) + 1;
-                toStore.Add((p, NewDocument(p.Recipe, p.Content, p.Format, p.Sha256, p.Result.Version.Value, stamp)));
+                if (best.Score < MinimumLineAgreement)
+                {
+                    outcome.Outcome = RecipeSourceAttachOutcome.LowScore;
+                    continue;
+                }
+
+                if (outcome.Candidates.Count > 1 && outcome.Candidates[1].Score == best.Score)
+                {
+                    outcome.Outcome = RecipeSourceAttachOutcome.Ambiguous;
+                    continue;
+                }
+
+                outcome.RecipeId = best.RecipeId;
+                if (taken.Contains(best.RecipeId))
+                {
+                    outcome.Outcome = RecipeSourceAttachOutcome.DoubleMatch;
+                    continue;
+                }
+
+                var recipe = found.Recipes.Single(c => c.Id == best.RecipeId);
+                var held = Held(recipe.Id);
+                var sameFormat = held.Where(d => d.Format == p.Format).ToList();
+                if (sameFormat.Count > 0 && !newVersion)
+                {
+                    outcome.Outcome = RecipeSourceAttachOutcome.Conflict;
+                    continue;
+                }
+
+                outcome.Outcome = RecipeSourceAttachOutcome.Matched;
+                outcome.Version = sameFormat.Count == 0 ? 1 : sameFormat.Max(d => d.Version) + 1;
+                taken.Add(recipe.Id);
+                var queued = new List<ScrapedDocumentEntity> { NewDocument(recipe, p.Content, p.Format, p.Sha256, outcome.Version.Value, stamp) };
                 if (!string.IsNullOrWhiteSpace(p.Record.RawJsonLd) && held.All(d => d.Format != ScrapedDocumentFormat.JsonLd))
                 {
-                    toStore.Add((p, NewDocument(p.Recipe, p.Record.RawJsonLd, ScrapedDocumentFormat.JsonLd, SourceRecord.Sha256(p.Record.RawJsonLd), 1, stamp)));
+                    queued.Add(NewDocument(recipe, p.Record.RawJsonLd, ScrapedDocumentFormat.JsonLd, SourceRecord.Sha256(p.Record.RawJsonLd), 1, stamp));
+                }
+
+                foreach (var document in queued)
+                {
+                    held.Add(new Document(recipe.Id, document.Format, document.ContentSha256, document.Version));
+                    toStore.Add((p, document));
                 }
             }
 

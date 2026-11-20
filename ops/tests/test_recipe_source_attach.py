@@ -38,7 +38,8 @@ class StandIn:
         for index, rec in enumerate(body["records"]):
             outcome, recipe = self.outcome_of(rec, body.get("sourceAttribution"))
             results.append({"index": index, "name": rec["name"], "outcome": outcome, "recipeId": recipe,
-                            "score": 1.0 if recipe else None, "candidates": [], "documents": 1 if outcome == "matched" else 0})
+                            "score": 1.0 if recipe else None, "candidates": [], "contentSha256": json.dumps(rec, sort_keys=True),
+                            "documents": 1 if outcome == "matched" else 0})
         return {"stamp": f"2026-11-21T10:00:0{len(self.calls)}Z", "documents": sum(r["documents"] for r in results),
                 "results": results}
 
@@ -159,19 +160,89 @@ class AttachTests(unittest.TestCase):
         self.assertEqual(report["target"], {"records": 6, "matchedOrAttached": 4, "rate": 0.6667, "doubles": 0, "met": False})
         self.assertEqual(len(logged), 6)
         self.assertEqual(logged[3], {"file": "cookbook-pg1.jsonl", "line": 4, "name": "Cake 3", "kind": "cookbook", "outcome": "ambiguous",
-                                     "matchedBy": None, "recipeId": None, "score": None, "candidates": [], "format": None,
+                                     "answered": "ambiguous", "stamp": "2026-11-21T10:00:02Z", "matchedBy": None, "recipeId": None,
+                                     "score": None, "candidates": [], "format": None,
+                                     "contentSha256": json.dumps(record("Cake 3", "1 cup sugar"), sort_keys=True),
                                      "version": None, "documents": 0})
 
-    def test_two_records_of_different_batches_that_match_one_recipe_are_reported_and_fail_the_target(self):
+    def test_two_different_records_of_different_batches_that_match_one_recipe_are_reported_and_fail_the_target(self):
         first = self.files.write("cookbook-pg1.jsonl", [record("Gingerbread", "1 cup molasses")])
-        second = self.files.write("cookbook-pg2.jsonl", [record("Gingerbread", "1 cup molasses")])
+        second = self.files.write("cookbook-pg2.jsonl", [record("Gingerbread", "2 cups molasses")])
 
         summary = attach.attach([first, second], StandIn(lambda rec, attribution: ("matched", 10)), {})
 
         report = summary.report()
         self.assertEqual(report["doubles"], {"10": [{"file": "cookbook-pg1.jsonl", "line": 1, "name": "Gingerbread"},
                                                     {"file": "cookbook-pg2.jsonl", "line": 1, "name": "Gingerbread"}]})
+        self.assertEqual(report["byKind"]["cookbook"]["double-match"], 1)
         self.assertFalse(report["target"]["met"])
+
+    def test_a_repeated_record_gives_the_same_report_whether_or_not_a_batch_boundary_falls_between_the_copies(self):
+        path = self.files.write("cookbook-pg1.jsonl", [record("Gingerbread", "1 cup molasses")] * 2)
+
+        def answer_like_nom_api(path_, params, body=None):
+            results, taken = [], {}
+            for index, rec in enumerate(body["records"]):
+                sha = json.dumps(rec, sort_keys=True)
+                outcome = "already-attached" if taken.get(10) == sha else "matched"
+                taken.setdefault(10, sha)
+                results.append({"index": index, "name": rec["name"], "outcome": outcome, "recipeId": 10, "contentSha256": sha,
+                                "documents": 1 if outcome == "matched" else 0})
+            return {"stamp": "2026-11-21T10:00:00Z", "results": results}
+
+        reports = [attach.attach([path], answer_like_nom_api, {}, batch_size=size).report() for size in (2, 1)]
+
+        self.assertEqual(reports[0], reports[1])
+        self.assertEqual(reports[0]["byKind"]["cookbook"], {"files": 1, "records": 2, "documents": 1, "matched": 1, "already-attached": 1})
+        self.assertEqual(reports[0]["doubles"], {})
+        self.assertTrue(reports[0]["target"]["met"])
+
+    def test_a_different_record_that_conflicts_with_one_an_earlier_batch_stored_is_a_double(self):
+        first = self.files.write("cookbook-pg1.jsonl", [record("Gingerbread", "1 cup molasses")])
+        second = self.files.write("cookbook-pg2.jsonl", [record("Gingerbread", "2 cups molasses")])
+        answers = iter([("matched", "aaa"), ("conflict", "bbb")])
+
+        def answer(path_, params, body=None):
+            outcome, sha = next(answers)
+            return {"stamp": "2026-11-21T10:00:00Z", "results": [
+                {"index": 0, "name": "Gingerbread", "outcome": outcome, "recipeId": 10, "contentSha256": sha, "documents": 1 if outcome == "matched" else 0}]}
+
+        report = attach.attach([first, second], answer, {}, apply=True).report()
+
+        self.assertEqual(report["byKind"]["cookbook"]["double-match"], 1)
+        self.assertNotIn("conflict", report["byKind"]["cookbook"])
+        self.assertEqual(list(report["doubles"]), ["10"])
+
+    def test_lines_that_could_not_be_read_count_against_the_target(self):
+        good = [record(f"Cake {i}", "1 cup sugar") for i in range(97)]
+        path = self.files.write("cookbook-pg1.jsonl", good + ["{truncated", json.dumps({"name": "No lines"}), json.dumps({"name": "x", "ingredients": [{}]})])
+
+        summary = attach.attach([path], StandIn(lambda rec, attribution: ("matched", 100 + int(rec["name"].split()[1]))), {})
+
+        self.assertEqual(summary.by_kind["cookbook"]["unread"], 3)
+        self.assertEqual(summary.target(), {"records": 100, "matchedOrAttached": 97, "rate": 0.97, "doubles": 0, "met": False})
+
+    def test_an_apply_that_fails_part_way_has_already_named_its_undo_stamp_and_logged_it_per_record(self):
+        path = self.files.write("cookbook-pg1.jsonl", [record(f"Cake {i}", "1 cup sugar") for i in range(3)])
+        stand_in = StandIn(lambda rec, attribution: ("matched", 100 + int(rec["name"].split()[1])))
+
+        def failing(path_, params, body=None):
+            if len(stand_in.calls) == 2:
+                raise attach.urllib.error.HTTPError("https://nom.example.com" + path_, 502, "Bad Gateway", None, None)
+            return stand_in(path_, params, body)
+
+        logged, messages = [], []
+        original = attach.log
+        attach.log = messages.append
+        try:
+            with self.assertRaises(attach.urllib.error.HTTPError):
+                attach.attach([path], failing, {}, apply=True, batch_size=1, write_log=logged.append)
+        finally:
+            attach.log = original
+
+        self.assertIn("undo with: --undo-since 2026-11-21T10:00:01Z", messages[0])
+        self.assertTrue(any("2026-11-21T10:00:01Z" in m and "502" in m for m in messages[1:]))
+        self.assertEqual([entry["stamp"] for entry in logged], ["2026-11-21T10:00:01Z", "2026-11-21T10:00:02Z"])
 
     def test_the_target_is_met_at_ninety_nine_in_a_hundred_and_web_files_do_not_count_toward_it(self):
         book = self.files.write("cookbook-pg1.jsonl", [record(f"Cake {i}", "1 cup sugar") for i in range(100)])

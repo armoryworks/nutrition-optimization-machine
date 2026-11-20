@@ -230,17 +230,54 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task Two_records_of_one_batch_that_both_match_one_recipe_store_neither()
+        public async Task A_later_different_record_of_one_batch_on_a_recipe_an_earlier_one_took_is_a_double_match_and_not_stored()
         {
             using var db = NewContext();
-            await RecipeAsync(db, "Gingerbread", Book, null, Gingerbread);
+            var recipe = await RecipeAsync(db, "Gingerbread", Book, null, Gingerbread);
+            var full = Record("Gingerbread", null, Gingerbread);
             var shorter = Record("Gingerbread", null, Gingerbread.Take(4).ToArray());
 
-            var result = await Service(db).AttachAsync(Batch(Book, Record("Gingerbread", null, Gingerbread), shorter), apply: true);
+            var result = await Service(db).AttachAsync(Batch(Book, full, shorter), apply: true);
 
-            result.DoubleMatch.Should().Be(2);
-            result.Results.Should().OnlyContain(r => r.Outcome == RecipeSourceAttachOutcome.DoubleMatch && r.Documents == 0);
-            (await db.ScrapedDocuments.AnyAsync()).Should().BeFalse();
+            result.Should().BeEquivalentTo(new { Matched = 1, DoubleMatch = 1, Documents = 1 });
+            result.Results.Select(r => (r.Outcome, r.RecipeId, r.Documents)).Should().Equal(
+                (RecipeSourceAttachOutcome.Matched, (long?)recipe, 1), (RecipeSourceAttachOutcome.DoubleMatch, (long?)recipe, 0));
+            result.Results.Select(r => r.ContentSha256).Should().Equal(SourceRecord.Sha256(SourceRecord.Content(full)), SourceRecord.Sha256(SourceRecord.Content(shorter)));
+            (await db.ScrapedDocuments.SingleAsync()).RawJsonLd.Should().Be(SourceRecord.Content(full), "the import kept the first record of a name and attribution");
+        }
+
+        [Fact]
+        public async Task A_record_repeated_in_one_batch_is_stored_once_with_the_same_outcomes_as_when_the_batches_split_between_the_copies()
+        {
+            using var one = NewContext();
+            var recipe = await RecipeAsync(one, "Gingerbread", Book, null, Gingerbread);
+            using var two = NewContext();
+            await RecipeAsync(two, "Gingerbread", Book, null, Gingerbread);
+
+            var together = await Service(one).AttachAsync(Batch(Book, Record("Gingerbread", null, Gingerbread), Record("Gingerbread", null, Gingerbread)), apply: true);
+            var first = await Service(two).AttachAsync(Batch(Book, Record("Gingerbread", null, Gingerbread)), apply: true);
+            var second = await Service(two).AttachAsync(Batch(Book, Record("Gingerbread", null, Gingerbread)), apply: true);
+
+            together.Results.Select(r => (r.Outcome, r.RecipeId, r.Documents)).Should().Equal(
+                (RecipeSourceAttachOutcome.Matched, (long?)recipe, 1), (RecipeSourceAttachOutcome.AlreadyAttached, (long?)recipe, 0));
+            first.Results.Concat(second.Results).Select(r => (r.Outcome, r.RecipeId, r.Documents)).Should().Equal(
+                together.Results.Select(r => (r.Outcome, r.RecipeId, r.Documents)));
+            (await one.ScrapedDocuments.CountAsync()).Should().Be(1);
+            (await one.AuditLogEntries.CountAsync()).Should().Be(1);
+        }
+
+        [Fact]
+        public async Task A_repeated_web_record_brings_its_json_ld_once()
+        {
+            using var db = NewContext();
+            await RecipeAsync(db, "Chili", null, "https://example.com/chili", "1 lb beef");
+            var record = Record("Chili", "https://example.com/chili", "1 lb beef");
+            record.RawJsonLd = """{"@type":"Recipe"}""";
+
+            var result = await Service(db).AttachAsync(Batch(null, record, record), apply: true);
+
+            result.Should().BeEquivalentTo(new { Matched = 1, AlreadyAttached = 1, Documents = 2 });
+            (await db.ScrapedDocuments.CountAsync(d => d.Format == ScrapedDocumentFormat.JsonLd)).Should().Be(1);
         }
 
         [Fact]

@@ -34,7 +34,7 @@ namespace Nom.Orch.Models.Recipe
         /// <summary>The best recipe agrees on fewer of the record's lines than the bar.</summary>
         public const string LowScore = "low-score";
 
-        /// <summary>Another record of the same batch matched the same recipe; neither is stored.</summary>
+        /// <summary>An earlier record of the same batch took the matched recipe and this record's text differs from it; this one is not stored.</summary>
         public const string DoubleMatch = "double-match";
 
         /// <summary>The recipe already holds a different live document of this format; a newer version is stored only when asked for.</summary>
@@ -56,6 +56,8 @@ namespace Nom.Orch.Models.Recipe
         /// <summary>Every candidate recipe with its score, best first.</summary>
         public List<RecipeSourceCandidate> Candidates { get; set; } = new();
         public string? Format { get; set; }
+        /// <summary>Lowercase hex SHA-256 of the record's stored text, so a caller can tell repeated records from different ones across batches.</summary>
+        public string? ContentSha256 { get; set; }
         public int? Version { get; set; }
         /// <summary>Documents stored for this record (the record and, for a recipe with none, its JSON-LD); without apply, those that would be.</summary>
         public int Documents { get; set; }
