@@ -16,8 +16,8 @@ namespace Nom.Import.Services
 {
     /// <summary>
     /// The USDA FDC nutrients NOM stores per ingredient, shared by the Foundation/SR Legacy and
-    /// Branded importers and the nutrient backfill: the FDA label set plus the vitamins and
-    /// minerals that carry a Daily Value. Each key lists the FDC nutrient ids that can supply it
+    /// Branded importers and the nutrient backfill: the FDA label set, the vitamins and
+    /// minerals that carry a Daily Value, and alcohol. Each key lists the FDC nutrient ids that can supply it
     /// (from nutrient.csv), most preferred first, with a deterministic unit factor where FDC
     /// reports a different unit (vitamin D in IU: 40 IU = 1 µg). A quantity FDC reports only in
     /// another definition is left out rather than converted: vitamin A is taken as RAE (not IU),
@@ -80,6 +80,7 @@ namespace Nom.Import.Services
             new Spec(FoodComponent.Chromium, Microgram, new[] { new Source(1096) }, new[] { "chromium" }),
             new Spec(FoodComponent.Molybdenum, Microgram, new[] { new Source(1102) }, new[] { "molybdenum" }),
             new Spec(FoodComponent.Chloride, Milligram, new[] { new Source(1088) }, new[] { "chloride" }),
+            new Spec(FoodComponent.Alcohol, Gram, new[] { new Source(1018) }, new[] { "alcohol" }),
         };
 
         /// <summary>The four keys the food-level quality gate judges; the rest are checked one by one.</summary>
@@ -236,5 +237,6 @@ namespace Nom.Import.Services
         public decimal? Protein => this[FdcNutrients.Protein];
         public decimal? Carb => this[FdcNutrients.Carb];
         public decimal? Fat => this[FdcNutrients.Fat];
+        public decimal? Alcohol => this[FoodComponent.Alcohol];
     }
 }

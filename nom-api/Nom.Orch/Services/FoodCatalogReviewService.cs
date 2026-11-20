@@ -30,6 +30,8 @@ namespace Nom.Orch.Services
         public const string FdcLinkField = "fdc_link";
         public const string FdcAttachField = "fdc_attach";
         public const string LabelNutritionField = "label_nutrition";
+        public const string FdcAttachChangeType = "FdcAttach";
+        public const string FdcAttachEntityType = "Ingredient";
 
         public FoodCatalogReviewService(ApplicationDbContext context, IFoodCatalogAuditService audit, ICatalogCleanupService cleanup)
         {
@@ -549,13 +551,21 @@ namespace Nom.Orch.Services
         /// Gives a catalog ingredient the USDA identity and values of the same-named food the
         /// importer found (carried in the proposal, source fdc:&lt;id&gt;). Only fills what is missing,
         /// and curates the food when the record is USDA Foundation or SR Legacy, as approving a link does.
+        /// Each nutrient row it adds carries the FDC id, a food that goes by another name than the
+        /// USDA description keeps that description as its <see cref="IngredientLinkService.UsdaDescriptionContext"/>
+        /// alias, and every column it sets is journaled in the audit log (change type
+        /// <see cref="FdcAttachChangeType"/>) with its old and new value, so the attach can be taken back.
         /// </summary>
         private async Task<bool> ApplyFdcAttachAsync(FoodCatalogProposalEntity p, long reviewerPersonId)
         {
             var ingredient = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == p.IngredientId!.Value && !i.IsDeleted);
             if (ingredient == null || string.IsNullOrWhiteSpace(p.ProposedValue) || string.IsNullOrWhiteSpace(p.FdcId)) return false;
             if (ingredient.FdcId != null && ingredient.FdcId != p.FdcId) return false;
+            if (await _context.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id != ingredient.Id && i.FdcId == p.FdcId)) return false;
 
+            var now = DateTime.UtcNow;
+            var before = (ingredient.FdcId, ingredient.FdcDataType, ingredient.CurationStatusId,
+                ingredient.ReferenceServingGrams, ingredient.GramsPerMilliliter, ingredient.GramsPerItem);
             using var doc = System.Text.Json.JsonDocument.Parse(p.ProposedValue);
             var root = doc.RootElement;
             var have = await _context.IngredientNutrients
@@ -566,15 +576,17 @@ namespace Nom.Orch.Services
             {
                 foreach (var f in facts.EnumerateArray())
                 {
-                    var nutrientId = f.GetProperty("nutrientId").GetInt64();
+                    var triple = f.ValueKind == System.Text.Json.JsonValueKind.Array;
+                    var nutrientId = triple ? f[0].GetInt64() : f.GetProperty("nutrientId").GetInt64();
                     if (have.Contains(nutrientId)) continue;
                     _context.IngredientNutrients.Add(new Nom.Data.Nutrient.IngredientNutrientEntity
                     {
                         IngredientId = ingredient.Id,
                         NutrientId = nutrientId,
-                        Amount = f.GetProperty("amount").GetDecimal(),
-                        MeasurementId = f.GetProperty("measurementId").GetInt64(),
-                        CreatedDate = DateTime.UtcNow,
+                        Amount = triple ? f[1].GetDecimal() : f.GetProperty("amount").GetDecimal(),
+                        MeasurementId = triple ? f[2].GetInt64() : f.GetProperty("measurementId").GetInt64(),
+                        FdcId = p.FdcId,
+                        CreatedDate = now,
                         CreatedByPersonId = reviewerPersonId,
                     });
                 }
@@ -591,8 +603,40 @@ namespace Nom.Orch.Services
                 ingredient.GramsPerMilliliter = gml.GetDecimal();
             if (ingredient.GramsPerItem == null && root.TryGetProperty("gramsPerItem", out var gpi) && gpi.ValueKind == System.Text.Json.JsonValueKind.Number)
                 ingredient.GramsPerItem = gpi.GetDecimal();
-            ingredient.LastModifiedDate = DateTime.UtcNow;
+            ingredient.LastModifiedDate = now;
             ingredient.LastModifiedByPersonId = reviewerPersonId;
+
+            void Journal(string property, string? oldValue, string? newValue)
+            {
+                if (oldValue == newValue) return;
+                _context.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+                {
+                    EntityType = FdcAttachEntityType,
+                    EntityId = ingredient.Id,
+                    ChangeType = FdcAttachChangeType,
+                    PropertyName = property,
+                    OldValue = oldValue,
+                    NewValue = newValue,
+                    Timestamp = now,
+                    ChangedByPersonId = reviewerPersonId,
+                });
+            }
+
+            static string? Text(decimal? value) => value?.ToString(CultureInfo.InvariantCulture);
+            Journal(nameof(ingredient.FdcId), before.FdcId, ingredient.FdcId);
+            Journal(nameof(ingredient.FdcDataType), before.FdcDataType, ingredient.FdcDataType);
+            Journal(nameof(ingredient.CurationStatusId), Text(before.CurationStatusId), Text(ingredient.CurationStatusId));
+            Journal(nameof(ingredient.ReferenceServingGrams), Text(before.ReferenceServingGrams), Text(ingredient.ReferenceServingGrams));
+            Journal(nameof(ingredient.GramsPerMilliliter), Text(before.GramsPerMilliliter), Text(ingredient.GramsPerMilliliter));
+            Journal(nameof(ingredient.GramsPerItem), Text(before.GramsPerItem), Text(ingredient.GramsPerItem));
+
+            if (root.TryGetProperty("description", out var described) && described.ValueKind == System.Text.Json.JsonValueKind.String
+                && described.GetString() is { Length: > 0 and <= 511 } description
+                && !string.Equals(description.Trim(), ingredient.Name.Trim(), StringComparison.OrdinalIgnoreCase)
+                && await AddAliasAsync(ingredient.Id, description, reviewerPersonId, IngredientLinkService.UsdaDescriptionContext))
+            {
+                Journal(nameof(ingredient.Aliases), null, description);
+            }
 
             if (_context.Database.IsRelational())
             {
@@ -602,21 +646,21 @@ namespace Nom.Orch.Services
             return true;
         }
 
-        private async Task AddAliasAsync(long ingredientId, string alias, long reviewerPersonId, string? sourceContext = null)
+        private async Task<bool> AddAliasAsync(long ingredientId, string alias, long reviewerPersonId, string? sourceContext = null)
         {
             var lowered = alias.ToLowerInvariant();
             var existing = _context.IngredientAliases.Local.FirstOrDefault(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered)
                 ?? await _context.IngredientAliases.FirstOrDefaultAsync(a => a.IngredientId == ingredientId && a.AliasName.ToLower() == lowered);
             if (existing != null)
             {
-                if (!existing.IsDeleted) return;
+                if (!existing.IsDeleted) return false;
                 existing.IsDeleted = false;
                 existing.DeletedAt = null;
                 existing.DeletedByPersonId = null;
                 existing.SourceContext = sourceContext;
                 existing.LastModifiedDate = DateTime.UtcNow;
                 existing.LastModifiedByPersonId = reviewerPersonId;
-                return;
+                return true;
             }
             _context.IngredientAliases.Add(new Nom.Data.Recipe.IngredientAliasEntity
             {
@@ -626,6 +670,7 @@ namespace Nom.Orch.Services
                 CreatedDate = DateTime.UtcNow,
                 CreatedByPersonId = reviewerPersonId,
             });
+            return true;
         }
 
         private static readonly System.Text.RegularExpressions.Regex PrepWords = new(

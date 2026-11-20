@@ -73,7 +73,7 @@ namespace Nom.Import.Services
                 { Reject(report, "description_missing"); continue; }
                 if (!nutrients.TryGetValue(fdcId, out var m)) { Reject(report, "nutrients_missing"); continue; }
 
-                var result = _validator.Validate(new FoodQualityInput(description, m.Kcal, m.Protein, m.Carb, m.Fat));
+                var result = _validator.Validate(new FoodQualityInput(description, m.Kcal, m.Protein, m.Carb, m.Fat, AlcoholGramsPer100g: m.Alcohol));
                 if (!result.Accepted)
                 {
                     report.Rejected++;

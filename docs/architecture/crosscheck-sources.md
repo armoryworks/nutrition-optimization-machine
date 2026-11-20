@@ -122,7 +122,9 @@ Left alone, with the reason:
 - `usa.fage`: certificate chain could not be verified, so `robots.txt` was unreadable.
 - Wine: winery pages state calories and carbohydrate per 5 fl oz with no gram weight, so no
   label can be rescaled to per 100 g. USDA SR Legacy 174837 ("Alcoholic beverage, wine,
-  table, white") is the per-weight source.
+  table, white") is the per-weight source: Dry White Wine (#164) takes it in place through
+  `--attach-fdc` (see `food-catalog-ingestion.md`), now that the quality gate counts
+  alcohol at 7 kcal/g.
 
 ## Recommended configuration
 

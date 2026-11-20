@@ -162,9 +162,43 @@ namespace Nom.Api.Tests.Services.Import
         [InlineData(FoodComponent.Copper, 370, "copper_impossible")]
         [InlineData(FoodComponent.Manganese, 269.1, "manganese_impossible")]
         [InlineData(FoodComponent.VitaminB12, -0.1, "vitamin_b12_negative")]
+        [InlineData(FoodComponent.Alcohol, 33.4, null)]
+        [InlineData(FoodComponent.Alcohol, 101, "alcohol_impossible")]
         public void CheckComponent_BoundsEachLabelNutrientAndItsParent(string key, double amount, string? expected)
         {
             _v.CheckComponent(key, (decimal)amount, fatGramsPer100g: 9.5m, carbGramsPer100g: 23m).Should().Be(expected);
+        }
+
+        [Fact]
+        public void Accepts_Wine_WhenItsAlcoholIsCounted()
+        {
+            var wine = new FoodQualityInput("Alcoholic beverage, wine, table, white", 82m, 0.07m, 2.6m, 0m, AlcoholGramsPer100g: 10.3m);
+            _v.Validate(wine).Accepted.Should().BeTrue();
+            _v.Validate(wine with { AlcoholGramsPer100g = null }).Reasons.Should().Equal("atwater_mismatch");
+            _v.Validate(wine with { AlcoholGramsPer100g = 0m }).Reasons.Should().Equal("atwater_mismatch");
+        }
+
+        [Fact]
+        public void Accepts_DistilledSpirit_WithNoMacros()
+        {
+            var spirit = new FoodQualityInput("Alcoholic beverage, distilled, all (gin, rum, vodka, whiskey) 80 proof", 231m, 0m, 0m, 0m, AlcoholGramsPer100g: 33.4m);
+            _v.Validate(spirit).Accepted.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Rejects_AtwaterMismatch_WhenAlcoholDoesNotExplainTheCalories()
+        {
+            var wine = new FoodQualityInput("Alcoholic beverage, wine, table, white", 300m, 0.07m, 2.6m, 0m, AlcoholGramsPer100g: 10.3m);
+            _v.Validate(wine).Reasons.Should().Equal("atwater_mismatch");
+        }
+
+        [Fact]
+        public void Rejects_ImpossibleAlcohol()
+        {
+            var wine = new FoodQualityInput("Alcoholic beverage, wine, table, white", 82m, 0.07m, 2.6m, 0m);
+            _v.Validate(wine with { AlcoholGramsPer100g = -1m }).Reasons.Should().Contain("alcohol_negative");
+            _v.Validate(wine with { AlcoholGramsPer100g = 120m }).Reasons.Should().Contain("alcohol_impossible");
+            _v.Validate(new FoodQualityInput("Liqueur", 600m, 40m, 40m, 0m, AlcoholGramsPer100g: 40m)).Reasons.Should().Contain("macro_sum_impossible");
         }
 
         [Fact]

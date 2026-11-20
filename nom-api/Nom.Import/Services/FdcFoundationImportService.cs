@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -7,11 +8,13 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
+using Nom.Data.Audit;
 using Nom.Data.Curation;
 using Nom.Data.Nutrient;
 using Nom.Data.Nutrition;
 using Nom.Data.Recipe;
 using Nom.Data.Reference;
+using Nom.Orch.Services;
 
 namespace Nom.Import.Services
 {
@@ -21,7 +24,13 @@ namespace Nom.Import.Services
     /// category (authoritative — far better than name keywords), and lands accepted foods as
     /// PendingCuration ingredients with per-100g macro nutrients. Idempotent by FdcId.
     /// Reports accepted/rejected so quality can be gauged in staging before touching prod.
-    /// Run: `dotnet run -- --import-fdc &lt;csv-dir&gt;`.
+    /// Run: `dotnet run -- --import-fdc &lt;csv-dir&gt; [--sr-legacy] [--curated] [--only &lt;ids-file&gt;] [--dry-run]`.
+    /// Everything one run writes shares one timestamp and is journaled in the audit log
+    /// (change type <see cref="ImportChangeType"/>), which <see cref="UndoImportAsync"/> reverses:
+    /// `--import-fdc --undo &lt;stamp&gt; [--dry-run]`.
+    /// <see cref="AttachAsync"/> gives a named catalog food a named USDA food in place:
+    /// `--attach-fdc &lt;csv-dir&gt; &lt;pairs.tsv&gt; [--sr-legacy] [--dry-run]`, reversed by
+    /// `--attach-fdc --undo &lt;pairs.tsv&gt; [--dry-run]`.
     /// </summary>
     public class FdcFoundationImportService
     {
@@ -31,6 +40,9 @@ namespace Nom.Import.Services
         public const string FoundationFood = "foundation_food";
         public const string AttachField = "fdc_attach";
         public const string SrLegacyFood = "sr_legacy_food";
+        public const string AttachBatch = "fdc-attach";
+        public const string ImportChangeType = "FdcImport";
+        public const string ImportEntityType = "Ingredient";
 
         private readonly ApplicationDbContext _db;
         private readonly ILogger<FdcFoundationImportService> _logger;
@@ -109,13 +121,22 @@ namespace Nom.Import.Services
         /// Which FDC data type to read from food.csv: <see cref="FoundationFood"/> (default) or
         /// <see cref="SrLegacyFood"/> (USDA Standard Reference — the generic staples recipes name).
         /// </param>
-        public async Task<ImportReport> ImportAsync(string csvDir, bool curated = false, CancellationToken ct = default, string dataType = FoundationFood)
+        /// <param name="onlyFdcIds">When given, only the foods with these FDC ids are read from the file.</param>
+        /// <param name="dryRun">Report what would be written without saving anything.</param>
+        public async Task<ImportReport> ImportAsync(string csvDir, bool curated = false, CancellationToken ct = default, string dataType = FoundationFood,
+            IReadOnlySet<string>? onlyFdcIds = null, bool dryRun = false)
         {
             var foodCsv = FindFile(csvDir, "food.csv");
             var nutrientCsv = FindFile(csvDir, "food_nutrient.csv");
 
             _logger.LogInformation("Reading foundation foods from {Dir}", csvDir);
             var foods = ReadFoods(foodCsv, dataType);                 // fdc_id → (desc, categoryId)
+            var listedNotInFile = new List<string>();
+            if (onlyFdcIds != null)
+            {
+                listedNotInFile.AddRange(onlyFdcIds.Where(id => !foods.ContainsKey(id)).OrderBy(id => id, StringComparer.Ordinal));
+                foods = foods.Where(f => onlyFdcIds.Contains(f.Key)).ToDictionary(f => f.Key, f => f.Value);
+            }
             var nutrients = FdcNutrients.Read(nutrientCsv, foods.Keys.ToHashSet());
 
             var portionRows = UsdaPortionFile.Read(TryFindFile(csvDir, "food_portion.csv"), foods.Keys.ToHashSet());
@@ -124,10 +145,11 @@ namespace Nom.Import.Services
             var itemWeights = ItemWeights(portionRows, foods);
             var targets = await FdcNutrients.ResolveAsync(_db, _logger, ct);
 
-            var existingByFdc = (await _db.Ingredients
-                .Where(i => i.FdcId != null).Select(i => new { i.Id, i.FdcId }).ToListAsync(ct))
+            var linked = await _db.Ingredients.IgnoreQueryFilters()
+                .Where(i => i.FdcId != null).Select(i => new { i.Id, i.FdcId, i.IsDeleted }).ToListAsync(ct);
+            var existingFdcIds = linked.Select(i => i.FdcId!).ToHashSet();
+            var existingByFdc = linked.Where(i => !i.IsDeleted)
                 .GroupBy(i => i.FdcId!).ToDictionary(g => g.Key, g => g.First().Id);
-            var existingFdcIds = existingByFdc.Keys.ToHashSet();
             // Ingredient.Name is unique — dedupe against existing names and within this run.
             var catalogByName = (await _db.Ingredients
                 .Where(i => !i.IsDeleted)
@@ -140,7 +162,9 @@ namespace Nom.Import.Services
                 .Select(p => p.IngredientId!.Value).ToListAsync(ct)).ToHashSet();
             var attach = new List<(long IngredientId, string FdcId, string Name, FdcFoodNutrients Nutrients, decimal? Serving, decimal? Density, decimal? Item)>();
 
-            var report = new ImportReport { TotalFoundation = foods.Count };
+            var now = new DateTime(DateTime.UtcNow.Ticks / 10 * 10, DateTimeKind.Utc);
+            var report = new ImportReport { TotalFoundation = foods.Count, DryRun = dryRun, RunStamp = now };
+            report.ListedNotInFile.AddRange(listedNotInFile);
             var pendingNutrition = new List<(IngredientEntity Ingredient, FdcFoodNutrients Nutrients)>();
 
             var backfill = new List<(long IngredientId, FdcFoodNutrients Nutrients)>();
@@ -150,13 +174,14 @@ namespace Nom.Import.Services
                 if (existingFdcIds.Contains(fdcId))
                 {
                     report.SkippedExisting++;
-                    if (nutrients.TryGetValue(fdcId, out var known)) backfill.Add((existingByFdc[fdcId], known));
+                    if (!existingByFdc.TryGetValue(fdcId, out var existingId)) report.SkippedRetired++;
+                    else if (nutrients.TryGetValue(fdcId, out var known)) backfill.Add((existingId, known));
                     continue;
                 }
                 if (!nutrients.TryGetValue(fdcId, out var m)) { report.RejectedByReason["nutrients_missing"] = report.RejectedByReason.GetValueOrDefault("nutrients_missing") + 1; report.Rejected++; continue; }
 
                 var result = _validator.Validate(new FoodQualityInput(
-                    food.Description, m.Kcal, m.Protein, m.Carb, m.Fat, UsedInSmallAmounts(food)));
+                    food.Description, m.Kcal, m.Protein, m.Carb, m.Fat, UsedInSmallAmounts(food), m.Alcohol));
                 if (!result.Accepted)
                 {
                     report.Rejected++;
@@ -194,10 +219,10 @@ namespace Nom.Import.Services
                     ReferenceServingGrams = portions.TryGetValue(fdcId, out var refGrams) ? refGrams : null,
                     GramsPerMilliliter = densities.TryGetValue(fdcId, out var density) ? density : null,
                     GramsPerItem = itemWeights.TryGetValue(fdcId, out var item) ? item : null,
-                    CreatedDate = DateTime.UtcNow,
+                    CreatedDate = now,
                 };
 
-                _db.Ingredients.Add(ingredient);
+                if (!dryRun) _db.Ingredients.Add(ingredient);
                 pendingNutrition.Add((ingredient, m));
                 if (ingredient.ReferenceServingGrams.HasValue) report.WithReferenceServing++;
                 if (ingredient.GramsPerMilliliter.HasValue) report.WithDensity++;
@@ -206,15 +231,22 @@ namespace Nom.Import.Services
                 if (group.HasValue) report.Classified++;
             }
 
+            await using var tx = !dryRun && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(ct) : null;
+
             // Phase 1: persist the ingredients so identity values exist.
-            await _db.SaveChangesAsync(ct);
+            if (!dryRun)
+            {
+                await _db.SaveChangesAsync(ct);
+                foreach (var (ing, _) in pendingNutrition)
+                    _db.AuditLogEntries.Add(Journal(ing.Id, nameof(IngredientEntity.FdcId), ing.FdcId, now));
+            }
 
             // Phase 2: attach per-100g nutrient facts against the now-known ingredient ids.
             // (FDC amounts are per 100 g; ReferenceServingGrams carries the standard portion when
             // known, and per-person scaling happens downstream in the portions engine.)
             foreach (var (ing, m) in pendingNutrition)
                 foreach (var (key, amount) in FdcNutrients.Accepted(m, _validator, r => CountDropped(report, r)))
-                    AddNutrient(ing.Id, targets, key, amount, ref report.NutrientRows);
+                    AddNutrient(ing.Id, targets, key, amount, now, dryRun, ref report.NutrientRows);
 
             if (backfill.Count > 0)
             {
@@ -226,9 +258,15 @@ namespace Nom.Import.Services
                     .ToListAsync(ct))
                     .Select(n => (n.IngredientId, n.NutrientId)).ToHashSet();
                 foreach (var (ingredientId, m) in backfill)
+                {
+                    var before = report.BackfilledNutrientRows;
                     foreach (var (key, amount) in FdcNutrients.Accepted(m, _validator, r => CountDropped(report, r)))
                         if (targets.TryGetValue(key, out var t) && !have.Contains((ingredientId, t.NutrientId)))
-                            AddNutrient(ingredientId, targets, key, amount, ref report.BackfilledNutrientRows);
+                            AddNutrient(ingredientId, targets, key, amount, now, dryRun, ref report.BackfilledNutrientRows);
+                    var added = report.BackfilledNutrientRows - before;
+                    if (added > 0 && !dryRun)
+                        _db.AuditLogEntries.Add(Journal(ingredientId, nameof(IngredientEntity.IngredientNutrients), added.ToString(CultureInfo.InvariantCulture), now));
+                }
             }
             var densityBackfill = existingByFdc
                 .Where(e => densities.ContainsKey(e.Key))
@@ -238,56 +276,448 @@ namespace Nom.Import.Services
                 var ids = densityBackfill.Keys.ToList();
                 foreach (var ing in await _db.Ingredients.Where(i => ids.Contains(i.Id) && i.GramsPerMilliliter == null).ToListAsync(ct))
                 {
-                    ing.GramsPerMilliliter = densityBackfill[ing.Id];
                     report.BackfilledDensities++;
+                    if (dryRun) continue;
+                    ing.GramsPerMilliliter = densityBackfill[ing.Id];
+                    _db.AuditLogEntries.Add(Journal(ing.Id, nameof(IngredientEntity.GramsPerMilliliter), densityBackfill[ing.Id].ToString(CultureInfo.InvariantCulture), now));
                 }
             }
 
             foreach (var (ingredientId, fdc, name, m, serving, density, item) in attach)
             {
-                var facts = new List<object>();
-                foreach (var (key, amount) in FdcNutrients.Accepted(m, _validator))
-                    if (targets.TryGetValue(key, out var t))
-                        facts.Add(new { nutrientId = t.NutrientId, amount, measurementId = t.MeasurementId });
-
-                _db.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
-                {
-                    Action = FoodProposalAction.Update,
-                    IngredientId = ingredientId,
-                    FdcId = fdc,
-                    Field = AttachField,
-                    CurrentValue = name,
-                    ProposedValue = System.Text.Json.JsonSerializer.Serialize(new { fdcDataType = dataType, referenceServingGrams = serving, gramsPerMilliliter = density, gramsPerItem = item, nutrients = facts }),
-                    Confidence = 1m,
-                    Reason = $"Same name as USDA {dataType} food {fdc}: attach its {facts.Count} nutrient values",
-                    Source = $"fdc:{fdc}",
-                    Batch = "fdc-attach",
-                    Status = FoodProposalStatus.Pending,
-                    CreatedDate = DateTime.UtcNow,
-                });
+                var proposal = AttachProposal(ingredientId, name, fdc, name, dataType, m, serving, density, item, targets, now,
+                    n => $"Same name as USDA {dataType} food {fdc}: attach its {n} nutrient values", out _);
+                if (!dryRun) _db.FoodCatalogProposals.Add(proposal);
                 report.AttachProposals++;
             }
-            await _db.SaveChangesAsync(ct);
-            _logger.LogInformation("FDC foundation import: {Accepted} accepted, {Rejected} rejected, {Skipped} existing.",
-                report.Accepted, report.Rejected, report.SkippedExisting);
+            if (!dryRun) await _db.SaveChangesAsync(ct);
+            if (tx != null) await tx.CommitAsync(ct);
+            _logger.LogInformation("FDC foundation import{DryRun}: {Accepted} accepted, {Rejected} rejected, {Skipped} existing.",
+                dryRun ? " (dry run)" : string.Empty, report.Accepted, report.Rejected, report.SkippedExisting);
             return report;
         }
 
+        /// <summary>
+        /// Takes back what the import run stamped <paramref name="stamp"/> wrote, from its audit
+        /// journal: a food it created is soft-deleted unless a recipe line already uses it, the
+        /// nutrient rows it added to an existing food are removed, a density it filled is cleared
+        /// when unchanged, and its attach proposals still pending are rejected. A retired food keeps
+        /// its FDC id, so a later import skips it as existing.
+        /// </summary>
+        /// <param name="dryRun">Report what would be undone without saving anything.</param>
+        public async Task<ImportUndoReport> UndoImportAsync(DateTime stamp, bool dryRun, CancellationToken ct = default)
+        {
+            var report = new ImportUndoReport { DryRun = dryRun, RunStamp = stamp };
+            var entries = await _db.AuditLogEntries
+                .Where(a => a.EntityType == ImportEntityType && a.ChangeType == ImportChangeType && a.Timestamp == stamp)
+                .OrderByDescending(a => a.Id)
+                .ToListAsync(ct);
+            var ids = entries.Select(e => e.EntityId).Distinct().ToList();
+            var foods = await _db.Ingredients.IgnoreQueryFilters().Where(i => ids.Contains(i.Id)).ToDictionaryAsync(i => i.Id, ct);
+            var inUse = (await _db.RecipeIngredients.Where(ri => ids.Contains(ri.IngredientId))
+                .Select(ri => ri.IngredientId).Distinct().ToListAsync(ct)).ToHashSet();
+            var now = DateTime.UtcNow;
+            var touched = new List<long>();
+
+            await using var tx = !dryRun && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(ct) : null;
+            foreach (var entry in entries)
+            {
+                ct.ThrowIfCancellationRequested();
+                if (!foods.TryGetValue(entry.EntityId, out var food)) { report.Skipped++; continue; }
+                if (entry.PropertyName == nameof(IngredientEntity.FdcId))
+                {
+                    if (food.IsDeleted || food.FdcId != entry.NewValue) { report.Skipped++; continue; }
+                    if (inUse.Contains(food.Id))
+                    {
+                        report.KeptInUse++;
+                        report.Lines.Add($"kept     #{food.Id} {food.Name}: a recipe line uses it");
+                        continue;
+                    }
+                    report.FoodsRetired++;
+                    if (dryRun) continue;
+                    food.IsDeleted = true;
+                    food.DeletedAt = now;
+                    food.DeletedByPersonId = SystemConstants.SystemPersonId;
+                    food.LastModifiedDate = now;
+                }
+                else if (entry.PropertyName == nameof(IngredientEntity.GramsPerMilliliter))
+                {
+                    if (!decimal.TryParse(entry.NewValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var filled) || food.GramsPerMilliliter != filled)
+                    {
+                        report.Skipped++;
+                        continue;
+                    }
+                    report.DensitiesCleared++;
+                    if (dryRun) continue;
+                    food.GramsPerMilliliter = null;
+                    food.LastModifiedDate = now;
+                    touched.Add(food.Id);
+                }
+                else if (entry.PropertyName == nameof(IngredientEntity.IngredientNutrients))
+                {
+                    var rows = await _db.Set<IngredientNutrientEntity>()
+                        .Where(n => n.IngredientId == food.Id && n.CreatedDate == stamp).ToListAsync(ct);
+                    report.NutrientRowsRemoved += rows.Count;
+                    if (dryRun) continue;
+                    _db.Set<IngredientNutrientEntity>().RemoveRange(rows);
+                    touched.Add(food.Id);
+                }
+                else
+                {
+                    report.Skipped++;
+                    continue;
+                }
+                _db.AuditLogEntries.Remove(entry);
+            }
+
+            var proposals = await _db.FoodCatalogProposals
+                .Where(p => p.Field == AttachField && p.Batch == AttachBatch && p.Status == FoodProposalStatus.Pending && p.CreatedDate == stamp)
+                .ToListAsync(ct);
+            report.ProposalsRejected = proposals.Count;
+            if (dryRun) return report;
+
+            Reject(proposals, now);
+            await _db.SaveChangesAsync(ct);
+            await TouchLinesAsync(touched, now, ct);
+            if (tx != null) await tx.CommitAsync(ct);
+            _logger.LogInformation("FDC import undo: {Foods} foods retired, {Rows} nutrient rows removed.", report.FoodsRetired, report.NutrientRowsRemoved);
+            return report;
+        }
+
+        /// <summary>One catalog food to give a USDA food to: its id, its name (which must match) and the FDC id.</summary>
+        public sealed record AttachRequest(long IngredientId, string Name, string FdcId);
+
+        /// <summary>
+        /// Reads the tab-separated pairs file of <see cref="AttachAsync"/>: a header row naming the
+        /// columns <c>ingredient_id</c>, <c>name</c> and <c>fdc_id</c>, then one food per row.
+        /// </summary>
+        public static List<AttachRequest> ReadAttachRequests(string path)
+        {
+            var lines = File.ReadAllLines(path).Where(l => l.Trim().Length > 0).ToList();
+            var requests = new List<AttachRequest>();
+            if (lines.Count < 2) return requests;
+
+            var header = lines[0].Split('\t').Select(h => h.Trim().ToLowerInvariant()).ToArray();
+            foreach (var line in lines.Skip(1))
+            {
+                var f = line.Split('\t');
+                string At(string column)
+                {
+                    var i = Array.IndexOf(header, column);
+                    return i >= 0 && i < f.Length ? f[i].Trim() : string.Empty;
+                }
+
+                if (!long.TryParse(At("ingredient_id"), NumberStyles.None, CultureInfo.InvariantCulture, out var id) || At("fdc_id").Length == 0) continue;
+                requests.Add(new AttachRequest(id, At("name"), At("fdc_id")));
+            }
+            return requests;
+        }
+
+        /// <summary>
+        /// Offers each named catalog food the identity and values of the USDA food named beside
+        /// it, as a pending <see cref="AttachField"/> proposal (source fdc:&lt;id&gt;) that the review
+        /// service applies in place: the food keeps its id, name and recipe lines. For a food
+        /// whose everyday name is not the USDA description ("Dry White Wine" for "Alcoholic
+        /// beverage, wine, table, white"). A request is passed over, with the reason counted, when
+        /// the food is missing or goes by another name, already has a USDA record, the FDC id is
+        /// held by or already offered to another food (retired ones included) or is not in the
+        /// file, a proposal is already waiting, or the USDA values fail
+        /// <see cref="FoodDataQualityValidator.Validate"/>.
+        /// </summary>
+        /// <param name="dryRun">Report what would be proposed without saving anything.</param>
+        public async Task<AttachReport> AttachAsync(string csvDir, IReadOnlyList<AttachRequest> requests, bool dryRun, CancellationToken ct = default, string dataType = FoundationFood)
+        {
+            var report = new AttachReport { DryRun = dryRun, Requests = requests.Count };
+            var fdcIds = requests.Select(r => r.FdcId).ToHashSet();
+            var foods = ReadFoods(FindFile(csvDir, "food.csv"), dataType)
+                .Where(f => fdcIds.Contains(f.Key)).ToDictionary(f => f.Key, f => f.Value);
+            var nutrients = FdcNutrients.Read(FindFile(csvDir, "food_nutrient.csv"), foods.Keys.ToHashSet());
+            var portionRows = UsdaPortionFile.Read(TryFindFile(csvDir, "food_portion.csv"), foods.Keys.ToHashSet());
+            var portions = ReferenceServings(portionRows);
+            var densities = Densities(portionRows);
+            var itemWeights = ItemWeights(portionRows, foods);
+            var targets = await FdcNutrients.ResolveAsync(_db, _logger, ct);
+            report.UnresolvedNutrients.AddRange(FdcNutrients.All.Select(s => s.Key).Where(k => !targets.ContainsKey(k)));
+
+            var ids = requests.Select(r => r.IngredientId).ToList();
+            var catalog = await _db.Ingredients.Where(i => ids.Contains(i.Id) && !i.IsDeleted).ToDictionaryAsync(i => i.Id, ct);
+            var pending = await _db.FoodCatalogProposals
+                .Where(p => p.Field == AttachField && p.Status == FoodProposalStatus.Pending && p.IngredientId != null
+                    && (ids.Contains(p.IngredientId.Value) || (p.FdcId != null && fdcIds.Contains(p.FdcId))))
+                .Select(p => new { IngredientId = p.IngredientId!.Value, p.FdcId }).ToListAsync(ct);
+            var waiting = pending.Select(p => p.IngredientId).ToHashSet();
+            var holders = (await _db.Ingredients.IgnoreQueryFilters()
+                .Where(i => i.FdcId != null && fdcIds.Contains(i.FdcId))
+                .Select(i => new { IngredientId = i.Id, i.FdcId }).ToListAsync(ct))
+                .Concat(pending.Where(p => p.FdcId != null))
+                .GroupBy(h => h.FdcId!).ToDictionary(g => g.Key, g => g.Select(h => h.IngredientId).ToHashSet());
+
+            var now = new DateTime(DateTime.UtcNow.Ticks / 10 * 10, DateTimeKind.Utc);
+            foreach (var request in requests)
+            {
+                ct.ThrowIfCancellationRequested();
+                void Skip(string reason)
+                {
+                    report.SkippedByReason[reason] = report.SkippedByReason.GetValueOrDefault(reason) + 1;
+                    report.Lines.Add($"skipped  #{request.IngredientId} {request.Name}: {reason}");
+                }
+
+                if (!catalog.TryGetValue(request.IngredientId, out var food)) { Skip("food_not_found"); continue; }
+                if (!string.Equals(food.Name.Trim(), request.Name.Trim(), StringComparison.OrdinalIgnoreCase)) { Skip("name_differs"); continue; }
+                if (food.FdcId == request.FdcId) { Skip("already_attached"); continue; }
+                if (food.FdcId != null) { Skip("has_usda_record"); continue; }
+                if (waiting.Contains(food.Id)) { Skip("already_proposed"); continue; }
+                if (holders.TryGetValue(request.FdcId, out var held) && held.Any(id => id != food.Id)) { Skip("fdc_id_taken"); continue; }
+                if (!foods.TryGetValue(request.FdcId, out var usda)) { Skip("fdc_food_not_in_file"); continue; }
+                if (!nutrients.TryGetValue(request.FdcId, out var m)) { Skip("nutrients_missing"); continue; }
+                var verdict = _validator.Validate(new FoodQualityInput(
+                    usda.Description, m.Kcal, m.Protein, m.Carb, m.Fat, UsedInSmallAmounts(usda), m.Alcohol));
+                if (!verdict.Accepted) { Skip(string.Join("+", verdict.Reasons)); continue; }
+
+                decimal? serving = portions.TryGetValue(request.FdcId, out var sg) ? sg : null;
+                decimal? density = densities.TryGetValue(request.FdcId, out var sd) ? sd : null;
+                decimal? item = itemWeights.TryGetValue(request.FdcId, out var si) ? si : null;
+                var proposal = AttachProposal(food.Id, food.Name, request.FdcId, usda.Description, dataType, m, serving, density, item, targets, now,
+                    n => $"Named by the operator: USDA {dataType} food {request.FdcId} ({usda.Description}): attach its {n} nutrient values", out var values);
+                waiting.Add(food.Id);
+                holders[request.FdcId] = new HashSet<long> { food.Id };
+                report.Proposals++;
+                report.Lines.Add($"attach   #{food.Id} {food.Name} <- fdc:{request.FdcId} {usda.Description}: {values} values"
+                    + (density != null ? $", {density} g/ml" : string.Empty)
+                    + (item != null ? $", {item} g each" : string.Empty)
+                    + (serving != null ? $", serving {serving} g" : string.Empty));
+                if (!dryRun) _db.FoodCatalogProposals.Add(proposal);
+            }
+
+            if (!dryRun) await _db.SaveChangesAsync(ct);
+            _logger.LogInformation("FDC attach{DryRun}: {Proposals} proposals for {Requests} requests.",
+                dryRun ? " (dry run)" : string.Empty, report.Proposals, report.Requests);
+            return report;
+        }
+
+        /// <summary>
+        /// Takes back the attach of each named pair. An applied one is reversed from the audit
+        /// journal the review service wrote (change type
+        /// <see cref="FoodCatalogReviewService.FdcAttachChangeType"/>): every column the attach set
+        /// goes back to its old value when it is unchanged since, the nutrient rows stamped with
+        /// the FDC id and the USDA description alias are removed, the proposal is marked rejected
+        /// and the food's recipe lines are marked changed. A proposal still pending is rejected.
+        /// </summary>
+        /// <param name="dryRun">Report what would be undone without saving anything.</param>
+        public async Task<AttachReport> UndoAttachAsync(IReadOnlyList<AttachRequest> requests, bool dryRun, CancellationToken ct = default)
+        {
+            var report = new AttachReport { DryRun = dryRun, Requests = requests.Count };
+            var ids = requests.Select(r => r.IngredientId).ToList();
+            var catalog = await _db.Ingredients.Where(i => ids.Contains(i.Id) && !i.IsDeleted).ToDictionaryAsync(i => i.Id, ct);
+            var journal = (await _db.AuditLogEntries
+                .Where(a => a.EntityType == FoodCatalogReviewService.FdcAttachEntityType
+                    && a.ChangeType == FoodCatalogReviewService.FdcAttachChangeType && ids.Contains(a.EntityId))
+                .OrderByDescending(a => a.Id)
+                .ToListAsync(ct))
+                .ToLookup(a => a.EntityId);
+            var proposals = (await _db.FoodCatalogProposals
+                .Where(p => p.Field == AttachField && p.IngredientId != null && ids.Contains(p.IngredientId.Value)
+                    && (p.Status == FoodProposalStatus.Pending || p.Status == FoodProposalStatus.Applied))
+                .ToListAsync(ct))
+                .ToLookup(p => (p.IngredientId!.Value, p.FdcId));
+            var now = DateTime.UtcNow;
+            var touched = new List<long>();
+
+            await using var tx = !dryRun && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(ct) : null;
+            foreach (var request in requests)
+            {
+                ct.ThrowIfCancellationRequested();
+                void Skip(string reason)
+                {
+                    report.SkippedByReason[reason] = report.SkippedByReason.GetValueOrDefault(reason) + 1;
+                    report.Lines.Add($"skipped  #{request.IngredientId} {request.Name}: {reason}");
+                }
+
+                if (!catalog.TryGetValue(request.IngredientId, out var food)) { Skip("food_not_found"); continue; }
+                if (!string.Equals(food.Name.Trim(), request.Name.Trim(), StringComparison.OrdinalIgnoreCase)) { Skip("name_differs"); continue; }
+                var mine = proposals[(food.Id, (string?)request.FdcId)].ToList();
+                if (food.FdcId != request.FdcId)
+                {
+                    var waiting = mine.Where(p => p.Status == FoodProposalStatus.Pending).ToList();
+                    if (waiting.Count == 0) { Skip("not_attached"); continue; }
+                    report.Undone++;
+                    report.Lines.Add($"rejected #{food.Id} {food.Name}: the pending proposal for fdc:{request.FdcId}");
+                    if (!dryRun) Reject(waiting, now);
+                    continue;
+                }
+                var entries = journal[food.Id].ToList();
+                if (!entries.Any(e => e.PropertyName == nameof(IngredientEntity.FdcId) && e.NewValue == request.FdcId)) { Skip("not_journaled"); continue; }
+
+                var rows = await _db.Set<IngredientNutrientEntity>()
+                    .Where(n => n.IngredientId == food.Id && n.FdcId == request.FdcId).ToListAsync(ct);
+                var restored = new List<string>();
+                foreach (var entry in entries)
+                {
+                    if (entry.PropertyName == nameof(IngredientEntity.Aliases))
+                    {
+                        var alias = await _db.IngredientAliases.FirstOrDefaultAsync(a => a.IngredientId == food.Id
+                            && a.AliasName == entry.NewValue && a.SourceContext == IngredientLinkService.UsdaDescriptionContext, ct);
+                        if (alias == null) continue;
+                        restored.Add(entry.PropertyName);
+                        if (!dryRun) _db.IngredientAliases.Remove(alias);
+                    }
+                    else if (Restore(food, entry, dryRun))
+                    {
+                        restored.Add(entry.PropertyName!);
+                    }
+                }
+
+                report.Undone++;
+                report.Lines.Add($"undone   #{food.Id} {food.Name}: fdc:{request.FdcId} detached, {rows.Count} values removed, restored {string.Join(", ", restored)}");
+                if (dryRun) continue;
+
+                _db.Set<IngredientNutrientEntity>().RemoveRange(rows);
+                _db.AuditLogEntries.RemoveRange(entries);
+                Reject(mine, now);
+                food.LastModifiedDate = now;
+                touched.Add(food.Id);
+            }
+
+            if (dryRun) return report;
+            await _db.SaveChangesAsync(ct);
+            await TouchLinesAsync(touched, now, ct);
+            if (tx != null) await tx.CommitAsync(ct);
+            _logger.LogInformation("FDC attach undo: {Undone} of {Requests} requests.", report.Undone, report.Requests);
+            return report;
+        }
+
+        private static void Reject(IEnumerable<FoodCatalogProposalEntity> proposals, DateTime now)
+        {
+            foreach (var p in proposals)
+            {
+                p.Status = FoodProposalStatus.Rejected;
+                p.ReviewedByPersonId = SystemConstants.SystemPersonId;
+                p.ReviewedAt = now;
+                p.LastModifiedDate = now;
+            }
+        }
+
+        /// <summary>
+        /// Puts one journaled column of a food back to its old value. False when the column no
+        /// longer holds the value the attach gave it, so a later edit is never overwritten.
+        /// </summary>
+        private static bool Restore(IngredientEntity food, AuditLogEntryEntity entry, bool dryRun)
+        {
+            static decimal? Number(string? value) =>
+                decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var n) ? n : null;
+
+            switch (entry.PropertyName)
+            {
+                case nameof(IngredientEntity.FdcId):
+                    if (food.FdcId != entry.NewValue) return false;
+                    if (!dryRun) food.FdcId = entry.OldValue;
+                    return true;
+                case nameof(IngredientEntity.FdcDataType):
+                    if (food.FdcDataType != entry.NewValue) return false;
+                    if (!dryRun) food.FdcDataType = entry.OldValue ?? string.Empty;
+                    return true;
+                case nameof(IngredientEntity.CurationStatusId):
+                    if (!long.TryParse(entry.OldValue, NumberStyles.None, CultureInfo.InvariantCulture, out var status)
+                        || food.CurationStatusId.ToString(CultureInfo.InvariantCulture) != entry.NewValue) return false;
+                    if (!dryRun) food.CurationStatusId = status;
+                    return true;
+                case nameof(IngredientEntity.ReferenceServingGrams):
+                    if (food.ReferenceServingGrams != Number(entry.NewValue)) return false;
+                    if (!dryRun) food.ReferenceServingGrams = Number(entry.OldValue);
+                    return true;
+                case nameof(IngredientEntity.GramsPerMilliliter):
+                    if (food.GramsPerMilliliter != Number(entry.NewValue)) return false;
+                    if (!dryRun) food.GramsPerMilliliter = Number(entry.OldValue);
+                    return true;
+                case nameof(IngredientEntity.GramsPerItem):
+                    if (food.GramsPerItem != Number(entry.NewValue)) return false;
+                    if (!dryRun) food.GramsPerItem = Number(entry.OldValue);
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// The pending proposal that carries one USDA food's identity and values to a catalog food.
+        /// Each nutrient is a [nutrientId, amount, measurementId] triple, which keeps a food with
+        /// every stored nutrient inside the proposal column.
+        /// </summary>
+        private FoodCatalogProposalEntity AttachProposal(
+            long ingredientId, string currentName, string fdcId, string description, string dataType, FdcFoodNutrients m,
+            decimal? serving, decimal? density, decimal? item, Dictionary<string, FdcNutrients.Target> targets, DateTime now,
+            Func<int, string> reason, out int values)
+        {
+            var facts = new List<decimal[]>();
+            foreach (var (key, amount) in FdcNutrients.Accepted(m, _validator))
+                if (targets.TryGetValue(key, out var t))
+                    facts.Add(new[] { t.NutrientId, amount, t.MeasurementId });
+
+            values = facts.Count;
+            return new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update,
+                IngredientId = ingredientId,
+                FdcId = fdcId,
+                Field = AttachField,
+                CurrentValue = currentName,
+                ProposedValue = System.Text.Json.JsonSerializer.Serialize(new { fdcDataType = dataType, description, referenceServingGrams = serving, gramsPerMilliliter = density, gramsPerItem = item, nutrients = facts }),
+                Confidence = 1m,
+                Reason = reason(facts.Count),
+                Source = $"fdc:{fdcId}",
+                Batch = AttachBatch,
+                Status = FoodProposalStatus.Pending,
+                CreatedDate = now,
+            };
+        }
+
+        private static AuditLogEntryEntity Journal(long ingredientId, string property, string? value, DateTime at) => new()
+        {
+            EntityType = ImportEntityType,
+            EntityId = ingredientId,
+            ChangeType = ImportChangeType,
+            PropertyName = property,
+            OldValue = null,
+            NewValue = value,
+            Timestamp = at,
+            ChangedByPersonId = SystemConstants.SystemPersonId,
+        };
+
+        /// <summary>
+        /// Marks the recipe lines of the given foods as changed, so the API's nutrition sweep
+        /// recalculates the labels those lines count toward.
+        /// </summary>
+        private async Task TouchLinesAsync(List<long> ingredientIds, DateTime now, CancellationToken ct)
+        {
+            if (ingredientIds.Count == 0) return;
+            if (_db.Database.IsRelational())
+            {
+                await _db.RecipeIngredients.Where(ri => ingredientIds.Contains(ri.IngredientId))
+                    .ExecuteUpdateAsync(u => u.SetProperty(ri => ri.LastModifiedDate, now), ct);
+                return;
+            }
+            foreach (var line in await _db.RecipeIngredients.Where(ri => ingredientIds.Contains(ri.IngredientId)).ToListAsync(ct))
+            {
+                line.LastModifiedDate = now;
+            }
+            await _db.SaveChangesAsync(ct);
+        }
 
         private void AddNutrient(
             long ingredientId, Dictionary<string, FdcNutrients.Target> targets, string key,
-            decimal amount, ref int counter)
+            decimal amount, DateTime now, bool dryRun, ref int counter)
         {
             if (!targets.TryGetValue(key, out var target)) return;
+            counter++;
+            if (dryRun) return;
             _db.Set<IngredientNutrientEntity>().Add(new IngredientNutrientEntity
             {
                 IngredientId = ingredientId,
                 NutrientId = target.NutrientId,
                 Amount = amount,
                 MeasurementId = target.MeasurementId,
-                CreatedDate = DateTime.UtcNow,
+                CreatedDate = now,
             });
-            counter++;
         }
 
         private static void CountDropped(ImportReport report, string reason) =>
@@ -370,11 +800,14 @@ namespace Nom.Import.Services
 
         public sealed class ImportReport
         {
+            public bool DryRun { get; set; }
+            public DateTime RunStamp { get; set; }
             public int TotalFoundation { get; set; }
             public int Accepted { get; set; }
             public int Classified { get; set; }
             public int Rejected { get; set; }
             public int SkippedExisting { get; set; }
+            public int SkippedRetired { get; set; }
             public int SkippedDuplicateName { get; set; }
             public int WithReferenceServing { get; set; }
             public int WithDensity { get; set; }
@@ -384,6 +817,31 @@ namespace Nom.Import.Services
             public int AttachProposals { get; set; }
             public Dictionary<string, int> RejectedByReason { get; } = new();
             public Dictionary<string, int> DroppedValuesByReason { get; } = new();
+            public List<string> ListedNotInFile { get; } = new();
+        }
+
+        public sealed class ImportUndoReport
+        {
+            public bool DryRun { get; set; }
+            public DateTime RunStamp { get; set; }
+            public int FoodsRetired { get; set; }
+            public int KeptInUse { get; set; }
+            public int NutrientRowsRemoved { get; set; }
+            public int DensitiesCleared { get; set; }
+            public int ProposalsRejected { get; set; }
+            public int Skipped { get; set; }
+            public List<string> Lines { get; } = new();
+        }
+
+        public sealed class AttachReport
+        {
+            public bool DryRun { get; set; }
+            public int Requests { get; set; }
+            public int Proposals { get; set; }
+            public int Undone { get; set; }
+            public Dictionary<string, int> SkippedByReason { get; } = new();
+            public List<string> Lines { get; } = new();
+            public List<string> UnresolvedNutrients { get; } = new();
         }
     }
 }

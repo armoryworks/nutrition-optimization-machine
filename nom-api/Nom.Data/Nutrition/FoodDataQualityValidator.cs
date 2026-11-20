@@ -9,6 +9,8 @@ namespace Nom.Data.Nutrition
     /// caloric need (like portions), so it is intentionally NOT part of quality validation.
     /// <see cref="UsedInSmallAmounts"/> marks seasonings and leaveners (by source category), whose
     /// energy is negligible in a dish and whose fiber, acids and alcohol defeat the Atwater check.
+    /// <see cref="AlcoholGramsPer100g"/> is the ethanol the source reports (USDA or a label); it
+    /// counts toward the macro sum and the Atwater energy, and a food without it is judged as before.
     /// </summary>
     public sealed record FoodQualityInput(
         string? Name,
@@ -16,7 +18,8 @@ namespace Nom.Data.Nutrition
         decimal? ProteinGramsPer100g,
         decimal? CarbGramsPer100g,
         decimal? FatGramsPer100g,
-        bool UsedInSmallAmounts = false);
+        bool UsedInSmallAmounts = false,
+        decimal? AlcoholGramsPer100g = null);
 
     /// <summary>
     /// Keys for the label nutrients beyond the four macros and for the vitamins and minerals
@@ -24,7 +27,7 @@ namespace Nom.Data.Nutrition
     /// <see cref="FoodDataQualityValidator.CheckComponent"/>. Amounts are per 100 g in the
     /// unit FDA labels use: grams, milligrams (cholesterol, sodium, calcium, iron, potassium,
     /// vitamin C, the B vitamins, most minerals) or micrograms (vitamins A, D, K and B12,
-    /// folate, biotin, iodine, selenium, chromium, molybdenum).
+    /// folate, biotin, iodine, selenium, chromium, molybdenum). Alcohol is ethanol in grams.
     /// </summary>
     public static class FoodComponent
     {
@@ -62,6 +65,7 @@ namespace Nom.Data.Nutrition
         public const string Chromium = "chromium";
         public const string Molybdenum = "molybdenum";
         public const string Chloride = "chloride";
+        public const string Alcohol = "alcohol";
     }
 
     /// <summary>Outcome of quality validation; <see cref="Reasons"/> lists every failed check.</summary>
@@ -87,16 +91,20 @@ namespace Nom.Data.Nutrition
         /// <summary>A single macro can't exceed 100 g per 100 g of food.</summary>
         public decimal MaxMacroGramsPer100g { get; init; } = 100m;
 
-        /// <summary>Protein+carb+fat can't meaningfully exceed 100 g/100g (small slack for rounding).</summary>
+        /// <summary>Protein+carb+fat+alcohol can't meaningfully exceed 100 g/100g (small slack for rounding).</summary>
         public decimal MaxMacroSumPer100g { get; init; } = 105m;
 
         public int MaxNameLength { get; init; } = 200;
 
         /// <summary>
-        /// Atwater cross-check tolerance: 4·protein + 4·carb + 9·fat should land within this
-        /// fraction of the stated calories. Loose (±30%) because fiber/alcohol/rounding shift it.
+        /// Atwater cross-check tolerance: 4·protein + 4·carb + 9·fat, plus
+        /// <see cref="AlcoholKcalPerGram"/>·alcohol when the source reports alcohol, should land
+        /// within this fraction of the stated calories. Loose (±30%) because fiber/rounding shift it.
         /// </summary>
         public decimal AtwaterTolerance { get; init; } = 0.30m;
+
+        /// <summary>Energy of ethanol in the Atwater cross-check: 7 kcal per gram.</summary>
+        public decimal AlcoholKcalPerGram { get; init; } = 7m;
 
         /// <summary>
         /// When both the stated and the macro-implied energy are below this many kcal the Atwater
@@ -155,6 +163,7 @@ namespace Nom.Data.Nutrition
             [FoodComponent.Chromium] = 5000m,
             [FoodComponent.Molybdenum] = 5000m,
             [FoodComponent.Chloride] = 62000m,
+            [FoodComponent.Alcohol] = 100m,
         };
 
         /// <summary>
@@ -216,10 +225,16 @@ namespace Nom.Data.Nutrition
             CheckMacro("protein", f.ProteinGramsPer100g, reasons);
             CheckMacro("carb", f.CarbGramsPer100g, reasons);
             CheckMacro("fat", f.FatGramsPer100g, reasons);
+            if (f.AlcoholGramsPer100g is { } stated)
+            {
+                if (stated < 0) reasons.Add("alcohol_negative");
+                else if (stated > MaxMacroGramsPer100g) reasons.Add("alcohol_impossible");
+            }
+            var alcohol = f.AlcoholGramsPer100g is { } grams && grams > 0 ? grams : 0m;
 
             // Macro sum sanity
             if (f.ProteinGramsPer100g is { } p && f.CarbGramsPer100g is { } c && f.FatGramsPer100g is { } fat
-                && p >= 0 && c >= 0 && fat >= 0 && (p + c + fat) > MaxMacroSumPer100g)
+                && p >= 0 && c >= 0 && fat >= 0 && (p + c + fat + alcohol) > MaxMacroSumPer100g)
                 reasons.Add("macro_sum_impossible");
 
             // Atwater cross-check (only when we have all macros + a usable calorie figure)
@@ -227,7 +242,7 @@ namespace Nom.Data.Nutrition
                 && f.ProteinGramsPer100g is { } pr && f.CarbGramsPer100g is { } cb && f.FatGramsPer100g is { } ft
                 && pr >= 0 && cb >= 0 && ft >= 0)
             {
-                var computed = (4m * pr) + (4m * cb) + (9m * ft);
+                var computed = (4m * pr) + (4m * cb) + (9m * ft) + (AlcoholKcalPerGram * alcohol);
                 var low = k * (1m - AtwaterTolerance);
                 var high = k * (1m + AtwaterTolerance);
                 var acidic = computed > high && IsAcidicFood(name);
