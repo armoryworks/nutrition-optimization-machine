@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Nom.Data;
 using Nom.Data.Nutrient;
+using Nom.Data.Nutrition;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
@@ -145,6 +146,22 @@ namespace Nom.Api.Tests.Services
 
             result.Problems.Select(p => (p.Wording, p.Reason)).Should().Equal(("butcher's meat", VerifiedWordingService.TargetNotCurated));
             (await db.Ingredients.SingleAsync(i => i.Id == 920)).CurationStatusId.Should().Be((long)CurationStatusEnum.Rejected);
+        }
+
+        [Fact]
+        public async Task A_food_the_admission_rule_holds_is_never_promoted_to_carry_a_wording()
+        {
+            using var db = NewContext();
+            await SeedAsync(db);
+            var baobab = Food(921, "Baobab powder", "167806", status: CurationStatusEnum.PendingCuration);
+            baobab.AdmissionReason = EnergyCheckOutcome.Mismatch;
+            db.Ingredients.Add(baobab);
+            await db.SaveChangesAsync();
+
+            var result = await Service(db).LoadAsync(new List<VerifiedWordingRow> { Row("baobab", "food", fdcId: "167806") }, Batch, apply: true);
+
+            result.Problems.Select(p => (p.Wording, p.Reason)).Should().Equal(("baobab", VerifiedWordingService.TargetNotCurated));
+            (await db.Ingredients.SingleAsync(i => i.Id == 921)).CurationStatusId.Should().Be((long)CurationStatusEnum.PendingCuration);
         }
 
         [Fact]

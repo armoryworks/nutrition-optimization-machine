@@ -105,7 +105,7 @@ namespace Nom.Import.Services
                 var carb = Known(FdcNutrients.Carb);
                 var fat = Known(FdcNutrients.Fat);
                 var macroProblems = kcal != null && protein != null && carb != null && fat != null
-                    ? _validator.Validate(new FoodQualityInput(food.Name, kcal, protein, carb, fat, AlcoholGramsPer100g: Known(FoodComponent.Alcohol))).Reasons
+                    ? _validator.Validate(new FoodQualityInput(food.Name, kcal, protein, carb, fat, AlcoholGramsPer100g: Known(FoodComponent.Alcohol), FiberGramsPer100g: Known(FoodComponent.Fiber))).Reasons
                     : OutOfRange(kcal, protein, carb, fat);
                 if (macroProblems.Count > 0) { Skip(string.Join("+", macroProblems)); continue; }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Nom.Data.Audit;
 using Nom.Data.Recipe;
 using Nom.Data.Reference;
 
@@ -34,20 +35,28 @@ namespace Nom.Data.Nutrition
     /// The deterministic rule that stands in for an admin's look at a USDA food, with no model.
     /// Foundation and SR Legacy foods in an admitted category that pass plausibility and USDA's own
     /// energy check, and whose name no other curated food holds, land as Curated. Foods in Baby
-    /// Foods, Fast Foods, Meals, Entrees and Side Dishes, and Restaurant Foods land as Rejected.
-    /// Anything else stays PendingCuration with its reasons. Branded foods always stay pending,
+    /// Foods, Fast Foods, Meals, Entrees and Side Dishes, and Restaurant Foods are held
+    /// PendingCuration with a <see cref="PreparedCategoryPrefix"/> reason until those prepared foods
+    /// have a place of their own. Anything else that fails a check stays PendingCuration with its reasons. Branded foods always stay pending,
     /// awaiting a second independent source. The food group and edibility come from the USDA
     /// category only, never from a name: a category that is mixed or belongs to no group gives none.
     /// </summary>
     public static class CatalogAdmissionRule
     {
         public const string Version = "catalog-admission/1";
+
+        /// <summary>
+        /// The audit change type of a food group or edibility set from the USDA category, by the
+        /// admission pass, the enrichment step or the auto-classify endpoint; `--admit --undo` takes
+        /// back every such row of one stamp.
+        /// </summary>
+        public const string GroupChangeType = "GroupFromCategory";
         public const string FoundationFood = "foundation_food";
         public const string SrLegacyFood = "sr_legacy_food";
         public const string BrandedFood = "branded_food";
 
         public const string CategoryMissing = "category_missing";
-        public const string CategoryReasonPrefix = "category:";
+        public const string PreparedCategoryPrefix = "prepared_category:";
         public const string CategoryNotAdmittedPrefix = "category_not_admitted:";
         public const string DuplicatePrefix = "duplicate_of:#";
         public const string AwaitingSecondSource = "awaiting_second_source";
@@ -87,10 +96,10 @@ namespace Nom.Data.Nutrition
         };
 
         /// <summary>
-        /// USDA food categories whose foods are rejected by rule: prepared, often branded dishes that
-        /// recipes do not name and that model link pickers chose wrongly.
+        /// USDA food categories of prepared, often branded dishes that recipes do not name and that
+        /// model link pickers chose wrongly. Their foods are held by rule, never curated or rejected by it.
         /// </summary>
-        public static readonly IReadOnlyDictionary<int, string> RejectedCategories = new Dictionary<int, string>
+        public static readonly IReadOnlyDictionary<int, string> PreparedCategories = new Dictionary<int, string>
         {
             [3] = "Baby Foods",
             [21] = "Fast Foods",
@@ -134,6 +143,22 @@ namespace Nom.Data.Nutrition
 
         private static readonly FoodDataQualityValidator DefaultValidator = new();
 
+        /// <summary>
+        /// The journal row of one food group or edibility value set from the category, under
+        /// <see cref="GroupChangeType"/> with the run's stamp.
+        /// </summary>
+        public static AuditLogEntryEntity GroupJournal(long foodId, string property, string? old, string? value, long personId, DateTime stamp) => new()
+        {
+            EntityType = "Ingredient",
+            EntityId = foodId,
+            ChangeType = GroupChangeType,
+            PropertyName = property,
+            OldValue = old,
+            NewValue = value,
+            Timestamp = stamp,
+            ChangedByPersonId = personId,
+        };
+
         /// <summary>Whether a USDA data type is one the rule can curate (USDA-authored numbers).</summary>
         public static bool IsUsdaAuthored(string? dataType) => dataType is FoundationFood or SrLegacyFood;
 
@@ -170,8 +195,8 @@ namespace Nom.Data.Nutrition
             kcal == 0m && !ZeroEnergyCategoryMarkers.Any(m => (category ?? string.Empty).Contains(m, StringComparison.OrdinalIgnoreCase));
 
         /// <summary>
-        /// Judges one food: Rejected for a rejected USDA category, otherwise Curated when every
-        /// check passes and PendingCuration with the failed checks as reasons when one does not.
+        /// Judges one food: Curated when every check passes, otherwise PendingCuration with the
+        /// failed checks as reasons, a prepared-food category first. The rule never rejects a food.
         /// </summary>
         public static AdmissionDecision Decide(AdmissionFacts facts, FoodDataQualityValidator? validator = null)
         {
@@ -182,13 +207,12 @@ namespace Nom.Data.Nutrition
             var energy = validator.CheckEnergy(nutrition);
             var reasons = new List<string>();
 
-            if (IsUsdaAuthored(facts.DataType) && facts.CategoryId is int rejected && RejectedCategories.TryGetValue(rejected, out var rejectedName))
-                return new AdmissionDecision((long)CurationStatusEnum.Rejected, group, edible, energy, new[] { CategoryReasonPrefix + rejectedName });
-
             if (!IsUsdaAuthored(facts.DataType))
                 reasons.Add(facts.DataType == BrandedFood ? AwaitingSecondSource : SourceNotAdmitted);
             else if (facts.CategoryId is not int category)
                 reasons.Add(CategoryMissing);
+            else if (PreparedCategories.TryGetValue(category, out var prepared))
+                reasons.Add(PreparedCategoryPrefix + prepared);
             else if (!CategoryToGroup.ContainsKey(category))
                 reasons.Add(CategoryNotAdmittedPrefix + category.ToString(System.Globalization.CultureInfo.InvariantCulture));
 

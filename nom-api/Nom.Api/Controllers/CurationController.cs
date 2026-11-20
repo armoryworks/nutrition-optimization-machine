@@ -99,7 +99,7 @@ namespace Nom.Api.Controllers
         [Authorize(Policy = "CanManageCuration")]
         public async Task<IActionResult> AutoClassifyFoodGroups([FromQuery] bool overwrite = false)
         {
-            var count = await _curationOrch.AutoClassifyFoodGroupsAsync(overwrite);
+            var count = await _curationOrch.AutoClassifyFoodGroupsAsync(overwrite, GetCurrentPersonIdRequired());
             return Ok(new { classified = count });
         }
     }

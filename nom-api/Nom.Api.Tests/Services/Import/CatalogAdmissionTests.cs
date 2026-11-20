@@ -23,9 +23,10 @@ namespace Nom.Api.Tests.Services.Import
 {
     /// <summary>
     /// The catalog admission pass (`--admit`) over USDA foods already in the catalog, and the
-    /// importers that apply the same rule as they create foods: SR Legacy facts from the 2018-04
-    /// release, admitted, rejected by category, regrouped from the category alone, journaled,
-    /// undone, and stopped by its own gates before it writes.
+    /// importers that store the same rule's verdict as they create foods: SR Legacy facts from the
+    /// 2018-04 release, admitted, held (prepared foods included), regrouped from the category alone,
+    /// journaled, undone (the undo journaled and undone in turn), and stopped by its own gates
+    /// before it writes.
     /// </summary>
     public class CatalogAdmissionTests : IDisposable
     {
@@ -164,11 +165,11 @@ namespace Nom.Api.Tests.Services.Import
 
             report.Stopped.Should().BeEmpty();
             report.Admitted.Should().Be(2, "Gamay and vodka pass every check");
-            report.Rejected.Should().Be(1);
-            report.RejectedByReason.Should().Equal(new Dictionary<string, int> { ["category:Fast Foods"] = 1 });
+            report.Held.Should().Be(1);
+            report.HeldByReason.Should().Equal(new Dictionary<string, int> { ["prepared_category:Fast Foods"] = 1 });
             report.KeptCurated.Should().Be(1, "curated applesauce sits in Baby Foods but the pass never demotes a curated food");
             report.GroupMoves.Should().ContainKey("Vegetables -> none").WhoseValue.Should().Be(1);
-            report.PicksWithdrawn.Should().Be(1);
+            report.PicksWithdrawn.Should().Be(0, "a held food's picks stay open; the rule rejects nothing");
             report.DescriptionsAdded.Should().Be(5);
             report.EnergyPassRate.Should().Be(1m);
             report.CategoryMissing.Should().Be(0);
@@ -179,7 +180,7 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
-        public async Task An_apply_admits_rejects_regroups_and_journals_every_change_under_one_stamp()
+        public async Task An_apply_admits_holds_prepared_food_regroups_and_journals_every_change_under_one_stamp()
         {
             using var db = NewContext();
             var s = Seed(db);
@@ -197,29 +198,48 @@ namespace Nom.Api.Tests.Services.Import
             gamay.AdmissionReason.Should().BeNull();
             Get(db, s.Vodka).EnergyCheck.Should().Be(EnergyCheckOutcome.General);
             var burger = Get(db, s.Burger);
-            burger.CurationStatusId.Should().Be((long)CurationStatusEnum.Rejected);
-            burger.AdmissionReason.Should().Be("category:Fast Foods");
+            burger.CurationStatusId.Should().Be((long)CurationStatusEnum.PendingCuration, "prepared food is held until the owner decides, never rejected by rule");
+            burger.AdmissionReason.Should().Be("prepared_category:Fast Foods");
             burger.FoodGroupId.Should().BeNull("Fast Foods gives no group");
             var pepper = Get(db, s.Pepper);
             pepper.FoodGroupId.Should().BeNull("black pepper leaves Vegetables");
             pepper.IsWholeFood.Should().BeFalse();
             pepper.EnergyCheck.Should().Be(EnergyCheckOutcome.ExemptSmall);
             Get(db, s.Applesauce).CurationStatusId.Should().Be((long)CurationStatusEnum.Curated);
-            Get(db, s.Applesauce).AdmissionReason.Should().Be("category:Baby Foods");
+            Get(db, s.Applesauce).AdmissionReason.Should().Be("prepared_category:Baby Foods");
 
             (await db.IngredientAliases.Where(a => a.IngredientId == s.Pepper).Select(a => a.AliasName + "|" + a.SourceContext).SingleAsync())
                 .Should().Be("Spices, pepper, black|" + IngredientLinkService.UsdaDescriptionContext);
-            (await db.FoodCatalogProposals.IgnoreQueryFilters().SingleAsync(p => p.Id == s.Pick)).IsDeleted.Should().BeTrue();
+            (await db.FoodCatalogProposals.IgnoreQueryFilters().SingleAsync(p => p.Id == s.Pick)).IsDeleted.Should().BeFalse();
 
             var journal = await db.AuditLogEntries.ToListAsync();
             journal.Should().OnlyContain(a => a.Timestamp == report.RunStamp);
             journal.Single(a => a.ChangeType == CatalogAdmissionService.RunChangeType).NewValue.Should().Be(CatalogAdmissionRule.Version);
             journal.Single(a => a.EntityId == s.Gamay && a.ChangeType == CatalogAdmissionService.AdmitChangeType)
                 .Should().Match<Nom.Data.Audit.AuditLogEntryEntity>(a => a.PropertyName == "CurationStatusId" && a.OldValue == "9001" && a.NewValue == "9003");
-            journal.Single(a => a.EntityId == s.Burger && a.ChangeType == CatalogAdmissionService.RejectChangeType).NewValue.Should().Be("9004");
+            journal.Should().NotContain(a => a.EntityId == s.Burger && a.PropertyName == "CurationStatusId");
             journal.Single(a => a.EntityId == s.Pepper && a.ChangeType == CatalogAdmissionService.GroupChangeType && a.PropertyName == "FoodGroupId")
                 .Should().Match<Nom.Data.Audit.AuditLogEntryEntity>(a => a.OldValue == "3200" && a.NewValue == null);
-            journal.Should().Contain(a => a.EntityId == s.Pick && a.ChangeType == LineRelinkService.ProposalWithdrawChangeType);
+            journal.Should().NotContain(a => a.ChangeType == LineRelinkService.ProposalWithdrawChangeType);
+        }
+
+        [Fact]
+        public async Task An_open_model_pick_at_a_food_an_admin_rejected_is_withdrawn_and_the_undo_restores_it()
+        {
+            using var db = NewContext();
+            var s = Seed(db);
+            var burger = db.Ingredients.Single(i => i.Id == s.Burger);
+            burger.CurationStatusId = (long)CurationStatusEnum.Rejected;
+            await db.SaveChangesAsync();
+
+            var report = await Service(db).AdmitAsync(Options(dryRun: false));
+
+            report.PicksWithdrawn.Should().Be(1);
+            Get(db, s.Burger).CurationStatusId.Should().Be((long)CurationStatusEnum.Rejected, "the pass never changes an admin's rejection");
+            (await db.FoodCatalogProposals.IgnoreQueryFilters().SingleAsync(p => p.Id == s.Pick)).IsDeleted.Should().BeTrue();
+
+            (await Service(db).UndoAsync(report.RunStamp, dryRun: false)).PicksRestored.Should().Be(1);
+            (await db.FoodCatalogProposals.SingleAsync(p => p.Id == s.Pick)).IsDeleted.Should().BeFalse();
         }
 
         [Fact]
@@ -240,9 +260,7 @@ namespace Nom.Api.Tests.Services.Import
             var undone = await Service(db).UndoAsync(report.RunStamp, dryRun: false);
 
             undone.Demoted.Should().Be(2);
-            undone.Unrejected.Should().Be(1);
             undone.DescriptionsRemoved.Should().Be(5);
-            undone.PicksRestored.Should().Be(1);
             undone.Skipped.Should().Be(1);
             undone.Lines.Should().ContainSingle(l => l.Contains("FoodGroupId changed since the run"));
             Get(db, s.Gamay).CurationStatusId.Should().Be((long)CurationStatusEnum.PendingCuration);
@@ -253,8 +271,63 @@ namespace Nom.Api.Tests.Services.Import
             Get(db, s.Pepper).FoodGroupId.Should().Be((long)FoodGroupEnum.Vegetables);
             Get(db, s.Pepper).IsWholeFood.Should().BeNull();
             (await db.IngredientAliases.CountAsync()).Should().Be(0);
-            (await db.FoodCatalogProposals.SingleAsync(p => p.Id == s.Pick)).IsDeleted.Should().BeFalse();
-            (await db.AuditLogEntries.Select(a => a.PropertyName).ToListAsync()).Should().Equal("FoodGroupId");
+            var journal = await db.AuditLogEntries.ToListAsync();
+            journal.Where(a => a.Timestamp == report.RunStamp).Should().NotBeEmpty("the run's journal is kept");
+            journal.Where(a => a.Timestamp == undone.UndoStamp).Should().OnlyContain(a => a.ChangeType == CatalogAdmissionService.UndoChangeType)
+                .And.Contain(a => a.EntityId == s.Gamay && a.PropertyName == "CurationStatusId" && a.OldValue == "9003" && a.NewValue == "9001")
+                .And.Contain(a => a.EntityType == CatalogAdmissionService.RunEntityType && a.NewValue == report.RunStamp.ToString("O", CultureInfo.InvariantCulture));
+            journal.Should().NotContain(a => a.Timestamp == undone.UndoStamp && a.PropertyName == "FoodGroupId" && a.EntityId == s.Gamay,
+                "a value left alone was not undone");
+        }
+
+        [Fact]
+        public async Task An_undo_is_journaled_and_undoing_it_puts_the_run_back()
+        {
+            using var db = NewContext();
+            var s = Seed(db);
+            var report = await Service(db).AdmitAsync(Options(dryRun: false));
+            db.ChangeTracker.Clear();
+            var undone = await Service(db).UndoAsync(report.RunStamp, dryRun: false);
+            db.ChangeTracker.Clear();
+
+            var redone = await Service(db).UndoAsync(undone.UndoStamp!.Value, dryRun: false);
+
+            redone.Reapplied.Should().BeGreaterThan(0);
+            redone.DescriptionsRestored.Should().Be(5);
+            Get(db, s.Gamay).CurationStatusId.Should().Be((long)CurationStatusEnum.Curated);
+            Get(db, s.Gamay).FdcCategoryId.Should().Be(14);
+            Get(db, s.Pepper).FoodGroupId.Should().BeNull();
+            Get(db, s.Burger).AdmissionReason.Should().Be("prepared_category:Fast Foods");
+            (await db.IngredientAliases.CountAsync(a => a.SourceContext == IngredientLinkService.UsdaDescriptionContext)).Should().Be(5);
+            (await db.AuditLogEntries.CountAsync(a => a.Timestamp == redone.UndoStamp)).Should().BeGreaterThan(0);
+        }
+
+        [Fact]
+        public async Task The_auto_classify_endpoint_and_the_enrichment_journal_each_group_they_set_or_clear_and_the_undo_takes_it_back()
+        {
+            using var db = NewContext();
+            var pepper = new IngredientEntity { Name = "Pepper", FdcDataType = Sr, FdcCategoryId = 2, FoodGroupId = (long)FoodGroupEnum.Vegetables, CurationStatusId = 9003 };
+            var gamay = new IngredientEntity { Name = "Gamay", FdcDataType = Sr, FdcCategoryId = 14, CurationStatusId = 9003 };
+            db.Ingredients.AddRange(pepper, gamay);
+            await db.SaveChangesAsync();
+
+            (await new CurationOrchestrationService(db, NullLogger<CurationOrchestrationService>.Instance).AutoClassifyFoodGroupsAsync(overwrite: true, personId: 42)).Should().Be(2);
+
+            var rows = await db.AuditLogEntries.ToListAsync();
+            rows.Should().HaveCount(2).And.OnlyContain(a => a.ChangeType == CatalogAdmissionService.GroupChangeType && a.EntityType == "Ingredient"
+                && a.PropertyName == "FoodGroupId" && a.ChangedByPersonId == 42 && a.Timestamp == rows[0].Timestamp);
+            rows.Single(a => a.EntityId == pepper.Id).Should().Match<Nom.Data.Audit.AuditLogEntryEntity>(a => a.OldValue == "3200" && a.NewValue == null);
+
+            await Service(db).UndoAsync(rows[0].Timestamp, dryRun: false);
+            Get(db, pepper.Id).FoodGroupId.Should().Be((long)FoodGroupEnum.Vegetables);
+            Get(db, gamay.Id).FoodGroupId.Should().BeNull();
+
+            db.ChangeTracker.Clear();
+            await new FoodGroupEnrichmentService(db, NullLogger<FoodGroupEnrichmentService>.Instance).EnrichAsync(overwrite: true);
+
+            var enrichment = await db.AuditLogEntries.Where(a => a.ChangeType == CatalogAdmissionService.GroupChangeType && a.Timestamp != rows[0].Timestamp).ToListAsync();
+            enrichment.Should().Contain(a => a.EntityId == pepper.Id && a.PropertyName == "FoodGroupId" && a.OldValue == "3200" && a.NewValue == null)
+                .And.Contain(a => a.EntityId == pepper.Id && a.PropertyName == "IsWholeFood" && a.NewValue == "False");
         }
 
         [Fact]
@@ -328,7 +401,10 @@ namespace Nom.Api.Tests.Services.Import
             report.SelfUndo.Should().NotBeNull();
             Get(db, strong.Id).CurationStatusId.Should().Be((long)CurationStatusEnum.PendingCuration);
             Get(db, strong.Id).FoodGroupId.Should().BeNull();
-            (await db.AuditLogEntries.CountAsync()).Should().Be(0);
+            (await db.AuditLogEntries.CountAsync(a => a.Timestamp == report.RunStamp && a.EntityId == strong.Id && a.ChangeType == CatalogAdmissionService.AdmitChangeType))
+                .Should().Be(1, "what the run wrote stays on the record");
+            (await db.AuditLogEntries.CountAsync(a => a.Timestamp == report.SelfUndo!.UndoStamp && a.EntityId == strong.Id && a.ChangeType == CatalogAdmissionService.UndoChangeType))
+                .Should().BeGreaterThan(0, "and so does the self-undo, which can itself be undone");
         }
 
         [Fact]
@@ -350,24 +426,25 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
-        public async Task The_importer_judges_each_new_food_by_the_rule_and_groups_it_by_its_category_only()
+        public async Task The_importer_judges_each_new_food_by_the_rule_and_groups_it_by_its_category_only_but_curates_none()
         {
             using var db = NewContext();
 
             var report = await new FdcFoundationImportService(db, NullLogger<FdcFoundationImportService>.Instance).ImportAsync(SrDir, dataType: Sr);
 
             report.Accepted.Should().Be(9);
-            report.Curated.Should().Be(7, "the wines, vodkas, pepper and the test drinks pass; baobab fails its own factors");
-            report.RejectedByRule.Should().Be(2);
+            report.Admissible.Should().Be(7, "the wines, vodkas, pepper and the test drinks pass; baobab fails its own factors");
             var foods = await db.Ingredients.ToDictionaryAsync(i => i.FdcId!);
+            foods.Values.Should().OnlyContain(f => f.CurationStatusId == (long)CurationStatusEnum.PendingCuration,
+                "only --admit curates, behind its checksum, energy-rate, size and audit gates");
             foods[Pepper].FoodGroupId.Should().BeNull("Spices and Herbs gives no group; the name \"pepper\" never makes it a vegetable");
             foods[Pepper].FdcCategoryId.Should().Be(2);
             foods[Pepper].EnergyCheck.Should().Be(EnergyCheckOutcome.ExemptSmall);
             foods[Gamay].EnergyCheck.Should().Be(EnergyCheckOutcome.OwnFactors);
-            foods[Gamay].CurationStatusId.Should().Be((long)CurationStatusEnum.Curated);
-            foods[Burger].CurationStatusId.Should().Be((long)CurationStatusEnum.Rejected);
+            foods[Gamay].AdmissionReason.Should().BeNull("the rule finds nothing against it");
+            foods[Burger].AdmissionReason.Should().Be("prepared_category:Fast Foods");
             foods[Burger].FoodGroupId.Should().BeNull();
-            foods[Applesauce].AdmissionReason.Should().Be("category:Baby Foods");
+            foods[Applesauce].AdmissionReason.Should().Be("prepared_category:Baby Foods");
             foods.Should().NotContainKey(Baobab, "a food that fails the energy check is not imported");
             report.RejectedByReason.Should().ContainKey(EnergyCheckOutcome.Mismatch);
         }

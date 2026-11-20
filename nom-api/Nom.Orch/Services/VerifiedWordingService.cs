@@ -54,7 +54,7 @@ namespace Nom.Orch.Services
             _currentUser = currentUser;
         }
 
-        private sealed record Target(long Id, string Name, string? FdcId, string DataType, long Status, bool HasNutrition);
+        private sealed record Target(long Id, string Name, string? FdcId, string DataType, long Status, bool HasNutrition, string? AdmissionReason);
         private sealed record Accepted(VerifiedWordingRow Row, string Wording, string Verdict, Target? Food);
 
         /// <summary>
@@ -380,7 +380,7 @@ namespace Nom.Orch.Services
             var ids = foodRows.Where(r => string.IsNullOrWhiteSpace(r.FoodFdcId) && r.FoodId != null).Select(r => r.FoodId!.Value).Distinct().ToList();
             return await _db.Ingredients.AsNoTracking()
                 .Where(i => !i.IsDeleted && ((i.FdcId != null && fdcIds.Contains(i.FdcId)) || ids.Contains(i.Id)))
-                .Select(i => new Target(i.Id, i.Name, i.FdcId, i.FdcDataType ?? string.Empty, i.CurationStatusId, i.IngredientNutrients.Any(n => !n.IsDeleted)))
+                .Select(i => new Target(i.Id, i.Name, i.FdcId, i.FdcDataType ?? string.Empty, i.CurationStatusId, i.IngredientNutrients.Any(n => !n.IsDeleted), i.AdmissionReason))
                 .ToListAsync();
         }
 
@@ -405,7 +405,8 @@ namespace Nom.Orch.Services
         }
 
         private static bool IsPromotable(Target food) =>
-            food.Status == (long)CurationStatusEnum.PendingCuration && food.FdcId != null && PromotableDataTypes.Contains(food.DataType);
+            food.Status == (long)CurationStatusEnum.PendingCuration && food.FdcId != null && PromotableDataTypes.Contains(food.DataType)
+            && food.AdmissionReason == null;
 
         private sealed record Replaced(string Value, string? Batch, string? Note);
 

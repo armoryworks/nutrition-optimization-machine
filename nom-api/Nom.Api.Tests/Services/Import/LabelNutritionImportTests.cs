@@ -116,6 +116,20 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public async Task A_high_fiber_label_is_checked_with_its_fiber_at_two_kcal_per_gram()
+        {
+            using var db = await NewContextAsync();
+            var bran = await FoodAsync(db, "Bran Flakes");
+            File.WriteAllText(_file, Header +
+                $"{bran.Id}\tBran Flakes\tAcme\tBran Flakes\thttps://example.com/bran-flakes\t1 cup (100g)\t100\t\t\t\t300\t4\t0\t0\t70\t20\t10\t0\t0\n");
+
+            var report = await Service(db).ImportAsync(_file, dryRun: false);
+
+            report.SkippedByReason.Should().BeEmpty("10 g protein, 50 g other carbohydrate, 20 g fiber and 4 g fat give 316 kcal, 5 % from 300");
+            (await AmountAsync(db, bran.Id, Calories)).Should().Be(300m);
+        }
+
+        [Fact]
         public async Task A_value_the_label_does_not_print_stays_unknown_and_a_stored_value_is_kept()
         {
             using var db = await NewContextAsync();

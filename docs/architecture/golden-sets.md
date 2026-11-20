@@ -36,7 +36,7 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `prose.tsv` | `RewriteFidelity.Check` | `expect`: a reason the check must give, or `passed` | `status` |
 | `piece-counts.tsv` | `RecipeRepairGrounding.PieceRefusal` (repair lane fills and `quantities/revert`) | `expect`: `keep` or `revert` | `status` |
 | `startup-fills.tsv` | `ScrapedRecipeRepairService.RepairBatchAsync` (the start-up repair's amount for a line that states none, in a recipe with its method, its other lines and, when `journal` names one, an open line journal) | `expect` (`<quantity> <unit>`, or `-` for no amount) | `status` |
-| `catalog-admission.tsv` | `CatalogAdmissionRule.Decide` (USDA catalog admission: status, group from category, edibility, energy check, reasons) | `expectStatus` (`Curated`, `PendingCuration`, `Rejected`), `expectGroup`, `expectEdible`, `expectEnergy`, `expectReason` | `status` |
+| `catalog-admission.tsv` | `CatalogAdmissionRule.Decide` (USDA catalog admission: status, group from category, edibility, energy check, reasons) | `expectStatus` (`Curated`, `PendingCuration`; the rule never rejects, and the prepared-food categories are held as `prepared_category:<name>`), `expectGroup`, `expectEdible`, `expectEnergy`, `expectReason` | `status` |
 | `recipes.json` + `measurements.tsv` | `RecipeNutritionService.RecalculateAsync`, `.StatusFor` | `expected.calories/protein/fat` (4 dp), `countedLines`, `handLabel` | `status` |
 | `line-labels.tsv` | model lane `line-classify` | `kind` | none (scored by the operator run) |
 | `model-lanes.json` | every model lane | floors | — |

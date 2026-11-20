@@ -54,30 +54,33 @@ Imported records are judged by the catalog admission rule; the severe-restrictio
 > one with more than 0.5 g alcohol per 100 g, so an admitted spirit is never scheduled
 > as a Beverages serving.
 >
-> `--curated` is retired: the rule decides each food's status (see *Catalog admission*
-> below). The **Branded** catalog stays pending — it is manufacturer-submitted and
+> `--curated` is retired: an import lands every food `PendingCuration` with the rule's
+> verdict stored, and only the gated `--admit` pass curates (see *Catalog admission* below). The **Branded** catalog stays pending — it is manufacturer-submitted and
 > unverified, which is precisely why the quality gate rejects ~4% of it.
 
 ## Catalog admission — by rule, no model
 
 `Nom.Data/Nutrition/CatalogAdmissionRule.cs` decides each USDA food's status, food group and
-edibility from USDA's own data. The importer applies it to every food it creates, and
-`Nom.Import --admit` applies it once to the foods already in the catalog.
+edibility from USDA's own data. The importer applies it to every food it creates and stores
+the verdict (category, group, edibility, energy check, reasons), but lands every food
+`PendingCuration`: only `Nom.Import --admit`, with its file, energy-rate, size and audit gates,
+changes a status. Run `--admit` after every `--import-fdc`.
 
 | Check | Rule |
 |---|---|
 | Source | Foundation and SR Legacy only (USDA-authored numbers). Branded stays `PendingCuration`, reason `awaiting_second_source`, plus `zero_energy` when it states 0 kcal in a category that is not water, tea, coffee, soda, sweetener, salt, spice or seasoning. |
-| Category | `Ingredient.FdcCategoryId` (USDA `food_category_id`). Baby Foods (3), Fast Foods (21), Meals, Entrees and Side Dishes (22) and Restaurant Foods (25) land **Rejected**, reason `category:<name>`. Admitted: the 19 mapped categories plus Spices and Herbs (2), Soups, Sauces and Gravies (6) and American Indian/Alaska Native Foods (24, code 3500). Any other category is held, `category_not_admitted:<id>`; no category is held, `category_missing`. |
+| Category | `Ingredient.FdcCategoryId` (USDA `food_category_id`). Baby Foods (3), Fast Foods (21), Meals, Entrees and Side Dishes (22) and Restaurant Foods (25) are **held**, reason `prepared_category:<name>`: the owner did not confirm rejecting them (2026-11-20) and they will be admitted as prepared foods that are never link targets or top-up foods (`cleanup2/catalog-prepared`). The rule never rejects a food. Admitted: the 19 mapped categories plus Spices and Herbs (2), Soups, Sauces and Gravies (6) and American Indian/Alaska Native Foods (24, code 3500). Any other category is held, `category_not_admitted:<id>`; no category is held, `category_missing`. |
 | Plausibility and energy | `FoodDataQualityValidator` (below), with the food's own calorie factors and fiber. |
 | Duplicate | The food's name or USDA description, as a wording key, must not be a live curated food's name or USDA description alias: held as `duplicate_of:#<id>`. |
-| Food group | From the category only: `CatalogAdmissionRule.CategoryToGroup`; Spices and Herbs, Soups, Sauces and Gravies and the mixed category 24 give none. Branded: the branded category text only (`FoodGroupHeuristics.ClassifyByCategory`; a condiment or sauce category gives none, a category naming oils is Fats/Oils). **No path groups a food by its name**: the importers, `--enrich-food-groups` and `POST /api/Curation/ingredients/auto-classify-food-groups` all read the stored category, and a food without one is left alone. |
+| Food group | From the category only: `CatalogAdmissionRule.CategoryToGroup`; Spices and Herbs, Soups, Sauces and Gravies and the mixed category 24 give none. Branded: the branded category text only (`FoodGroupHeuristics.ClassifyByCategory`; a condiment or sauce category gives none, a category naming oils is Fats/Oils). **No path groups a food by its name**: the importers, `--enrich-food-groups` and `POST /api/Curation/ingredients/auto-classify-food-groups` all read the stored category, and a food without one is left alone. Each group or edibility they set or clear is journaled as `GroupFromCategory` under one stamp per run, so `--admit --undo <stamp>` takes the run back. A model never sets a group: `ProposalPolicy` refuses a `food_group` proposal unless its source is authoritative (`admin:`, `deterministic:`, `fdc:`, `label:`), and `ops/food-catalog-review.py` only flags a group it doubts. |
 | Edibility | From the category only (`CategoryDirectlyEdible`). |
 
-All checks pass: **Curated**. A rejected category: **Rejected**, which hides the food from
-search and from every link, relink and wording candidate list. Any other failure:
-`PendingCuration` with the reasons stored in `Ingredient.AdmissionReason` — held by rule,
-not work for a person; a newer USDA release or a `label:`/`admin:` source is what changes
-it. `Ingredient.EnergyCheck` records how the energy was confirmed: `own-factors`,
+All checks pass: **Curated**. Any failure: `PendingCuration` with the reasons stored in
+`Ingredient.AdmissionReason` — held by rule, not work for a person; a newer USDA release or a
+`label:`/`admin:` source is what changes it. A wording load never promotes a held food, and a
+lane's link apply never curates one (a person's approval may). A food an admin **Rejected**
+is hidden from search and from every link, relink and wording candidate list, and no link
+apply curates it. `Ingredient.EnergyCheck` records how the energy was confirmed: `own-factors`,
 `general`, `exempt-small` or `atwater_mismatch`. `Ingredient.FdcCategory` keeps USDA's
 category wording (the branded category for branded foods).
 
@@ -95,7 +98,7 @@ category, description, nutrients and calorie factors from the USDA files, stores
 group and edibility from the category (curated foods too, so a name-derived group such as
 black pepper in Vegetables is cleared), stores the USDA description as an
 `fdc:description` alias where the food has none, and withdraws open model link picks
-(`ai:`) that point at a rejected food. **Only a `PendingCuration` food changes status.** A
+(`ai:`) that point at a food an admin rejected. **Only a `PendingCuration` food changes status.** A
 curated food the rule would not curate stays curated and is reported as `kept curated`.
 
 It stops by itself and writes nothing when:
@@ -112,14 +115,17 @@ After it writes, it re-runs the catalog audit; a high or medium finding on a foo
 or regrouped that was not there before makes the run undo itself by its stamp.
 
 Every change carries the run's stamp in `audit."AuditLogEntry"`: entity `Ingredient`,
-change types `CatalogAdmit`, `CatalogReject`, `GroupFromCategory` (`FoodGroupId`,
+change types `CatalogAdmit`, `GroupFromCategory` (`FoodGroupId`,
 `IsWholeFood`) and `CatalogFacts` (`FdcCategoryId`, `FdcCategory`, `EnergyCheck`,
 `AdmissionReason`); entity `IngredientAlias`, change type `FdcDescription`; entity
 `FoodCatalogProposal`, change type `ProposalWithdraw`; and one `CatalogAdmitRun` row with the
 rule version. `--admit --undo <stamp>` puts back each value the food still holds as the run
 left it (a value changed since is left alone and listed), removes the description aliases it
 added and restores the picks it withdrew. A demoted food that a recipe line uses is listed as
-`in use`; approved recipes are not changed.
+`in use`; approved recipes are not changed. The run's journal is kept: the undo writes each
+value it put back as `CatalogAdmitUndo` (old and new swapped) under a stamp of its own, plus a
+`CatalogAdmitUndo` run row naming the stamp it undid, and prints that stamp, so a self-undo or
+a manual undo can be read from the record and `--admit --undo <undo-stamp>` puts the run back.
 
 The bulk status endpoint `POST /api/FoodCatalog/curation-status` journals every change too
 (entity `Ingredient`, change type `CurationStatusSet`, old and new status, the admin), so a
@@ -186,8 +192,8 @@ Both the FDC import and the gated fetch call this before persisting.
 `Nom.Import/Services/FdcFoundationImportService.cs` — a focused CSV loader (not the
 old SQL-staging path): reads `food.csv` + `food_nutrient.csv`, applies
 `FoodDataQualityValidator` to the per-100g macros, classifies by **FDC food
-category** only, and lands accepted foods in the status the catalog admission rule
-gives (idempotent by `FdcId`, name-deduped). Run: `dotnet run -- --import-fdc <csv-dir>`.
+category** only, and lands accepted foods `PendingCuration` with the catalog admission
+rule's verdict stored, for `--admit` to curate (idempotent by `FdcId`, name-deduped). Run: `dotnet run -- --import-fdc <csv-dir>`.
 
 **Gauged against the real 2025-12-18 Foundation dataset in a staging DB:** 436
 foundation foods → **317 accepted** (99% classified, all quarantined), 70 rejected

@@ -26,21 +26,22 @@ namespace Nom.Import.Services
     /// USDA files, stores the category and the energy check, judges the food by
     /// <see cref="CatalogAdmissionRule"/>, sets its food group and edibility from the category alone,
     /// stores its USDA description as an <see cref="IngredientLinkService.UsdaDescriptionContext"/>
-    /// alias, and withdraws the open model picks that point at a food it rejects. Only a
-    /// PendingCuration food changes status: a curated food the rule would not curate stays curated
-    /// and is reported. Before it writes, the run stops by itself, writing nothing, when a USDA file
+    /// alias, and withdraws the open model picks that point at a food an admin rejected. Only a
+    /// PendingCuration food changes status, and only to Curated: a curated food the rule would not
+    /// curate stays curated and is reported, and the rule never rejects a food. Before it writes, the run stops by itself, writing nothing, when a USDA file
     /// is not one recorded in the checksum file, a USDA food has no category, fewer than 99 % of the
     /// USDA foods pass the energy check, or more than <see cref="MaxChangedFoods"/> foods would
     /// change status, group or edibility. After it writes, it undoes itself when the catalog audit
     /// shows a high or medium finding on a food it admitted or regrouped that was not there before.
-    /// Every change shares the run's stamp and is journaled; <see cref="UndoAsync"/> reverses a run:
+    /// Every change shares the run's stamp and is journaled; <see cref="UndoAsync"/> reverses a run,
+    /// journaled under a stamp of its own that a later undo reverses in turn:
     /// `--admit --undo &lt;stamp&gt; [--dry-run]`.
     /// </summary>
     public class CatalogAdmissionService
     {
         public const string AdmitChangeType = "CatalogAdmit";
-        public const string RejectChangeType = "CatalogReject";
-        public const string GroupChangeType = "GroupFromCategory";
+        public const string GroupChangeType = CatalogAdmissionRule.GroupChangeType;
+        public const string UndoChangeType = "CatalogAdmitUndo";
         public const string FactsChangeType = "CatalogFacts";
         public const string DescriptionChangeType = "FdcDescription";
         public const string RunChangeType = "CatalogAdmitRun";
@@ -50,7 +51,7 @@ namespace Nom.Import.Services
         public const int MaxChangedFoods = 10_000;
         public const decimal MinEnergyPassRate = 0.99m;
 
-        private static readonly string[] ChangeTypes = { AdmitChangeType, RejectChangeType, GroupChangeType, FactsChangeType, DescriptionChangeType, RunChangeType };
+        private static readonly string[] ChangeTypes = { AdmitChangeType, GroupChangeType, FactsChangeType, DescriptionChangeType, RunChangeType, UndoChangeType };
 
         private readonly ApplicationDbContext _db;
         private readonly ILogger<CatalogAdmissionService> _logger;
@@ -233,23 +234,13 @@ namespace Nom.Import.Services
                     changedFoods.Add(food.Id);
                 }
 
-                if (food.CurationStatusId == (long)CurationStatusEnum.PendingCuration && decision.Status != food.CurationStatusId)
+                if (food.CurationStatusId == (long)CurationStatusEnum.PendingCuration && decision.Status == (long)CurationStatusEnum.Curated)
                 {
-                    var admit = decision.Status == (long)CurationStatusEnum.Curated;
-                    Set(admit ? AdmitChangeType : RejectChangeType, nameof(IngredientEntity.CurationStatusId), Long(food.CurationStatusId), Long(decision.Status));
+                    Set(AdmitChangeType, nameof(IngredientEntity.CurationStatusId), Long(food.CurationStatusId), Long(decision.Status));
                     changedFoods.Add(food.Id);
-                    if (admit)
-                    {
-                        report.Admitted++;
-                        admittedOrRegrouped.Add(food.Id);
-                        if (report.Lines.Count < 400) report.Lines.Add($"admit    #{food.Id} {food.Name} ({decision.EnergyCheck})");
-                    }
-                    else
-                    {
-                        report.Rejected++;
-                        rejectedFoods.Add(food.Id);
-                        Count(report.RejectedByReason, decision.Reason);
-                    }
+                    report.Admitted++;
+                    admittedOrRegrouped.Add(food.Id);
+                    if (report.Lines.Count < 400) report.Lines.Add($"admit    #{food.Id} {food.Name} ({decision.EnergyCheck})");
                 }
                 else if (food.CurationStatusId == (long)CurationStatusEnum.PendingCuration)
                 {
@@ -295,7 +286,7 @@ namespace Nom.Import.Services
             var stamp = new DateTime(DateTime.UtcNow.Ticks / 10 * 10, DateTimeKind.Utc);
             report.RunStamp = stamp;
             await WriteAsync(foods.ToDictionary(f => f.Id), changes, descriptionsToAdd, withdraw, stamp, ct);
-            _logger.LogInformation("Catalog admission {Stamp:O}: {Admitted} admitted, {Rejected} rejected, {Regrouped} regrouped.", stamp, report.Admitted, report.Rejected, report.Regrouped);
+            _logger.LogInformation("Catalog admission {Stamp:O}: {Admitted} admitted, {Held} held, {Regrouped} regrouped.", stamp, report.Admitted, report.Held, report.Regrouped);
 
             var after = await FindingsAsync(sources, ct);
             foreach (var (foodId, code) in after.Where(f => admittedOrRegrouped.Contains(f.FoodId) && !before.Contains(f)).OrderBy(f => f.FoodId))
@@ -309,11 +300,15 @@ namespace Nom.Import.Services
         }
 
         /// <summary>
-        /// Takes back what the admission run stamped <paramref name="stamp"/> wrote: every journaled
-        /// value is put back where the food still holds the value the run gave it (one changed since
-        /// is left alone and reported), the USDA description aliases it added are removed, and the
-        /// model picks it withdrew are restored. A food it admitted that a recipe line uses now is
-        /// demoted all the same and reported as in use; recipes already approved are not changed.
+        /// Takes back what the run stamped <paramref name="stamp"/> wrote: every journaled value is
+        /// put back where the food still holds the value the run gave it (one changed since is left
+        /// alone and reported), the USDA description aliases it added are removed, and the model
+        /// picks it withdrew are restored. A food it admitted that a recipe line uses now is demoted
+        /// all the same and reported as in use; recipes already approved are not changed. The run's
+        /// journal is kept, and each value the undo puts back is journaled as
+        /// <see cref="UndoChangeType"/> under the undo's own stamp, so the undo can itself be undone.
+        /// The run may be an admission run, an undo, or a category grouping that journals
+        /// <see cref="GroupChangeType"/>.
         /// </summary>
         public async Task<AdmissionUndoReport> UndoAsync(DateTime stamp, bool dryRun, CancellationToken ct = default)
         {
@@ -321,14 +316,15 @@ namespace Nom.Import.Services
             var entries = await _db.AuditLogEntries
                 .Where(a => a.Timestamp == stamp
                     && ((a.EntityType == FoodEntityType || a.EntityType == AliasEntityType || a.EntityType == RunEntityType) && ChangeTypes.Contains(a.ChangeType)
-                        || (a.EntityType == LineRelinkService.PickWithdrawEntityType && a.ChangeType == LineRelinkService.ProposalWithdrawChangeType)))
+                        || (a.EntityType == LineRelinkService.PickWithdrawEntityType && (a.ChangeType == LineRelinkService.ProposalWithdrawChangeType || a.ChangeType == UndoChangeType))))
                 .OrderByDescending(a => a.Id)
                 .ToListAsync(ct);
             var foodIds = entries.Where(e => e.EntityType == FoodEntityType).Select(e => e.EntityId).Distinct().ToList();
             var foods = await _db.Ingredients.IgnoreQueryFilters().Where(i => foodIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id, ct);
             var inUse = (await _db.RecipeIngredients.Where(ri => foodIds.Contains(ri.IngredientId))
                 .Select(ri => ri.IngredientId).Distinct().ToListAsync(ct)).ToHashSet();
-            var now = DateTime.UtcNow;
+            var now = new DateTime(DateTime.UtcNow.Ticks / 10 * 10, DateTimeKind.Utc);
+            if (now <= stamp) now = stamp.AddTicks(10);
             var undone = new List<AuditLogEntryEntity>();
 
             await using var tx = !dryRun && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(ct) : null;
@@ -336,38 +332,61 @@ namespace Nom.Import.Services
             {
                 ct.ThrowIfCancellationRequested();
                 if (entry.EntityType == RunEntityType)
-                {
-                    undone.Add(entry);
                     continue;
-                }
                 if (entry.EntityType == AliasEntityType)
                 {
-                    var alias = await _db.IngredientAliases.IgnoreQueryFilters()
-                        .FirstOrDefaultAsync(a => a.IngredientId == entry.EntityId && a.AliasName == entry.NewValue, ct);
-                    if (alias == null || alias.SourceContext != IngredientLinkService.UsdaDescriptionContext)
+                    if (entry.NewValue != null)
                     {
-                        report.Skipped++;
-                        continue;
+                        var alias = await _db.IngredientAliases.IgnoreQueryFilters()
+                            .FirstOrDefaultAsync(a => a.IngredientId == entry.EntityId && a.AliasName == entry.NewValue, ct);
+                        if (alias == null || alias.SourceContext != IngredientLinkService.UsdaDescriptionContext)
+                        {
+                            report.Skipped++;
+                            continue;
+                        }
+                        report.DescriptionsRemoved++;
+                        if (!dryRun) _db.IngredientAliases.Remove(alias);
                     }
-                    report.DescriptionsRemoved++;
-                    if (!dryRun) _db.IngredientAliases.Remove(alias);
+                    else
+                    {
+                        if (entry.OldValue == null || await _db.IngredientAliases.IgnoreQueryFilters()
+                            .AnyAsync(a => a.IngredientId == entry.EntityId && a.AliasName == entry.OldValue, ct))
+                        {
+                            report.Skipped++;
+                            continue;
+                        }
+                        report.DescriptionsRestored++;
+                        if (!dryRun)
+                        {
+                            _db.IngredientAliases.Add(new IngredientAliasEntity
+                            {
+                                IngredientId = entry.EntityId,
+                                AliasName = entry.OldValue,
+                                SourceContext = IngredientLinkService.UsdaDescriptionContext,
+                                CreatedDate = now,
+                                CreatedByPersonId = SystemConstants.SystemPersonId,
+                            });
+                        }
+                    }
                     undone.Add(entry);
                     continue;
                 }
                 if (entry.EntityType == LineRelinkService.PickWithdrawEntityType)
                 {
+                    var withdrawn = entry.NewValue == bool.TrueString;
                     var pick = await _db.FoodCatalogProposals.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == entry.EntityId, ct);
-                    if (pick is not { IsDeleted: true })
+                    if (pick == null || pick.IsDeleted != withdrawn)
                     {
                         report.Skipped++;
                         continue;
                     }
-                    report.PicksRestored++;
+                    if (withdrawn) report.PicksRestored++;
+                    else report.PicksWithdrawn++;
                     if (!dryRun)
                     {
-                        pick.IsDeleted = false;
-                        pick.DeletedAt = null;
-                        pick.DeletedByPersonId = null;
+                        pick.IsDeleted = !withdrawn;
+                        pick.DeletedAt = withdrawn ? null : now;
+                        pick.DeletedByPersonId = withdrawn ? null : SystemConstants.SystemPersonId;
                     }
                     undone.Add(entry);
                     continue;
@@ -384,7 +403,7 @@ namespace Nom.Import.Services
                     report.Demoted++;
                     if (inUse.Contains(food.Id)) report.Lines.Add($"in use   #{food.Id} {food.Name}: demoted while a recipe line uses it");
                 }
-                else if (entry.ChangeType == RejectChangeType) report.Unrejected++;
+                else if (entry.ChangeType == UndoChangeType) report.Reapplied++;
                 else if (entry.ChangeType == GroupChangeType) report.GroupsRestored++;
                 else report.FactsRestored++;
                 if (!dryRun)
@@ -396,10 +415,13 @@ namespace Nom.Import.Services
             }
 
             if (dryRun) return report;
-            _db.AuditLogEntries.RemoveRange(undone);
+            report.UndoStamp = now;
+            _db.AuditLogEntries.Add(Journal(RunEntityType, 0, UndoChangeType, "UndoOf", null, stamp.ToString("O", CultureInfo.InvariantCulture), now));
+            foreach (var entry in undone)
+                _db.AuditLogEntries.Add(Journal(entry.EntityType, entry.EntityId, UndoChangeType, entry.PropertyName, entry.NewValue, entry.OldValue, now));
             await _db.SaveChangesAsync(ct);
             if (tx != null) await tx.CommitAsync(ct);
-            _logger.LogInformation("Catalog admission undo {Stamp:O}: {Demoted} demoted, {Unrejected} unrejected, {Groups} groups restored.", stamp, report.Demoted, report.Unrejected, report.GroupsRestored);
+            _logger.LogInformation("Catalog admission undo {Stamp:O} as {UndoStamp:O}: {Demoted} demoted, {Groups} groups restored, {Reapplied} values of an earlier undo taken back.", stamp, now, report.Demoted, report.GroupsRestored, report.Reapplied);
             return report;
         }
 
@@ -439,7 +461,7 @@ namespace Nom.Import.Services
             if (tx != null) await tx.CommitAsync(ct);
         }
 
-        /// <summary>The open model link picks (source ai:) that point at a rejected food.</summary>
+        /// <summary>The open model link picks (source ai:) that point at a food an admin rejected.</summary>
         private async Task<List<FoodCatalogProposalEntity>> PicksToWithdrawAsync(HashSet<long> rejected, CancellationToken ct)
         {
             if (rejected.Count == 0) return new List<FoodCatalogProposalEntity>();
@@ -465,7 +487,7 @@ namespace Nom.Import.Services
             return result;
         }
 
-        private static AuditLogEntryEntity Journal(string entityType, long entityId, string changeType, string property, string? old, string? value, DateTime at) => new()
+        private static AuditLogEntryEntity Journal(string entityType, long entityId, string changeType, string? property, string? old, string? value, DateTime at) => new()
         {
             EntityType = entityType,
             EntityId = entityId,
@@ -631,7 +653,6 @@ namespace Nom.Import.Services
             public int BrandedNotInFile { get; set; }
             public int CategoryMissing { get; set; }
             public int Admitted { get; set; }
-            public int Rejected { get; set; }
             public int Held { get; set; }
             public int KeptCurated { get; set; }
             public int Regrouped { get; set; }
@@ -644,7 +665,6 @@ namespace Nom.Import.Services
             public decimal EnergyPassRate { get; set; }
             public int ChangedFoods { get; set; }
             public Dictionary<string, int> EnergyByOutcome { get; } = new();
-            public Dictionary<string, int> RejectedByReason { get; } = new();
             public Dictionary<string, int> HeldByReason { get; } = new();
             public Dictionary<string, int> KeptCuratedByReason { get; } = new();
             public Dictionary<string, int> GroupMoves { get; } = new();
@@ -661,12 +681,15 @@ namespace Nom.Import.Services
         {
             public bool DryRun { get; set; }
             public DateTime RunStamp { get; set; }
+            public DateTime? UndoStamp { get; set; }
             public int Demoted { get; set; }
-            public int Unrejected { get; set; }
+            public int Reapplied { get; set; }
             public int GroupsRestored { get; set; }
             public int FactsRestored { get; set; }
             public int DescriptionsRemoved { get; set; }
+            public int DescriptionsRestored { get; set; }
             public int PicksRestored { get; set; }
+            public int PicksWithdrawn { get; set; }
             public int Skipped { get; set; }
             public List<string> Lines { get; } = new();
         }

@@ -119,7 +119,7 @@ namespace Nom.Api.Tests.Services.Import
 
             var wine = await db.Ingredients.SingleAsync(i => i.FdcId == Wine);
             wine.Name.Should().Be(WineDescription);
-            wine.CurationStatusId.Should().Be(9003, "the admission rule curates an SR Legacy beverage that passes the energy check");
+            wine.CurationStatusId.Should().Be(9001, "an import lands pending; --admit curates what the rule passes");
             wine.FoodGroupId.Should().Be((long)Nom.Data.Reference.FoodGroupEnum.Beverages);
             wine.AdmissionReason.Should().BeNull();
             wine.GramsPerMilliliter.Should().Be(0.9941m, "1 fl oz weighs 29.4 g");

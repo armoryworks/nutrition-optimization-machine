@@ -88,9 +88,9 @@ namespace Nom.Import
                 if (report.ListedNotInFile.Count > 0)
                     Console.WriteLine($"Listed, not in the file as {dataType}: {string.Join(", ", report.ListedNotInFile)}");
                 if (args.Contains("--curated"))
-                    Console.WriteLine("--curated is retired: the catalog admission rule decides each food's status.");
+                    Console.WriteLine("--curated is retired: foods land pending, and --admit curates the ones the catalog admission rule passes.");
                 Console.WriteLine($"Accepted:          {report.Accepted} ({report.Classified} classified into a food group)");
-                Console.WriteLine($"Admission rule:    {report.Curated} curated, {report.RejectedByRule} rejected by category, {report.Accepted - report.Curated - report.RejectedByRule} pending ({Nom.Data.Nutrition.CatalogAdmissionRule.Version})");
+                Console.WriteLine($"Admission rule:    {report.Admissible} pass and wait for --admit, {report.Accepted - report.Admissible} held ({Nom.Data.Nutrition.CatalogAdmissionRule.Version})");
                 foreach (var (reason, n) in report.HeldByReason.OrderByDescending(r => r.Value))
                     Console.WriteLine($"  not curated: {reason} × {n}");
                 Console.WriteLine($"Rejected:          {report.Rejected}");
@@ -377,9 +377,6 @@ namespace Nom.Import
             Console.WriteLine($"\n=== Catalog admission report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ({r.RuleVersion}) ===");
             Console.WriteLine($"Foods judged:        {r.Candidates} ({r.UsdaCandidates} USDA, {r.BrandedCandidates} branded, {r.BrandedNotInFile} branded not in the file)");
             Console.WriteLine($"Admitted (Curated):  {r.Admitted}");
-            Console.WriteLine($"Rejected by rule:    {r.Rejected}");
-            foreach (var (reason, n) in r.RejectedByReason.OrderByDescending(x => x.Value))
-                Console.WriteLine($"  rejected: {reason} × {n}");
             Console.WriteLine($"Held pending:        {r.Held}");
             foreach (var (reason, n) in r.HeldByReason.OrderByDescending(x => x.Value))
                 Console.WriteLine($"  held: {reason} × {n}");
@@ -391,7 +388,7 @@ namespace Nom.Import
                 Console.WriteLine($"  group: {move} × {n}");
             Console.WriteLine($"Edibility set:       {r.EdibilitySet}");
             Console.WriteLine($"Descriptions added:  {r.DescriptionsAdded} ({r.DescriptionsBlocked} blocked by an alias of the same text)");
-            Console.WriteLine($"Picks withdrawn:     {r.PicksWithdrawn} (open model picks that point at a rejected food)");
+            Console.WriteLine($"Picks withdrawn:     {r.PicksWithdrawn} (open model picks that point at a food an admin rejected)");
             Console.WriteLine($"Energy check:        {r.EnergyPassRate:P2} of USDA foods pass ({string.Join(", ", r.EnergyByOutcome.OrderByDescending(x => x.Value).Select(x => $"{x.Key} {x.Value}"))})");
             Console.WriteLine($"Without a category:  {r.CategoryMissing}");
             foreach (var line in r.NotInFile.Take(50))
@@ -426,12 +423,14 @@ namespace Nom.Import
         {
             Console.WriteLine($"\n=== Catalog admission undo report{(undone.DryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
             Console.WriteLine($"Run stamp:              {undone.RunStamp:O}");
+            if (undone.UndoStamp is { } undoStamp)
+                Console.WriteLine($"Undo stamp:             {undoStamp:O} (take this undo back with --admit --undo {undoStamp:O})");
             Console.WriteLine($"Demoted:                {undone.Demoted} (admitted foods back to PendingCuration)");
-            Console.WriteLine($"Unrejected:             {undone.Unrejected}");
+            Console.WriteLine($"Reapplied:              {undone.Reapplied} (values an earlier undo had put back)");
             Console.WriteLine($"Groups restored:        {undone.GroupsRestored}");
             Console.WriteLine($"Facts restored:         {undone.FactsRestored}");
-            Console.WriteLine($"Descriptions removed:   {undone.DescriptionsRemoved}");
-            Console.WriteLine($"Picks restored:         {undone.PicksRestored}");
+            Console.WriteLine($"Descriptions removed:   {undone.DescriptionsRemoved} ({undone.DescriptionsRestored} restored)");
+            Console.WriteLine($"Picks restored:         {undone.PicksRestored} ({undone.PicksWithdrawn} withdrawn again)");
             Console.WriteLine($"Skipped:                {undone.Skipped} (changed since the run)");
             foreach (var line in undone.Lines)
                 Console.WriteLine($"  {line}");

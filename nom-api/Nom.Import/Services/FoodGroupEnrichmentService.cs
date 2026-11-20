@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -37,7 +38,9 @@ namespace Nom.Import.Services
         /// Classifies ingredients that carry a USDA category. When <paramref name="overwrite"/> is
         /// false, only touches ingredients missing a food group (or, for the whole-food flag,
         /// missing that flag); with it, the group is set to what the category gives, none included.
-        /// Returns the number of ingredients updated.
+        /// Every change is journaled as <see cref="CatalogAdmissionRule.GroupChangeType"/> under one
+        /// stamp, so `--admit --undo &lt;stamp&gt;` takes the run back. Returns the number of
+        /// ingredients updated.
         /// </summary>
         public async Task<int> EnrichAsync(bool overwrite, CancellationToken ct = default)
         {
@@ -48,22 +51,23 @@ namespace Nom.Import.Services
             var ingredients = await query.ToListAsync(ct);
             _logger.LogInformation("Food-group enrichment: {Count} ingredients with a USDA category.", ingredients.Count);
 
+            var stamp = new DateTime(DateTime.UtcNow.Ticks / 10 * 10, DateTimeKind.Utc);
             int updated = 0, processed = 0;
             foreach (var ing in ingredients)
             {
                 ct.ThrowIfCancellationRequested();
-                if (EnrichOne(ing, overwrite))
+                if (EnrichOne(ing, overwrite, stamp))
                     updated++;
 
                 if (++processed % _batchSize == 0)
                     await _db.SaveChangesAsync(ct);
             }
             await _db.SaveChangesAsync(ct);
-            _logger.LogInformation("Food-group enrichment complete: {Updated} updated.", updated);
+            _logger.LogInformation("Food-group enrichment {Stamp:O} complete: {Updated} updated, journaled under that stamp for --admit --undo.", stamp, updated);
             return updated;
         }
 
-        private static bool EnrichOne(IngredientEntity ing, bool overwrite)
+        private bool EnrichOne(IngredientEntity ing, bool overwrite, DateTime stamp)
         {
             var group = CatalogAdmissionRule.GroupFor(ing.FdcDataType, ing.FdcCategoryId, ing.FdcCategory);
             var wholeFood = CatalogAdmissionRule.EdibleFor(ing.FdcDataType, ing.FdcCategoryId, ing.FdcCategory);
@@ -71,16 +75,20 @@ namespace Nom.Import.Services
             var changed = false;
             if ((overwrite || (ing.FoodGroupId == null && group.HasValue)) && ing.FoodGroupId != group)
             {
+                _db.AuditLogEntries.Add(CatalogAdmissionRule.GroupJournal(ing.Id, nameof(ing.FoodGroupId),
+                    ing.FoodGroupId?.ToString(CultureInfo.InvariantCulture), group?.ToString(CultureInfo.InvariantCulture), SystemConstants.SystemPersonId, stamp));
                 ing.FoodGroupId = group;
                 changed = true;
             }
             if (wholeFood.HasValue && (overwrite || ing.IsWholeFood == null) && ing.IsWholeFood != wholeFood)
             {
+                _db.AuditLogEntries.Add(CatalogAdmissionRule.GroupJournal(ing.Id, nameof(ing.IsWholeFood),
+                    ing.IsWholeFood?.ToString(), wholeFood.ToString(), SystemConstants.SystemPersonId, stamp));
                 ing.IsWholeFood = wholeFood;
                 changed = true;
             }
             if (changed)
-                ing.LastModifiedDate = DateTime.UtcNow;
+                ing.LastModifiedDate = stamp;
             return changed;
         }
     }

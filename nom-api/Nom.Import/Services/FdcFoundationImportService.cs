@@ -21,8 +21,9 @@ namespace Nom.Import.Services
     /// <summary>
     /// Focused loader for USDA FDC Foundation Foods (CC0). Reads the bulk CSVs, applies the
     /// quality gate (per-100g plausibility + energy by USDA's own calorie factors), classifies each
-    /// food by its FDC food category only, and lands accepted foods with per-100g nutrients in the
-    /// status <see cref="CatalogAdmissionRule"/> gives them. Idempotent by FdcId.
+    /// food by its FDC food category only, and lands accepted foods with per-100g nutrients as
+    /// PendingCuration with the verdict of <see cref="CatalogAdmissionRule"/> stored; only the gated
+    /// `--admit` pass (<see cref="CatalogAdmissionService"/>) curates them. Idempotent by FdcId.
     /// Reports accepted/rejected so quality can be gauged in staging before touching prod.
     /// Run: `dotnet run -- --import-fdc &lt;csv-dir&gt; [--sr-legacy] [--only &lt;ids-file&gt;] [--dry-run]`.
     /// Everything one run writes shares one timestamp and is journaled in the audit log
@@ -34,8 +35,6 @@ namespace Nom.Import.Services
     /// </summary>
     public class FdcFoundationImportService
     {
-        private const long Curated = 9003;         // CurationStatusEnum.Curated
-
         public const string FoundationFood = "foundation_food";
         public const string AttachField = "fdc_attach";
         public const string SrLegacyFood = "sr_legacy_food";
@@ -55,10 +54,10 @@ namespace Nom.Import.Services
         }
 
         /// <summary>
-        /// Every accepted food is judged by <see cref="CatalogAdmissionRule"/> as it is created:
-        /// it lands Curated, Rejected (by category) or PendingCuration with its reasons, with its
-        /// food group and edibility from its USDA category only, and its category and energy check
-        /// stored.
+        /// Every accepted food is judged by <see cref="CatalogAdmissionRule"/> as it is created and
+        /// lands PendingCuration, with its food group and edibility from its USDA category only and
+        /// its category, energy check and the rule's reasons (none when the rule would curate it)
+        /// stored. The `--admit` pass curates it, after its file, energy and size gates.
         /// </summary>
         /// <param name="dataType">
         /// Which FDC data type to read from food.csv: <see cref="FoundationFood"/> (default) or
@@ -196,7 +195,7 @@ namespace Nom.Import.Services
                     Name = name,
                     FdcId = fdcId,
                     FdcDataType = dataType,
-                    CurationStatusId = decision.Status,
+                    CurationStatusId = (long)CurationStatusEnum.PendingCuration,
                     FoodGroupId = group,
                     IsWholeFood = decision.IsWholeFood,
                     FdcCategoryId = food.CategoryId,
@@ -218,8 +217,7 @@ namespace Nom.Import.Services
 
                 report.Accepted++;
                 if (group.HasValue) report.Classified++;
-                if (decision.Status == Curated) report.Curated++;
-                else if (decision.Status == (long)CurationStatusEnum.Rejected) report.RejectedByRule++;
+                if (decision.Status == (long)CurationStatusEnum.Curated) report.Admissible++;
                 foreach (var reason in decision.Reasons)
                     report.HeldByReason[reason] = report.HeldByReason.GetValueOrDefault(reason) + 1;
             }
@@ -908,10 +906,8 @@ namespace Nom.Import.Services
             public int TotalFoundation { get; set; }
             public int Accepted { get; set; }
             public int Classified { get; set; }
-            /// <summary>Accepted foods the admission rule curated.</summary>
-            public int Curated { get; set; }
-            /// <summary>Accepted foods the admission rule rejected by their USDA category.</summary>
-            public int RejectedByRule { get; set; }
+            /// <summary>Accepted foods the admission rule would curate, left pending for the gated `--admit` pass.</summary>
+            public int Admissible { get; set; }
             /// <summary>Why the admission rule did not curate accepted foods, counted per reason.</summary>
             public Dictionary<string, int> HeldByReason { get; } = new();
             public int Rejected { get; set; }
