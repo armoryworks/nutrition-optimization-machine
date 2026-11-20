@@ -10,3 +10,9 @@ rule-04	flour	reference	0	no	no	names a curated food	ok	rule:veto	exactly a cura
 rule-05	buttered paper	equipment	0	no	no	-	ok	rule:veto	not a food, no amount, not on a curated food
 rule-06	For the Gravy:	note	0	no	yes	-	ok	rule:veto	a heading off any curated food stands
 rule-07	1 cup flour	ingredient	1	yes	yes	-	ok	rule:veto	an ingredient label is never refused
+c4-01	Piping tips: Wilton #125, Wilton #21, small round tip	equipment	1	no	no	-	agent	agent-review-staging-2026-11-20	recipe 40051, C4: equipment made an ingredient; the 1 is a tip number
+c4-02	MEATBALLS	note	0	yes	no	-	agent	agent-review-staging-2026-11-20	recipe 75379, C4: a heading in capitals
+c4-03	or 6 baked potatoes	note	0	yes	no	-	agent	agent-review-staging-2026-11-20	recipe 32367, C4: an alternative to the line before
+c4-04	tablespoonful of dripping from the top of the soup	reference	0	yes	no	-	agent	agent-review-staging-2026-11-20	recipe 104902, C4: taken from the dish itself
+c4-05	gill of fat from the soup-stock or an ounce of butter	reference	0	yes	no	-	agent	agent-review-staging-2026-11-20	recipe 118510, C4: taken from the dish itself
+c4-06	egg wash: 1 large egg beaten with 1 Tablespoon (15ml) milk	note	1	yes	no	states an amount	agent	agent-review-staging-2026-11-20	recipe 34236: a colon label followed by an amount is still an ingredient

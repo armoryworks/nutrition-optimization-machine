@@ -168,6 +168,26 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_heading_a_note_or_a_utensil_list_keeps_its_label()
+        {
+            using var db = NewContext();
+            db.Ingredients.AddRange(Food(1, "Meatballs"), Food(2, "Baked Potatoes"), Food(3, "Dripping"), Food(4, "Piping Tips", curated: false));
+            db.Recipes.Add(Recipe(40, Curated,
+                new Row(4, "Piping tips: Wilton #125, Wilton #21, small round tip", 1m, RecipeIngredientLineKind.Equipment, Piece),
+                new Row(1, "MEATBALLS", 0m, RecipeIngredientLineKind.Note),
+                new Row(2, "or 6 baked potatoes", 0m, RecipeIngredientLineKind.Note),
+                new Row(3, "tablespoonful of dripping from the top of the soup", 0m, RecipeIngredientLineKind.Reference),
+                new Row(3, "dripping", 0m, RecipeIngredientLineKind.Reference)));
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var result = await Labels(db).ReviewAsync();
+
+            result.Certain.Lines.Should().Be(1);
+            result.Samples.Select(s => s.Line).Should().Equal("dripping");
+        }
+
+        [Fact]
         public async Task The_label_undo_leaves_a_row_that_now_holds_another_line()
         {
             using var db = await LabelsAsync();
