@@ -722,10 +722,14 @@ the lane's source query compares the lower-cased raw name, `ProposeAsync` the wo
 raw name such as "1 teaspoon vanilla" would otherwise come back every pass and hold a batch slot.
 A food a wording points at cannot be retired by `relink/retire`.
 
-**Rollout order.** Run `./db/apply.sh` (after `--dry-run`) before deploying a build that has
-the table: with `GateLinkLane` on, every link pass queries `recipe."IngredientWording"` and
-fails, logged, until the table exists. Nothing is written wrongly in that window, but the lane
-does nothing; deploy with `VerifiedWordings__GateLinkLane=false` if the schema cannot go first.
+**Rollout order.** `./db/apply.sh` (after `--dry-run`) is mandatory before a build that has
+the table starts; there is no setting that makes the old schema safe. The same build maps
+`measurement."Measurement"."IsContainer"`, and that table is shared by every measurement type, so
+against the old schema every query that reads a measurement (recipe pages, the measurement
+endpoints, the nutrition recalculation) fails with `42703 column does not exist`, whatever
+`VerifiedWordings:GateLinkLane` says. With the gate on, every link pass also queries
+`recipe."IngredientWording"` and fails, logged. Once the columns and table exist the API works
+again without a restart.
 
 **Rename.** `POST api/FoodCatalog/relink/rename?id=<food>&name=<new name>` renames a live curated
 food and sets `NameNormalized`; a soft-deleted holder of the name is tombstoned, a live holder
