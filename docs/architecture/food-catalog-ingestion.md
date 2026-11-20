@@ -68,9 +68,13 @@ the catalog:
 
 - Energy ≤ 900 kcal/100g; each macro ≤ 100 g/100g; macro sum ≤ 105 g/100g.
 - Required: name (alphabetic, ≤ 200 chars), calories, macros.
-- **Atwater cross-check**: 4·protein + 4·carb + 9·fat must land within ±30% of
-  stated calories (skipped below 20 kcal so low-calorie foods don't trip it) —
-  catches mis-scaled units.
+- **Atwater cross-check**: 4·protein + 4·carb + 9·fat, plus 7·alcohol when the source
+  reports alcohol (FDC nutrient 1018, or an `alcohol` label column), must land within
+  ±30% of stated calories (skipped below 20 kcal so low-calorie foods don't trip it) —
+  catches mis-scaled units. Alcohol also counts toward the macro sum. It is not a
+  bypass: white wine at 82 kcal with 10.3 g alcohol passes (82.8 computed), the same
+  wine stated at 300 kcal still fails, and a food with no alcohol figure is judged on
+  its three macros as before.
 
 **Serving size is NOT validated.** Per-100g nutrition is the stable, person-
 independent fact. The amount a person actually eats is derived per-person from
@@ -85,6 +89,10 @@ records are identifiable for a clean purge-and-rerun (`WHERE "FdcId" IS NOT NULL
 `Nom.Import --purge-fdc` soft-deletes FDC-sourced ingredients (skipping any still
 referenced by a recipe) so a bad import batch can be rolled back without touching
 authored data. **Gauge quality in staging first; never import straight into prod.**
+
+`--purge-fdc` takes **every** FDC food no recipe line uses, which on a catalog that has
+been curated is most of the USDA foods, not one batch. To take back one
+`--import-fdc` run use its run stamp instead (see *One run, one stamp* below).
 
 Both the FDC import and the gated fetch call this before persisting.
 
@@ -119,6 +127,68 @@ Per-100g `IngredientNutrient` rows are persisted against the seeded Nutrient row
 (resolved by name), along with `ReferenceServingGrams` (median of single-unit portions),
 `GramsPerMilliliter` and `GramsPerItem` from `food_portion.csv` (see *Household portions*
 below).
+
+**One run, one stamp.** `--import-fdc <csv-dir> [--sr-legacy] [--curated] [--only <ids-file>]
+[--dry-run]`:
+
+- `--dry-run` reads the files and the catalog and prints the same report without saving.
+- `--only <ids-file>` reads just the listed FDC ids (separated by whitespace or commas) and
+  names any that are not in the file as that data type. Without it the whole file is read,
+  and every food already in the catalog also gets the nutrients and density it lacks, so a
+  plain SR Legacy run after a new Nutrient row is added writes that nutrient onto every
+  SR Legacy food.
+- An FDC id held by a **retired** (soft-deleted) food counts as existing: the food is
+  skipped and reported, never recreated (`FdcId` is unique across deleted rows too) and
+  never backfilled.
+- A run is one transaction. Everything it writes carries one timestamp, printed as the
+  run stamp, and is journaled in `audit."AuditLogEntry"` (entity `Ingredient`, change type
+  `FdcImport`): one row per food created (`FdcId`), per existing food that gained nutrient
+  rows (`IngredientNutrients`, the count) and per density filled (`GramsPerMilliliter`).
+- `--import-fdc --undo <stamp> [--dry-run]` takes that run back from the journal: a food it
+  created is soft-deleted unless a recipe line already uses it (those are listed and their
+  journal rows kept), the nutrient rows it added to existing foods are removed, a density it
+  filled is cleared when unchanged, and its attach proposals still pending are rejected. A
+  retired food keeps its FDC id, so importing again skips it; restore one with
+  `UPDATE recipe."Ingredient" SET "IsDeleted" = false, "DeletedAt" = NULL WHERE "FdcId" = '<id>'`.
+
+### Attaching a USDA food to a catalog food by id — BUILT ✅
+`--import-fdc` offers a catalog food a USDA record only when the two share a name. A seeded
+food with an everyday name ("Dry White Wine", #164) and no USDA record takes one in place
+with `--attach-fdc <csv-dir> <pairs.tsv> [--sr-legacy] [--dry-run]`. `pairs.tsv` has a
+header row `ingredient_id<TAB>name<TAB>fdc_id` and one food per row:
+
+```
+ingredient_id	name	fdc_id
+164	Dry White Wine	174837
+```
+
+Each row becomes one **pending** `fdc_attach` proposal (source `fdc:<id>`, batch
+`fdc-attach`) carrying the USDA values, reference serving, g/ml and item weight; nothing on
+the food changes until it is applied in Admin → Food Catalog → Links (the certain-links
+lane applies `fdc:` attaches on its own when it is on). A row is passed over, with the
+reason printed, when the food is missing or deleted (`food_not_found`), goes by another name
+(`name_differs`), already has that record (`already_attached`) or another
+(`has_usda_record`), already has a proposal waiting (`already_proposed`), the FDC id is held
+by or promised to another food, retired ones included (`fdc_id_taken`), the id is not in the
+file as that data type (`fdc_food_not_in_file`; pass `--sr-legacy` for an SR Legacy id), or
+the USDA values fail the quality gate.
+
+Applying it keeps the food's id, name and recipe lines, sets `FdcId` and `FdcDataType`,
+fills only the nutrients, serving, g/ml and item weight the food lacks, stamps each new
+`IngredientNutrient` row with the FDC id, keeps the USDA description as the food's
+`fdc:description` alias (the name the link matcher's comma segments work on), and journals
+every column it set in `audit."AuditLogEntry"` (entity `Ingredient`, change type `FdcAttach`,
+old and new value). The API release must be deployed before the importer writes the
+proposal: the nutrient list is stored as `[nutrientId, amount, measurementId]` triples so a
+food with every stored nutrient fits the 2,047-character proposal column, and an older API
+does not read that shape.
+
+`--attach-fdc --undo <pairs.tsv> [--dry-run]` takes the same pairs back from that journal:
+each column returns to its old value when it still holds what the attach gave it, the
+stamped nutrient rows and the description alias are removed, the proposal is marked
+Rejected and the food's recipe lines are marked changed so their labels are recalculated.
+A proposal still pending is simply rejected. An attach applied before the journal existed
+is reported as `not_journaled` and left alone.
 
 ### Household portions → gram conversions — BUILT ✅
 A recipe line in cups or pieces only counts toward nutrition when its ingredient can
@@ -226,6 +296,14 @@ printed at the end of the report, so a run can be undone exactly:
 `DELETE FROM nutrient."IngredientNutrient" WHERE "CreatedDate" = '<printed stamp>';`.
 Trans fat needs its Nutrient row first: run `db/fix-trans-fat-nutrient.sql` on databases
 seeded before it existed.
+
+Alcohol (FDC 1018, grams of ethanol) is read the same way and stored against the
+`Alcohol` Nutrient row, which has no parent; run `db/fix-alcohol-nutrient.sql` on databases
+seeded before it existed. Only SR Legacy reports it (73 foods above zero, the rest zero),
+so the first SR Legacy backfill after the row exists writes one mostly-zero row per SR
+Legacy food. The stored value is what lets the catalog audit count alcohol energy; without
+the row a wine is still accepted at import but the audit reports it as `atwater_mismatch`.
+The recipe label does not list alcohol.
 
 ### Vitamins and minerals + SR Legacy supplement — BUILT ✅
 `FdcNutrients` also reads the vitamins and minerals that carry an FDA Daily Value, into the
