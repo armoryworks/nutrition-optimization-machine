@@ -497,7 +497,7 @@ namespace Nom.Orch.Services
             foreach (var ingredient in scraped.Ingredients)
             {
                 var (ingredientEntity, followed) = await FindOrCreateIngredientAsync(Clamp(ingredient.Name, 2047)!, personId);
-                if (PackageLineService.WeighsDrained(ingredientEntity.Name) && scrapedAmounts.TryGetValue(ingredient, out var amount))
+                if (PackageLineService.CountsDrained(ingredientEntity.Name, ingredient.RawLine) && scrapedAmounts.TryGetValue(ingredient, out var amount))
                 {
                     var counted = await KnownMeasurementAsync(Support.IngredientLineParser.Normalize(amount.Quantity, amount.Unit, ingredient.RawLine, drained: true), ingredient.RawLine);
                     ingredient.Quantity = counted?.Quantity;

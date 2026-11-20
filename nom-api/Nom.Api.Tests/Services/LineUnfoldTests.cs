@@ -437,6 +437,40 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_first_line_that_names_another_food_keeps_its_place_without_an_amount_and_the_undo_restores_it()
+        {
+            using var db = await NewContextAsync();
+            var seeded = await SeedAsync(db, new[] { "one pint of cold water", "one-half box gelatine" },
+                ("box gelatine", 0, 2m, Cup, null, "one pint of cold water + one-half box gelatine"));
+            var started = DateTime.UtcNow;
+
+            var result = await new LineUnfoldService(db, new NoUser()).UnfoldAsync(apply: true);
+
+            result.UnnamedUnmeasured.Should().Be(1);
+            (await LinesAsync(db, seeded.RecipeId)).Select(l => (l.SortOrder, l.RawLine, l.Quantity, l.MeasurementId)).Should().Equal(
+                (0, "one pint of cold water", 0m, Gram), (1, "one-half box gelatine", 0m, Gram));
+
+            var undone = await new LineRelinkService(db, new NoUser()).UndoAsync(started);
+
+            undone.Refolded.Should().Be(1);
+            (await LinesAsync(db, seeded.RecipeId)).Single().Should().Match<RecipeIngredientEntity>(
+                l => l.RawLine == "one pint of cold water + one-half box gelatine" && l.Quantity == 2m && l.MeasurementId == Cup);
+        }
+
+        [Fact]
+        public async Task A_source_line_that_adds_two_amounts_of_one_food_keeps_both()
+        {
+            using var db = await NewContextAsync();
+            var seeded = await SeedAsync(db, new[] { "1/3 cup light brown sugar", "1/4 cup + 1 tablespoon light brown sugar" },
+                ("Brown Sugar", 0, 0.333m, Cup, null, "1/3 cup light brown sugar + 1/4 cup + 1 tablespoon light brown sugar"));
+
+            await new LineUnfoldService(db, new NoUser()).UnfoldAsync(apply: true);
+
+            (await LinesAsync(db, seeded.RecipeId)).Select(l => (l.RawLine, l.Quantity, l.MeasurementId)).Should().Equal(
+                ("1/3 cup light brown sugar", 0.333m, Cup), ("1/4 cup + 1 tablespoon light brown sugar", 0.313m, Cup));
+        }
+
+        [Fact]
         public async Task The_undo_sweep_leaves_a_row_whose_lines_were_edited_or_removed_since()
         {
             using var db = await NewContextAsync();

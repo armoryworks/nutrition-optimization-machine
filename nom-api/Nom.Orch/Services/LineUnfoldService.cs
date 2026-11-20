@@ -188,6 +188,9 @@ namespace Nom.Orch.Services
         /// unless that line states none and a later line states exactly it, in which case it goes
         /// with that line. A later line that names no word of the row's food ("2 tablespoons butter"
         /// on Honey) is added without an amount, so it counts toward no food until relink moves it.
+        /// When the first line names no word of the food and a later line does ("one pint of cold
+        /// water + one-half box gelatine" on box gelatine), the first line keeps its place without an
+        /// amount, so the water is not counted as gelatine.
         /// </summary>
         private static Lines LinesOf(IReadOnlyList<string> segments, decimal quantity, long measurementId, string? lineKind, string foodName, Units units)
         {
@@ -211,10 +214,14 @@ namespace Nom.Orch.Services
                     -1);
             }
 
+            var firstUnnamed = parsed[0] != null && !FoodNameMatcher.NamesFood(segments[0], foodName)
+                && kept.Skip(1).Any(k => FoodNameMatcher.NamesFood(segments[k], foodName));
+            if (firstUnnamed) unnamed++;
             var lines = new List<Line>();
             foreach (var i in kept)
             {
-                if (i == 0) lines.Add(new Line(segments[i], owner < 0 ? quantity : 0m, measurementId, lineKind));
+                if (i == 0 && firstUnnamed) lines.Add(new Line(segments[i], 0m, units.Ids.GetValueOrDefault(UnreadMeasurement, measurementId), lineKind));
+                else if (i == 0) lines.Add(new Line(segments[i], owner < 0 ? quantity : 0m, measurementId, lineKind));
                 else if (i == owner) lines.Add(new Line(segments[i], quantity, measurementId, null));
                 else if (amounts[i] is { } amount && units.Ids.TryGetValue(amount.MeasurementName, out var unitId)) lines.Add(new Line(segments[i], amount.Quantity, unitId, null));
                 else lines.Add(new Line(segments[i], 0m, units.Ids.GetValueOrDefault(UnreadMeasurement, measurementId), lineKind));
@@ -231,6 +238,7 @@ namespace Nom.Orch.Services
 
             row.RawLine = lines.Kept[0].RawLine;
             row.Quantity = lines.Kept[0].Quantity;
+            row.MeasurementId = lines.Kept[0].MeasurementId;
             row.LastModifiedDate = now;
             row.LastModifiedByPersonId = personId;
             foreach (var line in lines.Kept.Skip(1))

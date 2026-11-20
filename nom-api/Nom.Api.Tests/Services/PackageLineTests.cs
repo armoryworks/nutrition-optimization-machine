@@ -121,11 +121,12 @@ namespace Nom.Api.Tests.Services
             preview.ChangeCount.Should().Be(5);
             preview.TouchCount.Should().Be(1, "the can of tomatoes stays a can but was weighed as one tomato");
             preview.StopCounting.Should().Be(2, "the jar of marinara and the can of tomatoes have no stated size");
-            preview.StartCounting.Should().Be(1, "the chickpeas had no item weight and now have 15 ounces");
+            preview.StartCounting.Should().Be(0, "the drained chickpeas count cans, not the can's net weight");
+            preview.DrainedAsContainers.Should().Be(1, "the line itself says drained");
             preview.MissingMeasurements.Should().BeEmpty();
             preview.Transitions.Select(t => (t.FromMeasurement, t.ToMeasurement, t.Lines)).Should().BeEquivalentTo(new[]
             {
-                ("Piece", "Ounce", 2), ("Can", "Ounce", 1), ("Piece", "Package", 1), ("Piece", "Milliliter", 1),
+                ("Piece", "Ounce", 1), ("Can", "Ounce", 1), ("Piece", "Package", 1), ("Piece", "Milliliter", 1), ("Piece", "Can", 1),
             });
             preview.Samples.Should().HaveCount(5);
             var beans = preview.Samples.Single(s => s.Line == "1 (15 oz) can black beans");
@@ -153,7 +154,7 @@ namespace Nom.Api.Tests.Services
             (lines["1 can (15 oz) corn"].Quantity, lines["1 can (15 oz) corn"].MeasurementId).Should().Be((15m, Ounce));
             (lines["1 jar marinara"].Quantity, lines["1 jar marinara"].MeasurementId).Should().Be((1m, Package));
             (lines["1 (13.5 fl oz) can coconut milk"].Quantity, lines["1 (13.5 fl oz) can coconut milk"].MeasurementId).Should().Be((399.242m, Milliliter));
-            (lines["1 15-oz can chickpeas, rinsed and drained"].Quantity, lines["1 15-oz can chickpeas, rinsed and drained"].MeasurementId).Should().Be((15m, Ounce));
+            (lines["1 15-oz can chickpeas, rinsed and drained"].Quantity, lines["1 15-oz can chickpeas, rinsed and drained"].MeasurementId).Should().Be((1m, Can));
 
             (lines["1 can tomatoes"].Quantity, lines["1 can tomatoes"].MeasurementId).Should().Be((1m, Can));
             lines["1 can tomatoes"].LastModifiedDate.Should().NotBeNull("its recipe's label is due for recalculation without the weight of one tomato");
@@ -269,6 +270,33 @@ namespace Nom.Api.Tests.Services
             (lines["1 (15-ounce) can chickpeas, drained and rinsed"].Quantity, lines["1 (15-ounce) can chickpeas, drained and rinsed"].MeasurementId).Should().Be((1m, Can));
             (lines["2 cans (15 oz each) pinto beans, drained"].Quantity, lines["2 cans (15 oz each) pinto beans, drained"].MeasurementId).Should().Be((2m, Can));
             (await db.RecipeIngredients.AsNoTracking().AnyAsync(ri => ri.MeasurementId == Ounce)).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task A_line_that_says_drained_counts_its_jar_and_a_frozen_package_keeps_its_weight()
+        {
+            using var db = NewContext();
+            var peppers = Food("roasted red pepper", servingGrams: 100m);
+            var artichokes = Food("Artichokes, (globe or french), frozen, cooked, boiled, drained, without salt", servingGrams: 168m);
+            var tomatoes = Food("Tomatoes", servingGrams: 123m);
+            var mould = Food("two-quart tin mould", gramsPerItem: 10m);
+            db.Ingredients.AddRange(peppers, artichokes, tomatoes, mould);
+            await db.SaveChangesAsync();
+            db.Recipes.Add(Recipe("Scraped peppers", scraped: true,
+                new Row(peppers, 1, Piece, "1  (12-ounce) jar roasted red peppers, drained and chopped"),
+                new Row(artichokes, 1, Piece, "1 package (9 ounces) frozen artichokes, cooked"),
+                new Row(tomatoes, 1, Piece, "1 (14.5-ounce) can diced tomatoes (not drained)"),
+                new Row(mould, 1, Piece, "two-quart tin mould")));
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            await new PackageLineService(db, new NoUser()).ApplyAsync();
+
+            var lines = await LinesAsync(db, "Scraped peppers");
+            (lines["1  (12-ounce) jar roasted red peppers, drained and chopped"].Quantity, lines["1  (12-ounce) jar roasted red peppers, drained and chopped"].MeasurementId).Should().Be((1m, Package));
+            (lines["1 package (9 ounces) frozen artichokes, cooked"].Quantity, lines["1 package (9 ounces) frozen artichokes, cooked"].MeasurementId).Should().Be((9m, Ounce));
+            (lines["1 (14.5-ounce) can diced tomatoes (not drained)"].Quantity, lines["1 (14.5-ounce) can diced tomatoes (not drained)"].MeasurementId).Should().Be((14.5m, Ounce));
+            (lines["two-quart tin mould"].Quantity, lines["two-quart tin mould"].MeasurementId).Should().Be((1m, Piece), "a mould is a utensil, not a volume");
         }
 
         [Fact]

@@ -253,11 +253,17 @@ stands in for it (one can of tomatoes is not one tomato). A line weighs what it 
   30 Ounce. A whole count with a plain size is still each ("2 cans (15 oz) beans" → 30
   Ounce), so "2 cans (28 ounces) coconut milk", where 28 is the total, reads as 56 and needs
   a person.
-- A food whose values are for its drained solids (its name contains "drained": "Chickpeas
-  ..., canned, drained, rinsed in tap water", "Beans, pinto, canned, drained solids") never
-  takes a can's stated size, which is the net weight with the liquid: the line is stored as
-  that many cans or packages instead (`no-conversion`), at import and in the re-read lane,
-  whose preview counts them as `DrainedAsContainers`. No drained-weight factor is invented.
+- A can, tin or jar line whose food is used drained never takes the stated size, which is the
+  net weight with the liquid: the line is stored as that many cans or packages instead
+  (`no-conversion`), at import and in the re-read lane, whose preview counts them as
+  `DrainedAsContainers`. Drained means the food's values are for its drained solids (its name
+  contains "drained": "Chickpeas ..., canned, drained, rinsed in tap water") or the line itself
+  says "drained" ("1 (12-ounce) jar roasted red peppers, drained"; "not drained" does not
+  count), so the same wording gives the same reading on any food
+  (`PackageLineService.CountsDrained`). A frozen or dry package ("1 package (9 ounces) frozen
+  artichokes") is weighed as sold even on a drained food. No drained-weight factor is invented.
+- A size in front of a utensil ("two-quart tin mould", "8-inch pan") is not an amount: the
+  line is not read.
 - A container with no stated size is stored in a **container unit**: Can, or Package for a
   jar, bottle, box, bag, packet, envelope, carton, tub, tube or pouch
   (`measurement."Measurement"."IsContainer"`). `GramsFor` gives a container unit no weight,
@@ -440,7 +446,9 @@ row on the same food at the end of the recipe, with the amount `IngredientLinePa
 from it (0 on the Gram measurement when it reads none). Rules:
 
 - `" + "` also stands inside single lines ("1 cup + 2 Tablespoons sugar", "1 large egg + 1
-  egg white"). Where the recipe has a `ScrapedDocument`, the row is split only into whole
+  egg white"). The line parser adds up a bare amount and the amount after it in the first
+  unit ("1/4 cup + 1 tablespoon light brown sugar" → 0.313 Cup) and reads nothing when the
+  units do not add ("1 cup + 2 oz sugar"). Where the recipe has a `ScrapedDocument`, the row is split only into whole
   lines of its `recipeIngredient` list, fewest lines first; a row that is one line of that
   list is not a fold (`SkippedSingleSourceLine`), and a row that does not add up to lines of
   the list is left alone (`SkippedAmbiguous`). A recipe with no stored document (the cookbook
@@ -454,6 +462,9 @@ from it (0 on the Gram measurement when it reads none). Rules:
 - A later line that names no word of the row's food ("2 tablespoons butter" on Honey; words
   that only describe a food, such as "fresh" or "canned", do not count) is added without an
   amount (`UnnamedUnmeasured`), so it counts toward no food until relink moves it to its own.
+  The same holds for the first line when it names no word of the food and a later line does
+  ("one pint of cold water + one-half box gelatine" on box gelatine): it keeps the row's place
+  on the Gram measurement at 0, and the undo gives the row back its stored amount.
 - The rows the unfold leaves at 0 stay at 0 by construction: the startup re-read
   (`ScrapedRecipeRepairService`, every API start) never takes an amount from the method for a
   line when another live line of the recipe is on the same food or names the same food

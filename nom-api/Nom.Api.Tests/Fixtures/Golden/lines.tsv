@@ -45,3 +45,7 @@ alone-03	container	8 medium (8-ounces) shrimp	*	*	-	*	*	ok	-	design:count-fallba
 alone-04	container	1 can or ½ lb. fresh tomatoes	*	*	-	*	*	ok	-	design:count-fallback	lines the size rules leave alone
 alone-05	container	1 can (#2 size or 2 1/2 cups) pineapple tidbits	*	*	-	*	*	ok	-	design:count-fallback	lines the size rules leave alone
 alone-06	container	1 914-ounce) can coconut cream	*	*	-	*	*	ok	-	design:count-fallback	lines the size rules leave alone
+c2-01	utensil	two-quart tin mould	-	-	-	*	*	agent	-	agent-review-staging-2026-11-20	recipe 109556, C2: equipment read as 8 Cup
+c5-01	sum	1/4 cup + 1 tablespoon light brown sugar	0.313	Cup	-	*	*	agent	-	agent-review-staging-2026-11-20	recipe 23887, C5: one food, two amounts; read as 0.25 Cup
+c5-02	sum	1 cup + 2 oz sugar	-	-	-	*	*	agent	-	agent-review-staging-2026-11-20	units that do not add are not read
+c2-02	container	1 package (9 ounces) frozen artichokes, cooked	9	Ounce	9 Ounce	*	*	agent	-	agent-review-staging-2026-11-20	recipe 22537, C2: a frozen package is weighed as sold

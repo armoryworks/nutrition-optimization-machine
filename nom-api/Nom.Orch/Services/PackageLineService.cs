@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Nom.Data;
@@ -56,6 +57,20 @@ namespace Nom.Orch.Services
         /// </summary>
         public static bool WeighsDrained(string? foodName) => foodName != null && foodName.Contains(DrainedWord, StringComparison.OrdinalIgnoreCase);
 
+        private static readonly Regex SaysDrained = new(@"(?<!\bnot\s)\bdrained\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex PackedInLiquid = new(@"\b(?:cans?|tins?|jars?)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// Whether a line's stated size is a can's or jar's net weight with its liquid while the
+        /// food is used drained, so the line counts cans or jars instead: the food's values are for
+        /// its drained solids (<see cref="WeighsDrained"/>) or the line itself says "drained" (not
+        /// "not drained"), and the line names a can, tin or jar. A frozen or dry package is weighed
+        /// as it is sold.
+        /// </summary>
+        public static bool CountsDrained(string? foodName, string? rawLine) =>
+            rawLine != null && (WeighsDrained(foodName) || SaysDrained.IsMatch(rawLine)) && PackedInLiquid.IsMatch(rawLine);
+
         private async Task<Plan> PlanAsync()
         {
             var units = (await _db.Measurements.AsNoTracking()
@@ -100,7 +115,7 @@ namespace Nom.Orch.Services
                     if (parsed != null && (parsed.MeasurementName == IngredientLineParser.Piece || !IngredientLineParser.ReadsPackage(first))) parsed = null;
                     read[first] = parsed;
                 }
-                if (line.Drained && parsed != null && IngredientLineParser.StatedSize(first) != null)
+                if ((line.Drained || SaysDrained.IsMatch(first)) && PackedInLiquid.IsMatch(first) && parsed != null && IngredientLineParser.StatedSize(first) != null)
                 {
                     parsed = IngredientLineParser.SizedContainers(first);
                     drained++;

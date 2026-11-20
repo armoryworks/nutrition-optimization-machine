@@ -14,8 +14,10 @@ namespace Nom.Orch.Services.Support
     /// "2 large eggs"), mapped onto NOM's measurement vocabulary. Units NOM has no row for are
     /// converted (quart → 4 Cup, fl oz → Milliliter) or counted as Piece; a line without a unit
     /// counts pieces. A can, jar or package is read by the size it states ("2 (15 oz) cans" →
-    /// 30 Ounce) and as Can or Package when it states none. Returns null when the line has no
-    /// leading quantity ("salt, to taste").
+    /// 30 Ounce) and as Can or Package when it states none. Two amounts of one food joined by
+    /// " + " are added up in the first one's unit ("1/4 cup + 1 tablespoon sugar" → 0.313 Cup), or
+    /// not read when their units do not add. Returns null when the line has no leading quantity
+    /// ("salt, to taste") or sizes a utensil ("two-quart tin mould").
     /// </summary>
     public static class IngredientLineParser
     {
@@ -146,6 +148,13 @@ namespace Nom.Orch.Services.Support
             if (string.IsNullOrWhiteSpace(rawLine)) return null;
             rawLine = IngredientNameNormalizer.PlainFractions(rawLine);
             if (IsElliptical(rawLine)) return null;
+            if (SizedUtensil.IsMatch(rawLine)) return null;
+            if (SumOfAmounts.Match(rawLine) is { Success: true } sum && IsBareAmount(sum.Groups["a"].Value)
+                && ParseLeading(sum.Groups["a"].Value, out _, out _) is { } first)
+            {
+                return Sum(first, Read(sum.Groups["b"].Value, out _, out _));
+            }
+
             var leading = ParseLeading(rawLine, out sized, out containers);
             if (leading is { MeasurementName: not Piece }) return leading;
 
@@ -281,7 +290,24 @@ namespace Nom.Orch.Services.Support
             .Where(u => u.Measurement is "Ounce" or "Pound" or "Gram" or "Kilogram" or "Milliliter" or "Liter" || LargeVolumes.Contains(u.Forms[0]))
             .SelectMany(u => u.Forms));
 
-        private static readonly string Container = @"(?:" + Alternation(Units.Where(u => u.Measurement is Can or Package).SelectMany(u => u.Forms)) + @")(?![a-z])\.?";
+        private const string Utensil = @"(?:moulds?|molds?|pans?|saucepans?|stewpans?|skillets?|dish(?:es)?|basins?|bowls?|kettles?|casseroles?|ramekins?)\b";
+
+        private static readonly string Container = @"(?:" + Alternation(Units.Where(u => u.Measurement is Can or Package).SelectMany(u => u.Forms)) + @")(?![a-z])\.?(?!\s*" + Utensil + ")";
+
+        private static readonly Regex SizedUtensil = new(
+            @"^[^,(]*?\b(?:quarts?|pints?|gallons?|inch(?:es)?|cups?)\b[\s-]*(?:[\p{L}-]+\s+){0,2}?" + Utensil,
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex SumOfAmounts = new(
+            @"^\s*(?<a>[^+]*?)\s+\+\s+(?<b>.+)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly Dictionary<string, (string Family, decimal Base)> Summable = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Teaspoon"] = ("volume", 1m), ["Tablespoon"] = ("volume", 3m), ["Cup"] = ("volume", 48m),
+            ["Ounce"] = ("weight", 1m), ["Pound"] = ("weight", 16m),
+            ["Gram"] = ("metric weight", 1m), ["Kilogram"] = ("metric weight", 1000m),
+            ["Milliliter"] = ("metric volume", 1m), ["Liter"] = ("metric volume", 1000m),
+        };
 
         private const string Number =
             @"\d+\s+\d+\s*/\s*\d+|\d+\s*/\s*\d+|\d+(?:[.,]\d+)?\s*[" + Fractions + @"]|[" + Fractions + @"]|\d+(?:[.,]\d+)?|\.\d+";
@@ -412,6 +438,15 @@ namespace Nom.Orch.Services.Support
             if (quantity is not > 0) return null;
 
             return FromUnit(quantity.Value, match.Groups["unit"].Success ? match.Groups["unit"].Value : null);
+        }
+
+        private static bool IsBareAmount(string text) =>
+            LineRegex.Match(text.Trim()) is { Success: true } m && m.Groups["unit"].Success && m.Groups["rest"].Value.Trim().TrimEnd('.').Length == 0;
+
+        private static ParsedQuantity? Sum(ParsedQuantity first, ParsedQuantity? second)
+        {
+            if (second == null || !Summable.TryGetValue(first.MeasurementName, out var a) || !Summable.TryGetValue(second.MeasurementName, out var b) || a.Family != b.Family) return null;
+            return new ParsedQuantity(Round((first.Quantity * a.Base + second.Quantity * b.Base) / a.Base), first.MeasurementName);
         }
 
         private static ParsedQuantity FromUnit(decimal quantity, string? unit)
