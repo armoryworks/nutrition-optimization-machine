@@ -21,7 +21,7 @@ SELECT json_build_object(
     'lines', (SELECT json_agg(ri."RawLine" ORDER BY ri."SortOrder", ri."IngredientId") FROM recipe."RecipeIngredient" ri
               WHERE ri."RecipeId" = c.id AND NOT ri."IsDeleted" AND ri."RawLine" LIKE '% + %'
                 AND (ri."LineKind" IS NULL OR ri."LineKind" = 'ingredient')),
-    'sources', (SELECT json_agg(d."RawJsonLd") FROM recipe."ScrapedDocument" d WHERE d."RecipeId" = c.id AND NOT d."IsDeleted")
+    'sources', (SELECT json_agg(d."RawJsonLd") FROM recipe."ScrapedDocument" d WHERE d."RecipeId" = c.id AND NOT d."IsDeleted" AND d."Format" = 'jsonld')
 )
 FROM chosen c JOIN recipe."Recipe" r ON r."Id" = c.id
 ORDER BY c.origin, c.id;

@@ -148,7 +148,7 @@ namespace Nom.Orch.Services
             foreach (var recipeIds in rows.Select(r => r.RecipeId).Distinct().Chunk(500))
             {
                 var documents = await _db.ScrapedDocuments.AsNoTracking()
-                    .Where(d => !d.IsDeleted && recipeIds.Contains(d.RecipeId))
+                    .Where(d => !d.IsDeleted && recipeIds.Contains(d.RecipeId) && d.Format == ScrapedDocumentFormat.JsonLd)
                     .Select(d => new { d.RecipeId, d.RawJsonLd })
                     .ToListAsync();
                 foreach (var document in documents)

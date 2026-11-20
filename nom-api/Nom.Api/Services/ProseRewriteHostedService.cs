@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Nom.Data;
 using Nom.Data.Audit;
+using Nom.Data.Recipe;
 using Nom.Orch.Services;
 using Nom.Orch.Services.Support;
 
@@ -128,7 +129,7 @@ namespace Nom.Api.Services
 
             var ids = quarantined.Select(r => r.Id).ToList();
             var sources = (await db.ScrapedDocuments.AsNoTracking()
-                    .Where(d => ids.Contains(d.RecipeId))
+                    .Where(d => ids.Contains(d.RecipeId) && d.Format == ScrapedDocumentFormat.JsonLd)
                     .OrderBy(d => d.Id)
                     .Select(d => new { d.RecipeId, d.RawJsonLd })
                     .ToListAsync(cancellationToken))

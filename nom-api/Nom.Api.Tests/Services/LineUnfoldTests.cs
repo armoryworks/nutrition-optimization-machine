@@ -498,5 +498,24 @@ namespace Nom.Api.Tests.Services
                 l => l.RawLine == "milk + 2 cups milk" && l.Quantity == 0.5m, "an amount changed since the unfold is not overwritten");
             (await db.AuditLogEntries.Select(a => a.EntityId).ToListAsync()).Should().BeEquivalentTo(new[] { edited.RecipeId, removed.RecipeId, reworded.RecipeId });
         }
+
+        [Fact]
+        public async Task A_stored_cookbook_record_is_not_read_as_a_json_ld_list_so_its_fold_is_still_taken_apart()
+        {
+            using var db = await NewContextAsync();
+            var seeded = await SeedAsync(db, null, ("Sugar", 0, 1m, Cup, null, "1 cup sugar + 2 cups sugar"));
+            var record = Nom.Orch.Services.Support.SourceRecord.Content(new Nom.Orch.UtilityInterfaces.ScraperRecipe
+            {
+                Name = "Scraped",
+                Ingredients = { new() { RawLine = "1 cup sugar", Name = "sugar" }, new() { RawLine = "2 cups sugar", Name = "sugar" } },
+            });
+            db.ScrapedDocuments.Add(new ScrapedDocumentEntity { RecipeId = seeded.RecipeId, RawJsonLd = record, Format = ScrapedDocumentFormat.StagedCookbook });
+            await db.SaveChangesAsync();
+
+            var result = await new LineUnfoldService(db, new NoUser()).UnfoldAsync(apply: true);
+
+            result.Folds.Should().Be(1);
+            (await LinesAsync(db, seeded.RecipeId)).Select(l => l.RawLine).Should().Equal("1 cup sugar", "2 cups sugar");
+        }
     }
 }

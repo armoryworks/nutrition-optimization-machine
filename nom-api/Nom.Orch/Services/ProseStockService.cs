@@ -50,6 +50,7 @@ namespace Nom.Orch.Services
         {
             var result = new ProseStockRebuildResult { Applied = apply };
             var documents = await _db.ScrapedDocuments.AsNoTracking()
+                .Where(d => d.Format == ScrapedDocumentFormat.JsonLd)
                 .OrderBy(d => d.Id)
                 .Select(d => new { d.Id, d.SourceUrl })
                 .ToListAsync(cancellationToken);

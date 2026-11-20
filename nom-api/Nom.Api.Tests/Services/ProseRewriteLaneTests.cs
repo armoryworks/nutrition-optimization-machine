@@ -200,6 +200,28 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task The_staged_import_record_stored_after_the_json_ld_is_not_the_text_rewritten_from()
+        {
+            var model = new Model(() => Faithful);
+            var (provider, lane) = NewLane(model);
+            var id = await SeedAsync(provider, new[] { "Heat the oven to 425 degrees F.", "Roast the potatoes for about 25 minutes." });
+            using (var scope = provider.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                db.ScrapedDocuments.Add(new ScrapedDocumentEntity
+                {
+                    RecipeId = id, Format = ScrapedDocumentFormat.ScraperRecipe,
+                    RawJsonLd = """{"name":"Roast potatoes","steps":[{"order":1,"instruction":"Heat."},{"order":2,"instruction":"Roast."}]}""",
+                });
+                await db.SaveChangesAsync();
+            }
+
+            await SweepAsync(lane);
+
+            model.Prompts.Should().ContainSingle().Which.Should().Contain("25 to 30 minutes");
+        }
+
+        [Fact]
         public async Task A_recipe_the_model_answers_with_an_error_status_is_stamped_and_the_sweep_goes_on()
         {
             var model = new Model(() => Faithful) { Status = call => call == 1 ? HttpStatusCode.InternalServerError : HttpStatusCode.OK };

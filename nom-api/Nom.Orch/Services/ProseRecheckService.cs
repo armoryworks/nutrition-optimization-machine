@@ -86,7 +86,7 @@ namespace Nom.Orch.Services
                         .ToListAsync(cancellationToken))
                     .ToLookup(s => s.RecipeId);
                 var sources = (await _db.ScrapedDocuments.AsNoTracking()
-                        .Where(d => ids.Contains(d.RecipeId))
+                        .Where(d => ids.Contains(d.RecipeId) && d.Format == ScrapedDocumentFormat.JsonLd)
                         .OrderBy(d => d.Id)
                         .Select(d => new { d.RecipeId, d.RawJsonLd })
                         .ToListAsync(cancellationToken))
