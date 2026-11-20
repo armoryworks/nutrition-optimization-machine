@@ -37,6 +37,8 @@ namespace Nom.Orch.Models.Curation
         public int QuantitiesReassigned { get; set; }
         /// <summary>Added lines with no amount the parser reads.</summary>
         public int UnmeasuredAdded { get; set; }
+        /// <summary>Added lines that state an amount but name no word of their row's food, added without it so they count toward no food until relink moves them.</summary>
+        public int UnnamedUnmeasured { get; set; }
         /// <summary>Rows that are one line of their recipe's source list ("1 cup + 2 Tablespoons sugar").</summary>
         public int SkippedSingleSourceLine { get; set; }
         /// <summary>Rows whose parts cannot be told apart safely: they do not add up to lines of the recipe's stored source, a part is only an amount and there is no stored source, or the text is too long to journal.</summary>

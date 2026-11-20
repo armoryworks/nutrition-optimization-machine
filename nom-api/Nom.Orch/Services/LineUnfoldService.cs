@@ -43,7 +43,7 @@ namespace Nom.Orch.Services
         private sealed record Row(long RecipeId, long IngredientId, int SortOrder, string RawLine, decimal Quantity, long MeasurementId, string? LineKind, string IngredientName);
         private sealed record Fold(Row Row, IReadOnlyList<string> Segments);
         private sealed record Line(string RawLine, decimal Quantity, long MeasurementId, string? LineKind);
-        private sealed record Lines(List<Line> Kept, int Dropped, bool Reassigned);
+        private sealed record Lines(List<Line> Kept, int Dropped, bool Reassigned, int Unnamed);
         private sealed record Units(Dictionary<long, string> Names, Dictionary<string, long> Ids);
 
         private sealed record Before(
@@ -76,7 +76,7 @@ namespace Nom.Orch.Services
             {
                 foreach (var fold in batch)
                 {
-                    Count(result, fold.Row, LinesOf(fold.Segments, fold.Row.Quantity, fold.Row.MeasurementId, fold.Row.LineKind, units), units, samples);
+                    Count(result, fold.Row, LinesOf(fold.Segments, fold.Row.Quantity, fold.Row.MeasurementId, fold.Row.LineKind, fold.Row.IngredientName, units), units, samples);
                 }
 
                 done = batch.Count;
@@ -101,7 +101,7 @@ namespace Nom.Orch.Services
                             var row = stored[recipe.Key].FirstOrDefault(ri => ri.IngredientId == fold.Row.IngredientId && ri.SortOrder == fold.Row.SortOrder);
                             if (row == null || row.IsDeleted || row.RawLine != fold.Row.RawLine || !IsIngredient(row.LineKind)) continue;
 
-                            var lines = LinesOf(fold.Segments, row.Quantity, row.MeasurementId, row.LineKind, units);
+                            var lines = LinesOf(fold.Segments, row.Quantity, row.MeasurementId, row.LineKind, fold.Row.IngredientName, units);
                             next = Write(row, lines, next, personId);
                             Count(result, fold.Row, lines, units, samples);
                             done++;
@@ -186,9 +186,10 @@ namespace Nom.Orch.Services
         /// The lines a joined row becomes, the row itself first. A later part that repeats an
         /// earlier one without an amount is left out. The stored amount stays on the first line
         /// unless that line states none and a later line states exactly it, in which case it goes
-        /// with that line.
+        /// with that line. A later line that names no word of the row's food ("2 tablespoons butter"
+        /// on Honey) is added without an amount, so it counts toward no food until relink moves it.
         /// </summary>
-        private static Lines LinesOf(IReadOnlyList<string> segments, decimal quantity, long measurementId, string? lineKind, Units units)
+        private static Lines LinesOf(IReadOnlyList<string> segments, decimal quantity, long measurementId, string? lineKind, string foodName, Units units)
         {
             var parsed = segments.Select(IngredientLineParser.Parse).ToList();
             var keys = segments.Select(FoldedLine.Key).ToList();
@@ -199,11 +200,13 @@ namespace Nom.Orch.Services
                 kept.Add(i);
             }
 
+            var amounts = parsed.Select((p, i) => i > 0 && p != null && !FoodNameMatcher.NamesFood(segments[i], foodName) ? null : p).ToList();
+            var unnamed = kept.Count(i => amounts[i] == null && parsed[i] != null);
             var owner = -1;
             if (quantity > 0 && parsed[0] == null && units.Names.TryGetValue(measurementId, out var storedUnit))
             {
                 owner = kept.Skip(1).FirstOrDefault(
-                    k => parsed[k] is { } p && Math.Round(p.Quantity, 3) == Math.Round(quantity, 3)
+                    k => amounts[k] is { } p && Math.Round(p.Quantity, 3) == Math.Round(quantity, 3)
                         && p.MeasurementName.Equals(storedUnit, StringComparison.OrdinalIgnoreCase),
                     -1);
             }
@@ -213,11 +216,11 @@ namespace Nom.Orch.Services
             {
                 if (i == 0) lines.Add(new Line(segments[i], owner < 0 ? quantity : 0m, measurementId, lineKind));
                 else if (i == owner) lines.Add(new Line(segments[i], quantity, measurementId, null));
-                else if (parsed[i] is { } amount && units.Ids.TryGetValue(amount.MeasurementName, out var unitId)) lines.Add(new Line(segments[i], amount.Quantity, unitId, null));
+                else if (amounts[i] is { } amount && units.Ids.TryGetValue(amount.MeasurementName, out var unitId)) lines.Add(new Line(segments[i], amount.Quantity, unitId, null));
                 else lines.Add(new Line(segments[i], 0m, units.Ids.GetValueOrDefault(UnreadMeasurement, measurementId), lineKind));
             }
 
-            return new Lines(lines, segments.Count - kept.Count, owner >= 0);
+            return new Lines(lines, segments.Count - kept.Count, owner >= 0, unnamed);
         }
 
         private int Write(RecipeIngredientEntity row, Lines lines, int next, long personId)
@@ -269,6 +272,7 @@ namespace Nom.Orch.Services
             result.UnmeasuredAdded += lines.Kept.Skip(1).Count(l => l.Quantity == 0);
             if (lines.Kept.Count == 1) result.Collapsed++;
             if (lines.Reassigned) result.QuantitiesReassigned++;
+            result.UnnamedUnmeasured += lines.Unnamed;
             if (result.Samples.Count >= samples) return;
 
             result.Samples.Add(new LineUnfoldSample

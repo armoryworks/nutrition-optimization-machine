@@ -168,6 +168,28 @@ namespace Nom.Orch.Services.Support
             ["courgette"] = "zucchini",
         };
 
+        private static readonly HashSet<string> Descriptors = new(StringComparer.Ordinal)
+        {
+            "fresh", "raw", "dried", "dry", "whole", "ground", "canned", "cooked", "frozen", "prepared", "commercial", "regular",
+            "with", "without", "added", "enriched", "unenriched", "boiled", "drained", "rinsed", "solid", "liquid", "mature",
+            "salted", "unsalted", "sweetened", "unsweetened", "all", "purpose", "style", "type", "made", "home", "store", "bought",
+        };
+
+        /// <summary>
+        /// Whether a recipe line names its food: one word of the food's name, leaving out words that
+        /// only describe it ("fresh", "canned", "raw"), is a word of the line, or one starts the other
+        /// ("tomato", "tomatoes"). True when the name has no such word, since nothing can then be told.
+        /// </summary>
+        public static bool NamesFood(string? line, string? foodName)
+        {
+            var food = Tokens(foodName ?? string.Empty);
+            food.ExceptWith(Descriptors);
+            if (food.Count == 0) return true;
+            var words = Tokens(line ?? string.Empty);
+            return food.Overlaps(words)
+                || food.Any(f => f.Length >= 4 && words.Any(w => w.Length >= 4 && (f.StartsWith(w, StringComparison.Ordinal) || w.StartsWith(f, StringComparison.Ordinal))));
+        }
+
         public static HashSet<string> Tokens(string text)
         {
             var words = NonWord.Replace(text.ToLowerInvariant().Replace('-', ' '), " ")

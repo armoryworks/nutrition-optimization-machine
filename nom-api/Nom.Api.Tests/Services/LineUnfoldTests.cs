@@ -359,6 +359,28 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_later_line_that_names_another_food_is_added_without_an_amount_and_the_startup_reread_leaves_it()
+        {
+            using var db = await NewContextAsync();
+            var seeded = await SeedAsync(db, null,
+                ("Honey", 0, 2m, Tablespoon, null, "2 tablespoons honey + 2 tablespoons butter (optional, see FAQ notes) + 2 tablespoons butter"),
+                ("Tomatoes", 0, 2m, Piece, null, "2 tomatoes + 1 tomato, sliced"));
+            var service = new LineUnfoldService(db, new NoUser());
+
+            var dryRun = await service.UnfoldAsync();
+            await service.UnfoldAsync(apply: true);
+            db.ChangeTracker.Clear();
+            await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 50);
+
+            dryRun.UnnamedUnmeasured.Should().Be(2);
+            var lines = await LinesAsync(db, seeded.RecipeId);
+            lines.Where(l => l.IngredientId == seeded.Foods["Honey"]).Select(l => (l.RawLine, l.Quantity)).Should().Equal(
+                ("2 tablespoons honey", 2m), ("2 tablespoons butter (optional, see FAQ notes)", 0m), ("2 tablespoons butter", 0m));
+            lines.Where(l => l.IngredientId == seeded.Foods["Tomatoes"]).Select(l => (l.RawLine, l.Quantity)).Should().Equal(
+                ("2 tomatoes", 2m), ("1 tomato, sliced", 1m));
+        }
+
+        [Fact]
         public async Task The_startup_reread_leaves_the_lines_an_unfold_leaves_without_an_amount_at_zero()
         {
             using var db = await NewContextAsync();

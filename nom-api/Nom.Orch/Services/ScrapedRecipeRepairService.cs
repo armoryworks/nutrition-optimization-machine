@@ -47,6 +47,11 @@ namespace Nom.Orch.Services
                 ? await query.AsSplitQuery().ToListAsync(cancellationToken)
                 : await query.ToListAsync(cancellationToken);
             if (recipes.Count == 0) return new ScrapedRepairBatchResult(0, 0, 0, 0, 0, afterRecipeId);
+            var foodIds = recipes.SelectMany(r => r.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>())
+                .Where(ri => ri.Quantity == 0).Select(ri => ri.IngredientId).Distinct().ToList();
+            var foodNames = await _context.Ingredients.IgnoreQueryFilters().AsNoTracking()
+                .Where(i => foodIds.Contains(i.Id))
+                .ToDictionaryAsync(i => i.Id, i => i.Name, cancellationToken);
 
             int repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0;
             foreach (var recipe in recipes)
@@ -67,6 +72,12 @@ namespace Nom.Orch.Services
                         if (!RereadPieces(row, firstLine, measurements)) continue;
                         repaired++;
                         if (row.Quantity != 0) continue;
+                    }
+
+                    if (foodNames.TryGetValue(row.IngredientId, out var foodName) && !FoodNameMatcher.NamesFood(firstLine, foodName))
+                    {
+                        unparsed++;
+                        continue;
                     }
 
                     var others = rows.Where(other => !ReferenceEquals(other, row)).ToList();
