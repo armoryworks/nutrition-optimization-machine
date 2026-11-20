@@ -149,6 +149,7 @@ namespace Nom.Data
         public DbSet<ScrapingSourceEntity> ScrapingSources { get; set; } = default!;
         public DbSet<ScrapedDocumentEntity> ScrapedDocuments { get; set; } = default!;
         public DbSet<ProseStockPhraseEntity> ProseStockPhrases { get; set; } = default!;
+        public DbSet<RecipeReprocessJournalEntity> RecipeReprocessJournals { get; set; } = default!;
         public DbSet<RecipeSubstitutionEntity> RecipeSubstitutions { get; set; } = default!;
         public DbSet<RecipeSubstitutionStepEffectEntity> RecipeSubstitutionStepEffects { get; set; } = default!;
         public DbSet<RecipeAugmentationEntity> RecipeAugmentations { get; set; } = default!;

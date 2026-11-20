@@ -33,9 +33,6 @@ namespace Nom.Orch.Services
     /// </summary>
     public class RecipeScrapingService : IRecipeScrapingService
     {
-        /// <summary>Fallback unit for unparseable ingredient lines. Seeded "each"-style measurement.</summary>
-        private const long DefaultMeasurementId = 1L;
-
         public const string NameFreedChangeType = "NameFreed";
         public const string NameFreedEntityType = "Ingredient";
         public const string ResolveOnImportSetting = "VerifiedWordings:ResolveOnImport";
@@ -46,8 +43,7 @@ namespace Nom.Orch.Services
         private readonly IScrapingSourceService _scrapingSources;
         private readonly IRecipeVettingService _vetting;
         private readonly ILogger<RecipeScrapingService> _logger;
-        private readonly bool _resolveVerifiedWordings;
-        private bool? _aliasesClassified;
+        private readonly Support.RecipeLineBuilder _lines;
 
         public RecipeScrapingService(
             ApplicationDbContext dbContext,
@@ -58,7 +54,7 @@ namespace Nom.Orch.Services
             ILogger<RecipeScrapingService> logger,
             IConfiguration? configuration = null)
         {
-            _resolveVerifiedWordings = configuration?.GetValue(ResolveOnImportSetting, false) ?? false;
+            _lines = new Support.RecipeLineBuilder(dbContext, logger, configuration?.GetValue(ResolveOnImportSetting, false) ?? false);
             _dbContext = dbContext;
             _currentUser = currentUser;
             _scraperClient = scraperClient;
@@ -443,16 +439,16 @@ namespace Nom.Orch.Services
         private async Task<RecipeEntity> CreateRecipeFromScrapedDataAsync(
             ScraperRecipe scraped, string? sourceUrl, bool importKeywordsAsTags)
         {
-            var scrapedAmounts = scraped.Ingredients.ToDictionary(i => i, i => (i.Quantity, i.Unit), ReferenceEqualityComparer.Instance);
-            foreach (var ingredient in scraped.Ingredients)
+            var personId = _currentUser.PersonId;
+            var lines = await _lines.BuildAsync(scraped.Ingredients, personId, write: true);
+            for (var i = 0; i < lines.Count; i++)
             {
-                var parsed = await KnownMeasurementAsync(Support.IngredientLineParser.Normalize(ingredient.Quantity, ingredient.Unit, ingredient.RawLine), ingredient.RawLine);
-                ingredient.Quantity = parsed?.Quantity;
-                ingredient.Unit = parsed?.MeasurementName;
+                scraped.Ingredients[i].Quantity = lines[i].MeasurementName == null ? null : lines[i].Quantity;
+                scraped.Ingredients[i].Unit = lines[i].MeasurementName;
+                scraped.Ingredients[i].LineKind = lines[i].LineKind;
             }
 
             var vettingIssues = await _vetting.VetAsync(scraped);
-            var personId = _currentUser.PersonId;
 
             var recipe = new RecipeEntity
             {
@@ -506,37 +502,27 @@ namespace Nom.Orch.Services
                 });
             }
 
-            var sortOrder = 0;
-            foreach (var ingredient in scraped.Ingredients)
+            foreach (var line in lines)
             {
-                var (ingredientEntity, followed) = await FindOrCreateIngredientAsync(Clamp(ingredient.Name, 2047)!, personId);
-                if (PackageLineService.CountsDrained(ingredientEntity.Name, ingredient.RawLine) && scrapedAmounts.TryGetValue(ingredient, out var amount))
-                {
-                    var counted = await KnownMeasurementAsync(Support.IngredientLineParser.Normalize(amount.Quantity, amount.Unit, ingredient.RawLine, drained: true), ingredient.RawLine);
-                    ingredient.Quantity = counted?.Quantity;
-                    ingredient.Unit = counted?.MeasurementName;
-                }
-                var measurementId = await ResolveMeasurementIdAsync(ingredient.Unit);
-
                 _dbContext.RecipeIngredients.Add(new RecipeIngredientEntity
                 {
                     RecipeId = recipe.Id,
-                    IngredientId = ingredientEntity.Id,
+                    IngredientId = line.Food!.Id,
                     // 0 = "not parsed" (RawLine holds the truth). Never default
                     // to a plausible-looking 1 — vetting flags these for review.
-                    Quantity = ingredient.Quantity ?? 0m,
-                    MeasurementId = measurementId,
-                    RawLine = Clamp(ingredient.RawLine, 2047)!,
-                    SortOrder = sortOrder,
+                    Quantity = line.Quantity,
+                    MeasurementId = line.MeasurementId,
+                    RawLine = line.RawLine,
+                    LineKind = line.LineKind,
+                    SortOrder = line.SortOrder,
                 });
-                if (followed is { } link)
+                if (line.Link is { } link)
                 {
                     _dbContext.AuditLogEntries.AddRange(Support.LinkApplyJournal.LinesMoved(
-                        link.ProposalId, link.HolderId, ingredientEntity.Id, Array.Empty<Support.LinkApplyJournal.LineShift>(),
-                        new[] { new Support.LinkApplyJournal.LinePlace { RecipeId = recipe.Id, SortOrder = sortOrder } },
+                        link.ProposalId, link.HolderId, line.Food.Id, Array.Empty<Support.LinkApplyJournal.LineShift>(),
+                        new[] { new Support.LinkApplyJournal.LinePlace { RecipeId = recipe.Id, SortOrder = line.SortOrder } },
                         DateTime.UtcNow, personId ?? SystemConstants.SystemPersonId));
                 }
-                sortOrder++;
             }
 
             var stepNumber = 1;
@@ -586,210 +572,6 @@ namespace Nom.Orch.Services
             }
 
             return parts.Count > 0 ? string.Join(", ", parts) : null;
-        }
-
-        /// <summary>
-        /// The catalog row a scraped ingredient name belongs on, tried in this order: the curated
-        /// food the verified wording table gives the name to (when VerifiedWordings:ResolveOnImport
-        /// is set), a live ingredient of that name, then the one food a trusted alias gives the name to,
-        /// then the food an applied link merged the retired ingredient of that name into (the line is
-        /// journaled under that link, so undoing the link moves it back), and otherwise a new
-        /// uncurated ingredient that the link lane proposes a food for later. A wording, an alias or
-        /// an applied link never leads to a prepared food.
-        /// Matching is case-insensitive (translated to SQL via ToLower — StringComparison
-        /// overloads don't translate in EF).
-        /// </summary>
-        private sealed record FollowedLink(long ProposalId, long HolderId);
-
-        private async Task<(IngredientEntity Food, FollowedLink? Link)> FindOrCreateIngredientAsync(string name, long? personId)
-        {
-            // Scrapers routinely fail to split quantity/unit off the line and
-            // hand "1 can black beans" as the name; that residue minted 60% of
-            // the catalog before normalization (audit N-68). RawLine on the
-            // recipe row keeps the original text.
-            var trimmed = Support.IngredientNameNormalizer.Normalize(name);
-            var lowered = trimmed.ToLowerInvariant();
-
-            var found = await FindByVerifiedWordingAsync(lowered)
-                ?? await FindByNameAsync(lowered)
-                ?? await FindByTrustedAliasAsync(lowered);
-            if (found != null) return (found, null);
-            if (await FindByAppliedLinkAsync(lowered) is { } linked) return linked;
-            return (await CreateIngredientAsync(trimmed, personId), null);
-        }
-
-        /// <summary>
-        /// The live food an applied link merged the retired ingredient of this name into, while that
-        /// link's journal can still take it back. A lane-applied link leaves only an untrusted alias,
-        /// so without this every harvest would free the name and create the wording again.
-        /// </summary>
-        private async Task<(IngredientEntity, FollowedLink)?> FindByAppliedLinkAsync(string lowered)
-        {
-            var holders = await _dbContext.Ingredients.IgnoreQueryFilters()
-                .Where(i => i.IsDeleted && i.Name.ToLower() == lowered)
-                .OrderByDescending(i => i.Id)
-                .Select(i => i.Id)
-                .ToListAsync();
-            foreach (var holderId in holders)
-            {
-                var links = await _dbContext.FoodCatalogProposals
-                    .Where(p => p.IngredientId == holderId && p.Field == FoodCatalogReviewService.FdcLinkField && p.Status == FoodProposalStatus.Applied)
-                    .OrderByDescending(p => p.Id)
-                    .Select(p => p.Id)
-                    .ToListAsync();
-                foreach (var proposalId in links)
-                {
-                    var header = (await _dbContext.AuditLogEntries
-                            .Where(a => a.EntityType == Support.LinkApplyJournal.EntityType && a.ChangeType == Support.LinkApplyJournal.ChangeType
-                                && a.EntityId == proposalId && a.PropertyName == Support.LinkApplyJournal.Header)
-                            .OrderByDescending(a => a.Id)
-                            .Select(a => a.OldValue)
-                            .ToListAsync())
-                        .Select(Support.LinkApplyJournal.Read<Support.LinkApplyJournal.HeaderValue>)
-                        .FirstOrDefault();
-                    if (header is not { Merged: true } || header.Food != holderId) continue;
-                    var target = await _dbContext.Ingredients.Where(Nom.Data.Nutrition.PreparedFoods.NotPrepared).FirstOrDefaultAsync(i => i.Id == header.Target && !i.IsDeleted);
-                    if (target != null) return (target, new FollowedLink(proposalId, holderId));
-                }
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// The food a reviewed verdict gives this wording to, while that food is live and curated.
-        /// A wording judged to name no food, or no single food, falls through.
-        /// </summary>
-        private async Task<IngredientEntity?> FindByVerifiedWordingAsync(string lowered)
-        {
-            if (!_resolveVerifiedWordings) return null;
-            var targetId = await _dbContext.IngredientWordings
-                .Where(w => w.Wording == lowered && w.Verdict == IngredientWordingVerdict.Food)
-                .Select(w => w.IngredientId)
-                .FirstOrDefaultAsync();
-            return targetId == null
-                ? null
-                : await _dbContext.Ingredients.Where(Nom.Data.Nutrition.PreparedFoods.NotPrepared)
-                    .FirstOrDefaultAsync(i => i.Id == targetId && !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated);
-        }
-
-        /// <summary>The live ingredient of this name; a curated one before an uncurated one, then the oldest.</summary>
-        private Task<IngredientEntity?> FindByNameAsync(string lowered) =>
-            _dbContext.Ingredients
-                .Where(i => i.Name.ToLower() == lowered && !i.IsDeleted)
-                .OrderByDescending(i => i.CurationStatusId == (long)CurationStatusEnum.Curated)
-                .ThenBy(i => i.Id)
-                .FirstOrDefaultAsync();
-
-        /// <summary>
-        /// The live food that a deterministic rule or a person gave this wording to (see
-        /// <see cref="IngredientAliasTrust"/>). An alias from a model pick is not followed, and
-        /// neither is a wording that two foods both claim. An alias of unknown origin is followed
-        /// only until the alias classification has been applied on this database (its journal
-        /// holds an entry), as imports did before; so an import that runs between the deploy and
-        /// the classification lands where it always did instead of creating a row the
-        /// classification cannot take back.
-        /// </summary>
-        private async Task<IngredientEntity?> FindByTrustedAliasAsync(string lowered)
-        {
-            var live = _dbContext.IngredientAliases.Where(a => a.AliasName.ToLower() == lowered && !a.IsDeleted && !a.Ingredient.IsDeleted);
-            var owners = await live
-                .Where(IngredientAliasTrust.IsTrustedAlias)
-                .Select(a => a.IngredientId)
-                .Distinct()
-                .Take(2)
-                .ToListAsync();
-            _aliasesClassified ??= await _dbContext.AuditLogEntries.AnyAsync(e =>
-                e.EntityType == IngredientLinkService.AliasEntityType && e.ChangeType == IngredientLinkService.AliasTrustChangeType);
-            if (_aliasesClassified == false)
-            {
-                owners = owners
-                    .Concat(await live.Where(a => a.SourceContext == null).Select(a => a.IngredientId).Distinct().Take(2).ToListAsync())
-                    .Distinct()
-                    .ToList();
-            }
-            if (owners.Count != 1) return null;
-
-            var ownerId = owners[0];
-            return await _dbContext.Ingredients.Where(Nom.Data.Nutrition.PreparedFoods.NotPrepared).FirstOrDefaultAsync(i => i.Id == ownerId && !i.IsDeleted);
-        }
-
-        private async Task<IngredientEntity> CreateIngredientAsync(string name, long? personId)
-        {
-            await FreeNameAsync(name, personId);
-
-            var ingredient = new IngredientEntity
-            {
-                Name = name,
-                CurationStatusId = (long)CurationStatusEnum.NonCurated,
-                CreatedDate = DateTime.UtcNow,
-                CreatedByPersonId = personId,
-            };
-            _dbContext.Ingredients.Add(ingredient);
-            await _dbContext.SaveChangesAsync();
-            return ingredient;
-        }
-
-        /// <summary>
-        /// A soft-deleted row still occupies its name in the unique index, so a retired ingredient
-        /// that holds the name is renamed out of the way, and the rename journaled, before a new
-        /// row takes it.
-        /// </summary>
-        private async Task FreeNameAsync(string name, long? personId)
-        {
-            var holders = await _dbContext.Ingredients
-                .IgnoreQueryFilters()
-                .Where(i => i.IsDeleted && i.Name == name)
-                .ToListAsync();
-            if (holders.Count == 0) return;
-
-            foreach (var holder in holders)
-            {
-                var freed = $"{holder.Name} (deleted #{holder.Id})";
-                if (freed.Length > 2000) freed = freed[..2000];
-                _dbContext.AuditLogEntries.Add(new AuditLogEntryEntity
-                {
-                    EntityType = NameFreedEntityType,
-                    EntityId = holder.Id,
-                    ChangeType = NameFreedChangeType,
-                    PropertyName = nameof(IngredientEntity.Name),
-                    OldValue = holder.Name,
-                    NewValue = freed,
-                    Timestamp = DateTime.UtcNow,
-                    ChangedByPersonId = personId ?? SystemConstants.SystemPersonId,
-                });
-                holder.Name = freed;
-            }
-
-            await _dbContext.SaveChangesAsync();
-        }
-
-        private async Task<long> ResolveMeasurementIdAsync(string? unit) =>
-            string.IsNullOrWhiteSpace(unit) ? DefaultMeasurementId : await FindMeasurementIdAsync(unit) ?? DefaultMeasurementId;
-
-        private async Task<long?> FindMeasurementIdAsync(string unit)
-        {
-            var lowered = unit.Trim().ToLowerInvariant();
-            var trimmedSingular = lowered.TrimEnd('s');
-
-            var measurement = await _dbContext.Measurements
-                .FirstOrDefaultAsync(m =>
-                    m.Name.ToLower() == lowered ||
-                    m.Name.ToLower() == trimmedSingular ||
-                    m.Symbol.ToLower() == lowered);
-
-            return measurement?.Id;
-        }
-
-        /// <summary>
-        /// The parsed amount when its measurement has a row, otherwise nothing: the line is then
-        /// stored unmeasured (Quantity 0) with a warning, never counted in the fallback unit, where
-        /// "2 packages yeast" would read as 2 grams.
-        /// </summary>
-        private async Task<Support.ParsedQuantity?> KnownMeasurementAsync(Support.ParsedQuantity? parsed, string? rawLine)
-        {
-            if (parsed == null || await FindMeasurementIdAsync(parsed.MeasurementName) != null) return parsed;
-            _logger.LogWarning("Import: measurement {Measurement} has no row, so the line \"{Line}\" is stored without an amount", parsed.MeasurementName, rawLine);
-            return null;
         }
 
         /// <summary>
