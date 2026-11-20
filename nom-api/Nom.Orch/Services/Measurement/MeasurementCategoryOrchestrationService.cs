@@ -193,6 +193,7 @@ namespace Nom.Orch.Services.Measurement
                         CategoryName = m.Category.Name,
                         IsBaseUnit = m.IsBaseUnit,
                         BaseUnitConversionFactor = m.BaseUnitConversionFactor,
+                        IsContainer = m.IsContainer,
                         CreatedDate = m.CreatedDate,
                         LastModifiedDate = m.LastModifiedDate
                     })

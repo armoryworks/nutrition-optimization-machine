@@ -19,7 +19,8 @@ namespace Nom.Orch.Services
     /// Grams per recipe ingredient come from the measurement's category:
     ///   Mass   → quantity × factor-to-grams
     ///   Volume → quantity × factor-to-ml × Ingredient.GramsPerMilliliter (skipped when unknown)
-    ///   Count  → quantity × factor × Ingredient.GramsPerItem, else ReferenceServingGrams (skipped when unknown)
+    ///   Count  → quantity × factor × Ingredient.GramsPerItem, else ReferenceServingGrams (skipped when unknown,
+    ///            and always for a container unit such as Can or Package, whose weight only a stated size gives)
     /// Ingredients without nutrition or without a gram conversion contribute nothing (the recipe
     /// response reports them per line, see <see cref="StatusFor"/>); if nothing contributes,
     /// existing rows are left alone. Rows written here carry
@@ -216,7 +217,8 @@ namespace Nom.Orch.Services
                 || (ri.Measurement.BaseUnitConversionFactor ?? 1m) <= 0
                 || !(ri.Measurement.MeasurementCategoryId == CategoryMass
                      || (ri.Measurement.MeasurementCategoryId == CategoryVolume && ri.Ingredient.GramsPerMilliliter > 0)
-                     || (ri.Measurement.MeasurementCategoryId == CategoryCount && (ri.Ingredient.GramsPerItem > 0 || ri.Ingredient.ReferenceServingGrams > 0))));
+                     || (ri.Measurement.MeasurementCategoryId == CategoryCount && !ri.Measurement.IsContainer
+                         && (ri.Ingredient.GramsPerItem > 0 || ri.Ingredient.ReferenceServingGrams > 0))));
 
         public static decimal? GramsFor(decimal quantity, MeasurementEntity? m, IngredientEntity? ingredient)
         {
@@ -230,6 +232,7 @@ namespace Nom.Orch.Services
                     var density = ingredient?.GramsPerMilliliter;
                     return density is > 0 ? quantity * factor * density.Value : null;
                 case CategoryCount:
+                    if (m.IsContainer) return null;
                     var per = ingredient?.GramsPerItem is > 0 ? ingredient.GramsPerItem : ingredient?.ReferenceServingGrams;
                     return per is > 0 ? quantity * factor * per.Value : null;
                 default:

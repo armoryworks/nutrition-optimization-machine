@@ -264,10 +264,12 @@ namespace Nom.Api.Tests.Services.Recipe
         [InlineData(null, 1, Cup, true, 0.9, null, NutritionLineStatus.Counted)]
         [InlineData(null, 2, 3L, true, null, null, NutritionLineStatus.NoConversion)]
         [InlineData(null, 2, 3L, true, null, 50.0, NutritionLineStatus.Counted)]
+        [InlineData(null, 2, 20L, true, null, 50.0, NutritionLineStatus.NoConversion)]
+        [InlineData(null, 2, 20L, false, null, 50.0, NutritionLineStatus.NoData)]
         public void Uncounted_line_predicate_agrees_with_the_line_status(
             string? lineKind, int quantity, long measurementId, bool hasData, double? gramsPerMl, double? servingGrams, string status)
         {
-            var categories = new Dictionary<long, long> { [Gram] = 1, [Cup] = 2, [3L] = 3 };
+            var categories = new Dictionary<long, long> { [Gram] = 1, [Cup] = 2, [3L] = 3, [20L] = 3 };
             var ingredient = Food("Food", hasData);
             ingredient.GramsPerMilliliter = (decimal?)gramsPerMl;
             ingredient.ReferenceServingGrams = (decimal?)servingGrams;
@@ -276,7 +278,11 @@ namespace Nom.Api.Tests.Services.Recipe
                 LineKind = lineKind,
                 Quantity = quantity,
                 Ingredient = ingredient,
-                Measurement = new BaseMeasurementEntity { Id = measurementId, Name = "Unit", Symbol = "u", MeasurementCategoryId = categories[measurementId], BaseUnitConversionFactor = 1m }
+                Measurement = new BaseMeasurementEntity
+                {
+                    Id = measurementId, Name = "Unit", Symbol = "u", MeasurementCategoryId = categories[measurementId], BaseUnitConversionFactor = 1m,
+                    IsContainer = measurementId == 20L,
+                }
             };
 
             RecipeNutritionService.StatusFor(line, hasData).Should().Be(status);
