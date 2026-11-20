@@ -9,6 +9,7 @@ using Nom.Data;
 using Nom.Data.Platform;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Platform;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Orch.Services
 {
@@ -16,7 +17,7 @@ namespace Nom.Orch.Services
     {
         private static readonly TimeSpan CacheFor = TimeSpan.FromSeconds(30);
 
-        private static readonly Dictionary<string, (string Label, string Description)> KnownFeatures = new()
+        private static readonly Dictionary<string, (string Label, string Description)> KnownFeatures = AiPauseSwitches(new()
         {
             [IPlatformFeatureService.Keys.Brigade] = (
                 "Brigade",
@@ -25,7 +26,23 @@ namespace Nom.Orch.Services
                 + "and API refuse every provider (platform admins can still sign in), and NOM stops reporting "
                 + "provider management on client households, so clients see their household as self-managed. "
                 + "Nothing is deleted: enrollments and provider setup stay in place and are served again when it is turned back on."),
-        };
+        });
+
+        private static Dictionary<string, (string Label, string Description)> AiPauseSwitches(Dictionary<string, (string Label, string Description)> features)
+        {
+            features[AiLanes.PauseAllKey] = (
+                "Pause all AI lanes",
+                "Stops every background model lane in the API (link picker and verifier, recipe repair, line classification, "
+                + "prose rewrite, dish grouping, tool tagging) within about 30 seconds. A lane finishes the item in hand and then waits; "
+                + "nothing is lost, and it picks up where it left off when this is turned off. Image finding outside the API is not affected.");
+            foreach (var (lane, label) in AiLanes.All)
+            {
+                features[AiLanes.PauseKey(lane)] = (
+                    "Pause AI lane: " + label,
+                    $"Stops the {label} lane within about 30 seconds without a deploy. It resumes where it left off when this is turned off.");
+            }
+            return features;
+        }
 
         private readonly ApplicationDbContext _db;
         private readonly IMemoryCache _cache;
@@ -72,7 +89,18 @@ namespace Nom.Orch.Services
                 .ToListAsync();
 
             var names = await PersonNamesAsync(features);
-            return features.Select(f => Map(f, names)).ToList();
+            var listed = features.Select(f => Map(f, names)).ToList();
+            listed.AddRange(KnownFeatures.Keys
+                .Where(k => features.All(f => f.Key != k))
+                .OrderBy(k => k)
+                .Select(k => new PlatformFeatureModel
+                {
+                    Key = k,
+                    Label = KnownFeatures[k].Label,
+                    IsEnabled = false,
+                    Description = KnownFeatures[k].Description,
+                }));
+            return listed;
         }
 
         public async Task<PlatformFeatureModel> SetAsync(string key, bool isEnabled, long adminPersonId)

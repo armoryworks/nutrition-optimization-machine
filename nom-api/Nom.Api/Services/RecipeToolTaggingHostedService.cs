@@ -1,4 +1,5 @@
 using Nom.Orch.Interfaces;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Api.Services
 {
@@ -11,18 +12,22 @@ namespace Nom.Api.Services
     /// ToolTagging:Enabled=false disables it; ToolTagging:BatchSize (default 6) recipes per model
     /// call; ToolTagging:PauseSeconds (default 5) between calls so interactive AI isn't starved;
     /// ToolTagging:IdleMinutes (default 30) between checks once everything is tagged.
+    /// Every batch passes the <see cref="AiLaneGate"/> (lane "tool-tagging").
     /// </summary>
     public class RecipeToolTaggingHostedService : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
         private readonly ILogger<RecipeToolTaggingHostedService> _logger;
+        private readonly AiLaneGate _gate;
 
         public RecipeToolTaggingHostedService(
             IServiceScopeFactory scopeFactory,
             IConfiguration configuration,
-            ILogger<RecipeToolTaggingHostedService> logger)
+            ILogger<RecipeToolTaggingHostedService> logger,
+            AiLaneGate gate)
         {
+            _gate = gate;
             _scopeFactory = scopeFactory;
             _configuration = configuration;
             _logger = logger;
@@ -33,6 +38,7 @@ namespace Nom.Api.Services
             if (!_configuration.GetValue("ToolTagging:Enabled", true))
             {
                 _logger.LogInformation("Recipe tool tagging is disabled (ToolTagging:Enabled=false)");
+                _gate.Disabled(AiLanes.ToolTagging, "ToolTagging:Enabled=false");
                 return;
             }
 
@@ -47,6 +53,7 @@ namespace Nom.Api.Services
                 if (!tagger.IsConfigured)
                 {
                     _logger.LogInformation("Recipe tool tagging idle: no Ollama URL configured");
+                    _gate.Disabled(AiLanes.ToolTagging, "no Ollama URL configured");
                     return;
                 }
                 _logger.LogInformation("Recipe tool tagging enabled: model {Model}, {Batch} recipes per call", tagger.ModelName, batchSize);
@@ -57,7 +64,7 @@ namespace Nom.Api.Services
             var taggedSinceLog = 0;
             while (!stoppingToken.IsCancellationRequested)
             {
-                if (!await AiQuietHours.WaitAsync(_configuration, _logger, stoppingToken)) return;
+                if (!await _gate.WaitAsync(AiLanes.ToolTagging, stoppingToken)) return;
                 var delay = pause;
                 try
                 {
@@ -68,9 +75,11 @@ namespace Nom.Api.Services
                     if (result == null)
                     {
                         delay = backoff;
+                        _gate.Failed(AiLanes.ToolTagging, new HttpRequestException("the tool tagging model did not answer"));
                     }
                     else if (result.Seen == 0)
                     {
+                        _gate.Passed(AiLanes.ToolTagging, 0, true);
                         if (taggedSinceLog > 0)
                         {
                             _logger.LogInformation("Recipe tool tagging caught up ({Count} recipes this run)", taggedSinceLog);
@@ -80,6 +89,7 @@ namespace Nom.Api.Services
                     }
                     else
                     {
+                        _gate.Passed(AiLanes.ToolTagging, result.Seen, false);
                         taggedSinceLog += result.Tagged;
                         if (taggedSinceLog >= 500)
                         {
@@ -95,6 +105,7 @@ namespace Nom.Api.Services
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Recipe tool tagging batch failed");
+                    _gate.Failed(AiLanes.ToolTagging, ex);
                     delay = backoff;
                 }
 

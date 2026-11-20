@@ -1,4 +1,5 @@
 using Nom.Orch.Interfaces;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Api.Services
 {
@@ -12,6 +13,8 @@ namespace Nom.Api.Services
     /// short; Ollama's own queue interleaves this with the other lanes. A recipe the pre-filter
     /// flags is not line-classified until it has been screened. Sweeps restart from the beginning
     /// after an idle wait, and every recipe is attempted once per classifier or screening version.
+    /// Screening and classification fail separately, so one failing does not hide the other's
+    /// error. Every batch passes the <see cref="AiLaneGate"/> (lane "line-classify").
     ///
     /// Curation:LineClassify:Enabled=false disables it; Curation:LineClassify:BatchSize (default 5)
     /// recipes per batch; Curation:LineClassify:PauseSeconds (default 3) between batches;
@@ -23,15 +26,18 @@ namespace Nom.Api.Services
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
         private readonly ILogger<RecipeLineClassifyHostedService> _logger;
+        private readonly AiLaneGate _gate;
 
         public RecipeLineClassifyHostedService(
             IServiceScopeFactory scopeFactory,
             IConfiguration configuration,
-            ILogger<RecipeLineClassifyHostedService> logger)
+            ILogger<RecipeLineClassifyHostedService> logger,
+            AiLaneGate gate)
         {
             _scopeFactory = scopeFactory;
             _configuration = configuration;
             _logger = logger;
+            _gate = gate;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -39,6 +45,7 @@ namespace Nom.Api.Services
             if (!_configuration.GetValue("Curation:LineClassify:Enabled", true))
             {
                 _logger.LogInformation("Line classification is disabled (Curation:LineClassify:Enabled=false)");
+                _gate.Disabled(AiLanes.LineClassify, "Curation:LineClassify:Enabled=false");
                 return;
             }
 
@@ -63,38 +70,66 @@ namespace Nom.Api.Services
             int classified = 0, cleared = 0, rejected = 0;
             while (!stoppingToken.IsCancellationRequested)
             {
-                if (!await AiQuietHours.WaitAsync(_configuration, _logger, stoppingToken)) return;
+                if (!await _gate.WaitAsync(AiLanes.LineClassify, stoppingToken)) return;
                 var delay = pause;
                 try
                 {
                     using var scope = _scopeFactory.CreateScope();
                     var calls = 0;
+                    var items = 0;
+                    Exception? failure = null;
                     if (!screenDone)
                     {
-                        var screening = scope.ServiceProvider.GetRequiredService<IRecipeNonFoodScreeningService>();
-                        var batch = await screening.ScreenBatchAsync(screenCursor, batchSize, stoppingToken);
-                        if (batch.Scanned == 0) screenDone = true;
-                        else
+                        try
                         {
-                            screenCursor = batch.LastRecipeId;
-                            rejected += batch.Rejected;
-                            calls += batch.ModelCalls;
+                            var screening = scope.ServiceProvider.GetRequiredService<IRecipeNonFoodScreeningService>();
+                            var batch = await screening.ScreenBatchAsync(screenCursor, batchSize, stoppingToken);
+                            if (batch.Scanned == 0) screenDone = true;
+                            else
+                            {
+                                screenCursor = batch.LastRecipeId;
+                                rejected += batch.Rejected;
+                                calls += batch.ModelCalls;
+                                items += batch.Scanned;
+                            }
+                        }
+                        catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
+                        {
+                            _logger.LogError(ex, "Non-food screening batch after recipe {ScreenCursor} failed", screenCursor);
+                            failure = ex;
                         }
                     }
 
                     if (!linesDone)
                     {
-                        var lines = scope.ServiceProvider.GetRequiredService<IRecipeLineClassificationService>();
-                        var batch = await lines.ClassifyBatchAsync(lineCursor, batchSize, stoppingToken);
-                        if (batch.Examined == 0) linesDone = true;
-                        else
+                        try
                         {
-                            lineCursor = batch.LastRecipeId;
-                            classified += batch.Deterministic + batch.ModelClassified;
-                            cleared += batch.Cleared;
-                            calls += batch.ModelCalls;
+                            var lines = scope.ServiceProvider.GetRequiredService<IRecipeLineClassificationService>();
+                            var batch = await lines.ClassifyBatchAsync(lineCursor, batchSize, stoppingToken);
+                            if (batch.Examined == 0) linesDone = true;
+                            else
+                            {
+                                lineCursor = batch.LastRecipeId;
+                                classified += batch.Deterministic + batch.ModelClassified;
+                                cleared += batch.Cleared;
+                                calls += batch.ModelCalls;
+                                items += batch.Examined;
+                            }
+                        }
+                        catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
+                        {
+                            _logger.LogError(ex, "Line classification batch after recipe {LineCursor} failed", lineCursor);
+                            failure = ex;
                         }
                     }
+
+                    if (failure != null)
+                    {
+                        _gate.Failed(AiLanes.LineClassify, failure);
+                        if (!await Delay(backoff, stoppingToken)) return;
+                        continue;
+                    }
+                    _gate.Passed(AiLanes.LineClassify, items, linesDone && screenDone);
 
                     if (linesDone && screenDone)
                     {
@@ -121,6 +156,7 @@ namespace Nom.Api.Services
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Line classification batch after recipe {LineCursor} (screening after {ScreenCursor}) failed", lineCursor, screenCursor);
+                    _gate.Failed(AiLanes.LineClassify, ex);
                     delay = backoff;
                 }
 

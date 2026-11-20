@@ -389,21 +389,33 @@ builder.Services.AddHostedService<Nom.Api.Services.SourceDiscoveryHostedService>
 // assignments stay admin-correctable.
 builder.Services.AddScoped<Nom.Orch.Interfaces.IDishGroupService, Nom.Orch.Services.DishGroupService>();
 
+builder.Services.AddSingleton<Nom.Api.Services.AiHostMonitor>();
+builder.Services.AddSingleton<Nom.Orch.Interfaces.IAiHostHealth>(sp => sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>());
+builder.Services.AddSingleton<Nom.Api.Services.AiLaneGate>();
+builder.Services.AddSingleton<Nom.Api.Services.IAiLaneStatus>(sp => sp.GetRequiredService<Nom.Api.Services.AiLaneGate>());
+builder.Services.AddHttpClient(Nom.Api.Services.AiHostMonitor.ProbeClientName);
+builder.Services.AddHttpClient(nameof(Nom.Api.Services.ProseRewriteHostedService))
+    .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.ProseRewrite));
+
 // Platform feature switches — lets a subsystem ship dark and be turned on from
 // the admin UI rather than by a release landing.
 builder.Services.AddScoped<Nom.Orch.Interfaces.IPlatformFeatureService, Nom.Orch.Services.PlatformFeatureService>();
 builder.Services.AddHttpClient<Nom.Orch.Interfaces.IDishGroupSuggester, Nom.Orch.Services.OllamaDishGroupSuggester>(
-    client => client.Timeout = TimeSpan.FromSeconds(300));
+    client => client.Timeout = TimeSpan.FromSeconds(300))
+    .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.DishGrouping));
 builder.Services.AddHostedService<Nom.Api.Services.DishGroupingHostedService>();
 
 builder.Services.AddHttpClient<Nom.Orch.Interfaces.IRecipeToolTagger, Nom.Orch.Services.OllamaRecipeToolTagger>(
-    client => client.Timeout = TimeSpan.FromSeconds(300));
+    client => client.Timeout = TimeSpan.FromSeconds(300))
+    .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.ToolTagging));
 builder.Services.AddHostedService<Nom.Api.Services.RecipeToolTaggingHostedService>();
 builder.Services.AddHostedService<Nom.Api.Services.ScrapedRecipeRepairHostedService>();
 builder.Services.AddHttpClient<Nom.Orch.Interfaces.IIngredientLinkMatcher, Nom.Orch.Services.OllamaIngredientLinkMatcher>(
-    client => client.Timeout = TimeSpan.FromSeconds(300));
+    client => client.Timeout = TimeSpan.FromSeconds(300))
+    .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.Link));
 builder.Services.AddHttpClient<Nom.Orch.Interfaces.IIngredientLinkVerifier, Nom.Orch.Services.OllamaIngredientLinkVerifier>(
-    client => client.Timeout = TimeSpan.FromSeconds(300));
+    client => client.Timeout = TimeSpan.FromSeconds(300))
+    .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.Link));
 builder.Services.AddHostedService<Nom.Api.Services.IngredientLinkHostedService>();
 builder.Services.AddHostedService<Nom.Api.Services.RecipeNutritionRecalcHostedService>();
 builder.Services.AddHostedService<Nom.Api.Services.CourseClassificationHostedService>();
@@ -415,10 +427,12 @@ builder.Services.AddHostedService<Nom.Api.Services.ProseRewriteHostedService>();
 
 builder.Services.AddHostedService<Nom.Api.Services.RecipeAutoApproveHostedService>();
 builder.Services.AddHttpClient<Nom.Orch.Interfaces.IRecipeRepairModel, Nom.Orch.Services.OllamaRecipeRepairModel>(
-    client => client.Timeout = TimeSpan.FromSeconds(300));
+    client => client.Timeout = TimeSpan.FromSeconds(300))
+    .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.Repair));
 builder.Services.AddHostedService<Nom.Api.Services.RecipeAiRepairHostedService>();
 builder.Services.AddHttpClient<Nom.Orch.Interfaces.IRecipeClassificationModel, Nom.Orch.Services.OllamaRecipeClassificationModel>(
-    client => client.Timeout = TimeSpan.FromSeconds(300));
+    client => client.Timeout = TimeSpan.FromSeconds(300))
+    .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.LineClassify));
 builder.Services.AddHostedService<Nom.Api.Services.RecipeLineClassifyHostedService>();
 
 // Add OCR service

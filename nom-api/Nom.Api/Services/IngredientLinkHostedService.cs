@@ -1,4 +1,5 @@
 using Nom.Orch.Interfaces;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Api.Services
 {
@@ -21,12 +22,14 @@ namespace Nom.Api.Services
     /// IngredientLinking:Enabled=false disables it; IngredientLinking:BatchSize (default 30)
     /// ingredients per pass; IngredientLinking:PauseSeconds (default 5) between passes;
     /// IngredientLinking:IdleMinutes (default 30) once nothing is left to propose.
+    /// Every pass passes the <see cref="AiLaneGate"/> (lane "link").
     /// </summary>
     public class IngredientLinkHostedService : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
         private readonly ILogger<IngredientLinkHostedService> _logger;
+        private readonly AiLaneGate _gate;
 
         private readonly HashSet<long> _unappliable = new();
         private bool _applyNameMatches;
@@ -35,8 +38,10 @@ namespace Nom.Api.Services
         public IngredientLinkHostedService(
             IServiceScopeFactory scopeFactory,
             IConfiguration configuration,
-            ILogger<IngredientLinkHostedService> logger)
+            ILogger<IngredientLinkHostedService> logger,
+            AiLaneGate gate)
         {
+            _gate = gate;
             _scopeFactory = scopeFactory;
             _configuration = configuration;
             _logger = logger;
@@ -47,6 +52,7 @@ namespace Nom.Api.Services
             if (!_configuration.GetValue("IngredientLinking:Enabled", true))
             {
                 _logger.LogInformation("Ingredient linking is disabled (IngredientLinking:Enabled=false)");
+                _gate.Disabled(AiLanes.Link, "IngredientLinking:Enabled=false");
                 return;
             }
 
@@ -61,6 +67,7 @@ namespace Nom.Api.Services
                 if (!matcher.IsConfigured)
                 {
                     _logger.LogInformation("Ingredient linking idle: no Ollama URL configured");
+                    _gate.Disabled(AiLanes.Link, "no Ollama URL configured");
                     return;
                 }
                 _logger.LogInformation("Ingredient linking enabled: model {Model}, {Batch} ingredients per pass", matcher.ModelName, batchSize);
@@ -90,7 +97,7 @@ namespace Nom.Api.Services
             int proposed = 0, sinceLog = 0;
             while (!stoppingToken.IsCancellationRequested)
             {
-                if (!await AiQuietHours.WaitAsync(_configuration, _logger, stoppingToken)) return;
+                if (!await _gate.WaitAsync(AiLanes.Link, stoppingToken)) return;
                 var delay = pause;
                 try
                 {
@@ -109,6 +116,7 @@ namespace Nom.Api.Services
                         if (result == null)
                         {
                             delay = backoff;
+                            _gate.Failed(AiLanes.Link, new HttpRequestException("the link model did not answer"));
                         }
                         else
                         {
@@ -129,6 +137,7 @@ namespace Nom.Api.Services
                         if (verified == null)
                         {
                             delay = backoff;
+                            _gate.Failed(AiLanes.Link, new HttpRequestException("the link verifier did not answer"));
                         }
                         else
                         {
@@ -136,6 +145,7 @@ namespace Nom.Api.Services
                             if (verified.MoreWaiting && sources.Count == 0) delay = pause;
                         }
                     }
+                    if (delay != backoff) _gate.Passed(AiLanes.Link, sources.Count, delay == idle);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
@@ -144,6 +154,7 @@ namespace Nom.Api.Services
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Ingredient linking pass failed");
+                    _gate.Failed(AiLanes.Link, ex);
                     delay = backoff;
                 }
 

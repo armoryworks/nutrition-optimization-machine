@@ -33,7 +33,7 @@ namespace Nom.Api.Tests.Services.Platform
             var svc = NewService(db);
 
             await svc.SetAsync(IPlatformFeatureService.Keys.Brigade, true, 4);
-            var listed = (await svc.ListAsync()).Should().ContainSingle().Subject;
+            var listed = (await svc.ListAsync()).Should().ContainSingle(f => f.Key == IPlatformFeatureService.Keys.Brigade).Subject;
 
             listed.Label.Should().Be("Brigade");
             listed.Description.Should().NotBeNullOrWhiteSpace();
@@ -57,6 +57,19 @@ namespace Nom.Api.Tests.Services.Platform
             updated.LastModifiedDate.Should().NotBeNull();
             updated.LastModifiedByName.Should().Be("Second Admin");
             updated.CreatedByName.Should().Be("Avery Admin");
+        }
+
+        [Fact]
+        public async Task The_ai_pause_switches_are_listed_off_before_anyone_has_touched_them()
+        {
+            using var db = NewContext();
+            var svc = NewService(db);
+
+            var listed = await svc.ListAsync();
+
+            listed.Should().Contain(f => f.Key == Nom.Orch.Services.Support.AiLanes.PauseAllKey && !f.IsEnabled && f.Label == "Pause all AI lanes" && f.CreatedDate == null);
+            listed.Should().Contain(f => f.Key == "ai-pause-link" && !f.IsEnabled);
+            (await svc.IsEnabledAsync("ai-pause-link")).Should().BeFalse("a missing row means the lane runs");
         }
     }
 }
