@@ -21,7 +21,7 @@ namespace Nom.Api.Tests.Golden
                 var name = row["name"].Trim();
                 var hasNutrition = row["hasNutrition"] == "true";
                 Names[id] = name;
-                Foods.Add((id, name, hasNutrition));
+                Foods.Add((id, name, hasNutrition, row["countedInPieces"] == "true"));
                 if (hasNutrition) Targets.TryAdd(name, id);
             }
             CuratedNames = Targets.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -30,7 +30,7 @@ namespace Nom.Api.Tests.Golden
         public static GoldenCatalog Instance => Frozen.Value;
 
         public Dictionary<long, string> Names { get; } = new();
-        public List<(long Id, string Name, bool HasNutrition)> Foods { get; } = new();
+        public List<(long Id, string Name, bool HasNutrition, bool CountedInPieces)> Foods { get; } = new();
         public Dictionary<string, long> Targets { get; } = new(StringComparer.OrdinalIgnoreCase);
         public HashSet<string> CuratedNames { get; }
     }

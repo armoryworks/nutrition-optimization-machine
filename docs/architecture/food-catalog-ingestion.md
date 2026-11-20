@@ -518,6 +518,16 @@ bell pepper" or "garlic powder" is a food or an ingredient name; for an and-list
 even when every part is a food. "Flavor" counts as a flavour word like "flavouring". A list part
 counted in pieces must start with a count and name no measure ("a very little salt" and "1
 quarter teaspoonful of salt" are left), and "lemon juice and grated rind" after a spoon measure
+is left. A bare number in front of a food that has no weight per item is a proportion, not a
+count, so "1/2 butter and 1/2 lard" and "½ or ¾ milk and ½ or ¼ water" are left (`bare number on
+a food not counted in pieces`). Also left: "each" whose amount does not read ("tablespoonful each
+of minced onion and parsley"), a later list part with its own count ("1 pinch of pepper and one
+of salt"), a pepper that is chopped, minced or sliced (a vegetable, not the spice), bare
+"mustard" beside salt or pepper (dry mustard is meant), "mustard and cress" (protected), a lemon,
+orange or lime alternated with a spice ("lemon or nutmeg"), and a single first name before a
+two-word last name that is no food while its first word is ("crab or lobster coral", "duck or
+goose giblets": the tail is shared). "any jam" as the last alternative makes the earlier names
+kinds of jam: "apricot, strawberry, or any jam" moves to Apricot Jam when that is a food, else it
 is left. No
 `recipe.RecipeSubstitution` rows are written.
 

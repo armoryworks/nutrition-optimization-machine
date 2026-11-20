@@ -5,8 +5,8 @@ using System.Text.RegularExpressions;
 
 namespace Nom.Orch.Services.Support
 {
-    /// <summary>A curated food as the compound-line rules see it.</summary>
-    public sealed record CompoundFood(long Id, string Name, bool HasNutrition);
+    /// <summary>A curated food as the compound-line rules see it; <paramref name="CountedInPieces"/> when it has a weight per item.</summary>
+    public sealed record CompoundFood(long Id, string Name, bool HasNutrition, bool CountedInPieces = true);
 
     /// <summary>An alias of a food and the context it was recorded under.</summary>
     public sealed record CompoundAlias(long IngredientId, string AliasName, string? SourceContext);
@@ -44,16 +44,19 @@ namespace Nom.Orch.Services.Support
             "ham and cheese", "lea & perrins", "lea and perrins", "m&m", "m & m", "m&ms", "arm & hammer", "a&w",
             "surf and turf", "spaghetti and meatballs", "biscuits and gravy", "liver and onions", "steak and kidney",
             "chicken and dumplings", "corned beef and cabbage", "fruit and nut", "oil and vinegar dressing",
+            "mustard and cress", "mustard & cress",
         };
 
         private readonly Dictionary<string, long> _foods;
         private readonly Dictionary<string, long> _usda;
         private readonly HashSet<string> _known;
         private readonly List<Regex> _protected;
+        private readonly HashSet<long> _pieces;
 
-        private CompoundVocabulary(Dictionary<string, long> foods, Dictionary<string, long> usda, HashSet<string> known, IEnumerable<string> protectedNames)
+        private CompoundVocabulary(Dictionary<string, long> foods, Dictionary<string, long> usda, HashSet<string> known, IEnumerable<string> protectedNames, HashSet<long> pieces)
         {
             _foods = foods;
+            _pieces = pieces;
             _usda = usda;
             _known = known;
             ProtectedNames = protectedNames.Select(p => p.ToLowerInvariant()).Distinct().OrderBy(p => p, StringComparer.Ordinal).ToList();
@@ -85,8 +88,10 @@ namespace Nom.Orch.Services.Support
             var usda = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
             var protectedNames = new List<string>(ProtectedSeed);
             var live = new HashSet<long>();
+            var pieces = new HashSet<long>();
             foreach (var food in curated.OrderBy(f => f.Id))
             {
+                if (food.CountedInPieces) pieces.Add(food.Id);
                 var name = food.Name.Trim();
                 var segment = name.Split(',')[0].Trim();
                 if (Conjunction.IsMatch(segment) && segment.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= 5) protectedNames.Add(segment);
@@ -104,8 +109,11 @@ namespace Nom.Orch.Services.Support
             }
 
             var known = new HashSet<string>(allNames.Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n.Trim().ToLowerInvariant()), StringComparer.Ordinal);
-            return new CompoundVocabulary(foods, usda, known, protectedNames);
+            return new CompoundVocabulary(foods, usda, known, protectedNames, pieces);
         }
+
+        /// <summary>Whether the food is counted in pieces, so a bare number in front of it is a count.</summary>
+        public bool CountedInPieces(long foodId) => _pieces.Contains(foodId);
 
         /// <summary>
         /// The curated food a part of a line names, or null. Tried in order: the part and its

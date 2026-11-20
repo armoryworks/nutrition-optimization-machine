@@ -66,6 +66,10 @@ namespace Nom.Orch.Services.Support
         public const string LeaveFlavour = "bare flavour alternative";
         public const string LeaveUnlocated = "names not found in the line";
         public const string LeaveNotFixedPoint = "part line does not read back";
+        public const string LeaveBareNumber = "bare number on a food not counted in pieces";
+        public const string LeaveEachUnread = "each with an amount that does not read";
+        public const string LeaveCutPepper = "cut pepper is a vegetable, not the spice";
+        public const string LeaveSpiceMustard = "mustard beside salt or pepper means dry mustard";
 
         private const RegexOptions Options = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled;
 
@@ -121,6 +125,17 @@ namespace Nom.Orch.Services.Support
         };
 
         private static readonly Regex FlavourWord = new(@"\b(?:extract|essence|flavou?r(?:ing)?s?)\b", Options);
+
+        private static readonly HashSet<string> FlavourFruits = new(StringComparer.OrdinalIgnoreCase) { "lemon", "orange", "lime" };
+
+        private static readonly HashSet<string> Spices = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "nutmeg", "cinnamon", "mace", "allspice", "cloves", "clove", "ginger", "vanilla", "almond", "cardamom", "coriander",
+        };
+
+        private static readonly Regex AnyHead = new(@"^any\s+(?!other\b)(?<head>\p{L}+)$", Options);
+
+        private static readonly Regex CutWord = new(@"\b(?:chopped|minced|diced|sliced|seeded|shredded|cut|strips?|rings?)\b", Options);
 
         private static readonly Regex CountStart = new(
             @"^\s*(?:[\d¼½¾⅓⅔⅛⅜⅝⅞]|(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|dozen)\b)", Options);
@@ -228,9 +243,25 @@ namespace Nom.Orch.Services.Support
         private static CompoundPlan Alternatives(string line, string wording, List<string> names, CompoundVocabulary v)
         {
             if (names.Any(n => Flavours.Contains(n) || FlavourWord.IsMatch(n))) return CompoundPlan.Leave(wording, LeaveFlavour);
+            if (names.Any(FlavourFruits.Contains) && names.Any(Spices.Contains)) return CompoundPlan.Leave(wording, LeaveFlavour);
 
             var first = names[0];
             var last = names[^1];
+            if (AnyHead.Match(last) is { Success: true } any)
+            {
+                if (!names.Take(names.Count - 1).All(IsSingleWord)) return CompoundPlan.Leave(wording, LeaveOrAmbiguous);
+                var kind = $"{first} {any.Groups["head"].Value}";
+                return v.Resolve(kind) is { } kindFood
+                    ? new CompoundPlan(OrSharedHead, CompoundKind.PickAlternative, new[] { new CompoundPart(kind, kindFood, line, null) }, wording, null)
+                    : CompoundPlan.Leave(wording, LeaveOrAmbiguous);
+            }
+
+            if (IsSingleWord(first) && last.Split(' ', StringSplitOptions.RemoveEmptyEntries) is { Length: 2 } tail
+                && v.Resolve(last) == null && v.Resolve(tail[0]) != null)
+            {
+                return CompoundPlan.Leave(wording, LeaveOrAmbiguous);
+            }
+
             var foods = names.Select(v.Resolve).ToList();
             var shared = IsSingleWord(last) ? null : $"{first} {Head(last)}";
             var sharedFood = shared == null ? null : v.Resolve(shared);
@@ -272,6 +303,14 @@ namespace Nom.Orch.Services.Support
             var isPair = foods.Count == 2 && v.SaltId is { } salt && v.PepperId is { } pepper
                 && foods.Contains(salt) && foods.Contains(pepper);
             var written = spans.Select(s => line[s.Start..s.End]).ToList();
+            if (each && quantity == null) return CompoundPlan.Leave(wording, LeaveEachUnread);
+            if (written.Skip(1).Any(w => CountStart.IsMatch(w))) return CompoundPlan.Leave(wording, LeaveQuantifiedList);
+            if (v.PepperId is { } spice && foods.Select((f, i) => (f, i)).Any(p => p.f == spice && CutWord.IsMatch(written[p.i]))) return CompoundPlan.Leave(wording, LeaveCutPepper);
+            if (written.Any(w => IngredientNameNormalizer.Normalize(w).Equals("mustard", StringComparison.OrdinalIgnoreCase))
+                && foods.Any(f => f == v.SaltId || f == v.PepperId))
+            {
+                return CompoundPlan.Leave(wording, LeaveSpiceMustard);
+            }
 
             string rule;
             List<CompoundPart> parts;
@@ -322,6 +361,7 @@ namespace Nom.Orch.Services.Support
                 var amount = IngredientLineParser.Parse(segment);
                 var name = IngredientNameNormalizer.Normalize(segment);
                 if (amount == null || v.Resolve(name) is not { } food) return null;
+                if (amount.MeasurementName == IngredientLineParser.Piece && !v.CountedInPieces(food)) return CompoundPlan.Leave(wording, LeaveBareNumber);
                 parts.Add(new CompoundPart(name, food, segment, amount));
             }
 
@@ -408,6 +448,7 @@ namespace Nom.Orch.Services.Support
                 if (!Same(IngredientLineParser.Parse(part.RawLine), part.Quantity)) return CompoundPlan.Leave(plan.Wording, LeaveNotFixedPoint);
                 if (strictFood && part.Quantity is { MeasurementName: IngredientLineParser.Piece }
                     && (!CountStart.IsMatch(part.RawLine) || MeasureWord.IsMatch(part.RawLine))) return CompoundPlan.Leave(plan.Wording, LeaveNotFixedPoint);
+                if (strictFood && part.Quantity is { MeasurementName: IngredientLineParser.Piece } && !v.CountedInPieces(part.FoodId)) return CompoundPlan.Leave(plan.Wording, LeaveBareNumber);
                 var food = v.Resolve(IngredientNameNormalizer.Normalize(part.RawLine));
                 if (strictFood ? food != part.FoodId : food != null && food != part.FoodId) return CompoundPlan.Leave(plan.Wording, LeaveNotFixedPoint);
                 if (acceptable && part.Quantity == null && !RecipeVettingService.IsAcceptablyUnquantified(part.RawLine)) return CompoundPlan.Leave(plan.Wording, LeaveNotFixedPoint);

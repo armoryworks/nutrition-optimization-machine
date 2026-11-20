@@ -43,7 +43,7 @@ top-44	⅓ cup lemon juice or vinegar	PickAlternative	*	*	ok	design:compound	top
 top-45	1 cup chicken or vegetable broth	PickAlternative	*	*	ok	design:compound	top wordings: chicken or vegetable broth (or-head, 54 lines)
 top-46	salt and white pepper to taste	Split	*	*	ok	design:compound	top wordings: salt and white pepper (and, 53 lines)
 top-48	1 cup water or milk	PickAlternative	*	*	ok	design:compound	top wordings: water or milk (or, 51 lines)
-top-49	1 cup bread or cracker crumbs	Leave	*	*	known	design:compound	top wordings: bread or cracker crumbs (or?, 51 lines)
+top-49	1 cup bread or cracker crumbs	Leave	*	*	ok	design:compound	top wordings: bread or cracker crumbs (or?, 51 lines)
 top-50	1 cup fresh or frozen blueberries	Leave	*	*	ok	design:compound	top wordings: fresh or frozen blueberries (or?, 50 lines)
 top-51	pinch salt and freshly ground black pepper	Split	*	*	ok	design:compound	top wordings: salt and freshly ground black pepper (pair, 50 lines)
 top-52	some oil or butter	Leave	*	*	ok	design:compound	top wordings: oil or butter (or-last, 49 lines)
@@ -80,3 +80,20 @@ sample-03	1/2 tsp each sea salt and black pepper ((plus more to taste))	Split	*	
 sample-04	1/4 cup each of canned peas, green beans, and tomatoes	Split	and-each	*	ok	design:compound	sample part lines
 sample-05	grated rind and juice of 1/2 lemon	Split	part-pair	Lemon Peel|Lemon Juice	ok	design:compound	sample part lines
 sample-06	1 pint of boiling milk, or 1 pint of boiling cream	PickAlternative	*	Milk	ok	design:compound	sample part lines
+c6-own-01	1/2 butter and 1/2 lard	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 own-quantity: proportions, not piece counts
+c6-own-02	1/2 lard and 1/2 butter	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 own-quantity: proportions, not piece counts
+c6-own-03	1-1/2 butter and 1-1/2 teaspoons baking powder	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 own-quantity: 1.5 Piece of butter
+c6-own-04	½ or ¾ milk and ½ or ¼ water	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 own-quantity: proportions of milk and water
+c6-au-01	mustard and cress	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 and-unquantified: the salad plant pair, 16 lines went to prepared mustard
+c6-au-02	tablespoonful each of minced onion and parsley	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 and-unquantified: split with no amount
+c6-au-03	tablespoonful each of minced parsley and onion	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 and-unquantified: split with no amount
+c6-au-04	ounce each of butter and lard	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 and-unquantified: split with no amount
+c6-ae-01	one tablespoon each of chopped pepper and onion	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 and-each: chopped pepper is a bell pepper, went to black pepper
+c6-ae-02	a teaspoonful each of salt and mustard	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 and-each: dry mustard meant, went to prepared mustard
+c6-ae-03	one half teaspoonful each of mustard and pepper	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 and-each: dry mustard meant
+c6-ae-04	1/2 teaspoonful each of mustard, pepper, and salt	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 and-each: dry mustard meant
+c6-aqsp-01	1 pinch of pepper and one of salt	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 and-quantified-salt-pepper: part text broken, pinch lost
+c6-ofn-01	3 tablespoonfuls of apricot, strawberry, or any jam	PickAlternative	or-shared-head	Apricot Jam	agent	agent-review-staging-2026-11-20	C6 or-first-named: went to Apricots (fruit); the alternatives are kinds of jam
+c6-ofn-02	crab or lobster coral	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 or-first-named: coral is roe, went to Crabs
+c6-ofn-03	duck or goose giblets	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 or-first-named: went to Duck (meat)
+c6-oi-01	lemon or nutmeg	Leave	*	*	agent	agent-review-staging-2026-11-20	C6 or: a flavouring, went to Lemon

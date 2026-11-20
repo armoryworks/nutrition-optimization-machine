@@ -25,8 +25,13 @@ namespace Nom.Api.Tests.Services
             ["Dark Chocolate Chips"] = 39, ["Orange Juice"] = 40, ["Lemons"] = 41, ["Ham"] = 42, ["Bacon Fat"] = 43, ["Orange Peel"] = 44,
         };
 
+        private static readonly HashSet<string> Pieces = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "Avocados", "Eggs", "Egg Yolk", "Oranges", "Red Bell Pepper", "Lemons", "Tomatoes", "Cherry Tomatoes",
+        };
+
         internal static CompoundVocabulary Vocabulary() => CompoundVocabulary.Build(
-            Foods.Select(f => new CompoundFood(f.Value, f.Key, true)).Append(new CompoundFood(30, "Peas and carrots, frozen", false)),
+            Foods.Select(f => new CompoundFood(f.Value, f.Key, true, Pieces.Contains(f.Key))).Append(new CompoundFood(30, "Peas and carrots, frozen", false)),
             new[]
             {
                 new CompoundAlias(1, "Salt, table", IngredientLinkService.UsdaDescriptionContext),
@@ -173,6 +178,12 @@ namespace Nom.Api.Tests.Services
         [InlineData("a very little salt and pepper", CompoundLineSplitter.LeaveNotFixedPoint)]
         [InlineData("1 quarter teaspoonful each of salt and pepper", CompoundLineSplitter.LeaveNotFixedPoint)]
         [InlineData("3 tablespoons lemon juice and grated rind", CompoundLineSplitter.LeaveNotFixedPoint)]
+        [InlineData("1/2 butter and 1/2 lard", CompoundLineSplitter.LeaveBareNumber)]
+        [InlineData("1-1/2 butter and 1-1/2 teaspoons baking powder", CompoundLineSplitter.LeaveBareNumber)]
+        [InlineData("½ or ¾ milk and ½ or ¼ water", CompoundLineSplitter.LeaveBareNumber)]
+        [InlineData("ounce each of butter and lard", CompoundLineSplitter.LeaveEachUnread)]
+        [InlineData("1 pinch of pepper and one of salt", CompoundLineSplitter.LeaveQuantifiedList)]
+        [InlineData("lemon or nutmeg", CompoundLineSplitter.LeaveFlavour)]
         public void Lines_the_rules_do_not_trust_are_left_with_a_reason(string line, string reason)
         {
             var plan = Plan(line);

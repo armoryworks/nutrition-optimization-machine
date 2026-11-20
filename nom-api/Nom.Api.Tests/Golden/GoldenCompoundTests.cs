@@ -25,7 +25,7 @@ namespace Nom.Api.Tests.Golden
             var catalog = GoldenCatalog.Instance;
             var extra = GoldenSet.Read("compound-vocabulary.tsv").Rows;
             return CompoundVocabulary.Build(
-                catalog.Foods.Select(f => new CompoundFood(f.Id, f.Name, f.HasNutrition)),
+                catalog.Foods.Select(f => new CompoundFood(f.Id, f.Name, f.HasNutrition, f.CountedInPieces)),
                 extra.Where(r => r["kind"] == "alias").Select(r => new CompoundAlias(long.Parse(r.Id), r["name"], r.Value("context"))),
                 catalog.Foods.Select(f => f.Name).Concat(extra.Where(r => r["kind"] == "known").Select(r => r["name"])));
         }
