@@ -83,11 +83,22 @@ namespace Nom.Orch.Services
         /// </summary>
         public async Task<IReadOnlyList<LinkSource>> NextSourcesAsync(int count, CancellationToken cancellationToken = default)
         {
-            var retryBefore = DateTime.UtcNow - RejectionRetryAge;
+            return await WaitingSources(DateTime.UtcNow - RejectionRetryAge)
+                .Select(i => new { i.Id, i.Name, Uses = _context.RecipeIngredients.Count(ri => ri.IngredientId == i.Id) })
+                .Where(x => x.Uses > 0)
+                .OrderByDescending(x => x.Uses)
+                .ThenBy(x => x.Id)
+                .Take(count)
+                .Select(x => new LinkSource(x.Id, x.Name, x.Uses))
+                .ToListAsync(cancellationToken);
+        }
+
+        public IQueryable<IngredientEntity> WaitingSources(DateTime retryBefore)
+        {
             var gate = _gateVerifiedWordings;
             var currentAsk = LinkAskKey.Tag(_matcher.ModelName, _matcher.PromptVersion);
             var held = UnreadCounts().Where(u => u.Value >= UnreadHoldAfter).Select(u => u.Key).ToList();
-            return await _context.Ingredients
+            return _context.Ingredients
                 .Where(i => i.FdcId == null && !i.IsDeleted && !held.Contains(i.Id)
                     && (!gate || !_context.IngredientWordings.Any(w => w.Wording == i.Name.ToLower()))
                     && !_context.FoodCatalogProposals.Any(p => p.IngredientId == i.Id
@@ -96,14 +107,7 @@ namespace Nom.Orch.Services
                                     || (p.ReviewedByPersonId != null && p.ReviewedByPersonId != SystemConstants.SystemPersonId)
                                     || ((p.LastModifiedDate ?? p.CreatedDate) > retryBefore
                                         && !(p.Reason != null && p.Reason.Contains(LinkAskKey.Mark) && !p.Reason.Contains(currentAsk)))))
-                            || (p.Field == FoodCatalogReviewService.FdcAttachField && p.Status == FoodProposalStatus.Pending))))
-                .Select(i => new { i.Id, i.Name, Uses = _context.RecipeIngredients.Count(ri => ri.IngredientId == i.Id) })
-                .Where(x => x.Uses > 0)
-                .OrderByDescending(x => x.Uses)
-                .ThenBy(x => x.Id)
-                .Take(count)
-                .Select(x => new LinkSource(x.Id, x.Name, x.Uses))
-                .ToListAsync(cancellationToken);
+                            || (p.Field == FoodCatalogReviewService.FdcAttachField && p.Status == FoodProposalStatus.Pending))));
         }
 
         public async Task<IngredientLinkBatchResult?> ProposeAsync(IReadOnlyList<LinkSource> sources, CancellationToken cancellationToken = default)

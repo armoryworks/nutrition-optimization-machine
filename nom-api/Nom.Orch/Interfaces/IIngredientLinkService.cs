@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Nom.Data.Curation;
@@ -38,6 +39,13 @@ namespace Nom.Orch.Interfaces
     public interface IIngredientLinkService
     {
         Task<IReadOnlyList<LinkSource>> NextSourcesAsync(int count, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// The uncurated ingredients <see cref="NextSourcesAsync"/> draws from, before it drops the
+        /// unused ones and orders by use, with a machine rejection made before
+        /// <paramref name="retryBefore"/> counted as due again.
+        /// </summary>
+        IQueryable<Nom.Data.Recipe.IngredientEntity> WaitingSources(DateTime retryBefore);
 
         /// <summary>Null when the model is needed but unreachable; those sources stay unproposed.</summary>
         Task<IngredientLinkBatchResult?> ProposeAsync(IReadOnlyList<LinkSource> sources, CancellationToken cancellationToken = default);

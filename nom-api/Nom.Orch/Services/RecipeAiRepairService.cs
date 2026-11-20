@@ -36,8 +36,8 @@ namespace Nom.Orch.Services
 
         public static readonly string AttemptVersionPrefix = $"v{RepairVersion} ";
 
-        private const string StepsIssueMarker = "instruction step(s)";
-        private const string QuantityIssueMarker = "have no parseable quantity";
+        internal const string StepsIssueMarker = "instruction step(s)";
+        internal const string QuantityIssueMarker = "have no parseable quantity";
 
         private readonly ApplicationDbContext _db;
         private readonly IRecipeVettingService _vetting;
