@@ -29,7 +29,7 @@ namespace Nom.Api.Services
     /// IngredientLinking:Enabled=false disables it; IngredientLinking:BatchSize (default 30)
     /// ingredients per pass; IngredientLinking:PauseSeconds (default 5) between passes;
     /// IngredientLinking:IdleMinutes (default 30) once nothing is left to propose.
-    /// Every pass passes the <see cref="AiLaneGate"/> (lane "link").
+    /// Every pass, the start-up step included, passes the <see cref="AiLaneGate"/> (lane "link").
     /// </summary>
     public class IngredientLinkHostedService : BackgroundService
     {
@@ -85,25 +85,14 @@ namespace Nom.Api.Services
 
             if (!await Delay(TimeSpan.FromMinutes(2), stoppingToken)) return;
 
-            try
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var corrected = await scope.ServiceProvider.GetRequiredService<IIngredientLinkService>().ApplyStapleDefaultsToPendingAsync(stoppingToken);
-                if (corrected > 0) _logger.LogInformation("Ingredient linking: {Count} pending staple links re-pointed to their standard USDA entry", corrected);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                _logger.LogWarning(ex, "Re-pointing pending staple links failed");
-            }
             var autoApply = _configuration.GetValue("IngredientLinking:AutoApplyCertain", true);
             _applyNameMatches = _configuration.GetValue("IngredientLinking:AutoApplyNameMatches", false);
             _holdGuard = _configuration.GetValue("IngredientLinking:HoldGuard", true);
-            if (autoApply) await ApplyCertainLinksAsync(stoppingToken);
             var autoApplyVerified = _configuration.GetValue("IngredientLinking:AutoApplyVerifiedAi", false);
             _applyMinConfidence = Math.Clamp(_configuration.GetValue("IngredientLinking:VerifiedMinConfidence", 0.85m), 0m, 1m);
             var minConfidence = Math.Clamp(_configuration.GetValue("IngredientLinking:VerifyMinConfidence", 0.80m), 0m, _applyMinConfidence);
             var verifyBatch = Math.Clamp(_configuration.GetValue("IngredientLinking:VerifyBatchSize", 24), 1, 200);
-            if (autoApplyVerified) await ApplyVerifiedLinksAsync(stoppingToken);
+            if (!await StartUpAsync(autoApply, autoApplyVerified, stoppingToken)) return;
             var verify = verifyUsable && (autoApplyVerified || _configuration.GetValue("IngredientLinking:VerifyPending", false));
 
             int proposed = 0, sinceLog = 0;
@@ -172,6 +161,30 @@ namespace Nom.Api.Services
 
                 if (!await Delay(delay, stoppingToken)) return;
             }
+        }
+
+        /// <summary>
+        /// The start-up step: re-points pending staple links to their standard entry, then applies
+        /// certain links and, when <paramref name="autoApplyVerified"/>, verified model picks. It
+        /// passes the lane gate first like every later pass, so a paused link lane applies nothing
+        /// after a restart. False when cancelled while waiting.
+        /// </summary>
+        internal async Task<bool> StartUpAsync(bool autoApply, bool autoApplyVerified, CancellationToken stoppingToken)
+        {
+            if (!await _gate.WaitAsync(AiLanes.Link, stoppingToken)) return false;
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var corrected = await scope.ServiceProvider.GetRequiredService<IIngredientLinkService>().ApplyStapleDefaultsToPendingAsync(stoppingToken);
+                if (corrected > 0) _logger.LogInformation("Ingredient linking: {Count} pending staple links re-pointed to their standard USDA entry", corrected);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Re-pointing pending staple links failed");
+            }
+            if (autoApply) await ApplyCertainLinksAsync(stoppingToken);
+            if (autoApplyVerified) await ApplyVerifiedLinksAsync(stoppingToken);
+            return true;
         }
 
         /// <summary>
