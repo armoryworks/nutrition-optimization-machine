@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { LinkUndoPreview, PipelineGate, PipelineStatus, RereadPreview, UnfoldPreview } from '../models/pipeline.model';
+import { LaneUndoReport, LinkUndoPreview, PipelineGate, PipelineStatus, RereadPreview, UnfoldPreview } from '../models/pipeline.model';
 
 /** Admin view of the automated catalog pipeline, the model lanes' pause switches, and the dry runs of the line operations. */
 @Injectable({ providedIn: 'root' })
@@ -31,6 +31,12 @@ export class PipelineService {
   previewReread(): Observable<RereadPreview> {
     const params = new HttpParams().set('sampleSize', 0);
     return this.http.get<RereadPreview>(`${this.catalogUrl}/reread/preview`, { params });
+  }
+
+  /** What a frame lane's undo of its writes since its last clean audit window would do; always a dry run. */
+  previewFrameUndo(lane: string, tier: string): Observable<LaneUndoReport> {
+    const params = new HttpParams().set('apply', false);
+    return this.http.post<LaneUndoReport>(`${this.apiUrl}/frame/${encodeURIComponent(lane)}/${encodeURIComponent(tier)}/undo`, null, { params });
   }
 
   /** What taking back the links applied since a time would do; always a dry run. */

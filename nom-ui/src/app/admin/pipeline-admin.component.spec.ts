@@ -4,7 +4,7 @@ import { provideHttpClientTesting, HttpTestingController, TestRequest } from '@a
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { PipelineAdmin } from './pipeline-admin.component';
-import { PipelineGate, PipelineLineFunnel, PipelineStatus } from '../core/models/pipeline.model';
+import { LaneFrameLane, PipelineFrame, PipelineGate, PipelineLineFunnel, PipelineStatus } from '../core/models/pipeline.model';
 
 const funnel = (counted: number): PipelineLineFunnel => ({
   total: 818084,
@@ -38,6 +38,33 @@ const gate = (pausedLink = false): PipelineGate => ({
     },
   ],
   hosts: [],
+});
+
+const frameLane = (overrides: Partial<LaneFrameLane> = {}): LaneFrameLane => ({
+  lane: 'wording-read',
+  tier: '*',
+  mode: 'paused',
+  reason: 'paused: 10 confirmed errors in the last 200 audited writes, error upper bound 8.97% above the pause bar 3.0%',
+  since: '2026-11-20T10:00:00Z',
+  signatureHash: 'sig-1',
+  evaluatedAt: '2026-11-20T10:00:00Z',
+  lastCleanAt: '2026-11-20T08:00:00Z',
+  figures: {
+    evaluatedAt: '2026-11-20T10:00:00Z', signature: 'sig-1', decisions: 400, written: 200, audited: 400, errors: 10, flagged: 4,
+    observedError: 0.025, correctedError: 0.026, precisionLower: 0.955, precisionUpper: 0.987, qualifyBar: 0.98, neededAudited: 210,
+    windowAudited: 200, windowErrors: 10, windowErrorLower: 0.027, windowErrorUpper: 0.0897, pauseBar: 0.03, window: 200,
+    auditorSource: 'link-audit golden', auditorSensitivity: 0.95, auditorFalseFlagRate: 0.01, auditorKnownBad: 400, auditorKnownGood: 1000,
+    auditorExact: false, auditorProblem: null, goldenProblem: null, pauseReasons: [],
+  },
+  decisionsLast24h: 400,
+  writtenLast24h: 200,
+  canUndo: true,
+  ...overrides,
+});
+
+const frame = (lanes: LaneFrameLane[]): PipelineFrame => ({
+  lanes,
+  roster: { readerA: 'qwen2.5:14b-instruct', readerAFamily: 'qwen', readerB: 'mistral-nemo', readerBFamily: 'mistral', auditor: 'phi4', auditorFamily: 'phi' },
 });
 
 function status(quietMinutesLeft: number | null = null): PipelineStatus {
@@ -283,5 +310,60 @@ describe('PipelineAdmin', () => {
     expect(byId(el, 'pipeline-metric-link-undo-proposals-skipped')?.textContent?.trim()).toBe('20');
     expect(byId(el, 'pipeline-metric-link-undo-lines-skipped')?.textContent?.trim()).toBe('14');
     expect(byId(el, 'pipeline-link-undo-preview')?.textContent).toContain('Moved lines left in place');
+  });
+  it('lists each frame lane with its mode, reason, corrected figures, bounds and the roster', () => {
+    const body = status();
+    body.frame = frame([frameLane(), frameLane({ tier: 't2', mode: 'shadow', reason: 'shadow: 120 of 189 audited', canUndo: false })]);
+    const el = loaded(body).nativeElement as HTMLElement;
+
+    expect(byId(el, 'pipeline-frame-wording-read-all-mode')?.textContent?.trim()).toBe('paused');
+    expect(byId(el, 'pipeline-frame-wording-read-all-reason')?.textContent).toContain('above the pause bar');
+    expect(byId(el, 'pipeline-frame-wording-read-all-qualify')?.textContent).toContain('210 needed');
+    expect(byId(el, 'pipeline-frame-wording-read-all-qualify')?.textContent).toContain('4 flags not confirmed');
+    expect(byId(el, 'pipeline-frame-wording-read-all-window')?.textContent).toContain('3.0%');
+    expect(byId(el, 'pipeline-frame-wording-read-all-auditor')?.textContent).toContain('1,000 known-good rows');
+    expect(byId(el, 'pipeline-frame-wording-read-t2-mode')?.textContent?.trim()).toBe('shadow');
+    expect(byId(el, 'pipeline-frame-wording-read-t2-undo-preview-btn')).toBeNull();
+    expect(byId(el, 'pipeline-frame-roster')?.textContent).toContain('mistral-nemo (mistral)');
+    expect(byId(el, 'pipeline-frame')?.textContent).toContain('agreement with the reviewer model');
+  });
+
+  it('shows an empty frame, and says so when the frame did not report', () => {
+    const body = status();
+    body.frame = frame([]);
+    expect(byId(loaded(body).nativeElement, 'pipeline-frame-empty')).not.toBeNull();
+    TestBed.resetTestingModule();
+    http.verify();
+
+    expect(byId(loaded(status()).nativeElement, 'pipeline-frame-error')).not.toBeNull();
+  });
+
+  it('runs a frame lane undo as a dry run and shows its counts', () => {
+    const body = status();
+    body.frame = frame([frameLane()]);
+    const fixture = loaded(body);
+    const el = fixture.nativeElement as HTMLElement;
+
+    byId(el, 'pipeline-frame-wording-read-all-undo-preview-btn')!.click();
+    const post = http.expectOne((r) => r.method === 'POST' && r.url.endsWith('/Pipeline/frame/wording-read/*/undo'));
+    expect(post.request.params.get('apply')).toBe('false');
+    post.flush({ lane: 'wording-read', tier: '*', sinceUtc: '2026-11-20T08:00:00Z', applied: false, result: { undone: 37, skipped: 2, remaining: 0, note: null } });
+    fixture.detectChanges();
+
+    expect(byId(el, 'pipeline-metric-frame-wording-read-all-undo-undone')?.textContent?.trim()).toBe('37');
+    expect(byId(el, 'pipeline-metric-frame-wording-read-all-undo-skipped')?.textContent?.trim()).toBe('2');
+  });
+
+  it('shows an error when the frame undo dry run fails', () => {
+    const body = status();
+    body.frame = frame([frameLane()]);
+    const fixture = loaded(body);
+    const el = fixture.nativeElement as HTMLElement;
+
+    byId(el, 'pipeline-frame-wording-read-all-undo-preview-btn')!.click();
+    http.expectOne((r) => r.url.endsWith('/Pipeline/frame/wording-read/*/undo')).flush({}, { status: 404, statusText: 'Not Found' });
+    fixture.detectChanges();
+
+    expect(byId(el, 'pipeline-frame-wording-read-all-undo-error')?.textContent).toContain('Unable to run the undo dry run.');
   });
 });

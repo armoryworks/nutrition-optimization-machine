@@ -178,6 +178,11 @@
   color: var(--mat-sys-on-tertiary-container);
 }
 
+.nom-pipeline__badge--paused {
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
 .nom-pipeline__switches {
   margin: vars.$spacing-2 0;
   padding-left: vars.$spacing-4;

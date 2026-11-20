@@ -1,16 +1,21 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Nom.Api.Services;
 using Nom.Orch.Interfaces;
+using Nom.Orch.Models.Curation;
 using Nom.Orch.Services.Support;
+using Nom.Orch.Settings;
 
 namespace Nom.Api.Controllers
 {
     /// <summary>
     /// Admin view of the automated catalog pipeline: where recipes, lines and foods are waiting,
-    /// each lane's settings and queue, and the model lanes' live state from the lane gate. Read-only
-    /// except for the AI pause switches: a curation admin may turn a pause on, and only a user-roles
-    /// admin may turn one off, as on the platform feature endpoint that writes the same switches.
+    /// each lane's settings and queue, the model lanes' live state from the lane gate, and every lane
+    /// on the lane frame with its mode, figures and bounds. Read-only except for the AI pause
+    /// switches and the lane frame's undo: a curation admin may turn a pause on and dry-run an undo,
+    /// and only a user-roles admin may turn a pause off or apply an undo, as on the platform feature
+    /// endpoint that writes the same switches.
     /// </summary>
     [Authorize(Policy = "CanManageCuration")]
     public class PipelineController : BaseApiController
@@ -22,13 +27,18 @@ namespace Nom.Api.Controllers
         private readonly IAiLaneStatus _lanes;
         private readonly IPlatformFeatureService _features;
         private readonly IConfiguration _configuration;
+        private readonly ILaneFrameService _frame;
+        private readonly LaneModelRoster _roster;
 
-        public PipelineController(IPipelineStatusService pipeline, IAiLaneStatus lanes, IPlatformFeatureService features, IConfiguration configuration)
+        public PipelineController(IPipelineStatusService pipeline, IAiLaneStatus lanes, IPlatformFeatureService features, IConfiguration configuration,
+            ILaneFrameService frame, IOptions<LaneModelRoster> roster)
         {
             _pipeline = pipeline;
             _lanes = lanes;
             _features = features;
             _configuration = configuration;
+            _frame = frame;
+            _roster = roster.Value;
         }
 
         /// <summary>The pipeline counts (cached for a few minutes; refresh=true recomputes them) and the lanes' live state.</summary>
@@ -38,7 +48,21 @@ namespace Nom.Api.Controllers
             var status = await _pipeline.GetAsync(refresh, cancellationToken);
             var left = AiQuietHours.Remaining(_configuration, DateTimeOffset.UtcNow);
             status = status with { Ai = status.Ai with { QuietMinutesLeft = left is { } l ? (int)Math.Ceiling(l.TotalMinutes) : null } };
-            return Ok(new PipelineStatusResponse(status, await GateAsync()));
+            return Ok(new PipelineStatusResponse(status, await GateAsync(), await FrameAsync(cancellationToken)));
+        }
+
+        /// <summary>
+        /// A frame lane's undo of its writes since its last clean audit window: a dry run by default;
+        /// apply=true needs CanManageUserRoles. Tier "*" is the whole lane. 404 when the lane has no
+        /// state or registered no undo.
+        /// </summary>
+        [HttpPost("frame/{lane}/{tier}/undo")]
+        public async Task<ActionResult<LaneUndoReport>> UndoFrameWindow(string lane, string tier, [FromQuery] bool apply = false, CancellationToken cancellationToken = default)
+        {
+            if (apply && !User.HasClaim("CanManageUserRoles", "true"))
+                return Forbid();
+            var report = await _frame.UndoWindowAsync(lane, tier, apply, GetCurrentPersonIdRequired(), cancellationToken);
+            return report == null ? NotFound(new { error = $"Lane '{lane}/{tier}' has no state or no undo." }) : Ok(report);
         }
 
         /// <summary>Turns the pause switch of one model lane, of all of them ("all") or of recipe auto-approval ("auto-approve") on or off; turning one off needs CanManageUserRoles.</summary>
@@ -57,6 +81,12 @@ namespace Nom.Api.Controllers
             await _features.SetAsync(key, request.IsEnabled, GetCurrentPersonIdRequired());
             return Ok(await GateAsync());
         }
+
+        private async Task<PipelineFrameStatus> FrameAsync(CancellationToken cancellationToken) =>
+            new(await _frame.StatusAsync(cancellationToken), new PipelineRoster(
+                _roster.ReaderA, LaneModelRoster.Family(_roster.ReaderA),
+                _roster.ReaderB, LaneModelRoster.Family(_roster.ReaderB),
+                _roster.Auditor, LaneModelRoster.Family(_roster.Auditor)));
 
         private async Task<PipelineGateStatus> GateAsync()
         {

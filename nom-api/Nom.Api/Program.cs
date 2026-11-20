@@ -391,6 +391,10 @@ builder.Services.AddScoped<Nom.Orch.Interfaces.IDishGroupService, Nom.Orch.Servi
 
 builder.Services.AddSingleton<Nom.Api.Services.AiHostMonitor>();
 builder.Services.AddSingleton<Nom.Orch.Interfaces.IAiHostHealth>(sp => sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>());
+builder.Services.AddOptions<Nom.Orch.Settings.LaneModelRoster>()
+    .Bind(builder.Configuration.GetSection(Nom.Orch.Settings.LaneModelRoster.SectionName))
+    .ValidateOnStart();
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<Nom.Orch.Settings.LaneModelRoster>, Nom.Orch.Settings.LaneModelRosterValidation>();
 builder.Services.AddSingleton<Nom.Api.Services.AiLaneGate>();
 builder.Services.AddSingleton<Nom.Api.Services.IAiLaneStatus>(sp => sp.GetRequiredService<Nom.Api.Services.AiLaneGate>());
 builder.Services.AddHttpClient(Nom.Api.Services.AiHostMonitor.ProbeClientName);

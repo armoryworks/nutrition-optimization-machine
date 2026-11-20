@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Nom.Data;
+using Nom.Data.Curation;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Services.Support;
 
@@ -67,6 +68,27 @@ namespace Nom.Api.Services
             if (await PausedByAsync(lane) is not { } key) return false;
             Enter(lane, Lane(lane), AiLaneState.Paused, $"paused by the platform feature {key}");
             return true;
+        }
+
+        /// <summary>
+        /// The mode a tier of a lane on the lane frame writes in: paused while a pause switch is on
+        /// or while curation.LaneState holds the lane or the tier paused, so a pause holds across a
+        /// restart; otherwise the tier's own mode, shadow when it has none. Shadow too when the state
+        /// cannot be read, so a lane never writes without its state.
+        /// </summary>
+        public async Task<string> WriteModeAsync(string lane, string tier, CancellationToken cancellationToken)
+        {
+            if (await PausedByAsync(lane) != null) return LaneMode.Paused;
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                return await scope.ServiceProvider.GetRequiredService<ILaneFrameService>().ModeAsync(lane, tier, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "AI lane {Lane}/{Tier}: could not read its lane state; it decides in shadow and writes nothing", lane, tier);
+                return LaneMode.Shadow;
+            }
         }
 
         /// <summary>Records a finished batch: how many items it handled and whether the lane found nothing to do.</summary>

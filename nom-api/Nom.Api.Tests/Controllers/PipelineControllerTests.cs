@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Moq;
 using Nom.Api.Controllers;
 using Nom.Api.Services;
@@ -17,6 +18,7 @@ using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
 using Nom.Orch.Models.Platform;
 using Nom.Orch.Services.Support;
+using Nom.Orch.Settings;
 using Xunit;
 
 namespace Nom.Api.Tests.Controllers
@@ -33,6 +35,7 @@ namespace Nom.Api.Tests.Controllers
         private readonly Mock<IPipelineStatusService> _pipeline = new();
         private readonly Mock<IAiLaneStatus> _lanes = new();
         private readonly Mock<IPlatformFeatureService> _features = new();
+        private readonly Mock<ILaneFrameService> _frame = new();
 
         public PipelineControllerTests()
         {
@@ -54,7 +57,8 @@ namespace Nom.Api.Tests.Controllers
 
         private PipelineController Controller(Dictionary<string, string?>? settings = null, bool roleAdmin = false) =>
             new(_pipeline.Object, _lanes.Object, _features.Object,
-                new ConfigurationBuilder().AddInMemoryCollection(settings ?? new Dictionary<string, string?> { ["Ai:QuietHours"] = "" }).Build())
+                new ConfigurationBuilder().AddInMemoryCollection(settings ?? new Dictionary<string, string?> { ["Ai:QuietHours"] = "" }).Build(),
+                _frame.Object, Options.Create(new LaneModelRoster()))
             {
                 ControllerContext = new ControllerContext
                 {
@@ -155,6 +159,44 @@ namespace Nom.Api.Tests.Controllers
 
             result.Result.Should().BeOfType<BadRequestObjectResult>();
             _features.Verify(f => f.SetAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<long>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetStatus_lists_the_lane_frame_with_its_figures_and_the_model_roster()
+        {
+            _frame.Setup(f => f.StatusAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new[]
+            {
+                new LaneFrameStatusModel { Lane = "wording-read", Tier = "*", Mode = "paused", Reason = "paused: 7 confirmed errors", CanUndo = true },
+            });
+
+            var body = Body(await Controller().GetStatus());
+
+            body.Frame!.Lanes.Single().Mode.Should().Be("paused");
+            body.Frame.Roster.ReaderAFamily.Should().Be("qwen");
+            body.Frame.Roster.ReaderBFamily.Should().Be("mistral");
+            body.Frame.Roster.AuditorFamily.Should().Be("phi");
+        }
+
+        [Fact]
+        public async Task A_curation_admin_may_dry_run_a_frame_undo_but_only_a_user_roles_admin_may_apply_it()
+        {
+            var report = new LaneUndoReport("wording-read", "*", DateTime.UtcNow, false, new LaneUndoResult(12, 0, 0));
+            _frame.Setup(f => f.UndoWindowAsync("wording-read", "*", false, Person, It.IsAny<CancellationToken>())).ReturnsAsync(report);
+
+            var dry = await Controller().UndoFrameWindow("wording-read", "*");
+            var refused = await Controller().UndoFrameWindow("wording-read", "*", apply: true);
+
+            dry.Result.Should().BeOfType<OkObjectResult>().Which.Value.Should().Be(report);
+            refused.Result.Should().BeOfType<ForbidResult>();
+            _frame.Verify(f => f.UndoWindowAsync(It.IsAny<string>(), It.IsAny<string>(), true, It.IsAny<long>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task A_frame_undo_of_a_lane_without_state_or_undo_is_not_found()
+        {
+            var result = await Controller(roleAdmin: true).UndoFrameWindow("no-such-lane", "*", apply: true);
+
+            result.Result.Should().BeOfType<NotFoundObjectResult>();
         }
     }
 }

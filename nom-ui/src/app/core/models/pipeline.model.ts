@@ -225,9 +225,80 @@ export interface PipelineGate {
   hosts: AiHostStatus[];
 }
 
+export type LaneMode = 'shadow' | 'live' | 'paused';
+
+export interface LaneFigures {
+  evaluatedAt: string;
+  signature: string | null;
+  decisions: number;
+  written: number;
+  audited: number;
+  errors: number;
+  flagged: number;
+  observedError: number;
+  correctedError: number;
+  precisionLower: number;
+  precisionUpper: number;
+  qualifyBar: number;
+  neededAudited: number | null;
+  windowAudited: number;
+  windowErrors: number;
+  windowErrorLower: number;
+  windowErrorUpper: number;
+  pauseBar: number;
+  window: number;
+  auditorSource: string | null;
+  auditorSensitivity: number | null;
+  auditorFalseFlagRate: number | null;
+  auditorKnownBad: number | null;
+  auditorKnownGood: number | null;
+  auditorExact: boolean;
+  auditorProblem: string | null;
+  goldenProblem: string | null;
+  pauseReasons: string[];
+}
+
+export interface LaneFrameLane {
+  lane: string;
+  tier: string;
+  mode: LaneMode;
+  reason: string | null;
+  since: string;
+  signatureHash: string | null;
+  evaluatedAt: string | null;
+  lastCleanAt: string | null;
+  figures: LaneFigures | null;
+  decisionsLast24h: number;
+  writtenLast24h: number;
+  canUndo: boolean;
+}
+
+export interface PipelineRoster {
+  readerA: string;
+  readerAFamily: string;
+  readerB: string;
+  readerBFamily: string;
+  auditor: string;
+  auditorFamily: string;
+}
+
+export interface PipelineFrame {
+  lanes: LaneFrameLane[];
+  roster: PipelineRoster;
+}
+
+export interface LaneUndoReport {
+  lane: string;
+  tier: string;
+  sinceUtc: string;
+  applied: boolean;
+  result: { undone: number; skipped: number; remaining: number; note: string | null };
+}
+
 export interface PipelineStatus {
   status: PipelineCounts;
   gate: PipelineGate;
+  frame?: PipelineFrame | null;
 }
 
 export interface UnfoldPreview {
