@@ -27,10 +27,12 @@ fix reaches both:
    no letters `artefact`).
 4. **Method fill (rebuild only).** A line with no amount that is the only line of its food and
    names that food takes the amount the method states next to it (`MethodAmountFinder`), as the
-   start-up repair does. The import leaves this to the start-up repair, which journals each fill
+   start-up repair does, with the same checks: no amount from a ratio, a vessel, a length or
+   washing water, and no piece count of a liquid or of a food with no weight per item. The import leaves this to the start-up repair, which journals each fill
    (`StartupFill`, undone by `startup-fills/undo`).
 
-`RecipeLineBuilder.Version` (`line-builder/1`) is stamped on every journal row. Raise it with any
+`RecipeLineBuilder.Version` (`line-builder/2` since the parser rules R1-R9 of
+`cleanup2/parser-rules`) is stamped on every journal row. Raise it with any
 change to a rule the builder applies, so the detector (a later item) can tell which recipes an
 older version built.
 

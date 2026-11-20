@@ -231,6 +231,30 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task The_rebuild_counts_pieces_from_the_method_only_for_a_food_with_a_weight_per_item()
+        {
+            using var db = await SeededAsync();
+            var onions = await FoodAsync(db, "onions");
+            var eggs = await FoodAsync(db, "eggs");
+            eggs.GramsPerItem = 50m;
+            var flour = await FoodAsync(db, "flour");
+            await db.SaveChangesAsync();
+            var steps = new[] { "Throw in two onions and stir.", "Beat three eggs and fold them into the flour." };
+            var record = Record("Onion Cake", new[] { "onions", "eggs", "2 cups flour" }, steps);
+            var recipe = await RecipeAsync(db, record, new[]
+            {
+                new Row(onions, "onions", 0, Piece), new Row(eggs, "eggs", 0, Piece, 1), new Row(flour, "2 cups flour", 2, Cup, 2),
+            }, steps: steps);
+
+            var result = await Service(db).RebuildAsync(For(recipe.Id), apply: true);
+
+            result.Counts.FilledFromMethod.Should().Be(1);
+            var lines = await LinesAsync(db, recipe.Id);
+            (lines[0].IngredientId, lines[0].Quantity).Should().Be((onions.Id, 0m));
+            (lines[1].IngredientId, lines[1].Quantity, lines[1].MeasurementId).Should().Be((eggs.Id, 3m, Piece));
+        }
+
+        [Fact]
         public async Task Rebuilding_a_rebuilt_recipe_changes_nothing()
         {
             using var db = await SeededAsync();
