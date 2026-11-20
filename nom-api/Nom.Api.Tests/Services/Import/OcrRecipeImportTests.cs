@@ -163,18 +163,21 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
-        public async Task Folds_repeated_ingredients_into_one_row()
+        public async Task A_food_named_on_two_lines_keeps_both_lines_in_page_order()
         {
             using var db = NewContext();
             await SeedCatalogAsync(db);
 
             var ocr = FullRecipe();
-            ocr.Ingredients = new List<string> { "1 cup flour, for the batter", "2 tbsp flour, for dusting" };
+            ocr.Ingredients = new List<string> { "1 cup flour, for the batter", "1 tsp salt", "2 tbsp flour, for dusting" };
             var result = await NewService(db, ocr).ImportFromImageAsync(new byte[] { 1 }, AuthorId);
 
-            var rows = await db.RecipeIngredients.Where(ri => ri.RecipeId == result.Id).ToListAsync();
-            rows.Should().HaveCount(1);
-            rows[0].RawLine.Should().Contain("for the batter").And.Contain("for dusting");
+            var rows = await db.RecipeIngredients.Where(ri => ri.RecipeId == result.Id).OrderBy(ri => ri.SortOrder).ToListAsync();
+            rows.Select(r => (r.SortOrder, r.IngredientId, r.RawLine)).Should().Equal(
+                (0, 2L, "1 cup flour, for the batter"),
+                (1, 3L, "1 tsp salt"),
+                (2, 2L, "2 tbsp flour, for dusting"));
+            result.Message.Should().Contain("3 ingredients");
         }
     }
 }

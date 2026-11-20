@@ -481,22 +481,13 @@ namespace Nom.Orch.Services
                 });
             }
 
-            // Recipes legitimately name the same ingredient twice (sugar for the
-            // batter and again for the frosting), so fold repeats into the first
-            // row's raw line rather than failing the import on a duplicate key.
-            var ingredientRows = new Dictionary<long, RecipeIngredientEntity>();
+            var sortOrder = 0;
             foreach (var ingredient in scraped.Ingredients)
             {
                 var ingredientEntity = await FindOrCreateIngredientAsync(Clamp(ingredient.Name, 2047)!, personId);
                 var measurementId = await ResolveMeasurementIdAsync(ingredient.Unit);
 
-                if (ingredientRows.TryGetValue(ingredientEntity.Id, out var existing))
-                {
-                    existing.RawLine = Clamp($"{existing.RawLine} + {ingredient.RawLine}", 2047)!;
-                    continue;
-                }
-
-                var row = new RecipeIngredientEntity
+                _dbContext.RecipeIngredients.Add(new RecipeIngredientEntity
                 {
                     RecipeId = recipe.Id,
                     IngredientId = ingredientEntity.Id,
@@ -505,10 +496,8 @@ namespace Nom.Orch.Services
                     Quantity = ingredient.Quantity ?? 0m,
                     MeasurementId = measurementId,
                     RawLine = Clamp(ingredient.RawLine, 2047)!,
-                    SortOrder = ingredientRows.Count,
-                };
-                ingredientRows[ingredientEntity.Id] = row;
-                _dbContext.RecipeIngredients.Add(row);
+                    SortOrder = sortOrder++,
+                });
             }
 
             var stepNumber = 1;

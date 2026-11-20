@@ -92,7 +92,7 @@
       @if (cleanupResult(); as cr) {
         <p class="nom-food-catalog__cleanup-result" data-testid="food-catalog-cleanup-result">
           Applied: {{ cr.merged }} merged, {{ cr.renamed }} renamed,
-          {{ cr.linksMoved }} recipe links moved ({{ cr.linksFolded }} folded),
+          {{ cr.linksMoved }} recipe links moved ({{ cr.linksRepositioned }} kept on their own line),
           {{ cr.skippedReferenced }} skipped as human-referenced, {{ cr.remaining }} to go.
         </p>
       }
