@@ -815,17 +815,22 @@ Unload replacing batches newest first. Loading the wording again revives its row
 moves the scraped ingredient lines of every uncurated ingredient named with a `food` wording to
 its food through the journaled `LineRelink` move (re-positioned, never folded), then retires each
 such ingredient left with no line and nothing else pointing at it (`FoodRetire`, name tombstoned)
-and withdraws its unreviewed link proposals. It also withdraws every other pending, unreviewed
+and withdraws its unreviewed link proposals (pending, or rejected by no person; `proposalsWithdrawn`,
+each journaled as `ProposalWithdraw`, `EntityType` `FoodCatalogProposal`). It also withdraws every other pending, unreviewed
 link proposal whose wording the table has judged and whose pick is not the table's food
 (`picksWithdrawn`), each journaled as `WordingPickWithdraw` (`EntityType` `FoodCatalogProposal`).
 Member-written recipes and non-ingredient lines stay. A line moves only when its own text,
 normalised as the wording key is (singular and plural included), is the wording: stray lines an
 import parked on the row ("one gallon of water" on `gelatine`) stay where they are, keep the row
 from being retired, and are counted as `leftBehind` with `leftBehindSamples` in the dry run.
-`relink/undo?sinceUtc=<T0>` puts lines and ingredients back and opens the withdrawn picks again
-(`picksRestored`); run it before `wordings/unload`, and keep other relink work out of the
-window, since the undo is by time. Proposals of retired ingredients are not revived; the lane
-re-proposes once the wording is unloaded.
+The dry run's `sourcesRetired` and `proposalsWithdrawn` are the totals of every batch the apply
+needs, not of the first `maxLines` batch. Lines are moved in recipe, position and food order, so
+two lines that land on the same food in one recipe take the same positions on every apply.
+`relink/undo?sinceUtc=<T0>` puts lines and ingredients back, opens the withdrawn picks again
+(`picksRestored`) and brings back the proposals of retired ingredients with their status
+(`proposalsRestored`); run it before `wordings/unload`, and keep other relink work out of the
+window, since the undo is by time. Proposals withdrawn by a release before v0.3.121 have no
+journal entry and are not revived.
 
 **Gates.** With `VerifiedWordings:ResolveOnImport=true` (default `false`),
 `RecipeScrapingService.FindOrCreateIngredientAsync` looks the wording up first, before the name

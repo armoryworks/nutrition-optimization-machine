@@ -28,6 +28,7 @@ namespace Nom.Orch.Services
         public const string RetireEntityType = "Ingredient";
         public const string PickWithdrawChangeType = "WordingPickWithdraw";
         public const string PickWithdrawEntityType = "FoodCatalogProposal";
+        public const string ProposalWithdrawChangeType = "ProposalWithdraw";
         public const string RetiredContextPrefix = "retired:";
 
         private static readonly Regex Word = new(@"[\p{L}\p{N}%']+", RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -67,7 +68,7 @@ namespace Nom.Orch.Services
             foreach (var food in curated.Where(f => f.HasNutrition)) targets.TryAdd(food.Name.Trim(), food.Id);
 
             var lines = await ScrapedLines()
-                .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder)
+                .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId)
                 .Select(ri => new Line(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine))
                 .ToListAsync();
 
@@ -221,7 +222,7 @@ namespace Nom.Orch.Services
 
             var lines = await _db.RecipeIngredients.AsNoTracking()
                 .Where(ri => !ri.IsDeleted && ri.IngredientId == fromIngredientId)
-                .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder)
+                .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId)
                 .Select(ri => new Line(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine))
                 .ToListAsync();
             var keep = Words(keepWords ?? string.Empty);
@@ -257,7 +258,7 @@ namespace Nom.Orch.Services
             var sources = wanted.Keys.Select(k => k.Item1).Distinct().ToList();
             var lines = await ScrapedLines()
                 .Where(ri => sources.Contains(ri.IngredientId))
-                .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder)
+                .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId)
                 .Select(ri => new Line(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine))
                 .ToListAsync();
             var planned = new List<Move>();
@@ -495,7 +496,7 @@ namespace Nom.Orch.Services
             var entries = await _db.AuditLogEntries
                 .Where(a => ((a.EntityType == RelinkEntityType && (a.ChangeType == RelinkChangeType || repairs.Contains(a.ChangeType)))
                         || (a.EntityType == RetireEntityType && a.ChangeType == RetireChangeType)
-                        || (a.EntityType == PickWithdrawEntityType && a.ChangeType == PickWithdrawChangeType))
+                        || (a.EntityType == PickWithdrawEntityType && (a.ChangeType == PickWithdrawChangeType || a.ChangeType == ProposalWithdrawChangeType)))
                     && a.Timestamp >= sinceUtc)
                 .OrderByDescending(a => a.Id)
                 .ToListAsync();
@@ -508,6 +509,26 @@ namespace Nom.Orch.Services
                 await using var tx = await _db.Database.BeginTransactionAsync();
                 foreach (var entry in chunk)
                 {
+                    if (entry.ChangeType == ProposalWithdrawChangeType)
+                    {
+                        var withdrawn = await _db.FoodCatalogProposals.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == entry.EntityId);
+                        if (withdrawn is { IsDeleted: true })
+                        {
+                            withdrawn.IsDeleted = false;
+                            withdrawn.DeletedAt = null;
+                            withdrawn.DeletedByPersonId = null;
+                            _db.AuditLogEntries.Remove(entry);
+                            result.ProposalsRestored++;
+                        }
+                        else
+                        {
+                            result.Skipped++;
+                        }
+
+                        await _db.SaveChangesAsync();
+                        continue;
+                    }
+
                     if (entry.ChangeType == PickWithdrawChangeType)
                     {
                         var pick = await _db.FoodCatalogProposals.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == entry.EntityId);

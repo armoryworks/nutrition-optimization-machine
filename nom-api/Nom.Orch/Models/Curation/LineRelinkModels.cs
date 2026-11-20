@@ -88,6 +88,8 @@ namespace Nom.Orch.Models.Curation
         public int AlternativesPutBack { get; set; }
         /// <summary>Pending link proposals the verified wording link withdrew that are open again.</summary>
         public int PicksRestored { get; set; }
+        /// <summary>Link proposals of retired ingredients (pending, or rejected by no person) the verified wording link withdrew that are back.</summary>
+        public int ProposalsRestored { get; set; }
         /// <summary>Journal entries whose line has since moved again, been edited or gone, or whose food cannot take its name back.</summary>
         public int Skipped { get; set; }
     }

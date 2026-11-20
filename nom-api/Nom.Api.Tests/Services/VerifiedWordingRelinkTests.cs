@@ -165,13 +165,101 @@ namespace Nom.Api.Tests.Services
             (await db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == vanilla.Id)).Should().Match<IngredientEntity>(i =>
                 i.IsDeleted && i.Name == $"vanilla (deleted #{vanilla.Id})");
             (await db.FoodCatalogProposals.AnyAsync()).Should().BeFalse();
-            (await db.AuditLogEntries.SingleAsync()).Should().Match<AuditLogEntryEntity>(a =>
-                a.ChangeType == LineRelinkService.RetireChangeType && a.EntityId == vanilla.Id && a.NewValue == $"{extract.Id}@0");
+            (await db.AuditLogEntries.SingleAsync(a => a.ChangeType == LineRelinkService.RetireChangeType)).Should().Match<AuditLogEntryEntity>(a =>
+                a.EntityId == vanilla.Id && a.NewValue == $"{extract.Id}@0");
 
             var undone = await service.UndoAsync(started);
 
             undone.FoodsRestored.Should().Be(1);
+            undone.ProposalsRestored.Should().Be(1);
             (await db.Ingredients.SingleAsync(i => i.Id == vanilla.Id)).Name.Should().Be("vanilla");
+        }
+
+        [Fact]
+        public async Task The_proposals_withdrawn_with_a_retired_ingredient_are_journaled_and_the_undo_brings_back_pending_and_rejected_alike()
+        {
+            using var db = NewContext();
+            var extract = CuratedFood("Vanilla Extract");
+            var vanilla = Uncurated("vanilla");
+            db.Ingredients.AddRange(extract, vanilla);
+            await db.SaveChangesAsync();
+            db.IngredientWordings.Add(Wording("vanilla", "food", extract));
+            var pending = OpenLink(vanilla);
+            var rejected = OpenLink(vanilla);
+            rejected.Status = FoodProposalStatus.Rejected;
+            rejected.Reason = "No USDA match";
+            db.FoodCatalogProposals.AddRange(pending, rejected);
+            await db.SaveChangesAsync();
+            var service = new LineRelinkService(db, new NoUser());
+            var started = DateTime.UtcNow;
+
+            (await service.LinkVerifiedWordingsAsync(apply: true)).ProposalsWithdrawn.Should().Be(2);
+
+            (await db.AuditLogEntries.Where(a => a.ChangeType == LineRelinkService.ProposalWithdrawChangeType).Select(a => a.EntityId).ToListAsync())
+                .Should().BeEquivalentTo(new[] { pending.Id, rejected.Id });
+            (await db.FoodCatalogProposals.AnyAsync()).Should().BeFalse();
+
+            var undone = await service.UndoAsync(started);
+
+            (undone.FoodsRestored, undone.ProposalsRestored, undone.Skipped).Should().Be((1, 2, 0));
+            (await db.FoodCatalogProposals.OrderBy(p => p.Id).Select(p => p.Status).ToListAsync())
+                .Should().Equal(FoodProposalStatus.Pending, FoodProposalStatus.Rejected);
+            (await db.AuditLogEntries.AnyAsync()).Should().BeFalse();
+            (await service.LinkVerifiedWordingsAsync()).ProposalsWithdrawn.Should().Be(2, "a second apply withdraws them again");
+        }
+
+        [Fact]
+        public async Task A_dry_run_counts_the_sources_and_proposals_every_batch_of_the_apply_retires_and_withdraws()
+        {
+            using var db = NewContext();
+            var extract = CuratedFood("Vanilla Extract");
+            var milk = CuratedFood("Milk");
+            var vanilla = Uncurated("vanilla");
+            var sweet = Uncurated("sweet milk");
+            db.Ingredients.AddRange(extract, milk, vanilla, sweet);
+            await db.SaveChangesAsync();
+            db.IngredientWordings.AddRange(Wording("vanilla", "food", extract), Wording("sweet milk", "food", milk));
+            db.Recipes.AddRange(
+                Recipe("1", DateTime.UtcNow, (vanilla, "1 tsp vanilla", null)),
+                Recipe("2", DateTime.UtcNow, (sweet, "1 cup sweet milk", null)));
+            db.FoodCatalogProposals.AddRange(OpenLink(vanilla), OpenLink(sweet));
+            await db.SaveChangesAsync();
+            var service = new LineRelinkService(db, new NoUser());
+
+            var dry = await service.LinkVerifiedWordingsAsync(maxLines: 1);
+
+            (dry.Remaining, dry.SourcesRetired, dry.ProposalsWithdrawn).Should().Be((2, 2, 2));
+            var first = await service.LinkVerifiedWordingsAsync(apply: true, maxLines: 1);
+            var second = await service.LinkVerifiedWordingsAsync(apply: true, maxLines: 1);
+            (first.SourcesRetired + second.SourcesRetired, first.ProposalsWithdrawn + second.ProposalsWithdrawn).Should().Be((2, 2));
+        }
+
+        [Fact]
+        public async Task Two_lines_landing_on_the_same_food_take_their_positions_in_food_order_whatever_order_they_were_stored_in()
+        {
+            using var db = NewContext();
+            var milk = CuratedFood("Milk");
+            var sweet = Uncurated("sweet milk");
+            var newMilk = Uncurated("new milk");
+            db.Ingredients.AddRange(milk, newMilk, sweet);
+            await db.SaveChangesAsync();
+            db.IngredientWordings.AddRange(Wording("sweet milk", "food", milk), Wording("new milk", "food", milk));
+            db.Recipes.Add(new RecipeEntity
+            {
+                Name = "112625",
+                ScrapedAtUtc = DateTime.UtcNow,
+                RecipeIngredients = new List<RecipeIngredientEntity>
+                {
+                    new() { IngredientId = sweet.Id, SortOrder = 0, Quantity = 1, MeasurementId = 1, RawLine = "1 cup sweet milk" },
+                    new() { IngredientId = newMilk.Id, SortOrder = 0, Quantity = 2, MeasurementId = 1, RawLine = "2 cups new milk" },
+                },
+            });
+            await db.SaveChangesAsync();
+
+            await new LineRelinkService(db, new NoUser()).LinkVerifiedWordingsAsync(apply: true);
+
+            (await db.RecipeIngredients.AsNoTracking().OrderBy(ri => ri.SortOrder).Select(ri => ri.RawLine).ToListAsync())
+                .Should().Equal("2 cups new milk", "1 cup sweet milk");
         }
 
         [Fact]

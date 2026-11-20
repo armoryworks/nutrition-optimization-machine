@@ -85,11 +85,11 @@ namespace Nom.Orch.Models.Curation
         public int Skipped { get; set; }
         /// <summary>Lines planned and not moved yet; without apply, the lines that would move.</summary>
         public int Remaining { get; set; }
-        /// <summary>Uncurated ingredients with no line left that were retired.</summary>
+        /// <summary>Uncurated ingredients with no line left that were retired; on a dry run, those every batch of the apply together would retire.</summary>
         public int SourcesRetired { get; set; }
         /// <summary>Uncurated ingredients kept because a line or a household's data still points at them.</summary>
         public int SourcesKept { get; set; }
-        /// <summary>Unreviewed link proposals of retired ingredients that were withdrawn.</summary>
+        /// <summary>Unreviewed link proposals of retired ingredients that were withdrawn, each journaled for relink/undo; on a dry run, the total over every batch.</summary>
         public int ProposalsWithdrawn { get; set; }
         /// <summary>Unreviewed pending link proposals of other ingredients whose wording the table judged otherwise, withdrawn and journaled.</summary>
         public int PicksWithdrawn { get; set; }

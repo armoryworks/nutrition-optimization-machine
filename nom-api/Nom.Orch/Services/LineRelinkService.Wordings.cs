@@ -49,7 +49,7 @@ namespace Nom.Orch.Services
                 .Where(ri => !ri.IsDeleted && sourceIds.Contains(ri.IngredientId)
                     && (ri.LineKind == null || ri.LineKind == RecipeIngredientLineKind.Ingredient)
                     && !ri.Recipe.IsDeleted && ri.Recipe.ScrapedAtUtc != null)
-                .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder)
+                .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId)
                 .Select(ri => new Line(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine))
                 .ToListAsync();
             var all = lines.Select(line => new Move(line, sources[line.IngredientId].Wording, usable[sources[line.IngredientId].Wording])).ToList();
@@ -79,7 +79,7 @@ namespace Nom.Orch.Services
                 result.Remaining = moves.Count;
             }
 
-            var planned = moves.Take(limit).GroupBy(m => m.Line.IngredientId).ToDictionary(g => g.Key, g => g.Count());
+            var planned = moves.GroupBy(m => m.Line.IngredientId).ToDictionary(g => g.Key, g => g.Count());
             var lineCounts = await _db.RecipeIngredients.AsNoTracking()
                 .Where(ri => sourceIds.Contains(ri.IngredientId))
                 .GroupBy(ri => ri.IngredientId)
@@ -121,6 +121,7 @@ namespace Nom.Orch.Services
                     proposal.IsDeleted = true;
                     proposal.DeletedAt = now;
                     proposal.DeletedByPersonId = personId;
+                    _db.AuditLogEntries.Add(Withdrawn(proposal.Id, ProposalWithdrawChangeType, now, personId));
                 }
 
                 await _db.SaveChangesAsync();
@@ -167,23 +168,25 @@ namespace Nom.Orch.Services
                     proposal.IsDeleted = true;
                     proposal.DeletedAt = now;
                     proposal.DeletedByPersonId = personId;
-                    _db.AuditLogEntries.Add(new AuditLogEntryEntity
-                    {
-                        EntityType = PickWithdrawEntityType,
-                        EntityId = proposal.Id,
-                        ChangeType = PickWithdrawChangeType,
-                        PropertyName = nameof(FoodCatalogProposalEntity.IsDeleted),
-                        OldValue = bool.FalseString,
-                        NewValue = bool.TrueString,
-                        Timestamp = now,
-                        ChangedByPersonId = personId,
-                    });
+                    _db.AuditLogEntries.Add(Withdrawn(proposal.Id, PickWithdrawChangeType, now, personId));
                 }
 
                 await _db.SaveChangesAsync();
                 if (tx != null) await tx.CommitAsync();
             }
         }
+
+        private static AuditLogEntryEntity Withdrawn(long proposalId, string changeType, DateTime at, long personId) => new()
+        {
+            EntityType = PickWithdrawEntityType,
+            EntityId = proposalId,
+            ChangeType = changeType,
+            PropertyName = nameof(FoodCatalogProposalEntity.IsDeleted),
+            OldValue = bool.FalseString,
+            NewValue = bool.TrueString,
+            Timestamp = at,
+            ChangedByPersonId = personId,
+        };
 
         /// <summary>
         /// Whether a recipe line's own text names a judged wording: the line, normalised as the
