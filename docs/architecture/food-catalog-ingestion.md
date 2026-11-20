@@ -203,7 +203,9 @@ is left and named in the report line.
 A proposal still pending is simply rejected; one the certain-links lane applied while the
 undo ran is left Applied and reported as `applied_meanwhile_rerun`, and running the undo
 again takes it back through the journal. An attach applied before the journal existed
-is reported as `not_journaled` and left alone.
+is reported as `not_journaled` and left alone. Run `--attach-fdc --undo` with the importer of the same release as
+the API that applied the attach: an older importer does not read the alias state the attach
+journals and deletes an alias it should restore.
 
 ### Household portions → gram conversions — BUILT ✅
 A recipe line in cups or pieces only counts toward nutrition when its ingredient can
