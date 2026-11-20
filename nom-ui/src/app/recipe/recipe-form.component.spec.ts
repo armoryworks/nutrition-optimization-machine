@@ -64,3 +64,49 @@ describe('RecipeForm invalid submit feedback', () => {
     expect(document.activeElement).toBe(ingredientInput);
   });
 });
+
+describe('RecipeForm nutrition hints', () => {
+  function create() {
+    TestBed.configureTestingModule({
+      imports: [RecipeForm],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        provideRouter([]),
+        {
+          provide: MeasurementService,
+          useValue: {
+            loadMeasurements: () => of([
+              { id: 3, name: 'Piece', symbol: 'pc', categoryId: 3, categoryName: 'Count' },
+              { id: 20, name: 'Can', symbol: 'can', categoryId: 3, categoryName: 'Count', isContainer: true },
+            ]),
+          },
+        },
+        { provide: PolicyService, useValue: { loadOwnPolicyForPrimaryHousehold: () => undefined, isGatedPrimary: () => false } },
+      ],
+    });
+    const fixture = TestBed.createComponent(RecipeForm);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('says a can will not count even when the food has an item weight, and says nothing for a piece', () => {
+    const fixture = create();
+    const component = fixture.componentInstance;
+    component.onIngredientSelected(0, { id: 7, name: 'Tomatoes', hasNutrition: true, canWeighVolume: true, canWeighCount: true });
+
+    component.ingredientsArray.at(0).patchValue({ quantity: 1, measurementId: 3 });
+    fixture.detectChanges();
+
+    expect(component.nutritionGap(0)).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="recipe-ingredient-unit-gap"]')).toBeNull();
+
+    component.ingredientsArray.at(0).patchValue({ measurementId: 20 });
+    fixture.detectChanges();
+
+    expect(component.nutritionGap(0)).toBe('no-conversion');
+    const hint = fixture.nativeElement.querySelector('[data-testid="recipe-ingredient-unit-gap"]') as HTMLElement;
+    expect(hint?.textContent).toContain('Use g or oz so it counts');
+  });
+});

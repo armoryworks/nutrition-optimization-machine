@@ -21,7 +21,7 @@ namespace Nom.Api.Tests.Services.Recipe
     /// </summary>
     public class RecipeNutritionServiceTests
     {
-        private const long Gram = 1, Cup = 11, Piece = 3, Kcal = 16;
+        private const long Gram = 1, Cup = 11, Piece = 3, Kcal = 16, Ounce = 7, Can = 20;
         private const long Calories = 5035, Protein = 5006;
 
         private static ApplicationDbContext NewContext() =>
@@ -34,6 +34,8 @@ namespace Nom.Api.Tests.Services.Recipe
                 new BaseMeasurementEntity { Id = Gram, Name = "Gram", Symbol = "g", MeasurementCategoryId = 1, IsBaseUnit = true, BaseUnitConversionFactor = 1m },
                 new BaseMeasurementEntity { Id = Cup, Name = "Cup", Symbol = "cup", MeasurementCategoryId = 2, BaseUnitConversionFactor = 236.588m },
                 new BaseMeasurementEntity { Id = Piece, Name = "Piece", Symbol = "pc", MeasurementCategoryId = 3, IsBaseUnit = true, BaseUnitConversionFactor = 1m },
+                new BaseMeasurementEntity { Id = Ounce, Name = "Ounce", Symbol = "oz", MeasurementCategoryId = 1, BaseUnitConversionFactor = 28.3495m },
+                new BaseMeasurementEntity { Id = Can, Name = "Can", Symbol = "can", MeasurementCategoryId = 3, BaseUnitConversionFactor = 1m, IsContainer = true },
                 new BaseMeasurementEntity { Id = Kcal, Name = "Kilocalorie", Symbol = "kcal", MeasurementCategoryId = 5, BaseUnitConversionFactor = 1m });
             db.Nutrients.AddRange(
                 new NutrientEntity { Id = Calories, Name = "Calories", DefaultMeasurementId = Kcal },
@@ -107,6 +109,36 @@ namespace Nom.Api.Tests.Services.Recipe
             var garlic = new IngredientEntity { Name = "Garlic", GramsPerItem = (decimal?)gramsPerItem, ReferenceServingGrams = (decimal?)referenceGrams };
 
             RecipeNutritionService.GramsFor(2m, piece, garlic).Should().Be((decimal)expected);
+        }
+
+        [Theory]
+        [InlineData("Can")]
+        [InlineData("Package")]
+        public void A_can_or_package_has_no_weight_of_its_own(string unit)
+        {
+            var container = new BaseMeasurementEntity { Name = unit, Symbol = unit, MeasurementCategoryId = 3, BaseUnitConversionFactor = 1m, IsContainer = true };
+            var tomatoes = new IngredientEntity { Name = "Tomatoes", GramsPerItem = 123m, ReferenceServingGrams = 149m };
+            var line = new RecipeIngredientEntity { Quantity = 1m, Measurement = container, Ingredient = tomatoes };
+
+            RecipeNutritionService.GramsFor(1m, container, tomatoes).Should().BeNull("one can of tomatoes is not one tomato and not one serving");
+            RecipeNutritionService.StatusFor(line, ingredientHasNutrients: true).Should().Be(NutritionLineStatus.NoConversion);
+        }
+
+        [Fact]
+        public async Task A_can_counts_by_its_stated_size_and_not_at_all_without_one()
+        {
+            using var db = NewContext();
+            await SeedReferenceAsync(db);
+            var svc = new RecipeNutritionService(db, NullLogger<RecipeNutritionService>.Instance);
+
+            var sized = await SeedRecipeAsync(db, servings: 1, qty: 15m, measurementId: Ounce, referenceGrams: 150m);
+            (await svc.RecalculateAsync(sized)).Should().Be(2);
+            (await db.RecipeNutrition.SingleAsync(n => n.RecipeId == sized && n.NutrientId == Calories)).Amount
+                .Should().Be(Math.Round(165m * 425.2425m / 100m, 4));
+
+            var unsized = await SeedRecipeAsync(db, servings: 1, qty: 1m, measurementId: Can, referenceGrams: 150m);
+            (await svc.RecalculateAsync(unsized)).Should().Be(0, "a can with no stated size is not weighed as one serving");
+            (await db.RecipeNutrition.AnyAsync(n => n.RecipeId == unsized)).Should().BeFalse();
         }
 
         [Fact]

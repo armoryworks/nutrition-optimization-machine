@@ -38,6 +38,10 @@ public class MeasurementEntityConfiguration : IEntityTypeConfiguration<Measureme
         builder.Property(e => e.IsBaseUnit)
             .IsRequired();
 
+        builder.Property(e => e.IsContainer)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.Property(e => e.BaseUnitConversionFactor)
             .HasColumnType("decimal(18,6)");
 

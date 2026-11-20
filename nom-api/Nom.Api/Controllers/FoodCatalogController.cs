@@ -20,15 +20,18 @@ namespace Nom.Api.Controllers
         private readonly ICatalogCleanupService _cleanup;
         private readonly ILineRelinkService _relink;
         private readonly ILineUnfoldService _unfold;
+        private readonly IPackageLineService _packages;
 
         public FoodCatalogController(IFoodCatalogReviewService review, IFoodCatalogAuditService audit,
-            ICatalogCleanupService cleanup, ILineRelinkService relink, ILineUnfoldService unfold)
+            ICatalogCleanupService cleanup, ILineRelinkService relink, ILineUnfoldService unfold,
+            IPackageLineService packages)
         {
             _review = review;
             _audit = audit;
             _cleanup = cleanup;
             _relink = relink;
             _unfold = unfold;
+            _packages = packages;
         }
 
         /// <summary>What the import-residue cleanup would do (deterministic name rules, no writes).</summary>
@@ -101,6 +104,27 @@ namespace Nom.Api.Controllers
         public async Task<ActionResult<LineRelinkUndoResult>> RelinkUndo([FromQuery, Required] DateTime sinceUtc)
         {
             return Ok(await _relink.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc)));
+        }
+
+        /// <summary>Which scraped recipe lines counted in pieces, cans or packages would take the size or the package their wording states (no writes).</summary>
+        [HttpGet("reread/preview")]
+        public async Task<ActionResult<PackageLinePreview>> RereadPreview([FromQuery] int sampleSize = 50)
+        {
+            return Ok(await _packages.PreviewAsync(sampleSize));
+        }
+
+        /// <summary>Give up to maxLines can and package lines the amount their wording states; each change is written to the audit log.</summary>
+        [HttpPost("reread/apply")]
+        public async Task<ActionResult<PackageLineResult>> RereadApply([FromQuery] int maxLines = 5000)
+        {
+            return Ok(await _packages.ApplyAsync(maxLines));
+        }
+
+        /// <summary>Put back the quantity and measurement of the lines re-read at or after the given UTC time.</summary>
+        [HttpPost("reread/undo")]
+        public async Task<ActionResult<PackageLineUndoResult>> RereadUndo([FromQuery, Required] DateTime sinceUtc)
+        {
+            return Ok(await _packages.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc)));
         }
 
         /// <summary>Paged catalog for the review screen.</summary>

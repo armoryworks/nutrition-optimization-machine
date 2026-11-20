@@ -21,5 +21,7 @@ namespace Nom.Data.Measurement
         public bool IsBaseUnit { get; set; } = false;
 
         public decimal? BaseUnitConversionFactor { get; set; }
+
+        public bool IsContainer { get; set; }
     }
 }

@@ -25,6 +25,9 @@ namespace Nom.Api.Tests.Services
             db.Set<BaseMeasurementEntity>().AddRange(
                 new BaseMeasurementEntity { Id = 1, Name = "Gram", Symbol = "g", MeasurementCategoryId = 1 },
                 new BaseMeasurementEntity { Id = 3, Name = "Piece", Symbol = "pc", MeasurementCategoryId = 3 },
+                new BaseMeasurementEntity { Id = 7, Name = "Ounce", Symbol = "oz", MeasurementCategoryId = 1 },
+                new BaseMeasurementEntity { Id = 20, Name = "Can", Symbol = "can", MeasurementCategoryId = 3, IsContainer = true },
+                new BaseMeasurementEntity { Id = 22, Name = "Package", Symbol = "pkg", MeasurementCategoryId = 3, IsContainer = true },
                 new BaseMeasurementEntity { Id = 11, Name = "Cup", Symbol = "cup", MeasurementCategoryId = 2 },
                 new BaseMeasurementEntity { Id = 12, Name = "Tablespoon", Symbol = "tbsp", MeasurementCategoryId = 2 },
                 new BaseMeasurementEntity { Id = 13, Name = "Teaspoon", Symbol = "tsp", MeasurementCategoryId = 2 });
@@ -233,6 +236,32 @@ namespace Nom.Api.Tests.Services
             rows[2].Quantity.Should().Be(0, "\"two of sugar\" borrowed its unit from the line before");
             rows[3].Quantity.Should().Be(3);
             rows[3].MeasurementId.Should().Be(3, "eggs are counted");
+        }
+
+        [Fact]
+        public async Task A_row_counted_in_pieces_whose_line_is_a_can_or_package_is_left_for_the_journaled_reread()
+        {
+            using var db = NewContext();
+            var recipe = Harvested("Chili", 9003, "1 (15 oz) can beans", "1 jar marinara", "2 qts. milk", "1 box gelatine");
+            foreach (var row in recipe.RecipeIngredients!.Take(3))
+            {
+                row.Quantity = decimal.Parse(row.RawLine[..1]);
+                row.MeasurementId = 3;
+            }
+            db.Recipes.Add(recipe);
+            await db.SaveChangesAsync();
+
+            await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 50);
+
+            var rows = await db.RecipeIngredients.OrderBy(r => r.IngredientId).ToListAsync();
+            rows[0].Quantity.Should().Be(1);
+            rows[0].MeasurementId.Should().Be(3, "a stated can size is applied by the journaled re-read, not by the startup pass");
+            rows[1].Quantity.Should().Be(1);
+            rows[1].MeasurementId.Should().Be(3);
+            rows[2].Quantity.Should().Be(8);
+            rows[2].MeasurementId.Should().Be(11, "other units the parser has learned are still taken");
+            rows[3].Quantity.Should().Be(1);
+            rows[3].MeasurementId.Should().Be(22, "a row that never had a quantity takes what the parser reads");
         }
     }
 }

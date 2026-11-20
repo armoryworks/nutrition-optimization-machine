@@ -13,6 +13,7 @@ namespace Nom.Orch.Models.Measurement
         public string CategoryName { get; set; } = string.Empty;
         public bool IsBaseUnit { get; set; }
         public decimal? BaseUnitConversionFactor { get; set; }
+        public bool IsContainer { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime? LastModifiedDate { get; set; }
     }

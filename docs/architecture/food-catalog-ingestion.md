@@ -222,6 +222,38 @@ USDA's `food_portion.csv` (+ `measure_unit.csv`), deterministically — never fr
   ("1 clove" over "3 cloves"), file order breaks ties, and a multi-item portion is
   divided by its amount. Rounded to 0.01 g.
 
+**Cans and packages** are the exception among count units: a can, jar, bottle, box or bag
+holds whatever its label says, so neither the weight of one item nor the reference serving
+stands in for it (one can of tomatoes is not one tomato). A line weighs what it says:
+
+- `IngredientLineParser` reads a stated size as the amount, in the size's own unit:
+  "1 (15 oz) can black beans" → 15 Ounce, "2 cans (15 oz each) corn" → 30 Ounce,
+  "1 (13.5 fl oz) can coconut milk" → 399.242 Milliliter, "1 (3-pound) chicken" → 3 Pound,
+  "1 1/2 (180g) cups flour" → 180 Gram. A size that could be each or total
+  ("4 (6-ounce) salmon filets", "2 cans diced tomatoes (14.5 oz)") is not read, and
+  nothing above 15 kg is.
+- A container with no stated size is stored in a **container unit**: Can, or Package for a
+  jar, bottle, box, bag, packet, envelope, carton, tub, tube or pouch
+  (`measurement."Measurement"."IsContainer"`). `GramsFor` gives a container unit no weight,
+  so the line reports `no-conversion` and the recipe page asks the cook for grams or ounces.
+
+Lines stored before the parser read sizes are brought over by an admin lane next to relink
+(`PackageLineService`, curation-gated, scraped recipes only, lines stored as Piece, Can or
+Package). The startup repair (`ScrapedRecipeRepairService`) leaves these lines alone so
+that every change is journaled:
+
+```
+GET  /api/FoodCatalog/reread/preview?sampleSize=50     # counts per transition, lines that stop or start counting, samples; no writes
+POST /api/FoodCatalog/reread/apply?maxLines=5000       # one audit.AuditLogEntry (ChangeType LineReread) per changed line
+POST /api/FoodCatalog/reread/undo?sinceUtc=<utc time>  # restores each line that still holds what the re-read gave it
+```
+
+Apply also marks the unchanged can and package lines that were weighed as one item or one
+serving as modified, so the nutrition sweep recalculates their recipes' labels. On an
+existing database run `./db/apply.sh` and `db/fix-container-units.sql` before the API
+version that reads packages starts: an import whose unit has no measurement row falls
+back to Gram.
+
 **Backfill for foods already in the catalog** (no nutrient changes):
 
 ```

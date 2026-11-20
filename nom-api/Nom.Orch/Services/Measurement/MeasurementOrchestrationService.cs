@@ -80,6 +80,7 @@ namespace Nom.Orch.Services.Measurement
                         CategoryName = m.Category.Name,
                         IsBaseUnit = m.IsBaseUnit,
                         BaseUnitConversionFactor = m.BaseUnitConversionFactor,
+                        IsContainer = m.IsContainer,
                         CreatedDate = m.CreatedDate,
                         LastModifiedDate = m.LastModifiedDate
                     })
@@ -126,6 +127,7 @@ namespace Nom.Orch.Services.Measurement
                     CategoryName = measurement.Category.Name,
                     IsBaseUnit = measurement.IsBaseUnit,
                     BaseUnitConversionFactor = measurement.BaseUnitConversionFactor,
+                    IsContainer = measurement.IsContainer,
                     CreatedDate = measurement.CreatedDate,
                     LastModifiedDate = measurement.LastModifiedDate
                 };
@@ -160,6 +162,7 @@ namespace Nom.Orch.Services.Measurement
                         CategoryName = m.Category.Name,
                         IsBaseUnit = m.IsBaseUnit,
                         BaseUnitConversionFactor = m.BaseUnitConversionFactor,
+                        IsContainer = m.IsContainer,
                         CreatedDate = m.CreatedDate,
                         LastModifiedDate = m.LastModifiedDate
                     })

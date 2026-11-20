@@ -96,10 +96,13 @@ namespace Nom.Orch.Services
         /// A row counted in pieces whose line states a real unit the parser has since learned
         /// ("2 qts. water", "1 teacup butter", "3 level teaspoons soda") takes that unit; a row whose
         /// number borrowed its unit from the line before ("two of butter") goes back to unquantified.
+        /// A row whose line reads as a can or package ("1 (15 oz) can beans", "1 jar marinara") is
+        /// left as it is: <see cref="IPackageLineService"/> re-reads those with a journal entry each.
         /// </summary>
         private static bool RereadPieces(Nom.Data.Recipe.RecipeIngredientEntity row, string firstLine, Dictionary<string, long> measurements)
         {
             if (!measurements.TryGetValue(IngredientLineParser.Piece, out var pieceId) || row.MeasurementId != pieceId) return false;
+            if (IngredientLineParser.ReadsPackage(firstLine)) return false;
 
             if (IngredientLineParser.Parse(firstLine) is { MeasurementName: not IngredientLineParser.Piece } reread
                 && measurements.TryGetValue(reread.MeasurementName, out var measurementId))

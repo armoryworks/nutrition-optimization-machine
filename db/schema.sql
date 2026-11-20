@@ -2,9 +2,9 @@
 -- PostgreSQL database dump
 --
 
-\restrict jzx0gjrhtTalSo0SYuzxIu2xKeePlSv4gsb1tjvEwQNY4CjaW9qSc0ktBn1p1lA
+\restrict WQeCtG8uHwssYqRHTQkSixbL4NbOpJ0T49R1tL2HVEWmXwiQK9fjtu0loX6ZBvO
 
--- Dumped from database version 16.14
+-- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
@@ -609,6 +609,7 @@ CREATE TABLE measurement."Measurement" (
     "MeasurementCategoryId" bigint NOT NULL,
     "IsBaseUnit" boolean NOT NULL,
     "BaseUnitConversionFactor" numeric(18,6),
+    "IsContainer" boolean DEFAULT false NOT NULL,
     "MeasurementType" character varying(21) NOT NULL,
     "IngredientId" bigint,
     "TypicalQuantity" numeric(18,4),
@@ -8654,5 +8655,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict jzx0gjrhtTalSo0SYuzxIu2xKeePlSv4gsb1tjvEwQNY4CjaW9qSc0ktBn1p1lA
+\unrestrict WQeCtG8uHwssYqRHTQkSixbL4NbOpJ0T49R1tL2HVEWmXwiQK9fjtu0loX6ZBvO
 
