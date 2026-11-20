@@ -34,6 +34,7 @@ namespace Nom.Api.Tests.Services
             public List<string> Asked { get; } = new();
             public bool IsConfigured => true;
             public string ModelName => "fake:1b";
+            public int PromptVersion => 1;
 
             public Task<IReadOnlyList<LinkAnswer>> ChooseAsync(IReadOnlyList<LinkQuestion> questions, CancellationToken cancellationToken = default)
             {
