@@ -371,5 +371,48 @@ namespace Nom.Api.Tests.Services
             (await db.RecipeIngredients.CountAsync(ri => ri.Quantity == 0)).Should().Be(0);
             (await db.AuditLogEntries.CountAsync(a => a.ChangeType == AiRepairRevertService.RevertChangeType)).Should().Be(0);
         }
+
+        [Fact]
+        public async Task A_fill_whose_quote_reads_as_a_spoon_or_cup_takes_that_unit_and_the_batch_undoes()
+        {
+            const long Tablespoon = 11, Teaspoon = 12, Cup = 13;
+            using var db = NewContext();
+            db.Set<BaseMeasurementEntity>().AddRange(
+                new BaseMeasurementEntity { Id = Tablespoon, Name = "Tablespoon", Symbol = "tbsp", MeasurementCategoryId = 2, BaseUnitConversionFactor = 15m },
+                new BaseMeasurementEntity { Id = Teaspoon, Name = "Teaspoon", Symbol = "tsp", MeasurementCategoryId = 2, BaseUnitConversionFactor = 5m },
+                new BaseMeasurementEntity { Id = Cup, Name = "Cup", Symbol = "c", MeasurementCategoryId = 2, BaseUnitConversionFactor = 240m });
+            db.Ingredients.AddRange(Food(1, "Flour"), Food(2, "Sugar"), Food(3, "Lard"), Food(4, "Milk"), Food(5, "Red Wine"));
+            db.Recipes.Add(Recipe(97615, NonCurated,
+                new Row(1, "flour", 1m, null, Piece),
+                new Row(2, "sugar", 1m, null, Piece),
+                new Row(3, "lard", 1m, null, Piece),
+                new Row(4, "milk", 1m, null, Piece),
+                new Row(5, "red wine", 1m, null, Piece)));
+            db.AuditLogEntries.AddRange(
+                Fill(97615, "1:0", "1 heaped tablespoonful"),
+                Fill(97615, "2:1", "1 level teaspoonful"),
+                Fill(97615, "3:2", "a tbp of lard and butter"),
+                Fill(97615, "4:3", "A large teacupful"),
+                Fill(97615, "5:4", "a glassful of good red wine"));
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var since = DateTime.UtcNow.AddSeconds(-1);
+
+            var dry = await Quantities(db).RevertAsync();
+
+            (dry.Ungrounded, dry.Reread).Should().Be((5, 4));
+            dry.Samples.Select(s => (s.Quote, s.RestoredQuantity, s.RestoredUnit)).Should().BeEquivalentTo(new[]
+            {
+                ("1 heaped tablespoonful", 1m, (string?)"Tablespoon"), ("1 level teaspoonful", 1m, "Teaspoon"), ("a tbp of lard and butter", 1m, "Tablespoon"),
+                ("A large teacupful", 0.5m, "Cup"), ("a glassful of good red wine", 0m, null),
+            });
+
+            (await Quantities(db).RevertAsync(apply: true)).Changed.Should().Be(5);
+            var lines = await db.RecipeIngredients.AsNoTracking().OrderBy(ri => ri.SortOrder).Select(ri => new { ri.Quantity, ri.MeasurementId }).ToListAsync();
+            lines.Select(l => (l.Quantity, l.MeasurementId)).Should().Equal((1m, Tablespoon), (1m, Teaspoon), (1m, Tablespoon), (0.5m, Cup), (0m, Gram));
+
+            (await Quantities(db).UndoAsync(since)).Restored.Should().Be(5);
+            (await db.RecipeIngredients.AsNoTracking().Select(ri => ri.MeasurementId).Distinct().ToListAsync()).Should().Equal(Piece);
+        }
     }
 }

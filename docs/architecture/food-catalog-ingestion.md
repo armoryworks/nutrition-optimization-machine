@@ -740,7 +740,9 @@ counts ("tre rossi delle uova", "due rossi", "mezza palla"), and a measure after
 belongs to the other food ("three eggs to a pint of apples" is three eggs).
 `POST /api/FoodCatalog/quantities/revert?apply=false` (`AiRepairRevertService`) checks every
 journaled `AiRepair` piece fill with the same rule and puts back the quantity and measurement
-its journal entry recorded. `reasons=vague-amount,unread-measure` limits the revert to those
+its journal entry recorded, except that a fill whose quote the line parser now reads as a unit
+other than a piece ("1 heaped tablespoonful", "1 level teaspoonful", "a tbp of lard", "A large
+teacupful") takes that amount instead (`Reread`, and `RestoredUnit` on each sample). `reasons=vague-amount,unread-measure` limits the revert to those
 reasons; the dry run still counts every reason (`ByReason`), the fills left alone because
 their reason was not chosen (`NotChosen`) and the fills that stay, by why (`GroundedByReason`:
 `states-a-count`, `weight-per-item`, `one-countable-item`); `ReasonMeanings` spells each code out. A fill journaled without a

@@ -45,7 +45,7 @@ namespace Nom.Orch.Services
 
         private sealed record Fill(long EntryId, long RecipeId, long IngredientId, int? SortOrder, decimal OldQuantity, long OldMeasurementId, decimal Quantity, string Quote);
         private sealed record Line(long RecipeId, long IngredientId, int SortOrder, decimal Quantity, long MeasurementId, string RawLine, decimal? GramsPerItem, long RecipeStatusId);
-        private sealed record Revert(Fill Fill, Line Line, string Reason);
+        private sealed record Revert(Fill Fill, Line Line, string Reason, decimal Quantity, long MeasurementId, string? Unit);
 
         public async Task<QuantityRevertResult> RevertAsync(bool apply = false, int maxLines = 5000, int sampleSize = 50, IReadOnlyCollection<string>? reasons = null)
         {
@@ -62,6 +62,11 @@ namespace Nom.Orch.Services
                 .MinAsync();
             if (pieceId == null) return result;
 
+            var units = await _db.Measurements.AsNoTracking()
+                .Where(m => !m.IsDeleted)
+                .GroupBy(m => m.Name)
+                .Select(g => new { Name = g.Key, Id = g.Min(m => m.Id) })
+                .ToDictionaryAsync(m => m.Name, m => m.Id, StringComparer.OrdinalIgnoreCase);
             var fills = await FillsAsync();
             result.FillsExamined = fills.Count;
             var lines = await LinesAsync(fills.Select(f => f.RecipeId));
@@ -116,7 +121,10 @@ namespace Nom.Orch.Services
                     result.NotChosen++;
                     continue;
                 }
-                reverts.Add(new Revert(fill, line, reason));
+                reverts.Add(IngredientLineParser.Parse(RecipeRepairGrounding.Normalize(fill.Quote).TrimEnd('.', ',', ';', ':')) is { MeasurementName: not IngredientLineParser.Piece, Quantity: > 0 } unit
+                    && units.TryGetValue(unit.MeasurementName, out var unitId)
+                        ? new Revert(fill, line, reason, unit.Quantity, unitId, unit.MeasurementName)
+                        : new Revert(fill, line, reason, fill.OldQuantity, fill.OldMeasurementId, null));
             }
 
             var recipes = reverts.GroupBy(r => r.Line.RecipeId).ToList();
@@ -127,7 +135,8 @@ namespace Nom.Orch.Services
                 .ToDictionary(g => g.Key, g => g.Count());
             var approved = await RecipeLineApproval.ApprovedLinesAsync(_db, recipes.Select(g => g.Key));
             result.ApprovedRecipes = approved.Count;
-            var restored = reverts.ToDictionary(r => (r.Line.RecipeId, r.Line.IngredientId, r.Line.SortOrder), r => r.Fill.OldQuantity);
+            result.Reread = reverts.Count(r => r.Unit != null);
+            var restored = reverts.ToDictionary(r => (r.Line.RecipeId, r.Line.IngredientId, r.Line.SortOrder), r => r.Quantity);
             result.ApprovedStopPassing = RecipeLineApproval.StopPassing(approved,
                 (recipeId, line) => restored.TryGetValue((recipeId, line.IngredientId, line.SortOrder), out var quantity) ? line with { Quantity = quantity } : line,
                 _maxUnquantifiedLines);
@@ -144,7 +153,8 @@ namespace Nom.Orch.Services
                     Line = r.Line.RawLine,
                     Quote = r.Fill.Quote,
                     FilledQuantity = r.Fill.Quantity,
-                    RestoredQuantity = r.Fill.OldQuantity,
+                    RestoredQuantity = r.Quantity,
+                    RestoredUnit = r.Unit,
                     Reason = r.Reason,
                     RecipeStatus = RecipeLineApproval.StatusName(r.Line.RecipeStatusId),
                 }).ToList();
@@ -172,8 +182,8 @@ namespace Nom.Orch.Services
                         continue;
                     }
 
-                    row.Quantity = revert.Fill.OldQuantity;
-                    row.MeasurementId = revert.Fill.OldMeasurementId;
+                    row.Quantity = revert.Quantity;
+                    row.MeasurementId = revert.MeasurementId;
                     row.LastModifiedDate = now;
                     row.LastModifiedByPersonId = personId;
                     _db.AuditLogEntries.Add(new AuditLogEntryEntity

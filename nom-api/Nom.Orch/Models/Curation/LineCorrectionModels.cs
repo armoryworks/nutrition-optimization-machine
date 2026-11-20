@@ -86,6 +86,8 @@ namespace Nom.Orch.Models.Curation
         public string Quote { get; set; } = string.Empty;
         public decimal FilledQuantity { get; set; }
         public decimal RestoredQuantity { get; set; }
+        /// <summary>The unit the line parser reads from the quote when it is not a piece ("1 heaped tablespoonful"), or null when the earlier amount comes back.</summary>
+        public string? RestoredUnit { get; set; }
         public string Reason { get; set; } = string.Empty;
         public string RecipeStatus { get; set; } = string.Empty;
     }
@@ -119,6 +121,12 @@ namespace Nom.Orch.Models.Curation
         public List<string> Reasons { get; set; } = new();
         /// <summary>Ungrounded fills left alone because their reason was not asked for.</summary>
         public int NotChosen { get; set; }
+        /// <summary>
+        /// Of the fills to put back, those whose quote the line parser now reads as a unit other than
+        /// a piece ("1 heaped tablespoonful", "A large teacupful"): they take that amount instead of
+        /// the earlier one.
+        /// </summary>
+        public int Reread { get; set; }
         /// <summary>What each reason in <see cref="ByReason"/> and <see cref="GroundedByReason"/> means.</summary>
         public Dictionary<string, string> ReasonMeanings { get; set; } = new();
         public int Recipes { get; set; }

@@ -49,3 +49,5 @@ c2-01	utensil	two-quart tin mould	-	-	-	*	*	agent	-	agent-review-staging-2026-11
 c5-01	sum	1/4 cup + 1 tablespoon light brown sugar	0.313	Cup	-	*	*	agent	-	agent-review-staging-2026-11-20	recipe 23887, C5: one food, two amounts; read as 0.25 Cup
 c5-02	sum	1 cup + 2 oz sugar	-	-	-	*	*	agent	-	agent-review-staging-2026-11-20	units that do not add are not read
 c2-02	container	1 package (9 ounces) frozen artichokes, cooked	9	Ounce	9 Ounce	*	*	agent	-	agent-review-staging-2026-11-20	recipe 22537, C2: a frozen package is weighed as sold
+c4-p3-01	misspelt-unit	a tbp of lard and butter	1	Tablespoon	-	*	*	agent	-	agent-review-staging-2026-11-20	C4 pass 3 unread-measure: "tbp" filled as 1 Piece; a tablespoon is meant
+c4-p3-02	qualified-unit	1 heaped tablespoonful	1	Tablespoon	-	*	*	agent	-	agent-review-staging-2026-11-20	C4 pass 3 unread-measure: an old fill of 1 Piece; the parser reads the spoon
