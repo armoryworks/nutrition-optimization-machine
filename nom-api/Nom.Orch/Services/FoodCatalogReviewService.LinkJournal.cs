@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Nom.Data.Audit;
 using Nom.Data.Curation;
 using Nom.Orch.Services.Support;
 
@@ -9,11 +10,13 @@ namespace Nom.Orch.Services
 {
     public partial class FoodCatalogReviewService
     {
-        private void JournalLinkApplied(FoodCatalogProposalEntity p, long sourceId, string sourceName, long? sourceStatus, bool merged, long targetId, long personId)
+        private AuditLogEntryEntity JournalLinkApplied(FoodCatalogProposalEntity p, long sourceId, string sourceName, long? sourceStatus, bool merged, long targetId, long personId)
         {
-            _context.AuditLogEntries.Add(LinkApplyJournal.Entry(p.Id, LinkApplyJournal.Header,
+            var header = LinkApplyJournal.Entry(p.Id, LinkApplyJournal.Header,
                 LinkApplyJournal.Write(new LinkApplyJournal.HeaderValue(sourceId, sourceName, sourceStatus, p.Source, merged, targetId)),
-                LinkApplyJournal.Number(targetId), DateTime.UtcNow, personId));
+                LinkApplyJournal.Number(targetId), DateTime.UtcNow, personId);
+            _context.AuditLogEntries.Add(header);
+            return header;
         }
 
         private void JournalFood(long proposalId, string property, long foodId, string? oldValue, string? newValue, long personId)

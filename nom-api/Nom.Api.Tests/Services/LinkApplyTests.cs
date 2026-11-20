@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Caching.Memory;
 using Nom.Data;
 using Nom.Data.Curation;
@@ -86,6 +88,18 @@ namespace Nom.Api.Tests.Services
                 source.DeletedAt = now;
                 await _db.SaveChangesAsync();
                 return true;
+            }
+        }
+
+        private sealed class RenameFails : SaveChangesInterceptor
+        {
+            public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+            {
+                if (eventData.Context!.ChangeTracker.Entries<IngredientEntity>().Any(e => e.State == EntityState.Modified && e.Property(i => i.Name).IsModified))
+                {
+                    throw new DbUpdateException("duplicate key value violates unique constraint \"IX_Ingredient_Name\"");
+                }
+                return base.SavingChangesAsync(eventData, result, cancellationToken);
             }
         }
 
@@ -443,6 +457,34 @@ namespace Nom.Api.Tests.Services
             (await db.Ingredients.FindAsync(seeded.Salt.Id))!.Name.Should().Be("Salt, table", "the unique name index covers deleted foods");
             (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LinkApplyJournal.ChangeType && a.PropertyName == LinkApplyJournal.Header)).Should().Be(1);
             (await new LinkApplyUndoService(db, new NoUser()).UndoAsync(start)).Proposals.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task A_failure_after_the_merge_leaves_the_link_journaled_and_applied_so_the_undo_can_take_it_back()
+        {
+            var name = Guid.NewGuid().ToString();
+            using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(name).Options);
+            var seeded = await SeedSeaSaltAsync(db);
+            var linesBefore = await LinesAsync(db);
+            var start = DateTime.UtcNow.AddSeconds(-1);
+            using var failing = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(name).AddInterceptors(new RenameFails()).Options);
+
+            var apply = () => new FoodCatalogReviewService(failing, new NoAudit(), new MovingCleanup(failing)).ApplyProposalAsync(seeded.Proposal.Id, reviewerPersonId: 2);
+
+            await apply.Should().ThrowAsync<DbUpdateException>();
+            db.ChangeTracker.Clear();
+            (await db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == seeded.SeaSalt.Id)).IsDeleted.Should().BeTrue("the merge committed");
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LinkApplyJournal.ChangeType && a.PropertyName == LinkApplyJournal.Header && a.EntityId == seeded.Proposal.Id))
+                .Should().Be(1, "the header commits with the merge");
+            (await db.FoodCatalogProposals.FindAsync(seeded.Proposal.Id))!.Status.Should().Be(FoodProposalStatus.Applied);
+
+            var undone = await new LinkApplyUndoService(db, new NoUser()).UndoAsync(start, apply: true);
+            db.ChangeTracker.Clear();
+
+            undone.Proposals.Should().Be(1);
+            (await LinesAsync(db)).Should().Equal(linesBefore);
+            (await db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == seeded.SeaSalt.Id)).Should().Match<IngredientEntity>(i => !i.IsDeleted && i.Name == "sea salt");
+            (await db.FoodCatalogProposals.FindAsync(seeded.Proposal.Id))!.Status.Should().Be(FoodProposalStatus.Pending);
         }
 
         [Fact]

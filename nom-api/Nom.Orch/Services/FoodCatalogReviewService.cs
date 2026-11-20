@@ -323,7 +323,14 @@ namespace Nom.Orch.Services
             if (p.Action == FoodProposalAction.Update && p.IngredientId.HasValue
                 && string.Equals(p.Field?.Trim(), FdcLinkField, StringComparison.OrdinalIgnoreCase))
             {
+                await using var tx = _context.Database.IsRelational() && _context.Database.CurrentTransaction == null
+                    ? await _context.Database.BeginTransactionAsync()
+                    : null;
                 if (!await ApplyFdcLinkAsync(p, reviewerPersonId)) return false;
+                MarkApplied(p, reviewerPersonId);
+                await _context.SaveChangesAsync();
+                if (tx != null) await tx.CommitAsync();
+                return true;
             }
             else if (p.Action == FoodProposalAction.Update && p.IngredientId.HasValue
                 && string.Equals(p.Field?.Trim(), FdcAttachField, StringComparison.OrdinalIgnoreCase))
@@ -363,11 +370,16 @@ namespace Nom.Orch.Services
             // Flag and Add are informational: approving records the decision without mutating the
             // catalog. Adds are fulfilled by an FDC import keyed on the proposal's FdcId.
 
+            MarkApplied(p, reviewerPersonId);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        private static void MarkApplied(FoodCatalogProposalEntity p, long reviewerPersonId)
+        {
             p.Status = FoodProposalStatus.Applied;
             p.ReviewedByPersonId = reviewerPersonId;
             p.ReviewedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-            return true;
         }
 
         private IQueryable<FoodCatalogProposalEntity> PendingLinks(string? source, bool? verified)
@@ -494,6 +506,8 @@ namespace Nom.Orch.Services
             JournalFood(p.Id, nameof(target.CurationStatusId), target.Id, Support.LinkApplyJournal.Number(before.Status), Support.LinkApplyJournal.Number(target.CurationStatusId), reviewerPersonId);
             await _context.SaveChangesAsync();
 
+            var header = JournalLinkApplied(p, source.Id, sourceName, before.SourceStatus, merged: true, target.Id, reviewerPersonId);
+            MarkApplied(p, reviewerPersonId);
             if (await _cleanup.MergeIntoAsync(source.Id, target.Id, reviewerPersonId, ignoreProposals: true, keepProposalId: p.Id))
             {
                 var friendly = FriendlyName(Support.IngredientNameNormalizer.Normalize(sourceName));
@@ -513,9 +527,9 @@ namespace Nom.Orch.Services
                 {
                     await AddLinkAliasAsync(p.Id, target.Id, alias, reviewerPersonId, WordingContext(p.Source, reviewerPersonId));
                 }
-                JournalLinkApplied(p, source.Id, sourceName, before.SourceStatus, merged: true, target.Id, reviewerPersonId);
                 return true;
             }
+            _context.AuditLogEntries.Remove(header);
 
             var have = await _context.IngredientNutrients
                 .Where(n => n.IngredientId == source.Id)

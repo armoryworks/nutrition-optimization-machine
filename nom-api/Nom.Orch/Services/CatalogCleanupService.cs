@@ -190,9 +190,9 @@ namespace Nom.Orch.Services
         {
             if (sourceId == targetId || await HasNonRecipeReferencesAsync(sourceId, ignoreProposals)) return false;
 
-            await using var tx = await _db.Database.BeginTransactionAsync();
+            await using var tx = _db.Database.CurrentTransaction == null ? await _db.Database.BeginTransactionAsync() : null;
             await MergeRecipeLinksAsync(sourceId, targetId, personId, keepProposalId);
-            await tx.CommitAsync();
+            if (tx != null) await tx.CommitAsync();
             return true;
         }
 

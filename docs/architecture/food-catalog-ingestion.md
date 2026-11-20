@@ -742,6 +742,9 @@ one `Line` row per recipe line the merge moved (`recipe:food@position`, old and 
 link proposal the merge removed, in full; the USDA food's earlier curation status; any rename;
 each alias added, brought back or given a trusted context, with its state before; and, when the
 wording's food is kept, each nutrient row copied and each serving, density or item weight filled.
+The header and the proposal's Applied status are saved in the merge's own transaction, and on
+Postgres the whole apply (merge, renames, aliases, journal) is one transaction, so a failure
+after the merge leaves no merged link without its journal.
 
 `POST api/FoodCatalog/proposals/undo-applied?sinceUtc=<time>&source=<prefix>&systemOnly=false&apply=false&max=500&sampleSize=50`
 (curation-gated, a dry run unless `apply=true`) takes back, newest first, the links applied at
