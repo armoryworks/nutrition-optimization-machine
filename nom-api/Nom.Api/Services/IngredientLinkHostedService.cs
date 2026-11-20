@@ -12,8 +12,12 @@ namespace Nom.Api.Services
     /// to choose.
     ///
     /// IngredientLinking:AutoApplyCertain=false leaves certain links for an admin too.
-    /// IngredientLinking:AutoApplyNameMatches=true also applies exact name matches unreviewed.
-    /// IngredientLinking:AutoApplyVerifiedAi=false stops triangulating model picks;
+    /// IngredientLinking:AutoApplyNameMatches=true also applies exact name matches unreviewed, at most
+    /// IngredientLinking:MaxNameMatchAppliesPerDay (default 200) a day and
+    /// IngredientLinking:MaxNameMatchAppliesPerFoodPerDay (default 25) per USDA food.
+    /// IngredientLinking:HoldGuard (default true) keeps a name match or model pick that a
+    /// deterministic hold rule catches for a person instead of applying it.
+    /// IngredientLinking:AutoApplyVerifiedAi=true triangulates model picks and applies verified ones (default off);
     /// IngredientLinking:VerifyMinConfidence (default 0.80) is the bar for checking a pick and
     /// IngredientLinking:VerifiedMinConfidence (default 0.85) the bar for applying a verified one;
     /// IngredientLinking:VerifyBatchSize (default 24) picks checked per pass;
@@ -30,6 +34,7 @@ namespace Nom.Api.Services
 
         private readonly HashSet<long> _unappliable = new();
         private bool _applyNameMatches;
+        private bool _holdGuard = true;
         private decimal _applyMinConfidence = 0.85m;
 
         public IngredientLinkHostedService(
@@ -80,8 +85,9 @@ namespace Nom.Api.Services
             }
             var autoApply = _configuration.GetValue("IngredientLinking:AutoApplyCertain", true);
             _applyNameMatches = _configuration.GetValue("IngredientLinking:AutoApplyNameMatches", false);
+            _holdGuard = _configuration.GetValue("IngredientLinking:HoldGuard", true);
             if (autoApply) await ApplyCertainLinksAsync(stoppingToken);
-            var autoApplyVerified = _configuration.GetValue("IngredientLinking:AutoApplyVerifiedAi", true);
+            var autoApplyVerified = _configuration.GetValue("IngredientLinking:AutoApplyVerifiedAi", false);
             _applyMinConfidence = Math.Clamp(_configuration.GetValue("IngredientLinking:VerifiedMinConfidence", 0.85m), 0m, 1m);
             var minConfidence = Math.Clamp(_configuration.GetValue("IngredientLinking:VerifyMinConfidence", 0.80m), 0m, _applyMinConfidence);
             var verifyBatch = Math.Clamp(_configuration.GetValue("IngredientLinking:VerifyBatchSize", 24), 1, 200);
@@ -151,9 +157,40 @@ namespace Nom.Api.Services
             }
         }
 
-        private Task ApplyCertainLinksAsync(CancellationToken stoppingToken) =>
-            ApplyLinksAsync((links, skip, token) => links.PendingDeterministicAsync(50, skip, _applyNameMatches, token),
-                _applyNameMatches ? "certain links (staples, exact name matches, same-name USDA attaches)" : "certain links (staples, same-name USDA attaches)", stoppingToken);
+        private async Task ApplyCertainLinksAsync(CancellationToken stoppingToken)
+        {
+            await ApplyLinksAsync((links, skip, token) => links.PendingDeterministicAsync(50, skip, false, token),
+                "certain links (staples, same-name USDA attaches)", stoppingToken);
+            if (_applyNameMatches) await ApplyNameMatchesAsync(stoppingToken);
+        }
+
+        /// <summary>
+        /// Exact name matches are applied under their own daily allowance and per-food share
+        /// (IngredientLinking:MaxNameMatchAppliesPerDay, default 200, and
+        /// IngredientLinking:MaxNameMatchAppliesPerFoodPerDay, default 25), and only once the hold
+        /// rules have let them through. A cap of 0 stops them without touching staples.
+        /// </summary>
+        private Task ApplyNameMatchesAsync(CancellationToken stoppingToken)
+        {
+            var dailyCap = Math.Max(0, _configuration.GetValue("IngredientLinking:MaxNameMatchAppliesPerDay", 200));
+            var perFoodCap = Math.Max(1, _configuration.GetValue("IngredientLinking:MaxNameMatchAppliesPerFoodPerDay", 25));
+            return ApplyLinksCoreAsync(async (services, skip, token) =>
+            {
+                var gate = services.GetRequiredService<ILinkAutoApplyService>();
+                var allowance = await gate.AllowanceAsync(Nom.Orch.Services.IngredientLinkService.ExactSource, dailyCap, perFoodCap, token);
+                if (allowance.BusyTargets.Count > 0)
+                {
+                    _logger.LogWarning("Ingredient linking: {Count} USDA foods reached {Cap} applied name matches in a day and are skipped until tomorrow: {Foods}",
+                        allowance.BusyTargets.Count, perFoodCap, string.Join(", ", allowance.BusyTargets.Take(20)));
+                }
+                if (allowance.Remaining == 0)
+                {
+                    if (dailyCap > 0) _logger.LogWarning("Ingredient linking: the daily allowance of {Cap} applied name matches is used up; the rest wait", dailyCap);
+                    return Array.Empty<long>();
+                }
+                return await gate.PendingNameMatchesAsync(Math.Min(50, allowance.Remaining), skip, allowance.BusyTargets, token);
+            }, "exact name matches", stoppingToken, guarded: true);
+        }
 
         /// <summary>
         /// Model picks are applied under a daily allowance and a per-food share of it
@@ -179,22 +216,44 @@ namespace Nom.Api.Services
                     return Array.Empty<long>();
                 }
                 return await links.PendingVerifiedAsync(Math.Min(50, allowance.Remaining), skip, _applyMinConfidence, token, allowance.BusyTargets);
-            }, "model picks verified by triangulation", stoppingToken);
+            }, "model picks verified by triangulation", stoppingToken, guarded: true);
         }
 
-        private async Task ApplyLinksAsync(
+        private Task ApplyLinksAsync(
             Func<IIngredientLinkService, IReadOnlyCollection<long>, CancellationToken, Task<IReadOnlyList<long>>> next,
             string what,
-            CancellationToken stoppingToken)
+            CancellationToken stoppingToken,
+            bool guarded = false) =>
+            ApplyLinksCoreAsync((services, skip, token) => next(services.GetRequiredService<IIngredientLinkService>(), skip, token), what, stoppingToken, guarded);
+
+        /// <summary>
+        /// Applies what <paramref name="next"/> hands out until it hands out nothing. With
+        /// <paramref name="guarded"/> (and IngredientLinking:HoldGuard on) each batch first goes
+        /// through the hold rules; a held pick is marked for a person and not asked for again.
+        /// </summary>
+        private async Task ApplyLinksCoreAsync(
+            Func<IServiceProvider, IReadOnlyCollection<long>, CancellationToken, Task<IReadOnlyList<long>>> next,
+            string what,
+            CancellationToken stoppingToken,
+            bool guarded)
         {
             var applied = 0;
+            var held = 0;
             try
             {
                 while (!stoppingToken.IsCancellationRequested)
                 {
                     using var scope = _scopeFactory.CreateScope();
-                    var ids = await next(scope.ServiceProvider.GetRequiredService<IIngredientLinkService>(), _unappliable, stoppingToken);
+                    var ids = await next(scope.ServiceProvider, _unappliable, stoppingToken);
                     if (ids.Count == 0) break;
+                    if (guarded && _holdGuard)
+                    {
+                        var screened = await scope.ServiceProvider.GetRequiredService<ILinkAutoApplyService>().ScreenAsync(ids, stoppingToken);
+                        foreach (var id in screened.Held) _unappliable.Add(id);
+                        held += screened.Held.Count;
+                        ids = screened.Allowed;
+                        if (ids.Count == 0) continue;
+                    }
                     var review = scope.ServiceProvider.GetRequiredService<IFoodCatalogReviewService>();
                     foreach (var id in ids)
                     {
@@ -217,6 +276,7 @@ namespace Nom.Api.Services
                 _logger.LogWarning(ex, "Applying {What} failed", what);
             }
             if (applied > 0) _logger.LogInformation("Ingredient linking: applied {Count} {What}", applied, what);
+            if (held > 0) _logger.LogInformation("Ingredient linking: held {Count} {What} for a person", held, what);
         }
 
         private static async Task<bool> Delay(TimeSpan delay, CancellationToken token)
