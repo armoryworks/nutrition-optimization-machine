@@ -192,6 +192,21 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void The_failure_class_names_why_the_writer_failed_not_why_the_rule_rendering_after_it_did()
+        {
+            var attempts = new[]
+            {
+                new ProseAttempt(1, ProseLanePrompts.StyleSteps, new[] { ProseCheck.CopiedText }),
+                new ProseAttempt(2, ProseLanePrompts.StyleSteps, new[] { ProseCheck.CopiedText }),
+                new ProseAttempt(3, ProseLanePrompts.StyleActions, new[] { ProseCheck.CopiedText, ProseCheck.TooShort }),
+                new ProseAttempt(4, ProseLanePrompts.RuleAttempt, new[] { ProseCleanRoom.FormReason, "form: step 1 must use ⟦Q1⟧ exactly once" }),
+            };
+
+            new ProseLaneOutcome(null, attempts, false, null, null, 4).FailureClass.Should().Be(ProseCheck.CopiedText);
+            new ProseLaneOutcome(null, attempts.TakeLast(1).ToList(), false, null, null, 4).FailureClass.Should().Be(ProseCleanRoom.FormReason);
+        }
+
+        [Fact]
         public async Task A_judge_answer_that_cannot_be_read_never_passes_a_rewrite()
         {
             var outcome = await ProseCleanRoom.RunAsync(GarlicSauce.Input(), new FakeWriter(), new FakeJudge { Faithful = (_, _) => null });

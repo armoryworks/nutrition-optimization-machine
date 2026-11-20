@@ -308,8 +308,8 @@ namespace Nom.Import.Golden
         /// A prose lane over prose-judge.tsv. prose-judge: the judge (the model named) reads each
         /// rewrite against its method; a case passes when it finds a faithful row faithful and a
         /// fault row not, and a fault it finds faithful is a false accept. prose-audit: the auditor
-        /// (the model named) reads each row and the judge (<c>--check-model</c>, default the roster's
-        /// reader B) confirms its flags; a row counts as flagged only when both agree. prose-rewrite:
+        /// (the model named) reads each row and re-reads a flagged step blind; a row counts as flagged
+        /// only when both reads agree, as the lane's audit counts an error. prose-rewrite:
         /// the writer (the model named) writes each recipe of the file through the whole clean-room
         /// pipeline with the judge, which passes when a rewrite gets through the gate, and each
         /// planted fault is put through the gate, check v2 then the judge, which passes when it is
@@ -341,12 +341,11 @@ namespace Nom.Import.Golden
                 case ProseAuditLane:
                 {
                     var auditor = new OllamaProseJudge(http, host, model);
-                    var judge = new OllamaProseJudge(http, host, checkModel);
                     foreach (var c in cases.Take(limit ?? int.MaxValue))
                     {
                         var original = c.Method.Select(ProseQuantities.Prepare).ToList();
                         var verdict = await auditor.JudgeAsync(original, c.Rewrite, cancellationToken);
-                        var flagged = verdict is { Faithful: false } && await judge.ConfirmAsync(original, c.Rewrite, verdict.FirstFlagged?.Number ?? 1, cancellationToken) == true;
+                        var flagged = verdict is { Faithful: false } && await auditor.ConfirmAsync(original, c.Rewrite, verdict.FirstFlagged?.Number ?? 1, cancellationToken) == true;
                         results.Add(new LaneCaseResult($"{lane}:{c.Id}", flagged != c.Faithful, !c.Faithful && !flagged, !c.Faithful,
                             c.Faithful ? "not flagged" : "flagged", verdict == null ? "no readable answer" : flagged ? "flagged" : "not flagged", c.Source));
                         progress($"{lane}: {results.Count}/{cases.Count}");

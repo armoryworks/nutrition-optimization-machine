@@ -155,19 +155,122 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task Approved_withheld_recipes_go_first_then_other_withheld_then_quarantined_and_a_persons_edit_is_left_alone()
+        public async Task Approved_withheld_recipes_go_first_then_other_withheld_then_quarantined_and_a_persons_edit_of_a_quarantined_one_is_left_alone()
         {
             var rig = NewRig();
             var quarantined = await SeedAsync(rig.Db, withheld: false, approved: false);
             var withheld = await SeedAsync(rig.Db, approved: false);
             var approved = await SeedAsync(rig.Db);
-            var edited = await SeedAsync(rig.Db, editedBy: 42);
+            var edited = await SeedAsync(rig.Db, withheld: false, approved: false, editedBy: 42);
 
             for (var i = 0; i < 4; i++) await rig.Lane.SweepAsync(LaneMode.Live, Models, new FakeWriter(), new FakeJudge(), 1);
 
             (await rig.Db.LaneDecisions.OrderBy(d => d.Id).Select(d => d.Subject).ToListAsync())
                 .Should().Equal(ProseLaneService.Subject(approved), ProseLaneService.Subject(withheld), ProseLaneService.Subject(quarantined));
-            (await RecipeAsync(rig.Db, edited)).Should().Match<RecipeEntity>(r => r.ProseWithheld && r.ProseRewriteAttemptedAt == null);
+            (await RecipeAsync(rig.Db, edited)).Should().Match<RecipeEntity>(r => r.ContainsSourceProse && r.ProseRewriteAttemptedAt == null);
+        }
+
+        [Fact]
+        public async Task In_shadow_a_recipe_decided_under_this_version_is_not_taken_again_before_every_other_has_been_decided()
+        {
+            var rig = NewRig();
+            var approved = await SeedAsync(rig.Db);
+            var quarantined = await SeedAsync(rig.Db, withheld: false, approved: false);
+
+            var sweeps = new List<ProseSweepResult>();
+            for (var i = 0; i < 3; i++) sweeps.Add(await rig.Lane.SweepAsync(LaneMode.Shadow, Models, new FakeWriter(), new FakeJudge(), 1));
+
+            (await rig.Db.LaneDecisions.OrderBy(d => d.Id).Select(d => d.Subject).ToListAsync())
+                .Should().Equal(ProseLaneService.Subject(approved), ProseLaneService.Subject(quarantined));
+            sweeps[2].Seen.Should().Be(0, "every recipe has one decision under this version; a repeat would count as another sample");
+            (await ProseLaneService.EligibleQuery(rig.Db, Models.Version).CountAsync()).Should().Be(2, "the queue still holds both until they are written");
+
+            var live = await rig.Lane.SweepAsync(LaneMode.Live, Models, new FakeWriter(), new FakeJudge(), 25);
+
+            live.Rewritten.Should().Be(2);
+            (await RecipeAsync(rig.Db, approved)).ProseWithheld.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task A_withheld_recipe_whose_method_a_person_wrote_keeps_it_and_the_live_lane_replaces_only_its_copied_description()
+        {
+            var rig = NewRig();
+            var id = await SeedAsync(rig.Db, editedBy: 42);
+
+            (await ProseLaneService.EligibleQuery(rig.Db, Models.Version).CountAsync()).Should().Be(1, "it is in the lane's queue on the Pipeline page");
+            var shadow = await rig.Lane.SweepAsync(LaneMode.Shadow, Models, new FakeWriter(), new FakeJudge(), 25);
+            shadow.Seen.Should().Be(0);
+            (await RecipeAsync(rig.Db, id)).ProseWithheld.Should().BeTrue();
+
+            var writer = new FakeWriter();
+            var live = await rig.Lane.SweepAsync(LaneMode.Live, Models, writer, new FakeJudge(), 25);
+
+            live.DescriptionOnly.Should().Be(1);
+            writer.Requests.Should().BeEmpty();
+            var recipe = await RecipeAsync(rig.Db, id);
+            recipe.ProseWithheld.Should().BeFalse();
+            recipe.Description.Should().Be("Garlic Cream Sauce, made with heavy cream and butter.");
+            recipe.RecipeSteps!.OrderBy(s => s.StepNumber).Select(s => s.Description).Should().Equal(OldSteps);
+            recipe.RecipeSteps!.Should().OnlyContain(s => s.LastModifiedByPersonId == 42);
+            (await rig.Db.AuditLogEntries.Where(a => a.EntityId == id).Select(a => a.PropertyName).ToListAsync()).Should().BeEquivalentTo("Description", "ProseState");
+            (await ProseLaneService.EligibleQuery(rig.Db, Models.Version).CountAsync()).Should().Be(0);
+        }
+
+        [Fact]
+        public async Task A_description_a_person_wrote_on_a_withheld_recipe_is_kept_when_the_method_is_rewritten()
+        {
+            var rig = NewRig();
+            var id = await SeedAsync(rig.Db);
+            const string own = "Our garlic sauce for a quick weeknight pasta.";
+            var recipe = await rig.Db.Recipes.SingleAsync(r => r.Id == id);
+            recipe.Description = own;
+            rig.Db.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = ProseRecheckService.RecipeEntityType, EntityId = id, ChangeType = ProseRecheckService.DescriptionByPersonChangeType,
+                PropertyName = "Description", OldValue = "The silkiest garlic sauce you will ever pour over pasta.", NewValue = own, Timestamp = DateTime.UtcNow, ChangedByPersonId = 42,
+            });
+            var other = await SeedAsync(rig.Db);
+            await rig.Db.SaveChangesAsync();
+            rig.Db.ChangeTracker.Clear();
+
+            await rig.Lane.SweepAsync(LaneMode.Live, Models, new FakeWriter(), new FakeJudge(), 25);
+
+            (await RecipeAsync(rig.Db, id)).Should().Match<RecipeEntity>(r => r.Description == own && !r.ProseWithheld);
+            (await RecipeAsync(rig.Db, other)).Description.Should().Be("Garlic Cream Sauce, made with heavy cream and butter.");
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        public async Task A_recipe_with_no_name_never_keeps_its_source_description_when_its_withhold_is_lifted(string name)
+        {
+            var rig = NewRig();
+            var id = await SeedAsync(rig.Db);
+            var recipe = await rig.Db.Recipes.SingleAsync(r => r.Id == id);
+            recipe.Name = name;
+            await rig.Db.SaveChangesAsync();
+            rig.Db.ChangeTracker.Clear();
+
+            var result = await rig.Lane.SweepAsync(LaneMode.Live, Models, new FakeWriter(), new FakeJudge(), 25);
+
+            result.Rewritten.Should().Be(1);
+            (await RecipeAsync(rig.Db, id)).Should().Match<RecipeEntity>(r => !r.ProseWithheld && string.IsNullOrEmpty(r.Description));
+        }
+
+        [Fact]
+        public async Task An_auditor_flag_counts_as_an_error_when_the_auditor_confirms_it_whatever_the_judge_that_passed_the_rewrite_says()
+        {
+            var rig = NewRig();
+            await SeedAsync(rig.Db);
+            await rig.Lane.SweepAsync(LaneMode.Shadow, Models, new FakeWriter(), new FakeJudge { Confirms = _ => false }, 25);
+            var auditor = new FakeJudge { Model = "phi4", Faithful = (_, _) => false, Confirms = _ => true };
+            var audit = new ProseLaneAudit(rig.Db, auditor);
+
+            var pass = await rig.Frame.AuditAsync(ProseLaneService.Lane, ProseLaneService.Tier, DateTime.UtcNow.AddDays(-1), new LaneSamplePlan(1, 1), audit, audit);
+
+            pass.Errors.Should().Be(1);
+            pass.Flagged.Should().Be(0);
+            audit.Name.Should().Contain("phi4");
         }
 
         [Fact]
@@ -243,7 +346,7 @@ namespace Nom.Api.Tests.Services
         {
             var rig = NewRig();
 
-            var verdict = await rig.Lane.MeasureAsync(LaneMode.Shadow, Models, new FakeJudge { Model = "phi4" }, new FakeJudge());
+            var verdict = await rig.Lane.MeasureAsync(LaneMode.Shadow, Models, new FakeJudge { Model = "phi4" });
 
             verdict.Mode.Should().Be(LaneMode.Shadow);
             verdict.Figures.GoldenProblem.Should().Contain("prose-rewrite has no committed golden score record").And.Contain("prose-judge has no committed golden score record");
@@ -260,7 +363,7 @@ namespace Nom.Api.Tests.Services
             (await RecipeAsync(rig.Db, id)).ProseWithheld.Should().BeFalse();
 
             await rig.Lane.RunCanariesAsync(Models, new FakeJudge());
-            var verdict = await rig.Lane.MeasureAsync(LaneMode.Live, Models, new FakeJudge { Model = "phi4" }, new FakeJudge());
+            var verdict = await rig.Lane.MeasureAsync(LaneMode.Live, Models, new FakeJudge { Model = "phi4" });
 
             verdict.Mode.Should().Be(LaneMode.Paused);
             verdict.Undo.Should().BeTrue();

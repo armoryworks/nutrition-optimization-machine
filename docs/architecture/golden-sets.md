@@ -142,8 +142,9 @@ The clean-room prose lane (`prose-lane.md`) has three scorer lanes over `prose-j
 an operator with `--golden-score --lane <lane> --host <model host> --model <model> [--check-model
 <judge>] --record`: `prose-rewrite` (the writer through the whole pipeline with the judge; a planted
 fault the gate lets through is a false accept, ceiling 0), `prose-judge` (floor 95 %, at most 2 %
-false accepts) and `prose-audit` (the auditor's flags confirmed by the judge, whose known-bad and
-known-good counts are the audit check score the lane frame corrects with). None is `required` until
+false accepts) and `prose-audit` (the auditor's flags confirmed by its own blind re-read, never by
+the judge that passed the rewrites; its known-bad and known-good counts are the audit check score the
+lane frame corrects with; `--check-model` is for `prose-rewrite` only). None is `required` until
 the staging proof records it, but the records are also compiled into Nom.Orch and the running lane
 cannot qualify without a current record for its own models (`ProseLaneGolden.GoldenProblem`), so a
 missing record holds the lane in shadow rather than the release. Of the 29 planted faults, 21 pass

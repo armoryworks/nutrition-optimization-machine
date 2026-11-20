@@ -155,7 +155,7 @@ namespace Nom.Orch.Services.Support
         }
 
         /// <summary>
-        /// The audit check's score on the golden rows (the auditor's flag confirmed by the judge):
+        /// The audit check's score on the golden rows (the auditor's flag confirmed by its own blind re-read):
         /// known-bad rows are the planted faults, known-good the faithful rewrites; null while the
         /// audit lane has no current record for the auditor.
         /// </summary>

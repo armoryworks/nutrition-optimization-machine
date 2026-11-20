@@ -98,8 +98,14 @@ namespace Nom.Orch.Services.Support
     {
         public bool Passed => Rewrite != null;
 
-        /// <summary>The failure class that held the recipe: the first reason of the last attempt, or no-method when the source has none.</summary>
-        public string? FailureClass => Passed ? null : SourceSteps == 0 ? ProseCleanRoom.NoMethod : Attempts.LastOrDefault()?.Reasons.FirstOrDefault();
+        /// <summary>
+        /// The failure class that held the recipe: the first reason of the last writer attempt (the
+        /// rule rendering after it is a fallback, so its own reason does not name what the writer
+        /// failed on), the rule rendering's when no writer attempt was made, or no-method when the
+        /// source has none.
+        /// </summary>
+        public string? FailureClass => Passed ? null : SourceSteps == 0 ? ProseCleanRoom.NoMethod
+            : (Attempts.LastOrDefault(a => a.Style != ProseLanePrompts.RuleAttempt) ?? Attempts.LastOrDefault())?.Reasons.FirstOrDefault();
     }
 
     /// <summary>

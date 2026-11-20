@@ -124,6 +124,38 @@ namespace Nom.Orch.Services.Support
             }
         }
 
+        /// <summary>
+        /// Whether a journal row on a recipe changed its prose: its description, a step, or its
+        /// withheld or quarantined state. Rows of other lanes that only record an attempt, a line
+        /// or a curation status do not, so they never stop an undo.
+        /// </summary>
+        public static bool TouchesProse(AuditLogEntryEntity entry) =>
+            ProseChangeTypes.Contains(entry.ChangeType ?? string.Empty)
+            || entry.PropertyName is { } property
+                && (ProseProperties.Contains(property) || property.StartsWith(StepPrefix, StringComparison.Ordinal));
+
+        private static readonly HashSet<string> ProseChangeTypes = new(StringComparer.Ordinal)
+        {
+            RewriteChangeType,
+            UndoChangeType,
+            ProseRecheckService.RecheckChangeType,
+            ProseRecheckService.WithholdChangeType,
+            ProseRecheckService.WithholdUndoChangeType,
+            ProseRecheckService.WithholdEndChangeType,
+            ProseRecheckService.DescriptionByPersonChangeType,
+            ProseMarkerService.StripChangeType,
+            ProseMarkerService.StripUndoChangeType,
+            ScrapedRecipeRepairService.StepSplitChangeType,
+        };
+
+        private static readonly HashSet<string> ProseProperties = new(StringComparer.Ordinal)
+        {
+            DescriptionProperty,
+            "RecipeSteps",
+            nameof(RecipeEntity.ContainsSourceProse),
+            nameof(RecipeEntity.ProseWithheld),
+        };
+
         /// <summary>The old value of each property of a group, its split rows joined in id order.</summary>
         public static Dictionary<string, string> OldValues(IEnumerable<AuditLogEntryEntity> group) =>
             group.Where(a => a.PropertyName != null)

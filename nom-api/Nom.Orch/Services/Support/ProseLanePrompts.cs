@@ -14,7 +14,7 @@ namespace Nom.Orch.Services.Support
     /// (<see cref="WriterSignature"/>) is the extractor and the two writing styles with the masking,
     /// fact-sheet, description and check rules they run with; the judge
     /// (<see cref="JudgeSignature"/>) is the step rubric; the audit (<see cref="AuditSignature"/>)
-    /// is the rubric read by the auditor and the judge's confirmation of a flag. None includes a
+    /// is the rubric read by the auditor and its own blind confirmation of a flag. None includes a
     /// model name, so a golden score record names its model separately, and any change to a prompt
     /// or rule shows as a new signature that needs a new record.
     /// </summary>
@@ -60,7 +60,7 @@ namespace Nom.Orch.Services.Support
             "Reply with STRICT JSON only: {\"steps\":[{\"n\":1,\"actions\":true,\"amounts\":true,\"missing\":false,\"added\":false,\"note\":\"\"}]} with one entry per step.";
 
         public const string Confirm =
-            "You check one step of a recipe rewrite against the original method. Another reviewer flagged step {0} of the rewrite. " +
+            "You check one step of a recipe rewrite against the original method. A reviewer flagged step {0} of the rewrite. " +
             "Compare step {0} of REWRITE with step {0} of ORIGINAL: it is wrong when it does other actions, states other amounts, times, temperatures or heat levels, leaves something out or adds something. " +
             "Wording may differ freely; only meaning counts. Reply with STRICT JSON only: {{\"wrong\":true}} or {{\"wrong\":false}}.";
 
@@ -80,7 +80,7 @@ namespace Nom.Orch.Services.Support
 
         public static string JudgeSignature { get; } = Hash("judge\n" + Judge);
 
-        public static string AuditSignature { get; } = Hash("audit\n" + Judge + "\n␞\n" + Confirm);
+        public static string AuditSignature { get; } = Hash("audit, confirmed by the auditor\n" + Judge + "\n␞\n" + Confirm);
 
         /// <summary>
         /// The lane version stamped on each recipe the lane tries (<c>Recipe.ProseLaneVersion</c>) and

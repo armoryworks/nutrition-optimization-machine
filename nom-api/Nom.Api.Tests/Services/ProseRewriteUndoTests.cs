@@ -116,6 +116,55 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_later_entry_of_another_lane_that_leaves_the_prose_alone_does_not_stop_the_undo()
+        {
+            var rig = ProseLaneServiceTests.NewRig();
+            var id = await ProseLaneServiceTests.SeedAsync(rig.Db, withheld: false, approved: false);
+            var before = await FingerprintAsync(rig.Db, id);
+            var since = DateTime.UtcNow.AddSeconds(-1);
+            await rig.Lane.SweepAsync(LaneMode.Live, Models, new FakeWriter(), new FakeJudge(), 25);
+            rig.Db.AuditLogEntries.AddRange(
+                new AuditLogEntryEntity
+                {
+                    EntityType = ProseRecheckService.RecipeEntityType, EntityId = id, ChangeType = RecipeLineClassificationService.AttemptChangeType,
+                    PropertyName = "Lines", NewValue = "3", Timestamp = DateTime.UtcNow, ChangedByPersonId = SystemConstants.SystemPersonId,
+                },
+                new AuditLogEntryEntity
+                {
+                    EntityType = ProseRecheckService.RecipeEntityType, EntityId = id, ChangeType = RecipeNonFoodScreeningService.AttemptChangeType,
+                    PropertyName = "Screen", NewValue = "food", Timestamp = DateTime.UtcNow, ChangedByPersonId = SystemConstants.SystemPersonId,
+                },
+                new AuditLogEntryEntity
+                {
+                    EntityType = ProseRecheckService.RecipeEntityType, EntityId = id, ChangeType = "Update",
+                    PropertyName = "CurationStatusId", OldValue = "1", NewValue = "2", Timestamp = DateTime.UtcNow, ChangedByPersonId = SystemConstants.SystemPersonId,
+                });
+            await rig.Db.SaveChangesAsync();
+            rig.Db.ChangeTracker.Clear();
+
+            var result = await rig.Undo.UndoAsync(since, apply: true);
+
+            result.Should().Match<ProseRewriteUndoResult>(r => r.Restored == 1 && r.Skipped == 0);
+            (await FingerprintAsync(rig.Db, id)).Should().Be(before);
+        }
+
+        [Fact]
+        public async Task A_description_only_rewrite_is_undone_without_touching_the_persons_steps()
+        {
+            var rig = ProseLaneServiceTests.NewRig();
+            var id = await ProseLaneServiceTests.SeedAsync(rig.Db, editedBy: 42);
+            var before = await FingerprintAsync(rig.Db, id);
+            var since = DateTime.UtcNow.AddSeconds(-1);
+            (await rig.Lane.SweepAsync(LaneMode.Live, Models, new FakeWriter(), new FakeJudge(), 25)).DescriptionOnly.Should().Be(1);
+
+            var result = await rig.Undo.UndoAsync(since, apply: true);
+
+            result.Should().Match<ProseRewriteUndoResult>(r => r.Restored == 1 && r.Skipped == 0);
+            (await FingerprintAsync(rig.Db, id)).Should().Be(before);
+            (await rig.Db.RecipeSteps.AsNoTracking().Where(s => s.RecipeId == id).Select(s => s.LastModifiedByPersonId).ToListAsync()).Should().OnlyContain(by => by == 42);
+        }
+
+        [Fact]
         public async Task An_undo_of_one_lane_version_leaves_the_rewrites_of_another()
         {
             var rig = ProseLaneServiceTests.NewRig();

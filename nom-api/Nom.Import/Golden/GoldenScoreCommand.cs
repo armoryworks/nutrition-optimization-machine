@@ -10,7 +10,7 @@ namespace Nom.Import.Golden
 {
     /// <summary>
     /// Scores one model lane against its golden set on a model host the operator names:
-    /// <c>dotnet run -- --golden-score --lane link-verify --host http://ai-host:11434 --model qwen3:8b [--limit 200] [--golden &lt;dir&gt;] [--out failures.tsv] [--record]</c>; the prose lanes also take <c>[--check-model mistral-nemo]</c>, the judge that checks the writer or confirms the auditor.
+    /// <c>dotnet run -- --golden-score --lane link-verify --host http://ai-host:11434 --model qwen3:8b [--limit 200] [--golden &lt;dir&gt;] [--out failures.tsv] [--record]</c>; the prose lanes also take <c>[--check-model mistral-nemo]</c>, the judge that checks the writer.
     /// Prints the lane's score, its false-accept rate, the floor from <c>model-lanes.json</c> and every
     /// case that passed in the recorded run and fails now, and exits 1 when the lane is below its
     /// floor. <c>--record</c> writes the score file the release gate reads. Refused under CI, and it

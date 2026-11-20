@@ -123,7 +123,7 @@ namespace Nom.Api.Services
             {
                 if (await lane.CanariesDueAsync(models.Version, cancellationToken))
                     await lane.RunCanariesAsync(models, judge, cancellationToken);
-                var verdict = await lane.MeasureAsync(mode, models, auditor, judge, cancellationToken: cancellationToken);
+                var verdict = await lane.MeasureAsync(mode, models, auditor, cancellationToken: cancellationToken);
                 if (verdict.Journal != null)
                     _logger.LogWarning("Prose rewrite lane: {Journal} ({Mode}): {Reason}", verdict.Journal, verdict.Mode, verdict.Reason);
             }

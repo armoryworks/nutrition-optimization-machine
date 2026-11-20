@@ -52,13 +52,27 @@ class has a cause in that engine; this lane removes each cause rather than catch
    roster). The first attempt all three pass is the rewrite.
 5. **Give up.** A recipe no attempt passes keeps its withheld or quarantined state and is stamped
    with the lane version (`Recipe.ProseLaneVersion`, `ProseAttempts` = 4). Its failure class (the
-   first reason of its last attempt) is recorded and counted on the Pipeline page. It is taken again
+   first reason of its last writer attempt; the rule rendering after it is a fallback, so its own
+   reason would hide what the writer failed on) is recorded and counted on the Pipeline page. It is taken again
    by itself as soon as the lane version changes: the version is a hash of every prompt, the attempt
    schedule, the masking, fact-sheet and description rules, the check version, the writer model and
    the judge model (`ProseLanePrompts.LaneVersion`).
 
 Order: approved withheld recipes, then other withheld, then quarantined imports; within each, never
-tried first, then the oldest attempt. A recipe with a step a person edited is never taken. A model
+tried first, then the oldest attempt. While the lane is in shadow or paused, a recipe already decided
+under the current lane version is not taken again (a pass stamps `ProseLaneVersion` with
+`ProseAttempts` 0), so each decision the frame counts is of a different recipe; the live lane takes
+them again to write them.
+
+A withheld recipe whose method a person wrote (a step stamped with a person) stays withheld only for
+its copied description (the recipe form keeps the stored description when it is left empty). The live
+lane takes it, keeps the person's steps untouched, replaces the description by the rule-built one and
+lifts the withhold; no model is asked. A quarantined recipe with a person's step is never taken. A
+description a person wrote while the prose was withheld or quarantined is journaled by the recipe
+form (`ProseDescriptionByPerson`, the text clamped) and the lane keeps it, as long as it is unchanged,
+instead of the rule-built one. When the rule-built description is empty (a recipe with no name) the
+description is left empty: the source description is never kept when a withhold or quarantine is
+lifted. A model
 host outage ends the sweep and charges no recipe; an HTTP error answer sends the recipe to the back of
 the queue, uncharged.
 
@@ -86,13 +100,15 @@ of 100 audited writes is above 5 %.
 **Audit.** When enough unaudited rewrites are waiting, the frame audits a stratified sample (strata:
 withheld approved, withheld, quarantined): a quarter while in shadow or on probation, a twentieth while
 live, at least 30. The auditor reads each sampled rewrite against its source with the judge's rubric;
-a flag counts as an error only when the judge, asked about the flagged step, agrees (`ProseLaneAudit`).
-The check's sensitivity and false-flag rate come from the `prose-audit` record (below), and the frame
-corrects the error with them. Because every written rewrite has already passed the judge, a confirmed
-error is one the judge accepted at write time and now agrees is wrong when shown the step; the golden
-score of the combined check, measured on planted faults the judge has not seen, may overstate its
-sensitivity on this population. The staging proof's reading of 40 rewrites by the operator is the
-check on that.
+a flag counts as an error only when the auditor, asked again blind about the flagged step with the
+confirmation prompt, agrees (`ProseLaneAudit`). The judge never confirms: every rewrite in the sample
+already passed it, so a fault it misses it misses again, and a check it confirms would find almost no
+error whatever the lane's real error. The check's sensitivity and false-flag rate come from the
+`prose-audit` record (below), scored with the same two auditor reads, and the frame corrects the error
+with them. What remains is a shift of population: the sample holds faults the judge missed, which may
+be harder for the auditor too than the planted faults it is scored on. The auditor is of a third
+family, so its misses are not the judge's by construction; the staging proof's reading of 40 rewrites
+by the operator is the check on that.
 
 **Faults that pause it** (or hold it in shadow): a planted fault let through in the last canary run;
 a gate yield (rewrites among recipes decided) under 50 % over the last 200 recipes. **Golden
@@ -119,10 +135,14 @@ revives a removed row of a number it needs and removes shown rows past its last 
 
 `POST /api/ProseRewrite/undo?sinceUtc=&laneVersion=&apply=false` (and the frame's undo) restores the
 description, the steps and the state exactly, so a recipe goes back to withheld or quarantined and its
-old text is never shown again. It skips, and counts, a recipe a person edited since and one a later
-journal entry touched (a re-check withhold, a marker strip). Each restore writes a `ProseRewriteUndo`
-row; a repeat dry run shows nothing left. The re-check undo (`recheck/undo`) skips a recipe rewritten
-after its withhold.
+old text is never shown again; a description-only write (above) restores only the description and the
+state. It skips, and counts, a recipe a person edited since and one whose prose a later journal entry
+changed (`ProseLaneJournal.TouchesProse`: a re-check withhold or requarantine, a person's description,
+a marker strip, a step split, another rewrite, or any row on the description, a step or the prose
+state). Rows of other lanes that leave the prose alone (line classification and non-food screening
+attempts, curation status) do not stop it. Each restore writes a `ProseRewriteUndo` row; a repeat dry
+run shows nothing left. The re-check undo (`recheck/undo`) skips a recipe rewritten after its withhold,
+unless the lane's undo has since taken that rewrite back.
 
 ## Golden set and records
 
@@ -132,7 +152,7 @@ an operator on a model host, never in CI:
 
 ```
 dotnet run --project nom-api/Nom.Import -- --golden-score --lane prose-judge   --host <model host> --model mistral-nemo --record
-dotnet run --project nom-api/Nom.Import -- --golden-score --lane prose-audit   --host <model host> --model phi4 --check-model mistral-nemo --record
+dotnet run --project nom-api/Nom.Import -- --golden-score --lane prose-audit   --host <model host> --model phi4 --record
 dotnet run --project nom-api/Nom.Import -- --golden-score --lane prose-rewrite --host <model host> --model qwen2.5:14b-instruct --check-model mistral-nemo --record
 ```
 
@@ -164,8 +184,9 @@ recipes not given up under the current version). Recipes: "Prose the rewrite lan
   v2's copy rules are what stop it reaching the text.
 - The rule rendering is terse ("Heat and cook oil and garlic in the pan: ½ tablespoon, a minute or
   two; until fragrant."). It is shown only when check v2 and the judge pass it.
-- Shadow and probation decide the same recipes again on later passes (the queue is never empty while
-  nothing is written); the daily cap bounds the model time this costs.
+- Shadow and probation decide each recipe once per lane version; when every eligible recipe has been
+  decided, the lane in shadow waits (it does not decide the same recipes again) until it qualifies or
+  its version changes.
 - Not built here: probation at a fixed 50 items an hour, an operator alert after three failed
   probations, and regenerating the shown recipes that passed v2 but came from the old lane (plan
   question 5, phase C).

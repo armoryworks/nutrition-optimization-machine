@@ -20,8 +20,9 @@ namespace Nom.Orch.Services
     /// restores, exactly as journaled (<see cref="ProseLaneJournal"/>), the description, the step
     /// rows (reviving the ones the rewrite removed and removing the ones it added) and the prose
     /// state, so a recipe goes back to withheld or quarantined and its old text is never shown
-    /// again. A recipe a person edited since, or that a later journal entry touched, is skipped
-    /// and counted. Each restore writes a <see cref="ProseLaneJournal.UndoChangeType"/> row, so a
+    /// again; a rewrite that changed only the description restores only the description and the
+    /// state. A recipe a person edited since, or whose prose a later journal entry changed
+    /// (<see cref="ProseLaneJournal.TouchesProse"/>), is skipped and counted. Each restore writes a <see cref="ProseLaneJournal.UndoChangeType"/> row, so a
     /// repeat dry run shows nothing left, and the rewrite's journal is kept.
     /// </summary>
     public class ProseRewriteUndoService : IProseRewriteUndoService, ILaneUndo
@@ -81,8 +82,9 @@ namespace Nom.Orch.Services
                 {
                     var group = journal.Where(a => a.ChangeType == ProseLaneJournal.RewriteChangeType && a.Timestamp == state.Timestamp).ToList();
                     var last = group.Max(a => a.Id);
+                    var descriptionOnly = !group.Any(a => a.PropertyName != null && a.PropertyName.StartsWith(ProseLaneJournal.StepPrefix, StringComparison.Ordinal));
                     var personEdited = recipe == null
-                        || steps.Any(s => !s.IsDeleted && s.LastModifiedByPersonId is { } by && by != SystemConstants.SystemPersonId)
+                        || steps.Any(s => !s.IsDeleted && s.LastModifiedByPersonId is { } by && by != SystemConstants.SystemPersonId && (!descriptionOnly || s.LastModifiedDate > state.Timestamp))
                         || (recipe.LastModifiedByPersonId is { } editor && editor != SystemConstants.SystemPersonId && recipe.LastModifiedDate > state.Timestamp);
                     if (personEdited)
                     {
@@ -91,7 +93,7 @@ namespace Nom.Orch.Services
                         break;
                     }
 
-                    if (journal.Any(a => a.Id > last && !InUndoneGroup(a)))
+                    if (journal.Any(a => a.Id > last && ProseLaneJournal.TouchesProse(a) && !InUndoneGroup(a)))
                     {
                         result.Skipped++;
                         result.SkippedChangedSince++;
@@ -137,9 +139,13 @@ namespace Nom.Orch.Services
         private void Restore(RecipeEntity recipe, List<RecipeStepEntity> steps, Dictionary<string, string> old, ProseState before, DateTime now)
         {
             if (old.TryGetValue(ProseLaneJournal.DescriptionProperty, out var description)) recipe.Description = description;
-            var texts = (before.StepNumbers ?? Array.Empty<int>()).Distinct()
-                .ToDictionary(n => n, n => old.GetValueOrDefault(ProseLaneJournal.StepPrefix + n.ToString(CultureInfo.InvariantCulture)) ?? string.Empty);
-            ProseLaneJournal.SetSteps(_db, recipe.Id, steps, texts, now);
+            if (old.Keys.Any(k => k.StartsWith(ProseLaneJournal.StepPrefix, StringComparison.Ordinal)))
+            {
+                var texts = (before.StepNumbers ?? Array.Empty<int>()).Distinct()
+                    .ToDictionary(n => n, n => old.GetValueOrDefault(ProseLaneJournal.StepPrefix + n.ToString(CultureInfo.InvariantCulture)) ?? string.Empty);
+                ProseLaneJournal.SetSteps(_db, recipe.Id, steps, texts, now);
+            }
+
             before.ApplyTo(recipe);
             recipe.LastModifiedDate = now;
             recipe.LastModifiedByPersonId = SystemConstants.SystemPersonId;

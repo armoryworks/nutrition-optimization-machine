@@ -19,9 +19,10 @@ namespace Nom.Orch.Services
     /// <summary>
     /// The clean-room prose lane (prose rewrite v2) on the lane frame. A sweep takes the recipes
     /// whose prose is withheld or quarantined (approved withheld first, then other withheld, then
-    /// quarantined imports), skips any a person has edited, and runs each through
-    /// <see cref="ProseCleanRoom"/>: mask, extract, write, form rules, check v2 and the judge. Every
-    /// outcome is a decision in curation.LaneDecision; a rewrite is written, journaled
+    /// quarantined imports) and runs each through <see cref="ProseCleanRoom"/>: mask, extract,
+    /// write, form rules, check v2 and the judge. A withheld recipe whose method a person wrote keeps
+    /// it, and the live lane replaces only its copied description; a description a person wrote is
+    /// kept. Every outcome is a decision in curation.LaneDecision; a rewrite is written, journaled
     /// (<see cref="ProseLaneJournal"/>) and lifts the withhold or quarantine only while the frame
     /// has the lane live. A recipe every attempt failed is marked as given up under the lane
     /// version, with its failure class, and becomes eligible again when the version changes.
@@ -81,7 +82,8 @@ namespace Nom.Orch.Services
             var version = models.Version;
             var result = new ProseSweepResult { Mode = mode, LaneVersion = version };
             var stock = await _stock.LoadAsync(cancellationToken);
-            var ids = await EligibleQuery(_db, version)
+            var live = mode == LaneMode.Live;
+            var ids = await EligibleQuery(_db, version, live)
                 .OrderBy(r => r.ProseWithheld ? (r.CurationStatusId == (long)CurationStatusEnum.Curated ? 0 : 1) : 2)
                 .ThenBy(r => r.ProseRewriteAttemptedAt == null ? 0 : 1)
                 .ThenBy(r => r.ProseRewriteAttemptedAt)
@@ -99,6 +101,18 @@ namespace Nom.Orch.Services
                 var rows = await _db.RecipeSteps.IgnoreQueryFilters().Where(s => s.RecipeId == id).ToListAsync(cancellationToken);
                 var steps = rows.Where(s => !s.IsDeleted).OrderBy(s => s.StepNumber).ToList();
                 var source = await SourceAsync(recipe, steps, cancellationToken);
+                var ownDescription = await PersonDescriptionAsync(recipe, cancellationToken);
+                if (steps.Any(EditedByPerson))
+                {
+                    if (!live || recipe.ContainsSourceProse) continue;
+                    var description = ownDescription ?? ProseDescription.Build(recipe.Name, ProseMasking.Mask(Array.Empty<string>(), source.Lines).Lines);
+                    WriteDescription(recipe, steps, description, models, DateTime.UtcNow);
+                    await _db.SaveChangesAsync(cancellationToken);
+                    _db.ChangeTracker.Clear();
+                    result.DescriptionOnly++;
+                    continue;
+                }
+
                 var input = new ProseLaneInput(recipe.Name ?? string.Empty, source.Text, source.Lines, stock);
 
                 ProseLaneOutcome outcome;
@@ -129,11 +143,13 @@ namespace Nom.Orch.Services
                 {
                     if (mode == LaneMode.Live)
                     {
-                        Write(recipe, rows, steps, outcome.Rewrite!, models, now);
+                        Write(recipe, rows, steps, outcome.Rewrite!, ownDescription, models, now);
                         result.Rewritten++;
                     }
                     else
                     {
+                        recipe.ProseLaneVersion = version;
+                        recipe.ProseAttempts = 0;
                         recipe.ProseRewriteAttemptedAt = now;
                         result.WouldRewrite++;
                     }
@@ -168,18 +184,27 @@ namespace Nom.Orch.Services
                     outcome.Verdict?.Steps), cancellationToken);
             }
 
-            _logger.LogInformation("Prose lane sweep ({Mode}): {Seen} recipes, {Rewritten} rewritten, {Would} would be rewritten, {GaveUp} given up {Classes}",
-                mode, result.Seen, result.Rewritten, result.WouldRewrite, result.GaveUp,
+            _logger.LogInformation("Prose lane sweep ({Mode}): {Seen} recipes, {Rewritten} rewritten, {DescriptionOnly} description only, {Would} would be rewritten, {GaveUp} given up {Classes}",
+                mode, result.Seen, result.Rewritten, result.DescriptionOnly, result.WouldRewrite, result.GaveUp,
                 string.Join(", ", result.GaveUpByClass.Select(kv => $"{kv.Key} {kv.Value}")));
             return result;
         }
 
-        /// <summary>The recipes the lane may take under <paramref name="version"/>: withheld or quarantined, not given up under this version, and no step edited by a person.</summary>
-        public static IQueryable<RecipeEntity> EligibleQuery(ApplicationDbContext db, string version) =>
+        /// <summary>
+        /// The recipes the lane may take under <paramref name="version"/>: withheld or quarantined and
+        /// not given up under this version. A quarantined recipe with a step a person edited is never
+        /// taken. While the lane is not <paramref name="live"/>, a recipe already decided under this
+        /// version is not taken again, so every decision it records is of a different recipe, and a
+        /// withheld recipe whose method a person wrote waits for the live lane, which only replaces its
+        /// copied description.
+        /// </summary>
+        public static IQueryable<RecipeEntity> EligibleQuery(ApplicationDbContext db, string version, bool live = true) =>
             db.Recipes.AsNoTracking()
                 .Where(r => r.ProseWithheld || r.ContainsSourceProse)
                 .Where(r => !(r.ProseLaneVersion == version && r.ProseAttempts >= ProseCleanRoom.AttemptCount))
-                .Where(r => !r.RecipeSteps!.Any(s => s.LastModifiedByPersonId != null && s.LastModifiedByPersonId != SystemConstants.SystemPersonId));
+                .Where(r => live || r.ProseLaneVersion != version)
+                .Where(r => !r.RecipeSteps!.Any(s => s.LastModifiedByPersonId != null && s.LastModifiedByPersonId != SystemConstants.SystemPersonId)
+                    || (live && r.ProseWithheld && !r.ContainsSourceProse));
 
         /// <summary>The recipes the lane gave up on under <paramref name="version"/> and that are still withheld or quarantined.</summary>
         public static IQueryable<RecipeEntity> GaveUpQuery(ApplicationDbContext db, string version) =>
@@ -276,7 +301,7 @@ namespace Nom.Orch.Services
         /// evaluates it on the frame with its bars, the audit check's golden score, its golden
         /// records and its faults.
         /// </summary>
-        public async Task<LaneQualifyVerdict> MeasureAsync(string mode, ProseLaneModels models, IProseJudge auditor, IProseJudge judge, Random? random = null, CancellationToken cancellationToken = default)
+        public async Task<LaneQualifyVerdict> MeasureAsync(string mode, ProseLaneModels models, IProseJudge auditor, Random? random = null, CancellationToken cancellationToken = default)
         {
             var version = models.Version;
             var rate = mode == LaneMode.Live ? LiveAuditRate : ShadowAuditRate;
@@ -284,7 +309,7 @@ namespace Nom.Orch.Services
                 .CountAsync(d => d.Lane == Lane && d.Tier == Tier && d.Writes && d.AuditOutcome == null && d.SignatureHash == version, cancellationToken);
             if (waiting >= (int)Math.Ceiling(AuditMinimum / rate))
             {
-                var audit = new ProseLaneAudit(_db, auditor, judge);
+                var audit = new ProseLaneAudit(_db, auditor);
                 await _frame.AuditAsync(Lane, Tier, Epoch, new LaneSamplePlan(AuditMinimum, rate), audit, audit, random, cancellationToken);
             }
 
@@ -314,14 +339,47 @@ namespace Nom.Orch.Services
             return new Source(text, lines);
         }
 
-        private void Write(RecipeEntity recipe, List<RecipeStepEntity> rows, List<RecipeStepEntity> steps, RewriteFidelity.SourceText rewrite, ProseLaneModels models, DateTime now)
+        private static bool EditedByPerson(RecipeStepEntity step) =>
+            step.LastModifiedByPersonId is { } by && by != SystemConstants.SystemPersonId;
+
+        /// <summary>
+        /// The recipe's description when a person wrote it while its prose was withheld or
+        /// quarantined (journaled as <see cref="ProseRecheckService.DescriptionByPersonChangeType"/>
+        /// by the recipe update, and unchanged since); null otherwise.
+        /// </summary>
+        private async Task<string?> PersonDescriptionAsync(RecipeEntity recipe, CancellationToken cancellationToken)
         {
+            if (string.IsNullOrWhiteSpace(recipe.Description)) return null;
+            var written = await _db.AuditLogEntries.AsNoTracking()
+                .Where(a => a.EntityType == ProseRecheckService.RecipeEntityType && a.EntityId == recipe.Id && a.ChangeType == ProseRecheckService.DescriptionByPersonChangeType)
+                .OrderByDescending(a => a.Id)
+                .Select(a => a.NewValue)
+                .FirstOrDefaultAsync(cancellationToken);
+            return written != null && written == ProseRecheckService.Clamp(recipe.Description) ? recipe.Description : null;
+        }
+
+        private void WriteDescription(RecipeEntity recipe, List<RecipeStepEntity> steps, string description, ProseLaneModels models, DateTime now)
+        {
+            var tag = ProseLaneJournal.Tag(models.Writer, models.Version);
+            var before = ProseState.Of(recipe, steps);
+            var after = new ProseState(false, false, recipe.ProseCheckVersion, models.Version, 0, now, before.StepNumbers);
+            _db.AuditLogEntries.AddRange(ProseLaneJournal.Rows(recipe.Id, ProseLaneJournal.DescriptionProperty, recipe.Description, $"{tag} {description}", now));
+            _db.AuditLogEntries.AddRange(ProseLaneJournal.Rows(recipe.Id, ProseLaneJournal.StateProperty, ProseLaneJournal.StateJson(before), $"{tag} {ProseLaneJournal.StateJson(after)}", now));
+            recipe.Description = description;
+            after.ApplyTo(recipe);
+            recipe.LastModifiedDate = now;
+            recipe.LastModifiedByPersonId = SystemConstants.SystemPersonId;
+        }
+
+        private void Write(RecipeEntity recipe, List<RecipeStepEntity> rows, List<RecipeStepEntity> steps, RewriteFidelity.SourceText rewrite, string? ownDescription, ProseLaneModels models, DateTime now)
+        {
+            var description = ownDescription ?? rewrite.Description;
             var tag = ProseLaneJournal.Tag(models.Writer, models.Version);
             var texts = rewrite.Steps.Select((text, i) => (Number: i + 1, Text: text)).ToDictionary(s => s.Number, s => s.Text);
             var before = ProseState.Of(recipe, steps);
             var after = new ProseState(false, false, ProseCheck.Version, models.Version, 0, now, texts.Keys.ToList());
 
-            _db.AuditLogEntries.AddRange(ProseLaneJournal.Rows(recipe.Id, ProseLaneJournal.DescriptionProperty, recipe.Description, $"{tag} {rewrite.Description}", now));
+            _db.AuditLogEntries.AddRange(ProseLaneJournal.Rows(recipe.Id, ProseLaneJournal.DescriptionProperty, recipe.Description, $"{tag} {description}", now));
             foreach (var number in steps.Select(s => s.StepNumber).Union(texts.Keys).OrderBy(n => n))
             {
                 var old = steps.FirstOrDefault(s => s.StepNumber == number)?.Description;
@@ -331,7 +389,7 @@ namespace Nom.Orch.Services
 
             _db.AuditLogEntries.AddRange(ProseLaneJournal.Rows(recipe.Id, ProseLaneJournal.StateProperty, ProseLaneJournal.StateJson(before), $"{tag} {ProseLaneJournal.StateJson(after)}", now));
 
-            recipe.Description = rewrite.Description.Length > 0 ? rewrite.Description : recipe.Description;
+            recipe.Description = description;
             ProseLaneJournal.SetSteps(_db, recipe.Id, rows, texts, now);
             after.ApplyTo(recipe);
             recipe.LastModifiedDate = now;
@@ -342,25 +400,26 @@ namespace Nom.Orch.Services
     /// <summary>
     /// The audit of the prose lane's rewrites: the auditor (a model of neither the writer's nor
     /// the judge's family) reads a sampled rewrite against its source with the judge's rubric, and a
-    /// flag counts as an error only when the judge, asked about the flagged step, agrees.
+    /// flag counts as an error only when the auditor, asked again blind about the flagged step,
+    /// agrees. The judge never confirms: it already passed every rewrite in the sample, so its
+    /// confirmation would only repeat its own verdict and the golden score of the check (measured
+    /// on rows no judge had filtered) would overstate how much of the error it finds.
     /// </summary>
     public sealed class ProseLaneAudit : ILaneAuditor, ILaneAuditCheck
     {
         private readonly ApplicationDbContext _db;
         private readonly IProseJudge _auditor;
-        private readonly IProseJudge _judge;
         private readonly Dictionary<long, int> _flagged = new();
 
-        public ProseLaneAudit(ApplicationDbContext db, IProseJudge auditor, IProseJudge judge)
+        public ProseLaneAudit(ApplicationDbContext db, IProseJudge auditor)
         {
             _db = db;
             _auditor = auditor;
-            _judge = judge;
         }
 
         public string Model => _auditor.Model;
 
-        public string Name => $"judge {_judge.Model} on the flagged step";
+        public string Name => $"{_auditor.Model} re-reading the flagged step blind";
 
         public async Task<LaneAuditAnswer> AuditAsync(LaneDecisionEntity decision, CancellationToken cancellationToken)
         {
@@ -378,7 +437,7 @@ namespace Nom.Orch.Services
         {
             var pair = await PairAsync(decision, cancellationToken);
             if (pair == null) return null;
-            return await _judge.ConfirmAsync(pair.Value.Original, pair.Value.Rewrite, _flagged.GetValueOrDefault(decision.Id, 1), cancellationToken);
+            return await _auditor.ConfirmAsync(pair.Value.Original, pair.Value.Rewrite, _flagged.GetValueOrDefault(decision.Id, 1), cancellationToken);
         }
 
         private async Task<(IReadOnlyList<string> Original, IReadOnlyList<string> Rewrite)?> PairAsync(LaneDecisionEntity decision, CancellationToken cancellationToken)

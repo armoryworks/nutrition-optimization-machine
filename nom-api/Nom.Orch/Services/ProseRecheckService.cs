@@ -33,6 +33,7 @@ namespace Nom.Orch.Services
         public const string WithholdChangeType = "ProseWithhold";
         public const string WithholdUndoChangeType = "ProseWithholdUndo";
         public const string WithholdEndChangeType = "ProseWithholdEnd";
+        public const string DescriptionByPersonChangeType = "ProseDescriptionByPerson";
         public const string RunEntityType = "ProseRecheck";
         public const string RunChangeType = "ProseRecheckRun";
         public const int JournalLength = 4000;
@@ -293,10 +294,22 @@ namespace Nom.Orch.Services
                 await using var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
                 var ids = chunk.Select(e => e.EntityId).Distinct().ToList();
                 var recipes = await _db.Recipes.Where(r => ids.Contains(r.Id)).ToDictionaryAsync(r => r.Id);
-                var rewrittenAfter = (await _db.AuditLogEntries.AsNoTracking()
-                        .Where(a => a.EntityType == RecipeEntityType && ids.Contains(a.EntityId) && a.ChangeType == RewriteChangeType)
-                        .Select(a => new { a.EntityId, a.Id })
+                var rewrites = await _db.AuditLogEntries.AsNoTracking()
+                    .Where(a => a.EntityType == RecipeEntityType && ids.Contains(a.EntityId) && a.ChangeType == RewriteChangeType)
+                    .Select(a => new { a.EntityId, a.Id, a.Timestamp, a.PropertyName })
+                    .ToListAsync();
+                var laneUndone = (await _db.AuditLogEntries.AsNoTracking()
+                        .Where(a => a.EntityType == RecipeEntityType && ids.Contains(a.EntityId) && a.ChangeType == ProseLaneJournal.UndoChangeType)
+                        .Select(a => a.OldValue)
                         .ToListAsync())
+                    .Select(v => long.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) ? id : 0)
+                    .ToHashSet();
+                var undoneGroups = rewrites
+                    .Where(a => a.PropertyName == ProseLaneJournal.StateProperty && laneUndone.Contains(a.Id))
+                    .Select(a => (a.EntityId, a.Timestamp))
+                    .ToHashSet();
+                var rewrittenAfter = rewrites
+                    .Where(a => !undoneGroups.Contains((a.EntityId, a.Timestamp)))
                     .GroupBy(a => a.EntityId)
                     .ToDictionary(g => g.Key, g => g.Max(a => a.Id));
                 var now = DateTime.UtcNow;
