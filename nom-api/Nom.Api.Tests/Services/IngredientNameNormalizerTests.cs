@@ -25,6 +25,12 @@ namespace Nom.Api.Tests.Services
         [InlineData("2 to 3 tablespoons olive oil", "olive oil")]
         [InlineData("Black beans (rinsed and drained)", "Black beans")]
         [InlineData("black bean puree (see above)", "black bean puree")]
+        [InlineData("2 cups half and half", "half and half")]
+        [InlineData("1/4 cup half & half", "half & half")]
+        [InlineData("1 cup half-and-half", "half-and-half")]
+        [InlineData("half an onion", "onion")]
+        [InlineData("1 tsp each of cloves, cinnamon and nutmeg", "cloves, cinnamon and nutmeg")]
+        [InlineData("2 cloves garlic", "garlic")]
         public void Strips_quantity_unit_and_prep_noise(string raw, string expected)
         {
             Assert.Equal(expected, IngredientNameNormalizer.Normalize(raw));

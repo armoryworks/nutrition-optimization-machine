@@ -24,7 +24,7 @@ namespace Nom.Orch.Services.Support
             @"(?:one|two|three|five|seven)[- ](?:half|halves|thirds?|fourths?|quarters?|eighths?)";
 
         private static readonly Regex LeadingQuantity = new(
-            $@"^\s*(?:(?:and|or|to|about|nearly)\s+)?(?:{Number}(?:\s*(?:-|–|—|to|or)\s*{Number})?(?:-(?=(?:lbs?|ozs?|pounds?|ounces?|pints?|pts?|quarts?|qts?|cups?)\b)|(?=[\s.])[\s.]+)|(?:{FractionWord}|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half|halves|quarters?|thirds?)(?=[\s.])[\s.]+)",
+            $@"^\s*(?:(?:and|or|to|about|nearly)\s+)?(?:{Number}(?:\s*(?:-|–|—|to|or)\s*{Number})?(?:-(?=(?:lbs?|ozs?|pounds?|ounces?|pints?|pts?|quarts?|qts?|cups?)\b)|(?=[\s.])[\s.]+)|(?:{FractionWord}|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half(?![\s-]+(?:and|&|n|'n'?)[\s-]+half\b)|halves|quarters?|thirds?)(?=[\s.])[\s.]+)",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private const string Qualifier =
@@ -39,7 +39,7 @@ namespace Nom.Orch.Services.Support
             @"^\s*" + Qualifier +
             @"(?:(?:" + SpoonOrCup + @"|pints?|pts?\.?|quarts?|qts?\.?|gallons?|gals?\.?|cups?|cans?|jars?|packages?|pkgs?|packets?|boxes?|bags?|bunch(?:es)?|" +
             @"slices?|pounds?|lbs?\.?|ounces?|ozs?\.?|fl\.?\s*oz\.?|tablespoons?|tbsps?\.?|tblsps?\.?|tbls?\.?|teaspoons?|tsps?\.?|" +
-            @"cloves?|sticks?|pieces?|pinch(?:es)?|dash(?:es)?|handfull?s?|sprigs?|heads?|stalks?|ribs?|ears?|" +
+            @"cloves?(?!\s*(?:,|and\b|&))|sticks?|pieces?|pinch(?:es)?|dash(?:es)?|handfull?s?|sprigs?|heads?|stalks?|ribs?|ears?|" +
             @"fillets?|filets?|strips?|cubes?|knobs?|pats?|liters?|litres?|l\b|ml\b|milliliters?|grams?|g\b|kgs?|kilograms?)" +
             @"\b\.?\s*(?:each\s+)?(?:of\s+)?" +
             @"|(?:glass(?:es|full?s?)?|drops?|blades?|grains?|lumps?|bits?)\s+of\s+" +
