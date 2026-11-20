@@ -49,6 +49,9 @@ public class RecipeEntityConfiguration : IEntityTypeConfiguration<RecipeEntity>
         // DB default so inserts that omit the column (seed SQL, manual rows)
         // get the safe value: only the scraping path ever sets this true.
         builder.Property(e => e.ContainsSourceProse).HasDefaultValue(false);
+        builder.Property(e => e.ProseWithheld).HasDefaultValue(false);
+        builder.Property(e => e.ProseAttempts).HasDefaultValue(0);
+        builder.Property(e => e.ProseLaneVersion).HasMaxLength(64);
 
         // Relationships
         builder.HasOne(r => r.ServingQuantityMeasurement)

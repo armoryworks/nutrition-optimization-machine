@@ -76,7 +76,7 @@ function status(quietMinutesLeft: number | null = null): PipelineStatus {
       recipes: {
         approved: 22842, waiting: 71185, needsRevision: 27754, pendingReview: 0, rejected: 724,
         waitingBlockedBy: { none: 1238, one: 29568, two: 20445, threeOrMore: 19934 },
-        waitingPublicDomain: 53027, waitingScrapedWithoutOwnImage: 18155, waitingWithSourceProse: 567,
+        waitingPublicDomain: 53027, waitingScrapedWithoutOwnImage: 18155, waitingWithSourceProse: 567, proseWithheld: 1710, proseWithheldApproved: 1389,
         revisionMissingQuantities: 22932, revisionSteps: 1267, approvedWithUncountedLine: 2716, approvedWithoutImage: 22569,
         withoutNutritionLabel: 24012, lastAutoApprovedAt: null, autoApprovedLast24h: 0, lastScrapedAt: null, createdLast7d: 0,
       },
@@ -164,6 +164,7 @@ describe('PipelineAdmin', () => {
     expect(byId(el, 'pipeline-metric-lines-counted')?.textContent?.trim()).toBe('409,011');
     expect(byId(el, 'pipeline-metric-lines-approved-counted')?.textContent?.trim()).toBe('89,320');
     expect(byId(el, 'pipeline-metric-blocked-none')?.textContent?.trim()).toBe('1,238');
+    expect(byId(el, 'pipeline-metric-recipes-prose-withheld')?.textContent?.trim()).toBe('1,710 (1,389)');
     expect(byId(el, 'pipeline-generated-at')).not.toBeNull();
     expect(el.querySelectorAll('[data-testid="pipeline-journal-item"]').length).toBe(1);
     expect(byId(el, 'pipeline-metric-foods-wordings-in-use')?.parentElement?.textContent).toContain('Uncurated foods on a line');

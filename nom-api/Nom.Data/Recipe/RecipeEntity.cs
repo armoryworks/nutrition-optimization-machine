@@ -87,6 +87,24 @@ namespace Nom.Data.Recipe
         public bool ContainsSourceProse { get; set; }
 
         /// <summary>
+        /// True while the stored description and steps failed the prose check against the source
+        /// and are never served by any endpoint, to anyone. Unlike <see cref="ContainsSourceProse"/>
+        /// the recipe stays listed and usable: readers get rule-built key facts and the source link
+        /// in place of the method until the rewrite lane writes one that passes. A holding state,
+        /// never an end: every withheld recipe is the rewrite lane's work.
+        /// </summary>
+        public bool ProseWithheld { get; set; }
+
+        /// <summary>The version of the prose check that last judged the stored description and steps; null = never checked.</summary>
+        public int? ProseCheckVersion { get; set; }
+
+        /// <summary>Rewrite attempts the prose lane has spent on this recipe under <see cref="ProseLaneVersion"/>.</summary>
+        public int ProseAttempts { get; set; }
+
+        /// <summary>The prose lane version (a hash of its prompts, model and check version) that <see cref="ProseAttempts"/> counts under; null = none yet.</summary>
+        public string? ProseLaneVersion { get; set; }
+
+        /// <summary>
         /// Plausibility problems found by vetting (unrealistic times/servings,
         /// missing steps, ...), newline-separated. Non-null routes the recipe to
         /// admin review (RequiresRevision) instead of the normal curation queue.

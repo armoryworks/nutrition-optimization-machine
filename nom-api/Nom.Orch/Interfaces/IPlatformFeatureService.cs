@@ -19,6 +19,9 @@ namespace Nom.Orch.Interfaces
 
             /// <summary>Holds the deterministic recipe auto-approval job, for a data window whose changes may still be undone.</summary>
             public const string AutoApprovePause = "pause-auto-approve";
+
+            /// <summary>Holds the weekly prose re-check job, which withholds the prose of shown recipes that fail the prose check.</summary>
+            public const string ProseRecheckPause = "pause-prose-recheck";
         }
 
         Task<bool> IsEnabledAsync(string key);

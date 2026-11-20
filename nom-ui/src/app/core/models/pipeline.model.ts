@@ -15,6 +15,8 @@ export interface PipelineRecipeCounts {
   waitingPublicDomain: number;
   waitingScrapedWithoutOwnImage: number;
   waitingWithSourceProse: number;
+  proseWithheld: number;
+  proseWithheldApproved: number;
   revisionMissingQuantities: number;
   revisionSteps: number;
   approvedWithUncountedLine: number;

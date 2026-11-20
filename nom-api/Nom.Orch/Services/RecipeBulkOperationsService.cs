@@ -9,6 +9,7 @@ using Nom.Orch.Models.Recipe;
 using Nom.Data.Recipe;
 using System.Security.Claims;
 using Nom.Orch.UtilityServices;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Orch.Services
 {
@@ -77,6 +78,17 @@ namespace Nom.Orch.Services
                     };
                 }
 
+                var withheldIds = recipes.Where(r => r.ProseWithheld).Select(r => r.Id).ToList();
+                var keyFacts = withheldIds.Count == 0
+                    ? new Dictionary<long, List<string>>()
+                    : (await _dbContext.ScrapedDocuments.AsNoTracking()
+                        .Where(d => withheldIds.Contains(d.RecipeId))
+                        .OrderBy(d => d.Id)
+                        .Select(d => new { d.RecipeId, d.RawJsonLd })
+                        .ToListAsync())
+                    .GroupBy(d => d.RecipeId)
+                    .ToDictionary(g => g.Key, g => ProseKeyFacts.FromJsonLd(g.Last().RawJsonLd));
+
                 var exportId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 var fileName = $"recipes_export_{exportId}.{request.ExportType.ToString().ToLower()}";
                 var filePath = Path.Combine(_exportDirectory, fileName);
@@ -89,7 +101,9 @@ namespace Nom.Orch.Services
                     {
                         r.Id,
                         r.Name,
-                        r.Description,
+                        Description = ProseWithholding.DescriptionOrNull(r),
+                        r.ProseWithheld,
+                        KeyFacts = r.ProseWithheld ? keyFacts.GetValueOrDefault(r.Id) ?? new List<string>() : null,
                         r.SourceUrl,
                         r.SourceSite,
                         r.PrepTime,
@@ -100,6 +114,7 @@ namespace Nom.Orch.Services
                         r.RecipeServings,
                         r.Rating,
                         r.LastMade,
+                        r.CreatedDate,
                         Ingredients = r.RecipeIngredients?.Select(ri => new
                         {
                             ri.Ingredient.Name,
@@ -107,7 +122,7 @@ namespace Nom.Orch.Services
                             ReferenceName = ri.Measurement.Name,
                             ri.RawLine
                         }),
-                        Steps = r.RecipeSteps?.Select(rs => new
+                        Steps = ProseWithholding.Steps(r).Select(rs => new
                         {
                             rs.Description
                         })
@@ -785,6 +800,13 @@ namespace Nom.Orch.Services
                     steps = new List<string>();
                     foreach (var step in recipe.Steps)
                         steps.Add($"{step.Description}");
+                }
+
+                if ((bool)recipe.ProseWithheld)
+                {
+                    steps = new List<string>();
+                    foreach (var fact in recipe.KeyFacts) steps.Add((string)fact);
+                    if (!string.IsNullOrEmpty((string?)recipe.SourceUrl)) steps.Add($"Full method: {recipe.SourceUrl}");
                 }
 
                 recipes.Add(new RecipePdfRecipe((string)(recipe.Name ?? "Untitled"), (string?)recipe.Description, times, ingredientLines, steps));

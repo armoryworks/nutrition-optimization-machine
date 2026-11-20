@@ -60,7 +60,7 @@ namespace Nom.Orch.Services
                     Name = r.Name,
                     AuthorName = r.Author!.Name,
                     DateSubmitted = r.DateSubmittedForCuration ?? r.CreatedDate,
-                    Description = r.Description,
+                    Description = r.ProseWithheld ? null : r.Description,
                     SourceUrl = r.SourceUrl,
                     AuthorId = r.AuthorId,
                     Status = r.CurationStatusId == (long)CurationStatusEnum.RequiresRevision

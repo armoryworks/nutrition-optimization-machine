@@ -77,7 +77,7 @@ namespace Nom.Orch.Services
                 {
                     Id = r.Id,
                     Name = r.Name,
-                    Description = r.Description,
+                    Description = r.ProseWithheld ? null : r.Description,
                     DishGroup = r.DishGroup != null ? r.DishGroup.Name : null,
                     RatingCount = r.Ratings!.Count(),
                     ImageSearchedAt = r.ImageSearchedAt,
@@ -94,7 +94,7 @@ namespace Nom.Orch.Services
                 .Select(ri => new { ri.RecipeId, Name = ri.Ingredient.Name })
                 .ToListAsync();
             var steps = await _context.RecipeSteps.AsNoTracking()
-                .Where(s => ids.Contains(s.RecipeId) && !s.IsDeleted)
+                .Where(s => ids.Contains(s.RecipeId) && !s.IsDeleted && !s.Recipe.ProseWithheld)
                 .OrderBy(s => s.StepNumber)
                 .Select(s => new { s.RecipeId, s.Description })
                 .ToListAsync();

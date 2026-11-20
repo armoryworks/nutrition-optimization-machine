@@ -86,7 +86,7 @@ namespace Nom.Orch.Services
                         {
                             Id = r.Id,
                             Name = r.Name,
-                            Description = r.Description,
+                            Description = r.ProseWithheld ? null : r.Description,
                             CurationStatus = r.CurationStatus != null ? r.CurationStatus.Name : "NonCurated"
                         }).ToList() : new List<RecipeModel>()
                     }).ToList(),
@@ -167,7 +167,7 @@ namespace Nom.Orch.Services
                         {
                             Id = r.Id,
                             Name = r.Name,
-                            Description = r.Description,
+                            Description = r.ProseWithheld ? null : r.Description,
                             CurationStatus = r.CurationStatus != null ? r.CurationStatus.Name : "NonCurated"
                         }).ToList() : new List<RecipeModel>()
                     }).ToList(),
@@ -254,7 +254,7 @@ namespace Nom.Orch.Services
                     {
                         Id = r.Id,
                         Name = r.Name,
-                        Description = r.Description,
+                        Description = r.ProseWithheld ? null : r.Description,
                         CurationStatus = r.CurationStatus?.Name ?? "NonCurated"
                     }).ToList() ?? new List<RecipeModel>()
                 }).ToList(),

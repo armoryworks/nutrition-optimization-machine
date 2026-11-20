@@ -57,6 +57,7 @@ namespace Nom.Orch.Services
                     && r.DateCurationCompleted == null
                     && r.VettingIssues == null
                     && !r.ContainsSourceProse
+                    && !r.ProseWithheld
                     && (r.LicenseStatus == RecipeLicenseStatus.PublicDomain
                         || (r.LicenseStatus == RecipeLicenseStatus.Unknown && r.ScrapedAtUtc != null && (!requireImage || (r.Image != null && r.Image != ""))))
                     && r.RecipeIngredients!.All(ri => ri.Ingredient.CurationStatusId == (long)CurationStatusEnum.Curated

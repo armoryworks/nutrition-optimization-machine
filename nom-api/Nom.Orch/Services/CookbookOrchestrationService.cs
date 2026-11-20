@@ -135,7 +135,7 @@ namespace Nom.Orch.Services
                 {
                     Id = cr.Recipe!.Id,
                     Name = cr.Recipe.Name,
-                    Description = cr.Recipe.Description ?? string.Empty,
+                    Description = cr.Recipe.ProseWithheld ? string.Empty : cr.Recipe.Description ?? string.Empty,
                     AuthorId = cr.Recipe.AuthorId,
                     ImageUrl = cr.Recipe.Image,
                     PrepTimeMinutes = cr.Recipe.PrepTimeMinutes,

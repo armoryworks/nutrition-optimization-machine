@@ -260,7 +260,7 @@ namespace Nom.Orch.Services
             {
                 Id = r.Id,
                 Name = r.Name,
-                Description = r.Description ?? string.Empty,
+                Description = ProseWithholding.Description(r),
                 AuthorId = r.AuthorId,
                 AuthorName = r.Author?.Name ?? "Unknown",
                 Rating = r.Rating ?? 0,
@@ -287,7 +287,7 @@ namespace Nom.Orch.Services
             {
                 Id = r.Id,
                 Name = r.Name,
-                Description = r.Description ?? string.Empty,
+                Description = ProseWithholding.Description(r),
                 AuthorId = r.AuthorId,
                 AuthorName = r.Author?.Name ?? "Unknown",
                 Rating = r.Rating ?? 0,
@@ -435,11 +435,22 @@ namespace Nom.Orch.Services
                 }
             }
 
+            List<string>? keyFacts = null;
+            if (recipe.ProseWithheld)
+            {
+                var source = await _context.ScrapedDocuments.AsNoTracking()
+                    .Where(d => d.RecipeId == recipe.Id)
+                    .OrderByDescending(d => d.Id)
+                    .Select(d => d.RawJsonLd)
+                    .FirstOrDefaultAsync();
+                keyFacts = ProseKeyFacts.FromJsonLd(source);
+            }
+
             return new RecipeResponseModel
             {
                 Id = recipe.Id,
                 Name = recipe.Name,
-                Description = recipe.Description ?? string.Empty,
+                Description = ProseWithholding.Description(recipe),
                 AuthorId = recipe.AuthorId,
                 AuthorName = recipe.Author?.Name ?? "Unknown",
                 ImageUrl = recipe.Image,
@@ -460,6 +471,8 @@ namespace Nom.Orch.Services
                 SourceUrl = recipe.SourceUrl,
                 SourceAttribution = recipe.SourceAttribution,
                 ContainsSourceProse = recipe.ContainsSourceProse,
+                ProseWithheld = recipe.ProseWithheld,
+                KeyFacts = keyFacts,
                 SourceImageHeld = recipe.SourceImageUrl != null && string.IsNullOrEmpty(recipe.Image),
                 DishGroup = recipe.DishGroup == null ? null : new RecipeDishGroupModel
                 {
@@ -497,11 +510,11 @@ namespace Nom.Orch.Services
                         }).ToList() ?? new List<IngredientSubstitutionModel>()
                 }).ToList() ?? new List<RecipeIngredientModel>(),
                 Variation = variation,
-                Steps = recipe.RecipeSteps?.Select(rs => new RecipeStepModel
+                Steps = ProseWithholding.Steps(recipe).Select(rs => new RecipeStepModel
                 {
                     Description = rs.Description ?? string.Empty,
                     Order = rs.StepNumber
-                }).OrderBy(s => s.Order).ToList() ?? new List<RecipeStepModel>(),
+                }).ToList(),
                 Nutrition = label,
                 NutritionDerived = recipe.Nutrition == null || recipe.Nutrition.Count == 0 || recipe.Nutrition.Any(n => n.DateCalculated != null),
                 NutritionSource = labelSource
@@ -672,9 +685,13 @@ namespace Nom.Orch.Services
             if (recipe == null)
                 return null;
 
+            var withheld = recipe.ProseWithheld;
+            var ownDescription = !string.IsNullOrWhiteSpace(model.Description);
+            var ownSteps = model.Steps.Any(st => !string.IsNullOrWhiteSpace(st.Description));
+
             // Update basic recipe properties
             recipe.Name = model.Name;
-            recipe.Description = model.Description;
+            if (!withheld || ownDescription) recipe.Description = model.Description;
             recipe.Servings = model.Servings;
             recipe.ServingQuantity = model.ServingQuantity;
             recipe.ServingQuantityMeasurementId = model.ServingQuantityMeasurementId;
@@ -732,7 +749,7 @@ namespace Nom.Orch.Services
                 .ToDictionaryAsync(rs => rs.StepNumber);
             var keptStepNumbers = new HashSet<int>();
 
-            foreach (var step in model.Steps)
+            foreach (var step in withheld && !ownSteps ? Enumerable.Empty<RecipeStepModel>() : model.Steps)
             {
                 if (!keptStepNumbers.Add(step.Order))
                 {
@@ -759,8 +776,27 @@ namespace Nom.Orch.Services
                 }
             }
 
-            _context.RecipeSteps.RemoveRange(existingSteps.Values
-                .Where(rs => !rs.IsDeleted && !keptStepNumbers.Contains(rs.StepNumber)));
+            if (!withheld || ownSteps)
+            {
+                _context.RecipeSteps.RemoveRange(existingSteps.Values
+                    .Where(rs => !rs.IsDeleted && !keptStepNumbers.Contains(rs.StepNumber)));
+            }
+
+            if (withheld && ownSteps && (ownDescription || string.IsNullOrWhiteSpace(recipe.Description)))
+            {
+                _context.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+                {
+                    EntityType = ProseRecheckService.RecipeEntityType,
+                    EntityId = recipe.Id,
+                    ChangeType = ProseRecheckService.WithholdEndChangeType,
+                    PropertyName = nameof(RecipeEntity.ProseWithheld),
+                    OldValue = "true",
+                    NewValue = "false",
+                    Timestamp = DateTime.UtcNow,
+                    ChangedByPersonId = _currentUser.PersonIdOrSystem,
+                });
+                recipe.ProseWithheld = false;
+            }
 
             // Save all changes
             await _context.SaveChangesAsync();
@@ -770,7 +806,7 @@ namespace Nom.Orch.Services
             {
                 Id = recipe.Id,
                 Name = recipe.Name,
-                Description = recipe.Description ?? string.Empty,
+                Description = ProseWithholding.Description(recipe),
                 AuthorId = recipe.AuthorId,
                 AuthorName = "Updated", // Would need to load author to get name
                 Rating = recipe.Rating ?? 0,

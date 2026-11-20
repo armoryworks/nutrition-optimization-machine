@@ -4,8 +4,9 @@ A scraped recipe's method and description are shown only in our own words. The p
 whether a text is our own: it compares a rewrite with the stored source (`recipe.ScrapedDocument`) by
 rule, with no model. Version 2 (`ProseCheck`, `ProseCheck.Version = 2`) replaces the bare-number
 comparison of `RewriteFidelity`. The re-check and the rewrite lane are to call the same function, so
-they always agree; until those are moved onto it (the prose withhold and prose lane v2 branches),
-`RewriteFidelity` stays the gate they use.
+they always agree. The re-check runs v2 (see "The withheld state" below); until the rewrite lane is
+moved onto it (prose lane v2), `RewriteFidelity` stays the gate of the lane, and the re-check catches
+what the lane lets through.
 
 The check is text only: `ProseCheck.Check(source, rewrite, ingredientLines, stockIndex)`. The finding
 lists every rule broken with its detail, the copy measures it computed, the check version and the
@@ -125,10 +126,87 @@ strict reading.
 Copyrighted source text is never committed. Cases from scraped recipes belong in a staging-only set
 that refers to recipe ids.
 
+## The withheld state
+
+A scraped recipe whose shown description and steps fail the check has its prose **withheld**
+(`Recipe.ProseWithheld`). This replaces the old remedy of putting it back into quarantine
+(`ContainsSourceProse`), which hid the whole recipe and dropped approved recipes out of search and
+meal plans.
+
+- **Never served.** No endpoint serves a withheld recipe's stored description or steps, to anyone,
+  author and admins included: detail, the recipe lists, search (with steps), suggestions, plans,
+  cookbooks, the curation queue, bulk export (JSON, CSV and the PDF print) and the image finder's
+  work items. The redaction is `ProseWithholding` (or the same test on `ProseWithheld` inside a query
+  projection); `ProseWithheldEndpointTests` walks each of those endpoints with a withheld recipe and a
+  shown one, so an endpoint that serves nothing cannot pass. The text stays in the database and in
+  the journal, for the undo.
+- **Still usable.** Visibility does not test `ProseWithheld`: search, suggestions, shuffle and meal
+  plans keep the recipe, and its curation status is left as it is. Auto-approval skips a recipe that
+  is not yet approved while it is withheld (`RecipeAutoApprovalPolicy`).
+- **Key facts and the source link** stand in for the method. The detail returns `keyFacts`, built by
+  rule from the stored source method (`ProseKeyFacts`): each time, temperature and pan size in step
+  order with its verb ("oven 350°F · 9 x 13-inch pan · bake 30 to 40 min · cool 30 min"), written in
+  one fixed form so no source wording is carried over. The recipe page shows them with "Full method
+  at example.com" and the note "We're writing this method in our own words."
+  (`data-testid` `recipe-method-withheld`, `recipe-key-facts`, `recipe-key-fact`,
+  `recipe-method-source-link`, `recipe-method-withheld-note`).
+- **Edits.** A save from the edit form, which never saw the withheld text, keeps the stored
+  description when it sends a blank one and the stored steps when it sends none. When a person
+  writes both their own steps and their own description (or the stored one is empty), the withhold
+  ends, journaled as `ProseWithholdEnd`.
+- **A holding state, never an end.** Every withheld recipe is work for the rewrite lane (prose lane
+  v2), approved first. The Pipeline page shows the count ("Prose withheld (approved)"); the goal is
+  none.
+
+### Re-check, apply and undo
+
+`POST /api/ProseRewrite/recheck?version=2&apply=false&maxRecipes=500` checks every shown scraped
+recipe of unknown licence (neither quarantined nor withheld) against its source with the current
+stock index. It reports the totals by reason (`failedByReason`: `wrong-amount`, `lost-step`,
+`copied-text` ...), by status and for approved recipes, the samples (approved first), and lists the
+recipes skipped because a person edited a step. Only the current check version runs; any other
+`version` is refused. With `apply=true` it withholds up to `maxRecipes` failures, approved first, in
+transactions of 500, each journaled as `ProseWithhold` (old check version, the finding, the check and
+stock versions), and stamps the passing recipes with the check version. An apply is refused while no
+stock index has been built. An apply that leaves no failure shown is recorded as a full run
+(`ProseRecheckRun`).
+
+`POST /api/ProseRewrite/recheck/undo?sinceUtc=&apply=false` releases the recipes withheld since that
+time with the check version they had, unless their prose has been replaced since (a later
+`ProseRewrite` journal row, or the withhold already ended). Each release is journaled as
+`ProseWithholdUndo`, so a repeat dry run shows nothing left (`remaining` 0). It still takes back
+recipes an earlier re-check put into quarantine (`ProseRecheck` rows). Releasing is the only way to
+show withheld text again.
+
+### The weekly job
+
+`ProseRecheckHostedService` runs the re-check with apply when a full run is due: when none is
+recorded, when the check or the stock index has a version the last full run did not use (so a deploy
+with a new check runs it), or every `ProseRecheck:IntervalDays` (default 7). It never runs before a
+stock index exists. It is off until `ProseRecheck:Enabled=true` (turn it on after the first withhold
+has been applied by hand), looks every `ProseRecheck:CheckMinutes` (default 60), and the platform
+feature `pause-prose-recheck` holds it. Turn the pause on before a release with the undo, or the next
+run withholds those recipes again.
+
+### Step markers
+
+`POST /api/ProseRewrite/markers?apply=false&maxRecipes=1000` takes the step markers the check reports
+(`step-marker`) out of the steps of scraped recipes: "1. Heat", "Step 2: Mix", "2In a bowl",
+"hours.2.Stir", "Toss to mix. 3.", "4) Fold". Nothing else in the step changes; a step that held only
+a marker is removed. Steps a person edited, and steps too long for the journal to hold, are left
+alone. Each step changed is journaled as `ProseMarkerStrip` on the recipe, with the property
+`RecipeStep:{number}` and the whole old text. `POST /api/ProseRewrite/markers/undo?sinceUtc=&apply=false`
+puts back every step whose text has not changed since, journaled as `ProseMarkerStripUndo`.
+
 ## Proving it on staging
 
 1. Rebuild the stock index as a dry run: it must read about 21,954 documents on 17 sites (the
    2026-11-20 analysis), then apply.
-2. Once the re-check runs v2 (the prose withhold branch), compare with the analysis: of the 2,422
-   copied-only failures in the listed 5,000, about 939 had at most 3 words outside phrases of 3 or
-   more sites; v2 should no longer fail those for copying.
+2. Re-check dry run: compare with the analysis: of the 2,422 copied-only failures in the listed
+   5,000, about 939 had at most 3 words outside phrases of 3 or more sites; v2 should no longer fail
+   those for copying. Record the totals per reason and the approved count; read 60 failures and 20
+   passes at random (wrong-amount and lost-step must be real).
+3. Note the time T, apply with `maxRecipes=200`, and check as an anonymous user in the app at phone
+   width: the recipe is found in search, its page shows key facts and the source link and no
+   description or steps, and a meal plan can pick it. Then undo from T: `restored` 200, `skipped` 0,
+   and a repeat dry run shows `remaining` 0.

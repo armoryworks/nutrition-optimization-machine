@@ -35,6 +35,10 @@ namespace Nom.Orch.Models.Curation
         /// <summary>Waiting scraped recipes of unknown licence that have no image of their own.</summary>
         public int WaitingScrapedWithoutOwnImage { get; init; }
         public int WaitingWithSourceProse { get; init; }
+        /// <summary>Recipes whose own prose failed the prose check and is withheld until the rewrite lane replaces it; the goal is none.</summary>
+        public int ProseWithheld { get; init; }
+        /// <summary>Of those withheld, the approved ones, which the rewrite lane takes first.</summary>
+        public int ProseWithheldApproved { get; init; }
         public int RevisionMissingQuantities { get; init; }
         public int RevisionSteps { get; init; }
         /// <summary>Approved recipes holding a measured ingredient line their label leaves out.</summary>
