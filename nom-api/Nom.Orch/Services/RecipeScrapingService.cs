@@ -47,6 +47,7 @@ namespace Nom.Orch.Services
         private readonly IRecipeVettingService _vetting;
         private readonly ILogger<RecipeScrapingService> _logger;
         private readonly bool _resolveVerifiedWordings;
+        private bool? _aliasesClassified;
 
         public RecipeScrapingService(
             ApplicationDbContext dbContext,
@@ -666,18 +667,31 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// The live food that a deterministic rule or a person gave this wording to (see
-        /// <see cref="IngredientAliasTrust"/>). An alias of unknown origin or from a model pick is
-        /// not followed, and neither is a wording that two foods both claim.
+        /// <see cref="IngredientAliasTrust"/>). An alias from a model pick is not followed, and
+        /// neither is a wording that two foods both claim. An alias of unknown origin is followed
+        /// only until the alias classification has been applied on this database (its journal
+        /// holds an entry), as imports did before; so an import that runs between the deploy and
+        /// the classification lands where it always did instead of creating a row the
+        /// classification cannot take back.
         /// </summary>
         private async Task<IngredientEntity?> FindByTrustedAliasAsync(string lowered)
         {
-            var owners = await _dbContext.IngredientAliases
-                .Where(a => a.AliasName.ToLower() == lowered && !a.IsDeleted && !a.Ingredient.IsDeleted)
+            var live = _dbContext.IngredientAliases.Where(a => a.AliasName.ToLower() == lowered && !a.IsDeleted && !a.Ingredient.IsDeleted);
+            var owners = await live
                 .Where(IngredientAliasTrust.IsTrustedAlias)
                 .Select(a => a.IngredientId)
                 .Distinct()
                 .Take(2)
                 .ToListAsync();
+            _aliasesClassified ??= await _dbContext.AuditLogEntries.AnyAsync(e =>
+                e.EntityType == IngredientLinkService.AliasEntityType && e.ChangeType == IngredientLinkService.AliasTrustChangeType);
+            if (_aliasesClassified == false)
+            {
+                owners = owners
+                    .Concat(await live.Where(a => a.SourceContext == null).Select(a => a.IngredientId).Distinct().Take(2).ToListAsync())
+                    .Distinct()
+                    .ToList();
+            }
             if (owners.Count != 1) return null;
 
             var ownerId = owners[0];

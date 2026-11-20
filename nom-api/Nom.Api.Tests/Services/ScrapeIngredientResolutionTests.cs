@@ -54,6 +54,16 @@ namespace Nom.Api.Tests.Services
             await db.SaveChangesAsync();
         }
 
+        private static async Task ClassifiedAsync(ApplicationDbContext db)
+        {
+            db.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+            {
+                EntityType = IngredientLinkService.AliasEntityType, ChangeType = IngredientLinkService.AliasTrustChangeType, EntityId = 999,
+                PropertyName = nameof(IngredientAliasEntity.SourceContext), OldValue = "other", NewValue = "deterministic:recheck:name-key", Timestamp = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync();
+        }
+
         private static async Task<IngredientEntity> ImportAsync(ApplicationDbContext db, string ingredientName)
         {
             var recipeName = $"Recipe {Guid.NewGuid():N}";
@@ -107,6 +117,7 @@ namespace Nom.Api.Tests.Services
             using var db = NewContext();
             var salt = await FoodAsync(db, "Salt");
             await AliasAsync(db, salt, "kosher salt", null);
+            await ClassifiedAsync(db);
 
             var landed = await ImportAsync(db, "Kosher salt");
 
@@ -114,6 +125,23 @@ namespace Nom.Api.Tests.Services
             landed.Name.Should().Be("Kosher salt");
             landed.CurationStatusId.Should().Be((long)CurationStatusEnum.NonCurated);
             landed.CreatedByPersonId.Should().Be(Importer);
+        }
+
+        [Fact]
+        public async Task Until_the_aliases_are_classified_an_alias_with_no_context_is_followed_as_before_and_no_row_is_created()
+        {
+            using var db = NewContext();
+            var salt = await FoodAsync(db, "Salt");
+            await AliasAsync(db, salt, "kosher salt", null);
+            var cream = await FoodAsync(db, "Light Cream");
+            var heavy = await FoodAsync(db, "Heavy Cream");
+            await AliasAsync(db, cream, "cream", null);
+            await AliasAsync(db, heavy, "cream", "admin:link:ai:fake");
+
+            (await ImportAsync(db, "kosher salt")).Id.Should().Be(salt.Id);
+            (await ImportAsync(db, "cream")).Name.Should().Be("cream", "a wording two foods claim is still followed by neither");
+            await ClassifiedAsync(db);
+            (await ImportAsync(db, "Kosher Salt")).Id.Should().NotBe(salt.Id);
         }
 
         [Fact]
@@ -230,6 +258,7 @@ namespace Nom.Api.Tests.Services
             using var db = NewContext();
             var cream = await FoodAsync(db, "Light Cream");
             await AliasAsync(db, cream, "cream", null);
+            await ClassifiedAsync(db);
 
             var first = await ImportAsync(db, "cream");
             var second = await ImportAsync(db, "1 cup Cream");
