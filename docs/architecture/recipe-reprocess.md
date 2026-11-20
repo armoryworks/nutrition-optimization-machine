@@ -8,7 +8,11 @@ images, prose rewrites and curation stay where they are. Nothing is fetched from
 
 Code: `Nom.Orch/Services/Support/RecipeLineBuilder.cs` (shared with the import),
 `Nom.Orch/Services/RecipeReprocessService.cs`, `Nom.Api/Controllers/RecipeReprocessController.cs`,
-journal table `recipe."RecipeReprocessJournal"`. Tests: `RecipeReprocessTests`.
+journal table `recipe."RecipeReprocessJournal"`; the lane: `ReprocessDetectorService`,
+`ReprocessLaneService`, `Support/ReprocessRuleAudit.cs`, `OllamaLineJudge.cs`,
+`Nom.Api/Services/ReprocessHostedService.cs`, table `recipe."ReprocessCandidate"`; the
+re-extraction: `ops/cookbook-extract.py`. Tests: `RecipeReprocessTests`, `ReprocessLaneTests`,
+`ReprocessLaneRebuildTests`, golden `recipes-rebuild.tsv`.
 
 ## One line builder for the import and the rebuild
 
@@ -33,8 +37,9 @@ fix reaches both:
 
 `RecipeLineBuilder.Version` (`line-builder/2` since the parser rules R1-R9 of
 `cleanup2/parser-rules`) is stamped on every journal row. Raise it with any
-change to a rule the builder applies, so the detector (a later item) can tell which recipes an
-older version built.
+change to a rule the builder applies: the detector reads again every recipe an older version read,
+and the lane's signature changes, so its tiers go back to shadow until they qualify under the new
+rules.
 
 ## Rebuild
 
@@ -61,7 +66,16 @@ older version built.
 - **Kind of a paired line.** A rebuilt line with no amount and no deterministic kind keeps the kind
   the lanes gave the row of the same text.
 - **Order.** The source's order (`SortOrder` 0, 1, 2 ...).
-- **Steps and prose** are not touched. `ProseWithheld` and the step stamps stay as they are.
+- **Steps and prose** are not touched, except for a newer extraction of a book (below).
+  `ProseWithheld` stays as it is.
+- **A newer extraction of a book.** When the source is a `staged-cookbook` record of version 2 or
+  later (a re-extraction attached as the next version, `ops/cookbook-extract.py`) and its steps differ
+  from the live steps, the rebuild replaces the steps too: steps 1, 2, 3 ... with the texts the import
+  would store, each stamped as last changed by the system person, keeping the type and creation stamps
+  of the live step at its place. The step key is (recipe, step number), so every step row, deleted
+  ones too, is replaced, as the line rows are, and the journal keeps them all (`OldSteps`,
+  `NewSteps`). A step a person changed (stamped by anyone but the system person) holds the recipe
+  (`person-step-edit`). A web or JSON-LD source never replaces steps: the prose lane owns them.
 
 The answer lists, per recipe, each line before and after with what changed (`amount`, `food`,
 `order`, `kind`, `text`, `added`, and `prepared-food` for a line left on a prepared food), and the counts per batch (including `dropped` rows, lines
@@ -136,9 +150,13 @@ characters), so the journal is its own table.
 
 A write that changes lines also writes a header in `audit.AuditLogEntry` (entity
 `RecipeIngredient`, the recipe as `EntityId`, change `Reprocess`, `journal=<id>;batch=...` in
-`NewValue`). So the recipe counts as held by a journaled operation (`RecipeLineHold`): the start-up
-repair, the line-classify lane and the repair lane leave its lines alone, and the undo can restore
-them however often the API restarts.
+`NewValue`). So the recipe counts as held by a journaled operation (`RecipeLineHold`): the repair
+lane leaves its lines alone, and the undo can restore them however often the API restarts. The
+start-up repair leaves a recipe with a standing `Reprocess` header alone altogether (no fill, no
+step split, no entity decoding, no re-vetting): the rebuild applies the same rules and journals
+them, and a newer rule reaches the recipe by the next rebuild. The line-classify lane is let through
+the header: it labels the rows a rebuild left without a kind, which the undo tolerates (above), so
+rebuilt recipes get the model's kinds as well as the deterministic ones.
 
 The rows are replaced, not edited, because the line key (recipe, food, position) changes with the
 order: every row of the recipe, deleted ones too, is removed for good and the new rows inserted
@@ -147,8 +165,11 @@ the row it was paired with, and is stamped as last changed by the system person.
 
 `POST /api/RecipeReprocess/undo?sinceUtc=&batchId=&kind=&apply=false` takes back the writes made
 at or after `sinceUtc`, or of one batch, newest first, limited to one kind when given. A write is
-restored only when the recipe's rows (deleted ones included) still equal `NewRows`; otherwise it
-is skipped and its recipe listed. The recipe's state is restored only when it still equals
+restored only when the recipe's rows (deleted ones included) still equal `NewRows`, and its steps
+`NewSteps` when it replaced them; otherwise it is skipped and its recipe listed. A kind the
+line-classify lane gave since to a row the write left without one does not count as a change: that
+lane only labels unclassified rows and no undo reads its labels, so the rows are restored as they
+were before the write. The recipe's state is restored only when it still equals
 `NewRecipe`; otherwise the lines are restored and the state kept (`stateKept`), except that a
 recipe approved since the write (Curated now, not Curated after the write) is skipped: it was
 approved on the rebuilt lines, and an approved recipe must not get back lines that may fail
@@ -171,10 +192,109 @@ again.
 
 Nutrition is recalculated after every rebuild and every undo that restored lines.
 
+## The detector
+
+`ReprocessDetectorService` reads every recipe with a stored source again with the current line
+rules, as a dry run of the rebuild, and stores what it finds in `recipe."ReprocessCandidate"`, one
+row per recipe: `Reasons` (bits), `RuleVersion` (the builder's version it read with),
+`SourceDocumentId` (the newest source it read), `Tier`, `Priority`, `DetectedAt`, and what the lane
+did (`Outcome`, `OutcomeReason`, `OutcomeAt`, `JournalId`). A recipe is read again only when
+`RecipeLineBuilder.Version` changes or a newer source is attached; a recipe a person edited and a
+rejected one are not read. Nothing is written to recipes.
+
+| Code | Reason | From the dry run |
+|---|---|---|
+| D1 | order lost | the stored lines all at position 0, a `" + "` fold, a changed order, or (with no newer extraction) a new or dropped line from a merge or split |
+| D2 | amount | a line whose own text the parser now reads another amount or unit from |
+| D3 | method fill | an amount the line's text does not state (filled from the method, now or before) that changes |
+| D4 | food | a line whose food gives way (retired, prepared, uncurated junk, uncurated where a curated food is found) |
+| D5 | kind | the deterministic kind differs (a colon heading) |
+| D6 | compound | a stored line the compound rules read as whole foods sharing a product (`or-shared-head`, R9) that is not on that product |
+| D7 | source | new, dropped or reworded lines or steps from a newer extraction of the book |
+| D8 | duplicate | a copy the duplicate retire would retire (marked after each sweep) |
+
+D6 and D8 alone are not rebuilt: the compound rules and the duplicate retire deal with them. A
+candidate whose only change is its order goes to the `order` tier (the light order-only pass, R4);
+every other one to `rebuild`. Priority: an amount, a method fill or a food 300, a newer source 200,
+a kind or compound 100, order alone 0; an approved recipe 50 more when it has any change but order.
+
+## The lane (`ReprocessHostedService`, `ReprocessLaneService`)
+
+Lane `reprocess` on the lane frame (`lane-frame.md`), tiers `rebuild` and `order`, behind the lane
+gate (`ai-pause-all`, `ai-pause-reprocess`, quiet hours). Off unless `Reprocess:Enabled=true`.
+
+- After each start and every `Reprocess:DetectEveryHours` (24) the detector sweeps, in batches of
+  `Reprocess:DetectBatchSize` (200).
+- Between sweeps each tier takes up to `Reprocess:BatchSize` (100) candidates, highest priority first,
+  within its daily cap: `Reprocess:MaxPerDay` (500) rebuilds and `Reprocess:OrderMaxPerDay` (5,000)
+  order restores in 24 hours, counted from the lane's decisions.
+- A tier writes only while the frame holds it live. In shadow, and while paused (probation), it
+  previews the rebuild and records the decision; a candidate decided in shadow waits for the live
+  tier, which takes it again. Every write is under a batch id starting `rl-`.
+- Every decision is a `curation."LaneDecision"` row (subject `recipe:<id>`, stratum the main reason)
+  with up to six changed lines and their rule-check failures in its signals. A batch is journaled as
+  a `ReprocessBatch` row (entity `ReprocessLane`) with its figures.
+
+**Rule checks** (`ReprocessRuleAudit`, written apart from the builder, no model) on every changed
+line: A1 the amount stands in the line's text, or for a method fill in a method sentence that names
+the food, as a stated number times an old measure the text names (a quart is 4 cups, a gill half a
+cup, a pound 16 ounces), or a range; a line that starts with a number or "two cups of" stored with no
+amount fails. A2 a line moved to another food names that food. A3 pieces only of a food with a weight
+per item and never of a liquid or of a line that states a measure; no volume of a whole bird. A4 a
+recipe fails no more checks after than before. A5 (live) ten rebuilt recipes rebuilt again change
+nothing.
+
+**Faults** (pause a live tier; keep a shadow tier in shadow): the checks pass on less than 98 % of a
+batch's changed lines (at least 50), or less than 99 % in shadow; more than 5 % of a batch's approved
+recipes held (at least 20); a rebuild that is not idempotent; the line judge unreachable, or unreadable
+on more than a fifth of its sample.
+
+**Audit and bars.** The rebuild tier's auditor is the line judge (`OllamaLineJudge`, reader B of the
+roster, `mistral-nemo` by default, `Reprocess:JudgeModel` to change it): it reads up to three changed
+lines of a sampled decision with the source line and the method sentences that name the food, and
+calls the rebuilt row better, the same, worse or unclear. A recipe is flagged when a line is worse;
+the flag counts as an error only when the rule audit confirms it (a check failing on a changed line,
+or A4). The combined check's own score comes from the committed `line-judge` golden record
+(`golden-sets.md`), built into the API: without a record of the current prompt and judge model, at or
+above its floor, the tier cannot go live. Sample 30 % of written decisions (at least 30). Bars:
+qualify on a Wilson lower bound of 98 % (at most one worse in about 300), pause when a full window of
+300 audited rebuilds shows more than 3 % confirmed worse (the observed-error rule, LQ-4). The order
+tier's auditor is an exact rule (a decision is wrong when a line changed anything but its position),
+10 % sample, qualify 99 %, pause above 2 % over 400.
+
+**Undo.** `ReprocessLaneUndo` takes back the tier's own batches (`rl-`) since the last clean window,
+newest first, through the journal (rule rejections, then rebuilds; order restores for the order
+tier), and marks those candidates `undone`: they wait for the next change of the line rules. An
+operator's rebuild (`rp-`) is never the lane's to undo.
+
+The Pipeline page shows the frame rows of both tiers and a "Recipe rebuild" block: candidates
+waiting by tier, outcomes, reasons with their waiting counts, each tier's last batch with its rule
+share and faults, and the judge's record problem.
+
+## Re-extracting a book (`ops/cookbook-extract.py`)
+
+Run on the harvest host, where the book texts are; it fetches nothing and asks only the model host
+the operator names. Chunks start at recipe titles (numbered, capitals or title case after a blank
+line) and hold whole recipes up to `--limit` characters (4,000), so a recipe is never cut at a chunk
+edge; one recipe longer than `--hard-limit` is cut at paragraph ends and its records are marked
+`split`. Every record passes the fidelity check (each ingredient line appears in the chunk after
+normalization, else each of its numbers is in the chunk and each of its words found there) or is
+dropped to `--rejects` with its reason. With `--translate` (Artusi) the model writes English and
+quotes the Italian line of each ingredient and step: the Italian line must be in the chunk, the
+English line must carry exactly its numbers and units (grammi is grams, cucchiaio a tablespoon; one
+is not compared, since an article reads as one in one language only), and two English lines may not
+come from one Italian line. Each kept record may carry `replacesRecipeId`, from the first attach's
+log (`--recipe-map`, by name or quoted title) or a CSV (`--pin-csv`). `recipe-source-attach.py`
+sends that as a pin: with `newVersion`, `POST /api/RecipeSource/attach` stores a pinned record as the
+next version on that recipe only, when it already holds a record of that format, whatever the line
+agreement (a translation does not repeat the old lines). The detector then finds D7 and the lane
+rebuilds lines and steps.
+
 ## What is not here yet
 
-- The detector (reasons D1-D8), the candidate table, the hosted lane on the lane frame, the daily
-  cap and the line judge are the `reprocess-lane` item. Until then the operator names the recipes.
 - The compound split rules are not repeated by the rebuild; recipes with a standing split are held.
 - `undo-applied` (the USDA link undo) does not yet skip rebuilt recipes. Undo a rebuild before
   undoing a link applied before it.
+- A6 (kcal per serving plausible after a rebuild) is not checked by the lane; the nutrition label is
+  recalculated after each rebuild and its plausibility is the nutrition pipeline's.
+- A held recipe is retried when the line rules change, not after a catalog change.

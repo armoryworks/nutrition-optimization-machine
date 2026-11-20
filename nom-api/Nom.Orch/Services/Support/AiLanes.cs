@@ -15,6 +15,7 @@ namespace Nom.Orch.Services.Support
         public const string ProseRewrite = "prose-rewrite";
         public const string DishGrouping = "dish-grouping";
         public const string ToolTagging = "tool-tagging";
+        public const string Reprocess = "reprocess";
 
         public static readonly IReadOnlyList<(string Lane, string Label)> All = new[]
         {
@@ -24,6 +25,7 @@ namespace Nom.Orch.Services.Support
             (ProseRewrite, "prose rewrite"),
             (DishGrouping, "dish grouping"),
             (ToolTagging, "kitchen tool tagging"),
+            (Reprocess, "recipe rebuild from the stored source, with its line judge"),
         };
 
         public const string PauseAllKey = "ai-pause-all";

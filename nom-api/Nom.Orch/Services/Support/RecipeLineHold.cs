@@ -16,7 +16,10 @@ namespace Nom.Orch.Services.Support
     /// line-classify lanes) leave the lines of a held recipe as they are, so the undo restores every
     /// row it wrote however often the API restarts in between. Only the line labels of the classify
     /// lane, which no undo reads, the start-up repair's own entries, an order-only reprocess (its undo
-    /// skips a recipe changed since) and an undone reprocess hold no recipe.
+    /// skips a recipe changed since) and an undone reprocess hold no recipe. The line-classify lane
+    /// also passes a full rebuild's own entry: it only labels rows a rebuild left without a kind, and
+    /// the rebuild's undo does not count those labels as a change. The start-up repair leaves a
+    /// rebuilt recipe alone by its own rule.
     /// </summary>
     public static class RecipeLineHold
     {

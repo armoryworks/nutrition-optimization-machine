@@ -18,6 +18,8 @@ public class RecipeReprocessJournalEntityConfiguration : IEntityTypeConfiguratio
         builder.Property(e => e.RuleVersion).IsRequired().HasMaxLength(64);
         builder.Property(e => e.OldRows).HasColumnType("jsonb");
         builder.Property(e => e.NewRows).HasColumnType("jsonb");
+        builder.Property(e => e.OldSteps).HasColumnType("jsonb");
+        builder.Property(e => e.NewSteps).HasColumnType("jsonb");
         builder.Property(e => e.OldRecipe).HasColumnType("jsonb");
         builder.Property(e => e.NewRecipe).HasColumnType("jsonb");
 

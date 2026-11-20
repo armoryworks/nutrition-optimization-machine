@@ -41,6 +41,7 @@ namespace Nom.Orch.Models.Recipe
         public const string ApprovedFewerCurated = "approved-fewer-curated";
         public const string ApprovedVetting = "approved-vetting";
         public const string ApprovedGate = "approved-gate";
+        public const string PersonStepEdit = "person-step-edit";
     }
 
     /// <summary>One line of a rebuilt recipe next to the stored row it replaces (none for an added line).</summary>
@@ -114,6 +115,9 @@ namespace Nom.Orch.Models.Recipe
 
         /// <summary>Set to Rejected by rule: neither the source nor the rebuilt version is a recipe.</summary>
         public bool Rejected { get; set; }
+
+        /// <summary>The steps are, or would be, replaced by those of a newer extraction of the book.</summary>
+        public bool StepsReplaced { get; set; }
 
         public long? JournalId { get; set; }
         public RecipeReprocessChangeCounts Counts { get; set; } = new();

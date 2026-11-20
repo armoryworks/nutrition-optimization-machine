@@ -290,6 +290,43 @@ export interface PipelineFrame {
   roster: PipelineRoster;
 }
 
+export interface ReprocessReasonCount {
+  code: string;
+  label: string;
+  recipes: number;
+  waiting: number;
+}
+
+export interface ReprocessLaneBatch {
+  tier: string;
+  mode: string;
+  stamp: string;
+  taken: number;
+  rebuilt: number;
+  held: number;
+  unchanged: number;
+  failed: number;
+  linesChecked: number;
+  linesFailing: number;
+  faults: string[];
+}
+
+export interface ReprocessLaneStatus {
+  enabled: boolean;
+  ruleVersion: string;
+  read: number;
+  readWithCurrentRules: number;
+  waiting: number;
+  waitingByTier: Record<string, number>;
+  byReason: ReprocessReasonCount[];
+  byOutcome: Record<string, number>;
+  heldByReason: Record<string, number>;
+  lastDetectedAt: string | null;
+  judgeModel: string;
+  judgeProblem: string | null;
+  lastBatches: ReprocessLaneBatch[];
+}
+
 export interface LaneUndoReport {
   lane: string;
   tier: string;
@@ -302,6 +339,7 @@ export interface PipelineStatus {
   status: PipelineCounts;
   gate: PipelineGate;
   frame?: PipelineFrame | null;
+  reprocess?: ReprocessLaneStatus | null;
 }
 
 export interface UnfoldPreview {

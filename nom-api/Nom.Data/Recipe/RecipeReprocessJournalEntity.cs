@@ -30,6 +30,12 @@ namespace Nom.Data.Recipe
         /// <summary>Every line row of the recipe after the write, as JSON; null when the lines were not changed.</summary>
         public string? NewRows { get; set; }
 
+        /// <summary>Every step of the recipe before the write, deleted ones included, as JSON; null when the steps were not changed.</summary>
+        public string? OldSteps { get; set; }
+
+        /// <summary>Every step of the recipe after the write, as JSON; null when the steps were not changed.</summary>
+        public string? NewSteps { get; set; }
+
         /// <summary>The recipe's curation state and deletion before the write, as JSON.</summary>
         public string? OldRecipe { get; set; }
 

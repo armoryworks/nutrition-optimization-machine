@@ -45,7 +45,7 @@ namespace Nom.Orch.Services
             features[AiLanes.PauseAllKey] = (
                 "Pause all AI lanes",
                 "Stops every background model lane in the API (link picker and verifier, recipe repair, line classification, "
-                + "prose rewrite, dish grouping, tool tagging) within about 30 seconds. A lane finishes the item in hand and then waits; "
+                + "prose rewrite, dish grouping, tool tagging, recipe rebuild) within about 30 seconds. A lane finishes the item in hand and then waits; "
                 + "nothing is lost, and it picks up where it left off when this is turned off. Image finding outside the API is not affected.");
             foreach (var (lane, label) in AiLanes.All)
             {

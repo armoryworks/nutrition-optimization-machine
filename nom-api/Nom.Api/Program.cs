@@ -439,6 +439,11 @@ builder.Services.AddHttpClient<Nom.Orch.Interfaces.IRecipeClassificationModel, N
     client => client.Timeout = TimeSpan.FromSeconds(300))
     .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.LineClassify));
 builder.Services.AddHostedService<Nom.Api.Services.RecipeLineClassifyHostedService>();
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IReprocessLineJudge, Nom.Orch.Services.OllamaLineJudge>(
+    client => client.Timeout = TimeSpan.FromSeconds(300))
+    .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.Reprocess));
+builder.Services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.ReprocessLaneUndo>();
+builder.Services.AddHostedService<Nom.Api.Services.ReprocessHostedService>();
 
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();

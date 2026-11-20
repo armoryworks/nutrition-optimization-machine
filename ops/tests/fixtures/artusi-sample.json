@@ -1,0 +1,25 @@
+{
+  "note": "Twenty recipes constructed in the form of Artusi's 'La scienza in cucina' (numbered titles, ingredient lines as 'Food, grammi N.'), not quoted from the book. Each English line was written by hand and its numbers and units checked by hand against its Italian line. Used by ops/tests/test_cookbook_extract.py for the number check.",
+  "recipes": [
+    {"title": "1. Pasta frolla", "name": "Shortcrust pastry", "italian": ["Farina, grammi 250.", "Burro, grammi 125.", "Zucchero, grammi 110.", "Uova, N. 1 e un rosso."], "english": ["250 grams of flour", "125 grams of butter", "110 grams of sugar", "1 egg and one yolk"]},
+    {"title": "2. Brodo", "name": "Broth", "italian": ["Carne magra di manzo, grammi 500.", "Acqua, litri 2."], "english": ["500 grams of lean beef", "2 litres of water"]},
+    {"title": "3. Risotto alla milanese", "name": "Risotto Milanese style", "italian": ["Riso, grammi 500.", "Burro, grammi 80.", "Mezza cipolla.", "Brodo, litri 1 e mezzo."], "english": ["500 grams of rice", "80 grams of butter", "half an onion", "1 and a half litres of broth"]},
+    {"title": "4. Salsa di pomodoro", "name": "Tomato sauce", "italian": ["Pomodori, grammi 600.", "Olio, cucchiai 3.", "Uno spicchio d'aglio."], "english": ["600 grams of tomatoes", "3 tablespoons of oil", "one clove of garlic"]},
+    {"title": "5. Gnocchi di patate", "name": "Potato gnocchi", "italian": ["Patate, grammi 800.", "Farina, grammi 200.", "Uova, N. 2."], "english": ["800 grams of potatoes", "200 grams of flour", "2 eggs"]},
+    {"title": "6. Ciambella", "name": "Ring cake", "italian": ["Farina, grammi 500.", "Zucchero, grammi 170.", "Burro, grammi 80.", "Latte, decilitri 2."], "english": ["500 grams of flour", "170 grams of sugar", "80 grams of butter", "2 decilitres of milk"]},
+    {"title": "7. Frittata semplice", "name": "Plain omelette", "italian": ["Uova, N. 4.", "Un pizzico di sale.", "Burro, grammi 20."], "english": ["4 eggs", "a pinch of salt", "20 grams of butter"]},
+    {"title": "8. Fagioli in umido", "name": "Stewed beans", "italian": ["Fagioli, grammi 400.", "Olio, cucchiai 2.", "Due spicchi d'aglio."], "english": ["400 grams of beans", "2 tablespoons of oil", "two cloves of garlic"]},
+    {"title": "9. Crema", "name": "Custard", "italian": ["Latte, mezzo litro.", "Zucchero, grammi 100.", "Rossi d'uovo, N. 4.", "Farina, cucchiai 2."], "english": ["half a litre of milk", "100 grams of sugar", "4 egg yolks", "2 tablespoons of flour"]},
+    {"title": "10. Polpette", "name": "Meatballs", "italian": ["Carne lessa, grammi 300.", "Parmigiano, grammi 30.", "Uova, N. 1."], "english": ["300 grams of boiled meat", "30 grams of parmesan", "1 egg"]},
+    {"title": "11. Pane di Spagna", "name": "Sponge cake", "italian": ["Uova, N. 6.", "Zucchero, grammi 200.", "Farina, grammi 150."], "english": ["6 eggs", "200 grams of sugar", "150 grams of flour"]},
+    {"title": "12. Minestra di riso e piselli", "name": "Rice and pea soup", "italian": ["Riso, grammi 200.", "Piselli, grammi 300.", "Brodo, litri 1."], "english": ["200 grams of rice", "300 grams of peas", "1 litre of broth"]},
+    {"title": "13. Bistecca alla fiorentina", "name": "Florentine steak", "italian": ["Una bistecca di grammi 600.", "Olio, cucchiaino 1."], "english": ["a steak of 600 grams", "1 teaspoon of oil"]},
+    {"title": "14. Biscotti", "name": "Biscuits", "italian": ["Farina, grammi 300.", "Zucchero, grammi 150.", "Burro, grammi 100.", "Uova, N. 3."], "english": ["300 grams of flour", "150 grams of sugar", "100 grams of butter", "3 eggs"]},
+    {"title": "15. Pollo in padella", "name": "Pan-fried chicken", "italian": ["Un pollo di chilogrammi 1.", "Vino bianco, bicchiere 1.", "Olio, cucchiai 4."], "english": ["a chicken of 1 kilogram", "1 glass of white wine", "4 tablespoons of oil"]},
+    {"title": "16. Sformato di spinaci", "name": "Spinach mould", "italian": ["Spinaci, grammi 500.", "Besciamella, decilitri 3.", "Uova, N. 2."], "english": ["500 grams of spinach", "3 decilitres of white sauce", "2 eggs"]},
+    {"title": "17. Torta di riso", "name": "Rice cake", "italian": ["Riso, grammi 100.", "Latte, litri 1.", "Zucchero, grammi 120.", "Uova, N. 4."], "english": ["100 grams of rice", "1 litre of milk", "120 grams of sugar", "4 eggs"]},
+    {"title": "18. Salsa verde", "name": "Green sauce", "italian": ["Prezzemolo, grammi 40.", "Capperi, grammi 20.", "Olio, cucchiai 5."], "english": ["40 grams of parsley", "20 grams of capers", "5 tablespoons of oil"]},
+    {"title": "19. Cenci", "name": "Fried pastry ribbons", "italian": ["Farina, grammi 240.", "Burro, grammi 20.", "Zucchero, grammi 20.", "Uova, N. 2."], "english": ["240 grams of flour", "20 grams of butter", "20 grams of sugar", "2 eggs"]},
+    {"title": "20. Zuppa inglese", "name": "Trifle", "italian": ["Crema, litri 1.", "Savoiardi, grammi 200.", "Alchermes, decilitri 1."], "english": ["1 litre of custard", "200 grams of ladyfingers", "1 decilitre of alchermes"]}
+  ]
+}

@@ -330,6 +330,26 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_newer_extraction_pinned_to_its_recipe_is_stored_as_the_next_version_although_its_lines_differ()
+        {
+            using var db = NewContext();
+            var id = await RecipeAsync(db, "Pasta frolla", Book, null, "Burro - 100g", "Farina - 200g");
+            var unpinned = await RecipeAsync(db, "Gingerbread", Book, null, Gingerbread);
+            await Service(db).AttachAsync(Batch(Book, Record("Pasta frolla", null, "Burro - 100g", "Farina - 200g")), apply: true);
+            var english = Record("Shortcrust pastry", null, "100 grams of butter", "200 grams of flour");
+            var pinned = Batch(Book, english, Record("Gingerbread", null, "a stranger's lines"));
+            pinned.RecipeIds = new List<long?> { id, unpinned };
+
+            var lowScore = await Service(db).AttachAsync(Batch(Book, english), apply: false, newVersion: true);
+            var result = await Service(db).AttachAsync(pinned, apply: true, newVersion: true);
+
+            lowScore.Results.Single().Outcome.Should().Be(RecipeSourceAttachOutcome.Unmatched, "unpinned, the new name finds no recipe");
+            result.Results[0].Should().BeEquivalentTo(new { Outcome = RecipeSourceAttachOutcome.Matched, MatchedBy = RecipeSourceService.PinnedBy, RecipeId = id, Version = 2 });
+            result.Results[1].Outcome.Should().Be(RecipeSourceAttachOutcome.Unmatched, "a pin replaces only a record its recipe already holds");
+            (await db.ScrapedDocuments.Where(d => d.RecipeId == id).OrderBy(d => d.Version).Select(d => d.Version).ToListAsync()).Should().Equal(1, 2);
+        }
+
+        [Fact]
         public async Task The_undo_removes_what_an_attach_stored_journals_it_and_leaves_import_documents()
         {
             using var db = NewContext();

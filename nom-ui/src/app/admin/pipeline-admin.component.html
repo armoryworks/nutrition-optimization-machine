@@ -432,6 +432,49 @@
       }
     </section>
 
+    <section class="nom-pipeline__section" data-testid="pipeline-reprocess">
+      <h2 class="nom-pipeline__heading">Recipe rebuild</h2>
+      @if (d.reprocess; as r) {
+        <p class="nom-pipeline__lane-line" data-testid="pipeline-reprocess-state">
+          {{ r.enabled ? 'On' : 'Off (Reprocess:Enabled)' }} · rules {{ r.ruleVersion }} · {{ r.readWithCurrentRules | number }} of {{ r.read | number }} recipes read with these rules
+          · last read {{ r.lastDetectedAt ? (r.lastDetectedAt | date: 'MMM d, HH:mm') : 'never' }}
+        </p>
+        <dl class="nom-pipeline__stats">
+          <div><dt>Waiting</dt><dd data-testid="pipeline-metric-reprocess-waiting">{{ r.waiting | number }}</dd></div>
+          <div><dt>Rebuilds waiting</dt><dd data-testid="pipeline-metric-reprocess-waiting-rebuild">{{ (r.waitingByTier['rebuild'] ?? 0) | number }}</dd></div>
+          <div><dt>Order restores waiting</dt><dd data-testid="pipeline-metric-reprocess-waiting-order">{{ (r.waitingByTier['order'] ?? 0) | number }}</dd></div>
+          <div><dt>Rebuilt</dt><dd data-testid="pipeline-metric-reprocess-rebuilt">{{ (r.byOutcome['rebuilt'] ?? 0) | number }}</dd></div>
+          <div><dt>Held</dt><dd data-testid="pipeline-metric-reprocess-held">{{ (r.byOutcome['held'] ?? 0) | number }}</dd></div>
+          <div><dt>Undone</dt><dd data-testid="pipeline-metric-reprocess-undone">{{ (r.byOutcome['undone'] ?? 0) | number }}</dd></div>
+        </dl>
+        <ul class="nom-pipeline__list" data-testid="pipeline-reprocess-reason-list">
+          @for (reason of r.byReason; track reason.code) {
+            <li class="nom-pipeline__list-item" [attr.data-testid]="'pipeline-reprocess-reason-' + reason.code">
+              <span>{{ reason.code }} <span class="nom-pipeline__muted">{{ reason.label }}</span></span>
+              <span>{{ reason.recipes | number }} found · {{ reason.waiting | number }} waiting</span>
+            </li>
+          }
+        </ul>
+        @for (batch of r.lastBatches; track batch.tier) {
+          <p class="nom-pipeline__lane-line" [class.nom-pipeline__warn]="batch.faults.length > 0" [attr.data-testid]="'pipeline-reprocess-batch-' + batch.tier">
+            Last {{ batch.tier }} batch ({{ batch.mode }}, {{ batch.stamp | date: 'MMM d, HH:mm' }}): {{ batch.taken | number }} taken, {{ batch.rebuilt | number }} rebuilt,
+            {{ batch.held | number }} held; rule checks passed on {{ (batch.linesChecked - batch.linesFailing) | number }} of {{ batch.linesChecked | number }} changed lines
+            @if (batch.faults.length > 0) {
+              · {{ batch.faults.join('; ') }}
+            }
+          </p>
+        }
+        <p class="nom-pipeline__lane-line nom-pipeline__muted" data-testid="pipeline-reprocess-judge">
+          Line judge {{ r.judgeModel }}{{ r.judgeProblem ? ': ' + r.judgeProblem : ': golden record current' }}
+        </p>
+        <p class="nom-pipeline__hint">
+          The rebuild tiers are on the lane frame above (lane reprocess): they write only while live, pause themselves and undo their own batches.
+        </p>
+      } @else {
+        <p class="nom-pipeline__hint" data-testid="pipeline-reprocess-empty">The rebuild lane did not report.</p>
+      }
+    </section>
+
     <section class="nom-pipeline__section" data-testid="pipeline-images">
       <h2 class="nom-pipeline__heading">Images</h2>
       <dl class="nom-pipeline__stats">

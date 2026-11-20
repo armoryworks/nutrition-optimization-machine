@@ -32,6 +32,7 @@ namespace Nom.Api.Tests.Golden
             ModelLanes.LineClassify => ModelLanes.ClassifyCases(GoldenSet.Folder).Select(c => c.Id),
             ModelLanes.LinkGateLane => ModelLanes.GateCases(GoldenSet.Folder).Select(c => c.Id),
             ModelLanes.AlcoholContextLane => ModelLanes.AlcoholCases(GoldenSet.Folder).Select(c => c.Id),
+            ModelLanes.LineJudge => ModelLanes.JudgeCases(GoldenSet.Folder).Select(c => c.Id),
             _ => Enumerable.Empty<string>(),
         };
 

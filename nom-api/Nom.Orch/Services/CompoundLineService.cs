@@ -325,19 +325,21 @@ namespace Nom.Orch.Services
                     .ToDictionary(g => g.Key, g => g.Min(m => m.Id), StringComparer.OrdinalIgnoreCase));
         }
 
-        private async Task<CompoundVocabulary> VocabularyAsync()
+        private Task<CompoundVocabulary> VocabularyAsync() => VocabularyAsync(_db);
+
+        internal static async Task<CompoundVocabulary> VocabularyAsync(ApplicationDbContext db)
         {
-            var curated = await _db.Ingredients.AsNoTracking()
+            var curated = await db.Ingredients.AsNoTracking()
                 .Where(i => !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated)
                 .Where(Nom.Data.Nutrition.PreparedFoods.NotPrepared)
                 .Select(i => new CompoundFood(i.Id, i.Name, i.IngredientNutrients.Any(n => !n.IsDeleted), i.GramsPerItem > 0))
                 .ToListAsync();
-            var aliases = await _db.IngredientAliases.AsNoTracking()
+            var aliases = await db.IngredientAliases.AsNoTracking()
                 .Where(a => !a.IsDeleted && a.SourceContext != null
                     && (a.SourceContext.StartsWith(LineRelinkService.RetiredContextPrefix) || a.SourceContext == IngredientLinkService.UsdaDescriptionContext))
                 .Select(a => new CompoundAlias(a.IngredientId, a.AliasName, a.SourceContext))
                 .ToListAsync();
-            var names = await _db.Ingredients.AsNoTracking().Where(i => !i.IsDeleted).Select(i => i.Name).ToListAsync();
+            var names = await db.Ingredients.AsNoTracking().Where(i => !i.IsDeleted).Select(i => i.Name).ToListAsync();
             return CompoundVocabulary.Build(curated, aliases, names);
         }
 
