@@ -173,6 +173,10 @@ namespace Nom.Api.Tests.Services
         [InlineData("a knob of butter, melted")]
         [InlineData("a few sprigs of thyme")]
         [InlineData("a handful of chopped parsley")]
+        [InlineData("pinch salt")]
+        [InlineData("freshly-cracked black pepper (to taste)")]
+        [InlineData("fresh pepper")]
+        [InlineData("kosher salt, divided")]
         public async Task Seasoning_and_garnish_lines_may_go_unquantified(string line)
         {
             var recipe = PlausibleRecipe();
@@ -191,6 +195,8 @@ namespace Nom.Api.Tests.Services
         [InlineData("salt pork")]
         [InlineData("littleneck clams")]
         [InlineData("somen noodles")]
+        [InlineData("pinch butter")]
+        [InlineData("salt, butter")]
         public async Task Vague_amounts_still_count_as_unparsed(string line)
         {
             var recipe = PlausibleRecipe();

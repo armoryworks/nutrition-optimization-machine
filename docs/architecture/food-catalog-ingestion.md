@@ -443,6 +443,54 @@ apply in batches until `Remaining` is 0, open a few of the sampled recipes in th
 `relink/undo` and re-apply, and only then repeat on production with its own dry run and
 recorded start time.
 
+### One food per recipe row: compound lines — BUILT ✅
+A scraped line can name more than one food ("salt and pepper to taste", "1 cup each flour and
+sugar", "butter or margarine"). Until it is split it sits on one food, or on an uncurated
+wording row, and the label counts only that food. `GET /api/FoodCatalog/compound/preview?rules=&sampleSize=50`
+and `POST /api/FoodCatalog/compound/apply?rules=<rule,...>&maxLines=5000`
+(`Nom.Orch/Services/CompoundLineService.cs`, curation admin) repair them by the fixed rules of
+`Support/CompoundLineSplitter.cs`; no model is involved. The preview writes nothing and gives,
+per rule, the lines, the lines on uncurated and on curated rows and on approved recipes, the
+row moves, the rows added and the rows placed at the end of the recipe, plus every compound line
+left alone by reason. `apply` requires the rules it may use, so each rule rolls out on its own.
+
+Split into one row per food (each part line is the source line with words deleted, never added):
+
+- `and-salt-pepper`: unquantified salt and pepper in any order or spelling; both rows unmeasured.
+- `and-unquantified`: an unquantified list of two to four names that are each a different curated food.
+- `and-each`: "1 cup each flour and sugar"; every row gets the full amount.
+- `own-quantity`: "2 tablespoons butter and 2 tablespoons flour"; each row keeps its own amount.
+- `part-pair`: "rind and juice of 1 lemon"; the juice and the peel each get the fruit count.
+- `and-quantified-salt-pepper`: "1/4 tsp salt and pepper"; the salt keeps the amount, the pepper is unmeasured.
+
+Move to the first alternative (text and amount unchanged): `or-independent` (every alternative
+is a food), `or-shared-head` ("chicken or vegetable broth" is Chicken Broth) and `or-first-named`
+(only the first alternative is in the catalog; uncurated rows only). A curated row moves only
+under the first two, and never when its own text names its food. Left alone: protected names
+("half and half", "pork and beans", short curated names with "and"), preparation words, lists
+with a part not in the catalog, quantified lists without "each" other than salt and pepper, "and"
+mixed with "or", more than four names, either reading of a shared head being a food, and every
+line whose first alternative is not in the catalog ("cream or milk"). No
+`recipe.RecipeSubstitution` rows are written.
+
+A split is planned only when each part line reads back through `IngredientLineParser` and the
+name rules as exactly the row it becomes, so the scraped re-read pass and `relink` leave it as it
+is, and an acceptably unquantified source gives acceptably unquantified parts. The row stays on
+the part that names its food (or moves to the first part); each other part is a new row at the
+line's position, or at the end of the recipe when that food already holds it.
+
+Each line is one `audit.AuditLogEntry` (`EntityType` `RecipeIngredient`, `EntityId` the
+recipe): `LineSplit` with the row before in `OldValue` and the resulting rows in `NewValue`
+(`{i, s, q, m, r}`: food, position, amount, measurement, text), or `LineAlternative` with
+`food@position` like a relink. `POST /api/FoodCatalog/relink/undo?sinceUtc=<start>` puts them
+back with the other line repairs; a split whose rows were edited since is skipped. Do not prune
+these journal entries: the source text of a split line lives only there.
+
+Order: `relink/unfold` first (lines holding " + " wait and are counted as `FoldedDeferred`),
+then the compound rules one at a time, then `relink/preview`. Same staging-first runbook as
+above: dry run, note the UTC time, apply one rule, check recipes in the app, prove the undo,
+re-apply, then the next rule; production only after that, behind a dump.
+
 ### Alias trust: which wordings an import may follow — BUILT ✅
 An alias (`recipe."IngredientAlias"`) says a wording has been seen on a food; its
 `SourceContext` says who put it there. An import links a line to a food without review, so it
