@@ -338,7 +338,7 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>Absolute http(s) URL with fragment stripped and host lowercased.</summary>
-        private static string? NormalizeUrl(string input)
+        internal static string? NormalizeUrl(string input)
         {
             var candidate = input.Trim();
             if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri) ||
@@ -379,8 +379,20 @@ namespace Nom.Orch.Services
                         continue;
                     }
 
+                    var record = Support.SourceRecord.Content(scraped);
                     var recipe = await CreateRecipeFromScrapedDataAsync(
                         scraped, normalizedUrl, request.ImportKeywordsAsTags);
+                    _dbContext.ScrapedDocuments.Add(new ScrapedDocumentEntity
+                    {
+                        RecipeId = recipe.Id,
+                        SourceUrl = recipe.SourceUrl ?? string.Empty,
+                        RawJsonLd = record,
+                        Format = Support.SourceRecord.Format(scraped),
+                        ContentSha256 = Support.SourceRecord.Sha256(record),
+                        FetchedAtUtc = DateTime.UtcNow,
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedByPersonId = _currentUser.PersonId,
+                    });
 
                     if (!string.IsNullOrWhiteSpace(request.SourceAttribution))
                     {
@@ -425,7 +437,7 @@ namespace Nom.Orch.Services
         /// (cookbook prose especially) routinely exceed these widths, and one
         /// long line must not fail the whole recipe.
         /// </summary>
-        private static string? Clamp(string? value, int maxLength) =>
+        internal static string? Clamp(string? value, int maxLength) =>
             value == null || value.Length <= maxLength ? value : value[..maxLength].TrimEnd();
 
         private async Task<RecipeEntity> CreateRecipeFromScrapedDataAsync(
@@ -487,6 +499,7 @@ namespace Nom.Orch.Services
                     RecipeId = recipe.Id,
                     SourceUrl = recipe.SourceUrl ?? string.Empty,
                     RawJsonLd = scraped.RawJsonLd,
+                    ContentSha256 = Support.SourceRecord.Sha256(scraped.RawJsonLd),
                     FetchedAtUtc = DateTime.UtcNow,
                     CreatedDate = DateTime.UtcNow,
                     CreatedByPersonId = personId,
@@ -559,7 +572,7 @@ namespace Nom.Orch.Services
             return recipe;
         }
 
-        private static string? BuildAttribution(ScraperRecipe scraped)
+        internal static string? BuildAttribution(ScraperRecipe scraped)
         {
             var parts = new List<string>();
             if (!string.IsNullOrWhiteSpace(scraped.Author))

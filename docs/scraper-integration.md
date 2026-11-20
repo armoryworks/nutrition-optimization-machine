@@ -98,6 +98,28 @@ Contract rules an implementation must honor:
 - **Prose rewrite:** the rewrite lane (`ProseRewriteHostedService`, on when `Ai:BatchOllamaUrl` is set) lifts `ContainsSourceProse` only when the rewrite passes `RewriteFidelity` against the text it was given and against the stored source: every amount, time and temperature kept, no number added, no run of 8 words copied, text changed (`ProseRewrite:CheckFidelity`, default on). Each overwritten description and step and each clearance is journaled in `audit.AuditLogEntry` as `ProseRewrite`, with the model name. `POST /api/ProseRewrite/recheck` runs the same check over recipes already cleared (a dry run unless `apply=true`); with apply, failures go back into quarantine (`ProseRecheck` journal rows, curation status unchanged) and `POST /api/ProseRewrite/recheck/undo?sinceUtc=&apply=false` takes them out again (a dry run unless `apply=true`), including recipes the lane tried and left quarantined, skipping only those the lane has since cleared with a rewrite. Before applying a re-check, set `AI_PROSE_REWRITE_MAX_PER_DAY`. `ProseRewrite:DrainWhileFull` is on by default only when that daily cap is above 0: without a cap the lane takes one sweep per interval (25 every 10 minutes), and setting `PROSE_REWRITE_DRAIN_WHILE_FULL=true` without a cap drains the re-quarantined recipes back to back, 5 s apart, so the window in which a re-check undo still applies is hours, not days. A model answer with an HTTP error status is charged to the recipe as an attempt; only no answer or a missing model ends the sweep without one. A rewrite that brings back a method step of six or more words word for word fails the check. Prose check v2 (`ProseCheck`: amounts with units and ranges, amounts against the ingredient lines, verb and ingredient coverage, copy measures that ignore the stock phrases of `recipe.ProseStockPhrase`, rebuilt by `POST /api/ProseRewrite/stock/rebuild`) is built and scored in CI but not yet the gate of the lane or the re-check; see `docs/architecture/prose-check.md`.
 - **Dedup:** a normalized source URL is imported at most once.
 
+## Stored sources
+
+Every recipe keeps the source it was built from in `recipe.ScrapedDocument`, so later rule fixes can rebuild its lines without fetching anything again. `Format` says what `RawJsonLd` holds:
+
+| Format | Content | Stored by |
+|---|---|---|
+| `jsonld` | the schema.org Recipe node exactly as published | any import whose record carries `rawJsonLd` |
+| `scraper-recipe` | the scraper record of a recipe with a source URL (web harvest, myplate), as JSON | the staged import (`POST /api/StagedImport`), and the source attach |
+| `staged-cookbook` | the record of a recipe with no source URL (a book extraction), as JSON | the same |
+
+A record is stored in one JSON form (`Support/SourceRecord.cs`: camelCase, nulls left out, `rawJsonLd` left out because it is its own `jsonld` document), so the import and the attach store the same text for the same record. `ContentSha256` is the lowercase hex SHA-256 of that text (null on documents stored before it was kept). `Version` numbers the documents of one format on one recipe from 1. The record is stored as the import received it, before the import normalizes its amounts. The prose lane, the prose re-check, the stock-phrase index and the line unfold read `jsonld` documents only.
+
+**Attaching the sources of older imports.** Recipes imported before the staged import kept its record (the cookbooks, myplate and 23 web recipes) get theirs from the staging files with `ops/recipe-source-attach.py`, run where the files are. It posts batches of at most 500 records to `POST /api/RecipeSource/attach?apply=false|true&newVersion=false` (`CanManageCuration`; a dry run unless `apply=true`; nothing is fetched from any site). nom-api matches each record with the import's own keys: the normalized URL, else the name and the attribution the batch was imported with (`sourceAttribution`, else the record's own author and site). Because books repeat names, the key is not enough: at least 80 % of the record's ingredient lines must equal a line of the recipe or a `" + "` fold part of one, after entity, spacing and case normalization, and one recipe must agree better than every other. The answer gives each record one outcome:
+
+- `matched`: stored (with its `jsonld` too when the recipe holds none);
+- `already-attached`: the recipe already holds this exact text;
+- `ambiguous` (a tie), `low-score` (under 80 %), `unmatched` (no recipe has the key): not stored;
+- `double-match`: two records of the batch matched one recipe, neither is stored;
+- `conflict`: the recipe already holds a different document of the record's format; stored as the next `Version` only with `newVersion=true`.
+
+Each stored document is journaled in `audit.AuditLogEntry` (`SourceAttach`, entity `ScrapedDocument`, the recipe, version, checksum, score and key in `NewValue`). `POST /api/RecipeSource/attach/undo?sinceUtc=&apply=false` soft-deletes the documents attached at or after `sinceUtc` that are still there, journaled as `SourceAttachUndo`; a later attach stores them again. Documents stored by an import are never touched by the undo.
+
 ## Automatic source discovery (optional, off by default)
 
 With a scraper configured, NOM can look for new public recipe sources automatically:

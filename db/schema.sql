@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 2kIsw9MVBzNBbbey1ZHLSuR2XVmwsm6xeJNz1Q5jzxNMfGBwdmA6dpt3srrxxUL
+\restrict kHemRRbcRkXQ1D5y6JRAA8tozBgFFsEnUcFmWyvFeiBNNMyTpmCEDb8iAktI5GB
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -3478,6 +3478,9 @@ CREATE TABLE recipe."ScrapedDocument" (
     "SourceUrl" character varying(2047) NOT NULL,
     "RawJsonLd" text NOT NULL,
     "FetchedAtUtc" timestamp with time zone NOT NULL,
+    "Format" character varying(32) DEFAULT 'jsonld'::character varying NOT NULL,
+    "ContentSha256" character varying(64),
+    "Version" integer DEFAULT 1 NOT NULL,
     "CreatedDate" timestamp with time zone NOT NULL,
     "CreatedByPersonId" bigint,
     "LastModifiedDate" timestamp with time zone,
@@ -8866,5 +8869,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 2kIsw9MVBzNBbbey1ZHLSuR2XVmwsm6xeJNz1Q5jzxNMfGBwdmA6dpt3srrxxUL
+\unrestrict kHemRRbcRkXQ1D5y6JRAA8tozBgFFsEnUcFmWyvFeiBNNMyTpmCEDb8iAktI5GB
 

@@ -224,5 +224,25 @@ namespace Nom.Api.Tests.Services
             result.Samples.Select(s => s.RecipeId).Should().Equal(lost);
             result.RequarantinedByStatus.Should().BeEquivalentTo(new System.Collections.Generic.Dictionary<string, int> { ["NonCurated"] = 1 });
         }
+
+        [Fact]
+        public async Task The_staged_import_record_stored_after_the_json_ld_is_not_taken_for_the_source()
+        {
+            await using var db = NewContext();
+            var copied = await SeedAsync(db, CurationStatusEnum.Curated, CopiedStep);
+            var record = Nom.Orch.Services.Support.SourceRecord.Content(new Nom.Orch.UtilityInterfaces.ScraperRecipe
+            {
+                Name = "Roast potatoes",
+                SourceUrl = "https://example.com/roast-potatoes",
+                Steps = { new() { Order = 1, Instruction = "Roast." } },
+            });
+            db.ScrapedDocuments.Add(new ScrapedDocumentEntity { RecipeId = copied, RawJsonLd = record, Format = ScrapedDocumentFormat.ScraperRecipe, CreatedDate = Imported });
+            await db.SaveChangesAsync();
+
+            var result = await new ProseRecheckService(db, new NoUser()).RecheckAsync();
+
+            result.SkippedNoSource.Should().Be(0);
+            result.FailedCopied.Should().Be(1);
+        }
     }
 }

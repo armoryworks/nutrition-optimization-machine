@@ -86,6 +86,23 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_stored_scraper_record_is_not_a_document_of_the_index()
+        {
+            await using var db = await SeedAsync();
+            db.ScrapedDocuments.Add(new ScrapedDocumentEntity
+            {
+                RecipeId = 2, SourceUrl = "https://delta.example/stew", Format = ScrapedDocumentFormat.ScraperRecipe,
+                RawJsonLd = Document("A stew.", "Preheat the oven to 350 degrees."), FetchedAtUtc = Fetched, CreatedDate = Fetched,
+            });
+            await db.SaveChangesAsync();
+
+            var result = await new ProseStockService(db, new NoUser()).RebuildAsync();
+
+            result.Documents.Should().Be(6);
+            result.Sites.Should().Be(3);
+        }
+
+        [Fact]
         public async Task A_dry_run_writes_nothing()
         {
             await using var db = await SeedAsync();

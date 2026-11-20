@@ -16,6 +16,9 @@ public class ScrapedDocumentEntityConfiguration : IEntityTypeConfiguration<Scrap
         builder.Property(e => e.SourceUrl).IsRequired().HasMaxLength(2047);
         builder.Property(e => e.RawJsonLd).IsRequired();
         builder.Property(e => e.FetchedAtUtc).IsRequired();
+        builder.Property(e => e.Format).IsRequired().HasMaxLength(32).HasDefaultValue(ScrapedDocumentFormat.JsonLd);
+        builder.Property(e => e.ContentSha256).HasMaxLength(64);
+        builder.Property(e => e.Version).IsRequired().HasDefaultValue(1);
 
         builder.HasIndex(e => e.RecipeId);
 

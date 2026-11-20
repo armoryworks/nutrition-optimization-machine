@@ -542,10 +542,10 @@ from it (0 on the Gram measurement when it reads none). Rules:
 - `" + "` also stands inside single lines ("1 cup + 2 Tablespoons sugar", "1 large egg + 1
   egg white"). The line parser adds up a bare amount and the amount after it in the first
   unit ("1/4 cup + 1 tablespoon light brown sugar" → 0.313 Cup) and reads nothing when the
-  units do not add ("1 cup + 2 oz sugar"). Where the recipe has a `ScrapedDocument`, the row is split only into whole
+  units do not add ("1 cup + 2 oz sugar"). Where the recipe has a JSON-LD `ScrapedDocument`, the row is split only into whole
   lines of its `recipeIngredient` list, fewest lines first; a row that is one line of that
   list is not a fold (`SkippedSingleSourceLine`), and a row that does not add up to lines of
-  the list is left alone (`SkippedAmbiguous`). A recipe with no stored document (the cookbook
+  the list is left alone (`SkippedAmbiguous`). A recipe with no JSON-LD document (the cookbook
   imports) has every part read as a line, unless a part is only an amount ("3/4 c + 2 T
   milk"), which also leaves the row alone. `Support/FoldedLine.cs` holds these rules and
   nothing else.
