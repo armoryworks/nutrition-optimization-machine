@@ -23,11 +23,14 @@ namespace Nom.Api.Controllers
         private readonly IPackageLineService _packages;
         private readonly IIngredientLinkService _links;
         private readonly ICompoundLineService _compound;
+        private readonly IScrapedRecipeRepairService _repair;
 
         public FoodCatalogController(IFoodCatalogReviewService review, IFoodCatalogAuditService audit,
             ICatalogCleanupService cleanup, ILineRelinkService relink, ILineUnfoldService unfold,
-            IPackageLineService packages, IIngredientLinkService links, ICompoundLineService compound)
+            IPackageLineService packages, IIngredientLinkService links, ICompoundLineService compound,
+            IScrapedRecipeRepairService repair)
         {
+            _repair = repair;
             _review = review;
             _audit = audit;
             _cleanup = cleanup;
@@ -171,6 +174,13 @@ namespace Nom.Api.Controllers
         public async Task<ActionResult<PackageLineUndoResult>> RereadUndo([FromQuery, Required] DateTime sinceUtc)
         {
             return Ok(await _packages.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc)));
+        }
+
+        /// <summary>Give back the amount each line had before a start-up repair at or after the given UTC time changed it; a dry run unless apply=true.</summary>
+        [HttpPost("startup-fills/undo")]
+        public async Task<ActionResult<StartupFillUndoResult>> StartupFillsUndo([FromQuery, Required] DateTime sinceUtc, [FromQuery] bool apply = false)
+        {
+            return Ok(await _repair.UndoFillsAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), apply));
         }
 
         /// <summary>Marks the aliases with no context that a deterministic rule gives to the food they are on, so imports may follow them; a dry run unless apply=true, and each mark is written to the audit log.</summary>

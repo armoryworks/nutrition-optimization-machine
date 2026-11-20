@@ -12,7 +12,8 @@ namespace Nom.Orch.Interfaces
         int Cleared,
         long LastRecipeId,
         int StepsSplit = 0,
-        int TextDecoded = 0);
+        int TextDecoded = 0,
+        int RecipesHeld = 0);
 
     /// <summary>
     /// Rebuilds ingredient quantities on scraped recipes from each row's RawLine, divides a
@@ -24,5 +25,8 @@ namespace Nom.Orch.Interfaces
     {
         /// <summary>Repairs scraped recipes with Id greater than <paramref name="afterRecipeId"/>; Recipes == 0 when done.</summary>
         Task<ScrapedRepairBatchResult> RepairBatchAsync(long afterRecipeId, int batchSize, CancellationToken cancellationToken = default);
+
+        /// <summary>Gives back the amount each line had before a start-up repair at or after <paramref name="sinceUtc"/> changed it; a dry run unless <paramref name="apply"/> is set.</summary>
+        Task<Nom.Orch.Models.Curation.StartupFillUndoResult> UndoFillsAsync(System.DateTime sinceUtc, bool apply = false);
     }
 }

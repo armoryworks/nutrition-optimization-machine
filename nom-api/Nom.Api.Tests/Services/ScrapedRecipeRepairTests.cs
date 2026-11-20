@@ -136,7 +136,7 @@ namespace Nom.Api.Tests.Services
             var steps = await db.RecipeSteps.Where(s => s.RecipeId == flagged.Id).OrderBy(s => s.StepNumber).Select(s => s.Description).ToListAsync();
             steps.Should().Equal("Whisk everything together in a bowl.", "Bake until golden, about 12 minutes.");
             (await db.RecipeSteps.CountAsync(s => s.RecipeId == approved.Id)).Should().Be(1, "reviewed recipes are left alone");
-            var audit = await db.AuditLogEntries.SingleAsync();
+            var audit = await db.AuditLogEntries.SingleAsync(a => a.ChangeType == ScrapedRecipeRepairService.StepSplitChangeType);
             (audit.EntityId, audit.ChangeType, audit.OldValue).Should().Be((flagged.Id, ScrapedRecipeRepairService.StepSplitChangeType, method));
             (await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 10)).StepsSplit.Should().Be(0, "idempotent");
         }

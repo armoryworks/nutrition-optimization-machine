@@ -6,7 +6,12 @@ namespace Nom.Api.Services
     /// One pass per startup over every scraped recipe: rebuilds ingredient quantities lost at
     /// import from each row's RawLine, divides a one-paragraph method at its sentence ends and
     /// re-vets recipes no human has reviewed. Idempotent — rows that already carry a quantity,
-    /// recipes with more than one step and recipes already reviewed are left alone.
+    /// recipes with more than one step and recipes already reviewed are left alone. Every amount
+    /// it changes is journaled (ChangeType StartupFill) and taken back by
+    /// <see cref="Nom.Orch.Interfaces.IScrapedRecipeRepairService.UndoFillsAsync"/>; the lines of a
+    /// recipe that a journaled line operation still holds are not changed at all, so a restart
+    /// between an apply and its undo cannot make the undo skip. Operators wait for the
+    /// "Scraped recipe repair done" log line after a start before running an apply or an undo.
     ///
     /// ScrapedRepair:Enabled=false disables it; ScrapedRepair:BatchSize (default 500) recipes
     /// per batch; ScrapedRepair:PauseMilliseconds (default 250) between batches.
@@ -51,7 +56,7 @@ namespace Nom.Api.Services
 
             long cursor = 0;
             var conflicts = 0;
-            long recipes = 0, repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0;
+            long recipes = 0, repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0, held = 0;
             var started = DateTime.UtcNow;
             _logger.LogInformation("Scraped recipe repair starting ({Batch} recipes per batch)", batchSize);
 
@@ -72,6 +77,7 @@ namespace Nom.Api.Services
                     cleared += batch.Cleared;
                     split += batch.StepsSplit;
                     decoded += batch.TextDecoded;
+                    held += batch.RecipesHeld;
 
                     if (recipes % (batchSize * 20) < batch.Recipes)
                     {
@@ -105,8 +111,8 @@ namespace Nom.Api.Services
             }
 
             _logger.LogInformation(
-                "Scraped recipe repair done in {Minutes:F1}m: {Recipes} recipes, {Repaired} rows repaired, {Unparsed} rows without a quantity, {Split} methods split into steps, {Decoded} texts with entities decoded, {Revetted} re-vetted, {Cleared} cleared RequiresRevision",
-                (DateTime.UtcNow - started).TotalMinutes, recipes, repaired, unparsed, split, decoded, revetted, cleared);
+                "Scraped recipe repair done in {Minutes:F1}m: {Recipes} recipes, {Repaired} rows repaired, {Unparsed} rows without a quantity, {Split} methods split into steps, {Decoded} texts with entities decoded, {Revetted} re-vetted, {Cleared} cleared RequiresRevision, {Held} recipes left alone because a journaled line operation holds their lines",
+                (DateTime.UtcNow - started).TotalMinutes, recipes, repaired, unparsed, split, decoded, revetted, cleared, held);
         }
     }
 }

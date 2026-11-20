@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using Nom.Data.Audit;
 using Nom.Data.Recipe;
 using Nom.Data.Reference;
 using Nom.Orch.Interfaces;
+using Nom.Orch.Models.Curation;
 using Nom.Orch.Services.Support;
 using Nom.Orch.UtilityInterfaces;
 
@@ -17,6 +19,13 @@ namespace Nom.Orch.Services
     public class ScrapedRecipeRepairService : IScrapedRecipeRepairService
     {
         public const string StepSplitChangeType = "StepSplit";
+        public const string FillChangeType = "StartupFill";
+        public const string LineEntityType = "RecipeIngredient";
+
+        private static readonly string[] UnheldChangeTypes =
+        {
+            FillChangeType, RecipeLineClassificationService.ClassifyChangeType, RecipeLineClassificationService.SuggestedChangeType,
+        };
 
         private readonly ApplicationDbContext _context;
         private readonly IRecipeVettingService _vetting;
@@ -47,6 +56,8 @@ namespace Nom.Orch.Services
                 ? await query.AsSplitQuery().ToListAsync(cancellationToken)
                 : await query.ToListAsync(cancellationToken);
             if (recipes.Count == 0) return new ScrapedRepairBatchResult(0, 0, 0, 0, 0, afterRecipeId);
+            var held = await HeldRecipesAsync(recipes.Select(r => r.Id).ToList(), cancellationToken);
+            var now = DateTime.UtcNow;
             var foodIds = recipes.SelectMany(r => r.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>())
                 .Where(ri => ri.Quantity == 0).Select(ri => ri.IngredientId).Distinct().ToList();
             var foodNames = await _context.Ingredients.IgnoreQueryFilters().AsNoTracking()
@@ -64,12 +75,15 @@ namespace Nom.Orch.Services
                 if (reviewable && SplitSingleStep(recipe)) split++;
 
                 var rows = (recipe.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>()).Where(ri => !ri.IsDeleted).ToList();
+                if (held.Contains(recipe.Id)) rows.Clear();
                 foreach (var row in rows)
                 {
                     var firstLine = (row.RawLine ?? string.Empty).Split(" + ", 2)[0];
                     if (row.Quantity != 0)
                     {
+                        var (pieces, pieceUnit) = (row.Quantity, row.MeasurementId);
                         if (!RereadPieces(row, firstLine, measurements)) continue;
+                        Journal(recipe.Id, row, pieces, pieceUnit, now);
                         repaired++;
                         if (row.Quantity != 0) continue;
                     }
@@ -94,8 +108,10 @@ namespace Nom.Orch.Services
                         continue;
                     }
 
+                    var (was, wasUnit) = (row.Quantity, row.MeasurementId);
                     row.Quantity = parsed.Quantity;
                     row.MeasurementId = measurementId;
+                    Journal(recipe.Id, row, was, wasUnit, now);
                     repaired++;
                 }
 
@@ -107,7 +123,108 @@ namespace Nom.Orch.Services
 
             await _context.SaveChangesAsync(cancellationToken);
             _context.ChangeTracker.Clear();
-            return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded);
+            return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded, held.Count);
+        }
+
+        /// <summary>
+        /// The recipes whose lines the repair leaves as they are: those with a journal entry of a
+        /// line operation that can still be taken back. Every such operation journals its lines
+        /// under EntityType RecipeIngredient with the recipe as EntityId, except an applied USDA
+        /// link, which names the recipe in each moved line's value; an undo removes or relabels its
+        /// entry, which frees the recipe again. Only the line labels of the classify lane, which no
+        /// undo reads, and the repair's own entries do not hold a recipe.
+        /// </summary>
+        private async Task<HashSet<long>> HeldRecipesAsync(List<long> recipeIds, CancellationToken cancellationToken)
+        {
+            var held = (await _context.AuditLogEntries.AsNoTracking()
+                    .Where(a => a.EntityType == LineEntityType && recipeIds.Contains(a.EntityId) && !UnheldChangeTypes.Contains(a.ChangeType))
+                    .Select(a => a.EntityId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken))
+                .ToHashSet();
+
+            var keys = recipeIds.Select(id => id.ToString(CultureInfo.InvariantCulture)).ToArray();
+            var linked = _context.Database.IsRelational()
+                ? await _context.Database.SqlQuery<string>($"""
+                    SELECT DISTINCT split_part(a."NewValue", ':', 1) AS "Value"
+                    FROM audit."AuditLogEntry" a
+                    WHERE a."EntityType" = {LinkApplyJournal.EntityType} AND a."ChangeType" = {LinkApplyJournal.ChangeType}
+                      AND a."PropertyName" = {LinkApplyJournal.Line} AND split_part(a."NewValue", ':', 1) = ANY({keys})
+                    """).ToListAsync(cancellationToken)
+                : (await _context.AuditLogEntries.AsNoTracking()
+                        .Where(a => a.EntityType == LinkApplyJournal.EntityType && a.ChangeType == LinkApplyJournal.ChangeType && a.PropertyName == LinkApplyJournal.Line)
+                        .Select(a => a.NewValue)
+                        .ToListAsync(cancellationToken))
+                    .Select(v => (v ?? string.Empty).Split(':')[0])
+                    .Where(keys.Contains)
+                    .ToList();
+            foreach (var key in linked)
+            {
+                if (long.TryParse(key, NumberStyles.None, CultureInfo.InvariantCulture, out var id)) held.Add(id);
+            }
+            return held;
+        }
+
+        private void Journal(long recipeId, Nom.Data.Recipe.RecipeIngredientEntity row, decimal quantity, long measurementId, DateTime now)
+        {
+            row.LastModifiedDate = now;
+            row.LastModifiedByPersonId = SystemConstants.SystemPersonId;
+            _context.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = LineEntityType,
+                EntityId = recipeId,
+                ChangeType = FillChangeType,
+                PropertyName = RecipeLineClassificationService.LinePropertyName(row.IngredientId, row.SortOrder),
+                OldValue = PackageLineService.Amount(row.IngredientId, row.SortOrder, quantity, measurementId),
+                NewValue = PackageLineService.Amount(row.IngredientId, row.SortOrder, row.Quantity, row.MeasurementId),
+                Timestamp = now,
+                ChangedByPersonId = SystemConstants.SystemPersonId,
+            });
+        }
+
+        public async Task<StartupFillUndoResult> UndoFillsAsync(DateTime sinceUtc, bool apply = false)
+        {
+            var entries = await _context.AuditLogEntries
+                .Where(a => a.EntityType == LineEntityType && a.ChangeType == FillChangeType && a.Timestamp >= sinceUtc)
+                .OrderByDescending(a => a.Id)
+                .ToListAsync();
+            var result = new StartupFillUndoResult { Applied = apply, Entries = entries.Count };
+
+            foreach (var chunk in entries.Chunk(500))
+            {
+                await using var tx = apply && _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync() : null;
+                var recipeIds = chunk.Select(e => e.EntityId).Distinct().ToList();
+                var rows = (await _context.RecipeIngredients.Where(ri => recipeIds.Contains(ri.RecipeId)).ToListAsync())
+                    .ToDictionary(ri => (ri.RecipeId, ri.IngredientId, ri.SortOrder));
+                var now = DateTime.UtcNow;
+                foreach (var entry in chunk)
+                {
+                    if (PackageLineService.ReadAmount(entry.OldValue) is not { } was || PackageLineService.ReadAmount(entry.NewValue) is not { } became
+                        || !rows.TryGetValue((entry.EntityId, became.IngredientId, became.SortOrder), out var row)
+                        || row.Quantity != became.Quantity || row.MeasurementId != became.MeasurementId)
+                    {
+                        result.Skipped++;
+                        continue;
+                    }
+
+                    result.Restored++;
+                    if (!apply) continue;
+                    row.Quantity = was.Quantity;
+                    row.MeasurementId = was.MeasurementId;
+                    row.LastModifiedDate = now;
+                    row.LastModifiedByPersonId = SystemConstants.SystemPersonId;
+                    _context.AuditLogEntries.Remove(entry);
+                }
+
+                if (apply)
+                {
+                    await _context.SaveChangesAsync();
+                    if (tx != null) await tx.CommitAsync();
+                }
+                _context.ChangeTracker.Clear();
+            }
+
+            return result;
         }
 
         /// <summary>

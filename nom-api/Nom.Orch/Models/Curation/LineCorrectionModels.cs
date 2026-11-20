@@ -64,6 +64,18 @@ namespace Nom.Orch.Models.Curation
         public int Skipped { get; set; }
     }
 
+    /// <summary>What taking back the start-up repair's amounts did, or would do on a dry run.</summary>
+    public class StartupFillUndoResult
+    {
+        public bool Applied { get; set; }
+        /// <summary>StartupFill journal entries at or after the given time.</summary>
+        public int Entries { get; set; }
+        /// <summary>Lines given back the amount they had before the repair (on a dry run: that would be).</summary>
+        public int Restored { get; set; }
+        /// <summary>Journal entries whose line has since been changed again, moved to another food or removed.</summary>
+        public int Skipped { get; set; }
+    }
+
     /// <summary>One quantity fill that would be put back, and why.</summary>
     public class QuantityRevertSample
     {
