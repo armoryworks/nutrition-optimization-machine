@@ -195,7 +195,7 @@ namespace Nom.Orch.Services
                 .OrderByDescending(c => c.Lowered.Length)
                 .ToList();
 
-            var rows = new Dictionary<long, RecipeIngredientEntity>();
+            var matched = 0;
             foreach (var line in cleaned)
             {
                 var lowered = line.ToLowerInvariant();
@@ -208,26 +208,18 @@ namespace Nom.Orch.Services
 
                 // Same convention as the scraper: 0 means "not parsed", the raw
                 // line holds the truth, and vetting flags these for review.
-                if (rows.TryGetValue(hit.Id, out var existing))
-                {
-                    existing.RawLine = Clamp($"{existing.RawLine} + {line}", 2047)!;
-                    continue;
-                }
-
-                var row = new RecipeIngredientEntity
+                _context.RecipeIngredients.Add(new RecipeIngredientEntity
                 {
                     RecipeId = recipeId,
                     IngredientId = hit.Id,
                     Quantity = 0m,
                     MeasurementId = DefaultMeasurementId,
                     RawLine = Clamp(line, 2047)!,
-                    SortOrder = rows.Count,
-                };
-                rows[hit.Id] = row;
-                _context.RecipeIngredients.Add(row);
+                    SortOrder = matched++,
+                });
             }
 
-            return (rows.Count, unmatched);
+            return (matched, unmatched);
         }
 
         private static bool ContainsWord(string haystack, string needle)

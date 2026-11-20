@@ -16,8 +16,9 @@ namespace Nom.Orch.Interfaces
 
         /// <summary>
         /// Moves every recipe link from <paramref name="sourceId"/> to <paramref name="targetId"/>
-        /// (folding duplicates into the target's raw line) and soft-deletes the source. Refuses and
-        /// returns false when anything other than recipes references the source.
+        /// (a link at a position the target already has a line at takes the recipe's next free
+        /// position, so both lines keep their own text and amount) and soft-deletes the source.
+        /// Refuses and returns false when anything other than recipes references the source.
         /// </summary>
         Task<bool> MergeIntoAsync(long sourceId, long targetId, long? personId, bool ignoreProposals = false, long? keepProposalId = null);
 

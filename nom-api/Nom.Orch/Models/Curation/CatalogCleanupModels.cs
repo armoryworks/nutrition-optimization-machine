@@ -29,7 +29,8 @@ namespace Nom.Orch.Models.Curation
         public int Renamed { get; set; }
         public int Merged { get; set; }
         public int LinksMoved { get; set; }
-        public int LinksFolded { get; set; }
+        /// <summary>Moved links that took the recipe's next free position because the target food already had a line at theirs.</summary>
+        public int LinksRepositioned { get; set; }
         /// <summary>Rows left alone because something beyond recipe links references them.</summary>
         public int SkippedReferenced { get; set; }
         public int Failed { get; set; }

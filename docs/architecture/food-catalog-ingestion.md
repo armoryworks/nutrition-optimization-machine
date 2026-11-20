@@ -362,6 +362,55 @@ two agreeing sources are needed only when neither is the manufacturer. The pages
 the operator, never fetched by nom-api, and each host is recorded in `crosscheck-sources.md`.
 A label covers the FDA panel only, so these foods carry no vitamins beyond vitamin D.
 
+### One recipe row per source line — BUILT ✅
+A recipe may name the same food on several lines (sugar for the dough, sugar for rolling), and
+the key of `recipe.RecipeIngredient` has included `SortOrder` since 2026-10-08, so each line
+is its own row. Nothing joins lines any more: the scrape and photo imports write one row per
+line at a running position, and a food merge (`CatalogCleanupService.MergeRecipeLinksAsync`)
+gives a line that would collide with the target food's line the recipe's next free position
+(reported as `LinksRepositioned`). Before that, a repeat was appended to the first row as
+`"a + b"` and its amount was lost, which is why a label could be short by whole cups.
+
+`POST /api/FoodCatalog/relink/unfold?apply=false&maxRows=5000&sampleSize=50`
+(`Nom.Orch/Services/LineUnfoldService.cs`, curation admin) takes those rows apart again. It
+is a dry run unless `apply=true`, and the dry run reports exactly what the same call would do.
+The row keeps its place, its first line and its stored amount; each further line becomes a new
+row on the same food at the end of the recipe, with the amount `IngredientLineParser` reads
+from it (0 on the Gram measurement when it reads none). Rules:
+
+- `" + "` also stands inside single lines ("1 cup + 2 Tablespoons sugar", "1 large egg + 1
+  egg white"). Where the recipe has a `ScrapedDocument`, the row is split only into whole
+  lines of its `recipeIngredient` list, fewest lines first; a row that is one line of that
+  list is not a fold (`SkippedSingleSourceLine`), and a row that does not add up to lines of
+  the list is left alone (`SkippedAmbiguous`). A recipe with no stored document (the cookbook
+  imports) has every part read as a line, unless a part is only an amount ("3/4 c + 2 T
+  milk"), which also leaves the row alone. `Support/FoldedLine.cs` holds these rules and
+  nothing else.
+- A later part that repeats an earlier one and states no amount is dropped ("butter + butter"
+  is one line); a repeated line with an amount is a real second line.
+- When the first line states no amount and the stored amount is exactly a later line's
+  ("flour + 2 quarts flour" stored as 8 cups), the amount goes with that line.
+- Only scraped recipes, and only rows whose `LineKind` is empty or `ingredient`; rows
+  classified as artefact, note, instruction, reference or equipment are counted
+  (`SkippedOtherKind`) and left.
+- No line changes food. Run `relink/preview` and `relink/apply` afterwards; they now see each
+  line on its own.
+
+Every row taken apart is one `audit.AuditLogEntry` (`EntityType` `RecipeIngredient`,
+`EntityId` the recipe, `ChangeType` `LineUnfold`, the joined text and amount in `OldValue`,
+the added positions in `NewValue`). `POST /api/FoodCatalog/relink/undo?sinceUtc=<start>`
+puts a run back: the sweep goes newest first, so a line relinked after it was unfolded
+returns to its food before its row is joined again, the added rows are deleted and the
+journal entry removed. A row whose lines were edited or removed since is skipped and its
+entry stays. Changed rows carry a fresh `LastModifiedDate`/`CreatedDate`, so the nutrition
+sweep recalculates their recipes in both directions.
+
+Order of work, as for any catalog change: restore a production snapshot into staging, dry run
+with `maxRows=50000` and compare the counts with the last staging run, note the UTC time,
+apply in batches until `Remaining` is 0, open a few of the sampled recipes in the app, prove
+`relink/undo` and re-apply, and only then repeat on production with its own dry run and
+recorded start time.
+
 ### AI enrichment (food group + IsWholeFood) — BUILT ✅ (runtime pending)
 `Nom.Import/Services/FoodGroupEnrichmentService.cs` — a batch job that classifies
 ingredients: deterministic keyword classification always runs

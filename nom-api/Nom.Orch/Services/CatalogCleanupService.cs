@@ -155,7 +155,7 @@ namespace Nom.Orch.Services
                     else
                     {
                         var moved = await MergeRecipeLinksAsync(action.IngredientId, action.TargetId!.Value, personId);
-                        result.LinksFolded += moved.Folded;
+                        result.LinksRepositioned += moved.Repositioned;
                         result.LinksMoved += moved.Moved;
                         result.Merged++;
                     }
@@ -196,26 +196,26 @@ namespace Nom.Orch.Services
             return true;
         }
 
-        private async Task<(int Folded, int Moved)> MergeRecipeLinksAsync(long sourceId, long targetId, long? personId, long? keepProposalId = null)
+        private async Task<(int Repositioned, int Moved)> MergeRecipeLinksAsync(long sourceId, long targetId, long? personId, long? keepProposalId = null)
         {
-            var folded = await _db.Database.ExecuteSqlAsync(
+            var repositioned = await _db.Database.ExecuteSqlAsync(
                 $"""
-                 UPDATE recipe."RecipeIngredient" dst
-                 SET "RawLine" = left(coalesce(nullif(dst."RawLine", ''), '') || ' + ' || src."RawLine", 2047),
+                 WITH clash AS (
+                     SELECT src."RecipeId", src."SortOrder",
+                            (SELECT max(other."SortOrder") FROM recipe."RecipeIngredient" other WHERE other."RecipeId" = src."RecipeId")
+                                + row_number() OVER (PARTITION BY src."RecipeId" ORDER BY src."SortOrder") AS "NewSortOrder"
+                     FROM recipe."RecipeIngredient" src
+                     WHERE src."IngredientId" = {sourceId}
+                       AND EXISTS (SELECT 1 FROM recipe."RecipeIngredient" dst
+                                   WHERE dst."RecipeId" = src."RecipeId" AND dst."IngredientId" = {targetId} AND dst."SortOrder" = src."SortOrder")
+                 )
+                 UPDATE recipe."RecipeIngredient" src
+                 SET "SortOrder" = clash."NewSortOrder",
                      "LastModifiedDate" = now()
-                 FROM recipe."RecipeIngredient" src
+                 FROM clash
                  WHERE src."IngredientId" = {sourceId}
-                   AND dst."IngredientId" = {targetId}
-                   AND dst."RecipeId" = src."RecipeId"
-                   AND dst."SortOrder" = src."SortOrder"
-                   AND coalesce(src."RawLine", '') <> ''
-                 """);
-            await _db.Database.ExecuteSqlAsync(
-                $"""
-                 DELETE FROM recipe."RecipeIngredient" src
-                 WHERE src."IngredientId" = {sourceId}
-                   AND EXISTS (SELECT 1 FROM recipe."RecipeIngredient" dst
-                               WHERE dst."RecipeId" = src."RecipeId" AND dst."IngredientId" = {targetId} AND dst."SortOrder" = src."SortOrder")
+                   AND src."RecipeId" = clash."RecipeId"
+                   AND src."SortOrder" = clash."SortOrder"
                  """);
             var moved = await _db.Database.ExecuteSqlAsync(
                 $"""UPDATE recipe."RecipeIngredient" SET "IngredientId" = {targetId}, "LastModifiedDate" = now() WHERE "IngredientId" = {sourceId}""");
@@ -232,7 +232,7 @@ namespace Nom.Orch.Services
                    AND "Id" <> {keepProposalId ?? 0}
                    AND ("ReviewedByPersonId" IS NULL OR "ReviewedByPersonId" = {SystemConstants.SystemPersonId})
                  """);
-            return (folded, moved);
+            return (repositioned, moved);
         }
 
         /// <summary>

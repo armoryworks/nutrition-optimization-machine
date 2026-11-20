@@ -109,7 +109,7 @@ export interface CatalogCleanupResult {
   renamed: number;
   merged: number;
   linksMoved: number;
-  linksFolded: number;
+  linksRepositioned: number;
   skippedReferenced: number;
   remaining: number;
 }
