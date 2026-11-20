@@ -460,7 +460,7 @@ namespace Nom.Orch.Services
             if (recipe.ProseWithheld)
             {
                 var source = await _context.ScrapedDocuments.AsNoTracking()
-                    .Where(d => d.RecipeId == recipe.Id)
+                    .Where(d => d.RecipeId == recipe.Id && d.Format == ScrapedDocumentFormat.JsonLd)
                     .OrderByDescending(d => d.Id)
                     .Select(d => d.RawJsonLd)
                     .FirstOrDefaultAsync();

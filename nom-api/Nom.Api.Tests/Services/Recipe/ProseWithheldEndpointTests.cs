@@ -138,6 +138,42 @@ namespace Nom.Api.Tests.Services.Recipe
         }
 
         [Fact]
+        public async Task Key_facts_come_from_the_json_ld_even_when_a_scraper_record_was_stored_after_it()
+        {
+            await using var db = await SeedAsync();
+            db.ScrapedDocuments.Add(new ScrapedDocumentEntity
+            {
+                RecipeId = Withheld,
+                Format = ScrapedDocumentFormat.ScraperRecipe,
+                RawJsonLd = Nom.Orch.Services.Support.SourceRecord.Content(new Nom.Orch.UtilityInterfaces.ScraperRecipe
+                {
+                    Name = "Withheld pie",
+                    SourceUrl = $"https://example.com/{Withheld}",
+                    Steps = { new() { Order = 1, Instruction = "Bake at 425 degrees F for 12 minutes." } },
+                }),
+            });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            (await Recipes(db).GetRecipeAsync(Withheld, null))!.KeyFacts
+                .Should().Equal("oven 350°F", "9 x 13-inch pan", "bake 30 to 40 min", "cool 30 min");
+
+            var service = new RecipeBulkOperationsService(db, Mock.Of<IHttpContextAccessor>(), Mock.Of<ICurrentUserService>(), NullLogger<RecipeBulkOperationsService>.Instance);
+            var result = await service.ExportRecipesAsync(new RecipeBulkExportModel { RecipeIds = new List<long> { Withheld }, RequesterPersonId = Author, ExportType = ExportTypes.Json });
+            result.Success.Should().BeTrue(string.Join(";", result.Errors));
+            var path = Path.Combine(Directory.GetCurrentDirectory(), "exports", $"recipes_export_{result.ExportId}.json");
+            try
+            {
+                var text = await File.ReadAllTextAsync(path);
+                text.Should().Contain("bake 30 to 40 min").And.NotContain("425");
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
         public async Task Recipe_lists_serve_no_withheld_prose()
         {
             await using var db = await SeedAsync();

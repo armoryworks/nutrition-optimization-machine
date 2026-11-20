@@ -363,6 +363,7 @@ namespace Nom.Api.Tests.Services
         public async Task The_staged_import_record_stored_after_the_json_ld_is_not_taken_for_the_source()
         {
             await using var db = NewContext();
+            await BuildStockAsync(db);
             var copied = await SeedAsync(db, CurationStatusEnum.Curated, CopiedStep);
             var record = Nom.Orch.Services.Support.SourceRecord.Content(new Nom.Orch.UtilityInterfaces.ScraperRecipe
             {
@@ -373,10 +374,10 @@ namespace Nom.Api.Tests.Services
             db.ScrapedDocuments.Add(new ScrapedDocumentEntity { RecipeId = copied, RawJsonLd = record, Format = ScrapedDocumentFormat.ScraperRecipe, CreatedDate = Imported });
             await db.SaveChangesAsync();
 
-            var result = await new ProseRecheckService(db, new NoUser()).RecheckAsync();
+            var result = await Service(db).RecheckAsync();
 
             result.SkippedNoSource.Should().Be(0);
-            result.FailedCopied.Should().Be(1);
+            result.FailedByReason.Should().ContainKey(ProseCheck.CopiedText).WhoseValue.Should().Be(1);
         }
     }
 }

@@ -82,7 +82,7 @@ namespace Nom.Orch.Services
                 var keyFacts = withheldIds.Count == 0
                     ? new Dictionary<long, List<string>>()
                     : (await _dbContext.ScrapedDocuments.AsNoTracking()
-                        .Where(d => withheldIds.Contains(d.RecipeId))
+                        .Where(d => withheldIds.Contains(d.RecipeId) && d.Format == ScrapedDocumentFormat.JsonLd)
                         .OrderBy(d => d.Id)
                         .Select(d => new { d.RecipeId, d.RawJsonLd })
                         .ToListAsync())
