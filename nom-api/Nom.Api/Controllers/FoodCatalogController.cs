@@ -232,6 +232,13 @@ namespace Nom.Api.Controllers
             return Ok(await _review.GetLinkGroupsAsync(source, verified, limit));
         }
 
+        /// <summary>Uncurated wordings ranked by the recipes each alone keeps from the auto-approve sweep, with the latest link proposal for each; read-only.</summary>
+        [HttpGet("proposals/link-impact")]
+        public async Task<ActionResult<IReadOnlyList<LinkImpactRow>>> GetLinkImpact([FromQuery] int limit = 100)
+        {
+            return Ok(await _links.TopBlockersAsync(limit));
+        }
+
         /// <summary>Applies the pending links that point at one food, up to 500 per call; Remaining says whether to call again.</summary>
         [HttpPost("proposals/link-groups/{targetIngredientId:long}/apply")]
         public async Task<ActionResult<FoodProposalGroupApplyResult>> ApplyLinkGroup(

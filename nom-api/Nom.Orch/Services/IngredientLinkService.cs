@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -35,9 +36,16 @@ namespace Nom.Orch.Services
         public static readonly TimeSpan RejectionRetryAge = TimeSpan.FromDays(7);
         private const int JournalChunk = 500;
         private const int ModelBatch = 6;
-        private const int VerifierRankWindow = 3;
+        private const int VerifierRankWindow = 1;
+        private const int VerifyHeadSize = 2000;
+        private const string AbstainedOutcome = "unsure";
+        private const string ImpactKey = nameof(IngredientLinkService) + ":impact";
+        private static readonly TimeSpan ImpactLifetime = TimeSpan.FromMinutes(10);
         private const int ReasonLength = 2047;
         private static readonly TimeSpan MatcherLifetime = TimeSpan.FromMinutes(15);
+        private const string UnreadKey = nameof(IngredientLinkService) + ":unread";
+        private const int UnreadHoldAfter = 2;
+        private static readonly TimeSpan UnreadHoldLifetime = TimeSpan.FromDays(1);
 
         private readonly ApplicationDbContext _context;
         private readonly IIngredientLinkMatcher _matcher;
@@ -62,18 +70,23 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Uncurated ingredients with no open link proposal, most used first. A rejection by a person
         /// settles the matter; a rejection by the machine (no candidate, or the model chose none) only
-        /// holds for <see cref="RejectionRetryAge"/>, since the catalog and the matcher keep improving.
+        /// holds for <see cref="RejectionRetryAge"/>, since the catalog and the matcher keep improving,
+        /// and a model rejection asked of another model or prompt version holds not at all. When it is
+        /// due again, <see cref="ProposeAsync"/> asks the model only if the question itself changed.
         /// </summary>
         public async Task<IReadOnlyList<LinkSource>> NextSourcesAsync(int count, CancellationToken cancellationToken = default)
         {
             var retryBefore = DateTime.UtcNow - RejectionRetryAge;
+            var currentAsk = LinkAskKey.Tag(_matcher.ModelName, _matcher.PromptVersion);
+            var held = UnreadCounts().Where(u => u.Value >= UnreadHoldAfter).Select(u => u.Key).ToList();
             return await _context.Ingredients
-                .Where(i => i.FdcId == null && !i.IsDeleted
+                .Where(i => i.FdcId == null && !i.IsDeleted && !held.Contains(i.Id)
                     && !_context.FoodCatalogProposals.Any(p => p.IngredientId == i.Id
                         && ((p.Field == FoodCatalogReviewService.FdcLinkField
                                 && (p.Status != FoodProposalStatus.Rejected
                                     || (p.ReviewedByPersonId != null && p.ReviewedByPersonId != SystemConstants.SystemPersonId)
-                                    || (p.LastModifiedDate ?? p.CreatedDate) > retryBefore))
+                                    || ((p.LastModifiedDate ?? p.CreatedDate) > retryBefore
+                                        && !(p.Reason != null && p.Reason.Contains(LinkAskKey.Mark) && !p.Reason.Contains(currentAsk)))))
                             || (p.Field == FoodCatalogReviewService.FdcAttachField && p.Status == FoodProposalStatus.Pending))))
                 .Select(i => new { i.Id, i.Name, Uses = _context.RecipeIngredients.Count(ri => ri.IngredientId == i.Id) })
                 .Where(x => x.Uses > 0)
@@ -116,61 +129,144 @@ namespace Nom.Orch.Services
                 ambiguous.Clear();
             }
 
+            var askKeys = ambiguous.ToDictionary(a => a.Source.IngredientId,
+                a => LinkAskKey.For(_matcher.ModelName, _matcher.PromptVersion, a.Source.Name, a.Candidates));
+            var priorRejections = await MachineRejectionsAsync(askKeys.Keys, cancellationToken);
+            var unchanged = 0;
+            ambiguous.RemoveAll(a =>
+            {
+                if (!priorRejections.TryGetValue(a.Source.IngredientId, out var prior) || prior.Reason?.EndsWith(askKeys[a.Source.IngredientId], StringComparison.Ordinal) != true) return false;
+                prior.LastModifiedDate = DateTime.UtcNow;
+                unchanged++;
+                return true;
+            });
+
+            var unread = 0;
+            var unreadCounts = UnreadCounts();
             foreach (var chunk in ambiguous.Chunk(ModelBatch))
             {
-                IReadOnlyList<LinkAnswer> answers;
-                try
+                var answers = await AskAsync(chunk.Select(a => new LinkQuestion(a.Source.IngredientId, a.Source.Name, a.Candidates)).ToList(), cancellationToken);
+                if (answers == null)
                 {
-                    answers = await _matcher.ChooseAsync(chunk.Select(a => new LinkQuestion(a.Source.IngredientId, a.Source.Name, a.Candidates)).ToList(), cancellationToken);
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or TimeoutException or TaskCanceledException)
-                {
-                    _logger.LogWarning(ex, "Ingredient link model unreachable; {Count} ingredients left for later", ambiguous.Count);
+                    _logger.LogWarning("Ingredient link model unreachable; {Count} ingredients left for later", ambiguous.Count);
                     await _context.SaveChangesAsync(cancellationToken);
                     return null;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Ingredient link model gave an unreadable answer; asking one at a time");
-                    var singles = new List<LinkAnswer>();
-                    foreach (var one in chunk)
-                    {
-                        try
-                        {
-                            singles.AddRange(await _matcher.ChooseAsync(new[] { new LinkQuestion(one.Source.IngredientId, one.Source.Name, one.Candidates) }, cancellationToken));
-                        }
-                        catch (Exception single) when (single is not OperationCanceledException)
-                        {
-                            singles.Add(new LinkAnswer(one.Source.IngredientId, null, 0m));
-                        }
-                    }
-                    answers = singles;
                 }
 
                 foreach (var (asked, _) in chunk)
                 {
                     var source = sources.First(s => s.IngredientId == asked.IngredientId);
-                    var answer = answers.FirstOrDefault(a => a.IngredientId == source.IngredientId);
-                    if (answer?.Choice is { } choice)
+                    var askKey = askKeys[source.IngredientId];
+                    if (!answers.TryGetValue(source.IngredientId, out var answer))
                     {
-                        Propose(source, choice, "ai:" + _matcher.ModelName, answer.Confidence, FoodProposalStatus.Pending);
+                        unreadCounts.AddOrUpdate(source.IngredientId, 1, (_, n) => n + 1);
+                        unread++;
+                        continue;
+                    }
+                    unreadCounts.TryRemove(source.IngredientId, out _);
+                    if (answer.Choice is { } choice)
+                    {
+                        Propose(source, choice, "ai:" + _matcher.ModelName, answer.Confidence, FoodProposalStatus.Pending, askKey);
                         ai++;
+                    }
+                    else if (priorRejections.TryGetValue(source.IngredientId, out var prior))
+                    {
+                        prior.Source = "ai:" + _matcher.ModelName;
+                        prior.Confidence = answer.Confidence;
+                        prior.CurrentValue = source.Name;
+                        prior.Reason = Trim($"No USDA match · used in {source.Uses} recipes{askKey}");
+                        prior.LastModifiedDate = DateTime.UtcNow;
+                        none++;
                     }
                     else
                     {
-                        Propose(source, null, "ai:" + _matcher.ModelName, answer?.Confidence, FoodProposalStatus.Rejected);
+                        Propose(source, null, "ai:" + _matcher.ModelName, answer.Confidence, FoodProposalStatus.Rejected, askKey);
                         none++;
                     }
                 }
             }
 
+            if (unread > 0) _logger.LogInformation("Ingredient link model gave no readable answer for {Count} ingredients; they are asked again next pass", unread);
             await _context.SaveChangesAsync(cancellationToken);
-            return new IngredientLinkBatchResult(sources.Count, exact, ai, none);
+            return new IngredientLinkBatchResult(sources.Count, exact, ai, none, unchanged, unread);
         }
+
+        /// <summary>
+        /// The model's answers by ingredient. A batch that can't be read is asked again one
+        /// ingredient at a time; an ingredient still unreadable is left out. Null when the model is
+        /// unreachable, at any point.
+        /// </summary>
+        private async Task<Dictionary<long, LinkAnswer>?> AskAsync(IReadOnlyList<LinkQuestion> questions, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return ByIngredient(await _matcher.ChooseAsync(questions, cancellationToken));
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex) when (IsUnreachable(ex))
+            {
+                _logger.LogWarning(ex, "Ingredient link model unreachable");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Ingredient link model gave an unreadable answer; asking one at a time");
+            }
+
+            var singles = new Dictionary<long, LinkAnswer>();
+            foreach (var q in questions)
+            {
+                try
+                {
+                    foreach (var (id, a) in ByIngredient(await _matcher.ChooseAsync(new[] { q }, cancellationToken))) singles[id] = a;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex) when (IsUnreachable(ex))
+                {
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Unreadable link answer for {Name}", q.Name);
+                }
+            }
+            return singles;
+        }
+
+        private static Dictionary<long, LinkAnswer> ByIngredient(IReadOnlyList<LinkAnswer> answers) =>
+            answers.GroupBy(a => a.IngredientId).Where(g => g.Count() == 1).ToDictionary(g => g.Key, g => g.Single());
+
+        /// <summary>The latest model rejection no person has reviewed, per ingredient.</summary>
+        private async Task<Dictionary<long, FoodCatalogProposalEntity>> MachineRejectionsAsync(IReadOnlyCollection<long> ingredientIds, CancellationToken cancellationToken)
+        {
+            if (ingredientIds.Count == 0) return new Dictionary<long, FoodCatalogProposalEntity>();
+            var rows = await _context.FoodCatalogProposals
+                .Where(p => p.IngredientId != null && ingredientIds.Contains(p.IngredientId.Value)
+                    && p.Field == FoodCatalogReviewService.FdcLinkField && p.Status == FoodProposalStatus.Rejected && p.Source.StartsWith("ai:")
+                    && (p.ReviewedByPersonId == null || p.ReviewedByPersonId == SystemConstants.SystemPersonId))
+                .ToListAsync(cancellationToken);
+            return rows.GroupBy(p => p.IngredientId!.Value).ToDictionary(g => g.Key, g => g.OrderByDescending(p => p.Id).First());
+        }
+
+        /// <summary>
+        /// How often the model has left each ingredient unanswered since the cache entry began. Kept
+        /// in memory only and dropped after <see cref="UnreadHoldLifetime"/>, so nothing is written
+        /// for an unreadable answer, yet one the model never answers does not take a place in every pass.
+        /// </summary>
+        private ConcurrentDictionary<long, int> UnreadCounts() =>
+            _cache.GetOrCreate(UnreadKey, e =>
+            {
+                e.AbsoluteExpirationRelativeToNow = UnreadHoldLifetime;
+                return new ConcurrentDictionary<long, int>();
+            })!;
+
+        private static string Trim(string reason) => reason.Length > ReasonLength ? reason[..ReasonLength] : reason;
 
         /// <summary>
         /// The USDA food a normalised name means without asking a model, and the rule that says so:
@@ -193,7 +289,7 @@ namespace Nom.Orch.Services
             return null;
         }
 
-        private void Propose(LinkSource source, FoodCandidate? target, string provenance, decimal? confidence, FoodProposalStatus status)
+        private void Propose(LinkSource source, FoodCandidate? target, string provenance, decimal? confidence, FoodProposalStatus status, string askKey = "")
         {
             _context.FoodCatalogProposals.Add(new FoodCatalogProposalEntity
             {
@@ -204,9 +300,9 @@ namespace Nom.Orch.Services
                 FdcId = target?.FdcId,
                 ProposedValue = target?.IngredientId.ToString(),
                 Confidence = confidence,
-                Reason = target == null
-                    ? $"No USDA match · used in {source.Uses} recipes"
-                    : $"→ {target.Name} · used in {source.Uses} recipes",
+                Reason = Trim(target == null
+                    ? $"No USDA match · used in {source.Uses} recipes{askKey}"
+                    : $"→ {target.Name} · used in {source.Uses} recipes{askKey}"),
                 Source = provenance,
                 Batch = Batch,
                 Status = status,
@@ -273,18 +369,37 @@ namespace Nom.Orch.Services
 
         public async Task<IngredientLinkVerifyResult?> VerifyPendingAiAsync(int count, decimal minConfidence, CancellationToken cancellationToken = default)
         {
-            var pending = await _context.FoodCatalogProposals
+            if (!_verifier.IsConfigured)
+            {
+                _logger.LogWarning("Ingredient link second opinion has no model (IngredientLinking:VerifyModel); nothing is checked");
+                return new IngredientLinkVerifyResult(0, 0, false);
+            }
+
+            var judge = "ai:" + _verifier.ModelName;
+            var eligible = _context.FoodCatalogProposals
                 .Where(p => p.Status == FoodProposalStatus.Pending && p.Field == FoodCatalogReviewService.FdcLinkField && p.Batch == Batch
-                    && p.IngredientId != null && p.FdcId != null && p.Source.StartsWith("ai:") && p.Confidence >= minConfidence
-                    && (p.Reason == null || !p.Reason.Contains(TriangulationMark)))
-                .OrderByDescending(p => _context.RecipeIngredients.Count(ri => ri.IngredientId == p.IngredientId))
+                    && p.IngredientId != null && p.FdcId != null && p.Source.StartsWith("ai:") && p.Source != judge && p.Confidence >= minConfidence
+                    && (p.Reason == null || !p.Reason.Contains(TriangulationMark)));
+            var unlocks = await BlockerCountsAsync(cancellationToken);
+            var head = unlocks.Take(VerifyHeadSize).Select(u => u.IngredientId).ToList();
+            var pending = (await eligible.Where(p => head.Contains(p.IngredientId!.Value)).ToListAsync(cancellationToken))
+                .OrderBy(p => head.IndexOf(p.IngredientId!.Value))
                 .ThenBy(p => p.Id)
                 .Take(count)
-                .ToListAsync(cancellationToken);
+                .ToList();
+            if (pending.Count < count)
+            {
+                pending.AddRange(await eligible
+                    .Where(p => !head.Contains(p.IngredientId!.Value))
+                    .OrderByDescending(p => _context.RecipeIngredients.Count(ri => ri.IngredientId == p.IngredientId))
+                    .ThenBy(p => p.Id)
+                    .Take(count - pending.Count)
+                    .ToListAsync(cancellationToken));
+            }
             if (pending.Count == 0) return new IngredientLinkVerifyResult(0, 0, false);
 
             var matcher = await GetMatcherAsync(cancellationToken);
-            var ask = new List<(FoodCatalogProposalEntity Proposal, LinkQuestion Question)>();
+            var ask = new List<(FoodCatalogProposalEntity Proposal, LinkPair Pair)>();
             int checkedCount = 0, verified = 0;
             foreach (var p in pending)
             {
@@ -296,18 +411,13 @@ namespace Nom.Orch.Services
                     checkedCount++;
                     continue;
                 }
-                ask.Add((p, new LinkQuestion(p.IngredientId!.Value, name, shortlist)));
+                ask.Add((p, new LinkPair(p.IngredientId!.Value, name, shortlist.First(c => c.FdcId == p.FdcId).Name)));
             }
 
-            if (ask.Count > 0 && !_verifier.IsConfigured)
-            {
-                await _context.SaveChangesAsync(cancellationToken);
-                return null;
-            }
-
+            var by = $"{_verifier.ModelName} prompt {_verifier.PromptVersion}";
             foreach (var chunk in ask.Chunk(ModelBatch))
             {
-                var verdicts = await SecondOpinionAsync(chunk.Select(a => a.Question).ToList(), cancellationToken);
+                var verdicts = await SecondOpinionAsync(chunk.Select(a => a.Pair).ToList(), cancellationToken);
                 if (verdicts == null)
                 {
                     _logger.LogWarning("Ingredient link second opinion unreachable; {Count} picks left unchecked", pending.Count - checkedCount);
@@ -315,21 +425,25 @@ namespace Nom.Orch.Services
                     return null;
                 }
 
-                foreach (var (p, q) in chunk)
+                foreach (var (p, pair) in chunk)
                 {
                     checkedCount++;
-                    if (!verdicts.TryGetValue(q.IngredientId, out var verdict))
+                    if (!verdicts.TryGetValue(pair.IngredientId, out var verdict))
                     {
-                        Mark(p, $"not verified — {_verifier.ModelName} gave no readable answer");
+                        Mark(p, $"not verified — {by} gave no readable answer");
                     }
-                    else if (verdict.Choice?.FdcId == p.FdcId)
+                    else if (verdict.Judgement == LinkJudgement.Same)
                     {
-                        Mark(p, $"verified (confidence {p.Confidence:0.00}, name matcher and {_verifier.ModelName} agree)");
+                        Mark(p, $"verified (confidence {p.Confidence:0.00}, name matcher ranks it first, {by} judges it the same food)");
                         verified++;
+                    }
+                    else if (verdict.Judgement == LinkJudgement.Unsure)
+                    {
+                        Mark(p, $"{AbstainedOutcome} — {by} is unsure");
                     }
                     else
                     {
-                        Mark(p, $"not verified — {_verifier.ModelName} chose {verdict.Choice?.Name ?? "none"}");
+                        Mark(p, $"not verified — {by} judges it {Describe(verdict.Judgement)}");
                     }
                 }
                 await _context.SaveChangesAsync(cancellationToken);
@@ -339,11 +453,19 @@ namespace Nom.Orch.Services
             return new IngredientLinkVerifyResult(checkedCount, verified, pending.Count == count);
         }
 
-        private async Task<Dictionary<long, LinkVerdict>?> SecondOpinionAsync(IReadOnlyList<LinkQuestion> questions, CancellationToken cancellationToken)
+        private static string Describe(LinkJudgement judgement) => judgement switch
+        {
+            LinkJudgement.VarietyOrForm => "a different variety or form",
+            LinkJudgement.DifferentFood => "a different food",
+            LinkJudgement.MoreThanOneFood => "more than one food",
+            _ => judgement.ToString(),
+        };
+
+        private async Task<Dictionary<long, LinkVerdict>?> SecondOpinionAsync(IReadOnlyList<LinkPair> questions, CancellationToken cancellationToken)
         {
             try
             {
-                return ByIngredient(await _verifier.ChooseAsync(questions, cancellationToken));
+                return ByIngredient(await _verifier.JudgeAsync(questions, cancellationToken));
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -364,7 +486,7 @@ namespace Nom.Orch.Services
             {
                 try
                 {
-                    foreach (var (id, v) in ByIngredient(await _verifier.ChooseAsync(new[] { q }, cancellationToken))) singles[id] = v;
+                    foreach (var (id, v) in ByIngredient(await _verifier.JudgeAsync(new[] { q }, cancellationToken))) singles[id] = v;
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -376,14 +498,80 @@ namespace Nom.Orch.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogDebug(ex, "Unreadable second opinion for {Name}", q.Name);
+                    _logger.LogDebug(ex, "Unreadable second opinion for {Name}", q.Wording);
                 }
             }
             return singles;
         }
 
         private static Dictionary<long, LinkVerdict> ByIngredient(IReadOnlyList<LinkVerdict> verdicts) =>
-            verdicts.GroupBy(v => v.IngredientId).ToDictionary(g => g.Key, g => g.First());
+            verdicts.GroupBy(v => v.IngredientId).Where(g => g.Count() == 1).ToDictionary(g => g.Key, g => g.Single());
+
+        /// <summary>
+        /// Sole-blocker recipe counts per uncurated wording, most recipes first; see
+        /// <see cref="TopBlockersAsync"/>. Cached for <see cref="ImpactLifetime"/>.
+        /// </summary>
+        private async Task<IReadOnlyList<(long IngredientId, int Recipes, int Lines)>> BlockerCountsAsync(CancellationToken cancellationToken)
+        {
+            if (_cache.TryGetValue<IReadOnlyList<(long, int, int)>>(ImpactKey, out var cached) && cached != null) return cached;
+
+            var nonCurated = (long)CurationStatusEnum.NonCurated;
+            var perRecipe = await _context.RecipeIngredients
+                .Where(ri => ri.Recipe.CurationStatusId == nonCurated
+                    && ri.Recipe.Visibility == RecipeVisibilityEnum.Public
+                    && ri.Recipe.DateCurationCompleted == null
+                    && ri.Recipe.VettingIssues == null
+                    && !ri.Recipe.ContainsSourceProse
+                    && (ri.Recipe.LicenseStatus == RecipeLicenseStatus.PublicDomain
+                        || (ri.Recipe.LicenseStatus == RecipeLicenseStatus.Unknown && ri.Recipe.ScrapedAtUtc != null && ri.Recipe.Image != null && ri.Recipe.Image != ""))
+                    && ri.Ingredient.CurationStatusId != (long)CurationStatusEnum.Curated
+                    && !(ri.LineKind != null && RecipeAutoCurationService.ExemptLineKinds.Contains(ri.LineKind))
+                    && ri.Quantity > 0)
+                .GroupBy(ri => ri.RecipeId)
+                .Select(g => new { First = g.Min(ri => ri.IngredientId), Last = g.Max(ri => ri.IngredientId), Lines = g.Count() })
+                .Where(x => x.First == x.Last)
+                .ToListAsync(cancellationToken);
+            IReadOnlyList<(long, int, int)> counts = perRecipe
+                .GroupBy(x => x.First)
+                .Select(g => (IngredientId: g.Key, Recipes: g.Count(), Lines: g.Sum(x => x.Lines)))
+                .OrderByDescending(x => x.Recipes).ThenByDescending(x => x.Lines).ThenBy(x => x.IngredientId)
+                .ToList();
+            _cache.Set(ImpactKey, counts, ImpactLifetime);
+            return counts;
+        }
+
+        public async Task<IReadOnlyList<LinkImpactRow>> TopBlockersAsync(int limit, CancellationToken cancellationToken = default)
+        {
+            var top = (await BlockerCountsAsync(cancellationToken)).Take(Math.Clamp(limit, 1, 2000)).ToList();
+            var ids = top.Select(t => t.IngredientId).ToList();
+            var names = await _context.Ingredients.AsNoTracking()
+                .Where(i => ids.Contains(i.Id))
+                .ToDictionaryAsync(i => i.Id, i => i.Name, cancellationToken);
+            var proposals = (await _context.FoodCatalogProposals.AsNoTracking()
+                    .Where(p => p.IngredientId != null && ids.Contains(p.IngredientId.Value) && p.Field == FoodCatalogReviewService.FdcLinkField)
+                    .Select(p => new { p.Id, IngredientId = p.IngredientId!.Value, p.Status, p.Source, p.FdcId, p.ProposedValue, p.Confidence, p.Reason })
+                    .ToListAsync(cancellationToken))
+                .GroupBy(p => p.IngredientId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(p => p.Id).First());
+            var targetIds = proposals.Values.Select(p => long.TryParse(p.ProposedValue, out var t) ? t : (long?)null).OfType<long>().Distinct().ToList();
+            var targets = await _context.Ingredients.AsNoTracking()
+                .Where(i => targetIds.Contains(i.Id))
+                .ToDictionaryAsync(i => i.Id, i => i.Name, cancellationToken);
+
+            return top.Select(t =>
+            {
+                LinkImpactProposal? latest = null;
+                if (proposals.TryGetValue(t.IngredientId, out var p))
+                {
+                    long? target = long.TryParse(p.ProposedValue, out var tid) ? tid : null;
+                    var mark = p.Reason?.IndexOf(TriangulationMark, StringComparison.Ordinal) ?? -1;
+                    latest = new LinkImpactProposal(p.Id, p.Status, p.Source, p.FdcId, target,
+                        target is { } id && targets.TryGetValue(id, out var targetName) ? targetName : null,
+                        p.Confidence, mark >= 0 ? p.Reason![(mark + TriangulationMark.Length)..] : null);
+                }
+                return new LinkImpactRow(t.IngredientId, names.GetValueOrDefault(t.IngredientId, string.Empty), t.Recipes, t.Lines, latest);
+            }).ToList();
+        }
 
         private static bool IsUnreachable(Exception ex) =>
             ex is System.Net.Http.HttpRequestException or TimeoutException or TaskCanceledException;

@@ -24,19 +24,22 @@ namespace Nom.Api.Tests.Services
     /// matches are proposed deterministically, ambiguous ones by the model choosing among real USDA
     /// rows, and approving a link merges or copies USDA data — never a model-authored number.
     /// </summary>
-    public class IngredientLinkTests
+    public partial class IngredientLinkTests
     {
         private sealed class FakeMatcher : IIngredientLinkMatcher
         {
-            public Func<LinkQuestion, LinkAnswer> Answer { get; set; } = q => new LinkAnswer(q.IngredientId, null, 0m);
+            public Func<LinkQuestion, LinkAnswer?> Answer { get; set; } = q => new LinkAnswer(q.IngredientId, null, 0m);
+            public Func<IReadOnlyList<LinkQuestion>, Exception?> Failure { get; set; } = _ => null;
             public List<string> Asked { get; } = new();
             public bool IsConfigured => true;
             public string ModelName => "fake:1b";
+            public int PromptVersion { get; set; } = 1;
 
             public Task<IReadOnlyList<LinkAnswer>> ChooseAsync(IReadOnlyList<LinkQuestion> questions, CancellationToken cancellationToken = default)
             {
                 Asked.AddRange(questions.Select(q => q.Name));
-                return Task.FromResult<IReadOnlyList<LinkAnswer>>(questions.Select(Answer).ToList());
+                if (Failure(questions) is { } failure) throw failure;
+                return Task.FromResult<IReadOnlyList<LinkAnswer>>(questions.Select(Answer).OfType<LinkAnswer>().ToList());
             }
         }
 
@@ -94,17 +97,20 @@ namespace Nom.Api.Tests.Services
 
         private sealed class FakeVerifier : IIngredientLinkVerifier
         {
-            public Func<LinkQuestion, FoodCandidate?> Pick { get; set; } = q => q.Candidates.FirstOrDefault();
+            public Func<LinkPair, LinkJudgement?> Judge { get; set; } = _ => LinkJudgement.Same;
             public Exception? Failure { get; set; }
-            public List<LinkQuestion> Asked { get; } = new();
-            public bool IsConfigured => true;
-            public string ModelName => "fake:verify";
+            public List<LinkPair> Asked { get; } = new();
+            public bool IsConfigured { get; set; } = true;
+            public string ModelName { get; set; } = "fake:verify";
+            public int PromptVersion => 1;
 
-            public Task<IReadOnlyList<LinkVerdict>> ChooseAsync(IReadOnlyList<LinkQuestion> questions, CancellationToken cancellationToken = default)
+            public Task<IReadOnlyList<LinkVerdict>> JudgeAsync(IReadOnlyList<LinkPair> pairs, CancellationToken cancellationToken = default)
             {
-                Asked.AddRange(questions);
+                Asked.AddRange(pairs);
                 if (Failure != null) throw Failure;
-                return Task.FromResult<IReadOnlyList<LinkVerdict>>(questions.Select(q => new LinkVerdict(q.IngredientId, Pick(q))).ToList());
+                return Task.FromResult<IReadOnlyList<LinkVerdict>>(pairs
+                    .Select(p => Judge(p) is { } judgement ? new LinkVerdict(p.IngredientId, judgement) : null)
+                    .OfType<LinkVerdict>().ToList());
             }
         }
 
@@ -131,13 +137,13 @@ namespace Nom.Api.Tests.Services
             var (_, _, plain) = await SeedFoodsAsync(db);
             var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
             var proposal = await AiPickAsync(db, butter, plain, 0.92m);
-            var verifier = new FakeVerifier { Pick = q => q.Candidates.Single(c => c.FdcId == plain.FdcId) };
+            var verifier = new FakeVerifier();
             var linker = Linker(db, new FakeMatcher(), verifier);
 
             var result = await linker.VerifyPendingAiAsync(10, 0.85m);
 
             result.Should().Be(new IngredientLinkVerifyResult(1, 1, false));
-            verifier.Asked.Single().Name.Should().Be("unsalted butter");
+            verifier.Asked.Single().Should().Be(new LinkPair(butter.Id, "unsalted butter", "Butter, without salt"), "the judge sees the wording and the one description picked");
             proposal.Reason.Should().Contain(IngredientLinkService.VerifiedMark).And.Contain("fake:verify");
             proposal.Source.Should().Be("ai:fake:1b", "verification is recorded beside the provenance, not instead of it");
             var ids = await linker.PendingVerifiedAsync(10, Array.Empty<long>());
@@ -177,7 +183,7 @@ namespace Nom.Api.Tests.Services
             await db.SaveChangesAsync();
             var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
             var proposal = await AiPickAsync(db, butter, honey, 0.97m);
-            var verifier = new FakeVerifier { Pick = q => q.Candidates.FirstOrDefault(c => c.FdcId == honey.FdcId) };
+            var verifier = new FakeVerifier();
             var linker = Linker(db, new FakeMatcher(), verifier);
 
             (await linker.VerifyPendingAiAsync(10, 0.85m)).Should().Be(new IngredientLinkVerifyResult(1, 0, false));
@@ -189,19 +195,19 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task A_pick_within_the_matchers_top_three_is_checked_with_the_second_opinion()
+        public async Task A_pick_the_name_matcher_ranks_second_is_not_verified_and_not_sent_to_the_judge()
         {
             using var db = NewContext();
             var (_, salted, _) = await SeedFoodsAsync(db);
             var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
             var proposal = await AiPickAsync(db, butter, salted, 0.97m);
-            var verifier = new FakeVerifier { Pick = q => q.Candidates.Single(c => c.FdcId == salted.FdcId) };
+            var verifier = new FakeVerifier();
             var linker = Linker(db, new FakeMatcher(), verifier);
 
-            (await linker.VerifyPendingAiAsync(10, 0.85m)).Should().Be(new IngredientLinkVerifyResult(1, 1, false));
+            (await linker.VerifyPendingAiAsync(10, 0.85m)).Should().Be(new IngredientLinkVerifyResult(1, 0, false));
 
-            verifier.Asked.Should().HaveCount(1, "the matcher's top pick is not the only defensible one; the second opinion decides");
-            proposal.Reason.Should().Contain(IngredientLinkService.VerifiedMark);
+            verifier.Asked.Should().BeEmpty("only the matcher's first choice is judged, the rule that measured best");
+            proposal.Reason.Should().Contain("not verified — name matcher ranks Butter, without salt first");
         }
 
         [Fact]
@@ -211,7 +217,7 @@ namespace Nom.Api.Tests.Services
             var (_, _, plain) = await SeedFoodsAsync(db);
             var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
             var proposal = await AiPickAsync(db, butter, plain, 0.82m);
-            var linker = Linker(db, new FakeMatcher(), new FakeVerifier { Pick = q => q.Candidates.Single(c => c.FdcId == plain.FdcId) });
+            var linker = Linker(db, new FakeMatcher(), new FakeVerifier());
 
             (await linker.VerifyPendingAiAsync(10, 0.80m)).Should().Be(new IngredientLinkVerifyResult(1, 1, false));
 
@@ -299,20 +305,22 @@ namespace Nom.Api.Tests.Services
         }
 
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public async Task A_pick_the_second_opinion_does_not_name_stays_pending(bool choosesNone)
+        [InlineData(LinkJudgement.VarietyOrForm, "not verified — fake:verify prompt 1 judges it a different variety or form")]
+        [InlineData(LinkJudgement.DifferentFood, "not verified — fake:verify prompt 1 judges it a different food")]
+        [InlineData(LinkJudgement.MoreThanOneFood, "not verified — fake:verify prompt 1 judges it more than one food")]
+        [InlineData(LinkJudgement.Unsure, IngredientLinkService.TriangulationMark + "unsure — fake:verify prompt 1 is unsure")]
+        public async Task A_pick_the_judge_does_not_call_the_same_food_stays_pending(LinkJudgement judgement, string mark)
         {
             using var db = NewContext();
-            var (_, salted, plain) = await SeedFoodsAsync(db);
+            var (_, _, plain) = await SeedFoodsAsync(db);
             var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
             var proposal = await AiPickAsync(db, butter, plain, 0.95m);
-            var verifier = new FakeVerifier { Pick = q => choosesNone ? null : q.Candidates.Single(c => c.FdcId == salted.FdcId) };
+            var verifier = new FakeVerifier { Judge = _ => judgement };
             var linker = Linker(db, new FakeMatcher(), verifier);
 
             (await linker.VerifyPendingAiAsync(10, 0.85m)).Should().Be(new IngredientLinkVerifyResult(1, 0, false));
 
-            proposal.Reason.Should().Contain(choosesNone ? "fake:verify chose none" : "fake:verify chose Butter, salted");
+            proposal.Reason.Should().Contain(mark).And.NotContain(IngredientLinkService.VerifiedMark);
             proposal.Status.Should().Be(FoodProposalStatus.Pending);
             (await linker.PendingVerifiedAsync(10, Array.Empty<long>())).Should().BeEmpty();
         }
@@ -329,7 +337,7 @@ namespace Nom.Api.Tests.Services
 
             (await linker.VerifyPendingAiAsync(10, 0.85m)).Should().Be(new IngredientLinkVerifyResult(1, 0, false));
 
-            proposal.Reason.Should().Contain("not verified — fake:verify gave no readable answer");
+            proposal.Reason.Should().Contain("not verified — fake:verify prompt 1 gave no readable answer");
             (await linker.PendingVerifiedAsync(10, Array.Empty<long>())).Should().BeEmpty();
         }
 
@@ -340,7 +348,7 @@ namespace Nom.Api.Tests.Services
             var (_, salted, plain) = await SeedFoodsAsync(db);
             var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
             await AiPickAsync(db, butter, plain, 0.95m);
-            var verifier = new FakeVerifier { Pick = q => q.Candidates.Single(c => c.FdcId == salted.FdcId) };
+            var verifier = new FakeVerifier { Judge = _ => LinkJudgement.DifferentFood };
             await Linker(db, new FakeMatcher(), verifier).VerifyPendingAiAsync(10, 0.85m);
             verifier.Asked.Should().HaveCount(1);
 

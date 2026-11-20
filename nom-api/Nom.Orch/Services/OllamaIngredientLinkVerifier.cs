@@ -13,52 +13,65 @@ namespace Nom.Orch.Services
 {
     /// <summary>
     /// Second opinion on ingredient → USDA links from the local Ollama model (same URL as the link
-    /// matcher; model IngredientLinking:VerifyModel, else the link model). Framed differently from
-    /// the first pick on purpose: a chat-style audit question, candidates lettered and in reverse
-    /// order, no confidence asked for. An answer that can't be read names no candidate.
+    /// matcher; model IngredientLinking:VerifyModel, with no default: unset means no second opinion).
+    /// It judges one pair at a time — the wording and the one USDA description the pick chose — and
+    /// answers same food, different variety or form, different food, more than one food, or unsure.
+    /// The answer is constrained by a JSON schema (Ai:StrictSchema, default true) and read only by
+    /// its number; a pair it does not answer readably is left out.
     /// </summary>
     public class OllamaIngredientLinkVerifier : IIngredientLinkVerifier
     {
-        private const string Letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        public const int CurrentPromptVersion = 2;
+
+        private static readonly (string Word, LinkJudgement Judgement)[] Verdicts =
+        {
+            ("same", LinkJudgement.Same),
+            ("variety", LinkJudgement.VarietyOrForm),
+            ("different", LinkJudgement.DifferentFood),
+            ("several", LinkJudgement.MoreThanOneFood),
+            ("unsure", LinkJudgement.Unsure),
+        };
 
         private const string Instructions =
-            "You audit links between recipe ingredients and USDA food descriptions. For each ingredient, name the one lettered USDA " +
-            "description that is the same food a home cook means by it, as bought. A different food, a dish or sauce made from it " +
-            "(unless the ingredient itself is that dish or sauce), a product that merely contains it, or a variety, color or form the " +
-            "ingredient rules out is not the same food. When two could fit, choose the plain, general-purpose one. Answer \"none\" when " +
-            "no description is clearly the same food.\n" +
-            "Reply with STRICT JSON only: {\"results\":[{\"ingredient\":1,\"letter\":\"B\"}]} with one entry per ingredient; letter is a " +
-            "single letter or \"none\".";
+            "You audit links between recipe ingredients and USDA food descriptions. Each numbered item gives a recipe ingredient " +
+            "and one USDA description. Say whether a home cook who buys the ingredient would buy the food the description names.\n" +
+            "Answer one word per item:\n" +
+            "  \"same\" - the same food, as bought (the plain, general-purpose entry counts as the same food when the ingredient names no form);\n" +
+            "  \"variety\" - the same kind of food but a variety, color, cut or form (dried, canned, cooked, frozen, ground, powdered) the ingredient rules out or does not name;\n" +
+            "  \"different\" - a different food, a dish or sauce made from it, or a product that merely contains it;\n" +
+            "  \"several\" - the ingredient names more than one food (for example 'salt and pepper', 'butter or margarine');\n" +
+            "  \"unsure\" - you cannot tell.\n" +
+            "Reply with STRICT JSON only: {\"results\":[{\"n\":1,\"verdict\":\"same\"}]} with one entry per item.";
 
         private readonly HttpClient _httpClient;
         private readonly string _baseUrl;
+        private readonly bool _strictSchema;
 
         public OllamaIngredientLinkVerifier(HttpClient httpClient, IConfiguration config)
         {
             _httpClient = httpClient;
             _baseUrl = (config["Ai:BatchOllamaUrl"] is { Length: > 0 } batch ? batch : config["Ai:OllamaUrl"] ?? string.Empty).TrimEnd('/');
-            ModelName = config["IngredientLinking:VerifyModel"] is { Length: > 0 } verify
-                ? verify
-                : config["Ai:LinkModel"] ?? config["Ai:Model"] ?? "qwen2.5:7b-instruct";
+            ModelName = config["IngredientLinking:VerifyModel"]?.Trim() ?? string.Empty;
+            _strictSchema = config.GetValue("Ai:StrictSchema", true);
         }
 
-        public bool IsConfigured => _baseUrl.Length > 0;
+        public bool IsConfigured => _baseUrl.Length > 0 && ModelName.Length > 0;
         public string ModelName { get; }
+        public int PromptVersion => CurrentPromptVersion;
 
-        public async Task<IReadOnlyList<LinkVerdict>> ChooseAsync(IReadOnlyList<LinkQuestion> questions, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<LinkVerdict>> JudgeAsync(IReadOnlyList<LinkPair> pairs, CancellationToken cancellationToken = default)
         {
-            if (!IsConfigured) throw new InvalidOperationException("No Ollama URL configured for ingredient link verification.");
-            if (questions.Count == 0) return Array.Empty<LinkVerdict>();
+            if (!IsConfigured) throw new InvalidOperationException("No Ollama URL or IngredientLinking:VerifyModel configured for ingredient link verification.");
+            if (pairs.Count == 0) return Array.Empty<LinkVerdict>();
 
-            var shown = questions.Select(q => q.Candidates.Take(Letters.Length).Reverse().ToList()).ToList();
-            var body = string.Join("\n\n", questions.Select((q, i) =>
-                $"Ingredient {i + 1}: \"{q.Name}\"\n" + string.Join("\n", shown[i].Select((c, j) => $"  {Letters[j]}) {c.Name}"))));
+            var body = string.Join("\n\n", pairs.Select((p, i) =>
+                $"Item {i + 1}\n  ingredient: \"{p.Wording}\"\n  USDA: {p.Description}"));
 
             var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/api/chat", new
             {
                 model = ModelName,
                 stream = false,
-                format = "json",
+                format = _strictSchema ? Schema(pairs.Count) : "json",
                 options = new { temperature = 0, num_ctx = 8192 },
                 messages = new[]
                 {
@@ -69,7 +82,17 @@ namespace Nom.Orch.Services
             response.EnsureSuccessStatusCode();
 
             var reply = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
-            using var doc = JsonDocument.Parse(reply.GetProperty("message").GetProperty("content").GetString() ?? "{}");
+            return Read(reply.GetProperty("message").GetProperty("content").GetString() ?? "{}", pairs);
+        }
+
+        /// <summary>
+        /// The verdicts in a model reply, each found by its number. An entry whose number is missing,
+        /// repeated or out of range, or whose verdict is not one of the five words, is left out.
+        /// Throws when the reply holds no results at all.
+        /// </summary>
+        public static IReadOnlyList<LinkVerdict> Read(string reply, IReadOnlyList<LinkPair> pairs)
+        {
+            using var doc = JsonDocument.Parse(reply);
             var entries = doc.RootElement.ValueKind == JsonValueKind.Object
                 && doc.RootElement.TryGetProperty("results", out var list) && list.ValueKind == JsonValueKind.Array
                     ? list.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.Object).ToList()
@@ -77,22 +100,42 @@ namespace Nom.Orch.Services
             if (entries.Count == 0) throw new InvalidOperationException("Model returned no results.");
 
             var verdicts = new List<LinkVerdict>();
-            for (var i = 0; i < questions.Count; i++)
+            for (var i = 0; i < pairs.Count; i++)
             {
                 var number = i + 1;
-                var entry = entries.FirstOrDefault(e => e.TryGetProperty("ingredient", out var n) && n.ValueKind == JsonValueKind.Number && n.TryGetInt32(out var v) && v == number);
-                if (entry.ValueKind != JsonValueKind.Object)
-                {
-                    if (entries.Count != questions.Count) continue;
-                    entry = entries[i];
-                }
+                var numbered = entries.Where(e => e.TryGetProperty("n", out var n) && n.ValueKind == JsonValueKind.Number && n.TryGetInt32(out var v) && v == number).ToList();
+                if (numbered.Count != 1) continue;
 
-                var letter = entry.TryGetProperty("letter", out var l) && l.ValueKind == JsonValueKind.String ? l.GetString()?.Trim().TrimEnd(')') : null;
-                var index = letter is { Length: 1 } ? Letters.IndexOf(char.ToUpperInvariant(letter[0])) : -1;
-                var choice = index >= 0 && index < shown[i].Count ? shown[i][index] : null;
-                verdicts.Add(new LinkVerdict(questions[i].IngredientId, choice));
+                var word = numbered[0].TryGetProperty("verdict", out var w) && w.ValueKind == JsonValueKind.String ? w.GetString()?.Trim().ToLowerInvariant() : null;
+                var match = Verdicts.Where(v => v.Word == word).Select(v => (LinkJudgement?)v.Judgement).FirstOrDefault();
+                if (match is { } judgement) verdicts.Add(new LinkVerdict(pairs[i].IngredientId, judgement));
             }
             return verdicts;
         }
+
+        private static object Schema(int count) => new
+        {
+            type = "object",
+            properties = new
+            {
+                results = new
+                {
+                    type = "array",
+                    minItems = count,
+                    maxItems = count,
+                    items = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            n = new { type = "integer", minimum = 1, maximum = count },
+                            verdict = new { type = "string", @enum = Verdicts.Select(v => v.Word).ToArray() },
+                        },
+                        required = new[] { "n", "verdict" },
+                    },
+                },
+            },
+            required = new[] { "results" },
+        };
     }
 }
