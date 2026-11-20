@@ -375,6 +375,116 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_retract_leaves_a_proposal_another_job_withdrew_from_its_source_withdrawn_with_its_entry()
+        {
+            using var db = NewContext();
+            var k = await KitchenAsync(db);
+            var admitted = Pick(k.Vanilla, "vanilla", k.Soymilk);
+            admitted.IsDeleted = true;
+            db.FoodCatalogProposals.Add(admitted);
+            await db.SaveChangesAsync();
+            db.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = LineRelinkService.PickWithdrawEntityType, EntityId = admitted.Id, ChangeType = LineRelinkService.ProposalWithdrawChangeType,
+                PropertyName = nameof(FoodCatalogProposalEntity.IsDeleted), OldValue = bool.FalseString, NewValue = bool.TrueString,
+                Timestamp = DateTime.UtcNow.AddMinutes(-5), ChangedByPersonId = SystemConstants.SystemPersonId,
+            });
+            await db.SaveChangesAsync();
+            var id = await LoadAndRelinkAsync(db, Batch, false, Row("vanilla", k.Extract));
+
+            var retracted = await Wordings(db).RetractAsync(id, "wrong food", apply: true);
+
+            retracted!.Lines.ProposalWithdrawals.Should().Be(1);
+            retracted.Lines.Undone!.ProposalsRestored.Should().Be(1);
+            (await db.FoodCatalogProposals.IgnoreQueryFilters().SingleAsync(p => p.Id == admitted.Id)).IsDeleted.Should().BeTrue();
+            (await db.FoodCatalogProposals.IgnoreQueryFilters().SingleAsync(p => p.Id == k.Open.Id)).IsDeleted.Should().BeFalse();
+            (await db.AuditLogEntries.CountAsync(a => a.EntityId == admitted.Id && a.ChangeType == LineRelinkService.ProposalWithdrawChangeType))
+                .Should().Be(1, "the admission's own undo still needs its entry");
+        }
+
+        [Fact]
+        public async Task Unloading_a_batch_that_replaced_a_row_reopens_only_the_picks_the_restored_row_does_not_contradict()
+        {
+            using var db = NewContext();
+            var k = await KitchenAsync(db);
+            await LoadAndRelinkAsync(db, Batch, false, Row("vanilla", k.Extract));
+            (await db.FoodCatalogProposals.IgnoreQueryFilters().SingleAsync(p => p.Id == k.WrongPick.Id)).IsDeleted.Should().BeTrue();
+            var agreeing = Pick(k.Raw, "vanilla", k.Extract);
+            db.FoodCatalogProposals.Add(agreeing);
+            await db.SaveChangesAsync();
+            (await Wordings(db).LoadAsync(new[] { Row("vanilla", k.Soymilk) }, "w02", apply: true, replace: true)).Changed.Should().Be(1);
+            (await Relink(db).LinkVerifiedWordingsAsync(apply: true, batch: "w02")).PicksWithdrawn.Should().Be(1);
+
+            var unloaded = await Wordings(db).UnloadAsync("w02", apply: true, withLines: true);
+
+            unloaded.Restored.Should().Be(1);
+            unloaded.Lines!.PickWithdrawals.Should().Be(1);
+            (await db.IngredientWordings.SingleAsync()).IngredientId.Should().Be(k.Extract.Id);
+            (await db.FoodCatalogProposals.IgnoreQueryFilters().SingleAsync(p => p.Id == k.WrongPick.Id)).IsDeleted.Should().BeTrue(
+                "w01 withdrew the pick to Soymilk, and the row is w01's again");
+            (await db.FoodCatalogProposals.IgnoreQueryFilters().SingleAsync(p => p.Id == agreeing.Id)).IsDeleted.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task A_retract_reload_and_relink_give_back_the_state_before_the_retract_for_a_landing_that_needed_a_new_ingredient()
+        {
+            using var db = NewContext();
+            var extract = CuratedFood("Vanilla Extract");
+            db.Ingredients.Add(extract);
+            await db.SaveChangesAsync();
+            await Wordings(db).LoadAsync(new[] { Row("vanilla", extract) }, Batch, apply: true);
+            await ImportAsync(db, "vanilla", "1 tsp vanilla");
+            await ImportAsync(db, "vanilla", "a few drops of the good stuff");
+            var id = await db.IngredientWordings.Select(w => w.Id).SingleAsync();
+            var before = await FingerprintAsync(db);
+
+            var retracted = await Wordings(db).RetractAsync(id, "beans", apply: true);
+            retracted!.Lines.LandingsMovedBack.Should().Be(2);
+            (await FingerprintAsync(db)).Should().NotBe(before);
+
+            await Wordings(db).LoadAsync(new[] { Row("vanilla", extract) }, "w02", apply: true, overrideRejections: true);
+            var dry = await Relink(db).LinkVerifiedWordingsAsync(apply: false, batch: "w02");
+            dry.Should().Match<VerifiedWordingLinkResult>(r => r.LandingsReturned == 2 && r.SourcesRetired == 0 && r.IngredientsRemoved == 1);
+            (await FingerprintAsync(db)).Should().NotBe(before, "a dry run writes nothing");
+            var relinked = await Relink(db).LinkVerifiedWordingsAsync(apply: true, batch: "w02");
+
+            relinked.Should().Match<VerifiedWordingLinkResult>(r => r.LandingsReturned == 2 && r.SourcesRetired == 0 && r.IngredientsRemoved == 1);
+            (await FingerprintAsync(db)).Should().Be(before);
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LineRelinkService.WordingResolveChangeType)).Should().Be(2,
+                "the lines are journaled as landings again, so a later retract finds them");
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LineRelinkService.WordingRetractChangeType && a.EntityType != VerifiedWordingService.WordingEntityType
+                && a.EntityType != VerifiedWordingService.RejectionEntityType)).Should().Be(0);
+        }
+
+        [Fact]
+        public async Task A_relink_leaves_a_retracted_landing_on_a_recipe_rebuilt_since_and_keeps_the_ingredient_that_holds_it()
+        {
+            using var db = NewContext();
+            var extract = CuratedFood("Vanilla Extract");
+            db.Ingredients.Add(extract);
+            await db.SaveChangesAsync();
+            await Wordings(db).LoadAsync(new[] { Row("vanilla", extract) }, Batch, apply: true);
+            await ImportAsync(db, "vanilla", "1 tsp vanilla");
+            var rebuiltRecipe = await ImportAsync(db, "vanilla", "a few drops of the good stuff");
+            var id = await db.IngredientWordings.Select(w => w.Id).SingleAsync();
+            await Wordings(db).RetractAsync(id, "beans", apply: true);
+            var made = (await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == rebuiltRecipe.Id)).IngredientId;
+            db.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = ScrapedRecipeRepairService.LineEntityType, EntityId = rebuiltRecipe.Id, ChangeType = RecipeReprocessService.ReprocessChangeType,
+                PropertyName = "rebuild", NewValue = "journal=1;batch=b;rules=line-builder/2;kind=rebuild", Timestamp = DateTime.UtcNow.AddMinutes(1),
+            });
+            await db.SaveChangesAsync();
+            await Wordings(db).LoadAsync(new[] { Row("vanilla", extract) }, "w02", apply: true, overrideRejections: true);
+
+            var relinked = await Relink(db).LinkVerifiedWordingsAsync(apply: true, batch: "w02");
+
+            relinked.Should().Match<VerifiedWordingLinkResult>(r => r.LandingsReturned == 1 && r.LandingsReturnSkippedRebuilt == 1 && r.IngredientsRemoved == 0);
+            (await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == rebuiltRecipe.Id)).IngredientId.Should().Be(made);
+            (await db.Ingredients.AnyAsync(i => i.Id == made)).Should().BeTrue();
+        }
+
+        [Fact]
         public async Task The_rejection_memory_refuses_the_same_pair_on_the_same_evidence_and_lets_another_food_or_new_evidence_through()
         {
             using var db = NewContext();

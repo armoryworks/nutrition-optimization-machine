@@ -36,6 +36,7 @@ namespace Nom.Orch.Services
                 TargetsUnusable = verified.Count - usable.Count,
             };
 
+            var (returning, removed) = await ReturnLandingsAsync(usable, apply, result);
             var keys = usable.Keys.ToList();
             var sources = (await _db.Ingredients.AsNoTracking()
                     .Where(i => !i.IsDeleted && i.FdcId == null && i.CurationStatusId != (long)CurationStatusEnum.Curated
@@ -43,7 +44,7 @@ namespace Nom.Orch.Services
                     .Select(i => new { i.Id, i.Name })
                     .ToListAsync())
                 .Select(i => new { i.Id, i.Name, Wording = IngredientNameNormalizer.WordingKey(i.Name) })
-                .Where(i => usable.TryGetValue(i.Wording, out var targetId) && targetId != i.Id)
+                .Where(i => usable.TryGetValue(i.Wording, out var targetId) && targetId != i.Id && !removed.Contains(i.Id))
                 .ToDictionary(i => i.Id);
             result.Sources = sources.Count;
 
@@ -55,6 +56,7 @@ namespace Nom.Orch.Services
                 .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId)
                 .Select(ri => new Line(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine))
                 .ToListAsync();
+            lines = lines.Where(l => !returning.Contains((l.RecipeId, l.IngredientId, l.SortOrder))).ToList();
             var all = lines.Select(line => new Move(line, sources[line.IngredientId].Wording, usable[sources[line.IngredientId].Wording])).ToList();
             var moves = all.Where(m => NamesWording(m.Line.RawLine, m.Wording)).ToList();
             var behind = all.Where(m => !NamesWording(m.Line.RawLine, m.Wording)).ToList();
@@ -96,7 +98,7 @@ namespace Nom.Orch.Services
                 var retired = new List<long>();
                 foreach (var id in chunk)
                 {
-                    var left = lineCounts.GetValueOrDefault(id) - (apply ? 0 : planned.GetValueOrDefault(id));
+                    var left = lineCounts.GetValueOrDefault(id) - (apply ? 0 : planned.GetValueOrDefault(id) + returning.Count(r => r.IngredientId == id));
                     if (left > 0 || await IsUsedOutsideRecipeLinesAsync(id))
                     {
                         result.SourcesKept++;
@@ -201,7 +203,6 @@ namespace Nom.Orch.Services
             var result = new WordingLinesUndoResult { Applied = apply };
             var undo = new List<AuditLogEntryEntity>();
             var landings = new List<Landing>();
-            var keys = wordings.Select(w => w.Wording).ToHashSet(StringComparer.Ordinal);
 
             foreach (var (wording, targetId) in wordings.Where(w => w.TargetId != null).Select(w => (w.Wording, w.TargetId!.Value)).Distinct())
             {
@@ -239,13 +240,16 @@ namespace Nom.Orch.Services
                 result.LineMoves += moves.Count;
                 undo.AddRange(moves);
 
-                var proposalIds = await _db.FoodCatalogProposals.IgnoreQueryFilters()
-                    .Where(p => p.IngredientId != null && sources.Contains(p.IngredientId.Value))
-                    .Select(p => p.Id)
-                    .ToListAsync();
-                var withdrawals = await _db.AuditLogEntries
-                    .Where(a => a.EntityType == PickWithdrawEntityType && a.ChangeType == ProposalWithdrawChangeType && proposalIds.Contains(a.EntityId))
-                    .ToListAsync();
+                var retiredWith = retirements.Select(a => (a.EntityId, a.Timestamp, a.ChangedByPersonId)).ToHashSet();
+                var owners = await _db.FoodCatalogProposals.IgnoreQueryFilters()
+                    .Where(p => p.IngredientId != null && uncuratedRetired.Contains(p.IngredientId.Value))
+                    .ToDictionaryAsync(p => p.Id, p => p.IngredientId!.Value);
+                var proposalIds = owners.Keys.ToList();
+                var withdrawals = (await _db.AuditLogEntries
+                        .Where(a => a.EntityType == PickWithdrawEntityType && a.ChangeType == ProposalWithdrawChangeType && proposalIds.Contains(a.EntityId))
+                        .ToListAsync())
+                    .Where(a => retiredWith.Contains((owners[a.EntityId], a.Timestamp, a.ChangedByPersonId)))
+                    .ToList();
                 result.ProposalWithdrawals += withdrawals.Count;
                 undo.AddRange(withdrawals);
 
@@ -261,14 +265,19 @@ namespace Nom.Orch.Services
                 .Where(a => a.EntityType == PickWithdrawEntityType && a.ChangeType == PickWithdrawChangeType)
                 .Select(a => new { a.Id, a.EntityId })
                 .ToListAsync();
+            var earlier = wordings.GroupBy(w => w.Wording, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().Earlier, StringComparer.Ordinal);
             var judged = new HashSet<long>();
             foreach (var chunk in pickEntries.Select(a => a.EntityId).Distinct().Chunk(1000))
             {
                 var picks = await _db.FoodCatalogProposals.IgnoreQueryFilters().AsNoTracking()
                     .Where(p => chunk.Contains(p.Id))
-                    .Select(p => new { p.Id, p.CurrentValue })
+                    .Select(p => new { p.Id, p.CurrentValue, p.ProposedValue })
                     .ToListAsync();
-                judged.UnionWith(picks.Where(p => keys.Contains(IngredientNameNormalizer.WordingKey(p.CurrentValue ?? string.Empty))).Select(p => p.Id));
+                judged.UnionWith(picks
+                    .Where(p => earlier.TryGetValue(IngredientNameNormalizer.WordingKey(p.CurrentValue ?? string.Empty), out var back)
+                        && (back == null || (back.Verdict == IngredientWordingVerdict.Food
+                            && back.IngredientId?.ToString(System.Globalization.CultureInfo.InvariantCulture) == p.ProposedValue)))
+                    .Select(p => p.Id));
             }
             var picksBack = new List<AuditLogEntryEntity>();
             foreach (var chunk in pickEntries.Where(a => judged.Contains(a.EntityId)).Select(a => a.Id).Chunk(1000))
@@ -289,6 +298,122 @@ namespace Nom.Orch.Services
 
         private sealed record Landing(AuditLogEntryEntity Entry, string Wording, long TargetId);
 
+        private static AuditLogEntryEntity CreatedForLandings(long ingredientId, string wording, DateTime at, long personId) => new()
+        {
+            EntityType = RetireEntityType,
+            EntityId = ingredientId,
+            ChangeType = WordingRetractChangeType,
+            PropertyName = nameof(IngredientEntity.Name),
+            OldValue = null,
+            NewValue = wording,
+            Timestamp = at,
+            ChangedByPersonId = personId,
+        };
+
+        /// <summary>
+        /// Moves each import landing a retract or an unload took off a wording's food back onto it,
+        /// now that the table gives the wording that food again, and journals it as a landing
+        /// (<see cref="WordingResolveChangeType"/>); an ingredient the retract created for such
+        /// landings that holds nothing once they are back is deleted. A line no longer where the
+        /// retract put it, or on a recipe rebuilt since, stays with its entry. Returns the lines a dry
+        /// run would move and the ingredients that are, or would be, deleted.
+        /// </summary>
+        private async Task<(HashSet<(long RecipeId, long IngredientId, int SortOrder)> Returning, HashSet<long> Removed)> ReturnLandingsAsync(
+            Dictionary<string, long> usable, bool apply, VerifiedWordingLinkResult result)
+        {
+            var returning = new HashSet<(long RecipeId, long IngredientId, int SortOrder)>();
+            var removed = new HashSet<long>();
+            var entries = (await _db.AuditLogEntries
+                    .Where(a => a.EntityType == RelinkEntityType && a.ChangeType == WordingRetractChangeType)
+                    .ToListAsync())
+                .Where(a => ReadPlace(a.OldValue) != null && ReadPlace(a.NewValue) != null)
+                .ToLookup(a => ReadPlace(a.OldValue)!.Value.IngredientId);
+            var created = (await _db.AuditLogEntries
+                    .Where(a => a.EntityType == RetireEntityType && a.ChangeType == WordingRetractChangeType && a.NewValue != null)
+                    .ToListAsync())
+                .Where(a => usable.ContainsKey(a.NewValue!))
+                .ToList();
+            if (entries.Count == 0) return (returning, removed);
+
+            var builder = new RecipeLineBuilder(_db, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, resolveVerifiedWordings: false);
+            var plan = new List<Landing>();
+            foreach (var (wording, targetId) in usable.Where(u => entries.Contains(u.Value)))
+            {
+                var homes = created.Where(a => a.NewValue == wording).Select(a => a.EntityId).ToHashSet();
+                if (await builder.FindWithoutWordingAsync(wording) is { } found) homes.Add(found.Food.Id);
+                plan.AddRange(entries[targetId].Where(a => homes.Contains(ReadPlace(a.NewValue)!.Value.IngredientId)).Select(a => new Landing(a, wording, targetId)));
+            }
+
+            plan = plan.DistinctBy(l => l.Entry.Id).OrderByDescending(l => l.Entry.Id).ToList();
+            var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db, plan.Select(l => l.Entry.EntityId).Distinct().ToList());
+            var skipped = plan.Where(l => rebuilt.TryGetValue(l.Entry.EntityId, out var at) && at > l.Entry.Timestamp).ToList();
+            result.LandingsReturnSkippedRebuilt = skipped.Count;
+            plan = plan.Except(skipped).ToList();
+            foreach (var landing in plan)
+            {
+                var now = ReadPlace(landing.Entry.NewValue)!.Value;
+                if (await _db.RecipeIngredients.AnyAsync(ri => ri.RecipeId == landing.Entry.EntityId && ri.IngredientId == now.IngredientId && ri.SortOrder == now.SortOrder && !ri.IsDeleted))
+                    returning.Add((landing.Entry.EntityId, now.IngredientId, now.SortOrder));
+            }
+
+            foreach (var creation in created.Where(a => plan.Any(l => l.Wording == a.NewValue)).DistinctBy(a => a.EntityId))
+            {
+                var id = creation.EntityId;
+                var onIt = await _db.RecipeIngredients.IgnoreQueryFilters().CountAsync(ri => ri.IngredientId == id);
+                var placeOf = id.ToString(System.Globalization.CultureInfo.InvariantCulture) + "@";
+                if (onIt == returning.Count(r => r.IngredientId == id)
+                    && await _db.Ingredients.AnyAsync(i => i.Id == id && !i.IsDeleted)
+                    && !await _db.FoodCatalogProposals.IgnoreQueryFilters().AnyAsync(p => p.IngredientId == id)
+                    && !await _db.IngredientAliases.IgnoreQueryFilters().AnyAsync(a => a.IngredientId == id)
+                    && !await _db.IngredientNutrients.IgnoreQueryFilters().AnyAsync(n => n.IngredientId == id)
+                    && !await _db.AuditLogEntries.AnyAsync(a => a.EntityType == RelinkEntityType && a.ChangeType == RelinkChangeType && a.OldValue != null && a.OldValue.StartsWith(placeOf))
+                    && !await IsUsedOutsideRecipeLinesAsync(id))
+                    removed.Add(id);
+            }
+
+            result.LandingsReturned = returning.Count;
+            result.IngredientsRemoved = removed.Count;
+            if (!apply) return (returning, removed);
+
+            var personId = _currentUser.PersonIdOrSystem;
+            result.LandingsReturned = 0;
+            await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+            foreach (var landing in plan)
+            {
+                var entry = landing.Entry;
+                var was = ReadPlace(entry.OldValue)!.Value;
+                var now = ReadPlace(entry.NewValue)!.Value;
+                if (!returning.Contains((entry.EntityId, now.IngredientId, now.SortOrder))) continue;
+                var position = await MoveAsync(entry.EntityId, now.IngredientId, now.SortOrder, landing.TargetId, was.SortOrder, personId);
+                if (position == null) continue;
+
+                var at = DateTime.UtcNow;
+                var followed = LinkApplyJournal.Place(entry.EntityId, now.IngredientId, now.SortOrder);
+                _db.AuditLogEntries.RemoveRange(await _db.AuditLogEntries
+                    .Where(a => a.EntityType == LinkApplyJournal.EntityType && a.ChangeType == LinkApplyJournal.ChangeType && a.PropertyName == LinkApplyJournal.Line
+                        && a.NewValue == followed && a.Timestamp == entry.Timestamp)
+                    .ToListAsync());
+                _db.AuditLogEntries.Remove(entry);
+                _db.AuditLogEntries.Add(WordingResolved(entry.EntityId, landing.Wording, landing.TargetId, position.Value, at, personId));
+                result.LandingsReturned++;
+            }
+
+            await _db.SaveChangesAsync();
+            var gone = new HashSet<long>();
+            foreach (var id in removed)
+            {
+                if (await _db.RecipeIngredients.IgnoreQueryFilters().AnyAsync(ri => ri.IngredientId == id)) continue;
+                _db.Ingredients.Remove(await _db.Ingredients.SingleAsync(i => i.Id == id));
+                _db.AuditLogEntries.RemoveRange(created.Where(a => a.EntityId == id));
+                gone.Add(id);
+            }
+
+            await _db.SaveChangesAsync();
+            if (tx != null) await tx.CommitAsync();
+            result.IngredientsRemoved = gone.Count;
+            return (new HashSet<(long RecipeId, long IngredientId, int SortOrder)>(), gone);
+        }
+
         /// <summary>
         /// Moves each line an import put on a wording's food through the wording to the food the
         /// import finds without it, newest first, journaled as <see cref="WordingRetractChangeType"/>.
@@ -298,7 +423,7 @@ namespace Nom.Orch.Services
         {
             if (landings.Count == 0) return;
             var builder = new RecipeLineBuilder(_db, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, resolveVerifiedWordings: false);
-            var homes = new Dictionary<string, (IngredientEntity Food, RecipeLineBuilder.FollowedLink? Link)>(StringComparer.Ordinal);
+            var homes = new Dictionary<string, (IngredientEntity Food, RecipeLineBuilder.FollowedLink? Link, bool Created)>(StringComparer.Ordinal);
             var personId = _currentUser.PersonIdOrSystem;
 
             foreach (var chunk in landings.OrderByDescending(l => l.Entry.Id).Chunk(500))
@@ -322,7 +447,10 @@ namespace Nom.Orch.Services
                     }
 
                     if (!homes.TryGetValue(landing.Wording, out var home))
+                    {
                         homes[landing.Wording] = home = await builder.FoodWithoutWordingAsync(landing.Wording, personId);
+                        if (home.Created) _db.AuditLogEntries.Add(CreatedForLandings(home.Food.Id, landing.Wording, DateTime.UtcNow, personId));
+                    }
 
                     if (home.Food.Id == landing.TargetId)
                     {

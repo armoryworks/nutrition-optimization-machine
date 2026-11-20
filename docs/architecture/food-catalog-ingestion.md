@@ -999,11 +999,16 @@ again give the same rows, byte for byte.
 takes one live row back with everything it did, found by the journal rather than by time
 (`LineRelinkService.UndoForSourcesAsync`): its sources (uncurated ingredients named with the
 wording, by their `FoodRetire` entry into the wording's food or still live by name) get back the
-`LineRelink` moves into the wording's food and come back themselves with their withdrawn proposals;
-the picks withdrawn because the table judged the wording (`WordingPickWithdraw`, matched by the
-pick's wording key) open again; and each import landing (below) goes to the food the import finds
+`LineRelink` moves into the wording's food and come back themselves with the proposals the relink
+withdrew with them (only the `ProposalWithdraw` entries written with the source's retirement, same
+time and person; a pick catalog admission withdrew from the same ingredient stays withdrawn and
+keeps its entry for `--admit --undo`); the picks withdrawn because the table judged the wording
+(`WordingPickWithdraw`, matched by the pick's wording key) open again, except, in an unload that
+puts a row back to an earlier batch's verdict, a pick that verdict contradicts; and each import
+landing (below) goes to the food the import finds
 without the table (`RecipeLineBuilder.FoodWithoutWordingAsync`: the ingredient of that name, the one
-trusted-alias owner, an applied link's food, else a new uncurated ingredient), journaled as
+trusted-alias owner, an applied link's food, else a new uncurated ingredient, journaled as
+`WordingRetract` with `EntityType` `Ingredient` and the wording as `NewValue`), journaled as
 `WordingRetract` (`EntityType` `RecipeIngredient`, old and new `food@position`); a landing the import
 would put on the same food without the table stays (`landingsKept`). Line entries of a recipe
 rebuilt after them are skipped and keep their entries (`skippedRebuilt`, `landingsSkippedRebuilt`;
@@ -1020,7 +1025,12 @@ or the row's `evidenceKey` equals it; another food, another verdict or new evide
 `claret` retracted from Claret #287424 can be loaded onto red table wine at once, and a lane never
 writes a retracted pair again on the same evidence. `load?overrideRejections=true` writes the pair on
 purpose and lifts the memory (`WordingRejectionLift`, journaled): that is how a retract is undone,
-followed by `relink/verified?batch=`; the result then equals the state before the retract.
+followed by `relink/verified?batch=`; the result then equals the state before the retract. The
+relink puts each landing a retract or an unload took off a food back onto it while the table gives
+its wording that food again (`landingsReturned`, journaled as `WordingResolve` again, whatever the
+line's text), and deletes an ingredient the retract created for landings that holds nothing once
+they are back (`ingredientsRemoved`; no line, proposal, alias, nutrient, relink move or household
+use). A landing on a recipe rebuilt after the retract stays (`landingsReturnSkippedRebuilt`).
 
 **Existing lines.** `POST api/FoodCatalog/relink/verified?apply=false&maxLines=20000&sampleSize=50&batch=`
 moves the scraped ingredient lines of every uncurated ingredient named with a `food` wording (of

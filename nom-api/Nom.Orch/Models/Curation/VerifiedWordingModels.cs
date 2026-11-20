@@ -108,6 +108,12 @@ namespace Nom.Orch.Models.Curation
         public int LeftBehind { get; set; }
         /// <summary>Lines left behind, taken at even steps.</summary>
         public List<VerifiedWordingLeftLine> LeftBehindSamples { get; set; } = new();
+        /// <summary>Import landings a retract or an unload took off a wording's food, moved back onto it now that the table gives the wording that food again.</summary>
+        public int LandingsReturned { get; set; }
+        /// <summary>Such landings on a recipe rebuilt after the retract; they stay, so undo the rebuild first.</summary>
+        public int LandingsReturnSkippedRebuilt { get; set; }
+        /// <summary>Ingredients a retract created to take landings that, with those landings back, hold nothing and are deleted.</summary>
+        public int IngredientsRemoved { get; set; }
     }
 
     /// <summary>One line left on a wording's uncurated row because its text does not name the wording.</summary>
@@ -119,8 +125,15 @@ namespace Nom.Orch.Models.Curation
         public string Line { get; set; } = string.Empty;
     }
 
-    /// <summary>A wording whose lines are taken back, and the food its row gives it (null for none or unclear).</summary>
-    public sealed record WordingUndoScope(string Wording, long? TargetId);
+    /// <summary>
+    /// A wording whose lines are taken back, the food its row gives it (null for none or unclear),
+    /// and the verdict an unload puts the row back to when the batch replaced an earlier one (null
+    /// when the row goes); a pick that earlier verdict contradicts stays withdrawn.
+    /// </summary>
+    public sealed record WordingUndoScope(string Wording, long? TargetId, WordingUndoEarlier? Earlier = null);
+
+    /// <summary>The verdict and food a row goes back to.</summary>
+    public sealed record WordingUndoEarlier(string Verdict, long? IngredientId);
 
     /// <summary>What taking back the lines of wordings finds in the journal, and on apply what was put back.</summary>
     public class WordingLinesUndoResult

@@ -338,13 +338,13 @@ namespace Nom.Orch.Services
                 .ToListAsync();
 
             var result = new VerifiedWordingUnloadResult { Applied = apply, Removed = rows.Count - earlier.Count, Restored = earlier.Count, Demoted = demote.Count };
-            if (withLines && !apply) result.Lines = await Relink().UndoForSourcesAsync(Scopes(rows), apply: false);
+            if (withLines && !apply) result.Lines = await Relink().UndoForSourcesAsync(Scopes(rows, earlier), apply: false);
             if (!apply || rows.Count == 0) return result;
 
             var personId = _currentUser.PersonIdOrSystem;
             var now = DateTime.UtcNow;
             await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
-            if (withLines) result.Lines = await Relink().UndoForSourcesAsync(Scopes(rows), apply: true);
+            if (withLines) result.Lines = await Relink().UndoForSourcesAsync(Scopes(rows, earlier), apply: true);
             foreach (var row in rows)
             {
                 if (earlier.TryGetValue(row.Id, out var back))
@@ -434,8 +434,9 @@ namespace Nom.Orch.Services
 
         private LineRelinkService Relink() => new(_db, _currentUser);
 
-        private static List<WordingUndoScope> Scopes(IEnumerable<IngredientWordingEntity> rows) =>
-            rows.Select(r => new WordingUndoScope(r.Wording, r.Verdict == IngredientWordingVerdict.Food ? r.IngredientId : null)).ToList();
+        private static List<WordingUndoScope> Scopes(IEnumerable<IngredientWordingEntity> rows, IReadOnlyDictionary<long, Earlier>? earlier = null) =>
+            rows.Select(r => new WordingUndoScope(r.Wording, r.Verdict == IngredientWordingVerdict.Food ? r.IngredientId : null,
+                earlier != null && earlier.TryGetValue(r.Id, out var back) ? new WordingUndoEarlier(back.Verdict, back.IngredientId) : null)).ToList();
 
         public async Task<string> ExportTsvAsync()
         {

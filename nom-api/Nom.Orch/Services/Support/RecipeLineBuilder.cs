@@ -202,15 +202,25 @@ namespace Nom.Orch.Services.Support
         /// The food the import finds for a wording with the verified wording table left out: a live
         /// ingredient of that name, the one food a trusted alias gives it to, or the food an applied
         /// link merged the retired ingredient of that name into; otherwise a new uncurated ingredient
-        /// of that name. A wording retract puts a line that landed through the wording there.
+        /// of that name (Created). A wording retract puts a line that landed through the wording there.
         /// </summary>
-        public async Task<(IngredientEntity Food, FollowedLink? Link)> FoodWithoutWordingAsync(string wording, long? personId)
+        public async Task<(IngredientEntity Food, FollowedLink? Link, bool Created)> FoodWithoutWordingAsync(string wording, long? personId)
+        {
+            if (await FindWithoutWordingAsync(wording) is { } found) return (found.Food, found.Link, false);
+            return (await CreateIngredientAsync(wording, personId), null, true);
+        }
+
+        /// <summary>
+        /// The food <see cref="FoodWithoutWordingAsync"/> finds without creating one, or null when it
+        /// would create one.
+        /// </summary>
+        public async Task<(IngredientEntity Food, FollowedLink? Link)?> FindWithoutWordingAsync(string wording)
         {
             var lowered = wording.ToLowerInvariant();
             var found = await FindByNameAsync(lowered) ?? await FindByTrustedAliasAsync(lowered);
             if (found != null) return (found, null);
             if (await FindByAppliedLinkAsync(lowered) is { } linked) return linked;
-            return (await CreateIngredientAsync(wording, personId), null);
+            return null;
         }
 
         /// <summary>
