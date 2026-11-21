@@ -56,6 +56,7 @@ namespace Nom.Api.Tests.Services
         [InlineData("Add a pinch of salt.", "count 1 pinch (soft)")]
         [InlineData("Let rest for a second sheet of foil.", "")]
         [InlineData("Cook 10 minutes or until golden.", "time 10 minute")]
+        [InlineData("Quarter the figs. 2 cups of cream are whipped.", "volume 2 cup")]
         public void Reads_each_amount_with_its_unit_and_range(string text, string expected)
         {
             Shape(text).Should().Be(expected);
@@ -69,6 +70,8 @@ namespace Nom.Api.Tests.Services
         [InlineData("Chill for 30 minutes as in step 3.", "time 30 minute")]
         [InlineData("Dress them as No. 111.", "")]
         [InlineData("Put them into the batter N. 156 and fry.", "")]
+        [InlineData("Directed in Art. 47. Add the eggs one at a time.", "")]
+        [InlineData("As shown in Fig. 15. Roll the paste thin.", "")]
         [InlineData("Cut the dough in half.", "")]
         [InlineData("Add the eggs one at a time.", "")]
         public void Step_markers_cross_references_and_bare_halves_are_not_amounts(string text, string expected)
@@ -131,6 +134,36 @@ namespace Nom.Api.Tests.Services
             var single = ProseQuantities.Read("8 minutes").Single();
 
             ProseQuantities.RangeChanged(range, single).Should().BeTrue();
+        }
+
+        [Theory]
+        [InlineData("4 pieces Heavy Duty Aluminum Foil (12 x 18 inches)", "foil")]
+        [InlineData("4 (4-inch) corn tortillas*, sliced into 1/4-inch x 2-inch strips", "tortillas")]
+        [InlineData("1 pound potatoes, cut into ~1-inch x 1-inch cubes", "potatoes")]
+        [InlineData("2 tablespoons butter, cut into 2 x 1/4-inch slices", "butter")]
+        [InlineData("1 cup carrots (about 10 14&#215;18-inch sheets)", "carrots")]
+        public void A_line_with_a_size_of_two_lengths_has_its_amounts_cut_once_and_keeps_its_head(string line, string head)
+        {
+            ProseCheck.LineHeads(new[] { line }).Should().ContainSingle().Which.Head.Should().Be(head);
+        }
+
+        [Theory]
+        [InlineData("Quarter the figs. 2 cups of cream are whipped.", "Quarter the figs. 2 cups of cream are whipped.")]
+        [InlineData("Add the fig. 3 dates and the figs. 4 prunes.", "Add the fig. 3 dates and the figs. 4 prunes.")]
+        [InlineData("Fold as in Fig. 15 and serve.", "Fold as in  ref  and serve.")]
+        public void Fig_is_a_cross_reference_only_with_a_capital_and_the_fruit_keeps_its_word_and_amount(string text, string expected)
+        {
+            ProseQuantities.Prepare(text).Should().Be(expected);
+        }
+
+        [Fact]
+        public void Amounts_that_share_one_span_are_cut_once()
+        {
+            var prepared = ProseQuantities.Prepare("Foil (12 x 18 inches) sheets");
+            var quantities = ProseQuantities.ReadPrepared(prepared);
+
+            quantities.Should().HaveCount(2).And.OnlyContain(q => q.Start == quantities[0].Start && q.End == quantities[0].End);
+            ProseQuantities.WithoutAmounts(prepared, quantities).Should().Be("Foil ( ) sheets");
         }
     }
 }

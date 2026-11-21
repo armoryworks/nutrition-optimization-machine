@@ -136,6 +136,15 @@ namespace Nom.Orch.Services
                     _logger.LogWarning(ex, "Prose lane: the model host failed while rewriting recipe {Id}; ending the sweep without charging it", id);
                     break;
                 }
+                catch (Exception ex) when (ex is not OperationCanceledException and not System.Net.Http.HttpRequestException)
+                {
+                    _logger.LogWarning(ex, "Prose lane: rewriting recipe {Id} failed ({Error}); it goes to the back of the queue", id, ex.Message);
+                    recipe.ProseRewriteAttemptedAt = DateTime.UtcNow;
+                    await _db.SaveChangesAsync(cancellationToken);
+                    _db.ChangeTracker.Clear();
+                    result.Errors++;
+                    continue;
+                }
 
                 var now = DateTime.UtcNow;
                 var stratum = recipe.ProseWithheld ? (recipe.CurationStatusId == (long)CurationStatusEnum.Curated ? "withheld-approved" : "withheld") : "quarantined";

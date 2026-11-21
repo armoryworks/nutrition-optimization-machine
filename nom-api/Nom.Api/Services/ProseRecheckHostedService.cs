@@ -101,6 +101,12 @@ namespace Nom.Api.Services
                 return true;
             }
 
+            if (result.Errored > 0)
+            {
+                _logger.LogWarning("Prose re-check could not check {Errored} recipe(s), withheld as check-error: {Errors}",
+                    result.Errored, string.Join("; ", result.Errors.Take(20).Select(e => $"#{e.RecipeId} {e.Error}")));
+            }
+
             _logger.LogInformation(
                 "Prose re-check done (check {Check}, stock index {Stock}): {Examined} examined, {Passed} passed, {Withheld} withheld ({Approved} approved), {Edited} skipped as edited by a person, {NoSource} without a source; by reason {Reasons}",
                 result.CheckVersion, result.StockVersion, result.Examined, result.Passed, result.Withheld, result.FailedApproved,

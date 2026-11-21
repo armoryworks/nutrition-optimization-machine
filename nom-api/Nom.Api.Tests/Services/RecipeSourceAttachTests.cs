@@ -183,6 +183,31 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_record_line_the_compound_split_wrote_as_parts_agrees_with_the_line_as_the_split_journal_holds_it()
+        {
+            using var db = NewContext();
+            var recipe = await RecipeAsync(db, "How to stew a HARE", Book, null,
+                "1 hare", "A little flour", "A little butter", "salt", "pepper", "carrots", "turnips", "1 quart water");
+            foreach (var (line, sort) in new[] { ("A little flour and butter", 1), ("salt and pepper", 3), ("carrots and turnips", 5) })
+            {
+                db.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+                {
+                    EntityType = LineRelinkService.RelinkEntityType, EntityId = recipe, ChangeType = CompoundLineService.SplitChangeType,
+                    PropertyName = "RawLine", Timestamp = Imported,
+                    OldValue = System.Text.Json.JsonSerializer.Serialize(new { i = 1, s = sort, q = 0, m = 1, r = line }),
+                    NewValue = "[]",
+                });
+            }
+
+            await db.SaveChangesAsync();
+            var record = Record("How to stew a HARE", null, "1 hare", "A little flour and butter", "salt and pepper", "carrots and turnips", "1 quart water");
+
+            var result = await Service(db).AttachAsync(Batch(Book, record));
+
+            result.Results.Single().Should().BeEquivalentTo(new { Outcome = RecipeSourceAttachOutcome.Matched, RecipeId = recipe, Score = 1.0 });
+        }
+
+        [Fact]
         public async Task Fewer_than_four_in_five_agreeing_lines_is_a_low_score_and_nothing_is_stored()
         {
             using var db = NewContext();

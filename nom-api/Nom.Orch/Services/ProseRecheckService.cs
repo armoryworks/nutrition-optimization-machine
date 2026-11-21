@@ -36,6 +36,7 @@ namespace Nom.Orch.Services
         public const string DescriptionByPersonChangeType = "ProseDescriptionByPerson";
         public const string RunEntityType = "ProseRecheck";
         public const string RunChangeType = "ProseRecheckRun";
+        public const string CheckErrorReason = "check-error";
         public const int JournalLength = 4000;
         public const int WithholdBatch = 500;
         public const int MaxListedRecipeIds = 1000;
@@ -55,6 +56,8 @@ namespace Nom.Orch.Services
             _currentUser = currentUser;
             _stock = stock;
         }
+
+        internal Action<long>? BeforeCheck { get; set; }
 
         private sealed record Candidate(long Id, string Name, long CurationStatusId, string? Description, int? CheckVersion);
         private sealed record Failure(Candidate Recipe, ProseCheck.Finding Finding);
@@ -116,11 +119,25 @@ namespace Nom.Orch.Services
                         continue;
                     }
 
-                    var finding = ProseCheck.Check(
-                        source,
-                        new RewriteFidelity.SourceText(candidate.Description ?? string.Empty, own.Select(s => s.Description).ToList(), candidate.Name ?? string.Empty),
-                        ProseCheck.SourceLines(raw),
-                        stock);
+                    ProseCheck.Finding finding;
+                    try
+                    {
+                        BeforeCheck?.Invoke(candidate.Id);
+                        finding = ProseCheck.Check(
+                            source,
+                            new RewriteFidelity.SourceText(candidate.Description ?? string.Empty, own.Select(s => s.Description).ToList(), candidate.Name ?? string.Empty),
+                            ProseCheck.SourceLines(raw),
+                            stock);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        var error = $"{ex.GetType().Name}: {ex.Message}";
+                        result.Errored++;
+                        if (result.Errors.Count < MaxListedRecipeIds)
+                            result.Errors.Add(new ProseRecheckError { RecipeId = candidate.Id, Error = error });
+                        finding = new ProseCheck.Finding(new[] { new ProseCheck.Fault(CheckErrorReason, error) }, 0m, 0, 0, 0m, stock.Version);
+                    }
+
                     if (finding.Passed)
                     {
                         result.Passed++;
@@ -215,7 +232,7 @@ namespace Nom.Orch.Services
                     EntityId = ProseCheck.Version,
                     ChangeType = RunChangeType,
                     PropertyName = nameof(ProseRecheckResult.StockVersion),
-                    NewValue = Clamp($"check {ProseCheck.Version} stock {stock.Version}: examined {result.Examined}, passed {result.Passed}, withheld {result.Withheld}, skipped edited {result.SkippedEditedByPerson}, no source {result.SkippedNoSource}"),
+                    NewValue = Clamp($"check {ProseCheck.Version} stock {stock.Version}: examined {result.Examined}, passed {result.Passed}, withheld {result.Withheld}, skipped edited {result.SkippedEditedByPerson}, no source {result.SkippedNoSource}, errored {result.Errored}"),
                     Timestamp = DateTime.UtcNow,
                     ChangedByPersonId = _currentUser.PersonIdOrSystem,
                 });

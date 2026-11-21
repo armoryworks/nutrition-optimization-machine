@@ -1,0 +1,6 @@
+{"chunk": 3, "book": "A Plain Cook Book", "recipe": {"name": "Seed Cake", "ingredients": ["1 pound of flour", null, "  ", ["1/2 pound of butter", "1/2 pound of sugar"], "4 eggs", "1 ounce of caraway seeds"], "steps": ["Beat the butter to a cream.", "", null, ["Add the sugar and eggs.", "Stir in the flour and seeds."], "Bake two hours in a slow oven."]}}
+{"chunk": 4, "recipe": {"name": "Boiled Rice", "ingredients": ["1 cup of rice", "2 quarts of boiling water", "1 teaspoon of salt"], "instructions": null}}
+
+{"chunk": 5, "book": "A Plain Cook Book", "recipe": {"name": "Notes on Ovens", "ingredients": [], "steps": ["Keep the oven clean."]}}
+{"chunk": 6, "book": "A Second Plain Cook Book", "recipe": {"name": "Seed Cake", "ingredients": ["2 cups flour", "1 cup butter", "1 cup sugar", "4 eggs", "1 tablespoon caraway seeds"], "steps": ["Cream the butter and sugar, add the eggs, flour and seeds, and bake one hour."]}}
+{"chunk": 7, "recipe": null}

@@ -417,7 +417,7 @@ namespace Nom.Orch.Services
 
         private static string Journal<T>(T value) => JsonSerializer.Serialize(value, Json);
 
-        private static T? Read<T>(string? journal) where T : class
+        internal static T? Read<T>(string? journal) where T : class
         {
             if (string.IsNullOrEmpty(journal)) return null;
             try

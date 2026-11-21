@@ -346,9 +346,7 @@ namespace Nom.Orch.Services.Support
                 var line = ProseQuantities.Prepare(raw);
                 if (line.Length == 0) continue;
                 var amounts = ProseQuantities.ReadPrepared(line);
-                var name = line;
-                foreach (var q in amounts.OrderByDescending(q => q.Start)) name = name[..q.Start] + " " + name[q.End..];
-                name = Brackets.Replace(name, " ");
+                var name = Brackets.Replace(ProseQuantities.WithoutAmounts(line, amounts), " ");
                 var comma = name.IndexOf(',');
                 if (comma > 0) name = name[..comma];
                 var words = WordToken.Matches(name.ToLowerInvariant()).Select(m => m.Value)

@@ -417,5 +417,87 @@ namespace Nom.Api.Tests.Services
             result.SkippedNoSource.Should().Be(0);
             result.FailedByReason.Should().ContainKey(ProseCheck.CopiedText).WhoseValue.Should().Be(1);
         }
+
+        private const string SourceWithSizes = """
+            {"@type":"Recipe","description":"Crisp roast potatoes for a weeknight.",
+             "recipeIngredient":[
+               "4 pieces Reynolds Wrap® Heavy Duty Aluminum Foil (12 x 18 inches)",
+               "4 (4-inch) corn tortillas*, sliced into 1/4-inch x 2-inch strips",
+               "1 pound potatoes, cut into ~1-inch x 1-inch cubes",
+               "2 tablespoons butter, cut into 2 x 1/4-inch slices"],
+             "recipeInstructions":[
+               {"@type":"HowToStep","text":"Preheat the oven to 425 degrees F."},
+               {"@type":"HowToStep","text":"Place the sheet in the oven and roast the potatoes for 25 to 30 minutes, until golden and crispy."}]}
+            """;
+
+        [Fact]
+        public async Task A_recipe_whose_ingredient_lines_state_a_size_of_two_lengths_is_checked_like_any_other()
+        {
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            var passing = await SeedAsync(db, CurationStatusEnum.Curated, Faithful, source: SourceWithSizes);
+            var copied = await SeedAsync(db, CurationStatusEnum.Curated, CopiedStep, source: SourceWithSizes);
+
+            var result = await Service(db).RecheckAsync();
+
+            result.Errored.Should().Be(0);
+            result.Passed.Should().Be(1);
+            result.Failed.Should().Be(1);
+            result.Samples.Select(s => s.RecipeId).Should().Equal(copied);
+            passing.Should().NotBe(copied);
+        }
+
+        [Fact]
+        public async Task A_recipe_the_check_fails_on_is_counted_named_and_withheld_as_a_check_error_and_the_run_goes_on_to_record()
+        {
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            var broken = await SeedAsync(db, CurationStatusEnum.Curated, Faithful);
+            var copied = await SeedAsync(db, CurationStatusEnum.Curated, CopiedStep);
+            var passing = await SeedAsync(db, CurationStatusEnum.Curated, Faithful);
+            var service = Service(db);
+            service.BeforeCheck = id =>
+            {
+                if (id == broken) throw new ArgumentOutOfRangeException("startIndex", "startIndex cannot be larger than length of string.");
+            };
+
+            var result = await service.RecheckAsync(apply: true);
+            db.ChangeTracker.Clear();
+
+            result.Errored.Should().Be(1);
+            result.Errors.Should().ContainSingle().Which.Should().BeEquivalentTo(new { RecipeId = broken });
+            result.Errors[0].Error.Should().StartWith("ArgumentOutOfRangeException: startIndex cannot be larger");
+            result.Passed.Should().Be(1);
+            result.Failed.Should().Be(2);
+            result.FailedByReason.Should().ContainKey(ProseRecheckService.CheckErrorReason).WhoseValue.Should().Be(1);
+            result.Withheld.Should().Be(2);
+            result.Remaining.Should().Be(0);
+            result.RunRecorded.Should().BeTrue();
+            (await db.Recipes.Where(r => r.ProseWithheld).OrderBy(r => r.Id).Select(r => r.Id).ToListAsync()).Should().Equal(new[] { broken, copied }.OrderBy(i => i));
+            (await db.AuditLogEntries.SingleAsync(a => a.ChangeType == ProseRecheckService.WithholdChangeType && a.EntityId == broken))
+                .NewValue.Should().Contain("check-error: ArgumentOutOfRangeException");
+            (await db.Recipes.SingleAsync(r => r.Id == passing)).ProseCheckVersion.Should().Be(ProseCheck.Version);
+            (await db.AuditLogEntries.SingleAsync(a => a.ChangeType == ProseRecheckService.RunChangeType)).NewValue.Should().EndWith("errored 1");
+        }
+
+        [Fact]
+        public async Task A_dry_run_counts_a_recipe_the_check_fails_on_among_the_failures_left_shown()
+        {
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            var broken = await SeedAsync(db, CurationStatusEnum.Curated, Faithful);
+            var service = Service(db);
+            service.BeforeCheck = id =>
+            {
+                if (id == broken) throw new InvalidOperationException("boom");
+            };
+
+            var result = await service.RecheckAsync();
+
+            result.Failed.Should().Be(1);
+            result.Remaining.Should().Be(1);
+            result.Samples.Should().ContainSingle().Which.Reasons.Should().Equal(ProseRecheckService.CheckErrorReason);
+            (await db.Recipes.SingleAsync(r => r.Id == broken)).ProseWithheld.Should().BeFalse();
+        }
     }
 }
