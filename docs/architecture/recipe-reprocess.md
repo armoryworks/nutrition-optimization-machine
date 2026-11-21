@@ -24,13 +24,20 @@ fix reaches both:
    counts cans or jars. An amount whose measurement has no row is stored as no amount.
 2. **Food.** The import's order: the verified wording (when `VerifiedWordings:ResolveOnImport` is
    set), a live ingredient of the normalized name, the one food a trusted alias gives the name to,
-   the food an applied link merged the retired ingredient of that name into, else a new uncurated
-   ingredient. A wording, an alias or an applied link never leads to a prepared food. A line whose
+   the one curated food the wording names with a hyphen for a space or a space for a hyphen ("sun
+   dried tomatoes" is Sun-Dried Tomatoes) where those find none or an uncurated one, the food an applied
+   link merged the retired ingredient of that name into, the curated food the first alternative of an
+   "or" line names ("zwieback or Nabisco" is zwieback) where nothing carries the whole wording, else a
+   new uncurated ingredient. A wording, an alias or an applied link never leads to a prepared food. A line whose
    text states only an amount and names no food (`IngredientNameNormalizer.NamesOnlyAnAmount`: a
    number alone, "Grammi circa 100", "Grammi 80", "2 cups"; a count word that can be a food, such as
    "6 cloves", is not read so) keeps the food the rebuild finds it on, or a food already under the
-   line's own text ("grammi circa 100"); otherwise it is not built. No food is ever created under an
-   amount, by the import or by a rebuild. In an "or" line whose food is
+   line's own text ("grammi circa 100"); this holds for a count line such as "N. 6" (six yolks) too,
+   which keeps the food it is on. Otherwise it is not built: the rebuild counts it in `counts.dropped`
+   (a stored row whose line is not built is dropped, as a row with no source line is) and the import
+   logs it. No food is ever created under an amount, by the import or by a rebuild. Two bare numbers
+   joined by "or" ("two or three nutmegs", "five or six quarts") are a range, read by its lower end as
+   the parser reads any range, never an alternative. In an "or" line whose food is
    named only in a later alternative that states its own amount, that amount is the line's ("pinch
    stevia OR 2 tbsp maple syrup" on maple syrup is 2 tbsp). A clove counts garlic or shallot: on the
    spice cloves ("a couple of cloves") the count is in pieces.
@@ -40,7 +47,11 @@ fix reaches both:
 4. **Method fill (rebuild only).** A line with no amount that is the only line of its food and
    names that food takes the amount the method states next to it (`MethodAmountFinder`), as the
    start-up repair does, with the same checks: no amount from a ratio, a vessel, a length or
-   washing water, and no piece count of a liquid or of a food with no weight per item. The import leaves this to the start-up repair, which journals each fill
+   washing water, and no piece count of a liquid or of a food with no weight per item. A ratio anywhere
+   in a sentence ("To every quart allow ..., half a teaspoonful of mace", "per cup of vegetable", "on
+   each plate", "to a pound of pulp") leaves every amount of that sentence alone; a range ("six or
+   eight pounds") gives its lower end; a line naming its food with an "or" ("stewed or canned
+   tomatoes") takes the amount the method states before those same words. The import leaves this to the start-up repair, which journals each fill
    (`StartupFill`, undone by `startup-fills/undo`).
 
 `RecipeLineBuilder.Version` (`line-builder/2` since the parser rules R1-R9 of
@@ -56,7 +67,14 @@ Bottle instead of Package, raised on that branch from the same base as `line-bui
 `line-builder/7` since `cleanup2/parser-size-first`: a size before one container with no count of
 its own, "1 lb. can tomatoes", "1 quart can", "½ pint can", "15-ounce can", "1 lb. 13 oz. can", is one
 container of that size, so a drained such line counts one can and the line's stated size is
-weighed instead of an assumed one; "2 lb. cans" does not say how many and still reads 2 pounds)
+weighed instead of an assumed one; "2 lb. cans" does not say how many and still reads 2 pounds;
+`line-builder/8` since the checkpoint-2 round of `cleanup2/ck4-parser-method`: two bare numbers joined
+by "or" are a range and never an alternative (M18), an amount after the name may be followed by a
+description ("Egg white, 1, partly beaten.", M20), two measures joined by "and" are added up ("one
+quart and a pint" is 6 cups), the method fill's ratio is read per sentence, its range by the lower end
+and an "or" line by its own words (M4, M5, M19), a count line naming no food keeps its food and a line
+left out is counted as dropped, the curated food spelt with a hyphen or named by an "or" line's first
+alternative is chosen over a new junk food, and "d'" and "spicchio" are taken off an Italian name (M17))
 is stamped on every journal row. Raise it with any
 change to a rule the builder applies: the detector reads again every recipe an older version read,
 and the lane's signature changes, so its tiers go back to shadow until they qualify under the new
@@ -254,7 +272,7 @@ rejected one are not read. Nothing is written to recipes.
 
 | Code | Reason | From the dry run |
 |---|---|---|
-| D1 | order lost | the stored lines all at position 0, a `" + "` fold, a changed order, or (with no newer extraction) a new or dropped line from a merge or split |
+| D1 | order lost | the stored lines all at position 0, a `" + "` fold (a row whose text no source line holds as it is; "salt + pepper to taste" printed so in the source is no fold, recipe 32080, M16), a changed order, or (with no newer extraction) a new or dropped line from a merge or split |
 | D2 | amount | a line whose own text the parser now reads another amount or unit from |
 | D3 | method fill | an amount the line's text does not state (filled from the method, now or before) that changes |
 | D4 | food | a line whose food gives way (retired, prepared, uncurated junk, uncurated where a curated food is found) |
@@ -285,13 +303,15 @@ gate (`ai-pause-all`, `ai-pause-reprocess`, quiet hours). Off unless `Reprocess:
   with up to six changed lines and their rule-check failures in its signals. A batch is journaled as
   a `ReprocessBatch` row (entity `ReprocessLane`) with its figures.
 
-**Rule checks** (`ReprocessRuleAudit`, `reprocess-audit/4`, written apart from the builder, no
+**Rule checks** (`ReprocessRuleAudit`, `reprocess-audit/5`, written apart from the builder, no
 model) on every changed line: A1 the amount stands in the line's text, or for a method fill in a
 method sentence that names the food, as a number that text states times an old measure that same
 text names (a quart is 4 cups, a gill half a cup, a pound 16 ounces), within a range it states
 ("2 to 3", "2-3", "2 or 3"), or as two numbers it states one after the other multiplied or added
 ("2 cans of 15 oz"), or as pounds and ounces it states added up in ounces, alone or times a number
-stated before them ("1 lb. 13 oz. can" is 29 ounces, "2 cans (1 lb. 4 oz. each)" 40); "a" or "an" counts as one only before a measure or the food, and a number between
+stated before them ("1 lb. 13 oz. can" is 29 ounces, "2 cans (1 lb. 4 oz. each)" 40), or as two
+measures joined by "and" added up, in the smaller measure or the first ("one quart and a pint" is 6
+cups, "1 pound and 2 ounces" 1.125 pounds; `reprocess-audit/5`, as the builder now reads such lines); "a" or "an" counts as one only before a measure or the food, and a number between
 two unrelated numbers ("cook 10 minutes, then 2 more onions") grounds nothing. A line that starts with
 a number or "two cups of" stored with no amount fails. A2 a line moved to another food names that food. A3 pieces only of a food with a weight
 per item and never of a liquid or of a line that states a measure; no volume of a whole bird; a

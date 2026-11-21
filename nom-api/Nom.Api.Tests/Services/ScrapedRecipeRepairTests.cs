@@ -263,5 +263,39 @@ namespace Nom.Api.Tests.Services
             rows[3].Quantity.Should().Be(1);
             rows[3].MeasurementId.Should().Be(22, "a row that never had a quantity takes what the parser reads");
         }
+
+        [Fact]
+        public async Task An_import_misread_on_a_stated_unit_98289_24918_69123_is_read_again_journaled_and_undone()
+        {
+            using var db = NewContext();
+            db.Set<BaseMeasurementEntity>().Add(new BaseMeasurementEntity { Id = 8, Name = "Pound", Symbol = "lb", MeasurementCategoryId = 1 });
+            await db.SaveChangesAsync();
+            var recipe = Harvested("Old Pickle", 9003,
+                "Salt, 1-1/4 cups", "three pounds and a half of sugar", "one quart and a pint of cut celery", "Sugar, 1-1/4 cups", "2 cups vinegar", "1 1/2 cups water");
+            var stored = new (decimal Quantity, long Unit)[] { (1m, 11), (3m, 8), (4m, 11), (1.25m, 11), (3m, 11), (1m, 11) };
+            foreach (var (row, (quantity, unit)) in recipe.RecipeIngredients!.Zip(stored))
+            {
+                row.Quantity = quantity;
+                row.MeasurementId = unit;
+            }
+            db.Recipes.Add(recipe);
+            await db.SaveChangesAsync();
+            var started = DateTime.UtcNow.AddSeconds(-1);
+
+            var result = await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 50);
+
+            result.RowsReread.Should().Be(3);
+            var rows = await db.RecipeIngredients.AsNoTracking().OrderBy(r => r.IngredientId).ToListAsync();
+            rows.Select(r => (r.Quantity, r.MeasurementId)).Should().Equal(
+                (1.25m, 11L), (3.5m, 8L), (6m, 11L), (1.25m, 11L), (3m, 11L), (1m, 11L));
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == ScrapedRecipeRepairService.FillChangeType)).Should().Be(3,
+                "the whole amount is journaled; a right amount, a person's other amount and a line that adds nothing are left alone");
+
+            var undo = await new ScrapedRecipeRepairService(db, new RecipeVettingService()).UndoFillsAsync(started, apply: true);
+
+            undo.Restored.Should().Be(3);
+            (await db.RecipeIngredients.AsNoTracking().OrderBy(r => r.IngredientId).Select(r => r.Quantity).ToListAsync())
+                .Should().Equal(1m, 3m, 4m, 1.25m, 3m, 1m);
+        }
     }
 }

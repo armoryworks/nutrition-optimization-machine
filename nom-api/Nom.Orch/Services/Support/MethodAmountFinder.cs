@@ -12,13 +12,18 @@ namespace Nom.Orch.Services.Support
     /// conflicting amounts give nothing, and so does a name another line of the recipe also names
     /// ("a little butter" beside "a quarter of a pound of butter"), because the method's amount
     /// cannot then be pinned to one of those lines. The food's other words may stand between the
-    /// measure and its last word ("three tablespoonfuls of olive oil"). A ratio ("one teacup of salt
-    /// to a gallon of water", "half vinegar and half water", "to each pint", "in each tomato"), a
-    /// vessel or a length ("a kettle of water", "1-inch of water", "a water bath"), washing water
-    /// ("three or four waters"), an alternative ("..., or four fresh tomatoes") and a temperature the
-    /// line contradicts ("cold vinegar" against "boiling vinegar") give nothing either, and a count of
-    /// pieces is never read for a liquid, from a measure ("a handful of parsley"), nor for a food the
-    /// caller says is not counted in pieces. The number always comes from <see cref="IngredientLineParser"/>.
+    /// measure and its last word ("three tablespoonfuls of olive oil"); a line naming its food with an
+    /// "or" ("stewed or canned tomatoes") takes the amount the method states before those same words
+    /// ("a pint of stewed or canned tomatoes"), while a line joining foods with "and" takes none. A ratio
+    /// ("one teacup of salt to a gallon of water", "half vinegar and half water", "to each pint", "in
+    /// each tomato", "on each plate", "to a pound of pulp") anywhere in a sentence leaves every amount of
+    /// that sentence alone ("To every quart allow ..., half a teaspoonful of mace"); a vessel or a length
+    /// ("a kettle of water", "1-inch of water", "a water bath"), washing water ("three or four waters"),
+    /// an alternative ("..., or four fresh tomatoes") and a temperature the line contradicts ("cold
+    /// vinegar" against "boiling vinegar") give nothing either, and a count of pieces is never read for
+    /// a liquid, from a measure ("a handful of parsley"), nor for a food the caller says is not counted
+    /// in pieces. A range ("six or eight pounds", "three to five gallons") is read whole, so it gives its
+    /// lower end, as a line's range does. The number always comes from <see cref="IngredientLineParser"/>.
     /// </summary>
     public static class MethodAmountFinder
     {
@@ -26,8 +31,15 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex SeveralNames = new(@"\p{L}\s*&\s*\p{L}|\p{L}\s+(?:and|or)\s+\p{L}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        private static readonly Regex Joined = new(@"\p{L}\s*&\s*\p{L}|\p{L}\s+and\s+\p{L}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private const string Measured = @"(?:gallon|quart|pint|pound|cup|cupful|ounce|dozen|bushel|peck|barrel|gill|teacup|teacupful|bottle|jar)s?\b";
+
+        private const string Timed = @"(?:\d+\s+)?(?:few|now|other|time|times|second|seconds|minute|minutes|hour|hours|day|days|week|weeks|morning|evening|night|side|sides|way|turn|addition)\b";
+
         private static readonly Regex Ratio = new(
-            @"\b(?:to|for)\s+(?:each|every)\b|\bper\b|\bin\s+the\s+proportion\b|\bhalf\s+and\s+half\b|\bhalf\b[^.;]*\band\s+half\b|\bto\s+(?:a|one|the|each|every|\d+)\s+(?:gallon|quart|pint|pound|cup|ounce)s?\b|\b(?:in|into|on|onto|over|upon|inside)\s+(?:each|every)\b",
+            @"\b(?:to|for|in|into|on|onto|over|upon|inside)\s+every\b(?!\s+" + Timed + @")|\beach\b(?!\s+" + Timed + @")|\bper\b|\bin\s+the\s+proportion\b|\bhalf\s+and\s+half\b|\bhalf\b[^.;]*\band\s+half\b" +
+            @"|\bto\s+(?:a|an|one|the|\d+)\s+" + Measured + @"|\bevery\s+(?:(?:\d+|a|an|one|two|three|four|six|twelve)\s+)?" + Measured,
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly HashSet<string> Lead = new(StringComparer.OrdinalIgnoreCase)
@@ -35,6 +47,8 @@ namespace Nom.Orch.Services.Support
             "a", "an", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
             "half", "quarter", "third", "twenty", "thirty", "forty", "fifty", "dozen",
         };
+
+        private static readonly HashSet<string> RangeJoin = new(StringComparer.OrdinalIgnoreCase) { "or", "to" };
 
         private static readonly HashSet<string> FractionParts = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -88,7 +102,8 @@ namespace Nom.Orch.Services.Support
         public static ParsedQuantity? Find(string? rawLine, IEnumerable<string> steps, IEnumerable<string>? otherLines = null, bool countedInPieces = true)
         {
             var written = (rawLine ?? string.Empty).Split(',', '(')[0];
-            if (SeveralNames.IsMatch(written)) return null;
+            if (Joined.IsMatch(written)) return null;
+            var alternatives = SeveralNames.IsMatch(written);
             var name = NonLetters.Replace(written, " ").Trim().ToLowerInvariant();
             var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length == 0 || words.Length > 4) return null;
@@ -100,18 +115,18 @@ namespace Nom.Orch.Services.Support
             var named = new Regex(@"(?<![\p{L}-])" + Regex.Escape(head) + @"(?:e?s)?(?![\p{L}-])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             if ((otherLines ?? Enumerable.Empty<string>()).Any(line => named.IsMatch(line ?? string.Empty))) return null;
 
-            var ownWords = words[..^1];
+            var ownWords = alternatives ? Array.Empty<string>() : words[..^1];
+            var lead = alternatives ? string.Concat(words[..^1].Select(w => Regex.Escape(w) + @"\s+")) : string.Empty;
             var ownTemperatures = ownWords.Where(Temperatures.ContainsKey).Select(w => Temperatures[w]).ToHashSet();
             var found = new List<ParsedQuantity>();
             var alternative = false;
-            var pattern = new Regex(@"(?<before>(?:[\p{L}\d/½¼¾⅓⅔⅛-]+\s+){1,7})(?<food>" + Regex.Escape(head) + @"(?:e?s)?)\b(?:(?=\s+(?<after>\p{L}+))|)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-            foreach (var clause in steps.SelectMany(s => Regex.Split(s ?? string.Empty, @"[.;:,!?()]")))
+            var pattern = new Regex(@"(?<before>(?:[\p{L}\d/½¼¾⅓⅔⅛-]+\s+){1,7})(?<food>" + lead + Regex.Escape(head) + @"(?:e?s)?)\b(?:(?=\s+(?<after>\p{L}+))|)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            foreach (var clause in steps.SelectMany(s => Regex.Split(s ?? string.Empty, @"[.;!?]")).Where(sentence => !Ratio.IsMatch(sentence)).SelectMany(sentence => Regex.Split(sentence, @"[:,()]")))
             {
-                if (Ratio.IsMatch(clause)) continue;
                 foreach (Match m in pattern.Matches(clause))
                 {
                     if (m.Groups["after"].Success && IsVessel(m.Groups["after"].Value)) continue;
-                    if (head.Equals("water", StringComparison.OrdinalIgnoreCase) && m.Groups["food"].Length > head.Length) continue;
+                    if (head.Equals("water", StringComparison.OrdinalIgnoreCase) && m.Groups["food"].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries)[^1].Length > head.Length) continue;
 
                     var before = m.Groups["before"].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     var clean = before.Length;
@@ -119,9 +134,10 @@ namespace Nom.Orch.Services.Support
                     while (clean > 0 && IsClean(before[clean - 1]) && !IsVessel(before[clean - 1])) clean--;
                     var start = Array.FindIndex(before, clean, w => IsNumberish(w));
                     if (start < 0) continue;
+                    if (start >= 2 && RangeJoin.Contains(before[start - 1]) && IsNumberish(before[start - 2])) start -= 2;
 
                     var phrase = before[start..];
-                    var parsed = IngredientLineParser.Parse(string.Join(' ', phrase) + " " + m.Groups["food"].Value);
+                    var parsed = IngredientLineParser.Parse(string.Join(' ', phrase) + " " + m.Groups["food"].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries)[^1]);
                     if (parsed is not { Quantity: > 0 }) continue;
                     if (parsed.MeasurementName == IngredientLineParser.Piece && (liquid || !countedInPieces || phrase.Any(Measures.Contains))) continue;
                     var temperatures = phrase.Where(Temperatures.ContainsKey).Select(w => Temperatures[w]).ToHashSet();

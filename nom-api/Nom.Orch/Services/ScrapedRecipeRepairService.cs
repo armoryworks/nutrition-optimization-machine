@@ -62,7 +62,7 @@ namespace Nom.Orch.Services
                 .Select(i => new { i.Id, i.Name, i.GramsPerItem })
                 .ToDictionaryAsync(i => i.Id, i => (i.Name, Counted: i.GramsPerItem > 0), cancellationToken);
 
-            int repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0;
+            int repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0, reread = 0;
             foreach (var recipe in recipes)
             {
                 if (rebuilt.Contains(recipe.Id)) continue;
@@ -87,6 +87,7 @@ namespace Nom.Orch.Services
 
                     Journal(recipe.Id, row, was, wasUnit, now);
                     repaired++;
+                    if (was != 0 && row.Quantity != 0 && row.MeasurementId == wasUnit) reread++;
                 }
 
                 if (!reviewable) continue;
@@ -97,12 +98,14 @@ namespace Nom.Orch.Services
 
             await _context.SaveChangesAsync(cancellationToken);
             _context.ChangeTracker.Clear();
-            return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded, held.Except(rebuilt).Count(), rebuilt.Count);
+            return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded, held.Except(rebuilt).Count(), rebuilt.Count, reread);
         }
 
         /// <summary>
         /// Gives one line the amount its text, or the method, states: a piece count whose text states
-        /// a unit takes that unit, and a line with no amount is filled. False when a line left without
+        /// a unit takes that unit, an amount on a stated unit that is the line's first amount with the part
+        /// the line adds to it left out ("Salt, 1-1/4 cups" at 1 Cup, "three pounds and a half" at 3 Pound,
+        /// "one quart and a pint" at 4 Cup) takes the whole, and a line with no amount is filled. False when a line left without
         /// an amount could not be read. The caller journals only a net change, so a count that is read
         /// back as the same count ("one of rosemary": elliptical, then 1 piece) writes nothing.
         /// </summary>
@@ -110,6 +113,7 @@ namespace Nom.Orch.Services
             Dictionary<string, long> measurements, Dictionary<long, (string Name, bool Counted)> foods)
         {
             var firstLine = (row.RawLine ?? string.Empty).Split(" + ", 2)[0];
+            if (row.Quantity != 0 && RereadAddedPart(row, firstLine, measurements)) return true;
             if (row.Quantity != 0 && (!RereadPieces(row, firstLine, measurements) || row.Quantity != 0)) return true;
             var known = foods.TryGetValue(row.IngredientId, out var food);
             if (known && !FoodNameMatcher.NamesFood(firstLine, food.Name)) return false;
@@ -198,6 +202,24 @@ namespace Nom.Orch.Services
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// A row on a stated unit whose amount is what the line gives with the part it adds left out
+        /// (<see cref="IngredientLineParser.WithoutAddedPart"/>), as older readers took it, takes the amount
+        /// the whole line gives in the same unit. Cans and packages are left to <see cref="IPackageLineService"/>.
+        /// </summary>
+        private static bool RereadAddedPart(Nom.Data.Recipe.RecipeIngredientEntity row, string firstLine, Dictionary<string, long> measurements)
+        {
+            if (measurements.TryGetValue(IngredientLineParser.Piece, out var pieceId) && row.MeasurementId == pieceId) return false;
+            if (IngredientLineParser.ReadsPackage(firstLine)) return false;
+            if (IngredientLineParser.WithoutAddedPart(firstLine) is not { } part || IngredientLineParser.Parse(firstLine) is not { } whole) return false;
+            if (part.MeasurementName != whole.MeasurementName || !measurements.TryGetValue(whole.MeasurementName, out var unitId) || unitId != row.MeasurementId) return false;
+            if (part.Quantity != row.Quantity || whole.Quantity <= row.Quantity) return false;
+
+            row.Quantity = whole.Quantity;
+            row.LastModifiedDate = DateTime.UtcNow;
+            return true;
         }
 
         /// <summary>

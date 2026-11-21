@@ -57,7 +57,7 @@ namespace Nom.Api.Services
 
             long cursor = 0;
             var conflicts = 0;
-            long recipes = 0, repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0, held = 0, rebuilt = 0;
+            long recipes = 0, repaired = 0, reread = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0, held = 0, rebuilt = 0;
             var started = DateTime.UtcNow;
             _logger.LogInformation("Scraped recipe repair starting ({Batch} recipes per batch)", batchSize);
 
@@ -73,6 +73,7 @@ namespace Nom.Api.Services
                     cursor = batch.LastRecipeId;
                     recipes += batch.Recipes;
                     repaired += batch.RowsRepaired;
+                    reread += batch.RowsReread;
                     unparsed += batch.RowsStillUnparsed;
                     revetted += batch.Revetted;
                     cleared += batch.Cleared;
@@ -113,8 +114,8 @@ namespace Nom.Api.Services
             }
 
             _logger.LogInformation(
-                "Scraped recipe repair done in {Minutes:F1}m: {Recipes} recipes, {Repaired} rows repaired, {Unparsed} rows without a quantity, {Split} methods split into steps, {Decoded} texts with entities decoded, {Revetted} re-vetted, {Cleared} cleared RequiresRevision, {Held} recipes left alone because a journaled line operation holds their lines, {Rebuilt} rebuilt recipes left alone",
-                (DateTime.UtcNow - started).TotalMinutes, recipes, repaired, unparsed, split, decoded, revetted, cleared, held, rebuilt);
+                "Scraped recipe repair done in {Minutes:F1}m: {Recipes} recipes, {Repaired} rows repaired ({Reread} of them re-read on their stated unit), {Unparsed} rows without a quantity, {Split} methods split into steps, {Decoded} texts with entities decoded, {Revetted} re-vetted, {Cleared} cleared RequiresRevision, {Held} recipes left alone because a journaled line operation holds their lines, {Rebuilt} rebuilt recipes left alone",
+                (DateTime.UtcNow - started).TotalMinutes, recipes, repaired, reread, unparsed, split, decoded, revetted, cleared, held, rebuilt);
         }
     }
 }

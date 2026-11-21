@@ -203,6 +203,12 @@ namespace Nom.Orch.Services.Support
                 return Sum(first, Read(sum.Groups["b"].Value, out _, out _));
             }
 
+            if (MeasureAndMeasure.Match(System.Net.WebUtility.HtmlDecode(rawLine)) is { Success: true } both
+                && Sum(ParseLeading(both.Groups["a"].Value + " x", out _, out _) ?? new ParsedQuantity(0m, Piece), ParseLeading(both.Groups["b"].Value + " x", out _, out _)) is { Quantity: > 0 } added)
+            {
+                return added;
+            }
+
             var leading = ParseLeading(rawLine, out sized, out containers);
             if (leading is { MeasurementName: not Piece }) return leading;
 
@@ -249,6 +255,7 @@ namespace Nom.Orch.Services.Support
             (new Regex(@"\bquarter[- ](?=(?:pound|pint|ounce|cup)s?\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1/4 "),
             (new Regex(@"^\s*(?<n>\d+|one|two|three|four|five|six|seven|eight|nine|ten|twelve|twenty)-(?=(?:pound|quart|pint|ounce|inch|gallon|lb|oz)\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1 ${n}-"),
             (new Regex(@"\bun\s+quarto\s+di\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1/4 di"),
+            (new Regex(@"^(?<q>\s*\d+(?:\s*/\s*\d+)?)\s+di\s+(?=(?:spicchi|spicchio|cucchiai|cucchiaio|cucchiaini|cucchiaino|bicchieri|bicchiere|presa|pizzico)\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase), "${q} "),
             (new Regex(@"\b(?:un|uno|una|un')\s+(?!po[co']|pochino|poca)(?=\p{L})", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1 "),
             (new Regex(@"\bcirca\s+(?=\d|(?:grammi|grammo|gr|decilitri|litri|litro|chilogrammi)\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase), ""),
             (new Regex(@"^\s*(?<unit>grammi|grammo|decilitri|litri|chilogrammi)\s+(?<q>\d+(?:[.,]\d+)?)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "${q} ${unit}"),
@@ -335,7 +342,7 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex AfterName = new(
             @"^\s*\p{L}[^\d(" + Fractions + @"]*?(?:,\s*|\(\s*|\s)(?:(?<unit>" + UnitBeforeAmount + @")(?![a-z])\.?\s*)?(?<qty>" + TrailingQuantityText + @")(?:\s*(?:-|–|to)\s*(?:" + TrailingQuantityText + @"))?" +
-            @"\s*(?:(?<unit>(?:" + UnitPattern + @"))(?![a-z])\.?)?\s*\)?\s*\.?\s*$",
+            @"\s*(?:(?<unit>(?:" + UnitPattern + @"))(?![a-z])\.?)?\s*\)?(?:\s*,\s*\p{L}[^\d,()" + Fractions + @"]*?)?\s*\.?\s*$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex InnerMixed = new(@"(?<![\d/.,])(\d+)-(\d+\s*/\s*\d+)(?![\d/])", RegexOptions.Compiled);
@@ -343,6 +350,35 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex AndAHalf = new(
             @"^\s*(?:(?<n>\d+|an?|one|two|three|four|five|six|seven|eight|nine|ten|twelve)\s+)?(?<unit>" + UnitBeforeAmount + @")(?![a-z])\.?\s+and\s+(?:a|one)[\s-]+half\b",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private const string AmountWord = @"\d+(?:\s+\d+/\d+)?|\d+/\d+|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve";
+
+        private static readonly Regex MeasureAndMeasure = new(
+            @"^\s*(?<a>(?:" + AmountWord + @")\s+(?:" + UnitBeforeAmount + @"))(?![a-z])\.?\s+and\s+(?<b>(?:" + AmountWord + @")\s+(?:" + UnitBeforeAmount + @"))(?![a-z])",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex AddedMixed = new(@"(?<=(?<![\d/.,])\d+)-\d+\s*/\s*\d+(?![\d/])", RegexOptions.Compiled);
+
+        private static readonly Regex AddedHalf = new(
+            @"(?<=(?<![a-z])(?:" + UnitBeforeAmount + @"))\.?\s+and\s+(?:(?:a|one)[\s-]+half|1/2)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex AddedMeasure = new(
+            @"(?<=^\s*(?:" + AmountWord + @")\s+(?:" + UnitBeforeAmount + @"))(?![a-z])\.?\s+and\s+(?:" + AmountWord + @")\s+(?:" + UnitBeforeAmount + @")(?![a-z])\.?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// The amount a line gives with the part it adds to its first amount left out: the fraction of a
+        /// hyphenated mixed number ("Salt, 1-1/4 cups" → 1 Cup), a measure's "and a half" ("three pounds and
+        /// a half" → 3 Pound) or a second measure ("one quart and a pint" → 4 Cup), which older readers
+        /// dropped; null when the line adds no such part.
+        /// </summary>
+        public static ParsedQuantity? WithoutAddedPart(string? rawLine)
+        {
+            if (string.IsNullOrWhiteSpace(rawLine)) return null;
+            var line = System.Net.WebUtility.HtmlDecode(IngredientNameNormalizer.PlainFractions(rawLine));
+            var cut = AddedMeasure.Replace(AddedHalf.Replace(AddedMixed.Replace(line, string.Empty, 1), string.Empty, 1), string.Empty, 1);
+            return cut == line ? null : Parse(cut);
+        }
 
         private static string HalfMore(Match m)
         {

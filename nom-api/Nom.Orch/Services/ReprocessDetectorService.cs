@@ -118,7 +118,8 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// The reasons a rebuild's dry run gives for one recipe (reprocess.md 2c): D1 for lines all at
-        /// position 0, a " + " fold or a changed order; D2 for an amount read anew from a line's own
+        /// position 0, a " + " fold (a row whose text no source line holds as it is, so "salt + pepper to
+        /// taste" printed so in the source is no fold) or a changed order; D2 for an amount read anew from a line's own
         /// text; D3 for an amount the text does not state (a method fill, new or stored) that changes;
         /// D4 for a changed food; D5 for a changed kind; D6 for a stored line the compound rules read
         /// as a list of whole foods sharing a product (<paramref name="compoundPick"/>) not on that
@@ -130,7 +131,8 @@ namespace Nom.Orch.Services
             var reasons = 0;
             var structure = sourceVersion > 1 ? ReprocessReason.Source : ReprocessReason.OrderLost;
             if (live.Count > 1 && live.All(l => l.SortOrder == 0)) reasons |= ReprocessReason.OrderLost;
-            if (live.Any(l => l.RawLine.Contains(FoldedLine.Separator, StringComparison.Ordinal))) reasons |= ReprocessReason.OrderLost;
+            var sourceKeys = result.SourceLines?.Select(FoldedLine.Key).ToHashSet(StringComparer.Ordinal);
+            if (live.Any(l => l.RawLine.Contains(FoldedLine.Separator, StringComparison.Ordinal) && sourceKeys?.Contains(FoldedLine.Key(l.RawLine)) != true)) reasons |= ReprocessReason.OrderLost;
 
             foreach (var line in result.Lines)
             {

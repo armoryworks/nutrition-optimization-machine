@@ -115,7 +115,7 @@ nutrient rows.
 **The link gate.** Three rules of `LinkGate` (`alcohol-drink`, `alcohol-no-food`, `alcohol-not-drink`;
 see `link-gate.md`) hold any answer, from any tier or model, that a line's sense refuses: every line
 of the wording when the caller passes lines, the wording itself when it does not. The gate reads the
-target's FDC id (`GateFood.FdcId`); `LinkGate.Version` is `link-gate/7` and its signature includes
+target's FDC id (`GateFood.FdcId`); `LinkGate.Version` is `link-gate/9` and its signature includes
 the sense rules, so a changed rule drops a lane tier back to shadow. A drink sense read from a line's
 own words that allows the target is also identity evidence in the gate (`LinkGate.AlcoholIdentity`),
 so "sherry", "sack", "port" or "claret" answered with the food of its sense is not held for lacking
