@@ -57,10 +57,13 @@ namespace Nom.Orch.Models.Curation
     }
 
     /// <summary>
-    /// One run of a re-check rule set: the wordings and lines it read, what it kept, moved to
-    /// another food and took back to an uncurated food of their wording, the aliases it moved,
-    /// untrusted, removed or added, the run's stamp (its undo takes it), the verified wording rows
-    /// whose lines it took off a prepared food (each to be retracted) and samples by outcome.
+    /// One run of a re-check rule set: the wordings and lines it read, what it kept, what it kept
+    /// because the gate's holds do not prove the food wrong (not proven, by rule), what it moved to
+    /// another food or took back to an uncurated food of their wording because a hold refutes the
+    /// food (refuted), the foods it created or renamed and the names it freed, the aliases it
+    /// moved, untrusted, removed or added, the run's stamp (its undo takes it), the verified
+    /// wording rows whose lines it took off a prepared food (each to be retracted) and samples by
+    /// outcome. A dry run counts all of these by the apply's own steps.
     /// </summary>
     public class LinkRecheckResult
     {
@@ -74,6 +77,9 @@ namespace Nom.Orch.Models.Curation
         public int Lines { get; set; }
         public int Kept { get; set; }
         public int Held { get; set; }
+        public int Unproven { get; set; }
+        public int UnprovenLines { get; set; }
+        public int RefutedLines { get; set; }
         public int Verified { get; set; }
         public int Alternatives { get; set; }
         public int MoveGroups { get; set; }
@@ -87,10 +93,13 @@ namespace Nom.Orch.Models.Curation
         public int AliasesRemoved { get; set; }
         public int AliasesAdded { get; set; }
         public int FoodsCreated { get; set; }
+        public int FoodsRenamed { get; set; }
+        public int NamesFreed { get; set; }
         public int ApprovedRecipes { get; set; }
         public int Remaining { get; set; }
         public List<long> WordingRows { get; set; } = new();
         public Dictionary<string, int> ByReason { get; set; } = new();
+        public Dictionary<string, int> ByUnproven { get; set; } = new();
         public Dictionary<string, int> ByTier { get; set; } = new();
         public List<LinkRecheckSample> Samples { get; set; } = new();
     }
@@ -109,6 +118,8 @@ namespace Nom.Orch.Models.Curation
         public int Groups { get; set; }
         public int Kept { get; set; }
         public int Held { get; set; }
+        public int Unproven { get; set; }
+        public int UnprovenLines { get; set; }
         public int LinesMoved { get; set; }
         public int LinesUnlinked { get; set; }
         public int AliasesChanged { get; set; }
@@ -119,7 +130,8 @@ namespace Nom.Orch.Models.Curation
     /// <summary>
     /// The undo of one re-check run by its stamp: the lines put back (a line on a recipe rebuilt
     /// since stays), the aliases restored, the foods it created removed and the names it freed or
-    /// changed given back.
+    /// changed given back; for a withdrawal, the picks put back. A dry run counts what its apply
+    /// would do by the same checks.
     /// </summary>
     public class LinkRecheckUndoResult
     {
@@ -137,6 +149,9 @@ namespace Nom.Orch.Models.Curation
         public int AliasesRestored { get; set; }
         public int FoodsRemoved { get; set; }
         public int FoodsKept { get; set; }
+        public int PickEntries { get; set; }
+        public int PicksRestored { get; set; }
+        public int SkippedAskedAgain { get; set; }
     }
 
     /// <summary>A curated food whose name its USDA entry contradicts, and the name a fixed rule gives it, if any.</summary>

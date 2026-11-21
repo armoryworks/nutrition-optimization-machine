@@ -38,7 +38,7 @@ The code is what golden files and reports name.
 | Code | Holds when | From |
 |---|---|---|
 | `heading` | the line is a heading ("For the frosting:") | links B3 |
-| `compound` | the wording names more than one food (and, or, with, &, +, ;, a slash, a second food after a comma) | links B3, wordings 2.1 |
+| `compound` | the wording names more than one food (and, or, with, &, +, ;, a slash, a second food after a comma). A joiner between two preparation words ("garlic, minced or grated", "chickpeas, drained and rinsed", "stewed and strained tomatoes"), a comma after leading notes ("boneless, skinless chicken breasts") and a one-food name with a joiner ("half and half", "lea & perrins'") are one food (`link-gate/9`) | links B3, wordings 2.1, staging checkpoint 2 M22 |
 | `retired` | the target is deleted | wordings check 1 |
 | `branded` | the target is a branded food | links B3, wordings check 1 |
 | `prepared` | the target is in a USDA prepared category (Baby Foods, Fast Foods, Meals, Entrees and Side Dishes, Restaurant Foods; `PreparedFoods`, from the stored `FdcCategoryId`) | owner, 2026-11-20: never a link target |
@@ -55,16 +55,16 @@ The code is what golden files and reports name.
 | `shortlist` | a lone model pick is not on the name matcher's shortlist of 12 and no name rule gives it | wordings check 7 |
 | `lead-noun` | the description's lead (after a class word such as "Spices," or "Alcoholic beverage, distilled,"; an identity class such as "Oil," or "Vinegar," stays) has a word the wording lacks ("molasses" for "Cookies, molasses", "nut meats" for "Nuts, coconut meat") | links B3 |
 | `containment` | a food word of the wording is not in the food's name or description (folded: plural, old spelling, hyphen or space joins, one edit on words of 6 letters or more, a lexicon entry) | links B3 |
-| `head-noun` | for two readers' answer, in place of the two rules above: the wording's head noun ("X of Y": Y) is not in the food | wordings check 3 |
+| `head-noun` | for two readers' answer, in place of the two rules above: the wording's head noun ("X of Y": Y) is not in the food; for a lone answer too (`link-gate/9`): the head noun is in the food only after "with", so the food is another food made or topped with it ("cake-crumbs" on "Cake, coffeecake, cinnamon with crumb topping", detail `with crumb`) | wordings check 3, staging checkpoint 2 M10 |
 | `head-lead` | for a lone answer: the food is a product (pickle, sauce, soup, pie, jam, jelly, relish, pudding, salad, dressing, gravy, stew) made from the wording's head noun, the wording names the product only before its head, and the head leads foods of its own ("pickle cucumbers", cucumbers for pickling, on "Pickles, cucumber, sour") | staging checkpoint 1, K4 |
 | `variety` | for a lone answer: the food's own catalog name ends in a word of its description that is not its lead, not a part, state or form word, and that the wording lacks ("ground pork sausage" on Raw Pork Chorizo, "Sausage, pork, chorizo, ...") | staging checkpoint 1, K4 |
-| `form` | the wording says a form (dried, canned, cooked, roasted, frozen, smoked, cured, pickled, ground, powder, salted, fresh; "roast" before another word, as in "cold roast pork", is roasted) the food does not have outside its brackets (the cut name "top loin (roasts)" is no roasting); green pod beans (French, string, snap, green, runner, wax beans, haricots verts) on mature seeds with no dried or dry word; neutral table: dry, ground and pounded for a dried spice, browned or dried for flour, dry for a drink | links B3, wordings check 4, staging checkpoint 1 K4 |
-| `fresh-herb` | the target is a dried spice and the wording, or more than 5 % of its lines, has a fresh cue (fresh, sprig, handful, bunch, stalk, leaves, chopped, minced), not "freshly ground", and "leaves" not when the spice is itself a leaf | wordings 1.5 class C, 2.7 |
-| `part` | the wording names a part (skin, peel/rind/zest, juice, seeds, leaves, kernels, greens, bran, germ, roe, yolk, egg white) the food is not, or the food is a part (a later description segment that is a part word, or says "only") the wording does not name ("potatoes" for "Potatoes, raw, skin") | links B3, wordings check 4 |
+| `form` | the wording says a form (dried, canned, cooked, roasted, frozen, smoked, cured, pickled, ground, powder, salted, fresh; "roast" before another word, as in "cold roast pork", is roasted) the food does not have outside its brackets (the cut name "top loin (roasts)" is no roasting); green pod beans (French, string, snap, green, runner, wax beans, haricots verts) on mature seeds with no dried or dry word, and "shelled" or "fresh" seeds on mature seeds ("a quart of shelled Lima beans" on dried limas, `link-gate/9`); neutral table: dry, ground and pounded for a dried spice, browned or dried for flour, dry for a drink | links B3, wordings check 4, staging checkpoint 1 K4 |
+| `fresh-herb` | the target is a dried spice and the wording, or more than 5 % of its lines, has a fresh cue (fresh, sprig, handful, bunch, stalk, leaves, chopped, minced), not "freshly ground", and "leaves" not when the spice is itself a leaf. Since `link-gate/9`, on a spice that is no leaf herb (basil, oregano, tarragon, thyme, rosemary, sage, marjoram, dill, parsley, chervil, coriander leaf, mint, savory, bay ...) "fresh" and "freshly" are no cue before a word of grinding (cracked, crushed, milled, pounded, pulverized) or on black or white pepper, which is only ever the dried corn: "freshly cracked black pepper", "fresh black pepper" and "anise seed, freshly crushed" are the spice, while "fresh ginger", "fresh turmeric" and "fresh red pepper" are still held, and a produce cue on any spice still holds ("chopped peppers" on black pepper) | wordings 1.5 class C, 2.7, staging checkpoint 2 M22 |
+| `part` | the wording names a part (skin, peel/rind/zest, juice, seeds, leaves, kernels, greens, bran, germ, roe, yolk, egg white, bones) the food is not, or the food is a part (a later description segment that is a part word, or says "only") the wording does not name ("potatoes" for "Potatoes, raw, skin"). Since `link-gate/9`: the leaves or greens of a leaf food (spinach, parsley, lettuce, arugula, kale, the leaf herbs ...) are the food, though not of a fruit ("grape leaves" on grapes and "lime leaves" on limes are held), and "bone-in" names a cut, not bones, on either side ("roast beef bones" on a bone-in rib roast is held; "bone-in chicken thighs" and "bone-in pork chops" are no part) | links B3, wordings check 4, staging checkpoint 2 M10, M22 |
 | `marked` | the description has a marked word (light, imitation, substitute, reduced, low, nonfat, skim, free, non, artificial, diet, decaffeinated, instant, mix, flavored, pressurized, "with salt added") the wording lacks | links B3 |
 | `percent` | for a lone answer, the description states a percent the wording does not, under a lead word with other foods; for any answer, the wording states a percent the food does not | links B3 |
 | `polarity` | salted against unsalted or without salt, sweetened against unsweetened | links B3, wordings check 4 |
-| `generic` | for a lone answer, the wording is one food word that leads three or more foods and the food qualifies it ("cheese" for "Cheese, gouda") | links B3 |
+| `generic` | for a lone answer, the wording is one food word that leads three or more foods and the food qualifies it ("cheese" for "Cheese, gouda"); a number in the description the wording lacks qualifies it too ("in flour" and "extra flour" for "Flour, 00", `link-gate/9`) | links B3, staging checkpoint 2 M7, M10 |
 | `group` | the wording's head noun is a group word (wine, cheese, flour, oil, juice, sauce, stock and 37 more) and the target's USDA category is not one it allows ("glasses of sherry" for red wine vinegar) | wordings check 5 |
 | `units` | with lines: the food weighs under 90 % of them, or more than 5 % are liquid measures (gill, pint, gallon, glass, ml) on a dry food | wordings check 6 |
 | `grams` | with lines and a bound: more than 2 % of the lines weigh more than the 99th percentile of their category | wordings check 6 |
@@ -128,7 +128,16 @@ in its gate signature, so a changed gate drops that tier back to shadow.
 
 ## Golden files and the scorer
 
-- `link-gate.tsv`: rule-given rows (`rule:link-gate`, `rule:construction`, status `ok`); lg-68 to
+- `link-gate.tsv`: rule-given rows (`rule:link-gate`, `rule:construction`, status `ok`); lg-129 to
+  lg-147 come from staging checkpoint 2 (2026-11-21, `link-gate/9`): the four wrong accepts of M10
+  and the `extra flour` move of M7 (held by `form`, `head-noun`, `generic`, `part`), and the M22 pairs
+  the generic rules held although right (preparation words and commas read as two foods, fresh cues
+  on pepper and anise seed, the leaves of spinach and parsley, powdered cracker on cracker meal), all
+  judged by the checkpoint operator (`agent`, `agent-review-ck2-2026-11-21`), with constructed rows
+  that guard the narrowed rules (`rule:construction`, `ok`); lg-148 to lg-155 come from the review of
+  that branch: bone-in cuts are no part (`agent`, `agent-review-ck4rg-2026-11-21`), and fresh ginger,
+  fresh turmeric and fresh red pepper on the ground spice, the leaves of a fruit, and fresh white
+  pepper (`rule:construction`, `ok`); lg-68 to
   lg-91 are the alcohol rows, one or more per alcohol rule of the design, and two pairs the alcohol
   rules let through. lg-92 to lg-108 come from staging checkpoint 1 (2026-11-20): the five pairs the
   gate let through on staging's waiting picks and should not (K4: `agent`, judged by the checkpoint
@@ -174,12 +183,14 @@ in its gate signature, so a changed gate drops that tier back to shadow.
   (`cleanup2/ck2-undo-reprocess`), when the name normalizer began to take "circa" off an Italian
   amount, with the same figures, and separately (`cleanup2/ck2-diet-gate`) the alcohol sense as
   identity evidence, which let two more pairs through, both judged right, with the same false
-  accepts; for `link-gate/8`, the wave-6 merge of both; and for `link-gate/9` (`cleanup2/ck4-parser-method`), when
-  the name normalizer began to read a range or count of number words up to fifty ("sixteen eggs",
-  "twenty heads of mushrooms", "twenty yolks of eggs"), a trailing range with no unit, an amount after
-  the name followed by a description, and the Italian "d'" and "spicchio", which lets six more pairs
-  through, all judged right, with the same false accepts): it lets through 2,315 of 7,664 pairs,
-  99.5 % of them judged right;
+  accepts; for `link-gate/8`, the wave-6 merge of both; for `link-gate/9`, raised on two branches from
+  the same base: the name normalizer began to read a range or count of number words up to fifty
+  ("sixteen eggs", "twenty heads of mushrooms", "twenty yolks of eggs"), a trailing range with no
+  unit, an amount after the name followed by a description, and the Italian "d'" and "spicchio"
+  (`cleanup2/ck4-parser-method`, six more pairs through, all judged right), and separately the
+  checkpoint-2 rules and their review (`cleanup2/ck4-recheck-gate`, 62 more judged pairs through), each
+  with the same false accepts and no pair regressed; and for `link-gate/10`, the wave-13 merge of
+  both): it lets through 2,377 of 7,664 pairs, 99.5 % of them judged right;
   it lets through 12 of 1,406 pairs judged wrong, near or compound (0.9 %). Floors: precision at
   least 99 %, false accepts at most 1 %, agreement at least 45 %. The record is required, and
   `The_committed_link_gate_record_is_what_the_gate_scores_now` checks in CI that the gate still

@@ -152,10 +152,13 @@ and no lines. Recorded for `wording-tiers/1`, and recorded again at the wave-5 m
 wording and the tiers write one more pair (`butter, 1-1/2 oz`, judged right; the by-tier counts below
 are those of the first record), and again under `link-gate/7`, raised on two branches from the
 same base: the normalizer takes "circa" off an Italian amount (same figures), and the alcohol sense
-became identity evidence in the gate (two more pairs, both judged right, 1,860 in all); and again
-under `link-gate/8`, the wave-6 merge of both; and again under `link-gate/9` (`cleanup2/ck4-parser-method`:
-number words in the name normalizer), which writes 1,866 pairs, 3,210 agreeing (43.8 %), the same 9
-false accepts (the table below is the `link-gate/8` record):
+became identity evidence in the gate (two more pairs, both judged right, 1,860 in all); again
+under `link-gate/8`, the wave-6 merge of both; under `link-gate/9`, raised on two branches from the
+same base (`cleanup2/ck4-parser-method`: number words in the name normalizer, 1,866 written;
+`cleanup2/ck4-recheck-gate` with `alcohol-context/5`, staging checkpoint 2: one more pair, judged
+right); and again under `link-gate/10`, the wave-13 merge of both, which writes 1,867 pairs, 3,211
+agreeing (43.8 %), the same 9 false accepts and no pair regressed (the table below is the
+`link-gate/8` record):
 
 | | |
 |---|---|

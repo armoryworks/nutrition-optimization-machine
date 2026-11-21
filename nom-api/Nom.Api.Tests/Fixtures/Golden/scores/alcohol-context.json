@@ -1,16 +1,16 @@
 {
   "lane": "alcohol-context",
-  "model": "alcohol-context/4",
+  "model": "alcohol-context/5",
   "checkModel": null,
   "host": "none",
-  "signature": "3c80ea64e8e2e2a3",
-  "scoredAtUtc": "2026-11-21T02:56:46.6436295Z",
-  "caseSet": "0baf86836c9a6427",
-  "cases": 177,
-  "passed": 177,
+  "signature": "1368ab0125c6109f",
+  "scoredAtUtc": "2026-11-21T10:08:02.7138982Z",
+  "caseSet": "3859227f04418af5",
+  "cases": 205,
+  "passed": 205,
   "score": 1,
   "falseAccepts": 0,
-  "falseAcceptCases": 142,
+  "falseAcceptCases": 158,
   "falseAcceptRate": 0,
   "accepted": null,
   "precision": null,
@@ -23,9 +23,17 @@
       3,
       3
     ],
+    "agent-review-ck4-recheck-gate-2026-11-21": [
+      3,
+      3
+    ],
+    "agent-review-ck4rg-2026-11-21": [
+      3,
+      3
+    ],
     "rule:alcohol-context": [
-      164,
-      164
+      186,
+      186
     ]
   },
   "failed": [],

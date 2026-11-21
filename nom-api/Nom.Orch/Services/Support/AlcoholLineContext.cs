@@ -57,7 +57,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class AlcoholLineContext
     {
-        public const string Version = "alcohol-context/4";
+        public const string Version = "alcohol-context/5";
 
         public const string NoSense = "none";
         public const string ListSense = "list";
@@ -138,16 +138,21 @@ namespace Nom.Orch.Services.Support
             ("vinaigrette", "vinaigrette", new Regex(@"\bvinaigrettes?\b", Options)),
             ("non-alcoholic", "non-alcoholic", new Regex(@"\bnon ?alcoholic\b|\balcohol free\b|\balcohol removed\b|\bde ?alcoholi[sz]ed\b|\bzero proof\b|\bno alcohol\b|\bwithout alcohol\b", Options)),
             ("extract-food", "a meat, fish, malt or yeast extract", new Regex(@"\b(?:meat|beef|malt|yeast|vegetable|chicken|liebig'?s?|anchov(?:y|ies)|shrimps?|fish|mushrooms?|lobster|tomato)\s+(?:extract|essence)\b|\b(?:extract|essence) of (?:meat|beef|malt|yeast|vegetables?|chicken|anchov(?:y|ies)|shrimps?|fish|mushrooms?|lobsters?|tomato(?:es)?)\b", Options)),
-            ("yeast", "ale or beer yeast", new Regex(@"\b(?:ale|beer|brewer'?s?|brewers)\s+yeast\b|\byeast of (?:ale|beer)\b|\bbarm\b", Options)),
+            ("yeast", "ale or beer yeast", new Regex(@"\b(?:ale|beer|brewer'?s?|brewers)\s+(?:yeasts?|yests?)\b|\b(?:yeast|yest) of (?:ale|beer)\b|\bbarm\b", Options)),
             ("not-food", "not food", NotFood),
             ("other", "Scotch barley, oats and the like", new Regex(@"\bscotch\s+(?:barley|oats?|oatmeal|groats|bonnets?|broth|eggs?|kale|pancakes?|woodcock|collops|shortbread|pies?|mist|tape)\b", Options)),
             ("other", "a sack of", new Regex(@"\bsacks? of\b", Options)),
             ("other", "a ham hock", new Regex(@"\b(?:ham|pork|smoked|beef|veal|lamb)\s+hocks?\b|\bhocks? of\b|\bhock end\b|\bhocks\b", Options)),
             ("other", "Port Salut", new Regex(@"\bport salut\b|\bport du salut\b", Options)),
             ("other", "Muscatel or Malaga raisins and grapes", new Regex(@"\b(?:malaga|muscatel|moscatel)\s+(?:raisins?|grapes?)\b|\bmuscatel raisins?\b|\bmuscatels\b", Options)),
+            ("other", "a drink's name for a kind of another food", new Regex(@"\b(?:malaga|tokay|tokaji|muscatel|moscatel|catawba)\s+(?:lemons?|limes?|oranges?|citrons?|grapes?|raisins?|figs?|melons?)\b|\bmanzanilla\s+olives?\b|\bscotch\s+caraways?\b", Options)),
+            ("other", "a food called after a drink", new Regex(@"\b(?:called|named|known as)\s+(?:the\s+)?(?:" + DrinkWords + @")", Options)),
+            ("other", "ratafia biscuits", new Regex(@"\bratafias?\s+(?:crumbs?|biscuits?|cakes?|drops?)\b|\bratafias\b", Options)),
+            ("other", "stout as strong", new Regex(@"\bstout\s+(?:\p{L}+\s+)?(?:muslin|cloth|bags?|string|twine|paper|thread|cord|needle|skewer|stick|board|pan|jar|crock|knife|fork|woman|man|hen|fowl|bird)\b", Options)),
             ("other", "champagne mango or grapes", new Regex(@"\bchampagne (?:mangos?|mangoes|grapes?)\b", Options)),
             ("other", "maraschino cherries", new Regex(@"\bmaraschino cherr(?:y|ies)\b", Options)),
-            ("other", "malt for ale", new Regex(@"\bmalt for ale\b", Options)),
+            ("other", "malt for ale or beer", new Regex(@"\bmalt for (?:ale|beer)\b", Options)),
+            ("measure", "an ale or wine measure", new Regex(@"\b(?:ale|wine|beer)\s+measure\b", Options)),
             ("other", "for the rum", new Regex(@"\bfor the rum\b", Options)),
         };
 
@@ -158,13 +163,16 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex OfPart = new(@"\bof\b\s*(.*)$", Options);
 
         private static readonly Regex DishAfterDrink = new(
-            @"\b(?:" + DrinkWords + @")\s+(?:sauce|butter|jell(?:y|ies)|syrup|cakes?|glaze|gravy|cream|custard|paper|punch|sangria|frosting|icing|marinade|trifle|posset|sorbet|granita|batter|bread|salami|sausages?|snaps|balls|truffles?|pudding|soup|reduction|spritzer|cocktail|mustard|jam|cheese|biscuits?|cookies?|caramel)\b",
+            @"\b(?:" + DrinkWords + @")\s+(?:\p{L}+\s+)?(?:brats?|bratwursts?|wursts?|sauce|butter|jell(?:y|ies)|syrup|cakes?|glaze|gravy|cream|custard|paper|punch|sangria|frosting|icing|marinade|trifle|posset|sorbet|granita|batter|bread|salami|sausages?|snaps|balls|truffles?|pudding|soup|reduction|spritzer|cocktail|mustard|jam|cheese|biscuits?|cookies?|caramel)\b",
             Options);
         private static readonly Regex DrinkFlavoured = new(@"\b(?:" + DrinkWords + @")\s+flavou?red\b", Options);
+        private static readonly Regex WithDrink = new(@"\b(?:flavou?red|moistened|mixed|wetted|sprinkled|soaked|steeped|macerated|perfumed|seasoned)\s+with\b[^,;]*\b(?:" + DrinkWords + @")\b|\bto every\b.*\ballow\b.*\b(?:" + DrinkWords + @")\b", Options);
+        private static readonly Regex SpiritsOf = new(@"\bspirits? of (?!wine\b)\p{L}+", Options);
+        private static readonly Regex Note = new(@"\([^()]*\)|\bfor\b[^,;()]*\bflavou?r\w*|\bor\s+flavou?r\w*\s+to\s+taste\b|\*.*$", Options);
         private static readonly Regex AuVin = new(@"\bau vin\b", Options);
         private static readonly Regex SoakedIn = new(@"\b(?:soaked|soak|boil'?d|boiled|steeped|macerated|marinated|poached|stewed)\s+in\b.*\b(?:" + DrinkWords + @")\b", Options);
 
-        private static readonly Regex Flavouring = new(@"\bextracts?\b|\bessence\b|\b(?!(?:for|to|as|of|the|a|and|more|extra|add|with|added|natural|good|any)\b)\p{L}+\s+flavou?r(?:ing)?s?\b(?!\s+(?!(?:extract|essence|to|or|and|if|for|as|optional|divided)\b)\p{L})", Options);
+        private static readonly Regex Flavouring = new(@"\bextracts?\b|\bessence\b|\b(?!(?:for|to|as|of|the|a|and|or|more|extra|add|with|added|natural|good|any|sweeter|richer|stronger|milder|deeper|less|intense|full|great|nice|best|better|bit|little|lot)\b)\p{L}+\s+flavou?r(?:ing)?s?\b(?!\s+(?!(?:extract|essence|to|or|and|if|for|as|optional|divided)\b)\p{L})", Options);
 
         private static readonly (string Sense, string Rule, Regex Pattern)[] Rules =
         {
@@ -272,7 +280,7 @@ namespace Nom.Orch.Services.Support
             var listed = Amounts(text);
             if (ListJoiner.IsMatch(listed) && !DishBeforeJoiner.IsMatch(listed))
             {
-                var parts = ListSplit.Split(listed).SelectMany(p => p.Split(',')).Select(p => p.Trim(' ', ')', '(')).Where(p => p.Length > 0).ToList();
+                var parts = SharedHead(ListSplit.Split(listed).SelectMany(p => p.Split(',')).Select(p => p.Trim(' ', ')', '(')).Where(p => p.Length > 0).ToList());
                 if (parts.Count > 1)
                 {
                     var readings = parts.Select(p => ReadOne(p, context)).ToList();
@@ -399,7 +407,9 @@ namespace Nom.Orch.Services.Support
 
             if (AuVin.IsMatch(text) && ReadOne(AuVin.Replace(text, " "), context) is { Kind: not AlcoholSenseKind.None } named) return named;
             if (DishAfterDrink.IsMatch(text) || DrinkFlavoured.IsMatch(text) || SoakedIn.IsMatch(text) || AuVin.IsMatch(text)) return Reading("dish", "a dish named after a drink");
-            if (Flavouring.IsMatch(text)) return Reading("extract", "a flavouring extract");
+            if (WithDrink.IsMatch(text)) return Reading("dish", "a food made or measured with a drink");
+            if (SpiritsOf.IsMatch(text)) return Reading("extract", "spirits of a flavouring");
+            if (Flavouring.IsMatch(WithoutNotes(text))) return Reading("extract", "a flavouring extract");
 
             foreach (var (sense, rule, pattern) in Rules)
                 if (pattern.IsMatch(text)) return Reading(sense, rule);
@@ -425,6 +435,40 @@ namespace Nom.Orch.Services.Support
 
             if (Wine.IsMatch(text)) return BareWine(context);
             return AlcoholReading.Nothing;
+        }
+
+        private static readonly HashSet<string> HeadModifiers = new(StringComparer.Ordinal)
+        {
+            "dry", "sweet", "medium", "white", "red", "rose", "light", "dark", "pale", "golden", "sparkling", "still", "cream", "good", "cheap", "fruity",
+            "full", "bodied", "crisp", "young", "old", "aged", "spiced", "amber", "brown",
+        };
+
+        /// <summary>
+        /// The parts of a list with a part of only colour or dryness words given the drink of the
+        /// part after it ("dry white or red wine" is dry white wine or red wine).
+        /// </summary>
+        private static List<string> SharedHead(List<string> parts)
+        {
+            for (var i = parts.Count - 2; i >= 0; i--)
+            {
+                var words = parts[i].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var later = parts[i + 1].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (words.Length > 0 && words.All(HeadModifiers.Contains) && later.Length > 1 && Trigger.IsMatch(later[^1]))
+                    parts[i] = parts[i] + " " + later[^1];
+            }
+            return parts;
+        }
+
+        /// <summary>The text without a cook's notes (brackets, "for a richer flavor", "or flavor to taste", a starred footnote), where a flavour word never makes the line an extract.</summary>
+        private static string WithoutNotes(string text)
+        {
+            for (var i = 0; i < 3; i++)
+            {
+                var next = Note.Replace(text, " ");
+                if (next == text) break;
+                text = next;
+            }
+            return text;
         }
 
         /// <summary>The text with every amount joined by "and" or "or" ("one and one-half", "a cup and a half", "a spoonful or two") read as one amount, so the joiner is not read as a list.</summary>
@@ -481,7 +525,8 @@ namespace Nom.Orch.Services.Support
             text.Append("\nliquor:").Append(LiquorWord).Append('|').Append(SpiritWord);
             text.Append("\nmeasure:").Append(Measure).Append('|').Append(OfPart);
             text.Append("\ndish:").Append(DishAfterDrink).Append('|').Append(DrinkFlavoured).Append('|').Append(SoakedIn).Append('|').Append(AuVin);
-            text.Append("\nflavouring:").Append(Flavouring);
+            text.Append("\nflavouring:").Append(Flavouring).Append('|').Append(WithDrink).Append('|').Append(SpiritsOf).Append('|').Append(Note);
+            text.Append("\nhead-modifiers:").Append(string.Join(',', HeadModifiers.OrderBy(w => w, StringComparer.Ordinal)));
             foreach (var (sense, _, pattern) in Rules) text.Append("\nrule:").Append(sense).Append('=').Append(pattern);
             text.Append("\nwine:").Append(NotAvailable).Append('|').Append(RoseAccented).Append('|').Append(RedNextToWine).Append('|').Append(WhiteNextToWine)
                 .Append('|').Append(RedWord).Append('|').Append(WhiteWord).Append('|').Append(Wine).Append('|').Append(Alcohol).Append('|').Append(RedContext).Append('|').Append(WhiteContext);

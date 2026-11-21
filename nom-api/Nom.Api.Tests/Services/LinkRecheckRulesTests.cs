@@ -33,7 +33,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public void The_lines_move_to_the_first_food_the_gate_lets_through_and_go_back_only_on_a_hard_hold()
+        public void The_lines_move_to_the_first_food_the_gate_lets_through_and_go_back_only_on_a_refuting_hold()
         {
             var holds = new[] { Hold(LinkGate.Compound) };
             LinkRecheckRules.Decide(LinkRecheckRules.Compound, holds, () => new[]
@@ -45,8 +45,8 @@ namespace Nom.Api.Tests.Services
             LinkRecheckRules.Decide(LinkRecheckRules.Compound, holds, () => new[] { Candidate(LinkRecheckRules.NameRuleTier, 2, LinkGate.Compound) })
                 .Outcome.Should().Be(LinkRecheckRules.Unlink);
             LinkRecheckRules.Decide(LinkRecheckRules.Applied, new[] { Hold(LinkGate.Containment) }, () => Enumerable.Empty<RecheckCandidate>())
-                .Should().Match<RecheckVerdict>(v => v.Outcome == LinkRecheckRules.Held, "a word rule alone never takes a line off its food");
-            LinkRecheckRules.Decide(LinkRecheckRules.Applied, new[] { Hold(LinkGate.Marked) }, () => Enumerable.Empty<RecheckCandidate>())
+                .Should().Match<RecheckVerdict>(v => v.Outcome == LinkRecheckRules.Unproven, "a word rule alone never takes a line off its food");
+            LinkRecheckRules.Decide(LinkRecheckRules.Applied, new[] { Hold(LinkGate.Form) }, () => Enumerable.Empty<RecheckCandidate>())
                 .Outcome.Should().Be(LinkRecheckRules.Unlink);
             LinkRecheckRules.Decide(LinkRecheckRules.Applied, new[] { Hold(LinkGate.Units) }, () => new[] { Candidate(LinkRecheckRules.NameRuleTier, 2) })
                 .Outcome.Should().Be(LinkRecheckRules.Keep, "the re-check computes no grams, so the units rule is not read");
@@ -127,19 +127,76 @@ namespace Nom.Api.Tests.Services
         {
             var source = LinkRecheckRules.SignatureSource();
             source.Should().Contain(LinkGate.Signature).And.Contain(AlcoholLineContext.Signature).And.Contain(LinkRecheckRules.Version);
-            foreach (var code in LinkRecheckRules.Hard.Concat(LinkRecheckRules.IdentityCodes)) source.Should().Contain(code);
+            foreach (var code in LinkRecheckRules.Refuting.Concat(LinkRecheckRules.IdentityCodes)) source.Should().Contain(code);
             LinkRecheckRules.SetSignature(LinkRecheckRules.Alcohol).Should().NotBe(LinkRecheckRules.SetSignature(LinkRecheckRules.Applied));
         }
 
         [Fact]
-        public void Every_hard_code_and_every_code_a_set_acts_on_is_a_rule_of_the_gate()
+        public void Every_refuting_code_and_every_code_a_set_acts_on_is_a_rule_of_the_gate()
         {
             var codes = typeof(LinkGate).GetFields().Where(f => f.IsLiteral && f.FieldType == typeof(string) && f.Name != nameof(LinkGate.Version))
                 .Select(f => (string)f.GetRawConstantValue()!).ToHashSet();
-            LinkRecheckRules.Hard.Should().BeSubsetOf(codes);
+            LinkRecheckRules.Refuting.Should().BeSubsetOf(codes);
             LinkRecheckRules.IdentityCodes.Should().BeSubsetOf(codes);
             foreach (var set in LinkRecheckRules.Sets)
                 LinkRecheckRules.ActingHolds(set, codes.Select(Hold)).Select(h => h.Code).Should().BeSubsetOf(codes);
+        }
+
+        [Theory]
+        [InlineData(LinkGate.Marked, "restaurant", false)]
+        [InlineData(LinkGate.Marked, "with salt added", false)]
+        [InlineData(LinkGate.State, "canned", false)]
+        [InlineData(LinkGate.Containment, "baby", false)]
+        [InlineData(LinkGate.Variety, "meal", false)]
+        [InlineData(LinkGate.Incomplete, "16 rows", false)]
+        [InlineData(LinkGate.Part, "flesh", false, LinkGate.FoodPartRule)]
+        [InlineData(LinkGate.Part, "meat only", false, LinkGate.FoodPartRule)]
+        [InlineData(LinkGate.Part, "leaves", false, LinkGate.FoodPartRule)]
+        [InlineData(LinkGate.Part, "leaves", true, "wording part not in the food")]
+        [InlineData(LinkGate.Part, "skin", true)]
+        [InlineData(LinkGate.Part, "bones", true)]
+        [InlineData(LinkGate.Percent, "15%", false)]
+        [InlineData(LinkGate.Percent, "wording states 93%", true)]
+        [InlineData(LinkGate.HeadNoun, "glucose", false)]
+        [InlineData(LinkGate.HeadNoun, "with crumb", true)]
+        [InlineData(LinkGate.Form, "fresh shelled seeds against mature seeds", true)]
+        [InlineData(LinkGate.FreshHerb, null, true)]
+        [InlineData(LinkGate.Prepared, "Baby Foods", true)]
+        [InlineData(LinkGate.Polarity, "unsalted against salted", true)]
+        public void Only_a_hold_that_proves_the_food_wrong_refutes_an_applied_link(string code, string? detail, bool refutes, string? rule = null)
+        {
+            var hold = new GateHold(code, rule ?? code, detail);
+            LinkRecheckRules.Refutes(hold, new[] { hold }).Should().Be(refutes);
+            LinkRecheckRules.Decide(LinkRecheckRules.Applied, new[] { hold }, () => Enumerable.Empty<RecheckCandidate>())
+                .Outcome.Should().Be(refutes ? LinkRecheckRules.Unlink : LinkRecheckRules.Unproven);
+        }
+
+        [Fact]
+        public void Another_curated_foods_name_refutes_only_with_a_word_missing_and_a_compound_only_when_no_alternative_is_the_food()
+        {
+            var other = new GateHold(LinkGate.OtherFood, LinkGate.OtherFood, "Black Beans");
+            LinkRecheckRules.Refutes(other, new[] { other }).Should().BeFalse("black beans on canned black beans: a less exact name, not another food");
+            LinkRecheckRules.Refutes(other, new[] { other, Hold(LinkGate.Containment) }).Should().BeTrue("olive oil on canola oil: a word of the wording is missing");
+            var compound = Hold(LinkGate.Compound);
+            LinkRecheckRules.Refutes(compound, new[] { compound }, alternativeNamed: true).Should().BeFalse();
+            LinkRecheckRules.Refutes(compound, new[] { compound }).Should().BeTrue();
+
+            var catalog = GateCatalog.Build(Enumerable.Empty<GateFood>());
+            LinkGate.NamesAlternative("butter or olive oil", Food(1, "Butter", "Butter, salted"), catalog).Should().BeTrue();
+            LinkGate.NamesAlternative("lard or butter", Food(1, "Butter", "Butter, salted"), catalog).Should().BeTrue();
+            LinkGate.NamesAlternative("light or dark brown sugar", Food(1, "Brown Sugar", "Sugars, brown"), catalog).Should().BeTrue();
+            LinkGate.NamesAlternative("active dry or instant yeast", Food(1, "Yeast", "Leavening agents, yeast, baker's, active dry"), catalog).Should().BeTrue();
+            LinkGate.NamesAlternative("rum or brandy", Food(1, "Coffee Cream Liqueur", "Alcoholic beverage, liqueur, coffee with cream, 34 proof"), catalog).Should().BeFalse();
+            LinkGate.NamesAlternative("salt and pepper", Food(1, "Salt", "Salt, table"), catalog).Should().BeFalse("and joins two foods; it gives no alternatives");
+        }
+
+        [Fact]
+        public void A_set_other_than_alcohol_reads_the_alcohol_rules_only_where_the_wording_itself_is_refused()
+        {
+            var holds = new[] { Hold(LinkGate.AlcoholNotDrink), Hold(LinkGate.Containment) };
+            LinkRecheckRules.ForSet(LinkRecheckRules.Applied, holds, wordingRefused: false).Select(h => h.Code).Should().Equal(LinkGate.Containment);
+            LinkRecheckRules.ForSet(LinkRecheckRules.Applied, holds, wordingRefused: true).Should().HaveCount(2);
+            LinkRecheckRules.ForSet(LinkRecheckRules.Alcohol, holds, wordingRefused: false).Should().HaveCount(2);
         }
     }
 }

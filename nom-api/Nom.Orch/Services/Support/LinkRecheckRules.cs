@@ -13,9 +13,10 @@ namespace Nom.Orch.Services.Support
     public sealed record RecheckCandidate(string Tier, GateFood Food, IReadOnlyList<GateHold> Holds);
 
     /// <summary>
-    /// What the re-check does with the lines of one wording on one food: keep them, move them to
-    /// the food a tier names (<see cref="Target"/>), or move them back to an uncurated food of their
-    /// wording; with the rule that decided and the gate's holds on the food they are on.
+    /// What the re-check does with the lines of one wording on one food: keep them (no hold, or
+    /// holds that do not prove the food wrong, counted as not proven), move them to the food a tier
+    /// names (<see cref="Target"/>), or move them back to an uncurated food of their wording; with
+    /// the rule that decided and the gate's holds on the food they are on.
     /// </summary>
     public sealed record RecheckVerdict(string Outcome, string? Reason, RecheckCandidate? Target, IReadOnlyList<GateHold> Holds);
 
@@ -23,11 +24,14 @@ namespace Nom.Orch.Services.Support
     /// The rules of the applied-link re-check (plan C3, alcohol A4, wordings 2.7, containers 2.6):
     /// which link gate holds each rule set acts on, which of them are hard enough to take a line off
     /// its food when no tier names another, the container form line rule and its canned sister, and
-    /// the catalog-name check. No model; every decision is a rule. See docs/architecture/link-recheck.md.
+    /// the catalog-name check. A link already made is refused only on positive evidence that its
+    /// food is wrong (<see cref="Refutes"/>); a hold that only fails to prove the food right keeps
+    /// the lines and is counted as not proven. No model; every decision is a rule. See
+    /// docs/architecture/link-recheck.md.
     /// </summary>
     public static class LinkRecheckRules
     {
-        public const string Version = "link-recheck/1";
+        public const string Version = "link-recheck/2";
 
         public const string Alcohol = "alcohol";
         public const string PartHerb = "part-herb";
@@ -41,6 +45,7 @@ namespace Nom.Orch.Services.Support
 
         public const string Keep = "keep";
         public const string Held = "held";
+        public const string Unproven = "unproven";
         public const string Move = "move";
         public const string Unlink = "unlink";
         public const string Verified = "verified";
@@ -63,17 +68,29 @@ namespace Nom.Orch.Services.Support
         public static readonly IReadOnlyList<string> AllSets = Sets.Append(Wordings).ToList();
 
         /// <summary>
-        /// Holds that take a line off its food when no tier names another: the wording is a heading or
-        /// more than one food, the food is retired, branded or a prepared dish, the line's alcohol
-        /// sense refuses it, or the food is a part, a dried herb for a fresh one, another form or a
-        /// marked variant. No food is better than a wrong one.
+        /// Holds that are positive evidence that a link's food is wrong, and so move its lines or take
+        /// them off their food when no tier names another: the wording is a heading or more than one
+        /// food, the food is retired, branded or a prepared dish, the line's alcohol sense refuses
+        /// it, the wording names a part or form the food contradicts, a fresh herb on the dried
+        /// spice, a food made from the wording's head noun or only topped with it, a salted or
+        /// sweetened polarity, a stated percent the food lacks, a group word its category
+        /// contradicts, or another curated food's very name. The rest (a word the food lacks, a
+        /// state or marked variant the wording does not name, a variety, an incomplete food ...)
+        /// only fail to prove the food right: such lines stay and are counted as not proven.
         /// </summary>
-        public static readonly IReadOnlySet<string> Hard = new HashSet<string>(StringComparer.Ordinal)
+        public static readonly IReadOnlySet<string> Refuting = new HashSet<string>(StringComparer.Ordinal)
         {
             LinkGate.Heading, LinkGate.Compound, LinkGate.Retired, LinkGate.Branded, LinkGate.Prepared,
             LinkGate.AlcoholDrink, LinkGate.AlcoholNoFood, LinkGate.AlcoholNotDrink,
-            LinkGate.Part, LinkGate.FreshHerb, LinkGate.Form, LinkGate.Marked,
+            LinkGate.Part, LinkGate.FreshHerb, LinkGate.Form, LinkGate.HeadLead, LinkGate.HeadNoun, LinkGate.Polarity,
+            LinkGate.Percent, LinkGate.Group, LinkGate.OtherFood,
         };
+
+        /// <summary>The alcohol rules: read by the line in the alcohol set, and elsewhere only when the wording itself refuses the food.</summary>
+        public static readonly IReadOnlySet<string> AlcoholCodes = new HashSet<string>(StringComparer.Ordinal) { LinkGate.AlcoholDrink, LinkGate.AlcoholNoFood, LinkGate.AlcoholNotDrink };
+
+        /// <summary>The part segments that are the ordinary eaten part of a food named whole ("Potatoes, baked, flesh", "Goose, meat only"): never proof that a link is wrong.</summary>
+        public static readonly IReadOnlySet<string> EdibleParts = new HashSet<string>(StringComparer.Ordinal) { "flesh", "flesh only", "meat", "meat only", "leaf", "leaves" };
 
         /// <summary>Holds the re-check does not read: it moves lines without their amounts, so grams are not computed for it.</summary>
         public static readonly IReadOnlySet<string> Unread = new HashSet<string>(StringComparer.Ordinal) { LinkGate.Units, LinkGate.Grams };
@@ -157,31 +174,76 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>The holds a tier's food must be free of: all for a name tier, the non-word rules for a tier that vouches for identity.</summary>
         public static IReadOnlyList<GateHold> Blocking(string tier, IEnumerable<GateHold> holds) =>
-            holds.Where(h => !Unread.Contains(h.Code) && !(tier is AlcoholSenseTier or CannedSisterTier && IdentityCodes.Contains(h.Code))).ToList();
+            holds.Where(h => !Unread.Contains(h.Code) && !(tier is AlcoholSenseTier or CannedSisterTier && IdentityCodes.Contains(h.Code)
+                && !(tier == CannedSisterTier && h.Code == LinkGate.State && h.Detail != "canned"))).ToList();
+
+        /// <summary>
+        /// Whether a hold is positive evidence that the food is wrong (<see cref="Refuting"/>): a stated
+        /// percent only when the wording states it, a head noun only when the food has it as an
+        /// addition, a part the wording names that the food lacks always, and the food's own part
+        /// segment only when it is not the ordinary eaten part (<see cref="EdibleParts"/>),
+        /// "more than one food" not when the wording gives alternatives and the food is one of
+        /// them (<paramref name="alternativeNamed"/>): a line of alternatives counts its first by the
+        /// compound lane's own rule, so the food of any one of them is not proven wrong; and another
+        /// curated food's name only when a word of the wording is also missing from this food
+        /// (<paramref name="all"/> holds a containment or head-noun hold): "black beans" on canned
+        /// black beans names a less exact food, "olive oil" on canola oil another one.
+        /// </summary>
+        public static bool Refutes(GateHold hold, IReadOnlyCollection<GateHold> all, bool alternativeNamed = false)
+        {
+            if (!Refuting.Contains(hold.Code)) return false;
+            return hold.Code switch
+            {
+                LinkGate.OtherFood => all.Any(h => h.Code is LinkGate.Containment or LinkGate.HeadNoun),
+                LinkGate.Percent => hold.Detail?.StartsWith("wording states", StringComparison.Ordinal) == true,
+                LinkGate.HeadNoun => hold.Detail?.StartsWith("with ", StringComparison.Ordinal) == true,
+                LinkGate.Part => hold.Rule != LinkGate.FoodPartRule || !EdibleParts.Contains((hold.Detail ?? string.Empty).Trim().ToLowerInvariant()),
+                LinkGate.Compound => !alternativeNamed,
+                _ => true,
+            };
+        }
+
+        /// <summary>
+        /// The holds a set reads: the alcohol rules only in the alcohol set, which reads each line by
+        /// its own sense, or where the wording itself is refused (<paramref name="wordingRefused"/>);
+        /// one line of a wording that reads as a drink or a flavouring never decides for all of its
+        /// lines elsewhere.
+        /// </summary>
+        public static IReadOnlyList<GateHold> ForSet(string set, IReadOnlyList<GateHold> holds, bool wordingRefused) =>
+            set == Alcohol || wordingRefused ? holds : holds.Where(h => !AlcoholCodes.Contains(h.Code)).ToList();
 
         /// <summary>
         /// The verdict on one wording's lines on one food. A set acts only when the gate holds the pair
         /// with one of its own rules (any rule for the applied links and aliases), or, for the
-        /// container set, when the line rule finds the wrong form. Acting, the lines move to the first
-        /// food a tier names that the gate lets through; failing that, a hard hold takes them back to
-        /// an uncurated food of their wording, and anything else keeps them where they are (held).
-        /// The container rule never takes a line off its food.
+        /// container set, when the line rule finds the wrong form. Acting, a hold that refutes the food
+        /// (<paramref name="refutes"/>, by default <see cref="Refutes"/>) moves the lines to the first
+        /// food a tier names that the gate lets through, or failing that takes them back to an
+        /// uncurated food of their wording; holds that refute nothing keep the lines where they are,
+        /// counted as not proven. The container rule moves a line to its one canned sister and never
+        /// takes it off its food (held).
         /// </summary>
-        public static RecheckVerdict Decide(string set, IReadOnlyList<GateHold> holds, Func<IEnumerable<RecheckCandidate>> candidates, bool containerWrong = false)
+        public static RecheckVerdict Decide(string set, IReadOnlyList<GateHold> holds, Func<IEnumerable<RecheckCandidate>> candidates, bool containerWrong = false, Func<GateHold, bool>? refutes = null)
         {
             var read = holds.Where(h => !Unread.Contains(h.Code)).ToList();
-            var acting = set == ContainerForm ? new List<GateHold>() : ActingHolds(set, read);
-            if (acting.Count == 0 && !containerWrong) return new RecheckVerdict(Keep, null, null, read);
+            if (set == ContainerForm)
+            {
+                if (!containerWrong) return new RecheckVerdict(Keep, null, null, read);
+                foreach (var candidate in candidates())
+                    if (Blocking(candidate.Tier, candidate.Holds).Count == 0) return new RecheckVerdict(Move, "container form", candidate, read);
+                return new RecheckVerdict(Held, "container form, no canned sister", null, read);
+            }
+
+            var acting = ActingHolds(set, read);
+            if (acting.Count == 0) return new RecheckVerdict(Keep, null, null, read);
+            var refuting = acting.Where(refutes ?? (h => Refutes(h, read))).ToList();
+            if (refuting.Count == 0) return new RecheckVerdict(Unproven, acting[0].ToString(), null, read);
 
             foreach (var candidate in candidates())
             {
                 if (Blocking(candidate.Tier, candidate.Holds).Count == 0)
-                    return new RecheckVerdict(Move, containerWrong ? "container form" : acting[0].ToString(), candidate, read);
+                    return new RecheckVerdict(Move, refuting[0].ToString(), candidate, read);
             }
-
-            var hard = acting.FirstOrDefault(h => Hard.Contains(h.Code));
-            if (hard != null) return new RecheckVerdict(Unlink, hard.ToString(), null, read);
-            return new RecheckVerdict(Held, containerWrong ? "container form, no canned sister" : acting[0].ToString(), null, read);
+            return new RecheckVerdict(Unlink, refuting[0].ToString(), null, read);
         }
 
         /// <summary>Whether a recipe line counts out a can, tin or jar ("1 can tomatoes", "2 (15 oz) cans beans"), not the verb ("you can use").</summary>
@@ -213,8 +275,10 @@ namespace Nom.Orch.Services.Support
         {
             if (string.IsNullOrWhiteSpace(food.Description)) return false;
             if (IsContainerLine(raw) && !IsCanned(food.Description)) return true;
-            return IsDrainedLine(raw) && IsCanned(food.Description) && !IsDrainedFood(food.Description);
+            return IsDrainedLine(raw) && IsCanned(food.Description) && !IsDrainedFood(food.Description) && !LiquidWording.IsMatch(IngredientNameNormalizer.Normalize(raw ?? string.Empty));
         }
+
+        private static readonly Regex LiquidWording = new(@"\b(?:juices?|liquid|liquor|syrup|brine|water|milk|cream|stock|broth)\b", Options);
 
         /// <summary>
         /// The one curated canned food that shares the food's lead word and holds every word of the
@@ -233,13 +297,25 @@ namespace Nom.Orch.Services.Support
                 .Where(f =>
                 {
                     var text = LinkGate.Words(f.Text).Concat(LinkGate.Words(f.Name)).Select(LinkGate.Fold).ToHashSet(StringComparer.Ordinal);
-                    return words.All(text.Contains);
+                    return words.All(text.Contains) && Additions(f.Text).All(words.Contains)
+                        && LinkGate.Words(f.Text).Where(w => LinkGate.States.ContainsKey(w) && w is not ("canned" or "drained")).All(w => LinkGate.States[w].Any(words.Contains));
                 })
                 .ToList();
             return sisters.Count == 1 ? sisters[0] : null;
         }
 
         private static readonly HashSet<string> ContainerWords = new(StringComparer.Ordinal) { "can", "cans", "tin", "tins", "jar", "jars", "drained", "rinsed", "undrained" };
+
+        private static readonly HashSet<string> AdditionNeutral = new(StringComparer.Ordinal) { "and", "salt", "added", "sodium", "liquid", "juice", "water", "syrup", "light", "heavy", "packed", "pack" };
+
+        /// <summary>The food words a description adds after "with" ("Corn with red and green peppers, canned"): a canned sister must not add a food the wording does not name.</summary>
+        private static IEnumerable<string> Additions(string text) =>
+            text.Split(',').SelectMany(segment =>
+            {
+                var words = LinkGate.Words(segment).Select(LinkGate.Fold).ToList();
+                var with = words.IndexOf("with");
+                return with < 0 ? Enumerable.Empty<string>() : words.Skip(with + 1).Where(w => !AdditionNeutral.Contains(w));
+            });
 
         /// <summary>
         /// Whether a curated food's name says something its USDA entry contradicts: a colour, "whole"
@@ -268,7 +344,10 @@ namespace Nom.Orch.Services.Support
         {
             var parts = new List<string> { Version, LinkGate.Signature, AlcoholLineContext.Signature };
             parts.AddRange(Sets);
-            parts.Add(string.Join(",", Hard.OrderBy(c => c, StringComparer.Ordinal)));
+            parts.Add(string.Join(",", Refuting.OrderBy(c => c, StringComparer.Ordinal)));
+            parts.Add(string.Join(",", EdibleParts.OrderBy(c => c, StringComparer.Ordinal)));
+            parts.Add(string.Join(",", AdditionNeutral.OrderBy(c => c, StringComparer.Ordinal)));
+            parts.Add(LiquidWording.ToString());
             parts.Add(string.Join(",", Unread.OrderBy(c => c, StringComparer.Ordinal)));
             parts.Add(string.Join(",", IdentityCodes.OrderBy(c => c, StringComparer.Ordinal)));
             parts.AddRange(Acting.OrderBy(a => a.Key, StringComparer.Ordinal).Select(a => a.Key + "=" + string.Join(",", a.Value)));
