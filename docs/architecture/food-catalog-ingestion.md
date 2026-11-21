@@ -1024,14 +1024,25 @@ raw line. Rules (golden rows in `lines.tsv`, `line-kinds.tsv`, `startup-fills.ts
   quarts" → 10 Cup; it was read as the range 2 to 3/4, staging checkpoint 1 K2); a range of
   whole numbers or of two fractions stays a range ("Salt, 2-3 teaspoons" → 2 Teaspoon). The name
   drops a trailing size too ("Potatoes, medium size, 2" → Potatoes, "Onions, of a good size, 3"
-  → Onions).
+  → Onions). The amount may be followed by a description with no number in it ("Egg white, 1,
+  partly beaten." → 1 Piece of Egg white, "Flour, 2 cups, sifted" → 2 Cup of Flour; staging
+  checkpoint 2 M20); a description holding another amount ("Water, 1 cup, plus 2 tablespoons") is
+  not read. A trailing range with no unit is the amount too and leaves the name ("egg-balls, 16 to
+  24" → 16 Piece of egg-balls).
+- Two measures joined by "and" are added up in the first one's unit ("one quart and a pint of cut
+  celery" → 6 Cup, "1 pound and 2 ounces butter" → 1.125 Pound; checkpoint 2 M6); measures that do
+  not add (a cup and a pound) are not read so.
+- A range of number words is a range like one of digits, read by its lower end, and leaves the name
+  ("twelve or sixteen blanched oysters" → 12 Piece of blanched oysters).
 - A measure "and a half" adds the half ("a jill and a half of brandy" → 0.75 Cup, "pinch and a
   half of salt" → 1.5 Pinch, "a tumbler and a half of cold water" → 1.5 Cup, "two pints and a
   half of milk" → 5 Cup); the half was lost before (checkpoint 1 K1, K2).
 - Old measures: jill (as gill, ½ cup), tumbler (1 cup), pony (1 fl oz). "a drop", "a small
   quantity" and "a very little" are vague: no amount.
 - Italian units for the Artusi text: grammi, gr., chilogrammi, litro, mezzo litro, decilitri and
-  "N. 4" are read; "q.b." and "un po'" are vague; the name drops the unit and "di". The name
+  "N. 4" are read; "q.b." and "un po'" are vague; the name drops the unit, "di" and an elided "d'"
+  ("4 decilitri d'acqua" → 400 Milliliter of acqua), and "spicchio" counts a clove ("1/4 di spicchio
+  d'aglio" → 0.25 Clove of aglio). The name
   drops a leading "gr." only before "di" or a number ("100 gr. di burro" → burro), so the English
   "gr." of "1 gr. pepper" (green) stays in the name.
 - Scraper sample forms: a leading "optional", "optional:", "Entirely optional:", "~" or "just
@@ -1139,10 +1150,21 @@ re-apply, then the next rule; production only after that, behind a dump.
 amount it takes the amount its own text states, or the amount the method states once for it
 (`MethodAmountFinder`); a line counted in pieces whose text states a unit takes that unit; it
 splits a one-paragraph method into steps, decodes HTML entities and re-vets recipes no person has
-reviewed. The pass ends with the log line
+reviewed. A line on a stated unit whose amount is what the line gives with the part it adds left out
+(`IngredientLineParser.WithoutAddedPart`: the fraction of a hyphenated mixed number, a measure's "and
+a half", a second measure joined by "and"), as older import readers took it, takes the whole in the
+same unit: "Salt, 1-1/4 cups" at 1 Cup becomes 1.25 Cup, "three pounds and a half of sugar" at 3 Pound
+3.5 Pound, "one quart and a pint of cut celery" at 4 Cup 6 Cup (staging checkpoint 2 M6). Any other
+amount on a stated unit is left alone (a person's own amount, a right amount, a line that adds
+nothing), and so are cans and packages. A row whose amount was set by anything but this pass is left
+too: a person last changed the row (the recipe editor stamps the editor on a row whose amount it
+changes), or the row no longer carries the amount the pass last journaled for it, so a curator who sets
+"Salt, 1-1/4 cups" back to 1 Cup keeps it across restarts. These re-reads are journaled as `StartupFill`
+like every other change of the pass, so `startup-fills/undo` takes them back; the undo removes the
+entry, so an undone row is filled again on the next start. The pass ends with the log line
 
 ```
-Scraped recipe repair done in <m>m: <n> recipes, <r> rows repaired, ... <h> recipes left alone because a journaled line operation holds their lines
+Scraped recipe repair done in <m>m: <n> recipes, <r> rows repaired (<s> of them re-read on their stated unit), ... <h> recipes left alone because a journaled line operation holds their lines
 ```
 
 Two rules make it safe to restart the API between any apply and its undo:
@@ -1188,6 +1210,22 @@ alternative ("one-half can of tomatoes, or four chopped fresh tomatoes": a match
 starting with "or" fills nothing at all), or for a folded row of two foods ("melted butter +
 maître d'hôtel butter"; the method's amount names one of them). The rebuild's method fill uses
 the same finder and the same fold rule.
+
+Since staging checkpoint 2 (M4, M5, M19, 2026-11-21; about 130 wrong of 3,530 start-up rows, and
+in the rebuild 8 wrong of 60): a ratio is read per sentence, not per comma clause, so "To every
+quart allow half an ounce of allspice, the same quantity of ginger, half a teaspoonful of powdered
+mace" and "Season with 1/4 teaspoon salt, ..., per cup of vegetable" fill nothing, and the ratio
+forms include "each" before a noun ("on each plate", "around each oyster", "on top of each portion",
+"Cover each chop", "for each four persons"), "to a pound of" and "to a quart of"; "each" or "every"
+before a time or a side ("on each side", "every few minutes") is no ratio. A range in the method
+("six or eight pounds of corned beef", "three to five gallons of cold water", "two or three
+tablespoonfuls") is read whole, so it gives its lower end, as the parser reads a line's range; it
+gave the upper end. A line that names its food with an "or" ("stewed or canned tomatoes", "French or
+common mustard") takes the amount the method states before those same words ("a pint of stewed or
+canned tomatoes"); a line joining foods with "and" still takes none. An item of a listing sentence
+("add two cloves, one onion, one bay leaf") is filled like any other, but never as a count of a food
+with no weight per item (Bay Leaf and Nutmeg have none, so 59107 and 110476 stay without an amount
+by that rule).
 
 ```
 POST /api/FoodCatalog/startup-fills/undo?sinceUtc=<utc time>&apply=false   # dry run: entries, lines it would restore, lines changed since

@@ -53,6 +53,13 @@ namespace Nom.Orch.Services
             if (recipes.Count == 0) return new ScrapedRepairBatchResult(0, 0, 0, 0, 0, afterRecipeId);
             var held = await RecipeLineHold.HeldAsync(_context, recipes.Select(r => r.Id).ToList(), cancellationToken);
             var rebuilt = await RecipeReprocessService.RebuiltRecipesAsync(_context, recipes.Select(r => r.Id).ToList(), cancellationToken);
+            var recipeIds = recipes.Select(r => r.Id).ToList();
+            var filled = (await _context.AuditLogEntries.AsNoTracking()
+                    .Where(a => a.EntityType == LineEntityType && a.ChangeType == FillChangeType && recipeIds.Contains(a.EntityId))
+                    .Select(a => new { a.Id, a.EntityId, a.PropertyName, a.NewValue })
+                    .ToListAsync(cancellationToken))
+                .GroupBy(a => (a.EntityId, a.PropertyName ?? string.Empty))
+                .ToDictionary(g => g.Key, g => g.MaxBy(a => a.Id)!.NewValue);
             var now = DateTime.UtcNow;
             var foodIds = recipes.SelectMany(r => r.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>())
                 .Where(ri => ri.Quantity == 0 || (measurements.TryGetValue(IngredientLineParser.Piece, out var piece) && ri.MeasurementId == piece))
@@ -62,7 +69,7 @@ namespace Nom.Orch.Services
                 .Select(i => new { i.Id, i.Name, i.GramsPerItem })
                 .ToDictionaryAsync(i => i.Id, i => (i.Name, Counted: i.GramsPerItem > 0), cancellationToken);
 
-            int repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0;
+            int repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0, reread = 0;
             foreach (var recipe in recipes)
             {
                 if (rebuilt.Contains(recipe.Id)) continue;
@@ -78,7 +85,7 @@ namespace Nom.Orch.Services
                 foreach (var row in rows)
                 {
                     var (was, wasUnit, wasModified) = (row.Quantity, row.MeasurementId, row.LastModifiedDate);
-                    if (!Fill(recipe, row, rows, measurements, foodNames)) unparsed++;
+                    if (!Fill(recipe, row, rows, measurements, foodNames, SetElsewhere(recipe.Id, row, filled))) unparsed++;
                     if (row.Quantity == was && row.MeasurementId == wasUnit)
                     {
                         row.LastModifiedDate = wasModified;
@@ -87,6 +94,7 @@ namespace Nom.Orch.Services
 
                     Journal(recipe.Id, row, was, wasUnit, now);
                     repaired++;
+                    if (was != 0 && row.Quantity != 0 && row.MeasurementId == wasUnit) reread++;
                 }
 
                 if (!reviewable) continue;
@@ -97,19 +105,22 @@ namespace Nom.Orch.Services
 
             await _context.SaveChangesAsync(cancellationToken);
             _context.ChangeTracker.Clear();
-            return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded, held.Except(rebuilt).Count(), rebuilt.Count);
+            return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded, held.Except(rebuilt).Count(), rebuilt.Count, reread);
         }
 
         /// <summary>
         /// Gives one line the amount its text, or the method, states: a piece count whose text states
-        /// a unit takes that unit, and a line with no amount is filled. False when a line left without
+        /// a unit takes that unit, an amount on a stated unit that is the line's first amount with the part
+        /// the line adds to it left out ("Salt, 1-1/4 cups" at 1 Cup, "three pounds and a half" at 3 Pound,
+        /// "one quart and a pint" at 4 Cup) takes the whole, and a line with no amount is filled. False when a line left without
         /// an amount could not be read. The caller journals only a net change, so a count that is read
         /// back as the same count ("one of rosemary": elliptical, then 1 piece) writes nothing.
         /// </summary>
         private static bool Fill(RecipeEntity recipe, Nom.Data.Recipe.RecipeIngredientEntity row, List<Nom.Data.Recipe.RecipeIngredientEntity> rows,
-            Dictionary<string, long> measurements, Dictionary<long, (string Name, bool Counted)> foods)
+            Dictionary<string, long> measurements, Dictionary<long, (string Name, bool Counted)> foods, bool setElsewhere)
         {
             var firstLine = (row.RawLine ?? string.Empty).Split(" + ", 2)[0];
+            if (row.Quantity != 0 && !setElsewhere && RereadAddedPart(row, firstLine, measurements)) return true;
             if (row.Quantity != 0 && (!RereadPieces(row, firstLine, measurements) || row.Quantity != 0)) return true;
             var known = foods.TryGetValue(row.IngredientId, out var food);
             if (known && !FoodNameMatcher.NamesFood(firstLine, food.Name)) return false;
@@ -198,6 +209,38 @@ namespace Nom.Orch.Services
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Whether a row's amount was set by something other than this pass, so the re-read on a stated unit
+        /// leaves it: a person last changed the row, or the row no longer carries the amount this pass last
+        /// journaled for it (a person's edit after a fill keeps the system's stamp, and an undo removes its
+        /// entry, so an undone row is filled again).
+        /// </summary>
+        private static bool SetElsewhere(long recipeId, Nom.Data.Recipe.RecipeIngredientEntity row, Dictionary<(long, string), string?> filled)
+        {
+            if (row.LastModifiedByPersonId is { } by && by != SystemConstants.SystemPersonId) return true;
+            return filled.TryGetValue((recipeId, RecipeLineClassificationService.LinePropertyName(row.IngredientId, row.SortOrder)), out var last)
+                && PackageLineService.ReadAmount(last) is { } became
+                && (became.Quantity != row.Quantity || became.MeasurementId != row.MeasurementId);
+        }
+
+        /// <summary>
+        /// A row on a stated unit whose amount is what the line gives with the part it adds left out
+        /// (<see cref="IngredientLineParser.WithoutAddedPart"/>), as older readers took it, takes the amount
+        /// the whole line gives in the same unit. Cans and packages are left to <see cref="IPackageLineService"/>.
+        /// </summary>
+        private static bool RereadAddedPart(Nom.Data.Recipe.RecipeIngredientEntity row, string firstLine, Dictionary<string, long> measurements)
+        {
+            if (measurements.TryGetValue(IngredientLineParser.Piece, out var pieceId) && row.MeasurementId == pieceId) return false;
+            if (IngredientLineParser.ReadsPackage(firstLine)) return false;
+            if (IngredientLineParser.WithoutAddedPart(firstLine) is not { } part || IngredientLineParser.Parse(firstLine) is not { } whole) return false;
+            if (part.MeasurementName != whole.MeasurementName || !measurements.TryGetValue(whole.MeasurementName, out var unitId) || unitId != row.MeasurementId) return false;
+            if (part.Quantity != row.Quantity || whole.Quantity <= row.Quantity) return false;
+
+            row.Quantity = whole.Quantity;
+            row.LastModifiedDate = DateTime.UtcNow;
+            return true;
         }
 
         /// <summary>

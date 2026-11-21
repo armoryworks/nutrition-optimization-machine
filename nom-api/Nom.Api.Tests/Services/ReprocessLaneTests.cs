@@ -269,6 +269,17 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_plus_the_source_itself_prints_is_no_fold_for_the_detector_32080()
+        {
+            var live = new List<ReprocessDetectorService.LiveRow> { new(1, 0, "salt + pepper to taste", 0), new(2, 1, "2 cups flour", 2) };
+            var unchanged = new RecipeReprocessRecipeResult { Outcome = RecipeReprocessOutcome.Unchanged, SourceLines = new List<string> { "salt + pepper to taste", "2 cups flour" } };
+            var folded = new RecipeReprocessRecipeResult { Outcome = RecipeReprocessOutcome.Unchanged, SourceLines = new List<string> { "salt", "pepper to taste", "2 cups flour" } };
+
+            ReprocessDetectorService.Reasons(unchanged, live, sourceVersion: 1).Should().Be(0, "recipe 32080's source prints \"salt + pepper to taste\" as one line, so the rebuild leaves it unchanged (M16)");
+            ReprocessDetectorService.Reasons(folded, live, sourceVersion: 1).Should().Be(ReprocessReason.OrderLost, "two source lines folded into one row are a fold");
+        }
+
+        [Fact]
         public void The_detector_names_each_reason_from_the_dry_run()
         {
             RecipeReprocessLineDiff Line(string raw, decimal? oldQuantity, bool filled, params string[] changes) =>
@@ -590,6 +601,16 @@ namespace Nom.Api.Tests.Services
             ReprocessRuleAudit.GroundedIn(30m, new[] { "1 lb. 13 oz. can peaches" }).Should().BeFalse();
             ReprocessRuleAudit.Failures(new("1 lb. 13 oz. can peaches", "peaches", 29, "Ounce", null)).Should().BeEmpty();
             ReprocessRuleAudit.Failures(new("1 lb. 13 oz. can peaches", "peaches", 1, "Pound", null)).Should().BeEmpty();
+        }
+
+        [Fact]
+        public void The_rule_audit_grounds_two_measures_joined_by_and_added_up_69123()
+        {
+            ReprocessRuleAudit.GroundedIn(6m, new[] { "one quart and a pint of cut celery" }).Should().BeTrue("recipe 69123: a quart and a pint are 6 cups, as the parser now reads it");
+            ReprocessRuleAudit.GroundedIn(1.125m, new[] { "1 pound and 2 ounces butter" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(7m, new[] { "one quart and a pint of cut celery" }).Should().BeFalse();
+            ReprocessRuleAudit.GroundedIn(2m, new[] { "a pint and a half of milk" }).Should().BeTrue("the first measure alone is still grounded");
+            ReprocessRuleAudit.Failures(new("one quart and a pint of cut celery", "cut celery", 6, "Cup", null)).Should().BeEmpty();
         }
 
         [Fact]

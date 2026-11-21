@@ -174,7 +174,11 @@ in its gate signature, so a changed gate drops that tier back to shadow.
   (`cleanup2/ck2-undo-reprocess`), when the name normalizer began to take "circa" off an Italian
   amount, with the same figures, and separately (`cleanup2/ck2-diet-gate`) the alcohol sense as
   identity evidence, which let two more pairs through, both judged right, with the same false
-  accepts; for `link-gate/8`, the wave-6 merge of both): it lets through 2,309 of 7,664 pairs,
+  accepts; for `link-gate/8`, the wave-6 merge of both; and for `link-gate/9` (`cleanup2/ck4-parser-method`), when
+  the name normalizer began to read a range or count of number words up to fifty ("sixteen eggs",
+  "twenty heads of mushrooms", "twenty yolks of eggs"), a trailing range with no unit, an amount after
+  the name followed by a description, and the Italian "d'" and "spicchio", which lets six more pairs
+  through, all judged right, with the same false accepts): it lets through 2,315 of 7,664 pairs,
   99.5 % of them judged right;
   it lets through 12 of 1,406 pairs judged wrong, near or compound (0.9 %). Floors: precision at
   least 99 %, false accepts at most 1 %, agreement at least 45 %. The record is required, and

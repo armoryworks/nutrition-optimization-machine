@@ -19,12 +19,15 @@ namespace Nom.Orch.Services.Support
     /// gets the kind the deterministic pre-pass reads on its face (<see cref="RecipeLineClassifier"/>).
     /// The food is found in the import's order: the verified wording (when
     /// VerifiedWordings:ResolveOnImport is set), a live ingredient of that name, the one food a
-    /// trusted alias gives the name to, the food an applied link merged the retired ingredient of that
-    /// name into, and otherwise a new uncurated ingredient. A wording, an alias or an applied link never
-    /// leads to a prepared food. A line that names no food, only an amount ("Grammi circa 100", "2 cups"),
-    /// keeps the food the line is already on or a food under the line's own text, and otherwise is not
-    /// built: no food is ever created under an amount. In an "or" line the amount is that of the alternative
-    /// naming the food when that alternative states its own; a clove counts garlic, never the spice.
+    /// trusted alias gives the name to, the one curated food the wording names with a hyphen for a space
+    /// or a space for a hyphen where those find none or an uncurated one, the food an applied link
+    /// merged the retired ingredient of that name into, the curated food the first alternative of an "or"
+    /// line names, and otherwise a new uncurated ingredient. A wording, an alias or an applied link never
+    /// leads to a prepared food. A line that names no food, only an amount ("Grammi circa 100", "2 cups",
+    /// "N. 6"), keeps the food the line is already on or a food under the line's own text, and otherwise is
+    /// not built and is listed in <see cref="Dropped"/>: no food is ever created under an amount. In an "or"
+    /// line the amount is that of the alternative naming the food when that alternative states its own,
+    /// while two bare numbers joined by "or" are a range; a clove counts garlic, never the spice.
     /// Given the method, a line with no amount that is the only line of its
     /// food takes the amount the method states next to the food's name, as the start-up repair does.
     /// Without <c>write</c> nothing is written and a food that would be created has no id.
@@ -32,7 +35,7 @@ namespace Nom.Orch.Services.Support
     public sealed class RecipeLineBuilder
     {
         /// <summary>Raised whenever a rule this builder applies changes, so a rebuild can tell which recipes an older version built.</summary>
-        public const string Version = "line-builder/7";
+        public const string Version = "line-builder/8";
 
         /// <summary>Fallback unit for unparseable ingredient lines. Seeded "each"-style measurement.</summary>
         public const long DefaultMeasurementId = 1L;
@@ -42,6 +45,9 @@ namespace Nom.Orch.Services.Support
         private readonly bool _resolveVerifiedWordings;
         private readonly Dictionary<string, long?> _measurements = new(StringComparer.Ordinal);
         private bool? _aliasesClassified;
+
+        /// <summary>The source positions the last build left out, because their line names no food and no food is kept for it.</summary>
+        public IReadOnlyList<int> Dropped { get; private set; } = Array.Empty<int>();
 
         public RecipeLineBuilder(ApplicationDbContext db, ILogger logger, bool resolveVerifiedWordings)
         {
@@ -95,6 +101,7 @@ namespace Nom.Orch.Services.Support
             IReadOnlyList<string>? methodSteps = null, Func<int, IngredientEntity?, IngredientEntity?>? choose = null)
         {
             var lines = new List<BuiltLine>(source.Count);
+            var dropped = new List<int>();
             var created = new Dictionary<string, IngredientEntity?>(StringComparer.OrdinalIgnoreCase);
             var createdHere = new HashSet<IngredientEntity>(ReferenceEqualityComparer.Instance);
             for (var i = 0; i < source.Count; i++)
@@ -113,10 +120,9 @@ namespace Nom.Orch.Services.Support
                 {
                     wording = OwnText(name);
                     if (IngredientNameNormalizer.NamesNoFood(wording)) wording = OwnText(rawLine);
-                    if (IngredientNameNormalizer.NamesNoFood(wording)) continue;
                 }
 
-                var (found, link, byWording) = await FindAsync(wording);
+                var (found, link, byWording) = namesNoFood && IngredientNameNormalizer.NamesNoFood(wording) ? (null, null, null) : await FindAsync(wording);
                 var chosen = choose?.Invoke(i, found);
                 if (chosen != null)
                 {
@@ -125,7 +131,13 @@ namespace Nom.Orch.Services.Support
                     byWording = null;
                 }
 
-                if (found == null && namesNoFood) continue;
+                if (found == null && namesNoFood)
+                {
+                    _logger.LogInformation("Line builder: the line \"{Line}\" names no food and no food is kept for it, so it is left out", rawLine);
+                    dropped.Add(i);
+                    continue;
+                }
+                if (found == null) found = await FirstAlternativeAsync(wording);
                 if (found == null && !created.TryGetValue(wording, out found))
                 {
                     found = write ? await CreateIngredientAsync(wording, personId) : null;
@@ -144,6 +156,7 @@ namespace Nom.Orch.Services.Support
                 lines.Add(line);
             }
 
+            Dropped = dropped;
             if (methodSteps != null)
             {
                 foreach (var line in lines.Where(l => l.MeasurementName == null))
@@ -183,6 +196,13 @@ namespace Nom.Orch.Services.Support
         private static readonly System.Text.RegularExpressions.Regex Alternative = new(
             @"\s+or\s+", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
+        private static readonly System.Text.RegularExpressions.Regex OpensWithAmount = new(
+            @"^\s*(?:\d|[¼½¾⅓⅔⅛⅜⅝⅞])", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+        private static readonly System.Text.RegularExpressions.Regex BareNumber = new(
+            @"^\s*(?:about\s+|~\s*)?(?:\d+(?:[.,]\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+|[¼½¾⅓⅔⅛⅜⅝⅞]|\d+\s*[¼½¾⅓⅔⅛⅜⅝⅞]|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|hundred)\s*$",
+            System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
         /// <summary>
         /// The text of a line as the name of the food it stands for, when normalizing leaves no food
         /// ("Grammi circa 100" normalizes to "circa 100"): lower case, single spaces, never a bare number.
@@ -192,12 +212,14 @@ namespace Nom.Orch.Services.Support
         /// <summary>
         /// The amount of the one alternative of an "or" line that names the line's food, when that is
         /// not the first alternative and it states an amount of its own ("pinch stevia OR 2 tbsp maple
-        /// syrup" on maple syrup is 2 tbsp, not a pinch); null when the line's own amount stands.
+        /// syrup" on maple syrup is 2 tbsp, not a pinch); null when the line's own amount stands. Two bare
+        /// numbers joined by "or" ("two or three nutmegs", "five or six quarts") are a range, never an
+        /// alternative, so the line's own reading (the range's lower end) stands.
         /// </summary>
         private static ParsedQuantity? AlternativeAmount(string rawLine, string foodName)
         {
             var parts = Alternative.Split(rawLine);
-            if (parts.Length < 2 || FoodNameMatcher.NamesFood(parts[0], foodName)) return null;
+            if (parts.Length < 2 || BareNumber.IsMatch(parts[0]) || FoodNameMatcher.NamesFood(parts[0], foodName)) return null;
             var naming = parts.Skip(1).Where(p => FoodNameMatcher.NamesFood(p, foodName)).ToList();
             return naming.Count == 1 ? IngredientLineParser.Normalize(null, null, naming[0], false) : null;
         }
@@ -247,6 +269,7 @@ namespace Nom.Orch.Services.Support
             var lowered = wording.ToLowerInvariant();
             if (await FindByVerifiedWordingAsync(lowered) is { } judged) return (judged, null, lowered);
             var found = await FindByNameAsync(lowered) ?? await FindByTrustedAliasAsync(lowered);
+            if (found?.CurationStatusId != (long)CurationStatusEnum.Curated) found = await FindCuratedSpellingAsync(lowered) ?? found;
             if (found != null) return (found, null, null);
             if (await FindByAppliedLinkAsync(lowered) is { } linked) return (linked.Item1, linked.Item2, null);
             return (null, null, null);
@@ -272,6 +295,7 @@ namespace Nom.Orch.Services.Support
         {
             var lowered = wording.ToLowerInvariant();
             var found = await FindByNameAsync(lowered) ?? await FindByTrustedAliasAsync(lowered);
+            if (found?.CurationStatusId != (long)CurationStatusEnum.Curated) found = await FindCuratedSpellingAsync(lowered) ?? found;
             if (found != null) return (found, null);
             if (await FindByAppliedLinkAsync(lowered) is { } linked) return linked;
             return null;
@@ -329,6 +353,50 @@ namespace Nom.Orch.Services.Support
                 ? null
                 : await _db.Ingredients.Where(Nom.Data.Nutrition.PreparedFoods.NotPrepared)
                     .FirstOrDefaultAsync(i => i.Id == targetId && !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated);
+        }
+
+        /// <summary>
+        /// The one live curated food, never a prepared one, whose name is this wording with a hyphen for a
+        /// space or a space for a hyphen ("sun dried tomatoes" is Sun-Dried Tomatoes); null when none or more
+        /// than one is.
+        /// </summary>
+        private async Task<IngredientEntity?> FindCuratedSpellingAsync(string lowered)
+        {
+            var key = Spelling(lowered);
+            if (key.Length < 2) return null;
+            var candidates = await _db.Ingredients.Where(Nom.Data.Nutrition.PreparedFoods.NotPrepared)
+                .Where(i => !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated)
+                .Where(i => i.Name.ToLower().Replace("-", " ") == key || i.Name.ToLower().Replace("-", " ").Replace("  ", " ") == key)
+                .OrderBy(i => i.Id)
+                .Take(3)
+                .ToListAsync();
+            var spelt = candidates.Where(i => Spelling(i.Name.ToLowerInvariant()) == key).ToList();
+            return spelt.Count == 1 ? spelt[0] : null;
+        }
+
+        private static string Spelling(string name) => Whitespace.Replace(name.Replace('-', ' '), " ").Trim();
+
+        /// <summary>
+        /// For an "or" line that no food is found for, the live curated food its first alternative names,
+        /// found as any wording is; null when there is none, so the line keeps its own wording. When the last
+        /// alternative has words after its first and the first alternative is not closed off (by a comma, or by
+        /// an amount opening the next one), the alternatives share those words, so the first is read with them:
+        /// "lemon or lime juice" is lemon juice, never the fruit Lemon, and "chicken or vegetable broth" is
+        /// chicken broth, never Chicken; "lemon or lime" is Lemon, and "1 teaspn. ground coriander, or ¼ level
+        /// teaspn. ground anise seed" is ground coriander.
+        /// </summary>
+        private async Task<IngredientEntity?> FirstAlternativeAsync(string wording)
+        {
+            var parts = Alternative.Split(wording);
+            if (parts.Length < 2) return null;
+            var first = IngredientNameNormalizer.Normalize(parts[0]).ToLowerInvariant();
+            if (first.Length < 2 || BareNumber.IsMatch(first)) return null;
+            var closed = parts[0].TrimEnd().EndsWith(',') || OpensWithAmount.IsMatch(parts[1]);
+            var shared = Whitespace.Split(IngredientNameNormalizer.Normalize(parts[^1]).ToLowerInvariant().Trim()).Skip(1).ToList();
+            if (!closed && shared.Count > 0) first = $"{first} {string.Join(' ', shared)}";
+            var found = await FindByNameAsync(first) ?? await FindByTrustedAliasAsync(first);
+            if (found?.CurationStatusId != (long)CurationStatusEnum.Curated) found = await FindCuratedSpellingAsync(first);
+            return found is { CurationStatusId: (long)CurationStatusEnum.Curated } && !Nom.Data.Nutrition.PreparedFoods.IsPrepared(found) ? found : null;
         }
 
         /// <summary>The live ingredient of this name; a curated one before an uncurated one, then the oldest.</summary>

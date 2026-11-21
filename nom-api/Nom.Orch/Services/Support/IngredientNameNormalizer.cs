@@ -24,7 +24,7 @@ namespace Nom.Orch.Services.Support
             @"(?:one|two|three|five|seven)[- ](?:half|halves|thirds?|fourths?|quarters?|eighths?)";
 
         private static readonly Regex LeadingQuantity = new(
-            $@"^\s*(?:(?:and|or|to|about|nearly|circa)\s+)?(?:{Number}(?:\s*(?:-|–|—|to|or)\s*{Number})?(?:-(?=(?:lbs?|ozs?|pounds?|ounces?|pints?|pts?|quarts?|qts?|cups?)\b)|(?=[\s.])[\s.]+)|(?:a\s+(?:couple|pair)(?:\s+of)?|{FractionWord}|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half(?![\s-]+(?:and|&|n|'n'?)[\s-]+half\b)|halves|quarters?|thirds?|(?:couple|pair)(?=\s+of\b)|mezz[oa])(?=[\s.])[\s.]+)",
+            $@"^\s*(?:(?:and|or|to|about|nearly|circa)\s+)?(?:{Number}(?:\s*(?:-|–|—|to|or)\s*{Number})?(?:-(?=(?:lbs?|ozs?|pounds?|ounces?|pints?|pts?|quarts?|qts?|cups?)\b)|(?=[\s.])[\s.]+)|(?:a\s+(?:couple|pair)(?:\s+of)?|{FractionWord}|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|half(?![\s-]+(?:and|&|n|'n'?)[\s-]+half\b)|halves|quarters?|thirds?|(?:couple|pair)(?=\s+of\b)|mezz[oa])(?=[\s.])[\s.]+)",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private const string Qualifier =
@@ -41,14 +41,14 @@ namespace Nom.Orch.Services.Support
             @"slices?|pounds?|lbs?\.?|ounces?|ozs?\.?|fl\.?\s*oz\.?|tablespoons?|tbsps?\.?|tbps?\.?|tblsps?\.?|tbls?\.?|teaspoons?|tsps?\.?|ponies|pony|" +
             @"cloves?(?!\s*(?:,|and\b|&))|sticks?|pieces?|pinch(?:es)?|dash(?:es)?|handfull?s?|sprigs?|heads?|stalks?|ribs?|ears?|" +
             @"fillets?|filets?|strips?|cubes?|knobs?|pats?|liters?|litres?|l\b|ml\b|milliliters?|grams?|g\b|kgs?|kilograms?|" +
-            @"grammi|grammo|gr\b(?=\.?\s*(?:\d|di\b))|chilogrammi|chilogrammo|litri|litro|decilitri|decilitro|dl\b)" +
+            @"grammi|grammo|gr\b(?=\.?\s*(?:\d|di\b))|chilogrammi|chilogrammo|litri|litro|decilitri|decilitro|dl\b|spicchi|spicchio)" +
             @"\b\.?\s*(?:each\s+)?(?:(?:of|di)\s+)?" +
             @"|(?:glass(?:es|full?s?)?|drops?|blades?|grains?|lumps?|bits?)\s+of\s+" +
             @"|(?:c|t|tb|tbs)\.?[\s-]+(?=\p{L}{3}))",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex LeadingFiller = new(
-            @"^\s*(?:[*~•·]+\s*|(?:of|di)\s+|each\s+(?:of\s+)?|(?:an?\s+)?(?:very\s+)?(?:little(?!\s+(?:gem|neck))|few|some|enough|plenty\s+of)\s+(?:of\s+)?(?:the\s+)?" +
+            @"^\s*(?:[*~•·]+\s*|(?:of|di)\s+|d['’]\s*(?=\p{L})|each\s+(?:of\s+)?|(?:an?\s+)?(?:very\s+)?(?:little(?!\s+(?:gem|neck))|few|some|enough|plenty\s+of)\s+(?:of\s+)?(?:the\s+)?" +
             @"|(?:(?:entirely|totally|completely|strictly)\s+)?optional\s*[:\-–,]\s*|optional\s+(?=[\d" + Fractions + @"])" +
             @"|(?:just|a\s+bit|slightly)\s+(?:under|over|less\s+than|more\s+than)\s+(?=[\d" + Fractions + @"])" +
             @"|un\s+po['’]?\s+(?:di\s+)?|(?:an?\s+)?(?:small\s+|little\s+)?quantity\s+of\s+)",
@@ -61,7 +61,9 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex TrailingQuantity = new(
             $@"\s*,?\s+(?:circa\s+)?(?:{Number}(?:\s*(?:-|–|to)\s*{Number})?|{FractionWord}|one|two|three|four|five|six|half)\s*-?\s*(?:" + SpoonOrCup +
             @"|pints?|pts?|quarts?|qts?|cups?|pounds?|lbs?|ounces?|ozs?|tablespoons?|tbsps?|teaspoons?|tsps?|grams?|g|kgs?|ml|grammi|grammo|gr|chilogrammi|litri|litro|decilitri|dl)\.?\s*$" +
-            $@"|\s*,?\s+(?:grammi|gr|g|kg|chilogrammi|litri|litro|dl)\.?\s*(?:circa\s+)?{Number}\.?\s*$|\s*,?\s+N\.\s*\d+\.?\s*$|\s*,\s*{Number}\.?\s*$",
+            $@"|\s*,?\s+(?:grammi|gr|g|kg|chilogrammi|litri|litro|dl)\.?\s*(?:circa\s+)?{Number}\.?\s*$|\s*,?\s+N\.\s*\d+\.?\s*$|\s*,\s*{Number}(?:\s*(?:-|–|to)\s*{Number})?\.?\s*$|\s*,\s*{Number}\s*(?:-|–|to|or)\s*$" +
+            $@"|\s*,\s*(?:circa\s+)?{Number}(?:\s*(?:-|–|to)\s*{Number})?(?:\s*-?\s*(?:" + SpoonOrCup +
+            @"|pints?|pts?|quarts?|qts?|cups?|pounds?|lbs?|ounces?|ozs?|tablespoons?|tbsps?|teaspoons?|tsps?|grams?|g|kgs?|ml|slices?|pieces?|large|medium|small|whole))?\.?\s*,\s*\p{L}[^\d,()]*?\.?\s*$",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex TrailingSize = new(

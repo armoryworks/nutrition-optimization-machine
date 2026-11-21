@@ -22,7 +22,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class ReprocessRuleAudit
     {
-        public const string Version = "reprocess-audit/4";
+        public const string Version = "reprocess-audit/5";
 
         public const string Grounded = "A1";
         public const string Named = "A2";
@@ -165,7 +165,9 @@ namespace Nom.Orch.Services.Support
         /// cups, a gill half a cup, a pound 16 ounces), or to a number of a range it states ("2 to 3",
         /// "2-3", "2 or 3"), or to two numbers it states one after the other times or plus each other
         /// ("2 cans of 15 oz"), or to pounds and ounces it states added up in ounces, alone or times a
-        /// number stated before them ("1 lb. 13 oz. can" is 29, "2 cans (1 lb. 4 oz. each)" 40). "A" or "an" counts one only before a measure or a word of
+        /// number stated before them ("1 lb. 13 oz. can" is 29, "2 cans (1 lb. 4 oz. each)" 40), or to two
+        /// measures joined by "and" added up, in the smaller measure or in the first ("one quart and a pint"
+        /// is 6 cups, "1 pound and 2 ounces" 1.125 pounds). "A" or "an" counts one only before a measure or a word of
         /// <paramref name="named"/> (the food), so a stray article grounds nothing.
         /// </summary>
         public static bool GroundedIn(decimal quantity, IEnumerable<string?> texts, IEnumerable<string?>? named = null)
@@ -183,6 +185,14 @@ namespace Nom.Orch.Services.Support
                     if (stated[i + 1].Range && quantity >= Math.Min(a, b) && quantity <= Math.Max(a, b)) return true;
                     if (Near(a * b, quantity) || Near(a + b, quantity)) return true;
                 }
+                foreach (Match m in AndMeasure.Matches(text))
+                {
+                    if (!Measure.IsMatch(m.Groups["u1"].Value) || !Measure.IsMatch(m.Groups["u2"].Value)) continue;
+                    if (Amount(m.Groups["a"].Value) is not { } a || Amount(m.Groups["b"].Value) is not { } b) continue;
+                    var (fa, fb) = (FactorOf(m.Groups["u1"].Value), FactorOf(m.Groups["u2"].Value));
+                    var total = a * fa + b * fb;
+                    if (Near(total, quantity) || Near(total / fa, quantity)) return true;
+                }
                 foreach (Match m in PoundsAndOunces.Matches(text))
                 {
                     var ounces = decimal.Parse(m.Groups["lb"].Value, CultureInfo.InvariantCulture) * 16m + decimal.Parse(m.Groups["oz"].Value, CultureInfo.InvariantCulture);
@@ -191,6 +201,16 @@ namespace Nom.Orch.Services.Support
             }
             return false;
         }
+
+        private const string AmountText = @"\d+(?:[.,]\d+)?|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve";
+
+        private static readonly Regex AndMeasure = new(
+            @"\b(?<a>" + AmountText + @")\s+(?<u1>[\p{L}-]+)\.?\s+and\s+(?<b>" + AmountText + @")\s+(?<u2>[\p{L}-]+)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static decimal? Amount(string text) => Read(text) ?? (Words.TryGetValue(text, out var word) ? word : null);
+
+        private static decimal FactorOf(string unit) => Factors.FirstOrDefault(f => f.Word.IsMatch(unit)) is { Word: not null } found ? found.Factor : 1m;
 
         private static readonly Regex PoundsAndOunces = new(
             @"(?<lb>\d+)\s*(?:pounds?|lbs?)\.?[\s,]*(?:and\s+)?(?<oz>\d+(?:\.\d+)?)\s*(?:ounces?|ozs?)\b",

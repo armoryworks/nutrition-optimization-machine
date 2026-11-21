@@ -166,7 +166,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class LinkGate
     {
-        public const string Version = "link-gate/8";
+        public const string Version = "link-gate/9";
 
         public const string Heading = "heading";
         public const string Compound = "compound";
