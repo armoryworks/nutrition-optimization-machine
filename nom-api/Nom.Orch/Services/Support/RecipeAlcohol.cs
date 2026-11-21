@@ -8,12 +8,14 @@ namespace Nom.Orch.Services.Support
     /// <summary>
     /// What the alcohol count needs of one recipe line: its food's alcohol per 100 g (null when the
     /// food stores none above <see cref="DietCriteriaMatcher.PresencePer100g"/>), whether the food is
-    /// a flavouring, the line's grams when the label can weigh it, and its stored retention.
+    /// a flavouring, the line's grams when the label can weigh it, and its stored retention. <c>Label</c>, when
+    /// given, is how a reader is shown the line (<see cref="ProseWithholding.LineName(string?, string?, string?, decimal, string?)"/>);
+    /// the line's text is still what the count reads.
     /// </summary>
-    public sealed record AlcoholLineFacts(long IngredientId, string? RawLine, string? FoodName, string? LineKind, decimal Quantity, decimal? Grams, decimal? AlcoholPer100g, bool FoodIsFlavouring, decimal? Retention, string? RetentionBasis);
+    public sealed record AlcoholLineFacts(long IngredientId, string? RawLine, string? FoodName, string? LineKind, decimal Quantity, decimal? Grams, decimal? AlcoholPer100g, bool FoodIsFlavouring, decimal? Retention, string? RetentionBasis, string? Label = null);
 
-    /// <summary>One drink line whose alcohol the count holds: its food, its text and the grams that stay (null when its amount cannot be counted).</summary>
-    public sealed record AlcoholDrinkLine(long IngredientId, string? RawLine, string? FoodName, decimal? AsWritten, decimal? Retained, decimal? Retention, string? RetentionBasis);
+    /// <summary>One drink line whose alcohol the count holds: its food, its text, how a reader is shown it, and the grams that stay (null when its amount cannot be counted).</summary>
+    public sealed record AlcoholDrinkLine(long IngredientId, string? RawLine, string? FoodName, decimal? AsWritten, decimal? Retained, decimal? Retention, string? RetentionBasis, string? Label = null);
 
     /// <summary>
     /// A recipe's alcohol as written and after cooking (alcohol design A7, owner answer 6): the
@@ -71,17 +73,17 @@ namespace Nom.Orch.Services.Support
                     }
                     if (!weighable || (lineIsDrink && line.FoodIsFlavouring))
                     {
-                        drinks.Add(new AlcoholDrinkLine(line.IngredientId, line.RawLine, line.FoodName, null, null, line.Retention, line.RetentionBasis));
+                        drinks.Add(new AlcoholDrinkLine(line.IngredientId, line.RawLine, line.FoodName, null, null, line.Retention, line.RetentionBasis, line.Label));
                         continue;
                     }
                     var grams = per100 * line.Grams!.Value / 100m;
                     asWritten += grams;
                     retained += grams * factor;
-                    drinks.Add(new AlcoholDrinkLine(line.IngredientId, line.RawLine, line.FoodName, grams, grams * factor, line.Retention, line.RetentionBasis));
+                    drinks.Add(new AlcoholDrinkLine(line.IngredientId, line.RawLine, line.FoodName, grams, grams * factor, line.Retention, line.RetentionBasis, line.Label));
                 }
                 else if (AlcoholLineContext.CountsForDiet(reading))
                 {
-                    drinks.Add(new AlcoholDrinkLine(line.IngredientId, line.RawLine, line.FoodName, null, null, line.Retention, line.RetentionBasis));
+                    drinks.Add(new AlcoholDrinkLine(line.IngredientId, line.RawLine, line.FoodName, null, null, line.Retention, line.RetentionBasis, line.Label));
                 }
             }
             var known = servings is > 0m;
@@ -92,6 +94,7 @@ namespace Nom.Orch.Services.Support
         public static bool IsFlavouringFood(string? name, int? categoryId) =>
             categoryId == CatalogAdmissionRule.SpicesAndHerbs || AlcoholLineContext.IsFlavouring(AlcoholLineContext.Read(name));
 
-        private static string Name(AlcoholLineFacts line) => !string.IsNullOrWhiteSpace(line.FoodName) ? line.FoodName!.Trim() : (line.RawLine ?? string.Empty).Trim();
+        private static string Name(AlcoholLineFacts line) =>
+            !string.IsNullOrWhiteSpace(line.FoodName) ? line.FoodName!.Trim() : (line.Label ?? line.RawLine ?? string.Empty).Trim();
     }
 }

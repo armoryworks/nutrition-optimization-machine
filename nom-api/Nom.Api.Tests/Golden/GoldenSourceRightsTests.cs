@@ -11,8 +11,8 @@ namespace Nom.Api.Tests.Golden
 {
     /// <summary>
     /// The source rights rule against its golden sets: source-rights.tsv (the class and AI flag of each of
-    /// the 22 judged hosts, built from the facts and quoted sentences of source-rejudge.md, and constructed
-    /// cases), rights-sentences.tsv (NOM's reading of each quoted sentence) and recipe-titles.tsv (the title
+    /// the 22 judged hosts, built from the facts and quoted sentences of source-rejudge.md, again under
+    /// source-check/4 for the hosts its facts change, and constructed cases), rights-sentences.tsv (NOM's reading of each quoted sentence) and recipe-titles.tsv (the title
     /// rule). All three are rules with no model, so their floor is every row.
     /// </summary>
     [Trait("Category", "Golden")]
@@ -70,7 +70,7 @@ namespace Nom.Api.Tests.Golden
             GoldenSet.Assert(report);
         }
 
-        /// <summary>The report a row describes, in the scraper's shape (source-check/2).</summary>
+        /// <summary>The report a row describes, in the scraper's shape (source-check/2, or source-check/4 with the facts of the access column).</summary>
         internal static ScraperSourceCheckReport Report(Nom.Import.Golden.GoldenRow row)
         {
             var host = row["host"];
@@ -145,6 +145,20 @@ namespace Nom.Api.Tests.Golden
                 licence.Statements.Add(new ScraperCheckStatement { Kind = statement[..at], Text = statement[(at + 1)..], FoundAt = home, Where = "page-text" });
             }
 
+            var enumeration = new ScraperCheckEnumeration { ViaSitemap = true, RecipeUrlCount = 1000 };
+            var samples = new ScraperCheckSamples { Requested = 20, Pages = new List<ScraperCheckSamplePage> { new() { Url = $"https://{host}/a-recipe/" } } };
+            foreach (var fact in Split(row.Value("access"), ";"))
+            {
+                if (fact.StartsWith("links=", StringComparison.Ordinal)) access.HomepageLinks = int.Parse(fact["links=".Length..]);
+                else if (fact.StartsWith("sitemap-refused:", StringComparison.Ordinal)) enumeration.RefusedPages.Add(fact["sitemap-refused:".Length..]);
+                else if (fact.StartsWith("samples-refused:", StringComparison.Ordinal))
+                {
+                    var parts = fact["samples-refused:".Length..].Split('@');
+                    samples.Refused = int.Parse(parts[0]);
+                    samples.Pages.Add(new ScraperCheckSamplePage { Url = parts[1], Outcome = "HttpError", HttpStatus = 403 });
+                }
+            }
+
             return new ScraperSourceCheckReport
             {
                 Domain = host,
@@ -157,7 +171,8 @@ namespace Nom.Api.Tests.Golden
                 Reservation = reservation,
                 Terms = terms,
                 Licence = licence,
-                Samples = new ScraperCheckSamples { Requested = 20, Pages = new List<ScraperCheckSamplePage> { new() { Url = $"https://{host}/a-recipe/" } } },
+                Enumeration = enumeration,
+                Samples = samples,
             };
         }
 

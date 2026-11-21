@@ -51,6 +51,7 @@ namespace Nom.Orch.UtilityInterfaces
         public string? HomepageFinalUrl { get; set; }
         public string? HomepageOutcome { get; set; }
         public int? HomepageStatus { get; set; }
+        public int? HomepageLinks { get; set; }
         public List<string> BotChallengePages { get; set; } = new();
         public List<string> RefusedPages { get; set; } = new();
     }
@@ -122,6 +123,7 @@ namespace Nom.Orch.UtilityInterfaces
         public bool ViaSitemap { get; set; }
         public int RecipeUrlCount { get; set; }
         public bool StoppedByBudget { get; set; }
+        public List<string> RefusedPages { get; set; } = new();
     }
 
     public class ScraperCheckSamples
@@ -129,6 +131,7 @@ namespace Nom.Orch.UtilityInterfaces
         public int Requested { get; set; }
         public int Attempted { get; set; }
         public int Fetched { get; set; }
+        public int Refused { get; set; }
         public int WithRecipeJsonLd { get; set; }
         public int Complete { get; set; }
         public int English { get; set; }
@@ -142,6 +145,7 @@ namespace Nom.Orch.UtilityInterfaces
     {
         public string Url { get; set; } = string.Empty;
         public string? Outcome { get; set; }
+        public int? HttpStatus { get; set; }
         public bool HasRecipeJsonLd { get; set; }
         public int Ingredients { get; set; }
         public int Steps { get; set; }

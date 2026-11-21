@@ -277,6 +277,7 @@ responsibility for the legality and quality of importing recipes from this site.
             FactsOnlyApprovedAt = source.FactsOnlyApprovedAt,
             MayFetch = SourceRightsService.MayFetch(source),
             FetchRefusal = source.Kind == ScrapingSourceEntity.WebKind && source.Status == ScrapingSourceStatusEnum.Approved ? SourceRightsService.FetchRefusal(source) : null,
+            RecheckSkipped = source.Status == ScrapingSourceStatusEnum.Approved ? SourceRightsService.RecheckSkip(source) : null,
         };
     }
 }

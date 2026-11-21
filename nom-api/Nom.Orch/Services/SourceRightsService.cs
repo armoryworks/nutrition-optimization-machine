@@ -91,6 +91,20 @@ namespace Nom.Orch.Services
             };
         }
 
+        /// <summary>
+        /// Whether no automatic check may fetch the source: its effective class is forbidden or permission-needed, so the
+        /// weekly re-check skips it. An admin may start a terms-only check of it by hand. Sources of the other classes keep
+        /// the weekly re-check.
+        /// </summary>
+        public static bool RecheckBarred(ScrapingSourceEntity source) =>
+            EffectiveClass(source) is SourceRightsRule.Forbidden or SourceRightsRule.PermissionNeeded;
+
+        /// <summary>Why the weekly re-check skips the source, or null when it does not.</summary>
+        public static string? RecheckSkip(ScrapingSourceEntity source) =>
+            source.Kind == ScrapingSourceEntity.WebKind && RecheckBarred(source)
+                ? $"The weekly re-check skips {source.Domain}: it is {EffectiveClass(source)}, so no automatic check fetches it. An admin may start a terms-only check (robots.txt, the homepage and the terms pages, no recipe page)."
+                : null;
+
         /// <summary>Whether a recipe's shown method is the clean-room lane's own (a live rewrite stands) and its prose is shown.</summary>
         public static bool OwnMethod(RecipeEntity recipe) =>
             recipe.ProseLaneVersion != null && recipe.ProseAttempts == 0 && !recipe.ProseWithheld && !recipe.ContainsSourceProse;
@@ -109,7 +123,7 @@ namespace Nom.Orch.Services
                 if (check == null) continue;
                 if (staleOnly && source.RightsRuleVersion == SourceRightsRule.Version && source.RightsCheckId == check.Id) continue;
                 run.Sources++;
-                var verdict = SourceRightsRule.Derive(Read<ScraperSourceCheckReport>(check.ReportJson));
+                var verdict = SourceRightsRule.Derive(Read<ScraperSourceCheckReport>(check.ReportJson), source.RightsClass, source.RightsQuoteUrl);
                 var change = Describe(source, verdict, check.Id);
                 if (!verdict.Conclusive) run.Inconclusive++;
                 if (change.Changed) run.Changed++;
@@ -264,11 +278,11 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// The AI flag a verdict leaves on the source: a conclusive verdict sets it; an inconclusive one (a check that
-        /// did not finish, or a report under another rule version) can only raise it, never clear it, because a
-        /// reservation it did not reach is not a reservation it found absent.
+        /// did not finish, or a report under another rule version) or one from a terms-only check (which reads no recipe
+        /// page) can only raise it, never clear it, because a reservation it did not reach is not a reservation it found absent.
         /// </summary>
         public static bool AiReservedAfter(ScrapingSourceEntity source, SourceRightsVerdict verdict) =>
-            verdict.Conclusive ? verdict.AiReserved : source.AiReserved || verdict.AiReserved;
+            verdict.Conclusive && !verdict.TermsOnly ? verdict.AiReserved : source.AiReserved || verdict.AiReserved;
 
         /// <summary>
         /// Stores a verdict on the source and journals what changed (<see cref="SourceJournal.RightsField"/>,
@@ -292,7 +306,7 @@ namespace Nom.Orch.Services
                 source.RightsDerivedAtUtc = now;
             }
 
-            if (verdict.Conclusive || verdict.AiReserved)
+            if ((verdict.Conclusive || verdict.AiReserved) && !(aiReserved && !verdict.AiReserved))
             {
                 source.AiReserved = aiReserved;
                 source.AiReservedQuote = Clip(verdict.AiQuote, 2047);

@@ -18,7 +18,7 @@ namespace Nom.Data.Recipe
 
         public string Domain { get; set; } = string.Empty;
 
-        /// <summary><c>candidate</c>, <c>recheck</c> (an approved source) or <c>request</c> (a pending request).</summary>
+        /// <summary><c>candidate</c>, <c>recheck</c> (an approved source), <c>request</c> (a pending request) or <c>terms-only</c> (a terms-only check an admin started).</summary>
         public string Purpose { get; set; } = string.Empty;
 
         public long? SourceCandidateId { get; set; }
@@ -28,7 +28,7 @@ namespace Nom.Data.Recipe
         /// <summary>The scraper's job id.</summary>
         public string? JobId { get; set; }
 
-        /// <summary><c>running</c>, <c>completed</c>, <c>partial</c>, <c>failed</c> or <c>lost</c> (the job id read 404, or no answer by its deadline).</summary>
+        /// <summary><c>queued</c> (a terms-only check waiting for the source lane), <c>running</c>, <c>completed</c>, <c>partial</c>, <c>failed</c> or <c>lost</c> (the job id read 404, or no answer by its deadline).</summary>
         public string Status { get; set; } = Running;
 
         public string? StopReason { get; set; }
@@ -42,7 +42,7 @@ namespace Nom.Data.Recipe
         /// <summary>The scraper's own verdict, as reported.</summary>
         public string? ScraperVerdict { get; set; }
 
-        /// <summary>The scraper's rule version (<c>source-check/2</c>).</summary>
+        /// <summary>The scraper's rule version (<c>source-check/4</c>; earlier reports may hold <c>source-check/2</c>).</summary>
         public string? RuleVersion { get; set; }
 
         /// <summary>NOM's single verdict: <c>clear</c> or <c>not-clear</c>; null when no report came back.</summary>

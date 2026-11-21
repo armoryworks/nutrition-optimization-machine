@@ -41,15 +41,20 @@ reasons.
    domain (the Pending row the scrape gate creates) becomes a candidate too.
 3. **Checks** (`RunNextCheckAsync`). One `POST /api/source-check/jobs` at a time, sample size 20,
    budget `CheckBudgetSeconds`, at most `MaxChecksPerDay` in any 24 hours (failed ones count).
-   Order: approved web sources due for their re-check, then user requests, then new candidates
-   by how often they were seen. A candidate is checked again when its last check was under other
-   rules, did not finish, or was clear and older than `RecheckDays`. A source or candidate whose
+   Order: a terms-only check an admin asked for (below), then approved web sources due for their
+   re-check, then user requests, then new candidates by how often they were seen. A candidate is checked
+   again when its last check was under other rules, did not finish, or was clear and older than
+   `RecheckDays`. A source whose effective rights class is forbidden or permission-needed, and a candidate
+   whose last report classes it so (`source-rights.md`), is never due: no automatic check fetches it, and the
+   admin page says so beside the source. A source or candidate whose
    check failed or was lost is not taken again for `FailedRetryHours` (24 h), so one site that
    always fails cannot use the whole daily cap. Each check is a row in
    `recipe.SourceCheck` with the scraper's report stored whole.
-4. **The single verdict** (`SourceAdmissionPolicy`, version `source-admission/1`, a pure function,
+4. **The single verdict** (`SourceAdmissionPolicy`, version `source-admission/2`, a pure function,
    no model). Clear only when all of these hold:
-   - the report is complete and under rule version `source-check/2`;
+   - the report is complete and under rule version `source-check/4` (a stored `source-check/2` report is
+     still read, but its candidate or source is due to be checked again, and an approval needs a check under
+     `source-check/4`);
    - the scraper's own verdict is clear and every one of its reasons (`check-complete`, `https`,
      `bot-challenge`, `robots-nombot`, `robots-general`, `robots-ai`, `crawl-delay`,
      `reservation`, `terms`, `licence`, `credits`, `enumerable`, `structured-data`,
@@ -80,7 +85,12 @@ reasons.
    the lines without a quantity they need. Passing ends the probation; failing (or no recipe at
    all) ends it and pauses harvesting, journaled and shown.
 7. **Re-judging and the weekly re-check.** Every approved web source is checked by the same rule
-   every `RecheckDays`, and the verdict is shown beside it with its reasons. Harvesting is paused
+   every `RecheckDays`, and the verdict is shown beside it with its reasons, except a source whose rights
+   class is forbidden or permission-needed: the weekly re-check skips it and says so. For such a source an
+   admin may start a **terms-only check** (`POST /api/ScrapingSource/{id}/terms-check`): the scraper's
+   `sampleSize` 0 mode reads robots.txt, the homepage and the terms pages and no recipe page; it is queued,
+   journaled at both ends (`SourceTermsCheck`), run by the next tick outside the daily cap, and re-derives
+   only the rights class and AI flag (`source-rights.md`). It is refused while `TermsOnlyChecks` is off. Harvesting is paused
    by the lane only when a conclusive verdict **turns** from clear to not clear. A first verdict
    that is not clear (today's sources) only shows: what happens to a source that is not clear and
    to its recipes is the owner's decision, and the lane assumes neither answer.
@@ -162,6 +172,7 @@ probation limit.
 | `TickMinutes` | 30 | between lane ticks (one check per tick) |
 | `ProbationDays`, `ProbationRecipes` | 21, 50 | probation length and recipe limit |
 | `StagedImportGate` | true | the staged import gate above |
+| `TermsOnlyChecks` | false | the scraper has its terms-only mode (`sampleSize` 0); an admin may start a terms-only check of a forbidden or permission-needed source |
 
 `SourceDiscovery:AutoApprove` is no longer read (a warning is logged if it is set).
 

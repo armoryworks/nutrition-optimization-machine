@@ -95,6 +95,9 @@
                       · AI crawlers blocked: {{ f.aiCrawlersBlocked.length === 0 ? 'none' : f.aiCrawlersBlocked.join(', ') }}
                     </dd>
                   </div>
+                  @if (accessNotes(f).length) {
+                    <div><dt>Access</dt><dd data-testid="scraping-source-fact-access">{{ accessNotes(f).join(' · ') }}</dd></div>
+                  }
                   <div><dt>Crawl-delay</dt><dd data-testid="scraping-source-fact-crawl-delay">{{ f.crawlDelaySeconds === null || f.crawlDelaySeconds === undefined ? 'none (5 s default)' : f.crawlDelaySeconds + ' s' }}</dd></div>
                   <div>
                     <dt>Sample yield</dt>
@@ -199,6 +202,22 @@
                     @if (source.fetchRefusal) {
                       <span class="nom-scraping-sources__notes nom-scraping-sources__warn" data-testid="scraping-source-fetch-refusal">{{ source.fetchRefusal }}</span>
                     }
+                    @if (source.recheckSkipped) {
+                      <span class="nom-scraping-sources__notes" data-testid="scraping-source-recheck-skipped">{{ source.recheckSkipped }}</span>
+                    }
+                    @if (source.termsCheck; as tc) {
+                      <span class="nom-scraping-sources__notes" data-testid="scraping-source-terms-check">
+                        Terms-only check {{ tc.status === 'queued' ? 'waiting for the source lane' : tc.status }} · {{ tc.startedUtc | date: 'mediumDate' }}
+                        @if (tc.error) {
+                          · {{ tc.error }}
+                        }
+                      </span>
+                    }
+                    @if (source.check?.facts; as f) {
+                      @if (accessNotes(f).length) {
+                        <span class="nom-scraping-sources__notes" data-testid="scraping-source-access">{{ accessNotes(f).join(' · ') }}</span>
+                      }
+                    }
                   </div>
                 </div>
                 <span class="nom-scraping-sources__status"
@@ -271,6 +290,12 @@
                     <button mat-button (click)="pauseHarvest(source)" [disabled]="processing()" data-testid="scraping-source-pause-btn">
                       <mat-icon>pause</mat-icon>
                       Pause harvesting
+                    </button>
+                  }
+                  @if (source.recheckSkipped) {
+                    <button mat-button (click)="termsCheck(source)" [disabled]="processing() || termsCheckWaiting(source)" data-testid="scraping-source-terms-check-btn">
+                      <mat-icon>policy</mat-icon>
+                      Start terms-only check
                     </button>
                   }
                   @if (canRecordPermission(source)) {

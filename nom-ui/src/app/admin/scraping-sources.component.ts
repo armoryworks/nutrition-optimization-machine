@@ -17,6 +17,7 @@ import {
   RightsStep,
   ScrapingSourceModel,
   SourceCandidate,
+  SourceFacts,
   SourceJournalEntry,
   SourceReason,
   SourceRecipeStep,
@@ -165,6 +166,26 @@ export class ScrapingSources implements OnInit {
         this.processing.set(false);
       },
     });
+  }
+
+  termsCheck(source: ScrapingSourceModel): void {
+    this.run(this.scrapingSourceService.termsCheck(source.id), 'Failed to start the terms-only check.');
+  }
+
+  termsCheckWaiting(source: ScrapingSourceModel): boolean {
+    const status = source.termsCheck?.status;
+    return status === 'queued' || status === 'running';
+  }
+
+  accessNotes(facts: SourceFacts): string[] {
+    const notes: string[] = [];
+    if (facts.noAddress) notes.push('the host has no address, so nothing could be read');
+    if (facts.termsOnly) notes.push('terms-only check: robots.txt, the homepage and the terms pages, no recipe page');
+    if (facts.homepageLinks === 0) notes.push('the homepage as served carries no links (built by scripts)');
+    const refused = facts.refusedPages ?? [];
+    if (refused.length) notes.push(`refused NomBot: ${refused.join(', ')}`);
+    if (facts.samplesRefused) notes.push(`${facts.samplesRefused} sampled recipe page(s) refused NomBot`);
+    return notes;
   }
 
   factsOnlyUse(source: ScrapingSourceModel, approve: boolean): void {

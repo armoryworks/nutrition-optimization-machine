@@ -41,6 +41,13 @@ namespace Nom.Orch.Settings
         public int ProbationRecipes { get; set; } = 50;
 
         /// <summary>
+        /// The scraper has its terms-only mode (<c>sampleSize</c> 0: robots.txt, the homepage and the terms pages, no
+        /// recipe page), so an admin may start a terms-only check of a forbidden or permission-needed source. Off by
+        /// default: a scraper without the mode would read a recipe page.
+        /// </summary>
+        public bool TermsOnlyChecks { get; set; }
+
+        /// <summary>
         /// The staged import takes a recipe only from an approved source (its URL's domain, or the
         /// source the batch names) and takes the licence from that source's record, never from the
         /// caller's flag.

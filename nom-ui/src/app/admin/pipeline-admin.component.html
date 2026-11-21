@@ -648,6 +648,8 @@
           <div><dt>Harvestable</dt><dd data-testid="pipeline-metric-sources-harvestable">{{ so.harvestable | number }}</dd></div>
           <div><dt>Checks today</dt><dd data-testid="pipeline-metric-sources-checks">{{ so.checksLast24h | number }} / {{ so.maxChecksPerDay | number }}</dd></div>
           <div><dt>Failed checks (7 days)</dt><dd data-testid="pipeline-metric-sources-failed-checks">{{ so.checksFailedLast7d | number }}</dd></div>
+          <div><dt>Re-check skipped (forbidden or permission-needed)</dt><dd data-testid="pipeline-metric-sources-recheck-skipped">{{ (so.recheckSkipped ?? 0) | number }}</dd></div>
+          <div><dt>Terms-only checks waiting</dt><dd data-testid="pipeline-metric-sources-terms-checks">{{ (so.termsChecksWaiting ?? 0) | number }}</dd></div>
         </dl>
         @if (so.runs.length !== 0) {
           <ul class="nom-pipeline__list" data-testid="pipeline-sources-run-list">

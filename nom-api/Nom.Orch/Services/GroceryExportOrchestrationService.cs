@@ -75,6 +75,8 @@ namespace Nom.Orch.Services
                     .ThenInclude(i => i.Measurement)
                 .Include(l => l.Items.Where(i => !i.IsDeleted))
                     .ThenInclude(i => i.Category)
+                .Include(l => l.Items.Where(i => !i.IsDeleted))
+                    .ThenInclude(i => i.Recipe)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(l => l.Id == shoppingListId && !l.IsDeleted);
 
@@ -216,7 +218,7 @@ namespace Nom.Orch.Services
                 Quantity = item.Quantity,
                 Unit = item.Measurement?.Name,
                 Category = item.Category?.Name,
-                Note = item.Note,
+                Note = Support.ShoppingItemNote.Shown(item),
                 PackageHint = hints.TryGetValue(item.Name, out var hint) ? hint : null,
             }).ToList();
         }

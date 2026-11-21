@@ -43,6 +43,10 @@ export class ScrapingSourceService {
     return this.http.post<ScrapingSourceModel>(`${this.apiUrl}/${id}/pause-harvest`, { reason: reason || undefined });
   }
 
+  termsCheck(id: number, reason?: string): Observable<ScrapingSourceModel> {
+    return this.http.post<ScrapingSourceModel>(`${this.apiUrl}/${id}/terms-check`, { reason: reason || undefined });
+  }
+
   resumeHarvest(id: number): Observable<ScrapingSourceModel> {
     return this.http.post<ScrapingSourceModel>(`${this.apiUrl}/${id}/resume-harvest`, {});
   }
