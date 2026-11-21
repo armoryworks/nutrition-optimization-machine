@@ -42,7 +42,10 @@ Input: the recipe's steps in order and the drink line. The steps are split into 
    and do not. The first sentence that names it is the drink's sentence; reading starts at
    the clause that names it (a clause ends at a comma or "then"), so "Simmer the onions 10 minutes,
    then add the wine" does not count the onions' 10 minutes.
-2. **Drink never named.** When a step mixes all the ingredients together ("Mix all the ingredients
+2. **Drink never named.** When a step names some other drink word (the trigger again: "When cold,
+   pour the spirits over", "the wine", "their liquor"), the drink may have gone in there, so the
+   reader reads from each such step and from "up to" below, and keeps the highest factor; the
+   mix-all step is not used. When no step names any drink word and a step mixes all the ingredients together ("Mix all the ingredients
    well together", "Combine all the ingredients", "the remaining ingredients"; a step that mixes the
    dry ingredients does not count), the drink is in that mixture and reading starts there: the USDA
    rows 5004-5009 measure exactly that, a drink stirred into a mixture that is then baked or simmered.
@@ -90,6 +93,13 @@ The stored basis says what was read: `no-steps`, `no-heat`, `overnight`, `hot-li
 | `simmer:1` on a roast (22351) | Kept: heat under 15 minutes with an untimed roast is no timed row, so the highest row of the heat seen, 5002 (85 %), stays; a basting frequency is no longer read as a time (ar-070) | ar-071 |
 | Wrong (safe side): "Set fire to the rum" read as no heat (22994) | Flamed: 5003, 75 % | ar-065 |
 | 22883 codfish soup, wine `no-heat` | Not a reader fault: the stored steps were cut in the store | none |
+
+Review of the branch (`alcohol-retention/4`): a drink the steps name only as "the spirits" and pour
+over the cold cake after a mix-all step and a three-hour bake was put in the mix-all step and read
+at 5 % (timed bake, 5009), an understatement for a No Alcohol household. A step naming any drink
+word now keeps the mix-all step out and the highest reading wins: ar-074 (no heat, 100 %), ar-075
+(another drink word, no heat), ar-076 (a drink word in a timed boil may not lower the reading below
+the "up to" row, 85 %).
 
 ## Where it is stored and how the label uses it
 

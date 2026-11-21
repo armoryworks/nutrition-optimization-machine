@@ -18,5 +18,8 @@ namespace Nom.Orch.Models.MealPlan
         public long? IngredientId { get; set; }
         public decimal? Quantity { get; set; }
         public long? MeasurementId { get; set; }
+
+        /// <summary>The member confirmed "Add anyway" for a prepared meal the gate holds for a household with a severe restriction; without it such a meal is refused.</summary>
+        public bool ConfirmHeld { get; set; }
     }
 } 

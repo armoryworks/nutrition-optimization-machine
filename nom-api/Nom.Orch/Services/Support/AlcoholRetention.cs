@@ -41,9 +41,11 @@ namespace Nom.Orch.Services.Support
     /// stove, 45 % in the oven), and so does heating anywhere in a recipe whose steps never name
     /// the drink: the reader overstates rather than hides alcohol, the safe side for a No Alcohol
     /// household. A step that names the drink only as "liquor", "spirits" or "alcohol" with no
-    /// determiner ("add the spice and liquor"; "the liquor" is most often a cooking liquid) names it, and when the steps name it nowhere, the first step that mixes all the ingredients
-    /// together holds it (the USDA rows 5004-5009 measure a drink stirred into the mixture that is
-    /// then baked or simmered). "Cook" or "heat" in a sentence that bakes or roasts in the oven is the
+    /// determiner ("add the spice and liquor"; "the liquor" is most often a cooking liquid) names it.
+    /// When a step names some other drink word ("pour the spirits over"), the highest factor of
+    /// reading from each such step and of the "up to" reading is kept. When the steps name no drink
+    /// word at all, the first step that mixes all the ingredients together holds it (the USDA rows
+    /// 5004-5009 measure a drink stirred into the mixture that is then baked or simmered). "Cook" or "heat" in a sentence that bakes or roasts in the oven is the
     /// oven's heat, and "every 15 minutes" is how often, not how long. A line with no alcohol word on
     /// an alcoholic food ("1 teaspoon vanilla") is found by its first word that is no amount, unit or
     /// modifier. A recipe with no steps keeps all of it. The factors are the USDA Table of
@@ -52,7 +54,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class AlcoholRetention
     {
-        public const string Version = "alcohol-retention/3";
+        public const string Version = "alcohol-retention/4";
         public const string ResourceName = "Nom.Orch.Nutrition.usda-retention-r6-alcohol.tsv";
 
         /// <summary>Kilocalories per gram of alcohol, the FDC calorie factor; energy falls by this much for each gram of alcohol that does not stay.</summary>
@@ -242,6 +244,16 @@ namespace Nom.Orch.Services.Support
                     position = m.Index;
                 }
             }
+            if (index < 0)
+            {
+                var drinkWords = Enumerable.Range(0, sentences.Count)
+                    .Select(i => (Index: i, Match: AlcoholLineContext.Trigger.Match(sentences[i])))
+                    .Where(t => t.Match.Success)
+                    .ToList();
+                if (drinkWords.Count > 0)
+                    return drinkWords.Select(t => ReadAt(sentences, t.Index, t.Match.Index)).Append(Unplaced(sentences)).MaxBy(r => r.Factor)!;
+            }
+
             for (var i = 0; i < sentences.Count && index < 0; i++)
             {
                 if (MixAll.IsMatch(sentences[i]) && !DryIngredients.IsMatch(sentences[i]))
@@ -251,13 +263,18 @@ namespace Nom.Orch.Services.Support
                 }
             }
 
-            if (index < 0)
-            {
-                var all = Scan(sentences);
-                if (!all.Stove && !all.Oven && !all.Flame) return Of(NoHeat);
-                return Of(UpTo, all.Stove || all.Flame || !all.Oven ? Simmer : Bake);
-            }
+            return index < 0 ? Unplaced(sentences) : ReadAt(sentences, index, position);
+        }
 
+        private static AlcoholRetentionReading Unplaced(List<string> sentences)
+        {
+            var all = Scan(sentences);
+            if (!all.Stove && !all.Oven && !all.Flame) return Of(NoHeat);
+            return Of(UpTo, all.Stove || all.Flame || !all.Oven ? Simmer : Bake);
+        }
+
+        private static AlcoholRetentionReading ReadAt(List<string> sentences, int index, int position)
+        {
             var sentence = sentences[index];
             var clauseStart = ClauseBreak.Matches(sentence[..position]).Select(m => m.Index + m.Length).DefaultIfEmpty(0).Max();
             var after = Segment(sentence[clauseStart..], sentences.Skip(index + 1));

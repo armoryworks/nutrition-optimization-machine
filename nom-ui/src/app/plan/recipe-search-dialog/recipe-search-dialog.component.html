@@ -165,6 +165,13 @@
     } @else if (wholeFoodQuery().length >= 2 && !wholeFoodSearching()) {
       <p class="nom-recipe-dialog__no-results">No foods found</p>
     }
+
+    @if (wholeFoodError(); as error) {
+      <p class="nom-recipe-dialog__conflict" role="alert" data-testid="whole-food-error">
+        <mat-icon>error</mat-icon>
+        {{ error }}
+      </p>
+    }
   </details>
 
   <!-- Quick note -->

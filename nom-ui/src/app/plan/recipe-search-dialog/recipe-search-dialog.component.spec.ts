@@ -226,6 +226,7 @@ describe('RecipeSearchDialog adding a recipe', () => {
 
       const post = createRequest();
       expect(post.request.body.ingredientId).toBe(11);
+      expect(post.request.body.confirmHeld).toBe(true);
       post.flush({ id: 903, title: lasagna.name, notes: null });
       expect(fixture.componentInstance.entries()[0].ingredientId).toBe(11);
     } finally {
@@ -260,6 +261,49 @@ describe('RecipeSearchDialog adding a recipe', () => {
     expect(q('prepared-held-dialog')).toBeTruthy();
     http.expectNone((r) => r.method === 'POST');
     q('prepared-held-cancel-btn')!.click();
+  });
+
+  it('adds nothing and says so when the prepared check fails, at search and again at the tap', () => {
+    vi.useFakeTimers();
+    try {
+      const fixture = create();
+      fixture.componentInstance.onWholeFoodInput('lasagna');
+      vi.advanceTimersByTime(300);
+      http.expectOne((r) => r.method === 'GET' && r.url.endsWith('/ingredients/search')).flush([lasagna]);
+      http.expectOne((r) => r.method === 'GET' && r.url.endsWith('/MealPlan/prepared-check')).flush('down', { status: 500, statusText: 'Server Error' });
+      fixture.detectChanges();
+
+      fixture.componentInstance.addWholeFood(lasagna);
+      http.expectOne((r) => r.method === 'GET' && r.url.endsWith('/MealPlan/prepared-check')).flush('down', { status: 503, statusText: 'Unavailable' });
+      fixture.detectChanges();
+
+      http.expectNone((r) => r.method === 'POST');
+      expect(q('prepared-held-dialog')).toBeNull();
+      expect(fixture.componentInstance.entries()).toEqual([]);
+      expect(fixture.componentInstance.busy()).toBe(false);
+      expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="whole-food-error"]')!.textContent)
+        .toContain('Could not check this meal against your household');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows why when the server refuses a held prepared meal that was not confirmed', () => {
+    vi.useFakeTimers();
+    try {
+      const fixture = searchLasagna({ ingredientId: 11, held: null, names: [], severe: false });
+      fixture.componentInstance.addWholeFood(lasagna);
+      const post = createRequest();
+      expect(post.request.body.confirmHeld).toBeUndefined();
+      post.flush({ message: 'conflict', reason: 'restriction_violation:prepared_held_unconfirmed' }, { status: 409, statusText: 'Conflict' });
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.entries()).toEqual([]);
+      expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="whole-food-error"]')!.textContent)
+        .toContain('Held for your household');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('shows how many sources agree on a branded food, and nothing for a food with its USDA record alone', () => {

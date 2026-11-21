@@ -245,6 +245,26 @@ namespace Nom.Api.Tests.Services.MealPlan
         }
 
         [Fact]
+        public async Task A_severe_household_cannot_add_a_held_meal_by_hand_without_confirming_it()
+        {
+            using var db = await SeedAsync();
+            var chicken = await MealWithStatementAsync(db, "Chicken and rice bowl, frozen", "Ingredients: Rice, chicken, water, salt.", "3000050");
+            var beans = await MealWithStatementAsync(db, "Bean bowl, frozen", "Ingredients: Black beans, rice, onions, salt.", "3000051");
+            await RestrictAsync(db, VegetarianRef);
+            var svc = new MealPlanOrchestrationService(db, new FakePolicy());
+            MealPlanCreateModel Add(long id, bool confirm = false) => new() { HouseholdId = HouseholdId, Date = Monday, MealTypeId = Lunch, IngredientId = id, Quantity = 1, ConfirmHeld = confirm };
+
+            (await svc.CreateMealPlanAsync(Add(chicken.Id), PersonId)).Id.Should().BePositive("for a diet the reason is shown and nothing is asked");
+
+            await RestrictAsync(db, PeanutAllergyRef);
+            var unconfirmed = () => svc.CreateMealPlanAsync(Add(chicken.Id), PersonId);
+            (await unconfirmed.Should().ThrowAsync<InvalidOperationException>("a picker whose check failed must not add a held meal unasked"))
+                .WithMessage("restriction_violation:prepared_held_unconfirmed");
+            (await svc.CreateMealPlanAsync(Add(chicken.Id, confirm: true), PersonId)).Id.Should().BePositive("Add anyway was confirmed");
+            (await svc.CreateMealPlanAsync(Add(beans.Id), PersonId)).Id.Should().BePositive("an offered meal asks nothing");
+        }
+
+        [Fact]
         public async Task An_ingredient_neither_resolved_nor_recognised_keeps_the_meal_out_for_a_restricted_household_only()
         {
             using var db = await SeedAsync();

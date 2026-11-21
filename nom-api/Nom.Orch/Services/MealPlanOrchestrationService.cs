@@ -66,6 +66,9 @@ namespace Nom.Orch.Services
         public async Task<MealPlanCreateResponseModel> CreateMealPlanAsync(MealPlanCreateModel model, long authorId)
         {
             await ValidateSlotAssignmentAsync(model.HouseholdId, authorId, model.RecipeId, model.IngredientId);
+            if (model.IngredientId.HasValue && !model.ConfirmHeld
+                && (await CheckPreparedMealsAsync(model.HouseholdId, new[] { model.IngredientId.Value })).Any(c => c.Severe))
+                throw new InvalidOperationException("restriction_violation:prepared_held_unconfirmed");
 
             var mealPlan = new MealPlanEntity
             {
