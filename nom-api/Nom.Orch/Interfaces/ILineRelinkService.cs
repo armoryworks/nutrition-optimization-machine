@@ -52,7 +52,7 @@ namespace Nom.Orch.Interfaces
         /// the new name come off other foods. Returns null when the food is not a live curated
         /// food or the name is empty or unchanged.
         /// </summary>
-        Task<FoodRenameResult?> RenameAsync(long ingredientId, string name);
+        Task<FoodRenameResult?> RenameAsync(long ingredientId, string name, DateTime? at = null);
 
         /// <summary>
         /// Moves the scraped ingredient lines of every uncurated ingredient named with a verified
@@ -91,5 +91,12 @@ namespace Nom.Orch.Interfaces
         /// rolled back, so the result is what the same call would do and nothing is kept.
         /// </summary>
         Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false);
+
+        /// <summary>
+        /// Takes back the given journal entries alone (line moves, retirements and renames, withdrawn
+        /// proposals and picks), as <see cref="UndoAsync"/> takes back a time window: newest first, a
+        /// line entry of a recipe rebuilt after it stays, and each entry taken back is removed.
+        /// </summary>
+        Task<LineRelinkUndoResult> UndoEntriesAsync(IReadOnlyCollection<long> entryIds);
     }
 }

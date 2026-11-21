@@ -175,8 +175,9 @@ the old release's own start-up, since its defaults are then missing again.
 ## Not built here
 
 - The deterministic tier `deterministic:alcohol-context` (A3) is a tier of `cleanup2/wording-tiers`.
-- The repair of the lines on a food of another sense (A4) is the first rule set of
-  `cleanup2/link-recheck`; the rules it applies are `AlcoholLineContext.Refuse`.
+- The repair of the lines on a food of another sense (A4) is the `alcohol` rule set of the link
+  re-check (`link-recheck.md`); it reads each line with its recipe and applies
+  `AlcoholLineContext.Refuse`, moving the line to its sense's food or back to its wording.
 - The fixed-reading residue lane for bare wine, bare cider and "alcohol" (A6) is a mode of the
   wording readers (`cleanup2/wording-readers`); until then those lines stay unlinked.
 - Retention, the page note and the per-serving exclusion (A7, A8) are `cleanup2/alcohol-retention`.

@@ -220,6 +220,25 @@ namespace Nom.Orch.Services
             return ids.Any(id => id == null) ? new List<long>() : ids.Select(id => id!.Value).ToList();
         }
 
+        public Task<GateCatalog> GateCatalogAsync(CancellationToken cancellationToken = default) => CatalogAsync(cancellationToken);
+
+        public async Task<IReadOnlyDictionary<long, GateFood>> GateFoodsAsync(IReadOnlyCollection<long> ids, CancellationToken cancellationToken = default)
+        {
+            var foods = new Dictionary<long, GateFood>();
+            foreach (var chunk in ids.Distinct().Chunk(2000))
+            {
+                foreach (var food in await GateFoodsAsync(_db.Ingredients.Where(i => chunk.Contains(i.Id)), cancellationToken)) foods[food.Id] = food;
+            }
+            return foods;
+        }
+
+        public async Task<IReadOnlyDictionary<string, GateFood>> GateFoodsByFdcAsync(IReadOnlyCollection<string> fdcIds, CancellationToken cancellationToken = default)
+        {
+            var wanted = fdcIds.Distinct().ToList();
+            var foods = await GateFoodsAsync(_db.Ingredients.Where(i => i.FdcId != null && wanted.Contains(i.FdcId)), cancellationToken);
+            return foods.Where(f => f.FdcId != null).GroupBy(f => f.FdcId!).ToDictionary(g => g.Key, g => g.OrderBy(f => f.Id).First());
+        }
+
         private async Task<GateCatalog> CatalogAsync(CancellationToken cancellationToken)
         {
             if (_cache.TryGetValue<GateCatalog>(nameof(LinkAutoApplyService), out var cached) && cached != null) return cached;

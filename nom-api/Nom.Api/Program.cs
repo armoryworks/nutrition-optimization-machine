@@ -444,6 +444,10 @@ builder.Services.AddHttpClient<Nom.Orch.Interfaces.IReprocessLineJudge, Nom.Orch
     .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.Reprocess));
 builder.Services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.ReprocessLaneUndo>();
 builder.Services.AddHostedService<Nom.Api.Services.ReprocessHostedService>();
+builder.Services.AddHttpClient(Nom.Api.Services.LinkRecheckHostedService.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(300))
+    .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.LinkRecheck));
+builder.Services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.LinkRecheckLaneUndo>();
+builder.Services.AddHostedService<Nom.Api.Services.LinkRecheckHostedService>();
 
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();

@@ -4,7 +4,7 @@ import { provideHttpClientTesting, HttpTestingController, TestRequest } from '@a
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { PipelineAdmin } from './pipeline-admin.component';
-import { LaneFrameLane, PipelineFrame, PipelineGate, PipelineLineFunnel, PipelineStatus } from '../core/models/pipeline.model';
+import { LaneFrameLane, LinkRecheckRun, PipelineFrame, PipelineGate, PipelineLineFunnel, PipelineStatus } from '../core/models/pipeline.model';
 
 const funnel = (counted: number): PipelineLineFunnel => ({
   total: 818084,
@@ -381,6 +381,44 @@ describe('PipelineAdmin', () => {
 
   it('says so when the rebuild lane did not report', () => {
     expect(byId(loaded(status()).nativeElement, 'pipeline-reprocess-empty')).not.toBeNull();
+  });
+
+  it('shows the link re-check: waiting picks, the withdrawal and the newest run of each set', () => {
+    const body = status();
+    const run = (set: string, extra: Partial<LinkRecheckRun> = {}): LinkRecheckRun => ({
+      set, stamp: '2026-11-20T12:00:00Z', lane: false, mode: 'live', signature: 'abc', undone: false, groups: 0, kept: 0, held: 0,
+      linesMoved: 0, linesUnlinked: 0, aliasesChanged: 0, withdrawn: 0, renamed: 0, ...extra,
+    });
+    body.linkRecheck = {
+      enabled: false,
+      version: 'link-recheck/1',
+      signature: 'abc',
+      sets: ['alcohol', 'applied'],
+      lastRuns: [run('alcohol', { groups: 320, linesMoved: 1450, linesUnlinked: 120, held: 30 }), run('names', { renamed: 1, undone: true })],
+      lastWithdraw: run('withdraw', { withdrawn: 66151 }),
+      waitingPicks: 0,
+    };
+    const el = loaded(body).nativeElement as HTMLElement;
+
+    expect(byId(el, 'pipeline-link-recheck-state')?.textContent).toContain('Off (LinkRecheck:Enabled)');
+    expect(byId(el, 'pipeline-metric-link-recheck-waiting-picks')?.textContent?.trim()).toBe('0');
+    expect(byId(el, 'pipeline-link-recheck-withdraw')?.textContent).toContain('66,151');
+    expect(byId(el, 'pipeline-link-recheck-run-alcohol')?.textContent).toContain('1,450 lines moved');
+    expect(byId(el, 'pipeline-link-recheck-run-alcohol')?.textContent).toContain('120 taken back');
+    expect(byId(el, 'pipeline-link-recheck-run-names')?.textContent).toContain('1 renamed');
+    expect(byId(el, 'pipeline-link-recheck-run-names')?.textContent).toContain('undone');
+  });
+
+  it('says so when the link re-check did not report, or has not run', () => {
+    expect(byId(loaded(status()).nativeElement, 'pipeline-link-recheck-empty')).not.toBeNull();
+    TestBed.resetTestingModule();
+    http.verify();
+
+    const body = status();
+    body.linkRecheck = { enabled: true, version: 'link-recheck/1', signature: 'abc', sets: [], lastRuns: [], lastWithdraw: null, waitingPicks: 66151 };
+    const el = loaded(body).nativeElement as HTMLElement;
+    expect(byId(el, 'pipeline-link-recheck-no-runs')).not.toBeNull();
+    expect(byId(el, 'pipeline-link-recheck-withdraw')?.textContent).toContain('have not been withdrawn');
   });
 
   it('runs a frame lane undo as a dry run and shows its counts', () => {
