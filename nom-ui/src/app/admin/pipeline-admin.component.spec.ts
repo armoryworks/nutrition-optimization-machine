@@ -566,6 +566,24 @@ describe('PipelineAdmin', () => {
     expect(byId(el, 'pipeline-branded-sources-empty')).toBeNull();
   });
 
+  it('shows how many prepared meals have read contents, unread statements and none', () => {
+    const body = status();
+    body.status.foods = {
+      ...body.status.foods,
+      preparedContents: { meals: 812, read: 40, readUnresolved: 120, unread: 9, none: 643, fromFdc: 165, fromLabels: 4 },
+    };
+    const el = loaded(body).nativeElement as HTMLElement;
+
+    expect(byId(el, 'pipeline-prepared-contents')).not.toBeNull();
+    expect(byId(el, 'pipeline-metric-prepared-meals')?.textContent?.trim()).toBe('812');
+    expect(byId(el, 'pipeline-metric-prepared-read')?.textContent?.trim()).toBe('40');
+    expect(byId(el, 'pipeline-metric-prepared-read-unresolved')?.textContent?.trim()).toBe('120');
+    expect(byId(el, 'pipeline-metric-prepared-unread')?.textContent?.trim()).toBe('9');
+    expect(byId(el, 'pipeline-metric-prepared-none')?.textContent?.trim()).toBe('643');
+    expect(byId(el, 'pipeline-metric-prepared-fdc')?.textContent?.trim()).toBe('165');
+    expect(byId(el, 'pipeline-metric-prepared-labels')?.textContent?.trim()).toBe('4');
+  });
+
   it('says when no food is held by rule and no branded food is curated by its sources', () => {
     const body = status();
     body.status.foods = {

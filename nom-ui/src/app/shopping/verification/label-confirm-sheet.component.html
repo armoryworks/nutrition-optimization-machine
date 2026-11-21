@@ -80,6 +80,21 @@
       </ng-container>
     </div>
 
+    <div class="nom-sheet__fields">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="nom-sheet__field--wide">
+        <mat-label>Ingredients, as printed</mat-label>
+        <textarea matInput rows="4" formControlName="ingredientStatement" placeholder="Ingredients: … Contains: …"
+                  (focus)="onFieldFocus($event)" data-testid="label-confirm-ingredients-input"></textarea>
+        @if (form.controls.ingredientStatement.hasError('maxlength')) {
+          <mat-error data-testid="label-confirm-ingredients-error">Too long to be an ingredient list</mat-error>
+        }
+      </mat-form-field>
+    </div>
+    <p class="nom-sheet__hint" data-testid="label-confirm-ingredients-hint">
+      For a prepared meal, the ingredient list and its "Contains" line show whether it fits your household's allergies
+      and diets. Check it against the package, or leave it blank.
+    </p>
+
     @if (invalid() && form.invalid) {
       <p class="nom-sheet__error" role="alert" data-testid="label-confirm-invalid">
         <mat-icon>error_outline</mat-icon>

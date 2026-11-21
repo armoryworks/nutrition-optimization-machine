@@ -11,6 +11,7 @@ namespace Nom.Orch.Models.Shopping
         public bool HasVerifiedNutrition { get; set; }
         public bool HasUpc { get; set; }
         public bool AskedRecently { get; set; }
+        public bool AskContents { get; set; }
         public bool ShouldAsk { get; set; }
     }
 
@@ -19,6 +20,7 @@ namespace Nom.Orch.Models.Shopping
         public long VerificationId { get; set; }
         public NutritionFactsParseResult Parsed { get; set; } = new();
         public string OcrText { get; set; } = string.Empty;
+        public string? IngredientStatement { get; set; }
         public bool ImageStored { get; set; }
     }
 
@@ -61,6 +63,9 @@ namespace Nom.Orch.Models.Shopping
 
         [MaxLength(64)]
         public List<ConfirmNutrientModel> Nutrients { get; set; } = new();
+
+        [StringLength(8000)]
+        public string? IngredientStatement { get; set; }
     }
 
     /// <summary>IngredientRetired is true when the household's own unreviewed catalog entry was soft-deleted along with the unlinking.</summary>
@@ -89,6 +94,7 @@ namespace Nom.Orch.Models.Shopping
         public decimal? PiecesPerPackage { get; set; }
         public decimal? CupGrams { get; set; }
         public NutritionFactsParseResult? Nutrients { get; set; }
+        public string? IngredientStatement { get; set; }
         public bool Confirmed { get; set; }
         public List<string> Warnings { get; set; } = new();
         public DateTime LastAskedDate { get; set; }

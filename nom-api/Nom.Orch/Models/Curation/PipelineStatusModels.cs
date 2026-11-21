@@ -130,6 +130,24 @@ namespace Nom.Orch.Models.Curation
         /// <summary>Foods an admin rejected; the admission rule rejects none.</summary>
         public int Rejected { get; init; }
         public PipelineBrandedCounts Branded { get; init; } = new();
+        public PipelinePreparedContents PreparedContents { get; init; } = new();
+    }
+
+    /// <summary>
+    /// Curated prepared meals by what is known of their contents (the diet gate offers one to a household judged by
+    /// contents only when a statement was read and every ingredient resolved or recognised): read with every
+    /// ingredient known, read with an ingredient not resolved, statement not readable, and no statement at all; with
+    /// how many have an FDC statement and how many a household's confirmed label. A meal counts by its best statement.
+    /// </summary>
+    public sealed record PipelinePreparedContents
+    {
+        public int Meals { get; init; }
+        public int Read { get; init; }
+        public int ReadUnresolved { get; init; }
+        public int Unread { get; init; }
+        public int None { get; init; }
+        public int FromFdc { get; init; }
+        public int FromLabels { get; init; }
     }
 
     public sealed record PipelineReasonCount(string Reason, int Foods);

@@ -48,8 +48,9 @@
     <legend class="nom-meal-split-form__prepared-title">Use prepared meals for</legend>
     <p class="nom-meal-split-form__prepared-hint">
       Shuffle fills a ticked meal with one prepared meal (a frozen entree, a fast-food or restaurant meal) that fits
-      your calorie goals, and puts it on the shopping list. A prepared meal's ingredients are not listed, so a
-      household with an allergy, a diet such as vegetarian or gluten-free, or a food it avoids gets recipes instead.
+      your calorie goals, and puts it on the shopping list. A household with an allergy, a diet such as vegetarian or
+      gluten-free, or a food it avoids gets only prepared meals whose ingredient list is known (from USDA or a label you
+      scanned) and fits; otherwise it gets recipes.
     </p>
     <div class="nom-meal-split-form__prepared-meals">
       @for (meal of shownPreparedMeals(); track meal.mealTypeId) {

@@ -129,6 +129,13 @@ namespace Nom.Import
                 return;
             }
 
+            var contentsFlag = Array.IndexOf(args, "--prepared-contents");
+            if (contentsFlag >= 0)
+            {
+                await RunPreparedContentsAsync(host, args, contentsFlag);
+                return;
+            }
+
             var containerFlag = Array.IndexOf(args, "--container-sizes");
             if (containerFlag >= 0)
             {
@@ -189,6 +196,7 @@ namespace Nom.Import
                 Console.WriteLine($"Skipped (existing): {r.SkippedExisting}");
                 Console.WriteLine($"Skipped (dup name): {r.SkippedDuplicateName}");
                 Console.WriteLine($"Nutrient rows:      {r.NutrientRows}");
+                Console.WriteLine($"Meal statements:    {r.PreparedMealStatements} (FDC ingredient statements of prepared meals, read as evidence)");
                 foreach (var (reason, n) in r.RejectedByReason.OrderByDescending(x => x.Value))
                     Console.WriteLine($"  reject: {reason} x {n}");
                 foreach (var (reason, n) in r.DroppedValuesByReason.OrderByDescending(x => x.Value))
@@ -490,6 +498,67 @@ namespace Nom.Import
             }
             if (r.RunStamp is { } runStamp)
                 Console.WriteLine($"Run stamp:        {runStamp:O} (take this run back with --branded-lift --undo {runStamp:O})");
+        }
+
+        private static async Task RunPreparedContentsAsync(IHost host, string[] args, int flag)
+        {
+            using var scope = host.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var contents = new Nom.Orch.Services.PreparedContentsService(db);
+            var dryRun = args.Contains("--dry-run");
+            var next = flag + 1 < args.Length ? args[flag + 1] : null;
+            if (next == "--undo")
+            {
+                if (flag + 2 >= args.Length || args[flag + 2].StartsWith("--", StringComparison.Ordinal))
+                {
+                    Console.WriteLine("Usage: --prepared-contents --undo <batch> [--dry-run]   (the batch a pass printed)");
+                    return;
+                }
+                var n = await contents.UndoAsync(args[flag + 2], !dryRun);
+                Console.WriteLine($"\n=== Prepared contents undo{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
+                Console.WriteLine($"Batch:            {args[flag + 2]}");
+                Console.WriteLine($"Rows taken out:   {n} (the rows they superseded are current again)");
+                return;
+            }
+
+            Nom.Orch.Services.PreparedContentsReport report;
+            if (next == "--reread")
+            {
+                report = await contents.RereadAsync(Nom.Orch.Services.PreparedContentsService.NewBatch("contents-reread"), !dryRun);
+            }
+            else if (next != null && !next.StartsWith("--", StringComparison.Ordinal) && Directory.Exists(next))
+            {
+                var meals = await db.Ingredients.AsNoTracking()
+                    .Where(i => i.FdcId != null && i.FdcDataType == Nom.Data.Nutrition.CatalogAdmissionRule.BrandedFood)
+                    .Where(Nom.Data.Nutrition.PreparedFoods.Prepared)
+                    .Select(i => new { i.Id, FdcId = i.FdcId! })
+                    .ToListAsync();
+                var statements = FdcIngredientStatements.Read(next, meals.Select(m => m.FdcId).ToHashSet(StringComparer.Ordinal));
+                Console.WriteLine($"Branded prepared meals: {meals.Count}; FDC publishes a statement for {statements.Count}");
+                report = await contents.RecordAsync(
+                    meals.Where(m => statements.ContainsKey(m.FdcId))
+                        .Select(m => new Nom.Orch.Services.ContentsStatement(m.Id, Nom.Orch.Services.PreparedContentsService.FdcSource(m.FdcId), statements[m.FdcId]))
+                        .ToList(),
+                    Nom.Orch.Services.PreparedContentsService.NewBatch("fdc-contents"), !dryRun);
+            }
+            else
+            {
+                Console.WriteLine("Usage: --prepared-contents <fdc-branded-csv-dir> [--dry-run] | --prepared-contents --reread [--dry-run] | --prepared-contents --undo <batch> [--dry-run]");
+                return;
+            }
+
+            Console.WriteLine($"\n=== Prepared contents report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ({Nom.Orch.Services.Support.IngredientStatementReader.Version}) ===");
+            Console.WriteLine($"Statements:       {report.Statements}");
+            Console.WriteLine($"Read:             {report.Read} ({report.ReadResolved} with every ingredient resolved or recognised)");
+            Console.WriteLine($"Unread:           {report.Unread} (contents unknown, never safe)");
+            foreach (var (reason, n) in report.UnreadByReason.OrderByDescending(x => x.Value))
+                Console.WriteLine($"  unread: {reason} x {n}");
+            Console.WriteLine($"Written:          {report.Written} ({report.Unchanged} unchanged)");
+            Console.WriteLine("Most frequent unresolved ingredients:");
+            foreach (var (name, n) in report.TopUnresolved.OrderByDescending(x => x.Value).ThenBy(x => x.Key, StringComparer.Ordinal).Take(Nom.Orch.Services.PreparedContentsService.TopUnresolvedCount))
+                Console.WriteLine($"  {name} x {n}");
+            if (!dryRun && report.Written > 0)
+                Console.WriteLine($"Batch:            {report.Batch} (take this pass back with --prepared-contents --undo {report.Batch})");
         }
 
         private static async Task RunContainerSizesAsync(IHost host, string[] args, int flag)

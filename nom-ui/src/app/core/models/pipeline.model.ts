@@ -86,6 +86,17 @@ export interface PipelineFoodCounts {
   pendingWithoutReason?: number;
   rejected?: number;
   branded?: PipelineBrandedCounts;
+  preparedContents?: PipelinePreparedContents;
+}
+
+export interface PipelinePreparedContents {
+  meals: number;
+  read: number;
+  readUnresolved: number;
+  unread: number;
+  none: number;
+  fromFdc: number;
+  fromLabels: number;
 }
 
 export interface PipelineReasonCount {

@@ -125,6 +125,7 @@ describe('RecipeSearchDialog adding a recipe', () => {
       expect(search.request.params.get('prepared')).toBe('true');
       const burger = { id: 7, name: "McDONALD'S, Hamburger", fdcId: '170717', matchedAlias: null, foodGroupId: null, foodGroupName: null, isWholeFood: null, isPrepared: true };
       search.flush([burger]);
+      http.expectOne((r) => r.method === 'GET' && r.url.endsWith('/MealPlan/prepared-check')).flush([{ ingredientId: 7, held: null, names: [] }]);
       fixture.detectChanges();
 
       const el = fixture.nativeElement as HTMLElement;
@@ -137,6 +138,38 @@ describe('RecipeSearchDialog adding a recipe', () => {
       expect(post.request.body.recipeId).toBeNull();
       post.flush({ id: 902, title: burger.name, notes: null });
       expect(fixture.componentInstance.entries()[0].isPrepared).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('checks prepared meals against the household and shows why one is held', () => {
+    vi.useFakeTimers();
+    try {
+      const fixture = create();
+      fixture.componentInstance.onWholeFoodInput('entree');
+      vi.advanceTimersByTime(300);
+
+      http.expectOne((r) => r.method === 'GET' && r.url.endsWith('/ingredients/search')).flush([
+        { id: 11, name: 'Lasagna, cheese, frozen', fdcId: null, matchedAlias: null, foodGroupId: null, foodGroupName: null, isWholeFood: null, isPrepared: true },
+        { id: 12, name: 'Pad thai, restaurant', fdcId: null, matchedAlias: null, foodGroupId: null, foodGroupName: null, isWholeFood: null, isPrepared: true },
+        { id: 13, name: 'Rice bowl (Acme)', fdcId: null, matchedAlias: null, foodGroupId: null, foodGroupName: null, isWholeFood: null, isPrepared: true },
+        { id: 14, name: 'Apples, raw', fdcId: null, matchedAlias: null, foodGroupId: null, foodGroupName: 'Fruits', isWholeFood: true, isPrepared: false },
+      ]);
+      const check = http.expectOne((r) => r.method === 'GET' && r.url.endsWith('/MealPlan/prepared-check'));
+      expect(check.request.params.get('householdId')).toBe('5');
+      expect(check.request.params.get('ingredientIds')).toBe('11,12,13');
+      check.flush([
+        { ingredientId: 11, held: 'contents_restricted', names: ['contains milk'] },
+        { ingredientId: 12, held: 'contents_none', names: [] },
+        { ingredientId: 13, held: null, names: [] },
+      ]);
+      fixture.detectChanges();
+
+      const held = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="whole-food-result-held"]')).map((e) => e.textContent?.trim());
+      expect(held.length).toBe(2);
+      expect(held[0]).toContain('contains milk conflicts with a restriction or diet');
+      expect(held[1]).toContain('its ingredients are not known');
     } finally {
       vi.useRealTimers();
     }

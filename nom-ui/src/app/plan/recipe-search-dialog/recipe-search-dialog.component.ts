@@ -12,6 +12,7 @@ import { RecipeSearchService } from '../../core/services/recipe-search.service';
 import { MealPlanService } from '../../core/services/meal-plan.service';
 import { IngredientLookupService } from '../../core/services/ingredient-lookup.service';
 import { IngredientLookupResult } from '../../core/models/ingredient-lookup-result.model';
+import { PreparedMealCheck } from '../../core/models/prepared-meal-check.model';
 import { RecipeSearchResult } from '../../core/models/recipe-search-result.model';
 import { MealPlanEntry } from '../../core/models/meal-plan-entry.model';
 import { RecipeService } from '../../core/services/recipe.service';
@@ -74,6 +75,7 @@ export class RecipeSearchDialog implements OnInit {
   wholeFoodQuery = signal('');
   wholeFoodResults = signal<IngredientLookupResult[]>([]);
   wholeFoodSearching = signal(false);
+  preparedChecks = signal<Map<number, PreparedMealCheck>>(new Map());
   private wholeFoodSubject = new Subject<string>();
 
   private searchSubject = new Subject<string>();
@@ -126,12 +128,48 @@ export class RecipeSearchDialog implements OnInit {
       next: (results) => {
         this.wholeFoodSearching.set(false);
         this.wholeFoodResults.set(results ?? []);
+        this.checkPrepared(results ?? []);
       },
       error: () => {
         this.wholeFoodSearching.set(false);
         this.wholeFoodResults.set([]);
       },
     });
+  }
+
+  static preparedHeldMessage(check: PreparedMealCheck | undefined): string {
+    if (!check?.held) return '';
+    const names = check.names.slice(0, 3).join(', ');
+    switch (check.held) {
+      case 'contents_none':
+        return 'Held for your household: its ingredients are not known. Scan its label from the shopping list to check them.';
+      case 'contents_unread':
+        return 'Held for your household: its ingredient list could not be read.';
+      case 'contents_unresolved':
+        return `Held for your household: not every ingredient is known (${names}).`;
+      case 'contents_restricted':
+        return `Held for your household: ${names} conflicts with a restriction or diet.`;
+      case 'restricted_food':
+        return 'Held for your household: a restriction names this food.';
+      default:
+        return 'Held for your household.';
+    }
+  }
+
+  heldMessage(food: IngredientLookupResult): string {
+    return food.isPrepared ? RecipeSearchDialog.preparedHeldMessage(this.preparedChecks().get(food.id)) : '';
+  }
+
+  private checkPrepared(results: IngredientLookupResult[]): void {
+    const ids = results.filter(r => r.isPrepared).map(r => r.id);
+    if (ids.length === 0) {
+      this.preparedChecks.set(new Map());
+      return;
+    }
+    this.mealPlanService.checkPreparedMeals(this.data.householdId, ids).pipe(
+      catchError(() => of([] as PreparedMealCheck[])),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(checks => this.preparedChecks.set(new Map(checks.map(c => [c.ingredientId, c]))));
   }
 
   onSearchInput(query: string): void {

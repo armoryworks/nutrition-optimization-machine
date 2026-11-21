@@ -185,6 +185,8 @@ namespace Nom.Orch.Services
             var foodRow = await FoodQuery(_db).FirstOrDefaultAsync(cancellationToken);
             var split = Split(await FoodSplitQuery(_db).ToListAsync(cancellationToken));
             var withoutNutrition = await CuratedWithoutNutritionQuery(_db).CountAsync(cancellationToken);
+            var mealCount = await PreparedMealsQuery(_db).CountAsync(cancellationToken);
+            var preparedContents = PreparedContents(mealCount, await PreparedContentsQuery(_db).ToListAsync(cancellationToken));
 
             var uses = await UnresolvedByFoodQuery(_db).ToListAsync(cancellationToken);
             var unresolved = uses.Where(u => u.IngredientLines > 0).ToList();
@@ -252,6 +254,7 @@ namespace Nom.Orch.Services
                 PendingWithoutReason = split.PendingWithoutReason,
                 Rejected = split.Rejected,
                 Branded = split.Branded,
+                PreparedContents = preparedContents,
             };
             var stuck = new PipelineStuck
             {
@@ -260,6 +263,41 @@ namespace Nom.Orch.Services
                 VolumeWithoutDensity = Named(topDensity),
             };
             return (foods, stuck);
+        }
+
+        /// <summary>The curated prepared meals the plan generator may draw.</summary>
+        public static IQueryable<IngredientEntity> PreparedMealsQuery(ApplicationDbContext db) =>
+            db.Ingredients.AsNoTracking()
+                .Where(i => i.CurationStatusId == Curated)
+                .Where(Nom.Data.Nutrition.PreparedFoods.Meals);
+
+        /// <summary>The live contents rows of the curated prepared meals, one fact per row.</summary>
+        public static IQueryable<ContentsFact> PreparedContentsQuery(ApplicationDbContext db) =>
+            db.IngredientContents.AsNoTracking()
+                .Where(c => PreparedMealsQuery(db).Any(i => i.Id == c.IngredientId))
+                .Select(c => new ContentsFact { Id = c.Id, IngredientId = c.IngredientId, HouseholdId = c.HouseholdId, Read = c.Outcome == IngredientContentsOutcome.Read, Unresolved = c.Unresolved });
+
+        /// <summary>
+        /// Counts each meal once by its best current statement (the newest row of each food and household): read with
+        /// every ingredient known, then read with one unresolved, then unread; a meal with no row has none.
+        /// </summary>
+        public static PipelinePreparedContents PreparedContents(int meals, IReadOnlyCollection<ContentsFact> facts)
+        {
+            var current = facts.GroupBy(f => (f.IngredientId, f.HouseholdId)).Select(g => g.OrderByDescending(f => f.Id).First()).ToList();
+            var byFood = current.GroupBy(f => f.IngredientId).ToList();
+            var read = byFood.Count(g => g.Any(f => f.Read && f.Unresolved == 0));
+            var readUnresolved = byFood.Count(g => !g.Any(f => f.Read && f.Unresolved == 0) && g.Any(f => f.Read));
+            var unread = byFood.Count(g => !g.Any(f => f.Read));
+            return new PipelinePreparedContents
+            {
+                Meals = meals,
+                Read = read,
+                ReadUnresolved = readUnresolved,
+                Unread = unread,
+                None = Math.Max(0, meals - byFood.Count),
+                FromFdc = byFood.Count(g => g.Any(f => f.HouseholdId == null)),
+                FromLabels = byFood.Count(g => g.Any(f => f.HouseholdId != null)),
+            };
         }
 
         private static List<(long IngredientId, int Lines)> Top(IEnumerable<FoodLines> gaps) => gaps
@@ -915,6 +953,15 @@ namespace Nom.Orch.Services
         {
             public DateTime? Last { get; init; }
             public int Day { get; init; }
+        }
+
+        public sealed class ContentsFact
+        {
+            public long Id { get; init; }
+            public long IngredientId { get; init; }
+            public long? HouseholdId { get; init; }
+            public bool Read { get; init; }
+            public int Unresolved { get; init; }
         }
 
         public sealed class FoodSplitRow

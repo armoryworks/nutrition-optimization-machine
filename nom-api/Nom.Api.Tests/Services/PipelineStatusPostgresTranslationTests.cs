@@ -102,6 +102,8 @@ namespace Nom.Api.Tests.Services
             await Capture("auto-approvals", db => PipelineStatusService.AutoApprovalQuery(db, now).FirstOrDefaultAsync());
             await Capture("foods", db => PipelineStatusService.FoodQuery(db).FirstOrDefaultAsync());
             await Capture("food-split", db => PipelineStatusService.FoodSplitQuery(db).ToListAsync());
+            await Capture("prepared-meals", db => PipelineStatusService.PreparedMealsQuery(db).CountAsync());
+            await Capture("prepared-contents", db => PipelineStatusService.PreparedContentsQuery(db).ToListAsync());
             await Capture("curated-without-nutrition", db => PipelineStatusService.CuratedWithoutNutritionQuery(db).CountAsync());
             await Capture("unresolved-by-food", db => PipelineStatusService.UnresolvedByFoodQuery(db).ToListAsync());
             await Capture("pending-links", db => PipelineStatusService.PendingLinkFoodsQuery(db).ToListAsync());

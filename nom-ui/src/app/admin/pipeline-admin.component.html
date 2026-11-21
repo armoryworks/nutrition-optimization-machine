@@ -220,6 +220,21 @@
           }
         </div>
       }
+      @if (s.foods.preparedContents; as pc) {
+        <div data-testid="pipeline-prepared-contents">
+          <h3 class="nom-pipeline__subheading">Prepared meals, by what is known of their contents</h3>
+          <p class="nom-pipeline__hint">A household with an allergy, a diet or an avoided food is offered a prepared meal only when its ingredient statement (from USDA or the household's own label) was read and every ingredient is known.</p>
+          <dl class="nom-pipeline__stats nom-pipeline__stats--small">
+            <div><dt>Curated prepared meals</dt><dd data-testid="pipeline-metric-prepared-meals">{{ pc.meals | number }}</dd></div>
+            <div><dt>Contents read, every ingredient known</dt><dd data-testid="pipeline-metric-prepared-read">{{ pc.read | number }}</dd></div>
+            <div><dt>Read, an ingredient not known</dt><dd data-testid="pipeline-metric-prepared-read-unresolved">{{ pc.readUnresolved | number }}</dd></div>
+            <div><dt>Statement not readable</dt><dd data-testid="pipeline-metric-prepared-unread">{{ pc.unread | number }}</dd></div>
+            <div><dt>No statement</dt><dd data-testid="pipeline-metric-prepared-none">{{ pc.none | number }}</dd></div>
+            <div><dt>With a USDA statement</dt><dd data-testid="pipeline-metric-prepared-fdc">{{ pc.fromFdc | number }}</dd></div>
+            <div><dt>With a household's label</dt><dd data-testid="pipeline-metric-prepared-labels">{{ pc.fromLabels | number }}</dd></div>
+          </dl>
+        </div>
+      }
       <a routerLink="/admin/food-catalog" class="nom-pipeline__link" data-testid="pipeline-food-catalog-link">Open the food catalog</a>
     </section>
 
