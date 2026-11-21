@@ -136,8 +136,9 @@ namespace Nom.Orch.Models.Curation
 
     /// <summary>
     /// Branded foods by the branded lift's count of agreeing sources (the FDC record counting as
-    /// one): curated by the lift at two or more, curated with fewer than two (by an admin), curated
-    /// but a later source disagrees, and pending ones awaiting a second source or held by a disagreement.
+    /// one): curated by agreeing sources at two or more with no stored reason, curated by an admin
+    /// (fewer than two, or a reason the rule still holds), curated but a later source disagrees, and
+    /// pending ones awaiting a second source or held by a disagreement.
     /// </summary>
     public sealed record PipelineBrandedCounts
     {

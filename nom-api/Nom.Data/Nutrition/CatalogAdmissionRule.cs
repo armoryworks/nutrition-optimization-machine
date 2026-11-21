@@ -58,6 +58,13 @@ namespace Nom.Data.Nutrition
         /// back every such row of one stamp.
         /// </summary>
         public const string GroupChangeType = "GroupFromCategory";
+
+        /// <summary>
+        /// The audit change types of a curation status set by the admission pass and by its undo;
+        /// the branded lift reads them to tell a food the rules curated from one an admin curated.
+        /// </summary>
+        public const string AdmitChangeType = "CatalogAdmit";
+        public const string AdmitUndoChangeType = "CatalogAdmitUndo";
         public const string FoundationFood = "foundation_food";
         public const string SrLegacyFood = "sr_legacy_food";
         public const string BrandedFood = "branded_food";

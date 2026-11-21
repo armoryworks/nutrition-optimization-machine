@@ -560,7 +560,9 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Splits the grouped rows: pending foods awaiting a second source (the only reason), held by
         /// rule (any other reason, counted by reason), or with no reason; rejected foods; and the
-        /// branded foods by their count of agreeing sources.
+        /// branded foods by their count of agreeing sources. A curated branded food counts as curated
+        /// by agreeing sources only when its sources lift it and the rule holds it for no stored
+        /// reason; any other curated branded food was curated by an admin.
         /// </summary>
         public static (int HeldByRule, IReadOnlyList<PipelineReasonCount> HeldByReason, int AwaitingSecondSource, int PendingWithoutReason, int Rejected, PipelineBrandedCounts Branded) Split(IEnumerable<FoodSplitRow> rows)
         {
@@ -578,7 +580,7 @@ namespace Nom.Orch.Services
                 if (row.Status == Curated)
                 {
                     if (tokens.Contains(Nom.Data.Nutrition.CatalogAdmissionRule.SourcesDisagree)) curatedDisagree += row.Foods;
-                    else if (row.Agreeing is not { } agreeing || agreeing < Nom.Data.Nutrition.CatalogAdmissionRule.MinAgreeingSources) withoutCount += row.Foods;
+                    else if (tokens.Length > 0 || row.Agreeing is not { } agreeing || !Nom.Data.Nutrition.CatalogAdmissionRule.SourcesLift(agreeing, row.Disagreeing)) withoutCount += row.Foods;
                     else
                     {
                         var key = agreeing >= 4 ? "4+" : agreeing.ToString(System.Globalization.CultureInfo.InvariantCulture);

@@ -43,9 +43,9 @@ namespace Nom.Import.Services
     /// </summary>
     public class CatalogAdmissionService
     {
-        public const string AdmitChangeType = "CatalogAdmit";
+        public const string AdmitChangeType = CatalogAdmissionRule.AdmitChangeType;
         public const string GroupChangeType = CatalogAdmissionRule.GroupChangeType;
-        public const string UndoChangeType = "CatalogAdmitUndo";
+        public const string UndoChangeType = CatalogAdmissionRule.AdmitUndoChangeType;
         public const string FactsChangeType = "CatalogFacts";
         public const string DescriptionChangeType = "FdcDescription";
         public const string RunChangeType = "CatalogAdmitRun";

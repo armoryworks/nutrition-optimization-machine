@@ -25,8 +25,10 @@ namespace Nom.Api.Tests.Services
     /// The branded lift: a pending branded food is curated once two or more independent sources
     /// agree with its stored values (its FDC record counting as one), the counts of agreeing and
     /// disagreeing sources are stored, Open Food Facts and a later FDC release never lift a food, no
-    /// value is ever changed, a curated food is never demoted, and every run is journaled under its
-    /// own stamp and undone by it. A household's confirmed label lifts the food it was taken for.
+    /// value is ever changed, a food the lift curated goes back to pending when fewer than two agree
+    /// net while one an admin curated is never demoted, and every run is journaled under its own
+    /// stamp and undone by it, the undo excluding the evidence that lifted a food. A household's
+    /// confirmed label lifts the food it was taken for.
     /// </summary>
     public class BrandedLiftTests
     {
@@ -198,7 +200,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task More_agreeing_sources_raise_the_stored_count_and_a_later_disagreement_never_demotes_a_curated_food()
+        public async Task More_agreeing_sources_raise_the_stored_count_and_a_food_the_lift_curated_goes_back_to_pending_when_its_net_agreement_falls_below_two()
         {
             using var db = NewContext();
             var food = Granola(db);
@@ -225,9 +227,112 @@ namespace Nom.Api.Tests.Services
             await db.SaveChangesAsync();
             var later = await Service(db).RunAsync(apply: true, Person);
 
-            later.KeptCurated.Should().Be(1);
-            Get(db, food.Id).Should().Match<IngredientEntity>(f => f.CurationStatusId == (long)CurationStatusEnum.Curated
+            later.Demoted.Should().Be(1, "4 agree and 3 disagree leaves 1, fewer than two");
+            later.KeptCurated.Should().Be(0);
+            Get(db, food.Id).Should().Match<IngredientEntity>(f => f.CurationStatusId == (long)CurationStatusEnum.PendingCuration
                 && f.AgreeingSources == 4 && f.DisagreeingSources == 3 && f.AdmissionReason == CatalogAdmissionRule.SourcesDisagree);
+            (await db.AuditLogEntries.SingleAsync(a => a.Timestamp == later.RunStamp && a.ChangeType == BrandedLiftService.LiftChangeType))
+                .Should().Match<Nom.Data.Audit.AuditLogEntryEntity>(a => a.OldValue == "9003" && a.NewValue == "9001");
+
+            var undo = await Service(db).UndoAsync(later.RunStamp!.Value, apply: true, Person);
+
+            undo.Relifted.Should().Be(1);
+            Get(db, food.Id).CurationStatusId.Should().Be((long)CurationStatusEnum.Curated);
+        }
+
+        [Fact]
+        public async Task A_food_an_admin_curated_is_never_demoted_by_its_sources()
+        {
+            using var db = NewContext();
+            var byAdmin = Granola(db, CurationStatusEnum.Curated, reason: null);
+            var reCurated = Granola(db, name: "Nut granola bar (Acme)", fdcId: "2000003");
+            db.IngredientVerifications.Add(HouseholdLabel(reCurated.Id, Household, Label(160m, 4m, 24m, 5.2m)));
+            await db.SaveChangesAsync();
+            var lift = await Service(db).RunAsync(apply: true, Person);
+            db.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+            {
+                EntityType = "Ingredient", EntityId = reCurated.Id, ChangeType = FoodCatalogReviewService.CurationStatusSetChangeType,
+                PropertyName = nameof(IngredientEntity.CurationStatusId), OldValue = "9003", NewValue = "9003", Timestamp = lift.RunStamp!.Value.AddMinutes(1), ChangedByPersonId = Person,
+            });
+            db.IngredientVerifications.AddRange(
+                HouseholdLabel(byAdmin.Id, OtherHousehold, Label(240m, 4m, 24m, 5.2m)),
+                HouseholdLabel(reCurated.Id, OtherHousehold, Label(240m, 4m, 24m, 5.2m)),
+                HouseholdLabel(reCurated.Id, ThirdHousehold, Label(240m, 4m, 24m, 5.2m)));
+            await db.SaveChangesAsync();
+
+            var run = await Service(db).RunAsync(apply: true, Person);
+
+            run.Demoted.Should().Be(0);
+            run.KeptCurated.Should().Be(2);
+            Get(db, byAdmin.Id).Should().Match<IngredientEntity>(f => f.CurationStatusId == (long)CurationStatusEnum.Curated && f.AdmissionReason == CatalogAdmissionRule.SourcesDisagree);
+            Get(db, reCurated.Id).Should().Match<IngredientEntity>(f => f.CurationStatusId == (long)CurationStatusEnum.Curated && f.AdmissionReason == CatalogAdmissionRule.SourcesDisagree);
+        }
+
+        [Fact]
+        public async Task Undoing_a_lift_excludes_the_evidence_that_lifted_the_food_so_neither_a_later_pass_nor_a_confirmation_lifts_it_again_until_the_undo_is_undone()
+        {
+            using var db = NewContext();
+            var food = Granola(db);
+            var row = HouseholdLabel(food.Id, Household, Label(160m, 4m, 24m, 5.2m));
+            db.IngredientVerifications.Add(row);
+            await db.SaveChangesAsync();
+            var run = await Service(db).RunAsync(apply: true, Person);
+            (await db.AuditLogEntries.SingleAsync(a => a.Timestamp == run.RunStamp && a.ChangeType == BrandedLiftService.RowsChangeType))
+                .NewValue.Should().Be(row.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+            var undo = await Service(db).UndoAsync(run.RunStamp!.Value, apply: true, Person);
+
+            undo.EvidenceExcluded.Should().Be(1);
+            Get(db, food.Id).CurationStatusId.Should().Be((long)CurationStatusEnum.PendingCuration);
+            (await db.AuditLogEntries.SingleAsync(a => a.ChangeType == BrandedLiftService.ExcludeChangeType))
+                .Should().Match<Nom.Data.Audit.AuditLogEntryEntity>(a => a.EntityType == BrandedLiftService.EvidenceEntityType && a.EntityId == row.Id && a.NewValue == "true" && a.Timestamp == undo.UndoStamp);
+
+            var pass = await Service(db).RunAsync(apply: true, Person);
+            var hook = await Service(db).RunAsync(apply: true, Person, new[] { food.Id });
+
+            pass.Lifted.Should().Be(0);
+            pass.ExcludedEvidence.Should().Be(1);
+            hook.Lifted.Should().Be(0);
+            Get(db, food.Id).Should().Match<IngredientEntity>(f => f.CurationStatusId == (long)CurationStatusEnum.PendingCuration
+                && f.AgreeingSources == 1 && f.AdmissionReason == CatalogAdmissionRule.AwaitingSecondSource);
+
+            var redo = await Service(db).UndoAsync(undo.UndoStamp!.Value, apply: true, Person);
+            var after = await Service(db).RunAsync(apply: true, Person);
+
+            redo.Relifted.Should().Be(1);
+            redo.EvidenceIncluded.Should().Be(1);
+            after.ExcludedEvidence.Should().Be(0);
+            Get(db, food.Id).Should().Match<IngredientEntity>(f => f.CurationStatusId == (long)CurationStatusEnum.Curated && f.AgreeingSources == 2);
+        }
+
+        [Fact]
+        public async Task An_undo_that_cannot_put_back_the_counts_counts_again_without_the_excluded_evidence_so_no_stale_count_lifts_the_food()
+        {
+            using var db = NewContext();
+            var food = Granola(db);
+            db.IngredientVerifications.Add(HouseholdLabel(food.Id, Household, Label(160m, 4m, 24m, 5.2m)));
+            await db.SaveChangesAsync();
+            var run = await Service(db).RunAsync(apply: true, Person);
+            db.IngredientVerifications.AddRange(
+                HouseholdLabel(food.Id, OtherHousehold, Label(160m, 4m, 24m, 5.2m)),
+                LaneRow(food.Id, "off:1", Label(300m, 10m, 60m, 13m, null, NutritionBasis.Per100g)));
+            await db.SaveChangesAsync();
+            await Service(db).RunAsync(apply: true, Person);
+            Get(db, food.Id).Should().Match<IngredientEntity>(f => f.CurationStatusId == (long)CurationStatusEnum.Curated && f.AgreeingSources == 3 && f.DisagreeingSources == 1);
+
+            var undo = await Service(db).UndoAsync(run.RunStamp!.Value, apply: true, Person);
+
+            undo.Demoted.Should().Be(1);
+            undo.Recounted.Should().Be(1);
+            undo.StillLifted.Should().Be(0);
+            var undone = Get(db, food.Id);
+            undone.Should().Match<IngredientEntity>(f => f.CurationStatusId == (long)CurationStatusEnum.PendingCuration && f.AgreeingSources == 2 && f.DisagreeingSources == 1);
+            CatalogAdmissionRule.SourcesLift(undone.AgreeingSources, undone.DisagreeingSources).Should().BeFalse("--admit reads the stored counts");
+
+            var pass = await Service(db).RunAsync(apply: true, Person);
+
+            pass.Lifted.Should().Be(0);
+            Get(db, food.Id).CurationStatusId.Should().Be((long)CurationStatusEnum.PendingCuration);
         }
 
         [Fact]
@@ -278,9 +383,12 @@ namespace Nom.Api.Tests.Services
             Get(db, other.Id).AdmissionReason.Should().Be("admin:note");
             (await db.AuditLogEntries.CountAsync(a => a.Timestamp == undo.UndoStamp && a.ChangeType == BrandedLiftService.UndoChangeType)).Should().BeGreaterThan(0);
 
+            undo.EvidenceExcluded.Should().Be(2);
+
             var redo = await Service(db).UndoAsync(undo.UndoStamp!.Value, apply: true, Person);
 
             redo.Relifted.Should().Be(2);
+            redo.EvidenceIncluded.Should().Be(2);
             Get(db, food.Id).Should().Match<IngredientEntity>(f => f.CurationStatusId == (long)CurationStatusEnum.Curated && f.AgreeingSources == 2);
         }
 

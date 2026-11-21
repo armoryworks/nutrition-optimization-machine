@@ -124,8 +124,10 @@ namespace Nom.Api.Tests.Services.Recipe
         {
             await using var db = NewContext();
             var fewer = WithNutrition(Food("Oat granola bar (Acme)", CurationStatusEnum.Curated));
+            fewer.FdcDataType = Nom.Data.Nutrition.CatalogAdmissionRule.BrandedFood;
             fewer.AgreeingSources = 2;
             var more = WithNutrition(Food("Oat granola bar (Brio)", CurationStatusEnum.Curated));
+            more.FdcDataType = Nom.Data.Nutrition.CatalogAdmissionRule.BrandedFood;
             more.AgreeingSources = 4;
             db.Ingredients.AddRange(fewer, more);
             await db.SaveChangesAsync();
@@ -133,6 +135,23 @@ namespace Nom.Api.Tests.Services.Recipe
             var results = await NewService(db).SearchIngredientsAsync("oat granola bar");
 
             results.Select(r => (r.Name, r.AgreeingSources)).Should().Equal(("Oat granola bar (Brio)", 4), ("Oat granola bar (Acme)", 2));
+        }
+
+        [Fact]
+        public async Task A_lifted_branded_food_never_ranks_above_an_equally_matching_curated_usda_food()
+        {
+            await using var db = NewContext();
+            var branded = WithNutrition(Food("Rolled oats (Acme)", CurationStatusEnum.Curated));
+            branded.FdcDataType = Nom.Data.Nutrition.CatalogAdmissionRule.BrandedFood;
+            branded.AgreeingSources = 3;
+            var usda = WithNutrition(Food("Rolled oats, old fashioned", CurationStatusEnum.Curated));
+            usda.FdcDataType = "sr_legacy_food";
+            db.Ingredients.AddRange(branded, usda);
+            await db.SaveChangesAsync();
+
+            var results = await NewService(db).SearchIngredientsAsync("oats");
+
+            results.Select(r => r.Name).Should().Equal("Rolled oats, old fashioned", "Rolled oats (Acme)");
         }
 
         private static IngredientEntity WithNutrition(IngredientEntity food)

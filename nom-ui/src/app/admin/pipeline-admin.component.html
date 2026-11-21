@@ -204,7 +204,7 @@
             <div><dt>Held, a source disagrees</dt><dd data-testid="pipeline-metric-branded-held-disagreement">{{ b.heldByDisagreement | number }}</dd></div>
             <div><dt>Held for another reason</dt><dd data-testid="pipeline-metric-branded-held-other">{{ b.heldOther | number }}</dd></div>
             <div><dt>Curated, a later source disagrees</dt><dd data-testid="pipeline-metric-branded-curated-disagreement">{{ b.curatedWithDisagreement | number }}</dd></div>
-            <div><dt>Curated with fewer than two sources (by an admin)</dt><dd data-testid="pipeline-metric-branded-curated-without-count">{{ b.curatedWithoutCount | number }}</dd></div>
+            <div><dt>Curated by an admin, not by agreeing sources</dt><dd data-testid="pipeline-metric-branded-curated-without-count">{{ b.curatedWithoutCount | number }}</dd></div>
           </dl>
           @if (b.curatedByAgreeingSources.length) {
             <ul class="nom-pipeline__list" data-testid="pipeline-branded-sources-list">

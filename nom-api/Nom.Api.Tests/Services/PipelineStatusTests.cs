@@ -460,6 +460,7 @@ namespace Nom.Api.Tests.Services
                 Pending("lifted five", null, branded: true, agreeing: 5, disagreeing: 1, status: 9003),
                 Pending("admin curated", null, branded: true, status: 9003),
                 Pending("admin curated, recounted", "awaiting_second_source", branded: true, agreeing: 1, disagreeing: 0, status: 9003),
+                Pending("admin curated, zero energy", "zero_energy", branded: true, agreeing: 2, disagreeing: 0, status: 9003),
                 Pending("kept", "sources_disagree", branded: true, agreeing: 3, disagreeing: 2, status: 9003),
                 Pending("apple", null, status: 9003));
             await db.SaveChangesAsync();
@@ -476,7 +477,7 @@ namespace Nom.Api.Tests.Services
             foods.Branded.Should().BeEquivalentTo(new PipelineBrandedCounts
             {
                 CuratedByAgreeingSources = new[] { new PipelineSourceCount("2", 1), new PipelineSourceCount("4+", 1) },
-                CuratedWithoutCount = 2,
+                CuratedWithoutCount = 3,
                 CuratedWithDisagreement = 1,
                 Awaiting = 2,
                 HeldByDisagreement = 1,

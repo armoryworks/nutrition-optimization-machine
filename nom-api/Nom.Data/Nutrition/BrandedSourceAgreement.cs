@@ -46,20 +46,23 @@ namespace Nom.Data.Nutrition
 
     /// <summary>
     /// Compares the sources a branded food has with its stored FDC branded values, with no model and
-    /// without ever changing a value. A value agrees when it lies within 10 % of the stored value or
-    /// within the two figures' label rounding, whichever is wider: half the FDA rounding step (5 kcal,
-    /// 0.5 g) scaled to 100 g by each figure's printed serving, or half a per-100 g step (0.5 kcal,
-    /// 0.05 g) for a figure printed per 100 g. A "less than" value agrees when the stored value is no
-    /// more than its bound plus that allowance. A source agrees only when energy, protein,
-    /// carbohydrate and fat all agree; one value outside disagrees; a missing value leaves the
-    /// source incomplete, counted neither way. A household label (one per household) and a
+    /// without ever changing a value. A value agrees when it lies within 10 % of the stored value, or,
+    /// for a value so small that 10 % is less than a label can print, within the two figures' label
+    /// rounding up to 5 kcal or 0.5 g per 100 g. The rounding of a figure is half the FDA step (5 kcal,
+    /// 0.5 g) scaled to 100 g by its printed serving, or half a per-100 g step (0.5 kcal, 0.05 g) for
+    /// a figure printed per 100 g. A value disagrees only when it lies outside both 10 % and the two
+    /// figures' whole rounding; one in between (a small serving whose printed figures cannot tell)
+    /// leaves the source inconclusive, counted neither way. A "less than" value is judged the same
+    /// way against its bound. A source agrees only when energy, protein, carbohydrate and fat all
+    /// agree; one value that disagrees makes it disagree; a missing value leaves the source
+    /// incomplete, counted neither way. A household label (one per household) and a
     /// manufacturer's page (one per host) are independent sources. A later FDC branded release is the
     /// same submitter and never counts. Open Food Facts is a signal only: a disagreement counts
     /// against the food, an agreement never for it. Anything else is ignored.
     /// </summary>
     public static class BrandedSourceAgreement
     {
-        public const string Version = "branded-agreement/1";
+        public const string Version = "branded-agreement/2";
 
         public const string HouseholdLabel = "household-label";
         public const string Manufacturer = "manufacturer";
@@ -69,6 +72,7 @@ namespace Nom.Data.Nutrition
         public const string Agrees = "agrees";
         public const string Disagrees = "disagrees";
         public const string Incomplete = "incomplete";
+        public const string Inconclusive = "inconclusive";
         public const string NotIndependent = "not-independent";
         public const string SignalAgrees = "signal-agrees";
         public const string SignalDisagrees = "signal-disagrees";
@@ -81,6 +85,8 @@ namespace Nom.Data.Nutrition
         public const decimal GramHalfStep = 0.5m;
         public const decimal KcalHalfStepPer100g = 0.5m;
         public const decimal GramHalfStepPer100g = 0.05m;
+        public const decimal KcalRoundingCap = 5m;
+        public const decimal GramRoundingCap = 0.5m;
 
         /// <summary>Whether a source of this kind counts toward agreement when it agrees.</summary>
         public static bool IsIndependent(string kind) => kind is HouseholdLabel or Manufacturer;
@@ -137,12 +143,13 @@ namespace Nom.Data.Nutrition
         private static (string Verdict, string? Detail) Compare(BrandedStoredValues stored, BrandedSourceReading reading)
         {
             var missing = new List<string>();
-            foreach (var (name, storedValue, value, halfStep, halfStepPer100g) in new[]
+            string? inconclusive = null;
+            foreach (var (name, storedValue, value, halfStep, halfStepPer100g, cap) in new[]
             {
-                ("kcal", stored.Kcal!.Value, reading.Kcal, KcalHalfStep, KcalHalfStepPer100g),
-                ("protein", stored.Protein!.Value, reading.Protein, GramHalfStep, GramHalfStepPer100g),
-                ("carb", stored.Carb!.Value, reading.Carb, GramHalfStep, GramHalfStepPer100g),
-                ("fat", stored.Fat!.Value, reading.Fat, GramHalfStep, GramHalfStepPer100g),
+                ("kcal", stored.Kcal!.Value, reading.Kcal, KcalHalfStep, KcalHalfStepPer100g, KcalRoundingCap),
+                ("protein", stored.Protein!.Value, reading.Protein, GramHalfStep, GramHalfStepPer100g, GramRoundingCap),
+                ("carb", stored.Carb!.Value, reading.Carb, GramHalfStep, GramHalfStepPer100g, GramRoundingCap),
+                ("fat", stored.Fat!.Value, reading.Fat, GramHalfStep, GramHalfStepPer100g, GramRoundingCap),
             })
             {
                 if (value == null || (value.Amount == null && value.LessThan == null))
@@ -150,17 +157,19 @@ namespace Nom.Data.Nutrition
                     missing.Add(name);
                     continue;
                 }
-                var allowance = Math.Max(RelativeTolerance * Math.Abs(storedValue),
-                    Rounding(stored.ServingGrams, halfStep, halfStepPer100g) + Rounding(reading.ServingGrams, halfStep, halfStepPer100g));
-                var agrees = value.Amount is { } amount
-                    ? Math.Abs(amount - storedValue) <= allowance
-                    : storedValue <= value.LessThan!.Value + allowance;
-                if (!agrees)
-                    return (Disagrees, value.Amount is { } a
-                        ? $"{name} {Format(a)} against {Format(storedValue)}"
-                        : $"{name} under {Format(value.LessThan!.Value)} against {Format(storedValue)}");
+                var tolerance = RelativeTolerance * Math.Abs(storedValue);
+                var rounding = Rounding(stored.ServingGrams, halfStep, halfStepPer100g) + Rounding(reading.ServingGrams, halfStep, halfStepPer100g);
+                var agreeWithin = Math.Max(tolerance, Math.Min(rounding, cap));
+                var refuteBeyond = Math.Max(tolerance, rounding);
+                var off = value.Amount is { } amount ? Math.Abs(amount - storedValue) : storedValue - value.LessThan!.Value;
+                var detail = value.Amount is { } a
+                    ? $"{name} {Format(a)} against {Format(storedValue)}"
+                    : $"{name} under {Format(value.LessThan!.Value)} against {Format(storedValue)}";
+                if (off > refuteBeyond) return (Disagrees, detail);
+                if (off > agreeWithin) inconclusive ??= detail + ", within label rounding but not within 10 %";
             }
-            return missing.Count == 0 ? (Agrees, null) : (Incomplete, "no " + string.Join(", ", missing));
+            if (missing.Count > 0) return (Incomplete, "no " + string.Join(", ", missing));
+            return inconclusive == null ? (Agrees, null) : (Inconclusive, inconclusive);
         }
 
         private static decimal Rounding(decimal? servingGrams, decimal halfStep, decimal halfStepPer100g) =>

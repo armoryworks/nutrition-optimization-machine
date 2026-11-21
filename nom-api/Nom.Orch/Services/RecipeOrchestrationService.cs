@@ -88,7 +88,7 @@ namespace Nom.Orch.Services
                 .ThenByDescending(i => Regex.IsMatch(i.Name, startsWithWord, RegexOptions.IgnoreCase))
                 .ThenByDescending(i => i.Name.ToLower().Contains(" " + searchTerm))
                 .ThenByDescending(i => i.CurationStatusId == (long)CurationStatusEnum.Curated)
-                .ThenByDescending(i => i.AgreeingSources ?? 0)
+                .ThenByDescending(i => i.FdcDataType == CatalogAdmissionRule.BrandedFood ? i.AgreeingSources ?? 0 : int.MaxValue)
                 .ThenByDescending(i => i.Name.ToLower().Contains(", raw"))
                 .ThenByDescending(i => i.IsWholeFood == true)
                 .ThenBy(i => i.Name.Length - i.Name.Replace(",", "").Length)

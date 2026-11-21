@@ -459,6 +459,8 @@ namespace Nom.Import
                 Console.WriteLine($"Lifted again:     {undone.Relifted} (foods an earlier undo had demoted)");
                 Console.WriteLine($"Values restored:  {undone.ValuesRestored} (source counts and reasons)");
                 Console.WriteLine($"Skipped:          {undone.Skipped} (changed since the run)");
+                Console.WriteLine($"Evidence:         {undone.EvidenceExcluded} rows excluded from the lift, {undone.EvidenceIncluded} let back in");
+                Console.WriteLine($"Re-counted:       {undone.Recounted} foods without the excluded evidence ({undone.StillLifted} still lifted by the other sources)");
                 foreach (var line in undone.Lines)
                     Console.WriteLine($"  {line}");
                 return;
@@ -472,7 +474,9 @@ namespace Nom.Import
             foreach (var (reason, n) in r.HeldByReason.OrderByDescending(x => x.Value))
                 Console.WriteLine($"  held: {reason} × {n}");
             Console.WriteLine($"Re-counted:       {r.Recounted} curated branded foods");
-            Console.WriteLine($"Kept curated:     {r.KeptCurated} (the sources no longer lift them; never demoted, the reason is stored)");
+            Console.WriteLine($"Demoted:          {r.Demoted} (curated by the rules, the sources no longer lift them; back to PendingCuration)");
+            Console.WriteLine($"Kept curated:     {r.KeptCurated} (curated by an admin, the sources do not lift them; never demoted, the reason is stored)");
+            Console.WriteLine($"Evidence:         {r.ExcludedEvidence} rows excluded by an earlier undo");
             Console.WriteLine($"Agreeing sources: {string.Join(", ", r.ByAgreeingSources.OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => $"{x.Key}: {x.Value}"))}");
             Console.WriteLine($"Foods changed:    {r.ChangedFoods} (limit {Nom.Orch.Services.BrandedLiftService.MaxChangedFoods})");
             foreach (var line in r.Lines)

@@ -196,14 +196,19 @@ is ever taken from a source: the lift only decides whether the stored FDC values
 | Open Food Facts (`off:{barcode}`) | a disagreement counts against the food; an agreement never for it (ODbL, signal only) | one |
 | Anything else, an unconfirmed label, a label with a serving in millilitres only | ignored or incomplete | |
 
-**Agreement** (`Nom.Data/Nutrition/BrandedSourceAgreement.cs`, `branded-agreement/1`): energy,
-protein, carbohydrate and fat must all agree. A value agrees when it lies within 10 % of the
-stored value or within the two figures' label rounding, whichever is wider: half the FDA rounding
-step (5 kcal, 0.5 g) scaled to 100 g by each figure's printed serving (the FDC record's
-`ReferenceServingGrams`, the label's `ServingGrams`), or half a per-100 g step (0.5 kcal, 0.05 g)
-for a figure printed per 100 g. A "less than" value ("<1 g", or "not a significant source")
-agrees when the stored value is no more than its bound plus that allowance. One value outside
-makes the source disagree; a missing value leaves it incomplete, counted neither way.
+**Agreement** (`Nom.Data/Nutrition/BrandedSourceAgreement.cs`, `branded-agreement/2`): energy,
+protein, carbohydrate and fat must all agree, each within **10 %** of the stored value (imports.md
+2d, the owner's rule). The only exception is a value so small that 10 % is less than a label can
+print: there the two figures' label rounding is allowed, but never more than **5 kcal or 0.5 g
+per 100 g**. A figure's rounding is half the FDA step (5 kcal, 0.5 g) scaled to 100 g by its
+printed serving (the FDC record's `ReferenceServingGrams`, the label's `ServingGrams`), or half a
+per-100 g step (0.5 kcal, 0.05 g) for a figure printed per 100 g. A value **disagrees** only when
+it lies outside both 10 % and the two figures' whole rounding. A value in between is
+**inconclusive**: a label with a small serving whose printed figures cannot confirm 10 % (a 5 g
+seasoning serving rounds kcal to 100 per 100 g) neither lifts the food nor counts against it. A
+"less than" value ("<1 g", or "not a significant source") is judged the same way against its
+bound. One value that disagrees makes the source disagree; an inconclusive or missing value leaves
+it counted neither way.
 
 **Decision** (`CatalogAdmissionRule.SourcesLift`, inside `Decide`): agreeing minus disagreeing
 must be at least two. With no disagreement two agreeing sources lift a food; each disagreement
@@ -211,9 +216,14 @@ needs one more agreeing source. Every other check of the rule still holds the fo
 plausibility, the energy check, a stored duplicate or audit reason): agreement never overrides
 them. A food the rule never judged (no stored `EnergyCheck`) is left for `--admit --branded`.
 `Ingredient.AgreeingSources` and `DisagreeingSources` store the counts; ingredient search puts
-the food more sources agree on first among equals and returns the count, and the plan's food
-picker shows "N sources agree". A curated food is never demoted: when later sources no longer lift
-it, it stays curated with `sources_disagree` stored and counted on the Pipeline page.
+the branded food more sources agree on first among equal branded foods (a USDA-authored or
+hand-made food is not ranked by the count, and an equally matching curated USDA food comes before
+any branded one) and returns the count, and the plan's food picker shows "N sources agree".
+**Never fewer than two** (owner answer 3): a food the rules curated (its last journaled status
+change is `BrandedLift`, `BrandedLiftUndo`, `CatalogAdmit` or `CatalogAdmitUndo`) goes back to
+`PendingCuration` with the reason stored when its sources no longer lift it. A food an admin
+curated is never demoted: it stays curated with `sources_disagree` stored and is counted on the
+Pipeline page.
 
 **When it runs.** On every label a household confirms for a branded food
 (`IngredientVerificationService.ConfirmAsync`), for that food; and as a pass over every branded
@@ -235,15 +245,24 @@ shopping lane brings the second source. The Release B lookup lane (a no-op today
 **Journal and undo.** One stamp per run in `audit."AuditLogEntry"`: entity `Ingredient`, change
 types `BrandedLift` (`CurationStatusId`), `BrandedLiftFacts` (`AgreeingSources`,
 `DisagreeingSources`, `AdmissionReason`) and `BrandedLiftEvidence` (every source by key and
-verdict, for the record), and one `BrandedLiftRun` row with the rule versions. The undo puts back
-each value the food still holds as the run left it (a value changed since is skipped), writes
-`BrandedLiftUndo` rows under its own stamp, and undoing that stamp applies the run again. The
-golden set is `branded-lift.tsv`.
+verdict, for the record), `BrandedLiftRows` (`AgreeingRows`: the evidence row ids that agreed, for
+a food the run lifted), and one `BrandedLiftRun` row with the rule versions. The undo puts back
+each value the food still holds as the run left it (a value changed since is skipped) and writes
+`BrandedLiftUndo` rows under its own stamp. For every food it puts back to pending it also
+**excludes the evidence that lifted it**: one `BrandedLiftExclude` row per evidence row (entity
+`IngredientVerification`, `LiftExcluded` = `true`), which every later lift, pass or confirmation,
+leaves out; a new label from any household still counts. When the counts changed since the run (a
+later source arrived), the undo counts the food again without the excluded rows and stores those
+counts under its stamp, so `--admit` never curates it from a stale count; the report lists any
+food the other sources still lift. Undoing the undo's stamp applies the run again and lets the
+evidence back in. The golden set is `branded-lift.tsv`.
 
 **Pipeline page.** "Pending foods, by what holds them" splits the pending count into held by rule
 (by reason), awaiting a second source, pending with no reason, and rejected (by an admin; the
 rule rejects none). "Branded foods, by agreeing sources" shows those awaiting, held by a
-disagreement or another reason, and the curated ones by 2, 3 and 4+ agreeing sources.
+disagreement or another reason, the curated ones by 2, 3 and 4+ agreeing sources (only those the
+sources lift with no stored reason), those curated by an admin (fewer than two, or a reason the
+rule still holds), and those curated with a later disagreement.
 
 ## Quality gate — DONE ✅
 
