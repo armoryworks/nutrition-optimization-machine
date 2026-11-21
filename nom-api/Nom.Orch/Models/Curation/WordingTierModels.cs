@@ -41,6 +41,8 @@ namespace Nom.Orch.Models.Curation
         public Dictionary<string, int> RefusedByTier { get; set; } = new();
         public Dictionary<string, int> RefusedByReason { get; set; } = new();
         public int Capped { get; set; }
+        public int Recovered { get; set; }
+        public int RecoveredRetracted { get; set; }
         public int LinesMoved { get; set; }
         public List<string> Batches { get; set; } = new();
         public Dictionary<string, List<string>> FaultsByTier { get; set; } = new();

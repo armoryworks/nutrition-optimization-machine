@@ -132,7 +132,7 @@ namespace Nom.Api.Tests.Services
             decision.Should().Match<LaneDecisionEntity>(d => d.Lane == AiLanes.WordingTiers && d.Writes && !d.Written && d.Mode == LaneMode.Shadow
                 && d.Subject == "wording:light creams" && d.Stratum == "lines-2^1");
             LaneJournal.Read<WordingTierSignals>(decision.SignalsJson)!.Should().Match<WordingTierSignals>(s =>
-                s.FoodId == k.Cream.Id && s.EvidenceKey == "wording-tiers:lines-2^1" && s.Lines == 2);
+                s.FoodId == k.Cream.Id && s.EvidenceKey == "wording-tiers:lines-2" && s.Lines == 2);
         }
 
         [Fact]
@@ -173,7 +173,7 @@ namespace Nom.Api.Tests.Services
             undone.Undone.Should().Be(1);
             (await db.IngredientWordings.CountAsync()).Should().Be(0);
             (await db.IngredientWordingRejections.SingleAsync()).Should().Match<IngredientWordingRejectionEntity>(r =>
-                r.Wording == "baking soda" && r.IngredientId == k.BakingSoda.Id && r.EvidenceKey == "wording-tiers:lines-2^0" && r.Source == "deterministic:staple");
+                r.Wording == "baking soda" && r.IngredientId == k.BakingSoda.Id && r.EvidenceKey == "wording-tiers:lines-1" && r.Source == "deterministic:staple");
             (await db.RecipeIngredients.SingleAsync(ri => ri.RawLine == "1 tsp baking soda")).IngredientId.Should().Be(k.Soda.Id, "the line went back to its wording");
             (await db.Ingredients.SingleAsync(i => i.Id == k.BakingSoda.Id)).CurationStatusId.Should().Be((long)CurationStatusEnum.Curated, "a retract does not demote a food its load curated");
         }
@@ -202,8 +202,141 @@ namespace Nom.Api.Tests.Services
 
             var doubled = await Lane(db).RunBatchAsync(Live(WordingTiers.NameKey), 10);
 
-            doubled.WrittenByTier.Should().Contain(WordingTiers.NameKey, 1, "four lines are new evidence (lines-2^2)");
+            doubled.WrittenByTier.Should().Contain(WordingTiers.NameKey, 1, "four lines are twice the two the pair was retracted on");
             (await db.IngredientWordings.SingleAsync()).IngredientId.Should().Be(k.Cream.Id);
+        }
+
+        [Fact]
+        public async Task A_retracted_pair_stays_held_until_the_wordings_lines_double_even_across_a_power_of_two()
+        {
+            using var db = NewContext();
+            var k = await KitchenAsync(db);
+            db.Recipes.Add(Recipe("Fool", (k.Creams, "30 g light creams", 30m, Gram)));
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var since = DateTime.UtcNow.AddMinutes(-1);
+            await Lane(db).RunBatchAsync(Live(WordingTiers.NameKey), 10);
+            await Undo(db).UndoSinceAsync(WordingTiers.NameKey, since, apply: true, CancellationToken.None);
+            (await db.IngredientWordingRejections.SingleAsync()).EvidenceKey.Should().Be("wording-tiers:lines-3");
+            db.LaneDecisions.RemoveRange(db.LaneDecisions);
+            db.Recipes.Add(Recipe("Syllabub", (k.Creams, "40 g light creams", 40m, Gram)));
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var four = await Lane(db).RunBatchAsync(Live(WordingTiers.NameKey), 10);
+
+            four.HeldByRule.Should().ContainKey(WordingTierLaneService.RetractedHold, "four lines are not twice the three the pair was retracted on");
+            (await db.IngredientWordings.CountAsync()).Should().Be(0);
+        }
+
+        [Theory]
+        [InlineData(null, 1000, true)]
+        [InlineData("wording-tiers:lines-63", 63, true)]
+        [InlineData("wording-tiers:lines-63", 64, true)]
+        [InlineData("wording-tiers:lines-63", 125, true)]
+        [InlineData("wording-tiers:lines-63", 126, false)]
+        [InlineData("wording-tiers:lines-1", 1, true)]
+        [InlineData("wording-tiers:lines-1", 2, false)]
+        [InlineData("ai:readers:abc", 1, false)]
+        [InlineData("wording-tiers:lines-x", 1, false)]
+        public void A_retract_holds_the_pair_until_the_lines_reach_twice_its_evidence(string? evidence, int lines, bool held)
+        {
+            WordingTierLaneService.StillRetracted(evidence, lines).Should().Be(held);
+        }
+
+        [Fact]
+        public async Task A_would_be_write_recorded_in_shadow_is_written_once_its_tier_goes_live()
+        {
+            using var db = NewContext();
+            var k = await KitchenAsync(db);
+            await Lane(db).RunBatchAsync(new Dictionary<string, string>(), 10);
+
+            var live = await Lane(db).RunBatchAsync(Live(WordingTiers.NameKey), 10);
+
+            live.Read.Should().Be(1, "the shadow sample the tier qualified on is asked again live; the staple wording is still in shadow");
+            live.WrittenByTier.Should().Contain(WordingTiers.NameKey, 1);
+            (await db.IngredientWordings.SingleAsync()).Should().Match<IngredientWordingEntity>(w => w.Wording == "light creams" && w.IngredientId == k.Cream.Id);
+            (await db.RecipeIngredients.CountAsync(ri => ri.IngredientId == k.Cream.Id)).Should().Be(2);
+
+            var after = await Lane(db).RunBatchAsync(Live(WordingTiers.NameKey), 10);
+            after.Read.Should().Be(0);
+        }
+
+        [Theory]
+        [InlineData("deterministic:name-key", WordingTiers.NameKey)]
+        [InlineData("deterministic:staple", WordingTiers.NameKey)]
+        [InlineData("ai:readers:0123456789abcdef", WordingTiers.VerifiedWording)]
+        [InlineData("verified:w01", WordingTiers.VerifiedWording)]
+        public async Task The_verified_wording_tier_reads_no_row_a_tier_wrote(string source, string answeredBy)
+        {
+            using var db = NewContext();
+            var k = await KitchenAsync(db);
+            db.IngredientWordings.Add(new IngredientWordingEntity
+            {
+                Wording = "light creams, divided", Verdict = IngredientWordingVerdict.Food, IngredientId = k.Cream.Id, Source = source, Batch = "earlier",
+            });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            await Lane(db).RunBatchAsync(new Dictionary<string, string>(), 10);
+
+            (await db.LaneDecisions.SingleAsync(d => d.Subject == "wording:light creams")).Tier.Should().Be(answeredBy);
+        }
+
+        [Fact]
+        public async Task A_row_loaded_but_never_recorded_is_recorded_relinked_and_reached_by_the_undo()
+        {
+            using var db = NewContext();
+            var k = await KitchenAsync(db);
+            var since = DateTime.UtcNow.AddMinutes(-1);
+            await LoadWithoutRecordAsync(db, k);
+
+            var batch = await Lane(db).RunBatchAsync(Live(WordingTiers.NameKey), 10);
+            db.ChangeTracker.Clear();
+
+            batch.Recovered.Should().Be(1);
+            (await db.RecipeIngredients.CountAsync(ri => ri.IngredientId == k.Cream.Id)).Should().Be(2, "the recovered row's batch is relinked");
+            var decision = await db.LaneDecisions.SingleAsync(d => d.Tier == WordingTiers.NameKey);
+            decision.Should().Match<LaneDecisionEntity>(d => d.Written && d.Subject == "wording:light creams" && d.Decision!.StartsWith(WordingTierLaneService.RecoveredDecision));
+            LaneJournal.Read<WordingTierSignals>(decision.SignalsJson)!.EvidenceKey.Should().Be("wording-tiers:lines-2");
+
+            var again = await Lane(db).RunBatchAsync(Live(WordingTiers.NameKey), 10);
+            again.Recovered.Should().Be(0);
+
+            var undone = await Undo(db).UndoSinceAsync(WordingTiers.NameKey, since, apply: true, CancellationToken.None);
+            db.ChangeTracker.Clear();
+            undone.Undone.Should().Be(1);
+            (await db.IngredientWordings.CountAsync()).Should().Be(0);
+            (await db.RecipeIngredients.CountAsync(ri => ri.IngredientId == k.Creams.Id)).Should().Be(2, "the lines went back to their wording");
+        }
+
+        [Fact]
+        public async Task A_row_loaded_but_never_recorded_by_a_tier_now_paused_is_retracted()
+        {
+            using var db = NewContext();
+            var k = await KitchenAsync(db);
+            await LoadWithoutRecordAsync(db, k);
+
+            var batch = await Lane(db).RunBatchAsync(new Dictionary<string, string> { [WordingTiers.NameKey] = LaneMode.Paused }, 10);
+            db.ChangeTracker.Clear();
+
+            batch.RecoveredRetracted.Should().Be(1);
+            (await db.IngredientWordings.CountAsync()).Should().Be(0);
+            (await db.IngredientWordingRejections.SingleAsync()).EvidenceKey.Should().Be("wording-tiers:lines-2");
+        }
+
+        private static async Task LoadWithoutRecordAsync(ApplicationDbContext db, Kitchen k)
+        {
+            var loaded = await new VerifiedWordingService(db, new NoUser()).LoadAsync(new[]
+            {
+                new VerifiedWordingRow
+                {
+                    Row = "light creams", Wording = "light creams", Verdict = IngredientWordingVerdict.Food, FoodId = k.Cream.Id, FoodName = k.Cream.Name,
+                    EvidenceKey = WordingTierLaneService.EvidenceKey(2),
+                },
+            }, "wt-name-key-20261120000000", apply: true, source: WordingTiers.Source(WordingTiers.NameKey));
+            loaded.Added.Should().Be(1);
+            db.ChangeTracker.Clear();
         }
 
         [Fact]
@@ -274,11 +407,23 @@ namespace Nom.Api.Tests.Services
             using var db = NewContext();
             await KitchenAsync(db);
 
-            var batch = await Lane(db).RunBatchAsync(Live(WordingTiers.NameKey), 10, new Dictionary<string, int> { [WordingTiers.NameKey] = 0 });
+            var spent = new Dictionary<string, int> { [WordingTiers.NameKey] = 0 };
+            var batch = await Lane(db).RunBatchAsync(Live(WordingTiers.NameKey), 10, spent);
 
             batch.Capped.Should().Be(1);
             (await db.IngredientWordings.CountAsync()).Should().Be(0);
-            (await db.LaneDecisions.AnyAsync(d => d.Tier == WordingTiers.NameKey)).Should().BeFalse("a capped wording is not recorded, so a later pass decides it");
+            (await db.LaneDecisions.SingleAsync(d => d.Tier == WordingTiers.NameKey)).Should().Match<LaneDecisionEntity>(d =>
+                !d.Writes && !d.Written && d.Decision!.StartsWith(WordingTierLaneService.CappedDecision));
+
+            var next = await Lane(db).RunBatchAsync(Live(WordingTiers.NameKey), 10, spent);
+            next.Read.Should().Be(0, "a capped wording is set aside for the cap window, so the next pass reads further down the list");
+
+            foreach (var capped in db.LaneDecisions.Where(d => d.Tier == WordingTiers.NameKey)) capped.CreatedDate = DateTime.UtcNow.AddHours(-25);
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var later = await Lane(db).RunBatchAsync(Live(WordingTiers.NameKey), 10);
+            later.WrittenByTier.Should().Contain(WordingTiers.NameKey, 1, "once the cap window has passed the wording is asked again");
         }
 
         [Fact]
@@ -333,6 +478,26 @@ namespace Nom.Api.Tests.Services
             verdict.Mode.Should().Be(LaneMode.Shadow);
             verdict.Reason.Should().Contain("link auditor");
             (await db.LaneDecisions.SingleAsync(d => d.Tier == WordingTiers.NameKey)).AuditOutcome.Should().Be(LaneAuditOutcome.Pass);
+        }
+
+        [Theory]
+        [InlineData("phi4", "mistral-nemo", "phi4", "mistral-nemo", null)]
+        [InlineData("phi4", "mistral-nemo", "phi4", "Mistral-Nemo", null)]
+        [InlineData("phi4", "mistral-nemo", "phi4", "mistral-small", "reader B mistral-nemo")]
+        [InlineData("phi4", null, "phi4", "mistral-nemo", "does not name the reader B")]
+        [InlineData("phi4", "mistral-nemo", "phi4-mini", "mistral-nemo", "scored with phi4")]
+        public void The_link_audit_record_must_have_scored_both_the_auditor_and_reader_b_the_roster_names(string recordAuditor, string? recordCheck, string auditor, string check, string? problem)
+        {
+            var record = new WordingTierAuditRecord.Record
+            {
+                Model = recordAuditor, CheckModel = recordCheck, ScoredAtUtc = DateTime.UtcNow, AuditKnownBad = 40, AuditFlaggedBad = 36, AuditKnownGood = 200, AuditFlaggedGood = 2,
+            };
+
+            var (score, golden) = WordingTierAuditRecord.Evaluate(record, auditor, check);
+
+            score.Should().NotBeNull();
+            if (problem == null) golden.Should().BeNull();
+            else golden.Should().Contain(problem);
         }
 
         [Fact]

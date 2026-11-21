@@ -117,6 +117,15 @@ namespace Nom.Orch.Services.Support
         /// <summary>The source a row a tier writes carries in the verified wording table.</summary>
         public static string Source(string tier) => "deterministic:" + tier;
 
+        /// <summary>
+        /// Every source a tier writes. The verified-wording tier never reads a row with one of these:
+        /// such a row is one tier's answer, not two blind readers', and only that tier's undo reaches it.
+        /// </summary>
+        public static readonly IReadOnlyList<string> Sources = All.Select(Source).ToArray();
+
+        /// <summary>The tier that wrote a row with this source, or null when no tier did.</summary>
+        public static string? TierOf(string? source) => All.FirstOrDefault(t => string.Equals(Source(t), source, StringComparison.Ordinal));
+
         public const string HeadingAbstain = "a heading, not a food";
         public const string CompoundAbstain = "names more than one food: left to the compound line rules";
         public const string NoTier = "no tier answers";

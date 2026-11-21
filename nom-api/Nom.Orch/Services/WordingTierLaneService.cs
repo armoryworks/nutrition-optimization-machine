@@ -90,13 +90,27 @@ namespace Nom.Orch.Services
             OllamaIngredientLinkVerifier.CurrentPromptVersion.ToString(CultureInfo.InvariantCulture)));
 
         /// <summary>
-        /// The evidence a row is loaded on: the wording's line count to a power of two, whatever the
-        /// tier or rules, so a pair a retract took back is written again by no tier until the wording
-        /// has twice the lines (or an admin lifts it).
+        /// The evidence a row is loaded on: the wording's line count, whatever the tier or rules, so a
+        /// pair a retract took back is written again by no tier until the wording has twice the lines
+        /// it had when it was loaded (or an admin lifts it); see <see cref="StillRetracted"/>.
         /// </summary>
-        public static string EvidenceKey(int lines) => string.Create(CultureInfo.InvariantCulture, $"{EvidencePrefix}{Band(lines)}");
+        public static string EvidenceKey(int lines) => string.Create(CultureInfo.InvariantCulture, $"{EvidencePrefix}{Math.Max(1, lines)}");
 
-        public const string EvidencePrefix = "wording-tiers:lines-2^";
+        public const string EvidencePrefix = "wording-tiers:lines-";
+
+        /// <summary>
+        /// Whether a retract on <paramref name="rejectedEvidence"/> still holds the pair for a wording
+        /// that now has <paramref name="lines"/> lines: a retract with no evidence key holds for good,
+        /// one on this lane's evidence until the lines reach twice the count it was loaded on, and one
+        /// on another evidence key only on that same key.
+        /// </summary>
+        public static bool StillRetracted(string? rejectedEvidence, int lines)
+        {
+            if (rejectedEvidence == null || rejectedEvidence == EvidenceKey(lines)) return true;
+            if (!rejectedEvidence.StartsWith(EvidencePrefix, StringComparison.Ordinal)
+                || !int.TryParse(rejectedEvidence.AsSpan(EvidencePrefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var loaded)) return false;
+            return Math.Max(1, lines) < 2L * loaded;
+        }
 
         /// <summary>The power of two a line count falls in; a wording is asked again when it moves up one.</summary>
         public static int Band(int lines) => (int)Math.Floor(Math.Log2(Math.Max(1, lines)));
@@ -121,7 +135,8 @@ namespace Nom.Orch.Services
             var signatures = WordingTiers.All.ToDictionary(t => t, Signature);
             signatures[AbstainTier] = WordingTiers.Signature;
 
-            var candidates = await CandidatesAsync(signatures, Math.Max(0, max), batch, cancellationToken);
+            await RecoverAsync(batch, signatures, cancellationToken);
+            var candidates = await CandidatesAsync(signatures, batch.Modes, Math.Max(0, max), batch, cancellationToken);
             if (candidates.Count == 0) return batch;
 
             var catalog = await CatalogAsync(cancellationToken);
@@ -172,8 +187,8 @@ namespace Nom.Orch.Services
                 {
                     var evidence = EvidenceKey(item.Candidate.Lines);
                     var hold = item.Decision.Hold
-                        ?? (rejections[item.Wording].Any(r => r.IngredientId == item.Decision.Answer!.FoodId && (r.EvidenceKey == null || r.EvidenceKey == evidence))
-                            ? $"{RetractedHold}: the pair was retracted on this evidence ({evidence})" : null)
+                        ?? (rejections[item.Wording].FirstOrDefault(r => r.IngredientId == item.Decision.Answer!.FoodId && StillRetracted(r.EvidenceKey, item.Candidate.Lines)) is { } retract
+                            ? $"{RetractedHold}: the pair was retracted on {retract.EvidenceKey ?? "no evidence key"} and the wording has {item.Candidate.Lines} lines" : null)
                         ?? (family.TryGetValue(item.Wording, out var familyHold) ? familyHold : null);
                     if (hold != null)
                     {
@@ -186,6 +201,7 @@ namespace Nom.Orch.Services
                     }
                     if (allowance[tier] <= 0)
                     {
+                        await RecordAsync(item, catalog, tier, mode, writes: false, signatures[tier], $"{CappedDecision}: the tier's writes for 24 hours are spent", evidence, null, cancellationToken);
                         batch.Capped++;
                         continue;
                     }
@@ -256,6 +272,71 @@ namespace Nom.Orch.Services
             return batch;
         }
 
+        /// <summary>
+        /// Rows a tier loaded that no decision records as written (the process stopped between the
+        /// load and its decisions or its relink): the lane's undo finds rows only by its written
+        /// decisions, so each is recorded now as written live on its wording's present line count and
+        /// its batch is relinked; a row of a tier that is paused is retracted instead, since that
+        /// tier's own undo has already run without it.
+        /// </summary>
+        private async Task RecoverAsync(WordingTierBatchResult batch, IReadOnlyDictionary<string, string> signatures, CancellationToken cancellationToken)
+        {
+            var orphans = await OrphanQuery(_db, DateTime.UtcNow - RecoveryWindow).ToListAsync(cancellationToken);
+            if (orphans.Count == 0) return;
+
+            var keys = orphans.Select(o => o.Wording).Distinct().ToList();
+            var sources = (await _db.Ingredients.AsNoTracking()
+                    .Where(i => !i.IsDeleted && i.FdcId == null && i.CurationStatusId != (long)CurationStatusEnum.Curated && keys.Contains(i.Name.ToLower()))
+                    .Select(i => new { i.Id, i.Name, Lines = _db.RecipeIngredients.Count(ri => ri.IngredientId == i.Id) })
+                    .ToListAsync(cancellationToken))
+                .Where(i => keys.Contains(IngredientNameNormalizer.WordingKey(i.Name)))
+                .GroupBy(i => IngredientNameNormalizer.WordingKey(i.Name), StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(i => i.Lines).ThenBy(i => i.Id).First(), StringComparer.Ordinal);
+            var foodIds = orphans.Where(o => o.IngredientId != null).Select(o => o.IngredientId!.Value).Distinct().ToList();
+            var foods = await _db.Ingredients.AsNoTracking().Where(i => foodIds.Contains(i.Id))
+                .Select(i => new
+                {
+                    i.Id, i.Name,
+                    Description = i.Aliases.Where(a => !a.IsDeleted && a.SourceContext == IngredientLinkService.UsdaDescriptionContext).Select(a => a.AliasName).FirstOrDefault(),
+                })
+                .ToDictionaryAsync(i => i.Id, i => new GateFood(i.Id, i.Name, i.Description), cancellationToken);
+
+            var relink = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var orphan in orphans)
+            {
+                if (WordingTiers.TierOf(orphan.Source) is not { } tier) continue;
+                var source = sources.GetValueOrDefault(orphan.Wording);
+                var lines = source?.Lines ?? 0;
+                var evidence = EvidenceKey(lines);
+                if (batch.Modes.GetValueOrDefault(tier) == LaneMode.Paused)
+                {
+                    await _wordings.RetractAsync(orphan.Id, $"lane {Lane}/{tier} is paused and its load of this row was never recorded", apply: true, evidenceKey: evidence);
+                    batch.RecoveredRetracted++;
+                    continue;
+                }
+
+                var food = orphan.IngredientId is { } id ? foods.GetValueOrDefault(id) : null;
+                await _frame.RecordAsync(new LaneDecisionInput(
+                    Lane, tier, Subject(orphan.Wording), Clip($"{RecoveredDecision}: {orphan.IngredientId} {food?.Name}", 255), LaneMode.Live, true, signatures[tier], Stratum(lines),
+                    new WordingTierSignals(orphan.Wording, IngredientNameNormalizer.TierKey(orphan.Wording), source?.Id ?? 0, lines, tier, orphan.IngredientId, food?.Name, food?.Text,
+                        evidence, orphan.Batch, new List<string>(), null, new List<string>())),
+                    cancellationToken);
+                batch.Recovered++;
+                relink.Add(orphan.Batch);
+            }
+
+            foreach (var name in relink)
+            {
+                var relinked = await new LineRelinkService(_db, _currentUser).LinkVerifiedWordingsAsync(apply: true, batch: name);
+                batch.LinesMoved += relinked.Moved;
+                batch.Batches.Add(name);
+            }
+            _db.ChangeTracker.Clear();
+        }
+
+        /// <summary>The decision a row <see cref="RecoverAsync"/> found loaded but unrecorded is recorded with.</summary>
+        public const string RecoveredDecision = "recovered";
+
         private static void Fault(WordingTierBatchResult batch, string tier, string fault)
         {
             if (!batch.FaultsByTier.TryGetValue(tier, out var list)) batch.FaultsByTier[tier] = list = new List<string>();
@@ -283,19 +364,35 @@ namespace Nom.Orch.Services
 
         public const string RetractedHold = "retracted";
 
+        /// <summary>The decision a wording is recorded with when its tier's daily allowance is spent; it is set aside for <see cref="CapWindow"/>, then asked again.</summary>
+        public const string CappedDecision = "capped";
+
+        /// <summary>The window the daily caps count writes over.</summary>
+        public static readonly TimeSpan CapWindow = TimeSpan.FromHours(24);
+
+        /// <summary>How far back a pass looks for rows a tier loaded but never recorded (<see cref="RecoverAsync"/>).</summary>
+        public static readonly TimeSpan RecoveryWindow = TimeSpan.FromDays(2);
+
         /// <summary>
         /// In-use uncurated wordings (no USDA id, not curated, live lines) with no live row in the
         /// verified wording table, most lines first, whose name is in key form (the relink finds a
         /// wording's lines by it) and that this lane has not decided under its current signature at
-        /// its present line-count band.
+        /// its present line-count band. A would-be write recorded while its tier was not live does not
+        /// count once the tier is live, so the backlog a tier qualified on in shadow is written; a
+        /// wording its tier's cap set aside waits out the cap window.
         /// </summary>
-        private async Task<List<Candidate>> CandidatesAsync(IReadOnlyDictionary<string, string> signatures, int max, WordingTierBatchResult batch, CancellationToken cancellationToken)
+        private async Task<List<Candidate>> CandidatesAsync(IReadOnlyDictionary<string, string> signatures, IReadOnlyDictionary<string, string> modes, int max, WordingTierBatchResult batch, CancellationToken cancellationToken)
         {
             var waiting = await WaitingQuery(_db).ToListAsync(cancellationToken);
             var decided = (await DecidedQuery(_db).ToListAsync(cancellationToken))
                 .Where(d => d.SignatureHash != null && signatures.TryGetValue(d.Tier, out var current) && current == d.SignatureHash)
+                .Where(d => !(d.Writes && !d.Written && modes.TryGetValue(d.Tier, out var mode) && mode == LaneMode.Live))
                 .Select(d => (d.Subject, d.Stratum))
                 .ToHashSet();
+            foreach (var capped in await CappedQuery(_db, DateTime.UtcNow - CapWindow).ToListAsync(cancellationToken))
+            {
+                if (signatures.TryGetValue(capped.Tier, out var current) && current == capped.SignatureHash) decided.Add((capped.Subject, capped.Stratum));
+            }
 
             var taken = new List<Candidate>();
             foreach (var w in waiting)
@@ -318,7 +415,13 @@ namespace Nom.Orch.Services
         internal sealed record WaitingRow(long Id, string Name, int Lines);
 
         /// <summary>A decision the lane recorded, as the selection reads it.</summary>
-        internal sealed record DecidedRow(string Subject, string Tier, string? SignatureHash, string? Stratum);
+        internal sealed record DecidedRow(string Subject, string Tier, string? SignatureHash, string? Stratum, bool Writes, bool Written);
+
+        /// <summary>A wording the lane set aside because its tier's cap was spent, as the selection reads it.</summary>
+        internal sealed record CappedRow(string Subject, string Tier, string? SignatureHash, string? Stratum);
+
+        /// <summary>A row a tier loaded with no decision recording it as written since, as <see cref="RecoverAsync"/> reads it.</summary>
+        internal sealed record OrphanRow(long Id, string Wording, string Source, string Batch, long? IngredientId);
 
         /// <summary>One line of an approved recipe on a curated food, as the head-default table and the grams bounds read it.</summary>
         internal sealed record CuratedLineRow(long IngredientId, string? Raw, decimal Quantity, long MeasurementId, decimal? GramsPerMilliliter, decimal? GramsPerItem, decimal? ReferenceServingGrams, int? FdcCategoryId);
@@ -334,10 +437,28 @@ namespace Nom.Orch.Services
 
         internal static IQueryable<DecidedRow> DecidedQuery(ApplicationDbContext db) =>
             db.LaneDecisions.AsNoTracking()
-                .Where(d => d.Lane == Lane)
+                .Where(d => d.Lane == Lane && (d.Decision == null || !d.Decision.StartsWith(CappedDecision)))
+                .Select(d => new { d.Subject, d.Tier, d.SignatureHash, d.Stratum, d.Writes, d.Written })
+                .Distinct()
+                .Select(d => new DecidedRow(d.Subject, d.Tier, d.SignatureHash, d.Stratum, d.Writes, d.Written));
+
+        internal static IQueryable<CappedRow> CappedQuery(ApplicationDbContext db, DateTime sinceUtc) =>
+            db.LaneDecisions.AsNoTracking()
+                .Where(d => d.Lane == Lane && d.Decision != null && d.Decision.StartsWith(CappedDecision) && d.CreatedDate >= sinceUtc)
                 .Select(d => new { d.Subject, d.Tier, d.SignatureHash, d.Stratum })
                 .Distinct()
-                .Select(d => new DecidedRow(d.Subject, d.Tier, d.SignatureHash, d.Stratum));
+                .Select(d => new CappedRow(d.Subject, d.Tier, d.SignatureHash, d.Stratum));
+
+        internal static IQueryable<OrphanRow> OrphanQuery(ApplicationDbContext db, DateTime sinceUtc)
+        {
+            var sources = WordingTiers.Sources.ToList();
+            return db.IngredientWordings.AsNoTracking()
+                .Where(w => sources.Contains(w.Source) && (w.LastModifiedDate ?? w.CreatedDate) >= sinceUtc
+                    && !db.LaneDecisions.Any(d => d.Lane == Lane && d.Written && d.Subject == "wording:" + w.Wording
+                        && d.CreatedDate >= (w.LastModifiedDate ?? w.CreatedDate)))
+                .OrderBy(w => w.Id)
+                .Select(w => new OrphanRow(w.Id, w.Wording, w.Source, w.Batch, w.IngredientId));
+        }
 
         internal static IQueryable<CuratedLineRow> CuratedLinesQuery(ApplicationDbContext db) =>
             db.RecipeIngredients.AsNoTracking()
@@ -354,11 +475,13 @@ namespace Nom.Orch.Services
                     ri.Ingredient.ReferenceServingGrams,
                     ri.Ingredient.FdcCategoryId));
 
-        /// <summary>The tiers' catalog: the gate's foods, matcher, staples and trusted aliases, the live verified rows, and the head defaults and grams bounds.</summary>
+        /// <summary>The tiers' catalog: the gate's foods, matcher, staples and trusted aliases, the live verified rows no tier wrote, and the head defaults and grams bounds.</summary>
         internal async Task<WordingTierCatalog> CatalogAsync(CancellationToken cancellationToken)
         {
             var parts = await new LinkAutoApplyService(_db, _cache).CatalogPartsAsync(cancellationToken);
+            var tierSources = WordingTiers.Sources.ToList();
             var verified = (await _db.IngredientWordings.AsNoTracking()
+                    .Where(w => !tierSources.Contains(w.Source))
                     .Select(w => new { w.Wording, w.Verdict, w.IngredientId })
                     .ToListAsync(cancellationToken))
                 .Select(w => (w.Wording, w.Verdict, w.IngredientId));
@@ -479,7 +602,7 @@ namespace Nom.Orch.Services
         public async Task<LaneQualifyVerdict> AuditAndEvaluateAsync(string tier, IReadOnlyList<string> faults, CancellationToken cancellationToken = default)
         {
             var reasons = faults.ToList();
-            var (score, golden) = WordingTierAuditRecord.Evaluate(WordingTierAuditRecord.Embedded(), _judges.AuditorModel);
+            var (score, golden) = WordingTierAuditRecord.Evaluate(WordingTierAuditRecord.Embedded(), _judges.AuditorModel, _judges.CheckModel);
             if (!_judges.IsConfigured)
             {
                 reasons.Add("no model host or model is set for the auditor and reader B (Ai:BatchOllamaUrl or Ai:OllamaUrl, Ai:Roster)");

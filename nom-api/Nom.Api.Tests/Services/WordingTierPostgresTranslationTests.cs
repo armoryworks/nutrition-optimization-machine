@@ -14,7 +14,7 @@ using Xunit.Abstractions;
 
 namespace Nom.Api.Tests.Services
 {
-    /// <summary>The wording tier lane's selection, decision and curated-line queries translate to Postgres SQL with no client evaluation.</summary>
+    /// <summary>The wording tier lane's selection, decision, cap, recovery and curated-line queries translate to Postgres SQL with no client evaluation.</summary>
     public class WordingTierPostgresTranslationTests
     {
         private readonly ITestOutputHelper _output;
@@ -64,10 +64,14 @@ namespace Nom.Api.Tests.Services
             var waiting = await Capture("waiting", db => WordingTierLaneService.WaitingQuery(db).ToListAsync());
             var decided = await Capture("decided", db => WordingTierLaneService.DecidedQuery(db).ToListAsync());
             var curated = await Capture("curated lines", db => WordingTierLaneService.CuratedLinesQuery(db).ToListAsync());
+            var capped = await Capture("capped", db => WordingTierLaneService.CappedQuery(db, DateTime.UtcNow).ToListAsync());
+            var orphans = await Capture("orphans", db => WordingTierLaneService.OrphanQuery(db, DateTime.UtcNow).ToListAsync());
 
             waiting.Should().Contain("lower(").And.ContainEquivalentOf("count(");
             decided.Should().ContainEquivalentOf("distinct");
             curated.Should().ContainEquivalentOf("case").And.ContainEquivalentOf("length(");
+            capped.Should().ContainEquivalentOf("distinct").And.ContainEquivalentOf("like");
+            orphans.Should().ContainEquivalentOf("not exists").And.ContainEquivalentOf("coalesce(");
         }
     }
 }

@@ -26,7 +26,7 @@ decide on.
 
 | Tier | Answers when | Frame policy |
 |---|---|---|
-| `verified-wording` | another wording with the same key has a live `food` row in the verified wording table; a `none` or `unclear` row for the key stops the pipeline with no answer | T1 |
+| `verified-wording` | another wording with the same key has a live `food` row in the verified wording table that no tier wrote (a `deterministic:<tier>` row is one tier's answer, not two readers', and only that tier's undo reaches it); a `none` or `unclear` row for the key stops the pipeline with no answer | T1 |
 | `alias` | a trusted alias (contexts `admin:`, `deterministic:`, `retired:`, `link:deterministic:`; never an alias with no context) with the same key belongs to one food | T1 |
 | `staple` | the key is a staple name (`StapleFoods`) | T1 |
 | `name-key` | the key, singular or plural, is the key of exactly one curated food's name; a name that is its own key ("Ham") owns it before a name that only comes to it once words are taken off ("Ham, minced"), and two foods of one rank leave it to neither (`WordingTiers.KeyMap`) | T2 |
@@ -80,25 +80,35 @@ entry does not carry ("sherry" for dessert wine, "saleratus") wait for the lexic
 Lane `wording-tiers`, one frame tier per wording tier; a wording no tier answers is recorded under
 tier `abstain` (never audited). Off unless `WordingTiers:Enabled=true`. Each pass:
 
-1. Takes in-use uncurated wordings (no FDC id, not curated, live lines) with no live row in the
+1. Recovers rows a tier loaded in the last two days that no decision records as written (the
+   process stopped between the load and its decisions or relink): each is recorded as written live
+   (decision `recovered`, evidence key on the wording's present line count) and its batch is
+   relinked, so the undo reaches it; a row of a tier that is now paused is retracted instead, since
+   that tier's undo has already run.
+2. Takes in-use uncurated wordings (no FDC id, not curated, live lines) with no live row in the
    table, most lines first, whose name is in key form (the relink finds a wording's lines by it), and
    that the lane has not decided under the tier's current signature at the wording's present
-   line-count band (a power of two), so a wording is asked again when its lines double or the rules
-   change.
-2. Decides each by the tiers and the gate, holds a pair the rejection memory holds on this evidence
-   (`retracted`), and runs the family check.
-3. Per tier: loads the rows through `VerifiedWordingService.LoadAsync` with source
-   `deterministic:<tier>`, batch `wt-<tier>-<stamp>` and evidence key `wording-tiers:lines-2^<band>`;
+   line-count band (a power of two), so a wording is asked again when its line count passes the next
+   power of two or the rules change. A would-be write recorded while its tier was in shadow (or
+   paused) does not count once the tier is live: the backlog a tier qualified on in shadow is asked
+   again and written. A wording set aside by its tier's cap (decision `capped`) waits 24 hours.
+3. Decides each by the tiers and the gate, holds a pair the rejection memory still holds
+   (`retracted`: a retract with no evidence key, or one on this lane's evidence while the wording has
+   fewer than twice the lines it was loaded on), and runs the family check.
+4. Per tier: loads the rows through `VerifiedWordingService.LoadAsync` with source
+   `deterministic:<tier>`, batch `wt-<tier>-<stamp>` and evidence key `wording-tiers:lines-<line count>`;
    a dry run unless the tier is live. A row the loader refuses is recorded as not writing. Live, it
    then relinks that batch only (`relink/verified?batch=`).
-4. Records every decision (`curation.LaneDecision`: subject `wording:<key>`, the food or the hold,
+5. Records every decision (`curation.LaneDecision`: subject `wording:<key>`, the food or the hold,
    stratum the line band, signals with the key, food, evidence, batch, every tier's answer and five
    sample lines).
-5. For each tier that decided, audits a sample (the larger of 30 or 25 %) and evaluates the tier.
+6. For each tier that decided, audits a sample (the larger of 30 or 25 %) and evaluates the tier.
 
 Caps: `WordingTiers:MaxPerDay` (300) writes per tier in 24 hours, `WordingTiers:HeadDefaultMaxPerDay`
 (1) for the head-default tier, since one default moves every line of its wording; a wording over its
-tier's cap is not recorded and waits for a later pass. `WordingTiers:BatchSize` (100),
+tier's cap is recorded as `capped` (not a write, never audited) and is not selected again until the
+24-hour window has passed, so a spent cap does not hold the top of the list and the pass reads the
+wordings below it. `WordingTiers:BatchSize` (100),
 `WordingTiers:PauseSeconds` (5), `WordingTiers:IdleMinutes` (60). Every pass passes the AI lane gate
 (switch `ai-pause-wording-tiers`, `ai-pause-all`, quiet hours).
 
@@ -115,7 +125,8 @@ description) with the link lane's same-food judge (`OllamaIngredientLinkVerifier
 a variety, a different food or several foods is a flag, `unsure` no answer. A flag counts as an error
 only when reader B (`mistral-nemo`) re-reading the pair blind also calls it wrong. The combined
 check's score comes from the committed `scores/link-audit.json` (built into the API); without that
-record, or with one scored on another auditor model, no tier can leave shadow. The scorer lane that
+record, or with one scored on another auditor model or another reader B (the record's `model` and
+`checkModel`), no tier can leave shadow. The scorer lane that
 writes it belongs to the wording readers.
 
 **Undo.** `WordingTierUndo` (the frame's self-undo, and `POST /api/Pipeline/frame/wording-tiers/<tier>/undo`)
