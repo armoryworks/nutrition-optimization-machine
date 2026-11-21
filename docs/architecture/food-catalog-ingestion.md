@@ -628,7 +628,9 @@ Old books often put the size first and give no count: "1 lb. can tomatoes", "1 q
 with one container word, as one container of the size it states, as `ops/container-era-facts.py`
 already did, so the corpus mines it, the hold-out scores it as a stated line, and the line itself
 weighs the size it states and never an assumed one (a drained one counts one can, scaled by the
-food's drained share). A size before plural containers with no count ("2 lb. cans") does not say
+food's drained share, also when the scraper gave the can's size as the line's amount). Both readers
+take a size in pounds and ounces ("1 lb. 13 oz. can", 822 g) and a size led by a number word
+("one pound can", "a pound can", "Two-pound can"). A size before plural containers with no count ("2 lb. cans") does not say
 how many containers there are: both readers leave it out of the corpus, and the parser still reads
 it as 2 pounds of the food. "1 lb. canned tomatoes" names no container and is a pound of the food.
 

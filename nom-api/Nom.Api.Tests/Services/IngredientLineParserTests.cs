@@ -271,6 +271,7 @@ namespace Nom.Api.Tests.Services
         [InlineData("1 lb. large can tomatoes", 1, "Pound", "Can")]
         [InlineData("a pound can of coffee", 1, "Pound", "Can")]
         [InlineData("one pound can salmon", 1, "Pound", "Can")]
+        [InlineData("one and a half pound can tomatoes", 1.5, "Pound", "Can")]
         [InlineData("1 lb. 13 oz. can peaches", 29, "Ounce", "Can")]
         [InlineData("a 3-oz. package cream cheese", 3, "Ounce", "Package")]
         [InlineData("one 8-ounce bottle catsup", 8, "Ounce", "Bottle")]
@@ -309,6 +310,12 @@ namespace Nom.Api.Tests.Services
         [InlineData(1.0, "cup", "1 cup chickpeas, drained", 1, "Cup")]
         [InlineData(null, null, "1 lb. can tomatoes, drained", 1, "Can")]
         [InlineData(1.0, "can", "1 lb. can of peas, drained", 1, "Can")]
+        [InlineData(1.0, "lb", "1 lb. can black beans, drained", 1, "Can")]
+        [InlineData(16.0, "oz", "1 lb. can black beans, drained", 1, "Can")]
+        [InlineData(15.0, "oz", "1 (15 oz) can black beans, drained", 1, "Can")]
+        [InlineData(30.0, "ounces", "2 cans (15 oz each) pinto beans, drained", 2, "Can")]
+        [InlineData(2.0, "cups", "1 lb. can black beans, drained", 2, "Cup")]
+        [InlineData(8.0, "oz", "1 lb. can black beans, drained", 8, "Ounce")]
         public void A_food_weighed_drained_keeps_its_count_of_cans_instead_of_the_net_weight(double? quantity, string? unit, string raw, double expected, string measurement)
         {
             IngredientLineParser.Normalize((decimal?)quantity, unit, raw, drained: true).Should().Be(new ParsedQuantity((decimal)expected, measurement));

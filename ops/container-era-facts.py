@@ -56,7 +56,12 @@ SIZE = r"(?:about\s+)?(?:\d+(?:[\s-]+\d+/\d+|/\d+|\.\d+)?[½¼¾⅓⅔⅛]?|[½�
 QUALIFIER = r"(?:(?:large|small|medium|big|regular|standard|whole|full|tall|jumbo)\s+)*"
 CONTAINER = r"(?:cans?|tins?|jars?|bottles?|box(?:es)?|bags?|packets?|pouch(?:es)?|sachets?|envelopes?|cartons?|tubs?|containers?|packages?|pkgs?|packs?)\b\.?"
 ONE_CONTAINER = r"(?:can|tin|jar|bottle|box|bag|packet|pouch|sachet|envelope|carton|tub|container|package|pkg|pack)\b\.?"
-SIZE_FIRST = re.compile(r"^\s*" + SIZE + r"\s*" + QUALIFIER + ONE_CONTAINER, re.I)
+UNIT = r"(?:fl\.?\s*)?(?:oz|ounces?|lbs?|pounds?|g|grams?|kg|ml|pints?|quarts?|cups?)\.?"
+POUNDS_AND_OUNCES = r"\d+\s*(?:lbs?|pounds?)\.?[\s,]*(?:and\s+)?\d+(?:\.\d+)?\s*(?:oz|ounces?)\.?"
+SIZE_WORD = (r"(?:three[\s-]quarters|two[\s-]thirds|one[\s-]third|a\s+half|one[\s-]half|a\s+quarter|one[\s-]quarter|half|quarter|"
+             r"one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|an?)")
+LEAD_SIZE = r"(?:about\s+)?(?:" + POUNDS_AND_OUNCES + r"|" + SIZE_WORD + r"(?:\s+and\s+" + SIZE_WORD + r")?[\s-]+" + UNIT + r")"
+SIZE_FIRST = re.compile(r"^\s*(?:" + LEAD_SIZE + r"|" + SIZE + r")\s*" + QUALIFIER + ONE_CONTAINER, re.I)
 STATED = [
     SIZE_FIRST,
     re.compile(r"^\s*" + COUNT + r"\s*\(?\s*" + SIZE + r"\s*\)?\s*" + QUALIFIER + CONTAINER, re.I),
@@ -66,7 +71,7 @@ STATED = [
 
 
 def states_size(line):
-    """Whether the line states the size of its container by the count and the container word, as "1 (3 oz) package", "1 package (3 ounces)" or "10-oz. can"; a size before plural containers with no count ("2 lb. cans") says not how many and states none."""
+    """Whether the line states the size of its container by the count and the container word, as "1 (3 oz) package", "1 package (3 ounces)" or "10-oz. can", or by a size before one container with no count ("1 lb. 13 oz. can", "one pound can"); a size before plural containers with no count ("2 lb. cans") says not how many and states none."""
     return any(p.search(line) for p in STATED)
 
 

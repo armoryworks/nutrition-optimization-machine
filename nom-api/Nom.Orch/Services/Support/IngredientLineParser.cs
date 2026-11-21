@@ -555,16 +555,26 @@ namespace Nom.Orch.Services.Support
         /// (with conversion), no unit meaning pieces; a missing quantity is parsed from the raw line.
         /// A count of pieces, cans or packages gives way to the size the raw line states, unless
         /// <paramref name="drained"/> says the food is weighed drained: a can's stated size is its net
-        /// weight with the liquid, so such a line stays a count of cans or packages.
+        /// weight with the liquid, so such a line stays a count of cans or packages, also when the
+        /// scraper took that stated size for the amount ("1 lb" for "1 lb. can black beans, drained").
         /// </summary>
         public static ParsedQuantity? Normalize(decimal? quantity, string? unit, string? rawLine, bool drained = false)
         {
             if (quantity is not > 0) return drained && SizedContainers(rawLine) is { } counted ? counted : Parse(rawLine);
 
             var mapped = FromUnit(quantity.Value, string.IsNullOrWhiteSpace(unit) ? null : unit.Trim().TrimEnd('.'));
-            if ((mapped.MeasurementName != Piece && !IsContainer(mapped.MeasurementName)) || StatedSize(rawLine) is not { } stated) return mapped;
+            if (StatedSize(rawLine) is not { } stated) return mapped;
+            if (drained && SameAmount(mapped, stated) && SizedContainers(rawLine) is { } containers) return containers;
+            if (mapped.MeasurementName != Piece && !IsContainer(mapped.MeasurementName)) return mapped;
             return drained ? SizedContainers(rawLine) ?? mapped : stated;
         }
+
+        private static readonly HashSet<string> Masses = new() { "Ounce", "Pound", "Gram", "Kilogram" };
+
+        private static bool SameAmount(ParsedQuantity a, ParsedQuantity b) =>
+            Masses.Contains(a.MeasurementName) == Masses.Contains(b.MeasurementName)
+            && GramsOrMillilitersPer.TryGetValue(a.MeasurementName, out var perA) && GramsOrMillilitersPer.TryGetValue(b.MeasurementName, out var perB)
+            && Math.Abs(a.Quantity * perA - b.Quantity * perB) <= 0.01m * b.Quantity * perB;
 
         private static decimal? ParseQuantity(string text)
         {

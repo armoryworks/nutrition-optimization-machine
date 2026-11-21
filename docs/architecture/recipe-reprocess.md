@@ -290,7 +290,8 @@ model) on every changed line: A1 the amount stands in the line's text, or for a 
 method sentence that names the food, as a number that text states times an old measure that same
 text names (a quart is 4 cups, a gill half a cup, a pound 16 ounces), within a range it states
 ("2 to 3", "2-3", "2 or 3"), or as two numbers it states one after the other multiplied or added
-("2 cans of 15 oz"); "a" or "an" counts as one only before a measure or the food, and a number between
+("2 cans of 15 oz"), or as pounds and ounces it states added up in ounces, alone or times a number
+stated before them ("1 lb. 13 oz. can" is 29 ounces, "2 cans (1 lb. 4 oz. each)" 40); "a" or "an" counts as one only before a measure or the food, and a number between
 two unrelated numbers ("cook 10 minutes, then 2 more onions") grounds nothing. A line that starts with
 a number or "two cups of" stored with no amount fails. A2 a line moved to another food names that food. A3 pieces only of a food with a weight
 per item and never of a liquid or of a line that states a measure; no volume of a whole bird; a
@@ -302,7 +303,8 @@ USDA class word on the part that follows it ("Spices, pepper, black", "Leavening
 checked as well as a new food named from its wording ("1 gallon of salt" fails, "1 quart salt" for a
 brine passes; `reprocess-audit/3`, since A6 reads energy only and salt has none; `reprocess-audit/4`
 since `cleanup2/parser-size-first`, as a line in pieces that starts "1 lb. can" is now read as a
-can like "1 (16 oz) can" and so does not fail A3 for its measure). A4 a
+can like "1 (16 oz) can" and so does not fail A3 for its measure, and A1 grounds pounds and ounces
+added up, so "1 lb. 13 oz. can peaches" moving from 1 pound to 29 ounces passes). A4 a
 recipe fails no more checks after than before. A5 (live) ten rebuilt recipes rebuilt again change
 nothing. A6 the kcal per serving of the rebuilt lines (grams by the label's own conversion, the food's
 Calories per 100 g, ingredient lines only, the recipe's servings) lies in 30 to 2,500, or no further
