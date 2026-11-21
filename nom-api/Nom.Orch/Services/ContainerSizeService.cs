@@ -20,8 +20,11 @@ namespace Nom.Orch.Services
 {
     /// <summary>
     /// The container size lane. Sizes come only from deterministic sources (a USDA portion on the
-    /// food, the branded mode, the cited can table, a standard of fill) and are written by
-    /// <c>Nom.Import --container-sizes</c> in shadow. The hold-out scorer hides the size each
+    /// food, the branded mode, the cited can table, a standard of fill, and for old and undated
+    /// books the sized lines of the same book or era, <see cref="ContainerCorpusSizes"/>) and are
+    /// written by <c>Nom.Import --container-sizes</c> (and <c>--corpus</c>) in shadow. Lines of old
+    /// and undated books are scored apart, under the old-book tier that sized them
+    /// (<see cref="OldBookTiers"/>), a corpus tier with the line left out. The hold-out scorer hides the size each
     /// sized container line states, asks which size the lane would assume for that food, kind and
     /// era, and sets each key active, shadow or paused by <see cref="ContainerSizeQualifier"/>; the
     /// whole lane runs on the lane frame (lane container-sizes, tier *), whose decisions are the
@@ -32,9 +35,22 @@ namespace Nom.Orch.Services
     {
         public const string Lane = AiLanes.ContainerSizes;
 
-        /// <summary>The tier of the lines an old or undated book weighs at another era's size (<see cref="ContainerBasis.OtherEra"/>), qualified and paused on their own hold-out.</summary>
-        public const string OtherEraTier = "other-era";
-        public const string RuleVersion = "container-sizes/1";
+        /// <summary>The old-book tier of lines sized by the same book's sized lines of the food and container.</summary>
+        public const string SameBookTier = "same-book";
+
+        /// <summary>The old-book tier of lines sized by the sized lines of the books of the same era.</summary>
+        public const string SameEraTier = "same-era";
+
+        /// <summary>The old-book tier of lines sized by a cited period source (a historic size for an undated book, a period candidate can).</summary>
+        public const string PeriodTier = "period";
+
+        /// <summary>The old-book tier of lines sized by today's most common size, the last tier.</summary>
+        public const string ModernTier = "modern-fallback";
+
+        /// <summary>The tiers an old or undated book's unsized line is weighed under, in the order they are tried (<see cref="ContainerBasis.OldBookTier"/>); each qualifies and pauses on its own hold-out with <see cref="Policy"/>.</summary>
+        public static readonly IReadOnlyList<string> OldBookTiers = new[] { SameBookTier, SameEraTier, PeriodTier, ModernTier };
+
+        public const string RuleVersion = "container-sizes/2";
         public const string EntityType = "IngredientContainerSize";
         public const string SetChange = "ContainerSizeSet";
         public const string RetireChange = "ContainerSizeRetire";
@@ -59,7 +75,7 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>A row as a journal entry keeps it.</summary>
-        public sealed record RowValue(long IngredientId, string Kind, string Era, string SizeWord, decimal NetGrams, decimal? DrainedGrams, string SourceRef, string Status, long? Replaces = null);
+        public sealed record RowValue(long IngredientId, string Kind, string Era, string SizeWord, decimal NetGrams, decimal? DrainedGrams, string SourceRef, string Status, long? Replaces = null, string? Book = null);
 
         /// <summary>An undo entry: the entry it reverses and the value it restored.</summary>
         public sealed record UndoValue(long Undoes, string RestoredStatus);
@@ -67,11 +83,14 @@ namespace Nom.Orch.Services
         /// <summary>The signals of one hold-out decision.</summary>
         public sealed record HoldoutSignals(long RecipeId, long IngredientId, int SortOrder, string Line, string Era, decimal Stated, decimal Assumed, long RowId, string Class, bool Hit);
 
-        public static string Key(long ingredientId, string kind, string era, string sizeWord) =>
-            string.Create(CultureInfo.InvariantCulture, $"{ingredientId}/{kind}/{era}/{(sizeWord.Length == 0 ? "-" : sizeWord)}");
+        public static string Key(long ingredientId, string kind, string era, string sizeWord, string? book = null) =>
+            string.Create(CultureInfo.InvariantCulture, $"{ingredientId}/{kind}/{era}/{(sizeWord.Length == 0 ? "-" : sizeWord)}")
+            + (book == null ? string.Empty : "/book:" + ContainerCorpusSizes.BookToken(book));
+
+        private static string Key(IngredientContainerSizeEntity r) => Key(r.IngredientId, r.ContainerKind, r.Era, r.SizeWord, r.SourceAttribution);
 
         private static RowValue ValueOf(IngredientContainerSizeEntity r, long? replaces = null) =>
-            new(r.IngredientId, r.ContainerKind, r.Era, r.SizeWord, r.NetGrams, r.DrainedGrams, r.SourceRef, r.Status, replaces);
+            new(r.IngredientId, r.ContainerKind, r.Era, r.SizeWord, r.NetGrams, r.DrainedGrams, r.SourceRef, r.Status, replaces, r.SourceAttribution);
 
         private static AuditLogEntryEntity Entry(long rowId, string changeType, string key, string? oldValue, string? newValue, DateTime at, long personId) => new()
         {
@@ -89,13 +108,13 @@ namespace Nom.Orch.Services
         {
             var report = new ContainerSizeWriteReport { DryRun = dryRun, Stamp = stamp, Proposed = proposals.Count };
             var standing = await _db.IngredientContainerSizes.Where(r => r.Status != ContainerSizeStatus.Retired).ToListAsync(cancellationToken);
-            var byKey = standing.GroupBy(r => Key(r.IngredientId, r.ContainerKind, r.Era, r.SizeWord)).ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.Id).ToList());
+            var byKey = standing.GroupBy(Key).ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.Id).ToList());
             var proposed = new HashSet<string>(StringComparer.Ordinal);
             var pending = new List<(IngredientContainerSizeEntity Row, string Key, long? Replaces)>();
 
-            foreach (var p in proposals.OrderBy(p => p.IngredientId).ThenBy(p => p.Kind, StringComparer.Ordinal).ThenBy(p => p.Era, StringComparer.Ordinal).ThenBy(p => p.SizeWord, StringComparer.Ordinal))
+            foreach (var p in proposals.OrderBy(p => p.IngredientId).ThenBy(p => p.Kind, StringComparer.Ordinal).ThenBy(p => p.Era, StringComparer.Ordinal).ThenBy(p => p.SizeWord, StringComparer.Ordinal).ThenBy(p => p.Book, StringComparer.Ordinal))
             {
-                var key = Key(p.IngredientId, p.Kind, p.Era, p.SizeWord);
+                var key = Key(p.IngredientId, p.Kind, p.Era, p.SizeWord, p.Book);
                 if (!proposed.Add(key))
                 {
                     report.Lines.Add($"skipped {key}: proposed twice");
@@ -122,6 +141,8 @@ namespace Nom.Orch.Services
                     SourcesAgreeing = p.SourcesAgreeing,
                     ModeShare = p.ModeShare is { } s ? Math.Round(s, 4) : null,
                     Products = p.Products,
+                    SourceAttribution = p.Book,
+                    Evidence = p.Evidence is { } evidence ? Clip(evidence, 1023) : null,
                     Status = ContainerSizeStatus.Shadow,
                     StatusReason = "written by an import run; not scored yet",
                     CreatedDate = stamp,
@@ -188,22 +209,46 @@ namespace Nom.Orch.Services
                 {
                     Id = -(i + 1), IngredientId = p.IngredientId, ContainerKind = p.Kind, Era = p.Era, SizeWord = p.SizeWord,
                     NetGrams = Math.Round(p.NetGrams, 2), DrainedGrams = p.DrainedGrams, SizeText = p.SizeText, SourceRef = p.SourceRef,
-                    Class = p.Class, Status = ContainerSizeStatus.Shadow,
+                    Class = p.Class, Status = ContainerSizeStatus.Shadow, SourceAttribution = p.Book, Evidence = p.Evidence,
                 }).ToList();
             report.Rows = rows.Count;
             report.Signature = Signature(rows);
             var byFood = rows.GroupBy(r => r.IngredientId).ToDictionary(g => g.Key, g => g.ToList());
             var byId = rows.ToDictionary(r => r.Id);
             var foodIds = byFood.Keys.ToList();
+            var bookRows = rows.Where(r => ContainerCorpusSizes.TierOf(r.SourceRef) == ContainerCorpusSizes.BookTier && r.SourceAttribution != null)
+                .GroupBy(r => (r.SourceAttribution!, r.IngredientId, r.ContainerKind, r.SizeWord)).ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.Id).First());
+            var eraRows = rows.Where(r => ContainerCorpusSizes.TierOf(r.SourceRef) == ContainerCorpusSizes.EraTier)
+                .GroupBy(r => (r.Era, r.IngredientId, r.ContainerKind, r.SizeWord)).ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.Id).First());
 
             var lines = await HoldoutLinesAsync(foodIds, cancellationToken);
+            var corpusOf = new Dictionary<HoldoutLine, CorpusLine>();
+            foreach (var line in lines)
+            {
+                if (ContainerCorpusSizes.Read(line.Book, line.Era, line.IngredientId, line.RawLine, line.GramsPerMilliliter) is { } read) corpusOf[line] = read;
+            }
+            var corpusByKey = corpusOf.Values.GroupBy(c => (c.IngredientId, c.Kind, c.SizeWord)).ToDictionary(g => g.Key, g => g.ToList());
+
             var judged = new List<HoldoutSignals>();
-            var otherEra = new List<HoldoutSignals>();
+            var byTier = OldBookTiers.ToDictionary(t => t, _ => new List<HoldoutSignals>(), StringComparer.Ordinal);
             foreach (var line in lines)
             {
                 if (ContainerSizeResolver.StatedPerContainer(line.RawLine, line.GramsPerMilliliter) is not { Reason: null } stated) continue;
-                var candidates = byFood[line.IngredientId].Select(r => new ContainerSizeCandidate(r.ContainerKind, r.Era, r.SizeWord, r.NetGrams, r.DrainedGrams, r.SourceRef, r.Status, r.Id));
-                var assumed = ContainerSizeResolver.Resolve(line.RawLine, line.Era, candidates, null, line.GramsPerMilliliter, hideStatedSize: true, activeOnly: false, netOnly: true, usdaCategoryId: line.UsdaCategoryId);
+                var candidates = byFood[line.IngredientId].Where(r => ContainerCorpusSizes.TierOf(r.SourceRef) == null)
+                    .Select(r => new ContainerSizeCandidate(r.ContainerKind, r.Era, r.SizeWord, r.NetGrams, r.DrainedGrams, r.SourceRef, r.Status, r.Id))
+                    .ToList();
+                if (corpusOf.TryGetValue(line, out var own))
+                {
+                    var group = corpusByKey[(own.IngredientId, own.Kind, own.SizeWord)];
+                    if (bookRows.TryGetValue((own.Book, own.IngredientId, own.Kind, own.SizeWord), out var bookRow)
+                        && ContainerCorpusSizes.LeaveOut(ContainerCorpusSizes.BookTier, own, group) is { } fromBook)
+                        candidates.Add(new ContainerSizeCandidate(own.Kind, bookRow.Era, own.SizeWord, fromBook.Grams, null, bookRow.SourceRef, bookRow.Status, bookRow.Id, own.Book));
+                    if (eraRows.TryGetValue((own.Era, own.IngredientId, own.Kind, own.SizeWord), out var eraRow)
+                        && ContainerCorpusSizes.LeaveOut(ContainerCorpusSizes.EraTier, own, group) is { } fromEra)
+                        candidates.Add(new ContainerSizeCandidate(own.Kind, eraRow.Era, own.SizeWord, fromEra.Grams, null, eraRow.SourceRef, eraRow.Status, eraRow.Id));
+                }
+                var assumed = ContainerSizeResolver.Resolve(line.RawLine, line.Era, candidates, null, line.GramsPerMilliliter, hideStatedSize: true, activeOnly: false, netOnly: true,
+                    usdaCategoryId: line.UsdaCategoryId, book: line.Book);
                 if (assumed.GramsPerContainer is not { } grams || assumed.RowId == 0)
                 {
                     report.LinesWithoutKey++;
@@ -212,18 +257,19 @@ namespace Nom.Orch.Services
                 var row = byId[assumed.RowId];
                 var signals = new HoldoutSignals(line.RecipeId, line.IngredientId, line.SortOrder, line.RawLine, line.Era, stated.Grams, grams, row.Id, row.Class,
                     ContainerSizeAgreement.Hit(grams, stated.Grams));
-                if (ContainerBasis.OwnEra(assumed.Basis, line.Era)) judged.Add(signals);
-                else otherEra.Add(signals);
+                if (ContainerBasis.OldBookTier(assumed.Basis, line.Era) is { } tier) byTier[tier].Add(signals);
+                else judged.Add(signals);
             }
-            report.OtherEraLines = otherEra.Count;
-            report.OtherEraAgree = otherEra.Count(j => j.Hit);
+            report.OtherEraLines = byTier.Values.Sum(t => t.Count);
+            report.OtherEraAgree = byTier.Values.Sum(t => t.Count(j => j.Hit));
             report.HoldoutLines = judged.Count;
             report.HoldoutAgree = judged.Count(j => j.Hit);
 
             var at = lines.ToDictionary(l => (l.RecipeId, l.IngredientId, l.SortOrder), l => l.CreatedDate);
             ContainerHoldoutLine Holdout(HoldoutSignals j) => new(j.Hit, at[(j.RecipeId, j.IngredientId, j.SortOrder)]);
-            var byRow = judged.GroupBy(j => j.RowId).ToDictionary(g => g.Key, g => g.Select(Holdout).ToList());
-            var byClass = judged.GroupBy(j => j.Class).ToDictionary(g => g.Key, g => g.Select(Holdout).ToList());
+            var keyedLines = judged.Concat(byTier[SameBookTier]).Concat(byTier[SameEraTier]).ToList();
+            var byRow = keyedLines.GroupBy(j => j.RowId).ToDictionary(g => g.Key, g => g.Select(Holdout).ToList());
+            var byClass = keyedLines.GroupBy(j => j.Class).ToDictionary(g => g.Key, g => g.Select(Holdout).ToList());
 
             var now = DateTime.UtcNow;
             var changes = new List<(IngredientContainerSizeEntity Row, string Old, ContainerKeyVerdict Verdict)>();
@@ -234,7 +280,7 @@ namespace Nom.Orch.Services
                 if (verdict.Status != row.Status)
                 {
                     changes.Add((row, row.Status, verdict));
-                    report.Changes.Add($"{Key(row.IngredientId, row.ContainerKind, row.Era, row.SizeWord)} ({row.Class}): {row.Status} -> {verdict.Status}: {verdict.Reason}");
+                    report.Changes.Add($"{Key(row)} ({row.Class}): {row.Status} -> {verdict.Status}: {verdict.Reason}");
                 }
                 report.ByStatus[verdict.Status] = report.ByStatus.GetValueOrDefault(verdict.Status) + 1;
                 if (!apply) continue;
@@ -254,7 +300,11 @@ namespace Nom.Orch.Services
                     verdicts.Count(s => s == ContainerSizeStatus.Active), verdicts.Count(s => s == ContainerSizeStatus.Shadow), verdicts.Count(s => s == ContainerSizeStatus.Paused)));
             }
 
-            if (!apply) return report;
+            if (!apply)
+            {
+                report.Tiers.AddRange(OldBookTiers.Select(t => new ContainerSizeTierFigures(t, byTier[t].Count, byTier[t].Count(j => j.Hit), null, null)));
+                return report;
+            }
             foreach (var (row, old, verdict) in changes)
             {
                 var before = ValueOf(row) with { Status = old };
@@ -262,9 +312,9 @@ namespace Nom.Orch.Services
                 row.LastModifiedDate = now;
                 row.LastModifiedByPersonId = personId;
                 _db.AuditLogEntries.Add(Entry(row.Id, verdict.Status == ContainerSizeStatus.Paused ? PauseChange : StatusChange,
-                    Key(row.IngredientId, row.ContainerKind, row.Era, row.SizeWord), LaneJournal.Write(before), LaneJournal.Write(ValueOf(row)), now, personId));
+                    Key(row), LaneJournal.Write(before), LaneJournal.Write(ValueOf(row)), now, personId));
                 if (verdict.Status == ContainerSizeStatus.Paused)
-                    _logger.LogWarning("Container size {Key} paused: {Reason}", Key(row.IngredientId, row.ContainerKind, row.Era, row.SizeWord), verdict.Reason);
+                    _logger.LogWarning("Container size {Key} paused: {Reason}", Key(row), verdict.Reason);
             }
             await _db.SaveChangesAsync(cancellationToken);
 
@@ -275,18 +325,21 @@ namespace Nom.Orch.Services
                     .ToListAsync(cancellationToken))
                 .ToHashSet(StringComparer.Ordinal);
             await RecordAsync(LaneTiers.Whole, judged, mode, seen);
-            var otherMode = await _frame.ModeAsync(Lane, OtherEraTier, cancellationToken);
-            await RecordAsync(OtherEraTier, otherEra, otherMode, seen);
+            foreach (var tier in OldBookTiers)
+                await RecordAsync(tier, byTier[tier], await _frame.ModeAsync(Lane, tier, cancellationToken), seen);
             await _frame.AuditAsync(Lane, LaneTiers.Whole, DateTime.UtcNow.AddDays(-400), AuditEverything, new HoldoutRule(), new HoldoutRule(), null, cancellationToken);
             var lane = await _frame.EvaluateAsync(new LaneEvaluateRequest(Lane, LaneTiers.Whole, report.Signature, Policy, AuditorScore.ExactRule), cancellationToken);
             report.LaneMode = lane.Mode;
             report.LaneReason = lane.Reason;
-            await _frame.AuditAsync(Lane, OtherEraTier, DateTime.UtcNow.AddDays(-400), AuditEverything, new HoldoutRule(), new HoldoutRule(), null, cancellationToken);
-            var other = await _frame.EvaluateAsync(new LaneEvaluateRequest(Lane, OtherEraTier, report.Signature, Policy, AuditorScore.ExactRule), cancellationToken);
-            report.OtherEraMode = other.Mode;
-            report.OtherEraReason = other.Reason;
-            _logger.LogInformation("Container sizes scored: {Agree}/{Lines} hold-out lines agree; {Changes} status changes; lane {Mode} ({Reason}); old-book tier {OtherAgree}/{OtherLines}, {OtherMode} ({OtherReason})",
-                report.HoldoutAgree, report.HoldoutLines, changes.Count, lane.Mode, lane.Reason, report.OtherEraAgree, report.OtherEraLines, other.Mode, other.Reason);
+            foreach (var tier in OldBookTiers)
+            {
+                await _frame.AuditAsync(Lane, tier, DateTime.UtcNow.AddDays(-400), AuditEverything, new HoldoutRule(), new HoldoutRule(), null, cancellationToken);
+                var verdict = await _frame.EvaluateAsync(new LaneEvaluateRequest(Lane, tier, report.Signature, Policy, AuditorScore.ExactRule), cancellationToken);
+                report.Tiers.Add(new ContainerSizeTierFigures(tier, byTier[tier].Count, byTier[tier].Count(j => j.Hit), verdict.Mode, verdict.Reason));
+            }
+            _logger.LogInformation("Container sizes scored: {Agree}/{Lines} hold-out lines agree; {Changes} status changes; lane {Mode} ({Reason}); old-book tiers {Tiers}",
+                report.HoldoutAgree, report.HoldoutLines, changes.Count, lane.Mode, lane.Reason,
+                string.Join("; ", report.Tiers.Select(t => $"{t.Tier} {t.Agree}/{t.Lines} {t.Mode}")));
             return report;
 
             async Task RecordAsync(string tier, IEnumerable<HoldoutSignals> decisions, string tierMode, HashSet<string> recorded)
@@ -322,8 +375,8 @@ namespace Nom.Orch.Services
         /// <summary>A standing container size and its food's name.</summary>
         public sealed record StatusRow(IngredientContainerSizeEntity Row, string? Name);
 
-        /// <summary>A sized container line on a food that has a size, with the era of its recipe.</summary>
-        public sealed record HoldoutLine(long RecipeId, long IngredientId, int SortOrder, string RawLine, DateTime CreatedDate, decimal? GramsPerMilliliter, string Era, int? UsdaCategoryId = null);
+        /// <summary>A sized container line on a food that has a size, with the era of its recipe and, for a book recipe, its book.</summary>
+        public sealed record HoldoutLine(long RecipeId, long IngredientId, int SortOrder, string RawLine, DateTime CreatedDate, decimal? GramsPerMilliliter, string Era, int? UsdaCategoryId = null, string? Book = null);
 
         private async Task<List<HoldoutLine>> HoldoutLinesAsync(IReadOnlyList<long> foodIds, CancellationToken cancellationToken)
         {
@@ -337,11 +390,19 @@ namespace Nom.Orch.Services
                 {
                     if (ContainerKinds.FromText(r.RawLine) == null) continue;
                     var era = ContainerEras.ForRecipe(r.SourceSite, r.SourceAttribution, eras);
-                    result.Add(new HoldoutLine(r.RecipeId, r.IngredientId, r.SortOrder, r.RawLine, r.CreatedDate, r.GramsPerMilliliter, era, r.UsdaCategoryId));
+                    result.Add(new HoldoutLine(r.RecipeId, r.IngredientId, r.SortOrder, r.RawLine, r.CreatedDate, r.GramsPerMilliliter, era, r.UsdaCategoryId, BookOf(r.SourceSite, r.SourceAttribution)));
                 }
             }
             return result;
         }
+
+        /// <summary>A standing row as a proposal, so a dry run of one source scores it beside the other sources' standing rows.</summary>
+        public static ContainerSizeProposal AsProposal(IngredientContainerSizeEntity r) =>
+            new(r.IngredientId, r.ContainerKind, r.Era, r.SizeWord, r.NetGrams, r.DrainedGrams, r.SizeText, r.SourceRef, r.Class, r.SourcesAgreeing, r.ModeShare, r.Products, r.SourceAttribution, r.Evidence);
+
+        /// <summary>The book a recipe comes from: its attribution when it has no web source; null for a web recipe or one written in the app.</summary>
+        public static string? BookOf(string? sourceSite, string? sourceAttribution) =>
+            string.IsNullOrWhiteSpace(sourceSite) && !string.IsNullOrWhiteSpace(sourceAttribution) ? sourceAttribution : null;
 
         /// <summary>A hash of the rule version and every standing size, so a new import or a rule change starts the lane's count again.</summary>
         public static string Signature(IEnumerable<IngredientContainerSizeEntity> rows)
@@ -471,7 +532,18 @@ namespace Nom.Orch.Services
             : sourceRef.StartsWith("deterministic:fdc-branded-mode", StringComparison.Ordinal) ? "branded-mode"
             : sourceRef.StartsWith("deterministic:can-table", StringComparison.Ordinal) ? "can-table"
             : sourceRef.StartsWith("deterministic:standard-of-fill", StringComparison.Ordinal) ? "standard-of-fill"
+            : sourceRef.StartsWith(ContainerCorpusSizes.BookSourcePrefix, StringComparison.Ordinal) ? CorpusBookSource
+            : sourceRef.StartsWith(ContainerCorpusSizes.EraSourcePrefix, StringComparison.Ordinal) ? CorpusEraSource
             : "other";
+
+        public const string CorpusBookSource = "corpus-book";
+        public const string CorpusEraSource = "corpus-era";
+
+        /// <summary>The source kinds the corpus run writes; the USDA import passes them as unread, so it never retires a corpus row.</summary>
+        public static readonly IReadOnlyList<string> CorpusSources = new[] { CorpusBookSource, CorpusEraSource };
+
+        /// <summary>The source kinds the USDA import writes; the corpus run passes them as unread, so it never retires an import's row.</summary>
+        public static readonly IReadOnlyList<string> ImportSources = new[] { "portion", "branded-mode", "can-table", "standard-of-fill", "other" };
 
         private static string Clip(string value, int length) => value.Length <= length ? value : value[..length];
     }
@@ -492,8 +564,8 @@ namespace Nom.Orch.Services
 
         public async Task<LaneUndoResult> UndoSinceAsync(string tier, DateTime sinceUtc, bool apply, CancellationToken cancellationToken)
         {
-            if (tier == ContainerSizeService.OtherEraTier)
-                return new LaneUndoResult(0, 0, 0, "container sizes, old-book tier: it writes no key; its lines stop being weighed while it is not live");
+            if (ContainerSizeService.OldBookTiers.Contains(tier))
+                return new LaneUndoResult(0, 0, 0, $"container sizes, old-book tier {tier}: it writes no key; its lines stop being weighed while it is not live");
             var report = await _sizes.UndoSinceAsync(sinceUtc, apply, SystemConstants.SystemPersonId, statusOnly: true, cancellationToken);
             return new LaneUndoResult(report.Undone, report.Skipped, 0, $"container sizes: keys made active since {sinceUtc:u}");
         }

@@ -19,8 +19,9 @@ namespace Nom.Orch.Services.Support
     /// <see cref="ContainerSizeResolver"/> at the size of its food's active row in
     /// nutrient.IngredientContainerSize (or the cited can table), by the recipe's era, and only
     /// while the container-sizes lane is live on the lane frame; otherwise it stays uncounted. A
-    /// line of an old or undated book that would take another era's size (<see cref="ContainerBasis.OtherEra"/>)
-    /// is weighed only while the lane's old-book tier is live too. A line without a container word
+    /// line of an old or undated book sized by one of the lane's old-book tiers (the same book's
+    /// sized lines, the same era's, a cited period source, today's size; <see cref="ContainerBasis.OldBookTier"/>)
+    /// is weighed only while that tier is live too. A line without a container word
     /// in its text is read by its unit ("1 Jar" of the food).
     /// Every weight it gives is an estimate and is shown as one.
     /// </summary>
@@ -30,23 +31,27 @@ namespace Nom.Orch.Services.Support
 
         private readonly IReadOnlyDictionary<long, IReadOnlyList<ContainerSizeCandidate>> _sizes;
 
-        public const string OtherEraNotLive = "an old or undated book's size from another era, and the lane's old-book tier is not live";
+        public const string OtherEraNotLive = "an old or undated book's size by a tier of the lane that is not live";
 
         /// <summary>Weighs nothing: the lane is not live, or the recipe has no container line.</summary>
         public static readonly ContainerWeighing Off = new(false, ContainerEras.Modern, new Dictionary<long, IReadOnlyList<ContainerSizeCandidate>>());
 
-        public ContainerWeighing(bool live, string era, IReadOnlyDictionary<long, IReadOnlyList<ContainerSizeCandidate>> sizesByFood, bool otherEraLive = false)
+        public ContainerWeighing(bool live, string era, IReadOnlyDictionary<long, IReadOnlyList<ContainerSizeCandidate>> sizesByFood, IEnumerable<string>? liveTiers = null, string? book = null)
         {
             Live = live;
             Era = era;
-            OtherEraLive = otherEraLive;
+            LiveTiers = (liveTiers ?? Enumerable.Empty<string>()).ToHashSet(StringComparer.Ordinal);
+            Book = book;
             _sizes = sizesByFood;
         }
 
         public bool Live { get; }
 
-        /// <summary>Whether the lane's old-book tier (<see cref="ContainerSizeService.OtherEraTier"/>) is live, so a line may take another era's size.</summary>
-        public bool OtherEraLive { get; }
+        /// <summary>The lane's old-book tiers (<see cref="ContainerSizeService.OldBookTiers"/>) that are live, so a line may take the size they give.</summary>
+        public IReadOnlySet<string> LiveTiers { get; }
+
+        /// <summary>The recipe's book (<see cref="ContainerSizeService.BookOf"/>), whose own sized lines give the same-book tier's sizes; null for a web recipe.</summary>
+        public string? Book { get; }
 
         /// <summary>The recipe's era (<see cref="ContainerEras.ForRecipe"/>).</summary>
         public string Era { get; }
@@ -61,8 +66,8 @@ namespace Nom.Orch.Services.Support
                 ? rawLine
                 : string.Create(CultureInfo.InvariantCulture, $"{quantity} {measurement.Name} {food?.Name}");
             var weight = ContainerSizeResolver.Resolve(text, Era, _sizes.GetValueOrDefault(ingredientId) ?? NoSizes, food?.Description, food?.GramsPerMilliliter,
-                usdaCategoryId: food?.FdcCategoryId);
-            return weight.Counted && !OtherEraLive && ContainerBasis.OtherEra(weight.Basis, Era)
+                usdaCategoryId: food?.FdcCategoryId, book: Book);
+            return weight.Counted && ContainerBasis.OldBookTier(weight.Basis, Era) is { } tier && !LiveTiers.Contains(tier)
                 ? weight with { Grams = null, Reason = OtherEraNotLive }
                 : weight;
         }
@@ -75,16 +80,22 @@ namespace Nom.Orch.Services.Support
         public static Task<bool> LiveAsync(ApplicationDbContext db, CancellationToken cancellationToken = default) =>
             db.LaneStates.AsNoTracking().AnyAsync(s => s.Lane == AiLanes.ContainerSizes && s.Tier == LaneTiers.Whole && s.Mode == LaneMode.Live, cancellationToken);
 
-        /// <summary>Whether the lane's old-book tier is live on the lane frame.</summary>
-        public static Task<bool> OtherEraLiveAsync(ApplicationDbContext db, CancellationToken cancellationToken = default) =>
-            db.LaneStates.AsNoTracking().AnyAsync(s => s.Lane == AiLanes.ContainerSizes && s.Tier == ContainerSizeService.OtherEraTier && s.Mode == LaneMode.Live, cancellationToken);
+        /// <summary>The lane's old-book tiers that are live on the lane frame.</summary>
+        public static async Task<IReadOnlyList<string>> LiveTiersAsync(ApplicationDbContext db, CancellationToken cancellationToken = default)
+        {
+            var tiers = ContainerSizeService.OldBookTiers.ToList();
+            return await db.LaneStates.AsNoTracking()
+                .Where(s => s.Lane == AiLanes.ContainerSizes && tiers.Contains(s.Tier) && s.Mode == LaneMode.Live)
+                .Select(s => s.Tier)
+                .ToListAsync(cancellationToken);
+        }
 
         /// <summary>The active container sizes the label may weigh with: every active row while the lane is live, none otherwise.</summary>
         public static IQueryable<IngredientContainerSizeEntity> WeighableSizes(ApplicationDbContext db) =>
             db.IngredientContainerSizes.Where(s => s.Status == ContainerSizeStatus.Active
                 && db.LaneStates.Any(l => l.Lane == AiLanes.ContainerSizes && l.Tier == LaneTiers.Whole && l.Mode == LaneMode.Live));
 
-        /// <summary>The weighing of one recipe's lines: its era and the active sizes of the foods on its measured container lines, when the lane is live.</summary>
+        /// <summary>The weighing of one recipe's lines: its era, its book and the active sizes of the foods on its measured container lines (of the corpus's book sizes, only its own book's), when the lane is live.</summary>
         public static async Task<ContainerWeighing> ForRecipeAsync(ApplicationDbContext db, RecipeEntity recipe, IEnumerable<RecipeIngredientEntity>? lines = null, CancellationToken cancellationToken = default)
         {
             var foodIds = (lines ?? recipe.RecipeIngredients ?? Enumerable.Empty<RecipeIngredientEntity>())
@@ -99,15 +110,16 @@ namespace Nom.Orch.Services.Support
                 : await db.RecipeSourceEras.AsNoTracking()
                     .Where(e => e.SourceAttribution == recipe.SourceAttribution)
                     .ToDictionaryAsync(e => e.SourceAttribution, e => e.Era, cancellationToken);
+            var book = ContainerSizeService.BookOf(recipe.SourceSite, recipe.SourceAttribution);
             var sizes = await db.IngredientContainerSizes.AsNoTracking()
-                .Where(s => foodIds.Contains(s.IngredientId) && s.Status == ContainerSizeStatus.Active)
+                .Where(s => foodIds.Contains(s.IngredientId) && s.Status == ContainerSizeStatus.Active && (s.SourceAttribution == null || s.SourceAttribution == book))
                 .ToListAsync(cancellationToken);
             var byFood = sizes.GroupBy(s => s.IngredientId).ToDictionary(g => g.Key, g => (IReadOnlyList<ContainerSizeCandidate>)g
                 .OrderBy(s => s.Id)
-                .Select(s => new ContainerSizeCandidate(s.ContainerKind, s.Era, s.SizeWord, s.NetGrams, s.DrainedGrams, s.SourceRef, s.Status, s.Id))
+                .Select(s => new ContainerSizeCandidate(s.ContainerKind, s.Era, s.SizeWord, s.NetGrams, s.DrainedGrams, s.SourceRef, s.Status, s.Id, s.SourceAttribution))
                 .ToList());
             var era = ContainerEras.ForRecipe(recipe.SourceSite, recipe.SourceAttribution, eras);
-            return new ContainerWeighing(true, era, byFood, era != ContainerEras.Modern && await OtherEraLiveAsync(db, cancellationToken));
+            return new ContainerWeighing(true, era, byFood, era != ContainerEras.Modern ? await LiveTiersAsync(db, cancellationToken) : null, book);
         }
 
         /// <summary>
@@ -130,6 +142,8 @@ namespace Nom.Orch.Services.Support
                 ContainerBasis.PeriodSize => source + ", the size of the book's time",
                 ContainerBasis.PeriodNearer => "of the two can sizes " + source + ", the one nearer today's most common size",
                 ContainerBasis.ModernFallback => source + "; today's size, since no size of the book's time is on record",
+                ContainerBasis.SameBook => source,
+                ContainerBasis.SameEra => source,
                 _ => source,
             };
             return head + ": " + why + "; estimated";
@@ -149,6 +163,16 @@ namespace Nom.Orch.Services.Support
                 return parts.Length >= 3
                     ? $"the most common size in USDA branded data ({parts[0]}, {parts[2].Replace("/", " of ", StringComparison.Ordinal)} products)"
                     : "the most common size in USDA branded data";
+            }
+            if (ContainerCorpusSizes.TierOf(first) is { } tier)
+            {
+                var parts = first.Split(':');
+                var held = parts.Length >= 6 ? parts[5].Split('/') : Array.Empty<string>();
+                var spread = parts.Length >= 7 ? parts[6] : null;
+                if (held.Length != 2) return tier == ContainerCorpusSizes.BookTier ? "the size this book states elsewhere" : "the size old books of its time state";
+                return tier == ContainerCorpusSizes.BookTier
+                    ? $"the size this book states for it elsewhere ({held[0]} of {held[1]} sized lines)"
+                    : $"the most common size books of its time state ({held[0]} of {held[1]} books{(spread != null ? ", spread " + spread : string.Empty)})";
             }
             if (first.StartsWith("deterministic:standard-of-fill:", StringComparison.Ordinal))
                 return "the federal standard of fill (" + first["deterministic:standard-of-fill:".Length..] + ")";

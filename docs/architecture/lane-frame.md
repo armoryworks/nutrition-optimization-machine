@@ -10,7 +10,8 @@ The reprocess lane (`reprocess`, tiers `rebuild` and `order`, see `recipe-reproc
 prose rewrite lane (`prose-rewrite`, tier `*`; see `prose-lane.md`), the link re-check
 (`link-recheck`, one tier per rule set; see `link-recheck.md`), the wording tier lane
 (`wording-tiers`, one tier per wording tier; see `wording-tiers.md`), the container size lane
-(`container-sizes`, tier `*`, audited by its own hold-out rule; see `food-catalog-ingestion.md`,
+(`container-sizes`, tier `*` and the old-book tiers `same-book`, `same-era`, `period` and
+`modern-fallback`, audited by its own hold-out rule; see `food-catalog-ingestion.md`,
 "Container sizes") and the wording readers (`wording-readers`, tiers `read`, `lexicon` and `alcohol`;
 see `wording-readers.md`) run on the frame. Lanes that
 exist today (link, repair, line classify, dish grouping, tool tagging) keep their own switches until

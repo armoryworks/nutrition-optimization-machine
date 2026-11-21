@@ -120,7 +120,7 @@ namespace Nom.Api.Services
         /// <summary>
         /// Recipes after <paramref name="cursor"/>, in id order, with a derived label and a measured
         /// container line on a food with nutrient values, whose label is older than a change to that
-        /// food's container sizes, to the container-sizes lane's mode (whole lane or old-book tier) or
+        /// food's container sizes, to the container-sizes lane's mode (whole lane or any old-book tier) or
         /// to their book's era, which change the size such a line is weighed at. A size or an era an
         /// undo removed is a change too, so this query reads soft-deleted size and era rows and
         /// filters every other table by hand.
@@ -135,7 +135,7 @@ namespace Nom.Api.Services
                     && !ri.Ingredient.IsDeleted && ri.Ingredient.IngredientNutrients.Any(n => !n.IsDeleted))
                 && (db.IngredientContainerSizes.Any(s => (s.LastModifiedDate ?? s.CreatedDate) > r.Nutrition!.Where(n => !n.IsDeleted).Max(x => x.DateCalculated)
                         && r.RecipeIngredients!.Any(ri => !ri.IsDeleted && ri.IngredientId == s.IngredientId && ri.Quantity > 0 && !ri.Measurement.IsDeleted && ri.Measurement.IsContainer))
-                    || db.LaneStates.Any(l => !l.IsDeleted && l.Lane == AiLanes.ContainerSizes && (l.Tier == LaneTiers.Whole || l.Tier == ContainerSizeService.OtherEraTier)
+                    || db.LaneStates.Any(l => !l.IsDeleted && l.Lane == AiLanes.ContainerSizes
                         && l.Since > r.Nutrition!.Where(n => !n.IsDeleted).Max(x => x.DateCalculated))
                     || db.RecipeSourceEras.Any(e => e.SourceAttribution == r.SourceAttribution
                         && (e.LastModifiedDate ?? e.CreatedDate) > r.Nutrition!.Where(n => !n.IsDeleted).Max(x => x.DateCalculated))))

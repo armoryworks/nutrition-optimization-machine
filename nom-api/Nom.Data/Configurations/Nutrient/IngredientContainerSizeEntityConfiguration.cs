@@ -21,6 +21,8 @@ public class IngredientContainerSizeEntityConfiguration : IEntityTypeConfigurati
         builder.Property(e => e.SizeText).IsRequired().HasMaxLength(255);
         builder.Property(e => e.SourceRef).IsRequired().HasMaxLength(255);
         builder.Property(e => e.Class).IsRequired().HasMaxLength(64);
+        builder.Property(e => e.SourceAttribution).HasMaxLength(1023);
+        builder.Property(e => e.Evidence).HasMaxLength(1023);
         builder.Property(e => e.ModeShare).HasPrecision(5, 4);
         builder.Property(e => e.Status).IsRequired().HasMaxLength(16);
         builder.Property(e => e.StatusReason).HasMaxLength(1023);

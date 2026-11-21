@@ -171,7 +171,7 @@ namespace Nom.Orch.Services.Support
         public const string NoClearMode = "no clear mode";
         public const string RunnerUpClose = "runner-up too close";
 
-        public static ContainerMode? Decide(IReadOnlyDictionary<int, int> sizes, string sizeWord = "")
+        public static ContainerMode? Decide(IReadOnlyDictionary<int, int> sizes, string sizeWord = "", int minimum = MinimumProducts)
         {
             var all = sizes.Where(s => s.Key > 0 && s.Value > 0).ToDictionary(s => s.Key, s => s.Value);
             if (all.Count == 0) return null;
@@ -188,7 +188,7 @@ namespace Nom.Orch.Services.Support
             var band = InBand(all, mode);
             var rest = all.Where(s => !Within(s.Key, mode)).ToDictionary(s => s.Key, s => s.Value);
             var runnerUp = rest.Count == 0 ? 0 : InBand(rest, ModeOf(rest));
-            var refusal = total < MinimumProducts ? FewProducts
+            var refusal = total < minimum ? FewProducts
                 : band < MinimumShare * total ? NoClearMode
                 : band < RunnerUpFactor * runnerUp ? RunnerUpClose
                 : null;

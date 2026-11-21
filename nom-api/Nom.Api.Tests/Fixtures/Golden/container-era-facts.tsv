@@ -1,0 +1,17 @@
+id	tier	scope	food	kind	sizeWord	grams	lines	books	band	votes	runnerUp	min	max	sizes	verdict
+f-001	book	Constructed Book A (1910)	169254	can	-	227	1	1	1	1	0	226.8	226.8	227:1	counts
+f-002	book	Constructed Book A (1910)	173418	package	-	85	2	1	2	2	0	85	85	85:2	counts
+f-003	book	Constructed Book B (1925)	169254	can	-	113	2	1	1	2	1	113.4	226.8	113:1;227:1	runner-up too close
+f-004	book	Constructed Book B (1925)	173418	package	-	85	3	1	2	3	1	85	226.8	85:2;227:1	counts
+f-005	book	Constructed Book C (1931)	173418	package	-	85	2	1	1	2	1	85	226.8	85:1;227:1	runner-up too close
+f-006	book	Constructed Book D (1935)	169254	can	-	227	1	1	1	1	0	226.8	226.8	227:1	counts
+f-007	book	Constructed Book D (1935)	173418	package	-	85	1	1	1	1	0	85	85	85:1	counts
+f-008	book	Constructed Book D (1935)	173418	package	large	227	1	1	1	1	0	226.8	226.8	227:1	counts
+f-009	book	Constructed Club Cook Book	168775	package	-	85	1	1	1	1	0	85	85	85:1	counts
+f-010	book	Constructed Grange Book	175238	can	-	454	1	1	1	1	0	453.6	453.6	454:1	counts
+f-011	book	Constructed Ladies' Aid Book	175238	can	-	425	1	1	1	1	0	425.2	425.2	425:1	counts
+f-012	era	historic	169254	can	-	227	4	3	3	4	1	113.4	226.8	113:1;227:3	counts
+f-013	era	historic	173418	package	-	85	8	4	4	6	2	85	226.8	85:4;227:2	counts
+f-014	era	historic	173418	package	large	227	1	1	1	1	0	226.8	226.8	227:1	fewer than two books
+f-015	era	unknown	168775	package	-	85	1	1	1	1	0	85	85	85:1	fewer than two books
+f-016	era	unknown	175238	can	-	425	2	2	1	2	1	425.2	453.6	425:1;454:1	runner-up too close

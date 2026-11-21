@@ -13,7 +13,12 @@ namespace Nom.Orch.Services.Support
         decimal? DrainedGrams,
         string SourceRef,
         string Status = ContainerSizeStatus.Active,
-        long RowId = 0);
+        long RowId = 0,
+        string? Book = null)
+    {
+        /// <summary>The corpus tier the size came from (<see cref="ContainerCorpusSizes.BookTier"/> or <see cref="ContainerCorpusSizes.EraTier"/>), or null for a size from any other source.</summary>
+        public string? CorpusTier => ContainerCorpusSizes.TierOf(SourceRef);
+    }
 
     /// <summary>What a container line weighs: the grams of all its containers, whether drained, where the size came from (<see cref="ContainerBasis"/>), or why it has none.</summary>
     public sealed record ContainerWeight(decimal? Grams, decimal Count, string? Kind, bool Drained, string? SourceRef, string? Reason, long RowId = 0, string? Basis = null)
@@ -33,18 +38,32 @@ namespace Nom.Orch.Services.Support
         public const string PeriodSize = "period-size";
         public const string PeriodNearer = "period-nearer";
         public const string ModernFallback = "modern-fallback";
+        public const string SameBook = "same-book";
+        public const string SameEra = "same-era";
 
         /// <summary>Whether the size is the key's own answer for the line's era (the hold-out scores a key on these only); a historic size answers only a dated old book.</summary>
         public static bool OwnEra(string? basis, string era) =>
             basis is FoodSize or AnyEra || (basis == PeriodSize && era == ContainerEras.Historic);
 
         /// <summary>
-        /// Whether the size is one an old or undated book takes from another era's answer (a historic
-        /// size for an undated book, a period candidate, the modern size): such a line is weighed only
-        /// while the lane's old-book tier qualifies on its own hold-out.
+        /// The old-book tier of the lane (<see cref="ContainerSizeService.OldBookTiers"/>) an old or
+        /// undated book's size is weighed under, each qualified and paused on its own hold-out: the
+        /// same book's sized lines, the same era's, a cited period source (a historic size for an
+        /// undated book, a period candidate), today's size; null for a size that is the line's own
+        /// (stated, numbered, the key's own era).
         /// </summary>
-        public static bool OtherEra(string? basis, string era) =>
-            basis is PeriodNearer or ModernFallback || (basis == PeriodSize && era != ContainerEras.Historic);
+        public static string? OldBookTier(string? basis, string era) => basis switch
+        {
+            SameBook => ContainerSizeService.SameBookTier,
+            SameEra => ContainerSizeService.SameEraTier,
+            PeriodNearer => ContainerSizeService.PeriodTier,
+            PeriodSize when era != ContainerEras.Historic => ContainerSizeService.PeriodTier,
+            ModernFallback => ContainerSizeService.ModernTier,
+            _ => null,
+        };
+
+        /// <summary>Whether the size is one an old or undated book takes under one of the lane's old-book tiers (<see cref="OldBookTier"/>), and is weighed only while that tier is live.</summary>
+        public static bool OtherEra(string? basis, string era) => OldBookTier(basis, era) != null;
     }
 
     /// <summary>
@@ -54,13 +73,15 @@ namespace Nom.Orch.Services.Support
     /// drained solids, is weighed drained: by the size's drained weight, scaled to a stated net size;
     /// with no drained weight it is not weighed, and a drained line on a food whose USDA description
     /// is the food as packed is not weighed either (it needs the drained food). An unsized line in an
-    /// old (historic) or undated (unknown) book takes a size that holds in any era, else the food's
-    /// historic size, else the size a period row of the can table names for the food's USDA category
-    /// (of two candidate cans, the one nearer the food's modern size, when that modern size lies
-    /// within the candidates' span, see <see cref="PeriodCovers"/>; with no modern size, none), else,
-    /// for a can or a jar only (<see cref="FallsBackToModern"/>), the food's modern size; such a line
-    /// is always shown as estimated. The hold-out hides the
-    /// stated size to ask what the lane would have assumed.
+    /// old (historic) or undated (unknown) book takes, in order, the size the sized lines of the same
+    /// food and container give in the same book, then in the books of the same era
+    /// (<see cref="ContainerCorpusSizes"/>), a size that holds in any era, the food's historic size,
+    /// the size a period row of the can table names for the food's USDA category (of two candidate
+    /// cans, the one nearer the food's modern size, when that modern size lies within the
+    /// candidates' span, see <see cref="PeriodCovers"/>; with no modern size, none), and last, for
+    /// every kind (<see cref="FallsBackToModern"/>), the food's modern size; such a line is always
+    /// shown as estimated, with the tier that gave its size. The hold-out hides the stated size to
+    /// ask what the lane would have assumed.
     /// </summary>
     public static class ContainerSizeResolver
     {
@@ -98,7 +119,8 @@ namespace Nom.Orch.Services.Support
             bool hideStatedSize = false,
             bool activeOnly = true,
             bool netOnly = false,
-            int? usdaCategoryId = null)
+            int? usdaCategoryId = null,
+            string? book = null)
         {
             var kind = ContainerKinds.FromText(rawLine);
             if (kind == null) return new ContainerWeight(null, 0, null, false, null, NoContainer);
@@ -107,7 +129,8 @@ namespace Nom.Orch.Services.Support
             if (!netOnly && usdaDescription != null && ContainerKinds.SaysDrained(rawLine) && !ContainerKinds.DescribesDrained(usdaDescription))
                 return new ContainerWeight(null, count, kind, true, null, AsPacked);
             var sizeWord = ContainerKinds.SizeWord(rawLine);
-            var usable = sizes.Where(s => s.Kind == kind && (!activeOnly || s.Status == ContainerSizeStatus.Active)).ToList();
+            var all = sizes.Where(s => s.Kind == kind && (!activeOnly || s.Status == ContainerSizeStatus.Active)).ToList();
+            var usable = all.Where(s => s.CorpusTier == null).ToList();
 
             if (!hideStatedSize && StatedPerContainer(rawLine, gramsPerMilliliter) is { } stated)
             {
@@ -131,6 +154,14 @@ namespace Nom.Orch.Services.Support
             {
                 pick = modern ?? any;
                 basis = modern != null ? ContainerBasis.FoodSize : ContainerBasis.AnyEra;
+            }
+            else if (book != null && all.FirstOrDefault(s => s.SizeWord == sizeWord && s.CorpusTier == ContainerCorpusSizes.BookTier && s.Book == book) is { } ownBook)
+            {
+                return Weigh(ownBook.NetGrams, ownBook.SourceRef, count, kind, drained, usable, ownBook.RowId, ContainerBasis.SameBook);
+            }
+            else if (all.FirstOrDefault(s => s.SizeWord == sizeWord && s.CorpusTier == ContainerCorpusSizes.EraTier && s.Era == era) is { } sameEra)
+            {
+                return Weigh(sameEra.NetGrams, sameEra.SourceRef, count, kind, drained, usable, sameEra.RowId, ContainerBasis.SameEra);
             }
             else if (any != null)
             {
@@ -165,8 +196,8 @@ namespace Nom.Orch.Services.Support
                 : new ContainerWeight(null, count, kind, true, pick.SourceRef, NoDrained, pick.RowId, basis);
         }
 
-        /// <summary>Whether an unsized line of this kind in an old or undated book may take today's size: cans and jars, as the owner's answer names them.</summary>
-        public static bool FallsBackToModern(string kind) => kind is ContainerKinds.Can or ContainerKinds.Jar;
+        /// <summary>Whether an unsized line of this kind in an old or undated book may take today's size, the last of its tiers: every kind, since the owner's third-round answer ("there has to be a way to convert these") leaves no package, box, bag, bottle, can or jar uncounted where a size can be derived.</summary>
+        public static bool FallsBackToModern(string kind) => ContainerKinds.All.Contains(kind);
 
         /// <summary>
         /// Whether the period sizes speak of a food whose modern container is this big: its modern

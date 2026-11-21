@@ -76,7 +76,7 @@ namespace Nom.Api.Tests.Golden
             if (recipe["containerLane"]?.GetValue<string>() is { } lane)
                 db.LaneStates.Add(new LaneStateEntity { Lane = AiLanes.ContainerSizes, Tier = LaneTiers.Whole, Mode = lane, Since = DateTime.UtcNow });
             if (recipe["containerOldBookLane"]?.GetValue<string>() is { } oldBooks)
-                db.LaneStates.Add(new LaneStateEntity { Lane = AiLanes.ContainerSizes, Tier = ContainerSizeService.OtherEraTier, Mode = oldBooks, Since = DateTime.UtcNow });
+                db.LaneStates.AddRange(ContainerSizeService.OldBookTiers.Select(tier => new LaneStateEntity { Lane = AiLanes.ContainerSizes, Tier = tier, Mode = oldBooks, Since = DateTime.UtcNow }));
             if (recipe["sourceAttribution"]?.GetValue<string>() is { } book && recipe["publishedYear"]?.GetValue<int>() is { } year)
                 db.RecipeSourceEras.Add(new RecipeSourceEraEntity { SourceAttribution = book, PublishedYear = year, Era = ContainerEras.FromYear(year) });
             var seeded = new HashSet<long>();

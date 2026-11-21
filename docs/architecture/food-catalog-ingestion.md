@@ -585,11 +585,50 @@ key's own era answers it (`ContainerBasis.OwnEra`: a modern recipe's food size, 
 a dated old book's historic size). A line that would take another era's size
 (`ContainerBasis.OtherEra`: an undated book's historic size, a period candidate, the modern size
 by fallback) is counted apart (`OtherEraLines`, `OtherEraAgree` in the score report and the
-import's printout), so lines of old books never pause a modern key. Those lines are the decisions
-of the lane's own old-book tier (`container-sizes`, tier `other-era`), recorded, audited and
-evaluated on the frame with the same bar and pause window; the old-book sizes are weighed only
-while that tier is live. Its pause has nothing to undo (it writes no key); its lines stop being
-weighed at the next sweep.
+import's printout), so lines of old books never pause a modern key. Since
+`cleanup2/container-era-sizes` (rule version `container-sizes/2`) those lines are the decisions
+of four old-book tiers of the lane, one per source of the size (`ContainerBasis.OldBookTier`):
+`same-book`, `same-era`, `period` (an undated book's historic size or a period candidate) and
+`modern-fallback`. Each is recorded, audited and evaluated on the frame on its own, with the
+lane's bar and pause window, and a line is weighed only while the tier that sized it is live, so
+a tier that misses (for example today's size against old books' packages) never holds back
+another. The two corpus tiers are scored with the line left out: a line of book B is answered
+by the other sized lines of book B, or by the books of its era other than B
+(`ContainerCorpusSizes.LeaveOut`), never by itself. Their decisions also set the status of the
+corpus row they were answered from (class `corpus-book:<kind>` or `corpus-era:<kind>`, the same
+key and class bars as every other key). An old-book tier's pause has nothing to undo (it writes
+no key); its lines stop being weighed at the next sweep. `OtherEraLines` and `OtherEraAgree`
+are the sums of the four tiers, and the report lists each (`Tiers`).
+
+**Sizes from the recipe corpus** (`cleanup2/container-era-sizes`, owner's third-round answer
+7: "there has to be a way to convert these"). Old books often state a package's size on one
+line and leave it out on the next. `ContainerCorpusSizes` (rule `container-corpus/1`) mines the
+sized container lines of old and undated books (a book recipe whose `RecipeSourceEra` is
+historic or unknown; a line in a weight or volume unit that names a container and states its
+size, never a numbered can) and derives, per food, container kind and size word:
+
+- **same book**: the sizes that book's own lines state. One size (within ±5 %) must hold more
+  than half of them and at least twice the next ("1 3-oz. package cream cheese" in a book gives
+  the size of "1 package cream cheese" in the same book; 3 oz once and 8 oz once gives none);
+- **same era**: the sizes the books of the era state, each book counted once per size it
+  states. At least two books must state the mode, and it must hold at least half of the votes
+  and twice the next. Undated books form their own pool (`unknown`), as `RecipeSourceEra` gives
+  no era to compare them with.
+
+Each size is written as a row of `nutrient."IngredientContainerSize"` in shadow, journaled like
+every other: source `deterministic:corpus-book:container-corpus/1:<era>:<g>g:<band>/<votes>:<min>-<max>g`
+or `deterministic:corpus-era:...`, the book in `SourceAttribution` (book sizes only), and the
+evidence in `Evidence` (the sizes stated and how often, lines, books, the spread and the
+worst case it implies). `Nom.Import --container-sizes --corpus [--facts <out.tsv>] [--dry-run]`
+writes them, retires a corpus row no line gives any more and never touches a USDA source's row
+(the USDA import likewise never retires a corpus row). Its printout also counts, per product
+class (container kind and USDA category) and tier, how many unsized container lines of old and
+undated books each tier would size and the worst-case error of the sizes it takes (from the
+corpus spread, or the span of the period candidates; `-` where no source bounds it), and the
+lines no tier sizes, by reason. `ops/container-era-facts.py` mines the same facts from a
+read-only capture (`ops/golden/container-era-lines.sql`), written apart from the C# code: the
+grams of one container come there from the stored quantity and the line's leading count, here
+from NOM's line parser. Compare the two with `cut -f2- <file> | sort`.
 
 **Journal and undo.** Every row written, replaced, retired, rescored or paused is one
 `audit."AuditLogEntry"` (entity `IngredientContainerSize`; `ContainerSizeSet`,
@@ -607,6 +646,7 @@ Admin → Pipeline shows the block "Container sizes" (`data-testid="pipeline-con
 ```bash
 dotnet run --project nom-api/Nom.Import -- --container-sizes <branded-dir> <sr-legacy-dir> <foundation-dir> --checksums ops/fdc-releases.sha256 --dry-run
 dotnet run --project nom-api/Nom.Import -- --container-sizes <branded-dir> <sr-legacy-dir> <foundation-dir> --checksums ops/fdc-releases.sha256
+dotnet run --project nom-api/Nom.Import -- --container-sizes --corpus [--facts <out.tsv>] [--dry-run]
 dotnet run --project nom-api/Nom.Import -- --container-sizes --score [--dry-run]
 dotnet run --project nom-api/Nom.Import -- --container-sizes --undo <stamp> [--dry-run]
 ```
@@ -637,7 +677,7 @@ that kind, size word and era:
 | Recipe's era | Size taken | Basis |
 |---|---|---|
 | modern (web, app, a book from 1960) | the food's modern size, else an any-era size (standard of fill) | `food-size`, `any-era` |
-| historic or unknown (a book before 1960, or undated) | an any-era size, else a historic size of the food, else the period row's candidate can nearer the food's modern size, else, for a can or a jar only, the food's modern size | `any-era`, `period-size`, `period-nearer`, `modern-fallback` |
+| historic or unknown (a book before 1960, or undated) | the size the same book's sized lines give, else the size the books of the same era give, else an any-era size, else a historic size of the food, else the period row's candidate can nearer the food's modern size, else, for every kind, the food's modern size | `same-book`, `same-era`, `any-era`, `period-size`, `period-nearer`, `modern-fallback` |
 
 The period row applies only when the food's modern size lies within the candidates' span widened
 by 10 % (`ContainerSizeResolver.PeriodCovers`): a food sold today in a much smaller or larger can
@@ -646,13 +686,17 @@ names, and takes its modern size. With a period row and no modern size there is 
 by, and the line stays uncounted ("1 can mushrooms" in an old book). A size word ("large can")
 never takes a period row, which names medium cans only. This follows the lead decision on the
 owner's answer: an unsized can in an old or undated book is not left uncounted where any cited or
-modern size exists, and every such line is shown as estimated. The modern fallback is for cans
-and jars, the kinds the owner's answer names (`ContainerSizeResolver.FallsBackToModern`); a
-package, box, bag, packet, envelope, carton, tub or bottle in an old or undated book counts only
-at a size of its time or of any era. Every size taken from another era (an undated book's
-historic size, the period candidate, the modern fallback) is weighed only while the old-book tier
-is live. The size spread this accepts per
-product class is in the build report (`build/container-weighing.md`).
+modern size exists, and every such line is shown as estimated. Since `cleanup2/container-era-sizes`
+the owner's third-round answer ("there has to be a way to convert these") extends it to every
+kind: the corpus tiers come first, and the modern fallback is the last tier for packages, boxes,
+bags, packets, envelopes, cartons, tubs and bottles as well as cans and jars
+(`ContainerSizeResolver.FallsBackToModern`). Every size an old or undated book takes this way is
+weighed only while its own old-book tier is live, and the line's text names the tier ("the size
+this book states for it elsewhere (2 of 2 sized lines)", "the most common size books of its time
+state (4 of 6 books, spread 85-226.8g)"). A line still stays uncounted where no tier gives a size,
+or where the food is drained solids and no drained share is known (a corpus size is a net
+weight). The size spread this accepts per product class is in the build reports
+(`build/container-weighing.md`, `build/container-era-sizes.md`).
 
 **What the cook sees.** On the recipe page a `counted-assumed` line shows its grams with "≈" and
 "estimated size" (`data-testid="recipe-ingredient-assumed-size"`, the full text as its title:
@@ -671,7 +715,7 @@ an active size of the unit's kind while the lane is live
 words, drained lines, the era and the old-book tier are not looked at there). The nutrition sweep
 (`RecipeNutritionRecalcHostedService.ContainerDueRecipeIds`, beside `DueRecipeIds`) recalculates a
 recipe with a measured container line when one of its foods' sizes, the lane's mode (whole lane or
-old-book tier) or its book's era changed after its label. That query reads soft-deleted size and
+any old-book tier) or its book's era changed after its label. That query reads soft-deleted size and
 era rows, so a size or a year an undo removed counts as a change: a size applied, paused, retired
 or undone, a year written or undone, or the lane going live or pausing, reaches the labels within
 one sweep (15 minutes by default). When nothing counts any more and a measured line is in a

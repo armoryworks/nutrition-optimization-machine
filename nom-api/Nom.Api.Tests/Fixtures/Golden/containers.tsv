@@ -58,7 +58,7 @@ b-56	1 can enchilada sauce	modern	174074	-	no	283	ok	fdc:174074:portion:3	SR "ca
 b-57	1 envelope unflavored gelatin	modern	169599	-	no	7	ok	fdc:169599:portion:1	SR "envelope (1 tbsp)" 7 g (containers.md section 1)
 b-58	1 package unflavored gelatin	modern	169599	-	no	28	ok	fdc:169599:portion:2	SR "package (1 oz)" 28 g
 b-59	1 package lime gelatin	modern	168775	-	no	85	ok	fdc:168775:portion:1	SR "package (3 oz)" 85 g
-b-60	1 package Royal Orange Gelatin	historic	168775	-	no	-	ok	design:containers	containers.md: pre-1960 booklets need the era; no cited table names a gelatin package of that time, and only a can or a jar falls back to the modern size (owner's answer: cans and jars)
+b-60	1 package Royal Orange Gelatin	historic	168775	-	no	85	ok	rule:containers-modern-fallback	containers.md: pre-1960 booklets need the era; with no corpus size of its book or era (none in this set) and no cited table naming a gelatin package of that time, every kind takes today's SR "package (3 oz)" as its last tier (owner's third-round answer 7: "there has to be a way to convert these")
 b-61	1 packet active dry yeast	modern	175043	-	no	7	ok	fdc:175043:portion:3	SR "packet" 7.2 g
 b-62	2 packets yeast	modern	175043	-	no	14	ok	fdc:175043:portion:3	two packets of 7.2 g
 b-63	1 bottle red wine	modern	173190	0.994	no	746	ok	deterministic:standard-of-fill:27 CFR 4.72	750 mL x 0.994
