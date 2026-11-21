@@ -181,6 +181,15 @@ namespace Nom.Orch.Services
                 }
                 movedSince.Add(row.Id);
             }
+            if (rebuiltSince.Count > 0 && !run.LeaveMovedLines)
+            {
+                sample.LinesSkipped = movedSince.Count + rebuiltSince.Count;
+                sample.LinesSkippedRebuilt = rebuiltSince.Count;
+                result.SkippedRebuilt += rebuiltSince.Count;
+                sample.Skipped = string.Create(CultureInfo.InvariantCulture,
+                    $"{rebuiltSince.Count} of {lineRows.Count} lines are on a recipe rebuilt since the link; undo the rebuild first, or pass leaveMovedLines=true to leave them where the rebuild put them");
+                return sample;
+            }
             if (movedSince.Count > 0 && !run.LeaveMovedLines)
             {
                 sample.LinesSkipped = movedSince.Count;
@@ -502,14 +511,14 @@ namespace Nom.Orch.Services
         private static decimal? Parse(string? value) =>
             decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
 
+        private Task<bool> LineAtAsync((long RecipeId, long IngredientId, int SortOrder) place) =>
+            _db.RecipeIngredients.IgnoreQueryFilters().AnyAsync(ri => ri.RecipeId == place.RecipeId && ri.IngredientId == place.IngredientId && ri.SortOrder == place.SortOrder);
+
         /// <summary>
         /// Puts one line back on the wording's food and returns the position it ended at, or null
         /// when the line is no longer where the link put it. A recipe that already has a line of
         /// that food at the old position takes it at its next free position.
         /// </summary>
-        private Task<bool> LineAtAsync((long RecipeId, long IngredientId, int SortOrder) place) =>
-            _db.RecipeIngredients.IgnoreQueryFilters().AnyAsync(ri => ri.RecipeId == place.RecipeId && ri.IngredientId == place.IngredientId && ri.SortOrder == place.SortOrder);
-
         private async Task<int?> MoveLineAsync((long RecipeId, long IngredientId, int SortOrder) from, (long RecipeId, long IngredientId, int SortOrder) to, long personId)
         {
             var (recipeId, fromId, fromSortOrder) = from;

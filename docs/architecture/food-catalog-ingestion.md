@@ -1286,10 +1286,12 @@ or an unfold since, edited or deleted) is skipped and reported (`proposalsSkippe
 pass `leaveMovedLines=true` to take the link back anyway, leaving those lines where they are
 (`linesSkipped`) with their journal rows kept as `LinkApplyLeft`. A line an order-only pass of the
 rebuild moved to another position is not "moved": the undo follows it through the order journal
-and takes it back where it now stands. A line of a recipe fully rebuilt since the link is left where
-the rebuild put it, counted in `skippedRebuilt` (and the sample's `linesSkippedRebuilt`), its
-journal row kept as `LinkApplyLeft`, and the rest of the link is taken back, as the other line
-undos skip rebuilt recipes. An alias changed since is left
+and takes it back where it now stands. A link with a line on a recipe whose rows a rebuild rewrote
+since the link is skipped like a moved one, its lines counted in `skippedRebuilt` (and the sample's
+`linesSkippedRebuilt`), and nothing of it is written: undo the rebuild first and the link then comes
+back whole. With `leaveMovedLines=true` those lines stay where the rebuild put them, their journal
+rows kept as `LinkApplyLeft`, and the rest of the link is taken back. A rebuild that replaced only
+the steps does not count. An alias changed since is left
 where it is and counted. When another applied link still stands on the USDA food, its status row
 is handed to the newest such link with a journal, whose own undo restores the status; links
 taken back earlier in the same call do not count as standing, so the dry run reports what the

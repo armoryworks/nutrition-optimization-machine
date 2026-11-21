@@ -840,19 +840,38 @@ namespace Nom.Api.Tests.Services
             using var db = await SeededAsync();
             var junk = await FoodAsync(db, "Grammi circa 100", curated: false);
             var hundred = await FoodAsync(db, "Grammi 100", curated: false);
-            var record = Record("Pasticcio", new[] { "Grammi circa 100", "Grammi 100", "Grammi 80" });
-            var recipe = await RecipeAsync(db, record, new[] { new Row(junk, "Grammi circa 100", 100, Piece), new Row(hundred, "Grammi 100", 100, Gram) });
+            var flour = await FoodAsync(db, "flour");
+            var record = Record("Pasticcio", new[] { "Grammi circa 100", "Grammi 100", "Grammi 80", "2 cups", "1 cup flour" });
+            var recipe = await RecipeAsync(db, record, new[] { new Row(junk, "Grammi circa 100", 100, Piece), new Row(hundred, "Grammi 100", 100, Gram, 1), new Row(flour, "1 cup flour", 1, Cup, 2) });
 
             var result = await Service(db).RebuildAsync(For(recipe.Id), apply: true);
             db.ChangeTracker.Clear();
 
             var lines = await LinesAsync(db, recipe.Id);
-            lines.Select(l => (l.IngredientId, l.Quantity, l.MeasurementId)).Take(2).Should().Equal((junk.Id, 100m, Gram), (hundred.Id, 100m, Gram));
-            lines[2].Should().Match<RecipeIngredientEntity>(l => l.Quantity == 80m && l.MeasurementId == Gram);
+            lines.Select(l => (l.IngredientId, l.Quantity, l.MeasurementId)).Should().Equal((junk.Id, 100m, Gram), (hundred.Id, 100m, Gram), (flour.Id, 1m, Cup));
             var names = await db.Ingredients.Select(i => i.Name).ToListAsync();
             names.Should().NotContain(new[] { "100", "80", "circa 100" }, "18338 and 18849 created foods named \"circa 100\", \"100\" and \"80\" at checkpoint 1 (K14)");
-            names.Should().Contain("grammi 80");
-            result.Counts.NewFoods.Should().Be(1);
+            names.Should().NotContain(new[] { "grammi 80", "2 cups" }, "a line that names no food is not a food under its own text either (CK2-R3)");
+            result.Counts.NewFoods.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task The_import_creates_no_food_for_a_line_that_names_no_food_and_keeps_the_amounts_of_the_other_lines_in_place()
+        {
+            using var db = await SeededAsync();
+            await FoodAsync(db, "flour");
+            await FoodAsync(db, "sugar");
+            var import = new RecipeScrapingService(db, new Admin(), new Mock<IRecipeScraperClient>().Object, new Mock<IScrapingSourceService>().Object, new RecipeVettingService(),
+                NullLogger<RecipeScrapingService>.Instance);
+            var foodsBefore = await db.Ingredients.CountAsync();
+            var record = Record("Torta", new[] { "Grammi 80", "2 cups flour", "2 cups", "1/2 cup sugar" });
+
+            await import.ImportStagedAsync(new StagedImportRequestModel { SourceAttribution = "Old Book (1900)", Recipes = { record }, PublicDomain = true });
+            db.ChangeTracker.Clear();
+
+            var recipe = await db.Recipes.SingleAsync();
+            (await LinesAsync(db, recipe.Id)).Select(l => (l.SortOrder, l.Quantity, l.MeasurementId)).Should().Equal((1, 2m, Cup), (3, 0.5m, Cup));
+            (await db.Ingredients.CountAsync()).Should().Be(foodsBefore, "\"Grammi 80\" and \"2 cups\" each made a food named by an amount (CK2-R3)");
         }
 
         [Fact]
@@ -882,6 +901,46 @@ namespace Nom.Api.Tests.Services
             (await db.Ingredients.AnyAsync(i => i.Id == parsley.Id)).Should().BeTrue("someone gave it an alias since");
             (await db.Ingredients.IgnoreQueryFilters().CountAsync()).Should().Be(foodsBefore + 1);
             (await db.AuditLogEntries.CountAsync(a => a.ChangeType == RecipeReprocessService.FoodCreateUndoneChangeType)).Should().Be(1);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task The_undo_of_a_rebuild_keeps_a_food_it_created_while_a_later_rebuild_would_put_a_line_back_on_it(bool olderFirst)
+        {
+            using var db = await SeededAsync();
+            var butter = await FoodAsync(db, "butter");
+            var chicken = await FoodAsync(db, "chicken");
+            var first = await RecipeAsync(db, Record("First", new[] { "2 oz. butter", "1 cup young fowls" }), new[] { new Row(butter, "2 oz. butter", 2, Ounce) });
+            var batch1 = await Service(db).RebuildAsync(For(first.Id), apply: true);
+            db.ChangeTracker.Clear();
+            var fowls = await db.Ingredients.SingleAsync(i => i.Name == "young fowls");
+            var second = await RecipeAsync(db, Record("Second", new[] { "1 cup chicken" }), new[] { new Row(fowls, "1 cup chicken", 1, Cup) });
+            var batch2 = await Service(db).RebuildAsync(For(second.Id), apply: true);
+            db.ChangeTracker.Clear();
+            (await LinesAsync(db, second.Id)).Single().IngredientId.Should().Be(chicken.Id);
+
+            if (olderFirst)
+            {
+                var undo1 = await Service(db).UndoAsync(null, batch1.BatchId, apply: true);
+                db.ChangeTracker.Clear();
+                undo1.Should().Match<RecipeReprocessUndoResult>(r => r.Restored == 1 && r.FoodsRemoved == 0 && r.FoodsKept == 1,
+                    "the second batch's rows before name the food, and its undo failed on the missing food (CK2-R4)");
+                (await Service(db).UndoAsync(null, batch2.BatchId, apply: true)).Restored.Should().Be(1);
+                db.ChangeTracker.Clear();
+                (await LinesAsync(db, second.Id)).Single().IngredientId.Should().Be(fowls.Id);
+                (await db.Ingredients.AnyAsync(i => i.Id == fowls.Id)).Should().BeTrue();
+            }
+            else
+            {
+                (await Service(db).UndoAsync(null, batch2.BatchId, apply: true)).Restored.Should().Be(1);
+                db.ChangeTracker.Clear();
+                var undo1 = await Service(db).UndoAsync(null, batch1.BatchId, apply: true);
+                db.ChangeTracker.Clear();
+                undo1.Should().Match<RecipeReprocessUndoResult>(r => r.Restored == 1 && r.FoodsRemoved == 0 && r.FoodsKept == 1);
+                (await LinesAsync(db, second.Id)).Single().IngredientId.Should().Be(fowls.Id);
+                (await db.Ingredients.AnyAsync(i => i.Id == fowls.Id)).Should().BeTrue();
+            }
         }
 
         [Fact]
@@ -992,20 +1051,102 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task The_applied_link_undo_leaves_the_lines_of_a_recipe_rebuilt_since_and_counts_them_as_skipped_rebuilt()
+        public async Task The_applied_link_undo_skips_a_link_on_a_recipe_rebuilt_since_until_the_rebuild_is_undone_and_then_takes_it_back()
+        {
+            using var db = await SeededAsync();
+            var (recipe, holder, target, proposalId) = await AppliedLinkAsync(db);
+            var rebuilt = await Service(db).RebuildAsync(For(recipe.Id), apply: true);
+            rebuilt.Rebuilt.Should().Be(1);
+            db.ChangeTracker.Clear();
+
+            var first = await new LinkApplyUndoService(db, new Admin()).UndoAsync(Imported.AddDays(-1), apply: true);
+            db.ChangeTracker.Clear();
+
+            first.Should().Match<Nom.Orch.Models.Curation.LinkApplyUndoResult>(r => r.Proposals == 0 && r.ProposalsSkipped == 1 && r.SkippedRebuilt == 1 && r.LinesRestored == 0,
+                "taking the link back partly turned its line row into LinkApplyLeft, which no undo reads, so the line stayed on the target for good (CK2-R1)");
+            first.Samples.Single().LinesSkippedRebuilt.Should().Be(1);
+            (await db.FoodCatalogProposals.SingleAsync(p => p.Id == proposalId)).Status.Should().Be(Nom.Data.Curation.FoodProposalStatus.Applied);
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LinkApplyJournal.LeftChangeType)).Should().Be(0);
+
+            (await Service(db).UndoAsync(null, rebuilt.BatchId, apply: true)).Restored.Should().Be(1);
+            db.ChangeTracker.Clear();
+            var second = await new LinkApplyUndoService(db, new Admin()).UndoAsync(Imported.AddDays(-1), apply: true);
+            db.ChangeTracker.Clear();
+
+            second.Should().Match<Nom.Orch.Models.Curation.LinkApplyUndoResult>(r => r.Proposals == 1 && r.LinesRestored == 1 && r.SkippedRebuilt == 0);
+            (await LinesAsync(db, recipe.Id)).Should().Contain(l => l.IngredientId == holder.Id).And.NotContain(l => l.IngredientId == target.Id);
+            (await db.FoodCatalogProposals.SingleAsync(p => p.Id == proposalId)).Status.Should().Be(Nom.Data.Curation.FoodProposalStatus.Pending);
+        }
+
+        [Fact]
+        public async Task With_leave_moved_lines_the_applied_link_undo_leaves_the_lines_of_a_recipe_rebuilt_since_and_takes_the_rest_back()
         {
             using var db = await SeededAsync();
             var (recipe, _, target, proposalId) = await AppliedLinkAsync(db);
             (await Service(db).RebuildAsync(For(recipe.Id), apply: true)).Rebuilt.Should().Be(1);
             db.ChangeTracker.Clear();
 
-            var undo = await new LinkApplyUndoService(db, new Admin()).UndoAsync(Imported.AddDays(-1), apply: true);
+            var undo = await new LinkApplyUndoService(db, new Admin()).UndoAsync(Imported.AddDays(-1), apply: true, leaveMovedLines: true);
             db.ChangeTracker.Clear();
 
-            undo.Should().Match<Nom.Orch.Models.Curation.LinkApplyUndoResult>(r => r.Proposals == 1 && r.SkippedRebuilt == 1 && r.LinesRestored == 0);
-            undo.Samples.Single().LinesSkippedRebuilt.Should().Be(1);
+            undo.Should().Match<Nom.Orch.Models.Curation.LinkApplyUndoResult>(r => r.Proposals == 1 && r.SkippedRebuilt == 1 && r.LinesRestored == 0 && r.LinesSkipped == 1);
             (await LinesAsync(db, recipe.Id)).Should().Contain(l => l.IngredientId == target.Id);
             (await db.FoodCatalogProposals.SingleAsync(p => p.Id == proposalId)).Status.Should().Be(Nom.Data.Curation.FoodProposalStatus.Pending);
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LinkApplyJournal.LeftChangeType)).Should().Be(1);
+        }
+
+        [Fact]
+        public async Task A_rebuild_that_replaced_only_the_steps_does_not_hold_the_applied_link_undo_and_both_undos_work_in_either_order()
+        {
+            foreach (var linkFirst in new[] { true, false })
+            {
+                using var db = await SeededAsync();
+                var (recipe, holder, target, _) = await AppliedLinkAsync(db);
+                var newer = new ScraperRecipe
+                {
+                    Name = "Stroganoff",
+                    Ingredients = new[] { "8 oz baby bella mushrooms", "2 cups milk" }.Select(l => new ScraperIngredient { RawLine = l }).ToList(),
+                    Steps = new[] { "Warm the milk.", "Stir in the mushrooms and simmer." }.Select((t, i) => new ScraperStep { Order = i + 1, Instruction = t }).ToList(),
+                };
+                var content = SourceRecord.Content(newer);
+                db.ScrapedDocuments.Add(new ScrapedDocumentEntity
+                {
+                    RecipeId = recipe.Id, RawJsonLd = content, Format = ScrapedDocumentFormat.StagedCookbook, ContentSha256 = SourceRecord.Sha256(content), Version = 2, FetchedAtUtc = Imported,
+                });
+                var milkRow = await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == recipe.Id && ri.RawLine == "2 cups milk");
+                db.RecipeIngredients.Remove(milkRow);
+                await db.SaveChangesAsync();
+                db.RecipeIngredients.Add(new RecipeIngredientEntity
+                {
+                    RecipeId = recipe.Id, IngredientId = milkRow.IngredientId, SortOrder = 1, Quantity = milkRow.Quantity, MeasurementId = milkRow.MeasurementId,
+                    RawLine = milkRow.RawLine, CreatedDate = milkRow.CreatedDate, CreatedByPersonId = milkRow.CreatedByPersonId,
+                });
+                await db.SaveChangesAsync();
+                db.ChangeTracker.Clear();
+                var rebuilt = await Service(db).RebuildAsync(For(recipe.Id), apply: true);
+                rebuilt.Results.Single().StepsReplaced.Should().BeTrue();
+                db.ChangeTracker.Clear();
+                (await LinesAsync(db, recipe.Id)).Should().Contain(l => l.IngredientId == target.Id && l.SortOrder == 0, "the rows were left as they were");
+                (await db.RecipeReprocessJournals.SingleAsync()).Should().Match<RecipeReprocessJournalEntity>(j => j.OldRows == j.NewRows);
+
+                if (!linkFirst)
+                {
+                    (await Service(db).UndoAsync(null, rebuilt.BatchId, apply: true)).Restored.Should().Be(1);
+                    db.ChangeTracker.Clear();
+                }
+                var undo = await new LinkApplyUndoService(db, new Admin()).UndoAsync(Imported.AddDays(-1), apply: true);
+                db.ChangeTracker.Clear();
+                undo.Should().Match<Nom.Orch.Models.Curation.LinkApplyUndoResult>(r => r.Proposals == 1 && r.LinesRestored == 1 && r.SkippedRebuilt == 0,
+                    "a rebuild that left the rows as they were counted as a rebuild of the lines (CK2-R2)");
+                if (linkFirst)
+                {
+                    (await Service(db).UndoAsync(null, rebuilt.BatchId, apply: true)).Restored.Should().Be(1, "the rows it kept are not its to restore");
+                    db.ChangeTracker.Clear();
+                }
+
+                (await LinesAsync(db, recipe.Id)).Should().Contain(l => l.IngredientId == holder.Id && l.SortOrder == 0).And.NotContain(l => l.IngredientId == target.Id);
+                (await db.RecipeSteps.AsNoTracking().Where(st => st.RecipeId == recipe.Id).OrderBy(st => st.StepNumber).Select(st => st.Description).ToListAsync()).Should().Equal(Method);
+            }
         }
 
         [Fact]

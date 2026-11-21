@@ -25,10 +25,12 @@ fix reaches both:
 2. **Food.** The import's order: the verified wording (when `VerifiedWordings:ResolveOnImport` is
    set), a live ingredient of the normalized name, the one food a trusted alias gives the name to,
    the food an applied link merged the retired ingredient of that name into, else a new uncurated
-   ingredient. A wording, an alias or an applied link never leads to a prepared food. A name that
-   normalizes to no food, only numbers and amount words ("Grammi circa 100" to "circa 100", "Grammi
-   100" to "100"), is looked up under the line's own text instead ("grammi circa 100"), so no food is
-   ever named by a number; a line with no letter at all is not built. In an "or" line whose food is
+   ingredient. A wording, an alias or an applied link never leads to a prepared food. A line whose
+   text states only an amount and names no food (`IngredientNameNormalizer.NamesOnlyAnAmount`: a
+   number alone, "Grammi circa 100", "Grammi 80", "2 cups"; a count word that can be a food, such as
+   "6 cloves", is not read so) keeps the food the rebuild finds it on, or a food already under the
+   line's own text ("grammi circa 100"); otherwise it is not built. No food is ever created under an
+   amount, by the import or by a rebuild. In an "or" line whose food is
    named only in a later alternative that states its own amount, that amount is the line's ("pinch
    stevia OR 2 tbsp maple syrup" on maple syrup is 2 tbsp). A clove counts garlic or shallot: on the
    spice cloves ("a couple of cloves") the count is in pieces.
@@ -47,7 +49,8 @@ hyphenated mixed numbers after the name, a measure "and a half", trailing size w
 and the method fill's own-word, teacupful, per-item ratio, temperature, measure-as-pieces,
 alternative and fold rules; `line-builder/4` since the second checkpoint-1 round of
 `cleanup2/ck2-undo-reprocess`: "circa" before an Italian amount, no food named by a number, the
-alternative that names the food, the spice cloves, the classify lane's kinds kept on unchanged text)
+alternative that names the food, the spice cloves, the classify lane's kinds kept on unchanged text; `line-builder/5` since its review: a line that
+states only an amount is never a new food, not even under its own text)
 is stamped on every journal row. Raise it with any
 change to a rule the builder applies: the detector reads again every recipe an older version read,
 and the lane's signature changes, so its tiers go back to shadow until they qualify under the new
@@ -213,7 +216,10 @@ journal entry on it, and no recipe line (deleted rows included), alias, proposal
 rejection, verification, extras, measure, container size or household, plan, pantry or shopping row.
 The entry is relabelled `ReprocessFoodCreateUndone`. A food something refers to is kept and counted
 (`foodsKept`); the dry run counts both (`foodsRemoved`, `foodsKept`). Foods created before this
-journal existed (the 18 of checkpoint 1) are not touched.
+journal existed (the 18 of checkpoint 1) are not touched. A food is kept too while a standing journal
+would put a line back on it: the rows before of another reprocess not undone in the same call, or the
+place before of a line relink or an applied link. Undoing that later write first, or both in one call,
+frees it.
 
 Each recipe's journal row, header and new rows carry the time that recipe was written, not the
 start of the batch, so a lane entry written on a recipe while the batch was still working through
@@ -223,7 +229,9 @@ earlier recipes counts as older than its rebuild.
 `reread/undo`, `labels/undo`, `quantities/undo`, `startup-fills/undo` and the wording retract and
 unload with lines (`LineRelinkService.UndoForSourcesAsync`) therefore skip an entry
 whose recipe has a standing `Reprocess` header newer than the entry, and count it as
-`skippedRebuilt`. To go back past a rebuild, undo the rebuild first; the older undo then works
+`skippedRebuilt`. A rebuild that replaced only the steps and left the rows as they were (its rows
+before equal its rows after) does not count, and its own undo restores the steps and the recipe's
+state without touching the rows, so the two undos work in either order. To go back past a rebuild, undo the rebuild first; the older undo then works
 again.
 
 Nutrition is recalculated after every rebuild and every undo that restored lines.
@@ -354,9 +362,10 @@ rebuilds lines and steps.
 ## What is not here yet
 
 - The compound split rules are not repeated by the rebuild; recipes with a standing split are held.
-- `undo-applied` (the USDA link undo) leaves the lines of a recipe rebuilt after the link
-  (`skippedRebuilt`) and follows a line an order-only pass moved; to move a rebuilt recipe's lines
-  back too, undo the rebuild first.
+- `undo-applied` (the USDA link undo) skips a link with a line on a recipe rebuilt after it
+  (`skippedRebuilt`, the link stays Applied with its journal) and follows a line an order-only pass
+  moved; undo the rebuild first, then the link, or pass `leaveMovedLines=true` to leave the rebuilt
+  lines where they are and take the rest back.
 - A6 reads energy only: a wrong amount of a food with no calories (salt, water, baking powder) or one
   that keeps the serving inside 30 to 2,500 kcal passes it.
 - A held recipe is retried when the line rules change, not after a catalog change.

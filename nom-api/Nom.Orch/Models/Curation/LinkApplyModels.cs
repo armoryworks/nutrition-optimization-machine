@@ -12,7 +12,7 @@ namespace Nom.Orch.Models.Curation
         public string TargetName { get; set; } = string.Empty;
         public int LinesRestored { get; set; }
         public int LinesSkipped { get; set; }
-        /// <summary>Lines of a recipe rebuilt since the link, left where the rebuild put them; counted in LinesSkipped too.</summary>
+        /// <summary>Lines of a recipe rebuilt since the link; counted in LinesSkipped too.</summary>
         public int LinesSkippedRebuilt { get; set; }
         /// <summary>Empty when the link is taken back; otherwise why it is left as it is.</summary>
         public string Skipped { get; set; } = string.Empty;
@@ -23,12 +23,12 @@ namespace Nom.Orch.Models.Curation
         public bool Applied { get; set; }
         /// <summary>Applied links this call took back, or would take back with apply.</summary>
         public int Proposals { get; set; }
-        /// <summary>Applied links left as they are: the wording's food cannot come back under its name, or a line moved since the link. They do not count towards max.</summary>
+        /// <summary>Applied links left as they are: the wording's food cannot come back under its name, or a line moved since the link or sits on a recipe rebuilt since. They do not count towards max.</summary>
         public int ProposalsSkipped { get; set; }
         public int LinesRestored { get; set; }
         /// <summary>Lines no longer where the link put them (edited, deleted or moved since); with leaveMovedLines they stay where they are and their journal row is kept. A line an order-only pass moved to another position is followed there and taken back.</summary>
         public int LinesSkipped { get; set; }
-        /// <summary>Lines of a recipe rebuilt since the link: the rebuild replaced them, so they stay where it put them, their journal row is kept, and the rest of the link is taken back. Counted in LinesSkipped too.</summary>
+        /// <summary>Lines of a recipe whose lines a rebuild rewrote since the link. The link is left as it is until the rebuild is undone; with leaveMovedLines the lines stay where the rebuild put them, their journal row is kept, and the rest of the link is taken back.</summary>
         public int SkippedRebuilt { get; set; }
         /// <summary>Wording foods the link had merged away that come back.</summary>
         public int FoodsRestored { get; set; }

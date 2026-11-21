@@ -261,5 +261,20 @@ namespace Nom.Orch.Services.Support
         /// </summary>
         public static bool NamesNoFood(string? name) =>
             !AmountWord.Replace(name ?? string.Empty, string.Empty).Any(char.IsLetter);
+
+        private static readonly Regex MeasureOnly = new(
+            $@"^\s*(?:(?:about|circa|ca\.?)\s+)?(?:{Number}\s*)?(?:(?:circa|ca\.?)\s+)?" +
+            @"(?:cups?|c|pints?|pts?|quarts?|qts?|gallons?|gals?|pounds?|lbs?|ounces?|ozs?|fl\.?\s*oz|tablespoons?|tbsps?|tbs|tbl|tbsp|teaspoons?|tsps?|t|" +
+            @"liters?|litres?|l|ml|milliliters?|grams?|g|kgs?|kilograms?|grammi|grammo|gr|chilogrammi|chilogrammo|litri|litro|decilitri|decilitro|dl|pinch(?:es)?|dash(?:es)?)" +
+            $@"\b\.?\s*(?:(?:circa|ca\.?)\s+)?(?:{Number})?\s*\.?\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        /// <summary>
+        /// True when a line's text states only an amount and names no food: a number alone, or a number
+        /// and a measure ("Grammi circa 100", "Grammi 80", "2 cups", "1 tbsp."). A count word that can be
+        /// a food itself ("6 cloves", "2 heads") is not read so.
+        /// </summary>
+        public static bool NamesOnlyAnAmount(string? text) =>
+            NamesNoFood(Normalize(text ?? string.Empty)) || MeasureOnly.IsMatch(text ?? string.Empty);
     }
 }

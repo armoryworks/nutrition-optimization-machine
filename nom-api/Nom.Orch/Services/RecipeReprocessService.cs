@@ -56,6 +56,7 @@ namespace Nom.Orch.Services
         private const string OperatorBatchPrefix = "rp-";
         private const int IdsPerRead = 1000;
         private const string LinksKey = "links=";
+        private const string JournalKey = "journal=";
         private static readonly string[] NotARecipeProblems = { "Text is placeholder copy", "Text has no real words" };
 
         private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -998,6 +999,7 @@ namespace Nom.Orch.Services
             var simulatedRows = new Dictionary<long, List<LineRow>>();
             var simulatedSteps = new Dictionary<long, List<StepRow>>();
             var simulatedState = new Dictionary<long, RecipeState>();
+            var restoredHere = new HashSet<long>();
             var by = _currentUser.PersonIdOrSystem;
             foreach (var id in entries)
             {
@@ -1009,8 +1011,9 @@ namespace Nom.Orch.Services
                     continue;
                 }
 
-                var oldRows = entry.OldRows == null ? null : JsonSerializer.Deserialize<List<LineRow>>(entry.OldRows, Json);
-                var newRows = entry.NewRows == null ? null : JsonSerializer.Deserialize<List<LineRow>>(entry.NewRows, Json);
+                var rowsKept = entry.OldRows != null && entry.OldRows == entry.NewRows;
+                var oldRows = entry.OldRows == null || rowsKept ? null : JsonSerializer.Deserialize<List<LineRow>>(entry.OldRows, Json);
+                var newRows = entry.NewRows == null || rowsKept ? null : JsonSerializer.Deserialize<List<LineRow>>(entry.NewRows, Json);
                 var oldState = entry.OldRecipe == null ? null : JsonSerializer.Deserialize<RecipeState>(entry.OldRecipe, Json);
                 var newState = entry.NewRecipe == null ? null : JsonSerializer.Deserialize<RecipeState>(entry.NewRecipe, Json);
 
@@ -1025,13 +1028,14 @@ namespace Nom.Orch.Services
                 var stateStands = newState == null || SameState(stateNow, newState);
                 var approvedSince = !stateStands && stateNow.CurationStatusId == (long)CurationStatusEnum.Curated
                     && newState!.CurationStatusId != (long)CurationStatusEnum.Curated;
-                if (!linesStand || !stepsStand || (newRows == null && !stateStands) || approvedSince)
+                if (!linesStand || !stepsStand || (entry.NewRows == null && !stateStands) || approvedSince)
                 {
                     Skip(result, recipe.Id);
                     continue;
                 }
 
                 result.Restored++;
+                restoredHere.Add(entry.Id);
                 result.RestoredByKind[entry.Kind] = result.RestoredByKind.GetValueOrDefault(entry.Kind) + 1;
                 if (!stateStands) result.StateKept++;
                 if (oldRows != null) simulatedRows[recipe.Id] = oldRows;
@@ -1045,7 +1049,7 @@ namespace Nom.Orch.Services
                         .Where(a => a.EntityType == FoodEntityType && a.ChangeType == FoodCreateChangeType && a.OldValue != null && a.OldValue.StartsWith(marker))
                         .ToListAsync())
                     {
-                        if (await RemovableAsync(created, simulatedRows)) removable.Add(created);
+                        if (await RemovableAsync(created, simulatedRows, restoredHere)) removable.Add(created);
                         else result.FoodsKept++;
                     }
                     result.FoodsRemoved += removable.Count;
@@ -1101,9 +1105,11 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Whether a food a rebuild created can go again with that rebuild's undo: it is as the rebuild
         /// made it (uncurated, same name, no other journal entry), and once the undone recipes have their
-        /// rows back no recipe line, alias, proposal, nutrient, wording, measure or household row refers to it.
+        /// rows back no recipe line, alias, proposal, nutrient, wording, measure or household row refers to it,
+        /// and no standing journal would put a line back on it: the rows before of another reprocess not
+        /// undone in this call, or the place before of a line relink or an applied link.
         /// </summary>
-        private async Task<bool> RemovableAsync(AuditLogEntryEntity created, Dictionary<long, List<LineRow>> simulatedRows)
+        private async Task<bool> RemovableAsync(AuditLogEntryEntity created, Dictionary<long, List<LineRow>> simulatedRows, IReadOnlyCollection<long> restoredHere)
         {
             var id = created.EntityId;
             var food = await _db.Ingredients.IgnoreQueryFilters().AsNoTracking().FirstOrDefaultAsync(i => i.Id == id);
@@ -1122,7 +1128,42 @@ namespace Nom.Orch.Services
                 && !await _db.IngredientMeasurements.IgnoreQueryFilters().AnyAsync(m => m.IngredientId == id)
                 && !await _db.IngredientContainerSizes.IgnoreQueryFilters().AnyAsync(c => c.IngredientId == id)
                 && !await _db.AuditLogEntries.AnyAsync(a => a.EntityId == id && a.Id != created.Id && a.EntityType == FoodEntityType)
-                && !await LineRelinkService.IsUsedOutsideRecipeLinesAsync(_db, id);
+                && !await LineRelinkService.IsUsedOutsideRecipeLinesAsync(_db, id)
+                && !await NamedByLineJournalAsync(id)
+                && !await NamedByStandingRowsAsync(id, restoredHere);
+        }
+
+        private Task<bool> NamedByLineJournalAsync(long id)
+        {
+            var place = string.Create(CultureInfo.InvariantCulture, $"{id}@");
+            var linkPlace = string.Create(CultureInfo.InvariantCulture, $":{id}@");
+            return _db.AuditLogEntries.AnyAsync(a =>
+                (a.EntityType == ScrapedRecipeRepairService.LineEntityType && a.OldValue != null && a.OldValue.StartsWith(place))
+                || (a.EntityType == LinkApplyJournal.EntityType && a.ChangeType == LinkApplyJournal.ChangeType && a.PropertyName == LinkApplyJournal.Line
+                    && a.OldValue != null && a.OldValue.Contains(linkPlace)));
+        }
+
+        private async Task<bool> NamedByStandingRowsAsync(long id, IReadOnlyCollection<long> restoredHere)
+        {
+            var skip = restoredHere.ToArray();
+            if (_db.Database.IsRelational())
+            {
+                var byFood = JsonSerializer.Serialize(new[] { new { IngredientId = id } }, Json);
+                var byEntity = JsonSerializer.Serialize(new[] { new { IngredientEntityId = id } }, Json);
+                return (await _db.Database.SqlQuery<bool>(
+                    $"""
+                     SELECT EXISTS (SELECT 1 FROM recipe."RecipeReprocessJournal" j
+                                    WHERE j."UndoneAt" IS NULL AND j."OldRows" IS NOT NULL AND NOT (j."Id" = ANY({skip}))
+                                      AND (j."OldRows" @> {byFood}::jsonb OR j."OldRows" @> {byEntity}::jsonb)) AS "Value"
+                     """).ToListAsync())[0];
+            }
+
+            var standing = await _db.RecipeReprocessJournals.AsNoTracking()
+                .Where(j => j.UndoneAt == null && j.OldRows != null && !skip.Contains(j.Id))
+                .Select(j => j.OldRows!)
+                .ToListAsync();
+            return standing.Any(rows => (JsonSerializer.Deserialize<List<LineRow>>(rows, Json) ?? new List<LineRow>())
+                .Any(r => r.IngredientId == id || r.IngredientEntityId == id));
         }
 
         /// <summary>The ids of the link journal rows a reprocess header names (<c>links=</c>), which its rebuild wrote.</summary>
@@ -1183,7 +1224,8 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// The newest standing reprocess of each of the given recipes that rewrote its lines, order-only
-        /// writes included unless <paramref name="withOrder"/> is false. An older
+        /// writes included unless <paramref name="withOrder"/> is false. A rebuild that replaced only the
+        /// steps and left the rows as they were does not count. An older
         /// line journal's undo skips a recipe rebuilt after that journal's entry: the rebuild replaced
         /// the rows the entry names, so it is undone first.
         /// </summary>
@@ -1192,16 +1234,41 @@ namespace Nom.Orch.Services
             var found = new Dictionary<long, DateTime>();
             foreach (var chunk in recipeIds.Distinct().Chunk(IdsPerRead))
             {
-                var headers = await db.AuditLogEntries.AsNoTracking()
+                var headers = db.AuditLogEntries.AsNoTracking()
                     .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType
-                        && (a.ChangeType == ReprocessChangeType || (withOrder && a.ChangeType == ReprocessOrderChangeType)) && chunk.Contains(a.EntityId))
+                        && (a.ChangeType == ReprocessChangeType || (withOrder && a.ChangeType == ReprocessOrderChangeType)) && chunk.Contains(a.EntityId));
+                var newest = await headers
                     .GroupBy(a => a.EntityId)
                     .Select(g => new { RecipeId = g.Key, At = g.Max(a => a.Timestamp) })
                     .ToListAsync();
-                foreach (var header in headers) found[header.RecipeId] = header.At;
+                foreach (var header in newest) found[header.RecipeId] = header.At;
+
+                var rowsKept = await db.RecipeReprocessJournals.AsNoTracking()
+                    .Where(j => chunk.Contains(j.RecipeId) && j.UndoneAt == null && j.OldRows != null && j.OldRows == j.NewRows)
+                    .Select(j => new { j.Id, j.RecipeId })
+                    .ToListAsync();
+                if (rowsKept.Count == 0) continue;
+                var keptIds = rowsKept.Select(j => j.Id).ToHashSet();
+                var keptRecipes = rowsKept.Select(j => j.RecipeId).Distinct().ToList();
+                var theirs = await headers.Where(a => keptRecipes.Contains(a.EntityId))
+                    .Select(a => new { RecipeId = a.EntityId, At = a.Timestamp, a.NewValue })
+                    .ToListAsync();
+                foreach (var recipeId in keptRecipes)
+                {
+                    var rewrote = theirs.Where(h => h.RecipeId == recipeId && (JournalIdOf(h.NewValue) is not { } id || !keptIds.Contains(id))).ToList();
+                    if (rewrote.Count == 0) found.Remove(recipeId);
+                    else found[recipeId] = rewrote.Max(h => h.At);
+                }
             }
             return found;
         }
+
+        /// <summary>The journal id a reprocess header names (<c>journal=</c>), or null.</summary>
+        internal static long? JournalIdOf(string? header) =>
+            (header ?? string.Empty).Split(';')
+                .Where(part => part.StartsWith(JournalKey, StringComparison.Ordinal))
+                .Select(part => long.TryParse(part[JournalKey.Length..], NumberStyles.None, CultureInfo.InvariantCulture, out var parsed) ? parsed : (long?)null)
+                .FirstOrDefault();
 
         /// <summary>
         /// The position the line that stood at <paramref name="sortOrder"/> on <paramref name="ingredientId"/>
