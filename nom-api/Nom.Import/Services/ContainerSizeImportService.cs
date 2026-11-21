@@ -265,9 +265,13 @@ namespace Nom.Import.Services
             }
 
             report.Written = await _sizes.WriteAsync(report.Proposals, options.DryRun, report.Stamp, retireMissing: true, SystemConstants.SystemPersonId,
-                options.BrandedDir == null ? new[] { BrandedModeSource } : null, cancellationToken);
+                Nom.Orch.Services.ContainerSizeService.CorpusSources.Concat(options.BrandedDir == null ? new[] { BrandedModeSource } : Array.Empty<string>()).ToList(), cancellationToken);
+            var corpus = options.DryRun
+                ? (await _db.IngredientContainerSizes.AsNoTracking().Where(r => r.Status != ContainerSizeStatus.Retired).ToListAsync(cancellationToken))
+                    .Where(r => ContainerCorpusSizes.TierOf(r.SourceRef) != null).Select(Nom.Orch.Services.ContainerSizeService.AsProposal).ToList()
+                : new List<ContainerSizeProposal>();
             report.Scored = options.DryRun
-                ? await _sizes.ScoreAsync(false, SystemConstants.SystemPersonId, report.Proposals, cancellationToken)
+                ? await _sizes.ScoreAsync(false, SystemConstants.SystemPersonId, report.Proposals.Concat(corpus).ToList(), cancellationToken)
                 : await _sizes.ScoreAsync(true, SystemConstants.SystemPersonId, null, cancellationToken);
             return report;
         }

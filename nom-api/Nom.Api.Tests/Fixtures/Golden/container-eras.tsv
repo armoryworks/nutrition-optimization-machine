@@ -1,0 +1,19 @@
+id	line	era	book	fdcId	expectGrams	expectBasis	status	source	note
+r-01	1 package cream cheese	historic	Constructed Book A (1910)	173418	85	same-book	ok	rule:container-era-sizes	book A states "1 (3 oz) package cream cheese" and "2 (3 oz.) packages" elsewhere: 85 g, before any other source
+r-02	1 package cream cheese	historic	Constructed Book C (1931)	173418	85	same-era	ok	rule:container-era-sizes	book C states 3 oz once and 8 oz once, no clear size of its own; the historic books vote 85 g four times, 227 g twice
+r-03	1 package cream cheese	historic	Constructed Book E (1920)	173418	85	same-era	ok	rule:container-era-sizes	a book with no sized line of its own takes its era's size
+r-04	1 package cream cheese	unknown	Constructed Club Cook Book	173418	227	modern-fallback	ok	rule:container-era-sizes	no undated book states a cream cheese package and no period source names one: today's most common size, last
+r-05	1 package cream cheese	modern	-	173418	227	food-size	ok	rule:container-era-sizes	a web recipe never takes a corpus size
+r-06	1 large package cream cheese	historic	Constructed Book D (1935)	173418	227	same-book	ok	rule:container-era-sizes	the size word is its own key: book D states "1 large package (8 oz.)"
+r-07	2 packages cream cheese	historic	Constructed Book B (1925)	173418	170	same-book	ok	rule:container-era-sizes	book B states 3 oz twice and 8 oz once, so 3 oz holds: two packages of 85 g
+r-08	1 can mushrooms	historic	Constructed Book A (1910)	169254	-	same-book	ok	rule:container-era-sizes	book A gives the can's net 227 g, but the food is drained solids and no drained share is known: uncounted, and why
+r-09	1 package lime gelatin	unknown	Constructed Club Cook Book	168775	85	same-book	ok	rule:container-era-sizes	an undated book's own "1 (3 oz) package lime gelatin"
+r-10	1 package Royal Orange Gelatin	historic	Constructed Book E (1920)	168775	85	modern-fallback	ok	rule:container-era-sizes	no old book states a gelatin package and no period source names one: today's SR "package (3 oz)" (owner's third-round answer 7)
+r-11	1 can black beans	unknown	Constructed Ladies' Aid Book	175238	425	same-book	ok	rule:container-era-sizes	the book's own 15 oz can
+r-12	1 can black beans	unknown	Constructed Grange Book	175238	454	same-book	ok	rule:container-era-sizes	the book's own 16 oz can, though today's is 15 oz
+r-13	1 can black beans	unknown	Constructed Sewing Circle Book	175238	425	modern-fallback	ok	rule:container-era-sizes	the undated books state 15 oz once and 16 oz once, no clear era size: today's size
+r-14	1 can corn	historic	Constructed Book A (1910)	169214	313	period-nearer	ok	deterministic:can-table:h33-veg-medium	book A names only a numbered can of corn, which is not mined: the cited 1933 period can nearer today's size, drained (as e-01)
+r-15	1 (8 oz) package cream cheese	historic	Constructed Book A (1910)	173418	227	stated	ok	rule:container-era-sizes	a stated size wins over the book's 3 oz
+r-16	1 package neufchatel cheese	historic	Constructed Book F (1940)	173420	-	-	ok	rule:container-era-sizes	book F states 3 oz twice, 6 oz once and 8 oz once: 3 oz holds exactly half, not more than half, so the book gives no size; the era has no clear mode and the food no other size
+r-17	1 jar honey	historic	Constructed Book A (1910)	169640	-	-	ok	rule:container-era-sizes	only book G states a honey jar (16 oz and 16.5 oz, one band): one book is not an era size, so book A's jar has none
+r-18	1 jar honey	historic	Constructed Book G (1945)	169640	454	same-book	ok	rule:container-era-sizes	book G's own jars, 16 oz and 16.5 oz within 5 %: 454 g

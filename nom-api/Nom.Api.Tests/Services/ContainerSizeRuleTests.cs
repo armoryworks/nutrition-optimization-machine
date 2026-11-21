@@ -228,15 +228,16 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public void Only_a_can_or_a_jar_in_an_old_or_undated_book_falls_back_to_the_modern_size()
+        public void Every_kind_in_an_old_or_undated_book_falls_back_to_the_modern_size_as_its_last_tier()
         {
             ContainerSizeCandidate Of(string kind, decimal net, string era = ContainerEras.Modern) => new(kind, era, string.Empty, net, null, "test");
 
             ContainerSizeResolver.Resolve("1 jar pasta sauce", ContainerEras.Historic, new[] { Of(ContainerKinds.Jar, 680m) }).Basis.Should().Be(ContainerBasis.ModernFallback);
             var cheese = ContainerSizeResolver.Resolve("1 package cream cheese", ContainerEras.Historic, new[] { Of(ContainerKinds.Package, 227m) });
-            (cheese.Counted, cheese.Reason).Should().Be((false, ContainerSizeResolver.NoSize), "the owner's answer names cans and jars; a package of the time may have been 3 oz");
-            ContainerSizeResolver.Resolve("1 package gelatin", ContainerEras.Unknown, new[] { Of(ContainerKinds.Package, 85m) }).Counted.Should().BeFalse();
-            ContainerSizeResolver.Resolve("1 box crackers", ContainerEras.Unknown, new[] { Of(ContainerKinds.Box, 283m) }).Counted.Should().BeFalse();
+            (cheese.Grams, cheese.Basis).Should().Be((227m, ContainerBasis.ModernFallback), "owner's third-round answer: there has to be a way to convert these");
+            ContainerSizeResolver.Resolve("1 package gelatin", ContainerEras.Unknown, new[] { Of(ContainerKinds.Package, 85m) }).Grams.Should().Be(85m);
+            ContainerSizeResolver.Resolve("1 box crackers", ContainerEras.Unknown, new[] { Of(ContainerKinds.Box, 283m) }).Grams.Should().Be(283m);
+            ContainerKinds.All.Should().OnlyContain(k => ContainerSizeResolver.FallsBackToModern(k));
             ContainerSizeResolver.Resolve("1 package cream cheese", ContainerEras.Modern, new[] { Of(ContainerKinds.Package, 227m) }).Grams.Should().Be(227m);
             ContainerSizeResolver.Resolve("1 package gelatin", ContainerEras.Historic, new[] { Of(ContainerKinds.Package, 85m, ContainerEras.Historic) }).Grams.Should().Be(85m, "a size of the book's time still counts");
             ContainerSizeResolver.Resolve("1 bottle wine", ContainerEras.Historic, new[] { Of(ContainerKinds.Bottle, 746m, ContainerEras.Any) }).Grams.Should().Be(746m, "a size that holds in any era still counts");

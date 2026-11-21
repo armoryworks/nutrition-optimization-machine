@@ -48,6 +48,9 @@ namespace Nom.Api.Tests.Golden
             { "containers.tsv", 100, new[] { "status" } },
             { "package-weights.tsv", 60, new[] { "status" } },
             { "container-facts.tsv", 45, Array.Empty<string>() },
+            { "container-eras.tsv", 15, new[] { "status" } },
+            { "container-era-lines.tsv", 15, Array.Empty<string>() },
+            { "container-era-facts.tsv", 15, Array.Empty<string>() },
             { "wording-lexicon.tsv", 40, new[] { "status" } },
             { "alcohol-readings.tsv", 30, new[] { "status" } },
             { "alcohol-retention.tsv", 60, new[] { "status" } },
@@ -98,6 +101,7 @@ namespace Nom.Api.Tests.Golden
         [InlineData("wording-tiers.tsv", "source", "status")]
         [InlineData("containers.tsv", "source", "status")]
         [InlineData("package-weights.tsv", "source", "status")]
+        [InlineData("container-eras.tsv", "source", "status")]
         [InlineData("wording-lexicon.tsv", "judgedBy", "status")]
         [InlineData("alcohol-readings.tsv", "source", "status")]
         [InlineData("alcohol-retention.tsv", "source", "status")]

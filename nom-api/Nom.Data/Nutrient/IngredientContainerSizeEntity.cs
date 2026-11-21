@@ -17,8 +17,14 @@ namespace Nom.Data.Nutrient
         /// <summary>One of <c>ContainerKinds</c> (can, jar, bottle, box, bag, packet, envelope, carton, tub, package).</summary>
         public string ContainerKind { get; set; } = string.Empty;
 
-        /// <summary>modern, historic or any.</summary>
+        /// <summary>modern, historic or any; for a size the recipe corpus gives, the era of the books it was mined from (historic or unknown).</summary>
         public string Era { get; set; } = string.Empty;
+
+        /// <summary>For a size one book's own sized lines give (source deterministic:corpus-book:...), that book (<c>Recipe.SourceAttribution</c>); null for every other row.</summary>
+        public string? SourceAttribution { get; set; }
+
+        /// <summary>For a size the recipe corpus gives, its evidence: the sizes stated and how often, lines, books and spread.</summary>
+        public string? Evidence { get; set; }
 
         /// <summary>Empty for the usual size; small or large for the size a line names with that word.</summary>
         public string SizeWord { get; set; } = string.Empty;
@@ -32,7 +38,7 @@ namespace Nom.Data.Nutrient
         /// <summary>How the size reads to a cook ("15 oz (425 g) can").</summary>
         public string SizeText { get; set; } = string.Empty;
 
-        /// <summary>The source, always deterministic: fdc:{id}:portion:{seq}, deterministic:fdc-branded-mode:..., deterministic:can-table:{row} or deterministic:standard-of-fill:{section}.</summary>
+        /// <summary>The source, always deterministic: fdc:{id}:portion:{seq}, deterministic:fdc-branded-mode:..., deterministic:can-table:{row}, deterministic:standard-of-fill:{section}, or deterministic:corpus-book:... and deterministic:corpus-era:... for a size the recipe corpus gives.</summary>
         public string SourceRef { get; set; } = string.Empty;
 
         /// <summary>The class the size is scored under (a branded class, or portion:{kind}, table:{kind}, fill:{kind}).</summary>

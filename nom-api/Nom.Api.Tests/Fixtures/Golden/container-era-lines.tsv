@@ -1,0 +1,26 @@
+id	book	era	fdcId	line	quantity	unit	density
+l-01	Constructed Book A (1910)	historic	173418	1 (3 oz) package cream cheese	3	Ounce	-
+l-02	Constructed Book A (1910)	historic	173418	2 (3 oz.) packages cream cheese	6	Ounce	-
+l-03	Constructed Book B (1925)	historic	173418	1 3-oz. package cream cheese	3	Ounce	-
+l-04	Constructed Book B (1925)	historic	173418	1 package (3 ounces) cream cheese	3	Ounce	-
+l-05	Constructed Book B (1925)	historic	173418	1 (8 oz) package cream cheese	8	Ounce	-
+l-06	Constructed Book C (1931)	historic	173418	1 (8 oz) package cream cheese	8	Ounce	-
+l-07	Constructed Book C (1931)	historic	173418	1 (3 oz) package cream cheese, softened	3	Ounce	-
+l-08	Constructed Book D (1935)	historic	173418	1 (3 oz) package cream cheese	3	Ounce	-
+l-09	Constructed Book A (1910)	historic	169254	1 (8 oz) can mushrooms	8	Ounce	-
+l-10	Constructed Book D (1935)	historic	169254	1 (8 oz.) can mushrooms, drained	8	Ounce	-
+l-11	Constructed Club Cook Book	unknown	168775	1 (3 oz) package lime gelatin	3	Ounce	-
+l-12	Constructed Ladies' Aid Book	unknown	175238	1 (15 oz) can black beans	15	Ounce	-
+l-13	Constructed Grange Book	unknown	175238	1 (16 oz) can black beans	16	Ounce	-
+l-14	-	modern	173418	1 (8 oz) package cream cheese	8	Ounce	-
+l-15	Constructed Modern Book (1975)	modern	173418	1 (8 oz) package cream cheese	8	Ounce	-
+l-16	Constructed Book D (1935)	historic	173418	1 large package (8 oz.) cream cheese	8	Ounce	-
+l-17	Constructed Book A (1910)	historic	169214	1 No. 2 can corn	1	Ounce	-
+l-18	Constructed Book B (1925)	historic	169254	1 (4 oz) can mushrooms	4	Ounce	-
+l-19	Constructed Book B (1925)	historic	169254	1 (8 ounce) can mushrooms	8	Ounce	-
+l-20	Constructed Book F (1940)	historic	173420	1 (3 oz) package neufchatel cheese	3	Ounce	-
+l-21	Constructed Book F (1940)	historic	173420	1 3-oz. package neufchatel cheese	3	Ounce	-
+l-22	Constructed Book F (1940)	historic	173420	1 (6 oz) package neufchatel cheese	6	Ounce	-
+l-23	Constructed Book F (1940)	historic	173420	1 (8 oz) package neufchatel cheese	8	Ounce	-
+l-24	Constructed Book G (1945)	historic	169640	1 (16 oz) jar honey	16	Ounce	-
+l-25	Constructed Book G (1945)	historic	169640	1 (16.5 oz) jar honey	16.5	Ounce	-

@@ -522,6 +522,31 @@ namespace Nom.Import
                 return;
             }
 
+            if (flag + 1 < args.Length && args[flag + 1] == "--corpus")
+            {
+                var corpus = scope.ServiceProvider.GetRequiredService<ContainerCorpusImportService>();
+                var c = await corpus.RunAsync(new ContainerCorpusImportService.Options(dryRun, Value("--facts")));
+                Console.WriteLine($"\n=== Container sizes from the recipe corpus{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ({Nom.Orch.Services.Support.ContainerCorpusSizes.Version}, {Nom.Orch.Services.ContainerSizeService.RuleVersion}) ===");
+                Console.WriteLine($"Old and undated book lines: {c.BookLines} read; {c.SizedLines} sized container lines in {c.Books} books");
+                Console.WriteLine($"Same-book sizes:    {c.BookSizes} ({c.BookRefused} refused)");
+                Console.WriteLine($"Same-era sizes:     {c.EraSizes} ({c.EraRefused} refused)");
+                foreach (var (reason, n) in c.RefusedByReason.OrderByDescending(x => x.Value))
+                    Console.WriteLine($"  refused: {reason} × {n}");
+                if (c.FactsWritten != null)
+                    Console.WriteLine($"Facts:              {c.FactsWritten} (compare with ops/container-era-facts.py on a capture of the same corpus)");
+                Console.WriteLine($"Unsized lines:      {c.UnsizedLines} container lines of old and undated books, by product class and tier (worst case from the corpus spread or the period candidates; - where no source bounds it):");
+                foreach (var row in c.Coverage)
+                    Console.WriteLine($"  {row.ProductClass} | {row.Tier} | {row.Lines} | {(row.WorstCase is { } worst ? worst.ToString("P1", CultureInfo.InvariantCulture) : "-")}");
+                foreach (var (reason, n) in c.UncountedByReason.OrderByDescending(x => x.Value))
+                    Console.WriteLine($"  uncounted: {reason} × {n}");
+                if (c.Written is { } cw)
+                    Console.WriteLine($"Written:            {cw.Added} added, {cw.Replaced} replaced, {cw.Retired} retired, {cw.Unchanged} unchanged (all in shadow until scored)");
+                if (c.Scored != null) PrintScore(c.Scored);
+                if (!dryRun)
+                    Console.WriteLine($"Run stamp:          {c.Stamp:O} (take this run back with --container-sizes --undo {c.Stamp:O})");
+                return;
+            }
+
             if (flag + 1 < args.Length && args[flag + 1] == "--score")
             {
                 var sizes = scope.ServiceProvider.GetRequiredService<Nom.Orch.Interfaces.IContainerSizeService>();
@@ -534,6 +559,7 @@ namespace Nom.Import
             if (dirs.Count is < 2 or > 3 || !dirs.All(Directory.Exists) || checksums == null || !File.Exists(checksums))
             {
                 Console.WriteLine("Usage: --container-sizes [<branded-csv-dir>] <sr-legacy-csv-dir> <foundation-csv-dir> --checksums <sha256-file> [--dry-run]");
+                Console.WriteLine("       --container-sizes --corpus [--facts <out.tsv>] [--dry-run]");
                 Console.WriteLine("       --container-sizes --score [--dry-run]");
                 Console.WriteLine("       --container-sizes --undo <stamp> [--dry-run]");
                 return;
@@ -573,7 +599,7 @@ namespace Nom.Import
         {
             Console.WriteLine($"\n=== Container size hold-out{(s.Applied ? string.Empty : " (DRY RUN — nothing saved)")} ===");
             Console.WriteLine($"Signature:          {s.Signature} ({s.Rows} sizes)");
-            Console.WriteLine($"Hold-out lines:     {s.HoldoutAgree}/{s.HoldoutLines} agree within 10 %{(s.HoldoutLines > 0 ? $" ({(double)s.HoldoutAgree / s.HoldoutLines:P1})" : string.Empty)}; {s.LinesWithoutKey} sized lines on these foods have no size of their kind and era; {s.OtherEraAgree}/{s.OtherEraLines} lines of old or undated books agree with the size of another era they would take (tier {Nom.Orch.Services.ContainerSizeService.OtherEraTier})");
+            Console.WriteLine($"Hold-out lines:     {s.HoldoutAgree}/{s.HoldoutLines} agree within 10 %{(s.HoldoutLines > 0 ? $" ({(double)s.HoldoutAgree / s.HoldoutLines:P1})" : string.Empty)}; {s.LinesWithoutKey} sized lines on these foods have no size of their kind and era; {s.OtherEraAgree}/{s.OtherEraLines} lines of old or undated books agree with the size an old-book tier would take");
             Console.WriteLine($"Keys:               {string.Join(", ", s.ByStatus.OrderBy(x => x.Key).Select(x => $"{x.Key} {x.Value}"))}");
             foreach (var c in s.Classes)
                 Console.WriteLine($"  class {c.Class}: {c.Agree}/{c.Lines} ({c.Share:P1}); keys {c.Keys}: {c.Active} active, {c.Shadow} shadow, {c.Paused} paused");
@@ -581,8 +607,8 @@ namespace Nom.Import
                 Console.WriteLine($"  {line}");
             if (s.LaneMode != null)
                 Console.WriteLine($"Lane container-sizes: {s.LaneMode} ({s.LaneReason}); {s.DecisionsRecorded} decisions recorded");
-            if (s.OtherEraMode != null)
-                Console.WriteLine($"Old-book tier:      {s.OtherEraMode} ({s.OtherEraReason})");
+            foreach (var t in s.Tiers)
+                Console.WriteLine($"Old-book tier {t.Tier}: {t.Agree}/{t.Lines} agree{(t.Mode != null ? $"; {t.Mode} ({t.Reason})" : string.Empty)}");
         }
 
         private static void PrintUndo(CatalogAdmissionService.AdmissionUndoReport undone)
@@ -676,6 +702,7 @@ namespace Nom.Import
                     services.AddScoped<Nom.Orch.Interfaces.IContainerSizeService, Nom.Orch.Services.ContainerSizeService>();
                     services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.ContainerSizeLaneUndo>();
                     services.AddScoped<ContainerSizeImportService>();
+                    services.AddScoped<ContainerCorpusImportService>();
                     services.AddScoped<FoodGroupEnrichmentService>(sp => new FoodGroupEnrichmentService(
                         sp.GetRequiredService<ApplicationDbContext>(),
                         sp.GetRequiredService<ILogger<FoodGroupEnrichmentService>>(),

@@ -16,7 +16,20 @@ namespace Nom.Orch.Models.Curation
         string Class,
         int SourcesAgreeing = 1,
         decimal? ModeShare = null,
-        int? Products = null);
+        int? Products = null,
+        string? Book = null,
+        string? Evidence = null);
+
+    /// <summary>The hold-out figures of one old-book tier of the lane (same book, same era, period source, today's size) and its mode on the lane frame.</summary>
+    public sealed record ContainerSizeTierFigures(string Tier, int Lines, int Agree, string? Mode, string? Reason);
+
+    /// <summary>
+    /// How an unsized container line of an old or undated book is sized now, counted per product
+    /// class (USDA category and container kind) and tier: how many lines each tier sizes, the
+    /// worst-case error of the sizes it takes (from the corpus spread or the other period
+    /// candidate; null where no source bounds it), and the lines no tier sizes, by reason.
+    /// </summary>
+    public sealed record ContainerCoverageRow(string ProductClass, string Tier, int Lines, decimal? WorstCase);
 
     /// <summary>What an import run wrote, or would write in a dry run.</summary>
     public sealed class ContainerSizeWriteReport
@@ -81,8 +94,9 @@ namespace Nom.Orch.Models.Curation
         public List<string> Changes { get; } = new();
         public string? LaneMode { get; set; }
         public string? LaneReason { get; set; }
-        public string? OtherEraMode { get; set; }
-        public string? OtherEraReason { get; set; }
+
+        /// <summary>Each old-book tier's hold-out lines, agreement and mode, in tier order: a tier is scored on every line it would weigh while the tiers before it are not live, so a line can count under several; <see cref="OtherEraLines"/> and <see cref="OtherEraAgree"/> count each line once, under the first tier that answers it.</summary>
+        public List<ContainerSizeTierFigures> Tiers { get; } = new();
     }
 
     /// <summary>The container sizes block of the Pipeline page.</summary>

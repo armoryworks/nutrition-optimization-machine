@@ -297,16 +297,17 @@ namespace Nom.Api.Tests.Services
 
             report.LaneMode.Should().Be(LaneMode.Live, "the modern lines qualify the lane");
             (report.OtherEraLines, report.OtherEraAgree).Should().Be((120, 0));
-            report.OtherEraMode.Should().NotBe(LaneMode.Live, "old books state No. 2 cans, which the modern size misses");
-            (await rig.Frame.ModeAsync(AiLanes.ContainerSizes, ContainerSizeService.OtherEraTier)).Should().NotBe(LaneMode.Live);
-            (await rig.Db.LaneDecisions.CountAsync(d => d.Tier == ContainerSizeService.OtherEraTier && d.AuditOutcome == "error")).Should().Be(120);
+            report.Tiers.Single(t => t.Tier == ContainerSizeService.ModernTier).Mode.Should().NotBe(LaneMode.Live, "old books state No. 2 cans, which the modern size misses");
+            (await rig.Frame.ModeAsync(AiLanes.ContainerSizes, ContainerSizeService.ModernTier)).Should().NotBe(LaneMode.Live);
+            (await rig.Db.LaneDecisions.CountAsync(d => d.Tier == ContainerSizeService.ModernTier && d.AuditOutcome == "error")).Should().Be(120);
 
             var good = await RigAsync();
             await good.Sizes.WriteAsync(new[] { Proposal(good.Beans, 425m) }, false, DateTime.UtcNow, true, Operator);
             await LinesAsync(good, 60, 15m);
             await LinesAsync(good, 60, 15m, "example.com");
             await BookLinesAsync(good, 120, 15m, "An Undated Book");
-            (await good.Sizes.ScoreAsync(true, Operator)).OtherEraMode.Should().Be(LaneMode.Live, "120 agreeing old-book lines bound the tier above 93 %");
+            (await good.Sizes.ScoreAsync(true, Operator)).Tiers.Single(t => t.Tier == ContainerSizeService.ModernTier).Mode
+                .Should().Be(LaneMode.Live, "120 agreeing old-book lines bound the tier above 93 %");
         }
 
         [Fact]
@@ -318,7 +319,7 @@ namespace Nom.Api.Tests.Services
             await rig.Sizes.ScoreAsync(true, Operator);
             (await rig.Db.IngredientContainerSizes.AsNoTracking().SingleAsync()).Status.Should().Be(ContainerSizeStatus.Active);
 
-            var result = await new ContainerSizeLaneUndo(rig.Sizes).UndoSinceAsync(ContainerSizeService.OtherEraTier, DateTime.UtcNow.AddHours(-1), true, default);
+            var result = await new ContainerSizeLaneUndo(rig.Sizes).UndoSinceAsync(ContainerSizeService.ModernTier, DateTime.UtcNow.AddHours(-1), true, default);
 
             result.Undone.Should().Be(0);
             (await rig.Db.IngredientContainerSizes.AsNoTracking().SingleAsync()).Status.Should().Be(ContainerSizeStatus.Active);

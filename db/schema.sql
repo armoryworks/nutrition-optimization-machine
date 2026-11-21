@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict z1nibcnUOF9CkZznfLsevBr7pp8WWePvDfvpTxSMcCj4x2HgxJU1nrX7nAzFy0c
+\restrict KLKpss1Ic1wQjER84a7f0A8mUuK3w1VLX2Utrdzii4zccqJ7LOpDIvAo2a1Vl1U
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -813,6 +813,8 @@ CREATE TABLE nutrient."IngredientContainerSize" (
     "IngredientId" bigint NOT NULL,
     "ContainerKind" character varying(16) NOT NULL,
     "Era" character varying(16) NOT NULL,
+    "SourceAttribution" character varying(1023),
+    "Evidence" character varying(1023),
     "SizeWord" character varying(16) NOT NULL,
     "NetGrams" numeric(10,2) NOT NULL,
     "DrainedGrams" numeric(10,2),
@@ -9461,5 +9463,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict z1nibcnUOF9CkZznfLsevBr7pp8WWePvDfvpTxSMcCj4x2HgxJU1nrX7nAzFy0c
+\unrestrict KLKpss1Ic1wQjER84a7f0A8mUuK3w1VLX2Utrdzii4zccqJ7LOpDIvAo2a1Vl1U
 

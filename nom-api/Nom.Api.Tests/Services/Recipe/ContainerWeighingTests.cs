@@ -74,6 +74,11 @@ namespace Nom.Api.Tests.Services.Recipe
             SizeText = "test", SourceRef = source, Class = "test", SourcesAgreeing = 1, Status = status, CreatedDate = new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc),
         };
 
+        private static async Task OldBookTiersAsync(ApplicationDbContext db, string mode)
+        {
+            foreach (var tier in ContainerSizeService.OldBookTiers) await LaneAsync(db, mode, tier: tier);
+        }
+
         private static async Task LaneAsync(ApplicationDbContext db, string mode, DateTime? since = null, string tier = LaneTiers.Whole)
         {
             var row = await db.LaneStates.FirstOrDefaultAsync(s => s.Lane == AiLanes.ContainerSizes && s.Tier == tier);
@@ -155,7 +160,7 @@ namespace Nom.Api.Tests.Services.Recipe
         {
             var rig = await RigAsync();
             await LaneAsync(rig.Db, LaneMode.Live);
-            await LaneAsync(rig.Db, LaneMode.Live, tier: ContainerSizeService.OtherEraTier);
+            await OldBookTiersAsync(rig.Db, LaneMode.Live);
             rig.Db.RecipeSourceEras.Add(new RecipeSourceEraEntity { SourceAttribution = "A Plain Cook Book (Example 1901)", PublishedYear = 1931, Era = ContainerEras.Historic });
             await rig.Db.SaveChangesAsync();
             var web = await RecipeAsync(rig.Db, "example.com", null, (rig.Corn, 1m, Can, "1 can corn"));
@@ -336,11 +341,11 @@ namespace Nom.Api.Tests.Services.Recipe
             var recipe = await LoadAsync(rig.Db, book);
             (await ContainerWeighing.ForRecipeAsync(rig.Db, recipe)).Weigh(recipe.RecipeIngredients!.Single())!.Reason.Should().Be(ContainerWeighing.OtherEraNotLive);
 
-            await LaneAsync(rig.Db, LaneMode.Live, tier: ContainerSizeService.OtherEraTier);
+            await OldBookTiersAsync(rig.Db, LaneMode.Live);
             await rig.Nutrition.RecalculateAsync(book);
             (await KcalAsync(rig.Db, book)).Should().Be(425m);
 
-            await LaneAsync(rig.Db, LaneMode.Paused, tier: ContainerSizeService.OtherEraTier);
+            await OldBookTiersAsync(rig.Db, LaneMode.Paused);
             await rig.Nutrition.RecalculateAsync(book);
             (await KcalAsync(rig.Db, book)).Should().BeNull("a paused old-book tier stops the fallback sizes and the label drops them");
         }
