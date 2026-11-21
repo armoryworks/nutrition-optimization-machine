@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Nom.Data;
 using Nom.Data.Curation;
 using Nom.Orch.Interfaces;
+using Nom.Orch.Services;
 using Nom.Orch.Services.Support;
 
 namespace Nom.Api.Services
@@ -55,9 +56,7 @@ namespace Nom.Api.Services
                     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                     var nutrition = scope.ServiceProvider.GetRequiredService<IRecipeNutritionService>();
 
-                    var due = await DueRecipeIds(db, cursor)
-                        .Take(batchSize)
-                        .ToListAsync(stoppingToken);
+                    var due = await DueRecipeIdsAsync(db, cursor, batchSize, stoppingToken);
 
                     if (due.Count == 0)
                     {
@@ -91,12 +90,20 @@ namespace Nom.Api.Services
         }
 
         /// <summary>
+        /// The next <paramref name="take"/> due recipes after <paramref name="cursor"/>, in id order:
+        /// those of <see cref="DueRecipeIds"/> and of <see cref="ContainerDueRecipeIds"/>.
+        /// </summary>
+        public static async Task<List<long>> DueRecipeIdsAsync(ApplicationDbContext db, long cursor, int take, CancellationToken cancellationToken = default)
+        {
+            var due = await DueRecipeIds(db, cursor).Take(take).ToListAsync(cancellationToken);
+            var containers = await ContainerDueRecipeIds(db, cursor).Take(take).ToListAsync(cancellationToken);
+            return due.Union(containers).OrderBy(id => id).Take(take).ToList();
+        }
+
+        /// <summary>
         /// Recipes after <paramref name="cursor"/>, in id order, whose derived label is missing or
         /// older than a change to their ingredient lines or to a line food's nutrient values (a
-        /// backfill adding sodium, say), and recipes with a measured container line whose label is
-        /// older than a change to that food's container sizes, to the container-sizes lane's mode or
-        /// to their book's era, which change the size such a line is weighed at. Hand-authored labels
-        /// are never due.
+        /// backfill adding sodium, say). Hand-authored labels are never due.
         /// </summary>
         public static IQueryable<long> DueRecipeIds(ApplicationDbContext db, long cursor) => db.Recipes
             .AsNoTracking()
@@ -106,13 +113,32 @@ namespace Nom.Api.Services
                     || (r.Nutrition!.All(n => n.DateCalculated != null)
                         && (r.Nutrition!.Max(n => n.DateCalculated) < r.RecipeIngredients!.Max(ri => ri.LastModifiedDate ?? ri.CreatedDate)
                             || r.RecipeIngredients!.Any(ri => ri.Ingredient.IngredientNutrients
-                                .Any(n => (n.LastModifiedDate ?? n.CreatedDate) > r.Nutrition!.Max(x => x.DateCalculated)))
-                            || (r.RecipeIngredients!.Any(ri => ri.Quantity > 0 && ri.Measurement.IsContainer)
-                                && (db.IngredientContainerSizes.Any(s => (s.LastModifiedDate ?? s.CreatedDate) > r.Nutrition!.Max(x => x.DateCalculated)
-                                        && r.RecipeIngredients!.Any(ri => ri.IngredientId == s.IngredientId && ri.Quantity > 0 && ri.Measurement.IsContainer))
-                                    || db.LaneStates.Any(l => l.Lane == AiLanes.ContainerSizes && l.Tier == LaneTiers.Whole && l.Since > r.Nutrition!.Max(x => x.DateCalculated))
-                                    || db.RecipeSourceEras.Any(e => e.SourceAttribution == r.SourceAttribution
-                                        && (e.LastModifiedDate ?? e.CreatedDate) > r.Nutrition!.Max(x => x.DateCalculated))))))))
+                                .Any(n => (n.LastModifiedDate ?? n.CreatedDate) > r.Nutrition!.Max(x => x.DateCalculated)))))))
+            .OrderBy(r => r.Id)
+            .Select(r => r.Id);
+
+        /// <summary>
+        /// Recipes after <paramref name="cursor"/>, in id order, with a derived label and a measured
+        /// container line on a food with nutrient values, whose label is older than a change to that
+        /// food's container sizes, to the container-sizes lane's mode (whole lane or old-book tier) or
+        /// to their book's era, which change the size such a line is weighed at. A size or an era an
+        /// undo removed is a change too, so this query reads soft-deleted size and era rows and
+        /// filters every other table by hand.
+        /// </summary>
+        public static IQueryable<long> ContainerDueRecipeIds(ApplicationDbContext db, long cursor) => db.Recipes
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(r => r.Id > cursor && !r.IsDeleted
+                && r.Nutrition!.Any(n => !n.IsDeleted)
+                && r.Nutrition!.Where(n => !n.IsDeleted).All(n => n.DateCalculated != null)
+                && r.RecipeIngredients!.Any(ri => !ri.IsDeleted && ri.Quantity > 0 && !ri.Measurement.IsDeleted && ri.Measurement.IsContainer
+                    && !ri.Ingredient.IsDeleted && ri.Ingredient.IngredientNutrients.Any(n => !n.IsDeleted))
+                && (db.IngredientContainerSizes.Any(s => (s.LastModifiedDate ?? s.CreatedDate) > r.Nutrition!.Where(n => !n.IsDeleted).Max(x => x.DateCalculated)
+                        && r.RecipeIngredients!.Any(ri => !ri.IsDeleted && ri.IngredientId == s.IngredientId && ri.Quantity > 0 && !ri.Measurement.IsDeleted && ri.Measurement.IsContainer))
+                    || db.LaneStates.Any(l => !l.IsDeleted && l.Lane == AiLanes.ContainerSizes && (l.Tier == LaneTiers.Whole || l.Tier == ContainerSizeService.OtherEraTier)
+                        && l.Since > r.Nutrition!.Where(n => !n.IsDeleted).Max(x => x.DateCalculated))
+                    || db.RecipeSourceEras.Any(e => e.SourceAttribution == r.SourceAttribution
+                        && (e.LastModifiedDate ?? e.CreatedDate) > r.Nutrition!.Where(n => !n.IsDeleted).Max(x => x.DateCalculated))))
             .OrderBy(r => r.Id)
             .Select(r => r.Id);
 

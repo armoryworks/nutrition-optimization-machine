@@ -36,7 +36,7 @@ namespace Nom.Orch.Models.Recipe
         /// <summary>Whether this line counts toward the derived nutrition label: counted, counted-assumed (at an assumed container size), no-data, no-conversion, not-measured or not-an-ingredient.</summary>
         public string NutritionStatus { get; set; } = string.Empty;
 
-        /// <summary>For a counted-assumed line, the size it is weighed at and where that size comes from, ending "estimated"; null otherwise.</summary>
+        /// <summary>For a line weighed at an assumed container size (counted-assumed, or no-data when its food has no nutrient values), the size and where it comes from, ending "estimated"; null otherwise.</summary>
         public string? AssumedSize { get; set; }
     }
 }

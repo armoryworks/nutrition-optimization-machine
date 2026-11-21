@@ -74,10 +74,10 @@ namespace Nom.Api.Tests.Services.Recipe
             SizeText = "test", SourceRef = source, Class = "test", SourcesAgreeing = 1, Status = status, CreatedDate = new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc),
         };
 
-        private static async Task LaneAsync(ApplicationDbContext db, string mode, DateTime? since = null)
+        private static async Task LaneAsync(ApplicationDbContext db, string mode, DateTime? since = null, string tier = LaneTiers.Whole)
         {
-            var row = await db.LaneStates.FirstOrDefaultAsync(s => s.Lane == AiLanes.ContainerSizes && s.Tier == LaneTiers.Whole);
-            if (row == null) db.LaneStates.Add(row = new LaneStateEntity { Lane = AiLanes.ContainerSizes, Tier = LaneTiers.Whole });
+            var row = await db.LaneStates.FirstOrDefaultAsync(s => s.Lane == AiLanes.ContainerSizes && s.Tier == tier);
+            if (row == null) db.LaneStates.Add(row = new LaneStateEntity { Lane = AiLanes.ContainerSizes, Tier = tier });
             row.Mode = mode;
             row.Since = since ?? DateTime.UtcNow;
             await db.SaveChangesAsync();
@@ -155,6 +155,7 @@ namespace Nom.Api.Tests.Services.Recipe
         {
             var rig = await RigAsync();
             await LaneAsync(rig.Db, LaneMode.Live);
+            await LaneAsync(rig.Db, LaneMode.Live, tier: ContainerSizeService.OtherEraTier);
             rig.Db.RecipeSourceEras.Add(new RecipeSourceEraEntity { SourceAttribution = "A Plain Cook Book (Example 1901)", PublishedYear = 1931, Era = ContainerEras.Historic });
             await rig.Db.SaveChangesAsync();
             var web = await RecipeAsync(rig.Db, "example.com", null, (rig.Corn, 1m, Can, "1 can corn"));
@@ -234,22 +235,144 @@ namespace Nom.Api.Tests.Services.Recipe
             var size = await rig.Db.IngredientContainerSizes.SingleAsync(s => s.IngredientId == rig.Beans);
             size.CreatedDate = calculated.AddMinutes(-10);
             await rig.Db.SaveChangesAsync();
-            (await RecipeNutritionRecalcHostedService.DueRecipeIds(rig.Db, 0).ToListAsync()).Should().BeEmpty();
+            (await RecipeNutritionRecalcHostedService.DueRecipeIdsAsync(rig.Db, 0, 200)).Should().BeEmpty();
 
             size.LastModifiedDate = calculated.AddMinutes(1);
             await rig.Db.SaveChangesAsync();
-            (await RecipeNutritionRecalcHostedService.DueRecipeIds(rig.Db, 0).ToListAsync()).Should().Equal(id);
+            (await RecipeNutritionRecalcHostedService.DueRecipeIdsAsync(rig.Db, 0, 200)).Should().Equal(id);
             size.LastModifiedDate = calculated.AddMinutes(-1);
             await rig.Db.SaveChangesAsync();
 
             await LaneAsync(rig.Db, LaneMode.Live, calculated.AddMinutes(1));
-            (await RecipeNutritionRecalcHostedService.DueRecipeIds(rig.Db, 0).ToListAsync()).Should().Equal(id);
+            (await RecipeNutritionRecalcHostedService.DueRecipeIdsAsync(rig.Db, 0, 200)).Should().Equal(id);
             await LaneAsync(rig.Db, LaneMode.Live, calculated.AddMinutes(-1));
-            (await RecipeNutritionRecalcHostedService.DueRecipeIds(rig.Db, 0).ToListAsync()).Should().BeEmpty();
+            (await RecipeNutritionRecalcHostedService.DueRecipeIdsAsync(rig.Db, 0, 200)).Should().BeEmpty();
 
             rig.Db.RecipeSourceEras.Add(new RecipeSourceEraEntity { SourceAttribution = "Some Book", PublishedYear = 1931, Era = ContainerEras.Historic, CreatedDate = calculated.AddMinutes(1) });
             await rig.Db.SaveChangesAsync();
-            (await RecipeNutritionRecalcHostedService.DueRecipeIds(rig.Db, 0).ToListAsync()).Should().Equal(id);
+            (await RecipeNutritionRecalcHostedService.DueRecipeIdsAsync(rig.Db, 0, 200)).Should().Equal(id);
+        }
+
+        private static async Task<(long Id, DateTime Calculated)> CalculatedAsync(Rig rig, string? attribution)
+        {
+            var id = await RecipeAsync(rig.Db, null, attribution, (rig.Beans, 1m, Can, "1 can black beans"), (rig.Beans, 100m, Gram, "100 g black beans"));
+            await rig.Nutrition.RecalculateAsync(id);
+            var calculated = (await rig.Db.RecipeNutrition.AsNoTracking().FirstAsync(n => n.RecipeId == id)).DateCalculated!.Value;
+            rig.Db.RecipeIngredients.ToList().ForEach(ri => ri.CreatedDate = calculated.AddMinutes(-10));
+            (await rig.Db.IngredientContainerSizes.SingleAsync(s => s.IngredientId == rig.Beans)).CreatedDate = calculated.AddMinutes(-10);
+            await rig.Db.SaveChangesAsync();
+            (await RecipeNutritionRecalcHostedService.DueRecipeIdsAsync(rig.Db, 0, 200)).Should().BeEmpty();
+            return (id, calculated);
+        }
+
+        [Fact]
+        public async Task A_size_an_undo_removed_makes_a_recipe_with_a_container_line_due()
+        {
+            var rig = await RigAsync();
+            await LaneAsync(rig.Db, LaneMode.Live, DateTime.UtcNow.AddHours(-1));
+            var (id, calculated) = await CalculatedAsync(rig, null);
+
+            var size = await rig.Db.IngredientContainerSizes.SingleAsync(s => s.IngredientId == rig.Beans);
+            size.Status = ContainerSizeStatus.Retired;
+            size.IsDeleted = true;
+            size.DeletedAt = calculated.AddMinutes(1);
+            size.LastModifiedDate = calculated.AddMinutes(1);
+            await rig.Db.SaveChangesAsync();
+
+            (await RecipeNutritionRecalcHostedService.DueRecipeIdsAsync(rig.Db, 0, 200)).Should().Equal(new[] { id }, "the undo removed the size the label weighed the can at");
+            await rig.Nutrition.RecalculateAsync(id);
+            (await KcalAsync(rig.Db, id)).Should().Be(100m, "the can is uncounted again; only the 100 g line counts");
+        }
+
+        [Fact]
+        public async Task A_book_year_an_undo_removed_makes_the_book_s_recipes_due()
+        {
+            var rig = await RigAsync();
+            await LaneAsync(rig.Db, LaneMode.Live, DateTime.UtcNow.AddHours(-1));
+            var era = new RecipeSourceEraEntity { SourceAttribution = "Some Book", PublishedYear = 1965, Era = ContainerEras.Modern, CreatedDate = DateTime.UtcNow.AddHours(-1) };
+            rig.Db.RecipeSourceEras.Add(era);
+            await rig.Db.SaveChangesAsync();
+            var (id, calculated) = await CalculatedAsync(rig, "Some Book");
+
+            era.IsDeleted = true;
+            era.DeletedAt = calculated.AddMinutes(1);
+            era.LastModifiedDate = calculated.AddMinutes(1);
+            await rig.Db.SaveChangesAsync();
+
+            (await RecipeNutritionRecalcHostedService.DueRecipeIdsAsync(rig.Db, 0, 200)).Should().Equal(new[] { id }, "the book is undated again, which weighs its cans differently");
+        }
+
+        [Fact]
+        public async Task A_pause_removes_a_label_that_only_an_assumed_can_held_when_another_line_has_no_data()
+        {
+            var rig = await RigAsync();
+            var blend = new IngredientEntity { Name = "Seasoning blend", CurationStatusId = 9003 };
+            rig.Db.Ingredients.Add(blend);
+            await rig.Db.SaveChangesAsync();
+            await LaneAsync(rig.Db, LaneMode.Live);
+            var id = await RecipeAsync(rig.Db, "example.com", null, (rig.Beans, 1m, Can, "1 can black beans"), (blend.Id, 2m, Gram, "2 g seasoning blend"));
+            await rig.Nutrition.RecalculateAsync(id);
+            (await KcalAsync(rig.Db, id)).Should().Be(425m);
+
+            await LaneAsync(rig.Db, LaneMode.Paused);
+            await rig.Nutrition.RecalculateAsync(id);
+
+            (await KcalAsync(rig.Db, id)).Should().BeNull("nothing counts once the lane pauses, so the label that held the assumed can is removed");
+            (await RecipeNutritionRecalcHostedService.ContainerDueRecipeIds(rig.Db, 0).ToListAsync()).Should().BeEmpty("a recipe with no label is not due again for the container change");
+        }
+
+        [Fact]
+        public async Task An_old_book_takes_another_era_s_size_only_while_the_old_book_tier_is_live()
+        {
+            var rig = await RigAsync();
+            await LaneAsync(rig.Db, LaneMode.Live);
+            var web = await RecipeAsync(rig.Db, "example.com", null, (rig.Beans, 1m, Can, "1 can black beans"));
+            var book = await RecipeAsync(rig.Db, null, "An Undated Book", (rig.Beans, 1m, Can, "1 can black beans"));
+
+            await rig.Nutrition.RecalculateAsync(web);
+            await rig.Nutrition.RecalculateAsync(book);
+            (await KcalAsync(rig.Db, web)).Should().Be(425m);
+            (await KcalAsync(rig.Db, book)).Should().BeNull("the old-book tier has no row, so it is in shadow");
+            var recipe = await LoadAsync(rig.Db, book);
+            (await ContainerWeighing.ForRecipeAsync(rig.Db, recipe)).Weigh(recipe.RecipeIngredients!.Single())!.Reason.Should().Be(ContainerWeighing.OtherEraNotLive);
+
+            await LaneAsync(rig.Db, LaneMode.Live, tier: ContainerSizeService.OtherEraTier);
+            await rig.Nutrition.RecalculateAsync(book);
+            (await KcalAsync(rig.Db, book)).Should().Be(425m);
+
+            await LaneAsync(rig.Db, LaneMode.Paused, tier: ContainerSizeService.OtherEraTier);
+            await rig.Nutrition.RecalculateAsync(book);
+            (await KcalAsync(rig.Db, book)).Should().BeNull("a paused old-book tier stops the fallback sizes and the label drops them");
+        }
+
+        [Fact]
+        public async Task The_recipe_page_marks_an_assumed_weight_estimated_on_a_line_whose_food_has_no_data()
+        {
+            var rig = await RigAsync();
+            await LaneAsync(rig.Db, LaneMode.Live);
+            var bare = new IngredientEntity { Name = "Pinto beans, canned", CurationStatusId = 9003 };
+            rig.Db.Ingredients.Add(bare);
+            rig.Db.Persons.Add(new Nom.Data.Person.PersonEntity { Id = 6, Name = "Cook" });
+            rig.Db.References.Add(new Nom.Data.Reference.ReferenceEntity { Id = (long)CurationStatusEnum.NonCurated, Name = "Non-Curated" });
+            await rig.Db.SaveChangesAsync();
+            rig.Db.IngredientContainerSizes.Add(Size(bare.Id, ContainerKinds.Can, 442m, null, "fdc:175201:portion:2"));
+            await rig.Db.SaveChangesAsync();
+            var id = await RecipeAsync(rig.Db, "example.com", null, (bare.Id, 1m, Can, "1 can pinto beans"), (rig.Beans, 100m, Gram, "100 g black beans"));
+            var recipe = await rig.Db.Recipes.SingleAsync(r => r.Id == id);
+            recipe.AuthorId = 6;
+            recipe.CurationStatusId = (long)CurationStatusEnum.NonCurated;
+            await rig.Db.SaveChangesAsync();
+            await rig.Nutrition.RecalculateAsync(id);
+            rig.Db.ChangeTracker.Clear();
+            var service = new RecipeOrchestrationService(rig.Db, new HttpContextAccessor(), new Moq.Mock<Nom.Orch.Interfaces.ICurrentUserService>().Object,
+                new Moq.Mock<Nom.Orch.UtilityInterfaces.IMediaStorageService>().Object, rig.Nutrition);
+
+            var model = (await service.GetRecipeAsync(id, personId: 6))!;
+
+            var can = model.Ingredients!.Single(i => i.Notes == "1 can pinto beans");
+            (can.Grams, can.NutritionStatus).Should().Be((442m, NutritionLineStatus.NoData));
+            can.AssumedSize.Should().StartWith("1 can ≈").And.EndWith("estimated", "the grams shown are an assumed size, whatever the line's nutrient data");
+            model.NutritionSource!.AssumedLines.Should().Be(0, "the line is not counted, so the label holds no assumed size");
         }
 
         [Fact]
@@ -300,8 +423,9 @@ namespace Nom.Api.Tests.Services.Recipe
             var capture = new CaptureAndStop();
             await using var db = Postgres(capture);
 
-            var due = RecipeNutritionRecalcHostedService.DueRecipeIds(db, 0).ToQueryString();
+            var due = RecipeNutritionRecalcHostedService.ContainerDueRecipeIds(db, 0).ToQueryString();
             due.Should().Contain("\"IngredientContainerSize\"").And.Contain("\"LaneState\"").And.Contain("\"RecipeSourceEra\"");
+            RecipeNutritionRecalcHostedService.DueRecipeIds(db, 0).ToQueryString().Should().Contain("\"IsDeleted\"");
             var sort = RecipeSearchOrchestrationService.ApplySorting(db.Recipes, new RecipeSearchModel { SortBy = "calories" }, ContainerWeighing.WeighableSizes(db)).ToQueryString();
             sort.Should().Contain("\"IngredientContainerSize\"").And.Contain("\"ContainerKind\"");
             var act = () => ContainerWeighing.LiveAsync(db);

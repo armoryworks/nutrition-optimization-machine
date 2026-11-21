@@ -510,7 +510,7 @@ namespace Nom.Import
         {
             Console.WriteLine($"\n=== Container size hold-out{(s.Applied ? string.Empty : " (DRY RUN — nothing saved)")} ===");
             Console.WriteLine($"Signature:          {s.Signature} ({s.Rows} sizes)");
-            Console.WriteLine($"Hold-out lines:     {s.HoldoutAgree}/{s.HoldoutLines} agree within 10 %{(s.HoldoutLines > 0 ? $" ({(double)s.HoldoutAgree / s.HoldoutLines:P1})" : string.Empty)}; {s.LinesWithoutKey} sized lines on these foods have no size of their kind and era; {s.OtherEraAgree}/{s.OtherEraLines} lines of old or undated books agree with the size of another era they would take (not scored)");
+            Console.WriteLine($"Hold-out lines:     {s.HoldoutAgree}/{s.HoldoutLines} agree within 10 %{(s.HoldoutLines > 0 ? $" ({(double)s.HoldoutAgree / s.HoldoutLines:P1})" : string.Empty)}; {s.LinesWithoutKey} sized lines on these foods have no size of their kind and era; {s.OtherEraAgree}/{s.OtherEraLines} lines of old or undated books agree with the size of another era they would take (tier {Nom.Orch.Services.ContainerSizeService.OtherEraTier})");
             Console.WriteLine($"Keys:               {string.Join(", ", s.ByStatus.OrderBy(x => x.Key).Select(x => $"{x.Key} {x.Value}"))}");
             foreach (var c in s.Classes)
                 Console.WriteLine($"  class {c.Class}: {c.Agree}/{c.Lines} ({c.Share:P1}); keys {c.Keys}: {c.Active} active, {c.Shadow} shadow, {c.Paused} paused");
@@ -518,6 +518,8 @@ namespace Nom.Import
                 Console.WriteLine($"  {line}");
             if (s.LaneMode != null)
                 Console.WriteLine($"Lane container-sizes: {s.LaneMode} ({s.LaneReason}); {s.DecisionsRecorded} decisions recorded");
+            if (s.OtherEraMode != null)
+                Console.WriteLine($"Old-book tier:      {s.OtherEraMode} ({s.OtherEraReason})");
         }
 
         private static void PrintUndo(CatalogAdmissionService.AdmissionUndoReport undone)

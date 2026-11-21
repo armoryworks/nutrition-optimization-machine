@@ -513,8 +513,7 @@ namespace Nom.Orch.Services
                     Notes = ri.RawLine,
                     Grams = RoundGrams(RecipeNutritionService.WeighedGramsFor(ri, weighing)),
                     NutritionStatus = RecipeNutritionService.StatusFor(ri, nutrientsByIngredient.ContainsKey(ri.IngredientId), weighing),
-                    AssumedSize = RecipeNutritionService.StatusFor(ri, nutrientsByIngredient.ContainsKey(ri.IngredientId), weighing) == NutritionLineStatus.CountedAssumed
-                        && weighing.Weigh(ri) is { } assumed ? ContainerWeighing.Describe(assumed) : null,
+                    AssumedSize = RecipeNutritionService.GramsFor(ri) == null && weighing.Weigh(ri) is { Counted: true } assumed ? ContainerWeighing.Describe(assumed) : null,
                     SubIngredients = ri.Ingredient?.Components?
                         .OrderBy(c => c.SortOrder)
                         .Select(c => c.ComponentIngredient?.Name ?? string.Empty)

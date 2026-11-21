@@ -26,8 +26,9 @@ namespace Nom.Orch.Services
     ///            see <see cref="ContainerWeighing"/>, and such a line is counted-assumed)
     /// Ingredients without nutrition or without a gram conversion contribute nothing (the recipe
     /// response reports them per line, see <see cref="StatusFor"/>); if nothing contributes,
-    /// existing rows are left alone, except a derived label whose every measured line is now a can
-    /// or package with no stated size, which is removed because it weighed those as items. Rows written here carry
+    /// existing rows are left alone, except a derived label of a recipe with a measured line in a
+    /// container unit (can, jar, bottle, package), which is removed because it weighed that line as
+    /// items or at an assumed size that no longer counts (the lane paused, the size retired). Rows written here carry
     /// DateCalculated so a later hand-authored/seeded set (DateCalculated NULL) is respected.
     /// Values are per serving (Servings ?? RecipeServings ?? 1), matching the seed convention.
     /// </summary>
@@ -117,11 +118,11 @@ namespace Nom.Orch.Services
                 var measured = (recipe.RecipeIngredients ?? Enumerable.Empty<RecipeIngredientEntity>())
                     .Where(ri => (ri.LineKind == null || ri.LineKind == "ingredient") && ri.Quantity > 0)
                     .ToList();
-                if (existing.Count > 0 && measured.Count > 0 && measured.All(ri => ri.Measurement?.IsContainer == true))
+                if (existing.Count > 0 && measured.Any(ri => ri.Measurement?.IsContainer == true))
                 {
                     _db.RecipeNutrition.RemoveRange(existing);
                     await _db.SaveChangesAsync();
-                    _logger.LogInformation("Recipe {RecipeId}: every measured line is a can or package with no stated size; derived label removed", recipeId);
+                    _logger.LogInformation("Recipe {RecipeId}: nothing counts and a measured line is in a container unit, which the label may have weighed at an assumed size; derived label removed", recipeId);
                     return 0;
                 }
                 _logger.LogDebug("Recipe {RecipeId}: no ingredient contributed nutrition; leaving label as-is", recipeId);

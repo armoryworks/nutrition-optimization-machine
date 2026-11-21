@@ -34,8 +34,17 @@ namespace Nom.Orch.Services.Support
         public const string PeriodNearer = "period-nearer";
         public const string ModernFallback = "modern-fallback";
 
-        /// <summary>Whether the size is the key's own answer for the line's era (the hold-out scores a key on these only).</summary>
-        public static bool OwnEra(string? basis) => basis is FoodSize or AnyEra or PeriodSize;
+        /// <summary>Whether the size is the key's own answer for the line's era (the hold-out scores a key on these only); a historic size answers only a dated old book.</summary>
+        public static bool OwnEra(string? basis, string era) =>
+            basis is FoodSize or AnyEra || (basis == PeriodSize && era == ContainerEras.Historic);
+
+        /// <summary>
+        /// Whether the size is one an old or undated book takes from another era's answer (a historic
+        /// size for an undated book, a period candidate, the modern size): such a line is weighed only
+        /// while the lane's old-book tier qualifies on its own hold-out.
+        /// </summary>
+        public static bool OtherEra(string? basis, string era) =>
+            basis is PeriodNearer or ModernFallback || (basis == PeriodSize && era != ContainerEras.Historic);
     }
 
     /// <summary>
@@ -48,8 +57,9 @@ namespace Nom.Orch.Services.Support
     /// old (historic) or undated (unknown) book takes a size that holds in any era, else the food's
     /// historic size, else the size a period row of the can table names for the food's USDA category
     /// (of two candidate cans, the one nearer the food's modern size, when that modern size lies
-    /// within the candidates' span, see <see cref="PeriodCovers"/>; with no modern size, none), else
-    /// the food's modern size; such a line is always shown as estimated. The hold-out hides the
+    /// within the candidates' span, see <see cref="PeriodCovers"/>; with no modern size, none), else,
+    /// for a can or a jar only (<see cref="FallsBackToModern"/>), the food's modern size; such a line
+    /// is always shown as estimated. The hold-out hides the
     /// stated size to ask what the lane would have assumed.
     /// </summary>
     public static class ContainerSizeResolver
@@ -138,9 +148,14 @@ namespace Nom.Orch.Services.Support
                 var nearer = period.OrderBy(c => Math.Abs(c.Grams - modern.NetGrams)).ThenBy(c => c.Grams).First();
                 return Weigh(nearer.Grams, nearer.SourceRef + "|nearer:" + modern.SourceRef, count, kind, drained, usable, modern.RowId, ContainerBasis.PeriodNearer);
             }
-            else
+            else if (FallsBackToModern(kind))
             {
                 pick = modern;
+                basis = ContainerBasis.ModernFallback;
+            }
+            else
+            {
+                pick = null;
                 basis = ContainerBasis.ModernFallback;
             }
             if (pick == null) return new ContainerWeight(null, count, kind, drained, null, NoSize);
@@ -149,6 +164,9 @@ namespace Nom.Orch.Services.Support
                 ? new ContainerWeight(Math.Round(pick.DrainedGrams.Value * count, 1), count, kind, true, pick.SourceRef, null, pick.RowId, basis)
                 : new ContainerWeight(null, count, kind, true, pick.SourceRef, NoDrained, pick.RowId, basis);
         }
+
+        /// <summary>Whether an unsized line of this kind in an old or undated book may take today's size: cans and jars, as the owner's answer names them.</summary>
+        public static bool FallsBackToModern(string kind) => kind is ContainerKinds.Can or ContainerKinds.Jar;
 
         /// <summary>
         /// Whether the period sizes speak of a food whose modern container is this big: its modern

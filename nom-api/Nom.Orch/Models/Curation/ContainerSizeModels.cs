@@ -81,6 +81,8 @@ namespace Nom.Orch.Models.Curation
         public List<string> Changes { get; } = new();
         public string? LaneMode { get; set; }
         public string? LaneReason { get; set; }
+        public string? OtherEraMode { get; set; }
+        public string? OtherEraReason { get; set; }
     }
 
     /// <summary>The container sizes block of the Pipeline page.</summary>

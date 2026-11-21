@@ -228,6 +228,35 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void Only_a_can_or_a_jar_in_an_old_or_undated_book_falls_back_to_the_modern_size()
+        {
+            ContainerSizeCandidate Of(string kind, decimal net, string era = ContainerEras.Modern) => new(kind, era, string.Empty, net, null, "test");
+
+            ContainerSizeResolver.Resolve("1 jar pasta sauce", ContainerEras.Historic, new[] { Of(ContainerKinds.Jar, 680m) }).Basis.Should().Be(ContainerBasis.ModernFallback);
+            var cheese = ContainerSizeResolver.Resolve("1 package cream cheese", ContainerEras.Historic, new[] { Of(ContainerKinds.Package, 227m) });
+            (cheese.Counted, cheese.Reason).Should().Be((false, ContainerSizeResolver.NoSize), "the owner's answer names cans and jars; a package of the time may have been 3 oz");
+            ContainerSizeResolver.Resolve("1 package gelatin", ContainerEras.Unknown, new[] { Of(ContainerKinds.Package, 85m) }).Counted.Should().BeFalse();
+            ContainerSizeResolver.Resolve("1 box crackers", ContainerEras.Unknown, new[] { Of(ContainerKinds.Box, 283m) }).Counted.Should().BeFalse();
+            ContainerSizeResolver.Resolve("1 package cream cheese", ContainerEras.Modern, new[] { Of(ContainerKinds.Package, 227m) }).Grams.Should().Be(227m);
+            ContainerSizeResolver.Resolve("1 package gelatin", ContainerEras.Historic, new[] { Of(ContainerKinds.Package, 85m, ContainerEras.Historic) }).Grams.Should().Be(85m, "a size of the book's time still counts");
+            ContainerSizeResolver.Resolve("1 bottle wine", ContainerEras.Historic, new[] { Of(ContainerKinds.Bottle, 746m, ContainerEras.Any) }).Grams.Should().Be(746m, "a size that holds in any era still counts");
+        }
+
+        [Fact]
+        public void A_historic_size_is_a_key_s_own_answer_only_for_a_dated_old_book()
+        {
+            ContainerBasis.OwnEra(ContainerBasis.PeriodSize, ContainerEras.Historic).Should().BeTrue();
+            ContainerBasis.OwnEra(ContainerBasis.PeriodSize, ContainerEras.Unknown).Should().BeFalse("an undated book takes the historic size by fallback");
+            ContainerBasis.OtherEra(ContainerBasis.PeriodSize, ContainerEras.Unknown).Should().BeTrue();
+            ContainerBasis.OwnEra(ContainerBasis.AnyEra, ContainerEras.Unknown).Should().BeTrue();
+            ContainerBasis.OwnEra(ContainerBasis.FoodSize, ContainerEras.Modern).Should().BeTrue();
+            ContainerBasis.OtherEra(ContainerBasis.ModernFallback, ContainerEras.Historic).Should().BeTrue();
+            ContainerBasis.OtherEra(ContainerBasis.PeriodNearer, ContainerEras.Unknown).Should().BeTrue();
+            ContainerBasis.OtherEra(ContainerBasis.Stated, ContainerEras.Unknown).Should().BeFalse();
+            ContainerBasis.OtherEra(ContainerBasis.Numbered, ContainerEras.Historic).Should().BeFalse();
+        }
+
+        [Fact]
         public void A_period_row_must_name_its_products_and_candidate_cans_the_table_sizes()
         {
             CanSizeTable.Period(ContainerKinds.Can, string.Empty, 11).Select(c => (c.CanNumber, c.Grams)).Should().Equal(("303", 453.6m), ("2", 567.0m));

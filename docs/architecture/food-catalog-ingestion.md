@@ -489,10 +489,14 @@ and leaves a key it paused or demoted as it is. The switches
 Since `container-weighing` the resolver also answers lines of old (historic) and undated
 (unknown) books, so the hold-out sees them; such a line is scored against its key only when the
 key's own era answers it (`ContainerBasis.OwnEra`: a modern recipe's food size, an any-era size,
-a historic size). A line that would take a period candidate or the modern size by fallback is
-counted apart (`OtherEraLines`, `OtherEraAgree` in the score report and the import's printout),
-so lines of old books never pause a modern key; their agreement is the measured figure for the
-fallback.
+a dated old book's historic size). A line that would take another era's size
+(`ContainerBasis.OtherEra`: an undated book's historic size, a period candidate, the modern size
+by fallback) is counted apart (`OtherEraLines`, `OtherEraAgree` in the score report and the
+import's printout), so lines of old books never pause a modern key. Those lines are the decisions
+of the lane's own old-book tier (`container-sizes`, tier `other-era`), recorded, audited and
+evaluated on the frame with the same bar and pause window; the old-book sizes are weighed only
+while that tier is live. Its pause has nothing to undo (it writes no key); its lines stop being
+weighed at the next sweep.
 
 **Journal and undo.** Every row written, replaced, retired, rescored or paused is one
 `audit."AuditLogEntry"` (entity `IngredientContainerSize`; `ContainerSizeSet`,
@@ -540,7 +544,7 @@ that kind, size word and era:
 | Recipe's era | Size taken | Basis |
 |---|---|---|
 | modern (web, app, a book from 1960) | the food's modern size, else an any-era size (standard of fill) | `food-size`, `any-era` |
-| historic or unknown (a book before 1960, or undated) | an any-era size, else a historic size of the food, else the period row's candidate can nearer the food's modern size, else the food's modern size | `any-era`, `period-size`, `period-nearer`, `modern-fallback` |
+| historic or unknown (a book before 1960, or undated) | an any-era size, else a historic size of the food, else the period row's candidate can nearer the food's modern size, else, for a can or a jar only, the food's modern size | `any-era`, `period-size`, `period-nearer`, `modern-fallback` |
 
 The period row applies only when the food's modern size lies within the candidates' span widened
 by 10 % (`ContainerSizeResolver.PeriodCovers`): a food sold today in a much smaller or larger can
@@ -549,7 +553,12 @@ names, and takes its modern size. With a period row and no modern size there is 
 by, and the line stays uncounted ("1 can mushrooms" in an old book). A size word ("large can")
 never takes a period row, which names medium cans only. This follows the lead decision on the
 owner's answer: an unsized can in an old or undated book is not left uncounted where any cited or
-modern size exists, and every such line is shown as estimated. The size spread this accepts per
+modern size exists, and every such line is shown as estimated. The modern fallback is for cans
+and jars, the kinds the owner's answer names (`ContainerSizeResolver.FallsBackToModern`); a
+package, box, bag, packet, envelope, carton, tub or bottle in an old or undated book counts only
+at a size of its time or of any era. Every size taken from another era (an undated book's
+historic size, the period candidate, the modern fallback) is weighed only while the old-book tier
+is live. The size spread this accepts per
 product class is in the build report (`build/container-weighing.md`).
 
 **What the cook sees.** On the recipe page a `counted-assumed` line shows its grams with "≈" and
@@ -559,16 +568,21 @@ products); estimated"). The label lists the assumed lines ("Estimated: includes 
 package sizes", `nutrition-label-assumed`, `-assumed-list`, `-assumed-item`), marks the per-serving
 line `, estimated` (`nutrition-label-estimated`) and says the amounts and % Daily Values are
 estimated (`nutrition-label-dv-estimated`). The API gives `nutritionStatus = "counted-assumed"`
-and `assumedSize` per line and `nutritionSource.assumedLines`.
+and `assumedSize` per line and `nutritionSource.assumedLines`. A line weighed at an assumed size
+whose food has no nutrient values (`no-data`) still shows its grams with "≈" and the "estimated
+size" mark, since `assumedSize` follows the weighing, not the status; the label does not list it.
 
 **Search and the sweep.** The nutrient sorts read a container line as counted when its food has
 an active size of the unit's kind while the lane is live
 (`RecipeNutritionService.IsUncountedLineWith`; a query cannot read the line's text, so size
-words, drained lines and the era are not looked at there). The nutrition sweep
-(`RecipeNutritionRecalcHostedService.DueRecipeIds`) recalculates a recipe with a measured
-container line when one of its foods' sizes, the lane's mode or its book's era changed after its
-label: a size applied, paused, retired or undone, or the lane going live or pausing, reaches the
-labels within one sweep (15 minutes by default), and an undo returns them.
+words, drained lines, the era and the old-book tier are not looked at there). The nutrition sweep
+(`RecipeNutritionRecalcHostedService.ContainerDueRecipeIds`, beside `DueRecipeIds`) recalculates a
+recipe with a measured container line when one of its foods' sizes, the lane's mode (whole lane or
+old-book tier) or its book's era changed after its label. That query reads soft-deleted size and
+era rows, so a size or a year an undo removed counts as a change: a size applied, paused, retired
+or undone, a year written or undone, or the lane going live or pausing, reaches the labels within
+one sweep (15 minutes by default). When nothing counts any more and a measured line is in a
+container unit, the recalculation removes the derived label, since it may hold an assumed size.
 
 **Book years** (`recipe."RecipeSourceEra"`, plan correction C2.7). `ops/source-era.py` reads each
 book's Project Gutenberg text on the harvest host (`~/cookbook-work/pg*.txt`, nothing fetched):

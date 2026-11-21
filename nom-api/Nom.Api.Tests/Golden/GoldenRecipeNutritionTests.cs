@@ -26,8 +26,9 @@ namespace Nom.Api.Tests.Golden
     /// calories, protein and fat to 4 dp and count the reviewed lines, and a hand-authored label
     /// is left as written. A known recipe holds data that is wrong (an item weight, a yield read
     /// as servings); its arithmetic is still asserted, so counting cannot drift under it. A recipe
-    /// may give its foods' container sizes, the container-sizes lane's mode and its book's year, so
-    /// an unsized can is weighed at its assumed size and counted among its counted and assumed lines.
+    /// may give its foods' container sizes, the container-sizes lane's mode (and its old-book tier's)
+    /// and its book's year, so an unsized can is weighed at its assumed size and counted among its
+    /// counted and assumed lines.
     /// </summary>
     [Trait("Category", "Golden")]
     public class GoldenRecipeNutritionTests
@@ -74,6 +75,8 @@ namespace Nom.Api.Tests.Golden
             });
             if (recipe["containerLane"]?.GetValue<string>() is { } lane)
                 db.LaneStates.Add(new LaneStateEntity { Lane = AiLanes.ContainerSizes, Tier = LaneTiers.Whole, Mode = lane, Since = DateTime.UtcNow });
+            if (recipe["containerOldBookLane"]?.GetValue<string>() is { } oldBooks)
+                db.LaneStates.Add(new LaneStateEntity { Lane = AiLanes.ContainerSizes, Tier = ContainerSizeService.OtherEraTier, Mode = oldBooks, Since = DateTime.UtcNow });
             if (recipe["sourceAttribution"]?.GetValue<string>() is { } book && recipe["publishedYear"]?.GetValue<int>() is { } year)
                 db.RecipeSourceEras.Add(new RecipeSourceEraEntity { SourceAttribution = book, PublishedYear = year, Era = ContainerEras.FromYear(year) });
             var seeded = new HashSet<long>();
