@@ -27,15 +27,20 @@ fix reaches both:
    the one curated food the wording names with a hyphen for a space or a space for a hyphen ("sun
    dried tomatoes" is Sun-Dried Tomatoes) where those find none or an uncurated one, the food an applied
    link merged the retired ingredient of that name into, the curated food the first alternative of an
-   "or" line names ("zwieback or Nabisco" is zwieback) where nothing carries the whole wording, else a
-   new uncurated ingredient. A wording, an alias or an applied link never leads to a prepared food. A line whose
+   "or" line names where nothing carries the whole wording, else a new uncurated ingredient. The first
+   alternative is read with the words the alternatives share: when the last alternative has words after
+   its first and the first is not closed off by a comma or by an amount opening the next alternative,
+   "lemon or lime juice" is lemon juice (curated Lemon Juice, or no food), never the fruit Lemon, and
+   "chicken or vegetable broth" is chicken broth, never Chicken; "lemon or lime" is Lemon, and "1 teaspn.
+   ground coriander, or ¼ level teaspn. ground anise seed, ..." is ground coriander. A wording, an alias or an applied link never leads to a prepared food. A line whose
    text states only an amount and names no food (`IngredientNameNormalizer.NamesOnlyAnAmount`: a
    number alone, "Grammi circa 100", "Grammi 80", "2 cups"; a count word that can be a food, such as
    "6 cloves", is not read so) keeps the food the rebuild finds it on, or a food already under the
    line's own text ("grammi circa 100"); this holds for a count line such as "N. 6" (six yolks) too,
    which keeps the food it is on. Otherwise it is not built: the rebuild counts it in `counts.dropped`
-   (a stored row whose line is not built is dropped, as a row with no source line is) and the import
-   logs it. No food is ever created under an amount, by the import or by a rebuild. Two bare numbers
+   (a stored row whose line is not built is dropped, as a row with no source line is, and a source line
+   that is not built counts even when no stored row is paired with it, so the detector's structure reason
+   and the order-only guard see it) and the import logs it. No food is ever created under an amount, by the import or by a rebuild. Two bare numbers
    joined by "or" ("two or three nutmegs", "five or six quarts") are a range, read by its lower end as
    the parser reads any range, never an alternative. In an "or" line whose food is
    named only in a later alternative that states its own amount, that amount is the line's ("pinch

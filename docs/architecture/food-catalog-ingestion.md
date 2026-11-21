@@ -1156,8 +1156,12 @@ a half", a second measure joined by "and"), as older import readers took it, tak
 same unit: "Salt, 1-1/4 cups" at 1 Cup becomes 1.25 Cup, "three pounds and a half of sugar" at 3 Pound
 3.5 Pound, "one quart and a pint of cut celery" at 4 Cup 6 Cup (staging checkpoint 2 M6). Any other
 amount on a stated unit is left alone (a person's own amount, a right amount, a line that adds
-nothing), and so are cans and packages. These re-reads are journaled as `StartupFill` like every
-other change of the pass, so `startup-fills/undo` takes them back. The pass ends with the log line
+nothing), and so are cans and packages. A row whose amount was set by anything but this pass is left
+too: a person last changed the row (the recipe editor stamps the editor on a row whose amount it
+changes), or the row no longer carries the amount the pass last journaled for it, so a curator who sets
+"Salt, 1-1/4 cups" back to 1 Cup keeps it across restarts. These re-reads are journaled as `StartupFill`
+like every other change of the pass, so `startup-fills/undo` takes them back; the undo removes the
+entry, so an undone row is filled again on the next start. The pass ends with the log line
 
 ```
 Scraped recipe repair done in <m>m: <n> recipes, <r> rows repaired (<s> of them re-read on their stated unit), ... <h> recipes left alone because a journaled line operation holds their lines

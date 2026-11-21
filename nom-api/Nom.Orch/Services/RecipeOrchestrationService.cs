@@ -888,10 +888,16 @@ namespace Nom.Orch.Services
                 .GroupBy(ri => ri.IngredientId)
                 .ToDictionary(g => g.Key, g => new Queue<RecipeIngredientEntity>(g));
 
+            var editor = GetCurrentPersonId();
             foreach (var (ingredient, key) in lines)
             {
                 if (existingIngredients.TryGetValue(key, out var recipeIngredient))
                 {
+                    if (editor != null && (recipeIngredient.IsDeleted || recipeIngredient.Quantity != ingredient.Quantity || recipeIngredient.MeasurementId != ingredient.MeasurementId))
+                    {
+                        recipeIngredient.LastModifiedDate = DateTime.UtcNow;
+                        recipeIngredient.LastModifiedByPersonId = editor;
+                    }
                     recipeIngredient.Quantity = ingredient.Quantity;
                     recipeIngredient.MeasurementId = ingredient.MeasurementId;
                     recipeIngredient.IsDeleted = false;
@@ -910,7 +916,9 @@ namespace Nom.Orch.Services
                         MeasurementId = ingredient.MeasurementId,
                         RawLine = moved?.RawLine ?? string.Empty,
                         LineKind = moved?.LineKind,
-                        SortOrder = key.sortOrder
+                        SortOrder = key.sortOrder,
+                        LastModifiedDate = editor != null ? DateTime.UtcNow : null,
+                        LastModifiedByPersonId = editor
                     });
                 }
             }
@@ -923,7 +931,6 @@ namespace Nom.Orch.Services
                 .Where(rs => rs.RecipeId == id)
                 .ToDictionaryAsync(rs => rs.StepNumber);
             var keptStepNumbers = new HashSet<int>();
-            var editor = GetCurrentPersonId();
 
             foreach (var step in withheld && !ownSteps ? Enumerable.Empty<RecipeStepModel>() : model.Steps)
             {

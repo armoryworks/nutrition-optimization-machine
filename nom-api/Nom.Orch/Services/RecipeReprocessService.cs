@@ -194,7 +194,7 @@ namespace Nom.Orch.Services
             KeepKinds(built, pairs);
             var newRows = NewRows(built, pairs, stamp);
             one.SourceLines = source.Record.Ingredients.Select(i => RecipeScrapingService.Clamp(i.RawLine, 2047) ?? string.Empty).ToList();
-            Diff(one, built, pairs, live, oldFoods);
+            Diff(one, built, _builder.Dropped, pairs, live, oldFoods);
             one.StepsReplaced = sourceSteps != null;
 
             var linesUnchanged = built.All(b => b.Food != null) && SameRows(live, newRows);
@@ -500,14 +500,14 @@ namespace Nom.Orch.Services
                     false, null, null);
             }).ToList();
 
-        private static void Diff(RecipeReprocessRecipeResult one, List<RecipeLineBuilder.BuiltLine> built, Dictionary<int, LineRow> pairs, List<LineRow> live, Dictionary<long, IngredientEntity> oldFoods)
+        private static void Diff(RecipeReprocessRecipeResult one, List<RecipeLineBuilder.BuiltLine> built, IReadOnlyList<int> unbuilt, Dictionary<int, LineRow> pairs, List<LineRow> live, Dictionary<long, IngredientEntity> oldFoods)
         {
             var counts = one.Counts;
             counts.LinesBefore = live.Count;
             counts.LinesAfter = built.Count;
             var builtAt = built.Select(b => b.SortOrder).ToHashSet();
             var kept = pairs.Where(p => builtAt.Contains(p.Key)).Select(p => p.Value).ToHashSet(ReferenceEqualityComparer.Instance);
-            counts.Dropped = live.Count(row => !kept.Contains(row));
+            counts.Dropped = live.Count(row => !kept.Contains(row)) + unbuilt.Count(position => !pairs.ContainsKey(position));
             counts.NewFoods = built.Where(b => b.Food == null).Select(b => b.Wording.ToLowerInvariant()).Distinct().Count();
             foreach (var line in built)
             {

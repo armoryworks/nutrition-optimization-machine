@@ -196,6 +196,9 @@ namespace Nom.Orch.Services.Support
         private static readonly System.Text.RegularExpressions.Regex Alternative = new(
             @"\s+or\s+", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
+        private static readonly System.Text.RegularExpressions.Regex OpensWithAmount = new(
+            @"^\s*(?:\d|[¼½¾⅓⅔⅛⅜⅝⅞])", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
         private static readonly System.Text.RegularExpressions.Regex BareNumber = new(
             @"^\s*(?:about\s+|~\s*)?(?:\d+(?:[.,]\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+|[¼½¾⅓⅔⅛⅜⅝⅞]|\d+\s*[¼½¾⅓⅔⅛⅜⅝⅞]|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|hundred)\s*$",
             System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
@@ -374,9 +377,13 @@ namespace Nom.Orch.Services.Support
         private static string Spelling(string name) => Whitespace.Replace(name.Replace('-', ' '), " ").Trim();
 
         /// <summary>
-        /// For an "or" line that no food is found for, the live curated food its first alternative names
-        /// ("zwieback or Nabisco" is zwieback), found as any wording is; null when there is none, so the
-        /// line keeps its own wording.
+        /// For an "or" line that no food is found for, the live curated food its first alternative names,
+        /// found as any wording is; null when there is none, so the line keeps its own wording. When the last
+        /// alternative has words after its first and the first alternative is not closed off (by a comma, or by
+        /// an amount opening the next one), the alternatives share those words, so the first is read with them:
+        /// "lemon or lime juice" is lemon juice, never the fruit Lemon, and "chicken or vegetable broth" is
+        /// chicken broth, never Chicken; "lemon or lime" is Lemon, and "1 teaspn. ground coriander, or ¼ level
+        /// teaspn. ground anise seed" is ground coriander.
         /// </summary>
         private async Task<IngredientEntity?> FirstAlternativeAsync(string wording)
         {
@@ -384,6 +391,9 @@ namespace Nom.Orch.Services.Support
             if (parts.Length < 2) return null;
             var first = IngredientNameNormalizer.Normalize(parts[0]).ToLowerInvariant();
             if (first.Length < 2 || BareNumber.IsMatch(first)) return null;
+            var closed = parts[0].TrimEnd().EndsWith(',') || OpensWithAmount.IsMatch(parts[1]);
+            var shared = Whitespace.Split(IngredientNameNormalizer.Normalize(parts[^1]).ToLowerInvariant().Trim()).Skip(1).ToList();
+            if (!closed && shared.Count > 0) first = $"{first} {string.Join(' ', shared)}";
             var found = await FindByNameAsync(first) ?? await FindByTrustedAliasAsync(first);
             if (found?.CurationStatusId != (long)CurationStatusEnum.Curated) found = await FindCuratedSpellingAsync(first);
             return found is { CurationStatusId: (long)CurationStatusEnum.Curated } && !Nom.Data.Nutrition.PreparedFoods.IsPrepared(found) ? found : null;

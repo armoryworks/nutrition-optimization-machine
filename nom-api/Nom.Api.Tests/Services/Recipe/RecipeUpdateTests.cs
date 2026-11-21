@@ -106,5 +106,39 @@ namespace Nom.Api.Tests.Services.Recipe
             var steps = await db.RecipeSteps.Where(rs => rs.RecipeId == id).OrderBy(rs => rs.StepNumber).ToListAsync();
             steps.Select(rs => rs.Description).Should().Equal("Mix", "Plate");
         }
+
+        [Fact]
+        public async Task Update_ChangingAnAmount_StampsTheEditor_AndAnUnchangedAmountKeepsItsStamp()
+        {
+            await using var db = NewContext();
+            var id = await SeedAsync(db);
+            var user = new Mock<ICurrentUserService>();
+            user.Setup(u => u.PersonId).Returns(42);
+            var service = new RecipeOrchestrationService(db, new HttpContextAccessor(), user.Object,
+                new Mock<Nom.Orch.UtilityInterfaces.IMediaStorageService>().Object, new Mock<IRecipeNutritionService>().Object);
+            async Task StampSystemAsync()
+            {
+                foreach (var row in await db.RecipeIngredients.ToListAsync()) row.LastModifiedByPersonId = SystemConstants.SystemPersonId;
+                await db.SaveChangesAsync();
+                db.ChangeTracker.Clear();
+            }
+
+            await StampSystemAsync();
+            await service.UpdateRecipeAsync(id, Request(id, 6,
+                new() { new() { IngredientId = 10, Quantity = 3, MeasurementId = 1 } },
+                new() { new() { Order = 1, Description = "Mix" } }));
+            db.ChangeTracker.Clear();
+
+            (await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == id && ri.IngredientId == 10)).LastModifiedByPersonId.Should().Be(42,
+                "the start-up repair leaves an amount a person set, which it can tell only by the person's stamp (review CK4-PM-2)");
+
+            await StampSystemAsync();
+            await service.UpdateRecipeAsync(id, Request(id, 8,
+                new() { new() { IngredientId = 10, Quantity = 3, MeasurementId = 1 } },
+                new() { new() { Order = 1, Description = "Mix" } }));
+            db.ChangeTracker.Clear();
+
+            (await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == id && ri.IngredientId == 10)).LastModifiedByPersonId.Should().Be(SystemConstants.SystemPersonId);
+        }
     }
 }

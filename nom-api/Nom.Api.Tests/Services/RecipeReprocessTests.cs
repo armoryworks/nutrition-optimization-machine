@@ -880,6 +880,24 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_source_line_that_names_no_food_and_has_no_stored_row_is_counted_as_dropped_and_gives_the_detector_a_structure_reason()
+        {
+            using var db = await SeededAsync();
+            var yolks = await FoodAsync(db, "N. 6", curated: false);
+            var flour = await FoodAsync(db, "flour");
+            var record = Record("Budino gabinetto", new[] { "N. 6", "N. 2", "1 cup flour" });
+            var recipe = await RecipeAsync(db, record, new[] { new Row(yolks, "N. 6", 6, Piece), new Row(flour, "1 cup flour", 1, Cup, 2) });
+
+            var dry = (await Service(db).RebuildAsync(For(recipe.Id), apply: false)).Results.Single();
+
+            dry.Counts.Dropped.Should().Be(1, "the source's \"N. 2\" is left out by the builder although an earlier import left no row for it (review CK4-PM-3)");
+            dry.Counts.LinesAfter.Should().Be(2);
+            var live = new List<ReprocessDetectorService.LiveRow> { new(yolks.Id, 0, "N. 6", 6), new(flour.Id, 2, "1 cup flour", 1) };
+            (ReprocessDetectorService.Reasons(dry, live, sourceVersion: 1) & ReprocessReason.OrderLost).Should().Be(ReprocessReason.OrderLost);
+            ReprocessDetectorService.OrderOnly(dry, ReprocessReason.OrderLost).Should().BeFalse();
+        }
+
+        [Fact]
         public async Task The_import_creates_no_food_for_a_line_that_names_no_food_and_keeps_the_amounts_of_the_other_lines_in_place()
         {
             using var db = await SeededAsync();

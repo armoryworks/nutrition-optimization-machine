@@ -53,6 +53,13 @@ namespace Nom.Orch.Services
             if (recipes.Count == 0) return new ScrapedRepairBatchResult(0, 0, 0, 0, 0, afterRecipeId);
             var held = await RecipeLineHold.HeldAsync(_context, recipes.Select(r => r.Id).ToList(), cancellationToken);
             var rebuilt = await RecipeReprocessService.RebuiltRecipesAsync(_context, recipes.Select(r => r.Id).ToList(), cancellationToken);
+            var recipeIds = recipes.Select(r => r.Id).ToList();
+            var filled = (await _context.AuditLogEntries.AsNoTracking()
+                    .Where(a => a.EntityType == LineEntityType && a.ChangeType == FillChangeType && recipeIds.Contains(a.EntityId))
+                    .Select(a => new { a.Id, a.EntityId, a.PropertyName, a.NewValue })
+                    .ToListAsync(cancellationToken))
+                .GroupBy(a => (a.EntityId, a.PropertyName ?? string.Empty))
+                .ToDictionary(g => g.Key, g => g.MaxBy(a => a.Id)!.NewValue);
             var now = DateTime.UtcNow;
             var foodIds = recipes.SelectMany(r => r.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>())
                 .Where(ri => ri.Quantity == 0 || (measurements.TryGetValue(IngredientLineParser.Piece, out var piece) && ri.MeasurementId == piece))
@@ -78,7 +85,7 @@ namespace Nom.Orch.Services
                 foreach (var row in rows)
                 {
                     var (was, wasUnit, wasModified) = (row.Quantity, row.MeasurementId, row.LastModifiedDate);
-                    if (!Fill(recipe, row, rows, measurements, foodNames)) unparsed++;
+                    if (!Fill(recipe, row, rows, measurements, foodNames, SetElsewhere(recipe.Id, row, filled))) unparsed++;
                     if (row.Quantity == was && row.MeasurementId == wasUnit)
                     {
                         row.LastModifiedDate = wasModified;
@@ -110,10 +117,10 @@ namespace Nom.Orch.Services
         /// back as the same count ("one of rosemary": elliptical, then 1 piece) writes nothing.
         /// </summary>
         private static bool Fill(RecipeEntity recipe, Nom.Data.Recipe.RecipeIngredientEntity row, List<Nom.Data.Recipe.RecipeIngredientEntity> rows,
-            Dictionary<string, long> measurements, Dictionary<long, (string Name, bool Counted)> foods)
+            Dictionary<string, long> measurements, Dictionary<long, (string Name, bool Counted)> foods, bool setElsewhere)
         {
             var firstLine = (row.RawLine ?? string.Empty).Split(" + ", 2)[0];
-            if (row.Quantity != 0 && RereadAddedPart(row, firstLine, measurements)) return true;
+            if (row.Quantity != 0 && !setElsewhere && RereadAddedPart(row, firstLine, measurements)) return true;
             if (row.Quantity != 0 && (!RereadPieces(row, firstLine, measurements) || row.Quantity != 0)) return true;
             var known = foods.TryGetValue(row.IngredientId, out var food);
             if (known && !FoodNameMatcher.NamesFood(firstLine, food.Name)) return false;
@@ -202,6 +209,20 @@ namespace Nom.Orch.Services
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Whether a row's amount was set by something other than this pass, so the re-read on a stated unit
+        /// leaves it: a person last changed the row, or the row no longer carries the amount this pass last
+        /// journaled for it (a person's edit after a fill keeps the system's stamp, and an undo removes its
+        /// entry, so an undone row is filled again).
+        /// </summary>
+        private static bool SetElsewhere(long recipeId, Nom.Data.Recipe.RecipeIngredientEntity row, Dictionary<(long, string), string?> filled)
+        {
+            if (row.LastModifiedByPersonId is { } by && by != SystemConstants.SystemPersonId) return true;
+            return filled.TryGetValue((recipeId, RecipeLineClassificationService.LinePropertyName(row.IngredientId, row.SortOrder)), out var last)
+                && PackageLineService.ReadAmount(last) is { } became
+                && (became.Quantity != row.Quantity || became.MeasurementId != row.MeasurementId);
         }
 
         /// <summary>
