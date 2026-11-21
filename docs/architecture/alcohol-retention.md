@@ -96,6 +96,12 @@ value it had before every entry at or after the time, newest first, skipping a l
 recipes it changed. The dry run follows each line through the entries it would restore, so when two
 runs changed the same line it counts both as restored, as the undo then does.
 
+Operator notes (staging checkpoint 2): on the 2026-11-20 production data after the admission (66
+more alcoholic foods than the design counted) the dry run reads about 14,048 lines in 12,832
+recipes, not about 10,184 recipes. The factor and basis are kept by an order-only reprocess pass
+and its undo, and the retention undo follows a line such a pass moved; run the retention again
+after a full rebuild, which writes its lines without a factor.
+
 ## The recipe page note (A8)
 
 `RecipeResponseModel.Alcohol` (`RecipeNutritionService.AlcoholNote`) counts the recipe's lines with

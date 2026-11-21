@@ -180,6 +180,7 @@ namespace Nom.Orch.Services
                 await using var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
                 var recipeIds = chunk.Select(e => e.EntityId).Distinct().ToList();
                 var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db, recipeIds);
+                var trail = await RecipeOrderTrail.LoadAsync(_db, recipeIds);
                 var rows = (await _db.RecipeIngredients.Where(ri => recipeIds.Contains(ri.RecipeId)).ToListAsync())
                     .ToDictionary(ri => (ri.RecipeId, ri.IngredientId, ri.SortOrder));
                 var now = DateTime.UtcNow;
@@ -193,14 +194,19 @@ namespace Nom.Orch.Services
                     }
 
                     var match = LineProperty.Match(entry.PropertyName ?? string.Empty);
+                    var ingredientId = match.Success ? long.Parse(match.Groups["i"].Value, CultureInfo.InvariantCulture) : 0;
+                    var sortOrder = match.Success ? int.Parse(match.Groups["s"].Value, CultureInfo.InvariantCulture) : 0;
                     if (!match.Success || !RecipeIngredientLineKind.IsExempt(entry.OldValue)
-                        || !rows.TryGetValue((entry.EntityId, long.Parse(match.Groups["i"].Value, CultureInfo.InvariantCulture), int.Parse(match.Groups["s"].Value, CultureInfo.InvariantCulture)), out var row)
+                        || trail.Follow(entry.EntityId, ingredientId, sortOrder, entry.Timestamp) is not { } at
+                        || !rows.TryGetValue((entry.EntityId, ingredientId, at), out var row)
                         || row.LineKind != RecipeIngredientLineKind.Ingredient || !SameLine(entry.NewValue, row.RawLine))
                     {
                         result.Skipped++;
                         continue;
                     }
 
+                    var kind = entry.OldValue;
+                    trail.Carry(entry.EntityId, entry.Timestamp, ingredientId, sortOrder, r => r with { LineKind = kind });
                     row.LineKind = entry.OldValue;
                     row.LastModifiedDate = now;
                     row.LastModifiedByPersonId = personId;
@@ -209,6 +215,7 @@ namespace Nom.Orch.Services
                 }
 
                 if (!apply) continue;
+                await trail.StageAsync(_db);
                 await _db.SaveChangesAsync();
                 if (tx != null) await tx.CommitAsync();
             }

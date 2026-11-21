@@ -166,6 +166,7 @@ namespace Nom.Orch.Services
             {
                 var recipeIds = chunk.Select(e => e.EntityId).Distinct().ToList();
                 var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db, recipeIds);
+                var trail = await RecipeOrderTrail.LoadAsync(_db, recipeIds);
                 var rows = (await _db.RecipeIngredients.Where(ri => recipeIds.Contains(ri.RecipeId) && !ri.IsDeleted).ToListAsync(cancellationToken))
                     .GroupBy(ri => (ri.RecipeId, ri.IngredientId, ri.SortOrder))
                     .ToDictionary(g => g.Key, g => g.First());
@@ -181,12 +182,13 @@ namespace Nom.Orch.Services
                     }
                     var key = Key(entry.PropertyName);
                     var (newFactor, newBasis) = ReadJournalValue(entry.NewValue);
-                    if (key == null || !rows.TryGetValue((entry.EntityId, key.Value.IngredientId, key.Value.SortOrder), out var row))
+                    if (key == null || trail.Follow(entry.EntityId, key.Value.IngredientId, key.Value.SortOrder, entry.Timestamp) is not { } at
+                        || !rows.TryGetValue((entry.EntityId, key.Value.IngredientId, at), out var row))
                     {
                         result.Skipped++;
                         continue;
                     }
-                    var lineKey = (entry.EntityId, key.Value.IngredientId, key.Value.SortOrder);
+                    var lineKey = (entry.EntityId, key.Value.IngredientId, at);
                     var (currentFactor, currentBasis) = restored.TryGetValue(lineKey, out var earlier) ? earlier : (row.AlcoholRetention, row.AlcoholRetentionBasis);
                     if (currentFactor != newFactor || currentBasis != newBasis)
                     {
@@ -197,6 +199,7 @@ namespace Nom.Orch.Services
                     result.Restored++;
                     var (oldFactor, oldBasis) = ReadJournalValue(entry.OldValue);
                     restored[lineKey] = (oldFactor, oldBasis);
+                    trail.Carry(entry.EntityId, entry.Timestamp, key.Value.IngredientId, key.Value.SortOrder, r => r with { AlcoholRetention = oldFactor, AlcoholRetentionBasis = oldBasis });
                     if (!apply) continue;
                     row.AlcoholRetention = oldFactor;
                     row.AlcoholRetentionBasis = oldBasis;
@@ -208,6 +211,7 @@ namespace Nom.Orch.Services
 
                 if (apply)
                 {
+                    await trail.StageAsync(_db);
                     await _db.SaveChangesAsync(cancellationToken);
                     _db.ChangeTracker.Clear();
                     foreach (var recipeId in touched.OrderBy(id => id))

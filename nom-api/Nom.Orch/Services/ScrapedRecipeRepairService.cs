@@ -160,6 +160,7 @@ namespace Nom.Orch.Services
                 await using var tx = apply && _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync() : null;
                 var recipeIds = chunk.Select(e => e.EntityId).Distinct().ToList();
                 var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_context, recipeIds);
+                var trail = await RecipeOrderTrail.LoadAsync(_context, recipeIds);
                 var rows = (await _context.RecipeIngredients.Where(ri => recipeIds.Contains(ri.RecipeId)).ToListAsync())
                     .ToDictionary(ri => (ri.RecipeId, ri.IngredientId, ri.SortOrder));
                 var now = DateTime.UtcNow;
@@ -173,7 +174,8 @@ namespace Nom.Orch.Services
                     }
 
                     if (PackageLineService.ReadAmount(entry.OldValue) is not { } was || PackageLineService.ReadAmount(entry.NewValue) is not { } became
-                        || !rows.TryGetValue((entry.EntityId, became.IngredientId, became.SortOrder), out var row)
+                        || trail.Follow(entry.EntityId, became.IngredientId, became.SortOrder, entry.Timestamp) is not { } at
+                        || !rows.TryGetValue((entry.EntityId, became.IngredientId, at), out var row)
                         || row.Quantity != became.Quantity || row.MeasurementId != became.MeasurementId)
                     {
                         result.Skipped++;
@@ -181,6 +183,7 @@ namespace Nom.Orch.Services
                     }
 
                     result.Restored++;
+                    trail.Carry(entry.EntityId, entry.Timestamp, became.IngredientId, became.SortOrder, r => r with { Quantity = was.Quantity, MeasurementId = was.MeasurementId });
                     if (!apply) continue;
                     row.Quantity = was.Quantity;
                     row.MeasurementId = was.MeasurementId;
@@ -191,6 +194,7 @@ namespace Nom.Orch.Services
 
                 if (apply)
                 {
+                    await trail.StageAsync(_context);
                     await _context.SaveChangesAsync();
                     if (tx != null) await tx.CommitAsync();
                 }

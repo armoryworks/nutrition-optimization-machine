@@ -154,8 +154,9 @@ namespace Nom.Orch.Services
             var movedSince = new HashSet<long>();
             var rebuiltSince = new HashSet<long>();
             var places = new Dictionary<long, ((long RecipeId, long IngredientId, int SortOrder) From, (long RecipeId, long IngredientId, int SortOrder) To)>();
-            var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db,
-                lineRows.Select(r => LinkApplyJournal.ReadPlace(r.NewValue)?.RecipeId).OfType<long>().ToList(), withOrder: false);
+            var lineRecipes = lineRows.Select(r => LinkApplyJournal.ReadPlace(r.NewValue)?.RecipeId).OfType<long>().Distinct().ToList();
+            var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db, lineRecipes);
+            var trail = await RecipeOrderTrail.LoadAsync(_db, lineRecipes);
             foreach (var row in lineRows)
             {
                 if (LinkApplyJournal.ReadPlace(row.OldValue) is not { } was || LinkApplyJournal.ReadPlace(row.NewValue) is not { } now)
@@ -168,12 +169,13 @@ namespace Nom.Orch.Services
                     rebuiltSince.Add(row.Id);
                     continue;
                 }
-                if (await LineAtAsync(now))
+                if (!trail.Moved(now.RecipeId, row.Timestamp))
                 {
-                    places[row.Id] = (now, was);
+                    if (await LineAtAsync(now)) places[row.Id] = (now, was);
+                    else movedSince.Add(row.Id);
                     continue;
                 }
-                if (await RecipeReprocessService.FollowOrderAsync(_db, now.RecipeId, now.IngredientId, now.SortOrder, row.Timestamp) is { } reordered
+                if (trail.Follow(now.RecipeId, now.IngredientId, now.SortOrder, row.Timestamp) is { } reordered
                     && await LineAtAsync((now.RecipeId, now.IngredientId, reordered)))
                 {
                     places[row.Id] = ((now.RecipeId, now.IngredientId, reordered), (was.RecipeId, was.IngredientId, reordered));
@@ -251,14 +253,29 @@ namespace Nom.Orch.Services
                     left.Add(row.Id);
                     continue;
                 }
-                if (movedSince.Contains(row.Id)
-                    || (apply && await MoveLineAsync(places[row.Id].From, places[row.Id].To, personId) == null))
+                if (movedSince.Contains(row.Id))
                 {
                     sample.LinesSkipped++;
                     left.Add(row.Id);
                     continue;
                 }
+                if (apply)
+                {
+                    if (await MoveLineAsync(places[row.Id].From, places[row.Id].To, personId) is not { } position)
+                    {
+                        sample.LinesSkipped++;
+                        left.Add(row.Id);
+                        continue;
+                    }
+                    if (LinkApplyJournal.ReadPlace(row.OldValue) is { } was && LinkApplyJournal.ReadPlace(row.NewValue) is { } now)
+                        trail.Carry(now.RecipeId, row.Timestamp, now.IngredientId, now.SortOrder, r => RecipeOrderTrail.Repoint(r, now.IngredientId, was.IngredientId), was.SortOrder, position);
+                }
                 sample.LinesRestored++;
+            }
+            if (apply)
+            {
+                await trail.StageAsync(_db);
+                await _db.SaveChangesAsync();
             }
             result.LinesRestored += sample.LinesRestored;
             result.LinesSkipped += sample.LinesSkipped;
