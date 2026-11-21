@@ -111,6 +111,19 @@ namespace Nom.Data.Recipe
         /// </summary>
         public string? AdmissionReason { get; set; }
 
+        /// <summary>
+        /// How many independent sources agree with this branded food's stored per-100 g values,
+        /// counting its FDC branded record as one (<see cref="Nom.Data.Nutrition.BrandedSourceAgreement"/>).
+        /// The branded lift curates a food at two or more; more is better. NULL when never judged.
+        /// </summary>
+        public int? AgreeingSources { get; set; }
+
+        /// <summary>
+        /// How many sources disagree with this branded food's stored values, Open Food Facts
+        /// included (a signal that may hold a food, never one that lifts it). NULL when never judged.
+        /// </summary>
+        public int? DisagreeingSources { get; set; }
+
         // Legacy field (from Mealie)
         public bool? OnHand { get; set; } = false;
 

@@ -43,9 +43,9 @@ namespace Nom.Import.Services
     /// </summary>
     public class CatalogAdmissionService
     {
-        public const string AdmitChangeType = "CatalogAdmit";
+        public const string AdmitChangeType = CatalogAdmissionRule.AdmitChangeType;
         public const string GroupChangeType = CatalogAdmissionRule.GroupChangeType;
-        public const string UndoChangeType = "CatalogAdmitUndo";
+        public const string UndoChangeType = CatalogAdmissionRule.AdmitUndoChangeType;
         public const string FactsChangeType = "CatalogFacts";
         public const string DescriptionChangeType = "FdcDescription";
         public const string RunChangeType = CatalogAdmissionRule.RunChangeType;
@@ -199,7 +199,8 @@ namespace Nom.Import.Services
                 foreach (var name in new[] { food.Name, description }.Where(n => !string.IsNullOrWhiteSpace(n)))
                     if (curatedKeys.TryGetValue(Key(name!), out var holder) && holder != food.Id) duplicate ??= holder;
                 var decision = CatalogAdmissionRule.Decide(new AdmissionFacts(food.FdcDataType, categoryId, category, description ?? food.Name,
-                    m.QualityInput(description ?? food.Name, factors: factors.GetValueOrDefault(food.FdcId!)), duplicate), _validator);
+                    m.QualityInput(description ?? food.Name, factors: factors.GetValueOrDefault(food.FdcId!)), duplicate,
+                    food.AgreeingSources, food.DisagreeingSources), _validator);
 
                 if (isUsda)
                 {

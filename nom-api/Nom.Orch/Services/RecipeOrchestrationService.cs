@@ -88,6 +88,7 @@ namespace Nom.Orch.Services
                 .ThenByDescending(i => Regex.IsMatch(i.Name, startsWithWord, RegexOptions.IgnoreCase))
                 .ThenByDescending(i => i.Name.ToLower().Contains(" " + searchTerm))
                 .ThenByDescending(i => i.CurationStatusId == (long)CurationStatusEnum.Curated)
+                .ThenByDescending(i => i.FdcDataType == CatalogAdmissionRule.BrandedFood ? i.AgreeingSources ?? 0 : int.MaxValue)
                 .ThenByDescending(i => i.Name.ToLower().Contains(", raw"))
                 .ThenByDescending(i => i.IsWholeFood == true)
                 .ThenBy(i => i.Name.Length - i.Name.Replace(",", "").Length)
@@ -141,6 +142,7 @@ namespace Nom.Orch.Services
                     FoodGroupName = i.FoodGroup != null ? i.FoodGroup.Name : null,
                     IsWholeFood = i.IsWholeFood,
                     IsPrepared = i.FdcCategoryId != null && PreparedFoods.CategoryIds.Contains(i.FdcCategoryId.Value),
+                    AgreeingSources = i.AgreeingSources,
                     HasNutrition = i.IngredientNutrients.Any(),
                     CanWeighVolume = i.GramsPerMilliliter > 0,
                     CanWeighCount = i.GramsPerItem > 0 || i.ReferenceServingGrams > 0

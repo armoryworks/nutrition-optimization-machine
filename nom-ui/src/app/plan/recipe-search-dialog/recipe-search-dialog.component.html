@@ -149,6 +149,9 @@
               } @else if (food.foodGroupName) {
                 <span>{{ food.foodGroupName }}</span>
               }
+              @if ((food.agreeingSources ?? 0) >= 2) {
+                <span data-testid="whole-food-result-sources">{{ food.agreeingSources }} sources agree</span>
+              }
             </div>
           </button>
         }

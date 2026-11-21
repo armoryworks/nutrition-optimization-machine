@@ -10,8 +10,10 @@ namespace Nom.Data.Nutrition
     /// <summary>
     /// What the catalog admission rule reads about one USDA food: its data type, its USDA category
     /// (the id for Foundation and SR Legacy, the text for branded), its USDA description, its
-    /// per-100 g nutrition with fiber and its own calorie factors, and the curated food its name
-    /// already belongs to, when another one does.
+    /// per-100 g nutrition with fiber and its own calorie factors, the curated food its name
+    /// already belongs to, when another one does, and for a branded food how many independent
+    /// sources agree and disagree with its values (<see cref="BrandedSourceAgreement"/>; null when
+    /// never judged, which counts as its FDC record alone).
     /// </summary>
     public sealed record AdmissionFacts(
         string DataType,
@@ -19,7 +21,9 @@ namespace Nom.Data.Nutrition
         string? Category,
         string? Description,
         FoodQualityInput Nutrition,
-        long? DuplicateOfId = null);
+        long? DuplicateOfId = null,
+        int? AgreeingSources = null,
+        int? DisagreeingSources = null);
 
     /// <summary>
     /// The rule's verdict for one food: the curation status it lands in, its food group and
@@ -38,13 +42,15 @@ namespace Nom.Data.Nutrition
     /// Foods, Fast Foods, Meals, Entrees and Side Dishes, and Restaurant Foods are admitted the same
     /// way, as prepared foods (<see cref="PreparedFoods"/>) with no food group: a household may plan
     /// one, but no recipe line links to one and no food-group rule counts one. Anything else that
-    /// fails a check stays PendingCuration with its reasons. Branded foods always stay pending,
-    /// awaiting a second independent source. The food group and edibility come from the USDA
+    /// fails a check stays PendingCuration with its reasons. A branded food stays pending, awaiting a
+    /// second independent source, until at least two sources agree with its values, its FDC record
+    /// counting as one, and each source that disagrees is outweighed by one more that agrees
+    /// (owner answer 2026-11-20: "two or more, more is better"). The food group and edibility come from the USDA
     /// category only, never from a name: a category that is mixed or belongs to no group gives none.
     /// </summary>
     public static class CatalogAdmissionRule
     {
-        public const string Version = "catalog-admission/3";
+        public const string Version = "catalog-admission/4";
 
         /// <summary>
         /// The audit change type of a food group or edibility set from the USDA category, by the
@@ -63,6 +69,12 @@ namespace Nom.Data.Nutrition
         public const string RunEntityType = "CatalogAdmission";
         public const string RunChangeType = "CatalogAdmitRun";
 
+        /// <summary>
+        /// The audit change types of a curation status set by the admission pass and by its undo;
+        /// the branded lift reads them to tell a food the rules curated from one an admin curated.
+        /// </summary>
+        public const string AdmitChangeType = "CatalogAdmit";
+        public const string AdmitUndoChangeType = "CatalogAdmitUndo";
         public const string FoundationFood = "foundation_food";
         public const string SrLegacyFood = "sr_legacy_food";
         public const string BrandedFood = "branded_food";
@@ -71,11 +83,15 @@ namespace Nom.Data.Nutrition
         public const string CategoryNotAdmittedPrefix = "category_not_admitted:";
         public const string DuplicatePrefix = "duplicate_of:#";
         public const string AwaitingSecondSource = "awaiting_second_source";
+        public const string SourcesDisagree = "sources_disagree";
         public const string ZeroEnergy = "zero_energy";
         public const string SourceNotAdmitted = "source_not_admitted";
         public const string AuditFindingPrefix = "audit:";
 
         public const int SpicesAndHerbs = 2;
+
+        /// <summary>The fewest agreeing sources, the FDC branded record counting as one, that lift a branded food.</summary>
+        public const int MinAgreeingSources = 2;
 
         /// <summary>
         /// USDA food category id to food group. Spices and Herbs, Soups, Sauces and Gravies, the
@@ -208,6 +224,32 @@ namespace Nom.Data.Nutrition
         public static bool UsedInSmallAmounts(int? categoryId, string? usdaDescription) =>
             categoryId == SpicesAndHerbs || (usdaDescription?.StartsWith("Leavening agents,", StringComparison.Ordinal) ?? false);
 
+        /// <summary>
+        /// Whether the sources lift a branded food: at least <see cref="MinAgreeingSources"/> agree
+        /// once every disagreeing source has taken one agreeing source away. A food never judged
+        /// counts its FDC record alone.
+        /// </summary>
+        public static bool SourcesLift(int? agreeing, int? disagreeing) =>
+            (agreeing ?? 1) - (disagreeing ?? 0) >= MinAgreeingSources;
+
+        /// <summary>
+        /// The reason a branded food is not lifted by its sources, or null when it is: a disagreement
+        /// that the agreeing sources do not outweigh, else too few agreeing sources.
+        /// </summary>
+        public static string? BrandedSourceReason(int? agreeing, int? disagreeing) =>
+            SourcesLift(agreeing, disagreeing) ? null
+            : (disagreeing ?? 0) > 0 ? SourcesDisagree
+            : AwaitingSecondSource;
+
+        /// <summary>
+        /// One stored admission reason as the Pipeline page and the reports count it: a duplicate's
+        /// food id and a category's id are left out, so reasons of one kind count together.
+        /// </summary>
+        public static string ReasonBucket(string reason) =>
+            reason.StartsWith(DuplicatePrefix, StringComparison.Ordinal) ? "duplicate"
+            : reason.StartsWith(CategoryNotAdmittedPrefix, StringComparison.Ordinal) ? CategoryNotAdmittedPrefix.TrimEnd(':')
+            : reason;
+
         /// <summary>Whether a branded food states no energy while its category is not one that truly has none.</summary>
         public static bool IsZeroEnergyClass(decimal? kcal, string? category) =>
             kcal == 0m && !ZeroEnergyCategoryMarkers.Any(m => (category ?? string.Empty).Contains(m, StringComparison.OrdinalIgnoreCase));
@@ -226,8 +268,13 @@ namespace Nom.Data.Nutrition
             var energy = validator.CheckEnergy(nutrition);
             var reasons = new List<string>();
 
-            if (!IsUsdaAuthored(facts.DataType))
-                reasons.Add(facts.DataType == BrandedFood ? AwaitingSecondSource : SourceNotAdmitted);
+            if (facts.DataType == BrandedFood)
+            {
+                if (BrandedSourceReason(facts.AgreeingSources, facts.DisagreeingSources) is { } sourceReason)
+                    reasons.Add(sourceReason);
+            }
+            else if (!IsUsdaAuthored(facts.DataType))
+                reasons.Add(SourceNotAdmitted);
             else if (facts.CategoryId is not int category)
                 reasons.Add(CategoryMissing);
             else if (!CategoryToGroup.ContainsKey(category))

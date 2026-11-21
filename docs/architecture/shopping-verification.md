@@ -19,8 +19,10 @@ to `nutrient.IngredientNutrient` or to `curation.FoodCatalogProposal` in this re
 
 ## "Lacks verified nutrition"
 
-A food is verified when it is not deleted, has `FdcId` set **or** `CurationStatusId = Curated`,
-**and** has an `IngredientNutrient` row for the nutrient named `Calories`. A user-authored
+A food is verified when it is not deleted, is `Curated` **or** has an `FdcId` that is not a
+branded record, **and** has an `IngredientNutrient` row for the nutrient named `Calories`. A
+pending branded food is not verified: its FDC record is one source and the branded lift needs a
+second (`docs/architecture/food-catalog-ingestion.md`, *Branded lift*), so the household is asked. A user-authored
 pending food with hand-typed nutrient rows is not verified. The Calories nutrient is looked
 up by name and its absence throws; it is never defaulted to 0.
 
@@ -100,6 +102,15 @@ rate limiter (barcode photos through the in-memory `IScanRateLimiter`, because a
 photo stores no row). A barcode fills `Ingredient.GtinUpc` only when the food lacks verified
 nutrition; on a verified catalog food the UPC stays on the verification row alone. Uploads are
 refused before decoding when the image header declares more than 50 megapixels.
+
+## Branded lift
+
+Confirming a label scan of a branded food runs the branded lift for that food
+(`IBrandedLiftService`). The label's per-100 g view, derived from its explicit gram weight only,
+is compared with the food's stored FDC values; one household counts as one source. When two or
+more sources agree within 10 % (the FDC record counting as one) the food becomes Curated. The
+label's values are never written to the food; a failed lift is logged and leaves the confirmation
+standing. A label row that an undo of a lift excluded never counts again.
 
 ## Release B extension point
 

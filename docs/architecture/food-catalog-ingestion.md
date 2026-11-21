@@ -55,8 +55,9 @@ Imported records are judged by the catalog admission rule; the severe-restrictio
 > as a Beverages serving.
 >
 > `--curated` is retired: an import lands every food `PendingCuration` with the rule's
-> verdict stored, and only the gated `--admit` pass curates (see *Catalog admission* below). The **Branded** catalog stays pending — it is manufacturer-submitted and
-> unverified, which is precisely why the quality gate rejects ~4% of it.
+> verdict stored, and only the gated `--admit` pass curates (see *Catalog admission* below). The **Branded** catalog stays pending until two or more independent sources agree with a
+> food's values (see *Branded lift*) — it is manufacturer-submitted and unverified, which is
+> precisely why the quality gate rejects ~4% of it.
 
 ## Catalog admission — by rule, no model
 
@@ -68,7 +69,7 @@ changes a status. Run `--admit` after every `--import-fdc`.
 
 | Check | Rule |
 |---|---|
-| Source | Foundation and SR Legacy only (USDA-authored numbers). Branded stays `PendingCuration`, reason `awaiting_second_source`, plus `zero_energy` when it states 0 kcal in a category that is not water, tea, coffee, soda, sweetener, salt, spice or seasoning. |
+| Source | Foundation and SR Legacy (USDA-authored numbers). Branded stays `PendingCuration`, reason `awaiting_second_source`, until two or more independent sources agree with its values (see *Branded lift* below), or `sources_disagree` when a disagreement is not outweighed; plus `zero_energy` when it states 0 kcal in a category that is not water, tea, coffee, soda, sweetener, salt, spice or seasoning. |
 | Category | `Ingredient.FdcCategoryId` (USDA `food_category_id`). The rule never rejects a food. Admitted: the 19 mapped categories plus Spices and Herbs (2), Soups, Sauces and Gravies (6), American Indian/Alaska Native Foods (24, code 3500), and the four prepared-food categories Baby Foods (3), Fast Foods (21), Meals, Entrees and Side Dishes (22) and Restaurant Foods (25), whose foods are admitted as **prepared foods** (see *Prepared foods* below; owner answer 2026-11-20, second round). Any other category is held, `category_not_admitted:<id>`; no category is held, `category_missing`. |
 | Plausibility and energy | `FoodDataQualityValidator` (below), with the food's own calorie factors and fiber. |
 | Duplicate | The food's name or USDA description, as a wording key, must not be a live curated food's name or USDA description alias: held as `duplicate_of:#<id>`. |
@@ -124,7 +125,9 @@ may always be held): a run that breaks the audit for many foods is a bad release
 not one bad food. After it writes, it re-runs the audit on the written catalog; a high or medium
 finding on a food it admitted or regrouped that was not there before still makes the run undo
 itself by its stamp (a safety net the projection should make unreachable). Rule version
-`catalog-admission/3` since this hold.
+`catalog-admission/3` since this hold, `catalog-admission/4` since the branded branch reads the
+stored source counts (`Ingredient.AgreeingSources`, `DisagreeingSources`), so a branded food the
+lift curated stays curated with no reason when `--admit --branded` judges it again.
 
 Why the hold exists (staging checkpoint 1, 2026-11-20): #95452 "potato pancakes" (curated, no
 group, SR "Potato pancakes", category Vegetables and Vegetable Products, 268 kcal/100 g) was
@@ -176,6 +179,93 @@ in a plan. It is a dish, not an ingredient, so:
 at one. An exact-name import match is the one path left: a scraped wording that is a prepared
 food's whole live name still lands on it (the name is unique, so the importer cannot create a second
 food of that name); the approval gate then holds the recipe.
+
+### Branded lift (`cleanup2/catalog-branded`)
+
+A branded food's numbers are the manufacturer's own submission to USDA, and 238 of 4,471 state
+0 kcal. So one FDC branded record is never enough: a branded food is admitted only when **two or
+more independent sources agree** with its stored per-100 g values, its FDC record counting as
+one (owner answer 2026-11-20: "two or more, more is better"). No model takes part, and no value
+is ever taken from a source: the lift only decides whether the stored FDC values are believed.
+
+**Sources** are the rows of `recipe.IngredientVerification` for the food
+(`BrandedLiftService.Reading`):
+
+| Source | Counts | Key |
+|---|---|---|
+| A household's confirmed label (`label:user:{personId}`) with an explicit gram weight, or printed per 100 g | yes, when it agrees | one per household (two members reading one package are one source; its last reading counts) |
+| A manufacturer's page (`manufacturer:{host}`) written by the Release B lookup lane | yes, when it agrees | one per host |
+| A later FDC branded release (`fdc:{id}`) | never: the same submitter | |
+| Open Food Facts (`off:{barcode}`) | a disagreement counts against the food; an agreement never for it (ODbL, signal only) | one |
+| Anything else, an unconfirmed label, a label with a serving in millilitres only | ignored or incomplete | |
+
+**Agreement** (`Nom.Data/Nutrition/BrandedSourceAgreement.cs`, `branded-agreement/2`): energy,
+protein, carbohydrate and fat must all agree, each within **10 %** of the stored value (imports.md
+2d, the owner's rule). The only exception is a value so small that 10 % is less than a label can
+print: there the two figures' label rounding is allowed, but never more than **5 kcal or 0.5 g
+per 100 g**. A figure's rounding is half the FDA step (5 kcal, 0.5 g) scaled to 100 g by its
+printed serving (the FDC record's `ReferenceServingGrams`, the label's `ServingGrams`), or half a
+per-100 g step (0.5 kcal, 0.05 g) for a figure printed per 100 g. A value **disagrees** only when
+it lies outside both 10 % and the two figures' whole rounding. A value in between is
+**inconclusive**: a label with a small serving whose printed figures cannot confirm 10 % (a 5 g
+seasoning serving rounds kcal to 100 per 100 g) neither lifts the food nor counts against it. A
+"less than" value ("<1 g", or "not a significant source") is judged the same way against its
+bound. One value that disagrees makes the source disagree; an inconclusive or missing value leaves
+it counted neither way.
+
+**Decision** (`CatalogAdmissionRule.SourcesLift`, inside `Decide`): agreeing minus disagreeing
+must be at least two. With no disagreement two agreeing sources lift a food; each disagreement
+needs one more agreeing source. Every other check of the rule still holds the food (zero energy,
+plausibility, the energy check, a stored duplicate or audit reason): agreement never overrides
+them. A food the rule never judged (no stored `EnergyCheck`) is left for `--admit --branded`.
+`Ingredient.AgreeingSources` and `DisagreeingSources` store the counts; ingredient search puts
+the branded food more sources agree on first among equal branded foods (a USDA-authored or
+hand-made food is not ranked by the count, and an equally matching curated USDA food comes before
+any branded one) and returns the count, and the plan's food picker shows "N sources agree".
+**Never fewer than two** (owner answer 3): a food the rules curated (its last journaled status
+change is `BrandedLift`, `BrandedLiftUndo`, `CatalogAdmit` or `CatalogAdmitUndo`) goes back to
+`PendingCuration` with the reason stored when its sources no longer lift it. A food an admin
+curated is never demoted: it stays curated with `sources_disagree` stored and is counted on the
+Pipeline page.
+
+**When it runs.** On every label a household confirms for a branded food
+(`IngredientVerificationService.ConfirmAsync`), for that food; and as a pass over every branded
+food with evidence or a stored count:
+
+```bash
+dotnet run --project nom-api/Nom.Import -- --branded-lift --dry-run
+dotnet run --project nom-api/Nom.Import -- --branded-lift
+dotnet run --project nom-api/Nom.Import -- --branded-lift --undo <stamp> [--dry-run]
+```
+
+or `POST /api/FoodCatalog/branded-lift?apply=false|true` and
+`POST /api/FoodCatalog/branded-lift/undo?stamp=<stamp>&apply=false|true` (curation admin). A pass
+stops, writing nothing, when it would change more than 10,000 foods. A household is asked for a
+label for a pending branded food (it no longer counts as verified by its FDC id alone), so the
+shopping lane brings the second source. The Release B lookup lane (a no-op today) is to call
+`IBrandedLiftService.RunAsync` for the food after it writes a `manufacturer:` or `off:` row.
+
+**Journal and undo.** One stamp per run in `audit."AuditLogEntry"`: entity `Ingredient`, change
+types `BrandedLift` (`CurationStatusId`), `BrandedLiftFacts` (`AgreeingSources`,
+`DisagreeingSources`, `AdmissionReason`) and `BrandedLiftEvidence` (every source by key and
+verdict, for the record), `BrandedLiftRows` (`AgreeingRows`: the evidence row ids that agreed, for
+a food the run lifted), and one `BrandedLiftRun` row with the rule versions. The undo puts back
+each value the food still holds as the run left it (a value changed since is skipped) and writes
+`BrandedLiftUndo` rows under its own stamp. For every food it puts back to pending it also
+**excludes the evidence that lifted it**: one `BrandedLiftExclude` row per evidence row (entity
+`IngredientVerification`, `LiftExcluded` = `true`), which every later lift, pass or confirmation,
+leaves out; a new label from any household still counts. When the counts changed since the run (a
+later source arrived), the undo counts the food again without the excluded rows and stores those
+counts under its stamp, so `--admit` never curates it from a stale count; the report lists any
+food the other sources still lift. Undoing the undo's stamp applies the run again and lets the
+evidence back in. The golden set is `branded-lift.tsv`.
+
+**Pipeline page.** "Pending foods, by what holds them" splits the pending count into held by rule
+(by reason), awaiting a second source, pending with no reason, and rejected (by an admin; the
+rule rejects none). "Branded foods, by agreeing sources" shows those awaiting, held by a
+disagreement or another reason, the curated ones by 2, 3 and 4+ agreeing sources (only those the
+sources lift with no stored reason), those curated by an admin (fewer than two, or a reason the
+rule still holds), and those curated with a later disagreement.
 
 ## Quality gate — DONE ✅
 
@@ -777,8 +867,9 @@ traces back to its page; `ProposalPolicy` refuses that field from any source tha
 authoritative. Undo a run with `DELETE … WHERE "CreatedDate" = '<printed stamp>'` on
 `nutrient."IngredientNutrient"`.
 
-The manufacturer's own label counts as authoritative on its own (decision of 2026-10-22);
-two agreeing sources are needed only when neither is the manufacturer. The pages are read by
+The manufacturer's own label counts as authoritative on its own for these foods, which have no
+USDA record (decision of 2026-10-22). A branded food, whose USDA record is itself the
+manufacturer's submission, needs two or more agreeing sources (*Branded lift* above). The pages are read by
 the operator, never fetched by nom-api, and each host is recorded in `crosscheck-sources.md`.
 A label covers the FDA panel only, so these foods carry no vitamins beyond vitamin D.
 

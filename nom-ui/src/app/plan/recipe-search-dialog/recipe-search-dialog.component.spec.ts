@@ -142,6 +142,28 @@ describe('RecipeSearchDialog adding a recipe', () => {
     }
   });
 
+  it('shows how many sources agree on a branded food, and nothing for a food with its USDA record alone', () => {
+    vi.useFakeTimers();
+    try {
+      const fixture = create();
+      fixture.componentInstance.onWholeFoodInput('granola bar');
+      vi.advanceTimersByTime(300);
+
+      const search = http.expectOne((r) => r.method === 'GET' && r.url.endsWith('/ingredients/search'));
+      search.flush([
+        { id: 8, name: 'Oat granola bar (Acme)', fdcId: '2000002', matchedAlias: null, foodGroupId: null, foodGroupName: 'Sweets/Snacks', isWholeFood: true, isPrepared: false, agreeingSources: 3 },
+        { id: 9, name: 'Nut granola bar (Acme)', fdcId: '2000003', matchedAlias: null, foodGroupId: null, foodGroupName: 'Sweets/Snacks', isWholeFood: true, isPrepared: false, agreeingSources: 1 },
+      ]);
+      fixture.detectChanges();
+
+      const badges = (fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="whole-food-result-sources"]');
+      expect(badges.length).toBe(1);
+      expect(badges[0].textContent).toContain('3 sources agree');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('routes "Surprise me" through the same check', () => {
     const fixture = create();
     fixture.componentInstance.surpriseMe();

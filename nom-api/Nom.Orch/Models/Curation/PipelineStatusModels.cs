@@ -119,7 +119,38 @@ namespace Nom.Orch.Models.Curation
         public IReadOnlyList<PipelineWordingBucket> WordingsByUse { get; init; } = Array.Empty<PipelineWordingBucket>();
         /// <summary>Wordings in use by the state of their USDA link proposals.</summary>
         public IReadOnlyList<PipelineLinkStateCount> UnresolvedByLinkState { get; init; } = Array.Empty<PipelineLinkStateCount>();
+        /// <summary>Pending foods the catalog admission rule holds with a stored reason other than waiting for a second source; work for no person.</summary>
+        public int HeldByRule { get; init; }
+        /// <summary>The held foods by reason, a duplicate's or category's id left out; a food held for two reasons counts under both.</summary>
+        public IReadOnlyList<PipelineReasonCount> HeldByReason { get; init; } = Array.Empty<PipelineReasonCount>();
+        /// <summary>Pending branded foods whose only reason is that no second independent source agrees yet.</summary>
+        public int AwaitingSecondSource { get; init; }
+        /// <summary>Pending foods with no stored admission reason: made by hand or never judged by the rule.</summary>
+        public int PendingWithoutReason { get; init; }
+        /// <summary>Foods an admin rejected; the admission rule rejects none.</summary>
+        public int Rejected { get; init; }
+        public PipelineBrandedCounts Branded { get; init; } = new();
     }
+
+    public sealed record PipelineReasonCount(string Reason, int Foods);
+
+    /// <summary>
+    /// Branded foods by the branded lift's count of agreeing sources (the FDC record counting as
+    /// one): curated by agreeing sources at two or more with no stored reason, curated by an admin
+    /// (fewer than two, or a reason the rule still holds), curated but a later source disagrees, and
+    /// pending ones awaiting a second source or held by a disagreement.
+    /// </summary>
+    public sealed record PipelineBrandedCounts
+    {
+        public IReadOnlyList<PipelineSourceCount> CuratedByAgreeingSources { get; init; } = Array.Empty<PipelineSourceCount>();
+        public int CuratedWithoutCount { get; init; }
+        public int CuratedWithDisagreement { get; init; }
+        public int Awaiting { get; init; }
+        public int HeldByDisagreement { get; init; }
+        public int HeldOther { get; init; }
+    }
+
+    public sealed record PipelineSourceCount(string Sources, int Foods);
 
     public sealed record PipelineWordingBucket(string Bucket, int Wordings, int Lines);
 

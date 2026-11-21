@@ -122,6 +122,13 @@ namespace Nom.Import
                 return;
             }
 
+            var liftFlag = Array.IndexOf(args, "--branded-lift");
+            if (liftFlag >= 0)
+            {
+                await RunBrandedLiftAsync(host, args, liftFlag);
+                return;
+            }
+
             var containerFlag = Array.IndexOf(args, "--container-sizes");
             if (containerFlag >= 0)
             {
@@ -429,6 +436,62 @@ namespace Nom.Import
             }
         }
 
+        private static async Task RunBrandedLiftAsync(IHost host, string[] args, int flag)
+        {
+            using var scope = host.Services.CreateScope();
+            var lift = scope.ServiceProvider.GetRequiredService<Nom.Orch.Interfaces.IBrandedLiftService>();
+            var dryRun = args.Contains("--dry-run");
+            if (flag + 1 < args.Length && args[flag + 1] == "--undo")
+            {
+                if (flag + 2 >= args.Length
+                    || !DateTime.TryParse(args[flag + 2], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var stamp)
+                    || stamp.Kind != DateTimeKind.Utc)
+                {
+                    Console.WriteLine("Usage: --branded-lift --undo <stamp> [--dry-run]   (the stamp a lift run printed)");
+                    return;
+                }
+                var undone = await lift.UndoAsync(stamp, !dryRun, Nom.Data.SystemConstants.SystemPersonId);
+                Console.WriteLine($"\n=== Branded lift undo report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
+                Console.WriteLine($"Run stamp:        {undone.RunStamp:O}");
+                if (undone.UndoStamp is { } undoStamp)
+                    Console.WriteLine($"Undo stamp:       {undoStamp:O} (take this undo back with --branded-lift --undo {undoStamp:O})");
+                Console.WriteLine($"Demoted:          {undone.Demoted} (lifted foods back to PendingCuration)");
+                Console.WriteLine($"Lifted again:     {undone.Relifted} (foods an earlier undo had demoted)");
+                Console.WriteLine($"Values restored:  {undone.ValuesRestored} (source counts and reasons)");
+                Console.WriteLine($"Skipped:          {undone.Skipped} (changed since the run)");
+                Console.WriteLine($"Evidence:         {undone.EvidenceExcluded} rows excluded from the lift, {undone.EvidenceIncluded} let back in");
+                Console.WriteLine($"Re-counted:       {undone.Recounted} foods without the excluded evidence ({undone.StillLifted} still lifted by the other sources)");
+                foreach (var line in undone.Lines)
+                    Console.WriteLine($"  {line}");
+                return;
+            }
+
+            var r = await lift.RunAsync(!dryRun, Nom.Data.SystemConstants.SystemPersonId);
+            Console.WriteLine($"\n=== Branded lift report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ({r.RuleVersion}) ===");
+            Console.WriteLine($"Judged:           {r.Judged} branded foods with evidence ({r.NotJudged} not yet judged by the admission rule; run --admit with --branded first)");
+            Console.WriteLine($"Lifted (Curated): {r.Lifted} (two or more sources agree, the FDC record counting as one)");
+            Console.WriteLine($"Held pending:     {r.Held}");
+            foreach (var (reason, n) in r.HeldByReason.OrderByDescending(x => x.Value))
+                Console.WriteLine($"  held: {reason} × {n}");
+            Console.WriteLine($"Re-counted:       {r.Recounted} curated branded foods");
+            Console.WriteLine($"Demoted:          {r.Demoted} (curated by the rules, the sources no longer lift them; back to PendingCuration)");
+            Console.WriteLine($"Kept curated:     {r.KeptCurated} (curated by an admin, the sources do not lift them; never demoted, the reason is stored)");
+            Console.WriteLine($"Evidence:         {r.ExcludedEvidence} rows excluded by an earlier undo");
+            Console.WriteLine($"Agreeing sources: {string.Join(", ", r.ByAgreeingSources.OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => $"{x.Key}: {x.Value}"))}");
+            Console.WriteLine($"Foods changed:    {r.ChangedFoods} (limit {Nom.Orch.Services.BrandedLiftService.MaxChangedFoods})");
+            foreach (var line in r.Lines)
+                Console.WriteLine($"  {line}");
+            foreach (var reason in r.Stopped)
+                Console.WriteLine($"STOPPED, nothing written: {reason}");
+            if (r.Stopped.Count > 0)
+            {
+                Environment.ExitCode = 1;
+                return;
+            }
+            if (r.RunStamp is { } runStamp)
+                Console.WriteLine($"Run stamp:        {runStamp:O} (take this run back with --branded-lift --undo {runStamp:O})");
+        }
+
         private static async Task RunContainerSizesAsync(IHost host, string[] args, int flag)
         {
             using var scope = host.Services.CreateScope();
@@ -608,6 +671,7 @@ namespace Nom.Import
                     services.AddScoped<LabelNutritionImportService>();
 
                     services.AddScoped<CatalogAdmissionService>();
+                    services.AddScoped<Nom.Orch.Interfaces.IBrandedLiftService, Nom.Orch.Services.BrandedLiftService>();
                     services.AddScoped<Nom.Orch.Interfaces.ILaneFrameService, Nom.Orch.Services.LaneFrameService>();
                     services.AddScoped<Nom.Orch.Interfaces.IContainerSizeService, Nom.Orch.Services.ContainerSizeService>();
                     services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.ContainerSizeLaneUndo>();

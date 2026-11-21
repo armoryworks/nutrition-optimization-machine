@@ -2384,6 +2384,8 @@ CREATE TABLE recipe."Ingredient" (
     "FdcCategory" character varying(255),
     "EnergyCheck" character varying(64),
     "AdmissionReason" character varying(255),
+    "AgreeingSources" integer,
+    "DisagreeingSources" integer,
     "OnHand" boolean,
     "CreatedDate" timestamp with time zone NOT NULL,
     "CreatedByPersonId" bigint,

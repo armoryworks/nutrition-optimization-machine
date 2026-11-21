@@ -548,6 +548,50 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public async Task The_pass_admits_a_branded_food_its_stored_sources_lift_keeps_a_lifted_one_clean_and_holds_one_with_its_record_alone()
+        {
+            var dir = Path.Combine(_root, "branded");
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, "branded_food.csv"),
+                "\"fdc_id\",\"brand_owner\",\"gtin_upc\",\"serving_size\",\"serving_size_unit\",\"branded_food_category\",\"market_country\",\"discontinued_date\"\n"
+                + string.Concat(new[] { "2000002", "2000003", "2000004" }.Select(id => $"\"{id}\",\"Acme\",\"{id}\",\"40\",\"g\",\"Snack, Energy & Granola Bars\",\"United States\",\"\"\n")));
+            File.WriteAllText(Path.Combine(dir, "food.csv"),
+                "\"fdc_id\",\"data_type\",\"description\",\"food_category_id\",\"publication_date\"\n"
+                + string.Concat(new[] { "2000002", "2000003", "2000004" }.Select(id => $"\"{id}\",\"branded_food\",\"Oat granola bar {id}\",\"\",\"2025-12-18\"\n")));
+            var n = 0;
+            File.WriteAllText(Path.Combine(dir, "food_nutrient.csv"),
+                "\"id\",\"fdc_id\",\"nutrient_id\",\"amount\"\n"
+                + string.Concat(new[] { "2000002", "2000003", "2000004" }.SelectMany(id => new[] { (1008, "400"), (1003, "10"), (1005, "60"), (1004, "13") }
+                    .Select(x => $"\"{++n}\",\"{id}\",\"{x.Item1}\",\"{x.Item2}\"\n"))));
+            RecordChecksums();
+            using var db = NewContext();
+            IngredientEntity Bar(string fdcId, CurationStatusEnum status, int? agreeing, int? disagreeing)
+            {
+                var food = new IngredientEntity
+                {
+                    Name = $"Oat granola bar {fdcId}", FdcId = fdcId, FdcDataType = "branded_food", CurationStatusId = (long)status, FoodGroupId = (long)FoodGroupEnum.SweetsSnacks,
+                    FdcCategory = "Snack, Energy & Granola Bars", EnergyCheck = EnergyCheckOutcome.General, AgreeingSources = agreeing, DisagreeingSources = disagreeing,
+                    AdmissionReason = status == CurationStatusEnum.Curated ? null : CatalogAdmissionRule.AwaitingSecondSource, CreatedDate = DateTime.UtcNow,
+                };
+                db.Ingredients.Add(food);
+                db.SaveChanges();
+                return food;
+            }
+            var agreed = Bar("2000002", CurationStatusEnum.PendingCuration, 3, 0);
+            var lifted = Bar("2000003", CurationStatusEnum.Curated, 2, 0);
+            var alone = Bar("2000004", CurationStatusEnum.PendingCuration, null, null);
+
+            var report = await Service(db).AdmitAsync(new CatalogAdmissionService.AdmitOptions(FoundationDir, SrDir, dir, Checksums, DryRun: false));
+
+            report.Stopped.Should().BeEmpty();
+            report.Admitted.Should().Be(1);
+            report.KeptCurated.Should().Be(0, "the stored sources still lift the curated bar");
+            Get(db, agreed.Id).Should().Match<IngredientEntity>(f => f.CurationStatusId == (long)CurationStatusEnum.Curated && f.AdmissionReason == null);
+            Get(db, lifted.Id).Should().Match<IngredientEntity>(f => f.CurationStatusId == (long)CurationStatusEnum.Curated && f.AdmissionReason == null);
+            Get(db, alone.Id).Should().Match<IngredientEntity>(f => f.CurationStatusId == (long)CurationStatusEnum.PendingCuration && f.AdmissionReason == CatalogAdmissionRule.AwaitingSecondSource);
+        }
+
+        [Fact]
         public async Task The_category_only_enrichment_never_groups_a_food_by_its_name()
         {
             using var db = NewContext();

@@ -462,6 +462,45 @@ describe('PipelineAdmin', () => {
     expect(byId(loaded(status()).nativeElement, 'pipeline-container-sizes-error')).not.toBeNull();
   });
 
+  it('splits the pending foods into held by rule, awaiting a second source and rejected, and shows the branded foods by agreeing sources', () => {
+    const body = status();
+    body.status.foods = {
+      ...body.status.foods,
+      heldByRule: 31, heldByReason: [{ reason: 'atwater_mismatch', foods: 20 }, { reason: 'zero_energy', foods: 11 }],
+      awaitingSecondSource: 4460, pendingWithoutReason: 14, rejected: 3,
+      branded: {
+        curatedByAgreeingSources: [{ sources: '2', foods: 5 }, { sources: '3', foods: 2 }],
+        curatedWithoutCount: 0, curatedWithDisagreement: 1, awaiting: 4460, heldByDisagreement: 2, heldOther: 9,
+      },
+    };
+    const el = loaded(body).nativeElement as HTMLElement;
+
+    expect(byId(el, 'pipeline-metric-foods-held-by-rule')?.textContent?.trim()).toBe('31');
+    expect(byId(el, 'pipeline-metric-foods-awaiting-second-source')?.textContent?.trim()).toBe('4,460');
+    expect(byId(el, 'pipeline-metric-foods-pending-without-reason')?.textContent?.trim()).toBe('14');
+    expect(byId(el, 'pipeline-metric-foods-rejected')?.textContent?.trim()).toBe('3');
+    expect(Array.from(el.querySelectorAll('[data-testid="pipeline-foods-held-reason-item"]')).map((i) => i.textContent?.replace(/\s+/g, ' ').trim()))
+      .toEqual(['atwater_mismatch20 foods', 'zero_energy11 foods']);
+    expect(byId(el, 'pipeline-metric-branded-held-disagreement')?.textContent?.trim()).toBe('2');
+    expect(byId(el, 'pipeline-metric-branded-curated-disagreement')?.textContent?.trim()).toBe('1');
+    expect(Array.from(el.querySelectorAll('[data-testid="pipeline-branded-sources-item"]')).map((i) => i.textContent?.replace(/\s+/g, ' ').trim()))
+      .toEqual(['2 sources agree5 curated', '3 sources agree2 curated']);
+    expect(byId(el, 'pipeline-branded-sources-empty')).toBeNull();
+  });
+
+  it('says when no food is held by rule and no branded food is curated by its sources', () => {
+    const body = status();
+    body.status.foods = {
+      ...body.status.foods,
+      heldByRule: 0, heldByReason: [], awaitingSecondSource: 0, pendingWithoutReason: 0, rejected: 0,
+      branded: { curatedByAgreeingSources: [], curatedWithoutCount: 0, curatedWithDisagreement: 0, awaiting: 0, heldByDisagreement: 0, heldOther: 0 },
+    };
+    const el = loaded(body).nativeElement as HTMLElement;
+
+    expect(byId(el, 'pipeline-foods-held-reason-empty')).not.toBeNull();
+    expect(byId(el, 'pipeline-branded-sources-empty')).not.toBeNull();
+  });
+
   it('runs a frame lane undo as a dry run and shows its counts', () => {
     const body = status();
     body.frame = frame([frameLane()]);
