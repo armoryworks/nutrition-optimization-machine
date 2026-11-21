@@ -15,7 +15,8 @@ namespace Nom.Orch.Services.Support
     /// The title rule for recipes from a facts-only source: a title that is only the dish name is kept;
     /// a distinctive or branded title is reduced to the dish name, by rule and no model. In order: a tail
     /// after " | ", " - ", " – " or " — " goes, as do bracketed asides and a trailing "recipe"; a boast
-    /// clause ("you'll ever make", "of your life", "to die for") goes; a leading possessive goes when it
+    /// clause ("you'll ever make", "I've ever made", "we have ever had", "of your life", "to die for") goes,
+    /// its subject with it; a leading possessive goes when it
     /// names family ("Grandma's", "Aunt Bee's") or the source itself (a name in the source's author or
     /// site, "Sally's" for Sally's Baking Addiction), so "Shepherd's Pie" and "General Tso's Chicken"
     /// keep theirs; "copycat" goes; then praise words (best, ultimate, perfect, amazing, famous, easy ...)
@@ -32,7 +33,7 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex Brackets = new(@"\s*[\(\[][^\)\]]*[\)\]]", Options);
         private static readonly Regex RecipeWord = new(@"\s+recipes?\s*$", Options);
         private static readonly Regex Boast = new(
-            @"\s+(?:(?:that\s+)?you(?:'|’)?ll\s+ever\s+\w+|you\s+will\s+ever\s+\w+|(?:of|in)\s+your\s+life|ever\s+made|to\s+die\s+for|in\s+the\s+world|on\s+the\s+planet|of\s+all\s+time|you\s+need\s+to\s+(?:make|try)(?:\s+\w+)?|everyone\s+(?:loves|will\s+love))\b.*$",
+            @"\s+(?:(?:that\s+)?(?:i|we|you)(?:(?:'|’)ve|\s+have)\s+ever\s+\w+|(?:that\s+)?you(?:'|’)?ll\s+ever\s+\w+|you\s+will\s+ever\s+\w+|(?:of|in)\s+your\s+life|ever\s+made|to\s+die\s+for|in\s+the\s+world|on\s+the\s+planet|of\s+all\s+time|you\s+need\s+to\s+(?:make|try)(?:\s+\w+)?|everyone\s+(?:loves|will\s+love))\b.*$",
             Options);
         private static readonly Regex Possessive = new(@"^(?<who>(?:[\w&.]+\s+){0,2}[\w&.]+)(?:'|’)s\s+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
         private static readonly Regex Word = new(@"\p{L}[\p{L}\-]+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
@@ -138,15 +139,17 @@ namespace Nom.Orch.Services.Support
 
     /// <summary>
     /// Third-party credit lines in a recipe's source text: "Adapted from ...", "Recipe from ...", "Recipe
-    /// courtesy of ...", "Courtesy of ...", "Reprinted (with permission) from ...", "Inspired by ...",
-    /// "Excerpted from ...". A line that credits the author's own work or the page itself ("adapted from my
-    /// cupcakes", "recipe from this website", "recipe from now on") is not a credit. Each credit is kept as
-    /// its cue and the name it gives, up to the end of the clause.
+    /// courtesy of ...", "Courtesy of ...", "Reprinted (with permission) from ...", "Excerpted from ...".
+    /// "Inspired by" names an influence, not the work a recipe was taken from, so it is no credit. A line
+    /// that credits the author's own work or the page itself ("adapted from my cupcakes", "recipe from this
+    /// website", "recipe from now on") is not a credit. Each credit is kept as its cue and the name it
+    /// gives: the run of capitalised words (with "of", "the", "and", "by" and the like between them) that
+    /// follows the cue, so no clause of the publisher's own prose is ever kept with it.
     /// </summary>
     public static class CreditLines
     {
         private static readonly Regex Credit = new(
-            @"\b(?<cue>(?:recipe\s+)?adapted\s+(?:slightly\s+)?from|recipe\s+(?:courtesy\s+of|from)|courtesy\s+of|reprinted\s+(?:with\s+permission\s+)?from|excerpted\s+from|inspired\s+by)\s+(?<who>[^.;!?\n\(\)]{2,90})",
+            @"\b(?<cue>(?:recipe\s+)?adapted\s+(?:slightly\s+)?from|recipe\s+(?:courtesy\s+of|from)|courtesy\s+of|reprinted\s+(?:with\s+permission\s+)?from|excerpted\s+from)\s+(?<who>[^.;!?\n\(\)]{2,90})",
             RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
         private static readonly HashSet<string> Own = new(StringComparer.OrdinalIgnoreCase)
@@ -155,6 +158,28 @@ namespace Nom.Orch.Services.Support
             "your", "yours", "me", "us", "it", "there", "scratch", "memory", "one", "another", "some", "several", "many", "what",
             "how", "years", "i", "we", "you", "she", "he", "they", "mine", "ours", "every", "all", "any",
         };
+
+        private static readonly HashSet<string> Joiners = new(StringComparer.Ordinal)
+        {
+            "of", "the", "and", "&", "by", "de", "du", "del", "della", "di", "da", "la", "le", "von", "van", "der", "den", "for", "in", "at", "on", "a", "an",
+        };
+
+        private static string Name(string who)
+        {
+            var kept = new List<string>();
+            foreach (var word in who.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var bare = word.Trim('"', '\'', '“', '”', '‘', '’', ',', ':');
+                if (bare.Length == 0) break;
+                var named = char.IsUpper(bare[0]) || char.IsDigit(bare[0]);
+                if (!named && !(kept.Count > 0 && Joiners.Contains(bare))) break;
+                kept.Add(word);
+                if (word.EndsWith(',') || word.EndsWith(':')) break;
+            }
+
+            while (kept.Count > 0 && Joiners.Contains(kept[^1].Trim('"', '\'', '“', '”', '‘', '’', ',', ':'))) kept.RemoveAt(kept.Count - 1);
+            return string.Join(' ', kept).TrimEnd(',', ':', ' ');
+        }
 
         public static IReadOnlyList<string> Find(IEnumerable<string?> texts)
         {
@@ -166,6 +191,8 @@ namespace Nom.Orch.Services.Support
                     var who = Regex.Replace(match.Groups["who"].Value, @"\s+", " ").Trim().TrimEnd(',', ':', '-', '–', '—', ' ');
                     var first = who.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim('"', '\'', '“', '‘') ?? string.Empty;
                     if (first.Length == 0 || Own.Contains(first)) continue;
+                    who = Name(who);
+                    if (who.Length == 0) continue;
                     var cue = Regex.Replace(match.Groups["cue"].Value, @"\s+", " ").Trim();
                     var line = char.ToUpperInvariant(cue[0]) + cue[1..].ToLowerInvariant() + " " + who;
                     if (!found.Contains(line, StringComparer.OrdinalIgnoreCase)) found.Add(line);

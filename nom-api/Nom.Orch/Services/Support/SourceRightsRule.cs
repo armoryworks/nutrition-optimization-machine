@@ -27,7 +27,10 @@ namespace Nom.Orch.Services.Support
     /// LLM). A grant limited to "personal (non-commercial) use only" counts as a reuse prohibition without a
     /// cue. A sentence about the site reserving the right to change things forbids nothing, and neither does
     /// a rule of conduct (no spyware, nothing unlawful, no unsolicited messages) as to automated access or
-    /// reuse. The scraper's own category is not read; its sentence is.
+    /// reuse. The conduct test is made per prohibited action: a sentence that lists several (split at ";" and
+    /// at ", or to" / ", and to") still forbids automated access or reuse when an action other than the
+    /// conduct one names it ("not to use any robot ... to access the Website, or to introduce viruses").
+    /// The scraper's own category is not read; its sentence is.
     /// </summary>
     public static class RightsSentences
     {
@@ -44,6 +47,8 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex Conduct = new(
             @"\b(?:spyware|virus(?:es)?|malware|malicious|trojan|worms?|keystroke|unlawful|illegal|fraudulent|harmful|defamatory|obscene|unsolicited|spam)\b",
             Options);
+
+        private static readonly Regex Action = new(@";|,\s*(?:or|and)\s+to\b|\s(?:or|and)\s+to\s+(?=[a-z])", Options);
 
         private static readonly Regex Tdm = new(@"\btext\s+and\s+data\s+mining\b|\btdm\b", Options);
 
@@ -75,9 +80,9 @@ namespace Nom.Orch.Services.Support
             var tdm = Tdm.IsMatch(text);
             var rest = Tdm.Replace(text, " ");
             var ai = cue && (tdm || AiWords.IsMatch(rest));
-            var conduct = Conduct.IsMatch(rest);
-            var automated = cue && !conduct && Automated.IsMatch(rest);
-            var reuse = !conduct && (personalOnly || (cue && Reuse.IsMatch(rest)));
+            var actions = Action.Split(rest).Where(a => !Conduct.IsMatch(a)).ToList();
+            var automated = cue && actions.Any(a => Automated.IsMatch(a));
+            var reuse = actions.Any(a => PersonalUseOnly.IsMatch(a) || (cue && Reuse.IsMatch(a)));
             return new RightsSentenceReading(automated, reuse, ai);
         }
     }

@@ -700,7 +700,7 @@ namespace Nom.Orch.Services
                     Name = ri.Ingredient?.Name ?? "Unknown",
                     Quantity = ri.Quantity,
                     Measurement = ri.Measurement?.Name,
-                    Notes = ri.RawLine
+                    Notes = ProseWithholding.LineWording(recipe, ri.RawLine)
                 }).ToList();
             }
 

@@ -33,3 +33,6 @@ privacy-sell	We do not sell your personal data to third parties.	no	no	no	ok	rul
 reserve-change	We reserve the right to change these terms at any time.	no	no	no	ok	rule:construction	-
 ai-train-only	Our content may not be used to train artificial intelligence models.	no	no	yes	ok	rule:construction	-
 llm-scrape	You may not scrape this site to build a large language model.	yes	no	yes	ok	rule:construction	-
+robot-or-viruses	You agree not to use any robot, spider or other automated device to access the Website, or to introduce viruses or other harmful material.	yes	no	no	ok	rule:construction	a combined clause: the conduct action does not cancel the automated-access one
+copy-or-spam	You may not copy or republish the content; nor use the site to send unsolicited messages.	no	yes	no	ok	rule:construction	a reuse prohibition beside a conduct one
+malware-or-harmful	You agree not to upload, copy or transmit any virus or other harmful code, or to post unlawful material.	no	no	no	ok	rule:construction	every action is conduct: forbids nothing

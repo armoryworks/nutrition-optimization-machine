@@ -152,14 +152,14 @@ namespace Nom.Orch.Services
                 OldClass = source.RightsClass,
                 NewClass = newClass,
                 OldAiReserved = source.AiReserved,
-                NewAiReserved = verdict.AiReserved,
+                NewAiReserved = AiReservedAfter(source, verdict),
                 Reason = verdict.Reason,
                 Quote = verdict.Quote,
                 QuoteUrl = verdict.QuoteUrl,
                 AiQuote = verdict.AiQuote,
                 AiQuoteUrl = verdict.AiQuoteUrl,
                 Conclusive = verdict.Conclusive,
-                Changed = newClass != source.RightsClass || verdict.AiReserved != source.AiReserved,
+                Changed = newClass != source.RightsClass || AiReservedAfter(source, verdict) != source.AiReserved,
             };
         }
 
@@ -197,8 +197,10 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// Sets one rights field of the source back to a journal value (an undo): the class with its
-        /// quote, the AI flag with its quote, the permission's facts, or the facts-only approval. Returns
-        /// false when the value does not hold the old facts whole.
+        /// quote, the AI flag with its quote, the permission's facts, or the facts-only approval. The class
+        /// keeps the check and rule it was last derived from, so the source lane's re-derive of stale
+        /// sources does not take the undone class back from the same report; the next new check derives
+        /// it again. Returns false when the value does not hold the old facts whole.
         /// </summary>
         internal static bool Restore(ScrapingSourceEntity source, string field, string? value, DateTime now, long personId)
         {
@@ -213,8 +215,6 @@ namespace Nom.Orch.Services
                         source.RightsClass = state == SourceJournal.None ? null : state;
                         source.RightsQuote = facts.Quote;
                         source.RightsQuoteUrl = facts.Url;
-                        source.RightsCheckId = facts.CheckId;
-                        source.RightsRuleVersion = facts.RuleVersion;
                         source.RightsDerivedAtUtc = now;
                         return true;
                     }
@@ -263,16 +263,25 @@ namespace Nom.Orch.Services
             field is SourceJournal.RightsField or SourceJournal.AiReservedField or SourceJournal.PermissionField or SourceJournal.FactsOnlyField;
 
         /// <summary>
+        /// The AI flag a verdict leaves on the source: a conclusive verdict sets it; an inconclusive one (a check that
+        /// did not finish, or a report under another rule version) can only raise it, never clear it, because a
+        /// reservation it did not reach is not a reservation it found absent.
+        /// </summary>
+        public static bool AiReservedAfter(ScrapingSourceEntity source, SourceRightsVerdict verdict) =>
+            verdict.Conclusive ? verdict.AiReserved : source.AiReserved || verdict.AiReserved;
+
+        /// <summary>
         /// Stores a verdict on the source and journals what changed (<see cref="SourceJournal.RightsField"/>,
         /// <see cref="SourceJournal.AiReservedField"/>). An inconclusive verdict keeps the stored class and
-        /// updates only the AI flag. Returns whether the class or the flag changed.
+        /// can only raise the AI flag (<see cref="AiReservedAfter"/>). Returns whether the class or the flag changed.
         /// </summary>
         public static bool ApplyVerdict(ApplicationDbContext db, ScrapingSourceEntity source, SourceRightsVerdict verdict, long checkId, DateTime now, long by)
         {
             var oldRights = RightsValue(source);
             var oldAi = AiValue(source);
             var classChanged = verdict.Conclusive && verdict.Class != source.RightsClass;
-            var aiChanged = verdict.AiReserved != source.AiReserved;
+            var aiReserved = AiReservedAfter(source, verdict);
+            var aiChanged = aiReserved != source.AiReserved;
             if (verdict.Conclusive)
             {
                 source.RightsClass = verdict.Class;
@@ -283,9 +292,12 @@ namespace Nom.Orch.Services
                 source.RightsDerivedAtUtc = now;
             }
 
-            source.AiReserved = verdict.AiReserved;
-            source.AiReservedQuote = Clip(verdict.AiQuote, 2047);
-            source.AiReservedQuoteUrl = Clip(verdict.AiQuoteUrl, 2047);
+            if (verdict.Conclusive || verdict.AiReserved)
+            {
+                source.AiReserved = aiReserved;
+                source.AiReservedQuote = Clip(verdict.AiQuote, 2047);
+                source.AiReservedQuoteUrl = Clip(verdict.AiQuoteUrl, 2047);
+            }
 
             if (classChanged)
                 db.AuditLogEntries.Add(SourceJournal.Entry(source.Id, SourceJournal.Rights, SourceJournal.RightsField, oldRights, RightsValue(source), now, by));
@@ -294,17 +306,16 @@ namespace Nom.Orch.Services
             return classChanged || aiChanged;
         }
 
-        /// <summary>Sets every recipe of the source to its effective class and AI flag, and withholds or releases facts-only prose to match; journaled per recipe.</summary>
+        /// <summary>
+        /// Sets every recipe of the source to its effective class and AI flag, and withholds or releases facts-only prose to match; journaled per recipe.
+        /// A facts-only recipe is withheld whenever its shown method is not the clean-room lane's own, a quarantined import and a recipe with a step a
+        /// person edited included, so no reader (author, household or curator) is served the publisher's description or untouched steps.
+        /// </summary>
         public static async Task<(int Restamped, int Withheld, int Released)> SyncRecipesAsync(ApplicationDbContext db, ScrapingSourceEntity source, DateTime now, long by, CancellationToken cancellationToken = default)
         {
             var effective = EffectiveClass(source);
             var recipes = await SourceAdmissionService.RecipesFrom(db.Recipes, source.Domain).ToListAsync(cancellationToken);
             if (recipes.Count == 0) return (0, 0, 0);
-            var ids = recipes.Select(r => r.Id).ToList();
-            var personSteps = (await db.RecipeSteps.AsNoTracking()
-                    .Where(s => ids.Contains(s.RecipeId) && s.LastModifiedByPersonId != null && s.LastModifiedByPersonId != SystemConstants.SystemPersonId)
-                    .Select(s => s.RecipeId).Distinct().ToListAsync(cancellationToken))
-                .ToHashSet();
             var restamped = 0;
             var withheld = 0;
             foreach (var recipe in recipes)
@@ -316,7 +327,7 @@ namespace Nom.Orch.Services
                     restamped++;
                 }
 
-                if (effective == SourceRightsRule.FactsOnly && !recipe.ContainsSourceProse && !recipe.ProseWithheld && !OwnMethod(recipe) && !personSteps.Contains(recipe.Id))
+                if (effective == SourceRightsRule.FactsOnly && !recipe.ProseWithheld && !OwnMethod(recipe))
                 {
                     recipe.ProseWithheld = true;
                     db.AuditLogEntries.Add(RecipeEntry(recipe.Id, FactsOnlyWithholdChangeType, nameof(RecipeEntity.ProseWithheld), "false", $"true | facts-only source {source.Domain}", now, by));
@@ -513,8 +524,13 @@ namespace Nom.Orch.Services
                 }
 
                 var state = recipe.ProseAttempts == 0 ? "rewrite stands" : "given up";
+                var copies = await ProseCopiesAsync(recipe, cancellationToken);
                 result.Changed++;
-                result.Changes.Add(new SourceRecipeChangeModel { RecipeId = id, Domain = Host(recipe.SourceUrl), Old = $"{documents.Count} documents", New = $"facts record of {facts.Ingredients.Count} lines", Reason = state });
+                result.Changes.Add(new SourceRecipeChangeModel
+                {
+                    RecipeId = id, Domain = Host(recipe.SourceUrl), Old = $"{documents.Count} documents, {copies.Count} journal and step copies of its prose",
+                    New = $"facts record of {facts.Ingredients.Count} lines", Reason = state,
+                });
                 if (!apply) continue;
 
                 if (recipe.SourceCredit == null && CreditLines.Join((await SourceTextsAsync(new[] { id }, cancellationToken)).GetValueOrDefault(id) ?? new List<string?>()) is { } credit)
@@ -547,6 +563,28 @@ namespace Nom.Orch.Services
                     document.DeletedByPersonId = SystemConstants.SystemPersonId;
                 }
 
+                if (copies.Count > 0)
+                {
+                    var heldContent = JsonSerializer.Serialize(new HeldCopies(copies.Select(c => c.Held).ToList()), JsonOptions);
+                    var held = new ScrapedDocumentEntity
+                    {
+                        RecipeId = id,
+                        SourceUrl = recipe.SourceUrl ?? string.Empty,
+                        RawJsonLd = heldContent,
+                        Format = ScrapedDocumentFormat.HeldProse,
+                        ContentSha256 = SourceRecord.Sha256(heldContent),
+                        FetchedAtUtc = now,
+                        CreatedDate = now,
+                        CreatedByPersonId = SystemConstants.SystemPersonId,
+                        IsDeleted = true,
+                        DeletedAt = now,
+                        DeletedByPersonId = SystemConstants.SystemPersonId,
+                    };
+                    _db.ScrapedDocuments.Add(held);
+                    foreach (var copy in copies) copy.Reduce();
+                    documents.Add(held);
+                }
+
                 await _db.SaveChangesAsync(cancellationToken);
                 var removed = documents.Select(d => new RetainedDocument(d.Id, d.Format, d.ContentSha256 ?? SourceRecord.Sha256(d.RawJsonLd))).ToList();
                 _db.AuditLogEntries.Add(RecipeEntry(id, RetentionChangeType, DocumentsProperty,
@@ -575,6 +613,161 @@ namespace Nom.Orch.Services
         }
 
         public const string ReducedMarker = "reduced";
+
+        /// <summary>What a reduced copy of the publisher's prose reads in place of the text: the prefix, then the SHA-256 of what went.</summary>
+        public const string ReducedValuePrefix = "(reduced by prose retention, sha256:";
+
+        /// <summary>Whether a journal or step value is a reduced copy (<see cref="ReducedValuePrefix"/>), whose text an undo cannot put back.</summary>
+        public static bool IsReduced(string? value) => value != null && value.StartsWith(ReducedValuePrefix, StringComparison.Ordinal);
+
+        private static string ReducedValue(string value) => $"{ReducedValuePrefix}{SourceRecord.Sha256(value)})";
+
+        internal sealed record HeldCopy(string Kind, long Id, string Field, string? Value);
+
+        internal sealed record HeldCopies(List<HeldCopy> Copies);
+
+        private sealed record ProseCopy(HeldCopy Held, Action Reduce);
+
+        private const string AuditCopy = "audit";
+        private const string StepCopy = "step";
+        private const string ReprocessCopy = "reprocess";
+
+        private static readonly System.Text.RegularExpressions.Regex WriterTag = new(@"^\[[^\]]*\]\s*", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        /// <summary>
+        /// Every other copy of a reduced recipe's prose the engine still holds, each with how to reduce it: the
+        /// description and step values of its journal rows (the prose lane's old values, a re-check's, a
+        /// marker strip's or a step split's), the text of its removed step rows, and the step texts of its
+        /// rebuild journal. A value is kept only when it is what the recipe shows now (its description or a
+        /// live step, the clean-room lane's own words) or a person wrote it.
+        /// </summary>
+        private async Task<List<ProseCopy>> ProseCopiesAsync(RecipeEntity recipe, CancellationToken cancellationToken)
+        {
+            var copies = new List<ProseCopy>();
+            var steps = await _db.RecipeSteps.IgnoreQueryFilters().Where(s => s.RecipeId == recipe.Id).ToListAsync(cancellationToken);
+            var shown = new HashSet<string>(StringComparer.Ordinal);
+            void Keep(string? text)
+            {
+                if (!string.IsNullOrWhiteSpace(text)) shown.Add(text.Trim());
+            }
+
+            Keep(recipe.Description);
+            foreach (var step in steps.Where(s => !s.IsDeleted))
+            {
+                Keep(step.Description);
+                Keep(step.Summary);
+            }
+
+            bool Reducible(string? value)
+            {
+                if (string.IsNullOrWhiteSpace(value) || IsReduced(value)) return false;
+                var text = WriterTag.Replace(value, string.Empty).Trim();
+                return text is not "" and not "(continued)" and not "(removed)" && !shown.Contains(text) && !shown.Contains(value.Trim());
+            }
+
+            var rows = await _db.AuditLogEntries
+                .Where(a => a.EntityType == ProseRecheckService.RecipeEntityType && a.EntityId == recipe.Id && a.PropertyName != null
+                    && (a.PropertyName == ProseLaneJournal.DescriptionProperty || a.PropertyName == "RecipeSteps" || a.PropertyName.StartsWith(ProseLaneJournal.StepPrefix))
+                    && a.ChangeType != ProseRecheckService.DescriptionByPersonChangeType)
+                .ToListAsync(cancellationToken);
+            foreach (var row in rows)
+            {
+                if (Reducible(row.OldValue))
+                {
+                    var old = row.OldValue!;
+                    copies.Add(new ProseCopy(new HeldCopy(AuditCopy, row.Id, nameof(row.OldValue), old), () => row.OldValue = ReducedValue(old)));
+                }
+
+                if (Reducible(row.NewValue))
+                {
+                    var next = row.NewValue!;
+                    copies.Add(new ProseCopy(new HeldCopy(AuditCopy, row.Id, nameof(row.NewValue), next), () => row.NewValue = ReducedValue(next)));
+                }
+            }
+
+            foreach (var step in steps.Where(s => s.IsDeleted))
+            {
+                if (Reducible(step.Description))
+                {
+                    var text = step.Description;
+                    copies.Add(new ProseCopy(new HeldCopy(StepCopy, step.Id, nameof(step.Description), text), () => step.Description = ReducedValue(text)));
+                }
+
+                if (Reducible(step.Summary))
+                {
+                    var text = step.Summary;
+                    copies.Add(new ProseCopy(new HeldCopy(StepCopy, step.Id, nameof(step.Summary), text), () => step.Summary = RecipeStepSplit.Clamp(ReducedValue(text), 255)));
+                }
+            }
+
+            foreach (var entry in await _db.RecipeReprocessJournals.Where(j => j.RecipeId == recipe.Id).ToListAsync(cancellationToken))
+            {
+                foreach (var (field, value, set) in new (string, string?, Action<string>)[]
+                {
+                    (nameof(entry.OldSteps), entry.OldSteps, v => entry.OldSteps = v),
+                    (nameof(entry.NewSteps), entry.NewSteps, v => entry.NewSteps = v),
+                })
+                {
+                    if (value == null || ReduceSteps(value, Reducible) is not { } reduced) continue;
+                    copies.Add(new ProseCopy(new HeldCopy(ReprocessCopy, entry.Id, field, value), () => set(reduced)));
+                }
+            }
+
+            return copies;
+        }
+
+        /// <summary>The journal's step rows with every reducible description and summary reduced; null when none is.</summary>
+        private static string? ReduceSteps(string json, Func<string?, bool> reducible)
+        {
+            JsonNode? node;
+            try
+            {
+                node = JsonNode.Parse(json);
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+
+            if (node is not JsonArray rows) return null;
+            var changed = false;
+            foreach (var row in rows.OfType<JsonObject>())
+            {
+                foreach (var property in row.Where(p => p.Key.Equals("description", StringComparison.OrdinalIgnoreCase) || p.Key.Equals("summary", StringComparison.OrdinalIgnoreCase)).Select(p => p.Key).ToList())
+                {
+                    var text = row[property] is JsonValue v && v.TryGetValue<string>(out var t) ? t : null;
+                    if (!reducible(text)) continue;
+                    row[property] = ReducedValue(text!);
+                    changed = true;
+                }
+            }
+
+            return changed ? rows.ToJsonString() : null;
+        }
+
+        /// <summary>Puts every held copy back where it was reduced (a retention undo).</summary>
+        private async Task RestoreCopiesAsync(HeldCopies? held, CancellationToken cancellationToken)
+        {
+            if (held == null) return;
+            foreach (var copy in held.Copies)
+            {
+                switch (copy.Kind)
+                {
+                    case AuditCopy when await _db.AuditLogEntries.FirstOrDefaultAsync(a => a.Id == copy.Id, cancellationToken) is { } row:
+                        if (copy.Field == nameof(row.OldValue)) row.OldValue = copy.Value;
+                        else row.NewValue = copy.Value;
+                        break;
+                    case StepCopy when await _db.RecipeSteps.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Id == copy.Id, cancellationToken) is { } step:
+                        if (copy.Field == nameof(step.Description)) step.Description = copy.Value ?? string.Empty;
+                        else step.Summary = copy.Value ?? string.Empty;
+                        break;
+                    case ReprocessCopy when await _db.RecipeReprocessJournals.FirstOrDefaultAsync(j => j.Id == copy.Id, cancellationToken) is { } entry:
+                        if (copy.Field == nameof(entry.OldSteps)) entry.OldSteps = copy.Value;
+                        else entry.NewSteps = copy.Value;
+                        break;
+                }
+            }
+        }
 
         private static readonly JsonSerializerOptions RecordOptions = new(JsonSerializerDefaults.Web)
         {
@@ -724,6 +917,13 @@ namespace Nom.Orch.Services
                         var ids = old.Removed.Select(r => r.Id).ToList();
                         foreach (var document in await _db.ScrapedDocuments.IgnoreQueryFilters().Where(d => ids.Contains(d.Id)).ToListAsync(cancellationToken))
                         {
+                            if (document.Format == ScrapedDocumentFormat.HeldProse)
+                            {
+                                await RestoreCopiesAsync(Read<HeldCopies>(document.RawJsonLd), cancellationToken);
+                                _db.ScrapedDocuments.Remove(document);
+                                continue;
+                            }
+
                             document.IsDeleted = false;
                             document.DeletedAt = null;
                             document.DeletedByPersonId = null;
@@ -764,8 +964,10 @@ namespace Nom.Orch.Services
                 .OrderBy(s => s.Domain)
                 .ToListAsync(cancellationToken);
             var list = new List<SourceTakenModel>();
+            var hosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var source in sources)
             {
+                if (!hosts.Add(SourceAdmissionPolicy.NormalizeDomain(source.Domain) ?? source.Domain)) continue;
                 var recipes = SourceAdmissionService.RecipesFrom(_db.Recipes.AsNoTracking(), source.Domain);
                 list.Add(new SourceTakenModel
                 {

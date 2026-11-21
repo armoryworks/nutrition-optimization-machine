@@ -21,7 +21,9 @@ in `RightsQuote` and where they were found in `RightsQuoteUrl`, the check it cam
    served on the domain itself. The sentence is kept as the deciding quote with its URL. A forbidding
    sentence counts even when the check was cut off.
 2. A report under a scraper rule version the rule does not read, or from a check that did not finish,
-   gives **no class** (inconclusive): the stored class stands until a later check.
+   gives **no class** (inconclusive): the stored class stands until a later check. An inconclusive
+   report can raise the AI flag (a reservation it did reach) but never clears it: a check that stopped
+   before the sample pages has not found the `noai` meta absent.
 3. **permission-needed**: the terms could not be read or the site refuses automated fetches: the
    scraper refused to fetch the domain, the homepage was not read (so its footer is unknown),
    robots.txt was refused or unreachable or bars NomBot or every crawler, a page answered a bot
@@ -41,7 +43,10 @@ application), or AI use (artificial intelligence, machine learning, AI, LLM, tra
 text and data mining). A grant limited to "personal (non-commercial) use only" or "solely for your
 personal use" is a reuse prohibition without a cue. A sentence about the site reserving the right to
 change things forbids nothing (defect D3 of the research), and neither does a rule of conduct (no
-spyware, nothing unlawful, no unsolicited messages). "Text and data mining" is an AI reservation, not a
+spyware, nothing unlawful, no unsolicited messages). The conduct test is made per prohibited action: a
+sentence is split into its actions at ";" and at ", or to" / ", and to", and a conduct word cancels only the
+action it stands in, so "you agree not to use any robot ... to access the Website, or to introduce viruses"
+still forbids automated access. "Text and data mining" is an AI reservation, not a
 ban on fetching. The scraper's own category for a sentence is not read.
 
 ### The AI flag
@@ -84,7 +89,9 @@ Each recipe of a classed web source carries its source's effective class and AI 
 flag or permission changes. For a **facts-only** recipe a reader gets facts and a link only:
 
 - ingredient facts under NOM's own catalog names (the source's line wording, `RawLine`, is not served:
-  `Notes` is empty in the detail response), times, yield, NOM-computed nutrition, the source link;
+  `ProseWithholding.LineWording` leaves `Notes` empty in the detail response, in search, popular, recent
+  and random results, in the smart shopping list, and leaves the line out of the bulk export and print),
+  times, yield, NOM-computed nutrition, the source link;
 - the method only when it is NOM's own words, that is, when the clean-room prose lane's rewrite stands
   (`ProseLaneVersion` set, `ProseAttempts` 0, not withheld, not quarantined: `SourceRightsService.OwnMethod`);
 - never the publisher's description, method text or photo.
@@ -92,8 +99,12 @@ flag or permission changes. For a **facts-only** recipe a reader gets facts and 
 This is done by the existing withheld state, not by a second redaction: a facts-only recipe whose shown
 method is not the lane's own has its prose withheld (`ProseWithheld`, journaled
 `ProseWithholdFactsOnly` on `ProseWithheld`, so the prose lane's undo sees it), which every endpoint
-already honours, and the rewrite lane already takes withheld recipes. A recipe with a step a person wrote
-is left alone. The withhold ends by itself (`ProseWithholdFactsOnlyEnd`) when the source becomes clear (a
+already honours, and the rewrite lane already takes withheld recipes. A quarantined import
+(`ContainsSourceProse`) is withheld too, because its author, household, audience and curators still see
+it, and so is a recipe with a step a person edited: a typo fixed in one step does not make the publisher's
+description and other steps NOM's own. For such a recipe the lane rewrites the whole method clean-room
+(not only the description, as it does for other withheld recipes a person edited); the person's edit stays
+in the journal. The withhold ends by itself (`ProseWithholdFactsOnlyEnd`) when the source becomes clear (a
 licence or a permission), and only while the withhold is still the recipe's latest prose change; it stands
 while the source is forbidden or needs permission, because what happens to those recipes is the owner's
 decision. `SourceImageUrl` was never served; `Image` stays empty.
@@ -117,9 +128,12 @@ journaled (`RecipeTitleRule` on `Name`) and a run is undone by its stamp.
 ### Third-party credit lines
 
 `CreditLines` finds "Adapted from ...", "Recipe from ...", "Recipe courtesy of ...", "Courtesy of ...",
-"Reprinted (with permission) from ...", "Excerpted from ...", "Inspired by ..." in a recipe's source text
-and keeps the cue and the name, but not a line that credits the author's own work or the page ("adapted
-from my cupcakes", "recipe from this website", "recipe from now on": defect D4). The credit is stored on
+"Reprinted (with permission) from ...", "Excerpted from ..." in a recipe's source text and keeps the cue
+and the name, but not a line that credits the author's own work or the page ("adapted from my cupcakes",
+"recipe from this website", "recipe from now on": defect D4). The name is the run of capitalised words
+after the cue (with "of", "the", "and", "by" and the like between them), ending at a comma or the first
+lower-case word, so no clause of the publisher's description is ever kept with it. "Inspired by" names an
+influence, not the work a recipe was taken from, and is not a credit. The credit is stored on
 `Recipe.SourceCredit` at import and by a backfill step from the stored JSON-LD or record
 (`rights/credits`, journaled `RecipeSourceCredit`, undone by stamp), and shown in the recipe page next to
 the source link (`recipe-source-credit`). The reduction below reads credits before the prose goes.
@@ -139,6 +153,14 @@ lane gave it up that long ago:
 - the step is journaled per recipe (`RecipeProseRetention` on `SourceDocuments`: the ids, formats and
   SHA-256 of what was removed, and the id and SHA-256 of the facts record), with a dry run, and a run is
   undone by its stamp while the removed documents are held;
+- every other copy of the publisher's prose the engine holds for the recipe is reduced in the same step:
+  the description and step values of its journal rows (the prose lane's old values, a re-check's, a marker
+  strip's, a step split's), the text of its removed step rows and the step texts of its rebuild journal.
+  Each is replaced by `(reduced by prose retention, sha256:...)`; a value is kept only when it is what the
+  recipe shows now (its description or a live step, the lane's own words) or a person wrote it. The
+  originals are held in one soft-deleted `held-prose` document, which the undo puts back and the purge
+  deletes. A prose-lane undo of a rewrite whose old text was reduced is skipped as changed since, and a
+  rebuild undo whose steps were reduced no longer matches and is skipped;
 - after `RetentionUndoDays` (30) `rights/retention/purge` deletes the held documents for good
   (`RecipeProseRetentionPurge`); an undo is then refused. Only the hashes remain.
 - With `RetentionAuto` (off by default) the source lane's tick runs the reduction and the purge.
@@ -167,8 +189,12 @@ For a recipe with `SourceAiReserved`:
 
 - the prose lane takes the model-free path only (`ProseCleanRoom.RunRuleOnly`): the method is masked, its
   fact sheets are built by rule, rendered by rule, and written only when the form rules and check v2 pass;
-  no extractor, writer, judge or auditor reads it, its decisions are recorded in the `rule-only` tier (which
-  the audit never samples) and its journal names `rule-only` as the writer. Otherwise the recipe keeps no
+  no extractor, writer, judge or auditor reads it, its decisions are recorded in the `rule-only` tier and its
+  journal names `rule-only` as the writer. The `rule-only` tier is a tier of its own on the lane frame: it
+  writes only while that tier is live (whatever the model tier's mode), every decision of it is audited by
+  rule (`ProseRuleOnlyAudit`: the written method read back from its text against the stored source steps
+  and lines, one step per step, every ingredient, amount and cooking verb kept), and the frame qualifies it
+  from shadow, pauses it on its own observed error and undoes only its writes. Otherwise the recipe keeps no
   method and its link (withheld), and is retried when the lane changes;
 - the tool tagger is given no step text, the reprocess line judge no method sentences, and the AI repair
   lane does not take the recipe, while its method is not the lane's own.
@@ -181,13 +207,17 @@ old and new class, quote, URL and check) and the recipes' stamps follow. The sou
 re-derives every source whose class was derived under an older rule version or from an older check, and
 `POST api/ScrapingSource/rights/derive?apply=` does it on demand with a dry run. Every journal row of the
 rights fields can be undone from the source journal while the source still holds its new state, and the
-undo can be undone.
+undo can be undone. An undone class keeps the check and rule it was derived from, so the tick's re-derive
+of stale sources leaves it; the next new check derives the class again, by rule (a class is an engine
+property of the newest report, not an admin's choice: a disagreement is settled by a permission, a
+facts-only approval, or a rule change).
 
 ## Recipes already taken from forbidden and permission-needed sources
 
 Nothing is done to them by itself. `GET api/ScrapingSource/rights/taken` is the dry run for the owner: per
 forbidden or permission-needed source with no permission, the quote, the recipes taken and how many are
-still shown. The one-click, journaled, undoable "withhold recipes" of `recipe-sources.md` is the action.
+still shown. A site recorded under both its bare and its `www.` host is listed once, so its recipes are not
+counted twice in the list or in the Pipeline total. The one-click, journaled, undoable "withhold recipes" of `recipe-sources.md` is the action.
 Nothing in this engine deletes a recipe.
 
 ## Golden sets

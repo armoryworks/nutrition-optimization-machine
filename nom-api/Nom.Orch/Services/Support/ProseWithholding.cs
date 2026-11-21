@@ -22,6 +22,14 @@ namespace Nom.Orch.Services.Support
         public static string? DescriptionOrNull(RecipeEntity recipe) =>
             recipe.ProseWithheld ? null : recipe.Description;
 
+        /// <summary>
+        /// The ingredient line wording to serve: none for a recipe of a facts-only source
+        /// (<see cref="RecipeEntity.SourceRights"/>), whose readers get NOM's catalog names, amounts and
+        /// units only, never the publisher's line as written.
+        /// </summary>
+        public static string? LineWording(RecipeEntity recipe, string? rawLine) =>
+            recipe.SourceRights == SourceRightsRule.FactsOnly ? null : rawLine;
+
         /// <summary>The steps to serve, in step order: none while the prose is withheld.</summary>
         public static IReadOnlyList<RecipeStepEntity> Steps(RecipeEntity recipe) =>
             recipe.ProseWithheld || recipe.RecipeSteps == null

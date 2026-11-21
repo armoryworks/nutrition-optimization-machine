@@ -525,7 +525,7 @@ namespace Nom.Orch.Services
                     Name = ri.Ingredient?.Name ?? string.Empty,
                     FoodGroupName = ri.Ingredient?.FoodGroup?.Name,
                     Measurement = ri.Measurement?.Name ?? string.Empty,
-                    Notes = factsOnly ? null : ri.RawLine,
+                    Notes = ProseWithholding.LineWording(recipe, ri.RawLine),
                     Grams = RoundGrams(RecipeNutritionService.WeighedGramsFor(ri, weighing)),
                     NutritionStatus = RecipeNutritionService.StatusFor(ri, nutrientsByIngredient.ContainsKey(ri.IngredientId), weighing),
                     AssumedSize = RecipeNutritionService.GramsFor(ri) == null && weighing.Weigh(ri) is { Counted: true } assumed ? ContainerWeighing.Describe(assumed) : null,

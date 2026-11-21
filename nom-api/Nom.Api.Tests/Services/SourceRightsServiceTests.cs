@@ -509,6 +509,69 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task Retention_reduces_every_journal_and_step_copy_of_the_publishers_prose_and_its_undo_puts_them_back()
+        {
+            await using var db = NewContext();
+            await SourceAsync(db, "facts.example", FactsOnlyReport("facts.example"));
+            var written = T0.AddDays(-40);
+            var recipe = await RecipeAsync(db, "https://facts.example/a/", r =>
+            {
+                OwnMethod(r);
+                r.Description = "A weeknight chili of beef and beans.";
+                r.RecipeSteps = new List<RecipeStepEntity>
+                {
+                    new() { StepNumber = 1, Summary = "Brown the beef.", Description = "Brown the beef.", LastModifiedByPersonId = SystemConstants.SystemPersonId },
+                    new() { StepNumber = 2, Summary = "Stir in the secret sauce.", Description = "Stir in our famous secret sauce and wait.", IsDeleted = true, LastModifiedByPersonId = SystemConstants.SystemPersonId },
+                };
+            }, JsonLd("Our family favourite.", "Brown the beef in a big pot over medium heat for 8 minutes.", "Stir in our famous secret sauce and wait."));
+            const string tag = "[qwen lane-v] ";
+            db.AuditLogEntries.AddRange(ProseLaneJournal.Rows(recipe.Id, ProseLaneJournal.DescriptionProperty, "Our family favourite.", tag + "A weeknight chili of beef and beans.", written));
+            db.AuditLogEntries.AddRange(ProseLaneJournal.Rows(recipe.Id, ProseLaneJournal.StepPrefix + "1", "Brown the beef in a big pot over medium heat for 8 minutes.", tag + "Brown the beef.", written));
+            db.AuditLogEntries.AddRange(ProseLaneJournal.Rows(recipe.Id, ProseLaneJournal.StepPrefix + "2", "Stir in our famous secret sauce and wait.", tag + "(removed)", written));
+            db.AuditLogEntries.AddRange(ProseLaneJournal.Rows(recipe.Id, ProseLaneJournal.StateProperty,
+                ProseLaneJournal.StateJson(new ProseState(true, false, 2, null, 0, null, new[] { 1, 2 })), tag + ProseLaneJournal.StateJson(new ProseState(false, false, 2, "lane-v", 0, written, new[] { 1 })), written));
+            db.RecipeReprocessJournals.Add(new RecipeReprocessJournalEntity
+            {
+                RecipeId = recipe.Id, BatchId = "b1",
+                NewSteps = JsonSerializer.Serialize(new[] { new Dictionary<string, object> { ["stepNumber"] = 1, ["summary"] = "Brown", ["description"] = "Brown the beef in a big pot over medium heat for 8 minutes." } }),
+            });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var rights = Rights(db);
+            await rights.DeriveAsync(apply: true);
+
+            var dry = await rights.RetentionAsync(apply: false);
+            dry.Changes.Single().Old.Should().Contain("6 journal and step copies", "three old journal values, the removed step's text and summary, and the rebuild journal's steps");
+
+            var run = await rights.RetentionAsync(apply: true);
+
+            run.Changed.Should().Be(1);
+            var journal = await db.AuditLogEntries.AsNoTracking().Where(a => a.EntityType == "Recipe" && a.EntityId == recipe.Id).ToListAsync();
+            journal.Should().NotContain(a => (a.OldValue ?? "").Contains("family favourite") || (a.OldValue ?? "").Contains("big pot") || (a.OldValue ?? "").Contains("secret sauce"));
+            journal.Should().Contain(a => a.NewValue == tag + "A weeknight chili of beef and beans.", "the clean-room lane's own words stay");
+            (await db.RecipeSteps.IgnoreQueryFilters().AsNoTracking().SingleAsync(st => st.RecipeId == recipe.Id && st.StepNumber == 2)).Description.Should().StartWith(SourceRightsService.ReducedValuePrefix);
+            (await db.RecipeReprocessJournals.AsNoTracking().SingleAsync()).NewSteps.Should().NotContain("big pot");
+            (await db.ScrapedDocuments.IgnoreQueryFilters().AsNoTracking().Where(d => !d.IsDeleted).Select(d => d.RawJsonLd).ToListAsync()).Should().NotContain(d => d.Contains("big pot"));
+
+            var proseUndo = await new ProseRewriteUndoService(db, Mock.Of<ICurrentUserService>()).UndoAsync(T0.AddDays(-100), apply: true);
+            proseUndo.Restored.Should().Be(0, "a rewrite whose old text was reduced cannot be undone into placeholders");
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == recipe.Id)).Description.Should().Be("A weeknight chili of beef and beans.");
+
+            (await rights.UndoStepAsync(SourceRightsService.RetentionStep, run.Stamp, apply: true)).Changed.Should().Be(1);
+            journal = await db.AuditLogEntries.AsNoTracking().Where(a => a.EntityType == "Recipe" && a.EntityId == recipe.Id).ToListAsync();
+            journal.Should().Contain(a => a.OldValue == "Our family favourite.");
+            (await db.RecipeSteps.IgnoreQueryFilters().AsNoTracking().SingleAsync(st => st.RecipeId == recipe.Id && st.StepNumber == 2)).Description.Should().Be("Stir in our famous secret sauce and wait.");
+            (await db.RecipeReprocessJournals.AsNoTracking().SingleAsync()).NewSteps.Should().Contain("big pot");
+            (await db.ScrapedDocuments.IgnoreQueryFilters().CountAsync(d => d.Format == ScrapedDocumentFormat.HeldProse)).Should().Be(0);
+
+            await rights.RetentionAsync(apply: true);
+            var later = new SourceRightsService(db, Options.Create(new SourceRightsSettings()), NullLogger<SourceRightsService>.Instance) { Now = () => T0.AddDays(31) };
+            (await later.PurgeRetentionAsync(apply: true)).Changed.Should().Be(1);
+            (await db.ScrapedDocuments.IgnoreQueryFilters().AnyAsync(d => d.RawJsonLd.Contains("big pot") || d.RawJsonLd.Contains("family favourite"))).Should().BeFalse();
+            (await db.AuditLogEntries.AsNoTracking().AnyAsync(a => (a.OldValue ?? "").Contains("family favourite"))).Should().BeFalse("the publisher's prose is gone for good, journal copies included");
+        }
+
+        [Fact]
         public async Task A_reduced_recipe_still_rebuilds_from_its_facts_record()
         {
             await using var db = NewContext();
@@ -536,6 +599,174 @@ namespace Nom.Api.Tests.Services
 
             rebuild.Results.Single().Outcome.Should().NotBe(RecipeReprocessOutcome.Held, rebuild.Results.Single().Reason ?? string.Empty);
             rebuild.Results.Single().SourceFormat.Should().Be(ScrapedDocumentFormat.ScraperRecipe);
+        }
+
+        [Fact]
+        public async Task A_quarantined_facts_only_recipe_is_withheld_so_no_reader_of_it_gets_the_publishers_text()
+        {
+            await using var db = NewContext();
+            await SourceAsync(db, "facts.example", FactsOnlyReport("facts.example"));
+            var quarantined = await RecipeAsync(db, "https://facts.example/chili/", r =>
+            {
+                r.ContainsSourceProse = true;
+                r.CurationStatusId = (long)CurationStatusEnum.NonCurated;
+            });
+
+            await Rights(db).DeriveAsync(apply: true);
+
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == quarantined.Id)).Should().Match<RecipeEntity>(r => r.ProseWithheld && r.ContainsSourceProse);
+            var detail = await new RecipeOrchestrationService(db, new Microsoft.AspNetCore.Http.HttpContextAccessor(), Mock.Of<ICurrentUserService>(),
+                Mock.Of<IMediaStorageService>(), Mock.Of<IRecipeNutritionService>()).GetRecipeAsync(quarantined.Id, Admin);
+            detail!.Description.Should().BeEmpty("the author still sees the quarantined recipe, but not the publisher's description");
+            detail.Steps.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task A_facts_only_recipe_with_a_step_a_person_edited_is_withheld_too()
+        {
+            await using var db = NewContext();
+            await SourceAsync(db, "facts.example", FactsOnlyReport("facts.example"));
+            var edited = await RecipeAsync(db, "https://facts.example/chili/", r => r.RecipeSteps = new List<RecipeStepEntity>
+            {
+                new() { StepNumber = 1, Summary = "Brown", Description = "Brown the beef in a large pot.", LastModifiedByPersonId = SystemConstants.SystemPersonId },
+                new() { StepNumber = 2, Summary = "Simmer", Description = "Simmer for 20 mintues.", LastModifiedByPersonId = Admin },
+            });
+
+            await Rights(db).DeriveAsync(apply: true);
+
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == edited.Id)).ProseWithheld.Should().BeTrue("a typo fixed in one step does not make the publisher's other steps and description NOM's own");
+        }
+
+        [Fact]
+        public async Task A_facts_only_recipe_serves_no_publisher_line_wording_in_search_export_or_the_shopping_list()
+        {
+            await using var db = NewContext();
+            await SourceAsync(db, "facts.example", FactsOnlyReport("facts.example"));
+            db.Measurements.Add(new Nom.Data.Measurement.BaseMeasurementEntity { Id = 1, Name = "Pound", Symbol = "lb", MeasurementCategoryId = 1 });
+            var food = new IngredientEntity { Name = "Ground beef", CurationStatusId = (long)CurationStatusEnum.Curated };
+            db.Ingredients.Add(food);
+            await db.SaveChangesAsync();
+            const string wording = "1 pound ground beef, spooned and leveled";
+            var recipe = await RecipeAsync(db, "https://facts.example/chili/", r =>
+            {
+                OwnMethod(r);
+                r.Visibility = RecipeVisibilityEnum.Public;
+                r.RecipeIngredients = new List<RecipeIngredientEntity> { new() { IngredientId = food.Id, Quantity = 1, MeasurementId = 1, RawLine = wording, SortOrder = 0 } };
+            });
+            await Rights(db).DeriveAsync(apply: true);
+
+            var search = new RecipeSearchOrchestrationService(db, NullLogger<RecipeSearchOrchestrationService>.Instance);
+            var found = await search.SearchRecipesAsync(new RecipeSearchModel { Query = "chili", IncludeIngredients = true });
+            found.Results.Should().ContainSingle(r => r.Id == recipe.Id);
+            JsonSerializer.Serialize(found).Should().NotContain("spooned and leveled").And.Contain("Ground beef");
+            JsonSerializer.Serialize(await search.GetRecentRecipesAsync(10)).Should().NotContain("spooned and leveled");
+
+            var shopping = new SmartShoppingListService(db, new Microsoft.AspNetCore.Http.HttpContextAccessor(), Mock.Of<ICurrentUserService>(), NullLogger<SmartShoppingListService>.Instance, new System.Net.Http.HttpClient());
+            var list = await shopping.GenerateSmartShoppingListAsync(new Nom.Orch.Models.Shopping.SmartShoppingListRequestModel { RecipeIds = new List<long> { recipe.Id }, IncludePantryItems = false });
+            list.Items.Should().NotBeEmpty();
+            JsonSerializer.Serialize(list).Should().NotContain("spooned and leveled");
+
+            var export = new RecipeBulkOperationsService(db, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), Mock.Of<ICurrentUserService>(), NullLogger<RecipeBulkOperationsService>.Instance);
+            var result = await export.ExportRecipesAsync(new RecipeBulkExportModel { RecipeIds = new List<long> { recipe.Id }, RequesterPersonId = Admin, ExportType = ExportTypes.Json });
+            result.Success.Should().BeTrue(string.Join(";", result.Errors));
+            var path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "exports", $"recipes_export_{result.ExportId}.json");
+            try
+            {
+                (await System.IO.File.ReadAllTextAsync(path)).Should().NotContain("spooned and leveled").And.Contain("Ground beef");
+            }
+            finally
+            {
+                System.IO.File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public async Task An_unfinished_check_never_clears_an_ai_reservation_it_did_not_reach()
+        {
+            await using var db = NewContext();
+            var source = await SourceAsync(db, "facts.example", FactsOnlyReport("facts.example", aiBlocked: true));
+            var recipe = await RecipeAsync(db, "https://facts.example/chili/");
+            var rights = Rights(db);
+            await rights.DeriveAsync(apply: true);
+            var unfinished = FactsOnlyReport("facts.example");
+            unfinished.Complete = false;
+            unfinished.IncompleteReason = "over-budget";
+            var check = new SourceCheckEntity
+            {
+                Domain = "facts.example", Purpose = "recheck", ScrapingSourceId = source.Id, Status = SourceCheckEntity.Completed, StartedUtc = T0, FinishedUtc = T0,
+                RuleVersion = unfinished.RuleVersion, Verdict = SourceAdmissionPolicy.NotClear, ReportJson = JsonSerializer.Serialize(unfinished, Json),
+            };
+            db.SourceChecks.Add(check);
+            await db.SaveChangesAsync();
+            (await db.ScrapingSources.SingleAsync(s => s.Id == source.Id)).LastCheckId = check.Id;
+            await db.SaveChangesAsync();
+            var journalBefore = await db.AuditLogEntries.CountAsync();
+
+            var run = await rights.DeriveAsync(apply: true);
+
+            run.Results.Single().Should().Match<SourceRightsChangeModel>(r => !r.Conclusive && r.NewAiReserved && !r.Changed);
+            (await db.ScrapingSources.AsNoTracking().SingleAsync(s => s.Id == source.Id)).Should().Match<ScrapingSourceEntity>(s => s.AiReserved && s.AiReservedQuote!.Contains("GPTBot"));
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == recipe.Id)).SourceAiReserved.Should().BeTrue("no model may read its prose on the strength of a check that stopped early");
+            (await db.AuditLogEntries.CountAsync()).Should().Be(journalBefore);
+        }
+
+        [Fact]
+        public async Task An_undone_class_holds_against_the_stale_rederive_until_a_new_check_comes()
+        {
+            await using var db = NewContext();
+            var source = await SourceAsync(db, "facts.example", FactsOnlyReport("facts.example"));
+            var rights = Rights(db);
+            await rights.DeriveAsync(apply: true);
+            var entry = await db.AuditLogEntries.AsNoTracking().SingleAsync(a => a.EntityType == SourceJournal.EntityType && a.PropertyName == SourceJournal.RightsField);
+            var admission = new SourceAdmissionService(db, Mock.Of<IRecipeScraperClient>(), new RecipeVettingService(), Options.Create(new SourceAdmissionSettings()), NullLogger<SourceAdmissionService>.Instance);
+            (await admission.UndoAsync(entry.Id, Admin)).Ok.Should().BeTrue();
+            (await db.ScrapingSources.AsNoTracking().SingleAsync(s => s.Id == source.Id)).RightsClass.Should().BeNull();
+
+            var stale = await rights.DeriveAsync(apply: true, staleOnly: true);
+
+            stale.Sources.Should().Be(0, "the undone class was derived from the same check, so the source lane's tick leaves it");
+            (await db.ScrapingSources.AsNoTracking().SingleAsync(s => s.Id == source.Id)).RightsClass.Should().BeNull();
+
+            var check = new SourceCheckEntity
+            {
+                Domain = "facts.example", Purpose = "recheck", ScrapingSourceId = source.Id, Status = SourceCheckEntity.Completed, StartedUtc = T0, FinishedUtc = T0,
+                RuleVersion = SourceAdmissionPolicy.ScraperRuleVersion, Verdict = SourceAdmissionPolicy.NotClear, ReportJson = JsonSerializer.Serialize(ForbiddenReport("facts.example"), Json),
+            };
+            db.SourceChecks.Add(check);
+            await db.SaveChangesAsync();
+            (await db.ScrapingSources.SingleAsync(s => s.Id == source.Id)).LastCheckId = check.Id;
+            await db.SaveChangesAsync();
+
+            (await rights.DeriveAsync(apply: true, staleOnly: true)).Changed.Should().Be(1, "a new check is derived again");
+            (await db.ScrapingSources.AsNoTracking().SingleAsync(s => s.Id == source.Id)).RightsClass.Should().Be(SourceRightsRule.Forbidden);
+        }
+
+        [Fact]
+        public async Task A_bare_and_a_www_row_of_one_site_count_its_recipes_once_for_the_owner()
+        {
+            await using var db = NewContext();
+            await SourceAsync(db, "barred.example", ForbiddenReport("barred.example"));
+            await SourceAsync(db, "www.barred.example", ForbiddenReport("www.barred.example"));
+            await RecipeAsync(db, "https://barred.example/a/");
+            await RecipeAsync(db, "https://www.barred.example/b/");
+            var rights = Rights(db);
+            await rights.DeriveAsync(apply: true);
+
+            var taken = await rights.TakenAsync();
+
+            taken.Should().ContainSingle().Which.Recipes.Should().Be(2);
+            (await rights.StatusAsync()).TakenFromBarredSources.Should().Be(2);
+        }
+
+        [Theory]
+        [InlineData("Inspired by Thai street food, these noodles are tossed in a spicy peanut sauce and finished with lime.", null)]
+        [InlineData("Adapted from Martha Stewart and made dairy-free with coconut milk.", "Adapted from Martha Stewart")]
+        [InlineData("Recipe courtesy of Salt Fat Acid Heat by Samin Nosrat, with my notes.", "Recipe courtesy of Salt Fat Acid Heat by Samin Nosrat")]
+        [InlineData("Adapted from my vanilla cupcakes.", null)]
+        [InlineData("Reprinted with permission from Joy of Cooking, 1931 edition, page 12.", "Reprinted with permission from Joy of Cooking")]
+        public void A_credit_line_keeps_only_the_credited_name_and_never_the_publishers_prose(string text, string? expected)
+        {
+            CreditLines.Join(new[] { text }).Should().Be(expected);
         }
 
         [Fact]

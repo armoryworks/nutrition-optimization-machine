@@ -85,8 +85,14 @@ why on the Pipeline page) when the judge is of the writer's family or the audito
 A recipe whose source reserves its content against AI use (`Recipe.SourceAiReserved`, see
 `source-rights.md`) never reaches the models: the lane takes the model-free path
 (`ProseCleanRoom.RunRuleOnly`: rule sheets, rule rendering, form rules and check v2, no judge), records
-the decision in the `rule-only` tier, which the audit never samples, and writes the rendering under the
-lane's mode, or leaves the recipe withheld with its key facts and link.
+the decision in the `rule-only` tier and writes the rendering only while that tier is live, or leaves the
+recipe withheld with its key facts and link. The `rule-only` tier has its own mode on the frame: every
+decision is audited by rule (`ProseRuleOnlyAudit`, the rendering read back against the stored source; no
+model), `MeasureRuleOnlyAsync` evaluates it with the lane's bars and `AuditorScore.ExactRule`, and a pause
+undoes only its writes (the undo reads the `rule-only` writer tag).
+
+A withheld facts-only recipe (`Recipe.SourceRights`) with a step a person edited is rewritten whole: the
+description-only path is for methods a person wrote on sources whose method may be shown.
 
 ## On the lane frame
 

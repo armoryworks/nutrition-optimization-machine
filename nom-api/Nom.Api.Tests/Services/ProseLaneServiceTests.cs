@@ -192,6 +192,27 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_facts_only_recipe_with_a_step_a_person_edited_gets_its_whole_method_rewritten_not_only_its_description()
+        {
+            var rig = NewRig();
+            var id = await SeedAsync(rig.Db, editedBy: 42);
+            var seeded = await rig.Db.Recipes.SingleAsync(r => r.Id == id);
+            seeded.SourceRights = SourceRightsRule.FactsOnly;
+            await rig.Db.SaveChangesAsync();
+            rig.Db.ChangeTracker.Clear();
+
+            (await ProseLaneService.EligibleQuery(rig.Db, Models.Version, live: false).CountAsync()).Should().Be(1, "a withheld facts-only recipe is in the queue whoever edited it");
+            var writer = new FakeWriter();
+            var live = await rig.Lane.SweepAsync(LaneMode.Live, Models, writer, new FakeJudge(), 25);
+
+            live.DescriptionOnly.Should().Be(0);
+            live.Rewritten.Should().Be(1);
+            var recipe = await RecipeAsync(rig.Db, id);
+            recipe.ProseWithheld.Should().BeFalse();
+            recipe.RecipeSteps!.Where(st => !st.IsDeleted).Select(st => st.Description).Should().NotIntersectWith(OldSteps, "no untouched publisher step is shown again");
+        }
+
+        [Fact]
         public async Task A_withheld_recipe_whose_method_a_person_wrote_keeps_it_and_the_live_lane_replaces_only_its_copied_description()
         {
             var rig = NewRig();

@@ -120,7 +120,7 @@ namespace Nom.Orch.Services
                             ri.Ingredient.Name,
                             ri.Quantity,
                             ReferenceName = ri.Measurement.Name,
-                            ri.RawLine
+                            RawLine = ProseWithholding.LineWording(r, ri.RawLine)
                         }),
                         Steps = ProseWithholding.Steps(r).Select(rs => new
                         {

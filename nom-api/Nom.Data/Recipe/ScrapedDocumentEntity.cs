@@ -42,5 +42,8 @@ namespace Nom.Data.Recipe
 
         /// <summary>The parsed record of a recipe with no source URL, extracted from a book.</summary>
         public const string StagedCookbook = "staged-cookbook";
+
+        /// <summary>The journal and step copies of a facts-only recipe's prose that a retention reduced, held (soft-deleted) for its undo until purged.</summary>
+        public const string HeldProse = "held-prose";
     }
 }

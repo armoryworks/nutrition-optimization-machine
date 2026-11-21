@@ -40,7 +40,7 @@ namespace Nom.Orch.Interfaces
         /// <summary>Undoes one run of a recipe step by its stamp (<c>titles</c>, <c>credits</c>, <c>retention</c>, <c>facts-only</c>); a dry run unless apply.</summary>
         Task<SourceRecipeStepModel> UndoStepAsync(string step, DateTime stamp, bool apply, CancellationToken cancellationToken = default);
 
-        /// <summary>The dry run for the owner: recipes already taken from each forbidden or permission-needed source with no permission recorded.</summary>
+        /// <summary>The dry run for the owner: recipes already taken from each forbidden or permission-needed source with no permission recorded, once per host (a bare and a www row of one site count its recipes once).</summary>
         Task<List<SourceTakenModel>> TakenAsync(CancellationToken cancellationToken = default);
 
         Task<SourceRightsStatusModel> StatusAsync(CancellationToken cancellationToken = default);

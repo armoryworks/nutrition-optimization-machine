@@ -46,6 +46,70 @@ namespace Nom.Api.Tests.Services
             decisions.Single(d => d.Subject == ProseLaneService.Subject(reserved)).SignalsJson.Should().Contain(ProseCleanRoom.RuleOnlyStyle);
         }
 
+        private static async Task<long> ReservedAsync(ProseLaneServiceTests.Rig rig)
+        {
+            var id = await ProseLaneServiceTests.SeedAsync(rig.Db, steps: GarlicSauce.Method);
+            var recipe = await rig.Db.Recipes.SingleAsync(r => r.Id == id);
+            recipe.SourceAiReserved = true;
+            await rig.Db.SaveChangesAsync();
+            rig.Db.ChangeTracker.Clear();
+            return id;
+        }
+
+        [Fact]
+        public async Task The_rule_only_tier_writes_only_while_its_own_tier_is_live_whatever_the_model_tier_does()
+        {
+            var rig = ProseLaneServiceTests.NewRig();
+            var reserved = await ReservedAsync(rig);
+
+            var first = await rig.Lane.SweepAsync(LaneMode.Live, Models, new FakeWriter(), new FakeJudge(), 25);
+
+            first.Rewritten.Should().Be(0, "the model tier being live does not let the rule-only tier write");
+            (await rig.Db.Recipes.AsNoTracking().SingleAsync(r => r.Id == reserved)).ProseWithheld.Should().BeTrue();
+            var decision = await rig.Db.LaneDecisions.AsNoTracking().SingleAsync();
+            decision.Should().Match<LaneDecisionEntity>(d => d.Tier == ProseLaneService.RuleOnlyTier && d.Mode == LaneMode.Shadow && d.Writes);
+
+            rig.Db.LaneStates.Add(new LaneStateEntity { Lane = ProseLaneService.Lane, Tier = ProseLaneService.RuleOnlyTier, Mode = LaneMode.Live, SignatureHash = Models.Version, Since = System.DateTime.UtcNow, CreatedDate = System.DateTime.UtcNow });
+            await rig.Db.SaveChangesAsync();
+            rig.Db.ChangeTracker.Clear();
+
+            var second = await rig.Lane.SweepAsync(LaneMode.Shadow, Models, new FakeWriter(), new FakeJudge(), 25);
+
+            second.Rewritten.Should().Be(1, "a live rule-only tier writes even while the model tier is in shadow");
+            (await rig.Db.Recipes.AsNoTracking().SingleAsync(r => r.Id == reserved)).ProseWithheld.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task Every_rule_only_rendering_is_audited_by_rule_and_the_tier_is_evaluated_on_that_audit()
+        {
+            var rig = ProseLaneServiceTests.NewRig();
+            await ReservedAsync(rig);
+            await rig.Lane.SweepAsync(LaneMode.Live, Models, new FakeWriter(), new FakeJudge(), 25);
+
+            var verdict = await rig.Lane.MeasureRuleOnlyAsync(Models.Version);
+
+            var decision = await rig.Db.LaneDecisions.AsNoTracking().SingleAsync(d => d.Tier == ProseLaneService.RuleOnlyTier);
+            decision.AuditOutcome.Should().NotBeNull("every rule-only decision that would write is audited, by rule");
+            verdict.Mode.Should().Be(LaneMode.Shadow, "one audited rendering does not qualify the tier");
+            (await rig.Frame.StatusAsync()).Should().Contain(s => s.Lane == ProseLaneService.Lane && s.Tier == ProseLaneService.RuleOnlyTier);
+        }
+
+        [Fact]
+        public void The_rule_audit_flags_a_rendering_that_loses_an_amount_an_ingredient_or_a_step()
+        {
+            var input = new ProseLaneInput(GarlicSauce.Dish, new RewriteFidelity.SourceText("", GarlicSauce.Method, GarlicSauce.Dish), GarlicSauce.Lines, ProseStockIndex.Empty);
+            var outcome = ProseCleanRoom.RunRuleOnly(input);
+            outcome.Passed.Should().BeTrue(string.Join("; ", outcome.Attempts.SelectMany(a => a.Reasons)));
+            var steps = outcome.Rewrite!.Steps;
+
+            ProseCleanRoom.RuleOnlyAudit(GarlicSauce.Method, steps, GarlicSauce.Lines).Should().BeEmpty("the rule rendering reads back as its source");
+            ProseCleanRoom.RuleOnlyAudit(GarlicSauce.Method, steps.Skip(1).ToList(), GarlicSauce.Lines).Should().ContainSingle(p => p.Contains("written steps"));
+            var amount = steps.Select((text, i) => (text, i)).First(x => System.Text.RegularExpressions.Regex.IsMatch(x.text, @"\d"));
+            var dropped = steps.ToList();
+            dropped[amount.i] = System.Text.RegularExpressions.Regex.Replace(amount.text, @":[^;.]*", string.Empty);
+            ProseCleanRoom.RuleOnlyAudit(GarlicSauce.Method, dropped, GarlicSauce.Lines).Should().Contain(p => p.Contains($"step {amount.i + 1} states"));
+        }
+
         [Fact]
         public void The_model_free_path_writes_the_rule_rendering_only_when_the_form_rules_and_check_v2_pass()
         {
