@@ -30,7 +30,8 @@ namespace Nom.Api.Tests.Golden
     /// gate replay: every golden line read as a drink is still flagged for No Alcohol when it is the
     /// name of an unlinked food, and the lines the old name patterns flagged by mistake are not; and
     /// every golden line its expected sense counts, linked to a food that is not a drink (the state of
-    /// the wrong links on staging until the re-check), keeps its recipe flagged.
+    /// the wrong links on staging until the re-check), keeps its recipe flagged, in plans as on the
+    /// recipe page, whether or not the food's name holds a drink word.
     /// </summary>
     [Trait("Category", "Golden")]
     public class GoldenAlcoholContextTests
@@ -172,7 +173,6 @@ namespace Nom.Api.Tests.Golden
             var set = await new HouseholdRestrictionResolver(db).ResolveAsync(Household);
             var service = new RecipeOrchestrationService(db, new HttpContextAccessor(), new Mock<ICurrentUserService>().Object,
                 new Mock<Nom.Orch.UtilityInterfaces.IMediaStorageService>().Object, new Mock<IRecipeNutritionService>().Object);
-            var old = OldAlcoholPatterns.Select(p => new Regex("^" + Regex.Escape(p).Replace("%", ".*") + "$", RegexOptions.IgnoreCase)).ToList();
 
             var lostInPlans = new List<string>();
             var lostOnPage = new List<string>();
@@ -182,15 +182,34 @@ namespace Nom.Api.Tests.Golden
                 var drink = ExpectedToCount(row);
                 var planned = !set.IngredientIds.Contains(food.Id) && !set.RecipeIds.Contains(recipe.Id);
                 var onPage = (await service.GetDietMatchesAsync(recipe.Id, Person)).Count > 0;
-                if (drink && old.Any(o => o.IsMatch(food.Name)) && planned) lostInPlans.Add($"{row["raw"]} on {food.Name}");
+                if (drink && planned) lostInPlans.Add($"{row["raw"]} on {food.Name}");
                 if (drink && !onPage) lostOnPage.Add($"{row["raw"]} on {food.Name}");
                 if (!drink && (onPage || !planned)) falseFlags.Add($"{row["raw"]} on {food.Name}");
             }
             _output.WriteLine($"{recipes.Count(x => ExpectedToCount(x.Row))} of {recipes.Count} golden lines are drinks, each linked to a food that is not one");
 
-            lostInPlans.Should().BeEmpty("a drink line on a food the old name patterns matched keeps its recipe out of a No Alcohol household's plans");
+            lostInPlans.Should().BeEmpty("every drink line keeps its recipe out of a No Alcohol household's plans, on Sugar as on a vinegar");
             lostOnPage.Should().BeEmpty("the recipe page reads every line's own text");
             falseFlags.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Every_line_the_diet_gate_counts_holds_a_word_of_the_drink_probe()
+        {
+            var probe = DietCriteriaMatcher.WordRegex(AlcoholLineContext.DrinkNamePattern);
+            var lines = GoldenSet.Read("alcohol-context.tsv").Rows.Select(r => r["raw"])
+                .Concat(GoldenSet.Read("link-pairs.tsv").Rows.Select(r => r["wording"]))
+                .Concat(new[]
+                {
+                    "1 cup rosé", "1 oz Bénédictine", "2 tbsp eau-de-vie", "1 tbsp crème de cassis", "two port wine-glassfuls of curaçoa", "1/2 cup Gewürztraminer",
+                    "a glass of Sémillon", "1 bottle of Catawba", "1/2 cup vin blanc", "3 tbsp Shaohsing", "1 cup IPA", "a gill of proof spirit", "2 oz Bailey's",
+                })
+                .Distinct()
+                .ToList();
+
+            var missed = lines.Where(l => AlcoholLineContext.CountsForDiet(AlcoholLineContext.Read(l)) && !probe.IsMatch(l)).ToList();
+
+            missed.Should().BeEmpty("the household set reads only the lines the probe finds, so a line the rules count must hold one of its words");
         }
 
         private static bool ExpectedToCount(GoldenRow row)

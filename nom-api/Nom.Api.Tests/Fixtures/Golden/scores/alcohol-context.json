@@ -1,15 +1,15 @@
 {
   "lane": "alcohol-context",
-  "model": "alcohol-context/2",
+  "model": "alcohol-context/3",
   "host": "none",
-  "signature": "e2d7fdcf7e361fc3",
-  "scoredAtUtc": "2026-11-20T21:59:08.8117162Z",
-  "caseSet": "bfb8cced3cfb973f",
-  "cases": 161,
-  "passed": 161,
+  "signature": "7c563aa7cba42443",
+  "scoredAtUtc": "2026-11-21T00:57:35.360309Z",
+  "caseSet": "407fe6c8889f412b",
+  "cases": 175,
+  "passed": 175,
   "score": 1,
   "falseAccepts": 0,
-  "falseAcceptCases": 126,
+  "falseAcceptCases": 140,
   "falseAcceptRate": 0,
   "accepted": null,
   "precision": null,
@@ -18,10 +18,18 @@
       10,
       10
     ],
+    "agent-review-ck1-gate-alcohol-2026-11-21": [
+      3,
+      3
+    ],
     "rule:alcohol-context": [
-      151,
-      151
+      162,
+      162
     ]
   },
-  "failed": []
+  "failed": [],
+  "auditKnownBad": null,
+  "auditFlaggedBad": null,
+  "auditKnownGood": null,
+  "auditFlaggedGood": null
 }

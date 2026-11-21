@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
@@ -247,9 +248,224 @@ namespace Nom.Api.Tests.Services.MealPlan
             DietCriteriaMatcher.WordNameRows(db, AlcoholLineContext.DrinkNamePattern, scope).ToQueryString().Should().Contain("\"Name\" ~*").And.NotContain("\"AliasName\"");
             DietCriteriaMatcher.WordAliasRows(db, @"\mrum\M", null).ToQueryString().Should().Contain("\"AliasName\" ~*");
             DietCriteriaMatcher.NutrientRows(db, Alcohol, scope).ToQueryString().Should().Contain("\"Amount\" >").And.Contain("\"FdcCategoryId\"");
-            DietCriteriaMatcher.DrinkLineRows(db, scope).ToQueryString().Should().Contain("\"RawLine\" ~*").And.Contain("\"IngredientId\" = ANY");
             db.Set<RestrictionCriterionEntity>().Where(c => c.IngredientPattern != null && !c.IngredientPattern.StartsWith(DietCriteriaMatcher.WordMarker)).ToQueryString()
                 .Should().Contain("LIKE");
+        }
+
+        [Fact]
+        public void The_drink_line_probe_is_one_word_match_over_the_lines_with_no_list_of_foods_and_no_join()
+        {
+            using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql("Host=localhost;Database=none").Options,
+                new HttpContextAccessor { HttpContext = new DefaultHttpContext() });
+
+            var sql = DietCriteriaMatcher.DrinkLineRows(db).ToQueryString();
+
+            sql.Should().Contain("\"RawLine\" ~*").And.Contain("FROM recipe.\"RecipeIngredient\"");
+            sql.Should().NotContain("ANY").And.NotContain("JOIN").And.NotContain("\"AliasName\"").And.NotContain("recipe.\"Ingredient\" AS");
+            Regex.Matches(sql, "~\\*").Count.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task A_food_counts_by_its_own_name_and_never_by_an_alias_that_is_a_recipe_line_while_each_drink_line_decides_for_its_recipe()
+        {
+            using var db = NewContext();
+            var foods = await SeedAsync(db);
+            var aliased = new (string Name, string[] Aliases)[]
+            {
+                ("Sugar", new[] { "little sugar and brandy or raisin wine", "sugar, and 1 small cup of wine" }),
+                ("Milk", new[] { "apple cider", "and a-half of milk or beer", "glass of the best port wine or a glass of new unskimmed milk" }),
+                ("Beef Broth", new[] { "beer" }),
+                ("Dates", new[] { "drachms of roasted date stones, soaked in wine" }),
+            };
+            var ids = new Dictionary<string, long>();
+            foreach (var (name, aliases) in aliased)
+            {
+                var food = new IngredientEntity { Name = name, CurationStatusId = Curated };
+                foreach (var alias in aliases) food.Aliases.Add(new IngredientAliasEntity { AliasName = alias });
+                db.Ingredients.Add(food);
+                await db.SaveChangesAsync();
+                ids[name] = food.Id;
+            }
+            var vinegar = foods.Ids["Red Wine Vinegar"];
+            db.IngredientAliases.AddRange(
+                new IngredientAliasEntity { IngredientId = vinegar, AliasName = "Shaoxing rice wine, dry sherry or sake" },
+                new IngredientAliasEntity { IngredientId = vinegar, AliasName = "swish of sherry, red wine vinegar, or lemon juice" });
+            var custard = Recipe("Vanilla custard", (ids["Milk"], "2 cups milk"), (ids["Sugar"], "1/2 cup sugar"), (foods.Ids["Vanilla Extract"], "1 tsp vanilla extract"));
+            var salad = Recipe("Salad", (vinegar, "2 tbsp red wine vinegar"));
+            var slaw = Recipe("Slaw", (foods.Ids["Apple Cider Vinegar"], "apple cider vinegar or lemon juice"), (ids["Sugar"], "2 tbsp sugar"));
+            var punch = Recipe("Punch", (ids["Sugar"], "cola or ginger ale"));
+            var stew = Recipe("Stew", (ids["Beef Broth"], "2 cups beef broth"), (ids["Dates"], "4 dates"));
+            var pudding = Recipe("Plum pudding", (ids["Sugar"], "a little sugar and brandy"));
+            var trifle = Recipe("Trifle", (vinegar, "two glasses of sherry"));
+            var carbonnade = Recipe("Carbonnade", (ids["Beef Broth"], "1 pint of beer"));
+            db.Recipes.AddRange(custard, salad, slaw, punch, stew, pudding, trifle, carbonnade);
+            await db.SaveChangesAsync();
+
+            var set = await ResolveAsync(db, NoAlcoholRef, "No Alcohol");
+            var service = new RecipeOrchestrationService(db, new HttpContextAccessor(), new Mock<ICurrentUserService>().Object,
+                new Mock<Nom.Orch.UtilityInterfaces.IMediaStorageService>().Object, new Mock<IRecipeNutritionService>().Object);
+
+            set.IngredientIds.Should().NotContain(new[] { ids["Sugar"], ids["Milk"], ids["Beef Broth"], ids["Dates"], vinegar }, "an alias that is a recipe line decides nothing for its food");
+            set.RecipeIds.Should().Contain(new[] { pudding.Id, trifle.Id, carbonnade.Id }, "each drink line keeps its recipe out of the plans");
+            set.RecipeIds.Should().NotContain(new[] { custard.Id, salad.Id, slaw.Id, punch.Id, stew.Id });
+            foreach (var clear in new[] { custard, salad, slaw, punch, stew })
+                (await service.GetDietMatchesAsync(clear.Id, PersonId)).Should().BeEmpty(clear.Name + " has no drink line");
+            foreach (var flagged in new[] { pudding, trifle, carbonnade })
+                (await service.GetDietMatchesAsync(flagged.Id, PersonId)).Should().ContainSingle(flagged.Name + " has one drink line");
+        }
+
+        [Fact]
+        public async Task A_drink_line_on_a_food_with_no_drink_word_in_its_name_or_aliases_still_keeps_its_recipe_out_of_the_plans()
+        {
+            using var db = NewContext();
+            var foods = await SeedAsync(db);
+            var sugar = new IngredientEntity { Name = "Sugar", CurationStatusId = Curated };
+            db.Ingredients.Add(sugar);
+            await db.SaveChangesAsync();
+            var syllabub = Recipe("Syllabub", (sugar.Id, "a glass of sherry"), (foods.Ids["Bread Crumbs"], "1 cup crumbs"));
+            db.Recipes.Add(syllabub);
+            await db.SaveChangesAsync();
+
+            var set = await ResolveAsync(db, NoAlcoholRef, "No Alcohol");
+
+            set.RecipeIds.Should().Contain(syllabub.Id);
+            set.IngredientIds.Should().NotContain(sugar.Id);
+        }
+
+        [Fact]
+        public async Task The_household_probes_run_once_and_again_only_after_a_write_or_when_the_value_is_old()
+        {
+            using var db = NewContext();
+            var foods = await SeedAsync(db);
+            var trifle = Recipe("Trifle", (foods.Ids["Red Wine Vinegar"], "1 glass of sherry"));
+            db.Recipes.Add(trifle);
+            db.Restrictions.Add(new RestrictionEntity { PersonId = PersonId, Name = "No Alcohol", RestrictionTypeId = NoAlcoholRef });
+            await db.SaveChangesAsync();
+            await DefaultRestrictionCriteria.EnsureAsync(db);
+            var now = new DateTime(2026, 11, 21, 8, 0, 0, DateTimeKind.Utc);
+            var cache = new DietGateCache(TimeSpan.FromMinutes(15), () => now, refreshInBackground: false);
+            var resolver = new HouseholdRestrictionResolver(db, cache);
+
+            var warmed = await DietCriteriaMatcher.WarmAsync(db, cache);
+            var first = await resolver.ResolveAsync(HouseholdId);
+            var probes = cache.Computations;
+            var second = await resolver.ResolveAsync(HouseholdId);
+            await resolver.ResolveSevereForPersonAsync(PersonId);
+
+            warmed.Should().Be(3, "the start-up warm computes the foods of No Alcohol and of Halal, the two types with data criteria, and the drink lines");
+            probes.Should().Be(warmed, "a household set after the warm reads the kept probes");
+            cache.Computations.Should().Be(probes, "a second household set reads the kept probes");
+            second.RecipeIds.Should().BeEquivalentTo(first.RecipeIds).And.Contain(trifle.Id);
+
+            var wassail = Recipe("Wassail", (foods.Ids["Apple Cider Vinegar"], "2 cups hard cider"));
+            db.Recipes.Add(wassail);
+            await db.SaveChangesAsync();
+            (await resolver.ResolveAsync(HouseholdId)).RecipeIds.Should().NotContain(wassail.Id, "the write has not been seen yet");
+
+            cache.Invalidate();
+            (await resolver.ResolveAsync(HouseholdId)).RecipeIds.Should().Contain(wassail.Id);
+            var afterWrite = cache.Computations;
+
+            now = now.AddMinutes(16);
+            await resolver.ResolveAsync(HouseholdId);
+            cache.Computations.Should().Be(afterWrite + 2, "the household's two values older than their age are computed again");
+        }
+
+        [Fact]
+        public async Task A_stale_value_is_served_while_one_refresh_runs_on_its_own_context()
+        {
+            var name = Guid.NewGuid().ToString();
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(name).Options;
+            await using var db = new ApplicationDbContext(options, new HttpContextAccessor { HttpContext = new DefaultHttpContext() });
+            var foods = await SeedAsync(db);
+            db.Recipes.Add(Recipe("Trifle", (foods.Ids["Red Wine Vinegar"], "1 glass of sherry")));
+            db.Restrictions.Add(new RestrictionEntity { PersonId = PersonId, Name = "No Alcohol", RestrictionTypeId = NoAlcoholRef });
+            await db.SaveChangesAsync();
+            await DefaultRestrictionCriteria.EnsureAsync(db);
+            var cache = new DietGateCache();
+            var resolver = new HouseholdRestrictionResolver(db, cache);
+            (await resolver.ResolveAsync(HouseholdId)).RecipeIds.Should().HaveCount(1);
+
+            var wassail = Recipe("Wassail", (foods.Ids["Apple Cider Vinegar"], "2 cups hard cider"));
+            db.Recipes.Add(wassail);
+            await db.SaveChangesAsync();
+            cache.Invalidate();
+
+            (await resolver.ResolveAsync(HouseholdId)).RecipeIds.Should().HaveCount(1, "the kept value is served while the refresh runs");
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (cache.Computations < 4 && DateTime.UtcNow < deadline) await Task.Delay(20);
+            (await resolver.ResolveAsync(HouseholdId)).RecipeIds.Should().Contain(wassail.Id);
+        }
+
+        [Theory]
+        [InlineData("INSERT INTO recipe.\"RecipeIngredient\" (\"RecipeId\", \"IngredientId\") VALUES (@p0, @p1)", true)]
+        [InlineData("UPDATE recipe.\"RecipeIngredient\" AS r SET \"IngredientId\" = @p0 WHERE r.\"RecipeId\" = @p1", true)]
+        [InlineData("UPDATE recipe.\"Ingredient\" SET \"Name\" = @p0 WHERE \"Id\" = @p1", true)]
+        [InlineData("INSERT INTO recipe.\"IngredientAlias\" (\"AliasName\") VALUES (@p0) RETURNING \"Id\"", true)]
+        [InlineData("DELETE FROM nutrient.\"IngredientNutrient\" WHERE \"Id\" = @p0", true)]
+        [InlineData("SELECT r.\"RecipeId\" FROM recipe.\"RecipeIngredient\" AS r WHERE r.\"RawLine\" ~* @p0", false)]
+        [InlineData("UPDATE recipe.\"IngredientWording\" SET \"IngredientId\" = @p0", false)]
+        [InlineData("UPDATE recipe.\"Recipe\" SET \"Name\" = @p0 WHERE \"Id\" = @p1", false)]
+        [InlineData("INSERT INTO curation.\"FoodCatalogProposal\" (\"IngredientId\") VALUES (@p0)", false)]
+        public void The_invalidator_knows_a_write_to_a_table_the_probes_read(string sql, bool touches)
+        {
+            DietGateCacheInvalidator.Touches(sql).Should().Be(touches);
+        }
+
+        [Fact]
+        public void A_write_outside_a_transaction_invalidates_at_once_and_one_inside_at_its_commit()
+        {
+            var cache = new DietGateCache();
+            var write = "UPDATE recipe.\"RecipeIngredient\" SET \"IngredientId\" = 1";
+            var start = cache.Generation;
+
+            cache.Invalidator.Executed(new StubCommand("SELECT 1 FROM recipe.\"RecipeIngredient\"", null));
+            cache.Generation.Should().Be(start);
+            cache.Invalidator.Executed(new StubCommand(write, null));
+            cache.Generation.Should().Be(start + 1);
+
+            var transaction = new StubTransaction();
+            cache.Invalidator.Executed(new StubCommand(write, transaction));
+            cache.Generation.Should().Be(start + 1, "an uncommitted write is not yet visible to a refresh");
+            cache.Invalidator.Committed(new StubTransaction());
+            cache.Generation.Should().Be(start + 1, "another transaction wrote nothing");
+            cache.Invalidator.Committed(transaction);
+            cache.Generation.Should().Be(start + 2);
+            cache.Invalidator.Committed(transaction);
+            cache.Generation.Should().Be(start + 2);
+        }
+
+        private sealed class StubTransaction : System.Data.Common.DbTransaction
+        {
+            public override System.Data.IsolationLevel IsolationLevel => System.Data.IsolationLevel.ReadCommitted;
+            protected override System.Data.Common.DbConnection? DbConnection => null;
+            public override void Commit() { }
+            public override void Rollback() { }
+        }
+
+        private sealed class StubCommand : System.Data.Common.DbCommand
+        {
+            public StubCommand(string text, System.Data.Common.DbTransaction? transaction)
+            {
+                CommandText = text;
+                DbTransaction = transaction;
+            }
+
+            [System.Diagnostics.CodeAnalysis.AllowNull]
+            public override string CommandText { get; set; }
+            public override int CommandTimeout { get; set; }
+            public override System.Data.CommandType CommandType { get; set; }
+            public override System.Data.UpdateRowSource UpdatedRowSource { get; set; }
+            protected override System.Data.Common.DbConnection? DbConnection { get; set; }
+            protected override System.Data.Common.DbParameterCollection DbParameterCollection => throw new NotSupportedException();
+            protected override System.Data.Common.DbTransaction? DbTransaction { get; set; }
+            public override bool DesignTimeVisible { get; set; }
+            public override void Cancel() { }
+            public override int ExecuteNonQuery() => 0;
+            public override object? ExecuteScalar() => null;
+            public override void Prepare() { }
+            protected override System.Data.Common.DbParameter CreateDbParameter() => throw new NotSupportedException();
+            protected override System.Data.Common.DbDataReader ExecuteDbDataReader(System.Data.CommandBehavior behavior) => throw new NotSupportedException();
         }
 
         private static RecipeEntity Recipe(string name, params long[] foods)

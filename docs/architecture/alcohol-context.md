@@ -16,7 +16,9 @@ Design: alcohol stream, items A1, A2 and A9 (`cleanup2/alcohol-context`).
 first rule that fires wins:
 
 1. **Lists and alternatives** ("brandy or rum", "red wine (or chicken broth)", "brandy and water"):
-   each part is read on its own (sense `list`).
+   each part is read on its own (sense `list`). Amounts joined by "and" or "or" are one amount, not
+   a list ("One and one-half gallons of cider", "one cup and a half of cider", "a spoonful or two
+   of sack", "a tumbler and a half or six wine glasses of claret"; `alcohol-context/3`).
 2. **Not a drink**: `vinegar`, `vinaigrette`; `non-alcoholic` (non-alcoholic, alcohol-free,
    alcohol-removed, dealcoholised, "NA"); `extract-food` (a meat, beef, malt, yeast, anchovy or
    mushroom extract or essence, either way round: "anchovy essence", "essence of anchovies"); `yeast` (ale or beer yeast, brewer's yeast, barm); `not-food`
@@ -25,7 +27,8 @@ first rule that fires wins:
    grapes; champagne mango; maraschino cherries; malt for ale; "for the rum"); `liquid` ("liquor"
    with no spirit word).
 3. **A measure** (wineglass, wine-glassful, claret-glass, sherry glass): the food is what follows
-   "of"; only a drink there is read on (`measure` otherwise).
+   "of"; only a drink there is read on (`measure` otherwise), so "two port wine-glassfuls of
+   curaçoa" is the liqueur (curaçoa, the old spelling, is read as curaçao).
 4. **A dish named after a drink** ("white wine sauce", "brandy butter", "beer batter",
    "Kirsch-flavoured syrup", "soaked in rum", "poached in red wine"): `dish`.
 5. **A flavouring** ("rum extract", "almond essence", "brandy flavouring", "1 tsp rum flavor"):
@@ -91,8 +94,14 @@ Each drink sense allows a fixed set of USDA SR Legacy foods by FDC id (`AlcoholL
   non-alcoholic) and a food not of its kind: a vinegar must be a vinegar, an extract an extract or
   flavouring, yeast yeast, sweet cider apple and no vinegar (`alcohol-not-drink`); not food refuses
   everything;
+- a measure (`measure`: the food after "of" has no alcohol word) also refuses a food named by an
+  alcohol word, such as Non-Alcoholic Wine;
 - a list refuses only when every part does; a part with no alcohol word ("chicken broth") refuses
-  only an alcoholic food.
+  an alcoholic food and a food named by an alcohol word ("sugar or brandy" does not name
+  Non-Alcoholic Wine by its first part). Two wines ("a bottle of Catawba or Sauterne wine", "a
+  wine-glassful of Sauterne or vin de Grave") therefore never pass on Non-Alcoholic Wine. Sauterne
+  without the s is the late harvest white; "vin" and Catawba are wine with no colour USDA gives
+  (`wine-unclear`), "vin blanc" and "vin rouge" white and red, "au vin" a dish.
 
 The table is checked in the golden tests against the frozen catalog: every id is a USDA alcoholic
 beverage (category 14), and every drink sense but `wine-late-harvest` has a food with at least 20
@@ -103,7 +112,7 @@ nutrient rows.
 **The link gate.** Three rules of `LinkGate` (`alcohol-drink`, `alcohol-no-food`, `alcohol-not-drink`;
 see `link-gate.md`) hold any answer, from any tier or model, that a line's sense refuses: every line
 of the wording when the caller passes lines, the wording itself when it does not. The gate reads the
-target's FDC id (`GateFood.FdcId`); `LinkGate.Version` is `link-gate/3` and its signature includes
+target's FDC id (`GateFood.FdcId`); `LinkGate.Version` is `link-gate/4` and its signature includes
 the sense rules, so a changed rule drops a lane tier back to shadow. Over the 7,664 judged pairs of
 `link-pairs.tsv` the rules refuse 55, of which 54 were judged wrong, near or compound and one
 ("c. cider" on apple juice, judged right by the reviewer) is bare cider, which the rules leave unclear
@@ -122,15 +131,21 @@ gives the one reading a wording's lines agree on, for lanes that read lines.
   read as an extract or flavouring, or a USDA Spices and Herbs food). Vanilla extract (34 g per
   100 g, used by the teaspoon) is not excluded: owner answer 6 leaves extracts to a note on the
   recipe page, which the alcohol-retention item builds with the label note.
-- A food that stores no alcohol figure (an unlinked wording food) counts when its name or an alias
-  reads as a drink, a drink with no USDA food, an unclear drink or a dish named after one. The
-  candidates come from one Postgres word match (`~*` on `AlcoholLineContext.DrinkNamePattern`), then
-  the rules read each name. A dish counts because it carries the drink ("brandy butter" is raw
+- A food that stores no alcohol figure (an unlinked wording food) counts when its own name reads
+  as a drink, a drink with no USDA food, an unclear drink or a dish named after one, never by an
+  alias. Whole recipe lines are stored as aliases ("little sugar and brandy or raisin wine" on
+  Sugar, "glass of the best port wine or a glass of new unskimmed milk" on Milk, "Shaoxing rice
+  wine, dry sherry or sake" on Red Wine Vinegar, "beer" on Beef Broth); on staging (checkpoint 1,
+  K9) reading them flagged 2,341 foods and about 4 in 10 recipes, every recipe with sugar or milk.
+  The candidates come from one Postgres word match on names (`~*` on
+  `AlcoholLineContext.DrinkNamePattern`), then the rules read each name. A dish counts because it carries the drink ("brandy butter" is raw
   brandy); this is the safe side for a No Alcohol household, and goes beyond the design, which left
   dishes out.
 - The word patterns (`\mrum\M`, `\mgin\M` …, Postgres word starts and ends, matched with `~*`) are
   the fallback for names: a name they match counts unless the rules read it as an alcohol word that
-  is not a drink, and a food that stores alcohol is left to its figure.
+  is not a drink, and a food that stores alcohol is left to its figure. An alias they match counts
+  only when it holds no alcohol word, so an alcohol pattern never flags a food by its alias; a
+  pattern an admin adds for something else (no alcohol word) still reads aliases.
 - Vinegars, non-alcoholic drinks, soft drinks, yeast, cooking liquid, measures, Bread Crumbs,
   Ginger Root and Crumbled Feta no longer match.
 - A recipe line's own text is read too. A line that reads as a drink counts whatever food it is
@@ -138,11 +153,22 @@ gives the one reading a wording's lines agree on, for lanes that read lines.
   Wine Vinegar, "cider" on Apple Cider Vinegar, "white wine" on Non-Alcoholic Wine: the wrong links
   the applied-link re-check (A4, `cleanup2/link-recheck`) moves) keeps its recipe flagged, while the
   vinegar's own lines stay cleared. The recipe page names such a match by the line's text. Meal
-  planning and search exclude these recipes by id (`RestrictedIngredientSet.RecipeIds`); to keep
-  that probe small, they read only the lines on foods whose name or an alias holds a drink word,
-  which are the foods the old `%…%` patterns could have flagged as a drink. A drink line on a food
-  with no drink word at all (sherry on Sugar) was never flagged by the old patterns either; the
-  recipe page flags it, the plan filter does not until the re-check moves the link.
+  planning and search exclude these recipes by id (`RestrictedIngredientSet.RecipeIds`), read from
+  every live line whose text holds a drink word (one `~*` probe on `RawLine`, no list of foods), so
+  a drink line on Sugar or Milk keeps its recipe out of plans as it does on a vinegar. Every word
+  that can give a line a counted sense is in `DrinkNamePattern` (with the accented spellings:
+  rosé, curaçao, crème, Bénédictine, Gewürztraminer, Sémillon); a golden test checks it over every
+  golden line and every judged wording.
+- **The probes are kept, not repeated** (checkpoint 1, K8: each took 1.2 to 1.9 s on staging and ran
+  for every household set). `DietGateCache` keeps the answer of each whole-catalog probe (the foods
+  a restriction type's criteria match; the drink lines) per database. It is marked stale by
+  `DietGateCacheInvalidator`, an EF Core interceptor on the API's context, when a command writes
+  `recipe."Ingredient"`, `"IngredientAlias"`, `"RecipeIngredient"` or `nutrient."IngredientNutrient"`
+  (at once outside a transaction, at its commit inside one; SaveChanges, bulk updates and raw SQL all
+  pass there), and after 15 minutes in any case (writes from Nom.Import or psql). A stale answer is
+  served while one refresh runs on its own context, so a write never makes a household wait; only the
+  first read after a start computes in line. The per-recipe matches read only the recipe's own foods
+  and lines and are not cached.
 - The same rules serve the per-recipe diet matches (`GetDietMatchesAsync`, the severe-conflict
   filter of search and the plan) and the household's forbidden-food set (meal planning, search).
 - A criterion with a per-serving cap (`MaxAmountPerServing`) is not read: excluding a recipe above
@@ -157,20 +183,22 @@ the old release's own start-up, since its defaults are then missing again.
 
 ## Golden set and scorer
 
-- `alcohol-context.tsv`: 161 lines with the expected sense, a food the sense must allow and one it
-  must refuse; 151 rule-given rows (`rule:alcohol-context`, `ok`) from the design's classes and ten
-  judged by the builder (`agent`). `GoldenAlcoholContextTests` requires every row to pass, every
+- `alcohol-context.tsv`: 175 lines with the expected sense, a food the sense must allow and one it
+  must refuse; 162 rule-given rows (`rule:alcohol-context`, `ok`) from the design's classes and the
+  staging checkpoint-1 lines (K10: ac-162 to ac-172), ten judged by the alcohol-context builder and
+  three by the checkpoint fix (Catawba, vin blanc, coq au vin; `agent`). `GoldenAlcoholContextTests` requires every row to pass, every
   sense to have a row, and every sense of the design a rule-given one.
 - Scorer lane `alcohol-context` in `model-lanes.json`: no model, `required`, floor 98 % and no false
   accept; the committed record must be what the rules score now
   (`dotnet run --project nom-api/Nom.Import -- --golden-score --lane alcohol-context --record`).
-- 24 rows in `link-gate.tsv` (lg-68 to lg-91), one or more per alcohol rule of the gate.
+- 24 rows in `link-gate.tsv` (lg-68 to lg-91), one or more per alcohol rule of the gate, and the six
+  K10 lines of checkpoint 1 on Apple Cider Vinegar and Non-Alcoholic Wine (lg-103 to lg-108).
 - The diet replay over the golden lines: no line read as a drink loses its flag, no line that is
   not a drink is flagged, and 26 lines the old patterns flagged are cleared. A second replay links
   every rule-given golden line to a food that is not a drink (Red Wine Vinegar, Apple Cider Vinegar,
   Non-Alcoholic Wine, Sugar), which is the staging state of the wrong links; every line whose
-  expected sense counts keeps its recipe flagged on the recipe page, and in plans wherever the food
-  carries a drink word, and no other line is flagged.
+  expected sense counts keeps its recipe flagged on the recipe page and in plans, Sugar included,
+  and no other line is flagged.
 
 ## Not built here
 

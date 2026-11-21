@@ -1,9 +1,9 @@
 {
   "lane": "link-gate",
-  "model": "link-gate/3",
+  "model": "link-gate/4",
   "host": "none",
-  "signature": "59512c9fdd9c7047",
-  "scoredAtUtc": "2026-11-20T22:01:48.6299927Z",
+  "signature": "eba4e2817c7f39ae",
+  "scoredAtUtc": "2026-11-21T00:57:32.8002301Z",
   "caseSet": "dad78edacf55fcb6",
   "cases": 7664,
   "passed": 3688,
@@ -3996,5 +3996,9 @@
     "gate:P7715",
     "gate:P7716",
     "gate:P7717"
-  ]
+  ],
+  "auditKnownBad": null,
+  "auditFlaggedBad": null,
+  "auditKnownGood": null,
+  "auditFlaggedGood": null
 }
