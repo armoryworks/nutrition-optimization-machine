@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict LVNK2OmaR4d3wfEA7L6JnXNfpNB217C1vpHKZiTI3KeClGpgR8Snu19je0FzfwV
+\restrict u2bVPKgZeja54Y63YpkUFIXqCk1kDvHESH0Iu6coxcnMqVqi1IHjQ5bFc6UkJIS
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -3090,6 +3090,8 @@ CREATE TABLE recipe."RecipeIngredient" (
     "MeasurementId" bigint NOT NULL,
     "RawLine" text NOT NULL,
     "LineKind" character varying(16),
+    "AlcoholRetention" numeric(5,4),
+    "AlcoholRetentionBasis" character varying(64),
     "IngredientEntityId" bigint,
     "Id" bigint DEFAULT 0 NOT NULL,
     "CreatedDate" timestamp with time zone NOT NULL,
@@ -9184,5 +9186,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict LVNK2OmaR4d3wfEA7L6JnXNfpNB217C1vpHKZiTI3KeClGpgR8Snu19je0FzfwV
+\unrestrict u2bVPKgZeja54Y63YpkUFIXqCk1kDvHESH0Iu6coxcnMqVqi1IHjQ5bFc6UkJIS
 

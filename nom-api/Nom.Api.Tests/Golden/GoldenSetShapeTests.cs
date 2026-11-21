@@ -47,6 +47,7 @@ namespace Nom.Api.Tests.Golden
             { "containers.tsv", 100, new[] { "status" } },
             { "package-weights.tsv", 60, new[] { "status" } },
             { "container-facts.tsv", 45, Array.Empty<string>() },
+            { "alcohol-retention.tsv", 60, new[] { "status" } },
         };
 
         [Theory]
@@ -91,6 +92,7 @@ namespace Nom.Api.Tests.Golden
         [InlineData("wording-tiers.tsv", "source", "status")]
         [InlineData("containers.tsv", "source", "status")]
         [InlineData("package-weights.tsv", "source", "status")]
+        [InlineData("alcohol-retention.tsv", "source", "status")]
         public void No_row_judged_by_a_model_reviewer_is_marked_ok(string file, string judgeColumn, string statusColumn)
         {
             GoldenSet.Read(file).Rows.Where(r => GoldenSet.ByModel(r[judgeColumn]) && r[statusColumn] == GoldenSet.Ok).Select(r => r.Id)

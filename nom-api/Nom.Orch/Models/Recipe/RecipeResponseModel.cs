@@ -62,6 +62,38 @@ namespace Nom.Orch.Models.Recipe
 
         /// <summary>Servings the nutrition label is per; null when the recipe never said, so the label shows whole-recipe totals.</summary>
         public decimal? NutritionServings { get; set; }
+
+        /// <summary>The alcohol note under the nutrition label: the drinks' alcohol as written and after cooking, and any flavouring; null when no line carries alcohol.</summary>
+        public RecipeAlcoholNoteModel? Alcohol { get; set; }
+    }
+
+    /// <summary>
+    /// What the recipe page says about alcohol (alcohol design A8). Grams are per serving when
+    /// <see cref="PerServing"/>, else for the whole recipe. <see cref="Basis"/> is how the dominant
+    /// drink line's retention was read ("timed", "up-to", "flamed", "hot-liquid", "overnight",
+    /// "no-heat", "no-steps"), with its <see cref="Method"/> ("simmer" or "bake") and
+    /// <see cref="Minutes"/>; <see cref="RetainedPercent"/> is the share of the drinks' alcohol that
+    /// stays, from the USDA retention table row <see cref="UsdaCode"/>.
+    /// </summary>
+    public class RecipeAlcoholNoteModel
+    {
+        public List<string> Drinks { get; set; } = new();
+        public List<string> Flavourings { get; set; } = new();
+
+        /// <summary>Drink lines whose alcohol cannot be counted (no alcohol figure for their food, or no gram weight).</summary>
+        public List<string> Uncounted { get; set; } = new();
+        public decimal AsWrittenGrams { get; set; }
+        public decimal RetainedGrams { get; set; }
+        public decimal FlavouringGrams { get; set; }
+        public bool PerServing { get; set; }
+        public string? Basis { get; set; }
+        public string? Method { get; set; }
+        public int? Minutes { get; set; }
+        public int? RetainedPercent { get; set; }
+        public string? UsdaCode { get; set; }
+
+        /// <summary>True when a counted drink line's retention has not been read yet, so all of its alcohol counts.</summary>
+        public bool NotRead { get; set; }
     }
 
     /// <summary>

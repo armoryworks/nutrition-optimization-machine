@@ -433,6 +433,13 @@ namespace Nom.Orch.Services
                 .GroupBy(n => n.IngredientId)
                 .ToDictionary(g => g.Key, g => g.Select(n => n.NutrientId).ToHashSet());
             var (label, labelSource) = RecipeNutritionService.BuildLabel(recipe, nutrientsByIngredient);
+            var alcoholPer100g = (await _context.IngredientNutrients.AsNoTracking()
+                    .Where(n => lineIngredientIds.Contains(n.IngredientId) && !n.IsDeleted && n.Nutrient.Name == Support.DietCriteriaMatcher.AlcoholNutrientName)
+                    .Select(n => new { n.IngredientId, n.Amount })
+                    .ToListAsync())
+                .GroupBy(n => n.IngredientId)
+                .ToDictionary(g => g.Key, g => g.Max(n => n.Amount));
+            var alcoholNote = RecipeNutritionService.AlcoholNote(recipe, alcoholPer100g);
 
             List<RecipeVariationItemModel>? variation = null;
             if (personId.HasValue)
@@ -538,7 +545,8 @@ namespace Nom.Orch.Services
                 }).ToList(),
                 Nutrition = label,
                 NutritionDerived = recipe.Nutrition == null || recipe.Nutrition.Count == 0 || recipe.Nutrition.Any(n => n.DateCalculated != null),
-                NutritionSource = labelSource
+                NutritionSource = labelSource,
+                Alcohol = alcoholNote
             };
         }
 
@@ -705,7 +713,8 @@ namespace Nom.Orch.Services
         /// The diet matches the word and nutrient criteria give (<see cref="Support.DietCriteriaMatcher"/>):
         /// each recipe line whose food a criterion of one of the person's restriction categories matches,
         /// and, for the alcohol criterion, each line whose own text reads as a drink while its food is
-        /// not matched (named by the line's text).
+        /// not matched (named by the line's text); for a capped alcohol criterion, each drink line of a
+        /// recipe that keeps more alcohol per serving than the cap, or each drink line that cannot be counted.
         /// </summary>
         private async Task<List<(long RecipeId, RecipeDietMatchModel Match)>> DataDietMatchesAsync(
             IQueryable<Nom.Data.Plan.RestrictionEntity> activeRestrictions, IQueryable<RecipeIngredientEntity> recipeIngredients)
@@ -747,7 +756,37 @@ namespace Nom.Orch.Services
                              IngredientName = l.RawLine.Trim(),
                              Notes = c.Notes == Support.DefaultRestrictionCriteria.DefaultNote ? null : c.Notes
                          });
-            return byFood.Concat(byLine).ToList();
+
+            var byRetained = new List<(long, RecipeDietMatchModel)>();
+            var counts = new Dictionary<long, Dictionary<long, Support.RecipeAlcohol>>();
+            var names = lines.GroupBy(l => (l.RecipeId, l.IngredientId)).ToDictionary(g => g.Key, g => g.First().Name);
+            var recipeIds = lines.Select(l => l.RecipeId).Distinct().ToList();
+            foreach (var r in restrictions)
+            {
+                if (Support.DietCriteriaMatcher.RetainedCriterion(criteria.Where(c => c.RestrictionTypeId == r.TypeId)) is not { } capped) continue;
+                var nutrientId = capped.NutrientId!.Value;
+                if (!counts.TryGetValue(nutrientId, out var alcohol))
+                    counts[nutrientId] = alcohol = await Support.DietCriteriaMatcher.RecipeAlcoholAsync(_context, nutrientId, recipeIds);
+                var notes = capped.Notes == Support.DefaultRestrictionCriteria.DefaultNote ? null : capped.Notes;
+                foreach (var (recipeId, count) in alcohol.Where(a => a.Value.Excludes(capped.MaxAmountPerServing!.Value)))
+                {
+                    var over = count.HasUncounted ? null : string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                        $"About {Math.Round(count.RetainedPerServing, 1)} g of alcohol per {(count.ServingsKnown ? "serving" : "recipe")} stays after cooking, more than {capped.MaxAmountPerServing:0.##} g.");
+                    foreach (var drink in count.HasUncounted ? count.Uncounted : count.Drinks)
+                    {
+                        byRetained.Add((recipeId, new RecipeDietMatchModel
+                        {
+                            RestrictionName = r.Name,
+                            RestrictionType = r.TypeName,
+                            Severity = capped.Severity,
+                            IngredientId = drink.IngredientId,
+                            IngredientName = !string.IsNullOrWhiteSpace(drink.RawLine) ? drink.RawLine.Trim() : names.GetValueOrDefault((recipeId, drink.IngredientId)) ?? drink.FoodName ?? string.Empty,
+                            Notes = over ?? notes
+                        }));
+                    }
+                }
+            }
+            return byFood.Concat(byLine).Concat(byRetained).ToList();
         }
 
         public async Task<RecipeResponseModel?> UpdateRecipeAsync(long id, UpdateRecipeRequest model)

@@ -35,6 +35,13 @@
     "maxFalseAcceptRate": 0,
     "note": "No model: AlcoholLineContext.Read and Refuse replayed on every row of alcohol-context.tsv. A case passes when the line reads the expected sense, allows the food it must allow and refuses the food it must refuse; a false accept is a food the row says must be refused that the sense allows. The signature is AlcoholLineContext.Signature, so any change to a rule needs a new record, which needs no host. Rule-given rows (status ok) must all pass in GoldenAlcoholContextTests; the rows judged by the alcohol-context builder (agent-review-alcohol-context-2026-11-20, status agent) measure agreement with that reviewer."
   },
+  "alcohol-retention": {
+    "scorer": true,
+    "required": true,
+    "minScore": 1.0,
+    "maxFalseAcceptRate": 0,
+    "note": "No model: AlcoholRetention.Read replayed on every row of alcohol-retention.tsv (a recipe's steps and a drink line). A case passes when the reader gives the expected basis (kind, method, minutes) and the factor of its USDA Release 6 row; a false accept is a factor below the expected one, which would understate the alcohol that stays. The signature is AlcoholRetention.Signature (the patterns, the USDA rows and the alcohol trigger), so any change needs a new record, which needs no host. Rule-given rows (status ok) follow from a heating word, a time and the table; the rows judged by the alcohol-retention builder (agent-review-alcohol-retention-2026-11-21, status agent) measure agreement with that reviewer."
+  },
   "wording-tiers": {
     "scorer": true,
     "required": true,

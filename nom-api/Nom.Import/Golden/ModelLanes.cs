@@ -82,6 +82,7 @@ namespace Nom.Import.Golden
         public const string LineClassify = "line-classify";
         public const string LinkGateLane = "link-gate";
         public const string AlcoholContextLane = "alcohol-context";
+        public const string AlcoholRetentionLane = "alcohol-retention";
         public const string WordingTiersLane = "wording-tiers";
         public const string LineJudge = "line-judge";
         public const string ProseRewriteLane = ProseLaneGolden.RewriteLane;
@@ -95,18 +96,19 @@ namespace Nom.Import.Golden
         public const int ClassifyBatch = 20;
         public const int JudgeBatch = 8;
 
-        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane, WordingTiersLane, LineJudge, ProseRewriteLane, ProseJudgeLane, ProseAuditLane };
+        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane, AlcoholRetentionLane, WordingTiersLane, LineJudge, ProseRewriteLane, ProseJudgeLane, ProseAuditLane };
 
         /// <summary>The prose lanes, scored on prose-judge.tsv; their signatures are <see cref="ProseLaneGolden.Signature"/>.</summary>
         public static readonly IReadOnlyList<string> Prose = new[] { ProseRewriteLane, ProseJudgeLane, ProseAuditLane };
 
         /// <summary>Lanes scored by rules alone: no host or model is asked, and the signature is the rules' own.</summary>
-        public static readonly IReadOnlyList<string> NoModel = new[] { LinkGateLane, AlcoholContextLane, WordingTiersLane };
+        public static readonly IReadOnlyList<string> NoModel = new[] { LinkGateLane, AlcoholContextLane, AlcoholRetentionLane, WordingTiersLane };
 
         /// <summary>The rule version a lane with no model records in place of a model name.</summary>
         public static string NoModelVersion(string lane) => lane switch
         {
             AlcoholContextLane => AlcoholLineContext.Version,
+            AlcoholRetentionLane => AlcoholRetention.Version,
             WordingTiersLane => WordingTiers.Version,
             _ => LinkGate.Version,
         };
@@ -131,6 +133,7 @@ namespace Nom.Import.Golden
         {
             if (lane == LinkGateLane) return LinkGate.Signature;
             if (lane == AlcoholContextLane) return AlcoholLineContext.Signature;
+            if (lane == AlcoholRetentionLane) return AlcoholRetention.Signature;
             if (lane == WordingTiersLane) return WordingTiers.Signature;
             if (lane == LineJudge) return OllamaLineJudge.Signature;
             if (Prose.Contains(lane)) return ProseLaneGolden.Signature(lane);
@@ -255,6 +258,13 @@ namespace Nom.Import.Golden
                 case AlcoholContextLane:
                 {
                     var cases = AlcoholCases(goldenDir).Take(limit ?? int.MaxValue).ToList();
+                    var results = cases.Select(c => c.Outcome()).ToList();
+                    progress($"{lane}: {results.Count}/{cases.Count}");
+                    return results;
+                }
+                case AlcoholRetentionLane:
+                {
+                    var cases = RetentionCases(goldenDir).Take(limit ?? int.MaxValue).ToList();
                     var results = cases.Select(c => c.Outcome()).ToList();
                     progress($"{lane}: {results.Count}/{cases.Count}");
                     return results;
@@ -665,6 +675,30 @@ namespace Nom.Import.Golden
                     r["verdict"] == "ok", r["verdict"], description, r["judgedBy"]);
             }
         }
+
+        /// <summary>
+        /// One row of alcohol-retention.tsv: a recipe's steps, a drink line, the basis the retention
+        /// reader must give and its factor. A false accept is a factor below the expected one, which
+        /// would understate the alcohol that stays.
+        /// </summary>
+        public sealed record RetentionCase(string Id, IReadOnlyList<string> Steps, string Line, string Expect, decimal Factor, string JudgedBy)
+        {
+            public LaneCaseResult Outcome()
+            {
+                var reading = AlcoholRetention.Read(Steps, Line);
+                var pass = reading.Basis == Expect && reading.Factor == Factor;
+                return new LaneCaseResult(Id, pass, reading.Factor < Factor, true,
+                    string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{Expect} {Factor:0.00}"),
+                    string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{reading.Basis} {reading.Factor:0.00}"), JudgedBy);
+            }
+        }
+
+        /// <summary>The rows of alcohol-retention.tsv as cases; the steps column holds the recipe's steps separated by " | ", or "-" for none.</summary>
+        public static IEnumerable<RetentionCase> RetentionCases(string goldenDir) =>
+            GoldenTsv.Read(Path.Combine(goldenDir, "alcohol-retention.tsv")).Rows.Select(r => new RetentionCase(
+                "retention:" + r.Id,
+                (r.Value("steps") ?? string.Empty).Split(" | ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
+                r["line"], r["expect"], decimal.Parse(r["factor"], System.Globalization.CultureInfo.InvariantCulture), r["source"]));
 
         /// <summary>
         /// The rows of alcohol-context.tsv as cases, with the USDA description of each FDC id from

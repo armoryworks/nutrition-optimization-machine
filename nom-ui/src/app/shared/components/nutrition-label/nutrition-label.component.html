@@ -171,3 +171,19 @@
     }
   </div>
 }
+@if (alcohol()) {
+  <div class="nom-nutrition-label__alcohol" role="note" data-testid="nutrition-alcohol-note">
+    @if (alcoholDrinksText()) {
+      <p data-testid="nutrition-alcohol-note-drinks">{{ alcoholDrinksText() }}</p>
+    }
+    @if (alcoholCookingText()) {
+      <p data-testid="nutrition-alcohol-note-cooking">{{ alcoholCookingText() }}</p>
+    }
+    @if (alcoholFlavouringText()) {
+      <p data-testid="nutrition-alcohol-note-flavouring">{{ alcoholFlavouringText() }}</p>
+    }
+    @if (alcoholUncountedText()) {
+      <p data-testid="nutrition-alcohol-note-uncounted">{{ alcoholUncountedText() }}</p>
+    }
+  </div>
+}

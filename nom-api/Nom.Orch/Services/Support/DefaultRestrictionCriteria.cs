@@ -19,7 +19,8 @@ namespace Nom.Orch.Services.Support
     /// none, or with only untouched defaults, get whichever default patterns they lack.
     /// Patterns are ILIKE against ingredient names and aliases, except word patterns
     /// (<c>\mrum\M</c>), which match whole words, and the alcohol diets also carry a nutrient
-    /// row (<see cref="NutrientsByName"/>; both read by <see cref="DietCriteriaMatcher"/>).
+    /// row (<see cref="NutrientsByName"/>, capped per serving for the types in <see cref="MaxPerServingByName"/>;
+    /// both read by <see cref="DietCriteriaMatcher"/>).
     /// Severity 5 = allergy, 4 = medical/intolerance, 3 = diet/religious.
     /// </summary>
     public static class DefaultRestrictionCriteria
@@ -60,6 +61,19 @@ namespace Nom.Orch.Services.Support
                 ["Halal"] = new[] { DietCriteriaMatcher.AlcoholNutrientName },
                 ["No Alcohol"] = new[] { DietCriteriaMatcher.AlcoholNutrientName },
                 ["Whole30"] = new[] { DietCriteriaMatcher.AlcoholNutrientName },
+            };
+
+        /// <summary>
+        /// Restriction name (case-insensitive) → the per-serving cap its nutrient rows carry (owner answer 6): No Alcohol
+        /// and Halal exclude a recipe only when more than 0.5 g of its drinks' alcohol stays per serving after cooking, or
+        /// when a drink line cannot be counted, and leave flavourings to a note. A restriction not named here forbids the
+        /// nutrient's presence (Whole30 excludes alcohol in any form).
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, decimal> MaxPerServingByName =
+            new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Halal"] = 0.5m,
+                ["No Alcohol"] = 0.5m,
             };
 
         /// <summary>Restriction name (case-insensitive) → (severity, patterns).</summary>
@@ -145,7 +159,8 @@ namespace Nom.Orch.Services.Support
         /// Insert default criteria for every restriction reference (matched by name) that has
         /// none, and bring types holding only untouched defaults to the current defaults: add the
         /// patterns and nutrient rows added since, and remove the default rows no longer among them
-        /// (the alcohol name patterns that became word patterns and a nutrient row). Returns the
+        /// (the alcohol name patterns that became word patterns and a nutrient row, and a nutrient row
+        /// whose per-serving cap is no longer the default's). Returns the
         /// number of rows added. Safe to run on every startup; an earlier release puts back what it
         /// misses on its own start.
         /// </summary>
@@ -170,7 +185,7 @@ namespace Nom.Orch.Services.Support
             var existing = await db.Set<RestrictionCriterionEntity>()
                 .IgnoreQueryFilters()
                 .Where(c => refIds.Contains(c.RestrictionTypeId))
-                .Select(c => new { c.Id, c.RestrictionTypeId, c.IngredientId, c.IngredientPattern, c.NutrientId, c.Notes, c.IsDeleted })
+                .Select(c => new { c.Id, c.RestrictionTypeId, c.IngredientId, c.IngredientPattern, c.NutrientId, c.MaxAmountPerServing, c.Notes, c.IsDeleted })
                 .ToListAsync();
             var byType = existing.ToLookup(c => c.RestrictionTypeId);
 
@@ -186,9 +201,10 @@ namespace Nom.Orch.Services.Support
                 var patterns = def.Patterns.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
                 var nutrientIds = (NutrientsByName.TryGetValue(r.Name, out var wanted) ? wanted : Array.Empty<string>())
                     .Where(nutrients.ContainsKey).Select(n => nutrients[n]).Distinct().ToList();
+                decimal? cap = MaxPerServingByName.TryGetValue(r.Name, out var max) ? max : null;
 
                 var stale = rows.Where(c => c.IngredientId == null
-                    && (c.IngredientPattern != null ? !patterns.Contains(c.IngredientPattern, StringComparer.OrdinalIgnoreCase) : c.NutrientId == null || !nutrientIds.Contains(c.NutrientId.Value)))
+                    && (c.IngredientPattern != null ? !patterns.Contains(c.IngredientPattern, StringComparer.OrdinalIgnoreCase) : c.NutrientId == null || !nutrientIds.Contains(c.NutrientId.Value) || c.MaxAmountPerServing != cap))
                     .Select(c => c.Id)
                     .ToList();
                 retired.AddRange(stale);
@@ -197,7 +213,7 @@ namespace Nom.Orch.Services.Support
                     .Where(c => c.IngredientPattern != null)
                     .Select(c => c.IngredientPattern!)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var haveNutrients = rows.Where(c => c.IngredientPattern == null && c.NutrientId != null).Select(c => c.NutrientId!.Value).ToHashSet();
+                var haveNutrients = rows.Where(c => c.IngredientPattern == null && c.NutrientId != null && c.MaxAmountPerServing == cap).Select(c => c.NutrientId!.Value).ToHashSet();
                 var addedForType = 0;
                 foreach (var pattern in patterns.Where(p => !have.Contains(p)))
                 {
@@ -206,7 +222,7 @@ namespace Nom.Orch.Services.Support
                 }
                 foreach (var nutrientId in nutrientIds.Where(n => !haveNutrients.Contains(n)))
                 {
-                    db.Set<RestrictionCriterionEntity>().Add(Row(r.Id, def.Severity, now, nutrientId: nutrientId));
+                    db.Set<RestrictionCriterionEntity>().Add(Row(r.Id, def.Severity, now, nutrientId: nutrientId, maxPerServing: cap));
                     addedForType++;
                 }
                 if (addedForType == 0 && stale.Count == 0) continue;
@@ -223,11 +239,12 @@ namespace Nom.Orch.Services.Support
             return added;
         }
 
-        private static RestrictionCriterionEntity Row(long typeId, int severity, DateTime now, string? pattern = null, long? nutrientId = null) => new()
+        private static RestrictionCriterionEntity Row(long typeId, int severity, DateTime now, string? pattern = null, long? nutrientId = null, decimal? maxPerServing = null) => new()
         {
             RestrictionTypeId = typeId,
             IngredientPattern = pattern,
             NutrientId = nutrientId,
+            MaxAmountPerServing = maxPerServing,
             Severity = severity,
             Notes = DefaultNote,
             CreatedDate = now,

@@ -1,6 +1,6 @@
 import { RecipeIngredientModel } from './recipe-ingredient.model';
 import { RecipeStepModel } from './recipe-step.model';
-import { RecipeNutritionModel, RecipeNutritionSource } from './recipe-nutrition.model';
+import { RecipeAlcoholNote, RecipeNutritionModel, RecipeNutritionSource } from './recipe-nutrition.model';
 import { RecipeDishGroupRef } from './dish-group.model';
 import { RecipeImageCredit } from './recipe-image.model';
 
@@ -70,6 +70,8 @@ export interface RecipeModel {
   nutritionSource?: RecipeNutritionSource | null;
   /** Servings the nutrition label is per; null when the recipe never said. */
   nutritionServings?: number | null;
+  /** The alcohol note under the label; null when no line carries alcohol. */
+  alcohol?: RecipeAlcoholNote | null;
   /** The caller's saved default variation, when one exists. */
   variation?: RecipeVariationItemModel[];
 }

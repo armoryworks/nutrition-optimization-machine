@@ -66,5 +66,18 @@ namespace Nom.Data.Recipe
         /// Null when the line has not been classified.
         /// </summary>
         public string? LineKind { get; set; }
+
+        /// <summary>
+        /// The share of the line's alcohol that stays after the recipe's method (0 to 1), read from the steps by the
+        /// alcohol retention reader with the USDA retention table. Null when it has not been read, in which case all
+        /// of it counts.
+        /// </summary>
+        public decimal? AlcoholRetention { get; set; }
+
+        /// <summary>
+        /// How <see cref="AlcoholRetention"/> was read ("timed:simmer:30", "up-to:bake", "flamed", "no-heat"),
+        /// so the recipe page can say it. Null when it has not been read.
+        /// </summary>
+        public string? AlcoholRetentionBasis { get; set; }
     }
 }
