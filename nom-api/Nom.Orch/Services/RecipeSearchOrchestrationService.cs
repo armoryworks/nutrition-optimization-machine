@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
+using Nom.Data.Nutrient;
 using Nom.Data.Recipe;
 using Nom.Data.Reference;
 using Nom.Orch.Extensions;
@@ -57,7 +58,7 @@ namespace Nom.Orch.Services
             }
 
             // Apply sorting
-            query = ApplySorting(query, searchModel);
+            query = ApplySorting(query, searchModel, ContainerWeighing.WeighableSizes(_context));
 
             // Get total count for pagination
             var totalCount = await query.CountAsync();
@@ -552,7 +553,7 @@ namespace Nom.Orch.Services
             return query;
         }
 
-        internal static IQueryable<RecipeEntity> ApplySorting(IQueryable<RecipeEntity> query, RecipeSearchModel searchModel)
+        internal static IQueryable<RecipeEntity> ApplySorting(IQueryable<RecipeEntity> query, RecipeSearchModel searchModel, IQueryable<IngredientContainerSizeEntity>? weighable = null)
         {
             var isDescending = searchModel.SortDirection?.ToLower() == "desc";
 
@@ -569,8 +570,8 @@ namespace Nom.Orch.Services
                 "ingredients" => query
                     .OrderBy(r => r.RecipeIngredients!.Any() ? 0 : 1)
                     .ThenBy(r => r.RecipeIngredients!.Count),
-                "protein" => SortByNutrient(query, ProteinNutrientName, mostFirst: true),
-                "calories" => SortByNutrient(query, CaloriesNutrientName, mostFirst: false),
+                "protein" => SortByNutrient(query, ProteinNutrientName, mostFirst: true, weighable),
+                "calories" => SortByNutrient(query, CaloriesNutrientName, mostFirst: false, weighable),
                 "preptime" => isDescending ? query.OrderByDescending(r => r.PrepTimeMinutes) : query.OrderBy(r => r.PrepTimeMinutes),
                 "cooktime" => isDescending ? query.OrderByDescending(r => r.CookTimeMinutes) : query.OrderBy(r => r.CookTimeMinutes),
                 _ => query.OrderByDescending(r => r.CreatedDate) // Default sort
@@ -598,15 +599,17 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// Orders by a per-serving nutrient, recipes whose label is complete first: a hand-authored
-        /// label, or a derived one that counts every measured ingredient. A label missing an
-        /// ingredient reads low, so it must not top "most protein" or "fewest calories".
+        /// label, or a derived one that counts every measured ingredient (a container line its food
+        /// has a weighable size for counts, see <see cref="RecipeNutritionService.IsUncountedLineWith"/>).
+        /// A label missing an ingredient reads low, so it must not top "most protein" or "fewest calories".
         /// </summary>
-        private static IOrderedQueryable<RecipeEntity> SortByNutrient(IQueryable<RecipeEntity> query, string nutrientName, bool mostFirst)
+        private static IOrderedQueryable<RecipeEntity> SortByNutrient(IQueryable<RecipeEntity> query, string nutrientName, bool mostFirst, IQueryable<IngredientContainerSizeEntity>? weighable)
         {
+            var uncounted = weighable == null ? RecipeNutritionService.IsUncountedLine : RecipeNutritionService.IsUncountedLineWith(weighable);
             var completeFirst = query.OrderBy(r =>
                 r.Nutrition!.Any(n => n.Nutrient!.Name == nutrientName)
                 && (r.Nutrition!.Any(n => n.DateCalculated == null)
-                    || !r.RecipeIngredients!.AsQueryable().Any(RecipeNutritionService.IsUncountedLine))
+                    || !r.RecipeIngredients!.AsQueryable().Any(uncounted))
                     ? 0 : 1);
             return mostFirst
                 ? completeFirst.ThenByDescending(r => r.Nutrition!

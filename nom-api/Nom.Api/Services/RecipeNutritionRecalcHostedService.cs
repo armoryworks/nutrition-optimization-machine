@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Nom.Data;
+using Nom.Data.Curation;
 using Nom.Orch.Interfaces;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Api.Services
 {
@@ -91,7 +93,10 @@ namespace Nom.Api.Services
         /// <summary>
         /// Recipes after <paramref name="cursor"/>, in id order, whose derived label is missing or
         /// older than a change to their ingredient lines or to a line food's nutrient values (a
-        /// backfill adding sodium, say). Hand-authored labels are never due.
+        /// backfill adding sodium, say), and recipes with a measured container line whose label is
+        /// older than a change to that food's container sizes, to the container-sizes lane's mode or
+        /// to their book's era, which change the size such a line is weighed at. Hand-authored labels
+        /// are never due.
         /// </summary>
         public static IQueryable<long> DueRecipeIds(ApplicationDbContext db, long cursor) => db.Recipes
             .AsNoTracking()
@@ -101,7 +106,13 @@ namespace Nom.Api.Services
                     || (r.Nutrition!.All(n => n.DateCalculated != null)
                         && (r.Nutrition!.Max(n => n.DateCalculated) < r.RecipeIngredients!.Max(ri => ri.LastModifiedDate ?? ri.CreatedDate)
                             || r.RecipeIngredients!.Any(ri => ri.Ingredient.IngredientNutrients
-                                .Any(n => (n.LastModifiedDate ?? n.CreatedDate) > r.Nutrition!.Max(x => x.DateCalculated)))))))
+                                .Any(n => (n.LastModifiedDate ?? n.CreatedDate) > r.Nutrition!.Max(x => x.DateCalculated)))
+                            || (r.RecipeIngredients!.Any(ri => ri.Quantity > 0 && ri.Measurement.IsContainer)
+                                && (db.IngredientContainerSizes.Any(s => (s.LastModifiedDate ?? s.CreatedDate) > r.Nutrition!.Max(x => x.DateCalculated)
+                                        && r.RecipeIngredients!.Any(ri => ri.IngredientId == s.IngredientId && ri.Quantity > 0 && ri.Measurement.IsContainer))
+                                    || db.LaneStates.Any(l => l.Lane == AiLanes.ContainerSizes && l.Tier == LaneTiers.Whole && l.Since > r.Nutrition!.Max(x => x.DateCalculated))
+                                    || db.RecipeSourceEras.Any(e => e.SourceAttribution == r.SourceAttribution
+                                        && (e.LastModifiedDate ?? e.CreatedDate) > r.Nutrition!.Max(x => x.DateCalculated))))))))
             .OrderBy(r => r.Id)
             .Select(r => r.Id);
 

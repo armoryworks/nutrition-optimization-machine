@@ -24,10 +24,23 @@
       </div>
     }
 
+    @if (assumed().length > 0) {
+      <div class="nom-nutrition-label__assumed" role="note" data-testid="nutrition-label-assumed">
+        <p class="nom-nutrition-label__gap-title">
+          Estimated: includes {{ assumed().length }} assumed package {{ assumed().length === 1 ? 'size' : 'sizes' }}.
+        </p>
+        <ul class="nom-nutrition-label__gap-list" data-testid="nutrition-label-assumed-list">
+          @for (a of assumed(); track $index) {
+            <li data-testid="nutrition-label-assumed-item"><strong>{{ a.name }}</strong> — {{ a.size }}</li>
+          }
+        </ul>
+      </div>
+    }
+
     @if (servings()) {
-      <p class="nom-nutrition-label__servings" data-testid="nutrition-label-basis">Nutrition per serving{{ servingWeight() ? ' (' + servingWeight() + ')' : '' }}</p>
+      <p class="nom-nutrition-label__servings" data-testid="nutrition-label-basis">Nutrition per serving{{ servingWeight() ? ' (' + servingWeight() + ')' : '' }}@if (estimated()) {<span data-testid="nutrition-label-estimated">, estimated</span>}</p>
     } @else {
-      <p class="nom-nutrition-label__servings" data-testid="nutrition-label-basis">Nutrition for the whole recipe (servings not set)</p>
+      <p class="nom-nutrition-label__servings" data-testid="nutrition-label-basis">Nutrition for the whole recipe (servings not set)@if (estimated()) {<span data-testid="nutrition-label-estimated">, estimated</span>}</p>
     }
 
     <div class="nom-nutrition-label__views">
@@ -132,6 +145,9 @@
         * The % Daily Value tells you how much a nutrient in a serving
         contributes to a daily diet. 2,000 calories a day is used for
         general nutrition advice.
+        @if (estimated()) {
+          <span data-testid="nutrition-label-dv-estimated">Amounts and % Daily Values are estimated, because some package sizes are assumed.</span>
+        }
       </div>
     } @else {
       <div class="nom-nutrition-label__footnote" data-testid="nutrition-label-whole-recipe-note">

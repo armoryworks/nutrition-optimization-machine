@@ -10,4 +10,5 @@ export interface RecipeNutritionSource {
   kind: 'usda' | 'mixed' | 'catalog' | 'recipe';
   usdaLines: number;
   countedLines: number;
+  assumedLines?: number;
 }

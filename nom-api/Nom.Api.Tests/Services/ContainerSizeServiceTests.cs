@@ -254,7 +254,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task A_book_recipe_takes_its_era_from_its_source_and_an_unknown_book_counts_only_where_eras_agree()
+        public async Task A_book_recipe_takes_its_era_from_its_source_and_an_undated_book_is_not_scored_against_a_modern_key()
         {
             var rig = await RigAsync();
             await rig.Sizes.WriteAsync(new[] { Proposal(rig.Beans, 425m) }, false, DateTime.UtcNow, true, Operator);
@@ -263,7 +263,9 @@ namespace Nom.Api.Tests.Services
             rig.Db.Recipes.Add(book);
             await rig.Db.SaveChangesAsync();
 
-            (await rig.Sizes.ScoreAsync(false, Operator)).LinesWithoutKey.Should().Be(1, "a book with no era row is unknown, and only a modern size exists");
+            var undated = await rig.Sizes.ScoreAsync(false, Operator);
+            (undated.LinesWithoutKey, undated.HoldoutLines, undated.OtherEraLines, undated.OtherEraAgree).Should().Be((0, 0, 1, 1),
+                "a book with no era row is unknown: it would take the modern size, which is counted apart and not scored against the modern key");
             rig.Db.RecipeSourceEras.Add(new RecipeSourceEraEntity { SourceAttribution = "A Cook Book (1931)", PublishedYear = 1975, Era = ContainerEras.Modern });
             await rig.Db.SaveChangesAsync();
             (await rig.Sizes.ScoreAsync(false, Operator)).HoldoutLines.Should().Be(1);

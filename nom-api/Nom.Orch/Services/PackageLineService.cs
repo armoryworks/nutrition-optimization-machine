@@ -18,7 +18,8 @@ namespace Nom.Orch.Services
     /// Re-reads the scraped recipe lines stored as pieces, cans or packages. A line changes when
     /// <see cref="IngredientLineParser.ReadsPackage"/> holds for its wording and the parser gives
     /// it another quantity or measurement than it has: the size its can or package states, or
-    /// Package for a jar, bottle, box or bag that was counted as a piece. A line on a food weighed
+    /// Jar, Bottle or Package for a jar, a bottle, or a box or bag that was counted as a piece or
+    /// stored as Package before jars and bottles had units of their own. A line on a food weighed
     /// drained (<see cref="WeighsDrained"/>) is never given its can's stated size, which is the net
     /// weight with the liquid: it is read as that many cans or packages instead.
     /// </summary>
@@ -32,7 +33,7 @@ namespace Nom.Orch.Services
         private const decimal SameQuantity = 0.0005m;
         private const string DrainedWord = "drained";
 
-        private static readonly string[] CandidateMeasurements = { IngredientLineParser.Piece, IngredientLineParser.Can, IngredientLineParser.Package };
+        private static readonly string[] CandidateMeasurements = { IngredientLineParser.Piece, IngredientLineParser.Can, IngredientLineParser.Jar, IngredientLineParser.Bottle, IngredientLineParser.Package };
 
         private readonly ApplicationDbContext _db;
         private readonly ICurrentUserService _currentUser;

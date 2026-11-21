@@ -18,6 +18,11 @@ export interface UncountedIngredient {
   reason: 'no-data' | 'no-conversion';
 }
 
+export interface AssumedIngredient {
+  name: string;
+  size: string;
+}
+
 interface NutrientDisplayConfig {
   names: string[];
   displayName: string;
@@ -82,6 +87,8 @@ export class NutritionLabel {
   ingredientNames = input<string[]>([]);
   /** Measured ingredient lines the derived label could not count, so the totals are low. */
   uncounted = input<UncountedIngredient[]>([]);
+  /** Lines counted at an assumed container size, so the totals are an estimate. */
+  assumed = input<AssumedIngredient[]>([]);
   /** Where the label's numbers come from, for the attribution line. */
   source = input<RecipeNutritionSource | null | undefined>(null);
 
@@ -89,6 +96,9 @@ export class NutritionLabel {
   view = signal<'facts' | 'ingredients' | 'micros'>('facts');
 
   hasData = computed(() => this.nutrition().length > 0);
+
+  /** True when a counted line was weighed at an assumed container size. */
+  estimated = computed(() => this.assumed().length > 0 || (this.source()?.assumedLines ?? 0) > 0);
 
   /** Per-serving amount from the recipe record (preferred source). */
   servingQuantity = input<number | undefined>(undefined);

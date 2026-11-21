@@ -9,10 +9,12 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Nom.Data;
+using Nom.Data.Curation;
 using Nom.Data.Measurement;
 using Nom.Data.Nutrient;
 using Nom.Data.Recipe;
 using Nom.Orch.Services;
+using Nom.Orch.Services.Support;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -23,7 +25,9 @@ namespace Nom.Api.Tests.Golden
     /// weights, and the measurements of measurements.tsv: the derived label must give the stored
     /// calories, protein and fat to 4 dp and count the reviewed lines, and a hand-authored label
     /// is left as written. A known recipe holds data that is wrong (an item weight, a yield read
-    /// as servings); its arithmetic is still asserted, so counting cannot drift under it.
+    /// as servings); its arithmetic is still asserted, so counting cannot drift under it. A recipe
+    /// may give its foods' container sizes, the container-sizes lane's mode and its book's year, so
+    /// an unsized can is weighed at its assumed size and counted among its counted and assumed lines.
     /// </summary>
     [Trait("Category", "Golden")]
     public class GoldenRecipeNutritionTests
@@ -66,7 +70,12 @@ namespace Nom.Api.Tests.Golden
             {
                 Id = recipeId, Name = recipe["name"]?.GetValue<string>() ?? $"Recipe {recipeId}", AuthorId = 1,
                 Servings = recipe["servings"]?.GetValue<long>(), RecipeServings = Dec(recipe["recipeServings"]),
+                SourceSite = recipe["sourceSite"]?.GetValue<string>(), SourceAttribution = recipe["sourceAttribution"]?.GetValue<string>(),
             });
+            if (recipe["containerLane"]?.GetValue<string>() is { } lane)
+                db.LaneStates.Add(new LaneStateEntity { Lane = AiLanes.ContainerSizes, Tier = LaneTiers.Whole, Mode = lane, Since = DateTime.UtcNow });
+            if (recipe["sourceAttribution"]?.GetValue<string>() is { } book && recipe["publishedYear"]?.GetValue<int>() is { } year)
+                db.RecipeSourceEras.Add(new RecipeSourceEraEntity { SourceAttribution = book, PublishedYear = year, Era = ContainerEras.FromYear(year) });
             var seeded = new HashSet<long>();
             var sort = 0;
             foreach (var line in recipe["lines"]!.AsArray().Select(l => l!.AsObject()))
@@ -79,7 +88,17 @@ namespace Nom.Api.Tests.Golden
                     {
                         Id = foodId, Name = food["name"]!.GetValue<string>(), CurationStatusId = 9003,
                         GramsPerItem = Dec(food["gramsPerItem"]), GramsPerMilliliter = Dec(food["gramsPerMl"]), ReferenceServingGrams = Dec(food["referenceServingGrams"]),
+                        Description = food["description"]?.GetValue<string>(), FdcCategoryId = food["categoryId"]?.GetValue<int>(),
                     });
+                    foreach (var size in food["containerSizes"]?.AsArray().Select(c => c!.AsObject()) ?? Enumerable.Empty<JsonObject>())
+                    {
+                        db.IngredientContainerSizes.Add(new IngredientContainerSizeEntity
+                        {
+                            IngredientId = foodId, ContainerKind = size["kind"]!.GetValue<string>(), Era = size["era"]!.GetValue<string>(), SizeWord = size["sizeWord"]?.GetValue<string>() ?? string.Empty,
+                            NetGrams = size["netGrams"]!.GetValue<decimal>(), DrainedGrams = Dec(size["drainedGrams"]), SourceRef = size["sourceRef"]!.GetValue<string>(),
+                            SizeText = string.Empty, Class = "golden", SourcesAgreeing = 1, Status = ContainerSizeStatus.Active,
+                        });
+                    }
                     var per100 = food["per100"]!.AsObject();
                     var facts = new[] { (Calories, Kcal, Dec(per100["calories"])), (Protein, Gram, Dec(per100["protein"])), (Fat, Gram, Dec(per100["fat"])) }
                         .Where(f => f.Item3 != null).ToList();
@@ -115,16 +134,21 @@ namespace Nom.Api.Tests.Golden
             var got = want.Keys.ToDictionary(k => k, k => rows.FirstOrDefault(r => r.NutrientId == k)?.Amount);
             var lines = await db.RecipeIngredients.Include(ri => ri.Measurement).Include(ri => ri.Ingredient).ThenInclude(i => i.IngredientNutrients)
                 .Where(ri => ri.RecipeId == recipeId).ToListAsync();
-            var counted = lines.Count(ri => RecipeNutritionService.StatusFor(ri, ri.Ingredient.IngredientNutrients.Count > 0) == NutritionLineStatus.Counted);
+            var weighing = await ContainerWeighing.ForRecipeAsync(db, await db.Recipes.SingleAsync(r => r.Id == recipeId), lines);
+            var statuses = lines.Select(ri => RecipeNutritionService.StatusFor(ri, ri.Ingredient.IngredientNutrients.Count > 0, weighing)).ToList();
+            var counted = statuses.Count(NutritionLineStatus.IsCounted);
+            var assumed = statuses.Count(st => st == NutritionLineStatus.CountedAssumed);
             var wantCounted = expected["countedLines"]?.GetValue<int>();
+            var wantAssumed = expected["assumedLines"]?.GetValue<int>() ?? 0;
 
             var pass = want.All(w => w.Value == null ? got[w.Key] == null : got[w.Key] is { } g && Math.Round(g, 4) == Math.Round(w.Value.Value, 4))
                 && (wantCounted == null || wantCounted == counted)
+                && wantAssumed == assumed
                 && (!hand || rows.All(r => r.DateCalculated == null));
             string Show(Dictionary<long, decimal?> v) => $"kcal {v[Calories]?.ToString("0.####") ?? "-"}, protein {v[Protein]?.ToString("0.####") ?? "-"}, fat {v[Fat]?.ToString("0.####") ?? "-"}";
             return new Result(recipeId, recipe["status"]!.GetValue<string>(), pass,
-                Show(want) + (wantCounted is { } c ? $", {c} counted lines" : string.Empty),
-                Show(got) + $", {counted} counted lines", hand);
+                Show(want) + (wantCounted is { } c ? $", {c} counted lines" : string.Empty) + (wantAssumed > 0 ? $", {wantAssumed} assumed" : string.Empty),
+                Show(got) + $", {counted} counted lines" + (assumed > 0 ? $", {assumed} assumed" : string.Empty), hand);
         }
 
         private static async Task<List<Result>> ScoreAllAsync(Func<Result, bool> include)

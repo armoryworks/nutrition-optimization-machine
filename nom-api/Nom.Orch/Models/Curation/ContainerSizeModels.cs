@@ -73,6 +73,8 @@ namespace Nom.Orch.Models.Curation
         public int HoldoutLines { get; set; }
         public int HoldoutAgree { get; set; }
         public int LinesWithoutKey { get; set; }
+        public int OtherEraLines { get; set; }
+        public int OtherEraAgree { get; set; }
         public int DecisionsRecorded { get; set; }
         public Dictionary<string, int> ByStatus { get; } = new();
         public List<ContainerSizeClassFigures> Classes { get; } = new();

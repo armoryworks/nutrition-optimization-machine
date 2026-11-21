@@ -23,7 +23,9 @@ namespace Nom.Orch.Services.Support
         string Year,
         string Page,
         string Locator,
-        string Note)
+        string Note,
+        string? Products = null,
+        string? Candidates = null)
     {
         /// <summary>The net weight the row gives; for a range, its middle when the range is no wider than 20 %; null otherwise.</summary>
         public decimal? NetGrams
@@ -45,13 +47,29 @@ namespace Nom.Orch.Services.Support
         public decimal? Milliliters => FluidOz is > 0 ? Math.Round(FluidOz.Value * CanSizeTable.MillilitersPerFluidOunce, 1) : null;
 
         public string SourceRef => "deterministic:can-table:" + Id;
+
+        /// <summary>The numbered cans a period row names for its products ("303|2"); empty for any other row.</summary>
+        public IReadOnlyList<string> CandidateNumbers => Candidates == null
+            ? Array.Empty<string>()
+            : Candidates.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(CanSizeTable.NormalizeNumber).ToList();
+
+        /// <summary>The USDA food categories a period row names ("category:11"); empty for any other row.</summary>
+        public IReadOnlyList<int> ProductCategories => Products == null
+            ? Array.Empty<int>()
+            : Products.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(p => p.StartsWith("category:", StringComparison.Ordinal) && int.TryParse(p["category:".Length..], NumberStyles.None, CultureInfo.InvariantCulture, out var id) ? id : -1)
+                .ToList();
     }
+
+    /// <summary>A size a period source names for a line's products, by its numbered can.</summary>
+    public sealed record PeriodCandidate(string CanNumber, decimal Grams, string SourceRef);
 
     /// <summary>
     /// The can-size table (Containers/can-sizes-historic.tsv), transcribed by hand from published
     /// sources, each row citing its title, publisher, year, page and where it can be read: the
     /// numbered cans of the 1930s USDA broadcasts and of today's USDA Food Buying Guide, and the
-    /// federal standards of fill for wine and spirits. A row without a full citation is refused.
+    /// federal standards of fill for wine and spirits, and period rows that name the candidate cans
+    /// of a product class (<see cref="Period"/>). A row without a full citation is refused.
     /// A numbered can is sized by the rows of the recipe's era; rows of one era must agree within
     /// 10 %, and for an unknown era the historic and the modern size must agree.
     /// </summary>
@@ -81,7 +99,7 @@ namespace Nom.Orch.Services.Support
                 decimal? Number(string name) => Text(name) is { } v ? decimal.Parse(v, CultureInfo.InvariantCulture) : null;
                 rows.Add(new CanSizeRow(Cell("id"), Cell("name"), Text("canNumber"), Cell("kind"), Cell("era"),
                     Number("netOz"), Number("netOzMax"), Number("fluidOz"), Number("cups"),
-                    Cell("title"), Cell("publisher"), Cell("year"), Cell("page"), Cell("locator"), Cell("note")));
+                    Cell("title"), Cell("publisher"), Cell("year"), Cell("page"), Cell("locator"), Cell("note"), Text("products"), Text("candidates")));
             }
             return rows;
         }
@@ -101,6 +119,14 @@ namespace Nom.Orch.Services.Support
                 if (row.Era is not (ContainerEras.Historic or ContainerEras.Modern or ContainerEras.Any)) problems.Add($"{row.Id}: era {row.Era}");
                 if (!ContainerKinds.All.Contains(row.Kind)) problems.Add($"{row.Id}: kind {row.Kind}");
                 if (row.NetOz == null && row.FluidOz == null && row.Cups == null) problems.Add($"{row.Id}: no size");
+                if ((row.Candidates == null) != (row.Products == null)) problems.Add($"{row.Id}: a period row names both its products and its candidate cans");
+                if (row.Candidates != null)
+                {
+                    if (row.CandidateNumbers.Count < 2) problems.Add($"{row.Id}: a period row names at least two candidate cans");
+                    if (row.ProductCategories.Count == 0 || row.ProductCategories.Any(c => c < 0)) problems.Add($"{row.Id}: products must be category:<USDA category id>");
+                    foreach (var number in row.CandidateNumbers.Where(n => Numbered(n, row.Era, rows) == null))
+                        problems.Add($"{row.Id}: candidate No. {number} has no size of era {row.Era} in the table");
+                }
             }
             problems.AddRange(rows.GroupBy(r => r.Id).Where(g => g.Count() > 1).Select(g => $"{g.Key}: id repeated"));
             return problems;
@@ -133,6 +159,24 @@ namespace Nom.Orch.Services.Support
                     ? (now.Item1, now.Item2 + "+" + old.Item2)
                     : null,
             };
+        }
+
+        /// <summary>
+        /// The sizes a period source names for an unsized container of a food in an old or undated
+        /// book: the candidate numbered cans of the historic row whose kind is the line's and whose
+        /// products hold the food's USDA category, each sized by the historic rows of the table.
+        /// Empty when no period row names the food, or the line names a size word.
+        /// </summary>
+        public static IReadOnlyList<PeriodCandidate> Period(string kind, string sizeWord, int? usdaCategoryId, IReadOnlyList<CanSizeRow>? rows = null)
+        {
+            rows ??= Rows;
+            if (usdaCategoryId == null || sizeWord.Length > 0) return Array.Empty<PeriodCandidate>();
+            var row = rows.FirstOrDefault(r => r.Era == ContainerEras.Historic && r.Kind == kind && r.Candidates != null && r.ProductCategories.Contains(usdaCategoryId.Value));
+            if (row == null) return Array.Empty<PeriodCandidate>();
+            var sized = row.CandidateNumbers
+                .Select(n => Numbered(n, ContainerEras.Historic, rows) is { } size ? new PeriodCandidate(n, size.Grams, row.SourceRef + "+" + size.SourceRef) : null)
+                .ToList();
+            return sized.Any(c => c == null) ? Array.Empty<PeriodCandidate>() : sized.Select(c => c!).ToList();
         }
 
         /// <summary>The standard-of-fill row for a wine or a spirit bottle; null for any other food.</summary>

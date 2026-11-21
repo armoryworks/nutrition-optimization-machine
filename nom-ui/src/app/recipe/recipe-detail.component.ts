@@ -25,7 +25,7 @@ import {
   RecipeSubstitutionModel,
   RecipeAugmentationModel,
 } from '../core/models/recipe-substitution.model';
-import { NutritionLabel, UncountedIngredient } from '../shared/components/nutrition-label/nutrition-label.component';
+import { AssumedIngredient, NutritionLabel, UncountedIngredient } from '../shared/components/nutrition-label/nutrition-label.component';
 import { EntityLink } from '../shared/components/entity-link/entity-link.component';
 import { UnitPipe } from '../core/utils/unit-display';
 import { DishTitlePipe } from '../core/utils/dish-title';
@@ -143,6 +143,17 @@ export class RecipeDetail {
       .map((i) => ({
         name: [i.quantity, i.measurement, i.name].filter((p) => p !== undefined && p !== null && p !== '').join(' '),
         reason: i.nutritionStatus as UncountedIngredient['reason'],
+      }));
+  });
+
+  assumedIngredients = computed<AssumedIngredient[]>(() => {
+    const r = this.recipe();
+    if (!r || r.nutritionDerived === false) return [];
+    return (r.ingredients ?? [])
+      .filter((i) => i.nutritionStatus === 'counted-assumed' && !!i.assumedSize)
+      .map((i) => ({
+        name: [i.quantity, i.measurement, i.name].filter((p) => p !== undefined && p !== null && p !== '').join(' '),
+        size: i.assumedSize as string,
       }));
   });
 

@@ -21,7 +21,7 @@ namespace Nom.Api.Tests.Services
     /// </summary>
     public class PackageLineTests
     {
-        private const long Gram = 1, Milliliter = 2, Piece = 3, Ounce = 7, Can = 20, Package = 22;
+        private const long Gram = 1, Milliliter = 2, Piece = 3, Ounce = 7, Can = 20, Package = 22, Jar = 23, Bottle = 24;
 
         private sealed class NoUser : ICurrentUserService
         {
@@ -46,8 +46,10 @@ namespace Nom.Api.Tests.Services
                 new BaseMeasurementEntity { Id = Can, Name = "Can", Symbol = "can", MeasurementCategoryId = 3, BaseUnitConversionFactor = 1m, IsContainer = true });
             if (withPackage)
             {
-                db.Set<BaseMeasurementEntity>().Add(
-                    new BaseMeasurementEntity { Id = Package, Name = "Package", Symbol = "pkg", MeasurementCategoryId = 3, BaseUnitConversionFactor = 1m, IsContainer = true });
+                db.Set<BaseMeasurementEntity>().AddRange(
+                    new BaseMeasurementEntity { Id = Package, Name = "Package", Symbol = "pkg", MeasurementCategoryId = 3, BaseUnitConversionFactor = 1m, IsContainer = true },
+                    new BaseMeasurementEntity { Id = Jar, Name = "Jar", Symbol = "jar", MeasurementCategoryId = 3, BaseUnitConversionFactor = 1m, IsContainer = true },
+                    new BaseMeasurementEntity { Id = Bottle, Name = "Bottle", Symbol = "bottle", MeasurementCategoryId = 3, BaseUnitConversionFactor = 1m, IsContainer = true });
             }
             db.SaveChanges();
             return db;
@@ -126,7 +128,7 @@ namespace Nom.Api.Tests.Services
             preview.MissingMeasurements.Should().BeEmpty();
             preview.Transitions.Select(t => (t.FromMeasurement, t.ToMeasurement, t.Lines)).Should().BeEquivalentTo(new[]
             {
-                ("Piece", "Ounce", 1), ("Can", "Ounce", 1), ("Piece", "Package", 1), ("Piece", "Milliliter", 1), ("Piece", "Can", 1),
+                ("Piece", "Ounce", 1), ("Can", "Ounce", 1), ("Piece", "Jar", 1), ("Piece", "Milliliter", 1), ("Piece", "Can", 1),
             });
             preview.Samples.Should().HaveCount(5);
             var beans = preview.Samples.Single(s => s.Line == "1 (15 oz) can black beans");
@@ -152,7 +154,7 @@ namespace Nom.Api.Tests.Services
             var lines = await LinesAsync(db, "Scraped chili");
             (lines["1 (15 oz) can black beans"].Quantity, lines["1 (15 oz) can black beans"].MeasurementId).Should().Be((15m, Ounce));
             (lines["1 can (15 oz) corn"].Quantity, lines["1 can (15 oz) corn"].MeasurementId).Should().Be((15m, Ounce));
-            (lines["1 jar marinara"].Quantity, lines["1 jar marinara"].MeasurementId).Should().Be((1m, Package));
+            (lines["1 jar marinara"].Quantity, lines["1 jar marinara"].MeasurementId).Should().Be((1m, Jar));
             (lines["1 (13.5 fl oz) can coconut milk"].Quantity, lines["1 (13.5 fl oz) can coconut milk"].MeasurementId).Should().Be((399.242m, Milliliter));
             (lines["1 15-oz can chickpeas, rinsed and drained"].Quantity, lines["1 15-oz can chickpeas, rinsed and drained"].MeasurementId).Should().Be((1m, Can));
 
@@ -249,9 +251,42 @@ namespace Nom.Api.Tests.Services
             var result = await service.ApplyAsync();
 
             preview.ChangeCount.Should().Be(0);
-            preview.MissingMeasurements.Should().Equal("Package");
+            preview.MissingMeasurements.Should().Equal("Jar");
             (result.Changed, result.Touched).Should().Be((0, 0));
             (await db.RecipeIngredients.AsNoTracking().SingleAsync()).MeasurementId.Should().Be(Piece);
+        }
+
+        [Fact]
+        public async Task A_jar_or_a_bottle_stored_as_a_package_moves_to_its_own_unit_and_the_rest_stay_packages()
+        {
+            using var db = NewContext();
+            var sauce = Food("Pasta Sauce", servingGrams: 135m);
+            var wine = Food("Red Wine", servingGrams: 147m);
+            var gelatin = Food("Gelatin", servingGrams: 7m);
+            db.Ingredients.AddRange(sauce, wine, gelatin);
+            await db.SaveChangesAsync();
+            db.Recipes.Add(Recipe("Scraped dinner", scraped: true,
+                new Row(sauce, 2, Package, "2 jars marinara"),
+                new Row(wine, 1, Package, "1 bottle red wine"),
+                new Row(gelatin, 1, Package, "1 envelope unflavored gelatin")));
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var service = new PackageLineService(db, new NoUser());
+
+            var preview = await service.PreviewAsync();
+            var since = DateTime.UtcNow.AddSeconds(-1);
+            await service.ApplyAsync();
+
+            preview.Transitions.Select(t => (t.FromMeasurement, t.ToMeasurement, t.Lines)).Should().BeEquivalentTo(new[] { ("Package", "Jar", 1), ("Package", "Bottle", 1) });
+            var lines = await LinesAsync(db, "Scraped dinner");
+            (lines["2 jars marinara"].Quantity, lines["2 jars marinara"].MeasurementId).Should().Be((2m, Jar));
+            lines["1 bottle red wine"].MeasurementId.Should().Be(Bottle);
+            lines["1 envelope unflavored gelatin"].MeasurementId.Should().Be(Package);
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == PackageLineService.RereadChangeType)).Should().Be(2);
+
+            var undo = await service.UndoAsync(since, apply: true);
+            undo.Restored.Should().Be(2);
+            (await LinesAsync(db, "Scraped dinner")).Values.Should().OnlyContain(l => l.MeasurementId == Package);
         }
 
         [Fact]
@@ -301,7 +336,7 @@ namespace Nom.Api.Tests.Services
             await new PackageLineService(db, new NoUser()).ApplyAsync();
 
             var lines = await LinesAsync(db, "Scraped peppers");
-            (lines["1  (12-ounce) jar roasted red peppers, drained and chopped"].Quantity, lines["1  (12-ounce) jar roasted red peppers, drained and chopped"].MeasurementId).Should().Be((1m, Package));
+            (lines["1  (12-ounce) jar roasted red peppers, drained and chopped"].Quantity, lines["1  (12-ounce) jar roasted red peppers, drained and chopped"].MeasurementId).Should().Be((1m, Jar));
             (lines["1 package (9 ounces) frozen artichokes, cooked"].Quantity, lines["1 package (9 ounces) frozen artichokes, cooked"].MeasurementId).Should().Be((9m, Ounce));
             (lines["1 (14.5-ounce) can diced tomatoes (not drained)"].Quantity, lines["1 (14.5-ounce) can diced tomatoes (not drained)"].MeasurementId).Should().Be((14.5m, Ounce));
             (lines["two-quart tin mould"].Quantity, lines["two-quart tin mould"].MeasurementId).Should().Be((1m, Piece), "a mould is a utensil, not a volume");

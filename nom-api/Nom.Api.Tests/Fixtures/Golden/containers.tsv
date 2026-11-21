@@ -1,8 +1,8 @@
 id	line	era	fdcId	density	hide	expectGrams	status	source	note
 b-01	1 can black beans	modern	175238	-	no	425	ok	deterministic:fdc-branded-mode:2025-12-18:canned-black-beans	mode 425 g, 223 of 304 products in band
 b-02	2 cans black beans	modern	175238	-	no	850	ok	deterministic:fdc-branded-mode:2025-12-18:canned-black-beans	two cans at the mode
-b-03	1 can black beans	unknown	175238	-	no	-	ok	rule:containers-unknown-era	no historic size to agree with, so an unknown era leaves it uncounted
-b-04	1 can black beans	historic	175238	-	no	-	ok	rule:containers-historic-era	the branded mode is modern; no cited table names a size for canned black beans
+b-03	1 can black beans	unknown	175238	-	no	425	ok	rule:containers-modern-fallback	an undated book with no period size for legumes takes the modern mode (lead decision, container-weighing)
+b-04	1 can black beans	historic	175238	-	no	425	ok	rule:containers-modern-fallback	no cited period row names canned black beans (category 16), so the modern mode, shown estimated (lead decision, container-weighing)
 b-05	1 large can black beans	modern	175238	-	no	-	ok	deterministic:fdc-branded-mode:2025-12-18:canned-black-beans	sizes above the mode: 822 g holds 20 of 63, no clear mode
 b-06	1 can pinto beans	modern	175201	-	no	442	ok	fdc:175201:portion:2	SR portion "can" 442 g agrees with the branded mode 425 g; the portion wins
 b-07	1 can kidney beans	modern	175195	-	no	436	ok	fdc:175195:portion:3	SR portion "can" 436 g agrees with the branded mode 439 g
@@ -17,7 +17,7 @@ b-15	1 can chickpeas	modern	173800	-	no	253	ok	fdc:173800:portion:1	the food is 
 b-16	1 can tomato paste	modern	170459	-	no	170	ok	fdc:170459:portion:4	SR "can (6 oz)" 170 g, the branded mode 170 g
 b-17	1 small can tomato paste	modern	170459	-	no	130	ok	deterministic:fdc-branded-mode:2025-12-18:canned-tomato-paste	sizes below the mode: 130 g holds 13 of 21
 b-18	1 large can tomato paste	modern	170459	-	no	340	ok	deterministic:fdc-branded-mode:2025-12-18:canned-tomato-paste	sizes above the mode: 340 g holds 46 of 78
-b-19	1 can tomato paste	unknown	170459	-	no	170	known	design:containers	containers.md: "6 oz now and in the old tables, so the era does not matter"; no cited table row names a tomato paste can yet, so the unknown era leaves it uncounted
+b-19	1 can tomato paste	unknown	170459	-	no	170	ok	design:containers	containers.md: "6 oz now and in the old tables, so the era does not matter"; the 1933 medium vegetable cans (16 or 20 oz) do not cover a food whose can is 6 oz today, so the modern size, shown estimated
 b-20	1 can diced tomatoes	modern	170051	-	no	190	ok	fdc:170051:portion:3	SR "can" 190 g on canned tomatoes, the only source (the branded mode fails: 14.5 oz 45 %, 28 oz 40 %)
 b-21	1 (14.5 oz) can diced tomatoes	modern	170051	-	yes	411	known	rule:stated-size	the hold-out catches the SR can: it assumes 190 g where the line states 411 g, so this key stays in shadow
 b-22	1 large can whole tomatoes	modern	170051	-	no	794	ok	deterministic:fdc-branded-mode:2025-12-18:canned-tomatoes	sizes above the mode: 28 oz holds 328 of 418 (containers.md: "Large can tomatoes gives 28 oz")
@@ -58,7 +58,7 @@ b-56	1 can enchilada sauce	modern	174074	-	no	283	ok	fdc:174074:portion:3	SR "ca
 b-57	1 envelope unflavored gelatin	modern	169599	-	no	7	ok	fdc:169599:portion:1	SR "envelope (1 tbsp)" 7 g (containers.md section 1)
 b-58	1 package unflavored gelatin	modern	169599	-	no	28	ok	fdc:169599:portion:2	SR "package (1 oz)" 28 g
 b-59	1 package lime gelatin	modern	168775	-	no	85	ok	fdc:168775:portion:1	SR "package (3 oz)" 85 g
-b-60	1 package Royal Orange Gelatin	historic	168775	-	no	-	ok	design:containers	containers.md: pre-1960 booklets need the era; no cited table names a gelatin package of that time
+b-60	1 package Royal Orange Gelatin	historic	168775	-	no	85	ok	rule:containers-modern-fallback	no cited table names a gelatin package of that time, so the modern SR "package (3 oz)", shown estimated (lead decision, container-weighing)
 b-61	1 packet active dry yeast	modern	175043	-	no	7	ok	fdc:175043:portion:3	SR "packet" 7.2 g
 b-62	2 packets yeast	modern	175043	-	no	14	ok	fdc:175043:portion:3	two packets of 7.2 g
 b-63	1 bottle red wine	modern	173190	0.994	no	746	ok	deterministic:standard-of-fill:27 CFR 4.72	750 mL x 0.994
@@ -100,3 +100,12 @@ s-09	1 (12 fl oz) can evaporated milk	modern	171276	-	no	-	ok	rule:stated-size	a
 s-10	1 (15 oz) can chickpeas, drained	modern	175206	-	no	-	ok	rule:containers-as-packed	a drained line on the food as packed is not weighed
 s-11	1 (15 oz) can black beans	unknown	175238	-	no	425	ok	rule:stated-size	a stated size needs no era
 s-12	1 (8 oz) can tomato sauce	historic	170054	-	no	227	ok	rule:stated-size	a stated size needs no era
+e-01	1 can corn	historic	169214	-	no	313	ok	deterministic:can-table:h33-veg-medium	1933 medium vegetable cans: No. 303 (453.6 g) is nearer the modern 432 g than No. 2 (567 g); the food is drained solids, so 453.6 x 298/432
+e-02	1 can corn	unknown	169214	-	no	313	ok	deterministic:can-table:h33-veg-medium	an undated book reads as an old one: the same period choice as e-01
+e-03	1 can corn, drained	historic	169214	-	no	313	ok	deterministic:can-table:h33-veg-medium	the line says drained: the period net scaled by the modern can's 298/432
+e-04	1 can corn	modern	169214	-	no	298	ok	fdc:169214:portion:3	a modern recipe never takes a period size (same as b-25)
+e-05	1 can tomato paste	historic	170459	-	no	170	ok	rule:containers-period-covers	the medium cans of 16 or 20 oz do not cover a food sold today in 6 oz cans (170 g is under 453.6 x 0.9), so the modern SR "can (6 oz)"
+e-06	1 can mushrooms	historic	169254	-	no	-	ok	rule:containers-period-without-modern	vegetables, so the period row names No. 303 or No. 2, and no modern can size (SR gives only a drained 132 g) chooses between them: uncounted
+e-07	1 large can tomatoes	historic	170051	-	no	794	ok	deterministic:fdc-branded-mode:2025-12-18:canned-tomatoes	the period row names medium cans only, so a large can takes the modern large mode (28 oz)
+e-08	1 can sweetened condensed milk	historic	171275	-	no	396	ok	rule:containers-modern-fallback	no period row names milk (category 1), so the modern mode 14 oz, shown estimated
+e-09	2 cans corn	historic	169214	-	no	626	ok	deterministic:can-table:h33-veg-medium	two period cans of corn, drained: 2 x 312.9

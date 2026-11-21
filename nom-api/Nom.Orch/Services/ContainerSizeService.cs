@@ -199,10 +199,16 @@ namespace Nom.Orch.Services
             {
                 if (ContainerSizeResolver.StatedPerContainer(line.RawLine, line.GramsPerMilliliter) is not { Reason: null } stated) continue;
                 var candidates = byFood[line.IngredientId].Select(r => new ContainerSizeCandidate(r.ContainerKind, r.Era, r.SizeWord, r.NetGrams, r.DrainedGrams, r.SourceRef, r.Status, r.Id));
-                var assumed = ContainerSizeResolver.Resolve(line.RawLine, line.Era, candidates, null, line.GramsPerMilliliter, hideStatedSize: true, activeOnly: false, netOnly: true);
+                var assumed = ContainerSizeResolver.Resolve(line.RawLine, line.Era, candidates, null, line.GramsPerMilliliter, hideStatedSize: true, activeOnly: false, netOnly: true, usdaCategoryId: line.UsdaCategoryId);
                 if (assumed.GramsPerContainer is not { } grams || assumed.RowId == 0)
                 {
                     report.LinesWithoutKey++;
+                    continue;
+                }
+                if (!ContainerBasis.OwnEra(assumed.Basis))
+                {
+                    report.OtherEraLines++;
+                    if (ContainerSizeAgreement.Hit(grams, stated.Grams)) report.OtherEraAgree++;
                     continue;
                 }
                 var row = byId[assumed.RowId];
@@ -285,14 +291,14 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>A line in a weight or volume unit on one of the foods, with what the hold-out reads of it and of its recipe.</summary>
-        public sealed record HoldoutRow(long RecipeId, long IngredientId, int SortOrder, string RawLine, DateTime CreatedDate, decimal? GramsPerMilliliter, string? SourceSite, string? SourceAttribution);
+        public sealed record HoldoutRow(long RecipeId, long IngredientId, int SortOrder, string RawLine, DateTime CreatedDate, decimal? GramsPerMilliliter, string? SourceSite, string? SourceAttribution, int? UsdaCategoryId = null);
 
         /// <summary>The lines stated in a weight or volume unit on the given foods, in live recipes; the container word is read after.</summary>
         public static IQueryable<HoldoutRow> HoldoutQuery(ApplicationDbContext db, IReadOnlyCollection<long> foodIds) =>
             db.RecipeIngredients.AsNoTracking()
                 .Where(ri => foodIds.Contains(ri.IngredientId) && !ri.Recipe.IsDeleted && ri.Measurement != null
                     && (ri.Measurement.MeasurementCategoryId == RecipeNutritionService.CategoryMass || ri.Measurement.MeasurementCategoryId == RecipeNutritionService.CategoryVolume))
-                .Select(ri => new HoldoutRow(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine, ri.CreatedDate, ri.Ingredient.GramsPerMilliliter, ri.Recipe.SourceSite, ri.Recipe.SourceAttribution));
+                .Select(ri => new HoldoutRow(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine, ri.CreatedDate, ri.Ingredient.GramsPerMilliliter, ri.Recipe.SourceSite, ri.Recipe.SourceAttribution, ri.Ingredient.FdcCategoryId));
 
         /// <summary>The standing container sizes with their food's name, for the Pipeline block.</summary>
         public static IQueryable<StatusRow> StatusQuery(ApplicationDbContext db) =>
@@ -304,7 +310,7 @@ namespace Nom.Orch.Services
         public sealed record StatusRow(IngredientContainerSizeEntity Row, string? Name);
 
         /// <summary>A sized container line on a food that has a size, with the era of its recipe.</summary>
-        public sealed record HoldoutLine(long RecipeId, long IngredientId, int SortOrder, string RawLine, DateTime CreatedDate, decimal? GramsPerMilliliter, string Era);
+        public sealed record HoldoutLine(long RecipeId, long IngredientId, int SortOrder, string RawLine, DateTime CreatedDate, decimal? GramsPerMilliliter, string Era, int? UsdaCategoryId = null);
 
         private async Task<List<HoldoutLine>> HoldoutLinesAsync(IReadOnlyList<long> foodIds, CancellationToken cancellationToken)
         {
@@ -317,10 +323,8 @@ namespace Nom.Orch.Services
                 foreach (var r in rows)
                 {
                     if (ContainerKinds.FromText(r.RawLine) == null) continue;
-                    var era = !string.IsNullOrWhiteSpace(r.SourceSite) ? ContainerEras.Modern
-                        : r.SourceAttribution != null && eras.TryGetValue(r.SourceAttribution, out var e) ? e
-                        : ContainerEras.Unknown;
-                    result.Add(new HoldoutLine(r.RecipeId, r.IngredientId, r.SortOrder, r.RawLine, r.CreatedDate, r.GramsPerMilliliter, era));
+                    var era = ContainerEras.ForRecipe(r.SourceSite, r.SourceAttribution, eras);
+                    result.Add(new HoldoutLine(r.RecipeId, r.IngredientId, r.SortOrder, r.RawLine, r.CreatedDate, r.GramsPerMilliliter, era, r.UsdaCategoryId));
                 }
             }
             return result;

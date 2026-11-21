@@ -73,3 +73,25 @@ describe('RecipeDetail withheld method', () => {
     expect(el.textContent).toContain('Bake the cake.');
   });
 });
+
+describe('RecipeDetail assumed container sizes', () => {
+  it('marks a line counted at an assumed size and hands it to the label', async () => {
+    const el = await render({
+      ...base,
+      steps: [{ order: 1, description: 'Simmer.' }],
+      ingredients: [
+        {
+          ingredientId: 3, name: 'Black Beans', quantity: 2, measurementId: 20, measurement: 'Can', grams: 850,
+          nutritionStatus: 'counted-assumed',
+          assumedSize: '1 can ≈ 14.99 oz (425 g): the most common size in USDA branded data (2025-12-18, 223 of 304 products); estimated',
+        },
+        { ingredientId: 4, name: 'Onion', quantity: 100, measurementId: 1, measurement: 'Gram', grams: 100, nutritionStatus: 'counted' },
+      ],
+    });
+
+    const marks = Array.from(el.querySelectorAll('[data-testid="recipe-ingredient-assumed-size"]'));
+    expect(marks.length).toBe(1);
+    expect(marks[0].getAttribute('title')).toContain('425 g');
+    expect(Array.from(el.querySelectorAll('[data-testid="ingredient-mass"]')).some((m) => m.textContent!.includes('≈'))).toBe(true);
+  });
+});
