@@ -202,6 +202,12 @@ namespace Nom.Orch.Models.Recipe
         /// <summary>Lines restored, while the recipe's curation state, changed since, was kept.</summary>
         public int StateKept { get; set; }
 
+        /// <summary>Foods a rebuild created that nothing references once its lines are restored; removed again.</summary>
+        public int FoodsRemoved { get; set; }
+
+        /// <summary>Foods a rebuild created that something still references or someone changed since; kept.</summary>
+        public int FoodsKept { get; set; }
+
         public Dictionary<string, int> RestoredByKind { get; set; } = new();
         public List<long> SkippedRecipeIds { get; set; } = new();
     }

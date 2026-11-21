@@ -87,7 +87,8 @@ namespace Nom.Orch.Interfaces
         /// them. Compound lines split or moved to their first alternative since then go back the
         /// same way. Newest first, so a line moved after it was unfolded goes back before it is joined;
         /// a proposal withdrawn with a retired food comes back after every other step, and only when
-        /// that food is back. Without <paramref name="apply"/> the same work runs in one database transaction that is
+        /// that food is back. A model pick the catalog admission pass withdrew is its own undo's to take
+        /// back, never this one's. Without <paramref name="apply"/> the same work runs in one database transaction that is
         /// rolled back, so the result is what the same call would do and nothing is kept.
         /// </summary>
         Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false);

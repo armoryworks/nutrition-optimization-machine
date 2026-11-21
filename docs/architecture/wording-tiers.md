@@ -147,7 +147,8 @@ and the gate on the wording of every pair of `link-pairs.tsv` judged right, wron
 and no lines. Recorded for `wording-tiers/1`, and recorded again at the wave-5 merge under the
 `link-gate/6` signature, when the name normalizer began to take a hyphenated mixed number off a
 wording and the tiers write one more pair (`butter, 1-1/2 oz`, judged right; the by-tier counts below
-are those of the first record):
+are those of the first record), and again under `link-gate/7` (the normalizer takes "circa" off an
+Italian amount) with the same figures:
 
 | | |
 |---|---|

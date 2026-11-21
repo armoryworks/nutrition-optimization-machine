@@ -105,6 +105,13 @@ namespace Nom.Orch.Services
             }
         }
 
+        /// <summary>
+        /// Whether at least one step is real method text: words, and no placeholder copy. A recipe cut
+        /// short ("(Recipe incomplete, steps cut off)" after three real steps) still has one.
+        /// </summary>
+        public static bool HasRealStep(ScraperRecipe recipe) =>
+            recipe.Steps.Any(s => !string.IsNullOrWhiteSpace(s.Instruction) && RealWord.IsMatch(s.Instruction) && !Placeholder.IsMatch(s.Instruction));
+
         private static double DigitShare(string text) => text.Count(char.IsDigit) / (double)text.Length;
 
         private static readonly Regex Markup = new(

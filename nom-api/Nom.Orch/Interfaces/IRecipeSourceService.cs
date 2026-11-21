@@ -23,7 +23,8 @@ namespace Nom.Orch.Interfaces
 
         /// <summary>
         /// Removes the documents attached at or after <paramref name="sinceUtc"/> that are still
-        /// there, and journals each removal. Without <paramref name="apply"/> nothing is written and
+        /// there, and journals each removal. A document an earlier attach undo removed is counted as
+        /// already undone, apart from one gone some other way. Without <paramref name="apply"/> nothing is written and
         /// the result is what the same call would do.
         /// </summary>
         Task<RecipeSourceUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false);

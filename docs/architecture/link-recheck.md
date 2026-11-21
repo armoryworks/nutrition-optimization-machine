@@ -17,7 +17,8 @@ delete), one `LinkRecheckWithdraw` journal entry each, all under one stamp. None
 stands (37 % were right). The link lane then asks each wording again, and every answer it makes
 passes the gate before it applies. The journal entries have their own change type on purpose: the
 time-window `relink/undo?sinceUtc=` and a wording retract take back `ProposalWithdraw` entries, and
-neither may reopen 66,000 picks. `POST undo?stamp=` puts them back, except a pick that changed since
+neither may reopen 66,000 picks. The catalog admission pass journals its own withdrawals as
+`CatalogPickWithdraw` for the same reason. `POST undo?stamp=` puts them back, except a pick that changed since
 or whose ingredient got a newer link proposal (the lane asked again).
 
 ## Rule sets

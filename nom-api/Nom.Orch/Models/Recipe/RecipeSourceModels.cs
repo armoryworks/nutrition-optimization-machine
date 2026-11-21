@@ -101,7 +101,9 @@ namespace Nom.Orch.Models.Recipe
         public bool Applied { get; set; }
         /// <summary>Attached documents removed again; without apply, those that would be.</summary>
         public int Removed { get; set; }
-        /// <summary>Journal entries whose document is already gone.</summary>
+        /// <summary>Journal entries whose document is gone, removed by anything but an earlier attach undo.</summary>
         public int Skipped { get; set; }
+        /// <summary>Journal entries whose document an earlier attach undo already removed; not a failure.</summary>
+        public int AlreadyUndone { get; set; }
     }
 }

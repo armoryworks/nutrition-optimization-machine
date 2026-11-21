@@ -441,11 +441,11 @@ namespace Nom.Orch.Services
         {
             var personId = _currentUser.PersonId;
             var lines = await _lines.BuildAsync(scraped.Ingredients, personId, write: true);
-            for (var i = 0; i < lines.Count; i++)
+            foreach (var line in lines)
             {
-                scraped.Ingredients[i].Quantity = lines[i].MeasurementName == null ? null : lines[i].Quantity;
-                scraped.Ingredients[i].Unit = lines[i].MeasurementName;
-                scraped.Ingredients[i].LineKind = lines[i].LineKind;
+                scraped.Ingredients[line.SortOrder].Quantity = line.MeasurementName == null ? null : line.Quantity;
+                scraped.Ingredients[line.SortOrder].Unit = line.MeasurementName;
+                scraped.Ingredients[line.SortOrder].LineKind = line.LineKind;
             }
 
             var vettingIssues = await _vetting.VetAsync(scraped);

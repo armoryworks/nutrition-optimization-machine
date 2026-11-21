@@ -15,9 +15,10 @@ namespace Nom.Orch.Interfaces
         /// Takes back, newest first, up to <paramref name="max"/> links applied at or after
         /// <paramref name="sinceUtc"/>, only those whose source starts with <paramref name="source"/>
         /// when it is given, and only those the lanes applied on their own when
-        /// <paramref name="systemOnly"/> is set. A link with a line no longer where it put the line
-        /// is skipped and reported, unless <paramref name="leaveMovedLines"/> is set: then that line
-        /// stays where it is, counted, and its journal row is kept. An alias changed since the link
+        /// <paramref name="systemOnly"/> is set. A link with a line no longer where it put the line,
+        /// or on a recipe whose rows a rebuild rewrote since, is skipped and reported, unless
+        /// <paramref name="leaveMovedLines"/> is set: then that line stays where it is, counted, and
+        /// its journal row is kept. A line an order-only pass moved is followed and taken back. An alias changed since the link
         /// is left as it is and counted; a USDA food stays curated while another applied link
         /// stands on it, and that link's undo restores the status later. A link taken back returns
         /// to Pending held for a person, so no lane applies it again on its own. Skipped links do

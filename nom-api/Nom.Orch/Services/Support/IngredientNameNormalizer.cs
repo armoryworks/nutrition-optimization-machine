@@ -24,7 +24,7 @@ namespace Nom.Orch.Services.Support
             @"(?:one|two|three|five|seven)[- ](?:half|halves|thirds?|fourths?|quarters?|eighths?)";
 
         private static readonly Regex LeadingQuantity = new(
-            $@"^\s*(?:(?:and|or|to|about|nearly)\s+)?(?:{Number}(?:\s*(?:-|–|—|to|or)\s*{Number})?(?:-(?=(?:lbs?|ozs?|pounds?|ounces?|pints?|pts?|quarts?|qts?|cups?)\b)|(?=[\s.])[\s.]+)|(?:a\s+(?:couple|pair)(?:\s+of)?|{FractionWord}|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half(?![\s-]+(?:and|&|n|'n'?)[\s-]+half\b)|halves|quarters?|thirds?|(?:couple|pair)(?=\s+of\b)|mezz[oa])(?=[\s.])[\s.]+)",
+            $@"^\s*(?:(?:and|or|to|about|nearly|circa)\s+)?(?:{Number}(?:\s*(?:-|–|—|to|or)\s*{Number})?(?:-(?=(?:lbs?|ozs?|pounds?|ounces?|pints?|pts?|quarts?|qts?|cups?)\b)|(?=[\s.])[\s.]+)|(?:a\s+(?:couple|pair)(?:\s+of)?|{FractionWord}|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half(?![\s-]+(?:and|&|n|'n'?)[\s-]+half\b)|halves|quarters?|thirds?|(?:couple|pair)(?=\s+of\b)|mezz[oa])(?=[\s.])[\s.]+)",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private const string Qualifier =
@@ -59,9 +59,9 @@ namespace Nom.Orch.Services.Support
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex TrailingQuantity = new(
-            $@"\s*,?\s+(?:{Number}(?:\s*(?:-|–|to)\s*{Number})?|{FractionWord}|one|two|three|four|five|six|half)\s*-?\s*(?:" + SpoonOrCup +
+            $@"\s*,?\s+(?:circa\s+)?(?:{Number}(?:\s*(?:-|–|to)\s*{Number})?|{FractionWord}|one|two|three|four|five|six|half)\s*-?\s*(?:" + SpoonOrCup +
             @"|pints?|pts?|quarts?|qts?|cups?|pounds?|lbs?|ounces?|ozs?|tablespoons?|tbsps?|teaspoons?|tsps?|grams?|g|kgs?|ml|grammi|grammo|gr|chilogrammi|litri|litro|decilitri|dl)\.?\s*$" +
-            $@"|\s*,?\s+(?:grammi|gr|g|kg|chilogrammi|litri|litro|dl)\.?\s*{Number}\.?\s*$|\s*,?\s+N\.\s*\d+\.?\s*$|\s*,\s*{Number}\.?\s*$",
+            $@"|\s*,?\s+(?:grammi|gr|g|kg|chilogrammi|litri|litro|dl)\.?\s*(?:circa\s+)?{Number}\.?\s*$|\s*,?\s+N\.\s*\d+\.?\s*$|\s*,\s*{Number}\.?\s*$",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex TrailingSize = new(
@@ -251,5 +251,30 @@ namespace Nom.Orch.Services.Support
         /// <summary>True when normalization would change this catalog name.</summary>
         public static bool IsResidue(string name) =>
             !string.Equals(Normalize(name), name?.Trim(), StringComparison.Ordinal);
+
+        private static readonly Regex AmountWord = new(
+            @"\b(?:circa|ca\.?|N\.?|nr\.?|no\.?)(?![\p{L}])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        /// <summary>
+        /// True when a normalized name holds no food: only numbers, punctuation and amount words such as
+        /// "circa" ("100", "circa 100" left by "Grammi circa 100"). No food is ever named so.
+        /// </summary>
+        public static bool NamesNoFood(string? name) =>
+            !AmountWord.Replace(name ?? string.Empty, string.Empty).Any(char.IsLetter);
+
+        private static readonly Regex MeasureOnly = new(
+            $@"^\s*(?:(?:about|circa|ca\.?)\s+)?(?:{Number}\s*)?(?:(?:circa|ca\.?)\s+)?" +
+            @"(?:cups?|c|pints?|pts?|quarts?|qts?|gallons?|gals?|pounds?|lbs?|ounces?|ozs?|fl\.?\s*oz|tablespoons?|tbsps?|tbs|tbl|tbsp|teaspoons?|tsps?|t|" +
+            @"liters?|litres?|l|ml|milliliters?|grams?|g|kgs?|kilograms?|grammi|grammo|gr|chilogrammi|chilogrammo|litri|litro|decilitri|decilitro|dl|pinch(?:es)?|dash(?:es)?)" +
+            $@"\b\.?\s*(?:(?:circa|ca\.?)\s+)?(?:{Number})?\s*\.?\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        /// <summary>
+        /// True when a line's text states only an amount and names no food: a number alone, or a number
+        /// and a measure ("Grammi circa 100", "Grammi 80", "2 cups", "1 tbsp."). A count word that can be
+        /// a food itself ("6 cloves", "2 heads") is not read so.
+        /// </summary>
+        public static bool NamesOnlyAnAmount(string? text) =>
+            NamesNoFood(Normalize(text ?? string.Empty)) || MeasureOnly.IsMatch(text ?? string.Empty);
     }
 }

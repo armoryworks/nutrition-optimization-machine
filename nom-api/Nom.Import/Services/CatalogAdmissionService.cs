@@ -48,10 +48,11 @@ namespace Nom.Import.Services
         public const string UndoChangeType = "CatalogAdmitUndo";
         public const string FactsChangeType = "CatalogFacts";
         public const string DescriptionChangeType = "FdcDescription";
-        public const string RunChangeType = "CatalogAdmitRun";
+        public const string RunChangeType = CatalogAdmissionRule.RunChangeType;
+        public const string PickWithdrawChangeType = CatalogAdmissionRule.PickWithdrawChangeType;
         public const string FoodEntityType = "Ingredient";
         public const string AliasEntityType = "IngredientAlias";
-        public const string RunEntityType = "CatalogAdmission";
+        public const string RunEntityType = CatalogAdmissionRule.RunEntityType;
         public const int MaxChangedFoods = 10_000;
         public const decimal MinEnergyPassRate = 0.99m;
         public const decimal MaxAuditHoldShare = 0.01m;
@@ -375,7 +376,7 @@ namespace Nom.Import.Services
             var entries = await _db.AuditLogEntries
                 .Where(a => a.Timestamp == stamp
                     && ((a.EntityType == FoodEntityType || a.EntityType == AliasEntityType || a.EntityType == RunEntityType) && ChangeTypes.Contains(a.ChangeType)
-                        || (a.EntityType == LineRelinkService.PickWithdrawEntityType && (a.ChangeType == LineRelinkService.ProposalWithdrawChangeType || a.ChangeType == UndoChangeType))))
+                        || (a.EntityType == LineRelinkService.PickWithdrawEntityType && (a.ChangeType == PickWithdrawChangeType || a.ChangeType == UndoChangeType))))
                 .OrderByDescending(a => a.Id)
                 .ToListAsync(ct);
             var foodIds = entries.Where(e => e.EntityType == FoodEntityType).Select(e => e.EntityId).Distinct().ToList();
@@ -513,7 +514,7 @@ namespace Nom.Import.Services
                 pick.IsDeleted = true;
                 pick.DeletedAt = stamp;
                 pick.DeletedByPersonId = SystemConstants.SystemPersonId;
-                _db.AuditLogEntries.Add(Journal(LineRelinkService.PickWithdrawEntityType, pick.Id, LineRelinkService.ProposalWithdrawChangeType,
+                _db.AuditLogEntries.Add(Journal(LineRelinkService.PickWithdrawEntityType, pick.Id, PickWithdrawChangeType,
                     nameof(FoodCatalogProposalEntity.IsDeleted), bool.FalseString, bool.TrueString, stamp));
             }
             await _db.SaveChangesAsync(ct);

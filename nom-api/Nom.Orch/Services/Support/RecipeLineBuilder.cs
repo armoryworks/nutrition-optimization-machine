@@ -21,14 +21,18 @@ namespace Nom.Orch.Services.Support
     /// VerifiedWordings:ResolveOnImport is set), a live ingredient of that name, the one food a
     /// trusted alias gives the name to, the food an applied link merged the retired ingredient of that
     /// name into, and otherwise a new uncurated ingredient. A wording, an alias or an applied link never
-    /// leads to a prepared food. Given the method, a line with no amount that is the only line of its
+    /// leads to a prepared food. A line that names no food, only an amount ("Grammi circa 100", "2 cups"),
+    /// keeps the food the line is already on or a food under the line's own text, and otherwise is not
+    /// built: no food is ever created under an amount. In an "or" line the amount is that of the alternative
+    /// naming the food when that alternative states its own; a clove counts garlic, never the spice.
+    /// Given the method, a line with no amount that is the only line of its
     /// food takes the amount the method states next to the food's name, as the start-up repair does.
     /// Without <c>write</c> nothing is written and a food that would be created has no id.
     /// </summary>
     public sealed class RecipeLineBuilder
     {
         /// <summary>Raised whenever a rule this builder applies changes, so a rebuild can tell which recipes an older version built.</summary>
-        public const string Version = "line-builder/4";
+        public const string Version = "line-builder/6";
 
         /// <summary>Fallback unit for unparseable ingredient lines. Seeded "each"-style measurement.</summary>
         public const long DefaultMeasurementId = 1L;
@@ -74,6 +78,9 @@ namespace Nom.Orch.Services.Support
             /// <summary>Whether the amount came from the method rather than the line.</summary>
             public bool FilledFromMethod { get; set; }
 
+            /// <summary>Whether this build created the food (only with write).</summary>
+            public bool Created { get; init; }
+
             public string FoodName => Food?.Name ?? Wording;
         }
 
@@ -89,12 +96,25 @@ namespace Nom.Orch.Services.Support
         {
             var lines = new List<BuiltLine>(source.Count);
             var created = new Dictionary<string, IngredientEntity?>(StringComparer.OrdinalIgnoreCase);
+            var createdHere = new HashSet<IngredientEntity>(ReferenceEqualityComparer.Instance);
             for (var i = 0; i < source.Count; i++)
             {
                 var ingredient = source[i];
                 var rawLine = RecipeScrapingService.Clamp(ingredient.RawLine, 2047) ?? string.Empty;
                 var name = RecipeScrapingService.Clamp(string.IsNullOrWhiteSpace(ingredient.Name) ? ingredient.RawLine : ingredient.Name, 2047) ?? string.Empty;
                 var wording = IngredientNameNormalizer.Normalize(name);
+                var namesNoFood = IngredientNameNormalizer.NamesOnlyAnAmount(name);
+                if (namesNoFood && !IngredientNameNormalizer.NamesOnlyAnAmount(rawLine))
+                {
+                    wording = IngredientNameNormalizer.Normalize(rawLine);
+                    namesNoFood = false;
+                }
+                if (namesNoFood)
+                {
+                    wording = OwnText(name);
+                    if (IngredientNameNormalizer.NamesNoFood(wording)) wording = OwnText(rawLine);
+                    if (IngredientNameNormalizer.NamesNoFood(wording)) continue;
+                }
 
                 var (found, link, byWording) = await FindAsync(wording);
                 var chosen = choose?.Invoke(i, found);
@@ -105,18 +125,21 @@ namespace Nom.Orch.Services.Support
                     byWording = null;
                 }
 
+                if (found == null && namesNoFood) continue;
                 if (found == null && !created.TryGetValue(wording, out found))
                 {
                     found = write ? await CreateIngredientAsync(wording, personId) : null;
                     created[wording] = found;
+                    if (found != null) createdHere.Add(found);
                 }
 
-                var line = new BuiltLine { SortOrder = i, RawLine = rawLine, Wording = wording, Food = found, Link = link, ByWording = byWording };
+                var line = new BuiltLine { SortOrder = i, RawLine = rawLine, Wording = wording, Food = found, Link = link, ByWording = byWording, Created = found != null && createdHere.Contains(found) };
                 var amount = await AmountAsync(ingredient, PackageLineService.CountsDrained(line.FoodName, ingredient.RawLine));
+                if (amount != null && AlternativeAmount(rawLine, line.FoodName) is { } own && await FindMeasurementIdAsync(own.MeasurementName) != null) amount = own;
                 if (amount != null)
                 {
                     line.Quantity = amount.Quantity;
-                    line.MeasurementName = amount.MeasurementName;
+                    line.MeasurementName = SpiceCloves(amount.MeasurementName, line.FoodName);
                 }
                 lines.Add(line);
             }
@@ -154,6 +177,37 @@ namespace Nom.Orch.Services.Support
 
         private static bool SameFood(BuiltLine a, BuiltLine b) =>
             a.Food != null && b.Food != null ? a.Food.Id == b.Food.Id : string.Equals(a.FoodName, b.FoodName, StringComparison.OrdinalIgnoreCase);
+
+        private static readonly System.Text.RegularExpressions.Regex Whitespace = new(@"\s+", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly System.Text.RegularExpressions.Regex Alternative = new(
+            @"\s+or\s+", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// The text of a line as the name of the food it stands for, when normalizing leaves no food
+        /// ("Grammi circa 100" normalizes to "circa 100"): lower case, single spaces, never a bare number.
+        /// </summary>
+        private static string OwnText(string text) => RecipeScrapingService.Clamp(Whitespace.Replace(text, " ").Trim().ToLowerInvariant(), 2047) ?? string.Empty;
+
+        /// <summary>
+        /// The amount of the one alternative of an "or" line that names the line's food, when that is
+        /// not the first alternative and it states an amount of its own ("pinch stevia OR 2 tbsp maple
+        /// syrup" on maple syrup is 2 tbsp, not a pinch); null when the line's own amount stands.
+        /// </summary>
+        private static ParsedQuantity? AlternativeAmount(string rawLine, string foodName)
+        {
+            var parts = Alternative.Split(rawLine);
+            if (parts.Length < 2 || FoodNameMatcher.NamesFood(parts[0], foodName)) return null;
+            var naming = parts.Skip(1).Where(p => FoodNameMatcher.NamesFood(p, foodName)).ToList();
+            return naming.Count == 1 ? IngredientLineParser.Normalize(null, null, naming[0], false) : null;
+        }
+
+        /// <summary>A clove counts garlic or shallot; on the spice cloves ("a couple of cloves") the cloves are the food, counted in pieces.</summary>
+        private static string SpiceCloves(string measurementName, string foodName) =>
+            measurementName == "Clove" && foodName.Contains("clove", StringComparison.OrdinalIgnoreCase)
+                && !foodName.Contains("garlic", StringComparison.OrdinalIgnoreCase) && !foodName.Contains("shallot", StringComparison.OrdinalIgnoreCase)
+                ? IngredientLineParser.Piece
+                : measurementName;
 
         /// <summary>
         /// The amount of one line: what NOM's parser reads from its text, else the scraper's own

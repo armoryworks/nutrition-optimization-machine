@@ -44,6 +44,9 @@ namespace Nom.Orch.Services
         public const string UndoChangeType = "ReprocessUndo";
         public const string RuleRejectChangeType = "RuleReject";
         public const string DuplicateRetireChangeType = "DuplicateRetire";
+        public const string FoodEntityType = "Ingredient";
+        public const string FoodCreateChangeType = "ReprocessFoodCreate";
+        public const string FoodCreateUndoneChangeType = "ReprocessFoodCreateUndone";
         public const string RuleRejectIssue = "Rejected by rule: neither the source nor the rebuilt recipe is a recipe";
         public const int MaxRecipesPerCall = 500;
 
@@ -53,6 +56,7 @@ namespace Nom.Orch.Services
         private const string OperatorBatchPrefix = "rp-";
         private const int IdsPerRead = 1000;
         private const string LinksKey = "links=";
+        private const string JournalKey = "journal=";
         private static readonly string[] NotARecipeProblems = { "Text is placeholder copy", "Text has no real words" };
 
         private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -204,7 +208,12 @@ namespace Nom.Orch.Services
 
             var reject = !curated && recipe.DateCurationCompleted == null
                 && (recipe.CurationStatusId == (long)CurationStatusEnum.NonCurated || recipe.CurationStatusId == (long)CurationStatusEnum.RequiresRevision)
-                && NotARecipe(RecipeVettingService.TextProblems(source.Record)) && NotARecipe(newIssues);
+                && NotARecipe(RecipeVettingService.TextProblems(source.Record)) && NotARecipe(newIssues)
+                && !RecipeVettingService.HasRealStep(source.Record) && !RecipeVettingService.HasRealStep(ScrapedRecipeRepairService.ToVettable(Shadow(recipe, built, newSteps)));
+            var statusIssues = newIssues.Count > 0 && recipe.CurationStatusId == (long)CurationStatusEnum.NonCurated
+                && (await _vetting.VetAsync(ScrapedRecipeRepairService.ToVettable(Shadow(recipe, built, newSteps, CarriedKind(pairs))))).Count == 0
+                    ? new List<string>()
+                    : newIssues;
             one.Rejected = reject;
             one.Outcome = unchanged ? RecipeReprocessOutcome.Unchanged : RecipeReprocessOutcome.Rebuilt;
             if (unchanged && !reject) one.Lines.Clear();
@@ -218,6 +227,7 @@ namespace Nom.Orch.Services
             {
                 built = await _builder.BuildAsync(source.Record.Ingredients, _currentUser.PersonId, write: true, method, choose);
                 KeepKinds(built, pairs);
+                var createdFoods = built.Where(l => l.Created && l.Food != null).Select(l => l.Food!).DistinctBy(f => f.Id).ToList();
                 var written = linesUnchanged ? rows : NewRows(built, pairs, now);
                 if (!linesUnchanged) await ReplaceRowsAsync(recipeId, written);
                 var (oldStepRows, newStepRows) = sourceSteps == null ? (null, null) : await ReplaceStepsAsync(recipeId, sourceSteps, now);
@@ -235,8 +245,8 @@ namespace Nom.Orch.Services
                 if (!reject && recipe.DateCurationCompleted == null
                     && (recipe.CurationStatusId == (long)CurationStatusEnum.NonCurated || recipe.CurationStatusId == (long)CurationStatusEnum.RequiresRevision))
                 {
-                    recipe.VettingIssues = newIssues.Count > 0 ? string.Join("\n", newIssues) : null;
-                    recipe.CurationStatusId = newIssues.Count > 0 ? (long)CurationStatusEnum.RequiresRevision : (long)CurationStatusEnum.NonCurated;
+                    recipe.VettingIssues = statusIssues.Count > 0 ? string.Join("\n", statusIssues) : null;
+                    recipe.CurationStatusId = statusIssues.Count > 0 ? (long)CurationStatusEnum.RequiresRevision : (long)CurationStatusEnum.NonCurated;
                 }
                 var rebuiltState = Stamped(recipe, oldState, now);
                 var rebuild = new RecipeReprocessJournalEntity
@@ -256,6 +266,16 @@ namespace Nom.Orch.Services
                     CreatedByPersonId = by,
                 };
                 await JournalAsync(rebuild, by, now, rejected: false, links);
+                if (createdFoods.Count > 0)
+                {
+                    _db.AuditLogEntries.AddRange(createdFoods.Select(food => new AuditLogEntryEntity
+                    {
+                        EntityType = FoodEntityType, EntityId = food.Id, ChangeType = FoodCreateChangeType, PropertyName = nameof(IngredientEntity.Name),
+                        OldValue = string.Create(CultureInfo.InvariantCulture, $"journal={rebuild.Id};batch={batchId}"), NewValue = food.Name,
+                        Timestamp = now, ChangedByPersonId = by,
+                    }));
+                    await _db.SaveChangesAsync();
+                }
                 one.JournalId = rebuild.Id;
                 oldState = rebuiltState;
             }
@@ -448,14 +468,26 @@ namespace Nom.Orch.Services
                 return current;
             };
 
+        /// <summary>
+        /// Keeps the kind a stored row had (the line-classify lane's, as a rule) on the line built from
+        /// the same text, spacing, case and entities aside, while the line has no amount or the same
+        /// amount as before. A line that now reads an amount it did not have loses its kind.
+        /// </summary>
         private static void KeepKinds(List<RecipeLineBuilder.BuiltLine> built, Dictionary<int, LineRow> pairs)
         {
             foreach (var line in built)
             {
-                if (line.LineKind != null || line.Quantity != 0 || !pairs.TryGetValue(line.SortOrder, out var row)) continue;
-                if (row.LineKind != null && row.RawLine == line.RawLine) line.LineKind = row.LineKind;
+                if (!pairs.TryGetValue(line.SortOrder, out var row) || row.LineKind == null || FoldedLine.Key(row.RawLine) != FoldedLine.Key(line.RawLine)) continue;
+                if (line.Quantity == 0 || (line.Quantity == row.Quantity && line.MeasurementId == row.MeasurementId)) line.LineKind = row.LineKind;
             }
         }
+
+        /// <summary>
+        /// The kind a line with no amount and no kind of its own had on the row it is paired with, so
+        /// vetting can tell whether a recipe would fail only because the rebuild dropped kinds.
+        /// </summary>
+        private static Func<RecipeLineBuilder.BuiltLine, string?> CarriedKind(Dictionary<int, LineRow> pairs) =>
+            line => line.LineKind == null && line.Quantity == 0 && pairs.TryGetValue(line.SortOrder, out var row) ? row.LineKind : null;
 
         private static List<LineRow> NewRows(List<RecipeLineBuilder.BuiltLine> built, Dictionary<int, LineRow> pairs, DateTime stamp) =>
             built.Select(line =>
@@ -519,7 +551,8 @@ namespace Nom.Orch.Services
             issues.Any(issue => NotARecipeProblems.Any(p => issue.StartsWith(p, StringComparison.Ordinal)));
 
         /// <summary>The recipe as it would be with the built lines, for vetting and the approval gate; never saved.</summary>
-        private static RecipeEntity Shadow(RecipeEntity recipe, IEnumerable<RecipeLineBuilder.BuiltLine> built, List<RecipeStepEntity> steps) => new()
+        private static RecipeEntity Shadow(RecipeEntity recipe, IEnumerable<RecipeLineBuilder.BuiltLine> built, List<RecipeStepEntity> steps,
+            Func<RecipeLineBuilder.BuiltLine, string?>? kind = null) => new()
         {
             Name = recipe.Name,
             LicenseStatus = recipe.LicenseStatus,
@@ -535,7 +568,7 @@ namespace Nom.Orch.Services
                 Quantity = b.Quantity,
                 MeasurementId = b.MeasurementId,
                 RawLine = b.RawLine,
-                LineKind = b.LineKind,
+                LineKind = kind?.Invoke(b) ?? b.LineKind,
                 SortOrder = b.SortOrder,
             }).ToList(),
         };
@@ -966,6 +999,7 @@ namespace Nom.Orch.Services
             var simulatedRows = new Dictionary<long, List<LineRow>>();
             var simulatedSteps = new Dictionary<long, List<StepRow>>();
             var simulatedState = new Dictionary<long, RecipeState>();
+            var restoredHere = new HashSet<long>();
             var by = _currentUser.PersonIdOrSystem;
             foreach (var id in entries)
             {
@@ -977,8 +1011,9 @@ namespace Nom.Orch.Services
                     continue;
                 }
 
-                var oldRows = entry.OldRows == null ? null : JsonSerializer.Deserialize<List<LineRow>>(entry.OldRows, Json);
-                var newRows = entry.NewRows == null ? null : JsonSerializer.Deserialize<List<LineRow>>(entry.NewRows, Json);
+                var rowsKept = entry.OldRows != null && entry.OldRows == entry.NewRows;
+                var oldRows = entry.OldRows == null || rowsKept ? null : JsonSerializer.Deserialize<List<LineRow>>(entry.OldRows, Json);
+                var newRows = entry.NewRows == null || rowsKept ? null : JsonSerializer.Deserialize<List<LineRow>>(entry.NewRows, Json);
                 var oldState = entry.OldRecipe == null ? null : JsonSerializer.Deserialize<RecipeState>(entry.OldRecipe, Json);
                 var newState = entry.NewRecipe == null ? null : JsonSerializer.Deserialize<RecipeState>(entry.NewRecipe, Json);
 
@@ -993,18 +1028,32 @@ namespace Nom.Orch.Services
                 var stateStands = newState == null || SameState(stateNow, newState);
                 var approvedSince = !stateStands && stateNow.CurationStatusId == (long)CurationStatusEnum.Curated
                     && newState!.CurationStatusId != (long)CurationStatusEnum.Curated;
-                if (!linesStand || !stepsStand || (newRows == null && !stateStands) || approvedSince)
+                if (!linesStand || !stepsStand || (entry.NewRows == null && !stateStands) || approvedSince)
                 {
                     Skip(result, recipe.Id);
                     continue;
                 }
 
                 result.Restored++;
+                restoredHere.Add(entry.Id);
                 result.RestoredByKind[entry.Kind] = result.RestoredByKind.GetValueOrDefault(entry.Kind) + 1;
                 if (!stateStands) result.StateKept++;
                 if (oldRows != null) simulatedRows[recipe.Id] = oldRows;
                 if (oldSteps != null) simulatedSteps[recipe.Id] = oldSteps;
                 if (stateStands && oldState != null) simulatedState[recipe.Id] = oldState;
+                var marker = string.Create(CultureInfo.InvariantCulture, $"journal={entry.Id};");
+                var removable = new List<AuditLogEntryEntity>();
+                if (entry.Kind == RecipeReprocessKind.Rebuild)
+                {
+                    foreach (var created in await _db.AuditLogEntries
+                        .Where(a => a.EntityType == FoodEntityType && a.ChangeType == FoodCreateChangeType && a.OldValue != null && a.OldValue.StartsWith(marker))
+                        .ToListAsync())
+                    {
+                        if (await RemovableAsync(created, simulatedRows, restoredHere)) removable.Add(created);
+                        else result.FoodsKept++;
+                    }
+                    result.FoodsRemoved += removable.Count;
+                }
                 if (!apply) continue;
 
                 var now = DateTime.UtcNow;
@@ -1022,7 +1071,11 @@ namespace Nom.Orch.Services
                     recipe.LastModifiedByPersonId = SystemConstants.SystemPersonId;
                 }
                 entry.UndoneAt = now;
-                var marker = string.Create(CultureInfo.InvariantCulture, $"journal={entry.Id};");
+                foreach (var created in removable)
+                {
+                    _db.Ingredients.Remove(await _db.Ingredients.IgnoreQueryFilters().FirstAsync(i => i.Id == created.EntityId));
+                    created.ChangeType = FoodCreateUndoneChangeType;
+                }
                 var headers = await _db.AuditLogEntries
                     .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType && a.EntityId == recipe.Id
                         && (a.ChangeType == ReprocessChangeType || a.ChangeType == ReprocessOrderChangeType)
@@ -1047,6 +1100,70 @@ namespace Nom.Orch.Services
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Whether a food a rebuild created can go again with that rebuild's undo: it is as the rebuild
+        /// made it (uncurated, same name, no other journal entry), and once the undone recipes have their
+        /// rows back no recipe line, alias, proposal, nutrient, wording, measure or household row refers to it,
+        /// and no standing journal would put a line back on it: the rows before of another reprocess not
+        /// undone in this call, or the place before of a line relink or an applied link.
+        /// </summary>
+        private async Task<bool> RemovableAsync(AuditLogEntryEntity created, Dictionary<long, List<LineRow>> simulatedRows, IReadOnlyCollection<long> restoredHere)
+        {
+            var id = created.EntityId;
+            var food = await _db.Ingredients.IgnoreQueryFilters().AsNoTracking().FirstOrDefaultAsync(i => i.Id == id);
+            if (food == null || food.IsDeleted || food.CurationStatusId != (long)CurationStatusEnum.NonCurated || food.FdcId != null || food.Name != created.NewValue) return false;
+            if (simulatedRows.Values.Any(rows => rows.Any(r => r.IngredientId == id || r.IngredientEntityId == id))) return false;
+            var restored = simulatedRows.Keys.ToList();
+            return !await _db.RecipeIngredients.IgnoreQueryFilters()
+                    .AnyAsync(ri => (ri.IngredientId == id || EF.Property<long?>(ri, "IngredientEntityId") == id) && !restored.Contains(ri.RecipeId))
+                && !await _db.IngredientAliases.IgnoreQueryFilters().AnyAsync(a => a.IngredientId == id)
+                && !await _db.FoodCatalogProposals.IgnoreQueryFilters().AnyAsync(p => p.IngredientId == id)
+                && !await _db.IngredientNutrients.IgnoreQueryFilters().AnyAsync(n => n.IngredientId == id)
+                && !await _db.IngredientWordings.IgnoreQueryFilters().AnyAsync(w => w.IngredientId == id)
+                && !await _db.IngredientWordingRejections.IgnoreQueryFilters().AnyAsync(w => w.IngredientId == id)
+                && !await _db.IngredientVerifications.IgnoreQueryFilters().AnyAsync(v => v.IngredientId == id)
+                && !await _db.IngredientExtras.IgnoreQueryFilters().AnyAsync(e => e.IngredientId == id)
+                && !await _db.IngredientMeasurements.IgnoreQueryFilters().AnyAsync(m => m.IngredientId == id)
+                && !await _db.IngredientContainerSizes.IgnoreQueryFilters().AnyAsync(c => c.IngredientId == id)
+                && !await _db.AuditLogEntries.AnyAsync(a => a.EntityId == id && a.Id != created.Id && a.EntityType == FoodEntityType)
+                && !await LineRelinkService.IsUsedOutsideRecipeLinesAsync(_db, id)
+                && !await NamedByLineJournalAsync(id)
+                && !await NamedByStandingRowsAsync(id, restoredHere);
+        }
+
+        private Task<bool> NamedByLineJournalAsync(long id)
+        {
+            var place = string.Create(CultureInfo.InvariantCulture, $"{id}@");
+            var linkPlace = string.Create(CultureInfo.InvariantCulture, $":{id}@");
+            return _db.AuditLogEntries.AnyAsync(a =>
+                (a.EntityType == ScrapedRecipeRepairService.LineEntityType && a.OldValue != null && a.OldValue.StartsWith(place))
+                || (a.EntityType == LinkApplyJournal.EntityType && a.ChangeType == LinkApplyJournal.ChangeType && a.PropertyName == LinkApplyJournal.Line
+                    && a.OldValue != null && a.OldValue.Contains(linkPlace)));
+        }
+
+        private async Task<bool> NamedByStandingRowsAsync(long id, IReadOnlyCollection<long> restoredHere)
+        {
+            var skip = restoredHere.ToArray();
+            if (_db.Database.IsRelational())
+            {
+                var byFood = JsonSerializer.Serialize(new[] { new { IngredientId = id } }, Json);
+                var byEntity = JsonSerializer.Serialize(new[] { new { IngredientEntityId = id } }, Json);
+                return (await _db.Database.SqlQuery<bool>(
+                    $"""
+                     SELECT EXISTS (SELECT 1 FROM recipe."RecipeReprocessJournal" j
+                                    WHERE j."UndoneAt" IS NULL AND j."OldRows" IS NOT NULL AND NOT (j."Id" = ANY({skip}))
+                                      AND (j."OldRows" @> {byFood}::jsonb OR j."OldRows" @> {byEntity}::jsonb)) AS "Value"
+                     """).ToListAsync())[0];
+            }
+
+            var standing = await _db.RecipeReprocessJournals.AsNoTracking()
+                .Where(j => j.UndoneAt == null && j.OldRows != null && !skip.Contains(j.Id))
+                .Select(j => j.OldRows!)
+                .ToListAsync();
+            return standing.Any(rows => (JsonSerializer.Deserialize<List<LineRow>>(rows, Json) ?? new List<LineRow>())
+                .Any(r => r.IngredientId == id || r.IngredientEntityId == id));
         }
 
         /// <summary>The ids of the link journal rows a reprocess header names (<c>links=</c>), which its rebuild wrote.</summary>
@@ -1107,24 +1224,76 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// The newest standing reprocess of each of the given recipes that rewrote its lines, order-only
-        /// writes included. An older
+        /// writes included unless <paramref name="withOrder"/> is false. A rebuild that replaced only the
+        /// steps and left the rows as they were does not count. An older
         /// line journal's undo skips a recipe rebuilt after that journal's entry: the rebuild replaced
         /// the rows the entry names, so it is undone first.
         /// </summary>
-        public static async Task<Dictionary<long, DateTime>> RebuiltAtAsync(ApplicationDbContext db, IReadOnlyCollection<long> recipeIds)
+        public static async Task<Dictionary<long, DateTime>> RebuiltAtAsync(ApplicationDbContext db, IReadOnlyCollection<long> recipeIds, bool withOrder = true)
         {
             var found = new Dictionary<long, DateTime>();
             foreach (var chunk in recipeIds.Distinct().Chunk(IdsPerRead))
             {
-                var headers = await db.AuditLogEntries.AsNoTracking()
+                var headers = db.AuditLogEntries.AsNoTracking()
                     .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType
-                        && (a.ChangeType == ReprocessChangeType || a.ChangeType == ReprocessOrderChangeType) && chunk.Contains(a.EntityId))
+                        && (a.ChangeType == ReprocessChangeType || (withOrder && a.ChangeType == ReprocessOrderChangeType)) && chunk.Contains(a.EntityId));
+                var newest = await headers
                     .GroupBy(a => a.EntityId)
                     .Select(g => new { RecipeId = g.Key, At = g.Max(a => a.Timestamp) })
                     .ToListAsync();
-                foreach (var header in headers) found[header.RecipeId] = header.At;
+                foreach (var header in newest) found[header.RecipeId] = header.At;
+
+                var rowsKept = await db.RecipeReprocessJournals.AsNoTracking()
+                    .Where(j => chunk.Contains(j.RecipeId) && j.UndoneAt == null && j.OldRows != null && j.OldRows == j.NewRows)
+                    .Select(j => new { j.Id, j.RecipeId })
+                    .ToListAsync();
+                if (rowsKept.Count == 0) continue;
+                var keptIds = rowsKept.Select(j => j.Id).ToHashSet();
+                var keptRecipes = rowsKept.Select(j => j.RecipeId).Distinct().ToList();
+                var theirs = await headers.Where(a => keptRecipes.Contains(a.EntityId))
+                    .Select(a => new { RecipeId = a.EntityId, At = a.Timestamp, a.NewValue })
+                    .ToListAsync();
+                foreach (var recipeId in keptRecipes)
+                {
+                    var rewrote = theirs.Where(h => h.RecipeId == recipeId && (JournalIdOf(h.NewValue) is not { } id || !keptIds.Contains(id))).ToList();
+                    if (rewrote.Count == 0) found.Remove(recipeId);
+                    else found[recipeId] = rewrote.Max(h => h.At);
+                }
             }
             return found;
+        }
+
+        /// <summary>The journal id a reprocess header names (<c>journal=</c>), or null.</summary>
+        internal static long? JournalIdOf(string? header) =>
+            (header ?? string.Empty).Split(';')
+                .Where(part => part.StartsWith(JournalKey, StringComparison.Ordinal))
+                .Select(part => long.TryParse(part[JournalKey.Length..], NumberStyles.None, CultureInfo.InvariantCulture, out var parsed) ? parsed : (long?)null)
+                .FirstOrDefault();
+
+        /// <summary>
+        /// The position the line that stood at <paramref name="sortOrder"/> on <paramref name="ingredientId"/>
+        /// holds after the standing order-only writes of the recipe made after <paramref name="sinceUtc"/>,
+        /// which change positions and nothing else; null when there is none or one of them did not keep the line.
+        /// </summary>
+        public static async Task<int?> FollowOrderAsync(ApplicationDbContext db, long recipeId, long ingredientId, int sortOrder, DateTime sinceUtc)
+        {
+            var writes = await db.RecipeReprocessJournals.AsNoTracking()
+                .Where(j => j.RecipeId == recipeId && j.Kind == RecipeReprocessKind.Order && j.UndoneAt == null && j.CreatedDate > sinceUtc)
+                .OrderBy(j => j.Id)
+                .Select(j => new { j.OldRows, j.NewRows })
+                .ToListAsync();
+            if (writes.Count == 0) return null;
+            var at = sortOrder;
+            foreach (var write in writes)
+            {
+                var before = JsonSerializer.Deserialize<List<LineRow>>(write.OldRows ?? "[]", Json) ?? new List<LineRow>();
+                var after = JsonSerializer.Deserialize<List<LineRow>>(write.NewRows ?? "[]", Json) ?? new List<LineRow>();
+                var row = before.FirstOrDefault(r => !r.IsDeleted && r.IngredientId == ingredientId && r.SortOrder == at);
+                var moved = row == null ? null : after.FirstOrDefault(r => !r.IsDeleted && r.IngredientId == ingredientId && r.RawLine == row.RawLine && r.CreatedDate == row.CreatedDate);
+                if (moved == null) return null;
+                at = moved.SortOrder;
+            }
+            return at;
         }
     }
 }

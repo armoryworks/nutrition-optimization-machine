@@ -52,6 +52,17 @@ namespace Nom.Data.Nutrition
         /// back every such row of one stamp.
         /// </summary>
         public const string GroupChangeType = "GroupFromCategory";
+
+        /// <summary>
+        /// The audit change type of a model link pick the admission pass withdrew. It is the pass's own,
+        /// so `--admit --undo` takes back only its withdrawals and the relink undo never takes them.
+        /// </summary>
+        public const string PickWithdrawChangeType = "CatalogPickWithdraw";
+
+        /// <summary>The entity and change type of the header every admission run writes under its stamp.</summary>
+        public const string RunEntityType = "CatalogAdmission";
+        public const string RunChangeType = "CatalogAdmitRun";
+
         public const string FoundationFood = "foundation_food";
         public const string SrLegacyFood = "sr_legacy_food";
         public const string BrandedFood = "branded_food";

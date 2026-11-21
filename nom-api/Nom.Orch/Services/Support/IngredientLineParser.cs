@@ -248,6 +248,7 @@ namespace Nom.Orch.Services.Support
             (new Regex(@"^\s*(?<n>\d+|one|two|three|four|five|six|seven|eight|nine|ten|twelve|twenty)-(?=(?:pound|quart|pint|ounce|inch|gallon|lb|oz)\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1 ${n}-"),
             (new Regex(@"\bun\s+quarto\s+di\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1/4 di"),
             (new Regex(@"\b(?:un|uno|una|un')\s+(?!po[co']|pochino|poca)(?=\p{L})", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1 "),
+            (new Regex(@"\bcirca\s+(?=\d|(?:grammi|grammo|gr|decilitri|litri|litro|chilogrammi)\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase), ""),
             (new Regex(@"^\s*(?<unit>grammi|grammo|decilitri|litri|chilogrammi)\s+(?<q>\d+(?:[.,]\d+)?)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "${q} ${unit}"),
             (new Regex(@"\b(?:a\s+)?quarter\s+of\s+an?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1/4"),
             (new Regex(@"\bhalf[- ](?:an?[- ])?(?=(?:pound|pint|quart|cup|ounce|gill|gallon|dozen|teaspoon|tablespoon)s?\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1/2 "),
