@@ -298,11 +298,21 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// Returns a failure response when the URL's domain isn't approved for
-        /// scraping (registering a pending request for unknown domains), or null
-        /// when scraping may proceed.
+        /// scraping or is a hand source (registering a pending request for unknown
+        /// domains), or null when scraping may proceed.
         /// </summary>
         private async Task<RecipeScrapingResponseModel?> CheckSourceGateAsync(string url)
         {
+            if (await _scrapingSources.IsHandSourceAsync(url))
+            {
+                return new RecipeScrapingResponseModel
+                {
+                    Success = false,
+                    SourcePendingApproval = false,
+                    Error = "This site's documents are imported by hand by the operator; it is not scraped.",
+                };
+            }
+
             var status = await _scrapingSources.GetDomainStatusAsync(url);
 
             switch (status)

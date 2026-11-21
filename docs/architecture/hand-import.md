@@ -29,8 +29,9 @@ script lives in `ops/` because it fetches; nom-api never fetches a recipe site.
 1. **fetch** (`--out` a folder outside the repository; the script refuses a folder inside it).
    Only listed documents, only from their source's hosts. robots.txt is read once per host per run:
    404 allows all, 401/403 refuses all, any other failure stops that host for the run. Requests go
-   one at a time, spaced by the larger of the source's delay and robots.txt's `crawl-delay`. A
-   redirect is followed only to an allowed host and an allowed path. A Library of Congress item is
+   one at a time, spaced by the larger of the source's delay and robots.txt's `crawl-delay`; the hosts
+   of one source share that spacing (the Library's `www.loc.gov` and `tile.loc.gov` are paced as one).
+   A redirect is followed only to a host of the document's own source and an allowed path. A Library of Congress item is
    fetched as its JSON record first; it is taken only when its rights field states the public domain,
    it is dated 1930 or earlier and is in English, and then its OCR text (`fulltext_derivative` on
    `tile.loc.gov`, one JSON file of page texts keyed by page sequence) is the document. A download
@@ -98,9 +99,10 @@ script lives in `ops/` because it fetches; nom-api never fetches a recipe site.
 ## The source link and the stored source
 
 A record's `sourceUrl` is the document's URL. For a document that holds more than one recipe it
-names the page: a PDF's `#page=N` (the PDF open parameter; `&search="<name>"` is added when two
-recipes start on one page), a Library of Congress page `https://www.loc.gov/resource/<id>/?sp=N&st=text`
-(`&q=<name>` when two share a page). nom-api's URL normalization keeps a fragment that starts with
+names the page and the recipe: a PDF's `#page=N&search="<name>"` (the PDF open parameters), a
+Library of Congress page `https://www.loc.gov/resource/<id>/?sp=N&st=text&q=<name>`. The name is
+always given, so a record's link depends only on its own page and name, never on which other records
+a run keeps on that page. nom-api's URL normalization keeps a fragment that starts with
 `#page=` (and still drops every other fragment), so the recipes of one PDF are not taken for
 duplicates, and a rerun of the same files imports nothing twice. The recipe links to the page it
 came from, and withholding by domain reaches it.

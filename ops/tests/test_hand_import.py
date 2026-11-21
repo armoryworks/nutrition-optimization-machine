@@ -156,9 +156,10 @@ VA = "https://www.nutrition.va.gov"
 
 
 def fetcher(site, clock, **delays):
-    allowed = {"www.nutrition.va.gov": 5.0, "www.loc.gov": 6.0, "tile.loc.gov": 6.0}
+    allowed = {"www.nutrition.va.gov": 5.0, "www.loc.gov": 6.0, "tile.loc.gov": 6.0, "www.cancer.gov": 5.0}
     allowed.update(delays)
-    return hand.Fetcher(allowed, opener=site, clock=clock.time, sleep=clock.sleep)
+    groups = {"www.nutrition.va.gov": "va", "www.loc.gov": "loc", "tile.loc.gov": "loc", "www.cancer.gov": "nci"}
+    return hand.Fetcher(allowed, opener=site, clock=clock.time, sleep=clock.sleep, groups=groups)
 
 
 class ListedDocumentsTests(unittest.TestCase):
@@ -219,6 +220,31 @@ class FetchTests(unittest.TestCase):
         site = Site({f"{VA}/robots.txt": Answer(404), f"{VA}/a.pdf": Answer(302, location="https://cdn.example.net/a.pdf")})
         with self.assertRaises(hand.Refused):
             fetcher(site, Clock()).read(f"{VA}/a.pdf")
+
+    def test_a_redirect_to_another_sources_host_is_refused_for_a_listed_document(self):
+        url = f"{VA}/docs/c.pdf"
+        site = Site({f"{VA}/robots.txt": Answer(404), url: Answer(302, location="https://www.cancer.gov/some.pdf"),
+                     "https://www.cancer.gov/robots.txt": Answer(404), "https://www.cancer.gov/some.pdf": Answer(200, PDF_BYTES)})
+        with tempfile.TemporaryDirectory() as out:
+            store = hand.Store(out)
+            report = hand.fetch([hand.Book("va-c", "va", "pdf", url, "card", "C", "VA")], SOURCES, store, fetcher(site, Clock()))
+            self.assertEqual(report["counts"], {"refused": 1})
+            self.assertIn("www.cancer.gov", report["refused"][0]["reason"])
+            self.assertNotIn("https://www.cancer.gov/some.pdf", [u for u, _ in site.calls])
+            self.assertFalse(os.path.exists(store.path("va-c.pdf")))
+
+    def test_the_hosts_of_one_source_share_its_pacing(self):
+        site = Site({"https://www.loc.gov/robots.txt": Answer(404), "https://tile.loc.gov/robots.txt": Answer(404),
+                     "https://www.loc.gov/a": Answer(200, b"a"), "https://tile.loc.gov/b": Answer(200, b"b"),
+                     "https://www.loc.gov/c": Answer(200, b"c")})
+        clock = Clock()
+        fetch = fetcher(site, clock)
+        stamps = []
+        for url in ("https://www.loc.gov/a", "https://tile.loc.gov/b", "https://www.loc.gov/c"):
+            fetch.read(url)
+            stamps.append(clock.now)
+        self.assertGreaterEqual(stamps[1] - stamps[0], 6.0)
+        self.assertGreaterEqual(stamps[2] - stamps[1], 6.0)
 
     def test_robots_that_cannot_be_read_stop_the_host_for_the_run(self):
         site = Site({f"{VA}/robots.txt": Answer(503)})
@@ -421,7 +447,7 @@ class RecordTests(unittest.TestCase):
         }
         result = hand.extract_document(doc("pages", pages), SOURCES["nci"], ask=lambda system, text: json.dumps(answers[text]))
         self.assertEqual([(r["recipe"]["name"], r["pages"], r["recipe"]["sourceUrl"]) for r in result.kept],
-                         [("Hot 'n Spicy Seasoning", [20], "https://www.cancer.gov/book.pdf#page=20")])
+                         [("Hot 'n Spicy Seasoning", [20], "https://www.cancer.gov/book.pdf#page=20&search=%22Hot%20%27n%20Spicy%20Seasoning%22")])
         self.assertEqual(len(result.rejects), 1)
         self.assertTrue(result.rejects[0]["reason"].startswith("number check"))
         self.assertEqual(result.rejects[0]["page"], 21)
@@ -452,10 +478,24 @@ class RecordTests(unittest.TestCase):
         book = doc("book", pages, resourceUrl="https://www.loc.gov/resource/gdc.book1/")
         result = hand.extract_document(book, SOURCES["loc"], ask=ask)
         links = {r["recipe"]["name"]: (r["pages"], r["recipe"]["sourceUrl"]) for r in result.kept}
-        self.assertEqual(links["Sponge Cake"], ([51], "https://www.loc.gov/resource/gdc.book1/?sp=51&st=text"))
+        self.assertEqual(links["Sponge Cake"], ([51], "https://www.loc.gov/resource/gdc.book1/?sp=51&st=text&q=Sponge%20Cake"))
         self.assertEqual(links["Gingerbread"], ([50], "https://www.loc.gov/resource/gdc.book1/?sp=50&st=text&q=Gingerbread"))
         self.assertEqual(links["Corn Muffins"], ([50], "https://www.loc.gov/resource/gdc.book1/?sp=50&st=text&q=Corn%20Muffins"))
         self.assertEqual(result.rejects, [])
+
+    def test_a_recipes_link_does_not_depend_on_which_other_records_a_run_keeps_on_its_page(self):
+        pages = [(50, "GINGERBREAD\n\n1 cup molasses\n1/2 cup butter\n\nMix and bake.\n\nCORN MUFFINS\n\n2 cups meal\n1 egg\n\nBeat and bake.")]
+        gingerbread = {"name": "Gingerbread", "ingredients": ["1 cup molasses", "1/2 cup butter"], "steps": ["Mix and bake."]}
+        muffins = {"name": "Corn Muffins", "ingredients": ["2 cups meal", "1 egg"], "steps": ["Beat and bake."]}
+        book = doc("book", pages, resourceUrl="https://www.loc.gov/resource/gdc.book1/")
+        alone = hand.extract_document(book, SOURCES["loc"], ask=lambda system, text: json.dumps({"recipes": [dict(gingerbread)]}))
+        both = hand.extract_document(book, SOURCES["loc"], ask=lambda system, text: json.dumps({"recipes": [dict(gingerbread), dict(muffins)]}))
+        url = {r["recipe"]["name"]: r["recipe"]["sourceUrl"] for r in both.kept}["Gingerbread"]
+        self.assertEqual([r["recipe"]["sourceUrl"] for r in alone.kept], [url])
+        pdf = doc("pages", [(20, "HOT'N SPICY SEASONING\n\n1/4 cup paprika\n\nMix together all ingredients.")])
+        seasoning = {"name": "Hot 'n Spicy Seasoning", "ingredients": ["1/4 cup paprika"], "steps": ["Mix together all ingredients."]}
+        one = hand.extract_document(pdf, SOURCES["nci"], ask=lambda system, text: json.dumps({"recipes": [dict(seasoning)]}))
+        self.assertIn("&search=", one.kept[0]["recipe"]["sourceUrl"])
 
     def test_a_book_needs_the_model_host(self):
         result = hand.extract_document(doc("book", [(1, "GINGERBREAD\n\n1 cup molasses")]), SOURCES["loc"])

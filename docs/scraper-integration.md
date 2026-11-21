@@ -181,7 +181,8 @@ whose check is clear is offered for that approval. Full design:
 - The staged import refuses recipes from a source whose harvesting is paused and, in probation,
   past its recipe limit, so a pause holds even before the harvester reads the list.
 - **Hand sources** (PDFs, scanned books) are recorded by an admin with their licence facts; the
-  scraper never fetches them and they are imported only by a staged import that names them. Their
+  scraper never fetches them (a URL import or bulk scrape on a hand source's host is refused before
+  the scraper is called) and they are imported only by a staged import that names them. Their
   listed documents are fetched, read and extracted by `ops/hand-import.py` (see
   `docs/architecture/hand-import.md`), never by nom-api.
 - **The harvester** reads `GET /api/ScrapingSource/harvestable` (approved web sources, harvest not

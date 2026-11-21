@@ -87,6 +87,34 @@ namespace Nom.Api.Tests.Services
             (await db.Recipes.CountAsync()).Should().Be(3);
         }
 
+        [Theory]
+        [InlineData("https://www.loc.gov/item/2014471639/")]
+        [InlineData("https://www.cancer.gov/about-cancer/causes-prevention/risk/diet/down-home-healthy-cooking.pdf")]
+        public async Task A_hand_source_is_never_sent_to_the_scraper(string url)
+        {
+            using var db = NewContext();
+            db.ScrapingSources.AddRange(
+                new ScrapingSourceEntity { Domain = "www.loc.gov", Status = ScrapingSourceStatusEnum.Approved, Kind = ScrapingSourceEntity.HandKind, CreatedDate = DateTime.UtcNow },
+                new ScrapingSourceEntity { Domain = "www.cancer.gov", Status = ScrapingSourceStatusEnum.Approved, Kind = ScrapingSourceEntity.HandKind, CreatedDate = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+            var sources = new ScrapingSourceService(db, new Mock<ICommunicationOrchestrationService>().Object,
+                new Mock<ISystemEmailService>().Object, NullLogger<ScrapingSourceService>.Instance);
+            var scraper = new Mock<IRecipeScraperClient>();
+            scraper.SetupGet(s => s.IsConfigured).Returns(true);
+            var user = new Mock<ICurrentUserService>();
+            user.SetupGet(u => u.PersonId).Returns(Admin);
+            var service = new RecipeScrapingService(db, user.Object, scraper.Object, sources,
+                new Mock<IRecipeVettingService>().Object, NullLogger<RecipeScrapingService>.Instance);
+
+            var response = await service.ScrapeRecipeFromUrlAsync(new RecipeScrapingRequestModel { Url = url });
+
+            response.Success.Should().BeFalse();
+            response.SourcePendingApproval.Should().BeFalse();
+            (await sources.GetDomainStatusAsync(url)).Should().BeNull();
+            scraper.Verify(s => s.ScrapeAsync(It.IsAny<string>(), It.IsAny<System.Threading.CancellationToken>()), Times.Never);
+            (await db.ScrapingSources.CountAsync()).Should().Be(2);
+        }
+
         private static ScraperRecipe Record(string name, string url) => new()
         {
             Name = name,

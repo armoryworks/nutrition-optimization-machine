@@ -132,8 +132,11 @@ The four recipe sources the owner approved as hand sources (2026-11-21) are fetc
 `ops/hand-import.py`, and only the documents listed in `ops/hand-import/books.csv`, from the hosts
 `ops/hand-import/sources.csv` gives each source (design: `hand-import.md`). The script refuses any
 other host, a redirect to one and any path robots.txt disallows, sends one request at a time and
-spaces requests to a host by the larger of the delay below and robots.txt's `crawl-delay`. These
-hosts are cleared for that script only, not for the label cross-checker. `robots.txt` was read
+spaces requests to a host by the larger of the delay below and robots.txt's `crawl-delay`, the hosts
+of one source sharing one spacing (`www.loc.gov` and `tile.loc.gov` together stay within the Library's
+10 requests a minute). A document's redirect is followed only to a host of its own source. These
+hosts are cleared for that script only, not for the label cross-checker; nom-api refuses a user URL
+import or bulk scrape on a hand source's host, so the scraper never fetches them. `robots.txt` was read
 directly on each host on 2026-11-20; licence facts are those of the 2026-11-20 source research.
 Images are never taken from any of them.
 

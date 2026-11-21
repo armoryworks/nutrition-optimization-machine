@@ -226,11 +226,14 @@ class Refused(Exception):
 
 
 class Fetcher:
-    """Fetches listed documents one at a time from the allowed hosts, honouring robots.txt and its crawl-delay."""
+    """Fetches listed documents one at a time from the allowed hosts, honouring robots.txt and its crawl-delay; the
+    hosts of one source (groups) share one pacing."""
 
     def __init__(self, allowed: dict[str, float], opener: Opener = http_open,
-                 clock: Callable[[], float] = time.monotonic, sleep: Callable[[float], None] = time.sleep):
+                 clock: Callable[[], float] = time.monotonic, sleep: Callable[[float], None] = time.sleep,
+                 groups: dict[str, str] | None = None):
         self.allowed = allowed
+        self.groups = groups or {}
         self.opener = opener
         self.clock = clock
         self.sleep = sleep
@@ -240,11 +243,12 @@ class Fetcher:
         self.requests = 0
 
     def _wait(self, host: str) -> None:
-        if host in self.last:
-            remaining = self.last[host] + self.delays.get(host, self.allowed[host]) - self.clock()
+        group = self.groups.get(host, host)
+        if group in self.last:
+            remaining = self.last[group] + self.delays.get(host, self.allowed[host]) - self.clock()
             if remaining > 0:
                 self.sleep(remaining)
-        self.last[host] = self.clock()
+        self.last[group] = self.clock()
         self.requests += 1
 
     def _robots(self, host: str) -> urllib.robotparser.RobotFileParser:
@@ -280,9 +284,12 @@ class Fetcher:
             raise Refused(f"{url}: disallowed by robots.txt")
         return host
 
-    def get(self, url: str, headers: dict | None = None) -> tuple[Response, str]:
-        """The answer to one GET, following a redirect only to an allowed host and an allowed path."""
+    def get(self, url: str, headers: dict | None = None, hosts: Iterable[str] | None = None) -> tuple[Response, str]:
+        """The answer to one GET, following a redirect only to an allowed host (one of hosts when given) and an allowed
+        path."""
         for _ in range(MAX_REDIRECTS + 1):
+            if hosts is not None and host_of(url) not in hosts:
+                raise Refused(f"{url}: host {host_of(url) or '(none)'} is not a host of this document's source")
             host = self.check(url)
             self._wait(host)
             answer = self.opener(url, headers or {})
@@ -292,20 +299,20 @@ class Fetcher:
             return answer, url
         raise Refused(f"{url}: more than {MAX_REDIRECTS} redirects")
 
-    def read(self, url: str) -> bytes:
-        answer, final = self.get(url)
+    def read(self, url: str, hosts: Iterable[str] | None = None) -> bytes:
+        answer, final = self.get(url, hosts=hosts)
         if answer.status != 200:
             raise Refused(f"{final}: HTTP {answer.status}")
         return b"".join(answer.body)
 
-    def download(self, url: str, target: str) -> dict:
+    def download(self, url: str, target: str, hosts: Iterable[str] | None = None) -> dict:
         """The document saved at target, resumed from target.part when the host serves ranges, and verified."""
         part = target + ".part"
         have = os.path.getsize(part) if os.path.exists(part) else 0
-        answer, final = self.get(url, {"Range": f"bytes={have}-"} if have else {})
+        answer, final = self.get(url, {"Range": f"bytes={have}-"} if have else {}, hosts)
         if answer.status == 416 and have:
             os.remove(part)
-            return self.download(url, target)
+            return self.download(url, target, hosts)
         if answer.status not in (200, 206):
             raise Refused(f"{final}: HTTP {answer.status}")
         mode = "ab" if answer.status == 206 and have else "wb"
@@ -430,6 +437,7 @@ def fetch(books: list[Book], sources: dict[str, Source], store: Store, fetcher: 
         if book.kind == "index":
             continue
         names = doc_files(book)
+        hosts = sources[book.source].hosts
         if all(store.verified(n) for n in names):
             counts["verified"] += 1
             continue
@@ -437,7 +445,7 @@ def fetch(books: list[Book], sources: dict[str, Source], store: Store, fetcher: 
             if book.kind == "loc-item":
                 item_name, text_name = names
                 if not store.verified(item_name):
-                    store.add(item_name, fetcher.download(loc_json_url(book.url), store.path(item_name)))
+                    store.add(item_name, fetcher.download(loc_json_url(book.url), store.path(item_name), hosts))
                 with open(store.path(item_name), encoding="utf-8") as handle:
                     item = json.load(handle)
                 problem = loc_item_problem(item)
@@ -446,12 +454,12 @@ def fetch(books: list[Book], sources: dict[str, Source], store: Store, fetcher: 
                 derived = item["resources"][0]["fulltext_derivative"]
                 if host_of(derived) not in sources[book.source].hosts:
                     raise Refused(f"{derived}: the OCR text is not on a host of {book.source}")
-                entry = fetcher.download(derived, store.path(text_name))
+                entry = fetcher.download(derived, store.path(text_name), hosts)
                 if entry["type"] != "json":
                     raise Refused(f"{derived}: expected the OCR text as JSON, got {entry['type']}")
                 store.add(text_name, {**entry, "resourceUrl": item["resources"][0].get("url")})
             else:
-                entry = fetcher.download(book.url, store.path(names[0]))
+                entry = fetcher.download(book.url, store.path(names[0]), hosts)
                 if entry["type"] != book.kind:
                     os.replace(store.path(names[0]), store.path(names[0]) + ".unexpected")
                     raise Refused(f"{book.url}: listed as {book.kind}, served as {entry['type']}")
@@ -526,7 +534,7 @@ def links(books: list[Book], sources: dict[str, Source], fetcher: Fetcher, sourc
         if book.kind != "index" or (source and book.source != source):
             continue
         try:
-            page = fetcher.read(book.url).decode("utf-8", errors="replace")
+            page = fetcher.read(book.url, sources[book.source].hosts).decode("utf-8", errors="replace")
         except Refused as exc:
             log(f"refused: {exc}")
             continue
@@ -1047,16 +1055,15 @@ def _ask(ask, chunk) -> list[tuple[dict | None, dict | None]]:
     return [(r, None) for r in recipes if isinstance(r, dict)]
 
 
-def page_url(doc: dict, pages: list[int], name: str, crowded: bool) -> str:
-    """The source link of a record: the document's URL, with its first page when the document holds more than one recipe
-    (a PDF's #page=N, a Library of Congress page ?sp=N), and the recipe's name when another record shares that page."""
+def page_url(doc: dict, pages: list[int], name: str) -> str:
+    """The source link of a record: the document's URL, with its first page and the recipe's name when the document
+    holds more than one recipe (a PDF's #page=N&search="name", a Library of Congress page ?sp=N&q=name), so a record's
+    link never depends on which other records a run keeps."""
     if doc.get("resourceUrl"):
         base = doc["resourceUrl"].split("?")[0]
-        url = f"{base}?sp={pages[0]}&st=text"
-        return url + "&q=" + urllib.parse.quote(name) if crowded else url
+        return f"{base}?sp={pages[0]}&st=text&q=" + urllib.parse.quote(name)
     if len(pages) and doc.get("multi"):
-        url = f"{doc['url']}#page={pages[0]}"
-        return url + "&search=" + urllib.parse.quote(f'"{name}"') if crowded else url
+        return f"{doc['url']}#page={pages[0]}&search=" + urllib.parse.quote(f'"{name}"')
     return doc["url"]
 
 
@@ -1085,10 +1092,9 @@ def extract_document(doc: dict, source: Source, ask=None) -> Extraction:
         found.extend(kept)
         result.rejects.extend({"doc": doc["doc"], **r} for r in rejects)
     doc = {**doc, "multi": doc["layout"] in ("book", "pages")}
-    first_pages = Counter(pages[0] for _, pages in found)
     for record, pages in found:
         record.pop("publicDomain", None)
-        record["sourceUrl"] = page_url(doc, pages, record["name"], first_pages[pages[0]] > 1)
+        record["sourceUrl"] = page_url(doc, pages, record["name"])
         record["sourceSite"] = source.site
         result.kept.append({"doc": doc["doc"], "source": doc["source"], "pages": pages, "documentSha256": doc["sha256"], "recipe": record})
     seen: Counter = Counter(r["recipe"]["sourceUrl"] for r in result.kept)
@@ -1243,7 +1249,7 @@ def main(argv: list[str] | None = None) -> int:
     books = [b for b in load_books(args.books, sources) if not args.source or b.source == args.source]
     if args.command in ("fetch", "links"):
         allowed = {host: s.min_delay for s in sources.values() for host in s.hosts}
-        fetcher = Fetcher(allowed)
+        fetcher = Fetcher(allowed, groups={host: s.source for s in sources.values() for host in s.hosts})
         if args.command == "links":
             rows = links(books, sources, fetcher, args.source)
             writer = csv.DictWriter(sys.stdout, fieldnames=["doc_id", "source", "kind", "url", "layout", "title", "attribution"])
