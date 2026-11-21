@@ -160,6 +160,7 @@ namespace Nom.Orch.Services
                 .OrderByDescending(a => a.Id)
                 .ToListAsync(cancellationToken);
             var result = new AlcoholRetentionUndoResult { Applied = apply, Entries = entries.Count };
+            var restored = new Dictionary<(long RecipeId, long IngredientId, int SortOrder), (decimal? Factor, string? Basis)>();
 
             foreach (var chunk in entries.Chunk(500))
             {
@@ -180,16 +181,23 @@ namespace Nom.Orch.Services
                     }
                     var key = Key(entry.PropertyName);
                     var (newFactor, newBasis) = ReadJournalValue(entry.NewValue);
-                    if (key == null || !rows.TryGetValue((entry.EntityId, key.Value.IngredientId, key.Value.SortOrder), out var row)
-                        || row.AlcoholRetention != newFactor || row.AlcoholRetentionBasis != newBasis)
+                    if (key == null || !rows.TryGetValue((entry.EntityId, key.Value.IngredientId, key.Value.SortOrder), out var row))
+                    {
+                        result.Skipped++;
+                        continue;
+                    }
+                    var lineKey = (entry.EntityId, key.Value.IngredientId, key.Value.SortOrder);
+                    var (currentFactor, currentBasis) = restored.TryGetValue(lineKey, out var earlier) ? earlier : (row.AlcoholRetention, row.AlcoholRetentionBasis);
+                    if (currentFactor != newFactor || currentBasis != newBasis)
                     {
                         result.Skipped++;
                         continue;
                     }
 
                     result.Restored++;
-                    if (!apply) continue;
                     var (oldFactor, oldBasis) = ReadJournalValue(entry.OldValue);
+                    restored[lineKey] = (oldFactor, oldBasis);
+                    if (!apply) continue;
                     row.AlcoholRetention = oldFactor;
                     row.AlcoholRetentionBasis = oldBasis;
                     row.LastModifiedDate = now;

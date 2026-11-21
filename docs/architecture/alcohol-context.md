@@ -169,7 +169,8 @@ gives the one reading a wording's lines agree on, for lanes that read lines.
   a restriction type's criteria match; the drink lines) per database. It is marked stale by
   `DietGateCacheInvalidator`, an EF Core interceptor on the API's context, when a command writes
   `recipe."Ingredient"`, `"IngredientAlias"`, `"RecipeIngredient"` or `nutrient."IngredientNutrient"`,
-  or a recipe's servings (`recipe."Recipe"`, which the retained alcohol per serving divides by)
+  a recipe's servings (`recipe."Recipe"`, which the retained alcohol per serving divides by) or a
+  measurement (`measurement."Measurement"`, by which a drink line is weighed)
   (at once outside a transaction, at its commit inside one; SaveChanges, bulk updates and raw SQL all
   pass there), and after 15 minutes in any case (writes from Nom.Import or psql). A stale answer is
   served while one refresh runs on its own context, so a write never makes a household wait; only the

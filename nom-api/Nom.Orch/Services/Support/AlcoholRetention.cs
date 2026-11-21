@@ -30,7 +30,8 @@ namespace Nom.Orch.Services.Support
 
     /// <summary>
     /// The alcohol retention reader (alcohol design A7): rules, no model. It finds the first step
-    /// sentence that names the line's drink and reads how the dish is heated from there on: a
+    /// sentence that names the line's drink and reads how the dish is heated from there on, up to a
+    /// separate preparation or through a step that chills, sets aside or serves the dish: a
     /// heating word with a time ("simmer for 30 minutes", "bake 1 1/2 hours") gives the USDA
     /// factor for baked or simmered dishes with the alcohol stirred in (15 minutes 40 %, 30
     /// minutes 35 %, 1 hour 25 %, 1.5 hours 20 %, 2 hours 10 %, 2.5 hours 5 %; baked under 30
@@ -45,7 +46,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class AlcoholRetention
     {
-        public const string Version = "alcohol-retention/1";
+        public const string Version = "alcohol-retention/2";
         public const string ResourceName = "Nom.Orch.Nutrition.usda-retention-r6-alcohol.tsv";
 
         /// <summary>Kilocalories per gram of alcohol, the FDC calorie factor; energy falls by this much for each gram of alcohol that does not stay.</summary>
@@ -108,6 +109,14 @@ namespace Nom.Orch.Services.Support
             (new Regex(@"\b(?:a\s+)?quarter\s+(?:of\s+an\s+)?hour\b", Options), "15 minutes"),
             (new Regex(@"\bhalf\s+(?:an\s+)?hour\b|\ba\s+half\s+hour\b|\bhalf-hour\b", Options), "30 minutes"),
         };
+
+        private static readonly Regex SeparateStep = new(
+            @"^\W*(?:meanwhile|in the meantime|separately|while\s+(?:the|you|it|that|this)\b)|\bseparately\b|\b(?:in|into|using|on)\s+(?:a|an)\s+(?:separate|second|clean|different|other)\b|\b(?:in|into|using|on)\s+another\b",
+            Options);
+
+        private static readonly Regex PauseStep = new(
+            @"\bchill(?:s|ing)?\b|\brefrigerat(?:e|es|ing)\b|\bfreez(?:e|es|ing)\b|\bin(?:to)? the (?:fridge|refrigerator|freezer)\b|\b(?:let|leave|allow|set)\b[^.;]{0,25}\bcool\b|\bcool(?:s|ing)?\s+(?:completely|slightly|thoroughly|down|for|until|to|on|in)\b|^\W*cool\b|\bset\s+(?:it\s+|them\s+|the\s+\p{L}+\s+)?aside\b|\breserves?\b|\bserves?\b",
+            Options);
 
         private static readonly Regex ClauseBreak = new(@",\s*|\s+(?:and\s+)?then\s+", Options);
 
@@ -209,8 +218,7 @@ namespace Nom.Orch.Services.Support
 
             var sentence = sentences[index];
             var clauseStart = ClauseBreak.Matches(sentence[..position]).Select(m => m.Index + m.Length).DefaultIfEmpty(0).Max();
-            var after = new List<string> { sentence[clauseStart..] };
-            after.AddRange(sentences.Skip(index + 1));
+            var after = Segment(sentence[clauseStart..], sentences.Skip(index + 1));
             var scan = Scan(after);
 
             if (!scan.Stove && !scan.Oven)
@@ -230,6 +238,25 @@ namespace Nom.Orch.Services.Support
             }
             if (scan.Flame) return Of(Flamed);
             return Of(UpTo, scan.Stove ? Simmer : Bake, scan.Minutes > 0 ? scan.Minutes : null);
+        }
+
+        /// <summary>
+        /// The part of the method that cooks the drink: its clause and the sentences after it, up to a
+        /// sentence that starts a separate preparation ("Meanwhile boil the pasta", "In another pan"),
+        /// which is left out, or through a sentence that chills, sets aside or serves the dish, after
+        /// which the heat is for something else ("Bake the shortcakes").
+        /// </summary>
+        private static List<string> Segment(string clause, IEnumerable<string> rest)
+        {
+            var segment = new List<string> { clause };
+            if (PauseStep.IsMatch(clause)) return segment;
+            foreach (var sentence in rest)
+            {
+                if (SeparateStep.IsMatch(sentence)) break;
+                segment.Add(sentence);
+                if (PauseStep.IsMatch(sentence)) break;
+            }
+            return segment;
         }
 
         private sealed record HeatScan(bool Stove, bool Oven, bool Flame, int Minutes, bool TimedOvenOnly);
@@ -365,7 +392,7 @@ namespace Nom.Orch.Services.Support
         internal static string SignatureSource()
         {
             var text = new StringBuilder(Version);
-            foreach (var regex in new[] { SentenceSplit, NotHeating, OffHeat, GasFlame, Stove, Oven, Flame, OvernightWords, Duration, MoreMinutes, ClauseBreak, AddVerb, DrinkGeneric })
+            foreach (var regex in new[] { SentenceSplit, NotHeating, OffHeat, GasFlame, Stove, Oven, Flame, OvernightWords, Duration, MoreMinutes, SeparateStep, PauseStep, ClauseBreak, AddVerb, DrinkGeneric })
                 text.Append('\n').Append(regex);
             foreach (var (pattern, replacement) in Phrases) text.Append('\n').Append(pattern).Append('=').Append(replacement);
             foreach (var row in Rows) text.Append('\n').Append(row.Code).Append('=').Append(row.Percent.ToString(CultureInfo.InvariantCulture)).Append(':').Append(row.Minutes?.ToString(CultureInfo.InvariantCulture));

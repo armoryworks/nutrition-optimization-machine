@@ -60,6 +60,10 @@ namespace Nom.Api.Tests.Services
         [InlineData("Remove from the heat and stir in the sherry.", "2 tbsp sherry", AlcoholRetention.HotLiquid, 0.85)]
         [InlineData("Pour the wine over the fruit.|Refrigerate overnight.", "1 cup wine", AlcoholRetention.Overnight, 0.70)]
         [InlineData("", "1 cup wine", AlcoholRetention.NoSteps, 1.0)]
+        [InlineData("Whip the cream with the brandy and sugar; chill.|Bake the shortcakes for 20 minutes.", "2 tbsp brandy", AlcoholRetention.NoHeat, 1.0)]
+        [InlineData("Add the wine and simmer 5 minutes.|Meanwhile boil the pasta 10 minutes.", "1/2 cup white wine", AlcoholRetention.UpTo, 0.85)]
+        [InlineData("Stir the rum into the cream and set aside.|Bake the cake for 40 minutes.", "2 tbsp rum", AlcoholRetention.NoHeat, 1.0)]
+        [InlineData("Add the sherry to the sauce and simmer 5 minutes.|In another pan, fry the mushrooms for 10 minutes.", "2 tbsp sherry", AlcoholRetention.UpTo, 0.85)]
         public void The_reader_gives_the_usda_factor_of_the_method_it_finds(string steps, string line, string kind, double factor)
         {
             var reading = AlcoholRetention.Read(steps.Split('|'), line);
@@ -174,6 +178,52 @@ namespace Nom.Api.Tests.Services
             (await db.AuditLogEntries.CountAsync(a => a.ChangeType == AlcoholRetentionService.ChangeType)).Should().Be(0);
             (await Label(Alcohol)).Should().Be(rawAlcohol);
             (await Label(Calories)).Should().Be(rawCalories);
+        }
+
+        [Fact]
+        public async Task The_undo_dry_run_counts_what_the_undo_then_restores_when_two_runs_changed_one_line()
+        {
+            using var db = NewContext();
+            var seeded = await SeedRecipeAsync(db);
+            var first = await Service(db).RunAsync(apply: true);
+            var step = await db.Set<RecipeStepEntity>().SingleAsync(s => s.RecipeId == seeded.RecipeId);
+            step.Description = "Add the wine and simmer 1 hour.";
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            (await Service(db).RunAsync(apply: true)).Changed.Should().Be(1);
+            (await db.RecipeIngredients.AsNoTracking().SingleAsync()).AlcoholRetention.Should().Be(0.25m);
+
+            var dry = await Service(db).UndoAsync(first.StampUtc.AddSeconds(-1));
+            var undo = await Service(db).UndoAsync(first.StampUtc.AddSeconds(-1), apply: true);
+
+            (dry.Restored, dry.Skipped).Should().Be((2, 0));
+            (undo.Restored, undo.Skipped).Should().Be((dry.Restored, dry.Skipped));
+            (await db.RecipeIngredients.AsNoTracking().SingleAsync()).AlcoholRetention.Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData(NoAlcoholRef, "No Alcohol")]
+        [InlineData(HalalRef, "Halal")]
+        public async Task A_drink_line_linked_to_a_flavouring_food_keeps_its_recipe_excluded(long typeId, string name)
+        {
+            using var db = NewContext();
+            var cream = await SeedRecipeAsync(db, wineGrams: 0m, servings: 12, steps: "Whip the cream with the brandy and sugar.");
+            var line = await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == cream.RecipeId);
+            db.RecipeIngredients.Remove(line);
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = cream.RecipeId, IngredientId = cream.VanillaId, Quantity = 60m, MeasurementId = Gram, RawLine = "1/4 cup brandy", SortOrder = 0 });
+            await db.SaveChangesAsync();
+
+            var set = await ResolveAsync(db, typeId, name);
+
+            set.RecipeIds.Should().Contain(cream.RecipeId, "the line reads as brandy whatever food it is linked to, and a wrong food cannot count it");
+            var recipe = await db.Recipes.AsNoTracking().Include(r => r.RecipeIngredients!).ThenInclude(ri => ri.Ingredient).Include(r => r.RecipeIngredients!).ThenInclude(ri => ri.Measurement)
+                .SingleAsync(r => r.Id == cream.RecipeId);
+            var note = RecipeNutritionService.AlcoholNote(recipe, new Dictionary<long, decimal> { [cream.VanillaId] = 34.4m });
+            note!.Flavourings.Should().BeEmpty();
+            note.Uncounted.Should().Equal("1/4 cup brandy");
+            if (typeId == HalalRef) return;
+            (await Orchestration(db).GetDietMatchesAsync(cream.RecipeId, PersonId)).Should().ContainSingle()
+                .Which.IngredientName.Should().Be("1/4 cup brandy");
         }
 
         [Fact]

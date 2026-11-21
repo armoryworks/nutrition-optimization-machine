@@ -169,7 +169,7 @@ namespace Nom.Orch.Services.Support
 
     /// <summary>
     /// Marks the diet gate's cached probes stale when a command writes a food, an alias, a food's
-    /// nutrients, a recipe line or a recipe's servings: at once for a command outside a transaction, at the commit for
+    /// nutrients, a recipe line, a recipe's servings or a measurement: at once for a command outside a transaction, at the commit for
     /// one inside, so a refresh never reads the state before an uncommitted write and keeps it.
     /// SaveChanges, bulk updates and raw SQL all pass here.
     /// </summary>
@@ -183,16 +183,21 @@ namespace Nom.Orch.Services.Support
             @"\b(?:INSERT\s+INTO|DELETE\s+FROM|TRUNCATE(?:\s+TABLE)?|COPY)\s+(?:ONLY\s+)?(?:""?recipe""?\.)?""?Recipe""?(?![\w""])|\bUPDATE\s+(?:ONLY\s+)?(?:""?recipe""?\.)?""?Recipe""?(?![\w""])[\s\S]*""(?:Servings|RecipeServings|IsDeleted)""",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+        private static readonly Regex MeasurementWrite = new(
+            @"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO|TRUNCATE(?:\s+TABLE)?|COPY)\s+(?:ONLY\s+)?(?:""?measurement""?\.)?""?Measurement""?(?![\w"".])",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
         private readonly DietGateCache _cache;
         private readonly ConditionalWeakTable<DbTransaction, object> _pending = new();
 
         public DietGateCacheInvalidator(DietGateCache cache) => _cache = cache;
 
-        /// <summary>Whether the command text writes a table the diet gate's probes read: a food, an alias, a food's nutrients, a recipe line (with its alcohol retention), or a recipe's servings, which the retained alcohol per serving divides by.</summary>
+        /// <summary>Whether the command text writes a table the diet gate's probes read: a food, an alias, a food's nutrients, a recipe line (with its alcohol retention), a recipe's servings, which the retained alcohol per serving divides by, or a measurement, by which a drink line is weighed.</summary>
         public static bool Touches(string? commandText) =>
             !string.IsNullOrEmpty(commandText)
             && ((commandText.Contains("Ingredient", StringComparison.OrdinalIgnoreCase) && Write.IsMatch(commandText))
-                || (commandText.Contains("Recipe", StringComparison.OrdinalIgnoreCase) && RecipeWrite.IsMatch(commandText)));
+                || (commandText.Contains("Recipe", StringComparison.OrdinalIgnoreCase) && RecipeWrite.IsMatch(commandText))
+                || (commandText.Contains("Measurement", StringComparison.OrdinalIgnoreCase) && MeasurementWrite.IsMatch(commandText)));
 
         /// <summary>Marks the cache stale for a write outside a transaction, or remembers the transaction for its commit.</summary>
         public void Executed(DbCommand command)

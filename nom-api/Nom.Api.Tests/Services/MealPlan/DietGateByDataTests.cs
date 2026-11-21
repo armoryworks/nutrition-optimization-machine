@@ -474,6 +474,10 @@ namespace Nom.Api.Tests.Services.MealPlan
         [InlineData("INSERT INTO recipe.\"Recipe\" (\"Name\", \"Servings\") VALUES (@p0, @p1) RETURNING \"Id\"", true)]
         [InlineData("UPDATE recipe.\"RecipeIngredient\" SET \"AlcoholRetention\" = @p0, \"AlcoholRetentionBasis\" = @p1 WHERE \"RecipeId\" = @p2", true)]
         [InlineData("UPDATE recipe.\"RecipeStep\" SET \"Description\" = @p0", false)]
+        [InlineData("UPDATE measurement.\"Measurement\" SET \"BaseUnitConversionFactor\" = @p0, \"IsContainer\" = @p1 WHERE \"Id\" = @p2", true)]
+        [InlineData("INSERT INTO measurement.\"Measurement\" (\"Name\", \"MeasurementCategoryId\") VALUES (@p0, @p1) RETURNING \"Id\"", true)]
+        [InlineData("UPDATE measurement.\"MeasurementConversion\" SET \"Factor\" = @p0", false)]
+        [InlineData("SELECT m.\"Id\" FROM measurement.\"Measurement\" AS m", false)]
         public void The_invalidator_knows_a_write_to_a_table_the_probes_read(string sql, bool touches)
         {
             DietGateCacheInvalidator.Touches(sql).Should().Be(touches);

@@ -45,7 +45,12 @@ Input: the recipe's steps in order and the drink line. The steps are split into 
    (stove), and bake, roast, broil, oven (oven). "Remove from the heat", "preheat", "baking soda" and
    the like are not heating. A heating sentence's first time ("30 minutes", "1 1/2 hours",
    "1-1/2 hours", "1½ hours", "half an hour", "an hour and a half", "1 hour 15 minutes", "20 to 25
-   minutes" read as 20, number words) is added up over the sentences from the drink on.
+   minutes" read as 20, number words) is added up over the sentences that cook the drink: from its
+   clause on, stopping before a sentence that starts a separate preparation ("Meanwhile boil the
+   pasta", "In another pan", "separately", "While the stew simmers") and after a sentence that
+   chills, cools, refrigerates, freezes, sets aside, reserves or serves the dish. Heat past that
+   point is for something else ("Whip the cream with the brandy; chill. Bake the shortcakes for 20
+   minutes." keeps all of the brandy), so it is not read; this can only raise the factor.
    - 15 minutes or more: the stirred-in rows by the largest time not above it (5004 to 5009); oven
      only and under 30 minutes: 5010 (45 %, the higher of 5004 and 5010).
    - Under 15 minutes, or heat with no time: "up to" the method's highest factor: 85 % (5002) on
@@ -57,8 +62,10 @@ Input: the recipe's steps in order and the drink line. The steps are split into 
    overnight or for days: 70 % (5001). Otherwise 100 %.
 
 The reader errs on the side of more alcohol: "up to" figures, the lower end of a range, seconds not
-counted as time, a drink the steps do not name read as "up to". A dish whose drink is heated after a
-marinade is discarded still reads the heating (the alcohol left in the dish is small either way).
+counted as time, a drink the steps do not name read as "up to", heat after a chilled, set-aside or
+separate step not read. A dish whose drink is heated after a marinade is discarded still reads the
+heating (the alcohol left in the dish is small either way). A sauce set aside and later returned to
+the pot and simmered reads as not heated after the pause (more alcohol than stays, the safe side).
 The stored basis says what was read: `no-steps`, `no-heat`, `overnight`, `hot-liquid`, `flamed`,
 `timed:<simmer|bake>:<minutes>`, `up-to:<simmer|bake>[:<minutes>]`.
 
@@ -86,15 +93,17 @@ edited steps).
 `POST api/FoodCatalog/alcohol-retention/undo?sinceUtc=<stamp>&apply=false` gives each line back the
 value it had before every entry at or after the time, newest first, skipping a line read again since
 (its value is no longer the entry's new value) and a recipe rebuilt since, and recalculates the
-recipes it changed.
+recipes it changed. The dry run follows each line through the entries it would restore, so when two
+runs changed the same line it counts both as restored, as the undo then does.
 
 ## The recipe page note (A8)
 
 `RecipeResponseModel.Alcohol` (`RecipeNutritionService.AlcoholNote`) counts the recipe's lines with
 `RecipeAlcohol.Count`: drinks (a line on a food that stores more than 0.5 g alcohol per 100 g that is
 not a flavouring), flavourings (a USDA Spices and Herbs food, or a food or line read as an extract or
-flavouring), and drink lines that cannot be counted (a drink line on a food with no alcohol figure,
-or one with no gram weight). Under the nutrition label (`nom-nutrition-label`,
+flavouring, unless the line's own text reads as a drink), and drink lines that cannot be counted (a
+drink line on a food with no alcohol figure, a drink line on a flavouring food such as "1/4 cup
+brandy" on Vanilla Extract, or one with no gram weight). Under the nutrition label (`nom-nutrition-label`,
 `data-testid="nutrition-alcohol-note"`, with `-drinks`, `-cooking`, `-flavouring`, `-uncounted`):
 
 - "Contains alcohol: Dry White Wine. As written, about 3 g alcohol per serving."
@@ -121,18 +130,20 @@ row to it, and leaves an admin-edited type alone). `DietCriteriaMatcher`:
   label's servings, or the whole recipe when it gives none), or where a drink line cannot be
   counted. The whole-catalog count (`RecipeAlcoholAsync`) is kept in `DietGateCache` under
   `recipe-alcohol:<nutrient>`, warmed at start-up, and marked stale by `DietGateCacheInvalidator` on
-  writes to recipe lines (which hold the retention), foods, nutrients and a recipe's servings
-  (`recipe."Recipe"` inserts, deletes and updates of `Servings`, `RecipeServings` or `IsDeleted`).
+  writes to recipe lines (which hold the retention), foods, nutrients, a recipe's servings
+  (`recipe."Recipe"` inserts, deletes and updates of `Servings`, `RecipeServings` or `IsDeleted`)
+  and measurements (`measurement."Measurement"`, whose factor and container flag weigh a drink line).
 - The recipe page's diet matches name each drink line of an excluded recipe, with "About 3 g of
   alcohol per serving stays after cooking, more than 0.5 g.", or each drink line that cannot be
   counted.
-- Flavourings never exclude (a note only).
+- Flavourings never exclude (a note only). A line whose own text reads as a drink is never a
+  flavouring, whatever its food.
 - A type with an uncapped alcohol row (Whole30) forbids every alcoholic food and every drink line,
   however long it cooks; an uncapped row on the same type wins over a capped one.
 
 ## Golden set and scorer
 
-`alcohol-retention.tsv` (70 rows: 60 rule-given, `rule:alcohol-retention`, `ok`; 10 realistic methods
+`alcohol-retention.tsv` (74 rows: 64 rule-given, `rule:alcohol-retention`, `ok`; 10 realistic methods
 judged by the builder, `agent-review-alcohol-retention-2026-11-21`, `agent`). No-model scorer lane
 `alcohol-retention` in `model-lanes.json` (`required`, floor 100 %, no false accept; a false accept is
 a factor below the row's). Record: `dotnet run --project nom-api/Nom.Import -- --golden-score --lane

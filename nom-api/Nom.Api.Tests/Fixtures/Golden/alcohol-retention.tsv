@@ -40,7 +40,7 @@ ar-038	Add the vermouth and simmer for 30 seconds.	2 tbsp dry vermouth	up-to:sim
 ar-039	Pour in the Madeira and reduce by half, about 10 minutes.	1/2 cup Madeira	up-to:simmer:10	0.85	ok	rule:alcohol-retention	the time after a comma belongs to the heat before it
 ar-040	Stir in the rum. | Bake at 350°F for 1 hour.	1/4 cup rum	timed:bake:60	0.25	ok	rule:alcohol-retention	an oven temperature is not a time
 ar-041	Add the cider and simmer for an hour.	2 cups hard cider	timed:simmer:60	0.25	ok	rule:alcohol-retention	an hour
-ar-042	Add the rum and cook for 2 hours, stirring. | Then bake for 30 minutes.	1 cup rum	timed:simmer:150	0.05	ok	rule:alcohol-retention	heating times after the drink add up
+ar-042	Add the rum and cook for 2 hours, stirring. | Then bake for 30 minutes.	1 cup rum	timed:simmer:150	0.05	ok	rule:alcohol-retention	heating times after the drink add up while the same dish cooks
 ar-043	Heat the brandy, ignite it and pour it flaming over the steak.	1/4 cup brandy	flamed	0.75	ok	rule:alcohol-retention	warmed and flamed with no time
 ar-044	Add the wine to the slow cooker and cook on low for 8 hours.	1 cup red wine	timed:simmer:480	0.05	ok	rule:alcohol-retention	long cooking: USDA 5009
 ar-045	Put the sherry in the trifle dish. | Top with custard and chill.	1/2 cup sherry	no-heat	1	ok	rule:alcohol-retention	a trifle
@@ -59,6 +59,10 @@ ar-057	Add the wine and simmer for an hour and a half.	1 cup red wine	timed:simm
 ar-058	Add the wine and simmer for a quarter of an hour.	1 cup red wine	timed:simmer:15	0.40	ok	rule:alcohol-retention	a quarter of an hour
 ar-059	Simmer onions 10 minutes, then add the wine and serve.	1/2 cup red wine	hot-liquid	0.85	ok	rule:alcohol-retention	heat in an earlier clause does not count, but the wine goes into the hot pan
 ar-060	Add the beer. | Grill the brats for 12 minutes.	1 can beer	up-to:simmer:12	0.85	ok	rule:alcohol-retention	grilled under 15 minutes
+ar-061	Whip the cream with the brandy and sugar; chill. | Bake the shortcakes for 20 minutes.	2 tbsp brandy	no-heat	1	ok	rule:alcohol-retention	the heat after a chilled step is for something else
+ar-062	Add the wine and simmer 5 minutes. | Meanwhile boil the pasta 10 minutes.	1/2 cup white wine	up-to:simmer:5	0.85	ok	rule:alcohol-retention	a separate preparation's time does not add up
+ar-063	Stir the rum into the cream and set aside. | Bake the cake for 40 minutes.	2 tbsp rum	no-heat	1	ok	rule:alcohol-retention	set aside: the oven is for the cake
+ar-064	Add the sherry to the sauce and simmer 5 minutes. | In another pan, fry the mushrooms for 10 minutes.	2 tbsp sherry	up-to:simmer:5	0.85	ok	rule:alcohol-retention	another pan is a separate preparation
 ar-101	Marinate the beef in the wine overnight. | Drain, reserving the marinade. | Brown the beef, add the marinade and braise for 3 hours.	1 bottle red wine	timed:simmer:180	0.05	agent	agent-review-alcohol-retention-2026-11-21	the marinade goes into the braise
 ar-102	In a saucepan melt the butter. | Add the shallots and cook 3 minutes. | Pour in the Marsala and simmer until syrupy, about 4 minutes. | Season and serve over the veal.	1/2 cup dry Marsala	up-to:simmer:4	0.85	agent	agent-review-alcohol-retention-2026-11-21	veal Marsala: a short reduction
 ar-103	Mix the coffee and the Marsala. | Dip the ladyfingers in the coffee mixture. | Layer with mascarpone and chill for 6 hours.	3 tbsp Marsala	no-heat	1	agent	agent-review-alcohol-retention-2026-11-21	tiramisu: never heated; six hours is not overnight

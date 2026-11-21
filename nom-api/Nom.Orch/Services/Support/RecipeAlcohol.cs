@@ -44,10 +44,11 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// The count over a recipe's lines. A line on an alcoholic food is a drink unless the food or the
-        /// line reads as a flavouring; its grams as written are the food's alcohol per 100 g times its
-        /// grams, and its retained grams those times its retention (all of it when not read). A line
-        /// whose own text reads as a drink while its food stores no alcohol is a drink that cannot be
-        /// counted. <paramref name="servings"/> is the label's servings, or null for whole-recipe totals.
+        /// line reads as a flavouring and the line's own text does not read as a drink; a drink line on a
+        /// flavouring food ("1/4 cup brandy" on Vanilla Extract) cannot be counted. A drink's grams as
+        /// written are the food's alcohol per 100 g times its grams, and its retained grams those times
+        /// its retention (all of it when not read). A line whose own text reads as a drink while its
+        /// food stores no alcohol is a drink that cannot be counted. <paramref name="servings"/> is the label's servings, or null for whole-recipe totals.
         /// </summary>
         public static RecipeAlcohol Count(IEnumerable<AlcoholLineFacts> lines, decimal? servings)
         {
@@ -61,13 +62,14 @@ namespace Nom.Orch.Services.Support
                 {
                     var weighable = (line.LineKind == null || line.LineKind == "ingredient") && line.Quantity > 0m && line.Grams is > 0m;
                     var factor = line.Retention is { } r && r >= 0m && r <= 1m ? r : 1m;
-                    if (line.FoodIsFlavouring || AlcoholLineContext.IsFlavouring(reading))
+                    var lineIsDrink = AlcoholLineContext.CountsForDiet(reading);
+                    if (!lineIsDrink && (line.FoodIsFlavouring || AlcoholLineContext.IsFlavouring(reading)))
                     {
                         flavourings.Add(Name(line));
                         if (weighable) flavouring += per100 * line.Grams!.Value / 100m * factor;
                         continue;
                     }
-                    if (!weighable)
+                    if (!weighable || (lineIsDrink && line.FoodIsFlavouring))
                     {
                         drinks.Add(new AlcoholDrinkLine(line.IngredientId, line.RawLine, line.FoodName, null, null, line.Retention, line.RetentionBasis));
                         continue;
