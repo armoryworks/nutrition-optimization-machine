@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nom.Api.Services;
+using Nom.Data.Curation;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
 using Nom.Orch.Services.Support;
@@ -50,8 +51,11 @@ namespace Nom.Api.Controllers
         /// Run one pass of the lane over at most max wordings, as the hosted lane does but without its
         /// model audit: every decision is recorded on the lane frame in the mode the lane would write in
         /// (paused while a pause switch holds the lane, else the tier's own mode), so a shadow sample
-        /// builds up for the audit and the operator's reading; only a tier the frame holds live writes
-        /// rows, within its daily cap.
+        /// builds up for the audit and the operator's reading. Only while WordingTiers:Enabled is true
+        /// and no pause switch holds the lane does a tier the frame holds live write rows, within its
+        /// daily cap, does the pass recover rows a tier loaded but never recorded, and are the pass's
+        /// faults evaluated on the frame (no new audit), so a fault pauses the tier and undoes its
+        /// writes as in the lane. Otherwise a live tier decides in shadow and nothing is written.
         /// </summary>
         [HttpPost("run")]
         public async Task<ActionResult<WordingTierBatchResult>> Run([FromQuery] int max = 100, CancellationToken cancellationToken = default)
@@ -61,16 +65,26 @@ namespace Nom.Api.Controllers
                 return BadRequest(new { message = $"max must be 1 to {MaxPass}" });
             }
 
+            var acts = WordingTierHostedService.Enabled(_configuration) && !await _gate.PausedAsync(AiLanes.WordingTiers);
             var caps = WordingTierHostedService.Caps(_configuration);
             var modes = new Dictionary<string, string>();
             var remaining = new Dictionary<string, int>();
             foreach (var tier in WordingTiers.All)
             {
-                modes[tier] = await _gate.WriteModeAsync(AiLanes.WordingTiers, tier, cancellationToken);
+                var mode = await _gate.WriteModeAsync(AiLanes.WordingTiers, tier, cancellationToken);
+                modes[tier] = !acts && mode == LaneMode.Live ? LaneMode.Shadow : mode;
                 remaining[tier] = Math.Max(0, caps[tier] - await _tiers.WritesTodayAsync(tier, cancellationToken));
             }
 
-            return Ok(await _tiers.RunBatchAsync(modes, max, remaining, cancellationToken));
+            var batch = await _tiers.RunBatchAsync(modes, max, remaining, recover: acts, cancellationToken: cancellationToken);
+            if (!acts) return Ok(batch);
+
+            foreach (var (tier, faults) in batch.FaultsByTier.Where(f => f.Value.Count > 0 && WordingTiers.All.Contains(f.Key)))
+            {
+                var verdict = await _tiers.EvaluateFaultsAsync(tier, faults, cancellationToken);
+                batch.Evaluated[tier] = $"{verdict.Mode}: {verdict.Reason}";
+            }
+            return Ok(batch);
         }
     }
 }

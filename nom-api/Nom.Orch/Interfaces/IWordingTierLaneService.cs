@@ -23,9 +23,10 @@ namespace Nom.Orch.Interfaces
         /// Decides at most <paramref name="max"/> wordings. <paramref name="modes"/> gives each tier's
         /// mode (a tier missing is shadow); <paramref name="remaining"/> the writes each tier may still
         /// make in 24 hours (missing is no cap). A wording whose tier has no allowance left is left for
-        /// a later pass.
+        /// a later pass. With <paramref name="recover"/> false the pass does not look for rows a tier
+        /// loaded but never recorded, so it neither retracts nor relinks them.
         /// </summary>
-        Task<WordingTierBatchResult> RunBatchAsync(IReadOnlyDictionary<string, string> modes, int max, IReadOnlyDictionary<string, int>? remaining = null, CancellationToken cancellationToken = default);
+        Task<WordingTierBatchResult> RunBatchAsync(IReadOnlyDictionary<string, string> modes, int max, IReadOnlyDictionary<string, int>? remaining = null, bool recover = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// An operator's dry run over at most <paramref name="max"/> waiting wordings after the first
@@ -37,6 +38,9 @@ namespace Nom.Orch.Interfaces
 
         /// <summary>Audits a sample of the tier's decisions and evaluates the tier on the frame with its faults.</summary>
         Task<LaneQualifyVerdict> AuditAndEvaluateAsync(string tier, IReadOnlyList<string> faults, CancellationToken cancellationToken = default);
+
+        /// <summary>Evaluates the tier on the frame with its faults and the audits already recorded, without a new audit, so no model is asked.</summary>
+        Task<LaneQualifyVerdict> EvaluateFaultsAsync(string tier, IReadOnlyList<string> faults, CancellationToken cancellationToken = default);
 
         /// <summary>The tier's decisions that write in the last 24 hours, against its daily cap.</summary>
         Task<int> WritesTodayAsync(string tier, CancellationToken cancellationToken = default);

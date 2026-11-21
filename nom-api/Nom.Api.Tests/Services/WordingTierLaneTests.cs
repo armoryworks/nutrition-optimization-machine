@@ -4,12 +4,14 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Nom.Api.Controllers;
 using Nom.Api.Services;
 using Nom.Data;
 using Nom.Data.Curation;
@@ -153,6 +155,152 @@ namespace Nom.Api.Tests.Services
             (await db.LaneDecisions.CountAsync()).Should().Be(decisions, "a preview records no decision, and a wording decided already is previewed again");
             (await db.IngredientWordings.CountAsync()).Should().Be(0);
             (await Lane(db).PreviewAsync(1, 100, 5)).Read.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task The_dry_run_gives_the_next_skip_so_paging_reads_each_waiting_wording_once()
+        {
+            using var db = NewContext();
+            await KitchenAsync(db);
+            var odd = Wording("Light  Creams, Divided");
+            IngredientNameNormalizer.WordingKey(odd.Name).Should().NotBe(odd.Name.ToLowerInvariant());
+            db.Ingredients.Add(odd);
+            await db.SaveChangesAsync();
+            db.Recipes.Add(Recipe("Trifle", (odd, "1 g light creams", 1m, Gram), (odd, "2 g light creams", 2m, Gram), (odd, "3 g light creams", 3m, Gram)));
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var first = await Lane(db).PreviewAsync(0, 1, 5);
+            first.Should().Match<WordingTierPreview>(p => p.Read == 1 && p.NotKeyForm == 1 && p.NextSkip == 2,
+                "skip counts waiting rows, read counts key-form wordings only, so the next page starts after both (review CK4U-2)");
+
+            var read = new List<string>();
+            var skip = 0;
+            for (var page = 0; page < 5; page++)
+            {
+                var preview = await Lane(db).PreviewAsync(skip, 1, 5);
+                if (preview.Read == 0) break;
+                read.AddRange(preview.Samples.Values.SelectMany(v => v).Select(v => v.Wording));
+                skip = preview.NextSkip;
+            }
+            read.Should().BeEquivalentTo(new[] { "light creams", "baking soda" }, o => o.WithoutStrictOrdering());
+        }
+
+        private sealed class RunRig : IDisposable
+        {
+            public required ServiceProvider Provider { get; init; }
+            public required ApplicationDbContext Db { get; init; }
+            public required IServiceScope Scope { get; init; }
+            public required WordingTierController Controller { get; init; }
+
+            public void Dispose()
+            {
+                Scope.Dispose();
+                Provider.Dispose();
+            }
+        }
+
+        private sealed class FaultingTiers : IWordingTierLaneService
+        {
+            private readonly IWordingTierLaneService _inner;
+            public FaultingTiers(IWordingTierLaneService inner) => _inner = inner;
+            public string Signature(string tier) => _inner.Signature(tier);
+            public async Task<WordingTierBatchResult> RunBatchAsync(IReadOnlyDictionary<string, string> modes, int max, IReadOnlyDictionary<string, int>? remaining = null, bool recover = true, CancellationToken cancellationToken = default)
+            {
+                var batch = await _inner.RunBatchAsync(modes, max, remaining, recover, cancellationToken);
+                batch.FaultsByTier[WordingTiers.NameKey] = new List<string> { "the verified wording loader refused 2 of 20 rows the tier would write, over 5 %" };
+                return batch;
+            }
+            public Task<WordingTierPreview> PreviewAsync(int skip, int max, int sampleSize, CancellationToken cancellationToken = default) => _inner.PreviewAsync(skip, max, sampleSize, cancellationToken);
+            public Task<LaneQualifyVerdict> AuditAndEvaluateAsync(string tier, IReadOnlyList<string> faults, CancellationToken cancellationToken = default) => throw new NotSupportedException("an operator's pass asks no model");
+            public Task<LaneQualifyVerdict> EvaluateFaultsAsync(string tier, IReadOnlyList<string> faults, CancellationToken cancellationToken = default) => _inner.EvaluateFaultsAsync(tier, faults, cancellationToken);
+            public Task<int> WritesTodayAsync(string tier, CancellationToken cancellationToken = default) => _inner.WritesTodayAsync(tier, cancellationToken);
+        }
+
+        private static async Task<RunRig> RunRigAsync(bool enabled, bool pauseAll, string? liveTier, bool faulting = false)
+        {
+            var name = Guid.NewGuid().ToString();
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddMemoryCache();
+            services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(name).ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
+            services.AddScoped<IPlatformFeatureService, PlatformFeatureService>();
+            services.AddScoped<ILaneFrameService, LaneFrameService>();
+            var provider = services.BuildServiceProvider();
+            var scope = provider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            if (liveTier != null)
+            {
+                db.LaneStates.Add(new LaneStateEntity { Lane = AiLanes.WordingTiers, Tier = liveTier, Mode = LaneMode.Live, Since = DateTime.UtcNow, WindowStart = DateTime.UtcNow });
+                await db.SaveChangesAsync();
+            }
+            if (pauseAll)
+            {
+                await new PlatformFeatureService(db, provider.GetRequiredService<IMemoryCache>(), NullLogger<PlatformFeatureService>.Instance).SetAsync(AiLanes.PauseAllKey, true, 4);
+            }
+            db.ChangeTracker.Clear();
+            var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Ai:QuietHours"] = "",
+                ["WordingTiers:Enabled"] = enabled ? "true" : "false",
+            }).Build();
+            var gate = new AiLaneGate(provider.GetRequiredService<IServiceScopeFactory>(), configuration,
+                new AiHostMonitor(new NoClients(), configuration, NullLogger<AiHostMonitor>.Instance), NullLogger<AiLaneGate>.Instance);
+            IWordingTierLaneService lane = Lane(db);
+            if (faulting) lane = new FaultingTiers(lane);
+            return new RunRig { Provider = provider, Scope = scope, Db = db, Controller = new WordingTierController(lane, gate, configuration) };
+        }
+
+        private static WordingTierBatchResult Ran(ActionResult<WordingTierBatchResult> result) =>
+            (WordingTierBatchResult)((OkObjectResult)result.Result!).Value!;
+
+        [Fact]
+        public async Task An_operators_pass_with_the_pauses_on_never_retracts_a_row_loaded_but_never_recorded()
+        {
+            using var rig = await RunRigAsync(enabled: true, pauseAll: true, liveTier: null);
+            var k = await KitchenAsync(rig.Db);
+            await LoadWithoutRecordAsync(rig.Db, k);
+
+            var batch = Ran(await rig.Controller.Run(10));
+            rig.Db.ChangeTracker.Clear();
+
+            batch.RecoveredRetracted.Should().Be(0, "a pass under ai-pause-all must not change a wording row (review CK4U-3)");
+            batch.RecoverySkipped.Should().Be(WordingTierLaneService.NoRecovery);
+            (await rig.Db.IngredientWordings.CountAsync()).Should().Be(1);
+            (await rig.Db.IngredientWordingRejections.CountAsync()).Should().Be(0);
+            (await rig.Db.LaneDecisions.Where(d => d.Tier != WordingTierLaneService.AbstainTier).AllAsync(d => d.Mode == LaneMode.Paused && !d.Written)).Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task An_operators_pass_while_the_lane_is_off_writes_nothing_even_for_a_tier_live_on_the_frame()
+        {
+            using var rig = await RunRigAsync(enabled: false, pauseAll: false, liveTier: WordingTiers.NameKey);
+            var k = await KitchenAsync(rig.Db);
+
+            var batch = Ran(await rig.Controller.Run(10));
+            rig.Db.ChangeTracker.Clear();
+
+            batch.Modes[WordingTiers.NameKey].Should().Be(LaneMode.Shadow, "WordingTiers:Enabled=false keeps every write out of the operator's pass (review CK4U-1)");
+            batch.WrittenByTier.Should().BeEmpty();
+            (await rig.Db.IngredientWordings.CountAsync()).Should().Be(0);
+            (await rig.Db.RecipeIngredients.CountAsync(ri => ri.IngredientId == k.Cream.Id)).Should().Be(0);
+            (await rig.Db.LaneStates.SingleAsync(s => s.Tier == WordingTiers.NameKey)).Mode.Should().Be(LaneMode.Live);
+        }
+
+        [Fact]
+        public async Task An_operators_pass_that_writes_has_its_faults_evaluated_on_the_frame_without_a_model()
+        {
+            using var rig = await RunRigAsync(enabled: true, pauseAll: false, liveTier: WordingTiers.NameKey, faulting: true);
+            await KitchenAsync(rig.Db);
+
+            var batch = Ran(await rig.Controller.Run(10));
+            rig.Db.ChangeTracker.Clear();
+
+            batch.WrittenByTier.Should().Contain(WordingTiers.NameKey, 1);
+            batch.Evaluated.Should().ContainKey(WordingTiers.NameKey).WhoseValue.Should().StartWith(LaneMode.Paused,
+                "the faults of a pass that wrote reach the frame's pause rule (review CK4U-1)");
+            (await rig.Db.LaneStates.SingleAsync(s => s.Tier == WordingTiers.NameKey)).Mode.Should().Be(LaneMode.Paused);
+            (await rig.Db.LaneDecisions.AnyAsync(d => d.AuditOutcome != null)).Should().BeFalse("no audit ran, so no model was asked");
         }
 
         [Fact]

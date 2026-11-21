@@ -125,14 +125,24 @@ they could not be measured with the pauses on). Neither call asks a model.
   lines read, `byTier` for each tier (wordings and lines it answers, held, refused by the loader,
   would write, and `wordingShare` / `lineShare`: the share of the wordings and lines read that the
   tier would write), `heldByRule`, `refusedByReason`, `abstainedByReason`, and up to `sampleSize`
-  samples per tier (wording, lines, food, the tier's detail, the hold, five lines). Page with `skip`
-  until `read` is 0; the sum of `wouldWrite` over the pages is the tiers' coverage of the backlog.
+  samples per tier (wording, lines, food, the tier's detail, the hold, five lines). `skip` counts
+  waiting rows, while `max` and `read` count only wordings in key form (`notKeyForm` are walked and
+  not read), so page with the answer's `nextSkip` (`skip` + `read` + `notKeyForm`), never with
+  `skip` + `max` or `skip` + `read`, until `read` is 0; the sum of `wouldWrite` over the pages is the
+  tiers' coverage of the backlog. The backlog can change between calls; for a fixed reading, page
+  while nothing writes wordings.
 - `POST /api/FoodCatalog/wording-tiers/run?max=100` runs one pass of the lane over at most 1,000
-  wordings without its audit: steps 1 to 5 in the mode the lane would write in (paused while a pause
-  switch holds the lane, otherwise each tier's mode on the frame), within the daily caps. With the
-  pauses on, every decision is recorded and no row is written, which builds the sample the audit and
-  the operator's 150-row reading need on staging; only a tier the frame holds live, with no pause
-  switch on, writes rows. The frame's audit and evaluation still run only in the lane.
+  wordings without its audit, in the mode the lane would write in (paused while a pause switch holds
+  the lane, otherwise each tier's mode on the frame), within the daily caps. It acts as the lane only
+  while `WordingTiers:Enabled` is true and no pause switch holds the lane: then a tier the frame holds
+  live writes rows, the pass first recovers rows a tier loaded but never recorded (as the lane does),
+  and the pass's faults (`faultsByTier`) are evaluated on the frame with the audits already recorded,
+  without a new audit, so a fault pauses a live tier and undoes its writes as it would in the lane;
+  the answer's `evaluated` gives each such verdict. Otherwise (the lane off in config, or a pause
+  switch on) a tier live on the frame decides in shadow, the recovery does not run
+  (`recoverySkipped`), nothing is evaluated, and no wording row, rejection or recipe line changes:
+  only the decisions are recorded, which builds the sample the audit and the operator's 150-row
+  reading need on staging. The model audit still runs only in the lane.
 
 **Bars.** T1 (`verified-wording`, `alias`, `staple`): qualify on a Wilson lower bound of 99 %, pause
 when a full window's observed corrected error is over 1.5 %. T2 (`name-key`, `alcohol-context`,

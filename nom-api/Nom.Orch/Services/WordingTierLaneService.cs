@@ -126,7 +126,7 @@ namespace Nom.Orch.Services
 
         private sealed record Pending(Candidate Candidate, string Wording, WordingTierDecision Decision, List<LineRow> Lines, string Stratum);
 
-        public async Task<WordingTierBatchResult> RunBatchAsync(IReadOnlyDictionary<string, string> modes, int max, IReadOnlyDictionary<string, int>? remaining = null, CancellationToken cancellationToken = default)
+        public async Task<WordingTierBatchResult> RunBatchAsync(IReadOnlyDictionary<string, string> modes, int max, IReadOnlyDictionary<string, int>? remaining = null, bool recover = true, CancellationToken cancellationToken = default)
         {
             var now = DateTime.UtcNow;
             var batch = new WordingTierBatchResult { Stamp = now };
@@ -135,7 +135,8 @@ namespace Nom.Orch.Services
             var signatures = WordingTiers.All.ToDictionary(t => t, Signature);
             signatures[AbstainTier] = WordingTiers.Signature;
 
-            await RecoverAsync(batch, signatures, cancellationToken);
+            if (recover) await RecoverAsync(batch, signatures, cancellationToken);
+            else batch.RecoverySkipped = NoRecovery;
             var candidates = await CandidatesAsync(signatures, batch.Modes, Math.Max(0, max), batch, cancellationToken);
             if (candidates.Count == 0) return batch;
 
@@ -301,9 +302,11 @@ namespace Nom.Orch.Services
             var waiting = await WaitingQuery(_db).ToListAsync(cancellationToken);
             preview.Waiting = waiting.Count;
             var candidates = new List<Candidate>();
+            preview.NextSkip = preview.Skip;
             foreach (var w in waiting.Skip(preview.Skip))
             {
                 if (candidates.Count >= Math.Max(0, max)) break;
+                preview.NextSkip++;
                 if (!string.Equals(IngredientNameNormalizer.WordingKey(w.Name), w.Name.ToLowerInvariant(), StringComparison.Ordinal))
                 {
                     preview.NotKeyForm++;
@@ -720,10 +723,12 @@ namespace Nom.Orch.Services
             return holds;
         }
 
+        /// <summary>Why a pass that was asked not to recover did not: <see cref="RecoverAsync"/> retracts rows of a paused tier.</summary>
+        public const string NoRecovery = "not run: a pass outside the lane, or while a pause switch holds it, never retracts or relinks a row loaded but never recorded";
+
         public async Task<LaneQualifyVerdict> AuditAndEvaluateAsync(string tier, IReadOnlyList<string> faults, CancellationToken cancellationToken = default)
         {
             var reasons = faults.ToList();
-            var (score, golden) = WordingTierAuditRecord.Evaluate(WordingTierAuditRecord.Embedded(), _judges.AuditorModel, _judges.CheckModel);
             if (!_judges.IsConfigured)
             {
                 reasons.Add("no model host or model is set for the auditor and reader B (Ai:BatchOllamaUrl or Ai:OllamaUrl, Ai:Roster)");
@@ -743,7 +748,16 @@ namespace Nom.Orch.Services
                 }
             }
 
-            return await _frame.EvaluateAsync(new LaneEvaluateRequest(Lane, tier, Signature(tier), Policy(tier), score, golden, reasons), cancellationToken);
+            return await EvaluateAsync(tier, reasons, cancellationToken);
+        }
+
+        public Task<LaneQualifyVerdict> EvaluateFaultsAsync(string tier, IReadOnlyList<string> faults, CancellationToken cancellationToken = default) =>
+            EvaluateAsync(tier, faults.ToList(), cancellationToken);
+
+        private Task<LaneQualifyVerdict> EvaluateAsync(string tier, List<string> reasons, CancellationToken cancellationToken)
+        {
+            var (score, golden) = WordingTierAuditRecord.Evaluate(WordingTierAuditRecord.Embedded(), _judges.AuditorModel, _judges.CheckModel);
+            return _frame.EvaluateAsync(new LaneEvaluateRequest(Lane, tier, Signature(tier), Policy(tier), score, golden, reasons), cancellationToken);
         }
 
         public Task<int> WritesTodayAsync(string tier, CancellationToken cancellationToken = default)

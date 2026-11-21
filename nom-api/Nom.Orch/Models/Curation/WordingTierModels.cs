@@ -47,6 +47,12 @@ namespace Nom.Orch.Models.Curation
         public List<string> Batches { get; set; } = new();
         public Dictionary<string, List<string>> FaultsByTier { get; set; } = new();
 
+        /// <summary>Why the pass did not look for rows a tier loaded but never recorded; null when it looked.</summary>
+        public string? RecoverySkipped { get; set; }
+
+        /// <summary>The frame's verdict on each tier the pass's faults were evaluated for, by an operator's pass.</summary>
+        public Dictionary<string, string> Evaluated { get; set; } = new();
+
         /// <summary>The tiers that decided anything in this pass.</summary>
         public HashSet<string> Tiers { get; set; } = new();
     }
@@ -94,6 +100,10 @@ namespace Nom.Orch.Models.Curation
         public string Signature { get; set; } = string.Empty;
         public int Waiting { get; set; }
         public int Skip { get; set; }
+
+        /// <summary>The skip of the next page: this skip plus every waiting row walked, read or not in key form.</summary>
+        public int NextSkip { get; set; }
+
         public int Read { get; set; }
         public int ReadLines { get; set; }
         public int NotKeyForm { get; set; }
