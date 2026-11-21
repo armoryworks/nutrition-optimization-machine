@@ -27,12 +27,13 @@ all_crit AS (
            CASE WHEN c."NutrientId" IS NOT NULL THEN 'nutrient'
                 WHEN left(btrim(c."IngredientPattern"), 2) = '\m' THEN 'word'
                 ELSE 'like' END AS kind,
-           coalesce(lower(btrim(n."Name")) = 'alcohol', false) AS alcohol
+           coalesce(lower(btrim(n."Name")) = 'alcohol', false) AS alcohol,
+           c."MaxAmountPerServing" IS NULL AS uncapped
     FROM types t
     JOIN plan."RestrictionCriterion" c ON c."RestrictionTypeId" = t.type_id
     LEFT JOIN nutrient."Nutrient" n ON n."Id" = c."NutrientId"
     WHERE NOT c."IsDeleted"
-      AND ((c."NutrientId" IS NOT NULL AND c."MaxAmountPerServing" IS NULL)
+      AND (c."NutrientId" IS NOT NULL
            OR (c."NutrientId" IS NULL AND btrim(coalesce(c."IngredientPattern", '')) <> ''))
 ),
 crit AS (
@@ -42,7 +43,7 @@ word_crit AS (
     SELECT type_id, pattern FROM all_crit WHERE kind = 'word'
 ),
 nut_crit AS (
-    SELECT DISTINCT type_id, nutrient_id, alcohol FROM all_crit WHERE kind = 'nutrient'
+    SELECT DISTINCT type_id, nutrient_id, alcohol, uncapped FROM all_crit WHERE kind = 'nutrient'
 ),
 alcohol_types AS (
     SELECT DISTINCT type_id FROM nut_crit WHERE alcohol
@@ -97,8 +98,9 @@ nutrient_foods AS (
     FROM nut_crit n
     JOIN nutrient."IngredientNutrient" x ON x."NutrientId" = n.nutrient_id AND NOT x."IsDeleted" AND x."Amount" > 0.5
     JOIN recipe."Ingredient" i ON i."Id" = x."IngredientId" AND NOT i."IsDeleted"
-    WHERE NOT n.alcohol
-       OR (i."FdcCategoryId" IS DISTINCT FROM 2 AND i."Name" !~* '\m(?:extracts?|essences?|flavou?r\w*)\M')
+    WHERE n.uncapped
+      AND (NOT n.alcohol
+       OR (i."FdcCategoryId" IS DISTINCT FROM 2 AND i."Name" !~* '\m(?:extracts?|essences?|flavou?r\w*)\M'))
     UNION
     SELECT n.type_id, i."Id"
     FROM nut_crit n

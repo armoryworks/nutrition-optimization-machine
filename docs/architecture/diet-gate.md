@@ -108,7 +108,12 @@ change leaves as they were, the same way before and after: the word patterns (by
 alias with no drink word, which after the change also needs a trusted source), the nutrient
 criteria with no per-serving cap (a stored figure above 0.5 g per 100 g; for alcohol not a spice or
 a flavouring, plus a food named as a drink with no alcohol figure) and, for a type with the alcohol
-criterion, every recipe with a drink line. So a Halal recipe whose butter alias goes but whose
+criterion, every recipe with a drink line. A capped alcohol criterion (No Alcohol and Halal since
+`cleanup2/alcohol-retention`, see `alcohol-retention.md`) counts a food named as a drink with no
+alcohol figure and every recipe with a drink line, since the script cannot read how much alcohol
+stays after cooking; a stored figure of any nutrient criterion, capped or not, decides a word
+pattern's food as in the code. So a Halal recipe whose cooked-off wine line would let it back is
+still counted as kept out, in both columns. A Halal recipe whose butter alias goes but whose
 brandy line stays is not counted as lost, and a line that names a word pattern counts as "kept by a
 line". The script cannot run the alcohol reader, so a drink word is read by the shared drink-word
 probe (`AlcoholLineContext.DrinkNamePattern`, kept equal to the code by a test) less a short list of

@@ -11,8 +11,9 @@ namespace Nom.Api.Tests.Services.MealPlan
 {
     /// <summary>
     /// ops/diet-gate-count.sql, the staging count of the diet gate's name-pattern change, reads every
-    /// criterion the gate reads: beside the <c>%</c> patterns, the word patterns and the nutrient
-    /// criteria with no per-serving cap, and for an alcohol type the drink lines, so a recipe a word,
+    /// criterion the gate reads: beside the <c>%</c> patterns, the word patterns, the nutrient
+    /// criteria with no per-serving cap, every nutrient criterion's stored figure as deciding a word
+    /// pattern's food, and for an alcohol type, capped or not, the drink lines, so a recipe a word,
     /// a stored figure or a drink line still keeps out is never counted as lost. Its shared values
     /// are the code's own: the drink-word probe, the presence threshold, the trusted alias sources
     /// and the category patterns.
