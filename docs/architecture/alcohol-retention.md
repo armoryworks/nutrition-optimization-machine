@@ -118,9 +118,16 @@ The FDA-style label itself is unchanged.
 
 ## The diet gate (owner answer 6)
 
-No Alcohol and Halal carry the alcohol nutrient row with `MaxAmountPerServing` = 0.5 g
+No Alcohol carries the alcohol nutrient row with `MaxAmountPerServing` = 0.5 g
 (`DefaultRestrictionCriteria.MaxPerServingByName`; `EnsureAsync` moves an untouched uncapped default
-row to it, and leaves an admin-edited type alone). `DietCriteriaMatcher`:
+row to it, and leaves an admin-edited type alone). Halal and Whole30 carry the uncapped row and
+exclude a recipe with any drink line, however long it cooks: many Halal observers avoid wine as an
+ingredient whatever the cooking (lead decision after wave 6, `cleanup2/ck3-small`; Halal was capped
+from `cleanup2/alcohol-retention` until then, and `EnsureAsync` moves an untouched capped Halal row
+back to the uncapped default). Flavouring extracts get the page note only, for all three.
+So a beef stew with a cup of wine braised 2.5 hours (about 0.16 g per serving of 8) is offered to a
+No Alcohol household and kept out for a Halal one (`diet-gate.tsv` dg-33 to dg-40).
+`DietCriteriaMatcher`:
 
 - A capped alcohol criterion forbids no food that stores an alcohol figure. A food with no alcohol
   figure whose own name reads as a drink is still forbidden, and the word patterns still flag names

@@ -26,8 +26,8 @@ namespace Nom.Api.Tests.Services
     /// "up to" the method's highest factor with no time; the recalculation lowers the alcohol by what
     /// does not stay and the energy by 6.93 kcal per gram of it; a run is journaled and undone; the
     /// recipe page's note names drinks, flavourings and drink lines that cannot be counted; and No
-    /// Alcohol and Halal exclude a recipe only when more than 0.5 g of its drinks' alcohol stays per
-    /// serving or a drink line cannot be counted, while Whole30 still excludes any drink.
+    /// Alcohol excludes a recipe only when more than 0.5 g of its drinks' alcohol stays per serving or
+    /// a drink line cannot be counted, while Halal and Whole30 exclude any drink however long it cooks.
     /// </summary>
     public class AlcoholRetentionTests
     {
@@ -268,11 +268,11 @@ namespace Nom.Api.Tests.Services
         private static RecipeOrchestrationService Orchestration(ApplicationDbContext db) =>
             new(db, new HttpContextAccessor(), new Mock<ICurrentUserService>().Object, new Mock<Nom.Orch.UtilityInterfaces.IMediaStorageService>().Object, new Mock<IRecipeNutritionService>().Object);
 
-        [Theory]
-        [InlineData(NoAlcoholRef, "No Alcohol")]
-        [InlineData(HalalRef, "Halal")]
-        public async Task No_alcohol_and_halal_exclude_a_recipe_only_above_half_a_gram_of_retained_drink_alcohol_per_serving(long typeId, string name)
+        [Fact]
+        public async Task No_alcohol_excludes_a_recipe_only_above_half_a_gram_of_retained_drink_alcohol_per_serving()
         {
+            const long typeId = NoAlcoholRef;
+            const string name = "No Alcohol";
             using var db = NewContext();
             var stew = await SeedRecipeAsync(db, wineGrams: 236m, servings: 8, steps: "Add the wine and braise for 2 1/2 hours.");
             var unread = await SeedRecipeAsync(db, wineGrams: 236m, servings: 8, steps: "Add the wine and braise for 2 1/2 hours.");
@@ -298,7 +298,6 @@ namespace Nom.Api.Tests.Services
             set.RecipeIds.Should().Contain(spritzer.RecipeId, "an uncooked glass of wine keeps all of its alcohol");
             set.RecipeIds.Should().Contain(toTaste.RecipeId, "a drink line with no amount cannot be counted, so it is the safe side");
             set.IngredientIds.Should().NotContain(new[] { stew.WineId, cake.VanillaId });
-            if (typeId == HalalRef) return;
 
             var service = Orchestration(db);
             (await service.GetDietMatchesAsync(stew.RecipeId, PersonId)).Should().BeEmpty();
@@ -309,16 +308,29 @@ namespace Nom.Api.Tests.Services
                 .Which.IngredientName.Should().Be("white wine to taste");
         }
 
-        [Fact]
-        public async Task Whole30_still_excludes_any_drink_however_long_it_cooks()
+        [Theory]
+        [InlineData(HalalRef, "Halal")]
+        [InlineData(Whole30Ref, "Whole30")]
+        public async Task Halal_and_whole30_exclude_any_drink_however_long_it_cooks_and_leave_flavourings_to_a_note(long typeId, string name)
         {
             using var db = NewContext();
             var stew = await SeedRecipeAsync(db, wineGrams: 236m, servings: 8, steps: "Add the wine and braise for 2 1/2 hours.");
-            await Service(db).RunAsync(apply: true);
+            var cake = await SeedRecipeAsync(db, wineGrams: 0m, servings: 8, steps: "Beat in the vanilla. Bake 30 minutes.");
+            var cakeLine = await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == cake.RecipeId);
+            db.RecipeIngredients.Remove(cakeLine);
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = cake.RecipeId, IngredientId = cake.VanillaId, Quantity = 8m, MeasurementId = Gram, RawLine = "2 tsp vanilla extract", SortOrder = 0 });
+            await db.SaveChangesAsync();
+            await Service(db).RunAsync(apply: true, afterRecipeId: 0);
+            (await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == stew.RecipeId)).AlcoholRetention.Should().Be(0.05m);
 
-            var set = await ResolveAsync(db, Whole30Ref, "Whole30");
+            var set = await ResolveAsync(db, typeId, name);
 
-            set.IngredientIds.Should().Contain(stew.WineId);
+            set.IngredientIds.Should().Contain(stew.WineId, "about 0.15 g per serving stays, and any drink is excluded");
+            set.IngredientIds.Should().NotContain(cake.VanillaId, "a flavouring gets a note, never an exclusion");
+            set.RecipeIds.Should().NotContain(cake.RecipeId);
+            var service = Orchestration(db);
+            (await service.GetDietMatchesAsync(stew.RecipeId, PersonId)).Should().NotBeEmpty();
+            (await service.GetDietMatchesAsync(cake.RecipeId, PersonId)).Should().BeEmpty();
         }
 
         [Fact]
@@ -334,6 +346,21 @@ namespace Nom.Api.Tests.Services
 
             (await db.Set<RestrictionCriterionEntity>().Where(c => c.RestrictionTypeId == NoAlcoholRef && c.NutrientId == Alcohol).Select(c => c.MaxAmountPerServing).ToListAsync())
                 .Should().Equal(0.5m);
+        }
+
+        [Fact]
+        public async Task Ensure_moves_an_untouched_capped_halal_alcohol_row_back_to_the_uncapped_default()
+        {
+            using var db = NewContext();
+            await SeedRecipeAsync(db);
+            db.Set<ReferenceEntity>().Add(new ReferenceEntity { Id = HalalRef, Name = "Halal" });
+            db.Set<RestrictionCriterionEntity>().Add(new RestrictionCriterionEntity { RestrictionTypeId = HalalRef, NutrientId = Alcohol, MaxAmountPerServing = 0.5m, Severity = 3, Notes = DefaultRestrictionCriteria.DefaultNote, CreatedDate = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+
+            await DefaultRestrictionCriteria.EnsureAsync(db);
+
+            (await db.Set<RestrictionCriterionEntity>().Where(c => c.RestrictionTypeId == HalalRef && c.NutrientId == Alcohol).Select(c => c.MaxAmountPerServing).ToListAsync())
+                .Should().Equal(new decimal?[] { null });
         }
 
         [Fact]

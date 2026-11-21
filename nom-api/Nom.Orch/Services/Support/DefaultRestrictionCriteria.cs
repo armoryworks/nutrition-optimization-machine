@@ -65,14 +65,13 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// Restriction name (case-insensitive) → the per-serving cap its nutrient rows carry (owner answer 6): No Alcohol
-        /// and Halal exclude a recipe only when more than 0.5 g of its drinks' alcohol stays per serving after cooking, or
-        /// when a drink line cannot be counted, and leave flavourings to a note. A restriction not named here forbids the
-        /// nutrient's presence (Whole30 excludes alcohol in any form).
+        /// excludes a recipe only when more than 0.5 g of its drinks' alcohol stays per serving after cooking, or when a
+        /// drink line cannot be counted. A restriction not named here forbids the nutrient's presence: Halal and Whole30
+        /// exclude a recipe with any drink, however long it cooks. Every alcohol diet leaves flavourings to a note.
         /// </summary>
         public static readonly IReadOnlyDictionary<string, decimal> MaxPerServingByName =
             new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
             {
-                ["Halal"] = 0.5m,
                 ["No Alcohol"] = 0.5m,
             };
 

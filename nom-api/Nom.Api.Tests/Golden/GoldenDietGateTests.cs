@@ -6,8 +6,11 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Nom.Data;
+using Nom.Data.Measurement;
+using Nom.Data.Nutrient;
 using Nom.Data.Plan;
 using Nom.Data.Recipe;
 using Nom.Data.Reference;
@@ -28,12 +31,16 @@ namespace Nom.Api.Tests.Golden
     /// row says. A food counts by its own name, its USDA category or an alias a rule or a person gave
     /// it, never by a recipe line stored as an alias; a line on a food matched only through such an
     /// alias decides for its own recipe. Over the rows, no recipe the old rule (name or any alias)
-    /// kept out loses its flag while its line names a pattern of the restriction.
+    /// kept out loses its flag while its line names a pattern of the restriction. A row with an
+    /// <c>alcohol</c> figure (per 100 g) also stores that figure on the food and weighs the line at
+    /// <c>grams</c> in a recipe of <c>servings</c> with <c>steps</c>, whose retention the alcohol
+    /// retention run reads first: No Alcohol excludes it only above 0.5 g of retained alcohol per
+    /// serving, Halal and Whole30 whatever the cooking, and a flavouring for none of them.
     /// </summary>
     [Trait("Category", "Golden")]
     public class GoldenDietGateTests
     {
-        private const long HouseholdId = 7, PersonId = 70, TypeId = 61000, Gram = 1;
+        private const long HouseholdId = 7, PersonId = 70, TypeId = 61000, Gram = 1, AlcoholNutrient = 5038;
 
         private readonly ITestOutputHelper _output;
 
@@ -50,13 +57,29 @@ namespace Nom.Api.Tests.Golden
             db.Set<ReferenceEntity>().Add(new ReferenceEntity { Id = TypeId, Name = restriction });
             var food = new IngredientEntity { Name = row["food"], CurationStatusId = (long)CurationStatusEnum.Curated, FdcCategoryId = int.TryParse(row["category"], out var category) ? category : null };
             foreach (var alias in Aliases(row["aliases"])) food.Aliases.Add(new IngredientAliasEntity { AliasName = alias.Text, SourceContext = alias.Context });
+            var alcohol = Number(row["alcohol"]);
+            if (alcohol is { } per100g)
+            {
+                db.Set<BaseMeasurementEntity>().Add(new BaseMeasurementEntity { Id = Gram, Name = "Gram", Symbol = "g", MeasurementCategoryId = 1, IsBaseUnit = true, BaseUnitConversionFactor = 1m });
+                db.Nutrients.Add(new NutrientEntity { Id = AlcoholNutrient, Name = DietCriteriaMatcher.AlcoholNutrientName, DefaultMeasurementId = Gram });
+                food.IngredientNutrients.Add(new IngredientNutrientEntity { NutrientId = AlcoholNutrient, Amount = per100g, MeasurementId = Gram });
+            }
             db.Ingredients.Add(food);
             await db.SaveChangesAsync();
             var recipe = new RecipeEntity { Name = "Golden " + row.Id, AuthorId = PersonId, CurationStatusId = (long)CurationStatusEnum.NonCurated, RecipeIngredients = new List<RecipeIngredientEntity>() };
-            recipe.RecipeIngredients.Add(new RecipeIngredientEntity { IngredientId = food.Id, MeasurementId = Gram, Quantity = 1m, RawLine = row["line"], SortOrder = 0 });
+            recipe.RecipeIngredients.Add(new RecipeIngredientEntity { IngredientId = food.Id, MeasurementId = Gram, Quantity = Number(row["grams"]) ?? 1m, RawLine = row["line"], SortOrder = 0 });
+            if (alcohol != null)
+            {
+                recipe.Servings = (long?)Number(row["servings"]);
+                recipe.RecipeSteps = row.Value("steps") is { } steps
+                    ? steps.Split(" | ").Select((text, i) => new RecipeStepEntity { StepNumber = i + 1, Summary = "Step", Description = text }).ToList()
+                    : new List<RecipeStepEntity>();
+            }
             db.Recipes.Add(recipe);
             db.Restrictions.Add(new RestrictionEntity { PersonId = PersonId, Name = restriction, RestrictionTypeId = TypeId });
             await db.SaveChangesAsync();
+            if (alcohol != null)
+                await new AlcoholRetentionService(db, new RecipeNutritionService(db, NullLogger<RecipeNutritionService>.Instance), NullLogger<AlcoholRetentionService>.Instance).RunAsync(apply: true, afterRecipeId: 0);
             await DefaultRestrictionCriteria.EnsureAsync(db);
 
             var resolver = new HouseholdRestrictionResolver(db);
@@ -74,6 +97,9 @@ namespace Nom.Api.Tests.Golden
             }
             return new Verdict(plan, page, severe);
         }
+
+        private static decimal? Number(string cell) =>
+            decimal.TryParse(cell, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var value) ? value : null;
 
         private static IEnumerable<(string Text, string? Context)> Aliases(string cell) =>
             cell == GoldenTsv.NoAnswer ? Enumerable.Empty<(string, string?)>()

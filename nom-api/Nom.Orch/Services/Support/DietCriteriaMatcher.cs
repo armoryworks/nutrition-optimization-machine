@@ -34,7 +34,7 @@ namespace Nom.Orch.Services.Support
     /// Crumbs nor "gin" Ginger; a matched name that reads as an alcohol word that is not a drink (a
     /// vinegar, an extract, a soft drink, a cooking liquid) does not count, and when the same
     /// restriction has a nutrient criterion, a food that stores that nutrient is left to it. An
-    /// alcohol criterion with a per-serving cap (owner answer 6: No Alcohol and Halal, 0.5 g) forbids
+    /// alcohol criterion with a per-serving cap (owner answer 6: No Alcohol, 0.5 g; Halal is uncapped) forbids
     /// no food that stores an alcohol figure; it excludes a recipe instead when the alcohol of its
     /// drinks that stays after cooking is above the cap per serving, or when a drink line cannot be
     /// counted (<see cref="RetainedRecipesAsync"/>, read from <see cref="RecipeAlcohol"/>), while a food
