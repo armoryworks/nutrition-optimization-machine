@@ -484,6 +484,41 @@
       }
     </section>
 
+    <section class="nom-pipeline__section" data-testid="pipeline-container-sizes">
+      <h2 class="nom-pipeline__heading">Container sizes</h2>
+      @if (d.containerSizes; as c) {
+        <p class="nom-pipeline__lane-line" data-testid="pipeline-container-sizes-state">
+          Lane {{ c.lane }}: {{ c.laneMode }} · {{ c.rows | number }} sizes · last scored {{ c.lastScoredAt ? (c.lastScoredAt | date: 'MMM d, HH:mm') : 'never' }}
+          · hold-out {{ c.holdoutAgree | number }} of {{ c.holdoutLines | number }} stated sizes agree
+        </p>
+        <dl class="nom-pipeline__stats">
+          <div><dt>Active</dt><dd data-testid="pipeline-metric-container-sizes-active">{{ (c.byStatus['active'] ?? 0) | number }}</dd></div>
+          <div><dt>Shadow</dt><dd data-testid="pipeline-metric-container-sizes-shadow">{{ (c.byStatus['shadow'] ?? 0) | number }}</dd></div>
+          <div><dt>Paused</dt><dd data-testid="pipeline-metric-container-sizes-paused">{{ (c.byStatus['paused'] ?? 0) | number }}</dd></div>
+          <div><dt>USDA portions</dt><dd data-testid="pipeline-metric-container-sizes-portion">{{ (c.bySource['portion'] ?? 0) | number }}</dd></div>
+          <div><dt>Branded modes</dt><dd data-testid="pipeline-metric-container-sizes-branded">{{ (c.bySource['branded-mode'] ?? 0) | number }}</dd></div>
+          <div><dt>Standards of fill</dt><dd data-testid="pipeline-metric-container-sizes-fill">{{ (c.bySource['standard-of-fill'] ?? 0) | number }}</dd></div>
+        </dl>
+        @if (c.keys.length > 0) {
+          <ul class="nom-pipeline__list" data-testid="pipeline-container-sizes-list">
+            @for (k of c.keys; track k.rowId) {
+              <li class="nom-pipeline__list-item" [class.nom-pipeline__warn]="k.status === 'paused'" data-testid="pipeline-container-sizes-item">
+                <span>{{ k.ingredient }} <span class="nom-pipeline__muted">{{ k.kind }}{{ k.sizeWord ? ', ' + k.sizeWord : '' }}, {{ k.era }} · {{ k.sizeText }}</span></span>
+                <span>{{ k.status }} · {{ k.agree | number }}/{{ k.lines | number }}</span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="nom-pipeline__hint" data-testid="pipeline-container-sizes-empty">No container size is stored yet (Nom.Import --container-sizes).</p>
+        }
+        <p class="nom-pipeline__hint">
+          A size counts for an unsized can, jar or package line only while it is active and the lane is live; the hold-out compares it with the sizes cooks state.
+        </p>
+      } @else {
+        <p class="nom-pipeline__hint" data-testid="pipeline-container-sizes-error">The container size lane did not report.</p>
+      }
+    </section>
+
     <section class="nom-pipeline__section" data-testid="pipeline-images">
       <h2 class="nom-pipeline__heading">Images</h2>
       <dl class="nom-pipeline__stats">

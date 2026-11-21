@@ -4,7 +4,7 @@ using Nom.Orch.Models.Curation;
 namespace Nom.Api.Controllers
 {
     /// <summary>The pipeline counts, cached, the model lanes as the lane gate sees them now, the lanes on the lane frame, and the reprocess lane's candidates.</summary>
-    public sealed record PipelineStatusResponse(PipelineStatusModel Status, PipelineGateStatus Gate, PipelineFrameStatus? Frame = null, Nom.Orch.Models.Recipe.ReprocessLaneStatusModel? Reprocess = null);
+    public sealed record PipelineStatusResponse(PipelineStatusModel Status, PipelineGateStatus Gate, PipelineFrameStatus? Frame = null, Nom.Orch.Models.Recipe.ReprocessLaneStatusModel? Reprocess = null, Nom.Orch.Models.Curation.ContainerSizeStatusModel? ContainerSizes = null);
 
     /// <summary>Every lane and tier on the lane frame (curation.LaneState) with its figures, and the model roster.</summary>
     public sealed record PipelineFrameStatus(IReadOnlyList<LaneFrameStatusModel> Lanes, PipelineRoster Roster);

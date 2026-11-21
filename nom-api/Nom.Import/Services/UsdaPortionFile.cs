@@ -26,7 +26,7 @@ namespace Nom.Import.Services
                 if (!decimal.TryParse(f[7], CultureInfo.InvariantCulture, out var grams)
                     || !decimal.TryParse(f[3], CultureInfo.InvariantCulture, out var amount)) continue;
                 if (!byFood.TryGetValue(f[1], out var list)) byFood[f[1]] = list = new List<UsdaPortion>();
-                list.Add(new UsdaPortion(amount, f[4], f[6], f[5], grams, unitNames.GetValueOrDefault(f[4])));
+                list.Add(new UsdaPortion(amount, f[4], f[6], f[5], grams, unitNames.GetValueOrDefault(f[4]), f[2]));
             }
             return byFood;
         }

@@ -1,0 +1,102 @@
+id	line	era	fdcId	density	hide	expectGrams	status	source	note
+b-01	1 can black beans	modern	175238	-	no	425	ok	deterministic:fdc-branded-mode:2025-12-18:canned-black-beans	mode 425 g, 223 of 304 products in band
+b-02	2 cans black beans	modern	175238	-	no	850	ok	deterministic:fdc-branded-mode:2025-12-18:canned-black-beans	two cans at the mode
+b-03	1 can black beans	unknown	175238	-	no	-	ok	rule:containers-unknown-era	no historic size to agree with, so an unknown era leaves it uncounted
+b-04	1 can black beans	historic	175238	-	no	-	ok	rule:containers-historic-era	the branded mode is modern; no cited table names a size for canned black beans
+b-05	1 large can black beans	modern	175238	-	no	-	ok	deterministic:fdc-branded-mode:2025-12-18:canned-black-beans	sizes above the mode: 822 g holds 20 of 63, no clear mode
+b-06	1 can pinto beans	modern	175201	-	no	442	ok	fdc:175201:portion:2	SR portion "can" 442 g agrees with the branded mode 425 g; the portion wins
+b-07	1 can kidney beans	modern	175195	-	no	436	ok	fdc:175195:portion:3	SR portion "can" 436 g agrees with the branded mode 439 g
+b-08	1 small can kidney beans	modern	175195	-	no	400	ok	deterministic:fdc-branded-mode:2025-12-18:canned-kidney-beans	sizes below the mode: 400 g holds 18 of 26
+b-09	1 can red kidney beans, drained	modern	174285	-	no	266	ok	fdc:174285:portion:1	SR "can drained solids" 266 g on the drained food; net 439 g from the branded mode
+b-10	1 (15.5 oz) can kidney beans, drained	modern	174285	-	no	266	ok	fdc:174285:portion:1	stated net 439.4 g scaled by 266/439
+b-11	1 can chickpeas, drained and rinsed	modern	173801	-	no	254	ok	fdc:173801:portion:1	SR "can drained, rinsed" 254 g (containers.md section 1)
+b-12	1 (15 oz) can chickpeas, drained and rinsed	modern	173801	-	no	254	ok	design:containers	quoted in containers.md: SR gives "1 can drained, rinsed = 254 g"; stated 425.2 g scaled by 254/425
+b-13	1 can chickpeas	modern	175206	-	no	448	ok	fdc:175206:portion:2	SR "can (total can contents)" 448 g agrees with the branded mode 425 g
+b-14	1 can chickpeas, drained	modern	175206	-	no	-	ok	rule:containers-as-packed	a drained line on the food as packed is not weighed; it needs the drained food
+b-15	1 can chickpeas	modern	173800	-	no	253	ok	fdc:173800:portion:1	the food is drained solids, so the can is weighed drained: SR "can drained" 253 g
+b-16	1 can tomato paste	modern	170459	-	no	170	ok	fdc:170459:portion:4	SR "can (6 oz)" 170 g, the branded mode 170 g
+b-17	1 small can tomato paste	modern	170459	-	no	130	ok	deterministic:fdc-branded-mode:2025-12-18:canned-tomato-paste	sizes below the mode: 130 g holds 13 of 21
+b-18	1 large can tomato paste	modern	170459	-	no	340	ok	deterministic:fdc-branded-mode:2025-12-18:canned-tomato-paste	sizes above the mode: 340 g holds 46 of 78
+b-19	1 can tomato paste	unknown	170459	-	no	170	known	design:containers	containers.md: "6 oz now and in the old tables, so the era does not matter"; no cited table row names a tomato paste can yet, so the unknown era leaves it uncounted
+b-20	1 can diced tomatoes	modern	170051	-	no	190	ok	fdc:170051:portion:3	SR "can" 190 g on canned tomatoes, the only source (the branded mode fails: 14.5 oz 45 %, 28 oz 40 %)
+b-21	1 (14.5 oz) can diced tomatoes	modern	170051	-	yes	411	known	rule:stated-size	the hold-out catches the SR can: it assumes 190 g where the line states 411 g, so this key stays in shadow
+b-22	1 large can whole tomatoes	modern	170051	-	no	794	ok	deterministic:fdc-branded-mode:2025-12-18:canned-tomatoes	sizes above the mode: 28 oz holds 328 of 418 (containers.md: "Large can tomatoes gives 28 oz")
+b-23	1 small can tomatoes	modern	170051	-	no	283	ok	deterministic:fdc-branded-mode:2025-12-18:canned-tomatoes	sizes below the mode: 283 g holds 22 of 38
+b-24	1 can tomato sauce	modern	170054	-	no	-	ok	deterministic:fdc-branded-mode:2025-12-18:canned-tomato-sauce	8 oz holds 34 %, no clear mode (containers.md: tomato sauce no)
+b-25	1 can corn	modern	169214	-	no	298	ok	fdc:169214:portion:3	the food is drained solids: SR "can (303 x 406)" 298 g drained, net 432 g from the mode
+b-26	1 (15.25 oz) can corn, drained	modern	169214	-	no	298	ok	fdc:169214:portion:3	stated net 432.3 g scaled by 298/432
+b-27	1 can corn	modern	170409	-	no	-	ok	rule:containers-sources-disagree	SR "can (303 x 406)" 482 g and the branded mode 432 g differ by more than 10 %
+b-28	1 can crushed pineapple	modern	169126	-	no	567	ok	deterministic:fdc-branded-mode:2025-12-18:canned-pineapple	20 oz holds 200 of 372
+b-29	1 (20 oz) can crushed pineapple	modern	169126	-	yes	567	ok	rule:stated-size	hold-out: the mode predicts the stated 20 oz
+b-30	1 large can pineapple	modern	169126	-	no	3030	ok	deterministic:fdc-branded-mode:2025-12-18:canned-pineapple	sizes above the mode are food-service No. 10 cans: 3030 g holds 20 of 29; the hold-out decides whether cooks mean that
+b-31	1 can mushrooms	modern	169254	-	no	-	ok	rule:containers-no-net	SR gives only a drained "can" 132 g and the branded mode fails (4 oz 24 %), so no net size (containers.md: mushrooms no)
+b-32	1 can coconut milk	modern	170173	-	no	-	ok	deterministic:fdc-branded-mode:2025-12-18:canned-coconut-milk	29 products, 48 % in band: no clear mode
+b-33	1 can sweetened condensed milk	modern	171275	-	no	396	ok	deterministic:fdc-branded-mode:2025-12-18:sweetened-condensed-milk	14 oz holds 102 of 116
+b-34	1 (14 oz) can sweetened condensed milk	modern	171275	-	yes	397	ok	rule:stated-size	hold-out: 14 oz is 396.9 g
+b-35	1 can evaporated milk	modern	171276	1.065	no	369	ok	fdc:171276:portion:3	SR "can (13 oz)" 369 g agrees with the mode 354 mL x 1.065
+b-36	1 (12 oz) can evaporated milk	modern	171276	1.065	yes	340	ok	rule:stated-size	hold-out: 12 oz is 340.2 g; 369 g is within 10 %
+b-37	1 tall can evaporated milk	modern	171276	1.065	no	369	ok	fdc:171276:portion:3	"tall" is not a size word the rule reads
+b-38	1 (8 oz) package cream cheese, softened	modern	173418	-	no	227	ok	rule:stated-size	the stated size counts
+b-39	1 (8 oz) package cream cheese, softened	modern	173418	-	yes	227	ok	rule:stated-size	hold-out: the mode 227 g predicts the stated 8 oz
+b-40	1 small package cream cheese	modern	173418	-	no	85	ok	fdc:173418:portion:6	SR "package, small (3 oz)" 85 g
+b-41	2 packages cream cheese	modern	173418	-	no	454	ok	deterministic:fdc-branded-mode:2025-12-18:cream-cheese	two packages at the mode 227 g
+b-42	1 large package cream cheese	modern	173418	-	no	-	ok	deterministic:fdc-branded-mode:2025-12-18:cream-cheese	sizes above the mode: 453 g holds 28 of 62, no clear mode
+b-43	1 can cream of mushroom soup	modern	171155	-	no	298	ok	deterministic:fdc-branded-mode:2025-12-18:condensed-cream-of-mushroom	10.5 oz holds 84 of 112
+b-44	1 (10.75 oz) can condensed cream of mushroom soup	modern	171155	-	yes	305	ok	rule:stated-size	hold-out: 10.75 oz is 304.8 g, 298 g is within 10 %
+b-45	1 large can cream of mushroom soup	modern	171155	-	no	737	ok	deterministic:fdc-branded-mode:2025-12-18:condensed-cream-of-mushroom	sizes above the mode: 26 oz holds 24 of 28
+b-46	1 jar marinara sauce	modern	171192	-	no	680	ok	deterministic:fdc-branded-mode:2025-12-18:pasta-sauce	24 oz holds 1196 of 1830
+b-47	1 (24 oz) jar pasta sauce	modern	171192	-	yes	680	ok	rule:stated-size	hold-out: the mode predicts the stated 24 oz
+b-48	1 large jar spaghetti sauce	modern	171192	-	no	737	ok	deterministic:fdc-branded-mode:2025-12-18:pasta-sauce	sizes above the mode: 26 oz holds 177 of 333
+b-49	1 can marinara sauce	modern	171192	-	no	-	ok	rule:containers-kind	the class is a jar class; a can of marinara has no size of its kind
+b-50	1 container plain Greek yogurt	modern	170894	-	no	-	ok	rule:containers-portion	SR "container" 170 g names no size, so it is refused, and the branded mode fails (32 oz 43 %) (containers.md: Greek yogurt container leave uncounted)
+b-51	1 small container Greek yogurt	modern	170894	-	no	150	ok	deterministic:fdc-branded-mode:2025-12-18:greek-yogurt	sizes below the mode: the 5.3 oz cup holds 65 of 105
+b-52	1 can salmon	modern	173690	-	no	411	ok	fdc:173690:portion:2	SR "can" 411 g on total can contents; the branded mode fails
+b-53	1 can salmon, drained	modern	173690	-	no	-	ok	rule:containers-as-packed	a drained line on total can contents is not weighed
+b-54	1 can tuna	modern	173709	-	no	-	ok	rule:containers-portion	SR gives two drained cans, 165 g and 315 g, which disagree; the branded mode fails (containers.md: tuna no)
+b-55	1 can green chiles	modern	170426	-	no	-	ok	deterministic:fdc-branded-mode:2025-12-18:canned-green-chiles	4 oz holds 45 %, no clear mode
+b-56	1 can enchilada sauce	modern	174074	-	no	283	ok	fdc:174074:portion:3	SR "can" 283 g; the branded mode fails (41 %)
+b-57	1 envelope unflavored gelatin	modern	169599	-	no	7	ok	fdc:169599:portion:1	SR "envelope (1 tbsp)" 7 g (containers.md section 1)
+b-58	1 package unflavored gelatin	modern	169599	-	no	28	ok	fdc:169599:portion:2	SR "package (1 oz)" 28 g
+b-59	1 package lime gelatin	modern	168775	-	no	85	ok	fdc:168775:portion:1	SR "package (3 oz)" 85 g
+b-60	1 package Royal Orange Gelatin	historic	168775	-	no	-	ok	design:containers	containers.md: pre-1960 booklets need the era; no cited table names a gelatin package of that time
+b-61	1 packet active dry yeast	modern	175043	-	no	7	ok	fdc:175043:portion:3	SR "packet" 7.2 g
+b-62	2 packets yeast	modern	175043	-	no	14	ok	fdc:175043:portion:3	two packets of 7.2 g
+b-63	1 bottle red wine	modern	173190	0.994	no	746	ok	deterministic:standard-of-fill:27 CFR 4.72	750 mL x 0.994
+b-64	1 bottle red wine	historic	173190	0.994	no	746	ok	deterministic:standard-of-fill:27 CFR 4.72	a standard of fill holds in any era (a pre-1979 fifth is 757 mL)
+b-65	1 bottle red wine	unknown	173190	0.994	no	746	ok	deterministic:standard-of-fill:27 CFR 4.72	any era
+b-66	1 bottle Chardonnay	modern	174110	0.991	no	743	ok	deterministic:standard-of-fill:27 CFR 4.72	750 mL x 0.991
+b-67	1 bottle red wine	modern	173190	-	no	-	ok	rule:containers-density	a bottle is a volume; with no density it is not weighed
+b-68	1 can cloudberry marmalade	modern	-	-	no	-	ok	design:containers	containers.md: no clear answer, leave uncounted (no class, no portion)
+b-69	1 can raisins	modern	-	-	no	-	ok	design:containers	containers.md: leave uncounted
+b-70	1 jar sun-dried tomatoes in oil, drained	modern	-	-	no	-	ok	design:containers	containers.md: no drained ratio, leave uncounted
+t-01	1 No. 2 can tomatoes	historic	-	-	no	567	ok	deterministic:can-table:h32-2+h33-2	No. 2: 20 oz in both 1930s USDA broadcasts
+t-02	1 No. 2 can tomatoes	modern	-	-	no	567	ok	deterministic:can-table:fbg-2	No. 2: 20 oz (USDA Food Buying Guide, Table 2)
+t-03	1 No. 2 can tomatoes	unknown	-	-	no	567	ok	deterministic:can-table:fbg-2	old and new No. 2 agree
+t-04	1 can (No. 2) tomatoes	modern	-	-	no	567	ok	deterministic:can-table:fbg-2	the number in brackets
+t-05	2 No. 2 cans corn	historic	-	-	no	1134	ok	deterministic:can-table:h32-2+h33-2	two cans of 20 oz
+t-06	1 #2½ can peaches	historic	-	-	no	850	ok	deterministic:can-table:h32-2.5	No. 2 1/2: 1 pound 14 ounces (1932)
+t-07	1 #2½ can peaches	modern	-	-	no	794	ok	deterministic:can-table:fbg-2.5	No. 2 1/2: 26 to 30 oz, the middle 28 oz
+t-08	1 No. 2 1/2 can peaches	unknown	-	-	no	794	ok	deterministic:can-table:fbg-2.5	850 g and 794 g agree within 10 %; the modern size counts
+t-09	1 #2 1/2 can apricots	modern	-	-	no	794	ok	deterministic:can-table:fbg-2.5	the number written with a space
+t-10	1 can (No. 303) peas	historic	-	-	no	454	ok	deterministic:can-table:h33-303	No. 303 "holds an even pound" (1933)
+t-11	1 No. 303 can peas	modern	-	-	no	-	ok	rule:containers-can-table	the modern table lists no No. 303
+t-12	1 No. 303 can peas	unknown	-	-	no	-	ok	rule:containers-can-table	only one era sizes it
+t-13	1 No. 10 can tomatoes	modern	-	-	no	3019	ok	deterministic:can-table:fbg-10	96 to 117 oz, the middle 106.5 oz (a 19.7 % range)
+t-14	1 No. 10 can tomatoes	historic	-	-	no	-	ok	deterministic:can-table:h32-10	the 1932 broadcast gives 14 cups and no weight
+t-15	1 No. 3 can tomatoes	historic	-	-	no	1021	ok	deterministic:can-table:h32-3	No. 3: 2 pounds, 4 ounces (1932)
+t-16	1 No. 1 can salmon	historic	-	-	no	454	ok	deterministic:can-table:h32-1-tall+h33-1-tall	No. 1 tall: one pound in both broadcasts
+t-17	1 No. 300 can beans	modern	-	-	no	425	ok	deterministic:can-table:fbg-300	14 to 16 oz, the middle 15 oz
+t-18	1 No. 2 can corn, drained	modern	169214	-	no	391	ok	deterministic:can-table:fbg-2	567 g net scaled by the corn can's 298/432
+t-19	1 No. 2 can tomatoes	modern	170051	-	no	567	ok	deterministic:can-table:fbg-2	a numbered can wins over the food's own unsized can
+s-01	1 (15 oz) can black beans	modern	175238	-	no	425	ok	rule:stated-size	15 oz
+s-02	2 (15 oz) cans black beans	modern	175238	-	no	850	ok	rule:stated-size	two cans of 15 oz
+s-03	1 can hominy (1 lb. 13 ounce can)	modern	-	-	no	822	ok	design:containers	quoted in containers.md; 29 oz
+s-04	1 1 lb. 13 oz. can peaches	modern	-	-	no	822	ok	rule:stated-size	29 oz
+s-05	1 (28 oz) can crushed tomatoes	modern	170051	-	no	794	ok	rule:stated-size	28 oz beats the food's 190 g can
+s-06	1 (6 oz) can tomato paste	modern	170459	-	no	170	ok	rule:stated-size	6 oz
+s-07	1 (10 3/4 oz) can cream of mushroom soup	modern	171155	-	no	305	ok	rule:stated-size	10.75 oz
+s-08	1 (12 fl oz) can evaporated milk	modern	171276	1.065	no	378	ok	rule:stated-size	354.9 mL x 1.065
+s-09	1 (12 fl oz) can evaporated milk	modern	171276	-	no	-	ok	rule:stated-size	a volume with no density
+s-10	1 (15 oz) can chickpeas, drained	modern	175206	-	no	-	ok	rule:containers-as-packed	a drained line on the food as packed is not weighed
+s-11	1 (15 oz) can black beans	unknown	175238	-	no	425	ok	rule:stated-size	a stated size needs no era
+s-12	1 (8 oz) can tomato sauce	historic	170054	-	no	227	ok	rule:stated-size	a stated size needs no era

@@ -1,0 +1,65 @@
+id	text	expectGrams	expectMl	status	source	note
+pw-01	1.25 LBR	567	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-02	1.55 ONZ	43.9	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-03	1 GLL	-	3785.4	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-04	64 OZA	-	1892.7	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-05	5 H87	-	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-06	3.785 LTR	-	3785	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-07	5 QTL	-	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-08	170 GRM	170	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-09	12 fl oz/355 mL	-	355	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-10	5 oz/141 g	141	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-11	16 oz/1 lbs/454 g	454	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-12	8 oz	226.8	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-13	32 fl oz/1 Quart/946 mL	-	946	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-14	12 OZ/340 g	340	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-15	722 g/25.2 oz	722	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-16	1 GAL/3.79 L	-	3790	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-17	1 PT/437 mL	-	437	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-18	5 lbs/2.26 kg	2260	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-19	1 lbs/450 g	450	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-20	25.4 oz/750 mL	720.1	750	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-21	11.5 OZ/326 G	326	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-22	108 g	108	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-23	32 oz/2 lbs	907.2	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-24	3 fl oz	-	88.7	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-25	1.5 Quart/1.42 L	-	1420	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-26	47 mL	-	47	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-27	48 oz/3 lbs/1.36 kg	1360	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-28	40 fl oz/1.25 Quart/1.18 	-	1182.9	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-29	4.4 lbs	1995.8	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-30	16 oz/454 g/1 lbs	454	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-31	40 oz/1.13 kg	1130	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-32	16 OZ/1 LB/454 g	454	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-33	17.6 oz/499 g/0.5 kg	499	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-34	16 fl oz/1 PT/473 mL	-	473	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-35	1 lbs/16 oz/454 g	454	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-36	1 cup/78 g	78	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-37	48 fl oz/1.42 L	-	1420	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-38	48 fl oz/1.5 Quart/1.42 L	-	1420	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-39	1 Quart/946 mL	-	946	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-40	2.4 kg/802 g	2400	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-41	1.13 kg/2.5 lbs	1130	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-42	453 g/1 lbs	453	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-43	907 g/2 lbs/32 oz	907	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-44	355 mL/12 fl oz	-	355	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-45	40 OZ/1.13 kg	1130	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-46	10 oz/283 g/0 none	283	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-47	16 OZ/1 lb	453.6	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-48	0.5 kg/17.6 oz/499 g	500	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-49	4 LB/10 OZ/2.1 KG	2100	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-50	4 lbs/64 oz/1.81 kg	1810	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-51	8 fl oz/227 g	227	236.6	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-52	4.5 OZ./128 g	128	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-53	4 x 5.3 oz	-	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-54	12 ct	-	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-55	6 pk	-	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-56	1 EA	-	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-57	24 oz/1.5 lbs/680 g	680	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-58	15 OZ	425.2	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-59	1 GAL/3.78 L	-	3780	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-60	0.5 GAL/1.89 L	-	1890	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-61	HALF GALLON/1.89 L	-	1890	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-62	13.5 oz/383 g	383	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-63	12 fl oz/355 mL	-	355	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py
+pw-64	(empty)	-	-	ok	rule:fdc-branded-2025-12-18	read by ops/golden/container_facts.py

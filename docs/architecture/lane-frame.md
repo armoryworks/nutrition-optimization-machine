@@ -6,8 +6,10 @@ writes since its last clean window. It is built once, in Nom.Orch, and the lanes
 (wording tiers and readers, applied-link re-check, prose rewrite v2, reprocess, containers,
 source admission).
 
-The reprocess lane (`reprocess`, tiers `rebuild` and `order`, see `recipe-reprocess.md`) and the
-prose rewrite lane (`prose-rewrite`, tier `*`; see `prose-lane.md`) run on the frame. Lanes that
+The reprocess lane (`reprocess`, tiers `rebuild` and `order`, see `recipe-reprocess.md`), the
+prose rewrite lane (`prose-rewrite`, tier `*`; see `prose-lane.md`) and the container size lane
+(`container-sizes`, tier `*`, audited by its own hold-out rule; see `food-catalog-ingestion.md`,
+"Container sizes") run on the frame. Lanes that
 exist today (link, repair, line classify, dish grouping, tool tagging) keep their own switches until
 their branch moves them.
 

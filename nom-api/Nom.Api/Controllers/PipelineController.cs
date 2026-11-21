@@ -31,11 +31,13 @@ namespace Nom.Api.Controllers
         private readonly ILaneFrameService _frame;
         private readonly LaneModelRoster _roster;
         private readonly IReprocessLaneService? _reprocess;
+        private readonly IContainerSizeService? _containerSizes;
 
         public PipelineController(IPipelineStatusService pipeline, IAiLaneStatus lanes, IPlatformFeatureService features, IConfiguration configuration,
-            ILaneFrameService frame, IOptions<LaneModelRoster> roster, IReprocessLaneService? reprocess = null)
+            ILaneFrameService frame, IOptions<LaneModelRoster> roster, IReprocessLaneService? reprocess = null, IContainerSizeService? containerSizes = null)
         {
             _reprocess = reprocess;
+            _containerSizes = containerSizes;
             _pipeline = pipeline;
             _lanes = lanes;
             _features = features;
@@ -52,7 +54,8 @@ namespace Nom.Api.Controllers
             var left = AiQuietHours.Remaining(_configuration, DateTimeOffset.UtcNow);
             status = status with { Ai = status.Ai with { QuietMinutesLeft = left is { } l ? (int)Math.Ceiling(l.TotalMinutes) : null } };
             var reprocess = _reprocess == null ? null : await _reprocess.StatusAsync(ReprocessHostedService.Enabled(_configuration), cancellationToken);
-            return Ok(new PipelineStatusResponse(status, await GateAsync(), await FrameAsync(cancellationToken), reprocess));
+            var containerSizes = _containerSizes == null ? null : await _containerSizes.StatusAsync(20, cancellationToken);
+            return Ok(new PipelineStatusResponse(status, await GateAsync(), await FrameAsync(cancellationToken), reprocess, containerSizes));
         }
 
         /// <summary>

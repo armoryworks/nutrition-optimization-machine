@@ -329,6 +329,36 @@ export interface ReprocessLaneStatus {
   lastBatches: ReprocessLaneBatch[];
 }
 
+export interface ContainerSizeKey {
+  rowId: number;
+  ingredientId: number;
+  ingredient: string;
+  kind: string;
+  era: string;
+  sizeWord: string;
+  netGrams: number;
+  drainedGrams: number | null;
+  sizeText: string;
+  sourceRef: string;
+  class: string;
+  status: string;
+  reason: string | null;
+  lines: number;
+  agree: number;
+}
+
+export interface ContainerSizeStatus {
+  lane: string;
+  laneMode: string;
+  rows: number;
+  byStatus: Record<string, number>;
+  bySource: Record<string, number>;
+  lastScoredAt: string | null;
+  holdoutLines: number;
+  holdoutAgree: number;
+  keys: ContainerSizeKey[];
+}
+
 export interface LaneUndoReport {
   lane: string;
   tier: string;
@@ -342,6 +372,7 @@ export interface PipelineStatus {
   gate: PipelineGate;
   frame?: PipelineFrame | null;
   reprocess?: ReprocessLaneStatus | null;
+  containerSizes?: ContainerSizeStatus | null;
 }
 
 export interface UnfoldPreview {

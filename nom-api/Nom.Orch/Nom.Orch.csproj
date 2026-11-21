@@ -22,6 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Containers\can-sizes-historic.tsv" LogicalName="Nom.Orch.Containers.can-sizes-historic.tsv" />
+    <EmbeddedResource Include="Containers\container-classes.tsv" LogicalName="Nom.Orch.Containers.container-classes.tsv" />
     <EmbeddedResource Include="Fonts\Lato\*.ttf" LogicalName="Nom.Orch.Fonts.Lato.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\prose-verbs.tsv" LogicalName="Nom.Orch.Prose.prose-verbs.tsv" Link="Prose\prose-verbs.tsv" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\model-lanes.json" LogicalName="Nom.Orch.Golden.model-lanes.json" Link="Golden\model-lanes.json" />

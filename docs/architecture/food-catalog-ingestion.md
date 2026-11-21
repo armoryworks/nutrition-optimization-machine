@@ -378,6 +378,116 @@ stands in for it (one can of tomatoes is not one tomato). A line weighs what it 
   (`measurement."Measurement"."IsContainer"`). `GramsFor` gives a container unit no weight,
   so the line reports `no-conversion` and the recipe page asks the cook for grams or ounces.
 
+### Container sizes (`cleanup2/container-sources`)
+
+An unsized can, jar, bottle, box or package line is to be weighed at the most common size of
+that food's container (owner answer, 2026-11-20: "look up the most common size of that
+ingredient's container and assume it"). This item builds where the sizes come from and how they
+are measured; the weighing itself (`GramsFor`, the `counted-assumed` status, the "estimated"
+label, the Package split) is the next item, `cleanup2/container-weighing`.
+
+**Where a size is kept.** `nutrient."IngredientContainerSize"`: one row per food, container
+kind (can, jar, bottle, box, bag, packet, envelope, carton, tub, package), era (`modern`,
+`historic`, `any`) and size word (empty, `small`, `large`), with `NetGrams`, `DrainedGrams`
+(only for a food whose USDA description is drained solids), `SizeText`, the deterministic
+`SourceRef`, the `Class` it is scored under, how many sources agreed, the branded mode's share
+and product count, the hold-out figures and a `Status` (`shadow`, `active`, `paused`,
+`retired`). Lines are never rewritten from it. A row is read for weighing only while it is
+`active` **and** the lane `container-sizes` is live on the lane frame. `recipe."RecipeSourceEra"`
+holds a book source's year and era (`historic` before 1960, `modern` from 1960); a web recipe
+is modern and a book with no row is `unknown`. Filling it is `container-weighing`'s (title pages).
+
+**Where a size comes from, in order** (`Nom.Import --container-sizes`, no model anywhere):
+
+1. A size the line states, or a numbered can it names: the parser reads those, and the cited
+   can table sizes a numbered can by the recipe's era.
+2. A USDA portion on the very food (SR Legacy or Foundation `food_portion.csv`,
+   `UsdaContainerPortion`): the portion's unit must be the container word itself ("can",
+   "can (303 x 406)", "package (3 oz)", "envelope (1 tbsp)", "packet"). Yields, prepared or
+   diluted containers, servings, fractions of a container, single and fun-size packs are
+   refused; a "container" with no size is refused. A portion that says drained, or any
+   container portion of a drained-solids food, is a drained weight; portions of one key that
+   disagree by more than 10 % give nothing.
+3. The branded mode (`BrandedContainerScan`, `ContainerModeRule`): FDC Branded Foods
+   `package_weight` (read by `FdcPackageWeight`: grams or millilitres win over ounces, GS1 codes
+   ONZ/OZA/LBR/GRM/MLT/LTR/GLL, multi-packs refused, never divided), one product per GTIN (the
+   latest `available_date`), United States, not discontinued, in the branded categories of the
+   food's class with every class word and no excluded word. The class map is
+   `Nom.Orch/Containers/container-classes.tsv`: a USDA category plus USDA description words,
+   never a product name; a food in no class gets no branded size. The mode counts only with
+   at least 20 products, at least half of them in the mode's ±5 % band, and that band at least
+   twice the next one. "small" and "large" take the mode below or above the overall mode's
+   band with the same tests. Only a weight is taken from branded data, never a nutrient value.
+4. A standard of fill for wine and spirits (750 mL, 27 CFR 4.72 and 5.203), times the food's
+   density, for any era.
+5. Otherwise the line stays uncounted.
+
+Sources of one key must agree within 10 % or the key is refused as "sources disagree" (canned
+corn, brine pack: SR 482 g against the 15.25 oz mode). A portion's net wins over the mode. A
+class's drained ratio (median of its members' drained/net, all within ±8 %) fills a drained
+weight for a drained-solids member that has none.
+
+**The cited can table** (`Nom.Orch/Containers/can-sizes-historic.tsv`), every row with title,
+publisher, year, page, where to read it and the quoted words; a test refuses a row without them:
+the USDA Bureau of Home Economics broadcasts "Buying Canned Foods" (29 September 1932: No. 1/4,
+1/2, 1 short, 1 tall, 2, 2½, 3, 10) and "Shopping for Canned Goods" (4 December 1933: No. 2,
+No. 303, No. 1 tall), read from the USDA National Agricultural Library scans on archive.org;
+the USDA Food Buying Guide for Child Nutrition Programs, Table 2 "Common Can and Jar Sizes"
+(No. 10, 3 Cyl, 2½, 2 Cyl, 2, 300, 2 Vacuum, 1 Picnic, 8 oz); 27 CFR 4.72 and 5.203. A range
+counts by its middle when it is no wider than 20 % (No. 1 short, 10.5 to 13 oz, gives none).
+Rows of one era must agree within 10 %; for an unknown era the historic and the modern size
+must agree (No. 2: 20 oz both; No. 2½: 30 oz then, 28 oz now, counts at 28 oz; No. 303 has no
+modern row and stays uncounted unless the recipe is historic). No source yet names a product
+class's can of its time (a "can of tomatoes" before 1960), so an unsized historic line counts
+only by a size that holds in any era; a cited row added by hand changes that.
+
+**How it is measured** (`ContainerSizeService.ScoreAsync`, nightly in the API through
+`ContainerSizeHostedService`, and after every import run): every live line on a food with a
+size that states a weight or volume and names a container is a hold-out line. The stated size
+is hidden and the lane asked what it would assume for that food, kind, size word and era; a hit
+is within 10 % of the stated size. A key (`ContainerSizeQualifier`):
+
+| | Applies (`active`) | Stays `shadow` | Pauses itself (`paused`) |
+|---|---|---|---|
+| ≥ 20 hold-out lines | agreement ≥ 95 % and Wilson lower bound ≥ 90 %; below 35 lines, where no clean run reaches that bound, 95 % and its class qualifying | otherwise | when active: its class's last 200 lines agree under 90 %, or 3 misses in its own last 20 |
+| < 20 lines | its class agrees ≥ 95 % on ≥ 50 lines | otherwise | its class pauses |
+
+A paused key comes back only when its size or source changes (an import writes it in shadow
+again) and a fresh score passes; never by waiting. The whole lane runs on the lane frame
+(`container-sizes`, tier `*`): each hold-out comparison is one decision, audited by the rule
+itself (`AuditorScore.ExactRule`), once per signature (the rule version and every standing
+size, so a new import or FDC release starts the count again). It qualifies at a Wilson lower
+bound of 93 % and pauses when a full window of 200 agrees under 92 %; a pause undoes the
+scorer's status changes since the last clean window (`ContainerSizeLaneUndo`). The switches
+`ai-pause-all` and `ai-pause-container-sizes` hold the nightly run; `ContainerSizes:ScoreEnabled`
+(default true) and `ContainerSizes:ScoreEveryHours` (default 24) set it.
+
+**Journal and undo.** Every row written, replaced, retired, rescored or paused is one
+`audit."AuditLogEntry"` (entity `IngredientContainerSize`; `ContainerSizeSet`,
+`ContainerSizeRetire`, `ContainerSizeStatus`, `ContainerSizePause`) with the row before and
+after. `POST /api/FoodCatalog/container-sizes/undo?sinceUtc=T` previews and `&apply=true`
+takes back everything since T, newest first (rows the run added are removed, retired rows
+restored), skipping a row changed since, each reversal journaled `ContainerSizeUndo`;
+`Nom.Import --container-sizes --undo <stamp>` is the same. Right after its step it reports
+`Skipped 0`. `GET /api/FoodCatalog/container-sizes` lists the keys with their figures and
+`POST /api/FoodCatalog/container-sizes/score` runs the hold-out (dry run unless `apply=true`);
+Admin → Pipeline shows the block "Container sizes" (`data-testid="pipeline-container-sizes"`).
+
+**Usage.**
+
+```bash
+dotnet run --project nom-api/Nom.Import -- --container-sizes <branded-dir> <sr-legacy-dir> <foundation-dir> --checksums ops/fdc-releases.sha256 --dry-run
+dotnet run --project nom-api/Nom.Import -- --container-sizes <branded-dir> <sr-legacy-dir> <foundation-dir> --checksums ops/fdc-releases.sha256
+dotnet run --project nom-api/Nom.Import -- --container-sizes --score [--dry-run]
+dotnet run --project nom-api/Nom.Import -- --container-sizes --undo <stamp> [--dry-run]
+```
+
+The branded directory may be left out (portions and standards of fill only). Every file read
+must be listed in `ops/fdc-releases.sha256`. A dry run scores its proposals against the stored
+lines and writes nothing. `ops/golden/container_facts.py` is the same scan and portion reading
+written apart from the C# code; it froze `container-facts.tsv` for the golden set, and on the
+2025-12-18 release its class sizes equal the C# scan's for all 21 classes.
+
 Lines stored before the parser read sizes are brought over by an admin lane next to relink
 (`PackageLineService`, curation-gated, scraped recipes only, lines stored as Piece, Can or
 Package). The startup repair (`ScrapedRecipeRepairService`) leaves these lines alone so

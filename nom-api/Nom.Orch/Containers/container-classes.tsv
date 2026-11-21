@@ -1,0 +1,22 @@
+id	kind	basis	usdaCategories	descriptionAll	descriptionNone	brandedCategories	productAll	productNone	note
+canned-black-beans	can	g	16	beans,black,canned	-	Canned & Bottled Beans	black,beans	refried,soup,dip,seasoned,chili,salsa,rice,corn,sauce,pouch,mix,cuban,ranchero,charro	SR Legacy 16 legumes, canned black beans
+canned-chickpeas	can	g	16	chickpeas,canned	-	Canned & Bottled Beans	chickpeas|garbanzo	soup,dip,seasoned,salad,mix,hummus,roasted,pouch	SR Legacy 16 legumes, canned chickpeas
+canned-kidney-beans	can	g	16	beans,kidney,canned	-	Canned & Bottled Beans	kidney,beans	chili,seasoned,soup,salad,mix,rice,sauce,pouch	SR Legacy 16 legumes, canned kidney beans
+canned-pinto-beans	can	g	16	beans,pinto,canned	-	Canned & Bottled Beans	pinto,beans	refried,chili,seasoned,soup,mix,rice,charro,ranchero,pouch	SR Legacy 16 legumes, canned pinto beans
+canned-tomatoes	can	g	11	tomatoes,red,ripe,canned	paste,sauce,puree,stewed,chilies,soup	Tomatoes	tomatoes	paste,sauce,puree,juice,soup,ketchup,salsa,sun,dried,chilies,chiles,green,pouch,carton,box,stewed,seasoned,italian,mexican,basil,garlic,onion,fire,roasted	SR Legacy 11, canned tomatoes; diced and whole share one food, so the class reads every plain canned tomato
+canned-tomato-paste	can	g	11	tomato,paste,canned	-	Tomatoes	tomato,paste	tube,squeeze,sun,dried,pesto,italian,basil,garlic	SR Legacy 11, canned tomato paste
+canned-tomato-sauce	can	g	11	tomato,sauce,canned	mushrooms,onions,herbs,spanish,tidbits,celery	Tomatoes	tomato,sauce	pasta,pizza,marinara,spaghetti,italian,basil,garlic,herb,seasoned,chili,enchilada,sloppy,puree	SR Legacy 11, canned tomato sauce
+canned-corn	can	g	11	corn,sweet,canned	cream,vacuum	Canned Vegetables	corn	cream,creamed,baby,mexican,fiesta,mexicorn,peppers,pouch,succotash,hominy,pickled,cob,mini	SR Legacy 11, canned sweet corn, not cream style or vacuum pack
+canned-pineapple	can	g	9	pineapple,canned	-	Canned Fruit	pineapple	cup,cups,mixed,fruit,cocktail,mango,papaya,cherries,salad,tropical,jar,pouch	SR Legacy 9, canned pineapple
+canned-mushrooms	can	g	11	mushrooms,canned	-	Canned Vegetables	mushrooms	soup,sauce,gravy,jar,marinated	SR Legacy 11, canned mushrooms
+canned-coconut-milk	can	g	12	coconut,milk,canned	-	Plant Based Milk|Baking Additives & Extracts	coconut,milk	beverage,drink,vanilla,chocolate,original,carton,almond,oat,blend,powder,powdered,creamer	SR Legacy 12, canned coconut milk; FDC does not say can or carton, so beverage words are left out
+sweetened-condensed-milk	can	g	1	milk,condensed,sweetened	-	Milk	sweetened,condensed,milk	coconut,caramel,dulce,squeeze,tube	SR Legacy 1, canned sweetened condensed milk
+evaporated-milk	can	ml	1	milk,canned,evaporated	nonfat,2%	Milk	evaporated,milk	coconut,fat,skim,nonfat,lowfat,goat	SR Legacy 1, canned evaporated milk, whole
+cream-cheese	package	g	1	cheese,cream	low,free	Cheese	cream,cheese	whipped,spread,tub,flavored,strawberry,chive,onion,garlic,herb,vegetable,honey,salmon,jalapeno,pineapple,blueberry,bagel,dip,frosting,cups,minis,mini,bites,neufchatel,reduced,light,fat,lite	SR Legacy 1, plain brick cream cheese
+condensed-cream-of-mushroom	can	g	6	soup,cream,mushroom,condensed	reduced	Canned Condensed Soup	cream,mushroom	healthy,reduced,roasted,garlic,chicken,beef,golden,98%,family	SR Legacy 6, condensed cream of mushroom soup
+pasta-sauce	jar	g	6	sauce,pasta,marinara	low	Prepared Pasta & Pizza Sauces	sauce	pizza,alfredo,pesto,cheese,vodka,cream,meat,sausage,mushroom,vegetable,squeeze,pouch,can	SR Legacy 6, ready-to-serve spaghetti or marinara sauce
+greek-yogurt	tub	g	1	yogurt,greek,plain,nonfat	-	Yogurt	greek,plain	vanilla,honey,strawberry,blueberry,fruit,flavored,peach,cherry,lemon,coconut,mango,raspberry,blend,drink,whole,2%,4%,5%	SR Legacy 1, plain nonfat Greek yogurt; the hold-out decides whether "container" means the cup
+canned-salmon	can	g	15	salmon,canned	-	Canned Seafood	salmon	pouch,smoked,spread,salad,patties,burger	SR Legacy 15, canned salmon
+canned-tuna	can	g	15	tuna,canned	-	Canned Tuna	tuna	pouch,salad,kit,creations,lemon,pepper,herb,sweet,thai,buffalo,ranch	SR Legacy 15, canned tuna
+canned-green-chiles	can	g	11	peppers,chili,green,canned	-	Canned Vegetables	green,chiles|chilies|chile	tomatoes,beans,sauce,enchilada,salsa,jalapeno,jalapenos,pickled,sliced,nacho	SR Legacy 11, canned green chili peppers
+enchilada-sauce	can	g	6	sauce,enchilada	-	Oriental, Mexican & Ethnic Sauces	enchilada,sauce	mix,seasoning,packet,dry,pouch,jar	SR Legacy 6, enchilada sauce

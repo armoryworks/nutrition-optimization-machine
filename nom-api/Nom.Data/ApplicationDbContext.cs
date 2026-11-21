@@ -62,6 +62,7 @@ namespace Nom.Data
 
         #region Nutrient
         public DbSet<IngredientNutrientEntity> IngredientNutrients { get; set; } = default!;
+        public DbSet<IngredientContainerSizeEntity> IngredientContainerSizes { get; set; } = default!;
         public DbSet<NutrientEntity> Nutrients { get; set; } = default!;
         public DbSet<NutrientGuidelineEntity> NutrientGuidelines { get; set; } = default!;
         #endregion
@@ -152,6 +153,7 @@ namespace Nom.Data
         public DbSet<ProseStockPhraseEntity> ProseStockPhrases { get; set; } = default!;
         public DbSet<RecipeReprocessJournalEntity> RecipeReprocessJournals { get; set; } = default!;
         public DbSet<ReprocessCandidateEntity> ReprocessCandidates { get; set; } = default!;
+        public DbSet<RecipeSourceEraEntity> RecipeSourceEras { get; set; } = default!;
         public DbSet<RecipeSubstitutionEntity> RecipeSubstitutions { get; set; } = default!;
         public DbSet<RecipeSubstitutionStepEffectEntity> RecipeSubstitutionStepEffects { get; set; } = default!;
         public DbSet<RecipeAugmentationEntity> RecipeAugmentations { get; set; } = default!;

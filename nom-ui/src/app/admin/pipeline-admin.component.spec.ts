@@ -383,6 +383,47 @@ describe('PipelineAdmin', () => {
     expect(byId(loaded(status()).nativeElement, 'pipeline-reprocess-empty')).not.toBeNull();
   });
 
+  it('shows the container size lane: its mode, the keys by status and source, and each key with its hold-out', () => {
+    const body = status();
+    body.containerSizes = {
+      lane: 'container-sizes',
+      laneMode: 'shadow',
+      rows: 3,
+      byStatus: { active: 1, shadow: 1, paused: 1 },
+      bySource: { portion: 1, 'branded-mode': 2 },
+      lastScoredAt: '2026-11-20T02:00:00Z',
+      holdoutLines: 1240,
+      holdoutAgree: 1190,
+      keys: [
+        { rowId: 3, ingredientId: 12, ingredient: 'Tomatoes, canned', kind: 'can', era: 'modern', sizeWord: '', netGrams: 190, drainedGrams: null,
+          sizeText: '6.7 oz (190 g) can', sourceRef: 'fdc:170051:portion:3', class: 'canned-tomatoes', status: 'paused', reason: '3 misses in its last 20 hold-out lines', lines: 40, agree: 2 },
+        { rowId: 1, ingredientId: 10, ingredient: 'Black Beans', kind: 'can', era: 'modern', sizeWord: '', netGrams: 425, drainedGrams: null,
+          sizeText: '14.99 oz (425 g) can', sourceRef: 'deterministic:fdc-branded-mode:2025-12-18:canned-black-beans:223/304', class: 'canned-black-beans', status: 'active', reason: null, lines: 600, agree: 590 },
+      ],
+    };
+    const el = loaded(body).nativeElement as HTMLElement;
+
+    expect(byId(el, 'pipeline-container-sizes-state')?.textContent).toContain('container-sizes: shadow');
+    expect(byId(el, 'pipeline-container-sizes-state')?.textContent).toContain('1,190 of 1,240');
+    expect(byId(el, 'pipeline-metric-container-sizes-active')?.textContent?.trim()).toBe('1');
+    expect(byId(el, 'pipeline-metric-container-sizes-branded')?.textContent?.trim()).toBe('2');
+    expect(byId(el, 'pipeline-metric-container-sizes-fill')?.textContent?.trim()).toBe('0');
+    const items = el.querySelectorAll('[data-testid="pipeline-container-sizes-item"]');
+    expect(items.length).toBe(2);
+    expect(items[0].classList).toContain('nom-pipeline__warn');
+    expect(items[1].textContent).toContain('active · 590/600');
+  });
+
+  it('says when no container size is stored, and when the lane did not report', () => {
+    const body = status();
+    body.containerSizes = { lane: 'container-sizes', laneMode: 'shadow', rows: 0, byStatus: {}, bySource: {}, lastScoredAt: null, holdoutLines: 0, holdoutAgree: 0, keys: [] };
+    expect(byId(loaded(body).nativeElement, 'pipeline-container-sizes-empty')).not.toBeNull();
+    TestBed.resetTestingModule();
+    http.verify();
+
+    expect(byId(loaded(status()).nativeElement, 'pipeline-container-sizes-error')).not.toBeNull();
+  });
+
   it('runs a frame lane undo as a dry run and shows its counts', () => {
     const body = status();
     body.frame = frame([frameLane()]);
