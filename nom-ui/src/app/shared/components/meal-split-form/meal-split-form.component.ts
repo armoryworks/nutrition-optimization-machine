@@ -17,6 +17,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { forkJoin, switchMap } from 'rxjs';
 import { PortionService } from '../../../core/services/portion.service';
 import { revealFirstInvalid } from '../../../core/utils/reveal-invalid-control';
@@ -29,7 +30,7 @@ import { MealSplit } from '../../../core/models/portion.model';
  */
 @Component({
   selector: 'nom-meal-split-form',
-  imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatSlideToggleModule],
+  imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatSlideToggleModule, MatCheckboxModule],
   templateUrl: './meal-split-form.component.html',
   styleUrl: './meal-split-form.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -58,6 +59,7 @@ export class MealSplitForm implements OnInit {
   });
 
   includeDessert = signal(false);
+  preparedMealTypeIds = signal<ReadonlySet<number>>(new Set());
   saving = signal(false);
   errorMessage = signal('');
   successMessage = signal('');
@@ -71,6 +73,18 @@ export class MealSplitForm implements OnInit {
 
   readonly dessertField = { control: 'dessertPct', label: 'Dessert', icon: 'cake', testid: 'meal-split-dessert' } as const;
 
+  private readonly preparedMeals = [
+    { mealTypeId: 1100, label: 'Breakfast', testid: 'meal-split-prepared-breakfast' },
+    { mealTypeId: 1101, label: 'Lunch', testid: 'meal-split-prepared-lunch' },
+    { mealTypeId: 1102, label: 'Dinner', testid: 'meal-split-prepared-dinner' },
+    { mealTypeId: 1103, label: 'Snacks', testid: 'meal-split-prepared-snacks' },
+    { mealTypeId: 1104, label: 'Dessert', testid: 'meal-split-prepared-dessert' },
+  ] as const;
+
+  shownPreparedMeals = computed(() =>
+    this.preparedMeals.filter((m) => m.mealTypeId !== 1104 || this.includeDessert()),
+  );
+
   ngOnInit(): void {
     forkJoin({
       split: this.portionService.getMealSplit(this.householdId()),
@@ -81,6 +95,7 @@ export class MealSplitForm implements OnInit {
         next: ({ split, options }) => {
           this.splitForm.patchValue(split);
           this.includeDessert.set(options.includeDessert);
+          this.preparedMealTypeIds.set(new Set(options.preparedMealTypeIds ?? []));
         },
         error: () => this.errorMessage.set('Unable to load meal split.'),
       });
@@ -98,6 +113,14 @@ export class MealSplitForm implements OnInit {
     }
   }
 
+  onPreparedToggle(mealTypeId: number, prepared: boolean): void {
+    const next = new Set(this.preparedMealTypeIds());
+    if (prepared) next.add(mealTypeId);
+    else next.delete(mealTypeId);
+    this.preparedMealTypeIds.set(next);
+    this.successMessage.set('');
+  }
+
   onSave(): void {
     if (this.splitForm.invalid || this.total() !== 100) {
       revealFirstInvalid(this.splitForm, this.host.nativeElement);
@@ -109,7 +132,12 @@ export class MealSplitForm implements OnInit {
     this.successMessage.set('');
 
     this.portionService
-      .saveMealPlanOptions(this.householdId(), { includeDessert: this.includeDessert() })
+      .saveMealPlanOptions(this.householdId(), {
+        includeDessert: this.includeDessert(),
+        preparedMealTypeIds: [...this.preparedMealTypeIds()]
+          .filter((id) => id !== 1104 || this.includeDessert())
+          .sort((a, b) => a - b),
+      })
       .pipe(
         switchMap(() => this.portionService.saveMealSplit(this.householdId(), this.splitForm.getRawValue() as MealSplit)),
         takeUntilDestroyed(this.destroyRef),

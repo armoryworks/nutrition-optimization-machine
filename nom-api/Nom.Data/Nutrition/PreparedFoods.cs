@@ -20,6 +20,13 @@ namespace Nom.Data.Nutrition
         /// <summary>The USDA category ids of prepared foods, for queries.</summary>
         public static readonly int[] CategoryIds = CatalogAdmissionRule.PreparedCategories.Keys.OrderBy(id => id).ToArray();
 
+        /// <summary>
+        /// The prepared categories the plan generator draws a prepared meal from: Fast Foods, Meals, Entrees and
+        /// Side Dishes, and Restaurant Foods. Baby Foods are prepared foods a household adds by hand; the generator
+        /// never serves one as a household's meal.
+        /// </summary>
+        public static readonly int[] MealCategoryIds = { 21, 22, 25 };
+
         /// <summary>Whether a food with this stored USDA category id is a prepared food.</summary>
         public static bool IsPrepared(int? fdcCategoryId) => fdcCategoryId is int id && CatalogAdmissionRule.PreparedCategories.ContainsKey(id);
 

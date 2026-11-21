@@ -89,6 +89,7 @@ namespace Nom.Api.Controllers
         /// <summary>
         /// Saves the household's meal-plan options. Turning desserts on adds a Dessert row to
         /// plans and shuffles; give it a share in the meal split so it gets a calorie budget.
+        /// The meals named in PreparedMealTypeIds are filled with a prepared meal by shuffle.
         /// </summary>
         [HttpPut("{id:long}/meal-plan-options")]
         public async Task<ActionResult<MealPlanOptionsModel>> SaveMealPlanOptions(long id, [FromBody] MealPlanOptionsModel request)
@@ -96,7 +97,14 @@ namespace Nom.Api.Controllers
             if (!CanManageHousehold(id))
                 return Forbid();
 
-            return Ok(await _portionService.SaveMealPlanOptionsAsync(id, request));
+            try
+            {
+                return Ok(await _portionService.SaveMealPlanOptionsAsync(id, request));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>

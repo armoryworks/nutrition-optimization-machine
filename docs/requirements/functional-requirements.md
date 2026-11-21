@@ -256,6 +256,7 @@ To enable users to plan meals via a unified plan page with a weekly calendar, in
 | FR-MP-7.12 | View Toggles                         | NOT IMPLEMENTED    | Weekly (primary), daily detail, and monthly overview view options             |
 | FR-MP-7.13 | Configurable Shopping List Frequency | NOT IMPLEMENTED    | User-configurable generation interval (weekly, bi-weekly, monthly, custom)    |
 | FR-MP-7.14 | Plan Context Sidebar                 | NOT IMPLEMENTED    | Sidebar showing plan goals, member restrictions, and weekly exclusion summary |
+| FR-MP-7.15 | Prepared Meals by Meal               |  COMPLETE        | Plan setup gives chosen meals (e.g. lunch) to prepared meals; shuffle fills them from the Prepared category under the same nutrient scoring, and holds them back for a household whose restrictions or diets are judged by ingredients, since a prepared meal lists none; each is one shopping-list item (see `docs/architecture/food-catalog-ingestion.md`, Prepared foods) |
 
 ## Ingredient Substitution System
 

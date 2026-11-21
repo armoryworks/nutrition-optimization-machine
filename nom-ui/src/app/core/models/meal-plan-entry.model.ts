@@ -15,6 +15,8 @@ export interface MealPlanEntry {
   foodGroupName?: string | null;
   /** Set when the standalone food is a prepared food (fast food, restaurant or baby food, a meal or entree). */
   isPrepared?: boolean;
+  /** For a prepared food: how many to buy for this slot, its quantity for each member who eats the meal. */
+  servingsToBuy?: number | null;
   /** Grams in one reference serving; null means the shown nutrition uses the 100 g basis. */
   referenceServingGrams?: number | null;
   title: string | null;

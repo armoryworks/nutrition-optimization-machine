@@ -26,6 +26,15 @@
   display: inline-block;
 }
 
+.nom-plan__notice {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  background: var(--mat-sys-surface-container);
+  border-radius: 8px;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  margin: 0 0 vars.$spacing-3;
+}
+
 .nom-plan__loading {
   display: flex;
   justify-content: center;

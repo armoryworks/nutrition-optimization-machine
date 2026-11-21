@@ -15,6 +15,7 @@ export const DEPARTMENT_ORDER = [
   'Oils & Vinegars',
   'Baking',
   'Nuts & Dried Fruit',
+  'Prepared Meals',
   'Frozen',
   'Beverages',
   'Household',
@@ -33,11 +34,15 @@ export const DEPARTMENT_ICONS: Record<string, string> = {
   'Oils & Vinegars': 'water_drop',
   Baking: 'cake',
   'Nuts & Dried Fruit': 'nutrition',
+  'Prepared Meals': 'takeout_dining',
   Frozen: 'ac_unit',
   Beverages: 'local_cafe',
   Household: 'cleaning_services',
   Other: 'category',
 };
+
+/** Prepared meals planned as a meal of their own: one item each, never split into ingredients. */
+export const PREPARED_MEALS_DEPARTMENT = 'Prepared Meals';
 
 /** Non-food staples: never a catalog food, never asked about, filed in their own aisle. */
 export const HOUSEHOLD_DEPARTMENT = 'Household';

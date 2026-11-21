@@ -549,11 +549,19 @@ namespace Nom.Orch.Services
                 }
             }
 
+            var curatedOnly = await _policy.IsCuratedOnlyAsync(authorId, model.HouseholdId);
+            var prepared = await LoadPreparedPoolsAsync(
+                model.HouseholdId, emptyCells, restrictedIngredientIds, hasSevereRestriction, restrictedSet.ReadsContents, curatedOnly);
+
             // 4. Expand each empty cell into composition sub-slots
             var expanded = new List<(DateOnly Date, long MealTypeId, long RecipeTypeId)>();
             foreach (var cell in emptyCells)
             {
-                if (MealComposition.TryGetValue(cell.MealTypeId, out var slots))
+                if (prepared.Pools.ContainsKey(cell.MealTypeId))
+                {
+                    expanded.Add((cell.Date, cell.MealTypeId, PreparedSlotTypeId));
+                }
+                else if (MealComposition.TryGetValue(cell.MealTypeId, out var slots))
                 {
                     foreach (var slot in slots)
                     {
@@ -569,6 +577,7 @@ namespace Nom.Orch.Services
             // 5. Group by (recipe type, meal type) and fetch random recipes per combination
             //    This ensures breakfast entrees are separate from dinner entrees, etc.
             var countByTypeAndMeal = expanded
+                .Where(e => e.RecipeTypeId != PreparedSlotTypeId)
                 .GroupBy(e => (e.RecipeTypeId, e.MealTypeId))
                 .ToDictionary(g => g.Key, g => g.Count());
 
@@ -606,7 +615,7 @@ namespace Nom.Orch.Services
                 // household + audience tiers). curated_only members draw only
                 // from audience-scoped recipes and household cookbooks.
                 var query = _context.Recipes.VisibleTo(_context, authorId);
-                if (await _policy.IsCuratedOnlyAsync(authorId, model.HouseholdId))
+                if (curatedOnly)
                 {
                     query = query.Where(r =>
                         r.Visibility == RecipeVisibilityEnum.Audience
@@ -858,22 +867,119 @@ namespace Nom.Orch.Services
             }
 
             var usedIds = new HashSet<long>();
+            var usedPreparedIds = new HashSet<long>();
             var poolCounters = new Dictionary<(long, long), int>();
             var newEntities = new List<MealPlanEntity>();
             var dailyTotals = new Dictionary<DateOnly, Dictionary<long, decimal>>();
             var now = DateTime.UtcNow;
 
+            decimal Score(DateOnly date, long mealTypeId, Dictionary<long, decimal> dayTotals,
+                Dictionary<long, decimal>? nutrients, bool isUnused, decimal unknownMixPenalty)
+            {
+                var score = 0m;
+                if (isUnused) score += 1000m;
+
+                // Score every nutrient that has a guideline
+                foreach (var guideline in guidelines)
+                {
+                    var candidateAmount = nutrients?.GetValueOrDefault(guideline.NutrientId, 0m) ?? 0m;
+                    if (candidateAmount == 0m) continue;
+
+                    var currentTotal = dayTotals.GetValueOrDefault(guideline.NutrientId, 0m);
+                    var remaining = guideline.Target - currentTotal;
+                    // Heavier penalty when MaxAmount is set (hard ceiling like sodium)
+                    var overshootWeight = guideline.UpperLimit.HasValue ? 3m : 1.5m;
+
+                    if (remaining > 0 && candidateAmount <= remaining)
+                    {
+                        // Contributes toward target without exceeding — reward
+                        score += 100m * candidateAmount / guideline.Target;
+                    }
+                    else if (remaining > 0)
+                    {
+                        // Partially contributes but overshoots — partial reward, proportional penalty
+                        score += 100m * remaining / guideline.Target;
+                        score -= overshootWeight * 100m * (candidateAmount - remaining) / guideline.Target;
+                    }
+                    else
+                    {
+                        // Target already met — penalize further addition
+                        score -= overshootWeight * 50m * candidateAmount / guideline.Target;
+                    }
+                }
+
+                // Calorie distribution: prefer even spread across remaining slots
+                if (caloriesNutrientId.HasValue && nutrients != null)
+                {
+                    var calAmount = nutrients.GetValueOrDefault(caloriesNutrientId.Value, 0m);
+                    if (calAmount > 0 && guidelinesByNutrient.TryGetValue(caloriesNutrientId.Value, out var calGuideline))
+                    {
+                        var calRemaining = calGuideline.Target - dayTotals.GetValueOrDefault(caloriesNutrientId.Value, 0m);
+                        if (calRemaining > 0)
+                            score -= Math.Abs(calAmount - calRemaining / 3m) * 0.5m;
+                    }
+                }
+
+                if (mixTargets.Count > 0)
+                    score -= MacroMixPenalty(date, mealTypeId, nutrients) ?? unknownMixPenalty;
+
+                return score;
+            }
+
+            void AddToTotals(DateOnly date, long mealTypeId, Dictionary<long, decimal> dayTotals, Dictionary<long, decimal> nutrients)
+            {
+                if (!cellPlates.TryGetValue((date, mealTypeId), out var cellPlate))
+                {
+                    cellPlates[(date, mealTypeId)] = cellPlate = new Dictionary<long, decimal>();
+                }
+                foreach (var (nutrientId, amount) in nutrients)
+                {
+                    dayTotals[nutrientId] = dayTotals.GetValueOrDefault(nutrientId, 0m) + amount;
+                    cellPlate[nutrientId] = cellPlate.GetValueOrDefault(nutrientId, 0m) + amount;
+                }
+            }
+
             foreach (var slot in expanded.OrderBy(s => s.Date).ThenBy(s => s.MealTypeId))
             {
-                var poolKey = (slot.RecipeTypeId, slot.MealTypeId);
-                if (!recipePools.TryGetValue(poolKey, out var pool) || pool.Count == 0)
-                    continue;
-
                 if (!dailyTotals.TryGetValue(slot.Date, out var dayTotals))
                 {
                     dayTotals = new Dictionary<long, decimal>();
                     dailyTotals[slot.Date] = dayTotals;
                 }
+
+                if (slot.RecipeTypeId == PreparedSlotTypeId)
+                {
+                    var preparedPool = prepared.Pools[slot.MealTypeId];
+                    var unknownPreparedPenalty = mixTargets.Count > 0
+                        ? preparedPool.Select(c => MacroMixPenalty(slot.Date, slot.MealTypeId, c.Nutrients))
+                            .Where(p => p.HasValue).Select(p => p!.Value).DefaultIfEmpty(0m).Max()
+                        : 0m;
+                    var meal = preparedPool
+                        .Select(c => (Candidate: c, Score: Score(slot.Date, slot.MealTypeId, dayTotals,
+                            c.Nutrients, !usedPreparedIds.Contains(c.Id), unknownPreparedPenalty)))
+                        .OrderByDescending(c => c.Score)
+                        .First().Candidate;
+
+                    usedPreparedIds.Add(meal.Id);
+                    AddToTotals(slot.Date, slot.MealTypeId, dayTotals, meal.Nutrients);
+                    newEntities.Add(new MealPlanEntity
+                    {
+                        HouseholdId = model.HouseholdId,
+                        AuthorId = authorId,
+                        Date = slot.Date,
+                        MealTypeId = slot.MealTypeId,
+                        Title = meal.Name,
+                        IngredientId = meal.Id,
+                        Quantity = 1m,
+                        CreatedDate = now,
+                        LastModifiedDate = now,
+                    });
+                    continue;
+                }
+
+                var poolKey = (slot.RecipeTypeId, slot.MealTypeId);
+                if (!recipePools.TryGetValue(poolKey, out var pool) || pool.Count == 0)
+                    continue;
 
                 var unknownMixPenalty = mixTargets.Count > 0
                     ? pool.Select(c => MacroMixPenalty(slot.Date, slot.MealTypeId, recipeNutrients.GetValueOrDefault(c.Id)))
@@ -895,55 +1001,8 @@ namespace Nom.Orch.Services
                         continue;
                     }
 
-                    var isUnused = !usedIds.Contains(candidate.Id);
                     recipeNutrients.TryGetValue(candidate.Id, out var nutrients);
-
-                    var score = 0m;
-                    if (isUnused) score += 1000m;
-
-                    // Score every nutrient that has a guideline
-                    foreach (var guideline in guidelines)
-                    {
-                        var candidateAmount = nutrients?.GetValueOrDefault(guideline.NutrientId, 0m) ?? 0m;
-                        if (candidateAmount == 0m) continue;
-
-                        var currentTotal = dayTotals.GetValueOrDefault(guideline.NutrientId, 0m);
-                        var remaining = guideline.Target - currentTotal;
-                        // Heavier penalty when MaxAmount is set (hard ceiling like sodium)
-                        var overshootWeight = guideline.UpperLimit.HasValue ? 3m : 1.5m;
-
-                        if (remaining > 0 && candidateAmount <= remaining)
-                        {
-                            // Contributes toward target without exceeding — reward
-                            score += 100m * candidateAmount / guideline.Target;
-                        }
-                        else if (remaining > 0)
-                        {
-                            // Partially contributes but overshoots — partial reward, proportional penalty
-                            score += 100m * remaining / guideline.Target;
-                            score -= overshootWeight * 100m * (candidateAmount - remaining) / guideline.Target;
-                        }
-                        else
-                        {
-                            // Target already met — penalize further addition
-                            score -= overshootWeight * 50m * candidateAmount / guideline.Target;
-                        }
-                    }
-
-                    // Calorie distribution: prefer even spread across remaining slots
-                    if (caloriesNutrientId.HasValue && nutrients != null)
-                    {
-                        var calAmount = nutrients.GetValueOrDefault(caloriesNutrientId.Value, 0m);
-                        if (calAmount > 0 && guidelinesByNutrient.TryGetValue(caloriesNutrientId.Value, out var calGuideline))
-                        {
-                            var calRemaining = calGuideline.Target - dayTotals.GetValueOrDefault(caloriesNutrientId.Value, 0m);
-                            if (calRemaining > 0)
-                                score -= Math.Abs(calAmount - calRemaining / 3m) * 0.5m;
-                        }
-                    }
-
-                    if (mixTargets.Count > 0)
-                        score -= MacroMixPenalty(slot.Date, slot.MealTypeId, nutrients) ?? unknownMixPenalty;
+                    var score = Score(slot.Date, slot.MealTypeId, dayTotals, nutrients, !usedIds.Contains(candidate.Id), unknownMixPenalty);
 
                     if (score > bestScore)
                     {
@@ -976,15 +1035,7 @@ namespace Nom.Orch.Services
                 // Update daily totals for all tracked nutrients
                 if (recipeNutrients.TryGetValue(bestRecipe.Id, out var selectedNutrients))
                 {
-                    if (!cellPlates.TryGetValue((slot.Date, slot.MealTypeId), out var cellPlate))
-                    {
-                        cellPlates[(slot.Date, slot.MealTypeId)] = cellPlate = new Dictionary<long, decimal>();
-                    }
-                    foreach (var (nutrientId, amount) in selectedNutrients)
-                    {
-                        dayTotals[nutrientId] = dayTotals.GetValueOrDefault(nutrientId, 0m) + amount;
-                        cellPlate[nutrientId] = cellPlate.GetValueOrDefault(nutrientId, 0m) + amount;
-                    }
+                    AddToTotals(slot.Date, slot.MealTypeId, dayTotals, selectedNutrients);
                 }
 
                 newEntities.Add(new MealPlanEntity
@@ -1027,7 +1078,95 @@ namespace Nom.Orch.Services
                 Created = newEntities.Count,
                 Deleted = deletedCount,
                 Week = week,
+                PreparedMealsHeld = prepared.Held,
             };
+        }
+
+        /// <summary>The composition sub-slot of a meal the household has given to prepared meals.</summary>
+        internal const long PreparedSlotTypeId = -1L;
+
+        /// <summary>A prepared food the generator may serve as a meal, with its nutrients for one reference serving.</summary>
+        private sealed record PreparedMealCandidate(long Id, string Name, Dictionary<long, decimal> Nutrients);
+
+        /// <summary>The prepared-meal pools per meal type, and why prepared meals were held back when they were.</summary>
+        private sealed record PreparedPools(Dictionary<long, List<PreparedMealCandidate>> Pools, string? Held);
+
+        /// <summary>Why shuffle placed no prepared meal for a meal the household gave to them.</summary>
+        public static class PreparedMealsHeldReasons
+        {
+            /// <summary>A member has an allergy or medical restriction: a prepared meal's ingredients are not listed, so nothing shows it is safe.</summary>
+            public const string SevereRestriction = "severe_restriction";
+
+            /// <summary>The member who shuffled draws only from audience and cookbook recipes.</summary>
+            public const string CuratedOnly = "curated_only";
+
+            /// <summary>A member has a restriction or diet judged by what a dish contains (a pattern, or a food that is not a prepared food): a prepared meal's ingredients are not listed, so nothing shows it fits.</summary>
+            public const string DietRestriction = "diet_restriction";
+
+            /// <summary>No curated prepared meal passes the household's restrictions, diets and locks.</summary>
+            public const string NoneAvailable = "none_available";
+        }
+
+        /// <summary>
+        /// The prepared meals shuffle may place in the empty cells of the meals the household gave to prepared meals
+        /// (<see cref="PortionOrchestrationService.PreparedMealsPreferenceKey"/>): curated foods of
+        /// <see cref="Nom.Data.Nutrition.PreparedFoods.MealCategoryIds"/> that no restriction, diet or steward/provider lock
+        /// of the household forbids, drawn at random, <see cref="PoolOversample"/> per cell, each with its nutrients for one
+        /// reference serving (100 g when it has none), the basis the week view shows. None when a member has a severe
+        /// restriction, because a prepared meal lists no ingredients for the severe gate to check, when a member has a
+        /// restriction or diet judged by what a dish contains (<see cref="Support.RestrictedIngredientSet.ReadsContents"/>),
+        /// for the same reason, or when the member who shuffles is curated-only. A meal with an empty pool falls back to recipes.
+        /// </summary>
+        private async Task<PreparedPools> LoadPreparedPoolsAsync(
+            long householdId, List<(DateOnly Date, long MealTypeId)> emptyCells,
+            List<long> restrictedIngredientIds, bool hasSevereRestriction, bool readsContents, bool curatedOnly)
+        {
+            var pools = new Dictionary<long, List<PreparedMealCandidate>>();
+            var stored = await _context.HouseholdPreferences
+                .AsNoTracking()
+                .Where(p => p.HouseholdId == householdId && p.PreferenceKey == PortionOrchestrationService.PreparedMealsPreferenceKey)
+                .Select(p => p.PreferenceValue)
+                .FirstOrDefaultAsync();
+            var cellsByMeal = PortionOrchestrationService.ParsePreparedMealTypeIds(stored)
+                .Select(mealTypeId => (MealTypeId: mealTypeId, Cells: emptyCells.Count(c => c.MealTypeId == mealTypeId)))
+                .Where(m => m.Cells > 0)
+                .ToList();
+            if (cellsByMeal.Count == 0) return new PreparedPools(pools, null);
+            if (hasSevereRestriction) return new PreparedPools(pools, PreparedMealsHeldReasons.SevereRestriction);
+            if (readsContents) return new PreparedPools(pools, PreparedMealsHeldReasons.DietRestriction);
+            if (curatedOnly) return new PreparedPools(pools, PreparedMealsHeldReasons.CuratedOnly);
+
+            var lockedIds = await _policy.GetLockedIngredientIdsAsync(householdId);
+            foreach (var (mealTypeId, cells) in cellsByMeal)
+            {
+                var foods = await _context.Ingredients
+                    .Where(i => i.CurationStatusId == (long)CurationStatusEnum.Curated
+                        && i.FdcCategoryId != null
+                        && Nom.Data.Nutrition.PreparedFoods.MealCategoryIds.Contains(i.FdcCategoryId.Value)
+                        && !restrictedIngredientIds.Contains(i.Id)
+                        && !lockedIds.Contains(i.Id))
+                    .OrderBy(i => EF.Functions.Random())
+                    .Take(cells * PoolOversample)
+                    .Select(i => new { i.Id, i.Name, i.ReferenceServingGrams })
+                    .ToListAsync();
+                if (foods.Count == 0) continue;
+
+                var ids = foods.Select(f => f.Id).ToList();
+                var nutrientRows = await _context.Set<Nom.Data.Nutrient.IngredientNutrientEntity>()
+                    .Where(n => ids.Contains(n.IngredientId) && !n.IsDeleted)
+                    .Select(n => new { n.IngredientId, n.NutrientId, n.Amount })
+                    .ToListAsync();
+                pools[mealTypeId] = foods.Select(f =>
+                {
+                    var basis = f.ReferenceServingGrams is > 0 ? f.ReferenceServingGrams.Value : 100m;
+                    var nutrients = nutrientRows.Where(n => n.IngredientId == f.Id)
+                        .GroupBy(n => n.NutrientId)
+                        .ToDictionary(g => g.Key, g => g.First().Amount * basis / 100m);
+                    return new PreparedMealCandidate(f.Id, f.Name, nutrients);
+                }).ToList();
+            }
+
+            return new PreparedPools(pools, pools.Count < cellsByMeal.Count ? PreparedMealsHeldReasons.NoneAvailable : null);
         }
 
         /// <summary>
@@ -1221,6 +1360,19 @@ namespace Nom.Orch.Services
                 .Where(e => e.HouseholdId == householdId && e.Date >= weekStart && e.Date <= weekEnd)
                 .ToListAsync();
 
+            var activeMemberIds = mealPlans.Any(mp => mp.Ingredient != null && Nom.Data.Nutrition.PreparedFoods.IsPrepared(mp.Ingredient))
+                ? (await _context.HouseholdMembers
+                    .Where(hm => hm.HouseholdId == householdId && hm.IsActive)
+                    .Select(hm => hm.PersonId)
+                    .ToListAsync()).ToHashSet()
+                : new HashSet<long>();
+
+            decimal Eaters(DateOnly date, long mealTypeId) => activeMemberIds.Count - exclusions
+                .Where(x => x.Date == date && (x.MealTypeId == null || x.MealTypeId == mealTypeId) && activeMemberIds.Contains(x.PersonId))
+                .Select(x => x.PersonId)
+                .Distinct()
+                .Count();
+
             var activeMealTypes = await ActiveMealTypesAsync(householdId);
             var days = new List<MealPlanDayModel>();
             for (int i = 0; i < 7; i++)
@@ -1234,6 +1386,7 @@ namespace Nom.Orch.Services
                     var slotEntries = dayMealPlans.Where(mp => mp.MealTypeId == mt.Id).ToList();
                     var entryModels = slotEntries.Select(e =>
                     {
+                        var isPrepared = e.Ingredient != null && Nom.Data.Nutrition.PreparedFoods.IsPrepared(e.Ingredient);
                         var entryModel = new MealPlanEntryModel
                         {
                             Id = e.Id,
@@ -1247,7 +1400,8 @@ namespace Nom.Orch.Services
                             MeasurementName = e.Measurement?.Name,
                             FoodGroupId = e.Ingredient?.FoodGroupId,
                             FoodGroupName = e.Ingredient?.FoodGroup?.Name,
-                            IsPrepared = e.Ingredient != null && Nom.Data.Nutrition.PreparedFoods.IsPrepared(e.Ingredient),
+                            IsPrepared = isPrepared,
+                            ServingsToBuy = isPrepared ? (e.Quantity ?? 1m) * Eaters(date, mt.Id) : null,
                             Title = e.Title,
                             Notes = e.Note,
                             CompletedDate = e.CompletedDate,

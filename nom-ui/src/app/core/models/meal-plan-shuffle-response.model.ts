@@ -4,4 +4,5 @@ export interface MealPlanShuffleResponse {
   created: number;
   deleted: number;
   week: MealPlanWeekResponse;
+  preparedMealsHeld?: string | null;
 }

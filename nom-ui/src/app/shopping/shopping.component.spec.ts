@@ -71,7 +71,9 @@ describe('ShoppingComponent', () => {
   let http: HttpTestingController;
   let flow: { run: ReturnType<typeof vi.fn> };
 
-  function create(options: { state?: ShoppingState; planned?: boolean; needs?: NeedsVerification[] } = {}) {
+  function create(
+    options: { state?: ShoppingState; planned?: boolean; needs?: NeedsVerification[]; week?: unknown; pantry?: unknown[]; recipe?: boolean } = {},
+  ) {
     const planned = options.planned ?? true;
     flow = { run: vi.fn(() => Promise.resolve()) };
     TestBed.configureTestingModule({
@@ -92,13 +94,15 @@ describe('ShoppingComponent', () => {
     fixture.detectChanges();
 
     http.expectOne((r) => r.url.endsWith('/GroceryExport/providers')).flush([]);
-    for (const req of http.match((r) => r.url.endsWith('/MealPlan/week'))) req.flush(planned ? week : emptyWeek);
-    http.expectOne((r) => r.url.endsWith('/Pantry')).flush([]);
+    http.match((r) => r.url.endsWith('/MealPlan/week')).forEach((req, i) =>
+      req.flush(options.week ? (i === 0 ? options.week : emptyWeek) : planned ? week : emptyWeek),
+    );
+    http.expectOne((r) => r.url.endsWith('/Pantry')).flush(options.pantry ?? []);
     http.expectOne((r) => r.url.endsWith('/RetailPackaging')).flush([]);
     for (const req of http.match((r) => r.url.endsWith('/Measurement/all'))) req.flush(measurements);
     http.expectOne((r) => r.url.endsWith('/MealPlan/portions/range')).flush([]);
     http.expectOne((r) => r.method === 'GET' && r.url.endsWith('/Shopping')).flush(options.state ?? { items: [], checks: [] });
-    if (planned) http.expectOne((r) => r.url.endsWith('/Recipe/5')).flush(recipe);
+    if (options.recipe ?? planned) http.expectOne((r) => r.url.endsWith('/Recipe/5')).flush(recipe);
     fixture.detectChanges();
     for (const req of http.match((r) => r.url.endsWith('/Shopping/needs-verification'))) req.flush(options.needs ?? []);
     for (const req of http.match((r) => r.url.endsWith('/RetailPackaging/lookup'))) req.flush({ results: [] });
@@ -286,6 +290,73 @@ describe('ShoppingComponent', () => {
       fixture.detectChanges();
       expect(items(fixture.nativeElement)).toHaveLength(2);
       expect(fixture.componentInstance.askable().has(44)).toBe(true);
+    });
+  });
+
+  describe('prepared meals', () => {
+    const tomorrow = toLocalDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
+    const lasagna = (servingsToBuy: number | null, id = 21) => ({
+      id,
+      recipeId: null,
+      recipeName: null,
+      ingredientId: 90,
+      ingredientName: 'Lasagna, cheese, frozen',
+      quantity: 1,
+      isPrepared: true,
+      servingsToBuy,
+    });
+    const lunch = (entries: unknown[]) => ({
+      mealTypeId: 1101,
+      mealType: 'Lunch',
+      entries,
+      totalCalories: null,
+      totalProteinGrams: null,
+      totalCarbGrams: null,
+      totalFatGrams: null,
+    });
+    const preparedWeek = (withRecipe: boolean) => ({
+      weekStart: today,
+      weekEnd: tomorrow,
+      days: [
+        { date: today, dayOfWeek: 'Today', exclusions: [], cells: [lunch([lasagna(2)]), ...(withRecipe ? week.days[0].cells : [])] },
+        { date: tomorrow, dayOfWeek: 'Tomorrow', exclusions: [], cells: [lunch([lasagna(1, 22), lasagna(0, 23)])] },
+      ],
+    });
+    const prepared = (el: HTMLElement) => items(el).find((li) => li.textContent?.includes('Lasagna'))!;
+
+    it('lists a planned prepared meal as one item to buy, counted for the members who eat it', () => {
+      const fixture = create({ week: preparedWeek(true) });
+      const el = fixture.nativeElement as HTMLElement;
+      const item = prepared(el);
+
+      expect(items(el)).toHaveLength(2);
+      expect(item.querySelector('[data-testid="shopping-item-prepared"]')?.textContent).toContain('prepared meal');
+      expect(item.querySelector('[data-testid="shopping-item-qty"]')?.textContent?.trim()).toBe('3 servings');
+      expect(item.querySelector('[data-testid="shopping-item-ingredient-link"]')).toBeNull();
+      expect(item.closest('[data-testid="shopping-dept"]')?.textContent).toContain('Prepared Meals');
+      expect(items(el).find((li) => li.textContent?.includes('Chicken Breast'))).toBeTruthy();
+    });
+
+    it('is checked off like any other item', () => {
+      const fixture = create({ week: preparedWeek(true) });
+      const item = prepared(fixture.nativeElement);
+      checkbox(item).click();
+      fixture.detectChanges();
+
+      expect(item.classList).toContain('nom-shopping__item--checked');
+      const req = checkPost();
+      expect(req.request.body).toEqual({ householdId: 7, itemKey: '90', checked: true });
+      req.flush({ itemKey: '90', checked: true });
+    });
+
+    it('builds a list from prepared meals alone and takes what the pantry holds off it', () => {
+      const pantry = [{ ingredientId: 90, quantity: 2, measurementName: 'piece', isExpired: false, statusName: 'In Pantry' }];
+      const fixture = create({ week: preparedWeek(false), recipe: false, pantry });
+      const el = fixture.nativeElement as HTMLElement;
+
+      expect(el.querySelector('[data-testid="shopping-empty"]')).toBeNull();
+      expect(items(el)).toHaveLength(1);
+      expect(prepared(el).querySelector('[data-testid="shopping-item-qty"]')?.textContent?.trim()).toBe('1 serving');
     });
   });
 });
