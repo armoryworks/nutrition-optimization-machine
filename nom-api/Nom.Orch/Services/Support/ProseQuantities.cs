@@ -123,7 +123,7 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex Tags = new(@"<[^>]+>", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-        private const string ReferenceAbbreviations = @"No|Nos|N|Nr|Art|Arts|Fig|Figs|pp|p|Vol|Chap|Ch";
+        private const string ReferenceAbbreviations = @"(?-i:No|Nos|N|Nr|Art|Arts|Fig|Figs|Vol|Chap|Ch|no|nos|nr|art|arts|vol|chap|ch|pp|p)";
 
         private static readonly Regex StepMarker = new(
             @"(?<=^|(?<!\b(?:" + ReferenceAbbreviations + @"))[.!?:]\s*)\s*(?:step\s*)?\d{1,2}\s*[.):](?=\s*\p{L})|^\s*\d{1,2}(?=\p{Lu}\p{Ll})|(?<=(?<!\b(?:" + ReferenceAbbreviations + @"))[.!?])\s*\d{1,2}\.\s*$|^\s*step\s*\d{1,2}\b\s*[:.\-–]?",

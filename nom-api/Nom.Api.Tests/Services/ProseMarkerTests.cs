@@ -47,6 +47,8 @@ namespace Nom.Api.Tests.Services
         [InlineData("4) Fold in the berries.", "Fold in the berries.")]
         [InlineData("Step 5:", "")]
         [InlineData("Season to taste, see No. 3 below. 4. Serve hot.", "Season to taste, see No. 3 below. Serve hot.")]
+        [InlineData("Stem and halve the figs. 2. Place them on the tray.", "Stem and halve the figs. Place them on the tray.")]
+        [InlineData("Add the fig. 3.", "Add the fig.")]
         public void Each_marker_form_is_taken_out_and_nothing_else_changes(string step, string expected)
         {
             ProseQuantities.HasStepMarker(step).Should().BeTrue();

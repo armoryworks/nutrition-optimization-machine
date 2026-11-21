@@ -42,7 +42,7 @@ namespace Nom.Orch.Models.Curation
         public int SkippedEditedByPerson { get; set; }
         /// <summary>The first recipes skipped because a person edited a step, by id.</summary>
         public List<long> SkippedEditedRecipeIds { get; set; } = new();
-        /// <summary>Recipes the check could not read because it failed on their text; each is left as it is and the run goes on.</summary>
+        /// <summary>Recipes the check could not read because it failed on their text; each counts as failed (check-error) and is withheld like any other, and the run goes on.</summary>
         public int Errored { get; set; }
         /// <summary>The first recipes the check failed on, by id, with the error.</summary>
         public List<ProseRecheckError> Errors { get; set; } = new();

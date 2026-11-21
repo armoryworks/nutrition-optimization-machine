@@ -36,6 +36,7 @@ namespace Nom.Orch.Services
         public const string DescriptionByPersonChangeType = "ProseDescriptionByPerson";
         public const string RunEntityType = "ProseRecheck";
         public const string RunChangeType = "ProseRecheckRun";
+        public const string CheckErrorReason = "check-error";
         public const int JournalLength = 4000;
         public const int WithholdBatch = 500;
         public const int MaxListedRecipeIds = 1000;
@@ -130,10 +131,11 @@ namespace Nom.Orch.Services
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
+                        var error = $"{ex.GetType().Name}: {ex.Message}";
                         result.Errored++;
                         if (result.Errors.Count < MaxListedRecipeIds)
-                            result.Errors.Add(new ProseRecheckError { RecipeId = candidate.Id, Error = $"{ex.GetType().Name}: {ex.Message}" });
-                        continue;
+                            result.Errors.Add(new ProseRecheckError { RecipeId = candidate.Id, Error = error });
+                        finding = new ProseCheck.Finding(new[] { new ProseCheck.Fault(CheckErrorReason, error) }, 0m, 0, 0, 0m, stock.Version);
                     }
 
                     if (finding.Passed)

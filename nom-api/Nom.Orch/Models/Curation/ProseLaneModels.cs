@@ -14,7 +14,7 @@ namespace Nom.Orch.Models.Curation
         public int GaveUp { get; set; }
         /// <summary>Withheld recipes whose method a person wrote: only their copied description was replaced, live.</summary>
         public int DescriptionOnly { get; set; }
-        /// <summary>Recipes the model host answered with an error status; they go to the back of the queue, uncharged.</summary>
+        /// <summary>Recipes the model host answered with an error status, or the lane itself failed on; they go to the back of the queue, uncharged.</summary>
         public int Errors { get; set; }
         public Dictionary<string, int> GaveUpByClass { get; set; } = new(StringComparer.Ordinal);
 

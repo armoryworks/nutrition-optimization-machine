@@ -103,7 +103,7 @@ namespace Nom.Api.Services
 
             if (result.Errored > 0)
             {
-                _logger.LogWarning("Prose re-check could not check {Errored} recipe(s), left as they are: {Errors}",
+                _logger.LogWarning("Prose re-check could not check {Errored} recipe(s), withheld as check-error: {Errors}",
                     result.Errored, string.Join("; ", result.Errors.Take(20).Select(e => $"#{e.RecipeId} {e.Error}")));
             }
 

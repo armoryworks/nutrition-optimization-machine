@@ -56,6 +56,7 @@ namespace Nom.Api.Tests.Services
         [InlineData("Add a pinch of salt.", "count 1 pinch (soft)")]
         [InlineData("Let rest for a second sheet of foil.", "")]
         [InlineData("Cook 10 minutes or until golden.", "time 10 minute")]
+        [InlineData("Quarter the figs. 2 cups of cream are whipped.", "volume 2 cup")]
         public void Reads_each_amount_with_its_unit_and_range(string text, string expected)
         {
             Shape(text).Should().Be(expected);
@@ -144,6 +145,15 @@ namespace Nom.Api.Tests.Services
         public void A_line_with_a_size_of_two_lengths_has_its_amounts_cut_once_and_keeps_its_head(string line, string head)
         {
             ProseCheck.LineHeads(new[] { line }).Should().ContainSingle().Which.Head.Should().Be(head);
+        }
+
+        [Theory]
+        [InlineData("Quarter the figs. 2 cups of cream are whipped.", "Quarter the figs. 2 cups of cream are whipped.")]
+        [InlineData("Add the fig. 3 dates and the figs. 4 prunes.", "Add the fig. 3 dates and the figs. 4 prunes.")]
+        [InlineData("Fold as in Fig. 15 and serve.", "Fold as in  ref  and serve.")]
+        public void Fig_is_a_cross_reference_only_with_a_capital_and_the_fruit_keeps_its_word_and_amount(string text, string expected)
+        {
+            ProseQuantities.Prepare(text).Should().Be(expected);
         }
 
         [Fact]

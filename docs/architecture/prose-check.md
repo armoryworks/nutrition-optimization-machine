@@ -172,9 +172,13 @@ recipes skipped because a person edited a step or ended the withhold. Only the c
 transactions of 500, each journaled as `ProseWithhold` (old check version, the finding, the check and
 stock versions), and stamps the passing recipes with the check version. An apply is refused while no
 stock index has been built. An apply that leaves no failure shown is recorded as a full run
-(`ProseRecheckRun`). A recipe the check itself fails on is left as it is, counted in `errored` and
-listed in `errors` (recipe and error, the first 1,000), and the run goes on; the full-run journal
-names the count, and the weekly job logs the recipes as a warning. One such recipe used to stop the
+(`ProseRecheckRun`). A recipe the check itself fails on counts as a failure with the reason
+`check-error` and is withheld like any other (its prose was never checked, so it is not left shown
+under a recorded full run); it is also counted in `errored` and listed in `errors` (recipe and error,
+the first 1,000), and the run goes on. The full-run journal names the count, and the weekly job logs
+the recipes as a warning. The prose lane then rewrites them like other withheld recipes; a recipe the
+lane itself fails on is counted in its `errors` and goes to the back of its queue, and the sweep goes
+on. One such recipe used to stop the
 whole run (checkpoint 1, K6: an ingredient line stating a size of two lengths, "foil (12 x 18
 inches)", gives two amounts over one span, and cutting the span twice ran past the shortened
 line); amounts that share or overlap a span are now cut once (`ProseQuantities.WithoutAmounts`).
@@ -213,7 +217,9 @@ withheld or quarantined recipe are stripped and counted but their text is never 
 
 A number after a reference abbreviation is not a marker: "N. 8", "No. 2", "Art. 47", "Fig. 15"
 (also "Nos.", "Nr.", "Arts.", "Figs.", "p.", "pp.", "Vol.", "Chap.", "Ch.") keep their number, and
-the check reads them as cross-references. The period of the abbreviation used to pass for a sentence
+the check reads them as cross-references. The abbreviations are matched by case: "Fig." and "Figs."
+only with a capital, because "the figs. 2. Place them" ends a sentence on the fruit (and "figs. 2
+cups" states an amount); the others also in lower case ("no. 3", "pp. 12"). The period of the abbreviation used to pass for a sentence
 end, so the dry run on staging (checkpoint 1, K5) stripped Artusi's counts and cross-references
 ("Uova, N. 4." to "Uova, N.", "stampo del N. 8." to "del N.") and those of the Woman's Institute
 books ("Art. 47", "Fig. 15"): 73 of its 1,000 samples. The dry run scans every scraped recipe, books

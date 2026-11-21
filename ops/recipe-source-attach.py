@@ -35,8 +35,10 @@ RULES
    promoter used with --attribution-csv: a row per file and attribution, optionally naming the
    recipe (column "name") or the wrapper's book (column "book") it belongs to. A file may have
    more than one attribution: a record takes the row that names it, else the file's only
-   attribution, else each of the file's attributions in turn until one matches. A file not in the
-   CSV is sent without one, and nom-api then uses the record's own author and site, as the
+   attribution, else it is first sent as a dry run under each of the file's attributions and
+   stored under the one that matches it best; where two match it equally to different recipes
+   (the same recipe in two editions), it takes the first recipe no other record of the run took.
+   A file not in the CSV is sent without one, and nom-api then uses the record's own author and site, as the
    import did.
 6. A newer extraction of a book (ops/cookbook-extract.py) names in each record the recipe whose
    source it replaces ("replacesRecipeId", taken from this script's log of the first attach).
@@ -80,6 +82,7 @@ USER_AGENT = "nom-recipe-source-attach/1.1"
 OUTCOMES = ("matched", "already-attached", "unmatched", "ambiguous", "low-score", "double-match", "conflict",
             "rescraped", "refused")
 RETRY_OUTCOMES = ("unmatched", "low-score")
+MATCH_OUTCOMES = ("matched", "already-attached")
 TARGET_KINDS = ("cookbook", "myplate")
 TARGET_RATE = 0.99
 PIN_KEY = "replacesRecipeId"
@@ -496,11 +499,12 @@ def _place(item: Item, answer: dict | None = None) -> dict:
 class Sender:
     """Posts batches and names every record nom-api refuses, sending the rest of the batch again without it."""
 
-    def __init__(self, post: Post, params: dict, summary: Summary, apply: bool):
+    def __init__(self, post: Post, params: dict, summary: Summary, apply: bool, record_stamp: bool = True):
         self.post = post
         self.params = params
         self.summary = summary
         self.apply = apply
+        self.record_stamp = record_stamp
 
     def send(self, batch: list[Item], attribution: str | None) -> list[tuple[Item, dict, str | None]]:
         answers: dict[int, tuple[dict, str | None]] = {}
@@ -540,7 +544,7 @@ class Sender:
                 self._stopped(items[0], exc)
                 raise
             stamp = result.get("stamp")
-            if self.summary.stamp is None and stamp:
+            if self.record_stamp and self.summary.stamp is None and stamp:
                 self.summary.stamp = stamp
                 if self.apply:
                     log(f"first batch stored; undo with: --undo-since {stamp}")
@@ -565,10 +569,35 @@ def _refusal(body: str, index: int) -> str | None:
     return "; ".join(messages) or None
 
 
-def _better(first: tuple | None, answer: tuple) -> tuple:
-    if first is None:
-        return answer
-    return answer if first[1]["outcome"] == "unmatched" and answer[1]["outcome"] == "low-score" else first
+def _fallback(answers: list[tuple[str | None, dict, str | None]]) -> tuple[str | None, dict, str | None]:
+    """The answer kept for a record no attribution matched: the first that is not unmatched or low-score, else the first low-score, else the first."""
+    final = [a for a in answers if a[1]["outcome"] not in RETRY_OUTCOMES]
+    low = [a for a in answers if a[1]["outcome"] == "low-score"]
+    return (final or low or answers)[0]
+
+
+def choose(items: list[Item], answers: dict[int, list[tuple[str | None, dict, str | None]]],
+           claimed: set[int]) -> dict[int, tuple[str | None, dict, str | None]]:
+    """The attribution each record is stored under, from its dry answers under every attribution: the one that matches it with the best score; where two match it equally to different recipes (the same recipe in two editions), the first whose recipe no other record of the run takes."""
+    chosen: dict[int, tuple[str | None, dict, str | None]] = {}
+    tied: list[tuple[Item, list]] = []
+    for item in items:
+        found = [a for a in answers[id(item)] if a[1]["outcome"] in MATCH_OUTCOMES and a[1].get("recipeId") is not None]
+        if not found:
+            chosen[id(item)] = _fallback(answers[id(item)])
+            continue
+        best = max(a[1].get("score") or 0 for a in found)
+        top = [a for a in found if (a[1].get("score") or 0) == best]
+        if len({a[1]["recipeId"] for a in top}) == 1:
+            chosen[id(item)] = top[0]
+            claimed.add(top[0][1]["recipeId"])
+        else:
+            tied.append((item, top))
+    for item, top in tied:
+        pick = next((a for a in top if a[1]["recipeId"] not in claimed), top[0])
+        chosen[id(item)] = pick
+        claimed.add(pick[1]["recipeId"])
+    return chosen
 
 
 def attach(files: Iterable[str], post: Post, attributions: Books | dict | None = None, apply: bool = False,
@@ -579,7 +608,9 @@ def attach(files: Iterable[str], post: Post, attributions: Books | dict | None =
     books = attributions if isinstance(attributions, Books) else Books(
         {name: [Book(value)] for name, value in (attributions or {}).items()})
     summary = Summary(applied=apply)
-    sender = Sender(post, {"apply": str(apply).lower(), "newVersion": str(new_version).lower()}, summary, apply)
+    params = {"apply": str(apply).lower(), "newVersion": str(new_version).lower()}
+    sender = Sender(post, params, summary, apply)
+    probe = Sender(post, {**params, "apply": "false"}, summary, apply, record_stamp=not apply)
     for path in files:
         kind = file_kind(path)
         name = os.path.basename(path)
@@ -614,23 +645,35 @@ def attach(files: Iterable[str], post: Post, attributions: Books | dict | None =
                         entry["error"] = answer["error"]
                     write_log(entry)
 
+            if len(candidates) == 1:
+                for batch in chunks(group, batch_size):
+                    for item, answer, stamp in sender.send(batch, candidates[0]):
+                        emit(item, answer, stamp, candidates[0])
+                continue
+
+            answers: dict[int, list] = {id(item): [] for item in group}
             pending = group
-            first: dict[int, tuple] = {}
-            for turn, attribution in enumerate(candidates):
-                later = turn + 1 < len(candidates)
-                retry = []
+            for attribution in candidates:
                 for batch in chunks(pending, batch_size):
-                    for item, answer, stamp in sender.send(batch, attribution):
-                        if later and answer["outcome"] in RETRY_OUTCOMES:
-                            first[id(item)] = _better(first.get(id(item)), (item, answer, stamp, attribution))
-                            retry.append(item)
-                        elif answer["outcome"] in RETRY_OUTCOMES and id(item) in first:
-                            emit(*_better(first[id(item)], (item, answer, stamp, attribution)))
-                        else:
-                            emit(item, answer, stamp, attribution)
-                pending = retry
-                if not pending:
-                    break
+                    for item, answer, stamp in probe.send(batch, attribution):
+                        answers[id(item)].append((attribution, answer, stamp))
+                pending = [item for item in pending if answers[id(item)][-1][1]["outcome"] != "refused"]
+            chosen = choose(group, answers, set(summary.taken))
+            if apply:
+                stored: dict[int, tuple[str | None, dict, str | None]] = {}
+                for attribution in candidates:
+                    picked = [item for item in group if chosen[id(item)][0] == attribution
+                              and chosen[id(item)][1]["outcome"] in MATCH_OUTCOMES]
+                    for batch in chunks(picked, batch_size):
+                        for item, answer, stamp in sender.send(batch, attribution):
+                            stored[id(item)] = (attribution, answer, stamp)
+                for item in group:
+                    attribution, answer, stamp = stored.get(id(item)) or (chosen[id(item)][0], chosen[id(item)][1], None)
+                    emit(item, answer, stamp, attribution)
+            else:
+                for item in group:
+                    attribution, answer, stamp = chosen[id(item)]
+                    emit(item, answer, stamp, attribution)
         log(f"{name}: {len(items)} records, {unread} unread, {dict(counts)}")
     return summary
 

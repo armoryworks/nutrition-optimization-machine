@@ -448,11 +448,11 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task A_recipe_the_check_fails_on_is_counted_and_named_and_the_run_goes_on_to_withhold_and_record()
+        public async Task A_recipe_the_check_fails_on_is_counted_named_and_withheld_as_a_check_error_and_the_run_goes_on_to_record()
         {
             await using var db = NewContext();
             await BuildStockAsync(db);
-            var broken = await SeedAsync(db, CurationStatusEnum.Curated, CopiedStep);
+            var broken = await SeedAsync(db, CurationStatusEnum.Curated, Faithful);
             var copied = await SeedAsync(db, CurationStatusEnum.Curated, CopiedStep);
             var passing = await SeedAsync(db, CurationStatusEnum.Curated, Faithful);
             var service = Service(db);
@@ -468,12 +468,36 @@ namespace Nom.Api.Tests.Services
             result.Errors.Should().ContainSingle().Which.Should().BeEquivalentTo(new { RecipeId = broken });
             result.Errors[0].Error.Should().StartWith("ArgumentOutOfRangeException: startIndex cannot be larger");
             result.Passed.Should().Be(1);
-            result.Withheld.Should().Be(1);
+            result.Failed.Should().Be(2);
+            result.FailedByReason.Should().ContainKey(ProseRecheckService.CheckErrorReason).WhoseValue.Should().Be(1);
+            result.Withheld.Should().Be(2);
+            result.Remaining.Should().Be(0);
             result.RunRecorded.Should().BeTrue();
-            (await db.Recipes.Where(r => r.ProseWithheld).Select(r => r.Id).ToListAsync()).Should().Equal(copied);
-            (await db.Recipes.SingleAsync(r => r.Id == broken)).ProseCheckVersion.Should().BeNull("a recipe the check could not read is left as it is");
+            (await db.Recipes.Where(r => r.ProseWithheld).OrderBy(r => r.Id).Select(r => r.Id).ToListAsync()).Should().Equal(new[] { broken, copied }.OrderBy(i => i));
+            (await db.AuditLogEntries.SingleAsync(a => a.ChangeType == ProseRecheckService.WithholdChangeType && a.EntityId == broken))
+                .NewValue.Should().Contain("check-error: ArgumentOutOfRangeException");
             (await db.Recipes.SingleAsync(r => r.Id == passing)).ProseCheckVersion.Should().Be(ProseCheck.Version);
             (await db.AuditLogEntries.SingleAsync(a => a.ChangeType == ProseRecheckService.RunChangeType)).NewValue.Should().EndWith("errored 1");
+        }
+
+        [Fact]
+        public async Task A_dry_run_counts_a_recipe_the_check_fails_on_among_the_failures_left_shown()
+        {
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            var broken = await SeedAsync(db, CurationStatusEnum.Curated, Faithful);
+            var service = Service(db);
+            service.BeforeCheck = id =>
+            {
+                if (id == broken) throw new InvalidOperationException("boom");
+            };
+
+            var result = await service.RecheckAsync();
+
+            result.Failed.Should().Be(1);
+            result.Remaining.Should().Be(1);
+            result.Samples.Should().ContainSingle().Which.Reasons.Should().Equal(ProseRecheckService.CheckErrorReason);
+            (await db.Recipes.SingleAsync(r => r.Id == broken)).ProseWithheld.Should().BeFalse();
         }
     }
 }

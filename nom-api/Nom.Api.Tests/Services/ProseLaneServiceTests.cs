@@ -310,6 +310,22 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_recipe_the_lane_fails_on_is_counted_and_sent_to_the_back_of_the_queue_and_the_sweep_goes_on()
+        {
+            var rig = NewRig();
+            await SeedAsync(rig.Db);
+            await SeedAsync(rig.Db);
+            var writer = new FakeWriter { Throw = new ArgumentOutOfRangeException("startIndex", "startIndex cannot be larger than length of string.") };
+
+            var result = await rig.Lane.SweepAsync(LaneMode.Live, Models, writer, new FakeJudge(), 25);
+
+            result.Seen.Should().Be(2);
+            result.Errors.Should().Be(2);
+            result.Outage.Should().BeNull();
+            (await rig.Db.Recipes.AsNoTracking().ToListAsync()).Should().OnlyContain(r => r.ProseRewriteAttemptedAt != null && r.ProseWithheld);
+        }
+
+        [Fact]
         public async Task Canaries_find_a_judge_that_lets_planted_faults_through_and_that_holds_the_lane()
         {
             var rig = NewRig();

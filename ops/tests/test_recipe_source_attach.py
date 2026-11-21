@@ -397,6 +397,76 @@ class BooksTests(unittest.TestCase):
         self.assertEqual({e["attribution"] for e in logged}, {"Book A"})
 
 
+class TwoEditionsTests(unittest.TestCase):
+    EARLY, LATE = "Many Ways for Cooking Eggs (Rorer, 1907)", "Many Ways for Cooking Eggs (Rorer, S. T., 1937)"
+
+    def setUp(self):
+        self.files = Files()
+        self.books = attach.Books({"cookbook-6429.jsonl": [attach.Book(self.EARLY, "Plain Omelet"),
+                                                           attach.Book(self.LATE, "Plain Omelet")]})
+
+    def tearDown(self):
+        self.files.close()
+
+    def editions(self, scores):
+        """nom-api for two editions that both hold a Plain Omelet: recipe 1 is the 1907 one, recipe 2 the 1937 one."""
+        held = {}
+        calls = []
+
+        def post(path_, params, body=None):
+            calls.append((params["apply"], body["sourceAttribution"], [rec["description"] for rec in body["records"]]))
+            recipe = 1 if body["sourceAttribution"] == self.EARLY else 2
+            results = []
+            for index, rec in enumerate(body["records"]):
+                sha = rec["description"]
+                outcome = "already-attached" if held.get(recipe) == sha else "matched"
+                if params["apply"] == "true" and recipe not in held:
+                    held[recipe] = sha
+                results.append({"index": index, "name": rec["name"], "outcome": outcome, "recipeId": recipe,
+                                "score": scores(sha, recipe), "contentSha256": sha,
+                                "documents": 1 if outcome == "matched" else 0})
+            return {"stamp": f"2026-11-21T10:00:{len(calls):02d}Z", "results": results}
+
+        return post, held, calls
+
+    def write(self, *descriptions):
+        return self.files.write("cookbook-6429.jsonl", [
+            {"chunk": i, "recipe": {"name": "Plain Omelet", "description": text,
+                                    "ingredients": ["4 eggs", "4 tablespoons of milk"], "steps": ["Beat the eggs."]}}
+            for i, text in enumerate(descriptions)])
+
+    def test_the_same_text_in_both_editions_gives_each_edition_its_own_recipe(self):
+        path = self.write("same", "same")
+        post, held, _ = self.editions(lambda sha, recipe: 1.0)
+        logged = []
+
+        dry = attach.attach([path], post, self.books, write_log=logged.append)
+
+        self.assertEqual(sorted(e["recipeId"] for e in logged), [1, 2])
+        self.assertEqual(dry.by_kind["cookbook"]["matched"], 2)
+        self.assertEqual(held, {})
+
+        applied = attach.attach([path], post, self.books, apply=True)
+
+        self.assertEqual(held, {1: "same", 2: "same"})
+        self.assertEqual(applied.by_kind["cookbook"]["matched"], 2)
+        self.assertTrue(applied.target()["met"])
+
+    def test_a_record_is_stored_under_the_edition_it_matches_best_even_when_another_edition_matches_it_first(self):
+        path = self.write("from 1937", "from 1907")
+        own = {"from 1907": 1, "from 1937": 2}
+        post, held, calls = self.editions(lambda sha, recipe: 1.0 if own[sha] == recipe else 0.8)
+
+        summary = attach.attach([path], post, self.books, apply=True)
+
+        self.assertEqual(held, {1: "from 1907", 2: "from 1937"})
+        self.assertEqual([c for c in calls if c[0] == "true"],
+                         [("true", self.EARLY, ["from 1907"]), ("true", self.LATE, ["from 1937"])])
+        self.assertEqual(summary.by_kind["cookbook"]["matched"], 2)
+        self.assertEqual(summary.doubles(), {})
+        self.assertEqual(summary.stamp, "2026-11-21T10:00:03Z", "the undo stamp is the first stored batch's, not a dry call's")
+
+
 class RescrapedTests(unittest.TestCase):
     def test_the_same_page_scraped_twice_is_stored_once_reported_and_does_not_fail_the_target(self):
         plate = harvest("myplate-usda.jsonl")
