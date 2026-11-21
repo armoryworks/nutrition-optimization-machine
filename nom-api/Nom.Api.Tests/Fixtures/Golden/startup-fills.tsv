@@ -21,3 +21,13 @@ r7-24963	water	-	Boil the rice in two quarts of water until tender.	1 cup rice	8
 r7-each	eggs	-	Allow two eggs to each pint of milk.	1 pint milk	-	agent	agent-review-parser-rules-2026-11-20	R7: "to each" is a ratio
 r7-piece-water	water	-	Add a water and stir.	flour	-	agent	agent-review-parser-rules-2026-11-20	R7: never Piece on a liquid
 r7-piece-salt	salt	-	Throw in two salt and a pinch of pepper.	pepper	-	agent	agent-review-parser-rules-2026-11-20	R7: never Piece on a food with no weight per item
+ck1-22131	cold vinegar	-	Scald the cucumbers in brine. ¦ Pour into two quarts of boiling vinegar and let stand.	cucumbers	-	agent	agent-review-checkpoint1-2026-11-20	checkpoint 1 K1, recipe 22131: the line says cold, the method boiling, so the two quarts are another vinegar; was 8 Cup (step built around the phrase the log quotes)
+ck1-58326	Parsley	-	Melt the butter and add a handful of chopped Parsley.	butter	-	agent	agent-review-checkpoint1-2026-11-20	checkpoint 1 K1, recipe 58326: a handful is a measure, not one sprig; was 1 Piece
+ck1-88330	melted butter	-	Scoop out the tomatoes and put 1/2 teaspoonful of melted butter in each tomato.	6 tomatoes	-	agent	agent-review-checkpoint1-2026-11-20	checkpoint 1 K1, recipe 88330: "in each" is a ratio per item; was 0.5 Teaspoon
+ck1-89165	tomatoes	-	Add one-half can of tomatoes, or four chopped fresh tomatoes.	1 onion	-	agent	agent-review-checkpoint1-2026-11-20	checkpoint 1 K1 (doubtful), recipe 89165: an alternative amount fills nothing; was 4 Piece
+ck1-101266	melted butter + maître d'hôtel butter	-	Pour six tablespoonfuls of melted butter over the fish.	1 fish	-	agent	agent-review-checkpoint1-2026-11-20	checkpoint 1 K1 (doubtful), recipe 101266: a folded line of two foods takes no method amount, which names one of them; was 6 Tablespoon
+ck1-92307	melted butter	-	Stir in a gill of melted butter.	1 cup flour	0.5 Cup	agent	agent-review-checkpoint1-2026-11-20	checkpoint 1, recipe 92307: judged right; a gill is half a cup
+ck1-57461	milk	-	Add three pints of boiling milk.	1 cup rice	6 Cup	agent	agent-review-checkpoint1-2026-11-20	checkpoint 1, recipe 57461: judged right; the line names no temperature
+ck1-hot-water	hot water	-	Pour on two cups of boiling water.	1 cup sugar	2 Cup	agent	agent-review-checkpoint1-2026-11-20	guard for the temperature rule: boiling is hot
+ck1-m-10	olive oil	-	Add three tablespoonfuls of olive oil to the tomatoes.	1 pound tomatoes	3 Tablespoon	ok	rule:R7	reprocess-lane m-10 in the start-up repair: another word of the food stands between the measure and its last word
+ck1-w-10	water	-	Stir the oatmeal into a teacupful of water.	2 cups oatmeal	0.5 Cup	agent	agent-review-reprocess-lane-2026-11-20	reprocess-lane w-10 in the start-up repair: a teacupful is half a cup

@@ -11,11 +11,14 @@ namespace Nom.Orch.Services.Support
     /// exactly once, immediately before the ingredient's name; "the butter", "half the butter" and
     /// conflicting amounts give nothing, and so does a name another line of the recipe also names
     /// ("a little butter" beside "a quarter of a pound of butter"), because the method's amount
-    /// cannot then be pinned to one of those lines. A ratio ("one teacup of salt to a gallon of
-    /// water", "half vinegar and half water", "to each pint"), a vessel or a length ("a kettle of
-    /// water", "1-inch of water", "a water bath"), and washing water ("three or four waters") give
-    /// nothing either, and a count of pieces is never read for a liquid, nor for a food the caller
-    /// says is not counted in pieces. The number always comes from <see cref="IngredientLineParser"/>.
+    /// cannot then be pinned to one of those lines. The food's other words may stand between the
+    /// measure and its last word ("three tablespoonfuls of olive oil"). A ratio ("one teacup of salt
+    /// to a gallon of water", "half vinegar and half water", "to each pint", "in each tomato"), a
+    /// vessel or a length ("a kettle of water", "1-inch of water", "a water bath"), washing water
+    /// ("three or four waters"), an alternative ("..., or four fresh tomatoes") and a temperature the
+    /// line contradicts ("cold vinegar" against "boiling vinegar") give nothing either, and a count of
+    /// pieces is never read for a liquid, from a measure ("a handful of parsley"), nor for a food the
+    /// caller says is not counted in pieces. The number always comes from <see cref="IngredientLineParser"/>.
     /// </summary>
     public static class MethodAmountFinder
     {
@@ -24,7 +27,7 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex SeveralNames = new(@"\p{L}\s*&\s*\p{L}|\p{L}\s+(?:and|or)\s+\p{L}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex Ratio = new(
-            @"\b(?:to|for)\s+(?:each|every)\b|\bper\b|\bin\s+the\s+proportion\b|\bhalf\s+and\s+half\b|\bhalf\b[^.;]*\band\s+half\b|\bto\s+(?:a|one|the|each|every|\d+)\s+(?:gallon|quart|pint|pound|cup|ounce)s?\b",
+            @"\b(?:to|for)\s+(?:each|every)\b|\bper\b|\bin\s+the\s+proportion\b|\bhalf\s+and\s+half\b|\bhalf\b[^.;]*\band\s+half\b|\bto\s+(?:a|one|the|each|every|\d+)\s+(?:gallon|quart|pint|pound|cup|ounce)s?\b|\b(?:in|into|on|onto|over|upon|inside)\s+(?:each|every)\b",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly HashSet<string> Lead = new(StringComparer.OrdinalIgnoreCase)
@@ -44,6 +47,15 @@ namespace Nom.Orch.Services.Support
             "teaspoon", "teaspoons", "teaspoonful", "teaspoonfuls", "dessertspoonful", "dessertspoonfuls", "ounce", "ounces", "oz",
             "pound", "pounds", "lb", "lbs", "pint", "pints", "quart", "quarts", "gill", "gills", "gallon", "gallons", "dozen",
             "handful", "handfuls", "pinch", "pinches", "slice", "slices", "clove", "cloves", "glass", "glasses", "wineglass", "wineglassful",
+            "wineglasses", "wineglassfuls", "teacup", "teacups", "teacupful", "teacupfuls", "coffeecup", "coffeecupful", "tumbler", "tumblers",
+            "tumblerful", "jill", "jills", "dessertspoon", "dessertspoons", "saltspoon", "saltspoonful", "saltspoonfuls",
+        };
+
+        private static readonly Dictionary<string, string> Temperatures = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["cold"] = "cold", ["iced"] = "cold", ["ice-cold"] = "cold", ["chilled"] = "cold",
+            ["warm"] = "warm", ["lukewarm"] = "warm", ["tepid"] = "warm",
+            ["hot"] = "hot", ["boiling"] = "hot", ["scalding"] = "hot", ["seething"] = "hot",
         };
 
         private static readonly HashSet<string> Filler = new(StringComparer.OrdinalIgnoreCase)
@@ -88,7 +100,10 @@ namespace Nom.Orch.Services.Support
             var named = new Regex(@"(?<![\p{L}-])" + Regex.Escape(head) + @"(?:e?s)?(?![\p{L}-])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             if ((otherLines ?? Enumerable.Empty<string>()).Any(line => named.IsMatch(line ?? string.Empty))) return null;
 
+            var ownWords = words[..^1];
+            var ownTemperatures = ownWords.Where(Temperatures.ContainsKey).Select(w => Temperatures[w]).ToHashSet();
             var found = new List<ParsedQuantity>();
+            var alternative = false;
             var pattern = new Regex(@"(?<before>(?:[\p{L}\d/½¼¾⅓⅔⅛-]+\s+){1,7})(?<food>" + Regex.Escape(head) + @"(?:e?s)?)\b(?:(?=\s+(?<after>\p{L}+))|)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             foreach (var clause in steps.SelectMany(s => Regex.Split(s ?? string.Empty, @"[.;:,!?()]")))
             {
@@ -100,6 +115,7 @@ namespace Nom.Orch.Services.Support
 
                     var before = m.Groups["before"].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     var clean = before.Length;
+                    for (var own = ownWords.Length; clean > 0 && own > 0 && before[clean - 1].Equals(ownWords[own - 1], StringComparison.OrdinalIgnoreCase); own--) clean--;
                     while (clean > 0 && IsClean(before[clean - 1]) && !IsVessel(before[clean - 1])) clean--;
                     var start = Array.FindIndex(before, clean, w => IsNumberish(w));
                     if (start < 0) continue;
@@ -107,12 +123,15 @@ namespace Nom.Orch.Services.Support
                     var phrase = before[start..];
                     var parsed = IngredientLineParser.Parse(string.Join(' ', phrase) + " " + m.Groups["food"].Value);
                     if (parsed is not { Quantity: > 0 }) continue;
-                    if (parsed.MeasurementName == IngredientLineParser.Piece && (liquid || !countedInPieces)) continue;
+                    if (parsed.MeasurementName == IngredientLineParser.Piece && (liquid || !countedInPieces || phrase.Any(Measures.Contains))) continue;
+                    var temperatures = phrase.Where(Temperatures.ContainsKey).Select(w => Temperatures[w]).ToHashSet();
+                    if (ownTemperatures.Count > 0 && temperatures.Count > 0 && !ownTemperatures.Overlaps(temperatures)) continue;
+                    if (Regex.IsMatch(clause, @"^\s*or\b", RegexOptions.IgnoreCase)) alternative = true;
                     found.Add(parsed);
                 }
             }
 
-            return found.Distinct().Count() == 1 ? found[0] : null;
+            return !alternative && found.Distinct().Count() == 1 ? found[0] : null;
         }
     }
 }

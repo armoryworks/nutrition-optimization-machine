@@ -17,8 +17,9 @@ namespace Nom.Orch.Services.Support
     /// 30 Ounce) and as Can or Package when it states none. Two amounts of one food joined by
     /// " + " are added up in the first one's unit ("1/4 cup + 1 tablespoon sugar" → 0.313 Cup), or
     /// not read when their units do not add. Old and abbreviated measures ("one jill", "1 pony",
-    /// "2 tablespns."), "a couple of", a pinch with no "of", a leading "optional" or "~", and an
-    /// amount after the name ("Corn starch, ½ cup.") are read; a numbered can ("1 No. 2 can") is a
+    /// "2 tablespns."), "a couple of", a pinch with no "of", a leading "optional" or "~", a measure
+    /// "and a half" ("a jill and a half" → 0.75 Cup), and an amount after the name ("Corn starch,
+    /// ½ cup.", "Flour, 2-3/4 cups" → 2.75 Cup) are read; a numbered can ("1 No. 2 can") is a
     /// count of cans. Returns null when the line has no leading quantity ("salt, to taste"), states
     /// a vague one ("a drop of water") or sizes a utensil ("two-quart tin mould").
     /// </summary>
@@ -206,7 +207,7 @@ namespace Nom.Orch.Services.Support
             var of = PartOf.Match(spelled);
             if (of.Success && ParseQuantity(of.Groups["qty"].Value) is > 0 and var count) return new ParsedQuantity(Round(of.Groups["dozen"].Success ? count * 12 : count), Piece);
 
-            var after = AfterName.Match(spelled);
+            var after = AfterName.Match(InnerMixed.Replace(spelled, "$1 $2"));
             if (after.Success && ParseQuantity(after.Groups["qty"].Value) is > 0 and var amount)
             {
                 return after.Groups["unit"].Success ? FromUnit(amount, after.Groups["unit"].Value) : new ParsedQuantity(Round(amount), Piece);
@@ -326,6 +327,21 @@ namespace Nom.Orch.Services.Support
             @"^\s*\p{L}[^\d(" + Fractions + @"]*?(?:,\s*|\(\s*|\s)(?:(?<unit>" + UnitBeforeAmount + @")(?![a-z])\.?\s*)?(?<qty>" + TrailingQuantityText + @")(?:\s*(?:-|–|to)\s*(?:" + TrailingQuantityText + @"))?" +
             @"\s*(?:(?<unit>(?:" + UnitPattern + @"))(?![a-z])\.?)?\s*\)?\s*\.?\s*$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex InnerMixed = new(@"(?<![\d/.,])(\d+)-(\d+\s*/\s*\d+)(?![\d/])", RegexOptions.Compiled);
+
+        private static readonly Regex AndAHalf = new(
+            @"^\s*(?:(?<n>\d+|an?|one|two|three|four|five|six|seven|eight|nine|ten|twelve)\s+)?(?<unit>" + UnitBeforeAmount + @")(?![a-z])\.?\s+and\s+(?:a|one)[\s-]+half\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static string HalfMore(Match m)
+        {
+            var n = m.Groups["n"].Value;
+            var whole = n.Length == 0 || n.Equals("a", StringComparison.OrdinalIgnoreCase) || n.Equals("an", StringComparison.OrdinalIgnoreCase)
+                ? "1"
+                : Ones.TryGetValue(n, out var word) ? word.ToString(CultureInfo.InvariantCulture) : n;
+            return $"{whole} 1/2 {m.Groups["unit"].Value}";
+        }
 
         private static readonly string[] LargeVolumes = { "gallons", "quarts", "pints" };
 
@@ -460,6 +476,7 @@ namespace Nom.Orch.Services.Support
             var line = Hedge.Replace(System.Net.WebUtility.HtmlDecode(rawLine).Trim(), string.Empty);
             line = EmptyBrackets.Replace(NumberedCan.Replace(line, string.Empty), string.Empty);
             line = HyphenatedMixed.Replace(CoupleOrPair.Replace(line, "2 "), "$1 $2");
+            line = AndAHalf.Replace(line, HalfMore, 1);
             if (IsElliptical(line)) return null;
             if (UnitFirst.IsMatch(line) || PinchFirst.IsMatch(line)) line = "1 " + line;
             var words = LeadingWords.Match(line);

@@ -3,19 +3,19 @@
   "model": "link-gate/3",
   "host": "none",
   "signature": "59512c9fdd9c7047",
-  "scoredAtUtc": "2026-11-20T22:01:48.6299927Z",
+  "scoredAtUtc": "2026-11-21T00:52:19.1529862Z",
   "caseSet": "dad78edacf55fcb6",
   "cases": 7664,
-  "passed": 3688,
-  "score": 0.4812,
+  "passed": 3689,
+  "score": 0.4813,
   "falseAccepts": 12,
   "falseAcceptCases": 1406,
   "falseAcceptRate": 0.0085,
-  "accepted": 2306,
+  "accepted": 2307,
   "precision": 0.9948,
   "byJudge": {
     "agent-review-2026-11-13": [
-      3688,
+      3689,
       7664
     ]
   },
@@ -1744,7 +1744,6 @@
     "gate:P3587",
     "gate:P3588",
     "gate:P3593",
-    "gate:P3594",
     "gate:P3596",
     "gate:P3597",
     "gate:P3599",
@@ -3996,5 +3995,9 @@
     "gate:P7715",
     "gate:P7716",
     "gate:P7717"
-  ]
+  ],
+  "auditKnownBad": null,
+  "auditFlaggedBad": null,
+  "auditKnownGood": null,
+  "auditFlaggedGood": null
 }

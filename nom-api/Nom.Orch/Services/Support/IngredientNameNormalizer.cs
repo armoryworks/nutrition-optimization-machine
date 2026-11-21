@@ -18,7 +18,7 @@ namespace Nom.Orch.Services.Support
 
         // "1", "1.5", "1,5", "1/2", "1 1/2", "½", "1½", and ranges "1-2" / "1 to 2".
         private static readonly string Number =
-            $@"(?:\d+(?:[.,]\d+)?(?:\s*/\s*\d+)?(?:\s+\d+\s*/\s*\d+)?[{Fractions}]?|[{Fractions}])";
+            $@"(?:\d+(?:[.,]\d+)?(?:\s*/\s*\d+)?(?:(?:\s+|-)\d+\s*/\s*\d+)?[{Fractions}]?|[{Fractions}])";
 
         private const string FractionWord =
             @"(?:one|two|three|five|seven)[- ](?:half|halves|thirds?|fourths?|quarters?|eighths?)";
@@ -59,9 +59,13 @@ namespace Nom.Orch.Services.Support
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex TrailingQuantity = new(
-            $@"\s*,?\s+(?:{Number}|{FractionWord}|one|two|three|four|five|six|half)\s*-?\s*(?:" + SpoonOrCup +
+            $@"\s*,?\s+(?:{Number}(?:\s*(?:-|–|to)\s*{Number})?|{FractionWord}|one|two|three|four|five|six|half)\s*-?\s*(?:" + SpoonOrCup +
             @"|pints?|pts?|quarts?|qts?|cups?|pounds?|lbs?|ounces?|ozs?|tablespoons?|tbsps?|teaspoons?|tsps?|grams?|g|kgs?|ml|grammi|grammo|gr|chilogrammi|litri|litro|decilitri|dl)\.?\s*$" +
             $@"|\s*,?\s+(?:grammi|gr|g|kg|chilogrammi|litri|litro|dl)\.?\s*{Number}\.?\s*$|\s*,?\s+N\.\s*\d+\.?\s*$|\s*,\s*{Number}\.?\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Regex TrailingSize = new(
+            @"(?:\s*,\s*|\s+)(?:(?:of|in)\s+)?(?:an?\s+)?(?:(?:very|fairly|rather|quite)\s+)?(?:small|medium|large|middling|moderate|good|fair|big|nice|even)[- ]?siz(?:e[ds]?|ed)\.?\s*$",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex PartOf = new(
@@ -98,6 +102,7 @@ namespace Nom.Orch.Services.Support
                 s = LeadingUnit.Replace(s, string.Empty);
                 s = TrailingNote.Replace(s, string.Empty);
                 s = TrailingQuantity.Replace(s, string.Empty);
+                s = TrailingSize.Replace(s, string.Empty);
             } while (s != before && s.Length > 0);
 
             var part = PartOf.Match(s);

@@ -116,7 +116,7 @@ namespace Nom.Orch.Services
 
             var others = rows.Where(other => !ReferenceEquals(other, row)).ToList();
             var parsed = IngredientLineParser.Parse(firstLine)
-                ?? (others.Any(other => other.IngredientId == row.IngredientId)
+                ?? (others.Any(other => other.IngredientId == row.IngredientId) || (row.RawLine ?? string.Empty).Contains(FoldedLine.Separator, StringComparison.Ordinal)
                     ? null
                     : MethodAmountFinder.Find(
                         firstLine,
