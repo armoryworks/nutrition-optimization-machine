@@ -56,9 +56,17 @@ namespace Nom.Orch.Services
 
             var source = await _db.ScrapingSources
                 .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Domain == domain && !s.IsDeleted);
+                .FirstOrDefaultAsync(s => s.Domain == domain && !s.IsDeleted && s.Kind != ScrapingSourceEntity.HandKind);
 
             return source?.Status;
+        }
+
+        public async Task<bool> IsHandSourceAsync(string url)
+        {
+            var domain = ExtractDomain(url);
+            return domain != null && await _db.ScrapingSources
+                .AsNoTracking()
+                .AnyAsync(s => s.Domain == domain && !s.IsDeleted && s.Kind == ScrapingSourceEntity.HandKind);
         }
 
         public async Task<ScrapingSourceModel> RequestSourceAsync(string url, long? requestedByPersonId, string? note = null)

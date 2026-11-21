@@ -126,6 +126,28 @@ Left alone, with the reason:
   `--attach-fdc` (see `food-catalog-ingestion.md`), now that the quality gate counts
   alcohol at 7 kcal/g.
 
+### Recipe documents for the hand import — 2026-11-20
+
+The four recipe sources the owner approved as hand sources (2026-11-21) are fetched only by
+`ops/hand-import.py`, and only the documents listed in `ops/hand-import/books.csv`, from the hosts
+`ops/hand-import/sources.csv` gives each source (design: `hand-import.md`). The script refuses any
+other host, a redirect to one and any path robots.txt disallows, sends one request at a time and
+spaces requests to a host by the larger of the delay below and robots.txt's `crawl-delay`, the hosts
+of one source sharing one spacing (`www.loc.gov` and `tile.loc.gov` together stay within the Library's
+10 requests a minute). A document's redirect is followed only to a host of its own source. These
+hosts are cleared for that script only, not for the label cross-checker; nom-api refuses a user URL
+import or bulk scrape on a hand source's host, so the scraper never fetches them. `robots.txt` was read
+directly on each host on 2026-11-20; licence facts are those of the 2026-11-20 source research.
+Images are never taken from any of them.
+
+| Host | robots.txt for `*` | Delay | Licence facts | Credit line |
+|---|---|---|---|---|
+| `www.nutrition.va.gov` | answers 404: no rules, no crawl-delay | 5 s | A U.S. Department of Veterans Affairs work (17 U.S.C. 105). No public-domain line on the site; VA web policy (digital.va.gov web policies): "VA websites will only use original, VA-authored or co-authored articles". No partner credit in the sample; no terms on automated access. | none required; NOM credits "U.S. Department of Veterans Affairs, Nutrition and Food Services" |
+| `www.nhlbi.nih.gov` | disallows admin, search, `/node/` and some query paths; the recipe pages under `/health/heart-healthy-living/healthy-foods/healthy-eating-recipes/` are allowed; no crawl-delay | 5 s | "information posted on the NHLBI website within the nhlbi.nih.gov domain is in the public domain" (trademark, branding and logo page). It asks that NHLBI's formatted products not be changed; NOM takes recipe facts and the import rules rewrite nothing it shows as NHLBI's. Some images are licensed from third parties. | none required; NOM credits "National Heart, Lung, and Blood Institute (NIH)" |
+| `www.loc.gov` | disallows admin-type paths only, not `/item/` or `/resource/`; `Crawl-Delay: 5` | 6 s | Selected Digitized Books: each item's rights field reads "The books in this collection are in the public domain and are free to use and reuse." loc.gov/legal: the Library generally does not own the rights, so each item is taken only when its own rights field carries that statement and it was published in 1930 or earlier (the script checks both on the item's JSON record). loc.gov/legal also asks for no more than 10 requests a minute, hence 6 s. | "Library of Congress" with the book's title and year |
+| `tile.loc.gov` | answers 404: no rules | 6 s | The Library's storage host for the OCR text (`fulltext_derivative`) of an item fetched from `www.loc.gov`; same item, same statement. Only the text file an approved item's record names is fetched. | as above |
+| `www.cancer.gov` | `User-agent: *` with no disallow; no crawl-delay | 5 s | "all text within National Cancer Institute (NCI) products is free of copyright" and "may be reused without our permission" (copyright and reuse policy). Only graphics credited to NCI are free; no NCI logo. One document: "Down Home Healthy Cooking", NIH Publication No. 06-3408. | "Credit the National Cancer Institute as the source"; adapted text says so: "Adapted from National Cancer Institute, Down Home Healthy Cooking (NIH Publication No. 06-3408)" |
+
 ## Recommended configuration
 
 ```bash

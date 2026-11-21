@@ -12,8 +12,11 @@ namespace Nom.Orch.Interfaces
     /// </summary>
     public interface IScrapingSourceService
     {
-        /// <summary>Whitelist status of a URL's domain; null when the domain has never been requested.</summary>
+        /// <summary>Whitelist status of a URL's domain as a web source; null when the domain has never been requested or is a hand source.</summary>
         Task<ScrapingSourceStatusEnum?> GetDomainStatusAsync(string url);
+
+        /// <summary>Whether a URL's domain is a hand source, whose documents are imported by hand and never fetched.</summary>
+        Task<bool> IsHandSourceAsync(string url);
 
         /// <summary>
         /// Registers a Pending request for the URL's domain (idempotent) and, when

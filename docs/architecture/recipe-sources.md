@@ -129,6 +129,10 @@ kinds above), the statement as the source words it, and its URL. A hand source i
 being recorded, is journaled, is never fetched and is never on the harvestable list. Its licence
 facts are journaled as their own row (field `Licence`, the old kind, statement, URL and who
 entered them), so recording a hand source again over a mistake is undone with the facts it had.
+The four hand sources the owner approved on 2026-11-21 (VA Nutrition, NHLBI, the Library of
+Congress's digitized cookbooks and NCI's "Down Home Healthy Cooking") are listed with their licence
+facts in `ops/hand-import/sources.csv`, and their documents come in through `ops/hand-import.py`
+(fetch, text, extract, staged import): see `hand-import.md`.
 
 ## Staged import gate
 
