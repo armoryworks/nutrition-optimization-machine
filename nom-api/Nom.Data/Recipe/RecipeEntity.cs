@@ -102,6 +102,19 @@ namespace Nom.Data.Recipe
         /// </summary>
         public long? SourceWithheldById { get; set; }
 
+        /// <summary>
+        /// The rights class of the web source this recipe came from (<see cref="ScrapingSourceEntity.RightsClass"/>,
+        /// lifted by a recorded permission), stamped at import and whenever the source's class changes;
+        /// null for a recipe of no classed web source. A <c>facts-only</c> recipe shows facts and a link only.
+        /// </summary>
+        public string? SourceRights { get; set; }
+
+        /// <summary>The recipe's source reserves its content against AI use (<see cref="ScrapingSourceEntity.AiReserved"/>): no model reads its method or description.</summary>
+        public bool SourceAiReserved { get; set; }
+
+        /// <summary>A third-party credit line found on the source page ("Adapted from ..."), shown with the source link.</summary>
+        public string? SourceCredit { get; set; }
+
         /// <summary>The version of the prose check that last judged the stored description and steps; null = never checked.</summary>
         public int? ProseCheckVersion { get; set; }
 

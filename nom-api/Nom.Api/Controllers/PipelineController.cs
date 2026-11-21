@@ -34,12 +34,14 @@ namespace Nom.Api.Controllers
         private readonly ILinkRecheckService? _recheck;
         private readonly IContainerSizeService? _containerSizes;
         private readonly ISourceAdmissionService? _sources;
+        private readonly ISourceRightsService? _rights;
 
         public PipelineController(IPipelineStatusService pipeline, IAiLaneStatus lanes, IPlatformFeatureService features, IConfiguration configuration,
             ILaneFrameService frame, IOptions<LaneModelRoster> roster, IReprocessLaneService? reprocess = null, ILinkRecheckService? recheck = null,
-            IContainerSizeService? containerSizes = null, ISourceAdmissionService? sources = null)
+            IContainerSizeService? containerSizes = null, ISourceAdmissionService? sources = null, ISourceRightsService? rights = null)
         {
             _sources = sources;
+            _rights = rights;
             _reprocess = reprocess;
             _recheck = recheck;
             _containerSizes = containerSizes;
@@ -62,7 +64,8 @@ namespace Nom.Api.Controllers
             var recheck = _recheck == null ? null : await _recheck.StatusAsync(LinkRecheckHostedService.Enabled(_configuration), cancellationToken);
             var containerSizes = _containerSizes == null ? null : await _containerSizes.StatusAsync(20, cancellationToken);
             var sources = _sources == null ? null : await _sources.StatusAsync(cancellationToken);
-            return Ok(new PipelineStatusResponse(status, await GateAsync(), await FrameAsync(cancellationToken), reprocess, recheck, containerSizes, sources));
+            var rights = _rights == null ? null : await _rights.StatusAsync(cancellationToken);
+            return Ok(new PipelineStatusResponse(status, await GateAsync(), await FrameAsync(cancellationToken), reprocess, recheck, containerSizes, sources, rights));
         }
 
         /// <summary>

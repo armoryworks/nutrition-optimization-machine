@@ -578,7 +578,8 @@ namespace Nom.Orch.Services
             foreach (var recipeId in recipeIds)
             {
                 var recipe = await _dbContext.Recipes
-                    .Include(r => r.RecipeIngredients)
+                    .Include(r => r.RecipeIngredients).ThenInclude(ri => ri.Ingredient)
+                    .Include(r => r.RecipeIngredients).ThenInclude(ri => ri.Measurement)
                     .FirstOrDefaultAsync(r => r.Id == recipeId);
 
                 if (recipe != null)
@@ -591,7 +592,7 @@ namespace Nom.Orch.Services
                             Quantity = ingredient.Quantity * servingSize,
                             Unit = ingredient.Measurement?.Name ?? "",
                             Category = CategorizeItem(ingredient.Ingredient.Name),
-                            Notes = ingredient.RawLine,
+                            Notes = Support.ProseWithholding.LineWording(recipe, ingredient.RawLine),
                             RecipeSources = { recipe.Name }
                         });
                     }
@@ -631,7 +632,7 @@ namespace Nom.Orch.Services
                                             Quantity = ingredient.Quantity * servingSize,
                                             Unit = ingredient.Measurement?.Name ?? "",
                                             Category = CategorizeItem(ingredient.Ingredient.Name),
-                                            Notes = ingredient.RawLine,
+                                            Notes = Support.ProseWithholding.LineWording(recipe, ingredient.RawLine),
                                             RecipeSources = { recipe.Name }
                                         });
                                     }

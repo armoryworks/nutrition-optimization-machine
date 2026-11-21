@@ -162,6 +162,44 @@
                       }
                     </ul>
                   }
+                  <div class="nom-scraping-sources__rights" data-testid="scraping-source-rights">
+                    <span class="nom-scraping-sources__status"
+                          [class.nom-scraping-sources__status--approved]="source.effectiveRightsClass === 'clear'"
+                          [class.nom-scraping-sources__status--rejected]="source.rightsClass === 'forbidden' || source.rightsClass === 'permission-needed'"
+                          data-testid="scraping-source-rights-class">
+                      {{ source.rightsClass ?? 'no rights class yet' }}
+                    </span>
+                    @if (source.rightsQuote) {
+                      <span class="nom-scraping-sources__notes" data-testid="scraping-source-rights-quote">
+                        “{{ source.rightsQuote }}”
+                        @if (source.rightsQuoteUrl) {
+                          — <a [href]="source.rightsQuoteUrl" target="_blank" rel="noopener" data-testid="scraping-source-rights-quote-link">{{ source.rightsQuoteUrl }}</a>
+                        }
+                      </span>
+                    }
+                    @if (source.aiReserved) {
+                      <span class="nom-scraping-sources__notes" data-testid="scraping-source-ai-reserved">
+                        Reserved against AI use: “{{ source.aiReservedQuote }}”
+                        @if (source.aiReservedQuoteUrl) {
+                          — <a [href]="source.aiReservedQuoteUrl" target="_blank" rel="noopener" data-testid="scraping-source-ai-reserved-link">{{ source.aiReservedQuoteUrl }}</a>
+                        }
+                        . No model reads its method or description.
+                      </span>
+                    }
+                    @if (source.permissionRecordedAtUtc) {
+                      <span class="nom-scraping-sources__notes" data-testid="scraping-source-permission">
+                        Written permission from {{ source.permissionGrantedBy }} on {{ source.permissionGrantedOn | date: 'mediumDate' }}: “{{ source.permissionText }}”
+                      </span>
+                    }
+                    @if (source.factsOnlyApprovedAt) {
+                      <span class="nom-scraping-sources__notes" data-testid="scraping-source-facts-only-approved">
+                        Facts-only use approved {{ source.factsOnlyApprovedAt | date: 'mediumDate' }}: fetched for facts and a link only.
+                      </span>
+                    }
+                    @if (source.fetchRefusal) {
+                      <span class="nom-scraping-sources__notes nom-scraping-sources__warn" data-testid="scraping-source-fetch-refusal">{{ source.fetchRefusal }}</span>
+                    }
+                  </div>
                 </div>
                 <span class="nom-scraping-sources__status"
                       [class.nom-scraping-sources__status--approved]="source.checkVerdict === 'clear'"
@@ -171,7 +209,33 @@
                 </span>
               </div>
 
-              @if (pendingAction()?.sourceId === source.id) {
+              @if (permissionFor() === source.id) {
+                <form class="nom-scraping-sources__reject-prompt" [formGroup]="permissionForm" (ngSubmit)="savePermission(source)" data-testid="scraping-source-permission-form">
+                  <p class="nom-scraping-sources__hint">
+                    Record the publisher's written permission for {{ source.domain }}. It lifts {{ source.rightsClass }} for this source and is journaled; undo it from the journal.
+                  </p>
+                  <mat-form-field appearance="outline" class="nom-scraping-sources__notes-field">
+                    <mat-label>Who gave it</mat-label>
+                    <input matInput formControlName="grantedBy" data-testid="scraping-source-permission-by" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="nom-scraping-sources__notes-field">
+                    <mat-label>When (date)</mat-label>
+                    <input matInput type="date" formControlName="grantedOn" data-testid="scraping-source-permission-on" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="nom-scraping-sources__notes-field">
+                    <mat-label>The permission as written</mat-label>
+                    <textarea matInput rows="3" formControlName="text" data-testid="scraping-source-permission-text"></textarea>
+                  </mat-form-field>
+                  @if (permissionError()) {
+                    <p class="nom-scraping-sources__warn" data-testid="scraping-source-permission-error">{{ permissionError() }}</p>
+                  }
+                  <div class="nom-scraping-sources__actions">
+                    <span class="nom-scraping-sources__spacer"></span>
+                    <button mat-button type="button" (click)="cancelPermission()" data-testid="scraping-source-permission-cancel-btn">Cancel</button>
+                    <button mat-flat-button type="submit" [disabled]="processing()" data-testid="scraping-source-permission-submit-btn">Record permission</button>
+                  </div>
+                </form>
+              } @else if (pendingAction()?.sourceId === source.id) {
                 <div class="nom-scraping-sources__reject-prompt" data-testid="scraping-source-action-prompt">
                   <p class="nom-scraping-sources__hint">
                     @switch (pendingAction()?.action) {
@@ -209,6 +273,25 @@
                       Pause harvesting
                     </button>
                   }
+                  @if (canRecordPermission(source)) {
+                    <button mat-button (click)="startPermission(source)" [disabled]="processing()" data-testid="scraping-source-permission-btn">
+                      <mat-icon>history_edu</mat-icon>
+                      Record permission
+                    </button>
+                  }
+                  @if (source.rightsClass === 'facts-only' && !source.permissionRecordedAtUtc) {
+                    @if (source.factsOnlyApprovedAt) {
+                      <button mat-button (click)="factsOnlyUse(source, false)" [disabled]="processing()" data-testid="scraping-source-facts-only-withdraw-btn">
+                        <mat-icon>block</mat-icon>
+                        Withdraw facts-only use
+                      </button>
+                    } @else {
+                      <button mat-button (click)="factsOnlyUse(source, true)" [disabled]="processing()" data-testid="scraping-source-facts-only-approve-btn">
+                        <mat-icon>fact_check</mat-icon>
+                        Approve facts-only use
+                      </button>
+                    }
+                  }
                   @if (source.recipesWithheldAt) {
                     <button mat-button (click)="startRelease(source)" [disabled]="processing()" data-testid="scraping-source-release-btn">
                       <mat-icon>visibility</mat-icon>
@@ -225,6 +308,93 @@
             </div>
           }
         </div>
+      }
+    </section>
+
+    <section class="nom-scraping-sources__section" data-testid="scraping-sources-rights">
+      <h2 class="nom-scraping-sources__heading">Source rights</h2>
+      <p class="nom-scraping-sources__hint" data-testid="scraping-sources-rights-hint">
+        Each source's class is derived by rule from its stored check: clear (a licence grants reuse), facts-only (nothing grants
+        reuse, nothing forbids automated access), permission-needed (the terms could not be read or the site refuses automated
+        fetches) or forbidden (the site's own words forbid automated access or reuse). Only clear sources, sources with a written
+        permission and facts-only sources approved for facts-only use are fetched. Every step below has a dry run and is undone
+        by its stamp.
+      </p>
+      <div class="nom-scraping-sources__actions">
+        <button mat-button (click)="deriveRights(false)" [disabled]="processing()" data-testid="scraping-sources-rights-derive-dry-btn">
+          <mat-icon>rule</mat-icon>
+          Re-derive classes (dry run)
+        </button>
+        @if (rightsRun(); as run) {
+          @if (!run.applied && run.changed > 0) {
+            <button mat-flat-button (click)="deriveRights(true)" [disabled]="processing()" data-testid="scraping-sources-rights-derive-apply-btn">
+              Apply {{ run.changed }} change(s)
+            </button>
+          }
+        }
+      </div>
+      @if (rightsRun(); as run) {
+        <p class="nom-scraping-sources__hint" data-testid="scraping-sources-rights-run">
+          {{ run.applied ? 'Applied' : 'Dry run' }} under {{ run.ruleVersion }}: {{ run.sources }} source(s), {{ run.changed }} change(s), {{ run.inconclusive }} inconclusive
+        </p>
+        <ul class="nom-scraping-sources__plain-list" data-testid="scraping-sources-rights-run-list">
+          @for (change of run.results; track change.sourceId) {
+            <li data-testid="scraping-sources-rights-run-item">
+              <strong>{{ change.domain }}</strong>: {{ change.oldClass ?? 'none' }} → {{ change.newClass ?? 'none' }}
+              @if (change.newAiReserved) { · AI reserved }
+              <span class="nom-scraping-sources__item-meta">{{ change.reason }} — “{{ change.quote }}”</span>
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="nom-scraping-sources__actions" data-testid="scraping-sources-rights-steps">
+        <button mat-button (click)="rightsStep('titles', false)" [disabled]="processing()" data-testid="scraping-sources-titles-dry-btn">Titles (dry run)</button>
+        <button mat-button (click)="rightsStep('titles', true)" [disabled]="processing()" data-testid="scraping-sources-titles-apply-btn">Apply titles</button>
+        <button mat-button (click)="rightsStep('credits', false)" [disabled]="processing()" data-testid="scraping-sources-credits-dry-btn">Credit lines (dry run)</button>
+        <button mat-button (click)="rightsStep('credits', true)" [disabled]="processing()" data-testid="scraping-sources-credits-apply-btn">Apply credit lines</button>
+        <button mat-button (click)="rightsStep('retention', false)" [disabled]="processing()" data-testid="scraping-sources-retention-dry-btn">Prose retention (dry run)</button>
+        <button mat-button class="nom-btn--destructive" (click)="rightsStep('retention', true)" [disabled]="processing()" data-testid="scraping-sources-retention-apply-btn">Reduce source prose</button>
+      </div>
+      @if (stepResult(); as result) {
+        <div class="nom-scraping-sources__item" data-testid="scraping-sources-step-result">
+          <p class="nom-scraping-sources__hint" data-testid="scraping-sources-step-summary">
+            {{ result.step }} · {{ result.applied ? 'applied' : 'dry run' }} · {{ result.changed }} changed of {{ result.examined }} · {{ result.skipped }} skipped
+            @for (line of skipped(result); track line) { · {{ line }} }
+          </p>
+          @if (result.refused) {
+            <p class="nom-scraping-sources__warn" data-testid="scraping-sources-step-refused">{{ result.refused }}</p>
+          }
+          <ul class="nom-scraping-sources__plain-list" data-testid="scraping-sources-step-list">
+            @for (change of result.changes.slice(0, 20); track change.recipeId) {
+              <li data-testid="scraping-sources-step-item">#{{ change.recipeId }} {{ change.domain }}: {{ change.old ?? '' }} → {{ change.new ?? '' }}</li>
+            }
+          </ul>
+          @if (result.applied && result.changed > 0 && (result.step === 'titles' || result.step === 'credits' || result.step === 'retention')) {
+            <button mat-button (click)="undoStep(result)" [disabled]="processing()" data-testid="scraping-sources-step-undo-btn">
+              <mat-icon>undo</mat-icon>
+              Undo this run
+            </button>
+          }
+        </div>
+      }
+
+      <h3 class="nom-scraping-sources__heading" data-testid="scraping-sources-taken-heading">Recipes already taken from forbidden or permission-needed sources</h3>
+      @if (taken().length === 0) {
+        <p class="nom-scraping-sources__hint" data-testid="scraping-sources-taken-empty">No forbidden or permission-needed source without a permission.</p>
+      } @else {
+        <p class="nom-scraping-sources__hint">
+          What happens to these recipes is the owner's decision. Nothing is done to them by itself; "Withhold recipes" on the source above is one journaled, undoable click.
+        </p>
+        <ul class="nom-scraping-sources__plain-list" data-testid="scraping-sources-taken-list">
+          @for (t of taken(); track t.sourceId) {
+            <li data-testid="scraping-sources-taken-item">
+              <strong>{{ t.domain }}</strong> ({{ t.rightsClass }}): {{ t.recipes | number }} recipe(s), {{ t.recipesShown | number }} shown
+              @if (t.recipesWithheld) { · withheld }
+              <span class="nom-scraping-sources__item-meta">“{{ t.rightsQuote }}”</span>
+            </li>
+          }
+        </ul>
       }
     </section>
 

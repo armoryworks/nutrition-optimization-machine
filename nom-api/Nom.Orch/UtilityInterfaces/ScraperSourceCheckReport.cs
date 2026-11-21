@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json;
 
 namespace Nom.Orch.UtilityInterfaces
 {
@@ -16,7 +17,9 @@ namespace Nom.Orch.UtilityInterfaces
         public bool Complete { get; set; }
         public string? IncompleteReason { get; set; }
         public List<ScraperCheckReason> Reasons { get; set; } = new();
+        public ScraperCheckAccess? Access { get; set; }
         public ScraperCheckRobots? Robots { get; set; }
+        public ScraperCheckReservation? Reservation { get; set; }
         public ScraperCheckLicence? Licence { get; set; }
         public ScraperCheckTerms? Terms { get; set; }
         public ScraperCheckEnumeration? Enumeration { get; set; }
@@ -37,6 +40,29 @@ namespace Nom.Orch.UtilityInterfaces
         public ScraperCheckRobotsGroup? NomBot { get; set; }
         public ScraperCheckRobotsGroup? General { get; set; }
         public List<ScraperCheckAiCrawler> AiCrawlers { get; set; } = new();
+        public List<JsonElement> ContentSignals { get; set; } = new();
+        public List<string> ProhibitionComments { get; set; } = new();
+    }
+
+    public class ScraperCheckAccess
+    {
+        public string? RefusedBeforeFetch { get; set; }
+        public string? HomepageUrl { get; set; }
+        public string? HomepageFinalUrl { get; set; }
+        public string? HomepageOutcome { get; set; }
+        public int? HomepageStatus { get; set; }
+        public List<string> BotChallengePages { get; set; } = new();
+        public List<string> RefusedPages { get; set; } = new();
+    }
+
+    public class ScraperCheckReservation
+    {
+        public string? TdmRepUrl { get; set; }
+        public string? TdmRepStatus { get; set; }
+        public List<JsonElement> TdmRepReserved { get; set; } = new();
+        public List<string> TdmHeaderPages { get; set; } = new();
+        public List<string> NoAiMetaPages { get; set; } = new();
+        public List<string> NoAiHeaderPages { get; set; } = new();
     }
 
     public class ScraperCheckRobotsGroup
@@ -108,6 +134,7 @@ namespace Nom.Orch.UtilityInterfaces
         public int English { get; set; }
         public int IngredientLines { get; set; }
         public int LinesWithQuantity { get; set; }
+        public List<JsonElement> Credits { get; set; } = new();
         public List<ScraperCheckSamplePage> Pages { get; set; } = new();
     }
 

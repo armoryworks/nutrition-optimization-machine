@@ -70,6 +70,7 @@ namespace Nom.Orch.Services
                     && r.CurationStatusId == (long)CurationStatusEnum.RequiresRevision
                     && r.DateCurationCompleted == null
                     && r.ScrapedAtUtc != null
+                    && !r.SourceAiReserved
                     && r.VettingIssues != null
                     && !_db.AuditLogEntries.Any(a => a.EntityType == "Recipe" && a.EntityId == r.Id && a.ChangeType == AttemptChangeType
                         && a.NewValue != null && a.NewValue.StartsWith(AttemptVersionPrefix))

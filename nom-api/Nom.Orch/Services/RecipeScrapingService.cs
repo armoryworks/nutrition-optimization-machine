@@ -37,6 +37,7 @@ namespace Nom.Orch.Services
         public const string NameFreedEntityType = "Ingredient";
         public const string ResolveOnImportSetting = "VerifiedWordings:ResolveOnImport";
         public const string StagedImportGateSetting = "SourceDiscovery:StagedImportGate";
+        public const string RightsGateSetting = "SourceRights:Enforce";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly ICurrentUserService _currentUser;
@@ -46,6 +47,7 @@ namespace Nom.Orch.Services
         private readonly ILogger<RecipeScrapingService> _logger;
         private readonly Support.RecipeLineBuilder _lines;
         private readonly bool _stagedGate;
+        private readonly bool _rightsGate;
         private readonly int _probationRecipes;
 
         public RecipeScrapingService(
@@ -59,6 +61,7 @@ namespace Nom.Orch.Services
         {
             _lines = new Support.RecipeLineBuilder(dbContext, logger, configuration?.GetValue(ResolveOnImportSetting, false) ?? false);
             _stagedGate = configuration?.GetValue(StagedImportGateSetting, false) ?? false;
+            _rightsGate = configuration?.GetValue(RightsGateSetting, false) ?? false;
             var probationDefault = new Settings.SourceAdmissionSettings().ProbationRecipes;
             _probationRecipes = Math.Max(1, configuration?.GetValue($"{Settings.SourceAdmissionSettings.SectionName}:{nameof(Settings.SourceAdmissionSettings.ProbationRecipes)}", probationDefault) ?? probationDefault);
             _dbContext = dbContext;
@@ -318,6 +321,11 @@ namespace Nom.Orch.Services
             switch (status)
             {
                 case ScrapingSourceStatusEnum.Approved:
+                    if (_rightsGate && await SourceOfAsync(url) is { } source && source.Kind == ScrapingSourceEntity.WebKind && SourceRightsService.FetchRefusal(source) is { } refusal)
+                    {
+                        return new RecipeScrapingResponseModel { Success = false, SourcePendingApproval = false, Error = refusal };
+                    }
+
                     return null;
 
                 case ScrapingSourceStatusEnum.Rejected:
@@ -431,6 +439,14 @@ namespace Nom.Orch.Services
                         publicDomain = source.LicenceKind != null && Support.SourceAdmissionPolicy.PublicDomainLicences.Contains(source.LicenceKind);
                     }
 
+                    if (_rightsGate && normalizedUrl != null && (gateSource ?? await SourceOfAsync(normalizedUrl)) is { Kind: ScrapingSourceEntity.WebKind } rightsSource
+                        && SourceRightsService.FetchRefusal(rightsSource) is { } rightsRefusal)
+                    {
+                        result.Refused++;
+                        result.Failures.Add(new StagedImportFailureModel { Name = scraped.Name, Error = "Refused: " + rightsRefusal });
+                        continue;
+                    }
+
                     // Dedup: by normalized URL, or by name+attribution for
                     // URL-less sources (cookbook extractions) — reruns of the
                     // same staging files must be idempotent.
@@ -535,6 +551,22 @@ namespace Nom.Orch.Services
                 .FirstOrDefaultAsync();
         }
 
+        /// <summary>The scraping source of a URL's domain (with or without "www."), whatever its status; null for none.</summary>
+        private async Task<ScrapingSourceEntity?> SourceOfAsync(string? url)
+        {
+            var domain = Support.SourceAdmissionPolicy.NormalizeDomain(url);
+            if (domain == null)
+            {
+                return null;
+            }
+
+            var www = "www." + domain;
+            return await _dbContext.ScrapingSources.AsNoTracking()
+                .Where(s => s.Domain == domain || s.Domain == www)
+                .OrderBy(s => s.Status == ScrapingSourceStatusEnum.Approved ? 0 : 1).ThenBy(s => s.Id)
+                .FirstOrDefaultAsync();
+        }
+
         /// <summary>Whether a source in probation already holds as many recipes as its probation allows.</summary>
         private async Task<bool> ProbationFullAsync(ScrapingSourceEntity source)
         {
@@ -578,10 +610,19 @@ namespace Nom.Orch.Services
             }
 
             var vettingIssues = await _vetting.VetAsync(scraped);
+            var rightsSource = await SourceOfAsync(sourceUrl ?? scraped.SourceUrl);
+            var rights = rightsSource is { Kind: ScrapingSourceEntity.WebKind } ? SourceRightsService.EffectiveClass(rightsSource) : null;
+            var factsOnly = rights == Support.SourceRightsRule.FactsOnly;
+            var name = Clamp(string.IsNullOrEmpty(scraped.Name) ? "Untitled Recipe" : scraped.Name, 511)!;
+            var title = factsOnly ? Support.RecipeTitleRule.Reduce(name, Support.RecipeTitleRule.BrandNames(BuildAttribution(scraped), scraped.SourceSite)) : null;
 
             var recipe = new RecipeEntity
             {
-                Name = Clamp(string.IsNullOrEmpty(scraped.Name) ? "Untitled Recipe" : scraped.Name, 511)!,
+                Name = title?.Changed == true ? title.Title : name,
+                SourceRights = rights,
+                SourceAiReserved = rightsSource is { Kind: ScrapingSourceEntity.WebKind, AiReserved: true },
+                SourceCredit = Support.CreditLines.Join(scraped.Steps.Select(s => (string?)s.Instruction).Prepend(scraped.Description)),
+                ProseWithheld = factsOnly,
                 Description = Clamp(scraped.Description, 2047),
                 SourceUrl = Clamp(sourceUrl ?? scraped.SourceUrl, 2047),
                 SourceWithheldById = await WithheldSourceIdAsync(sourceUrl ?? scraped.SourceUrl),
@@ -617,6 +658,18 @@ namespace Nom.Orch.Services
 
             _dbContext.Recipes.Add(recipe);
             await _dbContext.SaveChangesAsync();
+
+            if (factsOnly)
+            {
+                var now = DateTime.UtcNow;
+                var by = personId ?? SystemConstants.SystemPersonId;
+                _dbContext.AuditLogEntries.Add(SourceRightsService.RecipeEntry(recipe.Id, SourceRightsService.FactsOnlyWithholdChangeType, nameof(RecipeEntity.ProseWithheld),
+                    "false", $"true | facts-only source {rightsSource!.Domain}", now, by));
+                if (title?.Changed == true)
+                {
+                    _dbContext.AuditLogEntries.Add(SourceRightsService.RecipeEntry(recipe.Id, SourceRightsService.TitleChangeType, nameof(RecipeEntity.Name), name, title.Title, now, by));
+                }
+            }
 
             if (!string.IsNullOrWhiteSpace(scraped.RawJsonLd))
             {

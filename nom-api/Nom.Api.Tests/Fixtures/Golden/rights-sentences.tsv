@@ -1,0 +1,38 @@
+# NOM's own reading of a sentence a source check quoted (RightsSentences): does it forbid automated access, reuse, or AI use.
+# Host rows quote the sentences of source-rejudge.md (2026-11-20); constructed rows are written for the rule.
+id	sentence	expectAutomated	expectReuse	expectAi	status	source	note
+people-robots-crawler	Use of any crawler or other tool, device, or process to data mine or scrape the content on this website using automated means for any purpose other than directing traffic to this website or serving authorized advertisements on this website is prohibited without prior written permission from People Inc.	yes	no	no	ok	rule:source-rejudge-2026-11-20	eatingwell and seriouseats robots.txt
+people-robots-tdm-ai	Prohibited uses include but are not limited to: (1) text and data mining activities under Art. 4 of the EU Directive on Copyright in the Digital Single Market; (2) development or operation of any artificial intelligence, machine learning, or large language model (LLM) technology	no	no	yes	ok	rule:source-rejudge-2026-11-20	text and data mining and AI development: a reservation, not a fetch ban
+people-terms-scrape	you shall not use any manual or automated software, devices or other processes to "scrape," harvest, or download data from the Services	yes	no	no	ok	rule:source-rejudge-2026-11-20	People Inc terms (e)
+people-noncommercial	People Inc. content is made available for your non-commercial use subject to our Terms of Use here: https://www.people.inc/brands-termsofservice.	no	no	no	ok	rule:source-rejudge-2026-11-20	a grant without only: not a prohibition
+pinch-automated	You must not conduct any systematic or automated data collection activities, including, but not limited to, scraping, data mining, data extraction, or data harvesting on or in relation to the Website without Company's express written permission.	yes	no	no	ok	rule:source-rejudge-2026-11-20	pinchofyum terms
+pinch-ai	Company does not consent to the content on this website being used by third parties for the purposes of developing, training or operating artificial intelligence or other machine learning systems.	no	no	yes	ok	rule:source-rejudge-2026-11-20	pinchofyum terms
+pinch-reserves-right	Company reserves the right to modify, alter, amend or update the Company Content, its policies, and terms.	no	no	no	ok	rule:source-rejudge-2026-11-20	D3: reserving the right to modify forbids nothing
+pinch-reserves-right-2	Company reserves the right to modify any Company Content or the Website at any time; however, Company does not guarantee it.	no	no	no	ok	rule:source-rejudge-2026-11-20	D3
+pinch-ebook	The e-book was developed solely for your personal use and may not be reproduced for publication or for the use of others.	no	yes	no	ok	rule:source-rejudge-2026-11-20	a reuse prohibition (of the e-book)
+pinch-personal-use	You may view, download (for caching purposes only), and print pages for your personal use, subject to the restrictions set out below.	no	no	no	ok	rule:source-rejudge-2026-11-20	a grant, no only, no cue
+pinch-spam	You must not use the Website to transmit or send any unsolicited commercial communications.	no	no	no	ok	rule:source-rejudge-2026-11-20	conduct, not reuse
+pinch-malware	You must not use the Website to copy, store, host, transmit, send, use, publish, or distribute any material which consists of (or is linked to) any spyware, computer virus, Trojan horse, worm, keystroke logger, rootkit or other malicious computer software.	no	no	no	ok	rule:source-rejudge-2026-11-20	conduct against malware, not reuse
+skinnytaste-footer	Content may not be used for AI training or automated aggregation without permission.	yes	no	yes	ok	rule:source-rejudge-2026-11-20	skinnytaste footer (D2)
+skinnytaste-ai	We do not permit the use of our content for the purpose of training, developing, fine-tuning, or operating artificial intelligence systems without our express prior written consent.	no	no	yes	ok	rule:source-rejudge-2026-11-20	skinnytaste /legal/
+skinnytaste-reproduce	Please do not reproduce any text or photographs without my prior written consent.	no	yes	no	ok	rule:source-rejudge-2026-11-20	skinnytaste /legal/ (D1)
+budgetbytes-spider	4.3 By using the Services, you agree that you will not: 4.3.3 "scrape," "crawl" or "spider" any web pages or other services contained in the Services	yes	no	no	ok	rule:source-rejudge-2026-11-20	budgetbytes 4.3.3 (D3)
+budgetbytes-copy	no Content may be copied, reproduced, republished, uploaded, posted, transmitted or distributed for publication or distribution or for any commercial enterprise, without BudgetBytes' express prior written consent.	no	yes	no	ok	rule:source-rejudge-2026-11-20	budgetbytes 2.2
+budgetbytes-reserves	4.5 BudgetBytes reserves the right, at any time, without notice: (a) to modify, suspend or	no	no	no	ok	rule:source-rejudge-2026-11-20	D3
+sally-robot	Additionally, you agree not to: Use any robot, spider, or other automatic device, process, or means to access the Website for any purpose, including monitoring or copying any of the material on the Website.	yes	yes	no	ok	rule:source-rejudge-2026-11-20	sallysbakingaddiction (D1)
+sally-personal	These Terms permit you to use the Website for your personal, non-commercial use only.	no	yes	no	ok	rule:source-rejudge-2026-11-20	personal, non-commercial use only
+lebovitz-app	Content from this website may not be deep-embedded in another website or used on an application for an electronic device or reprinted or republished in any manner.	no	yes	no	ok	rule:source-rejudge-2026-11-20	davidlebovitz
+lebovitz-never	Permission is never granted to reprint text or stories.	no	yes	no	ok	rule:source-rejudge-2026-11-20	davidlebovitz
+lebovitz-adapt	Recipes may be adapted using the guidelines here, although they should not and can not be reprinted without permission.	no	yes	no	ok	rule:source-rejudge-2026-11-20	davidlebovitz
+lebovitz-reproduction	Reproduction is prohibited other than in accordance with the copyright notice, which forms part of these terms and conditions.	no	yes	no	ok	rule:source-rejudge-2026-11-20	davidlebovitz
+open-licence	All recipes on this site may be reused under CC BY 4.0.	no	no	no	ok	rule:construction	a grant
+open-copy-freely	You may copy and adapt these recipes freely.	no	no	no	ok	rule:construction	a grant, no cue
+bots-not-allowed	Do not use bots to access this site.	yes	no	no	ok	rule:construction	-
+crawling-not-permitted	Crawling this site is not permitted.	yes	no	no	ok	rule:construction	-
+privacy-sell	We do not sell your personal data to third parties.	no	no	no	ok	rule:construction	a privacy promise
+reserve-change	We reserve the right to change these terms at any time.	no	no	no	ok	rule:construction	-
+ai-train-only	Our content may not be used to train artificial intelligence models.	no	no	yes	ok	rule:construction	-
+llm-scrape	You may not scrape this site to build a large language model.	yes	no	yes	ok	rule:construction	-
+robot-or-viruses	You agree not to use any robot, spider or other automated device to access the Website, or to introduce viruses or other harmful material.	yes	no	no	ok	rule:construction	a combined clause: the conduct action does not cancel the automated-access one
+copy-or-spam	You may not copy or republish the content; nor use the site to send unsolicited messages.	no	yes	no	ok	rule:construction	a reuse prohibition beside a conduct one
+malware-or-harmful	You agree not to upload, copy or transmit any virus or other harmful code, or to post unlawful material.	no	no	no	ok	rule:construction	every action is conduct: forbids nothing

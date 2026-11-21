@@ -203,3 +203,12 @@
 .nom-scraping-sources__spacer {
   flex: 1;
 }
+
+.nom-scraping-sources__rights {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: vars.$spacing-1;
+  margin-top: vars.$spacing-2;
+  overflow-wrap: anywhere;
+}

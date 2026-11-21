@@ -24,7 +24,11 @@ namespace Nom.Orch.Services
     /// state. A recipe a person edited since, or whose prose a later journal entry changed
     /// (<see cref="ProseLaneJournal.TouchesProse"/>) or whose steps a rebuild replaced since
     /// (<c>recipe.RecipeReprocessJournal</c> with new steps, not undone), is skipped and counted. Each restore writes a <see cref="ProseLaneJournal.UndoChangeType"/> row, so a
-    /// repeat dry run shows nothing left, and the rewrite's journal is kept.
+    /// repeat dry run shows nothing left, and the rewrite's journal is kept. The frame's undo of a
+    /// tier reverses only that tier's writes: the rule-only tier's renderings (tagged
+    /// <see cref="ProseCleanRoom.RuleOnlyStyle"/>) apart from the model tier's rewrites. A rewrite
+    /// whose old text a prose retention reduced (<see cref="SourceRightsService.IsReduced"/>) is
+    /// skipped as changed since: its old text is no longer held.
     /// </summary>
     public class ProseRewriteUndoService : IProseRewriteUndoService, ILaneUndo
     {
@@ -41,11 +45,18 @@ namespace Nom.Orch.Services
 
         public async Task<LaneUndoResult> UndoSinceAsync(string tier, DateTime sinceUtc, bool apply, CancellationToken cancellationToken)
         {
-            var result = await UndoAsync(sinceUtc, null, apply, cancellationToken);
+            var result = await UndoCoreAsync(sinceUtc, null, apply, tier, cancellationToken);
             return new LaneUndoResult(result.Restored, result.Skipped, result.Remaining, $"prose rewrites since {sinceUtc:u}");
         }
 
-        public async Task<ProseRewriteUndoResult> UndoAsync(DateTime sinceUtc, string? laneVersion = null, bool apply = false, CancellationToken cancellationToken = default)
+        public Task<ProseRewriteUndoResult> UndoAsync(DateTime sinceUtc, string? laneVersion = null, bool apply = false, CancellationToken cancellationToken = default) =>
+            UndoCoreAsync(sinceUtc, laneVersion, apply, null, cancellationToken);
+
+        /// <summary>Whether a rewrite's state row was written by the model-free path (its tag names <see cref="ProseCleanRoom.RuleOnlyStyle"/>).</summary>
+        internal static bool IsRuleOnly(string? newValue) =>
+            (newValue ?? string.Empty).StartsWith("[" + ProseCleanRoom.RuleOnlyStyle + " ", StringComparison.Ordinal);
+
+        private async Task<ProseRewriteUndoResult> UndoCoreAsync(DateTime sinceUtc, string? laneVersion, bool apply, string? tier, CancellationToken cancellationToken)
         {
             var result = new ProseRewriteUndoResult { Applied = apply, SinceUtc = sinceUtc, LaneVersion = laneVersion };
             var states = await _db.AuditLogEntries.AsNoTracking()
@@ -55,6 +66,8 @@ namespace Nom.Orch.Services
                 .ToListAsync(cancellationToken);
             if (!string.IsNullOrEmpty(laneVersion))
                 states = states.Where(s => (s.NewValue ?? string.Empty).Contains(" " + laneVersion + "]", StringComparison.Ordinal)).ToList();
+            if (tier != null)
+                states = states.Where(s => IsRuleOnly(s.NewValue) == (tier == ProseLaneService.RuleOnlyTier)).ToList();
 
             var recipeIds = states.Select(s => s.EntityId).Distinct().ToList();
             var undone = (await _db.AuditLogEntries.AsNoTracking()
@@ -98,7 +111,8 @@ namespace Nom.Orch.Services
                         break;
                     }
 
-                    if (journal.Any(a => a.Id > last && ProseLaneJournal.TouchesProse(a) && !InUndoneGroup(a))
+                    if (group.Any(a => SourceRightsService.IsReduced(a.OldValue))
+                        || journal.Any(a => a.Id > last && ProseLaneJournal.TouchesProse(a) && !InUndoneGroup(a))
                         || (!descriptionOnly && stepsRebuiltAt > state.Timestamp))
                     {
                         result.Skipped++;

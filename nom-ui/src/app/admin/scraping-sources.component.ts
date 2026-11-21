@@ -14,11 +14,15 @@ import { MatSelectModule } from '@angular/material/select';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { ScrapingSourceService } from '../core/services/scraping-source.service';
 import {
+  RightsStep,
   ScrapingSourceModel,
   SourceCandidate,
   SourceJournalEntry,
   SourceReason,
+  SourceRecipeStep,
   SourceReview,
+  SourceRightsRun,
+  SourceTaken,
 } from '../core/models/scraping-source.model';
 import { LoadingService } from '../core/services/loading.service';
 
@@ -69,6 +73,19 @@ export class ScrapingSources implements OnInit {
   pendingAction = signal<PendingAction | null>(null);
   actionReason = new FormControl('');
 
+  rightsRun = signal<SourceRightsRun | null>(null);
+  stepResult = signal<SourceRecipeStep | null>(null);
+  taken = signal<SourceTaken[]>([]);
+  /** Source id whose written-permission form is open. */
+  permissionFor = signal<number | null>(null);
+  permissionError = signal('');
+
+  permissionForm = new FormGroup({
+    grantedBy: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    grantedOn: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    text: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(2000)] }),
+  });
+
   handForm = new FormGroup({
     domain: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     title: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -107,6 +124,95 @@ export class ScrapingSources implements OnInit {
     this.scrapingSourceService.getSources('Pending').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (sources) => this.pending.set(sources.filter((s) => (s.kind ?? 'web') === 'web')),
       error: () => this.pending.set([]),
+    });
+    this.scrapingSourceService.taken().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (taken) => this.taken.set(taken),
+      error: () => this.taken.set([]),
+    });
+  }
+
+  canRecordPermission(source: ScrapingSourceModel): boolean {
+    return !!source.rightsClass && source.rightsClass !== 'clear' && !source.permissionRecordedAtUtc;
+  }
+
+  startPermission(source: ScrapingSourceModel): void {
+    this.permissionForm.reset();
+    this.permissionError.set('');
+    this.permissionFor.set(source.id);
+  }
+
+  cancelPermission(): void {
+    this.permissionFor.set(null);
+  }
+
+  savePermission(source: ScrapingSourceModel): void {
+    if (this.permissionForm.invalid) {
+      this.permissionForm.markAllAsTouched();
+      return;
+    }
+    this.processing.set(true);
+    this.permissionError.set('');
+    this.scrapingSourceService.recordPermission(source.id, this.permissionForm.getRawValue()).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
+        this.processing.set(false);
+        this.permissionFor.set(null);
+        this.load();
+      },
+      error: (err) => {
+        this.permissionError.set(err?.error?.error ?? 'Failed to record the permission.');
+        this.processing.set(false);
+      },
+    });
+  }
+
+  factsOnlyUse(source: ScrapingSourceModel, approve: boolean): void {
+    this.run(this.scrapingSourceService.factsOnlyUse(source.id, approve), 'Failed to change facts-only use.');
+  }
+
+  deriveRights(apply: boolean): void {
+    this.processing.set(true);
+    this.errorMessage.set('');
+    this.scrapingSourceService.deriveRights(apply).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (run) => {
+        this.rightsRun.set(run);
+        this.processing.set(false);
+        if (apply) this.load();
+      },
+      error: (err) => {
+        this.errorMessage.set(err?.error?.error ?? 'Failed to derive the rights classes.');
+        this.processing.set(false);
+      },
+    });
+  }
+
+  rightsStep(step: RightsStep, apply: boolean): void {
+    this.stepRequest(this.scrapingSourceService.rightsStep(step, apply), apply);
+  }
+
+  undoStep(result: SourceRecipeStep): void {
+    const step = result.step as RightsStep;
+    this.stepRequest(this.scrapingSourceService.undoRightsStep(step, result.stamp, true), true);
+  }
+
+  skipped(result: SourceRecipeStep): string[] {
+    return Object.entries(result.skippedByReason ?? {}).map(([reason, count]) => `${count} ${reason}`);
+  }
+
+  private stepRequest(request: Observable<SourceRecipeStep>, reload: boolean): void {
+    this.processing.set(true);
+    this.errorMessage.set('');
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (result) => {
+        this.stepResult.set(result);
+        this.processing.set(false);
+        if (reload) this.load();
+      },
+      error: (err) => {
+        this.errorMessage.set(err?.error?.error ?? 'The step failed.');
+        this.processing.set(false);
+      },
     });
   }
 

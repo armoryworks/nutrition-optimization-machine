@@ -113,6 +113,25 @@ namespace Nom.Api.Tests.Controllers
         }
 
         [Fact]
+        public async Task GetStatus_reports_the_source_rights_engine()
+        {
+            var rights = new Mock<ISourceRightsService>();
+            rights.Setup(s => s.StatusAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Nom.Orch.Models.Recipe.SourceRightsStatusModel { TakenFromBarredSources = 11, AiReserved = 5 });
+            var controller = new PipelineController(_pipeline.Object, _lanes.Object, _features.Object,
+                new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Ai:QuietHours"] = "" }).Build(),
+                _frame.Object, Options.Create(new LaneModelRoster()), rights: rights.Object)
+            {
+                ControllerContext = Controller().ControllerContext,
+            };
+
+            var body = Body(await controller.GetStatus());
+
+            body.SourceRights.Should().Match<Nom.Orch.Models.Recipe.SourceRightsStatusModel>(s => s.TakenFromBarredSources == 11 && s.AiReserved == 5);
+            Body(await Controller().GetStatus()).SourceRights.Should().BeNull("no rights service, no block");
+        }
+
+        [Fact]
         public async Task GetStatus_reports_the_source_lane_with_its_failed_runs()
         {
             var sources = new Mock<ISourceAdmissionService>();

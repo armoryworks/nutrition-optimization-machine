@@ -29,12 +29,22 @@ namespace Nom.Orch.Services
     /// The lane measures itself: planted-fault canaries from prose-judge.tsv after every
     /// <see cref="CanaryEvery"/> rewrites, an auditor of a third family on a sample, its gate yield,
     /// and its golden records; the frame qualifies, pauses and undoes it on those figures.
+    /// A recipe whose source reserves its content against AI use (<see cref="RecipeEntity.SourceAiReserved"/>)
+    /// takes the model-free path only (<see cref="ProseCleanRoom.RunRuleOnly"/>): no extractor, writer,
+    /// judge or auditor reads its method. Its decisions are recorded in <see cref="RuleOnlyTier"/>, a tier
+    /// of its own on the frame: it writes only while that tier is live, every one of its decisions is
+    /// audited by rule (<see cref="ProseRuleOnlyAudit"/>), and the frame qualifies, pauses and undoes it on
+    /// that audit alone, whatever the model tier's mode.
+    /// A facts-only recipe (<see cref="RecipeEntity.SourceRights"/>) never takes the description-only path
+    /// for a method a person edited: its whole method is rewritten clean-room, so no untouched publisher
+    /// step is shown again.
     /// </summary>
     public class ProseLaneService
     {
         public const string Lane = AiLanes.ProseRewrite;
         public const string Tier = LaneTiers.Whole;
         public const string CanaryTier = "canary";
+        public const string RuleOnlyTier = "rule-only";
         public const string RewriteDecision = "rewrite";
         public const string GaveUpPrefix = "exhausted:";
         public const int CanaryEvery = 100;
@@ -83,7 +93,8 @@ namespace Nom.Orch.Services
             var result = new ProseSweepResult { Mode = mode, LaneVersion = version };
             var stock = await _stock.LoadAsync(cancellationToken);
             var live = mode == LaneMode.Live;
-            var ids = await EligibleQuery(_db, version, live)
+            var ruleMode = await _frame.ModeAsync(Lane, RuleOnlyTier, cancellationToken);
+            var ids = await EligibleQuery(_db, version, live, ruleMode == LaneMode.Live)
                 .OrderBy(r => r.ProseWithheld ? (r.CurationStatusId == (long)CurationStatusEnum.Curated ? 0 : 1) : 2)
                 .ThenBy(r => r.ProseRewriteAttemptedAt == null ? 0 : 1)
                 .ThenBy(r => r.ProseRewriteAttemptedAt)
@@ -102,7 +113,8 @@ namespace Nom.Orch.Services
                 var steps = rows.Where(s => !s.IsDeleted).OrderBy(s => s.StepNumber).ToList();
                 var source = await SourceAsync(recipe, steps, cancellationToken);
                 var ownDescription = await PersonDescriptionAsync(recipe, cancellationToken);
-                if (steps.Any(EditedByPerson))
+                var recipeMode = recipe.SourceAiReserved ? ruleMode : mode;
+                if (steps.Any(EditedByPerson) && recipe.SourceRights != SourceRightsRule.FactsOnly)
                 {
                     if (!live || recipe.ContainsSourceProse) continue;
                     var description = ownDescription ?? ProseDescription.Build(recipe.Name, ProseMasking.Mask(Array.Empty<string>(), source.Lines).Lines);
@@ -118,7 +130,9 @@ namespace Nom.Orch.Services
                 ProseLaneOutcome outcome;
                 try
                 {
-                    outcome = await ProseCleanRoom.RunAsync(input, writer, judge, cancellationToken: cancellationToken);
+                    outcome = recipe.SourceAiReserved
+                        ? ProseCleanRoom.RunRuleOnly(input)
+                        : await ProseCleanRoom.RunAsync(input, writer, judge, cancellationToken: cancellationToken);
                 }
                 catch (System.Net.Http.HttpRequestException ex) when (!AiLanes.IsOutage(ex))
                 {
@@ -148,11 +162,12 @@ namespace Nom.Orch.Services
 
                 var now = DateTime.UtcNow;
                 var stratum = recipe.ProseWithheld ? (recipe.CurationStatusId == (long)CurationStatusEnum.Curated ? "withheld-approved" : "withheld") : "quarantined";
+                var tier = recipe.SourceAiReserved ? RuleOnlyTier : Tier;
                 if (outcome.Passed)
                 {
-                    if (mode == LaneMode.Live)
+                    if (recipeMode == LaneMode.Live)
                     {
-                        Write(recipe, rows, steps, outcome.Rewrite!, ownDescription, models, now);
+                        Write(recipe, rows, steps, outcome.Rewrite!, ownDescription, models, now, recipe.SourceAiReserved ? ProseCleanRoom.RuleOnlyStyle : null);
                         result.Rewritten++;
                     }
                     else
@@ -176,9 +191,9 @@ namespace Nom.Orch.Services
                 await _db.SaveChangesAsync(cancellationToken);
                 _db.ChangeTracker.Clear();
                 await _frame.RecordAsync(new LaneDecisionInput(
-                    Lane, Tier, Subject(id),
+                    Lane, tier, Subject(id),
                     outcome.Passed ? RewriteDecision : GaveUpPrefix + (outcome.FailureClass ?? "unknown"),
-                    mode, outcome.Passed, version, stratum,
+                    recipeMode, outcome.Passed, version, stratum,
                     new
                     {
                         recipeId = id,
@@ -202,18 +217,20 @@ namespace Nom.Orch.Services
         /// <summary>
         /// The recipes the lane may take under <paramref name="version"/>: withheld or quarantined and
         /// not given up under this version. A quarantined recipe with a step a person edited is never
-        /// taken. While the lane is not <paramref name="live"/>, a recipe already decided under this
-        /// version is not taken again, so every decision it records is of a different recipe, and a
-        /// withheld recipe whose method a person wrote waits for the live lane, which only replaces its
-        /// copied description.
+        /// taken, unless it is a withheld facts-only recipe. While the lane is not <paramref name="live"/>,
+        /// a recipe already decided under this version is not taken again, so every decision it records
+        /// is of a different recipe, and a withheld recipe whose method a person wrote waits for the live
+        /// lane, which only replaces its copied description. An AI-reserved recipe follows the rule-only
+        /// tier's mode (<paramref name="ruleLive"/>) instead of the lane's.
         /// </summary>
-        public static IQueryable<RecipeEntity> EligibleQuery(ApplicationDbContext db, string version, bool live = true) =>
+        public static IQueryable<RecipeEntity> EligibleQuery(ApplicationDbContext db, string version, bool live = true, bool ruleLive = false) =>
             db.Recipes.AsNoTracking()
                 .Where(r => r.ProseWithheld || r.ContainsSourceProse)
                 .Where(r => !(r.ProseLaneVersion == version && r.ProseAttempts >= ProseCleanRoom.AttemptCount))
-                .Where(r => live || r.ProseLaneVersion != version)
+                .Where(r => (r.SourceAiReserved ? ruleLive : live) || r.ProseLaneVersion != version)
                 .Where(r => !r.RecipeSteps!.Any(s => s.LastModifiedByPersonId != null && s.LastModifiedByPersonId != SystemConstants.SystemPersonId)
-                    || (live && r.ProseWithheld && !r.ContainsSourceProse));
+                    || (live && r.ProseWithheld && !r.ContainsSourceProse)
+                    || (r.ProseWithheld && r.SourceRights == SourceRightsRule.FactsOnly));
 
         /// <summary>The recipes the lane gave up on under <paramref name="version"/> and that are still withheld or quarantined.</summary>
         public static IQueryable<RecipeEntity> GaveUpQuery(ApplicationDbContext db, string version) =>
@@ -323,7 +340,23 @@ namespace Nom.Orch.Services
             }
 
             var faults = await FaultsAsync(version, cancellationToken);
+            await MeasureRuleOnlyAsync(version, cancellationToken);
             return await _frame.EvaluateAsync(new LaneEvaluateRequest(Lane, Tier, version, Policy, _golden.AuditorScore(models), _golden.GoldenProblem(models), faults), cancellationToken);
+        }
+
+        private static readonly LaneSamplePlan RuleOnlyAuditPlan = new(Minimum: int.MaxValue, Rate: 1.0);
+
+        /// <summary>
+        /// Audits every unaudited rule-only rendering by rule (<see cref="ProseRuleOnlyAudit"/>: no model
+        /// reads the source or the rendering) and evaluates the rule-only tier on that audit with the
+        /// lane's bars, so it qualifies from shadow, pauses on its own observed error and has its writes
+        /// undone, apart from the model tier.
+        /// </summary>
+        public async Task<LaneQualifyVerdict> MeasureRuleOnlyAsync(string version, CancellationToken cancellationToken = default)
+        {
+            var audit = new ProseRuleOnlyAudit(_db);
+            await _frame.AuditAsync(Lane, RuleOnlyTier, Epoch, RuleOnlyAuditPlan, audit, audit, null, cancellationToken);
+            return await _frame.EvaluateAsync(new LaneEvaluateRequest(Lane, RuleOnlyTier, version, Policy, AuditorScore.ExactRule), cancellationToken);
         }
 
         private async Task<Source> SourceAsync(RecipeEntity recipe, List<RecipeStepEntity> steps, CancellationToken cancellationToken)
@@ -380,10 +413,10 @@ namespace Nom.Orch.Services
             recipe.LastModifiedByPersonId = SystemConstants.SystemPersonId;
         }
 
-        private void Write(RecipeEntity recipe, List<RecipeStepEntity> rows, List<RecipeStepEntity> steps, RewriteFidelity.SourceText rewrite, string? ownDescription, ProseLaneModels models, DateTime now)
+        private void Write(RecipeEntity recipe, List<RecipeStepEntity> rows, List<RecipeStepEntity> steps, RewriteFidelity.SourceText rewrite, string? ownDescription, ProseLaneModels models, DateTime now, string? writer = null)
         {
             var description = ownDescription ?? rewrite.Description;
-            var tag = ProseLaneJournal.Tag(models.Writer, models.Version);
+            var tag = ProseLaneJournal.Tag(writer ?? models.Writer, models.Version);
             var texts = rewrite.Steps.Select((text, i) => (Number: i + 1, Text: text)).ToDictionary(s => s.Number, s => s.Text);
             var before = ProseState.Of(recipe, steps);
             var after = new ProseState(false, false, ProseCheck.Version, models.Version, 0, now, texts.Keys.ToList());
@@ -403,6 +436,62 @@ namespace Nom.Orch.Services
             after.ApplyTo(recipe);
             recipe.LastModifiedDate = now;
             recipe.LastModifiedByPersonId = SystemConstants.SystemPersonId;
+        }
+    }
+
+    /// <summary>
+    /// The audit of the rule-only tier's renderings, by rule: each written method is read back from its
+    /// text alone (<see cref="ProseCleanRoom.RuleOnlyAudit"/>) against the recipe's stored source steps and
+    /// lines, so a rendering that loses a step, an ingredient, an amount or a cooking verb is an error.
+    /// No model reads either text. Being exact, it is its own confirmation.
+    /// </summary>
+    public sealed class ProseRuleOnlyAudit : ILaneAuditor, ILaneAuditCheck
+    {
+        private readonly ApplicationDbContext _db;
+
+        public ProseRuleOnlyAudit(ApplicationDbContext db) => _db = db;
+
+        public string Model => ProseCleanRoom.RuleOnlyStyle;
+
+        public string Name => ProseCleanRoom.RuleOnlyStyle + " read-back";
+
+        public async Task<LaneAuditAnswer> AuditAsync(LaneDecisionEntity decision, CancellationToken cancellationToken)
+        {
+            var problems = await ProblemsAsync(decision, cancellationToken);
+            return problems == null ? new LaneAuditAnswer(null, "no source or rendering to read")
+                : problems.Count == 0 ? new LaneAuditAnswer(false)
+                : new LaneAuditAnswer(true, string.Join("; ", problems.Take(3)));
+        }
+
+        public async Task<bool?> ConfirmsWrongAsync(LaneDecisionEntity decision, CancellationToken cancellationToken) =>
+            await ProblemsAsync(decision, cancellationToken) is { } problems ? problems.Count > 0 : null;
+
+        private async Task<IReadOnlyList<string>?> ProblemsAsync(LaneDecisionEntity decision, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrEmpty(decision.SignalsJson)) return null;
+            using var signals = JsonDocument.Parse(decision.SignalsJson);
+            var root = signals.RootElement;
+            if (!root.TryGetProperty("recipeId", out var idElement) || !idElement.TryGetInt64(out var recipeId)) return null;
+            if (!root.TryGetProperty("rewrite", out var rewrite) || rewrite.ValueKind != JsonValueKind.Object || !rewrite.TryGetProperty("steps", out var steps)) return null;
+            var written = steps.EnumerateArray().Select(s => s.GetString() ?? string.Empty).ToList();
+            var raw = await _db.ScrapedDocuments.AsNoTracking()
+                .Where(d => d.RecipeId == recipeId && d.Format == ScrapedDocumentFormat.JsonLd)
+                .OrderByDescending(d => d.Id)
+                .Select(d => d.RawJsonLd)
+                .FirstOrDefaultAsync(cancellationToken);
+            var source = RewriteFidelity.Source(raw);
+            if (source == null) return null;
+            var lines = ProseCheck.SourceLines(raw);
+            if (lines.Count == 0)
+            {
+                lines = await _db.RecipeIngredients.AsNoTracking()
+                    .Where(i => i.RecipeId == recipeId && i.RawLine != "")
+                    .OrderBy(i => i.SortOrder)
+                    .Select(i => i.RawLine)
+                    .ToListAsync(cancellationToken);
+            }
+
+            return ProseCleanRoom.RuleOnlyAudit(source.Steps, written, lines);
         }
     }
 

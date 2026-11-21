@@ -1,0 +1,33 @@
+# The title rule for facts-only recipes (RecipeTitleRule, recipe-titles/1): a dish name stays, a distinctive or branded title becomes the dish name.
+# credit: the recipe's source credit (author and site), which names the source's own brand. Titles are written for the rule, not copied from any site.
+id	title	credit	expect	status	source	note
+dish-only	Apple Crisp	-	Apple Crisp	ok	rule:construction	only the dish name: kept
+dish-only-long	Chicken Tikka Masala	-	Chicken Tikka Masala	ok	rule:construction	-
+best-ever-have	The Best Apple Crisp You'll Ever Have	-	Apple Crisp	ok	rule:construction	the example in source-rejudge.md
+best-ever	Best Ever Banana Bread	-	Banana Bread	ok	rule:construction	-
+ultimate	The Ultimate Grilled Cheese	-	Grilled Cheese	ok	rule:construction	-
+perfect-recipe	Perfect Roast Chicken Recipe	-	Roast Chicken	ok	rule:construction	-
+my-favorite	My Favorite Chocolate Chip Cookies	-	Chocolate Chip Cookies	ok	rule:construction	-
+easy-aside	Easy Chicken Curry (30 Minutes!)	-	Chicken Curry	ok	rule:construction	-
+pipe-tail	Lemon Bars | Easy Summer Dessert	-	Lemon Bars	ok	rule:construction	-
+dash-tail	Black Bean Soup - Ready in 20 Minutes	-	Black Bean Soup	ok	rule:construction	-
+famous	Famous Ten-Minute Salsa	-	Ten-Minute Salsa	ok	rule:construction	a hyphenated word is not a tail
+grandma	Grandma's Meatloaf	-	Meatloaf	ok	rule:construction	family possessive
+aunt-name	Aunt Bee's Pound Cake	-	Pound Cake	ok	rule:construction	-
+brand-owner	Sally's Chewy Brownies	Recipe by Sally McKenney, Sally's Baking Addiction	Chewy Brownies	ok	rule:construction	the source's own name
+brand-author	Tieghan's Crispy Gnocchi	Recipe by Tieghan Gerard, Half Baked Harvest	Crispy Gnocchi	ok	rule:construction	-
+shepherds-pie	Shepherd's Pie	-	Shepherd's Pie	ok	rule:construction	a possessive that is part of the dish
+general-tso	General Tso's Chicken	-	General Tso's Chicken	ok	rule:construction	a possessive that is part of the dish
+other-name-kept	Mario's Lasagna	Recipe by Jane Doe, Example Kitchen	Mario's Lasagna	ok	rule:construction	not family, not the source: kept
+copycat	Copycat Chicken Nuggets	-	Chicken Nuggets	ok	rule:construction	-
+one-pot	One Pot Pasta	-	One Pot Pasta	ok	rule:construction	'one' is part of the dish
+quick-pickles	Quick Pickles	-	Quick Pickles	ok	rule:construction	'quick' is not praise
+to-die-for	Chocolate Cake to Die For	-	Chocolate Cake	ok	rule:construction	-
+of-your-life	The Fluffiest Pancakes of Your Life	-	Fluffiest Pancakes	ok	rule:construction	'fluffiest' describes the dish and stays; the boast goes
+praise-only	The Best	-	The Best	ok	rule:construction	nothing of a dish would be left: kept
+seriously-good	Seriously Delicious Banana Muffins	-	Banana Muffins	ok	rule:construction	-
+world-best	World's Best Lasagna	-	Lasagna	ok	rule:construction	-
+trailing-recipes	Pumpkin Bread Recipe	-	Pumpkin Bread	ok	rule:construction	-
+lowercase	easy weeknight tacos	-	Weeknight tacos	ok	rule:construction	the first letter is raised after praise goes
+boast-ive-ever-made	The Best Brownies I've Ever Made	-	Brownies	ok	rule:construction	a first-person boast goes with its subject
+boast-we-have-ever-had	The Best Chili We Have Ever Had	-	Chili	ok	rule:construction	-

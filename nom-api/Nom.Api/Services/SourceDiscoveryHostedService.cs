@@ -78,6 +78,13 @@ namespace Nom.Api.Services
                     }
 
                     await lane.WatchAsync(stoppingToken);
+                    var rights = scope.ServiceProvider.GetRequiredService<ISourceRightsService>();
+                    await rights.DeriveAsync(apply: true, staleOnly: true, cancellationToken: stoppingToken);
+                    if (scope.ServiceProvider.GetRequiredService<IOptions<SourceRightsSettings>>().Value.RetentionAuto)
+                    {
+                        await rights.RetentionAsync(apply: true, stoppingToken);
+                        await rights.PurgeRetentionAsync(apply: true, stoppingToken);
+                    }
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {

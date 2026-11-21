@@ -82,6 +82,18 @@ Writer: `Ai:RewriteModel` when set, else the roster's reader A (`qwen2.5:14b-ins
 reader B (`mistral-nemo`). Auditor: the roster's auditor (`phi4`). The lane refuses to run (and says
 why on the Pipeline page) when the judge is of the writer's family or the auditor of either.
 
+A recipe whose source reserves its content against AI use (`Recipe.SourceAiReserved`, see
+`source-rights.md`) never reaches the models: the lane takes the model-free path
+(`ProseCleanRoom.RunRuleOnly`: rule sheets, rule rendering, form rules and check v2, no judge), records
+the decision in the `rule-only` tier and writes the rendering only while that tier is live, or leaves the
+recipe withheld with its key facts and link. The `rule-only` tier has its own mode on the frame: every
+decision is audited by rule (`ProseRuleOnlyAudit`, the rendering read back against the stored source; no
+model), `MeasureRuleOnlyAsync` evaluates it with the lane's bars and `AuditorScore.ExactRule`, and a pause
+undoes only its writes (the undo reads the `rule-only` writer tag).
+
+A withheld facts-only recipe (`Recipe.SourceRights`) with a step a person edited is rewritten whole: the
+description-only path is for methods a person wrote on sources whose method may be shown.
+
 ## On the lane frame
 
 Lane `prose-rewrite`, tier `*` (`lane-frame.md`). The lane asks the frame for its mode before each

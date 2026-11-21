@@ -132,6 +132,7 @@ namespace Nom.Api.Tests.Services
                     Outcome = code is "crawl-delay" or "sample-yield" ? "info" : !clear && code == "licence" ? "fail" : "pass",
                     Detail = "fixture",
                 }).ToList(),
+                Access = new ScraperCheckAccess { HomepageUrl = $"https://{domain}/", HomepageOutcome = "Ok", HomepageStatus = 200 },
                 Robots = new ScraperCheckRobots { Status = "found", NomBot = new ScraperCheckRobotsGroup { AllowsHomepage = true, CrawlDelaySeconds = 20 } },
                 Licence = new ScraperCheckLicence
                 {
@@ -290,7 +291,7 @@ namespace Nom.Api.Tests.Services
             (await db.AuditLogEntries.SingleAsync(e => e.ChangeType == SourceJournal.Approve)).ChangedByPersonId.Should().Be(Admin);
 
             var harvest = await service.HarvestableAsync();
-            harvest.Single().Should().BeEquivalentTo(new HarvestableSourceModel { Domain = "www.open.example", Probation = true, RecipeLimit = 50, CrawlDelaySeconds = 20 });
+            harvest.Single().Should().BeEquivalentTo(new HarvestableSourceModel { Domain = "www.open.example", Probation = true, RecipeLimit = 50, CrawlDelaySeconds = 20, RightsClass = "clear" });
         }
 
         [Fact]
@@ -375,7 +376,7 @@ namespace Nom.Api.Tests.Services
             paused.HarvestPausedReason.Should().Contain("turned not clear").And.Contain("licence");
             paused.Status.Should().Be(ScrapingSourceStatusEnum.Approved);
             (await service.HarvestableAsync()).Should().BeEmpty();
-            (await db.AuditLogEntries.Select(e => e.ChangeType).ToListAsync()).Should().BeEquivalentTo(new[] { SourceJournal.Recheck, SourceJournal.HarvestPause });
+            (await db.AuditLogEntries.Select(e => e.ChangeType).ToListAsync()).Should().BeEquivalentTo(new[] { SourceJournal.Rights, SourceJournal.Recheck, SourceJournal.HarvestPause });
         }
 
         [Fact]

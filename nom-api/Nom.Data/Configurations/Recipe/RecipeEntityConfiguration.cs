@@ -51,6 +51,9 @@ public class RecipeEntityConfiguration : IEntityTypeConfiguration<RecipeEntity>
         builder.Property(e => e.ContainsSourceProse).HasDefaultValue(false);
         builder.Property(e => e.ProseWithheld).HasDefaultValue(false);
         builder.HasIndex(e => e.SourceWithheldById).HasFilter("\"SourceWithheldById\" IS NOT NULL");
+        builder.Property(e => e.SourceRights).HasMaxLength(24);
+        builder.Property(e => e.SourceAiReserved).HasDefaultValue(false);
+        builder.Property(e => e.SourceCredit).HasMaxLength(1023);
         builder.Property(e => e.ProseAttempts).HasDefaultValue(0);
         builder.Property(e => e.ProseLaneVersion).HasMaxLength(64);
 

@@ -656,6 +656,42 @@
       }
     </section>
 
+    <section class="nom-pipeline__section" data-testid="pipeline-source-rights">
+      <h2 class="nom-pipeline__heading">Source rights</h2>
+      @if (d.sourceRights; as sr) {
+        <p class="nom-pipeline__lane-line" [class.nom-pipeline__warn]="sr.sourcesStale !== 0 || sr.sourcesUnclassed !== 0" data-testid="pipeline-source-rights-state">
+          {{ sr.enforced ? 'Gate on' : 'Gate off (SourceRights:Enforce)' }} · {{ sr.ruleVersion }} · {{ sr.titleRuleVersion }}
+          · last change {{ sr.lastChangeUtc ? (sr.lastChangeUtc | date: 'MMM d, HH:mm') : 'never' }} ({{ sr.changesLast7d }} in 7 days)
+        </p>
+        <dl class="nom-pipeline__stats">
+          <div><dt>Clear</dt><dd data-testid="pipeline-metric-rights-clear">{{ sr.sourcesByClass['clear'] ?? 0 | number }}</dd></div>
+          <div><dt>Facts only</dt><dd data-testid="pipeline-metric-rights-facts-only">{{ sr.sourcesByClass['facts-only'] ?? 0 | number }}</dd></div>
+          <div><dt>Permission needed</dt><dd data-testid="pipeline-metric-rights-permission-needed">{{ sr.sourcesByClass['permission-needed'] ?? 0 | number }}</dd></div>
+          <div><dt>Forbidden</dt><dd data-testid="pipeline-metric-rights-forbidden">{{ sr.sourcesByClass['forbidden'] ?? 0 | number }}</dd></div>
+          <div><dt>No class yet</dt><dd data-testid="pipeline-metric-rights-unclassed">{{ sr.sourcesUnclassed | number }}</dd></div>
+          <div><dt>Under an older rule</dt><dd data-testid="pipeline-metric-rights-stale">{{ sr.sourcesStale | number }}</dd></div>
+          <div><dt>AI reserved</dt><dd data-testid="pipeline-metric-rights-ai-reserved">{{ sr.aiReserved | number }}</dd></div>
+          <div><dt>Written permissions</dt><dd data-testid="pipeline-metric-rights-permissions">{{ sr.permissions | number }}</dd></div>
+          <div><dt>Facts-only use approved</dt><dd data-testid="pipeline-metric-rights-facts-only-approved">{{ sr.factsOnlyApproved | number }}</dd></div>
+          <div><dt>Fetchable</dt><dd data-testid="pipeline-metric-rights-fetchable">{{ sr.fetchable | number }}</dd></div>
+          <div><dt>Facts-only recipes withheld</dt><dd data-testid="pipeline-metric-rights-facts-only-withheld">{{ sr.factsOnlyWithheld | number }}</dd></div>
+          <div><dt>Facts-only recipes in NOM's words</dt><dd data-testid="pipeline-metric-rights-facts-only-own">{{ sr.factsOnlyOwnMethod | number }}</dd></div>
+          <div><dt>AI-reserved recipes</dt><dd data-testid="pipeline-metric-rights-recipes-ai-reserved">{{ sr.recipesAiReserved | number }}</dd></div>
+          <div><dt>Prose due for reduction</dt><dd data-testid="pipeline-metric-rights-retention-due">{{ sr.retentionDue | number }}</dd></div>
+          <div><dt>Reductions held for undo</dt><dd data-testid="pipeline-metric-rights-retention-held">{{ sr.retentionHeld | number }}</dd></div>
+          <div><dt>Recipes with a credit line</dt><dd data-testid="pipeline-metric-rights-credits">{{ sr.recipesWithCredit | number }}</dd></div>
+          <div><dt>Taken from barred sources</dt><dd data-testid="pipeline-metric-rights-taken">{{ sr.takenFromBarredSources | number }}</dd></div>
+        </dl>
+        <a routerLink="/admin/scraping-sources" class="nom-pipeline__link" data-testid="pipeline-source-rights-link">Open source rights</a>
+        <p class="nom-pipeline__hint">
+          Classes come from each source's stored check by rule; the weekly re-check derives them again and journals a change. What
+          happens to recipes taken from forbidden and permission-needed sources is the owner's decision.
+        </p>
+      } @else {
+        <p class="nom-pipeline__hint" data-testid="pipeline-source-rights-error">The source rights engine did not report.</p>
+      }
+    </section>
+
     <section class="nom-pipeline__section" data-testid="pipeline-images">
       <h2 class="nom-pipeline__heading">Images</h2>
       <dl class="nom-pipeline__stats">

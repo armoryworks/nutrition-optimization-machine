@@ -102,5 +102,57 @@ namespace Nom.Data.Recipe
         public string? RecipesWithheldReason { get; set; }
 
         public long? RecipesWithheldByPersonId { get; set; }
+
+        /// <summary>
+        /// What the source's own words allow, derived by rule (<c>SourceRightsRule</c>) from its stored
+        /// source-check report and nothing else: <c>clear</c> (a licence or public-domain statement grants
+        /// reuse), <c>facts-only</c> (nothing grants reuse and nothing forbids automated access),
+        /// <c>permission-needed</c> (the terms could not be read or the site refuses automated fetches) or
+        /// <c>forbidden</c> (the site's words forbid automated access or reuse). Null = no report yet.
+        /// </summary>
+        public string? RightsClass { get; set; }
+
+        /// <summary>The rule version that derived <see cref="RightsClass"/> and <see cref="AiReserved"/>.</summary>
+        public string? RightsRuleVersion { get; set; }
+
+        /// <summary>The deciding words: the quoted sentence or the fact the class rests on.</summary>
+        public string? RightsQuote { get; set; }
+
+        /// <summary>Where the deciding words were found.</summary>
+        public string? RightsQuoteUrl { get; set; }
+
+        /// <summary>The source check whose report the class was derived from.</summary>
+        public long? RightsCheckId { get; set; }
+
+        public DateTime? RightsDerivedAtUtc { get; set; }
+
+        /// <summary>
+        /// The site reserves its content against AI use: named AI crawlers blocked in robots.txt, a
+        /// <c>noai</c> robots meta or header, a TDM reservation, a Content-Signal against AI, or terms
+        /// that reserve against AI use. While set, no model reads the source's method or description.
+        /// </summary>
+        public bool AiReserved { get; set; }
+
+        public string? AiReservedQuote { get; set; }
+
+        public string? AiReservedQuoteUrl { get; set; }
+
+        /// <summary>Who at the publisher gave written permission; with <see cref="PermissionText"/> it lifts permission-needed or forbidden.</summary>
+        public string? PermissionGrantedBy { get; set; }
+
+        /// <summary>When the publisher gave the permission.</summary>
+        public DateTime? PermissionGrantedOn { get; set; }
+
+        /// <summary>The permission as the publisher wrote it.</summary>
+        public string? PermissionText { get; set; }
+
+        public long? PermissionRecordedByPersonId { get; set; }
+
+        public DateTime? PermissionRecordedAtUtc { get; set; }
+
+        /// <summary>While set, an admin has approved facts-only use of a facts-only source: it may be fetched for facts and a link.</summary>
+        public DateTime? FactsOnlyApprovedAt { get; set; }
+
+        public long? FactsOnlyApprovedByPersonId { get; set; }
     }
 }

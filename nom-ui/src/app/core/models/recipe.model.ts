@@ -49,6 +49,10 @@ export interface RecipeModel {
   /** Where an imported recipe came from, and its credit line ("Recipe by Jane Baker, example.com"). */
   sourceUrl?: string | null;
   sourceAttribution?: string | null;
+  /** A third-party credit line found on the source page ("Adapted from ..."), shown with the source link. */
+  sourceCredit?: string | null;
+  /** True when the recipe comes from a facts-only source: facts and the source link, and a method only in NOM's own words. */
+  factsOnly?: boolean;
   /** True while the source's verbatim wording is held for review. */
   containsSourceProse?: boolean;
   /** True while the recipe's own description and method are withheld until they are rewritten; keyFacts and sourceUrl stand in for the method. */

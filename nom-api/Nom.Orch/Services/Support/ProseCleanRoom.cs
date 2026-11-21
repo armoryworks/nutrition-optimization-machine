@@ -224,6 +224,78 @@ namespace Nom.Orch.Services.Support
         }
 
         /// <summary>
+        /// The model-free path, for a recipe whose source reserves its content against AI use: no model
+        /// reads the source's method or description. The masked method's sheets are built by rule
+        /// (<see cref="RuleSheets"/>), rendered by rule (<see cref="ProseFactSheet.Render"/>), and the
+        /// rendering is written only when it passes the form rules and check v2; no judge reads it,
+        /// because the judge is a model. Otherwise the recipe keeps no method and its link.
+        /// </summary>
+        public static ProseLaneOutcome RunRuleOnly(ProseLaneInput input, ProseVerbLexicon? verbs = null)
+        {
+            verbs ??= ProseVerbLexicon.Default;
+            var method = ProseMasking.Mask(input.Source.Steps, input.Lines);
+            if (method.Steps.Count == 0) return new ProseLaneOutcome(null, Array.Empty<ProseAttempt>(), true, null, null, 0);
+
+            var sheets = RuleSheets(method, verbs);
+            var written = sheets.Select(ProseFactSheet.Render).ToList();
+            var form = FormProblems(method, sheets, written, verbs);
+            if (form.Count > 0)
+            {
+                return new ProseLaneOutcome(null, new[] { new ProseAttempt(1, RuleOnlyStyle, new[] { FormReason }.Concat(form.Select(f => FormReason + ": " + f)).ToList()) },
+                    true, null, null, method.Steps.Count);
+            }
+
+            var steps = written.Select(w => Tidy(method.Unmask(w))).ToList();
+            var rewrite = new RewriteFidelity.SourceText(ProseDescription.Build(input.Dish, method.Lines), steps, input.Dish);
+            var finding = ProseCheck.Check(input.Source, rewrite, input.Lines, input.Stock, verbs);
+            return finding.Passed
+                ? new ProseLaneOutcome(rewrite, new[] { new ProseAttempt(1, RuleOnlyStyle, Array.Empty<string>()) }, true, finding, null, method.Steps.Count)
+                : new ProseLaneOutcome(null, new[] { new ProseAttempt(1, RuleOnlyStyle, finding.Reasons.ToList()) }, true, finding, null, method.Steps.Count);
+        }
+
+        public const string RuleOnlyStyle = "rule-only";
+
+        /// <summary>
+        /// The rule audit of a model-free rendering, read back from its written text alone: masked again
+        /// against the recipe's lines, it must hold one step per source step, and each step every ingredient,
+        /// every amount as the source states it and every cooking verb of its source step. Empty when it
+        /// does. No model reads either text.
+        /// </summary>
+        public static IReadOnlyList<string> RuleOnlyAudit(IReadOnlyList<string> sourceSteps, IReadOnlyList<string> written, IReadOnlyList<string> lines, ProseVerbLexicon? verbs = null)
+        {
+            verbs ??= ProseVerbLexicon.Default;
+            var source = ProseMasking.Mask(sourceSteps, lines);
+            var back = ProseMasking.Mask(written, lines);
+            var problems = new List<string>();
+            if (back.Steps.Count != source.Steps.Count)
+            {
+                problems.Add($"{back.Steps.Count} written steps for {source.Steps.Count} source steps");
+                return problems;
+            }
+
+            static string Amount(string text) => System.Text.RegularExpressions.Regex.Replace(text.Trim().ToLowerInvariant(), @"\s+", " ");
+            for (var i = 0; i < source.Steps.Count; i++)
+            {
+                var step = source.Steps[i];
+                var read = back.Steps[i];
+                var label = $"step {step.Number}";
+                foreach (var id in step.Lines.Where(id => !read.Lines.Contains(id)))
+                    problems.Add($"{label} leaves out {source.Lines.FirstOrDefault(l => l.Id == id)?.Name ?? id}");
+                var want = step.Amounts.Concat(step.Conversions).Select(id => Amount(source.Amounts[id])).OrderBy(a => a, StringComparer.Ordinal).ToList();
+                var got = read.Amounts.Concat(read.Conversions).Select(id => Amount(back.Amounts[id])).OrderBy(a => a, StringComparer.Ordinal).ToList();
+                if (!want.SequenceEqual(got, StringComparer.Ordinal))
+                    problems.Add($"{label} states {(got.Count == 0 ? "no amount" : string.Join(", ", got))} for {(want.Count == 0 ? "no amount" : string.Join(", ", want))}");
+                var groups = verbs.GroupsIn(ProsePhrases.Words(ProseMasking.TokenPattern.Replace(read.Text, " ")));
+                foreach (var verb in verbs.VerbsIn(ProsePhrases.Words(ProseMasking.TokenPattern.Replace(step.Text, " "))))
+                {
+                    if (!verb.Overlaps(groups)) problems.Add($"{label} leaves out the action \"{string.Join("/", verb.OrderBy(g => g, StringComparer.Ordinal))}\"");
+                }
+            }
+
+            return problems;
+        }
+
+        /// <summary>
         /// The gate a rewrite passes before check v2 and the judge read it (the judge alone when a
         /// planted rewrite is checked): check v2 against the source, then the judge. Returns the
         /// reasons it was refused, empty when both accept it.

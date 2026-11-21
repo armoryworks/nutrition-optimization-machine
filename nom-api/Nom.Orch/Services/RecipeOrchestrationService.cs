@@ -474,8 +474,12 @@ namespace Nom.Orch.Services
                     .OrderByDescending(d => d.Id)
                     .Select(d => d.RawJsonLd)
                     .FirstOrDefaultAsync();
-                keyFacts = ProseKeyFacts.FromJsonLd(source);
+                keyFacts = source != null
+                    ? ProseKeyFacts.FromJsonLd(source)
+                    : ProseKeyFacts.Build(new RewriteFidelity.SourceText(string.Empty, (recipe.RecipeSteps ?? new List<RecipeStepEntity>()).OrderBy(s => s.StepNumber).Select(s => s.Description ?? string.Empty).ToList(), recipe.Name));
             }
+
+            var factsOnly = recipe.SourceRights == SourceRightsRule.FactsOnly;
 
             return new RecipeResponseModel
             {
@@ -501,6 +505,8 @@ namespace Nom.Orch.Services
                 CurationStatus = recipe.CurationStatus?.Name ?? "Draft",
                 SourceUrl = recipe.SourceUrl,
                 SourceAttribution = recipe.SourceAttribution,
+                SourceCredit = recipe.SourceCredit,
+                FactsOnly = factsOnly,
                 ContainsSourceProse = recipe.ContainsSourceProse,
                 ProseWithheld = recipe.ProseWithheld,
                 KeyFacts = keyFacts,
@@ -519,7 +525,7 @@ namespace Nom.Orch.Services
                     Name = ri.Ingredient?.Name ?? string.Empty,
                     FoodGroupName = ri.Ingredient?.FoodGroup?.Name,
                     Measurement = ri.Measurement?.Name ?? string.Empty,
-                    Notes = ri.RawLine,
+                    Notes = ProseWithholding.LineWording(recipe, ri.RawLine),
                     Grams = RoundGrams(RecipeNutritionService.WeighedGramsFor(ri, weighing)),
                     NutritionStatus = RecipeNutritionService.StatusFor(ri, nutrientsByIngredient.ContainsKey(ri.IngredientId), weighing),
                     AssumedSize = RecipeNutritionService.GramsFor(ri) == null && weighing.Weigh(ri) is { Counted: true } assumed ? ContainerWeighing.Describe(assumed) : null,

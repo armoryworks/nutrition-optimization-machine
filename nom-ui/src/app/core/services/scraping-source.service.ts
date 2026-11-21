@@ -4,9 +4,14 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   HandSourceRequest,
+  RightsStep,
   ScrapingSourceModel,
   ScrapingSourceStatus,
+  SourcePermissionRequest,
+  SourceRecipeStep,
   SourceReview,
+  SourceRightsRun,
+  SourceTaken,
   SourceWithholdReport,
 } from '../models/scraping-source.model';
 
@@ -58,5 +63,30 @@ export class ScrapingSourceService {
 
   undo(entryId: number): Observable<ScrapingSourceModel> {
     return this.http.post<ScrapingSourceModel>(`${this.apiUrl}/journal/${entryId}/undo`, {});
+  }
+
+  deriveRights(apply: boolean): Observable<SourceRightsRun> {
+    return this.http.post<SourceRightsRun>(`${this.apiUrl}/rights/derive`, {}, { params: new HttpParams().set('apply', apply) });
+  }
+
+  recordPermission(id: number, request: SourcePermissionRequest): Observable<ScrapingSourceModel> {
+    return this.http.post<ScrapingSourceModel>(`${this.apiUrl}/${id}/permission`, request);
+  }
+
+  factsOnlyUse(id: number, approve: boolean): Observable<ScrapingSourceModel> {
+    return this.http.post<ScrapingSourceModel>(`${this.apiUrl}/${id}/facts-only-use`, {}, { params: new HttpParams().set('approve', approve) });
+  }
+
+  rightsStep(step: RightsStep, apply: boolean): Observable<SourceRecipeStep> {
+    return this.http.post<SourceRecipeStep>(`${this.apiUrl}/rights/${step}`, {}, { params: new HttpParams().set('apply', apply) });
+  }
+
+  undoRightsStep(step: RightsStep, stamp: string, apply: boolean): Observable<SourceRecipeStep> {
+    const params = new HttpParams().set('step', step).set('stamp', stamp).set('apply', apply);
+    return this.http.post<SourceRecipeStep>(`${this.apiUrl}/rights/undo`, {}, { params });
+  }
+
+  taken(): Observable<SourceTaken[]> {
+    return this.http.get<SourceTaken[]>(`${this.apiUrl}/rights/taken`);
   }
 }
