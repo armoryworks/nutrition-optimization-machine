@@ -18,6 +18,14 @@ namespace Nom.Orch.Models.Curation
         public int StepsWithMarker { get; set; }
         /// <summary>Recipes those steps belong to.</summary>
         public int Recipes { get; set; }
+        /// <summary>Steps with a marker by the licence of their recipe (<c>Unknown</c> for the web harvest, <c>PublicDomain</c> for the books).</summary>
+        public Dictionary<string, int> StepsByLicence { get; set; } = new();
+        /// <summary>Recipes with a marker by their licence.</summary>
+        public Dictionary<string, int> RecipesByLicence { get; set; } = new();
+        /// <summary>Of the steps with a marker, those of recipes of unknown licence whose prose is shown: the population the prose re-check reads.</summary>
+        public int StepsShownUnknownLicence { get; set; }
+        /// <summary>Recipes those shown steps of unknown licence belong to.</summary>
+        public int RecipesShownUnknownLicence { get; set; }
         /// <summary>Steps this call strips; without apply, those it would.</summary>
         public int Stripped { get; set; }
         /// <summary>Of those stripped, steps that held only a marker and are removed.</summary>

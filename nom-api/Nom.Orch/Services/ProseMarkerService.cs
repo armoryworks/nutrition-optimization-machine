@@ -54,12 +54,13 @@ namespace Nom.Orch.Services
                     .Where(r => r.Id > cursor && r.ScrapedAtUtc != null)
                     .OrderBy(r => r.Id)
                     .Take(RecipesPerRead)
-                    .Select(r => new { r.Id, Hidden = r.ProseWithheld || r.ContainsSourceProse })
+                    .Select(r => new { r.Id, Hidden = r.ProseWithheld || r.ContainsSourceProse, r.LicenseStatus })
                     .ToListAsync(cancellationToken);
                 if (page.Count == 0) break;
                 cursor = page[^1].Id;
                 var ids = page.Select(r => r.Id).ToList();
                 var hidden = page.Where(r => r.Hidden).Select(r => r.Id).ToHashSet();
+                var licences = page.ToDictionary(r => r.Id, r => string.IsNullOrEmpty(r.LicenseStatus) ? "none" : r.LicenseStatus);
 
                 var steps = await _db.RecipeSteps.AsNoTracking()
                     .Where(s => ids.Contains(s.RecipeId))
@@ -70,7 +71,15 @@ namespace Nom.Orch.Services
                 {
                     if (!ProseQuantities.HasStepMarker(step.Description)) continue;
                     result.StepsWithMarker++;
-                    recipes.Add(step.RecipeId);
+                    var licence = licences[step.RecipeId];
+                    result.StepsByLicence[licence] = result.StepsByLicence.GetValueOrDefault(licence) + 1;
+                    var shownUnknown = licence == RecipeLicenseStatus.Unknown && !hidden.Contains(step.RecipeId);
+                    if (shownUnknown) result.StepsShownUnknownLicence++;
+                    if (recipes.Add(step.RecipeId))
+                    {
+                        result.RecipesByLicence[licence] = result.RecipesByLicence.GetValueOrDefault(licence) + 1;
+                        if (shownUnknown) result.RecipesShownUnknownLicence++;
+                    }
                     if (step.LastModifiedByPersonId is { } by && by != SystemConstants.SystemPersonId)
                     {
                         result.SkippedEditedByPerson++;

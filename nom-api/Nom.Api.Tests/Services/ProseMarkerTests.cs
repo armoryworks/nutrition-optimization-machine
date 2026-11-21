@@ -46,6 +46,7 @@ namespace Nom.Api.Tests.Services
         [InlineData("Toss to mix. 3.", "Toss to mix.")]
         [InlineData("4) Fold in the berries.", "Fold in the berries.")]
         [InlineData("Step 5:", "")]
+        [InlineData("Season to taste, see No. 3 below. 4. Serve hot.", "Season to taste, see No. 3 below. Serve hot.")]
         public void Each_marker_form_is_taken_out_and_nothing_else_changes(string step, string expected)
         {
             ProseQuantities.HasStepMarker(step).Should().BeTrue();
@@ -57,6 +58,14 @@ namespace Nom.Api.Tests.Services
         [InlineData("Bake for 25 minutes at 350 degrees F.")]
         [InlineData("Cut into 1-inch pieces and add 2 cups of stock.")]
         [InlineData("Cook 3 to 4 minutes per side.")]
+        [InlineData("Butter a mould, the stampo del N. 8. Non patiscono.")]
+        [InlineData("Proceed as for the passatelli del N. 48.")]
+        [InlineData("Uova, N. 4.")]
+        [InlineData("Rossi d'uovo, N. 10.")]
+        [InlineData("Add a cup of Espagnole sauce (No. 1) and simmer.")]
+        [InlineData("Serve with cabinet pudding, No. 2.")]
+        [InlineData("Truss the fowl as directed in Art. 47.")]
+        [InlineData("Fold the napkin as shown in Fig. 15. Lay it on the plate.")]
         public void A_step_without_a_marker_is_left_as_it_is(string step)
         {
             ProseQuantities.StripStepMarkers(step).Should().Be(step);
@@ -177,6 +186,33 @@ namespace Nom.Api.Tests.Services
             result.RecipesChanged.Should().Be(1);
             result.Stripped.Should().Be(3);
             result.Remaining.Should().Be(3);
+        }
+
+        [Fact]
+        public async Task The_count_is_split_by_licence_and_names_the_shown_steps_of_unknown_licence_the_re_check_reads()
+        {
+            await using var db = NewContext();
+            await SeedAsync(db);
+            await SeedAsync(db, withheld: true);
+            var book = await SeedAsync(db);
+            foreach (var recipe in await db.Recipes.ToListAsync())
+                recipe.LicenseStatus = recipe.Id == book ? RecipeLicenseStatus.PublicDomain : RecipeLicenseStatus.Unknown;
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var result = await new ProseMarkerService(db, new NoUser()).StripAsync();
+
+            result.StepsWithMarker.Should().Be(12);
+            result.StepsByLicence.Should().BeEquivalentTo(new System.Collections.Generic.Dictionary<string, int>
+            {
+                [RecipeLicenseStatus.Unknown] = 8, [RecipeLicenseStatus.PublicDomain] = 4,
+            });
+            result.RecipesByLicence.Should().BeEquivalentTo(new System.Collections.Generic.Dictionary<string, int>
+            {
+                [RecipeLicenseStatus.Unknown] = 2, [RecipeLicenseStatus.PublicDomain] = 1,
+            });
+            result.StepsShownUnknownLicence.Should().Be(4);
+            result.RecipesShownUnknownLicence.Should().Be(1);
         }
     }
 }

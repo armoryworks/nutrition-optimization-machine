@@ -19,7 +19,8 @@ namespace Nom.Orch.Services
     /// are the import's own: the normalized URL, else the name and attribution the import gave the
     /// recipe. A key alone is not enough, because books repeat names: at least
     /// <see cref="MinimumLineAgreement"/> of the record's ingredient lines must equal one of the
-    /// recipe's lines or a fold part of one, after entity and spacing normalization, and one
+    /// recipe's lines, a fold part of one, or a line the compound split wrote as parts (the
+    /// line as the split journal holds it), after entity and spacing normalization, and one
     /// recipe must agree better than every other. Each stored document is journaled
     /// (<see cref="AttachChangeType"/>) and the undo soft-deletes it.
     /// </summary>
@@ -312,6 +313,8 @@ namespace Nom.Orch.Services
             foreach (var part in line.Split(FoldedLine.Separator)) yield return FoldedLine.Key(part);
         }
 
+        private static string? SplitLine(string? journal) => CompoundLineService.Read<CompoundLineService.JournalRow>(journal)?.RawLine;
+
         private ScrapedDocumentEntity NewDocument(Candidate recipe, string content, string format, string sha256, int version, DateTime stamp) => new()
         {
             RecipeId = recipe.Id,
@@ -349,8 +352,13 @@ namespace Nom.Orch.Services
                     .Where(ri => chunk.Contains(ri.RecipeId))
                     .Select(ri => new { ri.RecipeId, ri.RawLine })
                     .ToListAsync();
-                foreach (var row in rows)
+                var splits = await _db.AuditLogEntries.AsNoTracking()
+                    .Where(a => a.EntityType == LineRelinkService.RelinkEntityType && a.ChangeType == CompoundLineService.SplitChangeType && chunk.Contains(a.EntityId))
+                    .Select(a => new { RecipeId = a.EntityId, a.OldValue })
+                    .ToListAsync();
+                foreach (var row in rows.Concat(splits.Select(s => new { s.RecipeId, RawLine = SplitLine(s.OldValue) })))
                 {
+                    if (row.RawLine == null) continue;
                     if (!keys.TryGetValue(row.RecipeId, out var set)) keys[row.RecipeId] = set = new HashSet<string>(StringComparer.Ordinal);
                     set.UnionWith(RowKeys(row.RawLine).Where(k => k.Length > 0));
                 }

@@ -56,6 +56,8 @@ namespace Nom.Orch.Services
             _stock = stock;
         }
 
+        internal Action<long>? BeforeCheck { get; set; }
+
         private sealed record Candidate(long Id, string Name, long CurationStatusId, string? Description, int? CheckVersion);
         private sealed record Failure(Candidate Recipe, ProseCheck.Finding Finding);
 
@@ -116,11 +118,24 @@ namespace Nom.Orch.Services
                         continue;
                     }
 
-                    var finding = ProseCheck.Check(
-                        source,
-                        new RewriteFidelity.SourceText(candidate.Description ?? string.Empty, own.Select(s => s.Description).ToList(), candidate.Name ?? string.Empty),
-                        ProseCheck.SourceLines(raw),
-                        stock);
+                    ProseCheck.Finding finding;
+                    try
+                    {
+                        BeforeCheck?.Invoke(candidate.Id);
+                        finding = ProseCheck.Check(
+                            source,
+                            new RewriteFidelity.SourceText(candidate.Description ?? string.Empty, own.Select(s => s.Description).ToList(), candidate.Name ?? string.Empty),
+                            ProseCheck.SourceLines(raw),
+                            stock);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        result.Errored++;
+                        if (result.Errors.Count < MaxListedRecipeIds)
+                            result.Errors.Add(new ProseRecheckError { RecipeId = candidate.Id, Error = $"{ex.GetType().Name}: {ex.Message}" });
+                        continue;
+                    }
+
                     if (finding.Passed)
                     {
                         result.Passed++;
@@ -215,7 +230,7 @@ namespace Nom.Orch.Services
                     EntityId = ProseCheck.Version,
                     ChangeType = RunChangeType,
                     PropertyName = nameof(ProseRecheckResult.StockVersion),
-                    NewValue = Clamp($"check {ProseCheck.Version} stock {stock.Version}: examined {result.Examined}, passed {result.Passed}, withheld {result.Withheld}, skipped edited {result.SkippedEditedByPerson}, no source {result.SkippedNoSource}"),
+                    NewValue = Clamp($"check {ProseCheck.Version} stock {stock.Version}: examined {result.Examined}, passed {result.Passed}, withheld {result.Withheld}, skipped edited {result.SkippedEditedByPerson}, no source {result.SkippedNoSource}, errored {result.Errored}"),
                     Timestamp = DateTime.UtcNow,
                     ChangedByPersonId = _currentUser.PersonIdOrSystem,
                 });

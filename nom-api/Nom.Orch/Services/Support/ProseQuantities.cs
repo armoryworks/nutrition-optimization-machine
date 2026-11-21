@@ -123,12 +123,14 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex Tags = new(@"<[^>]+>", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
+        private const string ReferenceAbbreviations = @"No|Nos|N|Nr|Art|Arts|Fig|Figs|pp|p|Vol|Chap|Ch";
+
         private static readonly Regex StepMarker = new(
-            @"(?<=^|[.!?:]\s*)\s*(?:step\s*)?\d{1,2}\s*[.):](?=\s*\p{L})|^\s*\d{1,2}(?=\p{Lu}\p{Ll})|(?<=[.!?])\s*\d{1,2}\.\s*$|^\s*step\s*\d{1,2}\b\s*[:.\-–]?",
+            @"(?<=^|(?<!\b(?:" + ReferenceAbbreviations + @"))[.!?:]\s*)\s*(?:step\s*)?\d{1,2}\s*[.):](?=\s*\p{L})|^\s*\d{1,2}(?=\p{Lu}\p{Ll})|(?<=(?<!\b(?:" + ReferenceAbbreviations + @"))[.!?])\s*\d{1,2}\.\s*$|^\s*step\s*\d{1,2}\b\s*[:.\-–]?",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex Reference = new(
-            @"\bsteps?\s+\d{1,2}(?:\s*(?:and|or|to|-|–|,)\s*\d{1,2})*\b|\b(?:No|Nos|N|Nr)\.\s*\d+(?:\s*(?:and|or|,)\s*\d+)*\b|\b(?:recipe|page|p)\.?\s+\d+\b",
+            @"\bsteps?\s+\d{1,2}(?:\s*(?:and|or|to|-|–|,)\s*\d{1,2})*\b|\b(?:" + ReferenceAbbreviations + @")\.\s*\d+(?:\s*(?:and|or|,)\s*\d+)*\b|\b(?:recipe|page|p)\.?\s+\d+\b",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex TokenPattern = new(
@@ -181,6 +183,22 @@ namespace Nom.Orch.Services.Support
             }
 
             return Conversions(Merge(found, prepared), prepared);
+        }
+
+        /// <summary>A prepared text with the span of every amount in <paramref name="quantities"/> replaced by one space; amounts that share or overlap a span ("12 x 18 inches" is two lengths over one span) are cut once.</summary>
+        public static string WithoutAmounts(string prepared, IEnumerable<ProseQuantity> quantities)
+        {
+            var text = prepared;
+            var cut = prepared.Length;
+            foreach (var q in quantities.OrderByDescending(q => q.Start).ThenByDescending(q => q.End))
+            {
+                var end = Math.Min(q.End, cut);
+                if (q.Start < 0 || q.Start >= end) continue;
+                text = text[..q.Start] + " " + text[end..];
+                cut = q.Start;
+            }
+
+            return text;
         }
 
         /// <summary>Whether two amounts are the same: one family, and both ends within <see cref="Tolerance"/> once in one unit.</summary>

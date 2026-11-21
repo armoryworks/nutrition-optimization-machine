@@ -42,6 +42,10 @@ namespace Nom.Orch.Models.Curation
         public int SkippedEditedByPerson { get; set; }
         /// <summary>The first recipes skipped because a person edited a step, by id.</summary>
         public List<long> SkippedEditedRecipeIds { get; set; } = new();
+        /// <summary>Recipes the check could not read because it failed on their text; each is left as it is and the run goes on.</summary>
+        public int Errored { get; set; }
+        /// <summary>The first recipes the check failed on, by id, with the error.</summary>
+        public List<ProseRecheckError> Errors { get; set; } = new();
         /// <summary>Recipes this call withheld.</summary>
         public int Withheld { get; set; }
         /// <summary>The recipes this call withheld, by curation status; with apply, the samples are these recipes too.</summary>
@@ -55,6 +59,13 @@ namespace Nom.Orch.Models.Curation
         /// <summary>True when this apply covered every failure and was recorded as a full run for the weekly job.</summary>
         public bool RunRecorded { get; set; }
         public List<ProseRecheckSample> Samples { get; set; } = new();
+    }
+
+    /// <summary>A recipe the check failed on, and the error it raised.</summary>
+    public class ProseRecheckError
+    {
+        public long RecipeId { get; set; }
+        public string Error { get; set; } = string.Empty;
     }
 
     /// <summary>The last full re-check: when it ran and with which check and stock-index versions.</summary>

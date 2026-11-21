@@ -139,9 +139,8 @@ namespace Nom.Orch.Services.Support
 
         private static string NameOf(string line)
         {
-            var text = ProseQuantities.Prepare(line);
-            foreach (var q in ProseQuantities.ReadPrepared(text).OrderByDescending(q => q.Start)) text = text[..q.Start] + " " + text[q.End..];
-            text = Brackets.Replace(text, " ");
+            var prepared = ProseQuantities.Prepare(line);
+            var text = Brackets.Replace(ProseQuantities.WithoutAmounts(prepared, ProseQuantities.ReadPrepared(prepared)), " ");
             var comma = text.IndexOf(',');
             if (comma > 0) text = text[..comma];
             text = Digit.Replace(text, " ");

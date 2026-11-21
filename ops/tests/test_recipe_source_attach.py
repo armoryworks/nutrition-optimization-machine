@@ -81,7 +81,7 @@ class ReadTests(unittest.TestCase):
             "{not json",
             json.dumps(["a list"]),
             json.dumps({"name": "No lines"}),
-            json.dumps({"name": "Bad line", "ingredients": [{"name": "salt"}]}),
+            json.dumps({"name": "Bad line", "ingredients": [{"quantity": 1}, None, "  "]}),
             record("Seed Cakes", "1 cup sugar"),
         ])
         errors = []
@@ -91,8 +91,7 @@ class ReadTests(unittest.TestCase):
         self.assertEqual([i.record["name"] for i in items], ["Gingerbread", "Seed Cakes"])
         self.assertEqual([i.line for i in items], [1, 7])
         self.assertEqual([(e["line"], e["error"].split(":")[0]) for e in errors], [
-            (3, "not JSON"), (4, "not an object"), (5, "ingredients are not a list of objects with rawLine"),
-            (6, "ingredients are not a list of objects with rawLine")])
+            (3, "not JSON"), (4, "not an object"), (5, "no ingredient lines"), (6, "no ingredient lines")])
 
 
 class AttributionTests(unittest.TestCase):
@@ -109,20 +108,34 @@ class AttributionTests(unittest.TestCase):
             "cookbook-pg2.jsonl,,1910",
         ])
 
-        self.assertEqual(attach.load_attributions(path), {"cookbook-pg1.jsonl": "The Boston Cooking-School Cook Book (1896)"})
+        books = attach.load_attributions(path)
+        self.assertEqual(books.attributions("cookbook-pg1.jsonl"), ["The Boston Cooking-School Cook Book (1896)"])
+        self.assertNotIn("cookbook-pg2.jsonl", books)
+        self.assertEqual(books.candidates("cookbook-pg3.jsonl", "Cake"), [None])
 
     def test_other_column_names_can_be_given_and_a_missing_column_is_refused(self):
         path = self.files.write("books.csv", ["jsonl,book", "cookbook-pg1.jsonl,Book One"])
 
-        self.assertEqual(attach.load_attributions(path, "jsonl", "book"), {"cookbook-pg1.jsonl": "Book One"})
+        self.assertEqual(attach.load_attributions(path, "jsonl", "book").attributions("cookbook-pg1.jsonl"), ["Book One"])
         with self.assertRaises(ValueError):
             attach.load_attributions(path)
 
-    def test_two_books_for_one_file_are_refused(self):
-        path = self.files.write("books.csv", ["file,attribution", "cookbook-pg1.jsonl,Book One", "cookbook-pg1.jsonl,Book Two"])
+    def test_a_file_may_have_two_books_and_a_row_naming_the_recipe_or_the_book_decides(self):
+        path = self.files.write("books.csv", [
+            "file,attribution,name,book",
+            "cookbook-6429.jsonl,Many Ways for Cooking Eggs (Rorer 1907),Poached Eggs,",
+            "cookbook-6429.jsonl,Many Ways for Cooking Eggs (Rorer 1937),,Eggs 1937",
+            "cookbook-6429.jsonl,Many Ways for Cooking Eggs (Rorer 1937),,Eggs 1937",
+        ])
 
-        with self.assertRaises(ValueError):
-            attach.load_attributions(path)
+        books = attach.load_attributions(path)
+
+        self.assertEqual(books.attributions("cookbook-6429.jsonl"),
+                         ["Many Ways for Cooking Eggs (Rorer 1907)", "Many Ways for Cooking Eggs (Rorer 1937)"])
+        self.assertEqual(books.candidates("cookbook-6429.jsonl", "Poached Eggs"), ["Many Ways for Cooking Eggs (Rorer 1907)"])
+        self.assertEqual(books.candidates("cookbook-6429.jsonl", "Shirred Eggs", "Eggs 1937"), ["Many Ways for Cooking Eggs (Rorer 1937)"])
+        self.assertEqual(books.candidates("cookbook-6429.jsonl", "Shirred Eggs"),
+                         ["Many Ways for Cooking Eggs (Rorer 1907)", "Many Ways for Cooking Eggs (Rorer 1937)"])
 
 
 class AttachTests(unittest.TestCase):
@@ -159,7 +172,7 @@ class AttachTests(unittest.TestCase):
         self.assertEqual(report["stamp"], "2026-11-21T10:00:01Z")
         self.assertEqual(report["target"], {"records": 6, "matchedOrAttached": 4, "rate": 0.6667, "doubles": 0, "met": False})
         self.assertEqual(len(logged), 6)
-        self.assertEqual(logged[3], {"file": "cookbook-pg1.jsonl", "line": 4, "name": "Cake 3", "kind": "cookbook", "outcome": "ambiguous",
+        self.assertEqual(logged[3], {"file": "cookbook-pg1.jsonl", "line": 4, "name": "Cake 3", "url": None, "kind": "cookbook", "outcome": "ambiguous",
                                      "answered": "ambiguous", "stamp": "2026-11-21T10:00:02Z", "matchedBy": None, "recipeId": None,
                                      "score": None, "candidates": [], "format": None,
                                      "contentSha256": json.dumps(record("Cake 3", "1 cup sugar"), sort_keys=True),
@@ -172,8 +185,8 @@ class AttachTests(unittest.TestCase):
         summary = attach.attach([first, second], StandIn(lambda rec, attribution: ("matched", 10)), {})
 
         report = summary.report()
-        self.assertEqual(report["doubles"], {"10": [{"file": "cookbook-pg1.jsonl", "line": 1, "name": "Gingerbread"},
-                                                    {"file": "cookbook-pg2.jsonl", "line": 1, "name": "Gingerbread"}]})
+        self.assertEqual(report["doubles"], {"10": [{"file": "cookbook-pg1.jsonl", "line": 1, "name": "Gingerbread", "url": None},
+                                                    {"file": "cookbook-pg2.jsonl", "line": 1, "name": "Gingerbread", "url": None}]})
         self.assertEqual(report["byKind"]["cookbook"]["double-match"], 1)
         self.assertFalse(report["target"]["met"])
 
@@ -288,6 +301,272 @@ class AttachTests(unittest.TestCase):
             attach.attach([], StandIn(lambda rec, attribution: ("matched", 1)), {}, batch_size=501)
 
 
+HARVEST = os.path.join(os.path.dirname(__file__), "fixtures", "harvest")
+
+
+def harvest(name):
+    return os.path.join(HARVEST, name)
+
+
+class HarvestShapeTests(unittest.TestCase):
+    """The three wrapped shapes of the harvest files (cookbook chunk/book/recipe, web url/scraped_at/recipe, myplate with archive_ts)."""
+
+    def test_a_cookbook_line_is_unwrapped_with_string_lines_and_steps_flattened_and_blanks_dropped(self):
+        errors = []
+
+        items = list(attach.read_records(harvest("cookbook-90001.jsonl"), errors))
+
+        self.assertEqual([i.record["name"] for i in items], ["Seed Cake", "Boiled Rice", "Seed Cake"])
+        self.assertEqual([i.line for i in items], [1, 2, 5])
+        self.assertEqual([i.book for i in items], ["A Plain Cook Book", None, "A Second Plain Cook Book"])
+        self.assertEqual(items[0].record, {
+            "name": "Seed Cake",
+            "ingredients": [{"rawLine": line, "name": line} for line in
+                            ("1 pound of flour", "1/2 pound of butter", "1/2 pound of sugar", "4 eggs", "1 ounce of caraway seeds")],
+            "steps": [{"order": 1, "instruction": "Beat the butter to a cream."}, {"order": 2, "instruction": "Add the sugar and eggs."},
+                      {"order": 3, "instruction": "Stir in the flour and seeds."}, {"order": 4, "instruction": "Bake two hours in a slow oven."}],
+        })
+        self.assertNotIn("sourceUrl", items[0].record, "a book record keeps no URL, so nom-api matches it by name and attribution")
+        self.assertEqual(items[1].record["steps"], [], "null instructions are no steps")
+        self.assertEqual([(e["line"], e["error"]) for e in errors], [(4, "no ingredient lines"), (6, "recipe is not an object")])
+
+    def test_a_web_line_takes_the_wrapper_url_and_drops_null_lines_empty_steps_and_blank_keywords(self):
+        errors = []
+
+        items = list(attach.read_records(harvest("harvest-2026-10-01.jsonl"), errors))
+
+        self.assertEqual(errors, [])
+        granola = items[0].record
+        self.assertEqual(granola["sourceUrl"], "https://www.example.com/recipes/granola/")
+        self.assertEqual(granola["ingredients"][0], {"rawLine": "3 cups rolled oats", "name": "rolled oats", "quantity": 3, "unit": "cup"})
+        self.assertEqual([i["rawLine"] for i in granola["ingredients"]], ["3 cups rolled oats", "1/2 cup cocoa powder", "1/3 cup maple syrup"])
+        self.assertEqual(granola["steps"], [{"order": 1, "instruction": "Heat the oven to 300 degrees F."},
+                                            {"order": 3, "instruction": "Toss everything and bake 40 minutes."}])
+        self.assertEqual(granola["keywords"], ["breakfast"])
+        self.assertEqual((granola["prepTimeMinutes"], granola["recipeServings"], granola["author"]), (10, 8, "A. Cook"))
+        self.assertEqual(items[2].record["sourceUrl"], "https://www.example.com/recipes/chili/")
+
+    def test_a_myplate_line_is_read_like_a_web_line(self):
+        items = list(attach.read_records(harvest("myplate-usda.jsonl"), []))
+
+        self.assertEqual(items[0].record, {
+            "name": "Bean Salad",
+            "ingredients": [{"rawLine": line, "name": line} for line in
+                            ("1 can (15 ounces) kidney beans, drained", "1 cup chopped celery", "2 tablespoons vinegar")],
+            "steps": [{"order": 1, "instruction": "Mix everything in a bowl."}, {"order": 2, "instruction": "Chill and serve."}],
+            "sourceUrl": "https://www.myplate.gov/recipes/bean-salad",
+        })
+
+    def test_no_record_sent_carries_an_empty_step_or_line(self):
+        stand_in = StandIn(lambda rec, attribution: ("unmatched", None))
+
+        attach.attach([harvest(n) for n in ("cookbook-90001.jsonl", "harvest-2026-10-01.jsonl", "myplate-usda.jsonl")], stand_in, {})
+
+        sent = [rec for _, _, body in stand_in.calls for rec in body["records"]]
+        self.assertEqual(len(sent), 7)
+        self.assertTrue(all(step["instruction"].strip() for rec in sent for step in rec["steps"]))
+        self.assertTrue(all(line["rawLine"].strip() for rec in sent for line in rec["ingredients"]))
+
+
+class BooksTests(unittest.TestCase):
+    def test_each_record_of_a_file_with_two_books_is_sent_with_its_own_book_and_an_unnamed_one_tries_each(self):
+        books = attach.load_attributions(harvest("books.csv"))
+        first, second = "A Plain Cook Book (Example 1901)", "A Second Plain Cook Book (Example 1937)"
+        recipes = {("Seed Cake", first): 1, ("Seed Cake", second): 2, ("Boiled Rice", second): 3}
+        stand_in = StandIn(lambda rec, attribution: ("matched", recipes[(rec["name"], attribution)])
+                           if (rec["name"], attribution) in recipes else ("unmatched", None))
+        logged = []
+
+        summary = attach.attach([harvest("cookbook-90001.jsonl")], stand_in, books, write_log=logged.append)
+
+        sent = [(rec["name"], body["sourceAttribution"]) for _, _, body in stand_in.calls for rec in body["records"]]
+        self.assertEqual(sent, [("Seed Cake", first), ("Boiled Rice", first), ("Boiled Rice", second), ("Seed Cake", second)])
+        self.assertEqual({(e["name"], e["recipeId"]) for e in logged}, {("Seed Cake", 1), ("Boiled Rice", 3), ("Seed Cake", 2)})
+        self.assertEqual([e.get("attribution") for e in logged if e["name"] == "Boiled Rice"], [second])
+        self.assertEqual(summary.by_kind["cookbook"]["matched"], 3)
+        self.assertEqual(summary.by_kind["cookbook"]["records"], 5, "two unread lines count as records not attached")
+
+    def test_a_record_no_book_matches_keeps_its_best_answer(self):
+        books = attach.Books({"cookbook-90001.jsonl": [attach.Book("Book A"), attach.Book("Book B")]})
+        stand_in = StandIn(lambda rec, attribution: ("low-score", None) if attribution == "Book A" else ("unmatched", None))
+        logged = []
+
+        attach.attach([harvest("cookbook-90001.jsonl")], stand_in, books, write_log=logged.append)
+
+        self.assertEqual({e["outcome"] for e in logged}, {"low-score"})
+        self.assertEqual({e["attribution"] for e in logged}, {"Book A"})
+
+
+class RescrapedTests(unittest.TestCase):
+    def test_the_same_page_scraped_twice_is_stored_once_reported_and_does_not_fail_the_target(self):
+        plate = harvest("myplate-usda.jsonl")
+        web = harvest("harvest-2026-10-01.jsonl")
+        ids = {"Chocolate Crunch Granola": 30, "Crunchy Chocolate Granola": 30, "Weeknight Chili": 31, "Bean Salad": 20}
+
+        dry = attach.attach([plate, web], StandIn(lambda rec, attribution: ("matched", ids[rec["name"]])), {}, batch_size=1)
+
+        report = dry.report()
+        self.assertEqual(report["byKind"]["web"], {"files": 1, "records": 3, "documents": 2, "matched": 2, "rescraped": 1})
+        self.assertEqual(report["doubles"], {})
+        self.assertEqual(list(report["rescraped"]), ["30"])
+        self.assertEqual(report["rescraped"]["30"][0]["line"], 2)
+        self.assertTrue(report["target"]["met"])
+
+        def answer_like_an_apply(path_, params, body=None):
+            results = []
+            for index, rec in enumerate(body["records"]):
+                outcome = "conflict" if rec["name"] == "Crunchy Chocolate Granola" else "matched"
+                results.append({"index": index, "name": rec["name"], "outcome": outcome, "recipeId": ids[rec["name"]],
+                                "contentSha256": rec["name"], "documents": 1 if outcome == "matched" else 0})
+            return {"stamp": "2026-11-21T10:00:00Z", "results": results}
+
+        applied = attach.attach([web], answer_like_an_apply, {}, apply=True, batch_size=1).report()
+        self.assertEqual(applied["byKind"]["web"]["documents"], 2)
+        self.assertEqual(applied["byKind"]["web"]["rescraped"], 1)
+        self.assertEqual(applied["doubles"], {})
+
+    def test_two_different_pages_on_one_recipe_are_still_a_double(self):
+        web = harvest("harvest-2026-10-01.jsonl")
+
+        report = attach.attach([web], StandIn(lambda rec, attribution: ("matched", 30)), {}).report()
+
+        self.assertEqual(list(report["doubles"]), ["30"])
+        self.assertEqual(report["byKind"]["web"]["rescraped"], 1)
+        self.assertEqual(report["byKind"]["web"]["double-match"], 1)
+
+
+class RefusalTests(unittest.TestCase):
+    def setUp(self):
+        self.files = Files()
+        self.messages = []
+        self.original = attach.log
+        attach.log = self.messages.append
+
+    def tearDown(self):
+        attach.log = self.original
+        self.files.close()
+
+    def test_a_record_nom_api_refuses_is_named_and_counted_and_the_rest_of_its_batch_is_sent_again(self):
+        path = self.files.write("cookbook-13177.jsonl", [record(f"Cake {i}", "1 cup sugar") for i in range(3)])
+        stand_in = StandIn(lambda rec, attribution: ("matched", 100 + int(rec["name"].split()[1])))
+
+        def refusing(path_, params, body=None):
+            if any(rec["name"] == "Cake 1" for rec in body["records"]):
+                index = [rec["name"] for rec in body["records"]].index("Cake 1")
+                raise attach.ApiError(400, json.dumps({"title": "One or more validation errors occurred.", "errors": {
+                    f"Records[{index}].Steps[1].Instruction": ["The Instruction field is required."]}}))
+            return stand_in(path_, params, body)
+
+        logged = []
+        summary = attach.attach([path], refusing, {}, write_log=logged.append)
+
+        self.assertEqual([[rec["name"] for rec in body["records"]] for _, _, body in stand_in.calls], [["Cake 0", "Cake 2"]])
+        self.assertEqual(summary.by_kind["cookbook"]["refused"], 1)
+        self.assertEqual(summary.by_kind["cookbook"]["matched"], 2)
+        self.assertEqual(summary.refused, [{"file": "cookbook-13177.jsonl", "line": 2, "name": "Cake 1",
+                                            "error": "Records[1].Steps[1].Instruction: The Instruction field is required."}])
+        self.assertTrue(any("cookbook-13177.jsonl line 2" in m and "Cake 1" in m for m in self.messages))
+        self.assertEqual([e["outcome"] for e in logged], ["matched", "refused", "matched"])
+        self.assertFalse(summary.target()["met"])
+
+    def test_a_refusal_that_names_no_record_is_narrowed_down_to_the_record(self):
+        path = self.files.write("cookbook-1.jsonl", [record(f"Cake {i}", "1 cup sugar") for i in range(4)])
+        stand_in = StandIn(lambda rec, attribution: ("matched", 100 + int(rec["name"].split()[1])))
+
+        def refusing(path_, params, body=None):
+            if any(rec["name"] == "Cake 2" for rec in body["records"]):
+                raise attach.ApiError(400, "Bad Request")
+            return stand_in(path_, params, body)
+
+        summary = attach.attach([path], refusing, {})
+
+        self.assertEqual([r["name"] for r in summary.refused], ["Cake 2"])
+        self.assertEqual(summary.by_kind["cookbook"]["matched"], 3)
+
+    def test_any_other_error_still_stops_the_run(self):
+        path = self.files.write("cookbook-1.jsonl", [record("Cake 0", "1 cup sugar")])
+
+        def failing(path_, params, body=None):
+            raise attach.ApiError(500, "boom")
+
+        with self.assertRaises(attach.ApiError):
+            attach.attach([path], failing, {})
+
+
+class Clock:
+    def __init__(self):
+        self.now = 0.0
+        self.slept = []
+
+    def __call__(self):
+        return self.now
+
+    def sleep(self, seconds):
+        self.slept.append(seconds)
+        self.now += seconds
+
+
+class PacingTests(unittest.TestCase):
+    def test_calls_stay_under_the_burst_minute_and_hour_limits(self):
+        clock = Clock()
+        pacer = attach.Pacer(per_minute=80, per_hour=900, clock=clock, sleep=clock.sleep)
+        times = []
+        for _ in range(1000):
+            pacer.wait()
+            times.append(clock.now)
+            clock.now += 0.05
+
+        def most_in(window):
+            return max(sum(1 for t in times if start <= t < start + window) for start in times)
+
+        self.assertLessEqual(most_in(10.0), 40)
+        self.assertLessEqual(most_in(60.0), 80)
+        self.assertLessEqual(most_in(3600.0), 900)
+        self.assertGreaterEqual(times[-1], 3600.0, "the 901st call waits for the hour")
+
+    def test_a_429_is_waited_out_by_its_retry_after_and_the_same_call_sent_again(self):
+        clock = Clock()
+        pacer = attach.Pacer(clock=clock, sleep=clock.sleep)
+        calls = []
+
+        def post(path, params, body=None):
+            calls.append(body)
+            if len(calls) == 1:
+                raise attach.ApiError(429, "", retry_after=2422)
+            return {"ok": True}
+
+        messages, original = [], attach.log
+        attach.log = messages.append
+        try:
+            result = attach.paced(post, pacer)(attach.ATTACH_PATH, {"apply": "true"}, {"records": [1]})
+        finally:
+            attach.log = original
+
+        self.assertEqual(result, {"ok": True})
+        self.assertEqual(calls, [{"records": [1]}, {"records": [1]}])
+        self.assertIn(2422, clock.slept)
+        self.assertIn("2422", messages[0])
+
+    def test_a_429_that_keeps_coming_stops_after_the_wait_limit(self):
+        clock = Clock()
+
+        def post(path, params, body=None):
+            raise attach.ApiError(429, "", retry_after=1)
+
+        original = attach.log
+        attach.log = lambda m: None
+        try:
+            with self.assertRaises(attach.ApiError):
+                attach.paced(post, attach.Pacer(clock=clock, sleep=clock.sleep), max_waits=2)(attach.ATTACH_PATH, {}, {})
+        finally:
+            attach.log = original
+
+    def test_retry_after_reads_seconds_and_dates(self):
+        self.assertEqual(attach.retry_after_seconds("2422"), 2422.0)
+        self.assertIsNone(attach.retry_after_seconds(None))
+        self.assertEqual(attach.retry_after_seconds("Wed, 21 Oct 2015 07:28:00 GMT"), 0.0)
+
+
 class NomApiTests(unittest.TestCase):
     def test_the_key_goes_in_a_header_and_the_parameters_in_the_query(self):
         sent = {}
@@ -320,6 +599,25 @@ class NomApiTests(unittest.TestCase):
         self.assertEqual(sent["method"], "POST")
         self.assertEqual(sent["url"], "https://nom.example.com/api/RecipeSource/attach/undo?sinceUtc=2026-11-21T10%3A00%3A00Z&apply=false")
         self.assertEqual(sent["headers"]["X-api-key"], "operator-key")
+
+    def test_an_error_status_is_raised_with_its_body_and_retry_after(self):
+        import io
+        from email.message import Message
+
+        def refusing(req, timeout):
+            headers = Message()
+            headers["Retry-After"] = "37"
+            raise attach.urllib.error.HTTPError(req.full_url, 429, "Too Many Requests", headers, io.BytesIO(b"slow down"))
+
+        original = attach.urllib.request.urlopen
+        attach.urllib.request.urlopen = refusing
+        try:
+            with self.assertRaises(attach.ApiError) as caught:
+                attach.NomApi("https://nom.example.com", "operator-key", None).post(attach.ATTACH_PATH, {"apply": "false"}, {"records": []})
+        finally:
+            attach.urllib.request.urlopen = original
+
+        self.assertEqual((caught.exception.status, caught.exception.body, caught.exception.retry_after), (429, "slow down", 37.0))
 
 
 if __name__ == "__main__":
