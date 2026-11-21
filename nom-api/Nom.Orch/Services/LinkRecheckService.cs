@@ -337,11 +337,13 @@ namespace Nom.Orch.Services
             var decisions = new List<Decided>(skipped);
             foreach (var (group, food, lines, candidateIds) in plans)
             {
-                var holds = LinkGate.Check(new GatePair(group.Wording, food.Id, food, Lines: lines), catalog);
+                var holds = Read(set, group.Wording, food, LinkGate.Check(new GatePair(group.Wording, food.Id, food, Lines: lines), catalog));
                 var wrongForm = set == LinkRecheckRules.ContainerForm;
+                var alternative = new Lazy<bool>(() => LinkGate.NamesAlternative(group.Wording, food, catalog));
                 var verdict = LinkRecheckRules.Decide(set, holds, () => candidateIds
                     .Where(c => foods.ContainsKey(c.Id))
-                    .Select(c => new RecheckCandidate(c.Tier, foods[c.Id], LinkGate.Check(new GatePair(group.Wording, food.Id, foods[c.Id], Lines: lines), catalog))), wrongForm);
+                    .Select(c => new RecheckCandidate(c.Tier, foods[c.Id], Read(set, group.Wording, foods[c.Id], LinkGate.Check(new GatePair(group.Wording, food.Id, foods[c.Id], Lines: lines), catalog)))),
+                    wrongForm, h => LinkRecheckRules.Refutes(h, holds, alternative.Value));
                 decisions.Add(new Decided(group, food, verdict, null));
             }
 
@@ -350,15 +352,17 @@ namespace Nom.Orch.Services
             var summary = new LinkRecheckRunSummary
             {
                 Set = set, Stamp = stamp, Lane = lane, Mode = mode, Signature = signature, Groups = result.Groups, Kept = result.Kept + result.Verified + result.Alternatives, Held = result.Held,
+                Unproven = result.Unproven, UnprovenLines = result.UnprovenLines,
             };
             long? header = null;
             using var running = apply ? MarkRunning(stamp) : null;
+            var acting = decisions.Where(d => d.Skip == null && d.Verdict.Outcome is LinkRecheckRules.Move or LinkRecheckRules.Unlink).ToList();
             if (apply)
             {
                 result.Stamp = stamp;
                 header = await StartAsync(set, stamp, summary, _currentUser.PersonIdOrSystem, cancellationToken);
-                await WriteAsync(decisions.Where(d => d.Skip == null && d.Verdict.Outcome is LinkRecheckRules.Move or LinkRecheckRules.Unlink).ToList(), stamp, result, cancellationToken);
             }
+            await WriteAsync(acting, stamp, result, apply, cancellationToken);
             if (mode != null) await RecordAsync(set, signature, mode, lane, lane ? decisions : decisions.Where(d => d.Skip == null).ToList(), apply ? stamp : null, cancellationToken);
             if (header != null)
             {
@@ -369,8 +373,8 @@ namespace Nom.Orch.Services
             }
 
             _logger.LogInformation(
-                "Link re-check {Set} ({Mode}): {Groups} wordings, {Kept} kept, {Held} held, {Moved} lines {MoveVerb}, {Unlinked} lines {UnlinkVerb}",
-                set, mode ?? "dry run", result.Groups, result.Kept, result.Held, result.LinesMoved, apply ? "moved" : "would move",
+                "Link re-check {Set} ({Mode}): {Groups} wordings, {Kept} kept, {Held} held, {Unproven} not proven ({UnprovenLines} lines kept), {Moved} lines {MoveVerb}, {Unlinked} lines {UnlinkVerb}",
+                set, mode ?? "dry run", result.Groups, result.Kept, result.Held, result.Unproven, result.UnprovenLines, result.LinesMoved, apply ? "moved" : "would move",
                 result.LinesUnlinked, apply ? "taken off their food" : "would be taken off their food");
             return result;
         }
@@ -387,20 +391,29 @@ namespace Nom.Orch.Services
                     case LinkRecheckRules.Alternative: result.Alternatives++; break;
                     case LinkRecheckRules.Keep: result.Kept++; break;
                     case LinkRecheckRules.Held: result.Held++; break;
+                    case LinkRecheckRules.Unproven:
+                        result.Unproven++;
+                        result.UnprovenLines += lines;
+                        break;
                     case LinkRecheckRules.Move:
                         result.MoveGroups++;
-                        result.LinesMoved += lines;
+                        result.RefutedLines += lines;
                         result.ByTier[d.Verdict.Target!.Tier] = result.ByTier.GetValueOrDefault(d.Verdict.Target.Tier) + 1;
                         break;
                     case LinkRecheckRules.Unlink:
                         result.UnlinkGroups++;
-                        result.LinesUnlinked += lines;
+                        result.RefutedLines += lines;
                         break;
                 }
                 if (d.Verdict.Reason != null && d.Verdict.Outcome is LinkRecheckRules.Move or LinkRecheckRules.Unlink or LinkRecheckRules.Held)
                 {
                     var rule = d.Verdict.Reason.Split(" (", 2)[0];
                     result.ByReason[rule] = result.ByReason.GetValueOrDefault(rule) + 1;
+                }
+                if (d.Verdict.Reason != null && d.Verdict.Outcome == LinkRecheckRules.Unproven)
+                {
+                    var rule = d.Verdict.Reason.Split(" (", 2)[0];
+                    result.ByUnproven[rule] = result.ByUnproven.GetValueOrDefault(rule) + 1;
                 }
 
                 var seen = perOutcome[d.Verdict.Outcome] = perOutcome.GetValueOrDefault(d.Verdict.Outcome) + 1;
@@ -422,8 +435,11 @@ namespace Nom.Orch.Services
                     ExampleLines = d.Group.Lines.Take(ExampleLines).Select(l => l.Raw).ToList(),
                 });
             }
-            if (result.Applied) result.LinesMoved = result.LinesUnlinked = 0;
         }
+
+        /// <summary>The holds of a pair as the set reads them: the alcohol rules only where the set reads them (<see cref="LinkRecheckRules.ForSet"/>).</summary>
+        private static IReadOnlyList<GateHold> Read(string set, string wording, GateFood food, IReadOnlyList<GateHold> holds) =>
+            LinkRecheckRules.ForSet(set, holds, AlcoholLineContext.Refuse(AlcoholLineContext.Read(wording), food.FdcId, food.Text) != null);
 
         /// <summary>
         /// The foods the deterministic tiers name for a wording, in the pipeline's order: its
@@ -705,22 +721,24 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// Writes the moves and take-backs: each line to its new food at its own position (the next
-        /// free one when taken), journaled as a line relink under the run's stamp; the wording's
-        /// rule-given and model aliases on the old food removed; on a move a trusted alias of the
-        /// wording on the new food, so a later import follows it; on a take-back an uncurated food of
-        /// the wording's name, created when none is live, so a later import lands there and the link
-        /// lane asks about it again through the gate. Every alias and food change is journaled under
-        /// the stamp too.
+        /// Writes the moves and take-backs, or with <paramref name="apply"/> false counts what they
+        /// would write by the same steps (homes, created foods, freed and changed names, aliases,
+        /// wording rows, approved recipes), so a dry run reads as its apply: each line to its new food
+        /// at its own position (the next free one when taken), journaled as a line relink under the
+        /// run's stamp; the wording's rule-given and model aliases on the old food removed; on a move
+        /// a trusted alias of the wording on the new food, so a later import follows it; on a
+        /// take-back an uncurated food of the wording's name, created when none is live, so a later
+        /// import lands there and the link lane asks about it again through the gate. Every alias
+        /// and food change is journaled under the stamp too.
         /// </summary>
-        private async Task WriteAsync(List<Decided> decisions, DateTime stamp, LinkRecheckResult result, CancellationToken cancellationToken)
+        private async Task WriteAsync(List<Decided> decisions, DateTime stamp, LinkRecheckResult result, bool apply, CancellationToken cancellationToken)
         {
             var personId = _currentUser.PersonIdOrSystem;
             var homes = new Dictionary<string, long?>(StringComparer.Ordinal);
             var touched = new HashSet<long>();
             foreach (var chunk in decisions.Chunk(WriteChunk))
             {
-                await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(cancellationToken) : null;
+                await using var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(cancellationToken) : null;
                 foreach (var d in chunk)
                 {
                     var move = d.Verdict.Outcome == LinkRecheckRules.Move;
@@ -736,7 +754,7 @@ namespace Nom.Orch.Services
                     else
                     {
                         if (!homes.TryGetValue(d.Group.Wording, out var home))
-                            homes[d.Group.Wording] = home = await HomeAsync(d.Group.Wording, stamp, personId, result, cancellationToken);
+                            homes[d.Group.Wording] = home = await HomeAsync(d.Group.Wording, d.Food, stamp, personId, result, apply, cancellationToken);
                         if (home is not { } found || found == d.Food.Id)
                         {
                             result.NoHome++;
@@ -748,6 +766,12 @@ namespace Nom.Orch.Services
                     var moved = 0;
                     foreach (var line in d.Group.Lines)
                     {
+                        if (!apply)
+                        {
+                            touched.Add(line.RecipeId);
+                            moved++;
+                            continue;
+                        }
                         var position = await RecipeLineRowWriter.MoveAsync(_db, line.RecipeId, line.FoodId, line.SortOrder, target, line.SortOrder, personId);
                         if (position == null)
                         {
@@ -772,9 +796,9 @@ namespace Nom.Orch.Services
                     else result.LinesUnlinked += moved;
                     if (moved > 0 && d.Group.WordingRowId is { } wordingRow && !result.WordingRows.Contains(wordingRow)) result.WordingRows.Add(wordingRow);
 
-                    await RetireAliasesAsync(d, stamp, personId, result, cancellationToken);
-                    if (move) await TrustOnTargetAsync(d, target, stamp, personId, result, cancellationToken);
-                    await _db.SaveChangesAsync(cancellationToken);
+                    await RetireAliasesAsync(d, stamp, personId, result, apply, cancellationToken);
+                    if (move) await TrustOnTargetAsync(d, target, stamp, personId, result, apply, cancellationToken);
+                    if (apply) await _db.SaveChangesAsync(cancellationToken);
                 }
                 if (tx != null) await tx.CommitAsync(cancellationToken);
                 _db.ChangeTracker.Clear();
@@ -788,18 +812,43 @@ namespace Nom.Orch.Services
         /// The uncurated food a wording's lines go back to: the live one of its name that no USDA
         /// entry backs, or a new one, created after any retired row holding the name is renamed out
         /// of the way (both journaled). It may sit beside a curated or USDA food whose name differs
-        /// only in case, as every wording food does. Null only when a curated or USDA food holds
-        /// the very same name, which the unique index on the name refuses to repeat.
+        /// only in case, as every wording food does. When the food the lines leave holds the very
+        /// same name (a prepared baby food named "zwieback"), that food is renamed to its USDA
+        /// description first, journaled, so the lines can leave it and later imports stop landing
+        /// on it. Null only when another curated or USDA food holds the very same name, which the
+        /// unique index on the name refuses to repeat (the lines stay, counted as without a home).
+        /// With <paramref name="apply"/> false nothing is written: the counts are made and a planned
+        /// new food is <see cref="PlannedHome"/>.
         /// </summary>
-        private async Task<long?> HomeAsync(string wording, DateTime stamp, long personId, LinkRecheckResult result, CancellationToken cancellationToken)
+        private async Task<long?> HomeAsync(string wording, GateFood source, DateTime stamp, long personId, LinkRecheckResult result, bool apply, CancellationToken cancellationToken)
         {
             var name = wording.Length > 2000 ? wording[..2000] : wording;
-            var live = await _db.Ingredients.Where(i => !i.IsDeleted && i.Name.ToLower() == name)
+            var live = await _db.Ingredients.AsNoTracking().Where(i => !i.IsDeleted && i.Name.ToLower() == name)
                 .Select(i => new { i.Id, i.Name, i.CurationStatusId, i.FdcId }).ToListAsync(cancellationToken);
             if (live.FirstOrDefault(i => i.FdcId == null && i.CurationStatusId != (long)CurationStatusEnum.Curated) is { } uncurated) return uncurated.Id;
-            if (live.Any(i => i.Name == name)) return null;
+            if (live.FirstOrDefault(i => i.Name == name) is { } same)
+            {
+                if (same.Id != source.Id || string.IsNullOrWhiteSpace(source.Description)) return null;
+                var renamed = await FreeNameAsync(source.Description!.Trim(), source.Id, cancellationToken);
+                result.FoodsRenamed++;
+                if (apply)
+                {
+                    var renaming = await _db.Ingredients.SingleAsync(i => i.Id == source.Id, cancellationToken);
+                    _db.AuditLogEntries.Add(FoodEntry(renaming.Id, nameof(IngredientEntity.Name), renaming.Name, renamed, stamp, personId));
+                    renaming.Name = renamed;
+                    await _db.SaveChangesAsync(cancellationToken);
+                }
+            }
 
-            foreach (var holder in await _db.Ingredients.IgnoreQueryFilters().Where(i => i.IsDeleted && i.Name == name).ToListAsync(cancellationToken))
+            var holders = await _db.Ingredients.IgnoreQueryFilters().Where(i => i.IsDeleted && i.Name == name).ToListAsync(cancellationToken);
+            result.NamesFreed += holders.Count;
+            if (!apply)
+            {
+                _db.ChangeTracker.Clear();
+                result.FoodsCreated++;
+                return PlannedHome;
+            }
+            foreach (var holder in holders)
             {
                 var freed = $"{holder.Name} (deleted #{holder.Id})";
                 if (freed.Length > 2000) freed = freed[..2000];
@@ -822,6 +871,16 @@ namespace Nom.Orch.Services
             return food.Id;
         }
 
+        /// <summary>The id a dry run gives a wording food it would create.</summary>
+        private const long PlannedHome = -1;
+
+        /// <summary>A name no other food holds: the name itself, or the name with the food's id after it.</summary>
+        private async Task<string> FreeNameAsync(string name, long foodId, CancellationToken cancellationToken)
+        {
+            name = name.Length > 1980 ? name[..1980] : name;
+            return await _db.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id != foodId && i.Name == name, cancellationToken) ? $"{name} (#{foodId})" : name;
+        }
+
         private static AuditLogEntryEntity FoodEntry(long foodId, string property, string? oldValue, string? newValue, DateTime stamp, long personId) => new()
         {
             EntityType = LineRelinkService.RetireEntityType,
@@ -841,13 +900,19 @@ namespace Nom.Orch.Services
             || context.StartsWith(MovedAliasPrefix, StringComparison.Ordinal);
 
         /// <summary>Removes the wording's aliases on the food its lines left that a rule or a model pick put there (never a USDA description, a person's or a retired food's name).</summary>
-        private async Task RetireAliasesAsync(Decided d, DateTime stamp, long personId, LinkRecheckResult result, CancellationToken cancellationToken)
+        private async Task RetireAliasesAsync(Decided d, DateTime stamp, long personId, LinkRecheckResult result, bool apply, CancellationToken cancellationToken)
         {
             var aliases = (await _db.IngredientAliases.Where(a => a.IngredientId == d.Food.Id && !a.IsDeleted).ToListAsync(cancellationToken))
                 .Where(a => Retirable(a.SourceContext) && IngredientNameNormalizer.WordingKey(a.AliasName) == d.Group.Wording)
                 .ToList();
             foreach (var alias in aliases)
             {
+                if (!apply)
+                {
+                    if (IngredientAliasTrust.IsTrusted(alias.SourceContext)) result.AliasesUntrusted++;
+                    else result.AliasesRemoved++;
+                    continue;
+                }
                 var before = new LinkApplyJournal.AliasValue(alias.AliasName, alias.SourceContext, false);
                 alias.IsDeleted = true;
                 alias.DeletedAt = stamp;
@@ -859,12 +924,18 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>Gives the wording a trusted alias on the food its lines moved to, unless the food already has a trusted one of that name.</summary>
-        private async Task TrustOnTargetAsync(Decided d, long target, DateTime stamp, long personId, LinkRecheckResult result, CancellationToken cancellationToken)
+        private async Task TrustOnTargetAsync(Decided d, long target, DateTime stamp, long personId, LinkRecheckResult result, bool apply, CancellationToken cancellationToken)
         {
             var name = d.Group.Wording.Length > 511 ? d.Group.Wording[..511] : d.Group.Wording;
             var context = MovedAliasPrefix + d.Verdict.Target!.Tier;
             var existing = await _db.IngredientAliases.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.IngredientId == target && a.AliasName == name, cancellationToken);
             if (existing is { IsDeleted: false } && IngredientAliasTrust.IsTrusted(existing.SourceContext)) return;
+            if (!apply)
+            {
+                if (d.Group.Aliases.Count > 0) result.AliasesMoved++;
+                else result.AliasesAdded++;
+                return;
+            }
 
             var before = existing == null ? null : new LinkApplyJournal.AliasValue(existing.AliasName, existing.SourceContext, existing.IsDeleted);
             if (existing == null)
@@ -967,6 +1038,9 @@ namespace Nom.Orch.Services
             if (header?.PropertyName == WithdrawRun)
             {
                 var withdrawn = await UndoWithdrawAsync(stamp, apply, cancellationToken);
+                result.PickEntries = withdrawn.Entries;
+                result.PicksRestored = withdrawn.Restored;
+                result.SkippedAskedAgain = withdrawn.SkippedAskedAgain;
                 result.Skipped = withdrawn.Skipped;
                 return result;
             }
@@ -984,10 +1058,14 @@ namespace Nom.Orch.Services
             result.AliasEntries = aliasEntries.Count;
             var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db, lineEntries.Where(a => a.EntityType == LineRelinkService.RelinkEntityType).Select(a => a.EntityId).ToList());
             result.OnRebuiltRecipes = lineEntries.Count(a => a.EntityType == LineRelinkService.RelinkEntityType && rebuilt.TryGetValue(a.EntityId, out var at) && at > a.Timestamp);
-            if (!apply) return result;
 
             var personId = _currentUser.PersonIdOrSystem;
-            if (lineEntries.Count > 0)
+            if (!apply)
+            {
+                result.LinesRestored = result.LineEntries - result.OnRebuiltRecipes;
+                result.NamesRestored = lineEntries.Count(a => a.ChangeType == LineRelinkService.RetireChangeType);
+            }
+            else if (lineEntries.Count > 0)
             {
                 var undone = await _relink.UndoEntriesAsync(lineEntries.Select(a => a.Id).ToList());
                 result.LinesRestored = undone.Restored;
@@ -998,7 +1076,10 @@ namespace Nom.Orch.Services
                 _db.ChangeTracker.Clear();
             }
 
-            await using (var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(cancellationToken) : null)
+            var restoredLines = lineEntries.Where(a => a.ChangeType == LineChangeType && !(rebuilt.TryGetValue(a.EntityId, out var at) && at > a.Timestamp))
+                .Select(a => LineRelinkService.ReadPlace(a.NewValue)).Where(p => p != null).GroupBy(p => p!.Value.IngredientId).ToDictionary(g => g.Key, g => g.Count());
+
+            await using (var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(cancellationToken) : null)
             {
                 foreach (var entry in aliasEntries)
                 {
@@ -1011,6 +1092,8 @@ namespace Nom.Orch.Services
                         result.Skipped++;
                         continue;
                     }
+                    result.AliasesRestored++;
+                    if (!apply) continue;
                     if (before == null)
                     {
                         _db.IngredientAliases.Remove(alias);
@@ -1025,53 +1108,131 @@ namespace Nom.Orch.Services
                         alias.LastModifiedByPersonId = personId;
                     }
                     _db.AuditLogEntries.Remove(await _db.AuditLogEntries.SingleAsync(a => a.Id == entry.Id, cancellationToken));
-                    result.AliasesRestored++;
                     await _db.SaveChangesAsync(cancellationToken);
                 }
+                if (!apply) _db.ChangeTracker.Clear();
 
+                var removed = new HashSet<long>();
                 foreach (var created in foodEntries.Where(a => a.PropertyName == CreatedProperty))
                 {
                     var id = created.EntityId;
-                    var empty = !await _db.RecipeIngredients.IgnoreQueryFilters().AnyAsync(ri => ri.IngredientId == id, cancellationToken)
+                    var lines = await _db.RecipeIngredients.IgnoreQueryFilters().CountAsync(ri => ri.IngredientId == id, cancellationToken);
+                    var empty = lines == (apply ? 0 : restoredLines.GetValueOrDefault(id))
                         && !await _db.FoodCatalogProposals.IgnoreQueryFilters().AnyAsync(p => p.IngredientId == id, cancellationToken)
                         && !await _db.IngredientAliases.IgnoreQueryFilters().AnyAsync(a => a.IngredientId == id, cancellationToken)
                         && !await _db.IngredientNutrients.IgnoreQueryFilters().AnyAsync(n => n.IngredientId == id, cancellationToken)
                         && !await _db.IngredientWordings.IgnoreQueryFilters().AnyAsync(w => w.IngredientId == id, cancellationToken);
-                    var food = await _db.Ingredients.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
-                    if (!empty || food == null)
+                    var food = await _db.Ingredients.IgnoreQueryFilters().AsNoTracking().FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+                    if (!empty || food == null || (apply && !await RemoveFoodAsync(id, tx, cancellationToken)))
                     {
                         result.FoodsKept++;
                         continue;
                     }
-                    _db.Ingredients.Remove(food);
+                    removed.Add(id);
+                    result.FoodsRemoved++;
+                    if (!apply) continue;
                     _db.AuditLogEntries.Remove(await _db.AuditLogEntries.SingleAsync(a => a.Id == created.Id, cancellationToken));
                     await _db.SaveChangesAsync(cancellationToken);
-                    result.FoodsRemoved++;
                 }
 
-                foreach (var freed in foodEntries.Where(a => a.PropertyName == nameof(IngredientEntity.Name)))
+                foreach (var freed in foodEntries.Where(a => a.PropertyName == nameof(IngredientEntity.Name)).OrderByDescending(a => a.Id))
                 {
                     var holder = await _db.Ingredients.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Id == freed.EntityId, cancellationToken);
-                    if (holder == null || holder.Name != freed.NewValue || freed.OldValue == null
-                        || await _db.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id != holder.Id && i.Name == freed.OldValue, cancellationToken))
+                    var others = holder == null || freed.OldValue == null ? new List<long>()
+                        : await _db.Ingredients.IgnoreQueryFilters().Where(i => i.Id != holder.Id && i.Name == freed.OldValue).Select(i => i.Id).ToListAsync(cancellationToken);
+                    var leftovers = await LeftoverFoodsAsync(others.Where(id => !removed.Contains(id)).ToList(), stamp, cancellationToken);
+                    if (holder == null || holder.Name != freed.NewValue || freed.OldValue == null || leftovers == null)
                     {
                         result.Skipped++;
                         continue;
                     }
+                    if (apply && leftovers.Count > 0)
+                    {
+                        var kept = false;
+                        foreach (var id in leftovers) kept |= !await RemoveFoodAsync(id, tx, cancellationToken);
+                        if (kept)
+                        {
+                            result.Skipped++;
+                            continue;
+                        }
+                        holder = await _db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == freed.EntityId, cancellationToken);
+                    }
+                    result.FoodsRemoved += leftovers.Count;
+                    foreach (var id in leftovers) removed.Add(id);
+                    result.NamesRestored++;
+                    if (!apply) continue;
                     holder.Name = freed.OldValue;
                     _db.AuditLogEntries.Remove(await _db.AuditLogEntries.SingleAsync(a => a.Id == freed.Id, cancellationToken));
                     await _db.SaveChangesAsync(cancellationToken);
-                    result.NamesRestored++;
                 }
 
-                _db.AuditLogEntries.Add(UndoEntry(header?.PropertyName ?? "unknown", stamp, result, personId));
-                await _db.SaveChangesAsync(cancellationToken);
-                if (tx != null) await tx.CommitAsync(cancellationToken);
+                if (apply)
+                {
+                    _db.AuditLogEntries.Add(UndoEntry(header?.PropertyName ?? "unknown", stamp, result, personId));
+                    await _db.SaveChangesAsync(cancellationToken);
+                    if (tx != null) await tx.CommitAsync(cancellationToken);
+                }
             }
             _db.ChangeTracker.Clear();
-            _logger.LogInformation("Link re-check undo of {Set} {Stamp:O}: {Lines} lines back, {Rebuilt} left on rebuilt recipes, {Aliases} aliases and {Foods} created foods taken back",
-                result.Set, stamp, result.LinesRestored, result.SkippedRebuilt, result.AliasesRestored, result.FoodsRemoved);
+            if (apply)
+                _logger.LogInformation("Link re-check undo of {Set} {Stamp:O}: {Lines} lines back, {Rebuilt} left on rebuilt recipes, {Aliases} aliases, {Foods} created foods and {Names} names taken back",
+                    result.Set, stamp, result.LinesRestored, result.SkippedRebuilt, result.AliasesRestored, result.FoodsRemoved, result.NamesRestored);
             return result;
+        }
+
+        /// <summary>
+        /// The foods that hold a name the run freed and may be deleted so the name comes back: each an
+        /// uncurated food with no FDC id created within a day after the stamp (a wording food the run
+        /// created) that an earlier undo soft-deleted and that holds nothing, as the undo of
+        /// link-recheck/1 left them; null when any other food holds the name.
+        /// </summary>
+        private async Task<List<long>?> LeftoverFoodsAsync(List<long> ids, DateTime stamp, CancellationToken cancellationToken)
+        {
+            var leftovers = new List<long>();
+            foreach (var id in ids)
+            {
+                var food = await _db.Ingredients.IgnoreQueryFilters().AsNoTracking().Where(i => i.Id == id).Select(i => new { i.IsDeleted, i.CreatedDate, i.FdcId, i.CurationStatusId }).FirstOrDefaultAsync(cancellationToken);
+                if (food is not { IsDeleted: true, FdcId: null } || food.CurationStatusId != (long)CurationStatusEnum.NonCurated || food.CreatedDate < stamp || food.CreatedDate >= stamp.AddDays(1)
+                    || await _db.RecipeIngredients.IgnoreQueryFilters().AnyAsync(ri => ri.IngredientId == id, cancellationToken)
+                    || await _db.FoodCatalogProposals.IgnoreQueryFilters().AnyAsync(p => p.IngredientId == id, cancellationToken)
+                    || await _db.IngredientAliases.IgnoreQueryFilters().AnyAsync(a => a.IngredientId == id, cancellationToken)
+                    || await _db.IngredientNutrients.IgnoreQueryFilters().AnyAsync(n => n.IngredientId == id, cancellationToken)
+                    || await _db.IngredientWordings.IgnoreQueryFilters().AnyAsync(w => w.IngredientId == id, cancellationToken))
+                    return null;
+                leftovers.Add(id);
+            }
+            return leftovers;
+        }
+
+        /// <summary>
+        /// Deletes a food the re-check created and that holds nothing again, as a row and not a
+        /// soft delete, so its name is free for the name the run freed; under a savepoint on a
+        /// relational database, so a row elsewhere that still points at it keeps it (false) without
+        /// ending the undo's transaction.
+        /// </summary>
+        private async Task<bool> RemoveFoodAsync(long id, Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? tx, CancellationToken cancellationToken)
+        {
+            if (!_db.Database.IsRelational())
+            {
+                var food = await _db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == id, cancellationToken);
+                _db.Ingredients.Remove(food);
+                await _db.SaveChangesAsync(cancellationToken);
+                return true;
+            }
+            const string savepoint = "recheck_food";
+            if (tx != null) await tx.CreateSavepointAsync(savepoint, cancellationToken);
+            try
+            {
+                await _db.Ingredients.IgnoreQueryFilters().Where(i => i.Id == id).ExecuteDeleteAsync(cancellationToken);
+                if (tx != null) await tx.ReleaseSavepointAsync(savepoint, cancellationToken);
+                return true;
+            }
+            catch (Exception ex) when (ex is DbUpdateException || ex.GetType().Name == "PostgresException")
+            {
+                if (tx != null) await tx.RollbackToSavepointAsync(savepoint, cancellationToken);
+                _logger.LogWarning(ex, "Link re-check undo: created food #{Id} is still referenced and is kept", id);
+                return false;
+            }
         }
 
         public async Task<LinkRecheckNameResult> CheckNamesAsync(bool apply = false, CancellationToken cancellationToken = default)

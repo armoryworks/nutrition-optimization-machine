@@ -176,3 +176,28 @@ ac-174	1/2 cup vin blanc	-	-	no	wine-white	174837	174157	agent	agent-review-ck1-
 ac-175	2 cups chicken stock for coq au vin	-	-	no	dish	-	174837	agent	agent-review-ck1-gate-alcohol-2026-11-21	a dish named after wine is not the wine
 ac-176	1 bottle red Burgundy, for the coq au vin	-	-	no	wine-red	173190	172884	ok	rule:alcohol-context	the drink named before the dish decides; "au vin" names only what the wine is for
 ac-177	1/2 cup red wine for the coq au vin	-	-	no	wine-red	173190	172884	ok	rule:alcohol-context	red wine for a dish named after wine is the wine
+ac-178	large smooth-rinded Malaga lemons	-	-	no	other	167747	173176	ok	rule:alcohol-context	M21: Malaga names a kind of lemon, not the wine
+ac-179	6 pounds of Tokay Grapes	-	-	no	other	2263890	173176	ok	rule:alcohol-context	M21: Tokay names a kind of grape
+ac-180	Small cherries called brandy-blacks	-	-	no	other	-	174815	ok	rule:alcohol-context	M21: a fruit called after a drink
+ac-181	5 beer brats	-	-	no	dish	-	168746	ok	rule:alcohol-context	M21: beer brats are sausages cooked in beer, not the beer
+ac-182	one ounce of Scotch caraways	-	-	no	other	-	174819	ok	rule:alcohol-context	M21: Scotch caraways are the seeds, not whisky
+ac-183	pitted manzanilla olives	-	-	no	other	332791	175112	ok	rule:alcohol-context	M21: manzanilla olives are olives
+ac-184	one spoonful of ale yest	-	-	no	yeast	-	168746	ok	rule:alcohol-context	M21: ale yest is the old spelling of ale yeast
+ac-185	twelve bushels of malt for beer	-	-	no	other	-	168746	ok	rule:alcohol-context	M21: malt for beer is the malt
+ac-186	custard (flavoured with French brandy)	-	-	no	dish	-	174815	ok	rule:alcohol-context	M21: a food flavoured with a drink is the food
+ac-187	a gallon of running water of ale measure	-	-	no	measure	-	168746	ok	rule:alcohol-context	M21: ale measure is a measure
+ac-188	ratafia-crumbs	-	-	no	other	-	-	ok	rule:alcohol-context	M21: ratafia crumbs are almond biscuit crumbs
+ac-189	1 cup of flour, tied in a stout muslin bag	-	-	no	other	-	168746	ok	rule:alcohol-context	M21: stout means strong here
+ac-190	two oz. of finely-pounded almonds moistened with a tablespoonful of kirsch	-	-	no	dish	-	174815	ok	rule:alcohol-context	M21: the line's food is the almonds; the kirsch moistens them
+ac-191	2 Tbsp grated ginger ((for less intense ginger flavor))	-	-	no	none	-	-	ok	rule:alcohol-context	M21: a flavour word in a cook's note is no extract
+ac-192	1/4 cup sugar (use 1/3 cup for a sweeter flavor)	-	-	no	none	-	-	ok	rule:alcohol-context	M21: a flavour word in a cook's note is no extract
+ac-193	1 (14-oz.) can light coconut milk* for richer flavor	-	-	no	none	-	-	ok	rule:alcohol-context	M21: a flavour word in a footnote is no extract
+ac-194	1/2 slice onion or flavor to taste	-	-	no	none	-	-	ok	rule:alcohol-context	M21: or flavor to taste is a note
+ac-195	2 cloves finely minced garlic (for a milder garlic flavor)	-	-	no	none	-	-	ok	rule:alcohol-context	M21: a flavour word in a cook's note is no extract
+ac-196	1/2 cup Greek yogurt (I used vanilla (vanilla flavor))	-	-	no	none	-	-	ok	rule:alcohol-context	M21: a flavour word in a nested note is no extract
+ac-197	dry white or red wine	-	-	no	list	174837	175112	ok	rule:alcohol-context	doubtful item decided by rule: a part of only colour or dryness words takes the drink of the part after it
+ac-198	sugar, spice, or flavoring to taste	-	-	no	none	-	-	ok	rule:alcohol-context	doubtful item decided by rule: a bare flavouring names no extract
+ac-199	a little spice or flavouring	-	-	no	none	-	-	ok	rule:alcohol-context	doubtful item decided by rule: a bare flavouring names no extract
+ac-200	To every pint of new milk allow 2 dessertspoonfuls of brandy	-	-	no	dish	-	174815	agent	agent-review-ck4-recheck-gate-2026-11-21	doubtful item decided by rule: a ratio line names the milk with the brandy allowed to it; the milk is not refused
+ac-201	bourbon chair caramel	-	-	no	dish	-	174819	agent	agent-review-ck4-recheck-gate-2026-11-21	doubtful item decided by rule: a dish noun one word after the drink names the dish
+ac-202	spirits of nutmeg	-	-	no	extract	-	174815	agent	agent-review-ck4-recheck-gate-2026-11-21	doubtful item decided by rule: spirits of a spice are a flavouring tincture

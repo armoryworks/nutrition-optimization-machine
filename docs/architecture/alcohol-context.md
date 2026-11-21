@@ -18,21 +18,34 @@ first rule that fires wins:
 1. **Lists and alternatives** ("brandy or rum", "red wine (or chicken broth)", "brandy and water"):
    each part is read on its own (sense `list`). Amounts joined by "and" or "or" are one amount, not
    a list ("One and one-half gallons of cider", "one cup and a half of cider", "a spoonful or two
-   of sack", "a tumbler and a half or six wine glasses of claret"; `alcohol-context/3`).
+   of sack", "a tumbler and a half or six wine glasses of claret"; `alcohol-context/3`). A part of
+   only colour or dryness words takes the drink of the part after it ("dry white or red wine" is dry
+   white wine or red wine, so Dry White Wine is one of its foods; `alcohol-context/5`).
 2. **Not a drink**: `vinegar`, `vinaigrette`; `non-alcoholic` (non-alcoholic, alcohol-free,
    alcohol-removed, dealcoholised, "NA"); `extract-food` (a meat, beef, malt, yeast, anchovy or
-   mushroom extract or essence, either way round: "anchovy essence", "essence of anchovies"); `yeast` (ale or beer yeast, brewer's yeast, barm); `not-food`
+   mushroom extract or essence, either way round: "anchovy essence", "essence of anchovies"); `yeast` (ale or beer yeast, brewer's yeast, barm, the old spelling "ale yest"); `not-food`
    (turpentine, camphor, nitre, hartshorn, bay rum, white spirit, rubbing alcohol); `other` (Scotch
    barley, oats, groats or bonnet; a sack of; a ham hock; Port Salut; Muscatel or Malaga raisins and
-   grapes; champagne mango; maraschino cherries; malt for ale; "for the rum"); `liquid` ("liquor"
+   grapes; champagne mango; maraschino cherries; malt for ale or beer; "for the rum"; and since
+   `alcohol-context/5`, staging checkpoint 2 M21: a drink's name for a kind of another food, "Malaga
+   lemons", "Tokay grapes", "manzanilla olives", "Scotch caraways"; a food called after a drink,
+   "cherries called brandy-blacks"; ratafia crumbs, biscuits and cakes; "stout" as strong before a
+   bag, cloth, string and the like); `measure` (an ale, wine or beer measure); `liquid` ("liquor"
    with no spirit word).
 3. **A measure** (wineglass, wine-glassful, claret-glass, sherry glass): the food is what follows
    "of"; only a drink there is read on (`measure` otherwise), so "two port wine-glassfuls of
    curaçoa" is the liqueur (curaçoa, the old spelling, is read as curaçao).
 4. **A dish named after a drink** ("white wine sauce", "brandy butter", "beer batter",
-   "Kirsch-flavoured syrup", "soaked in rum", "poached in red wine"): `dish`.
-5. **A flavouring** ("rum extract", "almond essence", "brandy flavouring", "1 tsp rum flavor"):
-   `extract`. A flavour word followed by the name of a product is not a flavouring ("chicken flavor
+   "Kirsch-flavoured syrup", "soaked in rum", "poached in red wine", one word between the drink and
+   the dish noun as in "bourbon chair caramel", "beer brats"), and a food made or measured with a
+   drink ("custard (flavoured with French brandy)", "almonds moistened with a tablespoonful of
+   kirsch", "To every pint of new milk allow 2 dessertspoonfuls of brandy"): `dish`, which counts for
+   the diet gate and refuses only an alcoholic food, so the line keeps its own food.
+5. **A flavouring** ("rum extract", "almond essence", "brandy flavouring", "1 tsp rum flavor",
+   "spirits of nutmeg"): `extract`. The flavour word is read only outside a cook's note
+   (`alcohol-context/5`, M21: 33 of 86 sampled extract take-backs rested on one): brackets, nested or
+   not ("(for a milder garlic flavor)"), "for a richer flavor", "or flavor to taste" and a starred
+   footnote are notes, and a bare "flavoring" or "or flavouring" with no flavour named is no extract. A flavour word followed by the name of a product is not a flavouring ("chicken flavor
    bouillon", "lemon flavor gelatin"): such a line has no alcohol word and reads `none`, so the gate
    and the shortlist leave its food alone.
 6. **Rice and cooking wines**: Shaoxing, Chinese rice wine, mirin (`rice-wine`, no USDA food);
@@ -205,8 +218,10 @@ the old release's own start-up, since its defaults are then missing again.
 
 ## Golden set and scorer
 
-- `alcohol-context.tsv`: 177 lines with the expected sense, a food the sense must allow and one it
-  must refuse; 164 rule-given rows (`rule:alcohol-context`, `ok`) from the design's classes and the
+- `alcohol-context.tsv`: 202 lines with the expected sense, a food the sense must allow and one it
+  must refuse; ac-178 to ac-202 are the staging checkpoint-2 lines (M21 and the re-check's doubtful
+  items, `alcohol-context/5`): 22 rule-given (`rule:alcohol-context`, `ok`) and three doubtful items
+  decided by rule (`agent`, `agent-review-ck4-recheck-gate-2026-11-21`); 164 rule-given rows (`rule:alcohol-context`, `ok`) from the design's classes and the
   staging checkpoint-1 lines (K10: ac-162 to ac-172), ten judged by the alcohol-context builder and
   three by the checkpoint fix (Catawba, vin blanc, coq au vin; `agent`); ac-176 and ac-177
   (`rule:alcohol-context`, `ok`) are wine lines that name the "au vin" dish they are for. `GoldenAlcoholContextTests` requires every row to pass, every

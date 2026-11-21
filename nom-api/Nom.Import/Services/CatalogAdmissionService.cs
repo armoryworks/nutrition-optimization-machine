@@ -73,8 +73,8 @@ namespace Nom.Import.Services
         /// <summary>Where the pass reads the USDA files, the checksum file that vouches for them, whether it only reports, and how many foods it may change.</summary>
         public sealed record AdmitOptions(string? FoundationDir, string? SrLegacyDir, string? BrandedDir, string ChecksumFile, bool DryRun, int ChangeLimit = MaxChangedFoods);
 
-        /// <summary>The key two food names share when they name the same food: the wording key of the link pipeline.</summary>
-        public static string Key(string name) => IngredientNameNormalizer.WordingKey(name);
+        /// <summary>The key two food names share when they name the same food: the catalog key, which keeps a bracketed cut and a number such as "00".</summary>
+        public static string Key(string name) => IngredientNameNormalizer.CatalogKey(name);
 
         /// <summary>
         /// The name keys of the live curated foods: each name and each USDA description alias, mapped

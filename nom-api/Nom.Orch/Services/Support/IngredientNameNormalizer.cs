@@ -18,7 +18,7 @@ namespace Nom.Orch.Services.Support
 
         // "1", "1.5", "1,5", "1/2", "1 1/2", "½", "1½", and ranges "1-2" / "1 to 2".
         private static readonly string Number =
-            $@"(?:\d+(?:[.,]\d+)?(?:\s*/\s*\d+)?(?:(?:\s+|-)\d+\s*/\s*\d+)?[{Fractions}]?|[{Fractions}])";
+            $@"(?:(?!0\d)\d+(?:[.,]\d+)?(?:\s*/\s*\d+)?(?:(?:\s+|-)\d+\s*/\s*\d+)?[{Fractions}]?|[{Fractions}])";
 
         private const string FractionWord =
             @"(?:one|two|three|five|seven)[- ](?:half|halves|thirds?|fourths?|quarters?|eighths?)";
@@ -208,6 +208,13 @@ namespace Nom.Orch.Services.Support
         /// normalised name, lower-cased, with no word folded or taken off.
         /// </summary>
         public static string WordingKey(string name) => Normalize(name).ToLowerInvariant();
+
+        /// <summary>
+        /// The key two catalog food names share when they name the same food: the wording key with
+        /// a bracketed cut or form ("top loin (roasts)" against "(chops)") kept, since in a catalog
+        /// name it is part of what the food is, not a cook's note.
+        /// </summary>
+        public static string CatalogKey(string name) => WordingKey((name ?? string.Empty).Replace('(', '[').Replace(')', ']'));
 
         private static readonly Regex HeadingLine = new(
             @"^\s*for\s+(?:the\s+)?\p{L}|:\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);

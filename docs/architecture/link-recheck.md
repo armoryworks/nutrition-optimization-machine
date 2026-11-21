@@ -40,8 +40,25 @@ lines of one wording and one reading. Run them in this order (plan 3.3 step 8):
 | `aliases` | trusted aliases with a `deterministic:recheck:`, `deterministic:recheck2:` or `link:deterministic:` context | every gate rule |
 | `wordings` | verified wording rows (report only: writes nothing) | every gate rule |
 
-For each wording the gate is asked about the food it is on, with its lines. When the gate holds it
-with a rule the set acts on:
+For each wording the gate is asked about the food it is on, with its lines. A set other than
+`alcohol` reads the three alcohol rules only when the wording itself is refused
+(`LinkRecheckRules.ForSet`): the alcohol set reads every line by its own sense, and one line of a
+wording that reads as a drink or a flavouring ("garlic, minced (for a milder garlic flavor)") never
+decides for its 662 other lines. When the gate holds the pair with a rule the set acts on, the
+re-check asks whether the hold is **positive evidence that the food is wrong** (`link-recheck/2`,
+staging checkpoint 2 M22; `LinkRecheckRules.Refutes`):
+
+| Refutes the food | Only fails to prove it right (not proven) |
+|---|---|
+| `heading`, `retired`, `branded`, `prepared`, the three alcohol rules, `form`, `fresh-herb`, `head-lead`, `polarity`, `group` | `containment`, `lead-noun`, `generic`, `state`, `marked`, `variety`, `word-order`, `rule-other`, `other-alias`, `shortlist`, `uncurated`, `incomplete` |
+| `compound`, unless the wording gives alternatives ("or", a slash) and one of them is the food (`LinkGate.NamesAlternative`): a line of alternatives counts its first by the compound lane's own rule | `compound` on alternatives one of which is the food ("butter or olive oil" on Butter, "light or dark brown sugar" on Brown Sugar) |
+| `part`, unless the part is the ordinary eaten part of a food named whole | `part` with the segment flesh, meat, "meat only", leaf ("baked potatoes" on "Potatoes, baked, flesh", "goose" on "Goose, meat only") |
+| `percent` when the wording states the percent; `head-noun` when the food has the head noun only as an addition ("with crumb") | `percent` from the description alone; `head-noun` of two readers |
+| `other-food` when a word of the wording is also missing from the food ("olive oil" on Canola Oil) | `other-food` on a food that holds every word ("15 oz black beans (canned)" on Canned Black Beans while "Black Beans" exists) |
+
+A marked variant the wording does not name ("ketchup" on "Ketchup, restaurant", "tomato sauce" on
+"... with salt added", "thin cream" on light cream, "non-dairy milk" on imitation milk) is the same
+food in another make, not another food, so it is never proof. With a refuting hold:
 
 1. **Move** to the first food a deterministic tier names that the gate lets through, in the
    pipeline's order: the verified wording row, a trusted alias, a staple or the name matcher, a
@@ -51,15 +68,25 @@ with a rule the set acts on:
    alcohol and canned tiers vouch for the food's identity themselves, so the gate's word rules
    (containment, lead noun, head noun, generic, state, word order, percent, rule-other, other-alias)
    are not read for them; every other rule is.
-2. Else, on a **hard** hold (heading, compound, retired, branded, prepared, the three alcohol rules,
-   part, fresh herb, form, marked variant), **take back**: the lines go to the uncurated food of the
+2. Else **take back** (refuted, no tier names a food): the lines go to the uncurated food of the
    wording's name (created when none is live, after a retired row holding the name is renamed out of
    the way). Like every wording food it may sit beside a curated or USDA food whose name differs only
-   in case ("cheese tortellini" beside "Cheese Tortellini"); only a curated or USDA food holding the
-   very same name stops it (the unique index on the name), and the lines then stay, counted
-   `noHome`. No food is better than a wrong one. The recipe stays out of planning until the wording
-   lanes find the right food, and the link lane asks about the new ingredient through the gate.
-3. Else **keep** the lines (counted as held). The container rule never takes a line back.
+   in case ("cheese tortellini" beside "Cheese Tortellini"). When the food the lines leave holds the
+   very same name (the prepared baby food named "zwieback"), that food is first renamed to its USDA
+   description, journaled under the stamp, so the lines can leave it and later imports stop landing
+   on it (M24). Only another curated or USDA food holding the very same name stops it (the unique
+   index on the name), and the lines then stay, counted `noHome`. No food is better than a wrong one.
+   The recipe stays out of planning until the wording lanes find the right food, and the link lane
+   asks about the new ingredient through the gate.
+
+Holds that refute nothing **keep** the lines and are counted as not proven (`unproven`,
+`unprovenLines`, `byUnproven` by rule), apart from the refuted ones (`moveGroups`, `unlinkGroups`,
+`refutedLines`, `byReason`), so a run measures both. No move happens without a refuting hold, even
+when a tier names another food. The container rule moves a can line to its one canned sister and
+never takes a line back (counted as held); a sister must not carry a state the line does not name
+("coconut cream, canned, sweetened" for "1 can coconut cream") or add a food after "with" ("Corn
+with red and green peppers" for "a can of green corn"), and a drained line whose wording is the
+liquid itself ("pineapple juice (drained juice from the pineapple chunks)") is no wrong form.
 
 The gate's `units` and `grams` rules are not read: the re-check moves a line without its amount and
 computes no grams. A line the compound lane put on an alternative on purpose (a `LineAlternative`
@@ -96,8 +123,17 @@ reads as cut off again. Only a run that writes has a header: a lane batch in
 shadow records its decisions on the frame and nothing in the journal. `POST undo?stamp=&apply=` takes the run back: lines through
 `LineRelinkService.UndoEntriesAsync` (newest first; a line on a recipe rebuilt after the run stays,
 counted `skippedRebuilt`, so undo the rebuild first), then the aliases, then the created ingredients
-that hold nothing again, then the freed names. A dry run counts entries and those on rebuilt
-recipes. Line moves have their own change type, so the time-window `relink/undo` and a wording
+that hold nothing again (deleted as rows, not soft-deleted, under a savepoint so one still
+referenced is kept and counted `foodsKept`), then the freed and renamed names, newest first (a
+created food the undo removes no longer holds the name, so every freed name comes back: M24; run
+again on a stamp whose undo under `link-recheck/1` left its wording foods soft-deleted, it deletes
+those that hold nothing, an uncurated food with no FDC id created within a day after the stamp that
+holds the freed name, and gives the name back). A
+withdrawal's undo reports `pickEntries`, `picksRestored` and `skippedAskedAgain` (M23). A set's dry
+run walks the apply's own steps without writing (homes, created and renamed foods, freed names,
+aliases, verified rows acted against, approved recipes), so its counts are the apply's except for
+lines that moved since; an undo's dry run likewise counts the lines, aliases, foods and names it
+would give back. Line moves have their own change type, so the time-window `relink/undo` and a wording
 retract never take back a re-check's lines without its aliases; only its stamp does.
 
 `POST names?apply=` lists curated foods whose name claims a colour, "whole" or "seed" their USDA
