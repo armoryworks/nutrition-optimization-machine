@@ -81,6 +81,20 @@ Per-100 g numbers are never stored for a per-serving label; they are derived on 
 view, because 1 g/mL is a guess. A %DV never becomes an amount. The parser
 (`NutritionFactsParser`) is pure and deterministic; no model is involved anywhere in this lane.
 
+## A label's ingredient statement
+
+A label scan also keeps the ingredient statement found in the photo's text, from its
+"Ingredients" label to the end (`IngredientStatementReader.Extract`, `IngredientVerification.IngredientStatement`),
+and returns it as `ingredientStatement`. The confirm sheet shows it for the member to check
+(`label-confirm-ingredients-input`); the confirmation stores what the member sent (`ingredientStatement`,
+at most 8,000 characters; none when the field is left blank). For a prepared food the confirmed statement
+is read by rule into `recipe.IngredientContents` under the same `label:user:{personId}` source, for that
+household only (`prepared-contents.md`); it is evidence of the meal's contents, never a nutrient value.
+
+A household whose restrictions are judged by contents is also asked about a curated prepared meal whose
+contents no statement shows (none, unread, or an ingredient not resolved): `NeedsVerificationModel.askContents`
+is true and `shouldAsk` follows it, so ticking the meal on the shopping list opens the label photo.
+
 ## Endpoints
 
 All under `/api/Shopping`, `[Authorize]`, household-scoped through the caller's

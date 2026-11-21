@@ -347,9 +347,9 @@ export class Plan implements OnInit {
   static preparedHeldMessage(reason: string | null | undefined): string {
     switch (reason) {
       case 'severe_restriction':
-        return 'Prepared meals were left out because a member has an allergy or medical restriction and a prepared meal lists no ingredients to check. Recipes were planned instead.';
+        return 'Prepared meals were left out because a member has an allergy or medical restriction and no prepared meal has a known ingredient list that shows it is safe. Recipes were planned instead.';
       case 'diet_restriction':
-        return 'Prepared meals were left out because a member has a restriction or diet that is checked against ingredients, and a prepared meal lists none. Recipes were planned instead.';
+        return 'Prepared meals were left out because a member has a restriction or diet that is checked against ingredients, and no prepared meal has a known ingredient list that fits it. Recipes were planned instead.';
       case 'curated_only':
         return 'Prepared meals were left out because your plan uses only your provider\'s recipes. Recipes were planned instead.';
       case 'none_available':

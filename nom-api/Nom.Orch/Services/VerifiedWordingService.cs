@@ -471,10 +471,10 @@ namespace Nom.Orch.Services
             var ids = foodRows.Where(r => string.IsNullOrWhiteSpace(r.FoodFdcId) && r.FoodId != null).Select(r => r.FoodId!.Value).Distinct().ToList();
             var foods = await _db.Ingredients.AsNoTracking()
                 .Where(i => !i.IsDeleted && ((i.FdcId != null && fdcIds.Contains(i.FdcId)) || ids.Contains(i.Id)))
-                .Select(i => new { i.Id, i.Name, i.FdcId, i.FdcDataType, i.CurationStatusId, HasNutrition = i.IngredientNutrients.Any(n => !n.IsDeleted), i.AdmissionReason, i.FdcCategoryId })
+                .Select(i => new { i.Id, i.Name, i.FdcId, i.FdcDataType, i.CurationStatusId, HasNutrition = i.IngredientNutrients.Any(n => !n.IsDeleted), i.AdmissionReason, i.FdcCategoryId, i.FdcCategory })
                 .ToListAsync();
             return foods.Select(i => new Target(i.Id, i.Name, i.FdcId, i.FdcDataType ?? string.Empty, i.CurationStatusId, i.HasNutrition, i.AdmissionReason,
-                Nom.Data.Nutrition.PreparedFoods.IsPrepared(i.FdcCategoryId))).ToList();
+                Nom.Data.Nutrition.PreparedFoods.IsPrepared(i.FdcCategoryId, i.FdcDataType, i.FdcCategory))).ToList();
         }
 
         /// <summary>

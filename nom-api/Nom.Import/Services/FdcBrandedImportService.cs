@@ -115,6 +115,18 @@ namespace Nom.Import.Services
 
             await _db.SaveChangesAsync(ct);
 
+            var statements = pending
+                .Where(p => PreparedFoods.IsPrepared(p.Ingredient) && candidates.TryGetValue(p.Ingredient.FdcId!, out var c) && c.Ingredients != null)
+                .Select(p => new Nom.Orch.Services.ContentsStatement(p.Ingredient.Id, Nom.Orch.Services.PreparedContentsService.FdcSource(p.Ingredient.FdcId!), candidates[p.Ingredient.FdcId!].Ingredients!))
+                .ToList();
+            if (statements.Count > 0)
+            {
+                var contents = await new Nom.Orch.Services.PreparedContentsService(_db)
+                    .RecordAsync(statements, Nom.Orch.Services.PreparedContentsService.NewBatch("fdc-contents"), apply: true, ct);
+                report.PreparedMealStatements = contents.Written;
+                if (contents.Written > 0) report.PreparedMealStatementsBatch = contents.Batch;
+            }
+
             foreach (var (ing, m) in pending)
                 foreach (var (key, amount) in FdcNutrients.Accepted(m, _validator, r => Drop(report, r)))
                     AddNutrient(ing.Id, targets, key, amount, ref report.NutrientRows);
@@ -149,7 +161,7 @@ namespace Nom.Import.Services
 
 
 
-        private sealed record Branded(string? BrandOwner, string? Category, decimal? ServingGrams, string? Gtin);
+        private sealed record Branded(string? BrandOwner, string? Category, decimal? ServingGrams, string? Gtin, string? Ingredients);
 
         /// <summary>
         /// Streams branded_food.csv, keeping US, non-discontinued products that publish a
@@ -162,7 +174,7 @@ namespace Nom.Import.Services
             var header = CsvLine.Split(reader.ReadLine() ?? string.Empty);
             int Col(string name) => Array.FindIndex(header, h => h.Equals(name, StringComparison.OrdinalIgnoreCase));
             int iFdc = Col("fdc_id"), iBrand = Col("brand_owner"), iServing = Col("serving_size"),
-                iGtin = Col("gtin_upc"),
+                iGtin = Col("gtin_upc"), iIngredients = Col("ingredients"),
                 iUnit = Col("serving_size_unit"), iCategory = Col("branded_food_category"),
                 iCountry = Col("market_country"), iDiscontinued = Col("discontinued_date");
 
@@ -196,7 +208,8 @@ namespace Nom.Import.Services
                     iBrand >= 0 && f.Length > iBrand ? f[iBrand] : null,
                     iCategory >= 0 && f.Length > iCategory ? f[iCategory] : null,
                     servingGrams,
-                    string.IsNullOrEmpty(gtin) ? null : gtin);
+                    string.IsNullOrEmpty(gtin) ? null : gtin,
+                    iIngredients >= 0 && f.Length > iIngredients && f[iIngredients].Trim().Length > 0 ? f[iIngredients].Trim() : null);
             }
             return result;
         }
@@ -255,6 +268,8 @@ namespace Nom.Import.Services
             public int Rejected { get; set; }
             public int SkippedExisting { get; set; }
             public int SkippedDuplicateName { get; set; }
+            public int PreparedMealStatements { get; set; }
+            public string? PreparedMealStatementsBatch { get; set; }
             public int NutrientRows;
             public Dictionary<string, int> RejectedByReason { get; } = new();
             public Dictionary<string, int> DroppedValuesByReason { get; } = new();

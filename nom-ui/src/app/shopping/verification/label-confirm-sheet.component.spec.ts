@@ -171,6 +171,40 @@ describe('LabelConfirmSheet', () => {
     expect(dismiss).toHaveBeenCalledWith({ saved: true });
   });
 
+  it('prefills the ingredient list found in the photo and sends it as the household corrected it', () => {
+    dismiss = vi.fn();
+    TestBed.configureTestingModule({
+      imports: [LabelConfirmSheet],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        { provide: MAT_BOTTOM_SHEET_DATA, useValue: { ingredientId: 11, householdId: 7, name: 'Frozen lasagna', scan: { ...scan, ingredientStatement: 'Ingredients: pasta, cheese. Contains: wheat' } } },
+        { provide: MatBottomSheetRef, useValue: { dismiss } },
+      ],
+    });
+    http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(LabelConfirmSheet);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const statement = el.querySelector<HTMLTextAreaElement>('[data-testid="label-confirm-ingredients-input"]')!;
+    expect(statement.value).toBe('Ingredients: pasta, cheese. Contains: wheat');
+
+    statement.value = 'Ingredients: pasta (wheat), cheese (milk). Contains: wheat, milk';
+    statement.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('[data-testid="label-confirm-save-btn"]')!.click();
+
+    const req = http.expectOne((r) => r.method === 'PUT' && r.url.endsWith('/Shopping/verification/501'));
+    expect(req.request.body.ingredientStatement).toBe('Ingredients: pasta (wheat), cheese (milk). Contains: wheat, milk');
+    req.flush({ id: 501 });
+  });
+
+  it('sends no ingredient list when the field is left blank', () => {
+    const value = labelFormValue(parsed);
+    expect(labelConfirmBody(value, parsed).ingredientStatement).toBeNull();
+  });
+
   it('asks the flow to reopen the camera on Retake and sends nothing on Cancel', () => {
     const el = create().nativeElement as HTMLElement;
     el.querySelector<HTMLButtonElement>('[data-testid="label-confirm-retake-btn"]')!.click();

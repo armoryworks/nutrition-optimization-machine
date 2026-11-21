@@ -56,6 +56,7 @@ export interface LabelFormValue {
   servingsPerContainer: number | null;
   calories: number | null;
   nutrients: Record<string, number | null>;
+  ingredientStatement: string | null;
 }
 
 function numberOrNull(value: unknown): number | null {
@@ -64,8 +65,8 @@ function numberOrNull(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** What the form starts with: the parser's reading for each printed row, blank where it saw nothing. */
-export function labelFormValue(parsed: NutritionFactsParseResult): LabelFormValue {
+/** What the form starts with: the parser's reading for each printed row and the ingredient list found in the photo, blank where it saw nothing. */
+export function labelFormValue(parsed: NutritionFactsParseResult, ingredientStatement: string | null = null): LabelFormValue {
   const nutrients: Record<string, number | null> = {};
   for (const row of LABEL_ROWS) {
     nutrients[row.key] = parsed.nutrients.find((n) => n.key === row.key)?.amount ?? null;
@@ -76,6 +77,7 @@ export function labelFormValue(parsed: NutritionFactsParseResult): LabelFormValu
     servingsPerContainer: parsed.servingsPerContainer ?? null,
     calories: parsed.calories ?? null,
     nutrients,
+    ingredientStatement: ingredientStatement ?? null,
   };
 }
 
@@ -103,6 +105,7 @@ export function labelConfirmBody(
     servingsPerContainer: numberOrNull(value.servingsPerContainer),
     calories: numberOrNull(value.calories),
     nutrients,
+    ingredientStatement: value.ingredientStatement?.trim() || null,
   };
 }
 
@@ -141,13 +144,14 @@ export class LabelConfirmSheet {
     servingsPerContainer: new FormControl<number | null>(null, [Validators.min(0.1)]),
     calories: new FormControl<number | null>(null, [Validators.min(0)]),
     nutrients: this.nutrients,
+    ingredientStatement: new FormControl<string | null>(null, [Validators.maxLength(8000)]),
   });
 
   constructor() {
     for (const row of LABEL_ROWS) {
       this.nutrients.addControl(row.key, new FormControl<number | null>(null, [Validators.min(0)]));
     }
-    this.form.setValue(labelFormValue(this.parsed));
+    this.form.setValue(labelFormValue(this.parsed, this.data.scan.ingredientStatement ?? null));
   }
 
   basisNote(): string {

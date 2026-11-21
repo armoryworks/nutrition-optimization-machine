@@ -141,7 +141,8 @@ namespace Nom.Orch.Services
                     FoodGroupId = i.FoodGroupId,
                     FoodGroupName = i.FoodGroup != null ? i.FoodGroup.Name : null,
                     IsWholeFood = i.IsWholeFood,
-                    IsPrepared = i.FdcCategoryId != null && PreparedFoods.CategoryIds.Contains(i.FdcCategoryId.Value),
+                    IsPrepared = (i.FdcCategoryId != null && PreparedFoods.CategoryIds.Contains(i.FdcCategoryId.Value))
+                        || (i.FdcDataType == CatalogAdmissionRule.BrandedFood && i.FdcCategory != null && PreparedFoods.BrandedMealCategories.Contains(i.FdcCategory)),
                     AgreeingSources = i.AgreeingSources,
                     HasNutrition = i.IngredientNutrients.Any(),
                     CanWeighVolume = i.GramsPerMilliliter > 0,
@@ -159,7 +160,8 @@ namespace Nom.Orch.Services
             var added = ingredientIds.Where(id => id > 0 && !alreadyOnRecipe.Contains(id)).Distinct().ToList();
             if (added.Count == 0) return;
             var prepared = await _context.Ingredients
-                .Where(i => added.Contains(i.Id) && i.FdcCategoryId != null && PreparedFoods.CategoryIds.Contains(i.FdcCategoryId.Value))
+                .Where(i => added.Contains(i.Id))
+                .Where(PreparedFoods.Prepared)
                 .Select(i => i.Name)
                 .ToListAsync();
             if (prepared.Count > 0)

@@ -20,6 +20,7 @@ public class IngredientVerificationEntityConfiguration : IEntityTypeConfiguratio
         builder.Property(e => e.LabelImagePath).HasMaxLength(512);
         builder.Property(e => e.LabelImageContentType).HasMaxLength(64);
         builder.Property(e => e.OcrText).HasColumnType("text");
+        builder.Property(e => e.IngredientStatement).HasColumnType("text");
         builder.Property(e => e.Upc).HasMaxLength(32);
         builder.Property(e => e.ServingText).HasMaxLength(255);
         builder.Property(e => e.ServingGrams).HasColumnType("decimal(9,2)");

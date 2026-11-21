@@ -81,6 +81,7 @@ export interface NeedsVerification {
   hasVerifiedNutrition: boolean;
   hasUpc: boolean;
   askedRecently: boolean;
+  askContents?: boolean;
   shouldAsk: boolean;
 }
 
@@ -125,6 +126,7 @@ export interface LabelScanResult {
   verificationId: number;
   parsed: NutritionFactsParseResult;
   ocrText: string;
+  ingredientStatement?: string | null;
   imageStored: boolean;
 }
 
@@ -144,6 +146,7 @@ export interface IngredientVerificationConfirm {
   servingsPerContainer?: number | null;
   calories?: number | null;
   nutrients: LabelNutrientConfirm[];
+  ingredientStatement?: string | null;
 }
 
 export interface IngredientVerification {

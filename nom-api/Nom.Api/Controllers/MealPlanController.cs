@@ -209,6 +209,29 @@ namespace Nom.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Whether each prepared meal may be offered to the household, by the gate shuffle uses: a meal is held when the
+        /// household's restrictions name it or, for a household whose restrictions are judged by contents, when its
+        /// contents are not known from a read statement or name something restricted. The plan's food picker shows why.
+        /// </summary>
+        [HttpGet("prepared-check")]
+        [ProducesResponseType(typeof(List<PreparedMealCheckModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> CheckPreparedMeals([FromQuery, Required] long householdId, [FromQuery] string? ingredientIds)
+        {
+            if (!IsHouseholdMember(householdId))
+                return Forbid();
+            var ids = new List<long>();
+            foreach (var part in (ingredientIds ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (!long.TryParse(part, out var id)) return BadRequest(new { message = $"'{part}' is not an ingredient id" });
+                ids.Add(id);
+            }
+            if (ids.Count > Nom.Orch.Services.MealPlanOrchestrationService.MaxPreparedChecks)
+                return BadRequest(new { message = $"At most {Nom.Orch.Services.MealPlanOrchestrationService.MaxPreparedChecks} ingredient ids per request" });
+            return Ok(await _mealPlanOrchestrationService.CheckPreparedMealsAsync(householdId, ids));
+        }
+
         /// <summary>Lists the available nutritional food groups (Vegetables, Fruits, …).</summary>
         [HttpGet("food-groups")]
         [ProducesResponseType(typeof(List<FoodGroupModel>), StatusCodes.Status200OK)]

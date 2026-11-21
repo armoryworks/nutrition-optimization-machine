@@ -163,6 +163,7 @@ namespace Nom.Data
         public DbSet<RecipeAugmentationEntity> RecipeAugmentations { get; set; } = default!;
         public DbSet<RecipeBulkOperationProgressEntity> RecipeBulkOperationProgress { get; set; } = default!;
         public DbSet<IngredientVerificationEntity> IngredientVerifications { get; set; } = default!;
+        public DbSet<IngredientContentsEntity> IngredientContents { get; set; } = default!;
         #endregion
 
         #region Reference

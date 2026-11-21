@@ -1,0 +1,44 @@
+# Ingredient statements and allergen lines read by IngredientStatementReader (contents-reader/2). expectIngredients: parent>name, a compound with listed parts ends in +, joined by |. expectDeclared and expectAdvisory: word/class (class - when none), joined by |. expectReason: the reason up to its first colon.
+id	statement	expectRead	expectReason	expectIngredients	expectDeclared	expectAdvisory	status	source	note
+pc-01	Ingredients: Water, Salt, Sugar.	yes	-	water|salt|sugar	-	-	ok	rule:construction	the label and the closing period are not ingredients; names are lower-cased
+pc-02	ENRICHED FLOUR (WHEAT FLOUR, NIACIN), WATER	yes	-	enriched flour+|enriched flour>wheat flour|enriched flour>niacin|water	-	-	ok	rule:construction	a parenthesis lists the parts of the ingredient before it
+pc-03	Sauce (tomatoes, soy sauce [water, soybeans, wheat], spices {paprika})	yes	-	sauce+|sauce>tomatoes|sauce>soy sauce+|soy sauce>water|soy sauce>soybeans|soy sauce>wheat|sauce>spices+|spices>paprika	-	-	ok	rule:construction	brackets and braces nest like parentheses
+pc-04	Filling: rice, black beans. Tortilla: wheat flour, water.	yes	-	filling+|filling>rice|filling>black beans|tortilla+|tortilla>wheat flour|tortilla>water	-	-	ok	rule:construction	a heading with a colon holds the items after it up to the next heading or sentence
+pc-05	Bread - water, flour. Turkey - turkey, salt	yes	-	bread+|bread>water|bread>flour|turkey+|turkey>turkey|turkey>salt	-	-	ok	rule:construction	a spaced dash is a heading like a colon
+pc-06	Turkey sandwich: Bread - flour, water	yes	-	bread+|bread>flour|bread>water	-	-	ok	rule:construction	a heading followed at once by another heading is the product's title and names nothing
+pc-07	Chicken, water, contains 2% or less of: salt, spices	yes	-	chicken|water|salt|spices	-	-	ok	rule:construction	"contains 2% or less of" is not an ingredient and not an allergen line
+pc-08	Chicken breast, water, less than 2% rice starch, sea salt	yes	-	chicken breast|water|rice starch|sea salt	-	-	ok	rule:construction	the marker without "of" is dropped too
+pc-09	Vegetable oil (canola and/or soybean oil)	yes	-	vegetable oil+|vegetable oil>canola oil|vegetable oil>soybean oil	-	-	ok	rule:construction	"and/or": each alternative is named; a single word takes the last alternative's head
+pc-10	Vegetable oil (corn, canola, and/or soybean)	yes	-	vegetable oil+|vegetable oil>corn|vegetable oil>canola|vegetable oil>soybean	-	-	ok	rule:construction	a leading "and/or" is dropped and every listed alternative is named
+pc-11	Water, palm or soybean oil	yes	-	water|palm oil|soybean oil	-	-	ok	rule:construction	"or" names both alternatives
+pc-12	Sodium benzoate (a preservative), thiamine mononitrate (vitamin B1), salt (for flavor)	yes	-	sodium benzoate|thiamine mononitrate|salt	-	-	ok	rule:construction	a parenthesis that says what an ingredient is for names nothing
+pc-13	Ham (cured with: water, salt, sodium nitrite)	yes	-	ham+|ham>water|ham>salt|ham>sodium nitrite	-	-	ok	rule:construction	"cured with:" is a marker, not a heading
+pc-14	Pasta (wheat flour, eggs), cheese (milk). Contains: wheat, egg, milk.	yes	-	pasta+|pasta>wheat flour|pasta>eggs|cheese+|cheese>milk	wheat/wheat|egg/egg|milk/milk	-	ok	rule:construction	the regulated Contains line gives the declared allergens and names no ingredient
+pc-15	SOY SAUCE (SOYBEANS, WHEAT).CONTAINS: SOY, WHEAT	yes	-	soy sauce+|soy sauce>soybeans|soy sauce>wheat	soy/soy|wheat/wheat	-	ok	rule:construction	a Contains line glued to the last period is still split off
+pc-16	Granola (oats, almonds). Contains: tree nuts (almonds).	yes	-	granola+|granola>oats|granola>almonds	tree nuts/tree nuts|almonds/tree nuts	-	ok	rule:construction	a declared class and the species in its parenthesis are both declared
+pc-17	Rice, chicken. May contain peanuts.	yes	-	rice|chicken	-	peanuts/peanut	ok	rule:construction	"may contain" is an advisory line; the gate treats it as contained for allergies
+pc-18	Rice, chicken. Made in a facility that also processes milk, eggs and tree nuts.	yes	-	rice|chicken	-	milk/milk|eggs/egg|tree nuts/tree nuts	ok	rule:construction	a shared-facility line names its allergens after "processes"
+pc-19	Rice. Manufactured on shared equipment with products containing sesame.	yes	-	rice	-	sesame/sesame	ok	rule:construction	"products containing" is dropped from the allergen
+pc-20	Water, vegetable oil (may contain one or more of the following: canola, soybean, sunflower)	yes	-	water|vegetable oil+|vegetable oil>canola|vegetable oil>soybean|vegetable oil>sunflower	-	-	ok	rule:construction	"may contain one or more of" lists alternatives of an ingredient; it is no allergen warning
+pc-21		no	empty	-	-	-	ok	rule:construction	no statement: unread, never safe
+pc-22	Pasta (wheat, eggs, cheese	no	unbalanced brackets	-	-	-	ok	rule:construction	an unclosed parenthesis leaves the parts unknown
+pc-23	1234 5678 %%%% //// 90	no	not text	-	-	-	ok	rule:construction	not a statement
+pc-24	N/A	no	no statement	-	-	-	ok	rule:construction	a placeholder is no statement
+pc-25	Water seasoned grilled chipotle chicken breast meat with rib meat and white rice and black beans	no	an item longer than an ingredient name	-	-	-	ok	rule:construction	more than 12 words with no separator is a missing comma, not one ingredient
+pc-26	Water, salt. Contains:	no	a Contains line with no allergen	-	-	-	ok	rule:construction	a Contains line with nothing after it cannot be read
+pc-27	Water. Made in a facility that processes allergens.	no	a warning that names no allergen	-	-	-	ok	rule:construction	a warning that names no allergen leaves the allergens unknown
+pc-28	Contains: milk.	no	no ingredient list	-	-	-	ok	rule:construction	an allergen line alone does not give the contents
+pc-29	Rice*, black beans*. *Organic	yes	-	rice|black beans	-	-	ok	rule:construction	the footnote marker and the footnote are dropped
+pc-30	*Spinach, rice. *Organic	yes	-	spinach|rice	-	-	ok	rule:construction	a first sentence that starts with a marker is still the list
+pc-31	Noodles (wheat flour, eggs), cheese (milk). CONTAINS: CONTAINS: EGG, MILK, WHEAT.	yes	-	noodles+|noodles>wheat flour|noodles>eggs|cheese+|cheese>milk	egg/egg|milk/milk|wheat/wheat	-	ok	rule:construction	a doubled Contains label is read once
+pc-32	Omelet (egg whites, salt. Filling: cheese [milk, salt])	yes	-	omelet+|omelet>egg whites|omelet>salt|omelet>filling+|filling>cheese+|cheese>milk|cheese>salt	-	-	ok	rule:construction	a period inside a parenthesis separates items and a heading inside it holds the rest
+pc-33	Uncured bacon no nitrates or nitrites added except those naturally occurring in celery powder (pork, water, salt)	yes	-	uncured bacon+|uncured bacon>pork|uncured bacon>water|uncured bacon>salt	-	-	ok	rule:construction	a "no nitrites added" claim is not part of the name
+pc-34	Cheese (milk, powdered cellulose added to prevent caking)	yes	-	cheese+|cheese>milk|cheese>powdered cellulose	-	-	ok	rule:construction	what an ingredient is added for is not part of its name
+pc-35	Organic tomatoes (2%), organic basil	yes	-	tomatoes|basil	-	-	ok	rule:construction	"organic" and a percentage are not part of a name
+pc-36	Chicken, rice. This product is made in a facility that processes peanuts.	yes	-	chicken|rice	-	peanuts/peanut	ok	rule:construction	"this product is made in a facility" is a warning
+pc-37	Rice, cheese (milk). Allergens: milk, soy	yes	-	rice|cheese+|cheese>milk	milk/milk|soy/soy	-	ok	rule:construction	an "Allergens:" label is the Contains line
+pc-38	Rice, tofu (soybeans, water). Contains milk and soy ingredients.	yes	-	rice|tofu+|tofu>soybeans|tofu>water	milk/milk|soy/soy	-	ok	rule:construction	"Contains milk and soy ingredients" without a colon is the allergen line
+pc-39	Rice, shrimp (shrimp, salt). Contains: crustacean shellfish (shrimp), sesame.	yes	-	rice|shrimp+|shrimp>shrimp|shrimp>salt	crustacean shellfish/shellfish|shrimp/shellfish|sesame/sesame	-	ok	rule:construction	shellfish is declared by its class and species
+pc-40	Fish sticks (pollock, wheat flour). Contains: fish (pollock), wheat. May contain traces of milk.	yes	-	fish sticks+|fish sticks>pollock|fish sticks>wheat flour	fish/fish|pollock/fish|wheat/wheat	milk/milk	ok	rule:construction	"may contain traces of" is a warning and "traces of" is dropped
+pc-41	Rice, chicken. Made in a facility that processes peanuts, with strict allergen controls.	yes	-	rice|chicken	-	peanuts/peanut|strict controls/-	ok	rule:construction	a warning names its allergens after its first lead; a later "with" clause does not take their place
+pc-42	Rice. Made on shared equipment with milk and packaged in a facility that also handles peanuts.	yes	-	rice	-	milk/milk|peanuts/peanut	ok	rule:construction	a second shared-facility clause in the same warning adds its allergens to the first clause's

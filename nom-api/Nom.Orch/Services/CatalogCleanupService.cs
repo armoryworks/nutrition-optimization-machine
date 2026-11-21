@@ -37,11 +37,11 @@ namespace Nom.Orch.Services
             var all = (await _db.Ingredients
                     .AsNoTracking()
                     .Where(i => !i.IsDeleted)
-                    .Select(i => new { i.Id, i.Name, i.FdcId, i.CurationStatusId, i.FdcCategoryId })
+                    .Select(i => new { i.Id, i.Name, i.FdcId, i.CurationStatusId, i.FdcCategoryId, i.FdcDataType, i.FdcCategory })
                     .ToListAsync())
                 .Select(i => new Row(i.Id, i.Name,
                     i.FdcId == null && i.CurationStatusId == (long)CurationStatusEnum.NonCurated,
-                    Nom.Data.Nutrition.PreparedFoods.IsPrepared(i.FdcCategoryId)))
+                    Nom.Data.Nutrition.PreparedFoods.IsPrepared(i.FdcCategoryId, i.FdcDataType, i.FdcCategory)))
                 .ToList();
 
             // lower(name) -> best canonical row (a non-residue row, lowest id wins)

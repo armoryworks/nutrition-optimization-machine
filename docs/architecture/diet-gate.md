@@ -7,6 +7,10 @@ planning, "Surprise me" and search read the household's or person's set
 one recipe (`RecipeOrchestrationService.GetDietMatchesAsync`). Both go through
 `DietCriteriaMatcher`, so they agree.
 
+A prepared meal has no lines; for a household judged by contents its named ingredients and allergens,
+read from an authoritative statement, are judged by the same criteria as a recipe's lines
+(`PreparedContentsGate`, `prepared-contents.md`).
+
 A criterion is one of:
 
 - an exact food (`IngredientId`);

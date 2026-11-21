@@ -548,6 +548,45 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public async Task A_branded_whole_meal_is_imported_as_a_prepared_food_with_its_fdc_ingredient_statement_stored_as_evidence()
+        {
+            var dir = Path.Combine(_root, "branded-meals");
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, "branded_food.csv"),
+                "\"fdc_id\",\"brand_owner\",\"gtin_upc\",\"ingredients\",\"serving_size\",\"serving_size_unit\",\"branded_food_category\",\"market_country\",\"discontinued_date\"\n"
+                + "\"2100001\",\"Acme\",\"000333\",\"INGREDIENTS: COOKED RICE, CHICKEN (CHICKEN, WATER, SALT), BROCCOLI. CONTAINS: SOY.\",\"280\",\"g\",\"Frozen Dinners & Entrees\",\"United States\",\"\"\n"
+                + "\"2100002\",\"Acme\",\"000444\",\"OATS, HONEY, ALMONDS\",\"40\",\"g\",\"Snack, Energy & Granola Bars\",\"United States\",\"\"\n");
+            File.WriteAllText(Path.Combine(dir, "food.csv"),
+                "\"fdc_id\",\"data_type\",\"description\",\"food_category_id\",\"publication_date\"\n"
+                + "\"2100001\",\"branded_food\",\"Chicken fried rice bowl\",\"\",\"2025-12-18\"\n"
+                + "\"2100002\",\"branded_food\",\"Almond honey bar\",\"\",\"2025-12-18\"\n");
+            File.WriteAllText(Path.Combine(dir, "food_nutrient.csv"),
+                "\"id\",\"fdc_id\",\"nutrient_id\",\"amount\"\n"
+                + "\"1\",\"2100001\",\"1008\",\"150\"\n\"2\",\"2100001\",\"1003\",\"8\"\n\"3\",\"2100001\",\"1005\",\"22\"\n\"4\",\"2100001\",\"1004\",\"3\"\n"
+                + "\"5\",\"2100002\",\"1008\",\"400\"\n\"6\",\"2100002\",\"1003\",\"10\"\n\"7\",\"2100002\",\"1005\",\"60\"\n\"8\",\"2100002\",\"1004\",\"13\"\n");
+            using var db = NewContext();
+
+            var report = await new FdcBrandedImportService(db, NullLogger<FdcBrandedImportService>.Instance).ImportAsync(dir, 10);
+
+            report.Accepted.Should().Be(2);
+            report.PreparedMealStatements.Should().Be(1, "only the whole meal's statement is read; a granola bar is no prepared meal");
+            var bowl = await db.Ingredients.SingleAsync(i => i.FdcId == "2100001");
+            PreparedFoods.IsPrepared(bowl).Should().BeTrue();
+            bowl.FoodGroupId.Should().BeNull("a prepared meal counts toward no food group");
+            bowl.CurationStatusId.Should().Be((long)CurationStatusEnum.PendingCuration, "a statement is no second source for the numbers; the branded lift still decides");
+            var row = await db.IngredientContents.SingleAsync();
+            row.IngredientId.Should().Be(bowl.Id);
+            row.Source.Should().Be("fdc:2100001");
+            row.HouseholdId.Should().BeNull();
+            row.Outcome.Should().Be(IngredientContentsOutcome.Read);
+            report.PreparedMealStatementsBatch.Should().Be(row.Batch, "the report hands the operator the batch that --prepared-contents --undo takes back");
+            PreparedContentsService.Allergens(row).Declared.Select(a => a.Word).Should().Equal("soy");
+            PreparedContentsService.Items(row).Select(i => i.Name).Should().Equal("cooked rice", "chicken", "chicken", "water", "salt", "broccoli");
+            FdcIngredientStatements.Read(dir, new HashSet<string> { "2100002", "2199999" })
+                .Should().Equal(new Dictionary<string, string> { ["2100002"] = "OATS, HONEY, ALMONDS" });
+        }
+
+        [Fact]
         public async Task The_pass_admits_a_branded_food_its_stored_sources_lift_keeps_a_lifted_one_clean_and_holds_one_with_its_record_alone()
         {
             var dir = Path.Combine(_root, "branded");

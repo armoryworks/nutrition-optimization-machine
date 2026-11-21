@@ -550,8 +550,7 @@ namespace Nom.Orch.Services
             }
 
             var curatedOnly = await _policy.IsCuratedOnlyAsync(authorId, model.HouseholdId);
-            var prepared = await LoadPreparedPoolsAsync(
-                model.HouseholdId, emptyCells, restrictedIngredientIds, hasSevereRestriction, restrictedSet.ReadsContents, curatedOnly);
+            var prepared = await LoadPreparedPoolsAsync(model.HouseholdId, emptyCells, restrictedSet, curatedOnly);
 
             // 4. Expand each empty cell into composition sub-slots
             var expanded = new List<(DateOnly Date, long MealTypeId, long RecipeTypeId)>();
@@ -1094,13 +1093,13 @@ namespace Nom.Orch.Services
         /// <summary>Why shuffle placed no prepared meal for a meal the household gave to them.</summary>
         public static class PreparedMealsHeldReasons
         {
-            /// <summary>A member has an allergy or medical restriction: a prepared meal's ingredients are not listed, so nothing shows it is safe.</summary>
+            /// <summary>A member has an allergy or medical restriction, and no prepared meal of the meal has contents read from an authoritative statement that show it is safe.</summary>
             public const string SevereRestriction = "severe_restriction";
 
             /// <summary>The member who shuffled draws only from audience and cookbook recipes.</summary>
             public const string CuratedOnly = "curated_only";
 
-            /// <summary>A member has a restriction or diet judged by what a dish contains (a pattern, or a food that is not a prepared food): a prepared meal's ingredients are not listed, so nothing shows it fits.</summary>
+            /// <summary>A member has a restriction or diet judged by what a dish contains (a pattern, or a food that is not a prepared food), and no prepared meal of the meal has contents read from an authoritative statement that show it fits.</summary>
             public const string DietRestriction = "diet_restriction";
 
             /// <summary>No curated prepared meal passes the household's restrictions, diets and locks.</summary>
@@ -1109,17 +1108,17 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// The prepared meals shuffle may place in the empty cells of the meals the household gave to prepared meals
-        /// (<see cref="PortionOrchestrationService.PreparedMealsPreferenceKey"/>): curated foods of
-        /// <see cref="Nom.Data.Nutrition.PreparedFoods.MealCategoryIds"/> that no restriction, diet or steward/provider lock
-        /// of the household forbids, drawn at random, <see cref="PoolOversample"/> per cell, each with its nutrients for one
-        /// reference serving (100 g when it has none), the basis the week view shows. None when a member has a severe
-        /// restriction, because a prepared meal lists no ingredients for the severe gate to check, when a member has a
-        /// restriction or diet judged by what a dish contains (<see cref="Support.RestrictedIngredientSet.ReadsContents"/>),
-        /// for the same reason, or when the member who shuffles is curated-only. A meal with an empty pool falls back to recipes.
+        /// (<see cref="PortionOrchestrationService.PreparedMealsPreferenceKey"/>): curated prepared meals
+        /// (<see cref="Nom.Data.Nutrition.PreparedFoods.Meals"/>) that no restriction, diet or steward/provider lock of the
+        /// household forbids, drawn at random, <see cref="PoolOversample"/> per cell, each with its nutrients for one
+        /// reference serving (100 g when it has none), the basis the week view shows. When a member has a severe
+        /// restriction or a restriction or diet judged by what a dish contains (<see cref="Support.RestrictedIngredientSet.ReadsContents"/>),
+        /// only meals whose contents were read from an authoritative statement and pass the same gate as a recipe's lines
+        /// are drawn (<see cref="Support.PreparedContentsGate"/>); a meal none of whose prepared meals passes falls back to
+        /// recipes and says why. None when the member who shuffles is curated-only.
         /// </summary>
         private async Task<PreparedPools> LoadPreparedPoolsAsync(
-            long householdId, List<(DateOnly Date, long MealTypeId)> emptyCells,
-            List<long> restrictedIngredientIds, bool hasSevereRestriction, bool readsContents, bool curatedOnly)
+            long householdId, List<(DateOnly Date, long MealTypeId)> emptyCells, Support.RestrictedIngredientSet restricted, bool curatedOnly)
         {
             var pools = new Dictionary<long, List<PreparedMealCandidate>>();
             var stored = await _context.HouseholdPreferences
@@ -1132,23 +1131,35 @@ namespace Nom.Orch.Services
                 .Where(m => m.Cells > 0)
                 .ToList();
             if (cellsByMeal.Count == 0) return new PreparedPools(pools, null);
-            if (hasSevereRestriction) return new PreparedPools(pools, PreparedMealsHeldReasons.SevereRestriction);
-            if (readsContents) return new PreparedPools(pools, PreparedMealsHeldReasons.DietRestriction);
-            if (curatedOnly) return new PreparedPools(pools, PreparedMealsHeldReasons.CuratedOnly);
+            var byContents = restricted.HasSevere || restricted.ReadsContents;
+            var contentsHeld = restricted.HasSevere ? PreparedMealsHeldReasons.SevereRestriction : PreparedMealsHeldReasons.DietRestriction;
+            if (curatedOnly) return new PreparedPools(pools, byContents ? contentsHeld : PreparedMealsHeldReasons.CuratedOnly);
 
-            var lockedIds = await _policy.GetLockedIngredientIdsAsync(householdId);
+            var excluded = restricted.IngredientIds.Concat(await _policy.GetLockedIngredientIdsAsync(householdId)).Distinct().ToList();
             foreach (var (mealTypeId, cells) in cellsByMeal)
             {
-                var foods = await _context.Ingredients
-                    .Where(i => i.CurationStatusId == (long)CurationStatusEnum.Curated
-                        && i.FdcCategoryId != null
-                        && Nom.Data.Nutrition.PreparedFoods.MealCategoryIds.Contains(i.FdcCategoryId.Value)
-                        && !restrictedIngredientIds.Contains(i.Id)
-                        && !lockedIds.Contains(i.Id))
-                    .OrderBy(i => EF.Functions.Random())
-                    .Take(cells * PoolOversample)
-                    .Select(i => new { i.Id, i.Name, i.ReferenceServingGrams })
-                    .ToListAsync();
+                var query = PreparedMealPoolQuery(_context, householdId, excluded, byContents);
+                List<(long Id, string Name, decimal? ReferenceServingGrams)> foods;
+                if (byContents)
+                {
+                    var known = (await query
+                            .Select(i => new { i.Id, i.Name, i.ReferenceServingGrams })
+                            .ToListAsync())
+                        .Select(f => (f.Id, f.Name, f.ReferenceServingGrams))
+                        .ToList();
+                    var verdicts = await Support.PreparedContentsGate.JudgeAsync(_context, householdId, restricted, known.Select(f => f.Id).ToList());
+                    foods = known.Where(f => verdicts[f.Id].Offered).OrderBy(_ => Random.Shared.Next()).Take(cells * PoolOversample).ToList();
+                }
+                else
+                {
+                    foods = (await query
+                            .OrderBy(i => EF.Functions.Random())
+                            .Take(cells * PoolOversample)
+                            .Select(i => new { i.Id, i.Name, i.ReferenceServingGrams })
+                            .ToListAsync())
+                        .Select(f => (f.Id, f.Name, f.ReferenceServingGrams))
+                        .ToList();
+                }
                 if (foods.Count == 0) continue;
 
                 var ids = foods.Select(f => f.Id).ToList();
@@ -1166,8 +1177,59 @@ namespace Nom.Orch.Services
                 }).ToList();
             }
 
-            return new PreparedPools(pools, pools.Count < cellsByMeal.Count ? PreparedMealsHeldReasons.NoneAvailable : null);
+            var held = pools.Count < cellsByMeal.Count ? (byContents ? contentsHeld : PreparedMealsHeldReasons.NoneAvailable) : null;
+            return new PreparedPools(pools, held);
         }
+
+        /// <summary>
+        /// The curated prepared meals shuffle may draw, less the excluded foods (restricted or locked); with
+        /// <paramref name="withReadContents"/>, only those with a read statement of FDC or of the household.
+        /// </summary>
+        internal static IQueryable<IngredientEntity> PreparedMealPoolQuery(ApplicationDbContext db, long householdId, IReadOnlyCollection<long> excluded, bool withReadContents)
+        {
+            var read = Nom.Data.Recipe.IngredientContentsOutcome.Read;
+            var query = db.Ingredients
+                .Where(i => i.CurationStatusId == (long)CurationStatusEnum.Curated)
+                .Where(Nom.Data.Nutrition.PreparedFoods.Meals)
+                .Where(i => !excluded.Contains(i.Id));
+            return withReadContents
+                ? query.Where(i => db.IngredientContents.Any(c => c.IngredientId == i.Id && c.Outcome == read && (c.HouseholdId == null || c.HouseholdId == householdId)))
+                : query;
+        }
+
+        /// <summary>
+        /// Whether each prepared meal may be offered to the household, judged as shuffle judges it: a food the household's
+        /// restrictions name is held; with a severe restriction or one judged by contents, the contents gate decides
+        /// (<see cref="Support.PreparedContentsGate"/>); otherwise it is offered. Foods that are not prepared foods are left out.
+        /// </summary>
+        public async Task<List<PreparedMealCheckModel>> CheckPreparedMealsAsync(long householdId, IReadOnlyCollection<long> ingredientIds)
+        {
+            var ids = ingredientIds.Distinct().Take(MaxPreparedChecks).ToList();
+            if (ids.Count == 0) return new List<PreparedMealCheckModel>();
+            var prepared = await _context.Ingredients.AsNoTracking()
+                .Where(i => ids.Contains(i.Id))
+                .Where(Nom.Data.Nutrition.PreparedFoods.Prepared)
+                .Select(i => i.Id)
+                .ToListAsync();
+            if (prepared.Count == 0) return new List<PreparedMealCheckModel>();
+
+            var restricted = await new Support.HouseholdRestrictionResolver(_context).ResolveAsync(householdId);
+            if (!restricted.HasSevere && !restricted.ReadsContents)
+                return prepared.Select(id => restricted.IngredientIds.Contains(id)
+                    ? new PreparedMealCheckModel { IngredientId = id, Held = Support.PreparedContentsHeld.Food }
+                    : new PreparedMealCheckModel { IngredientId = id }).ToList();
+
+            var verdicts = await Support.PreparedContentsGate.JudgeAsync(_context, householdId, restricted, prepared);
+            return prepared.Select(id => new PreparedMealCheckModel
+            {
+                IngredientId = id,
+                Held = verdicts[id].Held,
+                Names = verdicts[id].Names.ToList(),
+            }).ToList();
+        }
+
+        /// <summary>The most foods one prepared-meal check judges.</summary>
+        public const int MaxPreparedChecks = 50;
 
         /// <summary>
         /// Guarantees each active household <see cref="FoodGroupRuleEntity"/> minimum over the shuffled
@@ -1206,7 +1268,8 @@ namespace Nom.Orch.Services
                         Groups = r.RecipeIngredients!
                             .Where(ri => ri.Ingredient!.FoodGroupId != null
                                 && groupIds.Contains(ri.Ingredient.FoodGroupId!.Value)
-                                && (ri.Ingredient.FdcCategoryId == null || !Nom.Data.Nutrition.PreparedFoods.CategoryIds.Contains(ri.Ingredient.FdcCategoryId.Value)))
+                                && (ri.Ingredient.FdcCategoryId == null || !Nom.Data.Nutrition.PreparedFoods.CategoryIds.Contains(ri.Ingredient.FdcCategoryId.Value))
+                                && !(ri.Ingredient.FdcDataType == Nom.Data.Nutrition.CatalogAdmissionRule.BrandedFood && ri.Ingredient.FdcCategory != null && Nom.Data.Nutrition.PreparedFoods.BrandedMealCategories.Contains(ri.Ingredient.FdcCategory)))
                             .Select(ri => ri.Ingredient!.FoodGroupId!.Value)
                             .Distinct().ToList()
                     })
@@ -1225,6 +1288,7 @@ namespace Nom.Orch.Services
                         && i.CurationStatusId == (long)CurationStatusEnum.Curated
                         && i.IsWholeFood != false
                         && (i.FdcCategoryId == null || !Nom.Data.Nutrition.PreparedFoods.CategoryIds.Contains(i.FdcCategoryId.Value))
+                        && !(i.FdcDataType == Nom.Data.Nutrition.CatalogAdmissionRule.BrandedFood && i.FdcCategory != null && Nom.Data.Nutrition.PreparedFoods.BrandedMealCategories.Contains(i.FdcCategory))
                         && !i.IngredientNutrients.Any(n => !n.IsDeleted && n.Nutrient.Name.ToLower() == "alcohol" && n.Amount > MaxTopUpAlcoholGramsPer100g)
                         && !restrictedIngredientIds.Contains(i.Id)
                         && !lockedIds.Contains(i.Id))

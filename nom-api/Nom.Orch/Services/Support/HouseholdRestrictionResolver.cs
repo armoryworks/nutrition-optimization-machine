@@ -14,11 +14,18 @@ namespace Nom.Orch.Services.Support
         public HashSet<long> IngredientIds { get; } = new();
         /// <summary>Any active restriction (or its category's criteria) at severity ≥ 4 — allergy/medical.</summary>
         public bool HasSevere { get; set; }
-        /// <summary>Any active restriction judged by what a dish contains rather than by the dish's own data: a direct restriction on a food that is not a prepared food, or a category criterion that names a food that is not a prepared food, an ILIKE or word pattern, or a capped alcohol amount (judged on a recipe's drink lines). A prepared food lists no ingredients, so such a restriction cannot show one fits (<see cref="Nom.Data.Nutrition.PreparedFoods"/>).</summary>
+        /// <summary>Any active restriction judged by what a dish contains rather than by the dish's own data: a direct restriction on a food that is not a prepared food, or a category criterion that names a food that is not a prepared food, an ILIKE or word pattern, or a capped alcohol amount (judged on a recipe's drink lines). Such a restriction can show a prepared food fits only through its contents read from an authoritative statement (<see cref="PreparedContentsGate"/>, <see cref="Nom.Data.Nutrition.PreparedFoods"/>).</summary>
         public bool ReadsContents { get; set; }
         /// <summary>Recipes forbidden by a line's own text rather than its food, or as a whole: a drink line linked to a food that is not a drink (<see cref="DietCriteriaMatcher.DrinkLineRecipesAsync"/>), a line that names the restricted thing on a food a pattern matched only through an alias that does not count (<see cref="DietCriteriaMatcher.TypeProbe.AliasLineRecipes"/>), or more retained drink alcohol per serving than a capped alcohol criterion allows (<see cref="DietCriteriaMatcher.RetainedRecipesAsync"/>).</summary>
         public HashSet<long> RecipeIds { get; } = new();
+        /// <summary>The nutrient, word and name-pattern criteria of the restrictions, which <see cref="PreparedContentsGate"/> reads a prepared meal's named ingredients and allergens against as a recipe's lines are read.</summary>
+        public List<DietDataCriterion> Criteria { get; } = new();
+        /// <summary>The foods the restrictions name directly (a restriction's own food or a type's named-food criterion), each with the highest severity that names it, which <see cref="PreparedContentsGate"/> reads a prepared meal's allergens and recognised terms against.</summary>
+        public Dictionary<long, int> NamedFoods { get; } = new();
         public static readonly RestrictedIngredientSet Empty = new();
+
+        internal void Name(long foodId, int severity) =>
+            NamedFoods[foodId] = Math.Max(severity, NamedFoods.GetValueOrDefault(foodId));
     }
 
     /// <summary>
@@ -76,6 +83,7 @@ namespace Nom.Orch.Services.Support
                 {
                     result.IngredientIds.Add(id);
                     namedFoodIds.Add(id);
+                    result.Name(id, r.Severity ?? 0);
                 }
                 if ((r.Severity ?? 0) >= 4) result.HasSevere = true;
             }
@@ -94,6 +102,7 @@ namespace Nom.Orch.Services.Support
                     {
                         result.IngredientIds.Add(id);
                         namedFoodIds.Add(id);
+                        result.Name(id, c.Severity);
                     }
                     if (c.Severity >= 4) result.HasSevere = true;
                     if (!string.IsNullOrWhiteSpace(c.IngredientPattern)) result.ReadsContents = true;
@@ -105,10 +114,10 @@ namespace Nom.Orch.Services.Support
             {
                 var preparedFoods = await _db.Ingredients.IgnoreQueryFilters()
                     .Where(i => namedFoodIds.Contains(i.Id))
-                    .Select(i => new { i.Id, i.FdcCategoryId })
+                    .Select(i => new { i.Id, i.FdcCategoryId, i.FdcDataType, i.FdcCategory })
                     .ToListAsync();
                 result.ReadsContents = namedFoodIds.Any(id =>
-                    !preparedFoods.Any(f => f.Id == id && Nom.Data.Nutrition.PreparedFoods.IsPrepared(f.FdcCategoryId)));
+                    !preparedFoods.Any(f => f.Id == id && Nom.Data.Nutrition.PreparedFoods.IsPrepared(f.FdcCategoryId, f.FdcDataType, f.FdcCategory)));
             }
 
             if (typeIds.Count > 0) await AddDataCriteriaAsync(result, typeIds, 0);
@@ -136,6 +145,7 @@ namespace Nom.Orch.Services.Support
             foreach (var r in restrictions.Where(r => r.IngredientId != null && (r.Severity ?? 0) >= 4))
             {
                 result.IngredientIds.Add(r.IngredientId!.Value);
+                result.Name(r.IngredientId!.Value, r.Severity ?? 0);
                 result.HasSevere = true;
             }
 
@@ -144,13 +154,16 @@ namespace Nom.Orch.Services.Support
 
             var criteria = await _db.Set<RestrictionCriterionEntity>()
                 .Where(c => typeIds.Contains(c.RestrictionTypeId) && c.Severity >= 4)
-                .Select(c => new { c.IngredientId, c.IngredientPattern })
+                .Select(c => new { c.IngredientId, c.IngredientPattern, c.Severity })
                 .ToListAsync();
             if (criteria.Count == 0) return result;
 
             result.HasSevere = true;
             foreach (var c in criteria.Where(c => c.IngredientId != null))
+            {
                 result.IngredientIds.Add(c.IngredientId!.Value);
+                result.Name(c.IngredientId!.Value, c.Severity);
+            }
 
             await AddDataCriteriaAsync(result, typeIds, 4);
             return result;
@@ -167,6 +180,7 @@ namespace Nom.Orch.Services.Support
         {
             var data = await DietCriteriaMatcher.CriteriaAsync(_db, typeIds, minimumSeverity);
             if (data.Count == 0) return;
+            result.Criteria.AddRange(data);
             foreach (var probe in (await DietCriteriaMatcher.ProbeAsync(_db, data, cache: _cache)).Values)
             {
                 foreach (var ids in probe.Foods.Values) result.IngredientIds.UnionWith(ids);

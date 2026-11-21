@@ -47,6 +47,9 @@ namespace Nom.Data.Recipe
         public decimal? PiecesPerPackage { get; set; }
         public decimal? CupGrams { get; set; }
 
+        /// <summary>The label's ingredient statement, as found in the photo's text and then as the household confirmed it; read into <see cref="IngredientContentsEntity"/> for a prepared food, never into the nutrient table.</summary>
+        public string? IngredientStatement { get; set; }
+
         /// <summary>Per-serving values as parsed or as the user corrected them; stored only.</summary>
         public string? NutrientsJson { get; set; }
 

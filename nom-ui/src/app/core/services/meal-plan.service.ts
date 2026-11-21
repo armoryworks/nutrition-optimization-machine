@@ -13,6 +13,7 @@ import { MealPlanShuffleResponse } from '../models/meal-plan-shuffle-response.mo
 import { MealPlanRule } from '../models/meal-plan-rule.model';
 import { MealPlanRuleCreateRequest } from '../models/meal-plan-rule-create-request.model';
 import { FoodGroup, FoodGroupRule, FoodGroupRuleUpsert } from '../models/food-group.model';
+import { PreparedMealCheck } from '../models/prepared-meal-check.model';
 
 @Injectable({ providedIn: 'root' })
 export class MealPlanService {
@@ -56,6 +57,13 @@ export class MealPlanService {
 
   shuffle(request: MealPlanShuffleRequest): Observable<MealPlanShuffleResponse> {
     return this.http.post<MealPlanShuffleResponse>(`${this.apiUrl}/shuffle`, request);
+  }
+
+  checkPreparedMeals(householdId: number, ingredientIds: number[]): Observable<PreparedMealCheck[]> {
+    const params = new HttpParams()
+      .set('householdId', householdId)
+      .set('ingredientIds', ingredientIds.join(','));
+    return this.http.get<PreparedMealCheck[]>(`${this.apiUrl}/prepared-check`, { params });
   }
 
   completeMealPlan(id: number): Observable<{ message: string }> {

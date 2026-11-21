@@ -86,6 +86,7 @@ namespace Nom.Orch.Services
                 })
                 .ToListAsync();
 
+            var askContents = await ContentsUnknownAsync(householdId, ids);
             return rows.Select(r => new NeedsVerificationModel
             {
                 IngredientId = r.Id,
@@ -93,8 +94,31 @@ namespace Nom.Orch.Services
                 HasVerifiedNutrition = r.Verified,
                 HasUpc = r.HasUpc,
                 AskedRecently = r.Asked,
-                ShouldAsk = !r.Verified && !r.Asked,
+                AskContents = !r.Asked && askContents.Contains(r.Id),
+                ShouldAsk = (!r.Verified || askContents.Contains(r.Id)) && !r.Asked,
             }).ToList();
+        }
+
+        /// <summary>
+        /// The prepared foods among the ids whose contents the household's restrictions need but no statement shows (none
+        /// stored, unread, or an ingredient not resolved): the household's own label is what can show them, so it is asked
+        /// for one. A meal a statement already shows to be restricted is not asked about.
+        /// </summary>
+        private async Task<HashSet<long>> ContentsUnknownAsync(long householdId, IReadOnlyCollection<long> ids)
+        {
+            var prepared = await _context.Ingredients.AsNoTracking()
+                .Where(i => ids.Contains(i.Id))
+                .Where(PreparedFoods.Prepared)
+                .Select(i => i.Id)
+                .ToListAsync();
+            if (prepared.Count == 0) return new HashSet<long>();
+            var restricted = await new HouseholdRestrictionResolver(_context).ResolveAsync(householdId);
+            if (!restricted.HasSevere && !restricted.ReadsContents) return new HashSet<long>();
+            var verdicts = await PreparedContentsGate.JudgeAsync(_context, householdId, restricted, prepared);
+            return verdicts.Values
+                .Where(v => v.Held is PreparedContentsHeld.None or PreparedContentsHeld.Unread or PreparedContentsHeld.Unresolved)
+                .Select(v => v.FoodId)
+                .ToHashSet();
         }
 
         public async Task<bool> SkipAsync(long ingredientId, long householdId, long personId)
@@ -203,6 +227,7 @@ namespace Nom.Orch.Services
                 Kind = IngredientVerificationKind.Label,
                 LabelImageContentType = "image/jpeg",
                 OcrText = ocrText.Length > OcrTextCap ? ocrText.Substring(0, OcrTextCap) : ocrText,
+                IngredientStatement = IngredientStatementReader.Extract(ocrText),
                 NutrientsJson = VerificationNutrients.ToJson(parsed),
                 ServingText = Clip(parsed.ServingText, 255),
                 ServingGrams = parsed.ServingGrams,
@@ -226,6 +251,7 @@ namespace Nom.Orch.Services
                 VerificationId = row.Id,
                 Parsed = parsed,
                 OcrText = ocrText.Length > OcrDisplayCap ? ocrText.Substring(0, OcrDisplayCap) : ocrText,
+                IngredientStatement = row.IngredientStatement,
                 ImageStored = true,
             };
         }
@@ -289,12 +315,14 @@ namespace Nom.Orch.Services
             row.ServingGrams = result.ServingGrams;
             row.ServingMl = result.ServingMl;
             row.ServingsPerContainer = result.ServingsPerContainer;
+            row.IngredientStatement = Clip(model.IngredientStatement, PreparedContentsService.MaxStatementLength);
             row.Confirmed = true;
             row.ConfirmedByPersonId = personId;
             row.ConfirmedAt = now;
             row.LastModifiedDate = now;
             row.LastModifiedByPersonId = personId;
             await _context.SaveChangesAsync();
+            await new PreparedContentsService(_context).RecordLabelAsync(row);
             await LiftAsync(row.IngredientId, personId);
             return ToModel(row);
         }
@@ -495,6 +523,7 @@ namespace Nom.Orch.Services
                 PiecesPerPackage = row.PiecesPerPackage,
                 CupGrams = row.CupGrams,
                 Nutrients = nutrients,
+                IngredientStatement = row.IngredientStatement,
                 Confirmed = row.Confirmed,
                 Warnings = nutrients?.Warnings ?? new List<string>(),
                 LastAskedDate = row.LastAskedDate,
