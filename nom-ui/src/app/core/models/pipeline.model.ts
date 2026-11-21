@@ -78,6 +78,31 @@ export interface PipelineFoodCounts {
   unresolvedWordings: number;
   wordingsByUse: PipelineWordingBucket[];
   unresolvedByLinkState: PipelineLinkStateCount[];
+  heldByRule?: number;
+  heldByReason?: PipelineReasonCount[];
+  awaitingSecondSource?: number;
+  pendingWithoutReason?: number;
+  rejected?: number;
+  branded?: PipelineBrandedCounts;
+}
+
+export interface PipelineReasonCount {
+  reason: string;
+  foods: number;
+}
+
+export interface PipelineSourceCount {
+  sources: string;
+  foods: number;
+}
+
+export interface PipelineBrandedCounts {
+  curatedByAgreeingSources: PipelineSourceCount[];
+  curatedWithoutCount: number;
+  curatedWithDisagreement: number;
+  awaiting: number;
+  heldByDisagreement: number;
+  heldOther: number;
 }
 
 export interface PipelineStuckFood {

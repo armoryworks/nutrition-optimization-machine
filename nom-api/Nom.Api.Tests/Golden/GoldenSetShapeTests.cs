@@ -34,6 +34,7 @@ namespace Nom.Api.Tests.Golden
             { "prose-judge.tsv", 35, new[] { "status" } },
             { "startup-fills.tsv", 9, new[] { "status" } },
             { "catalog-admission.tsv", 80, new[] { "status" } },
+            { "branded-lift.tsv", 25, new[] { "status" } },
             { "link-gate.tsv", 60, new[] { "status" } },
             { "wording-pairs.tsv", 240, new[] { "status" } },
             { "alcohol-context.tsv", 150, new[] { "status" } },
@@ -81,6 +82,7 @@ namespace Nom.Api.Tests.Golden
         [InlineData("veto.tsv", "source", "status")]
         [InlineData("startup-fills.tsv", "source", "status")]
         [InlineData("catalog-admission.tsv", "source", "status")]
+        [InlineData("branded-lift.tsv", "source", "status")]
         [InlineData("link-gate.tsv", "source", "status")]
         [InlineData("wording-pairs.tsv", "judgedBy", "status")]
         [InlineData("alcohol-context.tsv", "source", "status")]

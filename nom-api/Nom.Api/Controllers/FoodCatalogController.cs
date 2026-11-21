@@ -25,12 +25,14 @@ namespace Nom.Api.Controllers
         private readonly ICompoundLineService _compound;
         private readonly IScrapedRecipeRepairService _repair;
         private readonly IContainerSizeService? _containerSizes;
+        private readonly IBrandedLiftService? _brandedLift;
 
         public FoodCatalogController(IFoodCatalogReviewService review, IFoodCatalogAuditService audit,
             ICatalogCleanupService cleanup, ILineRelinkService relink, ILineUnfoldService unfold,
             IPackageLineService packages, IIngredientLinkService links, ICompoundLineService compound,
-            IScrapedRecipeRepairService repair, IContainerSizeService? containerSizes = null)
+            IScrapedRecipeRepairService repair, IContainerSizeService? containerSizes = null, IBrandedLiftService? brandedLift = null)
         {
+            _brandedLift = brandedLift;
             _repair = repair;
             _containerSizes = containerSizes;
             _review = review;
@@ -179,6 +181,22 @@ namespace Nom.Api.Controllers
         {
             if (_containerSizes == null) return NotFound();
             return Ok(await _containerSizes.UndoSinceAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), apply, GetCurrentPersonIdRequired()));
+        }
+
+        /// <summary>Judge every branded food with evidence by its agreeing sources and curate a pending one two or more sources agree on; a dry run unless apply is set, and each change is written to the audit log under the run's stamp.</summary>
+        [HttpPost("branded-lift")]
+        public async Task<ActionResult<BrandedLiftReport>> BrandedLift([FromQuery] bool apply = false)
+        {
+            if (_brandedLift == null) return NotFound();
+            return Ok(await _brandedLift.RunAsync(apply, GetCurrentPersonIdRequired()));
+        }
+
+        /// <summary>Take back what the branded lift run with the given stamp wrote, where each food still holds it; the undo has its own stamp. A dry run unless apply=true.</summary>
+        [HttpPost("branded-lift/undo")]
+        public async Task<ActionResult<BrandedLiftUndoReport>> BrandedLiftUndo([FromQuery, Required] DateTime stamp, [FromQuery] bool apply = false)
+        {
+            if (_brandedLift == null) return NotFound();
+            return Ok(await _brandedLift.UndoAsync(DateTime.SpecifyKind(stamp, DateTimeKind.Utc), apply, GetCurrentPersonIdRequired()));
         }
 
         /// <summary>Which scraped recipe lines counted in pieces, cans or packages would take the size or the package their wording states (no writes).</summary>

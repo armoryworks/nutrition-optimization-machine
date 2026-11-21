@@ -183,6 +183,7 @@ namespace Nom.Orch.Services
         private async Task<(PipelineFoodCounts, PipelineStuck)> FoodsAndStuckAsync(CancellationToken cancellationToken)
         {
             var foodRow = await FoodQuery(_db).FirstOrDefaultAsync(cancellationToken);
+            var split = Split(await FoodSplitQuery(_db).ToListAsync(cancellationToken));
             var withoutNutrition = await CuratedWithoutNutritionQuery(_db).CountAsync(cancellationToken);
 
             var uses = await UnresolvedByFoodQuery(_db).ToListAsync(cancellationToken);
@@ -245,6 +246,12 @@ namespace Nom.Orch.Services
                 UnresolvedWordings = unresolved.Count,
                 WordingsByUse = buckets,
                 UnresolvedByLinkState = linkStates,
+                HeldByRule = split.HeldByRule,
+                HeldByReason = split.HeldByReason,
+                AwaitingSecondSource = split.AwaitingSecondSource,
+                PendingWithoutReason = split.PendingWithoutReason,
+                Rejected = split.Rejected,
+                Branded = split.Branded,
             };
             var stuck = new PipelineStuck
             {
@@ -531,6 +538,81 @@ namespace Nom.Orch.Services
                 WithoutUsda = g.Count(i => i.CurationStatusId == Curated && i.FdcId == null),
                 WithoutGroup = g.Count(i => i.CurationStatusId == Curated && i.FoodGroupId == null),
             });
+
+        /// <summary>
+        /// Pending and rejected foods, and curated branded foods, by status, stored admission reason
+        /// and the branded lift's source counts: one grouped pass for the Pipeline page's split.
+        /// </summary>
+        public static IQueryable<FoodSplitRow> FoodSplitQuery(ApplicationDbContext db) => db.Ingredients.AsNoTracking()
+            .Where(i => i.CurationStatusId == PendingCuration || i.CurationStatusId == Rejected
+                || (i.CurationStatusId == Curated && i.FdcDataType == Nom.Data.Nutrition.CatalogAdmissionRule.BrandedFood))
+            .GroupBy(i => new { i.CurationStatusId, i.AdmissionReason, Branded = i.FdcDataType == Nom.Data.Nutrition.CatalogAdmissionRule.BrandedFood, i.AgreeingSources, i.DisagreeingSources })
+            .Select(g => new FoodSplitRow
+            {
+                Status = g.Key.CurationStatusId,
+                Reason = g.Key.AdmissionReason,
+                Branded = g.Key.Branded,
+                Agreeing = g.Key.AgreeingSources,
+                Disagreeing = g.Key.DisagreeingSources,
+                Foods = g.Count(),
+            });
+
+        /// <summary>
+        /// Splits the grouped rows: pending foods awaiting a second source (the only reason), held by
+        /// rule (any other reason, counted by reason), or with no reason; rejected foods; and the
+        /// branded foods by their count of agreeing sources.
+        /// </summary>
+        public static (int HeldByRule, IReadOnlyList<PipelineReasonCount> HeldByReason, int AwaitingSecondSource, int PendingWithoutReason, int Rejected, PipelineBrandedCounts Branded) Split(IEnumerable<FoodSplitRow> rows)
+        {
+            int held = 0, awaiting = 0, noReason = 0, rejected = 0, withoutCount = 0, curatedDisagree = 0, brandedAwaiting = 0, brandedDisagree = 0, brandedOther = 0;
+            var reasons = new Dictionary<string, int>(StringComparer.Ordinal);
+            var bySources = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var row in rows)
+            {
+                var tokens = (row.Reason ?? string.Empty).Split('+', StringSplitOptions.RemoveEmptyEntries);
+                if (row.Status == Rejected)
+                {
+                    rejected += row.Foods;
+                    continue;
+                }
+                if (row.Status == Curated)
+                {
+                    if (tokens.Contains(Nom.Data.Nutrition.CatalogAdmissionRule.SourcesDisagree)) curatedDisagree += row.Foods;
+                    else if (row.Agreeing is not { } agreeing || agreeing < Nom.Data.Nutrition.CatalogAdmissionRule.MinAgreeingSources) withoutCount += row.Foods;
+                    else
+                    {
+                        var key = agreeing >= 4 ? "4+" : agreeing.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        bySources[key] = bySources.GetValueOrDefault(key) + row.Foods;
+                    }
+                    continue;
+                }
+                if (tokens.Length == 0) noReason += row.Foods;
+                else if (tokens.Length == 1 && tokens[0] == Nom.Data.Nutrition.CatalogAdmissionRule.AwaitingSecondSource) awaiting += row.Foods;
+                else
+                {
+                    held += row.Foods;
+                    foreach (var token in tokens.Select(Nom.Data.Nutrition.CatalogAdmissionRule.ReasonBucket).Distinct())
+                        reasons[token] = reasons.GetValueOrDefault(token) + row.Foods;
+                }
+                if (row.Branded)
+                {
+                    if (tokens.Length == 1 && tokens[0] == Nom.Data.Nutrition.CatalogAdmissionRule.AwaitingSecondSource) brandedAwaiting += row.Foods;
+                    else if (tokens.Contains(Nom.Data.Nutrition.CatalogAdmissionRule.SourcesDisagree)) brandedDisagree += row.Foods;
+                    else brandedOther += row.Foods;
+                }
+            }
+            var branded = new PipelineBrandedCounts
+            {
+                CuratedByAgreeingSources = bySources.OrderBy(b => b.Key, StringComparer.Ordinal).Select(b => new PipelineSourceCount(b.Key, b.Value)).ToList(),
+                CuratedWithoutCount = withoutCount,
+                CuratedWithDisagreement = curatedDisagree,
+                Awaiting = brandedAwaiting,
+                HeldByDisagreement = brandedDisagree,
+                HeldOther = brandedOther,
+            };
+            var byReason = reasons.OrderByDescending(r => r.Value).ThenBy(r => r.Key, StringComparer.Ordinal).Select(r => new PipelineReasonCount(r.Key, r.Value)).ToList();
+            return (held, byReason, awaiting, noReason, rejected, branded);
+        }
 
         public static IQueryable<IngredientEntity> CuratedWithoutNutritionQuery(ApplicationDbContext db) => db.Ingredients.AsNoTracking()
             .Where(i => i.CurationStatusId == Curated && !i.IngredientNutrients.Any());
@@ -831,6 +913,16 @@ namespace Nom.Orch.Services
         {
             public DateTime? Last { get; init; }
             public int Day { get; init; }
+        }
+
+        public sealed class FoodSplitRow
+        {
+            public long Status { get; init; }
+            public string? Reason { get; init; }
+            public bool Branded { get; init; }
+            public int? Agreeing { get; init; }
+            public int? Disagreeing { get; init; }
+            public int Foods { get; init; }
         }
 
         public sealed class FoodRow

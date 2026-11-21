@@ -12,6 +12,7 @@ namespace Nom.Orch.Models.Recipe
         public string? FoodGroupName { get; set; }
         public bool? IsWholeFood { get; set; }
         public bool IsPrepared { get; set; }
+        public int? AgreeingSources { get; set; }
         public bool HasNutrition { get; set; }
         public bool CanWeighVolume { get; set; }
         public bool CanWeighCount { get; set; }

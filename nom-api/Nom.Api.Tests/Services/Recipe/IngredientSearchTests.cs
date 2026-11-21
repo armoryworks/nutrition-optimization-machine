@@ -119,6 +119,22 @@ namespace Nom.Api.Tests.Services.Recipe
             forPlan.Select(r => (r.Name, r.IsPrepared)).Should().BeEquivalentTo(new[] { ("McDONALD'S, Hamburger", true), ("Hamburger buns", false) });
         }
 
+        [Fact]
+        public async Task Of_two_equal_branded_foods_the_one_more_sources_agree_on_comes_first_and_carries_its_count()
+        {
+            await using var db = NewContext();
+            var fewer = WithNutrition(Food("Oat granola bar (Acme)", CurationStatusEnum.Curated));
+            fewer.AgreeingSources = 2;
+            var more = WithNutrition(Food("Oat granola bar (Brio)", CurationStatusEnum.Curated));
+            more.AgreeingSources = 4;
+            db.Ingredients.AddRange(fewer, more);
+            await db.SaveChangesAsync();
+
+            var results = await NewService(db).SearchIngredientsAsync("oat granola bar");
+
+            results.Select(r => (r.Name, r.AgreeingSources)).Should().Equal(("Oat granola bar (Brio)", 4), ("Oat granola bar (Acme)", 2));
+        }
+
         private static IngredientEntity WithNutrition(IngredientEntity food)
         {
             food.IngredientNutrients.Add(new IngredientNutrientEntity { Nutrient = new NutrientEntity { Name = "Protein " + food.Name }, Amount = 5m });

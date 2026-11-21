@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
+using Nom.Data.Nutrition;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Shopping;
@@ -37,6 +38,7 @@ namespace Nom.Orch.Services
         private readonly IVerificationLookupLane _lane;
         private readonly IScanRateLimiter _scanLimiter;
         private readonly ILogger<IngredientVerificationService> _logger;
+        private readonly IBrandedLiftService? _lift;
 
         public IngredientVerificationService(
             ApplicationDbContext context,
@@ -45,8 +47,10 @@ namespace Nom.Orch.Services
             IMediaStorageService mediaStorage,
             IVerificationLookupLane lane,
             IScanRateLimiter scanLimiter,
-            ILogger<IngredientVerificationService> logger)
+            ILogger<IngredientVerificationService> logger,
+            IBrandedLiftService? lift = null)
         {
+            _lift = lift;
             _context = context;
             _ocr = ocr;
             _barcodes = barcodes;
@@ -74,7 +78,7 @@ namespace Nom.Orch.Services
                     i.Id,
                     i.Name,
                     HasUpc = i.GtinUpc != null,
-                    Verified = (i.FdcId != null || i.CurationStatusId == curated)
+                    Verified = (i.CurationStatusId == curated || (i.FdcId != null && i.FdcDataType != CatalogAdmissionRule.BrandedFood))
                                && i.IngredientNutrients.Any(n => n.NutrientId == caloriesId),
                     Asked = _context.IngredientVerifications.Any(v =>
                         v.IngredientId == i.Id && v.HouseholdId == householdId
@@ -291,6 +295,7 @@ namespace Nom.Orch.Services
             row.LastModifiedDate = now;
             row.LastModifiedByPersonId = personId;
             await _context.SaveChangesAsync();
+            await LiftAsync(row.IngredientId, personId);
             return ToModel(row);
         }
 
@@ -405,6 +410,21 @@ namespace Nom.Orch.Services
             return row.LabelImageData is { Length: > 0 } ? (row.LabelImageData, contentType) : null;
         }
 
+        private async Task LiftAsync(long ingredientId, long personId)
+        {
+            if (_lift == null) return;
+            var branded = await _context.Ingredients.AnyAsync(i => i.Id == ingredientId && i.FdcDataType == CatalogAdmissionRule.BrandedFood);
+            if (!branded) return;
+            try
+            {
+                await _lift.RunAsync(apply: true, personId, new[] { ingredientId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "The branded lift after a confirmed label on food {IngredientId} failed; the next lift run judges it again.", ingredientId);
+            }
+        }
+
         private async Task<long> CaloriesNutrientIdAsync()
         {
             var id = await _context.Nutrients.Where(n => n.Name == CaloriesNutrientName).Select(n => n.Id).FirstOrDefaultAsync();
@@ -418,7 +438,8 @@ namespace Nom.Orch.Services
 
         private async Task<bool> IsVerifiedAsync(IngredientEntity ingredient)
         {
-            if (ingredient.FdcId == null && ingredient.CurationStatusId != (long)CurationStatusEnum.Curated) return false;
+            if (ingredient.CurationStatusId != (long)CurationStatusEnum.Curated
+                && (ingredient.FdcId == null || ingredient.FdcDataType == CatalogAdmissionRule.BrandedFood)) return false;
             var caloriesId = await CaloriesNutrientIdAsync();
             return await _context.IngredientNutrients.AnyAsync(n => n.IngredientId == ingredient.Id && n.NutrientId == caloriesId);
         }

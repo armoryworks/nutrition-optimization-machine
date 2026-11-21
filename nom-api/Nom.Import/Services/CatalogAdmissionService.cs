@@ -198,7 +198,8 @@ namespace Nom.Import.Services
                 foreach (var name in new[] { food.Name, description }.Where(n => !string.IsNullOrWhiteSpace(n)))
                     if (curatedKeys.TryGetValue(Key(name!), out var holder) && holder != food.Id) duplicate ??= holder;
                 var decision = CatalogAdmissionRule.Decide(new AdmissionFacts(food.FdcDataType, categoryId, category, description ?? food.Name,
-                    m.QualityInput(description ?? food.Name, factors: factors.GetValueOrDefault(food.FdcId!)), duplicate), _validator);
+                    m.QualityInput(description ?? food.Name, factors: factors.GetValueOrDefault(food.FdcId!)), duplicate,
+                    food.AgreeingSources, food.DisagreeingSources), _validator);
 
                 if (isUsda)
                 {

@@ -434,6 +434,57 @@ namespace Nom.Api.Tests.Services
         };
 
         [Fact]
+        public async Task Pending_foods_split_into_held_by_rule_awaiting_a_second_source_and_no_reason_and_branded_foods_by_agreeing_sources()
+        {
+            await using var db = await SeededAsync();
+            IngredientEntity Pending(string name, string? reason, bool branded = false, int? agreeing = null, int? disagreeing = null, long status = 9001)
+            {
+                var food = Food(name, status: status);
+                food.AdmissionReason = reason;
+                food.FdcDataType = branded ? Nom.Data.Nutrition.CatalogAdmissionRule.BrandedFood : "sr_legacy_food";
+                food.AgreeingSources = agreeing;
+                food.DisagreeingSources = disagreeing;
+                return food;
+            }
+            db.Ingredients.AddRange(
+                Pending("bar one", "awaiting_second_source", branded: true, agreeing: 1),
+                Pending("bar two", "awaiting_second_source", branded: true),
+                Pending("dressing", "awaiting_second_source+zero_energy", branded: true),
+                Pending("bar three", "sources_disagree", branded: true, agreeing: 2, disagreeing: 1),
+                Pending("baobab", "atwater_mismatch"),
+                Pending("dup one", "duplicate_of:#5"),
+                Pending("dup two", "duplicate_of:#6+atwater_mismatch"),
+                Pending("hand made", null),
+                Pending("rejected", null, status: 9004),
+                Pending("lifted two", null, branded: true, agreeing: 2, disagreeing: 0, status: 9003),
+                Pending("lifted five", null, branded: true, agreeing: 5, disagreeing: 1, status: 9003),
+                Pending("admin curated", null, branded: true, status: 9003),
+                Pending("admin curated, recounted", "awaiting_second_source", branded: true, agreeing: 1, disagreeing: 0, status: 9003),
+                Pending("kept", "sources_disagree", branded: true, agreeing: 3, disagreeing: 2, status: 9003),
+                Pending("apple", null, status: 9003));
+            await db.SaveChangesAsync();
+
+            var foods = (await Service(db).GetAsync()).Foods;
+
+            foods.PendingReview.Should().Be(8);
+            foods.AwaitingSecondSource.Should().Be(2);
+            foods.HeldByRule.Should().Be(5);
+            foods.HeldByReason.Select(r => (r.Reason, r.Foods)).Should().Equal(
+                ("atwater_mismatch", 2), ("duplicate", 2), ("awaiting_second_source", 1), ("sources_disagree", 1), ("zero_energy", 1));
+            foods.PendingWithoutReason.Should().Be(1);
+            foods.Rejected.Should().Be(1);
+            foods.Branded.Should().BeEquivalentTo(new PipelineBrandedCounts
+            {
+                CuratedByAgreeingSources = new[] { new PipelineSourceCount("2", 1), new PipelineSourceCount("4+", 1) },
+                CuratedWithoutCount = 2,
+                CuratedWithDisagreement = 1,
+                Awaiting = 2,
+                HeldByDisagreement = 1,
+                HeldOther = 1,
+            });
+        }
+
+        [Fact]
         public async Task The_journal_is_summed_by_change_type_with_day_and_week_windows()
         {
             await using var db = await SeededAsync();

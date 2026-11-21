@@ -176,6 +176,50 @@
           </ul>
         </div>
       </div>
+      <h3 class="nom-pipeline__subheading">Pending foods, by what holds them</h3>
+      <dl class="nom-pipeline__stats nom-pipeline__stats--small" data-testid="pipeline-foods-split">
+        <div><dt>Held by rule</dt><dd data-testid="pipeline-metric-foods-held-by-rule">{{ s.foods.heldByRule ?? 0 | number }}</dd></div>
+        <div><dt>Awaiting a second source</dt><dd data-testid="pipeline-metric-foods-awaiting-second-source">{{ s.foods.awaitingSecondSource ?? 0 | number }}</dd></div>
+        <div><dt>Pending with no reason</dt><dd data-testid="pipeline-metric-foods-pending-without-reason">{{ s.foods.pendingWithoutReason ?? 0 | number }}</dd></div>
+        <div><dt>Rejected (by an admin; the rule rejects none)</dt><dd data-testid="pipeline-metric-foods-rejected">{{ s.foods.rejected ?? 0 | number }}</dd></div>
+      </dl>
+      @if (s.foods.heldByReason?.length) {
+        <ul class="nom-pipeline__list" data-testid="pipeline-foods-held-reason-list">
+          @for (r of s.foods.heldByReason; track r.reason) {
+            <li class="nom-pipeline__list-item" data-testid="pipeline-foods-held-reason-item">
+              <span>{{ r.reason }}</span>
+              <span>{{ r.foods | number }} foods</span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="nom-pipeline__hint" data-testid="pipeline-foods-held-reason-empty">No food is held by rule.</p>
+      }
+      @if (s.foods.branded; as b) {
+        <div data-testid="pipeline-branded">
+          <h3 class="nom-pipeline__subheading">Branded foods, by agreeing sources</h3>
+          <p class="nom-pipeline__hint">A branded food is curated once two or more independent sources agree with its values, its USDA record counting as one; Open Food Facts never counts toward it.</p>
+          <dl class="nom-pipeline__stats nom-pipeline__stats--small">
+            <div><dt>Awaiting a second source</dt><dd data-testid="pipeline-metric-branded-awaiting">{{ b.awaiting | number }}</dd></div>
+            <div><dt>Held, a source disagrees</dt><dd data-testid="pipeline-metric-branded-held-disagreement">{{ b.heldByDisagreement | number }}</dd></div>
+            <div><dt>Held for another reason</dt><dd data-testid="pipeline-metric-branded-held-other">{{ b.heldOther | number }}</dd></div>
+            <div><dt>Curated, a later source disagrees</dt><dd data-testid="pipeline-metric-branded-curated-disagreement">{{ b.curatedWithDisagreement | number }}</dd></div>
+            <div><dt>Curated with fewer than two sources (by an admin)</dt><dd data-testid="pipeline-metric-branded-curated-without-count">{{ b.curatedWithoutCount | number }}</dd></div>
+          </dl>
+          @if (b.curatedByAgreeingSources.length) {
+            <ul class="nom-pipeline__list" data-testid="pipeline-branded-sources-list">
+              @for (c of b.curatedByAgreeingSources; track c.sources) {
+                <li class="nom-pipeline__list-item" data-testid="pipeline-branded-sources-item">
+                  <span>{{ c.sources }} sources agree</span>
+                  <span>{{ c.foods | number }} curated</span>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="nom-pipeline__hint" data-testid="pipeline-branded-sources-empty">No branded food is curated by agreeing sources yet.</p>
+          }
+        </div>
+      }
       <a routerLink="/admin/food-catalog" class="nom-pipeline__link" data-testid="pipeline-food-catalog-link">Open the food catalog</a>
     </section>
 

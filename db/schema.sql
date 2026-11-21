@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict LVNK2OmaR4d3wfEA7L6JnXNfpNB217C1vpHKZiTI3KeClGpgR8Snu19je0FzfwV
+\restrict sQiRGoJCbpV9FGPeOdT3C6TE9v6EQhsHGeee1yWdtBLXJ7169lodaMonNBGzFP8
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -2384,6 +2384,8 @@ CREATE TABLE recipe."Ingredient" (
     "FdcCategory" character varying(255),
     "EnergyCheck" character varying(64),
     "AdmissionReason" character varying(255),
+    "AgreeingSources" integer,
+    "DisagreeingSources" integer,
     "OnHand" boolean,
     "CreatedDate" timestamp with time zone NOT NULL,
     "CreatedByPersonId" bigint,
@@ -9184,5 +9186,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict LVNK2OmaR4d3wfEA7L6JnXNfpNB217C1vpHKZiTI3KeClGpgR8Snu19je0FzfwV
+\unrestrict sQiRGoJCbpV9FGPeOdT3C6TE9v6EQhsHGeee1yWdtBLXJ7169lodaMonNBGzFP8
 
