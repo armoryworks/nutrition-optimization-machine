@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -8,14 +9,16 @@ using Microsoft.EntityFrameworkCore;
 using Nom.Data;
 using Nom.Data.Nutrition;
 using Nom.Data.Plan;
+using Nom.Data.Recipe;
 
 namespace Nom.Orch.Services.Support
 {
     /// <summary>
-    /// One restriction criterion the diet gate reads from data rather than by a plain name pattern:
-    /// a nutrient criterion, or a word pattern (<c>\mrum\M</c>) matched on word boundaries.
+    /// One restriction criterion the diet gate reads from data: a nutrient criterion, a word pattern
+    /// (<c>\mrum\M</c>) matched on word boundaries, or a name pattern with <c>%</c> (<c>%pork%</c>)
+    /// matched as ILIKE.
     /// </summary>
-    public sealed record DietDataCriterion(long Id, long RestrictionTypeId, string? WordPattern, long? NutrientId, string? NutrientName, decimal? MaxAmountPerServing, int Severity, string? Notes);
+    public sealed record DietDataCriterion(long Id, long RestrictionTypeId, string? WordPattern, long? NutrientId, string? NutrientName, decimal? MaxAmountPerServing, int Severity, string? Notes, string? LikePattern = null);
 
     /// <summary>
     /// The diet gate by data (alcohol design A9). A nutrient criterion with no per-serving cap
@@ -40,14 +43,42 @@ namespace Nom.Orch.Services.Support
     /// every live line that reads as a drink counts whatever food it is linked to
     /// (<see cref="DrinkLineRecipesAsync"/>), so a drink line still linked to a vinegar, a
     /// non-alcoholic drink or Sugar keeps its recipe flagged. Name patterns with <c>%</c> keep their
-    /// ILIKE meaning and are matched where they were before. The whole-catalog probes a household
-    /// set needs are read through <see cref="DietGateCache"/> when one is given.
+    /// ILIKE meaning and follow the same rule as the alcohol words (staging checkpoint 1, K9): a food
+    /// counts by its own name, by its USDA category (<see cref="CategoryPatterns"/>: Pork Products
+    /// for <c>%pork%</c>) or by an alias a rule or a person gave it (<see cref="IngredientAliasTrust"/>:
+    /// its USDA description, an admin's alias, a deterministic rule's, a retired duplicate's name),
+    /// never by an alias with no such source, which is a wording once seen on a recipe line ("bacon
+    /// or butter" on Butter); a word pattern's alias needs such a source too. A recipe with a line on
+    /// a food a pattern of a type matches only through an alias that does not count is read line by
+    /// line: it stays flagged when any of its live lines, on any food, names a pattern of the type by
+    /// its own text (<see cref="LineNames"/>, <see cref="TypeProbe.AliasLineRecipes"/>), so no recipe
+    /// the alias flagged loses its flag while a line of it names the restricted thing, and the
+    /// food's other recipes are cleared. The whole-catalog probes a household set needs are read
+    /// through <see cref="DietGateCache"/> when one is given.
     /// </summary>
     public static class DietCriteriaMatcher
     {
         public const decimal PresencePer100g = 0.5m;
         public const string WordMarker = @"\m";
         public const string AlcoholNutrientName = "Alcohol";
+
+        /// <summary>
+        /// The USDA categories whose every food a name pattern counts, beside the names: a food's
+        /// category is its own stored value, so a pork cut whose catalog name does not say pork
+        /// still counts for <c>%pork%</c>.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, int[]> CategoryPatterns = new Dictionary<string, int[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["%pork%"] = new[] { 10 },
+        };
+
+        /// <summary>
+        /// What one restriction type's criteria match: the foods each criterion counts (by criterion
+        /// id), the foods a pattern of the type matches only through an alias that does not count,
+        /// and, over the whole catalog, the recipes with a live line on one of those foods that have a
+        /// live line, on any food, whose own text names a pattern of the type.
+        /// </summary>
+        public sealed record TypeProbe(Dictionary<long, HashSet<long>> Foods, HashSet<long> AliasOnly, HashSet<long> AliasLineRecipes);
 
         /// <summary>Whether a criterion pattern is a word pattern rather than an ILIKE pattern.</summary>
         public static bool IsWordPattern(string? pattern) => pattern != null && pattern.TrimStart().StartsWith(WordMarker, StringComparison.Ordinal);
@@ -59,6 +90,23 @@ namespace Nom.Orch.Services.Support
         public static Regex WordRegex(string wordPattern) =>
             new(wordPattern.Trim().Replace(@"\m", @"(?<![\p{L}\p{N}_])").Replace(@"\M", @"(?![\p{L}\p{N}_])"), RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        /// <summary>An ILIKE pattern as a .NET expression: <c>%</c> is any run of characters and <c>_</c> one character, the whole text matched without case.</summary>
+        public static Regex LikeRegex(string likePattern) =>
+            Compiled.GetOrAdd("like:" + likePattern.Trim(), _ => new Regex("^" + Regex.Escape(likePattern.Trim()).Replace("%", ".*").Replace("_", ".") + "$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline));
+
+        private static readonly ConcurrentDictionary<string, Regex> Compiled = new(StringComparer.Ordinal);
+
+        /// <summary>Whether a recipe line's own text names what a pattern criterion restricts: an ILIKE pattern that matches it, or a word pattern whose match counts (<see cref="NameCounts"/>).</summary>
+        public static bool LineNames(DietDataCriterion criterion, string? rawLine)
+        {
+            if (string.IsNullOrWhiteSpace(rawLine)) return false;
+            if (criterion.LikePattern != null) return LikeRegex(criterion.LikePattern).IsMatch(rawLine);
+            return criterion.WordPattern != null && Compiled.GetOrAdd("word:" + criterion.WordPattern, _ => WordRegex(criterion.WordPattern)).IsMatch(rawLine) && NameCounts(rawLine);
+        }
+
+        /// <summary>Whether an alias a pattern matched may count for its food by its source: only one a rule or a person gave it (<see cref="IngredientAliasTrust.IsTrusted"/>); an alias with no such source is a wording seen on a recipe line, and that line decides for itself.</summary>
+        public static bool AliasSourceCounts(string? sourceContext) => IngredientAliasTrust.IsTrusted(sourceContext);
+
         /// <summary>Whether a name a word pattern matched counts: a name with no alcohol word counts as it is, a name with one only when it reads as a drink or a dish named after one.</summary>
         public static bool NameCounts(string name)
         {
@@ -69,7 +117,9 @@ namespace Nom.Orch.Services.Support
         /// <summary>Whether an alias a word pattern matched counts for its food: only when it holds no alcohol word, since an alias with one is a recipe line or a drink's name that the food's own name and stored alcohol decide.</summary>
         public static bool AliasCounts(string alias) => AlcoholLineContext.Read(alias).Kind == AlcoholSenseKind.None;
 
-        /// <summary>The word and nutrient criteria of the restriction types, as the gate reads them.</summary>
+        private static bool WordAliasCounts(NamedFood alias) => AliasSourceCounts(alias.Context) && AliasCounts(alias.Text);
+
+        /// <summary>The nutrient, word and name-pattern criteria of the restriction types, as the gate reads them.</summary>
         public static async Task<List<DietDataCriterion>> CriteriaAsync(ApplicationDbContext db, IReadOnlyCollection<long> typeIds, int minimumSeverity = 0)
         {
             if (typeIds.Count == 0) return new List<DietDataCriterion>();
@@ -79,28 +129,46 @@ namespace Nom.Orch.Services.Support
                 .Select(c => new { c.Id, c.RestrictionTypeId, c.IngredientPattern, c.NutrientId, NutrientName = c.Nutrient != null ? c.Nutrient.Name : null, c.MaxAmountPerServing, c.Severity, c.Notes })
                 .ToListAsync();
             return rows
-                .Where(c => c.NutrientId != null || IsWordPattern(c.IngredientPattern))
-                .Select(c => new DietDataCriterion(c.Id, c.RestrictionTypeId, c.NutrientId == null ? c.IngredientPattern!.Trim() : null, c.NutrientId, c.NutrientName, c.MaxAmountPerServing, c.Severity, c.Notes))
+                .Where(c => c.NutrientId != null || !string.IsNullOrWhiteSpace(c.IngredientPattern))
+                .Select(c => new DietDataCriterion(c.Id, c.RestrictionTypeId,
+                    c.NutrientId == null && IsWordPattern(c.IngredientPattern) ? c.IngredientPattern!.Trim() : null,
+                    c.NutrientId, c.NutrientName, c.MaxAmountPerServing, c.Severity, c.Notes,
+                    c.NutrientId == null && !IsWordPattern(c.IngredientPattern) ? c.IngredientPattern!.Trim() : null))
                 .ToList();
         }
 
         /// <summary>
         /// The foods each criterion matches, criteria of one restriction type at a time (a type's
         /// nutrient criteria decide its word patterns on foods that store the nutrient; its word
-        /// patterns are probed together, one name and one alias query). With a scope, only those
-        /// foods are read; without one, a given cache keeps each type's answer until the catalog changes.
+        /// patterns are probed together, one name and one alias query; each name pattern by name,
+        /// alias and category). With a scope, only those foods are read; without one, a given cache
+        /// keeps each type's answer until the catalog changes.
         /// </summary>
         public static async Task<Dictionary<DietDataCriterion, HashSet<long>>> FoodsAsync(ApplicationDbContext db, IEnumerable<DietDataCriterion> criteria, IReadOnlyCollection<long>? scope = null, DietGateCache? cache = null)
         {
+            var list = criteria.ToList();
+            var probes = await ProbeAsync(db, list, scope, cache);
             var result = new Dictionary<DietDataCriterion, HashSet<long>>();
+            foreach (var c in list)
+                if (probes.TryGetValue(c.RestrictionTypeId, out var probe) && probe.Foods.TryGetValue(c.Id, out var ids)) result[c] = new HashSet<long>(ids);
+            return result;
+        }
+
+        /// <summary>
+        /// Each restriction type's <see cref="TypeProbe"/>, by type id. With a scope only those foods
+        /// are read and no line is read (the caller has the lines); without one the recipes of the
+        /// lines on foods matched only through an alias are read too, and a given cache keeps each
+        /// type's probe until the catalog changes.
+        /// </summary>
+        public static async Task<Dictionary<long, TypeProbe>> ProbeAsync(ApplicationDbContext db, IEnumerable<DietDataCriterion> criteria, IReadOnlyCollection<long>? scope = null, DietGateCache? cache = null)
+        {
+            var result = new Dictionary<long, TypeProbe>();
             foreach (var type in criteria.GroupBy(c => c.RestrictionTypeId))
             {
                 var list = type.ToList();
-                var foods = scope == null && cache != null
+                result[type.Key] = scope == null && cache != null
                     ? await cache.GetAsync(db, "foods:" + CacheKey(list), d => TypeFoodsAsync(d, list, null))
                     : await TypeFoodsAsync(db, list, scope);
-                foreach (var c in list)
-                    if (foods.TryGetValue(c.Id, out var ids)) result[c] = new HashSet<long>(ids);
             }
             return result;
         }
@@ -230,15 +298,24 @@ namespace Nom.Orch.Services.Support
             return lines.Where(l => !flagged.Contains(l.IngredientId)).Select(l => l.RecipeId).ToHashSet();
         }
 
-        /// <summary>Computes into the cache the whole-catalog probes of every restriction type with a word or nutrient criterion, as a household set reads them, so the first plan after a start does not wait for them; returns how many probes were computed.</summary>
+        /// <summary>Computes into the cache the whole-catalog probes of every restriction type with a word or nutrient criterion or named by a restriction, as a household set reads them, so the first plan after a start does not wait for them; returns how many probes were computed.</summary>
         public static async Task<int> WarmAsync(ApplicationDbContext db, DietGateCache cache)
         {
             var before = cache.Computations;
-            var typeIds = await db.Set<RestrictionCriterionEntity>().AsNoTracking()
-                .Where(c => c.NutrientId != null || c.IngredientPattern != null)
-                .Select(c => c.RestrictionTypeId)
+            var inUse = await db.Restrictions.AsNoTracking()
+                .Where(r => r.RestrictionTypeId != null)
+                .Select(r => r.RestrictionTypeId!.Value)
                 .Distinct()
                 .ToListAsync();
+            var rows = await db.Set<RestrictionCriterionEntity>().AsNoTracking()
+                .Where(c => c.NutrientId != null || c.IngredientPattern != null)
+                .Select(c => new { c.RestrictionTypeId, c.NutrientId, c.IngredientPattern })
+                .ToListAsync();
+            var typeIds = rows
+                .Where(c => inUse.Contains(c.RestrictionTypeId) || c.NutrientId != null || IsWordPattern(c.IngredientPattern))
+                .Select(c => c.RestrictionTypeId)
+                .Distinct()
+                .ToList();
             var criteria = await CriteriaAsync(db, typeIds);
             await FoodsAsync(db, criteria, cache: cache);
             if (ReadsLines(criteria)) await cache.GetAsync(db, "drink-lines", DrinkLinesAsync);
@@ -258,9 +335,11 @@ namespace Nom.Orch.Services.Support
                 .Where(ri => !ri.IsDeleted && Regex.IsMatch(ri.RawLine, AlcoholLineContext.DrinkNamePattern, RegexOptions.IgnoreCase))
                 .Select(ri => new RecipeLine(ri.RecipeId, ri.IngredientId, ri.RawLine));
 
+        private sealed record AliasRow(string AliasName, string? SourceContext);
+
         internal sealed record NutrientFood(long IngredientId, string Name, int? CategoryId);
 
-        internal sealed record NamedFood(long Id, string Text, bool IsAlias = false);
+        internal sealed record NamedFood(long Id, string Text, bool IsAlias = false, string? Context = null);
 
         internal static IQueryable<NutrientFood> NutrientRows(ApplicationDbContext db, long nutrientId, IReadOnlyCollection<long>? scope)
         {
@@ -282,30 +361,121 @@ namespace Nom.Orch.Services.Support
         {
             var aliases = db.IngredientAliases.AsNoTracking().Where(a => !a.IsDeleted && Regex.IsMatch(a.AliasName, pattern, RegexOptions.IgnoreCase));
             if (scope != null) aliases = aliases.Where(a => scope.Contains(a.IngredientId));
-            return aliases.Select(a => new NamedFood(a.IngredientId, a.AliasName, true));
+            return aliases.Select(a => new NamedFood(a.IngredientId, a.AliasName, true, a.SourceContext));
         }
 
-        private static string CacheKey(IEnumerable<DietDataCriterion> criteria) =>
-            string.Join(';', criteria.OrderBy(c => c.Id).Select(c => string.Create(CultureInfo.InvariantCulture, $"{c.Id}:{c.WordPattern}:{c.NutrientId}:{c.NutrientName}:{c.MaxAmountPerServing}")));
+        /// <summary>Foods whose name an ILIKE pattern matches, probed apart from the aliases (the trigram index on Ingredient.Name serves it).</summary>
+        internal static IQueryable<NamedFood> LikeNameRows(ApplicationDbContext db, string pattern, IReadOnlyCollection<long>? scope)
+        {
+            var foods = db.Ingredients.AsNoTracking().Where(i => EF.Functions.ILike(i.Name, pattern));
+            if (scope != null) foods = foods.Where(i => scope.Contains(i.Id));
+            return foods.Select(i => new NamedFood(i.Id, i.Name, false, null));
+        }
 
-        private static async Task<Dictionary<long, HashSet<long>>> TypeFoodsAsync(ApplicationDbContext db, IReadOnlyList<DietDataCriterion> criteria, IReadOnlyCollection<long>? scope)
+        /// <summary>Live aliases an ILIKE pattern matches, with the source each was given by.</summary>
+        internal static IQueryable<NamedFood> LikeAliasRows(ApplicationDbContext db, string pattern, IReadOnlyCollection<long>? scope)
+        {
+            var aliases = db.IngredientAliases.AsNoTracking().Where(a => !a.IsDeleted && EF.Functions.ILike(a.AliasName, pattern));
+            if (scope != null) aliases = aliases.Where(a => scope.Contains(a.IngredientId));
+            return aliases.Select(a => new NamedFood(a.IngredientId, a.AliasName, true, a.SourceContext));
+        }
+
+        /// <summary>The live lines whose text an ILIKE pattern matches, of the recipes with a live line on one of the given foods.</summary>
+        internal static IQueryable<RecipeLine> LikeLineRows(ApplicationDbContext db, string pattern, IReadOnlyCollection<long> foods) =>
+            db.RecipeIngredients.AsNoTracking()
+                .Where(ri => !ri.IsDeleted && EF.Functions.ILike(ri.RawLine, pattern)
+                    && db.RecipeIngredients.Any(o => !o.IsDeleted && o.RecipeId == ri.RecipeId && foods.Contains(o.IngredientId)))
+                .Select(ri => new RecipeLine(ri.RecipeId, ri.IngredientId, ri.RawLine));
+
+        /// <summary>The live lines whose text a word pattern matches (<c>~*</c>), of the recipes with a live line on one of the given foods.</summary>
+        internal static IQueryable<RecipeLine> WordLineRows(ApplicationDbContext db, string pattern, IReadOnlyCollection<long> foods) =>
+            db.RecipeIngredients.AsNoTracking()
+                .Where(ri => !ri.IsDeleted && Regex.IsMatch(ri.RawLine, pattern, RegexOptions.IgnoreCase)
+                    && db.RecipeIngredients.Any(o => !o.IsDeleted && o.RecipeId == ri.RecipeId && foods.Contains(o.IngredientId)))
+                .Select(ri => new RecipeLine(ri.RecipeId, ri.IngredientId, ri.RawLine));
+
+        private static string CacheKey(IEnumerable<DietDataCriterion> criteria) =>
+            string.Join(';', criteria.OrderBy(c => c.Id).Select(c => string.Create(CultureInfo.InvariantCulture, $"{c.Id}:{c.WordPattern}:{c.LikePattern}:{c.NutrientId}:{c.NutrientName}:{c.MaxAmountPerServing}")));
+
+        private static async Task<TypeProbe> TypeFoodsAsync(ApplicationDbContext db, IReadOnlyList<DietDataCriterion> criteria, IReadOnlyCollection<long>? scope)
         {
             var result = new Dictionary<long, HashSet<long>>();
+            var aliasOnly = new HashSet<long>();
             var nutrients = criteria.Where(c => c.NutrientId != null && c.MaxAmountPerServing == null).ToList();
             foreach (var c in nutrients) result[c.Id] = await NutrientFoodsAsync(db, c, scope);
             if (RetainedCriterion(criteria) is { } capped) result[capped.Id] = await NoFigureDrinkFoodsAsync(db, capped.NutrientId!.Value, scope);
             var words = criteria.Where(c => c.WordPattern != null).ToList();
-            if (words.Count == 0) return result;
-            var named = (await NamesAsync(db, string.Join('|', words.Select(c => "(?:" + c.WordPattern + ")")), scope, aliases: true))
-                .Where(n => n.IsAlias ? AliasCounts(n.Text) : NameCounts(n.Text))
-                .ToList();
-            var decided = (await StoringAsync(db, named.Select(n => n.Id).Distinct().ToList(), criteria.Where(c => c.NutrientId != null).Select(c => c.NutrientId!.Value).Distinct().ToList())).ToHashSet();
-            foreach (var c in words)
+            if (words.Count > 0)
             {
-                var word = WordRegex(c.WordPattern!);
-                result[c.Id] = named.Where(n => !decided.Contains(n.Id) && word.IsMatch(n.Text)).Select(n => n.Id).ToHashSet();
+                var all = await NamesAsync(db, string.Join('|', words.Select(c => "(?:" + c.WordPattern + ")")), scope, aliases: true);
+                var named = all.Where(n => n.IsAlias ? WordAliasCounts(n) : NameCounts(n.Text)).ToList();
+                var decided = (await StoringAsync(db, named.Select(n => n.Id).Distinct().ToList(), criteria.Where(c => c.NutrientId != null).Select(c => c.NutrientId!.Value).Distinct().ToList())).ToHashSet();
+                foreach (var c in words)
+                {
+                    var word = WordRegex(c.WordPattern!);
+                    result[c.Id] = named.Where(n => !decided.Contains(n.Id) && word.IsMatch(n.Text)).Select(n => n.Id).ToHashSet();
+                }
+                aliasOnly.UnionWith(all.Where(n => n.IsAlias && !WordAliasCounts(n)).Select(n => n.Id));
             }
-            return result;
+            foreach (var c in criteria.Where(c => c.LikePattern != null))
+            {
+                var (counted, onlyByAlias) = await LikeFoodsAsync(db, c.LikePattern!, scope);
+                result[c.Id] = counted;
+                aliasOnly.UnionWith(onlyByAlias);
+            }
+            foreach (var ids in result.Values) aliasOnly.ExceptWith(ids);
+            var recipes = scope == null && aliasOnly.Count > 0 ? await AliasLineRecipesAsync(db, criteria, aliasOnly) : new HashSet<long>();
+            return new TypeProbe(result, aliasOnly, recipes);
+        }
+
+        private static async Task<(HashSet<long> Counted, HashSet<long> AliasOnly)> LikeFoodsAsync(ApplicationDbContext db, string pattern, IReadOnlyCollection<long>? scope)
+        {
+            List<NamedFood> names;
+            List<NamedFood> aliases;
+            if (db.Database.IsRelational())
+            {
+                names = await LikeNameRows(db, pattern, scope).ToListAsync();
+                aliases = await LikeAliasRows(db, pattern, scope).ToListAsync();
+            }
+            else
+            {
+                var like = LikeRegex(pattern);
+                var foods = db.Ingredients.AsNoTracking();
+                if (scope != null) foods = foods.Where(i => scope.Contains(i.Id));
+                var all = await foods.Select(i => new { i.Id, i.Name, Aliases = i.Aliases.Where(a => !a.IsDeleted).Select(a => new { a.AliasName, a.SourceContext }).ToList() }).ToListAsync();
+                names = all.Where(i => like.IsMatch(i.Name)).Select(i => new NamedFood(i.Id, i.Name)).ToList();
+                aliases = all.SelectMany(i => i.Aliases.Where(a => like.IsMatch(a.AliasName)).Select(a => new NamedFood(i.Id, a.AliasName, true, a.SourceContext))).ToList();
+            }
+            var counted = names.Select(n => n.Id).Concat(aliases.Where(a => AliasSourceCounts(a.Context)).Select(a => a.Id)).ToHashSet();
+            if (CategoryPatterns.TryGetValue(pattern, out var categories))
+            {
+                var inCategory = db.Ingredients.AsNoTracking().Where(i => i.FdcCategoryId != null && categories.Contains(i.FdcCategoryId.Value));
+                if (scope != null) inCategory = inCategory.Where(i => scope.Contains(i.Id));
+                counted.UnionWith(await inCategory.Select(i => i.Id).ToListAsync());
+            }
+            var onlyByAlias = aliases.Select(a => a.Id).Where(id => !counted.Contains(id)).ToHashSet();
+            return (counted, onlyByAlias);
+        }
+
+        private static async Task<HashSet<long>> AliasLineRecipesAsync(ApplicationDbContext db, IReadOnlyList<DietDataCriterion> criteria, HashSet<long> foods)
+        {
+            var patterns = criteria.Where(c => c.LikePattern != null || c.WordPattern != null).ToList();
+            var ids = foods.ToList();
+            var lines = new List<RecipeLine>();
+            if (db.Database.IsRelational())
+            {
+                foreach (var like in patterns.Where(c => c.LikePattern != null).Select(c => c.LikePattern!).Distinct(StringComparer.OrdinalIgnoreCase))
+                    lines.AddRange(await LikeLineRows(db, like, ids).ToListAsync());
+                var words = patterns.Where(c => c.WordPattern != null).Select(c => "(?:" + c.WordPattern + ")").ToList();
+                if (words.Count > 0) lines.AddRange(await WordLineRows(db, string.Join('|', words), ids).ToListAsync());
+            }
+            else
+            {
+                var touched = await db.RecipeIngredients.AsNoTracking().Where(ri => !ri.IsDeleted && ids.Contains(ri.IngredientId)).Select(ri => ri.RecipeId).Distinct().ToListAsync();
+                lines = await db.RecipeIngredients.AsNoTracking().Where(ri => !ri.IsDeleted && touched.Contains(ri.RecipeId))
+                    .Select(ri => new RecipeLine(ri.RecipeId, ri.IngredientId, ri.RawLine)).ToListAsync();
+            }
+            return lines.Where(l => patterns.Any(c => LineNames(c, l.RawLine))).Select(l => l.RecipeId).ToHashSet();
         }
 
         private static async Task<List<DrinkLine>> DrinkLinesAsync(ApplicationDbContext db) =>
@@ -365,8 +535,8 @@ namespace Nom.Orch.Services.Support
             var word = WordRegex(pattern);
             var foods = db.Ingredients.AsNoTracking();
             if (scope != null) foods = foods.Where(i => scope.Contains(i.Id));
-            var all = await foods.Select(i => new { i.Id, i.Name, Aliases = i.Aliases.Where(a => !a.IsDeleted).Select(a => a.AliasName).ToList() }).ToListAsync();
-            return all.SelectMany(i => (aliases ? i.Aliases : new List<string>()).Select(a => new NamedFood(i.Id, a, true)).Prepend(new NamedFood(i.Id, i.Name, false)).Where(n => word.IsMatch(n.Text))).ToList();
+            var all = await foods.Select(i => new { i.Id, i.Name, Aliases = i.Aliases.Where(a => !a.IsDeleted).Select(a => new AliasRow(a.AliasName, a.SourceContext)).ToList() }).ToListAsync();
+            return all.SelectMany(i => (aliases ? i.Aliases : new()).Select(a => new NamedFood(i.Id, a.AliasName, true, a.SourceContext)).Prepend(new NamedFood(i.Id, i.Name, false)).Where(n => word.IsMatch(n.Text))).ToList();
         }
 
         private static async Task<List<long>> StoringAsync(ApplicationDbContext db, IReadOnlyCollection<long> ids, IReadOnlyCollection<long> nutrientIds)

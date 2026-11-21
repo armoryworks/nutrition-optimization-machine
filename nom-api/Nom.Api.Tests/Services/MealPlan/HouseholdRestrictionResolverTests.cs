@@ -31,7 +31,7 @@ namespace Nom.Api.Tests.Services.MealPlan
                 new ReferenceEntity { Id = VegetarianRef, Name = "Vegetarian" });
             var peanut = new IngredientEntity { Name = "Peanut Butter", CurationStatusId = 9003 };
             var almondMilk = new IngredientEntity { Name = "Oat Beverage", CurationStatusId = 9003 };
-            almondMilk.Aliases.Add(new IngredientAliasEntity { AliasName = "almond milk" });
+            almondMilk.Aliases.Add(new IngredientAliasEntity { AliasName = "almond milk", SourceContext = "admin:review" });
             var chicken = new IngredientEntity { Name = "Chicken Thigh", CurationStatusId = 9003 };
             var tofu = new IngredientEntity { Name = "Firm Tofu", CurationStatusId = 9003 };
             db.Ingredients.AddRange(peanut, almondMilk, chicken, tofu);
@@ -51,7 +51,7 @@ namespace Nom.Api.Tests.Services.MealPlan
             var set = await new HouseholdRestrictionResolver(db).ResolveAsync(HouseholdId);
 
             set.IngredientIds.Should().Contain(peanut, "peanut matches %peanut%");
-            set.IngredientIds.Should().Contain(almondMilk, "the alias 'almond milk' matches %almond%");
+            set.IngredientIds.Should().Contain(almondMilk, "the alias 'almond milk' an admin gave the food matches %almond%");
             set.IngredientIds.Should().NotContain(chicken).And.NotContain(tofu);
             set.HasSevere.Should().BeTrue("allergy criteria are severity 5");
         }

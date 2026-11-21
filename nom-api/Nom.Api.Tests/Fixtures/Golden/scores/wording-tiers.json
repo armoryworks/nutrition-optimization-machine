@@ -1,21 +1,22 @@
 {
   "lane": "wording-tiers",
   "model": "wording-tiers/1",
+  "checkModel": null,
   "host": "none",
-  "signature": "d089917b793c1b3d",
-  "scoredAtUtc": "2026-11-21T02:10:28.2879636Z",
+  "signature": "8f28a29414d55c02",
+  "scoredAtUtc": "2026-11-21T02:56:49.8044803Z",
   "caseSet": "25a3a9b47b2448a6",
   "cases": 7326,
-  "passed": 3202,
-  "score": 0.4371,
+  "passed": 3204,
+  "score": 0.4373,
   "falseAccepts": 9,
   "falseAcceptCases": 1362,
   "falseAcceptRate": 0.0066,
-  "accepted": 1858,
+  "accepted": 1860,
   "precision": 0.9952,
   "byJudge": {
     "agent-review-2026-11-13": [
-      3202,
+      3204,
       7326
     ]
   },
@@ -3241,7 +3242,6 @@
     "tiers:P6208",
     "tiers:P6211",
     "tiers:P6212",
-    "tiers:P6213",
     "tiers:P6214",
     "tiers:P6215",
     "tiers:P6216",
@@ -4090,7 +4090,6 @@
     "tiers:P7641",
     "tiers:P7642",
     "tiers:P7643",
-    "tiers:P7644",
     "tiers:P7645",
     "tiers:P7646",
     "tiers:P7648",
@@ -4148,5 +4147,10 @@
   "auditKnownBad": null,
   "auditFlaggedBad": null,
   "auditKnownGood": null,
-  "auditFlaggedGood": null
+  "auditFlaggedGood": null,
+  "auditModel": null,
+  "auditorKnownBad": null,
+  "auditorFlaggedBad": null,
+  "auditorKnownGood": null,
+  "auditorFlaggedGood": null
 }

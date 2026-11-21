@@ -54,6 +54,14 @@ namespace Nom.Orch.Services.Support
         bool ReadersAgreed = false,
         IReadOnlyList<GateLine>? Lines = null);
 
+    /// <summary>What a pair's shared drink sense gives as identity evidence: none, credit for a food of the sense's table after its first ready one, or full credit for that first ready food.</summary>
+    internal enum SenseCredit
+    {
+        None,
+        Table,
+        First,
+    }
+
     /// <summary>One rule that holds a pair: its stable code, the rule as a reason reads it, and the detail.</summary>
     public sealed record GateHold(string Code, string Rule, string? Detail = null)
     {
@@ -90,6 +98,8 @@ namespace Nom.Orch.Services.Support
         public FoodNameMatcher? Matcher { get; init; }
         /// <summary>The USDA entry of each staple name, as <see cref="IngredientLinkService.StapleTargets"/> builds it.</summary>
         public IReadOnlyDictionary<string, FoodCandidate> Staples { get; init; } = new Dictionary<string, FoodCandidate>();
+        /// <summary>The live, non-branded foods of each FDC id, as <see cref="LinkGate.AlcoholIdentity"/> reads a sense's table.</summary>
+        public IReadOnlyDictionary<string, IReadOnlyList<GateFood>> ByFdcId { get; init; } = new Dictionary<string, IReadOnlyList<GateFood>>();
 
         /// <summary>
         /// A catalog from the foods a pass can link to: siblings and lead words from every live,
@@ -128,6 +138,8 @@ namespace Nom.Orch.Services.Support
                 GramBounds = gramBounds ?? new Dictionary<int, decimal>(),
                 Matcher = matcher,
                 Staples = staples ?? new Dictionary<string, FoodCandidate>(),
+                ByFdcId = live.Where(f => f.FdcId != null).GroupBy(f => f.FdcId!, StringComparer.Ordinal)
+                    .ToDictionary(g => g.Key, g => (IReadOnlyList<GateFood>)g.ToList(), StringComparer.Ordinal),
             };
         }
     }
@@ -147,12 +159,14 @@ namespace Nom.Orch.Services.Support
     /// a fresh one; a marked variant, a percent variant or a salted/sweetened polarity; one generic
     /// word for one of many varieties; a group word the target's USDA category contradicts; a line
     /// whose alcohol sense (<see cref="AlcoholLineContext"/>) refuses the food; and, with lines,
-    /// units the food cannot weigh or amounts past its group's bound. <see cref="Family"/>
+    /// units the food cannot weigh or amounts past its group's bound. A drink sense that allows the
+    /// food is identity evidence, as two blind readers are, but for a food after the first ready one
+    /// of its table the wording's words must still be in the food (<see cref="AlcoholIdentity"/>). <see cref="Family"/>
     /// makes wordings that fold to one key agree on one food. See docs/architecture/link-gate.md.
     /// </summary>
     public static class LinkGate
     {
-        public const string Version = "link-gate/7";
+        public const string Version = "link-gate/8";
 
         public const string Heading = "heading";
         public const string Compound = "compound";
@@ -476,6 +490,9 @@ namespace Nom.Orch.Services.Support
                 break;
             }
 
+            var senseCredit = AlcoholIdentity(pair, raw, catalog);
+            var senseIdentity = senseCredit != SenseCredit.None;
+
             if (LineRelinkService.TargetFor(wording, target.Id, target.Name.Trim(), catalog.Curated) is { } other && other != pair.SourceId)
                 Add(OtherFood, LinkAutoApplyGuard.OtherFoodRule, catalog.CuratedNames.TryGetValue(other, out var otherName) ? otherName : "#" + other);
             if (catalog.TrustedAliases.TryGetValue(IngredientNameNormalizer.WordingKey(raw), out var aliasOwner) && aliasOwner != target.Id && aliasOwner != pair.SourceId)
@@ -487,6 +504,7 @@ namespace Nom.Orch.Services.Support
                 {
                     if (States[state].Any(stateWords.Contains)) continue;
                     if (driedSpice && SpiceNeutral.Contains(state) && allWords.Overlaps(SpiceNeutral)) continue;
+                    if (senseIdentity && DrinkNeutral.Contains(state)) continue;
                     if (StateIsDefault(state, target, lead, catalog)) continue;
                     Add(State, LinkAutoApplyGuard.StateRule, state);
                     break;
@@ -505,8 +523,8 @@ namespace Nom.Orch.Services.Support
                     Add(Shortlist, "not on the name matcher's shortlist");
             }
 
-            var lexical = !pair.ReadersAgreed;
-            var unmet = headDefault || !lexical ? new List<string>() : RequiredLeadWords(text).Where(w => !(spice && w == "seed") && !Meets(w, folded, catalog)).ToList();
+            var lexical = !pair.ReadersAgreed && senseCredit != SenseCredit.First;
+            var unmet = headDefault || !lexical || senseIdentity ? new List<string>() : RequiredLeadWords(text).Where(w => !(spice && w == "seed") && !Meets(w, folded, catalog)).ToList();
             if (unmet.Count > 0) Add(LeadNoun, "food led by a word the wording lacks", string.Join(' ', unmet));
 
             if (lexical)
@@ -514,7 +532,7 @@ namespace Nom.Orch.Services.Support
                 var missing = identity.Where((w, i) => !Contained(identity, i, foodWords, foodSequence, catalog)).ToList();
                 if (missing.Count > 0) Add(Containment, "wording word not in the food", string.Join(' ', missing));
             }
-            else if (identity.Count > 0 && !Contained(identity, identity.Count - 1, foodWords, foodSequence, catalog))
+            else if (senseCredit != SenseCredit.First && identity.Count > 0 && !Contained(identity, identity.Count - 1, foodWords, foodSequence, catalog))
             {
                 Add(HeadNoun, "the wording's head noun is not in the food", identity[^1]);
             }
@@ -607,6 +625,35 @@ namespace Nom.Orch.Services.Support
             }
 
             return holds;
+        }
+
+        /// <summary>
+        /// Whether the alcohol sense of the pair is identity evidence for its food: every line (or
+        /// the wording, with no lines), read by its own words and not by its recipe, is a drink, the
+        /// lines share one sense, and the food is in that sense's allowed table. "sherry", "sack",
+        /// "Madeira", "port" and "claret" name a USDA wine that does not carry the word, so such an
+        /// answer is read as two blind readers' is, with no word of the wording required in the food.
+        /// Only the first food of the table the catalog holds ready (<see cref="WordingTiers.Ready"/>),
+        /// the food the alcohol tier answers, gets <see cref="SenseCredit.First"/>; a later food (Merlot
+        /// for "chianti") gets <see cref="SenseCredit.Table"/>: only its lead noun and a drink's state
+        /// words are excused, and every word of the wording must still be in the food, so "merlot"
+        /// passes to Merlot and one varietal is never passed for another.
+        /// </summary>
+        internal static SenseCredit AlcoholIdentity(GatePair pair, string raw, GateCatalog catalog)
+        {
+            if (pair.Target.FdcId is not { } fdcId) return SenseCredit.None;
+            var readings = (pair.Lines is { Count: > 0 } lines ? lines.Select(l => l.Raw ?? raw) : new[] { raw })
+                .Select(l => AlcoholLineContext.Read(l))
+                .ToList();
+            if (readings.Any(r => r.Kind != AlcoholSenseKind.Drink)) return SenseCredit.None;
+            if (AlcoholLineContext.Shared(readings) is not { Kind: AlcoholSenseKind.Drink } shared) return SenseCredit.None;
+            var credit = SenseCredit.First;
+            foreach (var fdc in AlcoholLineContext.Allowed(shared.Sense))
+            {
+                if (fdc == fdcId) return credit;
+                if (catalog.ByFdcId.TryGetValue(fdc, out var foods) && foods.Any(WordingTiers.Ready)) credit = SenseCredit.Table;
+            }
+            return SenseCredit.None;
         }
 
         /// <summary>

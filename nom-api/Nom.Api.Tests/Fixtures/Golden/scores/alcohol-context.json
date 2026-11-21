@@ -1,9 +1,10 @@
 {
   "lane": "alcohol-context",
   "model": "alcohol-context/4",
+  "checkModel": null,
   "host": "none",
   "signature": "3c80ea64e8e2e2a3",
-  "scoredAtUtc": "2026-11-21T02:10:21.3496374Z",
+  "scoredAtUtc": "2026-11-21T02:56:46.6436295Z",
   "caseSet": "0baf86836c9a6427",
   "cases": 177,
   "passed": 177,
@@ -31,5 +32,10 @@
   "auditKnownBad": null,
   "auditFlaggedBad": null,
   "auditKnownGood": null,
-  "auditFlaggedGood": null
+  "auditFlaggedGood": null,
+  "auditModel": null,
+  "auditorKnownBad": null,
+  "auditorFlaggedBad": null,
+  "auditorKnownGood": null,
+  "auditorFlaggedGood": null
 }

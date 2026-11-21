@@ -1,0 +1,33 @@
+id	restriction	food	category	aliases	line	expect	status	source	note
+dg-01	Halal	Butter	1	bacon or butter|-	1 cup butter	in	ok	rule:diet-gate	staging checkpoint 1 K9 class for the % criteria: a recipe line stored as an alias with no source decides nothing for its food, so every butter recipe is no longer kept out for its alias
+dg-02	Halal	Butter	1	bacon or butter|-	1/4 lb bacon or butter	out	ok	rule:diet-gate	the line the alias came from names bacon itself and keeps its recipe out, in plans and on the page
+dg-03	Halal	Bacon	10	-	4 slices bacon	out	ok	rule:diet-gate	the food's own name matches %bacon%
+dg-04	Halal	Fatback	10	-	4 oz fatback	out	ok	rule:diet-gate	a USDA Pork Products food counts for %pork% by its stored category, though its catalog name does not say pork (newly flagged on the recipe page, which read names only)
+dg-05	Halal	Chicharrones	-	pork rinds|admin:review	1 cup chicharrones	out	ok	rule:diet-gate	an alias an admin gave the food counts for it
+dg-06	Halal	Boston Butt	-	Pork, fresh, shoulder, blade, boston (roasts), separable lean and fat, raw|fdc:description	2 lb boston butt	out	ok	rule:diet-gate	the food's USDA description, stored as an fdc alias, is its own name
+dg-07	Halal	Gelatin	19	-	1 envelope gelatin	out	ok	rule:diet-gate	the food's own name matches %gelatin%
+dg-08	Halal	Sugar	19	sugar and lard|-	1/2 cup sugar	in	ok	rule:diet-gate	a recipe-line alias on Sugar no longer keeps every sugar recipe out
+dg-09	Halal	Sugar	19	sugar and lard|-	1 cup sugar and 1/2 cup lard	out	ok	rule:diet-gate	the line names lard itself
+dg-10	Halal	Vegetable Oil	4	oil or bacon fat|link:ai:qwen2.5:14b-instruct	2 tbsp oil	in	ok	rule:diet-gate	an alias a model pick left is a wording seen on a line, not a name of the food
+dg-11	Halal	Vegetable Oil	4	oil or bacon fat|link:ai:qwen2.5:14b-instruct	2 tbsp oil or bacon fat	out	ok	rule:diet-gate	the line names bacon itself
+dg-12	Whole30	Olive Oil	4	olive oil or butter|-	2 tbsp olive oil	in	ok	rule:diet-gate	Whole30 dairy: a recipe-line alias does not make olive oil dairy
+dg-13	Whole30	Olive Oil	4	olive oil or butter|-	2 tbsp olive oil or butter	out	ok	rule:diet-gate	the line offers butter and keeps its recipe out
+dg-14	Whole30	Water	14	water or milk|-	1 cup water	in	ok	rule:diet-gate	a recipe-line alias does not make water dairy
+dg-15	Whole30	Lemon Juice	9	lemon juice or honey|-	juice of 1 lemon	in	ok	rule:diet-gate	Whole30 sugars: a recipe-line alias does not make lemon juice a sweetener
+dg-16	Whole30	Lemon Juice	9	lemon juice or honey|-	juice of 1 lemon, sweetened with honey	out	ok	rule:diet-gate	the line names honey itself
+dg-17	Whole30	Brown Rice	20	-	1 cup brown rice	out	ok	rule:diet-gate	Whole30 grains: the food's own name matches %rice%
+dg-18	Celiac Disease	Sugar	19	1 cup sugar and 2 cups flour|-	1/2 cup sugar	in	ok	rule:diet-gate	severity 4: a recipe-line alias naming flour does not make Sugar a gluten food, in plans, search or on the page
+dg-19	Celiac Disease	Sugar	19	1 cup sugar and 2 cups flour|-	sugar mixed with a little flour	out	ok	rule:diet-gate	severity 4: the line names flour itself and keeps its recipe out of plans and search and flagged as a severe conflict
+dg-20	Celiac Disease	Whole Wheat Flour	20	-	2 cups whole wheat flour	out	ok	rule:diet-gate	severity 4: the food's own name
+dg-21	Celiac Disease	Emmer	20	farro|retired:281777	1 cup emmer	out	ok	rule:diet-gate	severity 4: the name of a duplicate retired into the food counts for it
+dg-22	Milk Allergy	Sugar	19	sugar, and 1 small cup of milk|-	2 tbsp sugar	in	ok	rule:diet-gate	severity 5: a recipe-line alias naming milk does not make Sugar a milk food
+dg-23	Milk Allergy	Sugar	19	sugar, and 1 small cup of milk|-	sugar, and 1 small cup of milk	out	ok	rule:diet-gate	severity 5: the line names milk itself
+dg-24	Milk Allergy	Oat Beverage	14	almond milk|-	1 cup oat beverage	in	ok	rule:diet-gate	severity 5: a wording once linked to the food is not its name; the line says oat
+dg-25	Milk Allergy	Ghee	1	-	2 tbsp ghee	out	ok	rule:diet-gate	severity 5: the food's own name
+dg-26	Peanut Allergy	Groundnut Oil	4	peanut oil|admin:review	2 tbsp groundnut oil	out	ok	rule:diet-gate	severity 5: an admin's alias names the peanut
+dg-27	Peanut Allergy	Vegetable Oil	4	vegetable or peanut oil|-	1/4 cup vegetable oil	in	ok	rule:diet-gate	severity 5: a recipe-line alias offering peanut oil does not make every vegetable oil recipe a peanut recipe
+dg-28	Peanut Allergy	Vegetable Oil	4	vegetable or peanut oil|-	1/4 cup vegetable or peanut oil	out	ok	rule:diet-gate	severity 5: the line offers peanut oil and keeps its recipe out
+dg-29	Kosher	Fish Stock	6	fish or shrimp stock|-	2 cups fish stock	in	ok	rule:diet-gate	a recipe-line alias naming shrimp does not make fish stock shellfish
+dg-30	Kosher	Fish Stock	6	fish or shrimp stock|-	2 cups shrimp stock	out	ok	rule:diet-gate	the line names shrimp itself
+dg-31	Lactose Intolerance	Sugar	19	1/2 cup sugar, cream|-	1/2 cup sugar	in	ok	rule:diet-gate	severity 4: a recipe-line alias naming cream does not make Sugar a lactose food
+dg-32	Lactose Intolerance	Heavy Cream	1	-	1 cup heavy cream	out	ok	rule:diet-gate	severity 4: the food's own name

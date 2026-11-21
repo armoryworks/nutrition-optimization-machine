@@ -139,6 +139,44 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_drink_sense_read_from_the_lines_own_words_is_identity_evidence_and_one_read_from_the_recipe_is_not()
+        {
+            var dryDessert = new GateFood(287461, "Alcoholic beverage, wine, dessert, dry", "Alcoholic beverage, wine, dessert, dry", "sr_legacy_food", Pending, 14, NutrientRows: 31, FdcId: "175112");
+            var whiteTable = new GateFood(164, "Dry White Wine", "Alcoholic beverage, wine, table, white", "sr_legacy_food", Curated, 14, NutrientRows: 33, FdcId: "174837");
+            var unknownFdc = dryDessert with { FdcId = null };
+            var catalog = GateCatalog.Build(new[] { RedWine, Claret, dryDessert, whiteTable,
+                new GateFood(287419, "Alcoholic beverage, wine, table, all", "Alcoholic beverage, wine, table, all", "sr_legacy_food", Pending, 14, NutrientRows: 33, FdcId: "173185") });
+            var mussels = new AlcoholRecipeContext(Title: "White Wine Mussels", HasSourceSite: true);
+
+            Codes(new GatePair("sherry", 0, dryDessert, ModelPick: false), catalog).Should().BeEmpty("sherry reads as dry fortified wine, whose sense allows the dry dessert wine");
+            Codes(new GatePair("sherry", 0, dryDessert, Lines: new[] { new GateLine("2 glasses of sherry", "glass", 206m) }), catalog).Should().BeEmpty();
+            Codes(new GatePair("sherry", 0, unknownFdc), catalog).Should().Contain(LinkGate.Containment, "with no FDC id the sense cannot name the food, so the words decide");
+            Codes(new GatePair("sherry", 0, dryDessert, Lines: new[] { new GateLine("2 glasses of sherry", "glass", 206m), new GateLine("1 cup sugar and sherry", "cup", 200m) }), catalog)
+                .Should().Contain(LinkGate.Containment, "a line that is a list does not share the drink sense");
+            Codes(new GatePair("wine", 0, whiteTable, Lines: new[] { new GateLine("1 cup wine", "cup", 240m, mussels) }), catalog)
+                .Should().Contain(LinkGate.Generic, "bare wine is white only by its recipe; a sense the recipe gives lets the line through the alcohol rule but is no identity evidence");
+        }
+
+        [Fact]
+        public void A_drink_sense_is_identity_evidence_only_for_the_first_ready_food_of_its_table_not_for_a_sibling_varietal()
+        {
+            var redTable = RedWine with { FdcId = "173190" };
+            var merlot = new GateFood(287415, "Alcoholic Beverage, wine, table, red, Merlot", "Alcoholic Beverage, wine, table, red, Merlot", "sr_legacy_food", Pending, 14, NutrientRows: 25, FdcId: "171925");
+            var whiteTable = new GateFood(164, "Dry White Wine", "Alcoholic beverage, wine, table, white", "sr_legacy_food", Curated, 14, NutrientRows: 33, FdcId: "174837");
+            var chardonnay = new GateFood(287437, "Alcoholic beverage, wine, table, white, Chardonnay", "Alcoholic beverage, wine, table, white, Chardonnay", "sr_legacy_food", Pending, 14, NutrientRows: 25, FdcId: "174110");
+            var catalog = GateCatalog.Build(new[] { redTable, merlot, whiteTable, chardonnay });
+
+            Codes(new GatePair("claret", 0, redTable), catalog).Should().BeEmpty("red table wine is the first ready food of the red sense");
+            foreach (var wording in new[] { "chianti", "pinot noir", "rioja", "claret" })
+                Codes(new GatePair(wording, 0, merlot), catalog).Should().Contain(LinkGate.Containment, $"\"{wording}\" names no Merlot; the sense's first ready food is red table wine");
+            foreach (var wording in new[] { "champagne", "prosecco", "riesling" })
+                Codes(new GatePair(wording, 0, chardonnay), catalog).Should().Contain(LinkGate.Containment, $"\"{wording}\" names no Chardonnay; the sense's first ready food is the white table wine");
+            Codes(new GatePair("merlot", 0, merlot), catalog).Should().BeEmpty("a wording that names the varietal is the varietal");
+            Codes(new GatePair("chianti", 0, merlot), GateCatalog.Build(new[] { redTable with { NutrientRows = 6 }, merlot }))
+                .Should().BeEmpty("when the foods before it in the table are not ready, the varietal is the food the sense names, as the alcohol tier answers");
+        }
+
+        [Fact]
         public void The_signature_names_the_rules_version_and_is_stable()
         {
             LinkGate.Signature.Should().MatchRegex("^[0-9a-f]{16}$").And.Be(LinkGate.Signature);

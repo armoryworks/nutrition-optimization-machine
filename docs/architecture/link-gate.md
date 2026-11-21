@@ -78,11 +78,30 @@ Two blind readers of different families that agreed (`ReadersAgreed`) are read b
 checks: their answer is held by `head-noun` instead of `containment` and `lead-noun`, and the
 `generic` and description-side `percent` rules, which stand in for a reader's choice of variety, are
 not applied. Every other rule holds for them as for a lone answer. A synonym with no shared word
-("crisco", "saleratus", "sack") passes only through a lexicon entry (`GateCatalog.Lexicon`, filled
+("crisco", "saleratus") passes only through a lexicon entry (`GateCatalog.Lexicon`, filled
 from `recipe."WordingLexicon"` by the wording readers, see `wording-readers.md`). A line two readers
 gave a fixed reading of an unclear alcohol word carries that reading's sense (`GateLine.Sense`), which
 the alcohol rules read in place of the line's own; no other caller sets it, so the rules and the
-gate's signature are unchanged.
+gate's signature are unchanged. A drink's old or trade name ("sack") passes without one when its
+lines' own alcohol sense allows the food (below).
+
+**Alcohol sense as identity evidence (`link-gate/7`, `link-gate/8` since the wave-6 merge).** A drink named by an old or trade name
+("sherry", "sack", "Madeira", "port", "claret", "chablis", "ale") is a USDA entry that does not carry
+the word, so the word rules held it whatever produced the answer. `LinkGate.AlcoholIdentity` reads
+every line of the pair (the wording, with no lines) by its own words, without its recipe; when every
+one is a drink, they share one sense, and the target's FDC id is in that sense's allowed table, the
+answer is read as two blind readers' is and needs no word of the wording in the food: `lead-noun`,
+`containment`, `head-noun`, `head-lead`, `variety`, `generic` and the description-side `percent` are
+not applied, and "dry" in the description (a dry dessert wine) is no state the wording must name. A
+sense read from the recipe alone (bare "wine" in "White Wine Mussels") is no identity evidence, a
+list or a line of another sense breaks the shared sense, and every other rule, the alcohol rules
+first, holds as before: "sherry" is never the sweet dessert wine or the rum. The full credit goes
+only to the first food of the sense's table that the catalog holds ready (`WordingTiers.Ready`), the
+food the alcohol tier answers: red table wine for the red sense, Dry White Wine for the white. A
+later food of the table (the red and white tables list the USDA varietals after the table wine)
+gets the lead noun and a drink's state words excused and nothing more, so every word of the wording
+must still be in the food: "merlot" passes to Merlot, but "chianti", "claret" or "pinot noir" on
+Merlot and "champagne" on Chardonnay are held by `containment` (lg-123 to lg-128).
 
 **Family.** `LinkGate.Family` takes a batch of answers. Wordings that fold to one key (plural,
 hyphen or space, "X wine" against "X", a unit word in front) must agree on one food. Within a key
@@ -117,7 +136,13 @@ in its gate signature, so a changed gate drops that tier back to shadow.
   (`rule:construction`, `ok`), and the six alcohol lines of K10 (amounts joined by "and" or "or"
   read as lists, two wines on Non-Alcoholic Wine, a measure of curaçoa). lg-109 to lg-111 come from
   the review of that fix (`rule:construction` and `rule:link-gate`, `ok`): a raw cut named with a
-  last "roast" on a cooked food, and a red wine named before the dish it is for on Chicken Stock. The test reads each row's FDC id from `gate-catalog.tsv`. Each is a
+  last "roast" on a cooked food, and a red wine named before the dish it is for on Chicken Stock.
+  lg-112 to lg-122 (`rule:link-gate`, `ok`) are the alcohol identity rows of `link-gate/7`: sherry,
+  sack, Madeira, port, claret and a sherry line let through to the food their sense allows, and
+  sherry on the sweet dessert wine and the rum, port on the dry one, rum on a wine, and a wording
+  whose lines mix a drink with a vinegar still held. lg-123 to lg-128 (`rule:link-gate`, `ok`, from
+  the review of that branch) hold a regional or other varietal wine on a sibling varietal of the
+  sense's table (Merlot, Chardonnay) and let through chianti on red table wine and merlot on Merlot. The test reads each row's FDC id from `gate-catalog.tsv`. Each is a
   pair the gate must let through (`pass`) or a pair a named rule must hold. Every rule has a row
   (`Every_rule_of_the_gate_has_a_rule_given_row` reads the rule codes from `LinkGate` itself, so a
   new rule without a row fails). `readers` = `yes` reads the pair as two blind readers' answer (the
@@ -147,7 +172,9 @@ in its gate signature, so a changed gate drops that tier back to shadow.
   from meeting the cooked state, with the same figures, since none of the judged pairs is of those
   classes; for `link-gate/6`, the wave-5 merge of both; and for `link-gate/7`
   (`cleanup2/ck2-undo-reprocess`), when the name normalizer began to take "circa" off an Italian
-  amount, with the same figures): it lets through 2,307 of 7,664 pairs,
+  amount, with the same figures, and separately (`cleanup2/ck2-diet-gate`) the alcohol sense as
+  identity evidence, which let two more pairs through, both judged right, with the same false
+  accepts; for `link-gate/8`, the wave-6 merge of both): it lets through 2,309 of 7,664 pairs,
   99.5 % of them judged right;
   it lets through 12 of 1,406 pairs judged wrong, near or compound (0.9 %). Floors: precision at
   least 99 %, false accepts at most 1 %, agreement at least 45 %. The record is required, and

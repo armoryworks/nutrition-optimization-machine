@@ -73,7 +73,10 @@ gate reads it as readers' answer (head noun in place of containment and lead nou
 settles on another food, or on none, is held; the lane never re-points a wording itself.
 
 What the gate holds stays held: the tiers never write a pair the gate refuses. Synonyms the USDA
-entry does not carry ("sherry" for dessert wine, "saleratus") wait for the lexicon the readers build.
+entry does not carry ("saleratus", "crisco") wait for the lexicon the readers build. A drink's old or
+trade name ("sherry", "sack", "port", "claret") is let through since `link-gate/7`: the alcohol sense
+its lines share, read by their own words, is identity evidence in the gate when it allows the food
+(golden `wt-alc-01`, `wt-alc-09` to `wt-alc-11`).
 
 ## The lane on the frame
 
@@ -147,8 +150,10 @@ and the gate on the wording of every pair of `link-pairs.tsv` judged right, wron
 and no lines. Recorded for `wording-tiers/1`, and recorded again at the wave-5 merge under the
 `link-gate/6` signature, when the name normalizer began to take a hyphenated mixed number off a
 wording and the tiers write one more pair (`butter, 1-1/2 oz`, judged right; the by-tier counts below
-are those of the first record), and again under `link-gate/7` (the normalizer takes "circa" off an
-Italian amount) with the same figures:
+are those of the first record), and again under `link-gate/7`, raised on two branches from the
+same base: the normalizer takes "circa" off an Italian amount (same figures), and the alcohol sense
+became identity evidence in the gate (two more pairs, both judged right, 1,860 in all); and again
+under `link-gate/8`, the wave-6 merge of both:
 
 | | |
 |---|---|
