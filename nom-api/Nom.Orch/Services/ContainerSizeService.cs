@@ -82,7 +82,7 @@ namespace Nom.Orch.Services
             ChangedByPersonId = personId,
         };
 
-        public async Task<ContainerSizeWriteReport> WriteAsync(IReadOnlyList<ContainerSizeProposal> proposals, bool dryRun, DateTime stamp, bool retireMissing, long personId, CancellationToken cancellationToken = default)
+        public async Task<ContainerSizeWriteReport> WriteAsync(IReadOnlyList<ContainerSizeProposal> proposals, bool dryRun, DateTime stamp, bool retireMissing, long personId, IReadOnlyCollection<string>? unreadSources = null, CancellationToken cancellationToken = default)
         {
             var report = new ContainerSizeWriteReport { DryRun = dryRun, Stamp = stamp, Proposed = proposals.Count };
             var standing = await _db.IngredientContainerSizes.Where(r => r.Status != ContainerSizeStatus.Retired).ToListAsync(cancellationToken);
@@ -147,9 +147,10 @@ namespace Nom.Orch.Services
 
             if (retireMissing)
             {
+                var unread = new HashSet<string>(unreadSources ?? Array.Empty<string>(), StringComparer.Ordinal);
                 foreach (var (key, rows) in byKey.Where(k => !proposed.Contains(k.Key)))
                 {
-                    foreach (var old in rows)
+                    foreach (var old in rows.Where(r => !unread.Contains(SourceKind(r.SourceRef))))
                     {
                         report.Retired++;
                         report.Lines.Add(string.Create(CultureInfo.InvariantCulture, $"retire {key}: {old.NetGrams} g ({old.SourceRef}), no source gives it any more"));
@@ -360,7 +361,7 @@ namespace Nom.Orch.Services
         public async Task<ContainerSizeUndoReport> UndoSinceAsync(DateTime sinceUtc, bool apply, long personId, bool statusOnly = false, CancellationToken cancellationToken = default)
         {
             var report = new ContainerSizeUndoReport { DryRun = !apply, SinceUtc = sinceUtc };
-            var types = statusOnly ? new[] { StatusChange, PauseChange } : new[] { SetChange, RetireChange, StatusChange, PauseChange };
+            var types = statusOnly ? new[] { StatusChange } : new[] { SetChange, RetireChange, StatusChange, PauseChange };
             var entries = await _db.AuditLogEntries.AsNoTracking()
                 .Where(a => a.EntityType == EntityType && types.Contains(a.ChangeType) && a.Timestamp >= sinceUtc)
                 .OrderByDescending(a => a.Id)
@@ -380,6 +381,7 @@ namespace Nom.Orch.Services
             {
                 var after = LaneJournal.Read<RowValue>(entry.NewValue);
                 var before = LaneJournal.Read<RowValue>(entry.OldValue);
+                if (statusOnly && after != null && after.Status != ContainerSizeStatus.Active) continue;
                 if (after == null || !rows.TryGetValue(entry.EntityId, out var row))
                 {
                     report.Skipped++;
@@ -459,8 +461,9 @@ namespace Nom.Orch.Services
 
     /// <summary>
     /// The container size lane's undo for the lane frame: on a pause it takes back the scorer's
-    /// status changes since the last clean window, so no key it made active since stays active.
-    /// Sizes an import wrote stay; they are undone by the operator's undo.
+    /// status changes that made a key active since the last clean window, so no key it made active
+    /// since stays active, and a key it paused or demoted stays so. Sizes an import wrote stay;
+    /// they are undone by the operator's undo.
     /// </summary>
     public sealed class ContainerSizeLaneUndo : ILaneUndo
     {
@@ -473,7 +476,7 @@ namespace Nom.Orch.Services
         public async Task<LaneUndoResult> UndoSinceAsync(string tier, DateTime sinceUtc, bool apply, CancellationToken cancellationToken)
         {
             var report = await _sizes.UndoSinceAsync(sinceUtc, apply, SystemConstants.SystemPersonId, statusOnly: true, cancellationToken);
-            return new LaneUndoResult(report.Undone, report.Skipped, 0, $"container sizes: status changes since {sinceUtc:u}");
+            return new LaneUndoResult(report.Undone, report.Skipped, 0, $"container sizes: keys made active since {sinceUtc:u}");
         }
     }
 }

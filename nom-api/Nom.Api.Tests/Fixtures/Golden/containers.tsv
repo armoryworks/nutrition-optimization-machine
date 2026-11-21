@@ -66,9 +66,9 @@ b-64	1 bottle red wine	historic	173190	0.994	no	746	ok	deterministic:standard-of
 b-65	1 bottle red wine	unknown	173190	0.994	no	746	ok	deterministic:standard-of-fill:27 CFR 4.72	any era
 b-66	1 bottle Chardonnay	modern	174110	0.991	no	743	ok	deterministic:standard-of-fill:27 CFR 4.72	750 mL x 0.991
 b-67	1 bottle red wine	modern	173190	-	no	-	ok	rule:containers-density	a bottle is a volume; with no density it is not weighed
-b-68	1 can cloudberry marmalade	modern	-	-	no	-	ok	design:containers	containers.md: no clear answer, leave uncounted (no class, no portion)
-b-69	1 can raisins	modern	-	-	no	-	ok	design:containers	containers.md: leave uncounted
-b-70	1 jar sun-dried tomatoes in oil, drained	modern	-	-	no	-	ok	design:containers	containers.md: no drained ratio, leave uncounted
+b-68	1 can cloudberry marmalade	modern	169641	-	no	-	agent	agent-review-container-sources-2026-11-20	containers.md: no clear answer, leave uncounted; linked to SR "Jams and preserves" (no cloudberry food), whose only container portion is a 0.5 oz packet and which has no class, so no can size
+b-69	1 can raisins	modern	168165	-	no	-	ok	rule:containers-no-source	no class, and none of SR's raisin portions is a container portion ("small box (1.5 oz)" leads with a size word, and a box would not size a can), so no source gives a can size
+b-70	1 jar sun-dried tomatoes in oil, drained	modern	169384	-	no	-	ok	rule:containers-no-source	SR gives the drained food only cup and piece portions and it has no class, so no jar size and no drained ratio
 t-01	1 No. 2 can tomatoes	historic	-	-	no	567	ok	deterministic:can-table:h32-2+h33-2	No. 2: 20 oz in both 1930s USDA broadcasts
 t-02	1 No. 2 can tomatoes	modern	-	-	no	567	ok	deterministic:can-table:fbg-2	No. 2: 20 oz (USDA Food Buying Guide, Table 2)
 t-03	1 No. 2 can tomatoes	unknown	-	-	no	567	ok	deterministic:can-table:fbg-2	old and new No. 2 agree

@@ -28,6 +28,7 @@ namespace Nom.Import.Services
     public class ContainerSizeImportService
     {
         public const decimal DrainedRatioSpread = 0.08m;
+        public const string BrandedModeSource = "branded-mode";
 
         private readonly ApplicationDbContext _db;
         private readonly IContainerSizeService _sizes;
@@ -263,7 +264,8 @@ namespace Nom.Import.Services
                 report.ProposedBySource[kind] = report.ProposedBySource.GetValueOrDefault(kind) + 1;
             }
 
-            report.Written = await _sizes.WriteAsync(report.Proposals, options.DryRun, report.Stamp, retireMissing: true, SystemConstants.SystemPersonId, cancellationToken);
+            report.Written = await _sizes.WriteAsync(report.Proposals, options.DryRun, report.Stamp, retireMissing: true, SystemConstants.SystemPersonId,
+                options.BrandedDir == null ? new[] { BrandedModeSource } : null, cancellationToken);
             report.Scored = options.DryRun
                 ? await _sizes.ScoreAsync(false, SystemConstants.SystemPersonId, report.Proposals, cancellationToken)
                 : await _sizes.ScoreAsync(true, SystemConstants.SystemPersonId, null, cancellationToken);

@@ -204,6 +204,44 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task The_lane_undo_leaves_a_key_the_scorer_paused_paused()
+        {
+            var rig = await RigAsync();
+            await rig.Sizes.WriteAsync(new[] { Proposal(rig.Beans, 425m) }, false, DateTime.UtcNow, true, Operator);
+            await LinesAsync(rig, 40, 15m);
+            await rig.Sizes.ScoreAsync(true, Operator);
+            (await rig.Db.IngredientContainerSizes.AsNoTracking().SingleAsync()).Status.Should().Be(ContainerSizeStatus.Active);
+
+            var clean = DateTime.UtcNow.AddMilliseconds(1);
+            await Task.Delay(5);
+            var recipe = new RecipeEntity { Name = "Big can", SourceSite = "example.net", CurationStatusId = (long)CurationStatusEnum.NonCurated, RecipeIngredients = new List<RecipeIngredientEntity>() };
+            for (var i = 0; i < 3; i++)
+                recipe.RecipeIngredients.Add(new RecipeIngredientEntity { IngredientId = rig.Beans, SortOrder = i, Quantity = 29m, MeasurementId = Ounce, RawLine = "1 (29 oz) can black beans", CreatedDate = Imported.AddDays(1).AddMinutes(i) });
+            rig.Db.Recipes.Add(recipe);
+            await rig.Db.SaveChangesAsync();
+            await rig.Sizes.ScoreAsync(true, Operator);
+            (await rig.Db.IngredientContainerSizes.AsNoTracking().SingleAsync()).Status.Should().Be(ContainerSizeStatus.Paused);
+
+            var result = await new ContainerSizeLaneUndo(rig.Sizes).UndoSinceAsync(LaneTiers.Whole, clean, apply: true, default);
+            result.Undone.Should().Be(0, "the lane's undo takes back only keys the scorer made active");
+            (await rig.Db.IngredientContainerSizes.AsNoTracking().SingleAsync()).Status.Should().Be(ContainerSizeStatus.Paused);
+            (await rig.Db.AuditLogEntries.CountAsync(a => a.ChangeType == ContainerSizeService.UndoChange)).Should().Be(0);
+        }
+
+        [Fact]
+        public async Task An_import_retires_only_rows_of_the_sources_it_read()
+        {
+            var rig = await RigAsync();
+            var portion = Proposal(rig.Beans, 430m, "fdc:175238:portion:2") with { Kind = ContainerKinds.Can, SizeWord = ContainerKinds.Small };
+            await rig.Sizes.WriteAsync(new[] { Proposal(rig.Beans, 425m), portion }, false, DateTime.UtcNow, true, Operator);
+
+            var withoutBranded = await rig.Sizes.WriteAsync(Array.Empty<ContainerSizeProposal>(), false, DateTime.UtcNow, true, Operator, new[] { "branded-mode" });
+            withoutBranded.Retired.Should().Be(1, "the portion's source was read and no longer gives it");
+            (await rig.Db.IngredientContainerSizes.Where(r => r.Status != ContainerSizeStatus.Retired).Select(r => r.SourceRef).SingleAsync())
+                .Should().StartWith("deterministic:fdc-branded-mode", "a run that did not read the branded files leaves the branded sizes standing");
+        }
+
+        [Fact]
         public async Task A_dry_run_of_an_import_scores_its_proposals_without_writing()
         {
             var rig = await RigAsync();
@@ -254,10 +292,13 @@ namespace Nom.Api.Tests.Services
 
                 File.WriteAllLines(sums, new[] { Path.Combine(sr, "food.csv"), Path.Combine(sr, "food_portion.csv"), Path.Combine(foundation, "food.csv"), Path.Combine(foundation, "food_portion.csv") }
                     .Select((f, i) => $"{CatalogAdmissionService.Sha256(f)}  {(i < 2 ? "sr" : "foundation")}/{Path.GetFileName(f)}"));
+                await rig.Sizes.WriteAsync(new[] { Proposal(rig.Beans, 822m) with { SizeWord = ContainerKinds.Large } }, false, DateTime.UtcNow, true, Operator);
                 var run = await import.RunAsync(new ContainerSizeImportService.Options(null, sr, foundation, sums, DryRun: false));
                 run.Stopped.Should().BeEmpty();
                 run.Proposals.Should().ContainSingle(p => p.IngredientId == rig.Beans && p.NetGrams == 430m && p.SourceRef == "fdc:175238:portion:2");
-                (await rig.Db.IngredientContainerSizes.SingleAsync()).Status.Should().Be(ContainerSizeStatus.Shadow, "no hold-out line yet");
+                run.Written!.Retired.Should().Be(0, "a run without the branded files does not retire the branded sizes it did not read");
+                (await rig.Db.IngredientContainerSizes.SingleAsync(r => r.SourceRef.StartsWith("fdc:"))).Status.Should().Be(ContainerSizeStatus.Shadow, "no hold-out line yet");
+                (await rig.Db.IngredientContainerSizes.SingleAsync(r => r.SizeWord == ContainerKinds.Large)).Status.Should().NotBe(ContainerSizeStatus.Retired);
             }
             finally
             {

@@ -449,7 +449,7 @@ is within 10 % of the stated size. A key (`ContainerSizeQualifier`):
 
 | | Applies (`active`) | Stays `shadow` | Pauses itself (`paused`) |
 |---|---|---|---|
-| ≥ 20 hold-out lines | agreement ≥ 95 % and Wilson lower bound ≥ 90 %; below 35 lines, where no clean run reaches that bound, 95 % and its class qualifying | otherwise | when active: its class's last 200 lines agree under 90 %, or 3 misses in its own last 20 |
+| ≥ 20 hold-out lines | agreement ≥ 95 % and Wilson lower bound ≥ 90 %; below 35 lines, where no clean run reaches that bound, 95 % and its class qualifying; never while a pause condition holds | otherwise, and a shadow key that meets a pause condition | when active: its class's last 200 lines agree under 90 %, or 3 misses in its own last 20 |
 | < 20 lines | its class agrees ≥ 95 % on ≥ 50 lines | otherwise | its class pauses |
 
 A paused key comes back only when its size or source changes (an import writes it in shadow
@@ -458,7 +458,8 @@ again) and a fresh score passes; never by waiting. The whole lane runs on the la
 itself (`AuditorScore.ExactRule`), once per signature (the rule version and every standing
 size, so a new import or FDC release starts the count again). It qualifies at a Wilson lower
 bound of 93 % and pauses when a full window of 200 agrees under 92 %; a pause undoes the
-scorer's status changes since the last clean window (`ContainerSizeLaneUndo`). The switches
+scorer's changes that made a key active since the last clean window (`ContainerSizeLaneUndo`),
+and leaves a key it paused or demoted as it is. The switches
 `ai-pause-all` and `ai-pause-container-sizes` hold the nightly run; `ContainerSizes:ScoreEnabled`
 (default true) and `ContainerSizes:ScoreEveryHours` (default 24) set it.
 
@@ -482,7 +483,8 @@ dotnet run --project nom-api/Nom.Import -- --container-sizes --score [--dry-run]
 dotnet run --project nom-api/Nom.Import -- --container-sizes --undo <stamp> [--dry-run]
 ```
 
-The branded directory may be left out (portions and standards of fill only). Every file read
+The branded directory may be left out (portions and standards of fill only); such a run
+proposes no branded-mode size and so retires none of the standing ones. Every file read
 must be listed in `ops/fdc-releases.sha256`. A dry run scores its proposals against the stored
 lines and writes nothing. `ops/golden/container_facts.py` is the same scan and portion reading
 written apart from the C# code; it froze `container-facts.tsv` for the golden set, and on the

@@ -231,7 +231,8 @@ namespace Nom.Orch.Services.Support
     /// reach, 35, a key at 95 % also applies when its class qualifies); a key with fewer applies when its class
     /// agrees on at least 95 % of at least <see cref="ClassLines"/> lines and its own source passed
     /// its test. An active key pauses when the last 200 lines of its class agree under 90 % or its
-    /// own last 20 hold 3 misses. A paused key comes back only when its size or source changes.
+    /// own last 20 hold 3 misses, and a shadow key that meets either condition stays in shadow. A
+    /// paused key comes back only when its size or source changes.
     /// </summary>
     public static class ContainerSizeQualifier
     {
@@ -253,13 +254,11 @@ namespace Nom.Orch.Services.Support
             var ordered = cls.OrderBy(l => l.At).ToList();
             var rolling = ordered.Skip(Math.Max(0, ordered.Count - RollingWindow)).ToList();
             var recent = key.OrderBy(l => l.At).Skip(Math.Max(0, key.Count - RecentWindow)).ToList();
-            if (currentStatus == ContainerSizeStatus.Active)
-            {
-                if (rolling.Count >= RollingWindow && (double)rolling.Count(l => l.Hit) / rolling.Count < RollingShare)
-                    return new(ContainerSizeStatus.Paused, Fmt($"its class agreed on {rolling.Count(l => l.Hit)} of its last {rolling.Count} hold-out lines, under {RollingShare:P0}"), key.Count, keyAgree);
-                if (recent.Count(l => !l.Hit) >= RecentMisses)
-                    return new(ContainerSizeStatus.Paused, Fmt($"{recent.Count(l => !l.Hit)} misses in its last {recent.Count} hold-out lines"), key.Count, keyAgree);
-            }
+            var held = currentStatus == ContainerSizeStatus.Active ? ContainerSizeStatus.Paused : ContainerSizeStatus.Shadow;
+            if (rolling.Count >= RollingWindow && (double)rolling.Count(l => l.Hit) / rolling.Count < RollingShare)
+                return new(held, Fmt($"its class agreed on {rolling.Count(l => l.Hit)} of its last {rolling.Count} hold-out lines, under {RollingShare:P0}"), key.Count, keyAgree);
+            if (recent.Count(l => !l.Hit) >= RecentMisses)
+                return new(held, Fmt($"{recent.Count(l => !l.Hit)} misses in its last {recent.Count} hold-out lines"), key.Count, keyAgree);
 
             var classAgree = cls.Count(l => l.Hit);
             var classShare = cls.Count == 0 ? 0 : (double)classAgree / cls.Count;

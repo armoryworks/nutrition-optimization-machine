@@ -14,8 +14,8 @@ namespace Nom.Orch.Interfaces
     /// </summary>
     public interface IContainerSizeService
     {
-        /// <summary>Writes the proposed sizes: a new key is added in shadow, a changed one replaces the old row, and with <paramref name="retireMissing"/> a key no source gives any more is retired. Every change is journaled under <paramref name="stamp"/>.</summary>
-        Task<ContainerSizeWriteReport> WriteAsync(IReadOnlyList<ContainerSizeProposal> proposals, bool dryRun, DateTime stamp, bool retireMissing, long personId, CancellationToken cancellationToken = default);
+        /// <summary>Writes the proposed sizes: a new key is added in shadow, a changed one replaces the old row, and with <paramref name="retireMissing"/> a key no source gives any more is retired, except a row whose source kind is in <paramref name="unreadSources"/> (a source the run did not read). Every change is journaled under <paramref name="stamp"/>.</summary>
+        Task<ContainerSizeWriteReport> WriteAsync(IReadOnlyList<ContainerSizeProposal> proposals, bool dryRun, DateTime stamp, bool retireMissing, long personId, IReadOnlyCollection<string>? unreadSources = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Scores every size against the hold-out of stated sizes, sets each key's status and, with
@@ -25,7 +25,7 @@ namespace Nom.Orch.Interfaces
         /// </summary>
         Task<ContainerSizeScoreReport> ScoreAsync(bool apply, long personId, IReadOnlyList<ContainerSizeProposal>? proposals = null, CancellationToken cancellationToken = default);
 
-        /// <summary>Takes back every journaled write, retire and status change since <paramref name="sinceUtc"/>, newest first; a row changed since is skipped. <paramref name="statusOnly"/> limits it to the scorer's status changes.</summary>
+        /// <summary>Takes back every journaled write, retire and status change since <paramref name="sinceUtc"/>, newest first; a row changed since is skipped. <paramref name="statusOnly"/> limits it to the scorer's status changes that made a key active, so a key the scorer paused or demoted stays so.</summary>
         Task<ContainerSizeUndoReport> UndoSinceAsync(DateTime sinceUtc, bool apply, long personId, bool statusOnly = false, CancellationToken cancellationToken = default);
 
         Task<ContainerSizeStatusModel> StatusAsync(int keys = 50, CancellationToken cancellationToken = default);

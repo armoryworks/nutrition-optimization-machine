@@ -240,6 +240,19 @@ namespace Nom.Api.Tests.Services
             ContainerSizeQualifier.Decide(ContainerSizeStatus.Paused, Lines(100, 0), Lines(100, 0), true).Status.Should().Be(ContainerSizeStatus.Paused, "a paused key comes back only when its size or source changes");
         }
 
+        [Fact]
+        public void A_shadow_key_that_meets_a_pause_condition_stays_in_shadow_whatever_its_overall_share()
+        {
+            var key = Lines(380, 0).Concat(Lines(17, 3, new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc))).ToList();
+            var recent = ContainerSizeQualifier.Decide(ContainerSizeStatus.Shadow, key, key, true);
+            recent.Status.Should().Be(ContainerSizeStatus.Shadow, "3 of its last 20 lines missed, which would pause it the run after it applied");
+            recent.Reason.Should().Contain("3 misses in its last 20");
+
+            var classLines = Lines(170, 30);
+            ContainerSizeQualifier.Decide(ContainerSizeStatus.Shadow, Lines(40, 0), classLines, true).Status.Should().Be(ContainerSizeStatus.Shadow, "its class agreed on 170 of its last 200");
+            ContainerSizeQualifier.Decide(ContainerSizeStatus.Shadow, Lines(3, 0), Lines(57, 2), true).Status.Should().Be(ContainerSizeStatus.Active, "a clean key still applies on its class");
+        }
+
         [Theory]
         [InlineData("1 can tomatoes", ContainerKinds.Can, "")]
         [InlineData("2 pkgs. cream cheese", ContainerKinds.Package, "")]
