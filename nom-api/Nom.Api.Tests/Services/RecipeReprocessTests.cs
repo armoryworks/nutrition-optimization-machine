@@ -209,6 +209,36 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_line_the_rebuild_puts_on_a_food_through_a_verified_wording_is_journaled_and_the_rebuild_undo_retires_the_entry()
+        {
+            using var db = await SeededAsync();
+            var wording = await FoodAsync(db, "kosher salt", curated: false);
+            var salt = await FoodAsync(db, "Salt, table");
+            db.IngredientWordings.Add(new IngredientWordingEntity { Wording = "kosher salt", Verdict = IngredientWordingVerdict.Food, IngredientId = salt.Id, Source = "admin:test", Batch = "b1" });
+            await db.SaveChangesAsync();
+            var record = Record("Salted Water", new[] { "1 teaspoon kosher salt" });
+            var recipe = await RecipeAsync(db, record, new[] { new Row(wording, "1 teaspoon kosher salt", 1, Teaspoon) });
+            var resolving = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?> { [RecipeScrapingService.ResolveOnImportSetting] = "true" }).Build();
+            var service = new RecipeReprocessService(db, new Admin(), new Mock<IRecipeScraperClient>().Object, new RecipeVettingService(),
+                new Mock<IRecipeNutritionService>().Object, NullLogger<RecipeReprocessService>.Instance, resolving);
+
+            var applied = await service.RebuildAsync(For(recipe.Id), apply: true);
+
+            var resolved = await db.AuditLogEntries.SingleAsync(a => a.ChangeType == LineRelinkService.WordingResolveChangeType);
+            (resolved.EntityId, resolved.OldValue, resolved.NewValue).Should().Be((recipe.Id, "kosher salt", $"{salt.Id}@0"));
+            (await db.AuditLogEntries.SingleAsync(a => a.ChangeType == RecipeReprocessService.ReprocessChangeType)).Timestamp.Should().Be(resolved.Timestamp,
+                "the entry is the rebuild's own, so a later retract does not skip it as older than the rebuild");
+
+            db.ChangeTracker.Clear();
+            await service.UndoAsync(null, applied.BatchId, apply: true);
+
+            (await LinesAsync(db, recipe.Id)).Select(l => l.IngredientId).Should().Equal(wording.Id);
+            (await db.AuditLogEntries.AnyAsync(a => a.ChangeType == LineRelinkService.WordingResolveChangeType)).Should().BeFalse(
+                "a retract must not move a line the rebuild undo already put back");
+        }
+
+        [Fact]
         public async Task The_rebuild_fills_a_line_from_the_method_and_marks_a_heading_as_a_note()
         {
             using var db = await SeededAsync();

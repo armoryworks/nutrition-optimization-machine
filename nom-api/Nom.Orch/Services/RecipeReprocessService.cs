@@ -207,6 +207,8 @@ namespace Nom.Orch.Services
                         line.Link!.ProposalId, line.Link.HolderId, line.Food!.Id, Array.Empty<LinkApplyJournal.LineShift>(),
                         new[] { new LinkApplyJournal.LinePlace { RecipeId = recipeId, SortOrder = line.SortOrder } }, now, by));
                 }
+                links.AddRange(built.Where(l => l.ByWording != null)
+                    .Select(l => LineRelinkService.WordingResolved(recipeId, l.ByWording!, l.Food!.Id, l.SortOrder, now, by)));
                 _db.AuditLogEntries.AddRange(links);
 
                 if (!reject && recipe.DateCurationCompleted == null
@@ -884,7 +886,8 @@ namespace Nom.Orch.Services
                 var linkIds = headers.SelectMany(h => LinkRowIds(h.NewValue)).ToList();
                 var links = linkIds.Count == 0
                     ? new List<AuditLogEntryEntity>()
-                    : await _db.AuditLogEntries.Where(a => linkIds.Contains(a.Id) && a.ChangeType == LinkApplyJournal.ChangeType).ToListAsync();
+                    : await _db.AuditLogEntries.Where(a => linkIds.Contains(a.Id)
+                        && (a.ChangeType == LinkApplyJournal.ChangeType || a.ChangeType == LineRelinkService.WordingResolveChangeType)).ToListAsync();
                 foreach (var header in headers.Concat(links)) header.ChangeType = ReprocessUndoneChangeType;
                 _db.AuditLogEntries.Add(new AuditLogEntryEntity
                 {

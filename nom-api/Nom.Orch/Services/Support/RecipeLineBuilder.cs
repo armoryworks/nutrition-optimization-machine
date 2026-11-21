@@ -62,6 +62,10 @@ namespace Nom.Orch.Services.Support
             public IngredientEntity? Food { get; set; }
 
             public FollowedLink? Link { get; set; }
+
+            /// <summary>The verified wording the food was found by, in key form; a retract of that wording moves the line back.</summary>
+            public string? ByWording { get; set; }
+
             public decimal Quantity { get; set; }
             public long MeasurementId { get; set; } = DefaultMeasurementId;
             public string? MeasurementName { get; set; }
@@ -92,12 +96,13 @@ namespace Nom.Orch.Services.Support
                 var name = RecipeScrapingService.Clamp(string.IsNullOrWhiteSpace(ingredient.Name) ? ingredient.RawLine : ingredient.Name, 2047) ?? string.Empty;
                 var wording = IngredientNameNormalizer.Normalize(name);
 
-                var (found, link) = await FindAsync(wording);
+                var (found, link, byWording) = await FindAsync(wording);
                 var chosen = choose?.Invoke(i, found);
                 if (chosen != null)
                 {
                     found = chosen;
                     link = null;
+                    byWording = null;
                 }
 
                 if (found == null && !created.TryGetValue(wording, out found))
@@ -106,7 +111,7 @@ namespace Nom.Orch.Services.Support
                     created[wording] = found;
                 }
 
-                var line = new BuiltLine { SortOrder = i, RawLine = rawLine, Wording = wording, Food = found, Link = link };
+                var line = new BuiltLine { SortOrder = i, RawLine = rawLine, Wording = wording, Food = found, Link = link, ByWording = byWording };
                 var amount = await AmountAsync(ingredient, PackageLineService.CountsDrained(line.FoodName, ingredient.RawLine));
                 if (amount != null)
                 {
@@ -183,15 +188,39 @@ namespace Nom.Orch.Services.Support
             return _measurements[lowered] = measurement?.Id;
         }
 
-        private async Task<(IngredientEntity? Food, FollowedLink? Link)> FindAsync(string wording)
+        private async Task<(IngredientEntity? Food, FollowedLink? Link, string? ByWording)> FindAsync(string wording)
         {
             var lowered = wording.ToLowerInvariant();
-            var found = await FindByVerifiedWordingAsync(lowered)
-                ?? await FindByNameAsync(lowered)
-                ?? await FindByTrustedAliasAsync(lowered);
+            if (await FindByVerifiedWordingAsync(lowered) is { } judged) return (judged, null, lowered);
+            var found = await FindByNameAsync(lowered) ?? await FindByTrustedAliasAsync(lowered);
+            if (found != null) return (found, null, null);
+            if (await FindByAppliedLinkAsync(lowered) is { } linked) return (linked.Item1, linked.Item2, null);
+            return (null, null, null);
+        }
+
+        /// <summary>
+        /// The food the import finds for a wording with the verified wording table left out: a live
+        /// ingredient of that name, the one food a trusted alias gives it to, or the food an applied
+        /// link merged the retired ingredient of that name into; otherwise a new uncurated ingredient
+        /// of that name (Created). A wording retract puts a line that landed through the wording there.
+        /// </summary>
+        public async Task<(IngredientEntity Food, FollowedLink? Link, bool Created)> FoodWithoutWordingAsync(string wording, long? personId)
+        {
+            if (await FindWithoutWordingAsync(wording) is { } found) return (found.Food, found.Link, false);
+            return (await CreateIngredientAsync(wording, personId), null, true);
+        }
+
+        /// <summary>
+        /// The food <see cref="FoodWithoutWordingAsync"/> finds without creating one, or null when it
+        /// would create one.
+        /// </summary>
+        public async Task<(IngredientEntity Food, FollowedLink? Link)?> FindWithoutWordingAsync(string wording)
+        {
+            var lowered = wording.ToLowerInvariant();
+            var found = await FindByNameAsync(lowered) ?? await FindByTrustedAliasAsync(lowered);
             if (found != null) return (found, null);
             if (await FindByAppliedLinkAsync(lowered) is { } linked) return linked;
-            return (null, null);
+            return null;
         }
 
         /// <summary>

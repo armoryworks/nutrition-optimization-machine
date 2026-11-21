@@ -154,8 +154,10 @@ recipe approved since the write (Curated now, not Curated after the write) is sk
 approved on the rebuilt lines, and an approved recipe must not get back lines that may fail
 vetting or the gate. The header is relabelled `ReprocessUndone` (which holds nothing, so the recipe
 is free again), and so are the applied-link line rows (`LinkApply`, `Line`) the rebuild wrote for a
-line that followed a USDA link, which its header names (`links=`): the recipe is no longer held
-through them and the link's own undo no longer finds a line "moved since" there. The journal row
+line that followed a USDA link and the `WordingResolve` rows it wrote for a line it put on a food
+through a verified wording, which its header names (`links=`): the recipe is no longer held
+through them, the link's own undo no longer finds a line "moved since" there, and a wording retract
+no longer moves a line the rebuild undo already put back. The journal row
 gets `UndoneAt`, and a `ReprocessUndo` row is written (entity `Recipe`). A second undo finds
 nothing to do.
 
@@ -164,7 +166,8 @@ start of the batch, so a lane entry written on a recipe while the batch was stil
 earlier recipes counts as older than its rebuild.
 
 **Order of undos.** A rebuild replaces the rows that older line journals name. `relink/undo`,
-`reread/undo`, `labels/undo`, `quantities/undo` and `startup-fills/undo` therefore skip an entry
+`reread/undo`, `labels/undo`, `quantities/undo`, `startup-fills/undo` and the wording retract and
+unload with lines (`LineRelinkService.UndoForSourcesAsync`) therefore skip an entry
 whose recipe has a standing `Reprocess` header newer than the entry, and count it as
 `skippedRebuilt`. To go back past a rebuild, undo the rebuild first; the older undo then works
 again.
