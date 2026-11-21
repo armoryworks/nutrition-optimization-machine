@@ -530,6 +530,29 @@ describe('PipelineAdmin', () => {
     expect(byId(loaded(status()).nativeElement, 'pipeline-sources-error')).not.toBeNull();
   });
 
+  it('shows the source rights engine with its classes, reservations and the recipes taken from barred sources', () => {
+    const body = status();
+    body.sourceRights = {
+      ruleVersion: 'source-rights/1', titleRuleVersion: 'recipe-titles/1', enforced: true,
+      sourcesByClass: { clear: 0, 'facts-only': 10, 'permission-needed': 5, forbidden: 7 }, sourcesUnclassed: 0, sourcesStale: 1,
+      aiReserved: 11, permissions: 0, factsOnlyApproved: 2, fetchable: 2, recipesByClass: { 'facts-only': 14000 }, recipesAiReserved: 6000,
+      factsOnlyWithheld: 13000, factsOnlyOwnMethod: 900, retentionDue: 40, retentionHeld: 12, recipesWithCredit: 300, takenFromBarredSources: 9861,
+      lastChangeUtc: '2026-11-21T00:00:00Z', changesLast7d: 3,
+    };
+    const el = loaded(body).nativeElement as HTMLElement;
+
+    expect(byId(el, 'pipeline-source-rights-state')?.textContent).toContain('Gate on');
+    expect(byId(el, 'pipeline-source-rights-state')?.classList).toContain('nom-pipeline__warn');
+    expect(byId(el, 'pipeline-metric-rights-forbidden')?.textContent?.trim()).toBe('7');
+    expect(byId(el, 'pipeline-metric-rights-facts-only')?.textContent?.trim()).toBe('10');
+    expect(byId(el, 'pipeline-metric-rights-ai-reserved')?.textContent?.trim()).toBe('11');
+    expect(byId(el, 'pipeline-metric-rights-taken')?.textContent?.trim()).toBe('9,861');
+    TestBed.resetTestingModule();
+    http.verify();
+
+    expect(byId(loaded(status()).nativeElement, 'pipeline-source-rights-error')).not.toBeNull();
+  });
+
   it('says when no container size is stored, and when the lane did not report', () => {
     const body = status();
     body.containerSizes = { lane: 'container-sizes', laneMode: 'shadow', rows: 0, byStatus: {}, bySource: {}, lastScoredAt: null, holdoutLines: 0, holdoutAgree: 0, keys: [] };

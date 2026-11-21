@@ -106,7 +106,12 @@ namespace Nom.Orch.Services
 
             var ids = candidates.Select(c => c.RecipeId).ToList();
             var recipes = await _db.Recipes.AsNoTracking().Where(r => ids.Contains(r.Id))
-                .Select(r => new { r.Id, r.Name, r.CurationStatusId, r.Servings, r.RecipeServings }).ToDictionaryAsync(r => r.Id, cancellationToken);
+                .Select(r => new
+                {
+                    r.Id, r.Name, r.CurationStatusId, r.Servings, r.RecipeServings,
+                    ModelMayRead = !r.SourceAiReserved || (r.ProseLaneVersion != null && r.ProseAttempts == 0 && !r.ProseWithheld && !r.ContainsSourceProse),
+                })
+                .ToDictionaryAsync(r => r.Id, cancellationToken);
             var rebuildTier = tier != ReprocessTier.Order;
             var rowsBefore = rebuildTier
                 ? (await _db.RecipeIngredients.AsNoTracking().Where(ri => ids.Contains(ri.RecipeId))
@@ -156,6 +161,7 @@ namespace Nom.Orch.Services
                 }
 
                 var method = steps[one.RecipeId].ToList();
+                var judgeMethod = recipe?.ModelMayRead == false ? new List<string>() : method;
                 var lines = new List<ReprocessSignalLine>();
                 int before = 0, after = 0;
                 foreach (var line in one.Lines.Where(l => l.Changes.Count > 0 && !l.Changes.SequenceEqual(Order)))
@@ -182,7 +188,7 @@ namespace Nom.Orch.Services
                         lines.Add(new ReprocessSignalLine(
                             line.RawLine, line.OldFood, line.OldQuantity, oldUnit, line.OldLineKind,
                             line.NewFood, line.NewQuantity, unit, line.NewLineKind, line.FilledFromMethod, foodChanged, gramsPerItem,
-                            Excerpt(ReprocessRuleAudit.MethodSentences(method, line.NewFood, line.RawLine)), line.Changes.ToList(), failures));
+                            Excerpt(ReprocessRuleAudit.MethodSentences(judgeMethod, line.NewFood, line.RawLine)), line.Changes.ToList(), failures));
                     }
                 }
 

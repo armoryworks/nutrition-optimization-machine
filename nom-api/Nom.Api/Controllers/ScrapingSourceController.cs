@@ -18,15 +18,18 @@ namespace Nom.Api.Controllers
     {
         private readonly IScrapingSourceService _scrapingSources;
         private readonly ISourceAdmissionService _admission;
+        private readonly ISourceRightsService _rights;
         private readonly ICurrentUserService _currentUser;
 
         public ScrapingSourceController(
             IScrapingSourceService scrapingSources,
             ISourceAdmissionService admission,
+            ISourceRightsService rights,
             ICurrentUserService currentUser)
         {
             _scrapingSources = scrapingSources;
             _admission = admission;
+            _rights = rights;
             _currentUser = currentUser;
         }
 
@@ -114,6 +117,76 @@ namespace Nom.Api.Controllers
         public async Task<ActionResult<ScrapingSourceModel>> Undo(long entryId)
         {
             return Answer(await _admission.UndoAsync(entryId, _currentUser.RequiredPersonId));
+        }
+
+        /// <summary>Derives every web source's rights class and AI flag from its stored report (or one source's); a dry run unless apply=true.</summary>
+        [HttpPost("rights/derive")]
+        public async Task<ActionResult<SourceRightsRunModel>> DeriveRights([FromQuery] bool apply = false, [FromQuery] long? sourceId = null, CancellationToken cancellationToken = default)
+        {
+            return Ok(await _rights.DeriveAsync(apply, sourceId, staleOnly: false, cancellationToken));
+        }
+
+        /// <summary>Records the publisher's written permission (who, when, the text); it lifts permission-needed or forbidden and is undone from the journal.</summary>
+        [HttpPost("{id:long}/permission")]
+        public async Task<ActionResult<ScrapingSourceModel>> RecordPermission(long id, [FromBody] SourcePermissionRequestModel request)
+        {
+            return Answer(await _rights.RecordPermissionAsync(id, request, _currentUser.RequiredPersonId));
+        }
+
+        /// <summary>Approves (approve=true) or withdraws facts-only use of a facts-only source; journaled.</summary>
+        [HttpPost("{id:long}/facts-only-use")]
+        public async Task<ActionResult<ScrapingSourceModel>> FactsOnlyUse(long id, [FromBody] SourceReasonRequestModel? request, [FromQuery] bool approve = true)
+        {
+            return Answer(await _rights.SetFactsOnlyUseAsync(id, approve, _currentUser.RequiredPersonId, request?.Reason));
+        }
+
+        /// <summary>Reduces distinctive titles of facts-only recipes to the dish name; a dry run unless apply=true.</summary>
+        [HttpPost("rights/titles")]
+        public async Task<ActionResult<SourceRecipeStepModel>> Titles([FromQuery] bool apply = false, [FromQuery] long? sourceId = null, CancellationToken cancellationToken = default)
+        {
+            return Ok(await _rights.TitlesAsync(apply, sourceId, cancellationToken));
+        }
+
+        /// <summary>Stores the third-party credit lines found in recipes' stored source text; a dry run unless apply=true.</summary>
+        [HttpPost("rights/credits")]
+        public async Task<ActionResult<SourceRecipeStepModel>> Credits([FromQuery] bool apply = false, [FromQuery] long? sourceId = null, CancellationToken cancellationToken = default)
+        {
+            return Ok(await _rights.CreditsAsync(apply, sourceId, cancellationToken));
+        }
+
+        /// <summary>Reduces facts-only recipes' stored source prose to what a rebuild needs; a dry run unless apply=true.</summary>
+        [HttpPost("rights/retention")]
+        public async Task<ActionResult<SourceRecipeStepModel>> Retention([FromQuery] bool apply = false, CancellationToken cancellationToken = default)
+        {
+            return Ok(await _rights.RetentionAsync(apply, cancellationToken));
+        }
+
+        /// <summary>Deletes for good the source documents a reduction held past the undo window; a dry run unless apply=true.</summary>
+        [HttpPost("rights/retention/purge")]
+        public async Task<ActionResult<SourceRecipeStepModel>> PurgeRetention([FromQuery] bool apply = false, CancellationToken cancellationToken = default)
+        {
+            return Ok(await _rights.PurgeRetentionAsync(apply, cancellationToken));
+        }
+
+        /// <summary>Undoes one run of titles, credits, retention or facts-only withholding by its stamp; a dry run unless apply=true.</summary>
+        [HttpPost("rights/undo")]
+        public async Task<ActionResult<SourceRecipeStepModel>> UndoStep([FromQuery] string step, [FromQuery] DateTime stamp, [FromQuery] bool apply = false, CancellationToken cancellationToken = default)
+        {
+            var result = await _rights.UndoStepAsync(step, stamp.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(stamp, DateTimeKind.Utc) : stamp.ToUniversalTime(), apply, cancellationToken);
+            return result.Refused != null ? BadRequest(new { error = result.Refused }) : Ok(result);
+        }
+
+        /// <summary>The recipes already taken from each forbidden or permission-needed source with no permission recorded (a count for the owner's decision; nothing is changed).</summary>
+        [HttpGet("rights/taken")]
+        public async Task<ActionResult<List<SourceTakenModel>>> Taken(CancellationToken cancellationToken)
+        {
+            return Ok(await _rights.TakenAsync(cancellationToken));
+        }
+
+        [HttpGet("rights/status")]
+        public async Task<ActionResult<SourceRightsStatusModel>> RightsStatus(CancellationToken cancellationToken)
+        {
+            return Ok(await _rights.StatusAsync(cancellationToken));
         }
 
         private ActionResult<ScrapingSourceModel> Answer(SourceActionResult result) =>

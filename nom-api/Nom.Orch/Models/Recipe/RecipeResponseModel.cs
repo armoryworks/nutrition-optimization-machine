@@ -33,6 +33,12 @@ namespace Nom.Orch.Models.Recipe
         public string? SourceUrl { get; set; }
         public string? SourceAttribution { get; set; }
 
+        /// <summary>A third-party credit line found on the source page ("Adapted from ..."), shown with the source link.</summary>
+        public string? SourceCredit { get; set; }
+
+        /// <summary>The recipe's source is facts-only: readers get NOM's ingredient facts, times, yield, nutrition and the link, and a method only in NOM's own words.</summary>
+        public bool FactsOnly { get; set; }
+
         /// <summary>True while the source's verbatim wording is held for review (not yet rewritten).</summary>
         public bool ContainsSourceProse { get; set; }
 

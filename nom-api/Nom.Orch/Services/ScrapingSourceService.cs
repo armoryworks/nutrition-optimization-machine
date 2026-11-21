@@ -261,6 +261,22 @@ responsibility for the legality and quality of importing recipes from this site.
             HarvestPausedReason = source.HarvestPausedReason,
             RecipesWithheldAt = source.RecipesWithheldAt,
             RecipesWithheldReason = source.RecipesWithheldReason,
+            RightsClass = source.RightsClass,
+            EffectiveRightsClass = SourceRightsService.EffectiveClass(source),
+            RightsRuleVersion = source.RightsRuleVersion,
+            RightsQuote = source.RightsQuote,
+            RightsQuoteUrl = source.RightsQuoteUrl,
+            RightsDerivedAtUtc = source.RightsDerivedAtUtc,
+            AiReserved = source.AiReserved,
+            AiReservedQuote = source.AiReservedQuote,
+            AiReservedQuoteUrl = source.AiReservedQuoteUrl,
+            PermissionGrantedBy = source.PermissionGrantedBy,
+            PermissionGrantedOn = source.PermissionGrantedOn,
+            PermissionText = source.PermissionText,
+            PermissionRecordedAtUtc = source.PermissionRecordedAtUtc,
+            FactsOnlyApprovedAt = source.FactsOnlyApprovedAt,
+            MayFetch = SourceRightsService.MayFetch(source),
+            FetchRefusal = source.Kind == ScrapingSourceEntity.WebKind && source.Status == ScrapingSourceStatusEnum.Approved ? SourceRightsService.FetchRefusal(source) : null,
         };
     }
 }

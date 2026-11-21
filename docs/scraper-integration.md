@@ -4,6 +4,7 @@ NOM ships **without any web-scraping capability**. URL-based recipe import is de
 
 - **Responsibility stays with the operator.** Whoever runs a scraper owns its crawling behavior, the sites it touches, and the legal posture of doing so. NOM's public codebase never fetches third-party sites.
 - **Whitelist-only, admin-approved.** Even with a scraper configured, NOM refuses to scrape any domain an admin has not explicitly approved (see *Source whitelist* below).
+- **Gated on rights, by rule.** An approved web source is fetched only when the rights class derived from its stored source check allows it: clear, a recorded written permission, or facts-only with facts-only use approved by an admin. Forbidden and permission-needed sources are never fetched, and a facts-only source's recipes show facts and a link only (`docs/architecture/source-rights.md`, `SourceRights:Enforce`).
 - **Copyright-aware by design.** Scraped facts (ingredients, quantities, times) are stored; the source's photo and verbatim prose are quarantined for curation review and never published. Shown prose that later fails the prose check is withheld: never served, while the recipe stays usable with rule-built key facts and a source link until it is rewritten.
 
 The reference implementation lives in a **private** repository: `armoryworks/nom-scraper`. You can request access, or build your own service against the contract below — anything that speaks this contract works.

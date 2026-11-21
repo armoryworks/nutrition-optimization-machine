@@ -40,6 +40,7 @@ namespace Nom.Orch.Services
         private readonly IRecipeScraperClient _scraper;
         private readonly IRecipeVettingService _vetting;
         private readonly SourceAdmissionSettings _settings;
+        private readonly SourceRightsSettings _rights;
         private readonly ILogger<SourceAdmissionService> _logger;
 
         public SourceAdmissionService(
@@ -47,12 +48,14 @@ namespace Nom.Orch.Services
             IRecipeScraperClient scraper,
             IRecipeVettingService vetting,
             IOptions<SourceAdmissionSettings> settings,
-            ILogger<SourceAdmissionService> logger)
+            ILogger<SourceAdmissionService> logger,
+            IOptions<SourceRightsSettings>? rights = null)
         {
             _db = db;
             _scraper = scraper;
             _vetting = vetting;
             _settings = settings.Value;
+            _rights = rights?.Value ?? new SourceRightsSettings();
             _logger = logger;
         }
 
@@ -67,6 +70,7 @@ namespace Nom.Orch.Services
                 .Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.Kind == ScrapingSourceEntity.WebKind && s.HarvestPausedAt == null)
                 .OrderBy(s => s.LastDiscoveredUtc ?? DateTime.MinValue).ThenBy(s => s.Id)
                 .ToListAsync(cancellationToken);
+            if (_rights.Enforce) seeds = seeds.Where(SourceRightsService.MayFetch).ToList();
             var seedDomains = seeds
                 .Select(s => SourceAdmissionPolicy.NormalizeDomain(s.Domain))
                 .Where(d => d != null).Select(d => d!)
@@ -309,6 +313,13 @@ namespace Nom.Orch.Services
             var now = Now();
             source.CheckedAtUtc = now;
             source.LastCheckId = check.Id;
+            if (source.Kind == ScrapingSourceEntity.WebKind)
+            {
+                SourceRightsService.ApplyVerdict(_db, source, SourceRightsRule.Derive(report), check.Id, now, SystemConstants.SystemPersonId);
+                await _db.SaveChangesAsync(cancellationToken);
+                await SourceRightsService.SyncRecipesAsync(_db, source, now, SystemConstants.SystemPersonId, cancellationToken);
+            }
+
             if (!judgement.Conclusive)
             {
                 await _db.SaveChangesAsync(cancellationToken);
@@ -588,6 +599,7 @@ namespace Nom.Orch.Services
             source.LastModifiedByPersonId = personId;
             await _db.SaveChangesAsync();
 
+            SourceRightsService.ApplyVerdict(_db, source, SourceRightsRule.Derive(report), check.Id, now, personId);
             candidate.State = SourceCandidateEntity.Approved;
             candidate.ScrapingSourceId = source.Id;
             _db.AuditLogEntries.Add(SourceJournal.Entry(source.Id, SourceJournal.Approve, SourceJournal.StatusField,
@@ -768,6 +780,7 @@ namespace Nom.Orch.Services
                     && s.HarvestPausedAt == null && s.RecipesWithheldAt == null)
                 .OrderBy(s => s.Domain)
                 .ToListAsync(cancellationToken);
+            if (_rights.Enforce) sources = sources.Where(SourceRightsService.MayFetch).ToList();
             var checkIds = sources.Where(s => s.LastCheckId != null).Select(s => s.LastCheckId!.Value).ToList();
             var reports = await _db.SourceChecks.AsNoTracking().Where(c => checkIds.Contains(c.Id))
                 .Select(c => new { c.Id, c.ReportJson }).ToListAsync(cancellationToken);
@@ -789,6 +802,8 @@ namespace Nom.Orch.Services
                     Probation = source.ProbationUntilUtc != null,
                     RecipeLimit = limit,
                     CrawlDelaySeconds = source.LastCheckId is { } id && delays.TryGetValue(id, out var delay) ? delay : null,
+                    RightsClass = SourceRightsService.EffectiveClass(source),
+                    AiReserved = source.AiReserved,
                 });
             }
 
@@ -838,6 +853,21 @@ namespace Nom.Orch.Services
 
             var now = Now();
             var note = $"undo of entry {entry.Id}";
+            if (SourceRightsService.IsRightsField(field))
+            {
+                var old = SourceRightsService.ValueOf(source, field);
+                if (!SourceRightsService.Restore(source, field, entry.OldValue, now, personId))
+                    return SourceActionResult.Refused("This entry does not hold the old facts whole, so it cannot be undone.");
+                source.LastModifiedDate = now;
+                source.LastModifiedByPersonId = personId;
+                var restored = SourceRightsService.ValueOf(source, field);
+                _db.AuditLogEntries.Add(SourceJournal.Entry(source.Id, SourceJournal.Undo, field, old,
+                    SourceJournal.Value(SourceJournal.State(restored), $"{SourceJournal.Detail(restored)}; {note}".TrimStart(';', ' ')), now, personId));
+                await _db.SaveChangesAsync();
+                await SourceRightsService.SyncRecipesAsync(_db, source, now, personId);
+                return new SourceActionResult { Ok = true, Source = await SourceModelAsync(source) };
+            }
+
             switch (field)
             {
                 case SourceJournal.HarvestField when target == SourceJournal.Paused:
@@ -923,6 +953,7 @@ namespace Nom.Orch.Services
             SourceJournal.RecipesField => source.RecipesWithheldAt == null ? SourceJournal.Shown : SourceJournal.Withheld,
             SourceJournal.StatusField => source.Status.ToString(),
             SourceJournal.LicenceField => source.LicenceKind ?? SourceJournal.None,
+            _ when SourceRightsService.IsRightsField(field) => SourceRightsService.CurrentState(source, field),
             _ => SourceJournal.None,
         };
 

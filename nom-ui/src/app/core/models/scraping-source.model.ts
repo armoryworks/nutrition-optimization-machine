@@ -82,6 +82,117 @@ export interface ScrapingSourceModel {
   harvestPausedReason?: string | null;
   recipesWithheldAt?: string | null;
   recipesWithheldReason?: string | null;
+  rightsClass?: RightsClass | null;
+  effectiveRightsClass?: RightsClass | null;
+  rightsRuleVersion?: string | null;
+  rightsQuote?: string | null;
+  rightsQuoteUrl?: string | null;
+  rightsDerivedAtUtc?: string | null;
+  aiReserved?: boolean;
+  aiReservedQuote?: string | null;
+  aiReservedQuoteUrl?: string | null;
+  permissionGrantedBy?: string | null;
+  permissionGrantedOn?: string | null;
+  permissionText?: string | null;
+  permissionRecordedAtUtc?: string | null;
+  factsOnlyApprovedAt?: string | null;
+  mayFetch?: boolean;
+  fetchRefusal?: string | null;
+}
+
+export type RightsClass = 'clear' | 'facts-only' | 'permission-needed' | 'forbidden';
+
+export interface SourceRightsChange {
+  sourceId: number;
+  domain: string;
+  checkId?: number | null;
+  oldClass?: RightsClass | null;
+  newClass?: RightsClass | null;
+  oldAiReserved: boolean;
+  newAiReserved: boolean;
+  reason?: string | null;
+  quote?: string | null;
+  quoteUrl?: string | null;
+  aiQuote?: string | null;
+  aiQuoteUrl?: string | null;
+  conclusive: boolean;
+  changed: boolean;
+  recipesRestamped: number;
+  recipesWithheld: number;
+  recipesReleased: number;
+}
+
+export interface SourceRightsRun {
+  applied: boolean;
+  ruleVersion: string;
+  stamp: string;
+  sources: number;
+  changed: number;
+  inconclusive: number;
+  results: SourceRightsChange[];
+}
+
+export interface SourcePermissionRequest {
+  grantedBy: string;
+  grantedOn: string;
+  text: string;
+}
+
+export type RightsStep = 'titles' | 'credits' | 'retention';
+
+export interface SourceRecipeChange {
+  recipeId: number;
+  domain?: string | null;
+  old?: string | null;
+  new?: string | null;
+  reason?: string | null;
+}
+
+export interface SourceRecipeStep {
+  step: string;
+  applied: boolean;
+  stamp: string;
+  ruleVersion?: string | null;
+  examined: number;
+  changed: number;
+  skipped: number;
+  refused?: string | null;
+  skippedByReason: Record<string, number>;
+  changes: SourceRecipeChange[];
+}
+
+export interface SourceTaken {
+  sourceId: number;
+  domain: string;
+  rightsClass?: RightsClass | null;
+  rightsQuote?: string | null;
+  rightsQuoteUrl?: string | null;
+  recipes: number;
+  recipesShown: number;
+  recipesWithheld: boolean;
+}
+
+export interface SourceRightsStatus {
+  ruleVersion: string;
+  titleRuleVersion: string;
+  enforced: boolean;
+  sourcesByClass: Record<string, number>;
+  sourcesUnclassed: number;
+  sourcesStale: number;
+  aiReserved: number;
+  permissions: number;
+  factsOnlyApproved: number;
+  fetchable: number;
+  recipesByClass: Record<string, number>;
+  recipesAiReserved: number;
+  factsOnlyWithheld: number;
+  factsOnlyOwnMethod: number;
+  retentionDue: number;
+  retentionHeld: number;
+  recipesWithCredit: number;
+  takenFromBarredSources: number;
+  lastChangeUtc?: string | null;
+  changesLast7d: number;
 }
 
 export interface SourceCandidate {

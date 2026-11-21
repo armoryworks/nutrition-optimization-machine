@@ -7,7 +7,8 @@ namespace Nom.Orch.Services.Support
     /// The journal of scraping-source state (audit.AuditLogEntry, EntityType <c>ScrapingSource</c>).
     /// Each row names one field (<see cref="StatusField"/>, <see cref="HarvestField"/>,
     /// <see cref="RecipesField"/>, <see cref="VerdictField"/>, <see cref="ProbationField"/>,
-    /// <see cref="LicenceField"/>) with its
+    /// <see cref="LicenceField"/>, <see cref="RightsField"/>, <see cref="AiReservedField"/>,
+    /// <see cref="PermissionField"/>, <see cref="FactsOnlyField"/>) with its
     /// old and new state, written as <c>state</c> or <c>state | detail</c>. A row of an undoable
     /// field is undone by setting the field back to its old state while it still holds the new one,
     /// journaled as <see cref="Undo"/>; an undo is a row like any other, so it can be undone too.
@@ -27,6 +28,9 @@ namespace Nom.Orch.Services.Support
         public const string ProbationPass = "SourceProbationPass";
         public const string ProbationFail = "SourceProbationFail";
         public const string Undo = "SourceUndo";
+        public const string Rights = "SourceRights";
+        public const string Permission = "SourcePermission";
+        public const string FactsOnlyUse = "SourceFactsOnlyUse";
 
         public const string StatusField = "Status";
         public const string HarvestField = "Harvest";
@@ -34,6 +38,10 @@ namespace Nom.Orch.Services.Support
         public const string VerdictField = "CheckVerdict";
         public const string ProbationField = "Probation";
         public const string LicenceField = "Licence";
+        public const string RightsField = "Rights";
+        public const string AiReservedField = "AiReserved";
+        public const string PermissionField = "Permission";
+        public const string FactsOnlyField = "FactsOnlyUse";
 
         public const string Running = "running";
         public const string Paused = "paused";
@@ -43,7 +51,7 @@ namespace Nom.Orch.Services.Support
 
         private const string Separator = " | ";
 
-        public static bool Undoable(string? field) => field is StatusField or HarvestField or RecipesField or LicenceField;
+        public static bool Undoable(string? field) => field is StatusField or HarvestField or RecipesField or LicenceField or RightsField or AiReservedField or PermissionField or FactsOnlyField;
 
         public static string Value(string state, string? detail = null) =>
             string.IsNullOrWhiteSpace(detail) ? state : state + Separator + detail.Trim();

@@ -28,6 +28,15 @@ public class ScrapingSourceEntityConfiguration : IEntityTypeConfiguration<Scrapi
         builder.Property(e => e.ProbationResult).HasMaxLength(1023);
         builder.Property(e => e.HarvestPausedReason).HasMaxLength(1023);
         builder.Property(e => e.RecipesWithheldReason).HasMaxLength(1023);
+        builder.Property(e => e.RightsClass).HasMaxLength(24);
+        builder.Property(e => e.RightsRuleVersion).HasMaxLength(32);
+        builder.Property(e => e.RightsQuote).HasMaxLength(2047);
+        builder.Property(e => e.RightsQuoteUrl).HasMaxLength(2047);
+        builder.Property(e => e.AiReserved).HasDefaultValue(false);
+        builder.Property(e => e.AiReservedQuote).HasMaxLength(2047);
+        builder.Property(e => e.AiReservedQuoteUrl).HasMaxLength(2047);
+        builder.Property(e => e.PermissionGrantedBy).HasMaxLength(255);
+        builder.Property(e => e.PermissionText).HasMaxLength(2047);
 
         builder.HasOne(e => e.RequestedByPerson)
             .WithMany()

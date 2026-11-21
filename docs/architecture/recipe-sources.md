@@ -174,6 +174,13 @@ probation limit.
   run, the queue and the approved sources by verdict, paused, withheld, in probation and
   harvestable counts, the checks today against the cap and the failed checks of the week.
 
+## Rights class
+
+Each web source's rights class (clear, facts-only, permission-needed, forbidden) and its AI reservation are
+derived by rule from the stored report of its last check, journaled, and re-derived by every re-check; they
+gate harvesting, URL and staged imports and discovery seeds, and decide what readers see of its recipes. See
+`source-rights.md`.
+
 ## Not built here
 
 - Copy-site detection (design Q3) and the "lines on a curated food" probation figure: both depend

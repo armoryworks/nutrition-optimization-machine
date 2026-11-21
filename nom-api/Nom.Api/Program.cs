@@ -384,6 +384,8 @@ builder.Services.AddHttpClient<Nom.Orch.UtilityInterfaces.IGroceryExportClient, 
 // sites become Pending sources for admin approval, never direct imports).
 builder.Services.Configure<Nom.Orch.Settings.SourceAdmissionSettings>(
     builder.Configuration.GetSection(Nom.Orch.Settings.SourceAdmissionSettings.SectionName));
+builder.Services.Configure<Nom.Orch.Settings.SourceRightsSettings>(
+    builder.Configuration.GetSection(Nom.Orch.Settings.SourceRightsSettings.SectionName));
 builder.Services.AddHostedService<Nom.Api.Services.SourceDiscoveryHostedService>();
 
 // Canonical dish groups ("chocolate chip cookies"): browse/merge API plus a

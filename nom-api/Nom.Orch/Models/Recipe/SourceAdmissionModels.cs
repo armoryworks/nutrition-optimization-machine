@@ -192,6 +192,12 @@ namespace Nom.Orch.Models.Recipe
 
         /// <summary>The crawl-delay robots.txt asks, from the last check; the harvester honours it in full.</summary>
         public double? CrawlDelaySeconds { get; set; }
+
+        /// <summary>The source's effective rights class: <c>clear</c>, or <c>facts-only</c> (facts and a link only, approved by an admin).</summary>
+        public string? RightsClass { get; set; }
+
+        /// <summary>The source reserves its content against AI use: no model reads its method or description.</summary>
+        public bool AiReserved { get; set; }
     }
 
     public class SourceActionResult

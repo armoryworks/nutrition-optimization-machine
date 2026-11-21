@@ -214,6 +214,9 @@
                 <div>
                   @if (recipe()!.sourceUrl) {
                     <a [href]="recipe()!.sourceUrl" target="_blank" rel="noopener noreferrer" data-testid="recipe-source-link">{{ recipe()!.sourceAttribution || 'Original recipe' }}</a>
+                    @if (recipe()!.sourceCredit) {
+                      <span class="nom-recipe__source-credit" data-testid="recipe-source-credit">({{ recipe()!.sourceCredit }})</span>
+                    }
                   } @else {
                     {{ recipe()!.sourceAttribution }}
                   }

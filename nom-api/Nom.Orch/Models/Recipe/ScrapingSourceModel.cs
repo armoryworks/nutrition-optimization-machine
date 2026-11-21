@@ -29,6 +29,22 @@ namespace Nom.Orch.Models.Recipe
         public string? HarvestPausedReason { get; set; }
         public DateTime? RecipesWithheldAt { get; set; }
         public string? RecipesWithheldReason { get; set; }
+        public string? RightsClass { get; set; }
+        public string? EffectiveRightsClass { get; set; }
+        public string? RightsRuleVersion { get; set; }
+        public string? RightsQuote { get; set; }
+        public string? RightsQuoteUrl { get; set; }
+        public DateTime? RightsDerivedAtUtc { get; set; }
+        public bool AiReserved { get; set; }
+        public string? AiReservedQuote { get; set; }
+        public string? AiReservedQuoteUrl { get; set; }
+        public string? PermissionGrantedBy { get; set; }
+        public DateTime? PermissionGrantedOn { get; set; }
+        public string? PermissionText { get; set; }
+        public DateTime? PermissionRecordedAtUtc { get; set; }
+        public DateTime? FactsOnlyApprovedAt { get; set; }
+        public bool MayFetch { get; set; }
+        public string? FetchRefusal { get; set; }
     }
 
     public class ScrapingSourceReviewRequestModel

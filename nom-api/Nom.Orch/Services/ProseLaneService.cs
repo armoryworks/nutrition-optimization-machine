@@ -29,12 +29,17 @@ namespace Nom.Orch.Services
     /// The lane measures itself: planted-fault canaries from prose-judge.tsv after every
     /// <see cref="CanaryEvery"/> rewrites, an auditor of a third family on a sample, its gate yield,
     /// and its golden records; the frame qualifies, pauses and undoes it on those figures.
+    /// A recipe whose source reserves its content against AI use (<see cref="RecipeEntity.SourceAiReserved"/>)
+    /// takes the model-free path only (<see cref="ProseCleanRoom.RunRuleOnly"/>): no extractor, writer,
+    /// judge or auditor reads its method, and its decisions are recorded in <see cref="RuleOnlyTier"/>,
+    /// which the audit never samples.
     /// </summary>
     public class ProseLaneService
     {
         public const string Lane = AiLanes.ProseRewrite;
         public const string Tier = LaneTiers.Whole;
         public const string CanaryTier = "canary";
+        public const string RuleOnlyTier = "rule-only";
         public const string RewriteDecision = "rewrite";
         public const string GaveUpPrefix = "exhausted:";
         public const int CanaryEvery = 100;
@@ -118,7 +123,9 @@ namespace Nom.Orch.Services
                 ProseLaneOutcome outcome;
                 try
                 {
-                    outcome = await ProseCleanRoom.RunAsync(input, writer, judge, cancellationToken: cancellationToken);
+                    outcome = recipe.SourceAiReserved
+                        ? ProseCleanRoom.RunRuleOnly(input)
+                        : await ProseCleanRoom.RunAsync(input, writer, judge, cancellationToken: cancellationToken);
                 }
                 catch (System.Net.Http.HttpRequestException ex) when (!AiLanes.IsOutage(ex))
                 {
@@ -148,11 +155,12 @@ namespace Nom.Orch.Services
 
                 var now = DateTime.UtcNow;
                 var stratum = recipe.ProseWithheld ? (recipe.CurationStatusId == (long)CurationStatusEnum.Curated ? "withheld-approved" : "withheld") : "quarantined";
+                var tier = recipe.SourceAiReserved ? RuleOnlyTier : Tier;
                 if (outcome.Passed)
                 {
                     if (mode == LaneMode.Live)
                     {
-                        Write(recipe, rows, steps, outcome.Rewrite!, ownDescription, models, now);
+                        Write(recipe, rows, steps, outcome.Rewrite!, ownDescription, models, now, recipe.SourceAiReserved ? ProseCleanRoom.RuleOnlyStyle : null);
                         result.Rewritten++;
                     }
                     else
@@ -176,7 +184,7 @@ namespace Nom.Orch.Services
                 await _db.SaveChangesAsync(cancellationToken);
                 _db.ChangeTracker.Clear();
                 await _frame.RecordAsync(new LaneDecisionInput(
-                    Lane, Tier, Subject(id),
+                    Lane, tier, Subject(id),
                     outcome.Passed ? RewriteDecision : GaveUpPrefix + (outcome.FailureClass ?? "unknown"),
                     mode, outcome.Passed, version, stratum,
                     new
@@ -380,10 +388,10 @@ namespace Nom.Orch.Services
             recipe.LastModifiedByPersonId = SystemConstants.SystemPersonId;
         }
 
-        private void Write(RecipeEntity recipe, List<RecipeStepEntity> rows, List<RecipeStepEntity> steps, RewriteFidelity.SourceText rewrite, string? ownDescription, ProseLaneModels models, DateTime now)
+        private void Write(RecipeEntity recipe, List<RecipeStepEntity> rows, List<RecipeStepEntity> steps, RewriteFidelity.SourceText rewrite, string? ownDescription, ProseLaneModels models, DateTime now, string? writer = null)
         {
             var description = ownDescription ?? rewrite.Description;
-            var tag = ProseLaneJournal.Tag(models.Writer, models.Version);
+            var tag = ProseLaneJournal.Tag(writer ?? models.Writer, models.Version);
             var texts = rewrite.Steps.Select((text, i) => (Number: i + 1, Text: text)).ToDictionary(s => s.Number, s => s.Text);
             var before = ProseState.Of(recipe, steps);
             var after = new ProseState(false, false, ProseCheck.Version, models.Version, 0, now, texts.Keys.ToList());

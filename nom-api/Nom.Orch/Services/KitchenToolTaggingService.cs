@@ -51,6 +51,7 @@ namespace Nom.Orch.Services
                     r.Id,
                     r.Name,
                     Steps = r.RecipeSteps!.OrderBy(s => s.StepNumber).Select(s => s.Summary + " " + s.Description).ToList(),
+                    ModelMayRead = !r.SourceAiReserved || (r.ProseLaneVersion != null && r.ProseAttempts == 0 && !r.ProseWithheld && !r.ContainsSourceProse),
                 })
                 .ToListAsync(cancellationToken);
             var result = new KitchenToolTaggingBatchResult { Seen = batch.Count };
@@ -63,7 +64,7 @@ namespace Nom.Orch.Services
 
             var candidates = batch.Select(r =>
             {
-                var text = string.Join(" ", r.Steps.Where(s => !string.IsNullOrWhiteSpace(s)));
+                var text = r.ModelMayRead ? string.Join(" ", r.Steps.Where(s => !string.IsNullOrWhiteSpace(s))) : string.Empty;
                 return new ToolTagCandidate(r.Id, r.Name, text.Length > StepTextLimit ? text[..StepTextLimit] : text);
             }).ToList();
 

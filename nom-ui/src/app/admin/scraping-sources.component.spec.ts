@@ -4,7 +4,7 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { ScrapingSources } from './scraping-sources.component';
-import { ScrapingSourceModel, SourceCandidate, SourceCheck, SourceReview } from '../core/models/scraping-source.model';
+import { ScrapingSourceModel, SourceCandidate, SourceCheck, SourceReview, SourceTaken } from '../core/models/scraping-source.model';
 
 const clearCheck: SourceCheck = {
   id: 11, domain: 'www.open.example', purpose: 'candidate', status: 'completed', startedUtc: '2026-11-20T10:00:00Z', finishedUtc: '2026-11-20T10:05:00Z',
@@ -59,9 +59,10 @@ describe('ScrapingSources', () => {
     return fixture;
   }
 
-  function flush(body: SourceReview) {
+  function flush(body: SourceReview, taken: SourceTaken[] = []) {
     http.expectOne((r) => r.url.endsWith('/ScrapingSource/review')).flush(body);
     http.expectOne((r) => r.url.endsWith('/ScrapingSource') && r.params.get('status') === 'Pending').flush([]);
+    http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/taken')).flush(taken);
   }
 
   const byId = (el: HTMLElement, id: string) => el.querySelector(`[data-testid="${id}"]`);
@@ -163,5 +164,105 @@ describe('ScrapingSources', () => {
     expect(call.request.body.licenceKind).toBe('public-domain');
     call.flush({ ...blog, id: 20, kind: 'hand' });
     flush(review());
+  });
+
+  it('shows the rights class of each source with the deciding quote and records a written permission', () => {
+    const forbidden: ScrapingSourceModel = {
+      ...blog, rightsClass: 'forbidden', effectiveRightsClass: 'forbidden', rightsQuote: 'You agree not to use any robot.', rightsQuoteUrl: 'https://www.blog.example/terms',
+      aiReserved: true, aiReservedQuote: 'robots.txt blocks named AI crawlers: GPTBot', aiReservedQuoteUrl: 'https://www.blog.example/robots.txt',
+      mayFetch: false, fetchRefusal: 'www.blog.example is forbidden: nothing is fetched from it without a recorded written permission.',
+    };
+    const fixture = create(review({ approved: [forbidden] }));
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(byId(el, 'scraping-source-rights-class')?.textContent?.trim()).toBe('forbidden');
+    expect(byId(el, 'scraping-source-rights-quote')?.textContent).toContain('You agree not to use any robot.');
+    expect(byId(el, 'scraping-source-rights-quote-link')?.getAttribute('href')).toBe('https://www.blog.example/terms');
+    expect(byId(el, 'scraping-source-ai-reserved')?.textContent).toContain('No model reads its method or description');
+    expect(byId(el, 'scraping-source-fetch-refusal')?.textContent).toContain('nothing is fetched');
+    expect(byId(el, 'scraping-source-facts-only-approve-btn')).toBeNull();
+
+    (byId(el, 'scraping-source-permission-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const set = (id: string, value: string) => {
+      const input = byId(el, id) as HTMLInputElement | HTMLTextAreaElement;
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+    };
+    set('scraping-source-permission-by', 'The editor');
+    set('scraping-source-permission-on', '2026-11-19');
+    set('scraping-source-permission-text', 'You may use our recipes in NOM.');
+    fixture.detectChanges();
+    (byId(el, 'scraping-source-permission-submit-btn') as HTMLButtonElement).click();
+
+    const call = http.expectOne((r) => r.url.endsWith('/ScrapingSource/9/permission'));
+    expect(call.request.body).toEqual({ grantedBy: 'The editor', grantedOn: '2026-11-19', text: 'You may use our recipes in NOM.' });
+    call.flush({ ...forbidden, effectiveRightsClass: 'clear', permissionRecordedAtUtc: '2026-11-21T00:00:00Z' });
+    flush(review({ approved: [{ ...forbidden, effectiveRightsClass: 'clear', permissionGrantedBy: 'The editor', permissionGrantedOn: '2026-11-19', permissionText: 'You may use our recipes in NOM.', permissionRecordedAtUtc: '2026-11-21T00:00:00Z', fetchRefusal: null }] }));
+    fixture.detectChanges();
+
+    expect(byId(el, 'scraping-source-permission')?.textContent).toContain('The editor');
+    expect(byId(el, 'scraping-source-permission-btn')).toBeNull();
+  });
+
+  it('approves facts-only use of a facts-only source with one click', () => {
+    const facts: ScrapingSourceModel = { ...blog, rightsClass: 'facts-only', effectiveRightsClass: 'facts-only', rightsQuote: 'All rights reserved.', rightsQuoteUrl: 'https://www.blog.example/' };
+    const fixture = create(review({ approved: [facts] }));
+    const el = fixture.nativeElement as HTMLElement;
+
+    (byId(el, 'scraping-source-facts-only-approve-btn') as HTMLButtonElement).click();
+    const call = http.expectOne((r) => r.url.endsWith('/ScrapingSource/9/facts-only-use'));
+    expect(call.request.params.get('approve')).toBe('true');
+    call.flush({ ...facts, factsOnlyApprovedAt: '2026-11-21T00:00:00Z' });
+    flush(review({ approved: [{ ...facts, factsOnlyApprovedAt: '2026-11-21T00:00:00Z' }] }));
+    fixture.detectChanges();
+
+    expect(byId(el, 'scraping-source-facts-only-approved')).not.toBeNull();
+    expect(byId(el, 'scraping-source-facts-only-withdraw-btn')).not.toBeNull();
+  });
+
+  it('derives the classes in a dry run first, runs a recipe step and undoes it by its stamp, and counts recipes taken from barred sources', () => {
+    const taken: SourceTaken[] = [{ sourceId: 9, domain: 'www.blog.example', rightsClass: 'forbidden', rightsQuote: 'No robots.', recipes: 1159, recipesShown: 1159, recipesWithheld: false }];
+    TestBed.configureTestingModule({
+      imports: [ScrapingSources],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideNoopAnimations(), provideRouter([])],
+    });
+    http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(ScrapingSources);
+    fixture.detectChanges();
+    flush(review(), taken);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(byId(el, 'scraping-sources-taken-item')?.textContent).toContain('1,159 recipe(s)');
+
+    (byId(el, 'scraping-sources-rights-derive-dry-btn') as HTMLButtonElement).click();
+    const dry = http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/derive'));
+    expect(dry.request.params.get('apply')).toBe('false');
+    dry.flush({
+      applied: false, ruleVersion: 'source-rights/1', stamp: '2026-11-21T00:00:00Z', sources: 1, changed: 1, inconclusive: 0,
+      results: [{ sourceId: 9, domain: 'www.blog.example', oldClass: null, newClass: 'forbidden', oldAiReserved: false, newAiReserved: true, reason: 'the site\'s words forbid automated access', quote: 'No robots.', conclusive: true, changed: true, recipesRestamped: 0, recipesWithheld: 0, recipesReleased: 0 }],
+    });
+    fixture.detectChanges();
+    expect(byId(el, 'scraping-sources-rights-run-item')?.textContent).toContain('none → forbidden');
+    expect(byId(el, 'scraping-sources-rights-derive-apply-btn')).not.toBeNull();
+
+    (byId(el, 'scraping-sources-titles-apply-btn') as HTMLButtonElement).click();
+    const titles = http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/titles'));
+    expect(titles.request.params.get('apply')).toBe('true');
+    titles.flush({ step: 'titles', applied: true, stamp: '2026-11-21T01:02:03Z', examined: 3, changed: 1, skipped: 1, skippedByReason: { 'a person edited the recipe': 1 }, changes: [{ recipeId: 4, old: 'The Ultimate Grilled Cheese', new: 'Grilled Cheese' }] });
+    flush(review(), taken);
+    fixture.detectChanges();
+    expect(byId(el, 'scraping-sources-step-summary')?.textContent).toContain('1 a person edited the recipe');
+    expect(byId(el, 'scraping-sources-step-item')?.textContent).toContain('Grilled Cheese');
+
+    (byId(el, 'scraping-sources-step-undo-btn') as HTMLButtonElement).click();
+    const undo = http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/undo'));
+    expect(undo.request.params.get('step')).toBe('titles');
+    expect(undo.request.params.get('stamp')).toBe('2026-11-21T01:02:03Z');
+    undo.flush({ step: 'titles-undo', applied: true, stamp: '2026-11-21T02:00:00Z', examined: 1, changed: 1, skipped: 0, skippedByReason: {}, changes: [] });
+    flush(review(), taken);
+    fixture.detectChanges();
+    expect(byId(el, 'scraping-sources-step-undo-btn')).toBeNull();
   });
 });
