@@ -143,11 +143,14 @@ The no-model scorer lane `wording-tiers` (record `scores/wording-tiers.json`, re
 and the gate on the wording of every pair of `link-pairs.tsv` judged right, wrong, near or compound
 (7,326 pairs, 4,869 distinct wordings; a wording that is itself a kept w01 row is left out), over
 `gate-catalog.tsv` and `usda-catalog.tsv`, with the 232 kept w01 rows as the verified wording table
-and no lines. Recorded for `wording-tiers/1`:
+and no lines. Recorded for `wording-tiers/1`, and recorded again at the wave-5 merge under the
+`link-gate/6` signature, when the name normalizer began to take a hyphenated mixed number off a
+wording and the tiers write one more pair (`butter, 1-1/2 oz`, judged right; the by-tier counts below
+are those of the first record):
 
 | | |
 |---|---|
-| pairs whose food the tiers write | 1,857 |
+| pairs whose food the tiers write | 1,858 |
 | judged right among them | 99.52 % |
 | judged-wrong pairs written (false accepts) | 9 of 1,362 (0.66 %): five "mustard" to prepared mustard (the staple), three fig wordings to raw figs and "cold corned beef", all among the gate's own known 12 |
 | agreement (a right pair's food written, or a bad pair's food not) | 43.7 % |
