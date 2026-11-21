@@ -62,13 +62,40 @@ lines); the recipe page names such a match by the line's text. The severe set
 (`ResolveSevereForPersonAsync`, severity 4 and 5) reads the same rule, so search hides them for a
 person with an allergy or intolerance.
 
-What this does not do: a line that names the restricted thing on a food matched by no pattern at
-all, in a recipe that touches no alias-only food ("2 slices bacon" linked to Olive Oil with nothing
-else), was never caught by the name patterns and is not caught now; reading every line of the
-catalog for every pattern of every type costs a scan per type and is left to a later item. A
-synonym the patterns do not list ("groundnuts" for peanuts) on an alias-only food is cleared with
-it: the alias that named peanuts no longer decides for "groundnuts". Both are measured on staging
-before the change is relied on (operator steps below).
+## Every line is read by its own text (staging checkpoint 2, M27)
+
+Checkpoint 2 found a Peanut Allergy household offered recipe 75943, whose line
+`canola, (vegetable or peanut oil for frying)` sits on the uncurated wording food `canola`: no
+pattern names that food, and the rule above read lines only in recipes touching an alias-only food.
+Since `cleanup2/ck4-diet-containers` every live line of the catalog is read by its own text, for
+every restriction type, whatever food the line is on: a line whose text an ILIKE pattern of the
+type matches keeps its recipe out of plans and search and flags it on the page
+(`DietCriteriaMatcher.LinePatterns`, `TypeProbe.LineRecipes`). The paths by which such a line
+escaped before, each closed and each with a golden row or a test:
+
+| Path | Example | Now |
+|---|---|---|
+| A food no pattern names, curated or an uncurated wording food | `canola, (vegetable or peanut oil for frying)` on `canola` (dg-41) | out by the line |
+| A wrongly linked food in a recipe touching no alias-only food | `4 slices bacon` on Olive Oil (dg-45; the case this document used to leave out) | out by the line |
+| An alternative in parentheses or after "or" | `2 tbsp vegetable oil (or melted butter)` (dg-43), `2 cups water or chicken broth` (dg-46) | out by the line |
+| A note or garnish line | `For serving: chopped peanuts` on a wording food (dg-44) | out by the line; the probe reads every live line, whatever its `LineKind` |
+| A line on a retired (soft-deleted) food | `2 tbsp roasted peanut oil` on `groundnut oil (deleted #...)` | out by the line; the recipe page reads the line's food name with the query filter off, so the line is not dropped from its matches either |
+
+A line has no other way to escape: every line carries a food (`IngredientId` is part of the line's
+key), its text is the whole raw line with its parentheses and alternatives (a compound split keeps
+each part's text on its own row), and the probe reads lines, not foods. Word patterns are read the
+same way for a type with no alcohol criterion (an admin's `\mtripe\M`); a type with the alcohol
+criterion (No Alcohol, Halal, Whole30) leaves its drink words to the alcohol rule
+(`alcohol-context.md`, `alcohol-retention.md`), so a drink a capped type lets through once it cooks
+off is not kept out by its word. A synonym the patterns do not list ("groundnuts" for peanuts) is
+not read, by the food or by the line: it belongs in the type's patterns (stop rule below).
+
+Cost: one more probe per type, a single scan of the live lines with every ILIKE pattern of the type
+joined in one regular expression (`DietCriteriaMatcher.LikeAsRegex`, `~*`, no join), returning the
+distinct recipe ids; the answer is part of the type's cached probe and refreshed with it. On the
+checkpoint copy (about 843,000 live lines) a type with many patterns (Whole30, Vegan) reads every line
+once; the warm computes the types with a word or nutrient criterion and every type a restriction
+names, as before. Operator step 2 below times it.
 
 ## Cost and cache
 
@@ -81,7 +108,7 @@ probe per pattern over the lines of the recipes that touch them (`EXISTS` on the
 no join). The start-up warm (`DietCriteriaMatcher.WarmAsync`) computes the types with a word or
 nutrient criterion and every type a restriction names, so the log line "Diet gate: N catalog probes
 computed and kept" counts those types plus the drink lines. The recipe page reads only the recipe's
-own foods and lines and is not cached.
+own foods and lines and is not cached; it names a line kept out by its own text by that text.
 
 ## Golden set
 
@@ -92,11 +119,15 @@ to Halal, Whole30, Kosher, Celiac Disease, Lactose Intolerance, Milk Allergy and
 both directions: the line the alias came from stays out, a line that does not name the restricted
 thing is offered, and foods counted by name, category, USDA description, an admin's alias and a
 retired duplicate's name stay out. `GoldenDietGateTests` also checks that no row the old rule kept
-out is offered while its line names a pattern.
+out is offered while its line names a pattern. Rows dg-41 to dg-50 (staging checkpoint 2) carry the
+line rule above: a line naming the restricted thing on a food no pattern names, an alternative in
+parentheses, a note line, the bacon line on a wrong food, a diet's alternative, each with a row the
+other way, and `ratafia cakes` (almond biscuits) read as no drink line for No Alcohol and Halal.
 
 ## Operator steps
 
-Before the change is relied on, on staging (read-only), count it:
+Before the change is relied on, on staging (read-only), count it. Since checkpoint 2 pass every
+type with a criterion (`-v names=...`); the default list now names No Alcohol too:
 
 ```
 psql "$STAGING_URL" -v sample=20 -f ops/diet-gate-count.sql
@@ -128,3 +159,13 @@ rows of types with only name patterns, which are all the severity 4 and 5 defaul
 it. Read every
 `lost` sample line of the allergy and intolerance types: a line that names the restricted thing by a
 word the patterns lack stops the release, and the word is added to the type's patterns.
+
+Each summary row also gives `any-line` (recipes a line keeps out by its own text, whatever its food)
+and `gained by any line` (those of them the food rules alone did not keep out, and how many are
+approved), and for each severity 4 or 5 type up to `sample` such recipes as `line` rows, each line
+with the food it sits on (`[on canola]`). Recipe 75943 must be among Peanut Allergy's gained recipes.
+Read every `line` sample of the allergy types: a line that names the allergen only in a way that
+plainly is not it ("peanut-free") is the one over-flag to report; it keeps the recipe out, the safe
+side. Samples are a spread (ordered by a hash of the recipe id), and a type with two reference rows
+of one name prints each with its id. The line read adds one ILIKE pass per distinct pattern over the
+live lines, a few minutes on the checkpoint copy beyond its 14.

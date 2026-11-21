@@ -16,7 +16,7 @@ namespace Nom.Orch.Services.Support
         public bool HasSevere { get; set; }
         /// <summary>Any active restriction judged by what a dish contains rather than by the dish's own data: a direct restriction on a food that is not a prepared food, or a category criterion that names a food that is not a prepared food, an ILIKE or word pattern, or a capped alcohol amount (judged on a recipe's drink lines). Such a restriction can show a prepared food fits only through its contents read from an authoritative statement (<see cref="PreparedContentsGate"/>, <see cref="Nom.Data.Nutrition.PreparedFoods"/>).</summary>
         public bool ReadsContents { get; set; }
-        /// <summary>Recipes forbidden by a line's own text rather than its food, or as a whole: a drink line linked to a food that is not a drink (<see cref="DietCriteriaMatcher.DrinkLineRecipesAsync"/>), a line that names the restricted thing on a food a pattern matched only through an alias that does not count (<see cref="DietCriteriaMatcher.TypeProbe.AliasLineRecipes"/>), or more retained drink alcohol per serving than a capped alcohol criterion allows (<see cref="DietCriteriaMatcher.RetainedRecipesAsync"/>).</summary>
+        /// <summary>Recipes forbidden by a line's own text rather than its food, or as a whole: a drink line linked to a food that is not a drink (<see cref="DietCriteriaMatcher.DrinkLineRecipesAsync"/>), a line whose own text names a pattern of the restriction on any food (<see cref="DietCriteriaMatcher.TypeProbe.LineRecipes"/>), a line that names the restricted thing on a food a pattern matched only through an alias that does not count (<see cref="DietCriteriaMatcher.TypeProbe.AliasLineRecipes"/>), or more retained drink alcohol per serving than a capped alcohol criterion allows (<see cref="DietCriteriaMatcher.RetainedRecipesAsync"/>).</summary>
         public HashSet<long> RecipeIds { get; } = new();
         /// <summary>The nutrient, word and name-pattern criteria of the restrictions, which <see cref="PreparedContentsGate"/> reads a prepared meal's named ingredients and allergens against as a recipe's lines are read.</summary>
         public List<DietDataCriterion> Criteria { get; } = new();
@@ -171,6 +171,7 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// Adds the foods the nutrient, word and name-pattern criteria of the types match, the
+        /// recipes with a line whose own text names a pattern of the type on any food, the
         /// recipes whose lines on a food matched only through an alias that does not count name the
         /// restricted thing themselves, the recipes whose drink lines are linked to none of the
         /// foods, and the recipes whose retained drink alcohol is above a capped alcohol criterion
@@ -185,6 +186,7 @@ namespace Nom.Orch.Services.Support
             {
                 foreach (var ids in probe.Foods.Values) result.IngredientIds.UnionWith(ids);
                 result.RecipeIds.UnionWith(probe.AliasLineRecipes);
+                result.RecipeIds.UnionWith(probe.LineRecipes);
             }
             result.RecipeIds.UnionWith(await DietCriteriaMatcher.DrinkLineRecipesAsync(_db, data, result.IngredientIds, _cache));
             result.RecipeIds.UnionWith(await DietCriteriaMatcher.RetainedRecipesAsync(_db, data, _cache));

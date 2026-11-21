@@ -35,14 +35,24 @@ Input: the recipe's steps in order and the drink line. The steps are split into 
 
 1. **Find the drink.** The words that name it are the line's alcohol words (the alcohol sense rules'
    trigger, `AlcoholLineContext.Trigger`), and for a flavouring the word before it ("vanilla" for
-   "vanilla extract"). The first sentence that names it is the drink's sentence; reading starts at
+   "vanilla extract"); a line with no alcohol word on an alcoholic food ("1 teaspoon vanilla" on
+   Vanilla Extract) is found by its first word that is no amount, unit or modifier ("vanilla"). A
+   step that names the drink only as "liquor", "spirits" or "alcohol" with no determiner ("add the
+   spice and liquor") names it; "the liquor", "their liquor" and "oyster liquor" are cooking liquids
+   and do not. The first sentence that names it is the drink's sentence; reading starts at
    the clause that names it (a clause ends at a comma or "then"), so "Simmer the onions 10 minutes,
    then add the wine" does not count the onions' 10 minutes.
-2. **Drink never named.** Heat anywhere in the steps gives "up to" (85 % on the stove, 45 % if only
-   the oven); no heat gives no heat (100 %).
+2. **Drink never named.** When a step mixes all the ingredients together ("Mix all the ingredients
+   well together", "Combine all the ingredients", "the remaining ingredients"; a step that mixes the
+   dry ingredients does not count), the drink is in that mixture and reading starts there: the USDA
+   rows 5004-5009 measure exactly that, a drink stirred into a mixture that is then baked or simmered.
+   Otherwise heat anywhere in the steps gives "up to" (85 % on the stove, 45 % if only the oven); no
+   heat gives no heat (100 %).
 3. **Heat after the drink.** Heating words: simmer, boil, stew, braise, reduce, poach, cook, heat,
    fry, sauté, sear, steam, scald, deglaze, blanch, grill, microwave, thicken, "over a low flame"
-   (stove), and bake, roast, broil, oven (oven). "Remove from the heat", "preheat", "baking soda" and
+   (stove), and bake, roast, broil, oven (oven). "Cook" and "heat" in a sentence that bakes, roasts
+   or names the oven are the oven's heat ("cook in a moderate oven"). "Every 30 minutes" ("basting
+   every 30 minutes") is how often, not how long, and is not a time. "Remove from the heat", "preheat", "baking soda" and
    the like are not heating. A heating sentence's first time ("30 minutes", "1 1/2 hours",
    "1-1/2 hours", "1½ hours", "half an hour", "an hour and a half", "1 hour 15 minutes", "20 to 25
    minutes" read as 20, number words) is added up over the sentences that cook the drink: from its
@@ -55,8 +65,8 @@ Input: the recipe's steps in order and the drink line. The steps are split into 
      only and under 30 minutes: 5010 (45 %, the higher of 5004 and 5010).
    - Under 15 minutes, or heat with no time: "up to" the method's highest factor: 85 % (5002) on
      the stove, 45 % (5010) in the oven.
-   - Flamed (flame, flambé, ignite, set alight, light the brandy): 75 % (5003), unless a timed heat
-     after it gives less.
+   - Flamed (flame, flambé, ignite, set alight, set fire to, ablaze, light the brandy): 75 % (5003),
+     unless a timed heat after it gives less.
 4. **No heat after the drink.** Off the heat in its sentence ("remove from the heat and stir in the
    sherry", "whisk in off the heat"), or stirred in right after a stove step: 85 % (5002). Stored
    overnight or for days: 70 % (5001). Otherwise 100 %.
@@ -68,6 +78,18 @@ heating (the alcohol left in the dish is small either way). A sauce set aside an
 the pot and simmered reads as not heated after the pause (more alcohol than stays, the safe side).
 The stored basis says what was read: `no-steps`, `no-heat`, `overnight`, `hot-liquid`, `flamed`,
 `timed:<simmer|bake>:<minutes>`, `up-to:<simmer|bake>[:<minutes>]`.
+
+### Staging checkpoint 2: the doubtful items, decided by the table (`alcohol-retention/3`)
+
+| Item (checkpoint 2, section 20) | Decision and the USDA row | Golden row |
+|---|---|---|
+| A drink the steps never name read at the stove's 85 % in an oven dish (17180 card cakes, vanilla) | "Cook in a quick oven" is the oven: up to 5010, 45 % | ar-067 |
+| The same in a two-hour boil (24825 Hunting Pudding, brandy) | The first step mixes all the ingredients, so the brandy is in the mixture boiled 2 hours: 5008, 10 % | ar-068; ar-020's expected value changed by hand (up to 85 % to 5006, 25 %) for the same reason |
+| Plum Pudding (23122) "add the spice and liquor" | "liquor" names the brandy; boiled six hours: 5009, 5 % | ar-069 |
+| Vanilla in baked batters at 85 % (24490, 23938) | The line "1 teaspoon vanilla" is found by "vanilla"; baked 18 minutes: 5010, 45 % | ar-066 |
+| `simmer:1` on a roast (22351) | Kept: heat under 15 minutes with an untimed roast is no timed row, so the highest row of the heat seen, 5002 (85 %), stays; a basting frequency is no longer read as a time (ar-070) | ar-071 |
+| Wrong (safe side): "Set fire to the rum" read as no heat (22994) | Flamed: 5003, 75 % | ar-065 |
+| 22883 codfish soup, wine `no-heat` | Not a reader fault: the stored steps were cut in the store | none |
 
 ## Where it is stored and how the label uses it
 

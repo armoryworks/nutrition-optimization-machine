@@ -295,7 +295,10 @@ namespace Nom.Data.Nutrition
         /// and foods whose stated and computed energy are both under <see cref="AtwaterMinKcal"/> are
         /// <see cref="EnergyCheckOutcome.ExemptSmall"/>. A food with its own calorie factors must come
         /// within <see cref="OwnFactorTolerance"/>; any other food within <see cref="AtwaterTolerance"/>
-        /// of the general fiber-aware formula, where a known acidic food may state less than it.
+        /// of the general fiber-aware formula, where a known acidic food may state less than it, or
+        /// within <see cref="OwnFactorTolerance"/> of plain 4·protein + 4·carb + 9·fat (+ 7·alcohol) on
+        /// total carbohydrate, the general factors USDA itself used for many SR Legacy foods (nettles,
+        /// cattail, seaweed: staging checkpoint 2, M8).
         /// </summary>
         public string? CheckEnergy(FoodQualityInput f)
         {
@@ -323,6 +326,11 @@ namespace Nom.Data.Nutrition
             if (f.UsedInSmallAmounts || Math.Max(kcal, computed) < AtwaterMinKcal) return EnergyCheckOutcome.ExemptSmall;
             if (computed >= kcal * (1m - tolerance) && computed <= kcal * (1m + tolerance))
                 return f.CalorieFactors != null ? EnergyCheckOutcome.OwnFactors : EnergyCheckOutcome.General;
+            if (f.CalorieFactors == null)
+            {
+                var plain = (4m * protein) + (4m * carb) + (9m * fat) + (AlcoholKcalPerGram * alcohol);
+                if (plain >= kcal * (1m - OwnFactorTolerance) && plain <= kcal * (1m + OwnFactorTolerance)) return EnergyCheckOutcome.General;
+            }
             return f.CalorieFactors == null && computed > kcal && IsAcidicFood(f.Name?.Trim()) ? EnergyCheckOutcome.General : EnergyCheckOutcome.Mismatch;
         }
 

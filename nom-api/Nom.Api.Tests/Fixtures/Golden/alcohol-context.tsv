@@ -176,3 +176,5 @@ ac-174	1/2 cup vin blanc	-	-	no	wine-white	174837	174157	agent	agent-review-ck1-
 ac-175	2 cups chicken stock for coq au vin	-	-	no	dish	-	174837	agent	agent-review-ck1-gate-alcohol-2026-11-21	a dish named after wine is not the wine
 ac-176	1 bottle red Burgundy, for the coq au vin	-	-	no	wine-red	173190	172884	ok	rule:alcohol-context	the drink named before the dish decides; "au vin" names only what the wine is for
 ac-177	1/2 cup red wine for the coq au vin	-	-	no	wine-red	173190	172884	ok	rule:alcohol-context	red wine for a dish named after wine is the wine
+ac-178	6 ratafia cakes, crushed	-	-	no	other	-	174815	ok	rule:alcohol-context	staging checkpoint 2 doubtful item (92584): ratafia cakes are almond biscuits named after the liqueur, not a drink
+ac-179	1 wineglass of ratafia	-	-	no	liqueur	-	174815	ok	rule:alcohol-context	the liqueur itself is still a drink USDA has no food for

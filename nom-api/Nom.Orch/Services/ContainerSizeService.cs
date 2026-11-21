@@ -50,7 +50,7 @@ namespace Nom.Orch.Services
         /// <summary>The tiers an old or undated book's unsized line is weighed under, in the order they are tried (<see cref="ContainerBasis.OldBookTier"/>); each qualifies and pauses on its own hold-out with <see cref="Policy"/>.</summary>
         public static readonly IReadOnlyList<string> OldBookTiers = new[] { SameBookTier, SameEraTier, PeriodTier, ModernTier };
 
-        public const string RuleVersion = "container-sizes/3";
+        public const string RuleVersion = "container-sizes/4";
         public const string EntityType = "IngredientContainerSize";
         public const string SetChange = "ContainerSizeSet";
         public const string RetireChange = "ContainerSizeRetire";
@@ -80,8 +80,13 @@ namespace Nom.Orch.Services
         /// <summary>An undo entry: the entry it reverses and the value it restored.</summary>
         public sealed record UndoValue(long Undoes, string RestoredStatus);
 
-        /// <summary>The signals of one hold-out decision.</summary>
-        public sealed record HoldoutSignals(long RecipeId, long IngredientId, int SortOrder, string Line, string Era, decimal Stated, decimal Assumed, long RowId, string Class, bool Hit);
+        /// <summary>The signals of one hold-out decision. <c>StatedFluid</c> is the stated size read as fluid ounces on a food measured by volume (<see cref="ContainerSizeResolver.StatedAsFluidOunces"/>), which the decision agrees with as well as with the weight reading.</summary>
+        public sealed record HoldoutSignals(long RecipeId, long IngredientId, int SortOrder, string Line, string Era, decimal Stated, decimal Assumed, long RowId, string Class, bool Hit, decimal? StatedFluid = null)
+        {
+            /// <summary>Whether the assumed size agrees with the stated one in either reading.</summary>
+            public static bool Agrees(decimal assumed, decimal stated, decimal? statedFluid) =>
+                ContainerSizeAgreement.Hit(assumed, stated) || (statedFluid is { } fluid && ContainerSizeAgreement.Hit(assumed, fluid));
+        }
 
         public static string Key(long ingredientId, string kind, string era, string sizeWord, string? book = null) =>
             string.Create(CultureInfo.InvariantCulture, $"{ingredientId}/{kind}/{era}/{(sizeWord.Length == 0 ? "-" : sizeWord)}")
@@ -234,6 +239,9 @@ namespace Nom.Orch.Services
             foreach (var line in lines)
             {
                 if (ContainerSizeResolver.StatedPerContainer(line.RawLine, line.GramsPerMilliliter) is not { Reason: null } stated) continue;
+                var statedFluid = byFood[line.IngredientId].Any(r => ContainerSizeResolver.MeasuredByVolume(r.Class, r.SourceRef))
+                    ? ContainerSizeResolver.StatedAsFluidOunces(line.RawLine, line.GramsPerMilliliter)
+                    : null;
                 var candidates = byFood[line.IngredientId].Where(r => ContainerCorpusSizes.TierOf(r.SourceRef) == null)
                     .Select(r => new ContainerSizeCandidate(r.ContainerKind, r.Era, r.SizeWord, r.NetGrams, r.DrainedGrams, r.SourceRef, r.Status, r.Id))
                     .ToList();
@@ -256,7 +264,7 @@ namespace Nom.Orch.Services
                 }
                 var row = byId[assumed.RowId];
                 var signals = new HoldoutSignals(line.RecipeId, line.IngredientId, line.SortOrder, line.RawLine, line.Era, stated.Grams, grams, row.Id, row.Class,
-                    ContainerSizeAgreement.Hit(grams, stated.Grams));
+                    HoldoutSignals.Agrees(grams, stated.Grams, statedFluid), statedFluid);
                 if (ContainerBasis.OldBookTier(assumed.Basis, line.Era) is not { } tier)
                 {
                     judged.Add(signals);
@@ -272,7 +280,7 @@ namespace Nom.Orch.Services
                 {
                     var lowerRow = byId[below.RowId];
                     byTier[lower].Add(new HoldoutSignals(line.RecipeId, line.IngredientId, line.SortOrder, line.RawLine, line.Era, stated.Grams, next, lowerRow.Id, lowerRow.Class,
-                        ContainerSizeAgreement.Hit(next, stated.Grams)));
+                        HoldoutSignals.Agrees(next, stated.Grams, statedFluid), statedFluid));
                     skipped.Add(lower);
                 }
             }
@@ -439,14 +447,14 @@ namespace Nom.Orch.Services
                 var s = LaneJournal.Read<HoldoutSignals>(decision.SignalsJson);
                 return Task.FromResult(s == null
                     ? new LaneAuditAnswer(null, "the decision has no signals")
-                    : ContainerSizeAgreement.Hit(s.Assumed, s.Stated) ? new LaneAuditAnswer(false, null)
-                    : new LaneAuditAnswer(true, string.Create(CultureInfo.InvariantCulture, $"assumed {s.Assumed} g, the line states {s.Stated} g")));
+                    : HoldoutSignals.Agrees(s.Assumed, s.Stated, s.StatedFluid) ? new LaneAuditAnswer(false, null)
+                    : new LaneAuditAnswer(true, string.Create(CultureInfo.InvariantCulture, $"assumed {s.Assumed} g, the line states {s.Stated} g") + (s.StatedFluid is { } f ? string.Create(CultureInfo.InvariantCulture, $" ({f} g in fluid ounces)") : string.Empty)));
             }
 
             public Task<bool?> ConfirmsWrongAsync(LaneDecisionEntity decision, CancellationToken cancellationToken)
             {
                 var s = LaneJournal.Read<HoldoutSignals>(decision.SignalsJson);
-                return Task.FromResult<bool?>(s == null ? null : !ContainerSizeAgreement.Hit(s.Assumed, s.Stated));
+                return Task.FromResult<bool?>(s == null ? null : !HoldoutSignals.Agrees(s.Assumed, s.Stated, s.StatedFluid));
             }
         }
 

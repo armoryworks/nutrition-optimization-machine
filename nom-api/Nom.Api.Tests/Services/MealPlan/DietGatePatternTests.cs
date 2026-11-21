@@ -180,6 +180,77 @@ namespace Nom.Api.Tests.Services.MealPlan
         }
 
         [Fact]
+        public async Task A_line_that_names_the_allergen_keeps_its_recipe_out_whatever_food_it_is_on()
+        {
+            using var db = NewContext();
+            await SeedAsync(db, PeanutRef, "Peanut Allergy");
+            var canola = await FoodAsync(db, "canola");
+            var retired = await FoodAsync(db, "groundnut oil (deleted #9001)");
+            var garnish = await FoodAsync(db, "for serving");
+            var frying = Recipe("Fried chicken", (canola, "canola, (vegetable or peanut oil for frying)"));
+            var noodles = Recipe("Cold noodles", (retired, "2 tbsp roasted peanut oil"));
+            var curry = Recipe("Curry", (garnish, "For serving: chopped peanuts"));
+            var plain = Recipe("Plain fried chicken", (canola, "canola oil, for frying"));
+            db.Recipes.AddRange(frying, noodles, curry, plain);
+            await db.SaveChangesAsync();
+            var food = await db.Ingredients.SingleAsync(i => i.Id == retired);
+            food.IsDeleted = true;
+            await db.SaveChangesAsync();
+
+            var resolver = new HouseholdRestrictionResolver(db);
+            var plans = await resolver.ResolveAsync(HouseholdId);
+            var severe = await resolver.ResolveSevereForPersonAsync(PersonId);
+
+            plans.IngredientIds.Should().NotContain(new[] { canola, retired, garnish }, "no pattern names these foods");
+            plans.RecipeIds.Should().Contain(new[] { frying.Id, noodles.Id, curry.Id },
+                "an uncurated wording food (staging checkpoint 2, M27: recipe 75943), a retired food and a note line are read by their own text").And.NotContain(plain.Id);
+            severe.RecipeIds.Should().Contain(new[] { frying.Id, noodles.Id, curry.Id }).And.NotContain(plain.Id);
+            (await Page(db).GetDietMatchesAsync(frying.Id, PersonId)).Should().ContainSingle()
+                .Which.Should().BeEquivalentTo(new { RestrictionName = "Peanut Allergy", IngredientName = "canola, (vegetable or peanut oil for frying)", Severity = (int?)5 });
+            (await Page(db).GetSevereDietConflictsAsync(new[] { frying.Id, noodles.Id, curry.Id, plain.Id }, PersonId)).Keys.Should().BeEquivalentTo(new[] { frying.Id, noodles.Id, curry.Id });
+        }
+
+        [Fact]
+        public void The_whole_catalog_line_probe_reads_every_live_line_by_one_regular_expression_with_no_join_and_matches_what_ilike_matches()
+        {
+            using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql("Host=localhost;Database=none").Options,
+                new HttpContextAccessor { HttpContext = new DefaultHttpContext() });
+
+            var sql = DietCriteriaMatcher.LikeLineRecipeRows(db, "(?:peanut)|(?:^oat)").ToQueryString();
+            sql.Should().Contain("\"RawLine\" ~*").And.Contain("DISTINCT").And.NotContain("JOIN").And.NotContain("\"IngredientId\" = ANY");
+            DietCriteriaMatcher.AnyWordLineRows(db, @"\mtripe\M").ToQueryString().Should().Contain("\"RawLine\" ~*").And.NotContain("EXISTS");
+
+            DietCriteriaMatcher.LikeAsRegex("%peanut%").Should().Be("peanut");
+            DietCriteriaMatcher.LikeAsRegex("oat%").Should().Be("^oat");
+            DietCriteriaMatcher.LikeAsRegex("% oat%").Should().Be("\\ oat");
+            DietCriteriaMatcher.LikeAsRegex("%brazil nut%").Should().Be("brazil\\ nut");
+            DietCriteriaMatcher.LikeAsRegex("%jalape%").Should().Be("jalape");
+            DietCriteriaMatcher.LikeAsRegex("a_c").Should().Be("^a.c$");
+            foreach (var pattern in DefaultRestrictionCriteria.ByName.Values.SelectMany(v => v.Patterns).Where(p => !DietCriteriaMatcher.IsWordPattern(p)).Distinct())
+            {
+                var regex = new System.Text.RegularExpressions.Regex(DietCriteriaMatcher.LikeAsRegex(pattern), System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                foreach (var text in new[] { "1 cup peanut butter", "Oatmeal", "2 cups rolled oats", "1/4 cup brazil nuts", "goat cheese", pattern.Replace("%", "x ") })
+                    regex.IsMatch(text).Should().Be(DietCriteriaMatcher.LikeRegex(pattern).IsMatch(text), $"{pattern} on \"{text}\"");
+            }
+        }
+
+        [Fact]
+        public void A_type_reads_every_line_for_its_ilike_patterns_and_leaves_drink_words_to_its_alcohol_rule()
+        {
+            var peanut = new DietDataCriterion(1, PeanutRef, null, null, null, null, 5, null, "%peanut%");
+            var pork = new DietDataCriterion(2, HalalRef, null, null, null, null, 3, null, "%pork%");
+            var wine = new DietDataCriterion(3, HalalRef, @"\mwines?\M", null, null, null, 3, null);
+            var alcohol = new DietDataCriterion(4, HalalRef, null, 5038, DietCriteriaMatcher.AlcoholNutrientName, null, 3, null);
+            var tripe = new DietDataCriterion(5, OffalRef, @"\mtripe\M", null, null, null, 3, null);
+
+            DietCriteriaMatcher.LinePatterns(new[] { peanut }).Should().Equal(peanut);
+            DietCriteriaMatcher.LinePatterns(new[] { pork, wine, alcohol }).Should().Equal(pork);
+            DietCriteriaMatcher.LinePatterns(new[] { tripe }).Should().Equal(tripe);
+            DietCriteriaMatcher.LineCriterion(new[] { pork, wine, alcohol }, "1 cup white wine").Should().BeNull("a drink line is read by the alcohol rule, which a capped type may let through when it cooks off");
+            DietCriteriaMatcher.LineCriterion(new[] { pork, wine, alcohol }, "1/2 lb salt pork").Should().Be(pork);
+        }
+
+        [Fact]
         public void A_line_names_a_pattern_by_ilike_or_by_a_counted_word()
         {
             var pork = new DietDataCriterion(1, HalalRef, null, null, null, null, 3, null, "%pork%");

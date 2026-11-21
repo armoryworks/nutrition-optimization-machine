@@ -240,6 +240,18 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public void A_usda_energy_stated_by_plain_atwater_on_total_carbohydrate_passes_within_five_percent_and_no_further()
+        {
+            var nettles = new FoodQualityInput("Stinging Nettles, blanched (Northern Plains Indians)", 42m, 2.71m, 7.49m, 0.11m, FiberGramsPer100g: 6.9m);
+            var cattail = new FoodQualityInput("Cattail, Narrow Leaf Shoots (Northern Plains Indians)", 25m, 1.18m, 5.14m, 0m, FiberGramsPer100g: 4.4m);
+
+            _v.CheckEnergy(nettles).Should().Be(EnergyCheckOutcome.General, "4·2.71 + 4·7.49 + 9·0.11 is 41.8 kcal against USDA's 42, though the fiber-aware formula is 33 % low");
+            _v.CheckEnergy(cattail).Should().Be(EnergyCheckOutcome.General);
+            _v.CheckEnergy(nettles with { KcalPer100g = 46m }).Should().Be(EnergyCheckOutcome.Mismatch, "9 % off plain Atwater and 39 % off the fiber-aware formula");
+            _v.CheckEnergy(new FoodQualityInput("Sweetener, herbal extract powder from Stevia leaf", 0m, 0m, 100m, 0m, FiberGramsPer100g: 0m)).Should().Be(EnergyCheckOutcome.Mismatch);
+        }
+
+        [Fact]
         public void A_foundation_food_is_compared_with_its_energy_by_specific_factors_when_USDA_states_it()
         {
             var apple = new FoodQualityInput("Apples, red delicious, with skin, raw", 62m, 0.19m, 14.8m, 0.21m,

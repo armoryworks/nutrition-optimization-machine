@@ -1201,6 +1201,8 @@ namespace Nom.Orch.Services
         /// Whether each prepared meal may be offered to the household, judged as shuffle judges it: a food the household's
         /// restrictions name is held; with a severe restriction or one judged by contents, the contents gate decides
         /// (<see cref="Support.PreparedContentsGate"/>); otherwise it is offered. Foods that are not prepared foods are left out.
+        /// A held meal is marked severe when the household has a restriction of severity 4 or 5 (allergy or medical), so the
+        /// picker asks for an explicit "Add anyway" before a member adds it by hand; for a diet the reason is only shown.
         /// </summary>
         public async Task<List<PreparedMealCheckModel>> CheckPreparedMealsAsync(long householdId, IReadOnlyCollection<long> ingredientIds)
         {
@@ -1225,6 +1227,7 @@ namespace Nom.Orch.Services
                 IngredientId = id,
                 Held = verdicts[id].Held,
                 Names = verdicts[id].Names.ToList(),
+                Severe = restricted.HasSevere && verdicts[id].Held != null,
             }).ToList();
         }
 

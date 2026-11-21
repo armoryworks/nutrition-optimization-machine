@@ -1,0 +1,24 @@
+<div class="nom-dialog__title-bar" data-testid="prepared-held-dialog">
+  <h2 mat-dialog-title>Add {{ data.foodName }}?</h2>
+  <button class="nom-dialog__close" mat-dialog-close aria-label="Close dialog"
+          data-testid="prepared-held-close-btn">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content>
+  <p class="nom-diet-conflict__message" data-testid="prepared-held-message">
+    <mat-icon>error</mat-icon>
+    {{ data.reason }}
+  </p>
+  <p class="nom-diet-conflict__note" data-testid="prepared-held-note">Your household has a severe dietary restriction (allergy or medical).</p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button mat-dialog-close cdkFocusInitial data-testid="prepared-held-cancel-btn">
+    Cancel
+  </button>
+  <button mat-button color="warn" [mat-dialog-close]="true" data-testid="prepared-held-add-btn">
+    Add anyway
+  </button>
+</mat-dialog-actions>

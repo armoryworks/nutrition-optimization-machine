@@ -53,7 +53,11 @@ namespace Nom.Orch.Services.Support
     /// line: it stays flagged when any of its live lines, on any food, names a pattern of the type by
     /// its own text (<see cref="LineNames"/>, <see cref="TypeProbe.AliasLineRecipes"/>), so no recipe
     /// the alias flagged loses its flag while a line of it names the restricted thing, and the
-    /// food's other recipes are cleared. The whole-catalog probes a household set needs are read
+    /// food's other recipes are cleared. Beside that, every live line of the catalog is read by its
+    /// own text for the type's ILIKE patterns (and word patterns, for a type without an alcohol
+    /// criterion): a line that names one keeps its recipe out whatever food it is on, an uncurated
+    /// wording food, a retired food or a note line alike (<see cref="LinePatterns"/>,
+    /// <see cref="TypeProbe.LineRecipes"/>). The whole-catalog probes a household set needs are read
     /// through <see cref="DietGateCache"/> when one is given.
     /// </summary>
     public static class DietCriteriaMatcher
@@ -78,7 +82,8 @@ namespace Nom.Orch.Services.Support
         /// and, over the whole catalog, the recipes with a live line on one of those foods that have a
         /// live line, on any food, whose own text names a pattern of the type.
         /// </summary>
-        public sealed record TypeProbe(Dictionary<long, HashSet<long>> Foods, HashSet<long> AliasOnly, HashSet<long> AliasLineRecipes);
+        /// <param name="LineRecipes">The recipes with a live line, on any food, whose own text names a pattern the type reads in every line (<see cref="LinePatterns"/>), over the whole catalog (staging checkpoint 2, M27).</param>
+        public sealed record TypeProbe(Dictionary<long, HashSet<long>> Foods, HashSet<long> AliasOnly, HashSet<long> AliasLineRecipes, HashSet<long> LineRecipes);
 
         /// <summary>Whether a criterion pattern is a word pattern rather than an ILIKE pattern.</summary>
         public static bool IsWordPattern(string? pattern) => pattern != null && pattern.TrimStart().StartsWith(WordMarker, StringComparison.Ordinal);
@@ -102,6 +107,54 @@ namespace Nom.Orch.Services.Support
             if (string.IsNullOrWhiteSpace(rawLine)) return false;
             if (criterion.LikePattern != null) return LikeRegex(criterion.LikePattern).IsMatch(rawLine);
             return criterion.WordPattern != null && Compiled.GetOrAdd("word:" + criterion.WordPattern, _ => WordRegex(criterion.WordPattern)).IsMatch(rawLine) && NameCounts(rawLine);
+        }
+
+        /// <summary>
+        /// The pattern criteria of a type whose match in a recipe line's own text keeps the recipe out
+        /// whatever food the line is on, a food no pattern names, an uncurated wording food, a retired
+        /// food or a note line alike (staging checkpoint 2, M27: "canola, (vegetable or peanut oil for
+        /// frying)" on the uncurated food "canola"): every ILIKE pattern, and every word pattern of a
+        /// type with no alcohol nutrient criterion. A type with one reads its drink lines by the alcohol
+        /// rule instead (<see cref="DrinkLineRecipesAsync"/>, <see cref="RetainedRecipesAsync"/>), so a
+        /// drink a capped type lets through when it cooks off is not kept out by its word.
+        /// </summary>
+        public static List<DietDataCriterion> LinePatterns(IEnumerable<DietDataCriterion> criteria)
+        {
+            var list = criteria.ToList();
+            var alcohol = list.Any(c => c.NutrientId != null && IsAlcohol(c.NutrientName));
+            return list.Where(c => c.LikePattern != null || (c.WordPattern != null && !alcohol)).ToList();
+        }
+
+        /// <summary>The highest-severity criterion of <see cref="LinePatterns"/> a recipe line's own text names, or null when it names none.</summary>
+        public static DietDataCriterion? LineCriterion(IEnumerable<DietDataCriterion> criteria, string? rawLine) =>
+            string.IsNullOrWhiteSpace(rawLine) ? null : LinePatterns(criteria).Where(c => LineNames(c, rawLine)).OrderByDescending(c => c.Severity).FirstOrDefault();
+
+        /// <summary>
+        /// An ILIKE pattern as a Postgres regular expression (read with <c>~*</c>) that matches the texts
+        /// the pattern matches: <c>%</c> is any run, <c>_</c> one character, a backslash escapes the next
+        /// character, every other character that is not a letter or digit is escaped, and the expression
+        /// is anchored at an end the pattern does not open with <c>%</c>.
+        /// </summary>
+        public static string LikeAsRegex(string likePattern)
+        {
+            var p = likePattern.Trim();
+            var body = new System.Text.StringBuilder();
+            for (var i = 0; i < p.Length; i++)
+            {
+                var ch = p[i];
+                if (ch == '%') body.Append(".*");
+                else if (ch == '_') body.Append('.');
+                else if (ch == '\\' && i + 1 < p.Length) body.Append(Escape(p[++i]));
+                else body.Append(Escape(ch));
+            }
+            var text = body.ToString();
+            var open = text.StartsWith(".*", StringComparison.Ordinal);
+            var close = text.EndsWith(".*", StringComparison.Ordinal) && !text.EndsWith("\\.*", StringComparison.Ordinal);
+            if (open) text = text[2..];
+            if (close && text.Length >= 2) text = text[..^2];
+            return (open ? string.Empty : "^") + text + (close ? string.Empty : "$");
+
+            static string Escape(char c) => char.IsLetterOrDigit(c) ? c.ToString() : "\\" + c;
         }
 
         /// <summary>Whether an alias a pattern matched may count for its food by its source: only one a rule or a person gave it (<see cref="IngredientAliasTrust.IsTrusted"/>); an alias with no such source is a wording seen on a recipe line, and that line decides for itself.</summary>
@@ -425,7 +478,8 @@ namespace Nom.Orch.Services.Support
             }
             foreach (var ids in result.Values) aliasOnly.ExceptWith(ids);
             var recipes = scope == null && aliasOnly.Count > 0 ? await AliasLineRecipesAsync(db, criteria, aliasOnly) : new HashSet<long>();
-            return new TypeProbe(result, aliasOnly, recipes);
+            var lineRecipes = scope == null ? await LineRecipesAsync(db, criteria) : new HashSet<long>();
+            return new TypeProbe(result, aliasOnly, recipes, lineRecipes);
         }
 
         private static async Task<(HashSet<long> Counted, HashSet<long> AliasOnly)> LikeFoodsAsync(ApplicationDbContext db, string pattern, IReadOnlyCollection<long>? scope)
@@ -476,6 +530,42 @@ namespace Nom.Orch.Services.Support
                     .Select(ri => new RecipeLine(ri.RecipeId, ri.IngredientId, ri.RawLine)).ToListAsync();
             }
             return lines.Where(l => patterns.Any(c => LineNames(c, l.RawLine))).Select(l => l.RecipeId).ToHashSet();
+        }
+
+        /// <summary>The recipes with a live line whose own text an ILIKE pattern matches (<see cref="LikeAsRegex"/>, one or more patterns joined), whatever food the line is on: one scan of the line table with no join.</summary>
+        internal static IQueryable<long> LikeLineRecipeRows(ApplicationDbContext db, string regex) =>
+            db.RecipeIngredients.AsNoTracking()
+                .Where(ri => !ri.IsDeleted && Regex.IsMatch(ri.RawLine, regex, RegexOptions.IgnoreCase))
+                .Select(ri => ri.RecipeId)
+                .Distinct();
+
+        /// <summary>The live lines whose own text a word pattern matches (<c>~*</c>), whatever food the line is on.</summary>
+        internal static IQueryable<RecipeLine> AnyWordLineRows(ApplicationDbContext db, string pattern) =>
+            db.RecipeIngredients.AsNoTracking()
+                .Where(ri => !ri.IsDeleted && Regex.IsMatch(ri.RawLine, pattern, RegexOptions.IgnoreCase))
+                .Select(ri => new RecipeLine(ri.RecipeId, ri.IngredientId, ri.RawLine));
+
+        private static async Task<HashSet<long>> LineRecipesAsync(ApplicationDbContext db, IReadOnlyList<DietDataCriterion> criteria)
+        {
+            var patterns = LinePatterns(criteria);
+            if (patterns.Count == 0) return new HashSet<long>();
+            if (!db.Database.IsRelational())
+            {
+                return (await db.RecipeIngredients.AsNoTracking().Where(ri => !ri.IsDeleted).Select(ri => new RecipeLine(ri.RecipeId, ri.IngredientId, ri.RawLine)).ToListAsync())
+                    .Where(l => patterns.Any(c => LineNames(c, l.RawLine)))
+                    .Select(l => l.RecipeId)
+                    .ToHashSet();
+            }
+            var result = new HashSet<long>();
+            var likes = patterns.Where(c => c.LikePattern != null).Select(c => LikeAsRegex(c.LikePattern!)).Distinct(StringComparer.Ordinal).ToList();
+            if (likes.Count > 0) result.UnionWith(await LikeLineRecipeRows(db, string.Join('|', likes.Select(r => "(?:" + r + ")"))).ToListAsync());
+            var words = patterns.Where(c => c.WordPattern != null).ToList();
+            if (words.Count > 0)
+            {
+                var lines = await AnyWordLineRows(db, string.Join('|', words.Select(c => "(?:" + c.WordPattern + ")"))).ToListAsync();
+                result.UnionWith(lines.Where(l => words.Any(c => LineNames(c, l.RawLine))).Select(l => l.RecipeId));
+            }
+            return result;
         }
 
         private static async Task<List<DrinkLine>> DrinkLinesAsync(ApplicationDbContext db) =>

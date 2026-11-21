@@ -286,7 +286,12 @@ the catalog:
   of stated calories — compared with the energy by specific factors (FDC 2048) where
   Foundation states it apart from its general 1008 figure. Where a food has no factors (or
   USDA ships 0/0/0), 4·protein + 4·(carb − fiber) + 2·fiber + 9·fat + 7·alcohol within ±15 %,
-  where a known acidic food (citrus, vinegar) may state less. Seasonings and leaveners
+  where a known acidic food (citrus, vinegar) may state less, or plain 4·protein + 4·carb +
+  9·fat + 7·alcohol on total carbohydrate within ±5 %: USDA stated many SR Legacy foods by those
+  general factors (nettles, cattail shoots, chokecherries, seaweed, guar gum, the Northern Plains
+  and Alaska Native foods), where the fiber-aware formula runs 16 % to 47 % low (staging
+  checkpoint 2, M8; `catalog-admission/5`, which curates those foods by rule on the next
+  `--admit`). Seasonings and leaveners
   (Spices and Herbs, the "Leavening agents," family) and foods under 20 kcal are exempt.
   Alcohol also counts toward the macro sum. Measured on the local USDA files: SR Legacy
   4,311 of 4,324 foods with factors within 5 % and 3,119 of 3,153 without within 15 %
@@ -566,7 +571,20 @@ candidates the table does not size). A row added by hand with its citation names
 `ContainerSizeHostedService`, and after every import run): every live line on a food with a
 size that states a weight or volume and names a container is a hold-out line. The stated size
 is hidden and the lane asked what it would assume for that food, kind, size word and era; a hit
-is within 10 % of the stated size. A key (`ContainerSizeQualifier`):
+is within 10 % of the stated size.
+
+A stated size in plain ounces on a food whose size is measured by volume (its branded class is read
+in millilitres, such as evaporated milk's 12 fl oz can, or its size is a standard of fill) is
+compared in both readings: as a weight, and as fluid ounces through the food's density
+(`ContainerSizeResolver.StatedAsFluidOunces`); it agrees when either is within 10 %. Recipes write
+"1 (12 oz) can evaporated milk" for the 12 fl oz can, which weighs about 378 g, while 12 oz by weight
+is 340 g, 11 % under, so before this every such line missed (staging checkpoint 2, M26: 0 of 40;
+`container-sizes/4`). A food with no density has no size measured by volume (the import refuses it),
+so only the weight reading applies there. A line that names an item or pack size and states no size
+("1 package flour tortillas (street taco size)", "snack size", "family size") is not weighed by the
+food's sizes: SR's 484 g package holds 49 g tortillas, not street-taco ones (checkpoint 2, 35714).
+
+A key (`ContainerSizeQualifier`):
 
 | | Applies (`active`) | Stays `shadow` | Pauses itself (`paused`) |
 |---|---|---|---|

@@ -57,7 +57,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class AlcoholLineContext
     {
-        public const string Version = "alcohol-context/4";
+        public const string Version = "alcohol-context/5";
 
         public const string NoSense = "none";
         public const string ListSense = "list";
@@ -147,6 +147,7 @@ namespace Nom.Orch.Services.Support
             ("other", "Muscatel or Malaga raisins and grapes", new Regex(@"\b(?:malaga|muscatel|moscatel)\s+(?:raisins?|grapes?)\b|\bmuscatel raisins?\b|\bmuscatels\b", Options)),
             ("other", "champagne mango or grapes", new Regex(@"\bchampagne (?:mangos?|mangoes|grapes?)\b", Options)),
             ("other", "maraschino cherries", new Regex(@"\bmaraschino cherr(?:y|ies)\b", Options)),
+            ("other", "ratafia biscuits, cakes or drops", new Regex(@"\bratafia\s+(?:cakes?|biscuits?|biscuit crumbs|drops?|macaroons?|cookies?|wafers?)\b", Options)),
             ("other", "malt for ale", new Regex(@"\bmalt for ale\b", Options)),
             ("other", "for the rum", new Regex(@"\bfor the rum\b", Options)),
         };

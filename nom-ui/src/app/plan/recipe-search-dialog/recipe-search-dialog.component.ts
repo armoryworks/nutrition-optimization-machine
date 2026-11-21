@@ -20,6 +20,7 @@ import { DietConflictsPipe } from '../../core/utils/diet-conflict';
 import { formatFriendlyDate } from '../../core/utils/local-date';
 import { RecipeDietMatchModel } from '../../core/models/recipe.model';
 import { DietConflictConfirmDialog, DietConflictConfirmDialogData, DietConflictConfirmDialogResult } from '../diet-conflict-confirm-dialog.component';
+import { PreparedHeldConfirmDialog, PreparedHeldConfirmDialogData, PreparedHeldConfirmDialogResult } from '../prepared-held-confirm-dialog.component';
 
 export interface RecipeSearchDialogData {
   householdId: number;
@@ -184,6 +185,34 @@ export class RecipeSearchDialog implements OnInit {
 
   addWholeFood(ingredient: IngredientLookupResult): void {
     this.busy.set(true);
+    const known = this.preparedChecks();
+    const check$ = !ingredient.isPrepared
+      ? of(undefined)
+      : known.has(ingredient.id)
+        ? of(known.get(ingredient.id))
+        : this.mealPlanService.checkPreparedMeals(this.data.householdId, [ingredient.id]).pipe(
+          map(checks => checks.find(c => c.ingredientId === ingredient.id)),
+          catchError(() => of(undefined)),
+        );
+    check$.pipe(
+      switchMap(check => {
+        if (!check?.held || !check.severe) return of(true);
+        return this.dialog.open<PreparedHeldConfirmDialog, PreparedHeldConfirmDialogData, PreparedHeldConfirmDialogResult>(
+          PreparedHeldConfirmDialog,
+          { width: '400px', data: { foodName: ingredient.name, reason: RecipeSearchDialog.preparedHeldMessage(check) } },
+        ).afterClosed().pipe(map(confirmed => confirmed === true));
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(add => {
+      if (!add) {
+        this.busy.set(false);
+        return;
+      }
+      this.createWholeFoodEntry(ingredient);
+    });
+  }
+
+  private createWholeFoodEntry(ingredient: IngredientLookupResult): void {
     this.mealPlanService.createMealPlan({
       householdId: this.data.householdId,
       date: this.data.date,

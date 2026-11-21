@@ -51,6 +51,10 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex Drained = new(@"\bdrain(ed|ing)?\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly Regex ItemSizePhrase = new(
+            @"\b(?:street[\s-]+taco|soft[\s-]+taco|taco|fajita|burrito|snack|fun|bite|family|party|king|jumbo|cocktail|slider|club|individual|single[\s-]+serve)[\s-]+siz(?:e|ed)\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private static readonly Regex NotDrained = new(
             @"\b(do\s+not\s+drain|don't\s+drain|undrained|not\s+drained|with\s+(?:its|their|the)?\s*(?:liquid|juices?|syrup|liquor)|and\s+(?:its|their)\s+(?:liquid|juices?)|reserve\s+(?:the\s+)?(?:liquid|juices?))\b",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -76,6 +80,19 @@ namespace Nom.Orch.Services.Support
             var m = SizeBefore.Match(rawLine);
             if (!m.Success) return string.Empty;
             return m.Groups["size"].Value.StartsWith("small", StringComparison.OrdinalIgnoreCase) ? Small : Large;
+        }
+
+        /// <summary>
+        /// The size of the items or of the pack the line names ("street taco size", "snack size",
+        /// "family size"), which no container size of the food speaks of: a 484 g package of 49 g
+        /// tortillas is not a package of street-taco tortillas (staging checkpoint 2, 35714). Null when
+        /// it names none.
+        /// </summary>
+        public static string? ItemSize(string? rawLine)
+        {
+            if (string.IsNullOrWhiteSpace(rawLine)) return null;
+            var m = ItemSizePhrase.Match(rawLine);
+            return m.Success ? m.Value.ToLowerInvariant() : null;
         }
 
         /// <summary>Whether the line weighs the food drained ("drained", "drained and rinsed"), and does not keep its liquid.</summary>

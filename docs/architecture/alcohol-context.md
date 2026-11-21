@@ -24,7 +24,8 @@ first rule that fires wins:
    mushroom extract or essence, either way round: "anchovy essence", "essence of anchovies"); `yeast` (ale or beer yeast, brewer's yeast, barm); `not-food`
    (turpentine, camphor, nitre, hartshorn, bay rum, white spirit, rubbing alcohol); `other` (Scotch
    barley, oats, groats or bonnet; a sack of; a ham hock; Port Salut; Muscatel or Malaga raisins and
-   grapes; champagne mango; maraschino cherries; malt for ale; "for the rum"); `liquid` ("liquor"
+   grapes; champagne mango; maraschino cherries; ratafia cakes, biscuits or drops (almond biscuits
+   named after the liqueur, staging checkpoint 2; `alcohol-context/5`); malt for ale; "for the rum"); `liquid` ("liquor"
    with no spirit word).
 3. **A measure** (wineglass, wine-glassful, claret-glass, sherry glass): the food is what follows
    "of"; only a drink there is read on (`measure` otherwise), so "two port wine-glassfuls of
@@ -104,7 +105,7 @@ Each drink sense allows a fixed set of USDA SR Legacy foods by FDC id (`AlcoholL
   (`wine-unclear`), "vin blanc" and "vin rouge" white and red, "au vin" a dish. A line that names
   a drink besides the dish it is for reads as that drink ("1 bottle red Burgundy, for the coq au
   vin" is red wine and refused on Chicken Stock; "2 cups chicken stock for coq au vin" stays a
-  dish; `alcohol-context/4`).
+  dish; `alcohol-context/5`).
 
 The table is checked in the golden tests against the frozen catalog: every id is a USDA alcoholic
 beverage (category 14), and every drink sense but `wine-late-harvest` has a food with at least 20

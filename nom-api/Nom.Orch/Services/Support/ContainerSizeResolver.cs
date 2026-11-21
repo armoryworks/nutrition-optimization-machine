@@ -69,7 +69,8 @@ namespace Nom.Orch.Services.Support
     /// <summary>
     /// The size a container line is weighed at, in order: the size the line states, the numbered can
     /// it names (the cited can table, by the recipe's era), else the food's own container size of
-    /// that kind, size word and era. A line that says drained, or a food whose USDA description is
+    /// that kind, size word and era. A line that names an item or pack size ("street taco size",
+    /// "family size") and states no size is not weighed by the food's sizes. A line that says drained, or a food whose USDA description is
     /// drained solids, is weighed drained: by the size's drained weight, scaled to a stated net size;
     /// with no drained weight it is not weighed, and a drained line on a food whose USDA description
     /// is the food as packed is not weighed either (it needs the drained food). An unsized line in an
@@ -94,6 +95,7 @@ namespace Nom.Orch.Services.Support
         public const string PeriodWithoutModern = "a period source names two can sizes for this food and no modern size chooses between them";
         public const string Stated = "stated";
         public const string AsPacked = "drained line on a food weighed as packed; the line needs the drained food (form relink)";
+        public const string ItemSized = "the line names an item or pack size no container size of the food speaks of";
 
         private static readonly Dictionary<string, decimal> GramsPerUnit = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -147,6 +149,8 @@ namespace Nom.Orch.Services.Support
                     ? Weigh(numbered.Grams, numbered.SourceRef, count, kind, drained, usable, 0, ContainerBasis.Numbered)
                     : new ContainerWeight(null, count, kind, drained, null, $"the can table gives no size for No. {number} in era {era}");
             }
+
+            if (ContainerKinds.ItemSize(rawLine) is { } itemSize) return new ContainerWeight(null, count, kind, drained, null, $"{ItemSized} ({itemSize})");
 
             var keyed = usable.Where(s => s.SizeWord == sizeWord).ToList();
             var any = keyed.FirstOrDefault(s => s.Era == ContainerEras.Any);
@@ -229,6 +233,32 @@ namespace Nom.Orch.Services.Support
             if (IngredientLineParser.Parse(rawLine) is { Quantity: > 0 } parsed
                 && IngredientLineParser.IsContainer(parsed.MeasurementName)) return parsed.Quantity;
             return 1m;
+        }
+
+        /// <summary>Millilitres in one US fluid ounce.</summary>
+        public const decimal MillilitersPerFluidOunce = 29.5735m;
+
+        /// <summary>
+        /// Whether a food's container size is measured by volume: its branded class is read in
+        /// millilitres (evaporated milk's 12 fl oz can), or the size is a standard of fill (750 mL).
+        /// On such a food a size stated in plain ounces ("1 12-oz can evaporated milk") may be fluid
+        /// ounces (staging checkpoint 2, M26).
+        /// </summary>
+        public static bool MeasuredByVolume(string? cls, string? sourceRef) =>
+            (cls != null && ContainerClasses.All.Any(c => c.Id == cls && c.ByVolume))
+            || (sourceRef != null && sourceRef.StartsWith("deterministic:standard-of-fill", StringComparison.Ordinal));
+
+        /// <summary>
+        /// The size a line states in plain ounces read as fluid ounces, in grams through the food's
+        /// density (<see cref="MillilitersPerFluidOunce"/>); null when the line states no size in
+        /// ounces or the food has no density.
+        /// </summary>
+        public static decimal? StatedAsFluidOunces(string? rawLine, decimal? gramsPerMilliliter)
+        {
+            if (gramsPerMilliliter is not > 0) return null;
+            if (IngredientLineParser.StatedSize(rawLine) is not { Quantity: > 0 } stated || !string.Equals(stated.MeasurementName, "Ounce", StringComparison.OrdinalIgnoreCase)) return null;
+            var count = IngredientLineParser.SizedContainers(rawLine) is { Quantity: > 0 } c ? c.Quantity : 1m;
+            return Math.Round(stated.Quantity * MillilitersPerFluidOunce * gramsPerMilliliter.Value / count, 1);
         }
 
         /// <summary>The size the line states for one container, in grams; a reason when it states a volume the food has no density for; null when it states none.</summary>

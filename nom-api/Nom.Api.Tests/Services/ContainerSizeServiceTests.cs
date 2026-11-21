@@ -135,6 +135,42 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_size_measured_by_volume_agrees_with_cans_stated_in_plain_ounces_read_as_fluid_ounces_through_the_density()
+        {
+            var rig = await RigAsync();
+            var milk = new IngredientEntity { Name = "Evaporated Milk", FdcId = "171275", FdcDataType = "sr_legacy_food", GramsPerMilliliter = 1.07m, CurationStatusId = (long)CurationStatusEnum.Curated };
+            var beer = new IngredientEntity { Name = "Beer", FdcId = "168746", FdcDataType = "sr_legacy_food", GramsPerMilliliter = 1.07m, CurationStatusId = (long)CurationStatusEnum.Curated };
+            rig.Db.Ingredients.AddRange(milk, beer);
+            await rig.Db.SaveChangesAsync();
+            await rig.Sizes.WriteAsync(new[]
+            {
+                new ContainerSizeProposal(milk.Id, ContainerKinds.Can, ContainerEras.Modern, string.Empty, Math.Round(354m * 1.07m, 2), null, "354 mL can",
+                    "deterministic:fdc-branded-mode:2025-12-18:evaporated-milk:88/120", "evaporated-milk", 1, 0.82m, 120),
+                new ContainerSizeProposal(beer.Id, ContainerKinds.Can, ContainerEras.Modern, string.Empty, Math.Round(354m * 1.07m, 2), null, "379 g can",
+                    "fdc:168746:portion:2", "portion:can", 1, null, null),
+            }, false, DateTime.UtcNow, true, Operator);
+            var recipe = new RecipeEntity { Name = "Pie", SourceSite = "example.org", CurationStatusId = (long)CurationStatusEnum.NonCurated, RecipeIngredients = new List<RecipeIngredientEntity>() };
+            for (var i = 0; i < 40; i++)
+                recipe.RecipeIngredients.Add(new RecipeIngredientEntity
+                {
+                    IngredientId = milk.Id, SortOrder = i, Quantity = 12m, MeasurementId = Ounce, RawLine = "1 (12 oz) can evaporated milk", CreatedDate = Imported.AddMinutes(i),
+                });
+            for (var i = 0; i < 10; i++)
+                recipe.RecipeIngredients.Add(new RecipeIngredientEntity
+                {
+                    IngredientId = beer.Id, SortOrder = 100 + i, Quantity = 12m, MeasurementId = Ounce, RawLine = "1 (12 oz) can beer", CreatedDate = Imported.AddMinutes(100 + i),
+                });
+            rig.Db.Recipes.Add(recipe);
+            await rig.Db.SaveChangesAsync();
+
+            var report = await rig.Sizes.ScoreAsync(apply: false, Operator);
+
+            report.Classes.Single(c => c.Class == "evaporated-milk").Agree.Should().Be(40,
+                "12 oz is 340 g as a weight, 11 % under the 379 g can, but 12 fl oz x 1.07 g/mL is 380 g (staging checkpoint 2, M26: 0 of 40 before)");
+            report.Classes.Single(c => c.Class == "portion:can").Agree.Should().Be(0, "a size USDA gives in grams keeps the weight reading of plain ounces");
+        }
+
+        [Fact]
         public async Task A_key_whose_size_misses_the_stated_sizes_stays_in_shadow_and_a_lane_qualifies_on_enough_hits()
         {
             var rig = await RigAsync();
