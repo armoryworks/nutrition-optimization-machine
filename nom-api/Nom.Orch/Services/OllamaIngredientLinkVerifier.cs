@@ -43,6 +43,14 @@ namespace Nom.Orch.Services
             "  \"unsure\" - you cannot tell.\n" +
             "Reply with STRICT JSON only: {\"results\":[{\"n\":1,\"verdict\":\"same\"}]} with one entry per item.";
 
+        /// <summary>
+        /// A hash of what decides the judge's answer apart from the model: its instructions, its
+        /// verdict words and its prompt version. The link-audit record carries it with the auditor and
+        /// the confirming reader, so a changed prompt needs a new score before an audited tier may go live.
+        /// </summary>
+        public static readonly string Signature = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
+            string.Join("\n", Instructions, string.Join(",", Verdicts.Select(v => v.Word)), CurrentPromptVersion.ToString(System.Globalization.CultureInfo.InvariantCulture)))))[..16].ToLowerInvariant();
+
         private readonly HttpClient _httpClient;
         private readonly string _baseUrl;
         private readonly bool _strictSchema;

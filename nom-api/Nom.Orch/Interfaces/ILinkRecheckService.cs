@@ -42,7 +42,7 @@ namespace Nom.Orch.Interfaces
         /// </summary>
         Task<LinkRecheckResult> RunLaneBatchAsync(string set, string mode, int max, CancellationToken cancellationToken = default);
 
-        /// <summary>Audits a sample of the set's moves with the given auditor and check and evaluates the tier with the batch's faults.</summary>
+        /// <summary>Audits a sample of the set's moves with the given auditor and check and evaluates the tier with the batch's faults and the link-audit record scored with that auditor and check.</summary>
         Task<LaneQualifyVerdict> AuditAndEvaluateAsync(string set, IReadOnlyList<string> faults, ILaneAuditor? auditor, ILaneAuditCheck? check, CancellationToken cancellationToken = default);
 
         /// <summary>Decisions the lane recorded for a set in the last 24 hours.</summary>

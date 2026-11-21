@@ -31,8 +31,14 @@ namespace Nom.Orch.Services.Support
         public string Text => string.IsNullOrWhiteSpace(Description) ? Name : Description;
     }
 
-    /// <summary>One recipe line of the wording as the units and alcohol checks read it: its raw text, its unit, its grams through the food's conversions (null when none) and, when the caller has it, what the rest of its recipe says.</summary>
-    public sealed record GateLine(string? Raw, string? Unit, decimal? Grams, AlcoholRecipeContext? Recipe = null);
+    /// <summary>
+    /// One recipe line of the wording as the units and alcohol checks read it: its raw text, its
+    /// unit, its grams through the food's conversions (null when none), when the caller has it what
+    /// the rest of its recipe says, and, for a line two blind readers gave one of the fixed readings
+    /// of an unclear alcohol word, the alcohol sense that reading stands for, which the alcohol rule
+    /// then reads in place of the line's own.
+    /// </summary>
+    public sealed record GateLine(string? Raw, string? Unit, decimal? Grams, AlcoholRecipeContext? Recipe = null, string? Sense = null);
 
     /// <summary>
     /// One candidate answer the gate judges: the wording, the ingredient it is on, the food it
@@ -461,7 +467,7 @@ namespace Nom.Orch.Services.Support
             if (Incompleteness(target, lead, catalog) is { } incomplete) Add(Incomplete, "nutrients incomplete", incomplete);
 
             var readings = pair.Lines is { Count: > 0 } senseLines
-                ? senseLines.Select(l => AlcoholLineContext.Read(l.Raw ?? raw, l.Recipe))
+                ? senseLines.Select(l => l.Sense is { } fixedSense ? new AlcoholReading(fixedSense, AlcoholLineContext.KindOf(fixedSense), "a fixed reading") : AlcoholLineContext.Read(l.Raw ?? raw, l.Recipe))
                 : new[] { AlcoholLineContext.Read(raw) };
             foreach (var reading in readings)
             {

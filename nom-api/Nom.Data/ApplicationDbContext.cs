@@ -120,6 +120,7 @@ namespace Nom.Data
         public DbSet<IngredientAliasEntity> IngredientAliases { get; set; } = default!;
         public DbSet<IngredientWordingEntity> IngredientWordings { get; set; } = default!;
         public DbSet<IngredientWordingRejectionEntity> IngredientWordingRejections { get; set; } = default!;
+        public DbSet<WordingLexiconEntity> WordingLexicon { get; set; } = default!;
         public DbSet<IngredientEntity> Ingredients { get; set; } = default!;
         public DbSet<RecipeEntity> Recipes { get; set; } = default!;
         public DbSet<DishGroupEntity> DishGroups { get; set; } = default!;

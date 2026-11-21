@@ -31,6 +31,9 @@ namespace Nom.Import.Golden
     {
         public string Lane { get; set; } = string.Empty;
         public string Model { get; set; } = string.Empty;
+
+        /// <summary>The second model the run asked (--check-model): reader B of the reader lanes, the confirming reader of link-audit, the judge of the prose writer.</summary>
+        public string? CheckModel { get; set; }
         public string Host { get; set; } = string.Empty;
         public string Signature { get; set; } = string.Empty;
         public DateTime ScoredAtUtc { get; set; }
@@ -75,7 +78,7 @@ namespace Nom.Import.Golden
     /// sends for one fixed question, without the model name, so any change to its prompt, schema
     /// or options shows as a new signature.
     /// </summary>
-    public static class ModelLanes
+    public static partial class ModelLanes
     {
         public const string LinkPick = "link-pick";
         public const string LinkVerify = "link-verify";
@@ -87,6 +90,10 @@ namespace Nom.Import.Golden
         public const string ProseRewriteLane = ProseLaneGolden.RewriteLane;
         public const string ProseJudgeLane = ProseLaneGolden.JudgeLane;
         public const string ProseAuditLane = ProseLaneGolden.AuditLane;
+        public const string WordingReadLane = WordingReaderRecords.ReadLane;
+        public const string WordingLexiconLane = WordingReaderRecords.LexiconLane;
+        public const string AlcoholReadingLane = WordingReaderRecords.AlcoholLane;
+        public const string LinkAuditLane = WordingReaderRecords.AuditLane;
         public const string CheckModelKey = "Golden:CheckModel";
         public const string FloorsFile = "model-lanes.json";
         public const string ScoresFolder = "scores";
@@ -95,7 +102,7 @@ namespace Nom.Import.Golden
         public const int ClassifyBatch = 20;
         public const int JudgeBatch = 8;
 
-        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane, WordingTiersLane, LineJudge, ProseRewriteLane, ProseJudgeLane, ProseAuditLane };
+        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane, WordingTiersLane, LineJudge, ProseRewriteLane, ProseJudgeLane, ProseAuditLane, WordingReadLane, WordingLexiconLane, AlcoholReadingLane, LinkAuditLane };
 
         /// <summary>The prose lanes, scored on prose-judge.tsv; their signatures are <see cref="ProseLaneGolden.Signature"/>.</summary>
         public static readonly IReadOnlyList<string> Prose = new[] { ProseRewriteLane, ProseJudgeLane, ProseAuditLane };
@@ -134,6 +141,7 @@ namespace Nom.Import.Golden
             if (lane == WordingTiersLane) return WordingTiers.Signature;
             if (lane == LineJudge) return OllamaLineJudge.Signature;
             if (Prose.Contains(lane)) return ProseLaneGolden.Signature(lane);
+            if (Readers.Contains(lane)) return WordingReaderRecords.ScorerSignature(lane);
             var capture = new CapturingHandler();
             using var http = new HttpClient(capture);
             var config = Config("http://signature.invalid", "signature");
@@ -252,6 +260,11 @@ namespace Nom.Import.Golden
                 case ProseJudgeLane:
                 case ProseAuditLane:
                     return await ProseResultsAsync(lane, goldenDir, http, config, limit, progress, cancellationToken);
+                case WordingReadLane:
+                case WordingLexiconLane:
+                case AlcoholReadingLane:
+                case LinkAuditLane:
+                    return await ReaderResultsAsync(lane, goldenDir, http, config, limit, progress, cancellationToken);
                 case AlcoholContextLane:
                 {
                     var cases = AlcoholCases(goldenDir).Take(limit ?? int.MaxValue).ToList();

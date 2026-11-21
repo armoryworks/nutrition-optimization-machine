@@ -58,7 +58,7 @@ namespace Nom.Orch.Services
         public const int MinimumLinesForShare = 50;
 
         public const string AuditorProblem =
-            "the link auditor has no golden score record yet (lane link-audit, scored on link-pairs.tsv by cleanup2/wording-readers); a set stays in shadow and its sets are applied by an operator, one dry run at a time";
+            "no link auditor and confirming reader are set, so the link-audit record cannot be checked; a set stays in shadow and its sets are applied by an operator, one dry run at a time";
 
         private readonly ApplicationDbContext _db;
         private readonly ICurrentUserService _currentUser;
@@ -66,10 +66,12 @@ namespace Nom.Orch.Services
         private readonly ILineRelinkService _relink;
         private readonly ILaneFrameService _frame;
         private readonly ILogger<LinkRecheckService> _logger;
+        private readonly Func<WordingTierAuditRecord.Record?> _auditRecord;
 
         public LinkRecheckService(ApplicationDbContext db, ICurrentUserService currentUser, ILinkAutoApplyService gate, ILineRelinkService relink,
-            ILaneFrameService frame, ILogger<LinkRecheckService> logger)
+            ILaneFrameService frame, ILogger<LinkRecheckService> logger, Func<WordingTierAuditRecord.Record?>? auditRecord = null)
         {
+            _auditRecord = auditRecord ?? WordingTierAuditRecord.Embedded;
             _db = db;
             _currentUser = currentUser;
             _gate = gate;
@@ -1107,7 +1109,8 @@ namespace Nom.Orch.Services
                 }
             }
 
-            return await _frame.EvaluateAsync(new LaneEvaluateRequest(Lane, set, LinkRecheckRules.SetSignature(set), Policy, null, AuditorProblem, reasons), cancellationToken);
+            var (score, golden) = auditor != null && check is ILaneAuditor confirming ? WordingTierAuditRecord.Evaluate(_auditRecord(), auditor.Model, confirming.Model) : (null, AuditorProblem);
+            return await _frame.EvaluateAsync(new LaneEvaluateRequest(Lane, set, LinkRecheckRules.SetSignature(set), Policy, score, golden, reasons), cancellationToken);
         }
 
         public Task<int> DecidedTodayAsync(string set, CancellationToken cancellationToken = default)

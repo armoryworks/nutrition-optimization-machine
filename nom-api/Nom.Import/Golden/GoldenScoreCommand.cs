@@ -10,7 +10,7 @@ namespace Nom.Import.Golden
 {
     /// <summary>
     /// Scores one model lane against its golden set on a model host the operator names:
-    /// <c>dotnet run -- --golden-score --lane link-verify --host http://ai-host:11434 --model qwen3:8b [--limit 200] [--golden &lt;dir&gt;] [--out failures.tsv] [--record]</c>; the prose lanes also take <c>[--check-model mistral-nemo]</c>, the judge that checks the writer.
+    /// <c>dotnet run -- --golden-score --lane link-verify --host http://ai-host:11434 --model qwen3:8b [--limit 200] [--golden &lt;dir&gt;] [--out failures.tsv] [--record]</c>; the prose lanes also take <c>[--check-model mistral-nemo]</c>, the judge that checks the writer, and the reader lanes (wording-read, wording-lexicon, alcohol-reading) and link-audit take it as reader B (default the roster's), which the record names.
     /// Prints the lane's score, its false-accept rate, the floor from <c>model-lanes.json</c> and every
     /// case that passed in the recorded run and fails now, and exits 1 when the lane is below its
     /// floor. <c>--record</c> writes the score file the release gate reads. Refused under CI, and it
@@ -63,6 +63,7 @@ namespace Nom.Import.Golden
                 return 3;
             }
             var score = ModelLanes.Score(lane, model, Uri.TryCreate(host, UriKind.Absolute, out var uri) ? uri.Host : host, signature, results);
+            score.CheckModel = ModelLanes.CheckModelOf(lane, Option(args, "--check-model"));
             var breaches = ModelLanes.Breaches(score, floor);
             var regressed = recorded?.CaseSet == score.CaseSet ? ModelLanes.Regressed(recorded, results) : Array.Empty<LaneCaseResult>();
 
