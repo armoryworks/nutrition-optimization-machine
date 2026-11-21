@@ -44,7 +44,7 @@ namespace Nom.Data.Nutrition
     /// </summary>
     public static class CatalogAdmissionRule
     {
-        public const string Version = "catalog-admission/2";
+        public const string Version = "catalog-admission/3";
 
         /// <summary>
         /// The audit change type of a food group or edibility set from the USDA category, by the
@@ -62,6 +62,7 @@ namespace Nom.Data.Nutrition
         public const string AwaitingSecondSource = "awaiting_second_source";
         public const string ZeroEnergy = "zero_energy";
         public const string SourceNotAdmitted = "source_not_admitted";
+        public const string AuditFindingPrefix = "audit:";
 
         public const int SpicesAndHerbs = 2;
 

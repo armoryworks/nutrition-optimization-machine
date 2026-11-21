@@ -31,9 +31,13 @@ namespace Nom.Import.Services
     /// curate stays curated and is reported, and the rule never rejects a food. Before it writes, the run stops by itself, writing nothing, when a USDA file
     /// is not one recorded in the checksum file, a USDA food has no category, fewer than 99 % of the
     /// USDA foods pass the energy check, or more than <see cref="MaxChangedFoods"/> foods would
-    /// change status, group or edibility. After it writes, it undoes itself when the catalog audit
-    /// shows a high or medium finding on a food it admitted or regrouped that was not there before.
-    /// Every change shares the run's stamp and is journaled; <see cref="UndoAsync"/> reverses a run,
+    /// change status, group or edibility. It also lays its changes over a copy of the catalog and
+    /// runs the catalog audit on it: a food that would gain a new high or medium finding is held
+    /// instead (status, group and edibility left as they are, the finding stored as
+    /// <c>audit:&lt;code&gt;</c> in its admission reason), and the run stops, writing nothing, when it
+    /// would hold more than <see cref="MaxAuditHoldShare"/> of the foods it changes. After it writes,
+    /// it undoes itself when the audit still shows a high or medium finding on a food it admitted or
+    /// regrouped that was not there before. Every change shares the run's stamp and is journaled; <see cref="UndoAsync"/> reverses a run,
     /// journaled under a stamp of its own that a later undo reverses in turn:
     /// `--admit --undo &lt;stamp&gt; [--dry-run]`.
     /// </summary>
@@ -50,6 +54,8 @@ namespace Nom.Import.Services
         public const string RunEntityType = "CatalogAdmission";
         public const int MaxChangedFoods = 10_000;
         public const decimal MinEnergyPassRate = 0.99m;
+        public const decimal MaxAuditHoldShare = 0.01m;
+        public const int MaxAuditPasses = 5;
 
         private static readonly string[] ChangeTypes = { AdmitChangeType, GroupChangeType, FactsChangeType, DescriptionChangeType, RunChangeType, UndoChangeType };
 
@@ -100,7 +106,7 @@ namespace Nom.Import.Services
             var dirs = new[] { options.FoundationDir, options.SrLegacyDir }.Where(d => !string.IsNullOrWhiteSpace(d)).Select(d => d!).ToList();
             var sources = new List<string> { CatalogAdmissionRule.FoundationFood, CatalogAdmissionRule.SrLegacyFood };
             if (options.BrandedDir != null) sources.Add(CatalogAdmissionRule.BrandedFood);
-            var before = options.DryRun ? null : await FindingsAsync(sources, ct);
+            var before = await FindingsAsync(sources, null, ct);
 
             var foods = await _db.Ingredients
                 .Where(i => !i.IsDeleted && i.FdcId != null
@@ -147,13 +153,7 @@ namespace Nom.Import.Services
                 .Select(a => a.IngredientId).ToHashSet();
             var aliasKeys = aliases.Select(a => (a.IngredientId, a.AliasName)).ToHashSet();
 
-            var changes = new List<Change>();
-            var descriptionsToAdd = new List<(long FoodId, string Alias)>();
-            var changedFoods = new HashSet<long>();
-            var admittedOrRegrouped = new HashSet<long>();
-            var rejectedFoods = new HashSet<long>();
-            var notLinkTargets = new HashSet<long>();
-
+            var judged = new List<Judged>();
             foreach (var food in foods)
             {
                 ct.ThrowIfCancellationRequested();
@@ -205,95 +205,58 @@ namespace Nom.Import.Services
                     report.EnergyByOutcome[decision.EnergyCheck ?? "not_judged"] = report.EnergyByOutcome.GetValueOrDefault(decision.EnergyCheck ?? "not_judged") + 1;
                     if (decision.EnergyCheck is EnergyCheckOutcome.OwnFactors or EnergyCheckOutcome.General or EnergyCheckOutcome.ExemptSmall) report.EnergyPassed++;
                 }
+                judged.Add(new Judged(food, isUsda, categoryId, category, description, decision));
+            }
 
-                void Set(string changeType, string property, string? old, string? value)
+            var described = new Described(describedIds, aliasKeys);
+            var auditHolds = new Dictionary<long, string>();
+            var plan = Build(judged, auditHolds, described, report);
+            report.EnergyPassRate = report.UsdaCandidates == 0 ? 1m : Math.Round((decimal)report.EnergyPassed / report.UsdaCandidates, 4);
+            if (report.ChecksumFailures.Count == 0 && report.CategoryMissing == 0)
+            {
+                for (var pass = 0; ; pass++)
                 {
-                    if (old == value) return;
-                    changes.Add(new Change(food.Id, changeType, property, old, value));
-                }
-
-                if (isUsda) Set(FactsChangeType, nameof(IngredientEntity.FdcCategoryId), Int(food.FdcCategoryId), Int(categoryId));
-                Set(FactsChangeType, nameof(IngredientEntity.FdcCategory), food.FdcCategory, category);
-                Set(FactsChangeType, nameof(IngredientEntity.EnergyCheck), food.EnergyCheck, decision.EnergyCheck);
-                Set(FactsChangeType, nameof(IngredientEntity.AdmissionReason), food.AdmissionReason, decision.Reason);
-
-                if (food.FoodGroupId != decision.FoodGroupId)
-                {
-                    Set(GroupChangeType, nameof(IngredientEntity.FoodGroupId), Long(food.FoodGroupId), Long(decision.FoodGroupId));
-                    report.Regrouped++;
-                    if (decision.FoodGroupId == null) report.GroupsCleared++;
-                    var move = $"{GroupName(food.FoodGroupId)} -> {GroupName(decision.FoodGroupId)}";
-                    report.GroupMoves[move] = report.GroupMoves.GetValueOrDefault(move) + 1;
-                    if (report.Lines.Count < 400) report.Lines.Add($"regroup  #{food.Id} {food.Name}: {move} (category {category ?? "none"})");
-                    changedFoods.Add(food.Id);
-                    admittedOrRegrouped.Add(food.Id);
-                }
-                if (decision.IsWholeFood is { } edible && food.IsWholeFood != edible)
-                {
-                    Set(GroupChangeType, nameof(IngredientEntity.IsWholeFood), Bool(food.IsWholeFood), Bool(edible));
-                    report.EdibilitySet++;
-                    changedFoods.Add(food.Id);
-                }
-
-                if (food.CurationStatusId == (long)CurationStatusEnum.PendingCuration && decision.Status == (long)CurationStatusEnum.Curated)
-                {
-                    Set(AdmitChangeType, nameof(IngredientEntity.CurationStatusId), Long(food.CurationStatusId), Long(decision.Status));
-                    changedFoods.Add(food.Id);
-                    report.Admitted++;
-                    if (decision.Prepared) report.AdmittedPrepared++;
-                    admittedOrRegrouped.Add(food.Id);
-                    if (report.Lines.Count < 400) report.Lines.Add($"admit    #{food.Id} {food.Name} ({decision.EnergyCheck}{(decision.Prepared ? ", prepared" : string.Empty)})");
-                }
-                else if (food.CurationStatusId == (long)CurationStatusEnum.PendingCuration)
-                {
-                    report.Held++;
-                    foreach (var reason in decision.Reasons) Count(report.HeldByReason, Bucket(reason));
-                }
-                else if (food.CurationStatusId == (long)CurationStatusEnum.Curated && decision.Status != (long)CurationStatusEnum.Curated)
-                {
-                    report.KeptCurated++;
-                    foreach (var reason in decision.Reasons) Count(report.KeptCuratedByReason, Bucket(reason));
-                    if (report.Lines.Count < 400) report.Lines.Add($"kept     #{food.Id} {food.Name}: curated, the rule says {decision.Reason}");
-                }
-                else if (food.CurationStatusId == (long)CurationStatusEnum.Rejected)
-                {
-                    rejectedFoods.Add(food.Id);
-                }
-                if (decision.Prepared) notLinkTargets.Add(food.Id);
-
-                if (isUsda && !string.IsNullOrWhiteSpace(description) && !describedIds.Contains(food.Id))
-                {
-                    var alias = Truncate(description.Trim(), 511);
-                    if (aliasKeys.Contains((food.Id, alias))) report.DescriptionsBlocked++;
-                    else descriptionsToAdd.Add((food.Id, alias));
+                    var fresh = (await FindingsAsync(sources, plan.Changes, ct))
+                        .Where(f => plan.AdmittedOrRegrouped.Contains(f.FoodId) && !before.Contains(f))
+                        .GroupBy(f => f.FoodId).ToList();
+                    if (fresh.Count == 0) break;
+                    if (pass == MaxAuditPasses)
+                    {
+                        report.Stopped.Add($"audit: holding {auditHolds.Count} food(s) for a new audit finding still leaves {fresh.Count} more after {MaxAuditPasses} passes");
+                        break;
+                    }
+                    foreach (var food in fresh)
+                        auditHolds[food.Key] = CatalogAdmissionRule.AuditFindingPrefix + string.Join("+", food.Select(f => f.Code).Distinct().OrderBy(c => c, StringComparer.Ordinal));
+                    plan = Build(judged, auditHolds, described, report);
                 }
             }
 
-            report.DescriptionsAdded = descriptionsToAdd.Count;
-            report.ChangedFoods = changedFoods.Count;
-            report.EnergyPassRate = report.UsdaCandidates == 0 ? 1m : Math.Round((decimal)report.EnergyPassed / report.UsdaCandidates, 4);
-            notLinkTargets.UnionWith(rejectedFoods);
-            var withdraw = await PicksToWithdrawAsync(notLinkTargets, ct);
+            report.DescriptionsAdded = plan.Descriptions.Count;
+            report.ChangedFoods = plan.ChangedFoods.Count;
+            var withdraw = await PicksToWithdrawAsync(plan.NotLinkTargets, ct);
             report.PicksWithdrawn = withdraw.Count;
+            var auditHoldLimit = Math.Max(1, (int)Math.Floor((report.ChangedFoods + auditHolds.Count) * MaxAuditHoldShare));
 
             if (report.ChecksumFailures.Count > 0) report.Stopped.Add($"checksum: {report.ChecksumFailures.Count} USDA file(s) not recorded in {options.ChecksumFile}");
             if (report.CategoryMissing > 0) report.Stopped.Add($"category: {report.CategoryMissing} USDA food(s) without a category from the files");
             if (report.EnergyPassRate < MinEnergyPassRate) report.Stopped.Add($"energy: {report.EnergyPassRate:P2} of USDA foods pass the energy check, below {MinEnergyPassRate:P0}");
             if (report.ChangedFoods > options.ChangeLimit) report.Stopped.Add($"size: {report.ChangedFoods} foods would change, above {options.ChangeLimit}");
+            if (auditHolds.Count > auditHoldLimit)
+                report.Stopped.Add($"audit: {auditHolds.Count} foods would gain a new high or medium audit finding, more than the {auditHoldLimit} a run holds with a reason ({MaxAuditHoldShare:P0} of the foods it changes)");
             if (report.Stopped.Count > 0)
             {
                 foreach (var reason in report.Stopped) _logger.LogWarning("Catalog admission stopped itself, nothing written: {Reason}", reason);
                 return report;
             }
-            if (before == null) return report;
+            if (options.DryRun) return report;
 
             var stamp = new DateTime(DateTime.UtcNow.Ticks / 10 * 10, DateTimeKind.Utc);
             report.RunStamp = stamp;
-            await WriteAsync(foods.ToDictionary(f => f.Id), changes, descriptionsToAdd, withdraw, stamp, ct);
-            _logger.LogInformation("Catalog admission {Stamp:O}: {Admitted} admitted, {Held} held, {Regrouped} regrouped.", stamp, report.Admitted, report.Held, report.Regrouped);
+            await WriteAsync(foods.ToDictionary(f => f.Id), plan.Changes, plan.Descriptions, withdraw, stamp, ct);
+            _logger.LogInformation("Catalog admission {Stamp:O}: {Admitted} admitted, {Held} held, {Regrouped} regrouped, {AuditHeld} held for an audit finding.", stamp, report.Admitted, report.Held, report.Regrouped, auditHolds.Count);
 
-            var after = await FindingsAsync(sources, ct);
-            foreach (var (foodId, code) in after.Where(f => admittedOrRegrouped.Contains(f.FoodId) && !before.Contains(f)).OrderBy(f => f.FoodId))
+            var after = await FindingsAsync(sources, null, ct);
+            foreach (var (foodId, code) in after.Where(f => plan.AdmittedOrRegrouped.Contains(f.FoodId) && !before.Contains(f)).OrderBy(f => f.FoodId))
                 report.NewFindings.Add($"#{foodId}: {code}");
             if (report.NewFindings.Count > 0)
             {
@@ -301,6 +264,98 @@ namespace Nom.Import.Services
                 report.SelfUndo = await UndoAsync(stamp, dryRun: false, ct);
             }
             return report;
+        }
+
+        private sealed record Judged(IngredientEntity Food, bool IsUsda, int? CategoryId, string? Category, string? Description, AdmissionDecision Decision);
+
+        private sealed record Described(HashSet<long> FoodIds, HashSet<(long FoodId, string Alias)> Aliases);
+
+        private sealed record Plan(List<Change> Changes, List<(long FoodId, string Alias)> Descriptions, HashSet<long> ChangedFoods, HashSet<long> AdmittedOrRegrouped, HashSet<long> NotLinkTargets);
+
+        /// <summary>
+        /// The changes the run would write for the judged foods, counted into the report afresh. A
+        /// food in <paramref name="auditHolds"/> keeps its status, group and edibility and stores the
+        /// audit finding as its admission reason; its USDA facts and description are stored as for any food.
+        /// </summary>
+        private static Plan Build(List<Judged> judged, Dictionary<long, string> auditHolds, Described described, AdmissionReport report)
+        {
+            report.ResetPlan();
+            var plan = new Plan(new List<Change>(), new List<(long, string)>(), new HashSet<long>(), new HashSet<long>(), new HashSet<long>());
+            foreach (var (food, isUsda, categoryId, category, description, decision) in judged)
+            {
+                void Set(string changeType, string property, string? old, string? value)
+                {
+                    if (old == value) return;
+                    plan.Changes.Add(new Change(food.Id, changeType, property, old, value));
+                }
+
+                var held = auditHolds.TryGetValue(food.Id, out var auditReason);
+                if (isUsda) Set(FactsChangeType, nameof(IngredientEntity.FdcCategoryId), Int(food.FdcCategoryId), Int(categoryId));
+                Set(FactsChangeType, nameof(IngredientEntity.FdcCategory), food.FdcCategory, category);
+                Set(FactsChangeType, nameof(IngredientEntity.EnergyCheck), food.EnergyCheck, decision.EnergyCheck);
+                Set(FactsChangeType, nameof(IngredientEntity.AdmissionReason), food.AdmissionReason, held ? auditReason : decision.Reason);
+
+                if (held)
+                {
+                    var would = food.FoodGroupId != decision.FoodGroupId ? $"{GroupName(food.FoodGroupId)} -> {GroupName(decision.FoodGroupId)}" : "group unchanged";
+                    report.HeldForAudit.Add($"#{food.Id} {food.Name}: {auditReason} (would be {(food.CurationStatusId == (long)CurationStatusEnum.PendingCuration && decision.Status == (long)CurationStatusEnum.Curated ? "admitted, " : string.Empty)}{would}; category {category ?? "none"})");
+                    if (food.CurationStatusId == (long)CurationStatusEnum.PendingCuration)
+                    {
+                        report.Held++;
+                        Count(report.HeldByReason, auditReason);
+                    }
+                }
+                else
+                {
+                    if (food.FoodGroupId != decision.FoodGroupId)
+                    {
+                        Set(GroupChangeType, nameof(IngredientEntity.FoodGroupId), Long(food.FoodGroupId), Long(decision.FoodGroupId));
+                        report.Regrouped++;
+                        if (decision.FoodGroupId == null) report.GroupsCleared++;
+                        var move = $"{GroupName(food.FoodGroupId)} -> {GroupName(decision.FoodGroupId)}";
+                        report.GroupMoves[move] = report.GroupMoves.GetValueOrDefault(move) + 1;
+                        if (report.Lines.Count < 400) report.Lines.Add($"regroup  #{food.Id} {food.Name}: {move} (category {category ?? "none"})");
+                        plan.ChangedFoods.Add(food.Id);
+                        plan.AdmittedOrRegrouped.Add(food.Id);
+                    }
+                    if (decision.IsWholeFood is { } edible && food.IsWholeFood != edible)
+                    {
+                        Set(GroupChangeType, nameof(IngredientEntity.IsWholeFood), Bool(food.IsWholeFood), Bool(edible));
+                        report.EdibilitySet++;
+                        plan.ChangedFoods.Add(food.Id);
+                    }
+
+                    if (food.CurationStatusId == (long)CurationStatusEnum.PendingCuration && decision.Status == (long)CurationStatusEnum.Curated)
+                    {
+                        Set(AdmitChangeType, nameof(IngredientEntity.CurationStatusId), Long(food.CurationStatusId), Long(decision.Status));
+                        plan.ChangedFoods.Add(food.Id);
+                        report.Admitted++;
+                        if (decision.Prepared) report.AdmittedPrepared++;
+                        plan.AdmittedOrRegrouped.Add(food.Id);
+                        if (report.Lines.Count < 400) report.Lines.Add($"admit    #{food.Id} {food.Name} ({decision.EnergyCheck}{(decision.Prepared ? ", prepared" : string.Empty)})");
+                    }
+                    else if (food.CurationStatusId == (long)CurationStatusEnum.PendingCuration)
+                    {
+                        report.Held++;
+                        foreach (var reason in decision.Reasons) Count(report.HeldByReason, Bucket(reason));
+                    }
+                    else if (food.CurationStatusId == (long)CurationStatusEnum.Curated && decision.Status != (long)CurationStatusEnum.Curated)
+                    {
+                        report.KeptCurated++;
+                        foreach (var reason in decision.Reasons) Count(report.KeptCuratedByReason, Bucket(reason));
+                        if (report.Lines.Count < 400) report.Lines.Add($"kept     #{food.Id} {food.Name}: curated, the rule says {decision.Reason}");
+                    }
+                }
+                if (food.CurationStatusId == (long)CurationStatusEnum.Rejected || decision.Prepared) plan.NotLinkTargets.Add(food.Id);
+
+                if (isUsda && !string.IsNullOrWhiteSpace(description) && !described.FoodIds.Contains(food.Id))
+                {
+                    var alias = Truncate(description.Trim(), 511);
+                    if (described.Aliases.Contains((food.Id, alias))) report.DescriptionsBlocked++;
+                    else plan.Descriptions.Add((food.Id, alias));
+                }
+            }
+            return plan;
         }
 
         /// <summary>
@@ -476,17 +531,30 @@ namespace Nom.Import.Services
                 .ToListAsync(ct);
         }
 
-        private async Task<HashSet<(long FoodId, string Code)>> FindingsAsync(IReadOnlyCollection<string> sources, CancellationToken ct)
+        /// <summary>
+        /// The high and medium audit findings over the USDA sources, by food and code: as the catalog
+        /// stands, or with <paramref name="planned"/> laid over an untracked copy of it, so a run can see
+        /// the audit after its write before it writes.
+        /// </summary>
+        private async Task<HashSet<(long FoodId, string Code)>> FindingsAsync(IReadOnlyCollection<string> sources, IReadOnlyCollection<Change>? planned, CancellationToken ct)
         {
             var result = new HashSet<(long, string)>();
             var audit = new FoodCatalogAuditService(_db);
+            var byFood = (planned ?? Array.Empty<Change>()).ToLookup(c => c.FoodId);
             foreach (var source in sources)
             {
                 ct.ThrowIfCancellationRequested();
-                var findings = await audit.AuditAsync(source, limit: int.MaxValue);
-                foreach (var f in findings.Findings.Where(f => f.Severity is "high" or "medium"))
+                var population = await audit.PopulationAsync(source, ct);
+                foreach (var food in population)
+                {
+                    foreach (var change in byFood[food.Id])
+                    {
+                        WriteValue(food, change.Property, change.New);
+                        if (change.Property == nameof(IngredientEntity.FoodGroupId)) food.FoodGroup = null;
+                    }
+                }
+                foreach (var f in FoodCatalogAuditService.Findings(population).Where(f => f.Severity is "high" or "medium"))
                     result.Add((f.IngredientId, f.Code));
-                _db.ChangeTracker.Clear();
             }
             return result;
         }
@@ -678,8 +746,19 @@ namespace Nom.Import.Services
             public List<string> ChecksumFailures { get; } = new();
             public List<string> Stopped { get; } = new();
             public List<string> NewFindings { get; } = new();
+            public List<string> HeldForAudit { get; } = new();
             public List<string> Lines { get; } = new();
             public AdmissionUndoReport? SelfUndo { get; set; }
+
+            internal void ResetPlan()
+            {
+                Admitted = AdmittedPrepared = Held = KeptCurated = Regrouped = GroupsCleared = EdibilitySet = DescriptionsBlocked = 0;
+                HeldByReason.Clear();
+                KeptCuratedByReason.Clear();
+                GroupMoves.Clear();
+                HeldForAudit.Clear();
+                Lines.Clear();
+            }
         }
 
         public sealed class AdmissionUndoReport

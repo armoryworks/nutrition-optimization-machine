@@ -387,6 +387,9 @@ namespace Nom.Import
             Console.WriteLine($"Held pending:        {r.Held}");
             foreach (var (reason, n) in r.HeldByReason.OrderByDescending(x => x.Value))
                 Console.WriteLine($"  held: {reason} × {n}");
+            Console.WriteLine($"Held for the audit:  {r.HeldForAudit.Count} (would gain a new high or medium audit finding; status, group and edibility left as they are)");
+            foreach (var line in r.HeldForAudit.Take(100))
+                Console.WriteLine($"  audit: {line}");
             Console.WriteLine($"Kept curated:        {r.KeptCurated} (curated foods the rule would not curate; never demoted by the pass)");
             foreach (var (reason, n) in r.KeptCuratedByReason.OrderByDescending(x => x.Value))
                 Console.WriteLine($"  kept: {reason} × {n}");

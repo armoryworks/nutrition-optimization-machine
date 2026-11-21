@@ -162,6 +162,34 @@ namespace Nom.Api.Tests.Services
             ReprocessRuleAudit.Failures(new("For the sauce:", "for the sauce", 0, null, "note")).Should().BeEmpty();
         }
 
+        [Theory]
+        [InlineData("1 gallon of salt", "Salt", 16, "Cup", false)]
+        [InlineData("2 quarts black pepper", "Black Pepper", 8, "Cup", false)]
+        [InlineData("1/2 gallon baking soda", "Baking Soda", 8, "Cup", false)]
+        [InlineData("1 gallon water, 1 quart salt", "Salt", 4, "Cup", true)]
+        [InlineData("1 cup salt", "Salt, table", 1, "Cup", true)]
+        [InlineData("3 tablespoons baking powder", "Baking Powder", 3, "Tablespoon", true)]
+        [InlineData("2 gallons flour", "Flour", 32, "Cup", false)]
+        [InlineData("1 gallon flour", "Flour", 16, "Cup", true)]
+        [InlineData("1 gallon salt pork", "Salt pork", 16, "Cup", true)]
+        [InlineData("1 gallon green peppers", "Green Peppers", 16, "Cup", true)]
+        [InlineData("1 pound salt", "Salt", 1, "Pound", true)]
+        [InlineData("1 gallon of baking soda", "Leavening agents, baking soda", 16, "Cup", false)]
+        [InlineData("2 gallons sugar", "Sugars, granulated", 32, "Cup", false)]
+        [InlineData("2 quarts black pepper", "Spices, pepper, black", 8, "Cup", false)]
+        [InlineData("2 quarts cinnamon", "Spices, cinnamon, ground", 8, "Cup", false)]
+        [InlineData("3 gallons oats", "Cereals, oats, regular and quick, not fortified, dry", 48, "Cup", false)]
+        [InlineData("2 cups sugar", "Sugars, granulated", 2, "Cup", true)]
+        [InlineData("1 tablespoon cinnamon", "Spices, cinnamon, ground", 1, "Tablespoon", true)]
+        [InlineData("1 gallon soda", "Soda", 16, "Cup", true)]
+        [InlineData("1 gallon club soda", "Beverages, carbonated, club soda", 16, "Cup", true)]
+        [InlineData("1 gallon tomatoes", "Tomatoes, red, ripe, canned, no salt added", 16, "Cup", true)]
+        [InlineData("2 gallons rice cakes", "Snacks, rice cakes, brown rice, plain", 32, "Cup", true)]
+        public void The_rule_audit_fails_a_volume_of_a_seasoning_over_a_quart_and_of_a_dry_staple_over_a_gallon(string raw, string food, decimal quantity, string unit, bool sane)
+        {
+            ReprocessRuleAudit.Failures(new(raw, food, quantity, unit, null)).Contains(ReprocessRuleAudit.UnitSane).Should().Be(!sane);
+        }
+
         [Fact]
         public void The_line_judge_reads_each_verdict_by_its_number_and_its_signature_ignores_the_model()
         {

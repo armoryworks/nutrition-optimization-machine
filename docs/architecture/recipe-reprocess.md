@@ -36,7 +36,10 @@ fix reaches both:
    (`StartupFill`, undone by `startup-fills/undo`).
 
 `RecipeLineBuilder.Version` (`line-builder/2` since the parser rules R1-R9 of
-`cleanup2/parser-rules`) is stamped on every journal row. Raise it with any
+`cleanup2/parser-rules`; `line-builder/3` since the checkpoint-1 fixes of `cleanup2/ck1-parser-catalog`:
+hyphenated mixed numbers after the name, a measure "and a half", trailing size words in the name,
+and the method fill's own-word, teacupful, per-item ratio, temperature, measure-as-pieces,
+alternative and fold rules) is stamped on every journal row. Raise it with any
 change to a rule the builder applies: the detector reads again every recipe an older version read,
 and the lane's signature changes, so its tiers go back to shadow until they qualify under the new
 rules.
@@ -241,7 +244,7 @@ gate (`ai-pause-all`, `ai-pause-reprocess`, quiet hours). Off unless `Reprocess:
   with up to six changed lines and their rule-check failures in its signals. A batch is journaled as
   a `ReprocessBatch` row (entity `ReprocessLane`) with its figures.
 
-**Rule checks** (`ReprocessRuleAudit`, `reprocess-audit/2`, written apart from the builder, no
+**Rule checks** (`ReprocessRuleAudit`, `reprocess-audit/3`, written apart from the builder, no
 model) on every changed line: A1 the amount stands in the line's text, or for a method fill in a
 method sentence that names the food, as a number that text states times an old measure that same
 text names (a quart is 4 cups, a gill half a cup, a pound 16 ounces), within a range it states
@@ -249,7 +252,14 @@ text names (a quart is 4 cups, a gill half a cup, a pound 16 ounces), within a r
 ("2 cans of 15 oz"); "a" or "an" counts as one only before a measure or the food, and a number between
 two unrelated numbers ("cook 10 minutes, then 2 more onions") grounds nothing. A line that starts with
 a number or "two cups of" stored with no amount fails. A2 a line moved to another food names that food. A3 pieces only of a food with a weight
-per item and never of a liquid or of a line that states a measure; no volume of a whole bird. A4 a
+per item and never of a liquid or of a line that states a measure; no volume of a whole bird; a
+volume of a seasoning or leavener (salt, pepper, a ground spice, baking powder or baking soda, yeast;
+a bare "soda" is a drink) of at most 4 cups and of a dry staple (flour, sugar, meal, rice, oats,
+crumbs, starch, cocoa) of at most 16 cups, matched on the food's name before any comma, or after a
+USDA class word on the part that follows it ("Spices, pepper, black", "Leavening agents, baking soda",
+"Cereals, oats, ..."; "Sugars, granulated" is matched as sugar), so a line linked to a catalog food is
+checked as well as a new food named from its wording ("1 gallon of salt" fails, "1 quart salt" for a
+brine passes; `reprocess-audit/3`, since A6 reads energy only and salt has none). A4 a
 recipe fails no more checks after than before. A5 (live) ten rebuilt recipes rebuilt again change
 nothing. A6 the kcal per serving of the rebuilt lines (grams by the label's own conversion, the food's
 Calories per 100 g, ingredient lines only, the recipe's servings) lies in 30 to 2,500, or no further

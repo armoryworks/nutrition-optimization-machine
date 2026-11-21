@@ -28,7 +28,7 @@ namespace Nom.Orch.Services.Support
     public sealed class RecipeLineBuilder
     {
         /// <summary>Raised whenever a rule this builder applies changes, so a rebuild can tell which recipes an older version built.</summary>
-        public const string Version = "line-builder/2";
+        public const string Version = "line-builder/3";
 
         /// <summary>Fallback unit for unparseable ingredient lines. Seeded "each"-style measurement.</summary>
         public const long DefaultMeasurementId = 1L;
@@ -127,9 +127,9 @@ namespace Nom.Orch.Services.Support
                 {
                     var others = lines.Where(other => !ReferenceEquals(other, line)).ToList();
                     if (others.Any(other => SameFood(other, line)) || RecipeLineClassifier.Classify(line.RawLine) != null) continue;
-                    var firstLine = line.RawLine.Split(FoldedLine.Separator, 2)[0];
-                    if (!FoodNameMatcher.NamesFood(firstLine, line.FoodName)) continue;
-                    var filled = await KnownMeasurementAsync(MethodAmountFinder.Find(firstLine, methodSteps, others.Select(o => o.RawLine), countedInPieces: line.Food?.GramsPerItem > 0), line.RawLine);
+                    if (line.RawLine.Contains(FoldedLine.Separator, StringComparison.Ordinal)) continue;
+                    if (!FoodNameMatcher.NamesFood(line.RawLine, line.FoodName)) continue;
+                    var filled = await KnownMeasurementAsync(MethodAmountFinder.Find(line.RawLine, methodSteps, others.Select(o => o.RawLine), countedInPieces: line.Food?.GramsPerItem > 0), line.RawLine);
                     if (filled == null) continue;
                     line.Quantity = filled.Quantity;
                     line.MeasurementName = filled.MeasurementName;

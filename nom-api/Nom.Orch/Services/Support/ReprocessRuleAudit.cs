@@ -13,14 +13,15 @@ namespace Nom.Orch.Services.Support
     /// food, as a number read here (digits, fractions, number words, "a couple"; "a" or "an" only
     /// before a measure or the food) times one of the old measures' factors that text names. A2: a
     /// line the rebuild moved to another food names that food. A3: a count in pieces is not of a
-    /// liquid or of a line that states a measure, and a whole bird is not measured by volume. A4
-    /// compares a recipe's failures before and after. A6: the kcal per serving lands in 30 to 2,500
+    /// liquid or of a line that states a measure, a whole bird is not measured by volume, and a volume
+    /// of a seasoning or leavener stays within a quart and of a dry staple within a gallon ("1 gallon
+    /// of salt" fails). A4 compares a recipe's failures before and after. A6: the kcal per serving lands in 30 to 2,500
     /// or moves no further from that band. An order restore keeps the source's order (O1). No model
     /// and no database.
     /// </summary>
     public static class ReprocessRuleAudit
     {
-        public const string Version = "reprocess-audit/2";
+        public const string Version = "reprocess-audit/3";
 
         public const string Grounded = "A1";
         public const string Named = "A2";
@@ -93,6 +94,28 @@ namespace Nom.Orch.Services.Support
             "water", "milk", "cream", "broth", "stock", "wine", "vinegar", "oil", "juice", "syrup", "brandy", "rum", "sherry", "beer",
             "cider", "buttermilk", "molasses", "honey", "liquor", "whisky", "whiskey", "vodka", "gin", "acqua", "latte", "brodo", "olio", "vino",
         };
+
+        private static readonly Dictionary<string, decimal> CupsPer = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Cup"] = 1m, ["Tablespoon"] = 1m / 16m, ["Teaspoon"] = 1m / 48m, ["Milliliter"] = 1m / 236.588m, ["Liter"] = 1000m / 236.588m,
+            ["Pint"] = 2m, ["Quart"] = 4m, ["Gallon"] = 16m, ["Fluid Ounce"] = 0.125m,
+        };
+
+        public const decimal MaxSeasoningCups = 4m;
+        public const decimal MaxDryStapleCups = 16m;
+
+        private static readonly Regex Seasoning = new(
+            @"^(?:(?:ground|fine|finely|table|kosher|sea|coarse|black|white|dry|dried|active\s+dry|instant|powdered)\s+)*" +
+            @"(?:salt|pepper|cayenne(?:\s+pepper)?|baking\s+(?:powder|soda)|bicarbonate\s+of\s+soda|saleratus|cream\s+of\s+tartar|yeast|" +
+            @"cinnamon|nutmeg|cloves|mace|allspice|paprika|cumin|turmeric|ginger|(?:curry|chili|chilli|garlic|onion|mustard)\s+powder)$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DryStaple = new(
+            @"^(?:(?:white|brown|whole[- ]wheat|wheat|rye|plain|all[- ]purpose|self[- ]rising|granulated|powdered|confectioners'?|caster|loaf|corn|yellow|rolled|dry|fine|bread)\s+)*" +
+            @"(?:flour|sugars?|meal|cornmeal|oatmeal|oats|rice|crumbs|breadcrumbs|cornstarch|starch|cocoa|farina|semolina)$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly HashSet<string> ClassWords = new(StringComparer.OrdinalIgnoreCase) { "spices", "leavening agents", "cereals" };
 
         private static readonly HashSet<string> Birds = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -286,6 +309,14 @@ namespace Nom.Orch.Services.Support
                 && foodWords.Any(Birds.Contains) && !foodWords.Any(BirdParts.Contains))
             {
                 return false;
+            }
+            if (line.Unit != null && CupsPer.TryGetValue(line.Unit, out var perCup))
+            {
+                var parts = (line.Food ?? string.Empty).Split(',', StringSplitOptions.TrimEntries);
+                var food = parts.Length > 1 && ClassWords.Contains(parts[0]) ? parts[1] : parts[0];
+                var cups = line.Quantity * perCup;
+                if (Seasoning.IsMatch(food) && cups > MaxSeasoningCups) return false;
+                if (DryStaple.IsMatch(food) && cups > MaxDryStapleCups) return false;
             }
             return true;
         }

@@ -111,8 +111,29 @@ It stops by itself and writes nothing when:
 - fewer than 99 % of the USDA foods pass the energy check;
 - more than 10,000 foods would change status, group or edibility.
 
-After it writes, it re-runs the catalog audit; a high or medium finding on a food it admitted
-or regrouped that was not there before makes the run undo itself by its stamp.
+Before it writes, it lays its changes over an untracked copy of each USDA source and runs the
+catalog audit on it (`FoodCatalogAuditService.Findings`, the same code as the audit endpoint),
+so the dry run shows the same outcome as the apply. A food that would gain a high or medium
+finding it does not have now is **held** instead of admitted or regrouped: its status, group and
+edibility stay as they are, its USDA facts and description are stored, and its admission reason
+becomes `audit:<code>` (for example `audit:group_energy_outlier`). The report lists such foods
+under "Held for the audit" with the change they would have had. Holding a food can move a group
+median, so the projection is repeated (up to five passes) until no new finding appears. The run
+stops, writing nothing, when it would hold more than 1 % of the foods it changes (at least one
+may always be held): a run that breaks the audit for many foods is a bad release or a bad rule,
+not one bad food. After it writes, it re-runs the audit on the written catalog; a high or medium
+finding on a food it admitted or regrouped that was not there before still makes the run undo
+itself by its stamp (a safety net the projection should make unreachable). Rule version
+`catalog-admission/3` since this hold.
+
+Why the hold exists (staging checkpoint 1, 2026-11-20): #95452 "potato pancakes" (curated, no
+group, SR "Potato pancakes", category Vegetables and Vegetable Products, 268 kcal/100 g) was
+regrouped none → Vegetables by its category. The audit's `group_energy_outlier` flags a food
+over six times its group's median kcal, and the Vegetables median of the SR foods is far below
+45 kcal, so the one fried vegetable dish undid the whole run of 1,714 changed foods, and the
+dry run could not show it because the audit ran only after the write. Now the pancakes keep no
+group with the reason stored, and the rest of the run stands. A held food is re-judged on every
+run; it is lifted when the audit no longer flags it (for example after an admin sets its group).
 
 Every change carries the run's stamp in `audit."AuditLogEntry"`: entity `Ingredient`,
 change types `CatalogAdmit`, `GroupFromCategory` (`FoodGroupId`,
@@ -138,7 +159,7 @@ row.
 
 A food whose stored `FdcCategoryId` is Baby Foods (3), Fast Foods (21), Meals, Entrees and Side
 Dishes (22) or Restaurant Foods (25) is a prepared food (`Nom.Data/Nutrition/PreparedFoods.cs`;
-rule version `catalog-admission/2`). The admission rule judges it by the same checks as any
+since rule version `catalog-admission/2`). The admission rule judges it by the same checks as any
 other USDA food and curates it when they pass, with no food group, so a household can put it
 in a plan. It is a dish, not an ingredient, so:
 
@@ -738,6 +759,14 @@ raw line. Rules (golden rows in `lines.tsv`, `line-kinds.tsv`, `startup-fills.ts
 - An amount after the name, after a comma or a word, is read when nothing before it is a number
   ("Corn starch, ½ cup." → 0.5 Cup, "Mace, in powder ½ oz.", "Potatoes, medium size, 2", "Burro
   gr. 50" → 50 Gram), and the name drops it ("Burro, 100 grammi." → Burro, "Uova, N. 4." → Uova).
+  A hyphenated mixed number there is one number ("Flour, 2-3/4 cups" → 2.75 Cup, "Water, 2-1/2
+  quarts" → 10 Cup; it was read as the range 2 to 3/4, staging checkpoint 1 K2); a range of
+  whole numbers or of two fractions stays a range ("Salt, 2-3 teaspoons" → 2 Teaspoon). The name
+  drops a trailing size too ("Potatoes, medium size, 2" → Potatoes, "Onions, of a good size, 3"
+  → Onions).
+- A measure "and a half" adds the half ("a jill and a half of brandy" → 0.75 Cup, "pinch and a
+  half of salt" → 1.5 Pinch, "a tumbler and a half of cold water" → 1.5 Cup, "two pints and a
+  half of milk" → 5 Cup); the half was lost before (checkpoint 1 K1, K2).
 - Old measures: jill (as gill, ½ cup), tumbler (1 cup), pony (1 fl oz). "a drop", "a small
   quantity" and "a very little" are vague: no amount.
 - Italian units for the Artusi text: grammi, gr., chilogrammi, litro, mezzo litro, decilitri and
@@ -885,6 +914,19 @@ vinegar and half water", "to a gallon"), from a vessel or a length before or aft
 plural ("three or four waters" is washing). It never counts pieces of a liquid (water, milk, wine,
 stock and the like), nor of a food without a weight per item, so "one of Moselle wine (or hock)"
 beside "one wine glass of the stock" is emptied as elliptical and journaled once.
+
+Since staging checkpoint 1 (K1, 2026-11-20; method fills 3 wrong and 2 doubtful of 30): the
+food's own other words may stand between the measure and its last word ("three tablespoonfuls of
+olive oil" for "olive oil"), and "teacupful", "tumbler", "jill" and the other old measures count
+as measures ("a teacupful of water" → 0.5 Cup). It takes nothing from a per-item ratio ("1/2
+teaspoonful of melted butter in each tomato": "in", "into", "on", "over", "upon" or "inside" each
+or every), from a step whose temperature the line contradicts (the line "cold vinegar" against
+"two quarts of boiling vinegar"; cold, warm and hot are three classes, boiling counts as hot),
+from a measure read as pieces ("a handful of chopped Parsley" is not one sprig), from an
+alternative ("one-half can of tomatoes, or four chopped fresh tomatoes": a match in a clause
+starting with "or" fills nothing at all), or for a folded row of two foods ("melted butter +
+maître d'hôtel butter"; the method's amount names one of them). The rebuild's method fill uses
+the same finder and the same fold rule.
 
 ```
 POST /api/FoodCatalog/startup-fills/undo?sinceUtc=<utc time>&apply=false   # dry run: entries, lines it would restore, lines changed since

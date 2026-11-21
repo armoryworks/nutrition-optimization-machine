@@ -67,7 +67,7 @@ r4-01	amount-after-name	Corn starch, ½ cup.	0.5	Cup	-	Corn starch	Corn starch	o
 r4-02	amount-after-name	Sage, ½ teaspoonful.	0.5	Teaspoon	-	Sage	Sage	ok	ok	design:reprocess	R4 (B6)
 r4-03	amount-after-name	Mace, in powder ½ oz.	0.5	Ounce	-	Mace, in powder	*	agent	agent	agent-review-parser-rules-2026-11-20	R4: after a run of words, nothing before it a number
 r4-04	amount-after-name	Bay salt ¼ lb.	0.25	Pound	-	Bay salt	Bay salt	agent	agent	agent-review-parser-rules-2026-11-20	R4
-r4-05	amount-after-name	Potatoes, medium size, 2	2	Piece	-	Potatoes, medium size	*	agent	agent	agent-review-parser-rules-2026-11-20	R4: the trailing count is read and taken off the name
+r4-05	amount-after-name	Potatoes, medium size, 2	2	Piece	-	Potatoes	Potatoes	agent	agent	agent-review-parser-rules-2026-11-20	R4: the trailing count is read and taken off the name; since checkpoint 1 (recipes-rebuild j-03, rule:residue) the size words are taken off too
 r5-01	old-measure	one jill of cold water	0.5	Cup	-	cold water	water	ok	ok	design:reprocess	R5 (B6): a jill is a gill
 r5-02	old-measure	a drop of water	-	-	-	water	water	ok	ok	design:reprocess	R5 (B6): "a drop" is vague, not 1 piece of water
 r5-03	old-measure	a tumbler of water	1	Cup	-	water	water	agent	agent	agent-review-parser-rules-2026-11-20	R5: a tumbler, as a tumblerful
@@ -99,3 +99,19 @@ can-06	container	1 1 lb. 13 oz. can peaches	29	Ounce	29 Ounce	peaches	peaches	ag
 r6-08	italian	100 gr. di burro	100	Gram	-	burro	burro	agent	agent	agent-review-parser-rules-2026-11-20	R6 review PR-2: gr before "di" or a number is the Italian gram
 r6-09	abbreviation	1 gr. pepper, chopped	*	*	*	gr. pepper, chopped	gr. pepper	agent	agent	agent-review-parser-rules-2026-11-20	R6 review PR-2: the English "gr." (green) stays in the name; was "pepper, chopped", a spice key
 r3-05	number-word	Pair with crusty bread	-	-	-	Pair with crusty bread	Pair with crusty bread	agent	agent	agent-review-parser-rules-2026-11-20	R3 review PR-3: "pair" with no "of" and no "a" is no count; was 2 Piece "with crusty bread"
+ck1-135304	mixed-after-name	Pulp and juice of Seville oranges, 1-1/2 lb.	1.5	Pound	-	Pulp and juice of Seville oranges	Pulp and juice of Seville oranges	ok	ok	rule:mixed-number	checkpoint 1 K1, recipe 135304: a hyphenated mixed number after the name; was 1 Pound (read as the range 1 to 1/2)
+ck1-131066	mixed-after-name	mushroom catsup, 1-1/2 pint	3	Cup	-	mushroom catsup	mushroom catsup	ok	ok	rule:mixed-number	checkpoint 1 K1, recipe 131066: 1 1/2 pints is 3 cups; was 2 Cup
+ck1-49464	mixed-after-name	Flour, 2-3/4 cups	2.75	Cup	-	Flour	Flour	ok	ok	rule:mixed-number	checkpoint 1 K2, recipe 49464; was 2 Cup and the name kept the amount
+ck1-98289	mixed-after-name	Water, 2-1/2 quarts	10	Cup	-	Water	Water	ok	ok	rule:mixed-number	checkpoint 1 K2, recipe 98289; was 8 Cup
+ck1-130799	mixed-after-name	brown gravy soup, 4-1/2 pints	9	Cup	-	brown gravy soup	brown gravy soup	ok	ok	rule:mixed-number	checkpoint 1 K2, recipe 130799; was 8 Cup
+ck1-135255	mixed-after-name	highly refined sugar, 6-3/4 lbs.	6.75	Pound	-	highly refined sugar	highly refined sugar	ok	ok	rule:mixed-number	checkpoint 1 K2, recipe 135255; was 6 Pound
+ck1-135406	mixed-after-name	water, 1-1/2 wineglassful	0.375	Cup	-	water	water	ok	ok	rule:mixed-number	checkpoint 1 K2, recipe 135406: a wineglass is a quarter cup; was 0.25 Cup
+ck1-range-after-name	range-after-name	Salt, 2-3 teaspoons	2	Teaspoon	-	Salt	Salt	agent	agent	agent-review-checkpoint1-2026-11-20	guard for K2: a range after the name stays a range (its low end), not a mixed number; the name drops the range
+ck1-range-fractions	range	1/2-3/4 cup sugar	0.5	Cup	-	sugar	sugar	agent	agent	agent-review-checkpoint1-2026-11-20	guard for K2: a range of two fractions is not a mixed number
+ck1-24918	and-a-half	a jill and a half of brandy	0.75	Cup	-	brandy	brandy	ok	ok	rule:and-a-half	checkpoint 1 K2, recipe 24918: a jill is half a cup; was 0.5 Cup
+ck1-118777	and-a-half	pinch and a half of salt	1.5	Pinch	-	salt	salt	ok	ok	rule:and-a-half	checkpoint 1 K2, recipe 118777; was 1 Pinch
+ck1-83958	and-a-half	a tumbler and a half each of flour and pulverized sugar	1.5	Cup	-	*	*	ok	-	rule:and-a-half	checkpoint 1 K1, recipe 83958: a tumbler is a cup; was 1 Cup (the half lost)
+ck1-116158	and-a-half	a tumbler and a half or six wine glasses of claret	1.5	Cup	-	*	*	ok	-	rule:and-a-half	checkpoint 1 K1, recipe 116158; was 1 Cup
+ck1-30494	and-a-half	a tumbler and a half of cold water	1.5	Cup	-	cold water	water	ok	ok	rule:and-a-half	checkpoint 1 K1, recipe 30494; was 1 Cup
+ck1-47141	and-a-half	one cup and a half of cider	1.5	Cup	-	cider	cider	ok	ok	rule:and-a-half	checkpoint 1 section 7, recipe 47141; was 1 Cup
+ck1-pints-half	and-a-half	two pints and a half of milk	5	Cup	-	milk	milk	agent	agent	agent-review-checkpoint1-2026-11-20	K2 class with a number word before the measure; was 4 Cup

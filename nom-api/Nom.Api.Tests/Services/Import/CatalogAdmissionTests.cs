@@ -32,7 +32,7 @@ namespace Nom.Api.Tests.Services.Import
     {
         private const long Calories = 5035, Protein = 5006, Carbs = 5003, Fat = 5000, Alcohol = 5038;
         private const string Sr = "sr_legacy_food";
-        private const string Gamay = "171872", Vodka = "174818", Vodka100 = "173664", Burger = "170717", Pepper = "170931", Applesauce = "173512", Baobab = "167806";
+        private const string Gamay = "171872", Vodka = "174818", Vodka100 = "173664", Burger = "170717", Pepper = "170931", Applesauce = "173512", Baobab = "167806", PotatoPancakes = "170092";
 
         private readonly string _root = Path.Combine(Path.GetTempPath(), "catalog-admission-test-" + Guid.NewGuid().ToString("N"));
         private string SrDir => Path.Combine(_root, "sr");
@@ -51,6 +51,11 @@ namespace Nom.Api.Tests.Services.Import
             ("990001", "Beverages, test drink one", 14, 40m, 0m, 10m, 0m, null, 0m, null),
             ("990002", "Beverages, test drink two", 14, 42m, 0m, 10.5m, 0m, null, 0m, null),
             ("990003", "Beverages, test drink three", 14, 38m, 0m, 9.5m, 0m, null, 0m, null),
+            ("990004", "Beverages, test syrup drink", 14, 300m, 0m, 75m, 0m, null, 0m, null),
+            (PotatoPancakes, "Potato pancakes", 11, 268m, 6.08m, 27.81m, 14.76m, 0m, 3.3m, null),
+            ("990011", "Vegetables, test greens one", 11, 30m, 2m, 6m, 0.2m, null, 2m, null),
+            ("990012", "Vegetables, test greens two", 11, 31m, 2m, 6m, 0.2m, null, 2m, null),
+            ("990013", "Vegetables, test greens three", 11, 29m, 2m, 6m, 0.2m, null, 2m, null),
         };
 
         public CatalogAdmissionTests()
@@ -67,7 +72,7 @@ namespace Nom.Api.Tests.Services.Import
                 + string.Concat(Foods.Select(f => Row(f.FdcId, 1008, f.Kcal) + Row(f.FdcId, 1003, f.P) + Row(f.FdcId, 1005, f.C) + Row(f.FdcId, 1004, f.F)
                     + Row(f.FdcId, 1018, f.A) + Row(f.FdcId, 1079, f.Fiber))));
             File.WriteAllText(Path.Combine(SrDir, "food_category.csv"),
-                "\"id\",\"code\",\"description\"\n\"2\",\"0200\",\"Spices and Herbs\"\n\"3\",\"0300\",\"Baby Foods\"\n\"9\",\"0900\",\"Fruits and Fruit Juices\"\n"
+                "\"id\",\"code\",\"description\"\n\"2\",\"0200\",\"Spices and Herbs\"\n\"3\",\"0300\",\"Baby Foods\"\n\"9\",\"0900\",\"Fruits and Fruit Juices\"\n\"11\",\"1100\",\"Vegetables and Vegetable Products\"\n"
                 + "\"14\",\"1400\",\"Beverages\"\n\"21\",\"2100\",\"Fast Foods\"\n");
             var withFactors = Foods.Where(f => f.Factors != null).Select((f, i) => (f, i: 20000 + i)).ToList();
             File.WriteAllText(Path.Combine(SrDir, "food_nutrient_conversion_factor.csv"),
@@ -395,23 +400,75 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
-        public async Task A_run_undoes_itself_when_the_audit_finds_something_new_on_a_food_it_regrouped()
+        public async Task A_food_the_audit_would_flag_after_the_write_is_held_with_its_finding_and_the_rest_of_the_run_stands()
         {
             using var db = NewContext();
             foreach (var drink in new[] { "990001", "990002", "990003" })
                 Food(db, drink, CurationStatusEnum.Curated, FoodGroupEnum.Beverages);
             var strong = Food(db, Vodka100, CurationStatusEnum.PendingCuration);
+            var gamay = Food(db, Gamay, CurationStatusEnum.PendingCuration);
+
+            var dryRun = await Service(db).AdmitAsync(Options(dryRun: true));
+            dryRun.HeldForAudit.Should().ContainSingle(l => l.StartsWith($"#{strong.Id} ") && l.Contains("audit:group_energy_outlier"),
+                "the dry run lays the changes over a copy and shows the hold before anything is written");
 
             var report = await Service(db).AdmitAsync(Options(dryRun: false));
 
-            report.NewFindings.Should().ContainSingle(f => f == $"#{strong.Id}: group_energy_outlier", "295 kcal is over six times the Beverages median of 40");
-            report.SelfUndo.Should().NotBeNull();
-            Get(db, strong.Id).CurationStatusId.Should().Be((long)CurationStatusEnum.PendingCuration);
-            Get(db, strong.Id).FoodGroupId.Should().BeNull();
-            (await db.AuditLogEntries.CountAsync(a => a.Timestamp == report.RunStamp && a.EntityId == strong.Id && a.ChangeType == CatalogAdmissionService.AdmitChangeType))
-                .Should().Be(1, "what the run wrote stays on the record");
-            (await db.AuditLogEntries.CountAsync(a => a.Timestamp == report.SelfUndo!.UndoStamp && a.EntityId == strong.Id && a.ChangeType == CatalogAdmissionService.UndoChangeType))
-                .Should().BeGreaterThan(0, "and so does the self-undo, which can itself be undone");
+            report.Stopped.Should().BeEmpty();
+            report.SelfUndo.Should().BeNull("one bad food is held, not a reason to undo the run");
+            report.NewFindings.Should().BeEmpty();
+            report.Admitted.Should().Be(1);
+            report.HeldByReason.Should().ContainKey("audit:group_energy_outlier");
+            var held = Get(db, strong.Id);
+            held.CurationStatusId.Should().Be((long)CurationStatusEnum.PendingCuration);
+            held.FoodGroupId.Should().BeNull("295 kcal is over six times the Beverages median of 40, so it is not put in Beverages");
+            held.AdmissionReason.Should().Be("audit:group_energy_outlier");
+            held.FdcCategoryId.Should().Be(14, "the USDA facts are stored all the same");
+            Get(db, gamay.Id).CurationStatusId.Should().Be((long)CurationStatusEnum.Curated);
+            Get(db, gamay.Id).FoodGroupId.Should().Be((long)FoodGroupEnum.Beverages);
+            (await db.AuditLogEntries.CountAsync(a => a.EntityId == strong.Id && a.ChangeType == CatalogAdmissionService.AdmitChangeType)).Should().Be(0);
+
+            var undo = await Service(db).UndoAsync(report.RunStamp, dryRun: false);
+            undo.Demoted.Should().Be(1);
+            Get(db, strong.Id).AdmissionReason.Should().BeNull("the undo takes the stored hold back with the rest of the run");
+        }
+
+        [Fact]
+        public async Task A_curated_vegetable_dish_far_above_its_group_median_keeps_its_group_and_is_held_instead_of_undoing_the_run()
+        {
+            using var db = NewContext();
+            foreach (var vegetable in new[] { "990011", "990012", "990013" })
+                Food(db, vegetable, CurationStatusEnum.Curated, FoodGroupEnum.Vegetables);
+            var pancakes = Food(db, PotatoPancakes, CurationStatusEnum.Curated, name: "potato pancakes");
+            var gamay = Food(db, Gamay, CurationStatusEnum.PendingCuration);
+
+            var report = await Service(db).AdmitAsync(Options(dryRun: false));
+
+            report.Stopped.Should().BeEmpty();
+            report.SelfUndo.Should().BeNull();
+            report.HeldForAudit.Should().ContainSingle(l => l.StartsWith($"#{pancakes.Id} potato pancakes: audit:group_energy_outlier") && l.Contains("none -> Vegetables"));
+            var held = Get(db, pancakes.Id);
+            held.FoodGroupId.Should().BeNull("268 kcal is over six times the Vegetables median of 30; no group is better than a doubtful one");
+            held.CurationStatusId.Should().Be((long)CurationStatusEnum.Curated, "the pass never demotes a curated food");
+            held.AdmissionReason.Should().Be("audit:group_energy_outlier");
+            Get(db, gamay.Id).CurationStatusId.Should().Be((long)CurationStatusEnum.Curated, "the rest of the run is written");
+        }
+
+        [Fact]
+        public async Task A_run_that_would_give_more_than_one_in_a_hundred_foods_a_new_audit_finding_stops_before_it_writes()
+        {
+            using var db = NewContext();
+            foreach (var drink in new[] { "990001", "990002", "990003" })
+                Food(db, drink, CurationStatusEnum.Curated, FoodGroupEnum.Beverages);
+            var strong = Food(db, Vodka100, CurationStatusEnum.PendingCuration);
+            var syrup = Food(db, "990004", CurationStatusEnum.PendingCuration);
+
+            var report = await Service(db).AdmitAsync(Options(dryRun: false));
+
+            report.Stopped.Should().ContainSingle(r => r.StartsWith("audit: 2 foods would gain a new high or medium audit finding"));
+            Get(db, strong.Id).AdmissionReason.Should().BeNull();
+            Get(db, syrup.Id).CurationStatusId.Should().Be((long)CurationStatusEnum.PendingCuration);
+            (await db.AuditLogEntries.CountAsync()).Should().Be(0);
         }
 
         [Fact]
@@ -439,8 +496,8 @@ namespace Nom.Api.Tests.Services.Import
 
             var report = await new FdcFoundationImportService(db, NullLogger<FdcFoundationImportService>.Instance).ImportAsync(SrDir, dataType: Sr);
 
-            report.Accepted.Should().Be(9);
-            report.Admissible.Should().Be(9, "the wines, vodkas, pepper, the test drinks and the two prepared foods pass; baobab fails its own factors");
+            report.Accepted.Should().Be(14);
+            report.Admissible.Should().Be(14, "the wines, vodkas, pepper, the test drinks, the test vegetables, potato pancakes and the two prepared foods pass; baobab fails its own factors");
             var foods = await db.Ingredients.ToDictionaryAsync(i => i.FdcId!);
             foods.Values.Should().OnlyContain(f => f.CurationStatusId == (long)CurationStatusEnum.PendingCuration,
                 "only --admit curates, behind its checksum, energy-rate, size and audit gates");

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Nom.Data;
@@ -46,6 +47,35 @@ namespace Nom.Orch.Services
             var ingredients = await query.Where(i => i.Id > afterId).OrderBy(i => i.Id).Take(limit).ToListAsync();
             var lastId = ingredients.Count == 0 ? long.MaxValue : ingredients[^1].Id;
             var later = await query.CountAsync(i => i.Id > lastId);
+
+            return new FoodCatalogAuditResult
+            {
+                Examined = ingredients.Count,
+                Matching = matching,
+                Remaining = later,
+                NextAfterId = later > 0 ? lastId : null,
+                Findings = Findings(ingredients),
+            };
+        }
+
+        /// <summary>
+        /// Every food of one USDA source with its nutrients and group, read without tracking, so a
+        /// caller may change a copy and see what <see cref="Findings"/> would report after the change.
+        /// </summary>
+        public Task<List<Nom.Data.Recipe.IngredientEntity>> PopulationAsync(string source, CancellationToken ct = default) =>
+            _context.Ingredients.AsNoTracking()
+                .Include(i => i.IngredientNutrients).ThenInclude(n => n.Nutrient)
+                .Include(i => i.FoodGroup)
+                .Where(i => i.FdcDataType == source)
+                .OrderBy(i => i.Id)
+                .ToListAsync(ct);
+
+        /// <summary>
+        /// The findings over one population of foods, most severe first. The group medians come from
+        /// the same population, so a food's energy is judged against the foods given with it.
+        /// </summary>
+        public static List<FoodCatalogFindingModel> Findings(IReadOnlyList<Nom.Data.Recipe.IngredientEntity> ingredients)
+        {
             var validator = new FoodDataQualityValidator();
             var findings = new List<FoodCatalogFindingModel>();
 
@@ -128,16 +158,9 @@ namespace Nom.Orch.Services
                     $"Normalizes to the same name as ingredient {g.First().Id} (\"{g.First().Name}\").")));
             findings.AddRange(dupes);
 
-            return new FoodCatalogAuditResult
-            {
-                Examined = ingredients.Count,
-                Matching = matching,
-                Remaining = later,
-                NextAfterId = later > 0 ? lastId : null,
-                Findings = findings.OrderByDescending(f => f.Severity == "high")
-                                   .ThenByDescending(f => f.Severity == "medium")
-                                   .ToList(),
-            };
+            return findings.OrderByDescending(f => f.Severity == "high")
+                           .ThenByDescending(f => f.Severity == "medium")
+                           .ToList();
         }
 
         private static FoodCatalogFindingModel Finding(

@@ -179,6 +179,7 @@ namespace Nom.Api.Tests.Golden
             var score = ModelLanes.Score(ModelLanes.LinkGateLane, record!.Model, record.Host, LinkGate.Signature, results);
             _output.WriteLine($"link-gate: {score.Passed}/{score.Cases} agree, {score.Accepted} accepted, {score.Precision:P2} judged right among them, false accepts {score.FalseAccepts}/{score.FalseAcceptCases}");
 
+            record.Model.Should().Be(LinkGate.Version, "a record scored under another gate version needs a new record: dotnet run --project nom-api/Nom.Import -- --golden-score --lane link-gate --record");
             score.Signature.Should().Be(record.Signature, "a changed rule table needs a new record: dotnet run --project nom-api/Nom.Import -- --golden-score --lane link-gate --record");
             score.CaseSet.Should().Be(record.CaseSet);
             (score.Passed, score.Accepted, score.FalseAccepts).Should().Be((record.Passed, record.Accepted, record.FalseAccepts),

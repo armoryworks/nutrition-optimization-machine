@@ -128,7 +128,10 @@ in its gate signature, so a changed gate drops that tier back to shadow.
   `dotnet run --project nom-api/Nom.Import -- --golden-score --lane link-gate [--record]`; it needs
   no host. Recorded on 2026-11-20 (`link-gate/2`, and again for `link-gate/3` with the alcohol
   rules, with the same figures: every judged pair the alcohol rules refuse is already held by
-  another rule): it lets through 2,284 of 7,664 pairs, 99.5 % of them judged right;
+  another rule; and on 2026-11-21 for `link-gate/4`, when the name normalizer the gate reads began to
+  take a hyphenated mixed number, a range and trailing size words off the end of a wording, which lets
+  `butter, 1-1/2 oz` through to salted butter, one more pair accepted and the same false accepts):
+  it lets through 2,307 of 7,664 pairs, 99.5 % of them judged right;
   it lets through 12 of 1,406 pairs judged wrong, near or compound (0.9 %). Floors: precision at
   least 99 %, false accepts at most 1 %, agreement at least 45 %. The record is required, and
   `The_committed_link_gate_record_is_what_the_gate_scores_now` checks in CI that the gate still
