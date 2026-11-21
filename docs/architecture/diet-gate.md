@@ -103,7 +103,17 @@ The script runs in a read-only transaction. For every default type with name pat
 foods counted before and after, alias-only foods, recipes kept out before and after, how many of
 those the line rule keeps, recipes that lose the flag (and how many are approved) and recipes newly
 kept out (the category and the line rule); then, for each severity 4 or 5 type, up to `sample` lost
-recipes with their lines on alias-only foods. It counts the name patterns alone (not the alcohol or
-nutrient criteria), so a lost recipe with a drink line is still out of a No Alcohol plan. Read every
+recipes with their lines on alias-only foods. Beside the name patterns it applies the criteria the
+change leaves as they were, the same way before and after: the word patterns (by name, and by an
+alias with no drink word, which after the change also needs a trusted source), the nutrient
+criteria with no per-serving cap (a stored figure above 0.5 g per 100 g; for alcohol not a spice or
+a flavouring, plus a food named as a drink with no alcohol figure) and, for a type with the alcohol
+criterion, every recipe with a drink line. So a Halal recipe whose butter alias goes but whose
+brandy line stays is not counted as lost, and a line that names a word pattern counts as "kept by a
+line". The script cannot run the alcohol reader, so a drink word is read by the shared drink-word
+probe (`AlcoholLineContext.DrinkNamePattern`, kept equal to the code by a test) less a short list of
+words that make a name or line no drink (vinegar, extract, juice, non-alcoholic and the like); the
+rows of types with only name patterns, which are all the severity 4 and 5 defaults, do not depend on
+it. Read every
 `lost` sample line of the allergy and intolerance types: a line that names the restricted thing by a
 word the patterns lack stops the release, and the word is added to the type's patterns.

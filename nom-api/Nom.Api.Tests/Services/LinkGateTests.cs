@@ -158,6 +158,25 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_drink_sense_is_identity_evidence_only_for_the_first_ready_food_of_its_table_not_for_a_sibling_varietal()
+        {
+            var redTable = RedWine with { FdcId = "173190" };
+            var merlot = new GateFood(287415, "Alcoholic Beverage, wine, table, red, Merlot", "Alcoholic Beverage, wine, table, red, Merlot", "sr_legacy_food", Pending, 14, NutrientRows: 25, FdcId: "171925");
+            var whiteTable = new GateFood(164, "Dry White Wine", "Alcoholic beverage, wine, table, white", "sr_legacy_food", Curated, 14, NutrientRows: 33, FdcId: "174837");
+            var chardonnay = new GateFood(287437, "Alcoholic beverage, wine, table, white, Chardonnay", "Alcoholic beverage, wine, table, white, Chardonnay", "sr_legacy_food", Pending, 14, NutrientRows: 25, FdcId: "174110");
+            var catalog = GateCatalog.Build(new[] { redTable, merlot, whiteTable, chardonnay });
+
+            Codes(new GatePair("claret", 0, redTable), catalog).Should().BeEmpty("red table wine is the first ready food of the red sense");
+            foreach (var wording in new[] { "chianti", "pinot noir", "rioja", "claret" })
+                Codes(new GatePair(wording, 0, merlot), catalog).Should().Contain(LinkGate.Containment, $"\"{wording}\" names no Merlot; the sense's first ready food is red table wine");
+            foreach (var wording in new[] { "champagne", "prosecco", "riesling" })
+                Codes(new GatePair(wording, 0, chardonnay), catalog).Should().Contain(LinkGate.Containment, $"\"{wording}\" names no Chardonnay; the sense's first ready food is the white table wine");
+            Codes(new GatePair("merlot", 0, merlot), catalog).Should().BeEmpty("a wording that names the varietal is the varietal");
+            Codes(new GatePair("chianti", 0, merlot), GateCatalog.Build(new[] { redTable with { NutrientRows = 6 }, merlot }))
+                .Should().BeEmpty("when the foods before it in the table are not ready, the varietal is the food the sense names, as the alcohol tier answers");
+        }
+
+        [Fact]
         public void The_signature_names_the_rules_version_and_is_stable()
         {
             LinkGate.Signature.Should().MatchRegex("^[0-9a-f]{16}$").And.Be(LinkGate.Signature);

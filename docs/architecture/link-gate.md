@@ -91,7 +91,13 @@ answer is read as two blind readers' is and needs no word of the wording in the 
 not applied, and "dry" in the description (a dry dessert wine) is no state the wording must name. A
 sense read from the recipe alone (bare "wine" in "White Wine Mussels") is no identity evidence, a
 list or a line of another sense breaks the shared sense, and every other rule, the alcohol rules
-first, holds as before: "sherry" is never the sweet dessert wine or the rum.
+first, holds as before: "sherry" is never the sweet dessert wine or the rum. The full credit goes
+only to the first food of the sense's table that the catalog holds ready (`WordingTiers.Ready`), the
+food the alcohol tier answers: red table wine for the red sense, Dry White Wine for the white. A
+later food of the table (the red and white tables list the USDA varietals after the table wine)
+gets the lead noun and a drink's state words excused and nothing more, so every word of the wording
+must still be in the food: "merlot" passes to Merlot, but "chianti", "claret" or "pinot noir" on
+Merlot and "champagne" on Chardonnay are held by `containment` (lg-123 to lg-128).
 
 **Family.** `LinkGate.Family` takes a batch of answers. Wordings that fold to one key (plural,
 hyphen or space, "X wine" against "X", a unit word in front) must agree on one food. Within a key
@@ -130,7 +136,9 @@ in its gate signature, so a changed gate drops that tier back to shadow.
   lg-112 to lg-122 (`rule:link-gate`, `ok`) are the alcohol identity rows of `link-gate/7`: sherry,
   sack, Madeira, port, claret and a sherry line let through to the food their sense allows, and
   sherry on the sweet dessert wine and the rum, port on the dry one, rum on a wine, and a wording
-  whose lines mix a drink with a vinegar still held. The test reads each row's FDC id from `gate-catalog.tsv`. Each is a
+  whose lines mix a drink with a vinegar still held. lg-123 to lg-128 (`rule:link-gate`, `ok`, from
+  the review of that branch) hold a regional or other varietal wine on a sibling varietal of the
+  sense's table (Merlot, Chardonnay) and let through chianti on red table wine and merlot on Merlot. The test reads each row's FDC id from `gate-catalog.tsv`. Each is a
   pair the gate must let through (`pass`) or a pair a named rule must hold. Every rule has a row
   (`Every_rule_of_the_gate_has_a_rule_given_row` reads the rule codes from `LinkGate` itself, so a
   new rule without a row fails). `readers` = `yes` reads the pair as two blind readers' answer (the

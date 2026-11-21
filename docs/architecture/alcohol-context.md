@@ -119,7 +119,8 @@ target's FDC id (`GateFood.FdcId`); `LinkGate.Version` is `link-gate/7` and its 
 the sense rules, so a changed rule drops a lane tier back to shadow. A drink sense read from a line's
 own words that allows the target is also identity evidence in the gate (`LinkGate.AlcoholIdentity`),
 so "sherry", "sack", "port" or "claret" answered with the food of its sense is not held for lacking
-the word. Over the 7,664 judged pairs of
+the word. Only the sense's first ready food gets that in full; a later food of its table (a USDA
+varietal) still needs the wording's words, so "chianti" is never passed to Merlot. Over the 7,664 judged pairs of
 `link-pairs.tsv` the rules refuse 55, of which 54 were judged wrong, near or compound and one
 ("c. cider" on apple juice, judged right by the reviewer) is bare cider, which the rules leave unclear
 on purpose.
