@@ -95,7 +95,7 @@ namespace Nom.Orch.Models.Curation
         public List<LinkRecheckSample> Samples { get; set; } = new();
     }
 
-    /// <summary>What a run's journal header keeps: the set, the stamp, who ran it, its counts and whether it ran to its end (a run cut off keeps the header written before its first write).</summary>
+    /// <summary>What a run's journal header keeps: the set, the stamp, who ran it, its counts and whether it ran to its end (a run cut off keeps the header written before its first write); the status adds whether a run not complete is still going in this process.</summary>
     public class LinkRecheckRunSummary
     {
         public string Set { get; set; } = string.Empty;
@@ -105,6 +105,7 @@ namespace Nom.Orch.Models.Curation
         public string Signature { get; set; } = string.Empty;
         public bool Undone { get; set; }
         public bool Complete { get; set; }
+        public bool Running { get; set; }
         public int Groups { get; set; }
         public int Kept { get; set; }
         public int Held { get; set; }
