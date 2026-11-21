@@ -152,13 +152,34 @@ namespace Nom.Orch.Services
 
             var lineRows = rows.Where(r => r.PropertyName == LinkApplyJournal.Line).ToList();
             var movedSince = new HashSet<long>();
+            var rebuiltSince = new HashSet<long>();
+            var places = new Dictionary<long, ((long RecipeId, long IngredientId, int SortOrder) From, (long RecipeId, long IngredientId, int SortOrder) To)>();
+            var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db,
+                lineRows.Select(r => LinkApplyJournal.ReadPlace(r.NewValue)?.RecipeId).OfType<long>().ToList(), withOrder: false);
             foreach (var row in lineRows)
             {
-                if (LinkApplyJournal.ReadPlace(row.OldValue) is null || LinkApplyJournal.ReadPlace(row.NewValue) is not { } now
-                    || !await _db.RecipeIngredients.IgnoreQueryFilters().AnyAsync(ri => ri.RecipeId == now.RecipeId && ri.IngredientId == now.IngredientId && ri.SortOrder == now.SortOrder))
+                if (LinkApplyJournal.ReadPlace(row.OldValue) is not { } was || LinkApplyJournal.ReadPlace(row.NewValue) is not { } now)
                 {
                     movedSince.Add(row.Id);
+                    continue;
                 }
+                if (rebuilt.TryGetValue(now.RecipeId, out var rebuiltAt) && rebuiltAt > row.Timestamp)
+                {
+                    rebuiltSince.Add(row.Id);
+                    continue;
+                }
+                if (await LineAtAsync(now))
+                {
+                    places[row.Id] = (now, was);
+                    continue;
+                }
+                if (await RecipeReprocessService.FollowOrderAsync(_db, now.RecipeId, now.IngredientId, now.SortOrder, row.Timestamp) is { } reordered
+                    && await LineAtAsync((now.RecipeId, now.IngredientId, reordered)))
+                {
+                    places[row.Id] = ((now.RecipeId, now.IngredientId, reordered), (was.RecipeId, was.IngredientId, reordered));
+                    continue;
+                }
+                movedSince.Add(row.Id);
             }
             if (movedSince.Count > 0 && !run.LeaveMovedLines)
             {
@@ -214,8 +235,15 @@ namespace Nom.Orch.Services
             var left = new List<long>();
             foreach (var row in lineRows)
             {
+                if (rebuiltSince.Contains(row.Id))
+                {
+                    sample.LinesSkipped++;
+                    sample.LinesSkippedRebuilt++;
+                    left.Add(row.Id);
+                    continue;
+                }
                 if (movedSince.Contains(row.Id)
-                    || (apply && await MoveLineAsync(LinkApplyJournal.ReadPlace(row.NewValue)!.Value, LinkApplyJournal.ReadPlace(row.OldValue)!.Value, personId) == null))
+                    || (apply && await MoveLineAsync(places[row.Id].From, places[row.Id].To, personId) == null))
                 {
                     sample.LinesSkipped++;
                     left.Add(row.Id);
@@ -225,6 +253,7 @@ namespace Nom.Orch.Services
             }
             result.LinesRestored += sample.LinesRestored;
             result.LinesSkipped += sample.LinesSkipped;
+            result.SkippedRebuilt += sample.LinesSkippedRebuilt;
 
             var valuesChanged = result.NutrientsRemoved + result.MeasuresRestored;
             var handOn = new Dictionary<long, long>();
@@ -478,6 +507,9 @@ namespace Nom.Orch.Services
         /// when the line is no longer where the link put it. A recipe that already has a line of
         /// that food at the old position takes it at its next free position.
         /// </summary>
+        private Task<bool> LineAtAsync((long RecipeId, long IngredientId, int SortOrder) place) =>
+            _db.RecipeIngredients.IgnoreQueryFilters().AnyAsync(ri => ri.RecipeId == place.RecipeId && ri.IngredientId == place.IngredientId && ri.SortOrder == place.SortOrder);
+
         private async Task<int?> MoveLineAsync((long RecipeId, long IngredientId, int SortOrder) from, (long RecipeId, long IngredientId, int SortOrder) to, long personId)
         {
             var (recipeId, fromId, fromSortOrder) = from;

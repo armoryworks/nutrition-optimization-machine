@@ -230,7 +230,8 @@ namespace Nom.Api.Tests.Services.Import
             journal.Should().ContainSingle(a => a.EntityId == s.Burger && a.ChangeType == CatalogAdmissionService.AdmitChangeType && a.PropertyName == "CurationStatusId");
             journal.Single(a => a.EntityId == s.Pepper && a.ChangeType == CatalogAdmissionService.GroupChangeType && a.PropertyName == "FoodGroupId")
                 .Should().Match<Nom.Data.Audit.AuditLogEntryEntity>(a => a.OldValue == "3200" && a.NewValue == null);
-            journal.Should().ContainSingle(a => a.ChangeType == LineRelinkService.ProposalWithdrawChangeType && a.EntityId == s.Pick);
+            journal.Should().ContainSingle(a => a.ChangeType == CatalogAdmissionService.PickWithdrawChangeType && a.EntityId == s.Pick);
+            journal.Should().NotContain(a => a.ChangeType == LineRelinkService.ProposalWithdrawChangeType, "the relink undo sweeps that type by time");
         }
 
         [Fact]
@@ -564,6 +565,127 @@ namespace Nom.Api.Tests.Services.Import
             groups["Steak Sauce"].Should().BeNull("\"tea\" inside \"steak\" once made it a beverage");
             groups["Gamay"].Should().Be((long)FoodGroupEnum.Beverages);
             groups["Canola blend (Acme)"].Should().Be((long)FoodGroupEnum.FatsOils, "a cooking-oil category is not Vegetables");
+        }
+
+        private sealed class SystemUser : Nom.Orch.Interfaces.ICurrentUserService
+        {
+            public long? PersonId => SystemConstants.SystemPersonId;
+            public long PersonIdOrSystem => SystemConstants.SystemPersonId;
+            public long RequiredPersonId => SystemConstants.SystemPersonId;
+            public string? UserId => "system";
+            public string RequiredUserId => "system";
+        }
+
+        private static LineRelinkService Relink(ApplicationDbContext db) => new(db, new SystemUser());
+
+        private static async Task<long> RelinkWithdrawsAsync(ApplicationDbContext db, DateTime at)
+        {
+            var retired = new IngredientEntity { Name = "minced collops", CurationStatusId = (long)CurationStatusEnum.NonCurated };
+            db.Ingredients.Add(retired);
+            await db.SaveChangesAsync();
+            var proposal = new FoodCatalogProposalEntity
+            {
+                Action = FoodProposalAction.Update, IngredientId = retired.Id, Field = FoodCatalogReviewService.FdcLinkField, CurrentValue = retired.Name,
+                Source = "deterministic:name-match", Status = FoodProposalStatus.Pending, IsDeleted = true, DeletedAt = at, DeletedByPersonId = SystemConstants.SystemPersonId,
+            };
+            db.FoodCatalogProposals.Add(proposal);
+            await db.SaveChangesAsync();
+            db.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+            {
+                EntityType = LineRelinkService.PickWithdrawEntityType, EntityId = proposal.Id, ChangeType = LineRelinkService.ProposalWithdrawChangeType,
+                PropertyName = nameof(FoodCatalogProposalEntity.IsDeleted), OldValue = bool.FalseString, NewValue = bool.TrueString,
+                Timestamp = at, ChangedByPersonId = SystemConstants.SystemPersonId,
+            });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            return proposal.Id;
+        }
+
+        private static bool Withdrawn(ApplicationDbContext db, long proposalId) =>
+            db.FoodCatalogProposals.IgnoreQueryFilters().AsNoTracking().Single(p => p.Id == proposalId).IsDeleted;
+
+        [Fact]
+        public async Task The_relink_undo_after_an_admission_restores_only_its_own_withdrawal_and_the_admission_undo_only_its_own()
+        {
+            using var db = NewContext();
+            var s = Seed(db);
+            var before = DateTime.UtcNow.AddSeconds(-1);
+            var report = await Service(db).AdmitAsync(Options(dryRun: false));
+            db.ChangeTracker.Clear();
+            var relinked = await RelinkWithdrawsAsync(db, report.RunStamp.AddSeconds(1));
+
+            var relinkUndo = await Relink(db).UndoAsync(before, apply: true);
+
+            relinkUndo.ProposalsRestored.Should().Be(1);
+            relinkUndo.Skipped.Should().Be(0);
+            Withdrawn(db, relinked).Should().BeFalse();
+            Withdrawn(db, s.Pick).Should().BeTrue("the admission's withdrawal is the admission undo's to take back (K15)");
+
+            db.ChangeTracker.Clear();
+            var admissionUndo = await Service(db).UndoAsync(report.RunStamp, dryRun: false);
+
+            admissionUndo.PicksRestored.Should().Be(1);
+            Withdrawn(db, s.Pick).Should().BeFalse();
+            Withdrawn(db, relinked).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task The_admission_undo_after_a_relink_restores_only_its_own_withdrawal_and_the_relink_undo_only_its_own()
+        {
+            using var db = NewContext();
+            var s = Seed(db);
+            var relinkedAt = DateTime.UtcNow.AddSeconds(-5);
+            var relinked = await RelinkWithdrawsAsync(db, relinkedAt);
+            var report = await Service(db).AdmitAsync(Options(dryRun: false));
+            db.ChangeTracker.Clear();
+
+            var admissionUndo = await Service(db).UndoAsync(report.RunStamp, dryRun: false);
+
+            admissionUndo.PicksRestored.Should().Be(1);
+            admissionUndo.Skipped.Should().Be(0);
+            Withdrawn(db, s.Pick).Should().BeFalse();
+            Withdrawn(db, relinked).Should().BeTrue("the relink's withdrawal is the relink undo's to take back");
+
+            db.ChangeTracker.Clear();
+            var pickedAgain = db.FoodCatalogProposals.Single(p => p.Id == s.Pick);
+            pickedAgain.IsDeleted = true;
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var relinkUndo = await Relink(db).UndoAsync(relinkedAt, apply: true);
+
+            relinkUndo.ProposalsRestored.Should().Be(1);
+            relinkUndo.Skipped.Should().Be(0, "neither the admission's withdrawal nor the entries of its undo are the relink's");
+            Withdrawn(db, relinked).Should().BeFalse();
+            Withdrawn(db, s.Pick).Should().BeTrue("a pick withdrawn since by another job stays withdrawn");
+        }
+
+        [Fact]
+        public async Task A_withdrawal_an_admission_journaled_before_it_had_its_own_type_is_left_out_of_the_relink_undo()
+        {
+            using var db = NewContext();
+            var s = Seed(db);
+            var stamp = DateTime.UtcNow.AddMinutes(-10);
+            db.AuditLogEntries.AddRange(
+                new Nom.Data.Audit.AuditLogEntryEntity
+                {
+                    EntityType = CatalogAdmissionService.RunEntityType, EntityId = 0, ChangeType = CatalogAdmissionService.RunChangeType,
+                    PropertyName = "RuleVersion", NewValue = "catalog-admission/2", Timestamp = stamp, ChangedByPersonId = SystemConstants.SystemPersonId,
+                },
+                new Nom.Data.Audit.AuditLogEntryEntity
+                {
+                    EntityType = LineRelinkService.PickWithdrawEntityType, EntityId = s.Pick, ChangeType = LineRelinkService.ProposalWithdrawChangeType,
+                    PropertyName = nameof(FoodCatalogProposalEntity.IsDeleted), OldValue = bool.FalseString, NewValue = bool.TrueString,
+                    Timestamp = stamp, ChangedByPersonId = SystemConstants.SystemPersonId,
+                });
+            db.FoodCatalogProposals.Single(p => p.Id == s.Pick).IsDeleted = true;
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var relinkUndo = await Relink(db).UndoAsync(stamp.AddMinutes(-1), apply: true);
+
+            relinkUndo.ProposalsRestored.Should().Be(0);
+            relinkUndo.Skipped.Should().Be(0);
+            Withdrawn(db, s.Pick).Should().BeTrue("checkpoint 1's 602 admission withdrawals carry the relink's type and the admission run's stamp");
         }
     }
 }

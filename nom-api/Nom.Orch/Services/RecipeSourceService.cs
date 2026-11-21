@@ -265,11 +265,16 @@ namespace Nom.Orch.Services
                 var live = await _db.ScrapedDocuments
                     .Where(d => ids.Contains(d.Id))
                     .ToDictionaryAsync(d => d.Id);
+                var undone = (await _db.AuditLogEntries.AsNoTracking()
+                    .Where(a => a.EntityType == DocumentEntityType && a.ChangeType == UndoChangeType && ids.Contains(a.EntityId))
+                    .Select(a => a.EntityId)
+                    .ToListAsync()).ToHashSet();
                 foreach (var entry in chunk)
                 {
                     if (!live.Remove(entry.EntityId, out var document))
                     {
-                        result.Skipped++;
+                        if (undone.Contains(entry.EntityId)) result.AlreadyUndone++;
+                        else result.Skipped++;
                         continue;
                     }
 

@@ -142,7 +142,9 @@ in its gate signature, so a changed gate drops that tier back to shadow.
   accepted and the same false accepts; for `link-gate/4` and `link-gate/5` of
   `cleanup2/ck1-gate-alcohol`, the checkpoint-1 rules and the review fix that keeps a last "roast"
   from meeting the cooked state, with the same figures, since none of the judged pairs is of those
-  classes; and for `link-gate/6`, the wave-5 merge of both): it lets through 2,307 of 7,664 pairs,
+  classes; for `link-gate/6`, the wave-5 merge of both; and for `link-gate/7`
+  (`cleanup2/ck2-undo-reprocess`), when the name normalizer began to take "circa" off an Italian
+  amount, with the same figures): it lets through 2,307 of 7,664 pairs,
   99.5 % of them judged right;
   it lets through 12 of 1,406 pairs judged wrong, near or compound (0.9 %). Floors: precision at
   least 99 %, false accepts at most 1 %, agreement at least 45 %. The record is required, and

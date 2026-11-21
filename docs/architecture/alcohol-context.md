@@ -115,7 +115,7 @@ nutrient rows.
 **The link gate.** Three rules of `LinkGate` (`alcohol-drink`, `alcohol-no-food`, `alcohol-not-drink`;
 see `link-gate.md`) hold any answer, from any tier or model, that a line's sense refuses: every line
 of the wording when the caller passes lines, the wording itself when it does not. The gate reads the
-target's FDC id (`GateFood.FdcId`); `LinkGate.Version` is `link-gate/6` and its signature includes
+target's FDC id (`GateFood.FdcId`); `LinkGate.Version` is `link-gate/7` and its signature includes
 the sense rules, so a changed rule drops a lane tier back to shadow. Over the 7,664 judged pairs of
 `link-pairs.tsv` the rules refuse 55, of which 54 were judged wrong, near or compound and one
 ("c. cider" on apple juice, judged right by the reviewer) is bare cider, which the rules leave unclear

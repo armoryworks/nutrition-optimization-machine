@@ -421,8 +421,25 @@ namespace Nom.Api.Tests.Services
             journal.Should().BeEquivalentTo(new { EntityType = RecipeSourceService.DocumentEntityType, EntityId = removed.Id, PropertyName = ScrapedDocumentFormat.StagedCookbook });
             journal.OldValue.Should().StartWith($"recipe={recipe};version=1;");
 
-            (await Service(db).UndoAsync(since, apply: true)).Should().BeEquivalentTo(new { Removed = 0, Skipped = 1 });
+            (await Service(db).UndoAsync(since, apply: true)).Should().BeEquivalentTo(new { Removed = 0, Skipped = 0, AlreadyUndone = 1 },
+                "a repeated undo reports the documents it already removed apart from skipped ones (K13)");
             (await Service(db).AttachAsync(batch, apply: true)).Should().BeEquivalentTo(new { Matched = 1, Documents = 1 }, "an undone attach can be applied again");
+        }
+
+        [Fact]
+        public async Task The_undo_counts_a_document_removed_some_other_way_as_skipped_not_as_already_undone()
+        {
+            using var db = NewContext();
+            await RecipeAsync(db, "Gingerbread", Book, null, Gingerbread);
+            var since = DateTime.UtcNow.AddSeconds(-1);
+            await Service(db).AttachAsync(Batch(Book, Record("Gingerbread", null, Gingerbread)), apply: true);
+            db.ChangeTracker.Clear();
+            var document = await db.ScrapedDocuments.SingleAsync();
+            document.IsDeleted = true;
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            (await Service(db).UndoAsync(since)).Should().BeEquivalentTo(new { Removed = 0, Skipped = 1, AlreadyUndone = 0 });
         }
 
         [Fact]

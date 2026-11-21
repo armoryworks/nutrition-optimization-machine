@@ -115,3 +115,5 @@ ck1-116158	and-a-half	a tumbler and a half or six wine glasses of claret	1.5	Cup
 ck1-30494	and-a-half	a tumbler and a half of cold water	1.5	Cup	-	cold water	water	ok	ok	rule:and-a-half	checkpoint 1 K1, recipe 30494; was 1 Cup
 ck1-47141	and-a-half	one cup and a half of cider	1.5	Cup	-	cider	cider	ok	ok	rule:and-a-half	checkpoint 1 section 7, recipe 47141; was 1 Cup
 ck1-pints-half	and-a-half	two pints and a half of milk	5	Cup	-	milk	milk	agent	agent	agent-review-checkpoint1-2026-11-20	K2 class with a number word before the measure; was 4 Cup
+ck2-18338	italian	Grammi circa 100	100	Gram	-	*	*	ok	-	rule:R6	checkpoint 1 K14, recipe 18338: circa is about, so the amount is 100 grams; was 100 Piece
+ck2-circa	italian	Burro, grammi circa 50	50	Gram	-	Burro	Burro	ok	ok	rule:R6	circa between the unit and its number; the name drops the amount

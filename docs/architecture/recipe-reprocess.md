@@ -25,7 +25,13 @@ fix reaches both:
 2. **Food.** The import's order: the verified wording (when `VerifiedWordings:ResolveOnImport` is
    set), a live ingredient of the normalized name, the one food a trusted alias gives the name to,
    the food an applied link merged the retired ingredient of that name into, else a new uncurated
-   ingredient. A wording, an alias or an applied link never leads to a prepared food.
+   ingredient. A wording, an alias or an applied link never leads to a prepared food. A name that
+   normalizes to no food, only numbers and amount words ("Grammi circa 100" to "circa 100", "Grammi
+   100" to "100"), is looked up under the line's own text instead ("grammi circa 100"), so no food is
+   ever named by a number; a line with no letter at all is not built. In an "or" line whose food is
+   named only in a later alternative that states its own amount, that amount is the line's ("pinch
+   stevia OR 2 tbsp maple syrup" on maple syrup is 2 tbsp). A clove counts garlic or shallot: on the
+   spice cloves ("a couple of cloves") the count is in pieces.
 3. **Kind.** A line with no amount gets the kind the deterministic pre-pass reads on its face
    (`RecipeLineClassifier`: headings and yield notes are `note`, utensils `equipment`, lines with
    no letters `artefact`).
@@ -39,7 +45,10 @@ fix reaches both:
 `cleanup2/parser-rules`; `line-builder/3` since the checkpoint-1 fixes of `cleanup2/ck1-parser-catalog`:
 hyphenated mixed numbers after the name, a measure "and a half", trailing size words in the name,
 and the method fill's own-word, teacupful, per-item ratio, temperature, measure-as-pieces,
-alternative and fold rules) is stamped on every journal row. Raise it with any
+alternative and fold rules; `line-builder/4` since the second checkpoint-1 round of
+`cleanup2/ck2-undo-reprocess`: "circa" before an Italian amount, no food named by a number, the
+alternative that names the food, the spice cloves, the classify lane's kinds kept on unchanged text)
+is stamped on every journal row. Raise it with any
 change to a rule the builder applies: the detector reads again every recipe an older version read,
 and the lane's signature changes, so its tiers go back to shadow until they qualify under the new
 rules.
@@ -56,6 +65,11 @@ rules.
 - **Pairing.** Each source line is paired with the stored row of the same text (entities, spacing
   and case normalized), then with a `" + "` fold that holds it as one of its parts (a fold pairs
   with each part).
+- **Kind of a paired line.** A line built from the same text as its row (entities, spacing and case
+  aside) keeps the row's kind, the line-classify lane's as a rule, over the pre-pass's, while it has
+  no amount or the same amount as before; a line that now reads an amount it lacked loses it. A
+  recipe not yet curated that would fail vetting only because the rebuild left a line without the
+  kind its row had (the parts of a `" + "` fold, for example) stays `NonCurated`.
 - **Food of a paired line.** The line keeps the food it is on now, so links, relinks and approvals
   made since the import stand ("the rebuild follows the current links"; wrong links are re-decided
   by the applied-link re-check, which runs after the rebuild). It gives way only when that food is
@@ -102,13 +116,16 @@ Each keeps the stored lines and is reported as `held` with its reason:
 | `approved-gate` | an approved recipe would newly fail the approval gate (an uncurated counted line, a prepared food) |
 
 An approved recipe keeps its status. Other recipes not yet curated are vetted again
-(`RequiresRevision` or `NonCurated`, as the start-up repair does).
+(`RequiresRevision` or `NonCurated`, as the start-up repair does), except that kinds the rebuild
+dropped never move a recipe to `RequiresRevision` (see "Kind of a paired line").
 
 ### Rule rejection
 
 A recipe that is not curated (NonCurated or RequiresRevision, curation not completed) whose
 source **and** rebuilt version both fail the text rules for "not a recipe" (placeholder copy, or
-text with no real words) is set to `Rejected`, with `Rejected by rule: ...` added to its vetting
+text with no real words), and in neither of which any step is real method text (words and no
+placeholder copy), is set to `Rejected`. A recipe cut short ("(Recipe incomplete, steps cut off)"
+after three real steps, recipe 22541 at checkpoint 1) has real steps and is only vetted. A rejected recipe gets `Rejected by rule: ...` added to its vetting
 issues and a `RuleReject` row in `audit.AuditLogEntry` (entity `Recipe`). The rejection is its own
 journal row of kind `rule-reject` with the state before and after and no rows; when the lines change
 too, a `rebuild` row before it holds them. So `undo?kind=rule-reject` takes back every rule
@@ -187,6 +204,16 @@ through them, the link's own undo no longer finds a line "moved since" there, an
 no longer moves a line the rebuild undo already put back. The journal row
 gets `UndoneAt`, and a `ReprocessUndo` row is written (entity `Recipe`). A second undo finds
 nothing to do.
+
+**Foods a rebuild created.** Each new uncurated food a rebuild creates is journaled as
+`ReprocessFoodCreate` (entity `Ingredient`, the food's id, `journal=<id>;batch=<id>`, its name). The
+undo of that rebuild removes the food again (a hard delete, so the catalog is as before) when, with
+the undone recipes' rows back, nothing refers to it: still uncurated under the same name, no other
+journal entry on it, and no recipe line (deleted rows included), alias, proposal, nutrient, wording or
+rejection, verification, extras, measure, container size or household, plan, pantry or shopping row.
+The entry is relabelled `ReprocessFoodCreateUndone`. A food something refers to is kept and counted
+(`foodsKept`); the dry run counts both (`foodsRemoved`, `foodsKept`). Foods created before this
+journal existed (the 18 of checkpoint 1) are not touched.
 
 Each recipe's journal row, header and new rows carry the time that recipe was written, not the
 start of the batch, so a lane entry written on a recipe while the batch was still working through
@@ -327,8 +354,9 @@ rebuilds lines and steps.
 ## What is not here yet
 
 - The compound split rules are not repeated by the rebuild; recipes with a standing split are held.
-- `undo-applied` (the USDA link undo) does not yet skip rebuilt recipes. Undo a rebuild before
-  undoing a link applied before it.
+- `undo-applied` (the USDA link undo) leaves the lines of a recipe rebuilt after the link
+  (`skippedRebuilt`) and follows a line an order-only pass moved; to move a rebuilt recipe's lines
+  back too, undo the rebuild first.
 - A6 reads energy only: a wrong amount of a food with no calories (salt, water, baking powder) or one
   that keeps the serving inside 30 to 2,500 kcal passes it.
 - A held recipe is retried when the line rules change, not after a catalog change.

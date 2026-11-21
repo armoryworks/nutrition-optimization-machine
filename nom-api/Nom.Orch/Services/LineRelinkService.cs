@@ -460,15 +460,17 @@ namespace Nom.Orch.Services
             });
         }
 
+        private Task<bool> IsUsedOutsideRecipeLinesAsync(long id) => IsUsedOutsideRecipeLinesAsync(_db, id);
+
         /// <summary>
         /// Whether anything a household or another food relies on still points at the food: a
         /// pantry, shopping list, plan, goal, restriction, substitution, variation, component or a
         /// verified wording.
         /// </summary>
-        private async Task<bool> IsUsedOutsideRecipeLinesAsync(long id)
+        internal static async Task<bool> IsUsedOutsideRecipeLinesAsync(ApplicationDbContext db, long id)
         {
-            if (!_db.Database.IsRelational()) return false;
-            var used = await _db.Database
+            if (!db.Database.IsRelational()) return false;
+            var used = await db.Database
                 .SqlQuery<bool>($"""
                     SELECT (
                         EXISTS (SELECT 1 FROM recipe."IngredientComponent" x WHERE x."IngredientId" = {id} OR x."ComponentIngredientId" = {id})
@@ -514,10 +516,14 @@ namespace Nom.Orch.Services
         private async Task<LineRelinkUndoResult> UndoEntriesAsync(DateTime sinceUtc)
         {
             var repairs = LineRepairs.Keys.ToList();
+            var admissionRuns = _db.AuditLogEntries
+                .Where(h => h.EntityType == Nom.Data.Nutrition.CatalogAdmissionRule.RunEntityType && h.ChangeType == Nom.Data.Nutrition.CatalogAdmissionRule.RunChangeType)
+                .Select(h => h.Timestamp);
             var entries = await _db.AuditLogEntries
                 .Where(a => ((a.EntityType == RelinkEntityType && (a.ChangeType == RelinkChangeType || repairs.Contains(a.ChangeType)))
                         || (a.EntityType == RetireEntityType && a.ChangeType == RetireChangeType)
-                        || (a.EntityType == PickWithdrawEntityType && (a.ChangeType == PickWithdrawChangeType || a.ChangeType == ProposalWithdrawChangeType)))
+                        || (a.EntityType == PickWithdrawEntityType && (a.ChangeType == PickWithdrawChangeType
+                            || (a.ChangeType == ProposalWithdrawChangeType && !admissionRuns.Contains(a.Timestamp)))))
                     && a.Timestamp >= sinceUtc)
                 .ToListAsync();
             return await UndoEntriesAsync(entries);

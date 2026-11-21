@@ -139,8 +139,11 @@ Every change carries the run's stamp in `audit."AuditLogEntry"`: entity `Ingredi
 change types `CatalogAdmit`, `GroupFromCategory` (`FoodGroupId`,
 `IsWholeFood`) and `CatalogFacts` (`FdcCategoryId`, `FdcCategory`, `EnergyCheck`,
 `AdmissionReason`); entity `IngredientAlias`, change type `FdcDescription`; entity
-`FoodCatalogProposal`, change type `ProposalWithdraw`; and one `CatalogAdmitRun` row with the
-rule version. `--admit --undo <stamp>` puts back each value the food still holds as the run
+`FoodCatalogProposal`, change type `CatalogPickWithdraw` (the pass's own, so the time-window
+`relink/undo?sinceUtc=` never takes an admission's withdrawal and `--admit --undo` never takes the
+relink's; withdrawals journaled as `ProposalWithdraw` under an admission run's stamp before this
+type existed, as on staging at checkpoint 1, are left out of the relink undo too); and one
+`CatalogAdmitRun` row with the rule version. `--admit --undo <stamp>` puts back each value the food still holds as the run
 left it (a value changed since is left alone and listed), removes the description aliases it
 added and restores the picks it withdrew. A demoted food that a recipe line uses is listed as
 `in use`; approved recipes are not changed. The run's journal is kept: the undo writes each
@@ -1281,7 +1284,12 @@ A link with a line that is no longer where the link put it (moved by a relink, a
 or an unfold since, edited or deleted) is skipped and reported (`proposalsSkipped`, the sample's
 `skipped` says how many lines) and nothing of it is written. Undo the later change first; or
 pass `leaveMovedLines=true` to take the link back anyway, leaving those lines where they are
-(`linesSkipped`) with their journal rows kept as `LinkApplyLeft`. An alias changed since is left
+(`linesSkipped`) with their journal rows kept as `LinkApplyLeft`. A line an order-only pass of the
+rebuild moved to another position is not "moved": the undo follows it through the order journal
+and takes it back where it now stands. A line of a recipe fully rebuilt since the link is left where
+the rebuild put it, counted in `skippedRebuilt` (and the sample's `linesSkippedRebuilt`), its
+journal row kept as `LinkApplyLeft`, and the rest of the link is taken back, as the other line
+undos skip rebuilt recipes. An alias changed since is left
 where it is and counted. When another applied link still stands on the USDA food, its status row
 is handed to the newest such link with a journal, whose own undo restores the status; links
 taken back earlier in the same call do not count as standing, so the dry run reports what the
