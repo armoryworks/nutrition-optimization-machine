@@ -149,6 +149,37 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_rewrite_whose_steps_a_rebuild_replaced_since_is_skipped_until_the_rebuild_is_undone()
+        {
+            var rig = ProseLaneServiceTests.NewRig();
+            var id = await ProseLaneServiceTests.SeedAsync(rig.Db, withheld: false, approved: false);
+            var before = await FingerprintAsync(rig.Db, id);
+            var since = DateTime.UtcNow.AddSeconds(-1);
+            await rig.Lane.SweepAsync(LaneMode.Live, Models, new FakeWriter(), new FakeJudge(), 25);
+            var rebuild = new RecipeReprocessJournalEntity
+            {
+                RecipeId = id, BatchId = "rp-test", Kind = RecipeReprocessKind.Rebuild, RuleVersion = RecipeLineBuilder.Version,
+                OldRows = "[]", NewRows = "[]", OldSteps = "[]", NewSteps = "[]", CreatedDate = DateTime.UtcNow.AddSeconds(1),
+            };
+            rig.Db.RecipeReprocessJournals.Add(rebuild);
+            await rig.Db.SaveChangesAsync();
+            rig.Db.ChangeTracker.Clear();
+
+            var held = await rig.Undo.UndoAsync(since, apply: true);
+
+            held.Should().Match<ProseRewriteUndoResult>(r => r.Restored == 0 && r.Skipped == 1 && r.SkippedChangedSince == 1);
+            (await FingerprintAsync(rig.Db, id)).Should().NotBe(before);
+
+            var journal = await rig.Db.RecipeReprocessJournals.SingleAsync();
+            journal.UndoneAt = DateTime.UtcNow;
+            await rig.Db.SaveChangesAsync();
+            rig.Db.ChangeTracker.Clear();
+
+            (await rig.Undo.UndoAsync(since, apply: true)).Restored.Should().Be(1);
+            (await FingerprintAsync(rig.Db, id)).Should().Be(before);
+        }
+
+        [Fact]
         public async Task A_description_only_rewrite_is_undone_without_touching_the_persons_steps()
         {
             var rig = ProseLaneServiceTests.NewRig();

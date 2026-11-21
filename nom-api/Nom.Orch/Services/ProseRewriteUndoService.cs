@@ -22,7 +22,8 @@ namespace Nom.Orch.Services
     /// state, so a recipe goes back to withheld or quarantined and its old text is never shown
     /// again; a rewrite that changed only the description restores only the description and the
     /// state. A recipe a person edited since, or whose prose a later journal entry changed
-    /// (<see cref="ProseLaneJournal.TouchesProse"/>), is skipped and counted. Each restore writes a <see cref="ProseLaneJournal.UndoChangeType"/> row, so a
+    /// (<see cref="ProseLaneJournal.TouchesProse"/>) or whose steps a rebuild replaced since
+    /// (<c>recipe.RecipeReprocessJournal</c> with new steps, not undone), is skipped and counted. Each restore writes a <see cref="ProseLaneJournal.UndoChangeType"/> row, so a
     /// repeat dry run shows nothing left, and the rewrite's journal is kept.
     /// </summary>
     public class ProseRewriteUndoService : IProseRewriteUndoService, ILaneUndo
@@ -75,6 +76,10 @@ namespace Nom.Orch.Services
                     a.ChangeType == ProseLaneJournal.UndoChangeType
                     || (a.ChangeType == ProseLaneJournal.RewriteChangeType && groupStates.Any(s => s.Timestamp == a.Timestamp && undone.Contains(s.Id)));
 
+                var stepsRebuiltAt = await _db.RecipeReprocessJournals.AsNoTracking()
+                    .Where(j => j.RecipeId == recipeId && j.NewSteps != null && j.UndoneAt == null)
+                    .Select(j => (DateTime?)j.CreatedDate)
+                    .MaxAsync(cancellationToken);
                 var recipe = await _db.Recipes.FirstOrDefaultAsync(r => r.Id == recipeId, cancellationToken);
                 var steps = await _db.RecipeSteps.IgnoreQueryFilters().Where(s => s.RecipeId == recipeId).OrderBy(s => s.StepNumber).ThenBy(s => s.Id).ToListAsync(cancellationToken);
 
@@ -93,7 +98,8 @@ namespace Nom.Orch.Services
                         break;
                     }
 
-                    if (journal.Any(a => a.Id > last && ProseLaneJournal.TouchesProse(a) && !InUndoneGroup(a)))
+                    if (journal.Any(a => a.Id > last && ProseLaneJournal.TouchesProse(a) && !InUndoneGroup(a))
+                        || (!descriptionOnly && stepsRebuiltAt > state.Timestamp))
                     {
                         result.Skipped++;
                         result.SkippedChangedSince++;

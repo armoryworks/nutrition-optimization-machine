@@ -177,6 +177,8 @@ namespace Nom.Orch.Services
             var sourceSteps = ReextractedSteps(source, steps);
             if (sourceSteps != null && steps.Any(s => s.LastModifiedByPersonId is { } by && by != SystemConstants.SystemPersonId))
                 return Hold(one, RecipeReprocessHold.PersonStepEdit);
+            if (sourceSteps != null && await ProseLaneRewroteStepsAsync(recipeId))
+                return Hold(one, RecipeReprocessHold.ProseRewritten);
             var newSteps = sourceSteps == null
                 ? steps
                 : sourceSteps.Select((s, i) => new RecipeStepEntity { RecipeId = recipeId, StepNumber = i + 1, Summary = s.Summary, Description = s.Description }).ToList();
@@ -582,6 +584,32 @@ namespace Nom.Orch.Services
                 .ToList();
             if (steps.Count == 0) return null;
             return steps.Select(s => s.Description).SequenceEqual(live.Select(s => s.Description ?? string.Empty), StringComparer.Ordinal) ? null : steps;
+        }
+
+        /// <summary>
+        /// Whether the clean-room prose lane's rewrite of the recipe's steps still stands (a
+        /// <see cref="ProseLaneJournal.RewriteChangeType"/> group with step rows that no
+        /// <see cref="ProseLaneJournal.UndoChangeType"/> row names). A newer extraction then holds the
+        /// recipe instead of putting the source's steps back over the rewrite.
+        /// </summary>
+        private async Task<bool> ProseLaneRewroteStepsAsync(long recipeId)
+        {
+            var rewrites = await _db.AuditLogEntries.AsNoTracking()
+                .Where(a => a.EntityType == ProseRecheckService.RecipeEntityType && a.EntityId == recipeId
+                    && a.ChangeType == ProseLaneJournal.RewriteChangeType
+                    && (a.PropertyName == ProseLaneJournal.StateProperty || a.PropertyName!.StartsWith(ProseLaneJournal.StepPrefix)))
+                .Select(a => new { a.Id, a.PropertyName, a.Timestamp })
+                .ToListAsync();
+            var states = rewrites.Where(a => a.PropertyName == ProseLaneJournal.StateProperty).ToList();
+            if (states.Count == 0) return false;
+            var undone = (await _db.AuditLogEntries.AsNoTracking()
+                    .Where(a => a.EntityType == ProseRecheckService.RecipeEntityType && a.EntityId == recipeId && a.ChangeType == ProseLaneJournal.UndoChangeType)
+                    .Select(a => a.OldValue)
+                    .ToListAsync())
+                .Select(v => long.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) ? id : 0)
+                .ToHashSet();
+            return states.Any(s => !undone.Contains(s.Id)
+                && rewrites.Any(a => a.Timestamp == s.Timestamp && a.PropertyName != ProseLaneJournal.StateProperty));
         }
 
         private Task<List<StepRow>> StepRowsAsync(long recipeId) =>

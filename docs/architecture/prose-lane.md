@@ -139,7 +139,9 @@ old text is never shown again; a description-only write (above) restores only th
 state. It skips, and counts, a recipe a person edited since and one whose prose a later journal entry
 changed (`ProseLaneJournal.TouchesProse`: a re-check withhold or requarantine, a person's description,
 a marker strip, a step split, another rewrite, or any row on the description, a step or the prose
-state). Rows of other lanes that leave the prose alone (line classification and non-food screening
+state), and a rewrite of the steps when a rebuild replaced the recipe's steps since (a
+`recipe.RecipeReprocessJournal` row with new steps that is not undone; undo the rebuild first). Rows
+of other lanes that leave the prose alone (line classification and non-food screening
 attempts, curation status) do not stop it. Each restore writes a `ProseRewriteUndo` row; a repeat dry
 run shows nothing left. The re-check undo (`recheck/undo`) skips a recipe rewritten after its withhold,
 unless the lane's undo has since taken that rewrite back.

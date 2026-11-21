@@ -18,7 +18,7 @@ namespace Nom.Orch.Services.Support
     /// row it wrote however often the API restarts in between. Only the line labels of the classify
     /// lane, which no undo reads, the start-up repair's own entries, an order-only reprocess (its undo
     /// skips a recipe changed since) and an undone reprocess hold no recipe. The line-classify lane
-    /// also passes a full rebuild's own entry and the link rows that entry names: it only labels rows
+    /// also passes a full rebuild's own entry and the link and wording rows that entry names: it only labels rows
     /// a rebuild left without a kind, and the rebuild's undo does not count those labels as a change.
     /// The start-up repair leaves a rebuilt recipe alone by its own rule.
     /// </summary>
@@ -35,13 +35,6 @@ namespace Nom.Orch.Services.Support
         {
             var ids = recipeIds.ToList();
             var unheld = Unheld.Concat(alsoUnheld).ToList();
-            var held = (await db.AuditLogEntries.AsNoTracking()
-                    .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType && ids.Contains(a.EntityId) && !unheld.Contains(a.ChangeType))
-                    .Select(a => a.EntityId)
-                    .Distinct()
-                    .ToListAsync(cancellationToken))
-                .ToHashSet();
-
             var own = alsoUnheld.Contains(RecipeReprocessService.ReprocessChangeType)
                 ? (await db.AuditLogEntries.AsNoTracking()
                         .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType && ids.Contains(a.EntityId) && a.ChangeType == RecipeReprocessService.ReprocessChangeType)
@@ -49,6 +42,13 @@ namespace Nom.Orch.Services.Support
                         .ToListAsync(cancellationToken))
                     .SelectMany(RecipeReprocessService.LinkRowIds).Distinct().ToArray()
                 : Array.Empty<long>();
+
+            var held = (await db.AuditLogEntries.AsNoTracking()
+                    .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType && ids.Contains(a.EntityId) && !unheld.Contains(a.ChangeType) && !own.Contains(a.Id))
+                    .Select(a => a.EntityId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken))
+                .ToHashSet();
 
             var keys = ids.Select(id => id.ToString(CultureInfo.InvariantCulture)).ToArray();
             var linked = db.Database.IsRelational()

@@ -75,7 +75,9 @@ rules.
   of the live step at its place. The step key is (recipe, step number), so every step row, deleted
   ones too, is replaced, as the line rows are, and the journal keeps them all (`OldSteps`,
   `NewSteps`). A step a person changed (stamped by anyone but the system person) holds the recipe
-  (`person-step-edit`). A web or JSON-LD source never replaces steps: the prose lane owns them.
+  (`person-step-edit`), and so does a standing rewrite of its steps by the clean-room prose lane
+  (`prose-rewritten`, until the lane's undo takes it back), so a newer extraction never puts source
+  text back over a rewrite. A web or JSON-LD source never replaces steps: the prose lane owns them.
 
 The answer lists, per recipe, each line before and after with what changed (`amount`, `food`,
 `order`, `kind`, `text`, `added`, and `prepared-food` for a line left on a prepared food), and the counts per batch (including `dropped` rows, lines
@@ -155,8 +157,8 @@ lane leaves its lines alone, and the undo can restore them however often the API
 start-up repair leaves a recipe with a standing `Reprocess` header alone altogether (no fill, no
 step split, no entity decoding, no re-vetting): the rebuild applies the same rules and journals
 them, and a newer rule reaches the recipe by the next rebuild. The line-classify lane is let through
-the header and through the applied-link line rows the header names (`links=`, written when a rebuilt
-line followed a USDA link); a link row the rebuild did not write still holds the recipe. It labels the rows a rebuild left without a kind, which the undo tolerates (above), so
+the header and through the applied-link line rows and `WordingResolve` rows the header names
+(`links=`, written when a rebuilt line followed a USDA link or a verified wording); a link row the rebuild did not write still holds the recipe. It labels the rows a rebuild left without a kind, which the undo tolerates (above), so
 rebuilt recipes get the model's kinds as well as the deterministic ones.
 
 The rows are replaced, not edited, because the line key (recipe, food, position) changes with the

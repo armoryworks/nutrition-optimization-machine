@@ -157,6 +157,42 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_newer_extraction_holds_a_recipe_whose_steps_the_prose_lane_rewrote_until_that_rewrite_is_undone()
+        {
+            using var db = await SeededAsync();
+            var flour = await FoodAsync(db, "flour");
+            var steps = new[] { "Sift the flour.", "Bake." };
+            var recipe = await BookRecipeAsync(db, "Rewritten", new[] { (flour, "2 cups flour", 2m, Cup) }, steps,
+                new[] { (new[] { "2 cups flour" }, steps), (new[] { "2 cups flour" }, new[] { "Sift the flour twice.", "Bake." }) });
+            var at = DateTime.UtcNow;
+            var state = new Nom.Data.Audit.AuditLogEntryEntity
+            {
+                EntityType = ProseRecheckService.RecipeEntityType, EntityId = recipe.Id, ChangeType = ProseLaneJournal.RewriteChangeType,
+                PropertyName = ProseLaneJournal.StateProperty, OldValue = "{}", Timestamp = at, ChangedByPersonId = SystemConstants.SystemPersonId,
+            };
+            db.AuditLogEntries.AddRange(state, new Nom.Data.Audit.AuditLogEntryEntity
+            {
+                EntityType = ProseRecheckService.RecipeEntityType, EntityId = recipe.Id, ChangeType = ProseLaneJournal.RewriteChangeType,
+                PropertyName = ProseLaneJournal.StepPrefix + "1", OldValue = "Sift the flour.", Timestamp = at, ChangedByPersonId = SystemConstants.SystemPersonId,
+            });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            (await Reprocess(db).RebuildAsync(For(recipe.Id))).Results.Single().Reason.Should().Be(RecipeReprocessHold.ProseRewritten);
+
+            db.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+            {
+                EntityType = ProseRecheckService.RecipeEntityType, EntityId = recipe.Id, ChangeType = ProseLaneJournal.UndoChangeType,
+                PropertyName = ProseLaneJournal.StateProperty, OldValue = state.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                Timestamp = at.AddSeconds(1), ChangedByPersonId = SystemConstants.SystemPersonId,
+            });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            (await Reprocess(db).RebuildAsync(For(recipe.Id))).Results.Single().StepsReplaced.Should().BeTrue();
+        }
+
+        [Fact]
         public async Task The_undo_still_restores_a_rebuilt_recipe_whose_unlabelled_rows_the_line_classify_lane_labelled_since()
         {
             using var db = await SeededAsync();
@@ -190,7 +226,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task The_line_classify_lane_passes_the_link_rows_a_rebuild_wrote_and_no_other_link_row()
+        public async Task The_line_classify_lane_passes_the_link_and_wording_rows_a_rebuild_wrote_and_no_other_link_row()
         {
             using var db = await SeededAsync();
             var at = DateTime.UtcNow;
@@ -198,13 +234,14 @@ namespace Nom.Api.Tests.Services
             {
                 new Nom.Data.Audit.AuditLogEntryEntity { EntityType = LinkApplyJournal.EntityType, EntityId = 5, ChangeType = LinkApplyJournal.ChangeType, PropertyName = LinkApplyJournal.Line, NewValue = "10:7@0", Timestamp = at },
                 new Nom.Data.Audit.AuditLogEntryEntity { EntityType = LinkApplyJournal.EntityType, EntityId = 6, ChangeType = LinkApplyJournal.ChangeType, PropertyName = LinkApplyJournal.Line, NewValue = "11:7@0", Timestamp = at },
+                LineRelinkService.WordingResolved(10, "claret", 7, 1, at, SystemConstants.SystemPersonId),
             };
             db.AuditLogEntries.AddRange(rebuilt);
             await db.SaveChangesAsync();
             db.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
             {
                 EntityType = ScrapedRecipeRepairService.LineEntityType, EntityId = 10, ChangeType = RecipeReprocessService.ReprocessChangeType, PropertyName = RecipeReprocessKind.Rebuild,
-                NewValue = $"journal=1;batch=rl-1;rules=line-builder/2;kind=rebuild;links={rebuilt[0].Id}", Timestamp = at,
+                NewValue = $"journal=1;batch=rl-1;rules=line-builder/2;kind=rebuild;links={rebuilt[0].Id},{rebuilt[2].Id}", Timestamp = at,
             });
             db.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
             {
@@ -216,7 +253,7 @@ namespace Nom.Api.Tests.Services
             var byClassify = await RecipeLineHold.HeldAsync(db, new long[] { 10, 11 }, CancellationToken.None, RecipeReprocessService.ReprocessChangeType);
             var byRepair = await RecipeLineHold.HeldAsync(db, new long[] { 10, 11 });
 
-            byClassify.Should().BeEquivalentTo(new[] { 11L }, "recipe 10's link row is its rebuild's own; recipe 11's was written by a link apply");
+            byClassify.Should().BeEquivalentTo(new[] { 11L }, "recipe 10's link and wording rows are its rebuild's own; recipe 11's was written by a link apply");
             byRepair.Should().BeEquivalentTo(new[] { 10L, 11L });
         }
 

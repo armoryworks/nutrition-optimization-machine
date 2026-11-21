@@ -42,6 +42,7 @@ namespace Nom.Orch.Models.Recipe
         public const string ApprovedVetting = "approved-vetting";
         public const string ApprovedGate = "approved-gate";
         public const string PersonStepEdit = "person-step-edit";
+        public const string ProseRewritten = "prose-rewritten";
     }
 
     /// <summary>One line of a rebuilt recipe next to the stored row it replaces (none for an added line).</summary>
