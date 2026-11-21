@@ -82,6 +82,7 @@ namespace Nom.Import.Golden
         public const string LineClassify = "line-classify";
         public const string LinkGateLane = "link-gate";
         public const string AlcoholContextLane = "alcohol-context";
+        public const string WordingTiersLane = "wording-tiers";
         public const string LineJudge = "line-judge";
         public const string ProseRewriteLane = ProseLaneGolden.RewriteLane;
         public const string ProseJudgeLane = ProseLaneGolden.JudgeLane;
@@ -94,16 +95,21 @@ namespace Nom.Import.Golden
         public const int ClassifyBatch = 20;
         public const int JudgeBatch = 8;
 
-        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane, LineJudge, ProseRewriteLane, ProseJudgeLane, ProseAuditLane };
+        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane, WordingTiersLane, LineJudge, ProseRewriteLane, ProseJudgeLane, ProseAuditLane };
 
         /// <summary>The prose lanes, scored on prose-judge.tsv; their signatures are <see cref="ProseLaneGolden.Signature"/>.</summary>
         public static readonly IReadOnlyList<string> Prose = new[] { ProseRewriteLane, ProseJudgeLane, ProseAuditLane };
 
         /// <summary>Lanes scored by rules alone: no host or model is asked, and the signature is the rules' own.</summary>
-        public static readonly IReadOnlyList<string> NoModel = new[] { LinkGateLane, AlcoholContextLane };
+        public static readonly IReadOnlyList<string> NoModel = new[] { LinkGateLane, AlcoholContextLane, WordingTiersLane };
 
         /// <summary>The rule version a lane with no model records in place of a model name.</summary>
-        public static string NoModelVersion(string lane) => lane == AlcoholContextLane ? AlcoholLineContext.Version : LinkGate.Version;
+        public static string NoModelVersion(string lane) => lane switch
+        {
+            AlcoholContextLane => AlcoholLineContext.Version,
+            WordingTiersLane => WordingTiers.Version,
+            _ => LinkGate.Version,
+        };
 
         private static readonly HashSet<string> Bad = new(StringComparer.Ordinal) { "wrong", "near", "compound" };
 
@@ -125,6 +131,7 @@ namespace Nom.Import.Golden
         {
             if (lane == LinkGateLane) return LinkGate.Signature;
             if (lane == AlcoholContextLane) return AlcoholLineContext.Signature;
+            if (lane == WordingTiersLane) return WordingTiers.Signature;
             if (lane == LineJudge) return OllamaLineJudge.Signature;
             if (Prose.Contains(lane)) return ProseLaneGolden.Signature(lane);
             var capture = new CapturingHandler();
@@ -249,6 +256,20 @@ namespace Nom.Import.Golden
                 {
                     var cases = AlcoholCases(goldenDir).Take(limit ?? int.MaxValue).ToList();
                     var results = cases.Select(c => c.Outcome()).ToList();
+                    progress($"{lane}: {results.Count}/{cases.Count}");
+                    return results;
+                }
+                case WordingTiersLane:
+                {
+                    var catalog = GoldenTierCatalog(goldenDir);
+                    var cases = TierCases(goldenDir).Take(limit ?? int.MaxValue).ToList();
+                    var decisions = new Dictionary<string, WordingTierDecision>(StringComparer.Ordinal);
+                    var results = cases.Select(c =>
+                    {
+                        if (!decisions.TryGetValue(c.Wording, out var decision))
+                            decisions[c.Wording] = decision = WordingTiers.Decide(c.Wording, 0, Array.Empty<TierLine>(), catalog);
+                        return c.Outcome(decision);
+                    }).ToList();
                     progress($"{lane}: {results.Count}/{cases.Count}");
                     return results;
                 }
@@ -436,6 +457,59 @@ namespace Nom.Import.Golden
                     Right ? $"pass ({Pair.Wording} -> {Description})" : $"hold ({Verdict}: {Pair.Wording} -> {Description})",
                     passes ? "pass" : string.Join("; ", holds.Select(h => h.Code + ": " + h)), JudgedBy, passes);
             }
+        }
+
+        /// <summary>
+        /// One judged pair of link-pairs.tsv as the wording tiers read it: the wording in key form,
+        /// the judged food, and whether it was judged right or wrong, near or compound.
+        /// </summary>
+        public sealed record TierCase(string Id, string Wording, long FoodId, bool Right, string Verdict, string Description, string JudgedBy)
+        {
+            public LaneCaseResult Outcome(WordingTierDecision decision)
+            {
+                var answered = decision.Writes ? decision.Answer!.FoodId : (long?)null;
+                var accepted = answered == FoodId;
+                var actual = decision.Answer == null ? decision.Abstain ?? WordingTiers.NoTier
+                    : decision.Writes ? $"{decision.Answer.Tier} #{decision.Answer.FoodId}"
+                    : $"{decision.Answer.Tier} #{decision.Answer.FoodId} held: {decision.Hold}";
+                return new LaneCaseResult(Id, Right ? accepted : !accepted, !Right && accepted, !Right,
+                    Right ? $"#{FoodId} ({Wording} -> {Description})" : $"not #{FoodId} ({Verdict}: {Wording} -> {Description})",
+                    actual, JudgedBy, accepted);
+            }
+        }
+
+        /// <summary>
+        /// Every pair of link-pairs.tsv judged right, wrong, near or compound whose wording is not
+        /// itself a row of the verified wording table of wording-pairs.tsv (the lane never asks the
+        /// tiers about a wording the table holds).
+        /// </summary>
+        public static IEnumerable<TierCase> TierCases(string goldenDir)
+        {
+            var table = VerifiedRows(goldenDir).Select(v => v.Wording).ToHashSet(StringComparer.Ordinal);
+            foreach (var r in GoldenTsv.Read(Path.Combine(goldenDir, "link-pairs.tsv")).Rows)
+            {
+                if (r["verdict"] != "ok" && !Bad.Contains(r["verdict"])) continue;
+                var wording = IngredientNameNormalizer.WordingKey(r["wording"]);
+                if (wording.Length == 0 || table.Contains(wording)) continue;
+                yield return new TierCase("tiers:" + r.Id, wording, long.Parse(r["foodId"]), r["verdict"] == "ok", r["verdict"], r["description"], r["judgedBy"]);
+            }
+        }
+
+        /// <summary>The kept w01 rows of wording-pairs.tsv (expect =), which the verified wording table holds on staging.</summary>
+        public static IEnumerable<(string Wording, string Verdict, long? FoodId)> VerifiedRows(string goldenDir) =>
+            GoldenTsv.Read(Path.Combine(goldenDir, "wording-pairs.tsv")).Rows
+                .Where(r => r["expect"] == "=" && r.Id.StartsWith("wp-w01-", StringComparison.Ordinal))
+                .Select(r => (IngredientNameNormalizer.WordingKey(r["wording"]), IngredientWordingVerdict.Food, (long?)long.Parse(r["foodId"])));
+
+        /// <summary>
+        /// The tiers' catalog over gate-catalog.tsv and usda-catalog.tsv, with the w01 rows of
+        /// wording-pairs.tsv as the verified wording table. The fixtures hold no trusted aliases and no curated lines, so the alias and
+        /// head-default tiers are scored only by the rule-given rows of wording-tiers.tsv.
+        /// </summary>
+        public static WordingTierCatalog GoldenTierCatalog(string goldenDir)
+        {
+            var (matcher, staples) = UsdaMatcher(goldenDir);
+            return WordingTierCatalog.Build(GateFoods(goldenDir).ToList(), matcher, staples, verified: VerifiedRows(goldenDir));
         }
 
         /// <summary>

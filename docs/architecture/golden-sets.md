@@ -41,6 +41,7 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `startup-fills.tsv` | `ScrapedRecipeRepairService.RepairBatchAsync` (the start-up repair's amount for a line that states none, in a recipe with its method, its other lines and, when `journal` names one, an open line journal) | `expect` (`<quantity> <unit>`, or `-` for no amount) | `status` |
 | `link-gate.tsv` + `gate-catalog.tsv` | `LinkGate.Check` (the one link gate, see `link-gate.md`) | `expect`: `pass`, or the code of a rule that must hold the pair; the target's facts in the row | `status` |
 | `wording-pairs.tsv` + `gate-catalog.tsv` | `LinkGate.Check` for two readers' answer; `LinkGate.Family` | `expect`: `=` must pass, `!` must be held, `~` must win its family | `status` |
+| `wording-tiers.tsv` + `gate-catalog.tsv` + `usda-catalog.tsv` | `WordingTiers.Decide` (the deterministic wording tiers and the gate, see `wording-tiers.md`); `lines` (`raw\|unit class`, ` ¦ `-joined), `title`, `site`, `table` (`verified:<wording>=<food id or verdict>`, `alias:<name>=<owner>`), `curated` (head lines, `head\|class\|food\|count`) | `key` (the harder key, `-` for none), `tier` (the first tier that answers, `-`), `answer` (its food), `expect` (the food written once the gate has read the pair, `-` when held or none) | `status` |
 | `alcohol-context.tsv` + `gate-catalog.tsv` | `AlcoholLineContext.Read` and `.Refuse` (the alcohol sense rules, see `alcohol-context.md`) | `expect` (the sense code), `allows` (an FDC id the sense must allow, or `-`), `refuses` (an FDC id it must refuse, or `-`); `title`, `context` (the recipe's other lines, `;`-joined) and `site` give the recipe | `status` |
 | `catalog-admission.tsv` | `CatalogAdmissionRule.Decide` (USDA catalog admission: status, group from category, edibility, energy check, reasons, prepared food) | `expectStatus` (`Curated`, `PendingCuration`; the rule never rejects, and a food of the four prepared-food categories is judged like any other), `expectGroup`, `expectEdible`, `expectEnergy`, `expectReason`, `expectPrepared` (`true` for a Foundation or SR Legacy food of Baby Foods, Fast Foods, Meals, Entrees and Side Dishes, or Restaurant Foods) | `status` |
 | `recipes.json` + `measurements.tsv` | `RecipeNutritionService.RecalculateAsync`, `.StatusFor` | `expected.calories/protein/fat` (4 dp), `countedLines`, `handLabel` | `status` |
@@ -49,6 +50,7 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `lines.tsv` + `startup-fills.tsv` + `line-kinds.tsv` | model lane `line-judge` (the reprocess lane's line judge) | the right row of each judged row and a row with its class's defect | none (scored by the operator run) |
 | `link-pairs.tsv` + `gate-catalog.tsv` | scorer lane `link-gate` (no model) | `verdict` | none (scored by the record) |
 | `alcohol-context.tsv` + `gate-catalog.tsv` | scorer lane `alcohol-context` (no model) | `expect`, `allows`, `refuses` | `status` (and the record) |
+| `link-pairs.tsv` + `wording-pairs.tsv` + `gate-catalog.tsv` + `usda-catalog.tsv` | scorer lane `wording-tiers` (no model) | `verdict` | none (scored by the record) |
 | `prose-judge.tsv` + `prose-stock.tsv` | scorer lanes `prose-rewrite` (writer end to end, planted faults through the gate), `prose-judge` (the judge), `prose-audit` (the auditor confirmed by its own blind re-read) | `expect`, `fault` | none (scored by the record) |
 | `model-lanes.json` | every model lane | floors | — |
 | `baseline.json` | — | allowed `known` rows per `file:column` | — |
@@ -122,6 +124,8 @@ without it.
 | `catalog-admission.tsv` (2026-11-20) | 85 USDA foods (SR Legacy 2018-04, Foundation 2025-12-18) with their own category, nutrients and calorie factors: every food the catalog-admission design names, the first two SR foods of each category, foods that fail the energy check, and Foundation foods judged by their specific energy; 9 constructed rows (duplicate, no category, Quality Control category, branded oil, dressing, soda, sauce, cheese). Expected values computed from the rule as the design writes it, apart from the code. Hand-edited the same day for prepared foods (owner answer, second round): the 10 rows of the four prepared-food categories now expect `Curated` with no reason, every row gained `expectPrepared`, and 3 constructed prepared rows were added (an energy failure, a Foundation entree, a duplicate); 97 rows | rule (`rule:usda-*`, `rule:construction`) |
 | `link-gate.tsv` (2026-11-20; 24 alcohol rows added the same day by `cleanup2/alcohol-context`, one or more per alcohol rule) | 90 pairs: real USDA foods from `gate-catalog.tsv` and constructed foods (branded, retired, prepared, rejected, short of nutrients), one or more per rule of the gate and 18 the gate must let through; expected values from the rules as the links and wordings designs write them | rule (`rule:link-gate`, `rule:construction`) |
 | `wording-pairs.tsv` (2026-11-20) | the 232 kept rows of batch w01 (`staging/w01/verified-wordings-w01.tsv`), the 11 judge picks its second reader refuted (`dropped.tsv`), the wordings design's cases, and claret | w01 rows: the model reviewer and second reader (`agent-review-w01-*`, `agent`); refuted rows: the second reader; `gravy beef` and `sack`: the link-gate builder (`agent-review-link-gate-2026-11-20`); claret, potatoes, tarragon and the compound: rule (`ok`) |
+| `wording-tiers.tsv` (2026-11-20) | 34 wordings over the frozen catalog: the harder key (a heading, measure filler, notes, compounds), every tier answering and written, held by the gate, stopped by a verified unclear row, two tiers disagreeing, an alias two foods share, the alcohol senses (rum, red and white wine written; sherry and bare wine held), and constructed head-line tables for the head defaults (spoon and volume soda, under 70 %, under 20 lines, a small class that disagrees, a class with no lines); expected values from the tier rules and the gate as the links, wordings and alcohol designs write them | rule (`rule:wording-tiers`, `rule:alcohol-context`, `rule:construction`) |
+| `compound.tsv` row `wt-b11-01` (2026-11-20) | "the remains of cold ham or tongue": a first alternative the harder name key resolves (links B11) | rule (`rule:wording-tiers`) |
 | `alcohol-context.tsv` (2026-11-20) | 161 lines: the classes of the alcohol design (its sections 1 and 2.1: the wrong-link classes measured on staging and every place where the bare word misleads) and the false matches of the old diet patterns; expected senses and foods from the design's rules. Ten rows the builder judged where the design is silent (country wines, malt liquor, brandy snaps, beer batter, white zinfandel, "poached in", "rum and raisin ice cream", "brandy and water", dry cider, rice wine) | design rules (`rule:alcohol-context`, `ok`); the ten: the alcohol-context builder (`agent-review-alcohol-context-2026-11-20`, `agent`) |
 | `gate-catalog.tsv` (2026-11-20) | the curated foods and pending SR Legacy foods of staging (`staging/w01/foods.tsv`) with their USDA description, admission reason (none yet) and nutrient rows, and the USDA category from the SR Legacy 2018-04 and Foundation 2025-12-18 `food.csv` | catalog facts |
 | `line-labels.tsv` | 120 lines labelled not an ingredient that are exactly a curated food's name (ingredient by the veto rule) and 60 lines the deterministic pre-pass labelled | rule |
@@ -162,7 +166,7 @@ every file from the captures and the evidence, all rows `new`.
 ## Model lanes
 
 ```
-dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link-verify|line-classify|link-gate|alcohol-context|line-judge> \
+dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link-verify|line-classify|link-gate|alcohol-context|wording-tiers|line-judge> \
     --host http://<model host>:11434 --model <model tag> [--limit N] [--out failures.tsv] [--record]
 ```
 
@@ -179,7 +183,7 @@ dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link
   rebuild tier cannot leave shadow without a record of the current prompt (`OllamaLineJudge.Signature`)
   and the model the lane asks. `required` is false until the first record is committed.
 
-- `link-gate` and `alcohol-context`: see below; they need no model.
+- `link-gate`, `alcohol-context` and `wording-tiers`: see below; they need no model.
 - `link-pick`: the ambiguous judged wordings (a staple or the name matcher would answer the rest),
   asked six at a time with the name matcher's shortlist of ten from `usda-catalog.tsv`. A case passes
   when the pick is a food judged right, or, with no right food on the shortlist, is not one judged
@@ -200,6 +204,17 @@ dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link
   least 98 %, no false accept; `GoldenAlcoholContextTests` also requires every rule-given row to pass.
   Its signature is `AlcoholLineContext.Signature`; `required` is true, so a changed rule needs a new
   record (`--golden-score --lane alcohol-context --record`).
+- `wording-tiers`: no model and no host. `WordingTiers.Decide` (the tiers and the gate, no lines) on the
+  wording of every pair of `link-pairs.tsv` judged right, wrong, near or compound, with the kept w01 rows
+  of `wording-pairs.tsv` as the verified wording table; a pair whose wording is itself a w01 row is left
+  out, since the lane never asks the tiers about a wording the table holds. A case agrees when a right
+  pair's food is the one the tiers write or a bad pair's food is not; a false accept is a bad pair's
+  food written; precision is the share judged right among the pairs whose food is written. Floors: at
+  least 99 % precision, at most 1 % false accepts, at least 40 % agreement. The fixtures hold no
+  trusted aliases and no curated lines, so the alias and head-default tiers are scored by
+  `wording-tiers.tsv` only. Its signature is `WordingTiers.Signature` (which holds the gate's and the
+  alcohol rules' signatures); `required` is true, and `GoldenWordingTierTests` checks the tiers still
+  score exactly the record and prints each tier's coverage and precision.
 
 The run prints the score, the false-accept rate, the floor and every case that passed in the recorded
 run and fails now, and exits 1 below the floor. `--record` writes `scores/<lane>.json`: model, host

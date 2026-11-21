@@ -224,6 +224,22 @@ namespace Nom.Orch.Services
         {
             if (_cache.TryGetValue<GateCatalog>(nameof(LinkAutoApplyService), out var cached) && cached != null) return cached;
 
+            var parts = await CatalogPartsAsync(cancellationToken);
+            var trusted = parts.TrustedAliases
+                .GroupBy(a => IngredientNameNormalizer.WordingKey(a.Name), StringComparer.Ordinal)
+                .Where(g => g.Select(a => a.Owner).Distinct().Count() == 1)
+                .ToDictionary(g => g.Key, g => g.First().Owner, StringComparer.Ordinal);
+
+            var catalog = GateCatalog.Build(parts.Foods, parts.Matcher, trusted, staples: parts.Staples);
+            _cache.Set(nameof(LinkAutoApplyService), catalog, CatalogLifetime);
+            return catalog;
+        }
+
+        /// <summary>What the gate's catalog is built from: the foods a pass can link to with their gate facts, the name matcher and staples over the USDA foods, and the trusted aliases (admin, deterministic, retired, deterministic link) by name and owner.</summary>
+        internal sealed record CatalogParts(List<GateFood> Foods, FoodNameMatcher Matcher, Dictionary<string, FoodCandidate> Staples, List<(string Name, long Owner)> TrustedAliases);
+
+        internal async Task<CatalogParts> CatalogPartsAsync(CancellationToken cancellationToken)
+        {
             var foods = await GateFoodsAsync(_db.Ingredients.Where(i => !i.IsDeleted
                 && (i.CurationStatusId == (long)CurationStatusEnum.Curated
                     || (i.FdcId != null && i.FdcDataType != CatalogAdmissionRule.BrandedFood && i.CurationStatusId != (long)CurationStatusEnum.Rejected))), cancellationToken);
@@ -241,14 +257,7 @@ namespace Nom.Orch.Services
                         || a.SourceContext.StartsWith(IngredientAliasTrust.RetiredPrefix) || a.SourceContext.StartsWith(IngredientAliasTrust.DeterministicLinkPrefix)))
                 .Select(a => new { a.AliasName, a.IngredientId })
                 .ToListAsync(cancellationToken);
-            var trusted = aliases
-                .GroupBy(a => IngredientNameNormalizer.WordingKey(a.AliasName), StringComparer.Ordinal)
-                .Where(g => g.Select(a => a.IngredientId).Distinct().Count() == 1)
-                .ToDictionary(g => g.Key, g => g.First().IngredientId, StringComparer.Ordinal);
-
-            var catalog = GateCatalog.Build(foods, matcher, trusted, staples: staples);
-            _cache.Set(nameof(LinkAutoApplyService), catalog, CatalogLifetime);
-            return catalog;
+            return new CatalogParts(foods, matcher, staples, aliases.Select(a => (a.AliasName, a.IngredientId)).ToList());
         }
     }
 }

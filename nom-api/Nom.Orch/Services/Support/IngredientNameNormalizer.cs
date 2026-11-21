@@ -204,6 +204,45 @@ namespace Nom.Orch.Services.Support
         /// </summary>
         public static string WordingKey(string name) => Normalize(name).ToLowerInvariant();
 
+        private static readonly Regex HeadingLine = new(
+            @"^\s*for\s+(?:the\s+)?\p{L}|:\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Regex OldFiller = new(
+            @"^\s*(?:(?:the|a|an|some|nice|good|best|fine|finest|very|little|small\s+quantity\s+of|remains\s+of|rest\s+of|(?:a\s+)?(?:quarter|half|third)\s+of\s+(?:a|an|the)\s+(?:pound|pint|quart|cup|ounce)\s+of|of\s+(?:a|an|the)\s+(?:pound|pint|quart|cup|ounce)\s+of|of)\s+)+",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Regex TrailingPurpose = new(
+            @"(?:\s*,\s*|\s+)(?:(?:plus|and)\s+(?:more|extra)|(?:for|to)\s+(?:garnish(?:ing)?|serv(?:e|ing)|frying|dusting|greasing|brushing|decorat(?:e|ing|ion)|sprinkling|the\s+\p{L}+)|divided|separated|or\s+more|or\s+to\s+taste)\b.*$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        /// <summary>
+        /// The harder key the deterministic wording tiers decide on: the normalised name with its
+        /// preparation words, its notes of purpose ("for garnish", ", divided") and the old
+        /// cookbooks' filler ("the", "nice", "good", "best", "fine", "remains of", "of a pound of")
+        /// taken off, lower-cased. Null for a heading line ("For the frosting:"), which names no
+        /// food. Never stored: the verified wording table keeps <see cref="WordingKey"/>.
+        /// </summary>
+        public static string? TierKey(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return null;
+            var normalized = Normalize(name);
+            if (HeadingLine.IsMatch(normalized) || HeadingLine.IsMatch(name.Trim())) return null;
+
+            var s = normalized;
+            string before;
+            do
+            {
+                before = s;
+                var stripped = TrailingPurpose.Replace(OldFiller.Replace(s, string.Empty), string.Empty).Trim().Trim(',', ';', ':', '-', '.', ' ');
+                if (stripped.Length >= 2) s = stripped;
+                var bare = Bare(s);
+                if (bare.Length >= 2) s = bare;
+            } while (s != before);
+
+            s = Whitespace.Replace(s, " ").Trim().ToLowerInvariant();
+            return s.Length >= 2 ? s : null;
+        }
+
         /// <summary>True when normalization would change this catalog name.</summary>
         public static bool IsResidue(string name) =>
             !string.Equals(Normalize(name), name?.Trim(), StringComparison.Ordinal);

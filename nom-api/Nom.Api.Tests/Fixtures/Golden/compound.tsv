@@ -120,3 +120,4 @@ r9-09	blueberries, cherries, or any other jam	Leave	*	*	agent	agent-review-parse
 r9-10	cranberries, raspberries, or any other jelly	Leave	*	*	agent	agent-review-parser-rules-2026-11-20	R9 review PR-1: Cranberries have no weight per item; no cranberry or plain jelly food in the catalog, so unresolved (went to Cranberries)
 r9-11	blueberries or raspberry jam	Leave	*	*	agent	agent-review-parser-rules-2026-11-20	R9 review PR-1: never the first fruit (went to Blueberries)
 r9-12	milk or orange juice	PickAlternative	*	Milk	agent	agent-review-parser-rules-2026-11-20	R9 review PR-1 guard: milk has no product of its own, so not a list of fruits
+wt-b11-01	the remains of cold ham or tongue	PickAlternative	*	Ham	ok	rule:wording-tiers	links B11: the first alternative resolves by the harder name key ("the remains of", "cold" come off), so the line moves to it (or-first-named)

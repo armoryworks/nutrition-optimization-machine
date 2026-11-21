@@ -1082,6 +1082,13 @@ endpoints, the nutrition recalculation) fails with `42703 column does not exist`
 `recipe."IngredientWording"` and fails, logged. Once the columns and table exist the API works
 again without a restart.
 
+**Rows the wording tiers write.** The deterministic wording tier lane (`wording-tiers.md`) writes
+rows only through this loader, one batch per tier and pass (`wt-<tier>-<stamp>`), with source
+`deterministic:<tier>` (`LoadAsync`'s `source`; a reviewed file keeps `verified:<batch>`) and the
+evidence key `wording-tiers:lines-2^<band>`, then relinks that batch alone. Its undo is the per-wording
+retract with that evidence key, so the rejection memory keeps a retracted pair out until the
+wording's lines double; a retract never demotes a food the load curated.
+
 **Rename.** `POST api/FoodCatalog/relink/rename?id=<food>&name=<new name>` renames a live curated
 food and sets `NameNormalized`; a soft-deleted holder of the name is tombstoned, a live holder
 stops it (`heldByIngredientId`, `heldByLines`), and aliases of the new name come off other foods.

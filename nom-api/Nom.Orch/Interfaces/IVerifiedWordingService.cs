@@ -21,8 +21,10 @@ namespace Nom.Orch.Interfaces
         /// or whatever the evidence when the retract recorded none), unless
         /// <paramref name="overrideRejections"/> is set, which lifts that memory, journaled. Without
         /// <paramref name="apply"/> nothing is written and the result is what the same call would do.
+        /// A row's source is <paramref name="source"/> when given (a lane's tier, such as
+        /// "deterministic:name-key"), otherwise "verified:" and the batch.
         /// </summary>
-        Task<VerifiedWordingLoadResult> LoadAsync(IReadOnlyCollection<VerifiedWordingRow> rows, string batch, bool apply = false, bool replace = false, bool overrideRejections = false);
+        Task<VerifiedWordingLoadResult> LoadAsync(IReadOnlyCollection<VerifiedWordingRow> rows, string batch, bool apply = false, bool replace = false, bool overrideRejections = false, string? source = null);
 
         /// <summary>
         /// Takes every row of a batch out of the table, except that a row the batch took over from
