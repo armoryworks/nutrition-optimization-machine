@@ -41,6 +41,13 @@ namespace Nom.Orch.Services.Support
             public double Score { get; set; }
             public double FalseAcceptRate { get; set; }
             public double? Precision { get; set; }
+
+            /// <summary>The auditor alcohol-reading also scored in the fixed-reading mode, and its flags on the judged readings (known good) and on the other reading of each line (known bad).</summary>
+            public string? AuditModel { get; set; }
+            public int? AuditorKnownBad { get; set; }
+            public int? AuditorFlaggedBad { get; set; }
+            public int? AuditorKnownGood { get; set; }
+            public int? AuditorFlaggedGood { get; set; }
         }
 
         /// <summary>A reader lane's floor in model-lanes.json.</summary>
@@ -81,10 +88,27 @@ namespace Nom.Orch.Services.Support
         {
             ReadLane => WordingTiers.Hash(string.Join('|', ReadLane, OllamaWordingReader.Signature, WordingReaders.Signature)),
             LexiconLane => WordingTiers.Hash(string.Join('|', LexiconLane, OllamaWordingReader.Signature, WordingReaders.Signature)),
-            AlcoholLane => WordingTiers.Hash(string.Join('|', AlcoholLane, OllamaWordingReader.Signature, AlcoholFixedReading.SignatureSource())),
-            AuditLane => WordingTiers.Hash(string.Join('|', AuditLane, OllamaIngredientLinkVerifier.Signature, "auditor flag confirmed by reader B blind")),
+            AlcoholLane => WordingTiers.Hash(string.Join('|', AlcoholLane, OllamaWordingReader.Signature, AlcoholFixedReading.SignatureSource(), "auditor in the fixed-reading mode")),
+            AuditLane => WordingTiers.Hash(string.Join('|', AuditLane, OllamaIngredientLinkVerifier.Signature, "auditor flag confirmed by reader B blind", "auditor alone")),
             _ => throw new ArgumentException($"No reader scorer for lane '{lane}'.", nameof(lane)),
         };
+
+        /// <summary>
+        /// The fixed-reading auditor's own score on an alcohol-reading record, which the alcohol tier's
+        /// audited error is corrected with, and why no alcohol decision may go live on it: the record
+        /// scored another auditor or carries no auditor counts.
+        /// </summary>
+        public static (AuditorScore? Score, string? Problem) AuditScore(Record? record, string auditorModel)
+        {
+            var rescore = $"score it with: dotnet run --project nom-api/Nom.Import -- --golden-score --lane {AlcoholLane} --host <model host> --model <reader A> --check-model <reader B> --audit-model <auditor> --record";
+            if (record == null) return (null, $"the {AlcoholLane} lane has no golden score record; {rescore}");
+            if (record.AuditorKnownBad is not { } bad || record.AuditorFlaggedBad is not { } flaggedBad || record.AuditorKnownGood is not { } good || record.AuditorFlaggedGood is not { } flaggedGood)
+                return (null, $"the {AlcoholLane} record has no counts for its auditor in the fixed-reading mode; {rescore}");
+            var score = new AuditorScore(bad, flaggedBad, good, flaggedGood, $"{AlcoholLane} {record.AuditModel}, {record.ScoredAtUtc:yyyy-MM-dd}");
+            if (!string.Equals(record.AuditModel, auditorModel, StringComparison.OrdinalIgnoreCase))
+                return (score, $"{AlcoholLane} scored the auditor {record.AuditModel ?? "none"}, the lane asks {auditorModel}; {rescore}");
+            return (score, null);
+        }
 
         /// <summary>
         /// Why a tier may not go live on this record, or null when the record scored this prompt and

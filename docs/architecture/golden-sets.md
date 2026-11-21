@@ -58,7 +58,7 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `wording-pairs.tsv` + `link-pairs.tsv` + `gate-catalog.tsv` + `usda-catalog.tsv` | model lane `wording-read` (readers A and B, the refuter, the outcome table and the gate) | `expect`, `verdict` | none (scored by the record) |
 | `wording-lexicon.tsv` | model lane `wording-lexicon` (both readers and the refuter) | `means`, `expect` | `status` |
 | `alcohol-readings.tsv` | model lane `alcohol-reading` (both readers' fixed readings) | `expect` | `status` (rule rows checked without a model) |
-| `link-pairs.tsv` | model lane `link-audit` (the auditor confirmed by reader B; 400 bad and 400 good pairs) | `verdict` | none (scored by the record) |
+| `link-pairs.tsv` | model lane `link-audit` (the auditor confirmed by reader B, and the auditor alone; 400 bad and 400 good pairs) | `verdict` | none (scored by the record) |
 | `prose-judge.tsv` + `prose-stock.tsv` | scorer lanes `prose-rewrite` (writer end to end, planted faults through the gate), `prose-judge` (the judge), `prose-audit` (the auditor confirmed by its own blind re-read) | `expect`, `fault` | none (scored by the record) |
 | `model-lanes.json` | every model lane | floors | — |
 | `baseline.json` | — | allowed `known` rows per `file:column` | — |

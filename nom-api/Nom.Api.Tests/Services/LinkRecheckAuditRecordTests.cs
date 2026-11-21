@@ -54,7 +54,8 @@ namespace Nom.Api.Tests.Services
 
         private static readonly WordingTierAuditRecord.Record Scored = new()
         {
-            Model = "phi4", CheckModel = "mistral-nemo", ScoredAtUtc = DateTime.UtcNow, AuditKnownBad = 400, AuditFlaggedBad = 360, AuditKnownGood = 400, AuditFlaggedGood = 4,
+            Model = "phi4", CheckModel = "mistral-nemo", Signature = WordingReaderRecords.ScorerSignature(WordingTierAuditRecord.Lane), Score = 0.9,
+            ScoredAtUtc = DateTime.UtcNow, AuditKnownBad = 400, AuditFlaggedBad = 360, AuditKnownGood = 400, AuditFlaggedGood = 4,
         };
 
         [Fact]
@@ -87,5 +88,27 @@ namespace Nom.Api.Tests.Services
             (await Recheck(db, () => Scored).AuditAndEvaluateAsync(LinkRecheckRules.Alcohol, Array.Empty<string>(), null, null)).Reason
                 .Should().Contain(LinkRecheckService.AuditorProblem);
         }
+
+        [Fact]
+        public async Task A_record_of_a_changed_judge_prompt_or_below_its_floor_keeps_the_set_in_shadow()
+        {
+            using var db = NewContext();
+            var stale = Copy(Scored);
+            stale.Signature = "0000000000000000";
+            var low = Copy(Scored);
+            low.Score = 0.60;
+
+            (await Recheck(db, () => stale).AuditAndEvaluateAsync(LinkRecheckRules.Alcohol, Array.Empty<string>(), new Reader("phi4"), new Reader("mistral-nemo"))).Reason
+                .Should().Contain("changed since it was scored");
+            (await Recheck(db, () => low).AuditAndEvaluateAsync(LinkRecheckRules.Alcohol, Array.Empty<string>(), new Reader("phi4"), new Reader("mistral-nemo"))).Reason
+                .Should().Contain("below its floor 75.0");
+            WordingTierAuditRecord.Evaluate(low, "phi4", "mistral-nemo", null).Problem.Should().BeNull("with no floor only the signature and models are checked");
+        }
+
+        private static WordingTierAuditRecord.Record Copy(WordingTierAuditRecord.Record r) => new()
+        {
+            Model = r.Model, CheckModel = r.CheckModel, Signature = r.Signature, Score = r.Score, ScoredAtUtc = r.ScoredAtUtc,
+            AuditKnownBad = r.AuditKnownBad, AuditFlaggedBad = r.AuditFlaggedBad, AuditKnownGood = r.AuditKnownGood, AuditFlaggedGood = r.AuditFlaggedGood,
+        };
     }
 }

@@ -109,9 +109,11 @@ syrup (wording-lexicon.tsv, `GoldenWordingReaderTests`).
 
 A wording whose lines share one of the senses the alcohol rules leave unclear (`wine-unclear`, bare
 wine in an old text; `cider-unclear`, bare cider; `alcohol-unclear`, alcohol with no food context) is
-read in the fixed-reading mode (alcohol design 2.3, plan A6), tier `alcohol`. Each reader reads up to 12
-of its lines (3 for a small wording) with the recipe's title, other lines and the start of its method,
-and gives one reading per line:
+read in the fixed-reading mode (alcohol design 2.3, plan A6), tier `alcohol`. The relink moves every
+line that names the wording, so each reader reads every line of it (twelve to a call), each with its own
+recipe's title, other lines and the start of its method, and gives one reading per line. A wording with
+more than 200 lines, or whose lines are shared with another uncurated ingredient of the same name (the
+relink would move those too, unread), is not read and gets no row (`not every line read`).
 
 | Word | Readings | Sense | USDA food |
 |---|---|---|---|
@@ -119,7 +121,7 @@ and gives one reading per line:
 | cider | sweet, hard, unsure | `apple-juice`, `hard-cider` | 173933 apple juice, 174146 hard cider |
 | alcohol | drunk, not-food, unsure | `spirit`, none | 174815 distilled spirit 80 proof, no row |
 
-A row is written only when both readers give the same reading on every line read, neither is unsure,
+A row is written only when both readers give the same reading on every line, neither is unsure,
 and no data rule contradicts it on any line (a fortified reading of bare wine in a recipe from a web
 source; a sweet reading of a cider the recipe ferments, barrels, casks or works with yeast). The
 reading maps to its fixed food and the gate reads the reading's sense in place of the line's own
@@ -134,6 +136,14 @@ After a live batch, the auditor's same-food judge (the sentinel, roster `Auditor
 lines read as another food, variety or form is retracted at once (`RetractAsync` with its evidence
 key). Six or more wrong per 100 read (at least two), or more than three moved lines that weigh nothing
 on their new food, are faults that pause the tier. With no sentinel model set, a live batch is a fault.
+When the sentinel has retracted more than 4 % of the wordings a tier wrote live in the last 7 days (with
+at least 50 written), the tier pauses (wordings design 3.2).
+
+**Recovery.** The loader commits a batch's rows before the lane records them, relinks and runs the
+sentinel. Each pass first looks for rows of `ai:readers:*` loaded in the last two days that no live
+decision records: each is recorded now as written live (`recovered`) on its wording's present line
+count, with that evidence key and the food's USDA description, so the auditor and the undo find it,
+and its batch is relinked; a row of a paused tier is retracted with that evidence instead.
 
 ## On the lane frame
 
@@ -145,24 +155,34 @@ Lane `wording-readers` (`AiLanes.WordingReaders`, switch `ai-pause-wording-reade
 | `lexicon` | lexicon entries | 97 % | above 4 % | `wording-lexicon` |
 | `alcohol` | fixed-reading rows | 97 % | above 4 % over 200 | `alcohol-reading` |
 
-Every tier also needs the `link-audit` record. **Audit.** The auditor (`phi4`) reads a sampled
-decision's pair (the wording, or a lexicon term, against the food's USDA description, or what the term
-means) with the same-food judge; a flag counts as an error only when reader B, re-reading the pair
-blind, also calls it wrong. The combined check's known-bad and known-good flags come from
-`scores/link-audit.json` (`WordingTierAuditRecord`), which also feeds the wording tiers and the link
-re-check. A tier stays in shadow while its own record or the link-audit record is missing, scored
-another prompt or rule set, another reader A, another reader B (or auditor), or is below its floor
-(`WordingReaderRecords.Evaluate`).
+**Audit.** The auditor (`phi4`) reads a sampled `read` or `lexicon` decision's pair (the wording, or
+a lexicon term, against the food's USDA description, or what the term means) with the same-food judge.
+A sampled `alcohol` decision keeps up to three of its lines with their recipes (`FixedSample`), and the
+auditor reads them in the fixed-reading mode; it is wrong when the auditor reads any of them another
+way. Reader A and reader B made every decision audited, so neither may confirm a flag (plan C0.2): the
+auditor's flag stands alone (`AuditorFlagStands`), and the frame corrects the audited error with the
+auditor's own golden score: for `read` and `lexicon` the auditor-alone counts of
+`scores/link-audit.json` (`WordingTierAuditRecord.EvaluateAlone`), for `alcohol` the fixed-reading
+auditor counts of `scores/alcohol-reading.json` (`WordingReaderRecords.AuditScore`). The wording tiers
+and the link re-check keep the combined check (auditor confirmed by reader B), since reader B made none
+of their decisions. A tier stays in shadow while its own record or the record its audit is corrected
+with is missing, scored another prompt or rule set (the link-audit record carries the same-food
+judge's signature), another reader A, reader B or auditor, lacks the counts it is corrected with, or
+is below its floor in `model-lanes.json` (`WordingReaderRecords.Evaluate`, `WordingTierAuditRecord`).
 
-Caps: `WordingReaders:MaxPerDay` (300 food rows per tier in 24 hours), `WordingReaders:LexiconMaxPerDay`
-(30). Off unless `WordingReaders:Enabled=true`; `WordingReaders:BatchSize` (60).
+Caps: `WordingReaders:MaxPerDay` (300 food rows per tier in 24 hours), `WordingReaders:MaxLinesPerDay`
+(10,000 lines of the wordings written over all tiers in 24 hours; a wording whose lines exceed what is
+left is recorded `capped`), `WordingReaders:LexiconMaxPerDay` (30). Off unless
+`WordingReaders:Enabled=true`; `WordingReaders:BatchSize` (60).
 
 **Undo.** `WordingReaderUndo` (the frame's self-undo, and `POST /api/Pipeline/frame/wording-readers/<tier>/undo`):
 for `read` and `alcohol`, every row the lane loaded in a batch of that tier since a time (food, none and
 unclear alike) is retracted with the evidence key its decision recorded, so its lines, retired
 ingredients, withdrawn proposals and picks and import landings go back and the rejection memory holds
 the pair; for `lexicon`, every entry written since then is soft-deleted and journaled
-(`WordingLexiconUndo`), and that synonym is not proposed again.
+(`WordingLexiconUndo`), that synonym is not proposed again, and every `read` or `alcohol` food row
+loaded after the entry for a wording that holds its term is retracted the same way, since the gate let
+it through on that entry.
 
 ## Golden sets and scorer lanes
 
@@ -170,12 +190,13 @@ the pair; for `lexicon`, every entry written since then is soft-deleted and jour
 |---|---|---|---|
 | `wording-read` | every `=` and `!` row of `wording-pairs.tsv` and every judged pair of `link-pairs.tsv` whose wording the tiers leave | an `=` row's food is written, a `!` row's food is not | agreement 40 %, precision 97 %, false accepts 1 % |
 | `wording-lexicon` | `wording-lexicon.tsv` (40 rows from the w01 pairs and old and British names) | an `=` row's entry means the judged food; a `!` row gets no such entry | 80 %, precision 97 %, false accepts 1 % |
-| `alcohol-reading` | `alcohol-readings.tsv` (30 lines) | the reading written is the judged one; nothing for `unsure`; never the reading a rule row refuses (`!sweet`) | 97 %, false accepts 2 % |
-| `link-audit` | 400 known-bad and 400 known-good pairs of `link-pairs.tsv`, by a stable hash of the id | a bad pair is flagged by both, a good one is not | 75 %; its flag counts are the audit check's score |
+| `alcohol-reading` | `alcohol-readings.tsv` (30 lines) | the reading written is the judged one; nothing for `unsure`; never the reading a rule row refuses (`!sweet`) | 97 %, false accepts 2 %; the auditor (`--audit-model`, the roster's) reads each line too, and its flags on the judged reading (known good) and the other reading (known bad) of each judged line are the alcohol tier's audit score |
+| `link-audit` | 400 known-bad and 400 known-good pairs of `link-pairs.tsv`, by a stable hash of the id | a bad pair is flagged by both, a good one is not | 75 %; its combined flag counts are the audit check's score for the tiers and the re-check, its auditor-alone counts (`auditorKnownBad` and so on) the readers' |
 
 All four are scored by an operator against the model host
 (`dotnet run --project nom-api/Nom.Import -- --golden-score --lane <lane> --host <host> --model <reader A or auditor> --check-model <reader B> --record`);
-the record names both models (`model`, `checkModel`). None is required in `model-lanes.json` until it
+the record names both models (`model`, `checkModel`) and, for `link-audit` and `alcohol-reading`, the
+auditor scored alone (`auditModel`). None is required in `model-lanes.json` until it
 is recorded; until then the tiers that need it stay in shadow. The fixtures carry no lines and no
 nutrient amounts, so the `wording-read` scorer reads each wording on a pack without lines and never
 finds two different foods nutrition-equivalent. The judged rows are model-reviewer judgements (status

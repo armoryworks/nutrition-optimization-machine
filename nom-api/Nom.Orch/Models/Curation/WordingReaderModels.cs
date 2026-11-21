@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Nom.Orch.Services.Support;
 
 namespace Nom.Orch.Models.Curation
 {
@@ -8,8 +9,9 @@ namespace Nom.Orch.Models.Curation
     /// wording, the uncurated ingredient it is on, its line count, the tier, the verdict and food,
     /// the evidence key and batch the row is loaded with, both readers' answers, the outcome rule,
     /// the rules that held it, a few of its lines, an agreed meaning and, in the fixed-reading mode,
-    /// the mode and the reading. For a lexicon decision the wording is the term and the food text is
-    /// what it means. The auditor reads the pair from it and the lane's undo finds the row by it.
+    /// the mode, the reading and a few of the lines read with their context. For a lexicon decision
+    /// the wording is the term and the food text is what it means. The auditor reads the pair, or in
+    /// the fixed-reading mode the sampled lines, from it and the lane's undo finds the row by it.
     /// </summary>
     public sealed record WordingReaderSignals(
         string Wording,
@@ -29,7 +31,8 @@ namespace Nom.Orch.Models.Curation
         IReadOnlyList<string> SampleLines,
         string? Means = null,
         string? Mode = null,
-        string? Reading = null);
+        string? Reading = null,
+        IReadOnlyList<FixedLine>? FixedSample = null);
 
     /// <summary>One pass of the wording reader lane over the wordings it took.</summary>
     public sealed class WordingReaderBatchResult
@@ -56,6 +59,10 @@ namespace Nom.Orch.Models.Curation
         public int SentinelJudged { get; set; }
         public int SentinelDifferent { get; set; }
         public int Retracted { get; set; }
+
+        /// <summary>Rows found loaded with no live decision and recorded now, and those retracted because their tier is paused.</summary>
+        public int Recovered { get; set; }
+        public int RecoveredRetracted { get; set; }
         public List<string> Batches { get; set; } = new();
         public Dictionary<string, List<string>> FaultsByTier { get; set; } = new();
 

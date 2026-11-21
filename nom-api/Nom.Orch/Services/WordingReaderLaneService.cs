@@ -42,6 +42,26 @@ namespace Nom.Orch.Services
         public const string SizeGateHold = "size-gate";
         public const string NoFoodHold = "no-food";
 
+        /// <summary>The rule a fixed reading is refused by when not every line the relink would move was read.</summary>
+        public const string FixedNotAllRead = "not every line read";
+
+        /// <summary>The decision a row <see cref="RecoverAsync"/> found loaded but unrecorded is recorded with.</summary>
+        public const string RecoveredDecision = "recovered";
+
+        /// <summary>How far back a pass looks for rows the lane loaded but never recorded (<see cref="RecoverAsync"/>).</summary>
+        public static readonly TimeSpan RecoveryWindow = TimeSpan.FromDays(2);
+
+        /// <summary>Lines the lane may move in 24 hours over all its tiers (wordings design 2.6).</summary>
+        public const int MaxLinesPerDay = 10_000;
+
+        /// <summary>The window the retraction rate is read over, and the share of a tier's written wordings the sentinel may retract in it before the tier pauses (wordings design 3.2).</summary>
+        public static readonly TimeSpan RetractionWindow = TimeSpan.FromDays(7);
+
+        public const double PauseAtRetractedShare = 0.04;
+
+        /// <summary>Written wordings a tier needs in <see cref="RetractionWindow"/> before its retraction rate can pause it.</summary>
+        public const int RetractionMinimum = 50;
+
         public static readonly TimeSpan RetryAfter = TimeSpan.FromHours(24);
 
         /// <summary>Lines of one wording read for the gate's unit, grams and alcohol checks.</summary>
@@ -113,7 +133,7 @@ namespace Nom.Orch.Services
         public string Source => WordingReaders.Source(ReadersHash);
 
         public string Signature(string tier) => WordingTiers.Hash(string.Join('|', WordingReaders.Signature, OllamaWordingReader.Signature, OllamaIngredientLinkVerifier.Signature, tier,
-            _readers.ReaderA.ModelName, _readers.ReaderB.ModelName, _readers.AuditorModel, _readers.CheckModel));
+            _readers.ReaderA.ModelName, _readers.ReaderB.ModelName, _readers.AuditorModel));
 
         public static string Subject(string key) => WordingTierLaneService.Subject(key);
 
@@ -123,15 +143,31 @@ namespace Nom.Orch.Services
 
         private sealed record RecipeFacts(string? Title, bool Web, AlcoholRecipeContext? Alcohol);
 
+        private sealed class LineAllowance
+        {
+            public LineAllowance(int left) => Left = left;
+
+            public int Left { get; private set; }
+
+            public bool TryTake(int lines)
+            {
+                if (lines > Left) return false;
+                Left -= lines;
+                return true;
+            }
+        }
+
         private sealed class Item
         {
             public required Candidate Candidate { get; init; }
             public required string Wording { get; init; }
             public required List<LineRow> Lines { get; init; }
+            public int LineCount { get; init; }
             public string Stratum => WordingTierLaneService.Stratum(Candidate.Lines);
             public string Evidence => WordingReaders.EvidenceKey(Candidate.Lines);
             public WordingPack? Pack { get; set; }
             public FixedPack? Fixed { get; set; }
+            public string? FixedRefusal { get; set; }
             public ReaderAnswer? A { get; set; }
             public ReaderAnswer? B { get; set; }
             public IReadOnlyList<string?>? FixedA { get; set; }
@@ -146,14 +182,16 @@ namespace Nom.Orch.Services
             public string? Reading { get; set; }
         }
 
-        public async Task<WordingReaderBatchResult> RunBatchAsync(IReadOnlyDictionary<string, string> modes, int max, IReadOnlyDictionary<string, int>? remaining = null, CancellationToken cancellationToken = default)
+        public async Task<WordingReaderBatchResult> RunBatchAsync(IReadOnlyDictionary<string, string> modes, int max, IReadOnlyDictionary<string, int>? remaining = null, CancellationToken cancellationToken = default, int? linesRemaining = null)
         {
             var now = DateTime.UtcNow;
             var batch = new WordingReaderBatchResult { Stamp = now };
             foreach (var tier in WordingReaders.Tiers) batch.Modes[tier] = modes.TryGetValue(tier, out var m) ? m : LaneMode.Shadow;
             var allowance = WordingReaders.Tiers.ToDictionary(t => t, t => remaining != null && remaining.TryGetValue(t, out var left) ? left : int.MaxValue);
             var signatures = WordingReaders.Tiers.Append(AbstainTier).ToDictionary(t => t, Signature);
+            var lineAllowance = new LineAllowance(linesRemaining ?? int.MaxValue);
 
+            await RecoverAsync(batch, signatures, cancellationToken);
             var candidates = await CandidatesAsync(signatures, Math.Max(0, max), batch, cancellationToken);
             batch.Read = candidates.Count;
             if (candidates.Count == 0) return batch;
@@ -170,19 +208,24 @@ namespace Nom.Orch.Services
             var units = await _db.Measurements.AsNoTracking().ToDictionaryAsync(m => m.Id, m => (MeasurementEntity)m, cancellationToken);
 
             var ids = candidates.Select(c => c.Id).ToList();
-            var lines = (await _db.RecipeIngredients.AsNoTracking()
+            var allLines = (await _db.RecipeIngredients.AsNoTracking()
                     .Where(ri => ids.Contains(ri.IngredientId) && (ri.LineKind == null || ri.LineKind == RecipeIngredientLineKind.Ingredient) && !ri.Recipe.IsDeleted)
                     .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder)
                     .Select(ri => new LineRow(ri.IngredientId, ri.RecipeId, ri.RawLine, ri.Quantity, ri.MeasurementId))
                     .ToListAsync(cancellationToken))
                 .GroupBy(l => l.IngredientId)
-                .ToDictionary(g => g.Key, g => g.Take(MaxLinesPerWording).ToList());
+                .ToDictionary(g => g.Key, g => g.ToList());
+            var lines = allLines.ToDictionary(kv => kv.Key, kv => kv.Value.Take(MaxLinesPerWording).ToList());
             var recipes = await RecipesAsync(candidates, lines, cancellationToken);
 
             var items = new List<Item>();
             foreach (var candidate in candidates)
             {
-                var item = new Item { Candidate = candidate, Wording = IngredientNameNormalizer.WordingKey(candidate.Name), Lines = lines.GetValueOrDefault(candidate.Id) ?? new List<LineRow>() };
+                var item = new Item
+                {
+                    Candidate = candidate, Wording = IngredientNameNormalizer.WordingKey(candidate.Name), Lines = lines.GetValueOrDefault(candidate.Id) ?? new List<LineRow>(),
+                    LineCount = allLines.GetValueOrDefault(candidate.Id)?.Count ?? 0,
+                };
                 if (LinkAutoApplyGuard.IsCompound(item.Wording))
                 {
                     await RecordAsync(item, AbstainTier, LaneMode.Shadow, false, signatures[AbstainTier], WordingTiers.CompoundAbstain, null, cancellationToken);
@@ -196,6 +239,8 @@ namespace Nom.Orch.Services
                 {
                     item.Tier = WordingReaders.Alcohol;
                     item.Fixed = FixedPackOf(item, mode, recipes);
+                    if (item.LineCount > item.Lines.Count)
+                        item.FixedRefusal = string.Create(CultureInfo.InvariantCulture, $"{FixedNotAllRead}: {item.LineCount} lines, more than the {MaxLinesPerWording} a fixed reading reads");
                 }
                 else
                 {
@@ -209,6 +254,7 @@ namespace Nom.Orch.Services
                 items.Add(item);
             }
 
+            await OtherSourcesAsync(items, cancellationToken);
             await AddMacrosAsync(items, cancellationToken);
             await ReadAsync(items, batch, cancellationToken);
 
@@ -225,7 +271,7 @@ namespace Nom.Orch.Services
             await HoldsAsync(items, gateWithPass, foods, cancellationToken);
 
             foreach (var tierGroup in items.GroupBy(i => i.Tier))
-                await WriteTierAsync(tierGroup.Key, tierGroup.ToList(), batch, allowance, signatures, units, conversions, now, cancellationToken);
+                await WriteTierAsync(tierGroup.Key, tierGroup.ToList(), batch, allowance, lineAllowance, signatures, units, conversions, now, cancellationToken);
 
             batch.Tiers.RemoveWhere(t => !WordingReaders.Tiers.Contains(t));
             _db.AuditLogEntries.Add(new AuditLogEntryEntity
@@ -241,16 +287,37 @@ namespace Nom.Orch.Services
             return batch;
         }
 
-        private FixedPack FixedPackOf(Item item, string mode, IReadOnlyDictionary<long, RecipeFacts> recipes)
+        /// <summary>
+        /// Every line of an unclear alcohol wording, each with its own recipe's title, other lines and
+        /// steps (alcohol design 2.3): the relink moves every line that names the wording, so a fixed
+        /// reading is written only when both readers read each of them.
+        /// </summary>
+        private static FixedPack FixedPackOf(Item item, string mode, IReadOnlyDictionary<long, RecipeFacts> recipes)
         {
-            var take = item.Lines.Count < WordingReaders.SmallBelow ? AlcoholFixedReading.SmallLines : AlcoholFixedReading.MaxLines;
-            var chosen = item.Lines.GroupBy(l => l.RecipeId).Select(g => g.First()).Take(take).ToList();
-            return new FixedPack(item.Wording, mode, chosen.Select(l =>
+            return new FixedPack(item.Wording, mode, item.Lines.Select(l =>
             {
                 var facts = recipes.GetValueOrDefault(l.RecipeId);
                 var others = facts?.Alcohol?.OtherLines?.Where(o => !string.Equals(o, l.RawLine, StringComparison.Ordinal)).Take(AlcoholFixedReading.OtherLines).ToList() ?? new List<string>();
                 return new FixedLine(l.RawLine, facts?.Title, others, facts?.Alcohol?.Steps, facts?.Web == true);
             }).ToList());
+        }
+
+        /// <summary>
+        /// A fixed reading is refused when another uncurated ingredient of the same wording holds lines
+        /// the relink would move with it, since the readers read only the candidate's own lines.
+        /// </summary>
+        private async Task OtherSourcesAsync(List<Item> items, CancellationToken cancellationToken)
+        {
+            var open = items.Where(i => i.Fixed != null && i.FixedRefusal == null).ToList();
+            if (open.Count == 0) return;
+            var wordings = open.Select(i => i.Wording).Distinct().ToList();
+            var rows = await SourceLinesQuery(_db, wordings).ToListAsync(cancellationToken);
+            foreach (var item in open)
+            {
+                var others = rows.Where(r => r.Wording == item.Wording && r.IngredientId != item.Candidate.Id).Sum(r => r.Lines);
+                if (others > 0)
+                    item.FixedRefusal = string.Create(CultureInfo.InvariantCulture, $"{FixedNotAllRead}: {others} lines on another ingredient of the same wording would move unread");
+            }
         }
 
         /// <summary>
@@ -340,18 +407,23 @@ namespace Nom.Orch.Services
                     }
                 }
 
-                foreach (var item in items.Where(i => i.Fixed != null))
+                foreach (var item in items.Where(i => i.Fixed != null && i.FixedRefusal == null))
                 {
-                    batch.Calls++;
-                    IReadOnlyList<string?> readings;
-                    try
+                    var readings = new List<string?>();
+                    foreach (var chunk in item.Fixed!.Lines.Chunk(AlcoholFixedReading.MaxLines))
                     {
-                        readings = await reader.ReadFixedAsync(item.Fixed!, cancellationToken);
-                    }
-                    catch (Exception ex) when (ex is InvalidOperationException or JsonException or KeyNotFoundException)
-                    {
-                        _logger.LogWarning(ex, "Wording readers: reader {Role} ({Model}) gave no readable fixed reading for {Wording}", role, reader.ModelName, item.Wording);
-                        readings = new string?[item.Fixed!.Lines.Count];
+                        batch.Calls++;
+                        IReadOnlyList<string?> part;
+                        try
+                        {
+                            part = await reader.ReadFixedAsync(item.Fixed with { Lines = chunk }, cancellationToken);
+                        }
+                        catch (Exception ex) when (ex is InvalidOperationException or JsonException or KeyNotFoundException)
+                        {
+                            _logger.LogWarning(ex, "Wording readers: reader {Role} ({Model}) gave no readable fixed reading for {Wording}", role, reader.ModelName, item.Wording);
+                            part = Array.Empty<string?>();
+                        }
+                        readings.AddRange(Enumerable.Range(0, chunk.Length).Select(i => i < part.Count ? part[i] : null));
                     }
                     if (role == "A") item.FixedA = readings;
                     else item.FixedB = readings;
@@ -477,6 +549,11 @@ namespace Nom.Orch.Services
         {
             if (item.Fixed != null)
             {
+                if (item.FixedRefusal != null)
+                {
+                    item.Rule = item.FixedRefusal;
+                    return;
+                }
                 var (reading, reason) = AlcoholFixedReading.Combine(item.Fixed, item.FixedA ?? Array.Empty<string?>(), item.FixedB ?? Array.Empty<string?>());
                 item.Rule = reason;
                 if (reading == null) return;
@@ -623,7 +700,7 @@ namespace Nom.Orch.Services
         /// decision), relinks the batch and has the sentinel read its moved lines. A shadow or paused
         /// tier runs the loader as a dry run. A none or unclear row moves no line and is not audited.
         /// </summary>
-        private async Task WriteTierAsync(string tier, List<Item> items, WordingReaderBatchResult batch, Dictionary<string, int> allowance, IReadOnlyDictionary<string, string> signatures,
+        private async Task WriteTierAsync(string tier, List<Item> items, WordingReaderBatchResult batch, Dictionary<string, int> allowance, LineAllowance lineAllowance, IReadOnlyDictionary<string, string> signatures,
             IReadOnlyDictionary<long, MeasurementEntity> units, IReadOnlyDictionary<long, IngredientEntity> conversions, DateTime now, CancellationToken cancellationToken)
         {
             var mode = batch.Modes[tier];
@@ -654,6 +731,13 @@ namespace Nom.Orch.Services
                 if (food && allowance[tier] <= 0)
                 {
                     await RecordAsync(item, tier, mode, false, signature, $"{CappedDecision}: the tier's writes for 24 hours are spent", null, cancellationToken);
+                    batch.Capped++;
+                    continue;
+                }
+                if (food && !lineAllowance.TryTake(item.Candidate.Lines))
+                {
+                    await RecordAsync(item, tier, mode, false, signature,
+                        string.Create(CultureInfo.InvariantCulture, $"{CappedDecision}: {item.Candidate.Lines} lines, more than the {lineAllowance.Left} the lane may still move in 24 hours"), null, cancellationToken);
                     batch.Capped++;
                     continue;
                 }
@@ -768,8 +852,73 @@ namespace Nom.Orch.Services
             foreach (var row in rows)
             {
                 var item = written.First(i => i.Wording == row.Wording);
-                await _wordings.RetractAsync(row.Id, $"lane {Lane}/{tier}: the sentinel read {wrongBy[row.Wording]} moved lines as another food", apply: true, evidenceKey: item.Evidence);
+                await _wordings.RetractAsync(row.Id, SentinelReason(tier, $"read {wrongBy[row.Wording]} moved lines as another food"), apply: true, evidenceKey: item.Evidence);
                 batch.Retracted++;
+            }
+            _db.ChangeTracker.Clear();
+        }
+
+        /// <summary>
+        /// Rows the lane loaded that no live decision records (the process stopped between the load
+        /// and its decisions, its relink or its sentinel): the auditor samples, the undo and the
+        /// sentinel find rows only by their decisions, so each is recorded now as written live on its
+        /// wording's present line count and its batch is relinked; a row of a tier that is paused is
+        /// retracted instead, with that evidence, since the tier's own undo has already run without it.
+        /// </summary>
+        private async Task RecoverAsync(WordingReaderBatchResult batch, IReadOnlyDictionary<string, string> signatures, CancellationToken cancellationToken)
+        {
+            var orphans = await OrphanQuery(_db, DateTime.UtcNow - RecoveryWindow).ToListAsync(cancellationToken);
+            if (orphans.Count == 0) return;
+
+            var keys = orphans.Select(o => o.Wording).Distinct().ToList();
+            var sources = (await _db.Ingredients.AsNoTracking()
+                    .Where(i => !i.IsDeleted && i.FdcId == null && i.CurationStatusId != (long)CurationStatusEnum.Curated && keys.Contains(i.Name.ToLower()))
+                    .Select(i => new { i.Id, i.Name, Lines = _db.RecipeIngredients.Count(ri => ri.IngredientId == i.Id) })
+                    .ToListAsync(cancellationToken))
+                .Where(i => keys.Contains(IngredientNameNormalizer.WordingKey(i.Name)))
+                .GroupBy(i => IngredientNameNormalizer.WordingKey(i.Name), StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(i => i.Lines).ThenBy(i => i.Id).First(), StringComparer.Ordinal);
+            var foodIds = orphans.Where(o => o.IngredientId != null).Select(o => o.IngredientId!.Value).Distinct().ToList();
+            var foods = await _db.Ingredients.AsNoTracking().Where(i => foodIds.Contains(i.Id))
+                .Select(i => new
+                {
+                    i.Id, i.Name,
+                    Description = i.Aliases.Where(a => !a.IsDeleted && a.SourceContext == IngredientLinkService.UsdaDescriptionContext).Select(a => a.AliasName).FirstOrDefault(),
+                })
+                .ToDictionaryAsync(i => i.Id, i => new GateFood(i.Id, i.Name, i.Description), cancellationToken);
+
+            var relink = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var orphan in orphans)
+            {
+                if (WordingReaders.TierOfBatch(orphan.Batch) is not { } tier || tier == WordingReaders.Lexicon) continue;
+                var source = sources.GetValueOrDefault(orphan.Wording);
+                var lines = source?.Lines ?? 0;
+                var evidence = WordingReaders.EvidenceKey(lines);
+                if (batch.Modes.GetValueOrDefault(tier) == LaneMode.Paused)
+                {
+                    await _wordings.RetractAsync(orphan.Id, $"lane {Lane}/{tier} is paused and its load of this row was never recorded", apply: true, evidenceKey: evidence);
+                    batch.RecoveredRetracted++;
+                    continue;
+                }
+
+                var food = orphan.IngredientId is { } id ? foods.GetValueOrDefault(id) : null;
+                var isFood = orphan.Verdict == IngredientWordingVerdict.Food;
+                await _frame.RecordAsync(new LaneDecisionInput(
+                    Lane, tier, Subject(orphan.Wording), Clip($"{RecoveredDecision}: {orphan.Verdict} {orphan.IngredientId} {food?.Name}", 255), LaneMode.Live, isFood, signatures[tier],
+                    WordingTierLaneService.Stratum(lines),
+                    new WordingReaderSignals(orphan.Wording, source?.Id ?? 0, lines, tier, orphan.Verdict, orphan.IngredientId, food?.Name, food?.Text,
+                        evidence, orphan.Batch, null, null, RecoveredDecision, null, new List<string>())),
+                    cancellationToken);
+                batch.Recovered++;
+                batch.Tiers.Add(tier);
+                if (isFood) relink.Add(orphan.Batch);
+            }
+
+            foreach (var name in relink)
+            {
+                var relinked = await new LineRelinkService(_db, _currentUser).LinkVerifiedWordingsAsync(apply: true, batch: name);
+                batch.LinesMoved += relinked.Moved;
+                batch.Batches.Add(name);
             }
             _db.ChangeTracker.Clear();
         }
@@ -785,8 +934,21 @@ namespace Nom.Orch.Services
                 Lane, tier, Subject(item.Wording), Clip(decision, 255), mode, writes, signature, item.Stratum,
                 new WordingReaderSignals(item.Wording, item.Candidate.Id, item.Candidate.Lines, tier, item.Verdict, item.Food?.Id, item.Food?.Name, item.Food?.Text,
                     item.Evidence, batchName, item.A?.ToString() ?? Joined(item.FixedA), item.B?.ToString() ?? Joined(item.FixedB), item.Rule, item.Hold,
-                    item.Lines.Select(l => l.RawLine).Distinct(StringComparer.Ordinal).Take(SampleLines).ToList(), item.Means, item.Fixed?.Mode, item.Reading)),
+                    item.Lines.Select(l => l.RawLine).Distinct(StringComparer.Ordinal).Take(SampleLines).ToList(), item.Means, item.Fixed?.Mode, item.Reading,
+                    item.Fixed == null || item.Reading == null ? null : AuditSample(item.Fixed))),
                 cancellationToken);
+
+        /// <summary>Up to <see cref="AlcoholFixedReading.SmallLines"/> lines of a fixed pack, spread over it, with their context, for the auditor to read in the fixed-reading mode.</summary>
+        internal static List<FixedLine> AuditSample(FixedPack pack)
+        {
+            var count = pack.Lines.Count;
+            if (count == 0) return new List<FixedLine>();
+            var take = Math.Min(AlcoholFixedReading.SmallLines, count);
+            return Enumerable.Range(0, take).Select(i => take == 1 ? 0 : i * (count - 1) / (take - 1)).Distinct()
+                .Select(i => pack.Lines[i])
+                .Select(l => l with { Steps = l.Steps is { Length: > AlcoholFixedReading.StepCharacters } steps ? steps[..AlcoholFixedReading.StepCharacters] : l.Steps })
+                .ToList();
+        }
 
         private static string? Joined(IReadOnlyList<string?>? readings) => readings == null ? null : string.Join(",", readings.Select(r => r ?? "-"));
 
@@ -882,6 +1044,28 @@ namespace Nom.Orch.Services
                 .Select(d => new DecidedRow(d.Subject, d.Tier, d.SignatureHash, d.Stratum,
                     d.Decision != null && (d.Decision.StartsWith(UnreadableDecision) || d.Decision.StartsWith(CappedDecision)), d.CreatedDate));
 
+        /// <summary>A row the lane loaded with no live decision recording it since, as <see cref="RecoverAsync"/> reads it.</summary>
+        internal sealed record OrphanRow(long Id, string Wording, string Batch, string Verdict, long? IngredientId);
+
+        /// <summary>The ingredient-kind lines of one uncurated ingredient whose name is a wording, as the fixed reading's source check reads them.</summary>
+        internal sealed record SourceLinesRow(string Wording, long IngredientId, int Lines);
+
+        internal static IQueryable<OrphanRow> OrphanQuery(ApplicationDbContext db, DateTime sinceUtc) =>
+            db.IngredientWordings.AsNoTracking()
+                .Where(w => w.Source.StartsWith(WordingReaders.SourcePrefix) && w.Batch.StartsWith(WordingReaders.BatchPrefix) && (w.LastModifiedDate ?? w.CreatedDate) >= sinceUtc
+                    && !db.LaneDecisions.Any(d => d.Lane == Lane && d.Mode == LaneMode.Live && d.Subject == "wording:" + w.Wording
+                        && d.CreatedDate >= (w.LastModifiedDate ?? w.CreatedDate)))
+                .OrderBy(w => w.Id)
+                .Select(w => new OrphanRow(w.Id, w.Wording, w.Batch, w.Verdict, w.IngredientId));
+
+        internal static IQueryable<SourceLinesRow> SourceLinesQuery(ApplicationDbContext db, List<string> wordings) =>
+            db.RecipeIngredients.AsNoTracking()
+                .Where(ri => wordings.Contains(ri.Ingredient.Name.ToLower()) && !ri.Ingredient.IsDeleted && ri.Ingredient.FdcId == null
+                    && ri.Ingredient.CurationStatusId != (long)CurationStatusEnum.Curated
+                    && (ri.LineKind == null || ri.LineKind == RecipeIngredientLineKind.Ingredient) && !ri.Recipe.IsDeleted)
+                .GroupBy(ri => new { Wording = ri.Ingredient.Name.ToLower(), ri.IngredientId })
+                .Select(g => new SourceLinesRow(g.Key.Wording, g.Key.IngredientId, g.Count()));
+
         internal static IQueryable<BlockerRow> BlockersQuery(ApplicationDbContext db, List<long> ids) =>
             db.RecipeIngredients.AsNoTracking()
                 .Where(ri => ids.Contains(ri.IngredientId) && !ri.Recipe.IsDeleted && (ri.LineKind == null || ri.LineKind == RecipeIngredientLineKind.Ingredient)
@@ -953,20 +1137,25 @@ namespace Nom.Orch.Services
         {
             var reasons = faults.ToList();
             var lane = WordingReaderRecords.LaneOfTier.TryGetValue(tier, out var l) ? l : WordingReaderRecords.ReadLane;
-            var golden = WordingReaderRecords.Evaluate(lane, _records(lane), WordingReaderRecords.EmbeddedFloor(lane), _readers.ReaderA.ModelName, _readers.ReaderB.ModelName);
-            var (score, auditProblem) = WordingTierAuditRecord.Evaluate(_auditRecord(), _readers.AuditorModel, _readers.CheckModel);
+            var record = _records(lane);
+            var golden = WordingReaderRecords.Evaluate(lane, record, WordingReaderRecords.EmbeddedFloor(lane), _readers.ReaderA.ModelName, _readers.ReaderB.ModelName);
+            var fixedMode = tier == WordingReaders.Alcohol;
+            var (score, auditProblem) = fixedMode
+                ? WordingReaderRecords.AuditScore(record, _readers.AuditorModel)
+                : WordingTierAuditRecord.EvaluateAlone(_auditRecord(), _readers.AuditorModel);
             golden ??= auditProblem;
+            if (await RetractionReasonAsync(tier, cancellationToken) is { } retracted) reasons.Add(retracted);
             if (!_readers.IsConfigured)
             {
-                reasons.Add("no model host or model is set for the readers, the auditor and reader B (Ai:BatchOllamaUrl or Ai:OllamaUrl, Ai:Roster)");
+                reasons.Add("no model host or model is set for the readers and the auditor (Ai:BatchOllamaUrl or Ai:OllamaUrl, Ai:Roster)");
             }
             else
             {
                 try
                 {
-                    var audit = await _frame.AuditAsync(Lane, tier, DateTime.UtcNow.AddDays(-30), Sample, _readers.Auditor, _readers.Check, null, cancellationToken);
+                    var audit = await _frame.AuditAsync(Lane, tier, DateTime.UtcNow.AddDays(-30), Sample, fixedMode ? _readers.FixedAuditor : _readers.Auditor, AuditorFlagStands.Instance, null, cancellationToken);
                     if (audit.Sampled >= 10 && audit.Unreadable * 5 > audit.Sampled)
-                        reasons.Add($"the auditor {_readers.AuditorModel} or reader B {_readers.CheckModel} gave no readable answer on {audit.Unreadable} of {audit.Sampled} sampled decisions");
+                        reasons.Add($"the auditor {_readers.AuditorModel} gave no readable answer on {audit.Unreadable} of {audit.Sampled} sampled decisions");
                 }
                 catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException && !cancellationToken.IsCancellationRequested)
                 {
@@ -984,6 +1173,40 @@ namespace Nom.Orch.Services
             return _db.LaneDecisions.AsNoTracking().CountAsync(d => d.Lane == Lane && d.Tier == tier && d.Writes && d.CreatedDate >= since, cancellationToken);
         }
 
+        public async Task<int> LinesWrittenTodayAsync(CancellationToken cancellationToken = default)
+        {
+            var since = DateTime.UtcNow.AddHours(-24);
+            return (await _db.LaneDecisions.AsNoTracking()
+                    .Where(d => d.Lane == Lane && d.Written && d.CreatedDate >= since && d.Subject.StartsWith("wording:"))
+                    .Select(d => d.SignalsJson)
+                    .ToListAsync(cancellationToken))
+                .Sum(j => LaneJournal.Read<WordingReaderSignals>(j)?.Lines ?? 0);
+        }
+
+        /// <summary>
+        /// The retraction pause of wordings design 3.2: the tier's wordings the sentinel retracted in
+        /// the last 7 days, against the wordings it wrote live in them; above 4 % of at least
+        /// <see cref="RetractionMinimum"/> written, a reason that pauses the tier.
+        /// </summary>
+        private async Task<string?> RetractionReasonAsync(string tier, CancellationToken cancellationToken)
+        {
+            if (tier == WordingReaders.Lexicon) return null;
+            var since = DateTime.UtcNow - RetractionWindow;
+            var written = await _db.LaneDecisions.AsNoTracking()
+                .Where(d => d.Lane == Lane && d.Tier == tier && d.Written && d.CreatedDate >= since)
+                .Select(d => d.Subject).Distinct().CountAsync(cancellationToken);
+            if (written < RetractionMinimum) return null;
+            var prefix = SentinelReason(tier, string.Empty);
+            var retracted = await _db.IngredientWordingRejections.AsNoTracking().IgnoreQueryFilters()
+                .Where(r => r.Source.StartsWith(WordingReaders.SourcePrefix) && r.Reason.StartsWith(prefix) && r.CreatedDate >= since)
+                .Select(r => r.Wording).Distinct().CountAsync(cancellationToken);
+            return retracted > written * PauseAtRetractedShare
+                ? string.Create(CultureInfo.InvariantCulture, $"the sentinel retracted {retracted} of the {written} wordings the tier wrote in 7 days, above {PauseAtRetractedShare:P0}")
+                : null;
+        }
+
+        private static string SentinelReason(string tier, string rest) => $"lane {Lane}/{tier}: the sentinel {rest}";
+
         private static string? Clip(string? value, int length) => value == null || value.Length <= length ? value : value[..length];
     }
 
@@ -993,7 +1216,9 @@ namespace Nom.Orch.Services
     /// is retracted through the verified wording loader's per-wording retract, with the evidence key
     /// its decision recorded, so its lines go back and the rejection memory keeps the pair out on the
     /// same evidence. For the lexicon tier: every entry the lane wrote since then is taken out,
-    /// journaled, and remembered so the same synonym is not written again.
+    /// journaled, and remembered so the same synonym is not written again, and every food row the
+    /// lane loaded after an entry for a wording holding the entry's term is retracted the same way,
+    /// since the gate let it through on that entry.
     /// </summary>
     public sealed class WordingReaderUndo : ILaneUndo
     {
@@ -1010,6 +1235,8 @@ namespace Nom.Orch.Services
 
         public string Lane => WordingReaderLaneService.Lane;
 
+        private sealed record RowRef(long Id, string Wording, string Batch, DateTime At);
+
         public async Task<LaneUndoResult> UndoSinceAsync(string tier, DateTime sinceUtc, bool apply, CancellationToken cancellationToken)
         {
             var since = sinceUtc.ToString("u", CultureInfo.InvariantCulture);
@@ -1017,6 +1244,8 @@ namespace Nom.Orch.Services
             if (tier == WordingReaders.Lexicon)
             {
                 var entries = await _db.WordingLexicon.Where(e => e.Batch.StartsWith(prefix) && e.CreatedDate >= sinceUtc).ToListAsync(cancellationToken);
+                var dependents = await DependentRowsAsync(entries, cancellationToken);
+                var (rowsUndone, rowsSkipped) = await RetractAsync(dependents, $"lane {Lane}/{tier} undone its entries since {since}, and the gate let this row through on one", apply, cancellationToken);
                 if (apply)
                 {
                     var now = DateTime.UtcNow;
@@ -1033,32 +1262,65 @@ namespace Nom.Orch.Services
                     }
                     await _db.SaveChangesAsync(cancellationToken);
                 }
-                return new LaneUndoResult(entries.Count, 0, 0, $"wording readers lexicon: entries written since {since}");
+                return new LaneUndoResult(entries.Count + rowsUndone, rowsSkipped, 0,
+                    $"wording readers lexicon: {entries.Count} entries written since {since}, and {rowsUndone} food rows that rested on them, retracted with their evidence");
             }
 
-            var rows = await _db.IngredientWordings.AsNoTracking()
-                .Where(w => w.Source.StartsWith(WordingReaders.SourcePrefix) && w.Batch.StartsWith(prefix) && (w.LastModifiedDate ?? w.CreatedDate) >= sinceUtc)
-                .OrderByDescending(w => w.Id)
-                .Select(w => new { w.Id, w.Wording })
-                .ToListAsync(cancellationToken);
-            var keys = rows.Select(r => WordingReaderLaneService.Subject(r.Wording)).ToList();
-            var evidence = (await _db.LaneDecisions.AsNoTracking()
-                    .Where(d => d.Lane == Lane && d.Tier == tier && keys.Contains(d.Subject) && d.Mode == LaneMode.Live)
-                    .OrderByDescending(d => d.Id)
-                    .Select(d => d.SignalsJson)
+            var rows = (await _db.IngredientWordings.AsNoTracking()
+                    .Where(w => w.Source.StartsWith(WordingReaders.SourcePrefix) && w.Batch.StartsWith(prefix) && (w.LastModifiedDate ?? w.CreatedDate) >= sinceUtc)
+                    .OrderByDescending(w => w.Id)
+                    .Select(w => new { w.Id, w.Wording, w.Batch, At = w.LastModifiedDate ?? w.CreatedDate })
                     .ToListAsync(cancellationToken))
-                .Select(LaneJournal.Read<WordingReaderSignals>)
-                .Where(s => s?.EvidenceKey != null)
-                .GroupBy(s => s!.Wording, StringComparer.Ordinal)
-                .ToDictionary(g => g.Key, g => g.First()!.EvidenceKey, StringComparer.Ordinal);
+                .Select(w => new RowRef(w.Id, w.Wording, w.Batch, w.At))
+                .ToList();
+            var (undone, skipped) = await RetractAsync(rows, $"lane {Lane}/{tier} undone its writes since {since}", apply, cancellationToken);
+            return new LaneUndoResult(undone, skipped, 0, $"wording readers {tier}: rows loaded since {since}, retracted with their evidence");
+        }
+
+        /// <summary>The food rows of the read and alcohol tiers loaded at or after an entry for a wording one of whose words is the entry's term, newest first.</summary>
+        private async Task<List<RowRef>> DependentRowsAsync(List<WordingLexiconEntity> entries, CancellationToken cancellationToken)
+        {
+            if (entries.Count == 0) return new List<RowRef>();
+            var first = entries.Min(e => e.CreatedDate);
+            var batches = new[] { WordingReaders.Read, WordingReaders.Alcohol }.Select(t => WordingReaders.BatchPrefix + t + "-").ToList();
+            var rows = await _db.IngredientWordings.AsNoTracking()
+                .Where(w => w.Source.StartsWith(WordingReaders.SourcePrefix) && w.Verdict == IngredientWordingVerdict.Food && (w.LastModifiedDate ?? w.CreatedDate) >= first)
+                .OrderByDescending(w => w.Id)
+                .Select(w => new { w.Id, w.Wording, w.Batch, At = w.LastModifiedDate ?? w.CreatedDate })
+                .ToListAsync(cancellationToken);
+            return rows
+                .Where(w => batches.Any(b => w.Batch.StartsWith(b, StringComparison.Ordinal)))
+                .Where(w =>
+                {
+                    var words = LinkGate.Words(w.Wording).Select(LinkGate.Fold).ToHashSet(StringComparer.Ordinal);
+                    return entries.Any(e => w.At >= e.CreatedDate && words.Contains(LinkGate.Fold(e.Term)));
+                })
+                .Select(w => new RowRef(w.Id, w.Wording, w.Batch, w.At))
+                .ToList();
+        }
+
+        /// <summary>Retracts rows through the verified wording loader, each with the evidence key its live decision of its own tier recorded; with apply false only counts them.</summary>
+        private async Task<(int Undone, int Skipped)> RetractAsync(List<RowRef> rows, string reason, bool apply, CancellationToken cancellationToken)
+        {
+            if (rows.Count == 0) return (0, 0);
+            var keys = rows.Select(r => WordingReaderLaneService.Subject(r.Wording)).Distinct().ToList();
+            var evidence = (await _db.LaneDecisions.AsNoTracking()
+                    .Where(d => d.Lane == Lane && keys.Contains(d.Subject) && d.Mode == LaneMode.Live)
+                    .OrderByDescending(d => d.Id)
+                    .Select(d => new { d.Tier, d.SignalsJson })
+                    .ToListAsync(cancellationToken))
+                .Select(d => (d.Tier, Signals: LaneJournal.Read<WordingReaderSignals>(d.SignalsJson)))
+                .Where(d => d.Signals?.EvidenceKey != null)
+                .GroupBy(d => (d.Tier, d.Signals!.Wording))
+                .ToDictionary(g => g.Key, g => g.First().Signals!.EvidenceKey);
 
             int undone = 0, skipped = 0;
             foreach (var row in rows)
             {
                 if (apply)
                 {
-                    var reason = $"lane {Lane}/{tier} undone its writes since {since}";
-                    if (await _wordings.RetractAsync(row.Id, reason, apply: true, evidenceKey: evidence.GetValueOrDefault(row.Wording)) == null)
+                    var tier = WordingReaders.TierOfBatch(row.Batch) ?? string.Empty;
+                    if (await _wordings.RetractAsync(row.Id, reason, apply: true, evidenceKey: evidence.GetValueOrDefault((tier, row.Wording))) == null)
                     {
                         skipped++;
                         continue;
@@ -1066,7 +1328,7 @@ namespace Nom.Orch.Services
                 }
                 undone++;
             }
-            return new LaneUndoResult(undone, skipped, 0, $"wording readers {tier}: rows loaded since {since}, retracted with their evidence");
+            return (undone, skipped);
         }
     }
 }

@@ -138,5 +138,40 @@ namespace Nom.Api.Tests.Golden
             });
             (score.AuditKnownBad, score.AuditFlaggedBad, score.AuditKnownGood, score.AuditFlaggedGood).Should().Be((1, 1, 1, 0));
         }
+
+        [Fact]
+        public void A_link_audit_record_also_counts_the_auditor_alone_for_the_readers_whose_picks_reader_b_made()
+        {
+            var bad = new ModelLanes.AuditCase("audit:x", "potatoes", "Potatoes, raw, skin", true, "agent-review-2026-11-13");
+            var good = bad with { Id = "audit:y", Bad = false };
+
+            var score = ModelLanes.Score(ModelLanes.LinkAuditLane, "phi4", "host", "sig", new[]
+            {
+                bad.Outcome(Nom.Orch.Interfaces.LinkJudgement.DifferentFood, Nom.Orch.Interfaces.LinkJudgement.Same),
+                good.Outcome(Nom.Orch.Interfaces.LinkJudgement.VarietyOrForm, Nom.Orch.Interfaces.LinkJudgement.Same),
+            });
+
+            (score.AuditKnownBad, score.AuditFlaggedBad, score.AuditKnownGood, score.AuditFlaggedGood).Should().Be((1, 0, 1, 0));
+            (score.AuditorKnownBad, score.AuditorFlaggedBad, score.AuditorKnownGood, score.AuditorFlaggedGood).Should().Be((1, 1, 1, 1));
+            ModelLanes.AuditModelOf(ModelLanes.LinkAuditLane, "phi4", null).Should().Be("phi4");
+            ModelLanes.AuditModelOf(ModelLanes.AlcoholReadingLane, "qwen2.5:14b-instruct", null).Should().Be(new Nom.Orch.Settings.LaneModelRoster().Auditor);
+            ModelLanes.AuditModelOf(ModelLanes.WordingReadLane, "qwen2.5:14b-instruct", null).Should().BeNull();
+        }
+
+        [Fact]
+        public void The_alcohol_reading_auditor_flags_the_judged_reading_and_the_other_reading_of_a_line_it_reads_in_context()
+        {
+            var line = new FixedLine("1 pint cider", "Cider Cup", new List<string>(), null, false);
+            var hard = new ModelLanes.AlcoholReadingCase("alcohol-reading:x", AlcoholFixedReading.Cider, line, "hard", "agent-review-wording-readers-2026-11-21");
+
+            hard.AuditorFlags("hard").Should().Be(((bool?)false, (bool?)true));
+            hard.AuditorFlags("sweet").Should().Be(((bool?)true, (bool?)false));
+            hard.AuditorFlags(AlcoholFixedReading.Unsure).Should().Be(((bool?)null, (bool?)null));
+            (hard with { Expect = "!sweet" }).AuditorFlags("hard").Should().Be(((bool?)null, (bool?)null), "a rule row names no judged reading");
+
+            var score = ModelLanes.Score(ModelLanes.AlcoholReadingLane, "qwen2.5:14b-instruct", "host", "sig", new[] { hard.Outcome("hard", "sweet"), (hard with { Id = "alcohol-reading:y" }).Outcome(null, null) });
+            (score.AuditorKnownBad, score.AuditorFlaggedBad, score.AuditorKnownGood, score.AuditorFlaggedGood).Should().Be((1, 0, 1, 1));
+            score.AuditKnownBad.Should().BeNull();
+        }
     }
 }

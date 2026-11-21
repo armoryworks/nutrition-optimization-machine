@@ -27,6 +27,14 @@ namespace Nom.Import.Golden
         public static string? CheckModelOf(string lane, string? named) =>
             named is { Length: > 0 } ? named : Readers.Contains(lane) || Prose.Contains(lane) ? new Nom.Orch.Settings.LaneModelRoster().ReaderB : null;
 
+        /// <summary>The auditor a run scores alone and records: for link-audit the model scored; for alcohol-reading the one named, else the roster's auditor; else none.</summary>
+        public static string? AuditModelOf(string lane, string model, string? named) => lane switch
+        {
+            LinkAuditLane => model,
+            AlcoholReadingLane => named is { Length: > 0 } ? named : new Nom.Orch.Settings.LaneModelRoster().Auditor,
+            _ => null,
+        };
+
         /// <summary>
         /// One wording the readers are scored on: a row of wording-pairs.tsv (= or !), or a judged pair
         /// of link-pairs.tsv whose wording the deterministic tiers leave (no tier writes it), as the
@@ -93,12 +101,25 @@ namespace Nom.Import.Golden
         {
             public FixedPack Pack => new(Line.Raw, Mode, new[] { Line });
 
-            public LaneCaseResult Outcome(string? combined)
+            public LaneCaseResult Outcome(string? combined, string? audited = null)
             {
                 var refused = Expect.StartsWith('!') ? Expect[1..] : null;
                 var pass = refused != null ? combined != refused : Expect == AlcoholFixedReading.Unsure ? combined == null : combined == Expect;
                 var falseAccept = combined != null && (refused != null ? combined == refused : combined != Expect);
-                return new LaneCaseResult(Id, pass, falseAccept, true, Expect, combined ?? "nothing written", JudgedBy, combined != null);
+                var (good, bad) = AuditorFlags(audited);
+                return new LaneCaseResult(Id, pass, falseAccept, true, Expect, combined ?? "nothing written", JudgedBy, combined != null, AuditorFlagsGood: good, AuditorFlagsBad: bad);
+            }
+
+            /// <summary>
+            /// How the auditor's own reading of the line flags the judged reading (known good) and the
+            /// other reading of its mode (known bad): a flag when it reads the line another way. Only a
+            /// row judged to one reading counts, and only when the auditor gave a reading.
+            /// </summary>
+            public (bool? Good, bool? Bad) AuditorFlags(string? audited)
+            {
+                if (audited is null or AlcoholFixedReading.Unsure || AlcoholFixedReading.Find(Mode, Expect) is null) return (null, null);
+                var other = AlcoholFixedReading.Of(Mode).Select(r => r.Code).FirstOrDefault(c => c != Expect);
+                return (audited != Expect, other == null ? null : audited != other);
             }
         }
 
@@ -123,9 +144,11 @@ namespace Nom.Import.Golden
         {
             public LaneCaseResult Outcome(LinkJudgement? auditor, LinkJudgement? check)
             {
-                var flagged = auditor is { } a && a != LinkJudgement.Same && a != LinkJudgement.Unsure && check is { } c && c != LinkJudgement.Same && c != LinkJudgement.Unsure;
+                var alone = auditor is { } a && a != LinkJudgement.Same && a != LinkJudgement.Unsure;
+                var flagged = alone && check is { } c && c != LinkJudgement.Same && c != LinkJudgement.Unsure;
                 return new LaneCaseResult(Id, flagged == Bad, Bad && !flagged, Bad, Bad ? "flagged" : "not flagged",
-                    auditor == null ? "no readable answer" : $"{auditor}{(check == null ? string.Empty : " / " + check)}", JudgedBy, Flagged: flagged);
+                    auditor == null ? "no readable answer" : $"{auditor}{(check == null ? string.Empty : " / " + check)}", JudgedBy, Flagged: flagged,
+                    AuditorFlagsGood: Bad ? null : alone, AuditorFlagsBad: Bad ? alone : null);
             }
         }
 
@@ -181,12 +204,16 @@ namespace Nom.Import.Golden
                     var cases = AlcoholReadingCases(goldenDir).Take(limit ?? int.MaxValue).ToList();
                     var a = new OllamaWordingReader(http, host, model);
                     var b = new OllamaWordingReader(http, host, checkModel);
+                    var auditor = new OllamaWordingReader(http, host, AuditModelOf(lane, model, config[AuditModelKey])!);
                     var first = new List<IReadOnlyList<string?>>();
                     foreach (var c in cases) first.Add(await ReadFixedOrNothing(a, c.Pack, cancellationToken));
+                    var second = new List<IReadOnlyList<string?>>();
+                    foreach (var c in cases) second.Add(await ReadFixedOrNothing(b, c.Pack, cancellationToken));
                     for (var i = 0; i < cases.Count; i++)
                     {
-                        var (reading, _) = AlcoholFixedReading.Combine(cases[i].Pack, first[i], await ReadFixedOrNothing(b, cases[i].Pack, cancellationToken));
-                        results.Add(cases[i].Outcome(reading?.Code));
+                        var (reading, _) = AlcoholFixedReading.Combine(cases[i].Pack, first[i], second[i]);
+                        var audited = (await ReadFixedOrNothing(auditor, cases[i].Pack, cancellationToken)).FirstOrDefault();
+                        results.Add(cases[i].Outcome(reading?.Code, audited));
                         progress($"{lane}: {results.Count}/{cases.Count}");
                     }
                     return results;

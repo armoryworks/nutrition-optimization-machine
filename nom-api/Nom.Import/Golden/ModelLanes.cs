@@ -19,7 +19,8 @@ using Nom.Orch.Services.Support;
 namespace Nom.Import.Golden
 {
     /// <summary>What one golden case got from the model, and whether that is the judged answer.</summary>
-    public sealed record LaneCaseResult(string Id, bool Pass, bool FalseAccept, bool CanFalseAccept, string Expected, string Actual, string JudgedBy, bool? Accepted = null, bool? Flagged = null);
+    public sealed record LaneCaseResult(string Id, bool Pass, bool FalseAccept, bool CanFalseAccept, string Expected, string Actual, string JudgedBy, bool? Accepted = null, bool? Flagged = null,
+        bool? AuditorFlagsGood = null, bool? AuditorFlagsBad = null);
 
     /// <summary>
     /// One operator run of a model lane over its golden set: the lane's prompt signature, the model
@@ -54,6 +55,13 @@ namespace Nom.Import.Golden
         public int? AuditFlaggedBad { get; set; }
         public int? AuditKnownGood { get; set; }
         public int? AuditFlaggedGood { get; set; }
+
+        /// <summary>The auditor a lane also scored alone (link-audit: the model scored; alcohol-reading: the fixed-reading auditor), and its own flags on known-bad and known-good cases.</summary>
+        public string? AuditModel { get; set; }
+        public int? AuditorKnownBad { get; set; }
+        public int? AuditorFlaggedBad { get; set; }
+        public int? AuditorKnownGood { get; set; }
+        public int? AuditorFlaggedGood { get; set; }
     }
 
     /// <summary>
@@ -95,6 +103,7 @@ namespace Nom.Import.Golden
         public const string AlcoholReadingLane = WordingReaderRecords.AlcoholLane;
         public const string LinkAuditLane = WordingReaderRecords.AuditLane;
         public const string CheckModelKey = "Golden:CheckModel";
+        public const string AuditModelKey = "Golden:AuditModel";
         public const string FloorsFile = "model-lanes.json";
         public const string ScoresFolder = "scores";
         public const int PickBatch = 6;
@@ -122,10 +131,11 @@ namespace Nom.Import.Golden
 
         private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-        public static IConfiguration Config(string host, string model, string? checkModel = null) => new ConfigurationBuilder()
+        public static IConfiguration Config(string host, string model, string? checkModel = null, string? auditModel = null) => new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [CheckModelKey] = checkModel,
+                [AuditModelKey] = auditModel,
                 ["Ai:BatchOllamaUrl"] = host,
                 ["Ai:LinkModel"] = model,
                 ["Ai:RepairModel"] = model,
@@ -215,8 +225,15 @@ namespace Nom.Import.Golden
             var gated = results.Where(r => r.Accepted != null).ToList();
             var taken = gated.Count(r => r.Accepted == true);
             var flagged = results.Where(r => r.Flagged != null).ToList();
+            var auditedBad = results.Where(r => r.AuditorFlagsBad != null).ToList();
+            var auditedGood = results.Where(r => r.AuditorFlagsGood != null).ToList();
+            var auditor = auditedBad.Count > 0 || auditedGood.Count > 0;
             return new LaneScore
             {
+                AuditorKnownBad = auditor ? auditedBad.Count : null,
+                AuditorFlaggedBad = auditor ? auditedBad.Count(r => r.AuditorFlagsBad == true) : null,
+                AuditorKnownGood = auditor ? auditedGood.Count : null,
+                AuditorFlaggedGood = auditor ? auditedGood.Count(r => r.AuditorFlagsGood == true) : null,
                 AuditKnownBad = flagged.Count == 0 ? null : flagged.Count(r => r.CanFalseAccept),
                 AuditFlaggedBad = flagged.Count == 0 ? null : flagged.Count(r => r.CanFalseAccept && r.Flagged == true),
                 AuditKnownGood = flagged.Count == 0 ? null : flagged.Count(r => !r.CanFalseAccept),

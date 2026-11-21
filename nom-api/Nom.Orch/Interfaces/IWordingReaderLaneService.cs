@@ -23,15 +23,19 @@ namespace Nom.Orch.Interfaces
         /// <summary>
         /// Reads at most <paramref name="max"/> wordings. <paramref name="modes"/> gives each tier's
         /// mode (missing is shadow); <paramref name="remaining"/> the writes each tier may still make
-        /// in 24 hours (missing is no cap).
+        /// in 24 hours (missing is no cap); <paramref name="linesRemaining"/> the lines the lane may
+        /// still move in 24 hours over all its tiers (null is no cap).
         /// </summary>
-        Task<WordingReaderBatchResult> RunBatchAsync(IReadOnlyDictionary<string, string> modes, int max, IReadOnlyDictionary<string, int>? remaining = null, CancellationToken cancellationToken = default);
+        Task<WordingReaderBatchResult> RunBatchAsync(IReadOnlyDictionary<string, string> modes, int max, IReadOnlyDictionary<string, int>? remaining = null, CancellationToken cancellationToken = default, int? linesRemaining = null);
 
         /// <summary>Audits a sample of the tier's decisions and evaluates the tier on the frame with its faults and its golden records.</summary>
         Task<LaneQualifyVerdict> AuditAndEvaluateAsync(string tier, IReadOnlyList<string> faults, CancellationToken cancellationToken = default);
 
         /// <summary>The tier's decisions that write in the last 24 hours, against its daily cap.</summary>
         Task<int> WritesTodayAsync(string tier, CancellationToken cancellationToken = default);
+
+        /// <summary>The lines of the wordings the lane wrote live in the last 24 hours, over all its tiers, against its daily line cap.</summary>
+        Task<int> LinesWrittenTodayAsync(CancellationToken cancellationToken = default);
     }
 
     /// <summary>
@@ -57,9 +61,12 @@ namespace Nom.Orch.Interfaces
 
     /// <summary>
     /// The models the wording reader lane asks: reader A and reader B (of different families, from
-    /// the roster), the refuter (reader A's model), and the frame's audit: the auditor (the roster's
-    /// auditor, a third family) reading a sampled decision, confirmed by reader B re-reading it
-    /// blind. The sentinel is the auditor's same-food judge on moved lines.
+    /// the roster), the refuter (reader A's model), and the frame's audit by the auditor (the
+    /// roster's auditor, a third family): its same-food judge reading a sampled food or lexicon
+    /// decision's pair, and the same model in the fixed-reading mode reading a sampled alcohol
+    /// decision's lines with their recipes. Both readers made every decision audited, so neither
+    /// may confirm the auditor's flag; the flag stands alone and is corrected with the auditor's own
+    /// golden score. The sentinel is the auditor's same-food judge on moved lines.
     /// </summary>
     public interface IWordingReaders
     {
@@ -68,8 +75,7 @@ namespace Nom.Orch.Interfaces
         IWordingReader ReaderB { get; }
         IIngredientLinkVerifier Sentinel { get; }
         string AuditorModel { get; }
-        string CheckModel { get; }
         ILaneAuditor Auditor { get; }
-        ILaneAuditCheck Check { get; }
+        ILaneAuditor FixedAuditor { get; }
     }
 }

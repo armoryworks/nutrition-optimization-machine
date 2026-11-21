@@ -15,7 +15,7 @@ using Xunit.Abstractions;
 
 namespace Nom.Api.Tests.Services
 {
-    /// <summary>The wording reader lane's selection queries (the tiers' decisions, its own decisions, the sole-blocked recipes) and the lexicon read translate to Postgres SQL with no client evaluation.</summary>
+    /// <summary>The wording reader lane's selection queries (the tiers' decisions, its own decisions, the sole-blocked recipes), its recovery and fixed-reading source queries and the lexicon read translate to Postgres SQL with no client evaluation.</summary>
     public class WordingReaderPostgresTranslationTests
     {
         private readonly ITestOutputHelper _output;
@@ -66,11 +66,15 @@ namespace Nom.Api.Tests.Services
             var decided = await Capture("decided", db => WordingReaderLaneService.DecidedQuery(db).ToListAsync());
             var blockers = await Capture("blockers", db => WordingReaderLaneService.BlockersQuery(db, new List<long> { 1, 2 }).ToListAsync());
             var lexicon = await Capture("lexicon", db => db.WordingLexicon.Select(l => new { l.Term, l.Means }).ToListAsync());
+            var orphans = await Capture("orphans", db => WordingReaderLaneService.OrphanQuery(db, DateTime.UtcNow).ToListAsync());
+            var sources = await Capture("source lines", db => WordingReaderLaneService.SourceLinesQuery(db, new List<string> { "cider" }).ToListAsync());
 
             tiers.Should().ContainEquivalentOf("distinct").And.ContainEquivalentOf("like");
             decided.Should().ContainEquivalentOf("like");
             blockers.Should().ContainEquivalentOf("not exists").And.ContainEquivalentOf("count(distinct");
             lexicon.Should().Contain("\"WordingLexicon\"");
+            orphans.Should().ContainEquivalentOf("not exists").And.ContainEquivalentOf("like");
+            sources.Should().ContainEquivalentOf("group by").And.ContainEquivalentOf("lower(");
         }
     }
 }

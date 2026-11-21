@@ -23,7 +23,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class AlcoholFixedReading
     {
-        public const string Version = "alcohol-fixed-reading/1";
+        public const string Version = "alcohol-fixed-reading/2";
 
         public const string Wine = "wine";
         public const string Cider = "cider";

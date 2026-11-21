@@ -134,6 +134,17 @@ namespace Nom.Orch.Services.Support
 
         public static string BatchName(string tier, DateTime at) => string.Create(CultureInfo.InvariantCulture, $"{BatchPrefix}{tier}-{at:yyyyMMddHHmmss}");
 
+        /// <summary>The tier a batch name of <see cref="BatchName"/> was written by, or null for another name.</summary>
+        public static string? TierOfBatch(string? batch)
+        {
+            if (batch == null || !batch.StartsWith(BatchPrefix, StringComparison.Ordinal)) return null;
+            var rest = batch[BatchPrefix.Length..];
+            var cut = rest.LastIndexOf('-');
+            if (cut <= 0) return null;
+            var tier = rest[..cut];
+            return Tiers.Contains(tier) ? tier : null;
+        }
+
         /// <summary>The evidence a row is loaded on: the wording's line count, so a retracted pair is written again only once its lines have doubled.</summary>
         public static string EvidenceKey(int lines) => string.Create(CultureInfo.InvariantCulture, $"{EvidencePrefix}{Math.Max(1, lines)}");
 

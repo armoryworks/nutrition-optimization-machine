@@ -118,8 +118,8 @@ An operator's apply records its moves and take-backs on the frame too (mode live
 `POST audit/{set}` can audit them. `AuditAndEvaluateAsync` evaluates a set with the committed
 `scores/link-audit.json` (lane `link-audit`, scored by the wording readers' scorer, see
 `wording-readers.md`): its known-bad and known-good flags are the audit check's score, and a record
-that is missing, or scored another auditor or reader B than the set is audited with, keeps the set in
-shadow. Until that record is committed the sets are applied by an operator, one dry run at a time,
+that is missing, scored another same-food judge prompt (its `signature`), another auditor or reader B
+than the set is audited with, or below its `model-lanes.json` floor (75 %), keeps the set in shadow. Until that record is committed the sets are applied by an operator, one dry run at a time,
 and the lane decides in shadow.
 
 ## Status

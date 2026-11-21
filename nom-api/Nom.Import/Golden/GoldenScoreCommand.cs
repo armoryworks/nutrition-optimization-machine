@@ -10,7 +10,7 @@ namespace Nom.Import.Golden
 {
     /// <summary>
     /// Scores one model lane against its golden set on a model host the operator names:
-    /// <c>dotnet run -- --golden-score --lane link-verify --host http://ai-host:11434 --model qwen3:8b [--limit 200] [--golden &lt;dir&gt;] [--out failures.tsv] [--record]</c>; the prose lanes also take <c>[--check-model mistral-nemo]</c>, the judge that checks the writer, and the reader lanes (wording-read, wording-lexicon, alcohol-reading) and link-audit take it as reader B (default the roster's), which the record names.
+    /// <c>dotnet run -- --golden-score --lane link-verify --host http://ai-host:11434 --model qwen3:8b [--limit 200] [--golden &lt;dir&gt;] [--out failures.tsv] [--record]</c>; the prose lanes also take <c>[--check-model mistral-nemo]</c>, the judge that checks the writer, and the reader lanes (wording-read, wording-lexicon, alcohol-reading) and link-audit take it as reader B (default the roster's), which the record names; alcohol-reading also takes <c>[--audit-model phi4]</c>, the auditor it scores in the fixed-reading mode (default the roster's).
     /// Prints the lane's score, its false-accept rate, the floor from <c>model-lanes.json</c> and every
     /// case that passed in the recorded run and fails now, and exits 1 when the lane is below its
     /// floor. <c>--record</c> writes the score file the release gate reads. Refused under CI, and it
@@ -34,7 +34,7 @@ namespace Nom.Import.Golden
             var model = Option(args, "--model") ?? (noModel ? ModelLanes.NoModelVersion(lane!) : null);
             if (lane == null || host == null || model == null || !ModelLanes.Scored.Contains(lane))
             {
-                Console.Error.WriteLine($"usage: {Flag} --lane <{string.Join('|', ModelLanes.Scored)}> --host <url> --model <name> [--limit N] [--golden <dir>] [--out <file>] [--record] [--check-model <name>] ({string.Join(", ", ModelLanes.NoModel)} needs no host or model)");
+                Console.Error.WriteLine($"usage: {Flag} --lane <{string.Join('|', ModelLanes.Scored)}> --host <url> --model <name> [--limit N] [--golden <dir>] [--out <file>] [--record] [--check-model <name>] [--audit-model <name>] ({string.Join(", ", ModelLanes.NoModel)} needs no host or model)");
                 return 2;
             }
 
@@ -55,7 +55,7 @@ namespace Nom.Import.Golden
             IReadOnlyList<LaneCaseResult> results;
             try
             {
-                results = await ModelLanes.RunAsync(lane, goldenDir, http, ModelLanes.Config(host, model, Option(args, "--check-model")), limit, Console.Error.WriteLine);
+                results = await ModelLanes.RunAsync(lane, goldenDir, http, ModelLanes.Config(host, model, Option(args, "--check-model"), Option(args, "--audit-model")), limit, Console.Error.WriteLine);
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
@@ -64,6 +64,7 @@ namespace Nom.Import.Golden
             }
             var score = ModelLanes.Score(lane, model, Uri.TryCreate(host, UriKind.Absolute, out var uri) ? uri.Host : host, signature, results);
             score.CheckModel = ModelLanes.CheckModelOf(lane, Option(args, "--check-model"));
+            if (score.AuditorKnownBad != null) score.AuditModel = ModelLanes.AuditModelOf(lane, model, Option(args, "--audit-model"));
             var breaches = ModelLanes.Breaches(score, floor);
             var regressed = recorded?.CaseSet == score.CaseSet ? ModelLanes.Regressed(recorded, results) : Array.Empty<LaneCaseResult>();
 

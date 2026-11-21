@@ -125,8 +125,9 @@ description) with the link lane's same-food judge (`OllamaIngredientLinkVerifier
 a variety, a different food or several foods is a flag, `unsure` no answer. A flag counts as an error
 only when reader B (`mistral-nemo`) re-reading the pair blind also calls it wrong. The combined
 check's score comes from the committed `scores/link-audit.json` (built into the API); without that
-record, or with one scored on another auditor model or another reader B (the record's `model` and
-`checkModel`), no tier can leave shadow. The scorer lane `link-audit` that writes it is the wording
+record, or with one scored on another same-food judge prompt (its `signature`), another auditor model
+or another reader B (the record's `model` and `checkModel`), or below its floor (75 %), no tier can
+leave shadow. The scorer lane `link-audit` that writes it is the wording
 readers' (`wording-readers.md`).
 
 **Undo.** `WordingTierUndo` (the frame's self-undo, and `POST /api/Pipeline/frame/wording-tiers/<tier>/undo`)

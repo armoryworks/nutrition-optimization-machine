@@ -1,4 +1,5 @@
 using Nom.Orch.Interfaces;
+using Nom.Orch.Services;
 using Nom.Orch.Services.Support;
 
 namespace Nom.Api.Services
@@ -15,8 +16,9 @@ namespace Nom.Api.Services
     /// so ai-pause-all and quiet hours hold it too.
     ///
     /// Off unless WordingReaders:Enabled=true. WordingReaders:BatchSize (default 60) wordings per pass;
-    /// WordingReaders:MaxPerDay (default 300) food rows per tier in 24 hours and
-    /// WordingReaders:LexiconMaxPerDay (default 30) lexicon entries; WordingReaders:PauseSeconds
+    /// WordingReaders:MaxPerDay (default 300) food rows per tier in 24 hours,
+    /// WordingReaders:MaxLinesPerDay (default 10,000) lines of the wordings written over all tiers in
+    /// 24 hours, and WordingReaders:LexiconMaxPerDay (default 30) lexicon entries; WordingReaders:PauseSeconds
     /// (default 5) between passes; WordingReaders:IdleMinutes (default 60) once nothing waits.
     /// </summary>
     public class WordingReaderHostedService : BackgroundService
@@ -45,6 +47,9 @@ namespace Nom.Api.Services
             return caps;
         }
 
+        /// <summary>The lines of the wordings the lane may write in 24 hours over all its tiers.</summary>
+        public static int LinesCap(IConfiguration configuration) => Math.Max(0, configuration.GetValue("WordingReaders:MaxLinesPerDay", WordingReaderLaneService.MaxLinesPerDay));
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             if (!Enabled(_configuration))
@@ -58,9 +63,10 @@ namespace Nom.Api.Services
             var pause = TimeSpan.FromSeconds(Math.Max(0, _configuration.GetValue("WordingReaders:PauseSeconds", 5)));
             var idle = TimeSpan.FromMinutes(Math.Max(1, _configuration.GetValue("WordingReaders:IdleMinutes", 60)));
             var caps = Caps(_configuration);
+            var linesCap = LinesCap(_configuration);
             var backoff = TimeSpan.FromMinutes(5);
-            _logger.LogInformation("Wording reader lane on: {Batch} wordings per pass, at most {PerTier} food rows per tier and {Lexicon} lexicon entries in 24 h",
-                batchSize, caps[WordingReaders.Read], caps[WordingReaders.Lexicon]);
+            _logger.LogInformation("Wording reader lane on: {Batch} wordings per pass, at most {PerTier} food rows per tier, {Lines} lines and {Lexicon} lexicon entries in 24 h",
+                batchSize, caps[WordingReaders.Read], linesCap, caps[WordingReaders.Lexicon]);
 
             if (!await Delay(TimeSpan.FromMinutes(5), stoppingToken)) return;
 
@@ -80,7 +86,8 @@ namespace Nom.Api.Services
                         remaining[tier] = Math.Max(0, caps[tier] - await lane.WritesTodayAsync(tier, stoppingToken));
                     }
 
-                    var batch = await lane.RunBatchAsync(modes, batchSize, remaining, stoppingToken);
+                    var linesRemaining = Math.Max(0, linesCap - await lane.LinesWrittenTodayAsync(stoppingToken));
+                    var batch = await lane.RunBatchAsync(modes, batchSize, remaining, stoppingToken, linesRemaining);
                     foreach (var tier in batch.Tiers.Where(t => WordingReaders.Tiers.Contains(t)))
                     {
                         var verdict = await lane.AuditAndEvaluateAsync(tier, batch.FaultsByTier.TryGetValue(tier, out var faults) ? faults : new List<string>(), stoppingToken);
