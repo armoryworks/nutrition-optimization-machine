@@ -25,6 +25,10 @@ RULES
 4. Attribution: a book's recipes were imported with the book's attribution. Give the same
    mapping the promoter used with --attribution-csv (one row per file); a file not in it is sent
    without one, and nom-api then uses the record's own author and site, as the import did.
+5. A newer extraction of a book (ops/cookbook-extract.py) names in each record the recipe whose
+   source it replaces ("replacesRecipeId", taken from this script's log of the first attach).
+   The key is taken out of the record and sent as the batch's recipeIds; with --new-version
+   nom-api stores the record as the next version on that recipe only.
 
 USAGE
 -----
@@ -56,6 +60,7 @@ USER_AGENT = "nom-recipe-source-attach/1.0"
 OUTCOMES = ("matched", "already-attached", "unmatched", "ambiguous", "low-score", "double-match", "conflict")
 TARGET_KINDS = ("cookbook", "myplate")
 TARGET_RATE = 0.99
+PIN_KEY = "replacesRecipeId"
 
 
 def log(message: str) -> None:
@@ -241,7 +246,10 @@ def attach(files: Iterable[str], post: Post, attributions: dict[str, str], apply
             counts["records"] += unread
             counts["unread"] += unread
         for batch in chunks(items, batch_size):
-            body = {"records": [item.record for item in batch], "sourceAttribution": attribution}
+            pins = [item.record.get(PIN_KEY) for item in batch]
+            body = {"records": [{k: v for k, v in item.record.items() if k != PIN_KEY} for item in batch], "sourceAttribution": attribution}
+            if any(pin is not None for pin in pins):
+                body["recipeIds"] = pins
             try:
                 result = post(ATTACH_PATH, params, body)
             except Exception as exc:

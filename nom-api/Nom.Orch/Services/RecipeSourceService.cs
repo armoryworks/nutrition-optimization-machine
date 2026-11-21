@@ -30,6 +30,9 @@ namespace Nom.Orch.Services
         public const string UndoChangeType = "SourceAttachUndo";
         public const double MinimumLineAgreement = 0.8;
 
+        /// <summary>How a record named by its recipe (a newer extraction of a book) was matched.</summary>
+        public const string PinnedBy = "pin";
+
         private const int IdsPerRead = 1000;
 
         private readonly ApplicationDbContext _db;
@@ -88,9 +91,23 @@ namespace Nom.Orch.Services
             var byName = await CandidatesAsync(
                 prepared.Where(p => p.Url == null || !byUrl.Contains(p.Url)).Select(p => p.Name).Distinct().ToList(), byUrl: false);
 
+            var pins = request.RecipeIds ?? new List<long?>();
+            var pinnedIds = pins.Where(id => id != null).Select(id => id!.Value).Distinct().ToList();
+            var pinned = pinnedIds.Count == 0
+                ? new Dictionary<long, Candidate>()
+                : await _db.Recipes.AsNoTracking().Where(r => pinnedIds.Contains(r.Id))
+                    .Select(r => new Candidate(r.Id, r.SourceUrl, r.Name, r.SourceAttribution)).ToDictionaryAsync(c => c.Id);
+            var pinnedTwice = pins.Where(id => id != null).GroupBy(id => id!.Value).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
+
             var candidatesOf = new Dictionary<int, (string By, List<Candidate> Recipes)>();
             foreach (var p in prepared)
             {
+                if (p.Index < pins.Count && pins[p.Index] is { } pin)
+                {
+                    if (pinned.TryGetValue(pin, out var recipe)) candidatesOf[p.Index] = (PinnedBy, new List<Candidate> { recipe });
+                    continue;
+                }
+
                 if (p.Url != null && byUrl[p.Url].ToList() is { Count: > 0 } urlMatches)
                 {
                     candidatesOf[p.Index] = ("url", urlMatches);
@@ -131,6 +148,13 @@ namespace Nom.Orch.Services
                 var best = outcome.Candidates[0];
                 outcome.Score = best.Score;
 
+                if (found.By == PinnedBy && pinnedTwice.Contains(best.RecipeId))
+                {
+                    outcome.Outcome = RecipeSourceAttachOutcome.DoubleMatch;
+                    outcome.RecipeId = best.RecipeId;
+                    continue;
+                }
+
                 if (found.Recipes.FirstOrDefault(c => Held(c.Id).Any(d => d.Format == p.Format && d.ContentSha256 == p.Sha256)) is { } holder)
                 {
                     outcome.Outcome = RecipeSourceAttachOutcome.AlreadyAttached;
@@ -139,7 +163,13 @@ namespace Nom.Orch.Services
                     continue;
                 }
 
-                if (best.Score < MinimumLineAgreement)
+                if (found.By == PinnedBy && Held(best.RecipeId).All(d => d.Format != p.Format))
+                {
+                    outcome.Outcome = RecipeSourceAttachOutcome.Unmatched;
+                    continue;
+                }
+
+                if (best.Score < MinimumLineAgreement && found.By != PinnedBy)
                 {
                     outcome.Outcome = RecipeSourceAttachOutcome.LowScore;
                     continue;

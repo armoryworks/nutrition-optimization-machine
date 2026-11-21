@@ -52,6 +52,7 @@ namespace Nom.Orch.Services
                 : await query.ToListAsync(cancellationToken);
             if (recipes.Count == 0) return new ScrapedRepairBatchResult(0, 0, 0, 0, 0, afterRecipeId);
             var held = await RecipeLineHold.HeldAsync(_context, recipes.Select(r => r.Id).ToList(), cancellationToken);
+            var rebuilt = await RecipeReprocessService.RebuiltRecipesAsync(_context, recipes.Select(r => r.Id).ToList(), cancellationToken);
             var now = DateTime.UtcNow;
             var foodIds = recipes.SelectMany(r => r.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>())
                 .Where(ri => ri.Quantity == 0 || (measurements.TryGetValue(IngredientLineParser.Piece, out var piece) && ri.MeasurementId == piece))
@@ -64,6 +65,7 @@ namespace Nom.Orch.Services
             int repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0;
             foreach (var recipe in recipes)
             {
+                if (rebuilt.Contains(recipe.Id)) continue;
                 var reviewable = recipe.DateCurationCompleted == null
                     && (recipe.CurationStatusId == (long)CurationStatusEnum.RequiresRevision
                         || recipe.CurationStatusId == (long)CurationStatusEnum.NonCurated);
@@ -95,7 +97,7 @@ namespace Nom.Orch.Services
 
             await _context.SaveChangesAsync(cancellationToken);
             _context.ChangeTracker.Clear();
-            return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded, held.Count);
+            return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded, held.Except(rebuilt).Count(), rebuilt.Count);
         }
 
         /// <summary>

@@ -16,9 +16,10 @@ namespace Nom.Orch.Interfaces
         /// <summary>
         /// Rebuilds the given recipes, or with <paramref name="orderOnly"/> only sets the order of
         /// their lines from the source and changes nothing else. Without <paramref name="apply"/>
-        /// nothing is written and the result is what the same call would do.
+        /// nothing is written and the result is what the same call would do. <paramref name="batchId"/>
+        /// names the batch (the reprocess lane's own); a new one is made when it is null.
         /// </summary>
-        Task<RecipeReprocessResult> RebuildAsync(RecipeReprocessRequestModel request, bool apply = false, bool orderOnly = false);
+        Task<RecipeReprocessResult> RebuildAsync(RecipeReprocessRequestModel request, bool apply = false, bool orderOnly = false, string? batchId = null);
 
         /// <summary>
         /// Soft-deletes the second copies of recipes imported twice (same URL, or same name and
@@ -30,8 +31,9 @@ namespace Nom.Orch.Interfaces
         /// <summary>
         /// Takes back the reprocess writes made at or after <paramref name="sinceUtc"/>, or of one
         /// batch, newest first, limited to one kind when given. A write whose recipe changed since is
-        /// skipped. Without <paramref name="apply"/> nothing is written.
+        /// skipped. With <paramref name="laneOnly"/> only the reprocess lane's batches are taken back.
+        /// Without <paramref name="apply"/> nothing is written.
         /// </summary>
-        Task<RecipeReprocessUndoResult> UndoAsync(DateTime? sinceUtc, string? batchId, string? kind = null, bool apply = false);
+        Task<RecipeReprocessUndoResult> UndoAsync(DateTime? sinceUtc, string? batchId, string? kind = null, bool apply = false, bool laneOnly = false);
     }
 }

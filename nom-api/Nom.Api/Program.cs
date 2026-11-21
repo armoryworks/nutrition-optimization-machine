@@ -395,6 +395,7 @@ builder.Services.AddOptions<Nom.Orch.Settings.LaneModelRoster>()
     .Bind(builder.Configuration.GetSection(Nom.Orch.Settings.LaneModelRoster.SectionName))
     .ValidateOnStart();
 builder.Services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<Nom.Orch.Settings.LaneModelRoster>, Nom.Orch.Settings.LaneModelRosterValidation>();
+if (Nom.Orch.Services.OllamaLineJudge.FamilyProblem(builder.Configuration) is { } lineJudgeProblem) throw new InvalidOperationException(lineJudgeProblem);
 builder.Services.AddSingleton<Nom.Api.Services.AiLaneGate>();
 builder.Services.AddSingleton<Nom.Api.Services.IAiLaneStatus>(sp => sp.GetRequiredService<Nom.Api.Services.AiLaneGate>());
 builder.Services.AddHttpClient(Nom.Api.Services.AiHostMonitor.ProbeClientName);
@@ -439,6 +440,11 @@ builder.Services.AddHttpClient<Nom.Orch.Interfaces.IRecipeClassificationModel, N
     client => client.Timeout = TimeSpan.FromSeconds(300))
     .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.LineClassify));
 builder.Services.AddHostedService<Nom.Api.Services.RecipeLineClassifyHostedService>();
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IReprocessLineJudge, Nom.Orch.Services.OllamaLineJudge>(
+    client => client.Timeout = TimeSpan.FromSeconds(300))
+    .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.Reprocess));
+builder.Services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.ReprocessLaneUndo>();
+builder.Services.AddHostedService<Nom.Api.Services.ReprocessHostedService>();
 
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();

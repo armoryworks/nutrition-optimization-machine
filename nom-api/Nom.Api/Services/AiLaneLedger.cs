@@ -8,7 +8,8 @@ namespace Nom.Api.Services
     /// <summary>
     /// Counts a lane's items since a time from the rows the lane itself writes, so a daily cap
     /// survives a restart: repair and line classification by their attempt audit rows, the link
-    /// picker by its model proposals, prose rewrite and tool tagging by their recipe stamps.
+    /// picker by its model proposals, prose rewrite and tool tagging by their recipe stamps, the
+    /// reprocess lane by its decisions on the lane frame.
     /// Dish grouping keeps no record of when it ran, so it has no ledger (null).
     /// </summary>
     public static class AiLaneLedger
@@ -31,6 +32,8 @@ namespace Nom.Api.Services
                     return await db.Recipes.CountAsync(r => r.ProseRewriteAttemptedAt >= since, cancellationToken);
                 case AiLanes.ToolTagging:
                     return await db.Recipes.CountAsync(r => r.ToolsTaggedAt >= since, cancellationToken);
+                case AiLanes.Reprocess:
+                    return await db.LaneDecisions.CountAsync(d => d.Lane == AiLanes.Reprocess && d.CreatedDate >= since, cancellationToken);
                 default:
                     return null;
             }

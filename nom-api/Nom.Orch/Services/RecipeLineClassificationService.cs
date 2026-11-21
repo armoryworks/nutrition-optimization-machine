@@ -68,7 +68,7 @@ namespace Nom.Orch.Services
                 .Select(a => a.EntityId)
                 .ToListAsync(cancellationToken)).ToHashSet();
 
-            var held = await RecipeLineHold.HeldAsync(_db, ids, cancellationToken);
+            var held = await RecipeLineHold.HeldAsync(_db, ids, cancellationToken, RecipeReprocessService.ReprocessChangeType);
 
             int deterministic = 0, classified = 0, unclassified = 0, cleared = 0, calls = 0, suggested = 0;
             foreach (var recipe in recipes)

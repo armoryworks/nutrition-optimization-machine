@@ -259,6 +259,21 @@ class AttachTests(unittest.TestCase):
 
         self.assertEqual(summary.target(), {"records": 100, "matchedOrAttached": 99, "rate": 0.99, "doubles": 0, "met": True})
 
+    def test_a_pinned_record_sends_its_recipe_in_recipe_ids_and_not_in_the_record(self):
+        pinned = record("Shortcrust pastry", "100 grams of butter")
+        pinned["replacesRecipeId"] = 17338
+        path = self.files.write("cookbook-artusi-v2.jsonl", [pinned, record("Gingerbread", "1 cup molasses")])
+        stand_in = StandIn(lambda rec, _: ("matched", 17338))
+
+        attach.attach([path], stand_in, {}, apply=False, new_version=True)
+
+        body = stand_in.calls[0][2]
+        self.assertEqual(body["recipeIds"], [17338, None])
+        self.assertNotIn("replacesRecipeId", body["records"][0])
+        stand_in = StandIn(lambda rec, _: ("matched", 1))
+        attach.attach([self.files.write("cookbook-plain.jsonl", [record("Gingerbread", "1 cup molasses")])], stand_in, {})
+        self.assertNotIn("recipeIds", stand_in.calls[0][2])
+
     def test_apply_and_new_version_are_passed_on(self):
         book = self.files.write("cookbook-pg1.jsonl", [record("Gingerbread", "1 cup molasses")])
         stand_in = StandIn(lambda rec, attribution: ("matched", 10))

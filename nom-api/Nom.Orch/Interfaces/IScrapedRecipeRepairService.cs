@@ -13,7 +13,8 @@ namespace Nom.Orch.Interfaces
         long LastRecipeId,
         int StepsSplit = 0,
         int TextDecoded = 0,
-        int RecipesHeld = 0);
+        int RecipesHeld = 0,
+        int RecipesRebuilt = 0);
 
     /// <summary>
     /// Rebuilds ingredient quantities on scraped recipes from each row's RawLine, divides a

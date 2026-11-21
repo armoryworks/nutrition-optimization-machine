@@ -43,7 +43,9 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `alcohol-context.tsv` + `gate-catalog.tsv` | `AlcoholLineContext.Read` and `.Refuse` (the alcohol sense rules, see `alcohol-context.md`) | `expect` (the sense code), `allows` (an FDC id the sense must allow, or `-`), `refuses` (an FDC id it must refuse, or `-`); `title`, `context` (the recipe's other lines, `;`-joined) and `site` give the recipe | `status` |
 | `catalog-admission.tsv` | `CatalogAdmissionRule.Decide` (USDA catalog admission: status, group from category, edibility, energy check, reasons, prepared food) | `expectStatus` (`Curated`, `PendingCuration`; the rule never rejects, and a food of the four prepared-food categories is judged like any other), `expectGroup`, `expectEdible`, `expectEnergy`, `expectReason`, `expectPrepared` (`true` for a Foundation or SR Legacy food of Baby Foods, Fast Foods, Meals, Entrees and Side Dishes, or Restaurant Foods) | `status` |
 | `recipes.json` + `measurements.tsv` | `RecipeNutritionService.RecalculateAsync`, `.StatusFor` | `expected.calories/protein/fat` (4 dp), `countedLines`, `handLabel` | `status` |
+| `recipes-rebuild.tsv` | `RecipeReprocessService.RebuildAsync` with apply (a recipe rebuilt in place from its stored record, see `recipe-reprocess.md`): `lines` (the source's lines, ` ¦ `-joined), `stored` (the rows before, `<raw>@<position>=<food>:<quantity unit>` or `:-`, `#kind`), `catalog` (curated foods, `name|grams per item`), `steps`, `version` (2 or more: a newer extraction) | `expect` (the rows after, in order, `<food>:<quantity unit>`, `:-`, `#kind`) | `status` |
 | `line-labels.tsv` | model lane `line-classify` | `kind` | none (scored by the operator run) |
+| `lines.tsv` + `startup-fills.tsv` + `line-kinds.tsv` | model lane `line-judge` (the reprocess lane's line judge) | the right row of each judged row and a row with its class's defect | none (scored by the operator run) |
 | `link-pairs.tsv` + `gate-catalog.tsv` | scorer lane `link-gate` (no model) | `verdict` | none (scored by the record) |
 | `alcohol-context.tsv` + `gate-catalog.tsv` | scorer lane `alcohol-context` (no model) | `expect`, `allows`, `refuses` | `status` (and the record) |
 | `model-lanes.json` | every model lane | floors | — |
@@ -120,6 +122,7 @@ without it.
 | `alcohol-context.tsv` (2026-11-20) | 161 lines: the classes of the alcohol design (its sections 1 and 2.1: the wrong-link classes measured on staging and every place where the bare word misleads) and the false matches of the old diet patterns; expected senses and foods from the design's rules. Ten rows the builder judged where the design is silent (country wines, malt liquor, brandy snaps, beer batter, white zinfandel, "poached in", "rum and raisin ice cream", "brandy and water", dry cider, rice wine) | design rules (`rule:alcohol-context`, `ok`); the ten: the alcohol-context builder (`agent-review-alcohol-context-2026-11-20`, `agent`) |
 | `gate-catalog.tsv` (2026-11-20) | the curated foods and pending SR Legacy foods of staging (`staging/w01/foods.tsv`) with their USDA description, admission reason (none yet) and nutrient rows, and the USDA category from the SR Legacy 2018-04 and Foundation 2025-12-18 `food.csv` | catalog facts |
 | `line-labels.tsv` | 120 lines labelled not an ingredient that are exactly a curated food's name (ingredient by the veto rule) and 60 lines the deterministic pre-pass labelled | rule |
+| `recipes-rebuild.tsv` (2026-11-20, `cleanup2/reprocess-lane`) | 123 constructed recipes, two to four lines each, for the error classes of the reprocess design (section 1c): method fills (R7) and water fills, old measures and water on Piece (R5), `tablespn.`/`teaspn.` (R1), `tbp`, pinch and dash with no "of" (R2), "a couple of"/"a pair of" (R3), the amount after the name (R4), colon headings (R8), whole-food lists sharing a product (the rebuild keeps the current food; R9 belongs to the compound rules, D6), Artusi's Italian units (R6) and a newer English extraction replacing the mixed translation, junk foods named with an amount, lost order, and " + " folds; the design's own examples where it gives them. Three are `known` (baseline 3): a two-word food between the measure and its last word in the method ("three tablespoonfuls of olive oil"), "teacupful" missing from the method finder's measures, and "medium size" kept in a normalized name | rows that follow from a named rule: rule (`rule:R1` ... `rule:R8`, `rule:order`, `rule:fold`, `rule:residue`, `rule:current-link`, `ok`); the rest: the reprocess-lane builder (`agent-review-reprocess-lane-2026-11-20`, `agent`) |
 
 The judged pairs and wording moves were judged by agents, not by a person; their rows carry that in
 `judgedBy`/`source` and have status `agent` (6,702 in `link-pairs.tsv`, 791 rows in `links.tsv`), so
@@ -144,9 +147,22 @@ every file from the captures and the evidence, all rows `new`.
 ## Model lanes
 
 ```
-dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link-verify|line-classify|link-gate|alcohol-context> \
+dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link-verify|line-classify|link-gate|alcohol-context|line-judge> \
     --host http://<model host>:11434 --model <model tag> [--limit N] [--out failures.tsv] [--record]
 ```
+
+- `line-judge`: the reprocess lane's line judge (`OllamaLineJudge`, reader B of the roster). Every
+  judged row of `lines.tsv` (`parse`), `startup-fills.tsv` and `line-kinds.tsv` gives a right row and
+  a row with its class's defect (a stated measure counted in pieces, a stated amount lost, the fill
+  the row's note names, a heading as an ingredient, an ingredient as a note); each becomes a "better"
+  case (the wrong row rebuilt into the right one) and a "worse" case (the reverse), eight to a call. A
+  case passes when the judge answers as expected; a false accept is "better" on a worse case. Floors
+  (reprocess.md section 3): at least 95 %, at most 2 % false accepts. The record also counts the
+  combined audit check, the judge's "worse" confirmed by the rule audit `ReprocessRuleAudit` on the
+  case's new row (`auditKnownBad`, `auditFlaggedBad`, `auditKnownGood`, `auditFlaggedGood`); the
+  reprocess lane reads those as its audit check's score (the record is built into the API) and its
+  rebuild tier cannot leave shadow without a record of the current prompt (`OllamaLineJudge.Signature`)
+  and the model the lane asks. `required` is false until the first record is committed.
 
 - `link-gate` and `alcohol-context`: see below; they need no model.
 - `link-pick`: the ambiguous judged wordings (a staple or the name matcher would answer the rest),

@@ -340,6 +340,46 @@ describe('PipelineAdmin', () => {
     expect(byId(loaded(status()).nativeElement, 'pipeline-frame-error')).not.toBeNull();
   });
 
+  it('shows the rebuild lane: waiting by tier, reasons, the last batch with its faults and the line judge', () => {
+    const body = status();
+    body.reprocess = {
+      enabled: true,
+      ruleVersion: 'line-builder/2',
+      read: 120000,
+      readWithCurrentRules: 119500,
+      waiting: 4200,
+      waitingByTier: { rebuild: 3000, order: 1200 },
+      byReason: [
+        { code: 'D1', label: 'order lost', recipes: 105775, waiting: 1200 },
+        { code: 'D3', label: 'method fill fails its checks', recipes: 900, waiting: 850 },
+      ],
+      byOutcome: { rebuilt: 40, held: 3, shadow: 500 },
+      heldByReason: { 'person-edit': 3 },
+      lastDetectedAt: '2026-11-20T02:00:00Z',
+      judgeModel: 'mistral-nemo',
+      judgeProblem: 'the line judge has no golden score record',
+      lastBatches: [
+        { tier: 'rebuild', mode: 'shadow', stamp: '2026-11-20T10:00:00Z', taken: 100, rebuilt: 90, held: 4, unchanged: 6, failed: 0, linesChecked: 300, linesFailing: 9,
+          faults: ['the rule checks passed on 97.0% of 300 changed lines, under 98%'] },
+      ],
+    };
+    const el = loaded(body).nativeElement as HTMLElement;
+
+    expect(byId(el, 'pipeline-metric-reprocess-waiting')?.textContent?.trim()).toBe('4,200');
+    expect(byId(el, 'pipeline-metric-reprocess-waiting-order')?.textContent?.trim()).toBe('1,200');
+    expect(byId(el, 'pipeline-metric-reprocess-rebuilt')?.textContent?.trim()).toBe('40');
+    expect(byId(el, 'pipeline-metric-reprocess-undone')?.textContent?.trim()).toBe('0');
+    expect(byId(el, 'pipeline-reprocess-reason-D3')?.textContent).toContain('850 waiting');
+    expect(byId(el, 'pipeline-reprocess-batch-rebuild')?.textContent).toContain('291 of 300 changed lines');
+    expect(byId(el, 'pipeline-reprocess-batch-rebuild')?.textContent).toContain('under 98%');
+    expect(byId(el, 'pipeline-reprocess-judge')?.textContent).toContain('no golden score record');
+    expect(byId(el, 'pipeline-reprocess-state')?.textContent).toContain('119,500 of 120,000');
+  });
+
+  it('says so when the rebuild lane did not report', () => {
+    expect(byId(loaded(status()).nativeElement, 'pipeline-reprocess-empty')).not.toBeNull();
+  });
+
   it('runs a frame lane undo as a dry run and shows its counts', () => {
     const body = status();
     body.frame = frame([frameLane()]);

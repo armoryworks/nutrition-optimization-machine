@@ -94,6 +94,25 @@ namespace Nom.Api.Tests.Controllers
         }
 
         [Fact]
+        public async Task GetStatus_reports_the_reprocess_lane_and_whether_it_is_switched_on()
+        {
+            var reprocess = new Mock<IReprocessLaneService>();
+            reprocess.Setup(r => r.StatusAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((bool enabled, CancellationToken _) => new Nom.Orch.Models.Recipe.ReprocessLaneStatusModel { Enabled = enabled, Waiting = 12 });
+            var controller = new PipelineController(_pipeline.Object, _lanes.Object, _features.Object,
+                new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Ai:QuietHours"] = "", ["Reprocess:Enabled"] = "true" }).Build(),
+                _frame.Object, Options.Create(new LaneModelRoster()), reprocess.Object)
+            {
+                ControllerContext = Controller().ControllerContext,
+            };
+
+            var body = Body(await controller.GetStatus());
+
+            body.Reprocess.Should().Match<Nom.Orch.Models.Recipe.ReprocessLaneStatusModel>(r => r.Enabled && r.Waiting == 12);
+            Body(await Controller().GetStatus()).Reprocess.Should().BeNull("no lane service, no block");
+        }
+
+        [Fact]
         public async Task GetStatus_reports_every_model_lane_from_the_gate_with_its_pause_switch()
         {
             var body = Body(await Controller().GetStatus());

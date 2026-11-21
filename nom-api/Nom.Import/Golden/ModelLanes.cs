@@ -19,7 +19,7 @@ using Nom.Orch.Services.Support;
 namespace Nom.Import.Golden
 {
     /// <summary>What one golden case got from the model, and whether that is the judged answer.</summary>
-    public sealed record LaneCaseResult(string Id, bool Pass, bool FalseAccept, bool CanFalseAccept, string Expected, string Actual, string JudgedBy, bool? Accepted = null);
+    public sealed record LaneCaseResult(string Id, bool Pass, bool FalseAccept, bool CanFalseAccept, string Expected, string Actual, string JudgedBy, bool? Accepted = null, bool? Flagged = null);
 
     /// <summary>
     /// One operator run of a model lane over its golden set: the lane's prompt signature, the model
@@ -45,6 +45,12 @@ namespace Nom.Import.Golden
         public double? Precision { get; set; }
         public Dictionary<string, int[]> ByJudge { get; set; } = new();
         public List<string> Failed { get; set; } = new();
+
+        /// <summary>For a lane that is an audit check: known-bad cases, those its combined check flagged, known-good cases, and those it flagged.</summary>
+        public int? AuditKnownBad { get; set; }
+        public int? AuditFlaggedBad { get; set; }
+        public int? AuditKnownGood { get; set; }
+        public int? AuditFlaggedGood { get; set; }
     }
 
     /// <summary>
@@ -76,13 +82,15 @@ namespace Nom.Import.Golden
         public const string LineClassify = "line-classify";
         public const string LinkGateLane = "link-gate";
         public const string AlcoholContextLane = "alcohol-context";
+        public const string LineJudge = "line-judge";
         public const string FloorsFile = "model-lanes.json";
         public const string ScoresFolder = "scores";
         public const int PickBatch = 6;
         public const int VerifyBatch = 12;
         public const int ClassifyBatch = 20;
+        public const int JudgeBatch = 8;
 
-        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane };
+        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane, LineJudge };
 
         /// <summary>Lanes scored by rules alone: no host or model is asked, and the signature is the rules' own.</summary>
         public static readonly IReadOnlyList<string> NoModel = new[] { LinkGateLane, AlcoholContextLane };
@@ -101,6 +109,7 @@ namespace Nom.Import.Golden
                 ["Ai:LinkModel"] = model,
                 ["Ai:RepairModel"] = model,
                 ["IngredientLinking:VerifyModel"] = model,
+                ["Reprocess:JudgeModel"] = model,
             })
             .Build();
 
@@ -108,6 +117,7 @@ namespace Nom.Import.Golden
         {
             if (lane == LinkGateLane) return LinkGate.Signature;
             if (lane == AlcoholContextLane) return AlcoholLineContext.Signature;
+            if (lane == LineJudge) return OllamaLineJudge.Signature;
             var capture = new CapturingHandler();
             using var http = new HttpClient(capture);
             var config = Config("http://signature.invalid", "signature");
@@ -180,8 +190,13 @@ namespace Nom.Import.Golden
             var accepted = results.Count(r => r.FalseAccept);
             var gated = results.Where(r => r.Accepted != null).ToList();
             var taken = gated.Count(r => r.Accepted == true);
+            var flagged = results.Where(r => r.Flagged != null).ToList();
             return new LaneScore
             {
+                AuditKnownBad = flagged.Count == 0 ? null : flagged.Count(r => r.CanFalseAccept),
+                AuditFlaggedBad = flagged.Count == 0 ? null : flagged.Count(r => r.CanFalseAccept && r.Flagged == true),
+                AuditKnownGood = flagged.Count == 0 ? null : flagged.Count(r => !r.CanFalseAccept),
+                AuditFlaggedGood = flagged.Count == 0 ? null : flagged.Count(r => !r.CanFalseAccept && r.Flagged == true),
                 Lane = lane,
                 Model = model,
                 Host = host,
@@ -230,6 +245,19 @@ namespace Nom.Import.Golden
                     var catalog = GoldenGateCatalog(goldenDir);
                     var results = cases.Select(c => c.Outcome(LinkGate.Check(c.Pair, catalog))).ToList();
                     progress($"{lane}: {results.Count}/{cases.Count}");
+                    return results;
+                }
+                case LineJudge:
+                {
+                    var cases = JudgeCases(goldenDir).Take(limit ?? int.MaxValue).ToList();
+                    var judge = new OllamaLineJudge(http, config);
+                    var results = new List<LaneCaseResult>();
+                    foreach (var batch in cases.Chunk(JudgeBatch))
+                    {
+                        var verdicts = (await judge.JudgeAsync(batch.Select((c, i) => c.Case with { Id = i }).ToList(), cancellationToken)).ToDictionary(v => v.Id, v => v.Judgement);
+                        results.AddRange(batch.Select((c, i) => c.Outcome(verdicts.TryGetValue(i, out var v) ? v : null)));
+                        progress($"{lane}: {results.Count}/{cases.Count}");
+                    }
                     return results;
                 }
                 case LinkPick:
@@ -331,6 +359,87 @@ namespace Nom.Import.Golden
                     $"{Expect}{(Allows == null ? string.Empty : $", allows {Allows}")}{(Refuses == null ? string.Empty : $", refuses {Refuses}")}",
                     $"{reading}{(allowed ? string.Empty : $", refuses {Allows}")}{(refused ? string.Empty : $", allows {Refuses}")}", JudgedBy);
             }
+        }
+
+        /// <summary>
+        /// One line-judge case: a judged golden line with the row its golden file gives as right and
+        /// a row carrying the defect its class is about, one before and one after. A "better" case
+        /// rebuilds the wrong row into the right one, a "worse" case the right one into the wrong
+        /// one. <see cref="RuleFlags"/> is whether the rule audit fails on the case's new row, so a
+        /// run also scores the combined audit check (the judge's "worse" confirmed by the rule audit).
+        /// </summary>
+        public sealed record JudgeCase(string Id, LineJudgeCase Case, LineJudgement Expected, bool RuleFlags, string JudgedBy)
+        {
+            public LaneCaseResult Outcome(LineJudgement? verdict)
+            {
+                var worseCase = Expected == LineJudgement.Worse;
+                return new LaneCaseResult(Id, verdict == Expected, worseCase && verdict == LineJudgement.Better, worseCase,
+                    Expected.ToString().ToLowerInvariant(), verdict?.ToString().ToLowerInvariant() ?? "no readable answer", JudgedBy,
+                    Flagged: verdict == LineJudgement.Worse && RuleFlags);
+            }
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex NotedFill = new(@"filled with (?<q>\d+(?:\.\d+)?) (?<unit>[A-Z]\w+)");
+
+        /// <summary>
+        /// The line-judge cases of the judged rows of lines.tsv, startup-fills.tsv and line-kinds.tsv
+        /// (reprocess.md section 3): each row gives a right row and a wrong one, and becomes a "better"
+        /// case (wrong to right) and a "worse" case (right to wrong). The wrong row is the defect the
+        /// row's class is about: a stated measure counted in pieces, a stated amount lost, an amount
+        /// filled from the method that the golden row says the line has not (its note names the fill),
+        /// a heading made an ingredient, an ingredient made a note.
+        /// </summary>
+        public static IEnumerable<JudgeCase> JudgeCases(string goldenDir)
+        {
+            var judged = new[] { "ok", "agent" };
+            var invariant = System.Globalization.CultureInfo.InvariantCulture;
+            foreach (var r in GoldenTsv.Read(Path.Combine(goldenDir, "lines.tsv")).Rows)
+            {
+                if (!judged.Contains(r["parse"]) || r["quantity"] == GoldenTsv.NotJudged || r["measurement"] == GoldenTsv.NotJudged) continue;
+                var food = r.Value("wording") is { Length: > 0 } w && w != GoldenTsv.NotJudged ? w : r["raw"];
+                var quantity = r.Value("quantity") is { } q ? decimal.Parse(q, invariant) : 0m;
+                var unit = r.Value("measurement");
+                var right = new LineJudgeRow(food, quantity, quantity == 0 ? null : unit);
+                var wrong = quantity == 0 ? new LineJudgeRow(food, 1, IngredientLineParser.Piece)
+                    : unit == IngredientLineParser.Piece ? new LineJudgeRow(food, 0, null)
+                    : new LineJudgeRow(food, quantity, IngredientLineParser.Piece);
+                foreach (var c in JudgePair("lines:" + r.Id, r["raw"], string.Empty, right, wrong, false, r["source"])) yield return c;
+            }
+
+            foreach (var r in GoldenTsv.Read(Path.Combine(goldenDir, "startup-fills.tsv")).Rows)
+            {
+                if (!judged.Contains(r["status"])) continue;
+                var food = IngredientNameNormalizer.Normalize(r["part"]) is { Length: > 0 } n ? n : r["part"];
+                var method = r["steps"] == GoldenTsv.NoAnswer ? string.Empty : r["steps"].Replace(" ¦ ", " ", StringComparison.Ordinal);
+                var parts = r["expect"].Split(' ', 2);
+                var right = parts.Length == 2 && decimal.TryParse(parts[0], System.Globalization.NumberStyles.Number, invariant, out var expected)
+                    ? new LineJudgeRow(food, expected, parts[1])
+                    : new LineJudgeRow(food, 0, null);
+                var noted = NotedFill.Match(r["note"]);
+                var wrong = right.Quantity > 0 ? new LineJudgeRow(food, 0, null)
+                    : noted.Success ? new LineJudgeRow(food, decimal.Parse(noted.Groups["q"].Value, invariant), noted.Groups["unit"].Value)
+                    : new LineJudgeRow(food, 1, IngredientLineParser.Piece);
+                foreach (var c in JudgePair("fills:" + r.Id, r["part"], method, right, wrong, true, r["source"])) yield return c;
+            }
+
+            foreach (var r in GoldenTsv.Read(Path.Combine(goldenDir, "line-kinds.tsv")).Rows)
+            {
+                if (!judged.Contains(r["status"])) continue;
+                var food = IngredientNameNormalizer.Normalize(r["raw"]) is { Length: > 0 } n ? n : r["raw"];
+                var kind = r.Value("kind");
+                var right = new LineJudgeRow(food, 0, null, kind);
+                var wrong = kind == null ? new LineJudgeRow(food, 0, null, "note") : new LineJudgeRow(food, 1, IngredientLineParser.Piece);
+                foreach (var c in JudgePair("kinds:" + r.Id, r["raw"], string.Empty, right, wrong, false, r["source"])) yield return c;
+            }
+        }
+
+        private static IEnumerable<JudgeCase> JudgePair(string id, string raw, string method, LineJudgeRow right, LineJudgeRow wrong, bool fromMethod, string judgedBy)
+        {
+            bool Flags(LineJudgeRow row) => ReprocessRuleAudit.Failures(
+                new ReprocessRuleAudit.Line(raw, row.Food, row.Quantity, row.Unit, row.Kind, FilledFromMethod: fromMethod && row.Quantity > 0),
+                method.Length == 0 ? null : new[] { method }).Count > 0;
+            yield return new JudgeCase($"judge:{id}:better", new LineJudgeCase(0, "Golden", raw, method, wrong, right), LineJudgement.Better, Flags(right), judgedBy);
+            yield return new JudgeCase($"judge:{id}:worse", new LineJudgeCase(0, "Golden", raw, method, right, wrong), LineJudgement.Worse, Flags(wrong), judgedBy);
         }
 
         public sealed record ClassifyCase(string Id, string Recipe, string Raw, string Kind, string JudgedBy)

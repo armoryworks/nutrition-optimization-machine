@@ -14,6 +14,15 @@ namespace Nom.Orch.Models.Recipe
 
         /// <summary>The attribution the batch was imported with (the book and year); empty when the import used the record's own author and site.</summary>
         public string? SourceAttribution { get; set; }
+
+        /// <summary>
+        /// For a newer extraction of records already attached: the recipe each record replaces the
+        /// source of, by position (null for a record matched as usual). A pinned record is stored
+        /// only as the next version on a recipe that already holds a record of its format, with
+        /// newVersion; its line agreement is reported, not required, since a translation does not
+        /// repeat the old lines.
+        /// </summary>
+        public List<long?>? RecipeIds { get; set; }
     }
 
     /// <summary>What happened to one record of an attach batch.</summary>

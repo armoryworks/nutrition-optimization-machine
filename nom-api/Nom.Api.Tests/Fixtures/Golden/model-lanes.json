@@ -35,6 +35,13 @@
     "maxFalseAcceptRate": 0,
     "note": "No model: AlcoholLineContext.Read and Refuse replayed on every row of alcohol-context.tsv. A case passes when the line reads the expected sense, allows the food it must allow and refuses the food it must refuse; a false accept is a food the row says must be refused that the sense allows. The signature is AlcoholLineContext.Signature, so any change to a rule needs a new record, which needs no host. Rule-given rows (status ok) must all pass in GoldenAlcoholContextTests; the rows judged by the alcohol-context builder (agent-review-alcohol-context-2026-11-20, status agent) measure agreement with that reviewer."
   },
+  "line-judge": {
+    "scorer": true,
+    "required": false,
+    "minScore": 0.95,
+    "maxFalseAcceptRate": 0.02,
+    "note": "The reprocess lane's line judge (OllamaLineJudge, reader B of the roster, mistral-nemo by default). Every judged row of lines.tsv, startup-fills.tsv and line-kinds.tsv gives a right row and a row with its class's defect, asked once as a rebuild to the right row (expected better) and once to the wrong one (expected worse); a false accept is 'better' on a worse case (reprocess.md section 3: at least 95 % agreement, at most 2 % better on a known-worse pair). The record also counts the combined audit check (the judge's 'worse' confirmed by the rule audit ReprocessRuleAudit) on the worse and better cases; the reprocess lane reads those counts as its audit check's score and cannot leave shadow without a current record. Rows judged agent-review-* measure agreement with that reviewer."
+  },
   "repair": {
     "scorer": false,
     "required": false,
