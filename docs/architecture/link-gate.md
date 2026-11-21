@@ -47,7 +47,7 @@ The code is what golden files and reports name.
 | `alcohol-not-drink` | a line reads as something that is not a drink (a vinegar, a flavouring extract, a meat or yeast extract, ale yeast, a cooking liquid, a measure, a dish named after a drink, a soft drink, sweet cider, a non-alcoholic drink, Scotch barley and the like) and the food is an alcoholic drink, or is not of the line's kind (a vinegar for a vinegar, an extract or flavouring for an extract, yeast for yeast, apple and no vinegar for sweet cider); or the line is not food at all | alcohol design A2 |
 | `other-food` | the wording is the name of another curated food that is not a prepared food (`LineRelinkService.TargetFor`) | links B3, wordings check 2 |
 | `other-alias` | a trusted alias gives the wording to another food | wordings check 2 |
-| `state` | the description carries a state (dried, canned, cooked, frozen, ground, powder, sweetened, cured, roasted, smoked, pickled, dry, sprouted; "roast" counts as cooked) the wording lacks, and another food under the same lead word lacks it too | links B3, wordings check 4 |
+| `state` | the description carries a state (dried, canned, cooked, frozen, ground, powder, sweetened, cured, roasted, smoked, pickled, dry, sprouted; "roast" before another word, as in "cold roast pork", counts as cooked, while a last "roast" names the raw cut: "pork loin roast" and "chuck roast" are held on a cooked food, `link-gate/5`) the wording lacks, and another food under the same lead word lacks it too | links B3, wordings check 4 |
 | `word-order` | a name match reads in USDA's order ("gravy beef" for "Gravy, beef") | links B3 |
 | `rule-other` | a staple or the name matcher gives the wording to another food | wordings check 7 |
 | `shortlist` | a lone model pick is not on the name matcher's shortlist of 12 and no name rule gives it | wordings check 7 |
@@ -110,7 +110,9 @@ in its gate signature, so a changed gate drops that tier back to shadow.
   gate let through on staging's waiting picks and should not (K4: `agent`, judged by the checkpoint
   operator), a constructed row for each new rule and four pairs those rules must still let through
   (`rule:construction`, `ok`), and the six alcohol lines of K10 (amounts joined by "and" or "or"
-  read as lists, two wines on Non-Alcoholic Wine, a measure of curaçoa). The test reads each row's FDC id from `gate-catalog.tsv`. Each is a
+  read as lists, two wines on Non-Alcoholic Wine, a measure of curaçoa). lg-109 to lg-111 come from
+  the review of that fix (`rule:construction` and `rule:link-gate`, `ok`): a raw cut named with a
+  last "roast" on a cooked food, and a red wine named before the dish it is for on Chicken Stock. The test reads each row's FDC id from `gate-catalog.tsv`. Each is a
   pair the gate must let through (`pass`) or a pair a named rule must hold. Every rule has a row
   (`Every_rule_of_the_gate_has_a_rule_given_row` reads the rule codes from `LinkGate` itself, so a
   new rule without a row fails). `readers` = `yes` reads the pair as two blind readers' answer (the
@@ -133,7 +135,8 @@ in its gate signature, so a changed gate drops that tier back to shadow.
   no host. Recorded on 2026-11-20 (`link-gate/2`, and again for `link-gate/3` with the alcohol
   rules, with the same figures: every judged pair the alcohol rules refuse is already held by
   another rule; and on 2026-11-21 for `link-gate/4`, the checkpoint-1 rules, again with the same
-  figures, since none of the judged pairs is of the five classes): it lets through 2,306 of 7,664 pairs (2,284 before the catalog-admission
+  figures, since none of the judged pairs is of the five classes; and for `link-gate/5`, the review
+  fix that keeps a last "roast" from meeting the cooked state, with the same figures): it lets through 2,306 of 7,664 pairs (2,284 before the catalog-admission
   merge), 99.5 % of them judged right;
   it lets through 12 of 1,406 pairs judged wrong, near or compound (0.9 %). Floors: precision at
   least 99 %, false accepts at most 1 %, agreement at least 45 %. The record is required, and

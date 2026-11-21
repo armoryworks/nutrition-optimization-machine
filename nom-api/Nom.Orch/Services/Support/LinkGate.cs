@@ -146,7 +146,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class LinkGate
     {
-        public const string Version = "link-gate/4";
+        public const string Version = "link-gate/5";
 
         public const string Heading = "heading";
         public const string Compound = "compound";
@@ -208,7 +208,7 @@ namespace Nom.Orch.Services.Support
             ["dried"] = new[] { "dried", "dry", "dehydrated" },
             ["dehydrated"] = new[] { "dried", "dry", "dehydrated" },
             ["canned"] = new[] { "canned", "can", "cans", "tinned", "tin", "jarred" },
-            ["cooked"] = new[] { "cooked", "boiled", "baked", "roasted", "roast", "fried", "steamed", "braised", "stewed", "grilled", "leftover" },
+            ["cooked"] = new[] { "cooked", "boiled", "baked", "roasted", "fried", "steamed", "braised", "stewed", "grilled", "leftover" },
             ["boiled"] = new[] { "cooked", "boiled" },
             ["frozen"] = new[] { "frozen" },
             ["ground"] = new[] { "ground", "minced" },
@@ -438,7 +438,9 @@ namespace Nom.Orch.Services.Support
                 || (drink && DrinkNeutral.Contains(form))
                 || Forms[form].Any(f => f == "mature" ? plainFolded.Contains(f) && !plainFolded.Overlaps(CookedWords) && !plainFolded.Contains("canned") : plainFolded.Contains(f) || plainWords.Contains(f));
 
-            var wordingForms = firstSegmentWords.Select((w, i) => w == RoastWord && i + 1 < firstSegmentWords.Count ? "roasted" : w).Where(Forms.ContainsKey).Distinct().ToList();
+            var formWords = firstSegmentWords.Select((w, i) => w == RoastWord && i + 1 < firstSegmentWords.Count ? "roasted" : w).ToList();
+            var wordingForms = formWords.Where(Forms.ContainsKey).Distinct().ToList();
+            var stateWords = allWords.Concat(formWords).ToHashSet(StringComparer.Ordinal);
             var residual = firstSegmentWords.Where(w => !Filler.Contains(w) && !FoodNameMatcher.Noise.Contains(w) && !(Forms.ContainsKey(w) && FormMet(w))
                 && !identity.Contains(Fold(w)) && w is not ("of" or "a" or "an" or "the")).ToList();
             var headDefault = IsHeadDefault(wording, residual.Count == 0 ? identity : null, target, catalog) && wordingForms.All(FormMet);
@@ -477,7 +479,7 @@ namespace Nom.Orch.Services.Support
             {
                 foreach (var state in Words(text).Where(States.ContainsKey).Distinct())
                 {
-                    if (States[state].Any(allWords.Contains)) continue;
+                    if (States[state].Any(stateWords.Contains)) continue;
                     if (driedSpice && SpiceNeutral.Contains(state) && allWords.Overlaps(SpiceNeutral)) continue;
                     if (StateIsDefault(state, target, lead, catalog)) continue;
                     Add(State, LinkAutoApplyGuard.StateRule, state);

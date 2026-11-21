@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Logging;
 using Nom.Data;
 
 namespace Nom.Orch.Services.Support
@@ -23,7 +24,10 @@ namespace Nom.Orch.Services.Support
     /// stays fresh until <see cref="Invalidator"/> sees a write to a food, an alias, a food's
     /// nutrients or a recipe line, or until <see cref="MaxAge"/> passes (writes from another
     /// process, such as Nom.Import). A stale value is served while one refresh runs on its own
-    /// context, so a write never makes a household wait; only the first read computes in line.
+    /// context, so a write never makes a household wait; only the first read computes in line. A
+    /// stale value is never served once its refresh failed (the failure is logged) or once it is
+    /// older than twice <see cref="MaxAge"/>: the reader then computes it in line, so a probe that
+    /// keeps failing shows as an error rather than as an old set.
     /// </summary>
     public sealed class DietGateCache
     {
@@ -45,6 +49,7 @@ namespace Nom.Orch.Services.Support
             public long Generation { get; }
             public DateTime At { get; }
             public int Refreshing;
+            public int RefreshFailed;
         }
 
         private readonly ConcurrentDictionary<string, Entry> _entries = new(StringComparer.Ordinal);
@@ -69,6 +74,9 @@ namespace Nom.Orch.Services.Support
         /// <summary>The interceptor that marks every value stale when a command writes a table the probes read; registered on the API's database context.</summary>
         public DietGateCacheInvalidator Invalidator { get; }
 
+        /// <summary>Where a failed background refresh is logged; the API sets it at start-up.</summary>
+        public ILogger? Logger { get; set; }
+
         public long Generation => Interlocked.Read(ref _generation);
 
         /// <summary>How many times a probe has been computed, for tests and logs.</summary>
@@ -79,8 +87,9 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// The value of the probe <paramref name="key"/> on the context's database: the kept value
-        /// while it is fresh; a stale one while a refresh runs; computed in line when there is none
-        /// (or when it is stale and no refresh can run apart).
+        /// while it is fresh; a stale one while a refresh runs; computed in line when there is none,
+        /// when it is stale and no refresh can run apart, when its last refresh failed, or when it is
+        /// older than twice <see cref="MaxAge"/>.
         /// </summary>
         public async Task<T> GetAsync<T>(ApplicationDbContext db, string key, Func<ApplicationDbContext, Task<T>> compute) where T : class
         {
@@ -88,9 +97,9 @@ namespace Nom.Orch.Services.Support
             if (_entries.TryGetValue(full, out var entry))
             {
                 if (IsFresh(entry)) return (T)entry.Value;
-                if (RefreshInBackground && Fork(db) is { } fork)
+                if (RefreshInBackground && CanServeStale(entry) && Fork(db) is { } fork)
                 {
-                    StartRefresh(full, entry, fork, compute);
+                    StartRefresh(full, key, entry, fork, compute);
                     return (T)entry.Value;
                 }
             }
@@ -114,7 +123,9 @@ namespace Nom.Orch.Services.Support
 
         private bool IsFresh(Entry entry) => entry.Generation == Generation && _clock() - entry.At < MaxAge;
 
-        private void StartRefresh<T>(string full, Entry entry, Func<ApplicationDbContext> fork, Func<ApplicationDbContext, Task<T>> compute) where T : class
+        private bool CanServeStale(Entry entry) => Volatile.Read(ref entry.RefreshFailed) == 0 && _clock() - entry.At < MaxAge + MaxAge;
+
+        private void StartRefresh<T>(string full, string key, Entry entry, Func<ApplicationDbContext> fork, Func<ApplicationDbContext, Task<T>> compute) where T : class
         {
             if (Interlocked.CompareExchange(ref entry.Refreshing, 1, 0) != 0) return;
             _ = Task.Run(async () =>
@@ -127,9 +138,11 @@ namespace Nom.Orch.Services.Support
                     Interlocked.Increment(ref _computations);
                     _entries[full] = new Entry(value, generation, _clock());
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Volatile.Write(ref entry.RefreshFailed, 1);
                     Volatile.Write(ref entry.Refreshing, 0);
+                    Logger?.LogWarning(ex, "Diet gate: the refresh of probe {Probe} failed; the value computed at {ComputedAt:u} is no longer served and the next household set computes it in line", key, entry.At);
                 }
             });
         }

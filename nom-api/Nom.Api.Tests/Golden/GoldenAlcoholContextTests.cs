@@ -212,6 +212,48 @@ namespace Nom.Api.Tests.Golden
             missed.Should().BeEmpty("the household set reads only the lines the probe finds, so a line the rules count must hold one of its words");
         }
 
+        [Fact]
+        public void Every_word_of_the_alcohol_trigger_that_the_diet_gate_counts_is_a_word_of_the_drink_probe()
+        {
+            var probe = DietCriteriaMatcher.WordRegex(AlcoholLineContext.DrinkNamePattern);
+            var trigger = AlcoholLineContext.Trigger.ToString();
+            trigger.Should().StartWith(@"\b(?:").And.EndWith(@")\b");
+            var words = TopLevelAlternatives(trigger[5..^3]).SelectMany(SampleWords).Distinct().ToList();
+
+            var missed = words
+                .SelectMany(w => new[] { w, "1 cup " + w, "1 bottle " + w, "2 cups " + w })
+                .Where(l => AlcoholLineContext.CountsForDiet(AlcoholLineContext.Read(l)) && !probe.IsMatch(l))
+                .ToList();
+
+            words.Should().Contain(new[] { "barolo", "tempranillo", "wine", "whiskey", "whisky" });
+            missed.Should().BeEmpty("a line whose own text the rules count must hold a word of the probe the household set reads");
+        }
+
+        private static IEnumerable<string> TopLevelAlternatives(string pattern)
+        {
+            var depth = 0;
+            var start = 0;
+            for (var i = 0; i < pattern.Length; i++)
+            {
+                if (pattern[i] == '\\') { i++; continue; }
+                if (pattern[i] == '(') depth++;
+                else if (pattern[i] == ')') depth--;
+                else if (pattern[i] == '|' && depth == 0)
+                {
+                    yield return pattern[start..i];
+                    start = i + 1;
+                }
+            }
+            yield return pattern[start..];
+        }
+
+        private static IEnumerable<string> SampleWords(string alternative)
+        {
+            var bare = alternative.Replace(@"\w*", string.Empty);
+            yield return Regex.Replace(Regex.Replace(bare, @"\(\?:[^)]*\)\?", string.Empty), @".\?", string.Empty);
+            yield return Regex.Replace(bare, @"\(\?:|\)|\?", string.Empty);
+        }
+
         private static bool ExpectedToCount(GoldenRow row)
         {
             var sense = row["expect"];

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
@@ -395,6 +396,64 @@ namespace Nom.Api.Tests.Services.MealPlan
             var deadline = DateTime.UtcNow.AddSeconds(10);
             while (cache.Computations < 4 && DateTime.UtcNow < deadline) await Task.Delay(20);
             (await resolver.ResolveAsync(HouseholdId)).RecipeIds.Should().Contain(wassail.Id);
+        }
+
+        [Fact]
+        public async Task A_failed_refresh_is_logged_and_no_value_is_served_after_it_or_past_twice_its_age()
+        {
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+            await using var db = new ApplicationDbContext(options, new HttpContextAccessor { HttpContext = new DefaultHttpContext() });
+            var now = new DateTime(2026, 11, 21, 8, 0, 0, DateTimeKind.Utc);
+            var logger = new ListLogger();
+            var cache = new DietGateCache(TimeSpan.FromMinutes(15), () => now) { Logger = logger };
+            var fail = false;
+            var calls = 0;
+            Task<string> Compute(ApplicationDbContext _)
+            {
+                var call = Interlocked.Increment(ref calls);
+                return Volatile.Read(ref fail) ? throw new TimeoutException("probe timed out") : Task.FromResult("v" + call);
+            }
+            async Task UntilAsync(Func<bool> done)
+            {
+                var deadline = DateTime.UtcNow.AddSeconds(10);
+                while (!done() && DateTime.UtcNow < deadline) await Task.Delay(20);
+            }
+
+            (await cache.GetAsync(db, "drink-lines", Compute)).Should().Be("v1");
+            Volatile.Write(ref fail, true);
+            cache.Invalidate();
+            (await cache.GetAsync(db, "drink-lines", Compute)).Should().Be("v1", "the kept value is served while its refresh runs");
+            await UntilAsync(() => logger.Warnings.Count > 0);
+
+            logger.Warnings.Should().ContainSingle().Which.Should().BeOfType<TimeoutException>();
+            await FluentActions.Awaiting(() => cache.GetAsync(db, "drink-lines", Compute)).Should().ThrowAsync<TimeoutException>("a value whose refresh failed is not served again");
+            Volatile.Write(ref fail, false);
+            (await cache.GetAsync(db, "drink-lines", Compute)).Should().Be("v4");
+
+            now = now.AddMinutes(20);
+            (await cache.GetAsync(db, "drink-lines", Compute)).Should().Be("v4", "a value past its age but within twice it is served while its refresh runs");
+            await UntilAsync(() => Volatile.Read(ref calls) >= 5);
+            await UntilAsync(() => cache.Computations >= 3);
+            (await cache.GetAsync(db, "drink-lines", Compute)).Should().Be("v5");
+
+            now = now.AddMinutes(31);
+            Volatile.Write(ref fail, true);
+            await FluentActions.Awaiting(() => cache.GetAsync(db, "drink-lines", Compute)).Should().ThrowAsync<TimeoutException>("a value older than twice its age is computed in line, never served");
+        }
+
+        private sealed class ListLogger : Microsoft.Extensions.Logging.ILogger
+        {
+            public List<Exception?> Warnings { get; } = new();
+
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+
+            public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+            {
+                if (logLevel >= Microsoft.Extensions.Logging.LogLevel.Warning)
+                    lock (Warnings) Warnings.Add(exception);
+            }
         }
 
         [Theory]

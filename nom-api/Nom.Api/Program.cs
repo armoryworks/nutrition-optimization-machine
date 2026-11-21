@@ -712,6 +712,7 @@ using (var startupScope = app.Services.CreateScope())
 {
     var db = startupScope.ServiceProvider.GetRequiredService<Nom.Data.ApplicationDbContext>();
     var startupLogger = startupScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+    Nom.Orch.Services.Support.DietGateCache.Shared.Logger = startupScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<Nom.Orch.Services.Support.DietGateCache>();
     try
     {
         await Nom.Orch.Services.Support.DefaultRestrictionCriteria.EnsureAsync(db, startupLogger);

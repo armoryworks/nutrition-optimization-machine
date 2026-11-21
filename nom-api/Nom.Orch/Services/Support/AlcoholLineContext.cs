@@ -57,7 +57,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class AlcoholLineContext
     {
-        public const string Version = "alcohol-context/3";
+        public const string Version = "alcohol-context/4";
 
         public const string NoSense = "none";
         public const string ListSense = "list";
@@ -119,7 +119,7 @@ namespace Nom.Orch.Services.Support
         private const string DrinkWords =
             @"wines?|sherry|brandy|rum|whiske?y|bourbon|beers?|ales?|cider|port|madeira|marsala|kirsch|cognac|champagne|liqueurs?|gin|vodka|claret|sack|stout|vermouth|tequila|sake|calvados|grand marnier|cointreau|amaretto|kahlua|hock|burgundy|chablis";
 
-        private static readonly Regex Trigger = new(
+        internal static readonly Regex Trigger = new(
             @"\b(?:wines?|wineglass\w*|sherry|brandy|brandies|rum|whiske?y|bourbon|scotch|beers?|ales?|lager|stout|porter|pilsn?er|ipa|bock|guinness|cider|perry|scrumpy|port|sack|madeira|marsala|vermouth|liqueurs?|liquor|spirits?|alcohol\w*|bitters|angostura|extract|essence|flavou?r(?:ing)?|sake|mirin|shaoxing|shaohsing|hsing|gin|vodka|tequila|mezcal|cognac|armagnac|calvados|applejack|kirsch\w*|grappa|hollands|arrack|arak|schnapps?|champagne|prosecco|cava|claret|burgundy|bordeaux|chablis|hocks?|brewer'?s|brewers|rhenish|riesling|chardonnay|sauvignon|merlot|cabernet|chianti|zinfandel|syrah|shiraz|rioja|malbec|pinot|sangiovese|gamay|beaujolais|grenache|tempranillo|barolo|valpolicella|sauternes?|tokay|tokaji|malaga|muscatel|muscatels|moscatel|amontillado|fino|oloroso|manzanilla|sercial|malmsey|kahlua|baileys|curacao|curacoa|cointreau|maraschino|noyau|noyeau|amaretto|frangelico|grand marnier|chartreuse|benedictine|drambuie|limoncello|sambuca|anisette|ratafia|cassis|creme de|ouzo|pastis|absinthe|galliano|strega|advocaat|pisco|everclear|eau de vie|mead|barm|moselle|muscadet|sancerre|soave|gewurztraminer|semillon|sekt|asti|frascati|orvieto|eiswein|icewine|vins?|catawba)\b",
             Options);
 
@@ -224,7 +224,7 @@ namespace Nom.Orch.Services.Support
             "tokaji", "malaga", "muscatel", "moscatel", "amontillado", "fino", "oloroso", "manzanilla", "sercial", "malmsey", "vermouth",
             "champagne", "prosecco", "cava", "sekt", "asti", "claret", "burgundy", "bordeaux", "chablis", "hocks?", "rhenish", "moselle",
             "riesling", "chardonnay", "sauvignon", "merlot", "cabernet", "chianti", "zinfandel", "syrah", "shiraz", "rioja", "malbec", "pinot",
-            "beaujolais", "sauternes?", "muscadet", "sancerre", "soave", "gew[uü]rztraminer", "s[eé]millon", "frascati", "orvieto", "catawba",
+            "sangiovese", "gamay", "grenache", "tempranillo", "barolo", "valpolicella", "beaujolais", "sauternes?", "muscadet", "sancerre", "soave", "gew[uü]rztraminer", "s[eé]millon", "frascati", "orvieto", "catawba",
             "ros[eé]", "kahlua", "baileys", "bailey", "cura[cç]ao", "cura[cç]oa", "cointreau", "marnier", "amaretto", "frangelico", "chartreuse",
             "b[eé]n[eé]dictine", "drambuie", "limoncello", "sambuca", "anisette", "ratafia", "cassis", "cr[eè]me", "menthe", "ouzo", "pastis",
             "absinthe", "galliano", "strega", "advocaat", "noyau", "noyeau", "maraschino", "bitters", "angostura", "spirits?", "alcohol",
@@ -397,6 +397,7 @@ namespace Nom.Orch.Services.Support
                 return inner.Kind == AlcoholSenseKind.None ? Reading("measure", "a measure named after a drink") : inner with { Rule = "a measure of " + inner.Rule };
             }
 
+            if (AuVin.IsMatch(text) && ReadOne(AuVin.Replace(text, " "), context) is { Kind: not AlcoholSenseKind.None } named) return named;
             if (DishAfterDrink.IsMatch(text) || DrinkFlavoured.IsMatch(text) || SoakedIn.IsMatch(text) || AuVin.IsMatch(text)) return Reading("dish", "a dish named after a drink");
             if (Flavouring.IsMatch(text)) return Reading("extract", "a flavouring extract");
 

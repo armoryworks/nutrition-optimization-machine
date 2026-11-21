@@ -1,15 +1,15 @@
 {
   "lane": "alcohol-context",
-  "model": "alcohol-context/3",
+  "model": "alcohol-context/4",
   "host": "none",
-  "signature": "7c563aa7cba42443",
-  "scoredAtUtc": "2026-11-21T00:57:35.360309Z",
-  "caseSet": "407fe6c8889f412b",
-  "cases": 175,
-  "passed": 175,
+  "signature": "3c80ea64e8e2e2a3",
+  "scoredAtUtc": "2026-11-21T01:19:20.0826394Z",
+  "caseSet": "0baf86836c9a6427",
+  "cases": 177,
+  "passed": 177,
   "score": 1,
   "falseAccepts": 0,
-  "falseAcceptCases": 140,
+  "falseAcceptCases": 142,
   "falseAcceptRate": 0,
   "accepted": null,
   "precision": null,
@@ -23,8 +23,8 @@
       3
     ],
     "rule:alcohol-context": [
-      162,
-      162
+      164,
+      164
     ]
   },
   "failed": [],

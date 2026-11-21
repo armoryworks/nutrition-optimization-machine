@@ -101,7 +101,10 @@ Each drink sense allows a fixed set of USDA SR Legacy foods by FDC id (`AlcoholL
   Non-Alcoholic Wine by its first part). Two wines ("a bottle of Catawba or Sauterne wine", "a
   wine-glassful of Sauterne or vin de Grave") therefore never pass on Non-Alcoholic Wine. Sauterne
   without the s is the late harvest white; "vin" and Catawba are wine with no colour USDA gives
-  (`wine-unclear`), "vin blanc" and "vin rouge" white and red, "au vin" a dish.
+  (`wine-unclear`), "vin blanc" and "vin rouge" white and red, "au vin" a dish. A line that names
+  a drink besides the dish it is for reads as that drink ("1 bottle red Burgundy, for the coq au
+  vin" is red wine and refused on Chicken Stock; "2 cups chicken stock for coq au vin" stays a
+  dish; `alcohol-context/4`).
 
 The table is checked in the golden tests against the frozen catalog: every id is a USDA alcoholic
 beverage (category 14), and every drink sense but `wine-late-harvest` has a food with at least 20
@@ -157,8 +160,10 @@ gives the one reading a wording's lines agree on, for lanes that read lines.
   every live line whose text holds a drink word (one `~*` probe on `RawLine`, no list of foods), so
   a drink line on Sugar or Milk keeps its recipe out of plans as it does on a vinegar. Every word
   that can give a line a counted sense is in `DrinkNamePattern` (with the accented spellings:
-  rosé, curaçao, crème, Bénédictine, Gewürztraminer, Sémillon); a golden test checks it over every
-  golden line and every judged wording.
+  rosé, curaçao, crème, Bénédictine, Gewürztraminer, Sémillon); golden tests check it over every
+  golden line, every judged wording and every word of the rules' trigger that the diet gate counts
+  (the red grapes sangiovese, gamay, grenache, tempranillo, barolo and valpolicella were missing
+  before `alcohol-context/4`).
 - **The probes are kept, not repeated** (checkpoint 1, K8: each took 1.2 to 1.9 s on staging and ran
   for every household set). `DietGateCache` keeps the answer of each whole-catalog probe (the foods
   a restriction type's criteria match; the drink lines) per database. It is marked stale by
@@ -167,7 +172,10 @@ gives the one reading a wording's lines agree on, for lanes that read lines.
   (at once outside a transaction, at its commit inside one; SaveChanges, bulk updates and raw SQL all
   pass there), and after 15 minutes in any case (writes from Nom.Import or psql). A stale answer is
   served while one refresh runs on its own context, so a write never makes a household wait; only the
-  first read after a start computes in line. The per-recipe matches read only the recipe's own foods
+  first read after a start computes in line. A stale answer is never served once its refresh failed
+  (logged as a warning, "Diet gate: the refresh of probe ... failed") or once it is older than
+  twice the 15 minutes: the next household set then computes it in line, so a probe that keeps
+  failing shows as an error, not as an old set. The per-recipe matches read only the recipe's own foods
   and lines and are not cached.
 - The same rules serve the per-recipe diet matches (`GetDietMatchesAsync`, the severe-conflict
   filter of search and the plan) and the household's forbidden-food set (meal planning, search).
@@ -183,10 +191,11 @@ the old release's own start-up, since its defaults are then missing again.
 
 ## Golden set and scorer
 
-- `alcohol-context.tsv`: 175 lines with the expected sense, a food the sense must allow and one it
-  must refuse; 162 rule-given rows (`rule:alcohol-context`, `ok`) from the design's classes and the
+- `alcohol-context.tsv`: 177 lines with the expected sense, a food the sense must allow and one it
+  must refuse; 164 rule-given rows (`rule:alcohol-context`, `ok`) from the design's classes and the
   staging checkpoint-1 lines (K10: ac-162 to ac-172), ten judged by the alcohol-context builder and
-  three by the checkpoint fix (Catawba, vin blanc, coq au vin; `agent`). `GoldenAlcoholContextTests` requires every row to pass, every
+  three by the checkpoint fix (Catawba, vin blanc, coq au vin; `agent`); ac-176 and ac-177
+  (`rule:alcohol-context`, `ok`) are wine lines that name the "au vin" dish they are for. `GoldenAlcoholContextTests` requires every row to pass, every
   sense to have a row, and every sense of the design a rule-given one.
 - Scorer lane `alcohol-context` in `model-lanes.json`: no model, `required`, floor 98 % and no false
   accept; the committed record must be what the rules score now
