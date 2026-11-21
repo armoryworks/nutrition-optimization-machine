@@ -338,6 +338,39 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task The_operators_detector_dry_run_counts_by_reason_and_tier_with_samples_writes_nothing_and_its_apply_stores_the_lanes_rows()
+        {
+            using var db = await SeededAsync();
+            var water = await FoodAsync(db, "water");
+            var flour = await FoodAsync(db, "flour");
+            var sugar = await FoodAsync(db, "sugar");
+            var eggs = await FoodAsync(db, "eggs", 50);
+            var spoon = await RecipeAsync(db, "Spoon", new[] { "2 tablespns. water", "1 cup flour" },
+                new[] { new Row(water, "2 tablespns. water", 2, Piece), new Row(flour, "1 cup flour", 1, Cup, 1) });
+            var order = await RecipeAsync(db, "Order", new[] { "1 cup sugar", "3 eggs" },
+                new[] { new Row(eggs, "3 eggs", 3, Piece), new Row(sugar, "1 cup sugar", 1, Cup) });
+            await RecipeAsync(db, "Clean", new[] { "1 cup sugar", "1 cup flour" },
+                new[] { new Row(sugar, "1 cup sugar", 1, Cup), new Row(flour, "1 cup flour", 1, Cup, 1) });
+
+            var dry = await Detector(db).DetectAsync(0, 500, apply: false, sampleSize: 10);
+
+            dry.Should().Match<ReprocessDetectReport>(r => !r.Applied && r.Read == 3 && r.Candidates == 2 && r.OrderTier == 1 && r.RebuildTier == 1,
+                "staging could not run the detector with ai-pause-all on (checkpoint 2, M15)");
+            dry.ByReason.Should().Contain("D1", 1).And.Contain("D2", 1);
+            dry.Samples.Select(s => s.RecipeId).Should().BeEquivalentTo(new[] { spoon.Id, order.Id });
+            dry.Samples.Single(s => s.RecipeId == spoon.Id).Lines.Should().Contain(l => l.RawLine == "2 tablespns. water" && l.Changes.Contains("amount"));
+            (await db.ReprocessCandidates.CountAsync()).Should().Be(0, "a dry run stores nothing");
+            (await Detector(db).DetectAsync(dry.LastRecipeId!.Value, 500, apply: false, sampleSize: 10)).Read.Should().Be(0);
+
+            var applied = await Detector(db).DetectAsync(0, 500, apply: true, sampleSize: 0);
+
+            (applied.Applied, applied.Read, applied.Candidates).Should().Be((true, 3, 2));
+            (await db.ReprocessCandidates.CountAsync()).Should().Be(3);
+            (await Detector(db).DetectAsync(0, 500, apply: true, sampleSize: 0)).Read.Should().Be(0, "the apply reads only recipes the current rules have not read");
+            (await Detector(db).DetectAsync(0, 500, apply: false, sampleSize: 0)).Candidates.Should().Be(2, "a dry run reads them again");
+        }
+
+        [Fact]
         public async Task A_shadow_batch_previews_and_records_every_decision_and_writes_nothing()
         {
             using var db = await SeededAsync();

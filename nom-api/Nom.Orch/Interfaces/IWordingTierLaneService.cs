@@ -27,6 +27,14 @@ namespace Nom.Orch.Interfaces
         /// </summary>
         Task<WordingTierBatchResult> RunBatchAsync(IReadOnlyDictionary<string, string> modes, int max, IReadOnlyDictionary<string, int>? remaining = null, CancellationToken cancellationToken = default);
 
+        /// <summary>
+        /// An operator's dry run over at most <paramref name="max"/> waiting wordings after the first
+        /// <paramref name="skip"/>, most lines first, decided or not: coverage per tier, holds, the
+        /// loader's refusals, abstentions and up to <paramref name="sampleSize"/> samples per tier. Calls
+        /// no model, records no decision and writes nothing.
+        /// </summary>
+        Task<WordingTierPreview> PreviewAsync(int skip, int max, int sampleSize, CancellationToken cancellationToken = default);
+
         /// <summary>Audits a sample of the tier's decisions and evaluates the tier on the frame with its faults.</summary>
         Task<LaneQualifyVerdict> AuditAndEvaluateAsync(string tier, IReadOnlyList<string> faults, CancellationToken cancellationToken = default);
 

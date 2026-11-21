@@ -139,43 +139,7 @@ namespace Nom.Orch.Services
             var candidates = await CandidatesAsync(signatures, batch.Modes, Math.Max(0, max), batch, cancellationToken);
             if (candidates.Count == 0) return batch;
 
-            var catalog = await CatalogAsync(cancellationToken);
-            var units = await _db.Measurements.AsNoTracking().ToDictionaryAsync(m => m.Id, m => (MeasurementEntity)m, cancellationToken);
-            var foodIds = catalog.Foods.Keys.ToList();
-            var conversions = new Dictionary<long, IngredientEntity>();
-            foreach (var chunk in foodIds.Chunk(2000))
-            {
-                foreach (var c in await _db.Ingredients.AsNoTracking().Where(i => chunk.Contains(i.Id))
-                    .Select(i => new { i.Id, i.GramsPerMilliliter, i.GramsPerItem, i.ReferenceServingGrams }).ToListAsync(cancellationToken))
-                    conversions[c.Id] = new IngredientEntity { GramsPerMilliliter = c.GramsPerMilliliter, GramsPerItem = c.GramsPerItem, ReferenceServingGrams = c.ReferenceServingGrams };
-            }
-            var ids = candidates.Select(c => c.Id).ToList();
-            var lines = (await _db.RecipeIngredients.AsNoTracking()
-                    .Where(ri => ids.Contains(ri.IngredientId) && (ri.LineKind == null || ri.LineKind == RecipeIngredientLineKind.Ingredient) && !ri.Recipe.IsDeleted)
-                    .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder)
-                    .Select(ri => new LineRow(ri.IngredientId, ri.RecipeId, ri.RawLine, ri.Quantity, ri.MeasurementId))
-                    .ToListAsync(cancellationToken))
-                .GroupBy(l => l.IngredientId)
-                .ToDictionary(g => g.Key, g => g.Take(MaxLinesPerWording).ToList());
-            var contexts = await ContextsAsync(candidates, lines, cancellationToken);
-
-            var decided = new List<Pending>();
-            foreach (var candidate in candidates)
-            {
-                var wording = IngredientNameNormalizer.WordingKey(candidate.Name);
-                var own = lines.GetValueOrDefault(candidate.Id) ?? new List<LineRow>();
-                var tierLines = own.Select(l => new TierLine(l.RawLine, UnitClass(l, units), contexts.GetValueOrDefault(l.RecipeId))).ToList();
-                var decision = WordingTiers.Decide(wording, candidate.Id, tierLines, catalog, target => GateLines(own, conversions.GetValueOrDefault(target.Id), units, contexts));
-                decided.Add(new Pending(candidate, wording, decision, own, Stratum(candidate.Lines)));
-            }
-
-            var keys = decided.Select(d => d.Wording).ToList();
-            var rejections = (await _db.IngredientWordingRejections.AsNoTracking()
-                    .Where(r => keys.Contains(r.Wording) && r.Verdict == IngredientWordingVerdict.Food)
-                    .Select(r => new { r.Wording, r.IngredientId, r.EvidenceKey })
-                    .ToListAsync(cancellationToken))
-                .ToLookup(r => r.Wording, StringComparer.Ordinal);
-            var family = await FamilyHoldsAsync(decided.Where(d => d.Decision.Writes).ToList(), catalog, cancellationToken);
+            var (catalog, decided, rejections, family) = await DecideAsync(candidates, cancellationToken);
             var personId = _currentUser.PersonIdOrSystem;
             foreach (var tierGroup in decided.Where(d => d.Decision.Answer != null).GroupBy(d => d.Decision.Answer!.Tier))
             {
@@ -186,10 +150,7 @@ namespace Nom.Orch.Services
                 foreach (var item in tierGroup)
                 {
                     var evidence = EvidenceKey(item.Candidate.Lines);
-                    var hold = item.Decision.Hold
-                        ?? (rejections[item.Wording].FirstOrDefault(r => r.IngredientId == item.Decision.Answer!.FoodId && StillRetracted(r.EvidenceKey, item.Candidate.Lines)) is { } retract
-                            ? $"{RetractedHold}: the pair was retracted on {retract.EvidenceKey ?? "no evidence key"} and the wording has {item.Candidate.Lines} lines" : null)
-                        ?? (family.TryGetValue(item.Wording, out var familyHold) ? familyHold : null);
+                    var hold = HoldOf(item, rejections, family);
                     if (hold != null)
                     {
                         await RecordAsync(item, catalog, tier, mode, writes: false, signatures[tier], "held: " + hold, null, null, cancellationToken);
@@ -270,6 +231,166 @@ namespace Nom.Orch.Services
                 "Wording tiers: {Read} wordings, {Abstained} no tier, {Held} held, {Writes} would write ({Written} written), {Refused} refused by the loader, {Lines} lines moved",
                 batch.Read, batch.Abstained, batch.Held, batch.WritesByTier.Values.Sum(), batch.WrittenByTier.Values.Sum(), batch.RefusedByTier.Values.Sum(), batch.LinesMoved);
             return batch;
+        }
+
+        /// <summary>
+        /// Decides the given wordings by the tiers and the gate with their lines, and reads what holds a
+        /// would-be write besides the gate: the pair's retraction and the family check over the pass.
+        /// </summary>
+        private async Task<(WordingTierCatalog Catalog, List<Pending> Decided, ILookup<string, Retraction> Rejections, Dictionary<string, string> Family)> DecideAsync(
+            List<Candidate> candidates, CancellationToken cancellationToken)
+        {
+            var catalog = await CatalogAsync(cancellationToken);
+            var units = await _db.Measurements.AsNoTracking().ToDictionaryAsync(m => m.Id, m => (MeasurementEntity)m, cancellationToken);
+            var foodIds = catalog.Foods.Keys.ToList();
+            var conversions = new Dictionary<long, IngredientEntity>();
+            foreach (var chunk in foodIds.Chunk(2000))
+            {
+                foreach (var c in await _db.Ingredients.AsNoTracking().Where(i => chunk.Contains(i.Id))
+                    .Select(i => new { i.Id, i.GramsPerMilliliter, i.GramsPerItem, i.ReferenceServingGrams }).ToListAsync(cancellationToken))
+                    conversions[c.Id] = new IngredientEntity { GramsPerMilliliter = c.GramsPerMilliliter, GramsPerItem = c.GramsPerItem, ReferenceServingGrams = c.ReferenceServingGrams };
+            }
+            var lines = new Dictionary<long, List<LineRow>>();
+            foreach (var ids in candidates.Select(c => c.Id).Chunk(2000))
+            {
+                foreach (var group in (await _db.RecipeIngredients.AsNoTracking()
+                        .Where(ri => ids.Contains(ri.IngredientId) && (ri.LineKind == null || ri.LineKind == RecipeIngredientLineKind.Ingredient) && !ri.Recipe.IsDeleted)
+                        .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder)
+                        .Select(ri => new LineRow(ri.IngredientId, ri.RecipeId, ri.RawLine, ri.Quantity, ri.MeasurementId))
+                        .ToListAsync(cancellationToken))
+                    .GroupBy(l => l.IngredientId))
+                    lines[group.Key] = group.Take(MaxLinesPerWording).ToList();
+            }
+            var contexts = await ContextsAsync(candidates, lines, cancellationToken);
+
+            var decided = new List<Pending>();
+            foreach (var candidate in candidates)
+            {
+                var wording = IngredientNameNormalizer.WordingKey(candidate.Name);
+                var own = lines.GetValueOrDefault(candidate.Id) ?? new List<LineRow>();
+                var tierLines = own.Select(l => new TierLine(l.RawLine, UnitClass(l, units), contexts.GetValueOrDefault(l.RecipeId))).ToList();
+                var decision = WordingTiers.Decide(wording, candidate.Id, tierLines, catalog, target => GateLines(own, conversions.GetValueOrDefault(target.Id), units, contexts));
+                decided.Add(new Pending(candidate, wording, decision, own, Stratum(candidate.Lines)));
+            }
+
+            var keys = decided.Select(d => d.Wording).Distinct().ToList();
+            var found = new List<Retraction>();
+            foreach (var chunk in keys.Chunk(2000))
+            {
+                found.AddRange(await _db.IngredientWordingRejections.AsNoTracking()
+                    .Where(r => chunk.Contains(r.Wording) && r.Verdict == IngredientWordingVerdict.Food)
+                    .Select(r => new Retraction(r.Wording, r.IngredientId, r.EvidenceKey))
+                    .ToListAsync(cancellationToken));
+            }
+            var family = await FamilyHoldsAsync(decided.Where(d => d.Decision.Writes).ToList(), catalog, cancellationToken);
+            return (catalog, decided, found.ToLookup(r => r.Wording, StringComparer.Ordinal), family);
+        }
+
+        private sealed record Retraction(string Wording, long? IngredientId, string? EvidenceKey);
+
+        /// <summary>What holds a would-be write besides the gate: the decision's own hold, a retraction on the same evidence, or the family check; null to write.</summary>
+        private static string? HoldOf(Pending item, ILookup<string, Retraction> rejections, Dictionary<string, string> family) =>
+            item.Decision.Hold
+            ?? (rejections[item.Wording].FirstOrDefault(r => r.IngredientId == item.Decision.Answer!.FoodId && StillRetracted(r.EvidenceKey, item.Candidate.Lines)) is { } retract
+                ? $"{RetractedHold}: the pair was retracted on {retract.EvidenceKey ?? "no evidence key"} and the wording has {item.Candidate.Lines} lines" : null)
+            ?? (family.TryGetValue(item.Wording, out var familyHold) ? familyHold : null);
+
+        public async Task<WordingTierPreview> PreviewAsync(int skip, int max, int sampleSize, CancellationToken cancellationToken = default)
+        {
+            var preview = new WordingTierPreview { Signature = WordingTiers.Signature, Skip = Math.Max(0, skip) };
+            var waiting = await WaitingQuery(_db).ToListAsync(cancellationToken);
+            preview.Waiting = waiting.Count;
+            var candidates = new List<Candidate>();
+            foreach (var w in waiting.Skip(preview.Skip))
+            {
+                if (candidates.Count >= Math.Max(0, max)) break;
+                if (!string.Equals(IngredientNameNormalizer.WordingKey(w.Name), w.Name.ToLowerInvariant(), StringComparison.Ordinal))
+                {
+                    preview.NotKeyForm++;
+                    continue;
+                }
+                candidates.Add(new Candidate(w.Id, w.Name, w.Lines));
+            }
+            preview.Read = candidates.Count;
+            preview.ReadLines = candidates.Sum(c => c.Lines);
+            foreach (var tier in WordingTiers.All)
+            {
+                preview.ByTier[tier] = new WordingTierCoverage();
+                preview.Samples[tier] = new List<WordingTierSample>();
+            }
+            if (candidates.Count == 0) return preview;
+
+            var (catalog, decided, rejections, family) = await DecideAsync(candidates, cancellationToken);
+            WordingTierSample Sample(Pending item, string tier, string? hold)
+            {
+                var answer = item.Decision.Answer;
+                var food = answer == null ? null : catalog.Foods.GetValueOrDefault(answer.FoodId);
+                return new WordingTierSample
+                {
+                    Wording = item.Wording, SourceId = item.Candidate.Id, Lines = item.Candidate.Lines, Tier = tier, FoodId = answer?.FoodId, FoodName = food?.Name,
+                    Detail = answer?.Detail, Hold = hold, SampleLines = item.Lines.Select(l => l.RawLine).Distinct(StringComparer.Ordinal).Take(SampleLines).ToList(),
+                };
+            }
+
+            foreach (var tierGroup in decided.Where(d => d.Decision.Answer != null).GroupBy(d => d.Decision.Answer!.Tier))
+            {
+                var tier = tierGroup.Key;
+                if (!preview.ByTier.TryGetValue(tier, out var coverage)) preview.ByTier[tier] = coverage = new WordingTierCoverage();
+                if (!preview.Samples.TryGetValue(tier, out var samples)) preview.Samples[tier] = samples = new List<WordingTierSample>();
+                var rows = new List<(Pending Item, VerifiedWordingRow Row)>();
+                foreach (var item in tierGroup)
+                {
+                    coverage.Wordings++;
+                    coverage.Lines += item.Candidate.Lines;
+                    if (HoldOf(item, rejections, family) is { } hold)
+                    {
+                        coverage.Held++;
+                        var rule = hold.Split(':', 2)[0];
+                        preview.HeldByRule[rule] = preview.HeldByRule.GetValueOrDefault(rule) + 1;
+                        if (samples.Count < sampleSize) samples.Add(Sample(item, tier, "held: " + hold));
+                        continue;
+                    }
+                    var food = catalog.Foods[item.Decision.Answer!.FoodId];
+                    rows.Add((item, new VerifiedWordingRow
+                    {
+                        Row = item.Wording, Wording = item.Wording, Verdict = IngredientWordingVerdict.Food, FoodId = food.Id, FoodName = food.Name,
+                        Note = Clip($"{tier}: {item.Decision.Answer.Detail}", 1023), EvidenceKey = EvidenceKey(item.Candidate.Lines),
+                    }));
+                }
+                if (rows.Count == 0) continue;
+
+                var loaded = await _wordings.LoadAsync(rows.Select(r => r.Row).ToList(), $"{BatchPrefix}{tier}-preview", apply: false, source: WordingTiers.Source(tier));
+                var refused = loaded.Problems.GroupBy(p => p.Wording, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().Reason, StringComparer.Ordinal);
+                foreach (var (item, _) in rows)
+                {
+                    if (refused.TryGetValue(item.Wording, out var reason))
+                    {
+                        coverage.Refused++;
+                        preview.RefusedByReason[reason] = preview.RefusedByReason.GetValueOrDefault(reason) + 1;
+                        if (samples.Count < sampleSize) samples.Add(Sample(item, tier, "refused by the loader: " + reason));
+                        continue;
+                    }
+                    coverage.WouldWrite++;
+                    coverage.WouldWriteLines += item.Candidate.Lines;
+                    if (samples.Count < sampleSize) samples.Add(Sample(item, tier, null));
+                }
+            }
+
+            foreach (var item in decided.Where(d => d.Decision.Answer == null))
+            {
+                preview.Abstained++;
+                preview.AbstainedLines += item.Candidate.Lines;
+                var reason = item.Decision.Abstain ?? WordingTiers.NoTier;
+                var label = reason.StartsWith("the verified wording table says", StringComparison.Ordinal) ? "verified none or unclear" : reason;
+                preview.AbstainedByReason[label] = preview.AbstainedByReason.GetValueOrDefault(label) + 1;
+            }
+            foreach (var coverage in preview.ByTier.Values)
+            {
+                coverage.WordingShare = preview.Read == 0 ? 0 : Math.Round((double)coverage.WouldWrite / preview.Read, 4);
+                coverage.LineShare = preview.ReadLines == 0 ? 0 : Math.Round((double)coverage.WouldWriteLines / preview.ReadLines, 4);
+            }
+            _db.ChangeTracker.Clear();
+            return preview;
         }
 
         /// <summary>

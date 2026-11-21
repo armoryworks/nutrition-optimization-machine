@@ -136,6 +136,26 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task The_operators_dry_run_gives_each_tiers_coverage_and_samples_records_no_decision_and_writes_nothing()
+        {
+            using var db = NewContext();
+            var k = await KitchenAsync(db);
+            await Lane(db).RunBatchAsync(new Dictionary<string, string>(), 10);
+            var decisions = await db.LaneDecisions.CountAsync();
+
+            var preview = await Lane(db).PreviewAsync(0, 100, 5);
+
+            preview.Should().Match<WordingTierPreview>(p => p.Waiting == 2 && p.Read == 2 && p.ReadLines == 3 && p.Abstained == 0,
+                "the tiers had no operator entry point and could not be measured on staging with ai-pause-all on (checkpoint 2, M15)");
+            preview.ByTier[WordingTiers.NameKey].Should().Match<WordingTierCoverage>(c => c.Wordings == 1 && c.Lines == 2 && c.WouldWrite == 1 && c.WouldWriteLines == 2 && c.LineShare == 0.6667);
+            preview.ByTier[WordingTiers.Staple].Should().Match<WordingTierCoverage>(c => c.Wordings == 1 && c.WouldWrite == 1 && c.WouldWriteLines == 1);
+            preview.Samples[WordingTiers.NameKey].Single().Should().Match<WordingTierSample>(s => s.Wording == "light creams" && s.FoodId == k.Cream.Id && s.Hold == null && s.SampleLines.Count == 2);
+            (await db.LaneDecisions.CountAsync()).Should().Be(decisions, "a preview records no decision, and a wording decided already is previewed again");
+            (await db.IngredientWordings.CountAsync()).Should().Be(0);
+            (await Lane(db).PreviewAsync(1, 100, 5)).Read.Should().Be(1);
+        }
+
+        [Fact]
         public async Task A_live_tier_writes_its_rows_through_the_loader_with_its_source_and_moves_their_lines()
         {
             using var db = NewContext();
