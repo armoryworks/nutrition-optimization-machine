@@ -132,8 +132,12 @@ class AttributionTests(unittest.TestCase):
 
         self.assertEqual(books.attributions("cookbook-6429.jsonl"),
                          ["Many Ways for Cooking Eggs (Rorer 1907)", "Many Ways for Cooking Eggs (Rorer 1937)"])
-        self.assertEqual(books.candidates("cookbook-6429.jsonl", "Poached Eggs"), ["Many Ways for Cooking Eggs (Rorer 1907)"])
-        self.assertEqual(books.candidates("cookbook-6429.jsonl", "Shirred Eggs", "Eggs 1937"), ["Many Ways for Cooking Eggs (Rorer 1937)"])
+        self.assertEqual(books.candidates("cookbook-6429.jsonl", "Poached Eggs"),
+                         ["Many Ways for Cooking Eggs (Rorer 1907)", "Many Ways for Cooking Eggs (Rorer 1937)"])
+        self.assertEqual(books.named("cookbook-6429.jsonl", "Poached Eggs"), "Many Ways for Cooking Eggs (Rorer 1907)")
+        self.assertEqual(books.candidates("cookbook-6429.jsonl", "Shirred Eggs", "Eggs 1937"),
+                         ["Many Ways for Cooking Eggs (Rorer 1937)", "Many Ways for Cooking Eggs (Rorer 1907)"])
+        self.assertIsNone(books.named("cookbook-6429.jsonl", "Shirred Eggs"))
         self.assertEqual(books.candidates("cookbook-6429.jsonl", "Shirred Eggs"),
                          ["Many Ways for Cooking Eggs (Rorer 1907)", "Many Ways for Cooking Eggs (Rorer 1937)"])
 
@@ -385,6 +389,22 @@ class BooksTests(unittest.TestCase):
         self.assertEqual([e.get("attribution") for e in logged if e["name"] == "Boiled Rice"], [second])
         self.assertEqual(summary.by_kind["cookbook"]["matched"], 3)
         self.assertEqual(summary.by_kind["cookbook"]["records"], 5, "two unread lines count as records not attached")
+
+    def test_a_record_its_named_row_finds_nothing_for_is_tried_under_the_files_other_attribution(self):
+        early, late = "Many Ways for Cooking Eggs (Rorer, 1907)", "Many Ways for Cooking Eggs (Rorer, S. T., 1937)"
+        books = attach.Books({"cookbook-90001.jsonl": [attach.Book(early, "Boiled Rice"), attach.Book(late, "Seed Cake")]})
+        stand_in = StandIn(lambda rec, attribution: ("matched", 10 + sum(map(ord, json.dumps(rec, sort_keys=True)))) if attribution == early else ("unmatched", None))
+        logged = []
+
+        summary = attach.attach([harvest("cookbook-90001.jsonl")], stand_in, books, apply=True, write_log=logged.append)
+
+        self.assertEqual(summary.by_kind["cookbook"]["matched"], 3,
+                         "staging lost 100 of cookbook-6429's records: their rows named the 1937 edition, every recipe was imported under 1907 (checkpoint 2, M13)")
+        self.assertEqual({e["attribution"] for e in logged}, {early})
+        sent = [(rec["name"], body["sourceAttribution"], params["apply"]) for _, params, body in stand_in.calls for rec in body["records"]]
+        self.assertIn(("Boiled Rice", early, "true"), sent, "a record its named row matches is stored at once, with no extra dry call")
+        self.assertNotIn(("Boiled Rice", late, "false"), sent)
+        self.assertEqual([s for s in sent if s[0] == "Seed Cake" and s[1] == late], [("Seed Cake", late, "true")] * 2)
 
     def test_a_record_no_book_matches_keeps_its_best_answer(self):
         books = attach.Books({"cookbook-90001.jsonl": [attach.Book("Book A"), attach.Book("Book B")]})

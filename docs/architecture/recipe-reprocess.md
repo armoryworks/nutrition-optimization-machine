@@ -168,6 +168,12 @@ rejection and leaves the rebuilt lines, and an undo of the whole batch takes bac
 A rebuilt recipe rebuilt again is `unchanged` and nothing is written. A recipe the import created
 from a stored record rebuilds to the same lines (as long as its method fills nothing).
 
+Operator note (staging checkpoint 2): a dry run of 500 recipes takes about two minutes on the
+staging copy. Before any apply, read the rebuild's "X or Y" ranges (a range raised to its upper
+number), the method fills it loses and the amounts after a name with a trailing description: the
+checkpoint read 8 of 60 rebuilt recipes wrong on these (M18 to M20, the builder fixes are their own item), over
+the 1 in 20 the stop rule allows.
+
 ## Order only
 
 `POST /api/RecipeReprocess/rebuild?orderOnly=true&apply=false` pairs each live row with its
@@ -175,8 +181,13 @@ source line by text (a fold by its first part) and sets `SortOrder` from the sou
 else: food, amount, kind and text stay. A row with no source line holds the recipe
 (`order-unpaired`). Same journal, kind `order`. Meant for the 105,775 recipes whose lines all sit
 at position 0. Its header is `ReprocessOrder`, which does not hold the recipe: the line-classify,
-repair and start-up lanes keep working on it, and its undo then skips a recipe they changed. The
-older line undos skip it like a rebuild, since its keys changed.
+repair and start-up lanes keep working on it, and its undo then skips a recipe they changed. It is
+not a rebuild for the older line undos: it moves positions and nothing else, so each of them
+follows a line through the standing order-only writes made after its entry (below, "Order of
+undos") instead of skipping it. It also keeps each row's alcohol retention factor and basis, which
+the journal's rows carry since `cleanup2/ck4-undo-ops` (before, an order-only pass dropped them).
+Budget two calls of 500 per 1,000 recipes (preview and apply; 209 each for the 104,275 order-lost
+recipes on staging) and expect about 6.6 % `order-unpaired`.
 
 ## Duplicate retire
 
@@ -263,6 +274,24 @@ before equal its rows after) does not count, and its own undo restores the steps
 state without touching the rows, so the two undos work in either order. To go back past a rebuild, undo the rebuild first; the older undo then works
 again.
 
+An order-only write (`ReprocessOrder`) does not count as a rebuild (staging checkpoint 2, M25: the
+relink undo skipped 20,737 lines and the start-up fill undo 3,379 of 3,530 as rebuilt after the
+order-only pass). Every older line undo (relink with its unfold, split and alternative entries, the
+link re-check's line moves, re-read, labels, quantities, start-up fills, alcohol retention, the
+wording retract, unload and reload, and `proposals/undo-applied`) follows its line through the
+standing order-only writes made after its entry (`RecipeOrderTrail`: the write's rows before name
+the line by food and position, its rows after by the same food, text and creation time) and puts
+it back where it stands now; a line one of those writes did not keep is skipped as moved, not as
+rebuilt. What the undo puts back it also carries into the order-only write's own rows (its rows
+before take the line as it was before the older write, at the place it had then; its rows after
+take it as it stands now), so the order-only undo still finds its rows as written and, run after
+the older undo, returns each line to its first place: the older write, the order-only pass and
+both undos round-trip to the first rows exactly. The wording retract and reload journal a new entry
+for each line they move, so they follow an order-only write but do not carry into it: undo them
+first (newest first) before undoing the order-only pass. An order-only undo run before a newer
+line undo (the package re-read after the pass) still skips the recipes that undo would touch:
+undo the newer write first.
+
 Nutrition is recalculated after every rebuild and every undo that restored lines.
 
 ## The detector
@@ -274,6 +303,18 @@ row per recipe: `Reasons` (bits), `RuleVersion` (the builder's version it read w
 did (`Outcome`, `OutcomeReason`, `OutcomeAt`, `JournalId`). A recipe is read again only when
 `RecipeLineBuilder.Version` changes or a newer source is attached; a recipe a person edited and a
 rejected one are not read. Nothing is written to recipes.
+
+**Operator run.** `POST /api/RecipeReprocess/detect?afterRecipeId=0&maxRecipes=500&apply=false&sampleSize=20`
+(curation-gated) runs the same reading for an operator, without the lane, its pause switches or any
+model (staging checkpoint 2, M15: the detector ran only inside the lane, which waits on
+`ai-pause-all` and whose batches call the line judge). The answer gives `read`, `candidates`,
+`approvedCandidates`, the tier split (`orderTier`, `rebuildTier`), `byReason` (D1 to D8),
+`heldByReason` from the rebuild's dry run, `lastRecipeId` (page with `afterRecipeId=<lastRecipeId>`
+until `read` is 0) and up to `sampleSize` candidates with their changed lines. A dry run writes
+nothing and reads every sourced recipe, read before or not, so it can be repeated; with
+`apply=true` it reads only the recipes the current rules have not read and stores their candidate
+rows as the lane's first sweep would, writing nothing to recipes. A call of 500 takes about two
+minutes on the staging copy (the rebuild's dry run). D8 comes from `duplicates` (dry run).
 
 | Code | Reason | From the dry run |
 |---|---|---|

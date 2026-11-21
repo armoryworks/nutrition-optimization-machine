@@ -694,6 +694,7 @@ namespace Nom.Import
             Console.WriteLine($"Facts restored:         {undone.FactsRestored}");
             Console.WriteLine($"Descriptions removed:   {undone.DescriptionsRemoved} ({undone.DescriptionsRestored} restored)");
             Console.WriteLine($"Picks restored:         {undone.PicksRestored} ({undone.PicksWithdrawn} withdrawn again)");
+            Console.WriteLine($"Already undone:         {undone.AlreadyUndone} (an earlier undo of this run took these back; nothing to do)");
             Console.WriteLine($"Skipped:                {undone.Skipped} (changed since the run)");
             foreach (var line in undone.Lines)
                 Console.WriteLine($"  {line}");

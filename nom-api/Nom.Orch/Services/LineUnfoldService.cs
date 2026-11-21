@@ -317,9 +317,10 @@ namespace Nom.Orch.Services
         /// added lines is no longer where the unfold left it, no longer reads as part of the joined
         /// text or no longer has the amount the unfold gave it, so an edit made since is never
         /// deleted. When the food the row was on has since been merged into another, the row and
-        /// its added lines are found in the same places on the one food that holds them all.
+        /// its added lines are found in the same places on the one food that holds them all. Lines an
+        /// order-only pass moved since are followed to where it put them.
         /// </summary>
-        internal static async Task<bool> RefoldAsync(ApplicationDbContext db, AuditLogEntryEntity entry, long personId)
+        internal static async Task<bool> RefoldAsync(ApplicationDbContext db, AuditLogEntryEntity entry, long personId, RecipeOrderTrail trail)
         {
             if (Read<Before>(entry.OldValue) is not { Raw: not null } before
                 || Read<After>(entry.NewValue) is not { Added: not null } after
@@ -327,20 +328,28 @@ namespace Nom.Orch.Services
                 || after.Added.Contains(at.SortOrder)
                 || after.Added.Distinct().Count() != after.Added.Count) return false;
 
+            if (trail.Follow(entry.EntityId, at.IngredientId, at.SortOrder, entry.Timestamp) is not { } keptAt) return false;
+            var addedFrom = new Dictionary<int, int>();
+            foreach (var position in after.Added)
+            {
+                if (trail.Follow(entry.EntityId, at.IngredientId, position, entry.Timestamp) is not { } now) return false;
+                addedFrom[now] = position;
+            }
+
             var placed = await db.RecipeIngredients
-                .Where(ri => ri.RecipeId == entry.EntityId && (ri.SortOrder == at.SortOrder || after.Added.Contains(ri.SortOrder)))
+                .Where(ri => ri.RecipeId == entry.EntityId && (ri.SortOrder == keptAt || addedFrom.Keys.Contains(ri.SortOrder)))
                 .ToListAsync();
             bool Fits(List<RecipeIngredientEntity> lines)
             {
-                var kept = lines.Where(ri => ri.SortOrder == at.SortOrder).ToList();
-                var added = lines.Where(ri => ri.SortOrder != at.SortOrder).ToList();
+                var kept = lines.Where(ri => ri.SortOrder == keptAt).ToList();
+                var added = lines.Where(ri => ri.SortOrder != keptAt).ToList();
                 return kept.Count == 1 && kept[0].RawLine.Length > 0 && kept[0].RawLine != before.Raw
                     && before.Raw.TrimStart().StartsWith(kept[0].RawLine, StringComparison.Ordinal)
                     && added.Count == after.Added.Count
                     && added.All(line => line.RawLine.Length > 0 && before.Raw.Contains(line.RawLine, StringComparison.Ordinal))
                     && added.All(line => after.Lines == null
                         ? !(line.LastModifiedDate > entry.Timestamp)
-                        : after.Lines.Any(l => l.SortOrder == line.SortOrder && l.Quantity == line.Quantity && l.MeasurementId == line.MeasurementId));
+                        : after.Lines.Any(l => l.SortOrder == addedFrom[line.SortOrder] && l.Quantity == line.Quantity && l.MeasurementId == line.MeasurementId));
             }
 
             var onFood = placed.Where(ri => ri.IngredientId == at.IngredientId).ToList();
@@ -350,8 +359,9 @@ namespace Nom.Orch.Services
                 if (merged.Count == 1) onFood = merged[0];
             }
             if (!Fits(onFood)) return false;
-            var row = onFood.Single(ri => ri.SortOrder == at.SortOrder);
-            var added = onFood.Where(ri => ri.SortOrder != at.SortOrder).ToList();
+            var row = onFood.Single(ri => ri.SortOrder == keptAt);
+            var added = onFood.Where(ri => ri.SortOrder != keptAt).ToList();
+            foreach (var line in added) trail.Carry(entry.EntityId, entry.Timestamp, line.IngredientId, addedFrom[line.SortOrder], null);
 
             foreach (var line in added)
             {
@@ -373,6 +383,8 @@ namespace Nom.Orch.Services
                 row.MeasurementId = before.MeasurementId;
             }
 
+            var (quantity, measurementId) = (row.Quantity, row.MeasurementId);
+            trail.Carry(entry.EntityId, entry.Timestamp, row.IngredientId, at.SortOrder, r => r with { RawLine = before.Raw, Quantity = quantity, MeasurementId = measurementId });
             row.RawLine = before.Raw;
             row.LastModifiedDate = DateTime.UtcNow;
             row.LastModifiedByPersonId = personId;

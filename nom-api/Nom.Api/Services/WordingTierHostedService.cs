@@ -81,7 +81,7 @@ namespace Nom.Api.Services
                         remaining[tier] = Math.Max(0, caps[tier] - await lane.WritesTodayAsync(tier, stoppingToken));
                     }
 
-                    var batch = await lane.RunBatchAsync(modes, batchSize, remaining, stoppingToken);
+                    var batch = await lane.RunBatchAsync(modes, batchSize, remaining, cancellationToken: stoppingToken);
                     foreach (var tier in batch.Tiers.Where(t => WordingTiers.All.Contains(t)))
                     {
                         var verdict = await lane.AuditAndEvaluateAsync(tier, batch.FaultsByTier.TryGetValue(tier, out var faults) ? faults : new List<string>(), stoppingToken);

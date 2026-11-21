@@ -434,47 +434,70 @@ namespace Nom.Orch.Services
         /// Puts one split line back from its journal entry: the added rows are deleted, and the row
         /// that stayed returns to its food, position, text and amount. False, with nothing changed,
         /// when any of the rows has since moved, gone, or had its text or amount changed, or the
-        /// original position has been taken.
+        /// original position has been taken. Rows an order-only pass moved since are followed, and the
+        /// row that stays keeps the place the pass gave it.
         /// </summary>
-        internal static async Task<bool> UnsplitAsync(ApplicationDbContext db, AuditLogEntryEntity entry, long personId)
+        internal static async Task<bool> UnsplitAsync(ApplicationDbContext db, AuditLogEntryEntity entry, long personId, RecipeOrderTrail trail)
         {
             if (Read<JournalRow>(entry.OldValue) is not { RawLine: not null } before
                 || Read<List<JournalRow>>(entry.NewValue) is not { Count: >= 2 } after
                 || after.Any(a => a.RawLine == null)) return false;
 
+            var places = new List<int>();
+            foreach (var row in after)
+            {
+                if (trail.Follow(entry.EntityId, row.IngredientId, row.SortOrder, entry.Timestamp) is not { } at) return false;
+                places.Add(at);
+            }
+
             var lines = await db.RecipeIngredients.AsNoTracking().IgnoreQueryFilters()
                 .Where(ri => ri.RecipeId == entry.EntityId)
                 .ToListAsync();
-            foreach (var row in after)
+            for (var i = 0; i < after.Count; i++)
             {
-                var line = lines.FirstOrDefault(l => l.IngredientId == row.IngredientId && l.SortOrder == row.SortOrder);
+                var row = after[i];
+                var line = lines.FirstOrDefault(l => l.IngredientId == row.IngredientId && l.SortOrder == places[i]);
                 if (line == null || line.IsDeleted || line.RawLine != row.RawLine || line.Quantity != row.Quantity) return false;
             }
 
             var keeper = after[0];
-            if (keeper.IngredientId != before.IngredientId || keeper.SortOrder != before.SortOrder)
+            var reordered = trail.Moved(entry.EntityId, entry.Timestamp);
+            var home = reordered ? places[0] : before.SortOrder;
+            if (keeper.IngredientId != before.IngredientId || places[0] != home)
             {
-                if (lines.Any(l => l.IngredientId == before.IngredientId && l.SortOrder == before.SortOrder)
-                    || await RecipeLineRowWriter.MoveAsync(db, entry.EntityId, keeper.IngredientId, keeper.SortOrder, before.IngredientId, before.SortOrder, personId) != before.SortOrder)
+                if (lines.Any(l => l.IngredientId == before.IngredientId && l.SortOrder == home)
+                    || await RecipeLineRowWriter.MoveAsync(db, entry.EntityId, keeper.IngredientId, places[0], before.IngredientId, home, personId) != home)
                 {
                     return false;
                 }
             }
 
-            foreach (var added in after.Skip(1))
+            for (var i = 1; i < after.Count; i++)
             {
-                await RecipeLineRowWriter.DeleteAsync(db, entry.EntityId, added.IngredientId, added.SortOrder);
+                await RecipeLineRowWriter.DeleteAsync(db, entry.EntityId, after[i].IngredientId, places[i]);
+                trail.Carry(entry.EntityId, entry.Timestamp, after[i].IngredientId, after[i].SortOrder, null);
             }
 
-            return await RecipeLineRowWriter.RewriteAsync(db, entry.EntityId, before.IngredientId, before.SortOrder, before.RawLine, before.Quantity, before.MeasurementId, personId);
+            if (!await RecipeLineRowWriter.RewriteAsync(db, entry.EntityId, before.IngredientId, home, before.RawLine, before.Quantity, before.MeasurementId, personId)) return false;
+            trail.Carry(entry.EntityId, entry.Timestamp, keeper.IngredientId, keeper.SortOrder,
+                r => RecipeOrderTrail.Repoint(r, keeper.IngredientId, before.IngredientId) with { RawLine = before.RawLine, Quantity = before.Quantity, MeasurementId = before.MeasurementId },
+                before.SortOrder, home);
+            return true;
         }
 
         /// <summary>
         /// Moves a line that was moved to its first alternative back to the food and position it
-        /// was on. False when the line is no longer where the move left it.
+        /// was on, or, when an order-only pass moved it since, to that food at the place the pass gave
+        /// it. False when the line is no longer where the move left it.
         /// </summary>
-        internal static async Task<bool> UnpickAsync(ApplicationDbContext db, AuditLogEntryEntity entry, long personId) =>
-            LineRelinkService.ReadPlace(entry.OldValue) is { } was && LineRelinkService.ReadPlace(entry.NewValue) is { } now
-            && await RecipeLineRowWriter.MoveAsync(db, entry.EntityId, now.IngredientId, now.SortOrder, was.IngredientId, was.SortOrder, personId) != null;
+        internal static async Task<bool> UnpickAsync(ApplicationDbContext db, AuditLogEntryEntity entry, long personId, RecipeOrderTrail trail)
+        {
+            if (LineRelinkService.ReadPlace(entry.OldValue) is not { } was || LineRelinkService.ReadPlace(entry.NewValue) is not { } now
+                || trail.Follow(entry.EntityId, now.IngredientId, now.SortOrder, entry.Timestamp) is not { } from) return false;
+            var reordered = trail.Moved(entry.EntityId, entry.Timestamp);
+            if (await RecipeLineRowWriter.MoveAsync(db, entry.EntityId, now.IngredientId, from, was.IngredientId, reordered ? from : was.SortOrder, personId) is not { } position) return false;
+            trail.Carry(entry.EntityId, entry.Timestamp, now.IngredientId, now.SortOrder, r => RecipeOrderTrail.Repoint(r, now.IngredientId, was.IngredientId), was.SortOrder, position);
+            return true;
+        }
     }
 }

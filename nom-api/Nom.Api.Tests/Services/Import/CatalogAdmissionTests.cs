@@ -293,6 +293,30 @@ namespace Nom.Api.Tests.Services.Import
         }
 
         [Fact]
+        public async Task A_repeated_undo_of_an_undone_run_reports_its_values_as_already_undone_not_as_skipped()
+        {
+            using var db = NewContext();
+            var s = Seed(db);
+            var report = await Service(db).AdmitAsync(Options(dryRun: false));
+            db.ChangeTracker.Clear();
+            var first = await Service(db).UndoAsync(report.RunStamp, dryRun: false);
+            db.ChangeTracker.Clear();
+            var gamay = db.Ingredients.Single(i => i.Id == s.Gamay);
+            gamay.FoodGroupId = (long)FoodGroupEnum.Dairy;
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var again = await Service(db).UndoAsync(report.RunStamp, dryRun: true);
+
+            var taken = first.Demoted + first.GroupsRestored + first.FactsRestored + first.DescriptionsRemoved + first.PicksRestored;
+            again.Should().Match<CatalogAdmissionService.AdmissionUndoReport>(r => r.Demoted == 0 && r.DescriptionsRemoved == 0 && r.PicksRestored == 0,
+                "nothing is left to take back");
+            again.Skipped.Should().Be(1, "staging's repeated undo dry run read 'Skipped: 46397 (changed since the run)' and looked like a failed undo (checkpoint 2, M9); only the value changed since counts");
+            again.AlreadyUndone.Should().Be(taken - 1);
+            again.Lines.Should().ContainSingle(l => l.Contains("FoodGroupId changed since the run"));
+        }
+
+        [Fact]
         public async Task An_undo_is_journaled_and_undoing_it_puts_the_run_back()
         {
             using var db = NewContext();

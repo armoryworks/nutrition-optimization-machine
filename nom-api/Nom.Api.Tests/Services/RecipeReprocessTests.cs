@@ -542,7 +542,7 @@ namespace Nom.Api.Tests.Services
             lines.Select(l => (l.IngredientId, l.SortOrder, l.Quantity, l.MeasurementId)).Should().Equal((flour.Id, 0, 2m, Cup), (sugar.Id, 1, 1m, Piece), (eggs.Id, 2, 3m, Piece));
             (await db.RecipeReprocessJournals.SingleAsync()).Kind.Should().Be(RecipeReprocessKind.Order);
             (await RecipeLineHold.HeldAsync(db, new[] { recipe.Id })).Should().NotContain(recipe.Id);
-            (await RecipeReprocessService.RebuiltAtAsync(db, new[] { recipe.Id })).Should().ContainKey(recipe.Id);
+            (await RecipeReprocessService.RebuiltAtAsync(db, new[] { recipe.Id })).Should().NotContainKey(recipe.Id, "an order-only write changes positions only, so the older line undos follow it (M25)");
         }
 
         [Fact]

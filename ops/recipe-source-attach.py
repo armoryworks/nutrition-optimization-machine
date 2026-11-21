@@ -34,7 +34,10 @@ RULES
 5. Attribution: a book's recipes were imported with the book's attribution. Give the mapping the
    promoter used with --attribution-csv: a row per file and attribution, optionally naming the
    recipe (column "name") or the wrapper's book (column "book") it belongs to. A file may have
-   more than one attribution: a record takes the row that names it, else the file's only
+   more than one attribution: a record is sent first under the row that names it, and when that
+   finds no recipe (unmatched or low-score: the book's list names the recipe under another edition
+   than the import stored it under, as cookbook-6429's 1937 rows for recipes imported under 1907)
+   it is tried under the file's other attributions; a record no row names takes the file's only
    attribution, else it is first sent as a dry run under each of the file's attributions and
    stored under the one that matches it best; where two match it equally to different recipes
    (the same recipe in two editions), it takes the first recipe no other record of the run took.
@@ -277,17 +280,24 @@ class Books:
         """The file's attributions in CSV order, each once."""
         return list(dict.fromkeys(row.attribution for row in self.rows.get(name, [])))
 
-    def candidates(self, name: str, record_name: str | None = None, book: str | None = None) -> list[str | None]:
-        """The attributions to try for a record of the file, in order: the row naming the record or its book, else every attribution of the file; [None] for a file not in the CSV."""
-        rows = self.rows.get(name)
-        if not rows:
-            return [None]
+    def named(self, name: str, record_name: str | None = None, book: str | None = None) -> str | None:
+        """The one attribution a row of the file gives the record by its name or its book, else None."""
+        rows = self.rows.get(name) or []
         for key, value in (("name", record_name), ("book", book)):
             if value:
                 named = list(dict.fromkeys(row.attribution for row in rows if getattr(row, key) == value))
                 if len(named) == 1:
-                    return named
-        return self.attributions(name)
+                    return named[0]
+        return None
+
+    def candidates(self, name: str, record_name: str | None = None, book: str | None = None) -> list[str | None]:
+        """The attributions to try for a record of the file, in order: the row naming the record or its book first, then the file's other attributions; every attribution of the file when no row names it; [None] for a file not in the CSV."""
+        rows = self.rows.get(name)
+        if not rows:
+            return [None]
+        named = self.named(name, record_name, book)
+        every = self.attributions(name)
+        return every if named is None else [named] + [a for a in every if a != named]
 
 
 def load_attributions(path: str | None, file_column: str = "file", attribution_column: str = "attribution") -> Books:
@@ -625,9 +635,12 @@ def attach(files: Iterable[str], post: Post, attributions: Books | dict | None =
 
         groups: dict[tuple, list[Item]] = {}
         for item in items:
-            groups.setdefault(tuple(books.candidates(name, item.record.get("name"), item.book)), []).append(item)
+            preferred = books.named(name, item.record.get("name"), item.book) is not None
+            groups.setdefault((preferred, tuple(books.candidates(name, item.record.get("name"), item.book))), []).append(item)
 
-        for candidates, group in groups.items():
+        for (preferred, candidates), group in groups.items():
+            several = len(candidates) > 1
+
             def emit(item: Item, answer: dict, stamp: str | None, attribution: str | None) -> None:
                 place = _place(item, answer)
                 outcome = summary.settle(answer, place)
@@ -639,19 +652,37 @@ def attach(files: Iterable[str], post: Post, attributions: Books | dict | None =
                     entry = {**place, "kind": kind, "outcome": outcome, "answered": answer["outcome"], "stamp": stamp,
                              **{k: answer.get(k) for k in
                                 ("matchedBy", "recipeId", "score", "candidates", "format", "contentSha256", "version", "documents")}}
-                    if len(candidates) > 1:
+                    if several:
                         entry["attribution"] = attribution
                     if answer.get("error"):
                         entry["error"] = answer["error"]
                     write_log(entry)
 
+            earlier: dict[int, tuple[str | None, dict, str | None]] = {}
+            if preferred and len(candidates) > 1:
+                retry = []
+                for batch in chunks(group, batch_size):
+                    for item, answer, stamp in sender.send(batch, candidates[0]):
+                        if answer["outcome"] in RETRY_OUTCOMES:
+                            retry.append(item)
+                            earlier[id(item)] = (candidates[0], answer, stamp)
+                        else:
+                            emit(item, answer, stamp, candidates[0])
+                if not retry:
+                    continue
+                group, candidates = retry, candidates[1:]
+
             if len(candidates) == 1:
                 for batch in chunks(group, batch_size):
                     for item, answer, stamp in sender.send(batch, candidates[0]):
-                        emit(item, answer, stamp, candidates[0])
+                        if id(item) in earlier and answer["outcome"] not in MATCH_OUTCOMES:
+                            kept, kept_answer, kept_stamp = _fallback([earlier[id(item)], (candidates[0], answer, stamp)])
+                            emit(item, kept_answer, kept_stamp, kept)
+                        else:
+                            emit(item, answer, stamp, candidates[0])
                 continue
 
-            answers: dict[int, list] = {id(item): [] for item in group}
+            answers: dict[int, list] = {id(item): ([earlier[id(item)]] if id(item) in earlier else []) for item in group}
             pending = group
             for attribution in candidates:
                 for batch in chunks(pending, batch_size):

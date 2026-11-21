@@ -153,6 +153,16 @@ added and restores the picks it withdrew. A demoted food that a recipe line uses
 value it put back as `CatalogAdmitUndo` (old and new swapped) under a stamp of its own, plus a
 `CatalogAdmitUndo` run row naming the stamp it undid, and prints that stamp, so a self-undo or
 a manual undo can be read from the record and `--admit --undo <undo-stamp>` puts the run back.
+A repeated `--admit --undo <stamp>` of a run an earlier undo already took back counts each value
+that undo put back, and that still stands as it left it, as `Already undone`, not as `Skipped`
+(staging checkpoint 2, M9: the second dry run read "Skipped: 46397 (changed since the run)" and
+looked like a failed undo); `Skipped` is left for values someone changed since.
+
+Operator notes (staging checkpoint 2): run the importer from its own build folder (it reads
+`appsettings.json` from the working directory); on staging point `Ai__OllamaUrl` and
+`Ai__BatchOllamaUrl` at a closed port and set `ImportSettings__AiEnhancement__EnableAiEnhancement=false`;
+after the v0.3.121 rollout's alcohol import and backfill, `--backfill-nutrients` has nothing left to
+fill (its dry run reports 0 rows), so no new run is needed.
 
 The bulk status endpoint `POST /api/FoodCatalog/curation-status` journals every change too
 (entity `Ingredient`, change type `CurationStatusSet`, old and new status, the admin), so a
@@ -245,7 +255,10 @@ dotnet run --project nom-api/Nom.Import -- --branded-lift --undo <stamp> [--dry-
 
 or `POST /api/FoodCatalog/branded-lift?apply=false|true` and
 `POST /api/FoodCatalog/branded-lift/undo?stamp=<stamp>&apply=false|true` (curation admin). A pass
-stops, writing nothing, when it would change more than 10,000 foods. A household is asked for a
+stops, writing nothing, when it would change more than 10,000 foods. Proving it on staging needs
+evidence rows first: the only second source this build reads is a household's confirmed label, so
+a staging test household ticks a pending branded food on its shopping list in the app and adds the
+label; from the API alone the pass judges nothing (staging checkpoint 2). A household is asked for a
 label for a pending branded food (it no longer counts as verified by its FDC id alone), so the
 shopping lane brings the second source. The Release B lookup lane (a no-op today) is to call
 `IBrandedLiftService.RunAsync` for the food after it writes a `manufacturer:` or `off:` row.
@@ -583,6 +596,13 @@ scorer's changes that made a key active since the last clean window (`ContainerS
 and leaves a key it paused or demoted as it is. The switches
 `ai-pause-all` and `ai-pause-container-sizes` hold the nightly run; `ContainerSizes:ScoreEnabled`
 (default true) and `ContainerSizes:ScoreEveryHours` (default 24) set it.
+
+Operator notes (staging checkpoint 2): the facts load's dry run proposed 738 sizes and the
+hold-out agreed on 442 of 532 sized lines (83.1 %), but evaporated milk scored 0 of 40 against its
+354 mL mode while recipes state its cans as "12 oz" by weight; until the scorer compares that class
+in one unit (a fix not in this build) the class cannot qualify. The form relinks of the link
+re-check decide most of the reach: 43 of 60 unsized can, jar, bottle and package lines read sat on
+a raw or dry food (pineapple on raw pineapple, chickpeas on dry chickpeas) that has no can size.
 
 Since `container-weighing` the resolver also answers lines of old (historic) and undated
 (unknown) books, so the hold-out sees them; such a line is scored against its key only when the
@@ -1233,7 +1253,17 @@ POST /api/FoodCatalog/startup-fills/undo?sinceUtc=<utc time>&apply=true    # res
 ```
 
 So after any number of restarts every line undo restores everything it journaled, with nothing
-skipped because of the repair. Operators still wait for the "Scraped recipe repair done" line
+skipped because of the repair. An order-only reprocess pass made after the fills does not stop
+their undo either: it follows each line to its new position (`recipe-reprocess.md`, "Order of
+undos").
+
+Operator notes (staging checkpoint 2): prove this undo against the time of the build's own first
+start (a copy that never ran an earlier build has no earlier fills to undo, production included):
+dry run, apply, compare the line fingerprint with the one before the start, restart, and the refill
+must give the same fingerprint again. On the 2026-11-20 production data the first start fills
+about 3,530 rows (about 2,294 of them method fills), not the 1,887 of checkpoint 1. The undo does
+not put back the recipes the first start cleared from Requires Revision; the refill makes them
+consistent again. Operators still wait for the "Scraped recipe repair done" line
 after a container start before running an apply or an undo: the repair saves a batch of up to 500
 recipes at a time, and a line operation that writes to one of them while that batch is open can
 be overwritten.
@@ -1416,8 +1446,11 @@ It is a table and not alias rows because a map from wording to food has to be a 
 alias name can belong to several foods), every row needs an id for the journal, and aliases cannot
 say "no such food". Aliases with no `SourceContext` are not a trusted source for it.
 
-**The reviewed file.** `db/verified-wordings.tsv`, tab-separated, header
-`wording verdict food_id food_fdc_id food_name lines_at_review batch_row reason`. The food is
+**The reviewed file.** Tab-separated, header
+`wording verdict food_id food_fdc_id food_name lines_at_review batch_row reason`.
+`db/verified-wordings.tsv` in the repository holds that header only, as the template: each reviewed
+batch is its own file (the first, `w01`, 233 rows, is kept with the staging evidence, outside the
+repository), and every load names that batch file, never the template. The food is
 found by `food_fdc_id` when given (ids differ between staging and production), otherwise by
 `food_id` together with the exact `food_name` (seed foods have no FdcId). Candidates come from
 `ops/verified-wording-candidates.sql` (read-only; `psql -v limit=2000 -f ...`), which ranks
@@ -1426,7 +1459,10 @@ by scraped lines, with the three commonest raw lines and the pending model pick 
 
 **Load.** `POST api/FoodCatalog/wordings/load?batch=<name>&apply=false&replace=false`, body
 `{"tsv": "<file contents>"}` or `{"rows": [...]}`, curation-gated, a dry run unless `apply=true`.
-A row is refused, with its reason in `problems`, when the wording is not in key form, the verdict
+A body with no row at all (the header-only template, an empty file) is refused with 400 and the
+message "The batch holds no wording row, so nothing would be loaded ...", so a wrong file name can
+never pass as a load of 0 rows; read `rows` of the dry run against the batch file's row count before
+the apply. A row is refused, with its reason in `problems`, when the wording is not in key form, the verdict
 is unknown, the food is missing, deleted, branded, without nutrition or not curated, the wording
 is the name of another curated food, two rows give it different answers, or the table already
 gives it another answer and `replace` is off. A USDA Foundation or SR Legacy food awaiting

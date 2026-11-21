@@ -1,10 +1,14 @@
 \if :{?names}
 \else
-\set names 'Halal,Kosher,Whole30,Paleo,Vegan,Vegetarian,Gluten-Free,Dairy-Free,Celiac Disease,Gluten Sensitivity,Lactose Intolerance,Lactose-Intolerant,Milk Allergy,Egg Allergy,Peanut Allergy,Tree Nut Allergy,Nut Allergy,Shellfish Allergy,Fish Allergy,Soy Allergy,Wheat Allergy,Sesame Allergy'
+\set names ''
 \endif
 \if :{?sample}
 \else
 \set sample 20
+\endif
+\if :{?seed}
+\else
+\set seed 'diet-gate-count'
 \endif
 \pset format unaligned
 \pset fieldsep '\t'
@@ -14,12 +18,23 @@ WITH consts AS (
     SELECT '\m(?:wines?|vins?|beers?|ales?|lager|stout|porter|pilsn?er|ipa|bock|guinness|ciders?|perry|scrumpy|vodka|rum|whiske?y|bourbon|scotch|brandy|brandies|cognac|armagnac|calvados|applejack|kirsch|kirschwasser|grappa|gin|hollands|tequila|mezcal|arrack|arak|pisco|everclear|eau|schnapps?|liqueurs?|liquor|sake|mirin|shaoxing|shaohsing|hsing|sherry|sack|port|madeira|marsala|tokay|tokaji|malaga|muscatel|moscatel|amontillado|fino|oloroso|manzanilla|sercial|malmsey|vermouth|champagne|prosecco|cava|sekt|asti|claret|burgundy|bordeaux|chablis|hocks?|rhenish|moselle|riesling|chardonnay|sauvignon|merlot|cabernet|chianti|zinfandel|syrah|shiraz|rioja|malbec|pinot|sangiovese|gamay|grenache|tempranillo|barolo|valpolicella|beaujolais|sauternes?|muscadet|sancerre|soave|gew[uü]rztraminer|s[eé]millon|frascati|orvieto|catawba|ros[eé]|kahlua|baileys|bailey|cura[cç]ao|cura[cç]oa|cointreau|marnier|amaretto|frangelico|chartreuse|b[eé]n[eé]dictine|drambuie|limoncello|sambuca|anisette|ratafia|cassis|cr[eè]me|menthe|ouzo|pastis|absinthe|galliano|strega|advocaat|noyau|noyeau|maraschino|bitters|angostura|spirits?|alcohol|mead|eiswein|icewine)\M'::text AS drink,
            '\m(?:vinegars?|vinaigrettes?|extracts?|essences?|flavou?r\w*|yeasts?|juices?|root beer|ginger ale|ginger beer|birch beer|non-?alcoholic|alcohol-free|dealcoholi[sz]ed|cr[eè]me fra[iî]che|port salut)\M'::text AS not_drink
 ),
-types AS (
-    SELECT r."Id" AS type_id, r."Name" AS type_name
+named AS (
+    SELECT r."Id" AS ref_id, r."Name" AS type_name
     FROM reference."Reference" r
     WHERE NOT r."IsDeleted"
-      AND (r."Name" = ANY (string_to_array(:'names', ','))
+      AND ((:'names' = '' AND EXISTS (SELECT 1 FROM plan."RestrictionCriterion" c WHERE c."RestrictionTypeId" = r."Id" AND NOT c."IsDeleted"))
+           OR r."Name" = ANY (string_to_array(:'names', ','))
            OR r."Id" IN (SELECT x."RestrictionTypeId" FROM plan."Restriction" x WHERE x."RestrictionTypeId" IS NOT NULL AND NOT x."IsDeleted"))
+),
+type_groups AS (
+    SELECT min(ref_id) AS type_id, type_name, string_agg(ref_id::text, ',' ORDER BY ref_id) AS ref_ids
+    FROM named
+    GROUP BY type_name
+),
+types AS (
+    SELECT n.ref_id, g.type_id, g.type_name
+    FROM named n
+    JOIN type_groups g ON g.type_name = n.type_name
 ),
 all_crit AS (
     SELECT t.type_id, t.type_name, c."Severity" AS severity, c."NutrientId" AS nutrient_id,
@@ -30,17 +45,17 @@ all_crit AS (
            coalesce(lower(btrim(n."Name")) = 'alcohol', false) AS alcohol,
            c."MaxAmountPerServing" IS NULL AS uncapped
     FROM types t
-    JOIN plan."RestrictionCriterion" c ON c."RestrictionTypeId" = t.type_id
+    JOIN plan."RestrictionCriterion" c ON c."RestrictionTypeId" = t.ref_id
     LEFT JOIN nutrient."Nutrient" n ON n."Id" = c."NutrientId"
     WHERE NOT c."IsDeleted"
       AND (c."NutrientId" IS NOT NULL
            OR (c."NutrientId" IS NULL AND btrim(coalesce(c."IngredientPattern", '')) <> ''))
 ),
 crit AS (
-    SELECT type_id, type_name, pattern, severity FROM all_crit WHERE kind = 'like'
+    SELECT DISTINCT type_id, type_name, pattern, severity FROM all_crit WHERE kind = 'like'
 ),
 word_crit AS (
-    SELECT type_id, pattern FROM all_crit WHERE kind = 'word'
+    SELECT DISTINCT type_id, pattern FROM all_crit WHERE kind = 'word'
 ),
 nut_crit AS (
     SELECT DISTINCT type_id, nutrient_id, alcohol, uncapped FROM all_crit WHERE kind = 'nutrient'
@@ -50,6 +65,9 @@ alcohol_types AS (
 ),
 pats AS (
     SELECT DISTINCT pattern FROM crit
+),
+word_pats AS (
+    SELECT DISTINCT pattern FROM word_crit
 ),
 by_name AS (
     SELECT p.pattern, i."Id" AS food
@@ -75,23 +93,39 @@ stored AS (
     FROM nut_crit n
     JOIN nutrient."IngredientNutrient" x ON x."NutrientId" = n.nutrient_id AND NOT x."IsDeleted"
 ),
-word_name AS (
-    SELECT DISTINCT c.type_id, i."Id" AS food
-    FROM word_crit c
+word_name_hits AS (
+    SELECT DISTINCT c.pattern, i."Id" AS food
+    FROM word_pats c
     CROSS JOIN consts k
     JOIN recipe."Ingredient" i ON NOT i."IsDeleted" AND i."Name" ~* c.pattern
     WHERE NOT (i."Name" ~* k.drink AND i."Name" ~* k.not_drink)
 ),
-word_alias AS (
-    SELECT DISTINCT c.type_id, a."IngredientId" AS food,
+word_name AS (
+    SELECT DISTINCT c.type_id, h.food
+    FROM word_crit c
+    JOIN word_name_hits h ON h.pattern = c.pattern
+),
+word_alias_hits AS (
+    SELECT DISTINCT c.pattern, a."IngredientId" AS food,
            a."AliasName" !~* k.drink AS counts_old,
            a."AliasName" !~* k.drink
                AND coalesce(a."SourceContext" LIKE 'fdc:%' OR a."SourceContext" LIKE 'admin:%' OR a."SourceContext" LIKE 'deterministic:%'
                             OR a."SourceContext" LIKE 'retired:%' OR a."SourceContext" LIKE 'link:deterministic:%', false) AS counts_new
-    FROM word_crit c
+    FROM word_pats c
     CROSS JOIN consts k
     JOIN recipe."IngredientAlias" a ON NOT a."IsDeleted" AND a."AliasName" ~* c.pattern
     JOIN recipe."Ingredient" i ON i."Id" = a."IngredientId" AND NOT i."IsDeleted"
+),
+word_alias AS (
+    SELECT DISTINCT c.type_id, h.food, h.counts_old, h.counts_new
+    FROM word_crit c
+    JOIN word_alias_hits h ON h.pattern = c.pattern
+),
+drink_foods AS (
+    SELECT i."Id" AS food, i."FdcCategoryId", i."Name"
+    FROM recipe."Ingredient" i
+    CROSS JOIN consts k
+    WHERE NOT i."IsDeleted" AND i."Name" ~* k.drink AND i."Name" !~* k.not_drink
 ),
 nutrient_foods AS (
     SELECT DISTINCT n.type_id, i."Id" AS food
@@ -102,12 +136,11 @@ nutrient_foods AS (
       AND (NOT n.alcohol
        OR (i."FdcCategoryId" IS DISTINCT FROM 2 AND i."Name" !~* '\m(?:extracts?|essences?|flavou?r\w*)\M'))
     UNION
-    SELECT n.type_id, i."Id"
+    SELECT n.type_id, d.food
     FROM nut_crit n
-    CROSS JOIN consts k
-    JOIN recipe."Ingredient" i ON NOT i."IsDeleted" AND i."Name" ~* k.drink AND i."Name" !~* k.not_drink
+    JOIN drink_foods d ON true
     WHERE n.alcohol
-      AND NOT EXISTS (SELECT 1 FROM nutrient."IngredientNutrient" x WHERE x."IngredientId" = i."Id" AND x."NutrientId" = n.nutrient_id AND NOT x."IsDeleted")
+      AND NOT EXISTS (SELECT 1 FROM nutrient."IngredientNutrient" x WHERE x."IngredientId" = d.food AND x."NutrientId" = n.nutrient_id AND NOT x."IsDeleted")
 ),
 other_old AS (
     SELECT w.type_id, w.food FROM word_name w WHERE NOT EXISTS (SELECT 1 FROM stored s WHERE s.type_id = w.type_id AND s.food = w.food)
@@ -155,11 +188,17 @@ live AS (
     LEFT JOIN reference."Reference" s ON s."Id" = r."CurationStatusId"
     WHERE NOT ri."IsDeleted"
 ),
-drink_lines AS (
-    SELECT DISTINCT t.type_id, l."RecipeId", l.approved
-    FROM alcohol_types t
+drink_recipes AS (
+    SELECT DISTINCT l."RecipeId", l.approved
+    FROM live l
     CROSS JOIN consts k
-    JOIN live l ON l."RawLine" ~* k.drink AND l."RawLine" !~* k.not_drink
+    WHERE EXISTS (SELECT 1 FROM alcohol_types)
+      AND l."RawLine" ~* k.drink AND l."RawLine" !~* k.not_drink
+),
+drink_lines AS (
+    SELECT t.type_id, d."RecipeId", d.approved
+    FROM alcohol_types t
+    CROSS JOIN drink_recipes d
 ),
 old_recipes AS (
     SELECT DISTINCT o.type_id, l."RecipeId", l.approved
@@ -175,18 +214,33 @@ touched AS (
     SELECT DISTINCT a.type_id, l."RecipeId"
     FROM alias_only a JOIN live l ON l."IngredientId" = a.food
 ),
-by_line AS (
-    SELECT DISTINCT t.type_id, l."RecipeId", l.approved
-    FROM touched t
-    JOIN live l ON l."RecipeId" = t."RecipeId"
-    JOIN crit c ON c.type_id = t.type_id AND l."RawLine" ILIKE c.pattern
-    UNION
-    SELECT DISTINCT t.type_id, l."RecipeId", l.approved
-    FROM touched t
+touched_lines AS (
+    SELECT DISTINCT l."RecipeId", l."RawLine", l.approved
+    FROM live l
+    WHERE l."RecipeId" IN (SELECT "RecipeId" FROM touched)
+),
+like_hits AS (
+    SELECT DISTINCT p.pattern, tl."RecipeId", tl.approved
+    FROM pats p
+    JOIN touched_lines tl ON tl."RawLine" ILIKE p.pattern
+),
+word_hits AS (
+    SELECT DISTINCT c.pattern, tl."RecipeId", tl.approved
+    FROM word_pats c
     CROSS JOIN consts k
-    JOIN live l ON l."RecipeId" = t."RecipeId"
-    JOIN word_crit c ON c.type_id = t.type_id AND l."RawLine" ~* c.pattern
-    WHERE NOT (l."RawLine" ~* k.drink AND l."RawLine" ~* k.not_drink)
+    JOIN touched_lines tl ON tl."RawLine" ~* c.pattern
+    WHERE NOT (tl."RawLine" ~* k.drink AND tl."RawLine" ~* k.not_drink)
+),
+by_line AS (
+    SELECT DISTINCT t.type_id, h."RecipeId", h.approved
+    FROM touched t
+    JOIN crit c ON c.type_id = t.type_id
+    JOIN like_hits h ON h.pattern = c.pattern AND h."RecipeId" = t."RecipeId"
+    UNION
+    SELECT DISTINCT t.type_id, h."RecipeId", h.approved
+    FROM touched t
+    JOIN word_crit c ON c.type_id = t.type_id
+    JOIN word_hits h ON h.pattern = c.pattern AND h."RecipeId" = t."RecipeId"
 ),
 new_recipes AS (
     SELECT * FROM new_by_food UNION SELECT * FROM by_line UNION SELECT * FROM drink_lines
@@ -197,25 +251,40 @@ lost AS (
 gained AS (
     SELECT * FROM new_recipes EXCEPT SELECT * FROM old_recipes
 ),
+counts AS (
+    SELECT type_id, 'foods_before' AS k, count(*) AS n FROM old_foods GROUP BY type_id
+    UNION ALL SELECT type_id, 'foods_after', count(*) FROM new_foods GROUP BY type_id
+    UNION ALL SELECT type_id, 'foods_alias_only', count(*) FROM alias_only GROUP BY type_id
+    UNION ALL SELECT type_id, 'recipes_before', count(*) FROM old_recipes GROUP BY type_id
+    UNION ALL SELECT type_id, 'recipes_after', count(*) FROM new_recipes GROUP BY type_id
+    UNION ALL SELECT type_id, 'kept_by_line', count(*) FROM by_line GROUP BY type_id
+    UNION ALL SELECT type_id, 'lost', count(*) FROM lost GROUP BY type_id
+    UNION ALL SELECT type_id, 'lost_approved', count(*) FROM lost WHERE approved GROUP BY type_id
+    UNION ALL SELECT type_id, 'gained', count(*) FROM gained GROUP BY type_id
+),
+severities AS (
+    SELECT type_id, max(severity) AS severity FROM all_crit GROUP BY type_id
+),
 summary AS (
-    SELECT t.type_id, t.type_name,
-           (SELECT max(c.severity) FROM all_crit c WHERE c.type_id = t.type_id) AS severity,
-           (SELECT count(*) FROM old_foods x WHERE x.type_id = t.type_id) AS foods_before,
-           (SELECT count(*) FROM new_foods x WHERE x.type_id = t.type_id) AS foods_after,
-           (SELECT count(*) FROM alias_only x WHERE x.type_id = t.type_id) AS foods_alias_only,
-           (SELECT count(*) FROM old_recipes x WHERE x.type_id = t.type_id) AS recipes_before,
-           (SELECT count(*) FROM new_recipes x WHERE x.type_id = t.type_id) AS recipes_after,
-           (SELECT count(*) FROM by_line x WHERE x.type_id = t.type_id) AS kept_by_line,
-           (SELECT count(*) FROM lost x WHERE x.type_id = t.type_id) AS lost,
-           (SELECT count(*) FROM lost x WHERE x.type_id = t.type_id AND x.approved) AS lost_approved,
-           (SELECT count(*) FROM gained x WHERE x.type_id = t.type_id) AS gained
-    FROM types t
-    WHERE EXISTS (SELECT 1 FROM crit c WHERE c.type_id = t.type_id) OR EXISTS (SELECT 1 FROM word_crit c WHERE c.type_id = t.type_id)
+    SELECT g.type_id, g.type_name, g.ref_ids, v.severity,
+           coalesce(sum(c.n) FILTER (WHERE c.k = 'foods_before'), 0) AS foods_before,
+           coalesce(sum(c.n) FILTER (WHERE c.k = 'foods_after'), 0) AS foods_after,
+           coalesce(sum(c.n) FILTER (WHERE c.k = 'foods_alias_only'), 0) AS foods_alias_only,
+           coalesce(sum(c.n) FILTER (WHERE c.k = 'recipes_before'), 0) AS recipes_before,
+           coalesce(sum(c.n) FILTER (WHERE c.k = 'recipes_after'), 0) AS recipes_after,
+           coalesce(sum(c.n) FILTER (WHERE c.k = 'kept_by_line'), 0) AS kept_by_line,
+           coalesce(sum(c.n) FILTER (WHERE c.k = 'lost'), 0) AS lost,
+           coalesce(sum(c.n) FILTER (WHERE c.k = 'lost_approved'), 0) AS lost_approved,
+           coalesce(sum(c.n) FILTER (WHERE c.k = 'gained'), 0) AS gained
+    FROM type_groups g
+    JOIN severities v ON v.type_id = g.type_id
+    LEFT JOIN counts c ON c.type_id = g.type_id
+    GROUP BY g.type_id, g.type_name, g.ref_ids, v.severity
 ),
 lost_sample AS (
     SELECT s.type_name, s.severity, x."RecipeId",
            string_agg(DISTINCT l."RawLine", ' | ') AS lines_on_alias_only_foods,
-           row_number() OVER (PARTITION BY s.type_id ORDER BY x.approved DESC, x."RecipeId") AS n
+           row_number() OVER (PARTITION BY s.type_id ORDER BY x.approved DESC, md5(x."RecipeId"::text || :'seed')) AS n
     FROM lost x
     JOIN summary s ON s.type_id = x.type_id
     JOIN live l ON l."RecipeId" = x."RecipeId"
@@ -223,7 +292,7 @@ lost_sample AS (
     GROUP BY s.type_id, s.type_name, s.severity, x."RecipeId", x.approved
 )
 SELECT 'summary' AS kind, type_name, severity::text,
-       concat_ws(' ', 'foods', foods_before, '->', foods_after, '(alias only', foods_alias_only || ')',
+       concat_ws(' ', 'ids', ref_ids, 'foods', foods_before, '->', foods_after, '(alias only', foods_alias_only || ')',
                  'recipes', recipes_before, '->', recipes_after, '(kept by a line', kept_by_line || ')',
                  'lost', lost, '(approved', lost_approved || ')', 'gained', gained) AS detail
 FROM summary

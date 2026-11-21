@@ -39,7 +39,7 @@ namespace Nom.Orch.Services
         /// Other repairs of a recipe's lines that journal under their own change type and are put
         /// back by the same undo sweep: how one entry is taken back, and where a success is counted.
         /// </summary>
-        private static readonly Dictionary<string, (Func<ApplicationDbContext, AuditLogEntryEntity, long, Task<bool>> PutBack, Action<LineRelinkUndoResult> Count)> LineRepairs = new()
+        private static readonly Dictionary<string, (Func<ApplicationDbContext, AuditLogEntryEntity, long, RecipeOrderTrail, Task<bool>> PutBack, Action<LineRelinkUndoResult> Count)> LineRepairs = new()
         {
             [LineUnfoldService.UnfoldChangeType] = (LineUnfoldService.RefoldAsync, result => result.Refolded++),
             [CompoundLineService.SplitChangeType] = (CompoundLineService.UnsplitAsync, result => result.Unsplit++),
@@ -541,7 +541,8 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// Takes back the given journal entries, newest first, with the proposals withdrawn with a
-        /// retired food after every other step. A line entry of a recipe rebuilt after it is skipped.
+        /// retired food after every other step. A line entry of a recipe rebuilt after it is skipped; a
+        /// line an order-only pass moved since is followed to its new place and keeps it.
         /// </summary>
         private async Task<LineRelinkUndoResult> UndoEntriesAsync(List<AuditLogEntryEntity> entries)
         {
@@ -553,7 +554,9 @@ namespace Nom.Orch.Services
             foreach (var chunk in entries.Chunk(500))
             {
                 await using var tx = _db.Database.CurrentTransaction == null ? await _db.Database.BeginTransactionAsync() : null;
-                var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db, chunk.Where(e => e.EntityType == RelinkEntityType).Select(e => e.EntityId).ToList());
+                var lineRecipes = chunk.Where(e => e.EntityType == RelinkEntityType).Select(e => e.EntityId).Distinct().ToList();
+                var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db, lineRecipes);
+                var trail = await RecipeOrderTrail.LoadAsync(_db, lineRecipes);
                 foreach (var entry in chunk)
                 {
                     if (entry.ChangeType == ProposalWithdrawChangeType)
@@ -622,7 +625,7 @@ namespace Nom.Orch.Services
 
                     if (LineRepairs.TryGetValue(entry.ChangeType, out var repair))
                     {
-                        if (await repair.PutBack(_db, entry, personId))
+                        if (await repair.PutBack(_db, entry, personId, trail))
                         {
                             _db.AuditLogEntries.Remove(entry);
                             repair.Count(result);
@@ -632,22 +635,33 @@ namespace Nom.Orch.Services
                             result.Skipped++;
                         }
 
+                        await trail.StageAsync(_db);
                         await _db.SaveChangesAsync();
                         foreach (var line in _db.ChangeTracker.Entries<RecipeIngredientEntity>().ToList()) line.State = EntityState.Detached;
                         continue;
                     }
 
                     if (ReadPlace(entry.OldValue) is not { } was || ReadPlace(entry.NewValue) is not { } now
-                        || await MoveAsync(entry.EntityId, now.IngredientId, now.SortOrder, was.IngredientId, was.SortOrder, personId) == null)
+                        || trail.Follow(entry.EntityId, now.IngredientId, now.SortOrder, entry.Timestamp) is not { } from)
                     {
                         result.Skipped++;
                         continue;
                     }
 
+                    var reordered = trail.Moved(entry.EntityId, entry.Timestamp);
+                    if (await MoveAsync(entry.EntityId, now.IngredientId, from, was.IngredientId, reordered ? from : was.SortOrder, personId) is not { } position)
+                    {
+                        result.Skipped++;
+                        continue;
+                    }
+
+                    if (reordered)
+                        trail.Carry(entry.EntityId, entry.Timestamp, now.IngredientId, now.SortOrder, r => RecipeOrderTrail.Repoint(r, now.IngredientId, was.IngredientId), was.SortOrder, position);
                     _db.AuditLogEntries.Remove(entry);
                     result.Restored++;
                 }
 
+                await trail.StageAsync(_db);
                 await _db.SaveChangesAsync();
                 if (tx != null) await tx.CommitAsync();
             }

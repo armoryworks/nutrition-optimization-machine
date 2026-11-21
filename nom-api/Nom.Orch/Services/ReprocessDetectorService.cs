@@ -36,10 +36,33 @@ namespace Nom.Orch.Services
 
         public async Task<ReprocessDetectBatchResult> DetectBatchAsync(long afterRecipeId, int batchSize, CancellationToken cancellationToken = default)
         {
-            var version = RecipeLineBuilder.Version;
-            var ids = await UnreadQuery(_db, afterRecipeId, version).Take(batchSize).ToListAsync(cancellationToken);
+            var ids = await UnreadQuery(_db, afterRecipeId, RecipeLineBuilder.Version).Take(batchSize).ToListAsync(cancellationToken);
             if (ids.Count == 0) return new ReprocessDetectBatchResult(0, 0, new Dictionary<string, int>(), afterRecipeId);
+            var report = await ReadAsync(ids, write: true, sampleSize: 0, cancellationToken);
+            return new ReprocessDetectBatchResult(ids.Count, report.Candidates, report.ByReason, ids[^1]);
+        }
 
+        public async Task<ReprocessDetectReport> DetectAsync(long afterRecipeId, int maxRecipes, bool apply, int sampleSize, CancellationToken cancellationToken = default)
+        {
+            var take = Math.Clamp(maxRecipes, 1, RecipeReprocessService.MaxRecipesPerCall);
+            var ids = await (apply ? UnreadQuery(_db, afterRecipeId, RecipeLineBuilder.Version) : SourcedQuery(_db, afterRecipeId))
+                .Take(take).ToListAsync(cancellationToken);
+            if (ids.Count == 0) return new ReprocessDetectReport { Applied = apply, RuleVersion = RecipeLineBuilder.Version };
+            var report = await ReadAsync(ids, apply, Math.Max(0, sampleSize), cancellationToken);
+            report.Applied = apply;
+            report.LastRecipeId = ids[^1];
+            _logger.LogInformation("Reprocess detector ({Version}, operator{Mode}): {Read} recipes read, {Candidates} candidates",
+                report.RuleVersion, apply ? string.Empty : ", dry run", report.Read, report.Candidates);
+            return report;
+        }
+
+        /// <summary>
+        /// Reads the given recipes with the current line rules as a dry run of the rebuild and gives
+        /// each its reasons; with <paramref name="write"/> stores them as candidate rows.
+        /// </summary>
+        private async Task<ReprocessDetectReport> ReadAsync(List<long> ids, bool write, int sampleSize, CancellationToken cancellationToken)
+        {
+            var version = RecipeLineBuilder.Version;
             var preview = await _reprocess.RebuildAsync(new RecipeReprocessRequestModel { RecipeIds = ids });
             var rows = (await _db.RecipeIngredients.AsNoTracking()
                     .Where(ri => ids.Contains(ri.RecipeId))
@@ -52,28 +75,45 @@ namespace Nom.Orch.Services
                 .ToListAsync(cancellationToken);
             var newest = documents.GroupBy(d => d.RecipeId).ToDictionary(g => g.Key, g => g.Max(d => d.Id));
             var documentVersion = documents.ToDictionary(d => d.Id, d => d.Version);
-            var approved = (await _db.Recipes.AsNoTracking()
-                    .Where(r => ids.Contains(r.Id) && r.CurationStatusId == (long)CurationStatusEnum.Curated)
-                    .Select(r => r.Id)
-                    .ToListAsync(cancellationToken))
-                .ToHashSet();
+            var recipes = await _db.Recipes.AsNoTracking()
+                .Where(r => ids.Contains(r.Id))
+                .Select(r => new { r.Id, r.Name, r.CurationStatusId })
+                .ToDictionaryAsync(r => r.Id, cancellationToken);
             var vocabulary = await VocabularyAsync(cancellationToken);
-            var existing = await _db.ReprocessCandidates.Where(c => ids.Contains(c.RecipeId)).ToDictionaryAsync(c => c.RecipeId, cancellationToken);
+            var existing = write
+                ? await _db.ReprocessCandidates.Where(c => ids.Contains(c.RecipeId)).ToDictionaryAsync(c => c.RecipeId, cancellationToken)
+                : await _db.ReprocessCandidates.AsNoTracking().Where(c => ids.Contains(c.RecipeId)).ToDictionaryAsync(c => c.RecipeId, cancellationToken);
 
             var now = DateTime.UtcNow;
-            var byReason = new Dictionary<string, int>(StringComparer.Ordinal);
-            var candidates = 0;
+            var report = new ReprocessDetectReport { RuleVersion = version, Read = ids.Count };
+            foreach (var (reason, count) in preview.HeldByReason) report.HeldByReason[reason] = count;
             foreach (var result in preview.Results)
             {
                 var sourceVersion = result.SourceDocumentId is { } used && documentVersion.TryGetValue(used, out var v) ? v : 1;
                 var reasons = Reasons(result, rows[result.RecipeId].ToList(), sourceVersion,
                     raw => CompoundLineSplitter.Plan(raw, vocabulary) is { Rule: CompoundLineSplitter.OrSharedHead, Kind: CompoundKind.PickAlternative } plan && plan.Parts.Count == 1 ? plan.Parts[0].FoodId : null);
                 if ((existing.GetValueOrDefault(result.RecipeId)?.Reasons & ReprocessReason.Duplicate) is > 0) reasons |= ReprocessReason.Duplicate;
-                if (reasons != 0) candidates++;
-                foreach (var (flag, code, _) in ReprocessReason.All)
+                var tier = OrderOnly(result, reasons) ? ReprocessTier.Order : ReprocessTier.Rebuild;
+                var approved = recipes.TryGetValue(result.RecipeId, out var recipe) && recipe.CurationStatusId == (long)CurationStatusEnum.Curated;
+                if (reasons != 0)
                 {
-                    if ((reasons & flag) != 0) byReason[code] = byReason.GetValueOrDefault(code) + 1;
+                    report.Candidates++;
+                    if (approved) report.ApprovedCandidates++;
+                    if (tier == ReprocessTier.Order) report.OrderTier++;
+                    else report.RebuildTier++;
+                    var codes = ReprocessReason.All.Where(r => (reasons & r.Flag) != 0).Select(r => r.Code).ToList();
+                    foreach (var code in codes) report.ByReason[code] = report.ByReason.GetValueOrDefault(code) + 1;
+                    if (report.Samples.Count < sampleSize)
+                    {
+                        report.Samples.Add(new ReprocessDetectSample
+                        {
+                            RecipeId = result.RecipeId, Name = recipe?.Name ?? string.Empty, Approved = approved, Reasons = codes, Tier = tier,
+                            Outcome = result.Outcome, Hold = result.Outcome == RecipeReprocessOutcome.Held ? result.Reason : null,
+                            Lines = result.Lines.Where(l => l.Changes.Count > 0).ToList(),
+                        });
+                    }
                 }
+                if (!write) continue;
 
                 if (!existing.TryGetValue(result.RecipeId, out var row))
                 {
@@ -88,8 +128,8 @@ namespace Nom.Orch.Services
                 row.Reasons = reasons;
                 row.RuleVersion = version;
                 row.SourceDocumentId = newest.GetValueOrDefault(result.RecipeId);
-                row.Tier = OrderOnly(result, reasons) ? ReprocessTier.Order : ReprocessTier.Rebuild;
-                row.Priority = Priority(reasons, approved.Contains(result.RecipeId));
+                row.Tier = tier;
+                row.Priority = Priority(reasons, approved);
                 row.DetectedAt = now;
                 row.Outcome = null;
                 row.OutcomeReason = null;
@@ -97,10 +137,22 @@ namespace Nom.Orch.Services
                 row.JournalId = null;
             }
 
-            await _db.SaveChangesAsync(cancellationToken);
+            if (write) await _db.SaveChangesAsync(cancellationToken);
             _db.ChangeTracker.Clear();
-            return new ReprocessDetectBatchResult(ids.Count, candidates, byReason, ids[^1]);
+            return report;
         }
+
+        /// <summary>
+        /// The recipes after <paramref name="afterRecipeId"/>, by id, that have a stored source, read
+        /// or not: what an operator's dry run reads. A recipe a person edited and a rejected one are
+        /// left out, as in <see cref="UnreadQuery"/>.
+        /// </summary>
+        public static IQueryable<long> SourcedQuery(ApplicationDbContext db, long afterRecipeId) =>
+            db.Recipes.AsNoTracking()
+                .Where(r => r.Id > afterRecipeId && r.Version <= 1 && r.CurationStatusId != (long)CurationStatusEnum.Rejected)
+                .Where(r => db.ScrapedDocuments.Any(d => d.RecipeId == r.Id))
+                .OrderBy(r => r.Id)
+                .Select(r => r.Id);
 
         /// <summary>
         /// The recipes after <paramref name="afterRecipeId"/>, by id, that have a stored source and that

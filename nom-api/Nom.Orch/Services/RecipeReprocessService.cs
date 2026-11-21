@@ -91,7 +91,8 @@ namespace Nom.Orch.Services
         public sealed record LineRow(
             long IngredientId, int SortOrder, decimal Quantity, long MeasurementId, string RawLine, string? LineKind, long? IngredientEntityId,
             DateTime CreatedDate, long? CreatedByPersonId, DateTime? LastModifiedDate, long? LastModifiedByPersonId,
-            bool IsDeleted, DateTime? DeletedAt, long? DeletedByPersonId);
+            bool IsDeleted, DateTime? DeletedAt, long? DeletedByPersonId,
+            decimal? AlcoholRetention = null, string? AlcoholRetentionBasis = null);
 
         /// <summary>A recipe's curation state and deletion, for the journal.</summary>
         public sealed record RecipeState(long CurationStatusId, string? VettingIssues, bool IsDeleted, DateTime? DeletedAt, long? DeletedByPersonId);
@@ -755,7 +756,8 @@ namespace Nom.Orch.Services
                 .OrderBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId)
                 .Select(ri => new LineRow(
                     ri.IngredientId, ri.SortOrder, ri.Quantity, ri.MeasurementId, ri.RawLine, ri.LineKind, EF.Property<long?>(ri, "IngredientEntityId"),
-                    ri.CreatedDate, ri.CreatedByPersonId, ri.LastModifiedDate, ri.LastModifiedByPersonId, ri.IsDeleted, ri.DeletedAt, ri.DeletedByPersonId))
+                    ri.CreatedDate, ri.CreatedByPersonId, ri.LastModifiedDate, ri.LastModifiedByPersonId, ri.IsDeleted, ri.DeletedAt, ri.DeletedByPersonId,
+                    ri.AlcoholRetention, ri.AlcoholRetentionBasis))
                 .ToListAsync();
 
         private async Task<Dictionary<long, IngredientEntity>> FoodsAsync(IEnumerable<long> ids)
@@ -779,9 +781,11 @@ namespace Nom.Orch.Services
                     await _db.Database.ExecuteSqlAsync($"""
                         INSERT INTO recipe."RecipeIngredient"
                             ("RecipeId", "IngredientId", "SortOrder", "Quantity", "MeasurementId", "RawLine", "LineKind", "IngredientEntityId",
-                             "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId")
+                             "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId",
+                             "AlcoholRetention", "AlcoholRetentionBasis")
                         VALUES ({recipeId}, {r.IngredientId}, {r.SortOrder}, {r.Quantity}, {r.MeasurementId}, {r.RawLine}, {r.LineKind}, {r.IngredientEntityId},
-                                {r.CreatedDate}, {r.CreatedByPersonId}, {r.LastModifiedDate}, {r.LastModifiedByPersonId}, {r.IsDeleted}, {r.DeletedAt}, {r.DeletedByPersonId})
+                                {r.CreatedDate}, {r.CreatedByPersonId}, {r.LastModifiedDate}, {r.LastModifiedByPersonId}, {r.IsDeleted}, {r.DeletedAt}, {r.DeletedByPersonId},
+                                {r.AlcoholRetention}, {r.AlcoholRetentionBasis})
                         """);
                 }
                 return;
@@ -799,6 +803,7 @@ namespace Nom.Orch.Services
                     RawLine = r.RawLine, LineKind = r.LineKind, CreatedDate = r.CreatedDate, CreatedByPersonId = r.CreatedByPersonId,
                     LastModifiedDate = r.LastModifiedDate, LastModifiedByPersonId = r.LastModifiedByPersonId, IsDeleted = r.IsDeleted,
                     DeletedAt = r.DeletedAt, DeletedByPersonId = r.DeletedByPersonId,
+                    AlcoholRetention = r.AlcoholRetention, AlcoholRetentionBasis = r.AlcoholRetentionBasis,
                 };
                 _db.RecipeIngredients.Add(entity);
                 _db.Entry(entity).Property("IngredientEntityId").CurrentValue = r.IngredientEntityId;
@@ -1226,20 +1231,21 @@ namespace Nom.Orch.Services
             a.CurationStatusId == b.CurationStatusId && a.VettingIssues == b.VettingIssues && a.IsDeleted == b.IsDeleted;
 
         /// <summary>
-        /// The newest standing reprocess of each of the given recipes that rewrote its lines, order-only
-        /// writes included unless <paramref name="withOrder"/> is false. A rebuild that replaced only the
-        /// steps and left the rows as they were does not count. An older
-        /// line journal's undo skips a recipe rebuilt after that journal's entry: the rebuild replaced
-        /// the rows the entry names, so it is undone first.
+        /// The newest standing reprocess of each of the given recipes that rewrote its lines. An
+        /// order-only write does not count: it changes positions and nothing else, so an older line
+        /// journal's undo follows it (<see cref="Support.RecipeOrderTrail"/>). A rebuild that replaced
+        /// only the steps and left the rows as they were does not count either. An older line
+        /// journal's undo skips a recipe rebuilt after that journal's entry: the rebuild replaced the
+        /// rows the entry names, so it is undone first.
         /// </summary>
-        public static async Task<Dictionary<long, DateTime>> RebuiltAtAsync(ApplicationDbContext db, IReadOnlyCollection<long> recipeIds, bool withOrder = true)
+        public static async Task<Dictionary<long, DateTime>> RebuiltAtAsync(ApplicationDbContext db, IReadOnlyCollection<long> recipeIds)
         {
             var found = new Dictionary<long, DateTime>();
             foreach (var chunk in recipeIds.Distinct().Chunk(IdsPerRead))
             {
                 var headers = db.AuditLogEntries.AsNoTracking()
                     .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType
-                        && (a.ChangeType == ReprocessChangeType || (withOrder && a.ChangeType == ReprocessOrderChangeType)) && chunk.Contains(a.EntityId));
+                        && a.ChangeType == ReprocessChangeType && chunk.Contains(a.EntityId));
                 var newest = await headers
                     .GroupBy(a => a.EntityId)
                     .Select(g => new { RecipeId = g.Key, At = g.Max(a => a.Timestamp) })
@@ -1272,31 +1278,5 @@ namespace Nom.Orch.Services
                 .Where(part => part.StartsWith(JournalKey, StringComparison.Ordinal))
                 .Select(part => long.TryParse(part[JournalKey.Length..], NumberStyles.None, CultureInfo.InvariantCulture, out var parsed) ? parsed : (long?)null)
                 .FirstOrDefault();
-
-        /// <summary>
-        /// The position the line that stood at <paramref name="sortOrder"/> on <paramref name="ingredientId"/>
-        /// holds after the standing order-only writes of the recipe made after <paramref name="sinceUtc"/>,
-        /// which change positions and nothing else; null when there is none or one of them did not keep the line.
-        /// </summary>
-        public static async Task<int?> FollowOrderAsync(ApplicationDbContext db, long recipeId, long ingredientId, int sortOrder, DateTime sinceUtc)
-        {
-            var writes = await db.RecipeReprocessJournals.AsNoTracking()
-                .Where(j => j.RecipeId == recipeId && j.Kind == RecipeReprocessKind.Order && j.UndoneAt == null && j.CreatedDate > sinceUtc)
-                .OrderBy(j => j.Id)
-                .Select(j => new { j.OldRows, j.NewRows })
-                .ToListAsync();
-            if (writes.Count == 0) return null;
-            var at = sortOrder;
-            foreach (var write in writes)
-            {
-                var before = JsonSerializer.Deserialize<List<LineRow>>(write.OldRows ?? "[]", Json) ?? new List<LineRow>();
-                var after = JsonSerializer.Deserialize<List<LineRow>>(write.NewRows ?? "[]", Json) ?? new List<LineRow>();
-                var row = before.FirstOrDefault(r => !r.IsDeleted && r.IngredientId == ingredientId && r.SortOrder == at);
-                var moved = row == null ? null : after.FirstOrDefault(r => !r.IsDeleted && r.IngredientId == ingredientId && r.RawLine == row.RawLine && r.CreatedDate == row.CreatedDate);
-                if (moved == null) return null;
-                at = moved.SortOrder;
-            }
-            return at;
-        }
     }
 }

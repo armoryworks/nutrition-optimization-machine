@@ -17,10 +17,32 @@ namespace Nom.Api.Controllers
     public class RecipeReprocessController : BaseApiController
     {
         private readonly IRecipeReprocessService _reprocess;
+        private readonly IReprocessDetectorService _detector;
 
-        public RecipeReprocessController(IRecipeReprocessService reprocess)
+        public RecipeReprocessController(IRecipeReprocessService reprocess, IReprocessDetectorService detector)
         {
             _reprocess = reprocess;
+            _detector = detector;
+        }
+
+        /// <summary>
+        /// Run the detector over at most maxRecipes recipes with a stored source after afterRecipeId and
+        /// show the candidates by reason and tier, with samples. No model is called and no pause switch
+        /// is waited on. A dry run reads every such recipe and writes nothing; with apply=true it reads
+        /// those the current line rules have not read and stores their reasons as the lane's sweep does,
+        /// writing nothing to recipes. Page with the answer's lastRecipeId.
+        /// </summary>
+        [HttpPost("detect")]
+        public async Task<ActionResult<ReprocessDetectReport>> Detect(
+            [FromQuery] long afterRecipeId = 0, [FromQuery] int maxRecipes = RecipeReprocessService.MaxRecipesPerCall, [FromQuery] bool apply = false, [FromQuery] int sampleSize = 20,
+            CancellationToken cancellationToken = default)
+        {
+            if (maxRecipes < 1 || maxRecipes > RecipeReprocessService.MaxRecipesPerCall)
+            {
+                return BadRequest(new { message = $"maxRecipes must be 1 to {RecipeReprocessService.MaxRecipesPerCall}" });
+            }
+
+            return Ok(await _detector.DetectAsync(afterRecipeId, maxRecipes, apply, Math.Clamp(sampleSize, 0, 200), cancellationToken));
         }
 
         /// <summary>Build the given recipes' lines again from their stored source and show each line before and after; with orderOnly=true only set their order; a dry run unless apply=true.</summary>

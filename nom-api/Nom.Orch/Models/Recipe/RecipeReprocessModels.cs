@@ -211,4 +211,41 @@ namespace Nom.Orch.Models.Recipe
         public Dictionary<string, int> RestoredByKind { get; set; } = new();
         public List<long> SkippedRecipeIds { get; set; } = new();
     }
+
+    /// <summary>One recipe the detector marks, as an operator reads it.</summary>
+    public class ReprocessDetectSample
+    {
+        public long RecipeId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public bool Approved { get; set; }
+        public List<string> Reasons { get; set; } = new();
+        public string Tier { get; set; } = string.Empty;
+        public string Outcome { get; set; } = string.Empty;
+        public string? Hold { get; set; }
+        public List<RecipeReprocessLineDiff> Lines { get; set; } = new();
+    }
+
+    /// <summary>The answer of an operator's detector run: what the lane's sweep would mark, by reason.</summary>
+    public class ReprocessDetectReport
+    {
+        public bool Applied { get; set; }
+        public string RuleVersion { get; set; } = string.Empty;
+        public int Read { get; set; }
+        public int Candidates { get; set; }
+        public int ApprovedCandidates { get; set; }
+
+        /// <summary>Candidates the light order-only pass would take (only the order would change).</summary>
+        public int OrderTier { get; set; }
+
+        /// <summary>Candidates only a full rebuild reaches.</summary>
+        public int RebuildTier { get; set; }
+
+        public Dictionary<string, int> ByReason { get; set; } = new();
+        public Dictionary<string, int> HeldByReason { get; set; } = new();
+
+        /// <summary>The last recipe read; the next call starts after it. Null when nothing was left to read.</summary>
+        public long? LastRecipeId { get; set; }
+
+        public List<ReprocessDetectSample> Samples { get; set; } = new();
+    }
 }

@@ -53,6 +53,7 @@ namespace Nom.Import.Services
         public const string FoodEntityType = "Ingredient";
         public const string AliasEntityType = "IngredientAlias";
         public const string RunEntityType = CatalogAdmissionRule.RunEntityType;
+        public const string UndoOfProperty = "UndoOf";
         public const int MaxChangedFoods = 10_000;
         public const decimal MinEnergyPassRate = 0.99m;
         public const decimal MaxAuditHoldShare = 0.01m;
@@ -387,6 +388,20 @@ namespace Nom.Import.Services
             var now = new DateTime(DateTime.UtcNow.Ticks / 10 * 10, DateTimeKind.Utc);
             if (now <= stamp) now = stamp.AddTicks(10);
             var undone = new List<AuditLogEntryEntity>();
+            var runText = stamp.ToString("O", CultureInfo.InvariantCulture);
+            var undoStamps = await _db.AuditLogEntries.AsNoTracking()
+                .Where(a => a.EntityType == RunEntityType && a.ChangeType == UndoChangeType && a.PropertyName == UndoOfProperty && a.NewValue == runText)
+                .Select(a => a.Timestamp)
+                .ToListAsync(ct);
+            var undoneBefore = undoStamps.Count == 0
+                ? new HashSet<(string, long, string?, string?, string?)>()
+                : (await _db.AuditLogEntries.AsNoTracking()
+                        .Where(a => undoStamps.Contains(a.Timestamp) && a.ChangeType == UndoChangeType && a.EntityType != RunEntityType)
+                        .Select(a => new { a.EntityType, a.EntityId, a.PropertyName, a.OldValue, a.NewValue })
+                        .ToListAsync(ct))
+                    .Select(a => (a.EntityType, a.EntityId, a.PropertyName, a.OldValue, a.NewValue))
+                    .ToHashSet();
+            bool TakenBack(AuditLogEntryEntity entry) => undoneBefore.Contains((entry.EntityType, entry.EntityId, entry.PropertyName, entry.NewValue, entry.OldValue));
 
             await using var tx = !dryRun && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(ct) : null;
             foreach (var entry in entries)
@@ -402,7 +417,8 @@ namespace Nom.Import.Services
                             .FirstOrDefaultAsync(a => a.IngredientId == entry.EntityId && a.AliasName == entry.NewValue, ct);
                         if (alias == null || alias.SourceContext != IngredientLinkService.UsdaDescriptionContext)
                         {
-                            report.Skipped++;
+                            if (alias == null && TakenBack(entry)) report.AlreadyUndone++;
+                            else report.Skipped++;
                             continue;
                         }
                         report.DescriptionsRemoved++;
@@ -413,7 +429,8 @@ namespace Nom.Import.Services
                         if (entry.OldValue == null || await _db.IngredientAliases.IgnoreQueryFilters()
                             .AnyAsync(a => a.IngredientId == entry.EntityId && a.AliasName == entry.OldValue, ct))
                         {
-                            report.Skipped++;
+                            if (entry.OldValue != null && TakenBack(entry)) report.AlreadyUndone++;
+                            else report.Skipped++;
                             continue;
                         }
                         report.DescriptionsRestored++;
@@ -438,7 +455,8 @@ namespace Nom.Import.Services
                     var pick = await _db.FoodCatalogProposals.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == entry.EntityId, ct);
                     if (pick == null || pick.IsDeleted != withdrawn)
                     {
-                        report.Skipped++;
+                        if (pick != null && TakenBack(entry)) report.AlreadyUndone++;
+                        else report.Skipped++;
                         continue;
                     }
                     if (withdrawn) report.PicksRestored++;
@@ -455,6 +473,11 @@ namespace Nom.Import.Services
 
                 if (!foods.TryGetValue(entry.EntityId, out var food) || ReadValue(food, entry.PropertyName) != entry.NewValue)
                 {
+                    if (food != null && ReadValue(food, entry.PropertyName) == entry.OldValue && TakenBack(entry))
+                    {
+                        report.AlreadyUndone++;
+                        continue;
+                    }
                     report.Skipped++;
                     report.Lines.Add($"left     #{entry.EntityId} {food?.Name}: {entry.PropertyName} changed since the run");
                     continue;
@@ -477,7 +500,7 @@ namespace Nom.Import.Services
 
             if (dryRun) return report;
             report.UndoStamp = now;
-            _db.AuditLogEntries.Add(Journal(RunEntityType, 0, UndoChangeType, "UndoOf", null, stamp.ToString("O", CultureInfo.InvariantCulture), now));
+            _db.AuditLogEntries.Add(Journal(RunEntityType, 0, UndoChangeType, UndoOfProperty, null, runText, now));
             foreach (var entry in undone)
                 _db.AuditLogEntries.Add(Journal(entry.EntityType, entry.EntityId, UndoChangeType, entry.PropertyName, entry.NewValue, entry.OldValue, now));
             await _db.SaveChangesAsync(ct);
@@ -777,6 +800,10 @@ namespace Nom.Import.Services
             public int PicksRestored { get; set; }
             public int PicksWithdrawn { get; set; }
             public int Skipped { get; set; }
+
+            /// <summary>Values an earlier undo of the same run already took back and that still stand as it left them; nothing to do.</summary>
+            public int AlreadyUndone { get; set; }
+
             public List<string> Lines { get; } = new();
         }
     }

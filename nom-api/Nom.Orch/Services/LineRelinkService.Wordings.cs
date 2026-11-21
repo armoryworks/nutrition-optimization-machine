@@ -349,11 +349,17 @@ namespace Nom.Orch.Services
             var skipped = plan.Where(l => rebuilt.TryGetValue(l.Entry.EntityId, out var at) && at > l.Entry.Timestamp).ToList();
             result.LandingsReturnSkippedRebuilt = skipped.Count;
             plan = plan.Except(skipped).ToList();
+            var trail = await RecipeOrderTrail.LoadAsync(_db, plan.Select(l => l.Entry.EntityId));
+            var standing = new Dictionary<long, int>();
             foreach (var landing in plan)
             {
                 var now = ReadPlace(landing.Entry.NewValue)!.Value;
-                if (await _db.RecipeIngredients.AnyAsync(ri => ri.RecipeId == landing.Entry.EntityId && ri.IngredientId == now.IngredientId && ri.SortOrder == now.SortOrder && !ri.IsDeleted))
-                    returning.Add((landing.Entry.EntityId, now.IngredientId, now.SortOrder));
+                if (trail.Follow(landing.Entry.EntityId, now.IngredientId, now.SortOrder, landing.Entry.Timestamp) is not { } at) continue;
+                if (await _db.RecipeIngredients.AnyAsync(ri => ri.RecipeId == landing.Entry.EntityId && ri.IngredientId == now.IngredientId && ri.SortOrder == at && !ri.IsDeleted))
+                {
+                    returning.Add((landing.Entry.EntityId, now.IngredientId, at));
+                    standing[landing.Entry.Id] = at;
+                }
             }
 
             foreach (var creation in created.Where(a => plan.Any(l => l.Wording == a.NewValue)).DistinctBy(a => a.EntityId))
@@ -384,8 +390,8 @@ namespace Nom.Orch.Services
                 var entry = landing.Entry;
                 var was = ReadPlace(entry.OldValue)!.Value;
                 var now = ReadPlace(entry.NewValue)!.Value;
-                if (!returning.Contains((entry.EntityId, now.IngredientId, now.SortOrder))) continue;
-                var position = await MoveAsync(entry.EntityId, now.IngredientId, now.SortOrder, landing.TargetId, was.SortOrder, personId);
+                if (!standing.TryGetValue(entry.Id, out var stands) || !returning.Contains((entry.EntityId, now.IngredientId, stands))) continue;
+                var position = await MoveAsync(entry.EntityId, now.IngredientId, stands, landing.TargetId, trail.Moved(entry.EntityId, entry.Timestamp) ? stands : was.SortOrder, personId);
                 if (position == null) continue;
 
                 var at = DateTime.UtcNow;
@@ -430,6 +436,7 @@ namespace Nom.Orch.Services
             foreach (var chunk in landings.OrderByDescending(l => l.Entry.Id).Chunk(500))
             {
                 await using var tx = _db.Database.CurrentTransaction == null ? await _db.Database.BeginTransactionAsync() : null;
+                var trail = await RecipeOrderTrail.LoadAsync(_db, chunk.Select(l => l.Entry.EntityId));
                 foreach (var landing in chunk)
                 {
                     var entry = landing.Entry;
@@ -440,8 +447,9 @@ namespace Nom.Orch.Services
                         continue;
                     }
 
-                    if (ReadPlace(entry.NewValue) is not { } place
-                        || !await _db.RecipeIngredients.AnyAsync(ri => ri.RecipeId == entry.EntityId && ri.IngredientId == place.IngredientId && ri.SortOrder == place.SortOrder && !ri.IsDeleted))
+                    if (ReadPlace(entry.NewValue) is not { } landed
+                        || trail.Follow(entry.EntityId, landed.IngredientId, landed.SortOrder, entry.Timestamp) is not { } at
+                        || !await _db.RecipeIngredients.AnyAsync(ri => ri.RecipeId == entry.EntityId && ri.IngredientId == landed.IngredientId && ri.SortOrder == at && !ri.IsDeleted))
                     {
                         result.LandingsSkipped++;
                         continue;
@@ -460,7 +468,7 @@ namespace Nom.Orch.Services
                         continue;
                     }
 
-                    var position = await MoveAsync(entry.EntityId, place.IngredientId, place.SortOrder, home.Food.Id, place.SortOrder, personId);
+                    var position = await MoveAsync(entry.EntityId, landed.IngredientId, at, home.Food.Id, at, personId);
                     if (position == null)
                     {
                         result.LandingsSkipped++;
@@ -475,7 +483,7 @@ namespace Nom.Orch.Services
                         EntityId = entry.EntityId,
                         ChangeType = WordingRetractChangeType,
                         PropertyName = nameof(RecipeIngredientEntity.IngredientId),
-                        OldValue = Place(place.IngredientId, place.SortOrder),
+                        OldValue = Place(landed.IngredientId, at),
                         NewValue = Place(home.Food.Id, position.Value),
                         Timestamp = now,
                         ChangedByPersonId = personId,

@@ -137,6 +137,15 @@ sense groups can, is counted once, as the apply writes it once); an undo's dry r
 would give back. Line moves have their own change type, so the time-window `relink/undo` and a wording
 retract never take back a re-check's lines without its aliases; only its stamp does.
 
+Operator notes (staging checkpoint 2): read a set's dry run as a lower bound. It counts lines, but
+not the ingredients a run creates as homes for unlinked lines, the aliases it untrusts or removes,
+the names it frees or the wording rows it acts against; the apply reports them. The withdrawal's
+undo answers 0 for every count, dry run and apply, even when it restores the picks (compare the
+proposals before and after instead). A set's undo leaves a retired food it renamed to free a name
+under its new name, and the ingredients it created as soft-deleted rows. After the withdrawal every
+withdrawn wording is a link-lane source again: expect `linkQueue` to rise to about 64,000 while the
+link lane stays paused.
+
 `POST names?apply=` lists curated foods whose name claims a colour, "whole" or "seed" their USDA
 entry lacks while the entry names a form the name lacks, and renames those in the fixed table by
 FDC id (170929 "Spices, mustard seed, ground": "Black Mustard Seed" to "Ground Mustard") through

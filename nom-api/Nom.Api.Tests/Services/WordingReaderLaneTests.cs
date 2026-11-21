@@ -46,8 +46,10 @@ namespace Nom.Api.Tests.Services
         private sealed class FakeTiers : IWordingTierLaneService
         {
             public string Signature(string tier) => "tier-signature-" + tier;
-            public Task<WordingTierBatchResult> RunBatchAsync(IReadOnlyDictionary<string, string> modes, int max, IReadOnlyDictionary<string, int>? remaining = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task<WordingTierBatchResult> RunBatchAsync(IReadOnlyDictionary<string, string> modes, int max, IReadOnlyDictionary<string, int>? remaining = null, bool recover = true, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task<WordingTierPreview> PreviewAsync(int skip, int max, int sampleSize, CancellationToken cancellationToken = default) => throw new NotSupportedException();
             public Task<LaneQualifyVerdict> AuditAndEvaluateAsync(string tier, IReadOnlyList<string> faults, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task<LaneQualifyVerdict> EvaluateFaultsAsync(string tier, IReadOnlyList<string> faults, CancellationToken cancellationToken = default) => throw new NotSupportedException();
             public Task<int> WritesTodayAsync(string tier, CancellationToken cancellationToken = default) => Task.FromResult(0);
         }
 
