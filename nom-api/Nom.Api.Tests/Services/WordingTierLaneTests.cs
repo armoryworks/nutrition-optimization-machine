@@ -490,7 +490,8 @@ namespace Nom.Api.Tests.Services
         {
             var record = new WordingTierAuditRecord.Record
             {
-                Model = recordAuditor, CheckModel = recordCheck, ScoredAtUtc = DateTime.UtcNow, AuditKnownBad = 40, AuditFlaggedBad = 36, AuditKnownGood = 200, AuditFlaggedGood = 2,
+                Model = recordAuditor, CheckModel = recordCheck, Signature = WordingReaderRecords.ScorerSignature(WordingTierAuditRecord.Lane), Score = 0.9,
+                ScoredAtUtc = DateTime.UtcNow, AuditKnownBad = 40, AuditFlaggedBad = 36, AuditKnownGood = 200, AuditFlaggedGood = 2,
             };
 
             var (score, golden) = WordingTierAuditRecord.Evaluate(record, auditor, check);

@@ -115,9 +115,12 @@ own runs since the last clean window (`LinkRecheckLaneUndo`; an operator's runs 
 stamp).
 
 An operator's apply records its moves and take-backs on the frame too (mode live), so
-`POST audit/{set}` can audit them. Until the auditor has a golden record (lane `link-audit`, built
-with the wording readers) no tier can qualify: the sets are applied by an operator, one dry run at a
-time, and the lane decides in shadow.
+`POST audit/{set}` can audit them. `AuditAndEvaluateAsync` evaluates a set with the committed
+`scores/link-audit.json` (lane `link-audit`, scored by the wording readers' scorer, see
+`wording-readers.md`): its known-bad and known-good flags are the audit check's score, and a record
+that is missing, scored another same-food judge prompt (its `signature`), another auditor or reader B
+than the set is audited with, or below its `model-lanes.json` floor (75 %), keeps the set in shadow. Until that record is committed the sets are applied by an operator, one dry run at a time,
+and the lane decides in shadow.
 
 ## Status
 

@@ -79,7 +79,10 @@ checks: their answer is held by `head-noun` instead of `containment` and `lead-n
 `generic` and description-side `percent` rules, which stand in for a reader's choice of variety, are
 not applied. Every other rule holds for them as for a lone answer. A synonym with no shared word
 ("crisco", "saleratus", "sack") passes only through a lexicon entry (`GateCatalog.Lexicon`, filled
-by `cleanup2/wording-readers`).
+from `recipe."WordingLexicon"` by the wording readers, see `wording-readers.md`). A line two readers
+gave a fixed reading of an unclear alcohol word carries that reading's sense (`GateLine.Sense`), which
+the alcohol rules read in place of the line's own; no other caller sets it, so the rules and the
+gate's signature are unchanged.
 
 **Family.** `LinkGate.Family` takes a batch of answers. Wordings that fold to one key (plural,
 hyphen or space, "X wine" against "X", a unit word in front) must agree on one food. Within a key

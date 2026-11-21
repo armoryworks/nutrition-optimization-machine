@@ -1243,6 +1243,14 @@ evidence key `wording-tiers:lines-<line count>`, then relinks that batch alone. 
 retract with that evidence key, so the rejection memory keeps a retracted pair out until the
 wording has twice the lines it was loaded on; a retract never demotes a food the load curated.
 
+**Rows the wording readers write.** The wording reader lane (`wording-readers.md`) writes rows only
+through this loader as well, one batch per frame tier and pass (`wr-read-<stamp>`, `wr-alcohol-<stamp>`),
+with source `ai:readers:<hash>` (the readers' rules, prompts and the two reader models) and the evidence
+key `wording-readers:lines-<line count>` in its decision, then relinks that batch alone and has the
+sentinel read the moved lines. It writes `none` and `unclear` rows too, which move nothing. Its undo is
+the per-wording retract with that evidence key. The verified-wording tier of the tiers reads its rows as
+two readers' answer for other wordings of the same key; it does not read the tiers' own rows.
+
 **Rename.** `POST api/FoodCatalog/relink/rename?id=<food>&name=<new name>` renames a live curated
 food and sets `NameNormalized`; a soft-deleted holder of the name is tombstoned, a live holder
 stops it (`heldByIngredientId`, `heldByLines`), and aliases of the new name come off other foods.

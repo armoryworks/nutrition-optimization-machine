@@ -19,7 +19,8 @@ using Nom.Orch.Services.Support;
 namespace Nom.Import.Golden
 {
     /// <summary>What one golden case got from the model, and whether that is the judged answer.</summary>
-    public sealed record LaneCaseResult(string Id, bool Pass, bool FalseAccept, bool CanFalseAccept, string Expected, string Actual, string JudgedBy, bool? Accepted = null, bool? Flagged = null);
+    public sealed record LaneCaseResult(string Id, bool Pass, bool FalseAccept, bool CanFalseAccept, string Expected, string Actual, string JudgedBy, bool? Accepted = null, bool? Flagged = null,
+        bool? AuditorFlagsGood = null, bool? AuditorFlagsBad = null);
 
     /// <summary>
     /// One operator run of a model lane over its golden set: the lane's prompt signature, the model
@@ -31,6 +32,9 @@ namespace Nom.Import.Golden
     {
         public string Lane { get; set; } = string.Empty;
         public string Model { get; set; } = string.Empty;
+
+        /// <summary>The second model the run asked (--check-model): reader B of the reader lanes, the confirming reader of link-audit, the judge of the prose writer.</summary>
+        public string? CheckModel { get; set; }
         public string Host { get; set; } = string.Empty;
         public string Signature { get; set; } = string.Empty;
         public DateTime ScoredAtUtc { get; set; }
@@ -51,6 +55,13 @@ namespace Nom.Import.Golden
         public int? AuditFlaggedBad { get; set; }
         public int? AuditKnownGood { get; set; }
         public int? AuditFlaggedGood { get; set; }
+
+        /// <summary>The auditor a lane also scored alone (link-audit: the model scored; alcohol-reading: the fixed-reading auditor), and its own flags on known-bad and known-good cases.</summary>
+        public string? AuditModel { get; set; }
+        public int? AuditorKnownBad { get; set; }
+        public int? AuditorFlaggedBad { get; set; }
+        public int? AuditorKnownGood { get; set; }
+        public int? AuditorFlaggedGood { get; set; }
     }
 
     /// <summary>
@@ -75,7 +86,7 @@ namespace Nom.Import.Golden
     /// sends for one fixed question, without the model name, so any change to its prompt, schema
     /// or options shows as a new signature.
     /// </summary>
-    public static class ModelLanes
+    public static partial class ModelLanes
     {
         public const string LinkPick = "link-pick";
         public const string LinkVerify = "link-verify";
@@ -87,7 +98,12 @@ namespace Nom.Import.Golden
         public const string ProseRewriteLane = ProseLaneGolden.RewriteLane;
         public const string ProseJudgeLane = ProseLaneGolden.JudgeLane;
         public const string ProseAuditLane = ProseLaneGolden.AuditLane;
+        public const string WordingReadLane = WordingReaderRecords.ReadLane;
+        public const string WordingLexiconLane = WordingReaderRecords.LexiconLane;
+        public const string AlcoholReadingLane = WordingReaderRecords.AlcoholLane;
+        public const string LinkAuditLane = WordingReaderRecords.AuditLane;
         public const string CheckModelKey = "Golden:CheckModel";
+        public const string AuditModelKey = "Golden:AuditModel";
         public const string FloorsFile = "model-lanes.json";
         public const string ScoresFolder = "scores";
         public const int PickBatch = 6;
@@ -95,7 +111,7 @@ namespace Nom.Import.Golden
         public const int ClassifyBatch = 20;
         public const int JudgeBatch = 8;
 
-        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane, WordingTiersLane, LineJudge, ProseRewriteLane, ProseJudgeLane, ProseAuditLane };
+        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane, WordingTiersLane, LineJudge, ProseRewriteLane, ProseJudgeLane, ProseAuditLane, WordingReadLane, WordingLexiconLane, AlcoholReadingLane, LinkAuditLane };
 
         /// <summary>The prose lanes, scored on prose-judge.tsv; their signatures are <see cref="ProseLaneGolden.Signature"/>.</summary>
         public static readonly IReadOnlyList<string> Prose = new[] { ProseRewriteLane, ProseJudgeLane, ProseAuditLane };
@@ -115,10 +131,11 @@ namespace Nom.Import.Golden
 
         private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-        public static IConfiguration Config(string host, string model, string? checkModel = null) => new ConfigurationBuilder()
+        public static IConfiguration Config(string host, string model, string? checkModel = null, string? auditModel = null) => new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [CheckModelKey] = checkModel,
+                [AuditModelKey] = auditModel,
                 ["Ai:BatchOllamaUrl"] = host,
                 ["Ai:LinkModel"] = model,
                 ["Ai:RepairModel"] = model,
@@ -134,6 +151,7 @@ namespace Nom.Import.Golden
             if (lane == WordingTiersLane) return WordingTiers.Signature;
             if (lane == LineJudge) return OllamaLineJudge.Signature;
             if (Prose.Contains(lane)) return ProseLaneGolden.Signature(lane);
+            if (Readers.Contains(lane)) return WordingReaderRecords.ScorerSignature(lane);
             var capture = new CapturingHandler();
             using var http = new HttpClient(capture);
             var config = Config("http://signature.invalid", "signature");
@@ -207,8 +225,15 @@ namespace Nom.Import.Golden
             var gated = results.Where(r => r.Accepted != null).ToList();
             var taken = gated.Count(r => r.Accepted == true);
             var flagged = results.Where(r => r.Flagged != null).ToList();
+            var auditedBad = results.Where(r => r.AuditorFlagsBad != null).ToList();
+            var auditedGood = results.Where(r => r.AuditorFlagsGood != null).ToList();
+            var auditor = auditedBad.Count > 0 || auditedGood.Count > 0;
             return new LaneScore
             {
+                AuditorKnownBad = auditor ? auditedBad.Count : null,
+                AuditorFlaggedBad = auditor ? auditedBad.Count(r => r.AuditorFlagsBad == true) : null,
+                AuditorKnownGood = auditor ? auditedGood.Count : null,
+                AuditorFlaggedGood = auditor ? auditedGood.Count(r => r.AuditorFlagsGood == true) : null,
                 AuditKnownBad = flagged.Count == 0 ? null : flagged.Count(r => r.CanFalseAccept),
                 AuditFlaggedBad = flagged.Count == 0 ? null : flagged.Count(r => r.CanFalseAccept && r.Flagged == true),
                 AuditKnownGood = flagged.Count == 0 ? null : flagged.Count(r => !r.CanFalseAccept),
@@ -252,6 +277,11 @@ namespace Nom.Import.Golden
                 case ProseJudgeLane:
                 case ProseAuditLane:
                     return await ProseResultsAsync(lane, goldenDir, http, config, limit, progress, cancellationToken);
+                case WordingReadLane:
+                case WordingLexiconLane:
+                case AlcoholReadingLane:
+                case LinkAuditLane:
+                    return await ReaderResultsAsync(lane, goldenDir, http, config, limit, progress, cancellationToken);
                 case AlcoholContextLane:
                 {
                     var cases = AlcoholCases(goldenDir).Take(limit ?? int.MaxValue).ToList();

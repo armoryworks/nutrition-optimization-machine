@@ -35,6 +35,10 @@ namespace Nom.Api.Tests.Golden
             ModelLanes.WordingTiersLane => ModelLanes.TierCases(GoldenSet.Folder).Select(c => c.Id),
             ModelLanes.LineJudge => ModelLanes.JudgeCases(GoldenSet.Folder).Select(c => c.Id),
             ModelLanes.ProseRewriteLane or ModelLanes.ProseJudgeLane or ModelLanes.ProseAuditLane => Nom.Orch.Services.Support.ProseLaneGolden.CaseIds(lane, ModelLanes.ProseCases(GoldenSet.Folder)),
+            ModelLanes.WordingReadLane => ModelLanes.ReadCases(GoldenSet.Folder).Select(c => c.Id),
+            ModelLanes.WordingLexiconLane => ModelLanes.LexiconCases(GoldenSet.Folder).Select(c => c.Id),
+            ModelLanes.AlcoholReadingLane => ModelLanes.AlcoholReadingCases(GoldenSet.Folder).Select(c => c.Id),
+            ModelLanes.LinkAuditLane => ModelLanes.AuditCases(GoldenSet.Folder).Select(c => c.Id),
             _ => Enumerable.Empty<string>(),
         };
 

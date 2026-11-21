@@ -456,6 +456,11 @@ builder.Services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.Word
 builder.Services.AddHostedService<Nom.Api.Services.WordingTierHostedService>();
 builder.Services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.ContainerSizeLaneUndo>();
 builder.Services.AddHostedService<Nom.Api.Services.ContainerSizeHostedService>();
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IWordingReaders, Nom.Orch.Services.OllamaWordingReaders>(
+    client => client.Timeout = TimeSpan.FromSeconds(300))
+    .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.WordingReaders));
+builder.Services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.WordingReaderUndo>();
+builder.Services.AddHostedService<Nom.Api.Services.WordingReaderHostedService>();
 
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();

@@ -1,0 +1,41 @@
+id	term	means	foodId	expect	judgedBy	status	note
+lx-01	crisco	shortening	280770	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-3: Crisco is a vegetable shortening brand
+lx-02	glucose	corn syrup	276169	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-13: confectioners' glucose is a glucose (corn) syrup
+lx-03	macaroni	pasta	277036	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-18: macaroni is dry pasta
+lx-04	vermicelli	pasta	277036	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-94: vermicelli is dry pasta
+lx-05	ryzon	baking powder	286947	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-29: Ryzon was a baking powder brand
+lx-06	bp	baking powder	286947	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-69: bp is the cookbook abbreviation of baking powder
+lx-07	saleratus	baking soda	282180	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-45: saleratus is the old name of baking soda
+lx-08	salaeratus	baking soda	282180	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-364: a spelling of saleratus
+lx-09	oatmeal	oats	277007	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-44: oatmeal in baking lines is rolled or ground oats
+lx-10	claret	red wine	287420	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-47 family: claret is red Bordeaux table wine
+lx-11	sweetbreads	thymus	279757	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-88: sweetbreads are the thymus (and pancreas) of calf or lamb
+lx-12	cornflour	cornstarch	15949	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-90: British cornflour is cornstarch
+lx-13	sack	dessert wine	287461	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-100: sack is a sherry-type fortified wine; the two USDA dessert wines are nutrition-equivalent
+lx-14	ale	beer	287397	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-136: ale is a beer
+lx-15	bechamel	white sauce	281691	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-157: bechamel is a white sauce
+lx-16	pippins	apples	278926	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-222: pippins are apples
+lx-17	damsons	plums	277244	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-261: damsons are plums
+lx-18	manchet	white bread	274600	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-331: manchet is fine white bread
+lx-19	port	sweet dessert wine	287418	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-396: port is a sweet fortified wine
+lx-20	chablis	white wine	164	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-408: Chablis is a dry white wine
+lx-21	pimola	stuffed olives	274629	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-483: Pimola was a brand of pimiento-stuffed olives
+lx-22	beetroots	beets	274830	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-207: beetroot is the British name of beets
+lx-23	oleomargarine	margarine	279561	=	agent-review-wording-readers-2026-11-21	agent	w01 W01-374: oleomargarine is margarine
+lx-24	aubergine	eggplant	274831	=	agent-review-wording-readers-2026-11-21	agent	aubergine is the British name of eggplant
+lx-25	courgettes	zucchini	-	=	agent-review-wording-readers-2026-11-21	agent	courgette is the British name of zucchini
+lx-26	cottolene	shortening	-	=	agent-review-wording-readers-2026-11-21	agent	Cottolene was a cottonseed-oil and beef-suet shortening; the food it rests on is left to the readers
+lx-27	maize	corn	-	=	agent-review-wording-readers-2026-11-21	agent	maize is corn
+lx-28	prawns	shrimp	-	=	agent-review-wording-readers-2026-11-21	agent	prawns are shrimp as bought
+lx-29	rocket	arugula	-	=	agent-review-wording-readers-2026-11-21	agent	rocket is the British name of arugula
+lx-30	treacle	molasses	5602	!	agent-review-wording-readers-2026-11-21	agent	w01 second reader: British treacle may be golden syrup or black treacle as well as molasses
+lx-31	dripping	lard	5146	!	agent-review-wording-readers-2026-11-21	agent	dripping is rendered beef or mutton fat, not pork lard
+lx-32	suet	lard	5146	!	agent-review-wording-readers-2026-11-21	agent	suet is raw beef or mutton kidney fat, not lard
+lx-33	hartshorn	baking powder	286947	!	agent-review-wording-readers-2026-11-21	agent	hartshorn is ammonium carbonate (baker's ammonia), not baking powder
+lx-34	pearlash	baking soda	282180	!	agent-review-wording-readers-2026-11-21	agent	pearlash is potassium carbonate, not baking soda
+lx-35	saltpetre	salt	-	!	agent-review-wording-readers-2026-11-21	agent	saltpetre is potassium nitrate, a curing agent, not table salt
+lx-36	icing	powdered sugar	-	!	agent-review-wording-readers-2026-11-21	agent	bare icing is a frosting; only icing sugar is powdered sugar
+lx-37	coriander	cilantro	-	!	agent-review-wording-readers-2026-11-21	agent	coriander may be the seed spice as well as the leaf
+lx-38	mince	ground beef	-	!	agent-review-wording-readers-2026-11-21	agent	mince may be minced meat of any kind or mincemeat
+lx-39	citron	lemon	-	!	agent-review-wording-readers-2026-11-21	agent	citron is its own fruit, mostly bought as candied peel
+lx-40	sorrel	yellow dock	277366	!	agent-review-wording-readers-2026-11-21	agent	w01 second reader: sorrel (Rumex acetosa) is another plant than yellow dock

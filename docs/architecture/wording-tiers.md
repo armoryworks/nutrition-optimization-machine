@@ -125,9 +125,10 @@ description) with the link lane's same-food judge (`OllamaIngredientLinkVerifier
 a variety, a different food or several foods is a flag, `unsure` no answer. A flag counts as an error
 only when reader B (`mistral-nemo`) re-reading the pair blind also calls it wrong. The combined
 check's score comes from the committed `scores/link-audit.json` (built into the API); without that
-record, or with one scored on another auditor model or another reader B (the record's `model` and
-`checkModel`), no tier can leave shadow. The scorer lane that
-writes it belongs to the wording readers.
+record, or with one scored on another same-food judge prompt (its `signature`), another auditor model
+or another reader B (the record's `model` and `checkModel`), or below its floor (75 %), no tier can
+leave shadow. The scorer lane `link-audit` that writes it is the wording
+readers' (`wording-readers.md`).
 
 **Undo.** `WordingTierUndo` (the frame's self-undo, and `POST /api/Pipeline/frame/wording-tiers/<tier>/undo`)
 takes every row the tier wrote live since a time, found by the tier's decisions and the row's source,
@@ -167,8 +168,8 @@ for the gate.
 
 ## Not here
 
-- The wording readers, the lexicon, the size gate (500 lines) and the sentinel retraction:
-  `cleanup2/wording-readers`.
-- The `link-audit` scorer that records the audit check's score: `cleanup2/wording-readers`.
+- The wording readers, the lexicon, the size gate (500 lines), the sentinel retraction and the
+  `link-audit` scorer: `wording-readers.md`. The readers take only what the tiers leave (no tier
+  answer, or a held one), so the two lanes never write the same wording.
 - A Pipeline page block of its own: the frame block already lists every tier with its mode, figures,
-  reason and undo; the wording lane's block is the readers' item.
+  reason and undo.
