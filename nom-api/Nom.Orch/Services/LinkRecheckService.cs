@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -43,6 +44,7 @@ namespace Nom.Orch.Services
         private const int LineChunk = 500;
         private const int WriteChunk = 200;
         private static readonly TimeSpan DecidedFor = TimeSpan.FromDays(30);
+        private static readonly ConcurrentDictionary<string, byte> RunningStamps = new(StringComparer.Ordinal);
 
         /// <summary>
         /// A set qualifies on a Wilson lower bound of 98 % of audited moves right (at most one wrong in
@@ -113,6 +115,19 @@ namespace Nom.Orch.Services
 
         private static string StampText(DateTime stamp) => stamp.ToString("O", CultureInfo.InvariantCulture);
 
+        /// <summary>Marks a run's stamp as going in this process until disposed, so the status tells a run still going from one cut off (whose process threw or ended before its finish).</summary>
+        private static RunningMark MarkRunning(DateTime stamp)
+        {
+            var text = StampText(stamp);
+            RunningStamps[text] = 0;
+            return new RunningMark(text);
+        }
+
+        private sealed class RunningMark(string stamp) : IDisposable
+        {
+            public void Dispose() => RunningStamps.TryRemove(stamp, out _);
+        }
+
         internal static readonly Expression<Func<FoodCatalogProposalEntity, bool>> WaitingModelPick = p =>
             p.Field == FoodCatalogReviewService.FdcLinkField && p.Status == FoodProposalStatus.Pending && p.Source.StartsWith("ai:")
             && (p.ReviewedByPersonId == null || p.ReviewedByPersonId == SystemConstants.SystemPersonId);
@@ -138,6 +153,7 @@ namespace Nom.Orch.Services
             var stamp = NewStamp();
             var personId = _currentUser.PersonIdOrSystem;
             var summary = new LinkRecheckRunSummary { Set = WithdrawRun, Stamp = stamp, Signature = LinkRecheckRules.Signature };
+            using var running = MarkRunning(stamp);
             var header = await StartAsync(WithdrawRun, stamp, summary, personId, cancellationToken);
             foreach (var chunk in picks.Select(p => p.Id).Chunk(1000))
             {
@@ -336,6 +352,7 @@ namespace Nom.Orch.Services
                 Set = set, Stamp = stamp, Lane = lane, Mode = mode, Signature = signature, Groups = result.Groups, Kept = result.Kept + result.Verified + result.Alternatives, Held = result.Held,
             };
             long? header = null;
+            using var running = apply ? MarkRunning(stamp) : null;
             if (apply)
             {
                 result.Stamp = stamp;
@@ -1078,6 +1095,7 @@ namespace Nom.Orch.Services
 
             var stamp = NewStamp();
             var summary = new LinkRecheckRunSummary { Set = NamesRun, Stamp = stamp, Signature = LinkRecheckRules.Signature };
+            using var running = MarkRunning(stamp);
             var header = await StartAsync(NamesRun, stamp, summary, _currentUser.PersonIdOrSystem, cancellationToken);
             foreach (var row in result.Listed.Where(r => r.NewName != null))
             {
@@ -1141,6 +1159,7 @@ namespace Nom.Orch.Services
                     .FirstOrDefaultAsync(cancellationToken);
                 if (LaneJournal.Read<LinkRecheckRunSummary>(last?.NewValue) is not { } summary) continue;
                 summary.Undone = last!.OldValue != null && undone.Contains(last.OldValue);
+                summary.Running = !summary.Complete && last.OldValue != null && RunningStamps.ContainsKey(last.OldValue);
                 if (set == WithdrawRun) status.LastWithdraw = summary;
                 else status.LastRuns.Add(summary);
             }

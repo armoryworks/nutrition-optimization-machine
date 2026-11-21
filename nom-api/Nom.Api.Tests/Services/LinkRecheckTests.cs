@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Nom.Data;
@@ -594,6 +595,81 @@ namespace Nom.Api.Tests.Services
             undo.Found.Should().BeTrue();
             db.ChangeTracker.Clear();
             (await db.FoodCatalogProposals.IgnoreQueryFilters().CountAsync(p => p.IsDeleted)).Should().Be(0);
+        }
+
+        /// <summary>Once armed, runs <c>peek</c> inside the first save that touches what <c>counts</c> names, as another request reading the status while a run is going.</summary>
+        private sealed class Peek : SaveChangesInterceptor
+        {
+            private readonly Func<DbContext, bool> _counts;
+            private readonly Func<Task> _peek;
+
+            public Peek(Func<DbContext, bool> counts, Func<Task> peek) => (_counts, _peek) = (counts, peek);
+
+            public bool Armed { get; set; }
+
+            public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+            {
+                if (Armed && eventData.Context != null && _counts(eventData.Context))
+                {
+                    Armed = false;
+                    await _peek();
+                }
+                return await base.SavingChangesAsync(eventData, result, cancellationToken);
+            }
+        }
+
+        private static ApplicationDbContext SharedContext(InMemoryDatabaseRoot root, string name, params IInterceptor[] interceptors) =>
+            new(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(name, root)
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                .AddInterceptors(interceptors)
+                .Options);
+
+        [Fact]
+        public async Task A_withdrawal_still_going_shows_as_running_not_as_cut_off()
+        {
+            var root = new InMemoryDatabaseRoot();
+            var name = Guid.NewGuid().ToString();
+            await using var reader = SharedContext(root, name);
+            LinkRecheckStatusModel? during = null;
+            var peek = new Peek(ctx => ctx.ChangeTracker.Entries<FoodCatalogProposalEntity>().Any(e => e.State == EntityState.Modified),
+                async () => during = await Recheck(reader).StatusAsync(enabled: false));
+            await using var db = SharedContext(root, name, peek);
+            var holder = Food("brandy", status: (long)CurationStatusEnum.NonCurated);
+            var liqueur = Food("Coffee Cream Liqueur");
+            db.Ingredients.AddRange(holder, liqueur);
+            await db.SaveChangesAsync();
+            db.FoodCatalogProposals.AddRange(Enumerable.Range(0, 3).Select(_ => Pick(holder.Id, "brandy", liqueur.Id)));
+            await db.SaveChangesAsync();
+
+            peek.Armed = true;
+            await Recheck(db).WithdrawPicksAsync(apply: true);
+
+            during!.LastWithdraw.Should().Match<LinkRecheckRunSummary>(w => !w.Complete && w.Running, "the withdrawal had written its header and not yet finished");
+            reader.ChangeTracker.Clear();
+            (await Recheck(reader).StatusAsync(enabled: false)).LastWithdraw.Should().Match<LinkRecheckRunSummary>(w => w.Complete && !w.Running);
+        }
+
+        [Fact]
+        public async Task A_set_run_still_going_shows_as_running_and_once_cut_off_no_longer_does()
+        {
+            var root = new InMemoryDatabaseRoot();
+            var name = Guid.NewGuid().ToString();
+            await using var reader = SharedContext(root, name);
+            LinkRecheckStatusModel? during = null;
+            var peek = new Peek(ctx => ctx.ChangeTracker.Entries<RecipeIngredientEntity>().Any(e => e.State is EntityState.Added or EntityState.Deleted),
+                async () => during = await Recheck(reader).StatusAsync(enabled: false));
+            var cutOff = new CutOff(1, ctx => ctx.ChangeTracker.Entries<RecipeIngredientEntity>().Any(e => e.State is EntityState.Added or EntityState.Deleted));
+            await using var db = SharedContext(root, name, peek, cutOff);
+            await BarAsync(db);
+
+            peek.Armed = cutOff.Armed = true;
+            await FluentActions.Awaiting(() => Recheck(db).RunLaneBatchAsync(LinkRecheckRules.Alcohol, LaneMode.Live, 100)).Should().ThrowAsync<OperationCanceledException>();
+
+            during!.LastRuns.Should().ContainSingle(r => r.Set == LinkRecheckRules.Alcohol).Which.Should().Match<LinkRecheckRunSummary>(r => !r.Complete && r.Running);
+            reader.ChangeTracker.Clear();
+            (await Recheck(reader).StatusAsync(enabled: false)).LastRuns.Should().ContainSingle(r => r.Set == LinkRecheckRules.Alcohol)
+                .Which.Should().Match<LinkRecheckRunSummary>(r => !r.Complete && !r.Running, "a run that threw is cut off, not running");
         }
 
         [Fact]

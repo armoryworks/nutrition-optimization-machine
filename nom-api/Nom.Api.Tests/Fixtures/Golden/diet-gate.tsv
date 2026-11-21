@@ -1,4 +1,4 @@
-id	restriction	food	category	aliases	line	expect	status	source	note
+id	restriction	food	category	aliases	line	expect	status	source	note	alcohol	grams	servings	steps
 dg-01	Halal	Butter	1	bacon or butter|-	1 cup butter	in	ok	rule:diet-gate	staging checkpoint 1 K9 class for the % criteria: a recipe line stored as an alias with no source decides nothing for its food, so every butter recipe is no longer kept out for its alias
 dg-02	Halal	Butter	1	bacon or butter|-	1/4 lb bacon or butter	out	ok	rule:diet-gate	the line the alias came from names bacon itself and keeps its recipe out, in plans and on the page
 dg-03	Halal	Bacon	10	-	4 slices bacon	out	ok	rule:diet-gate	the food's own name matches %bacon%
@@ -31,3 +31,11 @@ dg-29	Kosher	Fish Stock	6	fish or shrimp stock|-	2 cups fish stock	in	ok	rule:di
 dg-30	Kosher	Fish Stock	6	fish or shrimp stock|-	2 cups shrimp stock	out	ok	rule:diet-gate	the line names shrimp itself
 dg-31	Lactose Intolerance	Sugar	19	1/2 cup sugar, cream|-	1/2 cup sugar	in	ok	rule:diet-gate	severity 4: a recipe-line alias naming cream does not make Sugar a lactose food
 dg-32	Lactose Intolerance	Heavy Cream	1	-	1 cup heavy cream	out	ok	rule:diet-gate	severity 4: the food's own name
+dg-33	Halal	Dry Red Wine	14	-	1 cup dry red wine	out	ok	rule:diet-gate	Halal excludes any drink whatever the cooking: a cup of wine braised 2.5 hours keeps 5 % (USDA Release 6 row 5009), about 0.16 g per serving of 8, and still keeps the stew out	10.6	236	8	Brown the beef in the oil. | Add the wine and braise for 2 1/2 hours.
+dg-34	No Alcohol	Dry Red Wine	14	-	1 cup dry red wine	in	ok	rule:diet-gate	the same stew under No Alcohol: about 0.16 g per serving stays, under the 0.5 g cap (owner answer 6), so it is offered and clear	10.6	236	8	Brown the beef in the oil. | Add the wine and braise for 2 1/2 hours.
+dg-35	No Alcohol	Dry Red Wine	14	-	1 cup dry red wine	out	ok	rule:diet-gate	simmered 30 minutes the wine keeps 35 % (row 5005), about 1.1 g per serving of 8, over the cap	10.6	236	8	Brown the beef in the oil. | Add the wine and simmer for 30 minutes.
+dg-36	Halal	Dry White Wine	14	-	1 tbsp dry white wine	out	ok	rule:diet-gate	a spoon of wine baked 2.5 hours keeps about 0.01 g per serving of 6, and Halal still excludes it	10.3	15	6	Lay the chicken in a dish. | Stir in the wine. | Cover and bake for 2 1/2 hours.
+dg-37	No Alcohol	Dry White Wine	14	-	1 tbsp dry white wine	in	ok	rule:diet-gate	the same dish under No Alcohol is well under the cap	10.3	15	6	Lay the chicken in a dish. | Stir in the wine. | Cover and bake for 2 1/2 hours.
+dg-38	Halal	Vanilla Extract	2	-	2 tsp vanilla extract	in	ok	rule:diet-gate	a flavouring extract gets the recipe page note, never an exclusion, for Halal as for No Alcohol (owner answer 6)	34.4	8	8	Beat in the vanilla. | Bake for 30 minutes.
+dg-39	No Alcohol	Vanilla Extract	2	-	2 tsp vanilla extract	in	ok	rule:diet-gate	a flavouring extract gets a note only	34.4	8	8	Beat in the vanilla. | Bake for 30 minutes.
+dg-40	Whole30	Dry Red Wine	14	-	1 cup dry red wine	out	ok	rule:diet-gate	Whole30 excludes any drink whatever the cooking, as Halal does	10.6	236	8	Brown the beef in the oil. | Add the wine and braise for 2 1/2 hours.

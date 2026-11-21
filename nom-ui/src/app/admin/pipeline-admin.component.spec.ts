@@ -386,7 +386,7 @@ describe('PipelineAdmin', () => {
   it('shows the link re-check: waiting picks, the withdrawal and the newest run of each set', () => {
     const body = status();
     const run = (set: string, extra: Partial<LinkRecheckRun> = {}): LinkRecheckRun => ({
-      set, stamp: '2026-11-20T12:00:00Z', lane: false, mode: 'live', signature: 'abc', undone: false, groups: 0, kept: 0, held: 0,
+      set, stamp: '2026-11-20T12:00:00Z', lane: false, mode: 'live', signature: 'abc', undone: false, complete: true, running: false, groups: 0, kept: 0, held: 0,
       linesMoved: 0, linesUnlinked: 0, aliasesChanged: 0, withdrawn: 0, renamed: 0, ...extra,
     });
     body.linkRecheck = {
@@ -407,6 +407,55 @@ describe('PipelineAdmin', () => {
     expect(byId(el, 'pipeline-link-recheck-run-alcohol')?.textContent).toContain('120 taken back');
     expect(byId(el, 'pipeline-link-recheck-run-names')?.textContent).toContain('1 renamed');
     expect(byId(el, 'pipeline-link-recheck-run-names')?.textContent).toContain('undone');
+    expect(byId(el, 'pipeline-link-recheck-withdraw-cut-off')).toBeNull();
+    expect(byId(el, 'pipeline-link-recheck-run-cut-off-alcohol')).toBeNull();
+  });
+
+  it('marks a link re-check run that was cut off before its end', () => {
+    const body = status();
+    const run = (set: string, extra: Partial<LinkRecheckRun> = {}): LinkRecheckRun => ({
+      set, stamp: '2026-11-20T12:00:00Z', lane: true, mode: 'live', signature: 'abc', undone: false, complete: true, running: false, groups: 0, kept: 0, held: 0,
+      linesMoved: 0, linesUnlinked: 0, aliasesChanged: 0, withdrawn: 0, renamed: 0, ...extra,
+    });
+    body.linkRecheck = {
+      enabled: true,
+      version: 'link-recheck/1',
+      signature: 'abc',
+      sets: ['alcohol', 'applied'],
+      lastRuns: [run('alcohol', { complete: false }), run('applied', { groups: 12, linesMoved: 40 })],
+      lastWithdraw: run('withdraw', { complete: false }),
+      waitingPicks: 65151,
+    };
+    const el = loaded(body).nativeElement as HTMLElement;
+
+    expect(byId(el, 'pipeline-link-recheck-run-cut-off-alcohol')?.textContent).toContain('cut off');
+    expect(byId(el, 'pipeline-link-recheck-run-cut-off-applied')).toBeNull();
+    expect(byId(el, 'pipeline-link-recheck-run-applied')?.textContent).not.toContain('cut off');
+    expect(byId(el, 'pipeline-link-recheck-withdraw-cut-off')?.textContent).toContain('undo by its stamp');
+  });
+
+  it('marks a link re-check run still going as running, not as cut off', () => {
+    const body = status();
+    const run = (set: string, extra: Partial<LinkRecheckRun> = {}): LinkRecheckRun => ({
+      set, stamp: '2026-11-20T12:00:00Z', lane: true, mode: 'live', signature: 'abc', undone: false, complete: false, running: true, groups: 0, kept: 0, held: 0,
+      linesMoved: 0, linesUnlinked: 0, aliasesChanged: 0, withdrawn: 0, renamed: 0, ...extra,
+    });
+    body.linkRecheck = {
+      enabled: true,
+      version: 'link-recheck/1',
+      signature: 'abc',
+      sets: ['alcohol', 'applied'],
+      lastRuns: [run('applied')],
+      lastWithdraw: run('withdraw', { lane: false }),
+      waitingPicks: 65151,
+    };
+    const el = loaded(body).nativeElement as HTMLElement;
+
+    expect(byId(el, 'pipeline-link-recheck-run-running-applied')?.textContent).toContain('still running');
+    expect(byId(el, 'pipeline-link-recheck-run-cut-off-applied')).toBeNull();
+    expect(byId(el, 'pipeline-link-recheck-withdraw-running')?.textContent).toContain('still running');
+    expect(byId(el, 'pipeline-link-recheck-withdraw-cut-off')).toBeNull();
+    expect(byId(el, 'pipeline-link-recheck-withdraw')?.textContent).not.toContain('undo by its stamp');
   });
 
   it('says so when the link re-check did not report, or has not run', () => {

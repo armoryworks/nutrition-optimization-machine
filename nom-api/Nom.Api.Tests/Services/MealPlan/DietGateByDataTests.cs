@@ -120,7 +120,8 @@ namespace Nom.Api.Tests.Services.MealPlan
             var set = await ResolveAsync(db, HalalRef, "Halal");
 
             set.IngredientIds.Should().Contain(bacon.Id).And.Contain(foods.Ids["brandy"]);
-            set.IngredientIds.Should().NotContain(foods.Ids["Dry White Wine"], "Halal caps retained alcohol per serving (owner answer 6)");
+            set.IngredientIds.Should().Contain(foods.Ids["Dry White Wine"], "Halal excludes any drink however long it cooks, as Whole30 does; only No Alcohol caps retained alcohol");
+            set.IngredientIds.Should().NotContain(foods.Ids["Vanilla Extract"], "a flavouring gets a note, never an exclusion");
             set.IngredientIds.Should().NotContain(foods.Ids["Bread Crumbs"]).And.NotContain(foods.Ids["Red Wine Vinegar"]).And.NotContain(foods.Ids["Ginger Root"]);
         }
 
@@ -356,7 +357,7 @@ namespace Nom.Api.Tests.Services.MealPlan
             var second = await resolver.ResolveAsync(HouseholdId);
             await resolver.ResolveSevereForPersonAsync(PersonId);
 
-            warmed.Should().Be(3, "the start-up warm computes the foods of No Alcohol and of Halal, the two types with data criteria, and the drink lines");
+            warmed.Should().Be(4, "the start-up warm computes the foods of No Alcohol and of Halal, the two types with data criteria, the drink lines Halal reads and the retained alcohol No Alcohol caps");
             probes.Should().Be(warmed, "a household set after the warm reads the kept probes");
             cache.Computations.Should().Be(probes, "a second household set reads the kept probes");
             second.RecipeIds.Should().BeEquivalentTo(first.RecipeIds).And.Contain(trifle.Id);
