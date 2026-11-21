@@ -253,9 +253,12 @@ text names (a quart is 4 cups, a gill half a cup, a pound 16 ounces), within a r
 two unrelated numbers ("cook 10 minutes, then 2 more onions") grounds nothing. A line that starts with
 a number or "two cups of" stored with no amount fails. A2 a line moved to another food names that food. A3 pieces only of a food with a weight
 per item and never of a liquid or of a line that states a measure; no volume of a whole bird; a
-volume of a seasoning or leavener (salt, pepper, a ground spice, baking powder or soda, yeast) of at
-most 4 cups and of a dry staple (flour, sugar, meal, rice, oats, crumbs, starch, cocoa) of at most
-16 cups, matched on the food's name before any comma ("1 gallon of salt" fails, "1 quart salt" for a
+volume of a seasoning or leavener (salt, pepper, a ground spice, baking powder or baking soda, yeast;
+a bare "soda" is a drink) of at most 4 cups and of a dry staple (flour, sugar, meal, rice, oats,
+crumbs, starch, cocoa) of at most 16 cups, matched on the food's name before any comma, or after a
+USDA class word on the part that follows it ("Spices, pepper, black", "Leavening agents, baking soda",
+"Cereals, oats, ..."; "Sugars, granulated" is matched as sugar), so a line linked to a catalog food is
+checked as well as a new food named from its wording ("1 gallon of salt" fails, "1 quart salt" for a
 brine passes; `reprocess-audit/3`, since A6 reads energy only and salt has none). A4 a
 recipe fails no more checks after than before. A5 (live) ten rebuilt recipes rebuilt again change
 nothing. A6 the kcal per serving of the rebuilt lines (grams by the label's own conversion, the food's

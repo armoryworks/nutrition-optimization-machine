@@ -1,9 +1,9 @@
 {
   "lane": "link-gate",
-  "model": "link-gate/3",
+  "model": "link-gate/4",
   "host": "none",
-  "signature": "59512c9fdd9c7047",
-  "scoredAtUtc": "2026-11-21T00:52:19.1529862Z",
+  "signature": "cea794364031d19f",
+  "scoredAtUtc": "2026-11-21T01:06:24.2708768Z",
   "caseSet": "dad78edacf55fcb6",
   "cases": 7664,
   "passed": 3689,

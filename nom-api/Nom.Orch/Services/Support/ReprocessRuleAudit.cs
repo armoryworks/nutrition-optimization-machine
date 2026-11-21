@@ -106,14 +106,16 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex Seasoning = new(
             @"^(?:(?:ground|fine|finely|table|kosher|sea|coarse|black|white|dry|dried|active\s+dry|instant|powdered)\s+)*" +
-            @"(?:salt|pepper|cayenne(?:\s+pepper)?|baking\s+(?:powder|soda)|soda|bicarbonate\s+of\s+soda|saleratus|cream\s+of\s+tartar|yeast|" +
+            @"(?:salt|pepper|cayenne(?:\s+pepper)?|baking\s+(?:powder|soda)|bicarbonate\s+of\s+soda|saleratus|cream\s+of\s+tartar|yeast|" +
             @"cinnamon|nutmeg|cloves|mace|allspice|paprika|cumin|turmeric|ginger|(?:curry|chili|chilli|garlic|onion|mustard)\s+powder)$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex DryStaple = new(
             @"^(?:(?:white|brown|whole[- ]wheat|wheat|rye|plain|all[- ]purpose|self[- ]rising|granulated|powdered|confectioners'?|caster|loaf|corn|yellow|rolled|dry|fine|bread)\s+)*" +
-            @"(?:flour|sugar|meal|cornmeal|oatmeal|oats|rice|crumbs|breadcrumbs|cornstarch|starch|cocoa|farina|semolina)$",
+            @"(?:flour|sugars?|meal|cornmeal|oatmeal|oats|rice|crumbs|breadcrumbs|cornstarch|starch|cocoa|farina|semolina)$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly HashSet<string> ClassWords = new(StringComparer.OrdinalIgnoreCase) { "spices", "leavening agents", "cereals" };
 
         private static readonly HashSet<string> Birds = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -310,7 +312,8 @@ namespace Nom.Orch.Services.Support
             }
             if (line.Unit != null && CupsPer.TryGetValue(line.Unit, out var perCup))
             {
-                var food = (line.Food ?? string.Empty).Split(',')[0].Trim();
+                var parts = (line.Food ?? string.Empty).Split(',', StringSplitOptions.TrimEntries);
+                var food = parts.Length > 1 && ClassWords.Contains(parts[0]) ? parts[1] : parts[0];
                 var cups = line.Quantity * perCup;
                 if (Seasoning.IsMatch(food) && cups > MaxSeasoningCups) return false;
                 if (DryStaple.IsMatch(food) && cups > MaxDryStapleCups) return false;
