@@ -230,6 +230,16 @@ compared.
 
 ## Proving it on staging
 
+Operator notes (staging checkpoint 2): the re-check's samples are failures only, capped at 5,000
+(a larger `sampleSize` still returns 5,000), so the passes can be listed only after an apply has
+stamped them: any apply stamps `ProseCheckVersion` on every passing recipe, and the withhold undo
+leaves those stamps. Plan the reading of passes accordingly (apply 200, read, undo). Walking the
+JSON, CSV and PDF export of a withheld recipe needs the RecipeBulkOperations capability on, and the
+cookbook and meal-plan walk a test household with a plan holding the recipe. A fingerprint of
+`recipe."RecipeStep"` must order by (`RecipeId`, `StepNumber`): the rebuild writes the steps back
+with plain SQL, and staging's copy holds `Id` 0 on every row, so a fingerprint ordered by `Id` is
+not stable.
+
 1. Rebuild the stock index as a dry run: it must read about 21,954 documents on 17 sites (the
    2026-11-20 analysis), then apply.
 2. Re-check dry run: compare with the analysis: of the 2,422 copied-only failures in the listed

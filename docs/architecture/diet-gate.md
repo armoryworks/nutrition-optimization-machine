@@ -99,15 +99,24 @@ out is offered while its line names a pattern.
 Before the change is relied on, on staging (read-only), count it:
 
 ```
-psql "$STAGING_URL" -v sample=20 -f ops/diet-gate-count.sql
+psql "$STAGING_URL" -v sample=20 -f ops/diet-gate-count.sql > dg.tsv
 ```
 
-The script runs in a read-only transaction. For every default type with name patterns that it names
-(`-v names=...` to change the list) and every type a restriction uses, it prints one `summary` row:
+The script runs in a read-only transaction. By default it reads every restriction type that has a
+criterion, No Alcohol included (`-v names=Halal,No Alcohol` limits it to the types named, plus every
+type a restriction uses). Reference rows that share a name (Halal 2011 and 60901, Kosher, Vegan and
+others) are read as one type: their criteria are taken together and the type prints once, with its ids
+in the `summary` row. Each pattern is matched against the food names, aliases and lines once, however
+many types share it, and each set is counted once for all types. Should it still run long on a full
+copy, run it in the background and read the file afterwards:
+`nohup psql "$STAGING_URL" -v sample=20 -f ops/diet-gate-count.sql > dg.tsv 2> dg.err &`
+(it holds only a read-only transaction; `pg_stat_activity` shows it while it runs). For each type it
+prints one `summary` row:
 foods counted before and after, alias-only foods, recipes kept out before and after, how many of
 those the line rule keeps, recipes that lose the flag (and how many are approved) and recipes newly
 kept out (the category and the line rule); then, for each severity 4 or 5 type, up to `sample` lost
-recipes with their lines on alias-only foods. Beside the name patterns it applies the criteria the
+recipes with their lines on alias-only foods, approved ones first, the rest spread over the whole set
+in a fixed pseudo-random order (`-v seed=...` draws another sample). Beside the name patterns it applies the criteria the
 change leaves as they were, the same way before and after: the word patterns (by name, and by an
 alias with no drink word, which after the change also needs a trusted source), the nutrient
 criteria with no per-serving cap (a stored figure above 0.5 g per 100 g; for alcohol not a spice or

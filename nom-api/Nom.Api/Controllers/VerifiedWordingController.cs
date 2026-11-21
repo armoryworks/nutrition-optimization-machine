@@ -16,6 +16,10 @@ namespace Nom.Api.Controllers
     [Route("api/FoodCatalog/wordings")]
     public class VerifiedWordingController : BaseApiController
     {
+        public const string EmptyBatch =
+            "The batch holds no wording row, so nothing would be loaded. db/verified-wordings.tsv in the repository is the header only; "
+            + "send the reviewed batch's own file (its text as tsv, or its rows).";
+
         private readonly IVerifiedWordingService _wordings;
 
         public VerifiedWordingController(IVerifiedWordingService wordings)
@@ -35,6 +39,8 @@ namespace Nom.Api.Controllers
             var problems = new List<VerifiedWordingProblem>();
             var rows = request.Rows ?? new List<VerifiedWordingRow>();
             if (!string.IsNullOrEmpty(request.Tsv)) rows.AddRange(VerifiedWordingService.ParseTsv(request.Tsv, problems));
+            if (rows.Count == 0 && problems.Count == 0)
+                return BadRequest(new { message = EmptyBatch });
 
             var result = await _wordings.LoadAsync(rows, batch, apply, replace, overrideRejections);
             result.Rows += problems.Count;
