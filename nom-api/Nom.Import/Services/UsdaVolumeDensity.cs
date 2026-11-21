@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 namespace Nom.Import.Services
 {
     /// <summary>One row of USDA food_portion.csv, with the unit's name from measure_unit.csv when known.</summary>
-    public sealed record UsdaPortion(decimal Amount, string? MeasureUnitId, string? Modifier, string? Description, decimal Grams, string? MeasureUnitName = null);
+    public sealed record UsdaPortion(decimal Amount, string? MeasureUnitId, string? Modifier, string? Description, decimal Grams, string? MeasureUnitName = null, string? Seq = null);
 
     /// <summary>
     /// Derives grams per millilitre from a food's USDA household portions ("1 cup = 125 g").

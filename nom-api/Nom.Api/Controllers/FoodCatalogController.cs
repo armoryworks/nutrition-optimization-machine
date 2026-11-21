@@ -24,13 +24,15 @@ namespace Nom.Api.Controllers
         private readonly IIngredientLinkService _links;
         private readonly ICompoundLineService _compound;
         private readonly IScrapedRecipeRepairService _repair;
+        private readonly IContainerSizeService? _containerSizes;
 
         public FoodCatalogController(IFoodCatalogReviewService review, IFoodCatalogAuditService audit,
             ICatalogCleanupService cleanup, ILineRelinkService relink, ILineUnfoldService unfold,
             IPackageLineService packages, IIngredientLinkService links, ICompoundLineService compound,
-            IScrapedRecipeRepairService repair)
+            IScrapedRecipeRepairService repair, IContainerSizeService? containerSizes = null)
         {
             _repair = repair;
+            _containerSizes = containerSizes;
             _review = review;
             _audit = audit;
             _cleanup = cleanup;
@@ -153,6 +155,30 @@ namespace Nom.Api.Controllers
         public async Task<ActionResult<LineRelinkUndoResult>> RelinkUndo([FromQuery, Required] DateTime sinceUtc, [FromQuery] bool apply = false)
         {
             return Ok(await _relink.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), apply));
+        }
+
+        /// <summary>The container sizes with their hold-out figures and status, paused and active first, and the container-sizes lane's mode.</summary>
+        [HttpGet("container-sizes")]
+        public async Task<ActionResult<ContainerSizeStatusModel>> ContainerSizes([FromQuery] int keys = 50)
+        {
+            if (_containerSizes == null) return NotFound();
+            return Ok(await _containerSizes.StatusAsync(keys));
+        }
+
+        /// <summary>Score every container size against the stated sizes it would replace and set each key active, shadow or paused; a dry run unless apply is set, and each change is written to the audit log.</summary>
+        [HttpPost("container-sizes/score")]
+        public async Task<ActionResult<ContainerSizeScoreReport>> ContainerSizesScore([FromQuery] bool apply = false)
+        {
+            if (_containerSizes == null) return NotFound();
+            return Ok(await _containerSizes.ScoreAsync(apply, GetCurrentPersonIdRequired()));
+        }
+
+        /// <summary>Take back every container size written, retired or rescored at or after the given UTC time, newest first; a size changed since is skipped. A dry run unless apply=true.</summary>
+        [HttpPost("container-sizes/undo")]
+        public async Task<ActionResult<ContainerSizeUndoReport>> ContainerSizesUndo([FromQuery, Required] DateTime sinceUtc, [FromQuery] bool apply = false)
+        {
+            if (_containerSizes == null) return NotFound();
+            return Ok(await _containerSizes.UndoSinceAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), apply, GetCurrentPersonIdRequired()));
         }
 
         /// <summary>Which scraped recipe lines counted in pieces, cans or packages would take the size or the package their wording states (no writes).</summary>

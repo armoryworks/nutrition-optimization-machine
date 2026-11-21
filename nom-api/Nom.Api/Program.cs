@@ -453,6 +453,8 @@ builder.Services.AddHttpClient<Nom.Orch.Interfaces.IWordingTierJudges, Nom.Orch.
     .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.WordingTiers));
 builder.Services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.WordingTierUndo>();
 builder.Services.AddHostedService<Nom.Api.Services.WordingTierHostedService>();
+builder.Services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.ContainerSizeLaneUndo>();
+builder.Services.AddHostedService<Nom.Api.Services.ContainerSizeHostedService>();
 
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();

@@ -8,8 +8,10 @@ source admission).
 
 The reprocess lane (`reprocess`, tiers `rebuild` and `order`, see `recipe-reprocess.md`), the
 prose rewrite lane (`prose-rewrite`, tier `*`; see `prose-lane.md`), the link re-check
-(`link-recheck`, one tier per rule set; see `link-recheck.md`) and the wording tier lane
-(`wording-tiers`, one tier per wording tier; see `wording-tiers.md`) run on the frame. Lanes that
+(`link-recheck`, one tier per rule set; see `link-recheck.md`), the wording tier lane
+(`wording-tiers`, one tier per wording tier; see `wording-tiers.md`) and the container size lane
+(`container-sizes`, tier `*`, audited by its own hold-out rule; see `food-catalog-ingestion.md`,
+"Container sizes") run on the frame. Lanes that
 exist today (link, repair, line classify, dish grouping, tool tagging) keep their own switches until
 their branch moves them.
 

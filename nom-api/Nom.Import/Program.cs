@@ -122,6 +122,13 @@ namespace Nom.Import
                 return;
             }
 
+            var containerFlag = Array.IndexOf(args, "--container-sizes");
+            if (containerFlag >= 0)
+            {
+                await RunContainerSizesAsync(host, args, containerFlag);
+                return;
+            }
+
             var attachFlag = Array.IndexOf(args, "--attach-fdc");
             if (attachFlag >= 0)
             {
@@ -419,6 +426,97 @@ namespace Nom.Import
             }
         }
 
+        private static async Task RunContainerSizesAsync(IHost host, string[] args, int flag)
+        {
+            using var scope = host.Services.CreateScope();
+            var dryRun = args.Contains("--dry-run");
+            string? Value(string name)
+            {
+                var i = Array.IndexOf(args, name);
+                return i >= 0 && i + 1 < args.Length && !args[i + 1].StartsWith("--") ? args[i + 1] : null;
+            }
+
+            if (flag + 1 < args.Length && args[flag + 1] == "--undo")
+            {
+                if (flag + 2 >= args.Length
+                    || !DateTime.TryParse(args[flag + 2], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var since)
+                    || since.Kind != DateTimeKind.Utc)
+                {
+                    Console.WriteLine("Usage: --container-sizes --undo <stamp> [--dry-run]   (the stamp a run printed; everything journaled since it is taken back)");
+                    return;
+                }
+                var sizes = scope.ServiceProvider.GetRequiredService<Nom.Orch.Interfaces.IContainerSizeService>();
+                var undone = await sizes.UndoSinceAsync(since, !dryRun, Nom.Data.SystemConstants.SystemPersonId);
+                Console.WriteLine($"\n=== Container size undo report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
+                Console.WriteLine($"Since:    {undone.SinceUtc:O}");
+                Console.WriteLine($"Undone:   {undone.Undone}");
+                Console.WriteLine($"Skipped:  {undone.Skipped} (changed since)");
+                foreach (var line in undone.Lines.Take(500))
+                    Console.WriteLine($"  {line}");
+                return;
+            }
+
+            if (flag + 1 < args.Length && args[flag + 1] == "--score")
+            {
+                var sizes = scope.ServiceProvider.GetRequiredService<Nom.Orch.Interfaces.IContainerSizeService>();
+                PrintScore(await sizes.ScoreAsync(!dryRun, Nom.Data.SystemConstants.SystemPersonId));
+                return;
+            }
+
+            var dirs = args.Skip(flag + 1).TakeWhile(a => !a.StartsWith("--")).ToList();
+            var checksums = Value("--checksums");
+            if (dirs.Count is < 2 or > 3 || !dirs.All(Directory.Exists) || checksums == null || !File.Exists(checksums))
+            {
+                Console.WriteLine("Usage: --container-sizes [<branded-csv-dir>] <sr-legacy-csv-dir> <foundation-csv-dir> --checksums <sha256-file> [--dry-run]");
+                Console.WriteLine("       --container-sizes --score [--dry-run]");
+                Console.WriteLine("       --container-sizes --undo <stamp> [--dry-run]");
+                return;
+            }
+            var service = scope.ServiceProvider.GetRequiredService<ContainerSizeImportService>();
+            var r = await service.RunAsync(new ContainerSizeImportService.Options(dirs.Count == 3 ? dirs[0] : null, dirs[^2], dirs[^1], checksums, dryRun));
+            Console.WriteLine($"\n=== Container size report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ({Nom.Orch.Services.ContainerSizeService.RuleVersion}) ===");
+            foreach (var line in r.Checksums)
+                Console.WriteLine($"  sha256 {line}");
+            foreach (var reason in r.Stopped)
+                Console.WriteLine($"STOPPED, nothing written: {reason}");
+            if (r.Stopped.Count > 0)
+            {
+                Environment.ExitCode = 1;
+                return;
+            }
+            Console.WriteLine($"Catalog foods:      {r.Foods} USDA foods, {r.FoodsInFiles} found in the files");
+            if (r.Branded != null)
+                Console.WriteLine($"Branded release:    {r.BrandedRelease}: {r.Branded.Products} products in the classes' categories, {r.Branded.Deduplicated} after one per GTIN");
+            foreach (var (reason, n) in r.Branded?.SkippedByReason.OrderByDescending(x => x.Value) ?? Enumerable.Empty<KeyValuePair<string, int>>())
+                Console.WriteLine($"  branded skipped: {reason} × {n}");
+            foreach (var line in r.Modes)
+                Console.WriteLine($"  mode {line}");
+            Console.WriteLine($"Proposed:           {r.Proposals.Count} ({string.Join(", ", r.ProposedBySource.OrderByDescending(x => x.Value).Select(x => $"{x.Key} {x.Value}"))})");
+            foreach (var (reason, n) in r.RefusedByReason.OrderByDescending(x => x.Value))
+                Console.WriteLine($"  refused: {reason} × {n}");
+            foreach (var line in r.Refusals.Take(100))
+                Console.WriteLine($"    {line}");
+            if (r.Written is { } w)
+                Console.WriteLine($"Written:            {w.Added} added, {w.Replaced} replaced, {w.Retired} retired, {w.Unchanged} unchanged (all in shadow until scored)");
+            if (r.Scored != null) PrintScore(r.Scored);
+            if (!dryRun)
+                Console.WriteLine($"Run stamp:          {r.Stamp:O} (take this run back with --container-sizes --undo {r.Stamp:O})");
+        }
+
+        private static void PrintScore(Nom.Orch.Models.Curation.ContainerSizeScoreReport s)
+        {
+            Console.WriteLine($"\n=== Container size hold-out{(s.Applied ? string.Empty : " (DRY RUN — nothing saved)")} ===");
+            Console.WriteLine($"Signature:          {s.Signature} ({s.Rows} sizes)");
+            Console.WriteLine($"Hold-out lines:     {s.HoldoutAgree}/{s.HoldoutLines} agree within 10 %{(s.HoldoutLines > 0 ? $" ({(double)s.HoldoutAgree / s.HoldoutLines:P1})" : string.Empty)}; {s.LinesWithoutKey} sized lines on these foods have no size of their kind and era");
+            Console.WriteLine($"Keys:               {string.Join(", ", s.ByStatus.OrderBy(x => x.Key).Select(x => $"{x.Key} {x.Value}"))}");
+            foreach (var c in s.Classes)
+                Console.WriteLine($"  class {c.Class}: {c.Agree}/{c.Lines} ({c.Share:P1}); keys {c.Keys}: {c.Active} active, {c.Shadow} shadow, {c.Paused} paused");
+            foreach (var line in s.Changes.Take(200))
+                Console.WriteLine($"  {line}");
+            if (s.LaneMode != null)
+                Console.WriteLine($"Lane container-sizes: {s.LaneMode} ({s.LaneReason}); {s.DecisionsRecorded} decisions recorded");
+        }
+
         private static void PrintUndo(CatalogAdmissionService.AdmissionUndoReport undone)
         {
             Console.WriteLine($"\n=== Catalog admission undo report{(undone.DryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ===");
@@ -505,6 +603,10 @@ namespace Nom.Import
                     services.AddScoped<LabelNutritionImportService>();
 
                     services.AddScoped<CatalogAdmissionService>();
+                    services.AddScoped<Nom.Orch.Interfaces.ILaneFrameService, Nom.Orch.Services.LaneFrameService>();
+                    services.AddScoped<Nom.Orch.Interfaces.IContainerSizeService, Nom.Orch.Services.ContainerSizeService>();
+                    services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.ContainerSizeLaneUndo>();
+                    services.AddScoped<ContainerSizeImportService>();
                     services.AddScoped<FoodGroupEnrichmentService>(sp => new FoodGroupEnrichmentService(
                         sp.GetRequiredService<ApplicationDbContext>(),
                         sp.GetRequiredService<ILogger<FoodGroupEnrichmentService>>(),
