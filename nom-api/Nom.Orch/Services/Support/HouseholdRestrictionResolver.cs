@@ -31,8 +31,14 @@ namespace Nom.Orch.Services.Support
     public sealed class HouseholdRestrictionResolver
     {
         private readonly ApplicationDbContext _db;
+        private readonly DietGateCache? _cache;
 
-        public HouseholdRestrictionResolver(ApplicationDbContext db) => _db = db;
+        /// <summary>A resolver on the context; the diet gate's whole-catalog probes go through <paramref name="cache"/>, or through <see cref="DietGateCache.Shared"/> on a relational database when none is given.</summary>
+        public HouseholdRestrictionResolver(ApplicationDbContext db, DietGateCache? cache = null)
+        {
+            _db = db;
+            _cache = cache ?? (db.Database.IsRelational() ? DietGateCache.Shared : null);
+        }
 
         public async Task<RestrictedIngredientSet> ResolveAsync(long householdId)
         {
@@ -153,9 +159,9 @@ namespace Nom.Orch.Services.Support
         {
             var data = await DietCriteriaMatcher.CriteriaAsync(_db, typeIds, minimumSeverity);
             if (data.Count == 0) return;
-            foreach (var ids in (await DietCriteriaMatcher.FoodsAsync(_db, data)).Values)
+            foreach (var ids in (await DietCriteriaMatcher.FoodsAsync(_db, data, cache: _cache)).Values)
                 result.IngredientIds.UnionWith(ids);
-            result.RecipeIds.UnionWith(await DietCriteriaMatcher.DrinkLineRecipesAsync(_db, data, result.IngredientIds));
+            result.RecipeIds.UnionWith(await DietCriteriaMatcher.DrinkLineRecipesAsync(_db, data, result.IngredientIds, _cache));
         }
 
         /// <summary>Ingredient ids whose name or any alias matches one of the SQL LIKE patterns (case-insensitive).</summary>

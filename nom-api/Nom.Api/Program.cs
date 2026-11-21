@@ -127,7 +127,8 @@ builder.Services.Configure<VulnerabilityScanSettings>(opts =>
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("NomConnection"),
-                        b => b.MigrationsAssembly("Nom.Data")));
+                        b => b.MigrationsAssembly("Nom.Data"))
+        .AddInterceptors(Nom.Orch.Services.Support.DietGateCache.Shared.Invalidator));
 
 // Use AddIdentity for more control, allowing for custom claims factory registration
 // Email confirmation is enforced at sign-in whenever this server can actually
@@ -722,9 +723,24 @@ using (var startupScope = app.Services.CreateScope())
 {
     var db = startupScope.ServiceProvider.GetRequiredService<Nom.Data.ApplicationDbContext>();
     var startupLogger = startupScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+    Nom.Orch.Services.Support.DietGateCache.Shared.Logger = startupScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<Nom.Orch.Services.Support.DietGateCache>();
     try
     {
         await Nom.Orch.Services.Support.DefaultRestrictionCriteria.EnsureAsync(db, startupLogger);
+        _ = Task.Run(async () =>
+        {
+            using var warmScope = app.Services.CreateScope();
+            try
+            {
+                var probes = await Nom.Orch.Services.Support.DietCriteriaMatcher.WarmAsync(
+                    warmScope.ServiceProvider.GetRequiredService<Nom.Data.ApplicationDbContext>(), Nom.Orch.Services.Support.DietGateCache.Shared);
+                startupLogger.LogInformation("Diet gate: {Probes} catalog probes computed and kept", probes);
+            }
+            catch (Exception ex)
+            {
+                startupLogger.LogWarning(ex, "Diet gate probes could not be computed ahead; the first household set computes them");
+            }
+        });
     }
     catch (Exception ex)
     {

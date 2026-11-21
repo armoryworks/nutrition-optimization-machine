@@ -160,3 +160,19 @@ ac-158	2 cubes chicken flavor bouillon	-	-	no	none	171562	-	ok	rule:alcohol-cont
 ac-159	1 (3 oz) pkg lemon flavor gelatin	-	-	no	none	168775	-	ok	rule:alcohol-context	a product named with a flavour word is not a flavouring
 ac-160	1 tsp rum flavor	-	-	no	extract	173471	174817	ok	rule:alcohol-context	<drink> flavor at the end of the line is a flavouring
 ac-161	2 tsp essence of anchovies	-	-	no	extract-food	174183	174815	ok	rule:alcohol-context	essence of a fish is a food extract, not a flavouring
+ac-162	One and one-half gallons of cider	-	-	no	cider-unclear	-	173469	ok	rule:alcohol-context	staging checkpoint 1 (K10, 54828): amounts joined by "and" are one amount, not a list
+ac-163	one cup and a half of cider	-	-	no	cider-unclear	-	173469	ok	rule:alcohol-context	staging checkpoint 1 (K10, 47141): "a cup and a half" is one amount
+ac-164	a spoonful or two of sack	-	-	no	fortified-dry	175112	174157	ok	rule:alcohol-context	staging checkpoint 1 (K10, 24827): "a spoonful or two" is one amount
+ac-165	a wine-glassful of Sauterne or vin de Grave	-	-	no	list	-	174157	ok	rule:alcohol-context	staging checkpoint 1 (K10, 81181): two wines; the measure reads Sauterne, and neither part allows the non-alcoholic wine
+ac-166	a bottle of Catawba or Sauterne wine	-	-	no	list	-	174157	ok	rule:alcohol-context	staging checkpoint 1 (K10, 86138): two wines, neither part allows the non-alcoholic wine
+ac-167	two port wine-glassfuls of curaçoa	-	-	no	liqueur	-	174157	ok	rule:alcohol-context	staging checkpoint 1 (K10, 95794): the measure's "of" food is curaçao in its old spelling
+ac-168	a jill and a half of brandy	-	-	no	spirit	174815	175098	ok	rule:alcohol-context	staging checkpoint 1 (24918): "a jill and a half" is one amount
+ac-169	a tumbler and a half or six wine glasses of claret	-	-	no	wine-red	173190	174157	ok	rule:alcohol-context	staging checkpoint 1 (116158): two amounts joined by "or" are one amount
+ac-170	two or three glasses of sherry	-	-	no	fortified-dry	175112	174157	ok	rule:alcohol-context	"two or three" is one amount
+ac-171	1 tbsp sugar or brandy	-	-	no	list	-	174157	ok	rule:alcohol-context	a part with no alcohol word does not name the non-alcoholic wine, so neither part allows it
+ac-172	a wineglassful of water	-	-	no	measure	173647	174157	ok	rule:alcohol-context	a measure named after a drink allows the water, not a food named by an alcohol word
+ac-173	1 bottle of Catawba	-	-	no	wine-unclear	-	174157	agent	agent-review-ck1-gate-alcohol-2026-11-21	Catawba is a wine; its colour is not given (a pink or white grape)
+ac-174	1/2 cup vin blanc	-	-	no	wine-white	174837	174157	agent	agent-review-ck1-gate-alcohol-2026-11-21	vin blanc is white wine
+ac-175	2 cups chicken stock for coq au vin	-	-	no	dish	-	174837	agent	agent-review-ck1-gate-alcohol-2026-11-21	a dish named after wine is not the wine
+ac-176	1 bottle red Burgundy, for the coq au vin	-	-	no	wine-red	173190	172884	ok	rule:alcohol-context	the drink named before the dish decides; "au vin" names only what the wine is for
+ac-177	1/2 cup red wine for the coq au vin	-	-	no	wine-red	173190	172884	ok	rule:alcohol-context	red wine for a dish named after wine is the wine

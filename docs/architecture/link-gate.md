@@ -49,14 +49,16 @@ The code is what golden files and reports name.
 | `alcohol-not-drink` | a line reads as something that is not a drink (a vinegar, a flavouring extract, a meat or yeast extract, ale yeast, a cooking liquid, a measure, a dish named after a drink, a soft drink, sweet cider, a non-alcoholic drink, Scotch barley and the like) and the food is an alcoholic drink, or is not of the line's kind (a vinegar for a vinegar, an extract or flavouring for an extract, yeast for yeast, apple and no vinegar for sweet cider); or the line is not food at all | alcohol design A2 |
 | `other-food` | the wording is the name of another curated food that is not a prepared food (`LineRelinkService.TargetFor`) | links B3, wordings check 2 |
 | `other-alias` | a trusted alias gives the wording to another food | wordings check 2 |
-| `state` | the description carries a state (dried, canned, cooked, frozen, ground, powder, sweetened, cured, roasted, smoked, pickled, dry) the wording lacks, and another food under the same lead word lacks it too | links B3, wordings check 4 |
+| `state` | the description carries a state (dried, canned, cooked, frozen, ground, powder, sweetened, cured, roasted, smoked, pickled, dry, sprouted; "roast" before another word, as in "cold roast pork", counts as cooked, while a last "roast" names the raw cut: "pork loin roast" and "chuck roast" are held on a cooked food, `link-gate/5`) the wording lacks, and another food under the same lead word lacks it too | links B3, wordings check 4 |
 | `word-order` | a name match reads in USDA's order ("gravy beef" for "Gravy, beef") | links B3 |
 | `rule-other` | a staple or the name matcher gives the wording to another food | wordings check 7 |
 | `shortlist` | a lone model pick is not on the name matcher's shortlist of 12 and no name rule gives it | wordings check 7 |
 | `lead-noun` | the description's lead (after a class word such as "Spices," or "Alcoholic beverage, distilled,"; an identity class such as "Oil," or "Vinegar," stays) has a word the wording lacks ("molasses" for "Cookies, molasses", "nut meats" for "Nuts, coconut meat") | links B3 |
 | `containment` | a food word of the wording is not in the food's name or description (folded: plural, old spelling, hyphen or space joins, one edit on words of 6 letters or more, a lexicon entry) | links B3 |
 | `head-noun` | for two readers' answer, in place of the two rules above: the wording's head noun ("X of Y": Y) is not in the food | wordings check 3 |
-| `form` | the wording says a form (dried, canned, cooked, roasted, frozen, smoked, cured, pickled, ground, powder, salted, fresh) the food does not have; neutral table: dry, ground and pounded for a dried spice, browned or dried for flour, dry for a drink | links B3, wordings check 4 |
+| `head-lead` | for a lone answer: the food is a product (pickle, sauce, soup, pie, jam, jelly, relish, pudding, salad, dressing, gravy, stew) made from the wording's head noun, the wording names the product only before its head, and the head leads foods of its own ("pickle cucumbers", cucumbers for pickling, on "Pickles, cucumber, sour") | staging checkpoint 1, K4 |
+| `variety` | for a lone answer: the food's own catalog name ends in a word of its description that is not its lead, not a part, state or form word, and that the wording lacks ("ground pork sausage" on Raw Pork Chorizo, "Sausage, pork, chorizo, ...") | staging checkpoint 1, K4 |
+| `form` | the wording says a form (dried, canned, cooked, roasted, frozen, smoked, cured, pickled, ground, powder, salted, fresh; "roast" before another word, as in "cold roast pork", is roasted) the food does not have outside its brackets (the cut name "top loin (roasts)" is no roasting); green pod beans (French, string, snap, green, runner, wax beans, haricots verts) on mature seeds with no dried or dry word; neutral table: dry, ground and pounded for a dried spice, browned or dried for flour, dry for a drink | links B3, wordings check 4, staging checkpoint 1 K4 |
 | `fresh-herb` | the target is a dried spice and the wording, or more than 5 % of its lines, has a fresh cue (fresh, sprig, handful, bunch, stalk, leaves, chopped, minced), not "freshly ground", and "leaves" not when the spice is itself a leaf | wordings 1.5 class C, 2.7 |
 | `part` | the wording names a part (skin, peel/rind/zest, juice, seeds, leaves, kernels, greens, bran, germ, roe, yolk, egg white) the food is not, or the food is a part (a later description segment that is a part word, or says "only") the wording does not name ("potatoes" for "Potatoes, raw, skin") | links B3, wordings check 4 |
 | `marked` | the description has a marked word (light, imitation, substitute, reduced, low, nonfat, skim, free, non, artificial, diet, decaffeinated, instant, mix, flavored, pressurized, "with salt added") the wording lacks | links B3 |
@@ -106,7 +108,13 @@ in its gate signature, so a changed gate drops that tier back to shadow.
 
 - `link-gate.tsv`: rule-given rows (`rule:link-gate`, `rule:construction`, status `ok`); lg-68 to
   lg-91 are the alcohol rows, one or more per alcohol rule of the design, and two pairs the alcohol
-  rules let through. The test reads each row's FDC id from `gate-catalog.tsv`. Each is a
+  rules let through. lg-92 to lg-108 come from staging checkpoint 1 (2026-11-20): the five pairs the
+  gate let through on staging's waiting picks and should not (K4: `agent`, judged by the checkpoint
+  operator), a constructed row for each new rule and four pairs those rules must still let through
+  (`rule:construction`, `ok`), and the six alcohol lines of K10 (amounts joined by "and" or "or"
+  read as lists, two wines on Non-Alcoholic Wine, a measure of curaçoa). lg-109 to lg-111 come from
+  the review of that fix (`rule:construction` and `rule:link-gate`, `ok`): a raw cut named with a
+  last "roast" on a cooked food, and a red wine named before the dish it is for on Chicken Stock. The test reads each row's FDC id from `gate-catalog.tsv`. Each is a
   pair the gate must let through (`pass`) or a pair a named rule must hold. Every rule has a row
   (`Every_rule_of_the_gate_has_a_rule_given_row` reads the rule codes from `LinkGate` itself, so a
   new rule without a row fails). `readers` = `yes` reads the pair as two blind readers' answer (the
@@ -128,10 +136,14 @@ in its gate signature, so a changed gate drops that tier back to shadow.
   `dotnet run --project nom-api/Nom.Import -- --golden-score --lane link-gate [--record]`; it needs
   no host. Recorded on 2026-11-20 (`link-gate/2`, and again for `link-gate/3` with the alcohol
   rules, with the same figures: every judged pair the alcohol rules refuse is already held by
-  another rule; and on 2026-11-21 for `link-gate/4`, when the name normalizer the gate reads began to
-  take a hyphenated mixed number, a range and trailing size words off the end of a wording, which lets
-  `butter, 1-1/2 oz` through to salted butter, one more pair accepted and the same false accepts):
-  it lets through 2,307 of 7,664 pairs, 99.5 % of them judged right;
+  another rule; on 2026-11-21 for `link-gate/4` (`cleanup2/ck1-parser-catalog`), when the name
+  normalizer the gate reads began to take a hyphenated mixed number, a range and trailing size words
+  off the end of a wording, which lets `butter, 1-1/2 oz` through to salted butter, one more pair
+  accepted and the same false accepts; for `link-gate/4` and `link-gate/5` of
+  `cleanup2/ck1-gate-alcohol`, the checkpoint-1 rules and the review fix that keeps a last "roast"
+  from meeting the cooked state, with the same figures, since none of the judged pairs is of those
+  classes; and for `link-gate/6`, the wave-5 merge of both): it lets through 2,307 of 7,664 pairs,
+  99.5 % of them judged right;
   it lets through 12 of 1,406 pairs judged wrong, near or compound (0.9 %). Floors: precision at
   least 99 %, false accepts at most 1 %, agreement at least 45 %. The record is required, and
   `The_committed_link_gate_record_is_what_the_gate_scores_now` checks in CI that the gate still

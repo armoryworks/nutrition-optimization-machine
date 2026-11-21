@@ -134,7 +134,10 @@ namespace Nom.Orch.Services.Support
     /// checks (wordings design 2.4): a heading or a compound; a target that is retired, branded, a
     /// prepared dish, not curated or short of nutrients; a wording that is another food's name or
     /// alias, or that a name rule gives to another food; a target led by another noun; a wording
-    /// word the food lacks; a state, form or part one side has and the other lacks; a dried herb for
+    /// word the food lacks; a food made from the wording's head noun ("pickle cucumbers" is not a
+    /// pickle); a food whose own name ends in a variety word the wording lacks (chorizo for "pork
+    /// sausage"); a state, form or part one side has and the other lacks (sprouted, roast before the
+    /// food, green pods against mature seeds); a dried herb for
     /// a fresh one; a marked variant, a percent variant or a salted/sweetened polarity; one generic
     /// word for one of many varieties; a group word the target's USDA category contradicts; a line
     /// whose alcohol sense (<see cref="AlcoholLineContext"/>) refuses the food; and, with lines,
@@ -143,7 +146,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class LinkGate
     {
-        public const string Version = "link-gate/4";
+        public const string Version = "link-gate/6";
 
         public const string Heading = "heading";
         public const string Compound = "compound";
@@ -160,6 +163,8 @@ namespace Nom.Orch.Services.Support
         public const string LeadNoun = "lead-noun";
         public const string Containment = "containment";
         public const string HeadNoun = "head-noun";
+        public const string HeadLead = "head-lead";
+        public const string Variety = "variety";
         public const string Form = "form";
         public const string FreshHerb = "fresh-herb";
         public const string Part = "part";
@@ -188,6 +193,7 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex PercentPattern = new(@"\d+(?:\.\d+)?\s*%", RegexOptions.CultureInvariant | RegexOptions.Compiled);
         private static readonly Regex HeadingPattern = new(@"^\s*for\s+the\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
         private static readonly Regex SaltAddedPattern = new(@"\bwith salt added\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+        private static readonly Regex PodBeanPattern = new(@"\b(?:french|string|stringless|snap|green|runner|wax)\s+beans?\b|\bharicots?\s+verts?\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         internal static readonly Dictionary<string, string> OldSpellings = new(StringComparer.Ordinal)
         {
@@ -214,6 +220,7 @@ namespace Nom.Orch.Services.Support
             ["smoked"] = new[] { "smoked" },
             ["pickled"] = new[] { "pickled", "pickle", "pickles" },
             ["dry"] = new[] { "dried", "dry", "dehydrated" },
+            ["sprouted"] = new[] { "sprouted", "sprouts", "sprout" },
         };
 
         private static readonly string[] CookedWords = { "cooked", "boiled", "baked", "fried", "steamed", "braised", "stewed", "grilled", "broiled", "roasted", "poached", "microwaved", "simmered", "scrambled" };
@@ -263,6 +270,15 @@ namespace Nom.Orch.Services.Support
         private static readonly HashSet<string> SpiceNeutral = new(StringComparer.Ordinal) { "dried", "dry", "dehydrated", "ground", "powder", "powdered", "pulverized", "pounded" };
         private static readonly HashSet<string> FlourNeutral = new(StringComparer.Ordinal) { "browned", "dried", "dry", "roasted", "toasted" };
         private static readonly HashSet<string> DrinkNeutral = new(StringComparer.Ordinal) { "dry" };
+
+        private static readonly HashSet<string> SeedWords = new(StringComparer.Ordinal) { "dried", "dry", "dehydrated", "mature" };
+
+        private const string RoastWord = "roast";
+
+        private static readonly HashSet<string> ProductLeads = new(StringComparer.Ordinal)
+        {
+            "pickle", "sauce", "soup", "pie", "jam", "jelly", "relish", "pudding", "salad", "dressing", "gravy", "stew",
+        };
 
         private static readonly HashSet<string> DriedCues = new(StringComparer.Ordinal) { "dried", "dry", "ground", "grated", "powdered", "powder" };
 
@@ -413,14 +429,18 @@ namespace Nom.Orch.Services.Support
             var driedSpice = spice && !freshTarget && !textWords.Contains("canned")
                 && (textWords.Contains("dried") || textWords.Contains("ground") || textWords.Contains("powder") || Words(segments.FirstOrDefault() ?? string.Empty).Select(Fold).Contains("spice"));
             var firstSegmentWords = Words(raw.Split(',')[0]).ToList();
+            var plainWords = Words(Plain(text));
+            var plainFolded = plainWords.Select(Fold).ToHashSet(StringComparer.Ordinal);
 
             bool FormMet(string form) =>
                 (driedSpice && SpiceNeutral.Contains(form))
                 || (flour && FlourNeutral.Contains(form))
                 || (drink && DrinkNeutral.Contains(form))
-                || Forms[form].Any(f => f == "mature" ? textWords.Contains(f) && !textWords.Overlaps(CookedWords) && !textWords.Contains("canned") : textWords.Contains(f) || Words(text).Contains(f));
+                || Forms[form].Any(f => f == "mature" ? plainFolded.Contains(f) && !plainFolded.Overlaps(CookedWords) && !plainFolded.Contains("canned") : plainFolded.Contains(f) || plainWords.Contains(f));
 
-            var wordingForms = firstSegmentWords.Where(Forms.ContainsKey).Distinct().ToList();
+            var formWords = firstSegmentWords.Select((w, i) => w == RoastWord && i + 1 < firstSegmentWords.Count ? "roasted" : w).ToList();
+            var wordingForms = formWords.Where(Forms.ContainsKey).Distinct().ToList();
+            var stateWords = allWords.Concat(formWords).ToHashSet(StringComparer.Ordinal);
             var residual = firstSegmentWords.Where(w => !Filler.Contains(w) && !FoodNameMatcher.Noise.Contains(w) && !(Forms.ContainsKey(w) && FormMet(w))
                 && !identity.Contains(Fold(w)) && w is not ("of" or "a" or "an" or "the")).ToList();
             var headDefault = IsHeadDefault(wording, residual.Count == 0 ? identity : null, target, catalog) && wordingForms.All(FormMet);
@@ -459,7 +479,7 @@ namespace Nom.Orch.Services.Support
             {
                 foreach (var state in Words(text).Where(States.ContainsKey).Distinct())
                 {
-                    if (States[state].Any(allWords.Contains)) continue;
+                    if (States[state].Any(stateWords.Contains)) continue;
                     if (driedSpice && SpiceNeutral.Contains(state) && allWords.Overlaps(SpiceNeutral)) continue;
                     if (StateIsDefault(state, target, lead, catalog)) continue;
                     Add(State, LinkAutoApplyGuard.StateRule, state);
@@ -493,12 +513,31 @@ namespace Nom.Orch.Services.Support
                 Add(HeadNoun, "the wording's head noun is not in the food", identity[^1]);
             }
 
+            if (lexical && !headDefault && identity.Count >= 2 && lead != null && ProductLeads.Contains(lead))
+            {
+                var head = identity[^1];
+                var leadWords = LeadNounWords(text).ToHashSet(StringComparer.Ordinal);
+                var leadOnly = new HashSet<string>(StringComparer.Ordinal) { lead };
+                if (head != lead && !Meets(head, leadWords, catalog) && identity.Take(identity.Count - 1).Any(w => Meets(w, leadOnly, catalog))
+                    && catalog.Siblings.TryGetValue(head, out var own) && own.Any(f => f.Id != target.Id))
+                    Add(HeadLead, "a food made from the wording's head noun, which leads foods of its own", $"{lead} of {head}; {head} leads {own.Count} foods");
+            }
+
+            if (lexical && !headDefault && !string.Equals(target.Name.Trim(), text.Trim(), StringComparison.OrdinalIgnoreCase)
+                && Words(target.Name).Select(Fold).LastOrDefault() is { } nameHead
+                && plainFolded.Contains(nameHead) && !LeadNounWords(text).Contains(nameHead) && !Meets(nameHead, folded, catalog)
+                && !GenericNeutral.Contains(nameHead) && !States.ContainsKey(nameHead) && !Forms.ContainsKey(nameHead) && !Processed.Contains(nameHead) && !DescriptionParts.ContainsKey(nameHead))
+                Add(Variety, "food is a variety the wording does not name", nameHead);
+
             if (wordingForms.FirstOrDefault(f => !FormMet(f)) is { } unmetForm) Add(Form, "wording form not in the food", unmetForm);
             if (firstSegmentWords.Any(FreshWords.Contains) && !spice)
             {
                 var processed = Words(text).FirstOrDefault(Processed.Contains);
                 if (processed != null) Add(Form, "wording form not in the food", $"fresh against {processed}");
             }
+
+            if (PodBeanPattern.IsMatch(raw) && plainFolded.Contains("mature") && !allWords.Overlaps(SeedWords))
+                Add(Form, "wording form not in the food", "green pods against mature seeds");
 
             if (driedSpice && (HasFreshCue(raw, textWords) || ShareOf(pair.Lines, l => HasFreshCue(l.Raw ?? string.Empty, textWords)) > LiquidOnDryShare))
                 Add(FreshHerb, "a fresh herb is not the dried spice");
@@ -899,6 +938,8 @@ namespace Nom.Orch.Services.Support
             Table("matcher-noise", FoodNameMatcher.Noise);
             Table("matcher-classes", FoodNameMatcher.ClassPrefixes.Concat(FoodNameMatcher.IdentityClasses.Select(c => "identity:" + c)));
             Table("dried-cues", DriedCues);
+            Table("seed-words", SeedWords.Append("roast=" + RoastWord));
+            Table("product-leads", ProductLeads);
             Table("egg-white", EggWhiteWords.Append("only=" + OnlyWord));
             Table("polarity", UnsaltedPhrases.Select(p => "unsalted=" + p)
                 .Concat(SaltedWordingPhrases.Select(p => "salted-wording=" + p))
@@ -906,7 +947,7 @@ namespace Nom.Orch.Services.Support
                 .Concat(UnsweetenedWordingPhrases.Select(p => "unsweetened-wording=" + p))
                 .Concat(UnsweetenedFoodPhrases.Select(p => "unsweetened-food=" + p))
                 .Concat(SweetenedPhrases.Select(p => "sweetened=" + p)));
-            Table("patterns", new[] { Word, Parenthetical, Slash, PercentPattern, HeadingPattern, SaltAddedPattern }.Select(r => r.ToString()));
+            Table("patterns", new[] { Word, Parenthetical, Slash, PercentPattern, HeadingPattern, SaltAddedPattern, PodBeanPattern }.Select(r => r.ToString()));
             Table("guard-joiners", LinkAutoApplyGuard.Joiners);
             Table("alcohol-context", new[] { AlcoholLineContext.SignatureSource() });
             Table("staples", StapleFoods.Entries.Select(kv => kv.Key + "=" + kv.Value));
