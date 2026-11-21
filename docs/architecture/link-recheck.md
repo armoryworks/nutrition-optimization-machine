@@ -86,7 +86,8 @@ lines (old and new `food@position`), `LinkRecheckAlias` for aliases (old and new
 deleted), `LinkRecheckFood` for an ingredient created and a name freed, and a `LinkRecheckRun`
 header. The header is written before the run's first write and completed with the counts at its end
 (`complete`), so a withdrawal, set run or rename cut off partway (a timeout, a restart) still shows
-its stamp on the status and is undone by it. Only a run that writes has a header: a lane batch in
+its stamp on the status and is undone by it; the Pipeline page marks such a run "cut off before its
+end" (`pipeline-link-recheck-run-cut-off-<set>`, `pipeline-link-recheck-withdraw-cut-off`). Only a run that writes has a header: a lane batch in
 shadow records its decisions on the frame and nothing in the journal. `POST undo?stamp=&apply=` takes the run back: lines through
 `LineRelinkService.UndoEntriesAsync` (newest first; a line on a recipe rebuilt after the run stays,
 counted `skippedRebuilt`, so undo the rebuild first), then the aliases, then the created ingredients

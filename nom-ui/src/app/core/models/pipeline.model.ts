@@ -361,6 +361,7 @@ export interface LinkRecheckRun {
   mode: string | null;
   signature: string;
   undone: boolean;
+  complete: boolean;
   groups: number;
   kept: number;
   held: number;

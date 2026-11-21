@@ -540,6 +540,9 @@
         <p class="nom-pipeline__lane-line" data-testid="pipeline-link-recheck-withdraw">
           @if (lr.lastWithdraw; as w) {
             Picks withdrawn {{ w.stamp | date: 'MMM d, HH:mm' }}: {{ w.withdrawn | number }}{{ w.undone ? ' (undone)' : '' }}
+            @if (!w.complete) {
+              <span class="nom-pipeline__muted" data-testid="pipeline-link-recheck-withdraw-cut-off">(cut off before its end; undo by its stamp)</span>
+            }
           } @else {
             The waiting model picks have not been withdrawn.
           }
@@ -548,7 +551,7 @@
           <ul class="nom-pipeline__list" data-testid="pipeline-link-recheck-run-list">
             @for (run of lr.lastRuns; track run.set) {
               <li class="nom-pipeline__list-item" [attr.data-testid]="'pipeline-link-recheck-run-' + run.set">
-                <span>{{ run.set }} <span class="nom-pipeline__muted">{{ run.lane ? 'lane, ' + run.mode : 'operator' }} · {{ run.stamp | date: 'MMM d, HH:mm' }}{{ run.undone ? ' · undone' : '' }}</span></span>
+                <span>{{ run.set }} <span class="nom-pipeline__muted">{{ run.lane ? 'lane, ' + run.mode : 'operator' }} · {{ run.stamp | date: 'MMM d, HH:mm' }}{{ run.undone ? ' · undone' : '' }}</span>@if (!run.complete) {<span class="nom-pipeline__muted" [attr.data-testid]="'pipeline-link-recheck-run-cut-off-' + run.set"> · cut off before its end</span>}</span>
                 @if (run.set === 'names') {
                   <span>{{ run.renamed | number }} renamed</span>
                 } @else {
