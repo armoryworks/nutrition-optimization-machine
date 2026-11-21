@@ -24,6 +24,8 @@ namespace Nom.Orch.Extensions
         ///  - plus departure-grace (grandfathering): audience recipes the person has
         ///    cooked (completed plan or Made timeline event) or favorited (rating >= 4),
         ///    which stay readable after the household leaves the audience.
+        /// A recipe whose source an admin withheld (<see cref="RecipeEntity.SourceWithheldById"/>) is
+        /// seen by no one, its author included, until the withholding is undone.
         /// </summary>
         /// <summary>
         /// Platform switch: while on, curation admins also see public recipes that passed vetting but
@@ -36,6 +38,8 @@ namespace Nom.Orch.Extensions
             ApplicationDbContext context,
             long? personId)
         {
+            recipes = recipes.Where(r => r.SourceWithheldById == null);
+
             // Anonymous: public + approved only.
             if (!personId.HasValue)
             {

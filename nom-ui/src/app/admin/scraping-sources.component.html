@@ -5,14 +5,13 @@
         <mat-icon>arrow_back</mat-icon>
         Back to Admin
       </a>
-      <h1 class="nom-dashboard__title">Scraping Sources</h1>
+      <h1 class="nom-dashboard__title">Recipe Sources</h1>
       <span class="nom-dashboard__subtitle">
-        {{ sources().length }} {{ statusFilter().toLowerCase() }}
-        {{ sources().length === 1 ? 'domain' : 'domains' }}
+        {{ queue().length }} ready to approve · {{ approved().length }} approved
       </span>
     </div>
     <div class="nom-dashboard__header-right">
-      <button mat-icon-button (click)="loadSources()" aria-label="Refresh"
+      <button mat-icon-button (click)="load()" aria-label="Refresh"
               data-testid="admin-scraping-sources-refresh-btn">
         <mat-icon>refresh</mat-icon>
       </button>
@@ -22,125 +21,412 @@
   <p class="nom-scraping-sources__warning" data-testid="admin-scraping-sources-warning">
     <mat-icon>gavel</mat-icon>
     Approving a source means you accept responsibility for the legality and quality of scraping
-    it. Recipes are only ever imported from approved domains.
+    it. Recipes are only ever imported from approved domains. Only sites whose check is clear
+    (an open licence or public domain, robots allowing us and AI crawlers, no reservation, no
+    prohibiting terms, structured recipes, a good sample) are offered below.
   </p>
 
-  <div class="nom-scraping-sources__filters" role="group" aria-label="Filter by status"
-       data-testid="admin-scraping-sources-status-filter">
-    @for (status of statuses; track status) {
-      <button type="button"
-              class="nom-scraping-sources__filter"
-              [class.nom-scraping-sources__filter--active]="statusFilter() === status"
-              (click)="setFilter(status)"
-              [attr.data-testid]="'admin-scraping-sources-filter-' + status.toLowerCase()">
-        {{ status }}
-      </button>
-    }
-  </div>
-
   @if (errorMessage()) {
-    <nom-error-banner [message]="errorMessage()" />
+    <div data-testid="admin-scraping-sources-error">
+      <nom-error-banner [message]="errorMessage()" />
+    </div>
   }
 
   @if (loading()) {
     <div class="nom-scraping-sources__loading">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
-  } @else if (sources().length === 0) {
-    <div class="nom-dashboard__empty" data-testid="admin-scraping-sources-empty">
-      <mat-icon class="nom-dashboard__empty-icon">travel_explore</mat-icon>
-      <h2 class="nom-dashboard__empty-title">No {{ statusFilter().toLowerCase() }} sources</h2>
-      <p class="nom-dashboard__empty-message">
-        Nothing with the {{ statusFilter() }} status right now.
+  } @else if (review(); as r) {
+    @if (!r.enabled) {
+      <p class="nom-scraping-sources__hint" data-testid="scraping-sources-lane-off">
+        Discovery and source checks are off (SourceDiscovery:Enabled). Nothing new is checked until they are on.
       </p>
-    </div>
-  } @else {
-    <div class="nom-scraping-sources__list" data-testid="admin-scraping-sources-list">
-      @for (source of sources(); track source.id) {
-        <div class="nom-scraping-sources__item" data-testid="scraping-source-item">
-          <div class="nom-scraping-sources__item-header">
-            <mat-icon class="nom-scraping-sources__item-icon">language</mat-icon>
-            <div class="nom-scraping-sources__item-info">
-              @if (source.sampleUrl) {
-                <a class="nom-scraping-sources__domain"
-                   [href]="source.sampleUrl" target="_blank" rel="noopener"
-                   data-testid="scraping-source-domain-link">
-                  {{ source.domain }}
-                  <mat-icon class="nom-scraping-sources__external-icon">open_in_new</mat-icon>
-                </a>
-              } @else {
-                <span class="nom-scraping-sources__domain">{{ source.domain }}</span>
-              }
-              <span class="nom-scraping-sources__item-meta">
-                @if (source.requestedByName) {
-                  Requested by {{ source.requestedByName }} &middot;
-                }
-                {{ source.createdDate | date: 'mediumDate' }}
-              </span>
-              @if (source.reviewedByName || source.reviewedDate) {
-                <span class="nom-scraping-sources__item-meta">
-                  Reviewed
-                  @if (source.reviewedByName) {
-                    by {{ source.reviewedByName }}
-                  }
-                  @if (source.reviewedDate) {
-                    &middot; {{ source.reviewedDate | date: 'mediumDate' }}
-                  }
-                </span>
-              }
-              @if (source.notes) {
-                <span class="nom-scraping-sources__notes">{{ source.notes }}</span>
-              }
-            </div>
-            <span class="nom-scraping-sources__status"
-                  [class.nom-scraping-sources__status--approved]="source.status === 'Approved'"
-                  [class.nom-scraping-sources__status--rejected]="source.status === 'Rejected'">
-              {{ source.status }}
-            </span>
-          </div>
+    }
 
-          @if (rejectingId() === source.id) {
-            <div class="nom-scraping-sources__reject-prompt">
-              <mat-form-field appearance="outline" class="nom-scraping-sources__notes-field">
-                <mat-label>Rejection notes</mat-label>
-                <textarea matInput [formControl]="rejectNotes" rows="2"
-                          placeholder="Optional reason for rejecting this domain..."></textarea>
-              </mat-form-field>
+    <section class="nom-scraping-sources__section" data-testid="scraping-sources-queue">
+      <h2 class="nom-scraping-sources__heading">Ready to approve</h2>
+      @if (queue().length === 0) {
+        <p class="nom-scraping-sources__hint" data-testid="scraping-sources-queue-empty">
+          No candidate is clear right now. Sites that are not clear are never offered; they are listed below with their reasons.
+        </p>
+      } @else {
+        <div class="nom-scraping-sources__list" data-testid="scraping-sources-queue-list">
+          @for (c of queue(); track c.id) {
+            <div class="nom-scraping-sources__item" data-testid="scraping-source-candidate-card">
+              <div class="nom-scraping-sources__item-header">
+                <mat-icon class="nom-scraping-sources__item-icon">verified</mat-icon>
+                <div class="nom-scraping-sources__item-info">
+                  <a class="nom-scraping-sources__domain" [href]="c.evidenceUrl" target="_blank" rel="noopener"
+                     data-testid="scraping-source-candidate-link">
+                    {{ c.domain }}
+                    <mat-icon class="nom-scraping-sources__external-icon">open_in_new</mat-icon>
+                  </a>
+                  <span class="nom-scraping-sources__item-meta">
+                    Found via {{ c.foundVia }} · seen {{ c.timesSeen }}× · checked {{ c.check?.finishedUtc | date: 'mediumDate' }}
+                  </span>
+                </div>
+                <span class="nom-scraping-sources__status nom-scraping-sources__status--approved" data-testid="scraping-source-candidate-verdict">clear</span>
+              </div>
+              @if (c.check?.facts; as f) {
+                <dl class="nom-scraping-sources__facts" data-testid="scraping-source-candidate-facts">
+                  <div><dt>Licence</dt><dd data-testid="scraping-source-fact-licence">{{ f.licenceKind }} ({{ f.licenceBasis }})</dd></div>
+                  @for (s of f.licenceStatements; track $index) {
+                    <div>
+                      <dt>Statement</dt>
+                      <dd data-testid="scraping-source-fact-statement">
+                        “{{ s.text }}” — found at
+                        <a [href]="s.foundAt" target="_blank" rel="noopener" data-testid="scraping-source-fact-statement-link">{{ s.foundAt }}</a>
+                      </dd>
+                    </div>
+                  }
+                  <div>
+                    <dt>Terms</dt>
+                    <dd data-testid="scraping-source-fact-terms">
+                      {{ f.termsPages.length }} page(s) read, {{ f.prohibitions.length }} prohibition(s)
+                      @for (p of f.termsPages; track p.url) {
+                        <br /><a [href]="p.url" target="_blank" rel="noopener" data-testid="scraping-source-fact-terms-link">{{ p.url }}</a> ({{ p.outcome }})
+                      }
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Robots</dt>
+                    <dd data-testid="scraping-source-fact-robots">
+                      {{ f.robotsStatus }} · all crawlers {{ f.generalAllowsHomepage ? 'allowed' : 'not allowed' }} · NomBot {{ f.nomBotAllowsHomepage ? 'allowed' : 'not allowed' }}
+                      · AI crawlers blocked: {{ f.aiCrawlersBlocked.length === 0 ? 'none' : f.aiCrawlersBlocked.join(', ') }}
+                    </dd>
+                  </div>
+                  <div><dt>Crawl-delay</dt><dd data-testid="scraping-source-fact-crawl-delay">{{ f.crawlDelaySeconds === null || f.crawlDelaySeconds === undefined ? 'none (5 s default)' : f.crawlDelaySeconds + ' s' }}</dd></div>
+                  <div>
+                    <dt>Sample yield</dt>
+                    <dd data-testid="scraping-source-fact-yield">
+                      {{ f.sampleWithRecipe }} of {{ f.sampleRequested }} pages with a recipe · {{ f.linesWithQuantity }} of {{ f.ingredientLines }} lines quantified · {{ f.recipeUrlCount | number }} recipe URLs listed
+                    </dd>
+                  </div>
+                </dl>
+              }
               <div class="nom-scraping-sources__actions">
                 <span class="nom-scraping-sources__spacer"></span>
-                <button mat-button (click)="cancelReject()"
-                        data-testid="scraping-source-reject-cancel-btn">
-                  Cancel
-                </button>
-                <button mat-flat-button class="nom-btn--destructive"
-                        (click)="confirmReject(source)" [disabled]="processing()"
-                        data-testid="scraping-source-reject-confirm-btn">
-                  <mat-icon>block</mat-icon>
-                  Confirm Reject
+                <button mat-flat-button (click)="approveCandidate(c)" [disabled]="processing()"
+                        data-testid="scraping-source-candidate-approve-btn">
+                  <mat-icon>check</mat-icon>
+                  Approve
                 </button>
               </div>
-            </div>
-          } @else {
-            <div class="nom-scraping-sources__actions">
-              <span class="nom-scraping-sources__spacer"></span>
-              <button mat-button class="nom-btn--destructive"
-                      (click)="startReject(source)"
-                      [disabled]="processing() || source.status === 'Rejected'"
-                      data-testid="scraping-source-reject-btn">
-                <mat-icon>close</mat-icon>
-                Reject
-              </button>
-              <button mat-flat-button
-                      (click)="approve(source)"
-                      [disabled]="processing() || source.status === 'Approved'"
-                      data-testid="scraping-source-approve-btn">
-                <mat-icon>check</mat-icon>
-                Approve
-              </button>
             </div>
           }
         </div>
       }
-    </div>
+    </section>
+
+    <section class="nom-scraping-sources__section" data-testid="scraping-sources-approved">
+      <h2 class="nom-scraping-sources__heading">Approved sources, re-judged by the same check</h2>
+      @if (approved().length === 0) {
+        <p class="nom-scraping-sources__hint" data-testid="scraping-sources-approved-empty">No approved web source.</p>
+      } @else {
+        <div class="nom-scraping-sources__list" data-testid="admin-scraping-sources-list">
+          @for (source of approved(); track source.id) {
+            <div class="nom-scraping-sources__item" data-testid="scraping-source-item">
+              <div class="nom-scraping-sources__item-header">
+                <mat-icon class="nom-scraping-sources__item-icon">language</mat-icon>
+                <div class="nom-scraping-sources__item-info">
+                  <span class="nom-scraping-sources__domain">{{ source.domain }}</span>
+                  <span class="nom-scraping-sources__item-meta">
+                    Approved {{ source.reviewedDate | date: 'mediumDate' }}
+                    @if (source.checkedAtUtc) {
+                      · checked {{ source.checkedAtUtc | date: 'mediumDate' }}
+                    }
+                    @if (source.probationUntilUtc) {
+                      · in probation until {{ source.probationUntilUtc | date: 'mediumDate' }} ({{ source.probationRecipeLimit }} recipes)
+                    }
+                  </span>
+                  @if (source.probationResult) {
+                    <span class="nom-scraping-sources__notes" data-testid="scraping-source-probation">Probation {{ source.probationResult }}</span>
+                  }
+                  @if (source.harvestPausedAt) {
+                    <span class="nom-scraping-sources__notes nom-scraping-sources__warn" data-testid="scraping-source-paused">
+                      Harvesting paused {{ source.harvestPausedAt | date: 'mediumDate' }}: {{ source.harvestPausedReason }}
+                    </span>
+                  }
+                  @if (source.recipesWithheldAt) {
+                    <span class="nom-scraping-sources__notes nom-scraping-sources__warn" data-testid="scraping-source-withheld">
+                      Recipes withheld {{ source.recipesWithheldAt | date: 'mediumDate' }}: {{ source.recipesWithheldReason }}
+                    </span>
+                  }
+                  @if (source.check && !source.check.conclusive) {
+                    <span class="nom-scraping-sources__notes" data-testid="scraping-source-inconclusive">The last check did not finish; it will run again.</span>
+                  }
+                  @if (against(source.check?.reasons).length) {
+                    <ul class="nom-scraping-sources__reasons" data-testid="scraping-source-reasons">
+                      @for (reason of against(source.check?.reasons); track reason.code) {
+                        <li data-testid="scraping-source-reason">{{ reason.code }} ({{ reason.outcome }}): {{ reason.detail }}</li>
+                      }
+                    </ul>
+                  }
+                </div>
+                <span class="nom-scraping-sources__status"
+                      [class.nom-scraping-sources__status--approved]="source.checkVerdict === 'clear'"
+                      [class.nom-scraping-sources__status--rejected]="source.checkVerdict === 'not-clear'"
+                      data-testid="scraping-source-verdict">
+                  {{ source.checkVerdict ?? 'not judged yet' }}
+                </span>
+              </div>
+
+              @if (pendingAction()?.sourceId === source.id) {
+                <div class="nom-scraping-sources__reject-prompt" data-testid="scraping-source-action-prompt">
+                  <p class="nom-scraping-sources__hint">
+                    @switch (pendingAction()?.action) {
+                      @case ('pause') { Pause harvesting of {{ source.domain }}? Recipes already imported stay. }
+                      @case ('withhold') { Withhold {{ pendingAction()?.recipes | number }} recipes of {{ source.domain }} from search, suggestions and meal plans? }
+                      @case ('release') { Release {{ pendingAction()?.recipes | number }} withheld recipes of {{ source.domain }}? }
+                    }
+                    Every action is journaled and can be undone below.
+                  </p>
+                  @if (pendingAction()?.action !== 'release') {
+                    <mat-form-field appearance="outline" class="nom-scraping-sources__notes-field">
+                      <mat-label>Reason</mat-label>
+                      <input matInput [formControl]="actionReason" data-testid="scraping-source-action-reason" />
+                    </mat-form-field>
+                  }
+                  <div class="nom-scraping-sources__actions">
+                    <span class="nom-scraping-sources__spacer"></span>
+                    <button mat-button (click)="cancelAction()" data-testid="scraping-source-action-cancel-btn">Cancel</button>
+                    <button mat-flat-button (click)="confirmAction()" [disabled]="processing()" data-testid="scraping-source-action-confirm-btn">
+                      Confirm
+                    </button>
+                  </div>
+                </div>
+              } @else {
+                <div class="nom-scraping-sources__actions">
+                  <span class="nom-scraping-sources__spacer"></span>
+                  @if (source.harvestPausedAt) {
+                    <button mat-button (click)="resumeHarvest(source)" [disabled]="processing()" data-testid="scraping-source-resume-btn">
+                      <mat-icon>play_arrow</mat-icon>
+                      Resume harvesting
+                    </button>
+                  } @else {
+                    <button mat-button (click)="pauseHarvest(source)" [disabled]="processing()" data-testid="scraping-source-pause-btn">
+                      <mat-icon>pause</mat-icon>
+                      Pause harvesting
+                    </button>
+                  }
+                  @if (source.recipesWithheldAt) {
+                    <button mat-button (click)="startRelease(source)" [disabled]="processing()" data-testid="scraping-source-release-btn">
+                      <mat-icon>visibility</mat-icon>
+                      Release recipes
+                    </button>
+                  } @else {
+                    <button mat-button class="nom-btn--destructive" (click)="startWithhold(source)" [disabled]="processing()" data-testid="scraping-source-withhold-btn">
+                      <mat-icon>visibility_off</mat-icon>
+                      Withhold recipes
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="nom-scraping-sources__section" data-testid="scraping-sources-not-clear">
+      <h2 class="nom-scraping-sources__heading">Not clear (never offered)</h2>
+      <p class="nom-scraping-sources__hint" data-testid="scraping-sources-waiting">
+        {{ r.waiting.length }} candidate(s) wait for their check · {{ r.leads }} lead(s) found but not probed
+      </p>
+      @if (notClear().length === 0) {
+        <p class="nom-scraping-sources__hint" data-testid="scraping-sources-not-clear-empty">No candidate has been found not clear.</p>
+      } @else {
+        <ul class="nom-scraping-sources__plain-list" data-testid="scraping-sources-not-clear-list">
+          @for (c of notClear(); track c.id) {
+            <li data-testid="scraping-source-not-clear-item">
+              <strong>{{ c.domain }}</strong>
+              @if (c.approveBlockedReason) {
+                <span class="nom-scraping-sources__item-meta">{{ c.approveBlockedReason }}</span>
+              }
+              <ul class="nom-scraping-sources__reasons" data-testid="scraping-source-not-clear-reasons">
+                @for (reason of against(c.check?.reasons); track reason.code) {
+                  <li>{{ reason.code }} ({{ reason.outcome }}): {{ reason.detail }}</li>
+                }
+              </ul>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="nom-scraping-sources__section" data-testid="scraping-sources-pending">
+      <h2 class="nom-scraping-sources__heading">Requests from users</h2>
+      @if (pending().length === 0) {
+        <p class="nom-scraping-sources__hint" data-testid="admin-scraping-sources-empty">No pending request.</p>
+      } @else {
+        <p class="nom-scraping-sources__hint">Each request is checked like a candidate and offered above only if it is clear.</p>
+        <div class="nom-scraping-sources__list" data-testid="scraping-sources-pending-list">
+          @for (source of pending(); track source.id) {
+            <div class="nom-scraping-sources__item" data-testid="scraping-source-pending-item">
+              <div class="nom-scraping-sources__item-header">
+                <mat-icon class="nom-scraping-sources__item-icon">hourglass_empty</mat-icon>
+                <div class="nom-scraping-sources__item-info">
+                  @if (source.sampleUrl) {
+                    <a class="nom-scraping-sources__domain" [href]="source.sampleUrl" target="_blank" rel="noopener"
+                       data-testid="scraping-source-domain-link">
+                      {{ source.domain }}
+                      <mat-icon class="nom-scraping-sources__external-icon">open_in_new</mat-icon>
+                    </a>
+                  } @else {
+                    <span class="nom-scraping-sources__domain">{{ source.domain }}</span>
+                  }
+                  <span class="nom-scraping-sources__item-meta">
+                    @if (source.requestedByName) {
+                      Requested by {{ source.requestedByName }} &middot;
+                    }
+                    {{ source.createdDate | date: 'mediumDate' }}
+                  </span>
+                </div>
+              </div>
+              @if (rejectingId() === source.id) {
+                <div class="nom-scraping-sources__reject-prompt">
+                  <mat-form-field appearance="outline" class="nom-scraping-sources__notes-field">
+                    <mat-label>Rejection notes</mat-label>
+                    <textarea matInput [formControl]="rejectNotes" rows="2" data-testid="scraping-source-reject-notes"
+                              placeholder="Optional reason for rejecting this domain..."></textarea>
+                  </mat-form-field>
+                  <div class="nom-scraping-sources__actions">
+                    <span class="nom-scraping-sources__spacer"></span>
+                    <button mat-button (click)="cancelReject()" data-testid="scraping-source-reject-cancel-btn">Cancel</button>
+                    <button mat-flat-button class="nom-btn--destructive" (click)="confirmReject(source)" [disabled]="processing()"
+                            data-testid="scraping-source-reject-confirm-btn">
+                      <mat-icon>block</mat-icon>
+                      Confirm Reject
+                    </button>
+                  </div>
+                </div>
+              } @else {
+                <div class="nom-scraping-sources__actions">
+                  <span class="nom-scraping-sources__spacer"></span>
+                  <button mat-button class="nom-btn--destructive" (click)="startReject(source)" [disabled]="processing()"
+                          data-testid="scraping-source-reject-btn">
+                    <mat-icon>close</mat-icon>
+                    Reject
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="nom-scraping-sources__section" data-testid="scraping-sources-hand">
+      <h2 class="nom-scraping-sources__heading">Hand sources (PDFs and scanned books)</h2>
+      <p class="nom-scraping-sources__hint">
+        The check cannot read these, so you enter the licence facts as the source states them. A hand source is never fetched;
+        the staged import takes its recipes only when the batch names it.
+      </p>
+      @if (hand().length === 0) {
+        <p class="nom-scraping-sources__hint" data-testid="scraping-sources-hand-empty">No hand source recorded.</p>
+      } @else {
+        <ul class="nom-scraping-sources__plain-list" data-testid="scraping-sources-hand-list">
+          @for (h of hand(); track h.id) {
+            <li data-testid="scraping-source-hand-item">
+              <strong>{{ h.title }}</strong> ({{ h.domain }}, source {{ h.id }}, {{ h.status }}) · {{ h.licenceKind }}:
+              “{{ h.licenceStatement }}” — <a [href]="h.licenceFoundAt" target="_blank" rel="noopener" data-testid="scraping-source-hand-link">{{ h.licenceFoundAt }}</a>
+            </li>
+          }
+        </ul>
+      }
+      <form class="nom-scraping-sources__hand-form" [formGroup]="handForm" (ngSubmit)="recordHand()" data-testid="scraping-sources-hand-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Domain</mat-label>
+          <input matInput formControlName="domain" placeholder="www.cancer.gov" data-testid="scraping-sources-hand-domain" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Title</mat-label>
+          <input matInput formControlName="title" data-testid="scraping-sources-hand-title" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Licence</mat-label>
+          <mat-select formControlName="licenceKind" data-testid="scraping-sources-hand-licence-kind">
+            @for (k of licenceKinds; track k) {
+              <mat-option [value]="k">{{ k }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Statement, as the source words it</mat-label>
+          <textarea matInput formControlName="licenceStatement" rows="2" data-testid="scraping-sources-hand-statement"></textarea>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Where it was found (URL)</mat-label>
+          <input matInput formControlName="licenceFoundAt" data-testid="scraping-sources-hand-found-at" />
+        </mat-form-field>
+        @if (handError()) {
+          <p class="nom-scraping-sources__warn" data-testid="scraping-sources-hand-error">{{ handError() }}</p>
+        }
+        <div class="nom-scraping-sources__actions">
+          <span class="nom-scraping-sources__spacer"></span>
+          <button mat-flat-button type="submit" [disabled]="processing()" data-testid="scraping-sources-hand-submit-btn">Record hand source</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="nom-scraping-sources__section" data-testid="scraping-sources-runs">
+      <h2 class="nom-scraping-sources__heading">Discovery runs and failed checks</h2>
+      @if (runs().length === 0) {
+        <p class="nom-scraping-sources__hint" data-testid="scraping-sources-runs-empty">No discovery run yet.</p>
+      } @else {
+        <ul class="nom-scraping-sources__plain-list" data-testid="scraping-sources-runs-list">
+          @for (run of runs(); track run.id) {
+            <li [class.nom-scraping-sources__warn]="run.status === 'failed'" data-testid="scraping-sources-run-item">
+              {{ run.startedUtc | date: 'MMM d, HH:mm' }} · {{ run.status }}{{ run.stopReason ? ' (' + run.stopReason + ')' : '' }}
+              · seeds {{ run.seeds }} · {{ run.candidates }} candidates, {{ run.leads }} leads
+              @if (run.seedsRefused) {
+                · refused seeds: {{ run.seedsRefused }}
+              }
+              @if (run.error) {
+                · {{ run.error }}
+              }
+            </li>
+          }
+        </ul>
+      }
+      @if (r.failedChecks.length) {
+        <ul class="nom-scraping-sources__plain-list" data-testid="scraping-sources-failed-checks">
+          @for (check of r.failedChecks; track check.id) {
+            <li class="nom-scraping-sources__warn" data-testid="scraping-sources-failed-check">
+              {{ check.startedUtc | date: 'MMM d, HH:mm' }} · {{ check.domain }} · {{ check.status }}: {{ check.error }}
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="nom-scraping-sources__section" data-testid="scraping-sources-journal">
+      <h2 class="nom-scraping-sources__heading">Journal</h2>
+      @if (journal().length === 0) {
+        <p class="nom-scraping-sources__hint" data-testid="scraping-sources-journal-empty">Nothing journaled yet.</p>
+      } @else {
+        <ul class="nom-scraping-sources__plain-list" data-testid="scraping-sources-journal-list">
+          @for (entry of journal(); track entry.id) {
+            <li data-testid="scraping-sources-journal-item">
+              {{ entry.timestamp | date: 'MMM d, HH:mm' }} · {{ entry.domain }} · {{ entry.changeType }}: {{ entry.oldValue }} → {{ entry.newValue }}
+              @if (entry.canUndo) {
+                <button mat-button (click)="undo(entry)" [disabled]="processing()" data-testid="scraping-sources-journal-undo-btn">Undo</button>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    @if (r.rejected.length) {
+      <section class="nom-scraping-sources__section" data-testid="scraping-sources-rejected">
+        <h2 class="nom-scraping-sources__heading">Rejected</h2>
+        <p class="nom-scraping-sources__hint" data-testid="scraping-sources-rejected-list">
+          @for (s of r.rejected; track s.id) {
+            {{ s.domain }}{{ $last ? '' : ', ' }}
+          }
+        </p>
+      </section>
+    }
   }
 </div>

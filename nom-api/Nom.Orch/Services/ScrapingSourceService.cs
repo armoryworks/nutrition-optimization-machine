@@ -9,6 +9,7 @@ using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Communication;
 using Nom.Orch.Models.Recipe;
+using Nom.Orch.Services.Support;
 using Nom.Orch.UtilityInterfaces;
 
 namespace Nom.Orch.Services
@@ -92,39 +93,6 @@ namespace Nom.Orch.Services
             return await MapAsync(source);
         }
 
-        public async Task<ScrapingSourceModel> RegisterAutoApprovedSourceAsync(string url, string reason)
-        {
-            var domain = ExtractDomain(url)
-                ?? throw new ArgumentException("Not a valid http(s) URL.", nameof(url));
-
-            var existing = await _db.ScrapingSources
-                .FirstOrDefaultAsync(s => s.Domain == domain && !s.IsDeleted);
-            if (existing != null)
-            {
-                // Never override a human decision (or an earlier automated one).
-                return await MapAsync(existing);
-            }
-
-            var source = new ScrapingSourceEntity
-            {
-                Domain = domain,
-                Status = ScrapingSourceStatusEnum.Approved,
-                SampleUrl = url,
-                Notes = reason,
-                // ReviewedByPersonId stays null: the review was automated.
-                ReviewedDate = DateTime.UtcNow,
-                CreatedDate = DateTime.UtcNow,
-            };
-            _db.ScrapingSources.Add(source);
-            await _db.SaveChangesAsync();
-
-            _logger.LogInformation("Scraping source {Domain} auto-whitelisted by discovery", domain);
-
-            await NotifyAdminsAutoApprovedAsync(source);
-
-            return await MapAsync(source);
-        }
-
         public async Task<List<ScrapingSourceModel>> ListAsync(ScrapingSourceStatusEnum? status)
         {
             var query = _db.ScrapingSources
@@ -145,9 +113,6 @@ namespace Nom.Orch.Services
             return sources.Select(Map).ToList();
         }
 
-        public Task<ScrapingSourceModel?> ApproveAsync(long id, long reviewerPersonId, string? notes)
-            => ReviewAsync(id, reviewerPersonId, notes, ScrapingSourceStatusEnum.Approved);
-
         public Task<ScrapingSourceModel?> RejectAsync(long id, long reviewerPersonId, string? notes)
             => ReviewAsync(id, reviewerPersonId, notes, ScrapingSourceStatusEnum.Rejected);
 
@@ -160,12 +125,26 @@ namespace Nom.Orch.Services
                 return null;
             }
 
+            var before = source.Status;
             source.Status = newStatus;
             source.ReviewedByPersonId = reviewerPersonId;
             source.ReviewedDate = DateTime.UtcNow;
             source.Notes = notes ?? source.Notes;
             source.LastModifiedDate = DateTime.UtcNow;
             source.LastModifiedByPersonId = reviewerPersonId;
+            if (before != newStatus)
+            {
+                _db.AuditLogEntries.Add(SourceJournal.Entry(source.Id,
+                    SourceJournal.Reject, SourceJournal.StatusField,
+                    SourceJournal.Value(before.ToString()), SourceJournal.Value(newStatus.ToString(), notes), DateTime.UtcNow, reviewerPersonId));
+            }
+
+            if (newStatus == ScrapingSourceStatusEnum.Rejected && SourceAdmissionPolicy.NormalizeDomain(source.Domain) is { } domain
+                && await _db.SourceCandidates.FirstOrDefaultAsync(c => c.Domain == domain) is { } candidate)
+            {
+                candidate.State = SourceCandidateEntity.Rejected;
+            }
+
             await _db.SaveChangesAsync();
 
             _logger.LogInformation("Scraping source {Domain} {Status} by person {PersonId}",
@@ -241,73 +220,6 @@ responsibility for the legality and quality of importing recipes from this site.
             }
         }
 
-        /// <summary>
-        /// Notifies curation admins that discovery auto-whitelisted a domain,
-        /// with a pointer to where the decision can be reversed. Failures are
-        /// logged but never block the approval itself.
-        /// </summary>
-        private async Task NotifyAdminsAutoApprovedAsync(ScrapingSourceEntity source)
-        {
-            try
-            {
-                var adminUserIds = await _db.UserClaims
-                    .Where(c => c.ClaimType == AdminClaimType && c.ClaimValue == "true")
-                    .Select(c => c.UserId)
-                    .Distinct()
-                    .ToListAsync();
-
-                var admins = await (from p in _db.Persons
-                                    join u in _db.Users on p.UserId equals u.Id
-                                    where p.UserId != null && adminUserIds.Contains(p.UserId)
-                                    select new { p.Id, p.Name, Email = u.Email ?? p.Email })
-                    .ToListAsync();
-
-                if (admins.Count == 0)
-                {
-                    _logger.LogWarning("No curation admins found to notify about auto-whitelisted source {Domain}", source.Domain);
-                    return;
-                }
-
-                var summary =
-                    $"Source discovery auto-whitelisted a new domain: {source.Domain}\n" +
-                    $"Evidence: {source.SampleUrl}\n" +
-                    $"{source.Notes}\n\n" +
-                    "Scraping from this domain is now enabled. If it should not be trusted, " +
-                    "reject it under Admin → Scraping Sources — rejected domains are never re-proposed.";
-
-                var threadId = await _communication.CreateThreadAsync(new CreateThreadRequest
-                {
-                    ParticipantIds = admins.Select(a => a.Id).ToArray(),
-                }, SystemConstants.SystemPersonId);
-                await _communication.SendMessageAsync(new SendMessageRequest
-                {
-                    ThreadId = threadId,
-                    Content = summary,
-                }, SystemConstants.SystemPersonId);
-
-                var subject = $"NOM: scraping source \"{source.Domain}\" was auto-whitelisted";
-                var body = $@"
-<html><body>
-<h2>Source discovery auto-whitelisted a domain</h2>
-<p><strong>Domain:</strong> {source.Domain}</p>
-<p><strong>Evidence:</strong> <a href=""{source.SampleUrl}"">{source.SampleUrl}</a></p>
-<p>{source.Notes}</p>
-<p>Scraping from this domain is now <strong>enabled</strong>. If it should not be trusted,
-reject it in NOM under <strong>Admin &rarr; Scraping Sources</strong> — rejected domains are
-never re-proposed.</p>
-</body></html>";
-
-                foreach (var admin in admins.Where(a => !string.IsNullOrWhiteSpace(a.Email)))
-                {
-                    await _email.SendAsync(admin.Email!, subject, body);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to notify admins about auto-whitelisted source {Domain}", source.Domain);
-            }
-        }
-
         private async Task<ScrapingSourceModel> MapAsync(ScrapingSourceEntity source)
         {
             await _db.Entry(source).Reference(s => s.RequestedByPerson).LoadAsync();
@@ -315,17 +227,32 @@ never re-proposed.</p>
             return Map(source);
         }
 
-        private static ScrapingSourceModel Map(ScrapingSourceEntity source) => new()
+        internal static ScrapingSourceModel Map(ScrapingSourceEntity source) => new()
         {
             Id = source.Id,
             Domain = source.Domain,
             Status = source.Status.ToString(),
+            Kind = source.Kind,
+            Title = source.Title,
             SampleUrl = source.SampleUrl,
             RequestedByName = source.RequestedByPerson?.Name,
             CreatedDate = source.CreatedDate,
             ReviewedByName = source.ReviewedByPerson?.Name,
             ReviewedDate = source.ReviewedDate,
             Notes = source.Notes,
+            LicenceKind = source.LicenceKind,
+            LicenceStatement = source.LicenceStatement,
+            LicenceFoundAt = source.LicenceFoundAt,
+            CheckVerdict = source.CheckVerdict,
+            CheckedAtUtc = source.CheckedAtUtc,
+            LastDiscoveredUtc = source.LastDiscoveredUtc,
+            ProbationUntilUtc = source.ProbationUntilUtc,
+            ProbationRecipeLimit = source.ProbationRecipeLimit,
+            ProbationResult = source.ProbationResult,
+            HarvestPausedAt = source.HarvestPausedAt,
+            HarvestPausedReason = source.HarvestPausedReason,
+            RecipesWithheldAt = source.RecipesWithheldAt,
+            RecipesWithheldReason = source.RecipesWithheldReason,
         };
     }
 }

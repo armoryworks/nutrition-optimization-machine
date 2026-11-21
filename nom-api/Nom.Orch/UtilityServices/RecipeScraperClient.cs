@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -49,30 +51,60 @@ namespace Nom.Orch.UtilityServices
         public Task<ScraperResult> ParseAsync(string content, string? sourceUrl, CancellationToken cancellationToken = default)
             => PostAsync("api/parse", new { content, sourceUrl }, cancellationToken);
 
-        public async Task<ScraperDiscoveryResult> DiscoverAsync(List<string> seedDomains, int maxCandidates, CancellationToken cancellationToken = default)
+        public Task<ScraperJobAnswer> StartDiscoveryJobAsync(IReadOnlyList<string> seedDomains, int maxCandidates, int budgetSeconds, CancellationToken cancellationToken = default)
+            => JobAsync(HttpMethod.Post, "api/discover/jobs", new { seedDomains, maxCandidates, budgetSeconds }, cancellationToken);
+
+        public Task<ScraperJobAnswer> StartSourceCheckJobAsync(string domain, int sampleSize, int budgetSeconds, CancellationToken cancellationToken = default)
+            => JobAsync(HttpMethod.Post, "api/source-check/jobs", new { domain, sampleSize, budgetSeconds, includeRecipes = true }, cancellationToken);
+
+        public Task<ScraperJobAnswer> GetJobAsync(string kind, string jobId, CancellationToken cancellationToken = default)
+            => JobAsync(HttpMethod.Get, $"api/{(kind == "discovery" ? "discover" : "source-check")}/jobs/{Uri.EscapeDataString(jobId)}", null, cancellationToken);
+
+        /// <summary>
+        /// One call to a job route. Every way it can go wrong is an answer, never an exception and
+        /// never an empty job: the caller counts a lost or failed job as a failed run.
+        /// </summary>
+        private async Task<ScraperJobAnswer> JobAsync(HttpMethod method, string path, object? body, CancellationToken cancellationToken)
         {
             if (!IsConfigured)
             {
-                return new ScraperDiscoveryResult();
+                return ScraperJobAnswer.Fail(ScraperJobOutcome.Failed, "No scraper service is configured.");
             }
 
             try
             {
-                using var response = await _httpClient.PostAsJsonAsync(
-                    "api/discover", new { seedDomains, maxCandidates }, JsonOptions, cancellationToken);
-                if (!response.IsSuccessStatusCode)
+                using var request = new HttpRequestMessage(method, path);
+                if (body != null)
                 {
-                    _logger.LogWarning("Scraper discovery returned {StatusCode}", response.StatusCode);
-                    return new ScraperDiscoveryResult();
+                    request.Content = JsonContent.Create(body, options: JsonOptions);
                 }
 
-                return await response.Content.ReadFromJsonAsync<ScraperDiscoveryResult>(JsonOptions, cancellationToken)
-                    ?? new ScraperDiscoveryResult();
+                using var response = await _httpClient.SendAsync(request, cancellationToken);
+                if (response.StatusCode == HttpStatusCode.TooManyRequests)
+                {
+                    return ScraperJobAnswer.Fail(ScraperJobOutcome.Busy, "The scraper is running as many jobs of this kind as it allows.");
+                }
+
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return ScraperJobAnswer.Fail(ScraperJobOutcome.NotFound, "The scraper has no such job (unknown, expired, or lost in a restart).");
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Scraper job route {Path} returned {StatusCode}", path, response.StatusCode);
+                    return ScraperJobAnswer.Fail(ScraperJobOutcome.Failed, $"The scraper returned {(int)response.StatusCode}.");
+                }
+
+                var job = await response.Content.ReadFromJsonAsync<ScraperJob>(JsonOptions, cancellationToken);
+                return job == null || string.IsNullOrEmpty(job.JobId)
+                    ? ScraperJobAnswer.Fail(ScraperJobOutcome.Failed, "The scraper returned no job.")
+                    : ScraperJobAnswer.Of(job);
             }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException && !cancellationToken.IsCancellationRequested)
             {
-                _logger.LogError(ex, "Scraper discovery failed");
-                return new ScraperDiscoveryResult();
+                _logger.LogWarning(ex, "Scraper job route {Path} failed", path);
+                return ScraperJobAnswer.Fail(ScraperJobOutcome.Failed, $"Could not reach the scraper: {ex.Message}");
             }
         }
 

@@ -19,6 +19,13 @@ namespace Nom.Orch.Models.Recipe
         /// </summary>
         public bool PublicDomain { get; set; }
 
+        /// <summary>
+        /// The approved scraping source the batch comes from. With the staged-import gate on, a
+        /// recipe with no URL is imported only under such a source (a hand source with its licence
+        /// facts recorded), and the licence is taken from that source, not from <see cref="PublicDomain"/>.
+        /// </summary>
+        public long? SourceId { get; set; }
+
         /// <summary>Attribution override, e.g. the source book and year.</summary>
         public string? SourceAttribution { get; set; }
 
@@ -35,6 +42,12 @@ namespace Nom.Orch.Models.Recipe
     {
         public int Imported { get; set; }
         public int SkippedDuplicates { get; set; }
+
+        /// <summary>Recipes the staged-import gate refused (each is also listed in <see cref="Failures"/>).</summary>
+        public int Refused { get; set; }
+
+        /// <summary>True when the caller sent PublicDomain and the gate took the licence from the source record instead.</summary>
+        public bool PublicDomainFlagIgnored { get; set; }
         public List<StagedImportFailureModel> Failures { get; set; } = new();
     }
 }

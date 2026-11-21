@@ -1,3 +1,5 @@
+import { SourceAdmissionStatus } from './scraping-source.model';
+
 export interface PipelineBlockedBy {
   none: number;
   one: number;
@@ -426,6 +428,7 @@ export interface PipelineStatus {
   reprocess?: ReprocessLaneStatus | null;
   linkRecheck?: LinkRecheckStatus | null;
   containerSizes?: ContainerSizeStatus | null;
+  sources?: SourceAdmissionStatus | null;
 }
 
 export interface UnfoldPreview {
