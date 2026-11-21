@@ -25,12 +25,14 @@ namespace Nom.Api.Controllers
         private readonly ICompoundLineService _compound;
         private readonly IScrapedRecipeRepairService _repair;
         private readonly IContainerSizeService? _containerSizes;
+        private readonly IRecipeSourceEraService? _sourceEras;
 
         public FoodCatalogController(IFoodCatalogReviewService review, IFoodCatalogAuditService audit,
             ICatalogCleanupService cleanup, ILineRelinkService relink, ILineUnfoldService unfold,
             IPackageLineService packages, IIngredientLinkService links, ICompoundLineService compound,
-            IScrapedRecipeRepairService repair, IContainerSizeService? containerSizes = null)
+            IScrapedRecipeRepairService repair, IContainerSizeService? containerSizes = null, IRecipeSourceEraService? sourceEras = null)
         {
+            _sourceEras = sourceEras;
             _repair = repair;
             _containerSizes = containerSizes;
             _review = review;
@@ -179,6 +181,31 @@ namespace Nom.Api.Controllers
         {
             if (_containerSizes == null) return NotFound();
             return Ok(await _containerSizes.UndoSinceAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), apply, GetCurrentPersonIdRequired()));
+        }
+
+        /// <summary>Every book source of a live recipe with its publication year and era (historic before 1960, modern from 1960, unknown with no year), which sets the size an unsized can in that book is weighed at.</summary>
+        [HttpGet("container-sizes/source-eras")]
+        public async Task<ActionResult<RecipeSourceEraListModel>> SourceEras()
+        {
+            if (_sourceEras == null) return NotFound();
+            return Ok(await _sourceEras.ListAsync());
+        }
+
+        /// <summary>Store the publication years ops/source-era.py read from the books' title pages; a dry run unless apply=true, and each write is written to the audit log under the returned stamp.</summary>
+        [HttpPost("container-sizes/source-eras")]
+        public async Task<ActionResult<RecipeSourceEraWriteReport>> SourceErasSet([FromBody] List<RecipeSourceEraInput> rows, [FromQuery] bool apply = false)
+        {
+            if (_sourceEras == null) return NotFound();
+            if (rows == null || rows.Count == 0 || rows.Count > 5000) return BadRequest("Send between 1 and 5000 rows.");
+            return Ok(await _sourceEras.SetAsync(rows, apply, GetCurrentPersonIdRequired()));
+        }
+
+        /// <summary>Take back the book years written under the given stamp; a row changed since is skipped. A dry run unless apply=true.</summary>
+        [HttpPost("container-sizes/source-eras/undo")]
+        public async Task<ActionResult<RecipeSourceEraUndoReport>> SourceErasUndo([FromQuery, Required] DateTime stamp, [FromQuery] bool apply = false)
+        {
+            if (_sourceEras == null) return NotFound();
+            return Ok(await _sourceEras.UndoAsync(DateTime.SpecifyKind(stamp.Kind == DateTimeKind.Local ? stamp.ToUniversalTime() : stamp, DateTimeKind.Utc), apply, GetCurrentPersonIdRequired()));
         }
 
         /// <summary>Which scraped recipe lines counted in pieces, cans or packages would take the size or the package their wording states (no writes).</summary>

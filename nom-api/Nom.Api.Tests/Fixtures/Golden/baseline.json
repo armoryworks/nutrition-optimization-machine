@@ -1,6 +1,6 @@
 {
   "compound.tsv:status": 6,
-  "containers.tsv:status": 2,
+  "containers.tsv:status": 1,
   "line-kinds.tsv:status": 2,
   "lines.tsv:name": 5,
   "lines.tsv:parse": 4,

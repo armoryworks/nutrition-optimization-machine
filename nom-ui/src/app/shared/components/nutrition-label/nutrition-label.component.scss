@@ -177,6 +177,15 @@
   border-radius: 4px;
 }
 
+.nom-nutrition-label__assumed {
+  margin: vars.$spacing-2 0;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  border-left: 4px solid var(--mat-sys-tertiary);
+  background: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
+  border-radius: 4px;
+}
+
 .nom-nutrition-label__gap-title {
   margin: 0 0 vars.$spacing-1;
   font-weight: 600;

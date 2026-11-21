@@ -99,6 +99,16 @@ namespace Nom.Orch.Services.Support
         public const int ModernFrom = 1960;
 
         public static string FromYear(int? year) => year is null ? Unknown : year < ModernFrom ? Historic : Modern;
+
+        /// <summary>
+        /// The era of a recipe: modern for a web recipe and for one with no source at all (written in
+        /// the app); for a book, the era of its row in recipe.RecipeSourceEra, else unknown.
+        /// </summary>
+        public static string ForRecipe(string? sourceSite, string? sourceAttribution, IReadOnlyDictionary<string, string> eras)
+        {
+            if (!string.IsNullOrWhiteSpace(sourceSite) || string.IsNullOrWhiteSpace(sourceAttribution)) return Modern;
+            return eras.TryGetValue(sourceAttribution, out var era) && era is Modern or Historic ? era : Unknown;
+        }
     }
 
     /// <summary>The states of a container size row.</summary>

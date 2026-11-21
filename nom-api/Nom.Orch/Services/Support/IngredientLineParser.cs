@@ -14,7 +14,7 @@ namespace Nom.Orch.Services.Support
     /// "2 large eggs"), mapped onto NOM's measurement vocabulary. Units NOM has no row for are
     /// converted (quart → 4 Cup, fl oz → Milliliter) or counted as Piece; a line without a unit
     /// counts pieces. A can, jar or package is read by the size it states ("2 (15 oz) cans" →
-    /// 30 Ounce) and as Can or Package when it states none. Two amounts of one food joined by
+    /// 30 Ounce) and as Can, Jar, Bottle or Package when it states none. Two amounts of one food joined by
     /// " + " are added up in the first one's unit ("1/4 cup + 1 tablespoon sugar" → 0.313 Cup), or
     /// not read when their units do not add. Old and abbreviated measures ("one jill", "1 pony",
     /// "2 tablespns."), "a couple of", a pinch with no "of", a leading "optional" or "~", a measure
@@ -28,6 +28,8 @@ namespace Nom.Orch.Services.Support
         public const string Piece = "Piece";
         public const string Can = "Can";
         public const string Package = "Package";
+        public const string Jar = "Jar";
+        public const string Bottle = "Bottle";
 
         private static readonly Dictionary<char, decimal> UnicodeFractions = new()
         {
@@ -66,7 +68,9 @@ namespace Nom.Orch.Services.Support
             (new[] { "cupfuls", "cupful", "cups", "cup", "c" }, "Cup", 1m),
             (new[] { "cloves", "clove" }, "Clove", 1m),
             (new[] { "cans", "can", "tins", "tin" }, Can, 1m),
-            (new[] { "packages", "package", "pkgs", "pkg", "packets", "packet", "packs", "pack", "jars", "jar", "bottles", "bottle", "boxes", "box", "bags", "bag",
+            (new[] { "jars", "jar" }, Jar, 1m),
+            (new[] { "bottles", "bottle" }, Bottle, 1m),
+            (new[] { "packages", "package", "pkgs", "pkg", "packets", "packet", "packs", "pack", "boxes", "box", "bags", "bag",
                      "cartons", "carton", "containers", "container", "tubs", "tub", "envelopes", "envelope", "pouches", "pouch", "tubes", "tube", "sachets", "sachet" }, Package, 1m),
             (new[] { "slices", "slice" }, "Slice", 1m),
             (new[] { "stalks", "stalk", "ribs", "rib" }, "Stalk", 1m),
@@ -168,17 +172,20 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// The number of cans or packages a line states a size for ("1 (15 oz) can chickpeas" →
-        /// 1 Can, "2 jars (24 oz each) sauce" → 2 Package), or null when the line states no size or
+        /// 1 Can, "2 jars (24 oz each) sauce" → 2 Jar), or null when the line states no size or
         /// the size it states is not a can's or a package's ("1 (3-pound) chicken").
         /// </summary>
         public static ParsedQuantity? SizedContainers(string? rawLine) => Read(rawLine, out var sized, out var containers) != null && sized ? containers : null;
 
         /// <summary>
         /// Whether a line is read as a can or package: it states a size (<see cref="StatedSize"/>)
-        /// or its unit is Can or Package ("1 jar marinara").
+        /// or its unit is a container (<see cref="IsContainer"/>: "1 jar marinara").
         /// </summary>
         public static bool ReadsPackage(string? rawLine) =>
-            Read(rawLine, out var sized, out _) is { } parsed && (sized || parsed.MeasurementName is Can or Package);
+            Read(rawLine, out var sized, out _) is { } parsed && (sized || IsContainer(parsed.MeasurementName));
+
+        /// <summary>Whether a measurement the parser gives is a container unit: Can, Jar, Bottle or Package (a box, bag, packet, carton and the rest).</summary>
+        public static bool IsContainer(string? measurementName) => measurementName is Can or Jar or Bottle or Package;
 
         private static ParsedQuantity? Read(string? rawLine, out bool sized, out ParsedQuantity? containers)
         {
@@ -351,7 +358,7 @@ namespace Nom.Orch.Services.Support
 
         private const string Utensil = @"(?:moulds?|molds?|pans?|saucepans?|stewpans?|skillets?|dish(?:es)?|basins?|bowls?|kettles?|casseroles?|ramekins?)\b";
 
-        private static readonly string Container = @"(?:" + Alternation(Units.Where(u => u.Measurement is Can or Package).SelectMany(u => u.Forms)) + @")(?![a-z])\.?(?!\s*" + Utensil + ")";
+        private static readonly string Container = @"(?:" + Alternation(Units.Where(u => IsContainer(u.Measurement)).SelectMany(u => u.Forms)) + @")(?![a-z])\.?(?!\s*" + Utensil + ")";
 
         private static readonly Regex SizedUtensil = new(
             @"^[^,(]*?\b(?:quarts?|pints?|gallons?|inch(?:es)?|cups?)\b[\s-]*(?:[\p{L}-]+\s+){0,2}?" + Utensil,
@@ -541,7 +548,7 @@ namespace Nom.Orch.Services.Support
             if (quantity is not > 0) return drained && SizedContainers(rawLine) is { } counted ? counted : Parse(rawLine);
 
             var mapped = FromUnit(quantity.Value, string.IsNullOrWhiteSpace(unit) ? null : unit.Trim().TrimEnd('.'));
-            if (mapped.MeasurementName is not (Piece or Can or Package) || StatedSize(rawLine) is not { } stated) return mapped;
+            if ((mapped.MeasurementName != Piece && !IsContainer(mapped.MeasurementName)) || StatedSize(rawLine) is not { } stated) return mapped;
             return drained ? SizedContainers(rawLine) ?? mapped : stated;
         }
 

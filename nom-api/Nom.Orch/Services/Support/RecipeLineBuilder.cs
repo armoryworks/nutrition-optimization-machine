@@ -28,7 +28,7 @@ namespace Nom.Orch.Services.Support
     public sealed class RecipeLineBuilder
     {
         /// <summary>Raised whenever a rule this builder applies changes, so a rebuild can tell which recipes an older version built.</summary>
-        public const string Version = "line-builder/3";
+        public const string Version = "line-builder/4";
 
         /// <summary>Fallback unit for unparseable ingredient lines. Seeded "each"-style measurement.</summary>
         public const long DefaultMeasurementId = 1L;

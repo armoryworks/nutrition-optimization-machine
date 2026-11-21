@@ -198,9 +198,9 @@ namespace Nom.Api.Tests.Services
         }
 
         [Theory]
-        [InlineData("1 jar marinara", 1, "Package")]
+        [InlineData("1 jar marinara", 1, "Jar")]
         [InlineData("2 packages cream cheese", 2, "Package")]
-        [InlineData("1 bottle ketchup", 1, "Package")]
+        [InlineData("1 bottle ketchup", 1, "Bottle")]
         [InlineData("1 box gelatine", 1, "Package")]
         [InlineData("1 envelope onion soup mix", 1, "Package")]
         [InlineData("1 pkg. yeast", 1, "Package")]
@@ -255,7 +255,7 @@ namespace Nom.Api.Tests.Services
         [InlineData(1, null, "1 (15 oz) can black beans", 15, "Ounce")]
         [InlineData(2, "package", "2 (8 ounce) packages cream cheese", 16, "Ounce")]
         [InlineData(1, "can", "1 can tomatoes", 1, "Can")]
-        [InlineData(1, "jar", "1 jar marinara", 1, "Package")]
+        [InlineData(1, "jar", "1 jar marinara", 1, "Jar")]
         [InlineData(2, "cups", "2 cups (16 oz) sour cream", 2, "Cup")]
         [InlineData(4, null, "4 (6-ounce) salmon filets", 4, "Piece")]
         public void A_scraped_count_of_cans_or_packages_takes_the_size_its_line_states(int quantity, string? unit, string raw, double expected, string measurement)
@@ -267,7 +267,7 @@ namespace Nom.Api.Tests.Services
         [InlineData(1.0, "can", "1 (15-ounce) can chickpeas, drained and rinsed", 1, "Can")]
         [InlineData(null, null, "1 (15-ounce) can chickpeas, drained and rinsed", 1, "Can")]
         [InlineData(2.0, null, "2 cans (15 oz each) pinto beans, drained", 2, "Can")]
-        [InlineData(1.0, null, "1 jar (12 oz) roasted red peppers, drained", 1, "Package")]
+        [InlineData(1.0, null, "1 jar (12 oz) roasted red peppers, drained", 1, "Jar")]
         [InlineData(1.0, "cup", "1 cup chickpeas, drained", 1, "Cup")]
         public void A_food_weighed_drained_keeps_its_count_of_cans_instead_of_the_net_weight(double? quantity, string? unit, string raw, double expected, string measurement)
         {

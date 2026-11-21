@@ -195,14 +195,81 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public void A_size_counts_only_when_active_and_an_unknown_era_needs_the_modern_and_historic_sizes_to_agree()
+        public void A_size_counts_only_when_active_and_an_old_or_undated_book_takes_the_period_size_else_the_modern_one()
         {
             ContainerSizeResolver.Resolve("1 can beans", ContainerEras.Modern, new[] { Can(425m, status: ContainerSizeStatus.Shadow) }).Counted.Should().BeFalse();
-            ContainerSizeResolver.Resolve("1 can beans", ContainerEras.Unknown, new[] { Can(425m) }).Counted.Should().BeFalse();
-            ContainerSizeResolver.Resolve("1 can milk", ContainerEras.Unknown, new[] { Can(340m), Can(411m, era: ContainerEras.Historic) }).Reason.Should().Be(ContainerSizeResolver.EraDisagrees);
-            ContainerSizeResolver.Resolve("1 can soup", ContainerEras.Unknown, new[] { Can(298m), Can(298m, era: ContainerEras.Historic) }).Grams.Should().Be(298m);
-            ContainerSizeResolver.Resolve("1 can soup", ContainerEras.Historic, new[] { Can(298m) }).Counted.Should().BeFalse();
+            var undated = ContainerSizeResolver.Resolve("1 can beans", ContainerEras.Unknown, new[] { Can(425m) });
+            (undated.Grams, undated.Basis).Should().Be((425m, ContainerBasis.ModernFallback));
+            var old = ContainerSizeResolver.Resolve("1 can milk", ContainerEras.Unknown, new[] { Can(340m), Can(411m, era: ContainerEras.Historic) });
+            (old.Grams, old.Basis).Should().Be((411m, ContainerBasis.PeriodSize));
+            ContainerSizeResolver.Resolve("1 can soup", ContainerEras.Historic, new[] { Can(298m) }).Grams.Should().Be(298m);
+            ContainerSizeResolver.Resolve("1 can soup", ContainerEras.Modern, new[] { Can(298m, era: ContainerEras.Historic) }).Counted.Should().BeFalse("a modern recipe never takes an old size");
             ContainerSizeResolver.Resolve("1 large can tomatoes", ContainerEras.Modern, new[] { Can(190m), Can(794m, word: ContainerKinds.Large) }).Grams.Should().Be(794m);
+        }
+
+        [Fact]
+        public void An_unsized_vegetable_can_in_an_old_book_takes_the_period_can_nearer_the_modern_size()
+        {
+            const int Vegetables = 11;
+            var corn = ContainerSizeResolver.Resolve("1 can corn", ContainerEras.Historic, new[] { Can(432m) }, usdaCategoryId: Vegetables);
+            (corn.Grams, corn.Basis).Should().Be((453.6m, ContainerBasis.PeriodNearer), "No. 303 (16 oz) is nearer 432 g than No. 2 (20 oz)");
+            corn.SourceRef.Should().StartWith("deterministic:can-table:h33-veg-medium+deterministic:can-table:h33-303");
+            ContainerSizeResolver.Resolve("1 can tomatoes", ContainerEras.Unknown, new[] { Can(560m) }, usdaCategoryId: Vegetables).Grams.Should().Be(567m, "No. 2 (20 oz) is nearer 560 g");
+            ContainerSizeResolver.Resolve("1 can tomatoes", ContainerEras.Unknown, new[] { Can(794m) }, usdaCategoryId: Vegetables).Basis.Should().Be(ContainerBasis.ModernFallback, "a 28 oz can is not a medium can");
+            ContainerSizeResolver.Resolve("1 can tomato paste", ContainerEras.Historic, new[] { Can(170m) }, usdaCategoryId: Vegetables).Grams.Should().Be(170m, "a 6 oz can is not a medium can");
+            ContainerSizeResolver.Resolve("1 can corn, drained", ContainerEras.Historic, new[] { Can(432m, 298m) }, "Corn, sweet, yellow, canned, drained solids", usdaCategoryId: Vegetables)
+                .Grams.Should().Be(312.9m, "the period net scaled by the modern can's drained share");
+            ContainerSizeResolver.Resolve("1 can mushrooms", ContainerEras.Historic, Array.Empty<ContainerSizeCandidate>(), usdaCategoryId: Vegetables)
+                .Reason.Should().Be(ContainerSizeResolver.PeriodWithoutModern);
+            ContainerSizeResolver.Resolve("1 can corn", ContainerEras.Modern, new[] { Can(432m) }, usdaCategoryId: Vegetables).Grams.Should().Be(432m, "a modern recipe takes the modern size");
+            ContainerSizeResolver.Resolve("1 large can corn", ContainerEras.Historic, new[] { Can(432m), Can(822m, word: ContainerKinds.Large) }, usdaCategoryId: Vegetables)
+                .Basis.Should().Be(ContainerBasis.ModernFallback, "the period source names medium cans only");
+            ContainerSizeResolver.Resolve("1 can beans", ContainerEras.Historic, new[] { Can(425m) }, usdaCategoryId: 16).Basis.Should().Be(ContainerBasis.ModernFallback, "no period row names legumes");
+        }
+
+        [Fact]
+        public void Only_a_can_or_a_jar_in_an_old_or_undated_book_falls_back_to_the_modern_size()
+        {
+            ContainerSizeCandidate Of(string kind, decimal net, string era = ContainerEras.Modern) => new(kind, era, string.Empty, net, null, "test");
+
+            ContainerSizeResolver.Resolve("1 jar pasta sauce", ContainerEras.Historic, new[] { Of(ContainerKinds.Jar, 680m) }).Basis.Should().Be(ContainerBasis.ModernFallback);
+            var cheese = ContainerSizeResolver.Resolve("1 package cream cheese", ContainerEras.Historic, new[] { Of(ContainerKinds.Package, 227m) });
+            (cheese.Counted, cheese.Reason).Should().Be((false, ContainerSizeResolver.NoSize), "the owner's answer names cans and jars; a package of the time may have been 3 oz");
+            ContainerSizeResolver.Resolve("1 package gelatin", ContainerEras.Unknown, new[] { Of(ContainerKinds.Package, 85m) }).Counted.Should().BeFalse();
+            ContainerSizeResolver.Resolve("1 box crackers", ContainerEras.Unknown, new[] { Of(ContainerKinds.Box, 283m) }).Counted.Should().BeFalse();
+            ContainerSizeResolver.Resolve("1 package cream cheese", ContainerEras.Modern, new[] { Of(ContainerKinds.Package, 227m) }).Grams.Should().Be(227m);
+            ContainerSizeResolver.Resolve("1 package gelatin", ContainerEras.Historic, new[] { Of(ContainerKinds.Package, 85m, ContainerEras.Historic) }).Grams.Should().Be(85m, "a size of the book's time still counts");
+            ContainerSizeResolver.Resolve("1 bottle wine", ContainerEras.Historic, new[] { Of(ContainerKinds.Bottle, 746m, ContainerEras.Any) }).Grams.Should().Be(746m, "a size that holds in any era still counts");
+        }
+
+        [Fact]
+        public void A_historic_size_is_a_key_s_own_answer_only_for_a_dated_old_book()
+        {
+            ContainerBasis.OwnEra(ContainerBasis.PeriodSize, ContainerEras.Historic).Should().BeTrue();
+            ContainerBasis.OwnEra(ContainerBasis.PeriodSize, ContainerEras.Unknown).Should().BeFalse("an undated book takes the historic size by fallback");
+            ContainerBasis.OtherEra(ContainerBasis.PeriodSize, ContainerEras.Unknown).Should().BeTrue();
+            ContainerBasis.OwnEra(ContainerBasis.AnyEra, ContainerEras.Unknown).Should().BeTrue();
+            ContainerBasis.OwnEra(ContainerBasis.FoodSize, ContainerEras.Modern).Should().BeTrue();
+            ContainerBasis.OtherEra(ContainerBasis.ModernFallback, ContainerEras.Historic).Should().BeTrue();
+            ContainerBasis.OtherEra(ContainerBasis.PeriodNearer, ContainerEras.Unknown).Should().BeTrue();
+            ContainerBasis.OtherEra(ContainerBasis.Stated, ContainerEras.Unknown).Should().BeFalse();
+            ContainerBasis.OtherEra(ContainerBasis.Numbered, ContainerEras.Historic).Should().BeFalse();
+        }
+
+        [Fact]
+        public void A_period_row_must_name_its_products_and_candidate_cans_the_table_sizes()
+        {
+            CanSizeTable.Period(ContainerKinds.Can, string.Empty, 11).Select(c => (c.CanNumber, c.Grams)).Should().Equal(("303", 453.6m), ("2", 567.0m));
+            CanSizeTable.Period(ContainerKinds.Jar, string.Empty, 11).Should().BeEmpty();
+            CanSizeTable.Period(ContainerKinds.Can, string.Empty, 16).Should().BeEmpty();
+            var header = "id\tname\tcanNumber\tkind\tera\tnetOz\tnetOzMax\tfluidOz\tcups\ttitle\tpublisher\tyear\tpage\tlocator\tnote\tproducts\tcandidates\n";
+            var two = "two\tNo. 2\t2\tcan\thistoric\t20\t-\t-\t-\tT\tP\t1933\t1\tL\tq\t-\t-\n";
+            CanSizeTable.Problems(CanSizeTable.Parse(header + two + "m\tMedium\t-\tcan\thistoric\t16\t20\t-\t-\tT\tP\t1933\t1\tL\tq\tcategory:11\t303|2\n"))
+                .Should().ContainSingle().Which.Should().Contain("candidate No. 303 has no size");
+            CanSizeTable.Problems(CanSizeTable.Parse(header + two + "m\tMedium\t-\tcan\thistoric\t20\t-\t-\t-\tT\tP\t1933\t1\tL\tq\tvegetables\t2|2\n"))
+                .Should().Contain(p => p.Contains("category:")).And.NotContain(p => p.Contains("no size of era"));
+            CanSizeTable.Problems(CanSizeTable.Parse(header + two + "m\tMedium\t-\tcan\thistoric\t20\t-\t-\t-\tT\tP\t1933\t1\tL\tq\t-\t2|2\n"))
+                .Should().Contain(p => p.Contains("names both its products"));
         }
 
         private static List<ContainerHoldoutLine> Lines(int hits, int misses, DateTime? start = null)

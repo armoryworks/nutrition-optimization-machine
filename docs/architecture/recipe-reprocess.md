@@ -39,7 +39,8 @@ fix reaches both:
 `cleanup2/parser-rules`; `line-builder/3` since the checkpoint-1 fixes of `cleanup2/ck1-parser-catalog`:
 hyphenated mixed numbers after the name, a measure "and a half", trailing size words in the name,
 and the method fill's own-word, teacupful, per-item ratio, temperature, measure-as-pieces,
-alternative and fold rules) is stamped on every journal row. Raise it with any
+alternative and fold rules; `line-builder/4` since `cleanup2/container-weighing` reads a jar as Jar and
+a bottle as Bottle instead of Package) is stamped on every journal row. Raise it with any
 change to a rule the builder applies: the detector reads again every recipe an older version read,
 and the lane's signature changes, so its tiers go back to shadow until they qualify under the new
 rules.

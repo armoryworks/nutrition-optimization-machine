@@ -331,6 +331,12 @@
   font-style: italic;
 }
 
+.nom-recipe__ingredient-assumed {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-xs;
+  margin: 0 0.25em;
+}
+
 .nom-recipe__ingredient-mass {
   color: var(--mat-sys-on-surface-variant);
   font-variant-numeric: tabular-nums;

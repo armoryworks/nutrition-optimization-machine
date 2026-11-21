@@ -6189,5 +6189,204 @@
     "status": "ok",
     "source": "staging:derived label",
     "note": ""
+  },
+  {
+    "id": 990001,
+    "origin": "constructed",
+    "licence": "Constructed",
+    "name": null,
+    "servings": 2,
+    "recipeServings": null,
+    "sourceSite": "example.com",
+    "containerLane": "live",
+    "lines": [
+      {
+        "qty": 2.0,
+        "unit": "Can",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 990101,
+          "name": "Black Beans, canned",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 91.0,
+            "protein": 6.03,
+            "fat": 0.29
+          },
+          "description": "Beans, black, mature seeds, canned, low sodium",
+          "categoryId": 16,
+          "containerSizes": [
+            {
+              "kind": "can",
+              "era": "modern",
+              "netGrams": 425.0,
+              "drainedGrams": null,
+              "sourceRef": "deterministic:fdc-branded-mode:2025-12-18:canned-black-beans:223/304"
+            }
+          ]
+        }
+      },
+      {
+        "qty": 100.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 990102,
+          "name": "Onions",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 40.0,
+            "protein": 1.1,
+            "fat": 0.1
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": 2,
+      "assumedLines": 1,
+      "calories": 406.75,
+      "protein": 26.1775,
+      "fat": 1.2825,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "rule:containers-weighing, deterministic:fdc-branded-mode:2025-12-18:canned-black-beans",
+    "note": "two unsized cans at the active modern mode 425 g: (850 x 91 + 100 x 40) / 100 / 2"
+  },
+  {
+    "id": 990002,
+    "origin": "constructed",
+    "licence": "Constructed",
+    "name": null,
+    "servings": 2,
+    "recipeServings": null,
+    "sourceSite": "example.com",
+    "containerLane": "shadow",
+    "lines": [
+      {
+        "qty": 2.0,
+        "unit": "Can",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 990101,
+          "name": "Black Beans, canned",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 91.0,
+            "protein": 6.03,
+            "fat": 0.29
+          },
+          "description": "Beans, black, mature seeds, canned, low sodium",
+          "categoryId": 16,
+          "containerSizes": [
+            {
+              "kind": "can",
+              "era": "modern",
+              "netGrams": 425.0,
+              "drainedGrams": null,
+              "sourceRef": "deterministic:fdc-branded-mode:2025-12-18:canned-black-beans:223/304"
+            }
+          ]
+        }
+      },
+      {
+        "qty": 100.0,
+        "unit": "Gram",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 990102,
+          "name": "Onions",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 40.0,
+            "protein": 1.1,
+            "fat": 0.1
+          }
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": 1,
+      "assumedLines": 0,
+      "calories": 20.0,
+      "protein": 0.55,
+      "fat": 0.05,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "rule:containers-weighing",
+    "note": "the same recipe with the lane in shadow: the cans stay uncounted"
+  },
+  {
+    "id": 990003,
+    "origin": "constructed",
+    "licence": "Constructed",
+    "name": null,
+    "servings": 1,
+    "recipeServings": null,
+    "sourceAttribution": "Golden Old Cook Book",
+    "publishedYear": 1931,
+    "containerLane": "live",
+    "containerOldBookLane": "live",
+    "lines": [
+      {
+        "qty": 1.0,
+        "unit": "Can",
+        "kind": null,
+        "raw": null,
+        "food": {
+          "id": 990103,
+          "name": "Corn, canned",
+          "hasNutrition": true,
+          "gramsPerItem": null,
+          "gramsPerMl": null,
+          "referenceServingGrams": null,
+          "per100": {
+            "calories": 67.0,
+            "protein": 2.29,
+            "fat": 1.22
+          },
+          "description": "Corn, sweet, yellow, canned, whole kernel, drained solids",
+          "categoryId": 11,
+          "containerSizes": [
+            {
+              "kind": "can",
+              "era": "modern",
+              "netGrams": 432.0,
+              "drainedGrams": 298.0,
+              "sourceRef": "fdc:169214:portion:3"
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "countedLines": 1,
+      "assumedLines": 1,
+      "calories": 209.643,
+      "protein": 7.1654,
+      "fat": 3.8174,
+      "handLabel": false
+    },
+    "status": "ok",
+    "source": "deterministic:can-table:h33-veg-medium",
+    "note": "a 1931 book: of the 1933 medium vegetable cans No. 303 (453.6 g) is nearer the modern 432 g; drained solids, so 453.6 x 298/432 = 312.9 g"
   }
 ]

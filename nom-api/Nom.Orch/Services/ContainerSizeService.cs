@@ -31,6 +31,9 @@ namespace Nom.Orch.Services
     public class ContainerSizeService : IContainerSizeService
     {
         public const string Lane = AiLanes.ContainerSizes;
+
+        /// <summary>The tier of the lines an old or undated book weighs at another era's size (<see cref="ContainerBasis.OtherEra"/>), qualified and paused on their own hold-out.</summary>
+        public const string OtherEraTier = "other-era";
         public const string RuleVersion = "container-sizes/1";
         public const string EntityType = "IngredientContainerSize";
         public const string SetChange = "ContainerSizeSet";
@@ -195,20 +198,25 @@ namespace Nom.Orch.Services
 
             var lines = await HoldoutLinesAsync(foodIds, cancellationToken);
             var judged = new List<HoldoutSignals>();
+            var otherEra = new List<HoldoutSignals>();
             foreach (var line in lines)
             {
                 if (ContainerSizeResolver.StatedPerContainer(line.RawLine, line.GramsPerMilliliter) is not { Reason: null } stated) continue;
                 var candidates = byFood[line.IngredientId].Select(r => new ContainerSizeCandidate(r.ContainerKind, r.Era, r.SizeWord, r.NetGrams, r.DrainedGrams, r.SourceRef, r.Status, r.Id));
-                var assumed = ContainerSizeResolver.Resolve(line.RawLine, line.Era, candidates, null, line.GramsPerMilliliter, hideStatedSize: true, activeOnly: false, netOnly: true);
+                var assumed = ContainerSizeResolver.Resolve(line.RawLine, line.Era, candidates, null, line.GramsPerMilliliter, hideStatedSize: true, activeOnly: false, netOnly: true, usdaCategoryId: line.UsdaCategoryId);
                 if (assumed.GramsPerContainer is not { } grams || assumed.RowId == 0)
                 {
                     report.LinesWithoutKey++;
                     continue;
                 }
                 var row = byId[assumed.RowId];
-                judged.Add(new HoldoutSignals(line.RecipeId, line.IngredientId, line.SortOrder, line.RawLine, line.Era, stated.Grams, grams, row.Id, row.Class,
-                    ContainerSizeAgreement.Hit(grams, stated.Grams)));
+                var signals = new HoldoutSignals(line.RecipeId, line.IngredientId, line.SortOrder, line.RawLine, line.Era, stated.Grams, grams, row.Id, row.Class,
+                    ContainerSizeAgreement.Hit(grams, stated.Grams));
+                if (ContainerBasis.OwnEra(assumed.Basis, line.Era)) judged.Add(signals);
+                else otherEra.Add(signals);
             }
+            report.OtherEraLines = otherEra.Count;
+            report.OtherEraAgree = otherEra.Count(j => j.Hit);
             report.HoldoutLines = judged.Count;
             report.HoldoutAgree = judged.Count(j => j.Hit);
 
@@ -263,36 +271,47 @@ namespace Nom.Orch.Services
             var mode = await _frame.ModeAsync(Lane, LaneTiers.Whole, cancellationToken);
             var seen = (await _db.LaneDecisions.AsNoTracking()
                     .Where(d => d.Lane == Lane && d.SignatureHash == report.Signature)
-                    .Select(d => d.Subject)
+                    .Select(d => d.Tier + "|" + d.Subject)
                     .ToListAsync(cancellationToken))
                 .ToHashSet(StringComparer.Ordinal);
-            foreach (var j in judged.OrderBy(j => at[(j.RecipeId, j.IngredientId, j.SortOrder)]))
-            {
-                var subject = string.Create(CultureInfo.InvariantCulture, $"line:{j.RecipeId}:{j.IngredientId}:{j.SortOrder}");
-                if (!seen.Add(subject)) continue;
-                await _frame.RecordAsync(new LaneDecisionInput(Lane, LaneTiers.Whole, subject,
-                    string.Create(CultureInfo.InvariantCulture, $"assume {j.Assumed} g, states {j.Stated} g"),
-                    mode, true, report.Signature, j.Class, j), cancellationToken);
-                report.DecisionsRecorded++;
-            }
+            await RecordAsync(LaneTiers.Whole, judged, mode, seen);
+            var otherMode = await _frame.ModeAsync(Lane, OtherEraTier, cancellationToken);
+            await RecordAsync(OtherEraTier, otherEra, otherMode, seen);
             await _frame.AuditAsync(Lane, LaneTiers.Whole, DateTime.UtcNow.AddDays(-400), AuditEverything, new HoldoutRule(), new HoldoutRule(), null, cancellationToken);
             var lane = await _frame.EvaluateAsync(new LaneEvaluateRequest(Lane, LaneTiers.Whole, report.Signature, Policy, AuditorScore.ExactRule), cancellationToken);
             report.LaneMode = lane.Mode;
             report.LaneReason = lane.Reason;
-            _logger.LogInformation("Container sizes scored: {Agree}/{Lines} hold-out lines agree; {Changes} status changes; lane {Mode} ({Reason})",
-                report.HoldoutAgree, report.HoldoutLines, changes.Count, lane.Mode, lane.Reason);
+            await _frame.AuditAsync(Lane, OtherEraTier, DateTime.UtcNow.AddDays(-400), AuditEverything, new HoldoutRule(), new HoldoutRule(), null, cancellationToken);
+            var other = await _frame.EvaluateAsync(new LaneEvaluateRequest(Lane, OtherEraTier, report.Signature, Policy, AuditorScore.ExactRule), cancellationToken);
+            report.OtherEraMode = other.Mode;
+            report.OtherEraReason = other.Reason;
+            _logger.LogInformation("Container sizes scored: {Agree}/{Lines} hold-out lines agree; {Changes} status changes; lane {Mode} ({Reason}); old-book tier {OtherAgree}/{OtherLines}, {OtherMode} ({OtherReason})",
+                report.HoldoutAgree, report.HoldoutLines, changes.Count, lane.Mode, lane.Reason, report.OtherEraAgree, report.OtherEraLines, other.Mode, other.Reason);
             return report;
+
+            async Task RecordAsync(string tier, IEnumerable<HoldoutSignals> decisions, string tierMode, HashSet<string> recorded)
+            {
+                foreach (var j in decisions.OrderBy(j => at[(j.RecipeId, j.IngredientId, j.SortOrder)]))
+                {
+                    var subject = string.Create(CultureInfo.InvariantCulture, $"line:{j.RecipeId}:{j.IngredientId}:{j.SortOrder}");
+                    if (!recorded.Add(tier + "|" + subject)) continue;
+                    await _frame.RecordAsync(new LaneDecisionInput(Lane, tier, subject,
+                        string.Create(CultureInfo.InvariantCulture, $"assume {j.Assumed} g, states {j.Stated} g"),
+                        tierMode, true, report.Signature, j.Class, j), cancellationToken);
+                    report.DecisionsRecorded++;
+                }
+            }
         }
 
         /// <summary>A line in a weight or volume unit on one of the foods, with what the hold-out reads of it and of its recipe.</summary>
-        public sealed record HoldoutRow(long RecipeId, long IngredientId, int SortOrder, string RawLine, DateTime CreatedDate, decimal? GramsPerMilliliter, string? SourceSite, string? SourceAttribution);
+        public sealed record HoldoutRow(long RecipeId, long IngredientId, int SortOrder, string RawLine, DateTime CreatedDate, decimal? GramsPerMilliliter, string? SourceSite, string? SourceAttribution, int? UsdaCategoryId = null);
 
         /// <summary>The lines stated in a weight or volume unit on the given foods, in live recipes; the container word is read after.</summary>
         public static IQueryable<HoldoutRow> HoldoutQuery(ApplicationDbContext db, IReadOnlyCollection<long> foodIds) =>
             db.RecipeIngredients.AsNoTracking()
                 .Where(ri => foodIds.Contains(ri.IngredientId) && !ri.Recipe.IsDeleted && ri.Measurement != null
                     && (ri.Measurement.MeasurementCategoryId == RecipeNutritionService.CategoryMass || ri.Measurement.MeasurementCategoryId == RecipeNutritionService.CategoryVolume))
-                .Select(ri => new HoldoutRow(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine, ri.CreatedDate, ri.Ingredient.GramsPerMilliliter, ri.Recipe.SourceSite, ri.Recipe.SourceAttribution));
+                .Select(ri => new HoldoutRow(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine, ri.CreatedDate, ri.Ingredient.GramsPerMilliliter, ri.Recipe.SourceSite, ri.Recipe.SourceAttribution, ri.Ingredient.FdcCategoryId));
 
         /// <summary>The standing container sizes with their food's name, for the Pipeline block.</summary>
         public static IQueryable<StatusRow> StatusQuery(ApplicationDbContext db) =>
@@ -304,7 +323,7 @@ namespace Nom.Orch.Services
         public sealed record StatusRow(IngredientContainerSizeEntity Row, string? Name);
 
         /// <summary>A sized container line on a food that has a size, with the era of its recipe.</summary>
-        public sealed record HoldoutLine(long RecipeId, long IngredientId, int SortOrder, string RawLine, DateTime CreatedDate, decimal? GramsPerMilliliter, string Era);
+        public sealed record HoldoutLine(long RecipeId, long IngredientId, int SortOrder, string RawLine, DateTime CreatedDate, decimal? GramsPerMilliliter, string Era, int? UsdaCategoryId = null);
 
         private async Task<List<HoldoutLine>> HoldoutLinesAsync(IReadOnlyList<long> foodIds, CancellationToken cancellationToken)
         {
@@ -317,10 +336,8 @@ namespace Nom.Orch.Services
                 foreach (var r in rows)
                 {
                     if (ContainerKinds.FromText(r.RawLine) == null) continue;
-                    var era = !string.IsNullOrWhiteSpace(r.SourceSite) ? ContainerEras.Modern
-                        : r.SourceAttribution != null && eras.TryGetValue(r.SourceAttribution, out var e) ? e
-                        : ContainerEras.Unknown;
-                    result.Add(new HoldoutLine(r.RecipeId, r.IngredientId, r.SortOrder, r.RawLine, r.CreatedDate, r.GramsPerMilliliter, era));
+                    var era = ContainerEras.ForRecipe(r.SourceSite, r.SourceAttribution, eras);
+                    result.Add(new HoldoutLine(r.RecipeId, r.IngredientId, r.SortOrder, r.RawLine, r.CreatedDate, r.GramsPerMilliliter, era, r.UsdaCategoryId));
                 }
             }
             return result;
@@ -475,6 +492,8 @@ namespace Nom.Orch.Services
 
         public async Task<LaneUndoResult> UndoSinceAsync(string tier, DateTime sinceUtc, bool apply, CancellationToken cancellationToken)
         {
+            if (tier == ContainerSizeService.OtherEraTier)
+                return new LaneUndoResult(0, 0, 0, "container sizes, old-book tier: it writes no key; its lines stop being weighed while it is not live");
             var report = await _sizes.UndoSinceAsync(sinceUtc, apply, SystemConstants.SystemPersonId, statusOnly: true, cancellationToken);
             return new LaneUndoResult(report.Undone, report.Skipped, 0, $"container sizes: keys made active since {sinceUtc:u}");
         }

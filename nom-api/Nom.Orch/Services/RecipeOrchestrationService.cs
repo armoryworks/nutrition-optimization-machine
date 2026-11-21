@@ -432,7 +432,8 @@ namespace Nom.Orch.Services
                 .ToListAsync())
                 .GroupBy(n => n.IngredientId)
                 .ToDictionary(g => g.Key, g => g.Select(n => n.NutrientId).ToHashSet());
-            var (label, labelSource) = RecipeNutritionService.BuildLabel(recipe, nutrientsByIngredient);
+            var weighing = await ContainerWeighing.ForRecipeAsync(_context, recipe);
+            var (label, labelSource) = RecipeNutritionService.BuildLabel(recipe, nutrientsByIngredient, weighing);
 
             List<RecipeVariationItemModel>? variation = null;
             if (personId.HasValue)
@@ -510,8 +511,9 @@ namespace Nom.Orch.Services
                     FoodGroupName = ri.Ingredient?.FoodGroup?.Name,
                     Measurement = ri.Measurement?.Name ?? string.Empty,
                     Notes = ri.RawLine,
-                    Grams = RoundGrams(RecipeNutritionService.GramsFor(ri)),
-                    NutritionStatus = RecipeNutritionService.StatusFor(ri, nutrientsByIngredient.ContainsKey(ri.IngredientId)),
+                    Grams = RoundGrams(RecipeNutritionService.WeighedGramsFor(ri, weighing)),
+                    NutritionStatus = RecipeNutritionService.StatusFor(ri, nutrientsByIngredient.ContainsKey(ri.IngredientId), weighing),
+                    AssumedSize = RecipeNutritionService.GramsFor(ri) == null && weighing.Weigh(ri) is { Counted: true } assumed ? ContainerWeighing.Describe(assumed) : null,
                     SubIngredients = ri.Ingredient?.Components?
                         .OrderBy(c => c.SortOrder)
                         .Select(c => c.ComponentIngredient?.Name ?? string.Empty)

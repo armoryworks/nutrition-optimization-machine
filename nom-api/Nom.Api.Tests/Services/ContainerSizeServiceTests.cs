@@ -254,7 +254,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task A_book_recipe_takes_its_era_from_its_source_and_an_unknown_book_counts_only_where_eras_agree()
+        public async Task A_book_recipe_takes_its_era_from_its_source_and_an_undated_book_is_not_scored_against_a_modern_key()
         {
             var rig = await RigAsync();
             await rig.Sizes.WriteAsync(new[] { Proposal(rig.Beans, 425m) }, false, DateTime.UtcNow, true, Operator);
@@ -263,10 +263,81 @@ namespace Nom.Api.Tests.Services
             rig.Db.Recipes.Add(book);
             await rig.Db.SaveChangesAsync();
 
-            (await rig.Sizes.ScoreAsync(false, Operator)).LinesWithoutKey.Should().Be(1, "a book with no era row is unknown, and only a modern size exists");
+            var undated = await rig.Sizes.ScoreAsync(false, Operator);
+            (undated.LinesWithoutKey, undated.HoldoutLines, undated.OtherEraLines, undated.OtherEraAgree).Should().Be((0, 0, 1, 1),
+                "a book with no era row is unknown: it would take the modern size, which is counted apart and not scored against the modern key");
             rig.Db.RecipeSourceEras.Add(new RecipeSourceEraEntity { SourceAttribution = "A Cook Book (1931)", PublishedYear = 1975, Era = ContainerEras.Modern });
             await rig.Db.SaveChangesAsync();
             (await rig.Sizes.ScoreAsync(false, Operator)).HoldoutLines.Should().Be(1);
+        }
+
+        private static async Task BookLinesAsync(Rig rig, int count, decimal ounces, string attribution)
+        {
+            var recipe = new RecipeEntity { Name = "Old beans", SourceAttribution = attribution, CurationStatusId = (long)CurationStatusEnum.NonCurated, RecipeIngredients = new List<RecipeIngredientEntity>() };
+            for (var i = 0; i < count; i++)
+                recipe.RecipeIngredients.Add(new RecipeIngredientEntity
+                {
+                    IngredientId = rig.Beans, SortOrder = i, Quantity = ounces, MeasurementId = Ounce,
+                    RawLine = $"1 ({ounces} oz) can black beans", CreatedDate = Imported.AddMinutes(i),
+                });
+            rig.Db.Recipes.Add(recipe);
+            await rig.Db.SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task Old_book_lines_have_their_own_tier_that_does_not_qualify_while_their_sizes_miss_and_does_when_they_agree()
+        {
+            var rig = await RigAsync();
+            await rig.Sizes.WriteAsync(new[] { Proposal(rig.Beans, 425m) }, false, DateTime.UtcNow, true, Operator);
+            await LinesAsync(rig, 60, 15m);
+            await LinesAsync(rig, 60, 15m, "example.com");
+            await BookLinesAsync(rig, 120, 20m, "An Undated Book");
+
+            var report = await rig.Sizes.ScoreAsync(true, Operator);
+
+            report.LaneMode.Should().Be(LaneMode.Live, "the modern lines qualify the lane");
+            (report.OtherEraLines, report.OtherEraAgree).Should().Be((120, 0));
+            report.OtherEraMode.Should().NotBe(LaneMode.Live, "old books state No. 2 cans, which the modern size misses");
+            (await rig.Frame.ModeAsync(AiLanes.ContainerSizes, ContainerSizeService.OtherEraTier)).Should().NotBe(LaneMode.Live);
+            (await rig.Db.LaneDecisions.CountAsync(d => d.Tier == ContainerSizeService.OtherEraTier && d.AuditOutcome == "error")).Should().Be(120);
+
+            var good = await RigAsync();
+            await good.Sizes.WriteAsync(new[] { Proposal(good.Beans, 425m) }, false, DateTime.UtcNow, true, Operator);
+            await LinesAsync(good, 60, 15m);
+            await LinesAsync(good, 60, 15m, "example.com");
+            await BookLinesAsync(good, 120, 15m, "An Undated Book");
+            (await good.Sizes.ScoreAsync(true, Operator)).OtherEraMode.Should().Be(LaneMode.Live, "120 agreeing old-book lines bound the tier above 93 %");
+        }
+
+        [Fact]
+        public async Task The_lane_undo_of_the_old_book_tier_takes_back_no_key()
+        {
+            var rig = await RigAsync();
+            await rig.Sizes.WriteAsync(new[] { Proposal(rig.Beans, 425m) }, false, DateTime.UtcNow.AddMinutes(-1), true, Operator);
+            await LinesAsync(rig, 40, 15m);
+            await rig.Sizes.ScoreAsync(true, Operator);
+            (await rig.Db.IngredientContainerSizes.AsNoTracking().SingleAsync()).Status.Should().Be(ContainerSizeStatus.Active);
+
+            var result = await new ContainerSizeLaneUndo(rig.Sizes).UndoSinceAsync(ContainerSizeService.OtherEraTier, DateTime.UtcNow.AddHours(-1), true, default);
+
+            result.Undone.Should().Be(0);
+            (await rig.Db.IngredientContainerSizes.AsNoTracking().SingleAsync()).Status.Should().Be(ContainerSizeStatus.Active);
+        }
+
+        [Fact]
+        public async Task An_undated_book_line_is_not_scored_against_a_historic_key_as_its_own_era()
+        {
+            var rig = await RigAsync();
+            await rig.Sizes.WriteAsync(new[] { Proposal(rig.Beans, 425m), Proposal(rig.Beans, 567m) with { Era = ContainerEras.Historic } }, false, DateTime.UtcNow, true, Operator);
+            await BookLinesAsync(rig, 1, 15m, "An Undated Book");
+
+            var undated = await rig.Sizes.ScoreAsync(false, Operator);
+            (undated.HoldoutLines, undated.OtherEraLines).Should().Be((0, 1), "an undated book takes the historic size by fallback, not as its own era");
+
+            rig.Db.RecipeSourceEras.Add(new RecipeSourceEraEntity { SourceAttribution = "An Undated Book", PublishedYear = 1931, Era = ContainerEras.Historic });
+            await rig.Db.SaveChangesAsync();
+            var dated = await rig.Sizes.ScoreAsync(false, Operator);
+            (dated.HoldoutLines, dated.OtherEraLines).Should().Be((1, 0), "a dated old book is the historic key's own era");
         }
 
         [Fact]

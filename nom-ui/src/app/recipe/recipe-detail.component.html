@@ -239,6 +239,7 @@
               [servingUnit]="recipe()!.servingUnit"
               [ingredientNames]="ingredientNames()"
               [uncounted]="uncountedIngredients()"
+              [assumed]="assumedIngredients()"
               [source]="recipe()!.nutritionSource">
             </nom-nutrition-label>
           }
@@ -354,13 +355,16 @@
               } @else {
                 {{ row.ingredient.quantity }} {{ row.ingredient.measurement | unit: row.ingredient.quantity }}
                 @if (row.ingredient.grams | massAside: row.ingredient.measurement : unitSystem(); as mass) {
-                  <span class="nom-recipe__ingredient-mass" data-testid="ingredient-mass">({{ mass }})</span>
+                  <span class="nom-recipe__ingredient-mass" data-testid="ingredient-mass">({{ row.ingredient.assumedSize ? '≈ ' : '' }}{{ mass }})</span>
                 }
                 <nom-entity-link route="/search"
                                  [label]="row.ingredient.name"
                                  [queryParams]="{ ingredientId: row.ingredient.ingredientId, ingredient: row.ingredient.name }"
                                  testid="recipe-ingredient-link"
                                  [ariaLabel]="'Recipes with ' + row.ingredient.name" />
+                @if (row.ingredient.assumedSize) {
+                  <span class="nom-recipe__ingredient-assumed" data-testid="recipe-ingredient-assumed-size" [title]="row.ingredient.assumedSize">estimated size</span>
+                }
                 @if (row.ingredient.notes) {
                   <span class="nom-recipe__ingredient-notes">({{ row.ingredient.notes }})</span>
                 }

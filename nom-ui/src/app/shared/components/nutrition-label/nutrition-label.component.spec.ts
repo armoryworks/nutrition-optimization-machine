@@ -24,6 +24,33 @@ describe('NutritionLabel', () => {
     expect(items[1]).toContain('no nutrition data');
   });
 
+  it('lists the assumed package sizes and marks the label and its % Daily Values estimated', () => {
+    const fixture = TestBed.createComponent(NutritionLabel);
+    fixture.componentRef.setInput('nutrition', [{ nutrientName: 'Energy', amount: 410, unit: 'kcal' }]);
+    fixture.componentRef.setInput('servings', 2);
+    fixture.componentRef.setInput('assumed', [{ name: '2 Can Black Beans', size: '1 can ≈ 15 oz (425 g); estimated' }]);
+    fixture.componentRef.setInput('source', { kind: 'usda', usdaLines: 2, countedLines: 2, assumedLines: 1 });
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('[data-testid="nutrition-label-assumed"]')?.textContent).toContain('1 assumed package size');
+    const items = Array.from(el.querySelectorAll('[data-testid="nutrition-label-assumed-item"]')).map(li => li.textContent);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toContain('2 Can Black Beans');
+    expect(items[0]).toContain('425 g');
+    expect(el.querySelector('[data-testid="nutrition-label-assumed-list"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="nutrition-label-estimated"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="nutrition-label-dv-estimated"]')?.textContent).toContain('estimated');
+    expect(el.querySelector('[data-testid="nutrition-label-uncounted"]')).toBeNull();
+  });
+
+  it('is not marked estimated when no size is assumed', () => {
+    const el = render([{ nutrientName: 'Energy', amount: 300, unit: 'kcal' }], []);
+
+    expect(el.querySelector('[data-testid="nutrition-label-assumed"]')).toBeNull();
+    expect(el.querySelector('[data-testid="nutrition-label-estimated"]')).toBeNull();
+  });
+
   it('shows no notice when every ingredient counted', () => {
     const el = render([{ nutrientName: 'Energy', amount: 300, unit: 'kcal' }], []);
 

@@ -30,6 +30,8 @@ export interface RecipeIngredientModel {
   substitutions?: IngredientSubstitutionModel[];
   /** The line's mass in grams, when known. */
   grams?: number | null;
-  /** Whether the line counts toward the derived nutrition label: counted, no-data, no-conversion, not-measured or not-an-ingredient. */
+  /** Whether the line counts toward the derived nutrition label: counted, counted-assumed, no-data, no-conversion, not-measured or not-an-ingredient. */
   nutritionStatus?: string;
+  /** For a line weighed at an assumed container size (counted-assumed, or no-data), the size and where that size comes from. */
+  assumedSize?: string | null;
 }

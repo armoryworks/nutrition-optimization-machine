@@ -41,7 +41,7 @@ namespace Nom.Api.Tests.Golden
                     .Select(p => new ContainerSizeCandidate(p.Kind, p.Era, p.SizeWord, p.NetGrams, p.DrainedGrams, p.SourceRef));
                 var hide = row["hide"] == "yes";
                 var weight = ContainerSizeResolver.Resolve(row["line"], row["era"], candidates, facts?.Description, density,
-                    hideStatedSize: hide, netOnly: hide);
+                    hideStatedSize: hide, netOnly: hide, usdaCategoryId: facts?.CategoryId);
                 var actual = weight.Grams is { } g ? Math.Round(g, MidpointRounding.AwayFromZero).ToString(CultureInfo.InvariantCulture) : GoldenSet.Cell(null);
                 var expected = row["expectGrams"];
                 var matches = expected == actual

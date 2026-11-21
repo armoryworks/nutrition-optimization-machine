@@ -74,6 +74,7 @@ namespace Nom.Orch.Models.Recipe
         public string Kind { get; set; } = string.Empty;
         public int UsdaLines { get; set; }
         public int CountedLines { get; set; }
+        public int AssumedLines { get; set; }
     }
 
     /// <summary>Compact dish-group reference on the recipe detail response.</summary>
