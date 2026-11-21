@@ -25,8 +25,10 @@ namespace Nom.Orch.Services.Support
 
     /// <summary>
     /// Reads the amounts a recipe method states, each with its unit and range, so two texts can be
-    /// compared by quantity rather than by bare number. "a" or "an" before a unit is 1, "a minute
-    /// or two" is 1 to 2 minutes, "a half hour" and "half an hour" are 30 minutes, "1 and 1/2" and
+    /// compared by quantity rather than by bare number. "a", "an" or "another" before a unit is 1, "a minute
+    /// or two" is 1 to 2 minutes, a bare number from 200 to 550 after "to" or "at" in a sentence about
+    /// an oven, heating, baking, roasting, broiling or frying is a temperature in degrees ("preheat the
+    /// oven to 425", "bake at 350 for 30 minutes"), "a half hour" and "half an hour" are 30 minutes, "1 and 1/2" and
     /// "one and a half" are 1.5, "1 hour 30 minutes" is one amount of 90 minutes, and "9 x 13-inch"
     /// is two lengths. Step markers ("2.", "Step 3", "2In a bowl") and cross-references ("as in
     /// step 3", "No. 156") are not amounts. Two amounts are equal only when they are of one family
@@ -44,6 +46,8 @@ namespace Nom.Orch.Services.Support
         public const string Count = "count";
 
         public const decimal Tolerance = 0.02m;
+        public const decimal MinimumOvenDegrees = 200m;
+        public const decimal MaximumOvenDegrees = 550m;
 
         private const string Glyphs = "¼½¾⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞";
 
@@ -133,6 +137,12 @@ namespace Nom.Orch.Services.Support
             @"\bsteps?\s+\d{1,2}(?:\s*(?:and|or|to|-|–|,)\s*\d{1,2})*\b|\b(?:" + ReferenceAbbreviations + @")\.\s*\d+(?:\s*(?:and|or|,)\s*\d+)*\b|\b(?:recipe|page|p)\.?\s+\d+\b",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        private static readonly Regex OrdinalDegree = new(@"(?<=\d\s?)º", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly Regex ListNumber = new(@"(?<=\p{Ll}[,;]?\s)(?<n>\d{1,2})\.\s+(?=\p{Lu})", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly Regex OvenContext = new(@"\b(?:oven|preheat|pre-heat|heat|bake|baking|roast|broil|fry)\w*\b[^.!?;]*$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private static readonly Regex TokenPattern = new(
             @"(?<num>\d+\s?[" + Glyphs + @"]|\d+(?:\s+|-)\d+/\d+(?!\d)|\d+/\d+(?!\d)|\d{1,3}(?:,\d{3})+(?!\d)|\d+(?:\.\d+)?|[" + Glyphs + @"])"
             + @"|(?<word>\p{L}+)|(?<sym>[°º×\-–—()])",
@@ -144,13 +154,30 @@ namespace Nom.Orch.Services.Support
 
         private sealed record Token(Kind Kind, string Text, int Start, int End, decimal Value, bool Bracketed);
 
-        /// <summary>The text with markup removed, entities decoded, step markers dropped and cross-references read as the word "ref".</summary>
+        /// <summary>The text with markup removed, entities decoded, degree signs made one form ("350ºF" and "350℉" are "350°F"), step markers dropped (in a numbered block also the next number of the list where it stands after a word and before a capital: "chile flakes 4. Pour") and cross-references read as the word "ref".</summary>
         public static string Prepare(string? text)
         {
             var clean = Regex.Replace(WebUtility.HtmlDecode(Tags.Replace(text ?? string.Empty, " ")), @"\s+", " ").Trim()
                 .Replace('⁄', '/');
-            return Reference.Replace(StepMarker.Replace(clean, " "), " ref ").Trim();
+            clean = OrdinalDegree.Replace(clean.Replace("℉", "°F").Replace("℃", "°C"), "°");
+            var numbers = StepMarker.Matches(clean)
+                .Select(m => Regex.Match(m.Value, @"\d{1,2}"))
+                .Where(m => m.Success)
+                .Select(m => int.Parse(m.Value, CultureInfo.InvariantCulture))
+                .ToHashSet();
+            var marked = StepMarker.Replace(clean, " ");
+            if (numbers.Contains(1) && numbers.Contains(2))
+            {
+                var last = numbers.Max();
+                marked = ListNumber.Replace(marked, m =>
+                    int.Parse(m.Groups["n"].Value, CultureInfo.InvariantCulture) is var n && n >= 2 && n <= last + 1 && !numbers.Contains(n) ? " " : m.Value);
+            }
+
+            return Reference.Replace(marked, " ref ").Trim();
         }
+
+        /// <summary>Whether <paramref name="word"/> is a spelled-out number ("two", "twelve", "dozen") or fraction word ("half", "third").</summary>
+        public static bool IsNumberWord(string word) => NumberWords.ContainsKey(word) || Denominators.ContainsKey(word);
 
         /// <summary>Whether a step holds a step marker of its own ("2. Stir", "Step 3:", "2In a bowl", a trailing "3.").</summary>
         public static bool HasStepMarker(string? text)
@@ -323,6 +350,10 @@ namespace Nom.Orch.Services.Support
                         value = new Value(n, next, false, true);
                     }
                 }
+                else if (IsWord(tokens, i, "another") && allowArticle)
+                {
+                    value = new Value(1m, i + 1, true, true);
+                }
                 else if (IsWord(tokens, i, "a", "an") && allowArticle)
                 {
                     if (i + 1 < tokens.Count && Denominators.TryGetValue(tokens[i + 1].Text, out var d) && !tokens[i + 1].Text.EndsWith('s'))
@@ -403,7 +434,8 @@ namespace Nom.Orch.Services.Support
 
         private static UnitRead? UnitAfter(List<Token> tokens, Value value, int startToken, string text) =>
             ReadUnit(tokens, value.Next, tokens[startToken].Kind == Kind.Number ? tokens[value.Next - 1] : null, value.Article)
-            ?? ReadInch(tokens, value.Next, text);
+            ?? ReadInch(tokens, value.Next, text)
+            ?? (IsWord(tokens, value.Next, "or") && IsWord(tokens, value.Next + 1, "so") ? ReadUnit(tokens, value.Next + 2, null, value.Article) : null);
 
         private static int ReadAt(List<Token> tokens, int i, string text, List<ProseQuantity> found)
         {
@@ -479,6 +511,9 @@ namespace Nom.Orch.Services.Support
                 next += 3;
             }
 
+            if (unit == null && !first.Spelled && OvenTemperature(tokens, i, text, low, high))
+                unit = new UnitRead(new UnitInfo(Temperature, "degree", 1m), next);
+
             var family = unit?.Info.Family ?? Count;
             var unitName = unit?.Info.Unit ?? string.Empty;
             var start = tokens[i].Start;
@@ -488,6 +523,11 @@ namespace Nom.Orch.Services.Support
             found.Add(new ProseQuantity(low, high, family, unitName, start, end, text[start..end], tokens[i].Bracketed, soft));
             return next;
         }
+
+        private static bool OvenTemperature(List<Token> tokens, int i, string text, decimal low, decimal high) =>
+            low >= MinimumOvenDegrees && high <= MaximumOvenDegrees
+            && i > 0 && IsWord(tokens, i - 1, "to", "at")
+            && OvenContext.IsMatch(text[..tokens[i].Start]);
 
         private static List<ProseQuantity> Conversions(List<ProseQuantity> quantities, string text)
         {

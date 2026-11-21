@@ -383,7 +383,9 @@ namespace Nom.Orch.Services.Support
                 var actions = new List<string>();
                 for (var i = 0; i < words.Count; i++)
                 {
-                    if (verbs.GroupsAt(words, i) != null && !actions.Contains(words[i])) actions.Add(words[i]);
+                    if (verbs.GroupsAt(words, i) is not { } groups) continue;
+                    var action = groups.Contains(ProseVerbLexicon.OffHeatGroup) ? "turn off the heat" : words[i];
+                    if (!actions.Contains(action)) actions.Add(action);
                 }
 
                 if (actions.Count == 0 && words.FirstOrDefault(w => w != ProsePhrases.Number) is { } lead) actions.Add(lead);

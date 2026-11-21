@@ -74,6 +74,10 @@ namespace Nom.Api.Tests.Services
         [InlineData("As shown in Fig. 15. Roll the paste thin.", "")]
         [InlineData("Cut the dough in half.", "")]
         [InlineData("Add the eggs one at a time.", "")]
+        [InlineData("1. Line a tray.2. Toss the tofu.3. Make the dressing. Season with salt and sesame seeds 4. Pour the dressing over.", "")]
+        [InlineData("Season with salt and sesame seeds 4. Pour the dressing over.", "count 4")]
+        [InlineData("Add 300 grams of rice to the pot.", "mass 300 gram")]
+        [InlineData("Divide the dough into 300 to make rolls.", "count 300")]
         public void Step_markers_cross_references_and_bare_halves_are_not_amounts(string text, string expected)
         {
             Shape(text).Should().Be(expected);
@@ -94,6 +98,16 @@ namespace Nom.Api.Tests.Services
         [InlineData("1 tablespoon", "3 teaspoons")]
         [InlineData("350 degrees", "350°F")]
         [InlineData("9-inch", "9 in. ")]
+        [InlineData("350ºF", "350°F")]
+        [InlineData("500℉", "500°F")]
+        [InlineData("let simmer for another minute", "let simmer for 1 minute")]
+        [InlineData("Preheat the oven to 425.", "Preheat the oven to 425 degrees.")]
+        [InlineData("Bake at 350 for", "Bake at 350°F for")]
+        [InlineData("1/2 cup", "0.5 cup")]
+        [InlineData("1/2 cup", "a half cup")]
+        [InlineData("1/2 cup", "half a cup")]
+        [InlineData("2 Tbsp", "2 tablespoons")]
+        [InlineData("for 5 or so minutes", "for 5 minutes")]
         public void Equal_forms_are_the_same_amount(string a, string b)
         {
             var x = ProseQuantities.Read(a).Single();

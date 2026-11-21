@@ -200,7 +200,7 @@ namespace Nom.Orch.Services
                         attempts = outcome.Attempts.Select(a => new { a.Number, a.Style, a.Reasons }),
                         ruleSheets = outcome.RuleSheets,
                         rewrite = outcome.Rewrite == null ? null : new { description = outcome.Rewrite.Description, steps = outcome.Rewrite.Steps },
-                        containment = outcome.Finding?.Containment,
+                        copiedShare = outcome.Finding?.CopiedShare,
                         longestRun = outcome.Finding?.LongestRun,
                         lengthRatio = outcome.Finding?.LengthRatio,
                         stockVersion = stock.Version,

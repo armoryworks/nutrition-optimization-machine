@@ -69,7 +69,7 @@ namespace Nom.Orch.Services
             if (apply && stock.Version == 0)
             {
                 result.Applied = false;
-                result.Refused = "The stock-phrase index has not been built, so every stock phrase would count as copied; run POST api/ProseRewrite/stock/rebuild?apply=true first.";
+                result.Refused = "The stock-phrase index has not been built, and every run records the index it ran with; run POST api/ProseRewrite/stock/rebuild?apply=true first.";
             }
 
             var candidates = await _db.Recipes.AsNoTracking()

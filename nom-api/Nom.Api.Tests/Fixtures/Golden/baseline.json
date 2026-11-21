@@ -6,6 +6,7 @@
   "lines.tsv:parse": 4,
   "link-pairs.tsv:status": 30,
   "links.tsv:status": 3,
+  "prose-check.tsv:status": 1,
   "recipes-rebuild.tsv:status": 0,
   "recipes.json:status": 3,
   "startup-fills.tsv:status": 0,

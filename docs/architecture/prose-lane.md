@@ -28,7 +28,7 @@ class has a cause in that engine; this lane removes each cause rather than catch
 | `lost-step`, `too-short` ("heat" → "mix", lost sections) | The old check compared numbers only, so a dropped step or a changed verb passed. | The fact sheet must keep every lexicon verb and every ingredient token of its step (rule-checked, one retry with the problems), the written step must keep them again, and check v2 checks verbs, ingredients and length. |
 | a changed meaning check v2 cannot see (heat level, doneness cue, a dropped "do not stir", an added action) | Nothing read the meaning. | A judge of another model family (`mistral-nemo`) reads every rewrite against the source, step by step, before it is written; a rewrite it does not find faithful is never written. |
 | `step-marker` | Scraped steps carried "2." markers the importer kept and the model copied. | The form rule refuses a step marker in the written text; the marker cleanup (`prose-check.md`) strips stored ones. |
-| stock-phrase false alarms (v1) | v1 counted any 8-word run, including phrases every site uses. | Check v2 ignores stock phrases from the index. |
+| stock-phrase false alarms (v1) | v1 counted any 8-word run, including phrases every site uses. | Check v3 weighs ingredient names and amounts at half and counts a run from 14.5 weighted words; stock phrases count like other words, since the limits are set and measured that way (`prose-check.md`). |
 
 ## The pipeline (per recipe)
 

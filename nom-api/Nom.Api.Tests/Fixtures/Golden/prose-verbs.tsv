@@ -6,33 +6,33 @@ bake	bake|roast	dry heat in an oven
 broil	broil|grill|char|toast	direct heat from above or below
 fry	fry|saute|sauté|sear	in fat in a pan
 braise	braise	covered, in liquid, slowly
-cook	cook|boil|parboil|blanch|simmer|stew|poach|bake|roast|broil|grill|fry|saute|sauté|sear|braise|steam|microwave	the generic verb: any cooking verb keeps it
+cook	cook|heat*|warm*|boil|parboil|blanch|simmer|stew|poach|bake|roast|broil|grill|fry|saute|sauté|sear|braise|steam|microwave	the generic verb: any cooking verb keeps it, and so does heating ("heat*", "warm*"), which a source "heat" does not take from "fry"
 steam	steam	over boiling water
 microwave	microwave	
-mix	mix|stir|combine|blend|fold|toss|whisk|incorporate|mingle	bring ingredients together
+mix	mix|stir|combine|blend|fold|toss|whisk|incorporate|mingle|purée|puree	bring ingredients together; a purée is blended
 beat	beat|whisk|whip	beat air in
 knead	knead	
 chill	chill|refrigerate|cool	lower the temperature, not frozen
 freeze	freeze	
 rest	rest|stand|sit	leave untouched for a time
-cut	cut|chop|slice|dice|mince|halve|cube|julienne|trim	cut into pieces
+cut	cut|chop|slice|dice|mince|halve|cube|julienne|trim	cut into pieces; "cube" after "ice", "into", a number or "inch" is the noun ("ice cubes", "1-inch cubes")
 grate	grate|shred|zest	
 drain	drain|strain	remove the liquid
 peel	peel|pare	
-grease	grease|spray|coat|brush|dust	coat a pan or food with fat or flour
-line	line	line a pan with paper or foil
-shape	shape|mould|mold	
+grease	grease|spray|brush|dust|coat*	coat a pan or food with fat or flour; "coat" only keeps it ("toss until coated" states a result)
+line	line|liner*	line a pan with paper or foil ("a baking sheet with a silicone liner")
+shape	shape|mould|mold|roll*	"roll" only keeps it ("roll the dough into discs"; "roll out" and "roll in sugar" ask for no shaping)
 season	season	
 serve	serve	
 garnish	garnish|sprinkle|dust|scatter	
-add	add|pour|put|place|transfer|tip	put one thing into or onto another
+add	add|pour|put|place|transfer|tip|sprinkle|scatter|spread*|combine*	put one thing into or onto another ("sprinkle on the blueberries" is kept by "add the blueberries"); spreading also adds, but adding does not keep spreading, except "spread ... out" (laying food out), which only places it
 cover	cover|wrap|seal	
-soak	soak|steep|marinate	
+soak	soak|steep|marinate|absorb*	"absorb" only keeps it
 melt	melt|dissolve	
 reduce	reduce	boil down
 sift	sift	
 spread	spread|smear	
 mash	mash|crush|purée|puree|press	
-turn	turn|flip	
+turn	flip	turn food over; "turn" alone is left out ("turn brown", "turn out the dough"); turning off the heat is the off-heat action (see ProseVerbLexicon)
 divide	divide|split|portion	
-wash	wash|rinse	
+wash	wash|rinse|scrub|clean*	"clean" only keeps it ("comes out clean" asks for no washing)

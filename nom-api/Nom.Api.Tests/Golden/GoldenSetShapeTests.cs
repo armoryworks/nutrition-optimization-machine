@@ -32,6 +32,7 @@ namespace Nom.Api.Tests.Golden
             { "prose-stock.tsv", 9, Array.Empty<string>() },
             { "prose-verbs.tsv", 30, Array.Empty<string>() },
             { "prose-judge.tsv", 35, new[] { "status" } },
+            { "prose-check.tsv", 80, new[] { "status" } },
             { "startup-fills.tsv", 9, new[] { "status" } },
             { "catalog-admission.tsv", 80, new[] { "status" } },
             { "branded-lift.tsv", 25, new[] { "status" } },
@@ -102,6 +103,7 @@ namespace Nom.Api.Tests.Golden
         [InlineData("prose.tsv", "source", "status2")]
         [InlineData("recipes-rebuild.tsv", "source", "status")]
         [InlineData("prose-judge.tsv", "source", "status")]
+        [InlineData("prose-check.tsv", "source", "status")]
         [InlineData("wording-tiers.tsv", "source", "status")]
         [InlineData("containers.tsv", "source", "status")]
         [InlineData("package-weights.tsv", "source", "status")]
