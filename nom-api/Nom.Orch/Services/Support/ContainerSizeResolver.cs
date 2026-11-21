@@ -80,8 +80,10 @@ namespace Nom.Orch.Services.Support
     /// cans, the one nearer the food's modern size, when that modern size lies within the
     /// candidates' span, see <see cref="PeriodCovers"/>; with no modern size, none), and last, for
     /// every kind (<see cref="FallsBackToModern"/>), the food's modern size; such a line is always
-    /// shown as estimated, with the tier that gave its size. The hold-out hides the stated size to
-    /// ask what the lane would have assumed.
+    /// shown as estimated, with the tier that gave its size. An old-book tier the caller skips
+    /// (<see cref="ContainerSizeService.OldBookTiers"/>; the weighing skips those that are not
+    /// live) is passed over for the next tier. The hold-out hides the stated size to ask what the
+    /// lane would have assumed.
     /// </summary>
     public static class ContainerSizeResolver
     {
@@ -120,7 +122,8 @@ namespace Nom.Orch.Services.Support
             bool activeOnly = true,
             bool netOnly = false,
             int? usdaCategoryId = null,
-            string? book = null)
+            string? book = null,
+            IReadOnlySet<string>? skipTiers = null)
         {
             var kind = ContainerKinds.FromText(rawLine);
             if (kind == null) return new ContainerWeight(null, 0, null, false, null, NoContainer);
@@ -148,6 +151,7 @@ namespace Nom.Orch.Services.Support
             var keyed = usable.Where(s => s.SizeWord == sizeWord).ToList();
             var any = keyed.FirstOrDefault(s => s.Era == ContainerEras.Any);
             var modern = keyed.FirstOrDefault(s => s.Era == ContainerEras.Modern);
+            bool Skips(string tier) => skipTiers?.Contains(tier) == true;
             ContainerSizeCandidate? pick;
             string basis;
             if (era == ContainerEras.Modern)
@@ -155,11 +159,11 @@ namespace Nom.Orch.Services.Support
                 pick = modern ?? any;
                 basis = modern != null ? ContainerBasis.FoodSize : ContainerBasis.AnyEra;
             }
-            else if (book != null && all.FirstOrDefault(s => s.SizeWord == sizeWord && s.CorpusTier == ContainerCorpusSizes.BookTier && s.Book == book) is { } ownBook)
+            else if (book != null && !Skips(ContainerSizeService.SameBookTier) && all.FirstOrDefault(s => s.SizeWord == sizeWord && s.CorpusTier == ContainerCorpusSizes.BookTier && s.Book == book) is { } ownBook)
             {
                 return Weigh(ownBook.NetGrams, ownBook.SourceRef, count, kind, drained, usable, ownBook.RowId, ContainerBasis.SameBook);
             }
-            else if (all.FirstOrDefault(s => s.SizeWord == sizeWord && s.CorpusTier == ContainerCorpusSizes.EraTier && s.Era == era) is { } sameEra)
+            else if (!Skips(ContainerSizeService.SameEraTier) && all.FirstOrDefault(s => s.SizeWord == sizeWord && s.CorpusTier == ContainerCorpusSizes.EraTier && s.Era == era) is { } sameEra)
             {
                 return Weigh(sameEra.NetGrams, sameEra.SourceRef, count, kind, drained, usable, sameEra.RowId, ContainerBasis.SameEra);
             }
@@ -168,18 +172,18 @@ namespace Nom.Orch.Services.Support
                 pick = any;
                 basis = ContainerBasis.AnyEra;
             }
-            else if (keyed.FirstOrDefault(s => s.Era == ContainerEras.Historic) is { } historic)
+            else if ((era == ContainerEras.Historic || !Skips(ContainerSizeService.PeriodTier)) && keyed.FirstOrDefault(s => s.Era == ContainerEras.Historic) is { } historic)
             {
                 pick = historic;
                 basis = ContainerBasis.PeriodSize;
             }
-            else if (CanSizeTable.Period(kind, sizeWord, usdaCategoryId) is { Count: > 0 } period && (modern == null || PeriodCovers(period, modern.NetGrams)))
+            else if (!Skips(ContainerSizeService.PeriodTier) && CanSizeTable.Period(kind, sizeWord, usdaCategoryId) is { Count: > 0 } period && (modern == null || PeriodCovers(period, modern.NetGrams)))
             {
                 if (modern == null) return new ContainerWeight(null, count, kind, drained, null, PeriodWithoutModern);
                 var nearer = period.OrderBy(c => Math.Abs(c.Grams - modern.NetGrams)).ThenBy(c => c.Grams).First();
                 return Weigh(nearer.Grams, nearer.SourceRef + "|nearer:" + modern.SourceRef, count, kind, drained, usable, modern.RowId, ContainerBasis.PeriodNearer);
             }
-            else if (FallsBackToModern(kind))
+            else if (FallsBackToModern(kind) && !Skips(ContainerSizeService.ModernTier))
             {
                 pick = modern;
                 basis = ContainerBasis.ModernFallback;

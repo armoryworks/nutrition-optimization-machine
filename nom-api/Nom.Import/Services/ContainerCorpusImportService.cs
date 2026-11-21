@@ -81,7 +81,7 @@ namespace Nom.Import.Services
                 }
                 var era = book != null ? eraOfBook[book] : s.Scope;
                 proposals.Add(new ContainerSizeProposal(s.IngredientId, s.Kind, era, s.SizeWord, s.Grams, null, ContainerCorpusSizes.SizeText(s),
-                    ContainerCorpusSizes.SourceRef(s, era), ContainerCorpusSizes.Class(s.Tier, s.Kind), s.Band,
+                    ContainerCorpusSizes.SourceRef(s, era), ContainerCorpusSizes.Class(s.Tier, s.Kind), s.Tier == ContainerCorpusSizes.EraTier ? s.BandBooks : s.Band,
                     s.Votes == 0 ? null : Math.Round((decimal)s.Band / s.Votes, 4), s.Lines, book, ContainerCorpusSizes.Evidence(s)));
             }
             return proposals;

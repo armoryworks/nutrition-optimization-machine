@@ -12,7 +12,8 @@ For every food, container kind and size word it writes, with counts:
   book  the size the sized lines of one book give (one size, within 5 %, holds more than half of
         the book's lines and at least twice the next size);
   era   the size the books of one era give (each book counted once per size it states; at least
-        two books state the mode, it holds at least half of the votes and twice the next size).
+        two different books state a size within the mode's band, it holds at least half of the
+        votes and twice the next size).
 Refused sizes are written too, with the reason. The rule is written apart from the C# code
 (ContainerCorpusSizes): the grams of one container come here from the stored quantity and the
 line's leading count, there from NOM's line parser, so the two readings of one capture can be
@@ -153,7 +154,7 @@ def mode_of(sizes):
     return sorted(sizes.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
 
 
-def decide(votes, minimum, few):
+def decide(votes, minimum, few, more_than_half=False, books=None):
     total = sum(votes.values())
     mode = mode_of(votes)
     band = sum(n for s, n in votes.items() if within(s, mode))
@@ -168,6 +169,10 @@ def decide(votes, minimum, few):
         refusal = "no clear mode"
     elif band < 2 * runner:
         refusal = "runner-up too close"
+    elif more_than_half and 2 * band <= total:
+        refusal = "no clear mode"
+    elif books is not None and len({b for b, g in books if within(g, mode)}) < minimum:
+        refusal = few
     else:
         refusal = None
     return mode, band, total, runner, refusal
@@ -187,10 +192,11 @@ def facts(lines):
         by_era[(line["era"], food_key(line["food"]), line["kind"], line["word"])].append(line)
     for (book, food, kind, word), group in sorted(by_book.items()):
         votes = collections.Counter(gram(l["grams"]) for l in group)
-        rows.append(row("book", book, food, kind, word, group, votes, decide(votes, 1, "few products")))
+        rows.append(row("book", book, food, kind, word, group, votes, decide(votes, 1, "few products", more_than_half=True)))
     for (era, food, kind, word), group in sorted(by_era.items()):
-        votes = collections.Counter(g for _, g in {(l["book"], gram(l["grams"])) for l in group})
-        rows.append(row("era", era, food, kind, word, group, votes, decide(votes, 2, "fewer than two books")))
+        stated = {(l["book"], gram(l["grams"])) for l in group}
+        votes = collections.Counter(g for _, g in stated)
+        rows.append(row("era", era, food, kind, word, group, votes, decide(votes, 2, "fewer than two books", books=stated)))
     return rows
 
 

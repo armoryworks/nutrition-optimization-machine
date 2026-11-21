@@ -70,6 +70,20 @@ class RuleTests(unittest.TestCase):
         self.assertEqual((era["grams"], era["sizes"], era["lines"], era["books"], era["verdict"]), ("85", "85:2;227:1", "7", "3", "counts"))
         self.assertEqual((era["min"], era["max"]), ("85", "226.8"))
 
+    def test_a_book_size_must_hold_more_than_half_of_the_book_s_lines(self):
+        rows = [["l%d" % i, "Book A", "historic", "1", "1 (%s oz) package cream cheese" % oz, oz, "Ounce", "-"] for i, oz in enumerate(["3", "3", "6", "8"])]
+        book = [f for f in run(rows) if f["tier"] == "book"][0]
+        self.assertEqual((book["band"], book["votes"], book["runnerUp"], book["verdict"]), ("2", "4", "1", "no clear mode"))
+
+    def test_one_book_stating_two_sizes_in_one_band_is_not_an_era_size(self):
+        facts = run([["l1", "Book A", "historic", "1", "1 (16 oz) jar honey", "16", "Ounce", "-"],
+                     ["l2", "Book A", "historic", "1", "1 (16.5 oz) jar honey", "16.5", "Ounce", "-"]])
+        era = [f for f in facts if f["tier"] == "era"][0]
+        self.assertEqual((era["band"], era["votes"], era["books"], era["verdict"]), ("2", "2", "1", "fewer than two books"))
+        two = run([["l1", "Book A", "historic", "1", "1 (16 oz) jar honey", "16", "Ounce", "-"],
+                   ["l2", "Book B", "historic", "1", "1 (16.5 oz) jar honey", "16.5", "Ounce", "-"]])
+        self.assertEqual([f["verdict"] for f in two if f["tier"] == "era"], ["counts"])
+
     def test_the_grams_of_one_container_divide_the_stored_quantity_by_the_leading_count(self):
         self.assertEqual(ef.grams_per_container({"line": "2 (15 oz) cans beans", "quantity": "30", "unit": "Ounce"}), 425.2)
         self.assertEqual(ef.grams_per_container({"line": "1 1/2 (8 oz) packages", "quantity": "12", "unit": "Ounce"}), 226.8)

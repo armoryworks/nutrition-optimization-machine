@@ -31,7 +31,8 @@ namespace Nom.Orch.Services.Support
         decimal Min,
         decimal Max,
         string Sizes,
-        string? Refusal)
+        string? Refusal,
+        int BandBooks = 0)
     {
         public bool Passes => Refusal == null;
 
@@ -46,8 +47,8 @@ namespace Nom.Orch.Services.Support
     /// the size of "1 package cream cheese" there), then those of the books of the same era
     /// (recipe.RecipeSourceEra). A book's lines give a size when one size (±5 %) holds more than
     /// half of them and at least twice the next; an era gives one when, counting each book once
-    /// per size it states, at least two books state the mode, it holds at least half of the votes
-    /// and twice the next. Every size keeps its evidence (the sizes stated and how often, the
+    /// per size it states, at least two different books state a size within the mode's band, it
+    /// holds at least half of the votes and twice the next. Every size keeps its evidence (the sizes stated and how often, the
     /// spread), and the same lines always give the same sizes, so ops/container-era-facts.py
     /// reproduces them from a capture of the corpus.
     /// </summary>
@@ -59,6 +60,7 @@ namespace Nom.Orch.Services.Support
         public const string BookSourcePrefix = "deterministic:corpus-book:";
         public const string EraSourcePrefix = "deterministic:corpus-era:";
         public const int MinimumBooks = 2;
+        public const string FewBooks = "fewer than two books";
 
         /// <summary>The corpus tier a size row came from (<see cref="BookTier"/> or <see cref="EraTier"/>), or null for any other source.</summary>
         public static string? TierOf(string? sourceRef) =>
@@ -111,9 +113,14 @@ namespace Nom.Orch.Services.Support
             var first = lines[0];
             var mode = ContainerModeRule.Decide(votes, string.Empty, minimum)!;
             var sizes = string.Join(";", votes.OrderBy(v => v.Key).Select(v => string.Create(CultureInfo.InvariantCulture, $"{v.Key}:{v.Value}")));
+            var bandBooks = lines.Where(l => Math.Abs(Gram(l.Grams) - mode.Grams) <= ContainerModeRule.BandWidth * mode.Grams).Select(l => l.Book).Distinct().Count();
+            var refusal = mode.Refusal == ContainerModeRule.FewProducts ? (tier == EraTier ? FewBooks : mode.Refusal)
+                : mode.Refusal != null ? mode.Refusal
+                : tier == BookTier && 2 * mode.Band <= mode.Products ? ContainerModeRule.NoClearMode
+                : tier == EraTier && bandBooks < MinimumBooks ? FewBooks
+                : null;
             return new CorpusSize(tier, scope, first.IngredientId, first.Kind, first.SizeWord, mode.Grams, lines.Count, lines.Select(l => l.Book).Distinct().Count(),
-                mode.Band, mode.Products, mode.RunnerUp, lines.Min(l => l.Grams), lines.Max(l => l.Grams), sizes,
-                mode.Refusal == ContainerModeRule.FewProducts ? (tier == EraTier ? "fewer than two books" : mode.Refusal) : mode.Refusal);
+                mode.Band, mode.Products, mode.RunnerUp, lines.Min(l => l.Grams), lines.Max(l => l.Grams), sizes, refusal, bandBooks);
         }
 
         private static int Gram(decimal grams) => (int)Math.Round(grams, MidpointRounding.ToEven);
@@ -132,15 +139,20 @@ namespace Nom.Orch.Services.Support
             return size is { Passes: true } ? size : null;
         }
 
-        /// <summary>The source a corpus size row carries: tier, rule version, era, the size, how many votes held it, and the spread.</summary>
+        /// <summary>The source a corpus size row carries: tier, rule version, era, the size, how many held it (a book's lines, or an era's books) of how many, and the spread.</summary>
         public static string SourceRef(CorpusSize size, string era) =>
             (size.Tier == BookTier ? BookSourcePrefix : EraSourcePrefix)
-            + string.Create(CultureInfo.InvariantCulture, $"{Version}:{era}:{size.Grams}g:{size.Band}/{size.Votes}:{size.Min:0.#}-{size.Max:0.#}g");
+            + string.Create(CultureInfo.InvariantCulture, $"{Version}:{era}:{size.Grams}g:{Held(size)}:{size.Min:0.#}-{size.Max:0.#}g");
+
+        private static string Held(CorpusSize size) =>
+            size.Tier == BookTier
+                ? string.Create(CultureInfo.InvariantCulture, $"{size.Band}/{size.Votes}")
+                : string.Create(CultureInfo.InvariantCulture, $"{size.BandBooks}/{size.Books}");
 
         /// <summary>The evidence a corpus size row keeps: the sizes stated and how often, lines, books and spread.</summary>
         public static string Evidence(CorpusSize size) =>
             string.Create(CultureInfo.InvariantCulture,
-                $"{(size.Tier == BookTier ? "lines" : "books")} by size (g) {size.Sizes}; {size.Lines} lines in {size.Books} books; mode {size.Grams} g on {size.Band} of {size.Votes}, runner-up {size.RunnerUp}; spread {size.Min:0.#}-{size.Max:0.#} g; worst case {size.WorstCase:P1}");
+                $"{(size.Tier == BookTier ? "lines" : "books")} by size (g) {size.Sizes}; {size.Lines} lines in {size.Books} books; mode {size.Grams} g on {size.Band} of {size.Votes}{(size.Tier == BookTier ? string.Empty : $" ({size.BandBooks} of {size.Books} books)")}, runner-up {size.RunnerUp}; spread {size.Min:0.#}-{size.Max:0.#} g; worst case {size.WorstCase:P1}");
 
         /// <summary>How a corpus size reads to a cook.</summary>
         public static string SizeText(CorpusSize size) =>
@@ -148,7 +160,7 @@ namespace Nom.Orch.Services.Support
             + (size.SizeWord.Length > 0 ? ", " + size.SizeWord : string.Empty)
             + (size.Tier == BookTier
                 ? string.Create(CultureInfo.InvariantCulture, $"; stated on {size.Band} of {size.Lines} sized lines of this book")
-                : string.Create(CultureInfo.InvariantCulture, $"; the most common size {size.Band} of {size.Votes} books of the {size.Scope} era state, spread {size.Min:0.#}-{size.Max:0.#} g"));
+                : string.Create(CultureInfo.InvariantCulture, $"; the most common size {size.BandBooks} of {size.Books} {(size.Scope == ContainerEras.Unknown ? "undated books" : "books of the " + size.Scope + " era")} state, spread {size.Min:0.#}-{size.Max:0.#} g"));
 
         /// <summary>The class a corpus size is scored under: the tier and the container kind.</summary>
         public static string Class(string tier, string kind) => $"corpus-{tier}:{kind}";

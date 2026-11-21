@@ -95,7 +95,7 @@ namespace Nom.Orch.Models.Curation
         public string? LaneMode { get; set; }
         public string? LaneReason { get; set; }
 
-        /// <summary>Each old-book tier's hold-out lines, agreement and mode, in tier order; <see cref="OtherEraLines"/> and <see cref="OtherEraAgree"/> are their sums.</summary>
+        /// <summary>Each old-book tier's hold-out lines, agreement and mode, in tier order: a tier is scored on every line it would weigh while the tiers before it are not live, so a line can count under several; <see cref="OtherEraLines"/> and <see cref="OtherEraAgree"/> count each line once, under the first tier that answers it.</summary>
         public List<ContainerSizeTierFigures> Tiers { get; } = new();
     }
 

@@ -597,8 +597,11 @@ by the other sized lines of book B, or by the books of its era other than B
 (`ContainerCorpusSizes.LeaveOut`), never by itself. Their decisions also set the status of the
 corpus row they were answered from (class `corpus-book:<kind>` or `corpus-era:<kind>`, the same
 key and class bars as every other key). An old-book tier's pause has nothing to undo (it writes
-no key); its lines stop being weighed at the next sweep. `OtherEraLines` and `OtherEraAgree`
-are the sums of the four tiers, and the report lists each (`Tiers`).
+no key); at the next sweep its lines are weighed by the next tier that is live, or stay
+uncounted when none is. Since a line falls through to the next live tier, each tier is scored on
+every line it would weigh while the tiers before it are not live, not only on the lines it
+answers first. `OtherEraLines` and `OtherEraAgree` count each line once, under the first tier that
+answers it, and the report lists each tier (`Tiers`).
 
 **Sizes from the recipe corpus** (`cleanup2/container-era-sizes`, owner's third-round answer
 7: "there has to be a way to convert these"). Old books often state a package's size on one
@@ -609,15 +612,17 @@ size, never a numbered can) and derives, per food, container kind and size word:
 
 - **same book**: the sizes that book's own lines state. One size (within ±5 %) must hold more
   than half of them and at least twice the next ("1 3-oz. package cream cheese" in a book gives
-  the size of "1 package cream cheese" in the same book; 3 oz once and 8 oz once gives none);
+  the size of "1 package cream cheese" in the same book; 3 oz once and 8 oz once gives none, and
+  so does 3 oz on exactly half of the lines);
 - **same era**: the sizes the books of the era state, each book counted once per size it
-  states. At least two books must state the mode, and it must hold at least half of the votes
-  and twice the next. Undated books form their own pool (`unknown`), as `RecipeSourceEra` gives
+  states. At least two different books must state a size within the mode's band (one book
+  stating 16 oz and 16.5 oz is one book, not two), and the mode must hold at least half of the
+  votes and twice the next. Undated books form their own pool (`unknown`), as `RecipeSourceEra` gives
   no era to compare them with.
 
 Each size is written as a row of `nutrient."IngredientContainerSize"` in shadow, journaled like
-every other: source `deterministic:corpus-book:container-corpus/1:<era>:<g>g:<band>/<votes>:<min>-<max>g`
-or `deterministic:corpus-era:...`, the book in `SourceAttribution` (book sizes only), and the
+every other: source `deterministic:corpus-book:container-corpus/1:<era>:<g>g:<band>/<lines>:<min>-<max>g`
+or `deterministic:corpus-era:container-corpus/1:<era>:<g>g:<books on the mode>/<books>:<min>-<max>g`, the book in `SourceAttribution` (book sizes only), and the
 evidence in `Evidence` (the sizes stated and how often, lines, books, the spread and the
 worst case it implies). `Nom.Import --container-sizes --corpus [--facts <out.tsv>] [--dry-run]`
 writes them, retires a corpus row no line gives any more and never touches a USDA source's row
@@ -691,9 +696,11 @@ the owner's third-round answer ("there has to be a way to convert these") extend
 kind: the corpus tiers come first, and the modern fallback is the last tier for packages, boxes,
 bags, packets, envelopes, cartons, tubs and bottles as well as cans and jars
 (`ContainerSizeResolver.FallsBackToModern`). Every size an old or undated book takes this way is
-weighed only while its own old-book tier is live, and the line's text names the tier ("the size
-this book states for it elsewhere (2 of 2 sized lines)", "the most common size books of its time
-state (4 of 6 books, spread 85-226.8g)"). A line still stays uncounted where no tier gives a size,
+taken from the first old-book tier that is live (a tier in shadow or paused passes the line to
+the next one), and the line's text names the tier ("the size this book states for it elsewhere
+(2 of 2 sized lines)", "the most common size books of its time state (4 of 5 books, spread
+85-226.8g)", for an undated book "the most common size other undated books state"; books, not
+votes, are counted). A line still stays uncounted where no tier gives a size,
 or where the food is drained solids and no drained share is known (a corpus size is a net
 weight). The size spread this accepts per product class is in the build reports
 (`build/container-weighing.md`, `build/container-era-sizes.md`).

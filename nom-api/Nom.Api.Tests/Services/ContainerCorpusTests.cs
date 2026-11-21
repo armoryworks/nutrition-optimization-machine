@@ -71,6 +71,64 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_book_size_holds_more_than_half_of_the_book_s_lines_not_exactly_half()
+        {
+            var half = ContainerCorpusSizes.BookSize(BookA, new[] { Line(BookA, 85m), Line(BookA, 85m), Line(BookA, 170.1m), Line(BookA, 226.8m) })!;
+            (half.Band, half.Votes, half.RunnerUp).Should().Be((2, 4, 1));
+            (half.Passes, half.Refusal).Should().Be((false, ContainerModeRule.NoClearMode), "3 oz holds 2 of 4 lines, exactly half");
+
+            var more = ContainerCorpusSizes.BookSize(BookA, new[] { Line(BookA, 85m), Line(BookA, 85m), Line(BookA, 85m), Line(BookA, 170.1m), Line(BookA, 226.8m) })!;
+            (more.Passes, more.Grams).Should().Be((true, 85));
+        }
+
+        [Fact]
+        public void One_book_stating_two_sizes_in_the_mode_s_band_is_not_an_era_size()
+        {
+            var alone = ContainerCorpusSizes.EraSize(ContainerEras.Historic, new[] { Line(BookA, 453.6m, kind: ContainerKinds.Jar), Line(BookA, 467.8m, kind: ContainerKinds.Jar) })!;
+            (alone.Band, alone.Votes, alone.BandBooks).Should().Be((2, 2, 1));
+            (alone.Passes, alone.Refusal).Should().Be((false, ContainerCorpusSizes.FewBooks), "only book A states the mode, once as 16 oz and once as 16.5 oz");
+
+            var two = ContainerCorpusSizes.EraSize(ContainerEras.Historic, new[] { Line(BookA, 453.6m, kind: ContainerKinds.Jar), Line(BookB, 467.8m, kind: ContainerKinds.Jar) })!;
+            (two.Passes, two.BandBooks).Should().Be((true, 2));
+        }
+
+        [Fact]
+        public void An_era_size_names_the_books_that_state_it_not_the_votes_and_an_undated_pool_is_not_called_a_time()
+        {
+            var lines = new[] { Line(BookA, 85m), Line(BookB, 85m), Line(BookC, 85m), Line(BookC, 226.8m), Line("Book D", 85m), Line("Book E", 85m) };
+            var era = ContainerCorpusSizes.EraSize(ContainerEras.Historic, lines)!;
+            (era.Passes, era.Band, era.Votes, era.BandBooks, era.Books).Should().Be((true, 5, 6, 5, 5));
+            var source = ContainerCorpusSizes.SourceRef(era, ContainerEras.Historic);
+            source.Should().Be("deterministic:corpus-era:container-corpus/1:historic:85g:5/5:85-226.8g", "five books exist, one of them stating two sizes");
+            var weight = ContainerSizeResolver.Resolve("1 package cream cheese", ContainerEras.Historic,
+                new[] { Size(ContainerKinds.Package, 85m, ContainerEras.Historic, source) }, book: "Book F");
+            ContainerWeighing.Describe(weight).Should().Contain("(5 of 5 books, spread 85-226.8g)");
+            ContainerCorpusSizes.SizeText(era).Should().Contain("5 of 5 books of the historic era");
+
+            var undated = ContainerCorpusSizes.EraSize(ContainerEras.Unknown, lines.Select(l => l with { Era = ContainerEras.Unknown }).ToList())!;
+            var pooled = ContainerSizeResolver.Resolve("1 package cream cheese", ContainerEras.Unknown,
+                new[] { Size(ContainerKinds.Package, 85m, ContainerEras.Unknown, ContainerCorpusSizes.SourceRef(undated, ContainerEras.Unknown)) }, book: "Club Book");
+            ContainerWeighing.Describe(pooled).Should().Be("1 package ≈ 3 oz (85 g): the most common size other undated books state (5 of 5 books, spread 85-226.8g); estimated")
+                .And.NotContain("its time");
+            ContainerCorpusSizes.SizeText(undated).Should().Contain("5 of 5 undated books state").And.NotContain("era");
+        }
+
+        [Fact]
+        public void A_skipped_old_book_tier_passes_the_line_to_the_next_tier()
+        {
+            var sizes = new[] { Size(ContainerKinds.Package, 227m), Corpus(ContainerCorpusSizes.BookTier, 85m, book: BookA), Corpus(ContainerCorpusSizes.EraTier, 99m) };
+            ContainerSizeResolver.Resolve("1 package cream cheese", ContainerEras.Historic, sizes, book: BookA,
+                skipTiers: new HashSet<string> { ContainerSizeService.SameBookTier }).Basis.Should().Be(ContainerBasis.SameEra);
+            var modern = ContainerSizeResolver.Resolve("1 package cream cheese", ContainerEras.Historic, sizes, book: BookA,
+                skipTiers: new HashSet<string> { ContainerSizeService.SameBookTier, ContainerSizeService.SameEraTier });
+            (modern.Grams, modern.Basis).Should().Be((227m, ContainerBasis.ModernFallback));
+            ContainerSizeResolver.Resolve("1 package cream cheese", ContainerEras.Historic, sizes, book: BookA,
+                skipTiers: ContainerSizeService.OldBookTiers.ToHashSet()).Reason.Should().Be(ContainerSizeResolver.NoSize);
+            ContainerSizeResolver.Resolve("1 can corn", ContainerEras.Historic, new[] { Size(ContainerKinds.Can, 432m, source: "x") }, usdaCategoryId: 11, book: BookA,
+                skipTiers: new HashSet<string> { ContainerSizeService.PeriodTier }).Basis.Should().Be(ContainerBasis.ModernFallback);
+        }
+
+        [Fact]
         public void Only_a_sized_container_line_of_an_old_or_undated_book_is_mined()
         {
             ContainerCorpusSizes.Read(BookA, ContainerEras.Historic, 1, "1 3-oz. package cream cheese", null)!.Grams.Should().Be(85m);
@@ -98,7 +156,7 @@ namespace Nom.Api.Tests.Services
 
         private static ContainerSizeCandidate Corpus(string tier, decimal net, string era = ContainerEras.Historic, string? book = null, string kind = ContainerKinds.Package)
         {
-            var size = new CorpusSize(tier, book ?? era, 1, kind, string.Empty, (int)net, 2, 1, 2, 2, 0, net, net, $"{(int)net}:2", null);
+            var size = new CorpusSize(tier, book ?? era, 1, kind, string.Empty, (int)net, 2, 2, 2, 2, 0, net, net, $"{(int)net}:2", null, 2);
             return Size(kind, net, era, ContainerCorpusSizes.SourceRef(size, era), book);
         }
 
@@ -336,6 +394,59 @@ namespace Nom.Api.Tests.Services
             var elsewhere = await WeighAsync(other);
             elsewhere.Basis.Should().NotBe(ContainerBasis.SameBook, "book A's size is never another book's");
             elsewhere.Counted.Should().BeFalse("book C has no size of its own and the era tier is not live");
+        }
+
+        [Fact]
+        public async Task A_line_whose_corpus_tier_is_not_live_takes_the_next_live_tier_s_size_instead_of_going_uncounted()
+        {
+            var rig = await RigAsync();
+            await OldBookAsync(rig, BookA, 1910);
+            await rig.Sizes.WriteAsync(new[] { new ContainerSizeProposal(rig.Cheese, ContainerKinds.Package, ContainerEras.Modern, string.Empty, 227m, null, "8 oz", "deterministic:fdc-branded-mode:2025-12-18:cream-cheese:200/300", "cream-cheese") },
+                false, DateTime.UtcNow, true, Operator);
+            await RecipeAsync(rig, BookA, (3m, Ounce, "1 (3 oz) package cream cheese"));
+            var unsized = await RecipeAsync(rig, BookA, (1m, Package, "1 package cream cheese"));
+            await rig.Corpus.RunAsync(new ContainerCorpusImportService.Options(DryRun: false));
+            foreach (var row in rig.Db.IngredientContainerSizes) row.Status = ContainerSizeStatus.Active;
+            async Task ModeAsync(string tier, string mode)
+            {
+                rig.Db.LaneStates.RemoveRange(rig.Db.LaneStates.Where(s => s.Lane == AiLanes.ContainerSizes && s.Tier == tier));
+                rig.Db.LaneStates.Add(new LaneStateEntity { Lane = AiLanes.ContainerSizes, Tier = tier, Mode = mode, Since = DateTime.UtcNow });
+                await rig.Db.SaveChangesAsync();
+            }
+            await ModeAsync(LaneTiers.Whole, LaneMode.Live);
+            await ModeAsync(ContainerSizeService.ModernTier, LaneMode.Live);
+            await ModeAsync(ContainerSizeService.SameBookTier, LaneMode.Shadow);
+
+            async Task<ContainerWeight> WeighAsync()
+            {
+                var recipe = await rig.Db.Recipes.AsNoTracking().Include(r => r.RecipeIngredients).ThenInclude(ri => ri.Measurement).Include(r => r.RecipeIngredients).ThenInclude(ri => ri.Ingredient)
+                    .SingleAsync(r => r.Id == unsized);
+                return (await ContainerWeighing.ForRecipeAsync(rig.Db, recipe)).Weigh(recipe.RecipeIngredients!.Single())!;
+            }
+
+            var fallback = await WeighAsync();
+            (fallback.Grams, fallback.Basis).Should().Be((227m, ContainerBasis.ModernFallback), "the book's own size is in shadow, so today's live size weighs the line");
+
+            await ModeAsync(ContainerSizeService.SameBookTier, LaneMode.Live);
+            var own = await WeighAsync();
+            (own.Grams, own.Basis).Should().Be((85m, ContainerBasis.SameBook));
+        }
+
+        [Fact]
+        public async Task The_hold_out_scores_each_lower_tier_on_the_lines_a_higher_tier_answers_first()
+        {
+            var rig = await RigAsync();
+            await OldBookAsync(rig, BookA, 1910);
+            await rig.Sizes.WriteAsync(new[] { new ContainerSizeProposal(rig.Cheese, ContainerKinds.Package, ContainerEras.Modern, string.Empty, 227m, null, "8 oz", "deterministic:fdc-branded-mode:2025-12-18:cream-cheese:200/300", "cream-cheese") },
+                false, DateTime.UtcNow, true, Operator);
+            await RecipeAsync(rig, BookA, Enumerable.Range(0, 10).Select(_ => (3m, Ounce, "1 (3 oz) package cream cheese")).ToArray());
+            await rig.Corpus.RunAsync(new ContainerCorpusImportService.Options(DryRun: false));
+
+            var report = await rig.Sizes.ScoreAsync(false, Operator);
+
+            report.Tiers.Single(t => t.Tier == ContainerSizeService.SameBookTier).Lines.Should().Be(10);
+            var modern = report.Tiers.Single(t => t.Tier == ContainerSizeService.ModernTier);
+            (modern.Lines, modern.Agree).Should().Be((10, 0), "today's 8 oz would weigh these lines while the book's tier is not live, and misses each 3 oz line");
         }
     }
 }

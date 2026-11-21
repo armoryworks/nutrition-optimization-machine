@@ -14,3 +14,6 @@ r-12	1 can black beans	unknown	Constructed Grange Book	175238	454	same-book	ok	r
 r-13	1 can black beans	unknown	Constructed Sewing Circle Book	175238	425	modern-fallback	ok	rule:container-era-sizes	the undated books state 15 oz once and 16 oz once, no clear era size: today's size
 r-14	1 can corn	historic	Constructed Book A (1910)	169214	313	period-nearer	ok	deterministic:can-table:h33-veg-medium	book A names only a numbered can of corn, which is not mined: the cited 1933 period can nearer today's size, drained (as e-01)
 r-15	1 (8 oz) package cream cheese	historic	Constructed Book A (1910)	173418	227	stated	ok	rule:container-era-sizes	a stated size wins over the book's 3 oz
+r-16	1 package neufchatel cheese	historic	Constructed Book F (1940)	173420	-	-	ok	rule:container-era-sizes	book F states 3 oz twice, 6 oz once and 8 oz once: 3 oz holds exactly half, not more than half, so the book gives no size; the era has no clear mode and the food no other size
+r-17	1 jar honey	historic	Constructed Book A (1910)	169640	-	-	ok	rule:container-era-sizes	only book G states a honey jar (16 oz and 16.5 oz, one band): one book is not an era size, so book A's jar has none
+r-18	1 jar honey	historic	Constructed Book G (1945)	169640	454	same-book	ok	rule:container-era-sizes	book G's own jars, 16 oz and 16.5 oz within 5 %: 454 g

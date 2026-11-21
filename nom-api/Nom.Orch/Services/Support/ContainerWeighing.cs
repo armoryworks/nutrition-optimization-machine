@@ -21,7 +21,8 @@ namespace Nom.Orch.Services.Support
     /// while the container-sizes lane is live on the lane frame; otherwise it stays uncounted. A
     /// line of an old or undated book sized by one of the lane's old-book tiers (the same book's
     /// sized lines, the same era's, a cited period source, today's size; <see cref="ContainerBasis.OldBookTier"/>)
-    /// is weighed only while that tier is live too. A line without a container word
+    /// takes the size of the first of those tiers that is live, and stays uncounted only when no
+    /// live tier gives one. A line without a container word
     /// in its text is read by its unit ("1 Jar" of the food).
     /// Every weight it gives is an estimate and is shown as one.
     /// </summary>
@@ -31,7 +32,7 @@ namespace Nom.Orch.Services.Support
 
         private readonly IReadOnlyDictionary<long, IReadOnlyList<ContainerSizeCandidate>> _sizes;
 
-        public const string OtherEraNotLive = "an old or undated book's size by a tier of the lane that is not live";
+        public const string OtherEraNotLive = "an old or undated book's size only by tiers of the lane that are not live";
 
         /// <summary>Weighs nothing: the lane is not live, or the recipe has no container line.</summary>
         public static readonly ContainerWeighing Off = new(false, ContainerEras.Modern, new Dictionary<long, IReadOnlyList<ContainerSizeCandidate>>());
@@ -65,11 +66,14 @@ namespace Nom.Orch.Services.Support
             var text = ContainerKinds.FromText(rawLine) != null
                 ? rawLine
                 : string.Create(CultureInfo.InvariantCulture, $"{quantity} {measurement.Name} {food?.Name}");
-            var weight = ContainerSizeResolver.Resolve(text, Era, _sizes.GetValueOrDefault(ingredientId) ?? NoSizes, food?.Description, food?.GramsPerMilliliter,
+            var sizes = _sizes.GetValueOrDefault(ingredientId) ?? NoSizes;
+            var skip = Era == ContainerEras.Modern ? null : ContainerSizeService.OldBookTiers.Where(t => !LiveTiers.Contains(t)).ToHashSet(StringComparer.Ordinal);
+            var weight = ContainerSizeResolver.Resolve(text, Era, sizes, food?.Description, food?.GramsPerMilliliter,
+                usdaCategoryId: food?.FdcCategoryId, book: Book, skipTiers: skip);
+            if (weight.Counted || skip is not { Count: > 0 }) return weight;
+            var unskipped = ContainerSizeResolver.Resolve(text, Era, sizes, food?.Description, food?.GramsPerMilliliter,
                 usdaCategoryId: food?.FdcCategoryId, book: Book);
-            return weight.Counted && ContainerBasis.OldBookTier(weight.Basis, Era) is { } tier && !LiveTiers.Contains(tier)
-                ? weight with { Grams = null, Reason = OtherEraNotLive }
-                : weight;
+            return unskipped.Counted ? unskipped with { Grams = null, Reason = OtherEraNotLive } : weight;
         }
 
         /// <summary>The grams a measured container line weighs at its assumed size: the line's own count of containers times the weight of one; null when it is not weighed.</summary>
@@ -169,10 +173,11 @@ namespace Nom.Orch.Services.Support
                 var parts = first.Split(':');
                 var held = parts.Length >= 6 ? parts[5].Split('/') : Array.Empty<string>();
                 var spread = parts.Length >= 7 ? parts[6] : null;
-                if (held.Length != 2) return tier == ContainerCorpusSizes.BookTier ? "the size this book states elsewhere" : "the size old books of its time state";
+                var books = parts.Length >= 4 && parts[3] == ContainerEras.Unknown ? "other undated books" : "books of its time";
+                if (held.Length != 2) return tier == ContainerCorpusSizes.BookTier ? "the size this book states elsewhere" : $"the size {books} state";
                 return tier == ContainerCorpusSizes.BookTier
                     ? $"the size this book states for it elsewhere ({held[0]} of {held[1]} sized lines)"
-                    : $"the most common size books of its time state ({held[0]} of {held[1]} books{(spread != null ? ", spread " + spread : string.Empty)})";
+                    : $"the most common size {books} state ({held[0]} of {held[1]} books{(spread != null ? ", spread " + spread : string.Empty)})";
             }
             if (first.StartsWith("deterministic:standard-of-fill:", StringComparison.Ordinal))
                 return "the federal standard of fill (" + first["deterministic:standard-of-fill:".Length..] + ")";

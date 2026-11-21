@@ -257,11 +257,25 @@ namespace Nom.Orch.Services
                 var row = byId[assumed.RowId];
                 var signals = new HoldoutSignals(line.RecipeId, line.IngredientId, line.SortOrder, line.RawLine, line.Era, stated.Grams, grams, row.Id, row.Class,
                     ContainerSizeAgreement.Hit(grams, stated.Grams));
-                if (ContainerBasis.OldBookTier(assumed.Basis, line.Era) is { } tier) byTier[tier].Add(signals);
-                else judged.Add(signals);
+                if (ContainerBasis.OldBookTier(assumed.Basis, line.Era) is not { } tier)
+                {
+                    judged.Add(signals);
+                    continue;
+                }
+                byTier[tier].Add(signals);
+                report.OtherEraLines++;
+                if (signals.Hit) report.OtherEraAgree++;
+                var skipped = OldBookTiers.TakeWhile(t => t != tier).Append(tier).ToHashSet(StringComparer.Ordinal);
+                while (ContainerSizeResolver.Resolve(line.RawLine, line.Era, candidates, null, line.GramsPerMilliliter, hideStatedSize: true, activeOnly: false, netOnly: true,
+                        usdaCategoryId: line.UsdaCategoryId, book: line.Book, skipTiers: skipped) is { GramsPerContainer: { } next, RowId: not 0 } below
+                    && ContainerBasis.OldBookTier(below.Basis, line.Era) is { } lower)
+                {
+                    var lowerRow = byId[below.RowId];
+                    byTier[lower].Add(new HoldoutSignals(line.RecipeId, line.IngredientId, line.SortOrder, line.RawLine, line.Era, stated.Grams, next, lowerRow.Id, lowerRow.Class,
+                        ContainerSizeAgreement.Hit(next, stated.Grams)));
+                    skipped.Add(lower);
+                }
             }
-            report.OtherEraLines = byTier.Values.Sum(t => t.Count);
-            report.OtherEraAgree = byTier.Values.Sum(t => t.Count(j => j.Hit));
             report.HoldoutLines = judged.Count;
             report.HoldoutAgree = judged.Count(j => j.Hit);
 
