@@ -366,7 +366,8 @@ namespace Nom.Orch.Services
                     && !await _db.FoodCatalogProposals.IgnoreQueryFilters().AnyAsync(p => p.IngredientId == id)
                     && !await _db.IngredientAliases.IgnoreQueryFilters().AnyAsync(a => a.IngredientId == id)
                     && !await _db.IngredientNutrients.IgnoreQueryFilters().AnyAsync(n => n.IngredientId == id)
-                    && !await _db.AuditLogEntries.AnyAsync(a => a.EntityType == RelinkEntityType && a.ChangeType == RelinkChangeType && a.OldValue != null && a.OldValue.StartsWith(placeOf))
+                    && !await _db.AuditLogEntries.AnyAsync(a => a.EntityType == RelinkEntityType && (a.ChangeType == RelinkChangeType || a.ChangeType == LinkRecheckService.LineChangeType)
+                        && a.OldValue != null && a.OldValue.StartsWith(placeOf))
                     && !await IsUsedOutsideRecipeLinesAsync(id))
                     removed.Add(id);
             }

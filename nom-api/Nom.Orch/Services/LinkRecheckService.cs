@@ -29,6 +29,7 @@ namespace Nom.Orch.Services
         public const string WithdrawChangeType = "LinkRecheckWithdraw";
         public const string AliasChangeType = "LinkRecheckAlias";
         public const string FoodChangeType = "LinkRecheckFood";
+        public const string LineChangeType = "LinkRecheckLine";
         public const string WithdrawRun = "withdraw";
         public const string NamesRun = "names";
         public const string CreatedProperty = "Created";
@@ -134,6 +135,8 @@ namespace Nom.Orch.Services
 
             var stamp = NewStamp();
             var personId = _currentUser.PersonIdOrSystem;
+            var summary = new LinkRecheckRunSummary { Set = WithdrawRun, Stamp = stamp, Signature = LinkRecheckRules.Signature };
+            var header = await StartAsync(WithdrawRun, stamp, summary, personId, cancellationToken);
             foreach (var chunk in picks.Select(p => p.Id).Chunk(1000))
             {
                 await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(cancellationToken) : null;
@@ -161,11 +164,8 @@ namespace Nom.Orch.Services
             }
 
             result.Stamp = stamp;
-            _db.AuditLogEntries.Add(Header(WithdrawRun, stamp, new LinkRecheckRunSummary
-            {
-                Set = WithdrawRun, Stamp = stamp, Withdrawn = result.Withdrawn, Signature = LinkRecheckRules.Signature,
-            }, personId));
-            await _db.SaveChangesAsync(cancellationToken);
+            summary.Withdrawn = result.Withdrawn;
+            await FinishAsync(header, summary, cancellationToken);
             _logger.LogInformation("Link re-check: withdrew {Count} waiting model picks under stamp {Stamp:O}", result.Withdrawn, stamp);
             return result;
         }
@@ -288,12 +288,17 @@ namespace Nom.Orch.Services
                 if (!foods.TryGetValue(group.FoodId, out var food)) continue;
                 var before = group.Lines.Count;
                 group.Lines.RemoveAll(l => alternatives.Contains((l.RecipeId, l.FoodId, l.SortOrder)));
+                var prepared = set == LinkRecheckRules.Prepared;
                 if (set != LinkRecheckRules.Wordings && verified.TryGetValue(group.Wording, out var row) && row.Food == food.Id)
                 {
-                    skipped.Add(new Decided(group, food, new RecheckVerdict(LinkRecheckRules.Verified, "verified wording row #" + row.Id, null, Array.Empty<GateHold>()), LinkRecheckRules.Verified));
-                    continue;
+                    group.WordingRowId = row.Id;
+                    if (!prepared)
+                    {
+                        skipped.Add(new Decided(group, food, new RecheckVerdict(LinkRecheckRules.Verified, "verified wording row #" + row.Id, null, Array.Empty<GateHold>()), LinkRecheckRules.Verified));
+                        continue;
+                    }
                 }
-                if (admin.Contains((food.Id, group.Wording)))
+                if (!prepared && admin.Contains((food.Id, group.Wording)))
                 {
                     skipped.Add(new Decided(group, food, new RecheckVerdict(LinkRecheckRules.Verified, "a person's alias", null, Array.Empty<GateHold>()), LinkRecheckRules.Verified));
                     continue;
@@ -324,18 +329,24 @@ namespace Nom.Orch.Services
 
             Tally(result, decisions, sampleSize);
             var stamp = NewStamp();
-            if (apply) await WriteAsync(decisions.Where(d => d.Skip == null && d.Verdict.Outcome is LinkRecheckRules.Move or LinkRecheckRules.Unlink).ToList(), stamp, result, cancellationToken);
-            if (mode != null) await RecordAsync(set, signature, mode, lane, lane ? decisions : decisions.Where(d => d.Skip == null).ToList(), apply ? stamp : null, cancellationToken);
-            if (apply || lane)
+            var summary = new LinkRecheckRunSummary
+            {
+                Set = set, Stamp = stamp, Lane = lane, Mode = mode, Signature = signature, Groups = result.Groups, Kept = result.Kept + result.Verified + result.Alternatives, Held = result.Held,
+            };
+            long? header = null;
+            if (apply)
             {
                 result.Stamp = stamp;
-                _db.AuditLogEntries.Add(Header(set, stamp, new LinkRecheckRunSummary
-                {
-                    Set = set, Stamp = stamp, Lane = lane, Mode = mode, Signature = signature, Groups = result.Groups, Kept = result.Kept + result.Verified + result.Alternatives,
-                    Held = result.Held, LinesMoved = result.LinesMoved, LinesUnlinked = result.LinesUnlinked,
-                    AliasesChanged = result.AliasesMoved + result.AliasesUntrusted + result.AliasesRemoved + result.AliasesAdded,
-                }, _currentUser.PersonIdOrSystem));
-                await _db.SaveChangesAsync(cancellationToken);
+                header = await StartAsync(set, stamp, summary, _currentUser.PersonIdOrSystem, cancellationToken);
+                await WriteAsync(decisions.Where(d => d.Skip == null && d.Verdict.Outcome is LinkRecheckRules.Move or LinkRecheckRules.Unlink).ToList(), stamp, result, cancellationToken);
+            }
+            if (mode != null) await RecordAsync(set, signature, mode, lane, lane ? decisions : decisions.Where(d => d.Skip == null).ToList(), apply ? stamp : null, cancellationToken);
+            if (header != null)
+            {
+                summary.LinesMoved = result.LinesMoved;
+                summary.LinesUnlinked = result.LinesUnlinked;
+                summary.AliasesChanged = result.AliasesMoved + result.AliasesUntrusted + result.AliasesRemoved + result.AliasesAdded;
+                await FinishAsync(header.Value, summary, cancellationToken);
             }
 
             _logger.LogInformation(
@@ -457,7 +468,7 @@ namespace Nom.Orch.Services
 
                     var aliases = (await _db.IngredientAliases.AsNoTracking()
                             .Where(a => !a.IsDeleted && !a.Ingredient.IsDeleted && a.Ingredient.CurationStatusId == (long)CurationStatusEnum.Curated
-                                && (a.SourceContext == null || a.SourceContext.StartsWith(LinkAiPrefix)))
+                                && (a.SourceContext == null || a.SourceContext.StartsWith(LinkAiPrefix) || a.SourceContext.StartsWith(MovedAliasPrefix)))
                             .Select(a => new { a.IngredientId, a.AliasName })
                             .ToListAsync(cancellationToken))
                         .Select(a => (a.IngredientId, a.AliasName, Reading: AlcoholLineContext.Read(a.AliasName)))
@@ -544,7 +555,8 @@ namespace Nom.Orch.Services
             {
                 var aliases = await _db.IngredientAliases.AsNoTracking()
                     .Where(a => !a.IsDeleted && !a.Ingredient.IsDeleted && a.SourceContext != null
-                        && (a.SourceContext.StartsWith(IngredientAliasTrust.RecheckPrefix) || a.SourceContext.StartsWith(IngredientAliasTrust.DeterministicLinkPrefix)))
+                        && (a.SourceContext.StartsWith(IngredientAliasTrust.RecheckPrefix) || a.SourceContext.StartsWith(IngredientAliasTrust.DeterministicLinkPrefix)
+                            || a.SourceContext.StartsWith(MovedAliasPrefix)))
                     .Select(a => new { a.IngredientId, a.AliasName })
                     .ToListAsync(cancellationToken);
                 foreach (var a in aliases)
@@ -727,7 +739,7 @@ namespace Nom.Orch.Services
                         {
                             EntityType = LineRelinkService.RelinkEntityType,
                             EntityId = line.RecipeId,
-                            ChangeType = LineRelinkService.RelinkChangeType,
+                            ChangeType = LineChangeType,
                             PropertyName = nameof(RecipeIngredientEntity.IngredientId),
                             OldValue = LineRelinkService.Place(line.FoodId, line.SortOrder),
                             NewValue = LineRelinkService.Place(target, position.Value),
@@ -739,6 +751,7 @@ namespace Nom.Orch.Services
                     }
                     if (move) result.LinesMoved += moved;
                     else result.LinesUnlinked += moved;
+                    if (moved > 0 && d.Group.WordingRowId is { } wordingRow && !result.WordingRows.Contains(wordingRow)) result.WordingRows.Add(wordingRow);
 
                     await RetireAliasesAsync(d, stamp, personId, result, cancellationToken);
                     if (move) await TrustOnTargetAsync(d, target, stamp, personId, result, cancellationToken);
@@ -755,7 +768,9 @@ namespace Nom.Orch.Services
         /// <summary>
         /// The uncurated food a wording's lines go back to: the live one of its name that no USDA
         /// entry backs, or a new one, created after any retired row holding the name is renamed out
-        /// of the way (both journaled). Null when a curated or USDA food holds the name.
+        /// of the way (both journaled). It may sit beside a curated or USDA food whose name differs
+        /// only in case, as every wording food does. Null only when a curated or USDA food holds
+        /// the very same name, which the unique index on the name refuses to repeat.
         /// </summary>
         private async Task<long?> HomeAsync(string wording, DateTime stamp, long personId, LinkRecheckResult result, CancellationToken cancellationToken)
         {
@@ -803,7 +818,8 @@ namespace Nom.Orch.Services
         private static bool Retirable(string? context) =>
             context == null || context.StartsWith(LinkAiPrefix, StringComparison.Ordinal)
             || context.StartsWith(IngredientAliasTrust.RecheckPrefix, StringComparison.Ordinal)
-            || context.StartsWith(IngredientAliasTrust.DeterministicLinkPrefix, StringComparison.Ordinal);
+            || context.StartsWith(IngredientAliasTrust.DeterministicLinkPrefix, StringComparison.Ordinal)
+            || context.StartsWith(MovedAliasPrefix, StringComparison.Ordinal);
 
         /// <summary>Removes the wording's aliases on the food its lines left that a rule or a model pick put there (never a USDA description, a person's or a retired food's name).</summary>
         private async Task RetireAliasesAsync(Decided d, DateTime stamp, long personId, LinkRecheckResult result, CancellationToken cancellationToken)
@@ -879,6 +895,24 @@ namespace Nom.Orch.Services
             }
         }
 
+        /// <summary>Writes a run's header before its first write, so a run cut off partway still has the stamp its undo takes; returns the header's id.</summary>
+        private async Task<long> StartAsync(string set, DateTime stamp, LinkRecheckRunSummary summary, long personId, CancellationToken cancellationToken)
+        {
+            var header = Header(set, stamp, summary, personId);
+            _db.AuditLogEntries.Add(header);
+            await _db.SaveChangesAsync(cancellationToken);
+            return header.Id;
+        }
+
+        /// <summary>Marks a run's header complete with its final counts.</summary>
+        private async Task FinishAsync(long headerId, LinkRecheckRunSummary summary, CancellationToken cancellationToken)
+        {
+            summary.Complete = true;
+            var header = await _db.AuditLogEntries.SingleAsync(a => a.Id == headerId, cancellationToken);
+            header.NewValue = Clip(LaneJournal.Write(summary), 4000);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
         private static AuditLogEntryEntity Header(string set, DateTime stamp, LinkRecheckRunSummary summary, long personId) => new()
         {
             EntityType = EntityType,
@@ -920,14 +954,14 @@ namespace Nom.Orch.Services
 
             var entries = await _db.AuditLogEntries.AsNoTracking()
                 .Where(a => a.Timestamp == stamp
-                    && ((a.EntityType == LineRelinkService.RelinkEntityType && a.ChangeType == LineRelinkService.RelinkChangeType)
+                    && ((a.EntityType == LineRelinkService.RelinkEntityType && a.ChangeType == LineChangeType)
                         || (a.EntityType == LineRelinkService.RetireEntityType && a.ChangeType == LineRelinkService.RetireChangeType)
                         || a.ChangeType == AliasChangeType || a.ChangeType == FoodChangeType))
                 .ToListAsync(cancellationToken);
-            var lineEntries = entries.Where(a => a.ChangeType is LineRelinkService.RelinkChangeType or LineRelinkService.RetireChangeType).ToList();
+            var lineEntries = entries.Where(a => a.ChangeType is LineChangeType or LineRelinkService.RetireChangeType).ToList();
             var aliasEntries = entries.Where(a => a.ChangeType == AliasChangeType).OrderByDescending(a => a.Id).ToList();
             var foodEntries = entries.Where(a => a.ChangeType == FoodChangeType).ToList();
-            result.LineEntries = lineEntries.Count(a => a.ChangeType == LineRelinkService.RelinkChangeType);
+            result.LineEntries = lineEntries.Count(a => a.ChangeType == LineChangeType);
             result.AliasEntries = aliasEntries.Count;
             var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db, lineEntries.Where(a => a.EntityType == LineRelinkService.RelinkEntityType).Select(a => a.EntityId).ToList());
             result.OnRebuiltRecipes = lineEntries.Count(a => a.EntityType == LineRelinkService.RelinkEntityType && rebuilt.TryGetValue(a.EntityId, out var at) && at > a.Timestamp);
@@ -1041,6 +1075,8 @@ namespace Nom.Orch.Services
             if (!apply || result.Listed.All(r => r.NewName == null)) return result;
 
             var stamp = NewStamp();
+            var summary = new LinkRecheckRunSummary { Set = NamesRun, Stamp = stamp, Signature = LinkRecheckRules.Signature };
+            var header = await StartAsync(NamesRun, stamp, summary, _currentUser.PersonIdOrSystem, cancellationToken);
             foreach (var row in result.Listed.Where(r => r.NewName != null))
             {
                 var renamed = await _relink.RenameAsync(row.IngredientId, row.NewName!, stamp);
@@ -1048,8 +1084,8 @@ namespace Nom.Orch.Services
                 if (row.Renamed) result.Renamed++;
             }
             result.Stamp = stamp;
-            _db.AuditLogEntries.Add(Header(NamesRun, stamp, new LinkRecheckRunSummary { Set = NamesRun, Stamp = stamp, Renamed = result.Renamed, Signature = LinkRecheckRules.Signature }, _currentUser.PersonIdOrSystem));
-            await _db.SaveChangesAsync(cancellationToken);
+            summary.Renamed = result.Renamed;
+            await FinishAsync(header, summary, cancellationToken);
             return result;
         }
 
@@ -1143,7 +1179,8 @@ namespace Nom.Orch.Services
             int restored = 0, skipped = 0;
             foreach (var header in headers)
             {
-                if (LaneJournal.Read<LinkRecheckRunSummary>(header.NewValue) is not { Lane: true } summary || summary.LinesMoved + summary.LinesUnlinked + summary.AliasesChanged == 0) continue;
+                if (LaneJournal.Read<LinkRecheckRunSummary>(header.NewValue) is not { Lane: true, Mode: LaneMode.Live } summary
+                    || (summary.Complete && summary.LinesMoved + summary.LinesUnlinked + summary.AliasesChanged == 0)) continue;
                 if (header.OldValue != null && undone.Contains(header.OldValue)) continue;
                 var result = await _recheck.UndoAsync(header.Timestamp, apply, cancellationToken);
                 restored += apply ? result.LinesRestored + result.AliasesRestored : result.LineEntries + result.AliasEntries;

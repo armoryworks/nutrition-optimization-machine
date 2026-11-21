@@ -200,7 +200,7 @@ namespace Nom.Api.Tests.Services
             (await db.Ingredients.SingleAsync(i => i.Id == home)).Should().Match<IngredientEntity>(i => i.CurationStatusId == (long)CurationStatusEnum.NonCurated && i.FdcId == null);
             (await db.IngredientAliases.IgnoreQueryFilters().SingleAsync(a => a.IngredientId == bar.Liqueur.Id && a.AliasName == "brandy")).IsDeleted.Should().BeTrue("the model pick's alias stops teaching the wrong food");
             (await db.IngredientAliases.SingleAsync(a => a.IngredientId == bar.Spirit.Id && a.SourceContext!.StartsWith(LinkRecheckService.MovedAliasPrefix))).AliasName.Should().NotBeEmpty();
-            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LineRelinkService.RelinkChangeType && a.Timestamp == run.Stamp)).Should().Be(3);
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LinkRecheckService.LineChangeType && a.Timestamp == run.Stamp)).Should().Be(3);
 
             var undoDry = await service.UndoAsync(run.Stamp!.Value);
             (undoDry.Found, undoDry.LineEntries, undoDry.Applied).Should().Be((true, 3, false));
@@ -539,6 +539,182 @@ namespace Nom.Api.Tests.Services
         {
             LinkRecheckAudit.Problem(new FakeJudge(LinkJudgement.Same, "phi4"), new FakeJudge(LinkJudgement.Same, "mistral-nemo")).Should().BeNull();
             LinkRecheckAudit.Problem(new FakeJudge(LinkJudgement.Same, "phi4"), new FakeJudge(LinkJudgement.Same, "phi4-mini")).Should().Contain("phi");
+        }
+
+        /// <summary>Lets a number of saves that touch what <c>counts</c> names through, then fails the next one once, as a request cut off mid-run.</summary>
+        private sealed class CutOff : SaveChangesInterceptor
+        {
+            private readonly Func<DbContext, bool> _counts;
+            private int _left;
+
+            public CutOff(int after, Func<DbContext, bool> counts) => (_left, _counts) = (after, counts);
+
+            public bool Armed { get; set; }
+
+            public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+            {
+                if (Armed && eventData.Context != null && _counts(eventData.Context) && _left-- <= 0)
+                {
+                    Armed = false;
+                    throw new OperationCanceledException("cut off");
+                }
+                return base.SavingChangesAsync(eventData, result, cancellationToken);
+            }
+        }
+
+        private static ApplicationDbContext NewContext(CutOff cutOff) =>
+            new(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                .AddInterceptors(cutOff)
+                .Options);
+
+        [Fact]
+        public async Task A_withdrawal_cut_off_after_its_first_chunk_shows_its_stamp_and_is_undone_by_it()
+        {
+            var cutOff = new CutOff(1, ctx => ctx.ChangeTracker.Entries<FoodCatalogProposalEntity>().Any(e => e.State == EntityState.Modified));
+            await using var db = NewContext(cutOff);
+            var holder = Food("brandy", status: (long)CurationStatusEnum.NonCurated);
+            var liqueur = Food("Coffee Cream Liqueur");
+            db.Ingredients.AddRange(holder, liqueur);
+            await db.SaveChangesAsync();
+            db.FoodCatalogProposals.AddRange(Enumerable.Range(0, 1001).Select(_ => Pick(holder.Id, "brandy", liqueur.Id)));
+            await db.SaveChangesAsync();
+            var service = Recheck(db);
+
+            cutOff.Armed = true;
+            await FluentActions.Awaiting(() => service.WithdrawPicksAsync(apply: true)).Should().ThrowAsync<OperationCanceledException>();
+            db.ChangeTracker.Clear();
+            (await db.FoodCatalogProposals.IgnoreQueryFilters().CountAsync(p => p.IsDeleted)).Should().Be(1000, "the first chunk was committed");
+
+            var status = await service.StatusAsync(enabled: false);
+            status.LastWithdraw.Should().NotBeNull("the run's header is written before its first chunk, so the operator finds the stamp");
+            status.LastWithdraw!.Complete.Should().BeFalse();
+            var undo = await service.UndoAsync(status.LastWithdraw.Stamp, apply: true);
+            undo.Found.Should().BeTrue();
+            db.ChangeTracker.Clear();
+            (await db.FoodCatalogProposals.IgnoreQueryFilters().CountAsync(p => p.IsDeleted)).Should().Be(0);
+        }
+
+        [Fact]
+        public async Task A_set_run_cut_off_partway_shows_its_stamp_and_is_undone_by_it_and_by_the_lanes_undo()
+        {
+            var cutOff = new CutOff(2, ctx => ctx.ChangeTracker.Entries<RecipeIngredientEntity>().Any(e => e.State is EntityState.Added or EntityState.Deleted));
+            await using var db = NewContext(cutOff);
+            await BarAsync(db);
+            var service = Recheck(db);
+            var before = await FingerprintAsync(db);
+
+            cutOff.Armed = true;
+            await FluentActions.Awaiting(() => service.RunLaneBatchAsync(LinkRecheckRules.Alcohol, LaneMode.Live, 100)).Should().ThrowAsync<OperationCanceledException>();
+            (await FingerprintAsync(db)).Should().NotBe(before, "one line had moved before the cut");
+
+            var status = await service.StatusAsync(enabled: false);
+            var run = status.LastRuns.Should().ContainSingle(r => r.Set == LinkRecheckRules.Alcohol).Subject;
+            run.Complete.Should().BeFalse();
+            (await service.UndoAsync(run.Stamp)).Found.Should().BeTrue();
+            (await new LinkRecheckLaneUndo(service, db).UndoSinceAsync(LinkRecheckRules.Alcohol, run.Stamp.AddSeconds(-1), apply: true, CancellationToken.None)).Undone.Should().BeGreaterThan(0);
+            (await FingerprintAsync(db)).Should().Be(before);
+        }
+
+        [Fact]
+        public async Task The_time_window_relink_undo_leaves_the_rechecks_line_moves_to_the_rechecks_own_undo()
+        {
+            await using var db = NewContext();
+            var bar = await BarAsync(db);
+            var service = Recheck(db);
+            var before = await FingerprintAsync(db);
+            var run = await service.RunAsync(LinkRecheckRules.Alcohol, apply: true);
+
+            var relinkUndo = await new LineRelinkService(db, new NoUser()).UndoAsync(run!.Stamp!.Value.AddMinutes(-1), apply: true);
+            relinkUndo.Restored.Should().Be(0);
+            (await FoodOfAsync(db, bar.Trifle.Id, "1 glass of sherry")).Should().Be(bar.DrySherry.Id, "the line and the trusted alias on the sherry go back together, by the re-check's stamp");
+
+            (await service.UndoAsync(run.Stamp.Value, apply: true)).LinesRestored.Should().Be(3);
+            (await FingerprintAsync(db)).Should().Be(before);
+        }
+
+        [Fact]
+        public async Task A_wording_the_recheck_moved_is_read_again_by_the_later_sets_and_its_alias_goes_when_its_lines_leave()
+        {
+            await using var db = NewContext();
+            var skins = Food("Raw Potato Skins", "Potatoes, raw, skin", "170032", 11);
+            var potatoes = Food("Potatoes", "Potatoes, flesh and skin, raw", "170026", 11);
+            var chorizo = Food("Chorizo", "Chorizo, pork and beef", "174580", 7);
+            db.Ingredients.AddRange(skins, potatoes, chorizo);
+            await db.SaveChangesAsync();
+            db.IngredientAliases.AddRange(
+                new IngredientAliasEntity { IngredientId = skins.Id, AliasName = "large potatoes", SourceContext = LinkRecheckService.MovedAliasPrefix + LinkRecheckRules.NameRuleTier },
+                new IngredientAliasEntity { IngredientId = chorizo.Id, AliasName = "ground pork sausage", SourceContext = LinkRecheckService.MovedAliasPrefix + LinkRecheckRules.NameRuleTier });
+            var soup = Scraped("Potato soup", (skins, "4 large potatoes"), (chorizo, "1 lb ground pork sausage"));
+            db.Recipes.Add(soup);
+            await db.SaveChangesAsync();
+            var service = Recheck(db);
+
+            var aliases = await service.RunAsync(LinkRecheckRules.Aliases);
+            aliases!.Samples.Should().Contain(s => s.FoodId == chorizo.Id && s.Wording == "ground pork sausage" && s.Lines == 1, "a trusted alias the re-check gave is rule-given too");
+
+            var run = await service.RunAsync(LinkRecheckRules.PartHerb, apply: true);
+            (await FoodOfAsync(db, soup.Id, "4 large potatoes")).Should().NotBe(skins.Id);
+            (await db.IngredientAliases.IgnoreQueryFilters().SingleAsync(a => a.IngredientId == skins.Id && a.AliasName == "large potatoes")).IsDeleted
+                .Should().BeTrue("the re-check's own alias stops teaching imports the skins once its lines leave");
+            run!.AliasesUntrusted.Should().BeGreaterThan(0);
+        }
+
+        [Fact]
+        public async Task The_prepared_set_takes_lines_off_a_prepared_food_even_where_a_verified_row_or_a_persons_alias_gives_it_and_lists_the_row()
+        {
+            await using var db = NewContext();
+            var taquitos = Food("Beef Taquitos", "Fast foods, taquitos, beef", "171999", 25);
+            var nuggets = Food("Chicken Nuggets", "Fast foods, chicken nuggets", "171998", 25);
+            db.Ingredients.AddRange(taquitos, nuggets);
+            await db.SaveChangesAsync();
+            var row = new IngredientWordingEntity { Wording = "taquitos", Verdict = IngredientWordingVerdict.Food, IngredientId = taquitos.Id, Batch = "w01", Source = "test" };
+            db.IngredientWordings.Add(row);
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = nuggets.Id, AliasName = "nuggets", SourceContext = IngredientAliasTrust.AdminPrefix + "7" });
+            var party = Scraped("Party", (taquitos, "12 taquitos"), (nuggets, "20 nuggets"));
+            db.Recipes.Add(party);
+            await db.SaveChangesAsync();
+
+            var run = await Recheck(db).RunAsync(LinkRecheckRules.Prepared, apply: true);
+            run!.Verified.Should().Be(0, "a prepared food is never a recipe line's food, whoever gave it");
+            run.LinesUnlinked.Should().Be(2);
+            (await FoodOfAsync(db, party.Id, "12 taquitos")).Should().NotBe(taquitos.Id);
+            (await FoodOfAsync(db, party.Id, "20 nuggets")).Should().NotBe(nuggets.Id);
+            run.WordingRows.Should().Equal(new[] { row.Id }, "its retract is the operator's next step, so imports stop landing on the prepared food");
+        }
+
+        [Fact]
+        public async Task A_shadow_batch_writes_no_run_header_so_the_status_keeps_the_operators_run_and_the_lanes_undo_has_nothing_to_take()
+        {
+            await using var db = NewContext();
+            await BarAsync(db);
+            var service = Recheck(db);
+            var applied = await service.RunAsync(LinkRecheckRules.Alcohol, apply: true, max: 1);
+
+            var shadow = await service.RunLaneBatchAsync(LinkRecheckRules.Alcohol, LaneMode.Shadow, 100);
+            shadow.Groups.Should().Be(2);
+            shadow.Stamp.Should().BeNull();
+            var status = await service.StatusAsync(enabled: true);
+            status.LastRuns.Should().ContainSingle(r => r.Set == LinkRecheckRules.Alcohol).Which.Stamp.Should().Be(applied!.Stamp!.Value);
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LinkRecheckService.RunChangeType)).Should().Be(1);
+            (await new LinkRecheckLaneUndo(service, db).UndoSinceAsync(LaneTiers.Whole, applied.Stamp.Value.AddSeconds(-1), apply: true, CancellationToken.None)).Undone.Should().Be(0);
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == LinkRecheckService.UndoChangeType)).Should().Be(0);
+        }
+
+        [Fact]
+        public async Task A_take_back_next_to_a_curated_food_of_the_same_name_in_another_case_lands_on_its_wording_food()
+        {
+            await using var db = NewContext();
+            var tortellini = Food("Cheese Tortellini", "Restaurant, Italian, cheese tortellini", "171234", 25);
+            db.Ingredients.Add(tortellini);
+            await db.SaveChangesAsync();
+            var dinner = Scraped("Dinner", (tortellini, "1 lb cheese tortellini"));
+            db.Recipes.Add(dinner);
+            await db.SaveChangesAsync();
+
+            var run = await Recheck(db).RunAsync(LinkRecheckRules.Prepared, apply: true);
+            (run!.LinesUnlinked, run.NoHome, run.FoodsCreated).Should().Be((1, 0, 1), "the wording food is the uncurated landing an unlinked wording always has; only the very same name is refused, by the unique index");
         }
     }
 }

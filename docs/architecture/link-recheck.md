@@ -29,14 +29,14 @@ lines of one wording and one reading. Run them in this order (plan 3.3 step 8):
 
 | Set | Wordings | Acts on |
 |---|---|---|
-| `alcohol` | every line on a curated food with an alcohol word whose sense (`AlcoholLineContext.Read` with the recipe's title, lines, steps and source) refuses the food, and every model or context-free alias on a curated food whose sense refuses it (alcohol A4) | `alcohol-drink`, `alcohol-no-food`, `alcohol-not-drink` |
-| `part-herb` | applied model links and rule-given trusted aliases | `part`, `fresh-herb` |
+| `alcohol` | every line on a curated food with an alcohol word whose sense (`AlcoholLineContext.Read` with the recipe's title, lines, steps and source) refuses the food, and every model, context-free or re-check alias on a curated food whose sense refuses it (alcohol A4) | `alcohol-drink`, `alcohol-no-food`, `alcohol-not-drink` |
+| `part-herb` | applied model links and rule-given trusted aliases (including the re-check's own) | `part`, `fresh-herb` |
 | `compound` | the same | `compound`, `heading` |
 | `container-form` | every can, tin or jar line on a food whose USDA entry is not canned, and every drained line on the whole can | the container line rule |
 | `prepared` | every line on a prepared food (USDA categories 3, 21, 22, 25) | `prepared` |
 | `applied-1103` | model links applied on 2026-11-03 | every gate rule |
 | `applied` | every other applied model link | every gate rule |
-| `aliases` | trusted aliases with a `deterministic:recheck:` or `link:deterministic:` context | every gate rule |
+| `aliases` | trusted aliases with a `deterministic:recheck:`, `deterministic:recheck2:` or `link:deterministic:` context | every gate rule |
 | `wordings` | verified wording rows (report only: writes nothing) | every gate rule |
 
 For each wording the gate is asked about the food it is on, with its lines. When the gate holds it
@@ -53,7 +53,10 @@ with a rule the set acts on:
 2. Else, on a **hard** hold (heading, compound, retired, branded, prepared, the three alcohol rules,
    part, fresh herb, form, marked variant), **take back**: the lines go to the uncurated food of the
    wording's name (created when none is live, after a retired row holding the name is renamed out of
-   the way). No food is better than a wrong one. The recipe stays out of planning until the wording
+   the way). Like every wording food it may sit beside a curated or USDA food whose name differs only
+   in case ("cheese tortellini" beside "Cheese Tortellini"); only a curated or USDA food holding the
+   very same name stops it (the unique index on the name), and the lines then stay, counted
+   `noHome`. No food is better than a wrong one. The recipe stays out of planning until the wording
    lanes find the right food, and the link lane asks about the new ingredient through the gate.
 3. Else **keep** the lines (counted as held). The container rule never takes a line back.
 
@@ -61,25 +64,34 @@ The gate's `units` and `grams` rules are not read: the re-check moves a line wit
 computes no grams. A line the compound lane put on an alternative on purpose (a `LineAlternative`
 entry for its place), a wording the verified wording table gives to its food (taken back by
 `wordings/{id}/retract`, which keeps the rejection) and a wording a person approved for the food (an
-`admin:` alias) are left and counted. The `wordings` set lists the verified rows the gate now holds,
-with the row id, for that retract.
+`admin:` alias) are left and counted. The `prepared` set is the exception: a prepared food is never a
+recipe line's food (owner answer 2, second round), so it takes those lines off too and lists the
+verified rows it acted against in `wordingRows`; retract each, or imports keep landing on the
+prepared food. The `wordings` set lists the verified rows the gate now holds, with the row id, for
+that retract.
 
 A move or take-back also removes the wording's aliases on the old food that a rule or a model pick
-put there (null, `link:ai:`, `deterministic:recheck:`, `link:deterministic:`; never a USDA
-description, an `admin:` or a `retired:` alias), and a move gives the wording a trusted alias
-`deterministic:recheck2:<tier>` on its new food, so a later import follows it rather than the
-applied link of the retired holder.
+put there (null, `link:ai:`, `deterministic:recheck:`, `deterministic:recheck2:`,
+`link:deterministic:`; never a USDA description, an `admin:` or a `retired:` alias), and a move gives
+the wording a trusted alias `deterministic:recheck2:<tier>` on its new food, so a later import
+follows it rather than the applied link of the retired holder. That alias and the lines it moved
+are read again by the `alcohol`, `part-herb`, `compound` and `aliases` sets, so a move made under an
+older gate is checked again when the gate's signature changes.
 
 ## Journal and undo
 
-Every write of a run carries the run's stamp (UTC, whole milliseconds): `LineRelink` entries for
+Every write of a run carries the run's stamp (UTC, whole milliseconds): `LinkRecheckLine` entries for
 lines (old and new `food@position`), `LinkRecheckAlias` for aliases (old and new name, context,
 deleted), `LinkRecheckFood` for an ingredient created and a name freed, and a `LinkRecheckRun`
-header with the counts. `POST undo?stamp=&apply=` takes the run back: lines through
+header. The header is written before the run's first write and completed with the counts at its end
+(`complete`), so a withdrawal, set run or rename cut off partway (a timeout, a restart) still shows
+its stamp on the status and is undone by it. Only a run that writes has a header: a lane batch in
+shadow records its decisions on the frame and nothing in the journal. `POST undo?stamp=&apply=` takes the run back: lines through
 `LineRelinkService.UndoEntriesAsync` (newest first; a line on a recipe rebuilt after the run stays,
 counted `skippedRebuilt`, so undo the rebuild first), then the aliases, then the created ingredients
 that hold nothing again, then the freed names. A dry run counts entries and those on rebuilt
-recipes. The time-window `relink/undo` also sees the `LineRelink` entries; prefer the stamp.
+recipes. Line moves have their own change type, so the time-window `relink/undo` and a wording
+retract never take back a re-check's lines without its aliases; only its stamp does.
 
 `POST names?apply=` lists curated foods whose name claims a colour, "whole" or "seed" their USDA
 entry lacks while the entry names a form the name lacks, and renames those in the fixed table by

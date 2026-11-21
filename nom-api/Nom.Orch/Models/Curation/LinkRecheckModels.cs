@@ -59,7 +59,8 @@ namespace Nom.Orch.Models.Curation
     /// <summary>
     /// One run of a re-check rule set: the wordings and lines it read, what it kept, moved to
     /// another food and took back to an uncurated food of their wording, the aliases it moved,
-    /// untrusted, removed or added, the run's stamp (its undo takes it) and samples by outcome.
+    /// untrusted, removed or added, the run's stamp (its undo takes it), the verified wording rows
+    /// whose lines it took off a prepared food (each to be retracted) and samples by outcome.
     /// </summary>
     public class LinkRecheckResult
     {
@@ -88,12 +89,13 @@ namespace Nom.Orch.Models.Curation
         public int FoodsCreated { get; set; }
         public int ApprovedRecipes { get; set; }
         public int Remaining { get; set; }
+        public List<long> WordingRows { get; set; } = new();
         public Dictionary<string, int> ByReason { get; set; } = new();
         public Dictionary<string, int> ByTier { get; set; } = new();
         public List<LinkRecheckSample> Samples { get; set; } = new();
     }
 
-    /// <summary>What a run's journal header keeps: the set, the stamp, who ran it and its counts.</summary>
+    /// <summary>What a run's journal header keeps: the set, the stamp, who ran it, its counts and whether it ran to its end (a run cut off keeps the header written before its first write).</summary>
     public class LinkRecheckRunSummary
     {
         public string Set { get; set; } = string.Empty;
@@ -102,6 +104,7 @@ namespace Nom.Orch.Models.Curation
         public string? Mode { get; set; }
         public string Signature { get; set; } = string.Empty;
         public bool Undone { get; set; }
+        public bool Complete { get; set; }
         public int Groups { get; set; }
         public int Kept { get; set; }
         public int Held { get; set; }
