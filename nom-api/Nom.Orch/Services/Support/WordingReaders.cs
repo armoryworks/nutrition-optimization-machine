@@ -353,6 +353,7 @@ namespace Nom.Orch.Services.Support
                 GramBounds = catalog.GramBounds,
                 Matcher = catalog.Matcher,
                 Staples = catalog.Staples,
+                ByFdcId = catalog.ByFdcId,
             };
         }
 

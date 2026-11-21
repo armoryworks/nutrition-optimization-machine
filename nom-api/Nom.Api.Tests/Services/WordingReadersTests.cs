@@ -238,6 +238,20 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void The_catalog_copy_with_more_lexicon_entries_keeps_the_foods_by_fdc_id_so_a_sense_never_credits_a_sibling_varietal()
+        {
+            var redTable = new GateFood(287420, "Alcoholic beverage, wine, table, red", "Alcoholic beverage, wine, table, red", CatalogAdmissionRule.SrLegacyFood,
+                (long)CurationStatusEnum.PendingCuration, 14, null, 33, true, false, "173190");
+            var merlot = new GateFood(287415, "Alcoholic Beverage, wine, table, red, Merlot", "Alcoholic Beverage, wine, table, red, Merlot", CatalogAdmissionRule.SrLegacyFood,
+                (long)CurationStatusEnum.PendingCuration, 14, null, 25, true, false, "171925");
+            var copy = WordingReaders.WithLexicon(GateCatalog.Build(new[] { redTable, merlot }), new Dictionary<string, string> { ["saleratus"] = "baking soda" });
+
+            copy.ByFdcId.Keys.Should().BeEquivalentTo(new[] { "173190", "171925" });
+            LinkGate.Check(new GatePair("chianti", 0, merlot), copy).Select(h => h.Code).Should().Contain(LinkGate.Containment,
+                "red table wine is the red sense's first ready food, so chianti is no Merlot in the copy either");
+        }
+
+        [Fact]
         public void Every_fixed_reading_maps_to_a_sense_that_allows_its_food()
         {
             foreach (var mode in new[] { AlcoholFixedReading.Wine, AlcoholFixedReading.Cider, AlcoholFixedReading.Alcohol })
