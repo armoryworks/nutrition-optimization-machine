@@ -46,6 +46,7 @@ namespace Nom.Orch.Services
         private readonly ILogger<RecipeScrapingService> _logger;
         private readonly Support.RecipeLineBuilder _lines;
         private readonly bool _stagedGate;
+        private readonly int _probationRecipes;
 
         public RecipeScrapingService(
             ApplicationDbContext dbContext,
@@ -58,6 +59,8 @@ namespace Nom.Orch.Services
         {
             _lines = new Support.RecipeLineBuilder(dbContext, logger, configuration?.GetValue(ResolveOnImportSetting, false) ?? false);
             _stagedGate = configuration?.GetValue(StagedImportGateSetting, false) ?? false;
+            var probationDefault = new Settings.SourceAdmissionSettings().ProbationRecipes;
+            _probationRecipes = Math.Max(1, configuration?.GetValue($"{Settings.SourceAdmissionSettings.SectionName}:{nameof(Settings.SourceAdmissionSettings.ProbationRecipes)}", probationDefault) ?? probationDefault);
             _dbContext = dbContext;
             _currentUser = currentUser;
             _scraperClient = scraperClient;
@@ -356,7 +359,8 @@ namespace Nom.Orch.Services
         /// (SourceDiscovery:StagedImportGate), a recipe is taken only from an approved source: its
         /// URL's domain, or for a recipe with no URL the source the batch names (<see cref="StagedImportRequestModel.SourceId"/>,
         /// a hand source for PDFs and scanned books); its licence comes from that source's record
-        /// and the caller's PublicDomain flag is not read.
+        /// and the caller's PublicDomain flag is not read. A source whose harvesting is paused takes
+        /// nothing, and a source in probation takes no more than its probation recipe limit.
         /// </summary>
         public async Task<StagedImportResultModel> ImportStagedAsync(StagedImportRequestModel request)
         {
@@ -375,6 +379,7 @@ namespace Nom.Orch.Services
                         : NormalizeUrl(scraped.SourceUrl);
 
                     var publicDomain = request.PublicDomain;
+                    ScrapingSourceEntity? gateSource = null;
                     if (_stagedGate)
                     {
                         var source = await StagedSourceAsync(normalizedUrl, named);
@@ -391,6 +396,18 @@ namespace Nom.Orch.Services
                             continue;
                         }
 
+                        if (source.HarvestPausedAt != null)
+                        {
+                            result.Refused++;
+                            result.Failures.Add(new StagedImportFailureModel
+                            {
+                                Name = scraped.Name,
+                                Error = $"Refused: harvesting of {source.Domain} is paused ({source.HarvestPausedReason}).",
+                            });
+                            continue;
+                        }
+
+                        gateSource = source;
                         publicDomain = source.LicenceKind != null && Support.SourceAdmissionPolicy.PublicDomainLicences.Contains(source.LicenceKind);
                     }
 
@@ -406,6 +423,17 @@ namespace Nom.Orch.Services
                     if (duplicate)
                     {
                         result.SkippedDuplicates++;
+                        continue;
+                    }
+
+                    if (gateSource?.ProbationUntilUtc != null && await ProbationFullAsync(gateSource))
+                    {
+                        result.Refused++;
+                        result.Failures.Add(new StagedImportFailureModel
+                        {
+                            Name = scraped.Name,
+                            Error = $"Refused: {gateSource.Domain} is in probation and has reached its limit of {gateSource.ProbationRecipeLimit ?? _probationRecipes} recipes.",
+                        });
                         continue;
                     }
 
@@ -485,6 +513,13 @@ namespace Nom.Orch.Services
                 .Where(s => (s.Domain == domain || s.Domain == www) && s.Status == ScrapingSourceStatusEnum.Approved)
                 .OrderBy(s => s.Id)
                 .FirstOrDefaultAsync();
+        }
+
+        /// <summary>Whether a source in probation already holds as many recipes as its probation allows.</summary>
+        private async Task<bool> ProbationFullAsync(ScrapingSourceEntity source)
+        {
+            var taken = await SourceAdmissionService.RecipesFrom(_dbContext.Recipes, source.Domain).CountAsync();
+            return taken >= (source.ProbationRecipeLimit ?? _probationRecipes);
         }
 
         private async Task<long?> WithheldSourceIdAsync(string? sourceUrl)

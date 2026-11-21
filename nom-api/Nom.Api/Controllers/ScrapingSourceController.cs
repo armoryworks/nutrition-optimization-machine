@@ -37,13 +37,6 @@ namespace Nom.Api.Controllers
             return Ok(await _scrapingSources.ListAsync(status));
         }
 
-        [HttpPost("{id:long}/approve")]
-        public async Task<ActionResult<ScrapingSourceModel>> Approve(long id, [FromBody] ScrapingSourceReviewRequestModel? request)
-        {
-            var result = await _scrapingSources.ApproveAsync(id, _currentUser.RequiredPersonId, request?.Notes);
-            return result == null ? NotFound() : Ok(result);
-        }
-
         [HttpPost("{id:long}/reject")]
         public async Task<ActionResult<ScrapingSourceModel>> Reject(long id, [FromBody] ScrapingSourceReviewRequestModel? request)
         {

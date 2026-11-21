@@ -113,9 +113,6 @@ namespace Nom.Orch.Services
             return sources.Select(Map).ToList();
         }
 
-        public Task<ScrapingSourceModel?> ApproveAsync(long id, long reviewerPersonId, string? notes)
-            => ReviewAsync(id, reviewerPersonId, notes, ScrapingSourceStatusEnum.Approved);
-
         public Task<ScrapingSourceModel?> RejectAsync(long id, long reviewerPersonId, string? notes)
             => ReviewAsync(id, reviewerPersonId, notes, ScrapingSourceStatusEnum.Rejected);
 
@@ -138,7 +135,7 @@ namespace Nom.Orch.Services
             if (before != newStatus)
             {
                 _db.AuditLogEntries.Add(SourceJournal.Entry(source.Id,
-                    newStatus == ScrapingSourceStatusEnum.Rejected ? SourceJournal.Reject : SourceJournal.Approve, SourceJournal.StatusField,
+                    SourceJournal.Reject, SourceJournal.StatusField,
                     SourceJournal.Value(before.ToString()), SourceJournal.Value(newStatus.ToString(), notes), DateTime.UtcNow, reviewerPersonId));
             }
 

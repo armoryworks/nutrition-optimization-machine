@@ -24,12 +24,6 @@ export class ScrapingSourceService {
     return this.http.get<SourceReview>(`${this.apiUrl}/review`);
   }
 
-  approve(id: number, notes?: string): Observable<ScrapingSourceModel> {
-    return this.http.post<ScrapingSourceModel>(`${this.apiUrl}/${id}/approve`, {
-      notes: notes || undefined,
-    });
-  }
-
   reject(id: number, notes?: string): Observable<ScrapingSourceModel> {
     return this.http.post<ScrapingSourceModel>(`${this.apiUrl}/${id}/reject`, {
       notes: notes || undefined,

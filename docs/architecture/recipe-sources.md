@@ -25,9 +25,15 @@ reasons.
      failed: a broken lane never reads as a lane with nothing to find;
    - `skipped`: another discovery job was running (429), or there is no seed.
 
-   Only the seeds the scraper says it visited have `LastDiscoveredUtc` set, so a seed the budget
-   left unread comes first next time. Seeds the scraper refused (search engines, platforms) are
-   listed on the run for an admin.
+   A run or check still marked `running` past its budget plus 60 s and a grace of
+   `StaleGraceSeconds` (300 s) had its poll cut off (nom-api restarted, or the tick failed): the
+   next tick stores the run as `failed` and the check as `lost`, so it is counted and shown with
+   the failed ones.
+
+   The seeds the scraper says it visited, and the seeds it refused (search engines, platforms),
+   have `LastDiscoveredUtc` set, so a seed the budget left unread comes first next time and a
+   refused seed does not hold a seed slot in every run. Refused seeds are listed on the run for an
+   admin.
 2. **Candidates** (`recipe.SourceCandidate`). Each domain with a recipe signal is kept once
    (without `www.`), with first and last seen and how often. A domain found but not probed is a
    `lead` and is never checked. A domain that is already a source (any status) is not a
@@ -37,7 +43,9 @@ reasons.
    budget `CheckBudgetSeconds`, at most `MaxChecksPerDay` in any 24 hours (failed ones count).
    Order: approved web sources due for their re-check, then user requests, then new candidates
    by how often they were seen. A candidate is checked again when its last check was under other
-   rules, did not finish, or was clear and older than `RecheckDays`. Each check is a row in
+   rules, did not finish, or was clear and older than `RecheckDays`. A source or candidate whose
+   check failed or was lost is not taken again for `FailedRetryHours` (24 h), so one site that
+   always fails cannot use the whole daily cap. Each check is a row in
    `recipe.SourceCheck` with the scraper's report stored whole.
 4. **The single verdict** (`SourceAdmissionPolicy`, version `source-admission/1`, a pure function,
    no model). Clear only when all of these hold:
@@ -63,7 +71,9 @@ reasons.
    each licence statement quoted with the page it was found on, the terms pages read and any
    prohibition, robots.txt for all crawlers, NomBot and the AI crawlers, the crawl-delay, and the
    sample yield. One approve button: `POST /api/ScrapingSource/candidates/{id}/approve` refuses
-   (409) anything not clear. The source starts in probation.
+   (409) anything not clear, and a domain an admin rejected. It is the only way the API approves
+   a web source: there is no approve route for a source row, so a user's request is approved
+   only after its check comes back clear. The source starts in probation.
 6. **Probation** (`WatchAsync`). For `ProbationDays` days or until `ProbationRecipes` recipes,
    the harvestable list gives the harvester a remaining recipe limit. Then the live figures are
    read from the database: at most 10 % of the recipes in Requires Revision and at most 20 % of
@@ -74,6 +84,9 @@ reasons.
    by the lane only when a conclusive verdict **turns** from clear to not clear. A first verdict
    that is not clear (today's sources) only shows: what happens to a source that is not clear and
    to its recipes is the owner's decision, and the lane assumes neither answer.
+   The staged import enforces both pauses and the probation limit itself: it refuses a recipe
+   from a source whose harvesting is paused, and from a source in probation that already holds
+   its limit, whatever list the harvester read.
 8. **The harvestable list** (`GET /api/ScrapingSource/harvestable`, `CanManageCuration`, the
    harvester's API key). Approved web sources whose harvesting is not paused and whose recipes
    are not withheld, each with its probation limit and the crawl-delay of its last check. The
@@ -94,10 +107,12 @@ detail: `SourceApprove`, `SourceReject`, `SourceHandRecord`, `SourceHarvestPause
   with the count unless `apply=true`): every recipe whose URL is on the source's domain (with or
   without `www.`) gets `Recipe.SourceWithheldById`, and the single visibility rule
   (`RecipeVisibilityExtensions.VisibleTo`) keeps it from everyone: search, suggestions, meal
-  plans, its author included. A recipe imported later from a withheld source is withheld too.
+  plans, its author included. Household cookbooks leave it out, and a meal plan that already
+  holds it keeps the meal by name with no description. A recipe imported later from a withheld
+  source is withheld too.
   Release (`/release-recipes`) clears exactly the recipes that withholding holds.
 - **Undo** (`POST /api/ScrapingSource/journal/{entryId}/undo`): an approval, a pause or resume, a
-  withholding or release is undone while the source still holds the entry's new state; the undo
+  withholding or release, or a hand source's licence facts is undone while the source still holds the entry's new state; the undo
   is journaled and can itself be undone. Probation results and verdict changes are records, not
   actions, and are not undone.
 
@@ -111,7 +126,9 @@ research) cannot pass the check: they carry no schema.org Recipe and often no ma
 licence. An admin records them as **hand sources** (`POST /api/ScrapingSource/hand`, Kind
 `hand`): the domain where the statement was found, a title, the licence kind (one of the clear
 kinds above), the statement as the source words it, and its URL. A hand source is approved by
-being recorded, is journaled, is never fetched and is never on the harvestable list.
+being recorded, is journaled, is never fetched and is never on the harvestable list. Its licence
+facts are journaled as their own row (field `Licence`, the old kind, statement, URL and who
+entered them), so recording a hand source again over a mistake is undone with the facts it had.
 
 ## Staged import gate
 
@@ -120,7 +137,9 @@ takes a recipe only from an approved source: its URL's domain, or, for a recipe 
 source the batch names with `sourceId` (a hand source). Refused recipes are counted (`refused`)
 and listed. The licence comes from the source's record (`PublicDomain` only for `public-domain`,
 `cc0` or `public-domain-mark`); the caller's `publicDomain` flag is not read
-(`publicDomainFlagIgnored`). A named source never covers a URL on another domain.
+(`publicDomainFlagIgnored`). A named source never covers a URL on another domain. A source whose
+harvesting is paused takes nothing, and a source in probation takes no more recipes than its
+probation limit.
 
 ## Settings (`SourceDiscovery`)
 

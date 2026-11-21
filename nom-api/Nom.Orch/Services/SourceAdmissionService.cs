@@ -31,6 +31,8 @@ namespace Nom.Orch.Services
         public const string SourceCheckKind = "source-check";
         public const double ProbationMaxRequiresRevision = 0.10;
         public const double ProbationMaxUnquantified = 0.20;
+        public const int StaleGraceSeconds = 300;
+        public const int FailedRetryHours = 24;
 
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -60,6 +62,7 @@ namespace Nom.Orch.Services
 
         public async Task<SourceDiscoveryRunModel> RunDiscoveryAsync(CancellationToken cancellationToken = default)
         {
+            await ExpireStaleAsync(cancellationToken);
             var seeds = await _db.ScrapingSources
                 .Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.Kind == ScrapingSourceEntity.WebKind && s.HarvestPausedAt == null)
                 .OrderBy(s => s.LastDiscoveredUtc ?? DateTime.MinValue).ThenBy(s => s.Id)
@@ -147,7 +150,7 @@ namespace Nom.Orch.Services
         private async Task KeepCandidatesAsync(ScraperDiscoveryResult result, List<ScrapingSourceEntity> seeds, CancellationToken cancellationToken)
         {
             var now = Now();
-            var visited = result.SeedsVisited.Select(SourceAdmissionPolicy.NormalizeDomain).Where(d => d != null).ToHashSet(StringComparer.Ordinal);
+            var visited = result.SeedsVisited.Concat(result.SeedsRefused).Select(SourceAdmissionPolicy.NormalizeDomain).Where(d => d != null).ToHashSet(StringComparer.Ordinal);
             foreach (var seed in seeds.Where(s => visited.Contains(SourceAdmissionPolicy.NormalizeDomain(s.Domain))))
             {
                 seed.LastDiscoveredUtc = now;
@@ -195,6 +198,7 @@ namespace Nom.Orch.Services
 
         public async Task<SourceCheckModel?> RunNextCheckAsync(CancellationToken cancellationToken = default)
         {
+            await ExpireStaleAsync(cancellationToken);
             var now = Now();
             var started = await _db.SourceChecks.CountAsync(c => c.StartedUtc > now.AddHours(-24), cancellationToken);
             if (started >= _settings.MaxChecksPerDay) return null;
@@ -373,12 +377,20 @@ namespace Nom.Orch.Services
         {
             var now = Now();
             var recheckBefore = now.AddDays(-Math.Max(1, _settings.RecheckDays));
+            var retryAfter = now.AddHours(-FailedRetryHours);
+            var failedLately = await _db.SourceChecks
+                .Where(c => c.Verdict == null && c.Status != SourceCheckEntity.Running && c.StartedUtc > retryAfter)
+                .Select(c => new { c.ScrapingSourceId, c.SourceCandidateId })
+                .ToListAsync(cancellationToken);
+            var sourcesFailed = failedLately.Where(c => c.ScrapingSourceId != null).Select(c => c.ScrapingSourceId!.Value).ToHashSet();
+            var candidatesFailed = failedLately.Where(c => c.SourceCandidateId != null).Select(c => c.SourceCandidateId!.Value).ToHashSet();
 
-            var dueSource = await _db.ScrapingSources
+            var dueSource = (await _db.ScrapingSources
                 .Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.Kind == ScrapingSourceEntity.WebKind
                     && (s.CheckedAtUtc == null || s.CheckedAtUtc < recheckBefore))
                 .OrderBy(s => s.CheckedAtUtc ?? DateTime.MinValue).ThenBy(s => s.Id)
-                .FirstOrDefaultAsync(cancellationToken);
+                .ToListAsync(cancellationToken))
+                .FirstOrDefault(s => !sourcesFailed.Contains(s.Id));
             if (dueSource != null)
             {
                 return (dueSource.Domain, RecheckPurpose, null, dueSource);
@@ -394,6 +406,7 @@ namespace Nom.Orch.Services
                 .ToListAsync(cancellationToken);
             var due = candidates.Where(c =>
             {
+                if (candidatesFailed.Contains(c.Id)) return false;
                 if (c.State == SourceCandidateEntity.New || c.LastCheckId == null || !byId.TryGetValue(c.LastCheckId.Value, out var last)) return true;
                 if (last.PolicyVersion != SourceAdmissionPolicy.Version || last.RuleVersion != SourceAdmissionPolicy.ScraperRuleVersion) return true;
                 if (!last.Conclusive || c.State == SourceCandidateEntity.Clear) return last.FinishedUtc < recheckBefore;
@@ -410,6 +423,42 @@ namespace Nom.Orch.Services
 
             var host = Uri.TryCreate(next.EvidenceUrl, UriKind.Absolute, out var evidence) ? evidence.Host : next.Domain;
             return (host, next.FoundVia == RequestPurpose ? RequestPurpose : CandidatePurpose, next, null);
+        }
+
+        /// <summary>
+        /// Ends the runs and checks still marked running past their budget plus StaleGraceSeconds: their
+        /// poll was cut off (nom-api stopped or the tick failed), so a run is stored as failed and a check
+        /// as lost, and both are shown with the failed ones.
+        /// </summary>
+        private async Task ExpireStaleAsync(CancellationToken cancellationToken)
+        {
+            var now = Now();
+            var runBefore = now.AddSeconds(-(Math.Max(_settings.BudgetSeconds, 60) + 60 + StaleGraceSeconds));
+            var checkBefore = now.AddSeconds(-(Math.Max(_settings.CheckBudgetSeconds, 60) + 60 + StaleGraceSeconds));
+            var runs = await _db.SourceDiscoveryRuns
+                .Where(r => r.Status == SourceDiscoveryRunEntity.Running && r.StartedUtc < runBefore)
+                .ToListAsync(cancellationToken);
+            var checks = await _db.SourceChecks
+                .Where(c => c.Status == SourceCheckEntity.Running && c.StartedUtc < checkBefore)
+                .ToListAsync(cancellationToken);
+            if (runs.Count == 0 && checks.Count == 0) return;
+
+            foreach (var run in runs)
+            {
+                run.Status = SourceDiscoveryRunEntity.Failed;
+                run.Error = Clip($"lost: the run was still running past its budget, so its poll of job {run.JobId ?? "(none)"} was cut off", 1023);
+                run.FinishedUtc = now;
+            }
+
+            foreach (var check in checks)
+            {
+                check.Status = SourceCheckEntity.Lost;
+                check.Error = Clip($"lost: the check was still running past its budget, so its poll of job {check.JobId ?? "(none)"} was cut off", 1023);
+                check.FinishedUtc = now;
+            }
+
+            await _db.SaveChangesAsync(cancellationToken);
+            _logger.LogWarning("Source lane: {Runs} discovery runs and {Checks} source checks were cut off while polling and are stored as failed", runs.Count, checks.Count);
         }
 
         /// <summary>
@@ -447,6 +496,7 @@ namespace Nom.Orch.Services
 
         public async Task<int> WatchAsync(CancellationToken cancellationToken = default)
         {
+            await ExpireStaleAsync(cancellationToken);
             var now = Now();
             var sources = await _db.ScrapingSources
                 .Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.ProbationUntilUtc != null)
@@ -513,6 +563,10 @@ namespace Nom.Orch.Services
             else if (source.Status == ScrapingSourceStatusEnum.Approved)
             {
                 return SourceActionResult.Refused($"{source.Domain} is already approved.");
+            }
+            else if (source.Status == ScrapingSourceStatusEnum.Rejected)
+            {
+                return SourceActionResult.Refused("An admin rejected this domain.");
             }
 
             var report = Read<ScraperSourceCheckReport>(check!.ReportJson);
@@ -670,6 +724,7 @@ namespace Nom.Orch.Services
 
             var now = Now();
             var before = source == null ? SourceJournal.None : source.Status.ToString();
+            var oldLicence = source == null ? null : LicenceValue(source);
             if (source == null)
             {
                 source = new ScrapingSourceEntity { Domain = Clip(host, 255)!, Kind = ScrapingSourceEntity.HandKind, CreatedDate = now, CreatedByPersonId = personId };
@@ -688,9 +743,23 @@ namespace Nom.Orch.Services
             await _db.SaveChangesAsync();
             _db.AuditLogEntries.Add(SourceJournal.Entry(source.Id, SourceJournal.HandRecord, SourceJournal.StatusField,
                 SourceJournal.Value(before), SourceJournal.Value(nameof(ScrapingSourceStatusEnum.Approved), $"hand source; licence {kind} at {source.LicenceFoundAt}"), now, personId));
+            var newLicence = LicenceValue(source);
+            if (oldLicence != newLicence)
+            {
+                _db.AuditLogEntries.Add(SourceJournal.Entry(source.Id, SourceJournal.HandRecord, SourceJournal.LicenceField,
+                    oldLicence ?? SourceJournal.None, newLicence, now, personId));
+            }
+
             await _db.SaveChangesAsync();
             return new SourceActionResult { Ok = true, Source = await SourceModelAsync(source) };
         }
+
+        private sealed record LicenceFacts(string? Statement, string? FoundAt, long? EnteredByPersonId);
+
+        /// <summary>A source's licence facts as a journal value: the kind as the state, the statement, its URL and who entered them as the detail.</summary>
+        private static string LicenceValue(ScrapingSourceEntity source) =>
+            SourceJournal.Value(source.LicenceKind ?? SourceJournal.None,
+                JsonSerializer.Serialize(new LicenceFacts(source.LicenceStatement, source.LicenceFoundAt, source.LicenceEnteredByPersonId), JsonOptions));
 
         public async Task<List<HarvestableSourceModel>> HarvestableAsync(CancellationToken cancellationToken = default)
         {
@@ -793,6 +862,22 @@ namespace Nom.Orch.Services
                         break;
                     }
 
+                case SourceJournal.LicenceField:
+                    {
+                        var detail = SourceJournal.Detail(entry.OldValue);
+                        var facts = target == SourceJournal.None && detail == null ? new LicenceFacts(null, null, null) : Read<LicenceFacts>(detail);
+                        if (facts == null) return SourceActionResult.Refused("This entry does not hold the old licence facts whole, so it cannot be undone.");
+                        var old = LicenceValue(source);
+                        source.LicenceKind = target == SourceJournal.None ? null : target;
+                        source.LicenceStatement = facts.Statement;
+                        source.LicenceFoundAt = facts.FoundAt;
+                        source.LicenceEnteredByPersonId = facts.EnteredByPersonId;
+                        source.LastModifiedDate = now;
+                        source.LastModifiedByPersonId = personId;
+                        _db.AuditLogEntries.Add(SourceJournal.Entry(source.Id, SourceJournal.Undo, SourceJournal.LicenceField, old, LicenceValue(source), now, personId));
+                        break;
+                    }
+
                 case SourceJournal.StatusField:
                     {
                         var old = source.Status.ToString();
@@ -837,6 +922,7 @@ namespace Nom.Orch.Services
             SourceJournal.HarvestField => source.HarvestPausedAt == null ? SourceJournal.Running : SourceJournal.Paused,
             SourceJournal.RecipesField => source.RecipesWithheldAt == null ? SourceJournal.Shown : SourceJournal.Withheld,
             SourceJournal.StatusField => source.Status.ToString(),
+            SourceJournal.LicenceField => source.LicenceKind ?? SourceJournal.None,
             _ => SourceJournal.None,
         };
 
@@ -941,12 +1027,15 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>Recipes imported from the source's domain, with or without "www.".</summary>
-        internal IQueryable<RecipeEntity> RecipesOf(ScrapingSourceEntity source)
+        internal IQueryable<RecipeEntity> RecipesOf(ScrapingSourceEntity source) => RecipesFrom(_db.Recipes, source.Domain);
+
+        /// <summary>The recipes of the query imported from the domain, with or without "www.".</summary>
+        internal static IQueryable<RecipeEntity> RecipesFrom(IQueryable<RecipeEntity> recipes, string domain)
         {
-            var bare = SourceAdmissionPolicy.NormalizeDomain(source.Domain) ?? source.Domain;
+            var bare = SourceAdmissionPolicy.NormalizeDomain(domain) ?? domain;
             var www = "www." + bare;
             string a = $"https://{bare}/", b = $"http://{bare}/", c = $"https://{www}/", d = $"http://{www}/";
-            return _db.Recipes.Where(r => r.SourceUrl != null
+            return recipes.Where(r => r.SourceUrl != null
                 && (r.SourceUrl.StartsWith(a) || r.SourceUrl.StartsWith(b) || r.SourceUrl.StartsWith(c) || r.SourceUrl.StartsWith(d)));
         }
 

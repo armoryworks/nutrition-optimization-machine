@@ -573,7 +573,11 @@ namespace Nom.Api.Tests.Services
             source.Kind.Should().Be(ScrapingSourceEntity.HandKind);
             source.LicenceEnteredByPersonId.Should().Be(Admin);
             (await service.HarvestableAsync()).Should().BeEmpty();
-            (await db.AuditLogEntries.SingleAsync()).ChangeType.Should().Be(SourceJournal.HandRecord);
+            (await db.AuditLogEntries.Select(e => new { e.ChangeType, e.PropertyName }).ToListAsync()).Should().BeEquivalentTo(new[]
+            {
+                new { ChangeType = SourceJournal.HandRecord, PropertyName = (string?)SourceJournal.StatusField },
+                new { ChangeType = SourceJournal.HandRecord, PropertyName = (string?)SourceJournal.LicenceField },
+            });
         }
 
         [Fact]
@@ -620,6 +624,174 @@ namespace Nom.Api.Tests.Services
 
             result.Imported.Should().Be(1);
             (await db.Recipes.SingleAsync()).LicenseStatus.Should().Be(RecipeLicenseStatus.PublicDomain);
+        }
+
+        [Fact]
+        public async Task The_api_approves_a_source_only_through_the_queue_of_clear_candidates()
+        {
+            var approveRoutes = typeof(Nom.Api.Controllers.ScrapingSourceController).GetMethods()
+                .SelectMany(m => m.GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.HttpPostAttribute), false).Cast<Microsoft.AspNetCore.Mvc.HttpPostAttribute>())
+                .Select(a => a.Template)
+                .Where(t => t != null && t.EndsWith("approve", StringComparison.Ordinal));
+            approveRoutes.Should().Equal("candidates/{id:long}/approve");
+            typeof(IScrapingSourceService).GetMethods().Select(m => m.Name).Should().NotContain("ApproveAsync");
+
+            using var db = NewContext();
+            await SourceAsync(db, "rejected.example", ScrapingSourceStatusEnum.Rejected);
+            var candidate = await CandidateAsync(db, "rejected.example");
+            var check = new SourceCheckEntity
+            {
+                Domain = "rejected.example", Purpose = SourceAdmissionService.CandidatePurpose, StartedUtc = T0, FinishedUtc = T0, Status = SourceCheckEntity.Completed,
+                Verdict = SourceAdmissionPolicy.Clear, Conclusive = true, PolicyVersion = SourceAdmissionPolicy.Version, RuleVersion = SourceAdmissionPolicy.ScraperRuleVersion,
+                ReportJson = JsonSerializer.Serialize(Report("rejected.example"), Json),
+            };
+            db.SourceChecks.Add(check);
+            await db.SaveChangesAsync();
+            candidate.LastCheckId = check.Id;
+            candidate.State = SourceCandidateEntity.Clear;
+            await db.SaveChangesAsync();
+
+            (await Service(db, new FakeScraper()).ApproveCandidateAsync(candidate.Id, Admin, null)).Error.Should().Contain("rejected");
+            (await db.ScrapingSources.SingleAsync()).Status.Should().Be(ScrapingSourceStatusEnum.Rejected);
+        }
+
+        [Fact]
+        public async Task The_staged_import_refuses_a_paused_source_and_a_full_probation()
+        {
+            using var db = NewContext();
+            var paused = await SourceAsync(db, "paused.example");
+            paused.HarvestPausedAt = T0;
+            paused.HarvestPausedReason = "re-check 4 turned not clear: licence";
+            var trial = await SourceAsync(db, "trial.example");
+            trial.ProbationUntilUtc = T0.AddDays(10);
+            trial.ProbationRecipeLimit = 2;
+            await db.SaveChangesAsync();
+            var import = Staged(db, gate: true);
+
+            var result = await import.ImportStagedAsync(new StagedImportRequestModel
+            {
+                Recipes =
+                {
+                    Record("Paused soup", "https://paused.example/soup/"),
+                    Record("Trial one", "https://trial.example/1/"),
+                    Record("Trial one", "https://trial.example/1/"),
+                    Record("Trial two", "https://www.trial.example/2/"),
+                    Record("Trial three", "https://trial.example/3/"),
+                },
+            });
+
+            result.Imported.Should().Be(2);
+            result.SkippedDuplicates.Should().Be(1);
+            result.Refused.Should().Be(2);
+            result.Failures.Select(f => f.Error).Should().Contain(e => e.Contains("paused")).And.Contain(e => e.Contains("probation"));
+            (await db.Recipes.Select(r => r.Name).ToListAsync()).Should().BeEquivalentTo(new[] { "Trial one", "Trial two" });
+        }
+
+        [Fact]
+        public async Task A_run_or_check_cut_off_while_polling_is_stored_as_failed_and_shown()
+        {
+            using var db = NewContext();
+            db.SourceDiscoveryRuns.Add(new SourceDiscoveryRunEntity { StartedUtc = T0.AddHours(-2), Seeds = "a.example", Status = SourceDiscoveryRunEntity.Running, JobId = "d1" });
+            db.SourceChecks.Add(new SourceCheckEntity { Domain = "b.example", Purpose = SourceAdmissionService.CandidatePurpose, StartedUtc = T0.AddHours(-2), Status = SourceCheckEntity.Running, JobId = "c1" });
+            db.SourceDiscoveryRuns.Add(new SourceDiscoveryRunEntity { StartedUtc = T0.AddMinutes(-1), Seeds = "c.example", Status = SourceDiscoveryRunEntity.Running });
+            await db.SaveChangesAsync();
+            var service = Service(db, new FakeScraper());
+
+            await service.WatchAsync();
+
+            var runs = await db.SourceDiscoveryRuns.OrderBy(r => r.StartedUtc).ToListAsync();
+            runs[0].Status.Should().Be(SourceDiscoveryRunEntity.Failed);
+            runs[0].Error.Should().StartWith("lost");
+            runs[0].FinishedUtc.Should().Be(T0);
+            runs[1].Status.Should().Be(SourceDiscoveryRunEntity.Running, "a run inside its budget may still be polling");
+            (await db.SourceChecks.SingleAsync()).Status.Should().Be(SourceCheckEntity.Lost);
+            (await service.ReviewAsync()).FailedChecks.Single().Domain.Should().Be("b.example");
+            var status = await service.StatusAsync();
+            status.RunsFailedInRow.Should().Be(1);
+            status.ChecksFailedLast7d.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task A_target_whose_check_failed_waits_a_day_so_it_cannot_take_the_daily_cap()
+        {
+            using var db = NewContext();
+            await SourceAsync(db, "broken.example");
+            var other = await SourceAsync(db, "other.example");
+            var candidate = await CandidateAsync(db, "new.example");
+            candidate.TimesSeen = 9;
+            await db.SaveChangesAsync();
+            var scraper = new FakeScraper();
+            scraper.Starts.Enqueue(ScraperJobAnswer.Fail(ScraperJobOutcome.Failed, "connection reset"));
+            scraper.Starts.Enqueue(ScraperJobAnswer.Fail(ScraperJobOutcome.Failed, "connection reset"));
+            scraper.Starts.Enqueue(ScraperJobAnswer.Fail(ScraperJobOutcome.Failed, "connection reset"));
+            CheckJob(scraper, Report("broken.example"));
+            var service = Service(db, scraper);
+
+            for (var i = 0; i < 3; i++) (await service.RunNextCheckAsync())!.Status.Should().Be(SourceCheckEntity.Failed);
+            (await service.RunNextCheckAsync()).Should().BeNull("every target failed within the day");
+
+            scraper.Started.Select(s => s.Domain).Should().Equal("broken.example", "other.example", "www.new.example");
+            var tomorrow = Service(db, scraper, () => T0.AddHours(FailedRetryHoursPlusOne));
+            (await tomorrow.RunNextCheckAsync())!.Domain.Should().Be("broken.example");
+            (await db.ScrapingSources.FindAsync(other.Id))!.CheckedAtUtc.Should().BeNull();
+        }
+
+        private const int FailedRetryHoursPlusOne = SourceAdmissionService.FailedRetryHours + 1;
+
+        [Fact]
+        public async Task A_seed_the_scraper_refuses_rotates_to_the_back_like_a_visited_one()
+        {
+            using var db = NewContext();
+            await SourceAsync(db, "platform.example");
+            await SourceAsync(db, "real.example");
+            var scraper = new FakeScraper();
+            var refused = Found();
+            refused.SeedsRefused = new() { "platform.example" };
+            scraper.Starts.Enqueue(ScraperJobAnswer.Of(Job("discovery", ScraperJob.Completed, refused)));
+            scraper.Starts.Enqueue(ScraperJobAnswer.Of(Job("discovery", ScraperJob.Completed, Found(), "job2")));
+            var clock = T0;
+            var service = Service(db, scraper, () => clock, s => s.SeedsPerRun = 1);
+
+            await service.RunDiscoveryAsync();
+            clock = T0.AddDays(1);
+            await service.RunDiscoveryAsync();
+
+            scraper.Started.Select(s => s.Seeds.Single()).Should().Equal("platform.example", "real.example");
+        }
+
+        [Fact]
+        public async Task Recording_a_hand_source_again_journals_its_old_licence_facts_and_undo_restores_them()
+        {
+            using var db = NewContext();
+            var service = Service(db, new FakeScraper());
+            HandSourceRequestModel Hand(string kind, string statement) => new()
+            {
+                Domain = "www.loc.gov", Title = "Library cookbooks", LicenceKind = kind, LicenceStatement = statement, LicenceFoundAt = $"https://www.loc.gov/{kind}",
+            };
+
+            (await service.RecordHandSourceAsync(Hand("cc-by", "Reuse with attribution."), Admin)).Ok.Should().BeTrue();
+            (await service.RecordHandSourceAsync(Hand("public-domain", "No known restrictions."), 8)).Ok.Should().BeTrue();
+            var source = await db.ScrapingSources.SingleAsync();
+            source.LicenceKind.Should().Be("public-domain");
+
+            var licenceRow = (await service.JournalAsync(20)).First(j => j.Field == SourceJournal.LicenceField);
+            licenceRow.OldValue.Should().StartWith("cc-by").And.Contain("Reuse with attribution.");
+            licenceRow.CanUndo.Should().BeTrue();
+            (await service.UndoAsync(licenceRow.Id, Admin)).Ok.Should().BeTrue();
+
+            source = await db.ScrapingSources.SingleAsync();
+            source.LicenceKind.Should().Be("cc-by");
+            source.LicenceStatement.Should().Be("Reuse with attribution.");
+            source.LicenceFoundAt.Should().Be("https://www.loc.gov/cc-by");
+            source.LicenceEnteredByPersonId.Should().Be(Admin);
+            (await ImportedLicenceAsync(db)).Should().Be(RecipeLicenseStatus.Unknown);
+
+            static async Task<string?> ImportedLicenceAsync(ApplicationDbContext db)
+            {
+                var hand = await db.ScrapingSources.SingleAsync();
+                await Staged(db, gate: true).ImportStagedAsync(new StagedImportRequestModel { SourceId = hand.Id, Recipes = { Record("Library soup", null) } });
+                return (await db.Recipes.SingleAsync()).LicenseStatus;
+            }
         }
 
         private static ScraperRecipe Record(string name, string? url) => new()

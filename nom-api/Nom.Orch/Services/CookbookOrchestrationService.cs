@@ -128,7 +128,7 @@ namespace Nom.Orch.Services
         public async Task<List<RecipeResponseModel>> GetCookbookRecipesAsync(long cookbookId)
         {
             return await _db.HouseholdCookbookRecipes
-                .Where(cr => cr.HouseholdCookbookId == cookbookId)
+                .Where(cr => cr.HouseholdCookbookId == cookbookId && cr.Recipe!.SourceWithheldById == null)
                 .Include(cr => cr.Recipe)
                 .AsNoTracking()
                 .Select(cr => new RecipeResponseModel

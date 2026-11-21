@@ -219,6 +219,23 @@ namespace Nom.Api.Tests.Services.Recipe
         }
 
         [Fact]
+        public async Task A_recipe_whose_source_is_withheld_leaves_cookbooks_and_plans_serve_none_of_its_prose()
+        {
+            await using var db = await SeedAsync();
+            (await db.Recipes.SingleAsync(r => r.Id == Shown)).SourceWithheldById = 1;
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var plans = await new PlanOrchestrationService(db, NullLogger<PlanOrchestrationService>.Instance).GetMyPlansAsync(Author);
+            plans.SelectMany(p => p.Meals).SelectMany(m => m.Recipes).Select(r => r.Id).Should().Contain(Shown);
+            Json(plans).Should().NotContain(ShownText);
+
+            var cookbook = await new CookbookOrchestrationService(db, NullLogger<CookbookOrchestrationService>.Instance).GetCookbookRecipesAsync(1);
+            cookbook.Select(r => r.Id).Should().NotContain(Shown).And.Contain(Withheld);
+            Json(cookbook).Should().NotContain(ShownText);
+        }
+
+        [Fact]
         public async Task The_curation_queue_serves_no_withheld_prose()
         {
             await using var db = await SeedAsync();

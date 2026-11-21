@@ -23,8 +23,6 @@ namespace Nom.Orch.Interfaces
 
         Task<List<ScrapingSourceModel>> ListAsync(ScrapingSourceStatusEnum? status);
 
-        Task<ScrapingSourceModel?> ApproveAsync(long id, long reviewerPersonId, string? notes);
-
         Task<ScrapingSourceModel?> RejectAsync(long id, long reviewerPersonId, string? notes);
     }
 }

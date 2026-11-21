@@ -6,7 +6,8 @@ namespace Nom.Orch.Services.Support
     /// <summary>
     /// The journal of scraping-source state (audit.AuditLogEntry, EntityType <c>ScrapingSource</c>).
     /// Each row names one field (<see cref="StatusField"/>, <see cref="HarvestField"/>,
-    /// <see cref="RecipesField"/>, <see cref="VerdictField"/>, <see cref="ProbationField"/>) with its
+    /// <see cref="RecipesField"/>, <see cref="VerdictField"/>, <see cref="ProbationField"/>,
+    /// <see cref="LicenceField"/>) with its
     /// old and new state, written as <c>state</c> or <c>state | detail</c>. A row of an undoable
     /// field is undone by setting the field back to its old state while it still holds the new one,
     /// journaled as <see cref="Undo"/>; an undo is a row like any other, so it can be undone too.
@@ -32,6 +33,7 @@ namespace Nom.Orch.Services.Support
         public const string RecipesField = "Recipes";
         public const string VerdictField = "CheckVerdict";
         public const string ProbationField = "Probation";
+        public const string LicenceField = "Licence";
 
         public const string Running = "running";
         public const string Paused = "paused";
@@ -41,7 +43,7 @@ namespace Nom.Orch.Services.Support
 
         private const string Separator = " | ";
 
-        public static bool Undoable(string? field) => field is StatusField or HarvestField or RecipesField;
+        public static bool Undoable(string? field) => field is StatusField or HarvestField or RecipesField or LicenceField;
 
         public static string Value(string state, string? detail = null) =>
             string.IsNullOrWhiteSpace(detail) ? state : state + Separator + detail.Trim();
