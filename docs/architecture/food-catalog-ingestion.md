@@ -607,7 +607,7 @@ answers it, and the report lists each tier (`Tiers`).
 
 **Sizes from the recipe corpus** (`cleanup2/container-era-sizes`, owner's third-round answer
 7: "there has to be a way to convert these"). Old books often state a package's size on one
-line and leave it out on the next. `ContainerCorpusSizes` (rule `container-corpus/1`) mines the
+line and leave it out on the next. `ContainerCorpusSizes` (rule `container-corpus/2`) mines the
 sized container lines of old and undated books (a book recipe whose `RecipeSourceEra` is
 historic or unknown; a line in a weight or volume unit that names a container and states its
 size, never a numbered can) and derives, per food, container kind and size word:
@@ -622,9 +622,19 @@ size, never a numbered can) and derives, per food, container kind and size word:
   votes and twice the next. Undated books form their own pool (`unknown`), as `RecipeSourceEra` gives
   no era to compare them with.
 
+Old books often put the size first and give no count: "1 lb. can tomatoes", "1 quart can",
+"½ pint can", "15-ounce can", "1 lb. 13 oz. can peaches". Since `cleanup2/parser-size-first`
+(`line-builder/7`, `container-corpus/2`, `container-sizes/3`) NOM's line parser reads such a line,
+with one container word, as one container of the size it states, as `ops/container-era-facts.py`
+already did, so the corpus mines it, the hold-out scores it as a stated line, and the line itself
+weighs the size it states and never an assumed one (a drained one counts one can, scaled by the
+food's drained share). A size before plural containers with no count ("2 lb. cans") does not say
+how many containers there are: both readers leave it out of the corpus, and the parser still reads
+it as 2 pounds of the food. "1 lb. canned tomatoes" names no container and is a pound of the food.
+
 Each size is written as a row of `nutrient."IngredientContainerSize"` in shadow, journaled like
-every other: source `deterministic:corpus-book:container-corpus/1:<era>:<g>g:<band>/<lines>:<min>-<max>g`
-or `deterministic:corpus-era:container-corpus/1:<era>:<g>g:<books on the mode>/<books>:<min>-<max>g`, the book in `SourceAttribution` (book sizes only), and the
+every other: source `deterministic:corpus-book:container-corpus/2:<era>:<g>g:<band>/<lines>:<min>-<max>g`
+or `deterministic:corpus-era:container-corpus/2:<era>:<g>g:<books on the mode>/<books>:<min>-<max>g`, the book in `SourceAttribution` (book sizes only), and the
 evidence in `Evidence` (the sizes stated and how often, lines, books, the spread and the
 worst case it implies). `Nom.Import --container-sizes --corpus [--facts <out.tsv>] [--dry-run]`
 writes them, retires a corpus row no line gives any more and never touches a USDA source's row

@@ -67,7 +67,7 @@ namespace Nom.Api.Tests.Services
 
             var evidence = ContainerCorpusSizes.Evidence(era);
             evidence.Should().Contain("85:2;227:1").And.Contain("7 lines in 3 books").And.Contain("spread 85-226.8 g");
-            ContainerCorpusSizes.SourceRef(era, ContainerEras.Historic).Should().Be("deterministic:corpus-era:container-corpus/1:historic:85g:2/3:85-226.8g");
+            ContainerCorpusSizes.SourceRef(era, ContainerEras.Historic).Should().Be("deterministic:corpus-era:container-corpus/2:historic:85g:2/3:85-226.8g");
         }
 
         [Fact]
@@ -99,7 +99,7 @@ namespace Nom.Api.Tests.Services
             var era = ContainerCorpusSizes.EraSize(ContainerEras.Historic, lines)!;
             (era.Passes, era.Band, era.Votes, era.BandBooks, era.Books).Should().Be((true, 5, 6, 5, 5));
             var source = ContainerCorpusSizes.SourceRef(era, ContainerEras.Historic);
-            source.Should().Be("deterministic:corpus-era:container-corpus/1:historic:85g:5/5:85-226.8g", "five books exist, one of them stating two sizes");
+            source.Should().Be("deterministic:corpus-era:container-corpus/2:historic:85g:5/5:85-226.8g", "five books exist, one of them stating two sizes");
             var weight = ContainerSizeResolver.Resolve("1 package cream cheese", ContainerEras.Historic,
                 new[] { Size(ContainerKinds.Package, 85m, ContainerEras.Historic, source) }, book: "Book F");
             ContainerWeighing.Describe(weight).Should().Contain("(5 of 5 books, spread 85-226.8g)");
@@ -139,6 +139,22 @@ namespace Nom.Api.Tests.Services
             ContainerCorpusSizes.Read(BookA, ContainerEras.Historic, 1, "1 package cream cheese", null).Should().BeNull("no size stated");
             ContainerCorpusSizes.Read(BookA, ContainerEras.Historic, 1, "3 oz cream cheese", null).Should().BeNull("no container");
             ContainerCorpusSizes.Read(BookA, ContainerEras.Historic, 1, "1 No. 2 can corn", null).Should().BeNull("a numbered can is sized by the can table");
+        }
+
+        [Fact]
+        public void A_size_first_line_of_an_old_book_is_mined_and_weighed_at_the_size_it_states()
+        {
+            var can = ContainerCorpusSizes.Read(BookA, ContainerEras.Historic, 1, "1 lb. can tomatoes", null)!;
+            (can.Kind, can.Grams).Should().Be((ContainerKinds.Can, 453.6m));
+            ContainerCorpusSizes.Read(BookA, ContainerEras.Unknown, 1, "1 lb. 13 oz. can peaches", null)!.Grams.Should().Be(822.1m);
+            ContainerCorpusSizes.Read(BookA, ContainerEras.Historic, 1, "½ pint can cream", 1.0m)!.Grams.Should().Be(236.6m);
+            ContainerCorpusSizes.Read(BookA, ContainerEras.Historic, 1, "2 lb. cans tomatoes", null).Should().BeNull("how many cans is not said");
+            ContainerCorpusSizes.Read(BookA, ContainerEras.Historic, 1, "1 lb. canned tomatoes", null).Should().BeNull("no container");
+
+            var sizes = new[] { new ContainerSizeCandidate(ContainerKinds.Can, ContainerEras.Modern, string.Empty, 411m, 250m, "fdc:1:portion:1"), Corpus(ContainerCorpusSizes.BookTier, 567m, book: BookA, kind: ContainerKinds.Can) };
+            var stated = ContainerSizeResolver.Resolve("1 lb. can tomatoes", ContainerEras.Historic, sizes, book: BookA);
+            (stated.Grams, stated.Count, stated.Basis).Should().Be((453.6m, 1m, ContainerBasis.Stated), "the size the line states, never the book's or today's");
+            ContainerSizeResolver.Resolve("1 lb. can tomatoes, drained", ContainerEras.Modern, sizes).Grams.Should().Be(275.9m, "453.6 x 250/411");
         }
 
         [Fact]

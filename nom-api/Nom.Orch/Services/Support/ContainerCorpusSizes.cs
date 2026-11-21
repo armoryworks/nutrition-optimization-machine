@@ -54,7 +54,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class ContainerCorpusSizes
     {
-        public const string Version = "container-corpus/1";
+        public const string Version = "container-corpus/2";
         public const string BookTier = "book";
         public const string EraTier = "era";
         public const string BookSourcePrefix = "deterministic:corpus-book:";

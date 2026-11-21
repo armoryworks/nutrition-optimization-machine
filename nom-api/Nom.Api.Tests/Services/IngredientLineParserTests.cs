@@ -239,15 +239,51 @@ namespace Nom.Api.Tests.Services
         [InlineData("4 tea bags", 4, "Piece")]
         [InlineData("1 bagel", 1, "Piece")]
         [InlineData("1 1/2 ounces chocolate", 1.5, "Ounce")]
-        [InlineData("15-ounce can chickpeas", 15, "Ounce")]
         [InlineData("2 cups (16 oz) sour cream", 2, "Cup")]
-        [InlineData("1 1/2 pound can tomatoes", 1.5, "Pound")]
         [InlineData("2 qts. water", 8, "Cup")]
+        [InlineData("1 lb. canned tomatoes", 1, "Pound")]
+        [InlineData("1 quart canned tomatoes", 4, "Cup")]
+        [InlineData("2 lb. cans tomatoes", 2, "Pound")]
         public void A_line_that_is_no_can_or_package_reads_as_before(string raw, double quantity, string measurement)
         {
             IngredientLineParser.Parse(raw).Should().Be(new ParsedQuantity((decimal)quantity, measurement));
             IngredientLineParser.StatedSize(raw).Should().BeNull();
             IngredientLineParser.ReadsPackage(raw).Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData("1 lb. can tomatoes", 1, "Pound", "Can")]
+        [InlineData("1 lb. can salmon", 1, "Pound", "Can")]
+        [InlineData("1 lb. tin salmon", 1, "Pound", "Can")]
+        [InlineData("1 quart can tomatoes", 4, "Cup", "Can")]
+        [InlineData("½ pint can cream", 1, "Cup", "Can")]
+        [InlineData("1 pint jar oysters", 2, "Cup", "Jar")]
+        [InlineData("1 pint bottle cream", 2, "Cup", "Bottle")]
+        [InlineData("1 1/2 pound can tomatoes", 1.5, "Pound", "Can")]
+        [InlineData("2 pound can tomatoes", 2, "Pound", "Can")]
+        [InlineData("1/2 lb. package dates", 0.5, "Pound", "Package")]
+        [InlineData("1 pound box of sugar", 1, "Pound", "Package")]
+        [InlineData("1 lb. bag cranberries", 1, "Pound", "Package")]
+        [InlineData("8 oz. package cream cheese", 8, "Ounce", "Package")]
+        [InlineData("12 oz. bottle chili sauce", 12, "Ounce", "Bottle")]
+        [InlineData("15-ounce can chickpeas", 15, "Ounce", "Can")]
+        [InlineData("10½-oz. can tomato soup", 10.5, "Ounce", "Can")]
+        [InlineData("1 lb. large can tomatoes", 1, "Pound", "Can")]
+        [InlineData("a pound can of coffee", 1, "Pound", "Can")]
+        [InlineData("one pound can salmon", 1, "Pound", "Can")]
+        [InlineData("1 lb. 13 oz. can peaches", 29, "Ounce", "Can")]
+        [InlineData("a 3-oz. package cream cheese", 3, "Ounce", "Package")]
+        [InlineData("one 8-ounce bottle catsup", 8, "Ounce", "Bottle")]
+        [InlineData("1 can (1 lb.) tomatoes", 1, "Pound", "Can")]
+        [InlineData("Two-pound can of pineapples", 2, "Pound", "Can")]
+        public void A_size_first_container_line_is_one_container_of_the_size_it_states(string raw, double quantity, string measurement, string container)
+        {
+            var expected = new ParsedQuantity((decimal)quantity, measurement);
+
+            IngredientLineParser.Parse(raw).Should().Be(expected);
+            IngredientLineParser.StatedSize(raw).Should().Be(expected);
+            IngredientLineParser.SizedContainers(raw).Should().Be(new ParsedQuantity(1m, container));
+            IngredientLineParser.ReadsPackage(raw).Should().BeTrue();
         }
 
         [Theory]
@@ -258,6 +294,8 @@ namespace Nom.Api.Tests.Services
         [InlineData(1, "jar", "1 jar marinara", 1, "Jar")]
         [InlineData(2, "cups", "2 cups (16 oz) sour cream", 2, "Cup")]
         [InlineData(4, null, "4 (6-ounce) salmon filets", 4, "Piece")]
+        [InlineData(1, "can", "1 lb. can salmon", 1, "Pound")]
+        [InlineData(1, "package", "8 oz. package cream cheese", 8, "Ounce")]
         public void A_scraped_count_of_cans_or_packages_takes_the_size_its_line_states(int quantity, string? unit, string raw, double expected, string measurement)
         {
             IngredientLineParser.Normalize(quantity, unit, raw).Should().Be(new ParsedQuantity((decimal)expected, measurement));
@@ -269,6 +307,8 @@ namespace Nom.Api.Tests.Services
         [InlineData(2.0, null, "2 cans (15 oz each) pinto beans, drained", 2, "Can")]
         [InlineData(1.0, null, "1 jar (12 oz) roasted red peppers, drained", 1, "Jar")]
         [InlineData(1.0, "cup", "1 cup chickpeas, drained", 1, "Cup")]
+        [InlineData(null, null, "1 lb. can tomatoes, drained", 1, "Can")]
+        [InlineData(1.0, "can", "1 lb. can of peas, drained", 1, "Can")]
         public void A_food_weighed_drained_keeps_its_count_of_cans_instead_of_the_net_weight(double? quantity, string? unit, string raw, double expected, string measurement)
         {
             IngredientLineParser.Normalize((decimal?)quantity, unit, raw, drained: true).Should().Be(new ParsedQuantity((decimal)expected, measurement));
@@ -302,6 +342,7 @@ namespace Nom.Api.Tests.Services
         [InlineData("1 can hominy (1 lb. 13 ounce can)", 29)]
         [InlineData("1 1 lb. 13 oz. can peaches", 29)]
         [InlineData("2 cans (1 lb. 4 oz. each) pineapple", 40)]
+        [InlineData("1 lb. 13 oz. can peaches", 29)]
         public void A_can_size_in_pounds_and_ounces_is_added_up_in_ounces(string raw, double expected)
         {
             IngredientLineParser.StatedSize(raw).Should().Be(new ParsedQuantity((decimal)expected, "Ounce"));
@@ -314,6 +355,7 @@ namespace Nom.Api.Tests.Services
         [InlineData("2 No. 303 cans peas", "303")]
         [InlineData("1 can (No. 2) tomatoes", "2")]
         [InlineData("1 No. 10 tin apricots", "10")]
+        [InlineData("1 No. 2 can corn", "2")]
         public void A_numbered_can_is_a_count_of_cans_and_its_number_is_kept(string raw, string number)
         {
             IngredientLineParser.Parse(raw)!.MeasurementName.Should().Be("Can");

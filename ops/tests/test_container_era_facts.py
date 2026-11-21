@@ -99,6 +99,14 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(ef.grams_per_container({"line": "10½-oz. can tomato soup", "quantity": "10.5", "unit": "Ounce"}), 297.7)
         self.assertEqual(ef.grams_per_container({"line": "½ (6-oz.) can tomato paste", "quantity": "3", "unit": "Ounce"}), 170.1)
 
+    def test_a_size_before_one_container_is_one_container_and_before_plural_ones_is_no_size(self):
+        self.assertTrue(ef.states_size("1 lb. can salmon"))
+        self.assertEqual(ef.grams_per_container({"line": "1 lb. can salmon", "quantity": "1", "unit": "Pound"}), 453.6)
+        self.assertFalse(ef.states_size("2 lb. cans tomatoes"))
+        self.assertFalse(ef.states_size("1 lb. canned tomatoes"))
+        facts = run([["l1", "Book A", "historic", "1", "2 lb. cans tomatoes", "2", "Pound", "-"]])
+        self.assertEqual(facts, [])
+
     def test_web_modern_numbered_and_wordless_lines_are_not_mined(self):
         facts = run([["a", "-", "historic", "1", "1 (3 oz) package cream cheese", "3", "Ounce", "-"],
                      ["b", "Book M (1975)", "modern", "1", "1 (3 oz) package cream cheese", "3", "Ounce", "-"],

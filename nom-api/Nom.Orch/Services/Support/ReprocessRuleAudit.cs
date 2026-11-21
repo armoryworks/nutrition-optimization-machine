@@ -21,7 +21,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class ReprocessRuleAudit
     {
-        public const string Version = "reprocess-audit/3";
+        public const string Version = "reprocess-audit/4";
 
         public const string Grounded = "A1";
         public const string Named = "A2";

@@ -50,7 +50,7 @@ namespace Nom.Orch.Services
         /// <summary>The tiers an old or undated book's unsized line is weighed under, in the order they are tried (<see cref="ContainerBasis.OldBookTier"/>); each qualifies and pauses on its own hold-out with <see cref="Policy"/>.</summary>
         public static readonly IReadOnlyList<string> OldBookTiers = new[] { SameBookTier, SameEraTier, PeriodTier, ModernTier };
 
-        public const string RuleVersion = "container-sizes/2";
+        public const string RuleVersion = "container-sizes/3";
         public const string EntityType = "IngredientContainerSize";
         public const string SetChange = "ContainerSizeSet";
         public const string RetireChange = "ContainerSizeRetire";

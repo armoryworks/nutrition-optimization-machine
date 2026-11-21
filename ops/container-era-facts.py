@@ -55,7 +55,8 @@ COUNT = r"(?:\d+(?:[\s-]+\d+/\d+|/\d+|\.\d+)?[½¼¾⅓⅔⅛]?|[½¼¾⅓⅔⅛
 SIZE = r"(?:about\s+)?(?:\d+(?:[\s-]+\d+/\d+|/\d+|\.\d+)?[½¼¾⅓⅔⅛]?|[½¼¾⅓⅔⅛])[\s-]*(?:fl\.?\s*)?(?:oz|ounces?|lbs?|pounds?|g|grams?|kg|ml|pints?|quarts?|cups?)\.?"
 QUALIFIER = r"(?:(?:large|small|medium|big|regular|standard|whole|full|tall|jumbo)\s+)*"
 CONTAINER = r"(?:cans?|tins?|jars?|bottles?|box(?:es)?|bags?|packets?|pouch(?:es)?|sachets?|envelopes?|cartons?|tubs?|containers?|packages?|pkgs?|packs?)\b\.?"
-SIZE_FIRST = re.compile(r"^\s*" + SIZE + r"\s*" + QUALIFIER + CONTAINER, re.I)
+ONE_CONTAINER = r"(?:can|tin|jar|bottle|box|bag|packet|pouch|sachet|envelope|carton|tub|container|package|pkg|pack)\b\.?"
+SIZE_FIRST = re.compile(r"^\s*" + SIZE + r"\s*" + QUALIFIER + ONE_CONTAINER, re.I)
 STATED = [
     SIZE_FIRST,
     re.compile(r"^\s*" + COUNT + r"\s*\(?\s*" + SIZE + r"\s*\)?\s*" + QUALIFIER + CONTAINER, re.I),
@@ -65,7 +66,7 @@ STATED = [
 
 
 def states_size(line):
-    """Whether the line states the size of its container by the count and the container word, as "1 (3 oz) package", "1 package (3 ounces)" or "10-oz. can"."""
+    """Whether the line states the size of its container by the count and the container word, as "1 (3 oz) package", "1 package (3 ounces)" or "10-oz. can"; a size before plural containers with no count ("2 lb. cans") says not how many and states none."""
     return any(p.search(line) for p in STATED)
 
 
