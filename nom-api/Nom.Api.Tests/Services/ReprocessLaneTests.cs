@@ -580,6 +580,19 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void The_rule_audit_grounds_pounds_and_ounces_added_up_in_ounces()
+        {
+            ReprocessRuleAudit.GroundedIn(29m, new[] { "1 lb. 13 oz. can peaches" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(29m, new[] { "1 can hominy (1 lb. 13 ounce can)" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(40m, new[] { "2 cans (1 lb. 4 oz. each) pineapple" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(20m, new[] { "1 pound and 4 ounces of beef" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(377m, new[] { "1 lb. 13 oz. can peaches" }).Should().BeFalse("only a count before the size multiplies it");
+            ReprocessRuleAudit.GroundedIn(30m, new[] { "1 lb. 13 oz. can peaches" }).Should().BeFalse();
+            ReprocessRuleAudit.Failures(new("1 lb. 13 oz. can peaches", "peaches", 29, "Ounce", null)).Should().BeEmpty();
+            ReprocessRuleAudit.Failures(new("1 lb. 13 oz. can peaches", "peaches", 1, "Pound", null)).Should().BeEmpty();
+        }
+
+        [Fact]
         public void A6_fails_a_rebuild_whose_kcal_per_serving_leaves_the_band_and_passes_one_that_comes_closer()
         {
             ReprocessRuleAudit.KcalPerServing(new[] { new ReprocessRuleAudit.Portion(200, 387, null), new ReprocessRuleAudit.Portion(100, null, null), new ReprocessRuleAudit.Portion(50, 900, "note") }, 4)

@@ -52,7 +52,11 @@ alternative and fold rules; `line-builder/4` since the second checkpoint-1 round
 alternative that names the food, the spice cloves, the classify lane's kinds kept on unchanged text; `line-builder/5` since its review: a line that
 states only an amount is never a new food, not even under its own text; `line-builder/6` since the wave-6
 merge, which joins those rules with `cleanup2/container-weighing`'s, a jar read as Jar and a bottle as
-Bottle instead of Package, raised on that branch from the same base as `line-builder/4`)
+Bottle instead of Package, raised on that branch from the same base as `line-builder/4`;
+`line-builder/7` since `cleanup2/parser-size-first`: a size before one container with no count of
+its own, "1 lb. can tomatoes", "1 quart can", "½ pint can", "15-ounce can", "1 lb. 13 oz. can", is one
+container of that size, so a drained such line counts one can and the line's stated size is
+weighed instead of an assumed one; "2 lb. cans" does not say how many and still reads 2 pounds)
 is stamped on every journal row. Raise it with any
 change to a rule the builder applies: the detector reads again every recipe an older version read,
 and the lane's signature changes, so its tiers go back to shadow until they qualify under the new
@@ -281,12 +285,13 @@ gate (`ai-pause-all`, `ai-pause-reprocess`, quiet hours). Off unless `Reprocess:
   with up to six changed lines and their rule-check failures in its signals. A batch is journaled as
   a `ReprocessBatch` row (entity `ReprocessLane`) with its figures.
 
-**Rule checks** (`ReprocessRuleAudit`, `reprocess-audit/3`, written apart from the builder, no
+**Rule checks** (`ReprocessRuleAudit`, `reprocess-audit/4`, written apart from the builder, no
 model) on every changed line: A1 the amount stands in the line's text, or for a method fill in a
 method sentence that names the food, as a number that text states times an old measure that same
 text names (a quart is 4 cups, a gill half a cup, a pound 16 ounces), within a range it states
 ("2 to 3", "2-3", "2 or 3"), or as two numbers it states one after the other multiplied or added
-("2 cans of 15 oz"); "a" or "an" counts as one only before a measure or the food, and a number between
+("2 cans of 15 oz"), or as pounds and ounces it states added up in ounces, alone or times a number
+stated before them ("1 lb. 13 oz. can" is 29 ounces, "2 cans (1 lb. 4 oz. each)" 40); "a" or "an" counts as one only before a measure or the food, and a number between
 two unrelated numbers ("cook 10 minutes, then 2 more onions") grounds nothing. A line that starts with
 a number or "two cups of" stored with no amount fails. A2 a line moved to another food names that food. A3 pieces only of a food with a weight
 per item and never of a liquid or of a line that states a measure; no volume of a whole bird; a
@@ -296,7 +301,10 @@ crumbs, starch, cocoa) of at most 16 cups, matched on the food's name before any
 USDA class word on the part that follows it ("Spices, pepper, black", "Leavening agents, baking soda",
 "Cereals, oats, ..."; "Sugars, granulated" is matched as sugar), so a line linked to a catalog food is
 checked as well as a new food named from its wording ("1 gallon of salt" fails, "1 quart salt" for a
-brine passes; `reprocess-audit/3`, since A6 reads energy only and salt has none). A4 a
+brine passes; `reprocess-audit/3`, since A6 reads energy only and salt has none; `reprocess-audit/4`
+since `cleanup2/parser-size-first`, as a line in pieces that starts "1 lb. can" is now read as a
+can like "1 (16 oz) can" and so does not fail A3 for its measure, and A1 grounds pounds and ounces
+added up, so "1 lb. 13 oz. can peaches" moving from 1 pound to 29 ounces passes). A4 a
 recipe fails no more checks after than before. A5 (live) ten rebuilt recipes rebuilt again change
 nothing. A6 the kcal per serving of the rebuilt lines (grams by the label's own conversion, the food's
 Calories per 100 g, ingredient lines only, the recipe's servings) lies in 30 to 2,500, or no further

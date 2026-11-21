@@ -117,3 +117,17 @@ ck1-47141	and-a-half	one cup and a half of cider	1.5	Cup	-	cider	cider	ok	ok	rul
 ck1-pints-half	and-a-half	two pints and a half of milk	5	Cup	-	milk	milk	agent	agent	agent-review-checkpoint1-2026-11-20	K2 class with a number word before the measure; was 4 Cup
 ck2-18338	italian	Grammi circa 100	100	Gram	-	*	*	ok	-	rule:R6	checkpoint 1 K14, recipe 18338: circa is about, so the amount is 100 grams; was 100 Piece
 ck2-circa	italian	Burro, grammi circa 50	50	Gram	-	Burro	Burro	ok	ok	rule:R6	circa between the unit and its number; the name drops the amount
+sf-01	size-first	1 lb. can tomatoes	1	Pound	1 Pound	*	*	ok	-	rule:size-first	wave 8 follow-up: a size before one can with no count is one can of that size; was no stated size (the can weighed at an assumed size)
+sf-02	size-first	1 lb. can salmon	1	Pound	1 Pound	*	*	ok	-	rule:size-first	container-era-sizes: one of the 120 staging lines only the miner read
+sf-03	size-first	1 quart can tomatoes	4	Cup	4 Cup	*	*	ok	-	rule:size-first	container-era-sizes: a quart can is one can of a quart
+sf-04	size-first	½ pint can cream	1	Cup	1 Cup	*	*	ok	-	rule:size-first	container-era-sizes: a half-pint can
+sf-05	size-first	1 lb. 13 oz. can peaches	29	Ounce	29 Ounce	*	*	ok	-	rule:size-first	pounds and ounces add up with no count before them (as can-06 with one); was 1 Pound
+sf-06	size-first	15-ounce can chickpeas	15	Ounce	15 Ounce	*	*	ok	-	rule:size-first	a hyphenated size before one can, as the miner reads "10½-oz. can"
+sf-07	size-first	1 pound package macaroni	1	Pound	1 Pound	*	*	ok	-	rule:size-first	a package states its size the same way
+sf-08	size-first	1 pint jar oysters	2	Cup	2 Cup	*	*	ok	-	rule:size-first	a jar states its size the same way
+sf-09	size-first	1 No. 2 can corn	1	Can	-	*	*	ok	-	rule:size-first	must not change: a numbered can is a count of cans; its size comes from the cited can table
+sf-10	size-first	a 3-oz. package cream cheese	3	Ounce	3 Ounce	*	*	ok	-	rule:size-first	must not change: already one package of 3 oz
+sf-11	size-first	one 8-ounce bottle catsup	8	Ounce	8 Ounce	*	*	ok	-	rule:size-first	must not change: already one bottle of 8 oz
+sf-12	size-first	1 lb. canned tomatoes	1	Pound	-	*	*	ok	-	rule:size-first	must not change: "canned" is no container, so a pound of the food
+sf-13	size-first	1 can (1 lb.) tomatoes	1	Pound	1 Pound	*	*	ok	-	rule:size-first	must not change: the size after the can already read
+sf-14	size-first	2 lb. cans tomatoes	2	Pound	-	*	*	agent	-	agent-review-parser-size-first-2026-11-21	must not change: plural cans with no count do not say how many cans, so no size per can is read; still 2 Pound

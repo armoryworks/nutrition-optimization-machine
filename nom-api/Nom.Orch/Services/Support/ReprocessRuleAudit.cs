@@ -11,7 +11,8 @@ namespace Nom.Orch.Services.Support
     /// the line builder so they do not share its mistakes (reprocess.md section 3). A1: a stored
     /// amount stands in the line's text, or for a method fill in a method sentence that names the
     /// food, as a number read here (digits, fractions, number words, "a couple"; "a" or "an" only
-    /// before a measure or the food) times one of the old measures' factors that text names. A2: a
+    /// before a measure or the food) times one of the old measures' factors that text names, or as
+    /// pounds and ounces it states added up in ounces. A2: a
     /// line the rebuild moved to another food names that food. A3: a count in pieces is not of a
     /// liquid or of a line that states a measure, a whole bird is not measured by volume, and a volume
     /// of a seasoning or leavener stays within a quart and of a dry staple within a gallon ("1 gallon
@@ -21,7 +22,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class ReprocessRuleAudit
     {
-        public const string Version = "reprocess-audit/3";
+        public const string Version = "reprocess-audit/4";
 
         public const string Grounded = "A1";
         public const string Named = "A2";
@@ -163,7 +164,8 @@ namespace Nom.Orch.Services.Support
         /// it states, or to one times the factor of an old measure that text names (a quart is 4
         /// cups, a gill half a cup, a pound 16 ounces), or to a number of a range it states ("2 to 3",
         /// "2-3", "2 or 3"), or to two numbers it states one after the other times or plus each other
-        /// ("2 cans of 15 oz"). "A" or "an" counts one only before a measure or a word of
+        /// ("2 cans of 15 oz"), or to pounds and ounces it states added up in ounces, alone or times a
+        /// number stated before them ("1 lb. 13 oz. can" is 29, "2 cans (1 lb. 4 oz. each)" 40). "A" or "an" counts one only before a measure or a word of
         /// <paramref name="named"/> (the food), so a stray article grounds nothing.
         /// </summary>
         public static bool GroundedIn(decimal quantity, IEnumerable<string?> texts, IEnumerable<string?>? named = null)
@@ -181,9 +183,18 @@ namespace Nom.Orch.Services.Support
                     if (stated[i + 1].Range && quantity >= Math.Min(a, b) && quantity <= Math.Max(a, b)) return true;
                     if (Near(a * b, quantity) || Near(a + b, quantity)) return true;
                 }
+                foreach (Match m in PoundsAndOunces.Matches(text))
+                {
+                    var ounces = decimal.Parse(m.Groups["lb"].Value, CultureInfo.InvariantCulture) * 16m + decimal.Parse(m.Groups["oz"].Value, CultureInfo.InvariantCulture);
+                    if (Near(ounces, quantity) || Stated(text[..m.Index], food).Any(n => Near(n.Value * ounces, quantity))) return true;
+                }
             }
             return false;
         }
+
+        private static readonly Regex PoundsAndOunces = new(
+            @"(?<lb>\d+)\s*(?:pounds?|lbs?)\.?[\s,]*(?:and\s+)?(?<oz>\d+(?:\.\d+)?)\s*(?:ounces?|ozs?)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static List<(decimal Value, bool Range)> Stated(string text, IReadOnlyList<string> food)
         {

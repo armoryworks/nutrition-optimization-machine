@@ -14,7 +14,9 @@ namespace Nom.Orch.Services.Support
     /// "2 large eggs"), mapped onto NOM's measurement vocabulary. Units NOM has no row for are
     /// converted (quart → 4 Cup, fl oz → Milliliter) or counted as Piece; a line without a unit
     /// counts pieces. A can, jar or package is read by the size it states ("2 (15 oz) cans" →
-    /// 30 Ounce) and as Can, Jar, Bottle or Package when it states none. Two amounts of one food joined by
+    /// 30 Ounce) and as Can, Jar, Bottle or Package when it states none; a size before one container
+    /// with no count of its own is one container of that size ("1 lb. can tomatoes" → 1 Pound in
+    /// one can), while "2 lb. cans" does not say how many and stays 2 Pound. Two amounts of one food joined by
     /// " + " are added up in the first one's unit ("1/4 cup + 1 tablespoon sugar" → 0.313 Cup), or
     /// not read when their units do not add. Old and abbreviated measures ("one jill", "1 pony",
     /// "2 tablespns."), "a couple of", a pinch with no "of", a leading "optional" or "~", a measure
@@ -164,15 +166,15 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// The amount a line gives by the size of its can, package or piece ("1 (15 oz) can black
-        /// beans" → 15 Ounce, "2 cans (15 oz each) corn" → 30 Ounce, "1 (3-pound) chicken" →
-        /// 3 Pound), or null when the line states no such size or the size could be each or total
+        /// beans" → 15 Ounce, "2 cans (15 oz each) corn" → 30 Ounce, "1 lb. can salmon" → 1 Pound,
+        /// "1 (3-pound) chicken" → 3 Pound), or null when the line states no such size or the size could be each or total
         /// ("4 (6-ounce) salmon filets").
         /// </summary>
         public static ParsedQuantity? StatedSize(string? rawLine) => Read(rawLine, out var sized, out _) is { } parsed && sized ? parsed : null;
 
         /// <summary>
         /// The number of cans or packages a line states a size for ("1 (15 oz) can chickpeas" →
-        /// 1 Can, "2 jars (24 oz each) sauce" → 2 Jar), or null when the line states no size or
+        /// 1 Can, "2 jars (24 oz each) sauce" → 2 Jar, "1 lb. can salmon" → 1 Can), or null when the line states no size or
         /// the size it states is not a can's or a package's ("1 (3-pound) chicken").
         /// </summary>
         public static ParsedQuantity? SizedContainers(string? rawLine) => Read(rawLine, out var sized, out var containers) != null && sized ? containers : null;
@@ -410,11 +412,26 @@ namespace Nom.Orch.Services.Support
             @"(?:\s+(?:(?<each>each|apiece|size|" + Container + @")|(?<total>total)))?\s*[,;)]",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        private static readonly string OneContainer = @"(?:" + Alternation(Units.Where(u => IsContainer(u.Measurement)).SelectMany(u => u.Forms).Where(f => !f.EndsWith('s'))) + @")(?![a-z])\.?(?!\s*" + Utensil + ")";
+
+        private static readonly Regex SizeBeforeOneContainer = new(
+            @"^\s*" + Size + @"[\s,-]*" + ContainerQualifier + OneContainer,
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static string CountedOnce(string line) => SizeBeforeOneContainer.IsMatch(InOunces(line)) ? "1 x " + line : line;
+
         private static readonly Regex MixedHyphen = new(@"(?<=\d)-(?=\d+\s*/\s*\d)", RegexOptions.Compiled);
 
         private static readonly Regex PoundsAndOunces = new(
             @"(?<lb>\d+)\s*(?:pounds?|lbs?)\.?[\s,]*(?:and\s+)?(?<oz>\d+(?:\.\d+)?)\s*(?:ounces?|ozs?)(?![a-z])\.?",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static string InOunces(string line) =>
+            PoundsAndOunces.Replace(MixedHyphen.Replace(line, " "), m =>
+                decimal.TryParse(m.Groups["lb"].Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var pounds)
+                && decimal.TryParse(m.Groups["oz"].Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var ounces) && pounds < 1000m
+                    ? (pounds * 16m + ounces).ToString(CultureInfo.InvariantCulture) + " ounce"
+                    : m.Value);
 
         private static readonly Dictionary<string, decimal> GramsOrMillilitersPer = new()
         {
@@ -426,11 +443,7 @@ namespace Nom.Orch.Services.Support
         private static ParsedQuantity? SizeIn(string line, out ParsedQuantity? containers)
         {
             containers = null;
-            line = PoundsAndOunces.Replace(MixedHyphen.Replace(line, " "), m =>
-                decimal.TryParse(m.Groups["lb"].Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var pounds)
-                && decimal.TryParse(m.Groups["oz"].Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var ounces) && pounds < 1000m
-                    ? (pounds * 16m + ounces).ToString(CultureInfo.InvariantCulture) + " ounce"
-                    : m.Value);
+            line = InOunces(line);
             var first = SizeFirst.Match(line);
             if (first.Success)
             {
@@ -495,7 +508,7 @@ namespace Nom.Orch.Services.Support
                 line = value.ToString(CultureInfo.InvariantCulture) + " " + line[words.Length..];
             }
 
-            if (SizeIn(line, out var sizedContainers) is { } stated)
+            if (SizeIn(CountedOnce(line), out var sizedContainers) is { } stated)
             {
                 sized = true;
                 containers = sizedContainers;
@@ -542,16 +555,26 @@ namespace Nom.Orch.Services.Support
         /// (with conversion), no unit meaning pieces; a missing quantity is parsed from the raw line.
         /// A count of pieces, cans or packages gives way to the size the raw line states, unless
         /// <paramref name="drained"/> says the food is weighed drained: a can's stated size is its net
-        /// weight with the liquid, so such a line stays a count of cans or packages.
+        /// weight with the liquid, so such a line stays a count of cans or packages, also when the
+        /// scraper took that stated size for the amount ("1 lb" for "1 lb. can black beans, drained").
         /// </summary>
         public static ParsedQuantity? Normalize(decimal? quantity, string? unit, string? rawLine, bool drained = false)
         {
             if (quantity is not > 0) return drained && SizedContainers(rawLine) is { } counted ? counted : Parse(rawLine);
 
             var mapped = FromUnit(quantity.Value, string.IsNullOrWhiteSpace(unit) ? null : unit.Trim().TrimEnd('.'));
-            if ((mapped.MeasurementName != Piece && !IsContainer(mapped.MeasurementName)) || StatedSize(rawLine) is not { } stated) return mapped;
+            if (StatedSize(rawLine) is not { } stated) return mapped;
+            if (drained && SameAmount(mapped, stated) && SizedContainers(rawLine) is { } containers) return containers;
+            if (mapped.MeasurementName != Piece && !IsContainer(mapped.MeasurementName)) return mapped;
             return drained ? SizedContainers(rawLine) ?? mapped : stated;
         }
+
+        private static readonly HashSet<string> Masses = new() { "Ounce", "Pound", "Gram", "Kilogram" };
+
+        private static bool SameAmount(ParsedQuantity a, ParsedQuantity b) =>
+            Masses.Contains(a.MeasurementName) == Masses.Contains(b.MeasurementName)
+            && GramsOrMillilitersPer.TryGetValue(a.MeasurementName, out var perA) && GramsOrMillilitersPer.TryGetValue(b.MeasurementName, out var perB)
+            && Math.Abs(a.Quantity * perA - b.Quantity * perB) <= 0.01m * b.Quantity * perB;
 
         private static decimal? ParseQuantity(string text)
         {
