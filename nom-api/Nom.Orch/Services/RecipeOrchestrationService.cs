@@ -721,8 +721,10 @@ namespace Nom.Orch.Services
         /// <summary>
         /// The diet matches the nutrient, word and name-pattern criteria give (<see cref="Support.DietCriteriaMatcher"/>):
         /// each recipe line whose food a criterion of one of the person's restriction categories matches;
-        /// in a recipe with a line on a food a pattern matched only through an alias that does not
-        /// count, each line whose own text names a pattern of the category (named by the line's text);
+        /// each line, on any other food, whose own text names a pattern the category reads in every line
+        /// (<see cref="Support.DietCriteriaMatcher.LinePatterns"/>), and, in a recipe with a line on a food
+        /// a pattern matched only through an alias that does not count, each line whose own text names a
+        /// pattern of the category (both named by the line's text);
         /// for the alcohol criterion, each line whose own text reads as a drink while its food is not
         /// matched (named by the line's text); and, for a capped alcohol criterion, each drink line of a
         /// recipe that keeps more alcohol per serving than the cap, or each drink line that cannot be counted.
@@ -739,9 +741,15 @@ namespace Nom.Orch.Services
             var criteria = await Support.DietCriteriaMatcher.CriteriaAsync(_context, restrictions.Select(r => r.TypeId).Distinct().ToList());
             if (criteria.Count == 0) return new List<(long, RecipeDietMatchModel)>();
 
-            var rows = await recipeIngredients
-                .Select(ri => new { ri.RecipeId, ri.IngredientId, ri.RawLine, Name = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty, ri.Quantity, ri.MeasurementId })
+            var lineRows = await recipeIngredients
+                .Select(ri => new { ri.RecipeId, ri.IngredientId, ri.RawLine, ri.Quantity, ri.MeasurementId })
                 .ToListAsync();
+            var lineFoodIds = lineRows.Select(l => l.IngredientId).Distinct().ToList();
+            var foodNames = await _context.Ingredients.IgnoreQueryFilters().AsNoTracking()
+                .Where(i => lineFoodIds.Contains(i.Id))
+                .Select(i => new { i.Id, i.Name })
+                .ToDictionaryAsync(i => i.Id, i => i.Name);
+            var rows = lineRows.Select(l => new { l.RecipeId, l.IngredientId, l.RawLine, Name = foodNames.GetValueOrDefault(l.IngredientId) ?? string.Empty, l.Quantity, l.MeasurementId }).ToList();
             var lineRecipeIds = rows.Select(l => l.RecipeId).Distinct().ToList();
             var factsOnly = (await _context.Recipes.AsNoTracking()
                     .Where(r => lineRecipeIds.Contains(r.Id) && r.SourceRights == SourceRightsRule.FactsOnly)
@@ -789,9 +797,11 @@ namespace Nom.Orch.Services
             var byAliasLine = from r in restrictions
                               where probes.ContainsKey(r.TypeId)
                               let probe = probes[r.TypeId]
+                              let type = criteria.Where(c => c.RestrictionTypeId == r.TypeId).ToList()
                               let touched = lines.Where(l => probe.AliasOnly.Contains(l.IngredientId)).Select(l => l.RecipeId).ToHashSet()
-                              from l in lines.Where(l => touched.Contains(l.RecipeId) && !probe.Foods.Values.Any(ids => ids.Contains(l.IngredientId)))
-                              let c = criteria.Where(c => c.RestrictionTypeId == r.TypeId && Support.DietCriteriaMatcher.LineNames(c, l.RawLine)).OrderByDescending(c => c.Severity).FirstOrDefault()
+                              from l in lines.Where(l => !probe.Foods.Values.Any(ids => ids.Contains(l.IngredientId)))
+                              let c = Support.DietCriteriaMatcher.LineCriterion(type, l.RawLine)
+                                  ?? (touched.Contains(l.RecipeId) ? type.Where(c => Support.DietCriteriaMatcher.LineNames(c, l.RawLine)).OrderByDescending(c => c.Severity).FirstOrDefault() : null)
                               where c != null
                               select (l.RecipeId, new RecipeDietMatchModel
                               {

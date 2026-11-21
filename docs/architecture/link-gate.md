@@ -190,7 +190,7 @@ in its gate signature, so a changed gate drops that tier back to shadow.
   (`cleanup2/ck4-parser-method`, six more pairs through, all judged right), and separately the
   checkpoint-2 rules and their review (`cleanup2/ck4-recheck-gate`, 62 more judged pairs through), each
   with the same false accepts and no pair regressed; and for `link-gate/10`, the wave-13 merge of
-  both): it lets through 2,377 of 7,664 pairs, 99.5 % of them judged right;
+  both, with `alcohol-context/6` (the ratafia rule of `cleanup2/ck4-diet-containers` moves no pair)): it lets through 2,377 of 7,664 pairs, 99.5 % of them judged right;
   it lets through 12 of 1,406 pairs judged wrong, near or compound (0.9 %). Floors: precision at
   least 99 %, false accepts at most 1 %, agreement at least 45 %. The record is required, and
   `The_committed_link_gate_record_is_what_the_gate_scores_now` checks in CI that the gate still

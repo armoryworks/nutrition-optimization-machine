@@ -32,7 +32,8 @@ first rule that fires wins:
    the like), "manzanilla olives", "Scotch caraways"; a wine that names no kind of fruit is the drink
    the fruit is soaked or cooked in, so "sherry raisins", "port figs" and "Marsala pears" still count
    the wine; a food called after a drink,
-   "cherries called brandy-blacks"; ratafia crumbs, biscuits and cakes; "stout" as strong before a
+   "cherries called brandy-blacks"; ratafia crumbs, biscuits, cakes, drops, macaroons, cookies
+   and wafers (almond biscuits named after the liqueur, staging checkpoint 2 doubtful item 92584); "stout" as strong before a
    bag, cloth, string and the like); `measure` (an ale, wine or beer measure); `liquid` ("liquor"
    with no spirit word).
 3. **A measure** (wineglass, wine-glassful, claret-glass, sherry glass): the food is what follows
@@ -120,7 +121,7 @@ Each drink sense allows a fixed set of USDA SR Legacy foods by FDC id (`AlcoholL
   (`wine-unclear`), "vin blanc" and "vin rouge" white and red, "au vin" a dish. A line that names
   a drink besides the dish it is for reads as that drink ("1 bottle red Burgundy, for the coq au
   vin" is red wine and refused on Chicken Stock; "2 cups chicken stock for coq au vin" stays a
-  dish; `alcohol-context/4`).
+  dish; `alcohol-context/5`).
 
 The table is checked in the golden tests against the frozen catalog: every id is a USDA alcoholic
 beverage (category 14), and every drink sense but `wine-late-harvest` has a food with at least 20
@@ -221,12 +222,15 @@ the old release's own start-up, since its defaults are then missing again.
 
 ## Golden set and scorer
 
-- `alcohol-context.tsv`: 205 lines with the expected sense, a food the sense must allow and one it
+- `alcohol-context.tsv`: 207 lines with the expected sense, a food the sense must allow and one it
   must refuse; ac-178 to ac-202 are the staging checkpoint-2 lines (M21 and the re-check's doubtful
   items, `alcohol-context/5`): 22 rule-given (`rule:alcohol-context`, `ok`) and three doubtful items
   decided by rule (`agent`, `agent-review-ck4-recheck-gate-2026-11-21`); ac-203 to ac-205 (sherry
   raisins, port figs, Marsala pears read as the wine) from the review of that fix (`agent`,
-  `agent-review-ck4rg-2026-11-21`); 164 rule-given rows (`rule:alcohol-context`, `ok`) from the design's classes and the
+  `agent-review-ck4rg-2026-11-21`); ac-206 and ac-207 (ratafia cakes as no drink, the liqueur itself
+  still one; `cleanup2/ck4-diet-containers`, `rule:alcohol-context`, `ok`); `alcohol-context/5` was
+  raised on both of these branches from the same base and `alcohol-context/6` is the wave-13 merge of
+  both; 164 rule-given rows (`rule:alcohol-context`, `ok`) from the design's classes and the
   staging checkpoint-1 lines (K10: ac-162 to ac-172), ten judged by the alcohol-context builder and
   three by the checkpoint fix (Catawba, vin blanc, coq au vin; `agent`); ac-176 and ac-177
   (`rule:alcohol-context`, `ok`) are wine lines that name the "au vin" dish they are for. `GoldenAlcoholContextTests` requires every row to pass, every

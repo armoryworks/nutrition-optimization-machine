@@ -248,6 +248,37 @@ new_recipes AS (
 lost AS (
     SELECT * FROM old_recipes EXCEPT SELECT * FROM new_recipes
 ),
+line_pat AS (
+    SELECT p.pattern, l."RecipeId", l."IngredientId", l."RawLine", l.approved
+    FROM pats p
+    JOIN live l ON l."RawLine" ILIKE p.pattern
+),
+line_word_pats AS (
+    SELECT DISTINCT pattern FROM word_crit WHERE type_id NOT IN (SELECT type_id FROM alcohol_types)
+),
+line_word AS (
+    SELECT c.pattern, l."RecipeId", l."IngredientId", l."RawLine", l.approved
+    FROM line_word_pats c
+    CROSS JOIN consts k
+    JOIN live l ON l."RawLine" ~* c.pattern
+    WHERE NOT (l."RawLine" ~* k.drink AND l."RawLine" ~* k.not_drink)
+),
+any_line_hits AS (
+    SELECT c.type_id, x."RecipeId", x."IngredientId", x."RawLine", x.approved
+    FROM crit c
+    JOIN line_pat x ON x.pattern = c.pattern
+    UNION
+    SELECT c.type_id, x."RecipeId", x."IngredientId", x."RawLine", x.approved
+    FROM word_crit c
+    JOIN line_word x ON x.pattern = c.pattern
+    WHERE c.type_id NOT IN (SELECT type_id FROM alcohol_types)
+),
+any_line AS (
+    SELECT DISTINCT type_id, "RecipeId", approved FROM any_line_hits
+),
+by_any_line AS (
+    SELECT * FROM any_line EXCEPT SELECT * FROM new_recipes
+),
 gained AS (
     SELECT * FROM new_recipes EXCEPT SELECT * FROM old_recipes
 ),
@@ -261,6 +292,9 @@ counts AS (
     UNION ALL SELECT type_id, 'lost', count(*) FROM lost GROUP BY type_id
     UNION ALL SELECT type_id, 'lost_approved', count(*) FROM lost WHERE approved GROUP BY type_id
     UNION ALL SELECT type_id, 'gained', count(*) FROM gained GROUP BY type_id
+    UNION ALL SELECT type_id, 'kept_by_any_line', count(*) FROM any_line GROUP BY type_id
+    UNION ALL SELECT type_id, 'gained_by_any_line', count(*) FROM by_any_line GROUP BY type_id
+    UNION ALL SELECT type_id, 'gained_by_any_line_approved', count(*) FROM by_any_line WHERE approved GROUP BY type_id
 ),
 severities AS (
     SELECT type_id, max(severity) AS severity FROM all_crit GROUP BY type_id
@@ -275,7 +309,10 @@ summary AS (
            coalesce(sum(c.n) FILTER (WHERE c.k = 'kept_by_line'), 0) AS kept_by_line,
            coalesce(sum(c.n) FILTER (WHERE c.k = 'lost'), 0) AS lost,
            coalesce(sum(c.n) FILTER (WHERE c.k = 'lost_approved'), 0) AS lost_approved,
-           coalesce(sum(c.n) FILTER (WHERE c.k = 'gained'), 0) AS gained
+           coalesce(sum(c.n) FILTER (WHERE c.k = 'gained'), 0) AS gained,
+           coalesce(sum(c.n) FILTER (WHERE c.k = 'kept_by_any_line'), 0) AS kept_by_any_line,
+           coalesce(sum(c.n) FILTER (WHERE c.k = 'gained_by_any_line'), 0) AS gained_by_any_line,
+           coalesce(sum(c.n) FILTER (WHERE c.k = 'gained_by_any_line_approved'), 0) AS gained_by_any_line_approved
     FROM type_groups g
     JOIN severities v ON v.type_id = g.type_id
     LEFT JOIN counts c ON c.type_id = g.type_id
@@ -290,15 +327,30 @@ lost_sample AS (
     JOIN live l ON l."RecipeId" = x."RecipeId"
     JOIN alias_only a ON a.type_id = x.type_id AND a.food = l."IngredientId"
     GROUP BY s.type_id, s.type_name, s.severity, x."RecipeId", x.approved
+),
+line_sample AS (
+    SELECT s.type_name, s.severity, x."RecipeId",
+           string_agg(DISTINCT h."RawLine" || ' [on ' || coalesce(i."Name", '#' || h."IngredientId") || ']', ' | ') AS lines,
+           row_number() OVER (PARTITION BY s.type_id ORDER BY x.approved DESC, md5(x."RecipeId"::text || :'seed')) AS n
+    FROM by_any_line x
+    JOIN summary s ON s.type_id = x.type_id
+    JOIN any_line_hits h ON h.type_id = x.type_id AND h."RecipeId" = x."RecipeId"
+    LEFT JOIN recipe."Ingredient" i ON i."Id" = h."IngredientId"
+    GROUP BY s.type_id, s.type_name, s.severity, x."RecipeId", x.approved
 )
 SELECT 'summary' AS kind, type_name, severity::text,
        concat_ws(' ', 'ids', ref_ids, 'foods', foods_before, '->', foods_after, '(alias only', foods_alias_only || ')',
                  'recipes', recipes_before, '->', recipes_after, '(kept by a line', kept_by_line || ')',
-                 'lost', lost, '(approved', lost_approved || ')', 'gained', gained) AS detail
+                 'lost', lost, '(approved', lost_approved || ')', 'gained', gained,
+                 'any-line', kept_by_any_line, 'gained by any line', gained_by_any_line, '(approved', gained_by_any_line_approved || ')') AS detail
 FROM summary
 UNION ALL
 SELECT 'lost', type_name, severity::text, "RecipeId" || ': ' || lines_on_alias_only_foods
 FROM lost_sample
+WHERE n <= :sample AND severity >= 4
+UNION ALL
+SELECT 'line', type_name, severity::text, "RecipeId" || ': ' || lines
+FROM line_sample
 WHERE n <= :sample AND severity >= 4
 ORDER BY 1 DESC, 2, 4;
 ROLLBACK;

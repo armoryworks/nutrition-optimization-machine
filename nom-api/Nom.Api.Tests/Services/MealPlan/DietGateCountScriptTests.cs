@@ -46,6 +46,15 @@ namespace Nom.Api.Tests.Services.MealPlan
         }
 
         [Fact]
+        public void The_count_reads_every_live_line_by_its_own_text_whatever_its_food_and_samples_a_spread()
+        {
+            Script.Should().Contain("line_pat AS").And.Contain("JOIN live l ON l.\"RawLine\" ILIKE p.pattern", "the line rule of staging checkpoint 2 (M27) reads every live line, on any food");
+            Script.Should().Contain("WHERE c.type_id NOT IN (SELECT type_id FROM alcohol_types)", "a type with the alcohol criterion leaves its drink words to the alcohol rule, as DietCriteriaMatcher.LinePatterns does");
+            Script.Should().Contain("gained_by_any_line").And.Contain("SELECT 'line'");
+            Script.Should().Contain("ORDER BY x.approved DESC, md5(x.\"RecipeId\"::text || :'seed')) AS n\n    FROM by_any_line", "the line samples are a spread, not the lowest recipe ids (M14)");
+        }
+
+        [Fact]
         public void The_counts_shared_values_are_the_codes()
         {
             Script.Should().Contain("'" + AlcoholLineContext.DrinkNamePattern + "'");

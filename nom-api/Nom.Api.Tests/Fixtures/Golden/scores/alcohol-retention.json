@@ -1,15 +1,16 @@
 {
   "lane": "alcohol-retention",
-  "model": "alcohol-retention/2",
+  "model": "alcohol-retention/4",
+  "checkModel": null,
   "host": "none",
-  "signature": "ac593f0cff3fffe8",
-  "scoredAtUtc": "2026-11-21T02:33:52.5680336Z",
-  "caseSet": "bed587066acb57f4",
-  "cases": 74,
-  "passed": 74,
+  "signature": "daa9f3ebd486af96",
+  "scoredAtUtc": "2026-11-21T09:58:13.6471982Z",
+  "caseSet": "36d3757fd17adad6",
+  "cases": 86,
+  "passed": 86,
   "score": 1,
   "falseAccepts": 0,
-  "falseAcceptCases": 74,
+  "falseAcceptCases": 86,
   "falseAcceptRate": 0,
   "accepted": null,
   "precision": null,
@@ -19,13 +20,18 @@
       10
     ],
     "rule:alcohol-retention": [
-      64,
-      64
+      76,
+      76
     ]
   },
   "failed": [],
   "auditKnownBad": null,
   "auditFlaggedBad": null,
   "auditKnownGood": null,
-  "auditFlaggedGood": null
+  "auditFlaggedGood": null,
+  "auditModel": null,
+  "auditorKnownBad": null,
+  "auditorFlaggedBad": null,
+  "auditorKnownGood": null,
+  "auditorFlaggedGood": null
 }

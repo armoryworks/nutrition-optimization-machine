@@ -50,7 +50,7 @@ namespace Nom.Data.Nutrition
     /// </summary>
     public static class CatalogAdmissionRule
     {
-        public const string Version = "catalog-admission/4";
+        public const string Version = "catalog-admission/5";
 
         /// <summary>
         /// The audit change type of a food group or edibility set from the USDA category, by the

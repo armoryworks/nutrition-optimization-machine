@@ -109,3 +109,6 @@ e-06	1 can mushrooms	historic	169254	-	no	-	ok	rule:containers-period-without-mo
 e-07	1 large can tomatoes	historic	170051	-	no	794	ok	deterministic:fdc-branded-mode:2025-12-18:canned-tomatoes	the period row names medium cans only, so a large can takes the modern large mode (28 oz)
 e-08	1 can sweetened condensed milk	historic	171275	-	no	396	ok	rule:containers-modern-fallback	no period row names milk (category 1), so the modern mode 14 oz, shown estimated
 e-09	2 cans corn	historic	169214	-	no	626	ok	deterministic:can-table:h33-veg-medium	two period cans of corn, drained: 2 x 312.9
+k4-01	1 package flour tortillas (street taco size)	modern	167535	-	no	-	ok	rule:containers-item-size	staging checkpoint 2 doubtful item (35714): the line names street-taco-size tortillas, and SR's 484 g package holds 49 g tortillas, so no size of the food speaks of this package and the line stays uncounted
+k4-02	1 package flour tortillas	modern	167535	-	no	484	ok	fdc:167535:portion:2	both directions: a package with no item size takes SR's package portion
+k4-03	1 can cherry pie filling	modern	168824	-	no	595	ok	fdc:168824:portion:2	staging checkpoint 2 doubtful item (36277): SR's "can" of 74 g has amount 0.12 (an eighth of a can) and is not read as a can; "can (21 oz)" 595 g is

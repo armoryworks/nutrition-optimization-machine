@@ -185,7 +185,8 @@ became identity evidence in the gate (two more pairs, both judged right, 1,860 i
 under `link-gate/8`, the wave-6 merge of both; under `link-gate/9`, raised on two branches from the
 same base (`cleanup2/ck4-parser-method`: number words in the name normalizer, 1,866 written;
 `cleanup2/ck4-recheck-gate` with `alcohol-context/5`, staging checkpoint 2: one more pair, judged
-right); and again under `link-gate/10`, the wave-13 merge of both, which writes 1,867 pairs, 3,211
+right); and again under `link-gate/10` and
+`alcohol-context/6`, the wave-13 merge of both and of `cleanup2/ck4-diet-containers`, which writes 1,867 pairs, 3,211
 agreeing (43.8 %), the same 9 false accepts and no pair regressed (the table below is the
 `link-gate/8` record):
 

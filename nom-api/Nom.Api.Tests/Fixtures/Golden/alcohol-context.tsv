@@ -204,3 +204,5 @@ ac-202	spirits of nutmeg	-	-	no	extract	-	174815	agent	agent-review-ck4-recheck-
 ac-203	1 cup sherry raisins	-	-	no	fortified-dry	175112	-	agent	agent-review-ck4rg-2026-11-21	CK4RG-4: sherry names no kind of raisin; raisins in sherry count the sherry
 ac-204	6 port figs	-	-	no	fortified-sweet	173176	-	agent	agent-review-ck4rg-2026-11-21	CK4RG-4: port names no kind of fig; figs in port count the port
 ac-205	4 Marsala pears	-	-	no	fortified	175112	-	agent	agent-review-ck4rg-2026-11-21	CK4RG-4: Marsala names no kind of pear; pears in Marsala count the Marsala
+ac-206	6 ratafia cakes, crushed	-	-	no	other	-	174815	ok	rule:alcohol-context	staging checkpoint 2 doubtful item (92584): ratafia cakes are almond biscuits named after the liqueur, not a drink
+ac-207	1 wineglass of ratafia	-	-	no	liqueur	-	174815	ok	rule:alcohol-context	the liqueur itself is still a drink USDA has no food for

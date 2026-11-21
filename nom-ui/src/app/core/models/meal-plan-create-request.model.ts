@@ -9,4 +9,6 @@ export interface MealPlanCreateRequest {
   ingredientId?: number | null;
   quantity?: number | null;
   measurementId?: number | null;
+  /** The member confirmed "Add anyway" for a prepared meal held for a household with a severe restriction. */
+  confirmHeld?: boolean;
 }

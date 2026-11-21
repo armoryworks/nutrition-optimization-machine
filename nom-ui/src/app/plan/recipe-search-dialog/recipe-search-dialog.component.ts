@@ -7,7 +7,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Subject, catchError, debounceTime, distinctUntilChanged, map, switchMap, of } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Observable, Subject, catchError, debounceTime, distinctUntilChanged, map, switchMap, of } from 'rxjs';
 import { RecipeSearchService } from '../../core/services/recipe-search.service';
 import { MealPlanService } from '../../core/services/meal-plan.service';
 import { IngredientLookupService } from '../../core/services/ingredient-lookup.service';
@@ -20,6 +21,7 @@ import { DietConflictsPipe } from '../../core/utils/diet-conflict';
 import { formatFriendlyDate } from '../../core/utils/local-date';
 import { RecipeDietMatchModel } from '../../core/models/recipe.model';
 import { DietConflictConfirmDialog, DietConflictConfirmDialogData, DietConflictConfirmDialogResult } from '../diet-conflict-confirm-dialog.component';
+import { PreparedHeldConfirmDialog, PreparedHeldConfirmDialogData, PreparedHeldConfirmDialogResult } from '../prepared-held-confirm-dialog.component';
 
 export interface RecipeSearchDialogData {
   householdId: number;
@@ -76,6 +78,7 @@ export class RecipeSearchDialog implements OnInit {
   wholeFoodResults = signal<IngredientLookupResult[]>([]);
   wholeFoodSearching = signal(false);
   preparedChecks = signal<Map<number, PreparedMealCheck>>(new Map());
+  wholeFoodError = signal('');
   private wholeFoodSubject = new Subject<string>();
 
   private searchSubject = new Subject<string>();
@@ -137,6 +140,8 @@ export class RecipeSearchDialog implements OnInit {
     });
   }
 
+  static readonly preparedCheckFailedMessage = 'Could not check this meal against your household. Try again.';
+
   static preparedHeldMessage(check: PreparedMealCheck | undefined): string {
     if (!check?.held) return '';
     const names = check.names.slice(0, 3).join(', ');
@@ -179,11 +184,45 @@ export class RecipeSearchDialog implements OnInit {
 
   onWholeFoodInput(query: string): void {
     this.wholeFoodQuery.set(query);
+    this.wholeFoodError.set('');
     this.wholeFoodSubject.next(query);
   }
 
   addWholeFood(ingredient: IngredientLookupResult): void {
     this.busy.set(true);
+    this.wholeFoodError.set('');
+    const known = this.preparedChecks();
+    const check$: Observable<PreparedMealCheck | undefined | null> = !ingredient.isPrepared
+      ? of(undefined)
+      : known.has(ingredient.id)
+        ? of(known.get(ingredient.id))
+        : this.mealPlanService.checkPreparedMeals(this.data.householdId, [ingredient.id]).pipe(
+          map(checks => checks.find(c => c.ingredientId === ingredient.id)),
+          catchError(() => of(null)),
+        );
+    check$.pipe(
+      switchMap(check => {
+        if (check === null) {
+          this.wholeFoodError.set(RecipeSearchDialog.preparedCheckFailedMessage);
+          return of(null);
+        }
+        if (!check?.held || !check.severe) return of(false);
+        return this.dialog.open<PreparedHeldConfirmDialog, PreparedHeldConfirmDialogData, PreparedHeldConfirmDialogResult>(
+          PreparedHeldConfirmDialog,
+          { width: '400px', data: { foodName: ingredient.name, reason: RecipeSearchDialog.preparedHeldMessage(check) } },
+        ).afterClosed().pipe(map(confirmed => confirmed === true ? true : null));
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(confirmHeld => {
+      if (confirmHeld === null) {
+        this.busy.set(false);
+        return;
+      }
+      this.createWholeFoodEntry(ingredient, confirmHeld);
+    });
+  }
+
+  private createWholeFoodEntry(ingredient: IngredientLookupResult, confirmHeld: boolean): void {
     this.mealPlanService.createMealPlan({
       householdId: this.data.householdId,
       date: this.data.date,
@@ -193,6 +232,7 @@ export class RecipeSearchDialog implements OnInit {
       recipeId: null,
       ingredientId: ingredient.id,
       quantity: 1,
+      ...(confirmHeld ? { confirmHeld: true } : {}),
     }).pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
@@ -222,8 +262,11 @@ export class RecipeSearchDialog implements OnInit {
         this.wholeFoodQuery.set('');
         this.wholeFoodResults.set([]);
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         this.busy.set(false);
+        this.wholeFoodError.set(err?.error?.reason === 'restriction_violation:prepared_held_unconfirmed'
+          ? 'Held for your household. Search for this meal again to see why before adding it.'
+          : 'Could not add this food. Try again.');
       },
     });
   }
