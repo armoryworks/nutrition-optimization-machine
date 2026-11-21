@@ -133,7 +133,7 @@ gives the one reading a wording's lines agree on, for lanes that read lines.
 - A food counts when it stores more than 0.5 g alcohol per 100 g, unless it is a flavouring (a name
   read as an extract or flavouring, or a USDA Spices and Herbs food). Vanilla extract (34 g per
   100 g, used by the teaspoon) is not excluded: owner answer 6 leaves extracts to a note on the
-  recipe page, which the alcohol-retention item builds with the label note.
+  recipe page (`alcohol-retention.md`).
 - A food that stores no alcohol figure (an unlinked wording food) counts when its own name reads
   as a drink, a drink with no USDA food, an unclear drink or a dish named after one, never by an
   alias. Whole recipe lines are stored as aliases ("little sugar and brandy or raisin wine" on
@@ -168,7 +168,9 @@ gives the one reading a wording's lines agree on, for lanes that read lines.
   for every household set). `DietGateCache` keeps the answer of each whole-catalog probe (the foods
   a restriction type's criteria match; the drink lines) per database. It is marked stale by
   `DietGateCacheInvalidator`, an EF Core interceptor on the API's context, when a command writes
-  `recipe."Ingredient"`, `"IngredientAlias"`, `"RecipeIngredient"` or `nutrient."IngredientNutrient"`
+  `recipe."Ingredient"`, `"IngredientAlias"`, `"RecipeIngredient"` or `nutrient."IngredientNutrient"`,
+  a recipe's servings (`recipe."Recipe"`, which the retained alcohol per serving divides by) or a
+  measurement (`measurement."Measurement"`, by which a drink line is weighed)
   (at once outside a transaction, at its commit inside one; SaveChanges, bulk updates and raw SQL all
   pass there), and after 15 minutes in any case (writes from Nom.Import or psql). A stale answer is
   served while one refresh runs on its own context, so a write never makes a household wait; only the
@@ -179,9 +181,13 @@ gives the one reading a wording's lines agree on, for lanes that read lines.
   and lines and are not cached.
 - The same rules serve the per-recipe diet matches (`GetDietMatchesAsync`, the severe-conflict
   filter of search and the plan) and the household's forbidden-food set (meal planning, search).
-- A criterion with a per-serving cap (`MaxAmountPerServing`) is not read: excluding a recipe above
-  0.5 g retained alcohol per serving from drinks needs the retention factors and is built by
-  `cleanup2/alcohol-retention`.
+- **No Alcohol and Halal cap retained alcohol per serving** (owner answer 6,
+  `cleanup2/alcohol-retention`): their alcohol nutrient row carries `MaxAmountPerServing` = 0.5 g.
+  A capped criterion forbids no food that stores an alcohol figure; it excludes a recipe when more
+  than 0.5 g of its drinks' alcohol stays per serving after cooking, or when a drink line cannot be
+  counted (a drink line on a food with no alcohol figure, or one the label cannot weigh). A food
+  with no alcohol figure whose own name reads as a drink is still forbidden. Whole30 keeps the
+  uncapped row and excludes any drink. See `alcohol-retention.md`.
 
 `DefaultRestrictionCriteria.EnsureAsync` brings a restriction type that holds only untouched default
 rows to the new defaults at start-up: it adds the word patterns and the alcohol nutrient row and
@@ -217,4 +223,5 @@ the old release's own start-up, since its defaults are then missing again.
   `AlcoholLineContext.Refuse`, moving the line to its sense's food or back to its wording.
 - The fixed-reading residue lane for bare wine, bare cider and "alcohol" (A6) is a mode of the
   wording readers (`cleanup2/wording-readers`); until then those lines stay unlinked.
-- Retention, the page note and the per-serving exclusion (A7, A8) are `cleanup2/alcohol-retention`.
+- Retention, the page note and the per-serving exclusion (A7, A8) are `cleanup2/alcohol-retention`
+  (`alcohol-retention.md`).

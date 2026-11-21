@@ -1,6 +1,6 @@
 import { Component, computed, input, signal, ChangeDetectionStrategy } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { RecipeNutritionModel, RecipeNutritionSource } from '../../../core/models/recipe-nutrition.model';
+import { RecipeAlcoholNote, RecipeNutritionModel, RecipeNutritionSource } from '../../../core/models/recipe-nutrition.model';
 
 interface NutrientDisplayRow {
   displayName: string;
@@ -92,6 +92,9 @@ export class NutritionLabel {
   /** Where the label's numbers come from, for the attribution line. */
   source = input<RecipeNutritionSource | null | undefined>(null);
 
+  /** The alcohol note under the label: drinks as written and after cooking, and any flavouring. */
+  alcohol = input<RecipeAlcoholNote | null | undefined>(null);
+
   /** Mutually exclusive label views: standard facts, ingredients, vitamins/minerals. */
   view = signal<'facts' | 'ingredients' | 'micros'>('facts');
 
@@ -140,6 +143,59 @@ export class NutritionLabel {
         return '';
     }
   });
+
+  alcoholDrinksText = computed(() => {
+    const a = this.alcohol();
+    if (!a || a.drinks.length === 0) return '';
+    return `Contains alcohol: ${a.drinks.join(', ')}. As written, about ${this.grams(a.asWrittenGrams)} alcohol ${this.per(a)}.`;
+  });
+
+  alcoholCookingText = computed(() => {
+    const a = this.alcohol();
+    if (!a || a.drinks.length === 0) return '';
+    const stays = `${this.grams(a.retainedGrams)} ${this.per(a)}`;
+    const pct = a.retainedPercent ?? 100;
+    if (a.notRead) return 'How it is cooked has not been read yet, so all of the alcohol is counted.';
+    switch (a.basis) {
+      case 'timed':
+        return `${a.method === 'bake' ? 'Baked' : 'Simmered'} about ${a.minutes} minutes, so about ${pct}% stays (USDA retention table): about ${stays}. Calories count only the alcohol that stays.`;
+      case 'up-to':
+        return a.minutes
+          ? `Cooked only about ${a.minutes} minutes, so up to ${pct}% may stay (USDA retention table): up to ${stays}. Calories count only the alcohol that stays.`
+          : `Cooking time not stated, so up to ${pct}% may stay (USDA retention table): up to ${stays}. Calories count only the alcohol that stays.`;
+      case 'flamed':
+        return `Flamed, so about ${pct}% stays (USDA retention table): about ${stays}. Calories count only the alcohol that stays.`;
+      case 'hot-liquid':
+        return `Stirred into a hot dish off the heat, so about ${pct}% stays (USDA retention table): about ${stays}. Calories count only the alcohol that stays.`;
+      case 'overnight':
+        return `Not cooked, but left to stand overnight, so about ${pct}% stays (USDA retention table): about ${stays}. Calories count only the alcohol that stays.`;
+      case 'no-steps':
+        return 'The recipe gives no method, so all of the alcohol is counted.';
+      default:
+        return 'Not cooked after the alcohol is added, so all of it stays.';
+    }
+  });
+
+  alcoholFlavouringText = computed(() => {
+    const a = this.alcohol();
+    if (!a || a.flavourings.length === 0) return '';
+    const amount = a.flavouringGrams < 0.5 ? 'under 0.5 g' : `about ${this.grams(a.flavouringGrams)}`;
+    return `${a.flavourings.join(', ')} ${a.flavourings.length === 1 ? 'adds' : 'add'} a trace of alcohol (${amount} ${this.per(a)}).`;
+  });
+
+  alcoholUncountedText = computed(() => {
+    const a = this.alcohol();
+    if (!a || a.uncounted.length === 0) return '';
+    return `The alcohol in ${a.uncounted.map(u => `“${u}”`).join(', ')} can't be counted yet, so a household that avoids alcohol is not offered this recipe.`;
+  });
+
+  private grams(value: number): string {
+    return `${value < 10 ? Math.round(value * 10) / 10 : Math.round(value)} g`;
+  }
+
+  private per(a: RecipeAlcoholNote): string {
+    return a.perServing ? 'per serving' : 'in the whole recipe';
+  }
 
   private buildRows(macro: boolean): NutrientDisplayRow[] {
     const data = this.nutrition();

@@ -1,0 +1,31 @@
+{
+  "lane": "alcohol-retention",
+  "model": "alcohol-retention/2",
+  "host": "none",
+  "signature": "ac593f0cff3fffe8",
+  "scoredAtUtc": "2026-11-21T02:33:52.5680336Z",
+  "caseSet": "bed587066acb57f4",
+  "cases": 74,
+  "passed": 74,
+  "score": 1,
+  "falseAccepts": 0,
+  "falseAcceptCases": 74,
+  "falseAcceptRate": 0,
+  "accepted": null,
+  "precision": null,
+  "byJudge": {
+    "agent-review-alcohol-retention-2026-11-21": [
+      10,
+      10
+    ],
+    "rule:alcohol-retention": [
+      64,
+      64
+    ]
+  },
+  "failed": [],
+  "auditKnownBad": null,
+  "auditFlaggedBad": null,
+  "auditKnownGood": null,
+  "auditFlaggedGood": null
+}

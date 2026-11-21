@@ -1,0 +1,75 @@
+id	steps	line	expect	factor	status	source	note
+ar-001	-	1/2 cup red wine	no-steps	1	ok	rule:alcohol-retention	no steps to read: all of it counts
+ar-002	Stir the rum into the cold milk. | Chill and serve.	2 tbsp dark rum	no-heat	1	ok	rule:alcohol-retention	no heat after the rum is added
+ar-003	Brown the beef in oil. | Add the red wine and simmer for 2 hours.	1 cup red wine	timed:simmer:120	0.10	ok	rule:alcohol-retention	USDA 5008, stirred in, simmered 2 hours
+ar-004	Soften the onions. | Add the wine and simmer 30 minutes.	1/2 cup dry white wine	timed:simmer:30	0.35	ok	rule:alcohol-retention	USDA 5005
+ar-005	Sear the steaks. | Pour in the brandy and flame.	1/4 cup brandy	flamed	0.75	ok	rule:alcohol-retention	USDA 5003
+ar-006	Remove the pan from the heat and stir in the sherry. | Serve at once.	2 tbsp dry sherry	hot-liquid	0.85	ok	rule:alcohol-retention	USDA 5002, stirred into a hot liquid off the heat
+ar-007	Pour the wine over the fruit. | Cover and refrigerate overnight.	1 cup white wine	overnight	0.70	ok	rule:alcohol-retention	USDA 5001, no heat, stored overnight
+ar-008	Add the wine and simmer until the sauce thickens.	1 cup red wine	up-to:simmer	0.85	ok	rule:alcohol-retention	heat with no time: the highest stove factor
+ar-009	Mix the bourbon into the batter. | Bake until golden.	2 tbsp bourbon	up-to:bake	0.45	ok	rule:alcohol-retention	oven with no time: the highest oven factor, USDA 5010
+ar-010	Stir the rum into the batter. | Bake for 1 hour.	1/4 cup rum	timed:bake:60	0.25	ok	rule:alcohol-retention	USDA 5006
+ar-011	Fold in the brandy. | Bake for 25 minutes.	2 tbsp brandy	timed:bake:25	0.45	ok	rule:alcohol-retention	baked under 30 minutes: USDA 5010, the higher of 5004 and 5010
+ar-012	Add the sherry and simmer for 15 minutes.	1/4 cup sherry	timed:simmer:15	0.40	ok	rule:alcohol-retention	USDA 5004
+ar-013	Add the wine and simmer 1 1/2 hours.	2 cups red wine	timed:simmer:90	0.20	ok	rule:alcohol-retention	USDA 5007, mixed number
+ar-014	Add the ale and simmer for 2½ hours.	1 bottle brown ale	timed:simmer:150	0.05	ok	rule:alcohol-retention	USDA 5009, vulgar fraction
+ar-015	Add the wine and simmer for 3 hours.	1 bottle red wine	timed:simmer:180	0.05	ok	rule:alcohol-retention	past the last row: USDA 5009
+ar-016	Add the beer and bring to a boil; boil 10 minutes.	12 oz beer	up-to:simmer:10	0.85	ok	rule:alcohol-retention	under 15 minutes: below the table's shortest time, the highest stove factor
+ar-017	Simmer the wine for half an hour.	1 cup wine	timed:simmer:30	0.35	ok	rule:alcohol-retention	half an hour; heat word before the drink in its own clause
+ar-018	Deglaze the pan with the cognac, scraping up the bits. | Simmer 5 minutes.	3 tbsp cognac	up-to:simmer:5	0.85	ok	rule:alcohol-retention	5 minutes is under the table
+ar-019	Flambé with the Grand Marnier.	2 tbsp Grand Marnier	flamed	0.75	ok	rule:alcohol-retention	flambé
+ar-020	Combine all the ingredients and simmer for 1 hour.	1 cup sherry	up-to:simmer	0.85	ok	rule:alcohol-retention	the steps never name the drink: heat anywhere gives the highest factor
+ar-021	Combine everything in a punch bowl and chill.	1 bottle champagne	no-heat	1	ok	rule:alcohol-retention	drink not named, nothing heated
+ar-022	Beat in the vanilla. | Bake for 30 minutes.	1 tsp vanilla extract	timed:bake:30	0.35	ok	rule:alcohol-retention	a flavouring is named by the word before extract
+ar-023	Bake the cake for 40 minutes. | Brush the cake with the rum.	1/4 cup rum	no-heat	1	ok	rule:alcohol-retention	heat before the rum does not count
+ar-024	Heat the cream until it boils. | Stir in the whisky.	2 tbsp whisky	hot-liquid	0.85	ok	rule:alcohol-retention	stirred into a liquid just heated on the stove
+ar-025	Add the wine and cook over a low flame for 20 minutes.	1/2 cup white wine	timed:simmer:20	0.40	ok	rule:alcohol-retention	a low flame is stove heat, not flaming
+ar-026	Set the brandy alight and pour over the pudding.	1/4 cup brandy	flamed	0.75	ok	rule:alcohol-retention	set alight
+ar-027	Add the stout and braise in the oven for 2 to 3 hours.	1 pint stout	timed:simmer:120	0.10	ok	rule:alcohol-retention	a range reads its lower end
+ar-028	Add wine; roast 45 minutes.	1/2 cup white wine	timed:bake:45	0.35	ok	rule:alcohol-retention	oven 30 minutes or more: the stirred table
+ar-029	Add the sake and simmer for 1 hour 15 minutes.	1/4 cup sake	timed:simmer:75	0.25	ok	rule:alcohol-retention	hours and minutes read as one time
+ar-030	Marinate the chicken in the beer overnight.	1 cup beer	overnight	0.70	ok	rule:alcohol-retention	no heat, overnight
+ar-031	Soak the raisins in the rum for 2 days.	1/2 cup rum	overnight	0.70	ok	rule:alcohol-retention	stored for days counts as stored overnight
+ar-032	Stir in the wine, remove from the heat and serve.	1/4 cup white wine	hot-liquid	0.85	ok	rule:alcohol-retention	off the heat in the same sentence
+ar-033	Preheat the oven to 350°F. | Mix the rum with the fruit and serve.	2 tbsp rum	no-heat	1	ok	rule:alcohol-retention	preheating is not heating the drink
+ar-034	Add the beer and simmer for 20-25 minutes.	1 cup beer	timed:simmer:20	0.40	ok	rule:alcohol-retention	hyphen range, lower end
+ar-035	Add the wine and simmer for about forty-five minutes.	1 cup red wine	timed:simmer:45	0.35	ok	rule:alcohol-retention	number word
+ar-036	Add the port and bring to a boil.	1/2 cup port	up-to:simmer	0.85	ok	rule:alcohol-retention	brought to a boil, no time
+ar-037	Add the gin and shake with ice.	2 oz gin	no-heat	1	ok	rule:alcohol-retention	a drink
+ar-038	Add the vermouth and simmer for 30 seconds.	2 tbsp dry vermouth	up-to:simmer	0.85	ok	rule:alcohol-retention	seconds are no time on the table
+ar-039	Pour in the Madeira and reduce by half, about 10 minutes.	1/2 cup Madeira	up-to:simmer:10	0.85	ok	rule:alcohol-retention	the time after a comma belongs to the heat before it
+ar-040	Stir in the rum. | Bake at 350°F for 1 hour.	1/4 cup rum	timed:bake:60	0.25	ok	rule:alcohol-retention	an oven temperature is not a time
+ar-041	Add the cider and simmer for an hour.	2 cups hard cider	timed:simmer:60	0.25	ok	rule:alcohol-retention	an hour
+ar-042	Add the rum and cook for 2 hours, stirring. | Then bake for 30 minutes.	1 cup rum	timed:simmer:150	0.05	ok	rule:alcohol-retention	heating times after the drink add up while the same dish cooks
+ar-043	Heat the brandy, ignite it and pour it flaming over the steak.	1/4 cup brandy	flamed	0.75	ok	rule:alcohol-retention	warmed and flamed with no time
+ar-044	Add the wine to the slow cooker and cook on low for 8 hours.	1 cup red wine	timed:simmer:480	0.05	ok	rule:alcohol-retention	long cooking: USDA 5009
+ar-045	Put the sherry in the trifle dish. | Top with custard and chill.	1/2 cup sherry	no-heat	1	ok	rule:alcohol-retention	a trifle
+ar-046	Stir the Kahlua into the whipped cream.	2 tbsp Kahlua	no-heat	1	ok	rule:alcohol-retention	a liqueur in cream
+ar-047	Mix the flour and beer. | Fry the battered fish for 4 minutes.	1 cup beer	up-to:simmer:4	0.85	ok	rule:alcohol-retention	fried 4 minutes
+ar-048	Add the white wine and let it bubble for 2 minutes. | Add the stock and simmer 20 minutes.	1/2 cup white wine	timed:simmer:20	0.40	ok	rule:alcohol-retention	a time with no heating word does not count
+ar-049	Cook the onions. | Serve with a glass of red wine.	1 glass red wine	no-heat	1	ok	rule:alcohol-retention	served, not added to a hot pan
+ar-050	Whisk in the brandy off the heat.	1 tbsp brandy	hot-liquid	0.85	ok	rule:alcohol-retention	off the heat
+ar-051	Brush the ham with the bourbon and broil 5 minutes.	1/4 cup bourbon	up-to:bake:5	0.45	ok	rule:alcohol-retention	broiled under 15 minutes: the highest oven factor
+ar-052	Add the rum and microwave for 1 minute.	1 tbsp rum	up-to:simmer:1	0.85	ok	rule:alcohol-retention	microwaved 1 minute
+ar-053	Stir in the brandy. | Pour into molds and freeze.	2 tbsp brandy	no-heat	1	ok	rule:alcohol-retention	frozen
+ar-054	Add the brandy and flame. | Add the cream and simmer 10 minutes.	1/4 cup brandy	flamed	0.75	ok	rule:alcohol-retention	flamed and simmered under 15 minutes: the lower of the two
+ar-055	Flame the cognac, then simmer for 30 minutes.	1/4 cup cognac	timed:simmer:30	0.35	ok	rule:alcohol-retention	flamed then simmered 30 minutes: the lower of the two
+ar-056	Add the wine and simmer 1-1/2 hours.	1 cup red wine	timed:simmer:90	0.20	ok	rule:alcohol-retention	hyphenated mixed number
+ar-057	Add the wine and simmer for an hour and a half.	1 cup red wine	timed:simmer:90	0.20	ok	rule:alcohol-retention	an hour and a half
+ar-058	Add the wine and simmer for a quarter of an hour.	1 cup red wine	timed:simmer:15	0.40	ok	rule:alcohol-retention	a quarter of an hour
+ar-059	Simmer onions 10 minutes, then add the wine and serve.	1/2 cup red wine	hot-liquid	0.85	ok	rule:alcohol-retention	heat in an earlier clause does not count, but the wine goes into the hot pan
+ar-060	Add the beer. | Grill the brats for 12 minutes.	1 can beer	up-to:simmer:12	0.85	ok	rule:alcohol-retention	grilled under 15 minutes
+ar-061	Whip the cream with the brandy and sugar; chill. | Bake the shortcakes for 20 minutes.	2 tbsp brandy	no-heat	1	ok	rule:alcohol-retention	the heat after a chilled step is for something else
+ar-062	Add the wine and simmer 5 minutes. | Meanwhile boil the pasta 10 minutes.	1/2 cup white wine	up-to:simmer:5	0.85	ok	rule:alcohol-retention	a separate preparation's time does not add up
+ar-063	Stir the rum into the cream and set aside. | Bake the cake for 40 minutes.	2 tbsp rum	no-heat	1	ok	rule:alcohol-retention	set aside: the oven is for the cake
+ar-064	Add the sherry to the sauce and simmer 5 minutes. | In another pan, fry the mushrooms for 10 minutes.	2 tbsp sherry	up-to:simmer:5	0.85	ok	rule:alcohol-retention	another pan is a separate preparation
+ar-101	Marinate the beef in the wine overnight. | Drain, reserving the marinade. | Brown the beef, add the marinade and braise for 3 hours.	1 bottle red wine	timed:simmer:180	0.05	agent	agent-review-alcohol-retention-2026-11-21	the marinade goes into the braise
+ar-102	In a saucepan melt the butter. | Add the shallots and cook 3 minutes. | Pour in the Marsala and simmer until syrupy, about 4 minutes. | Season and serve over the veal.	1/2 cup dry Marsala	up-to:simmer:4	0.85	agent	agent-review-alcohol-retention-2026-11-21	veal Marsala: a short reduction
+ar-103	Mix the coffee and the Marsala. | Dip the ladyfingers in the coffee mixture. | Layer with mascarpone and chill for 6 hours.	3 tbsp Marsala	no-heat	1	agent	agent-review-alcohol-retention-2026-11-21	tiramisu: never heated; six hours is not overnight
+ar-104	Mix the fruit, suet and brandy and leave overnight. | Steam the puddings for 8 hours.	4 tbsp brandy	timed:simmer:480	0.05	agent	agent-review-alcohol-retention-2026-11-21	Christmas pudding: steamed after the soak
+ar-105	Stir the beer into the flour until just combined. | Pour into a loaf pan and bake for 55 minutes.	12 oz beer	timed:bake:55	0.35	agent	agent-review-alcohol-retention-2026-11-21	beer bread
+ar-106	Rub the pot with garlic. | Heat the wine until hot but not boiling. | Gradually stir in the cheese until melted. | Stir in the kirsch and serve.	1 1/2 cups dry white wine	up-to:simmer	0.85	agent	agent-review-alcohol-retention-2026-11-21	fondue: the wine is heated with no time
+ar-107	Rub the pot with garlic. | Heat the wine until hot but not boiling. | Gradually stir in the cheese until melted. | Stir in the kirsch and serve.	2 tbsp kirsch	no-heat	1	agent	agent-review-alcohol-retention-2026-11-21	fondue: the kirsch is stirred in at the end; the reader keeps all of it, the safe side (the pot is hot, USDA 5002 would give 85 %)
+ar-108	Combine the wine, brandy and fruit in a pitcher. | Refrigerate overnight.	1 bottle red wine	overnight	0.70	agent	agent-review-alcohol-retention-2026-11-21	sangria
+ar-109	Melt the chocolate. | Stir in the corn syrup and bourbon. | Mix in the wafer crumbs and roll into balls.	1/3 cup bourbon	no-heat	1	agent	agent-review-alcohol-retention-2026-11-21	bourbon balls: melted chocolate, never cooked
+ar-110	Add the rice and toast 2 minutes. | Pour in the wine and stir until absorbed. | Add the stock a ladle at a time and cook for 18 minutes.	1/2 cup dry white wine	timed:simmer:18	0.40	agent	agent-review-alcohol-retention-2026-11-21	risotto

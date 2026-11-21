@@ -240,7 +240,8 @@
               [ingredientNames]="ingredientNames()"
               [uncounted]="uncountedIngredients()"
               [assumed]="assumedIngredients()"
-              [source]="recipe()!.nutritionSource">
+              [source]="recipe()!.nutritionSource"
+              [alcohol]="recipe()!.alcohol">
             </nom-nutrition-label>
           }
           @case (2) {

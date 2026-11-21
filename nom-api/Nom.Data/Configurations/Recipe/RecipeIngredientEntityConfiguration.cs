@@ -21,6 +21,8 @@ public class RecipeIngredientEntityConfiguration : IEntityTypeConfiguration<Reci
         builder.Property(e => e.RawLine).HasColumnType("Text");
         builder.Property(e => e.SortOrder).IsRequired().HasDefaultValue(0).ValueGeneratedNever();
         builder.Property(e => e.LineKind).HasMaxLength(16);
+        builder.Property(e => e.AlcoholRetention).HasColumnType("decimal(5,4)");
+        builder.Property(e => e.AlcoholRetentionBasis).HasMaxLength(64);
 
         // Relationships
         builder.HasOne(e => e.Recipe)

@@ -45,6 +45,7 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `wording-lexicon.tsv` + `gate-catalog.tsv` | `WordingReaders.LexiconTerm` and `.Meaning` (the lexicon's form); `LinkGate.Check` for two readers' answer with the row's entry (see `wording-readers.md`) | `expect`: `=` the term means `means` (its entry must clear the gate's identity rules for `foodId` when one is given), `!` it does not | `status` |
 | `alcohol-readings.tsv` | `AlcoholLineContext.Read` (each line is unclear in its `mode`) and `AlcoholFixedReading.Combine` (the fixed readings of the readers, see `wording-readers.md`); `title`, `context` (`;`-joined), `steps`, `site` give the recipe | `expect`: the reading (`table`, `fortified`, `sweet`, `hard`, `drunk`, `not-food`), `unsure` (nothing written), or `!reading` (a data rule refuses it) | `status` |
 | `alcohol-context.tsv` + `gate-catalog.tsv` | `AlcoholLineContext.Read` and `.Refuse` (the alcohol sense rules, see `alcohol-context.md`) | `expect` (the sense code), `allows` (an FDC id the sense must allow, or `-`), `refuses` (an FDC id it must refuse, or `-`); `title`, `context` (the recipe's other lines, `;`-joined) and `site` give the recipe | `status` |
+| `alcohol-retention.tsv` | `AlcoholRetention.Read` (the alcohol retention reader, see `alcohol-retention.md`): `steps` (the recipe's steps, ` \| `-joined, `-` for none) and `line` (the drink line) | `expect` (the basis: `no-steps`, `no-heat`, `overnight`, `hot-liquid`, `flamed`, `timed:<method>:<minutes>`, `up-to:<method>[:<minutes>]`), `factor` (the share that stays, from the USDA Release 6 row) | `status` |
 | `catalog-admission.tsv` | `CatalogAdmissionRule.Decide` (USDA catalog admission: status, group from category, edibility, energy check, reasons, prepared food) | `expectStatus` (`Curated`, `PendingCuration`; the rule never rejects, and a food of the four prepared-food categories is judged like any other), `expectGroup`, `expectEdible`, `expectEnergy`, `expectReason`, `expectPrepared` (`true` for a Foundation or SR Legacy food of Baby Foods, Fast Foods, Meals, Entrees and Side Dishes, or Restaurant Foods) | `status` |
 | `recipes.json` + `measurements.tsv` | `RecipeNutritionService.RecalculateAsync`, `.StatusFor` (with `ContainerWeighing`: a recipe may give `containerLane`, `containerOldBookLane`, `sourceSite`, `sourceAttribution` and `publishedYear`, and a food `description`, `categoryId` and `containerSizes`) | `expected.calories/protein/fat` (4 dp), `countedLines` (counted and counted-assumed), `assumedLines` (0 when absent), `handLabel` | `status` |
 | `recipes-rebuild.tsv` | `RecipeReprocessService.RebuildAsync` with apply (a recipe rebuilt in place from its stored record, see `recipe-reprocess.md`): `lines` (the source's lines, ` ¦ `-joined), `stored` (the rows before, `<raw>@<position>=<food>:<quantity unit>` or `:-`, `#kind`), `catalog` (curated foods, `name|grams per item`), `steps`, `version` (2 or more: a newer extraction) | `expect` (the rows after, in order, `<food>:<quantity unit>`, `:-`, `#kind`) | `status` |
@@ -54,6 +55,7 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `lines.tsv` + `startup-fills.tsv` + `line-kinds.tsv` | model lane `line-judge` (the reprocess lane's line judge) | the right row of each judged row and a row with its class's defect | none (scored by the operator run) |
 | `link-pairs.tsv` + `gate-catalog.tsv` | scorer lane `link-gate` (no model) | `verdict` | none (scored by the record) |
 | `alcohol-context.tsv` + `gate-catalog.tsv` | scorer lane `alcohol-context` (no model) | `expect`, `allows`, `refuses` | `status` (and the record) |
+| `alcohol-retention.tsv` | scorer lane `alcohol-retention` (no model) | `expect`, `factor` | `status` (and the record) |
 | `link-pairs.tsv` + `wording-pairs.tsv` + `gate-catalog.tsv` + `usda-catalog.tsv` | scorer lane `wording-tiers` (no model) | `verdict` | none (scored by the record) |
 | `wording-pairs.tsv` + `link-pairs.tsv` + `gate-catalog.tsv` + `usda-catalog.tsv` | model lane `wording-read` (readers A and B, the refuter, the outcome table and the gate) | `expect`, `verdict` | none (scored by the record) |
 | `wording-lexicon.tsv` | model lane `wording-lexicon` (both readers and the refuter) | `means`, `expect` | `status` |
@@ -136,6 +138,7 @@ without it.
 | `compound.tsv` row `wt-b11-01` (2026-11-20) | "the remains of cold ham or tongue": a first alternative the harder name key resolves (links B11) | rule (`rule:wording-tiers`) |
 | `alcohol-context.tsv` (2026-11-20) | 161 lines: the classes of the alcohol design (its sections 1 and 2.1: the wrong-link classes measured on staging and every place where the bare word misleads) and the false matches of the old diet patterns; expected senses and foods from the design's rules. Ten rows the builder judged where the design is silent (country wines, malt liquor, brandy snaps, beer batter, white zinfandel, "poached in", "rum and raisin ice cream", "brandy and water", dry cider, rice wine) | design rules (`rule:alcohol-context`, `ok`); the ten: the alcohol-context builder (`agent-review-alcohol-context-2026-11-20`, `agent`) |
 | staging checkpoint-1 rows (2026-11-21, `cleanup2/ck1-gate-alcohol`) in `link-gate.tsv` (lg-92 to lg-108) and `alcohol-context.tsv` (ac-162 to ac-175) | the five pairs the link gate let through on staging's waiting picks and should not (K4: pickle cucumbers, ground pork sausage on chorizo, cooked French beans on mature seeds, dried pinto beans on sprouted, cold roast pork on a raw cut), a constructed row per new rule and four pairs the new rules must still let through; the alcohol lines the sense rules misread (K10: amounts joined by "and" or "or" read as lists, two wines on Non-Alcoholic Wine, a measure of curaçoa) and further lines of the same classes | K4 pairs: the checkpoint operator (`agent-review-ck1-2026-11-21`, `agent`); constructed and rule rows: rule (`rule:construction`, `rule:link-gate`, `rule:alcohol-context`, `ok`); Catawba, vin blanc, coq au vin: the fix builder (`agent-review-ck1-gate-alcohol-2026-11-21`, `agent`) |
+| `alcohol-retention.tsv` (2026-11-21, `cleanup2/alcohol-retention`) | 74 step texts with a drink line: every row of the USDA Release 6 alcohol table reached by a heating word and a time, the "up to" readings (heat with no time, under 15 minutes, a drink the steps never name), flaming, a hot liquid off the heat, stored overnight, no heat, no steps, heat after a chilled, set-aside or separate step left out, and the time forms (mixed numbers, ranges, "half an hour", "1 hour 15 minutes", number words); ten realistic recipe methods judged by the builder (coq au vin, veal Marsala, tiramisu, Christmas pudding, beer bread, fondue twice, sangria, bourbon balls, risotto) | the reader's rules and the USDA table (`rule:alcohol-retention`, `ok`); the ten: the alcohol-retention builder (`agent-review-alcohol-retention-2026-11-21`, `agent`) |
 | review rows of the checkpoint-1 fix (2026-11-21, `cleanup2/ck1-gate-alcohol`) in `link-gate.tsv` (lg-109 to lg-111) and `alcohol-context.tsv` (ac-176, ac-177) | a raw cut named with a last "roast" (pork loin roast, chuck roast) on a cooked food, held on its state; red wine named before the "au vin" dish it is for, read as red wine and refused on Chicken Stock | rule (`rule:construction`, `rule:link-gate`, `rule:alcohol-context`, `ok`) |
 | `gate-catalog.tsv` (2026-11-20) | the curated foods and pending SR Legacy foods of staging (`staging/w01/foods.tsv`) with their USDA description, admission reason (none yet) and nutrient rows, and the USDA category from the SR Legacy 2018-04 and Foundation 2025-12-18 `food.csv` | catalog facts |
 | `line-labels.tsv` | 120 lines labelled not an ingredient that are exactly a curated food's name (ingredient by the veto rule) and 60 lines the deterministic pre-pass labelled | rule |
@@ -179,7 +182,7 @@ every file from the captures and the evidence, all rows `new`.
 ## Model lanes
 
 ```
-dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link-verify|line-classify|link-gate|alcohol-context|wording-tiers|line-judge> \
+dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link-verify|line-classify|link-gate|alcohol-context|alcohol-retention|wording-tiers|line-judge> \
     --host http://<model host>:11434 --model <model tag> [--limit N] [--out failures.tsv] [--record]
 ```
 
@@ -196,7 +199,7 @@ dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link
   rebuild tier cannot leave shadow without a record of the current prompt (`OllamaLineJudge.Signature`)
   and the model the lane asks. `required` is false until the first record is committed.
 
-- `link-gate`, `alcohol-context` and `wording-tiers`: see below; they need no model.
+- `link-gate`, `alcohol-context`, `alcohol-retention` and `wording-tiers`: see below; they need no model.
 - `link-pick`: the ambiguous judged wordings (a staple or the name matcher would answer the rest),
   asked six at a time with the name matcher's shortlist of ten from `usda-catalog.tsv`. A case passes
   when the pick is a food judged right, or, with no right food on the shortlist, is not one judged
@@ -217,6 +220,12 @@ dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link
   least 98 %, no false accept; `GoldenAlcoholContextTests` also requires every rule-given row to pass.
   Its signature is `AlcoholLineContext.Signature`; `required` is true, so a changed rule needs a new
   record (`--golden-score --lane alcohol-context --record`).
+- `alcohol-retention`: no model and no host. `AlcoholRetention.Read` on every row of
+  `alcohol-retention.tsv`: a case passes when the reader gives the row's basis and factor; a false
+  accept is a factor below the row's, which would understate the alcohol that stays. Floors: score
+  100 %, no false accept. Its signature is `AlcoholRetention.Signature` (the patterns, the USDA rows
+  and the alcohol trigger); `required` is true, and `GoldenAlcoholRetentionTests` checks the reader
+  still scores exactly the record (`--golden-score --lane alcohol-retention --record`).
 - `wording-tiers`: no model and no host. `WordingTiers.Decide` (the tiers and the gate, no lines) on the
   wording of every pair of `link-pairs.tsv` judged right, wrong, near or compound, with the kept w01 rows
   of `wording-pairs.tsv` as the verified wording table; a pair whose wording is itself a w01 row is left

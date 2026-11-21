@@ -3090,6 +3090,8 @@ CREATE TABLE recipe."RecipeIngredient" (
     "MeasurementId" bigint NOT NULL,
     "RawLine" text NOT NULL,
     "LineKind" character varying(16),
+    "AlcoholRetention" numeric(5,4),
+    "AlcoholRetentionBasis" character varying(64),
     "IngredientEntityId" bigint,
     "Id" bigint DEFAULT 0 NOT NULL,
     "CreatedDate" timestamp with time zone NOT NULL,

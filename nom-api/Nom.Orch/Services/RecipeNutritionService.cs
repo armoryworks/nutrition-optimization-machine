@@ -103,9 +103,10 @@ namespace Nom.Orch.Services
                 var g = WeighedGramsFor(ri, weighing)!.Value;
 
                 contributed++;
+                var lostAlcohol = AlcoholLost(ri, ing.IngredientNutrients, g);
                 foreach (var n in ing.IngredientNutrients)
                 {
-                    var add = n.Amount * g / 100m;
+                    var add = Retained(n.Nutrient?.Name, n.Amount * g / 100m, lostAlcohol);
                     var unit = n.Nutrient?.DefaultMeasurement?.Symbol ?? n.Measurement?.Symbol ?? string.Empty;
                     totals[n.NutrientId] = totals.TryGetValue(n.NutrientId, out var cur)
                         ? (cur.amount + add, cur.unit)
@@ -206,6 +207,71 @@ namespace Nom.Orch.Services
             });
         }
 
+        public const string CaloriesNutrientName = "Calories";
+
+        /// <summary>
+        /// The recipe page's alcohol note from the recipe's lines (with their foods and measurements) and each line
+        /// food's alcohol per 100 g: the drinks' grams per serving as written and after cooking, the basis of the
+        /// drink line with the most alcohol, the flavourings and the drink lines that cannot be counted; null when
+        /// no line carries alcohol.
+        /// </summary>
+        public static RecipeAlcoholNoteModel? AlcoholNote(RecipeEntity recipe, IReadOnlyDictionary<long, decimal> alcoholPer100g)
+        {
+            var lines = (recipe.RecipeIngredients ?? Enumerable.Empty<RecipeIngredientEntity>()).Where(ri => !ri.IsDeleted).OrderBy(ri => ri.SortOrder).ToList();
+            var count = Support.RecipeAlcohol.Count(lines.Select(ri => new Support.AlcoholLineFacts(
+                ri.IngredientId, ri.RawLine, ri.Ingredient?.Name, ri.LineKind, ri.Quantity, GramsFor(ri),
+                alcoholPer100g.TryGetValue(ri.IngredientId, out var per100) ? per100 : null,
+                Support.RecipeAlcohol.IsFlavouringFood(ri.Ingredient?.Name, ri.Ingredient?.FdcCategoryId),
+                ri.AlcoholRetention, ri.AlcoholRetentionBasis)), LabelServings(recipe));
+            if (!count.Any) return null;
+
+            var counted = count.Drinks.Where(d => d.AsWritten != null).ToList();
+            var main = counted.OrderByDescending(d => d.AsWritten).FirstOrDefault();
+            var basis = Support.AlcoholRetention.ReadBasis(main?.RetentionBasis);
+            var row = basis == null ? null : Support.AlcoholRetention.RowFor(basis.Value.Kind, basis.Value.Method, basis.Value.Minutes);
+            static string Shown(Support.AlcoholDrinkLine d) => !string.IsNullOrWhiteSpace(d.FoodName) ? d.FoodName!.Trim() : (d.RawLine ?? string.Empty).Trim();
+            return new RecipeAlcoholNoteModel
+            {
+                Drinks = counted.Select(Shown).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                Flavourings = count.Flavourings.ToList(),
+                Uncounted = count.Uncounted.Select(d => !string.IsNullOrWhiteSpace(d.RawLine) ? d.RawLine!.Trim() : Shown(d)).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                AsWrittenGrams = Math.Round(count.AsWrittenPerServing, 2),
+                RetainedGrams = Math.Round(count.RetainedPerServing, 2),
+                FlavouringGrams = Math.Round(count.FlavouringPerServing, 2),
+                PerServing = count.ServingsKnown,
+                Basis = basis?.Kind,
+                Method = basis?.Method,
+                Minutes = basis?.Minutes,
+                RetainedPercent = count.DrinkAsWritten > 0m ? (int)Math.Round(count.DrinkRetained / count.DrinkAsWritten * 100m) : null,
+                UsdaCode = row?.Code,
+                NotRead = counted.Any(d => d.Retention == null),
+            };
+        }
+
+        /// <summary>
+        /// Grams of the line's alcohol that do not stay after cooking: the food's alcohol per 100 g times the line's
+        /// grams times (1 − <see cref="RecipeIngredientEntity.AlcoholRetention"/>); 0 when the retention has not been read.
+        /// </summary>
+        public static decimal AlcoholLost(RecipeIngredientEntity ri, IEnumerable<Nom.Data.Nutrient.IngredientNutrientEntity> nutrients, decimal grams)
+        {
+            if (ri.AlcoholRetention is not { } factor || factor >= 1m || factor < 0m) return 0m;
+            var alcohol = nutrients.FirstOrDefault(n => Support.DietCriteriaMatcher.IsAlcohol(n.Nutrient?.Name));
+            return alcohol == null || alcohol.Amount <= 0m ? 0m : alcohol.Amount * grams / 100m * (1m - factor);
+        }
+
+        /// <summary>
+        /// A line's amount of one nutrient after cooking loss (alcohol design A7): alcohol less what does not stay,
+        /// energy less 6.93 kcal for each gram of it (<see cref="Support.AlcoholRetention.KcalPerGram"/>, never below 0),
+        /// every other nutrient as stored. The food's stored values are never changed.
+        /// </summary>
+        public static decimal Retained(string? nutrientName, decimal amount, decimal lostAlcohol)
+        {
+            if (lostAlcohol <= 0m) return amount;
+            if (Support.DietCriteriaMatcher.IsAlcohol(nutrientName)) return Math.Max(0m, amount - lostAlcohol);
+            if (string.Equals(nutrientName?.Trim(), CaloriesNutrientName, StringComparison.OrdinalIgnoreCase)) return Math.Max(0m, amount - lostAlcohol * Support.AlcoholRetention.KcalPerGram);
+            return amount;
+        }
+
         /// <summary>How many servings the label divides by, or null when the recipe never said; a derived label then holds whole-recipe totals.</summary>
         public static decimal? LabelServings(RecipeEntity recipe) =>
             recipe.Servings is > 0 ? recipe.Servings.Value
@@ -277,20 +343,22 @@ namespace Nom.Orch.Services
                                  || (ri.Measurement.Name == IngredientLineParser.Package
                                      && s.ContainerKind != ContainerKinds.Can && s.ContainerKind != ContainerKinds.Jar && s.ContainerKind != ContainerKinds.Bottle))))));
 
-        public static decimal? GramsFor(decimal quantity, MeasurementEntity? m, IngredientEntity? ingredient)
+        public static decimal? GramsFor(decimal quantity, MeasurementEntity? m, IngredientEntity? ingredient) =>
+            m == null ? null : GramsFor(quantity, m.MeasurementCategoryId, m.BaseUnitConversionFactor, m.IsContainer, ingredient?.GramsPerMilliliter, ingredient?.GramsPerItem, ingredient?.ReferenceServingGrams);
+
+        /// <summary><see cref="GramsFor(decimal, MeasurementEntity?, IngredientEntity?)"/> on the measurement's and food's fields, for a query that reads only those.</summary>
+        public static decimal? GramsFor(decimal quantity, long categoryId, decimal? conversionFactor, bool isContainer, decimal? gramsPerMilliliter, decimal? gramsPerItem, decimal? referenceServingGrams)
         {
-            if (m == null) return null;
-            var factor = m.BaseUnitConversionFactor ?? 1m;
-            switch (m.MeasurementCategoryId)
+            var factor = conversionFactor ?? 1m;
+            switch (categoryId)
             {
                 case CategoryMass:
                     return quantity * factor;
                 case CategoryVolume:
-                    var density = ingredient?.GramsPerMilliliter;
-                    return density is > 0 ? quantity * factor * density.Value : null;
+                    return gramsPerMilliliter is > 0 ? quantity * factor * gramsPerMilliliter.Value : null;
                 case CategoryCount:
-                    if (m.IsContainer) return null;
-                    var per = ingredient?.GramsPerItem is > 0 ? ingredient.GramsPerItem : ingredient?.ReferenceServingGrams;
+                    if (isContainer) return null;
+                    var per = gramsPerItem is > 0 ? gramsPerItem : referenceServingGrams;
                     return per is > 0 ? quantity * factor * per.Value : null;
                 default:
                     return null;

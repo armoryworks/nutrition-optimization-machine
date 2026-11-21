@@ -168,6 +168,17 @@
   line-height: vars.$line-height-normal;
 }
 
+.nom-nutrition-label__alcohol {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  line-height: vars.$line-height-normal;
+  margin: vars.$spacing-2 0 0;
+
+  p {
+    margin: 0 0 vars.$spacing-1;
+  }
+}
+
 .nom-nutrition-label__gap {
   margin: vars.$spacing-2 0;
   padding: vars.$spacing-2 vars.$spacing-3;

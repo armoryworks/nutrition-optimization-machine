@@ -30,9 +30,13 @@ namespace Nom.Orch.Services.Support
     /// boundaries, or an alias that holds it with no alcohol word, so "rum" no longer matches Bread
     /// Crumbs nor "gin" Ginger; a matched name that reads as an alcohol word that is not a drink (a
     /// vinegar, an extract, a soft drink, a cooking liquid) does not count, and when the same
-    /// restriction has a nutrient criterion, a food that stores that nutrient is left to it. A
-    /// criterion with a per-serving cap is not read here: the per-serving exclusion of retained
-    /// alcohol belongs to the alcohol-retention item. A recipe line's own text decides for the line:
+    /// restriction has a nutrient criterion, a food that stores that nutrient is left to it. An
+    /// alcohol criterion with a per-serving cap (owner answer 6: No Alcohol and Halal, 0.5 g) forbids
+    /// no food that stores an alcohol figure; it excludes a recipe instead when the alcohol of its
+    /// drinks that stays after cooking is above the cap per serving, or when a drink line cannot be
+    /// counted (<see cref="RetainedRecipesAsync"/>, read from <see cref="RecipeAlcohol"/>), while a food
+    /// with no alcohol figure whose own name reads as a drink is still forbidden, and flavourings are
+    /// left to the recipe page's note. A recipe line's own text decides for the line:
     /// every live line that reads as a drink counts whatever food it is linked to
     /// (<see cref="DrinkLineRecipesAsync"/>), so a drink line still linked to a vinegar, a
     /// non-alcoholic drink or Sugar keeps its recipe flagged. Name patterns with <c>%</c> keep their
@@ -104,6 +108,111 @@ namespace Nom.Orch.Services.Support
         /// <summary>Whether the criteria hold the alcohol nutrient criterion with no per-serving cap, the one a recipe line's own text is read for.</summary>
         public static bool ReadsLines(IEnumerable<DietDataCriterion> criteria) => criteria.Any(c => c.NutrientId != null && c.MaxAmountPerServing == null && IsAlcohol(c.NutrientName));
 
+        /// <summary>The alcohol nutrient criterion with a per-serving cap (the lowest cap when there are several), unless the same criteria also forbid alcohol outright; null when there is none.</summary>
+        public static DietDataCriterion? RetainedCriterion(IEnumerable<DietDataCriterion> criteria)
+        {
+            var list = criteria.ToList();
+            if (ReadsLines(list)) return null;
+            return list.Where(c => c.NutrientId != null && c.MaxAmountPerServing != null && IsAlcohol(c.NutrientName)).OrderBy(c => c.MaxAmountPerServing).FirstOrDefault();
+        }
+
+        /// <summary>
+        /// The recipes a type with a capped alcohol criterion (<see cref="RetainedCriterion"/>) excludes:
+        /// a drink line whose amount cannot be counted, or more retained drink alcohol per serving than
+        /// the cap. The whole-catalog count is kept in the cache when one is given.
+        /// </summary>
+        public static async Task<HashSet<long>> RetainedRecipesAsync(ApplicationDbContext db, IReadOnlyCollection<DietDataCriterion> criteria, DietGateCache? cache = null)
+        {
+            var result = new HashSet<long>();
+            foreach (var type in criteria.GroupBy(c => c.RestrictionTypeId))
+            {
+                if (RetainedCriterion(type) is not { } capped) continue;
+                var nutrientId = capped.NutrientId!.Value;
+                var alcohol = cache != null
+                    ? await cache.GetAsync(db, RetainedKey(nutrientId), d => RecipeAlcoholAsync(d, nutrientId, null))
+                    : await RecipeAlcoholAsync(db, nutrientId, null);
+                result.UnionWith(alcohol.Where(a => a.Value.Excludes(capped.MaxAmountPerServing!.Value)).Select(a => a.Key));
+            }
+            return result;
+        }
+
+        private static string RetainedKey(long nutrientId) => "recipe-alcohol:" + nutrientId.ToString(CultureInfo.InvariantCulture);
+
+        internal sealed record AlcoholLineRow(long RecipeId, long IngredientId, string? RawLine, string? LineKind, decimal Quantity, long MeasurementId, decimal? Retention, string? RetentionBasis);
+
+        /// <summary>The live lines on the given alcoholic foods (within <paramref name="scope"/> when given), one query on the line table with no join.</summary>
+        internal static IQueryable<AlcoholLineRow> AlcoholLineRows(ApplicationDbContext db, IReadOnlyCollection<long> foodIds, IReadOnlyCollection<long>? scope)
+        {
+            var rows = db.RecipeIngredients.AsNoTracking().Where(ri => !ri.IsDeleted && foodIds.Contains(ri.IngredientId));
+            if (scope != null) rows = rows.Where(ri => scope.Contains(ri.RecipeId));
+            return rows.Select(ri => new AlcoholLineRow(ri.RecipeId, ri.IngredientId, ri.RawLine, ri.LineKind, ri.Quantity, ri.MeasurementId, ri.AlcoholRetention, ri.AlcoholRetentionBasis));
+        }
+
+        /// <summary>
+        /// The alcohol of every recipe with a drink (or of the recipes in <paramref name="scope"/>): the
+        /// lines on foods that store the alcohol nutrient above <see cref="PresencePer100g"/> per 100 g,
+        /// weighed as the label weighs them, with their stored retention, and the lines whose own text
+        /// reads as a drink on any other food, counted by <see cref="RecipeAlcohol.Count"/> per the
+        /// label's servings.
+        /// </summary>
+        public static async Task<Dictionary<long, RecipeAlcohol>> RecipeAlcoholAsync(ApplicationDbContext db, long nutrientId, IReadOnlyCollection<long>? scope)
+        {
+            var foods = (await db.IngredientNutrients.AsNoTracking()
+                    .Where(n => n.NutrientId == nutrientId && !n.IsDeleted && n.Amount > PresencePer100g)
+                    .Select(n => new { n.IngredientId, n.Amount, n.Ingredient.Name, n.Ingredient.FdcCategoryId })
+                    .ToListAsync())
+                .GroupBy(n => n.IngredientId)
+                .ToDictionary(g => g.Key, g => (Amount: g.Max(n => n.Amount), Flavouring: RecipeAlcohol.IsFlavouringFood(g.First().Name, g.First().FdcCategoryId)));
+            var foodIds = foods.Keys.ToList();
+
+            var onFoods = foodIds.Count == 0 ? new List<AlcoholLineRow>() : await AlcoholLineRows(db, foodIds, scope).ToListAsync();
+            var measurementIds = onFoods.Select(l => l.MeasurementId).Distinct().ToList();
+            var measurements = measurementIds.Count == 0 ? new Dictionary<long, (long Category, decimal? Factor, bool Container)>() : (await db.Measurements.AsNoTracking()
+                    .Where(m => measurementIds.Contains(m.Id))
+                    .Select(m => new { m.Id, m.MeasurementCategoryId, m.BaseUnitConversionFactor, m.IsContainer })
+                    .ToListAsync())
+                .ToDictionary(m => m.Id, m => (Category: m.MeasurementCategoryId, Factor: m.BaseUnitConversionFactor, Container: m.IsContainer));
+            var weights = foodIds.Count == 0 ? new Dictionary<long, (string Name, decimal? PerMl, decimal? PerItem, decimal? Serving)>() : (await db.Ingredients.AsNoTracking()
+                    .Where(i => foodIds.Contains(i.Id))
+                    .Select(i => new { i.Id, i.Name, i.GramsPerMilliliter, i.GramsPerItem, i.ReferenceServingGrams })
+                    .ToListAsync())
+                .ToDictionary(i => i.Id, i => (Name: i.Name, PerMl: i.GramsPerMilliliter, PerItem: i.GramsPerItem, Serving: i.ReferenceServingGrams));
+
+            List<RecipeLine> textLines;
+            if (scope == null)
+            {
+                textLines = await DrinkLineTextsAsync(db);
+            }
+            else
+            {
+                textLines = (await db.RecipeIngredients.AsNoTracking()
+                        .Where(ri => !ri.IsDeleted && scope.Contains(ri.RecipeId))
+                        .Select(ri => new RecipeLine(ri.RecipeId, ri.IngredientId, ri.RawLine))
+                        .ToListAsync())
+                    .Where(l => LineCounts(l.RawLine))
+                    .ToList();
+            }
+            var other = textLines.Where(l => !foods.ContainsKey(l.IngredientId)).ToList();
+
+            var recipeIds = onFoods.Select(l => l.RecipeId).Concat(other.Select(l => l.RecipeId)).Distinct().ToList();
+            var servings = recipeIds.Count == 0 ? new Dictionary<long, decimal?>() : (await db.Recipes.AsNoTracking()
+                    .Where(r => recipeIds.Contains(r.Id))
+                    .Select(r => new { r.Id, r.Servings, r.RecipeServings })
+                    .ToListAsync())
+                .ToDictionary(r => r.Id, r => r.Servings is > 0 ? (decimal?)r.Servings.Value : r.RecipeServings is > 0 ? r.RecipeServings : null);
+
+            decimal? Grams(AlcoholLineRow l)
+            {
+                if (!measurements.TryGetValue(l.MeasurementId, out var m) || !weights.TryGetValue(l.IngredientId, out var w)) return null;
+                return RecipeNutritionService.GramsFor(l.Quantity, m.Category, m.Factor, m.Container, w.PerMl, w.PerItem, w.Serving);
+            }
+            var facts = onFoods.Select(l => (l.RecipeId, Facts: new AlcoholLineFacts(l.IngredientId, l.RawLine, weights.TryGetValue(l.IngredientId, out var w) ? w.Name : null, l.LineKind, l.Quantity,
+                    Grams(l), foods[l.IngredientId].Amount, foods[l.IngredientId].Flavouring, l.Retention, l.RetentionBasis)))
+                .Concat(other.Select(l => (l.RecipeId, Facts: new AlcoholLineFacts(l.IngredientId, l.RawLine, null, null, 0m, null, null, false, null, null))));
+            return facts.GroupBy(f => f.RecipeId)
+                .ToDictionary(g => g.Key, g => RecipeAlcohol.Count(g.Select(f => f.Facts), servings.GetValueOrDefault(g.Key)));
+        }
+
         /// <summary>Whether a recipe line's own text counts as alcohol for the diet gate, whatever food it is linked to.</summary>
         public static bool LineCounts(string? rawLine) => !string.IsNullOrWhiteSpace(rawLine) && AlcoholLineContext.CountsForDiet(AlcoholLineContext.Read(rawLine));
 
@@ -133,6 +242,8 @@ namespace Nom.Orch.Services.Support
             var criteria = await CriteriaAsync(db, typeIds);
             await FoodsAsync(db, criteria, cache: cache);
             if (ReadsLines(criteria)) await cache.GetAsync(db, "drink-lines", DrinkLinesAsync);
+            foreach (var nutrientId in criteria.GroupBy(c => c.RestrictionTypeId).Select(t => RetainedCriterion(t)?.NutrientId).OfType<long>().Distinct())
+                await cache.GetAsync(db, RetainedKey(nutrientId), d => RecipeAlcoholAsync(d, nutrientId, null));
             return cache.Computations - before;
         }
 
@@ -182,12 +293,13 @@ namespace Nom.Orch.Services.Support
             var result = new Dictionary<long, HashSet<long>>();
             var nutrients = criteria.Where(c => c.NutrientId != null && c.MaxAmountPerServing == null).ToList();
             foreach (var c in nutrients) result[c.Id] = await NutrientFoodsAsync(db, c, scope);
+            if (RetainedCriterion(criteria) is { } capped) result[capped.Id] = await NoFigureDrinkFoodsAsync(db, capped.NutrientId!.Value, scope);
             var words = criteria.Where(c => c.WordPattern != null).ToList();
             if (words.Count == 0) return result;
             var named = (await NamesAsync(db, string.Join('|', words.Select(c => "(?:" + c.WordPattern + ")")), scope, aliases: true))
                 .Where(n => n.IsAlias ? AliasCounts(n.Text) : NameCounts(n.Text))
                 .ToList();
-            var decided = (await StoringAsync(db, named.Select(n => n.Id).Distinct().ToList(), nutrients.Select(c => c.NutrientId!.Value).Distinct().ToList())).ToHashSet();
+            var decided = (await StoringAsync(db, named.Select(n => n.Id).Distinct().ToList(), criteria.Where(c => c.NutrientId != null).Select(c => c.NutrientId!.Value).Distinct().ToList())).ToHashSet();
             foreach (var c in words)
             {
                 var word = WordRegex(c.WordPattern!);
@@ -196,7 +308,10 @@ namespace Nom.Orch.Services.Support
             return result;
         }
 
-        private static async Task<List<DrinkLine>> DrinkLinesAsync(ApplicationDbContext db)
+        private static async Task<List<DrinkLine>> DrinkLinesAsync(ApplicationDbContext db) =>
+            (await DrinkLineTextsAsync(db)).Select(l => new DrinkLine(l.RecipeId, l.IngredientId)).Distinct().ToList();
+
+        private static async Task<List<RecipeLine>> DrinkLineTextsAsync(ApplicationDbContext db)
         {
             List<RecipeLine> lines;
             if (db.Database.IsRelational())
@@ -210,7 +325,7 @@ namespace Nom.Orch.Services.Support
                     .Where(l => l.RawLine != null && word.IsMatch(l.RawLine))
                     .ToList();
             }
-            return lines.Where(l => LineCounts(l.RawLine)).Select(l => new DrinkLine(l.RecipeId, l.IngredientId)).Distinct().ToList();
+            return lines.Where(l => LineCounts(l.RawLine)).ToList();
         }
 
         private static async Task<HashSet<long>> NutrientFoodsAsync(ApplicationDbContext db, DietDataCriterion criterion, IReadOnlyCollection<long>? scope)
@@ -223,13 +338,19 @@ namespace Nom.Orch.Services.Support
                 .Where(r => r.CategoryId != CatalogAdmissionRule.SpicesAndHerbs && !AlcoholLineContext.IsFlavouring(AlcoholLineContext.Read(r.Name)))
                 .Select(r => r.IngredientId)
                 .ToHashSet();
+            ids.UnionWith(await NoFigureDrinkFoodsAsync(db, nutrientId, scope));
+            return ids;
+        }
+
+        /// <summary>The foods that store no figure for the alcohol nutrient and whose own name reads as a drink (never by an alias).</summary>
+        private static async Task<HashSet<long>> NoFigureDrinkFoodsAsync(ApplicationDbContext db, long nutrientId, IReadOnlyCollection<long>? scope)
+        {
             var named = (await NamesAsync(db, AlcoholLineContext.DrinkNamePattern, scope, aliases: false))
                 .Where(n => AlcoholLineContext.CountsForDiet(AlcoholLineContext.Read(n.Text)))
                 .Select(n => n.Id)
                 .ToHashSet();
             named.ExceptWith(await StoringAsync(db, named, new[] { nutrientId }));
-            ids.UnionWith(named);
-            return ids;
+            return named;
         }
 
         private static async Task<List<NamedFood>> NamesAsync(ApplicationDbContext db, string pattern, IReadOnlyCollection<long>? scope, bool aliases)

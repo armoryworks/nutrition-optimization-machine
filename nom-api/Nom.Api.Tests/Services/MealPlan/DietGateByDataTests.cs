@@ -96,7 +96,9 @@ namespace Nom.Api.Tests.Services.MealPlan
 
             var set = await ResolveAsync(db, NoAlcoholRef, "No Alcohol");
 
-            set.IngredientIds.Should().Contain(new[] { foods.Ids["Dry White Wine"], foods.Ids["Coffee Cream Liqueur"], foods.Ids["glass of sherry"], foods.Ids["brandy"] });
+            set.IngredientIds.Should().Contain(new[] { foods.Ids["glass of sherry"], foods.Ids["brandy"] });
+            set.IngredientIds.Should().NotContain(new[] { foods.Ids["Dry White Wine"], foods.Ids["Coffee Cream Liqueur"] },
+                "No Alcohol caps retained alcohol per serving (owner answer 6), so a food with an alcohol figure is left to each recipe's count");
             set.IngredientIds.Should().NotContain(new[]
             {
                 foods.Ids["Bread Crumbs"], foods.Ids["Ginger Root"], foods.Ids["Crumbled Feta"], foods.Ids["Red Wine Vinegar"], foods.Ids["Apple Cider Vinegar"],
@@ -117,7 +119,8 @@ namespace Nom.Api.Tests.Services.MealPlan
 
             var set = await ResolveAsync(db, HalalRef, "Halal");
 
-            set.IngredientIds.Should().Contain(bacon.Id).And.Contain(foods.Ids["Dry White Wine"]).And.Contain(foods.Ids["brandy"]);
+            set.IngredientIds.Should().Contain(bacon.Id).And.Contain(foods.Ids["brandy"]);
+            set.IngredientIds.Should().NotContain(foods.Ids["Dry White Wine"], "Halal caps retained alcohol per serving (owner answer 6)");
             set.IngredientIds.Should().NotContain(foods.Ids["Bread Crumbs"]).And.NotContain(foods.Ids["Red Wine Vinegar"]).And.NotContain(foods.Ids["Ginger Root"]);
         }
 
@@ -149,7 +152,7 @@ namespace Nom.Api.Tests.Services.MealPlan
 
             var noAlcohol = await db.Set<RestrictionCriterionEntity>().Where(c => c.RestrictionTypeId == NoAlcoholRef).ToListAsync();
             noAlcohol.Select(c => c.IngredientPattern).Should().NotContain(OldAlcoholPatterns).And.Contain(@"\mrum\M").And.Contain(@"\mgin\M");
-            noAlcohol.Should().ContainSingle(c => c.NutrientId == Alcohol && c.IngredientPattern == null && c.MaxAmountPerServing == null);
+            noAlcohol.Should().ContainSingle(c => c.NutrientId == Alcohol && c.IngredientPattern == null && c.MaxAmountPerServing == 0.5m);
             second.Should().Be(0);
             (await db.Set<RestrictionCriterionEntity>().CountAsync(c => c.RestrictionTypeId == HalalRef)).Should().Be(1, "an admin-edited type is left alone");
         }
@@ -466,6 +469,15 @@ namespace Nom.Api.Tests.Services.MealPlan
         [InlineData("UPDATE recipe.\"IngredientWording\" SET \"IngredientId\" = @p0", false)]
         [InlineData("UPDATE recipe.\"Recipe\" SET \"Name\" = @p0 WHERE \"Id\" = @p1", false)]
         [InlineData("INSERT INTO curation.\"FoodCatalogProposal\" (\"IngredientId\") VALUES (@p0)", false)]
+        [InlineData("UPDATE recipe.\"Recipe\" SET \"Servings\" = @p0 WHERE \"Id\" = @p1", true)]
+        [InlineData("UPDATE recipe.\"Recipe\" SET \"Name\" = @p0, \"RecipeServings\" = @p1 WHERE \"Id\" = @p2", true)]
+        [InlineData("INSERT INTO recipe.\"Recipe\" (\"Name\", \"Servings\") VALUES (@p0, @p1) RETURNING \"Id\"", true)]
+        [InlineData("UPDATE recipe.\"RecipeIngredient\" SET \"AlcoholRetention\" = @p0, \"AlcoholRetentionBasis\" = @p1 WHERE \"RecipeId\" = @p2", true)]
+        [InlineData("UPDATE recipe.\"RecipeStep\" SET \"Description\" = @p0", false)]
+        [InlineData("UPDATE measurement.\"Measurement\" SET \"BaseUnitConversionFactor\" = @p0, \"IsContainer\" = @p1 WHERE \"Id\" = @p2", true)]
+        [InlineData("INSERT INTO measurement.\"Measurement\" (\"Name\", \"MeasurementCategoryId\") VALUES (@p0, @p1) RETURNING \"Id\"", true)]
+        [InlineData("UPDATE measurement.\"MeasurementConversion\" SET \"Factor\" = @p0", false)]
+        [InlineData("SELECT m.\"Id\" FROM measurement.\"Measurement\" AS m", false)]
         public void The_invalidator_knows_a_write_to_a_table_the_probes_read(string sql, bool touches)
         {
             DietGateCacheInvalidator.Touches(sql).Should().Be(touches);
