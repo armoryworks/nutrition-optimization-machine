@@ -339,7 +339,11 @@ namespace Nom.Orch.Services
             }
         }
 
-        /// <summary>Absolute http(s) URL with fragment stripped and host lowercased.</summary>
+        /// <summary>
+        /// Absolute http(s) URL with fragment stripped and host lowercased. A fragment that opens a
+        /// page of a document (<c>#page=12</c>, the PDF open parameter a hand import's source link
+        /// carries) is kept, so the recipes of one document stay apart.
+        /// </summary>
         internal static string? NormalizeUrl(string input)
         {
             var candidate = input.Trim();
@@ -349,10 +353,16 @@ namespace Nom.Orch.Services
                 return null;
             }
 
-            return uri.GetComponents(
+            var url = uri.GetComponents(
                 UriComponents.Scheme | UriComponents.Host | UriComponents.Port | UriComponents.PathAndQuery,
                 UriFormat.UriEscaped);
+            return uri.Fragment.StartsWith(DocumentPageFragment, StringComparison.OrdinalIgnoreCase)
+                ? url + uri.GetComponents(UriComponents.Fragment | UriComponents.KeepDelimiter, UriFormat.UriEscaped)
+                : url;
         }
+
+        /// <summary>The start of a source URL's fragment that names a page of a document.</summary>
+        internal const string DocumentPageFragment = "#page=";
 
         /// <summary>
         /// Imports a batch of already-parsed recipes. With the staged-import gate on
