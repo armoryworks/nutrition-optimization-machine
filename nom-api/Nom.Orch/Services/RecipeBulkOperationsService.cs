@@ -23,6 +23,22 @@ namespace Nom.Orch.Services
         private readonly ICurrentUserService _currentUser;
         private readonly ILogger<RecipeBulkOperationsService> _logger;
         private readonly string _exportDirectory;
+        private static long _lastExportId;
+
+        /// <summary>
+        /// The id of a new export file: the current Unix time in milliseconds, or one more than the
+        /// last id given when that is not later, so two exports started in the same millisecond never
+        /// write, read or delete the same file.
+        /// </summary>
+        internal static long NextExportId()
+        {
+            while (true)
+            {
+                var last = Interlocked.Read(ref _lastExportId);
+                var next = Math.Max(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), last + 1);
+                if (Interlocked.CompareExchange(ref _lastExportId, next, last) == last) return next;
+            }
+        }
 
         public RecipeBulkOperationsService(
             ApplicationDbContext dbContext,
@@ -89,7 +105,7 @@ namespace Nom.Orch.Services
                     .GroupBy(d => d.RecipeId)
                     .ToDictionary(g => g.Key, g => ProseKeyFacts.FromJsonLd(g.Last().RawJsonLd));
 
-                var exportId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var exportId = NextExportId();
                 var fileName = $"recipes_export_{exportId}.{request.ExportType.ToString().ToLower()}";
                 var filePath = Path.Combine(_exportDirectory, fileName);
 

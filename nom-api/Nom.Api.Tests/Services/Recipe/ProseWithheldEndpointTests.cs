@@ -174,6 +174,16 @@ namespace Nom.Api.Tests.Services.Recipe
         }
 
         [Fact]
+        public void Exports_started_in_the_same_millisecond_get_their_own_file()
+        {
+            var ids = new System.Collections.Concurrent.ConcurrentBag<long>();
+            System.Threading.Tasks.Parallel.For(0, 2000, _ => ids.Add(RecipeBulkOperationsService.NextExportId()));
+
+            ids.Distinct().Should().HaveCount(2000,
+                "the key-facts export test failed now and then (wave 12): an export in another test class in the same millisecond wrote, read or deleted the same recipes_export_<ms>.json");
+        }
+
+        [Fact]
         public async Task Recipe_lists_serve_no_withheld_prose()
         {
             await using var db = await SeedAsync();
