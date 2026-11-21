@@ -350,6 +350,23 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task Two_records_pinned_to_one_recipe_are_both_a_double_match_and_neither_is_stored()
+        {
+            using var db = NewContext();
+            var id = await RecipeAsync(db, "Risotto", Book, null, "Riso - 300g", "Funghi - 200g");
+            await Service(db).AttachAsync(Batch(Book, Record("Risotto", null, "Riso - 300g", "Funghi - 200g")), apply: true);
+            var pinned = Batch(Book, Record("Risotto with mushrooms", null, "300 grams of rice", "200 grams of mushrooms"),
+                Record("Risotto with mushrooms", null, "250 grams of rice", "2 eggs"));
+            pinned.RecipeIds = new List<long?> { id, id };
+
+            var result = await Service(db).AttachAsync(pinned, apply: true, newVersion: true);
+
+            result.Results.Select(r => r.Outcome).Should().Equal(RecipeSourceAttachOutcome.DoubleMatch, RecipeSourceAttachOutcome.DoubleMatch);
+            result.Results.Should().OnlyContain(r => r.RecipeId == id);
+            (await db.ScrapedDocuments.CountAsync(d => d.RecipeId == id)).Should().Be(1, "neither record replaces the recipe's source");
+        }
+
+        [Fact]
         public async Task The_undo_removes_what_an_attach_stored_journals_it_and_leaves_import_documents()
         {
             using var db = NewContext();

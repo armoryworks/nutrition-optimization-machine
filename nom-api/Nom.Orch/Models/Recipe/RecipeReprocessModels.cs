@@ -119,6 +119,9 @@ namespace Nom.Orch.Models.Recipe
         /// <summary>The steps are, or would be, replaced by those of a newer extraction of the book.</summary>
         public bool StepsReplaced { get; set; }
 
+        /// <summary>The source's ingredient lines an order-only pass read, in order.</summary>
+        public List<string>? SourceLines { get; set; }
+
         public long? JournalId { get; set; }
         public RecipeReprocessChangeCounts Counts { get; set; } = new();
         public List<RecipeReprocessLineDiff> Lines { get; set; } = new();

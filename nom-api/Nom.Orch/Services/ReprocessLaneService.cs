@@ -45,6 +45,7 @@ namespace Nom.Orch.Services
 
         private const int SignalLines = 6;
         private const int MethodChars = 400;
+        private const string CaloriesNutrient = "Calories";
 
         /// <summary>
         /// The rebuild tier qualifies on a Wilson lower bound of 98 % (at most one worse line in 300)
@@ -105,13 +106,31 @@ namespace Nom.Orch.Services
 
             var ids = candidates.Select(c => c.RecipeId).ToList();
             var recipes = await _db.Recipes.AsNoTracking().Where(r => ids.Contains(r.Id))
-                .Select(r => new { r.Id, r.Name, r.CurationStatusId }).ToDictionaryAsync(r => r.Id, cancellationToken);
+                .Select(r => new { r.Id, r.Name, r.CurationStatusId, r.Servings, r.RecipeServings }).ToDictionaryAsync(r => r.Id, cancellationToken);
+            var rebuildTier = tier != ReprocessTier.Order;
+            var rowsBefore = rebuildTier
+                ? (await _db.RecipeIngredients.AsNoTracking().Where(ri => ids.Contains(ri.RecipeId))
+                    .Select(ri => new { ri.RecipeId, ri.IngredientId, ri.Quantity, ri.MeasurementId, ri.LineKind }).ToListAsync(cancellationToken))
+                    .ToLookup(ri => ri.RecipeId)
+                : null;
             var result = await _reprocess.RebuildAsync(new RecipeReprocessRequestModel { RecipeIds = ids }, apply: live, orderOnly: tier == ReprocessTier.Order, batch.BatchId);
 
-            var units = await _db.Measurements.AsNoTracking().Select(m => new { m.Id, m.Name }).ToDictionaryAsync(m => m.Id, m => m.Name, cancellationToken);
-            var foodIds = result.Results.SelectMany(r => r.Lines).Select(l => l.NewIngredientId ?? 0).Where(id => id > 0).Distinct().ToList();
-            var grams = await _db.Ingredients.IgnoreQueryFilters().AsNoTracking().Where(i => foodIds.Contains(i.Id))
-                .Select(i => new { i.Id, i.GramsPerItem }).ToDictionaryAsync(i => i.Id, i => i.GramsPerItem, cancellationToken);
+            var measures = await _db.Measurements.AsNoTracking().ToDictionaryAsync(m => m.Id, cancellationToken);
+            var units = measures.ToDictionary(m => m.Key, m => m.Value.Name);
+            var foodIds = result.Results.SelectMany(r => r.Lines).Select(l => l.NewIngredientId ?? 0)
+                .Concat(rowsBefore?.SelectMany(g => g).Select(ri => ri.IngredientId) ?? Enumerable.Empty<long>())
+                .Where(id => id > 0).Distinct().ToList();
+            var foods = await _db.Ingredients.IgnoreQueryFilters().AsNoTracking().Where(i => foodIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id, cancellationToken);
+            var grams = foods.ToDictionary(f => f.Key, f => f.Value.GramsPerItem);
+            var kcal = rebuildTier
+                ? (await _db.IngredientNutrients.AsNoTracking().Where(n => foodIds.Contains(n.IngredientId) && n.Nutrient.Name == CaloriesNutrient)
+                    .Select(n => new { n.IngredientId, n.Amount }).ToListAsync(cancellationToken))
+                    .GroupBy(n => n.IngredientId).ToDictionary(g => g.Key, g => g.First().Amount)
+                : new Dictionary<long, decimal>();
+            decimal? KcalPerServing(IEnumerable<(long Food, decimal Quantity, long Measurement, string? Kind)> rows, decimal? servings) =>
+                ReprocessRuleAudit.KcalPerServing(rows.Select(r => new ReprocessRuleAudit.Portion(
+                    RecipeNutritionService.GramsFor(r.Quantity, measures.GetValueOrDefault(r.Measurement), foods.GetValueOrDefault(r.Food)),
+                    kcal.TryGetValue(r.Food, out var perHundred) ? perHundred : null, r.Kind)), servings);
             var steps = (await _db.RecipeSteps.AsNoTracking().Where(s => ids.Contains(s.RecipeId)).OrderBy(s => s.StepNumber)
                     .Select(s => new { s.RecipeId, s.Description }).ToListAsync(cancellationToken))
                 .ToLookup(s => s.RecipeId, s => s.Description ?? string.Empty);
@@ -168,11 +187,29 @@ namespace Nom.Orch.Services
                 }
 
                 var worse = after > before;
-                if (worse)
+                if (worse) Fail(batch, ReprocessRuleAudit.NoWorse);
+
+                var implausible = false;
+                if (rebuildTier && one.Outcome == RecipeReprocessOutcome.Rebuilt && recipe != null)
                 {
+                    decimal? servings = recipe.Servings is > 0 ? (decimal)recipe.Servings.Value : recipe.RecipeServings is > 0 ? recipe.RecipeServings.Value : null;
+                    var kcalBefore = KcalPerServing(rowsBefore![one.RecipeId].Select(r => (r.IngredientId, r.Quantity, r.MeasurementId, r.LineKind)), servings);
+                    var kcalAfter = KcalPerServing(one.Lines.Where(l => l.NewIngredientId is > 0).Select(l => (l.NewIngredientId!.Value, l.NewQuantity, l.NewMeasurementId, l.NewLineKind)), servings);
+                    implausible = !ReprocessRuleAudit.KcalPlausible(kcalBefore, kcalAfter);
+                    if (implausible) Fail(batch, ReprocessRuleAudit.Plausible);
+                }
+
+                List<string>? sourceOrder = null, newOrder = null;
+                if (!rebuildTier && one.Outcome == RecipeReprocessOutcome.Rebuilt && one.SourceLines != null)
+                {
+                    sourceOrder = one.SourceLines;
+                    newOrder = one.Lines.OrderBy(l => l.SortOrder).Select(l => l.RawLine).ToList();
                     batch.LinesChecked++;
-                    batch.LinesFailing++;
-                    batch.FailuresByCheck[ReprocessRuleAudit.NoWorse] = batch.FailuresByCheck.GetValueOrDefault(ReprocessRuleAudit.NoWorse) + 1;
+                    if (!ReprocessRuleAudit.FollowsSource(sourceOrder, newOrder))
+                    {
+                        batch.LinesFailing++;
+                        batch.FailuresByCheck[ReprocessRuleAudit.InSourceOrder] = batch.FailuresByCheck.GetValueOrDefault(ReprocessRuleAudit.InSourceOrder) + 1;
+                    }
                 }
 
                 var candidate = byRecipe[one.RecipeId];
@@ -182,7 +219,8 @@ namespace Nom.Orch.Services
                     Lane, tier, $"recipe:{one.RecipeId}",
                     one.Outcome + (one.Reason == null ? string.Empty : ": " + one.Reason),
                     mode, writes, signature, Stratum(candidate.Reasons),
-                    new ReprocessSignals(one.RecipeId, recipe?.Name ?? string.Empty, one.Outcome, one.Reason, reasons, batch.BatchId, one.JournalId, worse, lines)),
+                    new ReprocessSignals(one.RecipeId, recipe?.Name ?? string.Empty, one.Outcome, one.Reason, reasons, batch.BatchId, one.JournalId, worse, lines,
+                        implausible, sourceOrder, newOrder)),
                     cancellationToken);
 
                 candidate.Outcome = !live && writes ? ReprocessOutcome.Shadow : one.Outcome switch
@@ -242,6 +280,13 @@ namespace Nom.Orch.Services
                 tier, mode, batch.Taken, batch.Rebuilt, live ? "rebuilt" : "would be rebuilt", batch.Held, batch.Unchanged, batch.Failed,
                 batch.LinesChecked - batch.LinesFailing, batch.LinesChecked, batch.Faults.Count == 0 ? string.Empty : "; " + string.Join("; ", batch.Faults));
             return batch;
+        }
+
+        private static void Fail(ReprocessLaneBatchResult batch, string check)
+        {
+            batch.LinesChecked++;
+            batch.LinesFailing++;
+            batch.FailuresByCheck[check] = batch.FailuresByCheck.GetValueOrDefault(check) + 1;
         }
 
         private static string Excerpt(IEnumerable<string> sentences)
@@ -384,7 +429,11 @@ namespace Nom.Orch.Services
             }
         }
 
-        /// <summary>The order tier's auditor, a rule: an order-only decision is wrong when a line changed anything but its position.</summary>
+        /// <summary>
+        /// The order tier's auditor, a rule: an order-only decision is wrong when a line changed
+        /// anything but its position, or when its rows in their new order do not follow the source's
+        /// lines (O1).
+        /// </summary>
         public sealed class OrderRuleAuditor : ILaneAuditor
         {
             public string Model => "order-rule";
@@ -394,14 +443,20 @@ namespace Nom.Orch.Services
                 var signals = LaneJournal.Read<ReprocessSignals>(decision.SignalsJson);
                 return Task.FromResult(signals == null
                     ? new LaneAuditAnswer(null, "the decision has no signals")
-                    : new LaneAuditAnswer(signals.Lines.Count > 0, signals.Lines.Count > 0 ? "a line changed more than its position" : null));
+                    : signals.Lines.Count > 0 ? new LaneAuditAnswer(true, "a line changed more than its position")
+                    : OutOfOrder(signals) ? new LaneAuditAnswer(true, "the rows do not follow the source's order")
+                    : new LaneAuditAnswer(false, null));
             }
         }
 
+        private static bool OutOfOrder(ReprocessSignals signals) =>
+            signals.SourceOrder != null && signals.NewOrder != null && !ReprocessRuleAudit.FollowsSource(signals.SourceOrder, signals.NewOrder);
+
         /// <summary>
         /// The second check of a flagged rebuild, independent of the judge: the rule audit confirms
-        /// the flag when a changed line of the recipe fails A1 to A3, or the recipe fails more checks
-        /// after the rebuild than before (A4).
+        /// the flag when a changed line of the recipe fails A1 to A3, the recipe fails more checks
+        /// after the rebuild than before (A4), its kcal per serving is implausible (A6) or an order
+        /// restore breaks the source's order (O1).
         /// </summary>
         public sealed class RuleAuditCheck : ILaneAuditCheck
         {
@@ -410,7 +465,7 @@ namespace Nom.Orch.Services
             public Task<bool?> ConfirmsWrongAsync(LaneDecisionEntity decision, CancellationToken cancellationToken)
             {
                 var signals = LaneJournal.Read<ReprocessSignals>(decision.SignalsJson);
-                return Task.FromResult<bool?>(signals == null ? null : signals.Worse || signals.Lines.Any(l => l.Failures.Count > 0));
+                return Task.FromResult<bool?>(signals == null ? null : signals.Worse || signals.Implausible || OutOfOrder(signals) || signals.Lines.Any(l => l.Failures.Count > 0));
             }
         }
     }

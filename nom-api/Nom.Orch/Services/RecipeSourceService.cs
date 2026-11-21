@@ -97,6 +97,7 @@ namespace Nom.Orch.Services
                 ? new Dictionary<long, Candidate>()
                 : await _db.Recipes.AsNoTracking().Where(r => pinnedIds.Contains(r.Id))
                     .Select(r => new Candidate(r.Id, r.SourceUrl, r.Name, r.SourceAttribution)).ToDictionaryAsync(c => c.Id);
+            var pinnedTwice = pins.Where(id => id != null).GroupBy(id => id!.Value).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
 
             var candidatesOf = new Dictionary<int, (string By, List<Candidate> Recipes)>();
             foreach (var p in prepared)
@@ -146,6 +147,13 @@ namespace Nom.Orch.Services
                     .ToList();
                 var best = outcome.Candidates[0];
                 outcome.Score = best.Score;
+
+                if (found.By == PinnedBy && pinnedTwice.Contains(best.RecipeId))
+                {
+                    outcome.Outcome = RecipeSourceAttachOutcome.DoubleMatch;
+                    outcome.RecipeId = best.RecipeId;
+                    continue;
+                }
 
                 if (found.Recipes.FirstOrDefault(c => Held(c.Id).Any(d => d.Format == p.Format && d.ContentSha256 == p.Sha256)) is { } holder)
                 {

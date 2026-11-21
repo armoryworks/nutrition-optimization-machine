@@ -155,7 +155,8 @@ lane leaves its lines alone, and the undo can restore them however often the API
 start-up repair leaves a recipe with a standing `Reprocess` header alone altogether (no fill, no
 step split, no entity decoding, no re-vetting): the rebuild applies the same rules and journals
 them, and a newer rule reaches the recipe by the next rebuild. The line-classify lane is let through
-the header: it labels the rows a rebuild left without a kind, which the undo tolerates (above), so
+the header and through the applied-link line rows the header names (`links=`, written when a rebuilt
+line followed a USDA link); a link row the rebuild did not write still holds the recipe. It labels the rows a rebuild left without a kind, which the undo tolerates (above), so
 rebuilt recipes get the model's kinds as well as the deterministic ones.
 
 The rows are replaced, not edited, because the line key (recipe, food, position) changes with the
@@ -235,14 +236,22 @@ gate (`ai-pause-all`, `ai-pause-reprocess`, quiet hours). Off unless `Reprocess:
   with up to six changed lines and their rule-check failures in its signals. A batch is journaled as
   a `ReprocessBatch` row (entity `ReprocessLane`) with its figures.
 
-**Rule checks** (`ReprocessRuleAudit`, written apart from the builder, no model) on every changed
-line: A1 the amount stands in the line's text, or for a method fill in a method sentence that names
-the food, as a stated number times an old measure the text names (a quart is 4 cups, a gill half a
-cup, a pound 16 ounces), or a range; a line that starts with a number or "two cups of" stored with no
-amount fails. A2 a line moved to another food names that food. A3 pieces only of a food with a weight
+**Rule checks** (`ReprocessRuleAudit`, `reprocess-audit/2`, written apart from the builder, no
+model) on every changed line: A1 the amount stands in the line's text, or for a method fill in a
+method sentence that names the food, as a number that text states times an old measure that same
+text names (a quart is 4 cups, a gill half a cup, a pound 16 ounces), within a range it states
+("2 to 3", "2-3", "2 or 3"), or as two numbers it states one after the other multiplied or added
+("2 cans of 15 oz"); "a" or "an" counts as one only before a measure or the food, and a number between
+two unrelated numbers ("cook 10 minutes, then 2 more onions") grounds nothing. A line that starts with
+a number or "two cups of" stored with no amount fails. A2 a line moved to another food names that food. A3 pieces only of a food with a weight
 per item and never of a liquid or of a line that states a measure; no volume of a whole bird. A4 a
 recipe fails no more checks after than before. A5 (live) ten rebuilt recipes rebuilt again change
-nothing.
+nothing. A6 the kcal per serving of the rebuilt lines (grams by the label's own conversion, the food's
+Calories per 100 g, ingredient lines only, the recipe's servings) lies in 30 to 2,500, or no further
+outside that band than the stored lines were; a recipe with no servings or no counted line is not
+read. A4, A5 and A6 each count as one more failing line. O1 (order tier) the rows of an order restore,
+read in their new order, follow the source's lines (each row's text, or a part of a `" + "` fold,
+found on a later source line than the row before it); each restore counts as one checked line.
 
 **Faults** (pause a live tier; keep a shadow tier in shadow): the checks pass on less than 98 % of a
 batch's changed lines (at least 50), or less than 99 % in shadow; more than 5 % of a batch's approved
@@ -254,13 +263,14 @@ roster, `mistral-nemo` by default, `Reprocess:JudgeModel` to change it): it read
 lines of a sampled decision with the source line and the method sentences that name the food, and
 calls the rebuilt row better, the same, worse or unclear. A recipe is flagged when a line is worse;
 the flag counts as an error only when the rule audit confirms it (a check failing on a changed line,
-or A4). The combined check's own score comes from the committed `line-judge` golden record
+A4, A6 or O1). A model set by `Reprocess:JudgeModel` must be of reader B's family and of neither reader
+A's nor the auditor's; otherwise the API refuses to start. The combined check's own score comes from the committed `line-judge` golden record
 (`golden-sets.md`), built into the API: without a record of the current prompt and judge model, at or
 above its floor, the tier cannot go live. Sample 30 % of written decisions (at least 30). Bars:
 qualify on a Wilson lower bound of 98 % (at most one worse in about 300), pause when a full window of
 300 audited rebuilds shows more than 3 % confirmed worse (the observed-error rule, LQ-4). The order
-tier's auditor is an exact rule (a decision is wrong when a line changed anything but its position),
-10 % sample, qualify 99 %, pause above 2 % over 400.
+tier's auditor is an exact rule (a decision is wrong when a line changed anything but its position,
+or when its rows do not follow the source's order, O1), 10 % sample, qualify 99 %, pause above 2 % over 400.
 
 **Undo.** `ReprocessLaneUndo` takes back the tier's own batches (`rl-`) since the last clean window,
 newest first, through the journal (rule rejections, then rebuilds; order restores for the order
@@ -277,17 +287,26 @@ Run on the harvest host, where the book texts are; it fetches nothing and asks o
 the operator names. Chunks start at recipe titles (numbered, capitals or title case after a blank
 line) and hold whole recipes up to `--limit` characters (4,000), so a recipe is never cut at a chunk
 edge; one recipe longer than `--hard-limit` is cut at paragraph ends and its records are marked
-`split`. Every record passes the fidelity check (each ingredient line appears in the chunk after
-normalization, else each of its numbers is in the chunk and each of its words found there) or is
-dropped to `--rejects` with its reason. With `--translate` (Artusi) the model writes English and
-quotes the Italian line of each ingredient and step: the Italian line must be in the chunk, the
-English line must carry exactly its numbers and units (grammi is grams, cucchiaio a tablespoon; one
-is not compared, since an article reads as one in one language only), and two English lines may not
-come from one Italian line. Each kept record may carry `replacesRecipeId`, from the first attach's
-log (`--recipe-map`, by name or quoted title) or a CSV (`--pin-csv`). `recipe-source-attach.py`
+`split`. Every record is checked against its own recipe in the chunk (from the title that names it
+to the next title; a chunk holding several recipes and no title naming the record drops it) or is
+dropped to `--rejects` with its reason. Fidelity: each ingredient line appears in the recipe after
+normalization, else one line or sentence of the recipe holds all its numbers and words; each step
+likewise, number words included, so the method a rebuild fills amounts from states no amount the book
+does not; and every line of the recipe's ingredient list (a paragraph of short lines stating amounts)
+is extracted. With `--translate` (Artusi) the model writes English and quotes the Italian of each
+ingredient and step: the quote must lie in the recipe, an ingredient's quote must name a food and not
+only an amount, the English must carry exactly the quote's numbers and units (grammi is grams,
+cucchiaio a tablespoon; one is not compared, since an article reads as one in one language only) and
+name the same common foods (burro and butter, zucchero and sugar, uova and eggs ...), two English
+lines may not come from one Italian line, and every line of the Italian ingredient list must be
+translated with its whole amount. Each kept record may carry `replacesRecipeId`, from the first
+attach's log (`--recipe-map`, by the quoted title, else the name) or a CSV (`--pin-csv`); a record
+whose title and name point to two recipes, and every record of a recipe two records point to, stays
+unpinned and is logged. `recipe-source-attach.py`
 sends that as a pin: with `newVersion`, `POST /api/RecipeSource/attach` stores a pinned record as the
 next version on that recipe only, when it already holds a record of that format, whatever the line
-agreement (a translation does not repeat the old lines). The detector then finds D7 and the lane
+agreement (a translation does not repeat the old lines); two records of one batch pinned to the same
+recipe are both `doubleMatch` and neither is stored. The detector then finds D7 and the lane
 rebuilds lines and steps.
 
 ## What is not here yet
@@ -295,6 +314,6 @@ rebuilds lines and steps.
 - The compound split rules are not repeated by the rebuild; recipes with a standing split are held.
 - `undo-applied` (the USDA link undo) does not yet skip rebuilt recipes. Undo a rebuild before
   undoing a link applied before it.
-- A6 (kcal per serving plausible after a rebuild) is not checked by the lane; the nutrition label is
-  recalculated after each rebuild and its plausibility is the nutrition pipeline's.
+- A6 reads energy only: a wrong amount of a food with no calories (salt, water, baking powder) or one
+  that keeps the serving inside 30 to 2,500 kcal passes it.
 - A held recipe is retried when the line rules change, not after a catalog change.

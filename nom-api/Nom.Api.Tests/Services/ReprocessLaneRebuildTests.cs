@@ -189,6 +189,37 @@ namespace Nom.Api.Tests.Services
             (await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == recipe.Id && ri.IngredientId == water.Id)).MeasurementId.Should().Be(Piece);
         }
 
+        [Fact]
+        public async Task The_line_classify_lane_passes_the_link_rows_a_rebuild_wrote_and_no_other_link_row()
+        {
+            using var db = await SeededAsync();
+            var at = DateTime.UtcNow;
+            var rebuilt = new[]
+            {
+                new Nom.Data.Audit.AuditLogEntryEntity { EntityType = LinkApplyJournal.EntityType, EntityId = 5, ChangeType = LinkApplyJournal.ChangeType, PropertyName = LinkApplyJournal.Line, NewValue = "10:7@0", Timestamp = at },
+                new Nom.Data.Audit.AuditLogEntryEntity { EntityType = LinkApplyJournal.EntityType, EntityId = 6, ChangeType = LinkApplyJournal.ChangeType, PropertyName = LinkApplyJournal.Line, NewValue = "11:7@0", Timestamp = at },
+            };
+            db.AuditLogEntries.AddRange(rebuilt);
+            await db.SaveChangesAsync();
+            db.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+            {
+                EntityType = ScrapedRecipeRepairService.LineEntityType, EntityId = 10, ChangeType = RecipeReprocessService.ReprocessChangeType, PropertyName = RecipeReprocessKind.Rebuild,
+                NewValue = $"journal=1;batch=rl-1;rules=line-builder/2;kind=rebuild;links={rebuilt[0].Id}", Timestamp = at,
+            });
+            db.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+            {
+                EntityType = ScrapedRecipeRepairService.LineEntityType, EntityId = 11, ChangeType = RecipeReprocessService.ReprocessChangeType, PropertyName = RecipeReprocessKind.Rebuild,
+                NewValue = "journal=2;batch=rl-1;rules=line-builder/2;kind=rebuild", Timestamp = at,
+            });
+            await db.SaveChangesAsync();
+
+            var byClassify = await RecipeLineHold.HeldAsync(db, new long[] { 10, 11 }, CancellationToken.None, RecipeReprocessService.ReprocessChangeType);
+            var byRepair = await RecipeLineHold.HeldAsync(db, new long[] { 10, 11 });
+
+            byClassify.Should().BeEquivalentTo(new[] { 11L }, "recipe 10's link row is its rebuild's own; recipe 11's was written by a link apply");
+            byRepair.Should().BeEquivalentTo(new[] { 10L, 11L });
+        }
+
         private static RecipeReprocessService.LineRow Row(long food, int sortOrder, string raw, decimal quantity, string? kind) =>
             new(food, sortOrder, quantity, Piece, raw, kind, null, Imported, null, null, null, false, null, null);
 

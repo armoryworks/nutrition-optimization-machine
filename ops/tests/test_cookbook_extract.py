@@ -245,7 +245,7 @@ class MainTests(unittest.TestCase):
 
         def fake_ollama(host, model, timeout=600):
             asked.append((host, model))
-            return stand_in(lambda chunk: json.dumps({"recipes": [{"name": "Gingerbread", "ingredients": ["1 cup molasses"], "steps": ["Bake."]},
+            return stand_in(lambda chunk: json.dumps({"recipes": [{"name": "Gingerbread", "ingredients": ["1 cup molasses", "½ cup butter", "2 teaspoonfuls ginger", "3 cups flour"], "steps": ["Bake."]},
                                                                    {"name": "Muffins", "ingredients": ["9 cups flour"], "steps": []}]}))
 
         original = extract.ollama
@@ -268,6 +268,81 @@ class MainTests(unittest.TestCase):
         self.assertEqual(asked, [("http://model-host:11434", "qwen2.5:14b-instruct")])
         self.assertEqual(kept[0]["name"], "Gingerbread")
         self.assertEqual(dropped[0]["name"], "Muffins")
+
+
+class ReviewTests(unittest.TestCase):
+    def test_a_step_that_states_an_amount_the_book_does_not_is_dropped(self):
+        record = {"name": "Gingerbread", "ingredients": ["1 cup molasses", "½ cup butter", "2 teaspoonfuls ginger", "3 cups flour"],
+                  "steps": ["Mix three ounces of butter with the molasses; add the ginger and flour.", "Bake in a shallow pan."]}
+
+        result = extract.extract(BOOK, stand_in([json.dumps({"recipes": [record]})]))
+
+        self.assertEqual(result.kept, [])
+        self.assertTrue(result.rejects[0]["reason"].startswith("fidelity: Mix three ounces"), result.rejects[0]["reason"])
+
+    def test_a_line_whose_number_stands_only_in_another_recipe_or_another_line_is_dropped(self):
+        self.assertIsNotNone(extract.fidelity("2 cups flour", BOOK))
+        chunk = extract.chunks(BOOK)[0]
+        record = {"name": "Corn Muffins", "ingredients": ["2 cups corn meal", "1 cup flour", "2 eggs", "3 cups molasses"], "steps": []}
+        reason = extract.check_record(record, chunk, translate=False)[1]
+        self.assertTrue(reason.startswith("fidelity: 3 cups molasses"), reason)
+
+    def test_a_record_that_leaves_out_a_line_of_the_ingredient_list_is_dropped(self):
+        chunk = extract.chunks(BOOK)[0]
+        record = {"name": "Gingerbread", "ingredients": ["1 cup molasses", "2 teaspoonfuls ginger", "3 cups flour"], "steps": []}
+        self.assertEqual(extract.check_record(record, chunk, translate=False)[1], "an ingredient line not extracted: ½ cup butter")
+
+    def test_a_translation_that_leaves_out_an_italian_ingredient_line_is_dropped(self):
+        recipe = ARTUSI[0]
+        text = artusi_text([recipe])
+        pairs = list(zip(recipe["english"], recipe["italian"]))
+        answer = {"sourceName": recipe["title"], "name": recipe["name"],
+                  "ingredients": [{"text": e, "source": i} for e, i in pairs if not i.startswith("Burro")], "steps": []}
+
+        result = extract.extract(text, stand_in([json.dumps({"recipes": [answer]})]), translate=True)
+
+        self.assertEqual(result.kept, [])
+        self.assertEqual(result.rejects[0]["reason"], "an Italian ingredient line not translated: Burro, grammi 125.")
+
+    def test_a_translation_that_moves_an_amount_to_another_food_is_dropped(self):
+        recipe = ARTUSI[0]
+        text = artusi_text([recipe])
+        swapped = {"sourceName": recipe["title"], "name": recipe["name"], "steps": [], "ingredients": [
+            {"text": "250 grams of flour", "source": "Farina, grammi 250."},
+            {"text": "125 grams of sugar", "source": "grammi 125"},
+            {"text": "110 grams of butter", "source": "grammi 110"},
+            {"text": "1 egg and one yolk", "source": "Uova, N. 1 e un rosso."}]}
+        whole_lines = dict(swapped, ingredients=[
+            {"text": "250 grams of flour", "source": "Farina, grammi 250."},
+            {"text": "125 grams of sugar", "source": "Burro, grammi 125."},
+            {"text": "110 grams of butter", "source": "Zucchero, grammi 110."},
+            {"text": "1 egg and one yolk", "source": "Uova, N. 1 e un rosso."}])
+
+        result = extract.extract(text, stand_in([json.dumps({"recipes": [swapped, whole_lines]})]), translate=True)
+
+        self.assertEqual(result.kept, [])
+        self.assertEqual([r["reason"].split(":")[0] for r in result.rejects], ["an Italian line that names no food", "number check"])
+        self.assertIn("names burro", result.rejects[1]["reason"])
+
+    def test_a_translated_step_must_carry_its_quote_s_amounts_and_foods(self):
+        self.assertIsNotNone(extract.number_check("Rub three ounces of butter into the flour.", "si strofina il burro"))
+        self.assertIsNotNone(extract.number_check("three ounces of butter", "tre uova"))
+        self.assertIsNotNone(extract.food_check("100 grams of sugar", "grammi 100 di burro", ingredient=False))
+        for recipe in ARTUSI:
+            for italian, english in zip(recipe["italian"], recipe["english"]):
+                self.assertIsNone(extract.food_check(english, italian, ingredient=True), f"{english} / {italian}")
+
+    def test_two_records_that_point_to_one_recipe_are_both_left_unpinned_and_the_quoted_title_comes_first(self):
+        pins = {"risotto with mushrooms": 7, "risotto coi funghi": 8, "risotto alla milanese": 9}
+        records = [{"name": "Risotto with mushrooms", "sourceName": "Risotto coi funghi"},
+                   {"name": "Risotto with mushrooms", "sourceName": "Risotto ai funghi secchi"},
+                   {"name": "Risotto Milanese style", "sourceName": "Risotto alla milanese"},
+                   {"name": "Risotto with mushrooms"}]
+
+        count = extract.pin(records, pins)
+
+        self.assertEqual([r.get("replacesRecipeId") for r in records], [None, None, 9, None])
+        self.assertEqual(count, 1)
 
 
 if __name__ == "__main__":

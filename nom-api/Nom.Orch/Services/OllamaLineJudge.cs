@@ -77,6 +77,24 @@ namespace Nom.Orch.Services
             : config[$"{LaneModelRoster.SectionName}:{nameof(LaneModelRoster.ReaderB)}"] is { Length: > 0 } readerB ? readerB.Trim()
             : new LaneModelRoster().ReaderB;
 
+        /// <summary>
+        /// Why the line judge may not run, or null: a model set by Reprocess:JudgeModel must be of reader
+        /// B's family, so it never shares the family of reader A (the writer and translator whose work
+        /// it checks) or of the auditor. The API refuses to start with such a model.
+        /// </summary>
+        public static string? FamilyProblem(IConfiguration config)
+        {
+            var defaults = new LaneModelRoster();
+            string Role(string name, string fallback) => config[$"{LaneModelRoster.SectionName}:{name}"] is { Length: > 0 } model ? model.Trim() : fallback;
+            var judge = ModelFor(config);
+            var readerA = Role(nameof(LaneModelRoster.ReaderA), defaults.ReaderA);
+            var readerB = Role(nameof(LaneModelRoster.ReaderB), defaults.ReaderB);
+            var auditor = Role(nameof(LaneModelRoster.Auditor), defaults.Auditor);
+            var family = LaneModelRoster.Family(judge);
+            if (family == LaneModelRoster.Family(readerB) && family != LaneModelRoster.Family(readerA) && family != LaneModelRoster.Family(auditor)) return null;
+            return $"Reprocess:JudgeModel {judge} is of the {family} family; the line judge must be of reader B's family ({LaneModelRoster.Family(readerB)}, {readerB}), never of reader A's ({readerA}) or the auditor's ({auditor}); a checking role may not use the family it checks";
+        }
+
         public bool IsConfigured => _baseUrl.Length > 0 && ModelName.Length > 0;
         public string ModelName { get; }
 

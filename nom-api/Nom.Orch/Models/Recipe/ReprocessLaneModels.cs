@@ -18,7 +18,7 @@ namespace Nom.Orch.Models.Recipe
         public int ApprovedTaken { get; set; }
         public int ApprovedHeld { get; set; }
 
-        /// <summary>Changed lines the rule checks read, and those any of A1 to A3 failed on; a recipe failing A4 or A5 counts as one more failing line.</summary>
+        /// <summary>Changed lines the rule checks read, and those any of A1 to A3 failed on; a recipe failing A4, A5 or A6 counts as one more failing line, and each order restore as one line, failing when it breaks the source's order (O1).</summary>
         public int LinesChecked { get; set; }
         public int LinesFailing { get; set; }
 
@@ -37,10 +37,14 @@ namespace Nom.Orch.Models.Recipe
         string NewFood, decimal NewQuantity, string? NewUnit, string? NewKind,
         bool FilledFromMethod, bool FoodChanged, decimal? GramsPerItem, string Method, IReadOnlyList<string> Changes, IReadOnlyList<string> Failures);
 
-    /// <summary>The signals of one reprocess lane decision.</summary>
+    /// <summary>
+    /// The signals of one reprocess lane decision. <c>Implausible</c>: the rebuild fails A6. An order
+    /// restore keeps the source's lines and its rows' lines in their new order, which O1 compares.
+    /// </summary>
     public sealed record ReprocessSignals(
         long RecipeId, string Recipe, string Outcome, string? Reason, IReadOnlyList<string> Reasons, string BatchId, long? JournalId,
-        bool Worse, IReadOnlyList<ReprocessSignalLine> Lines);
+        bool Worse, IReadOnlyList<ReprocessSignalLine> Lines, bool Implausible = false,
+        IReadOnlyList<string>? SourceOrder = null, IReadOnlyList<string>? NewOrder = null);
 
     /// <summary>The reprocess lane on the Pipeline page: candidates by reason and tier, what the lane did, the last batch per tier and the line judge.</summary>
     public class ReprocessLaneStatusModel

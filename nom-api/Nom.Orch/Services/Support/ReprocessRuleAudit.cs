@@ -10,21 +10,28 @@ namespace Nom.Orch.Services.Support
     /// The rule checks the reprocess lane runs on every line a rebuild changes, written apart from
     /// the line builder so they do not share its mistakes (reprocess.md section 3). A1: a stored
     /// amount stands in the line's text, or for a method fill in a method sentence that names the
-    /// food, as a number read here (digits, fractions, number words, "a couple") times one of the
-    /// old measures' factors. A2: a line the rebuild moved to another food names that food. A3: a
-    /// count in pieces is not of a liquid or of a line that states a measure, and a whole bird is
-    /// not measured by volume. A4 compares a recipe's failures before and after. No model and no
-    /// database.
+    /// food, as a number read here (digits, fractions, number words, "a couple"; "a" or "an" only
+    /// before a measure or the food) times one of the old measures' factors that text names. A2: a
+    /// line the rebuild moved to another food names that food. A3: a count in pieces is not of a
+    /// liquid or of a line that states a measure, and a whole bird is not measured by volume. A4
+    /// compares a recipe's failures before and after. A6: the kcal per serving lands in 30 to 2,500
+    /// or moves no further from that band. An order restore keeps the source's order (O1). No model
+    /// and no database.
     /// </summary>
     public static class ReprocessRuleAudit
     {
-        public const string Version = "reprocess-audit/1";
+        public const string Version = "reprocess-audit/2";
 
         public const string Grounded = "A1";
         public const string Named = "A2";
         public const string UnitSane = "A3";
         public const string NoWorse = "A4";
         public const string Idempotent = "A5";
+        public const string Plausible = "A6";
+        public const string InSourceOrder = "O1";
+
+        public const decimal KcalLow = 30m;
+        public const decimal KcalHigh = 2500m;
 
         /// <summary>One line row as the checks read it.</summary>
         public sealed record Line(
@@ -66,6 +73,14 @@ namespace Nom.Orch.Services.Support
             RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         private static readonly Regex Word = new(@"\p{L}+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly Regex Token = new(
+            @"(?<number>(?:\d+(?:[.,]\d+)?)?\s*(?:-\s*)?(?:\d+\s*[/⁄]\s*\d+|[¼½¾⅓⅔⅛⅜⅝⅞⅕⅖⅗⅘⅙⅚])|\d+(?:[.,]\d+)?)|(?<word>\p{L}+)",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly Regex RangeJoin = new(@"^\s*(?:-|–|to|or)\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly HashSet<string> Articles = new(StringComparer.OrdinalIgnoreCase) { "a", "an", "un", "uno", "una" };
 
         private static readonly Regex Measure = new(
             @"\b(?:cups?|cupfuls?|tea-?cups?|tumblers?|glass(?:es|fuls?)?|spoons?|spoonfuls?|tablesp\w*|teasp\w*|tbsp?s?|tsps?|tbp|dessertsp\w*|pints?|quarts?|qts?|gallons?|gills?|jills?|pounds?|lbs?|ounces?|oz|grams?|grammi|gr|kilo\w*|kg|litres?|liters?|litro|ml|pinch(?:es)?|dash(?:es)?)\b\.?",
@@ -121,28 +136,63 @@ namespace Nom.Orch.Services.Support
             decimal.TryParse(text.Replace(',', '.'), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value) ? value : null;
 
         /// <summary>
-        /// A1: whether the amount stands in the text: equal, within a hundredth, to a stated number,
-        /// or to one times the factor of an old measure the text names (a quart is 4 cups, a gill half
-        /// a cup, a pound 16 ounces), or to a number between two stated ones (a range), or to a stated
-        /// number times or plus another ("2 cans of 15 oz", "1 pound 4 ounces").
+        /// A1: whether the amount stands in one of the texts: equal, within a hundredth, to a number
+        /// it states, or to one times the factor of an old measure that text names (a quart is 4
+        /// cups, a gill half a cup, a pound 16 ounces), or to a number of a range it states ("2 to 3",
+        /// "2-3", "2 or 3"), or to two numbers it states one after the other times or plus each other
+        /// ("2 cans of 15 oz"). "A" or "an" counts one only before a measure or a word of
+        /// <paramref name="named"/> (the food), so a stray article grounds nothing.
         /// </summary>
-        public static bool GroundedIn(decimal quantity, IEnumerable<string?> texts)
+        public static bool GroundedIn(decimal quantity, IEnumerable<string?> texts, IEnumerable<string?>? named = null)
         {
             if (quantity <= 0) return true;
-            var given = texts.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t!).ToList();
-            var numbers = given.SelectMany(Numbers).Distinct().ToList();
-            var factors = Factors.Where(f => given.Any(t => f.Word.IsMatch(t))).Select(f => f.Factor).Prepend(1m).ToList();
-            if (numbers.Any(n => factors.Any(f => Near(n * f, quantity)))) return true;
-            for (var i = 0; i < numbers.Count; i++)
+            var food = (named ?? Array.Empty<string?>()).Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n!).ToList();
+            foreach (var text in texts.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t!))
             {
-                for (var j = i + 1; j < numbers.Count; j++)
+                var stated = Stated(text, food);
+                var factors = Factors.Where(f => f.Word.IsMatch(text)).Select(f => f.Factor).Prepend(1m).ToList();
+                if (stated.Any(n => factors.Any(f => Near(n.Value * f, quantity)))) return true;
+                for (var i = 0; i + 1 < stated.Count; i++)
                 {
-                    var (low, high) = numbers[i] < numbers[j] ? (numbers[i], numbers[j]) : (numbers[j], numbers[i]);
-                    if (quantity >= low && quantity <= high) return true;
-                    if (Near(numbers[i] * numbers[j], quantity) || Near(numbers[i] + numbers[j], quantity)) return true;
+                    var (a, b) = (stated[i].Value, stated[i + 1].Value);
+                    if (stated[i + 1].Range && quantity >= Math.Min(a, b) && quantity <= Math.Max(a, b)) return true;
+                    if (Near(a * b, quantity) || Near(a + b, quantity)) return true;
                 }
             }
             return false;
+        }
+
+        private static List<(decimal Value, bool Range)> Stated(string text, IReadOnlyList<string> food)
+        {
+            var found = new List<(decimal Value, bool Range)>();
+            var matches = Token.Matches(text).ToList();
+            var lastEnd = -1;
+            for (var i = 0; i < matches.Count; i++)
+            {
+                var m = matches[i];
+                decimal? value = null;
+                if (m.Groups["number"].Success)
+                {
+                    value = Numbers(m.Value).FirstOrDefault();
+                }
+                else if (Articles.Contains(m.Value))
+                {
+                    var rest = text[(m.Index + m.Length)..].TrimStart();
+                    var ahead = string.Join(" ", matches.Skip(i + 1).Take(2).Where(n => n.Groups["word"].Success).Select(n => n.Value));
+                    if (Measure.Match(rest) is { Success: true, Index: 0 } || Factors.Any(f => f.Word.Match(rest) is { Success: true, Index: 0 })
+                        || (ahead.Length > 0 && food.Any(f => FoodNameMatcher.NamesFood(ahead, f))))
+                        value = 1;
+                }
+                else if (Words.TryGetValue(m.Value, out var word))
+                {
+                    value = word;
+                }
+                if (value is not { } v || v <= 0) continue;
+                var range = lastEnd >= 0 && RangeJoin.IsMatch(text[lastEnd..m.Index]);
+                found.Add((v, range));
+                lastEnd = m.Index + m.Length;
+            }
+            return found;
         }
 
         private static bool Near(decimal a, decimal b) => Math.Abs(a - b) <= 0.01m;
@@ -179,12 +229,48 @@ namespace Nom.Orch.Services.Support
 
             var texts = new List<string?> { line.Raw };
             if (line.FilledFromMethod && method != null) texts.AddRange(MethodSentences(method, line.Food, line.Raw));
-            if (!GroundedIn(line.Quantity, texts) || (line.Quantity == 0 && line.Kind is null or "ingredient" && StatesAmount(line.Raw))) failures.Add(Grounded);
+            if (!GroundedIn(line.Quantity, texts, new[] { line.Food }) || (line.Quantity == 0 && line.Kind is null or "ingredient" && StatesAmount(line.Raw))) failures.Add(Grounded);
 
             if (line.FoodChanged && line.Kind is null or "ingredient" && !FoodNameMatcher.NamesFood(line.Raw, line.Food)) failures.Add(Named);
 
             if (line.Quantity > 0 && !UnitSaneFor(line)) failures.Add(UnitSane);
             return failures;
+        }
+
+        /// <summary>A line as A6 reads it: its weight in grams (null when it has none), its food's kcal per 100 g and its kind.</summary>
+        public sealed record Portion(decimal? Grams, decimal? KcalPer100Grams, string? Kind);
+
+        /// <summary>The kcal per serving of a recipe's lines, or null when its servings are unknown or no line counts.</summary>
+        public static decimal? KcalPerServing(IEnumerable<Portion> lines, decimal? servings)
+        {
+            if (servings is not > 0) return null;
+            var counted = lines.Where(l => l.Kind is null or "ingredient" && l.Grams > 0 && l.KcalPer100Grams != null).ToList();
+            return counted.Count == 0 ? null : counted.Sum(l => l.Grams!.Value * l.KcalPer100Grams!.Value / 100m) / servings.Value;
+        }
+
+        /// <summary>A6: the kcal per serving after the rebuild lands in 30 to 2,500, or no further from that band than before; true when it cannot be read.</summary>
+        public static bool KcalPlausible(decimal? before, decimal? after) =>
+            after is not { } a || OutOfBand(a) == 0 || (before is { } b && OutOfBand(a) <= OutOfBand(b));
+
+        private static decimal OutOfBand(decimal kcal) => kcal < KcalLow ? KcalLow - kcal : kcal > KcalHigh ? kcal - KcalHigh : 0;
+
+        /// <summary>
+        /// O1: whether the rows of an order restore, read in their new order, follow the source's
+        /// lines: each row's text (for a " + " fold, one of its parts) is found on a source line
+        /// after the line the row before it was found on.
+        /// </summary>
+        public static bool FollowsSource(IReadOnlyList<string> sourceLines, IReadOnlyList<string> rowsInOrder)
+        {
+            var keys = sourceLines.Select(FoldedLine.Key).ToList();
+            var at = -1;
+            foreach (var row in rowsInOrder)
+            {
+                var own = row.Split(FoldedLine.Separator).Select(FoldedLine.Key).Prepend(FoldedLine.Key(row)).Where(k => k.Length > 0).ToHashSet();
+                var next = keys.FindIndex(at + 1, k => own.Contains(k));
+                if (next < 0) return false;
+                at = next;
+            }
+            return true;
         }
 
         private static bool UnitSaneFor(Line line)

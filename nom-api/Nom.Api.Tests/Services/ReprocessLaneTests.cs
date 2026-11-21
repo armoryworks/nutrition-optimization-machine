@@ -14,6 +14,7 @@ using Moq;
 using Nom.Data;
 using Nom.Data.Curation;
 using Nom.Data.Measurement;
+using Nom.Data.Nutrient;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
@@ -530,6 +531,137 @@ namespace Nom.Api.Tests.Services
             verdict.Figures.PauseReasons.Should().BeEmpty();
             verdict.Figures.Audited.Should().Be(1);
             judge.Calls.Should().Be(0);
+        }
+
+        [Fact]
+        public void The_rule_audit_grounds_an_amount_only_in_a_number_a_range_or_an_article_before_a_measure_or_the_food()
+        {
+            var method = new[] { "Add the onions and cook 10 minutes, then 2 more onions." };
+            ReprocessRuleAudit.Failures(new("onions", "onions", 5, "Piece", null, FilledFromMethod: true, GramsPerItem: 110), method)
+                .Should().Equal(ReprocessRuleAudit.Grounded);
+            ReprocessRuleAudit.GroundedIn(5m, method).Should().BeFalse("5 lies between 2 and 10 but no range is stated");
+            ReprocessRuleAudit.GroundedIn(2.5m, new[] { "2 to 3 cups of milk" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(2.5m, new[] { "2-3 cups of milk" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(1m, new[] { "Put the beef in a pan with the onions." }, new[] { "onions" }).Should().BeFalse("a pan is not an onion");
+            ReprocessRuleAudit.GroundedIn(1m, new[] { "Slice an onion thinly." }, new[] { "onions" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(0.5m, new[] { "Stir the oatmeal into a teacupful of water." }, new[] { "water" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(30m, new[] { "2 cans of 15 oz tomatoes" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(8m, new[] { "two quarts of water", "a cup of sugar" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(4m, new[] { "a cup of sugar", "a quart of water" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(4m, new[] { "a cup of sugar and 1 egg" }).Should().BeFalse("a quart named in another text gives no factor here");
+        }
+
+        [Fact]
+        public void A6_fails_a_rebuild_whose_kcal_per_serving_leaves_the_band_and_passes_one_that_comes_closer()
+        {
+            ReprocessRuleAudit.KcalPerServing(new[] { new ReprocessRuleAudit.Portion(200, 387, null), new ReprocessRuleAudit.Portion(100, null, null), new ReprocessRuleAudit.Portion(50, 900, "note") }, 4)
+                .Should().Be(193.5m);
+            ReprocessRuleAudit.KcalPerServing(new[] { new ReprocessRuleAudit.Portion(200, 387, null) }, null).Should().BeNull("a label with no servings is a whole-recipe total");
+            ReprocessRuleAudit.KcalPlausible(194, 3890).Should().BeFalse();
+            ReprocessRuleAudit.KcalPlausible(194, 20).Should().BeFalse();
+            ReprocessRuleAudit.KcalPlausible(5000, 3000).Should().BeTrue("it comes closer to the band");
+            ReprocessRuleAudit.KcalPlausible(194, null).Should().BeTrue();
+            ReprocessRuleAudit.KcalPlausible(null, 400).Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task A_rebuild_whose_kcal_per_serving_leaves_the_band_fails_A6_and_the_rule_audit_confirms_its_flag()
+        {
+            using var db = await SeededAsync();
+            (await db.Measurements.FindAsync(Cup))!.BaseUnitConversionFactor = 236.588m;
+            var sugar = await FoodAsync(db, "sugar");
+            sugar.GramsPerMilliliter = 0.85m;
+            db.Nutrients.Add(new NutrientEntity { Id = 1, Name = "Calories" });
+            db.IngredientNutrients.Add(new IngredientNutrientEntity { IngredientId = sugar.Id, NutrientId = 1, Amount = 387, MeasurementId = Gram });
+            var recipe = new RecipeEntity
+            {
+                Name = "Sugar cake", CurationStatusId = (long)CurationStatusEnum.NonCurated, Servings = 4,
+                RecipeIngredients = new List<RecipeIngredientEntity> { new() { IngredientId = sugar.Id, Quantity = 1, MeasurementId = Cup, RawLine = "1 cup sugar", CreatedDate = Imported } },
+            };
+            db.Recipes.Add(recipe);
+            await db.SaveChangesAsync();
+            db.ReprocessCandidates.Add(new ReprocessCandidateEntity
+            {
+                RecipeId = recipe.Id, Reasons = ReprocessReason.Amount, RuleVersion = RecipeLineBuilder.Version, Tier = ReprocessTier.Rebuild, Priority = 300, DetectedAt = Imported,
+            });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var scripted = new Scripted
+            {
+                Answer = (request, _) => new RecipeReprocessResult
+                {
+                    Results = request.RecipeIds.Select(id => new RecipeReprocessRecipeResult
+                    {
+                        RecipeId = id, Outcome = RecipeReprocessOutcome.Rebuilt,
+                        Lines =
+                        {
+                            new RecipeReprocessLineDiff
+                            {
+                                RawLine = "1 gallon sugar", OldIngredientId = sugar.Id, OldFood = "sugar", OldQuantity = 1, OldMeasurementId = Cup,
+                                NewIngredientId = sugar.Id, NewFood = "sugar", NewQuantity = 16, NewMeasurementId = Cup, Changes = { "amount" },
+                            },
+                        },
+                    }).ToList(),
+                },
+            };
+
+            var batch = await Lane(db, reprocess: scripted).RunBatchAsync(ReprocessTier.Rebuild, LaneMode.Shadow, 10);
+
+            batch.FailuresByCheck.Should().ContainKey(ReprocessRuleAudit.Plausible);
+            var decision = await db.LaneDecisions.SingleAsync();
+            LaneJournal.Read<ReprocessSignals>(decision.SignalsJson)!.Implausible.Should().BeTrue();
+            (await new ReprocessLaneService.RuleAuditCheck().ConfirmsWrongAsync(decision, CancellationToken.None)).Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task The_order_auditor_flags_an_order_restore_whose_rows_do_not_follow_the_source()
+        {
+            var auditor = new ReprocessLaneService.OrderRuleAuditor();
+            var check = new ReprocessLaneService.RuleAuditCheck();
+            LaneDecisionEntity Decision(params string[] newOrder) => new()
+            {
+                SignalsJson = LaneJournal.Write(new ReprocessSignals(1, "Cake", "rebuilt", null, new[] { "D1" }, "rl-1", null, false, Array.Empty<ReprocessSignalLine>(),
+                    SourceOrder: new[] { "1 cup sugar", "1 cup sugar", "3 eggs", "1 cup flour" }, NewOrder: newOrder)),
+            };
+
+            (await auditor.AuditAsync(Decision("1 cup sugar", "1 cup sugar", "3 eggs", "1 cup flour"), CancellationToken.None)).Wrong.Should().BeFalse();
+            (await auditor.AuditAsync(Decision("1 cup sugar", "3 eggs", "1 cup sugar"), CancellationToken.None)).Wrong.Should().BeTrue();
+            (await check.ConfirmsWrongAsync(Decision("3 eggs", "1 cup sugar"), CancellationToken.None)).Should().BeTrue();
+            ReprocessRuleAudit.FollowsSource(new[] { "1 cup flour", "1 tsp salt", "2 eggs" }, new[] { "1 cup flour + 1 tsp salt", "2 eggs" }).Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task An_order_batch_checks_every_restore_against_the_source_order()
+        {
+            using var db = await SeededAsync();
+            var sugar = await FoodAsync(db, "sugar");
+            var eggs = await FoodAsync(db, "eggs", 50);
+            await RecipeAsync(db, "Order", new[] { "1 cup sugar", "3 eggs" }, new[] { new Row(eggs, "3 eggs", 3, Piece), new Row(sugar, "1 cup sugar", 1, Cup) });
+            await Detector(db).DetectBatchAsync(0, 100);
+
+            var batch = await Lane(db).RunBatchAsync(ReprocessTier.Order, LaneMode.Shadow, 50);
+
+            (batch.LinesChecked, batch.LinesFailing).Should().Be((1, 0));
+            var signals = LaneJournal.Read<ReprocessSignals>((await db.LaneDecisions.SingleAsync()).SignalsJson)!;
+            signals.SourceOrder.Should().Equal("1 cup sugar", "3 eggs");
+            signals.NewOrder.Should().Equal("1 cup sugar", "3 eggs");
+        }
+
+        [Theory]
+        [InlineData(null, null)]
+        [InlineData("mistral-nemo:12b", null)]
+        [InlineData("mistral-small", null)]
+        [InlineData("qwen2.5:14b-instruct", "reader B's family")]
+        [InlineData("phi4", "reader B's family")]
+        [InlineData("llama3.1:8b", "reader B's family")]
+        public void The_line_judge_must_be_of_reader_bs_family(string? judge, string? problem)
+        {
+            var settings = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Reprocess:JudgeModel"] = judge }).Build();
+
+            var found = OllamaLineJudge.FamilyProblem(settings);
+
+            if (problem == null) found.Should().BeNull();
+            else found.Should().Contain(problem);
         }
 
         [Fact]

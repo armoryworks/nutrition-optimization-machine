@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -17,9 +18,9 @@ namespace Nom.Orch.Services.Support
     /// row it wrote however often the API restarts in between. Only the line labels of the classify
     /// lane, which no undo reads, the start-up repair's own entries, an order-only reprocess (its undo
     /// skips a recipe changed since) and an undone reprocess hold no recipe. The line-classify lane
-    /// also passes a full rebuild's own entry: it only labels rows a rebuild left without a kind, and
-    /// the rebuild's undo does not count those labels as a change. The start-up repair leaves a
-    /// rebuilt recipe alone by its own rule.
+    /// also passes a full rebuild's own entry and the link rows that entry names: it only labels rows
+    /// a rebuild left without a kind, and the rebuild's undo does not count those labels as a change.
+    /// The start-up repair leaves a rebuilt recipe alone by its own rule.
     /// </summary>
     public static class RecipeLineHold
     {
@@ -41,6 +42,14 @@ namespace Nom.Orch.Services.Support
                     .ToListAsync(cancellationToken))
                 .ToHashSet();
 
+            var own = alsoUnheld.Contains(RecipeReprocessService.ReprocessChangeType)
+                ? (await db.AuditLogEntries.AsNoTracking()
+                        .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType && ids.Contains(a.EntityId) && a.ChangeType == RecipeReprocessService.ReprocessChangeType)
+                        .Select(a => a.NewValue)
+                        .ToListAsync(cancellationToken))
+                    .SelectMany(RecipeReprocessService.LinkRowIds).Distinct().ToArray()
+                : Array.Empty<long>();
+
             var keys = ids.Select(id => id.ToString(CultureInfo.InvariantCulture)).ToArray();
             var linked = db.Database.IsRelational()
                 ? await db.Database.SqlQuery<string>($"""
@@ -48,9 +57,10 @@ namespace Nom.Orch.Services.Support
                     FROM audit."AuditLogEntry" a
                     WHERE a."EntityType" = {LinkApplyJournal.EntityType} AND a."ChangeType" = {LinkApplyJournal.ChangeType}
                       AND a."PropertyName" = {LinkApplyJournal.Line} AND split_part(a."NewValue", ':', 1) = ANY({keys})
+                      AND NOT (a."Id" = ANY({own}))
                     """).ToListAsync(cancellationToken)
                 : (await db.AuditLogEntries.AsNoTracking()
-                        .Where(a => a.EntityType == LinkApplyJournal.EntityType && a.ChangeType == LinkApplyJournal.ChangeType && a.PropertyName == LinkApplyJournal.Line)
+                        .Where(a => a.EntityType == LinkApplyJournal.EntityType && a.ChangeType == LinkApplyJournal.ChangeType && a.PropertyName == LinkApplyJournal.Line && !own.Contains(a.Id))
                         .Select(a => a.NewValue)
                         .ToListAsync(cancellationToken))
                     .Select(v => (v ?? string.Empty).Split(':')[0])

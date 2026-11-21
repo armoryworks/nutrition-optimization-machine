@@ -306,8 +306,10 @@ namespace Nom.Orch.Services
 
             var rows = await RowsAsync(recipeId);
             var live = rows.Where(r => !r.IsDeleted).ToList();
-            var positions = SourcePositions(source.Record.Ingredients.Select(i => RecipeScrapingService.Clamp(i.RawLine, 2047) ?? string.Empty).ToList(), live);
+            var sourceLines = source.Record.Ingredients.Select(i => RecipeScrapingService.Clamp(i.RawLine, 2047) ?? string.Empty).ToList();
+            var positions = SourcePositions(sourceLines, live);
             if (positions == null) return Hold(one, RecipeReprocessHold.OrderUnpaired);
+            one.SourceLines = sourceLines;
 
             var ranked = live.Select((row, i) => (Row: row, Position: positions[i])).OrderBy(p => p.Position).Select((p, rank) => (p.Row, Rank: rank)).ToList();
             one.Counts.LinesBefore = live.Count;
@@ -1016,7 +1018,8 @@ namespace Nom.Orch.Services
             return result;
         }
 
-        private static IEnumerable<long> LinkRowIds(string? header) =>
+        /// <summary>The ids of the link journal rows a reprocess header names (<c>links=</c>), which its rebuild wrote.</summary>
+        public static IEnumerable<long> LinkRowIds(string? header) =>
             (header ?? string.Empty).Split(';')
                 .Where(part => part.StartsWith(LinksKey, StringComparison.Ordinal))
                 .SelectMany(part => part[LinksKey.Length..].Split(','))

@@ -395,6 +395,7 @@ builder.Services.AddOptions<Nom.Orch.Settings.LaneModelRoster>()
     .Bind(builder.Configuration.GetSection(Nom.Orch.Settings.LaneModelRoster.SectionName))
     .ValidateOnStart();
 builder.Services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<Nom.Orch.Settings.LaneModelRoster>, Nom.Orch.Settings.LaneModelRosterValidation>();
+if (Nom.Orch.Services.OllamaLineJudge.FamilyProblem(builder.Configuration) is { } lineJudgeProblem) throw new InvalidOperationException(lineJudgeProblem);
 builder.Services.AddSingleton<Nom.Api.Services.AiLaneGate>();
 builder.Services.AddSingleton<Nom.Api.Services.IAiLaneStatus>(sp => sp.GetRequiredService<Nom.Api.Services.AiLaneGate>());
 builder.Services.AddHttpClient(Nom.Api.Services.AiHostMonitor.ProbeClientName);

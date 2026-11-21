@@ -14,20 +14,29 @@ RULES
    a recipe is never cut at a chunk edge as the old 4,000-character chunks cut it (the "only one
    ingredient line" and "only one step" records). A single recipe longer than --hard-limit is cut
    at paragraph ends and its records are marked "split".
-3. Fidelity check, rule-given, on every record (no model): every ingredient line must appear in the
-   chunk's text after normalization (entities, spacing, case, quotes); otherwise every number in it
-   must appear in the chunk and every word of it be found there. A record that fails is dropped and
-   written to --rejects with its reason, never to --out.
+3. Fidelity check, rule-given, on every record (no model), against the record's own recipe in the
+   chunk (from the title line that names it to the next title; the whole chunk when it holds one
+   recipe): every ingredient line must appear in that recipe after normalization (entities,
+   spacing, case, quotes); otherwise one line or sentence of it must hold every number and every
+   word of the line. Every step must appear in the recipe, or one sentence of it must hold every
+   number (number words included) and every word of the step, so the method a rebuild fills
+   amounts from states no amount the book does not. Every ingredient line of the recipe's
+   ingredient list (a paragraph of short lines that states amounts) must be extracted. A record
+   that fails is dropped and written to --rejects with its reason, never to --out.
 4. Translation (--translate, for Artusi's "La scienza in cucina"): the model writes English and
-   quotes, for each ingredient line and step, the Italian line it translates. The Italian line must
-   appear in the chunk, every number and unit of the English line must equal one in the Italian
-   line (grammi is grams, chilogrammi kilograms, litro a litre, cucchiaio a tablespoon and so on),
-   none may be added or dropped, and each English ingredient line must come from an Italian line
-   of its own. The model supplies no amount: every amount already stands in the source. A record
-   that fails is dropped and logged.
+   quotes, for each ingredient line and step, the Italian it translates. The quote must lie in the
+   recipe and name a food, not only an amount; every number and unit of the English must equal one
+   in the quote (grammi is grams, chilogrammi kilograms, litro a litre, cucchiaio a tablespoon and
+   so on), none may be added or dropped; the English and the quote must name the same common foods
+   (burro and butter, zucchero and sugar and so on), so an amount is not moved to another food;
+   each English ingredient line must come from an Italian line of its own, and every line of the
+   recipe's ingredient list must be translated with its whole amount. The model supplies no
+   amount: every amount already stands in the source. A record that fails is dropped and logged.
 5. Each record may name the recipe whose source it replaces ("replacesRecipeId"), from the log of
-   the first attach of the book (--recipe-map, matched by the record's name or the title it quotes)
-   or from a CSV of name to recipe id (--pin-csv). The attach script sends it as a pin.
+   the first attach of the book (--recipe-map, matched by the title it quotes, else by its name)
+   or from a CSV of name to recipe id (--pin-csv). The attach script sends it as a pin. A record
+   whose quoted title and name point to two recipes, and every record of a recipe two records
+   point to, is left unpinned and logged.
 
 USAGE
 -----
@@ -199,6 +208,8 @@ UNITS = [
     ("cup", r"cups?|tazz[ae]"),
     ("pinch", r"pinch(?:es)?|pizzic[oh]i?"),
     ("clove", r"cloves?|spicch[io]o?"),
+    ("oz", r"ounces?|oz|onci[ae]"),
+    ("lb", r"pounds?|lbs?|libbr[ae]"),
 ]
 UNIT_PATTERNS = [(name, re.compile(r"(?<![^\W\d_])(?:" + pattern + r")(?![^\W\d_])\.?", re.I)) for name, pattern in UNITS]
 
@@ -222,22 +233,112 @@ def content_words(text: str) -> list[str]:
     return [w for w in re.findall(r"[^\W\d_]{3,}", normalize(text))]
 
 
-def fidelity(line: str, source: str) -> str | None:
+def pieces(source: str) -> list[str]:
+    """The lines and sentences of a recipe's text, normalized: each line, and each sentence or clause of each
+    paragraph of prose (one with a line longer than a list line)."""
+    out = [normalize(line) for line in source.split("\n")]
+    for paragraph in re.split(r"\n\s*\n", source):
+        if any(len(line.strip()) > 60 for line in paragraph.split("\n")):
+            out.extend(re.split(r"(?<=[.;:!?])\s+", normalize(paragraph)))
+    return [p for p in out if p]
+
+
+def fidelity(line: str, source: str, number_words: bool = False) -> str | None:
     """Why an extracted line is not faithful to its source text, or None: it appears in the source after
-    normalization, or each of its numbers appears in the source and each of its words is found there."""
+    normalization, or one line or sentence of the source holds each of its numbers and each of its words."""
     n_line, n_source = normalize(line), normalize(source)
     if not n_line:
         return "empty line"
     if n_line in n_source:
         return None
-    missing_numbers = numbers(line, words=False) - numbers(source, words=False)
+    wanted = numbers(line, words=number_words)
+    missing_numbers = wanted - numbers(source, words=number_words)
     if missing_numbers:
         return "a number not in the book: " + ", ".join(str(n) for n in missing_numbers)
     source_words = set(content_words(source))
     missing = [w for w in content_words(line) if w not in source_words]
     if missing:
         return "words not in the book: " + ", ".join(missing[:5])
+    words = set(content_words(line))
+    for piece in pieces(source):
+        if not wanted - numbers(piece, words=number_words) and words <= set(content_words(piece)):
+            return None
+    return "no line or sentence of the recipe holds its numbers and words together"
+
+
+def listed_lines(source: str, translate: bool) -> list[str]:
+    """The lines of the recipe's ingredient lists: paragraphs of short lines with no title among them, of which at
+    least one states an amount (a line that starts with one; in Italian, any number)."""
+    lines = source.split("\n")
+    titles = {lines[i].strip() for i in range(len(lines)) if is_title(lines, i)}
+    out = []
+    for block in re.split(r"\n\s*\n", source):
+        rows = [line.strip() for line in block.split("\n") if line.strip()]
+        if not rows or any(len(row) > 60 or row in titles for row in rows):
+            continue
+        if any(numbers(row) if translate else INGREDIENT_START.match(row) for row in rows):
+            out.extend(rows)
+    return out
+
+
+def recipe_text(chunk: Chunk, *names: str | None) -> str | None:
+    """The record's own recipe in the chunk: from the title line that names it to the next title. The whole
+    chunk when it holds one recipe or a piece of one; None when it holds several and no title names the record."""
+    starts = sorted(set([0] + title_offsets(chunk.text)))
+    blocks = [chunk.text[s:e] for s, e in zip(starts, starts[1:] + [len(chunk.text)]) if chunk.text[s:e].strip()]
+    if chunk.split or len(blocks) <= 1:
+        return chunk.text
+    keys = [normalize(n) for n in names if isinstance(n, str) and normalize(n)]
+    titled = [(normalize(block.strip().split("\n", 1)[0]), block) for block in blocks]
+    for key in keys:
+        exact = [block for title, block in titled if title == key or re.sub(r"^\d{1,4}\.\s*", "", title) == key]
+        if len(exact) == 1:
+            return exact[0]
+        near = [block for title, block in titled if title and (key in title or title in key)]
+        if len(near) == 1:
+            return near[0]
     return None
+
+
+FOODS = [
+    (r"burro", r"burro", r"butter"),
+    (r"zucchero", r"zucchero", r"sugar"),
+    (r"farina", r"farin[ae]|fecola", r"flour"),
+    (r"uov[aoi]|tuorl[oi]", r"uov[aoi]|tuorl[oi]|ross[oi]|chiar[ae]", r"eggs?|yolks?"),
+    (r"latte", r"latte", r"milk"),
+    (r"riso", r"riso", r"rice"),
+    (r"olio", r"olio", r"oil"),
+    (r"aglio", r"aglio", r"garlic"),
+    (r"cipoll[ae]", r"cipoll[ae]", r"onions?"),
+    (r"pomodor[oi]", r"pomodor[oi]", r"tomato(?:es)?"),
+    (r"patat[ae]", r"patat[ae]", r"potato(?:es)?"),
+    (r"prezzemolo", r"prezzemolo", r"parsley"),
+    (r"limon[ei]", r"limon[ei]", r"lemons?"),
+    (r"parmigiano", r"parmigiano", r"parmesan"),
+]
+SALT = (r"sale", r"sale", r"salt")
+NOT_FOOD = {"circa", "per", "con", "del", "della", "delle", "dei", "degli", "dello", "nel", "nella", "una", "uno", "due", "tre",
+            "mezzo", "mezza", "the", "and", "about", "half"}
+
+
+def food_check(english: str, italian: str, ingredient: bool) -> str | None:
+    """Why the English and the Italian it translates name different common foods, or None. A food the Italian
+    names must be named in the English and the other way round (burro and butter, uova and eggs)."""
+    en, it = normalize(english), normalize(italian)
+    for strict, loose, words in FOODS + ([SALT] if ingredient else []):
+        if re.search(r"\b(?:" + strict + r")\b", it) and not re.search(r"\b(?:" + words + r")\b", en):
+            return f"the Italian names {re.search(r'(?:' + strict + r')', it).group(0)} and the English does not"
+        if re.search(r"\b(?:" + words + r")\b", en) and not re.search(r"\b(?:" + loose + r")\b", it):
+            return f"the English names {re.search(r'(?:' + words + r')', en).group(0)} and the Italian does not"
+    return None
+
+
+def names_food(italian: str) -> bool:
+    """Whether a quoted Italian line names something besides an amount: a word that is not a number or a measure."""
+    folded = normalize(italian)
+    for _, pattern in UNIT_PATTERNS:
+        folded = pattern.sub(" ", folded)
+    return any(w not in NUMBER_WORDS and w not in NOT_FOOD for w in content_words(folded))
 
 
 def number_check(english: str, italian: str) -> str | None:
@@ -317,33 +418,53 @@ def check_record(recipe: dict, chunk: Chunk, translate: bool) -> tuple[dict | No
     steps = _pairs(recipe.get("steps"))
     if not name or not ingredients:
         return None, "no name or no ingredient line"
+    source_name = recipe.get("sourceName") if isinstance(recipe.get("sourceName"), str) else None
+    own = recipe_text(chunk, source_name, name) if translate else recipe_text(chunk, name)
+    if own is None:
+        return None, "no title of the book text names the recipe"
     if translate:
         sources = [source for _, source in ingredients]
         if any(not s for s in sources):
             return None, "an ingredient line quotes no Italian line"
         if len(set(normalize(s) for s in sources)) != len(sources):
             return None, "two English lines translate one Italian line"
-        for text, source in ingredients + [(t, s) for t, s in steps if s]:
-            if normalize(source) not in normalize(chunk.text):
-                return None, f"an Italian line not in the book: {source[:60]}"
-            problem = number_check(text, source)
-            if problem:
-                return None, f"number check: {text[:60]}: {problem}"
         if any(not s for _, s in steps):
             return None, "a step quotes no Italian line"
+        for kind, pairs in (("ingredient", ingredients), ("step", steps)):
+            for text, source in pairs:
+                if normalize(source) not in normalize(own):
+                    return None, f"an Italian line not in the book: {source[:60]}"
+                if kind == "ingredient" and not names_food(source):
+                    return None, f"an Italian line that names no food: {source[:60]}"
+                problem = number_check(text, source) or food_check(text, source, kind == "ingredient")
+                if problem:
+                    return None, f"number check: {text[:60]}: {problem}"
+        for line in listed_lines(own, translate=True):
+            whole = set(numbers(line)) - {Fraction(1)}
+            if not any(normalize(s) in normalize(line) and set(numbers(s)) - {Fraction(1)} == whole for s in sources):
+                return None, f"an Italian ingredient line not translated: {line[:60]}"
     else:
         for text, _ in ingredients:
-            problem = fidelity(text, chunk.text)
+            problem = fidelity(text, own)
             if problem:
                 return None, f"fidelity: {text[:60]}: {problem}"
+        for text, _ in steps:
+            problem = fidelity(text, own, number_words=True)
+            if problem:
+                return None, f"fidelity: {text[:60]}: {problem}"
+        extracted = [normalize(text) for text, _ in ingredients]
+        for line in listed_lines(own, translate=False):
+            folded, stated = normalize(line), numbers(line, words=False)
+            if not any((e in folded or folded in e) and numbers(e, words=False) == stated for e in extracted):
+                return None, f"an ingredient line not extracted: {line[:60]}"
     record = {
         "name": name.strip(),
         "publicDomain": True,
         "ingredients": [{"rawLine": text.strip()} for text, _ in ingredients],
         "steps": [{"order": i + 1, "instruction": text.strip()} for i, (text, _) in enumerate(steps)],
     }
-    if translate and isinstance(recipe.get("sourceName"), str):
-        record["sourceName"] = recipe["sourceName"].strip()
+    if translate and source_name:
+        record["sourceName"] = source_name.strip()
     if chunk.split:
         record["split"] = True
     return record, None
@@ -406,14 +527,24 @@ def load_pins(recipe_map: str | None, old_file: str | None, pin_csv: str | None)
 
 
 def pin(records: Iterable[dict], pins: dict[str, int]) -> int:
-    """Names the recipe each record replaces, by its name or the title it quotes; returns how many were pinned."""
+    """Names the recipe each record replaces, by the title it quotes, else by its name; returns how many were pinned.
+    A record whose title and name point to two recipes, and every record of a recipe two records point to, stays unpinned."""
+    records = list(records)
+    chosen: dict[int, int] = {}
+    for index, record in enumerate(records):
+        found = {pins[normalize(k)] for k in (record.get("sourceName"), record.get("name")) if k and normalize(k) in pins}
+        if len(found) == 1:
+            chosen[index] = found.pop()
+        elif found:
+            log(f"{record.get('name')}: its title and name point to recipes {sorted(found)}; left unpinned")
+    counts = Counter(chosen.values())
     count = 0
-    for record in records:
-        for key in (record.get("name"), record.get("sourceName")):
-            if key and normalize(key) in pins:
-                record["replacesRecipeId"] = pins[normalize(key)]
-                count += 1
-                break
+    for index, recipe_id in chosen.items():
+        if counts[recipe_id] > 1:
+            log(f"{records[index].get('name')}: recipe {recipe_id} is named by {counts[recipe_id]} records; left unpinned")
+            continue
+        records[index]["replacesRecipeId"] = recipe_id
+        count += 1
     return count
 
 
