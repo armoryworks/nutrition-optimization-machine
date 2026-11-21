@@ -518,7 +518,7 @@ namespace Nom.Orch.Services
             && (p.Status == FoodProposalStatus.Pending
                 || (p.Status == FoodProposalStatus.Rejected && (p.ReviewedByPersonId == null || p.ReviewedByPersonId == SystemConstants.SystemPersonId)));
 
-        public async Task<FoodRenameResult?> RenameAsync(long ingredientId, string name)
+        public async Task<FoodRenameResult?> RenameAsync(long ingredientId, string name, DateTime? at = null)
         {
             name = (name ?? string.Empty).Trim();
             var food = await _db.Ingredients
@@ -540,7 +540,7 @@ namespace Nom.Orch.Services
             }
 
             var personId = _currentUser.PersonIdOrSystem;
-            var now = DateTime.UtcNow;
+            var now = at ?? DateTime.UtcNow;
             await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
 
             foreach (var deleted in await _db.Ingredients.IgnoreQueryFilters().Where(i => i.Id != ingredientId && i.IsDeleted && i.Name == name).ToListAsync())

@@ -16,6 +16,7 @@ namespace Nom.Orch.Services.Support
         public const string DishGrouping = "dish-grouping";
         public const string ToolTagging = "tool-tagging";
         public const string Reprocess = "reprocess";
+        public const string LinkRecheck = "link-recheck";
 
         public static readonly IReadOnlyList<(string Lane, string Label)> All = new[]
         {
@@ -26,6 +27,7 @@ namespace Nom.Orch.Services.Support
             (DishGrouping, "dish grouping"),
             (ToolTagging, "kitchen tool tagging"),
             (Reprocess, "recipe rebuild from the stored source, with its line judge"),
+            (LinkRecheck, "re-check of applied links, aliases and alcohol lines through the link gate, with its link auditor"),
         };
 
         public const string PauseAllKey = "ai-pause-all";

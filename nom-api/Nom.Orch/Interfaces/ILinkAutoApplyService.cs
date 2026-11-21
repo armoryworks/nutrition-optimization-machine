@@ -43,5 +43,14 @@ namespace Nom.Orch.Interfaces
         /// source, with samples. Writes nothing.
         /// </summary>
         Task<LinkHoldReport> HoldReportAsync(int sampleSize = 50, CancellationToken cancellationToken = default);
+
+        /// <summary>The catalog the link gate reads, built from the database and kept for a quarter of an hour.</summary>
+        Task<Nom.Orch.Services.Support.GateCatalog> GateCatalogAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>The gate's facts about each live food of the given ids, by id.</summary>
+        Task<IReadOnlyDictionary<long, Nom.Orch.Services.Support.GateFood>> GateFoodsAsync(IReadOnlyCollection<long> ids, CancellationToken cancellationToken = default);
+
+        /// <summary>The gate's facts about each live food of the given FDC ids, by FDC id.</summary>
+        Task<IReadOnlyDictionary<string, Nom.Orch.Services.Support.GateFood>> GateFoodsByFdcAsync(IReadOnlyCollection<string> fdcIds, CancellationToken cancellationToken = default);
     }
 }

@@ -484,6 +484,47 @@
       }
     </section>
 
+    <section class="nom-pipeline__section" data-testid="pipeline-link-recheck">
+      <h2 class="nom-pipeline__heading">Link re-check</h2>
+      @if (d.linkRecheck; as lr) {
+        <p class="nom-pipeline__lane-line" data-testid="pipeline-link-recheck-state">
+          {{ lr.enabled ? 'On' : 'Off (LinkRecheck:Enabled)' }} · rules {{ lr.version }} · signature {{ lr.signature }}
+        </p>
+        <dl class="nom-pipeline__stats">
+          <div><dt>Model picks waiting</dt><dd data-testid="pipeline-metric-link-recheck-waiting-picks">{{ lr.waitingPicks | number }}</dd></div>
+        </dl>
+        <p class="nom-pipeline__lane-line" data-testid="pipeline-link-recheck-withdraw">
+          @if (lr.lastWithdraw; as w) {
+            Picks withdrawn {{ w.stamp | date: 'MMM d, HH:mm' }}: {{ w.withdrawn | number }}{{ w.undone ? ' (undone)' : '' }}
+          } @else {
+            The waiting model picks have not been withdrawn.
+          }
+        </p>
+        @if (lr.lastRuns.length > 0) {
+          <ul class="nom-pipeline__list" data-testid="pipeline-link-recheck-run-list">
+            @for (run of lr.lastRuns; track run.set) {
+              <li class="nom-pipeline__list-item" [attr.data-testid]="'pipeline-link-recheck-run-' + run.set">
+                <span>{{ run.set }} <span class="nom-pipeline__muted">{{ run.lane ? 'lane, ' + run.mode : 'operator' }} · {{ run.stamp | date: 'MMM d, HH:mm' }}{{ run.undone ? ' · undone' : '' }}</span></span>
+                @if (run.set === 'names') {
+                  <span>{{ run.renamed | number }} renamed</span>
+                } @else {
+                  <span>{{ run.groups | number }} wordings · {{ run.linesMoved | number }} lines moved · {{ run.linesUnlinked | number }} taken back · {{ run.held | number }} held</span>
+                }
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="nom-pipeline__hint" data-testid="pipeline-link-recheck-no-runs">No rule set has run yet.</p>
+        }
+        <p class="nom-pipeline__hint">
+          Each rule set is a tier of lane link-recheck on the lane frame above: it writes only while live, pauses itself and undoes its own runs.
+          An operator run is a dry run until applied and is taken back by its stamp.
+        </p>
+      } @else {
+        <p class="nom-pipeline__hint" data-testid="pipeline-link-recheck-empty">The link re-check did not report.</p>
+      }
+    </section>
+
     <section class="nom-pipeline__section" data-testid="pipeline-images">
       <h2 class="nom-pipeline__heading">Images</h2>
       <dl class="nom-pipeline__stats">

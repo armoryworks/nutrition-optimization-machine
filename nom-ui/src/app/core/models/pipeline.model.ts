@@ -329,6 +329,33 @@ export interface ReprocessLaneStatus {
   lastBatches: ReprocessLaneBatch[];
 }
 
+export interface LinkRecheckRun {
+  set: string;
+  stamp: string;
+  lane: boolean;
+  mode: string | null;
+  signature: string;
+  undone: boolean;
+  groups: number;
+  kept: number;
+  held: number;
+  linesMoved: number;
+  linesUnlinked: number;
+  aliasesChanged: number;
+  withdrawn: number;
+  renamed: number;
+}
+
+export interface LinkRecheckStatus {
+  enabled: boolean;
+  version: string;
+  signature: string;
+  sets: string[];
+  lastRuns: LinkRecheckRun[];
+  lastWithdraw: LinkRecheckRun | null;
+  waitingPicks: number;
+}
+
 export interface LaneUndoReport {
   lane: string;
   tier: string;
@@ -342,6 +369,7 @@ export interface PipelineStatus {
   gate: PipelineGate;
   frame?: PipelineFrame | null;
   reprocess?: ReprocessLaneStatus | null;
+  linkRecheck?: LinkRecheckStatus | null;
 }
 
 export interface UnfoldPreview {

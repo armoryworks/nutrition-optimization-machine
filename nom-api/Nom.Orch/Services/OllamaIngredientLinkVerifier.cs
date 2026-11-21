@@ -55,6 +55,15 @@ namespace Nom.Orch.Services
             _strictSchema = config.GetValue("Ai:StrictSchema", true);
         }
 
+        /// <summary>The same judge asked of a named model on a named host, for a lane that reads it as an auditor or a confirming reader.</summary>
+        public OllamaIngredientLinkVerifier(HttpClient httpClient, string baseUrl, string model, bool strictSchema = true)
+        {
+            _httpClient = httpClient;
+            _baseUrl = (baseUrl ?? string.Empty).TrimEnd('/');
+            ModelName = model?.Trim() ?? string.Empty;
+            _strictSchema = strictSchema;
+        }
+
         public bool IsConfigured => _baseUrl.Length > 0 && ModelName.Length > 0;
         public string ModelName { get; }
         public int PromptVersion => CurrentPromptVersion;

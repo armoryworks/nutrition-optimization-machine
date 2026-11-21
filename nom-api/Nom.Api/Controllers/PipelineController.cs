@@ -12,8 +12,8 @@ namespace Nom.Api.Controllers
     /// <summary>
     /// Admin view of the automated catalog pipeline: where recipes, lines and foods are waiting,
     /// each lane's settings and queue, the model lanes' live state from the lane gate, and every lane
-    /// on the lane frame with its mode, figures and bounds, and the reprocess lane's candidates and
-    /// batches. Read-only except for the AI pause
+    /// on the lane frame with its mode, figures and bounds, the reprocess lane's candidates and
+    /// batches, and the link re-check's runs. Read-only except for the AI pause
     /// switches and the lane frame's undo: a curation admin may turn a pause on and dry-run an undo,
     /// and only a user-roles admin may turn a pause off or apply an undo, as on the platform feature
     /// endpoint that writes the same switches.
@@ -31,11 +31,13 @@ namespace Nom.Api.Controllers
         private readonly ILaneFrameService _frame;
         private readonly LaneModelRoster _roster;
         private readonly IReprocessLaneService? _reprocess;
+        private readonly ILinkRecheckService? _recheck;
 
         public PipelineController(IPipelineStatusService pipeline, IAiLaneStatus lanes, IPlatformFeatureService features, IConfiguration configuration,
-            ILaneFrameService frame, IOptions<LaneModelRoster> roster, IReprocessLaneService? reprocess = null)
+            ILaneFrameService frame, IOptions<LaneModelRoster> roster, IReprocessLaneService? reprocess = null, ILinkRecheckService? recheck = null)
         {
             _reprocess = reprocess;
+            _recheck = recheck;
             _pipeline = pipeline;
             _lanes = lanes;
             _features = features;
@@ -52,7 +54,8 @@ namespace Nom.Api.Controllers
             var left = AiQuietHours.Remaining(_configuration, DateTimeOffset.UtcNow);
             status = status with { Ai = status.Ai with { QuietMinutesLeft = left is { } l ? (int)Math.Ceiling(l.TotalMinutes) : null } };
             var reprocess = _reprocess == null ? null : await _reprocess.StatusAsync(ReprocessHostedService.Enabled(_configuration), cancellationToken);
-            return Ok(new PipelineStatusResponse(status, await GateAsync(), await FrameAsync(cancellationToken), reprocess));
+            var recheck = _recheck == null ? null : await _recheck.StatusAsync(LinkRecheckHostedService.Enabled(_configuration), cancellationToken);
+            return Ok(new PipelineStatusResponse(status, await GateAsync(), await FrameAsync(cancellationToken), reprocess, recheck));
         }
 
         /// <summary>

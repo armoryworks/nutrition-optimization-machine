@@ -523,6 +523,16 @@ namespace Nom.Orch.Services
             return await UndoEntriesAsync(entries);
         }
 
+        public async Task<LineRelinkUndoResult> UndoEntriesAsync(IReadOnlyCollection<long> entryIds)
+        {
+            var entries = new List<AuditLogEntryEntity>();
+            foreach (var chunk in entryIds.Distinct().Chunk(1000))
+                entries.AddRange(await _db.AuditLogEntries.Where(a => chunk.Contains(a.Id)).ToListAsync());
+            var result = await UndoEntriesAsync(entries);
+            result.Applied = true;
+            return result;
+        }
+
         /// <summary>
         /// Takes back the given journal entries, newest first, with the proposals withdrawn with a
         /// retired food after every other step. A line entry of a recipe rebuilt after it is skipped.
