@@ -10,9 +10,10 @@ uses no model.
 
 Today it screens the name matches and model picks of the link lane
 (`LinkAutoApplyService.ScreenAsync` and the hold report, which both used `LinkAutoApplyGuard.Hold`
-before). The wording tiers, the readers and the re-check of applied links (`cleanup2/wording-tiers`,
-`cleanup2/wording-readers`, `cleanup2/link-recheck`) call the same `LinkGate.Check`; the re-check
-of links already made is described in `link-recheck.md`.
+before). The wording tiers (`wording-tiers.md`) call it with each wording's lines, the data-given
+head defaults and the grams bounds by USDA category, which they compute from the approved recipes;
+the readers (`cleanup2/wording-readers`) and the re-check of applied links call the same
+`LinkGate.Check`; the re-check of links already made is described in `link-recheck.md`.
 
 ## Input
 

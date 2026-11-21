@@ -14,8 +14,8 @@ namespace Nom.Orch.Services.Support
     /// <summary>
     /// The names <see cref="CompoundLineSplitter"/> may read a part of a recipe line as. A part
     /// resolves only to a live curated food with nutrition, by its name, by an alias left by a
-    /// retirement, by the USDA description a staple pantry name means, or as a plain salt or
-    /// black pepper. Aliases recorded without a context are import residue and never resolve, and
+    /// retirement, by the USDA description a staple pantry name means, as a plain salt or
+    /// black pepper, or by the harder name key of one curated food (<see cref="WordingTiers.KeyMap"/>). Aliases recorded without a context are import residue and never resolve, and
     /// nothing is matched loosely.
     /// </summary>
     public sealed class CompoundVocabulary
@@ -52,10 +52,12 @@ namespace Nom.Orch.Services.Support
         private readonly HashSet<string> _known;
         private readonly List<Regex> _protected;
         private readonly HashSet<long> _pieces;
+        private readonly Dictionary<string, long> _nameKeys;
 
-        private CompoundVocabulary(Dictionary<string, long> foods, Dictionary<string, long> usda, HashSet<string> known, IEnumerable<string> protectedNames, HashSet<long> pieces)
+        private CompoundVocabulary(Dictionary<string, long> foods, Dictionary<string, long> usda, HashSet<string> known, IEnumerable<string> protectedNames, HashSet<long> pieces, Dictionary<string, long> nameKeys)
         {
             _foods = foods;
+            _nameKeys = nameKeys;
             _pieces = pieces;
             _usda = usda;
             _known = known;
@@ -109,7 +111,8 @@ namespace Nom.Orch.Services.Support
             }
 
             var known = new HashSet<string>(allNames.Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n.Trim().ToLowerInvariant()), StringComparer.Ordinal);
-            return new CompoundVocabulary(foods, usda, known, protectedNames, pieces);
+            var nameKeys = WordingTiers.KeyMap(curated.Where(f => live.Contains(f.Id)).OrderBy(f => f.Id).Select(f => (f.Name, f.Id)), variants: false);
+            return new CompoundVocabulary(foods, usda, known, protectedNames, pieces, nameKeys);
         }
 
         /// <summary>Whether the food is counted in pieces, so a bare number in front of it is a count.</summary>
@@ -118,7 +121,9 @@ namespace Nom.Orch.Services.Support
         /// <summary>
         /// The curated food a part of a line names, or null. Tried in order: the part and its
         /// singular, plural and bare forms by name; the USDA entry a staple pantry name means; a
-        /// salt or black pepper form; then the same with hyphens read as spaces.
+        /// salt or black pepper form; the one curated food whose name has the part's harder key
+        /// (<see cref="IngredientNameNormalizer.TierKey"/>, singular or plural); then the same with
+        /// hyphens read as spaces.
         /// </summary>
         public long? Resolve(string part)
         {
@@ -137,6 +142,10 @@ namespace Nom.Orch.Services.Support
             var plain = Regex.Replace(IngredientNameNormalizer.Normalize(part).ToLowerInvariant(), @"\s+", " ").Trim();
             if (SaltForm.IsMatch(plain)) return SaltId;
             if (PepperForm.IsMatch(plain)) return PepperId;
+
+            if (IngredientNameNormalizer.TierKey(part) is { } tierKey)
+                foreach (var key in IngredientNameNormalizer.ExactKeys(tierKey))
+                    if (_nameKeys.TryGetValue(key.ToLowerInvariant(), out var named)) return named;
             return null;
         }
 

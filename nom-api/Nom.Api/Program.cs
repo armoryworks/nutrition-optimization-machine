@@ -448,6 +448,11 @@ builder.Services.AddHttpClient(Nom.Api.Services.LinkRecheckHostedService.HttpCli
     .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.LinkRecheck));
 builder.Services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.LinkRecheckLaneUndo>();
 builder.Services.AddHostedService<Nom.Api.Services.LinkRecheckHostedService>();
+builder.Services.AddHttpClient<Nom.Orch.Interfaces.IWordingTierJudges, Nom.Orch.Services.OllamaWordingTierJudges>(
+    client => client.Timeout = TimeSpan.FromSeconds(300))
+    .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.WordingTiers));
+builder.Services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.WordingTierUndo>();
+builder.Services.AddHostedService<Nom.Api.Services.WordingTierHostedService>();
 
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();

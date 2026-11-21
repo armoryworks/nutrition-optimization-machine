@@ -115,10 +115,11 @@ namespace Nom.Orch.Services
             return rows;
         }
 
-        public async Task<VerifiedWordingLoadResult> LoadAsync(IReadOnlyCollection<VerifiedWordingRow> rows, string batch, bool apply = false, bool replace = false, bool overrideRejections = false)
+        public async Task<VerifiedWordingLoadResult> LoadAsync(IReadOnlyCollection<VerifiedWordingRow> rows, string batch, bool apply = false, bool replace = false, bool overrideRejections = false, string? source = null)
         {
             batch = (batch ?? string.Empty).Trim();
             if (batch.Length == 0 || batch.Length > 128) throw new ArgumentException("A batch name of 1 to 128 characters is required.", nameof(batch));
+            var rowSource = string.IsNullOrWhiteSpace(source) ? SourcePrefix + batch : source.Trim();
 
             var result = new VerifiedWordingLoadResult { Applied = apply, Rows = rows.Count };
             var targets = await TargetsAsync(rows);
@@ -294,7 +295,7 @@ namespace Nom.Orch.Services
                 row.Verdict = entry.Verdict;
                 row.IngredientId = entry.Food?.Id;
                 row.Batch = batch;
-                row.Source = Truncate(SourcePrefix + batch, 255);
+                row.Source = Truncate(rowSource, 255);
                 row.Note = entry.Row.Note == null ? null : Truncate(entry.Row.Note.Trim(), 1023);
                 journaled.Add((row, old));
             }

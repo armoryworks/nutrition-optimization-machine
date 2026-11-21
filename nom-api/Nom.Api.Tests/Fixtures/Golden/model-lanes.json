@@ -35,6 +35,14 @@
     "maxFalseAcceptRate": 0,
     "note": "No model: AlcoholLineContext.Read and Refuse replayed on every row of alcohol-context.tsv. A case passes when the line reads the expected sense, allows the food it must allow and refuses the food it must refuse; a false accept is a food the row says must be refused that the sense allows. The signature is AlcoholLineContext.Signature, so any change to a rule needs a new record, which needs no host. Rule-given rows (status ok) must all pass in GoldenAlcoholContextTests; the rows judged by the alcohol-context builder (agent-review-alcohol-context-2026-11-20, status agent) measure agreement with that reviewer."
   },
+  "wording-tiers": {
+    "scorer": true,
+    "required": true,
+    "minScore": 0.40,
+    "maxFalseAcceptRate": 0.01,
+    "minPrecision": 0.99,
+    "note": "No model: WordingTiers.Decide (the deterministic tiers and the link gate) on the wording of every pair of link-pairs.tsv judged right, wrong, near or compound, over gate-catalog.tsv and usda-catalog.tsv, with the kept w01 rows of wording-pairs.tsv as the verified wording table; a pair whose wording is itself a w01 row is left out, since the lane never asks the tiers about a wording the table holds. A case agrees when a right pair's food is the one the tiers write or a wrong, near or compound pair's food is not; a false accept is a held-to-be-wrong pair's food the tiers write; precision is the share judged right among the pairs whose food they write. The fixtures hold no trusted aliases and no curated lines, so the alias and head-default tiers are scored only by wording-tiers.tsv. The signature is WordingTiers.Signature (which holds the gate's and the alcohol rules'), so any change needs a new record, which needs no host. The pairs are judged by agent-review-2026-11-13, a model reviewer, not a person: these figures measure agreement with that reviewer."
+  },
   "line-judge": {
     "scorer": true,
     "required": false,

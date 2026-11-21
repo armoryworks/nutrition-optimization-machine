@@ -17,6 +17,7 @@ namespace Nom.Orch.Services.Support
         public const string ToolTagging = "tool-tagging";
         public const string Reprocess = "reprocess";
         public const string LinkRecheck = "link-recheck";
+        public const string WordingTiers = "wording-tiers";
 
         public static readonly IReadOnlyList<(string Lane, string Label)> All = new[]
         {
@@ -28,6 +29,7 @@ namespace Nom.Orch.Services.Support
             (ToolTagging, "kitchen tool tagging"),
             (Reprocess, "recipe rebuild from the stored source, with its line judge"),
             (LinkRecheck, "re-check of applied links, aliases and alcohol lines through the link gate, with its link auditor"),
+            (WordingTiers, "deterministic wording tiers, with the link auditor and reader B"),
         };
 
         public const string PauseAllKey = "ai-pause-all";

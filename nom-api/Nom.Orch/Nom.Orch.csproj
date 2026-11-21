@@ -26,6 +26,7 @@
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\prose-verbs.tsv" LogicalName="Nom.Orch.Prose.prose-verbs.tsv" Link="Prose\prose-verbs.tsv" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\model-lanes.json" LogicalName="Nom.Orch.Golden.model-lanes.json" Link="Golden\model-lanes.json" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\scores\line-judge*.json" LogicalName="Nom.Orch.Golden.line-judge.json" Link="Golden\line-judge.json" />
+    <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\scores\link-audit*.json" LogicalName="Nom.Orch.Golden.link-audit.json" Link="Golden\link-audit.json" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\prose-judge.tsv" LogicalName="Nom.Orch.Prose.prose-judge.tsv" Link="Prose\prose-judge.tsv" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\scores\prose-*.json" LogicalName="Nom.Orch.Prose.scores.%(Filename)%(Extension)" Link="Prose\scores\%(Filename)%(Extension)" />
   </ItemGroup>

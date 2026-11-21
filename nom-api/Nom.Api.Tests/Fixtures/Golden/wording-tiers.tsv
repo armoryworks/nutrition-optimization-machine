@@ -1,0 +1,35 @@
+id	wording	lines	title	site	table	curated	key	tier	answer	expect	status	source	note
+wt-key-01	For the frosting:	-	-	no	-	-	-	-	-	-	ok	rule:wording-tiers	a heading line names no food: no key, no tier
+wt-key-02	a quarter of a pound of butter	-	-	no	-	-	butter	staple	280603	280603	ok	rule:wording-tiers	old-cookbook measure filler comes off; the staple name butter is salted butter
+wt-key-03	good salt	-	-	no	-	-	salt	staple	280659	280659	ok	rule:wording-tiers	"good" is filler; staple salt
+wt-key-04	chopped onion, for garnish	-	-	no	-	-	onion	staple	277290	277290	ok	rule:wording-tiers	a preparation word and a note of purpose come off
+wt-key-05	flour, divided	-	-	no	-	-	flour	staple	276224	276224	ok	rule:wording-tiers	", divided" is a note
+wt-key-06	the remains of a boiled ham	-	-	no	-	-	boiled ham	-	-	-	ok	rule:wording-tiers	"the remains of a" is filler; boiled ham names no curated food or staple
+wt-key-07	salt and pepper	-	-	no	-	-	salt and pepper	-	-	-	ok	rule:wording-tiers	names more than one food: no tier; the compound line rules split the line
+wt-key-08	butter or lard	-	-	no	-	-	butter or lard	-	-	-	ok	rule:wording-tiers	alternatives are compound: never a wording row (the compound line rules pick per line)
+wt-ver-01	good vanilla	-	-	no	verified:vanilla=106	-	vanilla	verified-wording	106	106	ok	rule:construction	another wording with the same key has a verified row: its food
+wt-ver-02	the cream	-	-	no	verified:cream=unclear	-	cream	-	-	-	ok	rule:construction	a verified unclear verdict for the key stops the pipeline: no later tier answers
+wt-ver-03	fine vanilla	-	-	no	verified:vanilla=276169	-	vanilla	verified-wording	276169	-	ok	rule:construction	a verified row is still gated: vanilla is not in Syrups, corn, light (containment)
+wt-ali-01	heavy whipping cream	-	-	no	alias:whipping cream heavy=278130	-	heavy whipping cream	staple	278130	278130	ok	rule:construction	an alias whose key differs from the wording's does not answer; the staple does
+wt-ali-02	thick cream	-	-	no	alias:thick cream=278130	-	thick cream	alias	278130	-	ok	rule:construction	a trusted alias answers and the gate still reads the pair: one generic word for one of many foods
+wt-ali-03	clotted cream	-	-	no	alias:clotted cream=278130 ¦ alias:clotted cream=278128	-	clotted cream	-	-	-	ok	rule:construction	two foods share the alias key: the alias tier gives neither
+wt-ali-04	whipping heavy cream	-	-	no	alias:whipping heavy cream=278130	-	whipping heavy cream	alias	278130	278130	ok	rule:construction	a trusted alias answers and every word of the wording is in the food: written
+wt-nam-01	light cream	-	-	no	-	-	light cream	name-key	278128	278128	ok	rule:wording-tiers	the key is the name of one curated food
+wt-nam-02	Light Corn Syrup	-	-	no	-	-	light corn syrup	name-key	276169	276169	ok	rule:wording-tiers	case does not matter
+wt-nam-03	half-and-half cream	-	-	no	-	-	half-and-half cream	-	-	-	ok	rule:wording-tiers	no curated food carries this name key
+wt-dis-01	thick cream	-	-	no	verified:thick cream=278130 ¦ alias:thick cream=278128	-	thick cream	verified-wording	278130	-	ok	rule:construction	two tiers name different foods: held (tiers-disagree)
+wt-alc-01	sherry	1 glass of sherry|volume	Trifle	no	-	-	sherry	alcohol-context	287461	-	ok	rule:alcohol-context	a glass of sherry is dry dessert wine (FDC 175112, the first ready food of its sense); the gate holds it: "sherry" is not a word of the USDA entry (containment, lead noun) until a lexicon entry exists
+wt-alc-02	rum	2 tbsp rum|spoon ¦ 1/4 cup dark rum|volume	Rum Cake	yes	-	-	rum	alcohol-context	287444	287444	ok	rule:alcohol-context	rum reads the rum entry (FDC 174817) before the 80-proof spirit; a pending SR Legacy food with no admission reason the load may curate
+wt-alc-03	sherry vinegar	2 tbsp sherry vinegar|spoon	Salad	yes	-	-	sherry vinegar	-	-	-	ok	rule:alcohol-context	a vinegar is not a drink: no alcohol answer
+wt-alc-04	wine	1 cup wine|volume	White Wine Mussels	yes	-	-	wine	alcohol-context	164	-	ok	rule:alcohol-context	bare wine in a recipe whose title says white reads Dry White Wine; the gate holds one generic word for one of many foods
+wt-alc-05	wine	1 cup wine|volume	Pudding	no	-	-	wine	-	-	-	ok	rule:alcohol-context	bare wine in an old text with no colour is unclear: no food
+wt-alc-06	brandy	1 glass of brandy|volume ¦ 2 tbsp vanilla extract|spoon	Sauce	no	-	-	brandy	-	-	-	ok	rule:alcohol-context	a line with another sense (an extract) breaks the shared sense: no answer
+wt-alc-07	white wine	1/2 cup dry white wine|volume	Risotto	yes	-	-	white wine	alcohol-context	164	164	ok	rule:alcohol-context	white wine reads Dry White Wine, whose USDA entry carries both words
+wt-alc-08	red wine	1 cup red wine|volume	Beef Stew	yes	-	-	red wine	alcohol-context	287420	287420	ok	rule:alcohol-context	red wine reads red table wine (FDC 173190), a pending SR Legacy food with 33 rows; never Claret, which has 6
+wt-hd-01	soda	1 tsp soda|spoon	Biscuits	no	-	soda|spoon|282180|60 ¦ soda|volume|280400|20	soda	head-default	282180	282180	ok	rule:construction	a teaspoon of soda: the spoon class's own default (60 of 60) is baking soda, also the head's overall default (75 %)
+wt-hd-02	soda	1 cup soda|volume	Punch	no	-	soda|spoon|282180|60 ¦ soda|volume|280400|20	soda	head-default	280400	-	ok	rule:construction	a cup of soda: the volume class has 20 lines and its own default, never baking soda; not the overall default, so the gate reads the variety rules and holds it (lead-noun)
+wt-hd-03	soda	1 tsp soda|spoon ¦ 1 cup soda|volume	Mixed	no	-	soda|spoon|282180|60 ¦ soda|volume|280400|20	soda	-	-	-	ok	rule:construction	lines whose unit classes name different foods: no default
+wt-hd-04	fat	1 tbsp fat|spoon	Pie	no	-	fat|spoon|5146|11 ¦ fat|spoon|280603|10	fat	-	-	-	ok	rule:construction	no food holds 70 % of the head's lines: no default
+wt-hd-05	suet	4 oz suet|mass	Pudding	no	-	suet|mass|277478|15	suet	staple	277478	277478	ok	rule:construction	a head with under 20 lines has no default; the staple suet answers first anyway
+wt-hd-06	dripping	1 tbsp dripping|spoon ¦ 2 cups dripping|volume	Roast	no	-	dripping|spoon|5146|30 ¦ dripping|volume|280603|6	dripping	-	-	-	ok	rule:construction	the volume class has only 6 lines, too few for its own default, but they do not give the head's default (lard) 70 %: no default
+wt-hd-07	dripping	1 tbsp dripping|spoon ¦ 1 lb dripping|mass	Roast	no	-	dripping|spoon|5146|30 ¦ dripping|volume|280603|6	dripping	head-default	5146	-	ok	rule:construction	a class with no lines of its own falls back to the head's overall default (30 of 36); the gate holds "dripping" against Lard (containment)
