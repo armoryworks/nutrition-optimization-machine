@@ -118,7 +118,8 @@ namespace Nom.Orch.Services.Support
     /// check refused to fetch it, the homepage was not read or carries no links as served (built by scripts),
     /// robots.txt was refused or unreachable or bars NomBot or all crawlers, a page (robots.txt, homepage, terms,
     /// sitemap or sample) answered a bot challenge or refused NomBot, a terms page was not read (also one linked on
-    /// another domain), or the TDM reservation file could not be read.</item>
+    /// another domain, and in a terms-only check one whose link or redirect names a recipe page), or the TDM reservation
+    /// file could not be read.</item>
     /// <item><b>clear</b>: the report's licence is one that grants reuse (CC0, Public Domain Mark, a
     /// public-domain statement, CC BY) and its licence reason passed.</item>
     /// <item><b>facts-only</b>: otherwise; nothing grants reuse and nothing forbids automated access.</item>
@@ -135,10 +136,11 @@ namespace Nom.Orch.Services.Support
         public const string PermissionNeeded = "permission-needed";
         public const string Forbidden = "forbidden";
         public const string NoAddress = "NoAddress";
+        public const string TermsOnlyMode = "terms-only";
 
         public static readonly IReadOnlyList<string> Classes = new[] { Clear, FactsOnly, PermissionNeeded, Forbidden };
 
-        private static readonly string[] UnreadTermsOutcomes = { "refused", "bot-challenge", "robots-disallowed", "redirected-off-domain", "over-budget", "failed", "not-read", "off-domain" };
+        private static readonly string[] UnreadTermsOutcomes = { "refused", "bot-challenge", "robots-disallowed", "redirected-off-domain", "over-budget", "failed", "not-read", "off-domain", "recipe-like" };
 
         private static readonly int[] RefusalStatuses = { 401, 402, 403, 429 };
 
@@ -264,9 +266,9 @@ namespace Nom.Orch.Services.Support
         private static string Text(JsonElement element) =>
             element.ValueKind == JsonValueKind.String ? element.GetString() ?? string.Empty : element.GetRawText();
 
-        /// <summary>Whether a report comes from a terms-only check (the scraper's <c>sampleSize</c> 0 mode): robots.txt, the homepage and the terms pages only, no recipe page.</summary>
+        /// <summary>Whether a report comes from a terms-only check (the scraper's <c>sampleSize</c> 0 mode, <c>mode</c> "terms-only"): robots.txt, the homepage and the terms pages only, no recipe page.</summary>
         public static bool IsTermsOnly(ScraperSourceCheckReport? report) =>
-            report?.Samples is { Requested: SourceAdmissionPolicy.TermsOnlySampleSize };
+            report?.Mode == TermsOnlyMode || report?.Samples is { Requested: SourceAdmissionPolicy.TermsOnlySampleSize };
 
         /// <summary>
         /// The verdict a report gives a source that holds <paramref name="heldClass"/>, decided on a sentence or a
@@ -274,22 +276,51 @@ namespace Nom.Orch.Services.Support
         /// reads no recipe page or sitemap, so it can confirm or find a bar but cannot lift one it did not read: when the
         /// source is forbidden or needs permission on the words of a page the terms-only check did not read (a recipe page's
         /// footer, a refused sample or sitemap), a verdict of facts-only or clear gives no class, and the held class stands.
-        /// Its AI flag can only be raised (<see cref="SourceRightsVerdict.TermsOnly"/>).
+        /// The pages that hold a bar are the held quote's and every page of <paramref name="lastFullReport"/> (the source's
+        /// last full check) with a forbidding sentence or a refusal, not only the first one quoted; each must have been read
+        /// again. Its AI flag can only be raised (<see cref="SourceRightsVerdict.TermsOnly"/>).
         /// </summary>
-        public static SourceRightsVerdict Derive(ScraperSourceCheckReport? report, string? heldClass, string? heldQuoteUrl)
+        public static SourceRightsVerdict Derive(ScraperSourceCheckReport? report, string? heldClass, string? heldQuoteUrl, ScraperSourceCheckReport? lastFullReport = null)
         {
             var verdict = Derive(report);
             if (!IsTermsOnly(report)) return verdict;
             verdict = verdict with { TermsOnly = true };
             if (heldClass is not (Forbidden or PermissionNeeded) || verdict.Class is not (Clear or FactsOnly)) return verdict;
-            if (heldQuoteUrl != null && PagesRead(report!).Contains(Page(heldQuoteUrl))) return verdict;
+            var read = PagesRead(report!);
+            var bars = new List<string?> { heldQuoteUrl };
+            if (lastFullReport != null && !IsTermsOnly(lastFullReport)) bars.AddRange(BarPages(lastFullReport));
+            var unread = bars.Where(url => url == null || !read.Contains(Page(url))).Select(url => url ?? "the page").FirstOrDefault();
+            if (unread == null) return verdict;
             return verdict with
             {
                 Class = null,
-                Reason = $"a terms-only check does not read {heldQuoteUrl ?? "the page"}, where the source was found {heldClass}, so it cannot lift that class; the class stands",
+                Reason = $"a terms-only check does not read {unread}, where the source was found {heldClass}, so it cannot lift that class; the class stands",
                 Quote = null,
                 QuoteUrl = null,
             };
+        }
+
+        /// <summary>The pages of a report that hold a bar: each page with a forbidding sentence and each page that refused or was not read; null for a refusal with no page named.</summary>
+        private static IEnumerable<string?> BarPages(ScraperSourceCheckReport report)
+        {
+            foreach (var (text, url) in Sentences(report))
+            {
+                if (RightsSentences.Read(text).Forbids) yield return url;
+            }
+
+            if (Unreadable(report) is not { } unread) yield break;
+            yield return unread.Url;
+            var access = report.Access;
+            foreach (var url in (access?.BotChallengePages ?? new List<string>()).Concat(access?.RefusedPages ?? new List<string>()).Concat(report.Enumeration?.RefusedPages ?? new List<string>()))
+                yield return url;
+            foreach (var page in report.Terms?.Pages.Where(p => UnreadTermsOutcomes.Contains(p.Outcome)) ?? Enumerable.Empty<ScraperCheckTermsPage>())
+                yield return page.Url;
+            if (report.Samples is { Refused: > 0 } samples)
+            {
+                var refused = samples.Pages.Where(p => p.HttpStatus is { } code && RefusalStatuses.Contains(code)).Select(p => p.Url).ToList();
+                foreach (var url in refused) yield return url;
+                if (refused.Count < samples.Refused) yield return null;
+            }
         }
 
         private static HashSet<string> PagesRead(ScraperSourceCheckReport report)

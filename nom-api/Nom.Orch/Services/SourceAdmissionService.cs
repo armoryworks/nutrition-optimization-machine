@@ -212,7 +212,7 @@ namespace Nom.Orch.Services
             if (queued != null) return await RunTermsCheckAsync(queued, cancellationToken);
 
             var now = Now();
-            var started = await _db.SourceChecks.CountAsync(c => c.StartedUtc > now.AddHours(-24), cancellationToken);
+            var started = await _db.SourceChecks.CountAsync(c => c.StartedUtc > now.AddHours(-24) && c.Purpose != TermsOnlyPurpose, cancellationToken);
             if (started >= _settings.MaxChecksPerDay) return null;
 
             await AdoptRequestsAsync(cancellationToken);
@@ -310,7 +310,7 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Runs a terms-only check an admin asked for (<see cref="RequestTermsCheckAsync"/>): the scraper's sampleSize 0 job,
         /// robots.txt, the homepage and the terms pages only. Its report re-derives the source's class and AI flag
-        /// (<see cref="SourceRightsRule.Derive(ScraperSourceCheckReport?, string?, string?)"/>, which never lifts a bar found on a
+        /// (<see cref="SourceRightsRule.Derive(ScraperSourceCheckReport?, string?, string?, ScraperSourceCheckReport?)"/>, which never lifts a bar found on a
         /// page it did not read) and changes nothing else: no admission verdict, licence, harvest pause or re-check date.
         /// Its start, failure and end are journaled.
         /// </summary>
@@ -323,11 +323,20 @@ namespace Nom.Orch.Services
                 return await EndTermsCheckAsync(check, source, SourceCheckEntity.Failed, $"The terms-only check did not start: {why}.", cancellationToken);
             }
 
-            var start = await _scraper.StartSourceCheckJobAsync(source.Domain, SourceAdmissionPolicy.TermsOnlySampleSize, _settings.CheckBudgetSeconds, cancellationToken);
-            if (start.Outcome == ScraperJobOutcome.Busy) return null;
-            check.JobId = start.Job?.JobId;
+            var requestedUtc = check.StartedUtc;
             check.Status = SourceCheckEntity.Running;
             check.StartedUtc = Now();
+            await _db.SaveChangesAsync(cancellationToken);
+            var start = await _scraper.StartSourceCheckJobAsync(source.Domain, SourceAdmissionPolicy.TermsOnlySampleSize, _settings.CheckBudgetSeconds, cancellationToken);
+            if (start.Outcome == ScraperJobOutcome.Busy)
+            {
+                check.Status = Queued;
+                check.StartedUtc = requestedUtc;
+                await _db.SaveChangesAsync(cancellationToken);
+                return null;
+            }
+
+            check.JobId = start.Job?.JobId;
             await _db.SaveChangesAsync(cancellationToken);
             if (start.Job == null)
             {
@@ -436,7 +445,8 @@ namespace Nom.Orch.Services
             source.LastCheckId = check.Id;
             if (source.Kind == ScrapingSourceEntity.WebKind)
             {
-                SourceRightsService.ApplyVerdict(_db, source, SourceRightsRule.Derive(report, source.RightsClass, source.RightsQuoteUrl), check.Id, now, SystemConstants.SystemPersonId);
+                var lastFull = termsOnly ? await SourceRightsService.LastFullReportAsync(_db, source.Id, cancellationToken) : null;
+                SourceRightsService.ApplyVerdict(_db, source, SourceRightsRule.Derive(report, source.RightsClass, source.RightsQuoteUrl, lastFull), check.Id, now, SystemConstants.SystemPersonId);
                 await _db.SaveChangesAsync(cancellationToken);
                 await SourceRightsService.SyncRecipesAsync(_db, source, now, SystemConstants.SystemPersonId, cancellationToken);
             }
@@ -578,7 +588,7 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Ends the runs and checks still marked running past their budget plus StaleGraceSeconds: their
         /// poll was cut off (nom-api stopped or the tick failed), so a run is stored as failed and a check
-        /// as lost, and both are shown with the failed ones.
+        /// as lost, and both are shown with the failed ones. A lost terms-only check's end is journaled.
         /// </summary>
         private async Task ExpireStaleAsync(CancellationToken cancellationToken)
         {
@@ -605,6 +615,11 @@ namespace Nom.Orch.Services
                 check.Status = SourceCheckEntity.Lost;
                 check.Error = Clip($"lost: the check was still running past its budget, so its poll of job {check.JobId ?? "(none)"} was cut off", 1023);
                 check.FinishedUtc = now;
+                if (check.Purpose == TermsOnlyPurpose && check.ScrapingSourceId is { } sourceId)
+                {
+                    _db.AuditLogEntries.Add(SourceJournal.Entry(sourceId, SourceJournal.TermsCheck, SourceJournal.TermsCheckField,
+                        SourceJournal.Value(Queued, $"terms-only check {check.Id}"), SourceJournal.Value(check.Status, $"terms-only check {check.Id}: {check.Error}"), now, SystemConstants.SystemPersonId));
+                }
             }
 
             await _db.SaveChangesAsync(cancellationToken);
@@ -1183,7 +1198,7 @@ namespace Nom.Orch.Services
                 RunsFailedInRow = runs.Where(r => r.Status != SourceDiscoveryRunEntity.Skipped && r.Status != SourceDiscoveryRunEntity.Running)
                     .TakeWhile(r => r.Status == SourceDiscoveryRunEntity.Failed).Count(),
                 LastGoodRunUtc = runs.FirstOrDefault(r => r.Status is SourceDiscoveryRunEntity.Completed or SourceDiscoveryRunEntity.Partial)?.FinishedUtc,
-                ChecksLast24h = await _db.SourceChecks.CountAsync(c => c.StartedUtc > now.AddHours(-24), cancellationToken),
+                ChecksLast24h = await _db.SourceChecks.CountAsync(c => c.StartedUtc > now.AddHours(-24) && c.Purpose != TermsOnlyPurpose, cancellationToken),
                 MaxChecksPerDay = _settings.MaxChecksPerDay,
                 ChecksFailedLast7d = await _db.SourceChecks.CountAsync(c => c.StartedUtc > now.AddDays(-7) && c.Verdict == null && c.Status != SourceCheckEntity.Running && c.Status != Queued, cancellationToken),
                 Queue = review.Queue.Count,

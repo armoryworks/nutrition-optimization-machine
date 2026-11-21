@@ -89,7 +89,8 @@ reasons.
    class is forbidden or permission-needed: the weekly re-check skips it and says so. For such a source an
    admin may start a **terms-only check** (`POST /api/ScrapingSource/{id}/terms-check`): the scraper's
    `sampleSize` 0 mode reads robots.txt, the homepage and the terms pages and no recipe page; it is queued,
-   journaled at both ends (`SourceTermsCheck`), run by the next tick outside the daily cap, and re-derives
+   journaled at both ends (`SourceTermsCheck`, a check lost to a restart included), run by the next tick
+   outside the daily cap (not counted in it), and re-derives
    only the rights class and AI flag (`source-rights.md`). It is refused while `TermsOnlyChecks` is off. Harvesting is paused
    by the lane only when a conclusive verdict **turns** from clear to not clear. A first verdict
    that is not clear (today's sources) only shows: what happens to a source that is not clear and

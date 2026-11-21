@@ -36,6 +36,7 @@ namespace Nom.Api.Tests.Services
             public readonly Queue<ScraperJobAnswer> Starts = new();
             public readonly Queue<ScraperJobAnswer> Polls = new();
             public readonly List<(string Domain, int SampleSize)> Checks = new();
+            public Exception? FailNextStart;
 
             public bool IsConfigured => true;
 
@@ -49,6 +50,12 @@ namespace Nom.Api.Tests.Services
             public Task<ScraperJobAnswer> StartSourceCheckJobAsync(string domain, int sampleSize, int budgetSeconds, CancellationToken cancellationToken = default)
             {
                 Checks.Add((domain, sampleSize));
+                if (FailNextStart is { } failure)
+                {
+                    FailNextStart = null;
+                    throw failure;
+                }
+
                 return Task.FromResult(Starts.Dequeue());
             }
 
@@ -291,6 +298,98 @@ namespace Nom.Api.Tests.Services
             var check = await service.RunNextCheckAsync();
 
             check!.Error.Should().Contain("no terms-only mode");
+        }
+
+        [Fact]
+        public void A_terms_only_check_whose_terms_link_names_a_recipe_page_has_not_read_the_terms()
+        {
+            var report = TermsOnly(SourceRightsServiceTests.FactsOnlyReport("held.example"));
+            report.Access!.HomepageLinks = 12;
+            report.Terms!.Pages.Add(new ScraperCheckTermsPage { Url = "https://held.example/recipes-terms-of-use/", Outcome = "recipe-like" });
+
+            var verdict = SourceRightsRule.Derive(report, SourceRightsRule.PermissionNeeded, "https://held.example/");
+
+            verdict.Class.Should().Be(SourceRightsRule.PermissionNeeded, "the scraper did not fetch a terms link that names a recipe, so the terms are unknown");
+            verdict.QuoteUrl.Should().Be("https://held.example/recipes-terms-of-use/");
+        }
+
+        [Fact]
+        public async Task A_terms_only_check_does_not_lift_a_bar_its_last_full_check_found_on_a_recipe_page_beside_the_quoted_one()
+        {
+            await using var db = NewContext();
+            var source = await SourceAsync(db, "twice.example", SourceRightsRule.Forbidden, "https://twice.example/robots.txt");
+            var full = SourceRightsServiceTests.FactsOnlyReport("twice.example");
+            full.Robots!.ProhibitionComments.Add("Scraping of this site is prohibited.");
+            full.Terms!.Prohibitions.Add(new ScraperCheckProhibition { Text = "These recipes may not be republished without our written permission.", FoundAt = "https://twice.example/a-recipe/" });
+            SourceRightsRule.Derive(full).QuoteUrl.Should().Be("https://twice.example/robots.txt");
+            await StoredCheckAsync(db, source, full);
+            var scraper = new FakeScraper();
+            var service = Admission(db, scraper, s => { s.TermsOnlyChecks = true; s.MaxChecksPerDay = 0; });
+            (await service.RequestTermsCheckAsync(source.Id, Admin, null)).Ok.Should().BeTrue();
+            CheckJob(scraper, TermsOnly(SourceRightsServiceTests.FactsOnlyReport("twice.example")));
+
+            await service.RunNextCheckAsync();
+
+            var after = await db.ScrapingSources.AsNoTracking().SingleAsync(s => s.Id == source.Id);
+            after.RightsClass.Should().Be(SourceRightsRule.Forbidden, "the recipe page's notice was not read again");
+            (await db.AuditLogEntries.CountAsync(e => e.ChangeType == SourceJournal.Rights)).Should().Be(0);
+
+            var stale = await Rights(db).DeriveAsync(apply: false, source.Id);
+            stale.Results.Single().NewClass.Should().Be(SourceRightsRule.Forbidden);
+            stale.Results.Single().Reason.Should().Contain("does not read https://twice.example/a-recipe/");
+
+            var refused = SourceRightsServiceTests.FactsOnlyReport("twice.example");
+            refused.Samples = new ScraperCheckSamples { Requested = 20, Attempted = 20, Refused = 2 };
+            SourceRightsRule.Derive(TermsOnly(SourceRightsServiceTests.FactsOnlyReport("twice.example")), SourceRightsRule.PermissionNeeded, "https://twice.example/", refused)
+                .Conclusive.Should().BeFalse("refused recipe pages with no page named are never read by a terms-only check");
+        }
+
+        [Fact]
+        public async Task A_terms_only_check_cut_off_by_a_restart_is_journaled_as_lost_and_never_started_twice()
+        {
+            await using var db = NewContext();
+            var polled = await SourceAsync(db, "polled.example", SourceRightsRule.Forbidden, "https://polled.example/terms");
+            db.SourceChecks.Add(new SourceCheckEntity
+            {
+                Domain = polled.Domain, Purpose = SourceAdmissionService.TermsOnlyPurpose, ScrapingSourceId = polled.Id, JobId = "job0",
+                Status = SourceCheckEntity.Running, StartedUtc = T0.AddHours(-3), CreatedDate = T0.AddHours(-3),
+            });
+            await db.SaveChangesAsync();
+            var scraper = new FakeScraper();
+            var service = Admission(db, scraper, s => { s.TermsOnlyChecks = true; s.MaxChecksPerDay = 0; });
+
+            (await service.RunNextCheckAsync()).Should().BeNull();
+
+            var lost = await db.AuditLogEntries.SingleAsync(e => e.ChangeType == SourceJournal.TermsCheck && e.EntityId == polled.Id);
+            lost.NewValue.Should().StartWith(SourceCheckEntity.Lost).And.Contain("job0");
+
+            var started = await SourceAsync(db, "started.example", SourceRightsRule.Forbidden, "https://started.example/terms");
+            (await service.RequestTermsCheckAsync(started.Id, Admin, null)).Ok.Should().BeTrue();
+            scraper.FailNextStart = new OperationCanceledException("nom-api stopped");
+            await FluentActions.Awaiting(() => service.RunNextCheckAsync()).Should().ThrowAsync<OperationCanceledException>();
+
+            (await service.RunNextCheckAsync()).Should().BeNull("the check was marked running before its job started, so it is not queued again");
+            scraper.Checks.Should().Equal(("started.example", SourceAdmissionPolicy.TermsOnlySampleSize));
+        }
+
+        [Fact]
+        public async Task Terms_only_checks_are_not_counted_against_the_daily_cap()
+        {
+            await using var db = NewContext();
+            var barred = await SourceAsync(db, "barred.example", SourceRightsRule.Forbidden, "https://barred.example/terms");
+            await SourceAsync(db, "facts.example", SourceRightsRule.FactsOnly, "https://facts.example/");
+            var scraper = new FakeScraper();
+            var service = Admission(db, scraper, s => { s.TermsOnlyChecks = true; s.MaxChecksPerDay = 1; });
+            (await service.RequestTermsCheckAsync(barred.Id, Admin, null)).Ok.Should().BeTrue();
+            CheckJob(scraper, TermsOnly(SourceRightsServiceTests.ForbiddenReport("barred.example")));
+            CheckJob(scraper, SourceRightsServiceTests.FactsOnlyReport("facts.example"));
+
+            (await service.RunNextCheckAsync())!.Purpose.Should().Be(SourceAdmissionService.TermsOnlyPurpose);
+            (await service.RunNextCheckAsync())!.Purpose.Should().Be(SourceAdmissionService.RecheckPurpose);
+            (await service.RunNextCheckAsync()).Should().BeNull("the one automatic check of the day is spent");
+
+            scraper.Checks.Should().Equal(("barred.example", SourceAdmissionPolicy.TermsOnlySampleSize), ("facts.example", SourceAdmissionPolicy.SampleSize));
+            (await service.StatusAsync()).ChecksLast24h.Should().Be(1);
         }
 
         [Fact]

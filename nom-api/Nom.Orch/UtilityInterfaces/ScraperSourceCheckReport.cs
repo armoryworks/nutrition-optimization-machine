@@ -13,6 +13,7 @@ namespace Nom.Orch.UtilityInterfaces
     {
         public string Domain { get; set; } = string.Empty;
         public string? RuleVersion { get; set; }
+        public string? Mode { get; set; }
         public string? Verdict { get; set; }
         public bool Complete { get; set; }
         public string? IncompleteReason { get; set; }

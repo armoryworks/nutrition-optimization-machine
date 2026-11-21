@@ -93,20 +93,26 @@ report classes it so is not checked again either. Sources of the other classes (
 permission, unclassed) keep the weekly full check, which is how a class is learned and re-learned.
 
 For a barred source an admin may start a **terms-only check** by hand (`POST api/ScrapingSource/{id}/terms-check`,
-"Start terms-only check" on the admin page): the scraper's `sampleSize` 0 mode reads robots.txt, the homepage,
-`tdmrep.json` and the terms pages, and no recipe page or sitemap. The request is queued as a `SourceCheck` with
+"Start terms-only check" on the admin page): the scraper's `sampleSize` 0 mode reads robots.txt, the homepage
+and the terms pages, and no `tdmrep.json`, recipe page or sitemap; a terms link or redirect whose path names a
+recipe is not fetched (terms outcome `recipe-like`), and NOM reads it as terms not read (permission-needed). The request is queued as a `SourceCheck` with
 purpose `terms-only` and status `queued`, journaled (`SourceTermsCheck` on field `TermsCheck`, with the admin and
-the reason), and run by the source lane's next tick, before and outside the daily cap; its end (completed,
-failed or lost, and the class that results) is journaled the same way. It is refused while
+the reason), and run by the source lane's next tick, before and outside the daily cap (terms-only checks are not
+counted against `MaxChecksPerDay` nor in the Pipeline's "Checks today"); its end (completed, failed, or lost,
+also when nom-api stopped while it was polling and the next tick finds it past its budget, and the class that
+results) is journaled the same way. The check is marked running before the scraper job is started, so a
+restart between the two leaves it to be found lost, never queued again to fetch the site a second time. It is refused while
 `SourceDiscovery:TermsOnlyChecks` is off (the default), because a scraper without the mode would read a recipe
 page; if the scraper still answers with recipe pages read, the check records that it has no terms-only mode.
-NOM reads a report whose `samples.requested` is 0 as terms-only.
+NOM reads a report whose `mode` is `terms-only`, or whose `samples.requested` is 0, as terms-only.
 Its report re-derives the class and the AI flag and nothing else: no admission verdict, licence, harvest pause or
 re-check date. Because it reads fewer pages than a full check, it can confirm or find a bar but cannot lift one it
 did not read: when the source is forbidden or needs permission on the words or the refusal of a page the terms-only
 check did not read (a recipe page's footer, a refused sample or sitemap), a verdict of facts-only or clear gives no
-class and the held class stands (`SourceRightsRule.Derive(report, heldClass, heldQuoteUrl)`), and its AI flag can
-only be raised. A source a terms-only check lifts to facts-only is due for its weekly full check on its old date.
+class and the held class stands (`SourceRightsRule.Derive(report, heldClass, heldQuoteUrl, lastFullReport)`), and its
+AI flag can only be raised. The pages that hold a bar are the stored quote's and every page of the source's last full
+check with a forbidding sentence or a refusal (not only the first sentence quoted); a terms-only check lifts the class
+only when it read each of them again. A source a terms-only check lifts to facts-only is due for its weekly full check on its old date.
 
 ## What a reader sees of a facts-only recipe
 

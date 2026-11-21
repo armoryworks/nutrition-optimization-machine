@@ -123,7 +123,9 @@ namespace Nom.Orch.Services
                 if (check == null) continue;
                 if (staleOnly && source.RightsRuleVersion == SourceRightsRule.Version && source.RightsCheckId == check.Id) continue;
                 run.Sources++;
-                var verdict = SourceRightsRule.Derive(Read<ScraperSourceCheckReport>(check.ReportJson), source.RightsClass, source.RightsQuoteUrl);
+                var report = Read<ScraperSourceCheckReport>(check.ReportJson);
+                var lastFull = SourceRightsRule.IsTermsOnly(report) ? await LastFullReportAsync(_db, source.Id, cancellationToken) : null;
+                var verdict = SourceRightsRule.Derive(report, source.RightsClass, source.RightsQuoteUrl, lastFull);
                 var change = Describe(source, verdict, check.Id);
                 if (!verdict.Conclusive) run.Inconclusive++;
                 if (change.Changed) run.Changed++;
@@ -318,6 +320,18 @@ namespace Nom.Orch.Services
             if (aiChanged)
                 db.AuditLogEntries.Add(SourceJournal.Entry(source.Id, SourceJournal.Rights, SourceJournal.AiReservedField, oldAi, AiValue(source), now, by));
             return classChanged || aiChanged;
+        }
+
+        /// <summary>The report of the source's last full check (not a terms-only one), whose bars a terms-only check must read again before it lifts a class.</summary>
+        public static async Task<ScraperSourceCheckReport?> LastFullReportAsync(ApplicationDbContext db, long sourceId, CancellationToken cancellationToken = default)
+        {
+            var json = await db.SourceChecks.AsNoTracking()
+                .Where(c => c.ScrapingSourceId == sourceId && c.ReportJson != null && c.Purpose != SourceAdmissionService.TermsOnlyPurpose)
+                .OrderByDescending(c => c.StartedUtc).ThenByDescending(c => c.Id)
+                .Select(c => c.ReportJson)
+                .FirstOrDefaultAsync(cancellationToken);
+            var report = Read<ScraperSourceCheckReport>(json);
+            return SourceRightsRule.IsTermsOnly(report) ? null : report;
         }
 
         /// <summary>
