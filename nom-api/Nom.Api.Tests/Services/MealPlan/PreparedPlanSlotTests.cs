@@ -31,7 +31,8 @@ namespace Nom.Api.Tests.Services.MealPlan
         private const long PersonId = 40;
         private const long SecondPersonId = 41;
         private const long Breakfast = 1100, Lunch = 1101, Dinner = 1102, Snacks = 1103;
-        private const long NutAllergyRef = 2012, VegetarianRef = 2004;
+        private const long NutAllergyRef = 2012, VegetarianRef = 2004, GlutenFreeRef = 2006, NoCaffeineRef = 2950;
+        private const long CaffeineNutrientId = 2;
         private static readonly DateOnly Monday = new(2026, 10, 12);
 
         private sealed class FakePolicy : IPolicyEnforcementService
@@ -60,6 +61,7 @@ namespace Nom.Api.Tests.Services.MealPlan
             db.Set<ReferenceEntity>().AddRange(
                 new ReferenceEntity { Id = NutAllergyRef, Name = "Nut Allergy" },
                 new ReferenceEntity { Id = VegetarianRef, Name = "Vegetarian" },
+                new ReferenceEntity { Id = GlutenFreeRef, Name = "Gluten-Free" },
                 new ReferenceEntity { Id = (long)CurationStatusEnum.Curated, Name = "Approved" },
                 new ReferenceEntity { Id = Breakfast, Name = "Breakfast" },
                 new ReferenceEntity { Id = Lunch, Name = "Lunch" },
@@ -207,19 +209,63 @@ namespace Nom.Api.Tests.Services.MealPlan
                 .Should().BeEquivalentTo(new[] { burger.Id, restaurant.Id, entree.Id }, "only these three are curated meals of categories 21, 22 and 25");
         }
 
-        [Fact]
-        public async Task Diets_restrictions_and_locks_keep_their_foods_out_exactly_as_they_keep_recipe_foods_out()
+        [Theory]
+        [InlineData(VegetarianRef, "Fast foods, cheeseburger, double patty", 21)]
+        [InlineData(GlutenFreeRef, "Restaurant, Italian, cheese ravioli", 25)]
+        public async Task A_diet_judged_by_ingredients_holds_prepared_meals_back_because_none_lists_its_ingredients(long dietRef, string name, int category)
         {
             using var db = await SeedAsync();
-            var tenders = Prepared(db, "Fast foods, chicken tenders", category: 21);
-            var disliked = Prepared(db, "Macaroni and cheese, frozen entree");
-            var locked = Prepared(db, "Restaurant, Mexican, cheese enchilada", category: 25);
-            var allowed = Prepared(db, "Lasagna, vegetable, frozen");
+            Prepared(db, name, category: category);
+            Entrees(db, 6);
             await db.SaveChangesAsync();
-            db.Restrictions.Add(new RestrictionEntity { PersonId = PersonId, Name = "Vegetarian", RestrictionTypeId = VegetarianRef });
-            db.Restrictions.Add(new RestrictionEntity { PersonId = PersonId, Name = "No mac and cheese", IngredientId = disliked.Id, Severity = 2 });
+            db.Restrictions.Add(new RestrictionEntity { PersonId = PersonId, Name = "Diet", RestrictionTypeId = dietRef });
             await db.SaveChangesAsync();
             await DefaultRestrictionCriteria.EnsureAsync(db);
+            await ChooseAsync(db, Lunch);
+
+            var response = await ShuffleWeekAsync(db);
+
+            response.PreparedMealsHeld.Should().Be(MealPlanOrchestrationService.PreparedMealsHeldReasons.DietRestriction,
+                "a recipe is judged by every ingredient line; a prepared meal has none, so its name alone cannot show it fits the diet");
+            (await db.MealPlans.CountAsync(mp => mp.IngredientId != null)).Should().Be(0);
+            (await PlannedAsync(db, Lunch)).Should().HaveCount(21).And.OnlyContain(l => l.RecipeId != null);
+        }
+
+        [Fact]
+        public async Task A_direct_restriction_on_a_food_that_is_not_prepared_holds_prepared_meals_back()
+        {
+            using var db = await SeedAsync();
+            Entrees(db, 10);
+            var cilantro = new IngredientEntity { Name = "Coriander (cilantro) leaves, raw", CurationStatusId = (long)CurationStatusEnum.Curated, FdcCategoryId = 11 };
+            db.Ingredients.Add(cilantro);
+            await db.SaveChangesAsync();
+            db.Restrictions.Add(new RestrictionEntity { PersonId = PersonId, Name = "No cilantro", IngredientId = cilantro.Id, Severity = 2 });
+            await db.SaveChangesAsync();
+            await ChooseAsync(db, Lunch);
+
+            var response = await ShuffleWeekAsync(db);
+
+            response.PreparedMealsHeld.Should().Be(MealPlanOrchestrationService.PreparedMealsHeldReasons.DietRestriction,
+                "a recipe with a cilantro line is left out; a prepared meal may hold cilantro and lists nothing to show it does not");
+            (await db.MealPlans.CountAsync(mp => mp.IngredientId != null)).Should().Be(0);
+        }
+
+        [Fact]
+        public async Task A_restriction_on_a_prepared_food_itself_a_nutrient_criterion_and_a_lock_keep_their_foods_out_and_the_rest_are_served()
+        {
+            using var db = await SeedAsync();
+            var disliked = Prepared(db, "Macaroni and cheese, frozen entree");
+            var locked = Prepared(db, "Restaurant, Mexican, cheese enchilada", category: 25);
+            var caffeinated = Prepared(db, "Fast foods, breakfast, coffee combo", category: 21);
+            var allowed = Prepared(db, "Lasagna, vegetable, frozen");
+            db.Nutrients.Add(new NutrientEntity { Id = CaffeineNutrientId, Name = "Caffeine" });
+            db.IngredientNutrients.Add(new IngredientNutrientEntity { Ingredient = caffeinated, NutrientId = CaffeineNutrientId, Amount = 40m, MeasurementId = 1 });
+            db.Set<ReferenceEntity>().Add(new ReferenceEntity { Id = NoCaffeineRef, Name = "No caffeine (by data)" });
+            db.Set<RestrictionCriterionEntity>().Add(new RestrictionCriterionEntity { RestrictionTypeId = NoCaffeineRef, NutrientId = CaffeineNutrientId, Severity = 3 });
+            await db.SaveChangesAsync();
+            db.Restrictions.Add(new RestrictionEntity { PersonId = PersonId, Name = "No mac and cheese", IngredientId = disliked.Id, Severity = 2 });
+            db.Restrictions.Add(new RestrictionEntity { PersonId = PersonId, Name = "No caffeine", RestrictionTypeId = NoCaffeineRef });
+            await db.SaveChangesAsync();
             await ChooseAsync(db, Lunch);
 
             var response = await ShuffleWeekAsync(db, new FakePolicy { Locked = new List<long> { locked.Id } });
@@ -227,7 +273,7 @@ namespace Nom.Api.Tests.Services.MealPlan
             var lunches = await PlannedAsync(db, Lunch);
             lunches.Should().HaveCount(7);
             lunches.Should().OnlyContain(l => l.IngredientId == allowed.Id,
-                "the vegetarian diet's %chicken% keeps the tenders out, the direct restriction the macaroni and the lock the enchilada; with one meal left it repeats");
+                "the direct restriction names the macaroni dish itself, the caffeine criterion reads the dish's own stored nutrients and the lock keeps the enchilada out; with one meal left it repeats");
             response.PreparedMealsHeld.Should().BeNull();
         }
 

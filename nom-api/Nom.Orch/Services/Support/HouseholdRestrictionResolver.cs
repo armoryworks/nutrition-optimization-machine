@@ -14,6 +14,8 @@ namespace Nom.Orch.Services.Support
         public HashSet<long> IngredientIds { get; } = new();
         /// <summary>Any active restriction (or its category's criteria) at severity ≥ 4 — allergy/medical.</summary>
         public bool HasSevere { get; set; }
+        /// <summary>Any active restriction judged by what a dish contains rather than by the dish's own data: a direct restriction on a food that is not a prepared food, or a category criterion that names a food that is not a prepared food, an ILIKE or word pattern, or a capped alcohol amount (judged on a recipe's drink lines). A prepared food lists no ingredients, so such a restriction cannot show one fits (<see cref="Nom.Data.Nutrition.PreparedFoods"/>).</summary>
+        public bool ReadsContents { get; set; }
         /// <summary>Recipes forbidden by a line's own text rather than its food, or as a whole: a drink line linked to a food that is not a drink (<see cref="DietCriteriaMatcher.DrinkLineRecipesAsync"/>), a line that names the restricted thing on a food a pattern matched only through an alias that does not count (<see cref="DietCriteriaMatcher.TypeProbe.AliasLineRecipes"/>), or more retained drink alcohol per serving than a capped alcohol criterion allows (<see cref="DietCriteriaMatcher.RetainedRecipesAsync"/>).</summary>
         public HashSet<long> RecipeIds { get; } = new();
         public static readonly RestrictedIngredientSet Empty = new();
@@ -67,27 +69,49 @@ namespace Nom.Orch.Services.Support
             if (restrictions.Count == 0) return RestrictedIngredientSet.Empty;
 
             var result = new RestrictedIngredientSet();
+            var namedFoodIds = new HashSet<long>();
             foreach (var r in restrictions)
             {
-                if (r.IngredientId is { } id) result.IngredientIds.Add(id);
+                if (r.IngredientId is { } id)
+                {
+                    result.IngredientIds.Add(id);
+                    namedFoodIds.Add(id);
+                }
                 if ((r.Severity ?? 0) >= 4) result.HasSevere = true;
             }
 
             var typeIds = restrictions.Where(r => r.RestrictionTypeId != null).Select(r => r.RestrictionTypeId!.Value).Distinct().ToList();
-            if (typeIds.Count == 0) return result;
-
-            var criteria = await _db.Set<RestrictionCriterionEntity>()
-                .Where(c => typeIds.Contains(c.RestrictionTypeId))
-                .Select(c => new { c.IngredientId, c.IngredientPattern, c.Severity })
-                .ToListAsync();
-
-            foreach (var c in criteria)
+            if (typeIds.Count > 0)
             {
-                if (c.IngredientId is { } id) result.IngredientIds.Add(id);
-                if (c.Severity >= 4) result.HasSevere = true;
+                var criteria = await _db.Set<RestrictionCriterionEntity>()
+                    .Where(c => typeIds.Contains(c.RestrictionTypeId))
+                    .Select(c => new { c.IngredientId, c.IngredientPattern, c.Severity, c.MaxAmountPerServing, NutrientName = c.Nutrient != null ? c.Nutrient.Name : null })
+                    .ToListAsync();
+
+                foreach (var c in criteria)
+                {
+                    if (c.IngredientId is { } id)
+                    {
+                        result.IngredientIds.Add(id);
+                        namedFoodIds.Add(id);
+                    }
+                    if (c.Severity >= 4) result.HasSevere = true;
+                    if (!string.IsNullOrWhiteSpace(c.IngredientPattern)) result.ReadsContents = true;
+                    if (c.MaxAmountPerServing != null && DietCriteriaMatcher.IsAlcohol(c.NutrientName)) result.ReadsContents = true;
+                }
             }
 
-            await AddDataCriteriaAsync(result, typeIds, 0);
+            if (!result.ReadsContents && namedFoodIds.Count > 0)
+            {
+                var preparedFoods = await _db.Ingredients.IgnoreQueryFilters()
+                    .Where(i => namedFoodIds.Contains(i.Id))
+                    .Select(i => new { i.Id, i.FdcCategoryId })
+                    .ToListAsync();
+                result.ReadsContents = namedFoodIds.Any(id =>
+                    !preparedFoods.Any(f => f.Id == id && Nom.Data.Nutrition.PreparedFoods.IsPrepared(f.FdcCategoryId)));
+            }
+
+            if (typeIds.Count > 0) await AddDataCriteriaAsync(result, typeIds, 0);
             return result;
         }
 

@@ -45,6 +45,7 @@ describe('Plan curated link', () => {
 describe('Plan prepared meals notice', () => {
   it('says why a meal given to prepared meals got recipes, and nothing otherwise', () => {
     expect(Plan.preparedHeldMessage('severe_restriction')).toContain('allergy or medical restriction');
+    expect(Plan.preparedHeldMessage('diet_restriction')).toContain('checked against ingredients');
     expect(Plan.preparedHeldMessage('curated_only')).toContain("provider's recipes");
     expect(Plan.preparedHeldMessage('none_available')).toContain('No prepared meal fits');
     expect(Plan.preparedHeldMessage(null)).toBe('');

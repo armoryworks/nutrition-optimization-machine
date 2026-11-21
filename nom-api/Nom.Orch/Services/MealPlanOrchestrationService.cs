@@ -551,7 +551,7 @@ namespace Nom.Orch.Services
 
             var curatedOnly = await _policy.IsCuratedOnlyAsync(authorId, model.HouseholdId);
             var prepared = await LoadPreparedPoolsAsync(
-                model.HouseholdId, emptyCells, restrictedIngredientIds, hasSevereRestriction, curatedOnly);
+                model.HouseholdId, emptyCells, restrictedIngredientIds, hasSevereRestriction, restrictedSet.ReadsContents, curatedOnly);
 
             // 4. Expand each empty cell into composition sub-slots
             var expanded = new List<(DateOnly Date, long MealTypeId, long RecipeTypeId)>();
@@ -1100,6 +1100,9 @@ namespace Nom.Orch.Services
             /// <summary>The member who shuffled draws only from audience and cookbook recipes.</summary>
             public const string CuratedOnly = "curated_only";
 
+            /// <summary>A member has a restriction or diet judged by what a dish contains (a pattern, or a food that is not a prepared food): a prepared meal's ingredients are not listed, so nothing shows it fits.</summary>
+            public const string DietRestriction = "diet_restriction";
+
             /// <summary>No curated prepared meal passes the household's restrictions, diets and locks.</summary>
             public const string NoneAvailable = "none_available";
         }
@@ -1110,12 +1113,13 @@ namespace Nom.Orch.Services
         /// <see cref="Nom.Data.Nutrition.PreparedFoods.MealCategoryIds"/> that no restriction, diet or steward/provider lock
         /// of the household forbids, drawn at random, <see cref="PoolOversample"/> per cell, each with its nutrients for one
         /// reference serving (100 g when it has none), the basis the week view shows. None when a member has a severe
-        /// restriction, because a prepared meal lists no ingredients for the severe gate to check, or when the member who
-        /// shuffles is curated-only. A meal with an empty pool falls back to recipes.
+        /// restriction, because a prepared meal lists no ingredients for the severe gate to check, when a member has a
+        /// restriction or diet judged by what a dish contains (<see cref="Support.RestrictedIngredientSet.ReadsContents"/>),
+        /// for the same reason, or when the member who shuffles is curated-only. A meal with an empty pool falls back to recipes.
         /// </summary>
         private async Task<PreparedPools> LoadPreparedPoolsAsync(
             long householdId, List<(DateOnly Date, long MealTypeId)> emptyCells,
-            List<long> restrictedIngredientIds, bool hasSevereRestriction, bool curatedOnly)
+            List<long> restrictedIngredientIds, bool hasSevereRestriction, bool readsContents, bool curatedOnly)
         {
             var pools = new Dictionary<long, List<PreparedMealCandidate>>();
             var stored = await _context.HouseholdPreferences
@@ -1129,6 +1133,7 @@ namespace Nom.Orch.Services
                 .ToList();
             if (cellsByMeal.Count == 0) return new PreparedPools(pools, null);
             if (hasSevereRestriction) return new PreparedPools(pools, PreparedMealsHeldReasons.SevereRestriction);
+            if (readsContents) return new PreparedPools(pools, PreparedMealsHeldReasons.DietRestriction);
             if (curatedOnly) return new PreparedPools(pools, PreparedMealsHeldReasons.CuratedOnly);
 
             var lockedIds = await _policy.GetLockedIngredientIdsAsync(householdId);
