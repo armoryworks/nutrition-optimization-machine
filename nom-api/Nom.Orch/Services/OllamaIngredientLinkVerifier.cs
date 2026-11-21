@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Nom.Orch.Interfaces;
 
 namespace Nom.Orch.Services
@@ -55,6 +56,7 @@ namespace Nom.Orch.Services
         private readonly string _baseUrl;
         private readonly bool _strictSchema;
 
+        [ActivatorUtilitiesConstructor]
         public OllamaIngredientLinkVerifier(HttpClient httpClient, IConfiguration config)
         {
             _httpClient = httpClient;
