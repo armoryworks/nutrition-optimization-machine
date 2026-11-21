@@ -150,6 +150,7 @@ namespace Nom.Orch.Services
             foreach (var (old, reading) in readings)
             {
                 var row = Build(new ContentsStatement(old.IngredientId, old.Source, old.Statement, old.HouseholdId, old.VerificationId), old.Statement, reading, resolver, batch, now);
+                row.ReadFromId = old.Id;
                 Count(report, row);
                 if (row.Outcome == old.Outcome && row.Reason == old.Reason && row.IngredientsJson == old.IngredientsJson && row.AllergensJson == old.AllergensJson && row.ReaderVersion == old.ReaderVersion)
                 {
@@ -163,10 +164,23 @@ namespace Nom.Orch.Services
             return report;
         }
 
-        /// <summary>Takes out the rows a pass wrote, which brings back the rows they superseded; returns how many rows it took out or, in a dry run, would.</summary>
+        /// <summary>
+        /// Takes out the rows a pass wrote and every row a later reread read again from one of them, which brings back the
+        /// rows they superseded; returns how many rows it took out or, in a dry run, would.
+        /// </summary>
         public async Task<int> UndoAsync(string batch, bool apply, CancellationToken ct = default)
         {
             var rows = await _db.IngredientContents.Where(c => c.Batch == batch).ToListAsync(ct);
+            var ids = rows.Select(r => r.Id).ToHashSet();
+            for (var from = ids.ToList(); from.Count > 0;)
+            {
+                var rereads = await _db.IngredientContents
+                    .Where(c => c.ReadFromId != null && from.Contains(c.ReadFromId.Value))
+                    .ToListAsync(ct);
+                rereads = rereads.Where(r => ids.Add(r.Id)).ToList();
+                rows.AddRange(rereads);
+                from = rereads.Select(r => r.Id).ToList();
+            }
             if (apply && rows.Count > 0)
             {
                 _db.IngredientContents.RemoveRange(rows);

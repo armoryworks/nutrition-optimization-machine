@@ -137,7 +137,8 @@ namespace Nom.Orch.Models.Curation
     /// Curated prepared meals by what is known of their contents (the diet gate offers one to a household judged by
     /// contents only when a statement was read and every ingredient resolved or recognised): read with every
     /// ingredient known, read with an ingredient not resolved, statement not readable, and no statement at all; with
-    /// how many have an FDC statement and how many a household's confirmed label. A meal counts by its best statement.
+    /// how many have an FDC statement and how many a household's confirmed label. A meal counts by its current FDC
+    /// statement, the one every household may rely on; a household's label serves only that household and is counted apart.
     /// </summary>
     public sealed record PipelinePreparedContents
     {

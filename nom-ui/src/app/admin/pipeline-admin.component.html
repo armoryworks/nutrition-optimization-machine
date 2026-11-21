@@ -223,7 +223,7 @@
       @if (s.foods.preparedContents; as pc) {
         <div data-testid="pipeline-prepared-contents">
           <h3 class="nom-pipeline__subheading">Prepared meals, by what is known of their contents</h3>
-          <p class="nom-pipeline__hint">A household with an allergy, a diet or an avoided food is offered a prepared meal only when its ingredient statement (from USDA or the household's own label) was read and every ingredient is known.</p>
+          <p class="nom-pipeline__hint">A household with an allergy, a diet or an avoided food is offered a prepared meal only when its ingredient statement (from USDA or the household's own label) was read and every ingredient is known. Meals are counted by their USDA statement, which every household may rely on; a household's label serves only that household.</p>
           <dl class="nom-pipeline__stats nom-pipeline__stats--small">
             <div><dt>Curated prepared meals</dt><dd data-testid="pipeline-metric-prepared-meals">{{ pc.meals | number }}</dd></div>
             <div><dt>Contents read, every ingredient known</dt><dd data-testid="pipeline-metric-prepared-read">{{ pc.read | number }}</dd></div>

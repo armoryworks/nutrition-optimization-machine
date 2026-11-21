@@ -26,6 +26,7 @@ public class IngredientContentsEntityConfiguration : IEntityTypeConfiguration<In
 
         builder.HasIndex(e => new { e.IngredientId, e.HouseholdId });
         builder.HasIndex(e => e.Batch);
+        builder.HasIndex(e => e.ReadFromId);
 
         builder.HasOne(e => e.Ingredient)
             .WithMany()

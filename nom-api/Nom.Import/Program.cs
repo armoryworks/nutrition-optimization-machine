@@ -197,6 +197,8 @@ namespace Nom.Import
                 Console.WriteLine($"Skipped (dup name): {r.SkippedDuplicateName}");
                 Console.WriteLine($"Nutrient rows:      {r.NutrientRows}");
                 Console.WriteLine($"Meal statements:    {r.PreparedMealStatements} (FDC ingredient statements of prepared meals, read as evidence)");
+                if (r.PreparedMealStatementsBatch != null)
+                    Console.WriteLine($"Statement batch:    {r.PreparedMealStatementsBatch} (take these statements back with --prepared-contents --undo {r.PreparedMealStatementsBatch})");
                 foreach (var (reason, n) in r.RejectedByReason.OrderByDescending(x => x.Value))
                     Console.WriteLine($"  reject: {reason} x {n}");
                 foreach (var (reason, n) in r.DroppedValuesByReason.OrderByDescending(x => x.Value))

@@ -278,25 +278,25 @@ namespace Nom.Orch.Services
                 .Select(c => new ContentsFact { Id = c.Id, IngredientId = c.IngredientId, HouseholdId = c.HouseholdId, Read = c.Outcome == IngredientContentsOutcome.Read, Unresolved = c.Unresolved });
 
         /// <summary>
-        /// Counts each meal once by its best current statement (the newest row of each food and household): read with
-        /// every ingredient known, then read with one unresolved, then unread; a meal with no row has none.
+        /// Counts each meal once by its current FDC statement (the newest row with no household), the one statement every
+        /// household may rely on: read with every ingredient known, read with one unresolved, unread, or none. A household's
+        /// label serves only that household, so it moves no meal between these counts; the meals that have one are counted apart.
         /// </summary>
         public static PipelinePreparedContents PreparedContents(int meals, IReadOnlyCollection<ContentsFact> facts)
         {
-            var current = facts.GroupBy(f => (f.IngredientId, f.HouseholdId)).Select(g => g.OrderByDescending(f => f.Id).First()).ToList();
-            var byFood = current.GroupBy(f => f.IngredientId).ToList();
-            var read = byFood.Count(g => g.Any(f => f.Read && f.Unresolved == 0));
-            var readUnresolved = byFood.Count(g => !g.Any(f => f.Read && f.Unresolved == 0) && g.Any(f => f.Read));
-            var unread = byFood.Count(g => !g.Any(f => f.Read));
+            var fdc = facts.Where(f => f.HouseholdId == null)
+                .GroupBy(f => f.IngredientId)
+                .Select(g => g.OrderByDescending(f => f.Id).First())
+                .ToList();
             return new PipelinePreparedContents
             {
                 Meals = meals,
-                Read = read,
-                ReadUnresolved = readUnresolved,
-                Unread = unread,
-                None = Math.Max(0, meals - byFood.Count),
-                FromFdc = byFood.Count(g => g.Any(f => f.HouseholdId == null)),
-                FromLabels = byFood.Count(g => g.Any(f => f.HouseholdId != null)),
+                Read = fdc.Count(f => f.Read && f.Unresolved == 0),
+                ReadUnresolved = fdc.Count(f => f.Read && f.Unresolved > 0),
+                Unread = fdc.Count(f => !f.Read),
+                None = Math.Max(0, meals - fdc.Count),
+                FromFdc = fdc.Count,
+                FromLabels = facts.Where(f => f.HouseholdId != null).Select(f => f.IngredientId).Distinct().Count(),
             };
         }
 

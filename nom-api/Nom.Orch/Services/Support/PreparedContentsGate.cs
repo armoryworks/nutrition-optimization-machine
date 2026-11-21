@@ -15,6 +15,21 @@ namespace Nom.Orch.Services.Support
         public bool Offered => Held == null;
     }
 
+    /// <summary>A food a household's restrictions name directly, with the highest severity naming it, the words of its name's head and the major allergen classes those words name.</summary>
+    public sealed record NamedRestrictedFood(long FoodId, int Severity, IReadOnlyList<string> Head, IReadOnlySet<string> Classes)
+    {
+        /// <summary>The food as the gate reads it from its catalog name: the head is the name before its first comma ("Peanuts, all types, raw" → peanuts).</summary>
+        public static NamedRestrictedFood Of(long foodId, int severity, string name)
+        {
+            var head = PreparedContentsGate.Words(name.Split(',')[0]);
+            var classes = IngredientStatementReader.AllergenClasses
+                .Where(c => c.Value.Any(w => PreparedContentsGate.NamesWords(head, PreparedContentsGate.Words(w))))
+                .Select(c => c.Key)
+                .ToHashSet(StringComparer.Ordinal);
+            return new NamedRestrictedFood(foodId, severity, head, classes);
+        }
+    }
+
     /// <summary>The reasons <see cref="PreparedContentsGate"/> gives.</summary>
     public static class PreparedContentsHeld
     {
@@ -42,7 +57,9 @@ namespace Nom.Orch.Services.Support
     /// alcohol criterion, when it reads as a drink (no amount is given, so the alcohol that stays cannot be counted); an
     /// allergen of the "Contains" line is read with every word of its class against every pattern, and an allergen a
     /// "may contain" or shared-facility line warns of is read the same way against the criteria of severity 4 and 5
-    /// (allergies and medical restrictions). The statement that decides is the household's own confirmed label, else the
+    /// (allergies and medical restrictions). A food the restrictions name directly (<see cref="RestrictedIngredientSet.NamedFoods"/>)
+    /// is held by a declared allergen, or at severity 4 and 5 by a warned one, of a major allergen class its name's head
+    /// names or whose own words name that head, and by a recognised term or compound whose text names that head. The statement that decides is the household's own confirmed label, else the
     /// FDC statement; a restricted thing named in either holds the meal. A meal is offered only when the deciding statement
     /// was read, every named ingredient resolved to a curated food (still curated) or was recognised, and nothing is
     /// restricted; anything unknown keeps it out.
@@ -66,12 +83,21 @@ namespace Nom.Orch.Services.Support
                     .Select(i => i.Id)
                     .ToListAsync())
                 .ToHashSet();
-            foreach (var id in foodIds.Distinct()) result[id] = Judge(id, byFood[id].ToList(), householdId, set, curated);
+            var namedIds = set.NamedFoods.Keys.ToList();
+            var named = namedIds.Count == 0
+                ? new List<NamedRestrictedFood>()
+                : (await db.Ingredients.AsNoTracking().IgnoreQueryFilters()
+                        .Where(i => namedIds.Contains(i.Id))
+                        .Select(i => new { i.Id, i.Name })
+                        .ToListAsync())
+                    .Select(i => NamedRestrictedFood.Of(i.Id, set.NamedFoods[i.Id], i.Name))
+                    .ToList();
+            foreach (var id in foodIds.Distinct()) result[id] = Judge(id, byFood[id].ToList(), householdId, set, curated, named);
             return result;
         }
 
         /// <summary>The verdict for one food from its stored statements.</summary>
-        public static PreparedContentsVerdict Judge(long foodId, IReadOnlyCollection<IngredientContentsEntity> rows, long householdId, RestrictedIngredientSet set, IReadOnlySet<long> curatedFoodIds)
+        public static PreparedContentsVerdict Judge(long foodId, IReadOnlyCollection<IngredientContentsEntity> rows, long householdId, RestrictedIngredientSet set, IReadOnlySet<long> curatedFoodIds, IReadOnlyCollection<NamedRestrictedFood>? named = null)
         {
             if (set.IngredientIds.Contains(foodId)) return new PreparedContentsVerdict(foodId, PreparedContentsHeld.Food, Array.Empty<string>());
             var label = rows.Where(r => r.HouseholdId == householdId).OrderByDescending(r => r.Id).FirstOrDefault();
@@ -81,7 +107,7 @@ namespace Nom.Orch.Services.Support
 
             var restricted = new[] { label, fdc }
                 .Where(r => r != null && r.Outcome == IngredientContentsOutcome.Read)
-                .SelectMany(r => RestrictedNames(r!, set))
+                .SelectMany(r => RestrictedNames(r!, set, named))
                 .Distinct(StringComparer.Ordinal)
                 .ToList();
             if (restricted.Count > 0) return new PreparedContentsVerdict(foodId, PreparedContentsHeld.Restricted, restricted);
@@ -99,25 +125,54 @@ namespace Nom.Orch.Services.Support
         }
 
         /// <summary>What in one read statement the household's restrictions forbid: the named ingredients and the declared or warned allergens.</summary>
-        public static IEnumerable<string> RestrictedNames(IngredientContentsEntity row, RestrictedIngredientSet set)
+        public static IEnumerable<string> RestrictedNames(IngredientContentsEntity row, RestrictedIngredientSet set, IReadOnlyCollection<NamedRestrictedFood>? named = null)
         {
+            named ??= Array.Empty<NamedRestrictedFood>();
             var patterns = set.Criteria.Where(c => c.LikePattern != null || c.WordPattern != null).ToList();
             var drinks = set.Criteria.Any(c => c.NutrientId != null && DietCriteriaMatcher.IsAlcohol(c.NutrientName));
             foreach (var item in PreparedContentsService.Items(row))
             {
                 if ((item.FoodId is { } food && set.IngredientIds.Contains(food))
                     || patterns.Any(c => DietCriteriaMatcher.LineNames(c, item.Name))
-                    || (drinks && AlcoholLineContext.CountsForDiet(AlcoholLineContext.Read(item.Name))))
+                    || (drinks && AlcoholLineContext.CountsForDiet(AlcoholLineContext.Read(item.Name)))
+                    || (item.FoodId == null && named.Any(f => NamesWords(Words(item.Name), f.Head))))
                     yield return item.Name;
             }
             var allergens = PreparedContentsService.Allergens(row);
             foreach (var allergen in allergens.Declared)
-                if (IngredientStatementReader.GateWords(allergen).Any(w => patterns.Any(c => DietCriteriaMatcher.LineNames(c, w))))
+                if (IngredientStatementReader.GateWords(allergen).Any(w => patterns.Any(c => DietCriteriaMatcher.LineNames(c, w)))
+                    || named.Any(f => Warns(allergen, f)))
                     yield return "contains " + allergen.Word;
             var severe = patterns.Where(c => c.Severity >= 4).ToList();
             foreach (var allergen in allergens.Advisory)
-                if (IngredientStatementReader.GateWords(allergen).Any(w => severe.Any(c => DietCriteriaMatcher.LineNames(c, w))))
+                if (IngredientStatementReader.GateWords(allergen).Any(w => severe.Any(c => DietCriteriaMatcher.LineNames(c, w)))
+                    || named.Any(f => f.Severity >= 4 && Warns(allergen, f)))
                     yield return "may contain " + allergen.Word;
         }
+
+        private static bool Warns(StatementAllergen allergen, NamedRestrictedFood food) =>
+            (allergen.Class != null && food.Classes.Contains(allergen.Class)) || NamesWords(Words(allergen.Word), food.Head);
+
+        /// <summary>The lower-case words of a text, each without a plural "s" or "es".</summary>
+        public static IReadOnlyList<string> Words(string text) =>
+            System.Text.RegularExpressions.Regex.Split(text.ToLowerInvariant(), @"[^\p{L}]+")
+                .Where(w => w.Length > 0)
+                .Select(Singular)
+                .ToList();
+
+        /// <summary>Whether <paramref name="words"/> holds <paramref name="phrase"/> as consecutive words.</summary>
+        public static bool NamesWords(IReadOnlyList<string> words, IReadOnlyList<string> phrase)
+        {
+            if (phrase.Count == 0 || phrase.Count > words.Count) return false;
+            for (var start = 0; start + phrase.Count <= words.Count; start++)
+                if (phrase.Select((w, i) => words[start + i] == w).All(m => m)) return true;
+            return false;
+        }
+
+        private static string Singular(string word) =>
+            word.Length > 4 && word.EndsWith("ies", StringComparison.Ordinal) ? word[..^3] + "y"
+            : word.Length > 3 && word.EndsWith("oes", StringComparison.Ordinal) ? word[..^2]
+            : word.Length > 3 && word.EndsWith('s') && !word.EndsWith("ss", StringComparison.Ordinal) ? word[..^1]
+            : word;
     }
 }

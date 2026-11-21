@@ -49,6 +49,9 @@ namespace Nom.Data.Recipe
 
         /// <summary>The run that wrote the row (an FDC pass's stamp, or the label confirmation's); a pass is undone by its stamp.</summary>
         public string Batch { get; set; } = string.Empty;
+
+        /// <summary>The row a reread read again (its statement and source are that row's); undoing that row's run takes this one out with it.</summary>
+        public long? ReadFromId { get; set; }
     }
 
     public static class IngredientContentsOutcome

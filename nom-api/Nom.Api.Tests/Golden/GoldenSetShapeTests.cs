@@ -56,7 +56,7 @@ namespace Nom.Api.Tests.Golden
             { "alcohol-retention.tsv", 60, new[] { "status" } },
             { "diet-gate.tsv", 30, new[] { "status" } },
             { "sources.tsv", 40, new[] { "status" } },
-            { "prepared-contents.tsv", 40, new[] { "status" } },
+            { "prepared-contents.tsv", 42, new[] { "status" } },
         };
 
         [Theory]

@@ -33,7 +33,7 @@ never a food-group top-up. It is drawn by shuffle only once it is **Curated**, a
 curated only by the branded lift (two or more agreeing sources for its numbers). A statement is no
 source for numbers, so this item adds no way around the lift.
 
-## The reader (`IngredientStatementReader`, `contents-reader/1`)
+## The reader (`IngredientStatementReader`, `contents-reader/2`)
 
 Deterministic, pure, in `Nom.Orch/Services/Support`. It gives the named ingredients (with their parent
 when they are sub-ingredients), the allergens the regulated "Contains:" line declares, and the allergens a
@@ -48,13 +48,13 @@ when they are sub-ingredients), the allergens the regulated "Contains:" line dec
 | `canola and/or soybean oil`, `palm or soybean oil`, `(corn, canola, and/or soybean)` | every alternative is named; a single-word alternative takes the last alternative's head word |
 | `(a preservative)`, `(vitamin B1)`, `(for color)`, `added to prevent caking`, "no nitrites added except ..." | what an ingredient is for or a claim: names nothing |
 | `Contains: milk, wheat, soy`, `Allergens: ...`, `CONTAINS MILK AND SOY INGREDIENTS` (also glued to the last period, also doubled) | declared allergens, each with its major-allergen class (`AllergenClasses`: milk, egg, fish, shellfish, tree nuts, peanut, wheat, soy, sesame) |
-| `May contain peanuts`, `Made in a facility that also processes milk`, `Manufactured on shared equipment with products containing sesame`, `This product is made in a facility ...` | advisory allergens |
+| `May contain peanuts`, `Made in a facility that also processes milk`, `Manufactured on shared equipment with products containing sesame`, `This product is made in a facility ...` | advisory allergens: everything after the warning's first lead ("may contain", "processes", "handles", "with", ...); a later lead or shared-facility clause in the same sentence separates allergens and never takes the place of the ones before it ("... processes peanuts, with strict allergen controls" keeps peanuts) |
 
 **Unread** (contents unknown, never safe): empty; a placeholder ("N/A", "see package"); not text;
 unbalanced brackets; an item of more than 12 words (a missing comma); a Contains line with no allergen; a
 warning that names no allergen; an allergen line with no ingredient list.
 
-The golden set is `prepared-contents.tsv` (40 rule-given rows, `ok`, `rule:construction`; see
+The golden set is `prepared-contents.tsv` (42 rule-given rows, `ok`, `rule:construction`; see
 `golden-sets.md`); its floor is every row.
 
 On the 45,543 current US statements of FDC's whole-meal categories (December 2025 release) the reader reads
@@ -78,7 +78,12 @@ known (`food` with its id, `term`, `compound`, `unresolved`), the allergens, the
 and a batch stamp. A newer row of the same food and household supersedes an older one; a pass writes a row
 only when the source, text or reader version changed; `--prepared-contents --undo <batch>` takes a pass's
 rows out, which brings the superseded rows back; `--prepared-contents --reread` reads every current row
-again with the current reader, vocabulary and catalog (a wording load can resolve more names).
+again with the current reader, vocabulary and catalog (a wording load can resolve more names). A reread row
+records the row it read again (`ReadFromId`), so undoing a pass also takes out every reread row that came from
+one of its rows, however many rereads followed; undoing a reread brings back the rows it read again.
+`--import-fdc-branded` prints the batch of the statements it stored (`Statement batch:`), which
+`--prepared-contents --undo` takes back. `--purge-fdc` soft-deletes foods and leaves their statement rows; a
+deleted food is never drawn, offered in the picker or counted on the Pipeline page, so those rows decide nothing.
 
 ## The gate (`PreparedContentsGate`)
 
@@ -95,7 +100,12 @@ lines:
    drink (no amount is given, so the alcohol that stays cannot be counted; a wine vinegar is no drink).
    Each declared allergen is read with every word of its class against every pattern; each advisory
    allergen the same way against the criteria of severity 4 and 5 only (allergies and medical
-   restrictions; a vegetarian diet is not held by a shared facility). Anything restricted → held
+   restrictions; a vegetarian diet is not held by a shared facility). A food the restrictions name directly
+   (a restriction's own food, or a type's named-food criterion: `RestrictedIngredientSet.NamedFoods`) is read
+   against the allergens too: a declared allergen, or at severity 4 and 5 an advisory one, holds the meal when
+   its major-allergen class is one the food's name head names (the name before its first comma: "Peanuts, all
+   types, raw" is peanut, "Nuts, cashew nuts, raw" is tree nuts) or when its own words name that head; and a
+   recognised term or compound (no food id) whose text names that head holds it. Anything restricted → held
    (`contents_restricted`, with the names).
 4. The deciding statement unread → held (`contents_unread`).
 5. A named ingredient unresolved, or resolved to a food no longer curated → held (`contents_unresolved`,
@@ -111,11 +121,11 @@ A household with no such restriction is not judged by contents, as before.
 | Shuffle (`LoadPreparedPoolsAsync`) | For a household judged by contents, the pool of each meal given to prepared meals is the curated prepared meals with a read statement that the gate offers, drawn at random three per cell and scored like recipes. A meal with none falls back to recipes with `severe_restriction` or `diet_restriction` as before. |
 | Hand-add picker (`GET /api/MealPlan/prepared-check?householdId=&ingredientIds=`) | The plan dialog's food picker checks every prepared result and shows why one is held (`whole-food-result-held`); the household may still add it. |
 | Shopping list (`NeedsVerificationAsync`) | Ticking a prepared meal whose contents the household needs but no statement shows (none, unread or unresolved) asks for its label (`askContents`), so the household's own label can make it known. A meal a statement already shows to be restricted is not asked about. |
-| Pipeline page (`pipeline-prepared-contents`) | Curated prepared meals: contents read with every ingredient known, read with one unresolved, unreadable, no statement; how many have an FDC statement and how many a household label. |
+| Pipeline page (`pipeline-prepared-contents`) | Curated prepared meals by their current FDC statement, the one every household may rely on: read with every ingredient known, read with one unresolved, unreadable, no statement; how many have an FDC statement and, apart, how many a household label (a label serves only its household and moves no meal between the other counts). |
 
 ## Operator steps
 
-1. `./db/apply.sh --dry-run`: new table `recipe."IngredientContents"` and one nullable `text` column
+1. `./db/apply.sh --dry-run`: new table `recipe."IngredientContents"` (with `ReadFromId` and its index) and one nullable `text` column
    `recipe."IngredientVerification"."IngredientStatement"`. Apply.
 2. After the branded import and the branded lift have run on the target:
    `dotnet run --project nom-api/Nom.Import -- --prepared-contents <fdc-branded-csv-dir> --dry-run`, read the

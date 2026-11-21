@@ -579,6 +579,7 @@ namespace Nom.Api.Tests.Services.Import
             row.Source.Should().Be("fdc:2100001");
             row.HouseholdId.Should().BeNull();
             row.Outcome.Should().Be(IngredientContentsOutcome.Read);
+            report.PreparedMealStatementsBatch.Should().Be(row.Batch, "the report hands the operator the batch that --prepared-contents --undo takes back");
             PreparedContentsService.Allergens(row).Declared.Select(a => a.Word).Should().Equal("soy");
             PreparedContentsService.Items(row).Select(i => i.Name).Should().Equal("cooked rice", "chicken", "chicken", "water", "salt", "broccoli");
             FdcIngredientStatements.Read(dir, new HashSet<string> { "2100002", "2199999" })

@@ -42,7 +42,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class IngredientStatementReader
     {
-        public const string Version = "contents-reader/1";
+        public const string Version = "contents-reader/2";
         public const int MaxWordsPerItem = 12;
 
         /// <summary>The major food allergens (FALCPA and FASTER) and the words that name each; a declared class counts for every word of it.</summary>
@@ -98,6 +98,7 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex ContainsLine = new(@"^(?:allergens?\s*(?:statement\s*)?[:\-]\s*)?(?:contains|allergens?)\b\s*[:\-]?\s*(?<rest>.*)$", Options);
         private static readonly Regex Continuation = new(@"^(?:less\s+than|\d|one\s+or\s+more|two\s+percent|the\s+following|each\s+of)", Options);
         private static readonly Regex AdvisoryLead = new(@"\b(?:" + MayContain + @"(?:\s+(?:traces?|trace\s+amounts|small\s+amounts)\s+of)?|(?:also\s+)?(?:processes|handles|uses|packages|produces|manufactures|packs|contains)|with)\b", Options);
+        private static readonly Regex AdvisoryClause = new(@"\b(?:" + MadeIn + "|" + Shared + ")", Options);
         private static readonly Regex ProductsContaining = new(@"^(?:other\s+)?(?:products?|foods?|ingredients?)\s+(?:that\s+)?(?:containing|contain|made\s+with|with|including|such\s+as)\s+|^(?:traces?\s+of|trace\s+amounts\s+of)\s+", Options);
         private static readonly Regex AllergenNoise = new(@"\b(?:allergens?|ingredients?|products?|and\s+(?:its|their)\s+derivatives|derivatives?|protein)\b", Options);
         private static readonly Regex Marker = new(@"^(?:(?:and|or|and/or)\s+)?(?:contains\s+)?(?:(?:less\s+than|not\s+more\s+than|no\s+more\s+than|under)\s+\d+(?:\.\d+)?\s*%|\d+(?:\.\d+)?\s*%\s*or\s+less|2%\s*or\s+less|less\s+than\s+two\s+percent|(?:may\s+)?(?:contain\s+)?one\s+or\s+more|may\s+contain\s+(?:any\s+(?:one\s+)?of|either))(?:\s+of)?(?:\s+each)?(?:\s+of)?(?:\s+the\s+following)?(?:\s+ingredients)?\s*:?\s*", Options);
@@ -262,8 +263,10 @@ namespace Nom.Orch.Services.Support
 
         private static string AdvisoryTail(string sentence)
         {
-            var matches = AdvisoryLead.Matches(sentence);
-            return matches.Count == 0 ? string.Empty : sentence[(matches[^1].Index + matches[^1].Length)..];
+            var lead = AdvisoryLead.Match(sentence);
+            if (!lead.Success) return string.Empty;
+            var rest = sentence[(lead.Index + lead.Length)..];
+            return AdvisoryLead.Replace(AdvisoryClause.Replace(rest, ","), ",");
         }
 
         private static List<string> AllergenWords(string rest)

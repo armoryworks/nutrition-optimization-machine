@@ -20,7 +20,12 @@ namespace Nom.Orch.Services.Support
         public HashSet<long> RecipeIds { get; } = new();
         /// <summary>The nutrient, word and name-pattern criteria of the restrictions, which <see cref="PreparedContentsGate"/> reads a prepared meal's named ingredients and allergens against as a recipe's lines are read.</summary>
         public List<DietDataCriterion> Criteria { get; } = new();
+        /// <summary>The foods the restrictions name directly (a restriction's own food or a type's named-food criterion), each with the highest severity that names it, which <see cref="PreparedContentsGate"/> reads a prepared meal's allergens and recognised terms against.</summary>
+        public Dictionary<long, int> NamedFoods { get; } = new();
         public static readonly RestrictedIngredientSet Empty = new();
+
+        internal void Name(long foodId, int severity) =>
+            NamedFoods[foodId] = Math.Max(severity, NamedFoods.GetValueOrDefault(foodId));
     }
 
     /// <summary>
@@ -78,6 +83,7 @@ namespace Nom.Orch.Services.Support
                 {
                     result.IngredientIds.Add(id);
                     namedFoodIds.Add(id);
+                    result.Name(id, r.Severity ?? 0);
                 }
                 if ((r.Severity ?? 0) >= 4) result.HasSevere = true;
             }
@@ -96,6 +102,7 @@ namespace Nom.Orch.Services.Support
                     {
                         result.IngredientIds.Add(id);
                         namedFoodIds.Add(id);
+                        result.Name(id, c.Severity);
                     }
                     if (c.Severity >= 4) result.HasSevere = true;
                     if (!string.IsNullOrWhiteSpace(c.IngredientPattern)) result.ReadsContents = true;
@@ -138,6 +145,7 @@ namespace Nom.Orch.Services.Support
             foreach (var r in restrictions.Where(r => r.IngredientId != null && (r.Severity ?? 0) >= 4))
             {
                 result.IngredientIds.Add(r.IngredientId!.Value);
+                result.Name(r.IngredientId!.Value, r.Severity ?? 0);
                 result.HasSevere = true;
             }
 
@@ -146,13 +154,16 @@ namespace Nom.Orch.Services.Support
 
             var criteria = await _db.Set<RestrictionCriterionEntity>()
                 .Where(c => typeIds.Contains(c.RestrictionTypeId) && c.Severity >= 4)
-                .Select(c => new { c.IngredientId, c.IngredientPattern })
+                .Select(c => new { c.IngredientId, c.IngredientPattern, c.Severity })
                 .ToListAsync();
             if (criteria.Count == 0) return result;
 
             result.HasSevere = true;
             foreach (var c in criteria.Where(c => c.IngredientId != null))
+            {
                 result.IngredientIds.Add(c.IngredientId!.Value);
+                result.Name(c.IngredientId!.Value, c.Severity);
+            }
 
             await AddDataCriteriaAsync(result, typeIds, 4);
             return result;

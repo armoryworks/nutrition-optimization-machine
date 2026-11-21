@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict cGSfOxxoKBW26FEbPSuYKbrem1wrGgy8M2aeZrPMPnI6jtTrgK2uG27LWxcYhGh
+\restrict ppB0elpeD15JzCOI3sdfcQ13pncmCfImPh5DtyvyhN5p3QFK6D69UL1rjiYt88m
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -2469,6 +2469,7 @@ CREATE TABLE recipe."IngredientContents" (
     "AllergensJson" jsonb,
     "Unresolved" integer NOT NULL,
     "Batch" character varying(64) NOT NULL,
+    "ReadFromId" bigint,
     "CreatedDate" timestamp with time zone NOT NULL,
     "CreatedByPersonId" bigint,
     "LastModifiedDate" timestamp with time zone,
@@ -6776,6 +6777,13 @@ CREATE INDEX "IX_IngredientContents_IngredientId_HouseholdId" ON recipe."Ingredi
 
 
 --
+-- Name: IX_IngredientContents_ReadFromId; Type: INDEX; Schema: recipe; Owner: -
+--
+
+CREATE INDEX "IX_IngredientContents_ReadFromId" ON recipe."IngredientContents" USING btree ("ReadFromId");
+
+
+--
 -- Name: IX_IngredientExtras_IngredientId; Type: INDEX; Schema: recipe; Owner: -
 --
 
@@ -9551,5 +9559,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict cGSfOxxoKBW26FEbPSuYKbrem1wrGgy8M2aeZrPMPnI6jtTrgK2uG27LWxcYhGh
+\unrestrict ppB0elpeD15JzCOI3sdfcQ13pncmCfImPh5DtyvyhN5p3QFK6D69UL1rjiYt88m
 

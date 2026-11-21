@@ -383,7 +383,7 @@ namespace Nom.Api.Tests.Services.MealPlan
         }
 
         [Fact]
-        public void The_pipeline_counts_each_curated_meal_once_by_its_best_current_statement()
+        public void The_pipeline_counts_each_curated_meal_once_by_its_current_fdc_statement_and_a_households_label_apart()
         {
             var facts = new List<PipelineStatusService.ContentsFact>
             {
@@ -393,17 +393,96 @@ namespace Nom.Api.Tests.Services.MealPlan
                 new() { Id = 4, IngredientId = 12, HouseholdId = null, Read = true, Unresolved = 1 },
                 new() { Id = 5, IngredientId = 13, HouseholdId = null, Read = true, Unresolved = 0 },
                 new() { Id = 6, IngredientId = 13, HouseholdId = null, Read = false, Unresolved = 0 },
+                new() { Id = 7, IngredientId = 14, HouseholdId = null, Read = false, Unresolved = 0 },
+                new() { Id = 8, IngredientId = 14, HouseholdId = 7, Read = true, Unresolved = 0 },
+                new() { Id = 9, IngredientId = 15, HouseholdId = 7, Read = true, Unresolved = 0 },
             };
 
             var counts = PipelineStatusService.PreparedContents(10, facts);
 
             counts.Meals.Should().Be(10);
-            counts.Read.Should().Be(2, "meal 10 by FDC and meal 11 by a household's label");
-            counts.ReadUnresolved.Should().Be(1);
-            counts.Unread.Should().Be(1, "meal 13's newest FDC statement supersedes the older read one");
-            counts.None.Should().Be(6);
-            counts.FromFdc.Should().Be(4);
-            counts.FromLabels.Should().Be(1);
+            counts.Read.Should().Be(1, "only meal 10's FDC statement is read with every ingredient known; a household's label serves that household only");
+            counts.ReadUnresolved.Should().Be(2, "meals 11 and 12 by their FDC statements, whatever one household's label says of meal 11");
+            counts.Unread.Should().Be(2, "meal 13's newest FDC statement supersedes the older read one, and meal 14's label does not make its FDC statement readable");
+            counts.None.Should().Be(5, "meal 15 has only a household's label, so for every other household it has no statement");
+            counts.FromFdc.Should().Be(5);
+            counts.FromLabels.Should().Be(3);
+        }
+
+        [Fact]
+        public async Task A_food_avoided_directly_is_held_by_a_declared_or_warned_allergen_of_its_class_and_by_a_compound_naming_it()
+        {
+            using var db = await SeedAsync();
+            var peanuts = new IngredientEntity { Name = "Peanuts, all types, raw", CurationStatusId = (long)CurationStatusEnum.Curated, FdcCategoryId = 11 };
+            var cashews = new IngredientEntity { Name = "Nuts, cashew nuts, raw", CurationStatusId = (long)CurationStatusEnum.Curated, FdcCategoryId = 11 };
+            db.Ingredients.AddRange(peanuts, cashews);
+            await db.SaveChangesAsync();
+            var declared = await MealWithStatementAsync(db, "Chicken rice bowl, frozen", "Ingredients: Chicken, rice, water, salt, natural flavor. Contains: peanut.", "3000070");
+            var warned = await MealWithStatementAsync(db, "Chicken rice, frozen", "Ingredients: Chicken, rice. May contain peanuts.", "3000071");
+            var nuts = await MealWithStatementAsync(db, "Rice pilaf, frozen", "Ingredients: Rice, water, salt. Contains: tree nuts.", "3000072");
+            var clean = await MealWithStatementAsync(db, "Plain rice bowl, frozen", "Ingredients: Chicken, rice, water, salt.", "3000073");
+            var sauced = await MealWithStatementAsync(db, "Satay rice bowl, frozen", "Ingredients: Chicken, rice, peanut sauce (water, salt).", "3000075");
+            db.Restrictions.Add(new RestrictionEntity { PersonId = PersonId, Name = "Peanuts", IngredientId = peanuts.Id, Severity = 5 });
+            await db.SaveChangesAsync();
+
+            var checks = await CheckAsync(db, HouseholdId, declared.Id, warned.Id, nuts.Id, clean.Id, sauced.Id);
+
+            checks[declared.Id].Held.Should().Be(PreparedContentsHeld.Restricted, "a declared allergen of the avoided food's class is contained");
+            checks[declared.Id].Names.Should().Contain("contains peanut");
+            checks[warned.Id].Held.Should().Be(PreparedContentsHeld.Restricted, "a warning counts as contained for a severity 5 avoided food");
+            checks[warned.Id].Names.Should().Contain("may contain peanuts");
+            checks[nuts.Id].Held.Should().BeNull("tree nuts are not peanuts");
+            checks[clean.Id].Held.Should().BeNull();
+            checks[sauced.Id].Held.Should().Be(PreparedContentsHeld.Restricted, "a compound known by its parts is still read by its own name");
+            checks[sauced.Id].Names.Should().Contain("peanut sauce");
+            await ShuffleWeekAsync(db);
+            (await LunchFoodsAsync(db)).Should().OnlyContain(id => id == nuts.Id || id == clean.Id);
+
+            db.Restrictions.Add(new RestrictionEntity { PersonId = PersonId, Name = "Cashews", IngredientId = cashews.Id, Severity = 3 });
+            await db.SaveChangesAsync();
+            checks = await CheckAsync(db, HouseholdId, nuts.Id, warned.Id);
+            checks[nuts.Id].Held.Should().Be(PreparedContentsHeld.Restricted, "a declared class holds every avoided food of that class");
+            checks[nuts.Id].Names.Should().Contain("contains tree nuts");
+
+            var mild = await MealWithStatementAsync(db, "Cashew-free rice, frozen", "Ingredients: Rice, water. Made in a facility that also processes cashews.", "3000074");
+            (await CheckAsync(db, HouseholdId, mild.Id))[mild.Id].Held.Should().BeNull("a warning holds an avoided food only at severity 4 and 5");
+        }
+
+        [Fact]
+        public async Task A_shared_facility_warning_followed_by_a_with_clause_keeps_its_allergens_for_an_allergy()
+        {
+            using var db = await SeedAsync();
+            var bowl = await MealWithStatementAsync(db, "Rice and chicken, frozen", "Ingredients: Rice, chicken. Made in a facility that processes peanuts, with strict allergen controls.", "3000080");
+            await RestrictAsync(db, PeanutAllergyRef);
+
+            var check = (await CheckAsync(db, HouseholdId, bowl.Id))[bowl.Id];
+
+            check.Held.Should().Be(PreparedContentsHeld.Restricted);
+            check.Names.Should().Contain("may contain peanuts");
+        }
+
+        [Fact]
+        public async Task Undoing_a_pass_takes_out_the_rows_a_later_reread_read_again_from_it()
+        {
+            using var db = await SeedAsync();
+            var bowl = Meal(db, "Chicken rice bowl, frozen");
+            await db.SaveChangesAsync();
+            var contents = new PreparedContentsService(db);
+            await contents.RecordAsync(new[] { new ContentsStatement(bowl.Id, PreparedContentsService.FdcSource("3000090"), "Ingredients: Jasmine rice, chicken, salt.") }, "fdc-contents-t1", apply: true);
+            await RestrictAsync(db, PeanutAllergyRef);
+            (await CheckAsync(db, HouseholdId, bowl.Id))[bowl.Id].Held.Should().Be(PreparedContentsHeld.Unresolved, "jasmine rice is no catalog food yet");
+
+            db.Ingredients.Add(new IngredientEntity { Name = "Jasmine rice", CurationStatusId = (long)CurationStatusEnum.Curated, FdcCategoryId = 11 });
+            await db.SaveChangesAsync();
+            var reread = await contents.RereadAsync("contents-reread-t2", apply: true);
+            reread.Written.Should().Be(1);
+            (await CheckAsync(db, HouseholdId, bowl.Id))[bowl.Id].Held.Should().BeNull();
+
+            (await contents.UndoAsync("fdc-contents-t1", apply: false)).Should().Be(2, "a dry run counts the reread copy too");
+            (await contents.UndoAsync("fdc-contents-t1", apply: true)).Should().Be(2);
+
+            (await db.IngredientContents.CountAsync(c => c.IngredientId == bowl.Id)).Should().Be(0);
+            (await CheckAsync(db, HouseholdId, bowl.Id))[bowl.Id].Held.Should().Be(PreparedContentsHeld.None, "the undone statement no longer decides through its reread copy");
         }
 
         private static byte[] TinyPng()

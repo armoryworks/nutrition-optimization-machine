@@ -124,6 +124,7 @@ namespace Nom.Import.Services
                 var contents = await new Nom.Orch.Services.PreparedContentsService(_db)
                     .RecordAsync(statements, Nom.Orch.Services.PreparedContentsService.NewBatch("fdc-contents"), apply: true, ct);
                 report.PreparedMealStatements = contents.Written;
+                if (contents.Written > 0) report.PreparedMealStatementsBatch = contents.Batch;
             }
 
             foreach (var (ing, m) in pending)
@@ -268,6 +269,7 @@ namespace Nom.Import.Services
             public int SkippedExisting { get; set; }
             public int SkippedDuplicateName { get; set; }
             public int PreparedMealStatements { get; set; }
+            public string? PreparedMealStatementsBatch { get; set; }
             public int NutrientRows;
             public Dictionary<string, int> RejectedByReason { get; } = new();
             public Dictionary<string, int> DroppedValuesByReason { get; } = new();
