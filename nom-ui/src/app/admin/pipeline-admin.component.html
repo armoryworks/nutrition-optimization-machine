@@ -50,12 +50,21 @@
         <div><dt>Waiting, scraped without own image</dt><dd data-testid="pipeline-metric-recipes-waiting-without-image">{{ s.recipes.waitingScrapedWithoutOwnImage | number }}</dd></div>
         <div><dt>Waiting with source prose</dt><dd data-testid="pipeline-metric-recipes-waiting-source-prose">{{ s.recipes.waitingWithSourceProse | number }}</dd></div>
         <div><dt>Prose withheld (approved)</dt><dd data-testid="pipeline-metric-recipes-prose-withheld">{{ s.recipes.proseWithheld | number }} ({{ s.recipes.proseWithheldApproved | number }})</dd></div>
+        <div><dt>Prose the rewrite lane gave up on</dt><dd data-testid="pipeline-metric-recipes-prose-gave-up">{{ s.recipes.proseGaveUp | number }}</dd></div>
         <div><dt>Revision: missing quantities</dt><dd data-testid="pipeline-metric-recipes-revision-quantities">{{ s.recipes.revisionMissingQuantities | number }}</dd></div>
         <div><dt>Revision: steps</dt><dd data-testid="pipeline-metric-recipes-revision-steps">{{ s.recipes.revisionSteps | number }}</dd></div>
         <div><dt>Approved with an uncounted line</dt><dd data-testid="pipeline-metric-recipes-uncounted-line">{{ s.recipes.approvedWithUncountedLine | number }}</dd></div>
         <div><dt>Approved without image</dt><dd data-testid="pipeline-metric-recipes-without-image">{{ s.recipes.approvedWithoutImage | number }}</dd></div>
         <div><dt>Without a nutrition label</dt><dd data-testid="pipeline-metric-recipes-without-label">{{ s.recipes.withoutNutritionLabel | number }}</dd></div>
       </dl>
+      @if (s.recipes.proseGaveUp > 0) {
+        <h3 class="nom-pipeline__subheading">Why the rewrite lane gave up (this lane version)</h3>
+        <dl class="nom-pipeline__stats" data-testid="pipeline-prose-gave-up-classes">
+          @for (c of s.recipes.proseGaveUpByClass | keyvalue; track c.key) {
+            <div><dt>{{ c.key }}</dt><dd data-testid="pipeline-prose-gave-up-class">{{ c.value | number }}</dd></div>
+          }
+        </dl>
+      }
       <a routerLink="/admin/curation" class="nom-pipeline__link" data-testid="pipeline-curation-link">Open the curation queue</a>
     </section>
 

@@ -100,6 +100,11 @@ namespace Nom.Orch.Services
             var uncounted = await ApprovedWithUncountedLineQuery(_db).CountAsync(cancellationToken);
             var withoutLabel = await WithoutNutritionLabelQuery(_db).CountAsync(cancellationToken);
             var autoApprovals = await AutoApprovalQuery(_db, now).FirstOrDefaultAsync(cancellationToken);
+            var proseVersion = ProseLaneModels.From(_configuration).Version;
+            var proseQueue = await ProseLaneService.EligibleQuery(_db, proseVersion).CountAsync(cancellationToken);
+            var proseGaveUp = await ProseLaneService.GaveUpQuery(_db, proseVersion).CountAsync(cancellationToken);
+            var proseGaveUpByClass = (await ProseGaveUpByClassQuery(_db, proseVersion).ToListAsync(cancellationToken))
+                .ToDictionary(c => c.Decision![ProseLaneService.GaveUpPrefix.Length..], c => c.Count, StringComparer.Ordinal);
 
             var blocked = new PipelineBlockedBy
             {
@@ -121,6 +126,8 @@ namespace Nom.Orch.Services
                 WaitingWithSourceProse = recipeRow.WaitingWithSourceProse,
                 ProseWithheld = recipeRow.ProseWithheld,
                 ProseWithheldApproved = recipeRow.ProseWithheldApproved,
+                ProseGaveUp = proseGaveUp,
+                ProseGaveUpByClass = proseGaveUpByClass,
                 RevisionMissingQuantities = recipeRow.RevisionMissingQuantities,
                 RevisionSteps = recipeRow.RevisionSteps,
                 ApprovedWithUncountedLine = uncounted,
@@ -148,7 +155,7 @@ namespace Nom.Orch.Services
             var images = await ImagesAsync(recipeRow, cancellationToken);
             var journal = await JournalQuery(_db, now).ToListAsync(cancellationToken);
             journal = journal.OrderByDescending(j => j.LastAt).ThenBy(j => j.EntityType).ThenBy(j => j.ChangeType).ToList();
-            var lanes = await LanesAsync(now, recipes, recipeRow, proposals, proposedDay, images, journal, cancellationToken);
+            var lanes = await LanesAsync(now, recipes, recipeRow with { ProseQueue = proseQueue }, proposals, proposedDay, images, journal, cancellationToken);
 
             return new PipelineStatusModel
             {
@@ -340,7 +347,8 @@ namespace Nom.Orch.Services
             var classify = Journal(RecipeLineClassificationService.AttemptChangeType, RecipeNonFoodScreeningService.AttemptChangeType);
             var (verifiedCap, verifiedPerFood) = VerifiedCaps();
             var (nameCap, namePerFood) = NameMatchCaps();
-            var rewriteModel = _configuration["Ai:RewriteModel"] ?? _configuration["Ai:Model"] ?? "qwen2.5:3b";
+            var proseModels = ProseLaneModels.From(_configuration);
+            var rewriteModel = $"{proseModels.Writer}, judge {proseModels.Judge}, auditor {proseModels.Auditor}";
             var rewriteConfigured = !string.IsNullOrWhiteSpace(_configuration["Ai:BatchOllamaUrl"]);
 
             return new List<PipelineLane>
@@ -408,10 +416,9 @@ namespace Nom.Orch.Services
                     ModelConfigured = rewriteConfigured, Model = rewriteConfigured ? rewriteModel : null,
                     Switches = new[]
                     {
-                        Switch("ProseRewrite", "CheckFidelity", "Fidelity check", true),
                         Switch("ProseRewrite", "DrainWhileFull", "Drain while full", AiLanes.DailyCap(_configuration, AiLanes.ProseRewrite) > 0),
                     },
-                    Queue = recipeRow.ProseQueue, QueueLabel = "quarantined recipes due a rewrite attempt",
+                    Queue = recipeRow.ProseQueue, QueueLabel = "withheld or quarantined recipes the clean-room lane has not given up on",
                     LastActivityAt = recipeRow.LastProseAttemptAt, ActivityLast24h = recipeRow.ProseAttemptsDay,
                 },
                 new()
@@ -693,6 +700,16 @@ namespace Nom.Orch.Services
                 .Where(r => !r.Nutrition!.Any() && r.RecipeIngredients!.Any(ri => withNutrients.Contains(ri.IngredientId)));
         }
 
+        /// <summary>The clean-room prose lane's give-ups under a lane version, by decision (<c>exhausted:{class}</c>).</summary>
+        public static IQueryable<ProseGaveUpRow> ProseGaveUpByClassQuery(ApplicationDbContext db, string version) =>
+            db.LaneDecisions.AsNoTracking()
+                .Where(d => d.Lane == ProseLaneService.Lane && d.Tier == ProseLaneService.Tier && d.SignatureHash == version
+                    && d.Decision != null && d.Decision.StartsWith(ProseLaneService.GaveUpPrefix))
+                .GroupBy(d => d.Decision)
+                .Select(g => new ProseGaveUpRow(g.Key, g.Count()));
+
+        public sealed record ProseGaveUpRow(string? Decision, int Count);
+
         /// <summary>Audit log rows by entity and change type, with the last day, the last week and the latest time.</summary>
         public static IQueryable<PipelineJournalRow> JournalQuery(ApplicationDbContext db, DateTime now)
         {
@@ -765,7 +782,7 @@ namespace Nom.Orch.Services
             CountableStrict = r.CountableStrict,
         };
 
-        public sealed class RecipeRow
+        public sealed record RecipeRow
         {
             public int Approved { get; init; }
             public int Waiting { get; init; }

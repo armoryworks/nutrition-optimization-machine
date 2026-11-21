@@ -49,10 +49,24 @@
     "note": "No person-judged quote cases exist yet; see docs/architecture/golden-sets.md."
   },
   "prose-rewrite": {
-    "scorer": false,
+    "scorer": true,
     "required": false,
-    "minScore": 0,
-    "note": "The rewrite prompt is private to ProseRewriteHostedService; its output is checked by RewriteFidelity at run time."
+    "minScore": 0.95,
+    "maxFalseAcceptRate": 0,
+    "note": "The clean-room prose lane end to end on prose-judge.tsv: the writer (the model scored) writes each recipe of the file through mask, extract, write, the form rules, check v2 and the judge (--check-model, default the roster's reader B), which passes when a rewrite gets through; each planted fault is put through the gate (check v2, then the judge), which passes when it is refused and is a false accept when it is not. The faults are one deterministic edit of a faithful rewrite (rule:construction); the faithful rewrites are written by the prose-lane-v2 builder (agent-review-construction-2026-11-20), so their figures measure agreement with that reviewer. Not required until the operator records it on the staging proof; until a current record for the writer model is committed the lane cannot qualify (ProseLaneGolden.GoldenProblem)."
+  },
+  "prose-judge": {
+    "scorer": true,
+    "required": false,
+    "minScore": 0.95,
+    "maxFalseAcceptRate": 0.02,
+    "note": "The judge of every prose rewrite (the model scored, the roster's reader B) on prose-judge.tsv: a case passes when it finds a faithful rewrite faithful and a planted fault not; a false accept is a planted fault it finds faithful. Planted faults are rule:construction; faithful rewrites are agent-judged (agent-review-construction-2026-11-20), so the score measures agreement with that reviewer. Not required until the operator records it; until a current record for the judge model is committed the lane cannot qualify."
+  },
+  "prose-audit": {
+    "scorer": true,
+    "required": false,
+    "minScore": 0.75,
+    "note": "The audit check of the prose lane on prose-judge.tsv: the auditor (the model scored, the roster's auditor) reads each row and the judge (--check-model) confirms its flag; a row counts as flagged only when both agree. Its known-bad and known-good flags are the AuditorScore the lane frame corrects the audited error with. Without a current record the lane cannot qualify."
   },
   "dish-grouping": {
     "scorer": false,

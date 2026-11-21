@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, KeyValuePipe, PercentPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
@@ -42,7 +42,7 @@ interface StuckList {
  */
 @Component({
   selector: 'nom-pipeline-admin',
-  imports: [RouterLink, DecimalPipe, DatePipe, PercentPipe, MatButtonModule, MatIconModule, MatSlideToggleModule],
+  imports: [RouterLink, DecimalPipe, DatePipe, KeyValuePipe, PercentPipe, MatButtonModule, MatIconModule, MatSlideToggleModule],
   templateUrl: './pipeline-admin.component.html',
   styleUrl: './pipeline-admin.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

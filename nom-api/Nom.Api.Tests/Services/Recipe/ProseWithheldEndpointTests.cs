@@ -294,6 +294,25 @@ namespace Nom.Api.Tests.Services.Recipe
         }
 
         [Fact]
+        public async Task A_description_a_person_writes_for_a_withheld_recipe_is_journaled_so_the_rewrite_lane_keeps_it()
+        {
+            await using var db = await SeedAsync();
+            var service = Recipes(db);
+
+            await service.UpdateRecipeAsync(Withheld, new UpdateRecipeRequest { Id = Withheld, Name = "Withheld pie", Description = "Our own pie." });
+            db.ChangeTracker.Clear();
+
+            var recipe = await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == Withheld);
+            recipe.ProseWithheld.Should().BeTrue("the steps are still the stored ones");
+            recipe.Description.Should().Be("Our own pie.");
+            var row = await db.AuditLogEntries.AsNoTracking().SingleAsync(a => a.ChangeType == ProseRecheckService.DescriptionByPersonChangeType);
+            row.Should().Match<Nom.Data.Audit.AuditLogEntryEntity>(a => a.EntityId == Withheld && a.NewValue == "Our own pie." && a.OldValue!.StartsWith(WithheldText));
+
+            await service.UpdateRecipeAsync(Shown, new UpdateRecipeRequest { Id = Shown, Name = "Shown pie", Description = "Our shown pie." });
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == ProseRecheckService.DescriptionByPersonChangeType)).Should().Be(1, "a shown recipe's description needs no protection from the lane");
+        }
+
+        [Fact]
         public async Task A_method_a_person_writes_for_a_withheld_recipe_is_never_withheld_again_by_the_recheck()
         {
             await using var db = await SeedAsync();

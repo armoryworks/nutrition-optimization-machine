@@ -398,6 +398,31 @@ namespace Nom.Api.Tests.Services
             status.Lanes.Single(l => l.Key == "ingredient-link").Queue.Should().Be(1);
         }
 
+        [Fact]
+        public async Task The_prose_lane_queue_and_its_give_ups_follow_the_clean_room_lane_version()
+        {
+            await using var db = await SeededAsync();
+            var version = Nom.Orch.Services.Support.ProseLaneModels.From(Config()).Version;
+            var waiting = Recipe("withheld", 9003).With(r => r.ProseWithheld = true);
+            var quarantined = Recipe("quarantined", 9000).With(r => r.ContainsSourceProse = true);
+            var gaveUp = Recipe("given up", 9003).With(r => { r.ProseWithheld = true; r.ProseLaneVersion = version; r.ProseAttempts = Nom.Orch.Services.Support.ProseCleanRoom.AttemptCount; });
+            var oldVersion = Recipe("given up before", 9003).With(r => { r.ProseWithheld = true; r.ProseLaneVersion = "v2-old"; r.ProseAttempts = Nom.Orch.Services.Support.ProseCleanRoom.AttemptCount; });
+            db.Recipes.AddRange(waiting, quarantined, gaveUp, oldVersion);
+            db.LaneDecisions.AddRange(
+                new LaneDecisionEntity { Lane = ProseLaneService.Lane, Tier = ProseLaneService.Tier, Subject = "recipe:1", Decision = "exhausted:copied-text", Mode = "shadow", SignatureHash = version },
+                new LaneDecisionEntity { Lane = ProseLaneService.Lane, Tier = ProseLaneService.Tier, Subject = "recipe:2", Decision = "exhausted:copied-text", Mode = "shadow", SignatureHash = version },
+                new LaneDecisionEntity { Lane = ProseLaneService.Lane, Tier = ProseLaneService.Tier, Subject = "recipe:3", Decision = "exhausted:judge:missing", Mode = "shadow", SignatureHash = "v2-old" },
+                new LaneDecisionEntity { Lane = ProseLaneService.Lane, Tier = ProseLaneService.Tier, Subject = "recipe:4", Decision = "rewrite", Mode = "shadow", SignatureHash = version });
+            await db.SaveChangesAsync();
+
+            var status = await Service(db).GetAsync();
+
+            status.Lanes.Single(l => l.Key == "prose-rewrite").Queue.Should().Be(3);
+            status.Lanes.Single(l => l.Key == "prose-rewrite").Switches.Should().NotContain(s => s.Key == "CheckFidelity");
+            status.Recipes.ProseGaveUp.Should().Be(1);
+            status.Recipes.ProseGaveUpByClass.Should().BeEquivalentTo(new Dictionary<string, int> { ["copied-text"] = 2 });
+        }
+
         private static AuditLogEntryEntity Audit(long recipeId, string changeType, string newValue, DateTime at) => new()
         {
             EntityType = "Recipe",

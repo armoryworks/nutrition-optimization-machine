@@ -9,8 +9,8 @@ namespace Nom.Api.Controllers
 {
     /// <summary>
     /// Admin re-check of the scraped recipes whose prose is shown, with the withholding of the ones
-    /// that fail, the step-marker cleanup, and the stock-phrase index of the prose check.
-    /// Curation-gated throughout.
+    /// that fail, the undo of the clean-room rewrite lane, the step-marker cleanup, and the
+    /// stock-phrase index of the prose check. Curation-gated throughout.
     /// </summary>
     [Authorize(Policy = "CanManageCuration")]
     public class ProseRewriteController : BaseApiController
@@ -18,12 +18,14 @@ namespace Nom.Api.Controllers
         private readonly IProseRecheckService _recheck;
         private readonly IProseStockService _stock;
         private readonly IProseMarkerService _markers;
+        private readonly IProseRewriteUndoService _undo;
 
-        public ProseRewriteController(IProseRecheckService recheck, IProseStockService stock, IProseMarkerService markers)
+        public ProseRewriteController(IProseRecheckService recheck, IProseStockService stock, IProseMarkerService markers, IProseRewriteUndoService undo)
         {
             _recheck = recheck;
             _stock = stock;
             _markers = markers;
+            _undo = undo;
         }
 
         /// <summary>Checks every shown scraped recipe against its stored source with the prose check of the given version (only the current one runs) and, with apply=true, withholds the prose of up to maxRecipes failing ones, approved first; a dry run unless apply=true, and each one withheld is written to the audit log.</summary>
@@ -40,6 +42,13 @@ namespace Nom.Api.Controllers
         public async Task<ActionResult<ProseRecheckUndoResult>> RecheckUndo([FromQuery, Required] DateTime sinceUtc, [FromQuery] bool apply = false)
         {
             return Ok(await _recheck.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), apply));
+        }
+
+        /// <summary>Restore the text, steps and withheld or quarantined state of every recipe the clean-room lane rewrote at or after the given UTC time (of one lane version when given), unless a person edited it or a later journal entry touched it since; a dry run unless apply=true, and each restore is journaled.</summary>
+        [HttpPost("undo")]
+        public async Task<ActionResult<ProseRewriteUndoResult>> Undo([FromQuery, Required] DateTime sinceUtc, [FromQuery] string? laneVersion = null, [FromQuery] bool apply = false, CancellationToken cancellationToken = default)
+        {
+            return Ok(await _undo.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), laneVersion, apply, cancellationToken));
         }
 
         /// <summary>Take the step markers out of the steps of up to maxRecipes scraped recipes; a dry run unless apply=true, and each step changed is written to the audit log with its old text.</summary>

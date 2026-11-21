@@ -274,6 +274,44 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task The_undo_releases_a_recipe_whose_lane_rewrite_after_the_withhold_was_itself_undone()
+        {
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            var ids = await SeedSetAsync(db);
+            var service = Service(db);
+            var before = DateTime.UtcNow.AddSeconds(-1);
+            await service.RecheckAsync(apply: true);
+
+            var at = DateTime.UtcNow;
+            db.AuditLogEntries.AddRange(
+                new AuditLogEntryEntity
+                {
+                    EntityType = "Recipe", EntityId = ids.Copied, ChangeType = ProseRecheckService.RewriteChangeType,
+                    PropertyName = "RecipeStep:1", OldValue = "x", NewValue = "[model v2-x] y", Timestamp = at, ChangedByPersonId = SystemConstants.SystemPersonId,
+                },
+                new AuditLogEntryEntity
+                {
+                    EntityType = "Recipe", EntityId = ids.Copied, ChangeType = ProseRecheckService.RewriteChangeType,
+                    PropertyName = ProseLaneJournal.StateProperty, OldValue = "{}", NewValue = "[model v2-x] {}", Timestamp = at, ChangedByPersonId = SystemConstants.SystemPersonId,
+                });
+            await db.SaveChangesAsync();
+            var state = await db.AuditLogEntries.SingleAsync(a => a.PropertyName == ProseLaneJournal.StateProperty);
+            db.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = "Recipe", EntityId = ids.Copied, ChangeType = ProseLaneJournal.UndoChangeType, PropertyName = ProseLaneJournal.StateProperty,
+                OldValue = state.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), NewValue = "{}", Timestamp = at.AddSeconds(1), ChangedByPersonId = SystemConstants.SystemPersonId,
+            });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var undo = await service.UndoAsync(before);
+
+            undo.SkippedRewritten.Should().Be(0, "the lane's own undo took its rewrite back, so no rewrite is in force");
+            undo.RestoredWithheld.Should().Be(2);
+        }
+
+        [Fact]
         public async Task Apply_stops_at_the_batch_size_approved_first_and_records_no_run_while_failures_remain()
         {
             await using var db = NewContext();

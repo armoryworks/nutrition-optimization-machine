@@ -133,6 +133,16 @@ namespace Nom.Orch.Services.Support
             }
         }
 
+        /// <summary>The head word of each ingredient line the check reads (the last word of its name once amounts, brackets, what follows a comma and stop words are gone), in line order; a line with no such word is left out.</summary>
+        public static IReadOnlyList<(string Line, string Head)> LineHeads(IReadOnlyList<string> lines) =>
+            lines.Select(l => (Line: l, Ingredients: Ingredients(new[] { l })))
+                .Where(x => x.Ingredients.Count == 1)
+                .Select(x => (x.Line, x.Ingredients[0].Head))
+                .ToList();
+
+        /// <summary>Whether <paramref name="word"/> (lower-case) names the ingredient whose head word is <paramref name="head"/>, singular or plural.</summary>
+        public static bool NamesHead(string word, string head) => Names(word, head);
+
         public static Finding Check(
             RewriteFidelity.SourceText source,
             RewriteFidelity.SourceText rewrite,

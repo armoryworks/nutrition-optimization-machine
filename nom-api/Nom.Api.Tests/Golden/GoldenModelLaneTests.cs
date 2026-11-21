@@ -33,6 +33,7 @@ namespace Nom.Api.Tests.Golden
             ModelLanes.LinkGateLane => ModelLanes.GateCases(GoldenSet.Folder).Select(c => c.Id),
             ModelLanes.AlcoholContextLane => ModelLanes.AlcoholCases(GoldenSet.Folder).Select(c => c.Id),
             ModelLanes.LineJudge => ModelLanes.JudgeCases(GoldenSet.Folder).Select(c => c.Id),
+            ModelLanes.ProseRewriteLane or ModelLanes.ProseJudgeLane or ModelLanes.ProseAuditLane => Nom.Orch.Services.Support.ProseLaneGolden.CaseIds(lane, ModelLanes.ProseCases(GoldenSet.Folder)),
             _ => Enumerable.Empty<string>(),
         };
 

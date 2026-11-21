@@ -425,9 +425,8 @@ builder.Services.AddHostedService<Nom.Api.Services.IngredientLinkHostedService>(
 builder.Services.AddHostedService<Nom.Api.Services.RecipeNutritionRecalcHostedService>();
 builder.Services.AddHostedService<Nom.Api.Services.CourseClassificationHostedService>();
 
-// Prose-rewrite batch lane (off unless Ai:BatchOllamaUrl is set): clears the
-// ContainsSourceProse quarantine by rewriting scraped prose in original words;
-// curation approval still gates publish, originals stay in ScrapedDocument.
+builder.Services.AddScoped<Nom.Orch.Services.ProseLaneService>();
+builder.Services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.ProseRewriteUndoService>();
 builder.Services.AddHostedService<Nom.Api.Services.ProseRewriteHostedService>();
 builder.Services.AddHostedService<Nom.Api.Services.ProseRecheckHostedService>();
 

@@ -760,6 +760,21 @@ namespace Nom.Orch.Services
             var ownDescription = !string.IsNullOrWhiteSpace(model.Description);
             var ownSteps = model.Steps.Any(st => !string.IsNullOrWhiteSpace(st.Description));
 
+            if ((withheld || recipe.ContainsSourceProse) && ownDescription && model.Description != recipe.Description)
+            {
+                _context.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+                {
+                    EntityType = ProseRecheckService.RecipeEntityType,
+                    EntityId = recipe.Id,
+                    ChangeType = ProseRecheckService.DescriptionByPersonChangeType,
+                    PropertyName = nameof(RecipeEntity.Description),
+                    OldValue = ProseRecheckService.Clamp(recipe.Description ?? string.Empty),
+                    NewValue = ProseRecheckService.Clamp(model.Description!),
+                    Timestamp = DateTime.UtcNow,
+                    ChangedByPersonId = _currentUser.PersonIdOrSystem,
+                });
+            }
+
             // Update basic recipe properties
             recipe.Name = model.Name;
             if (!withheld || ownDescription) recipe.Description = model.Description;
