@@ -8,7 +8,7 @@ namespace Nom.Orch.Services.Support
     /// Each row names one field (<see cref="StatusField"/>, <see cref="HarvestField"/>,
     /// <see cref="RecipesField"/>, <see cref="VerdictField"/>, <see cref="ProbationField"/>,
     /// <see cref="LicenceField"/>, <see cref="RightsField"/>, <see cref="AiReservedField"/>,
-    /// <see cref="PermissionField"/>, <see cref="FactsOnlyField"/>) with its
+    /// <see cref="PermissionField"/>, <see cref="FactsOnlyField"/>, <see cref="TermsCheckField"/>) with its
     /// old and new state, written as <c>state</c> or <c>state | detail</c>. A row of an undoable
     /// field is undone by setting the field back to its old state while it still holds the new one,
     /// journaled as <see cref="Undo"/>; an undo is a row like any other, so it can be undone too.
@@ -31,6 +31,7 @@ namespace Nom.Orch.Services.Support
         public const string Rights = "SourceRights";
         public const string Permission = "SourcePermission";
         public const string FactsOnlyUse = "SourceFactsOnlyUse";
+        public const string TermsCheck = "SourceTermsCheck";
 
         public const string StatusField = "Status";
         public const string HarvestField = "Harvest";
@@ -42,6 +43,7 @@ namespace Nom.Orch.Services.Support
         public const string AiReservedField = "AiReserved";
         public const string PermissionField = "Permission";
         public const string FactsOnlyField = "FactsOnlyUse";
+        public const string TermsCheckField = "TermsCheck";
 
         public const string Running = "running";
         public const string Paused = "paused";

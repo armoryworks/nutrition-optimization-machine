@@ -48,6 +48,12 @@ namespace Nom.Orch.Models.Recipe
         public int SampleEnglish { get; set; }
         public int IngredientLines { get; set; }
         public int LinesWithQuantity { get; set; }
+        public string? HomepageOutcome { get; set; }
+        public int? HomepageLinks { get; set; }
+        public bool NoAddress { get; set; }
+        public List<string> RefusedPages { get; set; } = new();
+        public int SamplesRefused { get; set; }
+        public bool TermsOnly { get; set; }
     }
 
     public class SourceStatementModel
@@ -179,6 +185,8 @@ namespace Nom.Orch.Models.Recipe
         public int InProbation { get; set; }
         public int Harvestable { get; set; }
         public int Hand { get; set; }
+        public int RecheckSkipped { get; set; }
+        public int TermsChecksWaiting { get; set; }
     }
 
     /// <summary>A source the external harvester may harvest now.</summary>

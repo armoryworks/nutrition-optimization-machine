@@ -726,6 +726,8 @@ namespace Nom.Orch.Services
         /// for the alcohol criterion, each line whose own text reads as a drink while its food is not
         /// matched (named by the line's text); and, for a capped alcohol criterion, each drink line of a
         /// recipe that keeps more alcohol per serving than the cap, or each drink line that cannot be counted.
+        /// A line of a facts-only recipe is named by NOM's own wording of it, never by the publisher's text
+        /// (<see cref="ProseWithholding.LineName(string?, string?, string?, decimal, string?)"/>).
         /// </summary>
         private async Task<List<(long RecipeId, RecipeDietMatchModel Match)>> DataDietMatchesAsync(
             IQueryable<Nom.Data.Plan.RestrictionEntity> activeRestrictions, IQueryable<RecipeIngredientEntity> recipeIngredients)
@@ -737,9 +739,23 @@ namespace Nom.Orch.Services
             var criteria = await Support.DietCriteriaMatcher.CriteriaAsync(_context, restrictions.Select(r => r.TypeId).Distinct().ToList());
             if (criteria.Count == 0) return new List<(long, RecipeDietMatchModel)>();
 
-            var lines = await recipeIngredients
-                .Select(ri => new { ri.RecipeId, ri.IngredientId, ri.RawLine, Name = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty })
+            var rows = await recipeIngredients
+                .Select(ri => new { ri.RecipeId, ri.IngredientId, ri.RawLine, Name = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty, ri.Quantity, ri.MeasurementId })
                 .ToListAsync();
+            var lineRecipeIds = rows.Select(l => l.RecipeId).Distinct().ToList();
+            var factsOnly = (await _context.Recipes.AsNoTracking()
+                    .Where(r => lineRecipeIds.Contains(r.Id) && r.SourceRights == SourceRightsRule.FactsOnly)
+                    .Select(r => r.Id).ToListAsync())
+                .ToHashSet();
+            var unitIds = rows.Where(l => factsOnly.Contains(l.RecipeId)).Select(l => l.MeasurementId).Distinct().ToList();
+            var units = unitIds.Count == 0 ? new Dictionary<long, string>() : await _context.Measurements.AsNoTracking()
+                .Where(m => unitIds.Contains(m.Id)).ToDictionaryAsync(m => m.Id, m => m.Name);
+            var lines = rows.Select(l => new
+            {
+                l.RecipeId, l.IngredientId, l.RawLine, l.Name,
+                Shown = ProseWithholding.LineName(factsOnly.Contains(l.RecipeId) ? SourceRightsRule.FactsOnly : null, l.RawLine, l.Name, l.Quantity, units.GetValueOrDefault(l.MeasurementId)),
+            }).ToList();
+            var shown = lines.GroupBy(l => (l.RecipeId, l.IngredientId)).ToDictionary(g => g.Key, g => g.First().Shown);
             var probes = await Support.DietCriteriaMatcher.ProbeAsync(_context, criteria, lines.Select(l => l.IngredientId).Distinct().ToList());
             var foods = criteria
                 .Where(c => probes.TryGetValue(c.RestrictionTypeId, out var p) && p.Foods.ContainsKey(c.Id))
@@ -767,7 +783,7 @@ namespace Nom.Orch.Services
                              RestrictionType = r.TypeName,
                              Severity = c.Severity,
                              IngredientId = l.IngredientId,
-                             IngredientName = l.RawLine.Trim(),
+                             IngredientName = l.Shown,
                              Notes = c.Notes == Support.DefaultRestrictionCriteria.DefaultNote ? null : c.Notes
                          });
             var byAliasLine = from r in restrictions
@@ -783,7 +799,7 @@ namespace Nom.Orch.Services
                                   RestrictionType = r.TypeName,
                                   Severity = c.Severity,
                                   IngredientId = l.IngredientId,
-                                  IngredientName = l.RawLine.Trim(),
+                                  IngredientName = l.Shown,
                                   Notes = c.Notes == Support.DefaultRestrictionCriteria.DefaultNote ? null : c.Notes
                               });
 
@@ -810,7 +826,9 @@ namespace Nom.Orch.Services
                             RestrictionType = r.TypeName,
                             Severity = capped.Severity,
                             IngredientId = drink.IngredientId,
-                            IngredientName = !string.IsNullOrWhiteSpace(drink.RawLine) ? drink.RawLine.Trim() : names.GetValueOrDefault((recipeId, drink.IngredientId)) ?? drink.FoodName ?? string.Empty,
+                            IngredientName = factsOnly.Contains(recipeId)
+                                ? shown.GetValueOrDefault((recipeId, drink.IngredientId)) ?? names.GetValueOrDefault((recipeId, drink.IngredientId)) ?? drink.FoodName ?? string.Empty
+                                : !string.IsNullOrWhiteSpace(drink.RawLine) ? drink.RawLine.Trim() : names.GetValueOrDefault((recipeId, drink.IngredientId)) ?? drink.FoodName ?? string.Empty,
                             Notes = over ?? notes
                         }));
                     }

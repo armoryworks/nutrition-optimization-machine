@@ -8,7 +8,7 @@ import { ScrapingSourceModel, SourceCandidate, SourceCheck, SourceReview, Source
 
 const clearCheck: SourceCheck = {
   id: 11, domain: 'www.open.example', purpose: 'candidate', status: 'completed', startedUtc: '2026-11-20T10:00:00Z', finishedUtc: '2026-11-20T10:05:00Z',
-  verdict: 'clear', conclusive: true, ruleVersion: 'source-check/2', policyVersion: 'source-admission/1',
+  verdict: 'clear', conclusive: true, ruleVersion: 'source-check/4', policyVersion: 'source-admission/2',
   reasons: [{ code: 'licence', outcome: 'pass', detail: '20 of 20 pages carry cc0' }],
   facts: {
     licenceKind: 'cc0', licenceBasis: 'per-page',
@@ -33,7 +33,7 @@ const blog: ScrapingSourceModel = {
 };
 
 const review = (overrides: Partial<SourceReview> = {}): SourceReview => ({
-  enabled: true, policyVersion: 'source-admission/1', scraperRuleVersion: 'source-check/2',
+  enabled: true, policyVersion: 'source-admission/2', scraperRuleVersion: 'source-check/4',
   queue: [candidate()],
   notClear: [candidate({ id: 6, domain: 'closed.example', state: 'not-clear', canApprove: false, check: { ...clearCheck, verdict: 'not-clear', reasons: [{ code: 'terms', outcome: 'fail', detail: 'scraping prohibited' }] } })],
   waiting: [], leads: 4, approved: [blog], hand: [], rejected: [],
@@ -219,6 +219,41 @@ describe('ScrapingSources', () => {
 
     expect(byId(el, 'scraping-source-facts-only-approved')).not.toBeNull();
     expect(byId(el, 'scraping-source-facts-only-withdraw-btn')).not.toBeNull();
+  });
+
+  it('says the weekly re-check skips a forbidden source, shows what refused NomBot, and starts a terms-only check by hand', () => {
+    const forbidden: ScrapingSourceModel = {
+      ...blog, rightsClass: 'forbidden', effectiveRightsClass: 'forbidden', rightsQuote: 'You agree not to use any robot.', rightsQuoteUrl: 'https://www.blog.example/terms',
+      recheckSkipped: 'The weekly re-check skips www.blog.example: it is forbidden, so no automatic check fetches it.',
+      check: { ...blog.check!, facts: { ...clearCheck.facts!, refusedPages: ['https://www.blog.example/sitemap.xml'], samplesRefused: 2, homepageLinks: 0 } },
+    };
+    const fixture = create(review({ approved: [forbidden] }));
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(byId(el, 'scraping-source-recheck-skipped')?.textContent).toContain('no automatic check fetches it');
+    const access = byId(el, 'scraping-source-access')?.textContent ?? '';
+    expect(access).toContain('refused NomBot: https://www.blog.example/sitemap.xml');
+    expect(access).toContain('2 sampled recipe page(s) refused NomBot');
+    expect(access).toContain('carries no links');
+
+    (byId(el, 'scraping-source-terms-check-btn') as HTMLButtonElement).click();
+    const call = http.expectOne((r) => r.url.endsWith('/ScrapingSource/9/terms-check'));
+    expect(call.request.method).toBe('POST');
+    const waiting = { ...forbidden, termsCheck: { ...clearCheck, id: 30, purpose: 'terms-only', status: 'queued', verdict: null, facts: null } };
+    call.flush(waiting);
+    flush(review({ approved: [waiting] }));
+    fixture.detectChanges();
+
+    expect(byId(el, 'scraping-source-terms-check')?.textContent).toContain('waiting for the source lane');
+    expect((byId(el, 'scraping-source-terms-check-btn') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('offers no terms-only check for a source the weekly re-check still reads', () => {
+    const facts: ScrapingSourceModel = { ...blog, rightsClass: 'facts-only', effectiveRightsClass: 'facts-only', recheckSkipped: null };
+    const el = create(review({ approved: [facts] })).nativeElement as HTMLElement;
+
+    expect(byId(el, 'scraping-source-recheck-skipped')).toBeNull();
+    expect(byId(el, 'scraping-source-terms-check-btn')).toBeNull();
   });
 
   it('derives the classes in a dry run first, runs a recipe step and undoes it by its stamp, and counts recipes taken from barred sources', () => {

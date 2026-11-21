@@ -72,6 +72,13 @@ namespace Nom.Api.Controllers
             return Answer(await _admission.PauseHarvestAsync(id, _currentUser.RequiredPersonId, request?.Reason));
         }
 
+        /// <summary>Queues a terms-only check (robots.txt, the homepage and the terms pages, no recipe page) of a forbidden or permission-needed source; journaled, run by the source lane's next tick.</summary>
+        [HttpPost("{id:long}/terms-check")]
+        public async Task<ActionResult<ScrapingSourceModel>> TermsCheck(long id, [FromBody] SourceReasonRequestModel? request)
+        {
+            return Answer(await _admission.RequestTermsCheckAsync(id, _currentUser.RequiredPersonId, request?.Reason));
+        }
+
         [HttpPost("{id:long}/resume-harvest")]
         public async Task<ActionResult<ScrapingSourceModel>> ResumeHarvest(long id, [FromBody] SourceReasonRequestModel? request)
         {

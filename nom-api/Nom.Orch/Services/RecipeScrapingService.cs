@@ -192,7 +192,32 @@ namespace Nom.Orch.Services
                 throw new InvalidOperationException(result.Error ?? "Failed to parse recipe data");
             }
 
-            return MapToScrapedModel(result.Recipe);
+            var model = MapToScrapedModel(result.Recipe);
+            if (await SourceOfAsync(normalizedUrl) is { Kind: ScrapingSourceEntity.WebKind } source && SourceRightsService.EffectiveClass(source) == Support.SourceRightsRule.FactsOnly)
+            {
+                return FactsOnlyPreview(model, result.Recipe);
+            }
+
+            return model;
+        }
+
+        /// <summary>
+        /// The test scrape of a facts-only source's page as a reader may see it: the title reduced to the dish name
+        /// (<see cref="Support.RecipeTitleRule"/>), times, yield and each line's parsed amount, unit and food, with
+        /// no description, no method, no line notes and no photo.
+        /// </summary>
+        private static ScrapedRecipeModel FactsOnlyPreview(ScrapedRecipeModel model, ScraperRecipe scraped)
+        {
+            model.Name = Support.RecipeTitleRule.Reduce(model.Name, Support.RecipeTitleRule.BrandNames(BuildAttribution(scraped), scraped.SourceSite)).Title;
+            model.Description = null;
+            model.Image = null;
+            model.Steps = new List<ScrapedStepModel>();
+            foreach (var ingredient in model.Ingredients)
+            {
+                ingredient.Notes = null;
+            }
+
+            return model;
         }
 
         /// <summary>

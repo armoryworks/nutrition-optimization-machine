@@ -309,7 +309,7 @@ namespace Nom.Orch.Services
                         ShoppingListId = model.ShoppingListId,
                         Name = recipeIngredient.Ingredient?.Name ?? "Unknown Ingredient",
                         Quantity = scaledQuantity,
-                        Note = $"From recipe: {recipe.Name}",
+                        Note = Support.ShoppingItemNote.ForRecipe(recipe.Name),
                         IngredientId = recipeIngredient.IngredientId,
                         RecipeId = model.RecipeId,
                         Position = existingItems.Count + 1,

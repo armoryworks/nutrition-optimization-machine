@@ -45,6 +45,8 @@ namespace Nom.Orch.Models.Recipe
         public DateTime? FactsOnlyApprovedAt { get; set; }
         public bool MayFetch { get; set; }
         public string? FetchRefusal { get; set; }
+        public string? RecheckSkipped { get; set; }
+        public SourceCheckModel? TermsCheck { get; set; }
     }
 
     public class ScrapingSourceReviewRequestModel

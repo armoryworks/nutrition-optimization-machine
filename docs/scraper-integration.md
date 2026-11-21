@@ -66,8 +66,15 @@ service allows. Jobs live in the scraper's memory, so NOM treats a lost job as a
   reads the site's robots.txt (NomBot, `*` and the named AI crawlers, crawl-delay), its
   reservation signals (TDMRep, `noai`), up to 6 terms, legal or licence pages, the sitemap and a
   spread sample of recipe pages, and returns facts only, with its own verdict and reasons under a
-  rule version (`source-check/2`). `result` is null while running and the full report once the job
-  ends; a report that did not finish is `complete: false` and never clear. Nothing is imported.
+  rule version (`source-check/4`; NOM still reads a stored `source-check/2` report). `result` is null while
+  running and the full report once the job ends; a report that did not finish is `complete: false` and never
+  clear. Nothing is imported. NOM reads the `source-check/4` facts `access.homepageLinks` (0: a homepage
+  built by scripts), `access.refusedPages`, `enumeration.refusedPages`, `samples.refused`, the
+  `NoAddress` homepage outcome and the `off-domain` terms outcome.
+  With `"sampleSize": 0` (a **terms-only** check) the scraper reads robots.txt, the homepage,
+  `tdmrep.json` and the terms pages only, no sitemap and no recipe page, and reports `samples.requested` 0.
+  NOM asks for one only when an admin starts it for a source that is forbidden or needs permission, and only
+  with `SourceDiscovery:TermsOnlyChecks` on; a scraper without the mode must not be sent one.
 
 The older synchronous `POST /api/discover` remains in the reference scraper for compatibility;
 NOM no longer calls it.
@@ -163,7 +170,7 @@ whose check is clear is offered for that approval. Full design:
 - **Source checks** run one at a time, at most `MaxChecksPerDay` a day: approved sources due for
   their weekly re-check first, then requests, then candidates. NOM stores each report whole
   (`recipe.SourceCheck`) and draws one verdict from it (`SourceAdmissionPolicy`, no model): clear
-  only when the check finished under `source-check/2`, the scraper and every one of its reasons
+  only when the check finished under `source-check/4`, the scraper and every one of its reasons
   agree, the licence is public domain, CC0, the Public Domain Mark or CC BY, the full 20 pages were
   sampled, NOM's own vetting passes 18 of the sample recipes and 85 % of their lines carry a
   quantity or need none, and no admin rejected the domain before.
@@ -174,7 +181,8 @@ whose check is clear is offered for that approval. Full design:
 - An approved source starts in **probation** (21 days or 50 recipes); its live figures then pass it
   or pause its harvesting.
 - **Re-judging**: every approved source is re-checked weekly by the same rule and the verdict is
-  shown beside it. Harvesting is paused only when a clear verdict turns not clear; a source that
+  shown beside it, except a source whose rights class is forbidden or permission-needed, which no
+  automatic check fetches; an admin may start a terms-only check of it by hand. Harvesting is paused only when a clear verdict turns not clear; a source that
   was never clear is only shown, because what happens to it and its recipes is the owner's decision.
   The admin can **pause harvesting** for a source or **withhold its recipes** (kept from search,
   suggestions and meal plans) in one click; both are journaled and undone from the journal on the

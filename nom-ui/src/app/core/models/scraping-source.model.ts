@@ -38,6 +38,12 @@ export interface SourceFacts {
   sampleEnglish: number;
   ingredientLines: number;
   linesWithQuantity: number;
+  homepageOutcome?: string | null;
+  homepageLinks?: number | null;
+  noAddress?: boolean;
+  refusedPages?: string[];
+  samplesRefused?: number;
+  termsOnly?: boolean;
 }
 
 export interface SourceCheck {
@@ -98,6 +104,8 @@ export interface ScrapingSourceModel {
   factsOnlyApprovedAt?: string | null;
   mayFetch?: boolean;
   fetchRefusal?: string | null;
+  recheckSkipped?: string | null;
+  termsCheck?: SourceCheck | null;
 }
 
 export type RightsClass = 'clear' | 'facts-only' | 'permission-needed' | 'forbidden';
@@ -293,4 +301,6 @@ export interface SourceAdmissionStatus {
   inProbation: number;
   harvestable: number;
   hand: number;
+  recheckSkipped?: number;
+  termsChecksWaiting?: number;
 }

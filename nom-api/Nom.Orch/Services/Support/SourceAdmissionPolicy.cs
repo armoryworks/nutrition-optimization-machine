@@ -27,7 +27,7 @@ namespace Nom.Orch.Services.Support
 
     /// <summary>
     /// The single verdict: <c>clear</c> or <c>not-clear</c>. <see cref="Conclusive"/> is false when
-    /// the check did not finish or came under a rule version NOM does not know; such a not-clear
+    /// the check did not finish or came under a rule version NOM does not read; such a not-clear
     /// only says "check again" and never changes what is harvested.
     /// </summary>
     public sealed record SourceJudgement(string Verdict, bool Conclusive, IReadOnlyList<SourceReason> Reasons)
@@ -49,8 +49,9 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class SourceAdmissionPolicy
     {
-        public const string Version = "source-admission/1";
-        public const string ScraperRuleVersion = "source-check/2";
+        public const string Version = "source-admission/2";
+        public const string ScraperRuleVersion = "source-check/4";
+        public const string EarlierScraperRuleVersion = "source-check/2";
         public const string Clear = "clear";
         public const string NotClear = "not-clear";
         public const string Pass = "pass";
@@ -58,10 +59,21 @@ namespace Nom.Orch.Services.Support
         public const string Unknown = "unknown";
         public const string Info = "info";
         public const int SampleSize = 20;
+        public const int TermsOnlySampleSize = 0;
         public const int NeededOfSample = 18;
         public const double LinesFineShare = 0.85;
 
-        /// <summary>The scraper's reasons under <see cref="ScraperRuleVersion"/>, every one of which must be present.</summary>
+        /// <summary>
+        /// The scraper rule versions whose reports NOM reads: the current one, and the earlier one whose reports may
+        /// still be stored. A new check is asked under the current one only; a stored report under the earlier one
+        /// still gives its facts, and its source or candidate is due to be checked again.
+        /// </summary>
+        public static readonly IReadOnlySet<string> ReadableRuleVersions = new HashSet<string>(StringComparer.Ordinal)
+        {
+            ScraperRuleVersion, EarlierScraperRuleVersion,
+        };
+
+        /// <summary>The scraper's reasons under <see cref="ScraperRuleVersion"/> (the same codes as under the earlier version), every one of which must be present.</summary>
         public static readonly IReadOnlyList<string> ScraperReasons = new[]
         {
             "check-complete", "https", "bot-challenge", "robots-nombot", "robots-general", "robots-ai", "crawl-delay",
@@ -89,9 +101,9 @@ namespace Nom.Orch.Services.Support
                 byCode.TryAdd(reason.Code, reason);
             }
 
-            var knownRules = facts.RuleVersion == ScraperRuleVersion;
+            var knownRules = facts.RuleVersion != null && ReadableRuleVersions.Contains(facts.RuleVersion);
             reasons.Add(new SourceReason("rule-version", knownRules ? Pass : Unknown,
-                knownRules ? $"report under {facts.RuleVersion}" : $"report under {facts.RuleVersion ?? "no rule version"}; this policy reads {ScraperRuleVersion} only"));
+                knownRules ? $"report under {facts.RuleVersion}" : $"report under {facts.RuleVersion ?? "no rule version"}; this policy reads {ScraperRuleVersion} and {EarlierScraperRuleVersion} only"));
 
             foreach (var code in ScraperReasons)
             {

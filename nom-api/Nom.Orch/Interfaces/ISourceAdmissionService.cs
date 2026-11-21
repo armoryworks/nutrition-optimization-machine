@@ -17,8 +17,19 @@ namespace Nom.Orch.Interfaces
         /// <summary>One discovery run: a job with the least recently discovered seeds, polled to its end; a lost or failed job is a failed run, stored with what it found.</summary>
         Task<SourceDiscoveryRunModel> RunDiscoveryAsync(CancellationToken cancellationToken = default);
 
-        /// <summary>Checks the next due domain (approved sources first, then requests, then candidates) under the daily cap; null when none is due, the cap is reached or the scraper is busy.</summary>
+        /// <summary>
+        /// Runs a terms-only check an admin asked for, if one waits; otherwise checks the next due domain (approved sources
+        /// first, then requests, then candidates) under the daily cap. Sources and candidates classed forbidden or
+        /// permission-needed are never due. Null when none is due, the cap is reached or the scraper is busy.
+        /// </summary>
         Task<SourceCheckModel?> RunNextCheckAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Queues a terms-only check (the scraper's sampleSize 0 mode: robots.txt, the homepage and the terms pages, no
+        /// recipe page) of an approved web source that is forbidden or needs permission, run by the source lane's next tick;
+        /// journaled. Refused while the scraper's terms-only mode is not enabled.
+        /// </summary>
+        Task<SourceActionResult> RequestTermsCheckAsync(long sourceId, long personId, string? reason);
 
         /// <summary>Ends the probations that are due: passed, or failed and harvesting paused (journaled, shown).</summary>
         Task<int> WatchAsync(CancellationToken cancellationToken = default);

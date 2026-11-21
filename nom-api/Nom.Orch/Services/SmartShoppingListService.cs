@@ -200,6 +200,7 @@ namespace Nom.Orch.Services
 
                 var shoppingList = await _dbContext.ShoppingLists
                     .Include(sl => sl.Items)
+                        .ThenInclude(i => i.Recipe)
                     .FirstOrDefaultAsync(sl => sl.Id == request.ShoppingListId);
 
                 if (shoppingList == null)
@@ -214,7 +215,7 @@ namespace Nom.Orch.Services
                     Quantity = i.Quantity ?? 0,
                     Unit = i.Measurement?.Name ?? "",
                     Category = i.Category?.Name ?? "Uncategorized",
-                    Notes = i.Note,
+                    Notes = Support.ShoppingItemNote.Shown(i),
                     Priority = 1
                 }).ToList();
 
