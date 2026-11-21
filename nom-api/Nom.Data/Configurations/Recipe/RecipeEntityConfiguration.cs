@@ -50,6 +50,7 @@ public class RecipeEntityConfiguration : IEntityTypeConfiguration<RecipeEntity>
         // get the safe value: only the scraping path ever sets this true.
         builder.Property(e => e.ContainsSourceProse).HasDefaultValue(false);
         builder.Property(e => e.ProseWithheld).HasDefaultValue(false);
+        builder.HasIndex(e => e.SourceWithheldById).HasFilter("\"SourceWithheldById\" IS NOT NULL");
         builder.Property(e => e.ProseAttempts).HasDefaultValue(0);
         builder.Property(e => e.ProseLaneVersion).HasMaxLength(64);
 

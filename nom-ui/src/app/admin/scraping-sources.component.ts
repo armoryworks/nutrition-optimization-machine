@@ -1,23 +1,40 @@
-import { Component, inject, signal, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { Observable } from 'rxjs';
 
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { ScrapingSourceService } from '../core/services/scraping-source.service';
-import { ScrapingSourceModel, ScrapingSourceStatus } from '../core/models/scraping-source.model';
+import {
+  ScrapingSourceModel,
+  SourceCandidate,
+  SourceJournalEntry,
+  SourceReason,
+  SourceReview,
+} from '../core/models/scraping-source.model';
 import { LoadingService } from '../core/services/loading.service';
+
+type SourceAction = 'pause' | 'withhold' | 'release';
+
+interface PendingAction {
+  sourceId: number;
+  action: SourceAction;
+  recipes: number | null;
+}
 
 @Component({
   selector: 'nom-scraping-sources',
   imports: [
     DatePipe,
+    DecimalPipe,
     RouterLink,
     ReactiveFormsModule,
     MatButtonModule,
@@ -25,6 +42,7 @@ import { LoadingService } from '../core/services/loading.service';
     MatProgressSpinnerModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     ErrorBanner,
   ],
   templateUrl: './scraping-sources.component.html',
@@ -36,55 +54,127 @@ export class ScrapingSources implements OnInit {
   private loadingService = inject(LoadingService);
   private destroyRef = inject(DestroyRef);
 
-  readonly statuses: ScrapingSourceStatus[] = ['Pending', 'Approved', 'Rejected'];
+  readonly licenceKinds = ['public-domain', 'cc0', 'public-domain-mark', 'cc-by'];
 
-  sources = signal<ScrapingSourceModel[]>([]);
-  statusFilter = signal<ScrapingSourceStatus>('Pending');
+  review = signal<SourceReview | null>(null);
+  pending = signal<ScrapingSourceModel[]>([]);
   loading = signal(true);
   processing = signal(false);
   errorMessage = signal('');
+  handError = signal('');
   /** Source id whose inline reject-notes prompt is open. */
   rejectingId = signal<number | null>(null);
   rejectNotes = new FormControl('');
+  /** A pause, withholding or release waiting for its confirmation, with the dry run's recipe count. */
+  pendingAction = signal<PendingAction | null>(null);
+  actionReason = new FormControl('');
+
+  handForm = new FormGroup({
+    domain: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    title: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    licenceKind: new FormControl('public-domain', { nonNullable: true, validators: [Validators.required] }),
+    licenceStatement: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    licenceFoundAt: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+  });
+
+  queue = computed(() => this.review()?.queue ?? []);
+  notClear = computed(() => this.review()?.notClear ?? []);
+  approved = computed(() => this.review()?.approved ?? []);
+  hand = computed(() => this.review()?.hand ?? []);
+  runs = computed(() => this.review()?.runs ?? []);
+  journal = computed(() => this.review()?.journal ?? []);
 
   ngOnInit(): void {
-    this.loadSources();
+    this.load();
   }
 
-  setFilter(status: ScrapingSourceStatus): void {
-    if (this.statusFilter() === status) return;
-    this.statusFilter.set(status);
-    this.rejectingId.set(null);
-    this.rejectNotes.setValue('');
-    this.loadSources();
-  }
-
-  loadSources(): void {
+  load(): void {
     this.loading.set(true);
     this.errorMessage.set('');
-    this.scrapingSourceService.getSources(this.statusFilter()).pipe(
-      this.loadingService.loading('Loading scraping sources...'),
+    this.scrapingSourceService.getReview().pipe(
+      this.loadingService.loading('Loading recipe sources...'),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: (sources) => {
-        this.sources.set(sources);
+      next: (review) => {
+        this.review.set(review);
         this.loading.set(false);
       },
       error: () => {
         this.loading.set(false);
-        this.errorMessage.set('Failed to load scraping sources. You may not have permission.');
+        this.errorMessage.set('Failed to load recipe sources. You may not have permission.');
       },
+    });
+    this.scrapingSourceService.getSources('Pending').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (sources) => this.pending.set(sources.filter((s) => (s.kind ?? 'web') === 'web')),
+      error: () => this.pending.set([]),
     });
   }
 
-  approve(source: ScrapingSourceModel): void {
+  against(reasons: SourceReason[] | undefined): SourceReason[] {
+    return (reasons ?? []).filter((r) => r.outcome === 'fail' || r.outcome === 'unknown');
+  }
+
+  approveCandidate(candidate: SourceCandidate): void {
+    this.run(this.scrapingSourceService.approveCandidate(candidate.id), 'Failed to approve the source.');
+  }
+
+  pauseHarvest(source: ScrapingSourceModel): void {
+    this.actionReason.setValue('');
+    this.pendingAction.set({ sourceId: source.id, action: 'pause', recipes: null });
+  }
+
+  resumeHarvest(source: ScrapingSourceModel): void {
+    this.run(this.scrapingSourceService.resumeHarvest(source.id), 'Failed to resume harvesting.');
+  }
+
+  startWithhold(source: ScrapingSourceModel): void {
+    this.actionReason.setValue('');
+    this.preview(source.id, 'withhold');
+  }
+
+  startRelease(source: ScrapingSourceModel): void {
+    this.preview(source.id, 'release');
+  }
+
+  cancelAction(): void {
+    this.pendingAction.set(null);
+    this.actionReason.setValue('');
+  }
+
+  confirmAction(): void {
+    const action = this.pendingAction();
+    if (!action) return;
+    const reason = this.actionReason.value ?? '';
+    const request =
+      action.action === 'pause'
+        ? this.scrapingSourceService.pauseHarvest(action.sourceId, reason)
+        : action.action === 'withhold'
+          ? this.scrapingSourceService.withholdRecipes(action.sourceId, true, reason)
+          : this.scrapingSourceService.releaseRecipes(action.sourceId, true);
+    this.run(request, 'The action failed.');
+  }
+
+  undo(entry: SourceJournalEntry): void {
+    this.run(this.scrapingSourceService.undo(entry.id), 'Failed to undo the entry.');
+  }
+
+  recordHand(): void {
+    if (this.handForm.invalid) {
+      this.handForm.markAllAsTouched();
+      return;
+    }
+    this.handError.set('');
     this.processing.set(true);
-    this.scrapingSourceService.approve(source.id).pipe(
+    this.scrapingSourceService.recordHand(this.handForm.getRawValue()).pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: (updated) => this.applyReview(updated),
-      error: () => {
-        this.errorMessage.set('Failed to approve source.');
+      next: () => {
+        this.handForm.reset();
+        this.processing.set(false);
+        this.load();
+      },
+      error: (err) => {
+        this.handError.set(err?.error?.error ?? 'Failed to record the hand source.');
         this.processing.set(false);
       },
     });
@@ -101,27 +191,40 @@ export class ScrapingSources implements OnInit {
   }
 
   confirmReject(source: ScrapingSourceModel): void {
+    this.run(this.scrapingSourceService.reject(source.id, this.rejectNotes.value ?? ''), 'Failed to reject source.');
+  }
+
+  private preview(sourceId: number, action: 'withhold' | 'release'): void {
     this.processing.set(true);
-    this.scrapingSourceService.reject(source.id, this.rejectNotes.value ?? '').pipe(
-      takeUntilDestroyed(this.destroyRef),
-    ).subscribe({
-      next: (updated) => this.applyReview(updated),
-      error: () => {
-        this.errorMessage.set('Failed to reject source.');
+    const request = action === 'withhold'
+      ? this.scrapingSourceService.withholdRecipes(sourceId, false)
+      : this.scrapingSourceService.releaseRecipes(sourceId, false);
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (report) => {
+        this.pendingAction.set({ sourceId, action, recipes: report.recipes });
+        this.processing.set(false);
+      },
+      error: (err) => {
+        this.errorMessage.set(err?.error?.error ?? 'The dry run failed.');
         this.processing.set(false);
       },
     });
   }
 
-  /** Reviewed rows leave the current filter's list unless their new status still matches it. */
-  private applyReview(updated: ScrapingSourceModel): void {
-    this.sources.update((list) =>
-      updated.status === this.statusFilter()
-        ? list.map((s) => (s.id === updated.id ? updated : s))
-        : list.filter((s) => s.id !== updated.id),
-    );
-    this.rejectingId.set(null);
-    this.rejectNotes.setValue('');
-    this.processing.set(false);
+  private run(request: Observable<unknown>, failure: string): void {
+    this.processing.set(true);
+    this.errorMessage.set('');
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.processing.set(false);
+        this.pendingAction.set(null);
+        this.rejectingId.set(null);
+        this.load();
+      },
+      error: (err) => {
+        this.errorMessage.set(err?.error?.error ?? failure);
+        this.processing.set(false);
+      },
+    });
   }
 }

@@ -604,6 +604,53 @@
       }
     </section>
 
+    <section class="nom-pipeline__section" data-testid="pipeline-sources">
+      <h2 class="nom-pipeline__heading">Recipe sources</h2>
+      @if (d.sources; as so) {
+        <p class="nom-pipeline__lane-line" [class.nom-pipeline__warn]="so.runsFailedInRow !== 0" data-testid="pipeline-sources-state">
+          {{ so.enabled ? 'On' : 'Off (SourceDiscovery:Enabled)' }} · {{ so.policyVersion }} on {{ so.scraperRuleVersion }}
+          · last good discovery run {{ so.lastGoodRunUtc ? (so.lastGoodRunUtc | date: 'MMM d, HH:mm') : 'never' }}
+          @if (so.runsFailedInRow !== 0) {
+            · {{ so.runsFailedInRow }} failed in a row
+          }
+        </p>
+        <dl class="nom-pipeline__stats">
+          <div><dt>Ready to approve</dt><dd data-testid="pipeline-metric-sources-queue">{{ so.queue | number }}</dd></div>
+          <div><dt>Not clear</dt><dd data-testid="pipeline-metric-sources-not-clear">{{ so.notClear | number }}</dd></div>
+          <div><dt>Waiting for a check</dt><dd data-testid="pipeline-metric-sources-waiting">{{ so.waiting | number }}</dd></div>
+          <div><dt>Approved</dt><dd data-testid="pipeline-metric-sources-approved">{{ so.approved | number }}</dd></div>
+          <div><dt>Approved, clear</dt><dd data-testid="pipeline-metric-sources-approved-clear">{{ so.approvedClear | number }}</dd></div>
+          <div><dt>Approved, not clear</dt><dd data-testid="pipeline-metric-sources-approved-not-clear">{{ so.approvedNotClear | number }}</dd></div>
+          <div><dt>Not judged yet</dt><dd data-testid="pipeline-metric-sources-unjudged">{{ so.approvedUnjudged | number }}</dd></div>
+          <div><dt>Harvest paused</dt><dd data-testid="pipeline-metric-sources-paused">{{ so.harvestPaused | number }}</dd></div>
+          <div><dt>Recipes withheld</dt><dd data-testid="pipeline-metric-sources-withheld">{{ so.withheld | number }}</dd></div>
+          <div><dt>In probation</dt><dd data-testid="pipeline-metric-sources-probation">{{ so.inProbation | number }}</dd></div>
+          <div><dt>Harvestable</dt><dd data-testid="pipeline-metric-sources-harvestable">{{ so.harvestable | number }}</dd></div>
+          <div><dt>Checks today</dt><dd data-testid="pipeline-metric-sources-checks">{{ so.checksLast24h | number }} / {{ so.maxChecksPerDay | number }}</dd></div>
+          <div><dt>Failed checks (7 days)</dt><dd data-testid="pipeline-metric-sources-failed-checks">{{ so.checksFailedLast7d | number }}</dd></div>
+        </dl>
+        @if (so.runs.length !== 0) {
+          <ul class="nom-pipeline__list" data-testid="pipeline-sources-run-list">
+            @for (run of so.runs; track run.id) {
+              <li class="nom-pipeline__list-item" [class.nom-pipeline__warn]="run.status === 'failed'" data-testid="pipeline-sources-run-item">
+                <span>{{ run.status }}{{ run.stopReason ? ' (' + run.stopReason + ')' : '' }} <span class="nom-pipeline__muted">{{ run.startedUtc | date: 'MMM d, HH:mm' }} · {{ run.seeds }}</span></span>
+                <span>{{ run.error ?? (run.candidates + ' candidates, ' + run.leads + ' leads') }}</span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="nom-pipeline__hint" data-testid="pipeline-sources-no-runs">No discovery run yet.</p>
+        }
+        <a routerLink="/admin/scraping-sources" class="nom-pipeline__link" data-testid="pipeline-sources-link">Open recipe sources</a>
+        <p class="nom-pipeline__hint">
+          Only an admin approves a source, and only one whose check is clear is offered. A lost or failed job counts as a failed run.
+          The weekly re-check pauses harvesting of a source whose clear verdict turns not clear.
+        </p>
+      } @else {
+        <p class="nom-pipeline__hint" data-testid="pipeline-sources-error">The source lane did not report.</p>
+      }
+    </section>
+
     <section class="nom-pipeline__section" data-testid="pipeline-images">
       <h2 class="nom-pipeline__heading">Images</h2>
       <dl class="nom-pipeline__stats">

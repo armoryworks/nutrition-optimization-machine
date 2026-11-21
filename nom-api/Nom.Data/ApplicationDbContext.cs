@@ -150,6 +150,9 @@ namespace Nom.Data
         public DbSet<IngredientExtrasEntity> IngredientExtras { get; set; } = default!;
         public DbSet<ScrapingReportEntity> ScrapingReports { get; set; } = default!;
         public DbSet<ScrapingSourceEntity> ScrapingSources { get; set; } = default!;
+        public DbSet<SourceCandidateEntity> SourceCandidates { get; set; } = default!;
+        public DbSet<SourceCheckEntity> SourceChecks { get; set; } = default!;
+        public DbSet<SourceDiscoveryRunEntity> SourceDiscoveryRuns { get; set; } = default!;
         public DbSet<ScrapedDocumentEntity> ScrapedDocuments { get; set; } = default!;
         public DbSet<ProseStockPhraseEntity> ProseStockPhrases { get; set; } = default!;
         public DbSet<RecipeReprocessJournalEntity> RecipeReprocessJournals { get; set; } = default!;

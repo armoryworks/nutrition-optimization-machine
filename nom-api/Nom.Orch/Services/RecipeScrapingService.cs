@@ -36,6 +36,7 @@ namespace Nom.Orch.Services
         public const string NameFreedChangeType = "NameFreed";
         public const string NameFreedEntityType = "Ingredient";
         public const string ResolveOnImportSetting = "VerifiedWordings:ResolveOnImport";
+        public const string StagedImportGateSetting = "SourceDiscovery:StagedImportGate";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly ICurrentUserService _currentUser;
@@ -44,6 +45,7 @@ namespace Nom.Orch.Services
         private readonly IRecipeVettingService _vetting;
         private readonly ILogger<RecipeScrapingService> _logger;
         private readonly Support.RecipeLineBuilder _lines;
+        private readonly bool _stagedGate;
 
         public RecipeScrapingService(
             ApplicationDbContext dbContext,
@@ -55,6 +57,7 @@ namespace Nom.Orch.Services
             IConfiguration? configuration = null)
         {
             _lines = new Support.RecipeLineBuilder(dbContext, logger, configuration?.GetValue(ResolveOnImportSetting, false) ?? false);
+            _stagedGate = configuration?.GetValue(StagedImportGateSetting, false) ?? false;
             _dbContext = dbContext;
             _currentUser = currentUser;
             _scraperClient = scraperClient;
@@ -348,9 +351,20 @@ namespace Nom.Orch.Services
                 UriFormat.UriEscaped);
         }
 
+        /// <summary>
+        /// Imports a batch of already-parsed recipes. With the staged-import gate on
+        /// (SourceDiscovery:StagedImportGate), a recipe is taken only from an approved source: its
+        /// URL's domain, or for a recipe with no URL the source the batch names (<see cref="StagedImportRequestModel.SourceId"/>,
+        /// a hand source for PDFs and scanned books); its licence comes from that source's record
+        /// and the caller's PublicDomain flag is not read.
+        /// </summary>
         public async Task<StagedImportResultModel> ImportStagedAsync(StagedImportRequestModel request)
         {
             var result = new StagedImportResultModel();
+            var named = request.SourceId is { } sourceId
+                ? await _dbContext.ScrapingSources.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sourceId && s.Status == ScrapingSourceStatusEnum.Approved)
+                : null;
+            result.PublicDomainFlagIgnored = _stagedGate && request.PublicDomain;
 
             foreach (var scraped in request.Recipes)
             {
@@ -359,6 +373,26 @@ namespace Nom.Orch.Services
                     var normalizedUrl = string.IsNullOrWhiteSpace(scraped.SourceUrl)
                         ? null
                         : NormalizeUrl(scraped.SourceUrl);
+
+                    var publicDomain = request.PublicDomain;
+                    if (_stagedGate)
+                    {
+                        var source = await StagedSourceAsync(normalizedUrl, named);
+                        if (source == null)
+                        {
+                            result.Refused++;
+                            result.Failures.Add(new StagedImportFailureModel
+                            {
+                                Name = scraped.Name,
+                                Error = normalizedUrl == null
+                                    ? "Refused: a recipe with no URL is imported only under an approved source named by sourceId (a hand source with recorded licence facts)."
+                                    : "Refused: the recipe's domain is not an approved source.",
+                            });
+                            continue;
+                        }
+
+                        publicDomain = source.LicenceKind != null && Support.SourceAdmissionPolicy.PublicDomainLicences.Contains(source.LicenceKind);
+                    }
 
                     // Dedup: by normalized URL, or by name+attribution for
                     // URL-less sources (cookbook extractions) — reruns of the
@@ -395,7 +429,7 @@ namespace Nom.Orch.Services
                         recipe.SourceAttribution = request.SourceAttribution;
                     }
 
-                    if (request.PublicDomain)
+                    if (publicDomain)
                     {
                         // Public domain: the prose is publishable as-is — no
                         // copyright quarantine; curation still gates publish.
@@ -423,9 +457,49 @@ namespace Nom.Orch.Services
             }
 
             _logger.LogInformation(
-                "Staged import: {Imported} imported, {Skipped} duplicates skipped, {Failed} failed (publicDomain={PublicDomain})",
-                result.Imported, result.SkippedDuplicates, result.Failures.Count, request.PublicDomain);
+                "Staged import: {Imported} imported, {Skipped} duplicates skipped, {Refused} refused by the source gate, {Failed} failed (publicDomain={PublicDomain})",
+                result.Imported, result.SkippedDuplicates, result.Refused, result.Failures.Count - result.Refused, request.PublicDomain);
             return result;
+        }
+
+        /// <summary>
+        /// The approved source a staged recipe comes from: the source whose domain is the URL's
+        /// (with or without "www."), else for a recipe with no URL the source the batch named.
+        /// A named source never covers a URL of another domain.
+        /// </summary>
+        private async Task<ScrapingSourceEntity?> StagedSourceAsync(string? normalizedUrl, ScrapingSourceEntity? named)
+        {
+            if (normalizedUrl == null)
+            {
+                return named;
+            }
+
+            var domain = Support.SourceAdmissionPolicy.NormalizeDomain(normalizedUrl);
+            if (domain == null)
+            {
+                return null;
+            }
+
+            var www = "www." + domain;
+            return await _dbContext.ScrapingSources.AsNoTracking()
+                .Where(s => (s.Domain == domain || s.Domain == www) && s.Status == ScrapingSourceStatusEnum.Approved)
+                .OrderBy(s => s.Id)
+                .FirstOrDefaultAsync();
+        }
+
+        private async Task<long?> WithheldSourceIdAsync(string? sourceUrl)
+        {
+            var domain = Support.SourceAdmissionPolicy.NormalizeDomain(sourceUrl);
+            if (domain == null)
+            {
+                return null;
+            }
+
+            var www = "www." + domain;
+            return await _dbContext.ScrapingSources.AsNoTracking()
+                .Where(s => (s.Domain == domain || s.Domain == www) && s.RecipesWithheldAt != null)
+                .Select(s => (long?)s.Id)
+                .FirstOrDefaultAsync();
         }
 
         /// <summary>
@@ -455,6 +529,7 @@ namespace Nom.Orch.Services
                 Name = Clamp(string.IsNullOrEmpty(scraped.Name) ? "Untitled Recipe" : scraped.Name, 511)!,
                 Description = Clamp(scraped.Description, 2047),
                 SourceUrl = Clamp(sourceUrl ?? scraped.SourceUrl, 2047),
+                SourceWithheldById = await WithheldSourceIdAsync(sourceUrl ?? scraped.SourceUrl),
                 SourceSite = Clamp(scraped.SourceSite, 255),
                 PrepTime = Clamp(scraped.PrepTime, 100),
                 CookTime = Clamp(scraped.CookTime, 100),

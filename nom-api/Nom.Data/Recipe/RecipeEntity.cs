@@ -95,6 +95,13 @@ namespace Nom.Data.Recipe
         /// </summary>
         public bool ProseWithheld { get; set; }
 
+        /// <summary>
+        /// The scraping source whose recipes an admin withheld, while that withholding stands: the
+        /// recipe is kept out of every shared pool (search, suggestions, meal plans) and stays only
+        /// with its own author. Set and cleared only by the journaled source actions.
+        /// </summary>
+        public long? SourceWithheldById { get; set; }
+
         /// <summary>The version of the prose check that last judged the stored description and steps; null = never checked.</summary>
         public int? ProseCheckVersion { get; set; }
 

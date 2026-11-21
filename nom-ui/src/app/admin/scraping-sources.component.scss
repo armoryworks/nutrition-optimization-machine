@@ -21,39 +21,73 @@
   }
 }
 
-.nom-scraping-sources__filters {
-  display: flex;
-  gap: vars.$spacing-1;
-  margin-bottom: vars.$spacing-4;
-  padding: vars.$spacing-1;
-  border: 1px solid var(--mat-sys-outline-variant);
-  background: var(--mat-sys-surface-container);
-  width: fit-content;
+.nom-scraping-sources__section {
+  margin-bottom: vars.$spacing-6;
 }
 
-.nom-scraping-sources__filter {
-  padding: vars.$spacing-1 vars.$spacing-3;
-  border: none;
-  background: none;
-  font-family: inherit;
-  font-size: vars.$font-size-sm;
+.nom-scraping-sources__heading {
+  margin: 0 0 vars.$spacing-2;
+  font-size: vars.$font-size-lg;
   font-weight: vars.$font-weight-medium;
-  color: var(--mat-sys-on-surface-variant);
-  cursor: pointer;
+}
 
-  &:hover {
-    color: var(--mat-sys-on-surface);
-    background: var(--mat-sys-surface-container-high);
+.nom-scraping-sources__hint {
+  margin: 0 0 vars.$spacing-3;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-scraping-sources__warn {
+  color: var(--mat-sys-error);
+}
+
+.nom-scraping-sources__facts {
+  display: grid;
+  gap: vars.$spacing-1;
+  margin: vars.$spacing-3 0;
+  font-size: vars.$font-size-sm;
+  overflow-wrap: anywhere;
+
+  div {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: vars.$spacing-2;
   }
 
-  &--active {
-    background: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
+  dt {
+    font-weight: vars.$font-weight-medium;
+    color: var(--mat-sys-on-surface-variant);
+  }
 
-    &:hover {
-      background: var(--mat-sys-primary);
-      color: var(--mat-sys-on-primary);
-    }
+  dd {
+    margin: 0;
+  }
+}
+
+.nom-scraping-sources__reasons {
+  margin: vars.$spacing-1 0 0;
+  padding-left: vars.$spacing-4;
+  font-size: vars.$font-size-sm;
+  overflow-wrap: anywhere;
+}
+
+.nom-scraping-sources__plain-list {
+  margin: 0;
+  padding-left: vars.$spacing-4;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+  font-size: vars.$font-size-sm;
+  overflow-wrap: anywhere;
+}
+
+.nom-scraping-sources__hand-form {
+  display: flex;
+  flex-direction: column;
+  margin-top: vars.$spacing-3;
+
+  mat-form-field {
+    width: 100%;
   }
 }
 

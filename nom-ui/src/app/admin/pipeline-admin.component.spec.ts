@@ -452,6 +452,35 @@ describe('PipelineAdmin', () => {
     expect(items[1].textContent).toContain('active · 590/600');
   });
 
+  it('shows the source lane with its queue, the approved sources by verdict and a failed run as failed', () => {
+    const body = status();
+    body.sources = {
+      enabled: true, policyVersion: 'source-admission/1', scraperRuleVersion: 'source-check/2',
+      runs: [
+        { id: 2, startedUtc: '2026-11-20T10:00:00Z', status: 'failed', error: 'lost: the discovery job job1 is gone from the scraper', seeds: 'a.example', candidates: 1, leads: 0, pagesFetched: 4 },
+        { id: 1, startedUtc: '2026-11-19T10:00:00Z', status: 'completed', seeds: 'b.example', candidates: 3, leads: 2, pagesFetched: 40 },
+      ],
+      runsFailedInRow: 1, lastGoodRunUtc: '2026-11-19T10:05:00Z', checksLast24h: 4, maxChecksPerDay: 10, checksFailedLast7d: 1,
+      queue: 2, notClear: 9, waiting: 3, leads: 12, approved: 22, approvedClear: 0, approvedNotClear: 21, approvedUnjudged: 1,
+      harvestPaused: 0, withheld: 0, inProbation: 0, harvestable: 22, hand: 1,
+    };
+    const el = loaded(body).nativeElement as HTMLElement;
+
+    expect(byId(el, 'pipeline-sources-state')?.textContent).toContain('1 failed in a row');
+    expect(byId(el, 'pipeline-sources-state')?.classList).toContain('nom-pipeline__warn');
+    expect(byId(el, 'pipeline-metric-sources-queue')?.textContent?.trim()).toBe('2');
+    expect(byId(el, 'pipeline-metric-sources-approved-not-clear')?.textContent?.trim()).toBe('21');
+    const runs = el.querySelectorAll('[data-testid="pipeline-sources-run-item"]');
+    expect(runs.length).toBe(2);
+    expect(runs[0].classList).toContain('nom-pipeline__warn');
+    expect(runs[0].textContent).toContain('lost');
+    expect(runs[1].textContent).toContain('3 candidates, 2 leads');
+    TestBed.resetTestingModule();
+    http.verify();
+
+    expect(byId(loaded(status()).nativeElement, 'pipeline-sources-error')).not.toBeNull();
+  });
+
   it('says when no container size is stored, and when the lane did not report', () => {
     const body = status();
     body.containerSizes = { lane: 'container-sizes', laneMode: 'shadow', rows: 0, byStatus: {}, bySource: {}, lastScoredAt: null, holdoutLines: 0, holdoutAgree: 0, keys: [] };

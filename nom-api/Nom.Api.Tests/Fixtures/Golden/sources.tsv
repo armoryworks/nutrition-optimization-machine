@@ -1,0 +1,47 @@
+id	scraperVerdict	ruleVersion	complete	reasons	licenceKind	sample	vetChecked	vetPassed	lines	linesFine	rejectedBefore	expectVerdict	expectConclusive	expectAgainst	status	source	note
+clear-cc0	clear	source-check/2	yes	-	cc0	20	20	20	60	60	no	clear	yes	-	ok	rule:construction	every scraper reason passes, cc0 on the pages, 20 of 20 recipes vet clean, every line quantified
+clear-cc-by	clear	source-check/2	yes	-	cc-by	20	20	20	60	60	no	clear	yes	-	ok	rule:construction	CC BY allows commercial adaptation with attribution only
+clear-public-domain-statement	clear	source-check/2	yes	-	public-domain	20	20	20	60	60	no	clear	yes	-	ok	rule:construction	an unqualified public-domain sentence on the site (the scraper's licence rule 4)
+clear-pdm	clear	source-check/2	yes	-	public-domain-mark	20	20	20	60	60	no	clear	yes	-	ok	rule:construction	Public Domain Mark on the pages
+scraper-clear-but-ai-blocked	clear	source-check/2	yes	robots-ai:fail	cc0	20	20	20	60	60	no	not-clear	yes	robots-ai	ok	rule:construction	NOM re-reads every reason: a fail the scraper's verdict did not count still keeps the site out
+scraper-not-clear-all-pass	not-clear	source-check/2	yes	-	cc0	20	20	20	60	60	no	not-clear	yes	scraper-verdict	ok	rule:construction	the scraper's own verdict must be clear too
+licence-cc-by-sa	not-clear	source-check/2	yes	licence:fail	cc-by-sa	20	20	20	60	60	no	not-clear	yes	licence;scraper-verdict;licence-kind	ok	rule:construction	share-alike is a condition beyond attribution (Wikibooks, source-candidates B1)
+licence-ogl	not-clear	source-check/2	yes	licence:fail	ogl	20	20	20	60	60	no	not-clear	yes	licence;scraper-verdict;licence-kind	ok	rule:construction	OGL is kept not clear (source-scraper question 1; NHS terms on top, source-candidates B2)
+licence-none	not-clear	source-check/2	yes	licence:fail	-	20	20	20	60	60	no	not-clear	yes	licence;scraper-verdict;licence-kind	ok	rule:construction	no licence found: all rights reserved by default
+licence-kind-cc-by-nc-despite-pass	clear	source-check/2	yes	-	cc-by-nc	20	20	20	60	60	no	not-clear	yes	licence-kind	ok	rule:construction	NOM's own licence list holds even when the scraper passed the licence
+incomplete-budget	not-clear	source-check/2	no	check-complete:unknown	cc0	20	20	20	60	60	no	not-clear	no	check-complete;scraper-verdict	ok	rule:construction	a check cut off by its budget is inconclusive: not clear, and it changes nothing harvested
+old-rule-version	clear	source-check/1	yes	-	cc0	20	20	20	60	60	no	not-clear	no	rule-version	ok	rule:construction	a report under rules this policy does not read is inconclusive
+no-rule-version	clear	-	yes	-	cc0	20	20	20	60	60	no	not-clear	no	rule-version	ok	rule:construction	no rule version at all
+missing-terms-reason	clear	source-check/2	yes	missing:terms	cc0	20	20	20	60	60	no	not-clear	yes	terms	ok	rule:construction	a reason missing from the report counts against
+odd-outcome	clear	source-check/2	yes	credits:maybe	cc0	20	20	20	60	60	no	not-clear	yes	credits	ok	rule:construction	an outcome outside pass, fail, unknown and info is read as unknown
+crawl-delay-info	clear	source-check/2	yes	crawl-delay:info	cc0	20	20	20	60	60	no	clear	yes	-	ok	rule:construction	crawl-delay is information; the harvester honours it in full
+sample-yield-info	clear	source-check/2	yes	sample-yield:info	cc0	20	20	20	60	60	no	clear	yes	-	ok	rule:construction	sample yield is information; NOM's own quantity check decides
+robots-nombot-fail	not-clear	source-check/2	yes	robots-nombot:fail	cc0	20	20	20	60	60	no	not-clear	yes	robots-nombot;scraper-verdict	ok	rule:construction	NomBot disallowed on a sampled path
+robots-general-fail	not-clear	source-check/2	yes	robots-general:fail	cc0	20	20	20	60	60	no	not-clear	yes	robots-general;scraper-verdict	ok	rule:construction	the * group disallows a sampled path
+robots-refused	not-clear	source-check/2	yes	bot-challenge:unknown;robots-nombot:unknown;robots-general:unknown;robots-ai:unknown	cc0	20	20	20	60	60	no	not-clear	yes	bot-challenge;robots-nombot;robots-general;robots-ai;scraper-verdict	ok	rule:construction	robots.txt behind a bot challenge: its rules are unknown
+reservation-tdm	not-clear	source-check/2	yes	reservation:fail	cc0	20	20	20	60	60	no	not-clear	yes	reservation;scraper-verdict	ok	rule:construction	a tdm-reservation header or tdmrep.json entry
+reservation-unreadable	not-clear	source-check/2	yes	reservation:unknown	cc0	20	20	20	60	60	no	not-clear	yes	reservation;scraper-verdict	ok	rule:construction	tdmrep.json could not be read
+terms-ai-prohibition	not-clear	source-check/2	yes	terms:fail	cc0	20	20	20	60	60	no	not-clear	yes	terms;scraper-verdict	ok	rule:construction	terms forbid AI use or automated aggregation
+terms-unread	not-clear	source-check/2	yes	terms:unknown	cc0	20	20	20	60	60	no	not-clear	yes	terms;scraper-verdict	ok	rule:construction	a linked terms page answered 403
+credits-another-source	not-clear	source-check/2	yes	credits:unknown	public-domain	20	20	20	60	60	no	not-clear	yes	credits;scraper-verdict	ok	rule:construction	samples credit another source (MedlinePlus pages crediting Food Hero, source-candidates B3)
+enumerable-49	not-clear	source-check/2	yes	enumerable:fail	cc0	20	20	20	60	60	no	not-clear	yes	enumerable;scraper-verdict	ok	rule:construction	49 recipe URLs, one short of 50
+structured-17-of-20	not-clear	source-check/2	yes	structured-data:fail	cc0	20	17	17	51	51	no	not-clear	yes	structured-data;scraper-verdict;nom-vetting	ok	rule:construction	17 of 20 samples carry a recipe; NOM can vet only those 17
+free-to-read-paywall	not-clear	source-check/2	yes	free-to-read:fail	cc0	20	20	20	60	60	no	not-clear	yes	free-to-read;scraper-verdict	ok	rule:construction	a sample says isAccessibleForFree false
+language-french	not-clear	source-check/2	yes	language:fail	cc0	20	20	20	60	60	no	not-clear	yes	language;scraper-verdict	ok	rule:construction	pages state French (fr.frije.com, source-candidates section 3)
+https-fail	not-clear	source-check/2	yes	https:fail	cc0	20	20	20	60	60	no	not-clear	yes	https;scraper-verdict	ok	rule:construction	a sample ended on http
+sample-19	not-clear	source-check/2	yes	structured-data:unknown;language:unknown;licence:unknown	cc0	19	19	19	57	57	no	not-clear	yes	licence;structured-data;language;scraper-verdict;sample-size	ok	rule:construction	a sample under 20 can never be clear
+vetting-18-of-20	clear	source-check/2	yes	-	cc0	20	20	18	60	60	no	clear	yes	-	ok	rule:construction	18 of 20 sample recipes pass NOM's vetting: the edge passes
+vetting-17-of-20	clear	source-check/2	yes	-	cc0	20	20	17	60	60	no	not-clear	yes	nom-vetting	ok	rule:construction	17 of 20 pass NOM's vetting: one short
+vetting-too-few	clear	source-check/2	yes	-	cc0	20	17	17	51	51	no	not-clear	yes	nom-vetting	ok	rule:construction	only 17 recipes to vet, so 18 cannot pass, whatever the scraper counted
+quantities-85	clear	source-check/2	yes	-	cc0	20	20	20	100	85	no	clear	yes	-	ok	rule:construction	85 of 100 lines carry a quantity or need none: the edge passes
+quantities-84	clear	source-check/2	yes	-	cc0	20	20	20	100	84	no	not-clear	yes	nom-quantities	ok	rule:construction	84 of 100: below 85 %
+quantities-none	clear	source-check/2	yes	-	cc0	20	20	20	0	0	no	not-clear	yes	nom-quantities	ok	rule:construction	no sample ingredient line to read
+rejected-before	clear	source-check/2	yes	-	cc0	20	20	20	60	60	yes	not-clear	yes	rejected-before	ok	rule:construction	an admin rejection is final
+like-budgetbytes	not-clear	source-check/2	yes	robots-ai:fail;terms:unknown;licence:fail	-	20	20	20	60	57	no	not-clear	yes	robots-ai;terms;licence;scraper-verdict;licence-kind	ok	rule:construction	AI crawlers blocked in robots.txt, terms page 403, no licence (source-candidates section 3, constructed from its description)
+like-pinchofyum	not-clear	source-check/2	yes	terms:fail;licence:fail	-	20	20	20	60	55	no	not-clear	yes	terms;licence;scraper-verdict;licence-kind	ok	rule:construction	terms forbid systematic or automated data collection; no licence
+like-eatingwell	not-clear	source-check/2	yes	terms:fail;licence:fail;robots-ai:fail	-	20	20	20	60	58	no	not-clear	yes	robots-ai;terms;licence;scraper-verdict;licence-kind	ok	rule:construction	a robots.txt comment prohibits crawling to mine or scrape; no licence
+like-loveandlemons	not-clear	source-check/2	yes	licence:fail	-	20	20	20	60	48	no	not-clear	yes	licence;scraper-verdict;licence-kind;nom-quantities	ok	rule:construction	all rights reserved in the footer; 48 of 60 lines fine
+like-nhlbi	not-clear	source-check/2	yes	structured-data:fail	public-domain	20	0	0	0	0	no	not-clear	yes	structured-data;scraper-verdict;nom-vetting;nom-quantities	ok	rule:construction	public-domain statement but no schema.org Recipe: a hand import, not a harvested source
+like-va-pdf	not-clear	source-check/2	yes	structured-data:fail;enumerable:fail;licence:fail	-	20	0	0	0	0	no	not-clear	yes	licence;enumerable;structured-data;scraper-verdict;licence-kind;nom-vetting;nom-quantities	ok	rule:construction	recipe PDFs, no sitemap of recipe pages, no written licence: recorded by hand with its facts
+partial-two-unknowns	not-clear	source-check/2	no	check-complete:unknown;structured-data:unknown	cc0	20	12	12	36	36	no	not-clear	no	check-complete;structured-data;scraper-verdict;nom-vetting	ok	rule:construction	cut off before every sample was read
+free-to-read-unknown	not-clear	source-check/2	yes	free-to-read:unknown	cc0	20	0	0	0	0	no	not-clear	yes	free-to-read;scraper-verdict;nom-vetting;nom-quantities	ok	rule:construction	no sample fetched at all

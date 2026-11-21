@@ -113,6 +113,25 @@ namespace Nom.Api.Tests.Controllers
         }
 
         [Fact]
+        public async Task GetStatus_reports_the_source_lane_with_its_failed_runs()
+        {
+            var sources = new Mock<ISourceAdmissionService>();
+            sources.Setup(s => s.StatusAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Nom.Orch.Models.Recipe.SourceAdmissionStatusModel { RunsFailedInRow = 3, Queue = 2 });
+            var controller = new PipelineController(_pipeline.Object, _lanes.Object, _features.Object,
+                new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Ai:QuietHours"] = "" }).Build(),
+                _frame.Object, Options.Create(new LaneModelRoster()), sources: sources.Object)
+            {
+                ControllerContext = Controller().ControllerContext,
+            };
+
+            var body = Body(await controller.GetStatus());
+
+            body.Sources.Should().Match<Nom.Orch.Models.Recipe.SourceAdmissionStatusModel>(s => s.RunsFailedInRow == 3 && s.Queue == 2);
+            Body(await Controller().GetStatus()).Sources.Should().BeNull("no source service, no block");
+        }
+
+        [Fact]
         public async Task GetStatus_reports_every_model_lane_from_the_gate_with_its_pause_switch()
         {
             var body = Body(await Controller().GetStatus());

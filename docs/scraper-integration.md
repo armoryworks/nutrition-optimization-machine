@@ -46,14 +46,30 @@ Request: `{ "url": "https://example.com/recipes/pancakes" }`
 
 Request: `{ "content": "<html … or raw JSON-LD>", "sourceUrl": "optional" }` — parse without fetching.
 
-### `POST /api/discover` (optional)
+### Discovery and source-check jobs (optional)
 
-Request: `{ "seedDomains": ["approved-site.com", …], "maxCandidates": 10 }`
+NOM's source lane (see *Source discovery and checks* below) uses two kinds of budgeted job. Both
+are started with a `POST` that answers **202** with the job and read with `GET …/jobs/{jobId}`
+(`DELETE` asks a running job to stop). A job is `running`, `completed`, `partial` (the budget,
+a cancel or a shutdown left work undone; `result` holds what was found) or `failed`; a 404 means
+the job is unknown or was lost in a restart, a 429 that as many jobs of the kind run as the
+service allows. Jobs live in the scraper's memory, so NOM treats a lost job as a failed run.
 
-Follows outbound links from the approved seed sites' homepages and probes each
-candidate domain's homepage (one page, robots-aware) for a recipe signal.
-Response: `{ "candidates": [{ "domain", "evidenceUrl", "signal", "discoveredVia" }], "probedWithoutSignal": n }`.
-Discovery proposes; it never imports.
+- `POST /api/discover/jobs` `{ "seedDomains": [...at most 20], "maxCandidates": 10, "budgetSeconds": 600 }`:
+  follows outbound links from the seeds (in the order sent) and probes found domains for a recipe
+  signal. `result`: `candidates` (`domain`, `evidenceUrl`, `signal`, `discoveredVia`),
+  `probedWithoutSignal`, `partial`, `stopReason`, `seedsVisited`, `seedsNotVisited`,
+  `candidatesNotProbed` (leads with no signal), `seedsRefused` (search engines and platforms,
+  never fetched), `pagesFetched`. Discovery proposes; it never imports.
+- `POST /api/source-check/jobs` `{ "domain": "www.example.org", "sampleSize": 20, "budgetSeconds": 1200, "includeRecipes": true }`:
+  reads the site's robots.txt (NomBot, `*` and the named AI crawlers, crawl-delay), its
+  reservation signals (TDMRep, `noai`), up to 6 terms, legal or licence pages, the sitemap and a
+  spread sample of recipe pages, and returns facts only, with its own verdict and reasons under a
+  rule version (`source-check/2`). `result` is null while running and the full report once the job
+  ends; a report that did not finish is `complete: false` and never clear. Nothing is imported.
+
+The older synchronous `POST /api/discover` remains in the reference scraper for compatibility;
+NOM no longer calls it.
 
 ### Response (both endpoints, HTTP 200)
 
@@ -92,7 +108,7 @@ Contract rules an implementation must honor:
 
 ## What NOM does with the result
 
-- **Source whitelist:** before any scrape, NOM checks the URL's domain against the `recipe.ScrapingSource` table. Unknown domains create a *Pending* request, notify all `CanManageCuration` admins in-app and by email, and nothing is fetched. Admins approve/reject under **Admin → Scraping Sources** (`/api/ScrapingSource`). Approval is an explicit acceptance of responsibility for that source.
+- **Source whitelist:** before any scrape, NOM checks the URL's domain against the `recipe.ScrapingSource` table. Unknown domains create a *Pending* request, notify all `CanManageCuration` admins in-app and by email, and nothing is fetched. Admins approve/reject under **Admin → Scraping Sources** (`/api/ScrapingSource`). Approval is an explicit acceptance of responsibility for that source. The staged import (`POST /api/StagedImport`) is under the same whitelist: with `SourceDiscovery:StagedImportGate` on it takes a recipe only from an approved source (its URL's domain, or the hand source a URL-less batch names with `sourceId`), and the licence comes from that source's record, never from the caller's `publicDomain` flag.
 - **Vetting:** imports are checked for plausibility (realistic times/servings, completeness, parseable quantities). Suspect recipes get `RequiresRevision` curation status with the issues recorded in `Recipe.VettingIssues` for admin review.
 - **Copyright quarantine:** `Recipe.SourceImageUrl` (review-only, never published; the public `Image` stays empty until a curator uploads one via the normal asset flow) and `Recipe.ContainsSourceProse = true` until the description/steps are rewritten and a curator clears it. The raw JSON-LD is kept in `recipe.ScrapedDocument`.
 - **Prose rewrite:** the clean-room rewrite lane (`ProseRewriteHostedService` running `ProseLaneService`, on when `Ai:BatchOllamaUrl` is set; design in `docs/architecture/prose-lane.md`) writes each withheld or quarantined recipe's method again without ever showing the writer the source's wording: every amount of the source method is masked as a token that code puts back, a model turns the masked method into fact sheets, the writer writes from the sheets, the ingredient names and the dish name only, and the description is built by rule from the dish name and main ingredients. A rewrite is written only when it keeps to the form rules, passes prose check v2 against the source and is found faithful step by step by a judge of another model family (`Ai:Roster:ReaderB`); it then lifts `ProseWithheld` or `ContainsSourceProse`, and every overwritten description, step and state is journaled in `audit.AuditLogEntry` as `ProseRewrite`. The lane runs on the lane frame: it decides in shadow and writes nothing until its audited sample qualifies, pauses itself on a planted-fault canary let through, a gate yield under half or audited errors above 5 %, and undoes its writes since its last clean window; `POST /api/ProseRewrite/undo?sinceUtc=&laneVersion=&apply=false` is the same undo for an operator. A recipe all four attempts fail is given up under the lane version and counted by failure class on the Pipeline page; it is taken again when the lane version (prompts, models, check) changes. The old paraphrase lane (`RewriteFidelity` as its gate, `ProseRewrite:CheckFidelity`) is gone. `POST /api/ProseRewrite/recheck` runs prose check v2 over the recipes whose prose is shown (a dry run unless `apply=true`); with apply, failures have their prose **withheld** (`Recipe.ProseWithheld`, `ProseWithhold` journal rows, curation status unchanged): the recipe stays in search, suggestions and meal plans, no endpoint serves its description or steps, and its page shows rule-built key facts and a link to the source instead. `POST /api/ProseRewrite/recheck/undo?sinceUtc=&apply=false` releases them again (a dry run unless `apply=true`), skipping those whose prose has been replaced since; it also takes back recipes an earlier re-check put into quarantine (`ProseRecheck` rows). A weekly job (`ProseRecheck:Enabled`, held by the platform feature `pause-prose-recheck`) withholds what fails whenever the check or the stock index changes and once a week. Withheld is a holding state: the rewrite lane works the withheld recipes off, approved first. `ProseRewrite:DrainWhileFull` is on by default only when `AI_PROSE_REWRITE_MAX_PER_DAY` is above 0: without a cap the lane takes one sweep per interval (25 every 10 minutes). A model answer with an HTTP error status sends the recipe to the back of the queue uncharged; no answer or a missing model ends the sweep. Prose check v2 (`ProseCheck`: amounts with units and ranges, amounts against the ingredient lines, verb and ingredient coverage, copy measures that ignore the stock phrases of `recipe.ProseStockPhrase`, rebuilt by `POST /api/ProseRewrite/stock/rebuild`) is the gate of both the re-check and the lane; see `docs/architecture/prose-check.md`.
@@ -126,34 +142,51 @@ The script reads the harvest files as they are. Each line wraps the record: a co
 
 Each stored document is journaled in `audit.AuditLogEntry` (`SourceAttach`, entity `ScrapedDocument`, the recipe, version, checksum, score and key in `NewValue`). `POST /api/RecipeSource/attach/undo?sinceUtc=&apply=false` soft-deletes the documents attached at or after `sinceUtc` that are still there, journaled as `SourceAttachUndo`; a later attach stores them again. A repeated undo counts the documents an earlier undo already removed as `alreadyUndone`, apart from `skipped` (gone some other way), so a second run over the same window reads as done, not as failed. Documents stored by an import are never touched by the undo.
 
-## Automatic source discovery (optional, off by default)
+## Source discovery and checks (optional, off by default)
 
-With a scraper configured, NOM can look for new public recipe sources automatically:
+With a scraper configured, NOM can look for new recipe sources and judge them, and re-judge the
+approved ones. Nothing here approves a source: an admin approves every domain, and only a site
+whose check is clear is offered for that approval. Full design:
+`docs/architecture/recipe-sources.md`.
 
 ```json
-"SourceDiscovery": { "Enabled": true, "IntervalHours": 168, "MaxCandidatesPerRun": 10, "AutoApprove": false }
+"SourceDiscovery": { "Enabled": true, "IntervalHours": 24, "SeedsPerRun": 3, "MaxChecksPerDay": 10, "RecheckDays": 7 }
 ```
 
-On each run, NOM sends its **approved** domains to the scraper's `/api/discover`;
-newly found candidate domains are registered as **Pending** scraping sources,
-which triggers the standard admin prompt (in-app message + email). The admin
-approves or rejects each one — discovery never scrapes a candidate beyond the
-single robots-compliant probe page, and imports only ever happen from approved
-domains. Domains an admin has rejected are never re-proposed.
+- **Discovery** runs the scraper's discovery job with the three approved web sources discovered
+  longest ago and polls it to its end. Each run is stored (`recipe.SourceDiscoveryRun`); a job that
+  could not start, failed, was lost or never ended is a **failed run**, shown as failed on the
+  Pipeline page with what it had found kept.
+- Found domains become candidates (`recipe.SourceCandidate`); a domain that is already a source,
+  or that an admin rejected, is not. A user's request for an unknown domain becomes a candidate too.
+- **Source checks** run one at a time, at most `MaxChecksPerDay` a day: approved sources due for
+  their weekly re-check first, then requests, then candidates. NOM stores each report whole
+  (`recipe.SourceCheck`) and draws one verdict from it (`SourceAdmissionPolicy`, no model): clear
+  only when the check finished under `source-check/2`, the scraper and every one of its reasons
+  agree, the licence is public domain, CC0, the Public Domain Mark or CC BY, the full 20 pages were
+  sampled, NOM's own vetting passes 18 of the sample recipes and 85 % of their lines carry a
+  quantity or need none, and no admin rejected the domain before.
+- **The approval queue** (Admin → Scraping Sources) lists only clear candidates, each with the
+  licence statement and where it was found, the terms read, robots rules for all crawlers and for
+  AI crawlers, the crawl-delay and the sample yield, and one approve button. Sites that are not
+  clear are listed apart with their reasons and cannot be approved there.
+- An approved source starts in **probation** (21 days or 50 recipes); its live figures then pass it
+  or pause its harvesting.
+- **Re-judging**: every approved source is re-checked weekly by the same rule and the verdict is
+  shown beside it. Harvesting is paused only when a clear verdict turns not clear; a source that
+  was never clear is only shown, because what happens to it and its recipes is the owner's decision.
+  The admin can **pause harvesting** for a source or **withhold its recipes** (kept from search,
+  suggestions and meal plans) in one click; both are journaled and undone from the journal on the
+  same page.
+- **Hand sources** (PDFs, scanned books) are recorded by an admin with their licence facts; they
+  are never fetched and are imported only by a staged import that names them.
+- **The harvester** reads `GET /api/ScrapingSource/harvestable` (approved web sources, harvest not
+  paused, recipes not withheld, with the probation limit and crawl-delay) instead of keeping its own
+  list.
 
-Discovery needs at least one approved source to seed from, so approve a first
-site by importing from it (or inserting a row) before enabling this.
-
-With `AutoApprove: true` (off by default), candidates that pass a **clean-probe
-gate** skip the queue entirely: NOM scrapes the candidate's evidence URL through
-the scraper service (robots-aware, one page) and auto-whitelists the domain only
-when the probe returns a complete structured recipe — https, schema.org JSON-LD
-present, at least one ingredient and step, and zero vetting issues. Anything
-less stays Pending for human review. Admins are still notified of every
-auto-approval, with a pointer to Admin → Scraping Sources to revoke it; a
-rejected domain is never auto-approved or re-proposed. Enabling this widens the
-set of sites scraped without a human in the loop — the operator-responsibility
-posture above applies to that choice.
+Before a domain is approved the lane reads, through the scraper only, its robots.txt, reservation
+signals, terms pages, sitemap and at most 20 sample pages; imports only ever happen from approved
+domains. `SourceDiscovery:AutoApprove`, which once whitelisted a domain on one clean probe, is gone.
 
 ## Media storage (optional)
 

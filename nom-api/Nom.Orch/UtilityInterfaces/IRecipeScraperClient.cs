@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,11 +21,57 @@ namespace Nom.Orch.UtilityInterfaces
         Task<ScraperResult> ParseAsync(string content, string? sourceUrl, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Discover candidate recipe sites by following outbound links from the
-        /// given approved seed domains. Candidates are proposals only — nothing
-        /// is imported from them until an admin approves the domain.
+        /// Starts a budgeted discovery job (POST /api/discover/jobs) that follows outbound links
+        /// from the given approved seed domains. Candidates are proposals only — nothing is
+        /// imported from them until an admin approves the domain.
         /// </summary>
-        Task<ScraperDiscoveryResult> DiscoverAsync(List<string> seedDomains, int maxCandidates, CancellationToken cancellationToken = default);
+        Task<ScraperJobAnswer> StartDiscoveryJobAsync(IReadOnlyList<string> seedDomains, int maxCandidates, int budgetSeconds, CancellationToken cancellationToken = default);
+
+        /// <summary>Starts a source-check job (POST /api/source-check/jobs) for one domain; it returns facts only and imports nothing.</summary>
+        Task<ScraperJobAnswer> StartSourceCheckJobAsync(string domain, int sampleSize, int budgetSeconds, CancellationToken cancellationToken = default);
+
+        /// <summary>Reads a job of either kind (<c>discovery</c>, <c>source-check</c>) by id.</summary>
+        Task<ScraperJobAnswer> GetJobAsync(string kind, string jobId, CancellationToken cancellationToken = default);
+    }
+
+    /// <summary>What a job route answered: the job, or why there is none.</summary>
+    public enum ScraperJobOutcome
+    {
+        Ok,
+        /// <summary>429: as many jobs of the kind are running as the scraper allows.</summary>
+        Busy,
+        /// <summary>404: the job is unknown, expired or was lost in a restart.</summary>
+        NotFound,
+        /// <summary>Any other status, a transport error, an unreadable answer or no scraper configured.</summary>
+        Failed,
+    }
+
+    public sealed record ScraperJobAnswer(ScraperJobOutcome Outcome, ScraperJob? Job, string? Error)
+    {
+        public static ScraperJobAnswer Of(ScraperJob job) => new(ScraperJobOutcome.Ok, job, null);
+
+        public static ScraperJobAnswer Fail(ScraperJobOutcome outcome, string error) => new(outcome, null, error);
+    }
+
+    /// <summary>A scraper job (both kinds share the shape); <see cref="Result"/> is the discovery result or the source-check report.</summary>
+    public class ScraperJob
+    {
+        public const string Running = "running";
+        public const string Completed = "completed";
+        public const string Partial = "partial";
+        public const string Failed = "failed";
+
+        public string JobId { get; set; } = string.Empty;
+        public string Kind { get; set; } = string.Empty;
+        public string Status { get; set; } = Running;
+        public string? StopReason { get; set; }
+        public string? Error { get; set; }
+        public DateTimeOffset? CreatedUtc { get; set; }
+        public DateTimeOffset? DeadlineUtc { get; set; }
+        public DateTimeOffset? FinishedUtc { get; set; }
+        public int BudgetSeconds { get; set; }
+        public double ElapsedSeconds { get; set; }
+        public System.Text.Json.JsonElement? Result { get; set; }
     }
 
     // DTOs mirroring the scraper service's response contract.
@@ -95,6 +142,13 @@ namespace Nom.Orch.UtilityInterfaces
     {
         public List<ScraperDiscoveredSource> Candidates { get; set; } = new();
         public int ProbedWithoutSignal { get; set; }
+        public bool Partial { get; set; }
+        public string? StopReason { get; set; }
+        public List<string> SeedsVisited { get; set; } = new();
+        public List<string> SeedsNotVisited { get; set; } = new();
+        public List<ScraperDiscoveredSource> CandidatesNotProbed { get; set; } = new();
+        public List<string> SeedsRefused { get; set; } = new();
+        public int PagesFetched { get; set; }
     }
 
     public class ScraperDiscoveredSource
