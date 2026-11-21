@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Nom.Data;
@@ -15,7 +14,7 @@ namespace Nom.Orch.Services.Support
         public HashSet<long> IngredientIds { get; } = new();
         /// <summary>Any active restriction (or its category's criteria) at severity ≥ 4 — allergy/medical.</summary>
         public bool HasSevere { get; set; }
-        /// <summary>Recipes forbidden by a line's own text rather than its food: a drink line linked to a food that is not a drink (<see cref="DietCriteriaMatcher.DrinkLineRecipesAsync"/>).</summary>
+        /// <summary>Recipes forbidden by a line's own text rather than its food: a drink line linked to a food that is not a drink (<see cref="DietCriteriaMatcher.DrinkLineRecipesAsync"/>), or a line that names the restricted thing on a food a pattern matched only through an alias that does not count (<see cref="DietCriteriaMatcher.TypeProbe.AliasLineRecipes"/>).</summary>
         public HashSet<long> RecipeIds { get; } = new();
         public static readonly RestrictedIngredientSet Empty = new();
     }
@@ -25,7 +24,8 @@ namespace Nom.Orch.Services.Support
     /// planning, search and top-up must avoid. Restrictions saved through the UI reference
     /// a *category* (RestrictionTypeId, e.g. "Nut Allergy"); the category's curated
     /// <see cref="RestrictionCriterionEntity"/> rows (exact ingredient, ILIKE name pattern, word
-    /// pattern or nutrient, with severity; see <see cref="DietCriteriaMatcher"/>) are what make it enforceable. Direct IngredientId restrictions still
+    /// pattern or nutrient, with severity; see <see cref="DietCriteriaMatcher"/>, which reads a food by
+    /// its own name, category and trusted aliases and a recipe line by its own text) are what make it enforceable. Direct IngredientId restrictions still
     /// count too. Plan-wide restrictions (PersonId NULL) apply through the members' plans.
     /// </summary>
     public sealed class HouseholdRestrictionResolver
@@ -87,17 +87,6 @@ namespace Nom.Orch.Services.Support
                 if (c.Severity >= 4) result.HasSevere = true;
             }
 
-            var patterns = criteria
-                .Where(c => !string.IsNullOrWhiteSpace(c.IngredientPattern) && !DietCriteriaMatcher.IsWordPattern(c.IngredientPattern))
-                .Select(c => c.IngredientPattern!.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-            if (patterns.Count > 0)
-            {
-                foreach (var id in await MatchIngredientsAsync(patterns))
-                    result.IngredientIds.Add(id);
-            }
-
             await AddDataCriteriaAsync(result, typeIds, 0);
             return result;
         }
@@ -139,67 +128,26 @@ namespace Nom.Orch.Services.Support
             foreach (var c in criteria.Where(c => c.IngredientId != null))
                 result.IngredientIds.Add(c.IngredientId!.Value);
 
-            var patterns = criteria
-                .Where(c => !string.IsNullOrWhiteSpace(c.IngredientPattern) && !DietCriteriaMatcher.IsWordPattern(c.IngredientPattern))
-                .Select(c => c.IngredientPattern!.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-            if (patterns.Count > 0)
-            {
-                foreach (var id in await MatchIngredientsAsync(patterns))
-                    result.IngredientIds.Add(id);
-            }
-
             await AddDataCriteriaAsync(result, typeIds, 4);
             return result;
         }
 
-        /// <summary>Adds the foods the word and nutrient criteria of the types match, and the recipes whose drink lines are linked to none of them (<see cref="DietCriteriaMatcher"/>).</summary>
+        /// <summary>
+        /// Adds the foods the nutrient, word and name-pattern criteria of the types match, the
+        /// recipes whose lines on a food matched only through an alias that does not count name the
+        /// restricted thing themselves, and the recipes whose drink lines are linked to none of the
+        /// foods (<see cref="DietCriteriaMatcher"/>).
+        /// </summary>
         private async Task AddDataCriteriaAsync(RestrictedIngredientSet result, IReadOnlyCollection<long> typeIds, int minimumSeverity)
         {
             var data = await DietCriteriaMatcher.CriteriaAsync(_db, typeIds, minimumSeverity);
             if (data.Count == 0) return;
-            foreach (var ids in (await DietCriteriaMatcher.FoodsAsync(_db, data, cache: _cache)).Values)
-                result.IngredientIds.UnionWith(ids);
-            result.RecipeIds.UnionWith(await DietCriteriaMatcher.DrinkLineRecipesAsync(_db, data, result.IngredientIds, _cache));
-        }
-
-        /// <summary>Ingredient ids whose name or any alias matches one of the SQL LIKE patterns (case-insensitive).</summary>
-        private async Task<List<long>> MatchIngredientsAsync(List<string> patterns)
-        {
-            if (_db.Database.IsRelational())
+            foreach (var probe in (await DietCriteriaMatcher.ProbeAsync(_db, data, cache: _cache)).Values)
             {
-                // Per-pattern ILIKE, split into a name probe and an alias
-                // probe: the trigram index on Ingredient.Name
-                // (db/custom-objects.sql) makes each name probe a bitmap scan
-                // (~1 ms), but OR-ing the correlated alias EXISTS into the
-                // same query forces a 200k-row seq scan per pattern — that OR
-                // was the whole ~20 s "Surprise me" latency (N-69).
-                var ids = new List<long>();
-                foreach (var pattern in patterns)
-                {
-                    ids.AddRange(await _db.Ingredients
-                        .Where(i => EF.Functions.ILike(i.Name, pattern))
-                        .Select(i => i.Id)
-                        .ToListAsync());
-                    ids.AddRange(await _db.Ingredients
-                        .Where(i => i.Aliases.Any(a => EF.Functions.ILike(a.AliasName, pattern)))
-                        .Select(i => i.Id)
-                        .ToListAsync());
-                }
-                return ids;
+                foreach (var ids in probe.Foods.Values) result.IngredientIds.UnionWith(ids);
+                result.RecipeIds.UnionWith(probe.AliasLineRecipes);
             }
-
-            // In-memory provider (tests): emulate ILIKE client-side.
-            var regexes = patterns.Select(p => new Regex("^" + Regex.Escape(p).Replace("%", ".*").Replace("_", ".") + "$",
-                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)).ToList();
-            var all = await _db.Ingredients
-                .Select(i => new { i.Id, i.Name, Aliases = i.Aliases.Select(a => a.AliasName).ToList() })
-                .ToListAsync();
-            return all
-                .Where(i => regexes.Any(rx => rx.IsMatch(i.Name) || i.Aliases.Any(a => rx.IsMatch(a))))
-                .Select(i => i.Id)
-                .ToList();
+            result.RecipeIds.UnionWith(await DietCriteriaMatcher.DrinkLineRecipesAsync(_db, data, result.IngredientIds, _cache));
         }
     }
 }

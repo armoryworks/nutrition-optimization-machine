@@ -665,7 +665,7 @@ namespace Nom.Orch.Services
 
             // 2) Restrictions that reference a category (e.g. "Gout"): the
             //    category's curated criteria supply the ingredient filters —
-            //    exact id or ILIKE name pattern.
+            //    exact id.
             var viaCriteria = await activeRestrictions
                 .Where(r => r.RestrictionTypeId != null)
                 .Join(_context.Set<Nom.Data.Plan.RestrictionCriterionEntity>(),
@@ -673,10 +673,7 @@ namespace Nom.Orch.Services
                     c => c.RestrictionTypeId,
                     (r, c) => new { r, c })
                 .SelectMany(
-                    rc => recipeIngredients.Where(ri =>
-                        (rc.c.IngredientId != null && ri.IngredientId == rc.c.IngredientId)
-                        || (rc.c.IngredientPattern != null && ri.Ingredient != null && !rc.c.IngredientPattern.StartsWith(Support.DietCriteriaMatcher.WordMarker)
-                            && EF.Functions.ILike(ri.Ingredient.Name, rc.c.IngredientPattern))),
+                    rc => recipeIngredients.Where(ri => rc.c.IngredientId != null && ri.IngredientId == rc.c.IngredientId),
                     (rc, ri) => new
                     {
                         ri.RecipeId,
@@ -702,10 +699,12 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// The diet matches the word and nutrient criteria give (<see cref="Support.DietCriteriaMatcher"/>):
-        /// each recipe line whose food a criterion of one of the person's restriction categories matches,
-        /// and, for the alcohol criterion, each line whose own text reads as a drink while its food is
-        /// not matched (named by the line's text).
+        /// The diet matches the nutrient, word and name-pattern criteria give (<see cref="Support.DietCriteriaMatcher"/>):
+        /// each recipe line whose food a criterion of one of the person's restriction categories matches;
+        /// in a recipe with a line on a food a pattern matched only through an alias that does not
+        /// count, each line whose own text names a pattern of the category (named by the line's text); and, for the
+        /// alcohol criterion, each line whose own text reads as a drink while its food is not matched
+        /// (named by the line's text).
         /// </summary>
         private async Task<List<(long RecipeId, RecipeDietMatchModel Match)>> DataDietMatchesAsync(
             IQueryable<Nom.Data.Plan.RestrictionEntity> activeRestrictions, IQueryable<RecipeIngredientEntity> recipeIngredients)
@@ -720,7 +719,10 @@ namespace Nom.Orch.Services
             var lines = await recipeIngredients
                 .Select(ri => new { ri.RecipeId, ri.IngredientId, ri.RawLine, Name = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty })
                 .ToListAsync();
-            var foods = await Support.DietCriteriaMatcher.FoodsAsync(_context, criteria, lines.Select(l => l.IngredientId).Distinct().ToList());
+            var probes = await Support.DietCriteriaMatcher.ProbeAsync(_context, criteria, lines.Select(l => l.IngredientId).Distinct().ToList());
+            var foods = criteria
+                .Where(c => probes.TryGetValue(c.RestrictionTypeId, out var p) && p.Foods.ContainsKey(c.Id))
+                .ToDictionary(c => c, c => probes[c.RestrictionTypeId].Foods[c.Id]);
             var byFood = from r in restrictions
                          from c in criteria.Where(c => c.RestrictionTypeId == r.TypeId && foods.ContainsKey(c))
                          from l in lines.Where(l => foods[c].Contains(l.IngredientId))
@@ -747,7 +749,23 @@ namespace Nom.Orch.Services
                              IngredientName = l.RawLine.Trim(),
                              Notes = c.Notes == Support.DefaultRestrictionCriteria.DefaultNote ? null : c.Notes
                          });
-            return byFood.Concat(byLine).ToList();
+            var byAliasLine = from r in restrictions
+                              where probes.ContainsKey(r.TypeId)
+                              let probe = probes[r.TypeId]
+                              let touched = lines.Where(l => probe.AliasOnly.Contains(l.IngredientId)).Select(l => l.RecipeId).ToHashSet()
+                              from l in lines.Where(l => touched.Contains(l.RecipeId) && !probe.Foods.Values.Any(ids => ids.Contains(l.IngredientId)))
+                              let c = criteria.Where(c => c.RestrictionTypeId == r.TypeId && Support.DietCriteriaMatcher.LineNames(c, l.RawLine)).OrderByDescending(c => c.Severity).FirstOrDefault()
+                              where c != null
+                              select (l.RecipeId, new RecipeDietMatchModel
+                              {
+                                  RestrictionName = r.Name,
+                                  RestrictionType = r.TypeName,
+                                  Severity = c.Severity,
+                                  IngredientId = l.IngredientId,
+                                  IngredientName = l.RawLine.Trim(),
+                                  Notes = c.Notes == Support.DefaultRestrictionCriteria.DefaultNote ? null : c.Notes
+                              });
+            return byFood.Concat(byLine).Concat(byAliasLine).ToList();
         }
 
         public async Task<RecipeResponseModel?> UpdateRecipeAsync(long id, UpdateRecipeRequest model)

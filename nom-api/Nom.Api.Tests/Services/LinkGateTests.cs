@@ -139,6 +139,25 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_drink_sense_read_from_the_lines_own_words_is_identity_evidence_and_one_read_from_the_recipe_is_not()
+        {
+            var dryDessert = new GateFood(287461, "Alcoholic beverage, wine, dessert, dry", "Alcoholic beverage, wine, dessert, dry", "sr_legacy_food", Pending, 14, NutrientRows: 31, FdcId: "175112");
+            var whiteTable = new GateFood(164, "Dry White Wine", "Alcoholic beverage, wine, table, white", "sr_legacy_food", Curated, 14, NutrientRows: 33, FdcId: "174837");
+            var unknownFdc = dryDessert with { FdcId = null };
+            var catalog = GateCatalog.Build(new[] { RedWine, Claret, dryDessert, whiteTable,
+                new GateFood(287419, "Alcoholic beverage, wine, table, all", "Alcoholic beverage, wine, table, all", "sr_legacy_food", Pending, 14, NutrientRows: 33, FdcId: "173185") });
+            var mussels = new AlcoholRecipeContext(Title: "White Wine Mussels", HasSourceSite: true);
+
+            Codes(new GatePair("sherry", 0, dryDessert, ModelPick: false), catalog).Should().BeEmpty("sherry reads as dry fortified wine, whose sense allows the dry dessert wine");
+            Codes(new GatePair("sherry", 0, dryDessert, Lines: new[] { new GateLine("2 glasses of sherry", "glass", 206m) }), catalog).Should().BeEmpty();
+            Codes(new GatePair("sherry", 0, unknownFdc), catalog).Should().Contain(LinkGate.Containment, "with no FDC id the sense cannot name the food, so the words decide");
+            Codes(new GatePair("sherry", 0, dryDessert, Lines: new[] { new GateLine("2 glasses of sherry", "glass", 206m), new GateLine("1 cup sugar and sherry", "cup", 200m) }), catalog)
+                .Should().Contain(LinkGate.Containment, "a line that is a list does not share the drink sense");
+            Codes(new GatePair("wine", 0, whiteTable, Lines: new[] { new GateLine("1 cup wine", "cup", 240m, mussels) }), catalog)
+                .Should().Contain(LinkGate.Generic, "bare wine is white only by its recipe; a sense the recipe gives lets the line through the alcohol rule but is no identity evidence");
+        }
+
+        [Fact]
         public void The_signature_names_the_rules_version_and_is_stable()
         {
             LinkGate.Signature.Should().MatchRegex("^[0-9a-f]{16}$").And.Be(LinkGate.Signature);

@@ -115,8 +115,11 @@ nutrient rows.
 **The link gate.** Three rules of `LinkGate` (`alcohol-drink`, `alcohol-no-food`, `alcohol-not-drink`;
 see `link-gate.md`) hold any answer, from any tier or model, that a line's sense refuses: every line
 of the wording when the caller passes lines, the wording itself when it does not. The gate reads the
-target's FDC id (`GateFood.FdcId`); `LinkGate.Version` is `link-gate/6` and its signature includes
-the sense rules, so a changed rule drops a lane tier back to shadow. Over the 7,664 judged pairs of
+target's FDC id (`GateFood.FdcId`); `LinkGate.Version` is `link-gate/7` and its signature includes
+the sense rules, so a changed rule drops a lane tier back to shadow. A drink sense read from a line's
+own words that allows the target is also identity evidence in the gate (`LinkGate.AlcoholIdentity`),
+so "sherry", "sack", "port" or "claret" answered with the food of its sense is not held for lacking
+the word. Over the 7,664 judged pairs of
 `link-pairs.tsv` the rules refuse 55, of which 54 were judged wrong, near or compound and one
 ("c. cider" on apple juice, judged right by the reviewer) is bare cider, which the rules leave unclear
 on purpose.
@@ -147,8 +150,10 @@ gives the one reading a wording's lines agree on, for lanes that read lines.
 - The word patterns (`\mrum\M`, `\mgin\M` …, Postgres word starts and ends, matched with `~*`) are
   the fallback for names: a name they match counts unless the rules read it as an alcohol word that
   is not a drink, and a food that stores alcohol is left to its figure. An alias they match counts
-  only when it holds no alcohol word, so an alcohol pattern never flags a food by its alias; a
-  pattern an admin adds for something else (no alcohol word) still reads aliases.
+  only when it holds no alcohol word and a rule or a person gave it (`IngredientAliasTrust`), so an
+  alcohol pattern never flags a food by its alias; a pattern an admin adds for something else reads
+  only such aliases too, and the lines on a food it matches only through another alias decide for
+  their own recipes (`docs/architecture/diet-gate.md`).
 - Vinegars, non-alcoholic drinks, soft drinks, yeast, cooking liquid, measures, Bread Crumbs,
   Ginger Root and Crumbled Feta no longer match.
 - A recipe line's own text is read too. A line that reads as a drink counts whatever food it is
@@ -166,7 +171,8 @@ gives the one reading a wording's lines agree on, for lanes that read lines.
   before `alcohol-context/4`).
 - **The probes are kept, not repeated** (checkpoint 1, K8: each took 1.2 to 1.9 s on staging and ran
   for every household set). `DietGateCache` keeps the answer of each whole-catalog probe (the foods
-  a restriction type's criteria match; the drink lines) per database. It is marked stale by
+  a restriction type's criteria match, with the recipes whose lines decide for themselves; the drink
+  lines) per database. It is marked stale by
   `DietGateCacheInvalidator`, an EF Core interceptor on the API's context, when a command writes
   `recipe."Ingredient"`, `"IngredientAlias"`, `"RecipeIngredient"` or `nutrient."IngredientNutrient"`
   (at once outside a transaction, at its commit inside one; SaveChanges, bulk updates and raw SQL all

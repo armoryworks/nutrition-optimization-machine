@@ -78,8 +78,20 @@ Two blind readers of different families that agreed (`ReadersAgreed`) are read b
 checks: their answer is held by `head-noun` instead of `containment` and `lead-noun`, and the
 `generic` and description-side `percent` rules, which stand in for a reader's choice of variety, are
 not applied. Every other rule holds for them as for a lone answer. A synonym with no shared word
-("crisco", "saleratus", "sack") passes only through a lexicon entry (`GateCatalog.Lexicon`, filled
-by `cleanup2/wording-readers`).
+("crisco", "saleratus") passes only through a lexicon entry (`GateCatalog.Lexicon`, filled by
+`cleanup2/wording-readers`).
+
+**Alcohol sense as identity evidence (`link-gate/7`).** A drink named by an old or trade name
+("sherry", "sack", "Madeira", "port", "claret", "chablis", "ale") is a USDA entry that does not carry
+the word, so the word rules held it whatever produced the answer. `LinkGate.AlcoholIdentity` reads
+every line of the pair (the wording, with no lines) by its own words, without its recipe; when every
+one is a drink, they share one sense, and the target's FDC id is in that sense's allowed table, the
+answer is read as two blind readers' is and needs no word of the wording in the food: `lead-noun`,
+`containment`, `head-noun`, `head-lead`, `variety`, `generic` and the description-side `percent` are
+not applied, and "dry" in the description (a dry dessert wine) is no state the wording must name. A
+sense read from the recipe alone (bare "wine" in "White Wine Mussels") is no identity evidence, a
+list or a line of another sense breaks the shared sense, and every other rule, the alcohol rules
+first, holds as before: "sherry" is never the sweet dessert wine or the rum.
 
 **Family.** `LinkGate.Family` takes a batch of answers. Wordings that fold to one key (plural,
 hyphen or space, "X wine" against "X", a unit word in front) must agree on one food. Within a key
@@ -114,7 +126,11 @@ in its gate signature, so a changed gate drops that tier back to shadow.
   (`rule:construction`, `ok`), and the six alcohol lines of K10 (amounts joined by "and" or "or"
   read as lists, two wines on Non-Alcoholic Wine, a measure of curaçoa). lg-109 to lg-111 come from
   the review of that fix (`rule:construction` and `rule:link-gate`, `ok`): a raw cut named with a
-  last "roast" on a cooked food, and a red wine named before the dish it is for on Chicken Stock. The test reads each row's FDC id from `gate-catalog.tsv`. Each is a
+  last "roast" on a cooked food, and a red wine named before the dish it is for on Chicken Stock.
+  lg-112 to lg-122 (`rule:link-gate`, `ok`) are the alcohol identity rows of `link-gate/7`: sherry,
+  sack, Madeira, port, claret and a sherry line let through to the food their sense allows, and
+  sherry on the sweet dessert wine and the rum, port on the dry one, rum on a wine, and a wording
+  whose lines mix a drink with a vinegar still held. The test reads each row's FDC id from `gate-catalog.tsv`. Each is a
   pair the gate must let through (`pass`) or a pair a named rule must hold. Every rule has a row
   (`Every_rule_of_the_gate_has_a_rule_given_row` reads the rule codes from `LinkGate` itself, so a
   new rule without a row fails). `readers` = `yes` reads the pair as two blind readers' answer (the
@@ -142,7 +158,9 @@ in its gate signature, so a changed gate drops that tier back to shadow.
   accepted and the same false accepts; for `link-gate/4` and `link-gate/5` of
   `cleanup2/ck1-gate-alcohol`, the checkpoint-1 rules and the review fix that keeps a last "roast"
   from meeting the cooked state, with the same figures, since none of the judged pairs is of those
-  classes; and for `link-gate/6`, the wave-5 merge of both): it lets through 2,307 of 7,664 pairs,
+  classes; for `link-gate/6`, the wave-5 merge of both; and for `link-gate/7`
+  (`cleanup2/ck2-diet-gate`), the alcohol sense as identity evidence, which lets two more pairs
+  through, both judged right, with the same false accepts): it lets through 2,309 of 7,664 pairs,
   99.5 % of them judged right;
   it lets through 12 of 1,406 pairs judged wrong, near or compound (0.9 %). Floors: precision at
   least 99 %, false accepts at most 1 %, agreement at least 45 %. The record is required, and
