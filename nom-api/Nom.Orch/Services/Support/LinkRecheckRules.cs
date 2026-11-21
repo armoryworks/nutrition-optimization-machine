@@ -180,7 +180,8 @@ namespace Nom.Orch.Services.Support
         /// <summary>
         /// Whether a hold is positive evidence that the food is wrong (<see cref="Refuting"/>): a stated
         /// percent only when the wording states it, a head noun only when the food has it as an
-        /// addition, a part only when it is not the ordinary eaten part (<see cref="EdibleParts"/>),
+        /// addition, a part the wording names that the food lacks always, and the food's own part
+        /// segment only when it is not the ordinary eaten part (<see cref="EdibleParts"/>),
         /// "more than one food" not when the wording gives alternatives and the food is one of
         /// them (<paramref name="alternativeNamed"/>): a line of alternatives counts its first by the
         /// compound lane's own rule, so the food of any one of them is not proven wrong; and another
@@ -196,7 +197,7 @@ namespace Nom.Orch.Services.Support
                 LinkGate.OtherFood => all.Any(h => h.Code is LinkGate.Containment or LinkGate.HeadNoun),
                 LinkGate.Percent => hold.Detail?.StartsWith("wording states", StringComparison.Ordinal) == true,
                 LinkGate.HeadNoun => hold.Detail?.StartsWith("with ", StringComparison.Ordinal) == true,
-                LinkGate.Part => !EdibleParts.Contains((hold.Detail ?? string.Empty).Trim().ToLowerInvariant()),
+                LinkGate.Part => hold.Rule != LinkGate.FoodPartRule || !EdibleParts.Contains((hold.Detail ?? string.Empty).Trim().ToLowerInvariant()),
                 LinkGate.Compound => !alternativeNamed,
                 _ => true,
             };

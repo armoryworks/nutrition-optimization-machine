@@ -149,8 +149,10 @@ namespace Nom.Api.Tests.Services
         [InlineData(LinkGate.Containment, "baby", false)]
         [InlineData(LinkGate.Variety, "meal", false)]
         [InlineData(LinkGate.Incomplete, "16 rows", false)]
-        [InlineData(LinkGate.Part, "flesh", false)]
-        [InlineData(LinkGate.Part, "meat only", false)]
+        [InlineData(LinkGate.Part, "flesh", false, LinkGate.FoodPartRule)]
+        [InlineData(LinkGate.Part, "meat only", false, LinkGate.FoodPartRule)]
+        [InlineData(LinkGate.Part, "leaves", false, LinkGate.FoodPartRule)]
+        [InlineData(LinkGate.Part, "leaves", true, "wording part not in the food")]
         [InlineData(LinkGate.Part, "skin", true)]
         [InlineData(LinkGate.Part, "bones", true)]
         [InlineData(LinkGate.Percent, "15%", false)]
@@ -161,9 +163,9 @@ namespace Nom.Api.Tests.Services
         [InlineData(LinkGate.FreshHerb, null, true)]
         [InlineData(LinkGate.Prepared, "Baby Foods", true)]
         [InlineData(LinkGate.Polarity, "unsalted against salted", true)]
-        public void Only_a_hold_that_proves_the_food_wrong_refutes_an_applied_link(string code, string? detail, bool refutes)
+        public void Only_a_hold_that_proves_the_food_wrong_refutes_an_applied_link(string code, string? detail, bool refutes, string? rule = null)
         {
-            var hold = new GateHold(code, code, detail);
+            var hold = new GateHold(code, rule ?? code, detail);
             LinkRecheckRules.Refutes(hold, new[] { hold }).Should().Be(refutes);
             LinkRecheckRules.Decide(LinkRecheckRules.Applied, new[] { hold }, () => Enumerable.Empty<RecheckCandidate>())
                 .Outcome.Should().Be(refutes ? LinkRecheckRules.Unlink : LinkRecheckRules.Unproven);

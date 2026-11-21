@@ -52,7 +52,7 @@ staging checkpoint 2 M22; `LinkRecheckRules.Refutes`):
 |---|---|
 | `heading`, `retired`, `branded`, `prepared`, the three alcohol rules, `form`, `fresh-herb`, `head-lead`, `polarity`, `group` | `containment`, `lead-noun`, `generic`, `state`, `marked`, `variety`, `word-order`, `rule-other`, `other-alias`, `shortlist`, `uncurated`, `incomplete` |
 | `compound`, unless the wording gives alternatives ("or", a slash) and one of them is the food (`LinkGate.NamesAlternative`): a line of alternatives counts its first by the compound lane's own rule | `compound` on alternatives one of which is the food ("butter or olive oil" on Butter, "light or dark brown sugar" on Brown Sugar) |
-| `part`, unless the part is the ordinary eaten part of a food named whole | `part` with the segment flesh, meat, "meat only", leaf ("baked potatoes" on "Potatoes, baked, flesh", "goose" on "Goose, meat only") |
+| `part` the wording names that the food lacks ("lime leaves" on Limes); `part` on the food's own segment unless it is the ordinary eaten part of a food named whole | `part` on the food's own segment flesh, meat, "meat only", leaf ("baked potatoes" on "Potatoes, baked, flesh", "goose" on "Goose, meat only") |
 | `percent` when the wording states the percent; `head-noun` when the food has the head noun only as an addition ("with crumb") | `percent` from the description alone; `head-noun` of two readers |
 | `other-food` when a word of the wording is also missing from the food ("olive oil" on Canola Oil) | `other-food` on a food that holds every word ("15 oz black beans (canned)" on Canned Black Beans while "Black Beans" exists) |
 
@@ -132,7 +132,8 @@ holds the freed name, and gives the name back). A
 withdrawal's undo reports `pickEntries`, `picksRestored` and `skippedAskedAgain` (M23). A set's dry
 run walks the apply's own steps without writing (homes, created and renamed foods, freed names,
 aliases, verified rows acted against, approved recipes), so its counts are the apply's except for
-lines that moved since; an undo's dry run likewise counts the lines, aliases, foods and names it
+lines that moved since (an alias two groups of one wording on one food share, as the alcohol set's
+sense groups can, is counted once, as the apply writes it once); an undo's dry run likewise counts the lines, aliases, foods and names it
 would give back. Line moves have their own change type, so the time-window `relink/undo` and a wording
 retract never take back a re-check's lines without its aliases; only its stamp does.
 

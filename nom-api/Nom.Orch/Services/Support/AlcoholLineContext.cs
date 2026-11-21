@@ -145,7 +145,7 @@ namespace Nom.Orch.Services.Support
             ("other", "a ham hock", new Regex(@"\b(?:ham|pork|smoked|beef|veal|lamb)\s+hocks?\b|\bhocks? of\b|\bhock end\b|\bhocks\b", Options)),
             ("other", "Port Salut", new Regex(@"\bport salut\b|\bport du salut\b", Options)),
             ("other", "Muscatel or Malaga raisins and grapes", new Regex(@"\b(?:malaga|muscatel|moscatel)\s+(?:raisins?|grapes?)\b|\bmuscatel raisins?\b|\bmuscatels\b", Options)),
-            ("other", "a drink's name for a kind of another food", new Regex(@"\b(?:malaga|tokay|tokaji|muscatel|moscatel|manzanilla|amontillado|champagne|catawba|scotch|burgundy|bordeaux|madeira|marsala|port|sherry)\s+(?:lemons?|limes?|oranges?|citrons?|grapes?|raisins?|olives?|figs?|cherr(?:y|ies)|caraways?|onions?|pears?|melons?|plums?|kale|barley|oats?)\b", Options)),
+            ("other", "a drink's name for a kind of another food", new Regex(@"\b(?:malaga|tokay|tokaji|muscatel|moscatel|catawba)\s+(?:lemons?|limes?|oranges?|citrons?|grapes?|raisins?|figs?|melons?)\b|\bmanzanilla\s+olives?\b|\bscotch\s+caraways?\b", Options)),
             ("other", "a food called after a drink", new Regex(@"\b(?:called|named|known as)\s+(?:the\s+)?(?:" + DrinkWords + @")", Options)),
             ("other", "ratafia biscuits", new Regex(@"\bratafias?\s+(?:crumbs?|biscuits?|cakes?|drops?)\b|\bratafias\b", Options)),
             ("other", "stout as strong", new Regex(@"\bstout\s+(?:\p{L}+\s+)?(?:muslin|cloth|bags?|string|twine|paper|thread|cord|needle|skewer|stick|board|pan|jar|crock|knife|fork|woman|man|hen|fowl|bird)\b", Options)),

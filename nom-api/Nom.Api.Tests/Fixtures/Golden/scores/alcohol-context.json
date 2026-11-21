@@ -3,11 +3,11 @@
   "model": "alcohol-context/5",
   "checkModel": null,
   "host": "none",
-  "signature": "ad447892818f00f6",
-  "scoredAtUtc": "2026-11-21T09:45:15.9856442Z",
-  "caseSet": "ec50780c0a7dcfe2",
-  "cases": 202,
-  "passed": 202,
+  "signature": "1368ab0125c6109f",
+  "scoredAtUtc": "2026-11-21T10:08:02.7138982Z",
+  "caseSet": "3859227f04418af5",
+  "cases": 205,
+  "passed": 205,
   "score": 1,
   "falseAccepts": 0,
   "falseAcceptCases": 158,
@@ -24,6 +24,10 @@
       3
     ],
     "agent-review-ck4-recheck-gate-2026-11-21": [
+      3,
+      3
+    ],
+    "agent-review-ck4rg-2026-11-21": [
       3,
       3
     ],

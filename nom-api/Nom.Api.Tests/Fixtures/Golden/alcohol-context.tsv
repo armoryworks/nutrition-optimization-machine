@@ -201,3 +201,6 @@ ac-199	a little spice or flavouring	-	-	no	none	-	-	ok	rule:alcohol-context	doub
 ac-200	To every pint of new milk allow 2 dessertspoonfuls of brandy	-	-	no	dish	-	174815	agent	agent-review-ck4-recheck-gate-2026-11-21	doubtful item decided by rule: a ratio line names the milk with the brandy allowed to it; the milk is not refused
 ac-201	bourbon chair caramel	-	-	no	dish	-	174819	agent	agent-review-ck4-recheck-gate-2026-11-21	doubtful item decided by rule: a dish noun one word after the drink names the dish
 ac-202	spirits of nutmeg	-	-	no	extract	-	174815	agent	agent-review-ck4-recheck-gate-2026-11-21	doubtful item decided by rule: spirits of a spice are a flavouring tincture
+ac-203	1 cup sherry raisins	-	-	no	fortified-dry	175112	-	agent	agent-review-ck4rg-2026-11-21	CK4RG-4: sherry names no kind of raisin; raisins in sherry count the sherry
+ac-204	6 port figs	-	-	no	fortified-sweet	173176	-	agent	agent-review-ck4rg-2026-11-21	CK4RG-4: port names no kind of fig; figs in port count the port
+ac-205	4 Marsala pears	-	-	no	fortified	175112	-	agent	agent-review-ck4rg-2026-11-21	CK4RG-4: Marsala names no kind of pear; pears in Marsala count the Marsala

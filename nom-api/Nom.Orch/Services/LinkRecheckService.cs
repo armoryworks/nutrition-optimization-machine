@@ -736,6 +736,8 @@ namespace Nom.Orch.Services
             var personId = _currentUser.PersonIdOrSystem;
             var homes = new Dictionary<string, long?>(StringComparer.Ordinal);
             var touched = new HashSet<long>();
+            var retired = new HashSet<long>();
+            var trusted = new HashSet<(long, string)>();
             foreach (var chunk in decisions.Chunk(WriteChunk))
             {
                 await using var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(cancellationToken) : null;
@@ -796,8 +798,8 @@ namespace Nom.Orch.Services
                     else result.LinesUnlinked += moved;
                     if (moved > 0 && d.Group.WordingRowId is { } wordingRow && !result.WordingRows.Contains(wordingRow)) result.WordingRows.Add(wordingRow);
 
-                    await RetireAliasesAsync(d, stamp, personId, result, apply, cancellationToken);
-                    if (move) await TrustOnTargetAsync(d, target, stamp, personId, result, apply, cancellationToken);
+                    await RetireAliasesAsync(d, retired, stamp, personId, result, apply, cancellationToken);
+                    if (move) await TrustOnTargetAsync(d, target, trusted, stamp, personId, result, apply, cancellationToken);
                     if (apply) await _db.SaveChangesAsync(cancellationToken);
                 }
                 if (tx != null) await tx.CommitAsync(cancellationToken);
@@ -899,11 +901,11 @@ namespace Nom.Orch.Services
             || context.StartsWith(IngredientAliasTrust.DeterministicLinkPrefix, StringComparison.Ordinal)
             || context.StartsWith(MovedAliasPrefix, StringComparison.Ordinal);
 
-        /// <summary>Removes the wording's aliases on the food its lines left that a rule or a model pick put there (never a USDA description, a person's or a retired food's name).</summary>
-        private async Task RetireAliasesAsync(Decided d, DateTime stamp, long personId, LinkRecheckResult result, bool apply, CancellationToken cancellationToken)
+        /// <summary>Removes the wording's aliases on the food its lines left that a rule or a model pick put there (never a USDA description, a person's or a retired food's name), each once in a run (<paramref name="retired"/>), so a dry run counts an alias two groups share as its apply does.</summary>
+        private async Task RetireAliasesAsync(Decided d, HashSet<long> retired, DateTime stamp, long personId, LinkRecheckResult result, bool apply, CancellationToken cancellationToken)
         {
             var aliases = (await _db.IngredientAliases.Where(a => a.IngredientId == d.Food.Id && !a.IsDeleted).ToListAsync(cancellationToken))
-                .Where(a => Retirable(a.SourceContext) && IngredientNameNormalizer.WordingKey(a.AliasName) == d.Group.Wording)
+                .Where(a => Retirable(a.SourceContext) && IngredientNameNormalizer.WordingKey(a.AliasName) == d.Group.Wording && retired.Add(a.Id))
                 .ToList();
             foreach (var alias in aliases)
             {
@@ -923,10 +925,11 @@ namespace Nom.Orch.Services
             }
         }
 
-        /// <summary>Gives the wording a trusted alias on the food its lines moved to, unless the food already has a trusted one of that name.</summary>
-        private async Task TrustOnTargetAsync(Decided d, long target, DateTime stamp, long personId, LinkRecheckResult result, bool apply, CancellationToken cancellationToken)
+        /// <summary>Gives the wording a trusted alias on the food its lines moved to, unless the food already has a trusted one of that name or the run gave it one (<paramref name="trusted"/>), so a dry run counts it once as its apply does.</summary>
+        private async Task TrustOnTargetAsync(Decided d, long target, HashSet<(long, string)> trusted, DateTime stamp, long personId, LinkRecheckResult result, bool apply, CancellationToken cancellationToken)
         {
             var name = d.Group.Wording.Length > 511 ? d.Group.Wording[..511] : d.Group.Wording;
+            if (!trusted.Add((target, name))) return;
             var context = MovedAliasPrefix + d.Verdict.Target!.Tier;
             var existing = await _db.IngredientAliases.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.IngredientId == target && a.AliasName == name, cancellationToken);
             if (existing is { IsDeleted: false } && IngredientAliasTrust.IsTrusted(existing.SourceContext)) return;

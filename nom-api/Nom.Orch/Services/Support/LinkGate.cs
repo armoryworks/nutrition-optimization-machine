@@ -157,8 +157,8 @@ namespace Nom.Orch.Services.Support
     /// food whose own name ends in a variety word the wording lacks (chorizo for "pork
     /// sausage"); a state, form or part one side has and the other lacks (sprouted, roast before the
     /// food, green pods or shelled fresh seeds against mature seeds, bones against a bone-in cut; the
-    /// leaves of a leaf food are the food); a fresh leaf herb, or a produce cue on any spice, for
-    /// the dried spice; a marked variant, a percent variant or a salted/sweetened polarity; one generic
+    /// leaves of a leaf food are the food); a fresh herb or root ("fresh ginger"), or a produce cue on
+    /// any spice, for the dried spice; a marked variant, a percent variant or a salted/sweetened polarity; one generic
     /// word for one of many varieties, a number such as "00" counting as a variety the wording
     /// lacks; a group word the target's USDA category contradicts; a line
     /// whose alcohol sense (<see cref="AlcoholLineContext"/>) refuses the food; and, with lines,
@@ -191,6 +191,7 @@ namespace Nom.Orch.Services.Support
         public const string Form = "form";
         public const string FreshHerb = "fresh-herb";
         public const string Part = "part";
+        internal const string FoodPartRule = "food is a part the wording does not name";
         public const string Marked = "marked";
         public const string Percent = "percent";
         public const string Polarity = "polarity";
@@ -318,7 +319,7 @@ namespace Nom.Orch.Services.Support
         {
             "spinach", "parsley", "lettuce", "basil", "mint", "spearmint", "peppermint", "cilantro", "coriander", "kale", "chard", "arugula", "sorrel",
             "watercress", "cress", "collard", "collards", "cabbage", "endive", "escarole", "chicory", "radicchio", "dandelion", "purslane", "lambsquarter",
-            "sage", "thyme", "oregano", "tarragon", "dill", "chive", "rosemary", "bay", "marjoram", "chervil", "savory", "grape", "vine",
+            "sage", "thyme", "oregano", "tarragon", "dill", "chive", "rosemary", "bay", "marjoram", "chervil", "savory",
         };
 
         private static readonly HashSet<string> EggWhiteWords = new(StringComparer.Ordinal) { "white", "whites" };
@@ -594,6 +595,7 @@ namespace Nom.Orch.Services.Support
             foreach (var part in firstSegmentWords.Where(w => WordingParts.ContainsKey(w) || (egg && EggWhiteWords.Contains(w))).Distinct())
             {
                 var kind = WordingParts.TryGetValue(part, out var k) ? k : "white";
+                if (kind == "bone" && !BonePattern.IsMatch(raw.Split(',')[0])) continue;
                 if (TextHasPart(text, kind) || (kind == "leaf" && spice) || (kind is "leaf" or "greens" && lead != null && LeafFoods.Contains(lead))) continue;
                 Add(Part, "wording part not in the food", part);
                 break;
@@ -605,7 +607,7 @@ namespace Nom.Orch.Services.Support
                 var isPart = words.Count > 0 && words.All(w => DescriptionParts.ContainsKey(w) || (egg && EggWhiteWords.Contains(w)));
                 if (!isPart && !only) continue;
                 if (words.Count == 0 || words.Any(w => folded.Contains(Fold(w)) || (DescriptionParts.TryGetValue(w, out var kind) && WordingHasPart(firstSegmentWords, kind)))) continue;
-                Add(Part, "food is a part the wording does not name", segment);
+                Add(Part, FoodPartRule, segment);
                 break;
             }
 
@@ -990,17 +992,22 @@ namespace Nom.Orch.Services.Support
         /// Whether a wording or line asks for the fresh herb or the fresh produce: a fresh cue with
         /// no dried, dry or ground word beside it ("freshly ground pepper" is the spice), and
         /// "leaves" only when the spice is not itself the dried leaf ("bay leaf"). For a spice that
-        /// is not a leaf herb (pepper, cinnamon, anise seed) "fresh" and "freshly" are no cue
-        /// ("freshly cracked black pepper" is the spice); only a cue of produce is ("chopped peppers").
+        /// is not a leaf herb "fresh" and "freshly" are no cue before a word of grinding ("anise seed,
+        /// freshly crushed") or on black or white pepper, which is only ever the dried corn ("fresh
+        /// black pepper"); elsewhere they still are ("fresh ginger" is the root, not the ground spice).
         /// </summary>
         private static bool HasFreshCue(string text, IReadOnlySet<string> target, bool herb)
         {
             var words = Words(text);
             if (words.Any(DriedCues.Contains)) return false;
-            return words.Any(w => FreshCues.Contains(w) && !(w == "leaves" && target.Contains("leaf")) && (herb || !FreshWordCues.Contains(w)));
+            var peppercorn = target.Contains("pepper") && (target.Contains("black") || target.Contains("white"));
+            return words.Where((w, i) => FreshCues.Contains(w) && !(w == "leaves" && target.Contains("leaf"))
+                && (herb || !FreshWordCues.Contains(w) || (!peppercorn && (i + 1 >= words.Count || !GrindWords.Contains(words[i + 1]))))).Any();
         }
 
         private static readonly HashSet<string> FreshWordCues = new(StringComparer.Ordinal) { "fresh", "freshly" };
+
+        private static readonly HashSet<string> GrindWords = new(StringComparer.Ordinal) { "cracked", "crushed", "milled", "pounded", "pulverized" };
 
         private static decimal Number(string percent) =>
             decimal.TryParse(percent.TrimEnd('%', ' '), NumberStyles.Number, CultureInfo.InvariantCulture, out var n) ? n : -1;
@@ -1074,7 +1081,7 @@ namespace Nom.Orch.Services.Support
                 .Concat(UnsweetenedFoodPhrases.Select(p => "unsweetened-food=" + p))
                 .Concat(SweetenedPhrases.Select(p => "sweetened=" + p)));
             Table("patterns", new[] { Word, Parenthetical, Slash, PercentPattern, HeadingPattern, SaltAddedPattern, PodBeanPattern, ShelledPattern, NumberToken, BonePattern, AlternativeSplit }.Select(r => r.ToString()));
-            Table("herb-leads", HerbLeads.Concat(FreshWordCues.Select(w => "fresh-word=" + w)));
+            Table("herb-leads", HerbLeads.Concat(FreshWordCues.Select(w => "fresh-word=" + w)).Concat(GrindWords.Select(w => "grind=" + w)).Append("peppercorn=pepper:black,white").Append("bone-part=" + BonePattern));
             Table("leaf-foods", LeafFoods);
             Table("guard-prep", LinkAutoApplyGuard.PrepWords.Concat(LinkAutoApplyGuard.OneFoodNames.Select(n => "one-food=" + n)));
             Table("guard-joiners", LinkAutoApplyGuard.Joiners);

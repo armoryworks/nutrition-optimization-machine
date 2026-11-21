@@ -164,7 +164,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task The_part_and_herb_set_keeps_a_spice_that_is_no_leaf_herb_and_the_leaves_of_a_leaf_food()
+        public async Task The_part_and_herb_set_keeps_a_spice_that_is_no_leaf_herb_the_leaves_of_a_leaf_food_and_a_bone_in_cut_but_not_fresh_root_or_a_fruits_leaves()
         {
             await using var db = NewContext();
             var pepper = Food("Pepper", "Spices, pepper, black", "170931", 2);
@@ -172,7 +172,12 @@ namespace Nom.Api.Tests.Services
             var spinach = Food("Spinach", "Spinach, raw", "168462", 11);
             var parsley = Food("Parsley", "Parsley, fresh", "170416", 11);
             var tarragon = Food("Dried Tarragon", "Spices, tarragon, dried", "170937", 2);
-            db.Ingredients.AddRange(pepper, anise, spinach, parsley, tarragon);
+            var thigh = Food("Chicken Thighs", "Chicken, broilers or fryers, thigh, meat and skin, raw", "172385", 5);
+            var chops = Food("Pork Chops", "Pork, fresh, loin, center loin (chops), bone-in, separable lean and fat, raw", "168238", 10);
+            var ginger = Food("Ground Ginger", "Spices, ginger, ground", "170926", 2);
+            var grapes = Food("Grapes", "Grapes, red or green (European type, such as Thompson seedless), raw", "174683", 9);
+            var lime = Food("Fresh Lime", "Limes, raw", "168155", 9);
+            db.Ingredients.AddRange(pepper, anise, spinach, parsley, tarragon, thigh, chops, ginger, grapes, lime);
             await db.SaveChangesAsync();
             var lines = new (IngredientEntity Food, string Wording, string Line)[]
             {
@@ -180,7 +185,12 @@ namespace Nom.Api.Tests.Services
                 (anise, "anise seed", "1 tsp anise seed, freshly crushed"),
                 (spinach, "spinach leaves", "4 cups spinach leaves"),
                 (parsley, "leaves of parsley", "a few leaves of parsley"),
+                (thigh, "bone-in chicken thighs", "6 bone-in chicken thighs"),
+                (chops, "bone-in pork chops", "4 bone-in pork chops"),
                 (tarragon, "freshly chopped tarragon", "2 tbsp freshly chopped tarragon"),
+                (ginger, "fresh ginger", "1 tbsp fresh ginger"),
+                (grapes, "grape leaves", "20 grape leaves"),
+                (lime, "lime leaves", "4 lime leaves"),
             };
             foreach (var (food, wording, _) in lines) db.FoodCatalogProposals.Add(Applied(wording, food.Id));
             var recipe = Scraped("Herbs", lines.Select(l => (l.Food, l.Line)).ToArray());
@@ -188,9 +198,12 @@ namespace Nom.Api.Tests.Services
             await db.SaveChangesAsync();
 
             await Recheck(db).RunAsync(LinkRecheckRules.PartHerb, apply: true);
-            foreach (var (food, wording, line) in lines.Take(4))
+            foreach (var (food, wording, line) in lines.Take(6))
                 (await FoodOfAsync(db, recipe.Id, line)).Should().Be(food.Id, $"'{wording}' is {food.Name}");
             (await FoodOfAsync(db, recipe.Id, "2 tbsp freshly chopped tarragon")).Should().NotBe(tarragon.Id, "a fresh leaf herb is still not the dried spice");
+            (await FoodOfAsync(db, recipe.Id, "1 tbsp fresh ginger")).Should().NotBe(ginger.Id, "fresh ginger is the root, not the ground spice");
+            (await FoodOfAsync(db, recipe.Id, "20 grape leaves")).Should().NotBe(grapes.Id, "vine leaves are not the fruit");
+            (await FoodOfAsync(db, recipe.Id, "4 lime leaves")).Should().NotBe(lime.Id, "lime leaves are not the fruit");
         }
 
         [Fact]
@@ -231,6 +244,33 @@ namespace Nom.Api.Tests.Services
             foreach (var (food, line) in left) (await FoodOfAsync(db, recipe.Id, line)).Should().Be(food.Id, line);
             (await FoodOfAsync(db, recipe.Id, "1 glass of sherry")).Should().Be(dry.Id, "a real drink line on the wrong food still moves");
             (run!.LinesMoved, run.LinesUnlinked).Should().Be((1, 0));
+        }
+
+        [Fact]
+        public async Task A_wording_on_one_food_in_two_sense_groups_counts_its_aliases_once_in_the_dry_run_as_in_the_apply()
+        {
+            await using var db = NewContext();
+            var vinegar = Food("Red Wine Vinegar", "Vinegar, red wine", "172241", 2);
+            var red = Food("Red Table Wine", "Alcoholic beverage, wine, table, red", "173190", 14);
+            db.Ingredients.AddRange(vinegar, red);
+            await db.SaveChangesAsync();
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = vinegar.Id, AliasName = "wine", SourceContext = "link:ai:qwen2.5:14b-instruct" });
+            var burgundy = Scraped("Beef in Red Wine", (vinegar, "1 cup wine"));
+            burgundy.SourceSite = "example.org";
+            var stew = Scraped("Weeknight Stew", (vinegar, "1/2 cup wine"));
+            stew.SourceSite = "example.org";
+            db.Recipes.AddRange(burgundy, stew);
+            await db.SaveChangesAsync();
+            var service = Recheck(db);
+
+            var dry = await service.RunAsync(LinkRecheckRules.Alcohol);
+            var run = await service.RunAsync(LinkRecheckRules.Alcohol, apply: true);
+            run!.Samples.Where(s => s.Outcome == LinkRecheckRules.Move).Select(s => s.Sense).Should().BeEquivalentTo(new[] { "wine-red", "wine-table" }, "one wording on one food in two sense groups");
+            (await FoodOfAsync(db, burgundy.Id, "1 cup wine")).Should().Be(red.Id);
+            (await FoodOfAsync(db, stew.Id, "1/2 cup wine")).Should().Be(red.Id);
+            (dry!.AliasesAdded, dry.AliasesMoved, dry.AliasesRemoved, dry.AliasesUntrusted)
+                .Should().Be((run.AliasesAdded, run.AliasesMoved, run.AliasesRemoved, run.AliasesUntrusted), "an alias two groups share is written once, so it is counted once");
+            (run.AliasesAdded + run.AliasesMoved, run.AliasesRemoved).Should().Be((1, 1));
         }
 
         [Fact]

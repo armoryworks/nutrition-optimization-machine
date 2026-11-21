@@ -27,8 +27,11 @@ first rule that fires wins:
    (turpentine, camphor, nitre, hartshorn, bay rum, white spirit, rubbing alcohol); `other` (Scotch
    barley, oats, groats or bonnet; a sack of; a ham hock; Port Salut; Muscatel or Malaga raisins and
    grapes; champagne mango; maraschino cherries; malt for ale or beer; "for the rum"; and since
-   `alcohol-context/5`, staging checkpoint 2 M21: a drink's name for a kind of another food, "Malaga
-   lemons", "Tokay grapes", "manzanilla olives", "Scotch caraways"; a food called after a drink,
+   `alcohol-context/5`, staging checkpoint 2 M21: a drink's name that is also a place or grape
+   variety naming a kind of fruit (Malaga, Tokay, Muscatel, Catawba lemons, grapes, raisins, figs and
+   the like), "manzanilla olives", "Scotch caraways"; a wine that names no kind of fruit is the drink
+   the fruit is soaked or cooked in, so "sherry raisins", "port figs" and "Marsala pears" still count
+   the wine; a food called after a drink,
    "cherries called brandy-blacks"; ratafia crumbs, biscuits and cakes; "stout" as strong before a
    bag, cloth, string and the like); `measure` (an ale, wine or beer measure); `liquid` ("liquor"
    with no spirit word).
@@ -218,10 +221,12 @@ the old release's own start-up, since its defaults are then missing again.
 
 ## Golden set and scorer
 
-- `alcohol-context.tsv`: 202 lines with the expected sense, a food the sense must allow and one it
+- `alcohol-context.tsv`: 205 lines with the expected sense, a food the sense must allow and one it
   must refuse; ac-178 to ac-202 are the staging checkpoint-2 lines (M21 and the re-check's doubtful
   items, `alcohol-context/5`): 22 rule-given (`rule:alcohol-context`, `ok`) and three doubtful items
-  decided by rule (`agent`, `agent-review-ck4-recheck-gate-2026-11-21`); 164 rule-given rows (`rule:alcohol-context`, `ok`) from the design's classes and the
+  decided by rule (`agent`, `agent-review-ck4-recheck-gate-2026-11-21`); ac-203 to ac-205 (sherry
+  raisins, port figs, Marsala pears read as the wine) from the review of that fix (`agent`,
+  `agent-review-ck4rg-2026-11-21`); 164 rule-given rows (`rule:alcohol-context`, `ok`) from the design's classes and the
   staging checkpoint-1 lines (K10: ac-162 to ac-172), ten judged by the alcohol-context builder and
   three by the checkpoint fix (Catawba, vin blanc, coq au vin; `agent`); ac-176 and ac-177
   (`rule:alcohol-context`, `ok`) are wine lines that name the "au vin" dish they are for. `GoldenAlcoholContextTests` requires every row to pass, every
