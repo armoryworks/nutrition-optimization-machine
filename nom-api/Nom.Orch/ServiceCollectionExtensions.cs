@@ -1,5 +1,6 @@
 // Nom.Orch/ServiceCollectionExtensions.cs
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Linq;
 using System.Reflection;
 
@@ -61,6 +62,8 @@ namespace Nom.Orch
                     services.AddScoped(registration.Interface, registration.Implementation!);
                 }
             }
+
+            services.Replace(ServiceDescriptor.Scoped<Interfaces.ILaneFrameService>(Services.LaneFrameService.Create));
 
             return services;
         }

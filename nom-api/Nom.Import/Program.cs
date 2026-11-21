@@ -672,7 +672,7 @@ namespace Nom.Import
 
                     services.AddScoped<CatalogAdmissionService>();
                     services.AddScoped<Nom.Orch.Interfaces.IBrandedLiftService, Nom.Orch.Services.BrandedLiftService>();
-                    services.AddScoped<Nom.Orch.Interfaces.ILaneFrameService, Nom.Orch.Services.LaneFrameService>();
+                    services.AddScoped<Nom.Orch.Interfaces.ILaneFrameService>(Nom.Orch.Services.LaneFrameService.Create);
                     services.AddScoped<Nom.Orch.Interfaces.IContainerSizeService, Nom.Orch.Services.ContainerSizeService>();
                     services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.ContainerSizeLaneUndo>();
                     services.AddScoped<ContainerSizeImportService>();

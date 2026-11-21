@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Curation;
@@ -28,6 +29,14 @@ namespace Nom.Orch.Services
             _db = db;
             _undos = undos;
             _logger = logger;
+        }
+
+        public static LaneFrameService Create(IServiceProvider services) =>
+            new(services.GetRequiredService<ApplicationDbContext>(), Deferred(services), services.GetRequiredService<ILogger<LaneFrameService>>());
+
+        private static IEnumerable<ILaneUndo> Deferred(IServiceProvider services)
+        {
+            foreach (var undo in services.GetServices<ILaneUndo>()) yield return undo;
         }
 
         public async Task<string> ModeAsync(string lane, string tier = LaneTiers.Whole, CancellationToken cancellationToken = default)
