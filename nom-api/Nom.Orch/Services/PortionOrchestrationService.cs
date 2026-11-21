@@ -62,33 +62,71 @@ namespace Nom.Orch.Services
 
         public const string IncludeDessertPreferenceKey = "meal_plan_include_dessert";
 
+        public const string PreparedMealsPreferenceKey = "meal_plan_prepared_meals";
+
         public async Task<MealPlanOptionsModel> GetMealPlanOptionsAsync(long householdId)
         {
-            var value = await _context.HouseholdPreferences
+            var values = await _context.HouseholdPreferences
                 .AsNoTracking()
-                .Where(p => p.HouseholdId == householdId && p.PreferenceKey == IncludeDessertPreferenceKey)
-                .Select(p => p.PreferenceValue)
-                .FirstOrDefaultAsync();
-            return new MealPlanOptionsModel { IncludeDessert = value == "true" };
+                .Where(p => p.HouseholdId == householdId
+                    && (p.PreferenceKey == IncludeDessertPreferenceKey || p.PreferenceKey == PreparedMealsPreferenceKey))
+                .Select(p => new { p.PreferenceKey, p.PreferenceValue })
+                .ToListAsync();
+            return new MealPlanOptionsModel
+            {
+                IncludeDessert = values.Any(v => v.PreferenceKey == IncludeDessertPreferenceKey && v.PreferenceValue == "true"),
+                PreparedMealTypeIds = ParsePreparedMealTypeIds(values.FirstOrDefault(v => v.PreferenceKey == PreparedMealsPreferenceKey)?.PreferenceValue),
+            };
         }
 
         public async Task<MealPlanOptionsModel> SaveMealPlanOptionsAsync(long householdId, MealPlanOptionsModel model)
         {
+            var prepared = model.PreparedMealTypeIds?.Distinct().OrderBy(id => id).ToList();
+            var unknown = prepared?.Where(id => !MealTypeNames.ContainsKey(id)).ToList();
+            if (unknown is { Count: > 0 })
+            {
+                throw new ArgumentException($"Prepared meals can be chosen only for Breakfast, Lunch, Dinner, Snacks or Dessert (got meal type {string.Join(", ", unknown)}).");
+            }
+
+            await UpsertPreferenceAsync(householdId, IncludeDessertPreferenceKey, "bool", model.IncludeDessert ? "true" : "false");
+            if (prepared != null)
+            {
+                await UpsertPreferenceAsync(householdId, PreparedMealsPreferenceKey, "json", JsonSerializer.Serialize(prepared));
+            }
+            await _context.SaveChangesAsync();
+            return await GetMealPlanOptionsAsync(householdId);
+        }
+
+        /// <summary>The meal type ids a stored prepared-meals preference names; empty when it is missing or unreadable.</summary>
+        internal static List<long> ParsePreparedMealTypeIds(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return new List<long>();
+            try
+            {
+                return (JsonSerializer.Deserialize<List<long>>(value) ?? new List<long>())
+                    .Where(MealTypeNames.ContainsKey).Distinct().OrderBy(id => id).ToList();
+            }
+            catch (JsonException)
+            {
+                return new List<long>();
+            }
+        }
+
+        private async Task UpsertPreferenceAsync(long householdId, string key, string dataType, string value)
+        {
             var pref = await _context.HouseholdPreferences
-                .FirstOrDefaultAsync(p => p.HouseholdId == householdId && p.PreferenceKey == IncludeDessertPreferenceKey);
+                .FirstOrDefaultAsync(p => p.HouseholdId == householdId && p.PreferenceKey == key);
             if (pref == null)
             {
                 pref = new HouseholdPreferenceEntity
                 {
                     HouseholdId = householdId,
-                    PreferenceKey = IncludeDessertPreferenceKey,
-                    DataType = "bool",
+                    PreferenceKey = key,
+                    DataType = dataType,
                 };
                 _context.HouseholdPreferences.Add(pref);
             }
-            pref.PreferenceValue = model.IncludeDessert ? "true" : "false";
-            await _context.SaveChangesAsync();
-            return model;
+            pref.PreferenceValue = value;
         }
 
         public async Task<MealSplitModel> SaveMealSplitAsync(long householdId, MealSplitModel model)

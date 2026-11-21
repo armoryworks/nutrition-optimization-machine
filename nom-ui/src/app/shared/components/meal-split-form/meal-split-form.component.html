@@ -44,6 +44,26 @@
     }
   </div>
 
+  <fieldset class="nom-meal-split-form__prepared" data-testid="meal-split-prepared">
+    <legend class="nom-meal-split-form__prepared-title">Use prepared meals for</legend>
+    <p class="nom-meal-split-form__prepared-hint">
+      Shuffle fills a ticked meal with one prepared meal (a frozen entree, a fast-food or restaurant meal) that fits
+      your diets and calorie goals, and puts it on the shopping list. Households with an allergy or medical
+      restriction get recipes instead, because a prepared meal's ingredients are not listed.
+    </p>
+    <div class="nom-meal-split-form__prepared-meals">
+      @for (meal of shownPreparedMeals(); track meal.mealTypeId) {
+        <mat-checkbox
+          [checked]="preparedMealTypeIds().has(meal.mealTypeId)"
+          (change)="onPreparedToggle(meal.mealTypeId, $event.checked)"
+          [attr.data-testid]="meal.testid"
+        >
+          {{ meal.label }}
+        </mat-checkbox>
+      }
+    </div>
+  </fieldset>
+
   <p
     class="nom-meal-split-form__total"
     [class.nom-meal-split-form__total--invalid]="total() !== 100"

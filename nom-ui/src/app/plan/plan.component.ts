@@ -107,6 +107,7 @@ export class Plan implements OnInit {
   currentWeekStart = signal<string>(Plan.getMonday(new Date()));
   members = signal<HouseholdMemberResponseModel[]>([]);
   shuffling = signal(false);
+  preparedHeldNotice = signal('');
   hasCuratedPlans = signal(false);
   /**
    * Phones show one day at a time (the 7-column grid is unreadable under
@@ -294,6 +295,7 @@ export class Plan implements OnInit {
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         this.weekData.set(response.week);
+        this.preparedHeldNotice.set(Plan.preparedHeldMessage(response.preparedMealsHeld));
         this.shuffling.set(false);
       },
       error: () => { this.shuffling.set(false); },
@@ -335,10 +337,24 @@ export class Plan implements OnInit {
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         this.weekData.set(response.week);
+        this.preparedHeldNotice.set(Plan.preparedHeldMessage(response.preparedMealsHeld));
         this.shuffling.set(false);
       },
       error: () => { this.shuffling.set(false); },
     });
+  }
+
+  static preparedHeldMessage(reason: string | null | undefined): string {
+    switch (reason) {
+      case 'severe_restriction':
+        return 'Prepared meals were left out because a member has an allergy or medical restriction and a prepared meal lists no ingredients to check. Recipes were planned instead.';
+      case 'curated_only':
+        return 'Prepared meals were left out because your plan uses only your provider\'s recipes. Recipes were planned instead.';
+      case 'none_available':
+        return 'No prepared meal fits your household\'s restrictions and diets, so recipes were planned instead.';
+      default:
+        return '';
+    }
   }
 
   formatDayHeader(dateStr: string): string {

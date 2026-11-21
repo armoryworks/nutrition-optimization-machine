@@ -83,6 +83,10 @@
       <nom-error-banner [message]="errorMessage()" />
     }
 
+    @if (preparedHeldNotice()) {
+      <p class="nom-plan__notice" role="status" data-testid="plan-prepared-held">{{ preparedHeldNotice() }}</p>
+    }
+
     @if (householdsLoaded() && !hasHousehold()) {
       <div class="nom-dashboard__empty" data-testid="plan-empty">
         <mat-icon class="nom-dashboard__empty-icon">home</mat-icon>

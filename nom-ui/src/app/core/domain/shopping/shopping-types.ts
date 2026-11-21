@@ -27,6 +27,8 @@ export interface ShoppingItem {
   source: ShoppingItemSource;
   /** The server row behind an ad-hoc line. */
   adhocId?: number;
+  /** A prepared meal from the plan: one item to buy, with no ingredient lines behind it. */
+  prepared?: boolean;
 }
 
 export interface ShoppingDepartment {

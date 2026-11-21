@@ -24,6 +24,13 @@ namespace Nom.Orch.Models.MealPlan
         public bool IsPrepared { get; set; }
 
         /// <summary>
+        /// For a prepared food: how many to buy for this slot, its quantity for each active member who eats this meal
+        /// that day (members excluded from the meal or the day are left out). It is one item on the shopping list,
+        /// since a prepared food has no ingredient lines. Null for any other entry.
+        /// </summary>
+        public decimal? ServingsToBuy { get; set; }
+
+        /// <summary>
         /// Grams in one reference serving of the standalone food, when the source publishes one.
         /// Null means the nutrition shown uses the 100 g basis. Reference baseline only — an
         /// individual's actual amount scales from their caloric need.

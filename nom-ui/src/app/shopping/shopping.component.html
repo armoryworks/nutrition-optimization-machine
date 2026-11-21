@@ -158,11 +158,16 @@
                 data-testid="shopping-item-checkbox">
               </mat-checkbox>
               <span class="nom-shopping__item-name">
-                <nom-entity-link route="/search"
-                                 [label]="item.name"
-                                 [queryParams]="{ ingredientId: item.ingredientId, ingredient: item.name }"
-                                 testid="shopping-item-ingredient-link"
-                                 [ariaLabel]="'Recipes with ' + item.name" />
+                @if (item.prepared) {
+                  <span data-testid="shopping-item-prepared-name">{{ item.name }}</span>
+                  <span class="nom-shopping__item-sources" data-testid="shopping-item-prepared">prepared meal</span>
+                } @else {
+                  <nom-entity-link route="/search"
+                                   [label]="item.name"
+                                   [queryParams]="{ ingredientId: item.ingredientId, ingredient: item.name }"
+                                   testid="shopping-item-ingredient-link"
+                                   [ariaLabel]="'Recipes with ' + item.name" />
+                }
                 @if (item.sourceRecipes.length > 0) {
                   <span class="nom-shopping__item-sources" data-testid="shopping-item-sources">
                     from

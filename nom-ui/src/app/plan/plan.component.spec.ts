@@ -41,3 +41,13 @@ describe('Plan curated link', () => {
     expect(link(el)!.getAttribute('href')).toBe('/plan/curated');
   });
 });
+
+describe('Plan prepared meals notice', () => {
+  it('says why a meal given to prepared meals got recipes, and nothing otherwise', () => {
+    expect(Plan.preparedHeldMessage('severe_restriction')).toContain('allergy or medical restriction');
+    expect(Plan.preparedHeldMessage('curated_only')).toContain("provider's recipes");
+    expect(Plan.preparedHeldMessage('none_available')).toContain('No prepared meal fits');
+    expect(Plan.preparedHeldMessage(null)).toBe('');
+    expect(Plan.preparedHeldMessage(undefined)).toBe('');
+  });
+});

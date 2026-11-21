@@ -56,6 +56,7 @@ import {
 import {
   DEPARTMENT_ORDER,
   DEPARTMENT_ICONS,
+  PREPARED_MEALS_DEPARTMENT,
   categorizeDepartment,
   inPackage,
 } from '../core/domain/shopping/departments';
@@ -166,7 +167,7 @@ export class ShoppingComponent implements OnInit {
     const weeks = this.weekDataList();
     const cache = this.recipeCache();
     const packages = this.retailPackages();
-    if (weeks.length === 0 || cache.size === 0) return [];
+    if (weeks.length === 0) return [];
 
     const today = ShoppingComponent.toDateString(new Date());
     const endDate = ShoppingComponent.toDateString(
@@ -175,6 +176,7 @@ export class ShoppingComponent implements OnInit {
 
     // Accumulate ingredients in base units, merging by ingredientId + unit category
     const accMap = new Map<string, RawAccumulator>();
+    const preparedMap = new Map<number, { name: string; count: number }>();
 
     for (const week of weeks) {
       for (const day of week.days) {
@@ -182,6 +184,18 @@ export class ShoppingComponent implements OnInit {
 
         for (const cell of day.cells) {
           for (const entry of cell.entries) {
+            if (entry.isPrepared && entry.ingredientId) {
+              const count = entry.servingsToBuy ?? entry.quantity ?? 1;
+              if (count <= 0) continue;
+              const prepared = preparedMap.get(entry.ingredientId);
+              if (prepared) prepared.count += count;
+              else
+                preparedMap.set(entry.ingredientId, {
+                  name: entry.ingredientName ?? entry.title ?? 'Prepared meal',
+                  count,
+                });
+              continue;
+            }
             if (!entry.recipeId) continue;
             const recipe = cache.get(entry.recipeId);
             if (!recipe?.ingredients?.length) continue;
@@ -231,6 +245,8 @@ export class ShoppingComponent implements OnInit {
         const pantryBase = p.quantity * info.toBase;
         acc.baseQuantity -= pantryBase;
       }
+      const prepared = preparedMap.get(p.ingredientId);
+      if (prepared && info.category === 'count') prepared.count -= p.quantity;
     }
 
     // Group by ingredientId to merge entries across unit categories
@@ -384,6 +400,28 @@ export class ShoppingComponent implements OnInit {
       const items = deptMap.get(dept) ?? [];
       items.push(item);
       deptMap.set(dept, items);
+    }
+
+    for (const [ingredientId, prepared] of preparedMap) {
+      if (prepared.count <= 0) continue;
+      const count = Math.ceil(prepared.count);
+      const items = deptMap.get(PREPARED_MEALS_DEPARTMENT) ?? [];
+      items.push({
+        ingredientId,
+        name: prepared.name,
+        portions: [{ quantity: count, unit: count === 1 ? 'serving' : 'servings' }],
+        department: PREPARED_MEALS_DEPARTMENT,
+        checkKey: `${ingredientId}`,
+        sourceRecipes: [],
+        baseMassG: 0,
+        baseVolumeMl: 0,
+        baseCount: count,
+        retailPackage: null,
+        retailPackageCount: 0,
+        source: 'plan',
+        prepared: true,
+      });
+      deptMap.set(PREPARED_MEALS_DEPARTMENT, items);
     }
 
     // Sort departments by store-aisle order, items alphabetically within
@@ -1272,7 +1310,7 @@ export class ShoppingComponent implements OnInit {
     const unmatchedNames: string[] = [];
     for (const dept of departments) {
       for (const item of dept.items) {
-        if (item.source !== 'plan') continue;
+        if (item.source !== 'plan' || item.prepared) continue;
         const hasMatch = findRetailPackage(item.name, packages);
         if (!hasMatch) {
           unmatchedNames.push(item.name);

@@ -5,5 +5,6 @@ namespace Nom.Orch.Models.MealPlan
         public int Created { get; set; }
         public int Deleted { get; set; }
         public MealPlanWeekResponseModel Week { get; set; } = new();
+        public string? PreparedMealsHeld { get; set; }
     }
 }

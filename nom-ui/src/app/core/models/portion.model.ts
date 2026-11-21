@@ -8,6 +8,7 @@ export interface MealSplit {
 
 export interface MealPlanOptions {
   includeDessert: boolean;
+  preparedMealTypeIds?: number[];
 }
 
 export interface PortionMember {
