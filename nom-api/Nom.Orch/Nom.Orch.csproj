@@ -19,17 +19,20 @@
     <PackageReference Include="System.Drawing.Common" Version="10.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.11" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Containers\can-sizes-historic.tsv" LogicalName="Nom.Orch.Containers.can-sizes-historic.tsv" />
     <EmbeddedResource Include="Containers\container-classes.tsv" LogicalName="Nom.Orch.Containers.container-classes.tsv" />
     <EmbeddedResource Include="Nutrition\usda-retention-r6-alcohol.tsv" LogicalName="Nom.Orch.Nutrition.usda-retention-r6-alcohol.tsv" />
+    <EmbeddedResource Include="Contents\label-terms.tsv" LogicalName="Nom.Orch.Contents.label-terms.tsv" />
     <EmbeddedResource Include="Fonts\Lato\*.ttf" LogicalName="Nom.Orch.Fonts.Lato.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\prose-verbs.tsv" LogicalName="Nom.Orch.Prose.prose-verbs.tsv" Link="Prose\prose-verbs.tsv" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\model-lanes.json" LogicalName="Nom.Orch.Golden.model-lanes.json" Link="Golden\model-lanes.json" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\scores\line-judge*.json" LogicalName="Nom.Orch.Golden.line-judge.json" Link="Golden\line-judge.json" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\scores\link-audit*.json" LogicalName="Nom.Orch.Golden.link-audit.json" Link="Golden\link-audit.json" />
+    <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\scores\link-recheck-classes.json" Condition="Exists('..\Nom.Api.Tests\Fixtures\Golden\scores\link-recheck-classes.json')" LogicalName="Nom.Orch.Golden.link-recheck-classes.json" Link="Golden\link-recheck-classes.json" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\scores\wording-read.json" Condition="Exists('..\Nom.Api.Tests\Fixtures\Golden\scores\wording-read.json')" LogicalName="Nom.Orch.Golden.wording-read.json" Link="Golden\wording-read.json" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\scores\wording-lexicon.json" Condition="Exists('..\Nom.Api.Tests\Fixtures\Golden\scores\wording-lexicon.json')" LogicalName="Nom.Orch.Golden.wording-lexicon.json" Link="Golden\wording-lexicon.json" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\scores\alcohol-reading.json" Condition="Exists('..\Nom.Api.Tests\Fixtures\Golden\scores\alcohol-reading.json')" LogicalName="Nom.Orch.Golden.alcohol-reading.json" Link="Golden\alcohol-reading.json" />

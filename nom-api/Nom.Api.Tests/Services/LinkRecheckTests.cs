@@ -41,11 +41,15 @@ namespace Nom.Api.Tests.Services
             public string RequiredUserId => throw new UnauthorizedAccessException();
         }
 
-        private static ApplicationDbContext NewContext() =>
-            new(new DbContextOptionsBuilder<ApplicationDbContext>()
+        private static ApplicationDbContext NewContext()
+        {
+            var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options);
+            LinkRecheckClassBarTests.Qualify(db, LinkRecheckRules.AlcoholClass, LinkGate.Prepared);
+            return db;
+        }
 
         private static LinkRecheckService Recheck(ApplicationDbContext db) =>
             new(db, new NoUser(), new LinkAutoApplyService(db, new MemoryCache(new MemoryCacheOptions())), new LineRelinkService(db, new NoUser()),
@@ -274,15 +278,22 @@ namespace Nom.Api.Tests.Services
             var service = Recheck(db);
             var before = await FingerprintAsync(db);
 
-            var run = await service.RunAsync(LinkRecheckRules.PartHerb, apply: true);
+            var kept = await service.RunAsync(LinkRecheckRules.PartHerb);
+            (kept!.LinesMoved, kept.LinesUnlinked, kept.Candidates, kept.CandidateLines).Should().Be((0, 0, 2, 2),
+                "part and fresh herb are classes not proven: an operator's run keeps their lines and counts them as candidates for the model audit");
+            kept.ByCandidate.Keys.Should().BeEquivalentTo(LinkGate.Part, LinkGate.FreshHerb);
+
+            LinkRecheckClassBarTests.Qualify(db, LinkGate.Part, LinkGate.FreshHerb);
+            var run = await service.RunLaneBatchAsync(LinkRecheckRules.PartHerb, LaneMode.Live, 50000);
             (await FoodOfAsync(db, soup.Id, "4 large potatoes")).Should().NotBe(skins.Id, "whole potatoes are not the skins; where the gate lets the potato entry through they go there, else back to their wording");
             var herb = await FoodOfAsync(db, soup.Id, "2 tbsp freshly chopped tarragon");
             herb.Should().NotBe(tarragon.Id, "a fresh herb is not the dried spice, and no fresh tarragon food exists");
             (await db.Ingredients.SingleAsync(i => i.Id == herb)).CurationStatusId.Should().Be((long)CurationStatusEnum.NonCurated);
             (await db.IngredientAliases.IgnoreQueryFilters().SingleAsync(a => a.IngredientId == skins.Id && a.AliasName == "large potatoes")).IsDeleted.Should().BeTrue();
-            run!.ByReason.Keys.Should().Contain(new[] { "food is a part the wording does not name", "a fresh herb is not the dried spice" });
+            run.ByReason.Keys.Should().Contain(new[] { "food is a part the wording does not name", "a fresh herb is not the dried spice" }, "a lane batch writes the candidates of classes whose own tier the link-audit record qualified");
+            run.ClassStamps.Should().HaveCount(2, "each class writes under a stamp of its own");
 
-            await service.UndoAsync(run.Stamp!.Value, apply: true);
+            foreach (var stamp in run.ClassStamps) await service.UndoAsync(stamp, apply: true);
             (await FingerprintAsync(db)).Should().Be(before);
         }
 
@@ -307,8 +318,10 @@ namespace Nom.Api.Tests.Services
             });
             await db.SaveChangesAsync();
 
-            var run = await Recheck(db).RunAsync(LinkRecheckRules.Compound, apply: true);
-            run!.LinesUnlinked.Should().Be(1);
+            (await Recheck(db).RunAsync(LinkRecheckRules.Compound))!.Candidates.Should().Be(1, "the compound class is not proven");
+            LinkRecheckClassBarTests.Qualify(db, LinkGate.Compound);
+            var run = await Recheck(db).RunLaneBatchAsync(LinkRecheckRules.Compound, LaneMode.Live, 50000);
+            run.LinesUnlinked.Should().Be(1);
             run.Alternatives.Should().Be(1);
             var home = await FoodOfAsync(db, stew.Id, "salt and pepper");
             (await db.Ingredients.SingleAsync(i => i.Id == home)).Name.Should().Be("salt and pepper");
@@ -331,11 +344,18 @@ namespace Nom.Api.Tests.Services
             db.Recipes.Add(chili);
             await db.SaveChangesAsync();
 
-            var run = await Recheck(db).RunAsync(LinkRecheckRules.ContainerForm, apply: true);
+            var operatorRun = await Recheck(db).RunAsync(LinkRecheckRules.ContainerForm, apply: true);
+            (operatorRun!.LinesMoved, operatorRun.Candidates).Should().Be((0, 1), "the container class is not proven: its move is a candidate");
+            (await FoodOfAsync(db, chili.Id, "1 can tomatoes")).Should().Be(tomatoes.Id);
+            db.LaneDecisions.RemoveRange(db.LaneDecisions);
+            await db.SaveChangesAsync();
+            LinkRecheckClassBarTests.Qualify(db, LinkRecheckRules.ContainerClass);
+
+            var run = await Recheck(db).RunLaneBatchAsync(LinkRecheckRules.ContainerForm, LaneMode.Live, 50000);
             (await FoodOfAsync(db, chili.Id, "1 can tomatoes")).Should().Be(canned.Id);
             (await FoodOfAsync(db, chili.Id, "1 (15 oz) can black beans")).Should().Be(beans.Id, "two canned black beans that are not drained: no one sister, so the line stays");
             (await FoodOfAsync(db, chili.Id, "2 tomatoes, you can use any")).Should().Be(tomatoes.Id, "'you can' is not a can");
-            (run!.LinesMoved, run.LinesUnlinked, run.Held).Should().Be((1, 0, 1));
+            (run.LinesMoved, run.LinesUnlinked, run.Held).Should().Be((1, 0, 1));
         }
 
         [Fact]
@@ -376,8 +396,10 @@ namespace Nom.Api.Tests.Services
             var service = Recheck(db);
 
             (await service.RunAsync(LinkRecheckRules.Applied))!.Groups.Should().Be(1, "only the October link");
-            var run = await service.RunAsync(LinkRecheckRules.AppliedNovember, apply: true);
-            run!.Groups.Should().Be(1);
+            (await service.RunAsync(LinkRecheckRules.AppliedNovember))!.Candidates.Should().Be(1, "another curated food's name is a class not proven");
+            LinkRecheckClassBarTests.Qualify(db, LinkGate.OtherFood);
+            var run = await service.RunLaneBatchAsync(LinkRecheckRules.AppliedNovember, LaneMode.Live, 50000);
+            run.Groups.Should().Be(1);
             run.ByTier.Should().ContainKey(LinkRecheckRules.CuratedNameTier);
             (await FoodOfAsync(db, cake.Id, "2 tbsp olive oil")).Should().Be(olive.Id);
             (await FoodOfAsync(db, cake.Id, "2 cups flour")).Should().Be(flour.Id);
@@ -405,31 +427,38 @@ namespace Nom.Api.Tests.Services
         [Fact]
         public async Task The_lane_decides_in_shadow_without_writing_skips_what_it_decided_and_writes_and_undoes_its_own_runs_when_live()
         {
+            using var none = LinkRecheckRules.AssumeProven();
             await using var db = NewContext();
             var bar = await BarAsync(db);
+            db.LaneStates.RemoveRange(db.LaneStates);
+            await db.SaveChangesAsync();
             var service = Recheck(db);
             var before = await FingerprintAsync(db);
+            var tier = LinkRecheckRules.CandidateTier(LinkRecheckRules.AlcoholClass);
 
-            var shadow = await service.RunLaneBatchAsync(LinkRecheckRules.Alcohol, LaneMode.Shadow, 100);
-            (shadow.Applied, shadow.Groups).Should().Be((false, 3));
+            var shadow = await service.RunLaneBatchAsync(LinkRecheckRules.Alcohol, LaneMode.Live, 100);
+            (shadow.LinesMoved + shadow.LinesUnlinked, shadow.ClassStamps.Count, shadow.Groups).Should().Be((0, 0, 3), "the set is live, but the alcohol class's own tier is in shadow");
             (await FingerprintAsync(db)).Should().Be(before);
-            var decisions = await db.LaneDecisions.AsNoTracking().Where(d => d.Lane == AiLanes.LinkRecheck && d.Tier == LinkRecheckRules.Alcohol).ToListAsync();
-            decisions.Should().HaveCount(3).And.OnlyContain(d => d.Mode == LaneMode.Shadow && !d.Written && d.Writes && d.SignatureHash == LinkRecheckRules.SetSignature(LinkRecheckRules.Alcohol));
+            var decisions = await db.LaneDecisions.AsNoTracking().Where(d => d.Lane == AiLanes.LinkRecheck && d.Tier == tier).ToListAsync();
+            decisions.Should().HaveCount(3).And.OnlyContain(d => d.Mode == LaneMode.Shadow && !d.Written && d.Writes && d.Stratum == LinkRecheckRules.Alcohol && d.SignatureHash == LinkRecheckRules.TierSignature(tier));
             (await service.RunLaneBatchAsync(LinkRecheckRules.Alcohol, LaneMode.Shadow, 100)).Groups.Should().Be(0, "what it decided under this signature it does not decide again");
             (await service.DecidedTodayAsync(LinkRecheckRules.Alcohol)).Should().Be(3);
 
             db.LaneDecisions.RemoveRange(db.LaneDecisions);
             await db.SaveChangesAsync();
-            var live = await service.RunLaneBatchAsync(LinkRecheckRules.Alcohol, LaneMode.Live, 100);
-            live.Applied.Should().BeTrue();
+            LinkRecheckClassBarTests.Qualify(db, LinkRecheckRules.AlcoholClass);
+            var live = await service.RunLaneBatchAsync(LinkRecheckRules.Alcohol, LaneMode.Shadow, 100);
+            live.Applied.Should().BeTrue("the class's tier is live, whatever the set's mode");
             (await FoodOfAsync(db, bar.Trifle.Id, "1 glass of sherry")).Should().Be(bar.DrySherry.Id);
-            (await db.LaneDecisions.CountAsync(d => d.Written)).Should().Be(3);
+            (await db.LaneDecisions.CountAsync(d => d.Written && d.Tier == tier)).Should().Be(3);
+            var stamp = live.ClassStamps.Should().ContainSingle().Subject;
 
             var undo = new LinkRecheckLaneUndo(service, db);
-            (await undo.UndoSinceAsync(LinkRecheckRules.Alcohol, live.Stamp!.Value.AddSeconds(-1), apply: false, CancellationToken.None)).Undone.Should().Be(5, "three lines and the two trusted aliases on the foods they moved to");
-            (await undo.UndoSinceAsync(LinkRecheckRules.Alcohol, live.Stamp.Value.AddSeconds(-1), apply: true, CancellationToken.None)).Undone.Should().Be(5);
+            (await undo.UndoSinceAsync(LinkRecheckRules.Alcohol, stamp.AddSeconds(-1), apply: false, CancellationToken.None)).Undone.Should().Be(0, "the set's tier wrote nothing");
+            (await undo.UndoSinceAsync(tier, stamp.AddSeconds(-1), apply: false, CancellationToken.None)).Undone.Should().Be(5, "three lines and the two trusted aliases on the foods they moved to");
+            (await undo.UndoSinceAsync(tier, stamp.AddSeconds(-1), apply: true, CancellationToken.None)).Undone.Should().Be(5);
             (await FingerprintAsync(db)).Should().Be(before);
-            (await undo.UndoSinceAsync(LinkRecheckRules.Alcohol, live.Stamp.Value.AddSeconds(-1), apply: true, CancellationToken.None)).Undone.Should().Be(0);
+            (await undo.UndoSinceAsync(tier, stamp.AddSeconds(-1), apply: true, CancellationToken.None)).Undone.Should().Be(0);
         }
 
         [Fact]
@@ -653,6 +682,7 @@ namespace Nom.Api.Tests.Services
         [Fact]
         public async Task A_set_run_still_going_shows_as_running_and_once_cut_off_no_longer_does()
         {
+            using var none = LinkRecheckRules.AssumeProven();
             var root = new InMemoryDatabaseRoot();
             var name = Guid.NewGuid().ToString();
             await using var reader = SharedContext(root, name);
@@ -662,22 +692,27 @@ namespace Nom.Api.Tests.Services
             var cutOff = new CutOff(1, ctx => ctx.ChangeTracker.Entries<RecipeIngredientEntity>().Any(e => e.State is EntityState.Added or EntityState.Deleted));
             await using var db = SharedContext(root, name, peek, cutOff);
             await BarAsync(db);
+            LinkRecheckClassBarTests.Qualify(db, LinkRecheckRules.AlcoholClass);
+            var tier = LinkRecheckRules.CandidateTier(LinkRecheckRules.AlcoholClass);
 
             peek.Armed = cutOff.Armed = true;
             await FluentActions.Awaiting(() => Recheck(db).RunLaneBatchAsync(LinkRecheckRules.Alcohol, LaneMode.Live, 100)).Should().ThrowAsync<OperationCanceledException>();
 
-            during!.LastRuns.Should().ContainSingle(r => r.Set == LinkRecheckRules.Alcohol).Which.Should().Match<LinkRecheckRunSummary>(r => !r.Complete && r.Running);
+            during!.LastRuns.Should().ContainSingle(r => r.Set == tier).Which.Should().Match<LinkRecheckRunSummary>(r => !r.Complete && r.Running);
             reader.ChangeTracker.Clear();
-            (await Recheck(reader).StatusAsync(enabled: false)).LastRuns.Should().ContainSingle(r => r.Set == LinkRecheckRules.Alcohol)
+            (await Recheck(reader).StatusAsync(enabled: false)).LastRuns.Should().ContainSingle(r => r.Set == tier)
                 .Which.Should().Match<LinkRecheckRunSummary>(r => !r.Complete && !r.Running, "a run that threw is cut off, not running");
         }
 
         [Fact]
         public async Task A_set_run_cut_off_partway_shows_its_stamp_and_is_undone_by_it_and_by_the_lanes_undo()
         {
+            using var none = LinkRecheckRules.AssumeProven();
             var cutOff = new CutOff(2, ctx => ctx.ChangeTracker.Entries<RecipeIngredientEntity>().Any(e => e.State is EntityState.Added or EntityState.Deleted));
             await using var db = NewContext(cutOff);
             await BarAsync(db);
+            LinkRecheckClassBarTests.Qualify(db, LinkRecheckRules.AlcoholClass);
+            var tier = LinkRecheckRules.CandidateTier(LinkRecheckRules.AlcoholClass);
             var service = Recheck(db);
             var before = await FingerprintAsync(db);
 
@@ -686,10 +721,10 @@ namespace Nom.Api.Tests.Services
             (await FingerprintAsync(db)).Should().NotBe(before, "one line had moved before the cut");
 
             var status = await service.StatusAsync(enabled: false);
-            var run = status.LastRuns.Should().ContainSingle(r => r.Set == LinkRecheckRules.Alcohol).Subject;
+            var run = status.LastRuns.Should().ContainSingle(r => r.Set == tier).Subject;
             run.Complete.Should().BeFalse();
             (await service.UndoAsync(run.Stamp)).Found.Should().BeTrue();
-            (await new LinkRecheckLaneUndo(service, db).UndoSinceAsync(LinkRecheckRules.Alcohol, run.Stamp.AddSeconds(-1), apply: true, CancellationToken.None)).Undone.Should().BeGreaterThan(0);
+            (await new LinkRecheckLaneUndo(service, db).UndoSinceAsync(tier, run.Stamp.AddSeconds(-1), apply: true, CancellationToken.None)).Undone.Should().BeGreaterThan(0);
             (await FingerprintAsync(db)).Should().Be(before);
         }
 
@@ -730,11 +765,12 @@ namespace Nom.Api.Tests.Services
             var aliases = await service.RunAsync(LinkRecheckRules.Aliases);
             aliases!.Samples.Should().Contain(s => s.FoodId == chorizo.Id && s.Wording == "ground pork sausage" && s.Lines == 1, "a trusted alias the re-check gave is rule-given too");
 
-            var run = await service.RunAsync(LinkRecheckRules.PartHerb, apply: true);
+            LinkRecheckClassBarTests.Qualify(db, LinkGate.Part);
+            var run = await service.RunLaneBatchAsync(LinkRecheckRules.PartHerb, LaneMode.Live, 50000);
             (await FoodOfAsync(db, soup.Id, "4 large potatoes")).Should().NotBe(skins.Id);
             (await db.IngredientAliases.IgnoreQueryFilters().SingleAsync(a => a.IngredientId == skins.Id && a.AliasName == "large potatoes")).IsDeleted
                 .Should().BeTrue("the re-check's own alias stops teaching imports the skins once its lines leave");
-            run!.AliasesUntrusted.Should().BeGreaterThan(0);
+            run.AliasesUntrusted.Should().BeGreaterThan(0);
         }
 
         [Fact]
@@ -767,6 +803,8 @@ namespace Nom.Api.Tests.Services
             await BarAsync(db);
             var service = Recheck(db);
             var applied = await service.RunAsync(LinkRecheckRules.Alcohol, apply: true, max: 1);
+            db.LaneStates.RemoveRange(db.LaneStates);
+            await db.SaveChangesAsync();
 
             var shadow = await service.RunLaneBatchAsync(LinkRecheckRules.Alcohol, LaneMode.Shadow, 100);
             shadow.Groups.Should().Be(2);

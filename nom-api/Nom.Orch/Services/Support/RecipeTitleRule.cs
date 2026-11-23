@@ -144,13 +144,45 @@ namespace Nom.Orch.Services.Support
     /// that credits the author's own work or the page itself ("adapted from my cupcakes", "recipe from this
     /// website", "recipe from now on") is not a credit. Each credit is kept as its cue and the name it
     /// gives: the run of capitalised words (with "of", "the", "and", "by" and the like between them) that
-    /// follows the cue, so no clause of the publisher's own prose is ever kept with it.
+    /// follows the cue, so no clause of the publisher's own prose is ever kept with it. The text is read
+    /// with its HTML entities decoded, so "What&amp;#x27;s" is one word and "Love &amp;amp; Lemons" one
+    /// name. Where the source's markup lost the break between two elements, the name ends at the break:
+    /// before a word that starts a sentence ("This", "Other", "I've", "The" after a name word), before a
+    /// word the name already holds ("by Tara O'Brady Tara writes"), and inside a word glued to the next
+    /// element's first word ("James BeardUsing" keeps "James Beard"; only where the glued part is a word
+    /// that starts a sentence, so "HarperCollins" and "KitchenAid" stay whole). A word repeated after "by"
+    /// or "and" starts a new name ("Ottolenghi Simple by Yotam Ottolenghi" stays whole). A possessive ending ("America's
+    /// Test Kitchen's") is dropped, a word the length limit cut is left out, and a name made only of
+    /// places, nationalities or languages ("Recipe from South America", "Recipe from French cooks") is no
+    /// credit (staging checkpoint 3, N26).
     /// </summary>
     public static class CreditLines
     {
+        public const string Version = "credit-lines/2";
+
+        private const int MaxName = 160;
+
         private static readonly Regex Credit = new(
-            @"\b(?<cue>(?:recipe\s+)?adapted\s+(?:slightly\s+)?from|recipe\s+(?:courtesy\s+of|from)|courtesy\s+of|reprinted\s+(?:with\s+permission\s+)?from|excerpted\s+from)\s+(?<who>[^.;!?\n\(\)]{2,90})",
+            @"\b(?<cue>(?:recipe\s+)?adapted\s+(?:slightly\s+)?from|recipe\s+(?:courtesy\s+of|from)|courtesy\s+of|reprinted\s+(?:with\s+permission\s+)?from|excerpted\s+from)\s+(?<who>[^.;!?\n\(\)]{2," + MaxName + "})",
             RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+        private static readonly HashSet<string> SentenceStarts = new(StringComparer.Ordinal)
+        {
+            "The", "This", "That", "These", "Those", "There", "Here", "It", "It's", "I", "I've", "I'm", "I'd", "I'll", "We", "We've", "We're",
+            "You", "You'll", "You're", "He", "She", "They", "Other", "Others", "When", "While", "If", "After", "Before", "Using", "So", "But",
+            "Also", "Then",
+        };
+
+        private static readonly HashSet<string> Places = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "north", "south", "east", "west", "central", "latin", "middle", "far", "near", "eastern", "western", "northern", "southern",
+            "america", "american", "americas", "africa", "african", "asia", "asian", "europe", "european", "australia", "australian",
+            "french", "italian", "spanish", "mexican", "greek", "german", "indian", "chinese", "japanese", "korean", "thai", "vietnamese",
+            "turkish", "lebanese", "moroccan", "persian", "russian", "polish", "irish", "english", "british", "scottish", "portuguese",
+            "brazilian", "peruvian", "cuban", "caribbean", "mediterranean", "nordic", "scandinavian", "swedish", "danish", "dutch",
+            "france", "italy", "spain", "mexico", "greece", "germany", "india", "china", "japan", "korea", "thailand", "vietnam",
+            "england", "britain", "ireland", "scotland", "portugal", "brazil", "peru", "cuba",
+        };
 
         private static readonly HashSet<string> Own = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -164,31 +196,75 @@ namespace Nom.Orch.Services.Support
             "of", "the", "and", "&", "by", "de", "du", "del", "della", "di", "da", "la", "le", "von", "van", "der", "den", "for", "in", "at", "on", "a", "an",
         };
 
+        private static string Bare(string word) => word.Trim('"', '\'', '“', '”', '‘', '’', ',', ':');
+
+        private static readonly HashSet<string> GluedStarts = new(SentenceStarts.Concat(new[]
+        {
+            "In", "On", "At", "For", "To", "With", "From", "A", "An", "My", "Our", "Your", "His", "Her", "Their", "Its", "Each", "Every",
+            "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Makes", "Serves", "Yield", "Ingredients",
+            "Directions", "Instructions", "Method", "Notes", "Note", "Print", "Get", "Find", "See", "Read", "Watch", "Try", "Add",
+            "Mix", "Combine", "Preheat", "Heat", "Place", "Put", "Make", "Cook", "Bake", "Stir", "Whisk", "Serve",
+        }), StringComparer.Ordinal);
+
+        private static int? GluedAt(string word)
+        {
+            for (var i = 4; i < word.Length - 1; i++)
+            {
+                if (!char.IsLower(word[i - 1]) || !char.IsUpper(word[i]) || !char.IsLower(word[i + 1]) || !word[..i].All(char.IsLetter)) continue;
+                var end = i + 1;
+                while (end < word.Length && char.IsLower(word[end])) end++;
+                if (GluedStarts.Contains(word[i..end])) return i;
+            }
+            return null;
+        }
+
         private static string Name(string who)
         {
             var kept = new List<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var word in who.Split(' ', StringSplitOptions.RemoveEmptyEntries))
             {
-                var bare = word.Trim('"', '\'', '“', '”', '‘', '’', ',', ':');
+                var bare = Bare(word);
                 if (bare.Length == 0) break;
                 var named = char.IsUpper(bare[0]) || char.IsDigit(bare[0]);
                 if (!named && !(kept.Count > 0 && Joiners.Contains(bare))) break;
+                if (named && kept.Count > 0 && !Joiners.Contains(Bare(kept[^1])) && (SentenceStarts.Contains(bare) || seen.Contains(bare))) break;
+                if (GluedAt(bare) is { } glued)
+                {
+                    kept.Add(bare[..glued]);
+                    break;
+                }
                 kept.Add(word);
+                if (bare is "by" or "and" or "&") seen.Clear();
+                else seen.Add(bare);
                 if (word.EndsWith(',') || word.EndsWith(':')) break;
             }
 
-            while (kept.Count > 0 && Joiners.Contains(kept[^1].Trim('"', '\'', '“', '”', '‘', '’', ',', ':'))) kept.RemoveAt(kept.Count - 1);
+            while (kept.Count > 0 && Joiners.Contains(Bare(kept[^1]))) kept.RemoveAt(kept.Count - 1);
+            if (kept.Count > 0) kept[^1] = Regex.Replace(kept[^1], @"['’]s([,:]?)$", "$1");
+            if (kept.Where(w => !Joiners.Contains(Bare(w))).All(w => Places.Contains(Bare(w)))) return string.Empty;
             return string.Join(' ', kept).TrimEnd(',', ':', ' ');
+        }
+
+        private static string Decode(string text)
+        {
+            var once = System.Net.WebUtility.HtmlDecode(text);
+            return once.Contains('&') ? System.Net.WebUtility.HtmlDecode(once) : once;
         }
 
         public static IReadOnlyList<string> Find(IEnumerable<string?> texts)
         {
             var found = new List<string>();
-            foreach (var text in texts.Where(t => !string.IsNullOrWhiteSpace(t)))
+            foreach (var raw in texts.Where(t => !string.IsNullOrWhiteSpace(t)))
             {
-                foreach (Match match in Credit.Matches(text!))
+                var text = Decode(raw!);
+                foreach (Match match in Credit.Matches(text))
                 {
-                    var who = Regex.Replace(match.Groups["who"].Value, @"\s+", " ").Trim().TrimEnd(',', ':', '-', '–', '—', ' ');
+                    var who = match.Groups["who"].Value;
+                    var end = match.Groups["who"].Index + who.Length;
+                    if (who.Length == MaxName && end < text.Length && char.IsLetterOrDigit(text[end]))
+                        who = who[..Math.Max(0, who.LastIndexOf(' '))];
+                    who = Regex.Replace(who, @"\s+", " ").Trim().TrimEnd(',', ':', '-', '–', '—', ' ');
                     var first = who.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim('"', '\'', '“', '‘') ?? string.Empty;
                     if (first.Length == 0 || Own.Contains(first)) continue;
                     who = Name(who);

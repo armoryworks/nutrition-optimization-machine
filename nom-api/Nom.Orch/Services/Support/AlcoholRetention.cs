@@ -46,7 +46,14 @@ namespace Nom.Orch.Services.Support
     /// reading from each such step and of the "up to" reading is kept. When the steps name no drink
     /// word at all, the first step that mixes all the ingredients together holds it (the USDA rows
     /// 5004-5009 measure a drink stirred into the mixture that is then baked or simmered). "Cook" or "heat" in a sentence that bakes or roasts in the oven is the
-    /// oven's heat, and "every 15 minutes" is how often, not how long. A line with no alcohol word on
+    /// oven's heat, and "every 15 minutes" is how often, not how long. Preheating the oven cooks
+    /// nothing, and "boiled icing" names a thing made apart. A drink that soaks an ingredient ("soak
+    /// the fruit in the liquor overnight") goes where that ingredient goes: the method is read on from
+    /// it past the rest that soaks it. A separate bowl of the dry ingredients is the other
+    /// half of a batter when the next step stirs it into the drink's own mixture, and "in a clean cloth"
+    /// wraps a pudding (staging checkpoint 3, N20). The soak is read up to a separate preparation like
+    /// any other reading, and when the steps name the drink only by a drink word, the highest of the
+    /// readings from each step that names it is kept (review of ck6-data-fixes). A line with no alcohol word on
     /// an alcoholic food ("1 teaspoon vanilla") is found by its first word that is no amount, unit or
     /// modifier. A recipe with no steps keeps all of it. The factors are the USDA Table of
     /// Nutrient Retention Factors, Release 6 (2007), rows 5001-5010, shipped as a cited data file.
@@ -54,7 +61,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class AlcoholRetention
     {
-        public const string Version = "alcohol-retention/4";
+        public const string Version = "alcohol-retention/5";
         public const string ResourceName = "Nom.Orch.Nutrition.usda-retention-r6-alcohol.tsv";
 
         /// <summary>Kilocalories per gram of alcohol, the FDC calorie factor; energy falls by this much for each gram of alcohol that does not stay.</summary>
@@ -81,7 +88,7 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex SentenceSplit = new(@"(?<=[.!?;])\s+|\n+", Options);
 
         private static readonly Regex NotHeating = new(
-            @"\b(?:remove|removed|removing|take|taken|taking|lift|lifted|move|moved|set|pull)\s+(?:it\s+|them\s+|the\s+\p{L}+\s+|from\s+)?(?:from|off)\s+(?:the\s+)?(?:heat|fire|stove|burner|flame|hob)\b|\boff\s+(?:the\s+)?(?:heat|fire|flame|stove|hob)\b|\baway from (?:the )?(?:heat|fire)\b|\bpre ?heat\w*\b|\bbaking\s+(?:soda|powder|dish|pans?|sheets?|tins?|paper|trays?|parchment)\b|\b(?:oven|heat)\s*proof\b|\bovenproof\b|\bcooking spray\b|\bcooking liquid\b|\bboiled cider\b|\bhard ?boiled\b|\bcooled\b",
+            @"\b(?:remove|removed|removing|take|taken|taking|lift|lifted|move|moved|set|pull)\s+(?:it\s+|them\s+|the\s+\p{L}+\s+|from\s+)?(?:from|off)\s+(?:the\s+)?(?:heat|fire|stove|burner|flame|hob)\b|\boff\s+(?:the\s+)?(?:heat|fire|flame|stove|hob)\b|\baway from (?:the )?(?:heat|fire)\b|\bpre ?heat\w*\s+(?:the\s+|your\s+|an\s+)?oven\b|\bheat\s+(?:the\s+|your\s+)?oven\s+to\b|\bpre ?heat\w*\b|\bboiled\s+(?:icing|frosting|dressing)\b|\bbaking\s+(?:soda|powder|dish|pans?|sheets?|tins?|paper|trays?|parchment)\b|\b(?:oven|heat)\s*proof\b|\bovenproof\b|\bcooking spray\b|\bcooking liquid\b|\bboiled cider\b|\bhard ?boiled\b|\bcooled\b",
             Options);
 
         private static readonly Regex OffHeat = new(
@@ -121,12 +128,18 @@ namespace Nom.Orch.Services.Support
         };
 
         private static readonly Regex SeparateStep = new(
-            @"^\W*(?:meanwhile|in the meantime|separately|while\s+(?:the|you|it|that|this)\b)|\bseparately\b|\b(?:in|into|using|on)\s+(?:a|an)\s+(?:separate|second|clean|different|other)\b|\b(?:in|into|using|on)\s+another\b",
+            @"^\W*(?:meanwhile|in the meantime|separately|while\s+(?:the|you|it|that|this)\b)|\bseparately\b|\b(?:in|into|using|on)\s+(?:a|an)\s+(?:separate|second|clean|different|other)\b(?![\s,]+(?:[\p{L}-]+[\s,]+)?(?:cloth|towel|napkin|bag)s?\b)|\b(?:in|into|using|on)\s+another\b",
             Options);
 
         private static readonly Regex PauseStep = new(
             @"\bchill(?:s|ing)?\b|\brefrigerat(?:e|es|ing)\b|\bfreez(?:e|es|ing)\b|\bin(?:to)? the (?:fridge|refrigerator|freezer)\b|\b(?:let|leave|allow|set)\b[^.;]{0,25}\bcool\b|\bcool(?:s|ing)?\s+(?:completely|slightly|thoroughly|down|for|until|to|on|in)\b|^\W*cool\b|\bset\s+(?:it\s+|them\s+|the\s+\p{L}+\s+)?aside\b|\breserves?\b|\bserves?\b",
             Options);
+
+        private static readonly Regex DryHalf = new(@"\b(?:flour|dry ingredients|baking (?:powder|soda))\b", Options);
+
+        private static readonly Regex Mixture = new(@"\b(?<w>(?!(?:the|a|an|this|that|dry|flour)\b)\p{L}{3,})\s+mixture\b", Options);
+
+        private static readonly Regex Soak = new(@"\b(?:soak\w*|steep(?:s|ed|ing)?|macerat\w*|plump(?:s|ed|ing)?)\b", Options);
 
         private static readonly Regex ClauseBreak = new(@",\s*|\s+(?:and\s+)?then\s+", Options);
 
@@ -250,6 +263,8 @@ namespace Nom.Orch.Services.Support
                     .Select(i => (Index: i, Match: AlcoholLineContext.Trigger.Match(sentences[i])))
                     .Where(t => t.Match.Success)
                     .ToList();
+                if (drinkWords.Any(t => Soak.IsMatch(sentences[t.Index])))
+                    return drinkWords.Select(t => ReadAt(sentences, t.Index, t.Match.Index)).MaxBy(r => r.Factor)!;
                 if (drinkWords.Count > 0)
                     return drinkWords.Select(t => ReadAt(sentences, t.Index, t.Match.Index)).Append(Unplaced(sentences)).MaxBy(r => r.Factor)!;
             }
@@ -277,7 +292,7 @@ namespace Nom.Orch.Services.Support
         {
             var sentence = sentences[index];
             var clauseStart = ClauseBreak.Matches(sentence[..position]).Select(m => m.Index + m.Length).DefaultIfEmpty(0).Max();
-            var after = Segment(sentence[clauseStart..], sentences.Skip(index + 1));
+            var after = Segment(sentence[clauseStart..], sentences.Skip(index + 1).ToList(), sentence, Soak.IsMatch(sentence));
             var scan = Scan(after);
 
             if (!scan.Stove && !scan.Oven)
@@ -303,19 +318,38 @@ namespace Nom.Orch.Services.Support
         /// The part of the method that cooks the drink: its clause and the sentences after it, up to a
         /// sentence that starts a separate preparation ("Meanwhile boil the pasta", "In another pan"),
         /// which is left out, or through a sentence that chills, sets aside or serves the dish, after
-        /// which the heat is for something else ("Bake the shortcakes").
+        /// which the heat is for something else ("Bake the shortcakes"). A separate bowl of only dry
+        /// ingredients is passed over when the next sentence stirs its mixture into the drink's own ("the
+        /// egg mixture" after "beat the eggs ... and vanilla"). A drink that soaks an ingredient is read on
+        /// past the rest that soaks it: the pause in its own sentence and the sentences right after it
+        /// that only rest it overnight.
         /// </summary>
-        private static List<string> Segment(string clause, IEnumerable<string> rest)
+        private static List<string> Segment(string clause, IReadOnlyList<string> rest, string drinkSentence, bool soaked)
         {
             var segment = new List<string> { clause };
-            if (PauseStep.IsMatch(clause)) return segment;
-            foreach (var sentence in rest)
+            if (PauseStep.IsMatch(clause) && !soaked) return segment;
+            var resting = soaked;
+            for (var i = 0; i < rest.Count; i++)
             {
-                if (SeparateStep.IsMatch(sentence)) break;
+                var sentence = rest[i];
+                if (SeparateStep.IsMatch(sentence))
+                {
+                    if (DryHalf.IsMatch(sentence) && Scan(new[] { sentence }) is { Stove: false, Oven: false, Flame: false }
+                        && i + 1 < rest.Count && JoinsBack(rest[i + 1], segment.Prepend(drinkSentence))) continue;
+                    break;
+                }
                 segment.Add(sentence);
+                if (resting && OvernightWords.IsMatch(sentence) && Scan(new[] { sentence }) is { Stove: false, Oven: false, Flame: false }) continue;
+                resting = false;
                 if (PauseStep.IsMatch(sentence)) break;
             }
             return segment;
+        }
+
+        private static bool JoinsBack(string next, IEnumerable<string> drinkPart)
+        {
+            var text = string.Join(" ", drinkPart);
+            return Mixture.Matches(next).Any(m => !DryHalf.IsMatch(m.Value) && Regex.IsMatch(text, @"\b" + Regex.Escape(m.Groups["w"].Value), Options));
         }
 
         private sealed record HeatScan(bool Stove, bool Oven, bool Flame, int Minutes, bool TimedOvenOnly);
@@ -453,7 +487,7 @@ namespace Nom.Orch.Services.Support
         internal static string SignatureSource()
         {
             var text = new StringBuilder(Version);
-            foreach (var regex in new[] { SentenceSplit, NotHeating, OffHeat, GasFlame, Stove, GenericHeat, Oven, Flame, OvernightWords, Duration, MoreMinutes, SeparateStep, PauseStep, ClauseBreak, AddVerb, DrinkGeneric, GenericMention, MixAll, DryIngredients, NotMention, EveryBefore })
+            foreach (var regex in new[] { SentenceSplit, NotHeating, OffHeat, GasFlame, Stove, GenericHeat, Oven, Flame, OvernightWords, Duration, MoreMinutes, SeparateStep, PauseStep, DryHalf, Mixture, Soak, ClauseBreak, AddVerb, DrinkGeneric, GenericMention, MixAll, DryIngredients, NotMention, EveryBefore })
                 text.Append('\n').Append(regex);
             foreach (var (pattern, replacement) in Phrases) text.Append('\n').Append(pattern).Append('=').Append(replacement);
             foreach (var row in Rows) text.Append('\n').Append(row.Code).Append('=').Append(row.Percent.ToString(CultureInfo.InvariantCulture)).Append(':').Append(row.Minutes?.ToString(CultureInfo.InvariantCulture));

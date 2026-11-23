@@ -72,7 +72,10 @@ namespace Nom.Orch.Services
                 .Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.Kind == ScrapingSourceEntity.WebKind && s.HarvestPausedAt == null)
                 .OrderBy(s => s.LastDiscoveredUtc ?? DateTime.MinValue).ThenBy(s => s.Id)
                 .ToListAsync(cancellationToken);
+            var unclassed = seeds.Count(s => s.RightsClass == null);
+            var factsOnlyUnapproved = seeds.Count(s => SourceRightsService.EffectiveClass(s) == SourceRightsRule.FactsOnly && s.FactsOnlyApprovedAt == null);
             if (_rights.Enforce) seeds = seeds.Where(SourceRightsService.MayFetch).ToList();
+            if (!_settings.FullChecks) seeds.Clear();
             var seedDomains = seeds
                 .Select(s => SourceAdmissionPolicy.NormalizeDomain(s.Domain))
                 .Where(d => d != null).Select(d => d!)
@@ -91,7 +94,12 @@ namespace Nom.Orch.Services
 
             if (seedDomains.Count == 0)
             {
-                return await EndRunAsync(run, SourceDiscoveryRunEntity.Skipped, null, "No approved web source to seed from.", null, cancellationToken);
+                var why = !_settings.FullChecks
+                    ? "Full checks are held (SourceDiscovery:FullChecks off): discovery reads each seed's sitemap and recipe pages and probes the sites it links to, so it waits, like the full checks, until the terms-only pass has been reviewed."
+                    : _rights.Enforce && unclassed + factsOnlyUnapproved > 0
+                    ? $"No approved web source may seed discovery yet: a seed must be one that may be fetched (clear, a recorded permission, or facts-only with facts-only use approved by an admin); {unclassed} approved web source(s) have no class yet and are classed by their terms-only check first, and {factsOnlyUnapproved} are facts-only and wait for an admin to approve facts-only use."
+                    : "No approved web source to seed from.";
+                return await EndRunAsync(run, SourceDiscoveryRunEntity.Skipped, null, why, null, cancellationToken);
             }
 
             var start = await _scraper.StartDiscoveryJobAsync(seedDomains, Math.Clamp(_settings.MaxCandidatesPerRun, 1, 50), _settings.BudgetSeconds, cancellationToken);
@@ -219,14 +227,16 @@ namespace Nom.Orch.Services
             var target = await NextTargetAsync(cancellationToken);
             if (target == null) return null;
 
-            var (domain, purpose, candidate, source) = target.Value;
-            var start = await _scraper.StartSourceCheckJobAsync(domain, SourceAdmissionPolicy.SampleSize, _settings.CheckBudgetSeconds, cancellationToken);
+            var (domain, purpose, mode, candidate, source) = target.Value;
+            var termsOnly = mode == SourceRightsRule.TermsOnlyMode;
+            var start = await _scraper.StartSourceCheckJobAsync(domain, termsOnly ? SourceAdmissionPolicy.TermsOnlySampleSize : SourceAdmissionPolicy.SampleSize, _settings.CheckBudgetSeconds, cancellationToken);
             if (start.Outcome == ScraperJobOutcome.Busy) return null;
 
             var check = new SourceCheckEntity
             {
                 Domain = Clip(domain, 255)!,
                 Purpose = purpose,
+                Mode = mode,
                 SourceCandidateId = candidate?.Id,
                 ScrapingSourceId = source?.Id,
                 JobId = start.Job?.JobId,
@@ -255,7 +265,15 @@ namespace Nom.Orch.Services
                 return await EndCheckAsync(check, SourceCheckEntity.Failed, job.Error ?? $"The source check ended {job.Status} with no report.", cancellationToken);
             }
 
+            if (termsOnly && (!SourceRightsRule.IsTermsOnly(report) || report.Samples?.Attempted > 0))
+            {
+                _logger.LogError("The scraper answered terms-only check {CheckId} of {Domain} with recipe pages read ({Attempted}); it has no terms-only mode. Turn SourceDiscovery:TermsOnlyChecks off until it has.", check.Id, domain, report.Samples?.Attempted ?? 0);
+                check.RuleVersion = Clip(report.RuleVersion, 32);
+                return await EndCheckAsync(check, SourceCheckEntity.Failed, $"The scraper read {report.Samples?.Attempted ?? 0} recipe page(s) for a terms-only check: it has no terms-only mode, so its report is not used.", cancellationToken);
+            }
+
             var judgement = await JudgeAsync(report, domain, cancellationToken);
+            if (termsOnly) judgement = judgement with { Conclusive = false };
             check.Status = job.Status == ScraperJob.Completed ? SourceCheckEntity.Completed : job.Status == ScraperJob.Partial ? SourceCheckEntity.Partial : SourceCheckEntity.Failed;
             check.Error = Clip(job.Error, 1023);
             check.FinishedUtc = Now();
@@ -268,8 +286,8 @@ namespace Nom.Orch.Services
             check.ReportJson = job.Result?.GetRawText();
             await _db.SaveChangesAsync(cancellationToken);
 
-            if (candidate != null) await SettleCandidateAsync(candidate, check, judgement, cancellationToken);
-            if (source != null) await SettleSourceAsync(source, check, judgement, report, cancellationToken);
+            if (candidate != null) await SettleCandidateAsync(candidate, check, judgement, cancellationToken, termsOnly ? report : null);
+            if (source != null) await SettleSourceAsync(source, check, judgement, report, cancellationToken, termsOnly);
             return MapCheck(check);
         }
 
@@ -279,8 +297,8 @@ namespace Nom.Orch.Services
             if (source == null) return SourceActionResult.Missing("No such source.");
             if (source.Status != ScrapingSourceStatusEnum.Approved || source.Kind != ScrapingSourceEntity.WebKind)
                 return SourceActionResult.Refused("Only an approved web source is checked.");
-            if (!SourceRightsService.RecheckBarred(source))
-                return SourceActionResult.Refused($"{source.Domain} is {SourceRightsService.EffectiveClass(source) ?? "not classed yet"}: it keeps the weekly full check, so a terms-only check is not needed.");
+            if (!SourceRightsService.TermsCheckAllowed(source))
+                return SourceActionResult.Refused($"{source.Domain} is {SourceRightsService.EffectiveClass(source)}: it keeps the weekly check, so a terms-only check is not needed.");
             if (!_settings.TermsOnlyChecks)
                 return SourceActionResult.Refused("The scraper's terms-only mode is not enabled (SourceDiscovery:TermsOnlyChecks); without it a check would read a recipe page.");
             if (await _db.SourceChecks.AnyAsync(c => c.ScrapingSourceId == source.Id && c.Purpose == TermsOnlyPurpose && (c.Status == Queued || c.Status == SourceCheckEntity.Running)))
@@ -291,6 +309,7 @@ namespace Nom.Orch.Services
             {
                 Domain = Clip(source.Domain, 255)!,
                 Purpose = TermsOnlyPurpose,
+                Mode = SourceRightsRule.TermsOnlyMode,
                 ScrapingSourceId = source.Id,
                 StartedUtc = now,
                 Status = Queued,
@@ -301,7 +320,7 @@ namespace Nom.Orch.Services
             await _db.SaveChangesAsync();
             var why = string.IsNullOrWhiteSpace(reason) ? "started by an admin" : reason.Trim();
             _db.AuditLogEntries.Add(SourceJournal.Entry(source.Id, SourceJournal.TermsCheck, SourceJournal.TermsCheckField,
-                SourceJournal.Value(SourceJournal.None), SourceJournal.Value(Queued, $"terms-only check {check.Id} of a {SourceRightsService.EffectiveClass(source)} source; {why}"), now, personId));
+                SourceJournal.Value(SourceJournal.None), SourceJournal.Value(Queued, $"terms-only check {check.Id} of a {SourceRightsService.EffectiveClass(source) ?? "not yet classed"} source; {why}"), now, personId));
             await _db.SaveChangesAsync();
             _logger.LogInformation("Terms-only check {CheckId} of {Domain} requested by person {PersonId}", check.Id, source.Domain, personId);
             return new SourceActionResult { Ok = true, Source = await SourceModelAsync(source) };
@@ -317,9 +336,9 @@ namespace Nom.Orch.Services
         private async Task<SourceCheckModel?> RunTermsCheckAsync(SourceCheckEntity check, CancellationToken cancellationToken)
         {
             var source = check.ScrapingSourceId is { } id ? await _db.ScrapingSources.FirstOrDefaultAsync(s => s.Id == id, cancellationToken) : null;
-            if (source == null || !_settings.TermsOnlyChecks || !SourceRightsService.RecheckBarred(source))
+            if (source == null || !_settings.TermsOnlyChecks || !SourceRightsService.TermsCheckAllowed(source))
             {
-                var why = source == null ? "its source is gone" : !_settings.TermsOnlyChecks ? "the scraper's terms-only mode is not enabled" : $"the source is {SourceRightsService.EffectiveClass(source) ?? "not classed"} now and keeps the weekly full check";
+                var why = source == null ? "its source is gone" : !_settings.TermsOnlyChecks ? "the scraper's terms-only mode is not enabled" : $"the source is {SourceRightsService.EffectiveClass(source)} now and keeps the weekly check";
                 return await EndTermsCheckAsync(check, source, SourceCheckEntity.Failed, $"The terms-only check did not start: {why}.", cancellationToken);
             }
 
@@ -421,12 +440,20 @@ namespace Nom.Orch.Services
             return SourceAdmissionPolicy.Judge(SourceAdmissionPolicy.Facts(report, checkedCount, passed, rejected));
         }
 
-        private async Task SettleCandidateAsync(SourceCandidateEntity candidate, SourceCheckEntity check, SourceJudgement judgement, CancellationToken cancellationToken)
+        /// <summary>
+        /// Stores a check of a candidate. A full check sets it clear or not clear. A terms-only check (<paramref name="termsOnlyReport"/>)
+        /// is never clear: it sets the candidate not clear only when it found a bar (forbidden or permission-needed), and otherwise
+        /// leaves its state, so a candidate whose terms allow it waits for its full check.
+        /// </summary>
+        private async Task SettleCandidateAsync(SourceCandidateEntity candidate, SourceCheckEntity check, SourceJudgement judgement, CancellationToken cancellationToken, ScraperSourceCheckReport? termsOnlyReport = null)
         {
             candidate.LastCheckId = check.Id;
             if (candidate.State is not (SourceCandidateEntity.Approved or SourceCandidateEntity.Rejected))
             {
-                candidate.State = judgement.Clear ? SourceCandidateEntity.Clear : SourceCandidateEntity.NotClear;
+                if (termsOnlyReport == null)
+                    candidate.State = judgement.Clear ? SourceCandidateEntity.Clear : SourceCandidateEntity.NotClear;
+                else if (SourceRightsRule.Derive(termsOnlyReport).Class is SourceRightsRule.Forbidden or SourceRightsRule.PermissionNeeded)
+                    candidate.State = SourceCandidateEntity.NotClear;
             }
 
             await _db.SaveChangesAsync(cancellationToken);
@@ -515,7 +542,16 @@ namespace Nom.Orch.Services
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        private async Task<(string Domain, string Purpose, SourceCandidateEntity? Candidate, ScrapingSourceEntity? Source)?> NextTargetAsync(CancellationToken cancellationToken)
+        /// <summary>
+        /// The next source or candidate to check and the kind of check (<see cref="SourceRightsRule.TermsOnlyMode"/> or
+        /// <see cref="SourceRightsRule.FullMode"/>), or null when none is due. Approved web sources due for their weekly check
+        /// come first (those due a terms-only check before those due a full one), then candidates, user requests first.
+        /// A target is due by time (never checked, or its last full check older than RecheckDays, or inconclusive or clear and
+        /// that old for a candidate) and, for a candidate, once when the policy version changed since its last full check;
+        /// the rule version a report came back under never makes it due again. Forbidden and permission-needed targets are
+        /// never due. The kind is <see cref="CheckMode"/>'s.
+        /// </summary>
+        private async Task<(string Domain, string Purpose, string Mode, SourceCandidateEntity? Candidate, ScrapingSourceEntity? Source)?> NextTargetAsync(CancellationToken cancellationToken)
         {
             var now = Now();
             var recheckBefore = now.AddDays(-Math.Max(1, _settings.RecheckDays));
@@ -526,47 +562,124 @@ namespace Nom.Orch.Services
                 .ToListAsync(cancellationToken);
             var sourcesFailed = failedLately.Where(c => c.ScrapingSourceId != null).Select(c => c.ScrapingSourceId!.Value).ToHashSet();
             var candidatesFailed = failedLately.Where(c => c.SourceCandidateId != null).Select(c => c.SourceCandidateId!.Value).ToHashSet();
+            var terms = await LatestTermsReportsAsync(cancellationToken);
 
-            var dueSource = (await _db.ScrapingSources
+            var dueSources = (await _db.ScrapingSources
                 .Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.Kind == ScrapingSourceEntity.WebKind
                     && (s.CheckedAtUtc == null || s.CheckedAtUtc < recheckBefore))
                 .OrderBy(s => s.CheckedAtUtc ?? DateTime.MinValue).ThenBy(s => s.Id)
                 .ToListAsync(cancellationToken))
-                .FirstOrDefault(s => !sourcesFailed.Contains(s.Id) && !SourceRightsService.RecheckBarred(s));
-            if (dueSource != null)
+                .Where(s => !sourcesFailed.Contains(s.Id) && !SourceRightsService.RecheckBarred(s))
+                .Select(s => (Source: s, Mode: CheckMode(s.PermissionRecordedAtUtc != null, terms.ForSource(s.Id), recheckBefore)))
+                .Where(s => s.Mode != null)
+                .ToList();
+            var dueSource = dueSources.FirstOrDefault(s => s.Mode == SourceRightsRule.TermsOnlyMode);
+            if (dueSource.Source == null) dueSource = dueSources.FirstOrDefault();
+            if (dueSource.Source != null)
             {
-                return (dueSource.Domain, RecheckPurpose, null, dueSource);
+                return (dueSource.Source.Domain, RecheckPurpose, dueSource.Mode!, null, dueSource.Source);
             }
 
-            var lastChecks = await _db.SourceChecks
-                .Where(c => c.SourceCandidateId != null && c.Verdict != null)
-                .Select(c => new { c.Id, c.FinishedUtc, c.Conclusive, c.RuleVersion, c.PolicyVersion })
-                .ToListAsync(cancellationToken);
-            var byId = lastChecks.ToDictionary(c => c.Id);
             var candidates = await _db.SourceCandidates
                 .Where(c => c.State == SourceCandidateEntity.New || c.State == SourceCandidateEntity.Clear || c.State == SourceCandidateEntity.NotClear)
                 .ToListAsync(cancellationToken);
+            var candidateIds = candidates.Select(c => c.Id).ToList();
+            var fullChecks = (await _db.SourceChecks.AsNoTracking()
+                    .Where(c => c.SourceCandidateId != null && candidateIds.Contains(c.SourceCandidateId.Value) && c.Verdict != null && c.Purpose != TermsOnlyPurpose
+                        && (c.Mode == null || c.Mode == SourceRightsRule.FullMode))
+                    .Select(c => new { CandidateId = c.SourceCandidateId!.Value, c.Id, c.StartedUtc, c.FinishedUtc, c.Conclusive, c.PolicyVersion })
+                    .ToListAsync(cancellationToken))
+                .GroupBy(c => c.CandidateId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(c => c.StartedUtc).ThenByDescending(c => c.Id).First());
             var due = candidates.Where(c =>
             {
                 if (candidatesFailed.Contains(c.Id)) return false;
-                if (c.State == SourceCandidateEntity.New || c.LastCheckId == null || !byId.TryGetValue(c.LastCheckId.Value, out var last)) return true;
-                if (last.PolicyVersion != SourceAdmissionPolicy.Version || last.RuleVersion != SourceAdmissionPolicy.ScraperRuleVersion) return true;
+                if (!fullChecks.TryGetValue(c.Id, out var last)) return true;
+                if (last.PolicyVersion != SourceAdmissionPolicy.Version) return true;
                 if (!last.Conclusive || c.State == SourceCandidateEntity.Clear) return last.FinishedUtc < recheckBefore;
                 return false;
             }).ToList();
             var barred = await BarredCandidatesAsync(due, cancellationToken);
             var next = due
                 .Where(c => !barred.Contains(c.Id))
-                .OrderBy(c => c.FoundVia == RequestPurpose ? 0 : 1)
-                .ThenBy(c => c.State == SourceCandidateEntity.New ? 0 : 1)
-                .ThenByDescending(c => c.TimesSeen)
-                .ThenBy(c => c.FirstSeenUtc)
-                .ThenBy(c => c.Id)
+                .Select(c => (Candidate: c, Mode: CheckMode(false, terms.ForCandidate(c), recheckBefore)))
+                .Where(c => c.Mode != null)
+                .OrderBy(c => c.Candidate.FoundVia == RequestPurpose ? 0 : 1)
+                .ThenBy(c => c.Candidate.State == SourceCandidateEntity.New ? 0 : 1)
+                .ThenByDescending(c => c.Candidate.TimesSeen)
+                .ThenBy(c => c.Candidate.FirstSeenUtc)
+                .ThenBy(c => c.Candidate.Id)
                 .FirstOrDefault();
-            if (next == null) return null;
+            if (next.Candidate == null) return null;
 
-            var host = Uri.TryCreate(next.EvidenceUrl, UriKind.Absolute, out var evidence) ? evidence.Host : next.Domain;
-            return (host, next.FoundVia == RequestPurpose ? RequestPurpose : CandidatePurpose, next, null);
+            var host = Uri.TryCreate(next.Candidate.EvidenceUrl, UriKind.Absolute, out var evidence) ? evidence.Host : next.Candidate.Domain;
+            return (host, next.Candidate.FoundVia == RequestPurpose ? RequestPurpose : CandidatePurpose, next.Mode!, next.Candidate, null);
+        }
+
+        /// <summary>
+        /// The kind of check a due target takes, or null when it waits. A full check (sample recipe pages) only when a written
+        /// permission is recorded or the site's latest terms-only report allows one (<see cref="SourceRightsRule.AllowsFullCheck"/>),
+        /// and only while FullChecks is on. Otherwise a terms-only check, unless a terms-only report of the site that allows no
+        /// full check is younger than RecheckDays (a bar is held by the class; an inconclusive one is tried again by time, never
+        /// on every tick), or the scraper's terms-only mode is off: then nothing is fetched.
+        /// </summary>
+        private string? CheckMode(bool permission, TermsReport? terms, DateTime recheckBefore)
+        {
+            if (permission || terms is { AllowsFullCheck: true }) return _settings.FullChecks ? SourceRightsRule.FullMode : null;
+            if (terms is { } last && last.StartedUtc >= recheckBefore) return null;
+            return _settings.TermsOnlyChecks ? SourceRightsRule.TermsOnlyMode : null;
+        }
+
+        /// <summary>The latest terms-only report of a source or candidate, and whether it allows a full check.</summary>
+        private sealed record TermsReport(long CheckId, DateTime StartedUtc, bool AllowsFullCheck);
+
+        /// <summary>The latest stored terms-only report of each source and each candidate, the lane's own and an admin's alike.</summary>
+        private sealed class TermsReports
+        {
+            private readonly Dictionary<long, TermsReport> _bySource;
+            private readonly Dictionary<long, TermsReport> _byCandidate;
+
+            public TermsReports(Dictionary<long, TermsReport> bySource, Dictionary<long, TermsReport> byCandidate)
+            {
+                _bySource = bySource;
+                _byCandidate = byCandidate;
+            }
+
+            /// <summary>The latest terms-only report of an approved source.</summary>
+            public TermsReport? ForSource(long sourceId) => _bySource.GetValueOrDefault(sourceId);
+
+            /// <summary>The latest terms-only report of a candidate, or of the source row of the user request it was adopted from.</summary>
+            public TermsReport? ForCandidate(SourceCandidateEntity candidate)
+            {
+                var own = _byCandidate.GetValueOrDefault(candidate.Id);
+                var request = candidate.ScrapingSourceId is { } id ? _bySource.GetValueOrDefault(id) : null;
+                if (own == null || request == null) return own ?? request;
+                return (request.StartedUtc, request.CheckId).CompareTo((own.StartedUtc, own.CheckId)) > 0 ? request : own;
+            }
+        }
+
+        /// <summary>
+        /// The latest terms-only report of each source and candidate with whether it allows a full check. Only those reports are
+        /// read, so the work of a tick follows the number of targets, not the number of checks ever stored.
+        /// </summary>
+        private async Task<TermsReports> LatestTermsReportsAsync(CancellationToken cancellationToken)
+        {
+            var rows = await _db.SourceChecks.AsNoTracking()
+                .Where(c => c.ReportJson != null && (c.Mode == SourceRightsRule.TermsOnlyMode || c.Purpose == TermsOnlyPurpose))
+                .Select(c => new { c.Id, c.ScrapingSourceId, c.SourceCandidateId, c.StartedUtc })
+                .ToListAsync(cancellationToken);
+            var ordered = rows.OrderByDescending(r => r.StartedUtc).ThenByDescending(r => r.Id).ToList();
+            var bySource = ordered.Where(r => r.ScrapingSourceId != null).GroupBy(r => r.ScrapingSourceId!.Value).ToDictionary(g => g.Key, g => g.First());
+            var byCandidate = ordered.Where(r => r.SourceCandidateId != null).GroupBy(r => r.SourceCandidateId!.Value).ToDictionary(g => g.Key, g => g.First());
+            var ids = bySource.Values.Concat(byCandidate.Values).Select(r => r.Id).Distinct().ToList();
+            var reports = await _db.SourceChecks.AsNoTracking()
+                .Where(c => ids.Contains(c.Id))
+                .Select(c => new { c.Id, c.ReportJson })
+                .ToListAsync(cancellationToken);
+            var allows = reports.ToDictionary(r => r.Id, r => SourceRightsRule.AllowsFullCheck(Read<ScraperSourceCheckReport>(r.ReportJson)));
+            return new TermsReports(
+                bySource.ToDictionary(p => p.Key, p => new TermsReport(p.Value.Id, p.Value.StartedUtc, allows.GetValueOrDefault(p.Value.Id))),
+                byCandidate.ToDictionary(p => p.Key, p => new TermsReport(p.Value.Id, p.Value.StartedUtc, allows.GetValueOrDefault(p.Value.Id))));
         }
 
         /// <summary>The candidates whose last report classes them forbidden or permission-needed: no automatic check fetches them again.</summary>
@@ -927,14 +1040,24 @@ namespace Nom.Orch.Services
             SourceJournal.Value(source.LicenceKind ?? SourceJournal.None,
                 JsonSerializer.Serialize(new LicenceFacts(source.LicenceStatement, source.LicenceFoundAt, source.LicenceEnteredByPersonId), JsonOptions));
 
-        public async Task<List<HarvestableSourceModel>> HarvestableAsync(CancellationToken cancellationToken = default)
+        /// <summary>
+        /// The approved web sources the harvester may take recipes from now: not paused, not withheld and, when the rights
+        /// gate is enforced, fetchable by their rights class (<see cref="SourceRightsService.MayFetch"/>). The harvestable
+        /// list and the status count both read this, so they always agree.
+        /// </summary>
+        private async Task<List<ScrapingSourceEntity>> HarvestableSourcesAsync(CancellationToken cancellationToken)
         {
             var sources = await _db.ScrapingSources.AsNoTracking()
                 .Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.Kind == ScrapingSourceEntity.WebKind
                     && s.HarvestPausedAt == null && s.RecipesWithheldAt == null)
                 .OrderBy(s => s.Domain)
                 .ToListAsync(cancellationToken);
-            if (_rights.Enforce) sources = sources.Where(SourceRightsService.MayFetch).ToList();
+            return _rights.Enforce ? sources.Where(SourceRightsService.MayFetch).ToList() : sources;
+        }
+
+        public async Task<List<HarvestableSourceModel>> HarvestableAsync(CancellationToken cancellationToken = default)
+        {
+            var sources = await HarvestableSourcesAsync(cancellationToken);
             var checkIds = sources.Where(s => s.LastCheckId != null).Select(s => s.LastCheckId!.Value).ToList();
             var reports = await _db.SourceChecks.AsNoTracking().Where(c => checkIds.Contains(c.Id))
                 .Select(c => new { c.Id, c.ReportJson }).ToListAsync(cancellationToken);
@@ -1212,7 +1335,7 @@ namespace Nom.Orch.Services
                 HarvestPaused = web.Count(s => s.HarvestPausedAt != null),
                 Withheld = sources.Count(s => s.RecipesWithheldAt != null),
                 InProbation = web.Count(s => s.ProbationUntilUtc != null),
-                Harvestable = web.Count(s => s.HarvestPausedAt == null && s.RecipesWithheldAt == null),
+                Harvestable = (await HarvestableSourcesAsync(cancellationToken)).Count,
                 Hand = sources.Count(s => s.Kind == ScrapingSourceEntity.HandKind && s.Status == ScrapingSourceStatusEnum.Approved),
                 RecheckSkipped = review.Approved.Count(s => s.RecheckSkipped != null),
                 TermsChecksWaiting = await _db.SourceChecks.CountAsync(c => c.Purpose == TermsOnlyPurpose && (c.Status == Queued || c.Status == SourceCheckEntity.Running), cancellationToken),
@@ -1281,6 +1404,8 @@ namespace Nom.Orch.Services
                 Id = check.Id,
                 Domain = check.Domain,
                 Purpose = check.Purpose,
+                Mode = check.Mode ?? (check.Purpose == TermsOnlyPurpose || SourceRightsRule.IsTermsOnly(report) ? SourceRightsRule.TermsOnlyMode : SourceRightsRule.FullMode),
+                NewerRuleVersion = SourceAdmissionPolicy.IsNewer(check.RuleVersion),
                 Status = check.Status,
                 Error = check.Error,
                 StartedUtc = check.StartedUtc,

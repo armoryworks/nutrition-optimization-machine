@@ -23,6 +23,12 @@ namespace Nom.Import
                 return;
             }
 
+            if (args.Contains(Nom.Import.Golden.LinkRecheckClassScorer.Flag))
+            {
+                Environment.ExitCode = Nom.Import.Golden.LinkRecheckClassScorer.Run(args);
+                return;
+            }
+
             var host = CreateHostBuilder(args).Build();
 
             // Standalone command: classify the ingredient catalog into food groups + whole-food
@@ -530,13 +536,13 @@ namespace Nom.Import
             }
             else if (next != null && !next.StartsWith("--", StringComparison.Ordinal) && Directory.Exists(next))
             {
-                var meals = await db.Ingredients.AsNoTracking()
-                    .Where(i => i.FdcId != null && i.FdcDataType == Nom.Data.Nutrition.CatalogAdmissionRule.BrandedFood)
-                    .Where(Nom.Data.Nutrition.PreparedFoods.Prepared)
-                    .Select(i => new { i.Id, FdcId = i.FdcId! })
-                    .ToListAsync();
+                var allBranded = args.Contains("--all-branded");
+                var branded = db.Ingredients.AsNoTracking()
+                    .Where(i => i.FdcId != null && i.FdcDataType == Nom.Data.Nutrition.CatalogAdmissionRule.BrandedFood);
+                if (!allBranded) branded = branded.Where(Nom.Data.Nutrition.PreparedFoods.Prepared);
+                var meals = await branded.Select(i => new { i.Id, FdcId = i.FdcId! }).ToListAsync();
                 var statements = FdcIngredientStatements.Read(next, meals.Select(m => m.FdcId).ToHashSet(StringComparer.Ordinal));
-                Console.WriteLine($"Branded prepared meals: {meals.Count}; FDC publishes a statement for {statements.Count}");
+                Console.WriteLine($"{(allBranded ? "Branded foods" : "Branded prepared meals")}: {meals.Count}; FDC publishes a statement for {statements.Count}");
                 report = await contents.RecordAsync(
                     meals.Where(m => statements.ContainsKey(m.FdcId))
                         .Select(m => new Nom.Orch.Services.ContentsStatement(m.Id, Nom.Orch.Services.PreparedContentsService.FdcSource(m.FdcId), statements[m.FdcId]))
@@ -545,11 +551,11 @@ namespace Nom.Import
             }
             else
             {
-                Console.WriteLine("Usage: --prepared-contents <fdc-branded-csv-dir> [--dry-run] | --prepared-contents --reread [--dry-run] | --prepared-contents --undo <batch> [--dry-run]");
+                Console.WriteLine("Usage: --prepared-contents <fdc-branded-csv-dir> [--all-branded] [--dry-run] | --prepared-contents --reread [--dry-run] | --prepared-contents --undo <batch> [--dry-run]");
                 return;
             }
 
-            Console.WriteLine($"\n=== Prepared contents report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ({Nom.Orch.Services.Support.IngredientStatementReader.Version}) ===");
+            Console.WriteLine($"\n=== Prepared contents report{(dryRun ? " (DRY RUN — nothing saved)" : string.Empty)} ({Nom.Orch.Services.PreparedContentsService.ReaderVersion}) ===");
             Console.WriteLine($"Statements:       {report.Statements}");
             Console.WriteLine($"Read:             {report.Read} ({report.ReadResolved} with every ingredient resolved or recognised)");
             Console.WriteLine($"Unread:           {report.Unread} (contents unknown, never safe)");

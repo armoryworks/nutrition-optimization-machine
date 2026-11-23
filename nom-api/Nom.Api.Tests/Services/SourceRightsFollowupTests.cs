@@ -150,7 +150,7 @@ namespace Nom.Api.Tests.Services
                 ("new.example", SourceRightsRule.FactsOnly, true),
                 ("old.example", SourceRightsRule.Forbidden, true),
             });
-            (await db.ScrapingSources.AsNoTracking().SingleAsync(s => s.Id == old.Id)).RightsRuleVersion.Should().Be("source-rights/2");
+            (await db.ScrapingSources.AsNoTracking().SingleAsync(s => s.Id == old.Id)).RightsRuleVersion.Should().Be(SourceRightsRule.Version);
         }
 
         [Fact]
@@ -166,15 +166,17 @@ namespace Nom.Api.Tests.Services
             });
             var facts = await SourceAsync(db, "facts.example", SourceRightsRule.FactsOnly, "https://facts.example/");
             var scraper = new FakeScraper();
+            CheckJob(scraper, TermsOnly(SourceRightsServiceTests.FactsOnlyReport("facts.example")));
             CheckJob(scraper, SourceRightsServiceTests.FactsOnlyReport("permitted.example"));
             CheckJob(scraper, SourceRightsServiceTests.FactsOnlyReport("facts.example"));
-            var service = Admission(db, scraper);
+            var service = Admission(db, scraper, s => s.TermsOnlyChecks = true);
 
+            await service.RunNextCheckAsync();
             await service.RunNextCheckAsync();
             await service.RunNextCheckAsync();
             (await service.RunNextCheckAsync()).Should().BeNull("only the forbidden and the permission-needed source are left, and no automatic check fetches them");
 
-            scraper.Checks.Should().Equal(("permitted.example", SourceAdmissionPolicy.SampleSize), ("facts.example", SourceAdmissionPolicy.SampleSize));
+            scraper.Checks.Should().Equal(("facts.example", SourceAdmissionPolicy.TermsOnlySampleSize), ("permitted.example", SourceAdmissionPolicy.SampleSize), ("facts.example", SourceAdmissionPolicy.SampleSize));
             var review = await service.ReviewAsync();
             review.Approved.Single(s => s.Id == forbidden.Id).RecheckSkipped.Should().Contain("skips forbidden.example").And.Contain("forbidden").And.Contain("terms-only");
             review.Approved.Single(s => s.Id == needs.Id).RecheckSkipped.Should().Contain("permission-needed");
@@ -223,7 +225,7 @@ namespace Nom.Api.Tests.Services
 
             (await Admission(db, scraper).RequestTermsCheckAsync(source.Id, Admin, null)).Error.Should().Contain("TermsOnlyChecks");
             var service = Admission(db, scraper, s => { s.TermsOnlyChecks = true; s.MaxChecksPerDay = 0; });
-            (await service.RequestTermsCheckAsync(facts.Id, Admin, null)).Error.Should().Contain("weekly full check");
+            (await service.RequestTermsCheckAsync(facts.Id, Admin, null)).Error.Should().Contain("keeps the weekly check");
             var requested = await service.RequestTermsCheckAsync(source.Id, Admin, "the terms page was rewritten");
             requested.Ok.Should().BeTrue(requested.Error);
             requested.Source!.TermsCheck!.Status.Should().Be(SourceAdmissionService.Queued);
@@ -382,13 +384,13 @@ namespace Nom.Api.Tests.Services
             var service = Admission(db, scraper, s => { s.TermsOnlyChecks = true; s.MaxChecksPerDay = 1; });
             (await service.RequestTermsCheckAsync(barred.Id, Admin, null)).Ok.Should().BeTrue();
             CheckJob(scraper, TermsOnly(SourceRightsServiceTests.ForbiddenReport("barred.example")));
-            CheckJob(scraper, SourceRightsServiceTests.FactsOnlyReport("facts.example"));
+            CheckJob(scraper, TermsOnly(SourceRightsServiceTests.FactsOnlyReport("facts.example")));
 
             (await service.RunNextCheckAsync())!.Purpose.Should().Be(SourceAdmissionService.TermsOnlyPurpose);
             (await service.RunNextCheckAsync())!.Purpose.Should().Be(SourceAdmissionService.RecheckPurpose);
             (await service.RunNextCheckAsync()).Should().BeNull("the one automatic check of the day is spent");
 
-            scraper.Checks.Should().Equal(("barred.example", SourceAdmissionPolicy.TermsOnlySampleSize), ("facts.example", SourceAdmissionPolicy.SampleSize));
+            scraper.Checks.Should().Equal(("barred.example", SourceAdmissionPolicy.TermsOnlySampleSize), ("facts.example", SourceAdmissionPolicy.TermsOnlySampleSize));
             (await service.StatusAsync()).ChecksLast24h.Should().Be(1);
         }
 

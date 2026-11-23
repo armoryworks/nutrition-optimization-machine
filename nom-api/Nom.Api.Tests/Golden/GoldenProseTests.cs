@@ -17,8 +17,10 @@ namespace Nom.Api.Tests.Golden
     /// The check must fail each with at least the reason the construction gives. Prose check v2
     /// runs on the same rows and on constructed recipes and amounts, with the stock phrases of
     /// prose-stock.tsv: a fault row must fail with its reason, a faithful row must pass, and an
-    /// equal-form row must give no amount reason. No fault row may pass, and at most 5 % of the
-    /// faithful rows may fail.
+    /// equal-form row must give no amount reason. A fault row whose reason a fail rule decides
+    /// must be refused; a fault row of a weak signal (<see cref="ProseCheck.UnsureReasons"/>) is only
+    /// marked unsure, which the rule gate lets through to the judge, and may never pass clean. At
+    /// most 5 % of the faithful rows may fail.
     /// </summary>
     [Trait("Category", "Golden")]
     public class GoldenProseTests
@@ -94,22 +96,30 @@ namespace Nom.Api.Tests.Golden
         }
 
         [Fact]
-        public void Check_v2_lets_no_constructed_fault_through_and_rejects_at_most_5_percent_of_faithful_rewrites()
+        public void The_check_refuses_every_constructed_fault_its_rules_decide_marks_every_weak_signal_fault_unsure_and_rejects_at_most_5_percent_of_faithful_rewrites()
         {
             var stock = Stock();
             var rows = GoldenSet.Read("prose.tsv").Rows.Where(r => r["status2"] is GoldenSet.Ok or GoldenSet.Agent or GoldenSet.Known).ToList();
             var faults = rows.Where(r => r["check2"] != "passed" && !r["check2"].StartsWith('!')).ToList();
+            var ruled = faults.Where(r => !ProseCheck.UnsureReasons.Contains(r["check2"])).ToList();
+            var weak = faults.Where(r => ProseCheck.UnsureReasons.Contains(r["check2"])).ToList();
             var faithful = rows.Where(r => r["check2"] == "passed").ToList();
 
-            var falseAccepts = faults.Where(r => CheckV2(r, stock).Passed).Select(r => r.Id).ToList();
+            var notRefused = ruled.Where(r => !CheckV2(r, stock).Failed).Select(r => r.Id).ToList();
+            var weakPassed = weak.Where(r => CheckV2(r, stock).Passed).Select(r => r.Id).ToList();
+            var weakToJudge = weak.Where(r => CheckV2(r, stock).Unsure).Select(r => r.Id).ToList();
             var falseRejects = faithful.Where(r => !CheckV2(r, stock).Passed).Select(r => r.Id).ToList();
-            _output.WriteLine($"check v{ProseCheck.Version}: {falseAccepts.Count} false accepts of {faults.Count} fault rows, {falseRejects.Count} false rejects of {faithful.Count} faithful rows");
+            _output.WriteLine($"check v{ProseCheck.Version}: {notRefused.Count} of {ruled.Count} rule-decided fault rows not refused; "
+                + $"{weakToJudge.Count} of {weak.Count} weak-signal fault rows only marked unsure, so the rule gate lets them through to the judge "
+                + $"({string.Join(", ", weakToJudge)}), {weakPassed.Count} passed clean; {falseRejects.Count} false rejects of {faithful.Count} faithful rows");
 
-            faults.Should().NotBeEmpty();
+            ruled.Should().NotBeEmpty();
+            weak.Should().NotBeEmpty();
             faithful.Should().NotBeEmpty();
-            falseAccepts.Should().BeEmpty("check v2 may accept no rewrite with a constructed fault");
+            notRefused.Should().BeEmpty("the rule gate refuses every rewrite whose constructed fault a fail rule decides (copy, a lost or changed amount, a lost ingredient, form)");
+            weakPassed.Should().BeEmpty("a weak-signal fault is never passed clean: it is marked unsure and only the judge can refuse it");
             ((decimal)falseRejects.Count / faithful.Count).Should().BeLessThanOrEqualTo(MaximumFalseRejectRate,
-                $"check v2 rejects at most 5 % of faithful rewrites; it rejected {string.Join(", ", falseRejects)}");
+                $"the check rejects at most 5 % of faithful rewrites; it rejected {string.Join(", ", falseRejects)}");
         }
 
         [Fact]

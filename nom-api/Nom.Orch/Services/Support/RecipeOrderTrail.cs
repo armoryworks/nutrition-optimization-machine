@@ -15,7 +15,10 @@ namespace Nom.Orch.Services.Support
     /// order-only pass changes positions and nothing else, so the undo follows a line to where the
     /// pass put it instead of reading it as moved or rebuilt, and carries what it puts back into the
     /// pass's own rows: the pass's undo then still finds its rows as written, and returns each line,
-    /// with the older write taken back, to the place it had before that write.
+    /// with the older write taken back, to the place it had before that write. The order write an undo makes
+    /// when it puts back the positions of a pass whose lines a later step changed otherwise
+    /// (<see cref="RecipeReprocessService.OrderFollowPrefix"/>) is followed only by entries made after that
+    /// pass: an older entry's line already stands where it stood before the pass.
     /// </summary>
     public sealed class RecipeOrderTrail
     {
@@ -34,6 +37,7 @@ namespace Nom.Orch.Services.Support
         {
             public long Id { get; init; }
             public DateTime CreatedDate { get; init; }
+            public DateTime? NotBefore { get; set; }
             public List<Pair> Pairs { get; } = new();
             public List<LineRow> OldOnly { get; } = new();
             public List<LineRow> NewOnly { get; } = new();
@@ -51,11 +55,17 @@ namespace Nom.Orch.Services.Support
                 var rows = await db.RecipeReprocessJournals.AsNoTracking()
                     .Where(j => chunk.Contains(j.RecipeId) && j.Kind == RecipeReprocessKind.Order && j.UndoneAt == null && j.OldRows != null && j.NewRows != null)
                     .OrderBy(j => j.Id)
-                    .Select(j => new { j.Id, j.RecipeId, j.CreatedDate, j.OldRows, j.NewRows })
+                    .Select(j => new { j.Id, j.RecipeId, j.CreatedDate, j.BatchId, j.OldRows, j.NewRows })
                     .ToListAsync();
+                var followedIds = rows.Select(r => RecipeReprocessService.FollowedWriteId(r.BatchId)).OfType<long>().Distinct().ToList();
+                var followed = followedIds.Count == 0
+                    ? new Dictionary<long, DateTime>()
+                    : await db.RecipeReprocessJournals.AsNoTracking().Where(j => followedIds.Contains(j.Id)).ToDictionaryAsync(j => j.Id, j => j.CreatedDate);
                 foreach (var row in rows)
                 {
                     var write = Read(row.Id, row.CreatedDate, row.OldRows!, row.NewRows!);
+                    if (RecipeReprocessService.FollowedWriteId(row.BatchId) is { } followedId)
+                        write.NotBefore = followed.TryGetValue(followedId, out var at) ? at : DateTime.MaxValue;
                     if (!writes.TryGetValue(row.RecipeId, out var list)) writes[row.RecipeId] = list = new List<Write>();
                     list.Add(write);
                 }
@@ -90,7 +100,7 @@ namespace Nom.Orch.Services.Support
             && a.Quantity == b.Quantity && a.MeasurementId == b.MeasurementId && a.LineKind == b.LineKind;
 
         private IEnumerable<Write> After(long recipeId, DateTime sinceUtc) =>
-            _writes.TryGetValue(recipeId, out var list) ? list.Where(w => w.CreatedDate > sinceUtc) : Enumerable.Empty<Write>();
+            _writes.TryGetValue(recipeId, out var list) ? list.Where(w => w.CreatedDate > sinceUtc && !(sinceUtc < w.NotBefore)) : Enumerable.Empty<Write>();
 
         /// <summary>Whether a standing order-only write of the recipe was made after <paramref name="sinceUtc"/>.</summary>
         public bool Moved(long recipeId, DateTime sinceUtc) => After(recipeId, sinceUtc).Any();
@@ -148,14 +158,18 @@ namespace Nom.Orch.Services.Support
             write.Pairs.FirstOrDefault(p => p.Old.IngredientId == ingredientId && p.Old.SortOrder == sortOrder);
 
         /// <summary>
-        /// Sets the rows of every write a carry changed on its tracked journal row; the caller's next
-        /// save stores them with the undo's own changes.
+        /// Sets the rows of every write a carry changed on its tracked journal row, read in one query per
+        /// thousand writes; the caller's next save stores them with the undo's own changes.
         /// </summary>
         public async Task StageAsync(ApplicationDbContext db)
         {
-            foreach (var write in _writes.Values.SelectMany(w => w).Where(w => w.Changed))
+            var changed = _writes.Values.SelectMany(w => w).Where(w => w.Changed).ToList();
+            var journals = new Dictionary<long, RecipeReprocessJournalEntity>();
+            foreach (var chunk in changed.Select(w => w.Id).Chunk(IdsPerRead))
+                foreach (var journal in await db.RecipeReprocessJournals.Where(j => chunk.Contains(j.Id)).ToListAsync()) journals[journal.Id] = journal;
+            foreach (var write in changed)
             {
-                var journal = await db.RecipeReprocessJournals.FirstAsync(j => j.Id == write.Id);
+                var journal = journals[write.Id];
                 journal.OldRows = JsonSerializer.Serialize(
                     write.Pairs.Select(p => p.Old).Concat(write.OldOnly).OrderBy(r => r.SortOrder).ThenBy(r => r.IngredientId).ToList(), Json);
                 journal.NewRows = JsonSerializer.Serialize(

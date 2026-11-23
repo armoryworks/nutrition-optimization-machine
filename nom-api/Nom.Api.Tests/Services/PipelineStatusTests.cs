@@ -423,6 +423,23 @@ namespace Nom.Api.Tests.Services
             status.Recipes.ProseGaveUpByClass.Should().BeEquivalentTo(new Dictionary<string, int> { ["copied-text"] = 2 });
         }
 
+        [Fact]
+        public async Task Recipes_the_prose_check_is_unsure_of_are_counted_apart_from_the_withheld_ones()
+        {
+            await using var db = await SeededAsync();
+            db.Recipes.AddRange(
+                Recipe("unsure approved", 9003).With(r => r.ProseUnsure = true),
+                Recipe("unsure waiting", 9000).With(r => r.ProseUnsure = true),
+                Recipe("unsure then withheld", 9003).With(r => { r.ProseUnsure = true; r.ProseWithheld = true; }));
+            await db.SaveChangesAsync();
+
+            var status = await Service(db).GetAsync();
+
+            status.Recipes.ProseUnsure.Should().Be(2);
+            status.Recipes.ProseUnsureApproved.Should().Be(1);
+            status.Recipes.ProseWithheld.Should().Be(1);
+        }
+
         private static AuditLogEntryEntity Audit(long recipeId, string changeType, string newValue, DateTime at) => new()
         {
             EntityType = "Recipe",

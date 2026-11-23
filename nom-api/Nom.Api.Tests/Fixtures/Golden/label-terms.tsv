@@ -1,0 +1,62 @@
+# A statement's named ingredient read as label language by StatementLabelTerms.Match (label-terms/1): the terms of Contents/label-terms.tsv (or of the recognised vocabulary) it stands for, joined by | in the order read, or - when it is not known. The first block is the plain names staging checkpoint 3 (N5) found unresolved in the FDC statements of the 99 branded meals.
+id	name	expectTerms	status	source	note
+lt-01	wheat	wheat	ok	rule:label-terms	N5: a regulated common name
+lt-02	soybeans	soybean	ok	rule:label-terms	N5: a plural read as its singular
+lt-03	cream	cream	ok	rule:label-terms	N5: 21 CFR 131.3
+lt-04	enriched flour	wheat flour	ok	rule:label-terms	N5: 21 CFR 137.165, flour is wheat
+lt-05	soybean oil	soybean	ok	rule:label-terms	N5: an oil named by its source
+lt-06	natural flavor	natural flavor	ok	rule:label-terms	N5: a flavouring as FALCPA leaves it
+lt-07	salt	salt	ok	rule:label-terms	N5
+lt-08	pasteurized milk	milk	ok	rule:label-terms	N5: "pasteurized" is a qualifier
+lt-09	pork	pork	ok	rule:label-terms	N5
+lt-10	beef	beef	ok	rule:label-terms	N5
+lt-11	basmati rice	rice	ok	rule:label-terms	N5: a rice variety is a name of rice
+lt-12	chick peas	chickpea	ok	rule:label-terms	N5: the two-word spelling
+lt-13	green onion	onion	ok	rule:label-terms	N5
+lt-14	potato starch	potato	ok	rule:label-terms	N5: a starch is named by its source
+lt-15	pre-cooked barley	barley	ok	rule:label-terms	N5: "pre-cooked" is a qualifier
+lt-16	expeller pressed sunflower oil	sunflower	ok	rule:label-terms	two qualifier words and a form
+lt-17	granulated garlic	garlic	ok	rule:label-terms	a qualifier
+lt-18	high fructose corn syrup	corn syrup	ok	rule:label-terms	a name of corn syrup (21 CFR 184.1866)
+lt-19	fried in vegetable oil	vegetable oil	ok	rule:label-terms	a phrase that says how an ingredient is used names that ingredient
+lt-20	cured with water	water	ok	rule:label-terms	a phrase that says how an ingredient is used
+lt-21	including red pepper and paprika	bell pepper|paprika	ok	rule:label-terms	"including" and a list joined by "and"
+lt-22	vitamin a palmitate and vitamin d3 added	vitamin a palmitate|vitamin d3	ok	rule:label-terms	"added" says nothing; both parts are vocabulary terms
+lt-23	vitamin a and d3	vitamin a|vitamin d3	ok	rule:label-terms	a part without its head takes it from its neighbour
+lt-24	arabic and guar gum	gum arabic|guar gum	ok	rule:label-terms	a part without its head takes the last part's head
+lt-25	liquid and hydrogenated soybean oil	soybean	ok	rule:label-terms	a part that is only a qualifier takes its neighbour's term
+lt-26	chicken breast with rib meat	chicken|rib meat	ok	rule:label-terms	a list joined by "with"
+lt-27	bha & bht	bha|bht	ok	rule:label-terms	"&" is read as "and"
+lt-28	e322	lecithin	ok	rule:label-terms	an E number (INS 322)
+lt-29	E 471	mono and diglycerides	ok	rule:label-terms	an E number written with a space
+lt-30	INS 330	citric acid	ok	rule:label-terms	an INS number
+lt-31	litopenaeus vannamei	shrimp	ok	rule:label-terms	the Pacific white shrimp's scientific name
+lt-32	malted barley flour	malt	ok	rule:label-terms	a barley product
+lt-33	durum wheat semolina	semolina	ok	rule:label-terms	21 CFR 137.320
+lt-34	sweet dairy whey	whey	ok	rule:label-terms	a name of whey
+lt-35	cultured pasteurized part skim milk	milk	ok	rule:label-terms	three qualifiers
+lt-36	oyster mushrooms	oyster mushroom	ok	rule:label-terms	the fungus, not the mollusc
+lt-37	oyster extract	oyster	ok	rule:label-terms	the mollusc, by the form "extract"
+lt-38	imitation crab	surimi	ok	rule:label-terms	a composite of pollock
+lt-39	goldfish crackers	goldfish cracker	ok	rule:label-terms	a composite of cheddar cheese and wheat flour
+lt-40	red licorice	licorice	ok	rule:label-terms	a composite of wheat flour
+lt-41	breaded chicken	-	ok	rule:label-terms	"breaded" may hide wheat, so it is never left out
+lt-42	vegan cheese	-	ok	rule:label-terms	"vegan" says what the food is not made of and is never left out
+lt-43	white chocolate	-	ok	rule:label-terms	chocolate is no term of the table; a colour never makes a name known by itself
+lt-44	house seasoning	-	ok	rule:label-terms	an unnamed blend
+lt-45	vegetable broth	-	ok	rule:label-terms	an unnamed blend of vegetables
+lt-46	salt caramel color	-	ok	rule:label-terms	a missing comma: "salt caramel" is no term, so the run is not known
+lt-47	koshihikari rice	-	ok	rule:label-terms	a rice variety the qualifiers do not list stays unknown
+lt-48	peanut butter	peanut	ok	rule:label-terms	21 CFR 164.150
+lt-49	vegetable mono and diglycerides	vegetable mono and diglycerides	ok	rule:label-terms	of vegetable fat, so nothing animal is possible
+lt-50	cottonseed and soy oils	cottonseed oil|soybean	ok	rule:label-terms	a list with a shared plural head
+lt-51	animal rennet	animal rennet	ok	rule:label-terms	review CK6PD-1: rennet stated as animal is calf stomach enzyme, contains veal
+lt-52	rennet	rennet	ok	rule:label-terms	review CK6PD-1: rennet of unstated source may be animal (may veal)
+lt-53	microbial rennet	microbial rennet	ok	rule:label-terms	review CK6PD-1: a stated non-animal source
+lt-54	enzymes	enzymes	ok	rule:label-terms	review CK6PD-1: enzymes of unstated source in a cheese may be animal rennet (may veal)
+lt-55	l-cysteine hydrochloride	l-cysteine	ok	rule:label-terms	review CK6PD-1: may be made from feathers or hog bristles (may poultry, pork)
+lt-56	seasoning	-	ok	rule:label-terms	review CK6PD-2: a seasoning is no spice (21 CFR 101.22(a)(2)); its non-allergen parts need not be named
+lt-57	seasonings	-	ok	rule:label-terms	review CK6PD-2: the plural, likewise
+lt-58	seasoned rice	-	ok	rule:label-terms	review CK6PD-2: "seasoned" may hide an unnamed seasoning, so it is never left out
+lt-59	sweetened dried cranberries	-	ok	rule:label-terms	"sweetened" may hide an unnamed sweetener (sugar or honey), so it is never left out
+lt-60	miso	miso	ok	rule:label-terms	review CK6PD-3: contains soybean, may be barley or rice koji

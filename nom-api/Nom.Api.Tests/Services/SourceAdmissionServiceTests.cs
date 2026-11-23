@@ -167,6 +167,45 @@ namespace Nom.Api.Tests.Services
             return candidate;
         }
 
+        internal static ScraperSourceCheckReport TermsOnlyReport(string domain, Action<ScraperSourceCheckReport>? change = null)
+        {
+            var report = new ScraperSourceCheckReport
+            {
+                Domain = domain,
+                RuleVersion = SourceAdmissionPolicy.ScraperRuleVersion,
+                Mode = SourceRightsRule.TermsOnlyMode,
+                Verdict = "not-clear",
+                Complete = true,
+                Reasons = new List<ScraperCheckReason> { new() { Code = "terms-only", Outcome = "not-checked" }, new() { Code = "terms", Outcome = "pass" } },
+                Access = new ScraperCheckAccess { HomepageUrl = $"https://{domain}/", HomepageOutcome = "Ok", HomepageStatus = 200, HomepageLinks = 40 },
+                Robots = new ScraperCheckRobots { Url = $"https://{domain}/robots.txt", Status = "found", NomBot = new ScraperCheckRobotsGroup { AllowsHomepage = true }, General = new ScraperCheckRobotsGroup { AllowsHomepage = true } },
+                Reservation = new ScraperCheckReservation { TdmRepStatus = "not-checked" },
+                Terms = new ScraperCheckTerms { Pages = { new ScraperCheckTermsPage { Url = $"https://{domain}/terms", Outcome = "read" } } },
+                Licence = new ScraperCheckLicence { Basis = "none", Statements = { new ScraperCheckStatement { Kind = "all-rights-reserved", FoundAt = $"https://{domain}/", Text = "All rights reserved." } } },
+                Samples = new ScraperCheckSamples { Requested = SourceAdmissionPolicy.TermsOnlySampleSize },
+            };
+            change?.Invoke(report);
+            return report;
+        }
+
+        private static async Task TermsPassedAsync(ApplicationDbContext db, params string[] domains)
+        {
+            foreach (var domain in domains)
+            {
+                var source = (await db.ScrapingSources.ToListAsync()).FirstOrDefault(s => SourceAdmissionPolicy.NormalizeDomain(s.Domain) == domain);
+                var candidate = await db.SourceCandidates.FirstOrDefaultAsync(c => c.Domain == domain);
+                db.SourceChecks.Add(new SourceCheckEntity
+                {
+                    ScrapingSourceId = source?.Id, SourceCandidateId = candidate?.Id,
+                    Domain = domain, Purpose = SourceAdmissionService.CandidatePurpose, Mode = SourceRightsRule.TermsOnlyMode, Status = SourceCheckEntity.Completed,
+                    StartedUtc = T0.AddDays(-3), FinishedUtc = T0.AddDays(-3), RuleVersion = SourceAdmissionPolicy.ScraperRuleVersion, Verdict = SourceAdmissionPolicy.NotClear,
+                    PolicyVersion = SourceAdmissionPolicy.Version, ReportJson = JsonSerializer.Serialize(TermsOnlyReport(domain), Json),
+                });
+            }
+
+            await db.SaveChangesAsync();
+        }
+
         private static void CheckJob(FakeScraper scraper, ScraperSourceCheckReport? report, string final = ScraperJob.Completed)
         {
             scraper.Starts.Enqueue(ScraperJobAnswer.Of(Job("source-check", ScraperJob.Running, null)));
@@ -261,6 +300,7 @@ namespace Nom.Api.Tests.Services
             using var db = NewContext();
             var open = await CandidateAsync(db, "open.example");
             var closed = await CandidateAsync(db, "closed.example");
+            await TermsPassedAsync(db, "open.example", "closed.example");
             var scraper = new FakeScraper();
             CheckJob(scraper, Report("open.example"));
             CheckJob(scraper, Report("closed.example", clear: false));
@@ -299,6 +339,7 @@ namespace Nom.Api.Tests.Services
         {
             using var db = NewContext();
             var candidate = await CandidateAsync(db, "open.example");
+            await TermsPassedAsync(db, "open.example");
             var scraper = new FakeScraper();
             CheckJob(scraper, Report("open.example"));
             await Service(db, scraper).RunNextCheckAsync();
@@ -309,6 +350,7 @@ namespace Nom.Api.Tests.Services
 
             using var db2 = NewContext();
             var partial = await CandidateAsync(db2, "half.example");
+            await TermsPassedAsync(db2, "half.example");
             var scraper2 = new FakeScraper();
             CheckJob(scraper2, Report("half.example", change: r => { r.Complete = false; r.Verdict = "clear"; }), ScraperJob.Partial);
             var service2 = Service(db2, scraper2);
@@ -322,6 +364,7 @@ namespace Nom.Api.Tests.Services
         {
             using var db = NewContext();
             var candidate = await CandidateAsync(db, "open.example");
+            await TermsPassedAsync(db, "open.example");
             var scraper = new FakeScraper();
             scraper.Starts.Enqueue(ScraperJobAnswer.Of(Job("source-check", ScraperJob.Running, null)));
             scraper.Polls.Enqueue(ScraperJobAnswer.Fail(ScraperJobOutcome.NotFound, "gone"));
@@ -342,6 +385,7 @@ namespace Nom.Api.Tests.Services
             using var db = NewContext();
             await CandidateAsync(db, "open.example");
             var current = await SourceAsync(db, "www.blog.example");
+            await TermsPassedAsync(db, "open.example", "blog.example");
             var scraper = new FakeScraper();
             CheckJob(scraper, Report("blog.example", clear: false));
             var service = Service(db, scraper);
@@ -365,6 +409,7 @@ namespace Nom.Api.Tests.Services
             var source = await SourceAsync(db, "open.example", verdict: SourceAdmissionPolicy.Clear);
             source.CheckedAtUtc = T0.AddDays(-8);
             await db.SaveChangesAsync();
+            await TermsPassedAsync(db, "open.example");
             var scraper = new FakeScraper();
             CheckJob(scraper, Report("open.example", clear: false));
             var service = Service(db, scraper);
@@ -386,6 +431,7 @@ namespace Nom.Api.Tests.Services
             var source = await SourceAsync(db, "open.example", verdict: SourceAdmissionPolicy.Clear);
             source.CheckedAtUtc = T0.AddDays(-8);
             await db.SaveChangesAsync();
+            await TermsPassedAsync(db, "open.example");
             var scraper = new FakeScraper();
             CheckJob(scraper, Report("open.example", clear: false, r => r.Complete = false), ScraperJob.Partial);
 
@@ -417,6 +463,7 @@ namespace Nom.Api.Tests.Services
         {
             using var db = NewContext();
             await SourceAsync(db, "asked.example", ScrapingSourceStatusEnum.Pending);
+            await TermsPassedAsync(db, "asked.example");
             var scraper = new FakeScraper();
             CheckJob(scraper, Report("asked.example"));
             var service = Service(db, scraper);
@@ -721,6 +768,7 @@ namespace Nom.Api.Tests.Services
             var candidate = await CandidateAsync(db, "new.example");
             candidate.TimesSeen = 9;
             await db.SaveChangesAsync();
+            await TermsPassedAsync(db, "broken.example", "other.example", "new.example");
             var scraper = new FakeScraper();
             scraper.Starts.Enqueue(ScraperJobAnswer.Fail(ScraperJobOutcome.Failed, "connection reset"));
             scraper.Starts.Enqueue(ScraperJobAnswer.Fail(ScraperJobOutcome.Failed, "connection reset"));

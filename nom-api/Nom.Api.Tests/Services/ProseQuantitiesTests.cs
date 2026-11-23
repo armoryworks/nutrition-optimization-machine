@@ -6,7 +6,7 @@ using Xunit;
 namespace Nom.Api.Tests.Services
 {
     /// <summary>
-    /// The quantity reader of prose check v2: amounts with their unit, family and range, the equal
+    /// The quantity reader of the prose check: amounts with their unit, family and range, the equal
     /// forms of the C9 false alarms, and the step markers and cross-references that are not amounts.
     /// </summary>
     public class ProseQuantitiesTests
@@ -57,6 +57,13 @@ namespace Nom.Api.Tests.Services
         [InlineData("Let rest for a second sheet of foil.", "")]
         [InlineData("Cook 10 minutes or until golden.", "time 10 minute")]
         [InlineData("Quarter the figs. 2 cups of cream are whipped.", "volume 2 cup")]
+        [InlineData("Lay half a large onion, sliced, in the pot.", "count 0.5 (soft)")]
+        [InlineData("Stir in half of the cheese.", "count 0.5 (soft)")]
+        [InlineData("Cut the sandwich in half and serve.", "")]
+        [InlineData("Butter a 9x9 baking dish.", "length 9 inch | length 9 inch")]
+        [InlineData("Braid 6 or 3 strands.", "count 6 | count 3")]
+        [InlineData("Add 2 or 3 eggs.", "count 2-3")]
+        [InlineData("Stir in 1 envelope of yeast.", "count 1 package (soft)")]
         public void Reads_each_amount_with_its_unit_and_range(string text, string expected)
         {
             Shape(text).Should().Be(expected);

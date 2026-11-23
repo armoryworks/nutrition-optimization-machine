@@ -248,6 +248,26 @@ describe('ScrapingSources', () => {
     expect((byId(el, 'scraping-source-terms-check-btn') as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it('shows which kind of check ran last, flags a newer check version, and offers a terms-only check of a source with no class', () => {
+    const unclassed: ScrapingSourceModel = {
+      ...blog, rightsClass: null, recheckSkipped: null,
+      check: { ...blog.check!, mode: 'terms-only', conclusive: false, verdict: 'not-clear' },
+    };
+    const newer: ScrapingSourceModel = {
+      ...blog, id: 10, domain: 'www.newer.example', rightsClass: 'facts-only', effectiveRightsClass: 'facts-only', recheckSkipped: null,
+      check: { ...blog.check!, id: 13, mode: 'full', conclusive: false, ruleVersion: 'source-check/6', newerRuleVersion: true },
+    };
+    const el = create(review({ approved: [unclassed, newer] })).nativeElement as HTMLElement;
+    const items = Array.from(el.querySelectorAll('[data-testid="scraping-source-item"]')) as HTMLElement[];
+
+    expect(byId(items[0], 'scraping-source-last-check-kind')?.textContent).toContain('Last check: terms-only');
+    expect(byId(items[0], 'scraping-source-inconclusive')).toBeNull();
+    expect(byId(items[0], 'scraping-source-terms-check-btn')).not.toBeNull();
+    expect(byId(items[1], 'scraping-source-last-check-kind')?.textContent).toContain('Last check: full');
+    expect(byId(items[1], 'scraping-source-newer-check-version')?.textContent).toContain('source-check/6');
+    expect(byId(items[1], 'scraping-source-terms-check-btn')).toBeNull();
+  });
+
   it('offers no terms-only check for a source the weekly re-check still reads', () => {
     const facts: ScrapingSourceModel = { ...blog, rightsClass: 'facts-only', effectiveRightsClass: 'facts-only', recheckSkipped: null };
     const el = create(review({ approved: [facts] })).nativeElement as HTMLElement;

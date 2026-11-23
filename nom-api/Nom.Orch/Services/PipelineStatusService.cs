@@ -126,6 +126,8 @@ namespace Nom.Orch.Services
                 WaitingWithSourceProse = recipeRow.WaitingWithSourceProse,
                 ProseWithheld = recipeRow.ProseWithheld,
                 ProseWithheldApproved = recipeRow.ProseWithheldApproved,
+                ProseUnsure = recipeRow.ProseUnsure,
+                ProseUnsureApproved = recipeRow.ProseUnsureApproved,
                 ProseGaveUp = proseGaveUp,
                 ProseGaveUpByClass = proseGaveUpByClass,
                 RevisionMissingQuantities = recipeRow.RevisionMissingQuantities,
@@ -533,6 +535,8 @@ namespace Nom.Orch.Services
                     WaitingWithSourceProse = g.Count(r => r.CurationStatusId == NonCurated && r.ContainsSourceProse),
                     ProseWithheld = g.Count(r => r.ProseWithheld),
                     ProseWithheldApproved = g.Count(r => r.ProseWithheld && r.CurationStatusId == Curated),
+                    ProseUnsure = g.Count(r => r.ProseUnsure && !r.ProseWithheld),
+                    ProseUnsureApproved = g.Count(r => r.ProseUnsure && !r.ProseWithheld && r.CurationStatusId == Curated),
                     RevisionMissingQuantities = g.Count(r => r.CurationStatusId == RequiresRevision && r.VettingIssues != null
                         && r.VettingIssues.Contains(RecipeAiRepairService.QuantityIssueMarker)),
                     RevisionSteps = g.Count(r => r.CurationStatusId == RequiresRevision && r.VettingIssues != null
@@ -916,6 +920,8 @@ namespace Nom.Orch.Services
             public int WaitingWithSourceProse { get; init; }
             public int ProseWithheld { get; init; }
             public int ProseWithheldApproved { get; init; }
+            public int ProseUnsure { get; init; }
+            public int ProseUnsureApproved { get; init; }
             public int RevisionMissingQuantities { get; init; }
             public int RevisionSteps { get; init; }
             public int ApprovedWithoutImage { get; init; }

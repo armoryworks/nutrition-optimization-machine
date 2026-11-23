@@ -43,7 +43,7 @@ namespace Nom.Orch.Services
                         && keys.Contains(i.Name.ToLower()))
                     .Select(i => new { i.Id, i.Name })
                     .ToListAsync())
-                .Select(i => new { i.Id, i.Name, Wording = IngredientNameNormalizer.WordingKey(i.Name) })
+                .Select(i => new { i.Id, i.Name, Wording = usable.ContainsKey(i.Name.ToLowerInvariant()) ? i.Name.ToLowerInvariant() : IngredientNameNormalizer.WordingKey(i.Name) })
                 .Where(i => usable.TryGetValue(i.Wording, out var targetId) && targetId != i.Id && !removed.Contains(i.Id))
                 .ToDictionary(i => i.Id);
             result.Sources = sources.Count;
@@ -211,7 +211,7 @@ namespace Nom.Orch.Services
                         .Where(a => a.EntityType == RetireEntityType && a.ChangeType == RetireChangeType
                             && a.PropertyName == nameof(IngredientEntity.IsDeleted) && a.NewValue == retiredInto)
                         .ToListAsync())
-                    .Where(a => IngredientNameNormalizer.WordingKey(a.OldValue ?? string.Empty) == wording)
+                    .Where(a => SameWording(a.OldValue, wording))
                     .ToList();
                 var retiredIds = retirements.Select(a => a.EntityId).Distinct().ToList();
                 var uncuratedRetired = await _db.Ingredients.IgnoreQueryFilters()
@@ -224,7 +224,7 @@ namespace Nom.Orch.Services
                             && i.Name.ToLower() == wording)
                         .Select(i => new { i.Id, i.Name })
                         .ToListAsync())
-                    .Where(i => IngredientNameNormalizer.WordingKey(i.Name) == wording)
+                    .Where(i => SameWording(i.Name, wording))
                     .Select(i => i.Id);
                 var sources = uncuratedRetired.Concat(live).Distinct().ToList();
                 result.SourceIds.AddRange(sources);
@@ -516,11 +516,23 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// Whether a recipe line's own text names a judged wording: the line, normalised as the
-        /// wording key is, is the wording or its singular or plural.
+        /// wording key is, is the wording or its singular or plural. A wording a batch holds in an
+        /// older key form (the name normalizer has since learned "teaspn." as a unit) is named by a
+        /// line whose text ends with it, after an amount.
         /// </summary>
         internal static bool NamesWording(string? rawLine, string wording) =>
             IngredientNameNormalizer.ExactKeys(rawLine ?? string.Empty).Any(k => string.Equals(k, wording, StringComparison.OrdinalIgnoreCase))
-            || IngredientNameNormalizer.ExactKeys(wording).Any(k => string.Equals(k, IngredientNameNormalizer.WordingKey(rawLine ?? string.Empty), StringComparison.OrdinalIgnoreCase));
+            || IngredientNameNormalizer.ExactKeys(wording).Any(k => string.Equals(k, IngredientNameNormalizer.WordingKey(rawLine ?? string.Empty), StringComparison.OrdinalIgnoreCase))
+            || (IngredientNameNormalizer.WordingKey(wording) != wording && OlderKeyForm(rawLine, wording));
+
+        /// <summary>Whether a source's name is the wording: by its key, or as written for a wording a batch holds in an older key form.</summary>
+        private static bool SameWording(string? name, string wording) =>
+            IngredientNameNormalizer.WordingKey(name ?? string.Empty) == wording || string.Equals((name ?? string.Empty).Trim(), wording, StringComparison.OrdinalIgnoreCase);
+
+        private static bool OlderKeyForm(string? rawLine, string wording) =>
+            System.Text.RegularExpressions.Regex.IsMatch((rawLine ?? string.Empty).Trim(),
+                @"^[\d\s/.,\u00bc-\u00be\u2150-\u215e-]*" + System.Text.RegularExpressions.Regex.Escape(wording) + @"$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
         private static readonly System.Linq.Expressions.Expression<Func<FoodCatalogProposalEntity, bool>> UnreviewedLink = p =>
             p.Field == FoodCatalogReviewService.FdcLinkField

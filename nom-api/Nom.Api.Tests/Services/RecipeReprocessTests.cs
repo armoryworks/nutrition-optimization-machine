@@ -546,6 +546,26 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_fold_taken_apart_again_counts_its_second_line_as_added_so_the_counts_add_up()
+        {
+            using var db = await SeededAsync();
+            var sugar = await FoodAsync(db, "sugar");
+            var flour = await FoodAsync(db, "flour");
+            var record = Record("Cake", new[] { "2 cups flour", "1/2 cup sugar", "1 tablespoon sugar" });
+            var recipe = await RecipeAsync(db, record, new[]
+            {
+                new Row(flour, "2 cups flour", 2, Cup), new Row(sugar, "1/2 cup sugar + 1 tablespoon sugar", 0.563m, Cup, 1),
+            });
+
+            var result = await Service(db).RebuildAsync(For(recipe.Id));
+
+            var counts = result.Results.Single().Counts;
+            (counts.LinesBefore, counts.LinesAfter, counts.Added, counts.Dropped).Should().Be((2, 3, 1, 0), "staging saw lines 3,086 -> 3,092 with added 0 (N14)");
+            (counts.LinesAfter - counts.LinesBefore).Should().Be(counts.Added - counts.Dropped);
+            result.Results.Single().Lines.Count(l => l.Changes.Contains("added")).Should().Be(1);
+        }
+
+        [Fact]
         public async Task Order_only_holds_a_recipe_with_a_line_its_source_does_not_have()
         {
             using var db = await SeededAsync();

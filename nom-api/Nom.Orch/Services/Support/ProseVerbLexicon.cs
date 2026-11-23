@@ -12,8 +12,9 @@ namespace Nom.Orch.Services.Support
     /// one group ("whisk" mixes and beats), and a source verb is kept when the rewrite holds any
     /// word of any group the verb belongs to. Inflected forms are generated (stir, stirs, stirred,
     /// stirring). A word right after an article, a heat level or "from", "off", "over" or "for" is
-    /// read as a noun ("over medium heat", "off the heat"), and one in a source right after "is", "are",
-    /// "was", "were", "get" or "become" as a state ("until they are covered"); neither is a verb to keep,
+    /// read as a noun ("over medium heat", "off the heat"), one in a source right after "is", "are",
+    /// "was", "were", "get" or "become" as a state ("until they are covered"), and one in a source right after
+    /// "not", "never", "without" or "don't" as negated ("soft but not melted"); none is a verb to keep,
     /// while a state in a rewrite ("once it has chilled") keeps its group. A mixing verb followed by "in"
     /// ("stir in the flour") also adds, so "add the flour" keeps it. Turning or switching off the
     /// heat, the burner or the stove is the <see cref="OffHeatGroup"/> action, which a rewrite keeps the
@@ -38,6 +39,11 @@ namespace Nom.Orch.Services.Support
         private static readonly HashSet<string> StateContext = new(StringComparer.Ordinal)
         {
             "is", "are", "was", "were", "has", "have", "had", "get", "gets", "got", "become", "becomes",
+        };
+
+        private static readonly HashSet<string> NegationContext = new(StringComparer.Ordinal)
+        {
+            "not", "never", "without", "dont", "doesnt", "no", "nor",
         };
 
         private static readonly HashSet<string> ParticipleContext = new(StringComparer.Ordinal)
@@ -175,6 +181,7 @@ namespace Nom.Orch.Services.Support
             if (index + 1 < words.Count && words[index].EndsWith("ing", StringComparison.Ordinal) && AttributiveNouns.Contains(words[index + 1])) return null;
             if (index > 0 && words[index].StartsWith("cube", StringComparison.Ordinal) && CubeNounContext.Contains(words[index - 1])) return null;
             if (!keeping && Before(words, index) is { } before && StateContext.Contains(before)) return null;
+            if (!keeping && Before(words, index) is { } negation && NegationContext.Contains(negation)) return null;
             if (!keeping && groups.Contains(SpreadGroup) && Enumerable.Range(index + 1, 6).Any(j => j < words.Count && words[j] == "out"))
                 return new HashSet<string>(StringComparer.Ordinal) { AddGroup };
             if (index + 1 < words.Count && words[index + 1] == "in" && _formsOfGroup.ContainsKey(AddGroup) && groups.Overlaps(MixingGroups))

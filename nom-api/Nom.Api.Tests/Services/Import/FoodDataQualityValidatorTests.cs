@@ -257,8 +257,29 @@ namespace Nom.Api.Tests.Services.Import
             var apple = new FoodQualityInput("Apples, red delicious, with skin, raw", 62m, 0.19m, 14.8m, 0.21m,
                 FiberGramsPer100g: 2m, CalorieFactors: CalorieFactors.Of(3.36m, 8.37m, 3.6m));
 
-            _v.CheckEnergy(apple).Should().Be(EnergyCheckOutcome.Mismatch, "1008 is USDA's general figure; 55.7 kcal by own factors is 10 % under it");
+            _v.CheckEnergy(apple).Should().Be(EnergyCheckOutcome.General, "1008 is USDA's general figure (plain 4/9/4 gives 61.9); 55.7 kcal by own factors is 10 % under it");
             _v.CheckEnergy(apple with { SpecificKcalPer100g = 56m }).Should().Be(EnergyCheckOutcome.OwnFactors);
+            _v.CheckEnergy(apple with { KcalPer100g = 70m }).Should().Be(EnergyCheckOutcome.Mismatch, "neither its own factors nor the general ones give 70");
+        }
+
+        [Theory]
+        [InlineData("Fish, pollock, Alaska, raw", 76, 17.17, 0, 0.82, 0, 4.27, 9.02, 3.87, "general")]
+        [InlineData("Fish, pollock, Alaska, cooked", 86.6164, 19.42, 0, 0.9946, 0, 4.27, 9.02, 3.87, "general")]
+        [InlineData("Cereals, WHEATENA, cooked with water, with salt", 59, 2.03, 11.74, 0.45, 2, 3.59, 8.37, 3.78, "general")]
+        [InlineData("Soup, tomato, dry, mix, prepared with water", 38, 0.93, 7.17, 0.61, 0.4, 2.8, 8.7, 3.8, "general")]
+        [InlineData("Egg substitute, liquid or frozen, fat free", 48, 10, 2, 0, 0, 4.36, 8.84, 3.68, "general")]
+        [InlineData("Gravy, turkey, canned, ready-to-serve", 51, 2.6, 5.1, 2.1, 0.4, 3.4, 8.9, 4, "general")]
+        [InlineData("Soup, chicken mushroom, canned, prepared with equal volume water", 54, 1.8, 3.8, 3.75, 0.1, 4, 9, 4.2, "general")]
+        [InlineData("Cheese, mexican, queso asadero", 356, 22.6, 4.13, 25, 0, 4.27, 8.79, 3.87, "atwater_mismatch")]
+        [InlineData("Milk, buttermilk, fluid, cultured, lowfat", 40, 3.31, 4.79, 1.07, 0, 4.27, 8.79, 3.87, "atwater_mismatch")]
+        public void A_food_whose_own_factors_miss_is_confirmed_when_USDA_stated_its_energy_by_plain_4_9_4(string name, double kcal, double protein, double carb, double fat, double fiber,
+            double proteinFactor, double fatFactor, double carbFactor, string expected)
+        {
+            var food = new FoodQualityInput(name, (decimal)kcal, (decimal)protein, (decimal)carb, (decimal)fat, FiberGramsPer100g: (decimal)fiber,
+                CalorieFactors: CalorieFactors.Of((decimal)proteinFactor, (decimal)fatFactor, (decimal)carbFactor));
+
+            _v.CheckEnergy(food).Should().Be(expected, "staging checkpoint 3, N3: 7 of 14 curated foods kept as atwater_mismatch had their energy stated by plain 4/9/4");
+            _v.Validate(food).Reasons.Contains(EnergyCheckOutcome.Mismatch).Should().Be(expected == EnergyCheckOutcome.Mismatch, "the audit (the validator) and the admission agree");
         }
 
         [Fact]

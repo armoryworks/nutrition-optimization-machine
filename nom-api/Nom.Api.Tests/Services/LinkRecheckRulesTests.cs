@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using Nom.Data.Nutrition;
 using Nom.Data.Recipe;
+using Nom.Import.Golden;
 using Nom.Orch.Services.Support;
 using Xunit;
 
@@ -26,28 +28,98 @@ namespace Nom.Api.Tests.Services
         [Fact]
         public void A_set_acts_only_on_its_own_rules_and_keeps_a_pair_the_gate_holds_for_another()
         {
+            using var none = LinkRecheckRules.AssumeProven();
             var verdict = LinkRecheckRules.Decide(LinkRecheckRules.Alcohol, new[] { Hold(LinkGate.Part) }, () => new[] { Candidate(LinkRecheckRules.NameRuleTier, 2) });
             verdict.Outcome.Should().Be(LinkRecheckRules.Keep);
             LinkRecheckRules.Decide(LinkRecheckRules.PartHerb, new[] { Hold(LinkGate.Part) }, () => new[] { Candidate(LinkRecheckRules.NameRuleTier, 2) })
-                .Should().Match<RecheckVerdict>(v => v.Outcome == LinkRecheckRules.Move && v.Target!.Food.Id == 2);
+                .Should().Match<RecheckVerdict>(v => v.Outcome == LinkRecheckRules.Unproven && v.Candidate == LinkRecheckRules.Move && v.Class == LinkGate.Part && v.Target!.Food.Id == 2,
+                    "the part class is not proven, so its move is only a candidate for the model audit");
+            LinkRecheckRules.Decide(LinkRecheckRules.Alcohol, new[] { Hold(LinkGate.AlcoholDrink) }, () => new[] { Candidate(LinkRecheckRules.AlcoholSenseTier, 2) })
+                .Should().Match<RecheckVerdict>(v => v.Outcome == LinkRecheckRules.Unproven && v.Class == LinkRecheckRules.AlcoholClass && v.Candidate == LinkRecheckRules.Move && v.Target!.Food.Id == 2,
+                    "a class that is not proven only names a candidate");
+        }
+
+        [Fact]
+        public void A_proven_class_writes_by_rule_and_decides_ahead_of_an_earlier_hold_of_a_class_that_is_not()
+        {
+            using var proven = LinkRecheckRules.AssumeProven(LinkRecheckRules.AlcoholClass, LinkGate.Prepared);
+            LinkRecheckRules.Decide(LinkRecheckRules.Alcohol, new[] { Hold(LinkGate.AlcoholDrink) }, () => new[] { Candidate(LinkRecheckRules.AlcoholSenseTier, 2) })
+                .Should().Match<RecheckVerdict>(v => v.Outcome == LinkRecheckRules.Move && v.Class == LinkRecheckRules.AlcoholClass && v.Candidate == null && v.Target!.Food.Id == 2);
+            LinkRecheckRules.Decide(LinkRecheckRules.Applied, new[] { Hold(LinkGate.Form), Hold(LinkGate.Prepared) }, () => Enumerable.Empty<RecheckCandidate>())
+                .Should().Match<RecheckVerdict>(v => v.Outcome == LinkRecheckRules.Unlink && v.Class == LinkGate.Prepared && v.Candidate == null);
+            LinkRecheckRules.Decide(LinkRecheckRules.PartHerb, new[] { Hold(LinkGate.Part) }, () => new[] { Candidate(LinkRecheckRules.NameRuleTier, 2) })
+                .Should().Match<RecheckVerdict>(v => v.Outcome == LinkRecheckRules.Unproven && v.Candidate == LinkRecheckRules.Move && v.Class == LinkGate.Part);
+        }
+
+        [Fact]
+        public void A_row_counts_for_every_class_that_refutes_its_food_whichever_classes_are_proven()
+        {
+            var row = new RecheckJudgedRow("t-1", LinkRecheckRules.Applied, "smoked paprika", 1, new[] { "1 tsp smoked paprika" }, null, LinkRecheckClassScorer.Wrong, null, "agent", "agent-test");
+            IReadOnlyList<RecheckClassScore> ScoreUnder(params string[] proven)
+            {
+                using var assumed = LinkRecheckRules.AssumeProven(proven);
+                var verdict = LinkRecheckRules.Decide(LinkRecheckRules.Applied, new[] { Hold(LinkGate.Form), Hold(LinkGate.Part) }, () => Enumerable.Empty<RecheckCandidate>());
+                var acts = verdict.Outcome == LinkRecheckRules.Unlink ? verdict.Outcome : verdict.Candidate;
+                return LinkRecheckClassScorer.Score(new[] { new RecheckRowOutcome(row, verdict, verdict.Class, acts, null, verdict.Outcome == LinkRecheckRules.Unlink, true) });
+            }
+
+            var none = ScoreUnder();
+            none.Select(s => s.Class).Should().BeEquivalentTo(new[] { LinkGate.Form, LinkGate.Part },
+                "the part class would take these lines back once proven, so it is scored on them before it is proven, not only the form class that decides today");
+            ScoreUnder(LinkGate.Part).Should().BeEquivalentTo(none, o => o.Excluding(s => s.Proven), "proving a class does not change the rows any class is scored on");
+            ScoreUnder(LinkGate.Form, LinkGate.Part).Should().BeEquivalentTo(none, o => o.Excluding(s => s.Proven));
+        }
+
+        [Fact]
+        public void The_proven_classes_come_from_the_record_and_only_from_a_current_one()
+        {
+            var record = new LinkRecheckClassRecord.Record
+            {
+                Version = LinkRecheckRules.Version,
+                DecisionSignature = LinkRecheckRules.DecisionSignature,
+                Bar = LinkRecheckRules.ClassPrecisionBar,
+                Minimum = LinkRecheckRules.ClassMinimumJudged,
+                Classes =
+                {
+                    new LinkRecheckClassRecord.ClassFigures { Class = LinkRecheckRules.AlcoholClass, AgentJudged = 285, AgentRight = 285, MeetsBar = true },
+                    new LinkRecheckClassRecord.ClassFigures { Class = LinkGate.Compound, AgentJudged = 65, AgentRight = 11, MeetsBar = false },
+                },
+                Proven = { LinkRecheckRules.AlcoholClass, LinkGate.Compound },
+            };
+            var (set, problem) = LinkRecheckClassRecord.Evaluate(record, LinkRecheckRules.Version, LinkRecheckRules.DecisionSignature);
+            problem.Should().BeNull();
+            set.Should().BeEquivalentTo(new[] { LinkRecheckRules.AlcoholClass }, "a class listed as proven whose figures miss the bar proves nothing");
+
+            LinkRecheckClassRecord.Evaluate(record, LinkRecheckRules.Version, "0000000000000000").Should().Match<(IReadOnlySet<string> Proven, string? Problem)>(r => r.Proven.Count == 0 && r.Problem != null,
+                "a record scored under other rules proves nothing until it is recorded again");
+            LinkRecheckClassRecord.Evaluate(null, LinkRecheckRules.Version, LinkRecheckRules.DecisionSignature).Proven.Should().BeEmpty();
+            record.Minimum = 20;
+            LinkRecheckClassRecord.Evaluate(record, LinkRecheckRules.Version, LinkRecheckRules.DecisionSignature).Proven.Should().BeEmpty("a record scored on a lower minimum proves nothing");
+
+            LinkRecheckRules.ProvenProblem.Should().BeNull("the committed record was scored under these rules");
+            LinkRecheckRules.SignatureSource().Should().Contain(string.Join(",", LinkRecheckRules.ProvenClasses.OrderBy(c => c, StringComparer.Ordinal)),
+                "the lanes' signature changes when the record proves another class");
         }
 
         [Fact]
         public void The_lines_move_to_the_first_food_the_gate_lets_through_and_go_back_only_on_a_refuting_hold()
         {
-            var holds = new[] { Hold(LinkGate.Compound) };
-            LinkRecheckRules.Decide(LinkRecheckRules.Compound, holds, () => new[]
+            using var none = LinkRecheckRules.AssumeProven();
+            var holds = new[] { Hold(LinkGate.Prepared) };
+            LinkRecheckRules.Decide(LinkRecheckRules.Prepared, holds, () => new[]
                 {
                     Candidate(LinkRecheckRules.VerifiedWordingTier, 2, LinkGate.Containment),
                     Candidate(LinkRecheckRules.NameRuleTier, 3),
                 })
                 .Target!.Food.Id.Should().Be(3);
-            LinkRecheckRules.Decide(LinkRecheckRules.Compound, holds, () => new[] { Candidate(LinkRecheckRules.NameRuleTier, 2, LinkGate.Compound) })
-                .Outcome.Should().Be(LinkRecheckRules.Unlink);
+            LinkRecheckRules.Decide(LinkRecheckRules.Prepared, holds, () => new[] { Candidate(LinkRecheckRules.NameRuleTier, 2, LinkGate.Prepared) })
+                .Should().Match<RecheckVerdict>(v => v.Outcome == LinkRecheckRules.Unproven && v.Candidate == LinkRecheckRules.Unlink && v.Class == LinkGate.Prepared);
+            LinkRecheckRules.Decide(LinkRecheckRules.Compound, new[] { Hold(LinkGate.Compound) }, () => new[] { Candidate(LinkRecheckRules.NameRuleTier, 2, LinkGate.Compound) })
+                .Should().Match<RecheckVerdict>(v => v.Outcome == LinkRecheckRules.Unproven && v.Candidate == LinkRecheckRules.Unlink && v.Class == LinkGate.Compound);
             LinkRecheckRules.Decide(LinkRecheckRules.Applied, new[] { Hold(LinkGate.Containment) }, () => Enumerable.Empty<RecheckCandidate>())
-                .Should().Match<RecheckVerdict>(v => v.Outcome == LinkRecheckRules.Unproven, "a word rule alone never takes a line off its food");
-            LinkRecheckRules.Decide(LinkRecheckRules.Applied, new[] { Hold(LinkGate.Form) }, () => Enumerable.Empty<RecheckCandidate>())
-                .Outcome.Should().Be(LinkRecheckRules.Unlink);
+                .Should().Match<RecheckVerdict>(v => v.Outcome == LinkRecheckRules.Unproven && v.Candidate == null, "a word rule alone never takes a line off its food");
+            LinkRecheckRules.Decide(LinkRecheckRules.Applied, new[] { Hold(LinkGate.Form), Hold(LinkGate.Prepared) }, () => Enumerable.Empty<RecheckCandidate>())
+                .Should().Match<RecheckVerdict>(v => v.Outcome == LinkRecheckRules.Unproven && v.Candidate == LinkRecheckRules.Unlink && v.Class == LinkGate.Form, "with no class proven the first refuting hold names the candidate's class");
             LinkRecheckRules.Decide(LinkRecheckRules.Applied, new[] { Hold(LinkGate.Units) }, () => new[] { Candidate(LinkRecheckRules.NameRuleTier, 2) })
                 .Outcome.Should().Be(LinkRecheckRules.Keep, "the re-check computes no grams, so the units rule is not read");
         }
@@ -63,8 +135,10 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public void The_container_rule_never_takes_a_line_off_its_food()
+        public void The_container_rule_never_takes_a_line_off_its_food_and_moves_one_only_as_a_candidate_while_not_proven()
         {
+            LinkRecheckRules.Decide(LinkRecheckRules.ContainerForm, Array.Empty<GateHold>(), () => new[] { Candidate(LinkRecheckRules.CannedSisterTier, 2) }, containerWrong: true)
+                .Should().Match<RecheckVerdict>(v => v.Outcome == LinkRecheckRules.Unproven && v.Candidate == LinkRecheckRules.Move && v.Class == LinkRecheckRules.ContainerClass);
             LinkRecheckRules.Decide(LinkRecheckRules.ContainerForm, new[] { Hold(LinkGate.Compound) }, () => Enumerable.Empty<RecheckCandidate>(), containerWrong: true)
                 .Outcome.Should().Be(LinkRecheckRules.Held);
             LinkRecheckRules.Decide(LinkRecheckRules.ContainerForm, new[] { Hold(LinkGate.Compound) }, () => Enumerable.Empty<RecheckCandidate>(), containerWrong: false)
@@ -127,6 +201,8 @@ namespace Nom.Api.Tests.Services
         {
             var source = LinkRecheckRules.SignatureSource();
             source.Should().Contain(LinkGate.Signature).And.Contain(AlcoholLineContext.Signature).And.Contain(LinkRecheckRules.Version);
+            foreach (var proven in LinkRecheckRules.ProvenClasses) source.Should().Contain(proven);
+            source.Should().Contain("%corn%", "the restriction patterns an alias may not add are in the signature");
             foreach (var code in LinkRecheckRules.Refuting.Concat(LinkRecheckRules.IdentityCodes)) source.Should().Contain(code);
             LinkRecheckRules.SetSignature(LinkRecheckRules.Alcohol).Should().NotBe(LinkRecheckRules.SetSignature(LinkRecheckRules.Applied));
         }
@@ -167,8 +243,10 @@ namespace Nom.Api.Tests.Services
         {
             var hold = new GateHold(code, rule ?? code, detail);
             LinkRecheckRules.Refutes(hold, new[] { hold }).Should().Be(refutes);
-            LinkRecheckRules.Decide(LinkRecheckRules.Applied, new[] { hold }, () => Enumerable.Empty<RecheckCandidate>())
-                .Outcome.Should().Be(refutes ? LinkRecheckRules.Unlink : LinkRecheckRules.Unproven);
+            var verdict = LinkRecheckRules.Decide(LinkRecheckRules.Applied, new[] { hold }, () => Enumerable.Empty<RecheckCandidate>());
+            var writes = refutes && LinkRecheckRules.Proven(LinkRecheckRules.ClassOf(hold));
+            verdict.Outcome.Should().Be(writes ? LinkRecheckRules.Unlink : LinkRecheckRules.Unproven);
+            verdict.Candidate.Should().Be(refutes && !writes ? LinkRecheckRules.Unlink : null);
         }
 
         [Fact]
@@ -188,6 +266,25 @@ namespace Nom.Api.Tests.Services
             LinkGate.NamesAlternative("active dry or instant yeast", Food(1, "Yeast", "Leavening agents, yeast, baker's, active dry"), catalog).Should().BeTrue();
             LinkGate.NamesAlternative("rum or brandy", Food(1, "Coffee Cream Liqueur", "Alcoholic beverage, liqueur, coffee with cream, 34 proof"), catalog).Should().BeFalse();
             LinkGate.NamesAlternative("salt and pepper", Food(1, "Salt", "Salt, table"), catalog).Should().BeFalse("and joins two foods; it gives no alternatives");
+        }
+
+        [Fact]
+        public void A_move_gives_no_alias_that_names_a_restricted_food_its_new_food_does_not()
+        {
+            var spirit = new GateFood(1, "Alcoholic beverage, distilled, all (gin, rum, vodka, whiskey) 80 proof", "Alcoholic beverage, distilled, all (gin, rum, vodka, whiskey) 80 proof",
+                CatalogAdmissionRule.SrLegacyFood, (long)CurationStatusEnum.Curated, 14, NutrientRows: 30, FdcId: "174815");
+            var catalog = GateCatalog.Build(new[] { spirit });
+            LinkRecheckRules.RestrictedWords("corn brandy", spirit).Should().Contain("%corn%");
+            LinkRecheckRules.MayAlias("corn brandy", spirit, catalog).Should().BeFalse("corn brandy on distilled spirits made Corn Allergy keep out every brandy recipe");
+            LinkRecheckRules.RestrictedWords("gin", spirit).Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Every_class_a_set_can_refute_with_has_a_name_and_the_alcohol_rules_are_one_class()
+        {
+            foreach (var code in LinkRecheckRules.AlcoholCodes) LinkRecheckRules.ClassOf(Hold(code)).Should().Be(LinkRecheckRules.AlcoholClass);
+            LinkRecheckRules.ClassOf(Hold(LinkGate.Part)).Should().Be(LinkGate.Part);
+            LinkRecheckRules.ProvenClasses.Should().BeSubsetOf(LinkRecheckRules.Refuting.Select(c => LinkRecheckRules.ClassOf(Hold(c))).Append(LinkRecheckRules.ContainerClass));
         }
 
         [Fact]

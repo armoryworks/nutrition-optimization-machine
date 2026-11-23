@@ -14,8 +14,9 @@ namespace Nom.Api.Tests.Golden
     /// prose-judge.tsv, the judge's golden set and the prose lane's canaries: recipes constructed in
     /// our own words or in the public domain, each with a faithful rewrite and rewrites carrying one
     /// planted fault. Check v2 must give each row its recorded outcome (<c>check2</c>), pass every
-    /// faithful rewrite, and refuse every planted fault it can see; the faults it passes are the
-    /// judge's work, and there must be enough of them to score a judge and to feed the canaries.
+    /// faithful rewrite, and refuse every planted fault a fail rule decides; the faults it passes or
+    /// only marks unsure are the judge's work, and there must be enough it passes to score a judge
+    /// and to feed the canaries.
     /// The file compiled into Nom.Orch must be this file, and the masking and the rule rendering of
     /// the lane must handle every recipe of it.
     /// </summary>
@@ -53,7 +54,10 @@ namespace Nom.Api.Tests.Golden
         {
             var cases = Cases();
             cases.Where(c => c.Faithful).Should().OnlyContain(c => CheckV2(c).Passed, "a faithful rewrite the gate refuses cannot test the judge");
-            cases.Where(c => !c.Faithful && c.Check2 != "passed").Should().OnlyContain(c => !CheckV2(c).Passed);
+            cases.Where(c => !c.Faithful && c.Check2 != "passed" && !ProseCheck.UnsureReasons.Contains(c.Check2)).Should().OnlyContain(c => CheckV2(c).Failed,
+                "a planted fault a fail rule decides is refused by the rule gate");
+            cases.Where(c => !c.Faithful && ProseCheck.UnsureReasons.Contains(c.Check2)).Should().OnlyContain(c => CheckV2(c).Unsure,
+                "a planted fault of a weak signal is only marked unsure and reaches the judge");
             cases.Count(c => !c.Faithful && c.Check2 == "passed").Should().BeGreaterThanOrEqualTo(MinimumJudgeOnlyFaults);
         }
 

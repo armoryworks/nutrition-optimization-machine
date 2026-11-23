@@ -304,7 +304,16 @@ the catalog:
   general factors (nettles, cattail shoots, chokecherries, seaweed, guar gum, the Northern Plains
   and Alaska Native foods), where the fiber-aware formula runs 16 % to 47 % low (staging
   checkpoint 2, M8; `catalog-admission/5`, which curates those foods by rule on the next
-  `--admit`). Seasonings and leaveners
+  `--admit`). A food whose own factors miss its stated energy is confirmed the same way when
+  that energy equals plain 4·protein + 4·carb + 9·fat + 7·alcohol within ±5 %: USDA lists factors
+  for it but stated its energy by the general ones (Alaska pollock raw and cooked, WHEATENA,
+  tomato soup from dry mix, fat-free egg substitute, turkey gravy, chicken mushroom soup; staging
+  checkpoint 3, N3, where 7 of 14 curated foods kept as `atwater_mismatch` had the wrong reason;
+  `catalog-admission/6`). The fiber-aware formula is never a check for a food with its own factors,
+  so baobab powder, instant grits and instant oats stay flagged. The audit
+  (`GET /api/FoodCatalog/audit`) has no calorie factors, so it reads the stored check: a food the
+  admission found a mismatch by its own factors stays an `atwater_mismatch` there too, rather than
+  passing on the fiber-aware formula (review of `cleanup2/ck6-data-fixes`, CK6-3). Seasonings and leaveners
   (Spices and Herbs, the "Leavening agents," family) and foods under 20 kcal are exempt.
   Alcohol also counts toward the macro sum. Measured on the local USDA files: SR Legacy
   4,311 of 4,324 foods with factors within 5 % and 3,119 of 3,153 without within 15 %
@@ -648,7 +657,7 @@ answers it, and the report lists each tier (`Tiers`).
 
 **Sizes from the recipe corpus** (`cleanup2/container-era-sizes`, owner's third-round answer
 7: "there has to be a way to convert these"). Old books often state a package's size on one
-line and leave it out on the next. `ContainerCorpusSizes` (rule `container-corpus/2`) mines the
+line and leave it out on the next. `ContainerCorpusSizes` (rule `container-corpus/3`) mines the
 sized container lines of old and undated books (a book recipe whose `RecipeSourceEra` is
 historic or unknown; a line in a weight or volume unit that names a container and states its
 size, never a numbered can) and derives, per food, container kind and size word:
@@ -661,7 +670,21 @@ size, never a numbered can) and derives, per food, container kind and size word:
   states. At least two different books must state a size within the mode's band (one book
   stating 16 oz and 16.5 oz is one book, not two), and the mode must hold at least half of the
   votes and twice the next. Undated books form their own pool (`unknown`), as `RecipeSourceEra` gives
-  no era to compare them with.
+  no era to compare them with. A recipe whose source URL is a web page outside the book archives
+  (gutenberg.org, archive.org, loc.gov, hathitrust.org) is modern unless its era row says otherwise,
+  so USDA MyPlate Kitchen, stored with a book-like attribution and no site, never joins the
+  undated pool (staging checkpoint 3, N13: it gave plain gelatine an 85 g package from a flavoured
+  gelatin line).
+
+A line enters the corpus only when it states one size of one container and names the food it is
+linked to (`container-corpus/3`, the same in both readers): a range or an alternative of sizes
+("7½ to 8 oz.", "8-oz. or 1-lb.", "(14-15 ounces)"), a range of containers ("one or two 2-oz.
+cans"), a count followed by "half" ("1 half pint can", which the parser read as 1½ pints), a size
+"and a half" of its unit, a size in super- or subscript digits ("13³⁄₄ oz.", read as 34¼) and a
+container used as a vessel ("1 qt. jar with fresh mint leaves") are left out, and a line that names a
+flavoured product ("strawberry gelatin", "raspberry-flavored gelatin") counts only on a food whose
+description names a flavour or a dessert. The hold-out reads each line with its food's description (or
+name) too, so the tiers are scored on the same lines that build them.
 
 Old books often put the size first and give no count: "1 lb. can tomatoes", "1 quart can",
 "½ pint can", "15-ounce can", "1 lb. 13 oz. can peaches". Since `cleanup2/parser-size-first`
@@ -676,8 +699,8 @@ how many containers there are: both readers leave it out of the corpus, and the 
 it as 2 pounds of the food. "1 lb. canned tomatoes" names no container and is a pound of the food.
 
 Each size is written as a row of `nutrient."IngredientContainerSize"` in shadow, journaled like
-every other: source `deterministic:corpus-book:container-corpus/2:<era>:<g>g:<band>/<lines>:<min>-<max>g`
-or `deterministic:corpus-era:container-corpus/2:<era>:<g>g:<books on the mode>/<books>:<min>-<max>g`, the book in `SourceAttribution` (book sizes only), and the
+every other: source `deterministic:corpus-book:container-corpus/3:<era>:<g>g:<band>/<lines>:<min>-<max>g`
+or `deterministic:corpus-era:container-corpus/3:<era>:<g>g:<books on the mode>/<books>:<min>-<max>g`, the book in `SourceAttribution` (book sizes only), and the
 evidence in `Evidence` (the sizes stated and how often, lines, books, the spread and the
 worst case it implies). `Nom.Import --container-sizes --corpus [--facts <out.tsv>] [--dry-run]`
 writes them, retires a corpus row no line gives any more and never touches a USDA source's row
@@ -688,7 +711,14 @@ corpus spread, or the span of the period candidates; `-` where no source bounds 
 lines no tier sizes, by reason. `ops/container-era-facts.py` mines the same facts from a
 read-only capture (`ops/golden/container-era-lines.sql`), written apart from the C# code: the
 grams of one container come there from the stored quantity and the line's leading count, here
-from NOM's line parser. Compare the two with `cut -f2- <file> | sort`.
+from NOM's line parser. The capture carries each recipe's source host and the food's description,
+so the miner applies the same era and food rules. The two readers are tested against each other row
+for row: `container-era-readings.tsv` (each line read, `container-era-facts.py --lines`) and
+`container-era-facts.tsv` (the facts) are written by the miner from `container-era-lines.tsv` and
+the C# tiers must give both exactly. On a real capture compare `--lines` with the C# reading, and the
+facts with `cut -f2- <file> | sort` (staging checkpoint 3 found 56 differing facts from 21 lines;
+with `container-corpus/3` the checkpoint's 1,725-line capture reads 749 lines alike in both, 0
+differing).
 
 **Journal and undo.** Every row written, replaced, retired, rescored or paused is one
 `audit."AuditLogEntry"` (entity `IngredientContainerSize`; `ContainerSizeSet`,
@@ -825,8 +855,15 @@ runs unless `apply=true`, like `startup-fills/undo`, `wordings/unload` and `rech
 before v0.3.121 a call without the switch applied. Each result carries `applied`. The dry run
 returns the same counts as the apply, skipped included, and follows a line changed twice in the
 window as the undo does: the first three keep the restored values in memory and save nothing;
-`relink/undo` runs the whole undo inside one database transaction and rolls it back, so it takes
-as long as the undo and holds its row locks until the rollback (run it with the lanes paused).
+`relink/undo` runs the whole undo against a scratch copy held in memory (`RelinkUndoDryRun`): before
+each chunk of 500 entries the copy is given, by a few set-based reads, the lines, reprocess journals and
+rebuild headers of the chunk's recipes, the entries, the foods they and those lines name, the foods holding
+a name a retired food would take back, a retirement's aliases and the withdrawn proposals; a recipe no
+later entry names leaves the copy again. So the dry run only reads the database, locks no row and never
+holds back another writer or undo (staging checkpoint 3, N17: after the order-only pass the old
+rolled-back dry run took 12 min 17 s, kept its transaction open, and a second undo run meanwhile answered
+400). It stops when the caller goes away. The order-only journal rows an undo carries into are read once
+per chunk and written once per chunk, not once per line.
 
 Apply also marks the unchanged can and package lines that were weighed as one item or one
 serving as modified, so the nutrition sweep recalculates their recipes' labels; a derived
@@ -1265,6 +1302,32 @@ canned tomatoes"); a line joining foods with "and" still takes none. An item of 
 with no weight per item (Bay Leaf and Nutmeg have none, so 59107 and 110476 stay without an amount
 by that rule).
 
+Since staging checkpoint 3 (N1, N16, 2026-11-21; 5 wrong of 116 targeted start-up fills, 1 of 100 at
+random, and 3 of 15 method-fill changes in the detector's reading): a proportion is also "to" a number
+and a measure or "of" ("half a pint of water to two pounds of cherries", "three quarters of a pound of
+sugar to one of fruit", "one tablespoonful of oil to four of vinegar"), unless a number stands before
+the "to" (a range, "two to three cups"), and "for" an amount with no food after it ("for half a pint
+dissolve 3 eggs"; "for two quarts of muscles" names the recipe's own food and is no proportion). A
+proportion fills nothing even where its other side matches the recipe's own amount ("a teacup of water
+to two pounds of sugar" beside a 2 lb sugar line): left empty, the safe side. A range is read whole
+however many of the food's own words follow it ("Slice what will make 4 or 5 cups of cold boiled sweet
+potatoes" is 4 cups; it read 5). "ten or a dozen onions" counts ten: a dozen is a count, not a measure.
+An amount of a liquid another ingredient is dissolved, diluted, softened, soaked or steeped in is that
+preparation's ("the cream of tartar dissolved in one teaspoon of hot water"), never the recipe's water.
+
+The line reader since checkpoint 3 (N16): a cross-reference to another recipe of the book ("Marzapane
+descritto al N. 579", "tartufi preparati nel modo descritto al N. 269") is no count and leaves the name
+("Marzapane"); "Uova - 6 numero" counts six on "Uova", while "Uova, N. 4." counts four as before; a bare
+measure word before the food is one ("tablespoonful finely shredded or grated onion" is 1 tablespoon,
+"ounce of melted butter" 1 ounce), except "tablespoonful each of" two foods, which stays unread; a second
+size after "/" repeats the amount and leaves the name ("8 ounces / 1/2 pound fresh tortellini" is 8 ounces
+of fresh tortellini).
+
+**Held-out measure.** `line-holdout.tsv` holds every line the three checkpoint logs judged, split once by
+a hash of the row id; rules are written against one half, and the other half's errors per class are
+recorded in `line-holdout.json` (see `golden-sets.md`), so a parser change shows what it does to lines no
+rule was written for before staging reads a sample.
+
 ```
 POST /api/FoodCatalog/startup-fills/undo?sinceUtc=<utc time>&apply=false   # dry run: entries, lines it would restore, lines changed since
 POST /api/FoodCatalog/startup-fills/undo?sinceUtc=<utc time>&apply=true    # restores each line that still holds what the repair gave it
@@ -1480,7 +1543,10 @@ by scraped lines, with the three commonest raw lines and the pending model pick 
 A body with no row at all (the header-only template, an empty file) is refused with 400 and the
 message "The batch holds no wording row, so nothing would be loaded ...", so a wrong file name can
 never pass as a load of 0 rows; read `rows` of the dry run against the batch file's row count before
-the apply. A row is refused, with its reason in `problems`, when the wording is not in key form, the verdict
+the apply. A row is refused, with its reason in `problems`, when the wording is not in key form (unless the
+same batch holds or held that wording, as an unload leaves it: the batch then reloads in the key form it was
+loaded under, so a change to the name normalizer, such as reading "teaspn." and "tbp" as units, cannot
+strand a batch the system loaded; staging checkpoint 3, N19), the verdict
 is unknown, the food is missing, deleted, branded, without nutrition or not curated, the wording
 is the name of another curated food, two rows give it different answers, or the table already
 gives it another answer and `replace` is off. A USDA Foundation or SR Legacy food awaiting
@@ -1493,14 +1559,18 @@ returns the live table as TSV for diffing against the file.
 
 **Unload.** `POST api/FoodCatalog/wordings/unload?batch=<name>&apply=false&withLines=false` soft-deletes the
 batch's rows (journaled with `NewValue` null) and returns to awaiting curation each food a load
-curated that no remaining wording points at. A row the batch took over from an earlier batch with
+curated that no remaining wording points at, unless the catalog admission rule admits it by itself (a
+Foundation or SR Legacy food with no admission reason whose energy check passed: #279327, curated by
+the w01 load before admission, was demoted by staging checkpoint 3's unload and never came back). A row the batch took over from an earlier batch with
 `replace=true` goes back to that batch's verdict, food and note instead (`restored`); the replace
 journals the earlier batch and note as `Batch` and `Note` rows beside the `IngredientId` row.
 Unload replacing batches newest first. Loading the wording again revives its row. With
 `withLines=true` every row's lines, sources, proposals, picks and import landings are first taken
 back as a retract does (below, `lines` in the result), in the same transaction, and no rejection
 memory is written: an unload is a rollback, not a verdict. Unload, load and `relink/verified?batch=`
-again give the same rows, byte for byte.
+again give the same rows, byte for byte, also for a row in an older key form: the relink finds its
+source by the name as written and a line whose text ends with the wording after an amount
+(`LineRelinkService.NamesWording`).
 
 **Retract one wording.** `POST api/FoodCatalog/wordings/{id}/retract?reason=<why>&apply=false&evidenceKey=`
 takes one live row back with everything it did, found by the journal rather than by time

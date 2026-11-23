@@ -57,6 +57,19 @@ default. Nobody types a default in. The defaults over all classes go into the ga
 (`GateCatalog.HeadDefaults`), which spares the head's default food the gate's variety rules; a class
 default that differs from the overall one still meets them.
 
+Since `wording-tiers/2` (staging checkpoint 3, N15) a head default must also be the plain food of its
+head and may not be a species the head does not name: the default food's name holds the head word,
+and no animal species word other than the head (`WordingTiers.Species`: guinea, chicken, turkey,
+duck ...), whatever share of the curated lines it holds. Every curated "fowl" line sat on Guinea
+Fowls (22 of 22), so "fowl", "fine young fowl" and "remains of a cold fowl" went there; now the tier
+holds them (`variety`, golden `wt-hd-08`). The name key and the head default are also held when a
+line's bracketed note gives the wording a form the food is not (juice, nectar, syrup, cocktail):
+"3/4 cup cranberry (blood orange or pomegranate juice ...)" is a juice, not Cranberries (`form`,
+golden `wt-nam-04`). Since `wording-tiers/3` (review CK6R-3) the note holds the wording only when the
+notes of more than half of its lines read the form, and a note that names a part of the fruit
+beside it ("zest and juice", "pulp and juice") reads none, so one "1 lemon (juice only)" line never
+holds every whole-fruit line of a common wording (golden `wt-nam-05`, `wt-nam-06`).
+
 The same scan gives the gate its grams bound: the 99th percentile of grams per line of each USDA
 category with at least 100 weighed lines (`GateCatalog.GramBounds`).
 
@@ -187,7 +200,10 @@ same base (`cleanup2/ck4-parser-method`: number words in the name normalizer, 1,
 `cleanup2/ck4-recheck-gate` with `alcohol-context/5`, staging checkpoint 2: one more pair, judged
 right); and again under `link-gate/10` and
 `alcohol-context/6`, the wave-13 merge of both and of `cleanup2/ck4-diet-containers`, which writes 1,867 pairs, 3,211
-agreeing (43.8 %), the same 9 false accepts and no pair regressed (the table below is the
+agreeing (43.8 %), the same 9 false accepts and no pair regressed; and again for `wording-tiers/2`
+under `link-gate/11` and `alcohol-context/7` (`cleanup2/ck6-recheck`): the same 1,867 pairs, 3,211
+agreeing, 9 false accepts and no pair regressed (the fixtures carry no curated lines, so the
+head-default and note rules show only in `wt-hd-08` and `wt-nam-04`) (the table below is the
 `link-gate/8` record):
 
 | | |

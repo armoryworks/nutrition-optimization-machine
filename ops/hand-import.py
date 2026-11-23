@@ -27,7 +27,10 @@ RULES
    Congress) by ops/cookbook-extract.py's model extraction. Every record then passes the cookbook
    extraction's number check against its own page text: every ingredient line and step, and the
    yield and times, must be found there with every number. A record that fails is dropped and
-   counted with its reason; nothing repairs it. A record keeps the document's URL with its page
+   counted with its reason; nothing repairs it. A model call that times out or fails is asked
+   again (--retries, --timeout); one that still fails drops only its chunk, counted with the
+   reason, and every readable answer is kept in records/<doc>.answers.jsonl as it arrives, so a second
+   run with the same --model asks only the chunks still missing or unreadable and no finished record is lost. A record keeps the document's URL with its page
    (PDF "#page=N", a Library of Congress page "?sp=N") as its source URL, so the staged import
    stores it as its source document and the recipe links to the page it came from. Images and
    the sources' nutrition figures are never taken.
@@ -783,6 +786,7 @@ def text_document(book: Book, store: Store, runner: Runner = run, ocr=None) -> d
 AMOUNT_START = re.compile(r"^\s*(?:[\d½¼¾⅓⅔⅛⅜⅝⅞]|(?:a|an|one|two|three|four|five|six|half|pinch|dash)\b)", re.I)
 STEP_NUMBER = re.compile(r"^\s*(\d{1,2})[.)]\s+")
 CARD_SECTIONS = {"ingredients": "ingredients", "directions": "steps", "instructions": "steps", "method": "steps", "preparation": "steps"}
+DANGLING = re.compile(r"(?:\b(?:into|or|and|to|about|of|with|for|plus|from)|[-–(])\s*$", re.I)
 CARD_END = re.compile(r"^(recipe notes|notes|tips?|nutrition facts|nutrition information|nutritional facts|for more recipes|serving suggestions?)\b", re.I)
 
 
@@ -805,7 +809,10 @@ def _join_ingredients(lines: list[str]) -> list[str]:
     """Ingredient lines with their wrapped parts joined: a text block (blank lines between blocks) starts a line; inside a
     block a line continues the one before when it starts in lower case or with a bracket or comma, or the one before
     ends with a comma, "or", "and" or "-", unless it starts with an amount; a line after an unclosed bracket always
-    continues it ("diced (about" / "1/2 cup)")."""
+    continues it ("diced (about" / "1/2 cup)"), and so does a line after one that ends with a word that cannot end it
+    ("into", "or", "to", "about", "of", "with", "for", "plus", "from", a dash or an open bracket), even across a block
+    break and when it starts with an amount: "cut into" / "½- to 1-inch pieces", "... or" / "1 (16-ounce) bag frozen
+    vegetables", "to" / "taste" (staging checkpoint 3, N29)."""
     out: list[str] = []
     gap = True
     for line in lines:
@@ -814,8 +821,9 @@ def _join_ingredients(lines: list[str]) -> list[str]:
             gap = True
             continue
         unclosed = bool(out) and out[-1].count("(") > out[-1].count(")")
+        dangling = bool(out) and bool(DANGLING.search(out[-1]))
         continues = not gap and out and (text[0].islower() or text[0] in "(,;&" or out[-1].endswith((",", " or", " and", "-")))
-        if unclosed or (continues and not AMOUNT_START.match(text)):
+        if unclosed or dangling or (continues and not AMOUNT_START.match(text)):
             out[-1] = f"{out[-1]} {text}"
         else:
             out.append(text)
@@ -898,12 +906,14 @@ def parse_card(title: str | None, text: str) -> tuple[dict | None, str | None]:
 HTML_FIELDS = {"prep time": "prepTime", "cook time": "cookTime", "total time": "totalTime", "yields": "recipeYield",
                "yield": "recipeYield", "makes": "recipeYield"}
 HTML_END = {"prep time", "cook time", "total time", "yields", "yield", "serving size", "nutritional facts", "nutrition facts",
-            "back to top", "back to top link"}
+            "back to top", "back to top link", "recipe video", "video", "watch the video", "watch video"}
 
 
 def parse_html_recipe(title: str | None, text: str) -> tuple[dict | None, str | None]:
     """An NHLBI recipe page read by rule: the h1 title, the sentence under it, "Ingredients" and "Directions" blocks,
-    and the labelled times and yield; the nutrition facts are not taken."""
+    and the labelled times and yield; the nutrition facts are not taken. The directions end at the page furniture
+    after them: the times, the nutrition facts, "Back to top" and the "Recipe Video" widget label, which is never a
+    step (staging checkpoint 3, N30)."""
     lines = [line.strip() for line in text.split("\n") if line.strip()]
     lowered = [line.lower().rstrip(":") for line in lines]
     if "ingredients" not in lowered or "directions" not in lowered:
@@ -1050,6 +1060,8 @@ def _ask(ask, chunk) -> list[tuple[dict | None, dict | None]]:
         recipes = answer.get("recipes") if isinstance(answer, dict) else None
         if not isinstance(recipes, list):
             raise ValueError("no recipes list")
+    except cookbook.ModelCallFailed as exc:
+        return [(None, {"name": None, "reason": f"model call failed: {exc}; asked again on the next run"})]
     except (ValueError, json.JSONDecodeError) as exc:
         return [(None, {"name": None, "reason": f"unreadable answer: {exc}"})]
     return [(r, None) for r in recipes if isinstance(r, dict)]
@@ -1208,6 +1220,8 @@ def main(argv: list[str] | None = None) -> int:
         if name == "extract":
             p.add_argument("--host")
             p.add_argument("--model")
+            p.add_argument("--timeout", type=int, default=600, help="seconds one model call may take (default 600)")
+            p.add_argument("--retries", type=int, default=2, help="times a failed or timed-out model call is asked again (default 2)")
         if name == "sample":
             p.add_argument("--per-source", type=int, default=20)
             p.add_argument("--seed", type=int, default=20261121)
@@ -1290,7 +1304,7 @@ def main(argv: list[str] | None = None) -> int:
     os.makedirs(out_dir, exist_ok=True)
     by_id = {b.doc_id: b for b in books}
     if args.command == "extract":
-        ask = cookbook.ollama(args.host, args.model) if args.host and args.model else None
+        model = cookbook.ollama(args.host, args.model, timeout=args.timeout) if args.host and args.model else None
         results: dict[str, list[tuple[str, Extraction]]] = defaultdict(list)
         for book in books:
             path = os.path.join(text_dir, f"{book.doc_id}.pages.json")
@@ -1298,6 +1312,7 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             with open(path, encoding="utf-8") as handle:
                 doc = json.load(handle)
+            ask = cookbook.resumable(model, os.path.join(out_dir, f"{book.doc_id}.answers.jsonl"), retries=args.retries, model=args.model) if model else None
             result = extract_document(doc, sources[book.source], ask)
             results[book.source].append((book.doc_id, result))
             write_jsonl(os.path.join(out_dir, f"{book.doc_id}.records.jsonl"), result.kept)

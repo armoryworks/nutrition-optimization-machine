@@ -1,0 +1,125 @@
+{
+  "version": "link-recheck/5",
+  "decisionSignature": "62ad2c3d5d1a8d90",
+  "caseSet": "44658e6bde9cb3e2",
+  "rows": 750,
+  "bar": 0.95,
+  "minimum": 40,
+  "scoredAtUtc": "2026-11-21T19:21:19.8029848Z",
+  "classes": [
+    {
+      "class": "alcohol",
+      "judged": 305,
+      "right": 305,
+      "agentJudged": 285,
+      "agentRight": 285,
+      "ruleJudged": 20,
+      "ruleRight": 20,
+      "meetsBar": true
+    },
+    {
+      "class": "compound",
+      "judged": 65,
+      "right": 11,
+      "agentJudged": 65,
+      "agentRight": 11,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "container-form",
+      "judged": 18,
+      "right": 18,
+      "agentJudged": 18,
+      "agentRight": 18,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "form",
+      "judged": 22,
+      "right": 9,
+      "agentJudged": 22,
+      "agentRight": 9,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "fresh-herb",
+      "judged": 20,
+      "right": 19,
+      "agentJudged": 20,
+      "agentRight": 19,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "group",
+      "judged": 10,
+      "right": 6,
+      "agentJudged": 10,
+      "agentRight": 6,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "other-food",
+      "judged": 13,
+      "right": 11,
+      "agentJudged": 13,
+      "agentRight": 11,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "part",
+      "judged": 64,
+      "right": 49,
+      "agentJudged": 64,
+      "agentRight": 49,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "percent",
+      "judged": 1,
+      "right": 1,
+      "agentJudged": 1,
+      "agentRight": 1,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "polarity",
+      "judged": 2,
+      "right": 2,
+      "agentJudged": 2,
+      "agentRight": 2,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "prepared",
+      "judged": 115,
+      "right": 115,
+      "agentJudged": 75,
+      "agentRight": 75,
+      "ruleJudged": 40,
+      "ruleRight": 40,
+      "meetsBar": true
+    }
+  ],
+  "proven": [
+    "alcohol",
+    "prepared"
+  ]
+}

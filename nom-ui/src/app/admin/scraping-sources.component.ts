@@ -17,6 +17,7 @@ import {
   RightsStep,
   ScrapingSourceModel,
   SourceCandidate,
+  SourceCheck,
   SourceFacts,
   SourceJournalEntry,
   SourceReason,
@@ -175,6 +176,13 @@ export class ScrapingSources implements OnInit {
   termsCheckWaiting(source: ScrapingSourceModel): boolean {
     const status = source.termsCheck?.status;
     return status === 'queued' || status === 'running';
+  }
+
+  checkKind(check: SourceCheck): string {
+    const kind = check.mode === 'terms-only'
+      ? 'terms-only (robots.txt, the homepage and the terms pages, no recipe page)'
+      : 'full (with sample recipe pages)';
+    return `Last check: ${kind}, ${check.status}`;
   }
 
   accessNotes(facts: SourceFacts): string[] {

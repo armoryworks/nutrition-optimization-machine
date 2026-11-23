@@ -52,6 +52,15 @@ namespace Nom.Api.Services
             _logger.LogInformation(
                 "Source lane enabled: discovery every {Hours}h with {Seeds} seeds, at most {Checks} source checks a day, re-check every {Days} days",
                 interval.TotalHours, _settings.SeedsPerRun, _settings.MaxChecksPerDay, _settings.RecheckDays);
+            if (!_settings.TermsOnlyChecks)
+            {
+                _logger.LogWarning("SourceDiscovery:TermsOnlyChecks is off: the first check of every source is terms-only, so no source or candidate without a terms-only check that allows a full one is checked");
+            }
+
+            if (!_settings.FullChecks)
+            {
+                _logger.LogInformation("SourceDiscovery:FullChecks is off: only terms-only checks run, and discovery runs are skipped");
+            }
 
             await SafeDelay(TimeSpan.FromMinutes(5), stoppingToken);
             var nextDiscovery = DateTime.UtcNow;

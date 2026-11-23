@@ -58,7 +58,143 @@ staging checkpoint 2 M22; `LinkRecheckRules.Refutes`):
 
 A marked variant the wording does not name ("ketchup" on "Ketchup, restaurant", "tomato sauce" on
 "... with salt added", "thin cream" on light cream, "non-dairy milk" on imitation milk) is the same
-food in another make, not another food, so it is never proof. With a refuting hold:
+food in another make, not another food, so it is never proof.
+
+### Re-check classes and the bar (link-recheck/5, staging checkpoint 3 N12, review CK6R-1, CK6R-2, CK6R-5, ck7 judged rows)
+
+A refuting hold belongs to a **re-check class**: the three alcohol rules are one class (`alcohol`),
+the container line rule is `container-form`, and every other refuting rule is its own class
+(`prepared`, `part`, `fresh-herb`, `compound`, `form`, `other-food`, `group`, ...;
+`LinkRecheckRules.ClassOf`). A class may move or take back lines **by rule** only when it holds at
+least 95 % of its checkpoint-judged golden lines right over at least 40 of them
+(`LinkRecheckRules.ClassPrecisionBar`, `ClassMinimumJudged`). The judged lines are
+`Fixtures/Golden/link-recheck.tsv`, status `agent`: every sampled group (a wording on a food, with
+its example lines) the operators of staging checkpoints 2 and 3 judged, with both verdicts (`judged`
+wrong: the food was wrong, and for a move `rightFood` is the food the operator judged right; right:
+the re-check was wrong to act, or a kept line was right to keep; doubtful: kept as doubtful and left
+out of both sides of the figure). The checkpoint operators were agents, not people, so these are
+operator readings by an agent (`source` `agent-operator-checkpoint3-...`, `agent-review-ck2-...`,
+`agent-review-ck3-...`), never a person's judgement. Checkpoint 3 read every alcohol, container-form,
+prepared and move sample of its dry runs (`lr-dry1-<set>.json`) and named its other verdicts; a row
+exists only for a group the log judged. Rule-given rows (status `ok`: the alcohol sense table, and
+the owner's rule that a prepared food is never a line's food) must be right too, but they never
+count toward the 40: they test take-backs by construction and say nothing about the food a move
+picks.
+
+Lines from scraped web sources are not committed as their authors wrote them. The checkpoint
+samples do not say which source a line came from, so every `agent` row is treated as scraped and its
+`lines` and `wording` are masked (review CK7R-1). A word keeps its form only when it is one of:
+
+- a word of the name or description of the row's own food or `rightFood` in `gate-catalog.tsv`;
+- a word of `link-recheck-words.tsv`, which lists each kept word with its kind: units, numbers and
+  function words (`unit-or-function`), the drink words of the alcohol sense table (`drink`), words
+  of the string tables of the gate, the re-check rules and the compound splitter (`gate-rule`), and
+  the few other words a row's decision was found to read (`decision`, such as "depending" in a
+  cook's note about wine).
+
+Every other word (a cook's aside, a brand, another food, a serving note) becomes a stable
+pseudo-word (`qkuvur`), the same word always the same pseudo-word. The masker started from that
+vocabulary and, for the 23 rows whose decision changed, kept back only the words the decision
+needed. Each row was then decided in both forms by the scorer (`--rows`). Outcome, class, every
+class the row counts for, what it would write, the new food and whether that is right are identical
+for all rows, so the masked rows test what the readable ones test.
+
+What stays as written is a plain ingredient statement: an amount, a unit, the food's catalog words,
+and a drink, form or part word, such as "1 teaspoon smoked paprika" or "1/2 pint of cream, whipped".
+On this build that is 374 of the 686 `agent` rows. Every row with an aside, a brand or another
+food's name is masked in part. The golden test `A_checkpoint_row_keeps_only_its_foods_words...`
+refuses an `agent` row that keeps any other word, so a word is kept only by an edit to
+`link-recheck-words.tsv` that shows in the diff. The readable rows stay with the staging evidence,
+outside the repository. The history of the integration branch still holds the readable lines of the
+first ck6 rows; this file masks them from here on.
+
+The classes allowed to write are `LinkRecheckRules.ProvenClasses`, read from the committed per-class
+record `Fixtures/Golden/scores/link-recheck-classes.json` (built into the API,
+`LinkRecheckClassRecord`), never written by hand. The scorer writes it with `--record` (refused under
+CI): each class's figures and the classes at the bar, under the rules' version and **decision
+signature** (`LinkRecheckRules.DecisionSignature`, the signature without the proven classes). A
+record scored under other rules proves nothing (`ProvenProblem`, shown on `GET link-recheck/status`
+as `provenProblem`). The golden test `The_proven_classes_are_the_committed_record...` re-scores the
+rows and refuses a record that differs from them, so a class is added or taken out only by the
+rows; `Every_class_that_writes_by_rule_holds_the_bar_on_its_judged_rows` refuses a proven class
+below the bar; `Rule_given_rows_never_lift_a_class_over_the_minimum...` holds out any class whose
+checkpoint-judged rows are fewer than 40, whatever its rule rows; and
+`A_class_below_the_bar_writes_nothing...` checks that no other class writes. After a change to the
+rules or the rows: run the scorer with `--record`, commit the record with the change, and build
+again.
+
+The per-class scorer prints the table (no database, no model):
+
+    dotnet run --project nom-api/Nom.Import -- --recheck-classes [--rows] [--record] [--golden <dir>]
+
+It decides every row with `LinkRecheckRules.Judge` (the same call a run makes) over the frozen
+catalog of `gate-catalog.tsv`. It scores each class as if it were allowed to write: a take-back is
+right when the food was wrong, and a move when the food was wrong and the new food is the row's
+`rightFood`. A row counts for **every class whose hold refutes its food**
+(`RecheckVerdict.Classes`), not only for the class that decides it today. Once proven, any of
+those classes would make the same move or take-back, so a class is scored on exactly the rows it
+would write, and no figure depends on which classes are proven when the rows are scored (review
+CK7R-2; `A_class_is_scored_on_every_row_it_refutes_whichever_classes_are_proven`). It prints judged rows, precision, the agent and rule split, coverage (the share of
+all rows judged wrong the class puts right), whether it meets the bar and whether it writes by rule;
+`--rows` adds every row's decision. On this build (750 rows: 550 judged wrong, 164 right, 36
+doubtful):
+
+| Class | Checkpoint-judged right / judged | Rule rows | Precision | Writes |
+|---|---|---|---|---|
+| alcohol | 285 / 285 | 20 / 20 | 100 % | **by rule** |
+| prepared | 75 / 75 | 40 / 40 | 100 % | **by rule** |
+| compound | 11 / 65 | | 16.9 % | candidates only |
+| part | 49 / 64 | | 76.6 % | candidates only |
+| form | 9 / 22 | | 40.9 % | candidates only |
+| fresh-herb | 19 / 20 | | 95.0 % | candidates only (20 lines short) |
+| container-form | 18 / 18 | | 100 % | candidates only (22 lines short) |
+| other-food | 11 / 13 | | 84.6 % | candidates only |
+| group, polarity, percent | 6 / 10, 2 / 2, 1 / 1 | | | candidates only |
+
+Written by rule: 432 rows. 420 of them are rows judged wrong and put right, and 12 are doubtful.
+None is written against its judgement.
+
+These figures are the rows, not the checkpoint's own reading, and for five sets they lean against
+the class (review CK7R-3). The log read every alcohol, container-form and prepared sample and every
+move, so those rows are the whole reading. For part-herb, compound, applied-1103, applied and
+aliases it read unlinks at random. It named every wrong one but only some of the right ones, and it
+did not record which samples it read, so the unnamed right unlinks have no row.
+
+| Set | Unlinks read (log) | Wrong (log) | Right unlink rows | Unread or unnamed unlink groups |
+|---|---|---|---|---|
+| part-herb | 45 | 15 | 11 | 128 |
+| compound | 40 | 21 | 5 | 173 |
+| applied-1103 | 30 | 10 | 10 | 138 |
+| applied | 30 | 17 | 7 | 129 |
+| aliases | 30 | 22 | 3 | 141 |
+
+So compound, part, form and group are scored on fewer right take-backs than the operator saw. For
+compound, the log's own count is 19 of 40 right (47.5 %), against 16.9 % on the rows. No class
+below the bar would reach it on the log's counts either, so no verdict changes. A later reading
+records every sample it reads, by index, right or wrong, so the rows can be the whole reading.
+
+A refutation by a class that is not proven is a **candidate**: the lines stay where they are, the
+run counts them (`candidates`, `candidateLines`, `byCandidate` by class; the sample outcome
+`candidate` with the move or take-back it would make). Each class decides its candidates on a
+**tier of its own** on the lane frame, `candidate:<class>` (`LinkRecheckRules.CandidateTier`, with
+its own signature, `TierSignature`), never on the tier of the set they came from: an applied run or
+a lane batch records each candidate there in shadow, with the set as its stratum, as a decision that
+would write, and after each round the lane has the frame's auditor (the link-audit lane, `phi4`
+confirmed by `mistral-nemo`) sample each class tier and evaluates it against the committed
+`scores/link-audit.json`. So a set whose would-write decisions are mostly a class that is right
+(alcohol holds) can never carry a compound or part candidate into writing. A candidate is written
+only while its class tier is live, in a lane batch whatever the set's mode (not while the set or
+the lane is paused) and in an operator's applied run alike (counted in a dry run the same way);
+`byQualified` counts them by class. A lane batch writes each class's candidates as a run of that
+tier under a stamp of its own, so the tier's pause undoes only its own writes, and the status lists
+those runs beside the sets. A wording already decided under the set's signature in the last 30
+days is not decided again, except a candidate recorded in shadow (by the lane or by an operator's
+run) whose class tier has since gone live: the lane decides it again and writes it. To let a class
+write by rule instead, add the lines a staging checkpoint judged to link-recheck.tsv (masked) until
+it holds the bar, then run the scorer with `--record` and commit the record: the class is then in
+`ProvenClasses` and the lanes' signature changes with it.
+
+With a refuting hold of a class that writes:
 
 1. **Move** to the first food a deterministic tier names that the gate lets through, in the
    pipeline's order: the verified wording row, a trusted alias, a staple or the name matcher, a
@@ -98,11 +234,19 @@ verified rows it acted against in `wordingRows`; retract each, or imports keep l
 prepared food. The `wordings` set lists the verified rows the gate now holds, with the row id, for
 that retract.
 
-A move or take-back also removes the wording's aliases on the old food that a rule or a model pick
-put there (null, `link:ai:`, `deterministic:recheck:`, `deterministic:recheck2:`,
-`link:deterministic:`; never a USDA description, an `admin:` or a `retired:` alias), and a move gives
-the wording a trusted alias `deterministic:recheck2:<tier>` on its new food, so a later import
-follows it rather than the applied link of the retired holder. That alias and the lines it moved
+A move or take-back also removes every alias of the wording on the old food that a rule or a model
+pick put there (null, `link:ai:`, `deterministic:recheck:`, `deterministic:recheck2:`,
+`link:deterministic:`; never a USDA description, an `admin:` or a `retired:` alias), in name order,
+each once in a run by its key (food and name; an alias row has no id of its own, which is why
+staging checkpoint 3 saw one of #276291's two aliases go on each apply, N18). A move gives the
+wording a trusted alias `deterministic:recheck2:<tier>` on its new food, so a later import follows
+it rather than the applied link of the retired holder, **only when the gate accepts the wording for
+that food as for any wording** (not as the tier that vouched for the lines) **and the wording names
+no restricted food the new food's own name and USDA entry do not** (`LinkRecheckRules.MayAlias`,
+the default restriction patterns read by `DietPatternRule`). Otherwise the lines move without the
+alias, counted `aliasesRefused`. Staging checkpoint 3 (N21): the alcohol set gave distilled
+spirits the alias "corn brandy", and Corn Allergy then kept out 1,040 brandy recipes and Grain-Free
+655. That alias and the lines it moved
 are read again by the `alcohol`, `part-herb`, `compound` and `aliases` sets, so a move made under an
 older gate is checked again when the gate's signature changes.
 
@@ -122,7 +266,7 @@ one cut off; the process forgets its running stamps when it stops, so after a re
 reads as cut off again. Only a run that writes has a header: a lane batch in
 shadow records its decisions on the frame and nothing in the journal. `POST undo?stamp=&apply=` takes the run back: lines through
 `LineRelinkService.UndoEntriesAsync` (newest first; a line on a recipe rebuilt after the run stays,
-counted `skippedRebuilt`, so undo the rebuild first), then the aliases, then the created ingredients
+counted `skippedRebuilt`, so undo the rebuild first), then the aliases (an alias the run created is deleted as a row, `ApplicationDbContext.HardDeleteAsync`, so no deleted copy is left behind under a request either, N18), then the created ingredients
 that hold nothing again (deleted as rows, not soft-deleted, under a savepoint so one still
 referenced is kept and counted `foodsKept`), then the freed and renamed names, newest first (a
 created food the undo removes no longer holds the name, so every freed name comes back: M24; run
@@ -137,14 +281,11 @@ sense groups can, is counted once, as the apply writes it once); an undo's dry r
 would give back. Line moves have their own change type, so the time-window `relink/undo` and a wording
 retract never take back a re-check's lines without its aliases; only its stamp does.
 
-Operator notes (staging checkpoint 2): read a set's dry run as a lower bound. It counts lines, but
-not the ingredients a run creates as homes for unlinked lines, the aliases it untrusts or removes,
-the names it frees or the wording rows it acts against; the apply reports them. The withdrawal's
-undo answers 0 for every count, dry run and apply, even when it restores the picks (compare the
-proposals before and after instead). A set's undo leaves a retired food it renamed to free a name
-under its new name, and the ingredients it created as soft-deleted rows. After the withdrawal every
-withdrawn wording is a link-lane source again: expect `linkQueue` to rise to about 64,000 while the
-link lane stays paused.
+Operator note: after the withdrawal every withdrawn wording is a link-lane source again: expect
+`linkQueue` to rise to about 64,000 while the link lane stays paused. A food holding the wording's
+very name is renamed to its USDA description, or, when that differs from the wording only in case
+("zwieback" described "Zwieback"), to the description with its USDA category ("Zwieback (Baby
+Foods)"), or its id when it has none (`LinkRecheckService.RenameFor`, N18).
 
 `POST names?apply=` lists curated foods whose name claims a colour, "whole" or "seed" their USDA
 entry lacks while the entry names a form the name lacks, and renames those in the fixed table by
@@ -153,22 +294,26 @@ the journaled rename, under one stamp; the same undo gives the name back.
 
 ## The lane
 
-Lane `link-recheck` on the lane frame, one tier per set (`LinkRecheckHostedService`, off unless
+Lane `link-recheck` on the lane frame, one tier per set and one per class not proven
+(`candidate:<class>`) (`LinkRecheckHostedService`, off unless
 `LinkRecheck:Enabled=true`; `LinkRecheck:BatchSize` 2000, `LinkRecheck:MaxPerDay` 2000 a set,
 `LinkRecheck:IntervalHours` 24; switch `ai-pause-link-recheck`). Each round runs the sets in order
 over the wordings not decided under the set's signature (`LinkRecheckRules.SetSignature`: the
 re-check's version and tables, `LinkGate.Signature` and `AlcoholLineContext.Signature`) in the last
-30 days, records every decision on the frame, and writes only while the tier is live. After a batch
+30 days, records every decision on the frame, and writes a set's proven refutations only while the
+set's tier is live and a candidate only while its class tier is live. After a batch
 the roster's auditor (`phi4`) reads a sample of the moves and take-backs blind with the same-food
 judge (a move is wrong unless the line is its new food; a take-back is wrong when the line was its
 old food), reader B (`mistral-nemo`) confirms a flag, and the frame evaluates the tier: qualify on a
 98 % Wilson lower bound, pause when a full window of 300 shows more than 3 % confirmed wrong, or when
-more than 5 % of a live batch's lines were no longer where it found them. A pause undoes the lane's
-own runs since the last clean window (`LinkRecheckLaneUndo`; an operator's runs are left to their
-stamp).
+more than 5 % of a live batch's lines were no longer where it found them. After the sets, each class
+tier is audited and evaluated the same way (a batch's skipped-lines fault goes to the classes it
+wrote). A pause undoes the lane's own runs of that tier since the last clean window
+(`LinkRecheckLaneUndo`; an operator's runs are left to their stamp).
 
-An operator's apply records its moves and take-backs on the frame too (mode live), so
-`POST audit/{set}` can audit them. `AuditAndEvaluateAsync` evaluates a set with the committed
+An operator's apply records its moves and take-backs on the frame too (mode live), and its
+candidates in shadow on their class tiers, so `POST audit/{set}` can audit them (`{set}` is a set or
+a class tier, `candidate:<class>`). `AuditAndEvaluateAsync` evaluates a set with the committed
 `scores/link-audit.json` (lane `link-audit`, scored by the wording readers' scorer, see
 `wording-readers.md`): its known-bad and known-good flags are the audit check's score, and a record
 that is missing, scored another same-food judge prompt (its `signature`), another auditor or reader B
@@ -178,4 +323,6 @@ and the lane decides in shadow.
 ## Status
 
 `GET status` (and the Pipeline page block "Link re-check") shows whether the lane is on, the rules'
-version and signature, how many model picks wait, the last withdrawal and the newest run of each set.
+version and signature, the classes that write by rule (`provenClasses`, and `provenProblem` when the per-class record
+is not current, so none does), how many model picks wait,
+the last withdrawal and the newest run of each set and of each class tier (with `candidates` and `candidateLines`).

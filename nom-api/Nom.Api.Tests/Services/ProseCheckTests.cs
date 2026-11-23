@@ -7,7 +7,7 @@ namespace Nom.Api.Tests.Services
 {
     /// <summary>
     /// The prose check rule by rule on small constructed texts; the golden rows of prose.tsv hold
-    /// the cases of the C9 review, and those of prose-check.tsv the recipes read at checkpoint 2.
+    /// the cases of the C9 review, and those of prose-check.tsv the recipes read at checkpoints 2 and 3.
     /// </summary>
     public class ProseCheckTests
     {
@@ -26,7 +26,7 @@ namespace Nom.Api.Tests.Services
         {
             var finding = Check(new[] { "Bake the bread for 30 minutes." }, new[] { "Bake the loaf 30 minutes." }, stock: new ProseStockIndex(7, Enumerable.Empty<long>()));
 
-            finding.CheckVersion.Should().Be(ProseCheck.Version).And.Be(3);
+            finding.CheckVersion.Should().Be(ProseCheck.Version).And.Be(4);
             finding.StockVersion.Should().Be(7);
             finding.Passed.Should().BeTrue(finding.ToString());
         }
@@ -68,6 +68,7 @@ namespace Nom.Api.Tests.Services
         {
             Check(new[] { "Stir in the flour and cook for 2 minutes." }, new[] { "Add the flour, then cook 2 minutes." }).Passed.Should().BeTrue();
             Check(new[] { "Pour the milk over the oats." }, new[] { "Stir the milk with the oats." }).Reasons.Should().Contain(ProseCheck.LostStep);
+            Check(new[] { "Pour the milk over the oats." }, new[] { "Stir the milk with the oats." }).Outcome.Should().Be("unsure");
         }
 
         [Fact]
@@ -80,8 +81,14 @@ namespace Nom.Api.Tests.Services
         [Fact]
         public void An_ingredient_a_step_names_must_be_kept()
         {
-            Check(new[] { "Fold the blueberries into the batter." }, new[] { "Fold everything together." }, new[] { "1 cup blueberries", "2 cups batter" })
-                .Faults.Should().Contain(f => f.Reason == ProseCheck.LostStep && f.Detail.Contains("blueberries"));
+            var finding = Check(new[] { "Fold the blueberries into the batter." }, new[] { "Fold everything together." }, new[] { "1 cup blueberries", "2 cups batter" });
+
+            finding.Faults.Should().Contain(f => f.Reason == ProseCheck.LostIngredient && f.Detail.Contains("blueberries"));
+            finding.Failed.Should().BeTrue("an ingredient of the source method named nowhere in the rewrite is a reliable loss");
+            Check(new[] { "Fold the blueberries into the batter." }, new[] { "Add the batter. Fold in the berries." }, new[] { "1 cup blueberries", "2 cups batter" })
+                .Faults.Should().Contain(f => f.Reason == ProseCheck.LostIngredient);
+            Check(new[] { "Fold the blueberries into the batter." }, new[] { "Stir the blueberries through the batter." }, new[] { "1 cup blueberries", "2 cups batter" })
+                .Failed.Should().BeFalse();
         }
 
         [Fact]
@@ -96,6 +103,7 @@ namespace Nom.Api.Tests.Services
             };
 
             Check(source, padded).Reasons.Should().Contain(ProseCheck.TooLong);
+            Check(source, padded).Outcome.Should().Be("unsure", "an odd length is a weak signal");
         }
 
         [Fact]
@@ -228,7 +236,7 @@ namespace Nom.Api.Tests.Services
         public void An_ingredient_kept_under_another_name_is_kept()
         {
             Check(new[] { "Sprinkle on the radishes and green onions." }, new[] { "Add the radishes and scallions." }, new[] { "4 green onions, thinly sliced", "6 radishes" })
-                .Reasons.Should().NotContain(ProseCheck.LostStep);
+                .Reasons.Should().NotContain(ProseCheck.LostStep).And.NotContain(ProseCheck.LostIngredient);
         }
 
         [Theory]
@@ -333,9 +341,12 @@ namespace Nom.Api.Tests.Services
 
             finding.LongestRun.Should().BeLessThan(8);
             finding.CopiedShare.Should().BeLessThan(ProseCheck.MaximumCopiedShare);
-            finding.CloseStretch.Should().BeGreaterThanOrEqualTo(ProseCheck.CloseStretchLimit);
+            finding.CloseStretch.Should().BeLessThan(ProseCheck.CloseStretchLimit, "a short method is caught by the share of its words the stretch covers");
+            finding.CloseStretch.Should().BeGreaterThanOrEqualTo(ProseCheck.MinimumStretchForShare);
             finding.Faults.Should().Contain(f => f.Reason == ProseCheck.CopiedText && f.Detail.StartsWith("a stretch of"), finding.ToString());
-            Check(source, close.Reverse().ToArray()).CloseStretch.Should().BeLessThan(ProseCheck.CloseStretchLimit);
+            var reversed = Check(source, close.Reverse().ToArray());
+            reversed.Faults.Where(f => f.Reason == ProseCheck.CopiedText).Select(f => f.Reason).Should().Equal(finding.Faults.Where(f => f.Reason == ProseCheck.CopiedText).Select(f => f.Reason), "the copy measures do not depend on the order of the rewrite's sentences");
+            reversed.CloseStretch.Should().Be(finding.CloseStretch);
             Check(source, faithful).Passed.Should().BeTrue(Check(source, faithful).ToString());
         }
 
@@ -349,6 +360,121 @@ namespace Nom.Api.Tests.Services
             var finding = Check(new[] { source }, new[] { rewrite });
 
             finding.Faults.Should().Contain(f => f.Reason == ProseCheck.LostStep && f.Detail.Contains(group), finding.ToString());
+            finding.Unsure.Should().BeTrue("verb coverage is a weak signal that marks a rewrite unsure and never fails it");
+        }
+
+        [Theory]
+        [InlineData("Toss the beans with olive oil, salt and pepper.", "Mix the beans with olive oil, salt and pepper.")]
+        [InlineData("Line two baking sheets with parchment.", "Prepare two baking sheets with parchment paper.")]
+        [InlineData("Shape the mixture into 4 patties.", "Form the mixture into 4 patties.")]
+        public void A_verb_said_another_way_never_fails_a_rewrite(string source, string rewrite)
+        {
+            var finding = Check(new[] { source }, new[] { rewrite }, new[] { "1 lb green beans", "2 tbsp olive oil", "salt", "pepper", "1 lb beef" });
+
+            finding.Failed.Should().BeFalse(finding.ToString());
+        }
+
+        [Fact]
+        public void A_verb_the_source_negates_asks_for_nothing()
+        {
+            Check(new[] { "Use soft but not melted butter and cream it with the sugar." }, new[] { "Cream the softened butter with the sugar." })
+                .Passed.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Amounts_out_of_the_source_order_mark_a_rewrite_unsure()
+        {
+            var finding = Check(
+                new[] { "Bake for 20 minutes.", "Cool for 10 minutes." },
+                new[] { "Let it cool 10 minutes after it has baked for 20 minutes." });
+
+            finding.Reasons.Should().Contain(ProseCheck.OutOfOrder);
+            finding.Outcome.Should().Be("unsure");
+        }
+
+        [Fact]
+        public void An_added_amount_marks_a_rewrite_unsure_and_a_lost_one_fails_it()
+        {
+            Check(new[] { "Bake until golden." }, new[] { "Bake for 25 minutes until golden." }).Outcome.Should().Be("unsure");
+            Check(new[] { "Bake for 25 minutes until golden." }, new[] { "Bake until golden." }).Failed.Should().BeTrue();
+            Check(new[] { "Bake for 25 minutes until golden." }, new[] { "Bake for 35 minutes until golden." }).Failed.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Half_a_thing_is_the_same_amount_as_one_half()
+        {
+            Check(new[] { "Lay ½ large onion, sliced, in the pot." }, new[] { "Put half a large onion, sliced, into the pot." }, new[] { "1 large onion" })
+                .Reasons.Should().NotContain(ProseCheck.QuantityReasons);
+        }
+
+        [Fact]
+        public void An_amount_in_a_cooks_first_person_note_is_not_required()
+        {
+            Check(new[] { "Blend until smooth, adding chillies to taste. (I used two small chillies.)" }, new[] { "Blend it smooth and add chillies to taste." })
+                .Reasons.Should().NotContain(ProseCheck.LostQuantity);
+            Check(new[] { "Set the eggs you want on the rack (I cooked 6)." }, new[] { "Put the eggs you want on the rack." })
+                .Reasons.Should().NotContain(ProseCheck.LostQuantity);
+            Check(new[] { "Set 6 eggs on the rack." }, new[] { "Put the eggs you want on the rack." })
+                .Reasons.Should().Contain(ProseCheck.LostQuantity);
+        }
+
+        [Fact]
+        public void An_amount_on_each_side_stands_for_both_sides()
+        {
+            Check(new[] { "Sear the slices 1 to 2 minutes. Turn them and sear 1 to 2 minutes more." }, new[] { "Sear the slices 1 to 2 minutes on each side." })
+                .Reasons.Should().NotContain(ProseCheck.LostQuantity);
+        }
+
+        [Fact]
+        public void A_pan_size_with_no_unit_is_the_same_as_one_in_inches()
+        {
+            Check(new[] { "Spread in a greased 9x9 baking dish." }, new[] { "Spread it in a greased 9x9 inch baking dish." })
+                .Reasons.Should().NotContain(ProseCheck.QuantityReasons);
+        }
+
+        [Fact]
+        public void An_amount_the_source_description_states_is_never_a_wrong_amount()
+        {
+            var source = new RewriteFidelity.SourceText("Two oat cookies hold a scoop of pumpkin ice cream.", new[] { "Bake the cookies. The batch gives about 30 oat cookies." });
+            var rewrite = new RewriteFidelity.SourceText("An ice cream sandwich: pumpkin ice cream held by two oat cookies.", new[] { "Bake the cookies; you get roughly 30 oat cookies." });
+
+            ProseCheck.Check(source, rewrite, new[] { "2 cups oats", "1 cup pumpkin ice cream" }).Reasons.Should().NotContain(ProseCheck.WrongAmount);
+        }
+
+        [Fact]
+        public void A_copy_cut_into_short_sentences_is_copied_text_in_any_order()
+        {
+            var source = new[] { "Brown the lamb with the shallots in a deep pan, about 8 minutes. Salt it well. Take it off the stove. In a wide oval dish, spread 1 cup of the tomato sauce under 4 flatbreads. Add the lamb, the cooked lentils, the spinach and the olives. Pour over 1 cup of stock, salt it again, stir and level the top. Cover with 4 more flatbreads and the rest of the sauce. Scatter over the feta. Bake covered for 25 minutes, then uncovered for 10 to 15 minutes." };
+            var cut = new[]
+            {
+                "Brown the lamb with the shallots in a deep pan, about 8 minutes.",
+                "Salt it well.",
+                "Take it off the stove.",
+                "In a wide oval dish, spread 1 cup tomato sauce under 4 flatbreads.",
+                "Add the lamb, cooked lentils, spinach and olives.",
+                "Pour over 1 cup stock, salt it again, stir and level the top.",
+                "Cover with 4 more flatbreads and the rest of the sauce.",
+                "Scatter over the feta.",
+                "Bake covered for 25 minutes, then uncovered for 10 to 15 minutes.",
+            };
+
+            var finding = Check(source, cut);
+
+            finding.Copied.Should().BeTrue(finding.ToString());
+            Check(source, cut.Reverse().ToArray()).Copied.Should().BeTrue();
+            Check(source, new[] { string.Join(" ", cut) }).Copied.Should().BeTrue();
+        }
+
+        [Fact]
+        public void A_run_through_an_ingredient_list_counts_every_word()
+        {
+            var source = new[] { "In a large pot warm the olive oil over medium high heat, add the onion, carrot and celery and cook until soft, about 6 minutes." };
+            var rewrite = new[] { "Using a big pot, warm the olive oil over medium high heat, add the onion, carrot and celery and cook until soft, roughly 6 minutes." };
+
+            var finding = Check(source, rewrite, new[] { "2 tbsp olive oil", "1 onion", "1 carrot", "2 celery stalks" });
+
+            finding.LongestRun.Should().BeGreaterThanOrEqualTo(ProseCheck.CopiedRun);
+            finding.Copied.Should().BeTrue(finding.ToString());
         }
 
         [Fact]

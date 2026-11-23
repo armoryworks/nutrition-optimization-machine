@@ -49,7 +49,16 @@ first rule that fires wins:
    "spirits of nutmeg"): `extract`. The flavour word is read only outside a cook's note
    (`alcohol-context/5`, M21: 33 of 86 sampled extract take-backs rested on one): brackets, nested or
    not ("(for a milder garlic flavor)"), "for a richer flavor", "or flavor to taste" and a starred
-   footnote are notes, and a bare "flavoring" or "or flavouring" with no flavour named is no extract. A flavour word followed by the name of a product is not a flavouring ("chicken flavor
+   footnote are notes, and a bare "flavoring" or "or flavouring" with no flavour named is no extract.
+   Since `alcohol-context/7` (staging checkpoint 3, N11) a drink or flavour word only in a cook's aside
+   gives the line no sense at all: a bracket that speaks as the cook or offers more ("(I used a
+   bourbon-barrel paprika)", "(possibly more, depending on the wine)", "(add 1 Tbsp orange liqueur
+   if desired)"), a dash aside ("– I used the cheese flavor"), an "I used" note and a "depending on"
+   clause; a bracket of alternatives ("(or dry white wine)") or of what the food is made with
+   ("(flavoured with French brandy)") is still read. "a strong flavor" (strong, rich, mild, delicate,
+   subtle, its, their, your) names no flavouring. A food measured to a drink ("three pounds of loaf
+   sugar per gallon of wine") is `other`, and a food mixed, flavoured or moistened with a drink is one
+   food even before "or" ("water mixed with extract or wine" is `dish`, not a list). A flavour word followed by the name of a product is not a flavouring ("chicken flavor
    bouillon", "lemon flavor gelatin"): such a line has no alcohol word and reads `none`, so the gate
    and the shortlist leave its food alone.
 6. **Rice and cooking wines**: Shaoxing, Chinese rice wine, mirin (`rice-wine`, no USDA food);
@@ -233,7 +242,10 @@ the old release's own start-up, since its defaults are then missing again.
   both; 164 rule-given rows (`rule:alcohol-context`, `ok`) from the design's classes and the
   staging checkpoint-1 lines (K10: ac-162 to ac-172), ten judged by the alcohol-context builder and
   three by the checkpoint fix (Catawba, vin blanc, coq au vin; `agent`); ac-176 and ac-177
-  (`rule:alcohol-context`, `ok`) are wine lines that name the "au vin" dish they are for. `GoldenAlcoholContextTests` requires every row to pass, every
+  (`rule:alcohol-context`, `ok`) are wine lines that name the "au vin" dish they are for; ac-208 to
+  ac-214 are staging checkpoint 3's N11 lines (`agent`, `agent-review-ck6-2026-11-21`) and ac-215,
+  ac-216 constructed guards for the bracket rule (`rule:construction`, `ok`), `alcohol-context/7`:
+  216 rows, 0 false accepts of 163. `GoldenAlcoholContextTests` requires every row to pass, every
   sense to have a row, and every sense of the design a rule-given one.
 - Scorer lane `alcohol-context` in `model-lanes.json`: no model, `required`, floor 98 % and no false
   accept; the committed record must be what the rules score now

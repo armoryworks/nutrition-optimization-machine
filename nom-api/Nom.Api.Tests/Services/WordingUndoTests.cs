@@ -18,6 +18,7 @@ using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
 using Nom.Orch.Models.Recipe;
 using Nom.Orch.Services;
+using Nom.Orch.Services.Support;
 using Nom.Orch.UtilityInterfaces;
 using Xunit;
 
@@ -510,6 +511,69 @@ namespace Nom.Api.Tests.Services
             });
             through.Should().Match<VerifiedWordingLoadResult>(r => r.Added == 2 && r.Rejected == 0 && r.RejectionsLifted == 0);
             (await db.IngredientWordingRejections.CountAsync()).Should().Be(2, "the memory stays for the pairs it refused");
+        }
+        [Fact]
+        public async Task A_batch_the_system_loaded_under_an_older_key_form_unloads_and_reloads_to_the_same_lines()
+        {
+            using var db = NewContext();
+            var extract = CuratedFood("Vanilla Extract");
+            var old = Uncurated("teaspn. vanilla");
+            db.Ingredients.AddRange(extract, old);
+            await db.SaveChangesAsync();
+            db.Recipes.Add(Scraped("Cake", (old, "1 teaspn. vanilla"), (old, "1/2 teaspn. vanilla")));
+            await db.SaveChangesAsync();
+            var before = await FingerprintAsync(db);
+            IngredientNameNormalizer.WordingKey("teaspn. vanilla").Should().NotBe("teaspn. vanilla", "the name normalizer now reads teaspn. as a unit, as the w01 rows teaspn. vanilla and tbp flour found");
+
+            db.IngredientWordings.Add(new IngredientWordingEntity { Wording = "teaspn. vanilla", Verdict = IngredientWordingVerdict.Food, IngredientId = extract.Id, Batch = Batch, Source = "verified:w01" });
+            await db.SaveChangesAsync();
+            await Relink(db).LinkVerifiedWordingsAsync(apply: true, batch: Batch);
+            var after = await FingerprintAsync(db);
+            (await db.RecipeIngredients.CountAsync(ri => ri.IngredientId == extract.Id)).Should().Be(2);
+
+            var unloaded = await Wordings(db).UnloadAsync(Batch, apply: true, withLines: true);
+            unloaded.Lines!.Undone!.Restored.Should().Be(2);
+            (await FingerprintAsync(db)).Should().Be(before);
+
+            (await Wordings(db).LoadAsync(new[] { Row("teaspn. vanilla", extract) }, "w02")).Problems.Should().ContainSingle()
+                .Which.Reason.Should().Be(VerifiedWordingService.NotKeyForm, "a batch that never held the wording takes it only in key form");
+            var reloaded = await Wordings(db).LoadAsync(new[] { Row("teaspn. vanilla", extract) }, Batch, apply: true);
+            reloaded.Rejected.Should().Be(0, "the batch held the wording, so it reloads in the key form it was loaded under");
+            await Relink(db).LinkVerifiedWordingsAsync(apply: true, batch: Batch);
+            (await FingerprintAsync(db)).Should().Be(after, "retract, unload and reload of a batch the system loaded round-trip");
+        }
+
+        [Fact]
+        public async Task An_unload_leaves_curated_a_food_the_catalog_admission_rule_admits_by_itself()
+        {
+            using var db = NewContext();
+            var pasta = new IngredientEntity
+            {
+                Name = "Pasta with tomato sauce, no meat, canned", FdcId = "170397", FdcDataType = "sr_legacy_food",
+                CurationStatusId = (long)CurationStatusEnum.PendingCuration,
+                IngredientNutrients = new List<IngredientNutrientEntity> { new() { NutrientId = 1, Amount = 1 } },
+            };
+            var lemon = new IngredientEntity
+            {
+                Name = "Lemon peel, raw", FdcId = "167753", FdcDataType = "sr_legacy_food",
+                CurationStatusId = (long)CurationStatusEnum.PendingCuration,
+                IngredientNutrients = new List<IngredientNutrientEntity> { new() { NutrientId = 1, Amount = 1 } },
+            };
+            db.Ingredients.AddRange(pasta, lemon);
+            await db.SaveChangesAsync();
+            (await Wordings(db).LoadAsync(new[] { Row("canned spaghetti", pasta), Row("lemon rind", lemon) }, Batch, apply: true)).Promoted.Should().Be(2);
+            db.ChangeTracker.Clear();
+            var admitted = await db.Ingredients.SingleAsync(i => i.Id == pasta.Id);
+            admitted.EnergyCheck = Nom.Data.Nutrition.EnergyCheckOutcome.General;
+            await db.SaveChangesAsync();
+
+            var unloaded = await Wordings(db).UnloadAsync(Batch, apply: true);
+
+            unloaded.Demoted.Should().Be(1, "only the food the admission rule never judged goes back to awaiting curation");
+            db.ChangeTracker.Clear();
+            (await db.Ingredients.SingleAsync(i => i.Id == pasta.Id)).CurationStatusId.Should().Be((long)CurationStatusEnum.Curated,
+                "the admission rule admits it by itself, so an unload of the batch that curated it first leaves it curated (#279327 on staging)");
+            (await db.Ingredients.SingleAsync(i => i.Id == lemon.Id)).CurationStatusId.Should().Be((long)CurationStatusEnum.PendingCuration);
         }
     }
 }

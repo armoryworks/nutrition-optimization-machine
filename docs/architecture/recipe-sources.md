@@ -23,7 +23,22 @@ reasons.
      read 404 (lost in a scraper restart), it reported `failed`, or it did not end by its
      deadline plus 60 s. A failed run keeps the candidates of the last poll and is shown as
      failed: a broken lane never reads as a lane with nothing to find;
-   - `skipped`: another discovery job was running (429), or there is no seed.
+   - `skipped`: another discovery job was running (429), full checks are held, or there is no seed.
+
+   Discovery reads recipe pages: pass 1 reads each seed's homepage, sitemap and 2 recipe pages, and pass 2
+   probes the homepage of every site linked from them, and one recipe-looking page when that homepage shows
+   no recipe signal. So it is held exactly like a full check. It runs only while `FullChecks` is on (off, the
+   run is skipped with "Full checks are held ..."), and a seed is an approved web source that may be fetched
+   (`SourceRightsService.MayFetch`: clear, a recorded permission, or facts-only with facts-only use approved by
+   an admin). A facts-only class from a check alone, forbidden, permission-needed and unclassed sources never
+   seed it. **What seeds it on a first enable**: nothing until the terms-only pass has been reviewed. The
+   terms-only checks come first in the lane; the admin reads each class and its deciding quote, approves
+   facts-only use of the sources that pass the review, and turns `FullChecks` on; from then on those sources
+   seed it. Until then each run is skipped and says why ("N approved web source(s) have no class yet ...", "M
+   are facts-only and wait for an admin to approve facts-only use"), so a waiting lane never reads as an
+   empty one. NOM sends the scraper no list of sites to leave out of pass 2 (the discovery job takes none), so
+   a site linked from an approved seed may have its homepage, and possibly one recipe-looking page, probed
+   before NOM has read its terms; this needs a scraper change (an exclusion list) and is not closed by NOM.
 
    A run or check still marked `running` past its budget plus 60 s and a grace of
    `StaleGraceSeconds` (300 s) had its poll cut off (nom-api restarted, or the tick failed): the
@@ -39,22 +54,53 @@ reasons.
    `lead` and is never checked. A domain that is already a source (any status) is not a
    candidate; a domain an admin rejected is never offered again. A user's request for an unknown
    domain (the Pending row the scrape gate creates) becomes a candidate too.
-3. **Checks** (`RunNextCheckAsync`). One `POST /api/source-check/jobs` at a time, sample size 20,
-   budget `CheckBudgetSeconds`, at most `MaxChecksPerDay` in any 24 hours (failed ones count).
+3. **Checks** (`RunNextCheckAsync`). One `POST /api/source-check/jobs` at a time, budget
+   `CheckBudgetSeconds`, at most `MaxChecksPerDay` in any 24 hours (failed ones count, and so do the lane's
+   own terms-only checks). Each check is one of two kinds, stored on the row (`SourceCheck.Mode`):
+   - **terms-only** (`sampleSize` 0): robots.txt, the homepage and the terms pages, no recipe page;
+   - **full** (`sampleSize` 20): the same and a sitemap and 20 sample recipe pages.
+
+   **The first check of any source or candidate is terms-only**, whatever it holds: a site whose own words
+   forbid automated collection, or that refuses NomBot, must never have a recipe page requested because NOM
+   had not read it yet. A full check is asked only when a written permission is recorded or the latest
+   terms-only report of that source (or candidate) allows one (`SourceRightsRule.AllowsFullCheck`: a
+   terms-only report under a rule version NOM reads that classes the site facts-only or clear, so nothing in
+   its words forbids automated access or reuse, nothing refused NomBot and no terms page was left unread),
+   and only while `FullChecks` is on. A terms-only report that allows no full check holds the target
+   until `RecheckDays` have passed (a bar is held by the class it derived: forbidden and permission-needed
+   targets are never due; an inconclusive one, such as a host with no address, is tried again by time).
+   Without the scraper's terms-only mode (`TermsOnlyChecks` off) no source or candidate without a passing
+   terms-only report is checked at all. A terms-only check stores the rights class and AI flag of an
+   approved source (never replacing a clear class it cannot see the licence of), and marks a candidate not
+   clear only when it found a bar; it gives no admission verdict and does not stamp the weekly re-check
+   date. If the scraper answers a terms-only request with recipe pages read, the check is stored as failed
+   without its report, so nothing (the stale re-derive of a source with no class included) can class the
+   site from it. Whether a check was full is what NOM asked for (`SourceCheck.Mode`), not the mode its report
+   names: a full check answered under a mode NOM does not know still counts as the target's full check, so
+   the target is not due again on the next tick.
+
    Order: a terms-only check an admin asked for (below), then approved web sources due for their
-   re-check, then user requests, then new candidates by how often they were seen. A candidate is checked
-   again when its last check was under other rules, did not finish, or was clear and older than
-   `RecheckDays`. A source whose effective rights class is forbidden or permission-needed, and a candidate
-   whose last report classes it so (`source-rights.md`), is never due: no automatic check fetches it, and the
-   admin page says so beside the source. A source or candidate whose
+   re-check (those due a terms-only check before those due a full one), then user requests, then new
+   candidates by how often they were seen. A source is due when it was never checked in full or its last
+   full check is older than `RecheckDays`. A candidate is due when it has no full check, when the policy
+   version changed since its last full check (once: the next check stores the current one), or when that
+   check did not finish or was clear and is older than `RecheckDays`. The rule version a report came back
+   under never makes a target due again: a scraper newer or older than NOM expects cannot make the lane
+   check the same site on every tick. A source whose effective rights class is forbidden or permission-needed,
+   and a candidate whose last report classes it so (`source-rights.md`), is never due: no automatic check
+   fetches it, and the admin page says so beside the source. A source or candidate whose
    check failed or was lost is not taken again for `FailedRetryHours` (24 h), so one site that
    always fails cannot use the whole daily cap. Each check is a row in
    `recipe.SourceCheck` with the scraper's report stored whole.
-4. **The single verdict** (`SourceAdmissionPolicy`, version `source-admission/2`, a pure function,
+4. **The single verdict** (`SourceAdmissionPolicy`, version `source-admission/3`, a pure function,
    no model). Clear only when all of these hold:
-   - the report is complete and under rule version `source-check/4` (a stored `source-check/2` report is
-     still read, but its candidate or source is due to be checked again, and an approval needs a check under
-     `source-check/4`);
+   - the report is complete and under rule version `source-check/5` (stored `source-check/4` and
+     `source-check/2` reports are still read; an approval needs a check under `source-check/5`). A report under
+     a newer `source-check/N` is read on the reasons NOM knows, flagged "newer check version" on the admin page,
+     never clear and inconclusive until NOM reads that version; any other version is not read. Reasons are
+     read by their code, never by their place; a reason NOM does not know, and an outcome it does not know
+     (also `info` on a reason other than `crawl-delay` and `sample-yield`, and a terms-only `not-checked`),
+     is unknown, never a pass;
    - the scraper's own verdict is clear and every one of its reasons (`check-complete`, `https`,
      `bot-challenge`, `robots-nombot`, `robots-general`, `robots-ai`, `crawl-delay`,
      `reservation`, `terms`, `licence`, `credits`, `enumerable`, `structured-data`,
@@ -86,8 +132,8 @@ reasons.
    all) ends it and pauses harvesting, journaled and shown.
 7. **Re-judging and the weekly re-check.** Every approved web source is checked by the same rule
    every `RecheckDays`, and the verdict is shown beside it with its reasons, except a source whose rights
-   class is forbidden or permission-needed: the weekly re-check skips it and says so. For such a source an
-   admin may start a **terms-only check** (`POST /api/ScrapingSource/{id}/terms-check`): the scraper's
+   class is forbidden or permission-needed: the weekly re-check skips it and says so. For such a source, and
+   for one with no class yet, an admin may start a **terms-only check** (`POST /api/ScrapingSource/{id}/terms-check`): the scraper's
    `sampleSize` 0 mode reads robots.txt, the homepage and the terms pages and no recipe page; it is queued,
    journaled at both ends (`SourceTermsCheck`, a check lost to a restart included), run by the next tick
    outside the daily cap (not counted in it), and re-derives
@@ -173,13 +219,16 @@ probation limit.
 | `TickMinutes` | 30 | between lane ticks (one check per tick) |
 | `ProbationDays`, `ProbationRecipes` | 21, 50 | probation length and recipe limit |
 | `StagedImportGate` | true | the staged import gate above |
-| `TermsOnlyChecks` | false | the scraper has its terms-only mode (`sampleSize` 0); an admin may start a terms-only check of a forbidden or permission-needed source |
+| `TermsOnlyChecks` | false | the scraper has its terms-only mode (`sampleSize` 0). The first check of every source and candidate is terms-only, so off, nothing without a passing terms-only report is checked; an admin may start a terms-only check of a forbidden, permission-needed or unclassed source |
+| `FullChecks` | true | full checks (20 sample recipe pages) may run, each only after a terms-only check allowed it, and discovery runs; set false for a first enable to run the terms-only pass alone and review it |
 
 `SourceDiscovery:AutoApprove` is no longer read (a warning is logged if it is set).
 
 ## Where it shows
 
-- Admin → Scraping Sources: the queue, the approved sources with their re-check, the candidates
+- Admin → Scraping Sources: the queue, the approved sources with their re-check and the kind of
+  their last check (`scraping-source-last-check-kind`: terms-only or full, its status and date; a
+  report under a newer rule version is flagged, `scraping-source-newer-check-version`), the candidates
   that are not clear with their reasons, user requests, hand sources, discovery runs and failed
   checks, and the journal with its undo buttons.
 - Admin → Pipeline, "Recipe sources": the lane's state, failed runs in a row and the last good

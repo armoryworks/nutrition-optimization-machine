@@ -124,6 +124,35 @@ class RuleTests(unittest.TestCase):
                      ["d", "Book A", "historic", "1", "3 oz cream cheese", "3", "Ounce", "-"]])
         self.assertEqual(facts, [])
 
+    def test_a_line_that_states_no_single_size_of_one_container_is_not_read(self):
+        for line in ("1 (7½ to 8 oz.) can taco sauce", "1 8-oz. or 1-lb. can salmon", "one or two 2-oz. cans anchovies",
+                     "1 package (3 to 4 ounces) pudding mix", "1 package (8-10 ounces) riced cauliflower", "1 can tomatoes (14-15 ounces, diced)",
+                     "1 can chopped green chilies (1-4.25 oz. can)", "1 half pint can of condensed milk", "one pint and a half can of pineapple",
+                     "1 13³⁄₄ oz. package hot roll mix", "1 qt. jar with fresh mint leaves"):
+            self.assertFalse(ef.one_size(line), line)
+        for line in ("three one-pound cans of salmon", "2 seven-ounce cans tuna", "1 qt. can of tomatoes", "a small (quarter of a pound) box of mustard"):
+            self.assertTrue(ef.one_size(line) and ef.states_size(line), line)
+
+    def test_a_flavoured_product_does_not_size_a_plain_food(self):
+        self.assertFalse(ef.names_its_food("2 (3 oz.) pkg. raspberry-flavored gelatin", "Gelatins, dry powder, unsweetened"))
+        self.assertFalse(ef.names_its_food("3 packages strawberry gelatin (3 oz. packages)", "Gelatins, dry powder, unsweetened"))
+        self.assertTrue(ef.names_its_food("1 (3 oz) package lime gelatin", "Gelatin desserts, dry mix"))
+        self.assertTrue(ef.names_its_food("1 oz. packet of gelatine", "Gelatins, dry powder, unsweetened"))
+
+    def test_a_web_recipe_with_a_book_attribution_is_modern_unless_its_era_row_says_otherwise(self):
+        self.assertEqual(ef.era_of({"era": "unknown", "host": "www.myplate.gov"}), "modern")
+        self.assertEqual(ef.era_of({"era": "unknown", "host": "www.gutenberg.org"}), "unknown")
+        self.assertEqual(ef.era_of({"era": "unknown", "host": "-"}), "unknown")
+        self.assertEqual(ef.era_of({"era": "historic", "host": "www.myplate.gov"}), "historic")
+        self.assertEqual(ef.era_of({"era": "unknown"}), "unknown")
+
+    def test_the_committed_readings_are_what_the_miner_reads_line_by_line(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            ef.main(["--lines", os.path.join(GOLDEN, "container-era-lines.tsv")])
+        with open(os.path.join(GOLDEN, "container-era-readings.tsv"), encoding="utf-8") as f:
+            self.assertEqual(out.getvalue(), f.read())
+
     def test_a_size_word_right_before_the_container_word_is_its_own_key(self):
         self.assertEqual(ef.size_word("1 large package (8 oz.) cream cheese"), "large")
         self.assertEqual(ef.size_word("1 large (8 oz) package cream cheese"), "")

@@ -155,8 +155,15 @@
                       Recipes withheld {{ source.recipesWithheldAt | date: 'mediumDate' }}: {{ source.recipesWithheldReason }}
                     </span>
                   }
-                  @if (source.check && !source.check.conclusive) {
-                    <span class="nom-scraping-sources__notes" data-testid="scraping-source-inconclusive">The last check did not finish; it will run again.</span>
+                  @if (source.check; as last) {
+                    <span class="nom-scraping-sources__notes" data-testid="scraping-source-last-check-kind">{{ checkKind(last) }} · {{ last.startedUtc | date: 'mediumDate' }}</span>
+                    @if (last.newerRuleVersion) {
+                      <span class="nom-scraping-sources__notes nom-scraping-sources__warn" data-testid="scraping-source-newer-check-version">
+                        Newer check version: the report came under {{ last.ruleVersion }}, newer than NOM reads. It is classed on the facts NOM knows and is never clear until NOM reads that version.
+                      </span>
+                    } @else if (!last.conclusive && last.mode !== 'terms-only') {
+                      <span class="nom-scraping-sources__notes" data-testid="scraping-source-inconclusive">The last check did not finish; it will run again.</span>
+                    }
                   }
                   @if (against(source.check?.reasons).length) {
                     <ul class="nom-scraping-sources__reasons" data-testid="scraping-source-reasons">
@@ -292,7 +299,7 @@
                       Pause harvesting
                     </button>
                   }
-                  @if (source.recheckSkipped) {
+                  @if (source.recheckSkipped || !source.rightsClass) {
                     <button mat-button (click)="termsCheck(source)" [disabled]="processing() || termsCheckWaiting(source)" data-testid="scraping-source-terms-check-btn">
                       <mat-icon>policy</mat-icon>
                       Start terms-only check

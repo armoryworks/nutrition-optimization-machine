@@ -36,6 +36,18 @@ namespace Nom.Orch.Models.Curation
         public Dictionary<string, int> FailedApprovedByReason { get; set; } = new();
         /// <summary>Failing recipes by curation status.</summary>
         public Dictionary<string, int> FailedByStatus { get; set; } = new();
+        /// <summary>Recipes the check is unsure of: only weak signals (<c>lost-step</c>, <c>out-of-order</c>, <c>added-quantity</c>, <c>too-short</c>, <c>too-long</c>), so they stay shown and are the prose judge's to read.</summary>
+        public int Unsure { get; set; }
+        /// <summary>Unsure recipes that are approved.</summary>
+        public int UnsureApproved { get; set; }
+        /// <summary>Unsure recipes by weak signal; a recipe counts once under each signal it has.</summary>
+        public Dictionary<string, int> UnsureByReason { get; set; } = new();
+        /// <summary>Recipes this call marked unsure (journaled); none on a dry run.</summary>
+        public int MarkedUnsure { get; set; }
+        /// <summary>Recipes this call found no longer unsure and cleared (journaled).</summary>
+        public int ClearedUnsure { get; set; }
+        /// <summary>The first unsure recipes, with what the check found.</summary>
+        public List<ProseRecheckSample> UnsureSamples { get; set; } = new();
         /// <summary>Recipes with no stored source document, or one that states no method.</summary>
         public int SkippedNoSource { get; set; }
         /// <summary>Recipes with a step a person has edited since import, or whose withhold a person ended; their wording is not the lane's.</summary>
@@ -80,6 +92,8 @@ namespace Nom.Orch.Models.Curation
         public int RestoredWithheld { get; set; }
         /// <summary>Of those restored, recipes the rewrite lane tried and left quarantined with their text unchanged.</summary>
         public int RestoredAfterFailedAttempt { get; set; }
+        /// <summary>Recipes whose unsure mark a re-check set or cleared and the undo put back as it was; not counted in <see cref="Restored"/>.</summary>
+        public int RestoredUnsure { get; set; }
         /// <summary>Entries left alone because the recipe is gone, or the rewrite lane or a person has replaced its prose since.</summary>
         public int Skipped { get; set; }
         /// <summary>Of those skipped, recipes whose prose was replaced since.</summary>

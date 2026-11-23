@@ -84,7 +84,7 @@ namespace Nom.Orch.Services.Support
 
     /// <summary>
     /// What the clean-room pipeline made of one recipe: the rewrite when an attempt passed the form
-    /// rules, check v2 and the judge, every attempt with its reasons, whether the fact sheets came
+    /// rules, the prose check and the judge, every attempt with its reasons, whether the fact sheets came
     /// from the extractor or by rule, and the check's finding and the judge's verdict on the
     /// rewrite.
     /// </summary>
@@ -124,8 +124,9 @@ namespace Nom.Orch.Services.Support
     /// The description is built by rule (<see cref="ProseDescription"/>).</item>
     /// <item>Gate: the form rules (one step per sheet, each amount token exactly once in its step,
     /// the step's ingredients and verbs kept, no digit or amount outside the tokens), then
-    /// <see cref="ProseCheck"/> against the source, then the judge, a model of another family. The
-    /// first attempt all three pass is the rewrite.</item>
+    /// <see cref="ProseCheck"/> against the source, then the judge, a model of another family. A
+    /// rewrite the check only marks unsure goes to the judge like one it passes. The first attempt
+    /// all three accept is the rewrite.</item>
     /// </list>
     /// A model host outage is not caught: the caller ends its sweep without charging the recipe.
     /// </summary>
@@ -193,10 +194,10 @@ namespace Nom.Orch.Services.Support
                 var rewrite = new RewriteFidelity.SourceText(description, steps, input.Dish);
                 var finding = ProseCheck.Check(input.Source, rewrite, input.Lines, input.Stock, verbs);
                 lastFinding = finding;
-                if (!finding.Passed)
+                if (finding.Failed)
                 {
-                    attempts.Add(new ProseAttempt(number, style, finding.Reasons.ToList()));
-                    problems = finding.Reasons.Select(Feedback).Distinct().ToList();
+                    attempts.Add(new ProseAttempt(number, style, finding.FailReasons.ToList()));
+                    problems = finding.FailReasons.Select(Feedback).Distinct().ToList();
                     continue;
                 }
 
@@ -227,8 +228,8 @@ namespace Nom.Orch.Services.Support
         /// The model-free path, for a recipe whose source reserves its content against AI use: no model
         /// reads the source's method or description. The masked method's sheets are built by rule
         /// (<see cref="RuleSheets"/>), rendered by rule (<see cref="ProseFactSheet.Render"/>), and the
-        /// rendering is written only when it passes the form rules and check v2; no judge reads it,
-        /// because the judge is a model. Otherwise the recipe keeps no method and its link.
+        /// rendering is written only when it passes the form rules and the check with no fault at all,
+        /// not even an unsure one; no judge reads it, because the judge is a model. Otherwise the recipe keeps no method and its link.
         /// </summary>
         public static ProseLaneOutcome RunRuleOnly(ProseLaneInput input, ProseVerbLexicon? verbs = null)
         {
@@ -296,14 +297,14 @@ namespace Nom.Orch.Services.Support
         }
 
         /// <summary>
-        /// The gate a rewrite passes before check v2 and the judge read it (the judge alone when a
-        /// planted rewrite is checked): check v2 against the source, then the judge. Returns the
-        /// reasons it was refused, empty when both accept it.
+        /// The gate a rewrite passes (the judge alone when a planted rewrite is checked): the prose
+        /// check against the source, then the judge, which also reads a rewrite the check is only
+        /// unsure of. Returns the reasons it was refused, empty when both accept it.
         /// </summary>
         public static async Task<IReadOnlyList<string>> GateAsync(ProseLaneInput input, RewriteFidelity.SourceText rewrite, IProseJudge judge, CancellationToken cancellationToken)
         {
             var finding = ProseCheck.Check(input.Source, rewrite, input.Lines, input.Stock);
-            if (!finding.Passed) return finding.Reasons.ToList();
+            if (finding.Failed) return finding.FailReasons.ToList();
             var original = input.Source.Steps.Select(ProseQuantities.Prepare).Where(s => s.Length > 0).ToList();
             var verdict = await judge.JudgeAsync(original, rewrite.Steps, cancellationToken);
             if (verdict == null) return new[] { JudgeUnreadable };
@@ -443,12 +444,13 @@ namespace Nom.Orch.Services.Support
             return t;
         }
 
-        /// <summary>The writer's feedback for a check v2 reason, in the lane's own words: it never quotes the source.</summary>
+        /// <summary>The writer's feedback for a reason of the prose check, in the lane's own words: it never quotes the source.</summary>
         private static string Feedback(string reason) => reason switch
         {
             ProseCheck.CopiedText => "the wording is too close to a published text; use your own words and your own sentence shapes",
             ProseCheck.Unchanged => "the wording is too close to a published text; use your own words and your own sentence shapes",
             ProseCheck.LostStep => "an action or an ingredient of a sheet is missing; keep every action and every ⟦L⟧ token",
+            ProseCheck.LostIngredient => "an ingredient of a sheet is missing; keep every ⟦L⟧ token",
             ProseCheck.TooShort => "the method is too short; say each action of the sheets in a full sentence with its cues",
             ProseCheck.TooLong => "the method is too long; one short sentence per action is enough",
             ProseCheck.OutOfOrder => "the steps must follow the order of the sheets",

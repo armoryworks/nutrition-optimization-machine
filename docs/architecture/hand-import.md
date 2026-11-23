@@ -58,11 +58,15 @@ script lives in `ops/` because it fetches; nom-api never fetches a recipe site.
    `extract-summary.json` with, per source, documents, pages, pages needing OCR, records kept,
    records dropped by reason and documents not parsed.
    - `card` (VA): read by rule: title (the listing's title), `Prep | Cook | Total`, `Yield`, the
-     Ingredients section (a text block starts a line; wrapped parts are joined) and the Directions
+     Ingredients section (a text block starts a line; wrapped parts are joined, and a line that ends
+     with a word that cannot end it, "into", "or", "to", "about", "of", "with", "for", "plus",
+     "from", a dash or an open bracket, takes the next line even across a block break and when the
+     next starts with an amount: staging checkpoint 3, N29, 11 of 337 VA recipes) and the Directions
      section (numbered steps take their block; the first unnumbered block after them, a note, ends
      them), up to Recipe Notes and the nutrition line.
    - `html` (NHLBI): the title, the sentence under it as the description, the Ingredients and
-     Directions blocks, and the labelled times and yield.
+     Directions blocks, and the labelled times and yield. The directions end at the page furniture
+     after them, the "Recipe Video" widget label included (staging checkpoint 3, N30, 7 of 54).
    - `book` (Library of Congress): `ops/cookbook-extract.py`'s model extraction over chunks cut at
      recipe titles across pages, and its rules (`check_record`: every ingredient line and step
      found in the recipe's own text with all its numbers, every line of an ingredient list
@@ -71,6 +75,16 @@ script lives in `ops/` because it fetches; nom-api never fetches a recipe site.
      pass the number check, and every line of the page that starts with an amount (a bare step
      number aside) must lie inside one of its ingredient lines or a step, so a wrapped line counts
      once and no listed ingredient is left out.
+   - Model calls (`book`, `pages`): `--timeout` (seconds per call, default 600) and `--retries`
+     (default 2, waits doubling from 30 s). Every readable answer is appended to
+     `records/<doc>.answers.jsonl` the moment it arrives, keyed by the model, the prompt and the
+     text, and read back on the next run with the same `--model`, so a page or chunk is never asked
+     twice; an unreadable answer is not kept, so it is asked again, and another model's answers are
+     never reused; a call that still times out drops only its page or chunk, counted as
+     `model call failed`, and the run goes on and writes every record it has (staging checkpoint 3,
+     N31: one call past 600 s ended the NCI run and lost everything). Run `extract` again to ask only
+     what is missing. `ops/cookbook-extract.py` takes the same `--timeout`, `--retries` and
+     `--checkpoint` (default `<out>.answers.jsonl`) and counts `failedChunks`.
 
    Every record of every layout then passes the **number check**: the cookbook extraction's
    fidelity check on each ingredient line (digits) and each step (number words too) against the

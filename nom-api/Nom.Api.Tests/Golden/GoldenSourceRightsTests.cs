@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
+using FluentAssertions;
 using Nom.Orch.Services.Support;
 using Nom.Orch.UtilityInterfaces;
 using Xunit;
@@ -12,8 +14,9 @@ namespace Nom.Api.Tests.Golden
     /// <summary>
     /// The source rights rule against its golden sets: source-rights.tsv (the class and AI flag of each of
     /// the 22 judged hosts, built from the facts and quoted sentences of source-rejudge.md, again under
-    /// source-check/4 for the hosts its facts change, and constructed cases), rights-sentences.tsv (NOM's reading of each quoted sentence) and recipe-titles.tsv (the title
-    /// rule). All three are rules with no model, so their floor is every row.
+    /// source-check/4 for the hosts its facts change, terms-only checks under source-check/5, and constructed cases), source-check-5.tsv
+    /// (the 23 source-check/5 reports the staging scraper stored, replayed whole), rights-sentences.tsv (NOM's reading of each quoted sentence)
+    /// and recipe-titles.tsv (the title rule). All are rules with no model, so their floor is every row.
     /// </summary>
     [Trait("Category", "Golden")]
     public class GoldenSourceRightsTests
@@ -39,6 +42,57 @@ namespace Nom.Api.Tests.Golden
             });
             _output.WriteLine(report.Summary);
             GoldenSet.Assert(report);
+        }
+
+        [Fact]
+        public void Each_saved_source_check_5_report_is_classed_and_read_by_the_policy()
+        {
+            var reports = SavedReports();
+            var report = GoldenSet.Run("source-check-5.tsv", "status", row =>
+            {
+                var saved = reports[row["host"]];
+                saved.RuleVersion.Should().Be(SourceAdmissionPolicy.ScraperRuleVersion);
+                var verdict = SourceRightsRule.Derive(saved);
+                var judgement = SourceAdmissionPolicy.Judge(SourceAdmissionPolicy.Facts(saved, 0, 0, rejectedBefore: false));
+                var expectedQuote = row["expectQuote"];
+                var quote = verdict.Quote ?? "-";
+                var asNewer = SourceRightsRule.Derive(Reversion(saved, "source-check/6"));
+                asNewer.Class.Should().Be(verdict.Class, $"{row.Id} under a newer rule version is classed on the facts NOM knows");
+                asNewer.NewerRuleVersion.Should().BeTrue();
+                judgement.Verdict.Should().Be(SourceAdmissionPolicy.NotClear, $"no current source is clear ({row.Id})");
+                return GoldenSet.Compare(row, new Dictionary<string, string>
+                {
+                    ["expectClass"] = verdict.Class ?? "-",
+                    ["expectAi"] = verdict.AiReserved ? "yes" : "no",
+                    ["expectQuote"] = expectedQuote == "-" ? quote : quote.Contains(expectedQuote, StringComparison.Ordinal) ? expectedQuote : quote,
+                    ["expectConclusive"] = judgement.Conclusive ? "yes" : "no",
+                    ["expectFullCheck"] = SourceRightsRule.AllowsFullCheck(AsTermsOnly(saved)) ? "yes" : "no",
+                });
+            });
+            _output.WriteLine(report.Summary);
+            GoldenSet.Assert(report);
+        }
+
+        private static ScraperSourceCheckReport Reversion(ScraperSourceCheckReport report, string ruleVersion)
+        {
+            var copy = JsonSerializer.Deserialize<ScraperSourceCheckReport>(JsonSerializer.Serialize(report))!;
+            copy.RuleVersion = ruleVersion;
+            return copy;
+        }
+
+        /// <summary>The source-check/5 reports the staging scraper stored for the 22 current web sources and the myplate.gov request, keyed by host.</summary>
+        internal static Dictionary<string, ScraperSourceCheckReport> SavedReports() =>
+            JsonSerializer.Deserialize<Dictionary<string, ScraperSourceCheckReport>>(
+                File.ReadAllText(Path.Combine(GoldenSet.Folder, "source-check-5-reports.json")), new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+
+        /// <summary>The report as a terms-only check of the same site would give it: the same robots.txt, homepage and terms facts, no recipe page.</summary>
+        internal static ScraperSourceCheckReport AsTermsOnly(ScraperSourceCheckReport report)
+        {
+            var copy = JsonSerializer.Deserialize<ScraperSourceCheckReport>(JsonSerializer.Serialize(report))!;
+            copy.Mode = SourceRightsRule.TermsOnlyMode;
+            copy.Samples = new ScraperCheckSamples { Requested = SourceAdmissionPolicy.TermsOnlySampleSize };
+            if (copy.Reservation != null) copy.Reservation.TdmRepStatus = "not-checked";
+            return copy;
         }
 
         [Fact]
@@ -70,7 +124,19 @@ namespace Nom.Api.Tests.Golden
             GoldenSet.Assert(report);
         }
 
-        /// <summary>The report a row describes, in the scraper's shape (source-check/2, or source-check/4 with the facts of the access column).</summary>
+        [Fact]
+        public void A_credit_line_keeps_the_cue_and_the_credited_name_only()
+        {
+            var report = GoldenSet.Run("credit-lines.tsv", "status", row =>
+            {
+                var credit = CreditLines.Join(row["texts"].Split(" | "));
+                return GoldenSet.Compare(row, new Dictionary<string, string> { ["expect"] = credit ?? "-" });
+            });
+            _output.WriteLine(report.Summary);
+            GoldenSet.Assert(report);
+        }
+
+        /// <summary>The report a row describes, in the scraper's shape (source-check/2, or source-check/4 and later with the facts of the access column, a terms-only check with <c>mode=terms-only</c>).</summary>
         internal static ScraperSourceCheckReport Report(Nom.Import.Golden.GoldenRow row)
         {
             var host = row["host"];
@@ -147,10 +213,16 @@ namespace Nom.Api.Tests.Golden
 
             var enumeration = new ScraperCheckEnumeration { ViaSitemap = true, RecipeUrlCount = 1000 };
             var samples = new ScraperCheckSamples { Requested = 20, Pages = new List<ScraperCheckSamplePage> { new() { Url = $"https://{host}/a-recipe/" } } };
+            string? mode = null;
             foreach (var fact in Split(row.Value("access"), ";"))
             {
                 if (fact.StartsWith("links=", StringComparison.Ordinal)) access.HomepageLinks = int.Parse(fact["links=".Length..]);
                 else if (fact.StartsWith("sitemap-refused:", StringComparison.Ordinal)) enumeration.RefusedPages.Add(fact["sitemap-refused:".Length..]);
+                else if (fact.StartsWith("mode=", StringComparison.Ordinal))
+                {
+                    mode = fact["mode=".Length..];
+                    if (mode == SourceRightsRule.TermsOnlyMode) samples = new ScraperCheckSamples { Requested = SourceAdmissionPolicy.TermsOnlySampleSize };
+                }
                 else if (fact.StartsWith("samples-refused:", StringComparison.Ordinal))
                 {
                     var parts = fact["samples-refused:".Length..].Split('@');
@@ -163,6 +235,7 @@ namespace Nom.Api.Tests.Golden
             {
                 Domain = host,
                 RuleVersion = row["ruleVersion"],
+                Mode = mode,
                 Complete = row["complete"] == "yes",
                 Verdict = "not-clear",
                 Reasons = new List<ScraperCheckReason> { new() { Code = "licence", Outcome = row["licencePass"] == "yes" ? "pass" : "fail" } },

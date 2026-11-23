@@ -28,6 +28,7 @@ public class SourceCheckEntityConfiguration : IEntityTypeConfiguration<SourceChe
 
         builder.Property(e => e.Domain).IsRequired().HasMaxLength(255);
         builder.Property(e => e.Purpose).IsRequired().HasMaxLength(16);
+        builder.Property(e => e.Mode).HasMaxLength(16);
         builder.Property(e => e.JobId).HasMaxLength(64);
         builder.Property(e => e.Status).IsRequired().HasMaxLength(16);
         builder.Property(e => e.StopReason).HasMaxLength(16);

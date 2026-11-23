@@ -42,6 +42,8 @@ namespace Nom.Orch.Models.Curation
     public class LinkRecheckSample
     {
         public string Outcome { get; set; } = string.Empty;
+        public string? Class { get; set; }
+        public string? Candidate { get; set; }
         public long FoodId { get; set; }
         public string FoodName { get; set; } = string.Empty;
         public string Wording { get; set; } = string.Empty;
@@ -60,7 +62,9 @@ namespace Nom.Orch.Models.Curation
     /// One run of a re-check rule set: the wordings and lines it read, what it kept, what it kept
     /// because the gate's holds do not prove the food wrong (not proven, by rule), what it moved to
     /// another food or took back to an uncurated food of their wording because a hold refutes the
-    /// food (refuted), the foods it created or renamed and the names it freed, the aliases it
+    /// food (refuted) by a proven re-check class, what a class not proven would refute (candidates,
+    /// kept and handed to the model audit), the candidates it wrote because their class's tier is
+    /// live on the lane frame (by class; a lane batch writes each class under a stamp of its own), the foods it created or renamed and the names it freed, the aliases it
     /// moved, untrusted, removed or added, the run's stamp (its undo takes it), the verified
     /// wording rows whose lines it took off a prepared food (each to be retracted) and samples by
     /// outcome. A dry run counts all of these by the apply's own steps.
@@ -79,6 +83,8 @@ namespace Nom.Orch.Models.Curation
         public int Held { get; set; }
         public int Unproven { get; set; }
         public int UnprovenLines { get; set; }
+        public int Candidates { get; set; }
+        public int CandidateLines { get; set; }
         public int RefutedLines { get; set; }
         public int Verified { get; set; }
         public int Alternatives { get; set; }
@@ -92,6 +98,7 @@ namespace Nom.Orch.Models.Curation
         public int AliasesUntrusted { get; set; }
         public int AliasesRemoved { get; set; }
         public int AliasesAdded { get; set; }
+        public int AliasesRefused { get; set; }
         public int FoodsCreated { get; set; }
         public int FoodsRenamed { get; set; }
         public int NamesFreed { get; set; }
@@ -100,6 +107,10 @@ namespace Nom.Orch.Models.Curation
         public List<long> WordingRows { get; set; } = new();
         public Dictionary<string, int> ByReason { get; set; } = new();
         public Dictionary<string, int> ByUnproven { get; set; } = new();
+        public Dictionary<string, int> ByCandidate { get; set; } = new();
+        public Dictionary<string, int> ByClass { get; set; } = new();
+        public Dictionary<string, int> ByQualified { get; set; } = new();
+        public List<DateTime> ClassStamps { get; set; } = new();
         public Dictionary<string, int> ByTier { get; set; } = new();
         public List<LinkRecheckSample> Samples { get; set; } = new();
     }
@@ -120,6 +131,8 @@ namespace Nom.Orch.Models.Curation
         public int Held { get; set; }
         public int Unproven { get; set; }
         public int UnprovenLines { get; set; }
+        public int Candidates { get; set; }
+        public int CandidateLines { get; set; }
         public int LinesMoved { get; set; }
         public int LinesUnlinked { get; set; }
         public int AliasesChanged { get; set; }
@@ -174,13 +187,15 @@ namespace Nom.Orch.Models.Curation
         public List<LinkRecheckNameRow> Listed { get; set; } = new();
     }
 
-    /// <summary>The re-check as the Pipeline page shows it: on or off, the rules' version and signature, and the newest run of each set.</summary>
+    /// <summary>The re-check as the Pipeline page shows it: on or off, the rules' version and signature, the classes that may write by rule (and why none may, when the per-class record is not current), and the newest run of each set.</summary>
     public class LinkRecheckStatusModel
     {
         public bool Enabled { get; set; }
         public string Version { get; set; } = string.Empty;
         public string Signature { get; set; } = string.Empty;
         public List<string> Sets { get; set; } = new();
+        public List<string> ProvenClasses { get; set; } = new();
+        public string? ProvenProblem { get; set; }
         public List<LinkRecheckRunSummary> LastRuns { get; set; } = new();
         public LinkRecheckRunSummary? LastWithdraw { get; set; }
         public int WaitingPicks { get; set; }

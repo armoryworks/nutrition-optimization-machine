@@ -1,0 +1,342 @@
+# Label terms (label-terms/1): the names a United States ingredient statement uses, each with what it tells the diet gate beyond its own words.
+# term: the name as read, lower case, singular. kind: food (a single food or a regulated common name), additive (a functional additive, with its INS/E number), flavour (a flavouring or spice term, judged by its own words), composite (a prepared food whose name hides what it is made of; a composite also gives the restriction types that restrict one of its contents a companion pattern, DefaultRestrictionCriteria.CompositeCompanions).
+# names: other spellings and numbers, joined by |. contains: what the term is or is made of, as words the restriction patterns read (a major-allergen word is read with every word of its class). may: what it may be made of when the label does not say (held as unknown where a restriction names it). source: why.
+# Sources: FALCPA = Federal Food, Drug, and Cosmetic Act 201(qq) and 403(w) as amended by the Food Allergen Labeling and Consumer Protection Act of 2004 and the FASTER Act of 2021 (major food allergens; a major allergen in any ingredient, flavouring, colouring or incidental additive is declared by its source name in the statement or a Contains line, highly refined oils excepted). FDA-QA5 = FDA, Questions and Answers Regarding Food Allergens, edition 5 (2025). 21CFR = Title 21, Code of Federal Regulations (standards of identity; 101.4 and 101.22 for the naming of ingredients, spices and flavourings). INS = Codex Alimentarius, Class Names and the International Numbering System for Food Additives (CAC/GL 36-1989). SR = USDA FoodData Central SR Legacy food description. LABEL = the ingredient statement of the leading brand, as USDA FoodData Central's branded file publishes it.
+term	kind	names	contains	may	source
+water	food	filtered water|purified water|tap water	-	-	21CFR 101.4: water is declared as water
+salt	food	sea salt|kosher salt|iodized salt	-	-	SR: salt, table
+sugar	food	cane sugar|raw cane sugar|granulated sugar|turbinado sugar|beet sugar|invert sugar|powdered sugar|confectioners sugar|evaporated cane juice|evaporated cane sugar syrup|cane syrup|refiner's syrup|refiners syrup	-	-	21CFR 184.1854: sucrose from cane or beet
+brown sugar	food	-	-	-	SR: sugars, brown
+molasses	food	-	-	-	SR: molasses
+honey	food	-	-	-	SR: honey
+maple syrup	food	-	-	-	SR: syrups, maple
+agave syrup	food	agave nectar	-	-	SR: agave syrup
+corn syrup	food	glucose syrup|corn syrup solids|high fructose corn syrup|hfcs	corn	-	21CFR 168.120, 184.1866: corn syrup and HFCS are made from corn starch
+fructose	food	crystalline fructose	-	-	21CFR 184.1355
+wheat	food	whole wheat|wheat berries|cracked wheat	wheat	-	FALCPA: wheat is a major food allergen
+wheat flour	food	flour|enriched flour|enriched wheat flour|bleached flour|unbleached flour|white flour|bread flour|all purpose flour|all-purpose flour|cake flour|pastry flour|whole wheat flour|white whole wheat flour|whole grain wheat flour|graham flour|soft wheat flour|hard wheat flour|durum flour|durum wheat flour|durum semolina wheat flour|unbleached durum wheat flour|whole durum wheat flour|whole grain stone ground soft wheat flour|stone ground wheat flour	wheat	-	21CFR 137.105, 137.165, 137.200: flour is ground wheat
+semolina	food	durum semolina|durum wheat semolina|durum	wheat	-	21CFR 137.320: semolina is purified durum wheat middlings
+farina	food	-	wheat	-	21CFR 137.300: farina is ground wheat endosperm
+spelt	food	spelt flour	wheat	-	FDA-QA5: spelt, kamut, einkorn and farro are wheat
+kamut	food	khorasan wheat|kamut khorasan wheat|kamut wheat	wheat	-	FDA-QA5: kamut is wheat
+einkorn	food	emmer|farro	wheat	-	FDA-QA5: einkorn, emmer and farro are wheat
+bulgur	food	bulgur wheat|bulghur	wheat	-	SR: bulgur is cracked wheat
+couscous	food	-	wheat	-	SR: couscous is semolina pasta
+wheat starch	food	-	wheat	-	FALCPA: a wheat derivative
+wheat gluten	food	vital wheat gluten|wheat protein	wheat	-	FALCPA: a wheat protein
+wheat germ	food	defatted wheat germ|wheat bran	wheat	-	SR: wheat germ, wheat bran
+triticale	food	-	wheat	-	FDA-QA5: triticale is a wheat and rye hybrid
+seitan	food	-	wheat|wheat gluten	-	SR: seitan is wheat gluten
+barley	food	pearl barley|pearled barley|black barley|barley flour|barley flakes	barley	-	SR: barley
+malt	food	malted barley|malted barley flour|barley malt|malt extract|malt syrup|barley malt extract|barley malt syrup|malt powder	barley	-	SR: malt is sprouted barley
+rye	food	rye flour|rye meal	rye	-	SR: rye
+oat	food	oats|rolled oats|oat flour|oat bran|whole grain oats|steel cut oats	oat	-	SR: oats
+rice	food	white rice|brown rice|basmati rice|jasmine rice|thai jasmine rice|long grain rice|long grain|medium grain rice|short grain rice|parboiled rice|par-boiled rice|wild rice|red rice|black rice|sticky rice|glutinous rice|arborio rice|instant rice|rice flour|sweet rice flour|glutinous rice flour|rice starch|rice bran|rice protein	rice	-	SR: rice
+corn	food	maize|corn protein|corn gluten|corn gluten meal|sweet corn|white corn|yellow corn|corn kernels|hominy|corn flour|yellow corn flour|corn meal|cornmeal|corn grits|grits|masa|masa harina|corn masa flour	corn	-	SR: corn
+corn starch	food	cornstarch|native corn starch|unmodified corn starch|corn starch powder	corn	-	SR: cornstarch
+quinoa	food	red quinoa|white quinoa|black quinoa|quinoa flour	-	-	SR: quinoa
+millet	food	-	-	-	SR: millet
+sorghum	food	sorghum flour	-	-	SR: sorghum
+buckwheat	food	buckwheat flour|buckwheat groats	buckwheat	-	SR: buckwheat
+amaranth	food	-	-	-	SR: amaranth
+teff	food	-	-	-	SR: teff
+tapioca	food	tapioca starch|tapioca flour|tapioca pearls|cassava|cassava flour|cassava starch|manioc|yuca	-	-	SR: tapioca, cassava
+arrowroot	food	arrowroot starch|arrowroot flour	-	-	SR: arrowroot flour
+potato	food	potatoes|red potato|white potato|russet potato|yukon gold potato|potato starch|potato flour|potato flakes|dehydrated potato|dried potato flakes|potato granules|mashed potato	potato	-	SR: potatoes
+sweet potato	food	sweet potatoes|yam|yams	-	-	SR: sweet potato
+milk	food	whole milk|skim milk|nonfat milk|non fat milk|lowfat milk|low fat milk|reduced fat milk|part skim milk|part-skim milk|part skim-milk|cow's milk|cows milk|sheep's milk|goat's milk|grade a milk|grade a skim milk|nonfat dry milk|dry milk|milk powder|dried milk|nonfat milk solids|milk solids|milk protein|milk protein concentrate|milk protein isolate|condensed milk|evaporated milk|milkfat|milk fat|butterfat|cultured milk|cultured skim milk	milk	-	FALCPA: milk is a major food allergen; 21CFR 131
+cream	food	heavy cream|whipping cream|light cream|sweet cream|cultured cream|sour cream|cream solids|sweet cream solids|half and half|half-and-half|creme fraiche	milk	-	21CFR 131.3, 131.150, 131.160
+butter	food	unsalted butter|salted butter|sweet cream butter|cultured butter|butter oil|anhydrous milkfat|ghee|clarified butter	milk	-	21CFR (FD&C Act 402(c)): butter is made from cream
+buttermilk	food	cultured buttermilk|dry buttermilk|buttermilk powder|buttermilk solids|dried buttermilk	milk	-	21CFR 131.112
+whey	food	sweet whey|dry whey|dried whey|sweet dairy whey|whey powder|whey protein|whey protein concentrate|whey protein isolate|acid whey|demineralized whey	milk	-	21CFR 184.1979: whey is the liquid of milk after cheese is made
+casein	food	caseinate|sodium caseinate|calcium caseinate|potassium caseinate|milk casein|rennet casein	milk	-	FALCPA: casein is a milk protein
+lactose	food	milk sugar	milk	-	21CFR 168.122: lactose is obtained from whey
+cheese	food	cheddar cheese|monterey jack cheese|mozzarella cheese|parmesan cheese|romano cheese|swiss cheese|provolone cheese|cream cheese|cottage cheese|ricotta cheese|feta cheese|blue cheese|colby cheese|american cheese|pasteurized process cheese|cheese powder|cheese sauce|cheddar|mozzarella|parmesan|parmigiano reggiano|gouda|brie|feta|ricotta	milk	-	21CFR 133: every standardized cheese is made from milk
+yogurt	food	yoghurt|greek yogurt|cultured nonfat milk|kefir	milk	-	21CFR 131.200
+egg	food	eggs|whole egg|whole eggs|egg yolk|egg yolks|egg white|egg whites|dried egg|dried eggs|egg powder|whole egg powder|egg white powder|dried egg whites|egg albumen|albumen|egg albumin|liquid egg|liquid whole egg	egg	-	FALCPA: egg is a major food allergen; 21CFR 160
+fish	food	white fish|whitefish	fish	-	FALCPA: fish is a major food allergen
+anchovy	food	anchovies|anchovy paste|anchovy extract	fish	-	FALCPA: fish; SR: anchovy
+tuna	food	light tuna|white tuna|albacore|albacore tuna|skipjack|skipjack tuna|yellowfin tuna	fish	-	SR: fish, tuna
+salmon	food	pink salmon|sockeye salmon|atlantic salmon	fish	-	SR: fish, salmon
+cod	food	atlantic cod|pacific cod	fish	-	SR: fish, cod
+pollock	food	alaska pollock|pollack	fish	-	SR: fish, pollock
+tilapia	food	-	fish	-	SR: fish, tilapia
+fish sauce	food	nam pla|nuoc mam	fish|anchovy	-	SR: fish sauce is fermented anchovy
+shrimp	food	prawn|prawns|litopenaeus vannamei|penaeus vannamei|pacific white shrimp|white shrimp	shellfish|shrimp	-	FALCPA: crustacean shellfish; Litopenaeus vannamei is the Pacific white shrimp
+crab	food	crab meat|crabmeat	shellfish|crab	-	FALCPA: crustacean shellfish
+lobster	food	-	shellfish|lobster	-	FALCPA: crustacean shellfish
+oyster	food	oysters	shellfish|oyster	-	SR: mollusks, oyster
+clam	food	clams|clam juice	shellfish|clam	-	SR: mollusks, clam
+oyster mushroom	food	oyster mushrooms	-	-	SR: mushrooms, oyster (Pleurotus ostreatus), a fungus
+peanut	food	peanuts|dry roasted peanuts|roasted peanuts|peanut flour|peanut butter|peanut oil	peanut	-	FALCPA: peanut is a major food allergen
+almond	food	almonds|almond flour|almond meal|almond butter	tree nuts|almond	-	FALCPA: tree nuts (FDA-QA5)
+cashew	food	cashews|cashew nut|cashew nuts	tree nuts|cashew	-	FALCPA: tree nuts (FDA-QA5)
+walnut	food	walnuts	tree nuts|walnut	-	FALCPA: tree nuts (FDA-QA5)
+pecan	food	pecans	tree nuts|pecan	-	FALCPA: tree nuts (FDA-QA5)
+pistachio	food	pistachios	tree nuts|pistachio	-	FALCPA: tree nuts (FDA-QA5)
+hazelnut	food	hazelnuts|filbert|filberts	tree nuts|hazelnut	-	FALCPA: tree nuts (FDA-QA5)
+macadamia	food	macadamia nut|macadamia nuts	tree nuts|macadamia	-	FALCPA: tree nuts (FDA-QA5)
+pine nut	food	pine nuts|pignoli	tree nuts|pine nut	-	FALCPA: tree nuts (FDA-QA5)
+coconut	food	coconut milk|coconut cream|coconut oil|coconut extract|extractives of coconut|desiccated coconut|shredded coconut	coconut	-	FDA-QA5: coconut is no longer a tree nut for allergen labelling
+sesame	food	sesame seed|sesame seeds|toasted sesame seeds|sesame oil|sesame seed oil|toasted sesame oil|sesame paste	sesame	-	FALCPA (FASTER Act): sesame is a major food allergen
+sunflower	food	sunflower seed|sunflower seeds|sunflower oil|refined sunflower oil|high oleic sunflower oil	-	-	SR: sunflower seed
+melon seed	food	melon seeds	-	-	SR: seeds, watermelon seed kernels
+flaxseed	food	flax|flax seed|flaxseeds|ground flaxseed	-	-	SR: seeds, flaxseed
+chia seed	food	chia|chia seeds	-	-	SR: seeds, chia
+pumpkin seed	food	pumpkin seeds|pepitas	-	-	SR: seeds, pumpkin
+soybean	food	soybeans|soy|soya|whole soybeans|soy flour|defatted soy flour|soy protein|soy protein concentrate|soy protein isolate|isolated soy protein|soy protein powder|hydrolyzed soy protein|hydrolyzed soy|soybean oil|soy oil|soya oil|soy fiber|edamame|okara|soy okara|tofu|bean curd|soy milk|soymilk	soy	-	FALCPA: soy is a major food allergen (a highly refined soybean oil is exempt, read here as soy)
+textured vegetable protein	food	tvp|textured vegetable protein product|textured soy protein	soy	-	SR: textured vegetable protein is soy flour
+bean	food	beans|black beans|red beans|kidney beans|pinto beans|navy beans|white beans|cannellini beans|great northern beans|lima beans|green beans|french beans|string beans|mung beans|adzuki beans|black eyed peas|black-eyed peas|bean flour	bean	-	SR: beans
+chickpea	food	chickpeas|chick peas|chick pea|garbanzo beans|garbanzo bean|garbanzos|chickpea flour|gram flour|besan	chickpea	-	SR: chickpeas (garbanzo beans)
+lentil	food	lentils|green lentils|red lentils|brown lentils|yellow split lentils|split lentils|lentil flour	lentil	-	SR: lentils
+pea	food	peas|green peas|split peas|green split peas|yellow split peas|snap pea|snap peas|sugar snap peas|snow peas|pea protein|pea starch|pea fiber	pea	-	SR: peas
+onion	food	onions|yellow onion|white onion|red onion|sweet onion|green onion|spring onion|scallion|scallions|onion powder|granulated onion|dehydrated onion|dried onion|minced onion|dehydrated minced onions|onion puree|roasted onion puree|onion juice	onion	-	SR: onions
+garlic	food	garlic powder|granulated garlic|dehydrated garlic|dried garlic|roasted garlic|garlic puree|garlic paste|minced garlic|garlic juice	garlic	-	SR: garlic
+leek	food	leeks|dehydrated leek	-	-	SR: leeks
+shallot	food	shallots	-	-	SR: shallots
+chive	food	chives	-	-	SR: chives
+carrot	food	carrots|yellow carrots|carrot puree|carrot juice	-	-	SR: carrots
+tomato	food	tomatoes|tomato paste|tomato puree|extra heavy tomato puree|tomato juice|tomato concentrate|tomato powder|diced tomatoes|crushed tomatoes|fire roasted tomatoes|sun-dried tomatoes|sun dried tomatoes|tomato sauce|tomatillo	tomato	-	SR: tomatoes; 21CFR 155.190, 155.191
+celery	food	celery seed|celery powder|oleoresin celery|celery juice|celery juice powder	celery	-	SR: celery
+broccoli	food	-	-	-	SR: broccoli
+cauliflower	food	roasted cauliflower	-	-	SR: cauliflower
+cabbage	food	red cabbage|napa cabbage	-	-	SR: cabbage
+bok choy	food	pak choi	-	-	SR: cabbage, chinese (pak-choi)
+kale	food	-	-	-	SR: kale
+spinach	food	dried spinach	-	-	SR: spinach
+zucchini	food	zucchini puree|summer squash|yellow squash	-	-	SR: squash, summer, zucchini
+squash	food	butternut squash|winter squash|pumpkin	-	-	SR: squash, winter
+okra	food	-	-	-	SR: okra
+eggplant	food	aubergine|brinjal|bringel	eggplant	-	SR: eggplant (Solanum melongena)
+mushroom	food	mushrooms|portobello mushrooms|portobello|porcini mushrooms|porcini|champignon mushrooms|button mushrooms|shiitake mushrooms|shiitake|cremini mushrooms	mushroom	-	SR: mushrooms
+truffle	food	summer truffle|summer truffle breakings|black truffle	-	-	SR-style: Tuber, a fungus
+water chestnut	food	water chestnuts	-	-	SR: water chestnuts, chinese (Eleocharis dulcis)
+olive	food	olives|black olives|green olives	-	-	SR: olives
+mustard greens	food	-	-	-	SR: mustard greens
+bell pepper	food	bell peppers|red bell pepper|red bell peppers|green bell pepper|green bell peppers|yellow bell pepper|sweet pepper|sweet peppers|red pepper|red peppers|green pepper|green peppers|roasted red pepper|roasted red peppers|pimiento|pimientos	bell pepper	-	SR: peppers, sweet
+chili pepper	food	chili peppers|chile pepper|chile peppers|chile|chiles|chili|chilies|chilli|chillies|green chile|green chiles|green chili|green chilies|green chilli|red chili|red chilli|red chili pepper|red chili peppers|dried red chili|chili powder|red chili powder|red chilli powder|red chilli paste|chili paste|chili flakes|red pepper flakes|crushed red pepper|cayenne|cayenne pepper|aged cayenne red peppers|jalapeno|jalapenos|jalapeno pepper|jalapeno peppers|poblano|poblano peppers|poblano chiles|chipotle|chipotle peppers|ancho|ancho chile|anaheim chili peppers|anaheim peppers|serrano|serrano pepper|serrano peppers|habanero|thai chili	chili	-	SR: peppers, hot chili
+paprika	food	smoked paprika|sweet paprika|hot paprika	paprika	-	SR: spices, paprika
+pepper	food	black pepper|ground black pepper|white pepper|white pepper powder|ground pepper|peppercorns|long pepper|oleoresin black pepper	-	-	SR: spices, pepper, black
+cilantro	food	coriander leaves|coriander leaf	-	-	SR: coriander (cilantro) leaves
+parsley	food	parsley flakes|dehydrated parsley|dried parsley	-	-	SR: parsley
+basil	food	dried basil|sweet basil	-	-	SR: basil
+oregano	food	dried oregano|extractives of oregano	-	-	SR: spices, oregano
+rosemary	food	dried rosemary	-	-	SR: spices, rosemary
+sage	food	rubbed sage|dried sage	-	-	SR: spices, sage
+thyme	food	dried thyme	-	-	SR: spices, thyme
+bay leaf	food	bay leaves|laurel	-	-	SR: spices, bay leaf
+mint	food	spearmint|spearmint leaves|peppermint|mint leaves	-	-	SR: spearmint
+dill	food	dill weed|dill seed	-	-	SR: dill weed
+fenugreek	food	fenugreek leaves|fenugreek powder|fenugreek seed|kasuri methi	-	-	SR: spices, fenugreek seed
+coriander	food	coriander seed|coriander powder|ground coriander	-	-	SR: spices, coriander seed
+cumin	food	cumin seed|cumin seeds|cumin powder|ground cumin	-	-	SR: spices, cumin seed
+turmeric	food	turmeric powder|ground turmeric|oleoresin turmeric|turmeric oleoresin|extractive of turmeric	-	-	SR: spices, turmeric
+ginger	food	ginger root|ginger puree|ground ginger|ginger paste|dried ginger	ginger	-	SR: ginger root
+galangal	food	-	-	-	galangal, a ginger relative (Alpinia galanga)
+lemongrass	food	lemon grass	-	-	SR: lemon grass (citronella)
+cardamom	food	green cardamom|black cardamom|cardamom powder	-	-	SR: spices, cardamom
+cinnamon	food	cinnamon powder|ground cinnamon|cassia	-	-	SR: spices, cinnamon
+clove	food	cloves|clove powder|ground cloves	-	-	SR: spices, cloves
+nutmeg	food	ground nutmeg	-	-	SR: spices, nutmeg (not a tree nut, FDA-QA5)
+mace	food	-	-	-	SR: spices, mace
+fennel	food	fennel seed|fennel bulb	-	-	SR: spices, fennel seed
+allspice	food	-	-	-	SR: spices, allspice
+mustard	food	mustard seed|mustard flour|mustard powder|ground mustard|mustard bran	mustard	-	SR: spices, mustard seed
+kaffir lime	food	kaffir lime peel|kaffir lime leaves|makrut lime leaves	-	-	Citrus hystrix, a citrus
+kombu	food	kelp|seaweed|nori|wakame	-	-	SR: seaweed, kelp
+rose petal	food	rose petals	-	-	Rosa petals, a flavouring flower
+sassafras	food	-	-	-	Sassafras albidum, a flavouring bark
+tamarind	food	tamarind extract|tamarind paste|tamarind concentrate	-	-	SR: tamarinds
+mango	food	mango powder|amchur|mango puree|mango juice concentrate	mango	-	SR: mangos
+lemon	food	lemon juice|lemon juice concentrate|concentrated lemon juice|lemon oil|lemon peel|lemon zest	lemon	-	SR: lemon juice
+lime	food	lime juice|lime juice concentrate|lime oil|lime peel|trace of lime	lime	-	SR: lime juice
+orange	food	orange juice|orange juice concentrate|orange peel|orange oil	orange	-	SR: orange juice
+apple	food	apples|apple paste|apple juice|apple juice concentrate|apple extract|apple puree|applesauce	apple	-	SR: apples
+pineapple	food	pineapple juice|pineapple juice concentrate	-	-	SR: pineapple
+raisin	food	raisins|raisin juice concentrate|raisin paste	raisin	-	SR: raisins
+citrus flour	food	dried citrus peel|citrus peel	-	-	dried, ground citrus peel and pulp (citrus fiber)
+grape	food	grape juice|grape juice concentrate	-	-	SR: grape juice
+cranberry	food	cranberries|dried cranberries	-	-	SR: cranberries
+beef	food	ground beef|cooked ground beef|beef fat|beef tallow|tallow|beef broth|beef stock|concentrated beef stock|beef extract|roasted beef|cooked seasoned sliced beef|beef juices|beef flavor|natural beef flavor	beef	-	SR: beef
+pork	food	ground pork|pork fat|pork broth|pork stock|pork skins|pork rind	pork	-	SR: pork
+lard	food	-	lard|pork	-	SR: lard is rendered pork fat
+bacon	food	bacon fat|rendered bacon fat|bacon bits	bacon|pork	-	SR: pork, cured, bacon
+ham	food	-	ham|pork	-	SR: pork, cured, ham
+chicken	food	chicken meat|chicken breast|chicken breast meat|chicken white meat|white meat chicken|dark meat chicken|chicken thigh|chicken fat|rendered chicken fat|chicken broth|chicken stock|chicken powder|chicken broth powder|chicken bones|chicken skin|chicken tenders|cooked chicken|mechanically separated chicken|chicken juices|chicken flavor|natural chicken flavor	chicken	-	SR: chicken
+turkey	food	turkey meat|turkey breast|turkey breast meat|ground turkey|turkey stock|turkey broth|mechanically separated turkey|turkey juices|natural turkey juices|turkey flavor	turkey	-	SR: turkey
+lamb	food	boneless lamb|ground lamb	lamb	-	SR: lamb
+veal	food	concentrated veal|veal stock	veal	-	SR: veal
+rib meat	food	-	-	-	USDA FSIS: rib meat is the meat of the same bird, named after the breast
+gelatin	food	gelatine|beef gelatin|pork gelatin	gelatin	-	SR: gelatins (collagen of animal skin and bone)
+vinegar	food	distilled vinegar|white distilled vinegar|white vinegar|wine vinegar|red wine vinegar|white wine vinegar|apple cider vinegar|cider vinegar|rice vinegar|brown rice vinegar|balsamic vinegar|distilled rice	vinegar	-	21CFR (FDA CPG 525.825): vinegar
+alcohol	food	ethyl alcohol|ethanol|grain alcohol	alcohol	-	21CFR 184.1293: ethyl alcohol (read by the alcohol rule)
+wine	food	white wine|red wine|cooking wine|sherry|sherry wine|mirin|sake|rice wine	wine	-	SR: alcoholic beverage, wine (read by the alcohol rule)
+yeast	food	dried yeast|dry yeast|active yeast|baker's yeast|yeast extract|autolyzed yeast extract|torula yeast extract|nutritional yeast	-	-	21CFR 172.896, 184.1983
+tea	food	tea powder|black tea|green tea|tea extract	tea	-	SR: tea
+coffee	food	coffee extract|instant coffee	coffee	-	SR: coffee
+cocoa	food	cocoa powder|cocoa processed with alkali|dutch cocoa|cacao|chocolate liquor|unsweetened chocolate	-	-	21CFR 163: cocoa and chocolate liquor are cacao bean products
+canola oil	food	canola|expeller pressed canola oil|expeller pressed non-gmo canola oil|rapeseed oil|low erucic acid rapeseed oil	-	-	21CFR 184.1555: canola oil
+olive oil	food	extra virgin olive oil|virgin olive oil|pomace olive oil	-	-	SR: oil, olive
+palm oil	food	palm fruit oil|brazilian palm oil|red palm oil|palm kernel oil|palm olein|fractionated palm oil|water palm oil	-	-	SR: oil, palm
+safflower oil	food	high oleic safflower oil|high oleic safflower|expeller pressed safflower oil|expeller pressed high oleic safflower|safflower ol|expeller pressed safflower ol	-	-	SR: oil, safflower
+cottonseed oil	food	cottonseed	-	-	SR: oil, cottonseed
+corn oil	food	-	corn	-	SR: oil, corn
+vegetable oil	food	vegetable oils|vegetable shortening|shortening	-	soybean|peanut|corn	21CFR 101.4(b)(14): an oil named only as vegetable oil may be any vegetable source, and a highly refined peanut or soybean oil is exempt from allergen labelling (FALCPA)
+medium chain triglycerides	additive	mct oil|mct	-	-	21CFR 170.30: fractionated coconut and palm kernel oil
+citric acid	additive	e330	-	-	INS 330
+ascorbic acid	additive	e300|vitamin c	-	-	INS 300
+calcium disodium edta	additive	e385|disodium edta	-	-	INS 385; 21CFR 172.120
+ammonium sulfate	additive	e517	-	-	INS 517; 21CFR 184.1143
+calcium peroxide	additive	-	-	-	FDA: calcium peroxide, a dough conditioner
+l-cysteine	additive	l-cysteine hydrochloride|cysteine|e920	-	poultry|pork	INS 920; 21CFR 184.1271: made from poultry feathers, hog bristles or by fermentation; the source is not stated
+apocarotenal	additive	beta-apo-8'-carotenal|e160e	-	-	INS 160e; 21CFR 73.90
+beta carotene	additive	beta-carotene|e160a	-	-	INS 160a; 21CFR 73.95
+alpha tocopherol	additive	e307|vitamin e	-	-	INS 307
+iron phosphate	additive	ferric orthophosphate|ferric phosphate|sodium iron pyrophosphate	-	-	21CFR 184.1301
+calcium iodate	additive	potassium iodate	-	-	21CFR 184.1206
+dextrin	additive	tapioca dextrin|corn dextrin|e1400	-	-	INS 1400; a starch derivative named by source when wheat (FALCPA)
+resistant maltodextrin	additive	corn maltodextrin|tapioca maltodextrin|soluble corn fiber	-	-	21CFR 184.1444: maltodextrin from starch, named by source when wheat (FALCPA)
+glycerin	additive	vegetable glycerin|glycerol|glycerine|e422	-	-	INS 422
+sodium alginate	additive	alginate|sodium-alginate|algin|e401	-	-	INS 401
+carboxymethyl cellulose	additive	sodium carboxy methyl cellulose|sodium carboxymethyl cellulose|cellulose gum|modified cellulose gum|e466	-	-	INS 466
+propionic acid	additive	e280	-	-	INS 280
+diphosphate	additive	disodium pyrophosphate|disodium dihydrogen pyrophosphate|sodium acid pyrophosphate|tetrasodium pyrophosphate|e450	-	-	INS 450
+potassium phosphate	additive	monopotassium phosphate|dipotassium phosphate|tripotassium phosphate|e340	-	-	INS 340
+sodium phosphate	additive	monosodium phosphate|disodium phosphate|trisodium phosphate|e339	-	-	INS 339
+sodium lactate	additive	e325	-	-	INS 325
+sodium diacetate	additive	e262	-	-	INS 262
+sulfite	additive	sulfites|sodium bisulfite|sodium metabisulfite|potassium metabisulfite|sodium sulfite|sulfur dioxide|e220|e221|e222|e223|e224	sulfite	-	INS 220-224 (sulfites are declared above 10 ppm, 21CFR 101.100(a)(4))
+baking powder	additive	double acting baking powder	-	-	SR: leavening agents, baking powder (sodium bicarbonate, an acid salt, starch)
+amylase	additive	alpha amylase|fungal amylase|vegetarian enzymes|vegetable enzymes|microbial enzymes	-	-	21CFR 184.1012
+rennet	additive	-	-	veal	21CFR 184.1685: rennet (chymosin), an enzyme taken from the stomach of calves unless the label names a microbial or vegetable source; the source is not stated
+animal rennet	additive	calf rennet	veal	-	21CFR 184.1685: animal rennet is taken from the fourth stomach of calves
+microbial rennet	additive	vegetable rennet|vegetarian rennet|microbial coagulant	-	-	21CFR 173.150: milk-clotting enzymes from microbial sources
+enzymes	additive	enzyme	-	veal	21CFR 133.3 and 184.1685: in a cheese, "enzymes" may be animal rennet; the source is not stated
+koji	additive	aspergillus oryzae|koji spores	-	rice|barley|soybean	Aspergillus oryzae, a mould grown on rice, barley or soybeans
+lecithin	additive	e322	-	soy|egg	INS 322: lecithin from soy or egg yolk is named by its source under FALCPA; a bare name is read as unknown
+lysozyme	additive	egg lysozyme|e1105	egg	-	INS 1105: lysozyme is taken from egg white
+mono and diglycerides	additive	mono- and diglycerides|mono & diglycerides|mono-and diglycerides|monoglycerides|diglycerides|distilled monoglycerides|ethoxylated mono and diglycerides|ethoxylated mono-and diglycerides|e471	-	lard	INS 471: from vegetable or animal fat; the source is not stated
+vegetable mono and diglycerides	additive	vegetable mono- and diglycerides|vegetable monoglycerides	-	-	INS 471 from vegetable fat
+monosodium glutamate	additive	msg|e621	-	-	INS 621
+disodium inosinate	additive	e631|disodium inosinate and disodium guanylate|disodium guanylate|e627|disodium ribonucleotides|e635	-	-	INS 627, 631, 635
+xanthan gum	additive	xanthan|e415	-	-	INS 415
+guar gum	additive	guar|e412	-	-	INS 412
+carob bean gum	additive	locust bean gum|carob gum|e410	-	-	INS 410
+gum arabic	additive	arabic gum|acacia gum|acacia|e414	-	-	INS 414
+tamarind seed gum	additive	tamarind gum	-	-	JECFA: tamarind seed polysaccharide
+modified vegetable gum	additive	vegetable gum|vegetable gums	-	-	21CFR 172 (plant gums)
+modified starch	additive	modified food starch|modified corn starch|modified cornstarch|modified tapioca starch|modified potato starch|food starch|food starch-modified|food starch modified|e1404|e1410|e1412|e1414|e1420|e1422|e1440|e1442|e1450	-	-	INS 1404-1450; a starch named by source when wheat (FALCPA)
+caramel color	additive	caramel colour|caramel|e150a|e150b|e150c|e150d	-	-	INS 150a-d; 21CFR 73.85
+annatto	additive	annatto extract|annatto color|e160b	-	-	INS 160b
+paprika extract	additive	paprika oleoresin|oleoresin of paprika|extractives of paprika|extractive of paprika|e160c	paprika	-	INS 160c
+beet juice	additive	beet juice color|beet red|beetroot red|e162	-	-	INS 162
+sodium benzoate	additive	e211	-	-	INS 211
+potassium sorbate	additive	e202	-	-	INS 202
+calcium chloride	additive	e509	-	-	INS 509
+carrageenan	additive	e407	-	-	INS 407
+pectin	additive	e440	-	-	INS 440
+natural flavor	flavour	natural flavors|natural flavour|natural flavours|natural flavoring|natural flavorings|vegan natural flavors|other natural flavors|natural flavor and color	-	-	21CFR 101.22(a)(3); a major allergen in a flavouring is declared by its source name (FALCPA, 403(w))
+artificial flavor	flavour	artificial flavors|artificial flavoring|artificial flavorings|natural and artificial flavor|natural and artificial flavors	-	-	21CFR 101.22(a)(1); FALCPA, 403(w)
+smoke flavor	flavour	smoke|smoke flavoring|natural smoke flavor|hickory smoke flavor|natural hickory smoke flavor|liquid smoke|hickory smoke	-	-	21CFR 101.22(h)(5)
+butter flavor	flavour	natural butter flavor|artificial butter flavor|butter flavour	butter	-	21CFR 101.22; read by its word butter, so a dairy restriction holds it
+spice	flavour	spices|natural spices|spice blend|herbs|herbs and spices|spice extractives|spice extract|extractives of spice	-	-	21CFR 101.22(a)(2); a major allergen is declared by its source name (FALCPA, 403(w))
+goldfish cracker	composite	goldfish crackers|goldfish	cheddar cheese|wheat flour|milk	-	LABEL: Pepperidge Farm Goldfish Cheddar: enriched wheat flour, cheddar cheese (cultured milk); Contains: wheat, milk
+licorice	composite	liquorice|licorice candy|red licorice|black licorice|licorice twists	wheat flour|sugar	-	LABEL: Twizzlers and Red Vines licorice: corn syrup, wheat flour, sugar; Contains: wheat
+worcestershire sauce	composite	worcestershire|worchestershire sauce	anchovy	-	LABEL: Lea & Perrins Worcestershire sauce: anchovies; Contains: anchovies (fish)
+caesar dressing	composite	caesar salad dressing	anchovy|egg yolk|parmesan cheese	-	LABEL: classic Caesar dressing (anchovy, egg yolk, Parmesan)
+pesto	composite	pesto sauce|basil pesto|pesto genovese	pine nut|parmesan cheese	-	Consorzio del Pesto Genovese: basil, pine nuts, Parmigiano Reggiano, Pecorino, olive oil, garlic
+mayonnaise	composite	mayo	egg	-	21CFR 169.140: mayonnaise contains egg yolk
+aioli	composite	-	egg	-	garlic mayonnaise (21CFR 169.140 egg yolk)
+custard	composite	-	egg|milk	-	SR: custard is egg and milk
+hollandaise sauce	composite	hollandaise|bearnaise|bearnaise sauce	egg yolk|butter	-	classic French sauces of egg yolk and butter
+ranch dressing	composite	ranch salad dressing	buttermilk|egg yolk	-	LABEL: Hidden Valley Ranch: buttermilk, egg yolk; Contains: milk, egg
+alfredo sauce	composite	alfredo	cream|butter|parmesan cheese	-	LABEL: Alfredo sauce (cream, butter, Parmesan)
+bechamel sauce	composite	bechamel	milk|butter|wheat flour	-	classic white sauce of milk, butter and wheat flour
+tempura	composite	tempura batter	wheat flour|egg	-	tempura batter is wheat flour, egg and water
+brioche	composite	-	egg|butter|wheat flour	-	enriched bread of wheat flour, egg and butter (21CFR 136.110 bread is wheat flour)
+challah	composite	-	egg|wheat flour	-	egg bread of wheat flour (21CFR 136.110)
+naan	composite	nan bread	wheat flour|yogurt	-	leavened flatbread of wheat flour and yogurt
+pretzel	composite	pretzels	wheat flour	-	SR: pretzels, hard (enriched wheat flour)
+crouton	composite	croutons	wheat flour	-	SR: croutons (bread)
+cookie	composite	cookies	wheat flour	-	SR: cookies (wheat flour); FARE: baked goods hide wheat
+biscuit	composite	biscuits	wheat flour	-	SR: biscuits (wheat flour)
+pastry	composite	puff pastry|pastries|pie crust|pie shell|pie dough|tart shell	wheat flour	-	SR: pie crust, puff pastry (wheat flour)
+muffin	composite	muffins|english muffin	wheat flour	-	SR: muffins (wheat flour)
+cupcake	composite	cupcakes	wheat flour	-	SR: cupcakes (wheat flour)
+pancake	composite	pancakes|pancake mix	wheat flour|egg|milk	-	SR: pancakes (wheat flour, egg, milk)
+waffle	composite	waffles|waffle mix	wheat flour|egg|milk	-	SR: waffles (wheat flour, egg, milk)
+crepe	composite	crepes	wheat flour|egg|milk	-	SR: crepes (wheat flour, egg, milk)
+dumpling	composite	dumplings|dumpling wrappers|gyoza wrappers|potsticker wrappers	wheat flour	-	dumpling wrappers are wheat flour dough
+wonton	composite	wontons|wonton wrappers	wheat flour|egg	-	LABEL: wonton wrappers (wheat flour, egg)
+udon	composite	udon noodles	wheat flour	-	udon are wheat noodles
+ramen	composite	ramen noodles	wheat flour	-	ramen are wheat noodles
+soba	composite	soba noodles	buckwheat|wheat flour	-	soba are buckwheat noodles, most with wheat flour
+matzo	composite	matzah|matzoh|matzo meal|matzah meal	wheat flour	-	matzo is unleavened wheat bread
+phyllo	composite	filo|fillo|phyllo dough|filo pastry	wheat flour	-	phyllo is wheat flour dough
+roux	composite	-	wheat flour|butter	-	roux is wheat flour cooked in fat
+baklava	composite	-	wheat flour|walnut|pistachio|butter	-	phyllo, walnuts or pistachios and butter
+doughnut	composite	donut|doughnuts|donuts	wheat flour	-	SR: doughnuts (wheat flour)
+teriyaki sauce	composite	teriyaki	soybean|wheat	-	LABEL: teriyaki sauce (soy sauce of soybeans and wheat)
+hoisin sauce	composite	hoisin	soybean|wheat flour	-	LABEL: hoisin sauce (soybeans, wheat flour)
+ponzu	composite	ponzu sauce	soybean|wheat	-	ponzu is soy sauce with citrus
+shoyu	composite	-	soybean|wheat	-	shoyu is Japanese soy sauce of soybeans and wheat
+soy sauce	composite	natural soy sauce|soya sauce|naturally brewed soy sauce	soybean|wheat	-	SR: soy sauce made from soy and wheat (shoyu)
+tamari	composite	tamari sauce	soybean	-	SR: soy sauce made from soy (tamari)
+miso	composite	miso paste|white miso|red miso	soybean	barley|rice	SR: miso (soybeans, rice or barley koji); barley need not be declared
+zaatar	composite	za'atar	sesame	-	za'atar blend of thyme, sumac and sesame seeds
+gomasio	composite	-	sesame	-	gomasio is sesame salt
+furikake	composite	-	sesame	-	LABEL: furikake (sesame seeds, nori)
+dukkah	composite	duqqa	hazelnut|sesame	-	dukkah blend of hazelnuts, sesame and spices
+tahini	composite	tahina	sesame	-	SR: tahini (sesame seed butter)
+hummus	composite	houmous	sesame|chickpea	-	SR: hummus (chickpeas, tahini)
+halva	composite	halvah	sesame	-	halva of sesame paste
+lox	composite	-	salmon	-	lox is cured salmon
+caviar	composite	-	fish	-	caviar is sturgeon roe (fish)
+bottarga	composite	-	fish	-	bottarga is cured mullet or tuna roe
+dashi	composite	dashi stock	bonito|fish	-	dashi is kombu and bonito (fish) stock
+bonito	composite	bonito flakes|katsuobushi	fish	-	bonito is a tuna (fish)
+surimi	composite	imitation crab|crab stick|crab sticks|imitation crab meat	pollock|egg white|wheat starch	-	LABEL: imitation crab (pollock, wheat starch, egg white)
+scampi	composite	-	shrimp	-	scampi are langoustines or shrimp
+langoustine	composite	langoustines|crayfish tails	shellfish|lobster	-	langoustine (Nephrops norvegicus), a lobster
+groundnut	composite	groundnuts	peanut	-	groundnut is another name of the peanut (Arachis hypogaea; FDA-QA5)
+satay	composite	satay sauce|peanut satay	peanut	-	satay sauce is peanut sauce
+frangipane	composite	-	almond|butter|egg	-	frangipane is almond cream (almonds, butter, eggs)
+amaretti	composite	amaretti cookies	almond|egg white	-	amaretti are almond and egg white biscuits
+gianduja	composite	gianduia	hazelnut	-	gianduja is chocolate with hazelnut paste
+orgeat	composite	orgeat syrup	almond	-	orgeat is almond syrup
+romesco	composite	romesco sauce	almond|hazelnut	-	romesco is a sauce of almonds or hazelnuts and peppers
+nougat	composite	torrone	egg white|almond	-	nougat is honey, egg white and nuts
+marzipan	composite	almond paste	almond	-	marzipan is almond paste and sugar
+praline	composite	pralines	pecan|almond|butter	-	pralines are nuts cooked in sugar and butter
+nutella	composite	hazelnut spread|chocolate hazelnut spread	hazelnut|milk	-	LABEL: Nutella (hazelnuts, skim milk); Contains: hazelnuts, milk
+quiche	composite	-	egg|cream|wheat flour	-	quiche is egg and cream custard in a wheat crust
+frittata	composite	-	egg	-	frittata is an egg dish
+souffle	composite	souffles	egg	-	souffle is risen egg white
+carbonara	composite	carbonara sauce	egg|pecorino cheese	-	carbonara is egg and Pecorino
+zabaglione	composite	sabayon	egg yolk	-	zabaglione is whipped egg yolk
+paneer	composite	-	milk	-	paneer is curdled milk cheese
+queso	composite	queso dip|queso blanco|queso fresco	cheese	-	queso is cheese
+mascarpone	composite	-	cream	-	mascarpone is cream cheese (21CFR 133)
+burrata	composite	-	mozzarella|cream	-	burrata is mozzarella and cream
+halloumi	composite	-	cheese	-	halloumi is a brined cheese
+provolone	composite	-	cheese	-	21CFR 133.181: provolone is a pasta filata cheese
+gruyere	composite	-	cheese	-	21CFR 133.149: gruyere cheese
+pecorino	composite	pecorino romano	cheese	-	pecorino is sheep's milk cheese
+manchego	composite	-	cheese	-	manchego is sheep's milk cheese
+asiago	composite	-	cheese	-	21CFR 133.102: asiago cheese
+fontina	composite	-	cheese	-	fontina is a cow's milk cheese
+gorgonzola	composite	-	cheese	-	21CFR 133.141: gorgonzola cheese
+roquefort	composite	-	cheese	-	21CFR 133.184: roquefort cheese
+camembert	composite	-	cheese	-	camembert is a soft cheese
+emmental	composite	emmentaler|emmenthal	cheese	-	emmental is swiss cheese (21CFR 133.195)
+havarti	composite	-	cheese	-	havarti is a cow's milk cheese
+muenster	composite	munster	cheese	-	21CFR 133.160: muenster cheese
+neufchatel	composite	-	cheese	-	21CFR 133.162: neufchatel cheese
+cotija	composite	-	cheese	-	cotija is an aged cow's milk cheese
+colby	composite	colby jack	cheese	-	21CFR 133.118: colby cheese
+monterey jack	composite	pepper jack	cheese	-	21CFR 133.153: monterey jack cheese
+labneh	composite	labne	yogurt	-	labneh is strained yogurt
+tzatziki	composite	-	yogurt	-	tzatziki is yogurt and cucumber
+raita	composite	-	yogurt	-	raita is yogurt and vegetables
+lassi	composite	-	yogurt	-	lassi is a yogurt drink
+dulce de leche	composite	cajeta	milk	-	dulce de leche is caramelized milk

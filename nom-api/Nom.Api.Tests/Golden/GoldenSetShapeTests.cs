@@ -32,7 +32,7 @@ namespace Nom.Api.Tests.Golden
             { "prose-stock.tsv", 9, Array.Empty<string>() },
             { "prose-verbs.tsv", 30, Array.Empty<string>() },
             { "prose-judge.tsv", 35, new[] { "status" } },
-            { "prose-check.tsv", 80, new[] { "status" } },
+            { "prose-check.tsv", 160, new[] { "status" } },
             { "startup-fills.tsv", 9, new[] { "status" } },
             { "catalog-admission.tsv", 80, new[] { "status" } },
             { "branded-lift.tsv", 25, new[] { "status" } },
@@ -52,15 +52,22 @@ namespace Nom.Api.Tests.Golden
             { "container-eras.tsv", 15, new[] { "status" } },
             { "container-era-lines.tsv", 15, Array.Empty<string>() },
             { "container-era-facts.tsv", 15, Array.Empty<string>() },
+            { "container-era-readings.tsv", 30, Array.Empty<string>() },
             { "wording-lexicon.tsv", 40, new[] { "status" } },
             { "alcohol-readings.tsv", 30, new[] { "status" } },
             { "alcohol-retention.tsv", 60, new[] { "status" } },
             { "diet-gate.tsv", 30, new[] { "status" } },
+            { "diet-patterns.tsv", 300, new[] { "status" } },
             { "sources.tsv", 40, new[] { "status" } },
             { "source-rights.tsv", 40, new[] { "status" } },
             { "rights-sentences.tsv", 30, new[] { "status" } },
             { "recipe-titles.tsv", 25, new[] { "status" } },
-            { "prepared-contents.tsv", 42, new[] { "status" } },
+            { "prepared-contents.tsv", 47, new[] { "status" } },
+            { "label-terms.tsv", 50, new[] { "status" } },
+            { "link-recheck.tsv", 700, new[] { "status" } },
+            { "line-holdout.tsv", 200, new[] { "status" } },
+            { "credit-lines.tsv", 28, new[] { "status" } },
+            { "source-check-5.tsv", 23, new[] { "status" } },
         };
 
         [Theory]
@@ -112,11 +119,17 @@ namespace Nom.Api.Tests.Golden
         [InlineData("alcohol-readings.tsv", "source", "status")]
         [InlineData("alcohol-retention.tsv", "source", "status")]
         [InlineData("diet-gate.tsv", "source", "status")]
+        [InlineData("diet-patterns.tsv", "source", "status")]
         [InlineData("sources.tsv", "source", "status")]
         [InlineData("source-rights.tsv", "source", "status")]
         [InlineData("rights-sentences.tsv", "source", "status")]
         [InlineData("recipe-titles.tsv", "source", "status")]
+        [InlineData("credit-lines.tsv", "source", "status")]
         [InlineData("prepared-contents.tsv", "source", "status")]
+        [InlineData("label-terms.tsv", "source", "status")]
+        [InlineData("link-recheck.tsv", "source", "status")]
+        [InlineData("line-holdout.tsv", "source", "status")]
+        [InlineData("source-check-5.tsv", "source", "status")]
         public void No_row_judged_by_a_model_reviewer_is_marked_ok(string file, string judgeColumn, string statusColumn)
         {
             GoldenSet.Read(file).Rows.Where(r => GoldenSet.ByModel(r[judgeColumn]) && r[statusColumn] == GoldenSet.Ok).Select(r => r.Id)

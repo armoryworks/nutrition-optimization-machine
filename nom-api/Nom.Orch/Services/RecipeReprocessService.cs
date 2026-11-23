@@ -53,6 +53,12 @@ namespace Nom.Orch.Services
         /// <summary>The start of the batch id of every write the reprocess lane makes, so its undo takes back only the lane's writes.</summary>
         public const string LaneBatchPrefix = "rl-";
 
+        /// <summary>
+        /// The start of the batch id of the order write an undo makes when it puts back the positions of an
+        /// order-only write whose lines a later step changed otherwise; the rest is the id of the write it takes back.
+        /// </summary>
+        public const string OrderFollowPrefix = "rp-order-follow-";
+
         private const string OperatorBatchPrefix = "rp-";
         private const int IdsPerRead = 1000;
         private const string LinksKey = "links=";
@@ -510,9 +516,11 @@ namespace Nom.Orch.Services
             var kept = pairs.Where(p => builtAt.Contains(p.Key)).Select(p => p.Value).ToHashSet(ReferenceEqualityComparer.Instance);
             counts.Dropped = live.Count(row => !kept.Contains(row)) + unbuilt.Count(position => !pairs.ContainsKey(position));
             counts.NewFoods = built.Where(b => b.Food == null).Select(b => b.Wording.ToLowerInvariant()).Distinct().Count();
+            var unfolded = new HashSet<LineRow>(ReferenceEqualityComparer.Instance);
             foreach (var line in built)
             {
                 var old = pairs.GetValueOrDefault(line.SortOrder);
+                if (old != null && !unfolded.Add(old)) old = null;
                 var diff = new RecipeReprocessLineDiff
                 {
                     SortOrder = line.SortOrder, RawLine = line.RawLine, NewIngredientId = line.Food?.Id, NewFood = line.FoodName,
@@ -1001,6 +1009,7 @@ namespace Nom.Orch.Services
             if (!string.IsNullOrWhiteSpace(batchId)) query = query.Where(j => j.BatchId == batchId);
             if (!string.IsNullOrWhiteSpace(kind)) query = query.Where(j => j.Kind == kind);
             if (laneOnly) query = query.Where(j => j.BatchId.StartsWith(LaneBatchPrefix));
+            if (FollowedWriteId(batchId) == null) query = query.Where(j => !j.BatchId.StartsWith(OrderFollowPrefix));
             var entries = await query.OrderByDescending(j => j.Id).Select(j => j.Id).ToListAsync();
             result.Entries = entries.Count;
 
@@ -1036,6 +1045,20 @@ namespace Nom.Orch.Services
                 var stateStands = newState == null || SameState(stateNow, newState);
                 var approvedSince = !stateStands && stateNow.CurationStatusId == (long)CurationStatusEnum.Curated
                     && newState!.CurationStatusId != (long)CurationStatusEnum.Curated;
+                if (!linesStand && stepsStand && oldRows != null && newRows != null && entry.Kind == RecipeReprocessKind.Order
+                    && !entry.BatchId.StartsWith(OrderFollowPrefix, StringComparison.Ordinal)
+                    && !await LaterRowWriteStandsAsync(entry, restoredHere)
+                    && OrderFollowing(rowsNow, oldRows, newRows) is { } followed)
+                {
+                    result.Restored++;
+                    result.PositionsFollowed++;
+                    restoredHere.Add(entry.Id);
+                    result.RestoredByKind[entry.Kind] = result.RestoredByKind.GetValueOrDefault(entry.Kind) + 1;
+                    simulatedRows[recipe.Id] = followed;
+                    if (apply) await FollowOrderUndoAsync(entry, rowsNow, followed, by);
+                    continue;
+                }
+
                 if (!linesStand || !stepsStand || (entry.NewRows == null && !stateStands) || approvedSince)
                 {
                     Skip(result, recipe.Id);
@@ -1095,6 +1118,19 @@ namespace Nom.Orch.Services
                     : await _db.AuditLogEntries.Where(a => linkIds.Contains(a.Id)
                         && (a.ChangeType == LinkApplyJournal.ChangeType || a.ChangeType == LineRelinkService.WordingResolveChangeType)).ToListAsync();
                 foreach (var header in headers.Concat(links)) header.ChangeType = ReprocessUndoneChangeType;
+                if (entry.Kind == RecipeReprocessKind.Order && FollowedWriteId(entry.BatchId) is { } followedId
+                    && await _db.RecipeReprocessJournals.FirstOrDefaultAsync(j => j.Id == followedId && j.UndoneAt != null) is { } followedWrite)
+                {
+                    followedWrite.UndoneAt = null;
+                    var followedMarker = string.Create(CultureInfo.InvariantCulture, $"journal={followedWrite.Id};");
+                    foreach (var header in await _db.AuditLogEntries
+                        .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType && a.EntityId == recipe.Id && a.ChangeType == ReprocessUndoneChangeType
+                            && a.NewValue != null && a.NewValue.StartsWith(followedMarker))
+                        .ToListAsync())
+                    {
+                        header.ChangeType = ReprocessOrderChangeType;
+                    }
+                }
                 _db.AuditLogEntries.Add(new AuditLogEntryEntity
                 {
                     EntityType = RecipeEntityType, EntityId = recipe.Id, ChangeType = UndoChangeType, PropertyName = entry.Kind,
@@ -1108,6 +1144,124 @@ namespace Nom.Orch.Services
             }
 
             return result;
+        }
+
+        /// <summary>The id of the order-only write an order write of <see cref="OrderFollowPrefix"/> took back, or null for any other batch.</summary>
+        public static long? FollowedWriteId(string? batchId) =>
+            batchId != null && batchId.StartsWith(OrderFollowPrefix, StringComparison.Ordinal)
+            && long.TryParse(batchId[OrderFollowPrefix.Length..], NumberStyles.None, CultureInfo.InvariantCulture, out var id)
+                ? id
+                : null;
+
+        /// <summary>
+        /// Whether a reprocess write of rows made after <paramref name="entry"/> on the same recipe still stands
+        /// (not undone, and not restored earlier in this run). Its own undo does not follow lines through an
+        /// order write, so the order-only write is not followed over it.
+        /// </summary>
+        private Task<bool> LaterRowWriteStandsAsync(RecipeReprocessJournalEntity entry, IReadOnlyCollection<long> restoredHere)
+        {
+            var skip = restoredHere.ToArray();
+            return _db.RecipeReprocessJournals.AsNoTracking().AnyAsync(j => j.RecipeId == entry.RecipeId && j.Id > entry.Id && j.UndoneAt == null
+                && j.NewRows != null && j.NewRows != j.OldRows && !skip.Contains(j.Id));
+        }
+
+        /// <summary>
+        /// The recipe's rows as they are now with the positions an order-only write found, where a later step
+        /// changed its lines only in ways that leave positions alone (a food link, an amount, a kind): every
+        /// live row now is one the write left, known by its text and creation time, and none was added or
+        /// removed since. A row whose food is taken at its old position by another row goes to the next free
+        /// position. Null when the rows cannot be paired that way.
+        /// </summary>
+        public static List<LineRow>? OrderFollowing(IReadOnlyCollection<LineRow> now, IReadOnlyCollection<LineRow> before, IReadOnlyCollection<LineRow> written)
+        {
+            if (now.Any(r => r.IsDeleted) || written.Any(r => r.IsDeleted) || now.Count != written.Count) return null;
+
+            var open = before.Where(r => !r.IsDeleted).OrderBy(r => r.SortOrder).ThenBy(r => r.IngredientId).ToList();
+            var placeBefore = new Dictionary<LineRow, int>(ReferenceEqualityComparer.Instance);
+            foreach (var row in written.OrderBy(r => r.SortOrder))
+            {
+                var match = open.FirstOrDefault(o => o.IngredientId == row.IngredientId && o.RawLine == row.RawLine && o.CreatedDate == row.CreatedDate
+                    && o.Quantity == row.Quantity && o.MeasurementId == row.MeasurementId);
+                if (match == null) return null;
+                open.Remove(match);
+                placeBefore[row] = match.SortOrder;
+            }
+
+            var unpaired = written.ToList();
+            var pairs = new List<(LineRow Now, LineRow Written)>();
+            foreach (var row in now.OrderBy(r => r.SortOrder).ThenBy(r => r.IngredientId))
+            {
+                var same = unpaired.FirstOrDefault(w => w.RawLine == row.RawLine && w.CreatedDate == row.CreatedDate && w.SortOrder == row.SortOrder);
+                if (same == null)
+                {
+                    var byText = unpaired.Where(w => w.RawLine == row.RawLine && w.CreatedDate == row.CreatedDate).ToList();
+                    if (byText.Count != 1 || now.Count(n => n.RawLine == row.RawLine && n.CreatedDate == row.CreatedDate) != 1) return null;
+                    same = byText[0];
+                }
+                unpaired.Remove(same);
+                pairs.Add((row, same));
+            }
+
+            var taken = new HashSet<(long, int)>();
+            var next = Math.Max(now.Max(r => (int?)r.SortOrder) ?? 0, placeBefore.Values.DefaultIfEmpty(0).Max()) + 1;
+            var followed = new List<LineRow>();
+            foreach (var (row, write) in pairs.OrderBy(p => placeBefore[p.Written]).ThenBy(p => p.Now.IngredientId))
+            {
+                var place = placeBefore[write];
+                if (!taken.Add((row.IngredientId, place)))
+                {
+                    place = next++;
+                    taken.Add((row.IngredientId, place));
+                }
+                followed.Add(row with { SortOrder = place });
+            }
+            return followed.OrderBy(r => r.SortOrder).ThenBy(r => r.IngredientId).ToList();
+        }
+
+        /// <summary>
+        /// Puts back the positions of an order-only write whose lines a later step changed, keeping that
+        /// change: the write is taken back, and the move back is journaled as an order write of its own
+        /// (<see cref="OrderFollowPrefix"/>), so the later step's undo follows its lines to where they stand,
+        /// and undoing this write sets the positions of the pass again.
+        /// </summary>
+        private async Task FollowOrderUndoAsync(RecipeReprocessJournalEntity entry, List<LineRow> rowsNow, List<LineRow> followed, long by)
+        {
+            var now = DateTime.UtcNow;
+            await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+            var written = followed.Select(r => rowsNow.Any(n => n.IngredientId == r.IngredientId && n.SortOrder == r.SortOrder && n.RawLine == r.RawLine && n.CreatedDate == r.CreatedDate)
+                    ? r
+                    : r with { LastModifiedDate = now, LastModifiedByPersonId = SystemConstants.SystemPersonId })
+                .ToList();
+            await ReplaceRowsAsync(entry.RecipeId, written);
+            entry.UndoneAt = now;
+            var marker = string.Create(CultureInfo.InvariantCulture, $"journal={entry.Id};");
+            foreach (var header in await _db.AuditLogEntries
+                .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType && a.EntityId == entry.RecipeId && a.ChangeType == ReprocessOrderChangeType
+                    && a.NewValue != null && a.NewValue.StartsWith(marker))
+                .ToListAsync())
+            {
+                header.ChangeType = ReprocessUndoneChangeType;
+            }
+            _db.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = RecipeEntityType, EntityId = entry.RecipeId, ChangeType = UndoChangeType, PropertyName = entry.Kind,
+                OldValue = string.Create(CultureInfo.InvariantCulture, $"journal={entry.Id};batch={entry.BatchId}"),
+                NewValue = "positions followed",
+                Timestamp = now, ChangedByPersonId = by,
+            });
+            await JournalAsync(new RecipeReprocessJournalEntity
+            {
+                RecipeId = entry.RecipeId,
+                BatchId = OrderFollowPrefix + entry.Id.ToString(CultureInfo.InvariantCulture),
+                Kind = RecipeReprocessKind.Order,
+                RuleVersion = entry.RuleVersion,
+                SourceDocumentId = entry.SourceDocumentId,
+                OldRows = JsonSerializer.Serialize(rowsNow, Json),
+                NewRows = JsonSerializer.Serialize(written, Json),
+                CreatedDate = now,
+                CreatedByPersonId = by,
+            }, by, now, rejected: false);
+            if (tx != null) await tx.CommitAsync();
         }
 
         /// <summary>

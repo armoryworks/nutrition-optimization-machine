@@ -1,0 +1,206 @@
+# Every line the three staging checkpoint logs judged, with its verdict, for a measure that does not wait for staging. class: line (IngredientLineParser.Parse) or method (MethodAmountFinder.Find). steps and others are " ¦ "-joined; steps hold the words the log quotes, in a plain sentence where it quotes only a phrase. pieces: whether the food has a weight per item. expect: "<quantity> <unit>" or - (no amount); * on a doubtful row. name: the wording or * (not judged). finding: the checkpoint finding that named the line (K, M or N series), or - for a line no finding named. verdict: what the latest checkpoint judging the line said of the build it ran; logged: what that build gave.
+# half: rules or held-out, fixed once by the parity of the first byte of SHA-256 of the id. Rules are written against the rules half only; the held-out half is scored and its errors are recorded per class in line-holdout.json, never required to pass.
+id	checkpoints	finding	class	stratum	raw	steps	others	pieces	expect	name	verdict	logged	half	status	source	note
+l-135304	ck1,ck2	K2	line	after-name-mixed	Pulp and juice of Seville oranges, 1-1/2 lb.	-	-	-	1.5 Pound	*	right	1.5 Pound	rules	agent	agent-review-staging-checkpoint2	ck1 wrong at 1 Pound (K2), ck2 right
+l-131066	ck1,ck2	K2	line	after-name-mixed	mushroom catsup, 1-1/2 pint	-	-	-	3 Cup	*	right	3 Cup	rules	agent	agent-review-staging-checkpoint2	ck1 wrong at 2 Cup (K2), ck2 right
+l-130603	ck1,ck2	-	line	handful	Sage leaves, shred ½ handful	-	-	-	*	*	doubtful	0.5 Piece	rules	-	agent-review-staging-checkpoint2	a handful read as a piece
+l-35962	ck1,ck2	-	line	count-of-sized	optional: two 4-ounce semi-sweet chocolate bars (226g)	-	-	-	*	*	doubtful	2 Piece	held-out	-	agent-review-staging-checkpoint2	two bars of a stated weight
+l-96798	ck1	-	line	old-spoon	1½ teaspn. salt	-	-	-	1.5 Teaspoon	*	right	1.5 Teaspoon	rules	agent	agent-review-staging-checkpoint1	-
+l-96205	ck1	-	line	old-spoon	3-4 tablespns.	-	-	-	3 Tablespoon	*	right	3 Tablespoon	held-out	agent	agent-review-staging-checkpoint1	the line as the log quotes it; a range by its lower end
+l-35582	ck1	-	line	pinch	Pinch kosher salt (to taste)	-	-	-	1 Pinch	*	right	1 Pinch	rules	agent	agent-review-staging-checkpoint1	-
+l-135437	ck1	-	line	couple	a couple of wineglassesful of Madeira	-	-	-	0.5 Cup	*	right	0.5 Cup	held-out	agent	agent-review-staging-checkpoint1	-
+l-116337	ck1	-	line	couple	pair of ducks	-	-	-	2 Piece	*	right	2 Piece	rules	agent	agent-review-staging-checkpoint1	-
+l-130930	ck1,ck2	-	line	couple	couple of glasses of port wine or claret	-	-	-	*	*	doubtful	2 Piece	held-out	-	agent-review-staging-checkpoint2	glasses of a drink counted as pieces
+l-83958	ck1,ck2	K2	line	and-a-half	a tumbler and a half each of flour and pulverized sugar	-	-	-	1.5 Cup	*	right	1.5 Cup	rules	agent	agent-review-staging-checkpoint2	ck1 wrong at 1 Cup, ck2 right
+l-116158	ck1,ck2	K2	line	and-a-half	a tumbler and a half or six wine glasses of claret	-	-	-	1.5 Cup	*	right	1.5 Cup	rules	agent	agent-review-staging-checkpoint2	ck1 wrong at 1 Cup, ck2 right
+l-30494	ck1,ck2	K2	line	and-a-half	a tumbler and a half of cold water	-	-	-	1.5 Cup	*	right	1.5 Cup	rules	agent	agent-review-staging-checkpoint2	ck1 wrong at 1 Cup, ck2 right (also 118043)
+l-49464	ck1,ck2	K2	line	after-name-mixed	Flour, 2-3/4 cups	-	-	-	2.75 Cup	*	right	2.75 Cup	rules	agent	agent-review-staging-checkpoint2	ck1 wrong at 2 Cup (K2), ck2 right
+l-98289-water	ck1,ck2	K2	line	after-name-mixed	Water, 2-1/2 quarts	-	-	-	10 Cup	*	right	10 Cup	held-out	agent	agent-review-staging-checkpoint2	ck1 wrong at 8 Cup (K2), ck2 right
+l-98289-sugar	ck2	-	line	after-name-mixed	Sugar, 1-1/4 cups	-	-	-	1.25 Cup	*	right	1.25 Cup	held-out	agent	agent-review-staging-checkpoint2	-
+l-98289-salt	ck2,ck3	M6	line	after-name-mixed	Salt, 1-1/4 cups	-	-	-	1.25 Cup	*	right	1.25 Cup	held-out	agent	agent-review-staging-checkpoint3	ck2 wrong as stored at 1 Cup by the import (M6), ck3 right after the re-read
+l-130799	ck1,ck2	K2	line	after-name-mixed	brown gravy soup, 4-1/2 pints	-	-	-	9 Cup	*	right	9 Cup	rules	agent	agent-review-staging-checkpoint2	ck1 wrong at 8 Cup (K2), ck2 right
+l-135255	ck1,ck2	K2	line	after-name-mixed	highly refined sugar, 6-3/4 lbs.	-	-	-	6.75 Pound	*	right	6.75 Pound	held-out	agent	agent-review-staging-checkpoint2	ck1 wrong at 6 Pound (K2), ck2 right
+l-135406	ck1,ck2	K2	line	after-name-mixed	water, 1-1/2 wineglassful	-	-	-	0.375 Cup	*	right	0.375 Cup	rules	agent	agent-review-staging-checkpoint2	ck1 wrong at 0.25 Cup (K2), ck2 right
+l-130812	ck2	-	line	range	1-3/4 to 2 lbs.	-	-	-	1.75 Pound	*	right	1.75 Pound	held-out	agent	agent-review-staging-checkpoint2	the line as the log quotes it
+l-24918-brandy	ck1,ck2	K2	line	and-a-half	a jill and a half of brandy	-	-	-	0.75 Cup	*	right	0.75 Cup	rules	agent	agent-review-staging-checkpoint2	ck1 wrong at 0.5 Cup, ck2 right
+l-24918-sugar	ck2,ck3	M6	line	and-a-half	three pounds and a half of sugar	-	-	-	3.5 Pound	*	right	3.5 Pound	rules	agent	agent-review-staging-checkpoint3	ck2 wrong as stored at 3 Pound by the import (M6), ck3 right
+l-24918-wine	ck3	M6	line	measure-and-measure	a quart and a jill of red wine	-	-	-	4.5 Cup	*	right	4.5 Cup	held-out	agent	agent-review-staging-checkpoint3	-
+l-118777	ck1,ck2	K2	line	and-a-half	pinch and a half of salt	-	-	-	1.5 Pinch	*	right	1.5 Pinch	rules	agent	agent-review-staging-checkpoint2	ck1 wrong at 1 Pinch, ck2 right
+l-30415	ck2	-	line	and-a-half	a chocolate cup and a half	-	-	-	1.5 Cup	*	right	1.5 Cup	held-out	agent	agent-review-staging-checkpoint2	-
+l-117429	ck2	-	line	and-a-half	one and a half ponies	-	-	-	44.36 Milliliter	*	right	44.36 Milliliter	rules	agent	agent-review-staging-checkpoint2	-
+l-118775	ck2	-	line	and-a-half	spoonful and a half of oil	-	-	-	1.5 Tablespoon	*	right	1.5 Tablespoon	held-out	agent	agent-review-staging-checkpoint2	-
+l-96843	ck1	-	line	old-spoon	6 level tablespns. corn starch	-	-	-	6 Tablespoon	*	right	6 Tablespoon	held-out	agent	agent-review-staging-checkpoint1	-
+l-97378-rice	ck1	-	line	after-name	Rice, ½ cup.	-	-	-	0.5 Cup	*	right	0.5 Cup	held-out	agent	agent-review-staging-checkpoint1	-
+l-97378-milk	ck1	-	line	after-name	Rich milk, 1½ cups.	-	-	-	1.5 Cup	*	right	1.5 Cup	held-out	agent	agent-review-staging-checkpoint1	-
+l-97452	ck1	-	line	after-name	Mexican beans, ½ cup.	-	-	-	0.5 Cup	*	right	0.5 Cup	held-out	agent	agent-review-staging-checkpoint1	-
+l-43856	ck1	-	line	couple	a couple of tablespoons of strong gravy	-	-	-	2 Tablespoon	*	right	2 Tablespoon	rules	agent	agent-review-staging-checkpoint1	-
+l-71898-meal	ck1	-	line	couple	a couple of table-spoonsful of Indian meal	-	-	-	2 Tablespoon	*	right	2 Tablespoon	rules	agent	agent-review-staging-checkpoint1	-
+l-71898-water	ck1	-	line	measure-word	a pint of boiling water	-	-	-	2 Cup	*	right	2 Cup	held-out	agent	agent-review-staging-checkpoint1	-
+l-64412	ck1	-	line	heading	Vanilla Sauce:	-	-	-	-	*	right	-	held-out	agent	agent-review-staging-checkpoint1	-
+l-51068	ck1	-	line	heading	Pastry:	-	-	-	-	*	right	-	rules	agent	agent-review-staging-checkpoint1	-
+l-40305	ck1	-	line	plus	1 tbsp + 2 tsp water	-	-	-	1.667 Tablespoon	*	right	1.667 Tablespoon	rules	agent	agent-review-staging-checkpoint1	-
+l-67055	ck1,ck2	-	line	plus	2 cups + 2 tablespoons flour	-	-	-	2.125 Cup	*	right	2.125 Cup	held-out	agent	agent-review-staging-checkpoint2	also 67086
+l-18338	ck1,ck2	K14	line	italian	Grammi circa 100	-	-	-	100 Gram	*	right	100 Gram	held-out	agent	agent-review-staging-checkpoint2	ck1 wrong on the food it named (K14), ck2 right
+l-18849	ck1,ck2	-	line	italian	Grammi 100	-	-	-	100 Gram	*	right	100 Gram	held-out	agent	agent-review-staging-checkpoint2	-
+l-18455-prosciutto	ck1,ck2	-	line	italian	30 grammi grasso di prosciutto	-	-	-	30 Gram	*	right	30 Gram	rules	agent	agent-review-staging-checkpoint2	-
+l-18455-burro	ck1,ck2	-	line	italian	20 grammi burro	-	-	-	20 Gram	*	right	20 Gram	rules	agent	agent-review-staging-checkpoint2	-
+l-138384-fat	ck1,ck2,ck3	-	line	old-spoon	2 tbp fat	-	-	-	2 Tablespoon	*	right	2 Tablespoon	rules	agent	agent-review-staging-checkpoint3	-
+l-138384-sugar	ck2,ck3	-	line	old-spoon	1 tbp sugar	-	-	-	1 Tablespoon	*	right	1 Tablespoon	rules	agent	agent-review-staging-checkpoint3	-
+l-138558	ck1,ck2	-	line	old-spoon	2 tbp sugar	-	-	-	2 Tablespoon	*	right	2 Tablespoon	held-out	agent	agent-review-staging-checkpoint2	-
+l-102887-mace	ck1,ck2,ck3	-	line	vague	blade of mace	-	-	-	-	*	right	-	rules	agent	agent-review-staging-checkpoint3	-
+l-102887-cloves	ck1,ck2	-	line	couple	couple of cloves	-	-	-	*	*	doubtful	2 Clove	rules	-	agent-review-staging-checkpoint2	the Clove unit is the garlic clove
+l-82042	ck1	-	line	each	one tumbler each of currant, raspberry and blackberry jelly	-	-	-	*	*	doubtful	1 Cup	rules	-	agent-review-staging-checkpoint1	one tumbler each of three jellies
+l-89144	ck2	-	line	old-measure	two ponies of cognac	-	-	-	59.147 Milliliter	*	right	59.147 Milliliter	held-out	agent	agent-review-staging-checkpoint2	-
+l-46934	ck2	-	line	old-measure	1/2 pony Olive Oil	-	-	-	14.787 Milliliter	*	right	14.787 Milliliter	held-out	agent	agent-review-staging-checkpoint2	-
+l-92972	ck2	-	line	old-measure	a jill of cold water	-	-	-	0.5 Cup	*	right	0.5 Cup	rules	agent	agent-review-staging-checkpoint2	-
+l-18004	ck2	-	line	italian	circa grammi 150	-	-	-	150 Gram	*	right	150 Gram	rules	agent	agent-review-staging-checkpoint2	also 18855
+l-97291	ck2	-	line	old-spoon	1 tablespn. almond butter	-	-	-	1 Tablespoon	*	right	1 Tablespoon	held-out	agent	agent-review-staging-checkpoint2	-
+l-38536	ck2	-	line	pinch	3 dashes of orange bitters	-	-	-	3 Pinch	*	right	3 Pinch	rules	agent	agent-review-staging-checkpoint2	-
+l-130601	ck2	-	line	after-name	Bay salt ¾ lb.	-	-	-	0.75 Pound	*	right	0.75 Pound	rules	agent	agent-review-staging-checkpoint2	-
+l-137842	ck2	-	line	old-measure	2 tumblers sugar	-	-	-	2 Cup	*	right	2 Cup	rules	agent	agent-review-staging-checkpoint2	-
+l-77127	ck2,ck3	M18	line	range	two or three spoonfuls of white wine	-	-	-	2 Tablespoon	*	right	2 Tablespoon	rules	agent	agent-review-staging-checkpoint3	ck2 wrong at 3 Tablespoon (M18), ck3 right
+l-49994	ck2,ck3	M18	line	range	three or four spoonfuls of Cream	-	-	-	3 Tablespoon	*	right	3 Tablespoon	rules	agent	agent-review-staging-checkpoint3	ck2 wrong at 4 Tablespoon (M18), ck3 right
+l-74937	ck2,ck3	M18	line	range	four or five oranges	-	-	-	4 Piece	*	right	4 Piece	rules	agent	agent-review-staging-checkpoint3	ck2 wrong at 5 (M18), ck3 right
+l-49465	ck2	-	line	after-name-mixed	Flour, 3-2/3 cups	-	-	-	3.667 Cup	*	right	3.667 Cup	rules	agent	agent-review-staging-checkpoint2	-
+l-77780	ck2	-	line	and-a-half	one ounce and a half	-	-	-	1.5 Ounce	*	right	1.5 Ounce	rules	agent	agent-review-staging-checkpoint2	-
+l-77916	ck2	-	line	and-a-half	one pound and a half of flour	-	-	-	1.5 Pound	*	right	1.5 Pound	held-out	agent	agent-review-staging-checkpoint2	-
+l-49497	ck2	-	line	after-name-mixed	Butter, 1-1/2 tablespoons	-	-	-	1.5 Tablespoon	*	right	1.5 Tablespoon	held-out	agent	agent-review-staging-checkpoint2	-
+l-103143	ck2,ck3	M18	line	range	twelve or sixteen blanched oysters	-	-	-	12 Piece	*	right	12 Piece	held-out	agent	agent-review-staging-checkpoint3	ck2 wrong at 16 (M18), ck3 right
+l-51904	ck2	-	line	measure-word	a tablespoonful of butter	-	-	-	1 Tablespoon	*	right	1 Tablespoon	held-out	agent	agent-review-staging-checkpoint2	-
+l-109523	ck2	-	line	measure-word	ounce of melted butter	-	-	-	1 Ounce	*	right	1 Ounce	rules	agent	agent-review-staging-checkpoint2	-
+l-44821	ck2,ck3	M18	line	range	two or three dozen raisins	-	-	-	2 Dozen	*	right	2 Dozen	rules	agent	agent-review-staging-checkpoint3	ck2 wrong at 3 Dozen (M18), ck3 right
+l-53533-nutmegs	ck2,ck3	M18	line	range	two or three Nutmegs	-	-	-	2 Piece	*	right	2 Piece	rules	agent	agent-review-staging-checkpoint3	ck2 wrong at 3 (M18), ck3 right
+l-53533-mace	ck2,ck3	M18	line	range	three or four flakes of Mace	-	-	-	3 Piece	*	right	3 Piece	held-out	agent	agent-review-staging-checkpoint3	ck2 wrong at 4 (M18), ck3 right
+l-28093	ck2,ck3	M18	line	range	2 or 3 peaches	-	-	-	2 Piece	*	right	2 Piece	held-out	agent	agent-review-staging-checkpoint3	-
+l-88278	ck2,ck3	M18	line	range	25 or 30 small Eastern oysters	-	-	-	25 Piece	*	right	25 Piece	rules	agent	agent-review-staging-checkpoint3	-
+l-48764	ck2,ck3	M18	line	range	five or six quarts of cold water	-	-	-	20 Cup	*	right	20 Cup	held-out	agent	agent-review-staging-checkpoint3	-
+l-58512	ck2,ck3	M18	line	range	two or three eggs	-	-	-	2 Piece	*	right	2 Piece	rules	agent	agent-review-staging-checkpoint3	also 70314
+l-98645	ck2,ck3	M18	line	range	3 or 4 sliced tomatoes	-	-	-	3 Piece	*	right	3 Piece	rules	agent	agent-review-staging-checkpoint3	-
+l-97751	ck2,ck3	M20	line	after-name	Egg white, 1, partly beaten.	-	-	-	1 Piece	*	right	1 Piece	held-out	agent	agent-review-staging-checkpoint3	ck2 wrong at 0 (M20), ck3 right
+l-35552	ck2	-	line	part-of	Juice from 1 lemon	-	-	-	*	*	doubtful	1 Piece	rules	-	agent-review-staging-checkpoint2	a piece of a juice food
+l-102810	ck2	-	line	bunch	bunch of fresh parsley	-	-	-	*	*	doubtful	1 Piece	held-out	-	agent-review-staging-checkpoint2	a bunch counted as a piece
+l-99380	ck2	-	line	and-a-half	a pint and a half of milk	-	-	-	3 Cup	*	right	3 Cup	rules	agent	agent-review-staging-checkpoint2	-
+l-118565	ck2	-	line	and-a-half	a pound and a half	-	-	-	1.5 Pound	*	right	1.5 Pound	held-out	agent	agent-review-staging-checkpoint2	also 99807, 115198, 100819, 135247
+l-127826	ck2	-	line	and-a-half	two pounds and a half of lump sugar	-	-	-	2.5 Pound	*	right	2.5 Pound	held-out	agent	agent-review-staging-checkpoint2	-
+l-130814-stock	ck2,ck3	M17	line	range	stock, 4 to 5 quarts	-	-	-	16 Cup	*	right	16 Cup	held-out	agent	agent-review-staging-checkpoint3	-
+l-130814-balls	ck2,ck3	M17	line	range	egg-balls, 16 to 24	-	-	-	16 Piece	*	right	16 Piece	held-out	agent	agent-review-staging-checkpoint3	-
+l-130814-ham	ck3	M17	line	range	lean of ham, 1/2 to 3/4 lb.	-	-	-	0.5 Pound	*	right	0.5 Pound	rules	agent	agent-review-staging-checkpoint3	-
+l-18559	ck3	-	line	italian	tartufi neri grammi 50	-	-	-	50 Gram	*	right	50 Gram	held-out	agent	agent-review-staging-checkpoint3	-
+l-86304	ck3	-	line	and-a-half	a pint and a half of rich milk	-	-	-	3 Cup	*	right	3 Cup	held-out	agent	agent-review-staging-checkpoint3	-
+l-57760	ck3	-	line	and-a-half	an ounce and one half of flour	-	-	-	1.5 Ounce	*	right	1.5 Ounce	rules	agent	agent-review-staging-checkpoint3	-
+l-111942	ck3	-	line	and-a-half	a cup and a half of sugar	-	-	-	1.5 Cup	*	right	1.5 Cup	rules	agent	agent-review-staging-checkpoint3	-
+l-117957	ck3	-	line	old-measure	a jill of strong yeast	-	-	-	0.5 Cup	*	right	0.5 Cup	rules	agent	agent-review-staging-checkpoint3	-
+l-47007	ck3	-	line	old-measure	1 pony	-	-	-	29.574 Milliliter	*	right	29.574 Milliliter	rules	agent	agent-review-staging-checkpoint3	-
+l-135429	ck3	-	line	couple	a couple of pounds of fine dry flour	-	-	-	2 Pound	*	right	2 Pound	held-out	agent	agent-review-staging-checkpoint3	-
+l-97363	ck3	-	line	after-name	flour, ½ tablespoonful	-	-	-	0.5 Tablespoon	*	right	0.5 Tablespoon	rules	agent	agent-review-staging-checkpoint3	-
+l-51472	ck3	-	line	part-of	juice from 1/2 lime juice	-	-	-	*	*	doubtful	0.5 Piece	held-out	-	agent-review-staging-checkpoint3	half a fruit as a piece of a juice food
+l-61077	ck3	-	line	part-of	juice from half a lemon	-	-	-	*	*	doubtful	0.5 Piece	held-out	-	agent-review-staging-checkpoint3	half a fruit as a piece of a juice food
+l-96821-vanilla	ck3	-	line	old-spoon	½ teaspn. vanilla	-	-	-	0.5 Teaspoon	*	right	0.5 Teaspoon	rules	agent	agent-review-staging-checkpoint3	also 97075
+l-96821-sugar	ck3	-	line	old-spoon	1 level tablespn. sugar	-	-	-	1 Tablespoon	*	right	1 Tablespoon	rules	agent	agent-review-staging-checkpoint3	-
+l-96987-vanilla	ck3	-	line	old-spoon	1 teaspn. vanilla	-	-	-	1 Teaspoon	*	right	1 Teaspoon	rules	agent	agent-review-staging-checkpoint3	also 97096, 97101
+l-96987-heckers	ck3	-	line	old-spoon	1 tablespn. Hecker's	-	-	-	1 Tablespoon	*	right	1 Tablespoon	rules	agent	agent-review-staging-checkpoint3	-
+l-96987-farina	ck3	-	line	old-spoon	1½ tablespn. Am. Cereal Co's farina	-	-	-	1.5 Tablespoon	*	right	1.5 Tablespoon	held-out	agent	agent-review-staging-checkpoint3	-
+l-97075	ck3	-	line	old-spoon	1 tablespn. lemon juice	-	-	-	1 Tablespoon	*	right	1 Tablespoon	rules	agent	agent-review-staging-checkpoint3	-
+l-97101	ck3	-	line	old-spoon	4 tablespns. water	-	-	-	4 Tablespoon	*	right	4 Tablespoon	rules	agent	agent-review-staging-checkpoint3	-
+l-26850	ck3	-	line	measure-and-measure	one cup and two tablespoonfuls of sifted Graham flour	-	-	-	1.125 Cup	*	right	1.125 Cup	held-out	agent	agent-review-staging-checkpoint3	-
+l-30419	ck3	-	line	and-a-half	three ounces and a half	-	-	-	3.5 Ounce	*	right	3.5 Ounce	rules	agent	agent-review-staging-checkpoint3	-
+l-95766	ck3	-	line	and-a-half	one bottle and a half of best brandy	-	-	-	1.5 Bottle	*	right	1.5 Bottle	held-out	agent	agent-review-staging-checkpoint3	-
+l-138059	ck3	-	line	and-a-half	a pound and a half wheat flour	-	-	-	1.5 Pound	*	right	1.5 Pound	rules	agent	agent-review-staging-checkpoint3	-
+l-32423	ck3	-	line	plus	1 cup + 2 T.	-	-	-	1.125 Cup	*	right	1.125 Cup	held-out	agent	agent-review-staging-checkpoint3	-
+l-32937	ck3	-	line	leading-number	1 tablespoon extra-virgin olive oil	-	-	-	1 Tablespoon	*	right	1 Tablespoon	held-out	agent	agent-review-staging-checkpoint3	-
+l-31937	ck3	-	line	part-of	shredded meat from 1 small rotisserie chicken (about 3 cups)	-	-	-	*	*	doubtful	1 Piece	held-out	-	agent-review-staging-checkpoint3	3 Cup would read the bracket
+l-26350	ck3	N16	line	bare-measure	tablespoonful finely shredded or grated onion	-	-	-	1 Tablespoon	*	wrong	-	held-out	agent	agent-review-staging-checkpoint3	N16: a bare "tablespoonful" is one; the rebuild emptied it
+l-18788	ck3	N16	line	italian	Uova - 6 numero	-	-	-	6 Piece	*	wrong	-	held-out	agent	agent-review-staging-checkpoint3	N16: "- 6 numero" is a count of six; the rebuild emptied it
+l-18787	ck3	N16	line	cross-reference	Marzapane descritto al N. 579	-	-	-	-	*	wrong	579 Piece	rules	agent	agent-review-staging-checkpoint3	N16: "al N. 579" points to recipe 579 of the book, no count
+l-18295	ck3	N16	line	cross-reference	tartufi preparati nel modo descritto al N. 269	-	-	-	-	*	wrong	269 Piece	held-out	agent	agent-review-staging-checkpoint3	N16: a cross-reference, no count
+l-32437	ck3	N16	line	size-slash	8 ounces / 1/2 pound fresh tortellini	-	-	-	8 Ounce	fresh tortellini	wrong	8 Ounce	rules	agent	agent-review-staging-checkpoint3	N16: the second size after "/" is the same amount; the food is fresh tortellini, not "/ 1/2 pound fresh tortellini"
+l-35421	ck3	-	line	leading-number	2 eggs, beaten with a dash of salt	-	-	-	2 Piece	*	right	2 Piece	held-out	agent	agent-review-staging-checkpoint3	-
+l-22344	ck3	-	line	leading-number	4 chicken thighs	-	-	-	4 Piece	*	right	4 Piece	rules	agent	agent-review-staging-checkpoint3	-
+l-24856	ck3	-	line	old-measure	a jill of good cream	-	-	-	0.5 Cup	*	right	0.5 Cup	held-out	agent	agent-review-staging-checkpoint3	-
+l-24345	ck3	-	line	leading-number	2 green peppers	-	-	-	2 Piece	*	right	2 Piece	held-out	agent	agent-review-staging-checkpoint3	-
+l-59535	ck3	-	line	hedge	~8 cups mixed greens	-	-	-	8 Cup	*	right	8 Cup	held-out	agent	agent-review-staging-checkpoint3	-
+l-18902	ck2,ck3	M17	line	italian	4 decilitri d'acqua	-	-	-	400 Milliliter	*	right	400 Milliliter	held-out	agent	agent-review-staging-checkpoint3	-
+l-18502	ck2,ck3	M17	line	italian	1/4 di spicchio d'aglio	-	-	-	0.25 Clove	*	right	0.25 Clove	rules	agent	agent-review-staging-checkpoint3	-
+l-34776	ck3	N14	line	hedge	optional: 1/2 cup semisweet chocolate chips or chopped nuts	-	-	-	0.5 Cup	*	right	0.5 Cup	held-out	agent	agent-review-staging-checkpoint3	-
+l-23105	ck2,ck3	-	line	couple	pair of sweetbreads	-	-	-	2 Piece	*	right	2 Piece	rules	agent	agent-review-staging-checkpoint3	-
+l-24859-eggs	ck3	-	line	range	five or six eggs	-	-	-	5 Piece	*	right	5 Piece	held-out	agent	agent-review-staging-checkpoint3	-
+l-24859-cream	ck3	-	line	range	two or three spoonfuls of cream	-	-	-	2 Tablespoon	*	right	2 Tablespoon	held-out	agent	agent-review-staging-checkpoint3	-
+l-21843	ck3	-	line	and-a-half	a pound and a half of sugar or molasses	-	-	-	1.5 Pound	*	right	1.5 Pound	held-out	agent	agent-review-staging-checkpoint3	-
+l-hot-cocoa	ck3	-	line	heading	Hot Cocoa:	-	-	-	-	*	right	-	held-out	agent	agent-review-staging-checkpoint3	-
+m-22131	ck1,ck2	K1	method	temperature	cold vinegar	Pour into two quarts of boiling vinegar.	-	yes	-	*	right	-	rules	agent	agent-review-staging-checkpoint2	ck1 wrong at 8 Cup, ck2 right
+m-58326	ck1,ck2	K1	method	measure-piece	Parsley	Add a handful of chopped Parsley.	-	yes	-	*	right	-	rules	agent	agent-review-staging-checkpoint2	ck1 wrong at 1 Piece, ck2 right
+m-88330	ck1,ck2	K1	method	ratio	melted butter	Put 1/2 teaspoonful of melted butter in each tomato.	-	yes	-	*	right	-	rules	agent	agent-review-staging-checkpoint2	ck1 wrong at 0.5 Teaspoon, ck2 right
+m-89165	ck1,ck2	K1	method	alternative	tomatoes	Add one-half can of tomatoes, or four chopped fresh tomatoes.	-	yes	-	*	right	-	rules	agent	agent-review-staging-checkpoint2	-
+m-57461	ck1,ck2,ck3	-	method	plain	milk	Pour on three pints of boiling milk.	-	yes	6 Cup	*	right	6 Cup	held-out	agent	agent-review-staging-checkpoint3	-
+m-135642	ck1,ck2,ck3	-	method	plain	eggs	Add four well-beaten eggs.	-	yes	4 Piece	*	right	4 Piece	rules	agent	agent-review-staging-checkpoint3	-
+m-92307	ck1,ck2,ck3	-	method	plain	melted butter	Add a gill of melted butter.	-	yes	0.5 Cup	*	right	0.5 Cup	rules	agent	agent-review-staging-checkpoint3	-
+m-28356-onion	ck1	-	method	plain	chopped onion	Fry a chopped onion in the fat.	-	yes	1 Piece	*	right	1 Piece	rules	agent	agent-review-staging-checkpoint1	-
+m-28356-leek	ck1	-	method	plain	chopped leek	Add a chopped leek.	-	yes	1 Piece	*	right	1 Piece	rules	agent	agent-review-staging-checkpoint1	-
+m-68702	ck1	-	method	whole	pig	Take a pig.	-	no	*	*	doubtful	-	held-out	-	agent-review-staging-checkpoint1	no weight per item, so no count
+m-69123	ck2,ck3	M6	method	measure-and-measure	cut celery	Add one quart and a pint of cut celery.	-	yes	6 Cup	*	right	6 Cup	held-out	agent	agent-review-staging-checkpoint3	ck2 wrong at 4 Cup (M6), ck3 right
+m-57526	ck2,ck3	M4	method	ratio	salt	Season with 1/4 teaspoon salt, 1/8 teaspoon pepper, and 1/2 tablespoon butter per cup of vegetable.	pepper ¦ butter ¦ 2 cups peas	yes	-	*	right	-	held-out	agent	agent-review-staging-checkpoint3	ck2 wrong (M4), ck3 right
+m-101742	ck2,ck3	M4	method	ratio	powdered mace	To every quart allow half an ounce of allspice, the same quantity of ginger, half a teaspoonful of powdered mace.	2 quarts mushrooms ¦ allspice ¦ ginger	yes	-	*	right	-	held-out	agent	agent-review-staging-checkpoint3	ck2 wrong (M4), ck3 right
+m-75713	ck2,ck3	M5	method	range	Parmesan cheese	Sprinkle two or three tablespoonfuls of Parmesan cheese over the top.	macaroni	yes	2 Tablespoon	*	right	2 Tablespoon	held-out	agent	agent-review-staging-checkpoint3	ck2 wrong at 3 (M5), ck3 right
+m-86444	ck2,ck3	-	method	shared-measure	minced parsley	Add a heaping tablespoonful of minced parsley, chives, and tarragon.	-	yes	*	*	doubtful	1 Tablespoon	rules	-	agent-review-staging-checkpoint3	one spoon for three herbs
+m-86437	ck2	-	method	plain	shredded bacon	Add one cupful of shredded bacon.	-	yes	1 Cup	*	right	1 Cup	held-out	agent	agent-review-staging-checkpoint2	-
+m-52874	ck2	-	method	plain	pepper	Season with a saltspoonful of pepper.	-	yes	0.25 Teaspoon	*	right	0.25 Teaspoon	rules	agent	agent-review-staging-checkpoint2	-
+m-69094	ck2	-	method	plain	salt	Add two saltspoonfuls of salt.	-	yes	0.5 Teaspoon	*	right	0.5 Teaspoon	rules	agent	agent-review-staging-checkpoint2	-
+m-48823	ck2	-	method	plain	vinegar	Pour in half a teacupful of vinegar.	-	yes	0.25 Cup	*	right	0.25 Cup	rules	agent	agent-review-staging-checkpoint2	-
+m-109516	ck2	-	method	plain	light sherry	Add a gill of light sherry.	-	yes	0.5 Cup	*	right	0.5 Cup	rules	agent	agent-review-staging-checkpoint2	-
+m-93008	ck2	-	method	plain	water	Boil in a gallon of water.	-	yes	16 Cup	*	right	16 Cup	held-out	agent	agent-review-staging-checkpoint2	-
+m-46172	ck2	-	method	plain	Hysop water	Take three pints of Hysop water.	-	yes	6 Cup	*	right	6 Cup	held-out	agent	agent-review-staging-checkpoint2	-
+m-104038	ck2	-	method	ratio-stated	water	Boil a teacup of water to two pounds of sugar.	-	yes	0.5 Cup	*	right	0.5 Cup	rules	known	agent-review-staging-checkpoint2	judged right at ck2 (the recipe's sugar line is 2 lb); known: a proportion fills nothing even where it matches the recipe's own amount (rule row m-05 of recipes-rebuild.tsv), so the line is left empty, the safe side
+m-84548	ck2,ck3	M4	method	ratio	black pepper	Boil the tomatoes. To each quart, put a teaspoonful of black pepper.	4 quarts tomatoes	yes	-	*	right	-	rules	agent	agent-review-staging-checkpoint3	-
+m-100431	ck2,ck3	M4	method	ratio	best sugar	To every pint, when strained, put a pound of best sugar.	currants	yes	-	*	right	-	rules	agent	agent-review-staging-checkpoint3	-
+m-77642	ck2,ck3	M4	method	ratio	dried shalots	To every pint add a dessertspoonful of salt and one ounce of dried shalots.	walnut catsup	yes	-	*	right	-	held-out	agent	agent-review-staging-checkpoint3	-
+m-121518	ck2,ck3	M4	method	ratio	summer savory	To each cupful add a little salt, a pinch of summer savory.	bread crumbs	yes	-	*	right	-	held-out	agent	agent-review-staging-checkpoint3	-
+m-84733	ck2,ck3	M4	method	ratio	white sugar	To a pound of quince pulp, put a pound of white sugar.	quinces	yes	-	*	right	-	held-out	agent	agent-review-staging-checkpoint3	-
+m-52082	ck2,ck3	M4	method	ratio	brown sugar	Mash the berries; to a quart of berries, put half of a teacupful of brown sugar.	berries	yes	-	*	right	-	held-out	agent	agent-review-staging-checkpoint3	-
+m-133876	ck2,ck3	M4	method	ratio	ham	Each guest puts a slice of ham, then a poached egg, on each plate.	eggs	yes	-	*	right	-	rules	agent	agent-review-staging-checkpoint3	-
+m-89125	ck2,ck3	M4	method	ratio	thin raw bacon	Wrap a slice of thin raw bacon around each oyster.	oysters	yes	-	*	right	-	rules	agent	agent-review-staging-checkpoint3	-
+m-80462	ck2,ck3	M4	method	ratio	whipped cream	Serve with a tablespoon of whipped cream on top of each portion.	gelatine	yes	-	*	right	-	rules	agent	agent-review-staging-checkpoint3	-
+m-68810	ck2,ck3	M4	method	ratio	mashed potato	Cover each chop with a spoonful of mashed potato.	chops	yes	-	*	right	-	rules	agent	agent-review-staging-checkpoint3	-
+m-91149	ck2,ck3	M4	method	ratio	salad oil	Pour a tablespoonful of salad oil at the top of each bottle.	mushrooms	yes	-	*	right	-	held-out	agent	agent-review-staging-checkpoint3	-
+m-30742	ck2,ck3	M4	method	ratio	thin cream	Use a cupful of thin cream for each four persons.	coffee	yes	-	*	right	-	rules	agent	agent-review-staging-checkpoint3	-
+m-140662	ck2,ck3	M5	method	range	cold water	Pour on three to five gallons of cold water.	malt	yes	48 Cup	*	right	-	held-out	agent	agent-review-staging-checkpoint3	ck2 wrong at 80 Cup (M5); ck3 not filled, safe
+m-78381	ck2,ck3	M5	method	range	water	Boil the hops in five or six gallons of water.	hops	yes	80 Cup	*	right	80 Cup	rules	agent	agent-review-staging-checkpoint3	-
+m-43777	ck2,ck3	M5	method	range	brisket of beef	Take six or seven pounds of brisket of beef.	salt	yes	6 Pound	*	right	6 Pound	rules	agent	agent-review-staging-checkpoint3	-
+m-77521	ck2,ck3	M5	method	range	linseed oil	Mix in two or three pints of linseed oil.	turpentine	yes	4 Cup	*	right	4 Cup	rules	agent	agent-review-staging-checkpoint3	-
+m-30189-sugar	ck2	-	method	ratio-stated	loaf-sugar	To three pounds of plums allow three pounds and a half of loaf-sugar.	-	yes	3.5 Pound	*	right	3.5 Pound	held-out	agent	agent-review-staging-checkpoint2	judged right at ck2; the plums line is not in the log
+m-30189-water	ck2	-	method	plain	clear hard water	Add one half pint of clear hard water.	-	yes	1 Cup	*	right	1 Cup	held-out	agent	agent-review-staging-checkpoint2	-
+m-103566	ck2,ck3	M19	method	alternative-same	French or common mustard	Stir in a teaspoonful of French or common mustard.	vinegar	yes	1 Teaspoon	*	right	1 Teaspoon	held-out	agent	agent-review-staging-checkpoint3	ck2 wrong at 0 (M19), ck3 right
+m-26804	ck2,ck3	M19	method	alternative-same	stewed or canned tomatoes	Add a pint of stewed or canned tomatoes and simmer an hour.	rice	yes	2 Cup	*	right	2 Cup	rules	agent	agent-review-staging-checkpoint3	ck2 wrong at 0 (M19), ck3 right
+m-59107	ck2,ck3	M19	method	listed	bay leaf	Add two cloves, one onion, one bay leaf.	-	no	-	*	right	-	held-out	agent	agent-review-staging-checkpoint3	R7: no weight per item, decided at ck4
+m-110476	ck2,ck3	M19	method	listed	nutmegs	Add 2 nutmegs sliced.	-	no	-	*	right	-	held-out	agent	agent-review-staging-checkpoint3	R7: no weight per item, decided at ck4
+m-112130	ck2,ck3	M5	method	range	corned beef	Boil six or eight pounds of corned beef.	-	yes	6 Pound	*	right	6 Pound	rules	agent	agent-review-staging-checkpoint3	ck2 wrong at 8 (M5), ck3 right
+m-133777	ck2	-	method	plain	cold soft water	Add one and one-half gallons of cold soft water.	-	yes	24 Cup	*	right	24 Cup	rules	agent	agent-review-staging-checkpoint2	-
+m-57345	ck2	-	method	plain	milk	Pour on one quart of boiling milk.	-	yes	4 Cup	*	right	4 Cup	held-out	agent	agent-review-staging-checkpoint2	-
+m-104817-oil	ck2	-	method	ratio	oil	Use one tablespoonful of oil to four of vinegar.	vinegar	yes	-	*	right	-	held-out	agent	agent-review-staging-checkpoint2	-
+m-104817-vinegar	ck2	-	method	ratio	vinegar	Use one tablespoonful of oil to four of vinegar.	oil	yes	-	*	right	-	rules	agent	agent-review-staging-checkpoint2	-
+m-98069	ck3	N1	method	sub-preparation	Water	Put the sugar and water into the saucepan. ¦ Add the cream of tartar dissolved in one teaspoon of hot water.	sugar ¦ cream of tartar	yes	-	*	wrong	1 Teaspoon	rules	agent	agent-review-staging-checkpoint3	N1: the teaspoon of hot water dissolves the cream of tartar; the candy's water states no amount
+m-23271	ck3	-	method	plain	prepared tomatoes	Add one pint of prepared tomatoes.	-	yes	2 Cup	*	right	2 Cup	rules	agent	agent-review-staging-checkpoint3	-
+m-68478	ck3	-	method	range	claret or white-wine	Add two or three spoonfuls of claret or white-wine.	-	yes	2 Tablespoon	*	right	2 Tablespoon	held-out	agent	agent-review-staging-checkpoint3	-
+m-109672	ck3	-	method	range	eggs	Add one or two beaten eggs.	-	yes	1 Piece	*	right	1 Piece	rules	agent	agent-review-staging-checkpoint3	-
+m-113953	ck3	-	method	range	fat bacon	Lay two or three slices of fat bacon in the pan.	-	yes	2 Slice	*	right	2 Slice	held-out	agent	agent-review-staging-checkpoint3	-
+m-140404	ck3	-	method	range	white wine vinegar	Add one or two spoonfuls of white wine vinegar.	-	yes	1 Tablespoon	*	right	1 Tablespoon	held-out	agent	agent-review-staging-checkpoint3	-
+m-68900	ck3	-	method	plain	salt	Add one teacupful of salt.	-	yes	0.5 Cup	*	right	0.5 Cup	held-out	agent	agent-review-staging-checkpoint3	-
+m-128065	ck3	-	method	plain	butter	Melt half a teacupful of butter.	-	yes	0.25 Cup	*	right	0.25 Cup	held-out	agent	agent-review-staging-checkpoint3	-
+m-113357	ck3	N1	method	range	cold boiled sweet potatoes	Slice what will make 4 or 5 cups of cold boiled sweet potatoes.	-	yes	4 Cup	*	wrong	5 Cup	held-out	agent	agent-review-staging-checkpoint3	N1: the range after "make" by its lower end
+m-84724-cherries	ck3	N1	method	ratio	cherries	Make syrup with half a pint of water to two pounds of cherries.	water	yes	-	*	wrong	2 Pound	held-out	agent	agent-review-staging-checkpoint3	N1: "to two pounds of cherries" is a proportion
+m-84724-water	ck3	N1	method	ratio	water	Make syrup with half a pint of water to two pounds of cherries.	cherries	yes	-	*	wrong	1 Cup	held-out	agent	agent-review-staging-checkpoint3	N1: the same proportion
+m-111962	ck3	N1	method	ratio	sugar	Allow three quarters of a pound of sugar to one of fruit.	-	yes	-	*	wrong	0.75 Pound	rules	agent	agent-review-staging-checkpoint3	N1: "to one of fruit"; also 114368
+m-75238	ck3	N1	method	ratio	EGGS	FOR HALF A PINT DISSOLVE 3 EGGS.	-	yes	-	*	wrong	3 Piece	held-out	agent	agent-review-staging-checkpoint3	N1: "for half a pint" is a proportion
+m-38039	ck3	-	method	ratio	pecan halves	Top with 1-2 pecan halves for each tart.	-	yes	*	*	doubtful	1 Piece	rules	-	agent-review-staging-checkpoint3	per tart
+m-129254	ck3	-	method	ratio	water	Use one cup of lime to a gallon of water.	-	yes	*	*	doubtful	8 Cup	rules	-	agent-review-staging-checkpoint3	-
+m-28488	ck3	-	method	plain	Ginger	Add an Ounce of Ginger to the pickle.	-	yes	1 Ounce	*	right	1 Ounce	held-out	agent	agent-review-staging-checkpoint3	-
+m-23843-mushrooms	ck3	-	method	range	mushrooms	Add four or five mushrooms.	-	yes	4 Piece	*	right	4 Piece	rules	agent	agent-review-staging-checkpoint3	-
+m-23843-eggs	ck3	-	method	range	eggs	Beat two or three eggs.	-	yes	2 Piece	*	right	2 Piece	rules	agent	agent-review-staging-checkpoint3	-
+m-74679	ck3	-	method	range	cream	Add four or five spoonfuls of cream.	-	yes	4 Tablespoon	*	right	4 Tablespoon	rules	agent	agent-review-staging-checkpoint3	-
+m-30922	ck3	-	method	ratio	bacon	For each slice of liver allow a slice of bacon.	-	yes	-	*	right	-	rules	agent	agent-review-staging-checkpoint3	-
+m-28845	ck3	-	method	plain	hot water	Add a half cupful of hot water.	-	yes	0.5 Cup	*	right	0.5 Cup	rules	agent	agent-review-staging-checkpoint3	-
+m-26365	ck3	-	method	plain	beaten egg	Add a beaten egg.	-	yes	1 Piece	*	right	1 Piece	held-out	agent	agent-review-staging-checkpoint3	-
+m-83691	ck3	N16	method	plain	sugar	Boil a cupful of sugar to the crack and glace the puffs.	-	yes	1 Cup	*	wrong	-	held-out	agent	agent-review-staging-checkpoint3	N16: a cupful of sugar boiled to the crack is the recipe's sugar
+m-29918	ck3	N16	method	range	onions	Boil ten or a dozen onions.	-	yes	10 Piece	*	wrong	-	held-out	agent	agent-review-staging-checkpoint3	N16: ten or a dozen, the lower end
+m-25846	ck3	-	method	range	Oranges	Add the juyce of two or three Oranges.	-	yes	*	*	doubtful	-	rules	-	agent-review-staging-checkpoint3	-
+m-23341	ck3	-	method	range	cayenne	Add a dash or two of cayenne.	-	yes	*	*	doubtful	-	rules	-	agent-review-staging-checkpoint3	-
+m-24860	ck3	-	method	range	rose-water	Add a spoonful or two of rose-water.	-	yes	*	*	doubtful	-	held-out	-	agent-review-staging-checkpoint3	-

@@ -14,16 +14,32 @@ f-012	book	Constructed Book I (1942)	175238	can	-	454	1	1	1	1	0	453.6	453.6	454:
 f-013	book	Constructed Book J (1936)	169928	can	-	822	1	1	1	1	0	822.1	822.1	822:1	counts
 f-014	book	Constructed Book J (1936)	175168	can	-	907	1	1	1	1	0	907.2	907.2	907:1	counts
 f-015	book	Constructed Book K (1939)	175168	can	-	454	2	1	2	2	0	453.6	453.6	454:2	counts
-f-016	book	Constructed Club Cook Book	168775	package	-	85	1	1	1	1	0	85	85	85:1	counts
-f-017	book	Constructed Grange Book	175238	can	-	454	1	1	1	1	0	453.6	453.6	454:1	counts
-f-018	book	Constructed Ladies' Aid Book	175238	can	-	425	1	1	1	1	0	425.2	425.2	425:1	counts
-f-019	era	historic	169254	can	-	227	4	3	3	4	1	113.4	226.8	113:1;227:3	counts
-f-020	era	historic	169640	jar	-	454	2	1	2	2	0	453.6	467.8	454:1;468:1	fewer than two books
-f-021	era	historic	169928	can	-	822	1	1	1	1	0	822.1	822.1	822:1	fewer than two books
-f-022	era	historic	173418	package	-	85	8	4	4	6	2	85	226.8	85:4;227:2	counts
-f-023	era	historic	173418	package	large	227	1	1	1	1	0	226.8	226.8	227:1	fewer than two books
-f-024	era	historic	173420	package	-	85	4	1	1	3	1	85	226.8	85:1;170:1;227:1	no clear mode
-f-025	era	historic	175168	can	-	454	3	2	1	2	1	453.6	907.2	454:1;907:1	runner-up too close
-f-026	era	historic	175238	can	-	454	3	2	2	2	0	453.6	453.6	454:2	counts
-f-027	era	unknown	168775	package	-	85	1	1	1	1	0	85	85	85:1	fewer than two books
-f-028	era	unknown	175238	can	-	425	2	2	1	2	1	425.2	453.6	425:1;454:1	runner-up too close
+f-016	book	Constructed Book L (1915)	169599	packet	-	28	1	1	1	1	0	28.3	28.3	28:1	counts
+f-017	book	Constructed Book N	175168	can	-	454	1	1	1	1	0	453.6	453.6	454:1	counts
+f-018	book	Constructed Book O	173418	package	-	85	1	1	1	1	0	85	85	85:1	counts
+f-019	book	Constructed Book O	999001	can	-	198	1	1	1	1	0	198.4	198.4	198:1	counts
+f-020	book	Constructed Book Q	170457	can	-	596	1	1	1	1	0	596	596	596:1	counts
+f-021	book	Constructed Book R	169124	can	-	330	1	1	1	1	0	330	330	330:1	counts
+f-022	book	Constructed Book R	999007	box	-	113	1	1	1	1	0	113.4	113.4	113:1	counts
+f-023	book	Constructed Book S	999011	can	-	454	1	1	1	1	0	453.6	453.6	454:1	counts
+f-024	book	Constructed Club Cook Book	168775	package	-	85	1	1	1	1	0	85	85	85:1	counts
+f-025	book	Constructed Grange Book	175238	can	-	454	1	1	1	1	0	453.6	453.6	454:1	counts
+f-026	book	Constructed Ladies' Aid Book	175238	can	-	425	1	1	1	1	0	425.2	425.2	425:1	counts
+f-027	era	historic	169254	can	-	227	4	3	3	4	1	113.4	226.8	113:1;227:3	counts
+f-028	era	historic	169599	packet	-	28	1	1	1	1	0	28.3	28.3	28:1	fewer than two books
+f-029	era	historic	169640	jar	-	454	2	1	2	2	0	453.6	467.8	454:1;468:1	fewer than two books
+f-030	era	historic	169928	can	-	822	1	1	1	1	0	822.1	822.1	822:1	fewer than two books
+f-031	era	historic	173418	package	-	85	8	4	4	6	2	85	226.8	85:4;227:2	counts
+f-032	era	historic	173418	package	large	227	1	1	1	1	0	226.8	226.8	227:1	fewer than two books
+f-033	era	historic	173420	package	-	85	4	1	1	3	1	85	226.8	85:1;170:1;227:1	no clear mode
+f-034	era	historic	175168	can	-	454	3	2	1	2	1	453.6	907.2	454:1;907:1	runner-up too close
+f-035	era	historic	175238	can	-	454	3	2	2	2	0	453.6	453.6	454:2	counts
+f-036	era	unknown	168775	package	-	85	1	1	1	1	0	85	85	85:1	fewer than two books
+f-037	era	unknown	169124	can	-	330	1	1	1	1	0	330	330	330:1	fewer than two books
+f-038	era	unknown	170457	can	-	596	1	1	1	1	0	596	596	596:1	fewer than two books
+f-039	era	unknown	173418	package	-	85	1	1	1	1	0	85	85	85:1	fewer than two books
+f-040	era	unknown	175168	can	-	454	1	1	1	1	0	453.6	453.6	454:1	fewer than two books
+f-041	era	unknown	175238	can	-	425	2	2	1	2	1	425.2	453.6	425:1;454:1	runner-up too close
+f-042	era	unknown	999001	can	-	198	1	1	1	1	0	198.4	198.4	198:1	fewer than two books
+f-043	era	unknown	999007	box	-	113	1	1	1	1	0	113.4	113.4	113:1	fewer than two books
+f-044	era	unknown	999011	can	-	454	1	1	1	1	0	453.6	453.6	454:1	fewer than two books

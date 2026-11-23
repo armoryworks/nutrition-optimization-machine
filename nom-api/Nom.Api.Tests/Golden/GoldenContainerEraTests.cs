@@ -28,13 +28,25 @@ namespace Nom.Api.Tests.Golden
 
         public GoldenContainerEraTests(ITestOutputHelper output) => _output = output;
 
+        private static string EraOf(Nom.Import.Golden.GoldenRow row) =>
+            row["era"] == ContainerEras.Unknown && ContainerEras.IsWebPage(row.Value("host")) ? ContainerEras.Modern : row["era"];
+
         private static List<CorpusLine> CorpusLines() =>
             GoldenSet.Read("container-era-lines.tsv").Rows
-                .Select(r => ContainerCorpusSizes.Read(r["book"] == "-" ? null : r["book"], r["era"], long.Parse(r["fdcId"], CultureInfo.InvariantCulture), r["line"],
-                    r.Value("density") is { } d ? decimal.Parse(d, CultureInfo.InvariantCulture) : null, r.Id))
+                .Select(r => ContainerCorpusSizes.Read(r["book"] == "-" ? null : r["book"], EraOf(r), long.Parse(r["fdcId"], CultureInfo.InvariantCulture), r["line"],
+                    r.Value("density") is { } d ? decimal.Parse(d, CultureInfo.InvariantCulture) : null, r.Id, r.Value("food")))
                 .Where(l => l != null)
                 .Select(l => l!)
                 .ToList();
+
+        [Fact]
+        public void Each_corpus_line_is_read_as_the_independent_miner_reads_it()
+        {
+            var mine = CorpusLines().Select(l => string.Create(CultureInfo.InvariantCulture,
+                $"{l.Ref}\t{l.Era}\t{l.Kind}\t{(l.SizeWord.Length == 0 ? "-" : l.SizeWord)}\t{l.Grams:0.#}")).Prepend("id\tera\tkind\tsizeWord\tgrams").ToList();
+            var frozen = File.ReadAllLines(Path.Combine(GoldenSet.Folder, "container-era-readings.tsv")).Where(l => l.Length > 0 && !l.StartsWith('#')).ToList();
+            mine.Should().Equal(frozen, "container-era-readings.tsv is rewritten with ops/container-era-facts.py --lines; the C# and Python readers must read every line alike (staging checkpoint 3, N13)");
+        }
 
         [Fact]
         public void The_corpus_tiers_give_the_facts_the_independent_miner_gives()

@@ -72,7 +72,10 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// The findings over one population of foods, most severe first. The group medians come from
-        /// the same population, so a food's energy is judged against the foods given with it.
+        /// the same population, so a food's energy is judged against the foods given with it. The audit
+        /// has no calorie factors, so a stored energy check stands: a food the admission confirmed by its
+        /// own factors is not re-judged, and one it found a mismatch by them stays one, as the admission
+        /// reports it (review of ck6-data-fixes, CK6-3).
         /// </summary>
         public static List<FoodCatalogFindingModel> Findings(IReadOnlyList<Nom.Data.Recipe.IngredientEntity> ingredients)
         {
@@ -117,11 +120,14 @@ namespace Nom.Orch.Services
                     || CatalogAdmissionRule.UsedInSmallAmounts(ing.FdcCategoryId, null);
                 var verdict = validator.Validate(new FoodQualityInput(ing.Name, k, p, c, f, energyAlreadyConfirmed,
                     Amount(ing, AlcoholNames), FiberGramsPer100g: AnyAmount(ing, FiberNames)));
-                if (!verdict.Accepted)
+                var reasons = verdict.Reasons.ToList();
+                if (ing.EnergyCheck == EnergyCheckOutcome.Mismatch && !reasons.Contains(EnergyCheckOutcome.Mismatch))
+                    reasons.Add(EnergyCheckOutcome.Mismatch);
+                if (reasons.Count > 0)
                 {
-                    findings.Add(Finding(ing, string.Join("+", verdict.Reasons),
-                        verdict.Reasons.Any(r => r.Contains("impossible") || r.Contains("negative")) ? "high" : "medium",
-                        $"Fails plausibility: {string.Join(", ", verdict.Reasons)}."));
+                    findings.Add(Finding(ing, string.Join("+", reasons),
+                        reasons.Any(r => r.Contains("impossible") || r.Contains("negative")) ? "high" : "medium",
+                        $"Fails plausibility: {string.Join(", ", reasons)}."));
                 }
 
                 // 3. Unclassified — invisible to food-group requirements.

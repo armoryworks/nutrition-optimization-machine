@@ -118,6 +118,13 @@ namespace Nom.Data.Recipe
         /// <summary>The version of the prose check that last judged the stored description and steps; null = never checked.</summary>
         public int? ProseCheckVersion { get; set; }
 
+        /// <summary>
+        /// True while the prose check found only weak signals against the stored description and steps
+        /// (a cooking verb not kept, steps out of order, an added amount, an odd length): the text is
+        /// shown and counted, and is the prose judge's to read. Set and cleared by the journaled re-check.
+        /// </summary>
+        public bool ProseUnsure { get; set; }
+
         /// <summary>Rewrite attempts the prose lane has spent on this recipe under <see cref="ProseLaneVersion"/>.</summary>
         public int ProseAttempts { get; set; }
 

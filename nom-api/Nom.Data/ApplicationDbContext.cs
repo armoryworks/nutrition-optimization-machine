@@ -27,6 +27,7 @@ namespace Nom.Data
     public class ApplicationDbContext : IdentityDbContext<IdentityUser>, IDataProtectionKeyContext
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private bool _hardDelete;
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor)
             : base(options)
@@ -256,6 +257,25 @@ namespace Nom.Data
             }
         }
 
+        /// <summary>
+        /// Deletes the rows outright, with no soft delete, and saves: for an undo that takes back
+        /// rows its own run created, so no deleted copy is left behind to differ from the state
+        /// before the run.
+        /// </summary>
+        public async Task<int> HardDeleteAsync<TEntity>(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default) where TEntity : BaseEntity
+        {
+            _hardDelete = true;
+            try
+            {
+                RemoveRange(entities);
+                return await SaveChangesAsync(cancellationToken);
+            }
+            finally
+            {
+                _hardDelete = false;
+            }
+        }
+
         public override int SaveChanges()
         {
             ApplyAuditInformation();
@@ -299,7 +319,7 @@ namespace Nom.Data
                     baseEntity.LastModifiedByPersonId = baseEntity.LastModifiedByPersonId ?? currentPersonId;
                 }
 
-                if (entry.State == EntityState.Deleted)
+                if (entry.State == EntityState.Deleted && !_hardDelete)
                 {
                     entry.State = EntityState.Modified;
                     baseEntity.IsDeleted = true;

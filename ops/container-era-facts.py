@@ -19,7 +19,18 @@ Refused sizes are written too, with the reason. The rule is written apart from t
 line's leading count, there from NOM's line parser, so the two readings of one capture can be
 compared row by row (Nom.Import --container-sizes --corpus --facts writes the same columns).
 
+A line is not read when its text does not state one size of one container: a range or an
+alternative of sizes ("7½ to 8 oz.", "8-oz. or 1-lb."), a range of containers ("one or two 2-oz.
+cans"), a count followed by "half" ("1 half pint can": a half-pint can or one and a half), a size
+"and a half" of its unit, a size written with super- or subscript digits ("13³⁄₄ oz."), or a
+container used as a vessel ("1 qt. jar with fresh mint leaves"). A line that names a flavoured
+product ("strawberry gelatin", "raspberry-flavored gelatin") counts only on a food whose
+description names a flavour or a dessert, so flavoured gelatin packages never size plain gelatine.
+A recipe with a source URL outside the book archives (a web page, USDA MyPlate Kitchen) is modern
+whatever its attribution, unless its era row says otherwise, and never enters the old-book tiers.
+
 usage: container-era-facts.py <lines.tsv> > container-era-facts.tsv
+       container-era-facts.py --lines <lines.tsv> > container-era-readings.tsv
 """
 import argparse
 import collections
@@ -46,24 +57,41 @@ SIZE_BEFORE = re.compile(
     r"\b(?P<size>small|large|big|large-size|small-size)\s+(?:size\s+)?(?:cans?|tins?|jars?|bottles?|box(?:es)?|bags?|packets?|"
     r"pouch(?:es)?|envelopes?|cartons?|tubs?|containers?|packages?|pkgs?|packs?)\b", re.I)
 NUMBERED = re.compile(r"(?:\bno\.?\s*|#\s*)\d", re.I)
+SIZE_UNIT = r"(?:fl\.?\s*)?(?:oz|ounces?|lbs?|pounds?|g|grams?|kg|ml|pints?|pts?|quarts?|qts?|cups?)\b"
+NOT_ONE_SIZE = [
+    re.compile(r"(?:\d+(?:[./]\d+)?|[½¼¾⅓⅔⅛])\s*(?:-|–|to|or)\s*\d+(?:[./]\d+)?\s*-?\s*" + SIZE_UNIT, re.I),
+    re.compile(r"\b(?:oz|ounces?|lbs?|pounds?|g|grams?|kg|ml|pints?|pts?|quarts?|qts?|cups?)\.?\s+(?:or|to)\s+(?:\d|one\b|two\b|a\b)", re.I),
+    re.compile(r"^\s*(?:\d+|one|two|three|four|a)\s+(?:or|to)\s+(?:\d+|one|two|three|four|five|six)\b", re.I),
+    re.compile(r"\d\s+half\b", re.I),
+    re.compile(r"\b(?:pints?|quarts?|pounds?|cups?|ounces?|gallons?)\s+and\s+a\s+half\b", re.I),
+    re.compile(r"[⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉⁄]"),
+    re.compile(r"\b(?:cans?|tins?|jars?|bottles?|box(?:es)?|bags?|packets?|pouch(?:es)?|sachets?|envelopes?|cartons?|tubs?|containers?|packages?|pkgs?|packs?)\.?\s+with\b", re.I),
+]
+FLAVOURED = re.compile(r"\b(?:[a-z]+-)?flavou?red\b|\b(?:strawberry|raspberry|cherry|lime|lemon|orange|grape|peach|apricot|blackberry|pineapple|fruit)\s+(?:gelatine?|jell-?o)\b", re.I)
+FLAVOUR_FOOD = re.compile(r"flavo|dessert", re.I)
+BOOK_ARCHIVES = ("gutenberg.org", "archive.org", "loc.gov", "hathitrust.org")
 UNICODE = {"½": Fraction(1, 2), "¼": Fraction(1, 4), "¾": Fraction(3, 4), "⅓": Fraction(1, 3), "⅔": Fraction(2, 3), "⅛": Fraction(1, 8)}
 LEADING = re.compile(r"^\s*(?:(?P<whole>\d+)[\s-]+(?P<num>\d+)/(?P<den>\d+)|(?P<frac>\d+)/(?P<fden>\d+)|(?P<int>\d+(?:\.\d+)?)?(?P<uni>[½¼¾⅓⅔⅛])?)")
 WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "a": 1, "an": 1}
 BAND = 0.05
 ERAS = ("historic", "unknown")
 COUNT = r"(?:\d+(?:[\s-]+\d+/\d+|/\d+|\.\d+)?[½¼¾⅓⅔⅛]?|[½¼¾⅓⅔⅛]|one|two|three|four|five|six|a|an)"
-SIZE = r"(?:about\s+)?(?:\d+(?:[\s-]+\d+/\d+|/\d+|\.\d+)?[½¼¾⅓⅔⅛]?|[½¼¾⅓⅔⅛])[\s-]*(?:fl\.?\s*)?(?:oz|ounces?|lbs?|pounds?|g|grams?|kg|ml|pints?|quarts?|cups?)\.?"
+SIZE = r"(?:about\s+)?(?:\d+(?:[\s-]+\d+/\d+|/\d+|\.\d+)?[½¼¾⅓⅔⅛]?|[½¼¾⅓⅔⅛])[\s-]*(?:fl\.?\s*)?(?:oz|ounces?|lbs?|pounds?|g|grams?|kg|ml|pints?|pts?|quarts?|qts?|cups?)\.?"
 QUALIFIER = r"(?:(?:large|small|medium|big|regular|standard|whole|full|tall|jumbo)\s+)*"
 CONTAINER = r"(?:cans?|tins?|jars?|bottles?|box(?:es)?|bags?|packets?|pouch(?:es)?|sachets?|envelopes?|cartons?|tubs?|containers?|packages?|pkgs?|packs?)\b\.?"
 ONE_CONTAINER = r"(?:can|tin|jar|bottle|box|bag|packet|pouch|sachet|envelope|carton|tub|container|package|pkg|pack)\b\.?"
-UNIT = r"(?:fl\.?\s*)?(?:oz|ounces?|lbs?|pounds?|g|grams?|kg|ml|pints?|quarts?|cups?)\.?"
+UNIT = r"(?:fl\.?\s*)?(?:oz|ounces?|lbs?|pounds?|g|grams?|kg|ml|pints?|pts?|quarts?|qts?|cups?)\.?"
 POUNDS_AND_OUNCES = r"\d+\s*(?:lbs?|pounds?)\.?[\s,]*(?:and\s+)?\d+(?:\.\d+)?\s*(?:oz|ounces?)\.?"
 SIZE_WORD = (r"(?:three[\s-]quarters|two[\s-]thirds|one[\s-]third|a\s+half|one[\s-]half|a\s+quarter|one[\s-]quarter|half|quarter|"
              r"one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|an?)")
 LEAD_SIZE = r"(?:about\s+)?(?:" + POUNDS_AND_OUNCES + r"|" + SIZE_WORD + r"(?:\s+and\s+" + SIZE_WORD + r")?[\s-]+" + UNIT + r")"
 SIZE_FIRST = re.compile(r"^\s*(?:" + LEAD_SIZE + r"|" + SIZE + r")\s*" + QUALIFIER + ONE_CONTAINER, re.I)
+WORD_SIZE = SIZE_WORD + r"[\s-]+" + UNIT
+PART_OF = r"\(\s*(?:a\s+|one\s+)?(?:quarter|half|third)\s+of\s+an?\s+" + UNIT + r"\s*\)"
 STATED = [
     SIZE_FIRST,
+    re.compile(r"^\s*" + COUNT + r"\s+\(?\s*" + WORD_SIZE + r"\s*\)?\s*" + QUALIFIER + CONTAINER, re.I),
+    re.compile(r"^\s*" + COUNT + r"\s+" + QUALIFIER + PART_OF + r"\s*" + CONTAINER, re.I),
     re.compile(r"^\s*" + COUNT + r"\s*\(?\s*" + SIZE + r"\s*\)?\s*" + QUALIFIER + CONTAINER, re.I),
     re.compile(r"^\s*" + COUNT + r"\s+" + QUALIFIER + CONTAINER + r"\s*[(,]?\s*" + SIZE, re.I),
     re.compile(r"^\s*" + COUNT + r"\s+" + QUALIFIER + CONTAINER + r"[^()]*\(\s*" + SIZE, re.I),
@@ -73,6 +101,25 @@ STATED = [
 def states_size(line):
     """Whether the line states the size of its container by the count and the container word, as "1 (3 oz) package", "1 package (3 ounces)" or "10-oz. can", or by a size before one container with no count ("1 lb. 13 oz. can", "one pound can"); a size before plural containers with no count ("2 lb. cans") says not how many and states none."""
     return any(p.search(line) for p in STATED)
+
+
+def one_size(line):
+    """Whether the line states one size of one container (see the module docstring)."""
+    return not any(p.search(line) for p in NOT_ONE_SIZE)
+
+
+def names_its_food(line, food):
+    """A line naming a flavoured product counts only on a food whose description names a flavour or a dessert."""
+    return not FLAVOURED.search(line) or bool(FLAVOUR_FOOD.search(food or ""))
+
+
+def era_of(row):
+    """The era a capture row reads in: its era row's, except that a recipe from a web page outside the book archives is modern."""
+    era = row["era"]
+    host = (row.get("host") or "-").strip().lower()
+    if era == "unknown" and host not in ("", "-") and not any(host == h or host.endswith("." + h) for h in BOOK_ARCHIVES):
+        return "modern"
+    return era
 
 
 def kind_of(line):
@@ -122,7 +169,7 @@ def grams_per_container(row):
     return round(quantity * per / count, 1)
 
 
-def read_lines(path):
+def read_lines(path, readings=None):
     lines = []
     with open(path, encoding="utf-8") as f:
         header = None
@@ -135,16 +182,21 @@ def read_lines(path):
                 header = cells
                 continue
             row = dict(zip(header, cells))
-            if row["book"] in ("", "-") or row["era"] not in ERAS:
+            era = era_of(row)
+            if row["book"] in ("", "-") or era not in ERAS:
                 continue
             kind = kind_of(row["line"])
-            if kind is None or NUMBERED.search(row["line"]) or not states_size(row["line"]):
+            if kind is None or NUMBERED.search(row["line"]) or not states_size(row["line"]) or not one_size(row["line"]):
+                continue
+            if not names_its_food(row["line"], row.get("food")):
                 continue
             grams = grams_per_container(row)
             if grams is None or grams <= 0:
                 continue
-            lines.append({"book": row["book"], "era": row["era"], "food": row["fdcId"], "kind": kind,
+            lines.append({"book": row["book"], "era": era, "food": row["fdcId"], "kind": kind,
                           "word": size_word(row["line"]), "grams": grams, "line": row["line"]})
+            if readings is not None:
+                readings.append(row["id"])
     return lines
 
 
@@ -222,7 +274,14 @@ def row(tier, scope, food, kind, word, group, votes, decided):
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("lines")
+    p.add_argument("--lines", dest="per_line", action="store_true", help="write each line read with its kind, size word and grams instead of the facts")
     a = p.parse_args(argv)
+    if a.per_line:
+        ids = []
+        read = read_lines(a.lines, ids)
+        rows = ["id\tera\tkind\tsizeWord\tgrams"] + [f"{i}\t{l['era']}\t{l['kind']}\t{l['word'] or '-'}\t{number(l['grams'])}" for i, l in zip(ids, read)]
+        sys.stdout.write("\n".join(rows) + "\n")
+        return
     out = ["id\ttier\tscope\tfood\tkind\tsizeWord\tgrams\tlines\tbooks\tband\tvotes\trunnerUp\tmin\tmax\tsizes\tverdict"]
     for n, cells in enumerate(facts(read_lines(a.lines)), 1):
         out.append(f"f-{n:03d}\t" + "\t".join(cells))

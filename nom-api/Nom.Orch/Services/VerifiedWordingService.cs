@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Nom.Data;
 using Nom.Data.Audit;
+using Nom.Data.Nutrition;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
@@ -128,6 +129,11 @@ namespace Nom.Orch.Services
                     .Where(r => rowWordings.Contains(r.Wording))
                     .ToListAsync())
                 .ToLookup(r => r.Wording, StringComparer.Ordinal);
+            var ownRows = (await _db.IngredientWordings.IgnoreQueryFilters().AsNoTracking()
+                    .Where(w => w.Batch == batch && rowWordings.Contains(w.Wording))
+                    .Select(w => w.Wording)
+                    .ToListAsync())
+                .ToHashSet(StringComparer.Ordinal);
             var curatedNames = (await _db.Ingredients.AsNoTracking()
                     .Where(i => !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated)
                     .Select(i => new { i.Id, i.Name })
@@ -145,7 +151,7 @@ namespace Nom.Orch.Services
             {
                 var wording = (row.Wording ?? string.Empty).Trim();
                 var verdict = (row.Verdict ?? string.Empty).Trim().ToLowerInvariant();
-                if (wording.Length == 0 || wording.Length > 511 || IngredientNameNormalizer.WordingKey(wording) != wording)
+                if (wording.Length == 0 || wording.Length > 511 || (IngredientNameNormalizer.WordingKey(wording) != wording && !ownRows.Contains(wording)))
                 {
                     Refuse(row, NotKeyForm);
                     continue;
@@ -335,7 +341,9 @@ namespace Nom.Orch.Services
                 .ToListAsync();
             var promotedIds = curatedByLoad.Select(a => a.EntityId).Distinct().ToList();
             var demote = await _db.Ingredients
-                .Where(i => promotedIds.Contains(i.Id) && i.CurationStatusId == (long)CurationStatusEnum.Curated)
+                .Where(i => promotedIds.Contains(i.Id) && i.CurationStatusId == (long)CurationStatusEnum.Curated
+                    && !(i.AdmissionReason == null && i.FdcId != null && PromotableDataTypes.Contains(i.FdcDataType)
+                        && (i.EnergyCheck == EnergyCheckOutcome.OwnFactors || i.EnergyCheck == EnergyCheckOutcome.General || i.EnergyCheck == EnergyCheckOutcome.ExemptSmall)))
                 .ToListAsync();
 
             var result = new VerifiedWordingUnloadResult { Applied = apply, Removed = rows.Count - earlier.Count, Restored = earlier.Count, Demoted = demote.Count };

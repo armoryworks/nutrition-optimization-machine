@@ -26,11 +26,12 @@ namespace Nom.Orch.Services.Support
     /// <summary>
     /// Reads the amounts a recipe method states, each with its unit and range, so two texts can be
     /// compared by quantity rather than by bare number. "a", "an" or "another" before a unit is 1, "a minute
-    /// or two" is 1 to 2 minutes, a bare number from 200 to 550 after "to" or "at" in a sentence about
+    /// or two" is 1 to 2 minutes, "half" before a thing with no unit ("half a large onion") is a soft count of ½,
+    /// "6 or 3 strands" is two counts, not a range, a bare number from 200 to 550 after "to" or "at" in a sentence about
     /// an oven, heating, baking, roasting, broiling or frying is a temperature in degrees ("preheat the
     /// oven to 425", "bake at 350 for 30 minutes"), "a half hour" and "half an hour" are 30 minutes, "1 and 1/2" and
     /// "one and a half" are 1.5, "1 hour 30 minutes" is one amount of 90 minutes, and "9 x 13-inch"
-    /// is two lengths. Step markers ("2.", "Step 3", "2In a bowl") and cross-references ("as in
+    /// and "a 9x13 dish" are two lengths in inches. Step markers ("2.", "Step 3", "2In a bowl") and cross-references ("as in
     /// step 3", "No. 156") are not amounts. Two amounts are equal only when they are of one family
     /// and agree within 2 % at both ends once converted (¼ lb is 4 oz, 350 °F is 175 °C), so a
     /// unit swapped inside a family (tablespoon to teaspoon) or a range collapsed or widened is a
@@ -92,7 +93,7 @@ namespace Nom.Orch.Services.Support
             (new[] { "cloves", "clove" }, Count, "clove", 1m),
             (new[] { "slices", "slice" }, Count, "slice", 1m),
             (new[] { "cans", "can", "tins", "tin" }, Count, "can", 1m),
-            (new[] { "packages", "package", "packets", "packet", "jars", "jar" }, Count, "package", 1m),
+            (new[] { "packages", "package", "packets", "packet", "pkgs", "pkg", "envelopes", "envelope", "jars", "jar" }, Count, "package", 1m),
             (new[] { "sticks", "stick", "sprigs", "sprig", "handfuls", "handful", "pieces", "piece" }, Count, "piece", 1m),
         };
 
@@ -318,7 +319,7 @@ namespace Nom.Orch.Services.Support
         private static bool IsSymbol(List<Token> tokens, int i, params string[] symbols) =>
             i < tokens.Count && tokens[i].Kind == Kind.Symbol && symbols.Contains(tokens[i].Text);
 
-        private sealed record Value(decimal Amount, int Next, bool Article, bool Spelled);
+        private sealed record Value(decimal Amount, int Next, bool Article, bool Spelled, bool Part = false);
 
         private static Value? ReadValue(List<Token> tokens, int i, bool allowArticle = true)
         {
@@ -366,7 +367,7 @@ namespace Nom.Orch.Services.Support
                     var d = Denominators[t.Text];
                     var next = IsWord(tokens, i + 1, "a", "an") ? i + 2 : i + 1;
                     if (IsWord(tokens, next, "of") && IsWord(tokens, next + 1, "a", "an")) next += 2;
-                    value = new Value(1m / d, next, true, true);
+                    value = new Value(1m / d, next, true, true, next > i + 1 || IsWord(tokens, next, "of"));
                 }
             }
 
@@ -443,7 +444,12 @@ namespace Nom.Orch.Services.Support
             if (first == null) return i + 1;
             var unit = UnitAfter(tokens, first, i, text);
 
-            if (first.Article && unit == null) return i + 1;
+            if (first.Article && unit == null)
+            {
+                if (!first.Part || first.Next >= tokens.Count || tokens[first.Next].Kind != Kind.Word) return i + 1;
+                found.Add(new ProseQuantity(first.Amount, first.Amount, Count, string.Empty, tokens[i].Start, tokens[first.Next - 1].End, text[tokens[i].Start..tokens[first.Next - 1].End], tokens[i].Bracketed, true));
+                return first.Next;
+            }
 
             var low = first.Amount;
             var high = first.Amount;
@@ -455,6 +461,7 @@ namespace Nom.Orch.Services.Support
             if (IsSymbol(tokens, connector, "-", "–", "—") || IsWord(tokens, connector, "to", "or") || (between && IsWord(tokens, connector, "and")))
             {
                 var second = ReadValue(tokens, connector + 1, allowArticle: false);
+                if (second != null && IsWord(tokens, connector, "or") && second.Amount < first.Amount) second = null;
                 if (second != null)
                 {
                     var secondUnit = UnitAfter(tokens, second, connector + 1, text);
@@ -496,6 +503,7 @@ namespace Nom.Orch.Services.Support
                     }
                 }
 
+                if (values.Count > 1 && unit == null && sideUnit == null && !first.Spelled) sideUnit = new UnitRead(new UnitInfo(Length, "inch", 1m), j);
                 if (values.Count > 1 && (unit ?? sideUnit) is { Info.Family: Length } lengthUnit)
                 {
                     foreach (var v in values)

@@ -9,19 +9,22 @@ using Xunit.Abstractions;
 namespace Nom.Api.Tests.Golden
 {
     /// <summary>
-    /// The prose check on the 80 recipes read against their source at staging checkpoint 2
-    /// (prose-check.tsv): 40 the re-check failed and 40 it passed, each kept as the short source and
-    /// rewrite excerpts its verdict needs, with the verdict v2 gave on staging. No copied recipe may
-    /// pass, and at most 1 in 20 of the check's failures may be false. The 15 verdicts v2 got wrong
-    /// each name the rule behind the error.
+    /// The prose check on the 160 recipes read against their source at staging checkpoints 2 and 3
+    /// (prose-check.tsv): at each, 40 the re-check failed and 40 it passed, kept as their whole stored
+    /// texts, masked, with the verdict the check gave on staging. An <c>expect</c> of <c>passed</c>
+    /// is met by a rewrite the check does not fail (passed or unsure), <c>unsure</c> by one it does
+    /// not pass clean, and a reason by a failure with that reason. No copied recipe may escape the
+    /// copy rule, no faithful one may meet it, and at most 1 in 20 failures may be false, on all the
+    /// rows and on the rows the checkpoint operators read alone, whose verdicts were given before the
+    /// check's limits were set. The 27 verdicts the checks got wrong on staging each name the rule
+    /// behind the error.
     /// </summary>
     [Trait("Category", "Golden")]
     public class GoldenProseCheckTests
     {
         public const string File = "prose-check.tsv";
         public const decimal MaximumFalseFailureRate = 0.05m;
-
-        private static readonly string[] CopyReasons = { ProseCheck.CopiedText, ProseCheck.Unchanged };
+        public const string OperatorSource = "agent-operator-";
 
         private readonly ITestOutputHelper _output;
 
@@ -33,8 +36,17 @@ namespace Nom.Api.Tests.Golden
                 new RewriteFidelity.SourceText(row.Value("rewriteDescription") ?? string.Empty, row["rewriteSteps"].Split(" ¦ "), row.Value("title") ?? string.Empty),
                 row.Value("lines")?.Split(" ¦ "));
 
-        private static bool Meets(GoldenRow row, ProseCheck.Finding finding) =>
-            row["expect"] == "passed" ? finding.Passed : finding.Reasons.Contains(row["expect"]);
+        private static bool Meets(GoldenRow row, ProseCheck.Finding finding) => row["expect"] switch
+        {
+            "passed" => !finding.Failed,
+            "unsure" => !finding.Passed,
+            var reason => finding.FailReasons.Contains(reason),
+        };
+
+        private static bool IsCopy(GoldenRow row) => ProseCheck.CopyReasons.Contains(row["expect"]);
+
+        private static List<GoldenRow> Judged() =>
+            GoldenSet.Read(File).Rows.Where(r => r["status"] is GoldenSet.Ok or GoldenSet.Agent or GoldenSet.Known).ToList();
 
         [Fact]
         public void Each_read_recipe_gets_its_verdict()
@@ -43,7 +55,7 @@ namespace Nom.Api.Tests.Golden
             {
                 var finding = Check(row);
                 return new GoldenOutcome(Meets(row, finding), row["expect"], finding.ToString(),
-                    new Dictionary<string, string> { ["expect"] = finding.Passed ? "passed" : finding.Reasons[0] });
+                    new Dictionary<string, string> { ["expect"] = finding.Failed ? finding.FailReasons[0] : finding.Outcome });
             }, modelJudged: row => GoldenSet.ByModel(row["source"]));
             _output.WriteLine(report.Summary);
             GoldenSet.Assert(report);
@@ -52,31 +64,59 @@ namespace Nom.Api.Tests.Golden
         [Fact]
         public void No_copied_recipe_passes_and_at_most_1_in_20_failures_is_false()
         {
-            var rows = GoldenSet.Read(File).Rows.Where(r => r["status"] is GoldenSet.Ok or GoldenSet.Agent or GoldenSet.Known).ToList();
-            var copies = rows.Where(r => CopyReasons.Contains(r["expect"])).ToList();
-            var failures = rows.Where(r => !Check(r).Passed).ToList();
+            var rows = Judged();
+            var findings = rows.ToDictionary(r => r.Id, Check);
+            foreach (var set in rows.GroupBy(r => r["set"]))
+                _output.WriteLine($"  {set.Key}: {string.Join(", ", set.GroupBy(r => findings[r.Id].Outcome).OrderBy(g => g.Key).Select(g => $"{g.Key} {g.Count()}"))}");
+
+            AssertBars("all read recipes", rows, findings);
+            AssertBars("recipes the checkpoint operators read", rows.Where(ReadByOperator).ToList(), findings);
+        }
+
+        private static bool ReadByOperator(GoldenRow row) => row["source"].StartsWith(OperatorSource, System.StringComparison.Ordinal);
+
+        private void AssertBars(string label, List<GoldenRow> rows, Dictionary<string, ProseCheck.Finding> findings)
+        {
+            var copies = rows.Where(IsCopy).ToList();
+            var faithful = rows.Where(r => r["expect"] == "passed").ToList();
+            var failures = rows.Where(r => findings[r.Id].Failed).ToList();
             var falseFailures = failures.Where(r => r["expect"] == "passed").Select(r => r.Id).ToList();
-            var copiesPassed = copies.Where(r => Check(r).Passed).Select(r => r.Id).ToList();
-            var v2Failures = rows.Where(r => r["v2"] != "passed").ToList();
-            var v2CopiesPassed = copies.Count(r => r["v2"] == "passed");
-            _output.WriteLine($"check v{ProseCheck.Version}: {falseFailures.Count} false of {failures.Count} failures, {copiesPassed.Count} of {copies.Count} copies passed");
-            _output.WriteLine($"check v2 on staging: {v2Failures.Count(r => r["expect"] == "passed")} false of {v2Failures.Count} failures, {v2CopiesPassed} of {copies.Count} copies passed");
+            var copiesPassed = copies.Where(r => !findings[r.Id].Failed).Select(r => r.Id).ToList();
+            var outcomes = rows.GroupBy(r => findings[r.Id].Outcome).OrderBy(g => g.Key).Select(g => $"{g.Key} {g.Count()}");
+            _output.WriteLine($"check v{ProseCheck.Version}, {label} ({rows.Count}): {falseFailures.Count} false of {failures.Count} failures, {copiesPassed.Count} of {copies.Count} copies passed; {string.Join(", ", outcomes)}");
 
             copies.Should().NotBeEmpty();
             failures.Should().NotBeEmpty();
-            copiesPassed.Should().BeEmpty("a copied recipe must never pass the prose check");
+            copies.Where(r => !findings[r.Id].Copied).Select(r => r.Id).Should().BeEmpty($"the copy rule alone must catch every copied recipe ({label})");
+            faithful.Where(r => findings[r.Id].Copied).Select(r => r.Id).Should().BeEmpty($"no faithful rewrite may meet the copy rule ({label})");
+            copiesPassed.Should().BeEmpty($"a copied recipe must never pass the prose check ({label})");
             ((decimal)falseFailures.Count / failures.Count).Should().BeLessThanOrEqualTo(MaximumFalseFailureRate,
-                $"at most 1 in 20 failures may be false; these faithful rewrites failed: {string.Join(", ", falseFailures)}");
+                $"at most 1 in 20 failures may be false ({label}); these faithful rewrites failed: {string.Join(", ", falseFailures)}");
         }
 
         [Fact]
-        public void Each_verdict_v2_got_wrong_names_its_rule_and_the_check_gets_it_right()
+        public void Each_verdict_the_checks_got_wrong_on_staging_names_its_rule_and_the_check_gets_it_right()
         {
             var wrong = GoldenSet.Read(File).Rows.Where(r => r["verdict"] is "failure wrong" or "copy").ToList();
 
-            wrong.Should().HaveCount(15, "checkpoint 2 read 9 false failures and 6 copies that passed");
+            wrong.Where(r => r["v2"] != "-").Should().HaveCount(15, "checkpoint 2 read 9 false failures and 6 copies that passed check v2");
+            wrong.Where(r => r["v3"] != "-").Should().HaveCount(12, "checkpoint 3 read 9 false failures and 3 copies that passed check v3");
             wrong.Where(r => r.Value("rule") == null).Select(r => r.Id).Should().BeEmpty("each wrong verdict names the rule behind it");
             wrong.Where(r => !Meets(r, Check(r))).Select(r => r.Id).Should().BeEmpty();
+        }
+
+        [Fact]
+        public void A_weak_signal_alone_never_fails_a_read_recipe()
+        {
+            var failedOnWeakSignals = Judged()
+                .Select(r => (Row: r, Finding: Check(r)))
+                .Where(x => x.Finding.Faults.Count > 0 && x.Finding.Faults.All(f => ProseCheck.UnsureReasons.Contains(f.Reason)) && x.Finding.Failed)
+                .Select(x => x.Row.Id)
+                .ToList();
+            var unsure = Judged().Count(r => Check(r).Unsure);
+
+            failedOnWeakSignals.Should().BeEmpty();
+            unsure.Should().BeGreaterThan(0, "the read recipes include verbs said another way, which the check marks unsure");
         }
 
         [Fact]

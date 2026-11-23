@@ -206,3 +206,12 @@ ac-204	6 port figs	-	-	no	fortified-sweet	173176	-	agent	agent-review-ck4rg-2026
 ac-205	4 Marsala pears	-	-	no	fortified	175112	-	agent	agent-review-ck4rg-2026-11-21	CK4RG-4: Marsala names no kind of pear; pears in Marsala count the Marsala
 ac-206	6 ratafia cakes, crushed	-	-	no	other	-	174815	ok	rule:alcohol-context	staging checkpoint 2 doubtful item (92584): ratafia cakes are almond biscuits named after the liqueur, not a drink
 ac-207	1 wineglass of ratafia	-	-	no	liqueur	-	174815	ok	rule:alcohol-context	the liqueur itself is still a drink USDA has no food for
+ac-208	1/2 cup sugar, (possibly more depending on qzupor wine)	-	-	no	none	-	-	agent	agent-review-ck6-2026-11-21	N11: the wine is in a cook's aside; the line is sugar
+ac-209	whipped cream (add 2 Tbsp Qdavar hazelnut liqueur with the sugar, if desired)	-	-	no	none	-	-	agent	agent-review-ck6-2026-11-21	N11: an optional liqueur in a cook's aside; the line is whipped cream
+ac-210	smoked paprika, (I used bourbon smoked paprika – qnubur good)	-	-	no	none	-	-	agent	agent-review-ck6-2026-11-21	N11: the cook's note names a brand of paprika, not a drink
+ac-211	3 cups Qkuvur Brand Chips – I used Buffalo Qmator qtatir	-	-	no	none	-	-	agent	agent-review-ck6-2026-11-21	N11: a flavour of chips in a dash aside is no flavouring extract
+ac-212	qbupar cinnamon to qpajor a strong flavor	-	-	no	none	-	-	agent	agent-review-ck6-2026-11-21	N11: "a strong flavor" is how much cinnamon, not an extract
+ac-213	three pounds of loaf sugar per gallon of wine	-	-	no	other	-	174837	agent	agent-review-ck6-2026-11-21	N11: sugar measured to a gallon of wine; the line is sugar, never wine
+ac-214	Half a cup of water mixed with extract or wine	-	-	no	dish	-	174837	agent	agent-review-ck6-2026-11-21	N11: water mixed with a flavouring or wine is water, not a list of alternatives
+ac-215	1 cup chicken broth (or dry white wine)	-	-	no	list	-	-	ok	rule:construction	a bracket of alternatives is no cook's aside: the wine is still read
+ac-216	1 pint custard (flavoured with French brandy)	-	-	no	dish	-	174815	ok	rule:construction	a bracket saying what the food is made with is no cook's aside: the custard carries the brandy

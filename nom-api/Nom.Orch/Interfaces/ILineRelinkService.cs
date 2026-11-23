@@ -88,10 +88,11 @@ namespace Nom.Orch.Interfaces
         /// same way. Newest first, so a line moved after it was unfolded goes back before it is joined;
         /// a proposal withdrawn with a retired food comes back after every other step, and only when
         /// that food is back. A model pick the catalog admission pass withdrew is its own undo's to take
-        /// back, never this one's. Without <paramref name="apply"/> the same work runs in one database transaction that is
-        /// rolled back, so the result is what the same call would do and nothing is kept.
+        /// back, never this one's. Without <paramref name="apply"/> the same work runs against a scratch copy in memory
+        /// that is given, chunk by chunk, the rows the entries can touch (<see cref="Nom.Orch.Services.Support.RelinkUndoDryRun"/>):
+        /// the result is what the same call would do, and the database is only read, so no row is locked.
         /// </summary>
-        Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false);
+        Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Takes back the given journal entries alone (line moves, retirements and renames, withdrawn

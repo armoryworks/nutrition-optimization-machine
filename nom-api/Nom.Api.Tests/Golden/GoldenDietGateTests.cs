@@ -113,7 +113,7 @@ namespace Nom.Api.Tests.Golden
         private static bool OldRule(GoldenRow row) =>
             Patterns(row["restriction"]).Select(Like).Any(p => p.IsMatch(row["food"]) || Aliases(row["aliases"]).Any(a => p.IsMatch(a.Text)));
 
-        private static bool LineNamesPattern(GoldenRow row) => Patterns(row["restriction"]).Select(Like).Any(p => p.IsMatch(row["line"]));
+        private static bool LineNamesPattern(GoldenRow row) => Patterns(row["restriction"]).Any(p => DietPatternRule.For(p).IsMatch(row["line"]));
 
         private static async Task<Dictionary<string, Verdict>> VerdictsAsync()
         {

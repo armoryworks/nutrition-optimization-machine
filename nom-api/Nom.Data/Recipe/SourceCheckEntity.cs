@@ -25,6 +25,12 @@ namespace Nom.Data.Recipe
 
         public long? ScrapingSourceId { get; set; }
 
+        /// <summary>
+        /// The kind of check asked of the scraper: <c>terms-only</c> (sampleSize 0: robots.txt, the homepage and the terms pages,
+        /// no recipe page) or <c>full</c> (20 sample recipe pages). Null on a row stored before the column: read from its purpose and report.
+        /// </summary>
+        public string? Mode { get; set; }
+
         /// <summary>The scraper's job id.</summary>
         public string? JobId { get; set; }
 
@@ -42,7 +48,7 @@ namespace Nom.Data.Recipe
         /// <summary>The scraper's own verdict, as reported.</summary>
         public string? ScraperVerdict { get; set; }
 
-        /// <summary>The scraper's rule version (<c>source-check/4</c>; earlier reports may hold <c>source-check/2</c>).</summary>
+        /// <summary>The scraper's rule version (<c>source-check/5</c>; earlier reports may hold <c>source-check/4</c> or <c>source-check/2</c>).</summary>
         public string? RuleVersion { get; set; }
 
         /// <summary>NOM's single verdict: <c>clear</c> or <c>not-clear</c>; null when no report came back.</summary>

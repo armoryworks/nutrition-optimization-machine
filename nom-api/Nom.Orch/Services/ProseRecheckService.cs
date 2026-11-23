@@ -21,7 +21,11 @@ namespace Nom.Orch.Services
     /// withholds the prose of the ones that fail (<see cref="RecipeEntity.ProseWithheld"/>): the
     /// recipe stays listed and usable, its text is never served, and the rewrite lane takes it up.
     /// Each recipe withheld is journaled (<see cref="WithholdChangeType"/>) with the finding and the
-    /// check version it had, and the undo releases it again. A full run is recorded
+    /// check version it had, and the undo releases it again. A recipe the check is only unsure of is
+    /// never withheld: it is marked (<see cref="RecipeEntity.ProseUnsure"/>, journaled as
+    /// <see cref="UnsureChangeType"/>), counted, and left for the prose judge; a later pass or failure
+    /// clears the mark, as does a person's edit (journaled as not checked), and the undo puts marks
+    /// back as they were. A full run is recorded
     /// (<see cref="RunChangeType"/>) so the weekly job knows which check and stock-index versions
     /// have already been run.
     /// </summary>
@@ -33,6 +37,7 @@ namespace Nom.Orch.Services
         public const string WithholdChangeType = "ProseWithhold";
         public const string WithholdUndoChangeType = "ProseWithholdUndo";
         public const string WithholdEndChangeType = "ProseWithholdEnd";
+        public const string UnsureChangeType = "ProseUnsure";
         public const string DescriptionByPersonChangeType = "ProseDescriptionByPerson";
         public const string RunEntityType = "ProseRecheck";
         public const string RunChangeType = "ProseRecheckRun";
@@ -40,6 +45,8 @@ namespace Nom.Orch.Services
         public const int JournalLength = 4000;
         public const int WithholdBatch = 500;
         public const int MaxListedRecipeIds = 1000;
+        public const string NotCheckedEdited = "not checked, steps edited by a person";
+        public const string NotCheckedWithholdEnded = "not checked, withhold ended by a person";
 
         private const int RecipesPerRead = 500;
         private const int RecipesPerTransaction = 200;
@@ -59,7 +66,7 @@ namespace Nom.Orch.Services
 
         internal Action<long>? BeforeCheck { get; set; }
 
-        private sealed record Candidate(long Id, string Name, long CurationStatusId, string? Description, int? CheckVersion);
+        private sealed record Candidate(long Id, string Name, long CurationStatusId, string? Description, int? CheckVersion, bool Unsure = false);
         private sealed record Failure(Candidate Recipe, ProseCheck.Finding Finding);
 
         public async Task<ProseRecheckResult> RecheckAsync(bool apply = false, int maxRecipes = WithholdBatch, int sampleSize = 50, Func<CancellationToken, Task<bool>>? hold = null, CancellationToken cancellationToken = default)
@@ -75,12 +82,14 @@ namespace Nom.Orch.Services
             var candidates = await _db.Recipes.AsNoTracking()
                 .Where(r => !r.ContainsSourceProse && !r.ProseWithheld && r.ScrapedAtUtc != null && r.LicenseStatus == RecipeLicenseStatus.Unknown)
                 .OrderBy(r => r.Id)
-                .Select(r => new Candidate(r.Id, r.Name, r.CurationStatusId, r.Description, r.ProseCheckVersion))
+                .Select(r => new Candidate(r.Id, r.Name, r.CurationStatusId, r.Description, r.ProseCheckVersion, r.ProseUnsure))
                 .ToListAsync(cancellationToken);
             result.Examined = candidates.Count;
 
             var failures = new List<Failure>();
+            var unsure = new List<Failure>();
             var unstamped = new List<long>();
+            var cleared = new Dictionary<long, string>();
             foreach (var chunk in candidates.Chunk(RecipesPerRead))
             {
                 var ids = chunk.Select(c => c.Id).ToList();
@@ -109,6 +118,7 @@ namespace Nom.Orch.Services
                     {
                         result.SkippedEditedByPerson++;
                         if (result.SkippedEditedRecipeIds.Count < MaxListedRecipeIds) result.SkippedEditedRecipeIds.Add(candidate.Id);
+                        if (candidate.Unsure) cleared[candidate.Id] = ended.Contains(candidate.Id) ? NotCheckedWithholdEnded : NotCheckedEdited;
                         continue;
                     }
 
@@ -142,6 +152,14 @@ namespace Nom.Orch.Services
                     {
                         result.Passed++;
                         if (candidate.CheckVersion != ProseCheck.Version) unstamped.Add(candidate.Id);
+                        if (candidate.Unsure) cleared[candidate.Id] = "passed";
+                        continue;
+                    }
+
+                    if (finding.Unsure)
+                    {
+                        unsure.Add(new Failure(candidate, finding));
+                        CountUnsure(result, candidate, finding);
                         continue;
                     }
 
@@ -155,6 +173,12 @@ namespace Nom.Orch.Services
                 .ThenBy(f => f.Recipe.Id)
                 .ToList();
             result.Samples = ordered.Take(Math.Clamp(sampleSize, 0, 5000)).Select(Sample).ToList();
+            result.UnsureSamples = unsure
+                .OrderBy(f => f.Recipe.CurationStatusId == (long)CurationStatusEnum.Curated ? 0 : 1)
+                .ThenBy(f => f.Recipe.Id)
+                .Take(Math.Clamp(sampleSize, 0, 5000))
+                .Select(Sample)
+                .ToList();
 
             if (result.Applied)
             {
@@ -182,6 +206,13 @@ namespace Nom.Orch.Services
                             Timestamp = now,
                             ChangedByPersonId = personId,
                         });
+                        if (recipe.ProseUnsure)
+                        {
+                            _db.AuditLogEntries.Add(UnsureEntry(recipe.Id, false, $"failed and withheld: {failure.Finding}", stock.Version, now, personId));
+                            recipe.ProseUnsure = false;
+                            result.ClearedUnsure++;
+                        }
+
                         recipe.ProseWithheld = true;
                         recipe.ProseCheckVersion = ProseCheck.Version;
                         recipe.LastModifiedDate = now;
@@ -201,6 +232,14 @@ namespace Nom.Orch.Services
                     _db.ChangeTracker.Clear();
                     result.Withheld += batch.Count;
                     applied.AddRange(batch);
+                }
+
+                if (!result.Held)
+                {
+                    var withheld = applied.Select(f => f.Recipe.Id).ToHashSet();
+                    foreach (var failure in ordered.Where(f => f.Recipe.Unsure && !withheld.Contains(f.Recipe.Id)))
+                        cleared[failure.Recipe.Id] = $"failed, not withheld in this run: {failure.Finding}";
+                    await MarkUnsureAsync(unsure, cleared, stock.Version, personId, result, cancellationToken);
                 }
 
                 foreach (var chunk in result.Held ? Array.Empty<long[]>() : unstamped.Chunk(RecipesPerTransaction))
@@ -232,7 +271,7 @@ namespace Nom.Orch.Services
                     EntityId = ProseCheck.Version,
                     ChangeType = RunChangeType,
                     PropertyName = nameof(ProseRecheckResult.StockVersion),
-                    NewValue = Clamp($"check {ProseCheck.Version} stock {stock.Version}: examined {result.Examined}, passed {result.Passed}, withheld {result.Withheld}, skipped edited {result.SkippedEditedByPerson}, no source {result.SkippedNoSource}, errored {result.Errored}"),
+                    NewValue = Clamp($"check {ProseCheck.Version} stock {stock.Version}: examined {result.Examined}, passed {result.Passed}, unsure {result.Unsure}, withheld {result.Withheld}, skipped edited {result.SkippedEditedByPerson}, no source {result.SkippedNoSource}, errored {result.Errored}"),
                     Timestamp = DateTime.UtcNow,
                     ChangedByPersonId = _currentUser.PersonIdOrSystem,
                 });
@@ -287,7 +326,86 @@ namespace Nom.Orch.Services
             var result = new ProseRecheckUndoResult { Applied = apply };
             await UndoRequarantineAsync(sinceUtc, apply, result);
             await UndoWithholdAsync(sinceUtc, apply, result);
+            await UndoUnsureAsync(sinceUtc, apply, result);
             return result;
+        }
+
+        private AuditLogEntryEntity UnsureEntry(long recipeId, bool mark, string why, int stockVersion, DateTime now, long personId) => new()
+        {
+            EntityType = RecipeEntityType,
+            EntityId = recipeId,
+            ChangeType = UnsureChangeType,
+            PropertyName = nameof(RecipeEntity.ProseUnsure),
+            OldValue = mark ? "false" : "true",
+            NewValue = Clamp($"{(mark ? "true" : "false")} | check {ProseCheck.Version} stock {stockVersion}: {why}"),
+            Timestamp = now,
+            ChangedByPersonId = personId,
+        };
+
+        private async Task MarkUnsureAsync(List<Failure> unsure, Dictionary<long, string> cleared, int stockVersion, long personId, ProseRecheckResult result, CancellationToken cancellationToken)
+        {
+            var findings = unsure.ToDictionary(f => f.Recipe.Id, f => f.Finding);
+            var changes = unsure.Where(f => !f.Recipe.Unsure || f.Recipe.CheckVersion != ProseCheck.Version).Select(f => f.Recipe.Id).Concat(cleared.Keys).ToList();
+            foreach (var chunk in changes.Chunk(RecipesPerTransaction))
+            {
+                var recipes = await _db.Recipes.Where(r => chunk.Contains(r.Id) && !r.ProseWithheld && !r.ContainsSourceProse).ToListAsync(cancellationToken);
+                var now = DateTime.UtcNow;
+                foreach (var recipe in recipes)
+                {
+                    var mark = findings.TryGetValue(recipe.Id, out var finding);
+                    if (recipe.ProseUnsure != mark)
+                    {
+                        _db.AuditLogEntries.Add(UnsureEntry(recipe.Id, mark, mark ? finding!.ToString() : cleared[recipe.Id], stockVersion, now, personId));
+                        recipe.ProseUnsure = mark;
+                        if (mark) result.MarkedUnsure++;
+                        else result.ClearedUnsure++;
+                    }
+
+                    if (mark && recipe.ProseCheckVersion != ProseCheck.Version)
+                    {
+                        recipe.ProseCheckVersion = ProseCheck.Version;
+                        result.Stamped++;
+                    }
+                }
+
+                await _db.SaveChangesAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+            }
+        }
+
+        private async Task UndoUnsureAsync(DateTime sinceUtc, bool apply, ProseRecheckUndoResult result)
+        {
+            var entries = await _db.AuditLogEntries.AsNoTracking()
+                .Where(a => a.EntityType == RecipeEntityType && a.ChangeType == UnsureChangeType && a.Timestamp >= sinceUtc)
+                .OrderBy(a => a.Id)
+                .ToListAsync();
+            var earliest = entries.GroupBy(e => e.EntityId).ToDictionary(g => g.Key, g => g.First().OldValue == "true");
+            foreach (var chunk in earliest.Keys.Chunk(RecipesPerTransaction))
+            {
+                var recipes = await _db.Recipes.Where(r => chunk.Contains(r.Id)).ToListAsync();
+                var now = DateTime.UtcNow;
+                foreach (var recipe in recipes.Where(r => r.ProseUnsure != earliest[r.Id]))
+                {
+                    result.RestoredUnsure++;
+                    if (!apply) continue;
+                    _db.AuditLogEntries.Add(new AuditLogEntryEntity
+                    {
+                        EntityType = RecipeEntityType,
+                        EntityId = recipe.Id,
+                        ChangeType = UnsureChangeType,
+                        PropertyName = nameof(RecipeEntity.ProseUnsure),
+                        OldValue = recipe.ProseUnsure ? "true" : "false",
+                        NewValue = (earliest[recipe.Id] ? "true" : "false") + $" | undo since {sinceUtc:O}",
+                        Timestamp = now,
+                        ChangedByPersonId = _currentUser.PersonIdOrSystem,
+                    });
+                    recipe.ProseUnsure = earliest[recipe.Id];
+                }
+
+                if (!apply) continue;
+                await _db.SaveChangesAsync();
+                _db.ChangeTracker.Clear();
+            }
         }
 
         private async Task UndoWithholdAsync(DateTime sinceUtc, bool apply, ProseRecheckUndoResult result)
@@ -423,12 +541,20 @@ namespace Nom.Orch.Services
 
         public static string Clamp(string value) => value.Length <= JournalLength ? value : value[..JournalLength];
 
+        private static void CountUnsure(ProseRecheckResult result, Candidate candidate, ProseCheck.Finding finding)
+        {
+            result.Unsure++;
+            if (candidate.CurationStatusId == (long)CurationStatusEnum.Curated) result.UnsureApproved++;
+            foreach (var reason in finding.Reasons)
+                result.UnsureByReason[reason] = result.UnsureByReason.GetValueOrDefault(reason) + 1;
+        }
+
         private static void Count(ProseRecheckResult result, Candidate candidate, ProseCheck.Finding finding)
         {
             var approved = candidate.CurationStatusId == (long)CurationStatusEnum.Curated;
             result.Failed++;
             if (approved) result.FailedApproved++;
-            foreach (var reason in finding.Reasons)
+            foreach (var reason in finding.FailReasons)
             {
                 result.FailedByReason[reason] = result.FailedByReason.GetValueOrDefault(reason) + 1;
                 if (approved) result.FailedApprovedByReason[reason] = result.FailedApprovedByReason.GetValueOrDefault(reason) + 1;

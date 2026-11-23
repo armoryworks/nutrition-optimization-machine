@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Nom.Data;
@@ -496,37 +497,36 @@ namespace Nom.Orch.Services
 
         private static string Truncate(string text, int length) => text.Length <= length ? text : text[..length];
 
-        public async Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false)
+        public async Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false, CancellationToken cancellationToken = default)
         {
-            if (!apply && !_db.Database.IsRelational())
-                throw new InvalidOperationException("A dry run of the relink undo rolls back a database transaction, which this provider does not have.");
-
-            await using var dryRun = apply ? null : await _db.Database.BeginTransactionAsync();
-            var result = await UndoEntriesAsync(sinceUtc);
-            result.Applied = apply;
-            if (dryRun != null)
+            var entries = await EntriesSinceAsync(sinceUtc, tracked: apply, cancellationToken);
+            if (apply)
             {
-                await dryRun.RollbackAsync();
-                _db.ChangeTracker.Clear();
+                var applied = await UndoEntriesAsync(entries, cancellationToken);
+                applied.Applied = true;
+                return applied;
             }
 
+            await using var dryRun = RelinkUndoDryRun.Create(_db);
+            var result = await new LineRelinkService(dryRun.Copy, _currentUser).UndoEntriesAsync(entries, cancellationToken, dryRun.LoadAsync);
+            result.Applied = false;
             return result;
         }
 
-        private async Task<LineRelinkUndoResult> UndoEntriesAsync(DateTime sinceUtc)
+        private async Task<List<AuditLogEntryEntity>> EntriesSinceAsync(DateTime sinceUtc, bool tracked, CancellationToken cancellationToken)
         {
             var repairs = LineRepairs.Keys.ToList();
             var admissionRuns = _db.AuditLogEntries
                 .Where(h => h.EntityType == Nom.Data.Nutrition.CatalogAdmissionRule.RunEntityType && h.ChangeType == Nom.Data.Nutrition.CatalogAdmissionRule.RunChangeType)
                 .Select(h => h.Timestamp);
-            var entries = await _db.AuditLogEntries
+            var journal = tracked ? _db.AuditLogEntries : _db.AuditLogEntries.AsNoTracking();
+            return await journal
                 .Where(a => ((a.EntityType == RelinkEntityType && (a.ChangeType == RelinkChangeType || repairs.Contains(a.ChangeType)))
                         || (a.EntityType == RetireEntityType && a.ChangeType == RetireChangeType)
                         || (a.EntityType == PickWithdrawEntityType && (a.ChangeType == PickWithdrawChangeType
                             || (a.ChangeType == ProposalWithdrawChangeType && !admissionRuns.Contains(a.Timestamp)))))
                     && a.Timestamp >= sinceUtc)
-                .ToListAsync();
-            return await UndoEntriesAsync(entries);
+                .ToListAsync(cancellationToken);
         }
 
         public async Task<LineRelinkUndoResult> UndoEntriesAsync(IReadOnlyCollection<long> entryIds)
@@ -544,21 +544,28 @@ namespace Nom.Orch.Services
         /// retired food after every other step. A line entry of a recipe rebuilt after it is skipped; a
         /// line an order-only pass moved since is followed to its new place and keeps it.
         /// </summary>
-        private async Task<LineRelinkUndoResult> UndoEntriesAsync(List<AuditLogEntryEntity> entries)
+        private async Task<LineRelinkUndoResult> UndoEntriesAsync(
+            List<AuditLogEntryEntity> entries, CancellationToken cancellationToken = default,
+            Func<IReadOnlyList<AuditLogEntryEntity[]>, int, CancellationToken, Task>? beforeChunk = null)
         {
             entries = entries.OrderBy(a => a.ChangeType == ProposalWithdrawChangeType).ThenByDescending(a => a.Id).ToList();
             foreach (var entry in entries) _db.Entry(entry).State = EntityState.Detached;
             var result = new LineRelinkUndoResult();
             var personId = _currentUser.PersonIdOrSystem;
+            var chunks = entries.Chunk(500).ToList();
 
-            foreach (var chunk in entries.Chunk(500))
+            for (var index = 0; index < chunks.Count; index++)
             {
-                await using var tx = _db.Database.CurrentTransaction == null ? await _db.Database.BeginTransactionAsync() : null;
+                cancellationToken.ThrowIfCancellationRequested();
+                var chunk = chunks[index];
+                if (beforeChunk != null) await beforeChunk(chunks, index, cancellationToken);
+                await using var tx = _db.Database.CurrentTransaction == null && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(cancellationToken) : null;
                 var lineRecipes = chunk.Where(e => e.EntityType == RelinkEntityType).Select(e => e.EntityId).Distinct().ToList();
                 var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db, lineRecipes);
                 var trail = await RecipeOrderTrail.LoadAsync(_db, lineRecipes);
                 foreach (var entry in chunk)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (entry.ChangeType == ProposalWithdrawChangeType)
                     {
                         var withdrawn = await _db.FoodCatalogProposals.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == entry.EntityId);
@@ -635,7 +642,6 @@ namespace Nom.Orch.Services
                             result.Skipped++;
                         }
 
-                        await trail.StageAsync(_db);
                         await _db.SaveChangesAsync();
                         foreach (var line in _db.ChangeTracker.Entries<RecipeIngredientEntity>().ToList()) line.State = EntityState.Detached;
                         continue;

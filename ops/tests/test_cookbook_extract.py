@@ -173,6 +173,68 @@ class ExtractTests(unittest.TestCase):
         result = extract.extract(BOOK, stand_in(["not json"]))
         self.assertEqual((result.unreadable_chunks, len(result.kept), len(result.rejects)), (1, 0, 0))
 
+
+class ResumableTests(unittest.TestCase):
+    def test_a_timed_out_call_is_asked_again_and_its_answer_kept_as_it_arrives(self):
+        tries = []
+
+        def slow_then_fine(system, user):
+            tries.append(user)
+            if len(tries) == 1:
+                raise TimeoutError("timed out")
+            return '{"recipes": []}'
+
+        with tempfile.TemporaryDirectory() as folder:
+            checkpoint = os.path.join(folder, "answers.jsonl")
+            slept = []
+            ask = extract.resumable(slow_then_fine, checkpoint, retries=2, wait=5, sleep=slept.append)
+            self.assertEqual(ask("p", "chunk one"), '{"recipes": []}')
+            self.assertEqual((len(tries), slept), (2, [5]))
+            again = extract.resumable(lambda s, u: self.fail("an answered chunk is never asked again"), checkpoint)
+            self.assertEqual(again("p", "chunk one"), '{"recipes": []}')
+
+    def test_an_unreadable_answer_is_not_kept_so_the_next_run_asks_again(self):
+        answers = iter(['{"recipes": [', '{"recipes": []}'])
+        asked = []
+
+        def host(system, user):
+            asked.append(user)
+            return next(answers)
+
+        with tempfile.TemporaryDirectory() as folder:
+            checkpoint = os.path.join(folder, "answers.jsonl")
+            self.assertEqual(extract.resumable(host, checkpoint)("p", "chunk one"), '{"recipes": [')
+            self.assertEqual(extract.resumable(host, checkpoint)("p", "chunk one"), '{"recipes": []}',
+                             "review of ck6-data-fixes (CK6-6): an unreadable answer was cached and never asked again")
+            self.assertEqual(len(asked), 2)
+            self.assertEqual(extract.resumable(lambda s, u: self.fail("a readable answer is read back"), checkpoint)("p", "chunk one"), '{"recipes": []}')
+
+    def test_an_answer_is_read_back_only_for_the_model_that_gave_it(self):
+        with tempfile.TemporaryDirectory() as folder:
+            checkpoint = os.path.join(folder, "answers.jsonl")
+            extract.resumable(lambda s, u: '{"recipes": [{"name": "A"}]}', checkpoint, model="qwen2.5:14b-instruct")("p", "chunk one")
+            other = extract.resumable(lambda s, u: '{"recipes": []}', checkpoint, model="mistral-nemo")
+            self.assertEqual(other("p", "chunk one"), '{"recipes": []}', "review of ck6-data-fixes (CK6-6): another model's answer was reused")
+            same = extract.resumable(lambda s, u: self.fail("the same model's answer is read back"), checkpoint, model="qwen2.5:14b-instruct")
+            self.assertEqual(same("p", "chunk one"), '{"recipes": [{"name": "A"}]}')
+
+    def test_a_call_that_never_answers_fails_its_chunk_only_and_the_run_keeps_every_finished_record(self):
+        def host(system, user):
+            if "Corn Muffins" in user:
+                raise TimeoutError("timed out")
+            return json.dumps({"recipes": [{"name": "Gingerbread", "ingredients": ["1 cup molasses", "½ cup butter", "2 teaspoonfuls ginger", "3 cups flour"],
+                                            "steps": ["Mix the molasses and butter; add the ginger and flour.", "Bake in a shallow pan."]}]})
+
+        with tempfile.TemporaryDirectory() as folder:
+            checkpoint = os.path.join(folder, "answers.jsonl")
+            ask = extract.resumable(host, checkpoint, retries=1, wait=0, sleep=lambda s: None)
+            result = extract.extract(BOOK, ask, limit=200)
+            self.assertGreaterEqual(result.failed_chunks, 1, "staging checkpoint 3, N31: a timeout ended the whole run")
+            self.assertIn("Gingerbread", [r["name"] for r in result.kept])
+            self.assertEqual(result.summary()["failedChunks"], result.failed_chunks)
+            with open(checkpoint, encoding="utf-8") as handle:
+                self.assertGreaterEqual(len(handle.readlines()), 1)
+
     def test_a_translation_keeps_only_records_whose_every_line_carries_its_italian_numbers(self):
         recipes = ARTUSI[:3]
         text = artusi_text(recipes)

@@ -122,7 +122,7 @@ namespace Nom.Orch.Services.Support
                 .OrderBy(s => s.Id)
                 .Select(s => new ContainerSizeCandidate(s.ContainerKind, s.Era, s.SizeWord, s.NetGrams, s.DrainedGrams, s.SourceRef, s.Status, s.Id, s.SourceAttribution))
                 .ToList());
-            var era = ContainerEras.ForRecipe(recipe.SourceSite, recipe.SourceAttribution, eras);
+            var era = ContainerEras.ForRecipe(recipe.SourceSite, recipe.SourceAttribution, eras, recipe.SourceUrl);
             return new ContainerWeighing(true, era, byFood, era != ContainerEras.Modern ? await LiveTiersAsync(db, cancellationToken) : null, book);
         }
 

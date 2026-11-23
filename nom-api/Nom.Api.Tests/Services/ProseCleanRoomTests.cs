@@ -12,7 +12,7 @@ namespace Nom.Api.Tests.Services
     /// <summary>
     /// The clean-room pipeline of prose lane v2 with a fake writer and judge: the source is masked
     /// so the writer never sees its wording or retypes an amount, the fact sheets and the written
-    /// method are held to rules, check v2 and the judge gate every attempt, the writer is told why
+    /// method are held to rules, the prose check and the judge gate every attempt, the writer is told why
     /// an attempt failed in the lane's own words, and a recipe the attempts cannot rewrite is given
     /// up with the class that held it.
     /// </summary>
@@ -55,7 +55,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public void The_fact_sheet_rules_name_each_missing_token_verb_and_overlong_cue()
+        public void The_fact_sheet_rules_name_each_missing_token_verb_and_overwordycue()
         {
             var method = ProseMasking.Mask(GarlicSauce.Method, GarlicSauce.Lines);
             var sheets = ProseCleanRoom.RuleSheets(method).ToList();
@@ -147,6 +147,34 @@ namespace Nom.Api.Tests.Services
             writer.Requests.Skip(1).SelectMany(r => r.Problems).Should().NotBeEmpty()
                 .And.OnlyContain(p => !p.Contains("fragrant") && !p.Contains("saucepan") && !p.Contains("thickened"));
             writer.Requests[2].Style.Should().Be(ProseLanePrompts.StyleActions);
+        }
+
+        [Fact]
+        public async Task A_rewrite_the_check_is_only_unsure_of_goes_to_the_judge_which_decides()
+        {
+            var wordy = new[]
+            {
+                "Warm ⟦Q1⟧ ⟦L1⟧ in a small pan on medium, then fry the ⟦L2⟧ in it for ⟦Q2⟧, stirring now and then, just until the kitchen starts to smell good and the pieces look soft.",
+                "Add the ⟦Q3⟧ ⟦L3⟧ together with the ⟦Q4⟧ ⟦L4⟧ and let everything simmer gently for ⟦Q5⟧, until the sauce turns a little thicker and coats a spoon.",
+                "Remove the pan from the burner, then whisk the ⟦L5⟧ in a little at a time until it has fully disappeared into the sauce.",
+                "Rest the sauce ⟦Q6⟧ on the side so it settles, then serve it warm.",
+            };
+            var method = ProseMasking.Mask(GarlicSauce.Method, GarlicSauce.Lines);
+            var finding = ProseCheck.Check(GarlicSauce.Input().Source, new RewriteFidelity.SourceText(string.Empty, wordy.Select(method.Unmask).ToList()), GarlicSauce.Lines);
+            finding.Outcome.Should().Be("unsure", finding.ToString());
+            finding.Reasons.Should().Equal(ProseCheck.TooLong);
+
+            var judge = new FakeJudge();
+            var accepted = await ProseCleanRoom.RunAsync(GarlicSauce.Input(), new FakeWriter(FakeWriter.Steps(wordy)), judge);
+
+            accepted.Passed.Should().BeTrue(string.Join("; ", accepted.Attempts.SelectMany(a => a.Reasons)));
+            accepted.Attempts.Should().ContainSingle();
+            judge.Read.Should().ContainSingle("an unsure rewrite is the judge's to read");
+
+            var refused = await ProseCleanRoom.RunAsync(GarlicSauce.Input(), new FakeWriter(FakeWriter.Steps(wordy)), new FakeJudge { Faithful = (_, _) => false });
+
+            refused.Passed.Should().BeFalse();
+            refused.Attempts[0].Reasons.Should().OnlyContain(r => r.StartsWith(ProseCleanRoom.JudgeReason));
         }
 
         [Fact]

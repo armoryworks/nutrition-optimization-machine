@@ -1,11 +1,13 @@
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 using FluentAssertions;
 using Nom.Data.Nutrition;
 using Nom.Data.Recipe;
 using Nom.Orch.Services.Support;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Nom.Api.Tests.Services.MealPlan
 {
@@ -21,6 +23,23 @@ namespace Nom.Api.Tests.Services.MealPlan
     public class DietGateCountScriptTests
     {
         private static readonly string Script = File.ReadAllText(ScriptPath());
+
+        private readonly ITestOutputHelper _output;
+
+        public DietGateCountScriptTests(ITestOutputHelper output) => _output = output;
+
+        internal static string RuleTable()
+        {
+            static string Quote(string text) => "'" + text.Replace("'", "''") + "'";
+            var rows = DefaultRestrictionCriteria.ByName.Values.SelectMany(v => v.Patterns)
+                .Concat(SeedRestrictionCriteria.All.Select(c => c.Pattern)).Concat(DefaultRestrictionCriteria.Companions.Select(c => c.Companion)).Concat(DefaultRestrictionCriteria.CompositeCompanions.Select(c => c.Companion))
+                .Where(p => !DietCriteriaMatcher.IsWordPattern(p))
+                .Select(p => p.Trim().ToLowerInvariant()).Distinct().OrderBy(p => p, System.StringComparer.Ordinal)
+                .Select(p => DietPatternRule.For(p))
+                .Select(r => "        (" + Quote(r.Pattern) + ", " + Quote("%" + r.Words[0] + "%") + ", " + Quote(r.Expression(DietRegexDialect.Postgres)) + ", "
+                    + (r.ExceptionExpression(DietRegexDialect.Postgres) is { } blank ? Quote(blank) : "NULL") + ")");
+            return new StringBuilder("rule_pats (pattern, seed, term_rx, blank_rx) AS (\n    VALUES\n").Append(string.Join(",\n", rows)).Append("\n),").ToString();
+        }
 
         private static string ScriptPath([CallerFilePath] string here = "") =>
             Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", "..", "..", "..", "ops", "diet-gate-count.sql"));
@@ -52,6 +71,19 @@ namespace Nom.Api.Tests.Services.MealPlan
             Script.Should().Contain("WHERE c.type_id NOT IN (SELECT type_id FROM alcohol_types)", "a type with the alcohol criterion leaves its drink words to the alcohol rule, as DietCriteriaMatcher.LinePatterns does");
             Script.Should().Contain("gained_by_any_line").And.Contain("SELECT 'line'");
             Script.Should().Contain("ORDER BY x.approved DESC, md5(x.\"RecipeId\"::text || :'seed')) AS n\n    FROM by_any_line", "the line samples are a spread, not the lowest recipe ids (M14)");
+        }
+
+        [Fact]
+        public void The_count_reads_every_default_seeded_and_companion_pattern_by_the_codes_word_rule_and_a_pattern_it_does_not_know_by_ilike()
+        {
+            var table = RuleTable();
+            if (!Script.Contains(table)) _output.WriteLine(table);
+            Script.Should().Contain(table, "the count's table of expressions is the code's (the expected table is in the test output)");
+            Script.Should().Contain("LEFT JOIN rule_pats r ON r.pattern = lower(p.pattern)").And.Contain("r.pattern IS NULL AS by_like");
+            Script.Should().Contain("'patterns read as substring'").And.Contain("'patterns the table lacks (read by ILIKE)'", "a seeded or admin pattern the rule reads by words is not a substring pattern, and the count says which it read by ILIKE");
+            Script.Should().Contain("regexp_replace(l.\"RawLine\", o.blank_rx, ' ', 'gi') ~* o.term_rx").And.Contain("regexp_replace(i.\"Name\", o.blank_rx, ' ', 'gi') ~* o.term_rx");
+            Script.Should().Contain("gained_by_rule_line").And.Contain("SELECT 'rule-drop'").And.Contain("SELECT 'rule-line'").And.Contain("SELECT 'rule-food'");
+            Script.Should().Contain("ORDER BY x.approved DESC, md5(x.\"RecipeId\"::text || :'seed')) AS n\n    FROM rule_dropped", "the dropped samples are a spread, like the others");
         }
 
         [Fact]

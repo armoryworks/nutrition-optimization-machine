@@ -508,11 +508,11 @@ namespace Nom.Api.Tests.Services.MealPlan
             var bowl = Meal(db, "Chicken rice bowl, frozen");
             await db.SaveChangesAsync();
             var contents = new PreparedContentsService(db);
-            await contents.RecordAsync(new[] { new ContentsStatement(bowl.Id, PreparedContentsService.FdcSource("3000090"), "Ingredients: Jasmine rice, chicken, salt.") }, "fdc-contents-t1", apply: true);
+            await contents.RecordAsync(new[] { new ContentsStatement(bowl.Id, PreparedContentsService.FdcSource("3000090"), "Ingredients: Koshihikari rice, chicken, salt.") }, "fdc-contents-t1", apply: true);
             await RestrictAsync(db, PeanutAllergyRef);
-            (await CheckAsync(db, HouseholdId, bowl.Id))[bowl.Id].Held.Should().Be(PreparedContentsHeld.Unresolved, "jasmine rice is no catalog food yet");
+            (await CheckAsync(db, HouseholdId, bowl.Id))[bowl.Id].Held.Should().Be(PreparedContentsHeld.Unresolved, "koshihikari rice is no catalog food yet and no label term");
 
-            db.Ingredients.Add(new IngredientEntity { Name = "Jasmine rice", CurationStatusId = (long)CurationStatusEnum.Curated, FdcCategoryId = 11 });
+            db.Ingredients.Add(new IngredientEntity { Name = "Koshihikari rice", CurationStatusId = (long)CurationStatusEnum.Curated, FdcCategoryId = 11 });
             await db.SaveChangesAsync();
             var reread = await contents.RereadAsync("contents-reread-t2", apply: true);
             reread.Written.Should().Be(1);

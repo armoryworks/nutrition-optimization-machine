@@ -14,7 +14,8 @@ namespace Nom.Orch.Interfaces
     /// line to the food a deterministic tier names or back to an uncurated food of its wording when
     /// the gate refuses its food. Every run is a dry run unless applied, is journaled under its own
     /// stamp and is undone by that stamp, skipping recipes rebuilt since. On the lane frame as lane
-    /// <c>link-recheck</c>, one tier per rule set. See docs/architecture/link-recheck.md.
+    /// <c>link-recheck</c>, one tier per rule set and one per re-check class that is not proven, whose
+    /// candidates are written only while that class's tier is live. See docs/architecture/link-recheck.md.
     /// </summary>
     public interface ILinkRecheckService
     {
@@ -26,7 +27,8 @@ namespace Nom.Orch.Interfaces
 
         /// <summary>
         /// Runs one rule set (<see cref="LinkRecheckRules.AllSets"/>) over at most <paramref name="max"/>
-        /// wordings, most lines first. Unless <paramref name="apply"/> it writes nothing. Null for an unknown set.
+        /// wordings, most lines first. Unless <paramref name="apply"/> it writes nothing. A candidate is
+        /// written (or counted, in a dry run) only while its class's tier is live. Null for an unknown set.
         /// </summary>
         Task<LinkRecheckResult?> RunAsync(string set, bool apply = false, int max = 2000, int sampleSize = 50, CancellationToken cancellationToken = default);
 
@@ -38,14 +40,16 @@ namespace Nom.Orch.Interfaces
 
         /// <summary>
         /// One lane batch of a set on the lane frame: decides the wordings not decided under the set's
-        /// signature in the last 30 days, records every decision and writes only in live mode.
+        /// signature in the last 30 days (a candidate recorded in shadow is decided again once its class's
+        /// tier is live), records every decision and writes a proven class's refutations only in live
+        /// mode and a candidate only while its class's tier is live, each class under a stamp of its own.
         /// </summary>
         Task<LinkRecheckResult> RunLaneBatchAsync(string set, string mode, int max, CancellationToken cancellationToken = default);
 
-        /// <summary>Audits a sample of the set's moves with the given auditor and check and evaluates the tier with the batch's faults and the link-audit record scored with that auditor and check.</summary>
+        /// <summary>Audits a sample of the tier's moves (a set's, or a class's candidates) with the given auditor and check and evaluates the tier with the batch's faults and the link-audit record scored with that auditor and check.</summary>
         Task<LaneQualifyVerdict> AuditAndEvaluateAsync(string set, IReadOnlyList<string> faults, ILaneAuditor? auditor, ILaneAuditCheck? check, CancellationToken cancellationToken = default);
 
-        /// <summary>Decisions the lane recorded for a set in the last 24 hours.</summary>
+        /// <summary>Decisions the lane recorded for a set in the last 24 hours, its candidates on the class tiers included.</summary>
         Task<int> DecidedTodayAsync(string set, CancellationToken cancellationToken = default);
 
         Task<LinkRecheckStatusModel> StatusAsync(bool enabled, CancellationToken cancellationToken = default);

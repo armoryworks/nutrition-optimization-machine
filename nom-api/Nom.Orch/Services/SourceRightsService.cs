@@ -79,6 +79,13 @@ namespace Nom.Orch.Services
             && (EffectiveClass(source) == SourceRightsRule.Clear
                 || (source.RightsClass == SourceRightsRule.FactsOnly && source.FactsOnlyApprovedAt != null));
 
+        /// <summary>
+        /// Whether an admin may start a terms-only check of the source: it is barred (forbidden or permission-needed, so no
+        /// automatic check fetches it) or has no class yet (its first check is terms-only in any case).
+        /// </summary>
+        public static bool TermsCheckAllowed(ScrapingSourceEntity source) =>
+            RecheckBarred(source) || source.RightsClass == null;
+
         /// <summary>Why a source may not be fetched, or null when it may.</summary>
         public static string? FetchRefusal(ScrapingSourceEntity source)
         {
@@ -322,16 +329,29 @@ namespace Nom.Orch.Services
             return classChanged || aiChanged;
         }
 
-        /// <summary>The report of the source's last full check (not a terms-only one), whose bars a terms-only check must read again before it lifts a class.</summary>
+        /// <summary>
+        /// The report of the source's last full check, whose bars a terms-only check must read again before it lifts a class: the
+        /// latest check asked as a full one (<see cref="SourceRightsRule.FullMode"/>), whatever mode its report names, or a check
+        /// from before the mode was recorded whose report is not terms-only. Terms-only checks, the lane's and an admin's, are
+        /// passed over, not taken as the end of the search.
+        /// </summary>
         public static async Task<ScraperSourceCheckReport?> LastFullReportAsync(ApplicationDbContext db, long sourceId, CancellationToken cancellationToken = default)
         {
-            var json = await db.SourceChecks.AsNoTracking()
-                .Where(c => c.ScrapingSourceId == sourceId && c.ReportJson != null && c.Purpose != SourceAdmissionService.TermsOnlyPurpose)
+            var rows = await db.SourceChecks.AsNoTracking()
+                .Where(c => c.ScrapingSourceId == sourceId && c.ReportJson != null && c.Purpose != SourceAdmissionService.TermsOnlyPurpose
+                    && (c.Mode == null || c.Mode == SourceRightsRule.FullMode))
                 .OrderByDescending(c => c.StartedUtc).ThenByDescending(c => c.Id)
-                .Select(c => c.ReportJson)
-                .FirstOrDefaultAsync(cancellationToken);
-            var report = Read<ScraperSourceCheckReport>(json);
-            return SourceRightsRule.IsTermsOnly(report) ? null : report;
+                .Select(c => new { c.Id, c.Mode })
+                .ToListAsync(cancellationToken);
+            foreach (var row in rows)
+            {
+                var json = await db.SourceChecks.AsNoTracking().Where(c => c.Id == row.Id).Select(c => c.ReportJson).FirstOrDefaultAsync(cancellationToken);
+                var report = Read<ScraperSourceCheckReport>(json);
+                if (report == null) continue;
+                if (row.Mode == SourceRightsRule.FullMode || !SourceRightsRule.IsTermsOnly(report)) return report;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -471,7 +491,7 @@ namespace Nom.Orch.Services
         public async Task<SourceRecipeStepModel> CreditsAsync(bool apply, long? sourceId = null, CancellationToken cancellationToken = default)
         {
             var now = Now();
-            var result = new SourceRecipeStepModel { Step = CreditsStep, Applied = apply, Stamp = now };
+            var result = new SourceRecipeStepModel { Step = CreditsStep, Applied = apply, Stamp = now, RuleVersion = CreditLines.Version };
             var query = _db.Recipes.Where(r => r.ScrapedAtUtc != null && r.SourceUrl != null && r.SourceCredit == null);
             if (sourceId != null && await _db.ScrapingSources.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sourceId, cancellationToken) is { } one)
                 query = SourceAdmissionService.RecipesFrom(query, one.Domain);

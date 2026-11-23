@@ -13,9 +13,12 @@ namespace Nom.Api.Services
     /// lane <c>link-recheck</c> on the lane frame, over the wordings it has not decided under the set's
     /// signature in the last 30 days, at most LinkRecheck:MaxPerDay (default 2000) a set in 24 hours
     /// and LinkRecheck:BatchSize (default 2000, so one batch a set a day) a batch. A set writes only
-    /// while the frame holds it live; in shadow, and while paused, it decides and records. After each batch the roster's
-    /// auditor reads a sample of the set's moves, reader B confirms its flags, and the frame
-    /// evaluates the tier, so a set pauses and undoes its own runs by itself. Every batch passes the
+    /// while the frame holds it live; in shadow, and while paused, it decides and records. A refutation by a
+    /// class that is not proven is a candidate recorded on that class's own tier
+    /// (<see cref="LinkRecheckRules.CandidateTier"/>) and written only while that tier is live, whatever
+    /// the set's mode. After each batch the roster's auditor reads a sample of the set's moves, and after
+    /// the round a sample of each class tier's candidates, reader B confirms its flags, and the frame
+    /// evaluates the tier, so a set or a class pauses and undoes its own runs by itself. Every batch passes the
     /// <see cref="AiLaneGate"/> (lane "link-recheck", switch ai-pause-link-recheck).
     ///
     /// Off unless LinkRecheck:Enabled=true. The withdrawal of waiting picks and the operator's
@@ -84,6 +87,7 @@ namespace Nom.Api.Services
                 {
                     var taken = 0;
                     var more = false;
+                    var classFaults = new Dictionary<string, List<string>>(StringComparer.Ordinal);
                     foreach (var set in LinkRecheckRules.Sets)
                     {
                         if (await _gate.PausedAsync(AiLanes.LinkRecheck)) break;
@@ -101,11 +105,26 @@ namespace Nom.Api.Services
                         var attempted = batch.LinesMoved + batch.LinesUnlinked + batch.LinesSkipped;
                         if (batch.Applied && attempted >= LinkRecheckService.MinimumLinesForShare && (double)batch.LinesSkipped / attempted > LinkRecheckService.SkippedShareToPause)
                             faults.Add($"{batch.LinesSkipped} of {attempted} lines were no longer where the batch found them");
+                        foreach (var reClass in batch.ByQualified.Keys)
+                        {
+                            if (!classFaults.TryGetValue(reClass, out var list)) classFaults[reClass] = list = new List<string>();
+                            list.AddRange(faults.Select(f => $"{set}: {f}"));
+                        }
                         var (auditor, check, problem) = Auditors(_configuration, _roster, _http.CreateClient(HttpClientName));
                         if (problem != null) _logger.LogInformation("Link re-check {Set}: no audit ({Problem})", set, problem);
                         var verdict = await lane.AuditAndEvaluateAsync(set, faults, auditor, check, stoppingToken);
                         _logger.LogInformation("Link re-check lane {Set}: {Mode} ({Reason})", set, verdict.Mode, verdict.Reason);
                         if (!await Delay(pause, stoppingToken)) return;
+                    }
+                    foreach (var reClass in LinkRecheckRules.CandidateClasses)
+                    {
+                        if (await _gate.PausedAsync(AiLanes.LinkRecheck)) break;
+                        using var scope = _scopeFactory.CreateScope();
+                        var lane = scope.ServiceProvider.GetRequiredService<ILinkRecheckService>();
+                        var (auditor, check, _) = Auditors(_configuration, _roster, _http.CreateClient(HttpClientName));
+                        var tier = LinkRecheckRules.CandidateTier(reClass);
+                        var verdict = await lane.AuditAndEvaluateAsync(tier, classFaults.GetValueOrDefault(reClass) ?? new List<string>(), auditor, check, stoppingToken);
+                        _logger.LogInformation("Link re-check lane {Tier}: {Mode} ({Reason})", tier, verdict.Mode, verdict.Reason);
                     }
                     _gate.Passed(AiLanes.LinkRecheck, taken, idle: taken == 0);
                     if (more) delay = pause;

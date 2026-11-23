@@ -202,6 +202,13 @@ namespace Nom.Orch.Models.Recipe
         /// <summary>Lines restored, while the recipe's curation state, changed since, was kept.</summary>
         public int StateKept { get; set; }
 
+        /// <summary>
+        /// Order-only writes whose lines a later step changed in a food link, an amount or a kind, but not in
+        /// position: the positions came back, the later change was kept, and the move back is journaled as an
+        /// order write of its own so the later step's undo still finds its lines.
+        /// </summary>
+        public int PositionsFollowed { get; set; }
+
         /// <summary>Foods a rebuild created that nothing references once its lines are restored; removed again.</summary>
         public int FoodsRemoved { get; set; }
 

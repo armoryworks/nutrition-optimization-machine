@@ -80,9 +80,18 @@ namespace Nom.Api.Controllers
         private ObjectResult RestrictionViolation(string reason) =>
             Conflict(new
             {
-                message = "This recipe conflicts with a locked dietary restriction in your household.",
+                message = RestrictionViolationMessage(reason),
                 reason
             });
+
+        /// <summary>The message a 409 carries for each reason: a prepared meal held by a severe restriction is named as such (staging checkpoint 3, N6), a hidden recipe as not visible, and a locked restriction as before.</summary>
+        public static string RestrictionViolationMessage(string reason) => reason switch
+        {
+            "restriction_violation:prepared_held_unconfirmed" => "This prepared meal is held back for an allergy or medical restriction in your household: its ingredients conflict with it or are not known. Confirm to add it anyway.",
+            "restriction_violation:recipe_not_visible" => "This recipe is not visible to your household.",
+            "restriction_violation:ingredient_not_found" => "This food was not found.",
+            _ => "This recipe conflicts with a locked dietary restriction in your household.",
+        };
 
         [HttpGet]
         public async Task<ActionResult<List<MealPlanResponseModel>>> GetMealPlans(

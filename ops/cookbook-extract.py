@@ -38,6 +38,13 @@ RULES
    whose quoted title and name point to two recipes, and every record of a recipe two records
    point to, is left unpinned and logged.
 
+6. A slow or busy model host loses nothing: every readable answer is written to a checkpoint file
+   (--checkpoint, default <out>.answers.jsonl) as it arrives and read back on the next run with the
+   same --model, so a chunk that model answered is never asked twice; an unreadable answer is not
+   kept, so its chunk is asked again on the next run; a call past --timeout seconds or a failed one is asked again up to
+   --retries times, and a chunk that still gets no answer is counted (failedChunks) and waits for
+   the next run, while every record already answered is kept and written.
+
 USAGE
 -----
     ./ops/cookbook-extract.py ~/cookbook-work/pg59047.txt --host http://<model host>:11434 \\
@@ -50,11 +57,15 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import html
 import json
+import os
 import re
 import sys
+import time
 import unicodedata
+import urllib.error
 import urllib.request
 from collections import Counter
 from dataclasses import dataclass, field
@@ -360,11 +371,13 @@ class Result:
     chunks: int = 0
     split_chunks: int = 0
     unreadable_chunks: int = 0
+    failed_chunks: int = 0
 
     def summary(self) -> dict:
         reasons = Counter(r["reason"].split(":")[0] for r in self.rejects)
         return {
             "chunks": self.chunks, "splitChunks": self.split_chunks, "unreadableChunks": self.unreadable_chunks,
+            "failedChunks": self.failed_chunks,
             "kept": len(self.kept), "dropped": len(self.rejects), "droppedByReason": dict(sorted(reasons.items())),
             "pinned": sum(1 for r in self.kept if "replacesRecipeId" in r),
         }
@@ -399,6 +412,68 @@ def ollama(host: str, model: str, timeout: int = 600) -> Ask:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return json.loads(response.read().decode())["message"]["content"]
     return ask
+
+
+class ModelCallFailed(Exception):
+    """A model call that did not answer after its retries (a timeout or a refused connection)."""
+
+
+MODEL_ERRORS = (TimeoutError, OSError, urllib.error.URLError, ConnectionError, json.JSONDecodeError, KeyError)
+
+
+def readable(answer: str) -> bool:
+    """Whether an answer is one the extraction can read: a JSON object with a list of recipes."""
+    try:
+        parsed = json.loads(answer)
+    except (ValueError, TypeError):
+        return False
+    return isinstance(parsed, dict) and isinstance(parsed.get("recipes"), list)
+
+
+def resumable(ask: Ask, checkpoint: str | None, retries: int = 2, wait: float = 30.0, sleep: Callable[[float], None] = time.sleep,
+              model: str = "") -> Ask:
+    """A model call that survives a slow or busy host: every readable answer is appended to the checkpoint file (JSON
+    lines keyed by the SHA-256 of the model, the prompt and the chunk) the moment it arrives, a chunk the same model
+    answered readably before is read back from it and not asked again, and a call that times out or fails is retried up
+    to `retries` times, `wait` seconds apart (doubling). An unreadable answer is returned but never kept, so the next
+    run asks for that chunk again, and another model's answers are never reused. A call that still fails raises
+    ModelCallFailed, which the caller counts as a failed chunk and goes on: no answered record is lost, and the next run
+    asks only the chunks still missing (staging checkpoint 3, N31; review of ck6-data-fixes, CK6-6)."""
+    answers: dict[str, str] = {}
+    if checkpoint and os.path.exists(checkpoint):
+        with open(checkpoint, encoding="utf-8") as handle:
+            for text in handle:
+                try:
+                    row = json.loads(text)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(row, dict) and isinstance(row.get("key"), str) and isinstance(row.get("answer"), str) and readable(row["answer"]):
+                    answers[row["key"]] = row["answer"]
+
+    def call(system: str, user: str) -> str:
+        key = hashlib.sha256((model + "\0" + system + "\0" + user).encode("utf-8")).hexdigest()
+        if key in answers:
+            return answers[key]
+        problem = None
+        for attempt in range(retries + 1):
+            if attempt:
+                sleep(wait * (2 ** (attempt - 1)))
+            try:
+                answer = ask(system, user)
+            except MODEL_ERRORS as exc:
+                problem = exc
+                log(f"model call failed (try {attempt + 1} of {retries + 1}): {type(exc).__name__}: {exc}")
+                continue
+            if not readable(answer):
+                return answer
+            answers[key] = answer
+            if checkpoint:
+                with open(checkpoint, "a", encoding="utf-8") as handle:
+                    handle.write(json.dumps({"key": key, "model": model, "answer": answer}, ensure_ascii=False) + "\n")
+            return answer
+        raise ModelCallFailed(f"{type(problem).__name__}: {problem} after {retries + 1} tries")
+
+    return call
 
 
 def _pairs(items) -> list[tuple[str, str | None]]:
@@ -483,6 +558,10 @@ def extract(text: str, ask: Ask, translate: bool = False, limit: int = DEFAULT_L
             recipes = answer.get("recipes") if isinstance(answer, dict) else None
             if not isinstance(recipes, list):
                 raise ValueError("no recipes list")
+        except ModelCallFailed as exc:
+            result.failed_chunks += 1
+            log(f"chunk at {chunk.start}: the model did not answer ({exc}); its recipes wait for the next run")
+            continue
         except (ValueError, json.JSONDecodeError) as exc:
             result.unreadable_chunks += 1
             log(f"chunk at {chunk.start}: unreadable answer ({exc}); its recipes wait for the next run")
@@ -561,11 +640,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--recipe-map", help="the attach log of the book's first attach")
     parser.add_argument("--old-file", help="the staging file name the first attach read, to pick its lines from the log")
     parser.add_argument("--pin-csv", help="CSV with columns name,recipeId")
+    parser.add_argument("--timeout", type=int, default=600, help="seconds one model call may take (default 600)")
+    parser.add_argument("--retries", type=int, default=2, help="times a failed or timed-out call is asked again (default 2)")
+    parser.add_argument("--checkpoint", help="JSONL of the model's answers, kept as they arrive and read back on the next run (default: <out>.answers.jsonl)")
     args = parser.parse_args(argv)
 
     with open(args.book, encoding="utf-8", errors="replace") as handle:
         text = handle.read().replace("\r\n", "\n")
-    result = extract(text, ollama(args.host, args.model), translate=args.translate, limit=args.limit, hard=args.hard_limit)
+    ask = resumable(ollama(args.host, args.model, timeout=args.timeout), args.checkpoint or args.out + ".answers.jsonl", retries=args.retries, model=args.model)
+    result = extract(text, ask, translate=args.translate, limit=args.limit, hard=args.hard_limit)
     pinned = pin(result.kept, load_pins(args.recipe_map, args.old_file, args.pin_csv))
     with open(args.out, "w", encoding="utf-8") as handle:
         for record in result.kept:

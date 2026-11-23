@@ -1,0 +1,35 @@
+# The credit line a recipe keeps from its source text (CreditLines, credit-lines/2): the cue and the credited name only.
+# texts: the source texts the rule reads (description and steps), split by " | ". Every text is written for the rule; the n26 rows rebuild
+# the shape of the 17 malformed credits staging checkpoint 3 logged (N26) around the credited name, not the page's own prose.
+id	texts	expect	status	source	note
+keep-none	Inspired by Thai street food, these noodles are tossed in a spicy peanut sauce and finished with lime.	-	ok	rule:construction	an influence, not a credit
+keep-name	Adapted from Martha Stewart and made dairy-free with coconut milk.	Adapted from Martha Stewart	ok	rule:construction	-
+keep-book-by	Recipe courtesy of Salt Fat Acid Heat by Samin Nosrat, with my notes.	Recipe courtesy of Salt Fat Acid Heat by Samin Nosrat	ok	rule:construction	-
+keep-own	Adapted from my vanilla cupcakes.	-	ok	rule:construction	the author's own work
+keep-reprint	Reprinted with permission from Joy of Cooking, 1931 edition, page 12.	Reprinted with permission from Joy of Cooking	ok	rule:construction	-
+keep-title-my	Adapted from Around My French Table by Dorie Greenspan, with less butter.	Adapted from Around My French Table by Dorie Greenspan	ok	rule:construction	"My" inside a title is no sentence start
+keep-title-every	Adapted from Smitten Kitchen Every Day by Deb Perelman.	Adapted from Smitten Kitchen Every Day by Deb Perelman	ok	rule:construction	"Every" inside a title is no sentence start
+keep-title-nation	Adapted from Mastering the Art of French Cooking for a weeknight.	Adapted from Mastering the Art of French Cooking	ok	rule:construction	a nationality inside a longer name is kept
+keep-the-after-joiner	Recipe from Ottolenghi and The Guardian, lightly changed.	Recipe from Ottolenghi and The Guardian	ok	rule:construction	"The" after a joiner continues the name
+keep-mc	Recipe courtesy of Chef Mary McDonald of Hollow Farm.	Recipe courtesy of Chef Mary McDonald of Hollow Farm	ok	rule:construction	a capital inside a short name prefix is no glued word
+keep-cap-cut	Adapted from Secrets of the Best Chefs Recipes Techniques and Tricks of a Fine Top Cooks of the Old South and the New West by Adam Roberts Julia Moskin Sam Sifton Melissa Clark	Adapted from Secrets of the Best Chefs Recipes Techniques and Tricks of a Fine Top Cooks of the Old South and the New West by Adam Roberts Julia Moskin Sam Sifton Melissa	ok	rule:construction	a word the length limit cuts ("Clark" cut to "Cl") is left out
+n26-next-repeat	Adapted from Seven Spoons by Tara O'Brady Tara writes that the dough keeps a week	Adapted from Seven Spoons by Tara O'Brady	ok	rule:staging-n26	24084: the next sentence's first word repeats the given name
+n26-next-this	Adapted from Bountiful This salad is the one we make every spring	Adapted from Bountiful	ok	rule:staging-n26	24094
+n26-next-this-2	Adapted from Chez Panisse Desserts by Lindsey Remolif Shere This tart keeps for a day	Adapted from Chez Panisse Desserts by Lindsey Remolif Shere	ok	rule:staging-n26	24082
+n26-next-other	Adapted from Rustic Fruit Desserts by Cory Schreiber and Julie Richardson Other stone fruit works too	Adapted from Rustic Fruit Desserts by Cory Schreiber and Julie Richardson	ok	rule:staging-n26	24078
+n26-next-ive	Adapted from Cool Beans by Joe Yonan I've doubled the garlic	Adapted from Cool Beans by Joe Yonan	ok	rule:staging-n26	50741
+n26-next-the	Adapted from Chef Willie Prutsch of Café du Grütli The fondue is best with a dry white wine	Adapted from Chef Willie Prutsch of Café du Grütli	ok	rule:staging-n26	141897
+n26-glued-using	Adapted from American Cookery by James BeardUsing a heavy pot keeps the stew from catching	Adapted from American Cookery by James Beard	ok	rule:staging-n26	141858: two elements' words glued
+n26-glued-in	Adapted from Around My French Table by Dorie GreenspanIn France the cake is served plain	Adapted from Around My French Table by Dorie Greenspan	ok	rule:staging-n26	141860
+n26-glued-three	Adapted from Drinking FrenchThree ingredients and a lot of ice	Adapted from Drinking French	ok	rule:staging-n26	141872
+n26-glued-when	Adapted from Sugar Rush by Nicola LambWhen the dough is cold it rolls easily	Adapted from Sugar Rush by Nicola Lamb	ok	rule:staging-n26	141862
+n26-entity-copy	Adapted from What's Gaby Cooking. | Adapted from What&#x27;s Gaby Cooking, with less sugar.	Adapted from What's Gaby Cooking	ok	rule:staging-n26	38148: an entity cut the name and left a second, broken copy
+n26-entity-possessive	Recipe from Diala&#x27;s kitchen, with fresh herbs	Recipe from Diala	ok	rule:staging-n26	61353
+n26-entity-amp	Adapted from Love &amp; Lemons Every Day, my favourite book	Adapted from Love & Lemons Every Day	ok	rule:staging-n26	32160: "&amp;" decoded, so the name is whole
+n26-possessive	Recipe from America's Test Kitchen's new cookbook	Recipe from America's Test Kitchen	ok	rule:staging-n26	59845
+n26-cut	Adapted from Secrets of the Best Chefs Recipes Techniques and Tricks of a Fine Top Cooks by Adam Roberts, with notes	Adapted from Secrets of the Best Chefs Recipes Techniques and Tricks of a Fine Top Cooks by Adam Roberts	ok	rule:staging-n26	141904: the old 90-character limit cut "Roberts" to "Robert"
+n26-nation	Recipe from French grandmothers, passed down for generations	-	ok	rule:staging-n26	31741: a nationality is no credit
+n26-place	Recipe from South America, where quinoa has been grown for centuries	-	ok	rule:staging-n26	41159 (myplate): a place is no credit
+keep-camel-publisher	Reprinted with permission from HarperCollins Publishers.	Reprinted with permission from HarperCollins Publishers	ok	rule:construction	review of ck6-data-fixes (CK6-5): a capital inside a name is a glued word only when what follows it starts a sentence (was "Harper")
+keep-camel-brand	Recipe courtesy of KitchenAid, made in a stand mixer.	Recipe courtesy of KitchenAid	ok	rule:construction	review of ck6-data-fixes (CK6-5) (was "Kitchen")
+keep-surname-in-title	Adapted from Ottolenghi Simple by Yotam Ottolenghi, with more lemon.	Adapted from Ottolenghi Simple by Yotam Ottolenghi	ok	rule:construction	review of ck6-data-fixes (CK6-5): a word repeated after "by" begins a new name, so the author's surname may repeat the title's (was "... by Yotam")

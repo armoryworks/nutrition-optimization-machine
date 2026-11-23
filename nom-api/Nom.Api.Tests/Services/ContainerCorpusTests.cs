@@ -55,6 +55,30 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_web_recipe_with_a_book_attribution_is_modern_and_never_enters_the_old_book_tiers()
+        {
+            var none = new Dictionary<string, string>();
+            const string MyPlate = "USDA MyPlate Kitchen (U.S. government work, public domain)";
+            ContainerEras.ForRecipe(null, MyPlate, none, "https://www.myplate.gov/recipes/some-recipe").Should().Be(ContainerEras.Modern, "staging checkpoint 3, N13");
+            ContainerEras.ForRecipe(null, BookA, none, "https://www.gutenberg.org/ebooks/12345").Should().Be(ContainerEras.Unknown);
+            ContainerEras.ForRecipe(null, BookA, none, "https://www.loc.gov/item/abc/").Should().Be(ContainerEras.Unknown);
+            ContainerEras.ForRecipe(null, BookA, none).Should().Be(ContainerEras.Unknown);
+            ContainerEras.ForRecipe(null, MyPlate, new Dictionary<string, string> { [MyPlate] = ContainerEras.Historic }, "https://www.myplate.gov/x")
+                .Should().Be(ContainerEras.Historic, "a stored era row wins");
+            ContainerCorpusSizes.Read(MyPlate, ContainerEras.ForRecipe(null, MyPlate, none, "https://www.myplate.gov/x"), 1, "3 packages gelatin (3 oz. packages)", null).Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("2 (3 oz.) pkg. raspberry-flavored gelatin", "Gelatins, dry powder, unsweetened", false)]
+        [InlineData("3 packages strawberry gelatin (3 oz. packages)", "Gelatins, dry powder, unsweetened", false)]
+        [InlineData("1 (3 oz) package lime gelatin", "Gelatin desserts, dry mix", true)]
+        [InlineData("1 oz. packet of gelatine", "Gelatins, dry powder, unsweetened", true)]
+        public void A_flavoured_gelatin_line_sizes_only_a_flavoured_food(string line, string food, bool counts)
+        {
+            (ContainerCorpusSizes.Read(BookA, ContainerEras.Unknown, 1, line, null, food: food) != null).Should().Be(counts, "staging checkpoint 3, N13");
+        }
+
+        [Fact]
         public void An_era_counts_each_book_once_per_size_needs_two_books_and_keeps_its_spread()
         {
             var lines = Enumerable.Range(0, 5).Select(_ => Line(BookA, 226.8m)).Append(Line(BookB, 85m)).Append(Line(BookC, 85m)).ToList();
@@ -67,7 +91,7 @@ namespace Nom.Api.Tests.Services
 
             var evidence = ContainerCorpusSizes.Evidence(era);
             evidence.Should().Contain("85:2;227:1").And.Contain("7 lines in 3 books").And.Contain("spread 85-226.8 g");
-            ContainerCorpusSizes.SourceRef(era, ContainerEras.Historic).Should().Be("deterministic:corpus-era:container-corpus/2:historic:85g:2/3:85-226.8g");
+            ContainerCorpusSizes.SourceRef(era, ContainerEras.Historic).Should().Be("deterministic:corpus-era:container-corpus/3:historic:85g:2/3:85-226.8g");
         }
 
         [Fact]
@@ -99,7 +123,7 @@ namespace Nom.Api.Tests.Services
             var era = ContainerCorpusSizes.EraSize(ContainerEras.Historic, lines)!;
             (era.Passes, era.Band, era.Votes, era.BandBooks, era.Books).Should().Be((true, 5, 6, 5, 5));
             var source = ContainerCorpusSizes.SourceRef(era, ContainerEras.Historic);
-            source.Should().Be("deterministic:corpus-era:container-corpus/2:historic:85g:5/5:85-226.8g", "five books exist, one of them stating two sizes");
+            source.Should().Be("deterministic:corpus-era:container-corpus/3:historic:85g:5/5:85-226.8g", "five books exist, one of them stating two sizes");
             var weight = ContainerSizeResolver.Resolve("1 package cream cheese", ContainerEras.Historic,
                 new[] { Size(ContainerKinds.Package, 85m, ContainerEras.Historic, source) }, book: "Book F");
             ContainerWeighing.Describe(weight).Should().Contain("(5 of 5 books, spread 85-226.8g)");
@@ -463,6 +487,23 @@ namespace Nom.Api.Tests.Services
             report.Tiers.Single(t => t.Tier == ContainerSizeService.SameBookTier).Lines.Should().Be(10);
             var modern = report.Tiers.Single(t => t.Tier == ContainerSizeService.ModernTier);
             (modern.Lines, modern.Agree).Should().Be((10, 0), "today's 8 oz would weigh these lines while the book's tier is not live, and misses each 3 oz line");
+        }
+
+        [Fact]
+        public async Task The_hold_out_scores_a_flavoured_line_on_a_flavoured_food_as_the_corpus_run_counts_it()
+        {
+            var rig = await RigAsync();
+            var food = await rig.Db.Ingredients.SingleAsync(i => i.Id == rig.Cheese);
+            food.Description = "Gelatin desserts, dry mix";
+            await rig.Db.SaveChangesAsync();
+            await OldBookAsync(rig, BookA, 1910);
+            await RecipeAsync(rig, BookA, Enumerable.Range(0, 10).Select(_ => (3m, Ounce, "1 (3 oz) package lime gelatin")).ToArray());
+            (await rig.Corpus.RunAsync(new ContainerCorpusImportService.Options(DryRun: false))).SizedLines.Should().Be(10);
+
+            var report = await rig.Sizes.ScoreAsync(false, Operator);
+
+            report.Tiers.Single(t => t.Tier == ContainerSizeService.SameBookTier).Lines.Should().Be(10,
+                "review of ck6-data-fixes (CK6-4): the hold-out reads each line with its food, as the corpus run does");
         }
     }
 }

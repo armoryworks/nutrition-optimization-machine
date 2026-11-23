@@ -40,11 +40,15 @@ namespace Nom.Api.Tests.Services
             public string RequiredUserId => throw new UnauthorizedAccessException();
         }
 
-        private static ApplicationDbContext NewContext() =>
-            new(new DbContextOptionsBuilder<ApplicationDbContext>()
+        private static ApplicationDbContext NewContext()
+        {
+            var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options);
+            LinkRecheckClassBarTests.Qualify(db, LinkRecheckRules.AlcoholClass, LinkGate.Prepared);
+            return db;
+        }
 
         private static LinkRecheckService Recheck(ApplicationDbContext db) =>
             new(db, new NoUser(), new LinkAutoApplyService(db, new MemoryCache(new MemoryCacheOptions())), new LineRelinkService(db, new NoUser()),
@@ -151,16 +155,28 @@ namespace Nom.Api.Tests.Services
             var dry = await service.RunAsync(LinkRecheckRules.Applied, max: 50000, sampleSize: 100);
             var run = await service.RunAsync(LinkRecheckRules.Applied, apply: true, max: 50000, sampleSize: 100);
 
-            foreach (var (food, wording, line) in kept)
-                (await FoodOfAsync(db, recipe.Id, line)).Should().Be(food.Id, $"'{wording}' on {food.Name}: nothing proves the food wrong");
-            (await FoodOfAsync(db, recipe.Id, "2 tbsp olive oil")).Should().Be(olive.Id, "olive oil is another curated food's very name");
-            (await FoodOfAsync(db, recipe.Id, "salt and pepper")).Should().NotBe(salt.Id, "two foods joined by and refute either one");
+            foreach (var (food, wording, line) in kept.Concat(refuted))
+                (await FoodOfAsync(db, recipe.Id, line)).Should().Be(food.Id, $"'{wording}' on {food.Name}: nothing a proven class reads proves the food wrong");
             run!.Unproven.Should().BeGreaterThan(0);
-            (run.MoveGroups, run.UnlinkGroups, run.LinesMoved, run.LinesUnlinked).Should().Be((1, 1, 1, 1));
-            (dry!.Unproven, dry.UnprovenLines, dry.MoveGroups, dry.UnlinkGroups, dry.LinesMoved, dry.LinesUnlinked, dry.RefutedLines)
-                .Should().Be((run.Unproven, run.UnprovenLines, run.MoveGroups, run.UnlinkGroups, run.LinesMoved, run.LinesUnlinked, run.RefutedLines), "not proven and refuted are measured alike in a dry run");
+            (run.MoveGroups, run.UnlinkGroups, run.Candidates, run.CandidateLines).Should().Be((0, 0, 2, 2), "other-food and compound are classes not proven: their refutations are candidates");
+            run.ByCandidate.Keys.Should().BeEquivalentTo(LinkGate.OtherFood, LinkGate.Compound);
+            (dry!.Unproven, dry.UnprovenLines, dry.Candidates, dry.CandidateLines, dry.MoveGroups, dry.UnlinkGroups, dry.LinesMoved, dry.LinesUnlinked, dry.RefutedLines)
+                .Should().Be((run.Unproven, run.UnprovenLines, run.Candidates, run.CandidateLines, run.MoveGroups, run.UnlinkGroups, run.LinesMoved, run.LinesUnlinked, run.RefutedLines),
+                    "not proven, candidates and refuted are measured alike in a dry run");
             run.ByUnproven.Should().NotBeEmpty();
             run.Samples.Where(s => s.Outcome == LinkRecheckRules.Unproven).Select(s => s.Wording).Should().Contain(new[] { "ketchup", "tomato sauce", "thin cream", "black beans" });
+            run.Samples.Where(s => s.Outcome == LinkRecheckService.CandidateOutcome).Select(s => (s.Wording, s.Candidate)).Should()
+                .BeEquivalentTo(new[] { ("olive oil", LinkRecheckRules.Move), ("salt and pepper", LinkRecheckRules.Unlink) });
+
+            db.LaneDecisions.RemoveRange(db.LaneDecisions);
+            await db.SaveChangesAsync();
+            LinkRecheckClassBarTests.Qualify(db, LinkGate.OtherFood, LinkGate.Compound);
+            var live = await service.RunLaneBatchAsync(LinkRecheckRules.Applied, LaneMode.Live, 50000);
+            (await FoodOfAsync(db, recipe.Id, "2 tbsp olive oil")).Should().Be(olive.Id, "olive oil is another curated food's very name");
+            (await FoodOfAsync(db, recipe.Id, "salt and pepper")).Should().NotBe(salt.Id, "two foods joined by and refute either one");
+            foreach (var (food, wording, line) in kept)
+                (await FoodOfAsync(db, recipe.Id, line)).Should().Be(food.Id, $"'{wording}' on {food.Name}: nothing proves the food wrong");
+            (live.MoveGroups, live.UnlinkGroups, live.LinesMoved, live.LinesUnlinked).Should().Be((1, 1, 1, 1), "a lane batch writes the candidates of classes whose own tier the link-audit record qualified");
         }
 
         [Fact]
@@ -197,7 +213,8 @@ namespace Nom.Api.Tests.Services
             db.Recipes.Add(recipe);
             await db.SaveChangesAsync();
 
-            await Recheck(db).RunAsync(LinkRecheckRules.PartHerb, apply: true);
+            LinkRecheckClassBarTests.Qualify(db, LinkRecheckRules.CandidateClasses.ToArray());
+            await Recheck(db).RunLaneBatchAsync(LinkRecheckRules.PartHerb, LaneMode.Live, 50000);
             foreach (var (food, wording, line) in lines.Take(6))
                 (await FoodOfAsync(db, recipe.Id, line)).Should().Be(food.Id, $"'{wording}' is {food.Name}");
             (await FoodOfAsync(db, recipe.Id, "2 tbsp freshly chopped tarragon")).Should().NotBe(tarragon.Id, "a fresh leaf herb is still not the dried spice");
@@ -268,9 +285,10 @@ namespace Nom.Api.Tests.Services
             run!.Samples.Where(s => s.Outcome == LinkRecheckRules.Move).Select(s => s.Sense).Should().BeEquivalentTo(new[] { "wine-red", "wine-table" }, "one wording on one food in two sense groups");
             (await FoodOfAsync(db, burgundy.Id, "1 cup wine")).Should().Be(red.Id);
             (await FoodOfAsync(db, stew.Id, "1/2 cup wine")).Should().Be(red.Id);
-            (dry!.AliasesAdded, dry.AliasesMoved, dry.AliasesRemoved, dry.AliasesUntrusted)
-                .Should().Be((run.AliasesAdded, run.AliasesMoved, run.AliasesRemoved, run.AliasesUntrusted), "an alias two groups share is written once, so it is counted once");
-            (run.AliasesAdded + run.AliasesMoved, run.AliasesRemoved).Should().Be((1, 1));
+            (dry!.AliasesAdded, dry.AliasesMoved, dry.AliasesRemoved, dry.AliasesUntrusted, dry.AliasesRefused)
+                .Should().Be((run.AliasesAdded, run.AliasesMoved, run.AliasesRemoved, run.AliasesUntrusted, run.AliasesRefused), "an alias two groups share is written once, so it is counted once");
+            (run.AliasesAdded + run.AliasesMoved, run.AliasesRemoved, run.AliasesRefused).Should().Be((0, 1, 1),
+                "bare wine is no red table wine to the gate by itself, so the move gives it no alias every later import would follow");
         }
 
         [Fact]

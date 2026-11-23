@@ -421,6 +421,53 @@ class RecordTests(unittest.TestCase):
         unparsed = hand.extract_document(doc("card", [(1, "Garden Bean Skillet\n\nA page about beans.")]), SOURCES["va"])
         self.assertEqual((len(unparsed.kept), len(unparsed.unparsed)), (0, 1))
 
+    def test_a_wrapped_ingredient_line_is_joined_across_a_block_break_and_an_amount(self):
+        text = CARD_TEXT.replace("2 cups cooked green beans\n",
+                                 "4 cups fresh vegetables, trimmed and cut into\n\n½- to 1-inch pieces (one type or a combination)\n\n"
+                                 "8 ounces whole-wheat pasta, or\n\n1 (16-ounce) bag frozen vegetables\n\n"
+                                 "Salt and pepper, to\n\ntaste\n\n2 cups cooked green beans\n")
+        record, why = hand.parse_card("Garden Bean Skillet", text)
+        self.assertIsNone(why)
+        self.assertEqual([i["rawLine"] for i in record["ingredients"]], [
+            "1 tablespoon olive oil",
+            "1/2 medium onion, diced (about 1/2 cup)",
+            "4 cups fresh vegetables, trimmed and cut into ½- to 1-inch pieces (one type or a combination)",
+            "8 ounces whole-wheat pasta, or 1 (16-ounce) bag frozen vegetables",
+            "Salt and pepper, to taste",
+            "2 cups cooked green beans",
+        ], "staging checkpoint 3, N29: Marinated Vegetables, Pasta Skillet and Overnight Oats split one line in two")
+
+    def test_the_recipe_video_widget_after_the_directions_is_no_step(self):
+        with open(os.path.join(FIXTURES, "recipe-page.html"), encoding="utf-8") as handle:
+            page = handle.read().replace("</ol>\n", "</ol>\n<div class=\"video\"><h3>Recipe Video</h3></div>\n")
+        title, text = hand.html_page(page)
+        record, why = hand.parse_html_recipe(title, text)
+        self.assertIsNone(why)
+        self.assertEqual([s["instruction"] for s in record["steps"]], ["Toss the barley with the lemon juice and salt.", "Chill for 1 hour before serving."],
+                         "staging checkpoint 3, N30: 7 of 54 NHLBI recipes kept 'Recipe Video' as their last step")
+
+    def test_a_model_call_that_times_out_drops_only_its_page_and_a_second_run_resumes_from_the_answers_kept(self):
+        pages = [(20, "PEPPER RUB\n\nINGREDIENTS\n\n1 teaspoon black pepper\n\nRub on the meat."),
+                 (21, "SALT RUB\n\nINGREDIENTS\n\n1 teaspoon salt\n\nRub on the fish.")]
+        answers = {pages[0][1]: {"recipes": [{"name": "Pepper Rub", "ingredients": ["1 teaspoon black pepper"], "steps": ["Rub on the meat."]}]},
+                   pages[1][1]: {"recipes": [{"name": "Salt Rub", "ingredients": ["1 teaspoon salt"], "steps": ["Rub on the fish."]}]}}
+        asked = []
+
+        def busy_host(system, text):
+            asked.append(text)
+            if text == pages[1][1] and len(asked) < 4:
+                raise TimeoutError("timed out")
+            return json.dumps(answers[text])
+
+        with tempfile.TemporaryDirectory() as folder:
+            checkpoint = os.path.join(folder, "d1.answers.jsonl")
+            first = hand.extract_document(doc("pages", pages), SOURCES["nci"], ask=hand.cookbook.resumable(busy_host, checkpoint, retries=1, wait=0, sleep=lambda s: None))
+            self.assertEqual([r["recipe"]["name"] for r in first.kept], ["Pepper Rub"], "staging checkpoint 3, N31: a timeout ended the run and lost every record")
+            self.assertTrue(first.rejects[0]["reason"].startswith("model call failed"))
+            second = hand.extract_document(doc("pages", pages), SOURCES["nci"], ask=hand.cookbook.resumable(busy_host, checkpoint, retries=1, wait=0, sleep=lambda s: None))
+            self.assertEqual([r["recipe"]["name"] for r in second.kept], ["Pepper Rub", "Salt Rub"])
+            self.assertEqual(asked.count(pages[0][1]), 1, "an answered page is read back from the checkpoint, never asked again")
+
     def test_a_recipe_page_is_read_from_its_html_without_its_nutrition_facts(self):
         with open(os.path.join(FIXTURES, "recipe-page.html"), encoding="utf-8") as handle:
             title, text = hand.html_page(handle.read())

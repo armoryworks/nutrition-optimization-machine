@@ -50,6 +50,8 @@ export interface SourceCheck {
   id: number;
   domain: string;
   purpose: string;
+  mode?: 'terms-only' | 'full' | string;
+  newerRuleVersion?: boolean;
   status: string;
   error?: string | null;
   startedUtc: string;

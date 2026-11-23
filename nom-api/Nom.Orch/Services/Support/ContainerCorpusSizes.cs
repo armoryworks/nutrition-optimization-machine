@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Nom.Orch.Services.Support
 {
@@ -54,7 +55,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class ContainerCorpusSizes
     {
-        public const string Version = "container-corpus/2";
+        public const string Version = "container-corpus/3";
         public const string BookTier = "book";
         public const string EraTier = "era";
         public const string BookSourcePrefix = "deterministic:corpus-book:";
@@ -69,11 +70,44 @@ namespace Nom.Orch.Services.Support
             : sourceRef.StartsWith(EraSourcePrefix, StringComparison.Ordinal) ? EraTier
             : null;
 
-        /// <summary>The sized line a corpus line is mined from: an old or undated book's line that names a container and states its size in grams (or a volume the food has a density for); null for any other line.</summary>
-        public static CorpusLine? Read(string? book, string era, long ingredientId, string? rawLine, decimal? gramsPerMilliliter, string reference = "")
+        private const string SizeUnit = @"(?:fl\.?\s*)?(?:oz|ounces?|lbs?|pounds?|g|grams?|kg|ml|pints?|pts?|quarts?|qts?|cups?)\b";
+
+        private static readonly Regex[] NotOneSize =
+        {
+            new(@"(?:\d+(?:[./]\d+)?|[½¼¾⅓⅔⅛])\s*(?:-|–|to|or)\s*\d+(?:[./]\d+)?\s*-?\s*" + SizeUnit, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant),
+            new(@"\b(?:oz|ounces?|lbs?|pounds?|g|grams?|kg|ml|pints?|pts?|quarts?|qts?|cups?)\.?\s+(?:or|to)\s+(?:\d|one\b|two\b|a\b)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant),
+            new(@"^\s*(?:\d+|one|two|three|four|a)\s+(?:or|to)\s+(?:\d+|one|two|three|four|five|six)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant),
+            new(@"\d\s+half\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant),
+            new(@"\b(?:pints?|quarts?|pounds?|cups?|ounces?|gallons?)\s+and\s+a\s+half\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant),
+            new(@"[⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉⁄]", RegexOptions.CultureInvariant),
+            new(@"\b(?:cans?|tins?|jars?|bottles?|box(?:es)?|bags?|packets?|pouch(?:es)?|sachets?|envelopes?|cartons?|tubs?|containers?|packages?|pkgs?|packs?)\.?\s+with\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant),
+        };
+
+        private static readonly Regex Flavoured = new(
+            @"\b(?:[a-z]+-)?flavou?red\b|\b(?:strawberry|raspberry|cherry|lime|lemon|orange|grape|peach|apricot|blackberry|pineapple|fruit)\s+(?:gelatine?|jell-?o)\b",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex FlavourFood = new(@"flavo|dessert", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// Whether a line states one size of one container: not a range or an alternative of sizes ("7½ to 8 oz.", "8-oz.
+        /// or 1-lb."), a range of containers ("one or two 2-oz. cans"), a count followed by "half" ("1 half pint can": a
+        /// half-pint can, or one and a half), a size "and a half" of its unit, a size in super- or subscript digits
+        /// ("13³⁄₄ oz."), or a container used as a vessel ("1 qt. jar with fresh mint leaves"). ops/container-era-facts.py
+        /// refuses the same lines (staging checkpoint 3, N13).
+        /// </summary>
+        public static bool StatesOneSize(string? rawLine) => !string.IsNullOrWhiteSpace(rawLine) && !NotOneSize.Any(p => p.IsMatch(rawLine));
+
+        /// <summary>Whether a line names the food it is linked to: a line naming a flavoured product ("strawberry gelatin") counts only on a food whose description names a flavour or a dessert.</summary>
+        public static bool NamesItsFood(string? rawLine, string? food) =>
+            string.IsNullOrWhiteSpace(rawLine) || !Flavoured.IsMatch(rawLine) || (food != null && FlavourFood.IsMatch(food));
+
+        /// <summary>The sized line a corpus line is mined from: an old or undated book's line that names a container and states one size of it in grams (or a volume the food has a density for), on a food it names (<see cref="NamesItsFood"/>, read from the food's description); null for any other line.</summary>
+        public static CorpusLine? Read(string? book, string era, long ingredientId, string? rawLine, decimal? gramsPerMilliliter, string reference = "", string? food = null)
         {
             if (string.IsNullOrWhiteSpace(book) || era is not (ContainerEras.Historic or ContainerEras.Unknown)) return null;
             if (ContainerKinds.FromText(rawLine) is not { } kind || IngredientLineParser.CanNumber(rawLine) != null) return null;
+            if (!StatesOneSize(rawLine) || !NamesItsFood(rawLine, food)) return null;
             if (ContainerSizeResolver.StatedPerContainer(rawLine, gramsPerMilliliter) is not { Reason: null, Grams: > 0 } stated) return null;
             return new CorpusLine(book, era, ingredientId, kind, ContainerKinds.SizeWord(rawLine), stated.Grams, reference);
         }

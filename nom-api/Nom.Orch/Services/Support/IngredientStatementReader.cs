@@ -34,7 +34,9 @@ namespace Nom.Orch.Services.Support
     /// ingredients with their sub-ingredients (parentheses, brackets and braces nest; a "Sauce:" or "Bread -" heading
     /// holds the items after it; "contains 2% or less of" and "cured with" are dropped; "and/or" and "or" alternatives
     /// are each named, "canola and/or soybean oil" as both oils; a parenthesis that only says what an ingredient is for,
-    /// such as "(preservative)" or "(vitamin B1)", names nothing), the allergens of the regulated "Contains:" line and the
+    /// such as "(preservative)" or "(vitamin B1)", names nothing, and neither does a claim such as "100% gluten free" or
+    /// "non-GMO", standing alone or after a dash, so "corn flour - 100% gluten free" names corn flour and is no heading),
+    /// the allergens of the regulated "Contains:" line and the
     /// allergens of a "may contain" or "made in a facility that also processes" line, which the diet gate treats as
     /// contained for allergies. A statement it cannot read (empty, not text, unbalanced brackets, an item far longer than
     /// an ingredient name, an allergen line with no list, a warning that names no allergen) is unread, which means the
@@ -42,7 +44,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class IngredientStatementReader
     {
-        public const string Version = "contents-reader/2";
+        public const string Version = "contents-reader/3";
         public const int MaxWordsPerItem = 12;
 
         /// <summary>The major food allergens (FALCPA and FASTER) and the words that name each; a declared class counts for every word of it.</summary>
@@ -111,6 +113,9 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex Marks = new(@"[\*†‡®™\^°#]+", Options);
         private static readonly Regex OrganicLead = new(@"^(?:(?:certified\s+)?organic|non-?gmo)\s+", Options);
         private static readonly Regex Spaces = new(@"\s+", RegexOptions.CultureInvariant | RegexOptions.Compiled);
+        private const string ClaimWords = @"(?:\d+(?:\.\d+)?\s*%\s*)?(?:(?:gluten|dairy|lactose|milk|nut|peanut|tree\s+nut|soy|egg|wheat|grain|sugar|fat|cholesterol|trans\s+fat|msg|preservative|additive|allergen|gmo|nitrite|nitrate)s?[\s-]*free|all[\s-]+natural|natural|non[\s-]?gmo(?:\s+project\s+verified)?|kosher|pareve|halal|vegan|vegetarian|(?:certified\s+)?organic|no\s+preservatives|no\s+artificial\s+(?:colou?rs?|flavou?rs?|ingredients)|no\s+msg(?:\s+added)?)";
+        private static readonly Regex ClaimTail = new(@"\s+-\s+" + ClaimWords + @"\s*$", Options);
+        private static readonly Regex ClaimItem = new(@"^" + ClaimWords + @"$", Options);
 
         private sealed class Node
         {
@@ -329,7 +334,7 @@ namespace Nom.Orch.Services.Support
             var headingJustOpened = false;
             foreach (var item in items)
             {
-                var text = StripMarkers(item.Text.ToString());
+                var text = ClaimTail.Replace(StripMarkers(item.Text.ToString()), string.Empty);
                 var m = Heading.Match(text);
                 if (m.Success && m.Groups["head"].Value.Trim().Length > 0 && !WithMarker.IsMatch(m.Groups["head"].Value.Trim()) && !Marker.IsMatch(m.Groups["head"].Value.Trim() + ":"))
                 {
@@ -436,7 +441,7 @@ namespace Nom.Orch.Services.Support
                         if (!parts[k].Contains(' ') && !parts[k].EndsWith(" " + head, StringComparison.Ordinal)) parts[k] = parts[k] + " " + head;
                 }
             }
-            return parts.Where(p => !Regex.IsMatch(p, @"^(?:and|or|and/or|contains|of|the following|ingredients?)$")).Distinct(StringComparer.Ordinal).ToList();
+            return parts.Where(p => !Regex.IsMatch(p, @"^(?:and|or|and/or|contains|of|the following|ingredients?)$") && !ClaimItem.IsMatch(p)).Distinct(StringComparer.Ordinal).ToList();
         }
 
         private static string Clean(string raw)

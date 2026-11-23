@@ -177,6 +177,9 @@ namespace Nom.Api.Tests.Services.MealPlan
             DietCriteriaMatcher.LikeAliasRows(db, "%pork%", foods).ToQueryString().Should().Contain("\"AliasName\" ILIKE").And.Contain("\"SourceContext\"").And.NotContain("JOIN");
             DietCriteriaMatcher.LikeLineRows(db, "%pork%", foods).ToQueryString().Should().Contain("\"RawLine\" ILIKE").And.Contain("EXISTS").And.Contain("\"IngredientId\" = ANY").And.NotContain("JOIN");
             DietCriteriaMatcher.WordLineRows(db, @"\mtripe\M", foods).ToQueryString().Should().Contain("\"RawLine\" ~*").And.Contain("EXISTS").And.NotContain("JOIN");
+            var egg = DietPatternRule.For("%egg%").Expression(DietRegexDialect.Postgres);
+            DietCriteriaMatcher.RuleNameRows(db, egg, null).ToQueryString().Should().Contain("\"Name\" ~*").And.NotContain("\"AliasName\"");
+            DietCriteriaMatcher.RuleAliasRows(db, egg, foods).ToQueryString().Should().Contain("\"AliasName\" ~*").And.Contain("\"SourceContext\"").And.NotContain("JOIN");
         }
 
         [Fact]
@@ -216,7 +219,7 @@ namespace Nom.Api.Tests.Services.MealPlan
             using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql("Host=localhost;Database=none").Options,
                 new HttpContextAccessor { HttpContext = new DefaultHttpContext() });
 
-            var sql = DietCriteriaMatcher.LikeLineRecipeRows(db, "(?:peanut)|(?:^oat)").ToQueryString();
+            var sql = db.Database.SqlQuery<long>(DietCriteriaMatcher.LineRecipeSql(new[] { DietPatternRule.For("%peanut%"), DietPatternRule.For("oat%") })).ToQueryString();
             sql.Should().Contain("\"RawLine\" ~*").And.Contain("DISTINCT").And.NotContain("JOIN").And.NotContain("\"IngredientId\" = ANY");
             DietCriteriaMatcher.AnyWordLineRows(db, @"\mtripe\M").ToQueryString().Should().Contain("\"RawLine\" ~*").And.NotContain("EXISTS");
 

@@ -65,11 +65,12 @@ namespace Nom.Api.Controllers
         public async Task<ActionResult<LinkRecheckNameResult>> Names([FromQuery] bool apply = false) =>
             Ok(await _recheck.CheckNamesAsync(apply, HttpContext.RequestAborted));
 
-        /// <summary>Audit a sample of one set's recorded moves with the roster's auditor, confirmed by reader B, and evaluate the set on the lane frame.</summary>
+        /// <summary>Audit a sample of one set's recorded moves, or of one class tier's candidates (candidate:&lt;class&gt;), with the roster's auditor, confirmed by reader B, and evaluate the tier on the lane frame.</summary>
         [HttpPost("audit/{set}")]
         public async Task<ActionResult<LaneQualifyVerdict>> Audit(string set)
         {
-            if (!LinkRecheckRules.Sets.Contains(set)) return BadRequest(new { error = $"Unknown set '{set}'.", sets = LinkRecheckRules.Sets });
+            var classTiers = LinkRecheckRules.CandidateClasses.Select(LinkRecheckRules.CandidateTier).ToList();
+            if (!LinkRecheckRules.Sets.Contains(set) && !classTiers.Contains(set)) return BadRequest(new { error = $"Unknown set '{set}'.", sets = LinkRecheckRules.Sets, classTiers });
             var (auditor, check, problem) = LinkRecheckHostedService.Auditors(_configuration, _roster, _http.CreateClient(LinkRecheckHostedService.HttpClientName));
             if (problem != null) return BadRequest(new { error = problem });
             return Ok(await _recheck.AuditAndEvaluateAsync(set, Array.Empty<string>(), auditor, check, HttpContext.RequestAborted));

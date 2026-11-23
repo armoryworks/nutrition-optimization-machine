@@ -13,17 +13,33 @@ using Nom.Orch.Services.Support;
 
 namespace Nom.Orch.Services
 {
-    /// <summary>How one named ingredient of a statement was known: a curated catalog food, a recognised term, a compound known by its listed parts, or unresolved.</summary>
+    /// <summary>How one named ingredient of a statement was known: a curated catalog food, a recognised term, a term of label language (<see cref="StatementLabelTerms"/>), a compound known by its listed parts, or unresolved.</summary>
     public static class ContentsKinds
     {
         public const string Food = "food";
         public const string Term = "term";
+        public const string Label = "label";
         public const string Compound = "compound";
         public const string Unresolved = "unresolved";
     }
 
-    /// <summary>One named ingredient as stored in <see cref="IngredientContentsEntity.IngredientsJson"/>.</summary>
-    public sealed record ContentsItem(string Name, string? Parent, string Kind, long? FoodId = null);
+    /// <summary>One named ingredient as stored in <see cref="IngredientContentsEntity.IngredientsJson"/>; a label item names the terms of <see cref="StatementLabelTerms"/> it was read as, joined by |.</summary>
+    public sealed record ContentsItem(string Name, string? Parent, string Kind, long? FoodId = null, string? Label = null)
+    {
+        /// <summary>The label terms the item was read as; an item whose term the table no longer holds gives null, which the gate reads as unknown.</summary>
+        public IReadOnlyList<LabelTerm>? LabelTerms()
+        {
+            if (Kind != ContentsKinds.Label || string.IsNullOrEmpty(Label)) return Array.Empty<LabelTerm>();
+            var terms = new List<LabelTerm>();
+            foreach (var key in Label.Split('|'))
+            {
+                if (StatementLabelTerms.ByName.TryGetValue(key, out var term)) terms.Add(term);
+                else if (IngredientStatementVocabulary.Terms.Contains(key)) terms.Add(new LabelTerm(key, LabelTermKinds.Term, Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>(), "IngredientStatementVocabulary"));
+                else return null;
+            }
+            return terms;
+        }
+    }
 
     /// <summary>The allergens as stored in <see cref="IngredientContentsEntity.AllergensJson"/>.</summary>
     public sealed record ContentsAllergens(IReadOnlyList<StatementAllergen> Declared, IReadOnlyList<StatementAllergen> Advisory);
@@ -50,14 +66,18 @@ namespace Nom.Orch.Services
     /// Reads prepared meals' ingredient statements (<see cref="IngredientStatementReader"/>, no model) and resolves each
     /// named ingredient by rule against the catalog, as a recipe line's wording is: a verified wording that names a food,
     /// then a food's exact name, then a trusted alias (<see cref="IngredientAliasTrust"/>), each only to a curated food
-    /// that is not itself a prepared food; otherwise a recognised term (<see cref="IngredientStatementVocabulary"/>) or a
-    /// compound known by its listed parts; otherwise unresolved. Each statement is stored as evidence with its source
+    /// that is not itself a prepared food; otherwise a recognised term (<see cref="IngredientStatementVocabulary"/>), a
+    /// term of label language read by its rule (<see cref="StatementLabelTerms"/>, with the facts the gate reads beside
+    /// the name) or a compound known by its listed parts; otherwise unresolved. Each statement is stored as evidence with its source
     /// (<see cref="IngredientContentsEntity"/>); a newer row of the same food and household supersedes an older one, and a
     /// pass is undone by its batch stamp, which brings the rows it superseded back.
     /// </summary>
     public class PreparedContentsService
     {
         public const string FdcSourcePrefix = "fdc:";
+
+        /// <summary>The version a row is read with: the statement reader's and the label terms' (<see cref="StatementLabelTerms.Version"/>); a row of another version is read again by <see cref="RereadAsync"/>.</summary>
+        public const string ReaderVersion = IngredientStatementReader.Version + " " + StatementLabelTerms.Version;
         public const int MaxStatementLength = 8000;
         public const int TopUnresolvedCount = 25;
         private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -206,7 +226,7 @@ namespace Nom.Orch.Services
             }
         }
 
-        private static IngredientContentsEntity Build(ContentsStatement statement, string text, IngredientStatementReading reading, IReadOnlyDictionary<string, long> resolver, string batch, DateTime now)
+        internal static IngredientContentsEntity Build(ContentsStatement statement, string text, IngredientStatementReading reading, IReadOnlyDictionary<string, long> resolver, string batch, DateTime now)
         {
             var row = new IngredientContentsEntity
             {
@@ -215,7 +235,7 @@ namespace Nom.Orch.Services
                 VerificationId = statement.VerificationId,
                 Source = statement.Source,
                 Statement = text,
-                ReaderVersion = IngredientStatementReader.Version,
+                ReaderVersion = ReaderVersion,
                 Batch = batch,
                 CreatedDate = now,
             };
@@ -233,10 +253,15 @@ namespace Nom.Orch.Services
             return row;
         }
 
-        private static ContentsItem Resolve(StatementIngredient ingredient, IReadOnlyDictionary<string, long> resolver)
+        /// <summary>How one named ingredient is known, by the catalog keys a pass looked up (none when there is no catalog to read).</summary>
+        internal static ContentsItem Resolve(StatementIngredient ingredient, IReadOnlyDictionary<string, long> resolver)
         {
             foreach (var key in Keys(ingredient.Name))
                 if (resolver.TryGetValue(key, out var foodId)) return new ContentsItem(ingredient.Name, ingredient.Parent, ContentsKinds.Food, foodId);
+            if (StatementLabelTerms.Match(ingredient.Name, ingredient.HasParts) is { } terms)
+                return terms.Count == 1 && terms[0].Kind == LabelTermKinds.Term && terms[0].Term == ingredient.Name
+                    ? new ContentsItem(ingredient.Name, ingredient.Parent, ContentsKinds.Term)
+                    : new ContentsItem(ingredient.Name, ingredient.Parent, ContentsKinds.Label, null, string.Join('|', terms.Select(t => t.Term)));
             if (IngredientStatementVocabulary.Terms.Contains(ingredient.Name)) return new ContentsItem(ingredient.Name, ingredient.Parent, ContentsKinds.Term);
             if (IngredientStatementVocabulary.Recognises(ingredient)) return new ContentsItem(ingredient.Name, ingredient.Parent, ContentsKinds.Compound);
             return new ContentsItem(ingredient.Name, ingredient.Parent, ContentsKinds.Unresolved);

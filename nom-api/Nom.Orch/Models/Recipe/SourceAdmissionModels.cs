@@ -10,6 +10,8 @@ namespace Nom.Orch.Models.Recipe
         public long Id { get; set; }
         public string Domain { get; set; } = string.Empty;
         public string Purpose { get; set; } = string.Empty;
+        public string Mode { get; set; } = string.Empty;
+        public bool NewerRuleVersion { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Error { get; set; }
         public DateTime StartedUtc { get; set; }

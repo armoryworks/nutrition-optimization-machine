@@ -40,6 +40,9 @@ namespace Nom.Orch.Services
         public const string MovedAliasPrefix = IngredientAliasTrust.DeterministicPrefix + "recheck2:";
 
         private const string LinkAiPrefix = "link:ai:";
+
+        /// <summary>The outcome a sample shows for a refutation of a class that is not proven: kept, and handed to the model audit as a candidate.</summary>
+        public const string CandidateOutcome = "candidate";
         private const int ExampleLines = 3;
         private const int LineChunk = 500;
         private const int WriteChunk = 200;
@@ -100,12 +103,12 @@ namespace Nom.Orch.Services
                 string.Create(CultureInfo.InvariantCulture, $"{FoodId}:{Wording}{(Sense == null ? string.Empty : ":" + Sense)}{(Drained ? ":drained" : string.Empty)}");
         }
 
-        private sealed record Decided(Group Group, GateFood Food, RecheckVerdict Verdict, string? Skip);
+        private sealed record Decided(Group Group, GateFood Food, RecheckVerdict Verdict, string? Skip, bool Qualified = false);
 
         /// <summary>The signals a re-check decision keeps on the lane frame, which its auditor reads.</summary>
         public sealed record LinkRecheckSignals(
             string Set, long FoodId, string FoodName, string FoodText, string Wording, string? Sense, int Lines, IReadOnlyList<string> Examples,
-            IReadOnlyList<string> Holds, string Outcome, string? Reason, string? Tier, long? TargetId, string? TargetName, string? TargetText, DateTime? Stamp);
+            IReadOnlyList<string> Holds, string Outcome, string? Reason, string? Tier, long? TargetId, string? TargetName, string? TargetText, DateTime? Stamp, string? Class = null);
 
         public static DateTime NewStamp()
         {
@@ -266,14 +269,29 @@ namespace Nom.Orch.Services
 
             var catalog = await _gate.GateCatalogAsync(cancellationToken);
             var groups = await GroupsAsync(set, catalog, cancellationToken);
+            var promotes = !lane || (mode != LaneMode.Paused && set != LinkRecheckRules.Wordings);
+            var classModes = new Dictionary<string, string>(StringComparer.Ordinal);
+            async Task<bool> QualifiedAsync(string reClass)
+            {
+                if (!classModes.TryGetValue(reClass, out var classMode))
+                    classModes[reClass] = classMode = await _frame.ModeAsync(Lane, LinkRecheckRules.CandidateTier(reClass), cancellationToken);
+                return classMode == LaneMode.Live;
+            }
+
             if (lane)
             {
                 var since = DateTime.UtcNow - DecidedFor;
-                var decided = (await _db.LaneDecisions.AsNoTracking()
-                        .Where(d => d.Lane == Lane && d.Tier == set && d.SignatureHash == signature && d.CreatedDate >= since)
-                        .Select(d => d.Subject)
-                        .ToListAsync(cancellationToken))
-                    .ToHashSet(StringComparer.Ordinal);
+                var rows = await _db.LaneDecisions.AsNoTracking()
+                    .Where(d => d.Lane == Lane && d.CreatedDate >= since && (d.Tier == set || (d.Tier.StartsWith(LinkRecheckRules.CandidateTierPrefix) && d.Stratum == set)))
+                    .Select(d => new { d.Subject, d.Tier, d.Mode, d.SignatureHash })
+                    .ToListAsync(cancellationToken);
+                var decided = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var row in rows)
+                {
+                    if (row.SignatureHash != (row.Tier == set ? signature : LinkRecheckRules.TierSignature(row.Tier))) continue;
+                    if (LinkRecheckRules.ClassOfTier(row.Tier) is { } reClass && row.Mode == LaneMode.Shadow && promotes && await QualifiedAsync(reClass)) continue;
+                    decided.Add(row.Subject);
+                }
                 groups = groups.Where(g => !decided.Contains(Clip(g.Subject, 255)!)).ToList();
             }
 
@@ -328,7 +346,8 @@ namespace Nom.Orch.Services
                 }
 
                 var lines = group.Lines.Count == 0 ? null : (IReadOnlyList<GateLine>)group.Lines.Select(l => new GateLine(l.Raw, null, null, contexts.GetValueOrDefault(l.RecipeId))).ToList();
-                plans.Add((group, food, lines, CandidateIds(set, group, food, lines, catalog, verified, byFdc)));
+                plans.Add((group, food, lines, LinkRecheckRules.CandidateIds(set, group.Wording, group.Sense, group.Drained, food, lines, catalog,
+                    verified.TryGetValue(group.Wording, out var named) ? named.Food : null, byFdc)));
             }
 
             foreach (var (id, food) in await _gate.GateFoodsAsync(plans.SelectMany(p => p.Candidates.Select(c => c.Id)).Where(id => !foods.ContainsKey(id)).Distinct().ToList(), cancellationToken))
@@ -337,14 +356,11 @@ namespace Nom.Orch.Services
             var decisions = new List<Decided>(skipped);
             foreach (var (group, food, lines, candidateIds) in plans)
             {
-                var holds = Read(set, group.Wording, food, LinkGate.Check(new GatePair(group.Wording, food.Id, food, Lines: lines), catalog));
-                var wrongForm = set == LinkRecheckRules.ContainerForm;
-                var alternative = new Lazy<bool>(() => LinkGate.NamesAlternative(group.Wording, food, catalog));
-                var verdict = LinkRecheckRules.Decide(set, holds, () => candidateIds
-                    .Where(c => foods.ContainsKey(c.Id))
-                    .Select(c => new RecheckCandidate(c.Tier, foods[c.Id], Read(set, group.Wording, foods[c.Id], LinkGate.Check(new GatePair(group.Wording, food.Id, foods[c.Id], Lines: lines), catalog)))),
-                    wrongForm, h => LinkRecheckRules.Refutes(h, holds, alternative.Value));
-                decisions.Add(new Decided(group, food, verdict, null));
+                var verdict = LinkRecheckRules.Judge(set, group.Wording, food, lines, catalog,
+                    candidateIds.Where(c => foods.ContainsKey(c.Id)).Select(c => (c.Tier, foods[c.Id])));
+                var qualified = promotes && verdict is { Outcome: LinkRecheckRules.Unproven, Candidate: not null, Class: not null } && await QualifiedAsync(verdict.Class);
+                if (qualified) verdict = verdict with { Outcome = verdict.Candidate! };
+                decisions.Add(new Decided(group, food, verdict, null, qualified));
             }
 
             Tally(result, decisions, sampleSize);
@@ -352,18 +368,37 @@ namespace Nom.Orch.Services
             var summary = new LinkRecheckRunSummary
             {
                 Set = set, Stamp = stamp, Lane = lane, Mode = mode, Signature = signature, Groups = result.Groups, Kept = result.Kept + result.Verified + result.Alternatives, Held = result.Held,
-                Unproven = result.Unproven, UnprovenLines = result.UnprovenLines,
+                Unproven = result.Unproven, UnprovenLines = result.UnprovenLines, Candidates = result.Candidates, CandidateLines = result.CandidateLines,
             };
             long? header = null;
             using var running = apply ? MarkRunning(stamp) : null;
             var acting = decisions.Where(d => d.Skip == null && d.Verdict.Outcome is LinkRecheckRules.Move or LinkRecheckRules.Unlink).ToList();
+            foreach (var d in acting.Where(d => d.Qualified)) result.ByQualified[d.Verdict.Class!] = result.ByQualified.GetValueOrDefault(d.Verdict.Class!) + 1;
+            var stamps = new Dictionary<Decided, DateTime>();
+            if (lane)
+            {
+                var byClass = acting.Where(d => d.Qualified).GroupBy(d => d.Verdict.Class!, StringComparer.Ordinal).OrderBy(g => g.Key, StringComparer.Ordinal).ToList();
+                acting = acting.Where(d => !d.Qualified).ToList();
+                var last = stamp;
+                foreach (var group in byClass)
+                {
+                    var next = NewStamp();
+                    var classStamp = last = next > last ? next : last.AddMilliseconds(1);
+                    foreach (var d in group) stamps[d] = classStamp;
+                    await WriteClassAsync(set, group.Key, group.ToList(), classStamp, result, catalog, cancellationToken);
+                    result.ClassStamps.Add(classStamp);
+                    result.Applied = true;
+                }
+                if (byClass.Count > 0 && !apply) acting.Clear();
+            }
             if (apply)
             {
                 result.Stamp = stamp;
                 header = await StartAsync(set, stamp, summary, _currentUser.PersonIdOrSystem, cancellationToken);
+                foreach (var d in acting) stamps[d] = stamp;
             }
-            await WriteAsync(acting, stamp, result, apply, cancellationToken);
-            if (mode != null) await RecordAsync(set, signature, mode, lane, lane ? decisions : decisions.Where(d => d.Skip == null).ToList(), apply ? stamp : null, cancellationToken);
+            await WriteAsync(acting, stamp, result, apply, catalog, cancellationToken);
+            if (mode != null) await RecordAsync(set, signature, mode, lane, lane ? decisions : decisions.Where(d => d.Skip == null).ToList(), stamps, cancellationToken);
             if (header != null)
             {
                 summary.LinesMoved = result.LinesMoved;
@@ -373,8 +408,8 @@ namespace Nom.Orch.Services
             }
 
             _logger.LogInformation(
-                "Link re-check {Set} ({Mode}): {Groups} wordings, {Kept} kept, {Held} held, {Unproven} not proven ({UnprovenLines} lines kept), {Moved} lines {MoveVerb}, {Unlinked} lines {UnlinkVerb}",
-                set, mode ?? "dry run", result.Groups, result.Kept, result.Held, result.Unproven, result.UnprovenLines, result.LinesMoved, apply ? "moved" : "would move",
+                "Link re-check {Set} ({Mode}): {Groups} wordings, {Kept} kept, {Held} held, {Unproven} not proven ({UnprovenLines} lines kept), {Candidates} refuted by a class not proven ({CandidateLines} lines kept for the model audit), {Moved} lines {MoveVerb}, {Unlinked} lines {UnlinkVerb}",
+                set, mode ?? "dry run", result.Groups, result.Kept, result.Held, result.Unproven, result.UnprovenLines, result.Candidates, result.CandidateLines, result.LinesMoved, apply ? "moved" : "would move",
                 result.LinesUnlinked, apply ? "taken off their food" : "would be taken off their food");
             return result;
         }
@@ -391,6 +426,11 @@ namespace Nom.Orch.Services
                     case LinkRecheckRules.Alternative: result.Alternatives++; break;
                     case LinkRecheckRules.Keep: result.Kept++; break;
                     case LinkRecheckRules.Held: result.Held++; break;
+                    case LinkRecheckRules.Unproven when d.Verdict.Candidate != null:
+                        result.Candidates++;
+                        result.CandidateLines += lines;
+                        result.ByCandidate[d.Verdict.Class!] = result.ByCandidate.GetValueOrDefault(d.Verdict.Class!) + 1;
+                        break;
                     case LinkRecheckRules.Unproven:
                         result.Unproven++;
                         result.UnprovenLines += lines;
@@ -410,17 +450,22 @@ namespace Nom.Orch.Services
                     var rule = d.Verdict.Reason.Split(" (", 2)[0];
                     result.ByReason[rule] = result.ByReason.GetValueOrDefault(rule) + 1;
                 }
-                if (d.Verdict.Reason != null && d.Verdict.Outcome == LinkRecheckRules.Unproven)
+                if (d.Verdict.Class != null && d.Verdict.Outcome is LinkRecheckRules.Move or LinkRecheckRules.Unlink)
+                    result.ByClass[d.Verdict.Class] = result.ByClass.GetValueOrDefault(d.Verdict.Class) + 1;
+                if (d.Verdict.Reason != null && d.Verdict.Outcome == LinkRecheckRules.Unproven && d.Verdict.Candidate == null)
                 {
                     var rule = d.Verdict.Reason.Split(" (", 2)[0];
                     result.ByUnproven[rule] = result.ByUnproven.GetValueOrDefault(rule) + 1;
                 }
 
-                var seen = perOutcome[d.Verdict.Outcome] = perOutcome.GetValueOrDefault(d.Verdict.Outcome) + 1;
+                var sampleOutcome = d.Verdict.Candidate != null && d.Verdict.Outcome == LinkRecheckRules.Unproven ? CandidateOutcome : d.Verdict.Outcome;
+                var seen = perOutcome[sampleOutcome] = perOutcome.GetValueOrDefault(sampleOutcome) + 1;
                 if (seen > sampleSize) continue;
                 result.Samples.Add(new LinkRecheckSample
                 {
-                    Outcome = d.Verdict.Outcome,
+                    Outcome = sampleOutcome,
+                    Class = d.Verdict.Class,
+                    Candidate = d.Verdict.Candidate,
                     FoodId = d.Food.Id,
                     FoodName = d.Food.Name,
                     Wording = d.Group.Wording,
@@ -435,49 +480,6 @@ namespace Nom.Orch.Services
                     ExampleLines = d.Group.Lines.Take(ExampleLines).Select(l => l.Raw).ToList(),
                 });
             }
-        }
-
-        /// <summary>The holds of a pair as the set reads them: the alcohol rules only where the set reads them (<see cref="LinkRecheckRules.ForSet"/>).</summary>
-        private static IReadOnlyList<GateHold> Read(string set, string wording, GateFood food, IReadOnlyList<GateHold> holds) =>
-            LinkRecheckRules.ForSet(set, holds, AlcoholLineContext.Refuse(AlcoholLineContext.Read(wording), food.FdcId, food.Text) != null);
-
-        /// <summary>
-        /// The foods the deterministic tiers name for a wording, in the pipeline's order: its
-        /// verified wording row, a trusted alias, a staple or the name matcher, a curated food of its
-        /// name and the drink its lines' alcohol sense allows; for the container set only the one
-        /// canned sister. The food the lines are on is never a candidate.
-        /// </summary>
-        private static List<(string Tier, long Id)> CandidateIds(string set, Group group, GateFood food, IReadOnlyList<GateLine>? lines, GateCatalog catalog,
-            IReadOnlyDictionary<string, (long Id, long? Food)> verified, IReadOnlyDictionary<string, GateFood> byFdc)
-        {
-            var list = new List<(string Tier, long Id)>();
-            void Add(string tier, long? id)
-            {
-                if (id is { } value && value != food.Id && list.All(c => c.Id != value)) list.Add((tier, value));
-            }
-
-            if (set == LinkRecheckRules.ContainerForm)
-            {
-                Add(LinkRecheckRules.CannedSisterTier, LinkRecheckRules.CannedSister(food, group.Wording, group.Drained, catalog)?.Id);
-                return list;
-            }
-
-            var normalized = IngredientNameNormalizer.Normalize(group.Wording);
-            if (verified.TryGetValue(group.Wording, out var row)) Add(LinkRecheckRules.VerifiedWordingTier, row.Food);
-            if (catalog.TrustedAliases.TryGetValue(IngredientNameNormalizer.WordingKey(group.Wording), out var owner)) Add(LinkRecheckRules.TrustedAliasTier, owner);
-            if (catalog.Matcher != null && IngredientLinkService.DeterministicTarget(normalized.ToLowerInvariant(), catalog.Matcher, catalog.Staples) is { } rule)
-                Add(LinkRecheckRules.NameRuleTier, rule.Food.IngredientId);
-            Add(LinkRecheckRules.CuratedNameTier, LineRelinkService.TargetFor(normalized, food.Id, food.Name.Trim(), catalog.Curated));
-
-            var sense = group.Sense != null
-                ? group.Sense
-                : lines == null ? null : AlcoholLineContext.Shared(lines.Select(l => AlcoholLineContext.Read(l.Raw, l.Recipe)))?.Sense;
-            if (sense != null && AlcoholLineContext.KindOf(sense) == AlcoholSenseKind.Drink)
-            {
-                foreach (var fdc in AlcoholLineContext.Allowed(sense))
-                    if (byFdc.TryGetValue(fdc, out var drink)) Add(LinkRecheckRules.AlcoholSenseTier, drink.Id);
-            }
-            return list;
         }
 
         private async Task<List<Group>> GroupsAsync(string set, GateCatalog catalog, CancellationToken cancellationToken)
@@ -731,12 +733,12 @@ namespace Nom.Orch.Services
         /// import lands there and the link lane asks about it again through the gate. Every alias
         /// and food change is journaled under the stamp too.
         /// </summary>
-        private async Task WriteAsync(List<Decided> decisions, DateTime stamp, LinkRecheckResult result, bool apply, CancellationToken cancellationToken)
+        private async Task WriteAsync(List<Decided> decisions, DateTime stamp, LinkRecheckResult result, bool apply, GateCatalog catalog, CancellationToken cancellationToken)
         {
             var personId = _currentUser.PersonIdOrSystem;
             var homes = new Dictionary<string, long?>(StringComparer.Ordinal);
             var touched = new HashSet<long>();
-            var retired = new HashSet<long>();
+            var retired = new HashSet<(long, string)>();
             var trusted = new HashSet<(long, string)>();
             foreach (var chunk in decisions.Chunk(WriteChunk))
             {
@@ -799,7 +801,7 @@ namespace Nom.Orch.Services
                     if (moved > 0 && d.Group.WordingRowId is { } wordingRow && !result.WordingRows.Contains(wordingRow)) result.WordingRows.Add(wordingRow);
 
                     await RetireAliasesAsync(d, retired, stamp, personId, result, apply, cancellationToken);
-                    if (move) await TrustOnTargetAsync(d, target, trusted, stamp, personId, result, apply, cancellationToken);
+                    if (move) await TrustOnTargetAsync(d, target, trusted, stamp, personId, result, apply, catalog, cancellationToken);
                     if (apply) await _db.SaveChangesAsync(cancellationToken);
                 }
                 if (tx != null) await tx.CommitAsync(cancellationToken);
@@ -831,7 +833,7 @@ namespace Nom.Orch.Services
             if (live.FirstOrDefault(i => i.Name == name) is { } same)
             {
                 if (same.Id != source.Id || string.IsNullOrWhiteSpace(source.Description)) return null;
-                var renamed = await FreeNameAsync(source.Description!.Trim(), source.Id, cancellationToken);
+                var renamed = await FreeNameAsync(RenameFor(source, name), source.Id, cancellationToken);
                 result.FoodsRenamed++;
                 if (apply)
                 {
@@ -873,6 +875,21 @@ namespace Nom.Orch.Services
             return food.Id;
         }
 
+        /// <summary>
+        /// The name a food holding a wording's very name takes so the wording's lines can leave it:
+        /// its USDA description, or, when that differs from the wording only in case (#93510
+        /// "zwieback", described "Zwieback"), the description with the food's USDA category, or its
+        /// id when it has none, so the two names differ beyond case.
+        /// </summary>
+        internal static string RenameFor(GateFood source, string wording)
+        {
+            var description = (source.Description ?? source.Name).Trim();
+            if (!string.Equals(description, wording.Trim(), StringComparison.OrdinalIgnoreCase)) return description;
+            return source.CategoryId is { } category && CatalogAdmissionRule.PreparedCategories.TryGetValue(category, out var kind)
+                ? $"{description} ({kind})"
+                : string.Create(CultureInfo.InvariantCulture, $"{description} (#{source.Id})");
+        }
+
         /// <summary>The id a dry run gives a wording food it would create.</summary>
         private const long PlannedHome = -1;
 
@@ -901,11 +918,12 @@ namespace Nom.Orch.Services
             || context.StartsWith(IngredientAliasTrust.DeterministicLinkPrefix, StringComparison.Ordinal)
             || context.StartsWith(MovedAliasPrefix, StringComparison.Ordinal);
 
-        /// <summary>Removes the wording's aliases on the food its lines left that a rule or a model pick put there (never a USDA description, a person's or a retired food's name), each once in a run (<paramref name="retired"/>), so a dry run counts an alias two groups share as its apply does.</summary>
-        private async Task RetireAliasesAsync(Decided d, HashSet<long> retired, DateTime stamp, long personId, LinkRecheckResult result, bool apply, CancellationToken cancellationToken)
+        /// <summary>Removes the wording's aliases on the food its lines left that a rule or a model pick put there (never a USDA description, a person's or a retired food's name), each once in a run (<paramref name="retired"/>, by food and name, the alias key), so a dry run counts an alias two groups share as its apply does, and every alias of the wording goes, in name order.</summary>
+        private async Task RetireAliasesAsync(Decided d, HashSet<(long, string)> retired, DateTime stamp, long personId, LinkRecheckResult result, bool apply, CancellationToken cancellationToken)
         {
             var aliases = (await _db.IngredientAliases.Where(a => a.IngredientId == d.Food.Id && !a.IsDeleted).ToListAsync(cancellationToken))
-                .Where(a => Retirable(a.SourceContext) && IngredientNameNormalizer.WordingKey(a.AliasName) == d.Group.Wording && retired.Add(a.Id))
+                .OrderBy(a => a.AliasName, StringComparer.Ordinal)
+                .Where(a => Retirable(a.SourceContext) && IngredientNameNormalizer.WordingKey(a.AliasName) == d.Group.Wording && retired.Add((a.IngredientId, a.AliasName)))
                 .ToList();
             foreach (var alias in aliases)
             {
@@ -925,11 +943,22 @@ namespace Nom.Orch.Services
             }
         }
 
-        /// <summary>Gives the wording a trusted alias on the food its lines moved to, unless the food already has a trusted one of that name or the run gave it one (<paramref name="trusted"/>), so a dry run counts it once as its apply does.</summary>
-        private async Task TrustOnTargetAsync(Decided d, long target, HashSet<(long, string)> trusted, DateTime stamp, long personId, LinkRecheckResult result, bool apply, CancellationToken cancellationToken)
+        /// <summary>
+        /// Gives the wording a trusted alias on the food its lines moved to, unless the food already
+        /// has a trusted one of that name or the run gave it one (<paramref name="trusted"/>), so a
+        /// dry run counts it once as its apply does; and only when the gate accepts the wording for
+        /// that food and it adds no restricted food's word to it (<see cref="LinkRecheckRules.MayAlias"/>),
+        /// counted <c>aliasesRefused</c> otherwise.
+        /// </summary>
+        private async Task TrustOnTargetAsync(Decided d, long target, HashSet<(long, string)> trusted, DateTime stamp, long personId, LinkRecheckResult result, bool apply, GateCatalog catalog, CancellationToken cancellationToken)
         {
             var name = d.Group.Wording.Length > 511 ? d.Group.Wording[..511] : d.Group.Wording;
             if (!trusted.Add((target, name))) return;
+            if (!LinkRecheckRules.MayAlias(name, d.Verdict.Target!.Food, catalog))
+            {
+                result.AliasesRefused++;
+                return;
+            }
             var context = MovedAliasPrefix + d.Verdict.Target!.Tier;
             var existing = await _db.IngredientAliases.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.IngredientId == target && a.AliasName == name, cancellationToken);
             if (existing is { IsDeleted: false } && IngredientAliasTrust.IsTrusted(existing.SourceContext)) return;
@@ -971,21 +1000,65 @@ namespace Nom.Orch.Services
             ChangedByPersonId = personId,
         };
 
-        private async Task RecordAsync(string set, string signature, string mode, bool lane, List<Decided> decisions, DateTime? stamp, CancellationToken cancellationToken)
+        /// <summary>
+        /// Records a run's decisions on the lane frame. A candidate, and a candidate written because its
+        /// class's tier is live, goes on that class's tier (<see cref="LinkRecheckRules.CandidateTier"/>)
+        /// with the set as its stratum, so the auditor samples and qualifies each class on its own and a
+        /// set's record never carries a class that is not proven; the rest go on the set's tier.
+        /// </summary>
+        private async Task RecordAsync(string set, string signature, string mode, bool lane, List<Decided> decisions, IReadOnlyDictionary<Decided, DateTime> stamps, CancellationToken cancellationToken)
         {
             foreach (var d in decisions)
             {
+                var candidate = d.Verdict.Outcome == LinkRecheckRules.Unproven ? d.Verdict.Candidate : null;
                 var writes = d.Verdict.Outcome is LinkRecheckRules.Move or LinkRecheckRules.Unlink;
-                if (!lane && !writes) continue;
+                if (!lane && !writes && candidate == null) continue;
                 var target = d.Verdict.Target?.Food;
+                var outcome = candidate ?? d.Verdict.Outcome;
+                DateTime? stamp = stamps.TryGetValue(d, out var at) ? at : null;
                 var signals = new LinkRecheckSignals(set, d.Food.Id, d.Food.Name, d.Food.Text, d.Group.Wording, d.Group.Sense, d.Group.Lines.Count,
                     d.Group.Lines.Take(ExampleLines).Select(l => l.Raw).ToList(), d.Verdict.Holds.Select(h => h.ToString()).ToList(),
-                    d.Verdict.Outcome, d.Verdict.Reason, d.Verdict.Target?.Tier, target?.Id, target?.Name, target?.Text, stamp);
-                await _frame.RecordAsync(new LaneDecisionInput(
-                    Lane, set, Clip(d.Group.Subject, 255)!,
-                    d.Verdict.Outcome + (d.Verdict.Reason == null ? string.Empty : ": " + d.Verdict.Reason) + (target == null ? string.Empty : " -> " + target.Name),
-                    mode, writes, signature, d.Verdict.Target?.Tier ?? d.Verdict.Reason?.Split(" (", 2)[0], signals), cancellationToken);
+                    outcome, d.Verdict.Reason, d.Verdict.Target?.Tier, target?.Id, target?.Name, target?.Text, candidate == null ? stamp : null, d.Verdict.Class);
+                var decision = outcome + (d.Verdict.Reason == null ? string.Empty : ": " + d.Verdict.Reason) + (target == null ? string.Empty : " -> " + target.Name);
+                var input = candidate != null || d.Qualified
+                    ? new LaneDecisionInput(Lane, LinkRecheckRules.CandidateTier(d.Verdict.Class!), Clip(d.Group.Subject, 255)!, decision,
+                        candidate != null || stamp == null ? LaneMode.Shadow : LaneMode.Live, true, LinkRecheckRules.TierSignature(LinkRecheckRules.CandidateTier(d.Verdict.Class!)), set, signals)
+                    : new LaneDecisionInput(Lane, set, Clip(d.Group.Subject, 255)!, decision,
+                        mode, writes, signature, d.Verdict.Target?.Tier ?? d.Verdict.Reason?.Split(" (", 2)[0], signals);
+                await _frame.RecordAsync(input, cancellationToken);
             }
+        }
+
+        /// <summary>
+        /// Writes a lane batch's candidates of one class whose tier is live, as a run of that tier under
+        /// a stamp of its own, so the tier's pause undoes only its own writes.
+        /// </summary>
+        private async Task WriteClassAsync(string set, string reClass, List<Decided> decisions, DateTime stamp, LinkRecheckResult result, GateCatalog catalog, CancellationToken cancellationToken)
+        {
+            var tier = LinkRecheckRules.CandidateTier(reClass);
+            var summary = new LinkRecheckRunSummary { Set = tier, Stamp = stamp, Lane = true, Mode = LaneMode.Live, Signature = LinkRecheckRules.TierSignature(tier), Groups = decisions.Count };
+            using var running = MarkRunning(stamp);
+            var header = await StartAsync(tier, stamp, summary, _currentUser.PersonIdOrSystem, cancellationToken);
+            var part = new LinkRecheckResult { Set = set, Applied = true, Stamp = stamp };
+            await WriteAsync(decisions, stamp, part, true, catalog, cancellationToken);
+            result.LinesMoved += part.LinesMoved;
+            result.LinesUnlinked += part.LinesUnlinked;
+            result.LinesSkipped += part.LinesSkipped;
+            result.NoHome += part.NoHome;
+            result.AliasesMoved += part.AliasesMoved;
+            result.AliasesUntrusted += part.AliasesUntrusted;
+            result.AliasesRemoved += part.AliasesRemoved;
+            result.AliasesAdded += part.AliasesAdded;
+            result.AliasesRefused += part.AliasesRefused;
+            result.FoodsCreated += part.FoodsCreated;
+            result.FoodsRenamed += part.FoodsRenamed;
+            result.NamesFreed += part.NamesFreed;
+            result.ApprovedRecipes += part.ApprovedRecipes;
+            result.WordingRows.AddRange(part.WordingRows.Where(id => !result.WordingRows.Contains(id)));
+            summary.LinesMoved = part.LinesMoved;
+            summary.LinesUnlinked = part.LinesUnlinked;
+            summary.AliasesChanged = part.AliasesMoved + part.AliasesUntrusted + part.AliasesRemoved + part.AliasesAdded;
+            await FinishAsync(header, summary, cancellationToken);
         }
 
         /// <summary>Writes a run's header before its first write, so a run cut off partway still has the stamp its undo takes; returns the header's id.</summary>
@@ -1099,7 +1172,10 @@ namespace Nom.Orch.Services
                     if (!apply) continue;
                     if (before == null)
                     {
-                        _db.IngredientAliases.Remove(alias);
+                        _db.AuditLogEntries.Remove(await _db.AuditLogEntries.SingleAsync(a => a.Id == entry.Id, cancellationToken));
+                        await _db.SaveChangesAsync(cancellationToken);
+                        await _db.HardDeleteAsync(new[] { alias }, cancellationToken);
+                        continue;
                     }
                     else
                     {
@@ -1218,8 +1294,7 @@ namespace Nom.Orch.Services
             if (!_db.Database.IsRelational())
             {
                 var food = await _db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == id, cancellationToken);
-                _db.Ingredients.Remove(food);
-                await _db.SaveChangesAsync(cancellationToken);
+                await _db.HardDeleteAsync(new[] { food }, cancellationToken);
                 return true;
             }
             const string savepoint = "recheck_food";
@@ -1292,13 +1367,14 @@ namespace Nom.Orch.Services
             }
 
             var (score, golden) = auditor != null && check is ILaneAuditor confirming ? WordingTierAuditRecord.Evaluate(_auditRecord(), auditor.Model, confirming.Model) : (null, AuditorProblem);
-            return await _frame.EvaluateAsync(new LaneEvaluateRequest(Lane, set, LinkRecheckRules.SetSignature(set), Policy, score, golden, reasons), cancellationToken);
+            return await _frame.EvaluateAsync(new LaneEvaluateRequest(Lane, set, LinkRecheckRules.TierSignature(set), Policy, score, golden, reasons), cancellationToken);
         }
 
         public Task<int> DecidedTodayAsync(string set, CancellationToken cancellationToken = default)
         {
             var since = DateTime.UtcNow.AddHours(-24);
-            return _db.LaneDecisions.AsNoTracking().CountAsync(d => d.Lane == Lane && d.Tier == set && d.CreatedDate >= since, cancellationToken);
+            return _db.LaneDecisions.AsNoTracking().CountAsync(d => d.Lane == Lane && d.CreatedDate >= since
+                && (d.Tier == set || (d.Tier.StartsWith(LinkRecheckRules.CandidateTierPrefix) && d.Stratum == set)), cancellationToken);
         }
 
         public async Task<LinkRecheckStatusModel> StatusAsync(bool enabled, CancellationToken cancellationToken = default)
@@ -1309,12 +1385,14 @@ namespace Nom.Orch.Services
                 Version = LinkRecheckRules.Version,
                 Signature = LinkRecheckRules.Signature,
                 Sets = LinkRecheckRules.AllSets.ToList(),
+                ProvenClasses = LinkRecheckRules.ProvenClasses.OrderBy(c => c, StringComparer.Ordinal).ToList(),
+                ProvenProblem = LinkRecheckRules.ProvenProblem,
                 WaitingPicks = await _db.FoodCatalogProposals.AsNoTracking().CountAsync(WaitingModelPick, cancellationToken),
             };
             var undone = (await _db.AuditLogEntries.AsNoTracking().Where(a => a.EntityType == EntityType && a.ChangeType == UndoChangeType)
                     .Select(a => a.OldValue).ToListAsync(cancellationToken))
                 .ToHashSet(StringComparer.Ordinal);
-            foreach (var set in LinkRecheckRules.AllSets.Append(WithdrawRun).Append(NamesRun))
+            foreach (var set in LinkRecheckRules.AllSets.Concat(LinkRecheckRules.CandidateClasses.Select(LinkRecheckRules.CandidateTier)).Append(WithdrawRun).Append(NamesRun))
             {
                 var last = await _db.AuditLogEntries.AsNoTracking()
                     .Where(a => a.EntityType == EntityType && a.ChangeType == RunChangeType && a.PropertyName == set)

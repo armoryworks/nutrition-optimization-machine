@@ -169,7 +169,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class LinkGate
     {
-        public const string Version = "link-gate/10";
+        public const string Version = "link-gate/12";
 
         public const string Heading = "heading";
         public const string Compound = "compound";
@@ -409,6 +409,14 @@ namespace Nom.Orch.Services.Support
 
         private static readonly HashSet<string> LeadClasses = new(StringComparer.Ordinal) { "cheese", "distilled" };
 
+        /// <summary>Words of a food's name that set it apart from the plain food of its kind: a colour no kind takes by default (the red or green of a bell pepper, kidney bean or snap bean is the plain food), an animal species, or a regional variety.</summary>
+        private static readonly HashSet<string> NameQualifiers = new(StringComparer.Ordinal)
+        {
+            "yellow", "orange", "purple", "golden",
+            "turkey", "chicken", "pork", "beef", "veal", "lamb", "mutton", "duck", "goose", "venison", "bison", "buffalo", "goat", "rabbit", "guinea", "pheasant", "quail",
+            "italian", "polish", "mexican", "chinese", "japanese", "thai", "greek", "spanish", "french", "german", "swiss",
+        };
+
         private static readonly HashSet<string> Connectives = new(StringComparer.Ordinal)
         {
             "and", "or", "with", "without", "in", "of", "from", "made", "includes", "include", "type", "style", "the", "a", "for", "as", "to", "added",
@@ -575,6 +583,9 @@ namespace Nom.Orch.Services.Support
                 && !GenericNeutral.Contains(nameHead) && !States.ContainsKey(nameHead) && !Forms.ContainsKey(nameHead) && !Processed.Contains(nameHead) && !DescriptionParts.ContainsKey(nameHead) && !wordingForms.Any(f => FormMet(f) && Forms[f].Contains(nameHead)))
                 Add(Variety, "food is a variety the wording does not name", nameHead);
 
+            if (lexical && !headDefault && !drink && holds.All(h => h.Code != Variety) && NameQualifier(target, folded, catalog) is { } qualifier)
+                Add(Variety, "food is a variety, species or colour the wording does not name", qualifier);
+
             if (wordingForms.FirstOrDefault(f => !FormMet(f)) is { } unmetForm) Add(Form, "wording form not in the food", unmetForm);
             if (firstSegmentWords.Any(FreshWords.Contains) && !spice)
             {
@@ -652,6 +663,24 @@ namespace Nom.Orch.Services.Support
             }
 
             return holds;
+        }
+
+        /// <summary>
+        /// A word of the food's name that sets it apart from the plain food of its kind
+        /// (<see cref="NameQualifiers"/>: a colour, an animal species or a regional variety), that
+        /// its USDA entry carries too and the wording does not name, while a plain food of its kind
+        /// exists: another live food led by the same word of its entry that is not a prepared food
+        /// and carries no such word. "bell peppers" is not Yellow Bell Pepper, "lean ham" not Turkey
+        /// Ham, "sausage links" not Sweet Italian Sausage; but "chard" is Swiss Chard, since every
+        /// chard USDA lists is Swiss.
+        /// </summary>
+        private static string? NameQualifier(GateFood target, IReadOnlySet<string> folded, GateCatalog catalog)
+        {
+            var entry = Words(target.Text).Select(Fold).ToHashSet(StringComparer.Ordinal);
+            var qualifiers = Words(target.Name).Select(Fold).Where(w => NameQualifiers.Contains(w) && entry.Contains(w) && !folded.Contains(w)).Distinct(StringComparer.Ordinal).ToList();
+            if (qualifiers.Count == 0 || LeadWord(target.Text) is not { } lead || !catalog.Siblings.TryGetValue(lead, out var kin)) return null;
+            return qualifiers.FirstOrDefault(q => kin.Any(f => f.Id != target.Id && !PreparedFoods.IsPrepared(f.CategoryId)
+                && !Words(f.Name).Concat(Words(f.Text)).Select(Fold).Contains(q)));
         }
 
         /// <summary>
@@ -1059,6 +1088,7 @@ namespace Nom.Orch.Services.Support
             Table("notes", LinkAutoApplyGuard.Notes);
             Table("connectives", Connectives);
             Table("lead-classes", LeadClasses);
+            Table("name-qualifiers", NameQualifiers);
             Table("processed", Processed);
             Table("cooked", CookedWords);
             Table("fresh", FreshWords);

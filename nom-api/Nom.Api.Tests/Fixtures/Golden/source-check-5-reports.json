@@ -1,0 +1,4329 @@
+{
+ "budgetbytes.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": null,
+   "homepageLinks": null,
+   "homepageOutcome": "not-fetched",
+   "homepageStatus": null,
+   "homepageUrl": "",
+   "refusedBeforeFetch": "denylist",
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "budgetbytes.com",
+  "enumeration": {
+   "cap": 0,
+   "recipeUrlCount": 0,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": false
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": []
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "refused",
+    "outcome": "fail"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "not-checked",
+   "tdmRepUrl": ""
+  },
+  "robots": {
+   "aiCrawlers": [],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": null,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [],
+   "status": "not-checked",
+   "url": ""
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 0,
+   "complete": 0,
+   "english": 0,
+   "fetched": 0,
+   "ingredientLines": 0,
+   "languageUnknown": 0,
+   "linesWithQuantity": 0,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 0
+  },
+  "terms": {
+   "pages": [],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "chocolatecoveredkatie.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": "https://chocolatecoveredkatie.com/",
+   "homepageLinks": 127,
+   "homepageOutcome": "Ok",
+   "homepageStatus": 200,
+   "homepageUrl": "https://chocolatecoveredkatie.com/",
+   "refusedBeforeFetch": null,
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "chocolatecoveredkatie.com",
+  "enumeration": {
+   "cap": 1000,
+   "recipeUrlCount": 1000,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": true
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": [
+    {
+     "foundAt": "https://chocolatecoveredkatie.com/",
+     "kind": "copyright-notice",
+     "licenceUrl": null,
+     "text": "©2026 Chocolate Covered Katie.",
+     "where": "page-text"
+    },
+    {
+     "foundAt": "https://chocolatecoveredkatie.com/",
+     "kind": "all-rights-reserved",
+     "licenceUrl": null,
+     "text": "All rights reserved.",
+     "where": "page-text"
+    }
+   ]
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "check-complete",
+    "outcome": "pass"
+   },
+   {
+    "code": "https",
+    "outcome": "pass"
+   },
+   {
+    "code": "bot-challenge",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-nombot",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-general",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-ai",
+    "outcome": "pass"
+   },
+   {
+    "code": "crawl-delay",
+    "outcome": "info"
+   },
+   {
+    "code": "reservation",
+    "outcome": "pass"
+   },
+   {
+    "code": "terms",
+    "outcome": "pass"
+   },
+   {
+    "code": "licence",
+    "outcome": "fail"
+   },
+   {
+    "code": "credits",
+    "outcome": "unknown"
+   },
+   {
+    "code": "enumerable",
+    "outcome": "pass"
+   },
+   {
+    "code": "structured-data",
+    "outcome": "fail"
+   },
+   {
+    "code": "free-to-read",
+    "outcome": "pass"
+   },
+   {
+    "code": "language",
+    "outcome": "pass"
+   },
+   {
+    "code": "sample-yield",
+    "outcome": "info"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "none",
+   "tdmRepUrl": "https://chocolatecoveredkatie.com/.well-known/tdmrep.json"
+  },
+  "robots": {
+   "aiCrawlers": [
+    {
+     "agent": "GPTBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ChatGPT-User",
+     "rule": "not-named"
+    },
+    {
+     "agent": "OAI-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ClaudeBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-Web",
+     "rule": "not-named"
+    },
+    {
+     "agent": "anthropic-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "CCBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Google-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Applebot-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "cohere-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Bytespider",
+     "rule": "not-named"
+    },
+    {
+     "agent": "PerplexityBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Meta-ExternalAgent",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Amazonbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Diffbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "omgili",
+     "rule": "not-named"
+    }
+   ],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": 200,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [],
+   "status": "found",
+   "url": "https://chocolatecoveredkatie.com/robots.txt"
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 20,
+   "complete": 3,
+   "english": 20,
+   "fetched": 20,
+   "ingredientLines": 119,
+   "languageUnknown": 0,
+   "linesWithQuantity": 104,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [
+    {
+     "url": "https://chocolatecoveredkatie.com/low-fat-chocolate-chip-raspberry-quick-bread/"
+    }
+   ],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 15
+  },
+  "terms": {
+   "pages": [
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://chocolatecoveredkatie.com/faq-page/faq/"
+    },
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://chocolatecoveredkatie.com/privacy-policy/"
+    }
+   ],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "cookieandkate.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": null,
+   "homepageLinks": null,
+   "homepageOutcome": "not-fetched",
+   "homepageStatus": null,
+   "homepageUrl": "",
+   "refusedBeforeFetch": "denylist",
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "cookieandkate.com",
+  "enumeration": {
+   "cap": 0,
+   "recipeUrlCount": 0,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": false
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": []
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "refused",
+    "outcome": "fail"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "not-checked",
+   "tdmRepUrl": ""
+  },
+  "robots": {
+   "aiCrawlers": [],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": null,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [],
+   "status": "not-checked",
+   "url": ""
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 0,
+   "complete": 0,
+   "english": 0,
+   "fetched": 0,
+   "ingredientLines": 0,
+   "languageUnknown": 0,
+   "linesWithQuantity": 0,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 0
+  },
+  "terms": {
+   "pages": [],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "culiplan.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": "https://culiplan.com/",
+   "homepageLinks": 0,
+   "homepageOutcome": "Ok",
+   "homepageStatus": 200,
+   "homepageUrl": "https://culiplan.com/",
+   "refusedBeforeFetch": null,
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "culiplan.com",
+  "enumeration": {
+   "cap": 1000,
+   "recipeUrlCount": 1000,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": true
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": []
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "check-complete",
+    "outcome": "pass"
+   },
+   {
+    "code": "https",
+    "outcome": "pass"
+   },
+   {
+    "code": "bot-challenge",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-nombot",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-general",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-ai",
+    "outcome": "fail"
+   },
+   {
+    "code": "crawl-delay",
+    "outcome": "info"
+   },
+   {
+    "code": "reservation",
+    "outcome": "unknown"
+   },
+   {
+    "code": "terms",
+    "outcome": "unknown"
+   },
+   {
+    "code": "licence",
+    "outcome": "fail"
+   },
+   {
+    "code": "credits",
+    "outcome": "pass"
+   },
+   {
+    "code": "enumerable",
+    "outcome": "pass"
+   },
+   {
+    "code": "structured-data",
+    "outcome": "fail"
+   },
+   {
+    "code": "free-to-read",
+    "outcome": "pass"
+   },
+   {
+    "code": "language",
+    "outcome": "pass"
+   },
+   {
+    "code": "sample-yield",
+    "outcome": "info"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "unreadable",
+   "tdmRepUrl": "https://culiplan.com/.well-known/tdmrep.json"
+  },
+  "robots": {
+   "aiCrawlers": [
+    {
+     "agent": "GPTBot",
+     "rule": "allowed"
+    },
+    {
+     "agent": "ChatGPT-User",
+     "rule": "partly-blocked"
+    },
+    {
+     "agent": "OAI-SearchBot",
+     "rule": "partly-blocked"
+    },
+    {
+     "agent": "ClaudeBot",
+     "rule": "allowed"
+    },
+    {
+     "agent": "Claude-Web",
+     "rule": "not-named"
+    },
+    {
+     "agent": "anthropic-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-SearchBot",
+     "rule": "partly-blocked"
+    },
+    {
+     "agent": "CCBot",
+     "rule": "allowed"
+    },
+    {
+     "agent": "Google-Extended",
+     "rule": "allowed"
+    },
+    {
+     "agent": "Applebot-Extended",
+     "rule": "allowed"
+    },
+    {
+     "agent": "cohere-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Bytespider",
+     "rule": "allowed"
+    },
+    {
+     "agent": "PerplexityBot",
+     "rule": "partly-blocked"
+    },
+    {
+     "agent": "Meta-ExternalAgent",
+     "rule": "partly-blocked"
+    },
+    {
+     "agent": "Amazonbot",
+     "rule": "partly-blocked"
+    },
+    {
+     "agent": "Diffbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "omgili",
+     "rule": "not-named"
+    }
+   ],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": 200,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [
+    "https://culiplan.com/api/sitemap.xml",
+    "https://culiplan.com/api/static-sitemap.xml",
+    "https://culiplan.com/api/blog/sitemap.xml",
+    "https://culiplan.com/api/recipe-sitemap.xml",
+    "https://culiplan.com/api/week-plan-sitemap.xml",
+    "https://culiplan.com/api/profile-sitemap.xml"
+   ],
+   "status": "found",
+   "url": "https://culiplan.com/robots.txt"
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 20,
+   "complete": 0,
+   "english": 20,
+   "fetched": 20,
+   "ingredientLines": 0,
+   "languageUnknown": 0,
+   "linesWithQuantity": 0,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [
+    {
+     "url": "https://culiplan.com/el/recipe/arni-sto-fourno-me-patates"
+    }
+   ],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 0
+  },
+  "terms": {
+   "pages": [],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "fr.frije.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": "https://fr.frije.com/",
+   "homepageLinks": 0,
+   "homepageOutcome": "Ok",
+   "homepageStatus": 200,
+   "homepageUrl": "https://fr.frije.com/",
+   "refusedBeforeFetch": null,
+   "refusedPages": [
+    "https://fr.frije.com/.well-known/tdmrep.json",
+    "https://fr.frije.com/sitemap_index.xml",
+    "https://fr.frije.com/wp-sitemap.xml"
+   ],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "fr.frije.com",
+  "enumeration": {
+   "cap": 1000,
+   "recipeUrlCount": 0,
+   "refusedPages": [
+    "https://fr.frije.com/sitemap_index.xml",
+    "https://fr.frije.com/wp-sitemap.xml"
+   ],
+   "stoppedByBudget": false,
+   "viaSitemap": false
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": []
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "check-complete",
+    "outcome": "unknown"
+   },
+   {
+    "code": "https",
+    "outcome": "pass"
+   },
+   {
+    "code": "bot-challenge",
+    "outcome": "unknown"
+   },
+   {
+    "code": "robots-nombot",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-general",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-ai",
+    "outcome": "pass"
+   },
+   {
+    "code": "crawl-delay",
+    "outcome": "info"
+   },
+   {
+    "code": "reservation",
+    "outcome": "unknown"
+   },
+   {
+    "code": "terms",
+    "outcome": "unknown"
+   },
+   {
+    "code": "licence",
+    "outcome": "unknown"
+   },
+   {
+    "code": "credits",
+    "outcome": "pass"
+   },
+   {
+    "code": "enumerable",
+    "outcome": "unknown"
+   },
+   {
+    "code": "structured-data",
+    "outcome": "unknown"
+   },
+   {
+    "code": "free-to-read",
+    "outcome": "unknown"
+   },
+   {
+    "code": "language",
+    "outcome": "unknown"
+   },
+   {
+    "code": "sample-yield",
+    "outcome": "info"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "unreadable",
+   "tdmRepUrl": "https://fr.frije.com/.well-known/tdmrep.json"
+  },
+  "robots": {
+   "aiCrawlers": [
+    {
+     "agent": "GPTBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ChatGPT-User",
+     "rule": "not-named"
+    },
+    {
+     "agent": "OAI-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ClaudeBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-Web",
+     "rule": "not-named"
+    },
+    {
+     "agent": "anthropic-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "CCBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Google-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Applebot-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "cohere-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Bytespider",
+     "rule": "not-named"
+    },
+    {
+     "agent": "PerplexityBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Meta-ExternalAgent",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Amazonbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Diffbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "omgili",
+     "rule": "not-named"
+    }
+   ],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": 404,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [],
+   "status": "none",
+   "url": "https://fr.frije.com/robots.txt"
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 0,
+   "complete": 0,
+   "english": 0,
+   "fetched": 0,
+   "ingredientLines": 0,
+   "languageUnknown": 0,
+   "linesWithQuantity": 0,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 0
+  },
+  "terms": {
+   "pages": [],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "minimalistbaker.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": null,
+   "homepageLinks": null,
+   "homepageOutcome": "not-fetched",
+   "homepageStatus": null,
+   "homepageUrl": "",
+   "refusedBeforeFetch": "denylist",
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "minimalistbaker.com",
+  "enumeration": {
+   "cap": 0,
+   "recipeUrlCount": 0,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": false
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": []
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "refused",
+    "outcome": "fail"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "not-checked",
+   "tdmRepUrl": ""
+  },
+  "robots": {
+   "aiCrawlers": [],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": null,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [],
+   "status": "not-checked",
+   "url": ""
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 0,
+   "complete": 0,
+   "english": 0,
+   "fetched": 0,
+   "ingredientLines": 0,
+   "languageUnknown": 0,
+   "linesWithQuantity": 0,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 0
+  },
+  "terms": {
+   "pages": [],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "myplate.gov": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": null,
+   "homepageLinks": null,
+   "homepageOutcome": "NoAddress",
+   "homepageStatus": null,
+   "homepageUrl": "https://myplate.gov/",
+   "refusedBeforeFetch": null,
+   "refusedPages": [],
+   "usGovernmentStyleDomain": true
+  },
+  "complete": true,
+  "domain": "myplate.gov",
+  "enumeration": {
+   "cap": 0,
+   "recipeUrlCount": 0,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": false
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": []
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "check-complete",
+    "outcome": "unknown"
+   },
+   {
+    "code": "https",
+    "outcome": "unknown"
+   },
+   {
+    "code": "bot-challenge",
+    "outcome": "unknown"
+   },
+   {
+    "code": "robots-nombot",
+    "outcome": "unknown"
+   },
+   {
+    "code": "robots-general",
+    "outcome": "unknown"
+   },
+   {
+    "code": "robots-ai",
+    "outcome": "unknown"
+   },
+   {
+    "code": "crawl-delay",
+    "outcome": "unknown"
+   },
+   {
+    "code": "reservation",
+    "outcome": "unknown"
+   },
+   {
+    "code": "terms",
+    "outcome": "unknown"
+   },
+   {
+    "code": "licence",
+    "outcome": "unknown"
+   },
+   {
+    "code": "credits",
+    "outcome": "unknown"
+   },
+   {
+    "code": "enumerable",
+    "outcome": "unknown"
+   },
+   {
+    "code": "structured-data",
+    "outcome": "unknown"
+   },
+   {
+    "code": "free-to-read",
+    "outcome": "unknown"
+   },
+   {
+    "code": "language",
+    "outcome": "unknown"
+   },
+   {
+    "code": "sample-yield",
+    "outcome": "unknown"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "not-checked",
+   "tdmRepUrl": ""
+  },
+  "robots": {
+   "aiCrawlers": [],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": null,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [],
+   "status": "not-checked",
+   "url": ""
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 0,
+   "complete": 0,
+   "english": 0,
+   "fetched": 0,
+   "ingredientLines": 0,
+   "languageUnknown": 0,
+   "linesWithQuantity": 0,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 0
+  },
+  "terms": {
+   "pages": [],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "pinchofyum.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": null,
+   "homepageLinks": null,
+   "homepageOutcome": "not-fetched",
+   "homepageStatus": null,
+   "homepageUrl": "",
+   "refusedBeforeFetch": "denylist",
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "pinchofyum.com",
+  "enumeration": {
+   "cap": 0,
+   "recipeUrlCount": 0,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": false
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": []
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "refused",
+    "outcome": "fail"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "not-checked",
+   "tdmRepUrl": ""
+  },
+  "robots": {
+   "aiCrawlers": [],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": null,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [],
+   "status": "not-checked",
+   "url": ""
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 0,
+   "complete": 0,
+   "english": 0,
+   "fetched": 0,
+   "ingredientLines": 0,
+   "languageUnknown": 0,
+   "linesWithQuantity": 0,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 0
+  },
+  "terms": {
+   "pages": [],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "sallysbakingaddiction.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": null,
+   "homepageLinks": null,
+   "homepageOutcome": "not-fetched",
+   "homepageStatus": null,
+   "homepageUrl": "",
+   "refusedBeforeFetch": "denylist",
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "sallysbakingaddiction.com",
+  "enumeration": {
+   "cap": 0,
+   "recipeUrlCount": 0,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": false
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": []
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "refused",
+    "outcome": "fail"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "not-checked",
+   "tdmRepUrl": ""
+  },
+  "robots": {
+   "aiCrawlers": [],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": null,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [],
+   "status": "not-checked",
+   "url": ""
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 0,
+   "complete": 0,
+   "english": 0,
+   "fetched": 0,
+   "ingredientLines": 0,
+   "languageUnknown": 0,
+   "linesWithQuantity": 0,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 0
+  },
+  "terms": {
+   "pages": [],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "therecipecritic.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": "https://therecipecritic.com/",
+   "homepageLinks": 174,
+   "homepageOutcome": "Ok",
+   "homepageStatus": 200,
+   "homepageUrl": "https://therecipecritic.com/",
+   "refusedBeforeFetch": null,
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "therecipecritic.com",
+  "enumeration": {
+   "cap": 1000,
+   "recipeUrlCount": 1000,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": true
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": [
+    {
+     "foundAt": "https://therecipecritic.com/",
+     "kind": "copyright-notice",
+     "licenceUrl": null,
+     "text": "©2026 The Recipe Critic.",
+     "where": "page-text"
+    },
+    {
+     "foundAt": "https://therecipecritic.com/",
+     "kind": "all-rights-reserved",
+     "licenceUrl": null,
+     "text": "All rights reserved.",
+     "where": "page-text"
+    }
+   ]
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "check-complete",
+    "outcome": "pass"
+   },
+   {
+    "code": "https",
+    "outcome": "pass"
+   },
+   {
+    "code": "bot-challenge",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-nombot",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-general",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-ai",
+    "outcome": "pass"
+   },
+   {
+    "code": "crawl-delay",
+    "outcome": "info"
+   },
+   {
+    "code": "reservation",
+    "outcome": "pass"
+   },
+   {
+    "code": "terms",
+    "outcome": "pass"
+   },
+   {
+    "code": "licence",
+    "outcome": "fail"
+   },
+   {
+    "code": "credits",
+    "outcome": "pass"
+   },
+   {
+    "code": "enumerable",
+    "outcome": "pass"
+   },
+   {
+    "code": "structured-data",
+    "outcome": "pass"
+   },
+   {
+    "code": "free-to-read",
+    "outcome": "pass"
+   },
+   {
+    "code": "language",
+    "outcome": "pass"
+   },
+   {
+    "code": "sample-yield",
+    "outcome": "info"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "none",
+   "tdmRepUrl": "https://therecipecritic.com/.well-known/tdmrep.json"
+  },
+  "robots": {
+   "aiCrawlers": [
+    {
+     "agent": "GPTBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ChatGPT-User",
+     "rule": "not-named"
+    },
+    {
+     "agent": "OAI-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ClaudeBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-Web",
+     "rule": "not-named"
+    },
+    {
+     "agent": "anthropic-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "CCBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Google-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Applebot-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "cohere-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Bytespider",
+     "rule": "not-named"
+    },
+    {
+     "agent": "PerplexityBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Meta-ExternalAgent",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Amazonbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Diffbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "omgili",
+     "rule": "not-named"
+    }
+   ],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": 200,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [
+    "https://therecipecritic.com/sitemap_index.xml"
+   ],
+   "status": "found",
+   "url": "https://therecipecritic.com/robots.txt"
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 20,
+   "complete": 19,
+   "english": 20,
+   "fetched": 20,
+   "ingredientLines": 216,
+   "languageUnknown": 0,
+   "linesWithQuantity": 206,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [
+    {
+     "url": "https://therecipecritic.com/cranberry-jalapeno-cowboy-candy/"
+    }
+   ],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 19
+  },
+  "terms": {
+   "pages": [
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://therecipecritic.com/privacy-policy/"
+    }
+   ],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "www.101cookbooks.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": "https://www.101cookbooks.com/",
+   "homepageLinks": 232,
+   "homepageOutcome": "Ok",
+   "homepageStatus": 200,
+   "homepageUrl": "https://www.101cookbooks.com/",
+   "refusedBeforeFetch": null,
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "101cookbooks.com",
+  "enumeration": {
+   "cap": 1000,
+   "recipeUrlCount": 82,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": false
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": [
+    {
+     "foundAt": "https://www.101cookbooks.com/",
+     "kind": "copyright-notice",
+     "licenceUrl": null,
+     "text": "© 101 Cookbooks 2026",
+     "where": "page-text"
+    }
+   ]
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "check-complete",
+    "outcome": "pass"
+   },
+   {
+    "code": "https",
+    "outcome": "pass"
+   },
+   {
+    "code": "bot-challenge",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-nombot",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-general",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-ai",
+    "outcome": "pass"
+   },
+   {
+    "code": "crawl-delay",
+    "outcome": "info"
+   },
+   {
+    "code": "reservation",
+    "outcome": "pass"
+   },
+   {
+    "code": "terms",
+    "outcome": "pass"
+   },
+   {
+    "code": "licence",
+    "outcome": "fail"
+   },
+   {
+    "code": "credits",
+    "outcome": "unknown"
+   },
+   {
+    "code": "enumerable",
+    "outcome": "pass"
+   },
+   {
+    "code": "structured-data",
+    "outcome": "fail"
+   },
+   {
+    "code": "free-to-read",
+    "outcome": "pass"
+   },
+   {
+    "code": "language",
+    "outcome": "pass"
+   },
+   {
+    "code": "sample-yield",
+    "outcome": "info"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "none",
+   "tdmRepUrl": "https://www.101cookbooks.com/.well-known/tdmrep.json"
+  },
+  "robots": {
+   "aiCrawlers": [
+    {
+     "agent": "GPTBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ChatGPT-User",
+     "rule": "not-named"
+    },
+    {
+     "agent": "OAI-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ClaudeBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-Web",
+     "rule": "not-named"
+    },
+    {
+     "agent": "anthropic-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "CCBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Google-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Applebot-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "cohere-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Bytespider",
+     "rule": "not-named"
+    },
+    {
+     "agent": "PerplexityBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Meta-ExternalAgent",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Amazonbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Diffbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "omgili",
+     "rule": "not-named"
+    }
+   ],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": 200,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [
+    "https://www.101cookbooks.com/sitemap_index.xml"
+   ],
+   "status": "found",
+   "url": "https://www.101cookbooks.com/robots.txt"
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 20,
+   "complete": 14,
+   "english": 20,
+   "fetched": 20,
+   "ingredientLines": 133,
+   "languageUnknown": 0,
+   "linesWithQuantity": 116,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [
+    {
+     "url": "https://www.101cookbooks.com/soup-recipes/"
+    }
+   ],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 15
+  },
+  "terms": {
+   "pages": [
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.101cookbooks.com/privacy.html"
+    },
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.101cookbooks.com/fulfillment-policy.html"
+    }
+   ],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "www.acozykitchen.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": "https://www.acozykitchen.com/",
+   "homepageLinks": 130,
+   "homepageOutcome": "Ok",
+   "homepageStatus": 200,
+   "homepageUrl": "https://www.acozykitchen.com/",
+   "refusedBeforeFetch": null,
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "acozykitchen.com",
+  "enumeration": {
+   "cap": 1000,
+   "recipeUrlCount": 665,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": true
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": [
+    {
+     "foundAt": "https://www.acozykitchen.com/",
+     "kind": "copyright-notice",
+     "licenceUrl": null,
+     "text": "©2026 A Cozy Kitchen.",
+     "where": "page-text"
+    },
+    {
+     "foundAt": "https://www.acozykitchen.com/",
+     "kind": "all-rights-reserved",
+     "licenceUrl": null,
+     "text": "All rights reserved.",
+     "where": "page-text"
+    }
+   ]
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "check-complete",
+    "outcome": "pass"
+   },
+   {
+    "code": "https",
+    "outcome": "pass"
+   },
+   {
+    "code": "bot-challenge",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-nombot",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-general",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-ai",
+    "outcome": "pass"
+   },
+   {
+    "code": "crawl-delay",
+    "outcome": "info"
+   },
+   {
+    "code": "reservation",
+    "outcome": "pass"
+   },
+   {
+    "code": "terms",
+    "outcome": "pass"
+   },
+   {
+    "code": "licence",
+    "outcome": "fail"
+   },
+   {
+    "code": "credits",
+    "outcome": "pass"
+   },
+   {
+    "code": "enumerable",
+    "outcome": "pass"
+   },
+   {
+    "code": "structured-data",
+    "outcome": "pass"
+   },
+   {
+    "code": "free-to-read",
+    "outcome": "pass"
+   },
+   {
+    "code": "language",
+    "outcome": "pass"
+   },
+   {
+    "code": "sample-yield",
+    "outcome": "info"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "none",
+   "tdmRepUrl": "https://www.acozykitchen.com/.well-known/tdmrep.json"
+  },
+  "robots": {
+   "aiCrawlers": [
+    {
+     "agent": "GPTBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ChatGPT-User",
+     "rule": "not-named"
+    },
+    {
+     "agent": "OAI-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ClaudeBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-Web",
+     "rule": "not-named"
+    },
+    {
+     "agent": "anthropic-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "CCBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Google-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Applebot-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "cohere-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Bytespider",
+     "rule": "not-named"
+    },
+    {
+     "agent": "PerplexityBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Meta-ExternalAgent",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Amazonbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Diffbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "omgili",
+     "rule": "not-named"
+    }
+   ],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": 200,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [
+    "https://www.acozykitchen.com/sitemap_index.xml"
+   ],
+   "status": "found",
+   "url": "https://www.acozykitchen.com/robots.txt"
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 20,
+   "complete": 20,
+   "english": 20,
+   "fetched": 20,
+   "ingredientLines": 232,
+   "languageUnknown": 0,
+   "linesWithQuantity": 203,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [
+    {
+     "url": "https://www.acozykitchen.com/peruvian-style-turkey"
+    }
+   ],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 20
+  },
+  "terms": {
+   "pages": [
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.acozykitchen.com/privacy-policy"
+    }
+   ],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "www.ambitiouskitchen.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": "https://www.ambitiouskitchen.com/",
+   "homepageLinks": 262,
+   "homepageOutcome": "Ok",
+   "homepageStatus": 200,
+   "homepageUrl": "https://www.ambitiouskitchen.com/",
+   "refusedBeforeFetch": null,
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "ambitiouskitchen.com",
+  "enumeration": {
+   "cap": 1000,
+   "recipeUrlCount": 238,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": true
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": [
+    {
+     "foundAt": "https://www.ambitiouskitchen.com/privacy-policy/",
+     "kind": "all-rights-reserved",
+     "licenceUrl": null,
+     "text": "All rights reserved.",
+     "where": "page-text"
+    }
+   ]
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "check-complete",
+    "outcome": "pass"
+   },
+   {
+    "code": "https",
+    "outcome": "pass"
+   },
+   {
+    "code": "bot-challenge",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-nombot",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-general",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-ai",
+    "outcome": "fail"
+   },
+   {
+    "code": "crawl-delay",
+    "outcome": "info"
+   },
+   {
+    "code": "reservation",
+    "outcome": "pass"
+   },
+   {
+    "code": "terms",
+    "outcome": "fail"
+   },
+   {
+    "code": "licence",
+    "outcome": "fail"
+   },
+   {
+    "code": "credits",
+    "outcome": "unknown"
+   },
+   {
+    "code": "enumerable",
+    "outcome": "pass"
+   },
+   {
+    "code": "structured-data",
+    "outcome": "fail"
+   },
+   {
+    "code": "free-to-read",
+    "outcome": "pass"
+   },
+   {
+    "code": "language",
+    "outcome": "pass"
+   },
+   {
+    "code": "sample-yield",
+    "outcome": "info"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "none",
+   "tdmRepUrl": "https://www.ambitiouskitchen.com/.well-known/tdmrep.json"
+  },
+  "robots": {
+   "aiCrawlers": [
+    {
+     "agent": "GPTBot",
+     "rule": "blocked"
+    },
+    {
+     "agent": "ChatGPT-User",
+     "rule": "not-named"
+    },
+    {
+     "agent": "OAI-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ClaudeBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-Web",
+     "rule": "blocked"
+    },
+    {
+     "agent": "anthropic-ai",
+     "rule": "blocked"
+    },
+    {
+     "agent": "Claude-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "CCBot",
+     "rule": "blocked"
+    },
+    {
+     "agent": "Google-Extended",
+     "rule": "blocked"
+    },
+    {
+     "agent": "Applebot-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "cohere-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Bytespider",
+     "rule": "not-named"
+    },
+    {
+     "agent": "PerplexityBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Meta-ExternalAgent",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Amazonbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Diffbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "omgili",
+     "rule": "not-named"
+    }
+   ],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": 200,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [
+    "https://www.ambitiouskitchen.com/sitemap.xml"
+   ],
+   "status": "found",
+   "url": "https://www.ambitiouskitchen.com/robots.txt"
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 20,
+   "complete": 16,
+   "english": 20,
+   "fetched": 20,
+   "ingredientLines": 211,
+   "languageUnknown": 0,
+   "linesWithQuantity": 192,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [
+    {
+     "url": "https://www.ambitiouskitchen.com/brown-butter-sea-salt-chocolate-chip-cookies/"
+    }
+   ],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 16
+  },
+  "terms": {
+   "pages": [
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.ambitiouskitchen.com/privacy-policy/"
+    },
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.ambitiouskitchen.com/privacy-policy"
+    }
+   ],
+   "prohibitions": [
+    {
+     "category": "reuse",
+     "foundAt": "https://www.ambitiouskitchen.com/privacy-policy/",
+     "text": "You agree not to reproduce, publish, transmit, distribute, sell, license, modify, or create derivative content from this Website or any part of it, without prior written consent from Ambitious Kitchen."
+    },
+    {
+     "category": "reuse",
+     "foundAt": "https://www.ambitiouskitchen.com/privacy-policy/",
+     "text": "You agree that you are not allowed to modify, distribute, sell, share, republish, or create derivative content from any information provided to you without express consent from Ambitious Kitchen."
+    },
+    {
+     "category": "reuse",
+     "foundAt": "https://www.ambitiouskitchen.com/privacy-policy/",
+     "text": "You may view and print any content displayed on the Website for personal, non-commercial use, provided that all copyright and attribution notices remain intact."
+    }
+   ],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "www.budgetbytes.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": null,
+   "homepageLinks": null,
+   "homepageOutcome": "not-fetched",
+   "homepageStatus": null,
+   "homepageUrl": "",
+   "refusedBeforeFetch": "denylist",
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "budgetbytes.com",
+  "enumeration": {
+   "cap": 0,
+   "recipeUrlCount": 0,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": false
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": []
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "refused",
+    "outcome": "fail"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "not-checked",
+   "tdmRepUrl": ""
+  },
+  "robots": {
+   "aiCrawlers": [],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": null,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [],
+   "status": "not-checked",
+   "url": ""
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 0,
+   "complete": 0,
+   "english": 0,
+   "fetched": 0,
+   "ingredientLines": 0,
+   "languageUnknown": 0,
+   "linesWithQuantity": 0,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 0
+  },
+  "terms": {
+   "pages": [],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "www.davidlebovitz.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": "https://www.davidlebovitz.com/",
+   "homepageLinks": 110,
+   "homepageOutcome": "Ok",
+   "homepageStatus": 200,
+   "homepageUrl": "https://www.davidlebovitz.com/",
+   "refusedBeforeFetch": null,
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "davidlebovitz.com",
+  "enumeration": {
+   "cap": 1000,
+   "recipeUrlCount": 1000,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": true
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": [
+    {
+     "foundAt": "https://www.davidlebovitz.com/",
+     "kind": "copyright-notice",
+     "licenceUrl": null,
+     "text": "© 2026 David Lebovitz",
+     "where": "page-text"
+    },
+    {
+     "foundAt": "https://www.davidlebovitz.com/terms-of-service/",
+     "kind": "copyright-notice",
+     "licenceUrl": null,
+     "text": "This copyrighted material includes, but is not limited to, the design, layout, look, appearance and graphics.",
+     "where": "page-text"
+    },
+    {
+     "foundAt": "https://www.davidlebovitz.com/terms-of-service/",
+     "kind": "copyright-notice",
+     "licenceUrl": null,
+     "text": "All the material on this site is copyrighted, including recipes, videos, text, and photographs.",
+     "where": "page-text"
+    }
+   ]
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "check-complete",
+    "outcome": "pass"
+   },
+   {
+    "code": "https",
+    "outcome": "pass"
+   },
+   {
+    "code": "bot-challenge",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-nombot",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-general",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-ai",
+    "outcome": "pass"
+   },
+   {
+    "code": "crawl-delay",
+    "outcome": "info"
+   },
+   {
+    "code": "reservation",
+    "outcome": "pass"
+   },
+   {
+    "code": "terms",
+    "outcome": "fail"
+   },
+   {
+    "code": "licence",
+    "outcome": "fail"
+   },
+   {
+    "code": "credits",
+    "outcome": "unknown"
+   },
+   {
+    "code": "enumerable",
+    "outcome": "pass"
+   },
+   {
+    "code": "structured-data",
+    "outcome": "fail"
+   },
+   {
+    "code": "free-to-read",
+    "outcome": "pass"
+   },
+   {
+    "code": "language",
+    "outcome": "pass"
+   },
+   {
+    "code": "sample-yield",
+    "outcome": "info"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "none",
+   "tdmRepUrl": "https://www.davidlebovitz.com/.well-known/tdmrep.json"
+  },
+  "robots": {
+   "aiCrawlers": [
+    {
+     "agent": "GPTBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ChatGPT-User",
+     "rule": "not-named"
+    },
+    {
+     "agent": "OAI-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ClaudeBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-Web",
+     "rule": "not-named"
+    },
+    {
+     "agent": "anthropic-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "CCBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Google-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Applebot-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "cohere-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Bytespider",
+     "rule": "not-named"
+    },
+    {
+     "agent": "PerplexityBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Meta-ExternalAgent",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Amazonbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Diffbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "omgili",
+     "rule": "not-named"
+    }
+   ],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": 200,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [
+    "https://www.davidlebovitz.com/sitemap_index.xml"
+   ],
+   "status": "found",
+   "url": "https://www.davidlebovitz.com/robots.txt"
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 20,
+   "complete": 14,
+   "english": 20,
+   "fetched": 20,
+   "ingredientLines": 122,
+   "languageUnknown": 0,
+   "linesWithQuantity": 104,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [
+    {
+     "url": "https://www.davidlebovitz.com/thanksgiving-cranberry-chutney-recipe-sauce/"
+    }
+   ],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 14
+  },
+  "terms": {
+   "pages": [
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.davidlebovitz.com/disclosure-statement/"
+    },
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.davidlebovitz.com/terms-of-service/"
+    },
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.davidlebovitz.com/faq/"
+    },
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.davidlebovitz.com/comment-policy/"
+    },
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.davidlebovitz.com/restaurant-write-up-policy/"
+    },
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.davidlebovitz.com/privacy-policy/"
+    }
+   ],
+   "prohibitions": [
+    {
+     "category": "reuse",
+     "foundAt": "https://www.davidlebovitz.com/terms-of-service/",
+     "text": "Content from this website may not be deep-embedded in another website or used on an application for an electronic device or reprinted or republished in any manner."
+    },
+    {
+     "category": "reuse",
+     "foundAt": "https://www.davidlebovitz.com/terms-of-service/",
+     "text": "Reproduction is prohibited other than in accordance with the copyright notice, which forms part of these terms and conditions."
+    },
+    {
+     "category": "reuse",
+     "foundAt": "https://www.davidlebovitz.com/terms-of-service/",
+     "text": "Recipes may be adapted using the guidelines here, although they should not and can not be reprinted word-for-word."
+    },
+    {
+     "category": "reuse",
+     "foundAt": "https://www.davidlebovitz.com/terms-of-service/",
+     "text": "You may not in any way make commercial or other unauthorized use, by publication, re-transmission, distribution, performance, caching, or otherwise, of material obtained through the website, including without limitation the assets or website content."
+    },
+    {
+     "category": "reuse",
+     "foundAt": "https://www.davidlebovitz.com/privacy-policy/",
+     "text": "The owner of this Website respects the privacy of readers and provides the Website for entertainment purposes only and for the personal, non-commercial use of its readers."
+    }
+   ],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "www.eatingwell.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": null,
+   "homepageLinks": null,
+   "homepageOutcome": "not-fetched",
+   "homepageStatus": null,
+   "homepageUrl": "",
+   "refusedBeforeFetch": "denylist",
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "eatingwell.com",
+  "enumeration": {
+   "cap": 0,
+   "recipeUrlCount": 0,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": false
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": []
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "refused",
+    "outcome": "fail"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "not-checked",
+   "tdmRepUrl": ""
+  },
+  "robots": {
+   "aiCrawlers": [],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": null,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [],
+   "status": "not-checked",
+   "url": ""
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 0,
+   "complete": 0,
+   "english": 0,
+   "fetched": 0,
+   "ingredientLines": 0,
+   "languageUnknown": 0,
+   "linesWithQuantity": 0,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 0
+  },
+  "terms": {
+   "pages": [],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "www.gimmesomeoven.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": "https://www.gimmesomeoven.com/",
+   "homepageLinks": 140,
+   "homepageOutcome": "Ok",
+   "homepageStatus": 200,
+   "homepageUrl": "https://www.gimmesomeoven.com/",
+   "refusedBeforeFetch": null,
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "gimmesomeoven.com",
+  "enumeration": {
+   "cap": 1000,
+   "recipeUrlCount": 1000,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": true
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": [
+    {
+     "foundAt": "https://www.gimmesomeoven.com/",
+     "kind": "copyright-notice",
+     "licenceUrl": null,
+     "text": "©2026 Gimme Some Oven.",
+     "where": "page-text"
+    }
+   ]
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "check-complete",
+    "outcome": "pass"
+   },
+   {
+    "code": "https",
+    "outcome": "pass"
+   },
+   {
+    "code": "bot-challenge",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-nombot",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-general",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-ai",
+    "outcome": "fail"
+   },
+   {
+    "code": "crawl-delay",
+    "outcome": "info"
+   },
+   {
+    "code": "reservation",
+    "outcome": "pass"
+   },
+   {
+    "code": "terms",
+    "outcome": "pass"
+   },
+   {
+    "code": "licence",
+    "outcome": "fail"
+   },
+   {
+    "code": "credits",
+    "outcome": "unknown"
+   },
+   {
+    "code": "enumerable",
+    "outcome": "pass"
+   },
+   {
+    "code": "structured-data",
+    "outcome": "pass"
+   },
+   {
+    "code": "free-to-read",
+    "outcome": "pass"
+   },
+   {
+    "code": "language",
+    "outcome": "pass"
+   },
+   {
+    "code": "sample-yield",
+    "outcome": "info"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "none",
+   "tdmRepUrl": "https://www.gimmesomeoven.com/.well-known/tdmrep.json"
+  },
+  "robots": {
+   "aiCrawlers": [
+    {
+     "agent": "GPTBot",
+     "rule": "blocked"
+    },
+    {
+     "agent": "ChatGPT-User",
+     "rule": "not-named"
+    },
+    {
+     "agent": "OAI-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ClaudeBot",
+     "rule": "blocked"
+    },
+    {
+     "agent": "Claude-Web",
+     "rule": "blocked"
+    },
+    {
+     "agent": "anthropic-ai",
+     "rule": "blocked"
+    },
+    {
+     "agent": "Claude-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "CCBot",
+     "rule": "blocked"
+    },
+    {
+     "agent": "Google-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Applebot-Extended",
+     "rule": "blocked"
+    },
+    {
+     "agent": "cohere-ai",
+     "rule": "blocked"
+    },
+    {
+     "agent": "Bytespider",
+     "rule": "blocked"
+    },
+    {
+     "agent": "PerplexityBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Meta-ExternalAgent",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Amazonbot",
+     "rule": "blocked"
+    },
+    {
+     "agent": "Diffbot",
+     "rule": "blocked"
+    },
+    {
+     "agent": "omgili",
+     "rule": "blocked"
+    }
+   ],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": 200,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [
+    "http://gimmesomeoven.comsitemap_index.xml"
+   ],
+   "status": "found",
+   "url": "https://www.gimmesomeoven.com/robots.txt"
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 20,
+   "complete": 19,
+   "english": 20,
+   "fetched": 20,
+   "ingredientLines": 191,
+   "languageUnknown": 0,
+   "linesWithQuantity": 170,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [
+    {
+     "url": "https://www.gimmesomeoven.com/brussels-sprouts-kale-salad/"
+    }
+   ],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 20
+  },
+  "terms": {
+   "pages": [
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.gimmesomeoven.com/privacy-policy/"
+    }
+   ],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "www.halfbakedharvest.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": "https://www.halfbakedharvest.com/",
+   "homepageLinks": 208,
+   "homepageOutcome": "Ok",
+   "homepageStatus": 200,
+   "homepageUrl": "https://www.halfbakedharvest.com/",
+   "refusedBeforeFetch": null,
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "halfbakedharvest.com",
+  "enumeration": {
+   "cap": 1000,
+   "recipeUrlCount": 1000,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": true
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": [
+    {
+     "foundAt": "https://www.halfbakedharvest.com/",
+     "kind": "copyright-notice",
+     "licenceUrl": null,
+     "text": "© 2026 Half Baked Harvest LLC.",
+     "where": "page-text"
+    },
+    {
+     "foundAt": "https://www.halfbakedharvest.com/",
+     "kind": "all-rights-reserved",
+     "licenceUrl": null,
+     "text": "All rights reserved.",
+     "where": "page-text"
+    }
+   ]
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "check-complete",
+    "outcome": "pass"
+   },
+   {
+    "code": "https",
+    "outcome": "pass"
+   },
+   {
+    "code": "bot-challenge",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-nombot",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-general",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-ai",
+    "outcome": "fail"
+   },
+   {
+    "code": "crawl-delay",
+    "outcome": "info"
+   },
+   {
+    "code": "reservation",
+    "outcome": "pass"
+   },
+   {
+    "code": "terms",
+    "outcome": "pass"
+   },
+   {
+    "code": "licence",
+    "outcome": "fail"
+   },
+   {
+    "code": "credits",
+    "outcome": "pass"
+   },
+   {
+    "code": "enumerable",
+    "outcome": "pass"
+   },
+   {
+    "code": "structured-data",
+    "outcome": "fail"
+   },
+   {
+    "code": "free-to-read",
+    "outcome": "pass"
+   },
+   {
+    "code": "language",
+    "outcome": "pass"
+   },
+   {
+    "code": "sample-yield",
+    "outcome": "info"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "none",
+   "tdmRepUrl": "https://www.halfbakedharvest.com/.well-known/tdmrep.json"
+  },
+  "robots": {
+   "aiCrawlers": [
+    {
+     "agent": "GPTBot",
+     "rule": "blocked"
+    },
+    {
+     "agent": "ChatGPT-User",
+     "rule": "not-named"
+    },
+    {
+     "agent": "OAI-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ClaudeBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-Web",
+     "rule": "blocked"
+    },
+    {
+     "agent": "anthropic-ai",
+     "rule": "blocked"
+    },
+    {
+     "agent": "Claude-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "CCBot",
+     "rule": "blocked"
+    },
+    {
+     "agent": "Google-Extended",
+     "rule": "blocked"
+    },
+    {
+     "agent": "Applebot-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "cohere-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Bytespider",
+     "rule": "not-named"
+    },
+    {
+     "agent": "PerplexityBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Meta-ExternalAgent",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Amazonbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Diffbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "omgili",
+     "rule": "not-named"
+    }
+   ],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": 200,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [
+    "https://www.halfbakedharvest.com/sitemap_index.xml"
+   ],
+   "status": "found",
+   "url": "https://www.halfbakedharvest.com/robots.txt"
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 20,
+   "complete": 3,
+   "english": 20,
+   "fetched": 20,
+   "ingredientLines": 192,
+   "languageUnknown": 0,
+   "linesWithQuantity": 170,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [
+    {
+     "url": "https://www.halfbakedharvest.com/crispy-prosciutto-wrapped-gruyere-pretzels/"
+    }
+   ],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 15
+  },
+  "terms": {
+   "pages": [
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.halfbakedharvest.com/privacy-policy/"
+    }
+   ],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "www.howsweeteats.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": "https://www.howsweeteats.com/",
+   "homepageLinks": 269,
+   "homepageOutcome": "Ok",
+   "homepageStatus": 200,
+   "homepageUrl": "https://www.howsweeteats.com/",
+   "refusedBeforeFetch": null,
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "howsweeteats.com",
+  "enumeration": {
+   "cap": 1000,
+   "recipeUrlCount": 1000,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": true
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": [
+    {
+     "foundAt": "https://www.howsweeteats.com/",
+     "kind": "copyright-notice",
+     "licenceUrl": null,
+     "text": "©2026 How Sweet Eats.",
+     "where": "page-text"
+    }
+   ]
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "check-complete",
+    "outcome": "pass"
+   },
+   {
+    "code": "https",
+    "outcome": "pass"
+   },
+   {
+    "code": "bot-challenge",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-nombot",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-general",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-ai",
+    "outcome": "fail"
+   },
+   {
+    "code": "crawl-delay",
+    "outcome": "info"
+   },
+   {
+    "code": "reservation",
+    "outcome": "pass"
+   },
+   {
+    "code": "terms",
+    "outcome": "pass"
+   },
+   {
+    "code": "licence",
+    "outcome": "fail"
+   },
+   {
+    "code": "credits",
+    "outcome": "pass"
+   },
+   {
+    "code": "enumerable",
+    "outcome": "pass"
+   },
+   {
+    "code": "structured-data",
+    "outcome": "fail"
+   },
+   {
+    "code": "free-to-read",
+    "outcome": "pass"
+   },
+   {
+    "code": "language",
+    "outcome": "pass"
+   },
+   {
+    "code": "sample-yield",
+    "outcome": "info"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "none",
+   "tdmRepUrl": "https://www.howsweeteats.com/.well-known/tdmrep.json"
+  },
+  "robots": {
+   "aiCrawlers": [
+    {
+     "agent": "GPTBot",
+     "rule": "blocked"
+    },
+    {
+     "agent": "ChatGPT-User",
+     "rule": "blocked"
+    },
+    {
+     "agent": "OAI-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ClaudeBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-Web",
+     "rule": "blocked"
+    },
+    {
+     "agent": "anthropic-ai",
+     "rule": "blocked"
+    },
+    {
+     "agent": "Claude-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "CCBot",
+     "rule": "blocked"
+    },
+    {
+     "agent": "Google-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Applebot-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "cohere-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Bytespider",
+     "rule": "not-named"
+    },
+    {
+     "agent": "PerplexityBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Meta-ExternalAgent",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Amazonbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Diffbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "omgili",
+     "rule": "not-named"
+    }
+   ],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": 200,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [
+    "https://www.howsweeteats.com/sitemap_index.xml"
+   ],
+   "status": "found",
+   "url": "https://www.howsweeteats.com/robots.txt"
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 20,
+   "complete": 6,
+   "english": 20,
+   "fetched": 20,
+   "ingredientLines": 71,
+   "languageUnknown": 0,
+   "linesWithQuantity": 63,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [
+    {
+     "url": "https://www.howsweeteats.com/2026/11/currently-crushing-on-651/"
+    }
+   ],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 6
+  },
+  "terms": {
+   "pages": [
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.howsweeteats.com/faq/"
+    },
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.howsweeteats.com/privacy/"
+    }
+   ],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "www.loveandlemons.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": "https://www.loveandlemons.com/",
+   "homepageLinks": 161,
+   "homepageOutcome": "Ok",
+   "homepageStatus": 200,
+   "homepageUrl": "https://www.loveandlemons.com/",
+   "refusedBeforeFetch": null,
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "loveandlemons.com",
+  "enumeration": {
+   "cap": 1000,
+   "recipeUrlCount": 1000,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": true
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": [
+    {
+     "foundAt": "https://www.loveandlemons.com/",
+     "kind": "copyright-notice",
+     "licenceUrl": null,
+     "text": "Copyright © 2026 Love and Lemons, LLC.",
+     "where": "page-text"
+    },
+    {
+     "foundAt": "https://www.loveandlemons.com/",
+     "kind": "all-rights-reserved",
+     "licenceUrl": null,
+     "text": "All rights reserved.",
+     "where": "page-text"
+    }
+   ]
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "check-complete",
+    "outcome": "pass"
+   },
+   {
+    "code": "https",
+    "outcome": "pass"
+   },
+   {
+    "code": "bot-challenge",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-nombot",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-general",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-ai",
+    "outcome": "pass"
+   },
+   {
+    "code": "crawl-delay",
+    "outcome": "info"
+   },
+   {
+    "code": "reservation",
+    "outcome": "fail"
+   },
+   {
+    "code": "terms",
+    "outcome": "pass"
+   },
+   {
+    "code": "licence",
+    "outcome": "fail"
+   },
+   {
+    "code": "credits",
+    "outcome": "pass"
+   },
+   {
+    "code": "enumerable",
+    "outcome": "pass"
+   },
+   {
+    "code": "structured-data",
+    "outcome": "fail"
+   },
+   {
+    "code": "free-to-read",
+    "outcome": "pass"
+   },
+   {
+    "code": "language",
+    "outcome": "pass"
+   },
+   {
+    "code": "sample-yield",
+    "outcome": "info"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [
+    "https://www.loveandlemons.com/",
+    "https://www.loveandlemons.com/privacy-policy/",
+    "https://www.loveandlemons.com/instant-pot-mashed-potatoes/",
+    "https://www.loveandlemons.com/shishito-silken-tofu/",
+    "https://www.loveandlemons.com/roasted-red-pepper-soup/",
+    "https://www.loveandlemons.com/crepes-recipe/",
+    "https://www.loveandlemons.com/chickpea-soup/",
+    "https://www.loveandlemons.com/gnocchi-soup/",
+    "https://www.loveandlemons.com/vegan-cookie-recipes/",
+    "https://www.loveandlemons.com/peanut-butter-blossoms/",
+    "https://www.loveandlemons.com/moscow-mule-recipe/",
+    "https://www.loveandlemons.com/peanut-noodles/",
+    "https://www.loveandlemons.com/sheet-pan-pizza/",
+    "https://www.loveandlemons.com/ginger-tea-recipe/",
+    "https://www.loveandlemons.com/caesar-dressing/",
+    "https://www.loveandlemons.com/lemon-bars-recipe/",
+    "https://www.loveandlemons.com/kale-smoothie/",
+    "https://www.loveandlemons.com/vegan-broccoli-soup/",
+    "https://www.loveandlemons.com/lemon-blueberry-bread/",
+    "https://www.loveandlemons.com/vegan-hot-dogs/",
+    "https://www.loveandlemons.com/how-to-cut-cabbage/",
+    "https://www.loveandlemons.com/favorite-pasta-recipes/"
+   ],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "none",
+   "tdmRepUrl": "https://www.loveandlemons.com/.well-known/tdmrep.json"
+  },
+  "robots": {
+   "aiCrawlers": [
+    {
+     "agent": "GPTBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ChatGPT-User",
+     "rule": "not-named"
+    },
+    {
+     "agent": "OAI-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ClaudeBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-Web",
+     "rule": "not-named"
+    },
+    {
+     "agent": "anthropic-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "CCBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Google-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Applebot-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "cohere-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Bytespider",
+     "rule": "not-named"
+    },
+    {
+     "agent": "PerplexityBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Meta-ExternalAgent",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Amazonbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Diffbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "omgili",
+     "rule": "not-named"
+    }
+   ],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": 200,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [
+    "https://www.loveandlemons.com/sitemap.xml"
+   ],
+   "status": "found",
+   "url": "https://www.loveandlemons.com/robots.txt"
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 20,
+   "complete": 16,
+   "english": 20,
+   "fetched": 20,
+   "ingredientLines": 172,
+   "languageUnknown": 0,
+   "linesWithQuantity": 138,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [
+    {
+     "url": "https://www.loveandlemons.com/instant-pot-mashed-potatoes/"
+    }
+   ],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 17
+  },
+  "terms": {
+   "pages": [
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.loveandlemons.com/privacy-policy/"
+    }
+   ],
+   "prohibitions": [],
+   "serviceLinks": [
+    "https://policies.google.com/privacy",
+    "https://policies.google.com/terms"
+   ]
+  },
+  "verdict": "not-clear"
+ },
+ "www.seriouseats.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": null,
+   "homepageLinks": null,
+   "homepageOutcome": "not-fetched",
+   "homepageStatus": null,
+   "homepageUrl": "",
+   "refusedBeforeFetch": "denylist",
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "seriouseats.com",
+  "enumeration": {
+   "cap": 0,
+   "recipeUrlCount": 0,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": false
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": []
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "refused",
+    "outcome": "fail"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "not-checked",
+   "tdmRepUrl": ""
+  },
+  "robots": {
+   "aiCrawlers": [],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": null,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [],
+   "status": "not-checked",
+   "url": ""
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 0,
+   "complete": 0,
+   "english": 0,
+   "fetched": 0,
+   "ingredientLines": 0,
+   "languageUnknown": 0,
+   "linesWithQuantity": 0,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 0
+  },
+  "terms": {
+   "pages": [],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "www.skinnytaste.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": null,
+   "homepageLinks": null,
+   "homepageOutcome": "not-fetched",
+   "homepageStatus": null,
+   "homepageUrl": "",
+   "refusedBeforeFetch": "denylist",
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "skinnytaste.com",
+  "enumeration": {
+   "cap": 0,
+   "recipeUrlCount": 0,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": false
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": []
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "refused",
+    "outcome": "fail"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "not-checked",
+   "tdmRepUrl": ""
+  },
+  "robots": {
+   "aiCrawlers": [],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": null,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": null,
+    "disallowsEverything": false,
+    "group": "none",
+    "samplePathsChecked": 0,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [],
+   "status": "not-checked",
+   "url": ""
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 0,
+   "complete": 0,
+   "english": 0,
+   "fetched": 0,
+   "ingredientLines": 0,
+   "languageUnknown": 0,
+   "linesWithQuantity": 0,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 0
+  },
+  "terms": {
+   "pages": [],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ },
+ "www.twopeasandtheirpod.com": {
+  "access": {
+   "botChallengePages": [],
+   "homepageFinalUrl": "https://www.twopeasandtheirpod.com/",
+   "homepageLinks": 188,
+   "homepageOutcome": "Ok",
+   "homepageStatus": 200,
+   "homepageUrl": "https://www.twopeasandtheirpod.com/",
+   "refusedBeforeFetch": null,
+   "refusedPages": [],
+   "usGovernmentStyleDomain": false
+  },
+  "complete": true,
+  "domain": "twopeasandtheirpod.com",
+  "enumeration": {
+   "cap": 1000,
+   "recipeUrlCount": 1000,
+   "refusedPages": [],
+   "stoppedByBudget": false,
+   "viaSitemap": true
+  },
+  "incompleteReason": null,
+  "licence": {
+   "basis": "none",
+   "kind": null,
+   "sampleLicences": {},
+   "statements": [
+    {
+     "foundAt": "https://www.twopeasandtheirpod.com/",
+     "kind": "copyright-notice",
+     "licenceUrl": null,
+     "text": "© 2008 - 2026 Two Peas & Their Pod.",
+     "where": "page-text"
+    },
+    {
+     "foundAt": "https://www.twopeasandtheirpod.com/",
+     "kind": "all-rights-reserved",
+     "licenceUrl": null,
+     "text": "All rights reserved.",
+     "where": "page-text"
+    }
+   ]
+  },
+  "mode": "full",
+  "reasons": [
+   {
+    "code": "check-complete",
+    "outcome": "pass"
+   },
+   {
+    "code": "https",
+    "outcome": "pass"
+   },
+   {
+    "code": "bot-challenge",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-nombot",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-general",
+    "outcome": "pass"
+   },
+   {
+    "code": "robots-ai",
+    "outcome": "pass"
+   },
+   {
+    "code": "crawl-delay",
+    "outcome": "info"
+   },
+   {
+    "code": "reservation",
+    "outcome": "pass"
+   },
+   {
+    "code": "terms",
+    "outcome": "pass"
+   },
+   {
+    "code": "licence",
+    "outcome": "fail"
+   },
+   {
+    "code": "credits",
+    "outcome": "pass"
+   },
+   {
+    "code": "enumerable",
+    "outcome": "pass"
+   },
+   {
+    "code": "structured-data",
+    "outcome": "fail"
+   },
+   {
+    "code": "free-to-read",
+    "outcome": "pass"
+   },
+   {
+    "code": "language",
+    "outcome": "pass"
+   },
+   {
+    "code": "sample-yield",
+    "outcome": "info"
+   }
+  ],
+  "reservation": {
+   "noAiHeaderPages": [],
+   "noAiMetaPages": [],
+   "tdmHeaderPages": [],
+   "tdmRepPolicies": [],
+   "tdmRepReserved": [],
+   "tdmRepStatus": "none",
+   "tdmRepUrl": "https://www.twopeasandtheirpod.com/.well-known/tdmrep.json"
+  },
+  "robots": {
+   "aiCrawlers": [
+    {
+     "agent": "GPTBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ChatGPT-User",
+     "rule": "not-named"
+    },
+    {
+     "agent": "OAI-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "ClaudeBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-Web",
+     "rule": "not-named"
+    },
+    {
+     "agent": "anthropic-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Claude-SearchBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "CCBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Google-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Applebot-Extended",
+     "rule": "not-named"
+    },
+    {
+     "agent": "cohere-ai",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Bytespider",
+     "rule": "not-named"
+    },
+    {
+     "agent": "PerplexityBot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Meta-ExternalAgent",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Amazonbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "Diffbot",
+     "rule": "not-named"
+    },
+    {
+     "agent": "omgili",
+     "rule": "not-named"
+    }
+   ],
+   "contentSignals": [],
+   "general": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": 20,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "httpStatus": 200,
+   "nomBot": {
+    "allowsHomepage": true,
+    "crawlDelaySeconds": 20,
+    "disallowsEverything": false,
+    "group": "wildcard",
+    "samplePathsChecked": 20,
+    "samplePathsDisallowed": [],
+    "sitemapsDisallowed": []
+   },
+   "prohibitionComments": [],
+   "sitemaps": [
+    "https://www.twopeasandtheirpod.com/sitemap_index.xml"
+   ],
+   "status": "found",
+   "url": "https://www.twopeasandtheirpod.com/robots.txt"
+  },
+  "ruleVersion": "source-check/5",
+  "samples": {
+   "attempted": 20,
+   "complete": 15,
+   "english": 20,
+   "fetched": 20,
+   "ingredientLines": 205,
+   "languageUnknown": 0,
+   "linesWithQuantity": 179,
+   "notFreeToRead": 0,
+   "notHttps": 0,
+   "otherLanguage": 0,
+   "pages": [
+    {
+     "url": "https://www.twopeasandtheirpod.com/hostess-gift-guide/"
+    }
+   ],
+   "refused": 0,
+   "requested": 20,
+   "withRecipeJsonLd": 16
+  },
+  "terms": {
+   "pages": [
+    {
+     "httpStatus": 200,
+     "outcome": "read",
+     "url": "https://www.twopeasandtheirpod.com/privacy-and-copyright/"
+    }
+   ],
+   "prohibitions": [],
+   "serviceLinks": []
+  },
+  "verdict": "not-clear"
+ }
+}

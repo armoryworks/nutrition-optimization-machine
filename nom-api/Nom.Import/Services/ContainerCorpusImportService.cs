@@ -65,7 +65,8 @@ namespace Nom.Import.Services
         }
 
         /// <summary>A line of a book recipe the run reads: a sized line in a weight or volume unit, or an unsized one in a container unit.</summary>
-        public sealed record BookLine(long IngredientId, string RawLine, decimal? GramsPerMilliliter, string Book, bool InContainerUnit, decimal Quantity, int? UsdaCategoryId, string? Description, bool HasNutrients);
+        public sealed record BookLine(long IngredientId, string RawLine, decimal? GramsPerMilliliter, string Book, bool InContainerUnit, decimal Quantity, int? UsdaCategoryId, string? Description, bool HasNutrients,
+            string? SourceUrl = null, string? FoodName = null);
 
         /// <summary>The proposals the sizes that pass give: a book size for its book, at that book's era, and an era size for its era.</summary>
         public static List<ContainerSizeProposal> Propose(IEnumerable<CorpusSize> sizes, IReadOnlyDictionary<string, string> eraOfBook, Action<string>? refuse = null)
@@ -96,7 +97,7 @@ namespace Nom.Import.Services
                     && ri.Measurement != null
                     && (ri.Measurement.IsContainer || ri.Measurement.MeasurementCategoryId == RecipeNutritionService.CategoryMass || ri.Measurement.MeasurementCategoryId == RecipeNutritionService.CategoryVolume))
                 .Select(ri => new BookLine(ri.IngredientId, ri.RawLine, ri.Ingredient.GramsPerMilliliter, ri.Recipe.SourceAttribution!, ri.Measurement.IsContainer, ri.Quantity,
-                    ri.Ingredient.FdcCategoryId, ri.Ingredient.Description, ri.Ingredient.IngredientNutrients.Any()))
+                    ri.Ingredient.FdcCategoryId, ri.Ingredient.Description, ri.Ingredient.IngredientNutrients.Any(), ri.Recipe.SourceUrl, ri.Ingredient.Name))
                 .ToListAsync(cancellationToken);
 
             var eraOf = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -104,7 +105,7 @@ namespace Nom.Import.Services
             var unsized = new List<(BookLine Line, string Era)>();
             foreach (var line in lines)
             {
-                var era = ContainerEras.ForRecipe(null, line.Book, eras);
+                var era = ContainerEras.ForRecipe(null, line.Book, eras, line.SourceUrl);
                 if (era == ContainerEras.Modern) continue;
                 report.BookLines++;
                 eraOf[line.Book] = era;
@@ -113,7 +114,7 @@ namespace Nom.Import.Services
                     if (line.Quantity > 0) unsized.Add((line, era));
                     continue;
                 }
-                if (ContainerCorpusSizes.Read(line.Book, era, line.IngredientId, line.RawLine, line.GramsPerMilliliter) is { } read) corpus.Add(read);
+                if (ContainerCorpusSizes.Read(line.Book, era, line.IngredientId, line.RawLine, line.GramsPerMilliliter, food: string.IsNullOrEmpty(line.Description) ? line.FoodName : line.Description) is { } read) corpus.Add(read);
             }
             report.SizedLines = corpus.Count;
             report.Books = corpus.Select(c => c.Book).Distinct().Count();

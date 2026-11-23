@@ -39,6 +39,10 @@ namespace Nom.Orch.Models.Curation
         public int ProseWithheld { get; init; }
         /// <summary>Of those withheld, the approved ones, which the rewrite lane takes first.</summary>
         public int ProseWithheldApproved { get; init; }
+        /// <summary>Recipes whose own prose the prose check is unsure of (weak signals only): shown and counted, and the prose judge's to read.</summary>
+        public int ProseUnsure { get; init; }
+        /// <summary>Of those unsure, the approved ones.</summary>
+        public int ProseUnsureApproved { get; init; }
         /// <summary>Withheld or quarantined recipes the clean-room rewrite lane gave up on under its current version; each is a failure of the engine to fix, and they are tried again when the lane version changes.</summary>
         public int ProseGaveUp { get; init; }
         /// <summary>The lane's give-ups under its current version, by the failure class that held each one.</summary>

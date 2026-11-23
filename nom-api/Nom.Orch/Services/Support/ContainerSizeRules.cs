@@ -117,14 +117,30 @@ namespace Nom.Orch.Services.Support
 
         public static string FromYear(int? year) => year is null ? Unknown : year < ModernFrom ? Historic : Modern;
 
+        /// <summary>The hosts of the book archives a book recipe's source URL may point to; any other host is a web page.</summary>
+        public static readonly IReadOnlyList<string> BookArchives = new[] { "gutenberg.org", "archive.org", "loc.gov", "hathitrust.org" };
+
         /// <summary>
         /// The era of a recipe: modern for a web recipe and for one with no source at all (written in
-        /// the app); for a book, the era of its row in recipe.RecipeSourceEra, else unknown.
+        /// the app); for a book, the era of its row in recipe.RecipeSourceEra, else modern when its
+        /// source URL is a web page outside the book archives (USDA MyPlate Kitchen: staging checkpoint
+        /// 3, N13), else unknown.
         /// </summary>
-        public static string ForRecipe(string? sourceSite, string? sourceAttribution, IReadOnlyDictionary<string, string> eras)
+        public static string ForRecipe(string? sourceSite, string? sourceAttribution, IReadOnlyDictionary<string, string> eras, string? sourceUrl = null)
         {
             if (!string.IsNullOrWhiteSpace(sourceSite) || string.IsNullOrWhiteSpace(sourceAttribution)) return Modern;
-            return eras.TryGetValue(sourceAttribution, out var era) && era is Modern or Historic ? era : Unknown;
+            if (eras.TryGetValue(sourceAttribution, out var era) && era is Modern or Historic) return era;
+            return IsWebPage(sourceUrl) ? Modern : Unknown;
+        }
+
+        /// <summary>Whether a source URL (or its bare host) is a web page outside the book archives; false for none.</summary>
+        public static bool IsWebPage(string? sourceUrlOrHost)
+        {
+            if (string.IsNullOrWhiteSpace(sourceUrlOrHost) || sourceUrlOrHost.Trim() == "-") return false;
+            var text = sourceUrlOrHost.Trim();
+            var host = text.Contains("://", StringComparison.Ordinal) ? (Uri.TryCreate(text, UriKind.Absolute, out var uri) ? uri.Host : string.Empty) : text;
+            host = host.ToLowerInvariant();
+            return host.Length > 0 && !BookArchives.Any(a => host == a || host.EndsWith("." + a, StringComparison.Ordinal));
         }
     }
 

@@ -1,10 +1,10 @@
 {
   "lane": "wording-tiers",
-  "model": "wording-tiers/1",
+  "model": "wording-tiers/3",
   "checkModel": null,
   "host": "none",
-  "signature": "ff6d962e0ec2f08a",
-  "scoredAtUtc": "2026-11-21T10:39:46.0501641Z",
+  "signature": "7e3033d08817ae20",
+  "scoredAtUtc": "2026-11-21T18:03:14.9107445Z",
   "caseSet": "25a3a9b47b2448a6",
   "cases": 7326,
   "passed": 3211,

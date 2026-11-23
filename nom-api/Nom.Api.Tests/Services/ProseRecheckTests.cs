@@ -17,11 +17,12 @@ using Xunit;
 namespace Nom.Api.Tests.Services
 {
     /// <summary>
-    /// Shown scraped recipes are checked against their stored source with prose check v2; the
+    /// Shown scraped recipes are checked against their stored source with the prose check; the
     /// ones that fail have their prose withheld, approved first, with their curation status
     /// untouched, each journaled, and the undo releases them again unless their prose was
-    /// replaced since. An apply needs a stock-phrase index, and an apply that leaves no failure
-    /// shown is recorded as a full run for the weekly job.
+    /// replaced since. Recipes the check is only unsure of stay shown, counted and marked. An
+    /// apply needs a stock-phrase index, and an apply that leaves no failure shown is recorded as
+    /// a full run for the weekly job.
     /// </summary>
     public class ProseRecheckTests
     {
@@ -107,6 +108,12 @@ namespace Nom.Api.Tests.Services
         {
             "Heat the oven to 425 degrees F.",
             "Roast the potatoes on the tray, placed in the oven, 25 minutes so they turn crisp and golden.",
+        };
+
+        private static readonly string[] VerbSaidAnotherWay =
+        {
+            "Heat the oven to 425 degrees F.",
+            "Set the potatoes on the tray in the oven for 25-30 minutes so they turn crisp and golden.",
         };
 
         private sealed record Seeded(long Passing, long Copied, long Collapsed, long Edited, long NoSource);
@@ -225,6 +232,131 @@ namespace Nom.Api.Tests.Services
             (await db.AuditLogEntries.CountAsync(a => a.ChangeType == ProseRecheckService.WithholdUndoChangeType)).Should().Be(2);
 
             (await service.UndoAsync(before)).Should().BeEquivalentTo(new { Restored = 0, Remaining = 0 }, "a repeat finds nothing left");
+        }
+
+        [Fact]
+        public async Task A_recipe_the_check_is_unsure_of_stays_shown_and_is_counted_marked_cleared_and_restored_by_the_undo()
+        {
+            ProseCheck.Check(RewriteFidelity.Source(Source)!, new RewriteFidelity.SourceText(string.Empty, VerbSaidAnotherWay)).Outcome.Should().Be("unsure");
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            var unsure = await SeedAsync(db, CurationStatusEnum.Curated, VerbSaidAnotherWay);
+            var passing = await SeedAsync(db, CurationStatusEnum.NonCurated, Faithful);
+            var service = Service(db);
+            var before = DateTime.UtcNow.AddSeconds(-1);
+
+            var dry = await service.RecheckAsync();
+
+            dry.Should().BeEquivalentTo(new { Failed = 0, Passed = 1, Unsure = 1, UnsureApproved = 1, MarkedUnsure = 0 }, o => o.ExcludingMissingMembers());
+            dry.UnsureByReason.Should().ContainKey(ProseCheck.LostStep);
+            dry.UnsureSamples.Select(s => s.RecipeId).Should().Equal(unsure);
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == unsure)).ProseUnsure.Should().BeFalse("a dry run writes nothing");
+
+            var applied = await service.RecheckAsync(apply: true);
+            db.ChangeTracker.Clear();
+
+            applied.Withheld.Should().Be(0, "an unsure recipe is never withheld");
+            applied.MarkedUnsure.Should().Be(1);
+            applied.RunRecorded.Should().BeTrue();
+            var marked = await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == unsure);
+            marked.ProseUnsure.Should().BeTrue();
+            marked.ProseWithheld.Should().BeFalse();
+            marked.ProseCheckVersion.Should().Be(ProseCheck.Version);
+            (await db.AuditLogEntries.AsNoTracking().SingleAsync(a => a.ChangeType == ProseRecheckService.UnsureChangeType)).NewValue
+                .Should().StartWith($"true | check {ProseCheck.Version} stock 1: unsure: lost-step");
+            (await db.AuditLogEntries.AsNoTracking().SingleAsync(a => a.ChangeType == ProseRecheckService.RunChangeType)).NewValue.Should().Contain("unsure 1");
+            (await service.RecheckAsync(apply: true)).MarkedUnsure.Should().Be(0, "a mark already set is not set again");
+
+            var undo = await service.UndoAsync(before, apply: true);
+            db.ChangeTracker.Clear();
+
+            undo.RestoredUnsure.Should().Be(1);
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == unsure)).ProseUnsure.Should().BeFalse("the undo puts the mark back as it was");
+
+            await service.RecheckAsync(apply: true);
+            foreach (var step in await db.RecipeSteps.Where(s => s.RecipeId == unsure).ToListAsync())
+                step.Description = Faithful[step.StepNumber - 1];
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var cleared = await service.RecheckAsync(apply: true);
+            db.ChangeTracker.Clear();
+
+            cleared.ClearedUnsure.Should().Be(1);
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == unsure)).ProseUnsure.Should().BeFalse();
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == passing)).ProseUnsure.Should().BeFalse();
+        }
+
+        private static async Task MarkUnsureAsync(ApplicationDbContext db, params long[] ids)
+        {
+            foreach (var recipe in await db.Recipes.Where(r => ids.Contains(r.Id)).ToListAsync())
+            {
+                recipe.ProseUnsure = true;
+                recipe.ProseCheckVersion = ProseCheck.Version - 1;
+            }
+
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+        }
+
+        [Fact]
+        public async Task A_recipe_marked_unsure_that_now_fails_loses_the_mark_whether_or_not_this_run_withholds_it_and_the_undo_restores_it()
+        {
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            var first = await SeedAsync(db, CurationStatusEnum.Curated, CopiedStep);
+            var beyond = await SeedAsync(db, CurationStatusEnum.Curated, CopiedStep);
+            await MarkUnsureAsync(db, first, beyond);
+            var service = Service(db);
+            var before = DateTime.UtcNow.AddSeconds(-1);
+
+            var result = await service.RecheckAsync(apply: true, maxRecipes: 1);
+            db.ChangeTracker.Clear();
+
+            result.Withheld.Should().Be(1);
+            result.Remaining.Should().Be(1);
+            result.ClearedUnsure.Should().Be(2);
+            var withheld = await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == first);
+            withheld.ProseWithheld.Should().BeTrue();
+            withheld.ProseUnsure.Should().BeFalse("a withheld recipe carries no unsure mark back when the lane releases it");
+            var shown = await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == beyond);
+            shown.ProseWithheld.Should().BeFalse();
+            shown.ProseUnsure.Should().BeFalse("a recipe that fails is not one the check is unsure of");
+            var journal = await db.AuditLogEntries.AsNoTracking().Where(a => a.ChangeType == ProseRecheckService.UnsureChangeType).ToDictionaryAsync(a => a.EntityId, a => a.NewValue);
+            journal[first].Should().StartWith($"false | check {ProseCheck.Version} stock 1: failed and withheld: copied-text");
+            journal[beyond].Should().StartWith($"false | check {ProseCheck.Version} stock 1: failed, not withheld in this run: copied-text");
+
+            var undo = await service.UndoAsync(before, apply: true);
+            db.ChangeTracker.Clear();
+
+            undo.RestoredUnsure.Should().Be(2);
+            undo.RestoredWithheld.Should().Be(1);
+            (await db.Recipes.AsNoTracking().Where(r => r.Id == first || r.Id == beyond).ToListAsync())
+                .Should().OnlyContain(r => r.ProseUnsure && !r.ProseWithheld);
+        }
+
+        [Fact]
+        public async Task A_mark_cleared_because_a_person_edited_the_recipe_is_journaled_as_not_checked()
+        {
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            var edited = await SeedAsync(db, CurationStatusEnum.Curated, VerbSaidAnotherWay, editedBy: Admin);
+            var ended = await SeedAsync(db, CurationStatusEnum.Curated, VerbSaidAnotherWay);
+            db.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = "Recipe", EntityId = ended, ChangeType = ProseRecheckService.WithholdEndChangeType, PropertyName = "ProseWithheld",
+                OldValue = "true", NewValue = "false", Timestamp = DateTime.UtcNow, ChangedByPersonId = Admin,
+            });
+            await db.SaveChangesAsync();
+            await MarkUnsureAsync(db, edited, ended);
+
+            var result = await Service(db).RecheckAsync(apply: true);
+
+            result.ClearedUnsure.Should().Be(2);
+            var journal = await db.AuditLogEntries.AsNoTracking().Where(a => a.ChangeType == ProseRecheckService.UnsureChangeType).ToDictionaryAsync(a => a.EntityId, a => a.NewValue);
+            journal[edited].Should().Be($"false | check {ProseCheck.Version} stock 1: {ProseRecheckService.NotCheckedEdited}");
+            journal[ended].Should().Be($"false | check {ProseCheck.Version} stock 1: {ProseRecheckService.NotCheckedWithholdEnded}");
+            journal.Values.Should().NotContain(v => v!.Contains("passed"));
         }
 
         [Fact]

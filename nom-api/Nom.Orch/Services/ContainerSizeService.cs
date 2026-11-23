@@ -230,7 +230,7 @@ namespace Nom.Orch.Services
             var corpusOf = new Dictionary<HoldoutLine, CorpusLine>();
             foreach (var line in lines)
             {
-                if (ContainerCorpusSizes.Read(line.Book, line.Era, line.IngredientId, line.RawLine, line.GramsPerMilliliter) is { } read) corpusOf[line] = read;
+                if (ContainerCorpusSizes.Read(line.Book, line.Era, line.IngredientId, line.RawLine, line.GramsPerMilliliter, food: line.Food) is { } read) corpusOf[line] = read;
             }
             var corpusByKey = corpusOf.Values.GroupBy(c => (c.IngredientId, c.Kind, c.SizeWord)).ToDictionary(g => g.Key, g => g.ToList());
 
@@ -378,15 +378,16 @@ namespace Nom.Orch.Services
             }
         }
 
-        /// <summary>A line in a weight or volume unit on one of the foods, with what the hold-out reads of it and of its recipe.</summary>
-        public sealed record HoldoutRow(long RecipeId, long IngredientId, int SortOrder, string RawLine, DateTime CreatedDate, decimal? GramsPerMilliliter, string? SourceSite, string? SourceAttribution, int? UsdaCategoryId = null);
+        /// <summary>A line in a weight or volume unit on one of the foods, with what the hold-out reads of it and of its recipe, and its food's description (or name), which the corpus reads it by.</summary>
+        public sealed record HoldoutRow(long RecipeId, long IngredientId, int SortOrder, string RawLine, DateTime CreatedDate, decimal? GramsPerMilliliter, string? SourceSite, string? SourceAttribution, int? UsdaCategoryId = null, string? SourceUrl = null, string? Food = null);
 
         /// <summary>The lines stated in a weight or volume unit on the given foods, in live recipes; the container word is read after.</summary>
         public static IQueryable<HoldoutRow> HoldoutQuery(ApplicationDbContext db, IReadOnlyCollection<long> foodIds) =>
             db.RecipeIngredients.AsNoTracking()
                 .Where(ri => foodIds.Contains(ri.IngredientId) && !ri.Recipe.IsDeleted && ri.Measurement != null
                     && (ri.Measurement.MeasurementCategoryId == RecipeNutritionService.CategoryMass || ri.Measurement.MeasurementCategoryId == RecipeNutritionService.CategoryVolume))
-                .Select(ri => new HoldoutRow(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine, ri.CreatedDate, ri.Ingredient.GramsPerMilliliter, ri.Recipe.SourceSite, ri.Recipe.SourceAttribution, ri.Ingredient.FdcCategoryId));
+                .Select(ri => new HoldoutRow(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine, ri.CreatedDate, ri.Ingredient.GramsPerMilliliter, ri.Recipe.SourceSite, ri.Recipe.SourceAttribution, ri.Ingredient.FdcCategoryId, ri.Recipe.SourceUrl,
+                    ri.Ingredient.Description == null || ri.Ingredient.Description == string.Empty ? ri.Ingredient.Name : ri.Ingredient.Description));
 
         /// <summary>The standing container sizes with their food's name, for the Pipeline block.</summary>
         public static IQueryable<StatusRow> StatusQuery(ApplicationDbContext db) =>
@@ -397,8 +398,8 @@ namespace Nom.Orch.Services
         /// <summary>A standing container size and its food's name.</summary>
         public sealed record StatusRow(IngredientContainerSizeEntity Row, string? Name);
 
-        /// <summary>A sized container line on a food that has a size, with the era of its recipe and, for a book recipe, its book.</summary>
-        public sealed record HoldoutLine(long RecipeId, long IngredientId, int SortOrder, string RawLine, DateTime CreatedDate, decimal? GramsPerMilliliter, string Era, int? UsdaCategoryId = null, string? Book = null);
+        /// <summary>A sized container line on a food that has a size, with the era of its recipe, for a book recipe its book, and its food's description (or name).</summary>
+        public sealed record HoldoutLine(long RecipeId, long IngredientId, int SortOrder, string RawLine, DateTime CreatedDate, decimal? GramsPerMilliliter, string Era, int? UsdaCategoryId = null, string? Book = null, string? Food = null);
 
         private async Task<List<HoldoutLine>> HoldoutLinesAsync(IReadOnlyList<long> foodIds, CancellationToken cancellationToken)
         {
@@ -411,8 +412,8 @@ namespace Nom.Orch.Services
                 foreach (var r in rows)
                 {
                     if (ContainerKinds.FromText(r.RawLine) == null) continue;
-                    var era = ContainerEras.ForRecipe(r.SourceSite, r.SourceAttribution, eras);
-                    result.Add(new HoldoutLine(r.RecipeId, r.IngredientId, r.SortOrder, r.RawLine, r.CreatedDate, r.GramsPerMilliliter, era, r.UsdaCategoryId, BookOf(r.SourceSite, r.SourceAttribution)));
+                    var era = ContainerEras.ForRecipe(r.SourceSite, r.SourceAttribution, eras, r.SourceUrl);
+                    result.Add(new HoldoutLine(r.RecipeId, r.IngredientId, r.SortOrder, r.RawLine, r.CreatedDate, r.GramsPerMilliliter, era, r.UsdaCategoryId, BookOf(r.SourceSite, r.SourceAttribution), r.Food));
                 }
             }
             return result;

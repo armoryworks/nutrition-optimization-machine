@@ -102,7 +102,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class WordingTiers
     {
-        public const string Version = "wording-tiers/1";
+        public const string Version = "wording-tiers/3";
 
         public const string VerifiedWording = "verified-wording";
         public const string Alias = "alias";
@@ -138,7 +138,9 @@ namespace Nom.Orch.Services.Support
 
         internal static string SignatureSource() =>
             string.Join('\n', Version, LinkGate.Signature, AlcoholLineContext.Signature, WordingHeadDefaults.SignatureSource(),
-                string.Join(',', LinkAutoApplyGuard.Joiners), string.Join(',', All), string.Join(',', CueRules));
+                string.Join(',', LinkAutoApplyGuard.Joiners), string.Join(',', All), string.Join(',', CueRules),
+                string.Join(',', Species.OrderBy(w => w, StringComparer.Ordinal)), NoteForm.ToString(), string.Join(',', NoteForms.OrderBy(w => w, StringComparer.Ordinal)),
+                string.Join(',', NoteParts.OrderBy(w => w, StringComparer.Ordinal)), "note-form:majority");
 
         /// <summary>
         /// Harder keys to the one food each names. A name that is its own key ("Ham") owns that key
@@ -241,6 +243,8 @@ namespace Nom.Orch.Services.Support
                 holds.Add(new GateHold(TiersDisagree, "tiers name different foods", string.Join(", ", others.Select(o => $"{o.Tier} #{o.FoodId}"))));
 
             var target = catalog.Foods[answer.FoodId];
+            if (answer.Tier == HeadDefault && HeadDefaultHold(key!, target) is { } plain) holds.Add(plain);
+            if (answer.Tier is NameKey or HeadDefault && NoteFormHold(lines, target) is { } note) holds.Add(note);
             var weighed = gateLines?.Invoke(target);
             var readers = answer.Tier == VerifiedWording;
             holds.AddRange(LinkGate.Check(new GatePair(answer.GateWording, sourceId, target, ReadersAgreed: readers, Lines: weighed), catalog.Gate));
@@ -250,6 +254,61 @@ namespace Nom.Orch.Services.Support
                     .Where(h => CueRules.Contains(h.Code) && holds.All(held => held.Code != h.Code)));
             }
             return new WordingTierDecision(wording, key, answer, answers, holds, null);
+        }
+
+        /// <summary>Animal species a food's name may carry: a head default never picks one its bare head word does not name ("fowl" is not Guinea Fowls).</summary>
+        public static readonly IReadOnlySet<string> Species = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "turkey", "chicken", "pork", "beef", "veal", "lamb", "mutton", "duck", "goose", "guinea", "pheasant", "quail", "venison", "rabbit", "goat", "bison",
+        };
+
+        private static readonly System.Text.RegularExpressions.Regex NoteForm = new(@"\(([^()]*)\)", System.Text.RegularExpressions.RegexOptions.CultureInvariant | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        /// <summary>Forms a line's bracketed note may give its wording ("3/4 cup cranberry (blood orange or pomegranate juice)" is a juice).</summary>
+        private static readonly HashSet<string> NoteForms = new(StringComparer.Ordinal) { "juice", "juices", "nectar", "syrup", "cocktail" };
+
+        /// <summary>
+        /// Why a head default may not stand for a bare head word: the default must be the plain food
+        /// of the head (its name holds the head word) and may not be a species the head does not
+        /// name, however many curated lines it holds (22 of 22 "fowl" lines on Guinea Fowls).
+        /// </summary>
+        internal static GateHold? HeadDefaultHold(string key, GateFood target)
+        {
+            var head = LinkGate.Fold(key.Trim());
+            var name = LinkGate.Words(target.Name).Select(LinkGate.Fold).ToList();
+            if (!name.Contains(head)) return new GateHold(LinkGate.Variety, "a head default must be the plain food of its head", $"{head} not in {target.Name}");
+            var species = name.FirstOrDefault(w => w != head && Species.Contains(w));
+            return species == null ? null : new GateHold(LinkGate.Variety, "a head default may not pick a species the wording does not name", species);
+        }
+
+        /// <summary>Parts of a fruit a note may name beside its juice ("1 lemon (zest and juice)"): such a note says what is taken from the whole fruit, not that the wording is a juice.</summary>
+        private static readonly HashSet<string> NoteParts = new(StringComparer.Ordinal) { "zest", "rind", "peel", "flesh", "pulp", "segments" };
+
+        /// <summary>
+        /// A hold when the bracketed notes of more than half of the wording's lines give it a form the
+        /// food is not (a juice for the fruit), which the name key and the head default cannot read. One
+        /// line's note never holds every line of a common wording, and a note that names a part of the
+        /// fruit beside the form ("zest and juice") reads no form.
+        /// </summary>
+        internal static GateHold? NoteFormHold(IReadOnlyList<TierLine> lines, GateFood target)
+        {
+            if (lines.Count == 0) return null;
+            var food = LinkGate.Words(target.Name + " " + target.Text).Select(LinkGate.Fold).ToHashSet(StringComparer.Ordinal);
+            string? first = null;
+            var reading = 0;
+            foreach (var line in lines)
+            {
+                foreach (System.Text.RegularExpressions.Match note in NoteForm.Matches(line.Raw))
+                {
+                    var words = LinkGate.Words(note.Groups[1].Value).ToList();
+                    var form = words.FirstOrDefault(NoteForms.Contains);
+                    if (form == null || food.Contains(LinkGate.Fold(form)) || words.Any(NoteParts.Contains)) continue;
+                    first ??= form;
+                    reading++;
+                    break;
+                }
+            }
+            return reading * 2 > lines.Count ? new GateHold(LinkGate.Form, "a line's note reads a form the food is not", $"{first} ({reading} of {lines.Count} lines)") : null;
         }
 
         /// <summary>

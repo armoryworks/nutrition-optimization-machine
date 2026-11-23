@@ -101,6 +101,31 @@ word now keeps the mix-all step out and the highest reading wins: ar-074 (no hea
 (another drink word, no heat), ar-076 (a drink word in a timed boil may not lower the reading below
 the "up to" row, 85 %).
 
+### Staging checkpoint 3: four factors too high (`alcohol-retention/5`)
+
+40 recipes read on staging, 4 wrong, all on the high side (N20). The staging step texts were not
+read again for this fix (no staging access in the build); the golden rows are written for the rule in
+the shape the log gives.
+
+| Item | Cause and decision | Golden row |
+|---|---|---|
+| 17180 card cakes, vanilla `up-to:simmer` 85 % where the only heat is "bake in slow oven" | A made thing such as "boiled icing" read as heat on the dish; it is no heat, so the oven's up-to row, 5010, 45 % | ar-077 |
+| 24825 HUNTING PUDDING, brandy `no-heat` although step 1 mixes all and step 4 boils two hours | "Tie it up in a clean cloth" was read as a separate preparation and ended the reading; a clean cloth, towel, napkin or bag wraps the dish. 5008, 10 % | ar-078 |
+| 24040 zucchini bread, vanilla `up-to:bake` 45 % with "Bake for 50-55 minutes" | The range is read (the time reader takes "50-55 minutes" as 50); the reading had ended before the bake, at "In a separate bowl, whisk the flour ...", after only "Preheat the oven" had been seen as oven heat. Preheating cooks nothing, and a separate bowl of the dry ingredients (flour, dry ingredients, baking powder or soda, with no heat of its own) is the batter's other half. 50 minutes is row 5005, 35 %: the row at or below the time, as for every timed reading (the log's 25 % is the nearer row) | ar-079 |
+| 72005 Real Christmas Pudding, rum `up-to:simmer` 85 % where the soaked fruit and its liquor are boiled five hours | A step that names the drink only as "the liquor" made the reader keep the highest of every reading and the up-to row. A drink that soaks an ingredient (soak, steep, macerate, plump) goes where that ingredient goes: the method is read from that step to its end, past the rest that soaks it. 5009, 5 % | ar-080, ar-081, ar-082 |
+
+ar-083 keeps a separate preparation with heat of its own (a hard sauce beside boiled cream) separate.
+
+Review of the branch (CK6-1, CK6-2), same version: the soak is read like any other reading, up to a
+separate preparation ("Meanwhile, in a saucepan ..."), passing only the pause in its own sentence and
+the sentences right after it that only rest it overnight (ar-084, ar-087). When the steps name the drink
+only by a drink word, the soak's reading is one of the readings from each step that names it, and the
+highest is kept (ar-085: soaked fruit baked, then the cake brushed with more of the liquor, is no heat).
+A separate bowl of dry ingredients is passed over only when the next step stirs it into a mixture the
+drink's own sentence names ("the egg mixture" after "beat the eggs ... and vanilla"); into any other
+mixture it ends the reading as before (ar-086: a bourbon glaze, then a batter baked 30 minutes, is no
+heat).
+
 ## Where it is stored and how the label uses it
 
 Two nullable columns on `recipe."RecipeIngredient"`: `AlcoholRetention` (numeric(5,4), the share that
@@ -188,7 +213,7 @@ No Alcohol household and kept out for a Halal one (`diet-gate.tsv` dg-33 to dg-4
 
 ## Golden set and scorer
 
-`alcohol-retention.tsv` (74 rows: 64 rule-given, `rule:alcohol-retention`, `ok`; 10 realistic methods
+`alcohol-retention.tsv` (97 rows since `alcohol-retention/5`: 87 rule-given, `rule:alcohol-retention`, `ok`; 10 realistic methods
 judged by the builder, `agent-review-alcohol-retention-2026-11-21`, `agent`). No-model scorer lane
 `alcohol-retention` in `model-lanes.json` (`required`, floor 100 %, no false accept; a false accept is
 a factor below the row's). Record: `dotnet run --project nom-api/Nom.Import -- --golden-score --lane

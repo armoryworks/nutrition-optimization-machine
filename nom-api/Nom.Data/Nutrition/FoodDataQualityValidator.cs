@@ -298,7 +298,11 @@ namespace Nom.Data.Nutrition
         /// of the general fiber-aware formula, where a known acidic food may state less than it, or
         /// within <see cref="OwnFactorTolerance"/> of plain 4·protein + 4·carb + 9·fat (+ 7·alcohol) on
         /// total carbohydrate, the general factors USDA itself used for many SR Legacy foods (nettles,
-        /// cattail, seaweed: staging checkpoint 2, M8).
+        /// cattail, seaweed: staging checkpoint 2, M8). A food whose own calorie factors miss its stated
+        /// energy is confirmed the same way when that energy equals plain 4·protein + 4·carb + 9·fat within
+        /// <see cref="OwnFactorTolerance"/>: USDA stated it by the general factors although it lists the
+        /// food's own (Alaska pollock, WHEATENA, turkey gravy: staging checkpoint 3, N3). The fiber-aware
+        /// formula is never a check for a food with its own factors (baobab powder stays a mismatch).
         /// </summary>
         public string? CheckEnergy(FoodQualityInput f)
         {
@@ -326,11 +330,9 @@ namespace Nom.Data.Nutrition
             if (f.UsedInSmallAmounts || Math.Max(kcal, computed) < AtwaterMinKcal) return EnergyCheckOutcome.ExemptSmall;
             if (computed >= kcal * (1m - tolerance) && computed <= kcal * (1m + tolerance))
                 return f.CalorieFactors != null ? EnergyCheckOutcome.OwnFactors : EnergyCheckOutcome.General;
-            if (f.CalorieFactors == null)
-            {
-                var plain = (4m * protein) + (4m * carb) + (9m * fat) + (AlcoholKcalPerGram * alcohol);
-                if (plain >= kcal * (1m - OwnFactorTolerance) && plain <= kcal * (1m + OwnFactorTolerance)) return EnergyCheckOutcome.General;
-            }
+            bool Close(decimal value) => value >= stated * (1m - OwnFactorTolerance) && value <= stated * (1m + OwnFactorTolerance);
+            var plain = (4m * protein) + (4m * carb) + (9m * fat) + (AlcoholKcalPerGram * alcohol);
+            if (Close(plain)) return EnergyCheckOutcome.General;
             return f.CalorieFactors == null && computed > kcal && IsAcidicFood(f.Name?.Trim()) ? EnergyCheckOutcome.General : EnergyCheckOutcome.Mismatch;
         }
 

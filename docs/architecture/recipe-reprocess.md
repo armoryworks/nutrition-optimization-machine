@@ -79,7 +79,16 @@ description ("Egg white, 1, partly beaten.", M20), two measures joined by "and" 
 quart and a pint" is 6 cups), the method fill's ratio is read per sentence, its range by the lower end
 and an "or" line by its own words (M4, M5, M19), a count line naming no food keeps its food and a line
 left out is counted as dropped, the curated food spelt with a hyphen or named by an "or" line's first
-alternative is chosen over a new junk food, and "d'" and "spicchio" are taken off an Italian name (M17))
+alternative is chosen over a new junk food, and "d'" and "spicchio" are taken off an Italian name (M17);
+`line-builder/9` since the checkpoint-3 round of `cleanup2/ck6-parser-rebuild`: a cross-reference to
+another recipe of the book ("descritto al N. 579") is no count and leaves the name, "- 6 numero" counts
+six, a bare "tablespoonful" before the food is one, a second size after "/" ("8 ounces / 1/2 pound") is
+not part of the name, the method fill reads "to two pounds of", "to one of" and "for half a pint" as
+proportions, reads a range whatever number of the food's words follow it ("make 4 or 5 cups of cold
+boiled sweet potatoes" is 4 cups), counts pieces from "ten or a dozen" (a dozen is a count, not a
+measure) and takes nothing a liquid dissolves, softens or steeps another ingredient in, the curated food
+spelt with a hyphen inside a word ("Semi-Sweet") is found from the joined word, and a first alternative of
+more than one word is read alone when the shared words name no food (N1, N14, N16))
 is stamped on every journal row. Raise it with any
 change to a rule the builder applies: the detector reads again every recipe an older version read,
 and the lane's signature changes, so its tiers go back to shadow until they qualify under the new
@@ -288,11 +297,35 @@ take it as it stands now), so the order-only undo still finds its rows as writte
 the older undo, returns each line to its first place: the older write, the order-only pass and
 both undos round-trip to the first rows exactly. The wording retract and reload journal a new entry
 for each line they move, so they follow an order-only write but do not carry into it: undo them
-first (newest first) before undoing the order-only pass. An order-only undo run before a newer
-line undo (the package re-read after the pass) still skips the recipes that undo would touch:
-undo the newer write first.
+first (newest first) before undoing the order-only pass.
+
+An order-only undo run alone puts the positions back even where a later step changed the recipe's
+lines otherwise (staging checkpoint 3, N33: run alone it skipped 22,666 of 97,400 recipes whose food
+links a later relink, refill or re-check set had changed, not their positions). An order move and a
+link or amount change on the same line are independent: when every live row now is a row the pass
+left, known by its text and creation time, and none was added or removed since, the undo gives each
+row the position the pass found (a row whose food is already taken at that position by another row
+goes to the next free one) and keeps the later change (`positionsFollowed` in the result). The move
+back is journaled as an order write of its own, batch `rp-order-follow-<id of the pass's journal row>`,
+and the pass's row is marked undone: the later step's undo follows its line through that write as it
+follows any order-only write (`RecipeOrderTrail` lets only entries made after the pass follow it, since
+an older entry's line already stands where it stood before the pass), and carries what it puts back
+into it. Undoing that write (`RecipeReprocess/undo?batchId=rp-order-follow-<id>`) sets the pass's
+positions again and marks the pass standing, so the pass can be undone once more the usual way. That
+write is an undo, not a step: only an undo naming its batch takes it back, and an undo by `sinceUtc`,
+by kind or of the lane's batches never selects it, so running the same undo again, or a wider one,
+leaves the pass undone. A recipe a later step added a line to or took one from (an unsplit, a refold, a
+rebuild) is still skipped: undo that step first. So is a recipe with a later reprocess write that still
+stands (a rebuild that kept every row, a second order-only pass, another pass's order undo write): its
+own undo restores rows as written and does not follow lines through an order write, so moving them
+would leave it impossible to undo; undo it first, or in the same run.
 
 Nutrition is recalculated after every rebuild and every undo that restored lines.
+
+**Counts of a rebuild.** `counts.added` counts every built line with no stored row of its own: a
+source line new to the recipe, and the second and later parts of a `" + "` fold taken apart again (the
+first part keeps the fold's row). So `linesAfter - linesBefore = added - dropped` always holds (staging
+checkpoint 3, N14: five recipes gained a row while `added` stayed 0).
 
 ## The detector
 

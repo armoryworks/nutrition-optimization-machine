@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Nom.Orch.UtilityInterfaces;
 
@@ -46,12 +47,18 @@ namespace Nom.Orch.Services.Support
     /// commercial reuse and adaptation with at most attribution, the sample was the full 20 pages,
     /// NOM's own vetting passes 18 of them, 85 % of their ingredient lines carry a quantity or need
     /// none, and no admin rejected the domain before. Anything missing or unreadable counts against.
+    /// Reasons are read by their code, never by their place; a reason or an outcome this policy does
+    /// not know is unknown, never a pass. A report under a newer rule version than the current one is
+    /// read on the reasons this policy knows, flagged and inconclusive: it is never clear and changes
+    /// nothing but the display until NOM reads that version.
     /// </summary>
     public static class SourceAdmissionPolicy
     {
-        public const string Version = "source-admission/2";
-        public const string ScraperRuleVersion = "source-check/4";
-        public const string EarlierScraperRuleVersion = "source-check/2";
+        public const string Version = "source-admission/3";
+        public const string ScraperRuleVersion = "source-check/5";
+        public const string EarlierScraperRuleVersion = "source-check/4";
+        public const string OldestScraperRuleVersion = "source-check/2";
+        public const string RuleVersionPrefix = "source-check/";
         public const string Clear = "clear";
         public const string NotClear = "not-clear";
         public const string Pass = "pass";
@@ -64,21 +71,52 @@ namespace Nom.Orch.Services.Support
         public const double LinesFineShare = 0.85;
 
         /// <summary>
-        /// The scraper rule versions whose reports NOM reads: the current one, and the earlier one whose reports may
-        /// still be stored. A new check is asked under the current one only; a stored report under the earlier one
-        /// still gives its facts, and its source or candidate is due to be checked again.
+        /// The scraper rule versions whose reports NOM reads: the current one, and the earlier ones whose reports may
+        /// still be stored. A new check is asked under the current one only; a stored report under an earlier one
+        /// still gives its facts. <c>source-check/3</c> was never deployed with NOM and is not read.
         /// </summary>
         public static readonly IReadOnlySet<string> ReadableRuleVersions = new HashSet<string>(StringComparer.Ordinal)
         {
-            ScraperRuleVersion, EarlierScraperRuleVersion,
+            ScraperRuleVersion, EarlierScraperRuleVersion, OldestScraperRuleVersion,
         };
 
-        /// <summary>The scraper's reasons under <see cref="ScraperRuleVersion"/> (the same codes as under the earlier version), every one of which must be present.</summary>
+        /// <summary>The scraper's reasons under <see cref="ScraperRuleVersion"/> (the same codes as under the earlier versions), every one of which must be present.</summary>
         public static readonly IReadOnlyList<string> ScraperReasons = new[]
         {
             "check-complete", "https", "bot-challenge", "robots-nombot", "robots-general", "robots-ai", "crawl-delay",
             "reservation", "terms", "licence", "credits", "enumerable", "structured-data", "free-to-read", "language", "sample-yield",
         };
+
+        /// <summary>Reasons the scraper adds beside <see cref="ScraperReasons"/>: the first reason of a terms-only check, and the single reason of a refusal before any fetch.</summary>
+        public static readonly IReadOnlySet<string> OtherScraperReasons = new HashSet<string>(StringComparer.Ordinal) { "terms-only", "refused" };
+
+        /// <summary>The reasons whose outcome may be information (<c>info</c>); for any other reason an <c>info</c> outcome is unknown.</summary>
+        public static readonly IReadOnlySet<string> InfoReasons = new HashSet<string>(StringComparer.Ordinal) { "crawl-delay", "sample-yield" };
+
+        /// <summary>How NOM stands to a report's rule version: one it reads, a newer one than it knows (read on the facts it knows, flagged), or one it does not read.</summary>
+        public enum RuleVersionStanding
+        {
+            Unread,
+            Readable,
+            Newer,
+        }
+
+        /// <summary>
+        /// Whether NOM reads a report under <paramref name="ruleVersion"/>: <see cref="RuleVersionStanding.Readable"/> for
+        /// <see cref="ReadableRuleVersions"/>, <see cref="RuleVersionStanding.Newer"/> for a <c>source-check/N</c> above the
+        /// current one, <see cref="RuleVersionStanding.Unread"/> for anything else (no version, <c>source-check/3</c>, another scheme).
+        /// </summary>
+        public static RuleVersionStanding Standing(string? ruleVersion)
+        {
+            if (ruleVersion != null && ReadableRuleVersions.Contains(ruleVersion)) return RuleVersionStanding.Readable;
+            return Number(ruleVersion) is { } n && Number(ScraperRuleVersion) is { } current && n > current ? RuleVersionStanding.Newer : RuleVersionStanding.Unread;
+        }
+
+        /// <summary>Whether a report under <paramref name="ruleVersion"/> is read at all: a readable version, or a newer one read on the facts NOM knows.</summary>
+        public static bool Reads(string? ruleVersion) => Standing(ruleVersion) != RuleVersionStanding.Unread;
+
+        /// <summary>Whether <paramref name="ruleVersion"/> is newer than the scraper rule version NOM reads; shown on the admin page as "newer check version".</summary>
+        public static bool IsNewer(string? ruleVersion) => Standing(ruleVersion) == RuleVersionStanding.Newer;
 
         /// <summary>Licence kinds that allow commercial reuse and adaptation with no condition beyond attribution.</summary>
         public static readonly IReadOnlySet<string> ClearLicences = new HashSet<string>(StringComparer.Ordinal)
@@ -101,20 +139,26 @@ namespace Nom.Orch.Services.Support
                 byCode.TryAdd(reason.Code, reason);
             }
 
-            var knownRules = facts.RuleVersion != null && ReadableRuleVersions.Contains(facts.RuleVersion);
-            reasons.Add(new SourceReason("rule-version", knownRules ? Pass : Unknown,
-                knownRules ? $"report under {facts.RuleVersion}" : $"report under {facts.RuleVersion ?? "no rule version"}; this policy reads {ScraperRuleVersion} and {EarlierScraperRuleVersion} only"));
+            var standing = Standing(facts.RuleVersion);
+            reasons.Add(standing switch
+            {
+                RuleVersionStanding.Readable => new SourceReason("rule-version", Pass, $"report under {facts.RuleVersion}"),
+                RuleVersionStanding.Newer => new SourceReason("rule-version", Unknown, $"newer check version: report under {facts.RuleVersion}, newer than {ScraperRuleVersion}; read on the reasons this policy knows, never clear until NOM reads it"),
+                _ => new SourceReason("rule-version", Unknown, $"report under {facts.RuleVersion ?? "no rule version"}; this policy reads {ScraperRuleVersion}, {EarlierScraperRuleVersion} and {OldestScraperRuleVersion} only"),
+            });
 
             foreach (var code in ScraperReasons)
             {
                 reasons.Add(byCode.TryGetValue(code, out var given)
-                    ? given with { Outcome = Normal(given.Outcome) }
+                    ? given with { Outcome = Normal(code, given.Outcome) }
                     : new SourceReason(code, Unknown, "missing from the report"));
             }
 
             foreach (var extra in facts.Reasons.Where(r => !ScraperReasons.Contains(r.Code)).GroupBy(r => r.Code).Select(g => g.First()))
             {
-                reasons.Add(extra with { Outcome = Normal(extra.Outcome) });
+                reasons.Add(OtherScraperReasons.Contains(extra.Code)
+                    ? extra with { Outcome = Normal(extra.Code, extra.Outcome) }
+                    : extra with { Outcome = extra.Outcome == Fail ? Fail : Unknown, Detail = $"a reason this policy does not know ({extra.Outcome}): {extra.Detail}" });
             }
 
             reasons.Add(facts.ScraperVerdict == Clear
@@ -148,7 +192,7 @@ namespace Nom.Orch.Services.Support
                 ? new SourceReason("rejected-before", Fail, "an admin rejected this domain; that decision is final")
                 : new SourceReason("rejected-before", Pass, "never rejected"));
 
-            var conclusive = knownRules && facts.Complete;
+            var conclusive = standing == RuleVersionStanding.Readable && facts.Complete;
             var clear = conclusive && reasons.All(r => r.Outcome is Pass or Info);
             return new SourceJudgement(clear ? Clear : NotClear, conclusive, reasons);
         }
@@ -189,7 +233,16 @@ namespace Nom.Orch.Services.Support
             return host.StartsWith("www.", StringComparison.Ordinal) ? host[4..] : host;
         }
 
-        private static string Normal(string? outcome) =>
-            outcome is Pass or Fail or Unknown or Info ? outcome : Unknown;
+        private static string Normal(string code, string? outcome) => outcome switch
+        {
+            Pass or Fail or Unknown => outcome,
+            Info when InfoReasons.Contains(code) => Info,
+            _ => Unknown,
+        };
+
+        private static int? Number(string? ruleVersion) =>
+            ruleVersion != null && ruleVersion.StartsWith(RuleVersionPrefix, StringComparison.Ordinal)
+                && int.TryParse(ruleVersion.AsSpan(RuleVersionPrefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var n)
+                ? n : null;
     }
 }

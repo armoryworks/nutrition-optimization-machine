@@ -90,6 +90,9 @@ namespace Nom.Orch.Services.Support
     /// <summary>
     /// The class a source's report gives it, with the deciding words and where they were found, and its AI reservation.
     /// <see cref="TermsOnly"/> marks a verdict from a terms-only check (no recipe page read): its AI flag can only be raised.
+    /// <see cref="NewerRuleVersion"/> marks a report under a newer scraper rule version than NOM reads, classed on the facts NOM knows.
+    /// <see cref="NewerLicenceUnread"/> marks the facts-only verdict of such a report whose licence would make the site clear: a
+    /// newer version's licence is not one NOM has read, so it never makes a site clear, and a class already held as clear stands.
     /// </summary>
     public sealed record SourceRightsVerdict(
         string? Class,
@@ -99,7 +102,9 @@ namespace Nom.Orch.Services.Support
         bool AiReserved,
         string? AiQuote,
         string? AiQuoteUrl,
-        bool TermsOnly = false)
+        bool TermsOnly = false,
+        bool NewerRuleVersion = false,
+        bool NewerLicenceUnread = false)
     {
         public bool Conclusive => Class != null;
     }
@@ -111,36 +116,48 @@ namespace Nom.Orch.Services.Support
     /// <item><b>forbidden</b>: a sentence of the site's own words (its terms or footer as the check quoted
     /// them, or a robots.txt comment) that <see cref="RightsSentences"/> reads as forbidding automated access
     /// or reuse; the sentence and its URL are kept.</item>
-    /// <item>A report under a rule version this rule does not read (it reads <c>source-check/4</c> and stored
-    /// <c>source-check/2</c> reports), from a check that did not finish, or for a host with no address (DNS gave no
-    /// A or AAAA record, so nothing could be read) gives no class (inconclusive): the class already stored stands.</item>
+    /// <item>A report under a rule version this rule does not read (it reads <c>source-check/5</c> and stored
+    /// <c>source-check/4</c> and <c>source-check/2</c> reports, and a newer <c>source-check/N</c> on the facts it knows,
+    /// flagged <see cref="SourceRightsVerdict.NewerRuleVersion"/>) gives no class (inconclusive), and so does a check that
+    /// did not finish (unless the scraper refused to fetch the site at all) or a host with no address (DNS gave no A or AAAA
+    /// record, so nothing could be read): the class already stored stands.</item>
     /// <item><b>permission-needed</b>: the terms could not be read or the site refuses automated fetches: the
-    /// check refused to fetch it, the homepage was not read or carries no links as served (built by scripts),
-    /// robots.txt was refused or unreachable or bars NomBot or all crawlers, a page (robots.txt, homepage, terms,
-    /// sitemap or sample) answered a bot challenge or refused NomBot, a terms page was not read (also one linked on
-    /// another domain, and in a terms-only check one whose link or redirect names a recipe page), or the TDM reservation
-    /// file could not be read.</item>
+    /// check refused to fetch it (the scraper's denylist included), the homepage was not read or carries no links as served
+    /// (built by scripts), robots.txt was refused or unreachable or bars NomBot or all crawlers, a page (robots.txt, homepage,
+    /// terms, sitemap or sample) answered a bot challenge or refused NomBot, a terms page was not read (any outcome but
+    /// <c>read</c>: also one linked on another domain, and in a terms-only check one whose link or redirect names a recipe
+    /// page), or the TDM reservation file could not be read. A value of the report this rule does not know (a robots.txt or
+    /// TDM status, a terms page outcome) is read as not established, never as a pass.</item>
     /// <item><b>clear</b>: the report's licence is one that grants reuse (CC0, Public Domain Mark, a
-    /// public-domain statement, CC BY) and its licence reason passed.</item>
+    /// public-domain statement, CC BY) and its licence reason passed, under a rule version NOM reads; under a newer
+    /// version such a report is facts-only (<see cref="SourceRightsVerdict.NewerLicenceUnread"/>).</item>
     /// <item><b>facts-only</b>: otherwise; nothing grants reuse and nothing forbids automated access.</item>
     /// </list>
     /// <see cref="SourceRightsVerdict.AiReserved"/> is set apart from the class when a sentence reserves
     /// against AI use, a page carries <c>noai</c>, a TDM reservation is declared, a Content-Signal says
-    /// <c>ai-train=no</c> or <c>ai-input=no</c>, or robots.txt blocks a named AI crawler.
+    /// <c>ai-train=no</c> or <c>ai-input=no</c>, or robots.txt blocks a named AI crawler (or names one with a rule this rule
+    /// does not know).
     /// </summary>
     public static class SourceRightsRule
     {
-        public const string Version = "source-rights/2";
+        public const string Version = "source-rights/3";
         public const string Clear = "clear";
         public const string FactsOnly = "facts-only";
         public const string PermissionNeeded = "permission-needed";
         public const string Forbidden = "forbidden";
         public const string NoAddress = "NoAddress";
         public const string TermsOnlyMode = "terms-only";
+        public const string FullMode = "full";
 
         public static readonly IReadOnlyList<string> Classes = new[] { Clear, FactsOnly, PermissionNeeded, Forbidden };
 
-        private static readonly string[] UnreadTermsOutcomes = { "refused", "bot-challenge", "robots-disallowed", "redirected-off-domain", "over-budget", "failed", "not-read", "off-domain", "recipe-like" };
+        private const string ReadOutcome = "read";
+
+        private static readonly string[] RobotsStatuses = { "found", "none", "unreachable", "refused", "not-checked" };
+
+        private static readonly string[] TdmRepStatuses = { "found", "none", "unreadable", "not-checked" };
+
+        private static readonly string[] AiCrawlerRules = { "blocked", "partly-blocked", "allowed", "not-named" };
 
         private static readonly int[] RefusalStatuses = { 401, 402, 403, 429 };
 
@@ -148,6 +165,7 @@ namespace Nom.Orch.Services.Support
         {
             if (report == null) return new SourceRightsVerdict(null, "no report", null, null, false, null, null);
 
+            var newer = SourceAdmissionPolicy.IsNewer(report.RuleVersion);
             var sentences = Sentences(report).Select(s => (s.Text, s.Url, Reading: RightsSentences.Read(s.Text))).ToList();
             var (aiReserved, aiQuote, aiUrl) = Reservation(report, sentences.Where(s => s.Reading.Ai).Select(s => (s.Text, s.Url)).FirstOrDefault());
 
@@ -155,36 +173,53 @@ namespace Nom.Orch.Services.Support
             if (forbidding.Text != null)
             {
                 return new SourceRightsVerdict(Forbidden, forbidding.Reading.Automated ? "the site's words forbid automated access" : "the site's words forbid reuse",
-                    forbidding.Text, forbidding.Url, aiReserved, aiQuote, aiUrl);
+                    forbidding.Text, forbidding.Url, aiReserved, aiQuote, aiUrl, NewerRuleVersion: newer);
             }
 
-            if (report.RuleVersion == null || !SourceAdmissionPolicy.ReadableRuleVersions.Contains(report.RuleVersion))
-                return new SourceRightsVerdict(null, $"report under {report.RuleVersion ?? "no rule version"}; this rule reads {SourceAdmissionPolicy.ScraperRuleVersion} and {SourceAdmissionPolicy.EarlierScraperRuleVersion}", null, null, aiReserved, aiQuote, aiUrl);
+            if (!SourceAdmissionPolicy.Reads(report.RuleVersion))
+                return new SourceRightsVerdict(null, $"report under {report.RuleVersion ?? "no rule version"}; this rule reads {SourceAdmissionPolicy.ScraperRuleVersion}, {SourceAdmissionPolicy.EarlierScraperRuleVersion}, {SourceAdmissionPolicy.OldestScraperRuleVersion} and newer versions", null, null, aiReserved, aiQuote, aiUrl);
+            if (report.Access?.RefusedBeforeFetch is { Length: > 0 } refused)
+                return new SourceRightsVerdict(PermissionNeeded, "the check did not fetch the site", $"the scraper refused to fetch it ({refused})", report.Access.HomepageUrl, aiReserved, aiQuote, aiUrl, NewerRuleVersion: newer);
             if (!report.Complete)
-                return new SourceRightsVerdict(null, $"the check did not finish ({report.IncompleteReason ?? "incomplete"})", null, null, aiReserved, aiQuote, aiUrl);
+                return new SourceRightsVerdict(null, $"the check did not finish ({report.IncompleteReason ?? "incomplete"})", null, null, aiReserved, aiQuote, aiUrl, NewerRuleVersion: newer);
             if (report.Access?.HomepageOutcome == NoAddress)
-                return new SourceRightsVerdict(null, $"the host {Host(report)} has no address (DNS gave no A or AAAA record), so nothing could be read", null, null, aiReserved, aiQuote, aiUrl);
+                return new SourceRightsVerdict(null, $"the host {Host(report)} has no address (DNS gave no A or AAAA record), so nothing could be read", null, null, aiReserved, aiQuote, aiUrl, NewerRuleVersion: newer);
 
             if (Unreadable(report) is { } unread)
-                return new SourceRightsVerdict(PermissionNeeded, unread.Reason, unread.Quote, unread.Url, aiReserved, aiQuote, aiUrl);
+                return new SourceRightsVerdict(PermissionNeeded, unread.Reason, unread.Quote, unread.Url, aiReserved, aiQuote, aiUrl, NewerRuleVersion: newer);
 
             var licence = report.Licence;
             var licencePassed = report.Reasons.Any(r => r.Code == "licence" && r.Outcome == SourceAdmissionPolicy.Pass);
+            if (licence?.Kind != null && SourceAdmissionPolicy.ClearLicences.Contains(licence.Kind) && licencePassed && newer)
+            {
+                return new SourceRightsVerdict(FactsOnly, $"report under {report.RuleVersion}, newer than {SourceAdmissionPolicy.ScraperRuleVersion}: its {licence.Kind} licence is not read as granting reuse until NOM reads that version, and nothing forbids automated access",
+                    $"newer check version: {licence.Kind} not read under {report.RuleVersion}", report.Access?.HomepageUrl, aiReserved, aiQuote, aiUrl, NewerRuleVersion: true, NewerLicenceUnread: true);
+            }
+
             if (licence?.Kind != null && SourceAdmissionPolicy.ClearLicences.Contains(licence.Kind) && licencePassed)
             {
                 var statement = licence.Statements.FirstOrDefault(s => s.Kind == licence.Kind);
                 var page = report.Samples?.Pages.FirstOrDefault()?.Url;
                 return new SourceRightsVerdict(Clear, $"{licence.Kind} grants reuse",
                     statement?.Text ?? $"{licence.SampleLicences.GetValueOrDefault(licence.Kind)} sampled recipe pages carry a {licence.Kind} licence in their markup",
-                    statement?.FoundAt ?? page ?? report.Access?.HomepageUrl, aiReserved, aiQuote, aiUrl);
+                    statement?.FoundAt ?? page ?? report.Access?.HomepageUrl, aiReserved, aiQuote, aiUrl, NewerRuleVersion: newer);
             }
 
             var reserved = licence?.Statements.FirstOrDefault(s => s.Kind == "all-rights-reserved")
                 ?? licence?.Statements.FirstOrDefault(s => s.Kind == "copyright-notice");
             return new SourceRightsVerdict(FactsOnly, "nothing grants reuse and nothing forbids automated access",
                 reserved?.Text ?? "no licence, no prohibition and no terms against automated access were found",
-                reserved?.FoundAt ?? report.Access?.HomepageUrl, aiReserved, aiQuote, aiUrl);
+                reserved?.FoundAt ?? report.Access?.HomepageUrl, aiReserved, aiQuote, aiUrl, NewerRuleVersion: newer);
         }
+
+        /// <summary>
+        /// Whether a report allows a full check (sample recipe pages) of its site: it is a terms-only check (robots.txt, the
+        /// homepage and the terms pages, no recipe page) under a rule version NOM reads, and it classes the site facts-only or
+        /// clear, so nothing in the site's own words forbids automated access or reuse and nothing refused NomBot or was left
+        /// unread. A terms-only check that found a bar, did not finish or read nothing allows no full check.
+        /// </summary>
+        public static bool AllowsFullCheck(ScraperSourceCheckReport? report) =>
+            IsTermsOnly(report) && Derive(report).Class is Clear or FactsOnly;
 
         /// <summary>The sentences of the site's own words the report quotes: robots.txt comments first (served on the domain itself), then terms and footer prohibitions.</summary>
         public static IEnumerable<(string Text, string? Url)> Sentences(ScraperSourceCheckReport report)
@@ -218,6 +253,8 @@ namespace Nom.Orch.Services.Support
             var robots = report.Robots;
             if (robots?.Status is "refused" or "unreachable")
                 return ("the site refuses automated fetches", $"robots.txt was {robots.Status}", robots.Url);
+            if (robots?.Status is { } robotsStatus && !RobotsStatuses.Contains(robotsStatus))
+                return ("what robots.txt allows is not established", $"robots.txt status \"{robotsStatus}\" is not one this rule knows", robots.Url);
             if (robots?.NomBot is { } nomBot && (nomBot.DisallowsEverything || !nomBot.AllowsHomepage || nomBot.SamplePathsDisallowed.Count > 0))
                 return ("the site refuses automated fetches", "robots.txt disallows NomBot" + (nomBot.SamplePathsDisallowed.FirstOrDefault() is { } path ? $" ({path})" : string.Empty), robots.Url);
             if (robots?.General is { } general && (general.DisallowsEverything || !general.AllowsHomepage))
@@ -235,13 +272,15 @@ namespace Nom.Orch.Services.Support
                 return ("the site refuses automated fetches", $"{samples.Refused} sampled recipe page(s) refused NomBot", page ?? access.HomepageUrl);
             }
 
-            if (report.Terms?.Pages.FirstOrDefault(p => UnreadTermsOutcomes.Contains(p.Outcome)) is { } unreadTerms)
+            if (report.Terms?.Pages.FirstOrDefault(p => !IsRead(p)) is { } unreadTerms)
                 return ("the terms could not be read", unreadTerms.Outcome == "off-domain"
                     ? $"{unreadTerms.Url} is linked as the terms but is on another domain, so it was not read"
-                    : $"{unreadTerms.Url} was not read ({unreadTerms.Outcome})", unreadTerms.Url);
+                    : $"{unreadTerms.Url} was not read ({unreadTerms.Outcome ?? "no outcome"})", unreadTerms.Url);
 
             if (report.Reservation?.TdmRepStatus == "unreadable")
                 return ("the site's TDM reservation could not be read", "the TDM reservation file could not be read", report.Reservation.TdmRepUrl);
+            if (report.Reservation?.TdmRepStatus is { } tdmStatus && !TdmRepStatuses.Contains(tdmStatus))
+                return ("the site's TDM reservation is not established", $"TDM reservation status \"{tdmStatus}\" is not one this rule knows", report.Reservation.TdmRepUrl);
             return null;
         }
 
@@ -258,7 +297,8 @@ namespace Nom.Orch.Services.Support
             var signal = report.Robots?.ContentSignals.Select(Text).FirstOrDefault(s => Regex.IsMatch(s, @"ai-(?:train|input)\s*=\s*no", RegexOptions.IgnoreCase));
             if (signal != null) return (true, $"robots.txt Content-Signal: {signal}", report.Robots?.Url);
 
-            var blocked = report.Robots?.AiCrawlers.Where(a => a.Rule is "blocked" or "partly-blocked").Select(a => a.Rule == "blocked" ? a.Agent : $"{a.Agent} (partly)").ToList() ?? new List<string>();
+            var blocked = report.Robots?.AiCrawlers.Where(a => a.Rule is "blocked" or "partly-blocked" || !AiCrawlerRules.Contains(a.Rule))
+                .Select(a => a.Rule switch { "blocked" => a.Agent, "partly-blocked" => $"{a.Agent} (partly)", _ => $"{a.Agent} ({a.Rule ?? "no rule"}, not a rule this rule knows)" }).ToList() ?? new List<string>();
             if (blocked.Count > 0) return (true, $"robots.txt blocks named AI crawlers: {string.Join(", ", blocked)}", report.Robots?.Url);
             return (false, null, null);
         }
@@ -266,29 +306,51 @@ namespace Nom.Orch.Services.Support
         private static string Text(JsonElement element) =>
             element.ValueKind == JsonValueKind.String ? element.GetString() ?? string.Empty : element.GetRawText();
 
-        /// <summary>Whether a report comes from a terms-only check (the scraper's <c>sampleSize</c> 0 mode, <c>mode</c> "terms-only"): robots.txt, the homepage and the terms pages only, no recipe page.</summary>
+        /// <summary>
+        /// Whether a report comes from a terms-only check (the scraper's <c>sampleSize</c> 0 mode, <c>mode</c> "terms-only"):
+        /// robots.txt, the homepage and the terms pages only, no recipe page. A mode this rule does not know is read as
+        /// terms-only, so such a report can neither lift a bar nor stand in for a full check.
+        /// </summary>
         public static bool IsTermsOnly(ScraperSourceCheckReport? report) =>
-            report?.Mode == TermsOnlyMode || report?.Samples is { Requested: SourceAdmissionPolicy.TermsOnlySampleSize };
+            report != null && (report.Mode is { } mode && mode != FullMode || report.Samples is { Requested: SourceAdmissionPolicy.TermsOnlySampleSize });
 
         /// <summary>
         /// The verdict a report gives a source that holds <paramref name="heldClass"/>, decided on a sentence or a
-        /// refusal found at <paramref name="heldQuoteUrl"/>. A full check's verdict stands as derived. A terms-only check
+        /// refusal found at <paramref name="heldQuoteUrl"/>. A full check's verdict stands as derived, except that a report under a
+        /// newer rule version whose licence would make the site clear gives no class to a source held clear. A terms-only check
         /// reads no recipe page or sitemap, so it can confirm or find a bar but cannot lift one it did not read: when the
         /// source is forbidden or needs permission on the words of a page the terms-only check did not read (a recipe page's
         /// footer, a refused sample or sitemap), a verdict of facts-only or clear gives no class, and the held class stands.
         /// The pages that hold a bar are the held quote's and every page of <paramref name="lastFullReport"/> (the source's
         /// last full check) with a forbidding sentence or a refusal, not only the first one quoted; each must have been read
-        /// again. Its AI flag can only be raised (<see cref="SourceRightsVerdict.TermsOnly"/>).
+        /// again. Nor can it read a licence on a recipe page, so its facts-only never replaces a held clear class. Its AI flag
+        /// can only be raised (<see cref="SourceRightsVerdict.TermsOnly"/>).
         /// </summary>
         public static SourceRightsVerdict Derive(ScraperSourceCheckReport? report, string? heldClass, string? heldQuoteUrl, ScraperSourceCheckReport? lastFullReport = null)
         {
             var verdict = Derive(report);
+            if (heldClass == Clear && verdict.NewerLicenceUnread)
+                return verdict with
+                {
+                    Class = null,
+                    Reason = $"{verdict.Reason}; the source was found clear and its clear class stands",
+                    Quote = null,
+                    QuoteUrl = null,
+                };
             if (!IsTermsOnly(report)) return verdict;
             verdict = verdict with { TermsOnly = true };
+            if (heldClass == Clear && verdict.Class == FactsOnly)
+                return verdict with
+                {
+                    Class = null,
+                    Reason = "a terms-only check reads no recipe page, so it cannot see the licence the source was found clear on; the class stands",
+                    Quote = null,
+                    QuoteUrl = null,
+                };
             if (heldClass is not (Forbidden or PermissionNeeded) || verdict.Class is not (Clear or FactsOnly)) return verdict;
             var read = PagesRead(report!);
             var bars = new List<string?> { heldQuoteUrl };
-            if (lastFullReport != null && !IsTermsOnly(lastFullReport)) bars.AddRange(BarPages(lastFullReport));
+            if (lastFullReport != null) bars.AddRange(BarPages(lastFullReport));
             var unread = bars.Where(url => url == null || !read.Contains(Page(url))).Select(url => url ?? "the page").FirstOrDefault();
             if (unread == null) return verdict;
             return verdict with
@@ -313,7 +375,7 @@ namespace Nom.Orch.Services.Support
             var access = report.Access;
             foreach (var url in (access?.BotChallengePages ?? new List<string>()).Concat(access?.RefusedPages ?? new List<string>()).Concat(report.Enumeration?.RefusedPages ?? new List<string>()))
                 yield return url;
-            foreach (var page in report.Terms?.Pages.Where(p => UnreadTermsOutcomes.Contains(p.Outcome)) ?? Enumerable.Empty<ScraperCheckTermsPage>())
+            foreach (var page in report.Terms?.Pages.Where(p => !IsRead(p)) ?? Enumerable.Empty<ScraperCheckTermsPage>())
                 yield return page.Url;
             if (report.Samples is { Refused: > 0 } samples)
             {
@@ -327,13 +389,15 @@ namespace Nom.Orch.Services.Support
         {
             var pages = new HashSet<string>(StringComparer.Ordinal);
             foreach (var url in new[] { report.Access?.HomepageUrl, report.Access?.HomepageFinalUrl, report.Robots?.Url, report.Reservation?.TdmRepUrl }
-                .Concat(report.Terms?.Pages.Where(p => p.Outcome == "read").Select(p => p.Url) ?? Enumerable.Empty<string>()))
+                .Concat(report.Terms?.Pages.Where(IsRead).Select(p => p.Url) ?? Enumerable.Empty<string>()))
             {
                 if (!string.IsNullOrWhiteSpace(url)) pages.Add(Page(url));
             }
 
             return pages;
         }
+
+        private static bool IsRead(ScraperCheckTermsPage page) => page.Outcome == ReadOutcome;
 
         private static string Page(string url)
         {

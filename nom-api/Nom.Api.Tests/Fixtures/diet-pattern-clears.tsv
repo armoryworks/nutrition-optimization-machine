@@ -1,0 +1,127 @@
+term	phrase	types that let it through
+apple	pineapple	FODMAP Sensitivity, Low-FODMAP
+bacon	beef bacon	Halal, Kosher
+bacon	turkey bacon	Alpha-Gal Syndrome, Halal, Kosher
+banana	banana pepper	Banana Allergy
+bean	cacao bean	Carnivore, FODMAP Sensitivity, Low-FODMAP, Paleo, Whole30
+bean	cocoa bean	Carnivore, FODMAP Sensitivity, Low-FODMAP, Paleo, Whole30
+bean	coffee bean	Carnivore, FODMAP Sensitivity, Low-FODMAP, Paleo, Whole30
+bean	vanilla bean	Carnivore, FODMAP Sensitivity, Low-FODMAP, Paleo, Whole30
+beef	beefsteak tomato	Alpha-Gal Syndrome
+beer	birch beer	Celiac Disease, Gluten Sensitivity, Gluten-Free, Gout, Grain-Free
+beer	ginger beer	Celiac Disease, Gluten Sensitivity, Gluten-Free, Gout, Grain-Free
+beer	root beer	Celiac Disease, Gluten Sensitivity, Gluten-Free, Gout, Grain-Free
+bread	breadfruit	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+bread	sweetbread	Carnivore, Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+butter	almond butter	Dairy-Free, Ethical Vegan, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+butter	apple butter	Dairy-Free, Ethical Vegan, Milk Allergy, Paleo, Pancreatitis, Plant-Based, Raw Vegan, Vegan, Whole30
+butter	butter bean	Dairy-Free, Ethical Vegan, Milk Allergy, Pancreatitis, Plant-Based, Raw Vegan, Vegan
+butter	butter lettuce	Dairy-Free, Ethical Vegan, Milk Allergy, Paleo, Pancreatitis, Plant-Based, Raw Vegan, Vegan, Whole30
+butter	butterhead	Dairy-Free, Ethical Vegan, Milk Allergy, Paleo, Pancreatitis, Plant-Based, Raw Vegan, Vegan, Whole30
+butter	butternut	Dairy-Free, Ethical Vegan, Milk Allergy, Paleo, Pancreatitis, Plant-Based, Raw Vegan, Vegan, Whole30
+butter	cacao butter	Dairy-Free, Ethical Vegan, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+butter	cashew butter	Dairy-Free, Ethical Vegan, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+butter	cocoa butter	Dairy-Free, Ethical Vegan, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+butter	nut butter	Dairy-Free, Ethical Vegan, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+butter	peanut butter	Dairy-Free, Ethical Vegan, Milk Allergy, Plant-Based, Raw Vegan, Vegan
+butter	seed butter	Dairy-Free, Ethical Vegan, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+butter	sunflower butter	Dairy-Free, Ethical Vegan, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+cheese	cheesecloth	Dairy-Free, Ethical Vegan, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+chestnut	water chestnut	Nut Allergy, Tree Nut Allergy
+chile	chilean	Nightshade Sensitivity, Nightshade-Free
+cod	coddle	Buddhist Vegetarian, Ethical Vegan, Fish Allergy, Hindu Vegetarian, Jain, Plant-Based, Raw Vegan, Vegan, Vegetarian
+cod	coddled	Buddhist Vegetarian, Ethical Vegan, Fish Allergy, Hindu Vegetarian, Jain, Plant-Based, Raw Vegan, Vegan, Vegetarian
+cola	colander	Caffeine Sensitivity, Sugar-Free
+corn	corned	Corn Allergy, Grain-Free, Paleo, Whole30
+corn	cornish	Corn Allergy, Grain-Free, Paleo, Whole30
+corn	peppercorn	Corn Allergy, Grain-Free, Paleo, Whole30
+crab	crab apple	Buddhist Vegetarian, Crab Allergy, Ethical Vegan, Hindu Vegetarian, Jain, Kosher, Plant-Based, Raw Vegan, Shellfish Allergy, Vegan, Vegetarian
+crab	crabapple	Buddhist Vegetarian, Crab Allergy, Ethical Vegan, Hindu Vegetarian, Jain, Kosher, Plant-Based, Raw Vegan, Shellfish Allergy, Vegan, Vegetarian
+cream	coconut cream	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+cream	cream of coconut	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+cream	cream of tartar	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+custard	custard apple	Dairy-Free, Egg Allergy, Ethical Vegan, Hindu Vegetarian, Jain, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+duck	duck sauce	Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
+egg	eggplant	Egg Allergy, Ethical Vegan, Hindu Vegetarian, Plant-Based, Raw Vegan, Vegan
+fish	crawfish	Fish Allergy
+fish	crayfish	Fish Allergy
+fish	goldfish cracker	Buddhist Vegetarian, Fish Allergy, Hindu Vegetarian, Jain, Vegetarian
+fish	shellfish	Fish Allergy
+fish	swedish fish	Buddhist Vegetarian, Ethical Vegan, Fish Allergy, Hindu Vegetarian, Jain, Plant-Based, Raw Vegan, Vegan, Vegetarian
+flour	almond flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flour	arrowroot flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flour	buckwheat flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Wheat Allergy
+flour	cassava flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flour	chickpea flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Wheat Allergy
+flour	coconut flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flour	corn flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Wheat Allergy
+flour	cornflour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Wheat Allergy
+flour	oat flour	Wheat Allergy
+flour	potato flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flour	rice flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Wheat Allergy
+flour	tapioca flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+goat	goat cheese	Buddhist Vegetarian, Hindu Vegetarian, Jain, Pescatarian, Vegetarian
+goat	goat milk	Buddhist Vegetarian, Hindu Vegetarian, Jain, Pescatarian, Vegetarian
+goat	goat yogurt	Buddhist Vegetarian, Hindu Vegetarian, Jain, Pescatarian, Vegetarian
+goose	gooseberry	Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
+ham	graham	Buddhist Vegetarian, Ethical Vegan, Halal, Hindu Vegetarian, Jain, Kosher, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
+ham	hamantaschen	Buddhist Vegetarian, Ethical Vegan, Halal, Hindu Vegetarian, Jain, Kosher, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
+ham	hamburger	Halal, Kosher
+hamburger	hamburger bun	Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
+hamburger	hamburger roll	Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
+honey	honeycrisp	Ethical Vegan, Jain, Raw Vegan, Sugar-Free, Vegan, Whole30
+honey	honeydew	Ethical Vegan, FODMAP Sensitivity, Jain, Low-FODMAP, Raw Vegan, Sugar-Free, Vegan, Whole30
+hot dog	hot dog bun	Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
+hot dog	hot dog roll	Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
+jam	jamaican	Sugar-Free
+jam	jambalaya	Sugar-Free
+lamb	lamb's lettuce	Alpha-Gal Syndrome, Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
+lamb	lambrusco	Alpha-Gal Syndrome, Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
+lard	collard	Alpha-Gal Syndrome, Buddhist Vegetarian, Ethical Vegan, Gallbladder Disease, Halal, Hindu Vegetarian, Jain, Kosher, Pancreatitis, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
+lemon	lemon balm	Citrus Allergy, Interstitial Cystitis
+lemon	lemon thyme	Citrus Allergy, Interstitial Cystitis
+lemon	lemon verbena	Citrus Allergy, Interstitial Cystitis
+lemon	lemongrass	Citrus Allergy, Interstitial Cystitis
+licorice	licorice root	Celiac Disease, Gluten Sensitivity, Gluten-Free, Wheat Allergy
+liquorice	liquorice root	Celiac Disease, Gluten Sensitivity, Gluten-Free, Wheat Allergy
+lobster	lobster mushroom	Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Kosher, Lobster Allergy, Plant-Based, Raw Vegan, Shellfish Allergy, Vegan, Vegetarian
+malt	maltodextrin	Celiac Disease, Gluten Sensitivity, Gluten-Free
+mango	mangosteen	Mango Allergy
+milk	almond milk	Dairy-Free, Ethical Vegan, FODMAP Sensitivity, Lactose Intolerance, Lactose-Intolerant, Low-FODMAP, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+milk	cashew milk	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+milk	coconut milk	Dairy-Free, Ethical Vegan, FODMAP Sensitivity, Lactose Intolerance, Lactose-Intolerant, Low-FODMAP, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+milk	milk thistle	Dairy-Free, Ethical Vegan, FODMAP Sensitivity, Lactose Intolerance, Lactose-Intolerant, Low-FODMAP, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+milk	milkfish	Dairy-Free, FODMAP Sensitivity, Lactose Intolerance, Lactose-Intolerant, Low-FODMAP, Milk Allergy, Paleo, Whole30
+milk	milkweed	Dairy-Free, Ethical Vegan, FODMAP Sensitivity, Lactose Intolerance, Lactose-Intolerant, Low-FODMAP, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+milk	oat milk	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Plant-Based, Raw Vegan, Vegan
+milk	rice milk	Dairy-Free, Ethical Vegan, FODMAP Sensitivity, Lactose Intolerance, Lactose-Intolerant, Low-FODMAP, Milk Allergy, Plant-Based, Raw Vegan, Vegan
+milk	soy milk	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Plant-Based, Raw Vegan, Vegan
+milk	soymilk	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Plant-Based, Raw Vegan, Vegan
+nut butter	coconut butter	Nut Allergy, Tree Nut Allergy
+nut butter	peanut butter	Tree Nut Allergy
+orange	orange roughy	Citrus Allergy, Interstitial Cystitis
+oyster	oyster cracker	Buddhist Vegetarian, Ethical Vegan, Hemochromatosis, Hindu Vegetarian, Jain, Kosher, Oyster Allergy, Plant-Based, Raw Vegan, Shellfish Allergy, Vegan, Vegetarian
+oyster	oyster mushroom	Buddhist Vegetarian, Ethical Vegan, Hemochromatosis, Hindu Vegetarian, Jain, Kosher, Oyster Allergy, Plant-Based, Raw Vegan, Shellfish Allergy, Vegan, Vegetarian
+pear	pearl	FODMAP Sensitivity, Low-FODMAP
+potato	sweet potato	Nightshade Sensitivity, Nightshade-Free
+poultry	poultry seasoning	Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
+salmon	salmonberry	Buddhist Vegetarian, Ethical Vegan, Fish Allergy, Hindu Vegetarian, Jain, Plant-Based, Raw Vegan, Vegan, Vegetarian
+scallop	scalloped	Buddhist Vegetarian, Ethical Vegan, Gout, Hindu Vegetarian, Jain, Kosher, Plant-Based, Raw Vegan, Scallop Allergy, Shellfish Allergy, Vegan, Vegetarian
+scallop	scallopini	Gout, Kosher, Scallop Allergy, Shellfish Allergy
+soda	baking soda	Sugar-Free
+soda	bicarbonate of soda	Sugar-Free
+soda	club soda	Sugar-Free
+soda	soda water	Sugar-Free
+spaghetti	spaghetti squash	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Whole30
+steak	steak sauce	Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
+steak	steak seasoning	Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
+sugar	sugar snap	Sugar-Free
+tamari	tamarind	Carnivore, FODMAP Sensitivity, Low-FODMAP, Paleo, Soy Allergy, Soybean Allergy, Whole30
+tortilla	corn tortilla	Celiac Disease, Gluten Sensitivity, Gluten-Free, Wheat Allergy
+tortilla	flour tortilla	Corn Allergy
+wheat	buckwheat	Celiac Disease, FODMAP Sensitivity, Gluten Sensitivity, Gluten-Free, Low-FODMAP, Wheat Allergy
+yoghurt	coconut yoghurt	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+yoghurt	soy yoghurt	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Plant-Based, Raw Vegan, Vegan
+yogurt	almond yogurt	Dairy-Free, Ethical Vegan, FODMAP Sensitivity, Lactose Intolerance, Lactose-Intolerant, Low-FODMAP, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+yogurt	coconut yogurt	Dairy-Free, Ethical Vegan, FODMAP Sensitivity, Lactose Intolerance, Lactose-Intolerant, Low-FODMAP, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+yogurt	soy yogurt	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Plant-Based, Raw Vegan, Vegan

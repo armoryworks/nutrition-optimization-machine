@@ -434,5 +434,167 @@ namespace Nom.Api.Tests.Services
 
             (undone.Restored, undone.Skipped, undone.SkippedRebuilt).Should().Be((0, 1, 0), "a line changed by hand since is never overwritten");
         }
+
+        [Fact]
+        public async Task The_order_only_undo_run_alone_puts_the_positions_back_after_a_later_relink_and_fill_and_every_undo_after_it_still_finds_its_line()
+        {
+            var f = await SetUpAsync(Cake, "whole milk");
+            var first = await PrintAsync(f);
+            var order = await OrderOnlyAsync(f);
+            var (milk, whole, eggs) = (f.Foods["milk"], f.Foods["whole milk"], f.Foods["eggs"]);
+            var milkAt = (await PrintAsync(f)).Single(p => p.IngredientId == milk).SortOrder;
+            await Task.Delay(5);
+            var later = DateTime.UtcNow.AddMilliseconds(-1);
+            (await RecipeLineRowWriter.MoveAsync(f.Db, f.RecipeId, milk, milkAt, whole, milkAt, Operator)).Should().Be(milkAt);
+            f.Db.ChangeTracker.Clear();
+            await JournalAsync(f, LineRelinkService.RelinkEntityType, LineRelinkService.RelinkChangeType, nameof(RecipeIngredientEntity.IngredientId),
+                LineRelinkService.Place(milk, milkAt), LineRelinkService.Place(whole, milkAt));
+            await AmountJournalAsync(f, ScrapedRecipeRepairService.LineEntityType, ScrapedRecipeRepairService.FillChangeType, null, "eggs", 4, Piece);
+
+            var back = await Reprocess(f.Db).UndoAsync(null, order.BatchId, apply: true);
+            f.Db.ChangeTracker.Clear();
+
+            (back.Restored, back.Skipped, back.PositionsFollowed).Should().Be((1, 0, 1), "staging skipped 22,666 order-only recipes whose links, not positions, changed later (N33)");
+            (await PrintAsync(f)).Should().Equal(first.Select(p => p.IngredientId == milk ? p with { IngredientId = whole } : p.IngredientId == eggs ? p with { Quantity = 4 } : p)
+                .OrderBy(p => p.SortOrder).ThenBy(p => p.IngredientId).ThenBy(p => p.RawLine, StringComparer.Ordinal).ToList());
+            var follow = await f.Db.RecipeReprocessJournals.AsNoTracking().SingleAsync(j => j.UndoneAt == null);
+            follow.BatchId.Should().Be(RecipeReprocessService.OrderFollowPrefix + order.Results.Single().JournalId);
+
+            var fills = await new ScrapedRecipeRepairService(f.Db, new RecipeVettingService()).UndoFillsAsync(later, apply: true);
+            f.Db.ChangeTracker.Clear();
+            var relinks = await new LineRelinkService(f.Db, new Admin()).UndoAsync(later, apply: true);
+            f.Db.ChangeTracker.Clear();
+
+            (fills.Restored, fills.Skipped).Should().Be((1, 0));
+            (relinks.Restored, relinks.Skipped).Should().Be((1, 0), "the later relink's undo follows its line to the place the order undo gave it");
+            (await PrintAsync(f)).Should().Equal(first);
+
+            var again = await Reprocess(f.Db).UndoAsync(null, follow.BatchId, apply: true);
+            f.Db.ChangeTracker.Clear();
+
+            (again.Restored, again.Skipped).Should().Be((1, 0), "the undos after it carried what they put back into the order undo's own write");
+            (await PrintAsync(f)).Should().Equal(AtSourcePositions(f, first));
+            (await f.Db.RecipeReprocessJournals.AsNoTracking().SingleAsync(j => j.Id == order.Results.Single().JournalId)).UndoneAt.Should().BeNull("undoing the order undo sets the pass's positions again, so the pass stands");
+            await UndoOrderOnlyAsync(f, order, first);
+        }
+
+        [Fact]
+        public async Task An_undo_since_never_takes_back_the_order_undo_write_so_running_it_again_leaves_the_pass_undone()
+        {
+            var f = await SetUpAsync(Cake, "whole milk");
+            var first = await PrintAsync(f);
+            var earlier = DateTime.UtcNow.AddSeconds(-2);
+            var started = DateTime.UtcNow.AddSeconds(-1);
+            var order = await OrderOnlyAsync(f);
+            var (milk, whole) = (f.Foods["milk"], f.Foods["whole milk"]);
+            var milkAt = (await PrintAsync(f)).Single(p => p.IngredientId == milk).SortOrder;
+            (await RecipeLineRowWriter.MoveAsync(f.Db, f.RecipeId, milk, milkAt, whole, milkAt, Operator)).Should().Be(milkAt);
+            f.Db.ChangeTracker.Clear();
+            await JournalAsync(f, LineRelinkService.RelinkEntityType, LineRelinkService.RelinkChangeType, nameof(RecipeIngredientEntity.IngredientId),
+                LineRelinkService.Place(milk, milkAt), LineRelinkService.Place(whole, milkAt));
+
+            var back = await Reprocess(f.Db).UndoAsync(started, null, apply: true);
+            f.Db.ChangeTracker.Clear();
+            (back.Restored, back.PositionsFollowed).Should().Be((1, 1));
+            var undone = await PrintAsync(f);
+            undone.Should().Equal(first.Select(p => p.IngredientId == milk ? p with { IngredientId = whole } : p)
+                .OrderBy(p => p.SortOrder).ThenBy(p => p.IngredientId).ThenBy(p => p.RawLine, StringComparer.Ordinal).ToList());
+
+            foreach (var since in new[] { started, earlier })
+            {
+                var dry = await Reprocess(f.Db).UndoAsync(since, null);
+                var again = await Reprocess(f.Db).UndoAsync(since, null, apply: true);
+                f.Db.ChangeTracker.Clear();
+
+                (dry.Entries, dry.Restored, again.Entries, again.Restored).Should().Be((0, 0, 0, 0), "the order undo's write is an undo, and an undo since takes back writes, not undos");
+                (await PrintAsync(f)).Should().Equal(undone);
+                (await f.Db.RecipeReprocessJournals.AsNoTracking().SingleAsync(j => j.Id == order.Results.Single().JournalId)).UndoneAt.Should().NotBeNull();
+            }
+        }
+
+        [Theory]
+        [InlineData(RecipeReprocessKind.Rebuild)]
+        [InlineData(RecipeReprocessKind.Order)]
+        public async Task An_order_only_undo_is_not_followed_over_a_later_reprocess_write_that_stands_so_that_write_stays_undoable(string laterKind)
+        {
+            var f = await SetUpAsync(Cake, "whole milk");
+            var order = await OrderOnlyAsync(f);
+            var afterPass = await PrintAsync(f);
+            var (milk, whole) = (f.Foods["milk"], f.Foods["whole milk"]);
+            var milkAt = afterPass.Single(p => p.IngredientId == milk).SortOrder;
+            (await RecipeLineRowWriter.MoveAsync(f.Db, f.RecipeId, milk, milkAt, whole, milkAt, Operator)).Should().Be(milkAt);
+            f.Db.ChangeTracker.Clear();
+            var pass = await f.Db.RecipeReprocessJournals.AsNoTracking().SingleAsync(j => j.Id == order.Results.Single().JournalId);
+            var json = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+            var written = System.Text.Json.JsonSerializer.Deserialize<List<RecipeReprocessService.LineRow>>(pass.NewRows!, json)!
+                .Select(r => r.IngredientId == milk ? r with { IngredientId = whole } : r).ToList();
+            f.Db.RecipeReprocessJournals.Add(new RecipeReprocessJournalEntity
+            {
+                RecipeId = f.RecipeId, BatchId = "rp-later", Kind = laterKind, RuleVersion = RecipeLineBuilder.Version,
+                OldRows = pass.NewRows, NewRows = System.Text.Json.JsonSerializer.Serialize(written, json),
+                CreatedDate = DateTime.UtcNow, CreatedByPersonId = Operator,
+            });
+            await f.Db.SaveChangesAsync();
+            f.Db.ChangeTracker.Clear();
+
+            var back = await Reprocess(f.Db).UndoAsync(null, order.BatchId, apply: true);
+            f.Db.ChangeTracker.Clear();
+
+            (back.Restored, back.Skipped, back.PositionsFollowed).Should().Be((0, 1, 0), "the later write's own undo does not follow lines, so moving them would leave it impossible to undo");
+            var later = await Reprocess(f.Db).UndoAsync(null, "rp-later", apply: true);
+            f.Db.ChangeTracker.Clear();
+            (later.Restored, later.Skipped).Should().Be((1, 0));
+            (await PrintAsync(f)).Should().Equal(afterPass);
+        }
+
+        [Fact]
+        public async Task An_order_only_undo_whose_lines_a_later_step_added_to_still_skips_the_recipe()
+        {
+            var f = await SetUpAsync(Cake);
+            var order = await OrderOnlyAsync(f);
+            f.Db.RecipeIngredients.Add(new RecipeIngredientEntity
+            {
+                RecipeId = f.RecipeId, IngredientId = f.Foods["eggs"], SortOrder = 9, Quantity = 1, MeasurementId = Piece, RawLine = "1 egg yolk",
+                CreatedDate = DateTime.UtcNow, CreatedByPersonId = Operator,
+            });
+            await f.Db.SaveChangesAsync();
+            f.Db.ChangeTracker.Clear();
+
+            var back = await Reprocess(f.Db).UndoAsync(null, order.BatchId, apply: true);
+
+            (back.Restored, back.Skipped, back.PositionsFollowed).Should().Be((0, 1, 0), "a line added since cannot be given a place the pass found");
+        }
+
+        [Fact]
+        public async Task The_relink_dry_run_after_an_order_only_pass_reads_only_and_gives_the_counts_of_the_apply()
+        {
+            var c = new Case("Custard", new[] { "1 cup milk", "3 eggs", "2 tbsp milk" },
+                new (string, string, decimal, long, string?)[] { ("milk", "1 cup milk", 1, Cup, null), ("eggs", "3 eggs", 3, Piece, null), ("2 tbsp milk", "2 tbsp milk", 2, Tablespoon, null) });
+            var f = await SetUpAsync(c);
+            var started = DateTime.UtcNow.AddSeconds(-1);
+            var (junk, milk) = (f.Foods["2 tbsp milk"], f.Foods["milk"]);
+            var position = await RecipeLineRowWriter.MoveAsync(f.Db, f.RecipeId, junk, 0, milk, 0, Operator);
+            f.Db.ChangeTracker.Clear();
+            await JournalAsync(f, LineRelinkService.RelinkEntityType, LineRelinkService.RelinkChangeType, nameof(RecipeIngredientEntity.IngredientId),
+                LineRelinkService.Place(junk, 0), LineRelinkService.Place(milk, position!.Value));
+            await OrderOnlyAsync(f);
+            var before = await PrintAsync(f);
+            var journals = await f.Db.RecipeReprocessJournals.AsNoTracking().Select(j => j.NewRows).ToListAsync();
+
+            var dry = await new LineRelinkService(f.Db, new Admin()).UndoAsync(started);
+            f.Db.ChangeTracker.Clear();
+
+            (await PrintAsync(f)).Should().Equal(before, "a dry run runs on a copy in memory and writes no row (N17)");
+            (await f.Db.RecipeReprocessJournals.AsNoTracking().Select(j => j.NewRows).ToListAsync()).Should().Equal(journals);
+            (await f.Db.AuditLogEntries.CountAsync(a => a.ChangeType == LineRelinkService.RelinkChangeType)).Should().Be(1);
+            var cancelled = () => new LineRelinkService(f.Db, new Admin()).UndoAsync(started, cancellationToken: new System.Threading.CancellationToken(true));
+            await cancelled.Should().ThrowAsync<OperationCanceledException>();
+
+            var applied = await new LineRelinkService(f.Db, new Admin()).UndoAsync(started, apply: true);
+
+            dry.Applied.Should().BeFalse();
+            (dry.Restored, dry.Skipped, dry.SkippedRebuilt).Should().Be((applied.Restored, applied.Skipped, applied.SkippedRebuilt));
+            applied.Restored.Should().Be(1);
+        }
     }
 }

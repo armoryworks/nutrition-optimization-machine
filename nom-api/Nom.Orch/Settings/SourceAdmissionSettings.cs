@@ -42,10 +42,18 @@ namespace Nom.Orch.Settings
 
         /// <summary>
         /// The scraper has its terms-only mode (<c>sampleSize</c> 0: robots.txt, the homepage and the terms pages, no
-        /// recipe page), so an admin may start a terms-only check of a forbidden or permission-needed source. Off by
-        /// default: a scraper without the mode would read a recipe page.
+        /// recipe page). The lane's first check of any source or candidate is terms-only, so without the mode nothing is
+        /// checked automatically; an admin may also start a terms-only check of a forbidden, permission-needed or unclassed
+        /// source. Off by default: a scraper without the mode would read a recipe page.
         /// </summary>
         public bool TermsOnlyChecks { get; set; }
+
+        /// <summary>
+        /// Full checks (20 sample recipe pages) may run, each only after a terms-only check of the site found no prohibition
+        /// and no refusal (or a written permission is recorded), and discovery runs, which reads recipe pages too. Set it false
+        /// for a first enable to run the terms-only pass alone, review its classes, then set it true.
+        /// </summary>
+        public bool FullChecks { get; set; } = true;
 
         /// <summary>
         /// The staged import takes a recipe only from an approved source (its URL's domain, or the

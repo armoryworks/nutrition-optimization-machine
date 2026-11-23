@@ -35,7 +35,7 @@ namespace Nom.Orch.Services.Support
     public sealed class RecipeLineBuilder
     {
         /// <summary>Raised whenever a rule this builder applies changes, so a rebuild can tell which recipes an older version built.</summary>
-        public const string Version = "line-builder/8";
+        public const string Version = "line-builder/9";
 
         /// <summary>Fallback unit for unparseable ingredient lines. Seeded "each"-style measurement.</summary>
         public const long DefaultMeasurementId = 1L;
@@ -357,24 +357,28 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// The one live curated food, never a prepared one, whose name is this wording with a hyphen for a
-        /// space or a space for a hyphen ("sun dried tomatoes" is Sun-Dried Tomatoes); null when none or more
-        /// than one is.
+        /// space or a space for a hyphen ("sun dried tomatoes" is Sun-Dried Tomatoes), or with a hyphen inside a
+        /// word joined up or put in ("semisweet chocolate chips" is Semi-Sweet Chocolate Chips); two words a
+        /// space parts are never joined. Null when none or more than one is.
         /// </summary>
         private async Task<IngredientEntity?> FindCuratedSpellingAsync(string lowered)
         {
-            var key = Spelling(lowered);
-            if (key.Length < 2) return null;
+            var keys = new[] { Spelling(lowered), Joined(lowered) }.Where(k => k.Length >= 2).Distinct().ToList();
+            if (keys.Count == 0) return null;
             var candidates = await _db.Ingredients.Where(Nom.Data.Nutrition.PreparedFoods.NotPrepared)
                 .Where(i => !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated)
-                .Where(i => i.Name.ToLower().Replace("-", " ") == key || i.Name.ToLower().Replace("-", " ").Replace("  ", " ") == key)
+                .Where(i => keys.Contains(i.Name.ToLower().Replace("-", " ")) || keys.Contains(i.Name.ToLower().Replace("-", " ").Replace("  ", " "))
+                    || keys.Contains(i.Name.ToLower().Replace("-", "")))
                 .OrderBy(i => i.Id)
                 .Take(3)
                 .ToListAsync();
-            var spelt = candidates.Where(i => Spelling(i.Name.ToLowerInvariant()) == key).ToList();
+            var spelt = candidates.Where(i => keys.Contains(Spelling(i.Name.ToLowerInvariant())) || keys.Contains(Joined(i.Name.ToLowerInvariant()))).ToList();
             return spelt.Count == 1 ? spelt[0] : null;
         }
 
         private static string Spelling(string name) => Whitespace.Replace(name.Replace('-', ' '), " ").Trim();
+
+        private static string Joined(string name) => Whitespace.Replace(name.Replace("-", string.Empty), " ").Trim();
 
         /// <summary>
         /// For an "or" line that no food is found for, the live curated food its first alternative names,
@@ -383,7 +387,9 @@ namespace Nom.Orch.Services.Support
         /// an amount opening the next one), the alternatives share those words, so the first is read with them:
         /// "lemon or lime juice" is lemon juice, never the fruit Lemon, and "chicken or vegetable broth" is
         /// chicken broth, never Chicken; "lemon or lime" is Lemon, and "1 teaspn. ground coriander, or ¼ level
-        /// teaspn. ground anise seed" is ground coriander.
+        /// teaspn. ground anise seed" is ground coriander. A first alternative of more than one word that names no
+        /// curated food with the shared words is read alone ("semisweet chocolate chips or chopped nuts" is
+        /// semisweet chocolate chips), while one word alone never is ("lemon or lime juice" is never Lemon).
         /// </summary>
         private async Task<IngredientEntity?> FirstAlternativeAsync(string wording)
         {
@@ -393,9 +399,17 @@ namespace Nom.Orch.Services.Support
             if (first.Length < 2 || BareNumber.IsMatch(first)) return null;
             var closed = parts[0].TrimEnd().EndsWith(',') || OpensWithAmount.IsMatch(parts[1]);
             var shared = Whitespace.Split(IngredientNameNormalizer.Normalize(parts[^1]).ToLowerInvariant().Trim()).Skip(1).ToList();
+            var alone = first;
             if (!closed && shared.Count > 0) first = $"{first} {string.Join(' ', shared)}";
-            var found = await FindByNameAsync(first) ?? await FindByTrustedAliasAsync(first);
-            if (found?.CurationStatusId != (long)CurationStatusEnum.Curated) found = await FindCuratedSpellingAsync(first);
+            var found = await CuratedAlternativeAsync(first);
+            if (found == null && first != alone && Whitespace.Split(alone.Trim()).Length > 1) found = await CuratedAlternativeAsync(alone);
+            return found;
+        }
+
+        private async Task<IngredientEntity?> CuratedAlternativeAsync(string wording)
+        {
+            var found = await FindByNameAsync(wording) ?? await FindByTrustedAliasAsync(wording);
+            if (found?.CurationStatusId != (long)CurationStatusEnum.Curated) found = await FindCuratedSpellingAsync(wording);
             return found is { CurationStatusId: (long)CurationStatusEnum.Curated } && !Nom.Data.Nutrition.PreparedFoods.IsPrepared(found) ? found : null;
         }
 

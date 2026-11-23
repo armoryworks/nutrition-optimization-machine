@@ -22,7 +22,9 @@ namespace Nom.Orch.Services.Support
     /// "2 tablespns."), "a couple of", a pinch with no "of", a leading "optional" or "~", a measure
     /// "and a half" ("a jill and a half" → 0.75 Cup), and an amount after the name ("Corn starch,
     /// ½ cup.", "Flour, 2-3/4 cups" → 2.75 Cup) are read; a numbered can ("1 No. 2 can") is a
-    /// count of cans. Returns null when the line has no leading quantity ("salt, to taste"), states
+    /// count of cans. A bare measure word before the food is one ("tablespoonful grated onion"), an
+    /// Italian count after a dash is read ("Uova - 6 numero" → 6), and a cross-reference to another
+    /// recipe of the book ("descritto al N. 579") is no count. Returns null when the line has no leading quantity ("salt, to taste"), states
     /// a vague one ("a drop of water") or sizes a utensil ("two-quart tin mould").
     /// </summary>
     public static class IngredientLineParser
@@ -118,7 +120,15 @@ namespace Nom.Orch.Services.Support
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex UnitFirst = new(
-            @"^(?:pinch|dash|handful|sprig|clove|stick|knob|splash|drizzle|teacupful|cupful|tablespoonful|teaspoonful|dessertspoonful|saltspoonful|spoonful|wineglassful|wineglass|teacup|gill|pint|quart|pound)\s+of\s+\S",
+            @"^(?:pinch|dash|handful|sprig|clove|stick|knob|splash|drizzle|teacupful|cupful|tablespoonful|teaspoonful|dessertspoonful|saltspoonful|spoonful|wineglassful|wineglass|teacup|gill|pint|quart|pound|ounce)\s+of\s+\S",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex BareMeasureFirst = new(
+            @"^(?:teacupful|cupful|tablespoonful|teaspoonful|dessertspoonful|saltspoonful|spoonful|wineglassful|tumblerful)\s+(?!of\b|each\b)(?=\p{L})",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex CrossReference = new(
+            @"\s*\(?\b(?:(?:nel\s+modo\s+|come\s+)?descritt[oaie]\s+)?(?:al|allo|alla|del|nel|dal|vedi|v\.)\s+N\.\s*\d+\s*\)?\.?",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex PinchFirst = new(
@@ -194,8 +204,8 @@ namespace Nom.Orch.Services.Support
             sized = false;
             containers = null;
             if (string.IsNullOrWhiteSpace(rawLine)) return null;
-            rawLine = IngredientNameNormalizer.PlainFractions(rawLine);
-            if (IsElliptical(rawLine)) return null;
+            rawLine = CrossReference.Replace(IngredientNameNormalizer.PlainFractions(rawLine), string.Empty);
+            if (string.IsNullOrWhiteSpace(rawLine) || IsElliptical(rawLine)) return null;
             if (SizedUtensil.IsMatch(rawLine)) return null;
             if (SumOfAmounts.Match(rawLine) is { Success: true } sum && IsBareAmount(sum.Groups["a"].Value)
                 && ParseLeading(sum.Groups["a"].Value, out _, out _) is { } first)
@@ -263,6 +273,7 @@ namespace Nom.Orch.Services.Support
             (new Regex(@"\bhalf[- ](?:an?[- ])?(?=(?:pound|pint|quart|cup|ounce|gill|gallon|dozen|teaspoon|tablespoon)s?\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1/2 "),
             (new Regex(@"(?<![\p{L}\d]\s)(?<=^\s*|\ba\s|[,(]\s?)(?:a\s+)?(?<unit>pound|pint|quart|cup|ounce|gill)s?\s+and\s+a\s+half\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1 1/2 ${unit}"),
             (new Regex(@"\b(?:mezz[oa]|half)[- ]an?\b|\bmezz[oa]\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "1/2"),
+            (new Regex(@"(?<=\d)\s+numer[oi]\b\.?", RegexOptions.Compiled | RegexOptions.IgnoreCase), ""),
         };
 
         private static readonly Dictionary<string, int> Ones = new(StringComparer.OrdinalIgnoreCase)
@@ -535,7 +546,7 @@ namespace Nom.Orch.Services.Support
             line = HyphenatedMixed.Replace(CoupleOrPair.Replace(line, "2 "), "$1 $2");
             line = AndAHalf.Replace(line, HalfMore, 1);
             if (IsElliptical(line)) return null;
-            if (UnitFirst.IsMatch(line) || PinchFirst.IsMatch(line)) line = "1 " + line;
+            if (UnitFirst.IsMatch(line) || PinchFirst.IsMatch(line) || BareMeasureFirst.IsMatch(line)) line = "1 " + line;
             var words = LeadingWords.Match(line);
             if (words.Success)
             {

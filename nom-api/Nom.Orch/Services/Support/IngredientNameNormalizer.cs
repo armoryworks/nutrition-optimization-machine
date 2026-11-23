@@ -48,7 +48,7 @@ namespace Nom.Orch.Services.Support
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex LeadingFiller = new(
-            @"^\s*(?:[*~•·]+\s*|(?:of|di)\s+|d['’]\s*(?=\p{L})|each\s+(?:of\s+)?|(?:an?\s+)?(?:very\s+)?(?:little(?!\s+(?:gem|neck))|few|some|enough|plenty\s+of)\s+(?:of\s+)?(?:the\s+)?" +
+            @"^\s*(?:[*~•·]+\s*|/\s*(?=[\d" + Fractions + @"])|(?:of|di)\s+|d['’]\s*(?=\p{L})|each\s+(?:of\s+)?|(?:an?\s+)?(?:very\s+)?(?:little(?!\s+(?:gem|neck))|few|some|enough|plenty\s+of)\s+(?:of\s+)?(?:the\s+)?" +
             @"|(?:(?:entirely|totally|completely|strictly)\s+)?optional\s*[:\-–,]\s*|optional\s+(?=[\d" + Fractions + @"])" +
             @"|(?:just|a\s+bit|slightly)\s+(?:under|over|less\s+than|more\s+than)\s+(?=[\d" + Fractions + @"])" +
             @"|un\s+po['’]?\s+(?:di\s+)?|(?:an?\s+)?(?:small\s+|little\s+)?quantity\s+of\s+)",
@@ -61,7 +61,7 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex TrailingQuantity = new(
             $@"\s*,?\s+(?:circa\s+)?(?:{Number}(?:\s*(?:-|–|to)\s*{Number})?|{FractionWord}|one|two|three|four|five|six|half)\s*-?\s*(?:" + SpoonOrCup +
             @"|pints?|pts?|quarts?|qts?|cups?|pounds?|lbs?|ounces?|ozs?|tablespoons?|tbsps?|teaspoons?|tsps?|grams?|g|kgs?|ml|grammi|grammo|gr|chilogrammi|litri|litro|decilitri|dl)\.?\s*$" +
-            $@"|\s*,?\s+(?:grammi|gr|g|kg|chilogrammi|litri|litro|dl)\.?\s*(?:circa\s+)?{Number}\.?\s*$|\s*,?\s+N\.\s*\d+\.?\s*$|\s*,\s*{Number}(?:\s*(?:-|–|to)\s*{Number})?\.?\s*$|\s*,\s*{Number}\s*(?:-|–|to|or)\s*$" +
+            $@"|\s*,?\s+(?:grammi|gr|g|kg|chilogrammi|litri|litro|dl)\.?\s*(?:circa\s+)?{Number}\.?\s*$|\s*,?\s+N\.\s*\d+\.?\s*$|\s*[-–,]\s*\d+\s+numer[oi]\.?\s*$|\s+(?:(?:nel\s+modo|come)\s+)?(?:descritt[oaie]\s+)?(?:al|allo|alla|del|nel|dal)\s+N\.\s*\d+\.?\s*$|\s*,\s*{Number}(?:\s*(?:-|–|to)\s*{Number})?\.?\s*$|\s*,\s*{Number}\s*(?:-|–|to|or)\s*$" +
             $@"|\s*,\s*(?:circa\s+)?{Number}(?:\s*(?:-|–|to)\s*{Number})?(?:\s*-?\s*(?:" + SpoonOrCup +
             @"|pints?|pts?|quarts?|qts?|cups?|pounds?|lbs?|ounces?|ozs?|tablespoons?|tbsps?|teaspoons?|tsps?|grams?|g|kgs?|ml|slices?|pieces?|large|medium|small|whole))?\.?\s*,\s*\p{L}[^\d,()]*?\.?\s*$",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);

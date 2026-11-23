@@ -2,8 +2,8 @@
 
 What NOM may do with a web source, and with the recipes it took from it, is decided by rule from
 recorded facts, not by a judgement each time. The facts are the source check's stored report
-(`recipe."SourceCheck"."ReportJson"`, scraper rule `source-check/4`; a stored `source-check/2` report is still
-read; see `recipe-sources.md`); the rule is `SourceRightsRule` (`source-rights/2`,
+(`recipe."SourceCheck"."ReportJson"`, scraper rule `source-check/5`; stored `source-check/4` and `source-check/2`
+reports are still read; see `recipe-sources.md`); the rule is `SourceRightsRule` (`source-rights/3`,
 `nom-api/Nom.Orch/Services/Support/SourceRightsRule.cs`);
 the engine is `SourceRightsService`. No model takes part anywhere in it.
 
@@ -21,11 +21,19 @@ in `RightsQuote` and where they were found in `RightsQuoteUrl`, the check it cam
    the check quoted and the robots.txt comments; robots.txt comments are read first because they are
    served on the domain itself. The sentence is kept as the deciding quote with its URL. A forbidding
    sentence counts even when the check was cut off.
-2. A report under a scraper rule version the rule does not read (it reads `source-check/4` and stored
-   `source-check/2` reports; `source-check/3` was never deployed with NOM), from a check that did not finish,
-   or for a host with no address (`access.homepageOutcome` `NoAddress`: DNS gave no A or AAAA record, so
-   nothing could be read and every reason is unknown) gives **no class** (inconclusive): the stored class
-   stands until a later check. An inconclusive
+2. A report under a scraper rule version the rule does not read (it reads `source-check/5` and stored
+   `source-check/4` and `source-check/2` reports; `source-check/3` was never deployed with NOM, and anything
+   that is not `source-check/N` is not read), from a check that did not finish, or for a host with no address
+   (`access.homepageOutcome` `NoAddress`: DNS gave no A or AAAA record, so nothing could be read and every
+   reason is unknown) gives **no class** (inconclusive): the stored class stands until a later check. A report
+   under a **newer** `source-check/N` than NOM reads is classed on the facts NOM knows and flagged
+   (`SourceRightsVerdict.NewerRuleVersion`; "newer check version" on the admin page), so a scraper released
+   ahead of NOM does not leave every source unclassed (checkpoint 3, S1). Such a report is never **clear**: a
+   licence that would make it clear under the version NOM reads gives facts-only instead
+   (`SourceRightsVerdict.NewerLicenceUnread`), because the newer version's licence semantics are what NOM has
+   not read, and a source already held clear keeps its clear class (no class from that report). A refusal before any fetch (the
+   scraper's denylist, an ignored platform) is permission-needed with its reason even when the report is
+   marked incomplete. An inconclusive
    report can raise the AI flag (a reservation it did reach) but never clears it: a check that stopped
    before the sample pages has not found the `noai` meta absent.
 3. **permission-needed**: the terms could not be read or the site refuses automated fetches: the
@@ -34,8 +42,12 @@ in `RightsQuote` and where they were found in `RightsQuoteUrl`, the check it cam
    robots.txt was refused or unreachable or bars NomBot or every crawler, a page answered a bot
    challenge or refused NomBot (`access.botChallengePages`, `access.refusedPages`, a sitemap in
    `enumeration.refusedPages`, sampled recipe pages in `samples.refused`), a linked terms page was not read
-   (also one linked on another domain, `off-domain`, which the check never fetches), or the TDM reservation
-   file could not be read.
+   (any outcome but `read`: also one linked on another domain, `off-domain`, which the check never fetches),
+   or the TDM reservation file could not be read. A value the rule does not know is never a pass: a robots.txt
+   status or a TDM reservation status outside the contract's set is permission-needed ("not established"), a
+   terms page outcome other than `read` is a page not read, an AI crawler rule outside the set raises the AI
+   flag, and a `mode` other than `full` is read as terms-only (it can neither lift a bar nor allow a full check
+   on its own).
 4. **clear**: the report's licence is CC0, the Public Domain Mark, a public-domain statement or CC BY,
    and the check's licence reason passed (so no "all rights reserved" stood beside it).
 5. **facts-only**: anything else: nothing grants reuse and nothing forbids automated access. Facts
@@ -81,18 +93,32 @@ its effective class is clear, or it is facts-only and an admin approved **facts-
 unclassed sources are never fetched. The gate is applied in four places:
 
 - the harvestable list (`GET api/ScrapingSource/harvestable`), which also names each source's effective
-  class and AI flag, so the harvester can tell a facts-only source;
+  class and AI flag, so the harvester can tell a facts-only source; the Pipeline's `sources.harvestable`
+  count is the length of that same list (staging checkpoint 3, N28: it counted 22 while the list was empty);
 - the one-URL import and the test scrape (refused before the scraper is called, with the quote);
 - the staged import (refused and counted in `refused`);
-- discovery seeds (only fetchable sources are seeds).
+- discovery seeds (`MayFetch` as above: discovery reads each seed's sitemap and 2 recipe pages, so a facts-only
+  class from a check alone does not make a seed; facts-only use must be approved by an admin). Discovery also
+  runs only while `SourceDiscovery:FullChecks` is on (`recipe-sources.md`).
 
 No automatic check fetches a source whose effective class is forbidden or permission-needed
 (`SourceRightsService.RecheckBarred`; lead decision on wave 10's owner question 1): the weekly re-check skips
 it and says so on the admin page (`recheckSkipped`) and in the Pipeline count, and a candidate whose last
 report classes it so is not checked again either. Sources of the other classes (clear, facts-only, a recorded
-permission, unclassed) keep the weekly full check, which is how a class is learned and re-learned.
+permission, unclassed) keep the weekly check, which is how a class is learned and re-learned.
 
-For a barred source an admin may start a **terms-only check** by hand (`POST api/ScrapingSource/{id}/terms-check`,
+**Terms-only first** (checkpoint 3, S3). A source with no class, or any source or candidate with no terms-only
+report that allows a full check, gets a terms-only check from the lane before anything else: the first check of
+a restored database's 22 sources reads only robots.txt, the homepage and the terms pages of each. A full check
+(20 sample recipe pages) follows only when that terms-only report classes the site facts-only or clear
+(`SourceRightsRule.AllowsFullCheck`), or a written permission is recorded. So a site whose terms or robots.txt
+forbid automated collection, or that refuses NomBot (a homepage challenge, a refused terms page, a scraper's
+denylist), is classed forbidden or permission-needed on its terms-only report and never has a recipe page
+requested. A scraper-side refusal is stored as permission-needed with its reason ("the scraper refused to fetch
+it (denylist)") and, being barred, is not checked again by itself. A terms-only check of a clear source cannot
+see the per-page licence it was found clear on, so its facts-only verdict leaves the clear class standing.
+
+For a barred source, and for one with no class yet, an admin may start a **terms-only check** by hand (`POST api/ScrapingSource/{id}/terms-check`,
 "Start terms-only check" on the admin page): the scraper's `sampleSize` 0 mode reads robots.txt, the homepage
 and the terms pages, and no `tdmrep.json`, recipe page or sitemap; a terms link or redirect whose path names a
 recipe is not fetched (terms outcome `recipe-like`), and NOM reads it as terms not read (permission-needed). The request is queued as a `SourceCheck` with
@@ -112,7 +138,10 @@ check did not read (a recipe page's footer, a refused sample or sitemap), a verd
 class and the held class stands (`SourceRightsRule.Derive(report, heldClass, heldQuoteUrl, lastFullReport)`), and its
 AI flag can only be raised. The pages that hold a bar are the stored quote's and every page of the source's last full
 check with a forbidding sentence or a refusal (not only the first sentence quoted); a terms-only check lifts the class
-only when it read each of them again. A source a terms-only check lifts to facts-only is due for its weekly full check on its old date.
+only when it read each of them again. The last full check is the latest check NOM asked as a full one, whatever
+mode its report names (or, before the mode was recorded, the latest whose report is not terms-only); terms-only
+checks, the lane's and an admin's, are passed over. A lane terms-only check the scraper answered with recipe pages
+is stored failed without its report, so it classes nothing. A source a terms-only check lifts to facts-only is due for its weekly full check on its old date.
 
 ## What a reader sees of a facts-only recipe
 
@@ -173,9 +202,18 @@ and the name, but not a line that credits the author's own work or the page ("ad
 "recipe from this website", "recipe from now on": defect D4). The name is the run of capitalised words
 after the cue (with "of", "the", "and", "by" and the like between them), ending at a comma or the first
 lower-case word, so no clause of the publisher's description is ever kept with it. "Inspired by" names an
-influence, not the work a recipe was taken from, and is not a credit. The credit is stored on
+influence, not the work a recipe was taken from, and is not a credit. The text is read with its HTML
+entities decoded, and where the source's markup lost the break between two elements the name ends at the
+break: before a word that starts a sentence ("This", "Other", "I've", "The" after a name word), before a
+word the name already holds ("by Tara O'Brady Tara writes"), and inside a word glued to the next
+element's first word when that word starts a sentence ("James BeardUsing"; "HarperCollins" and
+"KitchenAid" stay whole). A word repeated after "by" or "and" starts a new name, so "Ottolenghi Simple
+by Yotam Ottolenghi" stays whole. A possessive ending is dropped, a word the length limit (160
+characters) cut is left out, and a name made only of places, nationalities or languages ("Recipe from
+South America") is no credit (staging checkpoint 3, N26: 18 of 50 proposed credits were malformed;
+`credit-lines.tsv`). The credit is stored on
 `Recipe.SourceCredit` at import and by a backfill step from the stored JSON-LD or record
-(`rights/credits`, journaled `RecipeSourceCredit`, undone by stamp), and shown in the recipe page next to
+(`rights/credits`, journaled `RecipeSourceCredit`, undone by stamp, `ruleVersion` `credit-lines/2`), and shown in the recipe page next to
 the source link (`recipe-source-credit`). The reduction below reads credits before the prose goes.
 
 ## Prose retention
@@ -290,6 +328,20 @@ is not facts-only are served as written.
   budgetbytes' 4.3.3 item under its lead-in and its 2.2 consent clause, Sally's disclosure policy, eatingwell's
   refused child sitemap and off-domain terms, myplate's missing address, culiplan's and frije's script-built
   homepages); and constructed cases for every branch (`rule:construction`).
+  Under `source-check/5` (`cleanup2/ck7-source-lane`): `*-5t` rows, the terms-only check the lane now makes
+  first, for the hosts the research found barred (forbidden on their own words for eatingwell, seriouseats,
+  pinchofyum, skinnytaste, both budgetbytes rows, Sally's and David Lebovitz; permission-needed for
+  minimalistbaker's refused terms page and cookieandkate's refused homepage) and acozykitchen (facts-only, so a
+  full check may follow); and constructed rows for a newer rule version (classed), a version that is not
+  `source-check/N` (not read), unknown terms, robots.txt and TDM values (never a pass), and a refusal before
+  fetch marked incomplete (permission-needed).
+- `source-check-5.tsv` with `source-check-5-reports.json`: the 23 `source-check/5` reports the staging scraper
+  stored on 2026-11-21 (checkpoint 3: the 22 current sources and the myplate.gov request), trimmed to what NOM
+  reads (no parsed recipe, credit line or reason detail), replayed whole: class, AI flag and deciding quote,
+  whether the policy reads them, whether the same report as a terms-only check allows a full check, and, in the
+  test, the same class with the newer flag under `source-check/6`. Nine hosts were refused by the staging
+  scraper's denylist, so their stored report is a refusal (permission-needed, no full check). The
+  ambitiouskitchen row is `agent`: its class rests on the quoted sentence, not re-read by a person.
 - `rights-sentences.tsv`: NOM's reading of each quoted sentence, the decoys of D3 among them.
 - `recipe-titles.tsv`: the title rule, on titles written for the rule.
 

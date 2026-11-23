@@ -109,5 +109,19 @@ namespace Nom.Api.Tests.Services
                 .Select(f => f.Code).Should().NotContain(c => c.Contains("atwater_mismatch"));
             result.Findings.Where(f => f.IngredientId == unconfirmed.Id).Select(f => f.Code).Should().Contain("atwater_mismatch");
         }
+
+        [Fact]
+        public async Task A_food_the_admission_found_a_mismatch_by_its_own_factors_stays_one_although_the_fiber_aware_formula_would_pass_it()
+        {
+            using var db = await NewContextAsync();
+            var grits = await UsdaFoodAsync(db, "Instant Grits", 20, "atwater_mismatch", 343m, 10m, 80m, 2.2m);
+            var unjudged = await UsdaFoodAsync(db, "Instant Oats", 20, null, 343m, 10m, 80m, 2.2m);
+
+            var result = await new FoodCatalogAuditService(db).AuditAsync();
+
+            result.Findings.Where(f => f.IngredientId == grits.Id).Select(f => f.Code).Should().Contain("atwater_mismatch",
+                "review of ck6-data-fixes (CK6-3): the audit has no calorie factors, so it reads the admission's stored check");
+            result.Findings.Where(f => f.IngredientId == unjudged.Id).Select(f => f.Code).Should().NotContain(c => c.Contains("atwater_mismatch"));
+        }
     }
 }

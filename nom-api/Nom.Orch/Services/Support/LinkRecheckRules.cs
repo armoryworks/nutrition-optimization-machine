@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Nom.Data.Nutrition;
 using Nom.Data.Recipe;
 
@@ -16,9 +18,14 @@ namespace Nom.Orch.Services.Support
     /// What the re-check does with the lines of one wording on one food: keep them (no hold, or
     /// holds that do not prove the food wrong, counted as not proven), move them to the food a tier
     /// names (<see cref="Target"/>), or move them back to an uncurated food of their wording; with
-    /// the rule that decided and the gate's holds on the food they are on.
+    /// the rule that decided and the gate's holds on the food they are on. <see cref="Class"/> is
+    /// the re-check class of the refuting hold; when that class is not proven
+    /// (<see cref="LinkRecheckRules.ProvenClasses"/>) the outcome is not proven and
+    /// <see cref="Candidate"/> holds the move or take-back it would make, handed to the model audit.
+    /// <see cref="Classes"/> holds every class whose hold refutes the food, whichever decided: each
+    /// of them would make this move or take-back once proven, so each is scored on it.
     /// </summary>
-    public sealed record RecheckVerdict(string Outcome, string? Reason, RecheckCandidate? Target, IReadOnlyList<GateHold> Holds);
+    public sealed record RecheckVerdict(string Outcome, string? Reason, RecheckCandidate? Target, IReadOnlyList<GateHold> Holds, string? Class = null, string? Candidate = null, IReadOnlyList<string>? Classes = null);
 
     /// <summary>
     /// The rules of the applied-link re-check (plan C3, alcohol A4, wordings 2.7, containers 2.6):
@@ -31,7 +38,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class LinkRecheckRules
     {
-        public const string Version = "link-recheck/2";
+        public const string Version = "link-recheck/5";
 
         public const string Alcohol = "alcohol";
         public const string PartHerb = "part-herb";
@@ -57,6 +64,78 @@ namespace Nom.Orch.Services.Support
         public const string CuratedNameTier = "curated-name";
         public const string AlcoholSenseTier = "alcohol-sense";
         public const string CannedSisterTier = "canned-sister";
+
+        /// <summary>The re-check class of the three alcohol sense rules, which the alcohol set reads as one.</summary>
+        public const string AlcoholClass = "alcohol";
+
+        /// <summary>The re-check class of the container form line rule.</summary>
+        public const string ContainerClass = "container-form";
+
+        /// <summary>The precision a re-check class must hold on its judged golden lines (link-recheck.tsv) before it may move or take back a line by rule.</summary>
+        public const double ClassPrecisionBar = 0.95;
+
+        /// <summary>The judged golden lines a re-check class needs before its precision counts.</summary>
+        public const int ClassMinimumJudged = 40;
+
+        /// <summary>
+        /// The re-check classes that may move or take back a line by rule: each held at least
+        /// <see cref="ClassPrecisionBar"/> of its checkpoint-judged golden lines right over at least
+        /// <see cref="ClassMinimumJudged"/> of them (link-recheck.tsv rows with status agent: the lines
+        /// both staging checkpoints judged; rule-given rows must be right too but do not count toward
+        /// the minimum). The set is read from the committed per-class record
+        /// (<see cref="LinkRecheckClassRecord"/>), never written by hand: the golden tests re-score the
+        /// judged lines, refuse a record that differs and refuse a class here that is below the bar, and
+        /// a record scored under other rules proves nothing (<see cref="ProvenProblem"/>). Every other
+        /// class refutes nothing by rule: its lines stay, counted as candidates, recorded on its own tier
+        /// of the lane frame (<see cref="CandidateTier"/>), where the link auditor decides them in
+        /// shadow, and they are written only while that tier is live.
+        /// </summary>
+        public static IReadOnlySet<string> ProvenClasses => ProvenOverride.Value ?? ProvenValue.Value.Proven;
+
+        /// <summary>Why the committed per-class record proves no class on this build, or null when it is current.</summary>
+        public static string? ProvenProblem => ProvenValue.Value.Problem;
+
+        private static readonly Lazy<(IReadOnlySet<string> Proven, string? Problem)> ProvenValue = new(() =>
+            LinkRecheckClassRecord.Evaluate(LinkRecheckClassRecord.Embedded(), Version, DecisionSignature));
+
+        private static readonly AsyncLocal<IReadOnlySet<string>?> ProvenOverride = new();
+
+        /// <summary>For tests of the machinery alone: the classes taken as proven in this async flow until the result is disposed, whatever the record proves. The signature still follows the record.</summary>
+        internal static IDisposable AssumeProven(params string[] classes)
+        {
+            var before = ProvenOverride.Value;
+            ProvenOverride.Value = new HashSet<string>(classes, StringComparer.Ordinal);
+            return new Restore(() => ProvenOverride.Value = before);
+        }
+
+        private sealed class Restore(Action undo) : IDisposable
+        {
+            public void Dispose() => undo();
+        }
+
+        /// <summary>The prefix of the lane frame tier a re-check class that is not proven decides its candidates on, apart from the set they came from.</summary>
+        public const string CandidateTierPrefix = "candidate:";
+
+        /// <summary>The lane frame tier on which a class's candidates are recorded, audited, qualified, paused and undone.</summary>
+        public static string CandidateTier(string reClass) => CandidateTierPrefix + reClass;
+
+        /// <summary>The class of a candidate tier, or null for the tier of a set.</summary>
+        public static string? ClassOfTier(string tier) => tier.StartsWith(CandidateTierPrefix, StringComparison.Ordinal) ? tier[CandidateTierPrefix.Length..] : null;
+
+        /// <summary>The signature of a tier's decisions on the lane frame: a set's (<see cref="SetSignature"/>) or a candidate tier's.</summary>
+        public static string TierSignature(string tier) =>
+            ClassOfTier(tier) == null ? SetSignature(tier) : Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Signature + "|" + tier)))[..16].ToLowerInvariant();
+
+        /// <summary>Every re-check class that is not proven, each of which decides its candidates on a tier of its own.</summary>
+        public static IReadOnlyList<string> CandidateClasses =>
+            Refuting.Select(code => AlcoholCodes.Contains(code) ? AlcoholClass : code).Append(ContainerClass)
+                .Distinct(StringComparer.Ordinal).Where(c => !Proven(c)).OrderBy(c => c, StringComparer.Ordinal).ToList();
+
+        /// <summary>The re-check class of a refuting hold: the three alcohol rules are one class, every other rule its own.</summary>
+        public static string ClassOf(GateHold hold) => AlcoholCodes.Contains(hold.Code) ? AlcoholClass : hold.Code;
+
+        /// <summary>Whether a re-check class may move or take back a line by rule.</summary>
+        public static bool Proven(string? reClass) => reClass != null && ProvenClasses.Contains(reClass);
 
         /// <summary>The day the unguarded model auto-apply ran (links design 1); its links are re-checked first.</summary>
         public static readonly DateTime NovemberThird = new(2026, 11, 3, 0, 0, 0, DateTimeKind.Utc);
@@ -156,6 +235,12 @@ namespace Nom.Orch.Services.Support
         /// <summary>A hash of <see cref="Version"/>, the gate's and the alcohol rules' signatures and every table here, so a change to any of them is a new signature.</summary>
         public static string Signature => SignatureValue.Value;
 
+        /// <summary>The signature of the rules alone, without <see cref="ProvenClasses"/>: what the per-class record is scored under.</summary>
+        public static string DecisionSignature => DecisionSignatureValue.Value;
+
+        private static readonly Lazy<string> DecisionSignatureValue = new(() =>
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(SignatureSource(withProven: false))))[..16].ToLowerInvariant());
+
         /// <summary>The signature of one rule set's decisions on the lane frame.</summary>
         public static string SetSignature(string set) =>
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Signature + "|" + set)))[..16].ToLowerInvariant();
@@ -229,7 +314,12 @@ namespace Nom.Orch.Services.Support
             {
                 if (!containerWrong) return new RecheckVerdict(Keep, null, null, read);
                 foreach (var candidate in candidates())
-                    if (Blocking(candidate.Tier, candidate.Holds).Count == 0) return new RecheckVerdict(Move, "container form", candidate, read);
+                {
+                    if (Blocking(candidate.Tier, candidate.Holds).Count > 0) continue;
+                    return Proven(ContainerClass)
+                        ? new RecheckVerdict(Move, "container form", candidate, read, ContainerClass, Classes: new[] { ContainerClass })
+                        : new RecheckVerdict(Unproven, "container form", candidate, read, ContainerClass, Move, new[] { ContainerClass });
+                }
                 return new RecheckVerdict(Held, "container form, no canned sister", null, read);
             }
 
@@ -238,13 +328,92 @@ namespace Nom.Orch.Services.Support
             var refuting = acting.Where(refutes ?? (h => Refutes(h, read))).ToList();
             if (refuting.Count == 0) return new RecheckVerdict(Unproven, acting[0].ToString(), null, read);
 
-            foreach (var candidate in candidates())
-            {
-                if (Blocking(candidate.Tier, candidate.Holds).Count == 0)
-                    return new RecheckVerdict(Move, refuting[0].ToString(), candidate, read);
-            }
-            return new RecheckVerdict(Unlink, refuting[0].ToString(), null, read);
+            var proven = refuting.FirstOrDefault(h => Proven(ClassOf(h)));
+            var decisive = proven ?? refuting[0];
+            var target = candidates().FirstOrDefault(c => Blocking(c.Tier, c.Holds).Count == 0);
+            var outcome = target != null ? Move : Unlink;
+            var classes = refuting.Select(ClassOf).Distinct(StringComparer.Ordinal).ToList();
+            return proven != null
+                ? new RecheckVerdict(outcome, decisive.ToString(), target, read, ClassOf(decisive), Classes: classes)
+                : new RecheckVerdict(Unproven, decisive.ToString(), target, read, ClassOf(decisive), outcome, classes);
         }
+
+        /// <summary>
+        /// The verdict on one wording's lines on one food, as a run decides it: the gate's holds on
+        /// the pair with its lines, read as the set reads them (<see cref="ReadHolds"/>), each tier's
+        /// food asked the same way, and <see cref="Decide"/> with <see cref="Refutes"/> (a line of
+        /// alternatives one of which is the food is no proof). A run and the class scorer both
+        /// decide through this, so the judged golden lines measure what a run writes.
+        /// </summary>
+        public static RecheckVerdict Judge(string set, string wording, GateFood food, IReadOnlyList<GateLine>? lines, GateCatalog catalog, IEnumerable<(string Tier, GateFood Food)> candidates)
+        {
+            var holds = ReadHolds(set, wording, food, LinkGate.Check(new GatePair(wording, food.Id, food, Lines: lines), catalog));
+            var alternative = new Lazy<bool>(() => LinkGate.NamesAlternative(wording, food, catalog));
+            return Decide(set, holds,
+                () => candidates.Select(c => new RecheckCandidate(c.Tier, c.Food, ReadHolds(set, wording, c.Food, LinkGate.Check(new GatePair(wording, food.Id, c.Food, Lines: lines), catalog)))),
+                set == ContainerForm, h => Refutes(h, holds, alternative.Value));
+        }
+
+        /// <summary>The holds of a pair as the set reads them: the alcohol rules only where the set reads them (<see cref="ForSet"/>).</summary>
+        public static IReadOnlyList<GateHold> ReadHolds(string set, string wording, GateFood food, IReadOnlyList<GateHold> holds) =>
+            ForSet(set, holds, AlcoholLineContext.Refuse(AlcoholLineContext.Read(wording), food.FdcId, food.Text) != null);
+
+        /// <summary>
+        /// The foods the deterministic tiers name for a wording, in the pipeline's order: its
+        /// verified wording row's food (<paramref name="verifiedFood"/>), a trusted alias, a staple or
+        /// the name matcher, a curated food of its name and the drink its lines' alcohol sense allows
+        /// (<paramref name="byFdc"/>: the allowed USDA foods by FDC id); for the container set only
+        /// the one canned sister. The food the lines are on is never a candidate.
+        /// </summary>
+        public static List<(string Tier, long Id)> CandidateIds(string set, string wording, string? sense, bool drained, GateFood food, IReadOnlyList<GateLine>? lines, GateCatalog catalog,
+            long? verifiedFood, IReadOnlyDictionary<string, GateFood> byFdc)
+        {
+            var list = new List<(string Tier, long Id)>();
+            void Add(string tier, long? id)
+            {
+                if (id is { } value && value != food.Id && list.All(c => c.Id != value)) list.Add((tier, value));
+            }
+
+            if (set == ContainerForm)
+            {
+                Add(CannedSisterTier, CannedSister(food, wording, drained, catalog)?.Id);
+                return list;
+            }
+
+            var normalized = IngredientNameNormalizer.Normalize(wording);
+            Add(VerifiedWordingTier, verifiedFood);
+            if (catalog.TrustedAliases.TryGetValue(IngredientNameNormalizer.WordingKey(wording), out var owner)) Add(TrustedAliasTier, owner);
+            if (catalog.Matcher != null && IngredientLinkService.DeterministicTarget(normalized.ToLowerInvariant(), catalog.Matcher, catalog.Staples) is { } rule)
+                Add(NameRuleTier, rule.Food.IngredientId);
+            Add(CuratedNameTier, LineRelinkService.TargetFor(normalized, food.Id, food.Name.Trim(), catalog.Curated));
+
+            sense ??= lines == null ? null : AlcoholLineContext.Shared(lines.Select(l => AlcoholLineContext.Read(l.Raw, l.Recipe)))?.Sense;
+            if (sense != null && AlcoholLineContext.KindOf(sense) == AlcoholSenseKind.Drink)
+            {
+                foreach (var fdc in AlcoholLineContext.Allowed(sense))
+                    if (byFdc.TryGetValue(fdc, out var drink)) Add(AlcoholSenseTier, drink.Id);
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// Whether a move may give the wording a trusted alias on the food its lines moved to: only
+        /// when the gate, read as for any wording and not as the tier that vouched for the lines,
+        /// lets the wording through on that food, and the wording names no restricted food that the
+        /// food's own name and USDA entry do not (<see cref="RestrictedWords"/>). The lines move
+        /// either way; only the alias, which every later import and the diet gate read, waits for
+        /// the gate ("corn brandy" on distilled spirits made Corn Allergy keep out every brandy recipe).
+        /// </summary>
+        public static bool MayAlias(string wording, GateFood target, GateCatalog catalog) =>
+            RestrictedWords(wording, target).Count == 0
+            && LinkGate.Check(new GatePair(wording, 0, target), catalog).All(h => Unread.Contains(h.Code));
+
+        /// <summary>The default restriction patterns the wording names and the food's own name and USDA description do not: the allergen or diet words an alias would add to the food.</summary>
+        public static IReadOnlyList<string> RestrictedWords(string wording, GateFood target) =>
+            RestrictionPatterns.Value.Where(p => p.IsMatch(wording) && !p.IsMatch(target.Name) && !p.IsMatch(target.Description)).Select(p => p.Pattern).ToList();
+
+        private static readonly Lazy<IReadOnlyList<DietPatternRule>> RestrictionPatterns = new(() =>
+            DefaultRestrictionCriteria.ByName.Values.SelectMany(v => v.Patterns).Where(p => p.Contains('%')).Distinct(StringComparer.Ordinal).Select(p => DietPatternRule.For(p)).ToList());
 
         /// <summary>Whether a recipe line counts out a can, tin or jar ("1 can tomatoes", "2 (15 oz) cans beans"), not the verb ("you can use").</summary>
         public static bool IsContainerLine(string? raw)
@@ -340,11 +509,15 @@ namespace Nom.Orch.Services.Support
             return LinkGate.Words(name).Select(LinkGate.Fold).Contains(LinkGate.Fold(fix.WrongWord)) ? fix.Name : null;
         }
 
-        internal static string SignatureSource()
+        internal static string SignatureSource(bool withProven = true)
         {
             var parts = new List<string> { Version, LinkGate.Signature, AlcoholLineContext.Signature };
             parts.AddRange(Sets);
             parts.Add(string.Join(",", Refuting.OrderBy(c => c, StringComparer.Ordinal)));
+            if (withProven) parts.Add(string.Join(",", ProvenValue.Value.Proven.OrderBy(c => c, StringComparer.Ordinal)));
+            parts.Add(string.Join(",", RestrictionPatterns.Value.Select(p => p.Pattern)));
+            parts.Add(DietPatternRule.Version);
+            parts.Add(string.Create(CultureInfo.InvariantCulture, $"{ClassPrecisionBar}:{ClassMinimumJudged}"));
             parts.Add(string.Join(",", EdibleParts.OrderBy(c => c, StringComparer.Ordinal)));
             parts.Add(string.Join(",", AdditionNeutral.OrderBy(c => c, StringComparer.Ordinal)));
             parts.Add(LiquidWording.ToString());

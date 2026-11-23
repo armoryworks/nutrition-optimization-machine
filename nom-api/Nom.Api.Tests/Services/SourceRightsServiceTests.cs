@@ -258,6 +258,24 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task The_pipeline_counts_as_harvestable_exactly_the_sources_the_harvestable_list_returns()
+        {
+            await using var db = NewContext();
+            for (var i = 0; i < 22; i++) await SourceAsync(db, $"unclassed{i}.example", null);
+            var admission = new SourceAdmissionService(db, Mock.Of<IRecipeScraperClient>(), new RecipeVettingService(), Options.Create(new SourceAdmissionSettings()),
+                NullLogger<SourceAdmissionService>.Instance, Options.Create(new SourceRightsSettings { Enforce = true }));
+
+            (await admission.HarvestableAsync()).Should().BeEmpty("staging checkpoint 3, N28: no source has a rights class yet");
+            (await admission.StatusAsync()).Harvestable.Should().Be(0, "the Pipeline said 22 while the list was empty");
+
+            await SourceAsync(db, "clear.example", ClearReport("clear.example"));
+            await Rights(db).DeriveAsync(apply: true);
+            (await admission.StatusAsync()).Harvestable.Should().Be((await admission.HarvestableAsync()).Count).And.Be(1);
+            var open = new SourceAdmissionService(db, Mock.Of<IRecipeScraperClient>(), new RecipeVettingService(), Options.Create(new SourceAdmissionSettings()), NullLogger<SourceAdmissionService>.Instance);
+            (await open.StatusAsync()).Harvestable.Should().Be(23, "with the gate off every approved web source counts, as before");
+        }
+
+        [Fact]
         public async Task A_url_import_never_fetches_and_a_staged_import_never_takes_from_a_barred_source()
         {
             await using var db = NewContext();
@@ -331,6 +349,14 @@ namespace Nom.Api.Tests.Services
             var source = await SourceAsync(db, "facts.example", FactsOnlyReport("facts.example"), s => s.CheckedAtUtc = T0.AddDays(-8));
             var recipe = await RecipeAsync(db, "https://facts.example/chili/");
             await Rights(db).DeriveAsync(apply: true);
+            db.SourceChecks.Add(new SourceCheckEntity
+            {
+                ScrapingSourceId = source.Id,
+                Domain = "facts.example", Purpose = SourceAdmissionService.RecheckPurpose, Mode = SourceRightsRule.TermsOnlyMode, Status = SourceCheckEntity.Completed,
+                StartedUtc = T0.AddDays(-9), FinishedUtc = T0.AddDays(-9), RuleVersion = SourceAdmissionPolicy.ScraperRuleVersion, Verdict = SourceAdmissionPolicy.NotClear,
+                ReportJson = JsonSerializer.Serialize(SourceAdmissionServiceTests.TermsOnlyReport("facts.example"), Json),
+            });
+            await db.SaveChangesAsync();
             var report = ForbiddenReport("facts.example");
             report.Robots!.AiCrawlers.Add(new ScraperCheckAiCrawler { Agent = "CCBot", Rule = "blocked" });
             var job = JsonSerializer.SerializeToElement(new { jobId = "j1", kind = "source-check", status = "completed", stopReason = "none", result = report }, Json);

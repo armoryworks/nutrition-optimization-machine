@@ -176,7 +176,7 @@ namespace Nom.Orch.Services.Support
     public sealed class DietGateCacheInvalidator : IDbCommandInterceptor, IDbTransactionInterceptor
     {
         private static readonly Regex Write = new(
-            @"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO|TRUNCATE(?:\s+TABLE)?|COPY)\s+(?:ONLY\s+)?(?:""?(?:recipe|nutrient)""?\.)?""?(?:RecipeIngredient|Ingredient|IngredientAlias|IngredientNutrient)""?(?![\w""])",
+            @"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO|TRUNCATE(?:\s+TABLE)?|COPY)\s+(?:ONLY\s+)?(?:""?(?:recipe|nutrient)""?\.)?""?(?:RecipeIngredient|Ingredient|IngredientAlias|IngredientNutrient|IngredientContents)""?(?![\w""])",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex RecipeWrite = new(
@@ -192,7 +192,7 @@ namespace Nom.Orch.Services.Support
 
         public DietGateCacheInvalidator(DietGateCache cache) => _cache = cache;
 
-        /// <summary>Whether the command text writes a table the diet gate's probes read: a food, an alias, a food's nutrients, a recipe line (with its alcohol retention), a recipe's servings, which the retained alcohol per serving divides by, or a measurement, by which a drink line is weighed.</summary>
+        /// <summary>Whether the command text writes a table the diet gate's probes read: a food, an alias, a food's nutrients, a food's ingredient statement, a recipe line (with its alcohol retention), a recipe's servings, which the retained alcohol per serving divides by, or a measurement, by which a drink line is weighed.</summary>
         public static bool Touches(string? commandText) =>
             !string.IsNullOrEmpty(commandText)
             && ((commandText.Contains("Ingredient", StringComparison.OrdinalIgnoreCase) && Write.IsMatch(commandText))

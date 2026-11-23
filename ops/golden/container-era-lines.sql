@@ -5,7 +5,9 @@ SELECT 'l-' || ri."RecipeId" || '-' || ri."IngredientId" || '-' || ri."SortOrder
        replace(ri."RawLine", E'\t', ' ') AS line,
        ri."Quantity" AS quantity,
        m."Name" AS unit,
-       coalesce(i."GramsPerMilliliter"::text, '-') AS density
+       coalesce(i."GramsPerMilliliter"::text, '-') AS density,
+       coalesce(substring(r."SourceUrl" from '^[a-zA-Z]+://([^/:?#]+)'), '-') AS host,
+       replace(coalesce(nullif(i."Description", ''), i."Name"), E'\t', ' ') AS food
 FROM recipe."RecipeIngredient" ri
 JOIN recipe."Recipe" r ON r."Id" = ri."RecipeId" AND NOT r."IsDeleted"
 JOIN recipe."Ingredient" i ON i."Id" = ri."IngredientId"

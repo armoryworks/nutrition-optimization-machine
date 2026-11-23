@@ -59,7 +59,10 @@ namespace Nom.Orch.Services.Support
     /// "may contain" or shared-facility line warns of is read the same way against the criteria of severity 4 and 5
     /// (allergies and medical restrictions). A food the restrictions name directly (<see cref="RestrictedIngredientSet.NamedFoods"/>)
     /// is held by a declared allergen, or at severity 4 and 5 by a warned one, of a major allergen class its name's head
-    /// names or whose own words name that head, and by a recognised term or compound whose text names that head. The statement that decides is the household's own confirmed label, else the
+    /// names or whose own words name that head, and by a recognised term or compound whose text names that head. A label
+    /// term (<see cref="StatementLabelTerms"/>) is read by its own words and by what it is made of (<see cref="LabelTerm.Contains"/>,
+    /// "enriched flour" as wheat), which holds the meal like its name would; what it may be made of when the label does
+    /// not say (<see cref="LabelTerm.May"/>) makes the meal unknown. The statement that decides is the household's own confirmed label, else the
     /// FDC statement; a restricted thing named in either holds the meal. A meal is offered only when the deciding statement
     /// was read, every named ingredient resolved to a curated food (still curated) or was recognised, and nothing is
     /// restricted; anything unknown keeps it out.
@@ -116,8 +119,9 @@ namespace Nom.Orch.Services.Support
                 return new PreparedContentsVerdict(foodId, PreparedContentsHeld.Unread, decider.Reason is { } reason ? new[] { reason } : Array.Empty<string>());
 
             var unknown = PreparedContentsService.Items(decider)
-                .Where(i => i.Kind == ContentsKinds.Unresolved || (i.Kind == ContentsKinds.Food && !curatedFoodIds.Contains(i.FoodId!.Value)))
+                .Where(i => i.Kind == ContentsKinds.Unresolved || (i.Kind == ContentsKinds.Food && !curatedFoodIds.Contains(i.FoodId!.Value)) || i.LabelTerms() == null)
                 .Select(i => i.Name)
+                .Concat(UncertainNames(decider, set, named))
                 .Distinct(StringComparer.Ordinal)
                 .ToList();
             if (unknown.Count > 0) return new PreparedContentsVerdict(foodId, PreparedContentsHeld.Unresolved, unknown);
@@ -136,7 +140,12 @@ namespace Nom.Orch.Services.Support
                     || patterns.Any(c => DietCriteriaMatcher.LineNames(c, item.Name))
                     || (drinks && AlcoholLineContext.CountsForDiet(AlcoholLineContext.Read(item.Name)))
                     || (item.FoodId == null && named.Any(f => NamesWords(Words(item.Name), f.Head))))
+                {
                     yield return item.Name;
+                    continue;
+                }
+                if (FactNamed(item.LabelTerms()?.SelectMany(t => t.Contains), patterns, named, 0) is { } fact)
+                    yield return item.Name + " (" + fact + ")";
             }
             var allergens = PreparedContentsService.Allergens(row);
             foreach (var allergen in allergens.Declared)
@@ -148,6 +157,35 @@ namespace Nom.Orch.Services.Support
                 if (IngredientStatementReader.GateWords(allergen).Any(w => severe.Any(c => DietCriteriaMatcher.LineNames(c, w)))
                     || named.Any(f => f.Severity >= 4 && Warns(allergen, f)))
                     yield return "may contain " + allergen.Word;
+        }
+
+        /// <summary>
+        /// What in one read statement the household's restrictions may forbid but the label does not settle: a label
+        /// term that may be made of a restricted thing, its source not stated (<see cref="LabelTerm.May"/>: a bare
+        /// "lecithin" may be soy or egg, "vegetable oil" may be peanut oil). Such a meal is unknown, never offered.
+        /// </summary>
+        public static IEnumerable<string> UncertainNames(IngredientContentsEntity row, RestrictedIngredientSet set, IReadOnlyCollection<NamedRestrictedFood>? named = null)
+        {
+            if (row.Outcome != IngredientContentsOutcome.Read) yield break;
+            named ??= Array.Empty<NamedRestrictedFood>();
+            var patterns = set.Criteria.Where(c => c.LikePattern != null || c.WordPattern != null).ToList();
+            foreach (var item in PreparedContentsService.Items(row))
+                if (FactNamed(item.LabelTerms()?.SelectMany(t => t.May), patterns, named, 4) is { } fact)
+                    yield return item.Name + " (may be " + fact + ", source not stated)";
+        }
+
+        /// <summary>The first fact word a pattern names (read with every word of its major-allergen class), or a food the household avoids directly by its head or class, at <paramref name="minimumNamedSeverity"/> or above; null when none.</summary>
+        private static string? FactNamed(IEnumerable<string>? facts, IReadOnlyCollection<DietDataCriterion> patterns, IReadOnlyCollection<NamedRestrictedFood> named, int minimumNamedSeverity)
+        {
+            if (facts == null) return null;
+            foreach (var fact in facts)
+            {
+                var allergen = new StatementAllergen(fact, IngredientStatementReader.ClassOf(fact));
+                if (IngredientStatementReader.GateWords(allergen).Any(w => patterns.Any(c => DietCriteriaMatcher.LineNames(c, w)))
+                    || named.Any(f => f.Severity >= minimumNamedSeverity && Warns(allergen, f)))
+                    return fact;
+            }
+            return null;
         }
 
         private static bool Warns(StatementAllergen allergen, NamedRestrictedFood food) =>

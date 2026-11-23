@@ -1,0 +1,411 @@
+id	restriction	line	expect	status	source	note
+dp-001	Peanut Allergy	1/2 cup chopped roasted peanuts	hit	ok	rule:diet-patterns	the pattern's own word, plural
+dp-002	Peanut Allergy	2 tbsp creamy peanut butter	hit	ok	rule:diet-patterns	the word begins a compound food
+dp-003	Peanut Allergy	1/4 cup vegetable or peanut oil	hit	ok	rule:diet-patterns	an alternative names the allergen, so the line keeps its recipe out whichever the cook picks (the stricter reading)
+dp-004	Peanut Allergy	canola, (vegetable or peanut oil for frying)	hit	ok	rule:diet-patterns	staging checkpoint 2 M27 (recipe 75943): an alternative in parentheses
+dp-005	Peanut Allergy	1 cup sunflower seeds	clear	ok	rule:diet-patterns	names no peanut
+dp-006	Peanut Allergy	1/2 cup peanut-free chocolate chips	clear	agent	agent-review-diet-patterns-2026-11-21	a term followed by "free" says the food is absent; a person should confirm this reading for a severity 5 type
+dp-007	Nut Allergy	1 cup walnut halves	hit	ok	rule:diet-patterns	a tree nut word
+dp-008	Nut Allergy	2 tbsp peanut butter	hit	ok	rule:diet-patterns	Nut Allergy holds %peanut%
+dp-009	Nut Allergy	1/4 cup pine nuts or slivered almonds	hit	ok	rule:diet-patterns	an alternative names the allergen, so the line keeps its recipe out whichever the cook picks (the stricter reading)
+dp-010	Nut Allergy	1/2 tsp freshly grated nutmeg	clear	ok	rule:diet-patterns	nutmeg is a seed, not a tree nut (FDA, edition 5, 2025), and no pattern of the type names it
+dp-011	Nut Allergy	1 can sliced water chestnuts	clear	ok	rule:diet-patterns	the corm of an aquatic sedge, not a tree nut (named exception of %chestnut%)
+dp-012	Nut Allergy	1 cup shredded coconut	clear	ok	rule:diet-patterns	no pattern of the type names coconut (FDA, edition 5, 2025: not a tree nut)
+dp-013	Tree Nut Allergy	1/2 cup chopped pecans	hit	ok	rule:diet-patterns	the pattern's own word, plural
+dp-014	Tree Nut Allergy	1 cup roasted chestnuts	hit	ok	rule:diet-patterns	a true chestnut is a tree nut
+dp-015	Tree Nut Allergy	2 tbsp mixed nut butter	hit	ok	rule:diet-patterns	%nut butter% and %mixed nut%
+dp-016	Tree Nut Allergy	1 can water chestnuts, drained	clear	ok	rule:diet-patterns	the corm of an aquatic sedge, not a tree nut (named exception of %chestnut%)
+dp-017	Tree Nut Allergy	1/2 cup peanut butter	clear	ok	rule:diet-patterns	peanuts are legumes, a major allergen apart from tree nuts (FDA, FALCPA; named exception of %nut butter%)
+dp-018	Tree Nut Allergy	1/4 cup coconut butter	clear	ok	rule:diet-patterns	coconut is no longer a tree nut for allergen labelling (FDA, edition 5, 2025; named exception of %nut butter%)
+dp-019	Almond Allergy	1 cup almond flour	hit	ok	rule:diet-patterns	an exception of %flour% does not touch %almond%
+dp-020	Almond Allergy	1/2 cup sliced almonds	hit	ok	rule:diet-patterns	plural
+dp-021	Almond Allergy	1 cup cashews	clear	ok	rule:diet-patterns	names no almond
+dp-022	Cashew Allergy	1 cup raw cashews, soaked	hit	ok	rule:diet-patterns	plural
+dp-023	Cashew Allergy	2 cups cashew milk	hit	ok	rule:diet-patterns	an exception of %milk% does not touch %cashew%
+dp-024	Cashew Allergy	1 cup pistachios	clear	ok	rule:diet-patterns	names no cashew
+dp-025	Walnut Allergy	1/2 cup chopped walnuts	hit	ok	rule:diet-patterns	plural
+dp-026	Walnut Allergy	1 tbsp black walnut oil	hit	ok	rule:diet-patterns	the word in a compound food
+dp-027	Walnut Allergy	1/2 cup pecans	clear	ok	rule:diet-patterns	names no walnut
+dp-028	Pecan Allergy	1 cup pecan halves	hit	ok	rule:diet-patterns	the pattern's own word
+dp-029	Pecan Allergy	2 oz praline pieces	hit	ok	rule:diet-patterns	%praline%
+dp-030	Pecan Allergy	1 cup pea shoots	clear	ok	rule:diet-patterns	names no pecan
+dp-031	Pistachio Allergy	1/4 cup shelled pistachios	hit	ok	rule:diet-patterns	plural
+dp-032	Pistachio Allergy	1/4 cup pumpkin seeds	clear	ok	rule:diet-patterns	names no pistachio
+dp-033	Macadamia Allergy	1/2 cup macadamia nuts	hit	ok	rule:diet-patterns	the pattern's own word
+dp-034	Macadamia Allergy	1/2 cup hazelnuts	clear	ok	rule:diet-patterns	names no macadamia
+dp-035	Brazil Nut Allergy	6 brazil nuts, chopped	hit	ok	rule:diet-patterns	a two-word term, plural
+dp-036	Brazil Nut Allergy	6 brazil-nuts, chopped	hit	ok	rule:diet-patterns	a two-word term across a hyphen (ILIKE missed this one)
+dp-037	Brazil Nut Allergy	1 tsp brazilian pepper	clear	ok	rule:diet-patterns	the first word alone is not the term
+dp-038	Hazelnut Allergy	1/2 cup toasted hazelnuts	hit	ok	rule:diet-patterns	plural
+dp-039	Hazelnut Allergy	2 tbsp nutella	hit	ok	rule:diet-patterns	%nutella%
+dp-040	Hazelnut Allergy	1/4 cup filberts	hit	ok	rule:diet-patterns	%filbert%
+dp-041	Hazelnut Allergy	1 tsp freshly grated nutmeg	clear	ok	rule:diet-patterns	names no hazelnut
+dp-042	Pine Nut Allergy	1/4 cup toasted pine nuts	hit	ok	rule:diet-patterns	a two-word term, plural
+dp-043	Pine Nut Allergy	1/2 cup basil pesto	hit	ok	rule:diet-patterns	%pesto%
+dp-044	Pine Nut Allergy	1 cup diced pineapple	clear	ok	rule:diet-patterns	the first word alone is not the term
+dp-045	Egg Allergy	2 large eggs, beaten	hit	ok	rule:diet-patterns	the pattern's own word, plural
+dp-046	Egg Allergy	1 egg yolk	hit	ok	rule:diet-patterns	the pattern's own word
+dp-047	Egg Allergy	1/2 cup mayonnaise	hit	ok	rule:diet-patterns	%mayonnaise%
+dp-048	Egg Allergy	1 cup eggnog	hit	ok	rule:diet-patterns	the word begins a compound food
+dp-049	Egg Allergy	1 tbsp oil or 1 beaten egg	hit	ok	rule:diet-patterns	an alternative names the allergen, so the line keeps its recipe out whichever the cook picks (the stricter reading)
+dp-050	Egg Allergy	1 medium eggplant, cubed	clear	ok	rule:diet-patterns	Solanum melongena, a vegetable (named exception of %egg%)
+dp-051	Egg Allergy	2 cups chopped veggies	clear	ok	rule:diet-patterns	"egg" inside "veggies" has one letter before it: not a compound's part
+dp-052	Egg Allergy	8 oz eggless pasta	clear	agent	agent-review-diet-patterns-2026-11-21	a term followed by "less" says the food is absent; a person should confirm this reading for a severity 5 type
+dp-053	Milk Allergy	1 cup whole milk	hit	ok	rule:diet-patterns	the pattern's own word
+dp-054	Milk Allergy	1 cup buttermilk	hit	ok	rule:diet-patterns	milk ends a compound food
+dp-055	Milk Allergy	2 tbsp unsalted butter	hit	ok	rule:diet-patterns	the pattern's own word
+dp-056	Milk Allergy	1/2 cup sour cream	hit	ok	rule:diet-patterns	%cream%
+dp-057	Milk Allergy	1 cup milk chocolate chips	hit	ok	rule:diet-patterns	milk chocolate holds milk
+dp-058	Milk Allergy	2 tbsp vegetable oil (or melted butter)	hit	ok	rule:diet-patterns	an alternative names the allergen, so the line keeps its recipe out whichever the cook picks (the stricter reading)
+dp-059	Milk Allergy	1 cup coconut milk or whole milk	hit	ok	rule:diet-patterns	the exception blanks "coconut milk" only; "whole milk" still names milk
+dp-060	Milk Allergy	1 can (13.5 oz) coconut milk	clear	ok	rule:diet-patterns	pressed coconut, no dairy (named exception of %milk%)
+dp-061	Milk Allergy	1/2 cup smooth peanut butter	clear	ok	rule:diet-patterns	ground peanuts, no dairy (21 CFR 164.150; named exception of %butter%)
+dp-062	Milk Allergy	1 small butternut squash	clear	ok	rule:diet-patterns	Cucurbita moschata (named exception of %butter%)
+dp-063	Milk Allergy	1/2 tsp cream of tartar	clear	ok	rule:diet-patterns	potassium bitartrate (named exception of %cream%)
+dp-064	Milk Allergy	a square of cheesecloth	clear	ok	rule:diet-patterns	a cloth (named exception of %cheese%)
+dp-065	Milk Allergy	1 cup unsweetened almond milk	clear	ok	rule:diet-patterns	a drink of almonds, no dairy (named exception of %milk%)
+dp-066	Milk Allergy	1 can butter beans, drained	clear	ok	rule:diet-patterns	lima beans (named exception of %butter%)
+dp-067	Milk Allergy	1 cup creamy tomato soup	hit	ok	rule:diet-patterns	"cream" begins the word "creamy": the rule reads it as cream, on the safe side, since a creamy soup often holds cream
+dp-068	Soy Allergy	2 tbsp soy sauce	hit	ok	rule:diet-patterns	the pattern's own word
+dp-069	Soy Allergy	1 block firm tofu	hit	ok	rule:diet-patterns	%tofu%
+dp-070	Soy Allergy	2 cups soymilk	hit	ok	rule:diet-patterns	an exception of %milk% does not touch %soy%
+dp-071	Soy Allergy	2 tbsp tamarind paste	clear	ok	rule:diet-patterns	the fruit of Tamarindus indica (named exception of %tamari%)
+dp-072	Soy Allergy	1 tbsp tamari	hit	ok	rule:diet-patterns	%tamari%
+dp-073	Soybean Allergy	1 cup shelled edamame	hit	ok	rule:diet-patterns	%edamame%
+dp-074	Soybean Allergy	2 tbsp white miso	hit	ok	rule:diet-patterns	%miso%
+dp-075	Soybean Allergy	1 tbsp tamarind concentrate	clear	ok	rule:diet-patterns	the fruit of Tamarindus indica (named exception of %tamari%)
+dp-076	Fish Allergy	1 lb cod fillets	hit	ok	rule:diet-patterns	the pattern's own word
+dp-077	Fish Allergy	2 tbsp fish sauce	hit	ok	rule:diet-patterns	%fish%
+dp-078	Fish Allergy	4 anchovy fillets	hit	ok	rule:diet-patterns	%anchov% reads the stem
+dp-079	Fish Allergy	1 lb monkfish	hit	ok	rule:diet-patterns	fish ends a compound food
+dp-080	Fish Allergy	1 can tuna or salmon	hit	ok	rule:diet-patterns	an alternative names the allergen, so the line keeps its recipe out whichever the cook picks (the stricter reading)
+dp-081	Fish Allergy	1 lb shellfish, cleaned	clear	ok	rule:diet-patterns	crustaceans and molluscs, a major allergen apart from fish (FALCPA; named exception of %fish%)
+dp-082	Fish Allergy	2 ripe avocados	clear	ok	rule:diet-patterns	"cod" inside "avocados" has three letters before it and two after: not a compound's part
+dp-083	Fish Allergy	4 coddled eggs	clear	ok	rule:diet-patterns	to coddle is to cook gently (named exception of %cod%)
+dp-084	Fish Allergy	1 cup goldfish crackers	clear	ok	rule:diet-patterns	a cheese cracker with no fish (named exception of %fish%)
+dp-085	Fish Allergy	1 cup salmonberries	clear	ok	rule:diet-patterns	the fruit of Rubus spectabilis (named exception of %salmon%)
+dp-086	Shellfish Allergy	1 lb large shrimp	hit	ok	rule:diet-patterns	the pattern's own word
+dp-087	Shellfish Allergy	2 tbsp oyster sauce	hit	ok	rule:diet-patterns	the pattern's own word
+dp-088	Shellfish Allergy	1 cup clamato juice	hit	ok	rule:diet-patterns	the word begins a compound food (clam broth)
+dp-089	Shellfish Allergy	1/2 lb lump crabmeat	hit	ok	rule:diet-patterns	the word begins a compound food
+dp-090	Shellfish Allergy	4 cups scalloped potatoes	clear	ok	rule:diet-patterns	sliced and baked in layers (named exception of %scallop%)
+dp-091	Shellfish Allergy	8 oz oyster mushrooms	clear	ok	rule:diet-patterns	Pleurotus ostreatus, a fungus (named exception of %oyster%)
+dp-092	Shellfish Allergy	2 crab apples, quartered	clear	ok	rule:diet-patterns	wild Malus (named exception of %crab%)
+dp-093	Shellfish Allergy	1 cup oyster crackers	clear	ok	rule:diet-patterns	a soup cracker with no oyster (named exception of %oyster%)
+dp-094	Shrimp Allergy	1 lb shrimp, peeled	hit	ok	rule:diet-patterns	the pattern's own word
+dp-095	Shrimp Allergy	1 cup prawn crackers	hit	ok	rule:diet-patterns	%prawn%
+dp-096	Shrimp Allergy	1 lb sea scallops	clear	ok	rule:diet-patterns	names no shrimp
+dp-097	Crab Allergy	8 oz crabmeat	hit	ok	rule:diet-patterns	the word begins a compound food
+dp-098	Crab Allergy	1 cup crabapple jelly	clear	ok	rule:diet-patterns	wild Malus (named exception of %crab%)
+dp-099	Lobster Allergy	2 lobster tails	hit	ok	rule:diet-patterns	the pattern's own word
+dp-100	Lobster Allergy	8 oz lobster mushrooms	clear	ok	rule:diet-patterns	a fungus (named exception of %lobster%)
+dp-101	Clam Allergy	2 dozen littleneck clams	hit	ok	rule:diet-patterns	plural
+dp-102	Clam Allergy	1 lb mussels	clear	ok	rule:diet-patterns	names no clam
+dp-103	Mussel Allergy	2 lb mussels, debearded	hit	ok	rule:diet-patterns	plural
+dp-104	Mussel Allergy	1 lb clams	clear	ok	rule:diet-patterns	names no mussel
+dp-105	Oyster Allergy	12 oysters, shucked	hit	ok	rule:diet-patterns	plural
+dp-106	Oyster Allergy	1 cup sliced oyster mushrooms	clear	ok	rule:diet-patterns	a fungus (named exception of %oyster%)
+dp-107	Scallop Allergy	1 lb sea scallops	hit	ok	rule:diet-patterns	plural
+dp-108	Scallop Allergy	6 cups scalloped potatoes	clear	ok	rule:diet-patterns	sliced and baked in layers (named exception of %scallop%)
+dp-109	Scallop Allergy	4 scallions, sliced	clear	ok	rule:diet-patterns	names no scallop
+dp-110	Wheat Allergy	2 cups all-purpose flour	hit	ok	rule:diet-patterns	the pattern's own word
+dp-111	Wheat Allergy	1 cup whole-wheat flour	hit	ok	rule:diet-patterns	the pattern's own words
+dp-112	Wheat Allergy	1 cup shortbread crumbs	hit	ok	rule:diet-patterns	bread ends a compound food
+dp-113	Wheat Allergy	4 flour tortillas	hit	ok	rule:diet-patterns	the exception of %tortilla% does not touch %flour%
+dp-114	Wheat Allergy	2 cups bread or rice	hit	ok	rule:diet-patterns	an alternative names the allergen, so the line keeps its recipe out whichever the cook picks (the stricter reading)
+dp-115	Wheat Allergy	1 cup buckwheat groats	clear	ok	rule:diet-patterns	Fagopyrum esculentum, not wheat (named exception of %wheat%)
+dp-116	Wheat Allergy	1 cup rice flour	clear	ok	rule:diet-patterns	flour of rice (named exception of %flour%)
+dp-117	Wheat Allergy	8 corn tortillas	clear	ok	rule:diet-patterns	a maize flatbread (named exception of %tortilla%)
+dp-118	Wheat Allergy	1 lb sweetbreads	clear	ok	rule:diet-patterns	thymus or pancreas (named exception of %bread%)
+dp-119	Wheat Allergy	1 ripe breadfruit	clear	ok	rule:diet-patterns	Artocarpus altilis (named exception of %bread%)
+dp-120	Wheat Allergy	1 flourless chocolate cake	clear	agent	agent-review-diet-patterns-2026-11-21	a term followed by "less" says the food is absent
+dp-121	Sesame Allergy	2 tbsp toasted sesame oil	hit	ok	rule:diet-patterns	the pattern's own word
+dp-122	Sesame Allergy	1/4 cup tahini	hit	ok	rule:diet-patterns	%tahini%
+dp-123	Sesame Allergy	1 cup hummus	hit	ok	rule:diet-patterns	%hummus%
+dp-124	Sesame Allergy	1 tbsp sunflower oil	clear	ok	rule:diet-patterns	names no sesame
+dp-125	Corn Allergy	1 tbsp cornstarch	hit	ok	rule:diet-patterns	corn begins a compound food: cornstarch is corn
+dp-126	Corn Allergy	1 cup cornmeal	hit	ok	rule:diet-patterns	corn begins a compound food
+dp-127	Corn Allergy	2 cups popcorn	hit	ok	rule:diet-patterns	%popcorn%, and corn ends a compound food
+dp-128	Corn Allergy	8 corn tortillas	hit	ok	rule:diet-patterns	the exception of %tortilla% does not touch %corn%
+dp-129	Corn Allergy	1 cup sweetcorn kernels	hit	ok	rule:diet-patterns	corn ends a compound food
+dp-130	Corn Allergy	1 tsp black peppercorns	clear	ok	rule:diet-patterns	the dried berry of Piper nigrum (named exception of %corn%)
+dp-131	Corn Allergy	1 lb corned beef	clear	ok	rule:diet-patterns	cured with coarse salt (named exception of %corn%)
+dp-132	Corn Allergy	2 Cornish game hens	clear	ok	rule:diet-patterns	a chicken breed (named exception of %corn%)
+dp-133	Corn Allergy	1 acorn squash	clear	ok	rule:diet-patterns	"corn" in "acorn" has one letter before it: not a compound's part
+dp-134	Corn Allergy	4 flour tortillas	clear	ok	rule:diet-patterns	a wheat flatbread (named exception of %tortilla%)
+dp-135	Coconut Allergy	1 can coconut milk	hit	ok	rule:diet-patterns	the pattern's own word
+dp-136	Coconut Allergy	1 cup coconut cream	hit	ok	rule:diet-patterns	an exception of %cream% does not touch %coconut%
+dp-137	Coconut Allergy	1 cup cocoa powder	clear	ok	rule:diet-patterns	names no coconut
+dp-138	Mustard Allergy	1 tbsp Dijon mustard	hit	ok	rule:diet-patterns	the pattern's own word
+dp-139	Mustard Allergy	1 tsp mustard seeds	hit	ok	rule:diet-patterns	the pattern's own word
+dp-140	Mustard Allergy	1 tsp ground turmeric	clear	ok	rule:diet-patterns	names no mustard
+dp-141	Celery Allergy	2 stalks celery, diced	hit	ok	rule:diet-patterns	the pattern's own word
+dp-142	Celery Allergy	1 small celeriac, peeled	hit	ok	rule:diet-patterns	%celeriac%
+dp-143	Celery Allergy	1 tsp celery salt	hit	ok	rule:diet-patterns	the pattern's own word
+dp-144	Celery Allergy	1 fennel bulb	clear	ok	rule:diet-patterns	names no celery
+dp-145	Lupin Allergy	1 cup lupini beans	hit	ok	rule:diet-patterns	lupin begins a compound word
+dp-146	Lupin Allergy	1 cup chickpeas	clear	ok	rule:diet-patterns	names no lupin
+dp-147	Buckwheat Allergy	1 cup buckwheat groats	hit	ok	rule:diet-patterns	the pattern's own word
+dp-148	Buckwheat Allergy	8 oz soba noodles	hit	ok	rule:diet-patterns	%soba%
+dp-149	Buckwheat Allergy	1 cup buckwheat flour	hit	ok	rule:diet-patterns	an exception of %flour% does not touch %buckwheat%
+dp-150	Buckwheat Allergy	1 cup wheat berries	clear	ok	rule:diet-patterns	wheat is not buckwheat
+dp-151	Kiwi Allergy	2 kiwis, peeled and sliced	hit	ok	rule:diet-patterns	plural
+dp-152	Kiwi Allergy	1 kiwifruit	hit	ok	rule:diet-patterns	the word begins a compound food
+dp-153	Kiwi Allergy	1 cup diced papaya	clear	ok	rule:diet-patterns	names no kiwi
+dp-154	Banana Allergy	2 ripe bananas	hit	ok	rule:diet-patterns	plural
+dp-155	Banana Allergy	1 green plantain	hit	ok	rule:diet-patterns	%plantain%
+dp-156	Banana Allergy	2 banana peppers, sliced	clear	ok	rule:diet-patterns	a mild Capsicum pepper (named exception of %banana%)
+dp-157	Avocado Allergy	1 ripe avocado	hit	ok	rule:diet-patterns	the pattern's own word
+dp-158	Avocado Allergy	1 cup guacamole	hit	ok	rule:diet-patterns	%guacamole%
+dp-159	Avocado Allergy	1 cup diced guava	clear	ok	rule:diet-patterns	names no avocado
+dp-160	Mango Allergy	1 mango, diced	hit	ok	rule:diet-patterns	the pattern's own word
+dp-161	Mango Allergy	2 mangoes, peeled	hit	ok	rule:diet-patterns	plural
+dp-162	Mango Allergy	4 mangosteens	clear	ok	rule:diet-patterns	Garcinia mangostana (named exception of %mango%)
+dp-163	Strawberry Allergy	1 pint strawberries	hit	ok	rule:diet-patterns	%strawberr% reads the stem
+dp-164	Strawberry Allergy	1/2 cup strawberry jam	hit	ok	rule:diet-patterns	%strawberr% reads the stem
+dp-165	Strawberry Allergy	1 cup raspberries	clear	ok	rule:diet-patterns	names no strawberry
+dp-166	Citrus Allergy	juice of 1 lemon	hit	ok	rule:diet-patterns	the pattern's own word
+dp-167	Citrus Allergy	2 limes, zested	hit	ok	rule:diet-patterns	plural
+dp-168	Citrus Allergy	1 tbsp grated orange zest	hit	ok	rule:diet-patterns	the pattern's own word
+dp-169	Citrus Allergy	1 cup limeade	hit	ok	rule:diet-patterns	lime begins a compound food
+dp-170	Citrus Allergy	2 stalks lemongrass	clear	ok	rule:diet-patterns	Cymbopogon, a grass (named exception of %lemon%)
+dp-171	Citrus Allergy	1 tbsp chopped lemon balm	clear	ok	rule:diet-patterns	Melissa officinalis, a mint (named exception of %lemon%)
+dp-172	Citrus Allergy	1 lb orange roughy fillets	clear	ok	rule:diet-patterns	a fish (named exception of %orange%)
+dp-173	Lactose-Intolerant	1 cup whole milk	hit	ok	rule:diet-patterns	the pattern's own word
+dp-174	Lactose-Intolerant	1/2 cup heavy cream	hit	ok	rule:diet-patterns	the pattern's own word
+dp-175	Lactose-Intolerant	1 cup ricotta cheese	hit	ok	rule:diet-patterns	%ricotta%
+dp-176	Lactose-Intolerant	1 can coconut milk	clear	ok	rule:diet-patterns	pressed coconut, no lactose (named exception of %milk%)
+dp-177	Lactose-Intolerant	1/2 tsp cream of tartar	clear	ok	rule:diet-patterns	potassium bitartrate (named exception of %cream%)
+dp-178	Lactose Intolerance	1 cup whole milk	hit	ok	rule:diet-patterns	the pattern's own word
+dp-179	Lactose Intolerance	1/2 cup heavy cream	hit	ok	rule:diet-patterns	the pattern's own word
+dp-180	Lactose Intolerance	1 cup ricotta cheese	hit	ok	rule:diet-patterns	%ricotta%
+dp-181	Lactose Intolerance	1 can coconut milk	clear	ok	rule:diet-patterns	pressed coconut, no lactose (named exception of %milk%)
+dp-182	Lactose Intolerance	1/2 tsp cream of tartar	clear	ok	rule:diet-patterns	potassium bitartrate (named exception of %cream%)
+dp-183	Gluten Sensitivity	2 cups all-purpose flour	hit	ok	rule:diet-patterns	the pattern's own word
+dp-184	Gluten Sensitivity	1 cup rolled oats	hit	ok	rule:diet-patterns	% oat% reads a word that begins with oat
+dp-185	Gluten Sensitivity	1 cup pearl barley	hit	ok	rule:diet-patterns	the pattern's own word
+dp-186	Gluten Sensitivity	1 tbsp malt vinegar	hit	ok	rule:diet-patterns	malt is barley
+dp-187	Gluten Sensitivity	1/2 cup graham cracker crumbs	hit	ok	rule:diet-patterns	%cracker% names the crackers though %ham% no longer does
+dp-188	Gluten Sensitivity	2 cups water or beer	hit	ok	rule:diet-patterns	an alternative names the allergen, so the line keeps its recipe out whichever the cook picks (the stricter reading)
+dp-189	Gluten Sensitivity	1 cup buckwheat groats	clear	ok	rule:diet-patterns	gluten-free (Celiac Disease Foundation; named exception of %wheat%)
+dp-190	Gluten Sensitivity	1 cup rice flour	clear	ok	rule:diet-patterns	flour of rice (named exception of %flour%)
+dp-191	Gluten Sensitivity	1 can root beer	clear	ok	rule:diet-patterns	a soft drink (named exception of %beer%)
+dp-192	Gluten Sensitivity	1 small spaghetti squash	clear	ok	rule:diet-patterns	a winter squash (named exception of %spaghetti%)
+dp-193	Gluten Sensitivity	1 cup goat cheese	clear	ok	rule:diet-patterns	"oat" inside "goat" has one letter before it, and % oat% needs a word start
+dp-194	Gluten Sensitivity	1 tbsp maltodextrin	clear	ok	rule:diet-patterns	gluten-free (Celiac Disease Foundation; named exception of %malt%)
+dp-195	Celiac Disease	2 cups all-purpose flour	hit	ok	rule:diet-patterns	the pattern's own word
+dp-196	Celiac Disease	1 cup rolled oats	hit	ok	rule:diet-patterns	% oat% reads a word that begins with oat
+dp-197	Celiac Disease	1 cup pearl barley	hit	ok	rule:diet-patterns	the pattern's own word
+dp-198	Celiac Disease	1 tbsp malt vinegar	hit	ok	rule:diet-patterns	malt is barley
+dp-199	Celiac Disease	1/2 cup graham cracker crumbs	hit	ok	rule:diet-patterns	%cracker% names the crackers though %ham% no longer does
+dp-200	Celiac Disease	2 cups water or beer	hit	ok	rule:diet-patterns	an alternative names the allergen, so the line keeps its recipe out whichever the cook picks (the stricter reading)
+dp-201	Celiac Disease	1 cup buckwheat groats	clear	ok	rule:diet-patterns	gluten-free (Celiac Disease Foundation; named exception of %wheat%)
+dp-202	Celiac Disease	1 cup rice flour	clear	ok	rule:diet-patterns	flour of rice (named exception of %flour%)
+dp-203	Celiac Disease	1 can root beer	clear	ok	rule:diet-patterns	a soft drink (named exception of %beer%)
+dp-204	Celiac Disease	1 small spaghetti squash	clear	ok	rule:diet-patterns	a winter squash (named exception of %spaghetti%)
+dp-205	Celiac Disease	1 cup goat cheese	clear	ok	rule:diet-patterns	"oat" inside "goat" has one letter before it, and % oat% needs a word start
+dp-206	Celiac Disease	1 tbsp maltodextrin	clear	ok	rule:diet-patterns	gluten-free (Celiac Disease Foundation; named exception of %malt%)
+dp-207	Sulfites Sensitivity	1 cup dry white wine	hit	ok	rule:diet-patterns	the pattern's own word
+dp-208	Sulfites Sensitivity	2 tbsp red wine vinegar	hit	ok	rule:diet-patterns	%wine% and %vinegar%
+dp-209	Sulfites Sensitivity	1/2 cup golden raisins	hit	ok	rule:diet-patterns	%raisin%
+dp-210	Sulfites Sensitivity	kitchen twine, for tying	clear	ok	rule:diet-patterns	"wine" in "twine" has two letters before it: not a compound's part
+dp-211	Sulfites Sensitivity	1 lb ground swine	clear	agent	agent-review-diet-patterns-2026-11-21	"wine" in "swine" has one letter before it
+dp-212	Sulfite Sensitivity	1 cup dry white wine	hit	ok	rule:diet-patterns	the pattern's own word
+dp-213	Sulfite Sensitivity	2 tbsp red wine vinegar	hit	ok	rule:diet-patterns	%wine% and %vinegar%
+dp-214	Sulfite Sensitivity	1/2 cup golden raisins	hit	ok	rule:diet-patterns	%raisin%
+dp-215	Sulfite Sensitivity	kitchen twine, for tying	clear	ok	rule:diet-patterns	"wine" in "twine" has two letters before it: not a compound's part
+dp-216	Sulfite Sensitivity	1 lb ground swine	clear	agent	agent-review-diet-patterns-2026-11-21	"wine" in "swine" has one letter before it
+dp-217	Caffeine Sensitivity	1 cup strong brewed coffee	hit	ok	rule:diet-patterns	the pattern's own word
+dp-218	Caffeine Sensitivity	1 can cola	hit	ok	rule:diet-patterns	the pattern's own word
+dp-219	Caffeine Sensitivity	2 oz dark chocolate	hit	ok	rule:diet-patterns	%dark chocolate%
+dp-220	Caffeine Sensitivity	1 cup milk chocolate chips	clear	ok	rule:diet-patterns	"cola" inside "chocolate" has three letters before it and two after: not a compound's part
+dp-221	Caffeine Sensitivity	drain in a colander	clear	ok	rule:diet-patterns	a strainer (named exception of %cola%)
+dp-222	Nightshade Sensitivity	2 ripe tomatoes, diced	hit	ok	rule:diet-patterns	plural
+dp-223	Nightshade Sensitivity	1 tsp smoked paprika	hit	ok	rule:diet-patterns	%paprika%
+dp-224	Nightshade Sensitivity	1 medium eggplant	hit	ok	rule:diet-patterns	%eggplant%
+dp-225	Nightshade Sensitivity	2 jalapeños, seeded	hit	ok	rule:diet-patterns	%jalape% reads the stem
+dp-226	Nightshade Sensitivity	1 lb Chilean sea bass	clear	ok	rule:diet-patterns	from Chile (named exception of %chile%)
+dp-227	Nightshade Sensitivity	1 tsp black peppercorns	clear	ok	rule:diet-patterns	names no nightshade pattern
+dp-228	Nightshade-Free	2 ripe tomatoes, diced	hit	ok	rule:diet-patterns	plural
+dp-229	Nightshade-Free	1 tsp smoked paprika	hit	ok	rule:diet-patterns	%paprika%
+dp-230	Nightshade-Free	1 medium eggplant	hit	ok	rule:diet-patterns	%eggplant%
+dp-231	Nightshade-Free	2 jalapeños, seeded	hit	ok	rule:diet-patterns	%jalape% reads the stem
+dp-232	Nightshade-Free	1 lb Chilean sea bass	clear	ok	rule:diet-patterns	from Chile (named exception of %chile%)
+dp-233	Nightshade-Free	1 tsp black peppercorns	clear	ok	rule:diet-patterns	names no nightshade pattern
+dp-234	MSG Sensitivity	1 tsp MSG	hit	ok	rule:diet-patterns	the pattern's own word
+dp-235	MSG Sensitivity	2 chicken bouillon cubes	hit	ok	rule:diet-patterns	%bouillon%
+dp-236	MSG Sensitivity	1 tsp sea salt	clear	ok	rule:diet-patterns	names no MSG pattern
+dp-237	Low-FODMAP	1 onion, chopped	hit	ok	rule:diet-patterns	the pattern's own word
+dp-238	Low-FODMAP	2 apples, cored	hit	ok	rule:diet-patterns	plural
+dp-239	Low-FODMAP	1 cup applesauce	hit	ok	rule:diet-patterns	apple begins a compound food
+dp-240	Low-FODMAP	1 cup diced pineapple	clear	ok	rule:diet-patterns	Ananas comosus (named exception of %apple%)
+dp-241	Low-FODMAP	1 cup pearl onions	hit	ok	rule:diet-patterns	%onion% names it, though pearl is not pear
+dp-242	Low-FODMAP	1 bunch asparagus spears	clear	ok	rule:diet-patterns	"pear" in "spears" has one letter before it
+dp-243	Low-FODMAP	1 vanilla bean, split	clear	ok	rule:diet-patterns	the pod of the vanilla orchid, not a legume (named exception of %bean%)
+dp-244	FODMAP Sensitivity	1 onion, chopped	hit	ok	rule:diet-patterns	the pattern's own word
+dp-245	FODMAP Sensitivity	2 apples, cored	hit	ok	rule:diet-patterns	plural
+dp-246	FODMAP Sensitivity	1 cup applesauce	hit	ok	rule:diet-patterns	apple begins a compound food
+dp-247	FODMAP Sensitivity	1 cup diced pineapple	clear	ok	rule:diet-patterns	Ananas comosus (named exception of %apple%)
+dp-248	FODMAP Sensitivity	1 cup pearl onions	hit	ok	rule:diet-patterns	%onion% names it, though pearl is not pear
+dp-249	FODMAP Sensitivity	1 bunch asparagus spears	clear	ok	rule:diet-patterns	"pear" in "spears" has one letter before it
+dp-250	FODMAP Sensitivity	1 vanilla bean, split	clear	ok	rule:diet-patterns	the pod of the vanilla orchid, not a legume (named exception of %bean%)
+dp-251	Gluten-Free	1 loaf crusty bread	hit	ok	rule:diet-patterns	the pattern's own word
+dp-252	Gluten-Free	8 oz spaghetti	hit	ok	rule:diet-patterns	the pattern's own word
+dp-253	Gluten-Free	1 cup almond flour	clear	ok	rule:diet-patterns	ground almonds (named exception of %flour%)
+dp-254	Gluten-Free	1 lb sweetbreads	clear	ok	rule:diet-patterns	thymus or pancreas (named exception of %bread%)
+dp-255	Grain-Free	1 cup brown rice	hit	ok	rule:diet-patterns	the pattern's own word
+dp-256	Grain-Free	1 cup steel-cut oats	hit	ok	rule:diet-patterns	%oat% reads a word that begins with oat
+dp-257	Grain-Free	1 cup buckwheat flour	hit	ok	rule:diet-patterns	%buckwheat%
+dp-258	Grain-Free	1/2 cup goat cheese	clear	ok	rule:diet-patterns	"oat" inside "goat" has one letter before it
+dp-259	Grain-Free	1 stick black licorice	hit	agent	agent-review-diet-patterns-2026-11-21-review	licorice candy is made with wheat flour and sugar, so Grain-Free keeps it out by the companion %licorice% of %rice% (review of CK5R-6; was clear)
+dp-260	Grain-Free	1 tsp black peppercorns	clear	ok	rule:diet-patterns	the dried berry of Piper nigrum (named exception of %corn%)
+dp-261	Dairy-Free	1/2 cup grated parmesan	hit	ok	rule:diet-patterns	%parmesan%
+dp-262	Dairy-Free	1 cup plain yogurt	hit	ok	rule:diet-patterns	the pattern's own word
+dp-263	Dairy-Free	1 cup coconut yogurt	clear	ok	rule:diet-patterns	fermented coconut (named exception of %yogurt%)
+dp-264	Dairy-Free	1/4 cup cocoa butter	clear	ok	rule:diet-patterns	the fat of the cacao bean (named exception of %butter%)
+dp-265	Dairy-Free	1 head butter lettuce	clear	ok	rule:diet-patterns	a lettuce (named exception of %butter%)
+dp-266	Vegan	2 tbsp honey	hit	ok	rule:diet-patterns	the pattern's own word
+dp-267	Vegan	1 cup chicken or vegetable broth	hit	ok	rule:diet-patterns	a diet reads an alternative the same way: the plan's shopping list and nutrition follow the linked food, and the page cannot know which the cook picks
+dp-268	Vegan	4 oz goat cheese	hit	ok	rule:diet-patterns	%cheese% names it, though goat cheese is not goat meat
+dp-269	Vegan	1 honeydew melon	clear	ok	rule:diet-patterns	a melon (named exception of %honey%)
+dp-270	Vegan	1 bunch collard greens	clear	ok	rule:diet-patterns	a leaf vegetable (named exception of %lard%)
+dp-271	Vegan	1 tsp poultry seasoning	clear	ok	rule:diet-patterns	dried herbs (named exception of %poultry%)
+dp-272	Ethical Vegan	2 tbsp honey	hit	ok	rule:diet-patterns	the pattern's own word
+dp-273	Ethical Vegan	1 cup chicken or vegetable broth	hit	ok	rule:diet-patterns	a diet reads an alternative the same way: the plan's shopping list and nutrition follow the linked food, and the page cannot know which the cook picks
+dp-274	Ethical Vegan	4 oz goat cheese	hit	ok	rule:diet-patterns	%cheese% names it, though goat cheese is not goat meat
+dp-275	Ethical Vegan	1 honeydew melon	clear	ok	rule:diet-patterns	a melon (named exception of %honey%)
+dp-276	Ethical Vegan	1 bunch collard greens	clear	ok	rule:diet-patterns	a leaf vegetable (named exception of %lard%)
+dp-277	Ethical Vegan	1 tsp poultry seasoning	clear	ok	rule:diet-patterns	dried herbs (named exception of %poultry%)
+dp-278	Raw Vegan	2 tbsp honey	hit	ok	rule:diet-patterns	the pattern's own word
+dp-279	Raw Vegan	1 cup chicken or vegetable broth	hit	ok	rule:diet-patterns	a diet reads an alternative the same way: the plan's shopping list and nutrition follow the linked food, and the page cannot know which the cook picks
+dp-280	Raw Vegan	4 oz goat cheese	hit	ok	rule:diet-patterns	%cheese% names it, though goat cheese is not goat meat
+dp-281	Raw Vegan	1 honeydew melon	clear	ok	rule:diet-patterns	a melon (named exception of %honey%)
+dp-282	Raw Vegan	1 bunch collard greens	clear	ok	rule:diet-patterns	a leaf vegetable (named exception of %lard%)
+dp-283	Raw Vegan	1 tsp poultry seasoning	clear	ok	rule:diet-patterns	dried herbs (named exception of %poultry%)
+dp-284	Plant-Based	2 large eggs	hit	ok	rule:diet-patterns	the pattern's own word
+dp-285	Plant-Based	1 lb ground beef	hit	ok	rule:diet-patterns	the pattern's own word
+dp-286	Plant-Based	1 medium eggplant	clear	ok	rule:diet-patterns	a vegetable (named exception of %egg%)
+dp-287	Plant-Based	1 cup gooseberries	clear	ok	rule:diet-patterns	Ribes uva-crispa (named exception of %goose%)
+dp-288	Vegetarian	1 lb hamburger	hit	ok	rule:diet-patterns	%hamburger% (added to the meat patterns with this rule)
+dp-289	Vegetarian	1 smoked ham hock	hit	ok	rule:diet-patterns	the pattern's own word
+dp-290	Vegetarian	2 cups water or chicken broth	hit	ok	rule:diet-patterns	a diet reads an alternative the same way: the plan's shopping list and nutrition follow the linked food, and the page cannot know which the cook picks
+dp-291	Vegetarian	4 slices turkey bacon	hit	ok	rule:diet-patterns	%turkey% names it, though turkey bacon is not pork
+dp-292	Vegetarian	1 sleeve graham crackers	clear	ok	rule:diet-patterns	named after Sylvester Graham (named exception of %ham%)
+dp-293	Vegetarian	1 bunch collard greens	clear	ok	rule:diet-patterns	a leaf vegetable (named exception of %lard%)
+dp-294	Vegetarian	4 oz crumbled goat cheese	clear	ok	rule:diet-patterns	a cheese, not goat meat (named exception of %goat%)
+dp-295	Vegetarian	8 hot dog buns	clear	ok	rule:diet-patterns	bread rolls (named exception of %hot dog%)
+dp-296	Vegetarian	1 bottle Champagne	clear	ok	rule:diet-patterns	"ham" inside "champagne" has one letter before it
+dp-297	Hindu Vegetarian	1 lb lamb shoulder	hit	ok	rule:diet-patterns	the pattern's own word
+dp-298	Hindu Vegetarian	2 eggs	hit	ok	rule:diet-patterns	Hindu Vegetarian holds the egg patterns
+dp-299	Hindu Vegetarian	2 cups lamb's lettuce	clear	ok	rule:diet-patterns	corn salad (named exception of %lamb%)
+dp-300	Hindu Vegetarian	1 medium eggplant	clear	ok	rule:diet-patterns	a vegetable (named exception of %egg%)
+dp-301	Buddhist Vegetarian	2 cloves garlic	hit	ok	rule:diet-patterns	the pattern's own word
+dp-302	Buddhist Vegetarian	1 bunch chives	hit	ok	rule:diet-patterns	plural
+dp-303	Buddhist Vegetarian	1 tbsp fish sauce	hit	ok	rule:diet-patterns	the pattern's own word
+dp-304	Buddhist Vegetarian	1 cup diced celery	clear	ok	rule:diet-patterns	names no pattern of the type
+dp-305	Buddhist Vegetarian	2 tsp duck sauce	clear	ok	rule:diet-patterns	a plum condiment (named exception of %duck%)
+dp-306	Jain	2 potatoes, peeled	hit	ok	rule:diet-patterns	plural
+dp-307	Jain	1 tbsp prepared horseradish	hit	ok	rule:diet-patterns	radish ends a compound food
+dp-308	Jain	1 tsp grated ginger	hit	ok	rule:diet-patterns	the pattern's own word
+dp-309	Jain	1 cup diced zucchini	clear	ok	rule:diet-patterns	names no pattern of the type
+dp-310	Jain	1 honeydew melon	clear	ok	rule:diet-patterns	a melon (named exception of %honey%)
+dp-311	Pescatarian	1 lb chicken thighs	hit	ok	rule:diet-patterns	the pattern's own word
+dp-312	Pescatarian	4 oz prosciutto	hit	ok	rule:diet-patterns	%prosciutto%
+dp-313	Pescatarian	1 lb salmon fillet	clear	ok	rule:diet-patterns	fish is allowed
+dp-314	Pescatarian	8 hot dog buns	clear	ok	rule:diet-patterns	bread rolls (named exception of %hot dog%)
+dp-315	Pescatarian	1 tsp steak seasoning	clear	ok	rule:diet-patterns	a spice blend (named exception of %steak%)
+dp-316	Kosher	1 lb pork shoulder	hit	ok	rule:diet-patterns	the pattern's own word
+dp-317	Kosher	1/2 lb shrimp	hit	ok	rule:diet-patterns	the pattern's own word
+dp-318	Kosher	1 tbsp lard or butter	hit	ok	rule:diet-patterns	a diet reads an alternative the same way: the plan's shopping list and nutrition follow the linked food, and the page cannot know which the cook picks
+dp-319	Kosher	1 sleeve graham crackers	clear	ok	rule:diet-patterns	named after Sylvester Graham (named exception of %ham%)
+dp-320	Kosher	4 cups scalloped potatoes	clear	ok	rule:diet-patterns	no scallops (named exception of %scallop%)
+dp-321	Kosher	4 slices turkey bacon	clear	ok	rule:diet-patterns	cured turkey, no pork (named exception of %bacon%)
+dp-322	Halal	1/4 lb bacon or butter	hit	ok	rule:diet-patterns	a diet reads an alternative the same way: the plan's shopping list and nutrition follow the linked food, and the page cannot know which the cook picks
+dp-323	Halal	1 envelope unflavored gelatin	hit	ok	rule:diet-patterns	%gelatin%
+dp-324	Halal	1 cup dry white wine	hit	ok	rule:diet-patterns	a drink line, read by the alcohol rule
+dp-325	Halal	1 sleeve graham crackers	clear	ok	rule:diet-patterns	named after Sylvester Graham (named exception of %ham%)
+dp-326	Halal	1 lb hamburger	clear	ok	rule:diet-patterns	chopped beef (9 CFR 319.15(b); named exception of %ham%); Halal holds no beef pattern
+dp-327	Halal	1 bunch collard greens	clear	ok	rule:diet-patterns	a leaf vegetable (named exception of %lard%)
+dp-328	Halal	1 bottle Champagne vinegar	clear	ok	rule:diet-patterns	"ham" inside "champagne" has one letter before it, and a vinegar is no drink
+dp-329	No Alcohol	1/4 cup dark rum	hit	ok	rule:diet-patterns	a drink line, read by the alcohol rule
+dp-330	No Alcohol	1 cup dry red wine	hit	ok	rule:diet-patterns	a drink line that cannot be counted (no alcohol figure on its food)
+dp-331	No Alcohol	2 tbsp red wine vinegar	clear	ok	rule:diet-patterns	a vinegar is no drink
+dp-332	No Alcohol	1 tbsp grated ginger	clear	ok	rule:diet-patterns	gin is a word pattern; ginger is not gin
+dp-333	Sugar-Free	1 cup granulated sugar	hit	ok	rule:diet-patterns	the pattern's own word
+dp-334	Sugar-Free	2 tbsp maple syrup	hit	ok	rule:diet-patterns	the pattern's own word
+dp-335	Sugar-Free	1/2 cup chocolate chips	hit	ok	rule:diet-patterns	%chocolate%
+dp-336	Sugar-Free	1 tsp baking soda	clear	ok	rule:diet-patterns	sodium bicarbonate (named exception of %soda%)
+dp-337	Sugar-Free	1 tomato, for slicing	clear	ok	rule:diet-patterns	"icing" in "slicing" has two letters before it
+dp-338	Sugar-Free	4 cups jambalaya	clear	ok	rule:diet-patterns	a rice dish (named exception of %jam%)
+dp-339	Sugar-Free	1 cup club soda	clear	ok	rule:diet-patterns	carbonated water (named exception of %soda%)
+dp-340	Carnivore	2 cups mixed vegetables	hit	ok	rule:diet-patterns	the pattern's own word
+dp-341	Carnivore	1 cup cooked rice	hit	ok	rule:diet-patterns	the pattern's own word
+dp-342	Carnivore	1 grapefruit, halved	hit	ok	rule:diet-patterns	fruit ends a compound food
+dp-343	Carnivore	2 lb beef short ribs	clear	ok	rule:diet-patterns	names no pattern of the type
+dp-344	Carnivore	1 tbsp beef tallow	clear	ok	rule:diet-patterns	names no pattern of the type
+dp-345	Paleo	2 tbsp peanut butter	hit	ok	rule:diet-patterns	%peanut% names it, though peanut butter is not dairy
+dp-346	Paleo	1 cup buckwheat groats	hit	ok	rule:diet-patterns	%buckwheat% (added with this rule: buckwheat is a pseudo-cereal Paleo excludes)
+dp-347	Paleo	1 cup cheddar cheese	hit	ok	rule:diet-patterns	the pattern's own word
+dp-348	Paleo	1 can coconut milk	clear	ok	rule:diet-patterns	pressed coconut (named exception of %milk%)
+dp-349	Paleo	1 cup almond flour	clear	ok	rule:diet-patterns	ground almonds (named exception of %flour%)
+dp-350	Whole30	1 cup buckwheat groats	hit	ok	rule:diet-patterns	%buckwheat% (added with this rule: the Whole30 program rules exclude pseudo-cereals)
+dp-351	Whole30	2 tbsp honey	hit	ok	rule:diet-patterns	the pattern's own word
+dp-352	Whole30	1 cup cooked brown rice	hit	ok	rule:diet-patterns	the pattern's own word
+dp-353	Whole30	1 can full-fat coconut milk	clear	ok	rule:diet-patterns	pressed coconut (named exception of %milk%)
+dp-354	Whole30	2 tbsp almond butter	clear	ok	rule:diet-patterns	ground almonds (named exception of %butter%)
+dp-355	Whole30	1 vanilla bean, split	clear	ok	rule:diet-patterns	the pod of the vanilla orchid (named exception of %bean%)
+dp-356	Wheat Allergy	2 cups cooked rice, flour for dusting	hit	ok	rule:diet-patterns	review CK5R-1: two list items are not the compound "rice flour"; an exception joins its words only by spaces or hyphens
+dp-357	Celiac Disease	2 cups cooked rice, flour for dusting	hit	ok	rule:diet-patterns	review CK5R-1: a list is not the compound "rice flour"
+dp-358	Milk Allergy	Garnish: chopped peanuts, butter	hit	ok	rule:diet-patterns	review CK5R-1: a list is not the compound "peanut butter"
+dp-359	Dairy-Free	Garnish: chopped peanuts, butter	hit	ok	rule:diet-patterns	review CK5R-1: a list is not the compound "peanut butter"
+dp-360	Milk Allergy	1 cup shredded coconut, milk chocolate chips	hit	ok	rule:diet-patterns	review CK5R-1: a list is not the compound "coconut milk"
+dp-361	Milk Allergy	2 tbsp peanut-butter	clear	ok	rule:diet-patterns	a hyphen still joins the named exception "peanut butter"
+dp-362	Egg Allergy	1 egg free-range	hit	ok	rule:diet-patterns	review CK5R-2: "free-range" describes the egg, it does not say the egg is absent
+dp-363	Egg Allergy	2 eggs free range	hit	ok	rule:diet-patterns	review CK5R-2: "free range" describes the eggs
+dp-364	Vegan	6 egg free-run	hit	ok	rule:diet-patterns	review CK5R-2: "free-run" describes the egg
+dp-365	Vegetarian	1 whole chicken free range	hit	ok	rule:diet-patterns	review CK5R-2: "free range" describes the chicken
+dp-366	Pescatarian	1 whole chicken free-range	hit	ok	rule:diet-patterns	review CK5R-2: "free-range" describes the chicken
+dp-367	Whole30	12 oz root beer	hit	agent	agent-review-diet-patterns-2026-11-21-review	review CK5R-6: a sweetened soft drink, held by the companion %root beer% of %beer% (added sugar)
+dp-368	Paleo	1 bottle ginger beer	hit	agent	agent-review-diet-patterns-2026-11-21-review	review CK5R-6: a sweetened soft drink, held by the companion %ginger beer%
+dp-369	Whole30	2 tbsp maltodextrin	hit	agent	agent-review-diet-patterns-2026-11-21-review	review CK5R-6: maltodextrin is on the Whole30 list of sugar names, held by the companion %maltodextrin% of %malt%
+dp-370	Celiac Disease	2 tbsp maltodextrin	clear	ok	rule:diet-patterns	gluten-free even when made from wheat (Celiac Disease Foundation, named exception of %malt%)
+dp-371	FODMAP Sensitivity	1 cup soy milk	hit	agent	agent-review-diet-patterns-2026-11-21-review	review CK5R-6: soy drink of whole soybeans is high-FODMAP, held by the companion %soy milk% of %milk%
+dp-372	Low-FODMAP	1 cup oat milk	hit	agent	agent-review-diet-patterns-2026-11-21-review	review CK5R-6: oat drink is high-FODMAP at a usual serve, held by the companion %oat milk%
+dp-373	FODMAP Sensitivity	1 cup unsweetened almond milk	clear	ok	rule:diet-patterns	ground almonds; no lactose (named exception of %milk%), low-FODMAP
+dp-374	FODMAP Sensitivity	1/2 cup pearl barley	hit	agent	agent-review-diet-patterns-2026-11-21-review	barley is high in fructans, held by the companion %pearl barley% of %pear%
+dp-375	Low-FODMAP	2 Honeycrisp, sliced	hit	agent	agent-review-diet-patterns-2026-11-21-review	an apple, held by the companion %honeycrisp% of %honey%
+dp-376	Vegetarian	1 lb hamburger	hit	ok	rule:diet-patterns	chopped beef (9 CFR 319.15(b)), held by the companion %hamburger% of %ham%
+dp-377	Vegetarian	4 scallopini	hit	agent	agent-review-diet-patterns-2026-11-21-review	thin veal cutlets, held by the companion %scallopini% of %scallop%
+dp-378	Vegan	1 cup Goldfish crackers	hit	agent	agent-review-diet-patterns-2026-11-21-review	baked with cheddar cheese, held by the companion %goldfish cracker% of %fish%
+dp-379	Jain	1 medium eggplant	hit	agent	agent-review-diet-patterns-2026-11-21-review	many Jains avoid brinjal as a many-seeded vegetable, held by the companion %eggplant% of %egg%
+dp-380	Grain-Free	4 oz black licorice	hit	agent	agent-review-diet-patterns-2026-11-21-review	licorice candy is made with wheat flour, held by the companion %licorice% of %rice%
+dp-381	Pancreatitis	2 tbsp crunchy peanut butter	hit	agent	agent-review-diet-patterns-2026-11-21-review	review CK5R-4: restricted for fat, held by the companion %peanut butter% of %butter% (db/seed.sql type)
+dp-382	Pancreatitis	2 oz cocoa butter, melted	hit	agent	agent-review-diet-patterns-2026-11-21-review	review CK5R-4: restricted for fat, held by the companion %cocoa butter%
+dp-383	Pancreatitis	4 slices turkey bacon	hit	agent	agent-review-diet-patterns-2026-11-21-review	restricted for fat, held by the companion %turkey bacon% of %bacon%
+dp-384	Pancreatitis	1 cup butternut squash, cubed	clear	ok	rule:diet-patterns	a squash (named exception of %butter%), not fat
+dp-385	Gallbladder Disease	6 strips beef bacon	hit	agent	agent-review-diet-patterns-2026-11-21-review	restricted for fat, held by the companion %beef bacon% of %bacon%
+dp-386	Gallbladder Disease	2 cups collard greens	clear	ok	rule:diet-patterns	a leaf vegetable (named exception of %lard%)
+dp-387	Milk Allergy	1 cup Goldfish crackers	hit	ok	rule:label-terms	a composite food of cheddar cheese (CompositeFoods, Pepperidge Farm label); ck5 left this gap
+dp-388	Dairy-Free	2 cups goldfish crackers, crushed	hit	ok	rule:label-terms	a composite food of cheddar cheese
+dp-389	Celiac Disease	4 oz red licorice, chopped	hit	ok	rule:label-terms	licorice candy is made with wheat flour (Twizzlers, Red Vines labels); ck5 left this gap
+dp-390	Gluten-Free	1/2 cup black licorice	hit	ok	rule:label-terms	licorice candy is made with wheat flour
+dp-391	Wheat Allergy	1 cup licorice candy	hit	ok	rule:label-terms	licorice candy is made with wheat flour
+dp-392	Celiac Disease	1 tsp licorice root, dried	clear	ok	rule:diet-patterns	the herb, cleared by the exception licorice root scoped to the gluten types
+dp-393	Paleo	1 tsp licorice root, dried	hit	ok	rule:diet-patterns	the scoped exception is not read for Paleo, which holds %licorice% by its own companion
+dp-394	Nightshade Sensitivity	2 medium sweet potatoes, cubed	clear	ok	rule:diet-patterns	a morning glory, not a nightshade: the exception sweet potato scoped to the nightshade types
+dp-395	Jain	2 medium sweet potatoes, cubed	hit	ok	rule:diet-patterns	Jain avoids it as a root; the scoped exception is not read for Jain
+dp-396	Sugar-Free	1 cup sugar snap peas	clear	ok	rule:diet-patterns	a pea pod with no added sugar: the exception sugar snap scoped to Sugar-Free
+dp-397	Carnivore	1 cup sugar snap peas	hit	ok	rule:diet-patterns	Carnivore means it as a vegetable; the scoped exception is not read for Carnivore
+dp-398	Fish Allergy	1 tbsp Worcestershire sauce	hit	ok	rule:label-terms	a composite food of anchovies (Lea & Perrins label)
+dp-399	Vegetarian	1 tbsp Worcestershire sauce	hit	ok	rule:label-terms	a composite food of anchovies
+dp-400	Egg Allergy	1 cup vanilla custard	hit	ok	rule:label-terms	a composite food of egg and milk
+dp-401	Egg Allergy	2 custard apples, peeled	clear	ok	rule:diet-patterns	the fruit, cleared by the exception custard apple
+dp-402	Peanut Allergy	1/4 cup satay sauce	hit	ok	rule:label-terms	satay sauce is peanut sauce
+dp-403	Peanut Allergy	1 cup roasted groundnuts	hit	ok	rule:label-terms	groundnut is another name of the peanut (FDA, edition 5)
+dp-404	Tree Nut Allergy	2 tbsp basil pesto	hit	ok	rule:label-terms	a composite food of pine nuts (Consorzio del Pesto Genovese)
+dp-405	Milk Allergy	1/2 cup mascarpone	hit	ok	rule:label-terms	mascarpone is a cream cheese
+dp-406	Wheat Allergy	2 tbsp teriyaki sauce	hit	ok	rule:label-terms	teriyaki sauce is soy sauce of soybeans and wheat
+dp-407	Fish Allergy	4 oz imitation crab	hit	ok	rule:label-terms	surimi of pollock
+dp-408	Milk Allergy	1 cup edamame	clear	ok	rule:label-terms	no composite name begins edamame (edam is left out of the table for that reason)
+dp-409	Egg Allergy	1/2 cup mayo	hit	ok	rule:label-terms	mayo is mayonnaise, which contains egg yolk (21 CFR 169.140)
+dp-410	Sesame Allergy	1 tbsp za'atar	hit	ok	rule:label-terms	za'atar holds sesame seeds

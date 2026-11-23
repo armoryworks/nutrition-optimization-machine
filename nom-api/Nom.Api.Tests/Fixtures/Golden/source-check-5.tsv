@@ -1,0 +1,29 @@
+# The 23 source-check/5 reports the staging scraper stored on 2026-11-21 (checkpoint3-sources.md: checks 1 to 22 of the 22 current web sources, check 23 of the myplate.gov request), replayed through NOM.
+# The reports are in source-check-5-reports.json, keyed by host, trimmed to what NOM reads (no parsed recipe, no credit line, no reason detail).
+# expectClass, expectAi, expectQuote: SourceRightsRule.Derive of the report as stored. expectConclusive: SourceAdmissionPolicy.Judge reads the report (source-check/5 is current).
+# expectFullCheck: the same report read as a terms-only check (no recipe page) allows a full check (SourceRightsRule.AllowsFullCheck).
+# Nine hosts were refused before any fetch by the staging scraper's denylist, so their stored report is a refusal: permission-needed with that reason, no full check.
+id	host	expectClass	expectAi	expectQuote	expectConclusive	expectFullCheck	status	source	note
+budgetbytes-bare-5	budgetbytes.com	permission-needed	no	denylist	yes	no	ok	rule:checkpoint3-sources-2026-11-21	refused before fetch (denylist): the stored report holds no fact of the site; the research's d stands until a terms-only check reads its terms
+seriouseats-5	www.seriouseats.com	permission-needed	no	denylist	yes	no	ok	rule:checkpoint3-sources-2026-11-21	refused before fetch (denylist)
+cookieandkate-5	cookieandkate.com	permission-needed	no	denylist	yes	no	ok	rule:checkpoint3-sources-2026-11-21	refused before fetch (denylist)
+gimmesomeoven-5	www.gimmesomeoven.com	facts-only	yes	©2026 Gimme Some Oven.	yes	yes	ok	rule:checkpoint3-sources-2026-11-21	b: copyright notice only; 11 AI crawlers blocked in robots.txt
+minimalistbaker-5	minimalistbaker.com	permission-needed	no	denylist	yes	no	ok	rule:checkpoint3-sources-2026-11-21	refused before fetch (denylist)
+budgetbytes-5	www.budgetbytes.com	permission-needed	no	denylist	yes	no	ok	rule:checkpoint3-sources-2026-11-21	refused before fetch (denylist)
+acozykitchen-5	www.acozykitchen.com	facts-only	no	All rights reserved.	yes	yes	ok	rule:checkpoint3-sources-2026-11-21	b: all rights reserved; terms and credits pass under source-check/5 (N25)
+sallysbakingaddiction-5	sallysbakingaddiction.com	permission-needed	no	denylist	yes	no	ok	rule:checkpoint3-sources-2026-11-21	refused before fetch (denylist)
+ambitiouskitchen-5	www.ambitiouskitchen.com	forbidden	yes	You agree not to reproduce, publish, transmit, distribute, sell, license, modify, or create derivative content from this Website	yes	no	agent	agent-ck7-source-lane	the quote on /privacy-policy/ forbids reuse of the site's content; supported by the quote but not re-read by a person (checkpoint3-sources.md); AI crawlers blocked in robots.txt
+twopeasandtheirpod-5	www.twopeasandtheirpod.com	facts-only	no	All rights reserved.	yes	yes	ok	rule:checkpoint3-sources-2026-11-21	b: the Privacy & Copyright page read and forbids nothing
+loveandlemons-5	www.loveandlemons.com	facts-only	yes	All rights reserved.	yes	yes	ok	rule:checkpoint3-sources-2026-11-21	b: the reCAPTCHA links are service links, not terms (N24); noai robots meta
+therecipecritic-5	therecipecritic.com	facts-only	no	All rights reserved.	yes	yes	ok	rule:checkpoint3-sources-2026-11-21	b
+howsweeteats-5	www.howsweeteats.com	facts-only	yes	©2026 How Sweet Eats.	yes	yes	ok	rule:checkpoint3-sources-2026-11-21	b: AI crawlers blocked in robots.txt
+chocolatecoveredkatie-5	chocolatecoveredkatie.com	facts-only	no	All rights reserved.	yes	yes	ok	rule:checkpoint3-sources-2026-11-21	b: the class is right; its credits reason is wrong (S4) and decides nothing here
+pinchofyum-5	pinchofyum.com	permission-needed	no	denylist	yes	no	ok	rule:checkpoint3-sources-2026-11-21	refused before fetch (denylist)
+davidlebovitz-5	www.davidlebovitz.com	forbidden	no	used on an application for an electronic device	yes	no	ok	rule:checkpoint3-sources-2026-11-21	d: the terms forbid use on an application and reprinting (source-rejudge.md, same sentence)
+101cookbooks-5	www.101cookbooks.com	facts-only	no	© 101 Cookbooks 2026	yes	yes	ok	rule:checkpoint3-sources-2026-11-21	b: the lasagna "spider" step is gone from the prohibitions (N22)
+skinnytaste-5	www.skinnytaste.com	permission-needed	no	denylist	yes	no	ok	rule:checkpoint3-sources-2026-11-21	refused before fetch (denylist)
+halfbakedharvest-5	www.halfbakedharvest.com	facts-only	yes	All rights reserved.	yes	yes	ok	rule:checkpoint3-sources-2026-11-21	b: the "Do Not Sell or Share" link is no prohibition (N22); AI crawlers blocked
+frije-5	fr.frije.com	permission-needed	no	carries no links	yes	no	ok	rule:checkpoint3-sources-2026-11-21	c: a JavaScript app whose homepage as served carries no links
+culiplan-5	culiplan.com	permission-needed	yes	carries no links	yes	no	ok	rule:checkpoint3-sources-2026-11-21	c: a JavaScript app; six AI search agents partly blocked
+eatingwell-5	www.eatingwell.com	permission-needed	no	denylist	yes	no	ok	rule:checkpoint3-sources-2026-11-21	refused before fetch (denylist)
+myplate-5	myplate.gov	-	no	-	yes	no	ok	rule:checkpoint3-sources-2026-11-21	a request, not a source: the host has no address, every reason unknown, so no class and no full check

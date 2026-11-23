@@ -32,7 +32,7 @@ namespace Nom.Orch.Services.Support
     /// Turns a household's restrictions into a concrete set of ingredient ids that meal
     /// planning, search and top-up must avoid. Restrictions saved through the UI reference
     /// a *category* (RestrictionTypeId, e.g. "Nut Allergy"); the category's curated
-    /// <see cref="RestrictionCriterionEntity"/> rows (exact ingredient, ILIKE name pattern, word
+    /// <see cref="RestrictionCriterionEntity"/> rows (exact ingredient, name pattern read by words, word
     /// pattern or nutrient, with severity; see <see cref="DietCriteriaMatcher"/>, which reads a food by
     /// its own name, category and trusted aliases and a recipe line by its own text) are what make it enforceable. Direct IngredientId restrictions still
     /// count too. Plan-wide restrictions (PersonId NULL) apply through the members' plans.

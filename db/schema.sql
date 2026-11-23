@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ppB0elpeD15JzCOI3sdfcQ13pncmCfImPh5DtyvyhN5p3QFK6D69UL1rjiYt88m
+\restrict jC0WK40iaLOmyViA0FSskD1ZczeSS9qYfYAx3yyWhuRBxbWuYlCSA3lfSP9KKkd
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -2823,6 +2823,7 @@ CREATE TABLE recipe."Recipe" (
     "SourceAiReserved" boolean DEFAULT false NOT NULL,
     "SourceCredit" character varying(1023),
     "ProseCheckVersion" integer,
+    "ProseUnsure" boolean DEFAULT false NOT NULL,
     "ProseAttempts" integer DEFAULT 0 NOT NULL,
     "ProseLaneVersion" character varying(64),
     "VettingIssues" text,
@@ -3925,6 +3926,7 @@ CREATE TABLE recipe."SourceCheck" (
     "Purpose" character varying(16) NOT NULL,
     "SourceCandidateId" bigint,
     "ScrapingSourceId" bigint,
+    "Mode" character varying(16),
     "JobId" character varying(64),
     "Status" character varying(16) NOT NULL,
     "StopReason" character varying(16),
@@ -9578,5 +9580,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ppB0elpeD15JzCOI3sdfcQ13pncmCfImPh5DtyvyhN5p3QFK6D69UL1rjiYt88m
+\unrestrict jC0WK40iaLOmyViA0FSskD1ZczeSS9qYfYAx3yyWhuRBxbWuYlCSA3lfSP9KKkd
 

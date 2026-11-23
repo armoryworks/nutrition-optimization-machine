@@ -12,7 +12,9 @@ namespace Nom.Orch.Interfaces
     {
         /// <summary>
         /// Loads one reviewed batch. A row is refused with a reason when its wording is not in key
-        /// form, its verdict is unknown, its food is missing, branded, without nutrition or not
+        /// form (a wording the same batch already holds or held, as an unload leaves it, is taken in
+        /// the key form it was loaded under, so a batch the system loaded reloads after a change to
+        /// the name normalizer), its verdict is unknown, its food is missing, branded, without nutrition or not
         /// curated, its wording is the name of a curated food, another row gives the wording
         /// something else, or the table already gives it something else and
         /// <paramref name="replace"/> is not set. A USDA Foundation or SR Legacy food awaiting
@@ -30,7 +32,8 @@ namespace Nom.Orch.Interfaces
         /// Takes every row of a batch out of the table, except that a row the batch took over from
         /// an earlier batch with replace goes back to that batch's verdict, food and note, and
         /// sends back to awaiting curation each food a load curated that no wording points at any
-        /// more. With <paramref name="withLines"/> the lines, sources, proposals, picks and import
+        /// more, unless the catalog admission rule admits it by itself (a USDA Foundation or SR
+        /// Legacy food with no admission reason whose energy check passes). With <paramref name="withLines"/> the lines, sources, proposals, picks and import
         /// landings of every row are taken back first, as a retract does, without a rejection
         /// memory row. Without <paramref name="apply"/> nothing is written.
         /// </summary>

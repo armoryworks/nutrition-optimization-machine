@@ -1,34 +1,56 @@
-id	book	era	fdcId	line	quantity	unit	density
-l-01	Constructed Book A (1910)	historic	173418	1 (3 oz) package cream cheese	3	Ounce	-
-l-02	Constructed Book A (1910)	historic	173418	2 (3 oz.) packages cream cheese	6	Ounce	-
-l-03	Constructed Book B (1925)	historic	173418	1 3-oz. package cream cheese	3	Ounce	-
-l-04	Constructed Book B (1925)	historic	173418	1 package (3 ounces) cream cheese	3	Ounce	-
-l-05	Constructed Book B (1925)	historic	173418	1 (8 oz) package cream cheese	8	Ounce	-
-l-06	Constructed Book C (1931)	historic	173418	1 (8 oz) package cream cheese	8	Ounce	-
-l-07	Constructed Book C (1931)	historic	173418	1 (3 oz) package cream cheese, softened	3	Ounce	-
-l-08	Constructed Book D (1935)	historic	173418	1 (3 oz) package cream cheese	3	Ounce	-
-l-09	Constructed Book A (1910)	historic	169254	1 (8 oz) can mushrooms	8	Ounce	-
-l-10	Constructed Book D (1935)	historic	169254	1 (8 oz.) can mushrooms, drained	8	Ounce	-
-l-11	Constructed Club Cook Book	unknown	168775	1 (3 oz) package lime gelatin	3	Ounce	-
-l-12	Constructed Ladies' Aid Book	unknown	175238	1 (15 oz) can black beans	15	Ounce	-
-l-13	Constructed Grange Book	unknown	175238	1 (16 oz) can black beans	16	Ounce	-
-l-14	-	modern	173418	1 (8 oz) package cream cheese	8	Ounce	-
-l-15	Constructed Modern Book (1975)	modern	173418	1 (8 oz) package cream cheese	8	Ounce	-
-l-16	Constructed Book D (1935)	historic	173418	1 large package (8 oz.) cream cheese	8	Ounce	-
-l-17	Constructed Book A (1910)	historic	169214	1 No. 2 can corn	1	Ounce	-
-l-18	Constructed Book B (1925)	historic	169254	1 (4 oz) can mushrooms	4	Ounce	-
-l-19	Constructed Book B (1925)	historic	169254	1 (8 ounce) can mushrooms	8	Ounce	-
-l-20	Constructed Book F (1940)	historic	173420	1 (3 oz) package neufchatel cheese	3	Ounce	-
-l-21	Constructed Book F (1940)	historic	173420	1 3-oz. package neufchatel cheese	3	Ounce	-
-l-22	Constructed Book F (1940)	historic	173420	1 (6 oz) package neufchatel cheese	6	Ounce	-
-l-23	Constructed Book F (1940)	historic	173420	1 (8 oz) package neufchatel cheese	8	Ounce	-
-l-24	Constructed Book G (1945)	historic	169640	1 (16 oz) jar honey	16	Ounce	-
-l-25	Constructed Book G (1945)	historic	169640	1 (16.5 oz) jar honey	16.5	Ounce	-
-l-26	Constructed Book H (1938)	historic	175238	1 lb. can black beans	1	Pound	-
-l-27	Constructed Book H (1938)	historic	175238	1 pound can black beans	1	Pound	-
-l-28	Constructed Book I (1942)	historic	175238	1 lb. can black beans	1	Pound	-
-l-29	Constructed Book I (1942)	historic	175238	2 lb. cans black beans	2	Pound	-
-l-30	Constructed Book J (1936)	historic	169928	1 lb. 13 oz. can peaches	29	Ounce	-
-l-31	Constructed Book K (1939)	historic	175168	one pound can salmon	1	Pound	-
-l-32	Constructed Book K (1939)	historic	175168	a pound can of salmon	1	Pound	-
-l-33	Constructed Book J (1936)	historic	175168	Two-pound can of salmon	2	Pound	-
+id	book	era	fdcId	line	quantity	unit	density	host	food
+l-01	Constructed Book A (1910)	historic	173418	1 (3 oz) package cream cheese	3	Ounce	-	-	Cheese, cream
+l-02	Constructed Book A (1910)	historic	173418	2 (3 oz.) packages cream cheese	6	Ounce	-	-	Cheese, cream
+l-03	Constructed Book B (1925)	historic	173418	1 3-oz. package cream cheese	3	Ounce	-	-	Cheese, cream
+l-04	Constructed Book B (1925)	historic	173418	1 package (3 ounces) cream cheese	3	Ounce	-	-	Cheese, cream
+l-05	Constructed Book B (1925)	historic	173418	1 (8 oz) package cream cheese	8	Ounce	-	-	Cheese, cream
+l-06	Constructed Book C (1931)	historic	173418	1 (8 oz) package cream cheese	8	Ounce	-	-	Cheese, cream
+l-07	Constructed Book C (1931)	historic	173418	1 (3 oz) package cream cheese, softened	3	Ounce	-	-	Cheese, cream
+l-08	Constructed Book D (1935)	historic	173418	1 (3 oz) package cream cheese	3	Ounce	-	-	Cheese, cream
+l-09	Constructed Book A (1910)	historic	169254	1 (8 oz) can mushrooms	8	Ounce	-	-	Mushrooms, canned, drained solids
+l-10	Constructed Book D (1935)	historic	169254	1 (8 oz.) can mushrooms, drained	8	Ounce	-	-	Mushrooms, canned, drained solids
+l-11	Constructed Club Cook Book	unknown	168775	1 (3 oz) package lime gelatin	3	Ounce	-	-	Gelatin desserts, dry mix
+l-12	Constructed Ladies' Aid Book	unknown	175238	1 (15 oz) can black beans	15	Ounce	-	-	Beans, black, mature seeds, canned, low sodium
+l-13	Constructed Grange Book	unknown	175238	1 (16 oz) can black beans	16	Ounce	-	-	Beans, black, mature seeds, canned, low sodium
+l-14	-	modern	173418	1 (8 oz) package cream cheese	8	Ounce	-	-	Cheese, cream
+l-15	Constructed Modern Book (1975)	modern	173418	1 (8 oz) package cream cheese	8	Ounce	-	-	Cheese, cream
+l-16	Constructed Book D (1935)	historic	173418	1 large package (8 oz.) cream cheese	8	Ounce	-	-	Cheese, cream
+l-17	Constructed Book A (1910)	historic	169214	1 No. 2 can corn	1	Ounce	-	-	Corn, sweet, yellow, canned, whole kernel, drained solids
+l-18	Constructed Book B (1925)	historic	169254	1 (4 oz) can mushrooms	4	Ounce	-	-	Mushrooms, canned, drained solids
+l-19	Constructed Book B (1925)	historic	169254	1 (8 ounce) can mushrooms	8	Ounce	-	-	Mushrooms, canned, drained solids
+l-20	Constructed Book F (1940)	historic	173420	1 (3 oz) package neufchatel cheese	3	Ounce	-	-	Cheese, feta
+l-21	Constructed Book F (1940)	historic	173420	1 3-oz. package neufchatel cheese	3	Ounce	-	-	Cheese, feta
+l-22	Constructed Book F (1940)	historic	173420	1 (6 oz) package neufchatel cheese	6	Ounce	-	-	Cheese, feta
+l-23	Constructed Book F (1940)	historic	173420	1 (8 oz) package neufchatel cheese	8	Ounce	-	-	Cheese, feta
+l-24	Constructed Book G (1945)	historic	169640	1 (16 oz) jar honey	16	Ounce	-	-	Honey
+l-25	Constructed Book G (1945)	historic	169640	1 (16.5 oz) jar honey	16.5	Ounce	-	-	Honey
+l-26	Constructed Book H (1938)	historic	175238	1 lb. can black beans	1	Pound	-	-	Beans, black, mature seeds, canned, low sodium
+l-27	Constructed Book H (1938)	historic	175238	1 pound can black beans	1	Pound	-	-	Beans, black, mature seeds, canned, low sodium
+l-28	Constructed Book I (1942)	historic	175238	1 lb. can black beans	1	Pound	-	-	Beans, black, mature seeds, canned, low sodium
+l-29	Constructed Book I (1942)	historic	175238	2 lb. cans black beans	2	Pound	-	-	Beans, black, mature seeds, canned, low sodium
+l-30	Constructed Book J (1936)	historic	169928	1 lb. 13 oz. can peaches	29	Ounce	-	-	Peaches, yellow, raw
+l-31	Constructed Book K (1939)	historic	175168	one pound can salmon	1	Pound	-	-	Fish, salmon, Atlantic, farmed, cooked, dry heat
+l-32	Constructed Book K (1939)	historic	175168	a pound can of salmon	1	Pound	-	-	Fish, salmon, Atlantic, farmed, cooked, dry heat
+l-33	Constructed Book J (1936)	historic	175168	Two-pound can of salmon	2	Pound	-	-	Fish, salmon, Atlantic, farmed, cooked, dry heat
+l-34	USDA MyPlate Kitchen (U.S. government work, public domain)	unknown	169599	3 packages strawberry gelatin (3 oz. packages)	9	Ounce	-	www.myplate.gov	Gelatins, dry powder, unsweetened
+l-35	Constructed Agriculture Department Booklet	unknown	169599	2 (3 oz.) pkg. raspberry-flavored gelatin	6	Ounce	-	-	Gelatins, dry powder, unsweetened
+l-36	Constructed Book L (1915)	historic	169599	1 oz. packet of gelatine	1	Ounce	-	-	Gelatins, dry powder, unsweetened
+l-37	Constructed Book N	unknown	175168	three one-pound cans of salmon	3	Pound	-	-	Fish, salmon, Atlantic, farmed, cooked, dry heat
+l-38	Constructed Book N	unknown	175168	1 8-oz. or 1-lb. can salmon	8	Ounce	-	-	Fish, salmon, Atlantic, farmed, cooked, dry heat
+l-39	Constructed Book O	unknown	173418	1 three-ounce package cream cheese	3	Ounce	-	-	Cheese, cream
+l-40	Constructed Book O	unknown	999001	2 seven-ounce cans tuna	14	Ounce	-	-	Fish, tuna, light, canned in water, drained solids
+l-41	Constructed Book O	unknown	999002	1 (7½ to 8 oz.) can taco sauce	7.5	Ounce	-	-	Sauce, taco
+l-42	Constructed Book O	unknown	999003	one or two 2-oz. cans anchovies, chopped	2	Ounce	-	-	Fish, anchovy, canned in oil, drained solids
+l-43	Constructed Book Q	unknown	170457	1 qt. can of tomatoes	4	Cup	0.6298	-	Tomatoes, red, ripe, raw, year round average
+l-44	Constructed Book Q	unknown	999004	1 qt. jar with fresh mint leaves	4	Cup	0.3855	-	Spearmint, fresh
+l-45	Constructed Book Q	unknown	999005	1 13³⁄₄ oz. package hot roll mix	34.25	Ounce	-	-	Rolls, dinner, plain, prepared from dry mix
+l-46	Constructed Book Q	unknown	999006	1 package (3 to 4 ounces) pudding and pie filling mix, any flavor	3	Ounce	-	-	Puddings, dry mix
+l-47	Constructed Book R	unknown	169124	one pint and a half can of pineapple	2	Cup	0.6974	-	Pineapple, canned, juice pack, solids and liquids
+l-48	Constructed Book R	unknown	169124	1 pt. can grated pineapple	2	Cup	0.6974	-	Pineapple, canned, juice pack, solids and liquids
+l-49	Constructed Book R	unknown	999007	a small (quarter of a pound) box of mustard	0.25	Pound	1.0525	-	Spices, mustard seed, ground
+l-50	Constructed Book S	unknown	171275	1 half pint can of condensed milk	3	Cup	1.2934	-	Milk, canned, condensed, sweetened
+l-51	Constructed Book S	unknown	171275	2 half pint cans of condensed milk	5	Cup	1.2934	-	Milk, canned, condensed, sweetened
+l-52	Constructed Book S	unknown	999008	1 package (8-10 ounces) frozen riced cauliflower	8	Ounce	-	-	Cauliflower, frozen, unprepared
+l-53	Constructed Book S	unknown	999009	1 can tomatoes, low-sodium (14-15 ounces, diced)	14	Ounce	-	-	Tomatoes, red, ripe, canned, packed in tomato juice, no salt added
+l-54	Constructed Book S	unknown	999010	1 can chopped green chilies (1-4.25 oz. can)	1	Ounce	-	-	Peppers, hot chili, green, canned
+l-55	Constructed Book S	unknown	999011	1 one-pound can water packed sour pitted cherries	1	Pound	-	-	Cherries, sour, red, canned, water pack, solids and liquids
