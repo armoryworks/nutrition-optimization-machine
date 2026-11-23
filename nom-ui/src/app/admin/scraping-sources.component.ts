@@ -18,6 +18,7 @@ import {
   ScrapingSourceModel,
   SourceCandidate,
   SourceCheck,
+  SourceDiscoveryRun,
   SourceFacts,
   SourceJournalEntry,
   SourceReason,
@@ -131,6 +132,10 @@ export class ScrapingSources implements OnInit {
       next: (taken) => this.taken.set(taken),
       error: () => this.taken.set([]),
     });
+  }
+
+  excludedHosts(run: SourceDiscoveryRun): string {
+    return (run.candidatesExcludedHosts ?? []).map((h) => h.domain).join(', ');
   }
 
   canRecordPermission(source: ScrapingSourceModel): boolean {

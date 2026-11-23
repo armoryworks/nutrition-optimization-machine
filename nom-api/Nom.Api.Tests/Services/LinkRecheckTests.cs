@@ -163,7 +163,7 @@ namespace Nom.Api.Tests.Services
         {
             var vinegar = Food("Red Wine Vinegar", "Vinegar, red wine", "172241", 2);
             var liqueur = Food("Coffee Cream Liqueur", "Alcoholic beverage, liqueur, coffee with cream, 34 proof", "175098", 14);
-            var juice = Food("Orange Juice", "Orange juice, raw", "169098", 9);
+            var juice = Food("Grape Juice", "Grape juice, canned or bottled, unsweetened", "174156", 9);
             var drySherry = Food("Dessert Wine, Dry", "Alcoholic beverage, wine, dessert, dry", "175112", 14);
             var spirit = Food("Distilled Spirit", "Alcoholic beverage, distilled, all (gin, rum, vodka, whiskey) 80 proof", "174815", 14);
             db.Ingredients.AddRange(vinegar, liqueur, juice, drySherry, spirit);
@@ -263,6 +263,7 @@ namespace Nom.Api.Tests.Services
         [Fact]
         public async Task The_part_and_herb_set_moves_whole_potatoes_off_the_skins_and_takes_a_fresh_herb_off_the_dried_spice()
         {
+            using var none = LinkRecheckRules.AssumeProven();
             await using var db = NewContext();
             var skins = Food("Raw Potato Skins", "Potatoes, raw, skin", "170032", 11);
             var potatoes = Food("Potatoes", "Potatoes, flesh and skin, raw", "170026", 11);
@@ -303,7 +304,8 @@ namespace Nom.Api.Tests.Services
             await using var db = NewContext();
             var salt = Food("Salt");
             var butter = Food("Butter");
-            db.Ingredients.AddRange(salt, butter);
+            var pepper = Food("Black Pepper", "Spices, pepper, black", "170931", 2);
+            db.Ingredients.AddRange(salt, butter, pepper);
             await db.SaveChangesAsync();
             db.FoodCatalogProposals.AddRange(
                 Pick(null, "salt and pepper", salt.Id, FoodProposalStatus.Applied),
@@ -790,10 +792,62 @@ namespace Nom.Api.Tests.Services
 
             var run = await Recheck(db).RunAsync(LinkRecheckRules.Prepared, apply: true);
             run!.Verified.Should().Be(0, "a prepared food is never a recipe line's food, whoever gave it");
-            run.LinesUnlinked.Should().Be(2);
+            run.LinesUnlinked.Should().Be(1);
             (await FoodOfAsync(db, party.Id, "12 taquitos")).Should().NotBe(taquitos.Id);
-            (await FoodOfAsync(db, party.Id, "20 nuggets")).Should().NotBe(nuggets.Id);
+            (await FoodOfAsync(db, party.Id, "20 nuggets")).Should().Be(nuggets.Id, "\"nuggets\" names no contents, and taking the line off chicken nuggets would lower the meat types' flag (staging checkpoint 4, P19)");
+            run.Held.Should().Be(1);
+            run.ByReason.Should().ContainKey(RecheckDietGuard.HeldReason);
             run.WordingRows.Should().Equal(new[] { row.Id }, "its retract is the operator's next step, so imports stop landing on the prepared food");
+        }
+
+        [Fact]
+        public async Task A_take_back_to_a_wording_of_unknown_contents_that_would_lower_a_diet_flag_keeps_its_line()
+        {
+            await using var db = NewContext();
+            var juice = Food("Orange Juice", "Orange juice, raw", "169098", 9);
+            var cider = Food("Apple Cider Vinegar", "Vinegar, cider", "173469", 2);
+            db.Ingredients.AddRange(juice, cider);
+            await db.SaveChangesAsync();
+            var duck = Scraped("Duck with orange", (juice, "1 glass Grand Marnier"));
+            var punch = Scraped("Punch", (cider, "1 qt hard cider"));
+            db.Recipes.AddRange(duck, punch);
+            await db.SaveChangesAsync();
+
+            var dry = await Recheck(db).RunAsync(LinkRecheckRules.Alcohol);
+            dry!.Samples.Should().Contain(s => s.Outcome == LinkRecheckRules.Held && s.FoodId == juice.Id && s.Reason!.StartsWith(RecheckDietGuard.HeldReason) && s.Reason.Contains("Citrus Allergy"),
+                "an orange liqueur taken off orange juice to a wording of unknown contents would lower Citrus Allergy");
+            var run = await Recheck(db).RunAsync(LinkRecheckRules.Alcohol, apply: true);
+            (await FoodOfAsync(db, duck.Id, "1 glass Grand Marnier")).Should().Be(juice.Id);
+            (await FoodOfAsync(db, punch.Id, "1 qt hard cider")).Should().Be(cider.Id, "the cider vinegar's Sulfite Sensitivity flag stays until the wording's contents are known");
+            run!.LinesUnlinked.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task A_move_to_a_curated_food_whose_name_would_lower_a_diet_flag_keeps_its_line_and_a_move_that_lowers_none_goes_ahead()
+        {
+            await using var db = NewContext();
+            var burger = Food("Beef Hamburger");
+            var patty = Food("Patty");
+            var canola = Food("Canola Oil");
+            var olive = Food("Olive Oil");
+            db.Ingredients.AddRange(burger, patty, canola, olive);
+            await db.SaveChangesAsync();
+            foreach (var (wording, food) in new[] { ("patty", burger), ("olive oil", canola) })
+            {
+                var pick = Pick(null, wording, food.Id, FoodProposalStatus.Applied);
+                pick.ReviewedAt = LinkRecheckRules.NovemberThird.AddHours(22);
+                db.FoodCatalogProposals.Add(pick);
+            }
+            var supper = Scraped("Supper", (burger, "1 patty"), (canola, "2 tbsp olive oil"));
+            db.Recipes.Add(supper);
+            await db.SaveChangesAsync();
+            LinkRecheckClassBarTests.Qualify(db, LinkGate.OtherFood);
+
+            var run = await Recheck(db).RunLaneBatchAsync(LinkRecheckRules.AppliedNovember, LaneMode.Live, 50000);
+            run.Held.Should().Be(1);
+            run.ByReason.Should().ContainKey(RecheckDietGuard.HeldReason);
+            (await FoodOfAsync(db, supper.Id, "1 patty")).Should().Be(burger.Id, "a promoted move to a food named only \"Patty\" would lower the meat types' flag the beef hamburger gave (review CK9T-2)");
+            (await FoodOfAsync(db, supper.Id, "2 tbsp olive oil")).Should().Be(olive.Id);
         }
 
         [Fact]

@@ -134,6 +134,7 @@ namespace Nom.Api.Tests.Services
         [Fact]
         public async Task The_dry_run_reports_the_failures_by_reason_and_status_and_writes_nothing()
         {
+            using var proven = ProseCheck.AssumeProven(ProseCheck.ChangedRange);
             await using var db = NewContext();
             await BuildStockAsync(db);
             var ids = await SeedSetAsync(db);
@@ -164,6 +165,25 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_fact_class_the_committed_record_does_not_prove_only_marks_its_recipe_unsure()
+        {
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            var ids = await SeedSetAsync(db);
+            ProseCheck.ProvenClasses.Should().NotContain(ProseCheck.ChangedRange, "the committed per-class record proves no fact class on too few judged rows");
+
+            var result = await Service(db).RecheckAsync(apply: true);
+
+            result.Failed.Should().Be(1);
+            result.FailedByReason.Should().BeEquivalentTo(new Dictionary<string, int> { [ProseCheck.CopiedText] = 1 });
+            result.UnsureByReason.Should().ContainKey(ProseCheck.ChangedRange);
+            var collapsed = await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == ids.Collapsed);
+            collapsed.ProseWithheld.Should().BeFalse("a fact class below the bar writes nothing");
+            collapsed.ProseUnsure.Should().BeTrue("it is marked for the prose judge and counted");
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == ids.Copied)).ProseWithheld.Should().BeTrue("the copy rule keeps its own bar and fails the recipe");
+        }
+
+        [Fact]
         public async Task An_apply_is_refused_while_no_stock_phrase_index_has_been_built()
         {
             await using var db = NewContext();
@@ -181,6 +201,7 @@ namespace Nom.Api.Tests.Services
         [Fact]
         public async Task Apply_withholds_the_failures_keeps_them_listed_and_records_the_run_and_the_undo_releases_them()
         {
+            using var proven = ProseCheck.AssumeProven(ProseCheck.ChangedRange);
             await using var db = NewContext();
             await BuildStockAsync(db);
             var ids = await SeedSetAsync(db);
@@ -382,6 +403,7 @@ namespace Nom.Api.Tests.Services
         [Fact]
         public async Task The_undo_leaves_a_recipe_whose_prose_was_replaced_since()
         {
+            using var proven = ProseCheck.AssumeProven(ProseCheck.ChangedRange);
             await using var db = NewContext();
             await BuildStockAsync(db);
             var ids = await SeedSetAsync(db);
@@ -408,6 +430,7 @@ namespace Nom.Api.Tests.Services
         [Fact]
         public async Task The_undo_releases_a_recipe_whose_lane_rewrite_after_the_withhold_was_itself_undone()
         {
+            using var proven = ProseCheck.AssumeProven(ProseCheck.ChangedRange);
             await using var db = NewContext();
             await BuildStockAsync(db);
             var ids = await SeedSetAsync(db);
@@ -446,6 +469,7 @@ namespace Nom.Api.Tests.Services
         [Fact]
         public async Task Apply_stops_at_the_batch_size_approved_first_and_records_no_run_while_failures_remain()
         {
+            using var proven = ProseCheck.AssumeProven(ProseCheck.ChangedRange);
             await using var db = NewContext();
             await BuildStockAsync(db);
             var ids = await SeedSetAsync(db);

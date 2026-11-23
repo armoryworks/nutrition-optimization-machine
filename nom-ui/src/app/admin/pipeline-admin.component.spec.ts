@@ -557,6 +557,69 @@ describe('PipelineAdmin', () => {
     expect(byId(loaded(status()).nativeElement, 'pipeline-source-rights-error')).not.toBeNull();
   });
 
+  it('shows the last run\'s exclusion figures and the held leads, and says when no run has sent a job', () => {
+    const body = status();
+    const lane = {
+      enabled: true, policyVersion: 'source-admission/4', scraperRuleVersion: 'source-check/6',
+      runs: [], runsFailedInRow: 0, lastGoodRunUtc: null, checksLast24h: 0, maxChecksPerDay: 10, checksFailedLast7d: 0,
+      queue: 0, notClear: 0, waiting: 0, leads: 5, approved: 22, approvedClear: 0, approvedNotClear: 0, approvedUnjudged: 22,
+      harvestPaused: 0, withheld: 0, inProbation: 0, harvestable: 0, hand: 4, leadsHeld: 4, leadsTermsChecked: 1,
+    };
+    body.sources = {
+      ...lane,
+      lastExclusionRun: {
+        id: 7, startedUtc: '2026-11-23T12:52:00Z', status: 'completed', seeds: 'a.example,b.example', candidates: 0, leads: 0, pagesFetched: 27,
+        excludeSent: 15, excludeLeftOut: 2, seedsExcluded: 'c.example', candidatesExcluded: 11, excludeNote: 'two hosts wait for the next run',
+      },
+    };
+    const el = loaded(body).nativeElement as HTMLElement;
+
+    expect(byId(el, 'pipeline-metric-sources-exclude-sent')?.textContent?.trim()).toBe('15');
+    expect(byId(el, 'pipeline-metric-sources-exclude-left-out')?.textContent?.trim()).toBe('2');
+    expect(byId(el, 'pipeline-metric-sources-seeds-excluded')?.textContent?.trim()).toBe('1');
+    expect(byId(el, 'pipeline-metric-sources-candidates-excluded')?.textContent?.trim()).toBe('11');
+    expect(byId(el, 'pipeline-sources-exclusion-run')?.textContent).toContain('two hosts wait for the next run');
+    expect(byId(el, 'pipeline-metric-sources-leads-held')?.textContent?.trim()).toBe('4');
+    expect(byId(el, 'pipeline-metric-sources-leads-checked')?.textContent?.trim()).toBe('1');
+    TestBed.resetTestingModule();
+    http.verify();
+
+    const none = status();
+    none.sources = { ...lane, lastExclusionRun: null };
+    expect(byId(loaded(none).nativeElement, 'pipeline-sources-exclusion-empty')).not.toBeNull();
+  });
+
+  it('lists per source the prose a class withholds, before and after, and the re-check classes proven or not', () => {
+    const body = status();
+    body.sourceRights = {
+      ruleVersion: 'source-rights/4', titleRuleVersion: 'recipe-titles/1', enforced: true,
+      sourcesByClass: { 'facts-only': 1 }, sourcesUnclassed: 1, sourcesStale: 0, aiReserved: 0, permissions: 0, factsOnlyApproved: 0, fetchable: 0,
+      recipesByClass: {}, recipesAiReserved: 0, factsOnlyWithheld: 3274, factsOnlyOwnMethod: 0, retentionDue: 0, retentionHeld: 0, recipesWithCredit: 0,
+      takenFromBarredSources: 0, lastChangeUtc: null, changesLast7d: 0,
+      proseBySource: [
+        { sourceId: 14, domain: 'therecipecritic.com', rightsClass: 'facts-only', classCheckId: 12, classFromTermsOnly: true, recipes: 3274, approved: 600, withheld: 3274, withheldApproved: 600, wouldWithhold: 0, wouldWithholdApproved: 0 },
+        { sourceId: 15, domain: 'www.howsweeteats.com', rightsClass: null, classCheckId: null, classFromTermsOnly: false, recipes: 2753, approved: 500, withheld: 0, withheldApproved: 0, wouldWithhold: 2753, wouldWithholdApproved: 500 },
+      ],
+    };
+    body.linkRecheck = {
+      enabled: true, version: 'link-recheck/5', signature: 'abc', sets: ['alcohol'], provenClasses: ['alcohol', 'prepared'], candidateClasses: ['compound', 'part'],
+      provenProblem: null, lastRuns: [], lastWithdraw: null, waitingPicks: 0,
+    };
+    const el = loaded(body).nativeElement as HTMLElement;
+
+    const rows = el.querySelectorAll('[data-testid="pipeline-rights-prose-item"]');
+    expect(rows.length).toBe(2);
+    expect(rows[0].textContent).toContain('from a terms-only check');
+    expect(rows[0].textContent).toContain('withheld 3,274 (600)');
+    expect(rows[0].classList).toContain('nom-pipeline__warn');
+    expect(rows[1].textContent).toContain('no class yet');
+    expect(rows[1].textContent).toContain('would withhold 2,753 (500)');
+    const classes = byId(el, 'pipeline-link-recheck-classes')?.textContent ?? '';
+    expect(classes).toContain('alcohol, prepared');
+    expect(classes).toContain('compound, part');
+    expect(byId(el, 'pipeline-link-recheck-proven-problem')).toBeNull();
+  });
+
   it('says when no container size is stored, and when the lane did not report', () => {
     const body = status();
     body.containerSizes = { lane: 'container-sizes', laneMode: 'shadow', rows: 0, byStatus: {}, bySource: {}, lastScoredAt: null, holdoutLines: 0, holdoutAgree: 0, keys: [] };

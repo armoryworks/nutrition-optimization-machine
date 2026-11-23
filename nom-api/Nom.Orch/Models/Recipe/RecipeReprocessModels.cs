@@ -55,6 +55,9 @@ namespace Nom.Orch.Models.Recipe
         /// </summary>
         public const string PreparedFood = "prepared-food";
 
+        /// <summary>Listed in <see cref="Changes"/> when the line guard kept the stored amount for the line judge (<see cref="Guard"/> is "hold").</summary>
+        public const string Held = "held";
+
         public int SortOrder { get; set; }
         public string RawLine { get; set; } = string.Empty;
         public int? OldSortOrder { get; set; }
@@ -70,7 +73,18 @@ namespace Nom.Orch.Models.Recipe
         public string? NewLineKind { get; set; }
         public bool FilledFromMethod { get; set; }
 
-        /// <summary>What changed: any of amount, food, order, kind, text, added; empty when nothing did. Also prepared-food (see <see cref="PreparedFood"/>).</summary>
+        /// <summary>
+        /// The line guard's verdict on the amount (<see cref="Nom.Orch.Services.Support.LineAmountGuard"/>): kept, replaced or held; null when
+        /// the line has no stored row or the built amount is the stored one. A kept or held line keeps the stored
+        /// amount and kind; a held one names the built amount in <see cref="HeldQuantity"/> for the line judge.
+        /// </summary>
+        public string? Guard { get; set; }
+
+        public decimal? HeldQuantity { get; set; }
+        public long? HeldMeasurementId { get; set; }
+        public string? HeldLineKind { get; set; }
+
+        /// <summary>What changed: any of amount, food, order, kind, text, added; empty when nothing did. Also prepared-food (see <see cref="PreparedFood"/>) and held (the guard kept a stored amount the line judge is to read).</summary>
         public List<string> Changes { get; set; } = new();
     }
 
@@ -89,8 +103,20 @@ namespace Nom.Orch.Models.Recipe
         public int NewFoods { get; set; }
         public int OnPreparedFood { get; set; }
 
+        /// <summary>Stored amounts the line guard kept against an empty or ungrounded built one.</summary>
+        public int GuardKept { get; set; }
+
+        /// <summary>Stored amounts, empty or contradicting the source, the line guard let a grounded built one replace.</summary>
+        public int GuardReplaced { get; set; }
+
+        /// <summary>Stored amounts the line guard kept for the line judge: both read the source and differ, or the stored one contradicts it with nothing grounded in its place.</summary>
+        public int GuardHeld { get; set; }
+
         public void Add(RecipeReprocessChangeCounts other)
         {
+            GuardKept += other.GuardKept;
+            GuardReplaced += other.GuardReplaced;
+            GuardHeld += other.GuardHeld;
             LinesBefore += other.LinesBefore;
             LinesAfter += other.LinesAfter;
             AmountChanged += other.AmountChanged;
@@ -217,6 +243,118 @@ namespace Nom.Orch.Models.Recipe
 
         public Dictionary<string, int> RestoredByKind { get; set; } = new();
         public List<long> SkippedRecipeIds { get; set; } = new();
+
+        /// <summary>The apply run this call belongs to: its progress is read by its id, and a stopped run goes on under it.</summary>
+        public string? RunId { get; set; }
+
+        /// <summary>Batches this call took; each batch of an apply is one transaction and one progress row.</summary>
+        public int Batches { get; set; }
+
+        /// <summary>Entries this call did not reach because it stopped; 0 when it reached its last entry.</summary>
+        public int Remaining { get; set; }
+
+        /// <summary>Why the call ended before its last entry (<see cref="RecipeReprocessUndoStop"/>), or null when it reached the end.</summary>
+        public string? Stopped { get; set; }
+
+        /// <summary>Why the call did not start, or null when it ran.</summary>
+        public string? Refused { get; set; }
+
+        /// <summary>Entries listed for this call that something else took back before their batch was read; they are not judged again.</summary>
+        public int AlreadyUndone { get; set; }
+    }
+
+    /// <summary>Why a reprocess undo ended between two batches before its last entry.</summary>
+    public static class RecipeReprocessUndoStop
+    {
+        /// <summary>An operator asked the run to stop.</summary>
+        public const string StopRequested = "stop-requested";
+
+        /// <summary>The caller went away (the request was aborted).</summary>
+        public const string ClientGone = "client-gone";
+
+        /// <summary>The call took as many batches as it was given.</summary>
+        public const string MaxBatches = "max-batches";
+    }
+
+    /// <summary>What a reprocess undo takes back and how it runs.</summary>
+    public class RecipeReprocessUndoRequest
+    {
+        public DateTime? SinceUtc { get; set; }
+        public string? BatchId { get; set; }
+        public string? Kind { get; set; }
+        public bool Apply { get; set; }
+        public bool LaneOnly { get; set; }
+
+        /// <summary>An earlier run to go on with: its filter is used, and it starts after the last entry that run reached.</summary>
+        public string? RunId { get; set; }
+
+        /// <summary>Journal entries per batch.</summary>
+        public int BatchSize { get; set; } = 500;
+
+        /// <summary>The most batches this call takes; null for all.</summary>
+        public int? MaxBatches { get; set; }
+    }
+
+    /// <summary>How far a reprocess undo run has come, from its progress rows in the audit log.</summary>
+    public class RecipeReprocessUndoProgress
+    {
+        /// <summary>The state of the run.</summary>
+        public static class States
+        {
+            /// <summary>A call of this API process is taking its batches now.</summary>
+            public const string Running = "running";
+
+            /// <summary>It ended before its last entry and can go on under its id.</summary>
+            public const string Stopped = "stopped";
+
+            /// <summary>It reached its last entry.</summary>
+            public const string Finished = "finished";
+
+            /// <summary>Its last call ended without an end row (the API stopped); every batch written is whole, so it can go on under its id.</summary>
+            public const string Interrupted = "interrupted";
+        }
+
+        public string RunId { get; set; } = string.Empty;
+        public string State { get; set; } = string.Empty;
+
+        /// <summary>The last end row's reason: <c>finished</c> or a <see cref="RecipeReprocessUndoStop"/> value.</summary>
+        public string? Outcome { get; set; }
+        public DateTime StartedAt { get; set; }
+        public DateTime? SinceUtc { get; set; }
+        public string? BatchId { get; set; }
+        public string? Kind { get; set; }
+        public bool LaneOnly { get; set; }
+
+        /// <summary>Journal entries the run had to take back when it started.</summary>
+        public int EntriesAtStart { get; set; }
+        public int Batches { get; set; }
+
+        /// <summary>Entries the run has read, restored or skipped.</summary>
+        public int Reached { get; set; }
+
+        /// <summary>Entries still to take back after the last one reached, counted now.</summary>
+        public int Remaining { get; set; }
+        public int Restored { get; set; }
+        public int Skipped { get; set; }
+        public int PositionsFollowed { get; set; }
+        public int StateKept { get; set; }
+        public int FoodsRemoved { get; set; }
+        public int FoodsKept { get; set; }
+
+        /// <summary>Entries reached that something else had taken back before their batch was read.</summary>
+        public int AlreadyUndone { get; set; }
+        public Dictionary<string, int> RestoredByKind { get; set; } = new();
+
+        /// <summary>The id of the last journal entry reached; the run goes on with the entries below it.</summary>
+        public long? LastEntryId { get; set; }
+        public DateTime? LastBatchAt { get; set; }
+
+        /// <summary>The time the run's batches took, summed; the time between a stop and the call that went on is not counted.</summary>
+        public double WorkingSeconds { get; set; }
+
+        /// <summary>Entries reached per minute of <see cref="WorkingSeconds"/>.</summary>
+        public double? EntriesPerMinute { get; set; }
+        public bool StopRequested { get; set; }
     }
 
     /// <summary>One recipe the detector marks, as an operator reads it.</summary>

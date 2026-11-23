@@ -1028,6 +1028,25 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task Classification_never_trusts_an_alias_made_of_a_measure_named_after_a_drink_or_a_food()
+        {
+            using var db = NewContext();
+            var (salt, _, _, carrots, _) = await SeedAliasedFoodsAsync(db);
+            await AliasAsync(db, salt, "wine glassful of salt");
+            await AliasAsync(db, salt, "a teacupful of salt");
+            await AliasAsync(db, carrots, "chopped carrots");
+            await AliasAsync(db, carrots, "wineglass of chopped carrots");
+
+            var result = await Linker(db, new FakeMatcher()).ClassifyAliasesAsync(apply: true, Reviewer);
+
+            (await ContextOfAsync(db, salt, "wine glassful of salt")).Should().BeNull("staging checkpoint 4, P5: a trusted alias made of a wine glass put Salt under %wine%");
+            (await ContextOfAsync(db, salt, "a teacupful of salt")).Should().BeNull();
+            (await ContextOfAsync(db, carrots, "wineglass of chopped carrots")).Should().BeNull();
+            (await ContextOfAsync(db, carrots, "chopped carrots")).Should().NotBeNull();
+            (result.NameKey + result.Staple + result.NameMatch).Should().Be(1);
+        }
+
+        [Fact]
         public async Task Classification_samples_stop_at_the_sample_size_for_each_rule()
         {
             using var db = NewContext();

@@ -108,6 +108,21 @@ export interface ScrapingSourceModel {
   fetchRefusal?: string | null;
   recheckSkipped?: string | null;
   termsCheck?: SourceCheck | null;
+  prose?: SourceProseFigures | null;
+}
+
+export interface SourceProseFigures {
+  sourceId: number;
+  domain: string;
+  rightsClass?: RightsClass | null;
+  classCheckId?: number | null;
+  classFromTermsOnly: boolean;
+  recipes: number;
+  approved: number;
+  withheld: number;
+  withheldApproved: number;
+  wouldWithhold: number;
+  wouldWithholdApproved: number;
 }
 
 export type RightsClass = 'clear' | 'facts-only' | 'permission-needed' | 'forbidden';
@@ -130,6 +145,9 @@ export interface SourceRightsChange {
   recipesRestamped: number;
   recipesWithheld: number;
   recipesReleased: number;
+  termsOnly?: boolean;
+  wouldWithhold?: number;
+  wouldWithholdApproved?: number;
 }
 
 export interface SourceRightsRun {
@@ -203,6 +221,7 @@ export interface SourceRightsStatus {
   takenFromBarredSources: number;
   lastChangeUtc?: string | null;
   changesLast7d: number;
+  proseBySource?: SourceProseFigures[];
 }
 
 export interface SourceCandidate {
@@ -234,6 +253,18 @@ export interface SourceDiscoveryRun {
   seedsNotVisited?: string | null;
   seedsRefused?: string | null;
   pagesFetched: number;
+  excludeSent?: number;
+  excludeLeftOut?: number;
+  seedsExcluded?: string | null;
+  candidatesExcluded?: number;
+  candidatesExcludedHosts?: SourceExcludedHost[];
+  excludeNote?: string | null;
+}
+
+export interface SourceExcludedHost {
+  domain: string;
+  discoveredVia?: string | null;
+  excludedBy?: string | null;
 }
 
 export interface SourceJournalEntry {
@@ -305,4 +336,7 @@ export interface SourceAdmissionStatus {
   hand: number;
   recheckSkipped?: number;
   termsChecksWaiting?: number;
+  lastExclusionRun?: SourceDiscoveryRun | null;
+  leadsHeld?: number;
+  leadsTermsChecked?: number;
 }

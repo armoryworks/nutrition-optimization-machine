@@ -158,7 +158,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class CreditLines
     {
-        public const string Version = "credit-lines/2";
+        public const string Version = "credit-lines/3";
 
         private const int MaxName = 160;
 
@@ -198,6 +198,14 @@ namespace Nom.Orch.Services.Support
 
         private static string Bare(string word) => word.Trim('"', '\'', '“', '”', '‘', '’', ',', ':');
 
+        private static string Straight(string word) => word.Replace('’', '\'').Replace('‘', '\'');
+
+        private static readonly Regex ByName = new(@"(?:^|(?<=[\s,:]))by\s+(?=\p{Lu})", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly Regex FromName = new(@"\sfrom\s+(?=\p{Lu})", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private const int MaxTitleJoiner = 5;
+
         private static readonly HashSet<string> GluedStarts = new(SentenceStarts.Concat(new[]
         {
             "In", "On", "At", "For", "To", "With", "From", "A", "An", "My", "Our", "Your", "His", "Her", "Their", "Its", "Each", "Every",
@@ -210,10 +218,12 @@ namespace Nom.Orch.Services.Support
         {
             for (var i = 4; i < word.Length - 1; i++)
             {
-                if (!char.IsLower(word[i - 1]) || !char.IsUpper(word[i]) || !char.IsLower(word[i + 1]) || !word[..i].All(char.IsLetter)) continue;
+                if (!char.IsLower(word[i - 1]) || !char.IsUpper(word[i]) || !word[..i].All(char.IsLetter)) continue;
                 var end = i + 1;
+                if (word[end] is '\'' or '’' && end + 1 < word.Length && char.IsLower(word[end + 1])) end++;
+                else if (!char.IsLower(word[end])) continue;
                 while (end < word.Length && char.IsLower(word[end])) end++;
-                if (GluedStarts.Contains(word[i..end])) return i;
+                if (GluedStarts.Contains(Straight(word[i..end]))) return i;
             }
             return null;
         }
@@ -228,7 +238,7 @@ namespace Nom.Orch.Services.Support
                 if (bare.Length == 0) break;
                 var named = char.IsUpper(bare[0]) || char.IsDigit(bare[0]);
                 if (!named && !(kept.Count > 0 && Joiners.Contains(bare))) break;
-                if (named && kept.Count > 0 && !Joiners.Contains(Bare(kept[^1])) && (SentenceStarts.Contains(bare) || seen.Contains(bare))) break;
+                if (named && kept.Count > 0 && !Joiners.Contains(Bare(kept[^1])) && (SentenceStarts.Contains(Straight(bare)) || seen.Contains(bare))) break;
                 if (GluedAt(bare) is { } glued)
                 {
                     kept.Add(bare[..glued]);
@@ -244,6 +254,67 @@ namespace Nom.Orch.Services.Support
             if (kept.Count > 0) kept[^1] = Regex.Replace(kept[^1], @"['’]s([,:]?)$", "$1");
             if (kept.Where(w => !Joiners.Contains(Bare(w))).All(w => Places.Contains(Bare(w)))) return string.Empty;
             return string.Join(' ', kept).TrimEnd(',', ':', ' ');
+        }
+
+        /// <summary>
+        /// The credited name of a credit whose title runs on to a person: "Title, Subtitle: More by Name" keeps the whole title, commas,
+        /// colons and short lower-case words ("to", "et", "of") included, then the name after "by"; "Title: a dish from Name" credits the
+        /// person after "from", not the dish, only when the words between the colon and "from" are a dish's name in title case (a sentence
+        /// after the colon, "serve with bread from Tartine Bakery", leaves the credit to the name before it). Null when the text has
+        /// neither shape, or the title holds a long lower-case word (a sentence).
+        /// </summary>
+        private static string? TitledName(string who)
+        {
+            var by = ByName.Match(who);
+            if (by.Success && by.Index > 0)
+            {
+                var title = who[..by.Index].TrimEnd(' ', ',', ':');
+                var person = Name(who[(by.Index + by.Length)..]);
+                if (person.Length == 0 || !Title(who[..by.Index].TrimEnd(' '))) return null;
+                return title + " by " + person;
+            }
+
+            var colon = who.IndexOf(':');
+            var from = FromName.Match(who);
+            if (colon > 0 && from.Success && from.Index > colon && Dish(who[(colon + 1)..from.Index]))
+            {
+                var person = Name(who[(from.Index + from.Length)..]);
+                return person.Length == 0 ? null : person;
+            }
+
+            return null;
+        }
+
+        private static bool Dish(string dish)
+        {
+            var words = dish.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0 || SentenceStarts.Contains(Straight(Bare(words[0])))) return false;
+            for (var i = 0; i < words.Length; i++)
+            {
+                var bare = Bare(words[i]);
+                if (bare.Length == 0) return false;
+                if (char.IsUpper(bare[0]) || char.IsDigit(bare[0])) continue;
+                if (i == 0 || !(Joiners.Contains(bare) || bare == "with")) return false;
+            }
+
+            return true;
+        }
+
+        private static bool Title(string title)
+        {
+            if (!title.Contains(',') && !title.Contains(':') && !title.Split(' ', StringSplitOptions.RemoveEmptyEntries).Any(w => char.IsLower(Bare(w).FirstOrDefault()))) return false;
+            string? previous = null;
+            foreach (var word in title.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var bare = Bare(word);
+                if (bare.Length == 0) return false;
+                if (char.IsLower(bare[0]) && (bare.Length > MaxTitleJoiner || !bare.All(char.IsLetter))) return false;
+                if (GluedAt(bare) != null) return false;
+                if (previous != null && SentenceStarts.Contains(Straight(bare)) && !previous.EndsWith(',') && !previous.EndsWith(':') && !Joiners.Contains(Bare(previous))) return false;
+                previous = word;
+            }
+
+            return true;
         }
 
         private static string Decode(string text)
@@ -267,7 +338,7 @@ namespace Nom.Orch.Services.Support
                     who = Regex.Replace(who, @"\s+", " ").Trim().TrimEnd(',', ':', '-', '–', '—', ' ');
                     var first = who.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim('"', '\'', '“', '‘') ?? string.Empty;
                     if (first.Length == 0 || Own.Contains(first)) continue;
-                    who = Name(who);
+                    who = TitledName(who) ?? Name(who);
                     if (who.Length == 0) continue;
                     var cue = Regex.Replace(match.Groups["cue"].Value, @"\s+", " ").Trim();
                     var line = char.ToUpperInvariant(cue[0]) + cue[1..].ToLowerInvariant() + " " + who;

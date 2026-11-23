@@ -461,6 +461,13 @@ namespace Nom.Api.Tests.Services
 
             public Task<RecipeReprocessUndoResult> UndoAsync(DateTime? sinceUtc, string? batchId, string? kind = null, bool apply = false, bool laneOnly = false) =>
                 Task.FromResult(new RecipeReprocessUndoResult());
+
+            public Task<RecipeReprocessUndoResult> UndoAsync(RecipeReprocessUndoRequest request, CancellationToken cancellationToken = default) =>
+                Task.FromResult(new RecipeReprocessUndoResult());
+
+            public Task<RecipeReprocessUndoProgress?> UndoProgressAsync(string? runId) => Task.FromResult<RecipeReprocessUndoProgress?>(null);
+
+            public Task<RecipeReprocessUndoProgress?> StopUndoAsync(string? runId) => Task.FromResult<RecipeReprocessUndoProgress?>(null);
         }
 
         private static async Task<List<long>> CandidatesAsync(ApplicationDbContext db, int count, bool approved = false)

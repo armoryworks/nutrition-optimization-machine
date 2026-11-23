@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nom.Data;
+using Nom.Data.Audit;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
@@ -76,10 +78,15 @@ namespace Nom.Orch.Services
             var factsOnlyUnapproved = seeds.Count(s => SourceRightsService.EffectiveClass(s) == SourceRightsRule.FactsOnly && s.FactsOnlyApprovedAt == null);
             if (_rights.Enforce) seeds = seeds.Where(SourceRightsService.MayFetch).ToList();
             if (!_settings.FullChecks) seeds.Clear();
-            var seedDomains = seeds
+            var exclusion = seeds.Count == 0 ? SourceDiscoveryExclusion.Build(Array.Empty<(string, string, DateTime)>(), null) : await ExclusionAsync(seeds, cancellationToken);
+            var seedHosts = seeds
                 .Select(s => SourceAdmissionPolicy.NormalizeDomain(s.Domain))
                 .Where(d => d != null).Select(d => d!)
                 .Distinct(StringComparer.Ordinal)
+                .ToList();
+            var heldBack = seedHosts.Where(exclusion.Covers).ToList();
+            var seedDomains = seedHosts
+                .Where(d => !heldBack.Contains(d))
                 .Take(Math.Clamp(_settings.SeedsPerRun, 1, 20))
                 .ToList();
 
@@ -91,18 +98,60 @@ namespace Nom.Orch.Services
                 CreatedDate = Now(),
             };
             _db.SourceDiscoveryRuns.Add(run);
+            var notes = new List<string>();
+            if (heldBack.Count > 0)
+            {
+                run.SeedsExcluded = Clip(string.Join(",", heldBack), 2047);
+                notes.Add($"NOM fault: approved seed(s) {string.Join(", ", heldBack)} are also held as excluded (another row of the host, or of a parent host, is forbidden, permission-needed, rejected or unclassed), so they were not sent; resolve the rows");
+                _logger.LogError("Source discovery: approved seed(s) {Seeds} are also held as excluded by another row of the host or a parent host; they were not sent (a fault in NOM's source rows)", string.Join(", ", heldBack));
+            }
+
+            run.ExcludeNote = Clip(notes.Count == 0 ? null : string.Join("; ", notes), 1023);
 
             if (seedDomains.Count == 0)
             {
                 var why = !_settings.FullChecks
                     ? "Full checks are held (SourceDiscovery:FullChecks off): discovery reads each seed's sitemap and recipe pages and probes the sites it links to, so it waits, like the full checks, until the terms-only pass has been reviewed."
+                    : heldBack.Count > 0
+                    ? $"Every seed that may be fetched is also held as excluded ({string.Join(", ", heldBack)}), so none was sent."
                     : _rights.Enforce && unclassed + factsOnlyUnapproved > 0
                     ? $"No approved web source may seed discovery yet: a seed must be one that may be fetched (clear, a recorded permission, or facts-only with facts-only use approved by an admin); {unclassed} approved web source(s) have no class yet and are classed by their terms-only check first, and {factsOnlyUnapproved} are facts-only and wait for an admin to approve facts-only use."
                     : "No approved web source to seed from.";
                 return await EndRunAsync(run, SourceDiscoveryRunEntity.Skipped, null, why, null, cancellationToken);
             }
 
-            var start = await _scraper.StartDiscoveryJobAsync(seedDomains, Math.Clamp(_settings.MaxCandidatesPerRun, 1, 50), _settings.BudgetSeconds, cancellationToken);
+            if (exclusion.TooManyBarred)
+            {
+                _logger.LogError("Source discovery does not run: NOM holds {Barred} forbidden or permission-needed hosts, more than the scraper's {Max} excludeDomains, and none may be dropped", exclusion.Barred, SourceDiscoveryExclusion.MaxEntries);
+                return await EndRunAsync(run, SourceDiscoveryRunEntity.Failed, null,
+                    $"NOM holds {exclusion.Barred} forbidden or permission-needed hosts, more than the {SourceDiscoveryExclusion.MaxEntries} excludeDomains the scraper takes; discovery does not run without every one of them excluded.", null, cancellationToken);
+            }
+
+            run.ExcludeSent = exclusion.Entries.Count;
+            run.ExcludeLeftOut = exclusion.LeftOut.Count;
+            if (exclusion.Yielded.Count > 0)
+            {
+                notes.Add($"{exclusion.Yielded.Count} unclassed or rejected candidate host(s) were not sent because an approved source that may be fetched has the host or a subdomain of it, and that source's own check decides: {string.Join(", ", exclusion.Yielded.Take(10))}");
+                _logger.LogInformation("Source discovery: candidate host(s) {Hosts} are unclassed or rejected but an approved source that may be fetched covers them; not sent", string.Join(", ", exclusion.Yielded));
+            }
+
+            if (exclusion.LeftOut.Count > 0)
+            {
+                run.ExcludeCursorSince = exclusion.Cursor?.Since;
+                run.ExcludeCursorHost = exclusion.Cursor?.Host;
+                notes.Add($"{exclusion.Held.Count} hosts are held and the scraper takes {SourceDiscoveryExclusion.MaxEntries}: every forbidden and permission-needed host was sent ({exclusion.Barred}); {exclusion.LeftOut.Count} rejected or unclassed host(s) were left out of this run and take their turn in the next ones");
+                _logger.LogWarning("Source discovery: {Held} hosts are held, over the scraper's {Max} excludeDomains; all {Barred} forbidden and permission-needed hosts were sent and {LeftOut} rejected or unclassed hosts wait for a later run", exclusion.Held.Count, SourceDiscoveryExclusion.MaxEntries, exclusion.Barred, exclusion.LeftOut.Count);
+            }
+
+            if (exclusion.NotHostNames.Count > 0)
+            {
+                notes.Add($"{exclusion.NotHostNames.Count} held domain(s) are not host names the scraper takes and could not be sent: {string.Join(", ", exclusion.NotHostNames.Take(10))}");
+                _logger.LogWarning("Source discovery: held domain(s) {Domains} are not host names and could not be excluded", string.Join(", ", exclusion.NotHostNames));
+            }
+
+            run.ExcludeNote = Clip(notes.Count == 0 ? null : string.Join("; ", notes), 1023);
+
+            var start = await _scraper.StartDiscoveryJobAsync(seedDomains, Math.Clamp(_settings.MaxCandidatesPerRun, 1, 50), _settings.BudgetSeconds, exclusion.Entries, cancellationToken);
             if (start.Outcome == ScraperJobOutcome.Busy)
             {
                 return await EndRunAsync(run, SourceDiscoveryRunEntity.Skipped, null, start.Error, null, cancellationToken);
@@ -120,13 +169,33 @@ namespace Nom.Orch.Services
             var result = Read<ScraperDiscoveryResult>(job.Result);
             if (result != null)
             {
-                await KeepCandidatesAsync(result, seeds, cancellationToken);
+                var probed = result.Candidates.Concat(result.CandidatesNotProbed)
+                    .Select(c => SourceAdmissionPolicy.NormalizeDomain(c.Domain))
+                    .Where(d => d != null && exclusion.Sent(d)).Select(d => d!)
+                    .Distinct(StringComparer.Ordinal).ToList();
+                await KeepCandidatesAsync(result, seeds, exclusion, cancellationToken);
                 run.Candidates = result.Candidates.Count;
                 run.Leads = result.CandidatesNotProbed.Count;
                 run.SeedsVisited = Clip(string.Join(",", result.SeedsVisited), 2047);
                 run.SeedsNotVisited = Clip(string.Join(",", result.SeedsNotVisited), 2047);
                 run.SeedsRefused = Clip(string.Join(",", result.SeedsRefused), 2047);
                 run.PagesFetched = result.PagesFetched;
+                run.CandidatesExcluded = result.CandidatesExcluded.Count;
+                run.CandidatesExcludedJson = result.CandidatesExcluded.Count == 0 ? null : JsonSerializer.Serialize(result.CandidatesExcluded, JsonOptions);
+                if (result.SeedsExcluded.Count > 0)
+                {
+                    run.SeedsExcluded = Clip(string.Join(",", heldBack.Concat(result.SeedsExcluded).Distinct(StringComparer.Ordinal)), 2047);
+                    notes.Add($"NOM fault: the scraper reports seed(s) {string.Join(", ", result.SeedsExcluded)} as excluded, so NOM sent a seed it also excludes; they were not fetched and are not rotated");
+                    _logger.LogError("Source discovery run {RunId}: the scraper reports seed(s) {Seeds} as excluded; NOM sent a seed it also excludes (a NOM fault)", run.Id, string.Join(", ", result.SeedsExcluded));
+                }
+
+                if (probed.Count > 0)
+                {
+                    notes.Add($"the scraper returned {probed.Count} excluded host(s) as found ({string.Join(", ", probed.Take(10))}): it did not apply excludeDomains, so it must be updated; none was kept as a candidate");
+                    _logger.LogError("Source discovery run {RunId}: the scraper returned excluded host(s) {Hosts} as found; it does not apply excludeDomains", run.Id, string.Join(", ", probed));
+                }
+
+                run.ExcludeNote = Clip(notes.Count == 0 ? null : string.Join("; ", notes), 1023);
             }
 
             if (failure != null)
@@ -161,7 +230,7 @@ namespace Nom.Orch.Services
             return Map(run);
         }
 
-        private async Task KeepCandidatesAsync(ScraperDiscoveryResult result, List<ScrapingSourceEntity> seeds, CancellationToken cancellationToken)
+        private async Task KeepCandidatesAsync(ScraperDiscoveryResult result, List<ScrapingSourceEntity> seeds, SourceDiscoveryExclusionList exclusion, CancellationToken cancellationToken)
         {
             var now = Now();
             var visited = result.SeedsVisited.Concat(result.SeedsRefused).Select(SourceAdmissionPolicy.NormalizeDomain).Where(d => d != null).ToHashSet(StringComparer.Ordinal);
@@ -176,7 +245,7 @@ namespace Nom.Orch.Services
             foreach (var (source, lead) in found)
             {
                 var domain = SourceAdmissionPolicy.NormalizeDomain(source.Domain);
-                if (domain == null || known.ContainsKey(domain)) continue;
+                if (domain == null || known.ContainsKey(domain) || exclusion.Covers(domain)) continue;
 
                 var candidate = await _db.SourceCandidates.FirstOrDefaultAsync(c => c.Domain == domain, cancellationToken)
                     ?? _db.SourceCandidates.Local.FirstOrDefault(c => c.Domain == domain);
@@ -549,7 +618,8 @@ namespace Nom.Orch.Services
         /// A target is due by time (never checked, or its last full check older than RecheckDays, or inconclusive or clear and
         /// that old for a candidate) and, for a candidate, once when the policy version changed since its last full check;
         /// the rule version a report came back under never makes it due again. Forbidden and permission-needed targets are
-        /// never due. The kind is <see cref="CheckMode"/>'s.
+        /// never due. Leads no approved source covers come last, for a terms-only check only (<see cref="HeldLeadsAsync"/>).
+        /// The kind is <see cref="CheckMode"/>'s.
         /// </summary>
         private async Task<(string Domain, string Purpose, string Mode, SourceCandidateEntity? Candidate, ScrapingSourceEntity? Source)?> NextTargetAsync(CancellationToken cancellationToken)
         {
@@ -564,13 +634,18 @@ namespace Nom.Orch.Services
             var candidatesFailed = failedLately.Where(c => c.SourceCandidateId != null).Select(c => c.SourceCandidateId!.Value).ToHashSet();
             var terms = await LatestTermsReportsAsync(cancellationToken);
 
+            var admittedOnClearCheck = (await _db.SourceCandidates.AsNoTracking()
+                    .Where(c => c.State == SourceCandidateEntity.Approved && c.ScrapingSourceId != null)
+                    .Select(c => c.ScrapingSourceId!.Value)
+                    .ToListAsync(cancellationToken))
+                .ToHashSet();
             var dueSources = (await _db.ScrapingSources
                 .Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.Kind == ScrapingSourceEntity.WebKind
                     && (s.CheckedAtUtc == null || s.CheckedAtUtc < recheckBefore))
                 .OrderBy(s => s.CheckedAtUtc ?? DateTime.MinValue).ThenBy(s => s.Id)
                 .ToListAsync(cancellationToken))
                 .Where(s => !sourcesFailed.Contains(s.Id) && !SourceRightsService.RecheckBarred(s))
-                .Select(s => (Source: s, Mode: CheckMode(s.PermissionRecordedAtUtc != null, terms.ForSource(s.Id), recheckBefore)))
+                .Select(s => (Source: s, Mode: CheckMode(s.PermissionRecordedAtUtc != null, FullCheckApproved(s, admittedOnClearCheck.Contains(s.Id)), terms.ForSource(s.Id), recheckBefore)))
                 .Where(s => s.Mode != null)
                 .ToList();
             var dueSource = dueSources.FirstOrDefault(s => s.Mode == SourceRightsRule.TermsOnlyMode);
@@ -581,8 +656,10 @@ namespace Nom.Orch.Services
             }
 
             var candidates = await _db.SourceCandidates
-                .Where(c => c.State == SourceCandidateEntity.New || c.State == SourceCandidateEntity.Clear || c.State == SourceCandidateEntity.NotClear)
+                .Where(c => c.State == SourceCandidateEntity.New || c.State == SourceCandidateEntity.Clear || c.State == SourceCandidateEntity.NotClear || c.State == SourceCandidateEntity.Lead)
                 .ToListAsync(cancellationToken);
+            var held = await HeldLeadsAsync(candidates, cancellationToken);
+            candidates = candidates.Where(c => c.State != SourceCandidateEntity.Lead || held.Contains(c.Id)).ToList();
             var candidateIds = candidates.Select(c => c.Id).ToList();
             var fullChecks = (await _db.SourceChecks.AsNoTracking()
                     .Where(c => c.SourceCandidateId != null && candidateIds.Contains(c.SourceCandidateId.Value) && c.Verdict != null && c.Purpose != TermsOnlyPurpose
@@ -602,9 +679,10 @@ namespace Nom.Orch.Services
             var barred = await BarredCandidatesAsync(due, cancellationToken);
             var next = due
                 .Where(c => !barred.Contains(c.Id))
-                .Select(c => (Candidate: c, Mode: CheckMode(false, terms.ForCandidate(c), recheckBefore)))
-                .Where(c => c.Mode != null)
-                .OrderBy(c => c.Candidate.FoundVia == RequestPurpose ? 0 : 1)
+                .Select(c => (Candidate: c, Mode: CheckMode(false, true, terms.ForCandidate(c), recheckBefore)))
+                .Where(c => c.Mode != null && (c.Candidate.State != SourceCandidateEntity.Lead || c.Mode == SourceRightsRule.TermsOnlyMode))
+                .OrderBy(c => c.Candidate.State == SourceCandidateEntity.Lead ? 1 : 0)
+                .ThenBy(c => c.Candidate.FoundVia == RequestPurpose ? 0 : 1)
                 .ThenBy(c => c.Candidate.State == SourceCandidateEntity.New ? 0 : 1)
                 .ThenByDescending(c => c.Candidate.TimesSeen)
                 .ThenBy(c => c.Candidate.FirstSeenUtc)
@@ -618,16 +696,56 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// The kind of check a due target takes, or null when it waits. A full check (sample recipe pages) only when a written
-        /// permission is recorded or the site's latest terms-only report allows one (<see cref="SourceRightsRule.AllowsFullCheck"/>),
-        /// and only while FullChecks is on. Otherwise a terms-only check, unless a terms-only report of the site that allows no
-        /// full check is younger than RecheckDays (a bar is held by the class; an inconclusive one is tried again by time, never
-        /// on every tick), or the scraper's terms-only mode is off: then nothing is fetched.
+        /// permission is recorded, or when the site's latest terms-only report allows one (<see cref="SourceRightsRule.AllowsFullCheck"/>)
+        /// and, for a source, an admin approved it (<see cref="FullCheckApproved"/>), and only while FullChecks is on; a source whose
+        /// report allows a full check but that no admin approved waits. Otherwise a terms-only check, unless a terms-only report of
+        /// the site that allows no full check is younger than RecheckDays (a bar is held by the class; an inconclusive one is tried
+        /// again by time, never on every tick), or the scraper's terms-only mode is off: then nothing is fetched.
         /// </summary>
-        private string? CheckMode(bool permission, TermsReport? terms, DateTime recheckBefore)
+        private string? CheckMode(bool permission, bool approved, TermsReport? terms, DateTime recheckBefore)
         {
-            if (permission || terms is { AllowsFullCheck: true }) return _settings.FullChecks ? SourceRightsRule.FullMode : null;
+            if (permission) return _settings.FullChecks ? SourceRightsRule.FullMode : null;
+            if (terms is { AllowsFullCheck: true }) return _settings.FullChecks && approved ? SourceRightsRule.FullMode : null;
             if (terms is { } last && last.StartedUtc >= recheckBefore) return null;
             return _settings.TermsOnlyChecks ? SourceRightsRule.TermsOnlyMode : null;
+        }
+
+        /// <summary>
+        /// Whether an admin approved a full check of the source: facts-only use approved (one journaled click on the sources page),
+        /// or a clear class of a source an admin admitted from a candidate's clear full check (its weekly re-check). A clear class
+        /// from a terms-only report, or a full check that ran without either, approves nothing. The setting alone never starts one.
+        /// </summary>
+        internal static bool FullCheckApproved(ScrapingSourceEntity source, bool admittedOnClearCheck) =>
+            source.FactsOnlyApprovedAt != null
+            || (admittedOnClearCheck && SourceRightsService.EffectiveClass(source) == SourceRightsRule.Clear);
+
+        /// <summary>
+        /// The leads (sites discovery found and never probed) that discovery holds, by the same test as the exclusion list: held by
+        /// the class of the lead's last check's report (none yet is unclassed), and not giving way to an approved source that may be
+        /// seeded (<see cref="SourceDiscoveryExclusion.YieldsTo"/>). Discovery never probes them again, so the check lane gives each a
+        /// terms-only check (robots.txt, the homepage and the terms pages, no recipe page) within the daily cap, after requests and
+        /// new candidates. A lead whose terms allow automated access is then no longer held, and a later discovery run may probe it;
+        /// a lead is never checked in full.
+        /// </summary>
+        private async Task<HashSet<long>> HeldLeadsAsync(IReadOnlyCollection<SourceCandidateEntity> candidates, CancellationToken cancellationToken)
+        {
+            var leads = candidates.Where(c => c.State == SourceCandidateEntity.Lead).ToList();
+            if (leads.Count == 0) return new HashSet<long>();
+            var fetchable = (await _db.ScrapingSources.AsNoTracking()
+                    .Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.Kind == ScrapingSourceEntity.WebKind && s.HarvestPausedAt == null)
+                    .ToListAsync(cancellationToken))
+                .Where(s => SourceDiscoveryExclusion.MayFetch(s, _rights.Enforce))
+                .Select(s => SourceDiscoveryExclusion.Entry(s.Domain)).Where(h => h != null).Select(h => h!).ToList();
+            var checkIds = leads.Where(l => l.LastCheckId != null).Select(l => l.LastCheckId!.Value).ToList();
+            var classes = (await _db.SourceChecks.AsNoTracking()
+                    .Where(c => checkIds.Contains(c.Id) && c.ReportJson != null)
+                    .Select(c => new { c.Id, c.ReportJson })
+                    .ToListAsync(cancellationToken))
+                .ToDictionary(c => c.Id, c => SourceRightsRule.Derive(Read<ScraperSourceCheckReport>(c.ReportJson)).Class);
+            return leads
+                .Where(l => SourceDiscoveryExclusion.ForCandidate(l, l.LastCheckId is { } id ? classes.GetValueOrDefault(id) : null) is { } reason
+                    && !SourceDiscoveryExclusion.YieldsTo(l.Domain, reason, fetchable))
+                .Select(l => l.Id).ToHashSet();
         }
 
         /// <summary>The latest terms-only report of a source or candidate, and whether it allows a full check.</summary>
@@ -680,6 +798,53 @@ namespace Nom.Orch.Services
             return new TermsReports(
                 bySource.ToDictionary(p => p.Key, p => new TermsReport(p.Value.Id, p.Value.StartedUtc, allows.GetValueOrDefault(p.Value.Id))),
                 byCandidate.ToDictionary(p => p.Key, p => new TermsReport(p.Value.Id, p.Value.StartedUtc, allows.GetValueOrDefault(p.Value.Id))));
+        }
+
+        /// <summary>
+        /// The exclusion list of a discovery job (<see cref="SourceDiscoveryExclusion"/>): every source and candidate NOM
+        /// holds as forbidden, permission-needed, rejected or unclassed, a candidate by the class of its last check's report.
+        /// An unclassed or rejected candidate of the host (or a parent host) of an approved source that may be fetched yields
+        /// to that source (<see cref="SourceDiscoveryExclusion.YieldsTo"/>) and is named on the run. The rejected and unclassed
+        /// hosts go on from where the last run that left hosts out stopped.
+        /// </summary>
+        private async Task<SourceDiscoveryExclusionList> ExclusionAsync(IReadOnlyCollection<ScrapingSourceEntity> fetchable, CancellationToken cancellationToken)
+        {
+            var held = new List<(string Domain, string Reason, DateTime Since)>();
+            foreach (var source in await _db.ScrapingSources.AsNoTracking().ToListAsync(cancellationToken))
+            {
+                if (SourceDiscoveryExclusion.ForSource(source, _rights.Enforce) is { } reason) held.Add((source.Domain, reason, source.CreatedDate));
+            }
+
+            var fetchableHosts = fetchable.Select(s => SourceDiscoveryExclusion.Entry(s.Domain)).Where(h => h != null).Select(h => h!).ToList();
+            var yielded = new SortedSet<string>(StringComparer.Ordinal);
+            var candidates = await _db.SourceCandidates.AsNoTracking().Where(c => c.State != SourceCandidateEntity.Approved).ToListAsync(cancellationToken);
+            var checkIds = candidates.Where(c => c.LastCheckId != null).Select(c => c.LastCheckId!.Value).ToList();
+            var classes = (await _db.SourceChecks.AsNoTracking()
+                    .Where(c => checkIds.Contains(c.Id) && c.ReportJson != null)
+                    .Select(c => new { c.Id, c.ReportJson })
+                    .ToListAsync(cancellationToken))
+                .ToDictionary(c => c.Id, c => SourceRightsRule.Derive(Read<ScraperSourceCheckReport>(c.ReportJson)).Class);
+            foreach (var candidate in candidates)
+            {
+                var rightsClass = candidate.LastCheckId is { } id ? classes.GetValueOrDefault(id) : null;
+                if (SourceDiscoveryExclusion.ForCandidate(candidate, rightsClass) is not { } reason) continue;
+                if (SourceDiscoveryExclusion.YieldsTo(candidate.Domain, reason, fetchableHosts))
+                {
+                    yielded.Add(SourceDiscoveryExclusion.Entry(candidate.Domain)!);
+                    continue;
+                }
+
+                held.Add((candidate.Domain, reason, candidate.FirstSeenUtc));
+            }
+
+            var last = await _db.SourceDiscoveryRuns.AsNoTracking()
+                .Where(r => r.ExcludeCursorHost != null && r.ExcludeCursorSince != null)
+                .OrderByDescending(r => r.Id)
+                .Select(r => new { r.ExcludeCursorSince, r.ExcludeCursorHost })
+                .FirstOrDefaultAsync(cancellationToken);
+            var cursor = last == null ? null : new SourceDiscoveryExclusionCursor(last.ExcludeCursorSince!.Value, last.ExcludeCursorHost!);
+            var list = SourceDiscoveryExclusion.Build(held, cursor);
+            return list with { Yielded = yielded.Where(h => !list.Covers(h)).ToList() };
         }
 
         /// <summary>The candidates whose last report classes them forbidden or permission-needed: no automatic check fetches them again.</summary>
@@ -1112,6 +1277,22 @@ namespace Nom.Orch.Services
             }).ToList();
         }
 
+        /// <summary>
+        /// The class entry an undo of a facts-only withhold wrote beside its prose entry (both name the entry they undid), while it is
+        /// still the source's latest class entry: the withhold follows the class, so undoing that undo is what brings the withhold back.
+        /// </summary>
+        private async Task<AuditLogEntryEntity?> PairedClassUndoAsync(long sourceId, AuditLogEntryEntity proseUndo)
+        {
+            var undid = Regex.Match(SourceJournal.Detail(proseUndo.NewValue) ?? string.Empty, @"undo of entry \d+$");
+            if (!undid.Success) return null;
+            var latest = await _db.AuditLogEntries.AsNoTracking()
+                .Where(e => e.EntityType == SourceJournal.EntityType && e.EntityId == sourceId && e.PropertyName == SourceJournal.RightsField)
+                .OrderByDescending(e => e.Id)
+                .FirstOrDefaultAsync();
+            return latest != null && latest.ChangeType == SourceJournal.Undo && (SourceJournal.Detail(latest.NewValue) ?? string.Empty).EndsWith(undid.Value, StringComparison.Ordinal)
+                ? latest : null;
+        }
+
         public async Task<SourceActionResult> UndoAsync(long entryId, long personId)
         {
             var entry = await _db.AuditLogEntries.AsNoTracking().FirstOrDefaultAsync(e => e.Id == entryId && e.EntityType == SourceJournal.EntityType);
@@ -1128,8 +1309,23 @@ namespace Nom.Orch.Services
                 return SourceActionResult.Refused("The source changed since; undo the later entries first.");
             }
 
+            if (field == SourceJournal.FactsOnlyProseField && entry.ChangeType == SourceJournal.Undo)
+            {
+                var classUndo = await PairedClassUndoAsync(source.Id, entry);
+                if (classUndo == null) return SourceActionResult.Refused("The class entry this undo took back with the prose changed since; undo the later entries first.");
+                return await UndoAsync(classUndo.Id, personId);
+            }
+
             var now = Now();
             var note = $"undo of entry {entry.Id}";
+            if (field == SourceJournal.FactsOnlyProseField
+                || (field == SourceJournal.RightsField && SourceJournal.State(entry.NewValue) == SourceRightsRule.FactsOnly && SourceRightsService.EffectiveClass(source) == SourceRightsRule.FactsOnly))
+            {
+                var refusal = await SourceRightsService.UndoFactsOnlyAsync(_db, source, entry, now, personId);
+                if (refusal != null) return SourceActionResult.Refused(refusal);
+                return new SourceActionResult { Ok = true, Source = await SourceModelAsync(source) };
+            }
+
             if (SourceRightsService.IsRightsField(field))
             {
                 var old = SourceRightsService.ValueOf(source, field);
@@ -1230,6 +1426,7 @@ namespace Nom.Orch.Services
             SourceJournal.RecipesField => source.RecipesWithheldAt == null ? SourceJournal.Shown : SourceJournal.Withheld,
             SourceJournal.StatusField => source.Status.ToString(),
             SourceJournal.LicenceField => source.LicenceKind ?? SourceJournal.None,
+            SourceJournal.FactsOnlyProseField => SourceRightsService.ProseState(source),
             _ when SourceRightsService.IsRightsField(field) => SourceRightsService.CurrentState(source, field),
             _ => SourceJournal.None,
         };
@@ -1274,11 +1471,15 @@ namespace Nom.Orch.Services
                 };
             }
 
+            var prose = await SourceRightsService.ProseFiguresAsync(_db,
+                sources.Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.Kind == ScrapingSourceEntity.WebKind), cancellationToken);
+
             ScrapingSourceModel SourceModel(ScrapingSourceEntity s)
             {
                 var model = ScrapingSourceService.Map(s);
                 model.Check = s.LastCheckId is { } id && checks.TryGetValue(id, out var check) ? MapCheck(check) : null;
                 model.TermsCheck = termsChecks.TryGetValue(s.Id, out var terms) ? MapCheck(terms) : null;
+                model.Prose = prose.GetValueOrDefault(s.Id);
                 return model;
             }
 
@@ -1313,6 +1514,8 @@ namespace Nom.Orch.Services
                 .Select(s => new { s.Status, s.Kind, s.CheckVerdict, s.HarvestPausedAt, s.RecipesWithheldAt, s.ProbationUntilUtc })
                 .ToListAsync(cancellationToken);
             var web = sources.Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.Kind == ScrapingSourceEntity.WebKind).ToList();
+            var leads = await _db.SourceCandidates.AsNoTracking().Where(c => c.State == SourceCandidateEntity.Lead).ToListAsync(cancellationToken);
+            var held = await HeldLeadsAsync(leads, cancellationToken);
             var review = await ReviewAsync(cancellationToken);
             return new SourceAdmissionStatusModel
             {
@@ -1339,6 +1542,12 @@ namespace Nom.Orch.Services
                 Hand = sources.Count(s => s.Kind == ScrapingSourceEntity.HandKind && s.Status == ScrapingSourceStatusEnum.Approved),
                 RecheckSkipped = review.Approved.Count(s => s.RecheckSkipped != null),
                 TermsChecksWaiting = await _db.SourceChecks.CountAsync(c => c.Purpose == TermsOnlyPurpose && (c.Status == Queued || c.Status == SourceCheckEntity.Running), cancellationToken),
+                LastExclusionRun = (await _db.SourceDiscoveryRuns.AsNoTracking()
+                        .Where(r => r.JobId != null)
+                        .OrderByDescending(r => r.StartedUtc).ThenByDescending(r => r.Id)
+                        .FirstOrDefaultAsync(cancellationToken)) is { } sent ? Map(sent) : null,
+                LeadsHeld = held.Count,
+                LeadsTermsChecked = leads.Count(l => held.Contains(l.Id) && l.LastCheckId != null),
             };
         }
 
@@ -1473,6 +1682,12 @@ namespace Nom.Orch.Services
             SeedsNotVisited = run.SeedsNotVisited,
             SeedsRefused = run.SeedsRefused,
             PagesFetched = run.PagesFetched,
+            ExcludeSent = run.ExcludeSent,
+            ExcludeLeftOut = run.ExcludeLeftOut,
+            SeedsExcluded = run.SeedsExcluded,
+            CandidatesExcluded = run.CandidatesExcluded,
+            CandidatesExcludedHosts = Read<List<ScraperExcludedDomain>>(run.CandidatesExcludedJson) ?? new List<ScraperExcludedDomain>(),
+            ExcludeNote = run.ExcludeNote,
         };
 
         private static T? Read<T>(JsonElement? element) where T : class

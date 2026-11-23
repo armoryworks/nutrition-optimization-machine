@@ -22,6 +22,10 @@ namespace Nom.Orch.Services.Support
         public List<DietDataCriterion> Criteria { get; } = new();
         /// <summary>The foods the restrictions name directly (a restriction's own food or a type's named-food criterion), each with the highest severity that names it, which <see cref="PreparedContentsGate"/> reads a prepared meal's allergens and recognised terms against.</summary>
         public Dictionary<long, int> NamedFoods { get; } = new();
+        /// <summary>Whether a food probe the restrictions need is not kept yet (before the diet gate's warm has computed it): the foods are not all known, so <see cref="RecipeIds"/> holds every recipe and <see cref="PreparedContentsGate"/> holds every prepared meal (staging checkpoint 4, P1).</summary>
+        public bool Pending { get; set; }
+        /// <summary>The recipe id up to which the line index has read every rule the restrictions need (0 before its first pass): every recipe above it (one made since the last pass) is not yet read and is held in <see cref="RecipeIds"/>; null when the restrictions read no line or no index is used.</summary>
+        public long? ReadUpTo { get; set; }
         public static readonly RestrictedIngredientSet Empty = new();
 
         internal void Name(long foodId, int severity) =>
@@ -41,12 +45,21 @@ namespace Nom.Orch.Services.Support
     {
         private readonly ApplicationDbContext _db;
         private readonly DietGateCache? _cache;
+        private readonly DietLineIndex? _index;
 
-        /// <summary>A resolver on the context; the diet gate's whole-catalog probes go through <paramref name="cache"/>, or through <see cref="DietGateCache.Shared"/> on a relational database when none is given.</summary>
-        public HouseholdRestrictionResolver(ApplicationDbContext db, DietGateCache? cache = null)
+        /// <summary>
+        /// A resolver on the context; the diet gate's whole-catalog probes go through <paramref name="cache"/>, or
+        /// through <see cref="DietGateCache.Shared"/> on a relational database when none is given. With a line index
+        /// (<paramref name="index"/>, or <see cref="DietLineIndex.Shared"/> on a relational database when neither is
+        /// given), no probe is ever computed in line: the lines are read from the index and the food probes from the
+        /// values the warm keeps, and what is not read yet is held (staging checkpoint 4, P1).
+        /// </summary>
+        public HouseholdRestrictionResolver(ApplicationDbContext db, DietGateCache? cache = null, DietLineIndex? index = null)
         {
             _db = db;
-            _cache = cache ?? (db.Database.IsRelational() ? DietGateCache.Shared : null);
+            var relational = db.Database.IsRelational();
+            _cache = cache ?? (relational || index != null ? DietGateCache.Shared : null);
+            _index = index ?? (relational && cache == null ? DietLineIndex.Shared : null);
         }
 
         public async Task<RestrictedIngredientSet> ResolveAsync(long householdId)
@@ -169,6 +182,26 @@ namespace Nom.Orch.Services.Support
             return result;
         }
 
+        /// <summary>What the criteria of the restriction types forbid at or above a severity, as a household set with those restrictions reads them (the diet gate's count per type, <see cref="DietGateCounts"/>).</summary>
+        public async Task<RestrictedIngredientSet> ResolveTypesAsync(IReadOnlyCollection<long> typeIds, int minimumSeverity = 0)
+        {
+            var result = new RestrictedIngredientSet();
+            if (typeIds.Count == 0) return result;
+            var named = await _db.Set<RestrictionCriterionEntity>()
+                .Where(c => typeIds.Contains(c.RestrictionTypeId) && c.Severity >= minimumSeverity)
+                .Select(c => new { c.IngredientId, c.Severity })
+                .ToListAsync();
+            foreach (var c in named)
+            {
+                if (c.Severity >= 4) result.HasSevere = true;
+                if (c.IngredientId is not { } id) continue;
+                result.IngredientIds.Add(id);
+                result.Name(id, c.Severity);
+            }
+            await AddDataCriteriaAsync(result, typeIds, minimumSeverity);
+            return result;
+        }
+
         /// <summary>
         /// Adds the foods the nutrient, word and name-pattern criteria of the types match, the
         /// recipes with a line whose own text names a pattern of the type on any food, the
@@ -182,6 +215,11 @@ namespace Nom.Orch.Services.Support
             var data = await DietCriteriaMatcher.CriteriaAsync(_db, typeIds, minimumSeverity);
             if (data.Count == 0) return;
             result.Criteria.AddRange(data);
+            if (_index != null)
+            {
+                await AddFromIndexAsync(result, data, _cache!, _index);
+                return;
+            }
             foreach (var probe in (await DietCriteriaMatcher.ProbeAsync(_db, data, cache: _cache)).Values)
             {
                 foreach (var ids in probe.Foods.Values) result.IngredientIds.UnionWith(ids);
@@ -190,6 +228,52 @@ namespace Nom.Orch.Services.Support
             }
             result.RecipeIds.UnionWith(await DietCriteriaMatcher.DrinkLineRecipesAsync(_db, data, result.IngredientIds, _cache));
             result.RecipeIds.UnionWith(await DietCriteriaMatcher.RetainedRecipesAsync(_db, data, _cache));
+        }
+
+        /// <summary>
+        /// The same sets read without a probe: each type's foods from the value the warm keeps
+        /// (<see cref="DietCriteriaMatcher.FoodsProbeAsync"/>), its line and alias-line recipes and the drink lines from
+        /// the line index (<see cref="DietLineIndex.Snapshot"/>), the retained alcohol from the kept counts. A type
+        /// whose foods are not kept yet makes the set <see cref="RestrictedIngredientSet.Pending"/>; every recipe above
+        /// the id up to which the index has read what the set needs (every recipe before its first pass) is held, the
+        /// safe side for a severe restriction: never shown as fine before it is read.
+        /// </summary>
+        private async Task AddFromIndexAsync(RestrictedIngredientSet result, List<DietDataCriterion> data, DietGateCache cache, DietLineIndex index)
+        {
+            var snapshot = index.Current(_db);
+            var readUpTo = snapshot == null ? 0 : long.MaxValue;
+            foreach (var type in data.GroupBy(c => c.RestrictionTypeId))
+            {
+                var list = type.ToList();
+                var probe = await DietCriteriaMatcher.FoodsProbeAsync(_db, list, cache);
+                if (probe == null)
+                {
+                    result.Pending = true;
+                    readUpTo = 0;
+                    continue;
+                }
+                foreach (var ids in probe.Foods.Values) result.IngredientIds.UnionWith(ids);
+                if (snapshot == null) continue;
+                var view = snapshot.ViewOf(list);
+                if (view.Missing.Count > 0) index.Request(_db);
+                result.RecipeIds.UnionWith(view.LineRecipes);
+                if (probe.AliasOnly.Count > 0) result.RecipeIds.UnionWith(snapshot.RecipesOn(probe.AliasOnly).Where(view.Named.Contains));
+                readUpTo = Math.Min(readUpTo, view.ReadUpTo);
+            }
+            if (snapshot != null && DietCriteriaMatcher.ReadsLines(data))
+            {
+                result.RecipeIds.UnionWith(snapshot.DrinkLines.Where(l => !result.IngredientIds.Contains(l.IngredientId)).Select(l => l.RecipeId));
+                readUpTo = Math.Min(readUpTo, snapshot.DrinkReadUpTo);
+            }
+            if (await DietCriteriaMatcher.RetainedPeekAsync(_db, data, cache, index) is { } retained)
+            {
+                result.RecipeIds.UnionWith(retained.Recipes);
+                readUpTo = Math.Min(readUpTo, retained.ReadUpTo);
+            }
+            else readUpTo = 0;
+            if (readUpTo == long.MaxValue) return;
+            result.ReadUpTo = readUpTo;
+            result.RecipeIds.UnionWith(await _db.Recipes.IgnoreQueryFilters().AsNoTracking().Where(r => r.Id > readUpTo).Select(r => r.Id).ToListAsync());
         }
     }
 }

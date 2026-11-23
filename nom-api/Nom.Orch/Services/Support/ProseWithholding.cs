@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Nom.Data.Recipe;
 
 namespace Nom.Orch.Services.Support
@@ -31,16 +32,76 @@ namespace Nom.Orch.Services.Support
         public static string? LineWording(RecipeEntity recipe, string? rawLine) =>
             recipe.SourceRights == SourceRightsRule.FactsOnly ? null : rawLine;
 
+        /// <summary>The most words a facts-only line's own food words may have; a longer reading is the publisher's sentence, not a food.</summary>
+        public const int MaxFoodWords = 4;
+
+        /// <summary>The name a facts-only line is shown under when neither a catalog food nor its own food words name it.</summary>
+        public const string UnnamedFood = "Ingredient";
+
+        private static readonly Regex FoodWordBreak = new(@"[,;:!?()\[\]—–]|\s-\s|\*", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly Regex FoodWord = new(@"^\p{L}[\p{L}'’-]*$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly HashSet<string> NotFoodWords = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "i", "you", "your", "we", "our", "my", "me", "these", "this", "that", "those", "it", "they", "can", "could", "will", "would",
+            "should", "must", "may", "make", "makes", "made", "use", "using", "used", "note", "notes", "tip", "see", "is", "are", "be", "if",
+            "by", "when", "here", "there", "like", "love", "recipe", "recipes", "optional", "need", "want", "try",
+        };
+
+        /// <summary>
+        /// Whether a food's own name may be shown for a facts-only line: a curated food or one taken from the USDA catalog (an
+        /// FDC id). A food created from a line's own text (uncurated, no FDC id) may carry the publisher's wording as its name.
+        /// </summary>
+        public static bool CatalogFood(long curationStatusId, string? fdcId) =>
+            curationStatusId == (long)CurationStatusEnum.Curated || !string.IsNullOrWhiteSpace(fdcId);
+
+        /// <summary>The same for a loaded food.</summary>
+        public static bool CatalogFood(IngredientEntity? food) => food != null && CatalogFood(food.CurationStatusId, food.FdcId);
+
+        /// <summary>
+        /// The food words of a line by NOM's rule and no model: the line without its amount, unit and notes
+        /// (<see cref="IngredientNameNormalizer.Normalize"/>), up to its first comma, colon, bracket or dash, and only when what is
+        /// left is at most <see cref="MaxFoodWords"/> plain words none of which reads as a sentence; otherwise null.
+        /// </summary>
+        public static string? FoodWords(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            var normalized = IngredientNameNormalizer.Normalize(text);
+            var cut = FoodWordBreak.Split(normalized, 2)[0].Trim().TrimEnd('.');
+            var words = cut.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0 || words.Length > MaxFoodWords) return null;
+            if (words.Any(w => !FoodWord.IsMatch(w) || NotFoodWords.Contains(w))) return null;
+            return string.Join(' ', words);
+        }
+
+        /// <summary>
+        /// The food name a response shows for one ingredient line: the food's own name, except for a line of a facts-only recipe
+        /// whose food is not a catalog food (<see cref="CatalogFood(long, string?)"/>), which is shown under its own food words
+        /// (<see cref="FoodWords"/>) only, or null when it has none, so a food named from the publisher's line never shows that line.
+        /// </summary>
+        public static string? FoodName(string? sourceRights, string? rawLine, string? foodName, bool catalogFood)
+        {
+            if (sourceRights != SourceRightsRule.FactsOnly || catalogFood) return foodName;
+            return FoodWords(rawLine) ?? FoodWords(foodName);
+        }
+
+        /// <summary>The same for a loaded line of a recipe: the food's name (empty without a food), or for a facts-only line on a food that is not a catalog food its food words, else <see cref="UnnamedFood"/>.</summary>
+        public static string FoodName(RecipeEntity recipe, RecipeIngredientEntity line) =>
+            recipe.SourceRights != SourceRightsRule.FactsOnly || CatalogFood(line.Ingredient)
+                ? line.Ingredient?.Name ?? string.Empty
+                : FoodName(recipe.SourceRights, line.RawLine, line.Ingredient?.Name, false) ?? UnnamedFood;
+
         /// <summary>
         /// How a response names one ingredient line (a diet warning, the alcohol note): the line as written, or, for a
         /// recipe of a facts-only source, by <see cref="LineWording"/>'s rule NOM's own wording of it (amount, unit and
-        /// catalog food name), never the publisher's line.
+        /// the food by <see cref="FoodName(string?, string?, string?, bool)"/>), never the publisher's line.
         /// </summary>
         public static string LineName(RecipeEntity recipe, RecipeIngredientEntity line) =>
-            LineName(recipe.SourceRights, line.RawLine, line.Ingredient?.Name, line.Quantity, line.Measurement?.Name);
+            LineName(recipe.SourceRights, line.RawLine, line.Ingredient?.Name, line.Quantity, line.Measurement?.Name, CatalogFood(line.Ingredient));
 
-        /// <summary>The same for a query projection: the recipe's <see cref="RecipeEntity.SourceRights"/> stamp and the line's text, food, amount and unit.</summary>
-        public static string LineName(string? sourceRights, string? rawLine, string? foodName, decimal quantity, string? measurement)
+        /// <summary>The same for a query projection: the recipe's <see cref="RecipeEntity.SourceRights"/> stamp and the line's text, food, amount and unit, and whether its food is a catalog food.</summary>
+        public static string LineName(string? sourceRights, string? rawLine, string? foodName, decimal quantity, string? measurement, bool catalogFood)
         {
             if (sourceRights != SourceRightsRule.FactsOnly && !string.IsNullOrWhiteSpace(rawLine)) return rawLine.Trim();
             var parts = new List<string>();
@@ -50,7 +111,8 @@ namespace Nom.Orch.Services.Support
                 if (!string.IsNullOrWhiteSpace(measurement)) parts.Add(measurement.Trim().ToLowerInvariant());
             }
 
-            parts.Add(string.IsNullOrWhiteSpace(foodName) ? "an ingredient" : foodName.Trim());
+            var food = FoodName(sourceRights, rawLine, foodName, catalogFood);
+            parts.Add(string.IsNullOrWhiteSpace(food) ? "an ingredient" : food.Trim());
             return string.Join(" ", parts);
         }
 

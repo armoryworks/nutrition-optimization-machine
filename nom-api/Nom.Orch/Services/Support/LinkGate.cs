@@ -169,7 +169,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class LinkGate
     {
-        public const string Version = "link-gate/12";
+        public const string Version = "link-gate/13";
 
         public const string Heading = "heading";
         public const string Compound = "compound";
@@ -220,6 +220,8 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex PodBeanPattern = new(@"\b(?:french|string|stringless|snap|green|runner|wax)\s+beans?\b|\bharicots?\s+verts?\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
         private static readonly Regex ShelledPattern = new(@"\b(?:shelled|fresh)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
         private static readonly Regex NumberToken = new(@"(?<![\d.])\d+(?![\d.]|\s*%)", RegexOptions.CultureInvariant | RegexOptions.Compiled);
+        private static readonly Regex WithWord = new(@"\bwith\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+        private static readonly Regex Hyphened = new(@"(\p{L}+)-(\p{L}+)", RegexOptions.CultureInvariant | RegexOptions.Compiled);
         private static readonly Regex BonePattern = new(@"\bbones?\b(?!\s*-?\s*in\b)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         internal static readonly Dictionary<string, string> OldSpellings = new(StringComparer.Ordinal)
@@ -288,6 +290,8 @@ namespace Nom.Orch.Services.Support
 
         private static readonly HashSet<string> FreshWords = new(StringComparer.Ordinal) { "fresh", "raw" };
 
+        private static readonly HashSet<string> RatioWords = new(StringComparer.Ordinal) { "per", "every", "each" };
+
         private static readonly HashSet<string> Processed = new(StringComparer.Ordinal)
         {
             "dried", "dry", "dehydrated", "desiccated", "canned", "cooked", "boiled", "baked", "fried", "steamed", "braised", "stewed", "grilled",
@@ -300,14 +304,17 @@ namespace Nom.Orch.Services.Support
 
         private static readonly HashSet<string> SeedWords = new(StringComparer.Ordinal) { "dried", "dry", "dehydrated", "mature" };
 
+        /// <summary>The USDA categories whose raw or uncooked entry is the dry product (nuts and seeds, legumes, cereal grains and pasta): "dry lentils" is "Lentils, raw", "raw sesame seeds" the dried seeds.</summary>
+        private static readonly HashSet<int> DryGoodsCategories = new() { 12, 16, 20 };
+
         private const string RoastWord = "roast";
 
         private static readonly HashSet<string> ProductLeads = new(StringComparer.Ordinal)
         {
-            "pickle", "sauce", "soup", "pie", "jam", "jelly", "relish", "pudding", "salad", "dressing", "gravy", "stew",
+            "pickle", "sauce", "soup", "pie", "jam", "jelly", "relish", "pudding", "salad", "dressing", "gravy", "stew", "cake",
         };
 
-        private static readonly HashSet<string> DriedCues = new(StringComparer.Ordinal) { "dried", "dry", "ground", "grated", "powdered", "powder" };
+        private static readonly HashSet<string> DriedCues = new(StringComparer.Ordinal) { "dried", "dry", "ground", "grated", "grate", "grates", "grating", "powdered", "powder" };
 
         private static readonly HashSet<string> HerbLeads = new(StringComparer.Ordinal)
         {
@@ -330,7 +337,7 @@ namespace Nom.Orch.Services.Support
         private static readonly string[] SaltedWordingPhrases = { "salted" };
         private static readonly string[] SaltedFoodPhrases = { "salted", "with salt" };
         private static readonly string[] UnsweetenedWordingPhrases = { "unsweetened", "sugar free", "no sugar" };
-        private static readonly string[] UnsweetenedFoodPhrases = { "unsweetened", "sugar free", "no sugar added" };
+        private static readonly string[] UnsweetenedFoodPhrases = { "unsweetened", "sugar free", "no sugar added", "not sweetened" };
         private static readonly string[] SweetenedPhrases = { "sweetened" };
 
         private static readonly HashSet<string> FreshCues = new(StringComparer.Ordinal)
@@ -417,6 +424,21 @@ namespace Nom.Orch.Services.Support
             "italian", "polish", "mexican", "chinese", "japanese", "thai", "greek", "spanish", "french", "german", "swiss",
         };
 
+        internal const string DistinguishingRule = "food is a variety, species, colour, flavour, form or part the wording does not name";
+
+        private static readonly HashSet<string> Colours = new(StringComparer.Ordinal)
+        {
+            "red", "green", "yellow", "orange", "purple", "golden", "white", "black", "brown", "pink",
+        };
+
+        private static readonly HashSet<string> EntryWords = new(StringComparer.Ordinal)
+        {
+            "choice", "select", "prime", "grade", "grades", "standard", "separable", "lean", "fat", "trimmed", "prepared", "unprepared", "recipe",
+            "commercially", "commercial", "ready", "broiler", "fryer", "grain", "medium", "long", "fluid", "crumbled", "shredded", "grated", "sliced",
+            "diced", "chopped", "cubed", "pack", "solids", "liquids", "includes", "foods", "distribution", "program", "usda", "enriched", "unenriched", "meat",
+            "unsweetened", "full", "cut", "boneless", "undiluted", "diluted",
+        };
+
         private static readonly HashSet<string> Connectives = new(StringComparer.Ordinal)
         {
             "and", "or", "with", "without", "in", "of", "from", "made", "includes", "include", "type", "style", "the", "a", "for", "as", "to", "added",
@@ -479,15 +501,22 @@ namespace Nom.Orch.Services.Support
             var firstSegmentWords = Words(raw.Split(',')[0]).ToList();
             var plainWords = Words(Plain(text));
             var plainFolded = plainWords.Select(Fold).ToHashSet(StringComparer.Ordinal);
+            var formPlain = string.Equals(target.Name.Trim(), text.Trim(), StringComparison.OrdinalIgnoreCase) ? plainWords : plainWords.Concat(Words(Plain(target.Name))).ToList();
+            var formFolded = formPlain.Select(Fold).ToHashSet(StringComparer.Ordinal);
+
+            var dryGoods = target.CategoryId is { } goods && DryGoodsCategories.Contains(goods) && !plainFolded.Overlaps(CookedWords) && !plainFolded.Contains("canned")
+                && (plainFolded.Contains("raw") || plainFolded.Contains("uncooked") || plainFolded.Contains("dried"));
 
             bool FormMet(string form) =>
                 (driedSpice && SpiceNeutral.Contains(form))
+                || (dryGoods && SeedWords.Contains(form))
                 || (flour && FlourNeutral.Contains(form))
                 || (drink && DrinkNeutral.Contains(form))
-                || Forms[form].Any(f => f == "mature" ? plainFolded.Contains(f) && !plainFolded.Overlaps(CookedWords) && !plainFolded.Contains("canned") : plainFolded.Contains(f) || plainWords.Contains(f));
+                || Forms[form].Any(f => f == "mature" ? plainFolded.Contains(f) && !plainFolded.Overlaps(CookedWords) && !plainFolded.Contains("canned") : formFolded.Contains(f) || formPlain.Contains(f));
 
             var formWords = firstSegmentWords.Select((w, i) => w == RoastWord && i + 1 < firstSegmentWords.Count ? "roasted" : w).ToList();
-            var wordingForms = formWords.Where(Forms.ContainsKey).Distinct().ToList();
+            var either = EitherForms(formWords);
+            var wordingForms = formWords.Where((w, i) => Forms.ContainsKey(w) && !either.Contains(i)).Distinct().ToList();
             var stateWords = allWords.Concat(formWords).ToHashSet(StringComparer.Ordinal);
             var residual = firstSegmentWords.Where(w => !Filler.Contains(w) && !FoodNameMatcher.Noise.Contains(w) && !(Forms.ContainsKey(w) && FormMet(w))
                 && !identity.Contains(Fold(w)) && w is not ("of" or "a" or "an" or "the")).ToList();
@@ -583,13 +612,16 @@ namespace Nom.Orch.Services.Support
                 && !GenericNeutral.Contains(nameHead) && !States.ContainsKey(nameHead) && !Forms.ContainsKey(nameHead) && !Processed.Contains(nameHead) && !DescriptionParts.ContainsKey(nameHead) && !wordingForms.Any(f => FormMet(f) && Forms[f].Contains(nameHead)))
                 Add(Variety, "food is a variety the wording does not name", nameHead);
 
-            if (lexical && !headDefault && !drink && holds.All(h => h.Code != Variety) && NameQualifier(target, folded, catalog) is { } qualifier)
+            if (lexical && !headDefault && !drink && holds.All(h => h.Code != Variety) && NameQualifier(target, folded, identity, catalog) is { } qualifier)
                 Add(Variety, "food is a variety, species or colour the wording does not name", qualifier);
 
+            if (lexical && !headDefault && !drink && holds.All(h => h.Code != Variety) && Distinguishing(target, text, lead, folded, identity, Words(wording), wordingForms.Where(FormMet).SelectMany(f => Forms[f]).Select(Fold).ToHashSet(StringComparer.Ordinal), spice, catalog) is { } distinguishing)
+                Add(Variety, DistinguishingRule, distinguishing);
+
             if (wordingForms.FirstOrDefault(f => !FormMet(f)) is { } unmetForm) Add(Form, "wording form not in the food", unmetForm);
-            if (firstSegmentWords.Any(FreshWords.Contains) && !spice)
+            if (firstSegmentWords.Where((w, i) => FreshWords.Contains(w) && !either.Contains(i)).Any() && !spice)
             {
-                var processed = Words(text).FirstOrDefault(Processed.Contains);
+                var processed = Words(text).FirstOrDefault(w => Processed.Contains(w) && !(dryGoods && SeedWords.Contains(w)));
                 if (processed != null) Add(Form, "wording form not in the food", $"fresh against {processed}");
             }
 
@@ -603,11 +635,14 @@ namespace Nom.Orch.Services.Support
                 Add(FreshHerb, "a fresh herb is not the dried spice");
 
             var egg = lead == "egg" || folded.Contains("egg");
-            foreach (var part in firstSegmentWords.Where(w => WordingParts.ContainsKey(w) || (egg && EggWhiteWords.Contains(w))).Distinct())
+            var partText = string.Equals(target.Name.Trim(), text.Trim(), StringComparison.OrdinalIgnoreCase) ? text : text + ", " + WithoutAdditions(target.Name);
+            foreach (var part in firstSegmentWords.TakeWhile(w => !RatioWords.Contains(w)).Where(w => WordingParts.ContainsKey(w) || (egg && EggWhiteWords.Contains(w))).Distinct())
             {
                 var kind = WordingParts.TryGetValue(part, out var k) ? k : "white";
                 if (kind == "bone" && !BonePattern.IsMatch(raw.Split(',')[0])) continue;
-                if (TextHasPart(text, kind) || (kind == "leaf" && spice) || (kind is "leaf" or "greens" && lead != null && LeafFoods.Contains(lead))) continue;
+                var at = firstSegmentWords.IndexOf(part);
+                if (at + 1 < firstSegmentWords.Count && identity.Contains(Fold(firstSegmentWords[at + 1]))) continue;
+                if (TextHasPart(AddedPart(firstSegmentWords, part) ? partText : WithoutAdditions(partText), kind) || (kind == "leaf" && spice && !textWords.Contains("seed")) || (kind is "leaf" or "greens" && lead != null && LeafFoods.Contains(lead))) continue;
                 Add(Part, "wording part not in the food", part);
                 break;
             }
@@ -629,7 +664,7 @@ namespace Nom.Orch.Services.Support
 
             if (lexical && !headDefault && PercentPattern.IsMatch(text) && !raw.Contains('%') && LeadCount(lead, catalog) > 1)
                 Add(Percent, "percent variant", PercentPattern.Match(text).Value);
-            else if (PercentPattern.Match(raw) is { Success: true } stated && !PercentPattern.Matches(text).Any(m => Number(m.Value) == Number(stated.Value)))
+            else if (PercentPattern.Match(raw) is { Success: true } stated && !PercentPattern.Matches(text).Any(m => Number(m.Value) == Number(stated.Value)) && !StatedPercentMet(Number(stated.Value), text))
                 Add(Percent, "percent variant", "wording states " + stated.Value.Replace(" ", string.Empty));
 
             if (PolarityOf(raw, text) is { } polarity) Add(Polarity, "salted or sweetened the other way", polarity);
@@ -646,7 +681,8 @@ namespace Nom.Orch.Services.Support
                 if (qualifiers.Count > 0) Add(Generic, "one generic word for one of many foods", $"{count} foods");
             }
 
-            if (target.CategoryId is { } targetCategory && GroupHead(raw) is { } groupWord && GroupWords.TryGetValue(groupWord, out var groups) && !groups.Contains(targetCategory))
+            if (target.CategoryId is { } targetCategory && GroupHead(raw) is { } groupWord && GroupWords.TryGetValue(groupWord, out var groups) && !groups.Contains(targetCategory)
+                && Words(target.Name).Select(Fold).LastOrDefault() != groupWord)
                 Add(Group, "group word against the USDA category", $"{groupWord}: category {targetCategory}");
 
             if (pair.Lines is { Count: > 0 } lines)
@@ -674,13 +710,140 @@ namespace Nom.Orch.Services.Support
         /// Ham, "sausage links" not Sweet Italian Sausage; but "chard" is Swiss Chard, since every
         /// chard USDA lists is Swiss.
         /// </summary>
-        private static string? NameQualifier(GateFood target, IReadOnlySet<string> folded, GateCatalog catalog)
+        private static string? NameQualifier(GateFood target, IReadOnlySet<string> folded, IReadOnlyList<string> identity, GateCatalog catalog)
         {
             var entry = Words(target.Text).Select(Fold).ToHashSet(StringComparer.Ordinal);
             var qualifiers = Words(target.Name).Select(Fold).Where(w => NameQualifiers.Contains(w) && entry.Contains(w) && !folded.Contains(w)).Distinct(StringComparer.Ordinal).ToList();
             if (qualifiers.Count == 0 || LeadWord(target.Text) is not { } lead || !catalog.Siblings.TryGetValue(lead, out var kin)) return null;
             return qualifiers.FirstOrDefault(q => kin.Any(f => f.Id != target.Id && !PreparedFoods.IsPrepared(f.CategoryId)
-                && !Words(f.Name).Concat(Words(f.Text)).Select(Fold).Contains(q)));
+                && !Words(f.Name).Concat(Words(f.Text)).Select(Fold).Contains(q))
+                && !IsDefault(q, target, folded, identity, kin, catalog));
+        }
+
+        /// <summary>
+        /// The first distinguishing word of the food that the wording neither names nor leaves to a
+        /// default (<c>link-gate/13</c>, staging checkpoint 4 P6): a word of the food's own catalog
+        /// name that its USDA entry carries too, or, for a food whose name is its USDA entry, a word
+        /// of the entry's qualifying segments (after the lead, before "with", "without" or "no"). It is
+        /// accounted for when the wording names it (folded, or as the end of a compound word such as
+        /// "spearmint" for mint), when it is an alternative of a word the wording names ("red and
+        /// white"), when another rule of the gate reads it (a state, form, part, marked, neutral, filler
+        /// or class word, or the lead the lead-noun rule requires), when every other live food of its
+        /// kind the wording fits carries it too, or when it is the default of its kind
+        /// (<see cref="IsDefault"/>). Whatever is left holds the pair: "brown flour" is not "Flour,
+        /// rice, brown", "wild salmon" not coho, "sweet pepper" not Red Bell Pepper, "non-fat plain
+        /// yogurt" not the vanilla one and "salt butter" not Whipped Butter.
+        /// </summary>
+        private static string? Distinguishing(GateFood target, string text, string? lead, IReadOnlySet<string> folded, IReadOnlyList<string> identity, IReadOnlyList<string> lineWords, IReadOnlySet<string> explained, bool spice, GateCatalog catalog)
+        {
+            if (lead == null || !catalog.Siblings.TryGetValue(lead, out var kin)) return null;
+            var entry = Words(Plain(text)).Select(Fold).ToHashSet(StringComparer.Ordinal);
+            var leadWords = LeadNounWords(text).ToHashSet(StringComparer.Ordinal);
+            var named = !string.Equals(target.Name.Trim(), text.Trim(), StringComparison.OrdinalIgnoreCase);
+            var candidates = named
+                ? Words(Plain(target.Name)).Select(Fold).Where(entry.Contains)
+                : QualifierWords(text);
+            var foldedLine = lineWords.Select(Fold).ToList();
+            var fit = Fit(target, identity, catalog).Where(i => !Colours.Contains(identity[i])).ToList();
+            foreach (var word in candidates.Distinct(StringComparer.Ordinal))
+            {
+                if (word.Length <= 1 || leadWords.Contains(word) || NotDistinguishing(word) || explained.Contains(word) || (spice && word == "seed")) continue;
+                if (Meets(word, folded, catalog) || foldedLine.Any(l => l.Length > word.Length && word.Length >= 3 && l.EndsWith(word, StringComparison.Ordinal))) continue;
+                if (AlternativeOfNamed(word, target.Name, folded) || AlternativeOfNamed(word, text, folded)) continue;
+                if (JoinedTo(word, text).Any(other => NotDistinguishing(other) || explained.Contains(other) || Meets(other, folded, catalog))) continue;
+                if (!kin.Any(f => f.Id != target.Id && !f.Deleted && !PreparedFoods.IsPrepared(f.CategoryId) && !Carries(f, word, catalog) && Fits(f, identity, fit, catalog))) continue;
+                if (IsDefault(word, target, folded, identity, kin, catalog)) continue;
+                return word;
+            }
+            return null;
+        }
+
+        /// <summary>The positions of the wording's food words that the food carries (folded, or joined with a neighbour as "nonfat" for "non-fat").</summary>
+        private static List<int> Fit(GateFood food, IReadOnlyList<string> identity, GateCatalog catalog)
+        {
+            var (words, sequence) = FoodWords(food);
+            return Enumerable.Range(0, identity.Count).Where(i => Contained(identity, i, words, sequence, catalog)).ToList();
+        }
+
+        private static bool Fits(GateFood food, IReadOnlyList<string> identity, IReadOnlyList<int> positions, GateCatalog catalog)
+        {
+            var (words, sequence) = FoodWords(food);
+            return positions.All(i => Contained(identity, i, words, sequence, catalog));
+        }
+
+        private static (HashSet<string> Words, List<string> Sequence) FoodWords(GateFood food)
+        {
+            var sequence = Words(food.Name).Concat(Words(food.Text)).Select(Fold).ToList();
+            return (sequence.ToHashSet(StringComparer.Ordinal), sequence);
+        }
+
+        /// <summary>
+        /// Whether a word of the food is the default of its kind for this wording (staging checkpoint
+        /// 4 P9): another curated, live food of the same lead word that the wording fits as well carries
+        /// it in its USDA entry while its own catalog name, a name a person gave it, leaves it out, and no
+        /// food so named carries another word of the same class instead. "Cream-Style Corn" is
+        /// "Corn, sweet, yellow, canned, cream style", so yellow is no conflict for "No. 2 can Cream
+        /// Style Corn" on the yellow cream-style corn; no plainly named sweet pepper is red, so "sweet
+        /// pepper" on Red Bell Pepper stays held. A wording naming another colour or variety is held by
+        /// the containment rule before this is read.
+        /// </summary>
+        private static bool IsDefault(string word, GateFood target, IReadOnlySet<string> folded, IReadOnlyList<string> identity, IReadOnlyList<GateFood> kin, GateCatalog catalog)
+        {
+            var fit = Fit(target, identity, catalog);
+            var plain = kin.Where(f => !f.Deleted && f.Status == (long)CurationStatusEnum.Curated && !PreparedFoods.IsPrepared(f.CategoryId)
+                    && f.Description != null && !string.Equals(f.Name.Trim(), f.Description.Trim(), StringComparison.OrdinalIgnoreCase)
+                    && Fits(f, identity, fit, catalog))
+                .ToList();
+            var carrying = plain.Where(f => Words(Plain(f.Description!)).Select(Fold).Contains(word) && !Words(f.Name).Select(Fold).Contains(word)).ToList();
+            if (carrying.Count == 0) return false;
+            if (!Colours.Contains(word)) return true;
+            return !plain.Any(f => !Words(f.Name).Select(Fold).Any(Colours.Contains)
+                && Words(Plain(f.Description!)).Select(Fold).Any(c => Colours.Contains(c) && c != word && !folded.Contains(c)));
+        }
+
+        private static bool Carries(GateFood food, string word, GateCatalog catalog)
+        {
+            var words = Words(food.Name).Concat(Words(food.Text)).Select(Fold).ToList();
+            var set = words.ToHashSet(StringComparer.Ordinal);
+            for (var i = 0; i + 1 < words.Count; i++) set.Add(words[i] + words[i + 1]);
+            return Meets(word, set, catalog);
+        }
+
+        private static bool NotDistinguishing(string word) =>
+            Filler.Contains(word) || FoodNameMatcher.Noise.Contains(word) || Connectives.Contains(word) || GenericNeutral.Contains(word)
+            || FoodNameMatcher.ClassPrefixes.Contains(word) || LeadClasses.Contains(word) || States.ContainsKey(word) || Forms.ContainsKey(word)
+            || Processed.Contains(word) || CookedWords.Contains(word) || FreshWords.Contains(word) || DescriptionParts.ContainsKey(word)
+            || MarkedWords.Contains(word) || EntryWords.Contains(word);
+
+        /// <summary>The words of a USDA entry's qualifying segments: every segment after the lead, each read up to a "with", "without" or "no".</summary>
+        private static IEnumerable<string> QualifierWords(string text)
+        {
+            var segments = Plain(text).Split(',').Select(s => Words(s).Select(Fold).ToList()).Where(s => s.Count > 0).ToList();
+            var at = 0;
+            while (at < segments.Count - 1 && segments[at].All(w => FoodNameMatcher.ClassPrefixes.Contains(w) || LeadClasses.Contains(w))) at++;
+            foreach (var segment in segments.Skip(at + 1))
+                foreach (var word in segment.TakeWhile(w => w is not ("with" or "without" or "no")))
+                    yield return word;
+        }
+
+        /// <summary>The words a description joins to a word with a hyphen ("freeze" in "freeze-dried"): the two read as one, accounted for when the other is.</summary>
+        private static IEnumerable<string> JoinedTo(string word, string text) =>
+            Hyphened.Matches(Plain(text).ToLowerInvariant()).SelectMany(m =>
+            {
+                var (a, b) = (Fold(m.Groups[1].Value), Fold(m.Groups[2].Value));
+                return a == word ? new[] { b } : b == word ? new[] { a } : Array.Empty<string>();
+            });
+
+        private static bool AlternativeOfNamed(string word, string text, IReadOnlySet<string> folded)
+        {
+            var words = Words(Plain(text)).Select(Fold).ToList();
+            for (var i = 0; i < words.Count; i++)
+            {
+                if (words[i] != word) continue;
+                if (i + 2 < words.Count && words[i + 1] is "and" or "or" && folded.Contains(words[i + 2])) return true;
+                if (i >= 2 && words[i - 1] is "and" or "or" && folded.Contains(words[i - 2])) return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -822,20 +985,46 @@ namespace Nom.Orch.Services.Support
         /// before a longer one is read with the last alternative's head as well ("light" sugar).
         /// False for a wording with no alternatives.
         /// </summary>
-        public static bool NamesAlternative(string wording, GateFood food, GateCatalog catalog)
+        public static bool NamesAlternative(string wording, GateFood food, GateCatalog catalog) => NamedAlternative(wording, food, catalog, firstOnly: false);
+
+        /// <summary>
+        /// Whether a wording of alternatives names the food first ("butter or margarine" on Butter,
+        /// "lemon juice or white vinegar" on lemon juice): a line of alternatives counts its first, so
+        /// a hold that only a later alternative raises is no proof against it. False for a wording
+        /// with no alternatives.
+        /// </summary>
+        public static bool NamesFirstAlternative(string wording, GateFood food, GateCatalog catalog) => NamedAlternative(wording, food, catalog, firstOnly: true);
+
+        private static bool NamedAlternative(string wording, GateFood food, GateCatalog catalog, bool firstOnly)
         {
             var first = IngredientNameNormalizer.Normalize(wording ?? string.Empty).Split(',')[0];
             var parts = AlternativeSplit.Split(first).Select(p => p.Trim()).Where(p => p.Length > 0).ToList();
             if (parts.Count < 2) return false;
             var foodWords = Words(food.Name).Concat(Words(food.Text)).Select(Fold).ToHashSet(StringComparer.Ordinal);
             var lastHead = IdentityWords(parts[^1]).LastOrDefault();
-            for (var i = 0; i < parts.Count; i++)
+            for (var i = 0; i < (firstOnly ? 1 : parts.Count); i++)
             {
                 var identity = IdentityWords(parts[i]);
                 if (identity.LastOrDefault() is { } head && Meets(head, foodWords, catalog)) return true;
-                if (i < parts.Count - 1 && identity.Count <= 1 && lastHead != null && Meets(lastHead, foodWords, catalog)) return true;
+                if (i < parts.Count - 1 && identity.Count <= 1 && lastHead != null && Meets(lastHead, foodWords, catalog)
+                    && !(firstOnly && identity.Count == 1 && catalog.Siblings.ContainsKey(identity[0]))) return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// Whether the wording names a food besides the food: a word that leads foods of its own in
+        /// the catalog and that the food does not carry ("black pepper" beside salt, "flour" beside
+        /// cornmeal). A preparation, note or serving word after a comma names none, nor does a form,
+        /// a state or a word of preparation ending in "-ed" ("heavy cream, whipped", "eggs, preferably
+        /// at room temperature", "dates stoned and sliced").
+        /// </summary>
+        public static bool NamesOtherFood(string wording, GateFood food, GateCatalog catalog)
+        {
+            var foodWords = Words(food.Name).Concat(Words(food.Text)).Select(Fold).ToHashSet(StringComparer.Ordinal);
+            return Words(IngredientNameNormalizer.Normalize(wording ?? string.Empty)).Select(Fold)
+                .Any(w => w.Length > 2 && catalog.Siblings.ContainsKey(w) && !Meets(w, foodWords, catalog) && !Filler.Contains(w) && !FoodNameMatcher.Noise.Contains(w) && !Connectives.Contains(w)
+                    && !Forms.ContainsKey(w) && !States.ContainsKey(w) && !Processed.Contains(w) && !(w.Length >= 5 && w.EndsWith("ed", StringComparison.Ordinal) && !w.EndsWith("seed", StringComparison.Ordinal)));
         }
 
         private static readonly Regex AlternativeSplit = new(@"\s+or\s+|\s*/\s*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -966,6 +1155,17 @@ namespace Nom.Orch.Services.Support
             return !Meets(word, main, catalog) && Meets(word, added, catalog);
         }
 
+        /// <summary>The description with every segment read only up to its "with": "Oranges, raw, with peel" is the whole fruit, not its peel.</summary>
+        private static string WithoutAdditions(string text) =>
+            string.Join(", ", text.Split(',').Select(s => WithWord.Split(s)[0]));
+
+        /// <summary>Whether the wording names the part as something its food comes with ("salmon with bones", "apple with skin"), which a description's own "with bone" or "with skin" meets.</summary>
+        private static bool AddedPart(IReadOnlyList<string> words, string part)
+        {
+            var at = words.ToList().IndexOf(part);
+            return at > 0 && words.Take(at).Contains("with");
+        }
+
         private static bool TextHasPart(string text, string kind)
         {
             var words = Words(text).Select(Fold).ToHashSet(StringComparer.Ordinal);
@@ -973,7 +1173,7 @@ namespace Nom.Orch.Services.Support
             {
                 "peel" => words.Contains("peel") || words.Contains("rind") || words.Contains("zest"),
                 "skin" => words.Contains("skin"),
-                "leaf" => words.Contains("leaf"),
+                "leaf" => words.Contains("leaf") || Words(text).Contains("greens"),
                 "seed" => words.Contains("seed"),
                 "kernel" => words.Contains("kernel"),
                 "greens" => Words(text).Contains("greens") || words.Contains("leaf"),
@@ -1009,7 +1209,10 @@ namespace Nom.Orch.Services.Support
         private static string? GroupHead(string wording)
         {
             var first = IngredientNameNormalizer.Normalize(wording).Split(',')[0];
-            var words = Words(first).Where(w => !LinkAutoApplyGuard.Notes.Contains(w) || w == "of").Select(Fold).ToList();
+            var words = Words(first).Where(w => !LinkAutoApplyGuard.Notes.Contains(w) || w is "of" or "in").Select(Fold).ToList();
+            var medium = words.IndexOf("in");
+            if (medium > 0) words = words.Take(medium).ToList();
+            words.RemoveAll(w => w == "in");
             var of = words.LastIndexOf("of");
             if (of >= 0) words = words.Skip(of + 1).ToList();
             words.RemoveAll(w => w == "of");
@@ -1024,19 +1227,52 @@ namespace Nom.Orch.Services.Support
         /// is not a leaf herb "fresh" and "freshly" are no cue before a word of grinding ("anise seed,
         /// freshly crushed") or on black or white pepper, which is only ever the dried corn ("fresh
         /// black pepper"); elsewhere they still are ("fresh ginger" is the root, not the ground spice).
+        /// A grated or grating spice is the dried spice ("grates of fresh nutmeg"), and a handful is a
+        /// measure of a spice that is not a leaf herb ("handful of broken cinnamon").
         /// </summary>
         private static bool HasFreshCue(string text, IReadOnlySet<string> target, bool herb)
         {
             var words = Words(text);
             if (words.Any(DriedCues.Contains)) return false;
             var peppercorn = target.Contains("pepper") && (target.Contains("black") || target.Contains("white"));
-            return words.Where((w, i) => FreshCues.Contains(w) && !(w == "leaves" && target.Contains("leaf"))
+            return words.Where((w, i) => FreshCues.Contains(w) && !(w == "leaves" && target.Contains("leaf")) && (herb || !MeasureCues.Contains(w))
                 && (herb || !FreshWordCues.Contains(w) || (!peppercorn && (i + 1 >= words.Count || !GrindWords.Contains(words[i + 1]))))).Any();
         }
 
         private static readonly HashSet<string> FreshWordCues = new(StringComparer.Ordinal) { "fresh", "freshly" };
 
+        private static readonly HashSet<string> MeasureCues = new(StringComparer.Ordinal) { "handful", "handfuls" };
+
         private static readonly HashSet<string> GrindWords = new(StringComparer.Ordinal) { "cracked", "crushed", "milled", "pounded", "pulverized" };
+
+        /// <summary>
+        /// Whether a percent the wording states is met by the food's words although the food states
+        /// none: 100 % names a pure food, not a variant ("100% whole wheat flour", "100% apple juice");
+        /// 0 % is the nonfat, fat-free or skim food; 1 % or 2 % the lowfat one ("2% Greek yogurt").
+        /// </summary>
+        private static bool StatedPercentMet(decimal stated, string text)
+        {
+            if (stated == 100) return true;
+            if (PercentPattern.IsMatch(text)) return false;
+            var words = Words(text);
+            var phrase = " " + string.Join(' ', words) + " ";
+            if (stated == 0) return words.Contains("nonfat") || words.Contains("skim") || phrase.Contains(" fat free ", StringComparison.Ordinal) || phrase.Contains(" non fat ", StringComparison.Ordinal);
+            return stated is > 0 and <= 2 && (words.Contains("lowfat") || phrase.Contains(" low fat ", StringComparison.Ordinal));
+        }
+
+        /// <summary>The positions of form or fresh words the wording gives as alternatives of one another ("fresh or frozen", "fresh or canned"): either is the food, so neither is a form it must have.</summary>
+        private static HashSet<int> EitherForms(IReadOnlyList<string> words)
+        {
+            bool IsForm(int i) => i >= 0 && i < words.Count && (Forms.ContainsKey(words[i]) || FreshWords.Contains(words[i]));
+            var either = new HashSet<int>();
+            for (var i = 1; i + 1 < words.Count; i++)
+            {
+                if (words[i] != "or" || !IsForm(i - 1) || !IsForm(i + 1)) continue;
+                either.Add(i - 1);
+                either.Add(i + 1);
+            }
+            return either;
+        }
 
         private static decimal Number(string percent) =>
             decimal.TryParse(percent.TrimEnd('%', ' '), NumberStyles.Number, CultureInfo.InvariantCulture, out var n) ? n : -1;
@@ -1089,9 +1325,12 @@ namespace Nom.Orch.Services.Support
             Table("connectives", Connectives);
             Table("lead-classes", LeadClasses);
             Table("name-qualifiers", NameQualifiers);
+            Table("colours", Colours);
+            Table("entry-words", EntryWords);
             Table("processed", Processed);
             Table("cooked", CookedWords);
             Table("fresh", FreshWords);
+            Table("ratio", RatioWords);
             Table("neutral-spice", SpiceNeutral);
             Table("neutral-flour", FlourNeutral);
             Table("neutral-drink", DrinkNeutral);
@@ -1101,7 +1340,7 @@ namespace Nom.Orch.Services.Support
             Table("matcher-noise", FoodNameMatcher.Noise);
             Table("matcher-classes", FoodNameMatcher.ClassPrefixes.Concat(FoodNameMatcher.IdentityClasses.Select(c => "identity:" + c)));
             Table("dried-cues", DriedCues);
-            Table("seed-words", SeedWords.Append("roast=" + RoastWord));
+            Table("seed-words", SeedWords.Append("roast=" + RoastWord).Concat(DryGoodsCategories.Select(c => "dry-goods=" + c.ToString(CultureInfo.InvariantCulture))));
             Table("product-leads", ProductLeads);
             Table("egg-white", EggWhiteWords.Append("only=" + OnlyWord));
             Table("polarity", UnsaltedPhrases.Select(p => "unsalted=" + p)
@@ -1110,8 +1349,8 @@ namespace Nom.Orch.Services.Support
                 .Concat(UnsweetenedWordingPhrases.Select(p => "unsweetened-wording=" + p))
                 .Concat(UnsweetenedFoodPhrases.Select(p => "unsweetened-food=" + p))
                 .Concat(SweetenedPhrases.Select(p => "sweetened=" + p)));
-            Table("patterns", new[] { Word, Parenthetical, Slash, PercentPattern, HeadingPattern, SaltAddedPattern, PodBeanPattern, ShelledPattern, NumberToken, BonePattern, AlternativeSplit }.Select(r => r.ToString()));
-            Table("herb-leads", HerbLeads.Concat(FreshWordCues.Select(w => "fresh-word=" + w)).Concat(GrindWords.Select(w => "grind=" + w)).Append("peppercorn=pepper:black,white").Append("bone-part=" + BonePattern));
+            Table("patterns", new[] { Word, Parenthetical, Slash, PercentPattern, HeadingPattern, SaltAddedPattern, PodBeanPattern, ShelledPattern, NumberToken, BonePattern, AlternativeSplit, WithWord, Hyphened }.Select(r => r.ToString()));
+            Table("herb-leads", HerbLeads.Concat(FreshWordCues.Select(w => "fresh-word=" + w)).Concat(GrindWords.Select(w => "grind=" + w)).Concat(MeasureCues.Select(w => "measure-cue=" + w)).Append("peppercorn=pepper:black,white").Append("bone-part=" + BonePattern));
             Table("leaf-foods", LeafFoods);
             Table("guard-prep", LinkAutoApplyGuard.PrepWords.Concat(LinkAutoApplyGuard.OneFoodNames.Select(n => "one-food=" + n)));
             Table("guard-joiners", LinkAutoApplyGuard.Joiners);

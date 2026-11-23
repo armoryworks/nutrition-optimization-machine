@@ -40,6 +40,13 @@ namespace Nom.Api.Tests.Services.Recipe
     /// "From recipe" note of an item names the recipe as it is now, not a stored copy of a distinctive title.</item>
     /// <item><c>GET api/MealPlan</c>, <c>GET api/MealPlan/{id}</c> and the week view (<c>GET api/MealPlan/week</c>): an entry of a
     /// facts-only recipe takes the recipe's current name, not the title it stored when it was planned.</item>
+    /// <item>Every surface that names a line by its food (the warnings and the note above, a list a recipe is added to, the test
+    /// scrape): a facts-only line on a food created from the line's own text (not curated, no FDC id) is named by its own food
+    /// words only (<c>ProseWithholding.FoodWords</c>), never by that food's name; the detail, search, smart shopping list and bulk
+    /// export the same way (<c>SourceRightsServiceTests</c>).</item>
+    /// <item><c>GET api/Recipe/dashboard/analytics</c>, its <c>mostUsedIngredients</c>: the foods of the author's lines, a facts-only line's the same way.</item>
+    /// <item><c>POST api/SmartShoppingList/optimize</c> and generate: items named by no food words ("Ingredient") are never added together,
+    /// as they may be different foods.</item>
     /// </list>
     /// The detail's line notes, search, popular, recent, the smart shopping list's lines and the bulk export and print are walked by
     /// <c>SourceRightsServiceTests</c>; description and steps are withheld (<c>ProseWithheldEndpointTests</c>). Admin pages that
@@ -180,6 +187,134 @@ namespace Nom.Api.Tests.Services.Recipe
 
             var import = new RecipeImportOrchestrationService(db, NullLogger<RecipeImportOrchestrationService>.Instance, scraping, Mock.Of<ITesseractOcrService>());
             JsonSerializer.Serialize(await import.TestUrlScrapingAsync("https://facts.example/chili/")).Should().NotContain("PUBLISHERPROSE");
+        }
+
+        [Fact]
+        public async Task A_facts_only_line_on_a_food_named_from_its_own_text_is_named_by_its_food_words_in_warnings_notes_lists_and_the_test_scrape()
+        {
+            await using var db = NewContext();
+            var seeded = await SeedAsync(db);
+            const string rum = "1/4 cup dark rum, or more if you are feeling festive!";
+            const string sentence = "Tip-you can swap the oats for rice flakes and add raisins if you like!";
+            var rumFood = new IngredientEntity { Name = rum, CurationStatusId = (long)CurationStatusEnum.NonCurated };
+            var sentenceFood = new IngredientEntity { Name = sentence, CurationStatusId = (long)CurationStatusEnum.NonCurated };
+            db.Ingredients.AddRange(rumFood, sentenceFood);
+            await db.SaveChangesAsync();
+            foreach (var id in new[] { seeded.FactsOnlyId, seeded.OtherId })
+            {
+                db.RecipeIngredients.AddRange(
+                    new RecipeIngredientEntity { RecipeId = id, IngredientId = rumFood.Id, Quantity = 0.25m, MeasurementId = Cup, RawLine = rum, SortOrder = 1 },
+                    new RecipeIngredientEntity { RecipeId = id, IngredientId = sentenceFood.Id, Quantity = 0m, MeasurementId = Gram, RawLine = sentence, SortOrder = 2 });
+            }
+
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            async Task<RecipeAlcoholNoteModel?> Note(long id)
+            {
+                var recipe = await db.Recipes.AsNoTracking().Include(r => r.RecipeIngredients!).ThenInclude(ri => ri.Ingredient)
+                    .Include(r => r.RecipeIngredients!).ThenInclude(ri => ri.Measurement).SingleAsync(r => r.Id == id);
+                return RecipeNutritionService.AlcoholNote(recipe, new Dictionary<long, decimal> { [seeded.VanillaId] = 34.4m, [rumFood.Id] = 33.4m });
+            }
+
+            var note = JsonSerializer.Serialize(await Note(seeded.FactsOnlyId));
+            note.Should().Contain("0.25 cup dark rum").And.NotContain("festive");
+            JsonSerializer.Serialize(await Note(seeded.OtherId)).Should().Contain("festive", "a recipe of a source that is not facts-only keeps its line as written");
+
+            await RestrictAsync(db);
+            var service = Recipes(db);
+            JsonSerializer.Serialize(await service.GetDietMatchesAsync(seeded.FactsOnlyId, PersonId)).Should().NotContain("festive").And.NotContain("rice flakes");
+            JsonSerializer.Serialize(await service.GetSevereDietConflictsAsync(new[] { seeded.FactsOnlyId }, PersonId)).Should().NotContain("festive");
+
+            db.ShoppingLists.Add(new ShoppingListEntity { Id = 2, Name = "Week", AuthorId = PersonId });
+            await db.SaveChangesAsync();
+            await new ShoppingListOrchestrationService(db).AddRecipeIngredientsAsync(new ShoppingListRecipeAddModel { ShoppingListId = 2, RecipeId = seeded.FactsOnlyId }, PersonId);
+            (await db.ShoppingListItems.AsNoTracking().Where(i => i.ShoppingListId == 2).Select(i => i.Name).ToListAsync())
+                .Should().BeEquivalentTo(new[] { "Vanilla Extract", "dark rum", ProseWithholding.UnnamedFood });
+
+            db.ScrapingSources.Add(new ScrapingSourceEntity
+            {
+                Domain = "facts.example", Status = ScrapingSourceStatusEnum.Approved, Kind = ScrapingSourceEntity.WebKind, CreatedDate = DateTime.UtcNow,
+                RightsClass = SourceRightsRule.FactsOnly, FactsOnlyApprovedAt = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync();
+            var scraper = new Mock<IRecipeScraperClient>();
+            scraper.SetupGet(s => s.IsConfigured).Returns(true);
+            scraper.Setup(s => s.ScrapeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((string url, CancellationToken _) => new ScraperResult
+            {
+                Success = true,
+                Recipe = new ScraperRecipe
+                {
+                    Name = "Nests", SourceUrl = url,
+                    Ingredients =
+                    {
+                        new ScraperIngredient { RawLine = sentence, Name = sentence },
+                        new ScraperIngredient { RawLine = "2 cups rolled oats", Name = "rolled oats", Quantity = 2, Unit = "cup" },
+                    },
+                },
+            });
+            var sources = new Mock<IScrapingSourceService>();
+            sources.Setup(s => s.GetDomainStatusAsync(It.IsAny<string>())).ReturnsAsync(ScrapingSourceStatusEnum.Approved);
+            var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { [RecipeScrapingService.RightsGateSetting] = "true" }).Build();
+            var scraping = new RecipeScrapingService(db, Mock.Of<ICurrentUserService>(), scraper.Object, sources.Object, new RecipeVettingService(), NullLogger<RecipeScrapingService>.Instance, config);
+            var preview = await scraping.TestScrapeRecipeAsync(new RecipeScrapingTestRequestModel { Url = "https://facts.example/nests/" });
+            preview.Ingredients.Select(i => i.Name).Should().Equal(ProseWithholding.UnnamedFood, "rolled oats");
+        }
+
+        [Fact]
+        public async Task The_author_dashboard_names_a_facts_only_line_s_food_by_its_food_words_only()
+        {
+            await using var db = NewContext();
+            var seeded = await SeedAsync(db);
+            const string rum = "1/4 cup dark rum, or more if you are feeling festive!";
+            const string sentence = "Tip-you can swap the oats for rice flakes and add raisins if you like!";
+            var rumFood = new IngredientEntity { Name = rum, CurationStatusId = (long)CurationStatusEnum.NonCurated };
+            var sentenceFood = new IngredientEntity { Name = sentence, CurationStatusId = (long)CurationStatusEnum.NonCurated };
+            db.Ingredients.AddRange(rumFood, sentenceFood);
+            db.Set<ReferenceEntity>().Add(new ReferenceEntity { Id = (long)CurationStatusEnum.NonCurated, Name = "Pending" });
+            await db.SaveChangesAsync();
+            db.RecipeIngredients.AddRange(
+                new RecipeIngredientEntity { RecipeId = seeded.FactsOnlyId, IngredientId = rumFood.Id, Quantity = 0.25m, MeasurementId = Cup, RawLine = rum, SortOrder = 1 },
+                new RecipeIngredientEntity { RecipeId = seeded.FactsOnlyId, IngredientId = sentenceFood.Id, Quantity = 0m, MeasurementId = Gram, RawLine = sentence, SortOrder = 2 });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var used = (await Recipes(db).GetDashboardAnalyticsAsync(PersonId)).MostUsedIngredients;
+
+            used.Select(i => i.Name).Should().BeEquivalentTo(new[] { "Vanilla Extract", "dark rum", ProseWithholding.UnnamedFood });
+            JsonSerializer.Serialize(used).Should().NotContain("festive").And.NotContain("raisins");
+
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = seeded.OtherId, IngredientId = rumFood.Id, Quantity = 0.25m, MeasurementId = Cup, RawLine = rum, SortOrder = 1 });
+            await db.SaveChangesAsync();
+            (await Recipes(db).GetDashboardAnalyticsAsync(PersonId)).MostUsedIngredients.Select(i => i.Name).Should().Contain(rum,
+                "a line of a recipe of another class keeps its food's name");
+        }
+
+        [Fact]
+        public async Task Smart_shopping_list_items_with_no_food_words_are_never_added_together()
+        {
+            await using var db = NewContext();
+            db.ShoppingLists.Add(new ShoppingListEntity
+            {
+                Id = 3, Name = "Week", AuthorId = PersonId,
+                Items = new List<ShoppingListItemEntity>
+                {
+                    new() { Name = ProseWithholding.UnnamedFood, Quantity = 1m },
+                    new() { Name = ProseWithholding.UnnamedFood, Quantity = 1m },
+                    new() { Name = "Eggs", Quantity = 2m },
+                    new() { Name = "Eggs", Quantity = 4m },
+                },
+            });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var smart = new SmartShoppingListService(db, new HttpContextAccessor(), Mock.Of<ICurrentUserService>(), NullLogger<SmartShoppingListService>.Instance, new System.Net.Http.HttpClient());
+            var optimized = await smart.OptimizeShoppingListAsync(new ShoppingListOptimizationModel { ShoppingListId = 3 });
+
+            optimized.Items.Select(i => (i.Name, i.Quantity)).Should().BeEquivalentTo(new[]
+            {
+                (ProseWithholding.UnnamedFood, 1m), (ProseWithholding.UnnamedFood, 1m), ("Eggs", 6m),
+            }, "two lines named by no food words may be two different foods, so neither is lost to the other");
         }
 
         [Fact]

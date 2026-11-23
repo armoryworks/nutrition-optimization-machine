@@ -18,7 +18,10 @@ namespace Nom.Orch.Services.Support
     /// what that chunk can touch: the lines, reprocess journals and rebuild headers of its recipes, the
     /// entries themselves, the foods they and those lines name (and the foods holding a name a retired
     /// food would take back), the aliases a retirement left and the proposals withdrawn. A recipe no
-    /// later entry names leaves the copy again, so the copy stays small. Nothing is written to the
+    /// later entry names leaves the copy again, and the entries run in parts that share no row
+    /// (<see cref="Parts"/>), each in a copy of its own, so a copy stays small: the in-memory store
+    /// reads a whole table for each query, so one copy holding thousands of recipes at once made the
+    /// dry run take half an hour on staging (checkpoint 4, P16). Nothing is written to the
     /// database and no row is locked, so the dry run gives the same counts as the apply without holding
     /// back any other writer.
     /// </summary>
@@ -44,6 +47,47 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>The scratch copy the undo runs against.</summary>
         public ApplicationDbContext Copy { get; }
+
+        /// <summary>
+        /// Splits the entries into parts that touch no row in common, each at most <paramref name="size"/> entries
+        /// unless one recipe's entries alone are more: every entry of a retirement, a pick or a proposal goes into
+        /// the first part, with every entry of each recipe one of whose line entries names a food a retirement
+        /// changes (a line moved back needs its food live, and the retirement's undo brings it back); every other
+        /// recipe's line entries read and write that recipe's lines and journals only, so they go whole into some
+        /// part. Run part by part, each in a copy of its own, the undo gives the counts it gives run over all
+        /// entries at once, while each copy holds only one part's recipes.
+        /// </summary>
+        public static List<List<AuditLogEntryEntity>> Parts(IReadOnlyCollection<AuditLogEntryEntity> entries, int size = 500)
+        {
+            var changed = entries.Where(e => e.EntityType == LineRelinkService.RetireEntityType).Select(e => e.EntityId).ToHashSet();
+            var lines = entries.Where(e => e.EntityType == LineRelinkService.RelinkEntityType).ToList();
+            var shared = lines.Where(e => FoodsNamed(e).Any(changed.Contains)).Select(e => e.EntityId).ToHashSet();
+            var first = entries.Where(e => e.EntityType != LineRelinkService.RelinkEntityType || shared.Contains(e.EntityId)).ToList();
+            var parts = new List<List<AuditLogEntryEntity>>();
+            if (first.Count > 0) parts.Add(first);
+            var current = new List<AuditLogEntryEntity>();
+            foreach (var recipe in lines.Where(e => !shared.Contains(e.EntityId)).GroupBy(e => e.EntityId).OrderBy(g => g.Key))
+            {
+                if (current.Count > 0 && current.Count + recipe.Count() > size)
+                {
+                    parts.Add(current);
+                    current = new List<AuditLogEntryEntity>();
+                }
+                current.AddRange(recipe);
+            }
+            if (current.Count > 0) parts.Add(current);
+            return parts;
+        }
+
+        private static IEnumerable<long> FoodsNamed(AuditLogEntryEntity entry)
+        {
+            foreach (var text in new[] { entry.OldValue, entry.NewValue })
+            {
+                if (string.IsNullOrEmpty(text)) continue;
+                foreach (Match m in PlaceFood.Matches(text)) yield return long.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
+                foreach (Match m in JsonFood.Matches(text)) yield return long.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
+            }
+        }
 
         /// <summary>A dry run reading from <paramref name="db"/> into a new empty copy.</summary>
         public static RelinkUndoDryRun Create(ApplicationDbContext db) =>
@@ -84,15 +128,7 @@ namespace Nom.Orch.Services.Support
             _recipes.UnionWith(recipes);
 
             Copy.AuditLogEntries.AddRange(chunk);
-            foreach (var entry in chunk)
-            {
-                foreach (var text in new[] { entry.OldValue, entry.NewValue })
-                {
-                    if (string.IsNullOrEmpty(text)) continue;
-                    foreach (Match m in PlaceFood.Matches(text)) foods.Add(long.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture));
-                    foreach (Match m in JsonFood.Matches(text)) foods.Add(long.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture));
-                }
-            }
+            foreach (var entry in chunk) foods.UnionWith(FoodsNamed(entry));
 
             var retired = chunk.Where(e => e.EntityType == LineRelinkService.RetireEntityType).ToList();
             foods.UnionWith(retired.Select(e => e.EntityId));

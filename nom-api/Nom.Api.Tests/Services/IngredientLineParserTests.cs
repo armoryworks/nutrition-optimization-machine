@@ -429,5 +429,25 @@ namespace Nom.Api.Tests.Services
         {
             IngredientLineParser.Parse(raw).Should().BeNull();
         }
+
+        [Theory]
+        [InlineData("Massepain comme celui du N. 579, avec les proportions suivantes:")]
+        [InlineData("Pâte comme celle du N. 589")]
+        [InlineData("twenty cents' worth chicken gizzards")]
+        [InlineData("five cents worth of yeast")]
+        public void A_cross_reference_in_french_or_a_price_is_no_amount(string raw)
+        {
+            IngredientLineParser.Parse(raw).Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("copperas one-half ounce", 0.5, "Ounce")]
+        [InlineData("one half pound of butter", 0.5, "Pound")]
+        [InlineData("half a pound of butter", 0.5, "Pound")]
+        [InlineData("cup of the gravy", 1, "Cup")]
+        public void One_half_of_a_measure_is_half_of_it_and_a_bare_cup_is_one(string raw, double quantity, string measurement)
+        {
+            IngredientLineParser.Parse(raw).Should().Be(new ParsedQuantity((decimal)quantity, measurement));
+        }
     }
 }

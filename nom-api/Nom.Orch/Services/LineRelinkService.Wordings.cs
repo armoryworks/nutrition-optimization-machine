@@ -250,6 +250,8 @@ namespace Nom.Orch.Services
                         .ToListAsync())
                     .Where(a => retiredWith.Contains((owners[a.EntityId], a.Timestamp, a.ChangedByPersonId)))
                     .ToList();
+                var kept = await NeverTargetPicksAsync(withdrawals.Select(a => a.EntityId).ToList());
+                withdrawals = withdrawals.Where(a => !kept.Contains(a.EntityId)).ToList();
                 result.ProposalWithdrawals += withdrawals.Count;
                 undo.AddRange(withdrawals);
 
@@ -279,6 +281,7 @@ namespace Nom.Orch.Services
                             && back.IngredientId?.ToString(System.Globalization.CultureInfo.InvariantCulture) == p.ProposedValue)))
                     .Select(p => p.Id));
             }
+            judged.ExceptWith(await NeverTargetPicksAsync(judged));
             var picksBack = new List<AuditLogEntryEntity>();
             foreach (var chunk in pickEntries.Where(a => judged.Contains(a.EntityId)).Select(a => a.Id).Chunk(1000))
                 picksBack.AddRange(await _db.AuditLogEntries.Where(a => chunk.Contains(a.Id)).ToListAsync());
@@ -294,6 +297,33 @@ namespace Nom.Orch.Services
             result.Undone = await UndoEntriesAsync(undo);
             await PutBackLandingsAsync(landings, rebuilt, result);
             return result;
+        }
+
+        /// <summary>
+        /// The withdrawn picks and proposals a retract or an unload leaves withdrawn: those whose proposed food may never be
+        /// a link target (a prepared food, or a food deleted since). Reopened, such a pick could be applied from the queue, and a
+        /// reload that refuses the wording's row for that reason never withdraws it again (staging checkpoint 4, P14).
+        /// </summary>
+        private async Task<HashSet<long>> NeverTargetPicksAsync(IReadOnlyCollection<long> pickIds)
+        {
+            var never = new HashSet<long>();
+            foreach (var chunk in pickIds.Chunk(1000))
+            {
+                var picks = await _db.FoodCatalogProposals.IgnoreQueryFilters().AsNoTracking()
+                    .Where(p => chunk.Contains(p.Id))
+                    .Select(p => new { p.Id, p.ProposedValue })
+                    .ToListAsync();
+                var proposed = picks.Select(p => long.TryParse(p.ProposedValue, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var id) ? id : (long?)null)
+                    .OfType<long>().Distinct().ToList();
+                var foods = await _db.Ingredients.IgnoreQueryFilters().AsNoTracking()
+                    .Where(i => proposed.Contains(i.Id))
+                    .Select(i => new { i.Id, i.IsDeleted, i.FdcCategoryId, i.FdcDataType, i.FdcCategory })
+                    .ToListAsync();
+                var barred = foods.Where(i => i.IsDeleted || Nom.Data.Nutrition.PreparedFoods.IsPrepared(i.FdcCategoryId, i.FdcDataType, i.FdcCategory))
+                    .Select(i => i.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToHashSet(StringComparer.Ordinal);
+                never.UnionWith(picks.Where(p => p.ProposedValue != null && barred.Contains(p.ProposedValue)).Select(p => p.Id));
+            }
+            return never;
         }
 
         private sealed record Landing(AuditLogEntryEntity Entry, string Wording, long TargetId);

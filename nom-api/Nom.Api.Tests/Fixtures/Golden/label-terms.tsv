@@ -1,4 +1,4 @@
-# A statement's named ingredient read as label language by StatementLabelTerms.Match (label-terms/1): the terms of Contents/label-terms.tsv (or of the recognised vocabulary) it stands for, joined by | in the order read, or - when it is not known. The first block is the plain names staging checkpoint 3 (N5) found unresolved in the FDC statements of the 99 branded meals.
+# A statement's named ingredient read as label language by StatementLabelTerms.Match (label-terms/1, label-terms/2 from lt-61): the terms of Contents/label-terms.tsv (or of the recognised vocabulary) it stands for, joined by | in the order read, or - when it is not known. The first block is the plain names staging checkpoint 3 (N5) found unresolved in the FDC statements of the 99 branded meals.
 id	name	expectTerms	status	source	note
 lt-01	wheat	wheat	ok	rule:label-terms	N5: a regulated common name
 lt-02	soybeans	soybean	ok	rule:label-terms	N5: a plural read as its singular
@@ -60,3 +60,19 @@ lt-57	seasonings	-	ok	rule:label-terms	review CK6PD-2: the plural, likewise
 lt-58	seasoned rice	-	ok	rule:label-terms	review CK6PD-2: "seasoned" may hide an unnamed seasoning, so it is never left out
 lt-59	sweetened dried cranberries	-	ok	rule:label-terms	"sweetened" may hide an unnamed sweetener (sugar or honey), so it is never left out
 lt-60	miso	miso	ok	rule:label-terms	review CK6PD-3: contains soybean, may be barley or rice koji
+lt-61	vegetable oil	vegetable oil	ok	rule:label-terms	P4: read as the label term (may be soybean, peanut or corn) before any catalog food of the same name
+lt-62	mini marshmallows	marshmallow	ok	rule:label-terms	P17: composite (gelatin)
+lt-63	marshmallow creme	marshmallow creme	ok	rule:label-terms	composite (egg white, no gelatin on the leading labels)
+lt-64	cheese tortellini	tortellini	ok	rule:label-terms	P19: composite (pasta, wheat flour, egg, cheese)
+lt-65	frozen potstickers	potsticker	ok	rule:label-terms	P19: "frozen" left out from the front; composite
+lt-66	wontons	wonton	ok	rule:label-terms	P19: the filled wonton
+lt-67	wonton wrappers	wonton wrapper	ok	rule:label-terms	the empty wrapper, apart from the filled wonton
+lt-68	zwieback	zwieback	ok	rule:label-terms	P19: composite (bread, wheat flour)
+lt-69	reese's pieces	reese's	ok	rule:label-terms	P3: composite (peanut, milk, soybean)
+lt-70	spaghetti	spaghetti	ok	rule:label-terms	P19: composite (pasta, semolina; 21 CFR 139.110)
+lt-71	taquitos	taquito	ok	rule:label-terms	P19: composite (corn tortilla and its filling)
+lt-72	spanish rice	spanish rice	ok	rule:label-terms	P19: composite (rice, tomato)
+lt-73	pizza crust	pizza dough	ok	rule:label-terms	P19: composite (wheat flour)
+lt-74	peanut butter cups	peanut butter cup	ok	rule:label-terms	review CK9T-4: composite (peanut, milk, soybean)
+lt-75	peanut butter cookies	peanut butter cookie	ok	rule:label-terms	review CK9T-4: composite (peanut, wheat flour, butter, egg)
+lt-76	coconut cream pie	coconut cream pie	ok	rule:label-terms	review CK9T-4: composite (coconut, milk, egg, wheat flour)

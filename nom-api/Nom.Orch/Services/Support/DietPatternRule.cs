@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using Nom.Orch.Services;
 
 namespace Nom.Orch.Services.Support
 {
@@ -37,7 +38,8 @@ namespace Nom.Orch.Services.Support
     ///   "avocado" not cod and "chocolate" not cola;
     /// - a term followed by "less" or "free" ("eggless", "peanut-free", "flourless") says the food is
     ///   absent and does not count, but "free-range", "free range" and "free-run" describe the food
-    ///   and do;
+    ///   and do, and so does "free from" or "free of" something else ("bread free from crust", "fish
+    ///   free of bones": staging checkpoint 4, P12), since "free" is then no label of the food itself;
     /// - a compound food that holds the term but is not its food is a named exception with a cited
     ///   reason (<see cref="Exceptions"/>): "graham" is not ham, "buckwheat" not wheat, "peanut butter"
     ///   not dairy, "coconut milk" not milk. A compound such as "coconut milk" stays restricted where a
@@ -53,7 +55,7 @@ namespace Nom.Orch.Services.Support
     public sealed class DietPatternRule
     {
         /// <summary>The version of the rule and its exceptions, part of every cache key that holds a reading.</summary>
-        public const string Version = "diet-patterns/3";
+        public const string Version = "diet-patterns/4";
 
         /// <summary>The fewest letters that must stand before a term inside a word for the term to be a compound's part.</summary>
         public const int CompoundPart = 3;
@@ -145,6 +147,36 @@ namespace Nom.Orch.Services.Support
             return _match!.IsMatch(text);
         }
 
+        /// <summary>
+        /// Whether a USDA description ("Flour, almond", "Leavening agents, cream of tartar") names the pattern's food:
+        /// read as it stands, and cleared only when a named exception blanks out of the order of speech, its second
+        /// part before its first ("almond Flour"), every place the term holds there (staging checkpoint 4, P18). The
+        /// order of speech never decides where a term begins or ends, so a pattern whose reading depends on position
+        /// (<c>% oat%</c> in "Cereals, oats, regular") or a substring pattern reads the description as it stands, and
+        /// the reading is never wider than the text's own.
+        /// </summary>
+        public bool IsDescriptionMatch(string? text)
+        {
+            if (!IsMatch(text)) return false;
+            if (_blank == null) return true;
+            var spoken = SpokenOrder(text)!;
+            return !_match!.IsMatch(spoken) || _match.IsMatch(_blank.Replace(spoken, " "));
+        }
+
+        /// <summary>A USDA description in the order of speech: its second comma-separated part before its first, the rest after them ("Cheese, goat, hard type" reads "goat Cheese, hard type").</summary>
+        public static string? SpokenOrder(string? description)
+        {
+            if (string.IsNullOrWhiteSpace(description)) return description;
+            var parts = description.Split(',');
+            if (parts.Length < 2 || parts[0].Trim().Length == 0 || parts[1].Trim().Length == 0) return description;
+            var spoken = parts[1].Trim() + " " + parts[0].Trim();
+            return parts.Length == 2 ? spoken : spoken + "," + string.Join(",", parts.Skip(2));
+        }
+
+        /// <summary>Whether an alias names the pattern's food: a USDA description (<c>fdc:description</c>) by <see cref="IsDescriptionMatch"/>, any other alias by <see cref="IsMatch"/>.</summary>
+        public bool IsAliasMatch(string? alias, string? sourceContext) =>
+            string.Equals(sourceContext?.Trim(), IngredientLinkService.UsdaDescriptionContext, StringComparison.OrdinalIgnoreCase) ? IsDescriptionMatch(alias) : IsMatch(alias);
+
         private static List<string> WordsOf(string text) =>
             Regex.Matches(text.ToLowerInvariant(), @"[\p{L}\p{N}]+").Select(m => m.Value).Where((w, i) => i == 0 || w != "s").ToList();
 
@@ -156,7 +188,7 @@ namespace Nom.Orch.Services.Support
 
         private static string Joined(IEnumerable<string> words, string separator, bool possessive) => string.Join((possessive ? "(?:['’]?s['’]?)?" : string.Empty) + separator + "+", words);
 
-        private static string Absent(DietRegexDialect d) => "(?![- ]?free(?![- ]?(?:range|run|roam))(?:" + NotLetter(d) + "|$))";
+        private static string Absent(DietRegexDialect d) => "(?![- ]?free(?![- ]?(?:range|run|roam))(?!" + Space(d) + "+(?:from|of)(?!" + Letter(d) + "))(?:" + NotLetter(d) + "|$))";
 
         /// <summary>
         /// The term as a regular expression of the given dialect, read without case: where it begins a
@@ -292,6 +324,8 @@ namespace Nom.Orch.Services.Support
             E("butter", "butter lettuce", "a lettuce variety; no dairy"),
             E("butter", "butter bean", "lima beans (Phaseolus lunatus); no dairy; legume types hold them by %bean%"),
             E("cream", "cream of tartar", "potassium bitartrate, a by-product of winemaking; no dairy"),
+            E("cream", "cream tartar", "cream of tartar in the older spelling of nineteenth-century cookbooks, also hyphenated; potassium bitartrate, no dairy"),
+            E("cream", "marshmallow cream", "marshmallow creme of corn syrup, sugar and egg white; no dairy; types that restrict its corn syrup or egg hold it by %marshmallow cream% (CompositeFoods)"),
             E("cream", "coconut cream", "the fat of pressed coconut; no dairy; Coconut Allergy holds it by %coconut%"),
             E("cream", "cream of coconut", "sweetened coconut cream; no dairy; Coconut Allergy holds it by %coconut%"),
             E("cheese", "cheesecloth", "a cotton cloth for straining; not a food"),
@@ -316,8 +350,37 @@ namespace Nom.Orch.Services.Support
             E("flour", "tapioca flour", "cassava starch; no grain"),
             E("flour", "cassava flour", "dried ground cassava root; no grain"),
             E("flour", "arrowroot flour", "starch of the arrowroot rhizome; no grain"),
+            E("flower", "cauliflower", "Brassica oleracea var. botrytis, a vegetable; no flour"),
+            E("flower", "sunflower", "Helianthus annuus, whose seeds and oil hold no grain"),
+            E("flower", "safflower", "Carthamus tinctorius, an oil seed; no grain"),
+            E("flower", "cornflower", "Centaurea cyanus, an edible blossom; maize flour, its other reading, holds no gluten either"),
+            E("flower", "corn flower", "maize flour in the old spelling, or the cornflower blossom; no wheat, barley or rye; corn types hold it by %corn%"),
+            E("flower", "elderflower", "the blossom of Sambucus, for cordials and fritters; no grain"),
+            E("flower", "elder flower", "the blossom of Sambucus; no grain"),
+            E("flower", "orange flower", "orange-flower water is distilled from bitter orange blossoms; no grain"),
+            E("flower", "flower water", "orange or rose flower water, a distillate of blossoms; no grain"),
+            E("flower", "rose flower", "rose blossoms; no grain"),
+            E("flower", "edible flower", "blossoms eaten as a garnish; no grain"),
+            E("flower", "squash flower", "squash blossoms (Cucurbita); no grain"),
+            E("flower", "zucchini flower", "zucchini blossoms (Cucurbita pepo); no grain"),
+            E("flower", "pumpkin flower", "pumpkin blossoms (Cucurbita); no grain"),
+            E("flower", "banana flower", "the blossom of the banana plant, a vegetable; no grain"),
+            E("flower", "chive flower", "chive blossoms (Allium schoenoprasum); no grain"),
+            E("flower", "lavender flower", "lavender blossoms (Lavandula); no grain"),
+            E("flower", "chamomile flower", "chamomile blossoms (Matricaria); no grain"),
+            E("flower", "hibiscus flower", "hibiscus calyces (Hibiscus sabdariffa); no grain"),
+            E("flower", "nasturtium flower", "nasturtium blossoms (Tropaeolum); no grain"),
+            E("flower", "jasmine flower", "jasmine blossoms (Jasminum); no grain"),
+            E("flower", "flower pepper", "Sichuan pepper (Zanthoxylum), called flower pepper; no grain"),
+            E("flower", "flower petal", "blossom petals; no grain"),
+            E("flower", "flower bud", "blossom buds (capers, cloves); no grain"),
+            E("flower", "floweret", "the small heads of broccoli or cauliflower; no grain"),
+            E("flower", "flowerette", "the small heads of broccoli or cauliflower; no grain"),
+            E("flower", "flowering", "a flowering plant or its shoots (flowering chives); no grain"),
             E("bread", "sweetbread", "the thymus or pancreas of a calf or lamb; no bread"),
             E("bread", "breadfruit", "the fruit of Artocarpus altilis; no grain"),
+            E("wonton", "wonton wrapper", "the empty wheat-flour and egg wrapper, with no pork or shrimp filling; types that restrict wheat or egg hold it by %wonton wrapper% (CompositeFoods)"),
+            E("wonton", "wonton skin", "the empty wheat-flour and egg wrapper, with no pork or shrimp filling; types that restrict wheat or egg hold it by %wonton skin% (CompositeFoods)"),
             E("spaghetti", "spaghetti squash", "a winter squash (Cucurbita pepo); no wheat"),
             E("beer", "root beer", "a soft drink; not brewed from grain"),
             E("beer", "ginger beer", "a soft drink; not brewed from grain"),

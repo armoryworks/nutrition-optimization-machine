@@ -77,7 +77,7 @@ namespace Nom.Api.Tests.Services
 
             public Task<ScraperResult> ParseAsync(string content, string? sourceUrl, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-            public Task<ScraperJobAnswer> StartDiscoveryJobAsync(IReadOnlyList<string> seedDomains, int maxCandidates, int budgetSeconds, CancellationToken cancellationToken = default)
+            public Task<ScraperJobAnswer> StartDiscoveryJobAsync(IReadOnlyList<string> seedDomains, int maxCandidates, int budgetSeconds, IReadOnlyList<string> excludeDomains, CancellationToken cancellationToken = default)
             {
                 Discoveries.Add(seedDomains);
                 return Task.FromResult(ScraperJobAnswer.Of(new ScraperJob
@@ -113,7 +113,7 @@ namespace Nom.Api.Tests.Services
 
         private static SourceAdmissionService Lane(ApplicationDbContext db, IRecipeScraperClient scraper, Func<DateTime> now, Action<SourceAdmissionSettings>? configure = null)
         {
-            var settings = new SourceAdmissionSettings { Enabled = true, PollSeconds = 1, TermsOnlyChecks = true };
+            var settings = new SourceAdmissionSettings { Enabled = true, PollSeconds = 1, TermsOnlyChecks = true, FullChecks = true };
             configure?.Invoke(settings);
             return new SourceAdmissionService(db, scraper, new RecipeVettingService(), Options.Create(settings), NullLogger<SourceAdmissionService>.Instance,
                 Options.Create(new SourceRightsSettings { Enforce = true }))
@@ -158,6 +158,15 @@ namespace Nom.Api.Tests.Services
             return (host, sampleSize) => sampleSize == SourceAdmissionPolicy.TermsOnlySampleSize ? GoldenSourceRightsTests.AsTermsOnly(saved[host]) : saved[host];
         }
 
+        private static async Task ApproveFactsOnlyUseAsync(ApplicationDbContext db, DateTime now)
+        {
+            var rights = new SourceRightsService(db, Options.Create(new SourceRightsSettings { Enforce = true }), NullLogger<SourceRightsService>.Instance) { Now = () => now };
+            foreach (var source in await db.ScrapingSources.Where(s => s.RightsClass == SourceRightsRule.FactsOnly).ToListAsync())
+            {
+                (await rights.SetFactsOnlyUseAsync(source.Id, true, Admin, "reviewed")).Ok.Should().BeTrue();
+            }
+        }
+
         private static async Task TicksAsync(SourceAdmissionService lane, Func<Task> advance, int ticks)
         {
             for (var i = 0; i < ticks; i++)
@@ -176,7 +185,11 @@ namespace Nom.Api.Tests.Services
             var scraper = new CountingScraper(() => now, OpenScraper());
             var lane = Lane(db, scraper, () => now);
 
-            await TicksAsync(lane, () => { now = now.AddMinutes(30); return Task.CompletedTask; }, 6 * 48);
+            await TicksAsync(lane, () => { now = now.AddMinutes(30); return Task.CompletedTask; }, 3 * 48);
+            scraper.Checks.Should().HaveCount(22).And.OnlyContain(c => c.SampleSize == SourceAdmissionPolicy.TermsOnlySampleSize,
+                "with FullChecks on, no full check starts until an admin approves facts-only use of the site");
+            await ApproveFactsOnlyUseAsync(db, now);
+            await TicksAsync(lane, () => { now = now.AddMinutes(30); return Task.CompletedTask; }, 3 * 48);
 
             var byHost = scraper.Checks.GroupBy(c => c.Domain).ToDictionary(g => g.Key, g => g.Select(c => c.SampleSize).ToList());
             foreach (var host in Forbidden.Concat(Refusing))
@@ -186,7 +199,7 @@ namespace Nom.Api.Tests.Services
 
             foreach (var host in FactsOnly)
             {
-                byHost[host].Should().Equal(new[] { SourceAdmissionPolicy.TermsOnlySampleSize, SourceAdmissionPolicy.SampleSize }, $"{host}'s terms forbid nothing, so its full check follows");
+                byHost[host].Should().Equal(new[] { SourceAdmissionPolicy.TermsOnlySampleSize, SourceAdmissionPolicy.SampleSize }, $"{host}'s terms forbid nothing and an admin approved it, so its full check follows");
             }
 
             scraper.Checks.Take(22).Should().OnlyContain(c => c.SampleSize == SourceAdmissionPolicy.TermsOnlySampleSize, "the terms-only pass comes before any full check");
@@ -209,7 +222,9 @@ namespace Nom.Api.Tests.Services
             var scraper = new CountingScraper(() => now, DenylistScraper());
             var lane = Lane(db, scraper, () => now);
 
-            await TicksAsync(lane, () => { now = now.AddMinutes(30); return Task.CompletedTask; }, 6 * 48);
+            await TicksAsync(lane, () => { now = now.AddMinutes(30); return Task.CompletedTask; }, 3 * 48);
+            await ApproveFactsOnlyUseAsync(db, now);
+            await TicksAsync(lane, () => { now = now.AddMinutes(30); return Task.CompletedTask; }, 3 * 48);
 
             foreach (var host in Denylisted)
             {
@@ -383,7 +398,7 @@ namespace Nom.Api.Tests.Services
             SourceRightsRule.Derive(current).Class.Should().Be(SourceRightsRule.Clear);
 
             var newer = SourceRightsServiceTests.ClearReport("open.example");
-            newer.RuleVersion = "source-check/6";
+            newer.RuleVersion = "source-check/7";
             var verdict = SourceRightsRule.Derive(newer);
             verdict.Should().Match<SourceRightsVerdict>(v => v.Class == SourceRightsRule.FactsOnly && v.NewerRuleVersion && v.NewerLicenceUnread);
             SourceRightsRule.Derive(newer, SourceRightsRule.Clear, "https://open.example/").Conclusive.Should().BeFalse("a source found clear keeps its class");
@@ -400,12 +415,12 @@ namespace Nom.Api.Tests.Services
         {
             await using var db = NewContext();
             var newer = await CandidateAsync(db, "newer.example");
-            await StoredCheckAsync(db, newer, "source-check/6", SourceAdmissionPolicy.Version, conclusive: false, T0.AddHours(-1));
+            await StoredCheckAsync(db, newer, "source-check/7", SourceAdmissionPolicy.Version, conclusive: false, T0.AddHours(-1));
             var older = await CandidateAsync(db, "older.example");
             await StoredCheckAsync(db, older, "source-check/4", "source-admission/2", conclusive: true, T0.AddDays(-2));
             await TermsPassedAsync(db, "newer.example", "older.example");
             var now = T0;
-            var scraper = new CountingScraper(() => now, (host, size) => SourceAdmissionServiceTestsReport(host, "source-check/6"));
+            var scraper = new CountingScraper(() => now, (host, size) => SourceAdmissionServiceTestsReport(host, "source-check/7"));
             var lane = Lane(db, scraper, () => now, s => s.MaxChecksPerDay = 1000);
 
             await TicksAsync(lane, () => { now = now.AddMinutes(30); return Task.CompletedTask; }, 48 * 6);
@@ -426,7 +441,7 @@ namespace Nom.Api.Tests.Services
             List<SourceReason> AllPass() => SourceAdmissionPolicy.ScraperReasons
                 .Select(code => new SourceReason(code, code is "crawl-delay" or "sample-yield" ? "info" : "pass", "fixture")).ToList();
 
-            var judgement = SourceAdmissionPolicy.Judge(Facts("source-check/6", AllPass()));
+            var judgement = SourceAdmissionPolicy.Judge(Facts("source-check/7", AllPass()));
             judgement.Clear.Should().BeFalse();
             judgement.Conclusive.Should().BeFalse("a newer version changes nothing but the display");
             judgement.Reasons.Single(r => r.Code == "rule-version").Detail.Should().StartWith("newer check version");
@@ -446,7 +461,7 @@ namespace Nom.Api.Tests.Services
             SourceAdmissionPolicy.Judge(Facts(SourceAdmissionPolicy.ScraperRuleVersion, shuffled)).Clear.Should().BeTrue("reasons are read by their code, not their place");
 
             var report = SourceRightsServiceTests.FactsOnlyReport("open.example");
-            report.RuleVersion = "source-check/6";
+            report.RuleVersion = "source-check/7";
             SourceRightsRule.Derive(report).Should().Match<SourceRightsVerdict>(v => v.Class == SourceRightsRule.FactsOnly && v.NewerRuleVersion);
         }
 

@@ -17,11 +17,17 @@ namespace Nom.Api.Controllers
     public class DietAdminController : BaseApiController
     {
         private readonly IDietAdminOrchestrationService _dietAdminService;
+        private readonly Nom.Data.ApplicationDbContext _db;
 
-        public DietAdminController(IDietAdminOrchestrationService dietAdminService)
+        public DietAdminController(IDietAdminOrchestrationService dietAdminService, Nom.Data.ApplicationDbContext db)
         {
             _dietAdminService = dietAdminService;
+            _db = db;
         }
+
+        [HttpGet("gate-counts")]
+        public async Task<ActionResult<Nom.Orch.Services.Support.DietGateCountsReport>> GetGateCounts()
+            => Ok(await Nom.Orch.Services.Support.DietGateCounts.ReadAsync(_db, Nom.Orch.Services.Support.DietGateCache.Shared, Nom.Orch.Services.Support.DietLineIndex.Shared));
 
         [HttpGet("groups")]
         public async Task<ActionResult<List<RestrictionGroupModel>>> GetGroups()

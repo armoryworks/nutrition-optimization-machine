@@ -718,7 +718,10 @@ for row: `container-era-readings.tsv` (each line read, `container-era-facts.py -
 the C# tiers must give both exactly. On a real capture compare `--lines` with the C# reading, and the
 facts with `cut -f2- <file> | sort` (staging checkpoint 3 found 56 differing facts from 21 lines;
 with `container-corpus/3` the checkpoint's 1,725-line capture reads 749 lines alike in both, 0
-differing).
+differing). Both writers number the facts in one order (each tier in turn, then the scope, then the
+food as written with USDA ids by number before the `#` ids of foods with none, the container kind and
+the size word), so the two files are equal row for row with their `f-NNN` ids, not only as sets
+(staging checkpoint 4, P22: 617 facts equal as sets, 67 at the same id).
 
 **Journal and undo.** Every row written, replaced, retired, rescored or paused is one
 `audit."AuditLogEntry"` (entity `IngredientContainerSize`; `ContainerSizeSet`,
@@ -862,7 +865,17 @@ a name a retired food would take back, a retirement's aliases and the withdrawn 
 later entry names leaves the copy again. So the dry run only reads the database, locks no row and never
 holds back another writer or undo (staging checkpoint 3, N17: after the order-only pass the old
 rolled-back dry run took 12 min 17 s, kept its transaction open, and a second undo run meanwhile answered
-400). It stops when the caller goes away. The order-only journal rows an undo carries into are read once
+400). It stops when the caller goes away. The entries run in parts that share no row
+(`RelinkUndoDryRun.Parts`), each in a copy of its own: the retirements, picks and proposals go into the
+first part with every entry of each recipe whose line entries name a food a retirement changes (a line
+moved back needs that food live, and the retirement's undo brings it back); every other recipe's line
+entries read and write only that recipe's lines and journals, so they go whole into parts of about 500
+entries. The counts are the sum of the parts' and equal the apply's. One copy for the whole window held
+every recipe a later entry still named, and the in-memory store reads a whole table for every query, so the
+dry run grew with the square of the window (staging checkpoint 4, P16: T1 took 1,969 s at 440 % CPU and
+1.5 GiB on the API host). On a generated window of 6,000 line entries over 3,000 recipes, each recipe
+named again 3,000 entries later, one copy took 97.7 s and the parts 11.4 s, with the same counts; the parts
+grow with the window, not its square. The order-only journal rows an undo carries into are read once
 per chunk and written once per chunk, not once per line.
 
 Apply also marks the unchanged can and package lines that were weighed as one item or one
@@ -1323,6 +1336,16 @@ measure word before the food is one ("tablespoonful finely shredded or grated on
 size after "/" repeats the amount and leaves the name ("8 ounces / 1/2 pound fresh tortellini" is 8 ounces
 of fresh tortellini).
 
+Since checkpoint 4 (P2, P8, P11) a French cross-reference ("comme celui du N. 579") and a price ("twenty
+cents' worth chicken gizzards") are no amount and "copperas one-half ounce" is half an ounce; the method fill
+counts a sentence it reads as a proportion as an amount of the food, so a part amount of another sentence no
+longer fills the line, reads "add to two quarts of" and "seven to eight cups of" as amounts, carries a
+per-pound sentence past ";" and the point of "lb.", reads "for thirty pounds" as a proportion and takes
+nothing for a utensil line ("tin plate") or from the vessel a food is put into ("Put into a tumbler ...
+syrup"). Every amount the start-up repair would write passes the line guard of the rebuild
+(`LineAmountGuard`, see `recipe-reprocess.md`): an empty amount is filled only from one grounded mention,
+and a stored amount the source grounds is never emptied or changed by rule.
+
 **Held-out measure.** `line-holdout.tsv` holds every line the three checkpoint logs judged, split once by
 a hash of the row id; rules are written against one half, and the other half's errors per class are
 recorded in `line-holdout.json` (see `golden-sets.md`), so a parser change shows what it does to lines no
@@ -1581,7 +1604,11 @@ withdrew with them (only the `ProposalWithdraw` entries written with the source'
 time and person; a pick catalog admission withdrew from the same ingredient stays withdrawn and
 keeps its entry for `--admit --undo`); the picks withdrawn because the table judged the wording
 (`WordingPickWithdraw`, matched by the pick's wording key) open again, except, in an unload that
-puts a row back to an earlier batch's verdict, a pick that verdict contradicts; and each import
+puts a row back to an earlier batch's verdict, a pick that verdict contradicts. A withdrawn pick or
+proposal whose proposed food may never be a link target (a prepared food, or a food deleted since)
+stays withdrawn in a retract and an unload, so a reload that refuses the row for that reason does not
+leave it open in the queue (staging checkpoint 4, P14: model pick #325288 of `franco-american
+spaghetti` was reopened by the w01 unload and never withdrawn again); and each import
 landing (below) goes to the food the import finds
 without the table (`RecipeLineBuilder.FoodWithoutWordingAsync`: the ingredient of that name, the one
 trusted-alias owner, an applied link's food, else a new uncurated ingredient, journaled as

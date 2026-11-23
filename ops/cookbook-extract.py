@@ -418,7 +418,16 @@ class ModelCallFailed(Exception):
     """A model call that did not answer after its retries (a timeout or a refused connection)."""
 
 
+class ModelCallTimedOut(ModelCallFailed):
+    """A model call that ran past its timeout once, with timeouts not asked again."""
+
+
 MODEL_ERRORS = (TimeoutError, OSError, urllib.error.URLError, ConnectionError, json.JSONDecodeError, KeyError)
+
+
+def timed_out(exc: BaseException) -> bool:
+    """Whether a failed model call ran past its timeout (a socket timeout, also when urllib wraps it)."""
+    return isinstance(exc, TimeoutError) or isinstance(getattr(exc, "reason", None), TimeoutError)
 
 
 def readable(answer: str) -> bool:
@@ -431,14 +440,16 @@ def readable(answer: str) -> bool:
 
 
 def resumable(ask: Ask, checkpoint: str | None, retries: int = 2, wait: float = 30.0, sleep: Callable[[float], None] = time.sleep,
-              model: str = "") -> Ask:
+              model: str = "", retry_timeouts: bool = True) -> Ask:
     """A model call that survives a slow or busy host: every readable answer is appended to the checkpoint file (JSON
     lines keyed by the SHA-256 of the model, the prompt and the chunk) the moment it arrives, a chunk the same model
     answered readably before is read back from it and not asked again, and a call that times out or fails is retried up
     to `retries` times, `wait` seconds apart (doubling). An unreadable answer is returned but never kept, so the next
     run asks for that chunk again, and another model's answers are never reused. A call that still fails raises
     ModelCallFailed, which the caller counts as a failed chunk and goes on: no answered record is lost, and the next run
-    asks only the chunks still missing (staging checkpoint 3, N31; review of ck6-data-fixes, CK6-6)."""
+    asks only the chunks still missing (staging checkpoint 3, N31; review of ck6-data-fixes, CK6-6). With
+    retry_timeouts off, a call that times out is not asked again in this run: one long timeout drops the chunk
+    (ModelCallTimedOut) and the run goes on (staging checkpoint 4, P34)."""
     answers: dict[str, str] = {}
     if checkpoint and os.path.exists(checkpoint):
         with open(checkpoint, encoding="utf-8") as handle:
@@ -463,6 +474,8 @@ def resumable(ask: Ask, checkpoint: str | None, retries: int = 2, wait: float = 
             except MODEL_ERRORS as exc:
                 problem = exc
                 log(f"model call failed (try {attempt + 1} of {retries + 1}): {type(exc).__name__}: {exc}")
+                if not retry_timeouts and timed_out(exc):
+                    raise ModelCallTimedOut(f"{type(exc).__name__}: {exc}; not asked again this run") from exc
                 continue
             if not readable(answer):
                 return answer

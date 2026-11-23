@@ -309,7 +309,7 @@ namespace Nom.Orch.Services
                         neededMap[key] = new NeededAccumulator
                         {
                             IngredientId = ri.IngredientId,
-                            IngredientName = ri.Ingredient?.Name ?? "Unknown",
+                            IngredientName = ri.Ingredient == null && meal.Recipe.SourceRights != Support.SourceRightsRule.FactsOnly ? "Unknown" : Support.ProseWithholding.FoodName(meal.Recipe, ri),
                             CategoryName = categoryName,
                             BaseQuantity = baseQuantity,
                             // Track a representative measurement for display

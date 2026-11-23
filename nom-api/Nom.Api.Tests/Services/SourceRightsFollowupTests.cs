@@ -44,7 +44,7 @@ namespace Nom.Api.Tests.Services
 
             public Task<ScraperResult> ParseAsync(string content, string? sourceUrl, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-            public Task<ScraperJobAnswer> StartDiscoveryJobAsync(IReadOnlyList<string> seedDomains, int maxCandidates, int budgetSeconds, CancellationToken cancellationToken = default) =>
+            public Task<ScraperJobAnswer> StartDiscoveryJobAsync(IReadOnlyList<string> seedDomains, int maxCandidates, int budgetSeconds, IReadOnlyList<string> excludeDomains, CancellationToken cancellationToken = default) =>
                 throw new NotSupportedException();
 
             public Task<ScraperJobAnswer> StartSourceCheckJobAsync(string domain, int sampleSize, int budgetSeconds, CancellationToken cancellationToken = default)
@@ -70,7 +70,7 @@ namespace Nom.Api.Tests.Services
 
         private static SourceAdmissionService Admission(ApplicationDbContext db, FakeScraper scraper, Action<SourceAdmissionSettings>? configure = null)
         {
-            var settings = new SourceAdmissionSettings { Enabled = true, PollSeconds = 1 };
+            var settings = new SourceAdmissionSettings { Enabled = true, PollSeconds = 1, FullChecks = true };
             configure?.Invoke(settings);
             return new SourceAdmissionService(db, scraper, new RecipeVettingService(), Options.Create(settings), NullLogger<SourceAdmissionService>.Instance,
                 Options.Create(new SourceRightsSettings { Enforce = true }))
@@ -164,7 +164,7 @@ namespace Nom.Api.Tests.Services
                 s.CheckedAtUtc = T0.AddDays(-40);
                 s.PermissionRecordedAtUtc = T0.AddDays(-41);
             });
-            var facts = await SourceAsync(db, "facts.example", SourceRightsRule.FactsOnly, "https://facts.example/");
+            var facts = await SourceAsync(db, "facts.example", SourceRightsRule.FactsOnly, "https://facts.example/", s => s.FactsOnlyApprovedAt = T0.AddDays(-1));
             var scraper = new FakeScraper();
             CheckJob(scraper, TermsOnly(SourceRightsServiceTests.FactsOnlyReport("facts.example")));
             CheckJob(scraper, SourceRightsServiceTests.FactsOnlyReport("permitted.example"));

@@ -1,12 +1,13 @@
 {
-  "builder": "line-builder/9",
+  "builder": "line-builder/10",
+  "guard": { "rows": 90, "same": 78, "kept": 4, "replaced": 6, "held": 2, "worse": 0, "better": 6 },
   "heldOut": {
     "line": { "rows": 56, "wrong": 1, "lost": 0, "unseenRows": 39, "unseenWrong": 1, "unseenLost": 0 },
     "method": { "rows": 34, "wrong": 0, "lost": 1, "unseenRows": 15, "unseenWrong": 0, "unseenLost": 1 }
   },
   "before": {
-    "builder": "line-builder/8",
-    "line": { "rows": 56, "wrong": 2, "lost": 2, "unseenRows": 39, "unseenWrong": 1, "unseenLost": 0 },
-    "method": { "rows": 34, "wrong": 5, "lost": 1, "unseenRows": 15, "unseenWrong": 1, "unseenLost": 0 }
+    "builder": "line-builder/9",
+    "line": { "rows": 56, "wrong": 1, "lost": 0, "unseenRows": 39, "unseenWrong": 1, "unseenLost": 0 },
+    "method": { "rows": 34, "wrong": 0, "lost": 1, "unseenRows": 15, "unseenWrong": 0, "unseenLost": 1 }
   }
 }

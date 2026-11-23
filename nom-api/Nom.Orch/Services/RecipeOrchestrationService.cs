@@ -524,7 +524,7 @@ namespace Nom.Orch.Services
                     IngredientId = ri.IngredientId,
                     Quantity = ri.Quantity,
                     MeasurementId = ri.MeasurementId,
-                    Name = ri.Ingredient?.Name ?? string.Empty,
+                    Name = ProseWithholding.FoodName(recipe, ri),
                     FoodGroupName = ri.Ingredient?.FoodGroup?.Name,
                     Measurement = ri.Measurement?.Name ?? string.Empty,
                     Notes = ProseWithholding.LineWording(recipe, ri.RawLine),
@@ -672,6 +672,7 @@ namespace Nom.Orch.Services
                     (r, ri) => new
                     {
                         ri.RecipeId,
+                        Line = new { Rights = ri.Recipe.SourceRights, ri.RawLine, Status = ri.Ingredient != null ? ri.Ingredient.CurationStatusId : 0L, Fdc = ri.Ingredient != null ? ri.Ingredient.FdcId : null },
                         Match = new RecipeDietMatchModel
                         {
                             RestrictionName = r.Name,
@@ -682,6 +683,10 @@ namespace Nom.Orch.Services
                         }
                     })
                 .ToListAsync();
+            foreach (var m in direct)
+            {
+                m.Match.IngredientName = ProseWithholding.FoodName(m.Line.Rights, m.Line.RawLine, m.Match.IngredientName, ProseWithholding.CatalogFood(m.Line.Status, m.Line.Fdc)) ?? ProseWithholding.UnnamedFood;
+            }
 
             // 2) Restrictions that reference a category (e.g. "Gout"): the
             //    category's curated criteria supply the ingredient filters —
@@ -697,6 +702,7 @@ namespace Nom.Orch.Services
                     (rc, ri) => new
                     {
                         ri.RecipeId,
+                        Line = new { Rights = ri.Recipe.SourceRights, ri.RawLine, Status = ri.Ingredient != null ? ri.Ingredient.CurationStatusId : 0L, Fdc = ri.Ingredient != null ? ri.Ingredient.FdcId : null },
                         Match = new RecipeDietMatchModel
                         {
                             RestrictionName = rc.r.Name,
@@ -708,6 +714,10 @@ namespace Nom.Orch.Services
                         }
                     })
                 .ToListAsync();
+            foreach (var m in viaCriteria)
+            {
+                m.Match.IngredientName = ProseWithholding.FoodName(m.Line.Rights, m.Line.RawLine, m.Match.IngredientName, ProseWithholding.CatalogFood(m.Line.Status, m.Line.Fdc)) ?? ProseWithholding.UnnamedFood;
+            }
 
             var byData = await DataDietMatchesAsync(activeRestrictions, recipeIngredients);
 
@@ -729,7 +739,7 @@ namespace Nom.Orch.Services
         /// matched (named by the line's text); and, for a capped alcohol criterion, each drink line of a
         /// recipe that keeps more alcohol per serving than the cap, or each drink line that cannot be counted.
         /// A line of a facts-only recipe is named by NOM's own wording of it, never by the publisher's text
-        /// (<see cref="ProseWithholding.LineName(string?, string?, string?, decimal, string?)"/>).
+        /// (<see cref="ProseWithholding.LineName(string?, string?, string?, decimal, string?, bool)"/>).
         /// </summary>
         private async Task<List<(long RecipeId, RecipeDietMatchModel Match)>> DataDietMatchesAsync(
             IQueryable<Nom.Data.Plan.RestrictionEntity> activeRestrictions, IQueryable<RecipeIngredientEntity> recipeIngredients)
@@ -745,10 +755,12 @@ namespace Nom.Orch.Services
                 .Select(ri => new { ri.RecipeId, ri.IngredientId, ri.RawLine, ri.Quantity, ri.MeasurementId })
                 .ToListAsync();
             var lineFoodIds = lineRows.Select(l => l.IngredientId).Distinct().ToList();
-            var foodNames = await _context.Ingredients.IgnoreQueryFilters().AsNoTracking()
+            var foodRows = await _context.Ingredients.IgnoreQueryFilters().AsNoTracking()
                 .Where(i => lineFoodIds.Contains(i.Id))
-                .Select(i => new { i.Id, i.Name })
-                .ToDictionaryAsync(i => i.Id, i => i.Name);
+                .Select(i => new { i.Id, i.Name, i.CurationStatusId, i.FdcId })
+                .ToListAsync();
+            var foodNames = foodRows.ToDictionary(i => i.Id, i => i.Name);
+            var catalogFoods = foodRows.Where(i => ProseWithholding.CatalogFood(i.CurationStatusId, i.FdcId)).Select(i => i.Id).ToHashSet();
             var rows = lineRows.Select(l => new { l.RecipeId, l.IngredientId, l.RawLine, Name = foodNames.GetValueOrDefault(l.IngredientId) ?? string.Empty, l.Quantity, l.MeasurementId }).ToList();
             var lineRecipeIds = rows.Select(l => l.RecipeId).Distinct().ToList();
             var factsOnly = (await _context.Recipes.AsNoTracking()
@@ -761,7 +773,8 @@ namespace Nom.Orch.Services
             var lines = rows.Select(l => new
             {
                 l.RecipeId, l.IngredientId, l.RawLine, l.Name,
-                Shown = ProseWithholding.LineName(factsOnly.Contains(l.RecipeId) ? SourceRightsRule.FactsOnly : null, l.RawLine, l.Name, l.Quantity, units.GetValueOrDefault(l.MeasurementId)),
+                Food = ProseWithholding.FoodName(factsOnly.Contains(l.RecipeId) ? SourceRightsRule.FactsOnly : null, l.RawLine, l.Name, catalogFoods.Contains(l.IngredientId)) ?? ProseWithholding.UnnamedFood,
+                Shown = ProseWithholding.LineName(factsOnly.Contains(l.RecipeId) ? SourceRightsRule.FactsOnly : null, l.RawLine, l.Name, l.Quantity, units.GetValueOrDefault(l.MeasurementId), catalogFoods.Contains(l.IngredientId)),
             }).ToList();
             var shown = lines.GroupBy(l => (l.RecipeId, l.IngredientId)).ToDictionary(g => g.Key, g => g.First().Shown);
             var probes = await Support.DietCriteriaMatcher.ProbeAsync(_context, criteria, lines.Select(l => l.IngredientId).Distinct().ToList());
@@ -777,7 +790,7 @@ namespace Nom.Orch.Services
                              RestrictionType = r.TypeName,
                              Severity = c.Severity,
                              IngredientId = l.IngredientId,
-                             IngredientName = l.Name,
+                             IngredientName = l.Food,
                              Notes = c.Notes == Support.DefaultRestrictionCriteria.DefaultNote ? null : c.Notes
                          });
             var byLine = from r in restrictions
@@ -1311,10 +1324,19 @@ namespace Nom.Orch.Services
                 }).ToList();
 
             var recipeIds = recipes.Select(r => r.Id).ToList();
-            var mostUsedIngredients = await _context.RecipeIngredients
+            var sourceRights = recipes.ToDictionary(r => r.Id, r => r.SourceRights);
+            var lines = await _context.RecipeIngredients.AsNoTracking()
                 .Where(ri => recipeIds.Contains(ri.RecipeId))
-                .Include(ri => ri.Ingredient)
-                .GroupBy(ri => new { ri.IngredientId, Name = ri.Ingredient!.Name })
+                .Select(ri => new { ri.RecipeId, ri.IngredientId, ri.RawLine, ri.Ingredient!.Name, ri.Ingredient.CurationStatusId, ri.Ingredient.FdcId })
+                .ToListAsync();
+            var mostUsedIngredients = lines
+                .Select(l => new
+                {
+                    l.IngredientId,
+                    Name = ProseWithholding.FoodName(sourceRights.GetValueOrDefault(l.RecipeId), l.RawLine, l.Name,
+                        ProseWithholding.CatalogFood(l.CurationStatusId, l.FdcId)) ?? ProseWithholding.UnnamedFood,
+                })
+                .GroupBy(l => new { l.IngredientId, l.Name })
                 .Select(g => new IngredientUsageModel
                 {
                     IngredientId = g.Key.IngredientId,
@@ -1322,8 +1344,9 @@ namespace Nom.Orch.Services
                     UsageCount = g.Count()
                 })
                 .OrderByDescending(i => i.UsageCount)
+                .ThenBy(i => i.IngredientId)
                 .Take(10)
-                .ToListAsync();
+                .ToList();
 
             return new RecipeDashboardAnalyticsModel
             {

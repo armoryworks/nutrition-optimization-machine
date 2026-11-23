@@ -61,6 +61,10 @@ namespace Nom.Api.Services
             {
                 _logger.LogInformation("SourceDiscovery:FullChecks is off: only terms-only checks run, and discovery runs are skipped");
             }
+            else
+            {
+                _logger.LogInformation("SourceDiscovery:FullChecks is on: a source is checked in full only with a written permission or facts-only use approved by an admin (a clear source after a full check before)");
+            }
 
             await SafeDelay(TimeSpan.FromMinutes(5), stoppingToken);
             var nextDiscovery = DateTime.UtcNow;

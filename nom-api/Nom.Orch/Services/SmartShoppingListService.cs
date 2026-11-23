@@ -589,10 +589,10 @@ namespace Nom.Orch.Services
                     {
                         items.Add(new SmartShoppingListItemModel
                         {
-                            Name = ingredient.Ingredient.Name,
+                            Name = Support.ProseWithholding.FoodName(recipe, ingredient),
                             Quantity = ingredient.Quantity * servingSize,
                             Unit = ingredient.Measurement?.Name ?? "",
-                            Category = CategorizeItem(ingredient.Ingredient.Name),
+                            Category = CategorizeItem(Support.ProseWithholding.FoodName(recipe, ingredient)),
                             Notes = Support.ProseWithholding.LineWording(recipe, ingredient.RawLine),
                             RecipeSources = { recipe.Name }
                         });
@@ -629,10 +629,10 @@ namespace Nom.Orch.Services
                                     {
                                         items.Add(new SmartShoppingListItemModel
                                         {
-                                            Name = ingredient.Ingredient.Name,
+                                            Name = Support.ProseWithholding.FoodName(recipe, ingredient),
                                             Quantity = ingredient.Quantity * servingSize,
                                             Unit = ingredient.Measurement?.Name ?? "",
-                                            Category = CategorizeItem(ingredient.Ingredient.Name),
+                                            Category = CategorizeItem(Support.ProseWithholding.FoodName(recipe, ingredient)),
                                             Notes = Support.ProseWithholding.LineWording(recipe, ingredient.RawLine),
                                             RecipeSources = { recipe.Name }
                                         });
@@ -921,8 +921,8 @@ namespace Nom.Orch.Services
 
         private bool CanMergeItems(SmartShoppingListItemModel item1, SmartShoppingListItemModel item2)
         {
-            // Check if items can be merged (same name, unit, and category)
-            return item1.Name.Equals(item2.Name, StringComparison.OrdinalIgnoreCase) &&
+            return !item1.Name.Equals(Support.ProseWithholding.UnnamedFood, StringComparison.OrdinalIgnoreCase) &&
+                   item1.Name.Equals(item2.Name, StringComparison.OrdinalIgnoreCase) &&
                    item1.Unit.Equals(item2.Unit, StringComparison.OrdinalIgnoreCase) &&
                    item1.Category.Equals(item2.Category, StringComparison.OrdinalIgnoreCase);
         }

@@ -59,6 +59,13 @@ public class SourceDiscoveryRunEntityConfiguration : IEntityTypeConfiguration<So
         builder.Property(e => e.SeedsVisited).HasMaxLength(2047);
         builder.Property(e => e.SeedsNotVisited).HasMaxLength(2047);
         builder.Property(e => e.SeedsRefused).HasMaxLength(2047);
+        builder.Property(e => e.ExcludeSent).HasDefaultValue(0);
+        builder.Property(e => e.ExcludeLeftOut).HasDefaultValue(0);
+        builder.Property(e => e.ExcludeCursorHost).HasMaxLength(253);
+        builder.Property(e => e.SeedsExcluded).HasMaxLength(2047);
+        builder.Property(e => e.CandidatesExcluded).HasDefaultValue(0);
+        builder.Property(e => e.CandidatesExcludedJson).HasColumnType("jsonb");
+        builder.Property(e => e.ExcludeNote).HasMaxLength(1023);
 
         builder.HasIndex(e => e.StartedUtc);
     }

@@ -180,6 +180,37 @@ namespace Nom.Api.Tests.Services
             (await Label(Calories)).Should().Be(rawCalories);
         }
 
+        [Theory]
+        [InlineData("Add the wine and simmer 30 minutes.", false, false)]
+        [InlineData("Add the wine and simmer until thick.", true, false)]
+        [InlineData("Mix all the ingredients and simmer 30 minutes.", true, true)]
+        [InlineData("Simmer the fish 30 minutes.|Serve with a brandy butter.", true, true)]
+        [InlineData("Simmer the fish 30 minutes.", true, true)]
+        public void A_reading_is_an_estimate_when_no_step_names_the_drink_or_the_heat_has_no_time(string steps, bool estimated, bool unnamed)
+        {
+            var reading = AlcoholRetention.Read(steps.Split('|'), "1/2 cup dry white wine");
+
+            (reading.Estimated, reading.Unnamed).Should().Be((estimated, unnamed));
+        }
+
+        [Fact]
+        public async Task A_run_counts_the_lines_it_reads_as_estimates_and_marks_them_in_its_sample()
+        {
+            using var db = NewContext();
+            await SeedRecipeAsync(db, steps: "Mix all the ingredients well together and simmer 30 minutes.");
+            await SeedRecipeAsync(db);
+
+            var dry = await Service(db).RunAsync(apply: false);
+
+            (dry.Lines, dry.Estimated, dry.Unnamed).Should().Be((2, 1, 1),
+                "staging checkpoint 4, P15 (review CK9S-4): a factor read from a step that names no drink is counted as estimated");
+            dry.Samples.Select(s => (s.NewBasis, s.Estimated, s.Unnamed)).Should().BeEquivalentTo(new[]
+            {
+                ("timed:simmer:30", true, true),
+                ("timed:simmer:30", false, false),
+            });
+        }
+
         [Fact]
         public async Task The_undo_dry_run_counts_what_the_undo_then_restores_when_two_runs_changed_one_line()
         {

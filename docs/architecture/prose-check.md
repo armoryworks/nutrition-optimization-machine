@@ -1,4 +1,4 @@
-# Prose check v4
+# Prose check v5
 
 A scraped recipe's method and description are shown only in our own words. The prose check decides
 whether a text is our own: it compares a rewrite with the stored source (`recipe.ScrapedDocument`) by
@@ -8,7 +8,11 @@ rule, with no model. Version 2 replaced the bare-number comparison of `RewriteFi
 questions v3 mixed: whether the text is **copied**, a rule of its own that must never miss, and
 whether it is **faithful**, decided by rule only where a rule is reliable. The weak signals that made
 v3 fail faithful rewrites (verbs said another way, steps out of order, negation) no longer fail a
-recipe: they mark it **unsure**, a third outcome that withholds nothing. The re-check and the rewrite
+recipe: they mark it **unsure**, a third outcome that withholds nothing. Version 5
+(`ProseCheck.Version = 5`, the staging checkpoint 4 round, "Check v5" below) makes each fact rule
+earn the right to fail a recipe: a fact rule is a class with its own judged rows, and fails a recipe
+only while those rows prove it (see "Fact classes"); until then its faults mark the recipe unsure.
+The re-check and the rewrite
 lane call the same function, so they always agree. The re-check runs it (see "The withheld state"
 below), and so does the clean-room rewrite lane (prose lane v2, `prose-lane.md`) on every rewrite
 before its judge reads it.
@@ -19,8 +23,8 @@ stock-index version it ran with, and its outcome (`Finding.Outcome`):
 
 | Outcome | When | What happens |
 |---|---|---|
-| `failed` (`Finding.Failed`) | a copy rule, a fact rule or a form rule is broken | the re-check withholds the prose; the lane tries again |
-| `unsure` (`Finding.Unsure`) | only weak signals (`ProseCheck.UnsureReasons`: `lost-step`, `out-of-order`, `added-quantity`, `too-short`, `too-long`) | the prose stays shown, is marked `Recipe.ProseUnsure` and counted on the Pipeline page; it is the prose judge's to read (in the lane, the judge reads it like any rewrite) |
+| `failed` (`Finding.Failed`) | a copy rule or a form rule is broken, or a fact rule whose class is proven (`ProseCheck.ProvenClasses`) | the re-check withholds the prose; the lane tries again |
+| `unsure` (`Finding.Unsure`) | only weak signals (`ProseCheck.UnsureReasons`: `lost-step`, `out-of-order`, `added-quantity`, `too-short`, `too-long`) and faults of fact classes not proven (`Finding.UnprovenReasons`) | the prose stays shown, is marked `Recipe.ProseUnsure` and counted on the Pipeline page; it is the prose judge's to read (in the lane, the judge reads it like any rewrite) |
 | `passed` (`Finding.Passed`) | no fault at all | shown |
 
 The index is recorded only: no rule reads it (see the copy rules).
@@ -62,9 +66,12 @@ looks for passages anywhere in the two streams:
 All copy rules report `copied-text` (`Finding.Copied`). How the limits were set and what they miss is
 in "Check v4".
 
-### 2. Facts (fail the rewrite)
+### 2. Facts (fail the rewrite while their class is proven)
 
-Only the losses a rule reads reliably fail a rewrite:
+Each fact reason is a class of its own: `lost-quantity`, `wrong-amount`, `changed-unit`,
+`changed-range` and `lost-ingredient` (`ProseCheck.FactClasses`). A fault of a class fails the
+rewrite only while the class is proven on its judged rows (see "Fact classes"); otherwise it marks
+the rewrite unsure. The rules:
 
 1. **Quantities, not bare numbers** (`ProseQuantities`). Each amount is read as a value or range,
    a unit family (time, temperature, length, volume, mass, count) and a unit.
@@ -89,7 +96,18 @@ Only the losses a rule reads reliably fail a rewrite:
      bake 10 minutes more") must be stated twice, or the second is `lost-quantity`. An oven
      temperature restated counts once, and an amount "on each side" (or "per side", "on both sides")
      stands for two statements ("sear 1 to 2 minutes, turn and sear 1 to 2 minutes more" as "sear 1 to
-     2 minutes on each side").
+     2 minutes on each side"). An amount followed by "each" ("1 teaspoon each of thyme, sage and
+     parsley") stands for one statement per item of its list. An amount the source restates after
+     "the" ("the 8x8 pan") may be matched again.
+   - Utensils (since v5). A length or capacity followed, through words such as "round", "baking",
+     "deep" or "inch", by a cooking vessel (pan, dish, skillet, tin, pot, saucepan, mold, ramekin,
+     casserole, sheet, tray, cutter, slow cooker) is the vessel's size: required, but stated once
+     however often the source restates it. A size of a holding vessel (measuring cup, bowl, jug,
+     pitcher, mug, plate, platter, container: "a 4-cup measuring cup") is never an amount, required or
+     compared. A count before "at a time" or before a tool ("two forks", "two spatulas") is soft, so
+     "two at a time" and "in pairs" agree. Two counts joined by "or" ("four or six pieces") are kept
+     by either. A ratio ("50/50"), a percentage and an ordinal ("2nd") are not amounts. Counts of two
+     different count words ("a pinch" and "a slice") are never equal.
    - An amount in a cook's first-person note in brackets ("(I used two small chillies)", "(I cooked
      6.)") is not required. A first-person sentence outside brackets is an instruction like any other
      ("I stir in 2 tablespoons of flour" still asks for the amount).
@@ -104,7 +122,11 @@ Only the losses a rule reads reliably fail a rewrite:
    - An amount in brackets right after another of its family ("350°F (175°C)", "9-inch (23 cm)") is
      a conversion and may be dropped; one stated must still match. Any other bracketed amount
      ("(350° F.)" alone, "1 can (15 oz)") is required.
-2. **Amounts against the ingredient lines.** An amount up to 4 words before an ingredient's name
+2. **Amounts against the ingredient lines.** An amount is paired only with an ingredient named
+   in its own clause: up to 4 words after it, before the next amount and before a comma, full stop,
+   colon, semicolon or bracket (since v5). A time or a temperature is never an ingredient's amount,
+   nor is a utensil size, and an ingredient's name followed by "water" or "liquid" ("1/2 cup of pasta
+   water") names that liquid, not the ingredient. An amount up to 4 words before an ingredient's name
    (the last name word of a line, matched by the recipe's own line words) is compared with that
    ingredient's amounts only; an amount in brackets right after an ingredient's name belongs to that
    ingredient ("a little milk (about a tablespoon) with the egg" is the milk's tablespoon). If the
@@ -120,6 +142,9 @@ Only the losses a rule reads reliably fail a rewrite:
 3. **Ingredients.** Every ingredient the source method names must be named somewhere in the rewrite
    (`lost-ingredient`), under its name or a listed other name (green onion and scallion, cilantro and
    coriander, chickpea and garbanzo, zucchini and courgette, eggplant and aubergine, shrimp and prawn).
+   An extract, essence or leaf is also kept by the word before it in its line ("vanilla" keeps
+   "vanilla extract"); words in brackets of the source method ask for no ingredient, and a line's
+   name stops before "for" ("sauce for serving" is a sauce).
 
 ### 3. Weak signals (mark the rewrite unsure, never fail it)
 
@@ -165,7 +190,38 @@ Only the losses a rule reads reliably fail a rewrite:
 
 ### 4. Form (fails the rewrite)
 
-No step marker (`step-marker`) and no empty step (`empty-step`).
+No step marker (`step-marker`) and no empty step (`empty-step`). These are facts of the rewrite's
+shape, not readings of its meaning, so they are not classes and fail it as before.
+
+### Fact classes
+
+A fact class fails a recipe only while its judged rows prove it, the way a link re-check class
+writes (`link-recheck.md`). Every row of `prose-check.tsv` on which the check fires a fact class
+judges that class in its `classes` cell: `right` when at least one of the class's faults on the row
+names a real loss or change of that kind, `false` when none does, `doubtful` when the reader cannot
+tell. A class is proven (`ProseCheck.ClassMeetsBar`) when at least 40 checkpoint-judged rows
+(`ProseCheck.ClassMinimumJudged`, status `agent`) judge it and at least 95 % of them
+(`ProseCheck.ClassPrecisionBar`) and of all its rows are right; a doubtful row counts as judged and
+not right; every rule-given row (status `ok`) must be right and none counts toward the minimum.
+
+The figures are read from a committed record, `scores/prose-check-classes.json`, built into Nom.Orch
+and written only by the scorer:
+
+```
+dotnet run --project nom-api/Nom.Import -- --prose-classes [--rows] [--record]
+```
+
+It checks every judged row as the re-check does, prints each class's rows, precision, doubtful rows
+and whether it fails recipes, and with `--record` writes the record (refused under CI, and while any
+firing is unjudged). `ProseCheckClassRecord.Evaluate` never trusts the record's own flags: it decides
+each listed class again from its counts, and a record of another check version proves nothing.
+`GoldenProseCheckClassTests` re-scores the rows and refuses a record that differs, so a class is
+proven by the data, never by an edit. A change of the check or of the judged rows means scoring and
+committing the record again.
+
+Faults of a class not proven are kept in the finding (`Finding.UnprovenReasons`), named in the
+re-check's `unsureByReason` and journal, and the recipe is marked `Recipe.ProseUnsure`; in the
+rewrite lane the judge reads such a rewrite like any unsure one.
 
 Any change of a rule or a limit raises `ProseCheck.Version`.
 
@@ -217,16 +273,17 @@ before an apply.
   at most 5 % of faithful rows
   (`The_check_refuses_every_constructed_fault_its_rules_decide_marks_every_weak_signal_fault_unsure_and_rejects_at_most_5_percent_of_faithful_rewrites`),
   and a fault row for every rule.
-- `prose-check.tsv`: the 160 recipes read against their source at staging checkpoints 2 and 3 (at
-  each, 40 the re-check failed and 40 it passed), one row each, referred to by staging recipe id: the
+- `prose-check.tsv`: the 200 recipes read against their source at staging checkpoints 2 and 3 (at
+  each, 40 the re-check failed and 40 it passed) and 4 (40 it failed), one row each, referred to by staging recipe id: the
   whole stored source description and method and the whole shown rewrite (check v4's length and share
   tests read the whole text, so the excerpts of the v3 rows were replaced by the whole texts), the
-  ingredient lines it reads, `expect`, `verdict` (the operator's reading), `v2` and `v3` (the reasons
-  of the check that ran at that checkpoint) and, for the 27 verdicts v2 or v3 got wrong, `rule` (the
-  rule behind the error and the v4 rule that fixes it). `expect` is `passed` (met by a rewrite the
+  ingredient lines it reads, `expect`, `verdict` (the operator's reading), `v2`, `v3` and `v4` (the
+  reasons of the check that ran at that checkpoint), for the 35 verdicts v2, v3 or v4 got wrong, `rule`
+  (the rule behind the error and the rule that fixes it), and `classes` (the judgement of each fact
+  class the check fires on the row, see "Fact classes"). `expect` is `passed` (met by a rewrite the
   check does not fail: passed or unsure), `unsure` (a real loss only a weak signal shows: met by a
-  rewrite the check does not pass clean) or the reason the check must fail it with (`copied-text` for a
-  copy). Rows the operators judged are `agent` (`agent-operator-checkpoint2-2026-11-21`,
+  rewrite the check does not pass clean) or the reason the check must give (`copied-text` for a
+  copy), failing the rewrite, or only marking it unsure while the reason is a fact class not proven. Rows the operators judged are `agent` (`agent-operator-checkpoint2-2026-11-21`,
   `agent-operator-checkpoint3-2026-11-21`); the doubtful ones were judged by the same standard as the
   judge ("same actions, same amounts, nothing missing, nothing added") and, for copying, as the
   operators read it: a source sentence kept whole, its frame together with the list it carries
@@ -234,8 +291,9 @@ before an apply.
   description, is a copy (ck2-76289); sentence-by-sentence light edits that rephrase each sentence's
   frame, with short stock sentences kept, are not (ck2-65767, ck3-39145), `agent` (`agent-review-ck4-2026-11-21`, `agent-review-ck6-2026-11-21`), with the
   reason in `note`. CI requires that the copy rule catches every copy row and no `passed` row, that
-  no copy row passes, that at most 1 in 20 of the check's failures is false (each on all 160 rows and
-  again on the 127 rows the operators read, whose verdicts were given before v4's limits were set),
+  no copy row passes, that at most 1 in 20 of the check's failures is false (each on all 200 rows and
+  again on the rows the operators read, whose verdicts were given before the limits were set, with
+  the committed proven classes and again with every fact class taken as proven),
   that no weak signal alone
   fails a row, and that no verdict changes under a stock index holding every phrase of both texts
   (`GoldenProseCheckTests`).
@@ -369,6 +427,47 @@ and myplate included, so its total is larger than the analysis figure of about 3
 recipes, which counted only shown recipes of unknown licence; `stepsByLicence`, `recipesByLicence`,
 `stepsShownUnknownLicence` and `recipesShownUnknownLicence` split the count so the two can be
 compared.
+
+## Check v5
+
+Staging checkpoint 4 ran v4's re-check over 21,377 shown recipes: 12,880 failed (60.3 %), 7,208 of
+them as copies. The operator read 40 failures against their source: 31 right, 1 doubtful and 8 false
+(finding P7, over the bar of 2), every false one from a quantity rule. The check had now failed four
+fresh readings on rule detail, so v5 changes how a rule earns the right to fail a recipe (see "Fact
+classes") and fixes the quantity pairing where the cause was clear:
+
+| Recipe | v4 verdict | Rule behind the error | v5 |
+|---|---|---|---|
+| 51378 | lost-quantity | a pan size the source states twice was required twice | a cooking vessel's size is stated once |
+| 33472 | lost-quantity | the size of a measuring cup read as an amount | a holding vessel's size is no amount |
+| 34862 | lost-quantity | "two at a time" required as a count; "in pairs" kept it | a count before "at a time" or a tool is soft |
+| 36132 | lost-quantity | "1 teaspoon each of" three herbs did not stand for three teaspoons | an amount before "each" stands for every item of its list |
+| 32341 | wrong-amount | the time of a bracketed alternative paired with the ingredient after the first time | a time is never an ingredient amount |
+| 32888 | wrong-amount | one ingredient's cooking time paired with an ingredient of a later clause | an amount pairs only within its own clause |
+| 33731 | lost-quantity | "a slice" matched against the source's "a pinch" (two counts of one, of different words) | counts of different count words are never equal |
+| 36164 | wrong-amount | "1/2 cup of pasta water" read as pasta | an ingredient name before "water" or "liquid" names the liquid |
+
+The false sub-reasons of right failures are fixed too: "vanilla" now keeps "vanilla extract", a
+ratio ("50/50") is no amount, and a liquid ("2 quarts of water") is no longer paired with a dough's
+line. The 40 recipes are rows of `prose-check.tsv` (`ck4-`), and every fact firing on the 200 rows
+is judged.
+
+Per class on the 200 rows (the record of this version; doubtful counted against):
+
+| Class | Rows (checkpoint-judged) | Right | Doubtful | Precision | Fails recipes |
+|---|---|---|---|---|---|
+| `lost-quantity` | 31 | 30 | 1 | 96.8 % | no (below 40 rows) |
+| `wrong-amount` | 5 | 5 | 0 | 100 % | no |
+| `changed-range` | 3 | 3 | 0 | 100 % | no |
+| `lost-ingredient` | 2 | 2 | 0 | 100 % | no |
+| `changed-unit` | 0 | 0 | 0 | - | no |
+
+No class has 40 judged rows: the readable rows kept outside the repository are all in the file, so
+no fact class fails a recipe in v5, and every fact fault marks it unsure. The precision is measured
+after the v5 fixes on the rows that motivated them, so it is a fit; the next staging reading, with
+every fact firing it reads judged and added, is the held-out test and the way a class reaches 40.
+The copy rule keeps its own bar: 0 of the 66 copies pass (the 45 of checkpoints 2 and 3 and the 21 of
+checkpoint 4), and no faithful row meets it.
 
 ## Check v4
 
@@ -584,10 +683,12 @@ not stable.
 
 1. Rebuild the stock index as a dry run: it must read about 21,954 documents on 17 sites (the
    2026-11-20 analysis), then apply.
-2. Re-check dry run (`version=4`): expect about 55 % of the shown recipes to fail (46 to 69 %, about
-   12,000), mostly `copied-text`, then `lost-quantity`, `wrong-amount` and `lost-ingredient`, and 5 to
-   18 % unsure (`unsureByReason` led by `lost-step`); `failedByReason` holds no `lost-step`,
-   `out-of-order`, `added-quantity`, `too-short` or `too-long`. Record the totals per reason and the
+2. Re-check dry run (`version=5`): with no fact class proven (the committed record), only copies and
+   form fail: expect about a third of the shown recipes to fail (checkpoint 4's v4 run had 7,208
+   `copied-text` failures of 21,377, 33.7 %), `failedByReason` holding only `copied-text`,
+   `unchanged`, `step-marker` and `empty-step`, and the v4 fact failures that were not copies (about
+   5,700) among the unsure, with `lost-quantity`, `wrong-amount`, `changed-range`, `changed-unit` and
+   `lost-ingredient` in `unsureByReason` beside `lost-step`. Record the totals per reason and the
    approved count; read 40 failures, 40 passes and 20 unsure at random against their source: no pass
    and no unsure recipe may copy its source, and at most 2 of the 40 failures may be false. Any wrong
    verdict becomes a row of `prose-check.tsv`, masked the same way, the readable row to the staging

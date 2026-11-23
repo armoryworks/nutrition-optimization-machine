@@ -1,28 +1,28 @@
 {
-  "version": "link-recheck/5",
-  "decisionSignature": "62ad2c3d5d1a8d90",
-  "caseSet": "44658e6bde9cb3e2",
-  "rows": 750,
+  "version": "link-recheck/6",
+  "decisionSignature": "98beb2d6472a19af",
+  "caseSet": "d51ce4a54b3604ff",
+  "rows": 992,
   "bar": 0.95,
   "minimum": 40,
-  "scoredAtUtc": "2026-11-21T19:21:19.8029848Z",
+  "scoredAtUtc": "2026-11-23T17:26:08.8571777Z",
   "classes": [
     {
       "class": "alcohol",
-      "judged": 305,
-      "right": 305,
-      "agentJudged": 285,
-      "agentRight": 285,
+      "judged": 322,
+      "right": 322,
+      "agentJudged": 302,
+      "agentRight": 302,
       "ruleJudged": 20,
       "ruleRight": 20,
       "meetsBar": true
     },
     {
       "class": "compound",
-      "judged": 65,
-      "right": 11,
-      "agentJudged": 65,
-      "agentRight": 11,
+      "judged": 35,
+      "right": 23,
+      "agentJudged": 35,
+      "agentRight": 23,
       "ruleJudged": 0,
       "ruleRight": 0,
       "meetsBar": false
@@ -39,56 +39,36 @@
     },
     {
       "class": "form",
-      "judged": 22,
-      "right": 9,
-      "agentJudged": 22,
-      "agentRight": 9,
+      "judged": 26,
+      "right": 15,
+      "agentJudged": 26,
+      "agentRight": 15,
       "ruleJudged": 0,
       "ruleRight": 0,
       "meetsBar": false
     },
     {
       "class": "fresh-herb",
-      "judged": 20,
-      "right": 19,
-      "agentJudged": 20,
-      "agentRight": 19,
+      "judged": 55,
+      "right": 55,
+      "agentJudged": 55,
+      "agentRight": 55,
       "ruleJudged": 0,
       "ruleRight": 0,
-      "meetsBar": false
+      "meetsBar": true
     },
     {
       "class": "group",
-      "judged": 10,
-      "right": 6,
-      "agentJudged": 10,
-      "agentRight": 6,
+      "judged": 12,
+      "right": 9,
+      "agentJudged": 12,
+      "agentRight": 9,
       "ruleJudged": 0,
       "ruleRight": 0,
       "meetsBar": false
     },
     {
-      "class": "other-food",
-      "judged": 13,
-      "right": 11,
-      "agentJudged": 13,
-      "agentRight": 11,
-      "ruleJudged": 0,
-      "ruleRight": 0,
-      "meetsBar": false
-    },
-    {
-      "class": "part",
-      "judged": 64,
-      "right": 49,
-      "agentJudged": 64,
-      "agentRight": 49,
-      "ruleJudged": 0,
-      "ruleRight": 0,
-      "meetsBar": false
-    },
-    {
-      "class": "percent",
+      "class": "head-lead",
       "judged": 1,
       "right": 1,
       "agentJudged": 1,
@@ -98,21 +78,71 @@
       "meetsBar": false
     },
     {
-      "class": "polarity",
+      "class": "head-noun",
       "judged": 2,
-      "right": 2,
+      "right": 0,
       "agentJudged": 2,
-      "agentRight": 2,
+      "agentRight": 0,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "heading",
+      "judged": 1,
+      "right": 1,
+      "agentJudged": 1,
+      "agentRight": 1,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "other-food",
+      "judged": 14,
+      "right": 11,
+      "agentJudged": 14,
+      "agentRight": 11,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "part",
+      "judged": 69,
+      "right": 64,
+      "agentJudged": 69,
+      "agentRight": 64,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "percent",
+      "judged": 5,
+      "right": 5,
+      "agentJudged": 5,
+      "agentRight": 5,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "polarity",
+      "judged": 3,
+      "right": 3,
+      "agentJudged": 3,
+      "agentRight": 3,
       "ruleJudged": 0,
       "ruleRight": 0,
       "meetsBar": false
     },
     {
       "class": "prepared",
-      "judged": 115,
-      "right": 115,
-      "agentJudged": 75,
-      "agentRight": 75,
+      "judged": 126,
+      "right": 126,
+      "agentJudged": 86,
+      "agentRight": 86,
       "ruleJudged": 40,
       "ruleRight": 40,
       "meetsBar": true
@@ -120,6 +150,7 @@
   ],
   "proven": [
     "alcohol",
+    "fresh-herb",
     "prepared"
   ]
 }

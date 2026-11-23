@@ -38,7 +38,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class LinkRecheckRules
     {
-        public const string Version = "link-recheck/5";
+        public const string Version = "link-recheck/6";
 
         public const string Alcohol = "alcohol";
         public const string PartHerb = "part-herb";
@@ -169,7 +169,19 @@ namespace Nom.Orch.Services.Support
         public static readonly IReadOnlySet<string> AlcoholCodes = new HashSet<string>(StringComparer.Ordinal) { LinkGate.AlcoholDrink, LinkGate.AlcoholNoFood, LinkGate.AlcoholNotDrink };
 
         /// <summary>The part segments that are the ordinary eaten part of a food named whole ("Potatoes, baked, flesh", "Goose, meat only"): never proof that a link is wrong.</summary>
-        public static readonly IReadOnlySet<string> EdibleParts = new HashSet<string>(StringComparer.Ordinal) { "flesh", "flesh only", "meat", "meat only", "leaf", "leaves" };
+        public static readonly IReadOnlySet<string> EdibleParts = new HashSet<string>(StringComparer.Ordinal) { "flesh", "flesh only", "meat", "meat only", "leaf", "leaves", "separable lean only", "lean only" };
+
+        /// <summary>The forms a cook gives a food at home (cooked, roasted, toasted, grilled, browned ...) or keeps it in (frozen): a line asking for one ("toasted pine nuts", "roasted garlic", "frozen mango chunks") is the same food prepared or kept, so the form rule's hold on it is no proof that its food is wrong.</summary>
+        public static readonly IReadOnlySet<string> PreparationForms = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "cooked", "boiled", "stewed", "baked", "fried", "steamed", "braised", "grilled", "broiled", "poached", "roasted", "toasted", "browned", "frozen",
+        };
+
+        /// <summary>The classes whose hold a later alternative of the wording can raise, and which are no proof when the wording names its food first.</summary>
+        public static readonly IReadOnlySet<string> AlternativeCodes = new HashSet<string>(StringComparer.Ordinal)
+        {
+            LinkGate.Part, LinkGate.Group, LinkGate.Form, LinkGate.Percent, LinkGate.Polarity,
+        };
 
         /// <summary>Holds the re-check does not read: it moves lines without their amounts, so grams are not computed for it.</summary>
         public static readonly IReadOnlySet<string> Unread = new HashSet<string>(StringComparer.Ordinal) { LinkGate.Units, LinkGate.Grams };
@@ -182,7 +194,7 @@ namespace Nom.Orch.Services.Support
         public static readonly IReadOnlySet<string> IdentityCodes = new HashSet<string>(StringComparer.Ordinal)
         {
             LinkGate.Containment, LinkGate.LeadNoun, LinkGate.HeadNoun, LinkGate.Generic, LinkGate.State, LinkGate.WordOrder,
-            LinkGate.Percent, LinkGate.RuleOther, LinkGate.OtherAlias,
+            LinkGate.Percent, LinkGate.RuleOther, LinkGate.OtherAlias, LinkGate.Variety,
         };
 
         private static readonly Dictionary<string, string[]> Acting = new(StringComparer.Ordinal)
@@ -272,18 +284,26 @@ namespace Nom.Orch.Services.Support
         /// compound lane's own rule, so the food of any one of them is not proven wrong; and another
         /// curated food's name only when a word of the wording is also missing from this food
         /// (<paramref name="all"/> holds a containment or head-noun hold): "black beans" on canned
-        /// black beans names a less exact food, "olive oil" on canola oil another one.
+        /// black beans names a less exact food, "olive oil" on canola oil another one. A part, group,
+        /// form, percent or polarity hold is no proof when the wording names the food as its first
+        /// alternative (<paramref name="firstNamed"/>; "butter or margarine" on Butter), and a form
+        /// hold none when the form is one a cook gives the food at home (<see cref="PreparationForms"/>).
+        /// "More than one food" is proof only when the wording names another food
+        /// (<paramref name="namesOtherFood"/>, <see cref="LinkGate.NamesOtherFood"/>): "heavy cream,
+        /// whipped" and "dates stoned and sliced" are one food with a preparation.
         /// </summary>
-        public static bool Refutes(GateHold hold, IReadOnlyCollection<GateHold> all, bool alternativeNamed = false)
+        public static bool Refutes(GateHold hold, IReadOnlyCollection<GateHold> all, bool alternativeNamed = false, bool firstNamed = false, bool namesOtherFood = true)
         {
             if (!Refuting.Contains(hold.Code)) return false;
+            if (firstNamed && AlternativeCodes.Contains(hold.Code)) return false;
             return hold.Code switch
             {
                 LinkGate.OtherFood => all.Any(h => h.Code is LinkGate.Containment or LinkGate.HeadNoun),
                 LinkGate.Percent => hold.Detail?.StartsWith("wording states", StringComparison.Ordinal) == true,
                 LinkGate.HeadNoun => hold.Detail?.StartsWith("with ", StringComparison.Ordinal) == true,
                 LinkGate.Part => hold.Rule != LinkGate.FoodPartRule || !EdibleParts.Contains((hold.Detail ?? string.Empty).Trim().ToLowerInvariant()),
-                LinkGate.Compound => !alternativeNamed,
+                LinkGate.Compound => !alternativeNamed && namesOtherFood,
+                LinkGate.Form => !PreparationForms.Contains(hold.Detail ?? string.Empty),
                 _ => true,
             };
         }
@@ -349,9 +369,11 @@ namespace Nom.Orch.Services.Support
         {
             var holds = ReadHolds(set, wording, food, LinkGate.Check(new GatePair(wording, food.Id, food, Lines: lines), catalog));
             var alternative = new Lazy<bool>(() => LinkGate.NamesAlternative(wording, food, catalog));
+            var first = new Lazy<bool>(() => LinkGate.NamesFirstAlternative(wording, food, catalog));
+            var other = new Lazy<bool>(() => LinkGate.NamesOtherFood(wording, food, catalog));
             return Decide(set, holds,
                 () => candidates.Select(c => new RecheckCandidate(c.Tier, c.Food, ReadHolds(set, wording, c.Food, LinkGate.Check(new GatePair(wording, food.Id, c.Food, Lines: lines), catalog)))),
-                set == ContainerForm, h => Refutes(h, holds, alternative.Value));
+                set == ContainerForm, h => Refutes(h, holds, alternative.Value, AlternativeCodes.Contains(h.Code) && first.Value, h.Code != LinkGate.Compound || other.Value));
         }
 
         /// <summary>The holds of a pair as the set reads them: the alcohol rules only where the set reads them (<see cref="ForSet"/>).</summary>
@@ -517,8 +539,11 @@ namespace Nom.Orch.Services.Support
             if (withProven) parts.Add(string.Join(",", ProvenValue.Value.Proven.OrderBy(c => c, StringComparer.Ordinal)));
             parts.Add(string.Join(",", RestrictionPatterns.Value.Select(p => p.Pattern)));
             parts.Add(DietPatternRule.Version);
+            parts.Add(StatementLabelTerms.Version + ":" + RecheckDietGuard.HeldReason);
             parts.Add(string.Create(CultureInfo.InvariantCulture, $"{ClassPrecisionBar}:{ClassMinimumJudged}"));
             parts.Add(string.Join(",", EdibleParts.OrderBy(c => c, StringComparer.Ordinal)));
+            parts.Add(string.Join(",", PreparationForms.OrderBy(c => c, StringComparer.Ordinal)));
+            parts.Add(string.Join(",", AlternativeCodes.OrderBy(c => c, StringComparer.Ordinal)));
             parts.Add(string.Join(",", AdditionNeutral.OrderBy(c => c, StringComparer.Ordinal)));
             parts.Add(LiquidWording.ToString());
             parts.Add(string.Join(",", Unread.OrderBy(c => c, StringComparer.Ordinal)));

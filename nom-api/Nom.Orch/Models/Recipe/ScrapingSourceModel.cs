@@ -47,6 +47,7 @@ namespace Nom.Orch.Models.Recipe
         public string? FetchRefusal { get; set; }
         public string? RecheckSkipped { get; set; }
         public SourceCheckModel? TermsCheck { get; set; }
+        public SourceProseFiguresModel? Prose { get; set; }
     }
 
     public class ScrapingSourceReviewRequestModel

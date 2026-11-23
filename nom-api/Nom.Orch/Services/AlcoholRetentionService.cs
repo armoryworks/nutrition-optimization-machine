@@ -97,6 +97,8 @@ namespace Nom.Orch.Services
                     result.Lines++;
                     var reading = AlcoholRetention.Read(steps.GetValueOrDefault(line.RecipeId), line.RawLine);
                     result.ByKind[reading.Kind] = result.ByKind.GetValueOrDefault(reading.Kind) + 1;
+                    if (reading.Estimated) result.Estimated++;
+                    if (reading.Unnamed) result.Unnamed++;
                     if (line.AlcoholRetention == reading.Factor && line.AlcoholRetentionBasis == reading.Basis) continue;
 
                     result.Changed++;
@@ -113,6 +115,8 @@ namespace Nom.Orch.Services
                             NewFactor = reading.Factor,
                             NewBasis = reading.Basis,
                             UsdaCode = reading.Code,
+                            Estimated = reading.Estimated,
+                            Unnamed = reading.Unnamed,
                         });
                     }
                     if (!apply) continue;
@@ -148,8 +152,8 @@ namespace Nom.Orch.Services
                 _db.ChangeTracker.Clear();
             }
 
-            _logger.LogInformation("Alcohol retention ({Version}): {Lines} lines in {Recipes} recipes read, {Changed} changed, {Recalculated} recipes recalculated{DryRun}",
-                AlcoholRetention.Version, result.Lines, result.Recipes, result.Changed, result.RecipesRecalculated, apply ? string.Empty : " (dry run)");
+            _logger.LogInformation("Alcohol retention ({Version}): {Lines} lines in {Recipes} recipes read, {Estimated} estimated ({Unnamed} with the drink named in no step), {Changed} changed, {Recalculated} recipes recalculated{DryRun}",
+                AlcoholRetention.Version, result.Lines, result.Recipes, result.Estimated, result.Unnamed, result.Changed, result.RecipesRecalculated, apply ? string.Empty : " (dry run)");
             return result;
         }
 

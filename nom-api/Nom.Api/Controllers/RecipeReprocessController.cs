@@ -69,13 +69,33 @@ namespace Nom.Api.Controllers
             return Ok(await _reprocess.RetireDuplicatesAsync(request, apply));
         }
 
-        /// <summary>Take back the reprocess writes made at or after the given UTC time, or of one batch, newest first, limited to one kind when given; a dry run unless apply=true.</summary>
+        /// <summary>
+        /// Take back the reprocess writes made at or after the given UTC time, or of one batch, newest first,
+        /// limited to one kind when given; a dry run unless apply=true. The entries are taken in batches of
+        /// batchSize (at most maxBatches when given); an apply commits each batch with a progress row, answers
+        /// its runId, ends between batches when stopped or when the caller goes away, and goes on under
+        /// runId (the filter of that run is used) from the last entry it reached.
+        /// </summary>
         [HttpPost("undo")]
-        public async Task<ActionResult<RecipeReprocessUndoResult>> Undo([FromQuery] DateTime? sinceUtc, [FromQuery] string? batchId, [FromQuery] string? kind = null, [FromQuery] bool apply = false)
+        public async Task<ActionResult<RecipeReprocessUndoResult>> Undo(
+            [FromQuery] DateTime? sinceUtc, [FromQuery] string? batchId, [FromQuery] string? kind = null, [FromQuery] bool apply = false,
+            [FromQuery] string? runId = null, [FromQuery] int batchSize = RecipeReprocessService.UndoBatchSize, [FromQuery] int? maxBatches = null,
+            CancellationToken cancellationToken = default)
         {
+            if (batchSize < 1 || batchSize > RecipeReprocessService.MaxUndoBatchSize || maxBatches < 1)
+            {
+                return BadRequest(new { message = $"batchSize must be 1 to {RecipeReprocessService.MaxUndoBatchSize} and maxBatches at least 1" });
+            }
+
+            if (!string.IsNullOrWhiteSpace(runId))
+            {
+                var continued = await _reprocess.UndoAsync(new RecipeReprocessUndoRequest { RunId = runId, Apply = apply, BatchSize = batchSize, MaxBatches = maxBatches }, cancellationToken);
+                return continued.Refused != null ? Conflict(continued) : Ok(continued);
+            }
+
             if (sinceUtc == null && string.IsNullOrWhiteSpace(batchId))
             {
-                return BadRequest(new { message = "Give sinceUtc or batchId." });
+                return BadRequest(new { message = "Give sinceUtc, batchId or runId." });
             }
 
             if (kind != null && kind is not (RecipeReprocessKind.Rebuild or RecipeReprocessKind.Order or RecipeReprocessKind.RuleReject or RecipeReprocessKind.DuplicateRetire))
@@ -84,7 +104,26 @@ namespace Nom.Api.Controllers
             }
 
             var since = sinceUtc == null ? (DateTime?)null : DateTime.SpecifyKind(sinceUtc.Value, DateTimeKind.Utc);
-            return Ok(await _reprocess.UndoAsync(since, batchId, kind, apply));
+            var result = await _reprocess.UndoAsync(
+                new RecipeReprocessUndoRequest { SinceUtc = since, BatchId = batchId, Kind = kind, Apply = apply, BatchSize = batchSize, MaxBatches = maxBatches },
+                cancellationToken);
+            return result.Refused != null ? Conflict(result) : Ok(result);
+        }
+
+        /// <summary>How far an undo run has come (the newest operator run, not the lane's own, when runId is not given): batches, entries reached and remaining, counts, working time and rate, and state.</summary>
+        [HttpGet("undo/progress")]
+        public async Task<ActionResult<RecipeReprocessUndoProgress>> UndoProgress([FromQuery] string? runId = null)
+        {
+            var progress = await _reprocess.UndoProgressAsync(runId);
+            return progress == null ? NotFound(new { message = "No such undo run." }) : Ok(progress);
+        }
+
+        /// <summary>Ask an undo run (the newest operator run, not the lane's own, when runId is not given) to stop after the batch it is on; it can go on later under its runId.</summary>
+        [HttpPost("undo/stop")]
+        public async Task<ActionResult<RecipeReprocessUndoProgress>> StopUndo([FromQuery] string? runId = null)
+        {
+            var progress = await _reprocess.StopUndoAsync(runId);
+            return progress == null ? NotFound(new { message = "No such undo run." }) : Ok(progress);
         }
     }
 }

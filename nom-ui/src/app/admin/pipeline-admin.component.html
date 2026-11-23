@@ -565,6 +565,13 @@
             The waiting model picks have not been withdrawn.
           }
         </p>
+        <p class="nom-pipeline__lane-line" data-testid="pipeline-link-recheck-classes">
+          Classes proven (write by rule): {{ lr.provenClasses?.length ? lr.provenClasses!.join(', ') : 'none' }}
+          · not proven (candidates only, on their own tier): {{ lr.candidateClasses?.length ? lr.candidateClasses!.join(', ') : 'none' }}
+        </p>
+        @if (lr.provenProblem) {
+          <p class="nom-pipeline__lane-line nom-pipeline__warn" data-testid="pipeline-link-recheck-proven-problem">{{ lr.provenProblem }}</p>
+        }
         @if (lr.lastRuns.length > 0) {
           <ul class="nom-pipeline__list" data-testid="pipeline-link-recheck-run-list">
             @for (run of lr.lastRuns; track run.set) {
@@ -651,7 +658,22 @@
           <div><dt>Failed checks (7 days)</dt><dd data-testid="pipeline-metric-sources-failed-checks">{{ so.checksFailedLast7d | number }}</dd></div>
           <div><dt>Re-check skipped (forbidden or permission-needed)</dt><dd data-testid="pipeline-metric-sources-recheck-skipped">{{ (so.recheckSkipped ?? 0) | number }}</dd></div>
           <div><dt>Terms-only checks waiting</dt><dd data-testid="pipeline-metric-sources-terms-checks">{{ (so.termsChecksWaiting ?? 0) | number }}</dd></div>
+          <div><dt>Leads held (no approved source)</dt><dd data-testid="pipeline-metric-sources-leads-held">{{ (so.leadsHeld ?? 0) | number }}</dd></div>
+          <div><dt>Held leads with a terms-only check</dt><dd data-testid="pipeline-metric-sources-leads-checked">{{ (so.leadsTermsChecked ?? 0) | number }}</dd></div>
         </dl>
+        @if (so.lastExclusionRun; as ex) {
+          <dl class="nom-pipeline__stats" data-testid="pipeline-sources-exclusion">
+            <div><dt>Excluded hosts sent (last run)</dt><dd data-testid="pipeline-metric-sources-exclude-sent">{{ (ex.excludeSent ?? 0) | number }}</dd></div>
+            <div><dt>Left out over the limit</dt><dd data-testid="pipeline-metric-sources-exclude-left-out">{{ (ex.excludeLeftOut ?? 0) | number }}</dd></div>
+            <div><dt>Seeds excluded</dt><dd data-testid="pipeline-metric-sources-seeds-excluded">{{ ex.seedsExcluded ? ex.seedsExcluded.split(',').length : 0 }}</dd></div>
+            <div><dt>Candidates excluded</dt><dd data-testid="pipeline-metric-sources-candidates-excluded">{{ (ex.candidatesExcluded ?? 0) | number }}</dd></div>
+          </dl>
+          <p class="nom-pipeline__hint" data-testid="pipeline-sources-exclusion-run">
+            Last run that sent a job: {{ ex.startedUtc | date: 'MMM d, HH:mm' }} ({{ ex.status }}){{ ex.excludeNote ? ' · ' + ex.excludeNote : '' }}
+          </p>
+        } @else {
+          <p class="nom-pipeline__hint" data-testid="pipeline-sources-exclusion-empty">No discovery run has sent a job yet, so no host was excluded.</p>
+        }
         @if (so.runs.length !== 0) {
           <ul class="nom-pipeline__list" data-testid="pipeline-sources-run-list">
             @for (run of so.runs; track run.id) {
@@ -700,6 +722,19 @@
           <div><dt>Recipes with a credit line</dt><dd data-testid="pipeline-metric-rights-credits">{{ sr.recipesWithCredit | number }}</dd></div>
           <div><dt>Taken from barred sources</dt><dd data-testid="pipeline-metric-rights-taken">{{ sr.takenFromBarredSources | number }}</dd></div>
         </dl>
+        @if (sr.proseBySource?.length) {
+          <h3 class="nom-pipeline__subheading">Prose a class withholds, by source</h3>
+          <ul class="nom-pipeline__list" data-testid="pipeline-rights-prose-list">
+            @for (p of sr.proseBySource; track p.sourceId) {
+              <li class="nom-pipeline__list-item" [class.nom-pipeline__warn]="p.rightsClass === 'facts-only' && p.withheld > 0" data-testid="pipeline-rights-prose-item">
+                <span>{{ p.domain }} <span class="nom-pipeline__muted">{{ p.rightsClass ?? 'no class yet' }}{{ p.rightsClass === 'facts-only' ? (p.classFromTermsOnly ? ', from a terms-only check' : ', from a full check') : '' }}</span></span>
+                <span>{{ p.recipes | number }} recipes ({{ p.approved | number }} approved) · withheld {{ p.withheld | number }} ({{ p.withheldApproved | number }}) · a facts-only class would withhold {{ p.wouldWithhold | number }} ({{ p.wouldWithholdApproved | number }}) more</span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="nom-pipeline__hint" data-testid="pipeline-rights-prose-empty">No approved web source has recipes.</p>
+        }
         <a routerLink="/admin/scraping-sources" class="nom-pipeline__link" data-testid="pipeline-source-rights-link">Open source rights</a>
         <p class="nom-pipeline__hint">
           Classes come from each source's stored check by rule; the weekly re-check derives them again and journals a change. What

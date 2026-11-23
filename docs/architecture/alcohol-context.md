@@ -29,9 +29,7 @@ first rule that fires wins:
    grapes; champagne mango; maraschino cherries; malt for ale or beer; "for the rum"; and since
    `alcohol-context/5`, staging checkpoint 2 M21: a drink's name that is also a place or grape
    variety naming a kind of fruit (Malaga, Tokay, Muscatel, Catawba lemons, grapes, raisins, figs and
-   the like), "manzanilla olives", "Scotch caraways"; a wine that names no kind of fruit is the drink
-   the fruit is soaked or cooked in, so "sherry raisins", "port figs" and "Marsala pears" still count
-   the wine; a food called after a drink,
+   the like), "manzanilla olives", "Scotch caraways"; a food called after a drink,
    "cherries called brandy-blacks"; ratafia crumbs, biscuits, cakes, drops, macaroons, cookies
    and wafers (almond biscuits named after the liqueur, staging checkpoint 2 doubtful item 92584); "stout" as strong before a
    bag, cloth, string and the like); `measure` (an ale, wine or beer measure); `liquid` ("liquor"
@@ -41,7 +39,13 @@ first rule that fires wins:
    curaçoa" is the liqueur (curaçoa, the old spelling, is read as curaçao).
 4. **A dish named after a drink** ("white wine sauce", "brandy butter", "beer batter",
    "Kirsch-flavoured syrup", "soaked in rum", "poached in red wine", one word between the drink and
-   the dish noun as in "bourbon chair caramel", "beer brats"), and a food made or measured with a
+   the dish noun as in "bourbon chair caramel", "beer brats"), a fruit or nut kept in a drink
+   (`alcohol-context/8`, staging checkpoint 4, P21: "cognac cherries", "brandy peaches", "sherry
+   raisins", "port figs", "Marsala pears"; the line is the fruit, so it is never linked to the drink,
+   and the dish sense still counts the drink for the diet gate; this replaces CK4RG-4's reading of
+   the last three as the wine), unless a drink or flavour word follows the fruit, where the fruit
+   names the drink's flavour ("Grand Marnier orange liqueur", "Cointreau orange liqueur", "kirsch
+   cherry brandy" are the liqueur: review CK9S-3), and a food made or measured with a
    drink ("custard (flavoured with French brandy)", "almonds moistened with a tablespoonful of
    kirsch", "To every pint of new milk allow 2 dessertspoonfuls of brandy"): `dish`, which counts for
    the diet gate and refuses only an alcoholic food, so the line keeps its own food.
@@ -245,7 +249,10 @@ the old release's own start-up, since its defaults are then missing again.
   (`rule:alcohol-context`, `ok`) are wine lines that name the "au vin" dish they are for; ac-208 to
   ac-214 are staging checkpoint 3's N11 lines (`agent`, `agent-review-ck6-2026-11-21`) and ac-215,
   ac-216 constructed guards for the bracket rule (`rule:construction`, `ok`), `alcohol-context/7`:
-  216 rows, 0 false accepts of 163. `GoldenAlcoholContextTests` requires every row to pass, every
+  216 rows, 0 false accepts of 163. `alcohol-context/8` (`cleanup2/ck9-small`): ac-203 to ac-205
+  re-judged as `dish` (`agent-review-ck9-small-2026-11-23`), ac-217 (checkpoint 4's "cognac
+  cherries", `agent`), ac-218 to ac-221 (a liqueur named with its fruit flavour, and a fruit kept in
+  brandy; `rule:construction`, `ok`): 221 rows, 0 false accepts of 168. `GoldenAlcoholContextTests` requires every row to pass, every
   sense to have a row, and every sense of the design a rule-given one.
 - Scorer lane `alcohol-context` in `model-lanes.json`: no model, `required`, floor 98 % and no false
   accept; the committed record must be what the rules score now

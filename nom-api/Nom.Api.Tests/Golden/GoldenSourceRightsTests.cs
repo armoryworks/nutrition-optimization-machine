@@ -51,12 +51,12 @@ namespace Nom.Api.Tests.Golden
             var report = GoldenSet.Run("source-check-5.tsv", "status", row =>
             {
                 var saved = reports[row["host"]];
-                saved.RuleVersion.Should().Be(SourceAdmissionPolicy.ScraperRuleVersion);
+                saved.RuleVersion.Should().Be("source-check/5");
                 var verdict = SourceRightsRule.Derive(saved);
                 var judgement = SourceAdmissionPolicy.Judge(SourceAdmissionPolicy.Facts(saved, 0, 0, rejectedBefore: false));
                 var expectedQuote = row["expectQuote"];
                 var quote = verdict.Quote ?? "-";
-                var asNewer = SourceRightsRule.Derive(Reversion(saved, "source-check/6"));
+                var asNewer = SourceRightsRule.Derive(Reversion(saved, "source-check/7"));
                 asNewer.Class.Should().Be(verdict.Class, $"{row.Id} under a newer rule version is classed on the facts NOM knows");
                 asNewer.NewerRuleVersion.Should().BeTrue();
                 judgement.Verdict.Should().Be(SourceAdmissionPolicy.NotClear, $"no current source is clear ({row.Id})");
@@ -71,6 +71,69 @@ namespace Nom.Api.Tests.Golden
             });
             _output.WriteLine(report.Summary);
             GoldenSet.Assert(report);
+        }
+
+        [Fact]
+        public void Each_change_source_check_6_makes_is_read_as_the_rules_say()
+        {
+            var reports = SavedReports();
+            var report = GoldenSet.Run("source-check-6.tsv", "status", row =>
+            {
+                var changed = Changed(reports[row["host"]], row.Value("change"));
+                var verdict = SourceRightsRule.Derive(changed);
+                var judgement = SourceAdmissionPolicy.Judge(SourceAdmissionPolicy.Facts(changed, 0, 0, rejectedBefore: false));
+                return GoldenSet.Compare(row, new Dictionary<string, string>
+                {
+                    ["expectClass"] = verdict.Class ?? "-",
+                    ["expectAi"] = verdict.AiReserved ? "yes" : "no",
+                    ["expectConclusive"] = judgement.Conclusive ? "yes" : "no",
+                    ["expectCredits"] = judgement.Reasons.Single(r => r.Code == "credits").Outcome,
+                    ["expectVerdict"] = judgement.Verdict,
+                    ["expectAgainst"] = string.Join(";", judgement.Against.Select(r => r.Code)),
+                    ["expectSamples"] = (changed.Samples?.Pages.Count ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                });
+            });
+            _output.WriteLine(report.Summary);
+            GoldenSet.Assert(report);
+        }
+
+        [Fact]
+        public void Each_saved_report_read_under_source_check_6_keeps_its_class_and_is_conclusive()
+        {
+            foreach (var (host, saved) in SavedReports())
+            {
+                var current = Reversion(saved, SourceAdmissionPolicy.ScraperRuleVersion);
+                var verdict = SourceRightsRule.Derive(current);
+                verdict.Class.Should().Be(SourceRightsRule.Derive(saved).Class, $"{host}: source-check/6 changes credits and the sampled pages, never the facts a class rests on");
+                verdict.NewerRuleVersion.Should().BeFalse();
+                SourceAdmissionPolicy.Judge(SourceAdmissionPolicy.Facts(current, 0, 0, rejectedBefore: false)).Conclusive.Should().Be(saved.Complete, host);
+            }
+        }
+
+        /// <summary>A stored report with the changes of a source-check-6.tsv row applied: <c>version=</c>, <c>reason:code=outcome</c>, <c>drop-index-samples</c>.</summary>
+        private static ScraperSourceCheckReport Changed(ScraperSourceCheckReport report, string? change)
+        {
+            var copy = JsonSerializer.Deserialize<ScraperSourceCheckReport>(JsonSerializer.Serialize(report))!;
+            foreach (var op in Split(change, ";"))
+            {
+                if (op.StartsWith("version=", StringComparison.Ordinal)) copy.RuleVersion = op["version=".Length..];
+                else if (op.StartsWith("reason:", StringComparison.Ordinal))
+                {
+                    var at = op.IndexOf('=', StringComparison.Ordinal);
+                    var code = op["reason:".Length..at];
+                    copy.Reasons.Single(r => r.Code == code).Outcome = op[(at + 1)..];
+                }
+                else if (op == "drop-index-samples" && copy.Samples != null) copy.Samples.Pages.RemoveAll(p => IndexPage(p.Url));
+                else throw new InvalidOperationException($"unknown change {op}");
+            }
+
+            return copy;
+        }
+
+        private static bool IndexPage(string url)
+        {
+            var segment = new Uri(url).AbsolutePath.TrimEnd('/').Split('/').Last().ToLowerInvariant();
+            return segment is "recipe" or "recipes" or "all-recipes" or "index" || segment.StartsWith("recipe-index", StringComparison.Ordinal) || segment.EndsWith("-recipes", StringComparison.Ordinal);
         }
 
         private static ScraperSourceCheckReport Reversion(ScraperSourceCheckReport report, string ruleVersion)

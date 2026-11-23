@@ -27,9 +27,13 @@ RULES
    Congress) by ops/cookbook-extract.py's model extraction. Every record then passes the cookbook
    extraction's number check against its own page text: every ingredient line and step, and the
    yield and times, must be found there with every number. A record that fails is dropped and
-   counted with its reason; nothing repairs it. A model call that times out or fails is asked
-   again (--retries, --timeout); one that still fails drops only its chunk, counted with the
-   reason, and every readable answer is kept in records/<doc>.answers.jsonl as it arrives, so a second
+   counted with its reason; nothing repairs it. A model call that fails is asked again
+   (--retries, --timeout); one that still fails drops only its chunk, counted with the reason. In
+   pages mode (NCI) a call that times out is not asked again in the run: one long timeout drops
+   that page, counted as "model call timed out", and the run goes on. A VA card's name is the
+   title the card prints (books.csv's listed title only when it prints none), each named time of
+   its header is read (a Chill or Inactive time is not kept on its own), and a wrapped ingredient
+   line is joined back; a returned name in letter-spaced type is closed up by rule. Every readable answer is kept in records/<doc>.answers.jsonl as it arrives, so a second
    run with the same --model asks only the chunks still missing or unreadable and no finished record is lost. A record keeps the document's URL with its page
    (PDF "#page=N", a Library of Congress page "?sp=N") as its source URL, so the staged import
    stores it as its source document and the recipe links to the page it came from. Images and
@@ -786,7 +790,14 @@ def text_document(book: Book, store: Store, runner: Runner = run, ocr=None) -> d
 AMOUNT_START = re.compile(r"^\s*(?:[\d½¼¾⅓⅔⅛⅜⅝⅞]|(?:a|an|one|two|three|four|five|six|half|pinch|dash)\b)", re.I)
 STEP_NUMBER = re.compile(r"^\s*(\d{1,2})[.)]\s+")
 CARD_SECTIONS = {"ingredients": "ingredients", "directions": "steps", "instructions": "steps", "method": "steps", "preparation": "steps"}
-DANGLING = re.compile(r"(?:\b(?:into|or|and|to|about|of|with|for|plus|from)|[-–(])\s*$", re.I)
+DANGLING = re.compile(r"(?:\b(?:into|or|and|to|about|of|with|for|plus|from|if|when|until|than)|[-–(])\s*$", re.I)
+ADJECTIVE_END = re.compile(r"(?P<comma>,\s*)?\b(?:plain|grated|shredded|low-?fat|non-?fat|fat-free|reduced-fat|low-sodium|reduced-sodium|unsalted|"
+                           r"unsweetened|extra-virgin|whole-wheat|whole-grain|part-skim)\s*$", re.I)
+BRACKET_ONLY = re.compile(r"^\([^()]*\)[.,;]?$")
+CARD_HEADER = re.compile(r"^(?:Prep(?:aration)?|Cook|Chill|Inactive|Total)(?: time)?:|^Yield:", re.I)
+CARD_TIME = re.compile(r"\b(Prep(?:aration)?|Cook|Chill|Inactive|Total)(?: time)?:\s*([^|\n]*)", re.I)
+CARD_TIME_FIELDS = {"prep": "prep", "preparation": "prep", "cook": "cook", "total": "total"}
+TITLE_PLACEHOLDER = re.compile(r"^recipe title$", re.I)
 CARD_END = re.compile(r"^(recipe notes|notes|tips?|nutrition facts|nutrition information|nutritional facts|for more recipes|serving suggestions?)\b", re.I)
 
 
@@ -812,7 +823,10 @@ def _join_ingredients(lines: list[str]) -> list[str]:
     continues it ("diced (about" / "1/2 cup)"), and so does a line after one that ends with a word that cannot end it
     ("into", "or", "to", "about", "of", "with", "for", "plus", "from", a dash or an open bracket), even across a block
     break and when it starts with an amount: "cut into" / "½- to 1-inch pieces", "... or" / "1 (16-ounce) bag frozen
-    vegetables", "to" / "taste" (staging checkpoint 3, N29)."""
+    vegetables", "to" / "taste" (staging checkpoint 3, N29). A line after one that ends with "if", "when", "until" or
+    "than", or with a word that names no food alone ("or plain" / "Greek yogurt"; after a list comma only on a line with no
+    amount, "Optional toppings: Chopped basil, grated" / "Parmesan cheese"), continues it unless it starts with an amount,
+    and a line that is only a bracket ("(optional)") always continues the one before (staging checkpoint 4, P26)."""
     out: list[str] = []
     gap = True
     for line in lines:
@@ -822,8 +836,11 @@ def _join_ingredients(lines: list[str]) -> list[str]:
             continue
         unclosed = bool(out) and out[-1].count("(") > out[-1].count(")")
         dangling = bool(out) and bool(DANGLING.search(out[-1]))
+        bracket = bool(out) and bool(BRACKET_ONLY.match(text))
+        adjective = ADJECTIVE_END.search(out[-1]) if out else None
+        modifies = bool(adjective) and not (adjective.group("comma") and AMOUNT_START.match(out[-1]))
         continues = not gap and out and (text[0].islower() or text[0] in "(,;&" or out[-1].endswith((",", " or", " and", "-")))
-        if unclosed or dangling or (continues and not AMOUNT_START.match(text)):
+        if unclosed or dangling or bracket or ((continues or modifies) and not AMOUNT_START.match(text)):
             out[-1] = f"{out[-1]} {text}"
         else:
             out.append(text)
@@ -860,21 +877,36 @@ def _join_steps(lines: list[str]) -> list[str]:
     return out
 
 
+def card_title(filled: list[str]) -> str | None:
+    """The title printed on a card: its lines above the first header line ("Prep: ...", "Yield: ..."), joined, without
+    a template's "Recipe Title" placeholder; None when no header line comes within the first four lines."""
+    at = next((i for i, line in enumerate(filled[:5]) if CARD_HEADER.match(line)), None)
+    if not at:
+        return None
+    words = [line for line in filled[:at] if not TITLE_PLACEHOLDER.match(line)]
+    return re.sub(r"\s+", " ", " ".join(words)).strip() or None
+
+
 def parse_card(title: str | None, text: str) -> tuple[dict | None, str | None]:
-    """A VA recipe card read by rule: the title, "Prep | Cook | Total", "Yield", the Ingredients and Directions
-    sections (wrapped lines joined), up to the notes and the nutrition line, which are not taken."""
+    """A VA recipe card read by rule: the title as the card prints it (the listed title when the card prints none),
+    each named time of the header ("Prep | Cook | Total"; a "Chill" or "Inactive" time is part of the total and is not
+    kept on its own), "Yield", the Ingredients and Directions sections (wrapped lines joined), up to the notes and the
+    nutrition line, which are not taken (staging checkpoint 4, P27 and P28)."""
     lines = [line.strip() for line in text.split("\n")]
     filled = [line for line in lines if line]
     if not filled:
         return None, "no text"
-    name = (title or "").strip() or filled[0]
+    name = card_title(filled) or (title or "").strip() or filled[0]
     record: dict = {"name": name}
-    times = re.search(r"Prep(?:aration)?(?: time)?:\s*([^|]+?)\s*\|\s*Cook(?: time)?:\s*([^|]+?)\s*\|\s*Total(?: time)?:\s*(.+)", text, re.I)
-    if times:
-        for key, value in zip(("prep", "cook", "total"), times.groups()):
-            record[f"{key}Time"] = value.strip()
-            if minutes(value) is not None:
-                record[f"{key}TimeMinutes"] = minutes(value)
+    header = text[:m.start()] if (m := re.search(r"^\s*Ingredients\s*:?\s*$", text, re.I | re.M)) else text
+    for field, value in CARD_TIME.findall(header):
+        key = CARD_TIME_FIELDS.get(field.lower())
+        value = value.strip()
+        if key is None or f"{key}Time" in record or not re.search(r"\d", value):
+            continue
+        record[f"{key}Time"] = value
+        if minutes(value) is not None:
+            record[f"{key}TimeMinutes"] = minutes(value)
     yielded = re.search(r"Yield:\s*([^|\n]+)", text, re.I)
     if yielded:
         record["recipeYield"] = yielded.group(1).strip()
@@ -995,7 +1027,7 @@ def paged_record(recipe: dict, page: str) -> tuple[dict | None, str | None]:
     steps = [s for s in recipe.get("steps") or [] if isinstance(s, str) and s.strip()]
     if not name or not ingredients:
         return None, "no name or no ingredient line"
-    record = {"name": name.strip(), "ingredients": [{"rawLine": i.strip()} for i in ingredients],
+    record = {"name": despaced(name.strip(), page), "ingredients": [{"rawLine": i.strip()} for i in ingredients],
               "steps": [{"order": n + 1, "instruction": s.strip()} for n, s in enumerate(steps)]}
     problem = number_check(record, page)
     if problem:
@@ -1010,6 +1042,50 @@ def paged_record(recipe: dict, page: str) -> tuple[dict | None, str | None]:
         if folded and not any(folded in e for e in extracted) and not any(folded in s for s in said):
             return None, f"an ingredient line not extracted: {text[:60]}"
     return record, None
+
+
+TITLE_WORDS = frozenset("""
+a an and the with of in on for to or n style home homemade down healthy easy quick old fashioned country southern new orleans
+minute minutes hour one two three four five six seven eight nine ten red green black white yellow brown hot cold spicy sweet sour
+chicken turkey beef pork ham fish catfish salmon tuna shrimp crab oyster oysters bean beans rice pea peas greens collard collards
+cabbage corn potato potatoes sweet yam yams okra tomato tomatoes onion onions pepper peppers squash carrot carrots spinach
+stew soup gumbo chili chowder salad slaw coleslaw sauce gravy creole cajun jambalaya casserole pie cobbler cake bread cornbread
+biscuits muffins pudding fried baked oven smothered grilled roast roasted barbecue barbecued bbq stuffed steamed boiled
+apple apples peach peaches banana berry berries lemon orange fruit dressing dip relish loaf meat meatloaf breakfast dinner lunch
+""".split())
+
+
+def despaced(name: str, page: str = "") -> str:
+    """A title with its letter-spaced runs closed up by rule ("C AT F I S H STEW with RICE" is "CATFISH STEW with RICE"): a
+    run of three or more tokens of one or two letters, mostly single, is one or more words; its letters are cut into the
+    fewest words of the page's own text and a short list of cookbook title words, and kept as one word when they cannot
+    be (staging checkpoint 4, P34)."""
+    tokens = name.split(" ")
+    words = TITLE_WORDS | {w.lower() for w in re.findall(r"[A-Za-z]{2,}", page)}
+    out: list[str] = []
+    i = 0
+    while i < len(tokens):
+        j = i
+        while j < len(tokens) and re.fullmatch(r"[A-Za-z]{1,2}", tokens[j]):
+            j += 1
+        run = tokens[i:j]
+        if len(run) >= 3 and sum(len(t) == 1 for t in run) * 3 >= len(run) * 2:
+            out.extend(_segment("".join(run), words))
+            i = j
+        else:
+            out.append(tokens[i])
+            i += 1
+    return " ".join(out)
+
+
+def _segment(letters: str, words: frozenset[str] | set[str]) -> list[str]:
+    best: list[list[str] | None] = [[]] + [None] * len(letters)
+    for end in range(1, len(letters) + 1):
+        for start in range(end):
+            piece = letters[start:end]
+            if best[start] is not None and piece.lower() in words and (best[end] is None or len(best[start]) + 1 < len(best[end])):
+                best[end] = best[start] + [piece]
+    return best[-1] or [letters]
 
 
 def book_records(doc: dict, ask, paged: bool) -> tuple[list[tuple[dict, list[int]]], list[dict]]:
@@ -1060,6 +1136,8 @@ def _ask(ask, chunk) -> list[tuple[dict | None, dict | None]]:
         recipes = answer.get("recipes") if isinstance(answer, dict) else None
         if not isinstance(recipes, list):
             raise ValueError("no recipes list")
+    except cookbook.ModelCallTimedOut as exc:
+        return [(None, {"name": None, "reason": f"model call timed out: {exc}; the page is dropped this run and asked again on the next"})]
     except cookbook.ModelCallFailed as exc:
         return [(None, {"name": None, "reason": f"model call failed: {exc}; asked again on the next run"})]
     except (ValueError, json.JSONDecodeError) as exc:
@@ -1221,7 +1299,8 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--host")
             p.add_argument("--model")
             p.add_argument("--timeout", type=int, default=600, help="seconds one model call may take (default 600)")
-            p.add_argument("--retries", type=int, default=2, help="times a failed or timed-out model call is asked again (default 2)")
+            p.add_argument("--retries", type=int, default=2, help="times a failed model call is asked again (default 2); in pages mode a "
+                                                                   "call that times out is not asked again in the run")
         if name == "sample":
             p.add_argument("--per-source", type=int, default=20)
             p.add_argument("--seed", type=int, default=20261121)
@@ -1312,7 +1391,8 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             with open(path, encoding="utf-8") as handle:
                 doc = json.load(handle)
-            ask = cookbook.resumable(model, os.path.join(out_dir, f"{book.doc_id}.answers.jsonl"), retries=args.retries, model=args.model) if model else None
+            ask = cookbook.resumable(model, os.path.join(out_dir, f"{book.doc_id}.answers.jsonl"), retries=args.retries, model=args.model,
+                                     retry_timeouts=book.layout != "pages") if model else None
             result = extract_document(doc, sources[book.source], ask)
             results[book.source].append((book.doc_id, result))
             write_jsonl(os.path.join(out_dir, f"{book.doc_id}.records.jsonl"), result.kept)

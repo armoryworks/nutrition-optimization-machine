@@ -104,5 +104,44 @@ namespace Nom.Api.Tests.Golden
             measured.Should().BeEquivalentTo(expected,
                 $"the held-out figures are recorded by hand in {Record} whenever a rule change moves them; now:\n{report}\n{string.Join("\n", misses)}");
         }
+
+        /// <summary>What the line guard does on the held-out half, with the build that last wrote the line (logged) as the stored amount and the current reading as the new one.</summary>
+        public sealed record GuardFigures(int Rows, int Same, int Kept, int Replaced, int Held, int Worse, int Better);
+
+        private static LineAmountGuard.Amount Amount(string cell, GoldenRow row, bool fromMethod)
+        {
+            var parts = cell == GoldenTsv.NoAnswer ? null : cell.Split(' ', 2);
+            var quantity = parts == null ? 0m : decimal.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture);
+            return new LineAmountGuard.Amount(quantity, parts?[1], null, IngredientNameNormalizer.Normalize(row["raw"]), row["pieces"] != "no" ? 100m : null, fromMethod && quantity > 0);
+        }
+
+        [Fact]
+        public void The_line_guard_on_the_held_out_half_makes_no_line_worse_and_scores_as_recorded()
+        {
+            int rows = 0, same = 0, kept = 0, replaced = 0, held = 0, worse = 0, better = 0;
+            foreach (var row in GoldenSet.Read(File).Rows.Where(r => r["half"] == HeldOut && r["status"] != GoldenTsv.NoAnswer && r["logged"] != GoldenTsv.NotJudged))
+            {
+                var now = Read(row);
+                var verdict = LineAmountGuard.Decide(row["raw"], Amount(row["logged"], row, row["class"] == "method"), Amount(now, row, row["class"] == "method"), Cells(row["steps"]));
+                var final = LineAmountGuard.Takes(verdict) ? now : row["logged"];
+                rows++;
+                switch (verdict)
+                {
+                    case LineAmountGuard.Verdict.Same: same++; break;
+                    case LineAmountGuard.Verdict.Keep: kept++; break;
+                    case LineAmountGuard.Verdict.Replace: replaced++; break;
+                    default: held++; break;
+                }
+                if (row["logged"] == row["expect"] && final != row["expect"]) worse++;
+                if (row["logged"] != row["expect"] && final == row["expect"]) better++;
+            }
+
+            var measured = new GuardFigures(rows, same, kept, replaced, held, worse, better);
+            _output.WriteLine(measured.ToString());
+            measured.Worse.Should().Be(0, "the guard never makes a line worse than the build before it left it");
+            using var recorded = JsonDocument.Parse(System.IO.File.ReadAllText(Path.Combine(GoldenSet.Folder, Record)));
+            var expected = JsonSerializer.Deserialize<GuardFigures>(recorded.RootElement.GetProperty("guard").GetRawText(), new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            measured.Should().Be(expected, $"the guard's figures on the held-out half are recorded by hand in {Record}; now: {measured}");
+        }
     }
 }

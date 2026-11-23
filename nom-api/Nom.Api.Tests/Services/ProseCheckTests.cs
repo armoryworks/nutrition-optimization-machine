@@ -26,7 +26,7 @@ namespace Nom.Api.Tests.Services
         {
             var finding = Check(new[] { "Bake the bread for 30 minutes." }, new[] { "Bake the loaf 30 minutes." }, stock: new ProseStockIndex(7, Enumerable.Empty<long>()));
 
-            finding.CheckVersion.Should().Be(ProseCheck.Version).And.Be(4);
+            finding.CheckVersion.Should().Be(ProseCheck.Version).And.Be(5);
             finding.StockVersion.Should().Be(7);
             finding.Passed.Should().BeTrue(finding.ToString());
         }
@@ -84,7 +84,10 @@ namespace Nom.Api.Tests.Services
             var finding = Check(new[] { "Fold the blueberries into the batter." }, new[] { "Fold everything together." }, new[] { "1 cup blueberries", "2 cups batter" });
 
             finding.Faults.Should().Contain(f => f.Reason == ProseCheck.LostIngredient && f.Detail.Contains("blueberries"));
-            finding.Failed.Should().BeTrue("an ingredient of the source method named nowhere in the rewrite is a reliable loss");
+            finding.Unsure.Should().BeTrue("lost-ingredient fails a rewrite only once its class is proven on its judged rows");
+            using (ProseCheck.AssumeProven(ProseCheck.LostIngredient))
+                Check(new[] { "Fold the blueberries into the batter." }, new[] { "Fold everything together." }, new[] { "1 cup blueberries", "2 cups batter" })
+                    .Failed.Should().BeTrue("an ingredient of the source method named nowhere in the rewrite fails it once the class is proven");
             Check(new[] { "Fold the blueberries into the batter." }, new[] { "Add the batter. Fold in the berries." }, new[] { "1 cup blueberries", "2 cups batter" })
                 .Faults.Should().Contain(f => f.Reason == ProseCheck.LostIngredient);
             Check(new[] { "Fold the blueberries into the batter." }, new[] { "Stir the blueberries through the batter." }, new[] { "1 cup blueberries", "2 cups batter" })
@@ -393,11 +396,27 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public void An_added_amount_marks_a_rewrite_unsure_and_a_lost_one_fails_it()
+        public void An_added_amount_marks_a_rewrite_unsure_and_a_lost_one_fails_it_only_while_its_class_is_proven()
         {
             Check(new[] { "Bake until golden." }, new[] { "Bake for 25 minutes until golden." }).Outcome.Should().Be("unsure");
-            Check(new[] { "Bake for 25 minutes until golden." }, new[] { "Bake until golden." }).Failed.Should().BeTrue();
-            Check(new[] { "Bake for 25 minutes until golden." }, new[] { "Bake for 35 minutes until golden." }).Failed.Should().BeTrue();
+            var lost = Check(new[] { "Bake for 25 minutes until golden." }, new[] { "Bake until golden." });
+            lost.Unsure.Should().BeTrue(lost.ToString());
+            lost.UnprovenReasons.Should().Equal(ProseCheck.LostQuantity);
+            using (ProseCheck.AssumeProven(ProseCheck.LostQuantity, ProseCheck.ChangedUnit, ProseCheck.ChangedRange, ProseCheck.WrongAmount))
+            {
+                Check(new[] { "Bake for 25 minutes until golden." }, new[] { "Bake until golden." }).Failed.Should().BeTrue();
+                Check(new[] { "Bake for 25 minutes until golden." }, new[] { "Bake for 35 minutes until golden." }).Failed.Should().BeTrue();
+            }
+
+            using (ProseCheck.AssumeProven(ProseCheck.WrongAmount))
+                Check(new[] { "Bake for 25 minutes until golden." }, new[] { "Bake until golden." }).Unsure.Should().BeTrue("each fact class is proven on its own");
+        }
+
+        [Fact]
+        public void A_copy_fails_a_rewrite_whatever_fact_class_is_proven()
+        {
+            using (ProseCheck.AssumeProven())
+                Check(Copied, Copied).Failed.Should().BeTrue();
         }
 
         [Fact]
@@ -475,6 +494,92 @@ namespace Nom.Api.Tests.Services
 
             finding.LongestRun.Should().BeGreaterThanOrEqualTo(ProseCheck.CopiedRun);
             finding.Copied.Should().BeTrue(finding.ToString());
+        }
+
+        [Fact]
+        public void A_pan_size_the_source_restates_is_one_pan()
+        {
+            var finding = Check(
+                new[] { "Grease an 8x8 baking pan.", "Whisk the eggs and sugar, fold in the flour, then pour the batter into the 8x8 baking pan and bake for 25 minutes." },
+                new[] { "Grease an 8x8 baking pan.", "Whisk the eggs with the sugar, fold in the flour, pour the batter into the pan and bake 25 minutes." });
+
+            finding.Reasons.Should().NotContain(ProseCheck.QuantityReasons, finding.ToString());
+        }
+
+        [Fact]
+        public void The_size_of_a_measuring_cup_or_bowl_is_no_amount()
+        {
+            var finding = Check(
+                new[] { "In a 2-cup measuring cup, whisk the milk with the egg." },
+                new[] { "Whisk the milk and the egg together in a jug." },
+                new[] { "1 cup milk", "1 egg" });
+
+            finding.Reasons.Should().NotContain(ProseCheck.QuantityReasons, finding.ToString());
+        }
+
+        [Fact]
+        public void How_many_at_a_time_is_kept_by_in_pairs()
+        {
+            var finding = Check(new[] { "Fry the fritters two at a time until crisp." }, new[] { "Fry the fritters in pairs until crisp." });
+
+            finding.Reasons.Should().NotContain(ProseCheck.LostQuantity, finding.ToString());
+        }
+
+        [Fact]
+        public void An_amount_each_of_a_list_states_it_for_every_item()
+        {
+            var finding = Check(
+                new[] { "Stir in 1 teaspoon thyme, 1 teaspoon sage and 1 teaspoon parsley." },
+                new[] { "Stir in 1 teaspoon each of thyme, sage and parsley." },
+                new[] { "1 teaspoon thyme", "1 teaspoon sage", "1 teaspoon parsley" });
+
+            finding.Reasons.Should().NotContain(ProseCheck.QuantityReasons, finding.ToString());
+            Check(new[] { "Stir in 1 teaspoon thyme, 1 teaspoon sage and 1 teaspoon parsley." }, new[] { "Stir in 1 teaspoon of thyme with the sage and parsley." },
+                new[] { "1 teaspoon thyme", "1 teaspoon sage", "1 teaspoon parsley" }).Reasons.Should().Contain(ProseCheck.LostQuantity);
+        }
+
+        [Fact]
+        public void A_time_is_never_paired_with_an_ingredient_named_in_another_clause()
+        {
+            var lines = new[] { "1 onion", "2 cups peas", "1 cup berries" };
+
+            Check(new[] { "Cook the onion for 1 minute, then add the peas and cook for 2 to 3 minutes." },
+                    new[] { "Soften the onion for 1 minute, add the peas and cook them 2 to 3 minutes." }, lines)
+                .Reasons.Should().NotContain(ProseCheck.QuantityReasons);
+            Check(new[] { "Bake for 20 minutes (22 minutes if using frozen berries)." },
+                    new[] { "Bake 20 minutes (22 minutes with frozen berries)." }, lines)
+                .Reasons.Should().NotContain(ProseCheck.QuantityReasons);
+        }
+
+        [Fact]
+        public void A_count_of_one_kept_in_other_words_is_not_lost()
+        {
+            var finding = Check(
+                new[] { "Sear the pork for 6 minutes and season the beans with a pinch of salt.", "Near the end, lay a slice of gruyere on each chop. Shut the oven and let the gruyere soften for 1 minute or so." },
+                new[] { "Sear the pork 6 minutes and season the beans with salt.", "Near the end, put a slice of gruyere on each chop. Shut the oven and let the gruyere soften for 1 minute." },
+                new[] { "1 1/2 pounds pork chops", "2 cups green beans", "salt", "4 to 6 slices gruyere cheese" });
+
+            finding.Reasons.Should().NotContain(ProseCheck.QuantityReasons, finding.ToString());
+        }
+
+        [Fact]
+        public void The_cooking_water_of_an_ingredient_is_not_that_ingredient()
+        {
+            var finding = Check(
+                new[] { "Before draining the pasta, save 2 cups of the pasta water.", "Toss the pasta with the sauce, adding another 1/2 cup of the starchy water if it looks dry." },
+                new[] { "Keep 2 cups of the cooking water, then drain the pasta.", "Toss the pasta with the sauce and add another 1/2 cup of pasta water if it is dry." },
+                new[] { "1 lb pasta", "1 cup tomato sauce" });
+
+            finding.Reasons.Should().NotContain(ProseCheck.QuantityReasons, finding.ToString());
+        }
+
+        [Fact]
+        public void An_extract_named_by_its_flavour_is_kept_and_a_ratio_is_no_amount()
+        {
+            Check(new[] { "Whisk in the vanilla extract." }, new[] { "Whisk in the vanilla." }, new[] { "1 teaspoon vanilla extract" })
+                .Reasons.Should().NotContain(ProseCheck.LostIngredient);
+            Check(new[] { "Use a 50/50 mix of tart and sweet apples." }, new[] { "Use half tart and half sweet apples." }, new[] { "4 apples" })
+                .Reasons.Should().NotContain(ProseCheck.QuantityReasons);
         }
 
         [Fact]

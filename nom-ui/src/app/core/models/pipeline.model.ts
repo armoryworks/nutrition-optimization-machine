@@ -393,6 +393,9 @@ export interface LinkRecheckStatus {
   version: string;
   signature: string;
   sets: string[];
+  provenClasses?: string[];
+  candidateClasses?: string[];
+  provenProblem?: string | null;
   lastRuns: LinkRecheckRun[];
   lastWithdraw: LinkRecheckRun | null;
   waitingPicks: number;

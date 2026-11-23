@@ -212,6 +212,22 @@
                     @if (source.recheckSkipped) {
                       <span class="nom-scraping-sources__notes" data-testid="scraping-source-recheck-skipped">{{ source.recheckSkipped }}</span>
                     }
+                    @if (source.prose; as p) {
+                      @if (p.recipes > 0) {
+                        <span class="nom-scraping-sources__notes" data-testid="scraping-source-prose-figures">
+                          {{ p.recipes | number }} recipes ({{ p.approved | number }} approved) · prose withheld {{ p.withheld | number }} ({{ p.withheldApproved | number }} approved)
+                        </span>
+                      }
+                      @if (p.rightsClass === 'facts-only' && p.withheld > 0) {
+                        <span class="nom-scraping-sources__notes nom-scraping-sources__warn" data-testid="scraping-source-prose-withheld-by-class">
+                          The facts-only class of {{ p.classFromTermsOnly ? 'terms-only' : 'full' }} check {{ p.classCheckId }} withholds this source's prose; its journal entry below undoes the class and the withhold together.
+                        </span>
+                      } @else if (p.rightsClass !== 'facts-only' && p.wouldWithhold > 0) {
+                        <span class="nom-scraping-sources__notes" data-testid="scraping-source-prose-would-withhold">
+                          A facts-only class, from a terms-only check or a full one, would withhold the prose of {{ p.wouldWithhold | number }} recipes ({{ p.wouldWithholdApproved | number }} approved) in the same tick.
+                        </span>
+                      }
+                    }
                     @if (source.termsCheck; as tc) {
                       <span class="nom-scraping-sources__notes" data-testid="scraping-source-terms-check">
                         Terms-only check {{ tc.status === 'queued' ? 'waiting for the source lane' : tc.status }} · {{ tc.startedUtc | date: 'mediumDate' }}
@@ -374,6 +390,11 @@
             <li data-testid="scraping-sources-rights-run-item">
               <strong>{{ change.domain }}</strong>: {{ change.oldClass ?? 'none' }} → {{ change.newClass ?? 'none' }}
               @if (change.newAiReserved) { · AI reserved }
+              @if (change.wouldWithhold) {
+                <span class="nom-scraping-sources__warn" data-testid="scraping-sources-rights-run-withhold">
+                  · {{ change.termsOnly ? 'a terms-only report' : 'a full report' }} that withholds the prose of {{ change.wouldWithhold | number }} recipes ({{ change.wouldWithholdApproved ?? 0 | number }} approved)
+                </span>
+              }
               <span class="nom-scraping-sources__item-meta">{{ change.reason }} — “{{ change.quote }}”</span>
             </li>
           }
@@ -583,6 +604,15 @@
               · seeds {{ run.seeds }} · {{ run.candidates }} candidates, {{ run.leads }} leads
               @if (run.seedsRefused) {
                 · refused seeds: {{ run.seedsRefused }}
+              }
+              @if (run.excludeSent) {
+                · <span data-testid="scraping-sources-run-excluded">excluded {{ run.excludeSent }} held hosts{{ run.excludeLeftOut ? ' (' + run.excludeLeftOut + ' left out over the limit)' : '' }}{{ run.candidatesExcluded ? '; the seeds link ' + run.candidatesExcluded + ' of them, not fetched: ' + excludedHosts(run) : '' }}</span>
+              }
+              @if (run.seedsExcluded) {
+                · <span class="nom-scraping-sources__warn" data-testid="scraping-sources-run-seeds-excluded">seeds also held as excluded (a NOM fault): {{ run.seedsExcluded }}</span>
+              }
+              @if (run.excludeNote) {
+                · <span class="nom-scraping-sources__warn" data-testid="scraping-sources-run-exclude-note">{{ run.excludeNote }}</span>
               }
               @if (run.error) {
                 · {{ run.error }}

@@ -9,15 +9,17 @@ using Xunit.Abstractions;
 namespace Nom.Api.Tests.Golden
 {
     /// <summary>
-    /// The prose check on the 160 recipes read against their source at staging checkpoints 2 and 3
-    /// (prose-check.tsv): at each, 40 the re-check failed and 40 it passed, kept as their whole stored
-    /// texts, masked, with the verdict the check gave on staging. An <c>expect</c> of <c>passed</c>
-    /// is met by a rewrite the check does not fail (passed or unsure), <c>unsure</c> by one it does
-    /// not pass clean, and a reason by a failure with that reason. No copied recipe may escape the
-    /// copy rule, no faithful one may meet it, and at most 1 in 20 failures may be false, on all the
-    /// rows and on the rows the checkpoint operators read alone, whose verdicts were given before the
-    /// check's limits were set. The 27 verdicts the checks got wrong on staging each name the rule
-    /// behind the error.
+    /// The prose check on the 200 recipes read against their source at staging checkpoints 2, 3 and 4
+    /// (prose-check.tsv): at checkpoints 2 and 3, 40 the re-check failed and 40 it passed, at
+    /// checkpoint 4, 40 it failed, kept as their whole stored texts, masked, with the verdict the check
+    /// gave on staging. An <c>expect</c> of <c>passed</c> is met by a rewrite the check does not fail
+    /// (passed or unsure), <c>unsure</c> by one it does not pass clean, and a reason by a finding with
+    /// that reason that fails the rewrite, or only marks it unsure while the reason is a fact class not
+    /// proven. No copied recipe may escape the copy rule, no faithful one may meet it, and at most 1
+    /// in 20 failures may be false, on all the rows and on the rows the checkpoint operators read
+    /// alone, whose verdicts were given before the check's limits were set, both with the committed
+    /// proven classes and with every fact class taken as proven. The 35 verdicts the checks got wrong
+    /// on staging each name the rule behind the error.
     /// </summary>
     [Trait("Category", "Golden")]
     public class GoldenProseCheckTests
@@ -40,7 +42,7 @@ namespace Nom.Api.Tests.Golden
         {
             "passed" => !finding.Failed,
             "unsure" => !finding.Passed,
-            var reason => finding.FailReasons.Contains(reason),
+            var reason => finding.Reasons.Contains(reason) && (finding.Failed || (ProseCheck.FactClasses.Contains(reason) && !finding.Proven.Contains(reason))),
         };
 
         private static bool IsCopy(GoldenRow row) => ProseCheck.CopyReasons.Contains(row["expect"]);
@@ -71,6 +73,12 @@ namespace Nom.Api.Tests.Golden
 
             AssertBars("all read recipes", rows, findings);
             AssertBars("recipes the checkpoint operators read", rows.Where(ReadByOperator).ToList(), findings);
+            using (ProseCheck.AssumeProven(ProseCheck.FactClasses.ToArray()))
+            {
+                var proven = rows.ToDictionary(r => r.Id, Check);
+                AssertBars("all read recipes, every fact class proven", rows, proven);
+                AssertBars("recipes the checkpoint operators read, every fact class proven", rows.Where(ReadByOperator).ToList(), proven);
+            }
         }
 
         private static bool ReadByOperator(GoldenRow row) => row["source"].StartsWith(OperatorSource, System.StringComparison.Ordinal);
@@ -101,6 +109,7 @@ namespace Nom.Api.Tests.Golden
 
             wrong.Where(r => r["v2"] != "-").Should().HaveCount(15, "checkpoint 2 read 9 false failures and 6 copies that passed check v2");
             wrong.Where(r => r["v3"] != "-").Should().HaveCount(12, "checkpoint 3 read 9 false failures and 3 copies that passed check v3");
+            wrong.Where(r => r["v4"] != "-").Should().HaveCount(8, "checkpoint 4 read 8 false failures of check v4, all quantity rules");
             wrong.Where(r => r.Value("rule") == null).Select(r => r.Id).Should().BeEmpty("each wrong verdict names the rule behind it");
             wrong.Where(r => !Meets(r, Check(r))).Select(r => r.Id).Should().BeEmpty();
         }

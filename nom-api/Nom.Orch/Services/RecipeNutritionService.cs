@@ -51,6 +51,7 @@ namespace Nom.Orch.Services
         public const long CategoryMass = 1L;
         public const long CategoryVolume = 2L;
         public const long CategoryCount = 3L;
+        private const int RecalculateChunk = 500;
 
         private readonly ApplicationDbContext _db;
         private readonly ILogger<RecipeNutritionService> _logger;
@@ -75,21 +76,50 @@ namespace Nom.Orch.Services
             return written;
         }
 
+        private IQueryable<RecipeEntity> Labelled() => _db.Recipes
+            .Include(r => r.RecipeIngredients).ThenInclude(ri => ri.Measurement)
+            .Include(r => r.RecipeIngredients).ThenInclude(ri => ri.Ingredient)
+                .ThenInclude(i => i.IngredientNutrients).ThenInclude(n => n.Nutrient)
+                    .ThenInclude(n => n.DefaultMeasurement);
+
         public async Task<int> RecalculateAsync(long recipeId)
         {
-            var recipe = await _db.Recipes
-                .Include(r => r.RecipeIngredients).ThenInclude(ri => ri.Measurement)
-                .Include(r => r.RecipeIngredients).ThenInclude(ri => ri.Ingredient)
-                    .ThenInclude(i => i.IngredientNutrients).ThenInclude(n => n.Nutrient)
-                        .ThenInclude(n => n.DefaultMeasurement)
-                .FirstOrDefaultAsync(r => r.Id == recipeId);
+            var recipe = await Labelled().FirstOrDefaultAsync(r => r.Id == recipeId);
             if (recipe == null) return 0;
 
             var existing = await _db.RecipeNutrition.Where(n => n.RecipeId == recipeId).ToListAsync();
+            var (written, changed) = await DeriveAsync(recipe, existing);
+            if (changed) await _db.SaveChangesAsync();
+            return written;
+        }
+
+        public async Task<int> RecalculateManyAsync(IReadOnlyCollection<long> recipeIds)
+        {
+            var written = 0;
+            foreach (var part in recipeIds.Distinct().Order().Chunk(RecalculateChunk))
+            {
+                var recipes = await Labelled().AsSplitQuery().Where(r => part.Contains(r.Id)).ToDictionaryAsync(r => r.Id);
+                var labels = (await _db.RecipeNutrition.Where(n => part.Contains(n.RecipeId)).ToListAsync()).ToLookup(n => n.RecipeId);
+                var changed = false;
+                foreach (var id in part)
+                {
+                    if (!recipes.TryGetValue(id, out var recipe)) continue;
+                    var (rows, wrote) = await DeriveAsync(recipe, labels[id].ToList());
+                    written += rows;
+                    changed |= wrote;
+                }
+                if (changed) await _db.SaveChangesAsync();
+            }
+            return written;
+        }
+
+        private async Task<(int Written, bool Changed)> DeriveAsync(RecipeEntity recipe, List<RecipeNutritionEntity> existing)
+        {
+            var recipeId = recipe.Id;
             if (existing.Any(n => n.DateCalculated == null))
             {
                 // Seeded / hand-authored label — authoritative, do not derive over it.
-                return 0;
+                return (0, false);
             }
 
             var weighing = await ContainerWeighing.ForRecipeAsync(_db, recipe);
@@ -122,12 +152,11 @@ namespace Nom.Orch.Services
                 if (existing.Count > 0 && measured.Any(ri => ri.Measurement?.IsContainer == true))
                 {
                     _db.RecipeNutrition.RemoveRange(existing);
-                    await _db.SaveChangesAsync();
                     _logger.LogInformation("Recipe {RecipeId}: nothing counts and a measured line is in a container unit, which the label may have weighed at an assumed size; derived label removed", recipeId);
-                    return 0;
+                    return (0, true);
                 }
                 _logger.LogDebug("Recipe {RecipeId}: no ingredient contributed nutrition; leaving label as-is", recipeId);
-                return 0;
+                return (0, false);
             }
 
             var servings = LabelServings(recipe) ?? 1m;
@@ -147,9 +176,8 @@ namespace Nom.Orch.Services
                     LastModifiedDate = now
                 });
             }
-            await _db.SaveChangesAsync();
             _logger.LogDebug("Recipe {RecipeId}: derived {Count} nutrient rows from {Ingredients} ingredient(s)", recipeId, totals.Count, contributed);
-            return totals.Count;
+            return (totals.Count, true);
         }
 
         /// <summary>

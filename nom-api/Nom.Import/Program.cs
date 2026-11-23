@@ -29,6 +29,12 @@ namespace Nom.Import
                 return;
             }
 
+            if (args.Contains(Nom.Import.Golden.ProseCheckClassScorer.Flag))
+            {
+                Environment.ExitCode = Nom.Import.Golden.ProseCheckClassScorer.Run(args);
+                return;
+            }
+
             var host = CreateHostBuilder(args).Build();
 
             // Standalone command: classify the ingredient catalog into food groups + whole-food

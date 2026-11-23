@@ -40,21 +40,28 @@ Input: the recipe's steps in order and the drink line. The steps are split into 
    step that names the drink only as "liquor", "spirits" or "alcohol" with no determiner ("add the
    spice and liquor") names it; "the liquor", "their liquor" and "oyster liquor" are cooking liquids
    and do not. The first sentence that names it is the drink's sentence; reading starts at
-   the clause that names it (a clause ends at a comma or "then"), so "Simmer the onions 10 minutes,
-   then add the wine" does not count the onions' 10 minutes.
-2. **Drink never named.** When a step names some other drink word (the trigger again: "When cold,
-   pour the spirits over", "the wine", "their liquor"), the drink may have gone in there, so the
+   the clause that names it (a clause ends at a comma or "then" when what follows names a verb), so
+   "Simmer the onions 10 minutes, then add the wine" does not count the onions' 10 minutes, and
+   "Stew in water, white wine, sweet herbs" still stews the wine.
+2. **Drink never named.** When a step names some other drink word of the same kind (the trigger
+   again: "When cold, pour the spirits over", "the wine", "their liquor"; a wine word for a wine, a
+   spirit word for a spirit, and "spirits", "liquor" or "alcohol" for any drink, so "Serve with white
+   wine sauce" never places the brandy of the line), the drink may have gone in there, so the
    reader reads from each such step and from "up to" below, and keeps the highest factor; the
    mix-all step is not used. When no step names any drink word and a step mixes all the ingredients together ("Mix all the ingredients
-   well together", "Combine all the ingredients", "the remaining ingredients"; a step that mixes the
-   dry ingredients does not count), the drink is in that mixture and reading starts there: the USDA
+   well together", "Combine all the ingredients", "Whisk in the remaining ingredients", "fold it all
+   in"; a step that mixes the dry ingredients does not count), the drink is in that mixture and reading starts there: the USDA
    rows 5004-5009 measure exactly that, a drink stirred into a mixture that is then baked or simmered.
    Otherwise heat anywhere in the steps gives "up to" (85 % on the stove, 45 % if only the oven); no
-   heat gives no heat (100 %).
-3. **Heat after the drink.** Heating words: simmer, boil, stew, braise, reduce, poach, cook, heat,
+   heat gives no heat (100 %). Every reading of this step is an **estimate** (`Unnamed`), and so is
+   every "up to" reading: the run counts them (`estimated`, `unnamed`) and marks each sample, so a
+   figure read from a step that names the drink is never mistaken for one placed by rule.
+3. **Heat after the drink.** Heating words: simmer, boil, parboil, stew, braise, seethe, coddle,
+   fricassee, reduce, poach, cook, heat,
    fry, sauté, sear, steam, scald, deglaze, blanch, grill, microwave, thicken, "over a low flame"
    (stove), and bake, roast, broil, oven (oven). "Cook" and "heat" in a sentence that bakes, roasts
-   or names the oven are the oven's heat ("cook in a moderate oven"). "Every 30 minutes" ("basting
+   or names the oven are the oven's heat ("cook in a moderate oven"). "Blanched" describes a
+   ready food ("almonds blanched and shredded"), not heat on the dish. "Every 30 minutes" ("basting
    every 30 minutes") is how often, not how long, and is not a time. "Remove from the heat", "preheat", "baking soda" and
    the like are not heating. A heating sentence's first time ("30 minutes", "1 1/2 hours",
    "1-1/2 hours", "1½ hours", "half an hour", "an hour and a half", "1 hour 15 minutes", "20 to 25
@@ -70,9 +77,12 @@ Input: the recipe's steps in order and the drink line. The steps are split into 
      the stove, 45 % (5010) in the oven.
    - Flamed (flame, flambé, ignite, set alight, set fire to, ablaze, light the brandy): 75 % (5003),
      unless a timed heat after it gives less.
-4. **No heat after the drink.** Off the heat in its sentence ("remove from the heat and stir in the
-   sherry", "whisk in off the heat"), or stirred in right after a stove step: 85 % (5002). Stored
-   overnight or for days: 70 % (5001). Otherwise 100 %.
+4. **No heat after the drink.** Frozen after the drink ("freeze", "into the freezer", "until
+   frozen"): 100 %, whatever came before, since a frozen or uncooked dish keeps all its alcohol. Off
+   the heat in its sentence ("remove from the heat and stir in the sherry", "whisk in off the heat"),
+   or stirred in right after a stove step: 85 % (5002), unless the sentence says the mixture is cold
+   before the drink goes in ("When cold, add the brandy"). Stored overnight or for days: 70 % (5001).
+   Otherwise 100 %.
 
 The reader errs on the side of more alcohol: "up to" figures, the lower end of a range, seconds not
 counted as time, a drink the steps do not name read as "up to", heat after a chilled, set-aside or
@@ -126,6 +136,22 @@ drink's own sentence names ("the egg mixture" after "beat the eggs ... and vanil
 mixture it ends the reading as before (ar-086: a bourbon glaze, then a batter baked 30 minutes, is no
 heat).
 
+### Staging checkpoint 4: four readings wrong, one on the low side (`alcohol-retention/6`)
+
+40 fresh recipes and the four N20 examples read on staging (P15); in three of the examples the drink
+is named in no step. Golden rows are step texts written for the rule in the shape the log gives.
+
+| Item | Cause and decision | Golden row |
+|---|---|---|
+| 17180 card cakes, vanilla `up-to:simmer` 85 % | "almonds blanched" read as stove heat; "blanched" is a ready food. Up to the oven, 5010, 45 % | ar-088 |
+| 24825 HUNTING PUDDING, brandy `no-heat` 100 % | "Serve with white wine and butter sauce" named a drink word, so its no-heat reading won; a wine word does not place a spirit. Mix-all, boiled two hours, 5008, 10 % | ar-089 |
+| 24040 zucchini bread, vanilla `up-to:bake` 45 % | "whisk in the remaining ingredients" was no mix-all step. Baked 50 minutes, 5005, 35 % | ar-090 |
+| 70087 Timbale of Chicken, sherry `up-to:simmer` 85 % | No step names the sherry or mixes all the ingredients, so nothing places it: the safe-side "up to" row stays and the reading is counted as estimated (the log's 25 % needs a placement the steps do not give) | ar-091 |
+| 70187 Ice Pudding, brandy 85 % (low side) | Added "when cold" to a boiled custard and frozen: no heat, 100 % | ar-092, ar-093 |
+| 73328 BEEF VINGRETTE, white wine `no-heat` 100 % | The comma before "white wine" ended the clause; a clause starts only where a verb follows. "Stew" heats it: up to 5002, 85 % | ar-094 |
+
+ar-095 to ar-097 cover braise, seethe and fricassee as stove heat.
+
 ## Where it is stored and how the label uses it
 
 Two nullable columns on `recipe."RecipeIngredient"`: `AlcoholRetention` (numeric(5,4), the share that
@@ -144,7 +170,10 @@ Nothing else changes, and the food's stored values are never touched. Half a cup
 alcohol, in recipe order, and writes the factor and basis only where they change, each with an
 `AlcoholRetention` journal entry (`AuditLogEntry`, old and new `factor|basis`), then recalculates
 those recipes. It answers the lines read, the lines changed, the recipes recalculated, the counts by
-kind and a sample. A dry run writes nothing. Running it again writes only what changed (new lines,
+kind, the lines read as estimates (`estimated`: the drink named in no step or an "up to" heat;
+`unnamed`: the drink named in no step) and a sample, each sample marked `estimated` and `unnamed`;
+the log line carries both counts. The journal keeps the factor and basis the undo matches on, as
+before. A dry run writes nothing. Running it again writes only what changed (new lines,
 edited steps).
 
 `POST api/FoodCatalog/alcohol-retention/undo?sinceUtc=<stamp>&apply=false` gives each line back the
@@ -213,7 +242,7 @@ No Alcohol household and kept out for a Halal one (`diet-gate.tsv` dg-33 to dg-4
 
 ## Golden set and scorer
 
-`alcohol-retention.tsv` (97 rows since `alcohol-retention/5`: 87 rule-given, `rule:alcohol-retention`, `ok`; 10 realistic methods
+`alcohol-retention.tsv` (107 rows since `alcohol-retention/6`: 97 rule-given, `rule:alcohol-retention`, `ok`; 10 realistic methods
 judged by the builder, `agent-review-alcohol-retention-2026-11-21`, `agent`). No-model scorer lane
 `alcohol-retention` in `model-lanes.json` (`required`, floor 100 %, no false accept; a false accept is
 a factor below the row's). Record: `dotnet run --project nom-api/Nom.Import -- --golden-score --lane

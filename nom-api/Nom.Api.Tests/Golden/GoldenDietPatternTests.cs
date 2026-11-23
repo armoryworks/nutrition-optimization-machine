@@ -71,6 +71,7 @@ namespace Nom.Api.Tests.Golden
                 await DefaultRestrictionCriteria.EnsureAsync(db);
 
                 var set = await new HouseholdRestrictionResolver(db).ResolveAsync(HouseholdId);
+                await Nom.Api.Tests.Services.MealPlan.DietLineIndexTests.AssertIndexAgreesAsync(db, HouseholdId, PersonId);
                 set.IngredientIds.Should().NotContain(wording.Id);
                 foreach (var (id, line, named, byName) in recipes)
                     verdicts[id] = new Verdict(set.RecipeIds.Contains(line.Id), set.IngredientIds.Contains(named.Id) || set.RecipeIds.Contains(byName.Id));

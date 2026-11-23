@@ -57,11 +57,19 @@ script lives in `ops/` because it fetches; nom-api never fetches a recipe site.
 4. **extract**: `records/<doc>.records.jsonl` and `records/<doc>.rejects.jsonl`, and
    `extract-summary.json` with, per source, documents, pages, pages needing OCR, records kept,
    records dropped by reason and documents not parsed.
-   - `card` (VA): read by rule: title (the listing's title), `Prep | Cook | Total`, `Yield`, the
-     Ingredients section (a text block starts a line; wrapped parts are joined, and a line that ends
-     with a word that cannot end it, "into", "or", "to", "about", "of", "with", "for", "plus",
-     "from", a dash or an open bracket, takes the next line even across a block break and when the
-     next starts with an amount: staging checkpoint 3, N29, 11 of 337 VA recipes) and the Directions
+   - `card` (VA): read by rule: the title the card prints (the lines above its first header line,
+     `Prep:` or `Yield:`, without a template's "Recipe Title" placeholder; the listing's title only
+     when the card prints none: staging checkpoint 4, P28, 53 of 337 names came from the index list),
+     each named time of the header (`Prep`, `Cook`, `Total` in any order; a `Chill` or `Inactive`
+     field is part of the total and is not kept on its own: P27, 47 of 337 cards lost every time),
+     `Yield`, the Ingredients section (a text block starts a line; wrapped parts are joined, and a
+     line that ends with a word that cannot end it, "into", "or", "to", "about", "of", "with",
+     "for", "plus", "from", a dash or an open bracket, takes the next line even across a block break
+     and when the next starts with an amount: staging checkpoint 3, N29, 11 of 337 VA recipes; a line
+     that ends with "if", "when", "until" or "than", or with a word that names no food alone ("or
+     plain" / "Greek yogurt"; after a list comma only on a line with no amount, "Chopped basil,
+     grated" / "Parmesan cheese"), takes the next line unless it starts with an amount, and a line
+     that is only a bracket, "(optional)", always joins the line before: P26, 5 of 337) and the Directions
      section (numbered steps take their block; the first unnumbered block after them, a note, ends
      them), up to Recipe Notes and the nutrition line.
    - `html` (NHLBI): the title, the sentence under it as the description, the Ingredients and
@@ -74,15 +82,23 @@ script lives in `ops/` because it fetches; nom-api never fetches a recipe site.
    - `pages` (NCI, one recipe to a page): the same model extraction page by page; the record must
      pass the number check, and every line of the page that starts with an amount (a bare step
      number aside) must lie inside one of its ingredient lines or a step, so a wrapped line counts
-     once and no listed ingredient is left out.
+     once and no listed ingredient is left out. A returned name in letter-spaced type ("C AT F I S H
+     STEW with RICE") is closed up by rule: a run of three or more tokens of one or two letters,
+     mostly single, is cut into the fewest words of the page's own text and a short list of cookbook
+     title words, and kept as one word when it cannot be (P34).
    - Model calls (`book`, `pages`): `--timeout` (seconds per call, default 600) and `--retries`
      (default 2, waits doubling from 30 s). Every readable answer is appended to
      `records/<doc>.answers.jsonl` the moment it arrives, keyed by the model, the prompt and the
      text, and read back on the next run with the same `--model`, so a page or chunk is never asked
      twice; an unreadable answer is not kept, so it is asked again, and another model's answers are
-     never reused; a call that still times out drops only its page or chunk, counted as
+     never reused; a call that still fails drops only its page or chunk, counted as
      `model call failed`, and the run goes on and writes every record it has (staging checkpoint 3,
-     N31: one call past 600 s ended the NCI run and lost everything). Run `extract` again to ask only
+     N31: one call past 600 s ended the NCI run and lost everything). In `pages` mode a call that
+     times out is not asked again in the run: one timeout drops that page, counted as
+     `model call timed out`, and the next run asks it again (staging checkpoint 4, P34: one page
+     that never answered held the NCI run for two 1,800 s timeouts and would have held it a third);
+     `--retries` still covers a refused connection or another failure there, and every failure in
+     `book` mode. Run `extract` again to ask only
      what is missing. `ops/cookbook-extract.py` takes the same `--timeout`, `--retries` and
      `--checkpoint` (default `<out>.answers.jsonl`) and counts `failedChunks`.
 

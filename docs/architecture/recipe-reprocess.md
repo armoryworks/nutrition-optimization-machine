@@ -88,11 +88,56 @@ proportions, reads a range whatever number of the food's words follow it ("make 
 boiled sweet potatoes" is 4 cups), counts pieces from "ten or a dozen" (a dozen is a count, not a
 measure) and takes nothing a liquid dissolves, softens or steeps another ingredient in, the curated food
 spelt with a hyphen inside a word ("Semi-Sweet") is found from the joined word, and a first alternative of
-more than one word is read alone when the shared words name no food (N1, N14, N16))
+more than one word is read alone when the shared words name no food (N1, N14, N16);
+`line-builder/10` since the checkpoint-4 round of `cleanup2/ck9-amounts`: every line built from a stored
+row passes the line guard below, a sentence the method fill reads as a proportion still counts as an
+amount of the food, so a part amount of another sentence no longer fills the line ("To six pounds of
+peaches allow two pounds of sugar" beside a syrup's three-quarters of a pound), "add to two quarts of"
+and "seven to eight cups of" are amounts and not proportions, a per-pound sentence goes on past ";" and
+past the point of "lb.", "for thirty pounds" is a proportion, a utensil line ("tin plate") and the
+vessel a food is put into ("Put into a tumbler ... syrup") give nothing, a French cross-reference ("comme
+celui du N. 579") and a price ("twenty cents' worth") are no amount, "one-half ounce" is half an ounce and
+"cup of the soup stock" is one cup (P2, P8, P11))
 is stamped on every journal row. Raise it with any
 change to a rule the builder applies: the detector reads again every recipe an older version read,
 and the lane's signature changes, so its tiers go back to shadow until they qualify under the new
 rules.
+
+## Line guard
+
+The rebuild can never make a line's amount worse by rule (`LineAmountGuard`, no model, since staging
+checkpoint 4, P11). Each line built from a stored row is compared with that row:
+
+- **same**: the amount is unchanged (two empty amounts are the same whatever their unit);
+- **kept**: the stored amount is grounded in the source (`ReprocessRuleAudit.GroundedIn` over the line and
+  the method sentences naming the food) and the rebuilt line has no amount or one the source does not
+  ground: the stored amount and kind stay;
+- **replaced**: the stored amount contradicts the source and the rebuilt one is grounded (an amount that
+  stands in the line, or for a method fill in a method sentence naming the food, with a unit A3 passes;
+  no amount is grounded unless the line opens with one). The stored amount contradicts the source when it
+  is not grounded (a cross-reference, a price, "a very little"), when its unit fails A3 and the rebuilt
+  line has an amount ("1 teaspn. salt" stored as a piece), when it is a smaller amount in the same measure
+  than the line itself states (the part "a pint and a half" adds to), and when it is an empty ingredient
+  line beside a grounded amount;
+- **held**: any other difference (both grounded and different, as "four or five oranges" stored as five
+  and read as four; neither grounded; a line of another kind) keeps the stored amount and kind and is
+  marked `held` in the line's `changes`, with the rebuilt amount in `heldQuantity`, `heldMeasurementId` and
+  `heldLineKind`, for the line judge.
+
+The run counts them per recipe and in total (`guardKept`, `guardReplaced`, `guardHeld`), and each changed
+line carries its verdict in `guard`. An order-only result whose lines change only order or are held stays
+in the order tier. The start-up fill uses the same guard and lets an amount stand only where the guard
+would replace: it fills only an empty amount, and only from one grounded mention, and never empties or
+changes a grounded stored amount ("two of sugar" stays two pieces).
+
+Measured at the checkpoint-4 round: on the held-out half of `line-holdout.tsv` (90 scored lines, the
+amount the checkpoint build left as the stored one and the current reading as the rebuilt one) the guard
+gives 78 same, 4 kept, 6 replaced and 2 held, no line worse than the build left it and 6 better
+(`line-holdout.json`, `guard`). Replayed on the 80 rebuilt recipes the checkpoint-4 operator read, from the
+log's lines and the step sentences it quotes: of 103 lines with a stored row, 20 same, 11 kept, 46
+replaced and 26 held; the 2 wrong amounts end as before (one held, one unchanged), 7 of the 8 emptied
+stated amounts are kept and the eighth was wrong before too; no replaced line is one the reading judged
+right before.
 
 ## Rebuild
 
@@ -238,7 +283,7 @@ order: every row of the recipe, deleted ones too, is removed for good and the ne
 with plain SQL, so the stamps they are given stand. A new row keeps the created date and creator of
 the row it was paired with, and is stamped as last changed by the system person.
 
-`POST /api/RecipeReprocess/undo?sinceUtc=&batchId=&kind=&apply=false` takes back the writes made
+`POST /api/RecipeReprocess/undo?sinceUtc=&batchId=&kind=&apply=false&batchSize=500&maxBatches=&runId=` takes back the writes made
 at or after `sinceUtc`, or of one batch, newest first, limited to one kind when given. A write is
 restored only when the recipe's rows (deleted ones included) still equal `NewRows`, and its steps
 `NewSteps` when it replaced them; otherwise it is skipped and its recipe listed. A kind the
@@ -320,7 +365,59 @@ stands (a rebuild that kept every row, a second order-only pass, another pass's 
 own undo restores rows as written and does not follow lines through an order write, so moving them
 would leave it impossible to undo; undo it first, or in the same run.
 
-Nutrition is recalculated after every rebuild and every undo that restored lines.
+Nutrition is recalculated after every rebuild and every undo that restored lines (not one that only
+followed positions), as before the batches: a label also reads the foods' current nutrients, their
+active container sizes and the recipe's servings, which may have changed since the label was last
+calculated (a catalog fill calculates no label again), so an undo whose lines are unchanged in content
+can still change the label's values. The undo calculates the labels of a batch's restored recipes in a
+few reads and one save (`IRecipeNutritionService.RecalculateManyAsync`, the same calculation as one
+recipe's), inside the batch's transaction before its progress row: a batch is committed with its labels
+or not at all, so a restart during a batch leaves no label calculated from the lines it replaced. A
+failure is logged and leaves the labels of that batch as they were (the recipes are then calculated one
+at a time, so one recipe's failure keeps no other label back).
+
+**Batches, progress and stopping** (staging checkpoint 4, P20: the order-only undo applied about 80
+recipes a minute, about 20 hours for the 97,400 recipes of the pass; the client gave up after an hour and
+the API went on until it was restarted). The undo takes its entries in batches (`batchSize`, default
+500, at most 2,000), newest first as before. Each batch reads its journal rows, recipes, lines, steps,
+later standing writes and headers in a few set-based reads, judges each entry exactly as the
+row-by-row undo did (against the rows, steps and state the entries before it left), and an apply then
+writes the whole batch in one transaction: one delete and one insert (`unnest` of typed arrays) for
+the lines of every recipe it restores, one save for the journal, header, link and audit rows, and a
+progress row. The generated copy of the pass in `ReprocessUndoBatchTests` (160 recipes: order-only
+pass, rebuilds with created foods, steps and states, rule rejections, second copies, later relinks,
+amount changes, hand-added and deleted lines, classifier kinds, approvals) was undone by the
+row-by-row undo of `93bb4b15` and its every line, step, recipe, food, journal, audit row and label value
+is `Fixtures/ReprocessUndo/row-by-row-undo.tsv`; the batched undo leaves exactly that at batch sizes
+500, 7 and 1, and when stopped and continued. The rule version the pass stamps on its journals and audit
+rows is `{line-builder}` in the file and reads as the current `RecipeLineBuilder.Version`, since the undo
+never judges by it. The copy ends with a catalog fill that changes foods'
+nutrients and calculates no label (review CK9US-1), so a label the undo does not calculate again shows.
+
+- An apply answers its `runId` (`ru-<time>-<guid>`). Its rows are in the audit log under entity
+  `RecipeReprocessUndoRun`, property the run id: `ReprocessUndoRun` (the filter and the entries at the
+  start), one `ReprocessUndoBatch` per batch (its counts and the last entry id reached, written in the
+  batch's transaction), and `ReprocessUndoRunEnd` (`finished`, `stop-requested`, `client-gone` or
+  `max-batches`) when a call ends.
+- `GET /api/RecipeReprocess/undo/progress?runId=` (the newest operator run when no id is given; the
+  reprocess lane's own undo also writes runs, which are read by their id) answers the
+  state (`running`, `stopped`, `finished`, or `interrupted` when the API stopped during the call),
+  entries at the start, batches, entries reached and remaining (counted now), the counts so far, the
+  last entry id, the time of the last batch, the working time (each batch's own time, summed, so the
+  time between a stop and the call that goes on is not counted) and entries per minute of that time.
+- `POST /api/RecipeReprocess/undo/stop?runId=` (the newest operator run when no id is given) asks the
+  run to stop: it ends before its next batch, and
+  a call whose caller went away (the request aborted) ends the same way. Every batch written is whole,
+  so the state is consistent wherever it stops.
+- `POST /api/RecipeReprocess/undo?runId=<id>&apply=true` goes on with a stopped or interrupted run: it
+  uses that run's filter and takes the entries below the last one reached, so an entry the run skipped
+  is not judged again; `maxBatches` limits a call. A finished or running run is refused (409).
+- One apply runs at a time on a database: an operator apply is refused (409) while another apply, the
+  operator's or the lane's, is going in the API, and the lane's own undo waits until it ends. The check
+  and the run's start row are made under one lock, so two applies sent at the same moment cannot both
+  start. The entries are listed when the run starts, and each batch reads only those still standing: an
+  entry something else took back in between is counted `alreadyUndone` and not judged again.
+- A dry run (`apply=false`) runs in the same batches, writes nothing and answers no run id.
 
 **Counts of a rebuild.** `counts.added` counts every built line with no stored row of its own: a
 source line new to the recipe, and the second and later parts of a `" + "` fold taken apart again (the
@@ -382,7 +479,7 @@ gate (`ai-pause-all`, `ai-pause-reprocess`, quiet hours). Off unless `Reprocess:
   with up to six changed lines and their rule-check failures in its signals. A batch is journaled as
   a `ReprocessBatch` row (entity `ReprocessLane`) with its figures.
 
-**Rule checks** (`ReprocessRuleAudit`, `reprocess-audit/5`, written apart from the builder, no
+**Rule checks** (`ReprocessRuleAudit`, `reprocess-audit/6`, written apart from the builder, no
 model) on every changed line: A1 the amount stands in the line's text, or for a method fill in a
 method sentence that names the food, as a number that text states times an old measure that same
 text names (a quart is 4 cups, a gill half a cup, a pound 16 ounces), within a range it states
@@ -391,7 +488,11 @@ text names (a quart is 4 cups, a gill half a cup, a pound 16 ounces), within a r
 stated before them ("1 lb. 13 oz. can" is 29 ounces, "2 cans (1 lb. 4 oz. each)" 40), or as two
 measures joined by "and" added up, in the smaller measure or the first ("one quart and a pint" is 6
 cups, "1 pound and 2 ounces" 1.125 pounds; `reprocess-audit/5`, as the builder now reads such lines); "a" or "an" counts as one only before a measure or the food, and a number between
-two unrelated numbers ("cook 10 minutes, then 2 more onions") grounds nothing. A line that starts with
+two unrelated numbers ("cook 10 minutes, then 2 more onions") grounds nothing; since `reprocess-audit/6` a
+measure the text opens with counts one ("pinch of salt"), "fourth", "sixth" and "eighth" are fractions ("one-sixth
+pint" is a third of a cup), a sum of two numbers is also read times the text's measure ("a pint and a half" is
+3 cups), a cross-reference ("al N. 579", "du N. 579") and a price ("twenty cents' worth") ground nothing, and the
+point of a measure's abbreviation ("1/2 pt. of cream") ends no method sentence. A line that starts with
 a number or "two cups of" stored with no amount fails. A2 a line moved to another food names that food. A3 pieces only of a food with a weight
 per item and never of a liquid or of a line that states a measure; no volume of a whole bird; a
 volume of a seasoning or leavener (salt, pepper, a ground spice, baking powder or baking soda, yeast;

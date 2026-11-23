@@ -23,6 +23,29 @@ namespace Nom.Orch.Models.Recipe
         public int RecipesRestamped { get; set; }
         public int RecipesWithheld { get; set; }
         public int RecipesReleased { get; set; }
+        public bool TermsOnly { get; set; }
+        public int WouldWithhold { get; set; }
+        public int WouldWithholdApproved { get; set; }
+    }
+
+    /// <summary>
+    /// The prose one source's class withholds, before and after: its recipes and the approved ones, those whose prose is withheld
+    /// now, and those a facts-only class withholds when it comes (neither withheld nor in NOM's own words); and whether the class
+    /// it holds came from a terms-only report.
+    /// </summary>
+    public class SourceProseFiguresModel
+    {
+        public long SourceId { get; set; }
+        public string Domain { get; set; } = string.Empty;
+        public string? RightsClass { get; set; }
+        public long? ClassCheckId { get; set; }
+        public bool ClassFromTermsOnly { get; set; }
+        public int Recipes { get; set; }
+        public int Approved { get; set; }
+        public int Withheld { get; set; }
+        public int WithheldApproved { get; set; }
+        public int WouldWithhold { get; set; }
+        public int WouldWithholdApproved { get; set; }
     }
 
     /// <summary>A derivation of the sources' classes from their stored reports: a dry run unless applied.</summary>
@@ -109,5 +132,6 @@ namespace Nom.Orch.Models.Recipe
         public int TakenFromBarredSources { get; set; }
         public DateTime? LastChangeUtc { get; set; }
         public int ChangesLast7d { get; set; }
+        public List<SourceProseFiguresModel> ProseBySource { get; set; } = new();
     }
 }

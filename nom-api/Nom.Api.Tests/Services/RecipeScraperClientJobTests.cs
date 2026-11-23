@@ -52,13 +52,13 @@ namespace Nom.Api.Tests.Services
             var (client, handler) = Client(_ => Json(HttpStatusCode.Accepted,
                 "{\"jobId\":\"abc\",\"kind\":\"discovery\",\"status\":\"running\",\"budgetSeconds\":600,\"deadlineUtc\":\"2026-11-20T19:10:00+00:00\",\"result\":{\"candidates\":[],\"partial\":false}}"));
 
-            var answer = await client.StartDiscoveryJobAsync(new[] { "a.example", "b.example", "c.example" }, 10, 600);
+            var answer = await client.StartDiscoveryJobAsync(new[] { "a.example", "b.example", "c.example" }, 10, 600, new[] { "forbidden.example" });
 
             answer.Outcome.Should().Be(ScraperJobOutcome.Ok);
             answer.Job!.JobId.Should().Be("abc");
             answer.Job.DeadlineUtc.Should().Be(new DateTimeOffset(2026, 11, 20, 19, 10, 0, TimeSpan.Zero));
             answer.Job.Result.Should().NotBeNull();
-            handler.Calls.Should().ContainSingle(c => c.Method == HttpMethod.Post && c.Path == "/api/discover/jobs" && c.Body!.Contains("\"budgetSeconds\":600"));
+            handler.Calls.Should().ContainSingle(c => c.Method == HttpMethod.Post && c.Path == "/api/discover/jobs" && c.Body!.Contains("\"budgetSeconds\":600") && c.Body.Contains("\"excludeDomains\":[\"forbidden.example\"]"));
         }
 
         [Fact]

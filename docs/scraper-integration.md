@@ -56,23 +56,36 @@ a cancel or a shutdown left work undone; `result` holds what was found) or `fail
 the job is unknown or was lost in a restart, a 429 that as many jobs of the kind run as the
 service allows. Jobs live in the scraper's memory, so NOM treats a lost job as a failed run.
 
-- `POST /api/discover/jobs` `{ "seedDomains": [...at most 20], "maxCandidates": 10, "budgetSeconds": 600 }`:
+- `POST /api/discover/jobs` `{ "seedDomains": [...at most 20], "maxCandidates": 10, "budgetSeconds": 600, "excludeDomains": [...] }`:
   follows outbound links from the seeds (in the order sent) and probes found domains for a recipe
   signal. `result`: `candidates` (`domain`, `evidenceUrl`, `signal`, `discoveredVia`),
   `probedWithoutSignal`, `partial`, `stopReason`, `seedsVisited`, `seedsNotVisited`,
   `candidatesNotProbed` (leads with no signal), `seedsRefused` (search engines and platforms,
-  never fetched), `pagesFetched`. Discovery proposes; it never imports.
+  never fetched), `seedsExcluded`, `candidatesExcluded`, `pagesFetched`. Discovery proposes; it never imports.
+  `excludeDomains` (at most 5,000 host names; more, or an entry that is not a host name, is a 400 and starts
+  nothing) names hosts neither pass may fetch: the host, its `www.` form and every subdomain get no homepage,
+  robots.txt, sitemap, page, probe or redirect hop. **NOM sends it on every discovery job**: every host it holds
+  as forbidden, permission-needed, rejected or unclassed, sources and candidates alike (see `recipe-sources.md`).
+  A linked domain on the list comes back in `candidatesExcluded` (`domain`, `discoveredVia`, `excludedBy`) with no
+  request made; NOM stores it on the run for the admin and never makes it a candidate. A seed on the list comes
+  back in `seedsExcluded`, unfetched: NOM sent a seed it also excludes, which NOM logs as its own fault, shows on
+  the run and does not rotate. A scraper from before `excludeDomains` ignores the field and probes those hosts;
+  NOM then flags the run ("did not apply excludeDomains") and keeps none of them as a candidate, so deploy the
+  scraper that takes it (rule version `source-check/6`) with the NOM that sends it.
 - `POST /api/source-check/jobs` `{ "domain": "www.example.org", "sampleSize": 20, "budgetSeconds": 1200, "includeRecipes": true }`:
   reads the site's robots.txt (NomBot, `*` and the named AI crawlers, crawl-delay), its
   reservation signals (TDMRep, `noai`), up to 6 terms, legal or licence pages, the sitemap and a
   spread sample of recipe pages, and returns facts only, with its own verdict and reasons under a
-  rule version (`source-check/5`; NOM still reads stored `source-check/4` and `source-check/2` reports, and a
-  newer `source-check/N` on the facts it knows, flagged and never clear). `result` is null while
+  rule version (`source-check/6`; NOM still reads stored `source-check/5`, `source-check/4` and `source-check/2`
+  reports, and a newer `source-check/N` on the facts it knows, flagged and never clear). `source-check/6` reads a
+  credit line that names only the site's own linked titles as no credit, and never samples an index or listing
+  page (a last path segment `recipe`, `recipes`, `all-recipes`, `index`, `recipe-index…` or ending `-recipes`), so
+  `credits`, `enumerable`, `structured-data`, `language` and a per-page `licence` can differ from `/5`. `result` is null while
   running and the full report once the job ends; a report that did not finish is `complete: false` and never
   clear. Nothing is imported. NOM reads the facts `access.homepageLinks` (0: a homepage
   built by scripts), `access.refusedPages`, `enumeration.refusedPages`, `samples.refused`, the
   `NoAddress` homepage outcome and the `off-domain` terms outcome, and reads the reasons by their code; a reason
-  or a value it does not know is unknown, never a pass. `terms.serviceLinks` (`source-check/5`) is not read.
+  or a value it does not know is unknown, never a pass. `terms.serviceLinks` (since `source-check/5`) is not read.
   With `"sampleSize": 0` (a **terms-only** check) the scraper reads robots.txt, the homepage
   and the terms pages only, no `tdmrep.json`, sitemap or recipe page, and reports `mode: "terms-only"`.
   **NOM's first check of every source and candidate is terms-only**, and it asks for a full check
@@ -172,16 +185,20 @@ whose check is clear is offered for that approval. Full design:
   Pipeline page with what it had found kept. Discovery reads each seed's sitemap and recipe pages, so it runs
   only while `SourceDiscovery:FullChecks` is on, and a seed must be a source that may be fetched (clear, a
   recorded permission, or facts-only with facts-only use approved by an admin); on a first enable nothing seeds
-  it until the terms-only pass has been reviewed.
+  it until the terms-only pass has been reviewed. Every job carries `excludeDomains`: the hosts NOM holds as
+  forbidden, permission-needed, rejected or unclassed, so a barred site linked from a seed is never fetched.
 - Found domains become candidates (`recipe.SourceCandidate`); a domain that is already a source,
   or that an admin rejected, is not. A user's request for an unknown domain becomes a candidate too.
 - **Source checks** run one at a time, at most `MaxChecksPerDay` a day: approved sources due for
   their weekly re-check first, then requests, then candidates. The first check of each is
   terms-only (robots.txt, the homepage and the terms pages); a full check with sample recipe pages
   follows only when that found no prohibition and no refusal, so a site whose own words forbid
-  automated collection, or that refuses NomBot, never has a recipe page requested. NOM stores each report whole
+  automated collection, or that refuses NomBot, never has a recipe page requested. Full checks are off
+  by default (`SourceDiscovery:FullChecks`), and with them on an approved source is checked in full only
+  after an admin approved facts-only use of it (or a permission is recorded); the setting alone starts
+  none. A lead (a site discovery found and never probed) gets a terms-only check, never a full one. NOM stores each report whole
   (`recipe.SourceCheck`, with the kind of check) and draws one verdict from it (`SourceAdmissionPolicy`, no model): clear
-  only when the check finished under `source-check/5`, the scraper and every one of its reasons
+  only when the check finished under `source-check/6`, the scraper and every one of its reasons
   agree, the licence is public domain, CC0, the Public Domain Mark or CC BY, the full 20 pages were
   sampled, NOM's own vetting passes 18 of the sample recipes and 85 % of their lines carry a
   quantity or need none, and no admin rejected the domain before.

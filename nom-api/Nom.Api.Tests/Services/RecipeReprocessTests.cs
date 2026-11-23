@@ -261,6 +261,39 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task The_line_guard_keeps_a_grounded_amount_holds_a_disputed_one_and_lets_a_grounded_one_replace_a_contradicted_one()
+        {
+            using var db = await SeededAsync();
+            var pepper = await FoodAsync(db, "red pepper");
+            var onions = await FoodAsync(db, "onions");
+            var salt = await FoodAsync(db, "salt");
+            pepper.GramsPerItem = 120m;
+            onions.GramsPerItem = 110m;
+            await db.SaveChangesAsync();
+            var steps = new[] { "Cut the tops from eight red or green peppers.", "Boil ten or a dozen onions." };
+            var record = Record("Stuffed Peppers", new[] { "red pepper", "onions", "1 teaspn. salt" }, steps);
+            var recipe = await RecipeAsync(db, record, new[]
+            {
+                new Row(pepper, "red pepper", 8, Piece), new Row(onions, "onions", 12, Piece, 1), new Row(salt, "1 teaspn. salt", 1, Piece, 2),
+            }, steps: steps);
+
+            var dry = await Service(db).RebuildAsync(For(recipe.Id), apply: false);
+
+            dry.Counts.GuardKept.Should().Be(1, "the stored eight peppers stand in the method and the rebuild reads none");
+            dry.Counts.GuardHeld.Should().Be(1, "a dozen and ten both stand in the method");
+            dry.Counts.GuardReplaced.Should().Be(1, "a piece of salt contradicts the teaspoon its line states");
+            var diffs = dry.Results.Single().Lines;
+            diffs.Select(d => d.Guard).Should().Equal("keep", "hold", "replace");
+            diffs[1].Changes.Should().Contain(RecipeReprocessLineDiff.Held);
+            (diffs[1].HeldQuantity, diffs[1].HeldMeasurementId).Should().Be((10m, Piece));
+
+            await Service(db).RebuildAsync(For(recipe.Id), apply: true);
+
+            var lines = await LinesAsync(db, recipe.Id);
+            lines.Where(l => !l.IsDeleted).Select(l => (l.Quantity, l.MeasurementId)).Should().Equal((8m, Piece), (12m, Piece), (1m, Teaspoon));
+        }
+
+        [Fact]
         public async Task The_rebuild_counts_pieces_from_the_method_only_for_a_food_with_a_weight_per_item()
         {
             using var db = await SeededAsync();

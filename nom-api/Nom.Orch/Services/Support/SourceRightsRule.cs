@@ -116,8 +116,8 @@ namespace Nom.Orch.Services.Support
     /// <item><b>forbidden</b>: a sentence of the site's own words (its terms or footer as the check quoted
     /// them, or a robots.txt comment) that <see cref="RightsSentences"/> reads as forbidding automated access
     /// or reuse; the sentence and its URL are kept.</item>
-    /// <item>A report under a rule version this rule does not read (it reads <c>source-check/5</c> and stored
-    /// <c>source-check/4</c> and <c>source-check/2</c> reports, and a newer <c>source-check/N</c> on the facts it knows,
+    /// <item>A report under a rule version this rule does not read (it reads <c>source-check/6</c> and stored
+    /// <c>source-check/5</c>, <c>source-check/4</c> and <c>source-check/2</c> reports, and a newer <c>source-check/N</c> on the facts it knows,
     /// flagged <see cref="SourceRightsVerdict.NewerRuleVersion"/>) gives no class (inconclusive), and so does a check that
     /// did not finish (unless the scraper refused to fetch the site at all) or a host with no address (DNS gave no A or AAAA
     /// record, so nothing could be read): the class already stored stands.</item>
@@ -140,7 +140,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class SourceRightsRule
     {
-        public const string Version = "source-rights/3";
+        public const string Version = "source-rights/4";
         public const string Clear = "clear";
         public const string FactsOnly = "facts-only";
         public const string PermissionNeeded = "permission-needed";
@@ -177,7 +177,7 @@ namespace Nom.Orch.Services.Support
             }
 
             if (!SourceAdmissionPolicy.Reads(report.RuleVersion))
-                return new SourceRightsVerdict(null, $"report under {report.RuleVersion ?? "no rule version"}; this rule reads {SourceAdmissionPolicy.ScraperRuleVersion}, {SourceAdmissionPolicy.EarlierScraperRuleVersion}, {SourceAdmissionPolicy.OldestScraperRuleVersion} and newer versions", null, null, aiReserved, aiQuote, aiUrl);
+                return new SourceRightsVerdict(null, $"report under {report.RuleVersion ?? "no rule version"}; this rule reads {SourceAdmissionPolicy.ScraperRuleVersion}, {SourceAdmissionPolicy.EarlierScraperRuleVersion}, {SourceAdmissionPolicy.OlderScraperRuleVersion}, {SourceAdmissionPolicy.OldestScraperRuleVersion} and newer versions", null, null, aiReserved, aiQuote, aiUrl);
             if (report.Access?.RefusedBeforeFetch is { Length: > 0 } refused)
                 return new SourceRightsVerdict(PermissionNeeded, "the check did not fetch the site", $"the scraper refused to fetch it ({refused})", report.Access.HomepageUrl, aiReserved, aiQuote, aiUrl, NewerRuleVersion: newer);
             if (!report.Complete)

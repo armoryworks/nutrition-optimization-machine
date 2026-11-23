@@ -84,6 +84,7 @@ namespace Nom.Api.Tests.Golden
 
             var resolver = new HouseholdRestrictionResolver(db);
             var set = await resolver.ResolveAsync(HouseholdId);
+            await Nom.Api.Tests.Services.MealPlan.DietLineIndexTests.AssertIndexAgreesAsync(db, HouseholdId, PersonId);
             var plan = set.IngredientIds.Contains(food.Id) || set.RecipeIds.Contains(recipe.Id);
             var service = new RecipeOrchestrationService(db, new HttpContextAccessor(), new Mock<ICurrentUserService>().Object,
                 new Mock<Nom.Orch.UtilityInterfaces.IMediaStorageService>().Object, new Mock<IRecipeNutritionService>().Object);

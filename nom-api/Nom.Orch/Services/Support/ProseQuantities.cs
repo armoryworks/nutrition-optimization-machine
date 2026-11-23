@@ -20,6 +20,9 @@ namespace Nom.Orch.Services.Support
     {
         public bool IsRange => Low != High;
 
+        /// <summary>Two counts joined by "or" ("3 or 6 strands"), read as a range from the smaller to the larger.</summary>
+        public bool Alternatives { get; init; }
+
         public override string ToString() => Text;
     }
 
@@ -124,6 +127,11 @@ namespace Nom.Orch.Services.Support
         private static readonly HashSet<string> SoftContext = new(StringComparer.OrdinalIgnoreCase)
         {
             "sides", "side", "corners", "corner", "edges", "edge", "ends", "end", "equal",
+        };
+
+        private static readonly HashSet<string> Tools = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "forks", "spoons", "spatulas", "knives", "tongs", "whisks", "hands", "fingers", "toothpicks", "skewers",
         };
 
         private static readonly Regex Tags = new(@"<[^>]+>", RegexOptions.Compiled | RegexOptions.CultureInvariant);
@@ -233,6 +241,7 @@ namespace Nom.Orch.Services.Support
         public static bool Equal(ProseQuantity a, ProseQuantity b)
         {
             if (a.Family != b.Family) return false;
+            if (a.Family == Count && a.Unit.Length > 0 && b.Unit.Length > 0 && a.Unit != b.Unit) return false;
             if (a.Family == Temperature) return SameTemperature(a, b);
             return Close(Base(a.Low, a), Base(b.Low, b)) && Close(Base(a.High, a), Base(b.High, b));
         }
@@ -313,6 +322,15 @@ namespace Nom.Orch.Services.Support
             return decimal.Parse(text.Replace(",", string.Empty), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
         }
 
+        private static bool IsRatio(string text)
+        {
+            var parts = text.Trim().Split('/');
+            return parts.Length == 2 && !parts[0].Contains(' ') && !parts[0].Contains('-')
+                && decimal.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var numerator)
+                && decimal.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var denominator)
+                && denominator > 1m && numerator >= denominator;
+        }
+
         private static bool IsWord(List<Token> tokens, int i, params string[] words) =>
             i < tokens.Count && tokens[i].Kind == Kind.Word && words.Any(w => string.Equals(tokens[i].Text, w, StringComparison.OrdinalIgnoreCase));
 
@@ -328,6 +346,7 @@ namespace Nom.Orch.Services.Support
             Value? value = null;
             if (t.Kind == Kind.Number)
             {
+                if (IsRatio(t.Text)) return null;
                 value = new Value(t.Value, i + 1, false, false);
             }
             else if (t.Kind == Kind.Word)
@@ -440,8 +459,12 @@ namespace Nom.Orch.Services.Support
 
         private static int ReadAt(List<Token> tokens, int i, string text, List<ProseQuantity> found)
         {
+            if (tokens[i].Kind == Kind.Number && i + 1 < tokens.Count && tokens[i + 1].Start == tokens[i].End && IsWord(tokens, i + 1, "st", "nd", "rd", "th"))
+                return i + 2;
             var first = ReadValue(tokens, i);
             if (first == null) return i + 1;
+            if (tokens[i].Kind == Kind.Number && (tokens[first.Next - 1].End < text.Length && text[tokens[first.Next - 1].End] == '%' || IsWord(tokens, first.Next, "percent") || (IsWord(tokens, first.Next, "per") && IsWord(tokens, first.Next + 1, "cent"))))
+                return first.Next;
             var unit = UnitAfter(tokens, first, i, text);
 
             if (first.Article && unit == null)
@@ -457,7 +480,9 @@ namespace Nom.Orch.Services.Support
             var dimensions = new List<decimal>();
 
             var connector = next;
+            if (unit == null && IsSymbol(tokens, connector, "-") && IsWord(tokens, connector + 1, "to", "or")) connector++;
             var between = i > 0 && IsWord(tokens, i - 1, "between");
+            var alternatives = false;
             if (IsSymbol(tokens, connector, "-", "–", "—") || IsWord(tokens, connector, "to", "or") || (between && IsWord(tokens, connector, "and")))
             {
                 var second = ReadValue(tokens, connector + 1, allowArticle: false);
@@ -480,6 +505,7 @@ namespace Nom.Orch.Services.Support
                     {
                         high = second.Amount;
                         next = second.Next;
+                        alternatives = IsWord(tokens, connector, "or");
                     }
                 }
             }
@@ -526,9 +552,11 @@ namespace Nom.Orch.Services.Support
             var unitName = unit?.Info.Unit ?? string.Empty;
             var start = tokens[i].Start;
             var end = tokens[Math.Max(i, next - 1)].End;
-            var soft = family == Count && (low == high && low == 1m || (first.Spelled && next < tokens.Count && SoftContext.Contains(tokens[next].Text)));
+            var soft = family == Count && (low == high && low == 1m || (first.Spelled && next < tokens.Count && SoftContext.Contains(tokens[next].Text))
+                || (unit == null && IsWord(tokens, next, "at") && IsWord(tokens, next + 1, "a") && IsWord(tokens, next + 2, "time"))
+                || (unit == null && next < tokens.Count && tokens[next].Kind == Kind.Word && Tools.Contains(tokens[next].Text)));
             if (family == Count && unit == null && first.Spelled && low == high && low == 1m) return next;
-            found.Add(new ProseQuantity(low, high, family, unitName, start, end, text[start..end], tokens[i].Bracketed, soft));
+            found.Add(new ProseQuantity(low, high, family, unitName, start, end, text[start..end], tokens[i].Bracketed, soft) { Alternatives = alternatives && family == Count });
             return next;
         }
 
@@ -536,6 +564,8 @@ namespace Nom.Orch.Services.Support
             low >= MinimumOvenDegrees && high <= MaximumOvenDegrees
             && i > 0 && IsWord(tokens, i - 1, "to", "at")
             && OvenContext.IsMatch(text[..tokens[i].Start]);
+
+        private static bool SameMeasure(string a, string b) => a == b || (a is (Volume or Mass) && b is (Volume or Mass));
 
         private static List<ProseQuantity> Conversions(List<ProseQuantity> quantities, string text)
         {
@@ -545,7 +575,7 @@ namespace Nom.Orch.Services.Support
                 if (!q.Conversion) continue;
                 var before = k > 0 ? quantities[k - 1] : null;
                 var gap = before == null || before.End > q.Start ? null : Regex.Replace(text[before.End..q.Start], @"[\s.]", string.Empty);
-                if (before == null || before.Family != q.Family || gap is not ("(" or "/" or "(or")) quantities[k] = q with { Conversion = false };
+                if (before == null || !SameMeasure(before.Family, q.Family) || gap is not ("(" or "/" or "(or")) quantities[k] = q with { Conversion = false };
             }
 
             return quantities;

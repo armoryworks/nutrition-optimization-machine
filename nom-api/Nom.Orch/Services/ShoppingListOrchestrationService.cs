@@ -307,7 +307,7 @@ namespace Nom.Orch.Services
                     var shoppingListItem = new ShoppingListItemEntity
                     {
                         ShoppingListId = model.ShoppingListId,
-                        Name = recipeIngredient.Ingredient?.Name ?? "Unknown Ingredient",
+                        Name = recipeIngredient.Ingredient == null && recipe.SourceRights != Support.SourceRightsRule.FactsOnly ? "Unknown Ingredient" : Support.ProseWithholding.FoodName(recipe, recipeIngredient),
                         Quantity = scaledQuantity,
                         Note = Support.ShoppingItemNote.ForRecipe(recipe.Name),
                         IngredientId = recipeIngredient.IngredientId,

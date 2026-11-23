@@ -1,4 +1,4 @@
-# Label terms (label-terms/1): the names a United States ingredient statement uses, each with what it tells the diet gate beyond its own words.
+# Label terms (label-terms/2): the names a United States ingredient statement uses, each with what it tells the diet gate beyond its own words.
 # term: the name as read, lower case, singular. kind: food (a single food or a regulated common name), additive (a functional additive, with its INS/E number), flavour (a flavouring or spice term, judged by its own words), composite (a prepared food whose name hides what it is made of; a composite also gives the restriction types that restrict one of its contents a companion pattern, DefaultRestrictionCriteria.CompositeCompanions).
 # names: other spellings and numbers, joined by |. contains: what the term is or is made of, as words the restriction patterns read (a major-allergen word is read with every word of its class). may: what it may be made of when the label does not say (held as unknown where a restriction names it). source: why.
 # Sources: FALCPA = Federal Food, Drug, and Cosmetic Act 201(qq) and 403(w) as amended by the Food Allergen Labeling and Consumer Protection Act of 2004 and the FASTER Act of 2021 (major food allergens; a major allergen in any ingredient, flavouring, colouring or incidental additive is declared by its source name in the statement or a Contains line, highly refined oils excepted). FDA-QA5 = FDA, Questions and Answers Regarding Food Allergens, edition 5 (2025). 21CFR = Title 21, Code of Federal Regulations (standards of identity; 101.4 and 101.22 for the naming of ingredients, spices and flavourings). INS = Codex Alimentarius, Class Names and the International Numbering System for Food Additives (CAC/GL 36-1989). SR = USDA FoodData Central SR Legacy food description. LABEL = the ingredient statement of the leading brand, as USDA FoodData Central's branded file publishes it.
@@ -267,7 +267,8 @@ pancake	composite	pancakes|pancake mix	wheat flour|egg|milk	-	SR: pancakes (whea
 waffle	composite	waffles|waffle mix	wheat flour|egg|milk	-	SR: waffles (wheat flour, egg, milk)
 crepe	composite	crepes	wheat flour|egg|milk	-	SR: crepes (wheat flour, egg, milk)
 dumpling	composite	dumplings|dumpling wrappers|gyoza wrappers|potsticker wrappers	wheat flour	-	dumpling wrappers are wheat flour dough
-wonton	composite	wontons|wonton wrappers	wheat flour|egg	-	LABEL: wonton wrappers (wheat flour, egg)
+wonton	composite	wontons	wheat flour|egg|pork|shrimp	-	SR: potsticker or wonton, pork and vegetable; a filled wonton holds pork or shrimp most often, held on the safe side when the line does not name its filling
+wonton wrapper	composite	wonton wrappers|wonton skin|wonton skins	wheat flour|egg	-	LABEL: wonton wrappers (wheat flour, egg)
 udon	composite	udon noodles	wheat flour	-	udon are wheat noodles
 ramen	composite	ramen noodles	wheat flour	-	ramen are wheat noodles
 soba	composite	soba noodles	buckwheat|wheat flour	-	soba are buckwheat noodles, most with wheat flour
@@ -340,3 +341,18 @@ tzatziki	composite	-	yogurt	-	tzatziki is yogurt and cucumber
 raita	composite	-	yogurt	-	raita is yogurt and vegetables
 lassi	composite	-	yogurt	-	lassi is a yogurt drink
 dulce de leche	composite	cajeta	milk	-	dulce de leche is caramelized milk
+tortellini	composite	tortelloni|cheese tortellini	pasta|wheat flour|egg|cheese	pork	21CFR 139.150: egg noodle products are wheat flour and egg; tortellini are egg pasta filled most often with cheese (LABEL: Buitoni and Giovanni Rana cheese tortellini; Contains: wheat, egg, milk); a meat filling may be pork
+ravioli	composite	cheese ravioli	pasta|wheat flour|egg|cheese	beef|pork	21CFR 139.150: egg pasta, filled most often with cheese, held on the safe side when the line does not name its filling; a meat filling may be beef or pork
+spaghetti	composite	-	pasta|semolina	-	21CFR 139.110: spaghetti is a macaroni product of semolina, durum flour or farina
+zwieback	composite	zwiebacks|zwieback toast	bread|wheat flour|egg|milk	-	SR: Babyfood, zwieback: a rusk, sweet yeast bread of wheat flour baked twice; egg and milk held on the safe side, as recipes and brands vary
+potsticker	composite	potstickers|pot sticker|pot stickers|gyoza	wheat flour|pork|vegetable|soybean	chicken|shrimp	SR: potsticker or wonton, pork and vegetable, frozen: wheat flour wrappers with soy sauce; pork held on the safe side when the line does not name its filling
+taquito	composite	taquitos	corn tortilla|chicken|beef|cheese	-	SR: taquitos, frozen, chicken and cheese: a corn tortilla rolled around its filling; beef held on the safe side when the line does not name the meat
+spanish rice	composite	mexican rice	rice|tomato	-	SR: Spanish rice mix, prepared with diced tomatoes
+pizza dough	composite	pizza crust|pizza crusts	wheat flour	-	SR: pizza crust is a yeast dough of enriched wheat flour
+marshmallow	composite	marshmallows|mini marshmallows|miniature marshmallows	gelatin|corn syrup	-	LABEL: Kraft Jet-Puffed marshmallows (corn syrup, sugar, modified corn starch, dextrose, gelatin); SR: candies, marshmallows
+marshmallow creme	composite	marshmallow cream|marshmallow fluff	egg white|corn syrup	-	LABEL: Jet-Puffed Marshmallow Creme and Marshmallow Fluff (corn syrup, sugar, egg whites); a type that restricts marshmallows still holds it by %marshmallow%
+reese's	composite	reeses|reese's pieces|reeses pieces|reese's peanut butter cups|reeses peanut butter cups	peanut|milk|soybean	-	LABEL: Hershey's Reese's Pieces and Reese's Peanut Butter Cups (peanuts, whey or milk chocolate, soy lecithin); Contains: peanuts, milk, soy
+peanut butter cup	composite	peanut butter cups|chocolate peanut butter cup|chocolate peanut butter cups	peanut|milk|soybean	-	LABEL: milk chocolate peanut butter cups (milk chocolate of sugar, cocoa butter, nonfat milk, milkfat, lactose, soy lecithin; peanuts); Contains: milk, peanuts, soy; the peanut butter exception of %butter% would otherwise clear the cups' milk chocolate
+peanut butter cookie	composite	peanut butter cookies	peanut|wheat flour|butter|egg	-	SR: cookies, peanut butter (wheat flour, peanut butter); butter and egg held on the safe side, as recipes and brands vary; the peanut butter exception of %butter% would otherwise clear them
+coconut cream pie	composite	coconut cream pies	coconut|milk|egg|wheat flour	-	SR: pie, coconut cream (a cooked filling of milk, egg and coconut in a wheat-flour crust); the coconut cream exception of %cream% would otherwise clear the filling's milk
+corned beef hash	composite	hash of corned beef	beef|potato	-	SR: Beef, corned beef hash, with potato, canned

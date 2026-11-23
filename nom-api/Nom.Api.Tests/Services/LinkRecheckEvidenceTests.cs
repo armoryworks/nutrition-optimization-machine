@@ -116,7 +116,8 @@ namespace Nom.Api.Tests.Services
             var salt = Food("Salt");
             var canola = Food("Canola Oil");
             var olive = Food("Olive Oil");
-            var foods = new[] { ketchup, tomatoSauce, lightCream, nonDairy, cashew, chickpeas, heavy, garlic, brown, breast, unsalted, baked, goose, cannedBeans, blackBeans, flour, zeroZero, salt, canola, olive };
+            var pepper = Food("Black Pepper", "Spices, pepper, black", "170931", 2);
+            var foods = new[] { ketchup, tomatoSauce, lightCream, nonDairy, cashew, chickpeas, heavy, garlic, brown, breast, unsalted, baked, goose, cannedBeans, blackBeans, flour, zeroZero, salt, canola, olive, pepper };
             db.Ingredients.AddRange(foods);
             await db.SaveChangesAsync();
             db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = zeroZero.Id, AliasName = "00 flour", SourceContext = IngredientAliasTrust.AdminPrefix + "7" });

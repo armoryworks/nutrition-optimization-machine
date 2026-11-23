@@ -102,7 +102,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class WordingTiers
     {
-        public const string Version = "wording-tiers/3";
+        public const string Version = "wording-tiers/4";
 
         public const string VerifiedWording = "verified-wording";
         public const string Alias = "alias";
@@ -140,7 +140,7 @@ namespace Nom.Orch.Services.Support
             string.Join('\n', Version, LinkGate.Signature, AlcoholLineContext.Signature, WordingHeadDefaults.SignatureSource(),
                 string.Join(',', LinkAutoApplyGuard.Joiners), string.Join(',', All), string.Join(',', CueRules),
                 string.Join(',', Species.OrderBy(w => w, StringComparer.Ordinal)), NoteForm.ToString(), string.Join(',', NoteForms.OrderBy(w => w, StringComparer.Ordinal)),
-                string.Join(',', NoteParts.OrderBy(w => w, StringComparer.Ordinal)), "note-form:majority");
+                string.Join(',', NoteParts.OrderBy(w => w, StringComparer.Ordinal)), "note-form:majority", HeadingLine.ToString());
 
         /// <summary>
         /// Harder keys to the one food each names. A name that is its own key ("Ham") owns that key
@@ -181,6 +181,7 @@ namespace Nom.Orch.Services.Support
             var key = IngredientNameNormalizer.TierKey(wording);
             var answers = new List<TierAnswer>();
             if (key == null) return (null, answers, HeadingAbstain);
+            if (lines.Count > 0 && lines.All(l => IsHeading(l.Raw))) return (key, answers, HeadingAbstain);
             if (LinkAutoApplyGuard.IsCompound(key)) return (key, answers, CompoundAbstain);
 
             void Add(string tier, long? food, string detail)
@@ -255,6 +256,14 @@ namespace Nom.Orch.Services.Support
             }
             return new WordingTierDecision(wording, key, answer, answers, holds, null);
         }
+
+        private static readonly System.Text.RegularExpressions.Regex HeadingLine = new(@"^[^\d½¼¾⅓⅔⅛⅜⅝⅞]*:\s*$", System.Text.RegularExpressions.RegexOptions.CultureInvariant | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        /// <summary>
+        /// Whether a recipe line is a heading: it ends in a colon and states no amount ("Hot Cocoa:"). A wording whose
+        /// every line is a heading names no food, whatever its words would read as (staging checkpoint 4, P21).
+        /// </summary>
+        public static bool IsHeading(string? line) => !string.IsNullOrWhiteSpace(line) && HeadingLine.IsMatch(line.Trim());
 
         /// <summary>Animal species a food's name may carry: a head default never picks one its bare head word does not name ("fowl" is not Guinea Fowls).</summary>
         public static readonly IReadOnlySet<string> Species = new HashSet<string>(StringComparer.Ordinal)

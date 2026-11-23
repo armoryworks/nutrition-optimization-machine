@@ -1,11 +1,15 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
@@ -16,6 +20,8 @@ using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using Nom.Orch.Services.Support;
 using Nom.Orch.UtilityInterfaces;
+using Npgsql;
+using NpgsqlTypes;
 
 namespace Nom.Orch.Services
 {
@@ -50,6 +56,15 @@ namespace Nom.Orch.Services
         public const string RuleRejectIssue = "Rejected by rule: neither the source nor the rebuilt recipe is a recipe";
         public const int MaxRecipesPerCall = 500;
 
+        /// <summary>The audit entity of an undo run's progress rows; the property name is the run id.</summary>
+        public const string UndoRunEntityType = "RecipeReprocessUndoRun";
+        public const string UndoRunChangeType = "ReprocessUndoRun";
+        public const string UndoBatchChangeType = "ReprocessUndoBatch";
+        public const string UndoRunEndChangeType = "ReprocessUndoRunEnd";
+        public const string UndoStopChangeType = "ReprocessUndoStop";
+        public const int UndoBatchSize = 500;
+        public const int MaxUndoBatchSize = 2000;
+
         /// <summary>The start of the batch id of every write the reprocess lane makes, so its undo takes back only the lane's writes.</summary>
         public const string LaneBatchPrefix = "rl-";
 
@@ -74,6 +89,7 @@ namespace Nom.Orch.Services
         private readonly IRecipeNutritionService _nutrition;
         private readonly ILogger<RecipeReprocessService> _logger;
         private readonly RecipeLineBuilder _builder;
+        private Dictionary<long, string>? _units;
 
         public RecipeReprocessService(
             ApplicationDbContext db,
@@ -197,11 +213,13 @@ namespace Nom.Orch.Services
             var pairs = Pair(source.Record.Ingredients.Select(i => RecipeScrapingService.Clamp(i.RawLine, 2047) ?? string.Empty).ToList(), live);
             var choose = Chooser(pairs, oldFoods);
 
+            var units = _units ??= await _db.Measurements.AsNoTracking().ToDictionaryAsync(m => m.Id, m => m.Name);
             var built = await _builder.BuildAsync(source.Record.Ingredients, _currentUser.PersonId, write: false, method, choose);
             KeepKinds(built, pairs);
+            var guarded = Guard(built, pairs, oldFoods, units, method);
             var newRows = NewRows(built, pairs, stamp);
             one.SourceLines = source.Record.Ingredients.Select(i => RecipeScrapingService.Clamp(i.RawLine, 2047) ?? string.Empty).ToList();
-            Diff(one, built, _builder.Dropped, pairs, live, oldFoods);
+            Diff(one, built, _builder.Dropped, pairs, live, oldFoods, guarded);
             one.StepsReplaced = sourceSteps != null;
 
             var linesUnchanged = built.All(b => b.Food != null) && SameRows(live, newRows);
@@ -235,6 +253,7 @@ namespace Nom.Orch.Services
             {
                 built = await _builder.BuildAsync(source.Record.Ingredients, _currentUser.PersonId, write: true, method, choose);
                 KeepKinds(built, pairs);
+                Guard(built, pairs, oldFoods, units, method);
                 var createdFoods = built.Where(l => l.Created && l.Food != null).Select(l => l.Food!).DistinctBy(f => f.Id).ToList();
                 var written = linesUnchanged ? rows : NewRows(built, pairs, now);
                 if (!linesUnchanged) await ReplaceRowsAsync(recipeId, written);
@@ -497,6 +516,37 @@ namespace Nom.Orch.Services
         private static Func<RecipeLineBuilder.BuiltLine, string?> CarriedKind(Dictionary<int, LineRow> pairs) =>
             line => line.LineKind == null && line.Quantity == 0 && pairs.TryGetValue(line.SortOrder, out var row) ? row.LineKind : null;
 
+        /// <summary>
+        /// Puts each line built from a stored row through <see cref="LineAmountGuard"/>: where the guard keeps or
+        /// holds the stored amount, the line takes the stored row's amount and kind back. The verdicts other than
+        /// "same", by position, each with the amount the builder gave.
+        /// </summary>
+        private static Dictionary<int, (LineAmountGuard.Verdict Verdict, decimal Quantity, long MeasurementId, string? Kind)> Guard(
+            List<RecipeLineBuilder.BuiltLine> built, Dictionary<int, LineRow> pairs, Dictionary<long, IngredientEntity> oldFoods,
+            IReadOnlyDictionary<long, string> units, IReadOnlyList<string> method)
+        {
+            var verdicts = new Dictionary<int, (LineAmountGuard.Verdict, decimal, long, string?)>();
+            var seen = new HashSet<LineRow>(ReferenceEqualityComparer.Instance);
+            foreach (var line in built)
+            {
+                if (!pairs.TryGetValue(line.SortOrder, out var row) || !seen.Add(row)) continue;
+                var oldFood = oldFoods.GetValueOrDefault(row.IngredientId);
+                var stored = new LineAmountGuard.Amount(row.Quantity, units.GetValueOrDefault(row.MeasurementId), row.LineKind, oldFood?.Name, oldFood?.GramsPerItem);
+                var proposed = new LineAmountGuard.Amount(
+                    line.Quantity, units.GetValueOrDefault(line.MeasurementId) ?? line.MeasurementName, line.LineKind, line.FoodName, line.Food?.GramsPerItem, line.FilledFromMethod);
+                var verdict = LineAmountGuard.Decide(line.RawLine, stored, proposed, method);
+                if (verdict == LineAmountGuard.Verdict.Same) continue;
+                verdicts[line.SortOrder] = (verdict, line.Quantity, line.MeasurementId, line.LineKind);
+                if (verdict is LineAmountGuard.Verdict.Replace) continue;
+                line.Quantity = row.Quantity;
+                line.MeasurementId = row.MeasurementId;
+                line.MeasurementName = stored.Unit;
+                line.LineKind = row.LineKind;
+                line.FilledFromMethod = false;
+            }
+            return verdicts;
+        }
+
         private static List<LineRow> NewRows(List<RecipeLineBuilder.BuiltLine> built, Dictionary<int, LineRow> pairs, DateTime stamp) =>
             built.Select(line =>
             {
@@ -507,7 +557,8 @@ namespace Nom.Orch.Services
                     false, null, null);
             }).ToList();
 
-        private static void Diff(RecipeReprocessRecipeResult one, List<RecipeLineBuilder.BuiltLine> built, IReadOnlyList<int> unbuilt, Dictionary<int, LineRow> pairs, List<LineRow> live, Dictionary<long, IngredientEntity> oldFoods)
+        private static void Diff(RecipeReprocessRecipeResult one, List<RecipeLineBuilder.BuiltLine> built, IReadOnlyList<int> unbuilt, Dictionary<int, LineRow> pairs, List<LineRow> live, Dictionary<long, IngredientEntity> oldFoods,
+            Dictionary<int, (LineAmountGuard.Verdict Verdict, decimal Quantity, long MeasurementId, string? Kind)> guarded)
         {
             var counts = one.Counts;
             counts.LinesBefore = live.Count;
@@ -540,6 +591,20 @@ namespace Nom.Orch.Services
                     if (old.SortOrder != line.SortOrder) { diff.Changes.Add("order"); counts.OrderChanged++; }
                     if (old.LineKind != line.LineKind) { diff.Changes.Add("kind"); counts.KindChanged++; }
                     if (old.RawLine != line.RawLine) diff.Changes.Add("text");
+                    if (guarded.TryGetValue(line.SortOrder, out var guard))
+                    {
+                        diff.Guard = guard.Verdict.ToString().ToLowerInvariant();
+                        switch (guard.Verdict)
+                        {
+                            case LineAmountGuard.Verdict.Keep: counts.GuardKept++; break;
+                            case LineAmountGuard.Verdict.Replace: counts.GuardReplaced++; break;
+                            default:
+                                counts.GuardHeld++;
+                                diff.Changes.Add(RecipeReprocessLineDiff.Held);
+                                (diff.HeldQuantity, diff.HeldMeasurementId, diff.HeldLineKind) = (guard.Quantity, guard.MeasurementId, guard.Kind);
+                                break;
+                        }
+                    }
                 }
                 if (line.FilledFromMethod) counts.FilledFromMethod++;
                 if (line.Food != null && PreparedFoods.IsPrepared(line.Food))
@@ -779,14 +844,16 @@ namespace Nom.Orch.Services
         /// good first, since a deleted row keeps its key taken. On the database this is plain SQL, so the
         /// rows keep the stamps they are given; the request's audit stamping would overwrite them.
         /// </summary>
-        private async Task ReplaceRowsAsync(long recipeId, IReadOnlyList<LineRow> rows)
+        private Task ReplaceRowsAsync(long recipeId, IReadOnlyList<LineRow> rows) => ReplaceRowsOnAsync(_db, recipeId, rows);
+
+        private static async Task ReplaceRowsOnAsync(ApplicationDbContext db, long recipeId, IReadOnlyList<LineRow> rows)
         {
-            if (_db.Database.IsRelational())
+            if (db.Database.IsRelational())
             {
-                await _db.Database.ExecuteSqlAsync($"""DELETE FROM recipe."RecipeIngredient" WHERE "RecipeId" = {recipeId}""");
+                await db.Database.ExecuteSqlAsync($"""DELETE FROM recipe."RecipeIngredient" WHERE "RecipeId" = {recipeId}""");
                 foreach (var r in rows)
                 {
-                    await _db.Database.ExecuteSqlAsync($"""
+                    await db.Database.ExecuteSqlAsync($"""
                         INSERT INTO recipe."RecipeIngredient"
                             ("RecipeId", "IngredientId", "SortOrder", "Quantity", "MeasurementId", "RawLine", "LineKind", "IngredientEntityId",
                              "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId",
@@ -799,10 +866,10 @@ namespace Nom.Orch.Services
                 return;
             }
 
-            var existing = await _db.RecipeIngredients.IgnoreQueryFilters().Where(ri => ri.RecipeId == recipeId).ToListAsync();
-            _db.RecipeIngredients.RemoveRange(existing);
-            await _db.SaveChangesAsync();
-            foreach (var gone in existing) _db.Entry(gone).State = EntityState.Detached;
+            var existing = await db.RecipeIngredients.IgnoreQueryFilters().Where(ri => ri.RecipeId == recipeId).ToListAsync();
+            db.RecipeIngredients.RemoveRange(existing);
+            await db.SaveChangesAsync();
+            foreach (var gone in existing) db.Entry(gone).State = EntityState.Detached;
             foreach (var r in rows)
             {
                 var entity = new RecipeIngredientEntity
@@ -813,10 +880,10 @@ namespace Nom.Orch.Services
                     DeletedAt = r.DeletedAt, DeletedByPersonId = r.DeletedByPersonId,
                     AlcoholRetention = r.AlcoholRetention, AlcoholRetentionBasis = r.AlcoholRetentionBasis,
                 };
-                _db.RecipeIngredients.Add(entity);
-                _db.Entry(entity).Property("IngredientEntityId").CurrentValue = r.IngredientEntityId;
+                db.RecipeIngredients.Add(entity);
+                db.Entry(entity).Property("IngredientEntityId").CurrentValue = r.IngredientEntityId;
             }
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
         }
 
         /// <summary>
@@ -999,30 +1066,264 @@ namespace Nom.Orch.Services
             return lines;
         }
 
-        public async Task<RecipeReprocessUndoResult> UndoAsync(DateTime? sinceUtc, string? batchId, string? kind = null, bool apply = false, bool laneOnly = false)
-        {
-            var result = new RecipeReprocessUndoResult { Applied = apply };
-            if (sinceUtc == null && string.IsNullOrWhiteSpace(batchId)) return result;
+        public Task<RecipeReprocessUndoResult> UndoAsync(DateTime? sinceUtc, string? batchId, string? kind = null, bool apply = false, bool laneOnly = false) =>
+            UndoAsync(new RecipeReprocessUndoRequest { SinceUtc = sinceUtc, BatchId = batchId, Kind = kind, Apply = apply, LaneOnly = laneOnly });
 
-            var query = _db.RecipeReprocessJournals.AsNoTracking().Where(j => j.UndoneAt == null);
-            if (sinceUtc != null) query = query.Where(j => j.CreatedDate >= sinceUtc.Value);
-            if (!string.IsNullOrWhiteSpace(batchId)) query = query.Where(j => j.BatchId == batchId);
-            if (!string.IsNullOrWhiteSpace(kind)) query = query.Where(j => j.Kind == kind);
-            if (laneOnly) query = query.Where(j => j.BatchId.StartsWith(LaneBatchPrefix));
-            if (FollowedWriteId(batchId) == null) query = query.Where(j => !j.BatchId.StartsWith(OrderFollowPrefix));
-            var entries = await query.OrderByDescending(j => j.Id).Select(j => j.Id).ToListAsync();
+        private sealed record UndoFilter(DateTime? SinceUtc, string? BatchId, string? Kind, bool LaneOnly);
+
+        private sealed record UndoBatchRecord(
+            long LastEntryId, int Entries, int Restored, int Skipped, int PositionsFollowed, int StateKept, int FoodsRemoved, int FoodsKept,
+            Dictionary<string, int> RestoredByKind, int AlreadyUndone = 0, double Seconds = 0);
+
+        private sealed record UndoRunHandle(CancellationTokenSource Stop, bool LaneOnly);
+
+        /// <summary>What one call of the undo has restored so far, carried from batch to batch as the row-by-row undo carried it from entry to entry.</summary>
+        private sealed class UndoState
+        {
+            public Dictionary<long, List<LineRow>> Rows { get; } = new();
+            public Dictionary<long, List<StepRow>> Steps { get; } = new();
+            public Dictionary<long, RecipeState> States { get; } = new();
+            public HashSet<long> RestoredHere { get; } = new();
+            public HashSet<long> FollowedRecipes { get; } = new();
+        }
+
+        private static readonly ConcurrentDictionary<string, UndoRunHandle> UndoRuns = new(StringComparer.Ordinal);
+        private static readonly SemaphoreSlim UndoStartGate = new(1, 1);
+        private static readonly TimeSpan LaneUndoWait = TimeSpan.FromSeconds(1);
+
+        /// <summary>
+        /// An apply run of this API process that is going on this database, lane or operator, or null. Only
+        /// one apply takes journal entries back at a time: an operator apply is refused while another runs,
+        /// and the lane's own undo waits for it, so no entry is judged by two runs.
+        /// </summary>
+        private async Task<string?> GoingRunAsync()
+        {
+            var running = UndoRuns.Keys.ToList();
+            if (running.Count == 0) return null;
+            return await _db.AuditLogEntries.AsNoTracking()
+                .Where(a => a.EntityType == UndoRunEntityType && a.ChangeType == UndoRunChangeType && running.Contains(a.PropertyName!))
+                .Select(a => a.PropertyName)
+                .FirstOrDefaultAsync(CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Takes the matching journal entries back newest first, in batches. Each entry is judged exactly as
+        /// one at a time: against the rows, steps and state the entries before it left, so the counts, the
+        /// rows restored and the skips are the same for any batch size. Each batch reads its journals, recipes,
+        /// lines, steps and later writes in a few set-based reads; an apply writes the batch's lines with one
+        /// delete and one insert, its journal and audit rows with one save, the labels of the recipes whose
+        /// lines it put back and a progress row, all in one transaction. Between batches it ends when asked to
+        /// stop or when its caller went away, and a later call with the run id goes on below the last entry
+        /// reached. One apply runs at a time on a database: an operator apply is refused while another runs, and
+        /// the lane's own undo waits for it.
+        /// </summary>
+        public async Task<RecipeReprocessUndoResult> UndoAsync(RecipeReprocessUndoRequest request, CancellationToken cancellationToken = default)
+        {
+            var result = new RecipeReprocessUndoResult { Applied = request.Apply };
+            var filter = new UndoFilter(request.SinceUtc, request.BatchId, request.Kind, request.LaneOnly);
+            long? below = null;
+            var batchNumber = 0;
+            if (!string.IsNullOrWhiteSpace(request.RunId))
+            {
+                var earlier = await UndoProgressAsync(request.RunId);
+                if (earlier == null)
+                {
+                    result.Refused = "There is no undo run " + request.RunId + ".";
+                    return result;
+                }
+                if (earlier.State is RecipeReprocessUndoProgress.States.Running or RecipeReprocessUndoProgress.States.Finished)
+                {
+                    result.Refused = "The undo run " + request.RunId + " is " + earlier.State + ".";
+                    return result;
+                }
+                filter = new UndoFilter(earlier.SinceUtc, earlier.BatchId, earlier.Kind, earlier.LaneOnly);
+                below = earlier.LastEntryId;
+                batchNumber = earlier.Batches;
+            }
+            if (filter.SinceUtc == null && string.IsNullOrWhiteSpace(filter.BatchId)) return result;
+
+            Task<List<long>> ListAsync() => EntriesQuery(filter, below).OrderByDescending(j => j.Id).Select(j => j.Id).ToListAsync(CancellationToken.None);
+            var by = _currentUser.PersonIdOrSystem;
+            var called = DateTime.UtcNow;
+            UndoRunHandle? handle = null;
+            var entries = request.Apply ? new List<long>() : await ListAsync();
+            while (request.Apply && handle == null)
+            {
+                await UndoStartGate.WaitAsync(CancellationToken.None);
+                try
+                {
+                    var going = await GoingRunAsync();
+                    if (going == null)
+                    {
+                        entries = await ListAsync();
+                        result.RunId = request.RunId ?? NewBatchId(called, "ru-");
+                        var registered = new UndoRunHandle(new CancellationTokenSource(), filter.LaneOnly);
+                        if (!UndoRuns.TryAdd(result.RunId, registered))
+                        {
+                            registered.Stop.Dispose();
+                            result.Refused = "The undo run " + result.RunId + " is going.";
+                            return result;
+                        }
+                        handle = registered;
+                        if (request.RunId == null)
+                        {
+                            try
+                            {
+                                _db.AuditLogEntries.Add(UndoRunRow(result.RunId, 0, UndoRunChangeType, JsonSerializer.Serialize(filter, Json),
+                                    JsonSerializer.Serialize(new { entries = entries.Count }, Json), called, by));
+                                await _db.SaveChangesAsync(CancellationToken.None);
+                                _db.ChangeTracker.Clear();
+                            }
+                            catch
+                            {
+                                UndoRuns.TryRemove(result.RunId, out _);
+                                registered.Stop.Dispose();
+                                throw;
+                            }
+                        }
+                        break;
+                    }
+                    if (!filter.LaneOnly)
+                    {
+                        result.Refused = "The undo run " + going + " is going; stop it or wait for it before starting another.";
+                        return result;
+                    }
+                }
+                finally
+                {
+                    UndoStartGate.Release();
+                }
+                await Task.Delay(LaneUndoWait, cancellationToken);
+            }
             result.Entries = entries.Count;
 
-            var simulatedRows = new Dictionary<long, List<LineRow>>();
-            var simulatedSteps = new Dictionary<long, List<StepRow>>();
-            var simulatedState = new Dictionary<long, RecipeState>();
-            var restoredHere = new HashSet<long>();
-            var by = _currentUser.PersonIdOrSystem;
-            foreach (var id in entries)
+            try
             {
-                var entry = await _db.RecipeReprocessJournals.FirstAsync(j => j.Id == id);
-                var recipe = await _db.Recipes.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.Id == entry.RecipeId);
-                if (recipe == null)
+                var state = new UndoState();
+                var reached = 0;
+                foreach (var batch in entries.Chunk(Math.Clamp(request.BatchSize, 1, MaxUndoBatchSize)))
+                {
+                    result.Stopped = cancellationToken.IsCancellationRequested ? RecipeReprocessUndoStop.ClientGone
+                        : request.MaxBatches is { } most && result.Batches >= most ? RecipeReprocessUndoStop.MaxBatches
+                        : handle != null && await StopAskedAsync(result.RunId!, handle, called) ? RecipeReprocessUndoStop.StopRequested
+                        : null;
+                    if (result.Stopped != null) break;
+
+                    await UndoBatchAsync(batch, state, result, request.Apply, by, result.RunId, ++batchNumber);
+                    result.Batches++;
+                    reached += batch.Length;
+                }
+                result.Remaining = entries.Count - reached;
+                if (handle != null)
+                {
+                    _db.AuditLogEntries.Add(UndoRunRow(result.RunId!, batchNumber, UndoRunEndChangeType, null, result.Stopped ?? RecipeReprocessUndoProgress.States.Finished, DateTime.UtcNow, by));
+                    await _db.SaveChangesAsync(CancellationToken.None);
+                    _db.ChangeTracker.Clear();
+                }
+            }
+            finally
+            {
+                if (handle != null)
+                {
+                    UndoRuns.TryRemove(result.RunId!, out _);
+                    handle.Stop.Dispose();
+                }
+            }
+
+            return result;
+        }
+
+        private IQueryable<RecipeReprocessJournalEntity> EntriesQuery(UndoFilter filter, long? below)
+        {
+            var query = _db.RecipeReprocessJournals.AsNoTracking().Where(j => j.UndoneAt == null);
+            if (filter.SinceUtc != null) query = query.Where(j => j.CreatedDate >= filter.SinceUtc.Value);
+            if (!string.IsNullOrWhiteSpace(filter.BatchId)) query = query.Where(j => j.BatchId == filter.BatchId);
+            if (!string.IsNullOrWhiteSpace(filter.Kind)) query = query.Where(j => j.Kind == filter.Kind);
+            if (filter.LaneOnly) query = query.Where(j => j.BatchId.StartsWith(LaneBatchPrefix));
+            if (FollowedWriteId(filter.BatchId) == null) query = query.Where(j => !j.BatchId.StartsWith(OrderFollowPrefix));
+            if (below != null) query = query.Where(j => j.Id < below.Value);
+            return query;
+        }
+
+        private async Task<bool> StopAskedAsync(string runId, UndoRunHandle handle, DateTime called) =>
+            handle.Stop.IsCancellationRequested
+            || await _db.AuditLogEntries.AsNoTracking().AnyAsync(a => a.EntityType == UndoRunEntityType && a.ChangeType == UndoStopChangeType
+                && a.PropertyName == runId && a.Timestamp >= called);
+
+        private static AuditLogEntryEntity UndoRunRow(string runId, long number, string changeType, string? oldValue, string? newValue, DateTime at, long by) =>
+            new()
+            {
+                EntityType = UndoRunEntityType, EntityId = number, ChangeType = changeType, PropertyName = runId,
+                OldValue = oldValue, NewValue = newValue, Timestamp = at, ChangedByPersonId = by,
+            };
+
+        /// <summary>
+        /// Judges one batch of entries, newest first, as the row-by-row undo judged them, and with
+        /// <paramref name="apply"/> writes the batch in one transaction with its progress row.
+        /// </summary>
+        private async Task UndoBatchAsync(long[] ids, UndoState state, RecipeReprocessUndoResult result, bool apply, long by, string? runId, int batchNumber)
+        {
+            var clock = Stopwatch.StartNew();
+            var counted = (result.Restored, result.Skipped, result.PositionsFollowed, result.StateKept, result.FoodsRemoved, result.FoodsKept, result.AlreadyUndone,
+                Kinds: new Dictionary<string, int>(result.RestoredByKind, StringComparer.Ordinal));
+            await using var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+
+            var entries = await _db.RecipeReprocessJournals.Where(j => ids.Contains(j.Id) && j.UndoneAt == null).ToDictionaryAsync(j => j.Id);
+            var recipeIds = entries.Values.Select(j => j.RecipeId).Distinct().ToList();
+            var recipes = await _db.Recipes.IgnoreQueryFilters().Where(r => recipeIds.Contains(r.Id)).ToDictionaryAsync(r => r.Id);
+            var rowsRead = await RowsOfAsync(recipeIds);
+            var stepRecipes = entries.Values.Where(j => j.NewSteps != null).Select(j => j.RecipeId).Distinct().ToList();
+            var stepsRead = stepRecipes.Count == 0 ? new Dictionary<long, List<StepRow>>() : await StepRowsOfAsync(stepRecipes);
+            var orderRecipes = entries.Values.Where(j => j.Kind == RecipeReprocessKind.Order).Select(j => j.RecipeId).Distinct().ToList();
+            var standing = orderRecipes.Count == 0
+                ? new Dictionary<long, List<long>>()
+                : (await _db.RecipeReprocessJournals.AsNoTracking()
+                        .Where(j => orderRecipes.Contains(j.RecipeId) && j.UndoneAt == null && j.NewRows != null && j.NewRows != j.OldRows)
+                        .Select(j => new { j.Id, j.RecipeId })
+                        .ToListAsync())
+                    .GroupBy(j => j.RecipeId)
+                    .ToDictionary(g => g.Key, g => g.Select(j => j.Id).ToList());
+            var headers = !apply
+                ? new Dictionary<long, List<AuditLogEntryEntity>>()
+                : (await _db.AuditLogEntries
+                        .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType
+                            && (a.ChangeType == ReprocessChangeType || a.ChangeType == ReprocessOrderChangeType) && recipeIds.Contains(a.EntityId))
+                        .ToListAsync())
+                    .GroupBy(a => a.EntityId)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+            var writeRows = new Dictionary<long, List<LineRow>>();
+            var writeSteps = new Dictionary<long, List<StepRow>>();
+            var recalculate = new HashSet<long>();
+            var foodsGone = new List<AuditLogEntryEntity>();
+            var linkIds = new List<long>();
+            var follows = new List<RecipeReprocessJournalEntity>();
+
+            async Task SaveFollowsAsync()
+            {
+                if (follows.Count == 0) return;
+                await _db.SaveChangesAsync();
+                foreach (var follow in follows)
+                {
+                    _db.AuditLogEntries.Add(new AuditLogEntryEntity
+                    {
+                        EntityType = ScrapedRecipeRepairService.LineEntityType, EntityId = follow.RecipeId, ChangeType = ReprocessOrderChangeType, PropertyName = follow.Kind,
+                        NewValue = string.Create(CultureInfo.InvariantCulture, $"journal={follow.Id};batch={follow.BatchId};rules={follow.RuleVersion};kind={follow.Kind}"),
+                        Timestamp = follow.CreatedDate, ChangedByPersonId = by,
+                    });
+                }
+                await _db.SaveChangesAsync();
+                follows.Clear();
+            }
+
+            foreach (var id in ids)
+            {
+                if (!entries.TryGetValue(id, out var entry))
+                {
+                    result.AlreadyUndone++;
+                    continue;
+                }
+                if (!recipes.TryGetValue(entry.RecipeId, out var recipe))
                 {
                     Skip(result, entry.RecipeId);
                     continue;
@@ -1033,29 +1334,65 @@ namespace Nom.Orch.Services
                 var newRows = entry.NewRows == null || rowsKept ? null : JsonSerializer.Deserialize<List<LineRow>>(entry.NewRows, Json);
                 var oldState = entry.OldRecipe == null ? null : JsonSerializer.Deserialize<RecipeState>(entry.OldRecipe, Json);
                 var newState = entry.NewRecipe == null ? null : JsonSerializer.Deserialize<RecipeState>(entry.NewRecipe, Json);
-
                 var oldSteps = entry.OldSteps == null ? null : JsonSerializer.Deserialize<List<StepRow>>(entry.OldSteps, Json);
                 var newSteps = entry.NewSteps == null ? null : JsonSerializer.Deserialize<List<StepRow>>(entry.NewSteps, Json);
 
-                var rowsNow = simulatedRows.TryGetValue(recipe.Id, out var simulated) ? simulated : await RowsAsync(recipe.Id);
-                var stateNow = simulatedState.TryGetValue(recipe.Id, out var simulatedRecipe) ? simulatedRecipe : State(recipe);
+                var rowsNow = state.Rows.TryGetValue(recipe.Id, out var simulated) ? simulated : rowsRead.GetValueOrDefault(recipe.Id) ?? new List<LineRow>();
+                var stateNow = state.States.TryGetValue(recipe.Id, out var simulatedRecipe) ? simulatedRecipe : State(recipe);
                 var linesStand = newRows == null || StandsAsWritten(rowsNow, newRows);
                 var stepsStand = newSteps == null
-                    || SameSteps(simulatedSteps.TryGetValue(recipe.Id, out var stepsSimulated) ? stepsSimulated : await StepRowsAsync(recipe.Id), newSteps);
+                    || SameSteps(state.Steps.TryGetValue(recipe.Id, out var stepsSimulated) ? stepsSimulated : stepsRead.GetValueOrDefault(recipe.Id) ?? new List<StepRow>(), newSteps);
                 var stateStands = newState == null || SameState(stateNow, newState);
                 var approvedSince = !stateStands && stateNow.CurationStatusId == (long)CurationStatusEnum.Curated
                     && newState!.CurationStatusId != (long)CurationStatusEnum.Curated;
                 if (!linesStand && stepsStand && oldRows != null && newRows != null && entry.Kind == RecipeReprocessKind.Order
                     && !entry.BatchId.StartsWith(OrderFollowPrefix, StringComparison.Ordinal)
-                    && !await LaterRowWriteStandsAsync(entry, restoredHere)
+                    && !LaterRowWriteStands(entry, standing, state)
                     && OrderFollowing(rowsNow, oldRows, newRows) is { } followed)
                 {
                     result.Restored++;
                     result.PositionsFollowed++;
-                    restoredHere.Add(entry.Id);
+                    state.RestoredHere.Add(entry.Id);
                     result.RestoredByKind[entry.Kind] = result.RestoredByKind.GetValueOrDefault(entry.Kind) + 1;
-                    simulatedRows[recipe.Id] = followed;
-                    if (apply) await FollowOrderUndoAsync(entry, rowsNow, followed, by);
+                    state.Rows[recipe.Id] = followed;
+                    if (apply)
+                    {
+                        var now = DateTime.UtcNow;
+                        var written = followed.Select(r => rowsNow.Any(n => n.IngredientId == r.IngredientId && n.SortOrder == r.SortOrder && n.RawLine == r.RawLine && n.CreatedDate == r.CreatedDate)
+                                ? r
+                                : r with { LastModifiedDate = now, LastModifiedByPersonId = SystemConstants.SystemPersonId })
+                            .ToList();
+                        writeRows[recipe.Id] = written;
+                        entry.UndoneAt = now;
+                        var marker = string.Create(CultureInfo.InvariantCulture, $"journal={entry.Id};");
+                        foreach (var header in headers.GetValueOrDefault(recipe.Id) ?? new List<AuditLogEntryEntity>())
+                        {
+                            if (header.ChangeType == ReprocessOrderChangeType && header.NewValue != null && header.NewValue.StartsWith(marker, StringComparison.Ordinal))
+                                header.ChangeType = ReprocessUndoneChangeType;
+                        }
+                        _db.AuditLogEntries.Add(new AuditLogEntryEntity
+                        {
+                            EntityType = RecipeEntityType, EntityId = recipe.Id, ChangeType = UndoChangeType, PropertyName = entry.Kind,
+                            OldValue = string.Create(CultureInfo.InvariantCulture, $"journal={entry.Id};batch={entry.BatchId}"),
+                            NewValue = "positions followed",
+                            Timestamp = now, ChangedByPersonId = by,
+                        });
+                        var follow = new RecipeReprocessJournalEntity
+                        {
+                            RecipeId = recipe.Id,
+                            BatchId = OrderFollowPrefix + entry.Id.ToString(CultureInfo.InvariantCulture),
+                            Kind = RecipeReprocessKind.Order,
+                            RuleVersion = entry.RuleVersion,
+                            SourceDocumentId = entry.SourceDocumentId,
+                            OldRows = JsonSerializer.Serialize(rowsNow, Json),
+                            NewRows = JsonSerializer.Serialize(written, Json),
+                            CreatedDate = now,
+                            CreatedByPersonId = by,
+                        };
+                        _db.RecipeReprocessJournals.Add(follow);
+                        follows.Add(follow);
+                        state.FollowedRecipes.Add(recipe.Id);
+                    }
                     continue;
                 }
 
@@ -1066,31 +1403,35 @@ namespace Nom.Orch.Services
                 }
 
                 result.Restored++;
-                restoredHere.Add(entry.Id);
+                state.RestoredHere.Add(entry.Id);
                 result.RestoredByKind[entry.Kind] = result.RestoredByKind.GetValueOrDefault(entry.Kind) + 1;
                 if (!stateStands) result.StateKept++;
-                if (oldRows != null) simulatedRows[recipe.Id] = oldRows;
-                if (oldSteps != null) simulatedSteps[recipe.Id] = oldSteps;
-                if (stateStands && oldState != null) simulatedState[recipe.Id] = oldState;
-                var marker = string.Create(CultureInfo.InvariantCulture, $"journal={entry.Id};");
+                if (oldRows != null) state.Rows[recipe.Id] = oldRows;
+                if (oldSteps != null) state.Steps[recipe.Id] = oldSteps;
+                if (stateStands && oldState != null) state.States[recipe.Id] = oldState;
+                var restoredMarker = string.Create(CultureInfo.InvariantCulture, $"journal={entry.Id};");
                 var removable = new List<AuditLogEntryEntity>();
                 if (entry.Kind == RecipeReprocessKind.Rebuild)
                 {
+                    if (apply) await SaveFollowsAsync();
                     foreach (var created in await _db.AuditLogEntries
-                        .Where(a => a.EntityType == FoodEntityType && a.ChangeType == FoodCreateChangeType && a.OldValue != null && a.OldValue.StartsWith(marker))
+                        .Where(a => a.EntityType == FoodEntityType && a.ChangeType == FoodCreateChangeType && a.OldValue != null && a.OldValue.StartsWith(restoredMarker))
                         .ToListAsync())
                     {
-                        if (await RemovableAsync(created, simulatedRows, restoredHere)) removable.Add(created);
+                        if (await RemovableAsync(created, state.Rows, state.RestoredHere)) removable.Add(created);
                         else result.FoodsKept++;
                     }
                     result.FoodsRemoved += removable.Count;
                 }
                 if (!apply) continue;
 
-                var now = DateTime.UtcNow;
-                await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
-                if (oldRows != null) await ReplaceRowsAsync(recipe.Id, oldRows);
-                if (oldSteps != null) await ReplaceStepRowsAsync(recipe.Id, oldSteps);
+                var at = DateTime.UtcNow;
+                if (oldRows != null)
+                {
+                    recalculate.Add(recipe.Id);
+                    writeRows[recipe.Id] = oldRows;
+                }
+                if (oldSteps != null) writeSteps[recipe.Id] = oldSteps;
                 if (stateStands && oldState != null)
                 {
                     recipe.CurationStatusId = oldState.CurationStatusId;
@@ -1098,26 +1439,20 @@ namespace Nom.Orch.Services
                     recipe.IsDeleted = oldState.IsDeleted;
                     recipe.DeletedAt = oldState.DeletedAt;
                     recipe.DeletedByPersonId = oldState.DeletedByPersonId;
-                    recipe.LastModifiedDate = now;
+                    recipe.LastModifiedDate = at;
                     recipe.LastModifiedByPersonId = SystemConstants.SystemPersonId;
                 }
-                entry.UndoneAt = now;
+                entry.UndoneAt = at;
                 foreach (var created in removable)
                 {
-                    _db.Ingredients.Remove(await _db.Ingredients.IgnoreQueryFilters().FirstAsync(i => i.Id == created.EntityId));
+                    foodsGone.Add(created);
                     created.ChangeType = FoodCreateUndoneChangeType;
                 }
-                var headers = await _db.AuditLogEntries
-                    .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType && a.EntityId == recipe.Id
-                        && (a.ChangeType == ReprocessChangeType || a.ChangeType == ReprocessOrderChangeType)
-                        && a.NewValue != null && a.NewValue.StartsWith(marker))
-                    .ToListAsync();
-                var linkIds = headers.SelectMany(h => LinkRowIds(h.NewValue)).ToList();
-                var links = linkIds.Count == 0
-                    ? new List<AuditLogEntryEntity>()
-                    : await _db.AuditLogEntries.Where(a => linkIds.Contains(a.Id)
-                        && (a.ChangeType == LinkApplyJournal.ChangeType || a.ChangeType == LineRelinkService.WordingResolveChangeType)).ToListAsync();
-                foreach (var header in headers.Concat(links)) header.ChangeType = ReprocessUndoneChangeType;
+                var restoredHeaders = (headers.GetValueOrDefault(recipe.Id) ?? new List<AuditLogEntryEntity>())
+                    .Where(h => (h.ChangeType == ReprocessChangeType || h.ChangeType == ReprocessOrderChangeType) && h.NewValue != null && h.NewValue.StartsWith(restoredMarker, StringComparison.Ordinal))
+                    .ToList();
+                linkIds.AddRange(restoredHeaders.SelectMany(h => LinkRowIds(h.NewValue)));
+                foreach (var header in restoredHeaders) header.ChangeType = ReprocessUndoneChangeType;
                 if (entry.Kind == RecipeReprocessKind.Order && FollowedWriteId(entry.BatchId) is { } followedId
                     && await _db.RecipeReprocessJournals.FirstOrDefaultAsync(j => j.Id == followedId && j.UndoneAt != null) is { } followedWrite)
                 {
@@ -1136,14 +1471,262 @@ namespace Nom.Orch.Services
                     EntityType = RecipeEntityType, EntityId = recipe.Id, ChangeType = UndoChangeType, PropertyName = entry.Kind,
                     OldValue = string.Create(CultureInfo.InvariantCulture, $"journal={entry.Id};batch={entry.BatchId}"),
                     NewValue = stateStands ? null : "state kept",
-                    Timestamp = now, ChangedByPersonId = by,
+                    Timestamp = at, ChangedByPersonId = by,
                 });
-                await _db.SaveChangesAsync();
-                if (tx != null) await tx.CommitAsync();
-                if (oldRows != null) await RecalculateAsync(recipe.Id);
             }
 
-            return result;
+            if (!apply)
+            {
+                _db.ChangeTracker.Clear();
+                return;
+            }
+
+            await SaveFollowsAsync();
+            await ReplaceRowsAsync(_db, writeRows);
+            foreach (var (recipeId, steps) in writeSteps) await ReplaceStepRowsAsync(recipeId, steps);
+            foreach (var created in foodsGone) _db.Ingredients.Remove(await _db.Ingredients.IgnoreQueryFilters().FirstAsync(i => i.Id == created.EntityId));
+            foreach (var part in linkIds.Distinct().Chunk(IdsPerRead))
+            {
+                foreach (var link in await _db.AuditLogEntries.Where(a => part.Contains(a.Id)
+                    && (a.ChangeType == LinkApplyJournal.ChangeType || a.ChangeType == LineRelinkService.WordingResolveChangeType)).ToListAsync())
+                {
+                    link.ChangeType = ReprocessUndoneChangeType;
+                }
+            }
+            await _db.SaveChangesAsync();
+            _db.ChangeTracker.Clear();
+            await RecalculateLabelsAsync(recalculate, tx);
+            if (runId != null)
+            {
+                var kinds = result.RestoredByKind
+                    .Select(k => (k.Key, Count: k.Value - counted.Kinds.GetValueOrDefault(k.Key)))
+                    .Where(k => k.Count > 0)
+                    .ToDictionary(k => k.Key, k => k.Count, StringComparer.Ordinal);
+                var record = new UndoBatchRecord(ids[^1], ids.Length, result.Restored - counted.Restored, result.Skipped - counted.Skipped,
+                    result.PositionsFollowed - counted.PositionsFollowed, result.StateKept - counted.StateKept, result.FoodsRemoved - counted.FoodsRemoved,
+                    result.FoodsKept - counted.FoodsKept, kinds, result.AlreadyUndone - counted.AlreadyUndone, Math.Round(clock.Elapsed.TotalSeconds, 3));
+                _db.AuditLogEntries.Add(UndoRunRow(runId, batchNumber, UndoBatchChangeType, null, JsonSerializer.Serialize(record, Json), DateTime.UtcNow, by));
+                await _db.SaveChangesAsync();
+            }
+            if (tx != null) await tx.CommitAsync();
+            _db.ChangeTracker.Clear();
+        }
+
+        /// <summary>
+        /// Calculates the labels of the recipes whose lines the batch put back, from their lines and their foods'
+        /// current nutrients, as the row-by-row undo did after each one, inside the batch's transaction so a batch
+        /// is committed with its labels or not at all. A failure is logged and leaves those labels as they were;
+        /// the recipes are then calculated one at a time so one recipe's failure keeps no other label back.
+        /// </summary>
+        private async Task RecalculateLabelsAsync(IReadOnlyCollection<long> recipeIds, IDbContextTransaction? tx)
+        {
+            if (recipeIds.Count == 0) return;
+            if (await TryLabelsAsync(tx, () => _nutrition.RecalculateManyAsync(recipeIds))) return;
+            foreach (var recipeId in recipeIds) await TryLabelsAsync(tx, () => _nutrition.RecalculateAsync(recipeId));
+        }
+
+        private async Task<bool> TryLabelsAsync(IDbContextTransaction? tx, Func<Task<int>> calculate)
+        {
+            if (tx != null) await tx.CreateSavepointAsync(LabelSavepoint);
+            try
+            {
+                await calculate();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Labels were not recalculated after a reprocess undo batch");
+                if (tx != null) await tx.RollbackToSavepointAsync(LabelSavepoint);
+                return false;
+            }
+            finally
+            {
+                _db.ChangeTracker.Clear();
+            }
+        }
+
+        private const string LabelSavepoint = "undo_labels";
+
+        /// <summary>
+        /// Whether a reprocess write of rows made after <paramref name="entry"/> on the same recipe still stands:
+        /// one standing when the batch was read and not restored since in this call, or an order write this call
+        /// made to put positions back. Its own undo does not follow lines through an order write, so the
+        /// order-only write is not followed over it.
+        /// </summary>
+        private static bool LaterRowWriteStands(RecipeReprocessJournalEntity entry, Dictionary<long, List<long>> standing, UndoState state) =>
+            state.FollowedRecipes.Contains(entry.RecipeId)
+            || (standing.TryGetValue(entry.RecipeId, out var ids) && ids.Any(id => id > entry.Id && !state.RestoredHere.Contains(id)));
+
+        private async Task<Dictionary<long, List<LineRow>>> RowsOfAsync(IReadOnlyCollection<long> recipeIds)
+        {
+            var found = new Dictionary<long, List<LineRow>>();
+            foreach (var part in recipeIds.Chunk(IdsPerRead))
+            {
+                var rows = await _db.RecipeIngredients.IgnoreQueryFilters().AsNoTracking()
+                    .Where(ri => part.Contains(ri.RecipeId))
+                    .Select(ri => new
+                    {
+                        ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.Quantity, ri.MeasurementId, ri.RawLine, ri.LineKind, EntityId = EF.Property<long?>(ri, "IngredientEntityId"),
+                        ri.CreatedDate, ri.CreatedByPersonId, ri.LastModifiedDate, ri.LastModifiedByPersonId, ri.IsDeleted, ri.DeletedAt, ri.DeletedByPersonId,
+                        ri.AlcoholRetention, ri.AlcoholRetentionBasis,
+                    })
+                    .ToListAsync();
+                foreach (var r in rows.OrderBy(r => r.RecipeId).ThenBy(r => r.SortOrder).ThenBy(r => r.IngredientId))
+                {
+                    if (!found.TryGetValue(r.RecipeId, out var list)) found[r.RecipeId] = list = new List<LineRow>();
+                    list.Add(new LineRow(r.IngredientId, r.SortOrder, r.Quantity, r.MeasurementId, r.RawLine, r.LineKind, r.EntityId,
+                        r.CreatedDate, r.CreatedByPersonId, r.LastModifiedDate, r.LastModifiedByPersonId, r.IsDeleted, r.DeletedAt, r.DeletedByPersonId,
+                        r.AlcoholRetention, r.AlcoholRetentionBasis));
+                }
+            }
+            return found;
+        }
+
+        private async Task<Dictionary<long, List<StepRow>>> StepRowsOfAsync(IReadOnlyCollection<long> recipeIds)
+        {
+            var found = new Dictionary<long, List<StepRow>>();
+            foreach (var part in recipeIds.Chunk(IdsPerRead))
+            {
+                var steps = await _db.RecipeSteps.IgnoreQueryFilters().AsNoTracking().Where(s => part.Contains(s.RecipeId)).ToListAsync();
+                foreach (var s in steps.OrderBy(s => s.RecipeId).ThenBy(s => s.StepNumber))
+                {
+                    if (!found.TryGetValue(s.RecipeId, out var list)) found[s.RecipeId] = list = new List<StepRow>();
+                    list.Add(new StepRow(s.StepNumber, s.StepTypeId, s.Summary, s.Description, s.Id, s.CreatedDate, s.CreatedByPersonId,
+                        s.LastModifiedDate, s.LastModifiedByPersonId, s.IsDeleted, s.DeletedAt, s.DeletedByPersonId));
+                }
+            }
+            return found;
+        }
+
+        /// <summary>
+        /// Puts exactly the given rows on each recipe, as <see cref="ReplaceRowsOnAsync"/> does
+        /// for one: on the database one delete of every row the recipes have and one insert of all the rows,
+        /// each row with the stamps it is given.
+        /// </summary>
+        internal static async Task ReplaceRowsAsync(ApplicationDbContext db, IReadOnlyDictionary<long, List<LineRow>> rowsByRecipe)
+        {
+            if (rowsByRecipe.Count == 0) return;
+            if (!db.Database.IsRelational())
+            {
+                foreach (var (recipeId, rows) in rowsByRecipe) await ReplaceRowsOnAsync(db, recipeId, rows);
+                return;
+            }
+
+            var recipeIds = rowsByRecipe.Keys.ToArray();
+            await db.Database.ExecuteSqlAsync($"""DELETE FROM recipe."RecipeIngredient" WHERE "RecipeId" = ANY({recipeIds})""");
+            var all = rowsByRecipe.SelectMany(p => p.Value.Select(r => (RecipeId: p.Key, Row: r))).ToList();
+            if (all.Count == 0) return;
+            static DateTime? Utc(DateTime? at) => at switch
+            {
+                null => null,
+                { Kind: DateTimeKind.Utc } utc => utc,
+                { Kind: DateTimeKind.Local } local => local.ToUniversalTime(),
+                { } unspecified => DateTime.SpecifyKind(unspecified, DateTimeKind.Utc),
+            };
+            static NpgsqlParameter Column<T>(string name, NpgsqlDbType type, T[] values) => new(name, NpgsqlDbType.Array | type) { Value = values };
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                INSERT INTO recipe."RecipeIngredient"
+                    ("RecipeId", "IngredientId", "SortOrder", "Quantity", "MeasurementId", "RawLine", "LineKind", "IngredientEntityId",
+                     "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId", "IsDeleted", "DeletedAt", "DeletedByPersonId",
+                     "AlcoholRetention", "AlcoholRetentionBasis")
+                SELECT * FROM unnest(@recipe, @food, @position, @quantity, @measurement, @line, @kind, @entity,
+                                     @created, @createdBy, @modified, @modifiedBy, @deleted, @deletedAt, @deletedBy, @retention, @basis)
+                """,
+                Column("recipe", NpgsqlDbType.Bigint, all.Select(a => a.RecipeId).ToArray()),
+                Column("food", NpgsqlDbType.Bigint, all.Select(a => a.Row.IngredientId).ToArray()),
+                Column("position", NpgsqlDbType.Integer, all.Select(a => a.Row.SortOrder).ToArray()),
+                Column("quantity", NpgsqlDbType.Numeric, all.Select(a => a.Row.Quantity).ToArray()),
+                Column("measurement", NpgsqlDbType.Bigint, all.Select(a => a.Row.MeasurementId).ToArray()),
+                Column("line", NpgsqlDbType.Text, all.Select(a => a.Row.RawLine).ToArray()),
+                Column("kind", NpgsqlDbType.Text, all.Select(a => a.Row.LineKind).ToArray()),
+                Column("entity", NpgsqlDbType.Bigint, all.Select(a => a.Row.IngredientEntityId).ToArray()),
+                Column("created", NpgsqlDbType.TimestampTz, all.Select(a => Utc(a.Row.CreatedDate)!.Value).ToArray()),
+                Column("createdBy", NpgsqlDbType.Bigint, all.Select(a => a.Row.CreatedByPersonId).ToArray()),
+                Column("modified", NpgsqlDbType.TimestampTz, all.Select(a => Utc(a.Row.LastModifiedDate)).ToArray()),
+                Column("modifiedBy", NpgsqlDbType.Bigint, all.Select(a => a.Row.LastModifiedByPersonId).ToArray()),
+                Column("deleted", NpgsqlDbType.Boolean, all.Select(a => a.Row.IsDeleted).ToArray()),
+                Column("deletedAt", NpgsqlDbType.TimestampTz, all.Select(a => Utc(a.Row.DeletedAt)).ToArray()),
+                Column("deletedBy", NpgsqlDbType.Bigint, all.Select(a => a.Row.DeletedByPersonId).ToArray()),
+                Column("retention", NpgsqlDbType.Numeric, all.Select(a => a.Row.AlcoholRetention).ToArray()),
+                Column("basis", NpgsqlDbType.Text, all.Select(a => a.Row.AlcoholRetentionBasis).ToArray()));
+        }
+
+        public async Task<RecipeReprocessUndoProgress?> UndoProgressAsync(string? runId)
+        {
+            var starts = _db.AuditLogEntries.AsNoTracking().Where(a => a.EntityType == UndoRunEntityType && a.ChangeType == UndoRunChangeType);
+            var start = string.IsNullOrWhiteSpace(runId)
+                ? (await starts.OrderByDescending(a => a.Id).ToListAsync())
+                    .FirstOrDefault(a => !(JsonSerializer.Deserialize<UndoFilter>(a.OldValue ?? "{}", Json)?.LaneOnly ?? false))
+                : await starts.FirstOrDefaultAsync(a => a.PropertyName == runId);
+            if (start?.PropertyName == null) return null;
+
+            var id = start.PropertyName;
+            var rows = await _db.AuditLogEntries.AsNoTracking()
+                .Where(a => a.EntityType == UndoRunEntityType && a.PropertyName == id)
+                .OrderBy(a => a.Id)
+                .ToListAsync();
+            var filter = JsonSerializer.Deserialize<UndoFilter>(start.OldValue ?? "{}", Json) ?? new UndoFilter(null, null, null, false);
+            using var counted = JsonDocument.Parse(start.NewValue ?? "{}");
+            var progress = new RecipeReprocessUndoProgress
+            {
+                RunId = id, StartedAt = start.Timestamp, SinceUtc = filter.SinceUtc, BatchId = filter.BatchId, Kind = filter.Kind, LaneOnly = filter.LaneOnly,
+                EntriesAtStart = counted.RootElement.TryGetProperty("entries", out var entries) ? entries.GetInt32() : 0,
+            };
+            foreach (var row in rows.Where(r => r.ChangeType == UndoBatchChangeType))
+            {
+                var batch = JsonSerializer.Deserialize<UndoBatchRecord>(row.NewValue ?? "{}", Json);
+                if (batch == null) continue;
+                progress.Batches++;
+                progress.Reached += batch.Entries;
+                progress.Restored += batch.Restored;
+                progress.Skipped += batch.Skipped;
+                progress.PositionsFollowed += batch.PositionsFollowed;
+                progress.StateKept += batch.StateKept;
+                progress.FoodsRemoved += batch.FoodsRemoved;
+                progress.FoodsKept += batch.FoodsKept;
+                progress.AlreadyUndone += batch.AlreadyUndone;
+                progress.WorkingSeconds += batch.Seconds;
+                foreach (var (kind, count) in batch.RestoredByKind ?? new Dictionary<string, int>())
+                    progress.RestoredByKind[kind] = progress.RestoredByKind.GetValueOrDefault(kind) + count;
+                progress.LastEntryId = batch.LastEntryId;
+                progress.LastBatchAt = row.Timestamp;
+            }
+
+            var last = rows.LastOrDefault(r => r.ChangeType is UndoBatchChangeType or UndoRunEndChangeType or UndoRunChangeType);
+            progress.Outcome = rows.LastOrDefault(r => r.ChangeType == UndoRunEndChangeType)?.NewValue;
+            progress.State = UndoRuns.ContainsKey(id) ? RecipeReprocessUndoProgress.States.Running
+                : last?.ChangeType != UndoRunEndChangeType ? RecipeReprocessUndoProgress.States.Interrupted
+                : last.NewValue == RecipeReprocessUndoProgress.States.Finished ? RecipeReprocessUndoProgress.States.Finished
+                : RecipeReprocessUndoProgress.States.Stopped;
+            var lastEnd = rows.LastOrDefault(r => r.ChangeType is UndoRunEndChangeType)?.Timestamp ?? DateTime.MinValue;
+            progress.StopRequested = rows.Any(r => r.ChangeType == UndoStopChangeType && r.Timestamp >= lastEnd);
+            progress.Remaining = progress.State == RecipeReprocessUndoProgress.States.Finished
+                ? 0
+                : await EntriesQuery(filter, progress.LastEntryId).CountAsync();
+            progress.WorkingSeconds = Math.Round(progress.WorkingSeconds, 3);
+            if (progress.WorkingSeconds > 0) progress.EntriesPerMinute = Math.Round(progress.Reached / (progress.WorkingSeconds / 60), 1);
+            return progress;
+        }
+
+        public async Task<RecipeReprocessUndoProgress?> StopUndoAsync(string? runId)
+        {
+            var progress = await UndoProgressAsync(runId);
+            if (progress == null) return null;
+            _db.AuditLogEntries.Add(UndoRunRow(progress.RunId, 0, UndoStopChangeType, null, "stop asked", DateTime.UtcNow, _currentUser.PersonIdOrSystem));
+            await _db.SaveChangesAsync();
+            _db.ChangeTracker.Clear();
+            if (UndoRuns.TryGetValue(progress.RunId, out var handle))
+            {
+                try
+                {
+                    handle.Stop.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
+            return await UndoProgressAsync(progress.RunId);
         }
 
         /// <summary>The id of the order-only write an order write of <see cref="OrderFollowPrefix"/> took back, or null for any other batch.</summary>
@@ -1152,18 +1735,6 @@ namespace Nom.Orch.Services
             && long.TryParse(batchId[OrderFollowPrefix.Length..], NumberStyles.None, CultureInfo.InvariantCulture, out var id)
                 ? id
                 : null;
-
-        /// <summary>
-        /// Whether a reprocess write of rows made after <paramref name="entry"/> on the same recipe still stands
-        /// (not undone, and not restored earlier in this run). Its own undo does not follow lines through an
-        /// order write, so the order-only write is not followed over it.
-        /// </summary>
-        private Task<bool> LaterRowWriteStandsAsync(RecipeReprocessJournalEntity entry, IReadOnlyCollection<long> restoredHere)
-        {
-            var skip = restoredHere.ToArray();
-            return _db.RecipeReprocessJournals.AsNoTracking().AnyAsync(j => j.RecipeId == entry.RecipeId && j.Id > entry.Id && j.UndoneAt == null
-                && j.NewRows != null && j.NewRows != j.OldRows && !skip.Contains(j.Id));
-        }
 
         /// <summary>
         /// The recipe's rows as they are now with the positions an order-only write found, where a later step
@@ -1216,52 +1787,6 @@ namespace Nom.Orch.Services
                 followed.Add(row with { SortOrder = place });
             }
             return followed.OrderBy(r => r.SortOrder).ThenBy(r => r.IngredientId).ToList();
-        }
-
-        /// <summary>
-        /// Puts back the positions of an order-only write whose lines a later step changed, keeping that
-        /// change: the write is taken back, and the move back is journaled as an order write of its own
-        /// (<see cref="OrderFollowPrefix"/>), so the later step's undo follows its lines to where they stand,
-        /// and undoing this write sets the positions of the pass again.
-        /// </summary>
-        private async Task FollowOrderUndoAsync(RecipeReprocessJournalEntity entry, List<LineRow> rowsNow, List<LineRow> followed, long by)
-        {
-            var now = DateTime.UtcNow;
-            await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
-            var written = followed.Select(r => rowsNow.Any(n => n.IngredientId == r.IngredientId && n.SortOrder == r.SortOrder && n.RawLine == r.RawLine && n.CreatedDate == r.CreatedDate)
-                    ? r
-                    : r with { LastModifiedDate = now, LastModifiedByPersonId = SystemConstants.SystemPersonId })
-                .ToList();
-            await ReplaceRowsAsync(entry.RecipeId, written);
-            entry.UndoneAt = now;
-            var marker = string.Create(CultureInfo.InvariantCulture, $"journal={entry.Id};");
-            foreach (var header in await _db.AuditLogEntries
-                .Where(a => a.EntityType == ScrapedRecipeRepairService.LineEntityType && a.EntityId == entry.RecipeId && a.ChangeType == ReprocessOrderChangeType
-                    && a.NewValue != null && a.NewValue.StartsWith(marker))
-                .ToListAsync())
-            {
-                header.ChangeType = ReprocessUndoneChangeType;
-            }
-            _db.AuditLogEntries.Add(new AuditLogEntryEntity
-            {
-                EntityType = RecipeEntityType, EntityId = entry.RecipeId, ChangeType = UndoChangeType, PropertyName = entry.Kind,
-                OldValue = string.Create(CultureInfo.InvariantCulture, $"journal={entry.Id};batch={entry.BatchId}"),
-                NewValue = "positions followed",
-                Timestamp = now, ChangedByPersonId = by,
-            });
-            await JournalAsync(new RecipeReprocessJournalEntity
-            {
-                RecipeId = entry.RecipeId,
-                BatchId = OrderFollowPrefix + entry.Id.ToString(CultureInfo.InvariantCulture),
-                Kind = RecipeReprocessKind.Order,
-                RuleVersion = entry.RuleVersion,
-                SourceDocumentId = entry.SourceDocumentId,
-                OldRows = JsonSerializer.Serialize(rowsNow, Json),
-                NewRows = JsonSerializer.Serialize(written, Json),
-                CreatedDate = now,
-                CreatedByPersonId = by,
-            }, by, now, rejected: false);
-            if (tx != null) await tx.CommitAsync();
         }
 
         /// <summary>

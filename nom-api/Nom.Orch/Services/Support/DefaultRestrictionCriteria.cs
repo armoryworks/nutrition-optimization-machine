@@ -10,7 +10,7 @@ using Nom.Data.Reference;
 
 namespace Nom.Orch.Services.Support
 {
-    /// <summary>A pattern a restriction type means beside another of its patterns, because that pattern's named exceptions would clear it, with the reason.</summary>
+    /// <summary>A pattern a restriction type means beside another of its patterns, because that pattern's named exceptions would clear it or because it names the same food in another spelling or a wider name, with the reason.</summary>
     public sealed record RestrictionCompanion(string Type, string Pattern, string Companion, string Reason);
 
     /// <summary>
@@ -86,6 +86,7 @@ namespace Nom.Orch.Services.Support
         private static readonly string[] FatTypes = { "Pancreatitis", "Gallbladder Disease" };
         private static readonly string[] VeganTypes = { "Vegan", "Ethical Vegan", "Raw Vegan", "Plant-Based" };
         private static readonly string[] ShellfishMeatTypes = VeganTypes.Concat(new[] { "Vegetarian", "Hindu Vegetarian", "Buddhist Vegetarian", "Jain" }).ToArray();
+        private static readonly string[] FlourTypes = { "Wheat Allergy", "Celiac Disease", "Gluten Sensitivity", "Gluten-Free", "Grain-Free", "Paleo", "Whole30" };
 
         private static IEnumerable<RestrictionCompanion> Companion(IEnumerable<string> types, string pattern, string reason, params string[] companions) =>
             from t in types from c in companions select new RestrictionCompanion(t, pattern, c, reason);
@@ -114,6 +115,8 @@ namespace Nom.Orch.Services.Support
             .Concat(Companion(FodmapTypes, "%yogurt%", "soy yogurt of whole soybeans is high in FODMAPs (Monash University FODMAP research), which the exception of %yogurt% clears", "%soy yogurt%"))
             .Concat(Companion(new[] { "Pancreatitis" }, "%butter%", "nut, seed and cocoa butters are among the fattiest foods, restricted here for fat, not dairy; the exceptions of %butter% clear them", "%peanut butter%", "%almond butter%", "%cashew butter%", "%nut butter%", "%seed butter%", "%sunflower butter%", "%cocoa butter%", "%cacao butter%"))
             .Concat(Companion(FatTypes, "%bacon%", "turkey and beef bacon are cured fatty meats, restricted here for fat, not pork; the exceptions of %bacon% clear them", "%turkey bacon%", "%beef bacon%"))
+            .Concat(Companion(FlourTypes, "%flour%", "flower is the old spelling of flour in seventeenth- to nineteenth-century cookbooks (staging checkpoint 4, P12); the blossoms are named exceptions of %flower%", "%flower%"))
+            .Concat(Companion(new[] { "Peanut Allergy" }, "%peanut%", "a nut butter that does not name its nut may be peanut butter, sold and named among the nut butters though peanuts are legumes (staging checkpoint 4, P3); peanut butter itself is held by %peanut%", "%nut butter%"))
             .ToList();
 
         /// <summary>The note a companion pattern carries when <see cref="EnsureAsync"/> adds it to a type that does not hold untouched defaults.</summary>

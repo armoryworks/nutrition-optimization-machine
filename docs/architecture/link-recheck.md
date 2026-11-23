@@ -60,7 +60,31 @@ A marked variant the wording does not name ("ketchup" on "Ketchup, restaurant", 
 "... with salt added", "thin cream" on light cream, "non-dairy milk" on imitation milk) is the same
 food in another make, not another food, so it is never proof.
 
-### Re-check classes and the bar (link-recheck/5, staging checkpoint 3 N12, review CK6R-1, CK6R-2, CK6R-5, ck7 judged rows)
+Since `link-recheck/6` (staging checkpoint 4, P13), three more holds are no proof:
+
+- a `part`, `group`, `form`, `percent` or `polarity` hold on a wording that names the food as its
+  first alternative (`LinkGate.NamesFirstAlternative`): "butter or margarine" on Butter, "nutmeg or
+  lemon peel" on Nutmeg, "lemon juice or vinegar" on lemon juice. A line of alternatives counts its
+  first, so the hold comes from another alternative. A single first word that leads foods of its own
+  is an alternative, not an adjective ("lemon juice or white vinegar" on vinegar stays refuted);
+- a `form` hold whose form a cook gives the food at home or keeps it in (`PreparationForms`: cooked,
+  boiled, stewed, baked, fried, steamed, braised, grilled, broiled, poached, roasted, toasted, browned,
+  frozen): "toasted pine nuts", "roasted garlic", "frozen mango chunks" are the food prepared or kept;
+- a `compound` hold on a wording that names no other food (`LinkGate.NamesOtherFood`: no word of it
+  leads foods of its own in the catalog and is missing from the food, a form, a state or an "-ed"
+  preparation word apart): "heavy cream, whipped", "eggs, preferably at room temperature", "dates
+  stoned and sliced" are one food.
+
+The `separable lean only` and `lean only` segments of a meat entry are its ordinary eaten part, as
+"meat only" is ("shoulder of veal" on Veal Shoulder). Fixes in the gate itself (`link-gate/13`, see
+`link-gate.md`) remove other wrong refutations the checkpoint's rows showed: "not sweetened" is
+unsweetened, a stated 100 %, 0 % or 2 % is met by a pure, nonfat or lowfat food, "fresh or frozen" gives
+alternatives, the raw entry of a legume, grain or seed is the dry product, the food's own name counts
+for its part, form and group, leaves are greens, a part word that qualifies another food word or follows
+"per" is no part, a group word after "in" is a packing medium, and a grated spice or a handful of one that
+is no leaf herb is the dried spice.
+
+### Re-check classes and the bar (link-recheck/6, staging checkpoint 3 N12, review CK6R-1, CK6R-2, CK6R-5, ck7 judged rows, staging checkpoint 4 P13)
 
 A refuting hold belongs to a **re-check class**: the three alcohol rules are one class (`alcohol`),
 the container line rule is `container-form`, and every other refuting rule is its own class
@@ -101,7 +125,7 @@ for all rows, so the masked rows test what the readable ones test.
 
 What stays as written is a plain ingredient statement: an amount, a unit, the food's catalog words,
 and a drink, form or part word, such as "1 teaspoon smoked paprika" or "1/2 pint of cream, whipped".
-On this build that is 374 of the 686 `agent` rows. Every row with an aside, a brand or another
+On this build that is 568 of the 928 `agent` rows (145 of the 242 rows of staging checkpoint 4). Every row with an aside, a brand or another
 food's name is masked in part. The golden test `A_checkpoint_row_keeps_only_its_foods_words...`
 refuses an `agent` row that keeps any other word, so a word is kept only by an edit to
 `link-recheck-words.tsv` that shows in the diff. The readable rows stay with the staging evidence,
@@ -136,23 +160,32 @@ those classes would make the same move or take-back, so a class is scored on exa
 would write, and no figure depends on which classes are proven when the rows are scored (review
 CK7R-2; `A_class_is_scored_on_every_row_it_refutes_whichever_classes_are_proven`). It prints judged rows, precision, the agent and rule split, coverage (the share of
 all rows judged wrong the class puts right), whether it meets the bar and whether it writes by rule;
-`--rows` adds every row's decision. On this build (750 rows: 550 judged wrong, 164 right, 36
-doubtful):
+`--rows` adds every row's decision. On this build (`link-recheck/6`, 992 rows: 662 judged wrong, 270
+right, 60 doubtful; the 242 rows of staging checkpoint 4's reading, section 10 of its log, are lr-751 to
+lr-992, source `agent-operator-checkpoint4-2026-11-23`, read from the unread groups the ck7 build listed):
 
 | Class | Checkpoint-judged right / judged | Rule rows | Precision | Writes |
 |---|---|---|---|---|
-| alcohol | 285 / 285 | 20 / 20 | 100 % | **by rule** |
-| prepared | 75 / 75 | 40 / 40 | 100 % | **by rule** |
-| compound | 11 / 65 | | 16.9 % | candidates only |
-| part | 49 / 64 | | 76.6 % | candidates only |
-| form | 9 / 22 | | 40.9 % | candidates only |
-| fresh-herb | 19 / 20 | | 95.0 % | candidates only (20 lines short) |
-| container-form | 18 / 18 | | 100 % | candidates only (22 lines short) |
-| other-food | 11 / 13 | | 84.6 % | candidates only |
-| group, polarity, percent | 6 / 10, 2 / 2, 1 / 1 | | | candidates only |
+| alcohol | 302 / 302 | 20 / 20 | 100 % | **by rule** |
+| prepared | 86 / 86 | 40 / 40 | 100 % | **by rule** |
+| fresh-herb | 55 / 55 | | 100 % | **by rule** (since `link-recheck/6`) |
+| part | 64 / 69 | | 92.8 % | candidates only: **not proven** |
+| compound | 23 / 35 | | 65.7 % | candidates only: **not proven** |
+| form | 15 / 26 | | 57.7 % | candidates only: **not proven** |
+| container-form | 18 / 18 | | 100 % | candidates only (22 lines short; staging holds no more groups) |
+| other-food | 11 / 14 | | 78.6 % | candidates only: **not proven** |
+| group | 9 / 12 | | 75.0 % | candidates only: **not proven** |
+| percent, polarity | 5 / 5, 3 / 3 | | 100 % | candidates only (too few rows) |
+| head-noun, head-lead, heading | 0 / 2, 1 / 1, 1 / 1 | | | candidates only |
 
-Written by rule: 432 rows. 420 of them are rows judged wrong and put right, and 12 are doubtful.
-None is written against its judgement.
+Written by rule: 521 rows, 503 of them rows judged wrong and put right, the rest doubtful. None is
+written against its judgement. Part, compound, form, group and other-food still fail the bar on the
+checkpoints' rows after the fixes above, and percent and polarity have too few: their refutations
+stay candidates, which the model audit decides on their own tiers (`candidate:<class>`); none of them
+is proven by rule. The rows they still refute wrongly are cooks' alternatives the rules cannot read
+("spelt, white, or oat flour", "butter _or_ margarine"), measures ("butter, the size of an egg"), a
+food's own variety ("smoked paprika", "pounded white sugar"), and the seeds of pomegranate, which are
+its eaten part.
 
 These figures are the rows, not the checkpoint's own reading, and for five sets they lean against
 the class (review CK7R-3). The log read every alcohol, container-form and prepared sample and every
@@ -202,7 +235,8 @@ With a refuting hold of a class that writes:
    table's foods in order). The container set's only tier is the one curated canned food that shares
    the food's lead word and holds every word of the wording (drained when the line is drained). The
    alcohol and canned tiers vouch for the food's identity themselves, so the gate's word rules
-   (containment, lead noun, head noun, generic, state, word order, percent, rule-other, other-alias)
+   (containment, lead noun, head noun, generic, state, word order, percent, rule-other, other-alias, and
+   since `link-recheck/6` variety, which the distinguishing rule of `link-gate/13` raises on a canned sister)
    are not read for them; every other rule is.
 2. Else **take back** (refuted, no tier names a food): the lines go to the uncurated food of the
    wording's name (created when none is live, after a retired row holding the name is renamed out of
@@ -326,3 +360,36 @@ and the lane decides in shadow.
 version and signature, the classes that write by rule (`provenClasses`, and `provenProblem` when the per-class record
 is not current, so none does), how many model picks wait,
 the last withdrawal and the newest run of each set and of each class tier (with `candidates` and `candidateLines`).
+
+## The diet guard on take-backs and moves (link-recheck/6, staging checkpoint 4, P19)
+
+The prepared set took "cheese tortellini", "zwieback", "frozen potstickers" and canned spaghetti off USDA foods
+whose names or descriptions named pasta, wonton and pork, onto new wording foods whose names carry no such word,
+so Celiac Disease and Wheat Allergy stopped flagging 111 and 128 recipes. The links were right; the diet side
+was not. Two parts close it:
+
+- the composite rows of `label-terms.tsv` for every food the prepared set creates at the checkpoints
+  (`diet-gate.md`, checkpoint 4 section), so the new foods' names and the lines keep their flags;
+- `RecheckDietGuard`, read by every run of every set after the decisions are made: a take-back (`unlink`) or a
+  move (`move`, a promoted candidate included) of a group with lines may not lower the flag of any restriction type
+  (every default type, companions and composites included, and every stored type's own pattern criteria) on its
+  recipes. Before is read from the food's name, its USDA description and the lines' own text; after from the
+  wording (a take-back) or the target's name and USDA description (a move), and the lines. A drop is allowed only
+  when the new name reads as label language of the cited table (`StatementLabelTerms.Match`) and nothing the table
+  says it is, contains or may contain is a word the type restricts ("chicken thighs" off breaded chicken may drop
+  the wheat flag). The diet gate reads a recipe line by its food's name and composite companions only, so a known
+  term whose restricted contents its name does not carry keeps the flag (review CK9T-1: "tvp" is soy, "lactose"
+  milk, "einkorn" wheat, "lysozyme" egg, "animal rennet" veal; "frozen potstickers" may be shrimp). Otherwise the
+  group is `held` with the reason `diet flags kept (contents of the wording not known; it would lower ...)` or
+  `diet flags kept (a move to <food> would lower ...)`, and its lines stay on their food, on the safe side
+  ("patty" off a fast-food hamburger, whether as a take-back or a move to a curated food named "Patty" (review
+  CK9T-2), "the food" off a biscuit, a seasoning off a rice mix, an orange liqueur off orange juice for Citrus
+  Allergy, a hard cider off cider vinegar for Sulfite Sensitivity). A group with no lines (an alias only) is not
+  judged: no recipe's flag depends on it.
+
+The guard reads what the default patterns and stored criteria read in text; a food's trusted aliases beside its
+USDA description, its category probe (`%pork%`) and a branded food's statement are not read, so a flag the old
+food had only by those may still drop. The golden scorer of the classes (`--recheck-classes`) judges links, not
+diet flags, and does not run the guard. `recheck-diet.tsv` runs the prepared set end to end on one constructed
+line of each prepared food the set took lines off at checkpoints 3 and 4, with every default type on its own
+household, and fails when a take-back to a wording of unknown contents lowers a recipe's flag.

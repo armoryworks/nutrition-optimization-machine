@@ -51,8 +51,8 @@ namespace Nom.Orch.UtilityServices
         public Task<ScraperResult> ParseAsync(string content, string? sourceUrl, CancellationToken cancellationToken = default)
             => PostAsync("api/parse", new { content, sourceUrl }, cancellationToken);
 
-        public Task<ScraperJobAnswer> StartDiscoveryJobAsync(IReadOnlyList<string> seedDomains, int maxCandidates, int budgetSeconds, CancellationToken cancellationToken = default)
-            => JobAsync(HttpMethod.Post, "api/discover/jobs", new { seedDomains, maxCandidates, budgetSeconds }, cancellationToken);
+        public Task<ScraperJobAnswer> StartDiscoveryJobAsync(IReadOnlyList<string> seedDomains, int maxCandidates, int budgetSeconds, IReadOnlyList<string> excludeDomains, CancellationToken cancellationToken = default)
+            => JobAsync(HttpMethod.Post, "api/discover/jobs", new { seedDomains, maxCandidates, budgetSeconds, excludeDomains }, cancellationToken);
 
         public Task<ScraperJobAnswer> StartSourceCheckJobAsync(string domain, int sampleSize, int budgetSeconds, CancellationToken cancellationToken = default)
             => JobAsync(HttpMethod.Post, "api/source-check/jobs", new { domain, sampleSize, budgetSeconds, includeRecipes = true }, cancellationToken);

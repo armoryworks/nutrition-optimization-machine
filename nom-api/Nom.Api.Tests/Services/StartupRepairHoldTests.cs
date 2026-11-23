@@ -392,7 +392,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task A_count_of_a_liquid_read_from_the_method_is_dropped_and_journaled()
+        public async Task A_count_of_a_liquid_its_line_states_is_kept_by_the_line_guard()
         {
             using var db = await NewContextAsync();
             var foods = await FoodsAsync(db, "Moselle Wine", "Flour");
@@ -401,8 +401,9 @@ namespace Nom.Api.Tests.Services
 
             await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 500);
 
-            (await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == recipe && ri.SortOrder == 0)).Quantity.Should().Be(0m);
-            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == ScrapedRecipeRepairService.FillChangeType)).Should().Be(1);
+            (await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == recipe && ri.SortOrder == 0)).Quantity
+                .Should().Be(1m, "the stored one stands in the line, and the line guard never empties a grounded amount");
+            (await db.AuditLogEntries.CountAsync(a => a.ChangeType == ScrapedRecipeRepairService.FillChangeType)).Should().Be(0);
         }
 
         [Fact]

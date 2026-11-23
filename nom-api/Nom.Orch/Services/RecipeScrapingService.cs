@@ -203,8 +203,8 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// The test scrape of a facts-only source's page as a reader may see it: the title reduced to the dish name
-        /// (<see cref="Support.RecipeTitleRule"/>), times, yield and each line's parsed amount, unit and food, with
-        /// no description, no method, no line notes and no photo.
+        /// (<see cref="Support.RecipeTitleRule"/>), times, yield and each line's parsed amount, unit and food words
+        /// (<see cref="Support.ProseWithholding.FoodWords"/>), with no description, no method, no line notes and no photo.
         /// </summary>
         private static ScrapedRecipeModel FactsOnlyPreview(ScrapedRecipeModel model, ScraperRecipe scraped)
         {
@@ -214,6 +214,7 @@ namespace Nom.Orch.Services
             model.Steps = new List<ScrapedStepModel>();
             foreach (var ingredient in model.Ingredients)
             {
+                ingredient.Name = Support.ProseWithholding.FoodWords(ingredient.Name) ?? Support.ProseWithholding.UnnamedFood;
                 ingredient.Notes = null;
             }
 

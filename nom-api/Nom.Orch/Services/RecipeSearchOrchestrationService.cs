@@ -697,7 +697,7 @@ namespace Nom.Orch.Services
                 result.Ingredients = recipe.RecipeIngredients.Select(ri => new RecipeIngredientSearchModel
                 {
                     Id = (int)ri.Id,
-                    Name = ri.Ingredient?.Name ?? "Unknown",
+                    Name = ri.Ingredient == null && recipe.SourceRights != SourceRightsRule.FactsOnly ? "Unknown" : ProseWithholding.FoodName(recipe, ri),
                     Quantity = ri.Quantity,
                     Measurement = ri.Measurement?.Name,
                     Notes = ProseWithholding.LineWording(recipe, ri.RawLine)

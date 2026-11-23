@@ -16,6 +16,13 @@ namespace Nom.Orch.Models.Curation
 
         /// <summary>Lines by the kind of their new basis (timed, up-to, flamed, hot-liquid, overnight, no-heat, no-steps).</summary>
         public Dictionary<string, int> ByKind { get; set; } = new();
+
+        /// <summary>Lines read as an estimate: no step names the drink, or the heat after it has no time the reader can take ("up to"); each is read on the safe side.</summary>
+        public int Estimated { get; set; }
+
+        /// <summary>Of the estimated lines, those whose drink no step names (placed by a step that mixes all the ingredients, read from a step naming a drink word, or not placed at all).</summary>
+        public int Unnamed { get; set; }
+
         public List<AlcoholRetentionSample> Samples { get; set; } = new();
     }
 
@@ -31,6 +38,12 @@ namespace Nom.Orch.Models.Curation
         public decimal NewFactor { get; set; }
         public string NewBasis { get; set; } = string.Empty;
         public string? UsdaCode { get; set; }
+
+        /// <summary>Whether the new reading is an estimate (see <see cref="AlcoholRetentionRunResult.Estimated"/>).</summary>
+        public bool Estimated { get; set; }
+
+        /// <summary>Whether no step names the line's drink.</summary>
+        public bool Unnamed { get; set; }
     }
 
     /// <summary>What taking a retention run back did, or would do on a dry run.</summary>

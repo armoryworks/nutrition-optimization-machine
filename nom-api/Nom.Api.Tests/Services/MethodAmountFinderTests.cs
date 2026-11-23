@@ -85,5 +85,36 @@ namespace Nom.Api.Tests.Services
             MethodAmountFinder.Find(line, new[] { method }).Should().NotBeNull("the method states the amount once");
             MethodAmountFinder.Find(line, new[] { method }, new[] { "1 cup water", otherLine }).Should().BeNull();
         }
+
+        [Theory]
+        [InlineData("sugar", "To six pounds of peaches allow two pounds of sugar. ¦ Make a syrup of three-quarters of a pound of sugar and a pint of water.")]
+        [InlineData("sugar", "Allow a teaspoonful of sugar for a dozen tomatoes. ¦ Where they are liked sweet, add two tablespoonfuls of sugar.")]
+        [InlineData("consomme", "Cook the tomatoes in half a cup of consomme. ¦ Rub them through a sieve and add to two quarts of consomme.")]
+        [InlineData("flour", "Make a foam of the yeast with four cups of flour. ¦ Add to the yeast foam about seven to eight cups of flour.")]
+        [InlineData("pounded mace", "To every pound of meat allow a quarter of a pound of butter; one teaspoonful of pounded mace.")]
+        [InlineData("pounded mace", "To every lb. of meat allow one teaspoonful of pounded mace.")]
+        [InlineData("beef suet", "For thirty pounds use two pounds beef suet.")]
+        public void A_sentence_dropped_as_a_proportion_still_counts_as_an_amount_of_the_food(string line, string steps)
+        {
+            MethodAmountFinder.Find(line, steps.Split(" ¦ ")).Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("consomme", "Rub them through a sieve and add to two quarts of consomme.", 8, "Cup")]
+        [InlineData("water", "Add to one pint of boiling water the beaten yolks.", 2, "Cup")]
+        public void Add_or_return_to_an_amount_is_the_amount_not_a_proportion(string line, string method, double quantity, string measurement)
+        {
+            MethodAmountFinder.Find(line, new[] { method }).Should().Be(new ParsedQuantity((decimal)quantity, measurement));
+        }
+
+        [Theory]
+        [InlineData("tin plate", "Butter a tin plate and line it with paste.")]
+        [InlineData("lemon, raspberry, or any other acid syrup", "Put into a tumbler lemon, raspberry, or any other acid syrup, sufficient in quantity to flavour the water.")]
+        [InlineData("acid syrup", "Put into a tumbler enough acid syrup to flavour it, and fill up with water.")]
+        [InlineData("syrup", "Pour into a glass some syrup, sufficient to flavour the water.")]
+        public void A_utensil_or_the_vessel_a_food_is_put_into_is_no_amount(string line, string method)
+        {
+            MethodAmountFinder.Find(line, new[] { method }).Should().BeNull();
+        }
     }
 }

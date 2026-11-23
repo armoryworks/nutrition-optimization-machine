@@ -26,7 +26,7 @@ namespace Nom.Data.Recipe
         /// <summary>The seed it was found from, or "request" for an admin request.</summary>
         public string? FoundVia { get; set; }
 
-        /// <summary><c>RecipeJsonLd</c> or <c>RecipeLinks</c>; null for a lead (found but never probed), which is never checked.</summary>
+        /// <summary><c>RecipeJsonLd</c> or <c>RecipeLinks</c>; null for a lead (found but never probed), which only ever gets a terms-only check.</summary>
         public string? Signal { get; set; }
 
         public DateTime FirstSeenUtc { get; set; }

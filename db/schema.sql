@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict jC0WK40iaLOmyViA0FSskD1ZczeSS9qYfYAx3yyWhuRBxbWuYlCSA3lfSP9KKkd
+\restrict dCdn29KcRPgPTU62Ub3UPDqmL0ltOit0UalOVxwmxJ4Xak1lUscn8jWebWEeNLv
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -3983,6 +3983,14 @@ CREATE TABLE recipe."SourceDiscoveryRun" (
     "SeedsNotVisited" character varying(2047),
     "SeedsRefused" character varying(2047),
     "PagesFetched" integer NOT NULL,
+    "ExcludeSent" integer DEFAULT 0 NOT NULL,
+    "ExcludeLeftOut" integer DEFAULT 0 NOT NULL,
+    "ExcludeCursorSince" timestamp with time zone,
+    "ExcludeCursorHost" character varying(253),
+    "SeedsExcluded" character varying(2047),
+    "CandidatesExcluded" integer DEFAULT 0 NOT NULL,
+    "CandidatesExcludedJson" jsonb,
+    "ExcludeNote" character varying(1023),
     "CreatedDate" timestamp with time zone NOT NULL,
     "CreatedByPersonId" bigint,
     "LastModifiedDate" timestamp with time zone,
@@ -9580,5 +9588,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict jC0WK40iaLOmyViA0FSskD1ZczeSS9qYfYAx3yyWhuRBxbWuYlCSA3lfSP9KKkd
+\unrestrict dCdn29KcRPgPTU62Ub3UPDqmL0ltOit0UalOVxwmxJ4Xak1lUscn8jWebWEeNLv
 

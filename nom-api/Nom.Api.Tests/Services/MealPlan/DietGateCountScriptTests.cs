@@ -5,6 +5,7 @@ using System.Text;
 using FluentAssertions;
 using Nom.Data.Nutrition;
 using Nom.Data.Recipe;
+using Nom.Orch.Services;
 using Nom.Orch.Services.Support;
 using Xunit;
 using Xunit.Abstractions;
@@ -87,9 +88,21 @@ namespace Nom.Api.Tests.Services.MealPlan
         }
 
         [Fact]
+        public void The_count_clears_a_usda_description_alias_whose_order_of_speech_a_named_exception_blanks_as_the_code_does()
+        {
+            Script.Should().Contain("lower(btrim(coalesce(a.\"SourceContext\", ''))) = '" + IngredientLinkService.UsdaDescriptionContext + "'",
+                "the code reads a fdc:description alias in the order of speech too (DietPatternRule.IsDescriptionMatch), so the count's rule side must, or the drops it causes go unsampled (review CK9T-3)");
+            Script.Should().Contain("btrim(split_part(m.text, ',', 2)) || ' ' || btrim(split_part(m.text, ',', 1))")
+                .And.Contain("substring(m.text from '^[^,]*,[^,]*(,.*)$')")
+                .And.Contain("d.spoken ~* o.term_rx AND regexp_replace(d.spoken, o.blank_rx, ' ', 'gi') !~* o.term_rx");
+        }
+
+        [Fact]
         public void The_counts_shared_values_are_the_codes()
         {
             Script.Should().Contain("'" + AlcoholLineContext.DrinkNamePattern + "'");
+            Script.Should().Contain("'" + DietMeasureWords.PostgresPattern + "'::text AS measure").And.Contain("regexp_replace(a.\"AliasName\", k.measure, ' ', 'gi')",
+                "the count reads an alias with its measures blanked, as the gate does (staging checkpoint 4, P5)");
             Script.Should().Contain("> " + DietCriteriaMatcher.PresencePer100g.ToString(System.Globalization.CultureInfo.InvariantCulture));
             Script.Should().Contain("IS DISTINCT FROM " + CatalogAdmissionRule.SpicesAndHerbs);
             IngredientAliasTrust.TrustedPrefixes.Where(p => !Script.Contains("LIKE '" + p + "%'")).Should().BeEmpty();

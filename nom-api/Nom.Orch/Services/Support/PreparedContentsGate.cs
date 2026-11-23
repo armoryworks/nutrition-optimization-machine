@@ -47,6 +47,9 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>The meal itself is a food the household's restrictions name.</summary>
         public const string Food = "restricted_food";
+
+        /// <summary>The diet gate has not yet computed the foods the household's restrictions name (<see cref="RestrictedIngredientSet.Pending"/>), so no meal is offered until it has.</summary>
+        public const string Pending = "diet_gate_pending";
     }
 
     /// <summary>
@@ -103,6 +106,7 @@ namespace Nom.Orch.Services.Support
         public static PreparedContentsVerdict Judge(long foodId, IReadOnlyCollection<IngredientContentsEntity> rows, long householdId, RestrictedIngredientSet set, IReadOnlySet<long> curatedFoodIds, IReadOnlyCollection<NamedRestrictedFood>? named = null)
         {
             if (set.IngredientIds.Contains(foodId)) return new PreparedContentsVerdict(foodId, PreparedContentsHeld.Food, Array.Empty<string>());
+            if (set.Pending) return new PreparedContentsVerdict(foodId, PreparedContentsHeld.Pending, Array.Empty<string>());
             var label = rows.Where(r => r.HouseholdId == householdId).OrderByDescending(r => r.Id).FirstOrDefault();
             var fdc = rows.Where(r => r.HouseholdId == null).OrderByDescending(r => r.Id).FirstOrDefault();
             var decider = label ?? fdc;

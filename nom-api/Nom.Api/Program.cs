@@ -429,6 +429,7 @@ builder.Services.AddHttpClient<Nom.Orch.Interfaces.IIngredientLinkVerifier, Nom.
 builder.Services.AddHostedService<Nom.Api.Services.IngredientLinkHostedService>();
 builder.Services.AddHostedService<Nom.Api.Services.RecipeNutritionRecalcHostedService>();
 builder.Services.AddHostedService<Nom.Api.Services.CourseClassificationHostedService>();
+builder.Services.AddHostedService<Nom.Api.Services.DietGateHostedService>();
 
 builder.Services.AddScoped<Nom.Orch.Services.ProseLaneService>();
 builder.Services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.ProseRewriteUndoService>();
@@ -736,20 +737,6 @@ using (var startupScope = app.Services.CreateScope())
     try
     {
         await Nom.Orch.Services.Support.DefaultRestrictionCriteria.EnsureAsync(db, startupLogger);
-        _ = Task.Run(async () =>
-        {
-            using var warmScope = app.Services.CreateScope();
-            try
-            {
-                var probes = await Nom.Orch.Services.Support.DietCriteriaMatcher.WarmAsync(
-                    warmScope.ServiceProvider.GetRequiredService<Nom.Data.ApplicationDbContext>(), Nom.Orch.Services.Support.DietGateCache.Shared);
-                startupLogger.LogInformation("Diet gate: {Probes} catalog probes computed and kept", probes);
-            }
-            catch (Exception ex)
-            {
-                startupLogger.LogWarning(ex, "Diet gate probes could not be computed ahead; the first household set computes them");
-            }
-        });
     }
     catch (Exception ex)
     {

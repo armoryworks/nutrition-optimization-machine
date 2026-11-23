@@ -437,6 +437,81 @@ class RecordTests(unittest.TestCase):
             "2 cups cooked green beans",
         ], "staging checkpoint 3, N29: Marinated Vegetables, Pasta Skillet and Overnight Oats split one line in two")
 
+    def test_a_line_ending_in_if_or_a_word_that_names_no_food_alone_or_followed_by_a_bracket_only_line_is_joined(self):
+        text = CARD_TEXT.replace("2 cups cooked green beans\n",
+                                 "1/2 cup lowfat milk, adding more for a thinner consistency if\n\ndesired\n\n"
+                                 "1 tablespoon mayonnaise or plain\n\nGreek yogurt\n\n"
+                                 "1/2 cup raw cashews or peanuts\n\n(optional)\n\n"
+                                 "Optional toppings: Chopped basil, grated\n\nParmesan cheese\n\n"
+                                 "1/4 cup Parmesan cheese, grated\n\nCooking spray\n\n2 cups cooked green beans\n")
+        record, why = hand.parse_card("Garden Bean Skillet", text)
+        self.assertIsNone(why)
+        self.assertEqual([i["rawLine"] for i in record["ingredients"]][2:], [
+            "1/2 cup lowfat milk, adding more for a thinner consistency if desired",
+            "1 tablespoon mayonnaise or plain Greek yogurt",
+            "1/2 cup raw cashews or peanuts (optional)",
+            "Optional toppings: Chopped basil, grated Parmesan cheese",
+            "1/4 cup Parmesan cheese, grated",
+            "Cooking spray",
+            "2 cups cooked green beans",
+        ], "staging checkpoint 4, P26: five VA recipes still split a wrapped line; a line with an amount that ends in ', grated' is whole")
+
+    def test_each_named_time_of_a_card_header_is_read_and_a_chill_or_inactive_time_is_not_kept_on_its_own(self):
+        for header, expected in [
+            ("Prep: 15 minutes | Chill: 20 minutes| Cook: 20 minutes | Total: 55 minutes", (15, 20, 55)),
+            ("Prep: 10 minutes | Inactive: 30 minutes | Total: 40 minutes", (10, None, 40)),
+            ("Prep: 5 minutes | Cook: 10 minutes | Chill: 2 hours | Total: 2 hours 15 minutes", (5, 10, 135)),
+        ]:
+            record, why = hand.parse_card("Garden Bean Skillet", CARD_TEXT.replace("Prep: 10 minutes | Cook: 20 minutes | Total: 30 minutes", header))
+            self.assertIsNone(why)
+            self.assertEqual((record.get("prepTimeMinutes"), record.get("cookTimeMinutes"), record.get("totalTimeMinutes")), expected,
+                             f"staging checkpoint 4, P27: a header with a Chill or Inactive field gave no time at all ({header})")
+            self.assertNotIn("chillTime", record)
+            self.assertIsNone(hand.number_check(record, CARD_TEXT.replace("Prep: 10 minutes | Cook: 20 minutes | Total: 30 minutes", header)))
+
+    def test_a_cards_name_is_its_printed_title_and_the_listed_title_only_when_it_prints_none(self):
+        printed = CARD_TEXT.replace("Garden Bean Skillet\n", "Whole-Wheat Garden\nBean Skillet\n")
+        self.assertEqual(hand.parse_card("Whole Wheat Garden Bean Skillet", printed)[0]["name"], "Whole-Wheat Garden Bean Skillet",
+                         "staging checkpoint 4, P28: 53 of 337 VA names came from the index list, not the card")
+        placeholder = CARD_TEXT.replace("Garden Bean Skillet\n", "Recipe Title\nGarden Bean Sauté\n")
+        self.assertEqual(hand.parse_card("Garden Bean Saute", placeholder)[0]["name"], "Garden Bean Sauté")
+        headless = CARD_TEXT.replace("Prep: 10 minutes | Cook: 20 minutes | Total: 30 minutes\n", "").replace("Yield: 4 servings | Serving Size: 1 cup\n", "")
+        self.assertEqual(hand.parse_card("Garden Bean Skillet (listed)", headless)[0]["name"], "Garden Bean Skillet (listed)")
+        result = hand.extract_document(doc("card", [(1, printed)], title="Whole Wheat Garden Bean Skillet"), SOURCES["va"])
+        self.assertEqual(result.kept[0]["recipe"]["name"], "Whole-Wheat Garden Bean Skillet")
+
+    def test_a_page_whose_model_call_times_out_is_dropped_after_one_timeout_and_reported_and_the_run_goes_on(self):
+        pages = [(20, "PEPPER RUB\n\nINGREDIENTS\n\n1 teaspoon black pepper\n\nRub on the meat."),
+                 (21, "SALT RUB\n\nINGREDIENTS\n\n1 teaspoon salt\n\nRub on the fish.")]
+        answers = {pages[0][1]: {"recipes": [{"name": "Pepper Rub", "ingredients": ["1 teaspoon black pepper"], "steps": ["Rub on the meat."]}]},
+                   pages[1][1]: {"recipes": [{"name": "Salt Rub", "ingredients": ["1 teaspoon salt"], "steps": ["Rub on the fish."]}]}}
+        asked = []
+
+        def stuck_host(system, text):
+            asked.append(text)
+            if text == pages[0][1]:
+                raise hand.cookbook.urllib.error.URLError(TimeoutError("timed out"))
+            return json.dumps(answers[text])
+
+        with tempfile.TemporaryDirectory() as folder:
+            ask = hand.cookbook.resumable(stuck_host, os.path.join(folder, "d1.answers.jsonl"), retries=2, wait=0, sleep=lambda s: None, retry_timeouts=False)
+            result = hand.extract_document(doc("pages", pages), SOURCES["nci"], ask=ask)
+        self.assertEqual(asked.count(pages[0][1]), 1, "staging checkpoint 4, P34: a page that never answers held the run for three long timeouts")
+        self.assertEqual([r["recipe"]["name"] for r in result.kept], ["Salt Rub"])
+        self.assertEqual((result.rejects[0]["page"], result.rejects[0]["reason"].split(":")[0]), (20, "model call timed out"))
+        self.assertEqual(hand.summarize({"nci": [("d1", result)]})["nci"]["droppedByReason"], {"model call timed out": 1})
+
+    def test_a_letter_spaced_title_is_closed_up_into_its_words(self):
+        page = "C AT F I S H STEW with RICE\n\nINGREDIENTS\n\n1 pound catfish fillets\n\n1 cup rice\n\nSimmer the catfish for 10 minutes."
+        record, why = hand.paged_record({"name": "C AT F I S H STEW with RICE", "ingredients": ["1 pound catfish fillets", "1 cup rice"],
+                                         "steps": ["Simmer the catfish for 10 minutes."]}, page)
+        self.assertIsNone(why)
+        self.assertEqual(record["name"], "CATFISH STEW with RICE", "staging checkpoint 4, P34: names kept the PDF's letter spacing")
+        self.assertEqual(hand.despaced("2 – M I N U T E C H I C K E N C R E O L E"), "2 – MINUTE CHICKEN CREOLE")
+        self.assertEqual(hand.despaced("N E W O R L E A N S R E D B E A N S"), "NEW ORLEANS RED BEANS")
+        self.assertEqual(hand.despaced("Q X Z Stew"), "QXZ Stew")
+        self.assertEqual(hand.despaced("A Pot of Greens"), "A Pot of Greens")
+
     def test_the_recipe_video_widget_after_the_directions_is_no_step(self):
         with open(os.path.join(FIXTURES, "recipe-page.html"), encoding="utf-8") as handle:
             page = handle.read().replace("</ol>\n", "</ol>\n<div class=\"video\"><h3>Recipe Video</h3></div>\n")

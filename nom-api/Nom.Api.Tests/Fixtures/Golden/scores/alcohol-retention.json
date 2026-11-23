@@ -1,16 +1,16 @@
 {
   "lane": "alcohol-retention",
-  "model": "alcohol-retention/5",
+  "model": "alcohol-retention/6",
   "checkModel": null,
   "host": "none",
-  "signature": "531e64e5432af138",
-  "scoredAtUtc": "2026-11-21T17:47:34.2898265Z",
-  "caseSet": "a23ab5d114e08741",
-  "cases": 97,
-  "passed": 97,
+  "signature": "1d66f7b2bf932bf7",
+  "scoredAtUtc": "2026-11-23T17:25:55.8661304Z",
+  "caseSet": "72bd92fcf89bfe3b",
+  "cases": 107,
+  "passed": 107,
   "score": 1,
   "falseAccepts": 0,
-  "falseAcceptCases": 97,
+  "falseAcceptCases": 107,
   "falseAcceptRate": 0,
   "accepted": null,
   "precision": null,
@@ -20,8 +20,8 @@
       10
     ],
     "rule:alcohol-retention": [
-      87,
-      87
+      97,
+      97
     ]
   },
   "failed": [],

@@ -23,9 +23,10 @@ namespace Nom.Orch.UtilityInterfaces
         /// <summary>
         /// Starts a budgeted discovery job (POST /api/discover/jobs) that follows outbound links
         /// from the given approved seed domains. Candidates are proposals only — nothing is
-        /// imported from them until an admin approves the domain.
+        /// imported from them until an admin approves the domain. Neither pass fetches a host on
+        /// <paramref name="excludeDomains"/> (that host or any subdomain of it); the scraper takes at most 5,000 entries.
         /// </summary>
-        Task<ScraperJobAnswer> StartDiscoveryJobAsync(IReadOnlyList<string> seedDomains, int maxCandidates, int budgetSeconds, CancellationToken cancellationToken = default);
+        Task<ScraperJobAnswer> StartDiscoveryJobAsync(IReadOnlyList<string> seedDomains, int maxCandidates, int budgetSeconds, IReadOnlyList<string> excludeDomains, CancellationToken cancellationToken = default);
 
         /// <summary>Starts a source-check job (POST /api/source-check/jobs) for one domain; it returns facts only and imports nothing.</summary>
         Task<ScraperJobAnswer> StartSourceCheckJobAsync(string domain, int sampleSize, int budgetSeconds, CancellationToken cancellationToken = default);
@@ -148,7 +149,16 @@ namespace Nom.Orch.UtilityInterfaces
         public List<string> SeedsNotVisited { get; set; } = new();
         public List<ScraperDiscoveredSource> CandidatesNotProbed { get; set; } = new();
         public List<string> SeedsRefused { get; set; } = new();
+        public List<string> SeedsExcluded { get; set; } = new();
+        public List<ScraperExcludedDomain> CandidatesExcluded { get; set; } = new();
         public int PagesFetched { get; set; }
+    }
+
+    public class ScraperExcludedDomain
+    {
+        public string Domain { get; set; } = string.Empty;
+        public string? DiscoveredVia { get; set; }
+        public string? ExcludedBy { get; set; }
     }
 
     public class ScraperDiscoveredSource

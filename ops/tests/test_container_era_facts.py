@@ -57,6 +57,16 @@ class RuleTests(unittest.TestCase):
         facts = run([["l1", "Book A", "historic", "173418", "1 3-oz. package cream cheese", "3", "Ounce", "-"]])
         self.assertEqual([(f["tier"], f["grams"], f["verdict"]) for f in facts], [("book", "85", "counts"), ("era", "85", "fewer than two books")])
 
+    def test_the_facts_are_numbered_by_the_food_as_written_with_usda_ids_by_number_before_the_ids_of_foods_with_none(self):
+        rows = [["l%s%d" % (food, i), book, "historic", food, "1 (3 oz) package cream cheese", "3", "Ounce", "-"]
+                for food in ("#1", "170000", "9000", "#12") for i, book in enumerate(("A Plain Cook Book (1910)", "The Household Book (1925)"))]
+        facts = run(rows)
+        self.assertEqual([f["id"] for f in facts], ["f-%03d" % n for n in range(1, 13)])
+        self.assertEqual([(f["tier"], f["food"]) for f in facts],
+                         [("book", "9000"), ("book", "170000"), ("book", "#1"), ("book", "#12")] * 2
+                         + [("era", "9000"), ("era", "170000"), ("era", "#1"), ("era", "#12")],
+                         "staging checkpoint 4, P22: the C# writer numbers the facts in this order too")
+
     def test_two_sizes_stated_once_each_in_one_book_give_no_size(self):
         facts = run([["l1", "Book A", "historic", "1", "1 (3 oz) package cream cheese", "3", "Ounce", "-"],
                      ["l2", "Book A", "historic", "1", "1 (8 oz) package cream cheese", "8", "Ounce", "-"]])

@@ -1,0 +1,66 @@
+{
+  "checkVersion": 5,
+  "caseSet": "db86c3649f0e7f6f",
+  "rows": 200,
+  "bar": 0.95,
+  "minimum": 40,
+  "scoredAtUtc": "2026-11-23T14:14:57.7449893Z",
+  "classes": [
+    {
+      "class": "changed-range",
+      "judged": 3,
+      "right": 3,
+      "agentJudged": 3,
+      "agentRight": 3,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "doubtful": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "changed-unit",
+      "judged": 0,
+      "right": 0,
+      "agentJudged": 0,
+      "agentRight": 0,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "doubtful": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "lost-ingredient",
+      "judged": 2,
+      "right": 2,
+      "agentJudged": 2,
+      "agentRight": 2,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "doubtful": 0,
+      "meetsBar": false
+    },
+    {
+      "class": "lost-quantity",
+      "judged": 31,
+      "right": 30,
+      "agentJudged": 31,
+      "agentRight": 30,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "doubtful": 1,
+      "meetsBar": false
+    },
+    {
+      "class": "wrong-amount",
+      "judged": 5,
+      "right": 5,
+      "agentJudged": 5,
+      "agentRight": 5,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "doubtful": 0,
+      "meetsBar": false
+    }
+  ],
+  "proven": []
+}

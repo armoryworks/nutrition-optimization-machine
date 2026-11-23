@@ -22,7 +22,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class ReprocessRuleAudit
     {
-        public const string Version = "reprocess-audit/5";
+        public const string Version = "reprocess-audit/6";
 
         public const string Grounded = "A1";
         public const string Named = "A2";
@@ -60,7 +60,8 @@ namespace Nom.Orch.Services.Support
             ["a"] = 1, ["an"] = 1, ["one"] = 1, ["two"] = 2, ["three"] = 3, ["four"] = 4, ["five"] = 5, ["six"] = 6,
             ["seven"] = 7, ["eight"] = 8, ["nine"] = 9, ["ten"] = 10, ["eleven"] = 11, ["twelve"] = 12, ["fifteen"] = 15,
             ["twenty"] = 20, ["thirty"] = 30, ["forty"] = 40, ["fifty"] = 50, ["hundred"] = 100,
-            ["half"] = 0.5m, ["quarter"] = 0.25m, ["third"] = 1m / 3m, ["couple"] = 2, ["pair"] = 2, ["dozen"] = 12,
+            ["half"] = 0.5m, ["quarter"] = 0.25m, ["third"] = 1m / 3m, ["fourth"] = 0.25m, ["sixth"] = 1m / 6m, ["eighth"] = 0.125m,
+            ["couple"] = 2, ["pair"] = 2, ["dozen"] = 12,
             ["un"] = 1, ["uno"] = 1, ["una"] = 1, ["due"] = 2, ["tre"] = 3, ["quattro"] = 4, ["mezzo"] = 0.5m,
         };
 
@@ -163,18 +164,20 @@ namespace Nom.Orch.Services.Support
         /// A1: whether the amount stands in one of the texts: equal, within a hundredth, to a number
         /// it states, or to one times the factor of an old measure that text names (a quart is 4
         /// cups, a gill half a cup, a pound 16 ounces), or to a number of a range it states ("2 to 3",
-        /// "2-3", "2 or 3"), or to two numbers it states one after the other times or plus each other
-        /// ("2 cans of 15 oz"), or to pounds and ounces it states added up in ounces, alone or times a
+        /// "2-3", "2 or 3"), or to two numbers it states one after the other times or plus each other,
+        /// the sum also times a measure's factor ("2 cans of 15 oz", "a pint and a half" is 3 cups), or to pounds and ounces it states added up in ounces, alone or times a
         /// number stated before them ("1 lb. 13 oz. can" is 29, "2 cans (1 lb. 4 oz. each)" 40), or to two
         /// measures joined by "and" added up, in the smaller measure or in the first ("one quart and a pint"
         /// is 6 cups, "1 pound and 2 ounces" 1.125 pounds). "A" or "an" counts one only before a measure or a word of
-        /// <paramref name="named"/> (the food), so a stray article grounds nothing.
+        /// <paramref name="named"/> (the food), so a stray article grounds nothing, and a measure the text opens with
+        /// counts one ("pinch of salt", "tablespoonful grated onion"). A number that names another recipe of the book ("al N. 579",
+        /// "du N. 579") is no amount, nor is a price ("twenty cents' worth").
         /// </summary>
         public static bool GroundedIn(decimal quantity, IEnumerable<string?> texts, IEnumerable<string?>? named = null)
         {
             if (quantity <= 0) return true;
             var food = (named ?? Array.Empty<string?>()).Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n!).ToList();
-            foreach (var text in texts.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t!))
+            foreach (var text in texts.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => Price.Replace(CrossReference.Replace(t!, " "), " ")))
             {
                 var stated = Stated(text, food);
                 var factors = Factors.Where(f => f.Word.IsMatch(text)).Select(f => f.Factor).Prepend(1m).ToList();
@@ -183,7 +186,7 @@ namespace Nom.Orch.Services.Support
                 {
                     var (a, b) = (stated[i].Value, stated[i + 1].Value);
                     if (stated[i + 1].Range && quantity >= Math.Min(a, b) && quantity <= Math.Max(a, b)) return true;
-                    if (Near(a * b, quantity) || Near(a + b, quantity)) return true;
+                    if (Near(a * b, quantity) || factors.Any(f => Near((a + b) * f, quantity))) return true;
                 }
                 foreach (Match m in AndMeasure.Matches(text))
                 {
@@ -202,6 +205,14 @@ namespace Nom.Orch.Services.Support
             return false;
         }
 
+        private static readonly Regex CrossReference = new(
+            @"\b(?:al|allo|alla|del|nel|dal|vedi|du|au|voir|voyez)\s+N\.\s*\d+",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex Price = new(
+            @"(?:\b[\p{L}\d/-]+\s+)?\b(?:cents?|pence|penny|pennies|dimes?|nickels?|shillings?|sixpence|sixpenny)(?:'s|s')?'?\s+worth\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private const string AmountText = @"\d+(?:[.,]\d+)?|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve";
 
         private static readonly Regex AndMeasure = new(
@@ -219,6 +230,7 @@ namespace Nom.Orch.Services.Support
         private static List<(decimal Value, bool Range)> Stated(string text, IReadOnlyList<string> food)
         {
             var found = new List<(decimal Value, bool Range)>();
+            if (Measure.Match(text.TrimStart()) is { Success: true, Index: 0 }) found.Add((1m, false));
             var matches = Token.Matches(text).ToList();
             var lastEnd = -1;
             for (var i = 0; i < matches.Count; i++)
@@ -270,9 +282,13 @@ namespace Nom.Orch.Services.Support
             return Measure.Match(rest) is { Success: true, Index: 0 };
         }
 
-        /// <summary>The method sentences a fill may come from: those that name the line's food.</summary>
+        private static readonly Regex SentenceBreak = new(
+            @"(?<=[;!?]|(?<!\b(?:lb|lbs|oz|ozs|pt|pts|qt|qts|doz|tsp|tsps|tbsp|tbsps|gal|teaspn|tablespn))\.)\s+",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        /// <summary>The method sentences a fill may come from: those that name the line's food; the point of a measure's abbreviation ("1/2 pt.") ends no sentence.</summary>
         public static IEnumerable<string> MethodSentences(IEnumerable<string> steps, string? food, string raw) =>
-            steps.SelectMany(s => Regex.Split(s ?? string.Empty, @"(?<=[.;!?])\s+"))
+            steps.SelectMany(s => SentenceBreak.Split(s ?? string.Empty))
                 .Where(s => FoodNameMatcher.NamesFood(s, food) && (food != null || FoodNameMatcher.NamesFood(s, raw)));
 
         /// <summary>The checks of A1 to A3 that fail on one line, by code; empty when all pass.</summary>

@@ -201,9 +201,9 @@ ac-199	a little spice or flavouring	-	-	no	none	-	-	ok	rule:alcohol-context	doub
 ac-200	To every pint of new milk allow 2 dessertspoonfuls of brandy	-	-	no	dish	-	174815	agent	agent-review-ck4-recheck-gate-2026-11-21	doubtful item decided by rule: a ratio line names the milk with the brandy allowed to it; the milk is not refused
 ac-201	bourbon chair caramel	-	-	no	dish	-	174819	agent	agent-review-ck4-recheck-gate-2026-11-21	doubtful item decided by rule: a dish noun one word after the drink names the dish
 ac-202	spirits of nutmeg	-	-	no	extract	-	174815	agent	agent-review-ck4-recheck-gate-2026-11-21	doubtful item decided by rule: spirits of a spice are a flavouring tincture
-ac-203	1 cup sherry raisins	-	-	no	fortified-dry	175112	-	agent	agent-review-ck4rg-2026-11-21	CK4RG-4: sherry names no kind of raisin; raisins in sherry count the sherry
-ac-204	6 port figs	-	-	no	fortified-sweet	173176	-	agent	agent-review-ck4rg-2026-11-21	CK4RG-4: port names no kind of fig; figs in port count the port
-ac-205	4 Marsala pears	-	-	no	fortified	175112	-	agent	agent-review-ck4rg-2026-11-21	CK4RG-4: Marsala names no kind of pear; pears in Marsala count the Marsala
+ac-203	1 cup sherry raisins	-	-	no	dish	-	175112	agent	agent-review-ck9-small-2026-11-23	staging checkpoint 4, P21 (replaces CK4RG-4): a drink word before a fruit names the fruit kept in the drink, not the drink, so the line is raisins and never links to sherry; the dish sense still counts for the diet gate
+ac-204	6 port figs	-	-	no	dish	-	173176	agent	agent-review-ck9-small-2026-11-23	staging checkpoint 4, P21 (replaces CK4RG-4): figs kept in port are figs, not port; the dish sense still counts for the diet gate
+ac-205	4 Marsala pears	-	-	no	dish	-	175112	agent	agent-review-ck9-small-2026-11-23	staging checkpoint 4, P21 (replaces CK4RG-4): pears kept in Marsala are pears, not Marsala; the dish sense still counts for the diet gate
 ac-206	6 ratafia cakes, crushed	-	-	no	other	-	174815	ok	rule:alcohol-context	staging checkpoint 2 doubtful item (92584): ratafia cakes are almond biscuits named after the liqueur, not a drink
 ac-207	1 wineglass of ratafia	-	-	no	liqueur	-	174815	ok	rule:alcohol-context	the liqueur itself is still a drink USDA has no food for
 ac-208	1/2 cup sugar, (possibly more depending on qzupor wine)	-	-	no	none	-	-	agent	agent-review-ck6-2026-11-21	N11: the wine is in a cook's aside; the line is sugar
@@ -215,3 +215,8 @@ ac-213	three pounds of loaf sugar per gallon of wine	-	-	no	other	-	174837	agent
 ac-214	Half a cup of water mixed with extract or wine	-	-	no	dish	-	174837	agent	agent-review-ck6-2026-11-21	N11: water mixed with a flavouring or wine is water, not a list of alternatives
 ac-215	1 cup chicken broth (or dry white wine)	-	-	no	list	-	-	ok	rule:construction	a bracket of alternatives is no cook's aside: the wine is still read
 ac-216	1 pint custard (flavoured with French brandy)	-	-	no	dish	-	174815	ok	rule:construction	a bracket saying what the food is made with is no cook's aside: the custard carries the brandy
+ac-217	¼ pt. cognac cherries	-	-	no	dish	-	174815	agent	agent-review-ck9-small-2026-11-23	staging checkpoint 4, P21: cherries kept in cognac are cherries; the wording tier wrote the line to distilled spirit
+ac-218	1/4 cup Grand Marnier orange liqueur	-	-	no	liqueur	-	-	ok	rule:construction	review CK9S-3: a liqueur named with its flavour (a fruit word then a drink word) is the liqueur, not a dish named after a drink
+ac-219	2 tbsp Cointreau orange liqueur	-	-	no	liqueur	-	-	ok	rule:construction	review CK9S-3: the fruit word names the liqueur's flavour; the line is pure liqueur
+ac-220	1 tablespoon kirsch cherry brandy	-	-	no	liqueur	-	-	ok	rule:construction	review CK9S-3: kirsch is a cherry brandy; the fruit word before "brandy" names the brandy, not a fruit kept in it
+ac-221	1/2 cup brandy cherries, drained	-	-	no	dish	-	174815	ok	rule:construction	P21: a drink word before a fruit with no drink word after it is the fruit kept in the drink

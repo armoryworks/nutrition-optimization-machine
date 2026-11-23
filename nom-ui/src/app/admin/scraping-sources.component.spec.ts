@@ -150,6 +150,35 @@ describe('ScrapingSources', () => {
     expect(run.textContent).toContain('lost: gone');
   });
 
+  it('shows what a discovery run excluded, a seed NOM also holds and the note of the exclusion list', () => {
+    const el = create(review({
+      runs: [{
+        id: 2, startedUtc: '2026-11-22T10:00:00Z', status: 'completed', seeds: 'a.example', candidates: 1, leads: 0, pagesFetched: 9,
+        excludeSent: 12, excludeLeftOut: 3, candidatesExcluded: 2,
+        candidatesExcludedHosts: [
+          { domain: 'forbidden.example', discoveredVia: 'a.example', excludedBy: 'forbidden.example' },
+          { domain: 'blog.forbidden.example', discoveredVia: 'a.example', excludedBy: 'forbidden.example' },
+        ],
+        seedsExcluded: 'blog.split.example', excludeNote: 'NOM fault: approved seed(s) blog.split.example are also held as excluded',
+      }],
+    })).nativeElement as HTMLElement;
+
+    const excluded = byId(el, 'scraping-sources-run-excluded')!;
+    expect(excluded.textContent).toContain('excluded 12 held hosts');
+    expect(excluded.textContent).toContain('3 left out over the limit');
+    expect(excluded.textContent).toContain('forbidden.example, blog.forbidden.example');
+    expect(byId(el, 'scraping-sources-run-seeds-excluded')?.textContent).toContain('blog.split.example');
+    expect(byId(el, 'scraping-sources-run-exclude-note')?.textContent).toContain('NOM fault');
+  });
+
+  it('shows no exclusion line for a run that sent no list', () => {
+    const el = create(review({ runs: [{ id: 1, startedUtc: '2026-11-20T10:00:00Z', status: 'skipped', seeds: '', candidates: 0, leads: 0, pagesFetched: 0 }] })).nativeElement as HTMLElement;
+
+    expect(byId(el, 'scraping-sources-run-excluded')).toBeNull();
+    expect(byId(el, 'scraping-sources-run-seeds-excluded')).toBeNull();
+    expect(byId(el, 'scraping-sources-run-exclude-note')).toBeNull();
+  });
+
   it('records a hand source with its licence facts', () => {
     const fixture = create(review({ hand: [] }));
     const el = fixture.nativeElement as HTMLElement;
@@ -266,6 +295,40 @@ describe('ScrapingSources', () => {
     expect(byId(items[1], 'scraping-source-last-check-kind')?.textContent).toContain('Last check: full');
     expect(byId(items[1], 'scraping-source-newer-check-version')?.textContent).toContain('source-check/6');
     expect(byId(items[1], 'scraping-source-terms-check-btn')).toBeNull();
+  });
+
+  it('shows before a class what a facts-only class would withhold, and after it what its class withholds and from which check', () => {
+    const before: ScrapingSourceModel = {
+      ...blog, rightsClass: null, recheckSkipped: null,
+      prose: { sourceId: 9, domain: 'www.blog.example', rightsClass: null, classCheckId: null, classFromTermsOnly: false, recipes: 3274, approved: 600, withheld: 0, withheldApproved: 0, wouldWithhold: 3270, wouldWithholdApproved: 598 },
+    };
+    const after: ScrapingSourceModel = {
+      ...blog, id: 10, domain: 'www.after.example', rightsClass: 'facts-only', effectiveRightsClass: 'facts-only', recheckSkipped: null,
+      prose: { sourceId: 10, domain: 'www.after.example', rightsClass: 'facts-only', classCheckId: 12, classFromTermsOnly: true, recipes: 920, approved: 100, withheld: 920, withheldApproved: 100, wouldWithhold: 0, wouldWithholdApproved: 0 },
+    };
+    const el = create(review({ approved: [before, after] })).nativeElement as HTMLElement;
+    const items = Array.from(el.querySelectorAll('[data-testid="scraping-source-item"]')) as HTMLElement[];
+
+    expect(byId(items[0], 'scraping-source-prose-figures')?.textContent).toContain('3,274 recipes (600 approved)');
+    expect(byId(items[0], 'scraping-source-prose-would-withhold')?.textContent).toContain('3,270 recipes (598 approved)');
+    expect(byId(items[0], 'scraping-source-prose-withheld-by-class')).toBeNull();
+    expect(byId(items[1], 'scraping-source-prose-figures')?.textContent).toContain('prose withheld 920 (100 approved)');
+    expect(byId(items[1], 'scraping-source-prose-withheld-by-class')?.textContent).toContain('terms-only check 12');
+    expect(byId(items[1], 'scraping-source-prose-would-withhold')).toBeNull();
+  });
+
+  it('lists a re-derived terms-only report that would withhold prose as such', () => {
+    const fixture = create();
+    const el = fixture.nativeElement as HTMLElement;
+
+    (byId(el, 'scraping-sources-rights-derive-dry-btn') as HTMLButtonElement).click();
+    http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/derive')).flush({
+      applied: false, ruleVersion: 'source-rights/4', stamp: '2026-11-23T00:00:00Z', sources: 1, changed: 1, inconclusive: 0,
+      results: [{ sourceId: 9, domain: 'www.blog.example', oldClass: null, newClass: 'facts-only', oldAiReserved: false, newAiReserved: false, reason: 'nothing grants reuse', quote: 'All rights reserved.', conclusive: true, changed: true, recipesRestamped: 0, recipesWithheld: 0, recipesReleased: 0, termsOnly: true, wouldWithhold: 1234, wouldWithholdApproved: 218 }],
+    });
+    fixture.detectChanges();
+
+    expect(byId(el, 'scraping-sources-rights-run-withhold')?.textContent).toContain('a terms-only report that withholds the prose of 1,234 recipes (218 approved)');
   });
 
   it('offers no terms-only check for a source the weekly re-check still reads', () => {

@@ -64,11 +64,12 @@ namespace Nom.Orch.Services
 
     /// <summary>
     /// Reads prepared meals' ingredient statements (<see cref="IngredientStatementReader"/>, no model) and resolves each
-    /// named ingredient by rule against the catalog, as a recipe line's wording is: a verified wording that names a food,
-    /// then a food's exact name, then a trusted alias (<see cref="IngredientAliasTrust"/>), each only to a curated food
-    /// that is not itself a prepared food; otherwise a recognised term (<see cref="IngredientStatementVocabulary"/>), a
-    /// term of label language read by its rule (<see cref="StatementLabelTerms"/>, with the facts the gate reads beside
-    /// the name) or a compound known by its listed parts; otherwise unresolved. Each statement is stored as evidence with its source
+    /// named ingredient by rule: a term of the cited label table (<see cref="StatementLabelTerms"/>, with the facts the
+    /// gate reads beside the name) first, keeping the catalog food the name also resolves to; otherwise against the
+    /// catalog, as a recipe line's wording is: a verified wording that names a food, then a food's exact name, then a
+    /// trusted alias (<see cref="IngredientAliasTrust"/>), each only to a curated food that is not itself a prepared food;
+    /// otherwise a recognised term (<see cref="IngredientStatementVocabulary"/>) or a compound known by its listed parts;
+    /// otherwise unresolved. Each statement is stored as evidence with its source
     /// (<see cref="IngredientContentsEntity"/>); a newer row of the same food and household supersedes an older one, and a
     /// pass is undone by its batch stamp, which brings the rows it superseded back.
     /// </summary>
@@ -253,12 +254,26 @@ namespace Nom.Orch.Services
             return row;
         }
 
-        /// <summary>How one named ingredient is known, by the catalog keys a pass looked up (none when there is no catalog to read).</summary>
+        /// <summary>
+        /// How one named ingredient is known, by the catalog keys a pass looked up (none when there is no catalog to read). A name
+        /// the cited label table reads (<see cref="StatementLabelTerms"/>) is a label item first, keeping the catalog food it also
+        /// resolves to, so what a term may be made of is never lost to a catalog food of the same name ("vegetable oil" may be
+        /// peanut oil, its source not stated: staging checkpoint 4, P4); otherwise the catalog food, then the vocabulary.
+        /// </summary>
         internal static ContentsItem Resolve(StatementIngredient ingredient, IReadOnlyDictionary<string, long> resolver)
         {
+            long? catalog = null;
             foreach (var key in Keys(ingredient.Name))
-                if (resolver.TryGetValue(key, out var foodId)) return new ContentsItem(ingredient.Name, ingredient.Parent, ContentsKinds.Food, foodId);
-            if (StatementLabelTerms.Match(ingredient.Name, ingredient.HasParts) is { } terms)
+                if (resolver.TryGetValue(key, out var foodId))
+                {
+                    catalog = foodId;
+                    break;
+                }
+            var terms = StatementLabelTerms.Match(ingredient.Name, ingredient.HasParts);
+            if (terms != null && terms.Any(t => t.Kind != LabelTermKinds.Term))
+                return new ContentsItem(ingredient.Name, ingredient.Parent, ContentsKinds.Label, catalog, string.Join('|', terms.Select(t => t.Term)));
+            if (catalog is { } food) return new ContentsItem(ingredient.Name, ingredient.Parent, ContentsKinds.Food, food);
+            if (terms != null)
                 return terms.Count == 1 && terms[0].Kind == LabelTermKinds.Term && terms[0].Term == ingredient.Name
                     ? new ContentsItem(ingredient.Name, ingredient.Parent, ContentsKinds.Term)
                     : new ContentsItem(ingredient.Name, ingredient.Parent, ContentsKinds.Label, null, string.Join('|', terms.Select(t => t.Term)));

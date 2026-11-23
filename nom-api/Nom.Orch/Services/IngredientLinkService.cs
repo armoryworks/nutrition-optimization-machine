@@ -678,12 +678,14 @@ namespace Nom.Orch.Services
         /// name the matcher places, and that names this food; it is the food's name once its
         /// preparation words are taken off. A wording a staple or the matcher gives to another
         /// food is a conflict and takes no rule. A wording that names a utensil ("jelly-bag") or more
-        /// than one food ("each of corn meal and flour") takes no rule at all.
+        /// than one food ("each of corn meal and flour") takes no rule at all, nor one made of a measure
+        /// named after a drink or a food ("wine glassful of salt", <see cref="DietMeasureWords"/>), which
+        /// the diet gate would otherwise read as the drink (staging checkpoint 4, P5).
         /// </summary>
         private static (string? Rule, bool Conflict) RecheckRule(
             string alias, long foodId, string foodName, FoodNameMatcher matcher, IReadOnlyDictionary<string, FoodCandidate> staples)
         {
-            if (UntrustedWording.IsMatch(alias)) return (null, false);
+            if (UntrustedWording.IsMatch(alias) || DietMeasureWords.Holds(alias)) return (null, false);
 
             if (IngredientNameNormalizer.ExactKeys(alias).Contains(foodName, StringComparer.OrdinalIgnoreCase))
             {

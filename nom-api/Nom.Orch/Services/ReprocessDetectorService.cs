@@ -215,7 +215,7 @@ namespace Nom.Orch.Services
             reasons == ReprocessReason.OrderLost
             && result.Outcome == RecipeReprocessOutcome.Rebuilt
             && !result.Rejected && !result.StepsReplaced && result.Counts.Dropped == 0
-            && result.Lines.All(l => l.Changes.All(c => c == "order"));
+            && result.Lines.All(l => l.Changes.All(c => c is "order" or RecipeReprocessLineDiff.Held));
 
         /// <summary>An amount or a food first, then a newer extraction, then kinds and compound lines, order alone last; approved recipes before others.</summary>
         public static int Priority(int reasons, bool approved)

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Nom.Orch.Models.Recipe;
 
@@ -35,5 +36,18 @@ namespace Nom.Orch.Interfaces
         /// Without <paramref name="apply"/> nothing is written.
         /// </summary>
         Task<RecipeReprocessUndoResult> UndoAsync(DateTime? sinceUtc, string? batchId, string? kind = null, bool apply = false, bool laneOnly = false);
+
+        /// <summary>
+        /// The same undo in batches of journal entries. An apply commits each batch as one transaction
+        /// with a progress row, checks between batches whether it was asked to stop or its caller went
+        /// away, and can be continued under its run id from the last entry it reached.
+        /// </summary>
+        Task<RecipeReprocessUndoResult> UndoAsync(RecipeReprocessUndoRequest request, CancellationToken cancellationToken = default);
+
+        /// <summary>How far an undo run has come (the newest operator run, not the lane's own, when <paramref name="runId"/> is null); null when there is no such run.</summary>
+        Task<RecipeReprocessUndoProgress?> UndoProgressAsync(string? runId);
+
+        /// <summary>Asks an undo run (the newest operator run, not the lane's own, when <paramref name="runId"/> is null) to stop after its current batch; null when there is no such run.</summary>
+        Task<RecipeReprocessUndoProgress?> StopUndoAsync(string? runId);
     }
 }

@@ -19,7 +19,10 @@ harder key), `Nom.Orch/Services/WordingTierLaneService.cs` (the lane and its und
 notes of purpose ("for garnish", "for the pan", ", divided", ", separated", "plus more") and the old
 cookbooks' filler ("the", "nice", "good", "best", "fine", "remains of", "rest of", "a quarter of a
 pound of") taken off, lower-cased. A heading line ("For the frosting:", "Filling:") has no key and
-names no food. The table itself stays keyed by `WordingKey`; the harder key is only what the tiers
+names no food. Since `wording-tiers/4` (staging checkpoint 4, P21) a wording whose every recipe line
+ends in a colon and states no amount ("Hot Cocoa:") is a heading too, whatever its key would read
+as, and no tier answers it (golden `wt-hd-09`; a wording with one line that is no heading is read as
+before, `wt-hd-10`). The heading pattern is part of the tiers' signature. The table itself stays keyed by `WordingKey`; the harder key is only what the tiers
 decide on.
 
 ## The tiers, in order

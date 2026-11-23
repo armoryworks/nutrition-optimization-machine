@@ -427,6 +427,43 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task An_unload_leaves_withdrawn_a_pick_of_a_prepared_food_so_a_reload_that_refuses_the_row_gives_the_picks_back_as_they_were()
+        {
+            using var db = NewContext();
+            var sauce = CuratedFood("Spaghetti in tomato sauce, canned");
+            var meatballs = CuratedFood("Spaghetti with meatballs, canned");
+            var plain = CuratedFood("Spaghetti, cooked");
+            var franco = Uncurated("franco-american spaghetti");
+            var tinned = Uncurated("Franco-American spaghetti, tinned");
+            db.Ingredients.AddRange(sauce, meatballs, plain, franco, tinned);
+            await db.SaveChangesAsync();
+            db.Recipes.Add(Scraped("Supper", (franco, "1 can Franco-American Spaghetti")));
+            var prepared = Pick(franco, "franco-american spaghetti", meatballs);
+            var ordinary = Pick(franco, "franco-american spaghetti", plain);
+            var queued = Pick(tinned, "franco-american spaghetti", meatballs);
+            var queuedOrdinary = Pick(tinned, "franco-american spaghetti", plain);
+            db.FoodCatalogProposals.AddRange(prepared, ordinary, queued, queuedOrdinary);
+            await db.SaveChangesAsync();
+            await LoadAndRelinkAsync(db, Batch, false, Row("franco-american spaghetti", sauce));
+            foreach (var food in await db.Ingredients.Where(i => i.Id == sauce.Id || i.Id == meatballs.Id).ToListAsync()) food.FdcCategoryId = 21;
+            await db.SaveChangesAsync();
+            (await db.FoodCatalogProposals.IgnoreQueryFilters().CountAsync(p => p.IsDeleted)).Should().Be(4,
+                "the load's relink withdrew the picks of the retired ingredient and the picks the row contradicts");
+
+            var unloaded = await Wordings(db).UnloadAsync(Batch, apply: true, withLines: true);
+            var reloaded = await Wordings(db).LoadAsync(new[] { Row("franco-american spaghetti", sauce) }, Batch, apply: true);
+            await Relink(db).LinkVerifiedWordingsAsync(apply: true, batch: Batch);
+
+            (unloaded.Lines!.ProposalWithdrawals, unloaded.Lines.PickWithdrawals).Should().Be((1, 1),
+                "staging checkpoint 4, P14: a pick of a prepared food was reopened and the reload never withdrew it again");
+            reloaded.Rejected.Should().Be(1, "the row's food is a prepared food now");
+            db.ChangeTracker.Clear();
+            var deleted = await db.FoodCatalogProposals.IgnoreQueryFilters().ToDictionaryAsync(p => p.Id, p => p.IsDeleted);
+            (deleted[prepared.Id], deleted[queued.Id]).Should().Be((true, true));
+            (deleted[ordinary.Id], deleted[queuedOrdinary.Id]).Should().Be((false, false), "a pick of a food that may be a link target is reopened as before");
+        }
+
+        [Fact]
         public async Task A_retract_reload_and_relink_give_back_the_state_before_the_retract_for_a_landing_that_needed_a_new_ingredient()
         {
             using var db = NewContext();

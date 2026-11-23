@@ -2,8 +2,8 @@
 
 What NOM may do with a web source, and with the recipes it took from it, is decided by rule from
 recorded facts, not by a judgement each time. The facts are the source check's stored report
-(`recipe."SourceCheck"."ReportJson"`, scraper rule `source-check/5`; stored `source-check/4` and `source-check/2`
-reports are still read; see `recipe-sources.md`); the rule is `SourceRightsRule` (`source-rights/3`,
+(`recipe."SourceCheck"."ReportJson"`, scraper rule `source-check/6`; stored `source-check/5`, `source-check/4` and `source-check/2`
+reports are still read; see `recipe-sources.md`); the rule is `SourceRightsRule` (`source-rights/4`,
 `nom-api/Nom.Orch/Services/Support/SourceRightsRule.cs`);
 the engine is `SourceRightsService`. No model takes part anywhere in it.
 
@@ -21,8 +21,8 @@ in `RightsQuote` and where they were found in `RightsQuoteUrl`, the check it cam
    the check quoted and the robots.txt comments; robots.txt comments are read first because they are
    served on the domain itself. The sentence is kept as the deciding quote with its URL. A forbidding
    sentence counts even when the check was cut off.
-2. A report under a scraper rule version the rule does not read (it reads `source-check/5` and stored
-   `source-check/4` and `source-check/2` reports; `source-check/3` was never deployed with NOM, and anything
+2. A report under a scraper rule version the rule does not read (it reads `source-check/6` and stored
+   `source-check/5`, `source-check/4` and `source-check/2` reports; `source-check/3` was never deployed with NOM, and anything
    that is not `source-check/N` is not read), from a check that did not finish, or for a host with no address
    (`access.homepageOutcome` `NoAddress`: DNS gave no A or AAAA record, so nothing could be read and every
    reason is unknown) gives **no class** (inconclusive): the stored class stands until a later check. A report
@@ -99,7 +99,8 @@ unclassed sources are never fetched. The gate is applied in four places:
 - the staged import (refused and counted in `refused`);
 - discovery seeds (`MayFetch` as above: discovery reads each seed's sitemap and 2 recipe pages, so a facts-only
   class from a check alone does not make a seed; facts-only use must be approved by an admin). Discovery also
-  runs only while `SourceDiscovery:FullChecks` is on (`recipe-sources.md`).
+  runs only while `SourceDiscovery:FullChecks` is on (off by default); a source is checked in full only after an
+  admin approved facts-only use of it (or with a recorded permission) (`recipe-sources.md`).
 
 No automatic check fetches a source whose effective class is forbidden or permission-needed
 (`SourceRightsService.RecheckBarred`; lead decision on wave 10's owner question 1): the weekly re-check skips
@@ -155,7 +156,16 @@ flag or permission changes. For a **facts-only** recipe a reader gets facts and 
   where a response must name one line, a diet warning (`GET api/Recipe/{id}/diet`, the meal plan's severe-diet
   conflicts) or the recipe page's alcohol note, `ProseWithholding.LineName` names it by NOM's own wording:
   amount, unit and catalog food, such as "0.25 cup Vanilla Extract"), times, yield, NOM-computed nutrition,
-  the source link;
+  the source link. A food is named only when it is a catalog food (curated, or taken from USDA with an FDC id):
+  a food the import created from the line's own text can carry the publisher's sentence as its name (a whole tip
+  on swapping ingredients, or "optional: a few drops maple extract"; staging checkpoint 4, P31: 5,181
+  facts-only lines in 3,440 recipes), so such a line is named by its own food words only
+  (`ProseWithholding.FoodName` / `FoodWords`: the line without its amount, unit and notes, up to its first comma,
+  colon, bracket or dash, when that is at most four plain words none of which reads as a sentence, such as
+  "drops maple extract"), and otherwise "Ingredient". This holds in the detail, search, the smart shopping list,
+  a list a recipe is added to, the pantry's needed list, the bulk export, diet warnings, the alcohol note, the
+  author dashboard's most used foods and the test scrape. The smart shopping list never adds two items named
+  "Ingredient" together, as they may be different foods;
 - the method only when it is NOM's own words, that is, when the clean-room prose lane's rewrite stands
   (`ProseLaneVersion` set, `ProseAttempts` 0, not withheld, not quarantined: `SourceRightsService.OwnMethod`);
 - never the publisher's description, method text or photo.
@@ -201,7 +211,14 @@ item names the recipe as it is now (`ShoppingItemNote`, in the smart shopping li
 and the name, but not a line that credits the author's own work or the page ("adapted from my cupcakes",
 "recipe from this website", "recipe from now on": defect D4). The name is the run of capitalised words
 after the cue (with "of", "the", "and", "by" and the like between them), ending at a comma or the first
-lower-case word, so no clause of the publisher's description is ever kept with it. "Inspired by" names an
+lower-case word, so no clause of the publisher's description is ever kept with it. A title that runs on to
+"by" and a capitalised name keeps the whole title, commas, colons and short lower-case words ("to", "et",
+"of") included, then the name ("Almonds, Anchovies and Pancetta: A Vegetarian Cookbook, Kind Of by Cal
+Peternell", "Coming Home to Sicily by Fabrizia Lanza", "Healthier Together by Liz Moody"); a lower-case word
+longer than five letters before "by" is a sentence, and the old reading stands. A title with a colon followed
+by "from" and a name credits the person, not the dish ("Dakkangjung: Sweet & Crispy Chicken from Maangchi" is
+"Adapted from Maangchi"). Curly apostrophes read as straight ones, so "I’ve" starts a sentence too (staging
+checkpoint 4, P29: 7 of 48 wrong). "Inspired by" names an
 influence, not the work a recipe was taken from, and is not a credit. The text is read with its HTML
 entities decoded, and where the source's markup lost the break between two elements the name ends at the
 break: before a word that starts a sentence ("This", "Other", "I've", "The" after a name word), before a
@@ -213,7 +230,7 @@ characters) cut is left out, and a name made only of places, nationalities or la
 South America") is no credit (staging checkpoint 3, N26: 18 of 50 proposed credits were malformed;
 `credit-lines.tsv`). The credit is stored on
 `Recipe.SourceCredit` at import and by a backfill step from the stored JSON-LD or record
-(`rights/credits`, journaled `RecipeSourceCredit`, undone by stamp, `ruleVersion` `credit-lines/2`), and shown in the recipe page next to
+(`rights/credits`, journaled `RecipeSourceCredit`, undone by stamp, `ruleVersion` `credit-lines/3`), and shown in the recipe page next to
 the source link (`recipe-source-credit`). The reduction below reads credits before the prose goes.
 
 ## Prose retention
@@ -305,14 +322,15 @@ Walked by tests with a facts-only recipe beside one of another class (`SourceRig
 
 | surface | what could leak | how it is closed |
 |---|---|---|
-| `GET api/Recipe/{id}` (line notes) | line wording | `LineWording` |
-| `GET api/Recipe/{id}` (`alcoholNote`), `GET api/Recipe/{id}/diet`, meal plan severe-diet conflicts | line wording in a warning | `LineName` |
-| search, popular, recent, random, suggestions | line wording, description | `LineWording`; withheld prose |
-| smart shopping list (generate, optimize), grocery export | line wording; a stored distinctive title in an item note | `LineWording`; `ShoppingItemNote` |
-| bulk export (JSON, CSV) and print (PDF) | line wording, description, steps | `LineWording`; withheld prose |
+| `GET api/Recipe/{id}` (line notes, food names) | line wording; a food named from the line | `LineWording`; `FoodName` |
+| `GET api/Recipe/{id}` (`alcoholNote`), `GET api/Recipe/{id}/diet`, meal plan severe-diet conflicts | line wording in a warning; a food named from the line | `LineName`; `FoodName` |
+| search, popular, recent, random, suggestions | line wording, description; a food named from the line | `LineWording`; withheld prose; `FoodName` |
+| smart shopping list (generate, optimize), grocery export, a list a recipe is added to, the pantry's needed list | line wording; a stored distinctive title in an item note; a food named from the line | `LineWording`; `ShoppingItemNote`; `FoodName` (items named "Ingredient" are never merged) |
+| `GET api/Recipe/dashboard/analytics` (`mostUsedIngredients`) | a food named from the line | `FoodName` |
+| bulk export (JSON, CSV) and print (PDF) | line wording, description, steps; a food named from the line | `LineWording`; withheld prose; `FoodName` |
 | meal plans, plan week view, dashboard | a stored distinctive title | `EntryTitle` |
 | plans, cookbooks, curation queue, image finder | description, steps | withheld prose |
-| test scrape (both routes) | the publisher's page as scraped | facts-only preview |
+| test scrape (both routes) | the publisher's page as scraped, the scraper's food name | facts-only preview; `FoodWords` |
 | admin pages that show line text (curation queue, reprocess, compound and unfold lines, line labels, the source pages) | line text | `CanManageCuration` only |
 
 Search still matches a query against a withheld description or steps (it shows the title only), as the
@@ -339,9 +357,17 @@ is not facts-only are served as written.
   stored on 2026-11-21 (checkpoint 3: the 22 current sources and the myplate.gov request), trimmed to what NOM
   reads (no parsed recipe, credit line or reason detail), replayed whole: class, AI flag and deciding quote,
   whether the policy reads them, whether the same report as a terms-only check allows a full check, and, in the
-  test, the same class with the newer flag under `source-check/6`. Nine hosts were refused by the staging
+  test, the same class read under `source-check/6` (now current, conclusive) and with the newer flag under
+  `source-check/7`. Nine hosts were refused by the staging
   scraper's denylist, so their stored report is a refusal (permission-needed, no full check). The
   ambitiouskitchen row is `agent`: its class rests on the quoted sentence, not re-read by a person.
+- Under `source-check/6` (`cleanup2/ck8-source-exclude`, `source-rights/4`): `source-rights.tsv` gains a CC0
+  report under `/6` (clear: while `/6` was newer than NOM read it was facts-only, so a class can change, hence the
+  version) and the newer-version rows under `/7`; `source-check-6.tsv` replays what `/6` changes on the stored
+  reports of chocolatecoveredkatie (S4: a credit line naming only the site's own linked titles is no credit) and
+  101cookbooks (S5: an index page is never sampled), each beside its stored `/5` reading. No `/6` report of a
+  current source has been made yet; the rows apply the change the scraper's contract describes, and neither class
+  changes.
 - `rights-sentences.tsv`: NOM's reading of each quoted sentence, the decoys of D3 among them.
 - `recipe-titles.tsv`: the title rule, on titles written for the rule.
 

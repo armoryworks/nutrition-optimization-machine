@@ -409,3 +409,40 @@ dp-407	Fish Allergy	4 oz imitation crab	hit	ok	rule:label-terms	surimi of polloc
 dp-408	Milk Allergy	1 cup edamame	clear	ok	rule:label-terms	no composite name begins edamame (edam is left out of the table for that reason)
 dp-409	Egg Allergy	1/2 cup mayo	hit	ok	rule:label-terms	mayo is mayonnaise, which contains egg yolk (21 CFR 169.140)
 dp-410	Sesame Allergy	1 tbsp za'atar	hit	ok	rule:label-terms	za'atar holds sesame seeds
+dp-411	Celiac Disease	3 thin slices bread free from crusts	hit	ok	rule:diet-patterns	P12: "free from" something else is no "-free" label of the bread
+dp-412	Wheat Allergy	1 loaf day-old bread free of its crust	hit	ok	rule:diet-patterns	P12: "free of" something else is no "-free" label of the bread
+dp-413	Fish Allergy	1 lb boiled fish free of bones	hit	ok	rule:diet-patterns	P12: "free of" bones is no "-free" label of the fish
+dp-414	Gluten-Free	1 cup flour free of lumps	hit	ok	rule:diet-patterns	P12: "free of" lumps names the flour
+dp-415	Celiac Disease	1 lb of fine flower, sifted	hit	ok	rule:diet-patterns	P12: flower, the old spelling of flour (companion %flower% of %flour%)
+dp-416	Wheat Allergy	2 cups flower	hit	ok	rule:diet-patterns	P12: flower, the old spelling of flour
+dp-417	Celiac Disease	1 head cauliflower	clear	ok	rule:diet-patterns	cauliflower, a named exception of %flower%
+dp-418	Celiac Disease	1 tsp orange-flower water	clear	ok	rule:diet-patterns	orange flower water, a named exception of %flower%
+dp-419	Wheat Allergy	1/4 cup sunflower seeds	clear	ok	rule:diet-patterns	sunflower, a named exception of %flower%
+dp-420	Gluten Sensitivity	2 cups broccoli flowerets	clear	ok	rule:diet-patterns	flowerets, a named exception of %flower%
+dp-421	Milk Allergy	1 tsp cream tartar	clear	ok	rule:diet-patterns	P18: cream of tartar in its older spelling, a named exception of %cream%
+dp-422	Dairy-Free	1/2 tsp cream-tartar	clear	ok	rule:diet-patterns	P18: cream of tartar in its older spelling, hyphenated
+dp-423	Peanut Allergy	1 cup Reese's Pieces candies	hit	ok	rule:label-terms	P3: Reese's holds peanuts (composite row, Hershey's label)
+dp-424	Peanut Allergy	3 tbsp nut butter of choice	hit	agent	agent-ck9-diet-terms	P3: a nut butter that names no nut may be peanut butter (companion %nut butter% of %peanut%)
+dp-425	Halal	2 cups mini marshmallows	hit	ok	rule:label-terms	P17: marshmallows hold gelatin (composite row, Jet-Puffed label)
+dp-426	Halal	1 jar marshmallow creme	hit	agent	agent-ck9-diet-terms	P17: held by %marshmallow% on the safe side; the leading creme labels name egg white and no gelatin
+dp-427	Milk Allergy	1 cup marshmallow cream	clear	ok	rule:label-terms	marshmallow creme holds no dairy (a named exception of %cream%)
+dp-428	Egg Allergy	1 jar marshmallow creme	hit	ok	rule:label-terms	marshmallow creme holds egg white (composite row)
+dp-429	Wheat Allergy	8 oz spaghetti	hit	ok	rule:label-terms	P19: spaghetti is a macaroni product of semolina (21 CFR 139.110)
+dp-430	Celiac Disease	1 lb cheese tortellini	hit	ok	rule:label-terms	P19: tortellini are egg pasta of wheat flour (21 CFR 139.150)
+dp-431	Celiac Disease	1 cup crushed zwieback	hit	ok	rule:label-terms	P19: zwieback is a wheat rusk (SR)
+dp-432	Milk Allergy	6 zwiebacks	hit	agent	agent-ck9-diet-terms	P19: milk in zwieback held on the safe side, as recipes and brands vary
+dp-433	Wheat Allergy	1 lb frozen potstickers	hit	ok	rule:label-terms	P19: potsticker wrappers are wheat flour (SR)
+dp-434	Halal	1 lb frozen potstickers	hit	agent	agent-ck9-diet-terms	P19: pork held on the safe side for a filling the line does not name
+dp-435	Celiac Disease	1 lb frozen ravioli	hit	ok	rule:label-terms	P19: ravioli are egg pasta of wheat flour
+dp-436	Corn Allergy	1 box frozen taquitos	hit	ok	rule:label-terms	P19: a taquito is a rolled corn tortilla (SR)
+dp-437	Nightshade Sensitivity	2 cups Spanish rice	hit	ok	rule:label-terms	P19: Spanish rice holds tomatoes (SR)
+dp-438	Wheat Allergy	1 lb pizza dough	hit	ok	rule:label-terms	P19: pizza dough is wheat flour (SR)
+dp-439	Vegetarian	12 frozen wontons	hit	agent	agent-ck9-diet-terms	P19: a filled wonton held as pork or shrimp on the safe side
+dp-440	Vegetarian	24 wonton wrappers	clear	ok	rule:label-terms	the empty wrapper, a named exception of %wonton%
+dp-441	Wheat Allergy	24 wonton wrappers	hit	ok	rule:label-terms	wonton wrappers are wheat flour and egg (composite row)
+dp-442	Milk Allergy	1 cup chopped peanut butter cups	hit	ok	rule:label-terms	review CK9T-4: peanut butter cups are milk chocolate around peanut butter (composite row); the peanut butter exception of %butter% no longer clears them
+dp-443	Soy Allergy	1 cup chopped peanut butter cups	hit	ok	rule:label-terms	review CK9T-4: the cups' milk chocolate holds soy lecithin (composite row)
+dp-444	Milk Allergy	1 coconut cream pie	hit	ok	rule:label-terms	review CK9T-4: a coconut cream pie is a milk and egg filling in a wheat crust; the coconut cream exception of %cream% no longer clears it
+dp-445	Egg Allergy	1 coconut cream pie	hit	ok	rule:label-terms	review CK9T-4: the pie's cooked filling holds egg (composite row)
+dp-446	Milk Allergy	2 cups crushed peanut butter cookies	hit	agent	agent-ck9-diet-terms	review CK9T-4: butter held on the safe side, as recipes and brands vary
+dp-447	Milk Allergy	1 can coconut cream	clear	ok	rule:diet-patterns	coconut cream alone stays a named exception of %cream%

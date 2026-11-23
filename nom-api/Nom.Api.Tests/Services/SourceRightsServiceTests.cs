@@ -346,7 +346,11 @@ namespace Nom.Api.Tests.Services
         public async Task The_weekly_recheck_rederives_the_class_and_the_flag_and_journals_the_change()
         {
             await using var db = NewContext();
-            var source = await SourceAsync(db, "facts.example", FactsOnlyReport("facts.example"), s => s.CheckedAtUtc = T0.AddDays(-8));
+            var source = await SourceAsync(db, "facts.example", FactsOnlyReport("facts.example"), s =>
+            {
+                s.CheckedAtUtc = T0.AddDays(-8);
+                s.FactsOnlyApprovedAt = T0.AddDays(-8);
+            });
             var recipe = await RecipeAsync(db, "https://facts.example/chili/");
             await Rights(db).DeriveAsync(apply: true);
             db.SourceChecks.Add(new SourceCheckEntity
@@ -364,7 +368,7 @@ namespace Nom.Api.Tests.Services
             scraper.Setup(s => s.StartSourceCheckJobAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ScraperJobAnswer(ScraperJobOutcome.Ok, job.Deserialize<ScraperJob>(Json), null));
             var journalBefore = await db.AuditLogEntries.MaxAsync(a => a.Id);
-            var admission = new SourceAdmissionService(db, scraper.Object, new RecipeVettingService(), Options.Create(new SourceAdmissionSettings { Enabled = true }), NullLogger<SourceAdmissionService>.Instance)
+            var admission = new SourceAdmissionService(db, scraper.Object, new RecipeVettingService(), Options.Create(new SourceAdmissionSettings { Enabled = true, FullChecks = true }), NullLogger<SourceAdmissionService>.Instance)
             {
                 Now = () => T0,
                 Delay = (_, _) => Task.CompletedTask,
@@ -699,6 +703,73 @@ namespace Nom.Api.Tests.Services
             try
             {
                 (await System.IO.File.ReadAllTextAsync(path)).Should().NotContain("spooned and leveled").And.Contain("Ground beef");
+            }
+            finally
+            {
+                System.IO.File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public async Task A_facts_only_line_on_a_food_named_from_its_own_text_shows_only_its_food_words_in_the_detail_search_export_and_shopping_list()
+        {
+            await using var db = NewContext();
+            await SourceAsync(db, "facts.example", FactsOnlyReport("facts.example"));
+            db.Measurements.Add(new Nom.Data.Measurement.BaseMeasurementEntity { Id = 1, Name = "Piece", Symbol = "pc", MeasurementCategoryId = 1 });
+            const string sentence = "Tip-you can swap the oats for rice flakes and add raisins if you like!";
+            const string extract = "optional: a few drops maple extract";
+            var sentenceFood = new IngredientEntity { Name = sentence, CurationStatusId = (long)CurationStatusEnum.NonCurated };
+            var extractFood = new IngredientEntity { Name = extract, CurationStatusId = (long)CurationStatusEnum.NonCurated };
+            var catalogFood = new IngredientEntity { Name = "Peanut butter, smooth style, with salt", CurationStatusId = (long)CurationStatusEnum.PendingCuration, FdcId = "172470" };
+            db.Ingredients.AddRange(sentenceFood, extractFood, catalogFood);
+            await db.SaveChangesAsync();
+            List<RecipeIngredientEntity> Lines() => new()
+            {
+                new() { IngredientId = catalogFood.Id, Quantity = 1, MeasurementId = 1, RawLine = "1 cup creamy peanut butter, the drippy kind", SortOrder = 0 },
+                new() { IngredientId = extractFood.Id, Quantity = 0, MeasurementId = 1, RawLine = extract, SortOrder = 1 },
+                new() { IngredientId = sentenceFood.Id, Quantity = 0, MeasurementId = 1, RawLine = sentence, SortOrder = 2 },
+            };
+            var recipe = await RecipeAsync(db, "https://facts.example/nests/", r =>
+            {
+                r.Name = "Peanut Butter Nests";
+                OwnMethod(r);
+                r.Visibility = RecipeVisibilityEnum.Public;
+                r.RecipeIngredients = Lines();
+            });
+            var open = await RecipeAsync(db, "https://open.example/nests/", r =>
+            {
+                r.Name = "Open Peanut Butter Nests";
+                r.Visibility = RecipeVisibilityEnum.Public;
+                r.RecipeIngredients = Lines();
+            });
+            await Rights(db).DeriveAsync(apply: true);
+            static void Shows(string json, string why) =>
+                json.Should().NotContain("rice flakes", why).And.NotContain("few drops", why).And.Contain("drops maple extract", why).And.Contain(ProseWithholding.UnnamedFood, why)
+                    .And.Contain("Peanut butter, smooth style, with salt", "a USDA catalog food keeps its own name");
+
+            var detail = await new RecipeOrchestrationService(db, new Microsoft.AspNetCore.Http.HttpContextAccessor(), Mock.Of<ICurrentUserService>(),
+                Mock.Of<IMediaStorageService>(), Mock.Of<IRecipeNutritionService>()).GetRecipeAsync(recipe.Id, Admin);
+            detail!.Ingredients.Select(i => i.Name).Should().Equal("Peanut butter, smooth style, with salt", "drops maple extract", ProseWithholding.UnnamedFood);
+            var openDetail = await new RecipeOrchestrationService(db, new Microsoft.AspNetCore.Http.HttpContextAccessor(), Mock.Of<ICurrentUserService>(),
+                Mock.Of<IMediaStorageService>(), Mock.Of<IRecipeNutritionService>()).GetRecipeAsync(open.Id, Admin);
+            openDetail!.Ingredients.Select(i => i.Name).Should().Contain(sentence, "a recipe of a source that is not facts-only keeps its food names");
+
+            var search = new RecipeSearchOrchestrationService(db, NullLogger<RecipeSearchOrchestrationService>.Instance);
+            var found = await search.SearchRecipesAsync(new RecipeSearchModel { Query = "Peanut Butter Nests", IncludeIngredients = true });
+            found.Results.Should().Contain(r => r.Id == recipe.Id);
+            Shows(JsonSerializer.Serialize(found.Results.Single(r => r.Id == recipe.Id)), "search");
+
+            var shopping = new SmartShoppingListService(db, new Microsoft.AspNetCore.Http.HttpContextAccessor(), Mock.Of<ICurrentUserService>(), NullLogger<SmartShoppingListService>.Instance, new System.Net.Http.HttpClient());
+            var list = await shopping.GenerateSmartShoppingListAsync(new Nom.Orch.Models.Shopping.SmartShoppingListRequestModel { RecipeIds = new List<long> { recipe.Id }, IncludePantryItems = false });
+            JsonSerializer.Serialize(list).Should().NotContain("rice flakes").And.NotContain("few drops");
+
+            var export = new RecipeBulkOperationsService(db, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), Mock.Of<ICurrentUserService>(), NullLogger<RecipeBulkOperationsService>.Instance);
+            var result = await export.ExportRecipesAsync(new RecipeBulkExportModel { RecipeIds = new List<long> { recipe.Id }, RequesterPersonId = Admin, ExportType = ExportTypes.Json });
+            result.Success.Should().BeTrue(string.Join(";", result.Errors));
+            var path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "exports", $"recipes_export_{result.ExportId}.json");
+            try
+            {
+                Shows(await System.IO.File.ReadAllTextAsync(path), "bulk export");
             }
             finally
             {

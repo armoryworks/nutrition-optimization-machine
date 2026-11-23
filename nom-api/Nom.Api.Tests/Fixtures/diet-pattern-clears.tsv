@@ -40,6 +40,8 @@ crab	crabapple	Buddhist Vegetarian, Crab Allergy, Ethical Vegan, Hindu Vegetaria
 cream	coconut cream	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
 cream	cream of coconut	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
 cream	cream of tartar	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+cream	cream tartar	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+cream	marshmallow cream	Dairy-Free, Lactose Intolerance, Lactose-Intolerant, Milk Allergy
 custard	custard apple	Dairy-Free, Egg Allergy, Ethical Vegan, Hindu Vegetarian, Jain, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
 duck	duck sauce	Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
 egg	eggplant	Egg Allergy, Ethical Vegan, Hindu Vegetarian, Plant-Based, Raw Vegan, Vegan
@@ -60,6 +62,33 @@ flour	oat flour	Wheat Allergy
 flour	potato flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
 flour	rice flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Wheat Allergy
 flour	tapioca flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	banana flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	cauliflower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	chamomile flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	chive flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	corn flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Wheat Allergy
+flower	cornflower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Wheat Allergy
+flower	edible flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	elder flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	elderflower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	flower bud	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	flower pepper	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	flower petal	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	flower water	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	floweret	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	flowerette	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	flowering	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	hibiscus flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	jasmine flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	lavender flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	nasturtium flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	orange flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	pumpkin flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	rose flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	safflower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	squash flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	sunflower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flower	zucchini flower	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
 goat	goat cheese	Buddhist Vegetarian, Hindu Vegetarian, Jain, Pescatarian, Vegetarian
 goat	goat milk	Buddhist Vegetarian, Hindu Vegetarian, Jain, Pescatarian, Vegetarian
 goat	goat yogurt	Buddhist Vegetarian, Hindu Vegetarian, Jain, Pescatarian, Vegetarian
@@ -97,7 +126,7 @@ milk	oat milk	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant
 milk	rice milk	Dairy-Free, Ethical Vegan, FODMAP Sensitivity, Lactose Intolerance, Lactose-Intolerant, Low-FODMAP, Milk Allergy, Plant-Based, Raw Vegan, Vegan
 milk	soy milk	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Plant-Based, Raw Vegan, Vegan
 milk	soymilk	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Plant-Based, Raw Vegan, Vegan
-nut butter	coconut butter	Nut Allergy, Tree Nut Allergy
+nut butter	coconut butter	Nut Allergy, Peanut Allergy, Tree Nut Allergy
 nut butter	peanut butter	Tree Nut Allergy
 orange	orange roughy	Citrus Allergy, Interstitial Cystitis
 oyster	oyster cracker	Buddhist Vegetarian, Ethical Vegan, Hemochromatosis, Hindu Vegetarian, Jain, Kosher, Oyster Allergy, Plant-Based, Raw Vegan, Shellfish Allergy, Vegan, Vegetarian
@@ -112,7 +141,7 @@ soda	baking soda	Sugar-Free
 soda	bicarbonate of soda	Sugar-Free
 soda	club soda	Sugar-Free
 soda	soda water	Sugar-Free
-spaghetti	spaghetti squash	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Whole30
+spaghetti	spaghetti squash	Carnivore, Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
 steak	steak sauce	Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
 steak	steak seasoning	Buddhist Vegetarian, Ethical Vegan, Hindu Vegetarian, Jain, Pescatarian, Plant-Based, Raw Vegan, Vegan, Vegetarian
 sugar	sugar snap	Sugar-Free
@@ -120,6 +149,8 @@ tamari	tamarind	Carnivore, FODMAP Sensitivity, Low-FODMAP, Paleo, Soy Allergy, S
 tortilla	corn tortilla	Celiac Disease, Gluten Sensitivity, Gluten-Free, Wheat Allergy
 tortilla	flour tortilla	Corn Allergy
 wheat	buckwheat	Celiac Disease, FODMAP Sensitivity, Gluten Sensitivity, Gluten-Free, Low-FODMAP, Wheat Allergy
+wonton	wonton skin	Buddhist Vegetarian, Halal, Kosher, Pescatarian, Shellfish Allergy, Shrimp Allergy, Vegetarian
+wonton	wonton wrapper	Buddhist Vegetarian, Halal, Kosher, Pescatarian, Shellfish Allergy, Shrimp Allergy, Vegetarian
 yoghurt	coconut yoghurt	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
 yoghurt	soy yoghurt	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Plant-Based, Raw Vegan, Vegan
 yogurt	almond yogurt	Dairy-Free, Ethical Vegan, FODMAP Sensitivity, Lactose Intolerance, Lactose-Intolerant, Low-FODMAP, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30

@@ -54,9 +54,10 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class SourceAdmissionPolicy
     {
-        public const string Version = "source-admission/3";
-        public const string ScraperRuleVersion = "source-check/5";
-        public const string EarlierScraperRuleVersion = "source-check/4";
+        public const string Version = "source-admission/4";
+        public const string ScraperRuleVersion = "source-check/6";
+        public const string EarlierScraperRuleVersion = "source-check/5";
+        public const string OlderScraperRuleVersion = "source-check/4";
         public const string OldestScraperRuleVersion = "source-check/2";
         public const string RuleVersionPrefix = "source-check/";
         public const string Clear = "clear";
@@ -77,7 +78,7 @@ namespace Nom.Orch.Services.Support
         /// </summary>
         public static readonly IReadOnlySet<string> ReadableRuleVersions = new HashSet<string>(StringComparer.Ordinal)
         {
-            ScraperRuleVersion, EarlierScraperRuleVersion, OldestScraperRuleVersion,
+            ScraperRuleVersion, EarlierScraperRuleVersion, OlderScraperRuleVersion, OldestScraperRuleVersion,
         };
 
         /// <summary>The scraper's reasons under <see cref="ScraperRuleVersion"/> (the same codes as under the earlier versions), every one of which must be present.</summary>
@@ -144,7 +145,7 @@ namespace Nom.Orch.Services.Support
             {
                 RuleVersionStanding.Readable => new SourceReason("rule-version", Pass, $"report under {facts.RuleVersion}"),
                 RuleVersionStanding.Newer => new SourceReason("rule-version", Unknown, $"newer check version: report under {facts.RuleVersion}, newer than {ScraperRuleVersion}; read on the reasons this policy knows, never clear until NOM reads it"),
-                _ => new SourceReason("rule-version", Unknown, $"report under {facts.RuleVersion ?? "no rule version"}; this policy reads {ScraperRuleVersion}, {EarlierScraperRuleVersion} and {OldestScraperRuleVersion} only"),
+                _ => new SourceReason("rule-version", Unknown, $"report under {facts.RuleVersion ?? "no rule version"}; this policy reads {ScraperRuleVersion}, {EarlierScraperRuleVersion}, {OlderScraperRuleVersion} and {OldestScraperRuleVersion} only"),
             });
 
             foreach (var code in ScraperReasons)

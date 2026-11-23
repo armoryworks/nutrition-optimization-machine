@@ -1,6 +1,6 @@
 # The 23 source-check/5 reports the staging scraper stored on 2026-11-21 (checkpoint3-sources.md: checks 1 to 22 of the 22 current web sources, check 23 of the myplate.gov request), replayed through NOM.
 # The reports are in source-check-5-reports.json, keyed by host, trimmed to what NOM reads (no parsed recipe, no credit line, no reason detail).
-# expectClass, expectAi, expectQuote: SourceRightsRule.Derive of the report as stored. expectConclusive: SourceAdmissionPolicy.Judge reads the report (source-check/5 is current).
+# expectClass, expectAi, expectQuote: SourceRightsRule.Derive of the report as stored. expectConclusive: SourceAdmissionPolicy.Judge reads the report (source-check/5 was current when they were stored and is still read; source-check-6.tsv replays what source-check/6 changes).
 # expectFullCheck: the same report read as a terms-only check (no recipe page) allows a full check (SourceRightsRule.AllowsFullCheck).
 # Nine hosts were refused before any fetch by the staging scraper's denylist, so their stored report is a refusal: permission-needed with that reason, no full check.
 id	host	expectClass	expectAi	expectQuote	expectConclusive	expectFullCheck	status	source	note

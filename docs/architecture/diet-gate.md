@@ -104,7 +104,7 @@ food names: `%ham%` in "graham", `%egg%` in "eggplant", `%corn%` in "peppercorn"
 "licorice", `%oat%` in "goat", `%cola%` in "chocolate", `%icing%` in "slicing", `%wine%` in "kitchen
 twine", `%lard%` in "collard greens", `%butter%` in "peanut butter", `%milk%` in "coconut milk". Since
 `cleanup2/ck5-diet-patterns` a name pattern is read by words, the same way in a food's name, an alias,
-a recipe line and a prepared meal's statement (`DietPatternRule`, `diet-patterns/3` since `cleanup2/ck6-prepared-diet`, which added exceptions scoped to types; `/2` from the ck5 review):
+a recipe line and a prepared meal's statement (`DietPatternRule`, `diet-patterns/4` since `cleanup2/ck9-diet-terms`, see below; `/3` from `cleanup2/ck6-prepared-diet`, which added exceptions scoped to types; `/2` from the ck5 review):
 
 - the term counts where it begins a word, whatever follows: plurals, stems and compounds ("eggs",
   "anchovies", "buttermilk", "cornstarch", "eggnog");
@@ -186,7 +186,7 @@ dairy types hold `%goldfish%`; Celiac Disease, Gluten Sensitivity, Gluten-Free a
 `%licorice%` and `%liquorice%`; Fish Allergy holds `%worcestershire%` and `%imitation crab%`; the peanut
 types `%satay%` and `%groundnut%` (the "groundnuts" gap ck5 named). The companions of the defaults are part
 of `ByName` (`CompositeCompanions`); `EnsureAsync` gives every type them on start, seeded, edited and
-admin-named types alike, from the type's own patterns, with the note `composite food, by %x% (label-terms/1)`,
+admin-named types alike, from the type's own patterns, with the note `composite food, by %x% (label-terms/2)` (`/1` before `cleanup2/ck9-diet-terms`),
 and respects an admin's deleted row. A composite whose name another food begins with is left out ("edam"
 would name edamame, "romano" romano beans, "flan" flank steak, "cake" rice cakes); "ranch" alone is not a
 composite name, only "ranch dressing". Some readings are wider than a person would choose and lie on the
@@ -228,6 +228,58 @@ golden line with the PostgreSQL ones in Tcl's regular-expression engine, from wh
 taken, when `tclsh` is installed. Food names and aliases are probed by the PostgreSQL expression
 (`~*`) and their exceptions read in memory.
 
+## Staging checkpoint 4: the unsafe and over-flagging side (cleanup2/ck9-diet-terms)
+
+Checkpoint 4 read 127 recipes through the API for six types and found four misses on the unsafe side and six
+over-flags (P3, P4, P12, P17, P18, P19). `diet-patterns/4` and `label-terms/2`:
+
+- **"free from" and "free of" something else (P12).** "bread free from crust", "stale bread free of crust" and
+  "fish free from bones" were read as "bread-free" and "fish-free", so five recipes were not kept from Celiac
+  Disease, Wheat Allergy and Fish Allergy. The "free" negation now holds only for "<term>-free" or "<term> free"
+  as a label of the food itself: "free" followed by spaces or a hyphen and "from" or "of" is no negation, in both
+  dialects. "peanut-free", "egg free noodles", "wheat-free, of course" and "egg free often" still read as absent.
+  A unit test reads every named exception the same way: "<term> free from lumps" names the term, the phrase
+  before "free from" is still its exception, and the term after the phrase still counts.
+- **"flower", the old spelling of flour (P12).** The types that hold `%flour%` (Wheat Allergy, Celiac Disease,
+  Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Whole30) hold the companion `%flower%`. The blossoms are
+  named exceptions of `%flower%` with their reasons: cauliflower, sunflower, safflower, cornflower and corn
+  flower (corn types hold them by `%corn%`), elderflower, orange flower and flower water, the edible blossoms
+  (rose, squash, zucchini, pumpkin, banana, chive, lavender, chamomile, hibiscus, nasturtium, jasmine),
+  flower pepper, petals, buds, flowerets and "flowering". A blossom the list lacks stays held, on the safe side.
+- **Cream tartar and USDA descriptions in reverse (P18).** "cream tartar" (also "cream-tartar"), the older
+  spelling of cream of tartar, is a named exception of `%cream%`. A USDA description alias (`fdc:description`)
+  is read as it stands, and is cleared only when a named exception blanks out of its order of speech
+  (`DietPatternRule.IsDescriptionMatch`, `SpokenOrder`: "Flour, almond" also reads "almond Flour") every place
+  the term holds there, so "Flour, almond", "Flour, coconut", "Flour, buckwheat" and "Cheese, goat" no longer
+  flag their foods for the gluten types or Halal while "Flour, wheat, all-purpose" still does. The order of
+  speech never decides where a term begins or ends: `% oat%` and `oat%` still read "Cereals, oats, regular and
+  quick" as written (review CK9T-5), and a substring pattern has no exceptions to clear. A wording alias or a
+  recipe line is never reordered: "flour, almond extract" is two foods. `ops/diet-gate-count.sql` reads a
+  `fdc:description` alias the same way on its rule side (`rule_alias`), so the drops the order of speech makes
+  are counted and sampled with the other rule drops (review CK9T-3).
+- **Peanut Allergy (P3).** Peanut Allergy holds the companion `%nut butter%`: a nut butter that names no nut may
+  be peanut butter. Reese's (Pieces, Peanut Butter Cups) is a composite of peanut, milk and soybean, so the
+  peanut, dairy and soy types hold `%reese's%`. A tree-nut butter whose name holds "nut butter" (hazelnut nut
+  butter) is held for Peanut Allergy too, on the safe side.
+- **Marshmallows (P17).** Marshmallows are a composite of gelatin and corn syrup, so every type that restricts
+  gelatin (the meat types, Halal, Kosher) holds `%marshmallow%`, and so do the corn and sugar types. Marshmallow
+  creme is a composite of egg white and corn syrup (the leading labels name no gelatin); the gelatin types still
+  hold it by `%marshmallow%`, on the safe side, and "marshmallow cream" is a named exception of `%cream%`.
+- **Prepared foods the link re-check creates (P19).** Composite rows for tortellini, ravioli, spaghetti
+  (21 CFR 139.110, so Wheat Allergy now holds `%spaghetti%`), zwieback, potstickers, taquitos, Spanish rice,
+  pizza dough and corned beef hash, and the wonton split into the filled wonton (pork or shrimp, on the safe
+  side) and the empty wrapper (a named exception of `%wonton%`, held by `%wonton wrapper%` where wheat or egg
+  is restricted). Pasta composites contain "pasta" and zwieback "bread", so the types that hold `%pasta%` or
+  `%bread%` (Carnivore among them) keep them. See `link-recheck.md` for the guard that keeps a take-back from
+  lowering a recipe's flags.
+- **An exception phrase inside a longer name (review CK9T-4).** "peanut butter cups", "peanut butter cookies"
+  and "coconut cream pie" hold an exception phrase ("peanut butter", "coconut cream") inside a food made with
+  the restricted thing, so they are composite rows: peanut butter cups of peanut, milk and soy (the milk
+  chocolate), peanut butter cookies of peanut, wheat flour, butter and egg (butter and egg on the safe side),
+  and coconut cream pie of coconut, milk, egg and wheat flour.
+- **Over-flags left on the safe side.** `%spaghetti%` and `%pasta%` still hold "spaghetti sauce" and "pasta
+  sauce"; granola is held for Celiac Disease (oats).
+
 ## Cost and cache
 
 The whole-catalog answer of each type (its foods, its alias-only foods and the recipes their lines
@@ -249,6 +301,87 @@ partial answer: a probe that is not kept yet is computed by the first reader, an
 same probe, the warm included, waits for it (`DietGateCache.GetAsync`; tested). The recipe page reads only the recipe's
 own foods and lines and is not cached; it names a line kept out by its own text by that text.
 
+The paragraph above is how the in-line matcher still works (tests on an in-memory database, the recipe page's scoped
+probes). Since `cleanup2/ck9-diet-speed` the API never computes a probe for a household set; see the next section.
+
+## The line index: no request probes the catalog (staging checkpoint 4, P1, P5, P23)
+
+On the production-sized copy (843,636 live lines) the joined line probe (`LineRecipeSql`) of a type with a large
+severe set ran past Npgsql's 30 s command timeout: the warm never finished, and search, plans and the prepared check
+answered HTTP 400 after 43 to 236 s for Celiac, Wheat, Milk, Egg, Lactose, Vegetarian, Vegan and Paleo (P1). The read
+is now split so that no user request runs a probe:
+
+- **Lines: `DietLineIndex`**, kept in the API's memory. For every pattern criterion of every restriction type (a
+  name pattern keyed by its pattern and the type its exceptions are scoped to, or a word pattern) it keeps the
+  recipes with a live line whose own text names it, read by `DietCriteriaMatcher.LineNames` (the matcher's own
+  reading, not a SQL translation of it); beside them the lines whose text reads as a drink (`LineCounts`) and the
+  recipes on each food. A pass reads `recipe."RecipeIngredient"` in windows of 2,000 recipe ids (one bounded range
+  query on the primary key each, `DietGate:Window`), and reads a line for a rule only when it holds the rule's first
+  word, an ordinal check on the lower-cased line; a line with a character a match without case may read as an ASCII
+  letter (the long s, the Kelvin sign, the Turkish i's) is read for every rule, so the prefilter never drops a match.
+  A recipe whose lines carry the same fingerprint (foods, order and text) as the last pass read keeps its reading and
+  is read only for rules newer than its reading, so a later pass costs one read of the lines plus the changed recipes.
+  The reading is published as an immutable snapshot every 10 s during a pass and at its end, so a reader never waits.
+- **Foods: the food probes stay SQL** (names and aliases, which the trigram indexes serve) but are read with
+  `DietGateCache.PeekAsync`: the kept value, fresh, or stale while one refresh runs apart; never computed in line.
+  `DietCriteriaMatcher.FoodsProbeAsync` keys them `foods-only:` (no line read). The retained alcohol of a capped
+  alcohol criterion is counted on the index's drink lines (`RetainedPeekAsync`). Each count is kept with the published
+  reading it was made on and is fresh only while that reading is still the published one, so the warm counts again
+  after every pass, and a count a request refreshed on an earlier or part-read reading is served only while it is made
+  again and holds every recipe above the recipe id that reading had read (review CK9S-1).
+- **The warm: `DietGateHostedService`** (replacing the start-up `Task.Run`). At start it computes the food probe of
+  every type with a pattern or nutrient criterion, at full severity and at 4 and above, the types a restriction names
+  first (`WarmFoodsAsync`), then one index pass, then the retained counts. Every `DietGate:PollSeconds` (30) it runs
+  again when `DietGateCache.Generation` moved (a write to a food, alias, nutrient, line, a recipe's servings or a
+  measurement), when a reader met a rule the index has not read (a criterion an admin added or edited), or after
+  `MaxAge` (15 min, for writes from another process), never sooner than `DietGate:MinIntervalSeconds` (60) after the
+  last run. `DietGate:Warm=false` turns it off (every pattern restriction then holds every recipe).
+
+**The safe side while something is not read.** `HouseholdRestrictionResolver` (on a relational database, with
+`DietGateCache.Shared` and `DietLineIndex.Shared`) reads only what is kept. A type whose food probe is not kept yet
+makes the set `Pending`: every recipe is held (`RecipeIds` gets every recipe id) and `PreparedContentsGate` holds
+every prepared meal (`diet_gate_pending`). Each rule knows the recipe id up to which it has been read; every recipe
+above the lowest such id the set needs (`ReadUpTo`: every recipe before the first pass reaches it, a recipe made since
+the last pass, or every recipe for a rule not read at all) is held. So before the warm ends a request answers at once
+and never errors, a recipe not yet read is held for a severe restriction and never shown as fine, and a non-severe
+restriction shows it flagged. One gap is accepted: a recipe already read whose line changes keeps its old reading until
+the next pass (at most about `MinIntervalSeconds` plus one pass after the write), as the cached probes did before.
+
+**Cost.** On generated data of the production copy's size and shape (843,636 lines over 122,580 recipes, every
+default type's 738 rules; `DietLineIndexTests`) the first pass reads every line in about 5 s on the desktop (32
+threads; the matching runs in parallel), every type's read (its line recipes, its named recipes and its alias-line
+recipes) takes under 15 ms, and a pass after 1 % of the recipes changed reads only those, in about 1 s. Memory: the
+recipe ids per rule, one fingerprint and the matched rule keys per recipe, the drink lines and the recipes per food,
+tens of megabytes. On the server the pass adds the line read (about 70 range queries of about 12,000 rows each); the
+warm's log line gives both times (operator steps).
+
+**Results are the matcher's.** `GoldenDietGateTests` and `GoldenDietPatternTests` resolve every golden row a second time
+through a warmed index (`DietLineIndexTests.AssertIndexAgreesAsync`) and require the same foods and recipes, for the
+household and for the person's severe set; the production-sized test checks 300 recipes per type line by line against
+`LineNames`.
+
+**Aliases never read a measure (P5).** "wine glassful of salt" (Salt) and "Wineglass Water" (Water) were trusted
+aliases (`deterministic:recheck:name-key`, `:staple`), so Sulfite Sensitivity's `%wine%` counted Salt, Water, Milk and
+Olive Oil and hid 71 % of recipes. A pattern now reads an alias with every measure named after a drink or a food
+blanked out (`DietMeasureWords`: wine, claret, sherry, port, liqueur, cordial, whisky, brandy, champagne and beer
+glasses and spoons; tea, coffee and breakfast glasses, cups and spoons; saltspoons; one word or two, with "ful" and
+plurals). A drink's cup is no measure: "claret cup", "champagne cup" and "wine cup" are punches, so such an alias
+still counts for the drink (review CK9S-3, golden dg-64). The alias
+re-check (`IngredientLinkService.RecheckRule`) gives no rule to an alias that holds one. A recipe line is read as
+before ("a wineglassful of water" still holds its recipe for `%wine%`, the safe side). Aliases already marked keep
+their mark; the gate no longer reads the measure in them.
+
+**The count (P23).** `GET /api/DietAdmin/gate-counts` (curation admins) reads the same kept values for every type
+with a criterion, at full severity and severe: foods counted, recipes by food, recipes kept out as a whole (a line's
+own text, a drink line, retained alcohol, or not yet read), both together, the read-up-to id and whether the type is
+pending, with the index's time, recipes, lines and rules. Only recipes that are not deleted are counted, as the SQL
+count does, and `recipes` gives their total, the base of a share such as Sulfite's 71 % (review CK9S-4); the index's
+own recipe count also holds the live lines of deleted recipes. It answers in seconds and needs no database scan.
+`ops/diet-gate-count.sql` stays for what only it does (the crude-versus-word-rule comparison and the samples); it now
+blanks measures in an alias as the gate does, and it still takes about 40 minutes on the copy, so it is run alone
+(nothing else on that database) and only for a release that changes the rule itself. It cannot read the gate's
+stored results: they live in the API's memory, not in the database.
+
 ## Golden set
 
 `diet-gate.tsv` (see `golden-sets.md`): one food with its aliases and sources and one recipe line on
@@ -263,7 +396,14 @@ line rule above: a line naming the restricted thing on a food no pattern names, 
 parentheses, a note line, the bacon line on a wrong food, a diet's alternative, each with a row the
 other way, and `ratafia cakes` (almond biscuits) read as no drink line for No Alcohol and Halal.
 Rows dg-51 to dg-59 carry the word rule end to end on foods named graham crackers, eggplant, coconut
-milk (with its USDA description), peanut butter, buckwheat groats and hamburger.
+milk (with its USDA description), peanut butter, buckwheat groats and hamburger. Rows dg-60 to dg-63
+(staging checkpoint 4, P5) put Salt, Water and Milk with an alias made of a wine glass or a coffee cup
+under Sulfite Sensitivity and Caffeine Sensitivity (offered), and a wine line on Water (kept out). Row dg-64 (review
+CK9S-3) keeps a food whose trusted alias is "Wine Cup", a punch, under Sulfite Sensitivity. Rows dg-65 to dg-70
+(checkpoint 4, P18) put almond, buckwheat and coconut flour with their reversed USDA descriptions and Cream
+Of Tartar with its "cream tartars" alias on the gluten and dairy types (offered), and keep all-purpose flour
+by its description and a "coconut flour or flour" line out. Row dg-71 (review CK9T-5) keeps an oats
+description out of Celiac Disease, as `% oat%` reads it as written.
 
 `diet-patterns.tsv` (`GoldenDietPatternTests`): one recipe line under one default restriction type, on
 a food no pattern names, `hit` or `clear`; a food named by the same text must be counted the same way.
@@ -345,3 +485,25 @@ plainly is not it ("peanut-free") is the one over-flag to report; it keeps the r
 side. The `line` samples are spread like the `lost` ones (the same `seed`), and a type with two
 reference rows of one name prints once, as above. The line read adds one ILIKE pass per distinct
 pattern over the live lines, a few minutes on the checkpoint copy beyond its 14.
+
+### The line index (since `cleanup2/ck9-diet-speed`)
+
+No schema change. After the deploy, on staging first:
+
+1. Read the API log after the start: one `Diet gate: N food probes and M retained counts computed; line index read
+   R of R recipes (L lines, K rules, K new) up to recipe X in P s; warm W s` line. The budget: W within minutes (the
+   production-sized test reads the lines in about 5 s on the desktop; the server adds about 70 range reads), and no
+   `Failed executing DbCommand` from the diet gate. A `Diet gate warm failed` warning repeats every 30 s until it
+   succeeds; meanwhile every pattern restriction holds every recipe.
+2. During the warm (right after the start) and after it, with a temporary Celiac Disease (60800) restriction on the
+   API person: `POST /api/RecipeSearch/search {"query":"bread","pageSize":5}` answers 200 at once every time, with no
+   result during the warm (every recipe held) and the gluten-free results after it, each under one second. Repeat for
+   Wheat Allergy, Milk Allergy, Egg Allergy, Lactose Intolerance, Vegetarian, Vegan and Paleo (checkpoint 4's list),
+   a plan generation for one of them and a prepared check (held as `diet_gate_pending` during the warm).
+3. `GET /api/DietAdmin/gate-counts` (seconds): the per-type figures the checkpoints follow from now on, beside the
+   index's recipes, lines and read-up-to id; no type `pending` once the warm is done. Sulfite Sensitivity no longer
+   holds about 71 % of recipes (P5); its recipes by food must not include Salt's or Water's.
+4. Write one recipe line (any edit) and confirm the next warm line reads `1 of ...` recipes about a minute later.
+5. `ops/diet-gate-count.sql` remains the crude-versus-rule audit for a release that changes the rule itself. Run it
+   alone, with nothing else running on that database (about 40 minutes on the production-sized copy); a checkpoint
+   that does not change the rule reads step 3's figures instead.

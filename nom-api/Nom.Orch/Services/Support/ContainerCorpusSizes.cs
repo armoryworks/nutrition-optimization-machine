@@ -203,17 +203,34 @@ namespace Nom.Orch.Services.Support
         public static string BookToken(string book) =>
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(book)))[..12].ToLowerInvariant();
 
-        /// <summary>The rows of a facts file (ops/container-era-facts.py writes the same columns from a capture of the corpus).</summary>
+        /// <summary>
+        /// The rows of a facts file (ops/container-era-facts.py writes the same columns from a capture of the corpus), in
+        /// the one order both writers number them in: each tier in the order given, then by scope, then by the food as
+        /// written (USDA ids by number before the "#" ids of foods with none), the container kind and the size word, so
+        /// the two files are equal row for row and not only as sets (staging checkpoint 4, P22).
+        /// </summary>
         public static IEnumerable<string> Facts(IEnumerable<CorpusSize> sizes, Func<long, string> food)
         {
             yield return "id\ttier\tscope\tfood\tkind\tsizeWord\tgrams\tlines\tbooks\tband\tvotes\trunnerUp\tmin\tmax\tsizes\tverdict";
+            var rows = sizes.Select(s => (Size: s, Food: food(s.IngredientId))).ToList();
+            var tiers = rows.Select(r => r.Size.Tier).Distinct().ToList();
             var n = 0;
-            foreach (var s in sizes)
+            foreach (var (s, written) in rows
+                .OrderBy(r => tiers.IndexOf(r.Size.Tier))
+                .ThenBy(r => r.Size.Scope, StringComparer.Ordinal)
+                .ThenBy(r => FoodNumber(r.Food) == null ? 1 : 0)
+                .ThenBy(r => FoodNumber(r.Food) ?? 0m)
+                .ThenBy(r => r.Food, StringComparer.Ordinal)
+                .ThenBy(r => r.Size.Kind, StringComparer.Ordinal)
+                .ThenBy(r => r.Size.SizeWord, StringComparer.Ordinal))
             {
                 n++;
                 yield return string.Create(CultureInfo.InvariantCulture,
-                    $"f-{n:000}\t{s.Tier}\t{s.Scope}\t{food(s.IngredientId)}\t{s.Kind}\t{(s.SizeWord.Length == 0 ? "-" : s.SizeWord)}\t{s.Grams}\t{s.Lines}\t{s.Books}\t{s.Band}\t{s.Votes}\t{s.RunnerUp}\t{s.Min:0.#}\t{s.Max:0.#}\t{s.Sizes}\t{s.Refusal ?? "counts"}");
+                    $"f-{n:000}\t{s.Tier}\t{s.Scope}\t{written}\t{s.Kind}\t{(s.SizeWord.Length == 0 ? "-" : s.SizeWord)}\t{s.Grams}\t{s.Lines}\t{s.Books}\t{s.Band}\t{s.Votes}\t{s.RunnerUp}\t{s.Min:0.#}\t{s.Max:0.#}\t{s.Sizes}\t{s.Refusal ?? "counts"}");
             }
         }
+
+        private static decimal? FoodNumber(string food) =>
+            food.Length > 0 && food.All(char.IsAsciiDigit) && decimal.TryParse(food, NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : null;
     }
 }

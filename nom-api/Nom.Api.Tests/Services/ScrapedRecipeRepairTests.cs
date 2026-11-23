@@ -233,7 +233,7 @@ namespace Nom.Api.Tests.Services
             rows[0].MeasurementId.Should().Be(11);
             rows[1].Quantity.Should().Be(0.5m);
             rows[1].MeasurementId.Should().Be(11);
-            rows[2].Quantity.Should().Be(0, "\"two of sugar\" borrowed its unit from the line before");
+            rows[2].Quantity.Should().Be(2, "\"two of sugar\" borrowed its unit from the line before, but its stored two stands in the line, so the line guard keeps it");
             rows[3].Quantity.Should().Be(3);
             rows[3].MeasurementId.Should().Be(3, "eggs are counted");
         }

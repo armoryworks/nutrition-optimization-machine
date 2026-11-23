@@ -48,3 +48,6 @@ free-to-read-unknown	not-clear	source-check/2	yes	free-to-read:unknown	cc0	20	0	
 clear-cc0-check-4	clear	source-check/4	yes	-	cc0	20	20	20	60	60	no	clear	yes	-	ok	rule:construction	a report under source-check/4, the rule version the scraper reports now, is read
 terms-unknown-check-4	not-clear	source-check/4	yes	terms:unknown;check-complete:unknown	cc0	20	20	20	60	60	no	not-clear	yes	check-complete;terms;scraper-verdict	ok	rule:construction	source-check/4 leaves terms and check-complete unknown where a page refused NomBot; unknown counts against
 stored-check-3	clear	source-check/3	yes	-	cc0	20	20	20	60	60	no	not-clear	no	rule-version	ok	rule:construction	source-check/3 was never read by NOM: inconclusive
+clear-cc0-check-6	clear	source-check/6	yes	-	cc0	20	20	20	60	60	no	clear	yes	-	ok	rule:construction	a report under source-check/6, the rule version the scraper reports now, is read and may be clear (until cleanup2/ck8-source-exclude it was newer and never clear)
+clear-cc0-check-5	clear	source-check/5	yes	-	cc0	20	20	20	60	60	no	clear	yes	-	ok	rule:construction	a stored source-check/5 report is still read
+clear-cc0-check-7	clear	source-check/7	yes	-	cc0	20	20	20	60	60	no	not-clear	no	rule-version	ok	rule:construction	a report under a version newer than NOM reads is never clear and inconclusive

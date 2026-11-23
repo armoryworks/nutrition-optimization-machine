@@ -57,7 +57,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class AlcoholLineContext
     {
-        public const string Version = "alcohol-context/7";
+        public const string Version = "alcohol-context/8";
 
         public const string NoSense = "none";
         public const string ListSense = "list";
@@ -165,7 +165,8 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex OfPart = new(@"\bof\b\s*(.*)$", Options);
 
         private static readonly Regex DishAfterDrink = new(
-            @"\b(?:" + DrinkWords + @")\s+(?:\p{L}+\s+)?(?:brats?|bratwursts?|wursts?|sauce|butter|jell(?:y|ies)|syrup|cakes?|glaze|gravy|cream|custard|paper|punch|sangria|frosting|icing|marinade|trifle|posset|sorbet|granita|batter|bread|salami|sausages?|snaps|balls|truffles?|pudding|soup|reduction|spritzer|cocktail|mustard|jam|cheese|biscuits?|cookies?|caramel)\b",
+            @"\b(?:" + DrinkWords + @")\s+(?:\p{L}+\s+)?(?:brats?|bratwursts?|wursts?|sauce|butter|jell(?:y|ies)|syrup|cakes?|glaze|gravy|cream|custard|paper|punch|sangria|frosting|icing|marinade|trifle|posset|sorbet|granita|batter|bread|salami|sausages?|snaps|balls|truffles?|pudding|soup|reduction|spritzer|cocktail|mustard|jam|cheese|biscuits?|cookies?|caramel|"
+            + @"(?:cherr(?:y|ies)|peach(?:es)?|pears?|plums?|prunes?|raisins?|figs?|apricots?|currants?|berr(?:y|ies)|fruits?|oranges?|dates|nuts|walnuts|pecans|almonds|chestnuts)\b(?!\s+(?:" + DrinkWords + @"|liquors?|brand(?:y|ies)|cordials?|schnapps?|spirits?|flavou?r\w*|extracts?|essence)\b))\b",
             Options);
         private static readonly Regex DrinkFlavoured = new(@"\b(?:" + DrinkWords + @")\s+flavou?red\b", Options);
         private static readonly Regex WithDrink = new(@"\b(?:flavou?red|moistened|mixed|wetted|sprinkled|soaked|steeped|macerated|perfumed|seasoned)\s+with\b[^,;]*\b(?:" + DrinkWords + @")\b|\bto every\b.*\ballow\b.*\b(?:" + DrinkWords + @")\b", Options);

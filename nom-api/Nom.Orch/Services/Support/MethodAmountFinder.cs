@@ -17,11 +17,14 @@ namespace Nom.Orch.Services.Support
     /// ("a pint of stewed or canned tomatoes"), while a line joining foods with "and" takes none. A ratio
     /// ("one teacup of salt to a gallon of water", "half vinegar and half water", "to each pint", "in
     /// each tomato", "on each plate", "to a pound of pulp", "to two pounds of cherries", "to one of fruit", "for
-    /// half a pint") anywhere in a sentence leaves every amount of that sentence alone ("To every quart allow
-    /// ..., half a teaspoonful of mace"), even where it matches the recipe's own amount; a liquid another
+    /// half a pint", "for thirty pounds") anywhere in a sentence leaves every amount of that sentence alone ("To every quart allow
+    /// ...; half a teaspoonful of mace", the sentence going on past ";" and the point of "lb."), even where it matches the
+    /// recipe's own amount, and still counts as an amount of the food, so the part amount another sentence states fills
+    /// nothing; "add to two quarts of" and "seven to eight cups of" are amounts, not proportions; a liquid another
     /// ingredient is dissolved, softened, soaked or steeped in gives nothing ("dissolved in one teaspoon of
     /// hot water"); a vessel or a length
-    /// ("a kettle of water", "1-inch of water", "a water bath"), washing water ("three or four waters"),
+    /// ("a kettle of water", "1-inch of water", "a water bath"), a utensil line ("tin plate"), the vessel a food is put
+    /// into ("Put into a tumbler ... syrup"), washing water ("three or four waters"),
     /// an alternative ("..., or four fresh tomatoes") and a temperature the line contradicts ("cold
     /// vinegar" against "boiling vinegar") give nothing either, and a count of pieces is never read for
     /// a liquid, from a measure ("a handful of parsley"), nor for a food the caller says is not counted
@@ -41,14 +44,22 @@ namespace Nom.Orch.Services.Support
 
         private const string Timed = @"(?:\d+\s+)?(?:few|now|other|time|times|second|seconds|minute|minutes|hour|hours|day|days|week|weeks|morning|evening|night|side|sides|way|turn|addition)\b";
 
+        private const string Placed = @"(?<!\b(?:add|adds|added|adding|pour|pours|poured|put|puts|return|returns|returned|turn|turns|turned|stir|stirs|stirred)\s+)";
+
+        private const string NotRanged = @"(?<!\b(?:" + Counted + @")\s+)";
+
         private static readonly Regex Ratio = new(
             @"\b(?:to|for|in|into|on|onto|over|upon|inside)\s+every\b(?!\s+" + Timed + @")|\beach\b(?!\s+" + Timed + @")|\bper\b|\bin\s+the\s+proportion\b|\bhalf\s+and\s+half\b|\bhalf\b[^.;]*\band\s+half\b" +
-            @"|\bto\s+(?:a|an|one|the|\d+)\s+" + Measured + @"|\bevery\s+(?:(?:\d+|a|an|one|two|three|four|six|twelve)\s+)?" + Measured +
-            @"|(?<!\b(?:" + Counted + @")\s+)\bto\s+(?:" + Counted + @"|half\s+an?|three\s+quarters\s+of\s+an?)\s+(?:of\b|" + Measured + @")" +
+            @"|" + Placed + NotRanged + @"\bto\s+(?:a|an|one|the|\d+)\s+" + Measured + @"|\bevery\s+(?:(?:\d+|a|an|one|two|three|four|six|twelve)\s+)?" + Measured +
+            @"|" + Placed + NotRanged + @"\bto\s+(?:(?:" + Counted + @")(?:\s+(?:or|to)\s+(?:" + Counted + @"))?|half\s+an?|three\s+quarters\s+of\s+an?)\s+(?:of\b|" + Measured + @")" +
             @"|\bfor\s+(?:half\s+an?|an?|" + Counted + @")\s+" + Measured + @"(?!\s+of\b)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        private const string Counted = @"\d+(?:/\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve";
+        private const string Counted = @"\d+(?:/\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|hundred|a\s+hundred|one\s+hundred";
+
+        private static readonly Regex SentenceEnd = new(
+            @"(?<!\b(?:lb|lbs|oz|ozs|pt|pts|qt|qts|doz|tsp|tsps|tbsp|tbsps|gal|teaspn|tablespn))\.(?!\d)|[!?]",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex SubPreparation = new(
             @"^(?:dissolved|dissolve|diluted|dilute|softened|soften|soaked|soak|steeped|steep)$",
@@ -97,6 +108,14 @@ namespace Nom.Orch.Services.Support
             "bath", "baths", "jug", "jugs", "inch", "inches",
         };
 
+        private static readonly HashSet<string> Utensils = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "plate", "plates", "platter", "platters", "mould", "moulds", "mold", "molds", "tin", "tins", "skillet", "skillets", "griddle",
+            "spider", "sheet", "sheets", "tumbler", "tumblers", "glass", "glasses", "cloth", "sieve", "colander",
+        };
+
+        private static readonly HashSet<string> Into = new(StringComparer.OrdinalIgnoreCase) { "in", "into", "inside" };
+
         private static readonly HashSet<string> Liquids = new(StringComparer.OrdinalIgnoreCase)
         {
             "water", "milk", "cream", "stock", "broth", "vinegar", "wine", "juice", "oil", "brandy", "sherry", "rum", "whisky", "whiskey",
@@ -120,6 +139,7 @@ namespace Nom.Orch.Services.Support
             var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length == 0 || words.Length > 4) return null;
 
+            if (IsVessel(words[^1]) || Utensils.Contains(words[^1])) return null;
             var head = words[^1].TrimEnd('s');
             if (head.Length < 3) return null;
             var liquid = Liquids.Contains(head) || Liquids.Contains(words[^1]);
@@ -132,8 +152,10 @@ namespace Nom.Orch.Services.Support
             var ownTemperatures = ownWords.Where(Temperatures.ContainsKey).Select(w => Temperatures[w]).ToHashSet();
             var found = new List<ParsedQuantity>();
             var alternative = false;
+            var proportioned = false;
             var pattern = new Regex(@"(?<before>(?:[\p{L}\d/½¼¾⅓⅔⅛-]+\s+){1," + (7 + ownWords.Length) + @"})(?<food>" + lead + Regex.Escape(head) + @"(?:e?s)?)\b(?:(?=\s+(?<after>\p{L}+))|)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-            foreach (var clause in steps.SelectMany(s => Regex.Split(s ?? string.Empty, @"[.;!?]")).Where(sentence => !Ratio.IsMatch(sentence)).SelectMany(sentence => Regex.Split(sentence, @"[:,()]")))
+            foreach (var (clause, ratio) in steps.SelectMany(s => SentenceEnd.Split(s ?? string.Empty))
+                .SelectMany(sentence => Regex.Split(sentence, @"[;:,()]").Select(clause => (clause, Ratio.IsMatch(sentence)))))
             {
                 foreach (Match m in pattern.Matches(clause))
                 {
@@ -150,17 +172,19 @@ namespace Nom.Orch.Services.Support
                     if (start >= 2 && before[start - 1] is "in" or "In" && SubPreparation.IsMatch(before[start - 2])) continue;
 
                     var phrase = before[start..];
+                    if (start >= 1 && Into.Contains(before[start - 1]) && !phrase.Contains("of", StringComparer.OrdinalIgnoreCase) && phrase.Any(Measures.Contains)) continue;
                     var parsed = IngredientLineParser.Parse(string.Join(' ', phrase) + " " + m.Groups["food"].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries)[^1]);
                     if (parsed is not { Quantity: > 0 }) continue;
                     if (parsed.MeasurementName == IngredientLineParser.Piece && (liquid || !countedInPieces || phrase.Any(w => Measures.Contains(w) && !w.Equals("dozen", StringComparison.OrdinalIgnoreCase)))) continue;
                     var temperatures = phrase.Where(Temperatures.ContainsKey).Select(w => Temperatures[w]).ToHashSet();
                     if (ownTemperatures.Count > 0 && temperatures.Count > 0 && !ownTemperatures.Overlaps(temperatures)) continue;
                     if (Regex.IsMatch(clause, @"^\s*or\b", RegexOptions.IgnoreCase)) alternative = true;
-                    found.Add(parsed);
+                    if (ratio) proportioned = true;
+                    else found.Add(parsed);
                 }
             }
 
-            return !alternative && found.Distinct().Count() == 1 ? found[0] : null;
+            return !alternative && !proportioned && found.Distinct().Count() == 1 ? found[0] : null;
         }
     }
 }

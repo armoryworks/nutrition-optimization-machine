@@ -282,17 +282,19 @@ namespace Nom.Api.Tests.Services.MealPlan
         public async Task A_food_that_was_resolved_but_is_no_longer_curated_makes_the_contents_unknown()
         {
             using var db = await SeedAsync();
-            var bowl = await MealWithStatementAsync(db, "Chicken rice bowl, frozen", "Ingredients: Rice, chicken, salt.", "3000031");
+            db.Ingredients.Add(new IngredientEntity { Name = "Romanesco", CurationStatusId = (long)CurationStatusEnum.Curated, FdcCategoryId = 11 });
+            await db.SaveChangesAsync();
+            var bowl = await MealWithStatementAsync(db, "Romanesco rice bowl, frozen", "Ingredients: Rice, romanesco, salt.", "3000031");
             await RestrictAsync(db, PeanutAllergyRef);
             (await CheckAsync(db, HouseholdId, bowl.Id))[bowl.Id].Held.Should().BeNull();
 
-            var chicken = await db.Ingredients.SingleAsync(i => i.Name == "Chicken");
-            chicken.CurationStatusId = (long)CurationStatusEnum.PendingCuration;
+            var romanesco = await db.Ingredients.SingleAsync(i => i.Name == "Romanesco");
+            romanesco.CurationStatusId = (long)CurationStatusEnum.PendingCuration;
             await db.SaveChangesAsync();
 
             var check = (await CheckAsync(db, HouseholdId, bowl.Id))[bowl.Id];
-            check.Held.Should().Be(PreparedContentsHeld.Unresolved);
-            check.Names.Should().Equal("chicken");
+            check.Held.Should().Be(PreparedContentsHeld.Unresolved, "a name only the catalog knew is unknown once its food is no longer curated; a name the label table reads is known by the table");
+            check.Names.Should().Equal("romanesco");
         }
 
         [Fact]

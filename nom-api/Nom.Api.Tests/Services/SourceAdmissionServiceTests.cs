@@ -49,7 +49,7 @@ namespace Nom.Api.Tests.Services
 
             public Task<ScraperResult> ParseAsync(string content, string? sourceUrl, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-            public Task<ScraperJobAnswer> StartDiscoveryJobAsync(IReadOnlyList<string> seedDomains, int maxCandidates, int budgetSeconds, CancellationToken cancellationToken = default)
+            public Task<ScraperJobAnswer> StartDiscoveryJobAsync(IReadOnlyList<string> seedDomains, int maxCandidates, int budgetSeconds, IReadOnlyList<string> excludeDomains, CancellationToken cancellationToken = default)
             {
                 Started.Add(("discovery", seedDomains, null));
                 return Task.FromResult(Starts.Dequeue());
@@ -73,7 +73,7 @@ namespace Nom.Api.Tests.Services
 
         private static SourceAdmissionService Service(ApplicationDbContext db, FakeScraper scraper, Func<DateTime>? now = null, Action<SourceAdmissionSettings>? configure = null)
         {
-            var settings = new SourceAdmissionSettings { Enabled = true, PollSeconds = 1 };
+            var settings = new SourceAdmissionSettings { Enabled = true, PollSeconds = 1, FullChecks = true };
             configure?.Invoke(settings);
             var service = new SourceAdmissionService(db, scraper, new RecipeVettingService(), Options.Create(settings), NullLogger<SourceAdmissionService>.Instance)
             {
@@ -194,6 +194,7 @@ namespace Nom.Api.Tests.Services
             {
                 var source = (await db.ScrapingSources.ToListAsync()).FirstOrDefault(s => SourceAdmissionPolicy.NormalizeDomain(s.Domain) == domain);
                 var candidate = await db.SourceCandidates.FirstOrDefaultAsync(c => c.Domain == domain);
+                if (source != null) source.FactsOnlyApprovedAt ??= T0.AddDays(-3);
                 db.SourceChecks.Add(new SourceCheckEntity
                 {
                     ScrapingSourceId = source?.Id, SourceCandidateId = candidate?.Id,

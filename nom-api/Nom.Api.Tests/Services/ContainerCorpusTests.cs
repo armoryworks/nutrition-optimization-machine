@@ -95,6 +95,22 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void The_facts_are_numbered_by_the_food_as_written_with_usda_ids_by_number_before_the_ids_of_foods_with_none()
+        {
+            var written = new Dictionary<long, string> { [1] = "#1", [2] = "170000", [3] = "9000", [4] = "#12" };
+            var lines = new[] { 1L, 2L, 3L, 4L }.SelectMany(food => new[] { Line(BookA, 85m, food: food), Line(BookB, 85m, food: food) }).ToList();
+
+            var facts = ContainerCorpusSizes.Facts(ContainerCorpusSizes.Book(lines).Concat(ContainerCorpusSizes.Era(lines)), id => written[id])
+                .Skip(1).Select(row => row.Split('\t')).ToList();
+
+            facts.Select(f => f[0]).Should().Equal(Enumerable.Range(1, 12).Select(n => $"f-{n:000}"));
+            facts.Select(f => $"{f[1]} {f[2]} {f[3]}").Should().Equal(
+                $"book {BookA} 9000", $"book {BookA} 170000", $"book {BookA} #1", $"book {BookA} #12",
+                $"book {BookB} 9000", $"book {BookB} 170000", $"book {BookB} #1", $"book {BookB} #12",
+                "era historic 9000", "era historic 170000", "era historic #1", "era historic #12");
+        }
+
+        [Fact]
         public void A_book_size_holds_more_than_half_of_the_book_s_lines_not_exactly_half()
         {
             var half = ContainerCorpusSizes.BookSize(BookA, new[] { Line(BookA, 85m), Line(BookA, 85m), Line(BookA, 170.1m), Line(BookA, 226.8m) })!;

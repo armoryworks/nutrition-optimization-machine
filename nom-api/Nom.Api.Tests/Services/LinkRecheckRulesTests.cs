@@ -131,6 +131,7 @@ namespace Nom.Api.Tests.Services
         public void A_tier_that_vouches_for_identity_is_spared_the_word_rules_but_not_the_rest(string tier, bool spared)
         {
             LinkRecheckRules.Blocking(tier, new[] { Hold(LinkGate.Containment), Hold(LinkGate.LeadNoun) }).Count.Should().Be(spared ? 0 : 2);
+            LinkRecheckRules.Blocking(tier, new[] { Hold(LinkGate.Variety) }).Count.Should().Be(spared ? 0 : 1, "the distinguishing rule of link-gate/13 is a word rule too");
             LinkRecheckRules.Blocking(tier, new[] { Hold(LinkGate.Incomplete), Hold(LinkGate.AlcoholDrink) }).Should().HaveCount(2);
         }
 
@@ -266,6 +267,32 @@ namespace Nom.Api.Tests.Services
             LinkGate.NamesAlternative("active dry or instant yeast", Food(1, "Yeast", "Leavening agents, yeast, baker's, active dry"), catalog).Should().BeTrue();
             LinkGate.NamesAlternative("rum or brandy", Food(1, "Coffee Cream Liqueur", "Alcoholic beverage, liqueur, coffee with cream, 34 proof"), catalog).Should().BeFalse();
             LinkGate.NamesAlternative("salt and pepper", Food(1, "Salt", "Salt, table"), catalog).Should().BeFalse("and joins two foods; it gives no alternatives");
+        }
+
+        [Fact]
+        public void A_hold_a_later_alternative_raises_a_home_preparation_or_a_compound_naming_no_other_food_proves_nothing()
+        {
+            var group = new GateHold(LinkGate.Group, LinkGate.Group, "margarine: category 1");
+            LinkRecheckRules.Refutes(group, new[] { group }, firstNamed: true).Should().BeFalse("butter or margarine on Butter: the line counts its first");
+            LinkRecheckRules.Refutes(group, new[] { group }).Should().BeTrue();
+            var part = new GateHold(LinkGate.Part, "wording part not in the food", "juice");
+            LinkRecheckRules.Refutes(part, new[] { part }, firstNamed: true).Should().BeFalse();
+            var toasted = new GateHold(LinkGate.Form, "wording form not in the food", "toasted");
+            LinkRecheckRules.Refutes(toasted, new[] { toasted }).Should().BeFalse("toasted pine nuts are the pine nuts, toasted at home");
+            var frozen = new GateHold(LinkGate.Form, "wording form not in the food", "frozen");
+            LinkRecheckRules.Refutes(frozen, new[] { frozen }).Should().BeFalse();
+            var canned = new GateHold(LinkGate.Form, "wording form not in the food", "canned");
+            LinkRecheckRules.Refutes(canned, new[] { canned }).Should().BeTrue();
+            var compound = Hold(LinkGate.Compound);
+            LinkRecheckRules.Refutes(compound, new[] { compound }, namesOtherFood: false).Should().BeFalse("heavy cream, whipped is one food");
+
+            var catalog = GateCatalog.Build(new[] { Food(1, "Butter", "Butter, salted"), Food(2, "Vinegar", "Vinegar, distilled"), Food(3, "Lemon Juice", "Lemon juice, raw"), Food(4, "Black Pepper", "Spices, pepper, black"), Food(5, "Salt", "Salt, table") });
+            LinkGate.NamesFirstAlternative("butter or margarine", Food(1, "Butter", "Butter, salted"), catalog).Should().BeTrue();
+            LinkGate.NamesFirstAlternative("lemon juice or white vinegar", Food(2, "Vinegar", "Vinegar, distilled"), catalog).Should().BeFalse("the vinegar is the second alternative");
+            LinkGate.NamesFirstAlternative("lemon juice or white vinegar", Food(3, "Lemon Juice", "Lemon juice, raw"), catalog).Should().BeTrue();
+            LinkGate.NamesOtherFood("salt and black pepper", Food(5, "Salt", "Salt, table"), catalog).Should().BeTrue();
+            LinkGate.NamesOtherFood("heavy cream, whipped", Food(6, "Heavy Cream", "Cream, fluid, heavy whipping"), catalog).Should().BeFalse();
+            LinkGate.NamesOtherFood("dates stoned and sliced", Food(7, "Dates", "Dates, deglet noor"), catalog).Should().BeFalse();
         }
 
         [Fact]

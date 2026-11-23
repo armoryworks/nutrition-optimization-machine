@@ -36,9 +36,49 @@ reasons.
    facts-only use of the sources that pass the review, and turns `FullChecks` on; from then on those sources
    seed it. Until then each run is skipped and says why ("N approved web source(s) have no class yet ...", "M
    are facts-only and wait for an admin to approve facts-only use"), so a waiting lane never reads as an
-   empty one. NOM sends the scraper no list of sites to leave out of pass 2 (the discovery job takes none), so
-   a site linked from an approved seed may have its homepage, and possibly one recipe-looking page, probed
-   before NOM has read its terms; this needs a scraper change (an exclusion list) and is not closed by NOM.
+   empty one.
+
+   **The exclusion list.** Every discovery job carries `excludeDomains` (`SourceDiscoveryExclusion`), so neither
+   pass fetches a host NOM holds as:
+   - **forbidden** or **permission-needed**: a source by its effective rights class (a recorded permission lifts
+     it), a candidate by the class its last check's report gives it (the check lane's own bar);
+   - **rejected**: a source or candidate an admin rejected;
+   - **unclassed**: a candidate whose last check gave no class (a new candidate before its terms-only check, a
+     lead, a check that did not finish), and a source with no class (an approved web source before its terms-only
+     check, a user's pending request, a hand source).
+
+   A source that may be fetched is never held, and a host whose terms allow automated access (facts-only or clear,
+   an approval for facts-only use or not) is not held: its homepage may be probed, as a full check may read it.
+   Which sources may be fetched follows `SourceRights:Enforce` as seeding does: on, those `MayFetch` allows; off,
+   every approved web source (each one seeds and is harvested then). Every other source is held by its class
+   whether the gate is on or off, so a pending or rejected source that is forbidden, permission-needed or unclassed
+   is always on the list; a candidate's reasons always hold. An unclassed or rejected candidate of the host, or of
+   a parent host, of an approved source that may be fetched gives way to that source (its own check and the
+   admin's later approval decide): it is not sent and the run names it, so a lead or an old rejection never holds
+   an approved seed back. A candidate whose report makes it forbidden or permission-needed never gives way. The rows of one host
+   (`budgetbytes.com`, `www.budgetbytes.com`) are one entry under the strongest reason, an entry excludes every
+   subdomain, and a host under a barred parent is not sent twice. Entries are sent as the scraper reads them (lower
+   case, no `www.`, international names in punycode); a held domain that is not a host name is named on the run.
+
+   A site a run finds is a new candidate with no class, so the next runs hold it until its terms-only check
+   classes it; a lead stays a lead (it is never checked, see 2) and is no longer probed again. The scraper takes
+   at most **5,000** entries. Past that, every forbidden and permission-needed host is still sent, first, and the
+   rejected and unclassed hosts fill the room left. They stand in the order NOM first held their rows (a source's
+   creation, a candidate's first sighting), then by name, and each run goes on from the host after the last one the
+   previous such run sent (`ExcludeCursorSince`, `ExcludeCursorHost`), round the list. A newly held host joins at
+   the end, so every held host is sent within a bounded number of runs however many new hosts come in. The run
+   stores how many were sent and left out and says so, and a warning is logged. When the forbidden and
+   permission-needed hosts fill all 5,000 entries exactly, there is no room and the others are left out (shown on
+   every run) until there is. When the forbidden and permission-needed hosts alone pass 5,000, no job starts:
+   the run is **failed** with the count, and an error is logged; none is ever dropped to make the list fit.
+
+   What comes back: `candidatesExcluded` (the excluded hosts the seeds link to, with the seed and the entry that
+   excluded each; no request was made) is stored on the run (`CandidatesExcluded`, `CandidatesExcludedJson`) for
+   the admin and never makes or counts a candidate. A seed NOM also holds is a fault in NOM's rows: it is held
+   back before the job (another row of the host, or of a parent host, holds it), and a seed the scraper still
+   reports in `seedsExcluded` is a NOM fault too; both are logged as errors, shown on the run (`SeedsExcluded`,
+   `ExcludeNote`) and not rotated. A host on the list that the scraper returns as found anyway (a scraper from
+   before `excludeDomains`) is never kept as a candidate, and the run says the scraper did not apply the list.
 
    A run or check still marked `running` past its budget plus 60 s and a grace of
    `StaleGraceSeconds` (300 s) had its poll cut off (nom-api restarted, or the tick failed): the
@@ -66,7 +106,15 @@ reasons.
    terms-only report of that source (or candidate) allows one (`SourceRightsRule.AllowsFullCheck`: a
    terms-only report under a rule version NOM reads that classes the site facts-only or clear, so nothing in
    its words forbids automated access or reuse, nothing refused NomBot and no terms page was left unread),
-   and only while `FullChecks` is on. A terms-only report that allows no full check holds the target
+   and only while `FullChecks` is on (off by default). For a **source** the setting alone never starts one:
+   it is checked in full only when a written permission is recorded, when an admin has approved facts-only
+   use of it (one journaled click on Admin → Scraping Sources, undone from the journal), or, for a clear
+   source an admin admitted from a candidate's clear full check, its weekly re-check
+   (`SourceAdmissionService.FullCheckApproved`). A clear class from a terms-only report approves nothing, nor
+   does a full check that once ran without review; a source whose terms-only report allows a full check but that
+   no admin approved waits, and nothing checks it again by itself until then. A **candidate** is checked in
+   full on its terms-only report alone while `FullChecks` is on (a clear full check is what puts it in the
+   approval queue). A terms-only report that allows no full check holds the target
    until `RecheckDays` have passed (a bar is held by the class it derived: forbidden and permission-needed
    targets are never due; an inconclusive one, such as a host with no address, is tried again by time).
    Without the scraper's terms-only mode (`TermsOnlyChecks` off) no source or candidate without a passing
@@ -81,7 +129,15 @@ reasons.
 
    Order: a terms-only check an admin asked for (below), then approved web sources due for their
    re-check (those due a terms-only check before those due a full one), then user requests, then new
-   candidates by how often they were seen. A source is due when it was never checked in full or its last
+   candidates by how often they were seen, then **leads**. A lead is a site discovery found and never probed;
+   discovery holds it as unclassed and never probes it again, so a lead discovery holds (the same test as
+   the exclusion list: by the class of its last check's report, and not giving way to an approved source
+   that may be fetched) gets a terms-only check (robots.txt, the homepage and the terms pages, no recipe page) within
+   `MaxChecksPerDay`, after everything else. It is never checked in full. A lead whose report bars it becomes
+   not clear and stays held; a lead whose terms allow automated access is no longer held, and a later
+   discovery run may probe it and make it a new candidate, and it is no longer counted as held. A lead of a
+   host an approved source that may be fetched covers is not checked (it gives way to that source, as in the
+   exclusion list); one covered only by a source that may not be fetched is held, so it is checked. A source is due when it was never checked in full or its last
    full check is older than `RecheckDays`. A candidate is due when it has no full check, when the policy
    version changed since its last full check (once: the next check stores the current one), or when that
    check did not finish or was clear and is older than `RecheckDays`. The rule version a report came back
@@ -92,10 +148,12 @@ reasons.
    check failed or was lost is not taken again for `FailedRetryHours` (24 h), so one site that
    always fails cannot use the whole daily cap. Each check is a row in
    `recipe.SourceCheck` with the scraper's report stored whole.
-4. **The single verdict** (`SourceAdmissionPolicy`, version `source-admission/3`, a pure function,
+4. **The single verdict** (`SourceAdmissionPolicy`, version `source-admission/4`, a pure function,
    no model). Clear only when all of these hold:
-   - the report is complete and under rule version `source-check/5` (stored `source-check/4` and
-     `source-check/2` reports are still read; an approval needs a check under `source-check/5`). A report under
+   - the report is complete and under rule version `source-check/6` (stored `source-check/5`, `source-check/4`
+     and `source-check/2` reports are still read; an approval needs a check under `source-check/6`;
+     `source-admission/4` made `source-check/6` current, so a `/6` report that was inconclusive as newer is read,
+     and every candidate's last full check is due once again under the new policy version). A report under
      a newer `source-check/N` is read on the reasons NOM knows, flagged "newer check version" on the admin page,
      never clear and inconclusive until NOM reads that version; any other version is not read. Reasons are
      read by their code, never by their place; a reason NOM does not know, and an outcome it does not know
@@ -115,7 +173,8 @@ reasons.
 
    Anything missing or unreadable counts against. A check that did not finish, or came under
    unknown rules, is **inconclusive**: shown as not clear, and it changes nothing that is
-   harvested. The golden set `sources.tsv` holds the rule's cases (see `golden-sets.md`).
+   harvested. The golden set `sources.tsv` holds the rule's cases, and `source-check-6.tsv` replays what
+   `source-check/6` changes on stored reports (see `golden-sets.md`).
 5. **The approval queue** (Admin → Scraping Sources, `GET /api/ScrapingSource/review`). Only
    candidates whose last check is clear, conclusive, under the current rules and at most
    `ClearValidDays` old. Each shows the facts that make it plain: the licence kind and basis,
@@ -149,13 +208,71 @@ reasons.
    are not withheld, each with its probation limit and the crawl-delay of its last check. The
    external harvester reads this list instead of keeping its own.
 
+## First enable with the exclusion list (`source-check/6`)
+
+Staging first, then production in the same order.
+
+1. **Deploy the scraper first.** The reference scraper that takes `excludeDomains` reports `source-check/6`. A NOM
+   that reads `/6` reads its stored `/5` reports as before, and an older NOM reads `/6` as a newer version (never
+   clear, nothing changes), so the scraper may go first; NOM must not start discovery against a scraper without
+   `excludeDomains`, because such a scraper probes the hosts NOM excludes (the run then says "did not apply
+   excludeDomains" and keeps none of them).
+2. **Schema.** `./db/apply.sh --dry-run` shows eight new columns on `recipe.SourceDiscoveryRun` (`ExcludeSent`,
+   `ExcludeLeftOut`, `CandidatesExcluded` with default 0, `ExcludeCursorSince`, `ExcludeCursorHost`,
+   `SeedsExcluded`, `CandidatesExcludedJson`, `ExcludeNote`) and nothing else from this change; then apply and deploy nom-api and nom-ui.
+3. **Version changes on the first tick.** `source-rights/4`: the tick re-derives every stored class from its stored
+   report (no class of the 23 stored `/5` reports changes; `source-check-5.tsv` and `source-check-6.tsv` hold
+   them). `source-admission/4`: every candidate's last full check is due once again, inside `MaxChecksPerDay`.
+4. **Terms-only pass and review** as before (`FullChecks` off, the default): discovery runs are skipped and send
+   nothing. Each terms-only check that classes a source facts-only withholds that source's prose in the same
+   tick (see "Facts-only withhold" below); Admin → Scraping Sources shows before the check how many recipes
+   (and approved ones) a facts-only class would withhold, and after it how many its class withholds.
+5. **Open full checks** (`FullChecks` on, and facts-only use approved per source that passed the review: a
+   source with no approval gets no full check and does not seed discovery). On the first discovery run after it, Admin → Scraping Sources shows the
+   run with "excluded N held hosts". Check that N is the number of forbidden, permission-needed, rejected and
+   unclassed hosts (sources and candidates, one per host, less the candidates the note names as giving way to an
+   approved source that may be fetched), that the run carries no other exclude note, and that the scraper's log
+   shows no request to any of the hosts sent. A note that names a NOM fault (a seed also held) means two rows
+   of one host disagree: resolve the rows before the next run.
+
+## Facts-only withhold
+
+The withhold of a facts-only source's prose follows its class by rule, in the tick that sets the class
+(`SourceRightsService.SyncRecipesAsync`), from a terms-only check or a full one. It is journaled per recipe
+(`ProseWithholdFactsOnly`, which the prose lane reads) and **once per source**: a `SourceFactsOnlyWithhold`
+row on the `FactsOnlyProse` field, `withheld | N recipes (M approved) withheld by the facts-only class of
+terms-only check X`. Its undo (one click in the journal, or the undo of the class row that made the source
+facts-only) takes back the class with the withhold: the class goes back to what it was before (kept on the
+check it came from, so the stale re-derive does not bring it back from the same report) and every recipe of
+the source whose latest prose change is a facts-only withhold is shown again; both are journaled as
+`SourceUndo` rows that can themselves be undone, either one bringing back the class and with it the withhold
+(the `FactsOnlyProse` undo row takes back its paired `Rights` undo row). Nothing then checks the source again by itself (its report
+allows a full check, which waits for an admin); an admin may start a terms-only check of it.
+
+Figures, per approved web source (`SourceProseFiguresModel`): its recipes and approved recipes, those whose
+prose is withheld now, and those a facts-only class would withhold when it comes (not withheld and not in
+NOM's own words), and whether its class came from a terms-only report. Admin → Scraping Sources shows them
+on each source (`scraping-source-prose-figures`, before a class `scraping-source-prose-would-withhold`,
+after it `scraping-source-prose-withheld-by-class`); the Pipeline page lists every source with recipes
+(`pipeline-rights-prose-item`); the re-derive dry run lists a terms-only report that would withhold prose as
+such, with its counts (`scraping-sources-rights-run-withhold`).
+
+**What an operator sees at first enable** (`TermsOnlyChecks` on, `FullChecks` off): before the first tick each
+of the approved web sources shows "no rights class yet" and "A facts-only class ... would withhold the prose of N
+recipes (M approved) in the same tick", and the Pipeline page's source rights block lists the same per source
+under "a facts-only class would withhold". After each tick the checked source shows its class; for a facts-only
+one, "prose withheld N (M approved)" and "The facts-only class of terms-only check X withholds this source's
+prose", the Pipeline row turns to "withheld N (M)", and the journal holds one `SourceFactsOnlyWithhold` row for
+it with an Undo button. Staging checkpoint 4 (2026-11-23) withheld 13,066 recipes (2,308 approved) of nine
+sources this way.
+
 ## Admin actions, journal and undo
 
 Every change of a source's state is a row in `audit.AuditLogEntry` (`EntityType`
 `ScrapingSource`, see `Support/SourceJournal.cs`), with the field, its old and new state and a
 detail: `SourceApprove`, `SourceReject`, `SourceHandRecord`, `SourceHarvestPause`,
 `SourceHarvestResume`, `SourceWithhold`, `SourceRelease`, `SourceRecheck` (a verdict change),
-`SourceProbationPass`, `SourceProbationFail` and `SourceUndo`.
+`SourceProbationPass`, `SourceProbationFail`, `SourceFactsOnlyWithhold` (above) and `SourceUndo`.
 
 - **Pause harvesting for this source** (`POST /api/ScrapingSource/{id}/pause-harvest`) and
   resume (`/resume-harvest`): the harvestable list follows at once; recipes already imported
@@ -220,12 +337,16 @@ probation limit.
 | `ProbationDays`, `ProbationRecipes` | 21, 50 | probation length and recipe limit |
 | `StagedImportGate` | true | the staged import gate above |
 | `TermsOnlyChecks` | false | the scraper has its terms-only mode (`sampleSize` 0). The first check of every source and candidate is terms-only, so off, nothing without a passing terms-only report is checked; an admin may start a terms-only check of a forbidden, permission-needed or unclassed source |
-| `FullChecks` | true | full checks (20 sample recipe pages) may run, each only after a terms-only check allowed it, and discovery runs; set false for a first enable to run the terms-only pass alone and review it |
+| `FullChecks` | false | full checks (20 sample recipe pages) may run, and discovery runs; a source only with a recorded permission, facts-only use approved by an admin, or a clear class of a source admitted from a candidate's clear full check, a candidate after a terms-only check allowed it. Off, a first enable runs the terms-only pass alone; set it true after the review |
 
 `SourceDiscovery:AutoApprove` is no longer read (a warning is logged if it is set).
 
 ## Where it shows
 
+- Admin → Scraping Sources, discovery runs: each run with its seeds, how many hosts it excluded (and left out
+  over the limit) and the excluded hosts its seeds link to (`scraping-sources-run-excluded`), a seed NOM also
+  holds (`scraping-sources-run-seeds-excluded`), and the note of a NOM fault, a list over the limit or a scraper
+  that ignored the list (`scraping-sources-run-exclude-note`).
 - Admin → Scraping Sources: the queue, the approved sources with their re-check and the kind of
   their last check (`scraping-source-last-check-kind`: terms-only or full, its status and date; a
   report under a newer rule version is flagged, `scraping-source-newer-check-version`), the candidates

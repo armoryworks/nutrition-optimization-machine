@@ -9,7 +9,7 @@ namespace Nom.Orch.Services.Support
     /// What the alcohol count needs of one recipe line: its food's alcohol per 100 g (null when the
     /// food stores none above <see cref="DietCriteriaMatcher.PresencePer100g"/>), whether the food is
     /// a flavouring, the line's grams when the label can weigh it, and its stored retention. <c>Label</c>, when
-    /// given, is how a reader is shown the line (<see cref="ProseWithholding.LineName(string?, string?, string?, decimal, string?)"/>);
+    /// given, is how a reader is shown the line (<see cref="ProseWithholding.LineName(string?, string?, string?, decimal, string?, bool)"/>);
     /// the line's text is still what the count reads.
     /// </summary>
     public sealed record AlcoholLineFacts(long IngredientId, string? RawLine, string? FoodName, string? LineKind, decimal Quantity, decimal? Grams, decimal? AlcoholPer100g, bool FoodIsFlavouring, decimal? Retention, string? RetentionBasis, string? Label = null);

@@ -49,11 +49,13 @@ namespace Nom.Orch.Settings
         public bool TermsOnlyChecks { get; set; }
 
         /// <summary>
-        /// Full checks (20 sample recipe pages) may run, each only after a terms-only check of the site found no prohibition
-        /// and no refusal (or a written permission is recorded), and discovery runs, which reads recipe pages too. Set it false
-        /// for a first enable to run the terms-only pass alone, review its classes, then set it true.
+        /// Full checks (20 sample recipe pages) may run, and discovery runs, which reads recipe pages too. Off by default, so a
+        /// first enable runs the terms-only pass alone; set it true after its classes are reviewed. Even then the setting alone
+        /// starts no full check: a source is checked in full only with a written permission recorded, with facts-only use
+        /// approved by an admin, or, when clear, after a full check before; a candidate only after its terms-only check found
+        /// no prohibition and no refusal.
         /// </summary>
-        public bool FullChecks { get; set; } = true;
+        public bool FullChecks { get; set; }
 
         /// <summary>
         /// The staged import takes a recipe only from an approved source (its URL's domain, or the

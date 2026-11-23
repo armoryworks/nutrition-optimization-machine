@@ -195,6 +195,7 @@ namespace Nom.Orch.Models.Curation
         public string Signature { get; set; } = string.Empty;
         public List<string> Sets { get; set; } = new();
         public List<string> ProvenClasses { get; set; } = new();
+        public List<string> CandidateClasses { get; set; } = new();
         public string? ProvenProblem { get; set; }
         public List<LinkRecheckRunSummary> LastRuns { get; set; } = new();
         public LinkRecheckRunSummary? LastWithdraw { get; set; }

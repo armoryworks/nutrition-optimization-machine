@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Nom.Orch.Services.Support;
+using Nom.Orch.UtilityInterfaces;
 
 namespace Nom.Orch.Models.Recipe
 {
@@ -114,6 +115,12 @@ namespace Nom.Orch.Models.Recipe
         public string? SeedsNotVisited { get; set; }
         public string? SeedsRefused { get; set; }
         public int PagesFetched { get; set; }
+        public int ExcludeSent { get; set; }
+        public int ExcludeLeftOut { get; set; }
+        public string? SeedsExcluded { get; set; }
+        public int CandidatesExcluded { get; set; }
+        public List<ScraperExcludedDomain> CandidatesExcludedHosts { get; set; } = new();
+        public string? ExcludeNote { get; set; }
     }
 
     public class SourceJournalEntryModel
@@ -189,6 +196,9 @@ namespace Nom.Orch.Models.Recipe
         public int Hand { get; set; }
         public int RecheckSkipped { get; set; }
         public int TermsChecksWaiting { get; set; }
+        public SourceDiscoveryRunModel? LastExclusionRun { get; set; }
+        public int LeadsHeld { get; set; }
+        public int LeadsTermsChecked { get; set; }
     }
 
     /// <summary>A source the external harvester may harvest now.</summary>

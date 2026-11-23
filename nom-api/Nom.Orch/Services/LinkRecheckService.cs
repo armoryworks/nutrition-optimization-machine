@@ -13,6 +13,7 @@ using Nom.Data;
 using Nom.Data.Audit;
 using Nom.Data.Curation;
 using Nom.Data.Nutrition;
+using Nom.Data.Plan;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Curation;
@@ -362,6 +363,22 @@ namespace Nom.Orch.Services
                 if (qualified) verdict = verdict with { Outcome = verdict.Candidate! };
                 decisions.Add(new Decided(group, food, verdict, null, qualified));
             }
+            var guard = await DietGuardAsync(cancellationToken);
+            for (var i = 0; i < decisions.Count; i++)
+            {
+                var d = decisions[i];
+                if (d.Skip != null || d.Group.Lines.Count == 0) continue;
+                var target = d.Verdict.Outcome == LinkRecheckRules.Move ? d.Verdict.Target?.Food : null;
+                if (d.Verdict.Outcome != LinkRecheckRules.Unlink && target == null) continue;
+                var raws = d.Group.Lines.Select(l => l.Raw);
+                var lowered = target == null ? guard.Lowered(d.Food, d.Group.Wording, raws) : guard.Lowered(d.Food, target, raws);
+                if (lowered.Count > 0)
+                    decisions[i] = d with
+                    {
+                        Verdict = d.Verdict with { Outcome = LinkRecheckRules.Held, Target = null, Reason = target == null ? RecheckDietGuard.Reason(lowered) : RecheckDietGuard.Reason(lowered, target) },
+                        Qualified = false,
+                    };
+            }
 
             Tally(result, decisions, sampleSize);
             var stamp = NewStamp();
@@ -412,6 +429,17 @@ namespace Nom.Orch.Services
                 set, mode ?? "dry run", result.Groups, result.Kept, result.Held, result.Unproven, result.UnprovenLines, result.Candidates, result.CandidateLines, result.LinesMoved, apply ? "moved" : "would move",
                 result.LinesUnlinked, apply ? "taken off their food" : "would be taken off their food");
             return result;
+        }
+
+        /// <summary>The diet guard over the default restriction types and every stored type's pattern criteria (<see cref="RecheckDietGuard"/>).</summary>
+        private async Task<RecheckDietGuard> DietGuardAsync(CancellationToken cancellationToken)
+        {
+            var typeIds = await _db.Set<RestrictionCriterionEntity>().AsNoTracking()
+                .Where(c => c.IngredientPattern != null)
+                .Select(c => c.RestrictionTypeId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+            return RecheckDietGuard.For(await DietCriteriaMatcher.CriteriaAsync(_db, typeIds));
         }
 
         private static void Tally(LinkRecheckResult result, List<Decided> decisions, int sampleSize)
@@ -1386,6 +1414,7 @@ namespace Nom.Orch.Services
                 Signature = LinkRecheckRules.Signature,
                 Sets = LinkRecheckRules.AllSets.ToList(),
                 ProvenClasses = LinkRecheckRules.ProvenClasses.OrderBy(c => c, StringComparer.Ordinal).ToList(),
+                CandidateClasses = LinkRecheckRules.CandidateClasses.ToList(),
                 ProvenProblem = LinkRecheckRules.ProvenProblem,
                 WaitingPicks = await _db.FoodCatalogProposals.AsNoTracking().CountAsync(WaitingModelPick, cancellationToken),
             };

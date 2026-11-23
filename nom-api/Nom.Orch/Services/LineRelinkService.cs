@@ -507,9 +507,21 @@ namespace Nom.Orch.Services
                 return applied;
             }
 
-            await using var dryRun = RelinkUndoDryRun.Create(_db);
-            var result = await new LineRelinkService(dryRun.Copy, _currentUser).UndoEntriesAsync(entries, cancellationToken, dryRun.LoadAsync);
-            result.Applied = false;
+            var result = new LineRelinkUndoResult();
+            foreach (var part in RelinkUndoDryRun.Parts(entries))
+            {
+                await using var dryRun = RelinkUndoDryRun.Create(_db);
+                var counted = await new LineRelinkService(dryRun.Copy, _currentUser).UndoEntriesAsync(part, cancellationToken, dryRun.LoadAsync);
+                result.Restored += counted.Restored;
+                result.FoodsRestored += counted.FoodsRestored;
+                result.Refolded += counted.Refolded;
+                result.Unsplit += counted.Unsplit;
+                result.AlternativesPutBack += counted.AlternativesPutBack;
+                result.PicksRestored += counted.PicksRestored;
+                result.ProposalsRestored += counted.ProposalsRestored;
+                result.Skipped += counted.Skipped;
+                result.SkippedRebuilt += counted.SkippedRebuilt;
+            }
             return result;
         }
 

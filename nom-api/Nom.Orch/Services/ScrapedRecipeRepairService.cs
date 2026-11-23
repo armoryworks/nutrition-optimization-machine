@@ -86,6 +86,11 @@ namespace Nom.Orch.Services
                 {
                     var (was, wasUnit, wasModified) = (row.Quantity, row.MeasurementId, row.LastModifiedDate);
                     if (!Fill(recipe, row, rows, measurements, foodNames, SetElsewhere(recipe.Id, row, filled))) unparsed++;
+                    if ((row.Quantity != was || row.MeasurementId != wasUnit) && !NeverWorse(recipe, row, was, wasUnit, measurements, foodNames))
+                    {
+                        if (was == 0 && row.Quantity != 0) unparsed++;
+                        (row.Quantity, row.MeasurementId) = (was, wasUnit);
+                    }
                     if (row.Quantity == was && row.MeasurementId == wasUnit)
                     {
                         row.LastModifiedDate = wasModified;
@@ -139,6 +144,27 @@ namespace Nom.Orch.Services
             row.Quantity = parsed.Quantity;
             row.MeasurementId = measurementId;
             return true;
+        }
+
+        /// <summary>
+        /// Whether the amount <see cref="Fill"/> gave a row may stand, by <see cref="LineAmountGuard"/>: an empty
+        /// amount is filled only with one grounded in the line, or in the method sentences naming the food when the
+        /// line states none, and a stored amount is replaced only where it contradicts the source and the new one
+        /// is grounded; a grounded stored amount is never emptied.
+        /// </summary>
+        private static bool NeverWorse(RecipeEntity recipe, Nom.Data.Recipe.RecipeIngredientEntity row, decimal was, long wasUnit,
+            Dictionary<string, long> measurements, Dictionary<long, (string Name, bool Counted)> foods)
+        {
+            var units = measurements.GroupBy(m => m.Value).ToDictionary(g => g.Key, g => g.First().Key);
+            var rawLine = row.RawLine ?? string.Empty;
+            var firstLine = rawLine.Split(FoldedLine.Separator, 2)[0];
+            var food = foods.TryGetValue(row.IngredientId, out var known) ? known : ((string Name, bool Counted)?)null;
+            var grams = food is { Counted: true } ? 1m : (decimal?)null;
+            var method = (recipe.RecipeSteps ?? Enumerable.Empty<RecipeStepEntity>()).Where(st => !st.IsDeleted).OrderBy(st => st.StepNumber).Select(st => st.Description ?? string.Empty).ToList();
+            var stored = new LineAmountGuard.Amount(was, units.GetValueOrDefault(wasUnit), row.LineKind, food?.Name, grams);
+            var proposed = new LineAmountGuard.Amount(row.Quantity, units.GetValueOrDefault(row.MeasurementId), row.LineKind, food?.Name, grams,
+                FromMethod: IngredientLineParser.Parse(firstLine) == null);
+            return LineAmountGuard.Takes(LineAmountGuard.Decide(rawLine, stored, proposed, method));
         }
 
         private void Journal(long recipeId, Nom.Data.Recipe.RecipeIngredientEntity row, decimal quantity, long measurementId, DateTime now)

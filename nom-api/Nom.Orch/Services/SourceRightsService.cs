@@ -27,7 +27,9 @@ namespace Nom.Orch.Services
     /// that follow the source mechanically. A facts-only recipe whose shown method is not the clean-room
     /// lane's has its prose withheld (journaled <see cref="FactsOnlyWithholdChangeType"/>), so readers get
     /// facts and the link, and the rewrite lane takes it up; the withhold ends by itself when the source becomes
-    /// clear (a licence or a recorded permission), and stands while it is forbidden or needs permission.
+    /// clear (a licence or a recorded permission), and stands while it is forbidden or needs permission. Each
+    /// withhold of a source's recipes is also one source journal entry (<see cref="SourceJournal.FactsOnlyProseField"/>)
+    /// whose undo takes back the facts-only class with the withhold (<see cref="UndoFactsOnlyAsync"/>).
     /// </summary>
     public class SourceRightsService : ISourceRightsService
     {
@@ -134,6 +136,14 @@ namespace Nom.Orch.Services
                 var lastFull = SourceRightsRule.IsTermsOnly(report) ? await LastFullReportAsync(_db, source.Id, cancellationToken) : null;
                 var verdict = SourceRightsRule.Derive(report, source.RightsClass, source.RightsQuoteUrl, lastFull);
                 var change = Describe(source, verdict, check.Id);
+                if (change.NewClass == SourceRightsRule.FactsOnly && SourceRightsRule.Effective(change.NewClass, source.PermissionRecordedAtUtc != null) == SourceRightsRule.FactsOnly)
+                {
+                    var prose = (await ProseFiguresAsync(_db, new[] { source }, cancellationToken))[source.Id];
+                    change.TermsOnly = SourceRightsRule.IsTermsOnly(report);
+                    change.WouldWithhold = prose.WouldWithhold;
+                    change.WouldWithholdApproved = prose.WouldWithholdApproved;
+                }
+
                 if (!verdict.Conclusive) run.Inconclusive++;
                 if (change.Changed) run.Changed++;
                 if (apply)
@@ -215,8 +225,13 @@ namespace Nom.Orch.Services
             SourceJournal.AiReservedField => SourceJournal.State(AiValue(source)),
             SourceJournal.PermissionField => SourceJournal.State(PermissionValue(source)),
             SourceJournal.FactsOnlyField => SourceJournal.State(FactsOnlyValue(source)),
+            SourceJournal.FactsOnlyProseField => ProseState(source),
             _ => SourceJournal.None,
         };
+
+        /// <summary>The state of the source's facts-only withhold as the journal writes it: withheld while its effective class is facts-only.</summary>
+        internal static string ProseState(ScrapingSourceEntity source) =>
+            EffectiveClass(source) == SourceRightsRule.FactsOnly ? SourceJournal.Withheld : SourceJournal.Shown;
 
         /// <summary>
         /// Sets one rights field of the source back to a journal value (an undo): the class with its
@@ -355,7 +370,8 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// Sets every recipe of the source to its effective class and AI flag, and withholds or releases facts-only prose to match; journaled per recipe.
+        /// Sets every recipe of the source to its effective class and AI flag, and withholds or releases facts-only prose to match; journaled per recipe,
+        /// and a withhold also as one source journal entry with the count of recipes and approved recipes (<see cref="SourceJournal.FactsOnlyProseField"/>).
         /// A facts-only recipe is withheld whenever its shown method is not the clean-room lane's own, a quarantined import and a recipe with a step a
         /// person edited included, so no reader (author, household or curator) is served the publisher's description or untouched steps.
         /// </summary>
@@ -366,6 +382,7 @@ namespace Nom.Orch.Services
             if (recipes.Count == 0) return (0, 0, 0);
             var restamped = 0;
             var withheld = 0;
+            var withheldApproved = 0;
             foreach (var recipe in recipes)
             {
                 if (recipe.SourceRights != effective || recipe.SourceAiReserved != source.AiReserved)
@@ -380,7 +397,16 @@ namespace Nom.Orch.Services
                     recipe.ProseWithheld = true;
                     db.AuditLogEntries.Add(RecipeEntry(recipe.Id, FactsOnlyWithholdChangeType, nameof(RecipeEntity.ProseWithheld), "false", $"true | facts-only source {source.Domain}", now, by));
                     withheld++;
+                    if (recipe.CurationStatusId == (long)CurationStatusEnum.Curated) withheldApproved++;
                 }
+            }
+
+            if (withheld > 0)
+            {
+                var kind = await ClassCheckKindAsync(db, source, cancellationToken);
+                db.AuditLogEntries.Add(SourceJournal.Entry(source.Id, SourceJournal.FactsOnlyWithhold, SourceJournal.FactsOnlyProseField,
+                    SourceJournal.Value(SourceJournal.Shown), SourceJournal.Value(SourceJournal.Withheld,
+                        $"{withheld} recipes ({withheldApproved} approved) withheld by the facts-only class of {kind} check {source.RightsCheckId?.ToString(CultureInfo.InvariantCulture) ?? "(none)"}"), now, by));
             }
 
             var released = 0;
@@ -397,6 +423,103 @@ namespace Nom.Orch.Services
 
             await db.SaveChangesAsync(cancellationToken);
             return (restamped, withheld, released);
+        }
+
+        /// <summary>The kind of check the source's class came from: <c>terms-only</c> or <c>full</c>.</summary>
+        private static async Task<string> ClassCheckKindAsync(ApplicationDbContext db, ScrapingSourceEntity source, CancellationToken cancellationToken)
+        {
+            if (source.RightsCheckId is not { } id) return SourceRightsRule.FullMode;
+            var check = await db.SourceChecks.AsNoTracking().Where(c => c.Id == id).Select(c => new { c.Mode, c.Purpose }).FirstOrDefaultAsync(cancellationToken);
+            return check != null && (check.Mode == SourceRightsRule.TermsOnlyMode || check.Purpose == SourceAdmissionService.TermsOnlyPurpose)
+                ? SourceRightsRule.TermsOnlyMode : SourceRightsRule.FullMode;
+        }
+
+        /// <summary>
+        /// The prose each source's class withholds, before and after (<see cref="SourceProseFiguresModel"/>): its recipes and approved
+        /// recipes, those withheld now, and those a facts-only class withholds when it comes, by the same test as <see cref="SyncRecipesAsync"/>.
+        /// </summary>
+        public static async Task<Dictionary<long, SourceProseFiguresModel>> ProseFiguresAsync(ApplicationDbContext db, IEnumerable<ScrapingSourceEntity> sources, CancellationToken cancellationToken = default)
+        {
+            var list = sources.ToList();
+            var checkIds = list.Where(s => s.RightsCheckId != null).Select(s => s.RightsCheckId!.Value).Distinct().ToList();
+            var termsChecks = (await db.SourceChecks.AsNoTracking()
+                    .Where(c => checkIds.Contains(c.Id) && (c.Mode == SourceRightsRule.TermsOnlyMode || c.Purpose == SourceAdmissionService.TermsOnlyPurpose))
+                    .Select(c => c.Id).ToListAsync(cancellationToken))
+                .ToHashSet();
+            var figures = new Dictionary<long, SourceProseFiguresModel>();
+            foreach (var source in list)
+            {
+                var rows = await SourceAdmissionService.RecipesFrom(db.Recipes.AsNoTracking(), source.Domain)
+                    .Select(r => new
+                    {
+                        Approved = r.CurationStatusId == (long)CurationStatusEnum.Curated,
+                        r.ProseWithheld,
+                        Own = r.ProseLaneVersion != null && r.ProseAttempts == 0 && !r.ContainsSourceProse,
+                    })
+                    .ToListAsync(cancellationToken);
+                figures[source.Id] = new SourceProseFiguresModel
+                {
+                    SourceId = source.Id,
+                    Domain = source.Domain,
+                    RightsClass = EffectiveClass(source),
+                    ClassCheckId = source.RightsCheckId,
+                    ClassFromTermsOnly = source.RightsCheckId is { } id && termsChecks.Contains(id),
+                    Recipes = rows.Count,
+                    Approved = rows.Count(r => r.Approved),
+                    Withheld = rows.Count(r => r.ProseWithheld),
+                    WithheldApproved = rows.Count(r => r.ProseWithheld && r.Approved),
+                    WouldWithhold = rows.Count(r => !r.ProseWithheld && !r.Own),
+                    WouldWithholdApproved = rows.Count(r => !r.ProseWithheld && !r.Own && r.Approved),
+                };
+            }
+
+            return figures;
+        }
+
+        /// <summary>
+        /// Undoes a facts-only withhold of the source (its <see cref="SourceJournal.FactsOnlyProseField"/> entry, or the class entry that made it
+        /// facts-only). The withhold follows the class by rule, so the class goes back to what it was before its latest change to facts-only
+        /// (kept on the check it was derived from, so the lane's re-derive of stale classes does not bring it back from the same report), and
+        /// every recipe of the source whose latest prose change is a facts-only withhold is shown again. Both are journaled, each as an undo
+        /// that can itself be undone. Returns why it cannot be done, or null.
+        /// </summary>
+        public static async Task<string?> UndoFactsOnlyAsync(ApplicationDbContext db, ScrapingSourceEntity source, AuditLogEntryEntity entry, DateTime now, long personId, CancellationToken cancellationToken = default)
+        {
+            var classEntry = entry.PropertyName == SourceJournal.RightsField
+                ? entry
+                : await db.AuditLogEntries.AsNoTracking()
+                    .Where(e => e.EntityType == SourceJournal.EntityType && e.EntityId == source.Id && e.PropertyName == SourceJournal.RightsField)
+                    .OrderByDescending(e => e.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+            if (classEntry == null || SourceJournal.State(classEntry.NewValue) != SourceRightsRule.FactsOnly)
+                return "No journal entry of the facts-only class is left to take back.";
+
+            var oldRights = RightsValue(source);
+            if (!Restore(source, SourceJournal.RightsField, classEntry.OldValue, now, personId))
+                return "This entry does not hold the old facts whole, so it cannot be undone.";
+            source.LastModifiedDate = now;
+            source.LastModifiedByPersonId = personId;
+            var note = $"undo of entry {entry.Id}";
+            var restored = RightsValue(source);
+            db.AuditLogEntries.Add(SourceJournal.Entry(source.Id, SourceJournal.Undo, SourceJournal.RightsField, oldRights,
+                SourceJournal.Value(SourceJournal.State(restored), $"{SourceJournal.Detail(restored)}; {note}".TrimStart(';', ' ')), now, personId));
+
+            var released = 0;
+            var releasedApproved = 0;
+            foreach (var recipe in await SourceAdmissionService.RecipesFrom(db.Recipes, source.Domain).Where(r => r.ProseWithheld).ToListAsync(cancellationToken))
+            {
+                if (!await StillHeldByFactsOnlyAsync(db, recipe.Id, cancellationToken)) continue;
+                recipe.ProseWithheld = false;
+                db.AuditLogEntries.Add(RecipeEntry(recipe.Id, FactsOnlyReleaseChangeType, nameof(RecipeEntity.ProseWithheld), "true", $"false | {note} of source {source.Domain}", now, personId));
+                released++;
+                if (recipe.CurationStatusId == (long)CurationStatusEnum.Curated) releasedApproved++;
+            }
+
+            db.AuditLogEntries.Add(SourceJournal.Entry(source.Id, SourceJournal.Undo, SourceJournal.FactsOnlyProseField, SourceJournal.Value(SourceJournal.Withheld),
+                SourceJournal.Value(SourceJournal.Shown, $"{released} recipes ({releasedApproved} approved) shown again; class {SourceRightsRule.FactsOnly} -> {source.RightsClass ?? SourceJournal.None}; {note}"), now, personId));
+            await db.SaveChangesAsync(cancellationToken);
+            await SyncRecipesAsync(db, source, now, personId, cancellationToken);
+            return null;
         }
 
         /// <summary>Whether the recipe's latest prose change is a facts-only withhold, so ending it shows exactly what was shown before.</summary>
@@ -1068,6 +1191,11 @@ namespace Nom.Orch.Services
                 .Select(a => a.Timestamp).ToListAsync(cancellationToken);
             status.LastChangeUtc = changes.Count == 0 ? null : changes.Max();
             status.ChangesLast7d = changes.Count(t => t > now.AddDays(-7));
+            var approved = sources.Where(s => s.Status == ScrapingSourceStatusEnum.Approved).ToList();
+            status.ProseBySource = (await ProseFiguresAsync(_db, approved, cancellationToken)).Values
+                .Where(f => f.Recipes > 0)
+                .OrderByDescending(f => f.Withheld + f.WouldWithhold).ThenBy(f => f.Domain, StringComparer.Ordinal)
+                .ToList();
             return status;
         }
 

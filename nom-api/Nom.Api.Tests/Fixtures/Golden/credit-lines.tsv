@@ -1,6 +1,7 @@
-# The credit line a recipe keeps from its source text (CreditLines, credit-lines/2): the cue and the credited name only.
+# The credit line a recipe keeps from its source text (CreditLines, credit-lines/3): the cue and the credited name only.
 # texts: the source texts the rule reads (description and steps), split by " | ". Every text is written for the rule; the n26 rows rebuild
-# the shape of the 17 malformed credits staging checkpoint 3 logged (N26) around the credited name, not the page's own prose.
+# the shape of the 17 malformed credits staging checkpoint 3 logged (N26) around the credited name, not the page's own prose, and the
+# p29 rows the 7 wrong and 2 of the 3 doubtful credits of staging checkpoint 4 (P29): book and author names are facts, the sentences constructed.
 id	texts	expect	status	source	note
 keep-none	Inspired by Thai street food, these noodles are tossed in a spicy peanut sauce and finished with lime.	-	ok	rule:construction	an influence, not a credit
 keep-name	Adapted from Martha Stewart and made dairy-free with coconut milk.	Adapted from Martha Stewart	ok	rule:construction	-
@@ -33,3 +34,16 @@ n26-place	Recipe from South America, where quinoa has been grown for centuries	-
 keep-camel-publisher	Reprinted with permission from HarperCollins Publishers.	Reprinted with permission from HarperCollins Publishers	ok	rule:construction	review of ck6-data-fixes (CK6-5): a capital inside a name is a glued word only when what follows it starts a sentence (was "Harper")
 keep-camel-brand	Recipe courtesy of KitchenAid, made in a stand mixer.	Recipe courtesy of KitchenAid	ok	rule:construction	review of ck6-data-fixes (CK6-5) (was "Kitchen")
 keep-surname-in-title	Adapted from Ottolenghi Simple by Yotam Ottolenghi, with more lemon.	Adapted from Ottolenghi Simple by Yotam Ottolenghi	ok	rule:construction	review of ck6-data-fixes (CK6-5): a word repeated after "by" begins a new name, so the author's surname may repeat the title's (was "... by Yotam")
+p29-next-ive-curly	Adapted from Eat Your Vegetables by Joe Yonan I’ve kept the beans whole	Adapted from Eat Your Vegetables by Joe Yonan	ok	rule:staging-p29	50741: "I’ve" with a curly apostrophe starts the next sentence
+p29-glued-ive-curly	Adapted from Secrets of the Best Chefs by Adam RobertsI’ve made it twice	Adapted from Secrets of the Best Chefs by Adam Roberts	ok	rule:staging-p29	141904: the next sentence's "I’ve" glued to the name
+p29-title-commas	Adapted from Almonds, Anchovies and Pancetta: A Vegetarian Cookbook, Kind Of by Cal Peternell. The beans go in last.	Adapted from Almonds, Anchovies and Pancetta: A Vegetarian Cookbook, Kind Of by Cal Peternell	ok	rule:staging-p29	141874: a title with commas and a colon runs on to "by" and the author
+p29-title-repeats	Adapted from Très Green, Très Clean, Très Chic by Rebecca Leffler, with more lemon.	Adapted from Très Green, Très Clean, Très Chic by Rebecca Leffler	ok	rule:staging-p29	141882
+p29-title-lower-to	Adapted from Coming Home to Sicily by Fabrizia Lanza and served warm.	Adapted from Coming Home to Sicily by Fabrizia Lanza	ok	rule:staging-p29	141876: a short lower-case word inside a title
+p29-title-lower-et	Recipe from Cannelle et Vanille by Aran Goyoaga, made with less sugar.	Recipe from Cannelle et Vanille by Aran Goyoaga	ok	rule:staging-p29	61852
+p29-dish-from-person	Adapted from Dakkangjung: Sweet & Crispy Chicken from Maangchi. Fry it twice.	Adapted from Maangchi	ok	rule:staging-p29	141895: the person after "from", not the dish before it
+p29-title-place	Adapted from Burma: Rivers of Flavor by Naomi Duguid, with fewer chillies.	Adapted from Burma: Rivers of Flavor by Naomi Duguid	agent	agent-ck9-sources	141906 (doubtful at checkpoint 4): a place-name title with its subtitle and author
+p29-title-comma-by	Adapted from Healthier Together, by Liz Moody. Keep it cold.	Adapted from Healthier Together by Liz Moody	agent	agent-ck9-sources	61383 (doubtful at checkpoint 4): the author after ", by" is kept
+p29-title-sentence	Recipe adapted from Joe Yonan and published by Ten Speed Press years ago.	Recipe adapted from Joe Yonan	ok	rule:construction	a long lower-case word before "by" is a sentence, not a title, so the old reading stands
+p29-title-run-on	Adapted from Bountiful This salad is the one my son asked for by Sunday	Adapted from Bountiful	ok	rule:construction	a word that starts a sentence inside the words before "by" ends the title, so the old reading stands
+ck9s-colon-sentence-from	Recipe courtesy of Jane Doe: serve with bread from Tartine Bakery.	Recipe courtesy of Jane Doe	ok	rule:construction	a colon followed by a sentence is no dish title, so the person before the colon keeps the credit, not the bakery after "from"
+ck9s-colon-sentence-place	Adapted from Ottolenghi: we used tomatoes from Sicily, sliced thin.	Adapted from Ottolenghi	ok	rule:construction	the words after the colon are a sentence, so "from Sicily" credits no one

@@ -133,7 +133,7 @@ namespace Nom.Orch.Services
                         r.CreatedDate,
                         Ingredients = r.RecipeIngredients?.Select(ri => new
                         {
-                            ri.Ingredient.Name,
+                            Name = ProseWithholding.FoodName(r, ri),
                             ri.Quantity,
                             ReferenceName = ri.Measurement.Name,
                             RawLine = ProseWithholding.LineWording(r, ri.RawLine)

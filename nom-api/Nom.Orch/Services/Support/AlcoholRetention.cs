@@ -21,11 +21,14 @@ namespace Nom.Orch.Services.Support
     /// cooking method and minutes when the steps give them, and the USDA row the factor comes from
     /// (none for no heat or no steps, where nothing is lost).
     /// </summary>
-    public sealed record AlcoholRetentionReading(decimal Factor, string Kind, string? Method, int? Minutes, string? Code)
+    public sealed record AlcoholRetentionReading(decimal Factor, string Kind, string? Method, int? Minutes, string? Code, bool Unnamed = false)
     {
         public string Basis => AlcoholRetention.BasisOf(Kind, Method, Minutes);
 
         public bool UpTo => Kind == AlcoholRetention.UpTo;
+
+        /// <summary>Whether the reading is an estimate: no step names the drink (it is placed by a step that mixes all the ingredients, by another drink word, or not at all), or the heat has no time the reader can take ("up to").</summary>
+        public bool Estimated => Unnamed || UpTo;
     }
 
     /// <summary>
@@ -61,7 +64,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class AlcoholRetention
     {
-        public const string Version = "alcohol-retention/5";
+        public const string Version = "alcohol-retention/6";
         public const string ResourceName = "Nom.Orch.Nutrition.usda-retention-r6-alcohol.tsv";
 
         /// <summary>Kilocalories per gram of alcohol, the FDC calorie factor; energy falls by this much for each gram of alcohol that does not stay.</summary>
@@ -88,7 +91,7 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex SentenceSplit = new(@"(?<=[.!?;])\s+|\n+", Options);
 
         private static readonly Regex NotHeating = new(
-            @"\b(?:remove|removed|removing|take|taken|taking|lift|lifted|move|moved|set|pull)\s+(?:it\s+|them\s+|the\s+\p{L}+\s+|from\s+)?(?:from|off)\s+(?:the\s+)?(?:heat|fire|stove|burner|flame|hob)\b|\boff\s+(?:the\s+)?(?:heat|fire|flame|stove|hob)\b|\baway from (?:the )?(?:heat|fire)\b|\bpre ?heat\w*\s+(?:the\s+|your\s+|an\s+)?oven\b|\bheat\s+(?:the\s+|your\s+)?oven\s+to\b|\bpre ?heat\w*\b|\bboiled\s+(?:icing|frosting|dressing)\b|\bbaking\s+(?:soda|powder|dish|pans?|sheets?|tins?|paper|trays?|parchment)\b|\b(?:oven|heat)\s*proof\b|\bovenproof\b|\bcooking spray\b|\bcooking liquid\b|\bboiled cider\b|\bhard ?boiled\b|\bcooled\b",
+            @"\b(?:remove|removed|removing|take|taken|taking|lift|lifted|move|moved|set|pull)\s+(?:it\s+|them\s+|the\s+\p{L}+\s+|from\s+)?(?:from|off)\s+(?:the\s+)?(?:heat|fire|stove|burner|flame|hob)\b|\boff\s+(?:the\s+)?(?:heat|fire|flame|stove|hob)\b|\baway from (?:the )?(?:heat|fire)\b|\bpre ?heat\w*\s+(?:the\s+|your\s+|an\s+)?oven\b|\bheat\s+(?:the\s+|your\s+)?oven\s+to\b|\bpre ?heat\w*\b|\bboiled\s+(?:icing|frosting|dressing)\b|\bblanched\b|\bbaking\s+(?:soda|powder|dish|pans?|sheets?|tins?|paper|trays?|parchment)\b|\b(?:oven|heat)\s*proof\b|\bovenproof\b|\bcooking spray\b|\bcooking liquid\b|\bboiled cider\b|\bhard ?boiled\b|\bcooled\b",
             Options);
 
         private static readonly Regex OffHeat = new(
@@ -98,7 +101,7 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex GasFlame = new(@"\b(?:low|medium|moderate|high|gentle|slow|brisk|clear|small|good|steady|open|direct|naked|hot)\s+(?:flame|fire)\b|\bover\s+(?:a\s+|the\s+)?(?:flame|fire)\b", Options);
 
         private static readonly Regex Stove = new(
-            @"\b(?:simmer\w*|boil\w*|stew(?:s|ed|ing)?|brais\w*|reduc(?:e|es|ed|ing)|poach\w*|fry|fries|fried|frying|saut[eé]\w*|sear(?:s|ed|ing)?|steam(?:s|ed|ing)?|scald\w*|deglaz\w*|blanch\w*|grill\w*|microwave\w*|stir[- ]fr\w*|caramel[iy][sz]\w*|thicken\w*)\b",
+            @"\b(?:simmer\w*|boil\w*|parboil\w*|boyl\w*|stew(?:s|ed|ing|pans?)?|brais\w*|braiz\w*|seeth\w*|coddl\w*|fricass\w*|reduc(?:e|es|ed|ing)|poach\w*|fry|fries|fried|frying|saut[eé]\w*|sear(?:s|ed|ing)?|steam(?:s|ed|ing)?|scald\w*|deglaz\w*|blanch\w*|grill\w*|microwave\w*|stir[- ]fr\w*|caramel[iy][sz]\w*|thicken\w*)\b",
             Options);
 
         private static readonly Regex GenericHeat = new(@"\b(?:cook(?:s|ed|ing)?|heat(?:s|ed|ing)?)\b", Options);
@@ -135,6 +138,14 @@ namespace Nom.Orch.Services.Support
             @"\bchill(?:s|ing)?\b|\brefrigerat(?:e|es|ing)\b|\bfreez(?:e|es|ing)\b|\bin(?:to)? the (?:fridge|refrigerator|freezer)\b|\b(?:let|leave|allow|set)\b[^.;]{0,25}\bcool\b|\bcool(?:s|ing)?\s+(?:completely|slightly|thoroughly|down|for|until|to|on|in)\b|^\W*cool\b|\bset\s+(?:it\s+|them\s+|the\s+\p{L}+\s+)?aside\b|\breserves?\b|\bserves?\b",
             Options);
 
+        private static readonly Regex Frozen = new(@"\bfreez(?:e|es|ing)\b|\bin(?:to)?\s+(?:the\s+|a\s+)?(?:freezer|ice cream (?:freezer|maker))\b|\buntil\s+(?:firm(?:ly)?\s+)?frozen\b", Options);
+
+        private static readonly Regex Cold = new(@"\b(?:cold|cool|cooled|chilled|lukewarm|tepid|iced)\b", Options);
+
+        private static readonly Regex ClauseVerb = new(
+            @"\b(?:add|adds|added|adding|stir\w*|pour\w*|whisk\w*|mix\w*|fold\w*|splash\w*|swirl\w*|beat|beats|blend\w*|combine\w*|put|puts|place\w*|season\w*|cover\w*|moisten\w*|wet|baste\w*|flavou?r\w*|sprinkle\w*|serve\w*|let|leave|set|brush\w*|dip\w*|marinate\w*|toss\w*|soak\w*|steep\w*|simmer\w*|boil\w*|stew\w*|brais\w*|cook\w*|heat\w*|bake\w*|roast\w*|fry|fries|fried|frying|reduce\w*|poach\w*|flam\w*)\b",
+            Options);
+
         private static readonly Regex DryHalf = new(@"\b(?:flour|dry ingredients|baking (?:powder|soda))\b", Options);
 
         private static readonly Regex Mixture = new(@"\b(?<w>(?!(?:the|a|an|this|that|dry|flour)\b)\p{L}{3,})\s+mixture\b", Options);
@@ -152,7 +163,7 @@ namespace Nom.Orch.Services.Support
             Options);
 
         private static readonly Regex MixAll = new(
-            @"\b(?:mix|mixes|mixed|stir|stirs|stirred|beat|beats|combine\w*|blend\w*|put|add|adds|work)\b[^.;]*?\b(?:all\s+(?:the\s+)?(?:other\s+|remaining\s+)?ingredients|(?:all|them|it|everything)\s+(?:well\s+)?together|everything|(?:the\s+)?(?:remaining|other)\s+ingredients|(?:the\s+)?rest\s+of\s+the\s+ingredients)\b",
+            @"\b(?:mix|mixes|mixed|stir|stirs|stirred|beat|beats|combine\w*|blend\w*|whisk\w*|fold\w*|toss\w*|put|add|adds|work)\b[^.;]*?\b(?:all\s+(?:the\s+)?(?:other\s+|remaining\s+)?ingredients|(?:all|them|it|everything)\s+(?:well\s+)?together|everything|all\s+(?:in|into)|(?:the\s+)?(?:remaining|other)\s+ingredients|(?:the\s+)?rest\s+of\s+the\s+ingredients)\b",
             Options);
 
         private static readonly Regex DryIngredients = new(@"\b(?:dry|dried)\s+ingredients\b", Options);
@@ -257,49 +268,67 @@ namespace Nom.Orch.Services.Support
                     position = m.Index;
                 }
             }
-            if (index < 0)
-            {
-                var drinkWords = Enumerable.Range(0, sentences.Count)
-                    .Select(i => (Index: i, Match: AlcoholLineContext.Trigger.Match(sentences[i])))
-                    .Where(t => t.Match.Success)
-                    .ToList();
-                if (drinkWords.Any(t => Soak.IsMatch(sentences[t.Index])))
-                    return drinkWords.Select(t => ReadAt(sentences, t.Index, t.Match.Index)).MaxBy(r => r.Factor)!;
-                if (drinkWords.Count > 0)
-                    return drinkWords.Select(t => ReadAt(sentences, t.Index, t.Match.Index)).Append(Unplaced(sentences)).MaxBy(r => r.Factor)!;
-            }
+            if (index >= 0) return ReadAt(sentences, index, position);
 
-            for (var i = 0; i < sentences.Count && index < 0; i++)
+            var family = Family(AlcoholLineContext.Read(line));
+            var drinkWords = Enumerable.Range(0, sentences.Count)
+                .Select(i => (Index: i, Match: AlcoholLineContext.Trigger.Matches(sentences[i]).FirstOrDefault(m => MayName(m.Value, family))))
+                .Where(t => t.Match != null)
+                .ToList();
+            if (drinkWords.Any(t => Soak.IsMatch(sentences[t.Index])))
+                return drinkWords.Select(t => ReadAt(sentences, t.Index, t.Match!.Index)).MaxBy(r => r.Factor)! with { Unnamed = true };
+            if (drinkWords.Count > 0)
+                return drinkWords.Select(t => ReadAt(sentences, t.Index, t.Match!.Index)).Append(Unplaced(sentences)).MaxBy(r => r.Factor)! with { Unnamed = true };
+
+            for (var i = 0; i < sentences.Count; i++)
             {
                 if (MixAll.IsMatch(sentences[i]) && !DryIngredients.IsMatch(sentences[i]))
-                {
-                    index = i;
-                    position = 0;
-                }
+                    return ReadAt(sentences, i, 0) with { Unnamed = true };
             }
 
-            return index < 0 ? Unplaced(sentences) : ReadAt(sentences, index, position);
+            return Unplaced(sentences);
         }
 
         private static AlcoholRetentionReading Unplaced(List<string> sentences)
         {
             var all = Scan(sentences);
-            if (!all.Stove && !all.Oven && !all.Flame) return Of(NoHeat);
-            return Of(UpTo, all.Stove || all.Flame || !all.Oven ? Simmer : Bake);
+            if (!all.Stove && !all.Oven && !all.Flame) return Of(NoHeat) with { Unnamed = true };
+            return Of(UpTo, all.Stove || all.Flame || !all.Oven ? Simmer : Bake) with { Unnamed = true };
         }
+
+        /// <summary>
+        /// The kind of drink a sense is (wine, spirit, beer or cider), so a step's drink word of another kind is not read
+        /// as the line's drink ("Serve with white wine sauce" never holds the brandy of the line); null for a sense of no
+        /// one kind (a flavouring, alcohol, a list), which any drink word may name.
+        /// </summary>
+        private static string? Family(AlcoholReading reading) => reading.Sense switch
+        {
+            "spirit" or "rum" or "vodka" or "whiskey" or "liqueur" or "coffee-liqueur" or "cream-liqueur" or "creme-de-menthe" => "spirit",
+            "beer" or "light-beer" or "malt-liquor" => "beer",
+            "hard-cider" or "cider-unclear" => "cider",
+            "cooking-wine" or "sake" or "rice-wine" or "fortified-dry" or "fortified-sweet" or "fortified" or "vermouth" or "country-wine" => "wine",
+            var sense when sense.StartsWith("wine-", StringComparison.Ordinal) => "wine",
+            _ => null,
+        };
+
+        private static bool MayName(string word, string? family) =>
+            family == null || DrinkGeneric.IsMatch(word) || Family(AlcoholLineContext.Read(word)) is not { } other || other == family;
 
         private static AlcoholRetentionReading ReadAt(List<string> sentences, int index, int position)
         {
             var sentence = sentences[index];
-            var clauseStart = ClauseBreak.Matches(sentence[..position]).Select(m => m.Index + m.Length).DefaultIfEmpty(0).Max();
+            var clauseStart = ClauseBreak.Matches(sentence[..position]).Select(m => m.Index + m.Length)
+                .Where(start => ClauseVerb.IsMatch(sentence[start..position])).DefaultIfEmpty(0).Max();
             var after = Segment(sentence[clauseStart..], sentences.Skip(index + 1).ToList(), sentence, Soak.IsMatch(sentence));
             var scan = Scan(after);
 
             if (!scan.Stove && !scan.Oven)
             {
                 if (scan.Flame) return Of(Flamed);
+                if (after.Any(s => Frozen.IsMatch(s))) return Of(NoHeat);
                 var before = sentence[..clauseStart] + " " + (index > 0 ? sentences[index - 1] : string.Empty);
-                if (OffHeat.IsMatch(sentence) || OffHeat.IsMatch(before) || (AddVerb.IsMatch(sentence[clauseStart..]) && Scan(new[] { before }).Stove)) return Of(HotLiquid);
+                if (!Cold.IsMatch(sentence[..position])
+                    && (OffHeat.IsMatch(sentence) || OffHeat.IsMatch(before) || (AddVerb.IsMatch(sentence[clauseStart..]) && Scan(new[] { before }).Stove))) return Of(HotLiquid);
                 if (after.Any(s => OvernightWords.IsMatch(s))) return Of(Overnight);
                 return Of(NoHeat);
             }
@@ -487,11 +516,12 @@ namespace Nom.Orch.Services.Support
         internal static string SignatureSource()
         {
             var text = new StringBuilder(Version);
-            foreach (var regex in new[] { SentenceSplit, NotHeating, OffHeat, GasFlame, Stove, GenericHeat, Oven, Flame, OvernightWords, Duration, MoreMinutes, SeparateStep, PauseStep, DryHalf, Mixture, Soak, ClauseBreak, AddVerb, DrinkGeneric, GenericMention, MixAll, DryIngredients, NotMention, EveryBefore })
+            foreach (var regex in new[] { SentenceSplit, NotHeating, OffHeat, GasFlame, Stove, GenericHeat, Oven, Flame, OvernightWords, Duration, MoreMinutes, SeparateStep, PauseStep, Frozen, Cold, ClauseVerb, DryHalf, Mixture, Soak, ClauseBreak, AddVerb, DrinkGeneric, GenericMention, MixAll, DryIngredients, NotMention, EveryBefore })
                 text.Append('\n').Append(regex);
             foreach (var (pattern, replacement) in Phrases) text.Append('\n').Append(pattern).Append('=').Append(replacement);
             foreach (var row in Rows) text.Append('\n').Append(row.Code).Append('=').Append(row.Percent.ToString(CultureInfo.InvariantCulture)).Append(':').Append(row.Minutes?.ToString(CultureInfo.InvariantCulture));
             text.Append("\ntrigger:").Append(AlcoholLineContext.Trigger);
+            text.Append("\nfamilies:").Append(AlcoholLineContext.Signature);
             return text.ToString();
         }
     }
